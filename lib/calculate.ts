@@ -3,43 +3,49 @@ import { StreakStats } from '../types';
 
 export function calculateStreak(calendar: any): StreakStats {
   const weeks = calendar.weeks;
+  const days = weeks.flatMap((week: any) => week.contributionDays);
+  
   let currentStreak = 0;
   let longestStreak = 0;
-  let todayCount = 0;
+  let tempStreak = 0;
 
-  // Flatten the array of weeks into a single, continuous array of days
-  const days = weeks.flatMap((week: any) => week.contributionDays);
-
-  // Iterate backwards, starting from today (the last day in the array)
-  for (let i = days.length - 1; i >= 0; i--) {
-    const day = days[i];
-    
-    // Day index for today
-    if (i === days.length - 1) {
-      todayCount = day.contributionCount;
-      if (todayCount > 0) currentStreak++;
-      continue;
-    }
-
+  // 1. Calculate Longest Streak (Standard loop)
+  for (const day of days) {
     if (day.contributionCount > 0) {
-      currentStreak++;
+      tempStreak++;
+      if (tempStreak > longestStreak) longestStreak = tempStreak;
     } else {
-      // If the user hasn't committed TODAY (todayCount === 0), but they committed YESTERDAY,
-      // the streak is still alive. 
-      // If they missed yesterday too, the streak is officially broken.
-      if (currentStreak > 0 && !(i === days.length - 2 && todayCount === 0)) {
-        longestStreak = Math.max(longestStreak, currentStreak);
-        currentStreak = 0;
-      } else if (i < days.length - 2) {
-        // We reached a day in the past where the streak was broken. Stop counting.
-        break; 
-      }
+      tempStreak = 0;
     }
+  }
+
+  // 2. Calculate Current Streak (Backwards loop with Grace Period)
+  // We look at the very last day in the array (Today in UTC)
+  const todayIndex = days.length - 1;
+  const today = days[todayIndex];
+  const yesterday = days[todayIndex - 1];
+
+  // If I committed today, the streak is alive.
+  // If I haven't committed today, but I committed yesterday, 
+  // the streak is STILL alive (Grace Period).
+  const isStreakAlive = today.contributionCount > 0 || yesterday.contributionCount > 0;
+
+  if (isStreakAlive) {
+    // Count backwards from the first day that has a contribution
+    // starting from either today or yesterday.
+    let i = today.contributionCount > 0 ? todayIndex : todayIndex - 1;
+    
+    while (i >= 0 && days[i].contributionCount > 0) {
+      currentStreak++;
+      i--;
+    }
+  } else {
+    currentStreak = 0;
   }
 
   return {
     currentStreak,
-    longestStreak: Math.max(longestStreak, currentStreak),
+    longestStreak,
     totalContributions: calendar.totalContributions,
   };
 }

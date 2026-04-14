@@ -1,42 +1,78 @@
 // lib/svg/generator.ts
 import { StreakStats, BadgeParams } from '../../types';
 
-export function generateSVG(stats: StreakStats, params: BadgeParams) {
-  // Set fallback defaults if the user didn't provide custom colors in the URL
-  const bg = params.bg || '0d1117';
-  const text = params.text || 'c9d1d9';
-  const accent = params.accent || '58a6ff';
-  const radius = params.radius || '8';
+export function generateSVG(stats: StreakStats, params: BadgeParams, calendar: any) {
+  const bg = `#${(params.bg || '0d1117').replace('#', '')}`;
+  const accent = `#${(params.accent || '00ffaa').replace('#', '')}`;
+  const text = `#${(params.text || 'ffffff').replace('#', '')}`;
 
-  // We format the colors with a # tag (URL params usually omit the # symbol)
-  const bgColor = `#${bg.replace('#', '')}`;
-  const textColor = `#${text.replace('#', '')}`;
-  const accentColor = `#${accent.replace('#', '')}`;
+  const weeks = calendar.weeks.slice(-14); // 14 weeks for better symmetry
+  let towers = "";
+
+  weeks.forEach((week: any, i: number) => {
+    week.contributionDays.forEach((day: any, j: number) => {
+      // Height scales with contribution count
+      const h = Math.min(day.contributionCount * 5, 50); 
+      const x = 300 + (i - j) * 16; 
+      const y = 120 + (i + j) * 9; 
+      
+      const hasCommits = day.contributionCount > 0;
+      const color = hasCommits ? accent : text;
+      const opacity = hasCommits ? 0.7 : 0.05;
+
+      towers += `
+        <g transform="translate(${x}, ${y - h})">
+          <path d="M0 10 L0 ${10+h} L-16 ${h} L-16 0 Z" fill="${color}" fill-opacity="${opacity * 0.5}" />
+          <path d="M0 10 L0 ${10+h} L16 ${h} L16 0 Z" fill="${color}" fill-opacity="${opacity * 0.3}" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="${color}" fill-opacity="${opacity}" />
+          ${day.contributionCount > 5 ? `<path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="white" fill-opacity="0.2" />` : ''}
+        </g>`;
+    });
+  });
 
   return `
-    <svg xmlns="http://www.w3.org/2000/svg" width="400" height="150" viewBox="0 0 400 150">
+    <svg xmlns="http://www.w3.org/2000/svg" width="600" height="420" viewBox="0 0 600 420" fill="none">
+      <defs>
+        <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="5" result="blur" />
+          <feComposite in="SourceGraphic" in2="blur" operator="over" />
+        </filter>
+      </defs>
+
       <style>
-        .header { font: 600 16px 'Segoe UI', Ubuntu, Sans-Serif; fill: ${accentColor}; }
-        .stat-value { font: 700 28px 'Segoe UI', Ubuntu, Sans-Serif; fill: ${textColor}; }
-        .stat-label { font: 400 12px 'Segoe UI', Ubuntu, Sans-Serif; fill: ${textColor}; opacity: 0.8; }
+        @import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@700&amp;family=Space+Grotesk:wght@300;500;700&amp;display=swap');
+        .title { font-family: 'Syncopate', sans-serif; fill: ${text}; font-size: 18px; letter-spacing: 6px; opacity: 0.8; }
+        .stats { font-family: 'Space Grotesk', sans-serif; fill: ${text}; font-size: 42px; font-weight: 700; }
+        .total-val { font-family: 'Syncopate', sans-serif; fill: ${accent}; font-size: 24px; font-weight: 700; }
+        .label { font-family: 'Space Grotesk', sans-serif; fill: ${accent}; font-size: 11px; font-weight: 700; letter-spacing: 2px; opacity: 0.7; }
       </style>
-      
-      <rect x="0.5" y="0.5" rx="${radius}" width="399" height="149" fill="${bgColor}" stroke="${accentColor}" stroke-opacity="0.2"/>
-      
-      <g transform="translate(25, 35)">
-        <text x="0" y="0" class="header">${params.user}'s GitHub Streak</text>
+
+      <rect width="600" height="420" rx="32" fill="${bg}" />
+
+      <g transform="translate(0, 20)">
+        ${towers}
       </g>
 
-      <g transform="translate(25, 90)">
-        <text x="0" y="0" class="stat-value">${stats.currentStreak}</text>
-        <text x="0" y="20" class="stat-label">Current Streak</text>
-
-        <text x="130" y="0" class="stat-value">${stats.longestStreak}</text>
-        <text x="130" y="20" class="stat-label">Longest Streak</text>
-
-        <text x="260" y="0" class="stat-value">${stats.totalContributions}</text>
-        <text x="260" y="20" class="stat-label">Total (1 Year)</text>
+      <g transform="translate(40, 340)">
+        <text class="label">CURRENT_STREAK</text>
+        <text y="40" class="stats" filter="url(#glow)">${stats.currentStreak}</text>
       </g>
+
+      <g transform="translate(300, 340)" text-anchor="middle">
+        <text class="label">ANNUAL_SYNC_TOTAL</text>
+        <text y="40" class="total-val" filter="url(#glow)">${stats.totalContributions}</text>
+      </g>
+
+      <g transform="translate(560, 340)" text-anchor="end">
+        <text class="label">PEAK_STREAK</text>
+        <text y="40" class="stats">${stats.longestStreak}</text>
+      </g>
+
+      <text x="300" y="50" text-anchor="middle" class="title">${params.user.toUpperCase()}</text>
+
+      <rect x="100" y="60" width="400" height="1" fill="${accent}" fill-opacity="0.3">
+        <animate attributeName="y" values="80;320;80" dur="8s" repeatCount="indefinite" />
+      </rect>
     </svg>
   `;
 }
