@@ -5,6 +5,7 @@ import { calculateStreak } from '../../../lib/calculate';
 import { generateSVG } from '../../../lib/svg/generator';
 import { getSecondsUntilUTCMidnight } from '../../../utils/time';
 import { BadgeParams } from '../../../types';
+import { themes } from '../../../lib/svg/themes';
 
 export async function GET(request: Request) {
   try {
@@ -16,12 +17,17 @@ export async function GET(request: Request) {
       return new NextResponse('Missing "user" parameter', { status: 400 });
     }
 
+    // Look up theme from our library, fallback to 'dark'
+    const themeName = searchParams.get('theme') || 'dark';
+    const selectedTheme = themes[themeName] || themes['dark'];
+
     const params: BadgeParams = {
       user,
-      bg: searchParams.get('bg') || undefined,
-      text: searchParams.get('text') || undefined,
-      accent: searchParams.get('accent') || undefined,
-      radius: searchParams.get('radius') || undefined,
+      // Priority: URL Param > Theme Default > Fallback
+      bg: searchParams.get('bg') || selectedTheme.bg,
+      text: searchParams.get('text') || selectedTheme.text,
+      accent: searchParams.get('accent') || selectedTheme.accent,
+      radius: searchParams.get('radius') || '8',
     };
 
     // 2. Fetch Data & Calculate Stats
@@ -31,27 +37,35 @@ export async function GET(request: Request) {
     // 3. Generate the SVG string
     const svg = generateSVG(stats, params);
 
-    // 4. Calculate Cache Control (The most important part for real-time streaks)
+    // 4. Calculate Cache Control (Reset at UTC Midnight)
     const secondsToMidnight = getSecondsUntilUTCMidnight();
-    const cacheControl = `public, s-maxage=${secondsToMidnight}, stale-while-revalidate=86400`;
+    
+    // Check if user wants to force a refresh
+    const refresh = searchParams.get('refresh') === 'true';
+    const cacheControl = refresh 
+      ? 'no-cache, no-store, must-revalidate' 
+      : `public, s-maxage=${secondsToMidnight}, stale-while-revalidate=86400`;
 
     // 5. Return the Image Response
     return new NextResponse(svg, {
       headers: {
         'Content-Type': 'image/svg+xml',
         'Cache-Control': cacheControl,
-        // Crucial for security, prevents XSS attacks in SVGs
         'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline';",
       },
     });
 
   } catch (error: any) {
     console.error('Streak API Error:', error);
-    // Return a visible error image so the user knows what went wrong on their README
-    const errorSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="150" viewBox="0 0 400 150">
-      <rect width="100%" height="100%" fill="#2d0000"/>
-      <text x="20" y="75" fill="#ffcccc" font-family="sans-serif">Error: ${error.message}</text>
-    </svg>`;
+    
+    const errorSvg = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="400" height="150" viewBox="0 0 400 150">
+        <rect width="100%" height="100%" fill="#2d0000" rx="8"/>
+        <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#ffcccc" font-family="sans-serif" font-size="14">
+          Error: ${error.message}
+        </text>
+      </svg>
+    `;
     
     return new NextResponse(errorSvg, { 
       status: 500,
