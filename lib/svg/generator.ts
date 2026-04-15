@@ -13,8 +13,11 @@ export function generateSVG(stats: StreakStats, params: BadgeParams, calendar: a
     week.contributionDays.forEach((day: any, j: number) => {
       const tooltip = `${day.date}: ${day.contributionCount} contributions`;
 
-      // Height scales with contribution count
-      const h = Math.min(day.contributionCount * 5, 50); 
+      // Height scales with contribution count (linear or logarithmic)
+      const rawH = params.scale === 'log'
+        ? (day.contributionCount > 0 ? Math.log2(day.contributionCount + 1) * 20 : 0)
+        : day.contributionCount * 5;
+      const h = Math.min(rawH, 50);
       const x = 300 + (i - j) * 16; 
       const y = 120 + (i + j) * 9; 
       
@@ -74,7 +77,7 @@ export function generateSVG(stats: StreakStats, params: BadgeParams, calendar: a
       <text x="300" y="50" text-anchor="middle" class="title">${params.user.toUpperCase()}</text>
 
       <rect x="100" y="60" width="400" height="1" fill="${accent}" fill-opacity="0.3">
-        <animate attributeName="y" values="80;320;80" dur="8s" repeatCount="indefinite" />
+        <animate attributeName="y" values="80;320;80" dur="${params.speed || '8s'}" repeatCount="indefinite" />
       </rect>
     </svg>
   `;
