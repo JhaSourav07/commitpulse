@@ -9,10 +9,7 @@ This gallery showcases all available themes for the CommitPulse streak card.
 ![Neon](assets/themes/neon.png)
 
 Usage:
-
-```
-/api/streak?user=yourusername&theme=neon
-```
+`/api/streak?user=yourusername&theme=neon`
 
 ---
 
@@ -21,10 +18,7 @@ Usage:
 ![Dracula](assets/themes/dracula.png)
 
 Usage:
-
-```
-/api/streak?user=yourusername&theme=dracula
-```
+`/api/streak?user=yourusername&theme=dracula`
 
 ---
 
