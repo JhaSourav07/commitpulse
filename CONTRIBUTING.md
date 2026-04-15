@@ -53,7 +53,7 @@ Get CommitPulse running on your machine in under 5 minutes.
 
 ```bash
 # Step 1 — Clone the repository
-git clone https://github.com/JhaSourav07/commitpulse.git
+git clone https://github.com/JiteshYadavvvvv/commitpulse.git
 cd commitpulse
 
 # Step 2 — Install dependencies
@@ -229,9 +229,9 @@ CommitPulse is a project built by a first-year developer for the **Web3 and open
 
 Check the open issues tagged:
 
-- [`good first issue`](https://github.com/JhaSourav07/commitpulse/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) — Beginner-friendly
-- [`theme-request`](https://github.com/JhaSourav07/commitpulse/issues?q=is%3Aissue+is%3Aopen+label%3Atheme-request) — Design contributions
-- [`svg-enhancement`](https://github.com/JhaSourav07/commitpulse/issues?q=is%3Aissue+is%3Aopen+label%3Asvg-enhancement) — Geometric improvements
+- [`good first issue`](https://github.com/JiteshYadavvvvv/commitpulse/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) — Beginner-friendly
+- [`theme-request`](https://github.com/JiteshYadavvvvv/commitpulse/issues?q=is%3Aissue+is%3Aopen+label%3Atheme-request) — Design contributions
+- [`svg-enhancement`](https://github.com/JiteshYadavvvvv/commitpulse/issues?q=is%3Aissue+is%3Aopen+label%3Asvg-enhancement) — Geometric improvements
 
 ---
 

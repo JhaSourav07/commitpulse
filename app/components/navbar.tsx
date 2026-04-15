@@ -21,7 +21,7 @@ function GithubMark() {
 const NAV_LINKS = [
   {
     label: "GitHub Repo",
-    href: "https://github.com/JhaSourav07/commitpulse",
+    href: "https://github.com/JiteshYadavvvvv/commitpulse",
   },
 ];
 

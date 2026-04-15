@@ -7,6 +7,8 @@ import { getSecondsUntilUTCMidnight } from "../../../utils/time";
 import { BadgeParams } from "../../../types";
 import { themes } from "../../../lib/svg/themes";
 
+const ALLOWED_FONTS = new Set(["jetbrains-mono", "fira-code", "roboto-mono"]);
+
 export async function GET(request: Request) {
   try {
     // 1. Parse URL Parameters
@@ -20,6 +22,8 @@ export async function GET(request: Request) {
     // Look up theme from our library, fallback to 'dark'
     const themeName = searchParams.get("theme") || "dark";
     const selectedTheme = themes[themeName] || themes["dark"];
+    const requestedFont = (searchParams.get("font") || "jetbrains-mono").toLowerCase();
+    const selectedFont = ALLOWED_FONTS.has(requestedFont) ? requestedFont : "jetbrains-mono";
 
     const params: BadgeParams = {
       user,
@@ -28,6 +32,7 @@ export async function GET(request: Request) {
       text: searchParams.get("text") || selectedTheme.text,
       accent: searchParams.get("accent") || selectedTheme.accent,
       radius: searchParams.get("radius") || "8",
+      font: selectedFont,
     };
 
     // 2. Fetch Data & Calculate Stats

@@ -81,6 +81,7 @@ URL Parameter > Theme Default > System Fallback
 | `accent` | `hex` | No | Theme default | Tower & glow color — **without** `#` |
 | `text` | `hex` | No | Theme default | Label & stat text color — **without** `#` |
 | `radius` | `number` | No | `8` | Border corner radius in pixels |
+| `font` | `string` | No | `jetbrains-mono` | Developer font preset: `jetbrains-mono`, `fira-code`, `roboto-mono` |
 | `refresh` | `boolean` | No | `false` | Bypass cache for real-time data |
 
 ### Theme Presets
@@ -101,6 +102,9 @@ URL Parameter > Theme Default > System Fallback
 
 <!-- Fully custom — hot orange on void black -->
 ![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&bg=080808&accent=ff4500&text=eeeeee&radius=16)
+
+<!-- Use Fira Code typography -->
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=dark&font=fira-code)
 
 <!-- Force bypass cache for latest data -->
 ![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&refresh=true)
@@ -177,7 +181,7 @@ types/index.ts              →  TypeScript interfaces (StreakStats, BadgeParams
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/JhaSourav07/commitpulse.git && cd commitpulse
+git clone https://github.com/JiteshYadavvvvv/commitpulse.git && cd commitpulse
 
 # 2. Install dependencies
 npm install
@@ -197,7 +201,7 @@ Then visit: `http://localhost:3000/api/streak?user=YOUR_USERNAME`
 
 ## 🌐 Deploy Your Own
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/JhaSourav07/commitpulse&env=GITHUB_PAT&envDescription=GitHub%20Personal%20Access%20Token%20with%20read%3Auser%20scope)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/JiteshYadavvvvv/commitpulse&env=GITHUB_PAT&envDescription=GitHub%20Personal%20Access%20Token%20with%20read%3Auser%20scope)
 
 Set the `GITHUB_PAT` environment variable in your Vercel project settings, and you're live.
 
@@ -213,7 +217,7 @@ Read the full guide: **[CONTRIBUTING.md](CONTRIBUTING.md)**
 
 ## 📄 License
 
-MIT © [Sourav Jha](https://github.com/JhaSourav07)
+MIT © [JiteshYadavvvvv](https://github.com/JiteshYadavvvvv)
 
 ---
 

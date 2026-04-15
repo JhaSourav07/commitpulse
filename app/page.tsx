@@ -19,16 +19,31 @@ const Icons = {
   )
 };
 
+const ALLOWED_FONTS = new Set(['jetbrains-mono', 'fira-code', 'roboto-mono']);
+
+const DEFAULT_FONT = 'jetbrains-mono';
+
 export default function LandingPage() {
   const [username, setUsername] = useState('jhasourav07');
+  const [font, setFont] = useState(() => {
+    if (typeof window === 'undefined') return DEFAULT_FONT;
+    const saved = window.localStorage.getItem('commitpulse-font') || DEFAULT_FONT;
+    return ALLOWED_FONTS.has(saved) ? saved : DEFAULT_FONT;
+  });
   const [copied, setCopied] = useState(false);
   const [mounted, setMounted] = useState(false);
   const guideRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => setMounted(true), []);
 
-  const badgeUrl = `/api/streak?user=${username}`;
-  const markdown = `![CommitPulse](https://commitpulse.vercel.app/api/streak?user=${username})`;
+  useEffect(() => {
+    const selectedFont = ALLOWED_FONTS.has(font) ? font : DEFAULT_FONT;
+    document.body.setAttribute('data-font', selectedFont);
+    window.localStorage.setItem('commitpulse-font', selectedFont);
+  }, [font]);
+
+  const badgeUrl = `/api/streak?user=${encodeURIComponent(username)}&font=${encodeURIComponent(font)}`;
+  const markdown = `![CommitPulse](https://commitpulse.vercel.app/api/streak?user=${encodeURIComponent(username)}&font=${encodeURIComponent(font)})`;
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(markdown);
@@ -43,7 +58,7 @@ export default function LandingPage() {
   if (!mounted) return null;
 
   return (
-    <div className="min-h-screen bg-[#050505] text-white selection:bg-emerald-500/30 font-sans overflow-x-hidden">
+    <div className="min-h-screen bg-[#050505] text-white selection:bg-emerald-500/30 overflow-x-hidden">
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-emerald-500/10 blur-[120px] rounded-full" />
         <div className="absolute top-[20%] -right-[10%] w-[30%] h-[30%] bg-purple-500/10 blur-[120px] rounded-full" />
@@ -81,10 +96,19 @@ export default function LandingPage() {
               <input 
                 type="text" 
                 placeholder="Enter GitHub Username"
-                className="flex-1 bg-black border border-white/10 rounded-2xl px-6 py-4 outline-none focus:border-emerald-500/50 transition-all font-mono text-emerald-400 placeholder:text-white/20"
+                className="flex-1 bg-black border border-white/10 rounded-2xl px-6 py-4 outline-none focus:border-emerald-500/50 transition-all text-emerald-400 placeholder:text-white/20"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
               />
+              <select
+                className="bg-black border border-white/10 rounded-2xl px-4 py-4 outline-none focus:border-emerald-500/50 transition-all text-white min-w-[220px]"
+                value={font}
+                onChange={(e) => setFont(e.target.value)}
+              >
+                <option value="jetbrains-mono">JetBrains Mono</option>
+                <option value="fira-code">Fira Code</option>
+                <option value="roboto-mono">Roboto Mono</option>
+              </select>
               <button 
                 onClick={copyToClipboard}
                 className="relative overflow-hidden bg-white text-black font-bold px-8 py-4 rounded-2xl hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 min-w-[200px]"
@@ -155,8 +179,8 @@ export default function LandingPage() {
         <footer className="mt-32 pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-6 text-sm text-white/30">
           <p>© 2026 CommitPulse. Designed for the elite builder community.</p>
           <div className="flex gap-8">
-            <a href="https://github.com/JhaSourav07/commitpulse/blob/main/README.md" className="hover:text-white transition-colors">Documentation</a>
-            <a href="https://github.com/jhasourav07" className="hover:text-white transition-colors">Creator</a>
+            <a href="https://github.com/JiteshYadavvvvv/commitpulse/blob/main/README.md" className="hover:text-white transition-colors">Documentation</a>
+            <a href="https://github.com/JiteshYadavvvvv" className="hover:text-white transition-colors">Creator</a>
           </div>
         </footer>
       </main>
@@ -276,14 +300,14 @@ function SuccessGuide({ markdown, onDismiss }: { markdown: string; onDismiss: ()
           <p className="text-xs uppercase tracking-[0.15em] text-white/30 font-bold mb-3">
             Your copied snippet
           </p>
-          <div className="flex items-center gap-3 bg-black/60 border border-white/8 rounded-xl px-4 py-3 font-mono text-sm">
+          <div className="flex items-center gap-3 bg-black/60 border border-white/8 rounded-xl px-4 py-3 text-sm">
             <span className="text-emerald-400/60 select-none shrink-0">$</span>
             <code className="text-emerald-300 break-all leading-relaxed flex-1 overflow-x-auto">
               {markdown}
             </code>
           </div>
           <p className="mt-4 text-xs text-white/25 leading-relaxed">
-            Tip: Add <code className="text-white/40">?theme=neon</code> or <code className="text-white/40">?accent=ff6b35</code> to the URL to change your monolith's colour palette.
+            Tip: Add <code className="text-white/40">?theme=neon</code>, <code className="text-white/40">?accent=ff6b35</code>, or <code className="text-white/40">&amp;font=fira-code</code> to customize the monolith appearance.
           </p>
         </div>
       </div>

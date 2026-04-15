@@ -17,4 +17,5 @@ export interface BadgeParams {
   text?: string;
   accent?: string;
   radius?: string;
+  font?: string;
 }

@@ -1,10 +1,26 @@
 // lib/svg/generator.ts
 import { StreakStats, BadgeParams } from '../../types';
 
+const FONT_MAP: Record<string, { cssFamily: string; importFamily: string }> = {
+  'jetbrains-mono': {
+    cssFamily: 'JetBrains Mono',
+    importFamily: 'JetBrains+Mono:wght@400;700',
+  },
+  'fira-code': {
+    cssFamily: 'Fira Code',
+    importFamily: 'Fira+Code:wght@400;700',
+  },
+  'roboto-mono': {
+    cssFamily: 'Roboto Mono',
+    importFamily: 'Roboto+Mono:wght@400;700',
+  },
+};
+
 export function generateSVG(stats: StreakStats, params: BadgeParams, calendar: any) {
   const bg = `#${(params.bg || '0d1117').replace('#', '')}`;
   const accent = `#${(params.accent || '00ffaa').replace('#', '')}`;
   const text = `#${(params.text || 'ffffff').replace('#', '')}`;
+  const font = FONT_MAP[params.font || 'jetbrains-mono'] || FONT_MAP['jetbrains-mono'];
 
   const weeks = calendar.weeks.slice(-14); // 14 weeks for better symmetry
   let towers = "";
@@ -40,11 +56,11 @@ export function generateSVG(stats: StreakStats, params: BadgeParams, calendar: a
       </defs>
 
       <style>
-        @import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@700&amp;family=Space+Grotesk:wght@300;500;700&amp;display=swap');
-        .title { font-family: 'Syncopate', sans-serif; fill: ${text}; font-size: 18px; letter-spacing: 6px; opacity: 0.8; }
-        .stats { font-family: 'Space Grotesk', sans-serif; fill: ${text}; font-size: 42px; font-weight: 700; }
-        .total-val { font-family: 'Syncopate', sans-serif; fill: ${accent}; font-size: 24px; font-weight: 700; }
-        .label { font-family: 'Space Grotesk', sans-serif; fill: ${accent}; font-size: 11px; font-weight: 700; letter-spacing: 2px; opacity: 0.7; }
+        @import url('https://fonts.googleapis.com/css2?family=${font.importFamily}&amp;display=swap');
+        .title { font-family: '${font.cssFamily}', monospace; fill: ${text}; font-size: 18px; letter-spacing: 6px; opacity: 0.8; }
+        .stats { font-family: '${font.cssFamily}', monospace; fill: ${text}; font-size: 42px; font-weight: 700; }
+        .total-val { font-family: '${font.cssFamily}', monospace; fill: ${accent}; font-size: 24px; font-weight: 700; }
+        .label { font-family: '${font.cssFamily}', monospace; fill: ${accent}; font-size: 11px; font-weight: 700; letter-spacing: 2px; opacity: 0.7; }
       </style>
 
       <rect width="600" height="420" rx="32" fill="${bg}" />
