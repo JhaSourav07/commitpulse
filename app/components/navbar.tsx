@@ -42,6 +42,11 @@ export default function Navbar() {
     ["--border-opacity" as string]: "0",
   } as CSSProperties & Record<string, string>;
 
+  const updateRect = () => {
+    const shell = shellRef.current;
+    rectRef.current = shell ? shell.getBoundingClientRect() : null;
+  };
+
   const animateGlow = () => {
     const shell = shellRef.current;
 
@@ -77,10 +82,30 @@ export default function Navbar() {
   };
 
   useEffect(() => {
+    updateRect();
+
+    const handleViewportChange = () => {
+      updateRect();
+    };
+
+    window.addEventListener("resize", handleViewportChange);
+    window.addEventListener("scroll", handleViewportChange, true);
+
+    let resizeObserver: ResizeObserver | null = null;
+
+    if (shellRef.current && "ResizeObserver" in window) {
+      resizeObserver = new ResizeObserver(handleViewportChange);
+      resizeObserver.observe(shellRef.current);
+    }
+
     return () => {
       if (animationRef.current !== null) {
         cancelAnimationFrame(animationRef.current);
       }
+
+      window.removeEventListener("resize", handleViewportChange);
+      window.removeEventListener("scroll", handleViewportChange, true);
+      resizeObserver?.disconnect();
     };
   }, []);
 
@@ -88,6 +113,27 @@ export default function Navbar() {
     setOpen(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
+    
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(min-width: 768px)");
+
+    const handleBreakpointChange = (event: MediaQueryListEvent) => {
+      if (event.matches) {
+        setOpen(false);
+      }
+    };
+
+    // Close stale mobile menu state if we land on md+ immediately.
+    if (mediaQuery.matches) {
+      setOpen(false);
+    }
+
+    mediaQuery.addEventListener("change", handleBreakpointChange);
+
+    return () => {
+      mediaQuery.removeEventListener("change", handleBreakpointChange);
+    };
+  }, []);
 
   return (
     <header className="fixed inset-x-0 top-0 z-50 px-4 pt-4 sm:px-6">
@@ -96,12 +142,16 @@ export default function Navbar() {
           ref={shellRef}
           className="relative overflow-hidden rounded-2xl border border-white/25 bg-black/45 backdrop-blur-xl shadow-[0_14px_40px_rgba(0,0,0,0.45)]"
           style={shellVars}
-          onMouseEnter={(event) => {
-            rectRef.current = event.currentTarget.getBoundingClientRect();
-          }}
+          onMouseEnter={updateRect}
           onMouseMove={(event) => {
-            const rect =
-              rectRef.current ?? event.currentTarget.getBoundingClientRect();
+            if (!rectRef.current) {
+              rectRef.current = event.currentTarget.getBoundingClientRect();
+            }
+
+            const rect = rectRef.current;
+
+            if (!rect) return;
+
             const x = ((event.clientX - rect.left) / rect.width) * 100;
             const y = ((event.clientY - rect.top) / rect.height) * 100;
 
