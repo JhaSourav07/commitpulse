@@ -21,6 +21,14 @@ export async function GET(request: Request) {
     const themeName = searchParams.get("theme") || "dark";
     const selectedTheme = themes[themeName] || themes["dark"];
 
+    // Parse speed: validate it's a number followed by 's', default to '8s'
+    const rawSpeed = searchParams.get("speed") || "8s";
+    const speed = /^\d+(\.\d+)?s$/.test(rawSpeed) ? rawSpeed : "8s";
+
+    // Parse scale: only 'log' or 'linear' (default)
+    const rawScale = searchParams.get("scale");
+    const scale = rawScale === "log" ? "log" : "linear";
+
     const params: BadgeParams = {
       user,
       // Priority: URL Param > Theme Default > Fallback
@@ -28,6 +36,8 @@ export async function GET(request: Request) {
       text: searchParams.get("text") || selectedTheme.text,
       accent: searchParams.get("accent") || selectedTheme.accent,
       radius: searchParams.get("radius") || "8",
+      speed,
+      scale,
     };
 
     // 2. Fetch Data & Calculate Stats

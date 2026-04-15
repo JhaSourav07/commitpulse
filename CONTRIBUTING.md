@@ -114,6 +114,7 @@ The isometric renderer lives in `lib/svg/generator.ts`. This is where the 3D tow
 - Animations use native SVG `<animate>` — do **not** introduce JavaScript-driven animations
 - Test the output SVG in [SVG Viewer](https://www.svgviewer.dev/) before submitting
 - Do not increase the `width`/`height` attributes beyond `600x420` without a strong reason
+- All new visual data elements **must include a descriptive `<title>` tag** — accessibility (a11y) is non-negotiable for an elite builder community
 
 ### 🕐 Pillar 3 — Timezone Logic Optimization
 

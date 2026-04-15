@@ -81,6 +81,8 @@ URL Parameter > Theme Default > System Fallback
 | `accent` | `hex` | No | Theme default | Tower & glow color — **without** `#` |
 | `text` | `hex` | No | Theme default | Label & stat text color — **without** `#` |
 | `radius` | `number` | No | `8` | Border corner radius in pixels |
+| `speed` | `string` | No | `8s` | Radar scan animation duration (e.g. `4s`, `12s`) |
+| `scale` | `string` | No | `linear` | Tower height scaling: `linear` or `log` (logarithmic) |
 | `refresh` | `boolean` | No | `false` | Bypass cache for real-time data |
 
 ### Theme Presets
@@ -104,6 +106,9 @@ URL Parameter > Theme Default > System Fallback
 
 <!-- Force bypass cache for latest data -->
 ![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&refresh=true)
+
+<!-- Fast scan + logarithmic scaling for power users -->
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&speed=4s&scale=log)
 ```
 
 ---
@@ -215,9 +220,14 @@ Read the full guide: **[CONTRIBUTING.md](CONTRIBUTING.md)**
 
 MIT © [Sourav Jha](https://github.com/JhaSourav07)
 
-<div align="center">
+---
+
+## 🎨 Themes
+
+Browse theme previews here: [Theme Gallery](THEMES.md)
 
 ---
+<div align="center">
 
 *Built with obsession, shipped with precision.*
 

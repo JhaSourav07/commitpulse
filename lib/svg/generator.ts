@@ -11,8 +11,15 @@ export function generateSVG(stats: StreakStats, params: BadgeParams, calendar: a
 
   weeks.forEach((week: any, i: number) => {
     week.contributionDays.forEach((day: any, j: number) => {
-      // Height scales with contribution count
-      const h = Math.min(day.contributionCount * 5, 50); 
+      const tooltip = `${day.date}: ${day.contributionCount} contributions`;
+
+      // Height scales with contribution count (linear or logarithmic)
+      const h = params.scale === 'log'
+        ? Math.min(
+            day.contributionCount > 0 ? Math.log2(day.contributionCount + 1) * 12 : 0,
+            80
+          )
+        : Math.min(day.contributionCount * 5, 50);
       const x = 300 + (i - j) * 16; 
       const y = 120 + (i + j) * 9; 
       
@@ -22,6 +29,7 @@ export function generateSVG(stats: StreakStats, params: BadgeParams, calendar: a
 
       towers += `
         <g transform="translate(${x}, ${y - h})">
+          <title>${tooltip}</title>
           <path d="M0 10 L0 ${10+h} L-16 ${h} L-16 0 Z" fill="${color}" fill-opacity="${opacity * 0.5}" />
           <path d="M0 10 L0 ${10+h} L16 ${h} L16 0 Z" fill="${color}" fill-opacity="${opacity * 0.3}" />
           <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="${color}" fill-opacity="${opacity}" />
@@ -71,7 +79,7 @@ export function generateSVG(stats: StreakStats, params: BadgeParams, calendar: a
       <text x="300" y="50" text-anchor="middle" class="title">${params.user.toUpperCase()}</text>
 
       <rect x="100" y="60" width="400" height="1" fill="${accent}" fill-opacity="0.3">
-        <animate attributeName="y" values="80;320;80" dur="8s" repeatCount="indefinite" />
+        <animate attributeName="y" values="80;320;80" dur="${params.speed || '8s'}" repeatCount="indefinite" />
       </rect>
     </svg>
   `;
