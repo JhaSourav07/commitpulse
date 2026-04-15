@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { CSSProperties, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Menu, X, Activity } from "lucide-react";
 
@@ -28,10 +28,19 @@ const NAV_LINKS = [
 export default function Navbar() {
   const [open, setOpen] = useState(false);
   const shellRef = useRef<HTMLDivElement>(null);
+  const rectRef = useRef<DOMRect | null>(null);
   const animationRef = useRef<number | null>(null);
   const targetRef = useRef({ x: 50, y: 50 });
   const currentRef = useRef({ x: 50, y: 50 });
   const activeRef = useRef(false);
+
+  const shellVars = {
+    // Defaults keep the glow centered before pointer interaction.
+    ["--mx" as string]: "50%",
+    ["--my" as string]: "50%",
+    ["--glow-opacity" as string]: "0",
+    ["--border-opacity" as string]: "0",
+  } as CSSProperties & Record<string, string>;
 
   const animateGlow = () => {
     const shell = shellRef.current;
@@ -86,15 +95,13 @@ export default function Navbar() {
         <div
           ref={shellRef}
           className="relative overflow-hidden rounded-2xl border border-white/25 bg-black/45 backdrop-blur-xl shadow-[0_14px_40px_rgba(0,0,0,0.45)]"
-          style={{
-            // Defaults keep the glow centered before pointer interaction.
-            ["--mx" as string]: "50%",
-            ["--my" as string]: "50%",
-            ["--glow-opacity" as string]: "0",
-            ["--border-opacity" as string]: "0",
+          style={shellVars}
+          onMouseEnter={(event) => {
+            rectRef.current = event.currentTarget.getBoundingClientRect();
           }}
           onMouseMove={(event) => {
-            const rect = event.currentTarget.getBoundingClientRect();
+            const rect =
+              rectRef.current ?? event.currentTarget.getBoundingClientRect();
             const x = ((event.clientX - rect.left) / rect.width) * 100;
             const y = ((event.clientY - rect.top) / rect.height) * 100;
 
@@ -104,6 +111,7 @@ export default function Navbar() {
           }}
           onMouseLeave={() => {
             activeRef.current = false;
+            rectRef.current = null;
             startAnimation();
           }}
         >
@@ -149,7 +157,7 @@ export default function Navbar() {
                   key={link.href}
                   href={link.href}
                   target="_blank"
-                  rel="noreferrer"
+                  rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-white/90 transition hover:border-white/45 hover:bg-white/10"
                 >
                   <GithubMark />
@@ -177,7 +185,7 @@ export default function Navbar() {
                     <a
                       href={link.href}
                       target="_blank"
-                      rel="noreferrer"
+                      rel="noopener noreferrer"
                       onClick={() => setOpen(false)}
                       className="inline-flex w-full items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-white/90 transition hover:border-white/45 hover:bg-white/10"
                     >
