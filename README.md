@@ -215,9 +215,14 @@ Read the full guide: **[CONTRIBUTING.md](CONTRIBUTING.md)**
 
 MIT © [Sourav Jha](https://github.com/JhaSourav07)
 
-<div align="center">
+---
+
+## 🎨 Themes
+
+Browse theme previews here: [Theme Gallery](THEMES.md)
 
 ---
+<div align="center">
 
 *Built with obsession, shipped with precision.*
 
