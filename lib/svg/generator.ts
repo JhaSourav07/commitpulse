@@ -14,10 +14,12 @@ export function generateSVG(stats: StreakStats, params: BadgeParams, calendar: a
       const tooltip = `${day.date}: ${day.contributionCount} contributions`;
 
       // Height scales with contribution count (linear or logarithmic)
-      const rawH = params.scale === 'log'
-        ? (day.contributionCount > 0 ? Math.log2(day.contributionCount + 1) * 20 : 0)
-        : day.contributionCount * 5;
-      const h = Math.min(rawH, 50);
+      const h = params.scale === 'log'
+        ? Math.min(
+            day.contributionCount > 0 ? Math.log2(day.contributionCount + 1) * 12 : 0,
+            80
+          )
+        : Math.min(day.contributionCount * 5, 50);
       const x = 300 + (i - j) * 16; 
       const y = 120 + (i + j) * 9; 
       
