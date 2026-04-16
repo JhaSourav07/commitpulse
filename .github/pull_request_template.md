@@ -1,9 +1,9 @@
 ## Description
 
-
 Fixes # (issue number)
 
 ## Pillar
+
 - [ ] 🎨 Pillar 1 — New Theme Design
 - [ ] 📐 Pillar 2 — Geometric SVG Improvement
 - [ ] 🕐 Pillar 3 — Timezone Logic Optimization
@@ -11,8 +11,8 @@ Fixes # (issue number)
 
 ## Visual Preview
 
-
 ## Checklist before requesting a review:
+
 - [ ] I have read the `CONTRIBUTING.md` file.
 - [ ] I have tested these changes locally (`localhost:3000/api/streak?user=YOUR_USERNAME`).
 - [ ] I have run `npm run format` and `npm run lint` locally and resolved all errors (CI will fail otherwise).
