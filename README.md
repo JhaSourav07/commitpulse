@@ -233,4 +233,6 @@ Browse theme previews here: [Theme Gallery](THEMES.md)
 
 ⭐ **If CommitPulse made your profile look elite, drop a star.** ⭐
 
+### This project is an official participant in Nexus Spring of Code (NSoC) 2026.
+
 </div>
