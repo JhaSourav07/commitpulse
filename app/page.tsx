@@ -1,7 +1,10 @@
 "use client";
+import type { ReactNode } from "react";
+import Image from "next/image";
 import Link from "next/link";
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { CommitPulseLogo } from "@/components/commitpulse-logo";
 
 const Icons = {
   Github: () => (
@@ -13,9 +16,7 @@ const Icons = {
   Zap: () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2 L3 14 L12 14 L11 22 L21 10 L12 10 L13 2 Z"/></svg>
   ),
-  Box: () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m7.5 4.27 9 5.15"/><path d="M3.29 7L12 12l8.71-5"/><path d="M12 22V12"/></svg>
-  ),
+  Box: () => <CommitPulseLogo className="h-6 w-6" />,
   Check: () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
   )
@@ -24,10 +25,7 @@ const Icons = {
 export default function LandingPage() {
   const [username, setUsername] = useState('jhasourav07');
   const [copied, setCopied] = useState(false);
-  const [mounted, setMounted] = useState(false);
   const guideRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => setMounted(true), []);
 
   const badgeUrl = `/api/streak?user=${username}`;
   const markdown = `![CommitPulse](https://commitpulse.vercel.app/api/streak?user=${username})`;
@@ -41,8 +39,6 @@ export default function LandingPage() {
     }, 80);
     setTimeout(() => setCopied(false), 50000);
   };
-
-  if (!mounted) return null;
 
   return (
     <div className="min-h-screen bg-[#050505] text-white selection:bg-emerald-500/30 font-sans overflow-x-hidden">
@@ -125,13 +121,13 @@ export default function LandingPage() {
             <div className="relative group">
               <div className="absolute -inset-1 bg-gradient-to-r from-emerald-500/20 to-purple-500/20 rounded-[2rem] blur-xl opacity-50 group-hover:opacity-100 transition duration-1000"></div>
               <div className="relative bg-[#050505] rounded-[1.5rem] overflow-hidden border border-white/10 flex items-center justify-center p-6 min-h-[350px]">
-                 <img 
-                   src={badgeUrl} 
-                   alt="Preview" 
+                 <Image
+                   src={badgeUrl}
+                   alt="Preview"
+                   width={900}
+                   height={600}
+                   unoptimized
                    className="max-w-full h-auto drop-shadow-[0_20px_50px_rgba(0,0,0,0.5)]"
-                   onError={(e) => {
-                     (e.target as HTMLImageElement).src = 'https://via.placeholder.com/600x400/050505/ffffff?text=User+Not+Found';
-                   }}
                  />
               </div>
             </div>
@@ -174,7 +170,14 @@ export default function LandingPage() {
           <p>© 2026 CommitPulse. Designed for the elite builder community.</p>
           <div className="flex gap-8">
             <Link href="/documentation" className="hover:text-white transition-colors">Documentation</Link>
-            <a href="https://github.com/jhasourav07" className="hover:text-white transition-colors">Creator</a>
+            <a
+              href="https://github.com/jhasourav07"
+              target="_blank"
+              rel="noreferrer"
+              className="hover:text-white transition-colors"
+            >
+              Creator
+            </a>
           </div>
         </footer>
       </main>
@@ -182,7 +185,7 @@ export default function LandingPage() {
   );
 }
 
-function FeatureCard({ icon, title, desc, accent }: { icon: any, title: string, desc: string, accent: string }) {
+function FeatureCard({ icon, title, desc, accent }: { icon: ReactNode, title: string, desc: string, accent: string }) {
   return (
     <motion.div 
       whileHover={{ y: -5 }}
@@ -301,7 +304,7 @@ function SuccessGuide({ markdown, onDismiss }: { markdown: string; onDismiss: ()
             </code>
           </div>
           <p className="mt-4 text-xs text-white/25 leading-relaxed">
-            Tip: Add <code className="text-white/40">?theme=neon</code> or <code className="text-white/40">?accent=ff6b35</code> to the URL to change your monolith's colour palette.
+            Tip: Add <code className="text-white/40">?theme=neon</code> or <code className="text-white/40">?accent=ff6b35</code> to the URL to change your monolith&apos;s colour palette.
           </p>
         </div>
       </div>

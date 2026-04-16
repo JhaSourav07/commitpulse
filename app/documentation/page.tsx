@@ -1,28 +1,45 @@
+import type { Metadata } from "next";
+import type { ReactNode } from "react";
 import Link from "next/link";
 
-const quickStartSnippet =
-  "![CommitPulse](https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME)";
+import { CodeBlock } from "./code-block";
+import { CommitPulseLogo } from "@/components/commitpulse-logo";
+import { themes as themePalette } from "@/lib/svg/themes";
+
+export const metadata: Metadata = {
+  title: "Documentation | CommitPulse",
+  description:
+    "Complete guide to embedding and customizing your CommitPulse streak badge. API parameters, themes, and examples.",
+};
+
+const API_BASE_URL = "https://commitpulse.vercel.app/api/streak";
+const USERNAME_PLACEHOLDER = "YOUR_USERNAME";
+
+const buildSnippet = (query = "") =>
+  `![CommitPulse](${API_BASE_URL}?user=${USERNAME_PLACEHOLDER}${query})`;
+
+const quickStartSnippet = buildSnippet();
 
 const exampleSnippets = [
   {
     title: "Default embed",
     description: "The fastest way to drop the monolith into your profile README.",
-    code: "![CommitPulse](https://commitpulse.vercel.app/api/streak?user=jhasourav07)",
+    code: buildSnippet(),
   },
   {
     title: "Neon theme",
     description: "Swap the default palette for the high-contrast cyberpunk preset.",
-    code: "![CommitPulse](https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=neon)",
+    code: buildSnippet("&theme=neon"),
   },
   {
     title: "Custom colors",
     description: "Override the background, accent, and text colors directly with hex values.",
-    code: "![CommitPulse](https://commitpulse.vercel.app/api/streak?user=jhasourav07&bg=0a0a0a&accent=ff6b35&text=ffffff&radius=16)",
+    code: buildSnippet("&bg=0a0a0a&accent=ff6b35&text=ffffff&radius=16"),
   },
   {
     title: "Fresh data",
     description: "Force a cache bypass when you want the latest contribution state immediately.",
-    code: "![CommitPulse](https://commitpulse.vercel.app/api/streak?user=jhasourav07&refresh=true)",
+    code: buildSnippet("&refresh=true"),
   },
 ];
 
@@ -78,48 +95,36 @@ const parameters = [
   },
 ];
 
-const themes = [
-  {
+const themeDescriptions = {
+  dark: {
     name: "Dark",
-    slug: "dark",
     vibe: "GitHub-dark default with calm blue highlights.",
-    bg: "0d1117",
-    accent: "58a6ff",
-    text: "c9d1d9",
   },
-  {
+  neon: {
     name: "Neon",
-    slug: "neon",
     vibe: "Pure black with magenta towers and cyan text.",
-    bg: "000000",
-    accent: "ff00ff",
-    text: "00ffcc",
   },
-  {
+  dracula: {
     name: "Dracula",
-    slug: "dracula",
     vibe: "Purple-forward palette inspired by Dracula Pro.",
-    bg: "282a36",
-    accent: "bd93f9",
-    text: "f8f8f2",
   },
-  {
+  github: {
     name: "GitHub",
-    slug: "github",
     vibe: "Deep GitHub green for a more native contribution feel.",
-    bg: "0d1117",
-    accent: "238636",
-    text: "ffffff",
   },
-  {
+  light: {
     name: "Light",
-    slug: "light",
     vibe: "Bright, minimal surface for portfolios and white backgrounds.",
-    bg: "ffffff",
-    accent: "0969da",
-    text: "24292f",
   },
-];
+} as const;
+
+const themeOrder = ["dark", "neon", "dracula", "github", "light"] as const;
+
+const themes = themeOrder.map((slug) => ({
+  slug,
+  ...themeDescriptions[slug],
+  ...themePalette[slug],
+}));
 
 const contributorNotes = [
   "URL parameters override theme defaults, and theme defaults override the system fallback palette.",
@@ -143,7 +148,7 @@ export default function DocumentationPage() {
             className="inline-flex items-center gap-3 text-sm font-semibold uppercase tracking-[0.28em] text-white/90 transition hover:text-emerald-300"
           >
             <span className="flex h-10 w-10 items-center justify-center rounded-2xl border border-emerald-400/30 bg-emerald-500/10 text-emerald-300 shadow-[0_0_30px_rgba(16,185,129,0.18)]">
-              CP
+              <CommitPulseLogo className="h-5 w-5" />
             </span>
             CommitPulse
           </Link>
@@ -198,7 +203,7 @@ export default function DocumentationPage() {
           </div>
         </section>
 
-        <section className="mb-8 grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
+        <section className="mb-8 grid items-start gap-6 lg:grid-cols-[0.95fr_1.05fr]">
           <Panel
             eyebrow="Quick Start"
             title="Add the default badge in one line"
@@ -243,29 +248,39 @@ export default function DocumentationPage() {
             description="All color parameters expect hex values without a leading #. When both a theme and manual colors are provided, the manual colors win."
           >
             <div className="overflow-hidden rounded-[1.5rem] border border-white/8">
-              <div className="overflow-x-auto">
-                <table className="min-w-full border-collapse text-left">
-                  <thead className="bg-white/[0.05] text-xs uppercase tracking-[0.2em] text-white/45">
-                    <tr>
-                      <th className="px-4 py-4 font-semibold">Parameter</th>
-                      <th className="px-4 py-4 font-semibold">Type</th>
-                      <th className="px-4 py-4 font-semibold">Required</th>
-                      <th className="px-4 py-4 font-semibold">Default</th>
-                      <th className="px-4 py-4 font-semibold">Description</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-black/25">
-                    {parameters.map((parameter) => (
-                      <tr key={parameter.name} className="border-t border-white/8 align-top">
-                        <td className="px-4 py-4 font-mono text-sm text-emerald-300">{parameter.name}</td>
-                        <td className="px-4 py-4 text-sm text-white/70">{parameter.type}</td>
-                        <td className="px-4 py-4 text-sm text-white/70">{parameter.required}</td>
-                        <td className="px-4 py-4 text-sm text-white/70">{parameter.defaultValue}</td>
-                        <td className="px-4 py-4 text-sm leading-6 text-white/60">{parameter.description}</td>
+              <div className="flex items-center justify-between gap-3 border-b border-white/8 bg-white/[0.03] px-4 py-3 text-xs uppercase tracking-[0.18em] text-white/40">
+                <span>Swipe to view all columns on smaller screens</span>
+                <span className="hidden rounded-full border border-white/10 px-2 py-1 text-[10px] text-white/35 sm:inline-flex">
+                  scroll
+                </span>
+              </div>
+              <div className="relative">
+                <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-8 bg-gradient-to-r from-[#050505] to-transparent sm:hidden" />
+                <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-12 bg-gradient-to-l from-[#050505] via-[#050505]/90 to-transparent sm:hidden" />
+                <div className="overflow-x-auto">
+                  <table className="min-w-[760px] border-collapse text-left sm:min-w-full">
+                    <thead className="bg-white/[0.05] text-xs uppercase tracking-[0.2em] text-white/45">
+                      <tr>
+                        <th className="px-4 py-4 font-semibold">Parameter</th>
+                        <th className="px-4 py-4 font-semibold">Type</th>
+                        <th className="px-4 py-4 font-semibold">Required</th>
+                        <th className="px-4 py-4 font-semibold">Default</th>
+                        <th className="px-4 py-4 font-semibold">Description</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="bg-black/25">
+                      {parameters.map((parameter) => (
+                        <tr key={parameter.name} className="border-t border-white/8 align-top">
+                          <td className="px-4 py-4 font-mono text-sm text-emerald-300">{parameter.name}</td>
+                          <td className="px-4 py-4 text-sm text-white/70">{parameter.type}</td>
+                          <td className="px-4 py-4 text-sm text-white/70">{parameter.required}</td>
+                          <td className="px-4 py-4 text-sm text-white/70">{parameter.defaultValue}</td>
+                          <td className="px-4 py-4 text-sm leading-6 text-white/60">{parameter.description}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           </Panel>
@@ -376,7 +391,7 @@ function Panel({
   eyebrow: string;
   title: string;
   description: string;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return (
     <section className="rounded-[2rem] border border-white/10 bg-white/[0.03] p-6 shadow-[0_30px_80px_rgba(0,0,0,0.32)] backdrop-blur md:p-8">
@@ -388,10 +403,3 @@ function Panel({
   );
 }
 
-function CodeBlock({ code }: { code: string }) {
-  return (
-    <pre className="overflow-x-auto rounded-[1.5rem] border border-white/8 bg-[#030303] p-4 text-sm leading-7 text-emerald-300 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
-      <code>{code}</code>
-    </pre>
-  );
-}
