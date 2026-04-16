@@ -60,9 +60,22 @@ cd commitpulse
 npm install
 
 # Step 3 — Create your local environment file
-# Create a file named .env.local in the project root and add your token:
-echo "GITHUB_PAT=ghp_your_token_here" > .env.local
+# Create a file named .env.local in the project root:
+touch .env.local   # On Windows: New-Item .env.local
+```
 
+Open `.env.local` and add your token:
+
+```env
+GITHUB_TOKEN=ghp_your_personal_access_token_here
+```
+
+> **Why is this required?** The GitHub GraphQL API requires authentication. Without a valid `GITHUB_TOKEN`, every request to `/api/streak` will return a `401 Unauthorized` error and the badge will not render.
+
+**Generating a Personal Access Token (classic):**
+Go to **GitHub → Settings → Developer settings → Personal access tokens → Tokens (classic)** and click **Generate new token (classic)**. Enable the `read:user` scope, set an expiry, and copy the generated token into your `.env.local`.
+
+```bash
 # Step 4 — Start the dev server
 npm run dev
 ```
@@ -73,7 +86,7 @@ Open your browser and test your changes:
 http://localhost:3000/api/streak?user=YOUR_GITHUB_USERNAME
 ```
 
-> **⚠️ Important:** Never commit your `.env.local` file or expose your `GITHUB_PAT`. It is already in `.gitignore`.
+> **⚠️ Important:** Never commit your `.env.local` file or expose your `GITHUB_TOKEN`. It is already in `.gitignore`.
 
 ---
 
@@ -209,17 +222,29 @@ refactor(generator): extract tower path builder into helper function
 
 ## 🧹 Code Style & Quality Gates
 
-CommitPulse uses **TypeScript** and **ESLint**. Before pushing:
+CommitPulse enforces code quality using **ESLint** (correctness & TypeScript rules) and **Prettier** (consistent formatting). Both run automatically in CI on every PR — there are no exceptions.
+
+### Before Every Commit
+
+Run these two commands locally before you open a PR. In that order:
 
 ```bash
-# Check for linting errors
+# 1. Auto-format all files to match the project's Prettier config
+npm run format
+
+# 2. Check for any remaining linting errors
 npm run lint
 ```
+
+Fix every error `lint` reports before pushing. Warnings should be addressed where possible.
+
+> **🚨 GitHub Actions CI Gate**
+> Our CI pipeline runs `npm run lint` and `npm run format --check` automatically on **every pull request**. If your code fails either check, **the PR will be blocked from merging** until the issues are resolved. There is no way to bypass this gate — so run both commands locally first and save yourself the round-trip.
 
 **Key style rules:**
 
 - All functions must have **explicit TypeScript return types**
-- Use the `BadgeParams`, `StreakStats`, and `BadgeTheme` interfaces from `types/index.ts` — do not use `any` unless there is no alternative
+- Use the `BadgeParams`, `StreakStats`, and `BadgeTheme` interfaces from `types/index.ts` — **never use `any`**; create a typed interface for the data shape instead
 - SVG strings in `generator.ts` should remain readable — don't minify or compress them inline
 - Comments should explain _intent_, not repeat the code. `// Calculate streak` is useless. `// Grace period: a streak survives a missed day to handle timezones` is valuable.
 
