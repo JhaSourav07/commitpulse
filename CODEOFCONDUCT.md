@@ -1,6 +1,14 @@
 # Contributor Covenant Code of Conduct — commitpulse NSoC'26
 
-![Community](https://img.shields.io/badge/Community-Welcoming-brightgreen?style=for-the-badge) ![PRs Welcome](https://img.shields.io/badge/PRs-Welcome-blue?style=for-the-badge) ![Contributors](https://img.shields.io/github/contributors/JhaSourav07/commitpulse?style=for-the-badge) ![Respect Badge](https://img.shields.io/badge/Respect-Everyone-blueviolet?style=for-the-badge)  ![Contribution Badge](https://img.shields.io/badge/Contributions-Encouraged-orange?style=for-the-badge)  ![Kindness Badge](https://img.shields.io/badge/Be-Kind-ff69b4?style=for-the-badge)  ![Collaboration Badge](https://img.shields.io/badge/Collaboration-Priority-yellow?style=for-the-badge)  ![Inclusive Badge](https://img.shields.io/badge/Inclusive-Always-orange?style=for-the-badge)  ![Fun Badge](https://img.shields.io/badge/Contributions-Fun-aqua?style=for-the-badge)
+![Community](https://img.shields.io/badge/Community-Welcoming-brightgreen?style=for-the-badge) 
+![PRs Welcome](https://img.shields.io/badge/PRs-Welcome-blue?style=for-the-badge) 
+![Contributors](https://img.shields.io/github/contributors/JhaSourav07/commitpulse?style=for-the-badge) 
+![Respect Badge](https://img.shields.io/badge/Respect-Everyone-blueviolet?style=for-the-badge)  
+![Contribution Badge](https://img.shields.io/badge/Contributions-Encouraged-orange?style=for-the-badge)  
+![Kindness Badge](https://img.shields.io/badge/Be-Kind-ff69b4?style=for-the-badge)  
+![Collaboration Badge](https://img.shields.io/badge/Collaboration-Priority-yellow?style=for-the-badge)  
+![Inclusive Badge](https://img.shields.io/badge/Inclusive-Always-orange?style=for-the-badge)  
+![Fun Badge](https://img.shields.io/badge/Contributions-Fun-aqua?style=for-the-badge)
 
 <img src="https://user-images.githubusercontent.com/73097560/115834477-dbab4500-a447-11eb-908a-139a6edaec5c.gif" width="100%">
 
