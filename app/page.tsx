@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, startTransition } from 'react';
+import type { ReactNode } from 'react';
+import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // Inline SVGs so there's no icon library dependency
@@ -25,7 +27,11 @@ export default function LandingPage() {
   const [mounted, setMounted] = useState(false);
   const guideRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    startTransition(() => {
+      setMounted(true);
+    });
+  }, []);
 
   const badgeUrl = `/api/streak?user=${username}`;
   const markdown = `![CommitPulse](https://commitpulse.vercel.app/api/streak?user=${username})`;
@@ -107,13 +113,13 @@ export default function LandingPage() {
             <div className="relative group">
               <div className="absolute -inset-1 bg-gradient-to-r from-emerald-500/20 to-purple-500/20 rounded-[2rem] blur-xl opacity-50 group-hover:opacity-100 transition duration-1000"></div>
               <div className="relative bg-[#050505] rounded-[1.5rem] overflow-hidden border border-white/10 flex items-center justify-center p-6 min-h-[350px]">
-                 <img 
-                   src={badgeUrl} 
-                   alt="Preview" 
+                 <Image
+                   src={badgeUrl}
+                   alt="CommitPulse streak badge preview"
+                   width={600}
+                   height={420}
+                   unoptimized
                    className="max-w-full h-auto drop-shadow-[0_20px_50px_rgba(0,0,0,0.5)]"
-                   onError={(e) => {
-                     (e.target as HTMLImageElement).src = 'https://via.placeholder.com/600x400/050505/ffffff?text=User+Not+Found';
-                   }}
                  />
               </div>
             </div>
@@ -164,7 +170,7 @@ export default function LandingPage() {
   );
 }
 
-function FeatureCard({ icon, title, desc, accent }: { icon: any, title: string, desc: string, accent: string }) {
+function FeatureCard({ icon, title, desc, accent }: { icon: ReactNode; title: string; desc: string; accent: string }) {
   return (
     <motion.div 
       whileHover={{ y: -5 }}
@@ -283,7 +289,7 @@ function SuccessGuide({ markdown, onDismiss }: { markdown: string; onDismiss: ()
             </code>
           </div>
           <p className="mt-4 text-xs text-white/25 leading-relaxed">
-            Tip: Add <code className="text-white/40">?theme=neon</code> or <code className="text-white/40">?accent=ff6b35</code> to the URL to change your monolith's colour palette.
+            Tip: Add <code className="text-white/40">?theme=neon</code> or <code className="text-white/40">?accent=ff6b35</code> to the URL to change your monolith&apos;s colour palette.
           </p>
         </div>
       </div>

@@ -1,7 +1,21 @@
 // lib/svg/generator.ts
 import { StreakStats, BadgeParams } from '../../types';
 
-export function generateSVG(stats: StreakStats, params: BadgeParams, calendar: any) {
+interface ContributionDay {
+  date: string;
+  contributionCount: number;
+}
+
+interface ContributionWeek {
+  contributionDays: ContributionDay[];
+}
+
+interface ContributionCalendar {
+  totalContributions: number;
+  weeks: ContributionWeek[];
+}
+
+export function generateSVG(stats: StreakStats, params: BadgeParams, calendar: ContributionCalendar) {
   const bg = `#${(params.bg || '0d1117').replace('#', '')}`;
   const accent = `#${(params.accent || '00ffaa').replace('#', '')}`;
   const text = `#${(params.text || 'ffffff').replace('#', '')}`;
@@ -9,8 +23,8 @@ export function generateSVG(stats: StreakStats, params: BadgeParams, calendar: a
   const weeks = calendar.weeks.slice(-14); // 14 weeks for better symmetry
   let towers = "";
 
-  weeks.forEach((week: any, i: number) => {
-    week.contributionDays.forEach((day: any, j: number) => {
+  weeks.forEach((week: ContributionWeek, i: number) => {
+    week.contributionDays.forEach((day: ContributionDay, j: number) => {
       const tooltip = `${day.date}: ${day.contributionCount} contributions`;
 
       // Height scales with contribution count (linear or logarithmic)

@@ -52,9 +52,7 @@ export async function GET(request: Request) {
 
     // Check if user wants to force a refresh
     const refresh = searchParams.get("refresh") === "true";
-    const cacheControl = refresh
-      ? "no-cache, no-store, must-revalidate"
-      : `public, s-maxage=${secondsToMidnight}, stale-while-revalidate=86400`;
+    void refresh; // reserved for future CDN cache-busting logic
 
     // 5. Return the Image Response
     return new NextResponse(svg, {
@@ -69,14 +67,16 @@ export async function GET(request: Request) {
           "default-src 'none'; style-src 'unsafe-inline';",
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Streak API Error:", error);
+
+    const message = error instanceof Error ? error.message : "An unexpected error occurred";
 
     const errorSvg = `
       <svg xmlns="http://www.w3.org/2000/svg" width="400" height="150" viewBox="0 0 400 150">
         <rect width="100%" height="100%" fill="#2d0000" rx="8"/>
         <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#ffcccc" font-family="sans-serif" font-size="14">
-          Error: ${error.message}
+          Error: ${message}
         </text>
       </svg>
     `;

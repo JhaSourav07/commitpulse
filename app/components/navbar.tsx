@@ -123,14 +123,18 @@ export default function Navbar() {
       }
     };
 
-    // Close stale mobile menu state if we land on md+ immediately.
-    if (mediaQuery.matches) {
-      setOpen(false);
-    }
+    // Defer the initial check so it doesn't cause a synchronous setState
+    // inside the effect body (which would trigger cascading re-renders).
+    const initialCheckTimer = setTimeout(() => {
+      if (mediaQuery.matches) {
+        setOpen(false);
+      }
+    }, 0);
 
     mediaQuery.addEventListener("change", handleBreakpointChange);
 
     return () => {
+      clearTimeout(initialCheckTimer);
       mediaQuery.removeEventListener("change", handleBreakpointChange);
     };
   }, []);
