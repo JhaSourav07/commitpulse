@@ -46,7 +46,6 @@ export async function GET(request: Request) {
     // 3. Generate the SVG string
     const svg = generateSVG(stats, params, calendar);
 
-
     // 5. Return the Image Response
     return new NextResponse(svg, {
       headers: {
