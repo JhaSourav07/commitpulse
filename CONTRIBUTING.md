@@ -23,7 +23,7 @@ CommitPulse is not a generic badge generator. It is a **premium, high-fidelity d
 
 Every contribution must uphold this standard. Before you open a PR, ask yourself:
 
-> *"Does this look like something you'd find in a Dribbble showcase or a polished SaaS product — or does it look like a placeholder?"*
+> _"Does this look like something you'd find in a Dribbble showcase or a polished SaaS product — or does it look like a placeholder?"_
 
 **If the answer is the latter, it's not ready yet.** This is not gatekeeping — it's respect for the developers who embed CommitPulse in their public profiles.
 
@@ -32,7 +32,7 @@ Every contribution must uphold this standard. Before you open a PR, ask yourself
 - ✅ SVGs must use curated, harmonious color palettes — not arbitrary hex codes
 - ✅ Animations must be smooth and purposeful — not distracting or janky
 - ✅ Typography must match the `Syncopate` / `Space Grotesk` design system
-- ✅ New themes must feel cohesive — every `bg`, `accent`, and `text` value must work *together*
+- ✅ New themes must feel cohesive — every `bg`, `accent`, and `text` value must work _together_
 - ❌ No raw, unstyled `<rect>` or `<text>` elements without intentional styling
 - ❌ No flat, MS-Paint-level color combinations
 - ❌ No breaking changes to the public API without a migration path
@@ -83,17 +83,18 @@ We welcome contributions in three focused pillars. Staying within these areas en
 
 ### 🎨 Pillar 1 — New Theme Design
 
-Themes live in `lib/svg/themes.ts`. A theme is three properties: `bg`, `text`, and `accent` — but the *feeling* a well-crafted theme creates is worth far more than the 3 lines of code.
+Themes live in `lib/svg/themes.ts`. A theme is three properties: `bg`, `text`, and `accent` — but the _feeling_ a well-crafted theme creates is worth far more than the 3 lines of code.
 
 **What makes a great theme:**
 
-| Property | Guidance |
-|---|---|
-| `bg` | Should be dark (for the isometric glow to land) or intentionally light with high contrast. Avoid mid-range grays. |
-| `accent` | This is the tower and glow color. It defines the entire personality of the card. Use saturated, vivid hues. |
-| `text` | Must be readable against `bg` at small sizes. Test at `11px` (the label size). |
+| Property | Guidance                                                                                                          |
+| -------- | ----------------------------------------------------------------------------------------------------------------- |
+| `bg`     | Should be dark (for the isometric glow to land) or intentionally light with high contrast. Avoid mid-range grays. |
+| `accent` | This is the tower and glow color. It defines the entire personality of the card. Use saturated, vivid hues.       |
+| `text`   | Must be readable against `bg` at small sizes. Test at `11px` (the label size).                                    |
 
 **Theme checklist before submitting:**
+
 - [ ] Tested against all 5 label/stat text sizes in the SVG
 - [ ] Looks correct in both GitHub's Dark and Light browser modes
 - [ ] Has a meaningful, memorable name (e.g., `aurora`, `synthwave`, `obsidian`)
@@ -104,12 +105,14 @@ Themes live in `lib/svg/themes.ts`. A theme is three properties: `bg`, `text`, a
 The isometric renderer lives in `lib/svg/generator.ts`. This is where the 3D tower geometry, glow filters, and animations are built.
 
 **Ideas we actively want:**
+
 - More sophisticated `<feGaussianBlur>` filter chains for per-tower glow depth
 - A radar/sonar ring animation layered over the monolith grid
 - Height scaling improvements — the current `Math.min(count * 5, 50)` linear scale could be logarithmic for high contributors
 - Responsive viewBox adjustments for different aspect ratios
 
 **Rules for SVG changes:**
+
 - All SVG must be **pure, self-contained** — no external image dependencies
 - Animations use native SVG `<animate>` — do **not** introduce JavaScript-driven animations
 - Test the output SVG in [SVG Viewer](https://www.svgviewer.dev/) before submitting
@@ -121,13 +124,15 @@ The isometric renderer lives in `lib/svg/generator.ts`. This is where the 3D tow
 The accuracy engine lives in `utils/time.ts` and `lib/calculate.ts`.
 
 **Problems worth solving:**
+
 - User-configurable timezone offsets (e.g., `?tz=Asia/Kolkata`) so the "today" boundary reflects the user's local day, not UTC
 - Edge case: contributors who span the UTC midnight window and see their streak reset prematurely
 - The grace period logic in `calculate.ts` could be extended to be configurable (e.g., `?grace=2` for 2-day grace)
 
 **Rules for logic changes:**
+
 - All changes must be backward-compatible (no breaking the default behavior)
-- Include a code comment explaining *why* the logic works, not just *what* it does
+- Include a code comment explaining _why_ the logic works, not just _what_ it does
 - If you add a new URL parameter, document it in `README.md`'s parameter table
 
 ---
@@ -138,14 +143,14 @@ The accuracy engine lives in `utils/time.ts` and `lib/calculate.ts`.
 
 Use the following format: `type/short-description`
 
-| Branch Type | Example |
-|---|---|
-| New theme | `feat/theme-aurora` |
-| SVG improvement | `feat/tower-glow-filter` |
-| Bug fix | `fix/streak-grace-period` |
-| Timezone work | `fix/utc-midnight-edge-case` |
-| Documentation | `docs/readme-update` |
-| Refactor | `refactor/generator-cleanup` |
+| Branch Type     | Example                      |
+| --------------- | ---------------------------- |
+| New theme       | `feat/theme-aurora`          |
+| SVG improvement | `feat/tower-glow-filter`     |
+| Bug fix         | `fix/streak-grace-period`    |
+| Timezone work   | `fix/utc-midnight-edge-case` |
+| Documentation   | `docs/readme-update`         |
+| Refactor        | `refactor/generator-cleanup` |
 
 ### Commit Messages
 
@@ -176,18 +181,22 @@ refactor(generator): extract tower path builder into helper function
 
 ```md
 ## What does this PR do?
+
 <!-- One sentence summary -->
 
 ## Pillar
+
 - [ ] New Theme Design
 - [ ] Geometric SVG Improvement
 - [ ] Timezone Logic Optimization
 - [ ] Other (describe below)
 
 ## Visual Preview
+
 <!-- Paste a screenshot or embed the SVG output URL -->
 
 ## Checklist
+
 - [ ] I've tested this locally
 - [ ] The SVG output matches the CommitPulse aesthetic standard
 - [ ] I've updated README.md if I added a new parameter or theme
@@ -208,10 +217,11 @@ npm run lint
 ```
 
 **Key style rules:**
+
 - All functions must have **explicit TypeScript return types**
 - Use the `BadgeParams`, `StreakStats`, and `BadgeTheme` interfaces from `types/index.ts` — do not use `any` unless there is no alternative
 - SVG strings in `generator.ts` should remain readable — don't minify or compress them inline
-- Comments should explain *intent*, not repeat the code. `// Calculate streak` is useless. `// Grace period: a streak survives a missed day to handle timezones` is valuable.
+- Comments should explain _intent_, not repeat the code. `// Calculate streak` is useless. `// Grace period: a streak survives a missed day to handle timezones` is valuable.
 
 ---
 
@@ -238,7 +248,7 @@ Check the open issues tagged:
 
 <div align="center">
 
-*Thank you for contributing. Every PR — no matter the size — makes CommitPulse better for every developer who uses it.*
+_Thank you for contributing. Every PR — no matter the size — makes CommitPulse better for every developer who uses it._
 
 **— Sourav Jha, Maintainer**
 

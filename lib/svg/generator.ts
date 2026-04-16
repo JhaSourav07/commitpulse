@@ -15,28 +15,30 @@ interface ContributionCalendar {
   weeks: ContributionWeek[];
 }
 
-export function generateSVG(stats: StreakStats, params: BadgeParams, calendar: ContributionCalendar) {
+export function generateSVG(
+  stats: StreakStats,
+  params: BadgeParams,
+  calendar: ContributionCalendar
+) {
   const bg = `#${(params.bg || '0d1117').replace('#', '')}`;
   const accent = `#${(params.accent || '00ffaa').replace('#', '')}`;
   const text = `#${(params.text || 'ffffff').replace('#', '')}`;
 
   const weeks = calendar.weeks.slice(-14); // 14 weeks for better symmetry
-  let towers = "";
+  let towers = '';
 
   weeks.forEach((week: ContributionWeek, i: number) => {
     week.contributionDays.forEach((day: ContributionDay, j: number) => {
       const tooltip = `${day.date}: ${day.contributionCount} contributions`;
 
       // Height scales with contribution count (linear or logarithmic)
-      const h = params.scale === 'log'
-        ? Math.min(
-            day.contributionCount > 0 ? Math.log2(day.contributionCount + 1) * 12 : 0,
-            80
-          )
-        : Math.min(day.contributionCount * 5, 50);
-      const x = 300 + (i - j) * 16; 
-      const y = 120 + (i + j) * 9; 
-      
+      const h =
+        params.scale === 'log'
+          ? Math.min(day.contributionCount > 0 ? Math.log2(day.contributionCount + 1) * 12 : 0, 80)
+          : Math.min(day.contributionCount * 5, 50);
+      const x = 300 + (i - j) * 16;
+      const y = 120 + (i + j) * 9;
+
       const hasCommits = day.contributionCount > 0;
       const color = hasCommits ? accent : text;
       const opacity = hasCommits ? 0.7 : 0.05;
@@ -44,8 +46,8 @@ export function generateSVG(stats: StreakStats, params: BadgeParams, calendar: C
       towers += `
         <g transform="translate(${x}, ${y - h})">
           <title>${tooltip}</title>
-          <path d="M0 10 L0 ${10+h} L-16 ${h} L-16 0 Z" fill="${color}" fill-opacity="${opacity * 0.5}" />
-          <path d="M0 10 L0 ${10+h} L16 ${h} L16 0 Z" fill="${color}" fill-opacity="${opacity * 0.3}" />
+          <path d="M0 10 L0 ${10 + h} L-16 ${h} L-16 0 Z" fill="${color}" fill-opacity="${opacity * 0.5}" />
+          <path d="M0 10 L0 ${10 + h} L16 ${h} L16 0 Z" fill="${color}" fill-opacity="${opacity * 0.3}" />
           <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="${color}" fill-opacity="${opacity}" />
           ${day.contributionCount > 5 ? `<path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="white" fill-opacity="0.2" />` : ''}
         </g>`;

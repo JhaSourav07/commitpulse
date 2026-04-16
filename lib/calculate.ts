@@ -18,7 +18,7 @@ interface ContributionCalendar {
 export function calculateStreak(calendar: ContributionCalendar): StreakStats {
   const weeks = calendar.weeks;
   const days = weeks.flatMap((week: ContributionWeek) => week.contributionDays);
-  
+
   let currentStreak = 0;
   let longestStreak = 0;
   let tempStreak = 0;
@@ -40,7 +40,7 @@ export function calculateStreak(calendar: ContributionCalendar): StreakStats {
   const yesterday = days[todayIndex - 1];
 
   // If I committed today, the streak is alive.
-  // If I haven't committed today, but I committed yesterday, 
+  // If I haven't committed today, but I committed yesterday,
   // the streak is STILL alive (Grace Period).
   const isStreakAlive = today.contributionCount > 0 || yesterday.contributionCount > 0;
 
@@ -48,7 +48,7 @@ export function calculateStreak(calendar: ContributionCalendar): StreakStats {
     // Count backwards from the first day that has a contribution
     // starting from either today or yesterday.
     let i = today.contributionCount > 0 ? todayIndex : todayIndex - 1;
-    
+
     while (i >= 0 && days[i].contributionCount > 0) {
       currentStreak++;
       i--;
