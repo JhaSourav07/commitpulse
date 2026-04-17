@@ -26,5 +26,5 @@ export const themes: Record<string, BadgeTheme> = {
     bg: '282a36',
     text: 'f8f8f2',
     accent: 'bd93f9',
-  }
+  },
 };

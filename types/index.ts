@@ -17,4 +17,6 @@ export interface BadgeParams {
   text?: string;
   accent?: string;
   radius?: string;
+  speed?: string;
+  scale?: 'linear' | 'log';
 }

@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "echo \"Error: no test specified\" && exit 0"
   },
   "dependencies": {
     "@tailwindcss/postcss": "^4.2.2",
@@ -24,7 +27,9 @@
     "autoprefixer": "^10.5.0",
     "eslint": "^9",
     "eslint-config-next": "16.2.3",
+    "eslint-config-prettier": "^10.1.8",
     "postcss": "^8.5.9",
+    "prettier": "^3.8.3",
     "tailwindcss": "^4.2.2",
     "typescript": "^5"
   }

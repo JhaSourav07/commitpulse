@@ -2,7 +2,7 @@
 
 # ⚡ CommitPulse
 
-### *Your GitHub contributions — as a cinematic SVG monolith.*
+### _Your GitHub contributions — as a cinematic SVG monolith._
 
 [![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=flat-square&logo=vercel)](https://commitpulse.vercel.app)
 [![Next.js](https://img.shields.io/badge/Next.js-16-black?style=flat-square&logo=next.js)](https://nextjs.org)
@@ -34,13 +34,13 @@ We render your contribution data as a **3D Isometric City** — a grid of glowin
 
 ### Why Isometric > Flat
 
-| Property | Flat Badges | CommitPulse Monolith |
-|---|---|---|
-| **Visual Depth** | None | Full isometric 3D perspective |
-| **Data Density** | 3 numbers | 98-day contribution landscape |
-| **Animation** | Static | Radar scan line + glow effects |
-| **Personality** | Generic | Uniquely yours, every day |
-| **Impression** | "They have stats" | "They ship code like a machine" |
+| Property         | Flat Badges       | CommitPulse Monolith                                                       |
+| ---------------- | ----------------- | -------------------------------------------------------------------------- |
+| **Visual Depth** | None              | Full isometric 3D perspective                                              |
+| **Data Density** | 3 numbers         | 98-day contribution landscape                                              |
+| **Animation**    | Static            | Radar scan line, glow effects & live pulsing indicator for today's commits |
+| **Personality**  | Generic           | Uniquely yours, every day                                                  |
+| **Impression**   | "They have stats" | "They ship code like a machine"                                            |
 
 The design philosophy is simple: **your commit history deserves a monument, not a meter.**
 
@@ -52,12 +52,15 @@ Paste into any Markdown file — GitHub README, Notion, or your portfolio:
 
 ```md
 <!-- Default (Dark theme) -->
+
 ![CommitPulse](https://commitpulse.vercel.app/api/streak?user=jhasourav07)
 
 <!-- Neon theme -->
+
 ![CommitPulse](https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=neon)
 
 <!-- Custom colors -->
+
 ![CommitPulse](https://commitpulse.vercel.app/api/streak?user=jhasourav07&bg=0a0a0a&accent=ff6b35&text=ffffff)
 ```
 
@@ -73,48 +76,57 @@ URL Parameter > Theme Default > System Fallback
 
 ### Parameter Reference
 
-| Parameter | Type | Required | Default | Description |
-|---|---|---|---|---|
-| `user` | `string` | ✅ **Yes** | — | GitHub username to render |
-| `theme` | `string` | No | `dark` | Preset theme name (see below) |
-| `bg` | `hex` | No | Theme default | Background color — **without** `#` |
-| `accent` | `hex` | No | Theme default | Tower & glow color — **without** `#` |
-| `text` | `hex` | No | Theme default | Label & stat text color — **without** `#` |
-| `radius` | `number` | No | `8` | Border corner radius in pixels |
-| `refresh` | `boolean` | No | `false` | Bypass cache for real-time data |
+| Parameter | Type      | Required   | Default       | Description                                           |
+| --------- | --------- | ---------- | ------------- | ----------------------------------------------------- |
+| `user`    | `string`  | ✅ **Yes** | —             | GitHub username to render                             |
+| `theme`   | `string`  | No         | `dark`        | Preset theme name (see below)                         |
+| `bg`      | `hex`     | No         | Theme default | Background color — **without** `#`                    |
+| `accent`  | `hex`     | No         | Theme default | Tower & glow color — **without** `#`                  |
+| `text`    | `hex`     | No         | Theme default | Label & stat text color — **without** `#`             |
+| `radius`  | `number`  | No         | `8`           | Border corner radius in pixels                        |
+| `speed`   | `string`  | No         | `8s`          | Radar scan animation duration (e.g. `4s`, `12s`)      |
+| `scale`   | `string`  | No         | `linear`      | Tower height scaling: `linear` or `log` (logarithmic) |
+| `refresh` | `boolean` | No         | `false`       | Bypass cache for real-time data                       |
 
 ### Theme Presets
 
-| Theme | Preview | `bg` | `accent` | `text` |
-|---|---|---|---|---|
-| `dark` *(default)* | GitHub dark | `0d1117` | `58a6ff` | `c9d1d9` |
-| `neon` | Cyberpunk | `000000` | `ff00ff` | `00ffcc` |
-| `dracula` | Dracula Pro | `282a36` | `bd93f9` | `f8f8f2` |
-| `github` | GitHub green | `0d1117` | `238636` | `ffffff` |
-| `light` | Clean & minimal | `ffffff` | `0969da` | `24292f` |
+| Theme              | Preview         | `bg`     | `accent` | `text`   |
+| ------------------ | --------------- | -------- | -------- | -------- |
+| `dark` _(default)_ | GitHub dark     | `0d1117` | `58a6ff` | `c9d1d9` |
+| `neon`             | Cyberpunk       | `000000` | `ff00ff` | `00ffcc` |
+| `dracula`          | Dracula Pro     | `282a36` | `bd93f9` | `f8f8f2` |
+| `github`           | GitHub green    | `0d1117` | `238636` | `ffffff` |
+| `light`            | Clean & minimal | `ffffff` | `0969da` | `24292f` |
 
 ### Examples
 
 ```md
 <!-- The Dracula aesthetic -->
+
 ![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=dracula)
 
 <!-- Fully custom — hot orange on void black -->
+
 ![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&bg=080808&accent=ff4500&text=eeeeee&radius=16)
 
 <!-- Force bypass cache for latest data -->
+
 ![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&refresh=true)
+
+<!-- Fast scan + logarithmic scaling for power users -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&speed=4s&scale=log)
 ```
 
 ---
 
 ## 🎯 Real-Time Accuracy — The Contribution Count Problem
 
-GitHub's contribution graph can return **different totals** depending on *when* and *how* you query it. We solved this at the infrastructure level.
+GitHub's contribution graph can return **different totals** depending on _when_ and _how_ you query it. We solved this at the infrastructure level.
 
 ### The Problem: Off-by-N Contributions
 
-The GitHub GraphQL API calculates `totalContributions` and daily contribution windows using **UTC-based ISO 8601 timestamps**. A naive implementation that queries at any arbitrary time — without anchoring to UTC midnight boundaries — will produce counts that are *inconsistent* between requests. This is the root cause of the classic "my card shows 378 but GitHub shows 385" discrepancy.
+The GitHub GraphQL API calculates `totalContributions` and daily contribution windows using **UTC-based ISO 8601 timestamps**. A naive implementation that queries at any arbitrary time — without anchoring to UTC midnight boundaries — will produce counts that are _inconsistent_ between requests. This is the root cause of the classic "my card shows 378 but GitHub shows 385" discrepancy.
 
 ### The Solution: UTC Midnight Synchronization
 
@@ -160,16 +172,16 @@ utils/time.ts               →  UTC midnight synchronization utilities
 types/index.ts              →  TypeScript interfaces (StreakStats, BadgeParams, BadgeTheme)
 ```
 
-| Layer | Technology | Purpose |
-|---|---|---|
-| **Framework** | Next.js 16 (App Router) | API routes, edge deployment |
-| **Language** | TypeScript 5 | Type-safe parameters and interfaces |
-| **Data Source** | GitHub GraphQL API v4 | `contributionsCollection` query |
-| **Rendering** | Pure SVG + SVG Filters | `<feGaussianBlur>` for the glow effect |
-| **Animation** | SVG `<animate>` | Radar scan line, no external libraries |
-| **Typography** | Google Fonts (Syncopate + Space Grotesk) | Loaded inline via `@import` |
-| **Deployment** | Vercel Edge Network | Auto-scaling, global CDN |
-| **Caching** | `Cache-Control: s-maxage` | UTC-midnight-synced cache invalidation |
+| Layer           | Technology                               | Purpose                                                            |
+| --------------- | ---------------------------------------- | ------------------------------------------------------------------ |
+| **Framework**   | Next.js 16 (App Router)                  | API routes, edge deployment                                        |
+| **Language**    | TypeScript 5                             | Type-safe parameters and interfaces                                |
+| **Data Source** | GitHub GraphQL API v4                    | `contributionsCollection` query                                    |
+| **Rendering**   | Pure SVG + SVG Filters                   | `<feGaussianBlur>` for the glow effect                             |
+| **Animation**   | SVG `<animate>`                          | Radar scan line + current-day block pulsing, no external libraries |
+| **Typography**  | Google Fonts (Syncopate + Space Grotesk) | Loaded inline via `@import`                                        |
+| **Deployment**  | Vercel Edge Network                      | Auto-scaling, global CDN                                           |
+| **Caching**     | `Cache-Control: s-maxage`                | UTC-midnight-synced cache invalidation                             |
 
 ---
 
@@ -215,12 +227,20 @@ Read the full guide: **[CONTRIBUTING.md](CONTRIBUTING.md)**
 
 MIT © [Sourav Jha](https://github.com/JhaSourav07)
 
-<div align="center">
+---
+
+## 🎨 Themes
+
+Browse theme previews here: [Theme Gallery](THEMES.md)
 
 ---
 
-*Built with obsession, shipped with precision.*
+<div align="center">
+
+_Built with obsession, shipped with precision._
 
 ⭐ **If CommitPulse made your profile look elite, drop a star.** ⭐
+
+### This project is an official participant in Nexus Spring of Code (NSoC) 2026.
 
 </div>

@@ -29,18 +29,18 @@ export async function fetchGitHubContributions(username: string) {
     },
     body: JSON.stringify({ query, variables: { login: username } }),
     // We handle caching at the Next.js Route level, so we bypass the internal fetch cache
-    cache: 'no-store', 
+    cache: 'no-store',
   });
 
   if (!res.ok) {
     throw new Error(`GitHub API returned status ${res.status}`);
   }
-  
+
   const data = await res.json();
-  
+
   if (data.errors) {
     throw new Error(data.errors[0].message);
   }
-  
+
   return data.data.user.contributionsCollection.contributionCalendar;
 }

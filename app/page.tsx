@@ -21,11 +21,27 @@ const Icons = {
     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
   )
 };
+'use client';
+
+import { useState, useEffect, useRef, startTransition } from 'react';
+import Image from 'next/image';
+import { motion, AnimatePresence } from 'framer-motion';
+import { FeatureCard } from './components/FeatureCard';
+import { Footer } from './components/Footer';
+import { HeroSection } from './components/HeroSection';
+import { BoxIcon, CheckIcon, CopyIcon, ZapIcon } from './components/Icons';
+import { SuccessGuide } from './components/SuccessGuide';
 
 export default function LandingPage() {
   const [username, setUsername] = useState('jhasourav07');
   const [copied, setCopied] = useState(false);
   const guideRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    startTransition(() => {
+      setMounted(true);
+    });
+  }, []);
 
   const badgeUrl = `/api/streak?user=${username}`;
   const markdown = `![CommitPulse](https://commitpulse.vercel.app/api/streak?user=${username})`;
@@ -47,76 +63,46 @@ export default function LandingPage() {
         <div className="absolute top-[20%] -right-[10%] w-[30%] h-[30%] bg-purple-500/10 blur-[120px] rounded-full" />
       </div>
 
-      <main className="relative z-10 max-w-6xl mx-auto px-6 pt-12 pb-32">
-
-        <nav className="flex justify-between items-center mb-20">
-          <div className="flex items-center gap-3 font-bold text-xl tracking-tighter">
-            <div className="w-9 h-9 bg-emerald-500 rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(16,185,129,0.4)]">
-               <Icons.Box />
-            </div>
-            COMMITPULSE
-          </div>
-          <a 
-            href="https://github.com/jhasourav07/commitpulse" 
-            target="_blank" 
-            className="p-2 rounded-full hover:bg-white/5 transition-colors border border-white/10"
-          >
-            <Icons.Github />
-          </a>
-        </nav>
-
-
-        <div className="text-center mb-16">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-          >
-            <h1 className="text-5xl md:text-8xl font-extrabold tracking-tight mb-8 bg-gradient-to-b from-white to-white/30 bg-clip-text text-transparent">
-              Elevate Your <br /> Contribution Story.
-            </h1>
-          </motion.div>
-          
-          <motion.p 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.3 }}
-            className="text-gray-400 text-lg md:text-xl max-w-2xl mx-auto leading-relaxed"
-          >
-            Stop settling for flat grids. Generate high-fidelity, 3D isometric monoliths 
-            that visualize your coding rhythm with professional precision.
-          </motion.p>
-        </div>
-
+      <main className="relative z-10 max-w-6xl mx-auto px-6 pt-6 pb-32 md:pt-10">
+        <HeroSection />
 
         <section className="max-w-4xl mx-auto mb-32">
           <div className="bg-[#0f0f0f] border border-white/5 rounded-[2.5rem] p-4 md:p-8 shadow-2xl backdrop-blur-sm">
             <div className="flex flex-col md:flex-row gap-4 mb-8">
-              <input 
-                type="text" 
+              <input
+                type="text"
                 placeholder="Enter GitHub Username"
                 className="flex-1 bg-black border border-white/10 rounded-2xl px-6 py-4 outline-none focus:border-emerald-500/50 transition-all font-mono text-emerald-400 placeholder:text-white/20"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
               />
-              <button 
+              <button
                 onClick={copyToClipboard}
                 className="relative overflow-hidden bg-white text-black font-bold px-8 py-4 rounded-2xl hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 min-w-[200px]"
               >
                 <AnimatePresence mode="wait">
                   {copied ? (
-                    <motion.div key="check" initial={{ y: 10 }} animate={{ y: 0 }} className="flex items-center gap-2">
-                      <Icons.Check /> Copied
+                    <motion.div
+                      key="check"
+                      initial={{ y: 10 }}
+                      animate={{ y: 0 }}
+                      className="flex items-center gap-2"
+                    >
+                      <CheckIcon /> Copied
                     </motion.div>
                   ) : (
-                    <motion.div key="copy" initial={{ y: -10 }} animate={{ y: 0 }} className="flex items-center gap-2">
-                      <Icons.Copy /> Copy Link
+                    <motion.div
+                      key="copy"
+                      initial={{ y: -10 }}
+                      animate={{ y: 0 }}
+                      className="flex items-center gap-2"
+                    >
+                      <CopyIcon /> Copy Link
                     </motion.div>
                   )}
                 </AnimatePresence>
               </button>
             </div>
-
 
             <div className="relative group">
               <div className="absolute -inset-1 bg-gradient-to-r from-emerald-500/20 to-purple-500/20 rounded-[2rem] blur-xl opacity-50 group-hover:opacity-100 transition duration-1000"></div>
@@ -129,38 +115,42 @@ export default function LandingPage() {
                    unoptimized
                    className="max-w-full h-auto drop-shadow-[0_20px_50px_rgba(0,0,0,0.5)]"
                  />
+                <Image
+                  src={badgeUrl}
+                  alt="CommitPulse streak badge preview"
+                  width={600}
+                  height={420}
+                  unoptimized
+                  className="max-w-full h-auto drop-shadow-[0_20px_50px_rgba(0,0,0,0.5)]"
+                />
               </div>
             </div>
           </div>
         </section>
 
-
         <div ref={guideRef}>
           <AnimatePresence>
-            {copied && (
-              <SuccessGuide markdown={markdown} onDismiss={() => setCopied(false)} />
-            )}
+            {copied && <SuccessGuide markdown={markdown} onDismiss={() => setCopied(false)} />}
           </AnimatePresence>
         </div>
 
-
         <div className="grid md:grid-cols-3 gap-6">
-          <FeatureCard 
-            icon={<Icons.Zap />} 
+          <FeatureCard
+            icon={<ZapIcon />}
             accent="text-emerald-400"
-            title="Real-time Sync" 
+            title="Real-time Sync"
             desc="Pulled directly from GitHub GraphQL API. Your streak updates as fast as your code pushes."
           />
-          <FeatureCard 
-            icon={<Icons.Copy />} 
+          <FeatureCard
+            icon={<CopyIcon />}
             accent="text-purple-400"
-            title="Theme Engine" 
+            title="Theme Engine"
             desc="Switch between Neon, Dracula, or custom HEX modes via simple URL management."
           />
-          <FeatureCard 
-            icon={<Icons.Box />} 
+          <FeatureCard
+            icon={<BoxIcon />}
             accent="text-blue-400"
-            title="Isometric Math" 
+            title="Isometric Math"
             desc="Sophisticated 3D projection formulas turn 2D data into digital architecture."
           />
         </div>
@@ -180,6 +170,7 @@ export default function LandingPage() {
             </a>
           </div>
         </footer>
+        <Footer />
       </main>
     </div>
   );

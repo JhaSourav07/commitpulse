@@ -1,9 +1,9 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 /* If you want to customize colors or fonts in v4, you do it here: */
 @theme {
   --color-emerald-custom: #10b981;
-  --font-sans: "Inter", ui-sans-serif, system-ui;
+  --font-sans: 'Inter', ui-sans-serif, system-ui;
 }
 :root {
   --foreground-rgb: 255, 255, 255;
