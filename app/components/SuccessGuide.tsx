@@ -7,7 +7,7 @@ const STEPS = [
   {
     n: '01',
     title: 'Open Your Profile Repo',
-    body: 'Navigate to github.com/ankitkr104/ankitkr104 — your special profile repository.',
+    body: 'Navigate to github.com/YOUR_USERNAME/YOUR_USERNAME — your special profile repository.',
   },
   {
     n: '02',
