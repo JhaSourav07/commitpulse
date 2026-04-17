@@ -8,6 +8,7 @@ import { Footer } from './components/Footer';
 import { HeroSection } from './components/HeroSection';
 import { BoxIcon, CheckIcon, CopyIcon, ZapIcon } from './components/Icons';
 import { SuccessGuide } from './components/SuccessGuide';
+import { CustomizeCTA } from './components/CustomizeCTA';
 
 export default function LandingPage() {
   const [username, setUsername] = useState('jhasourav07');
@@ -105,6 +106,8 @@ export default function LandingPage() {
             {copied && <SuccessGuide markdown={markdown} onDismiss={() => setCopied(false)} />}
           </AnimatePresence>
         </div>
+
+        <CustomizeCTA />
 
         <div className="grid md:grid-cols-3 gap-6">
           <FeatureCard
