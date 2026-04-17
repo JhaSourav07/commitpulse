@@ -34,13 +34,13 @@ We render your contribution data as a **3D Isometric City** — a grid of glowin
 
 ### Why Isometric > Flat
 
-| Property         | Flat Badges       | CommitPulse Monolith            |
-| ---------------- | ----------------- | ------------------------------- |
-| **Visual Depth** | None              | Full isometric 3D perspective   |
-| **Data Density** | 3 numbers         | 98-day contribution landscape   |
+| Property         | Flat Badges       | CommitPulse Monolith                                                       |
+| ---------------- | ----------------- | -------------------------------------------------------------------------- |
+| **Visual Depth** | None              | Full isometric 3D perspective                                              |
+| **Data Density** | 3 numbers         | 98-day contribution landscape                                              |
 | **Animation**    | Static            | Radar scan line, glow effects & live pulsing indicator for today's commits |
-| **Personality**  | Generic           | Uniquely yours, every day       |
-| **Impression**   | "They have stats" | "They ship code like a machine" |
+| **Personality**  | Generic           | Uniquely yours, every day                                                  |
+| **Impression**   | "They have stats" | "They ship code like a machine"                                            |
 
 The design philosophy is simple: **your commit history deserves a monument, not a meter.**
 
@@ -172,16 +172,16 @@ utils/time.ts               →  UTC midnight synchronization utilities
 types/index.ts              →  TypeScript interfaces (StreakStats, BadgeParams, BadgeTheme)
 ```
 
-| Layer           | Technology                               | Purpose                                |
-| --------------- | ---------------------------------------- | -------------------------------------- |
-| **Framework**   | Next.js 16 (App Router)                  | API routes, edge deployment            |
-| **Language**    | TypeScript 5                             | Type-safe parameters and interfaces    |
-| **Data Source** | GitHub GraphQL API v4                    | `contributionsCollection` query        |
-| **Rendering**   | Pure SVG + SVG Filters                   | `<feGaussianBlur>` for the glow effect |
+| Layer           | Technology                               | Purpose                                                            |
+| --------------- | ---------------------------------------- | ------------------------------------------------------------------ |
+| **Framework**   | Next.js 16 (App Router)                  | API routes, edge deployment                                        |
+| **Language**    | TypeScript 5                             | Type-safe parameters and interfaces                                |
+| **Data Source** | GitHub GraphQL API v4                    | `contributionsCollection` query                                    |
+| **Rendering**   | Pure SVG + SVG Filters                   | `<feGaussianBlur>` for the glow effect                             |
 | **Animation**   | SVG `<animate>`                          | Radar scan line + current-day block pulsing, no external libraries |
-| **Typography**  | Google Fonts (Syncopate + Space Grotesk) | Loaded inline via `@import`            |
-| **Deployment**  | Vercel Edge Network                      | Auto-scaling, global CDN               |
-| **Caching**     | `Cache-Control: s-maxage`                | UTC-midnight-synced cache invalidation |
+| **Typography**  | Google Fonts (Syncopate + Space Grotesk) | Loaded inline via `@import`                                        |
+| **Deployment**  | Vercel Edge Network                      | Auto-scaling, global CDN                                           |
+| **Caching**     | `Cache-Control: s-maxage`                | UTC-midnight-synced cache invalidation                             |
 
 ---
 
