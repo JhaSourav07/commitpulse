@@ -29,7 +29,13 @@ export function generateSVG(
 
   weeks.forEach((week: ContributionWeek, i: number) => {
     week.contributionDays.forEach((day: ContributionDay, j: number) => {
-      const tooltip = `${day.date}: ${day.contributionCount} contributions`;
+      const isToday = i === weeks.length - 1 && j === week.contributionDays.length - 1;
+      const hasCommits = day.contributionCount > 0;
+      const isTodayWithCommits = isToday && hasCommits;
+
+      const tooltip = isTodayWithCommits
+        ? `TODAY: ${day.date}: ${day.contributionCount} contributions`
+        : `${day.date}: ${day.contributionCount} contributions`;
 
       // Height scales with contribution count (linear or logarithmic)
       const h =
@@ -39,12 +45,12 @@ export function generateSVG(
       const x = 300 + (i - j) * 16;
       const y = 120 + (i + j) * 9;
 
-      const hasCommits = day.contributionCount > 0;
       const color = hasCommits ? accent : text;
       const opacity = hasCommits ? 0.7 : 0.05;
 
       towers += `
         <g transform="translate(${x}, ${y - h})">
+          ${isTodayWithCommits ? `<animate attributeName="opacity" values="1;0.4;1" dur="1.5s" repeatCount="indefinite" />` : ''}
           <title>${tooltip}</title>
           <path d="M0 10 L0 ${10 + h} L-16 ${h} L-16 0 Z" fill="${color}" fill-opacity="${opacity * 0.5}" />
           <path d="M0 10 L0 ${10 + h} L16 ${h} L16 0 Z" fill="${color}" fill-opacity="${opacity * 0.3}" />
