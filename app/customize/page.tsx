@@ -3,18 +3,14 @@
 import { useState, useCallback } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
+import { themes } from '../../lib/svg/themes';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type Scale = 'linear' | 'log';
 
-const THEMES = [
-  { value: 'dark', label: 'Dark (default)', palette: ['#0d1117', '#58a6ff', '#c9d1d9'] },
-  { value: 'neon', label: 'Neon', palette: ['#000000', '#ff00ff', '#00ffcc'] },
-  { value: 'dracula', label: 'Dracula', palette: ['#282a36', '#bd93f9', '#f8f8f2'] },
-  { value: 'github', label: 'GitHub Green', palette: ['#0d1117', '#238636', '#ffffff'] },
-  { value: 'light', label: 'Light', palette: ['#ffffff', '#0969da', '#24292f'] },
-] as const;
+// Theme options are derived dynamically from lib/svg/themes.ts
+const THEME_KEYS = Object.keys(themes);
 
 const SPEEDS = [
   { value: '4s', label: 'Fast  (4s)' },
@@ -282,22 +278,25 @@ export default function CustomizePage() {
                 <ControlRow label="Theme Preset">
                   <div className="relative">
                     <StyledSelect id="theme-select" value={theme} onChange={setTheme}>
-                      {THEMES.map((t) => (
-                        <option key={t.value} value={t.value}>
-                          {t.label}
+                      {THEME_KEYS.map((key) => (
+                        <option key={key} value={key}>
+                          {key.charAt(0).toUpperCase() + key.slice(1)}
                         </option>
                       ))}
                     </StyledSelect>
-                    {/* Theme color swatches */}
+                    {/* Theme color swatches — driven from the imported themes object */}
                     <div className="mt-2 flex gap-1.5">
-                      {THEMES.find((t) => t.value === theme)?.palette.map((c, i) => (
-                        <span
-                          key={i}
-                          title={c}
-                          className="w-5 h-5 rounded-md border border-white/10"
-                          style={{ backgroundColor: c }}
-                        />
-                      ))}
+                      {(['bg', 'accent', 'text'] as const).map((prop) => {
+                        const color = themes[theme]?.[prop];
+                        return color ? (
+                          <span
+                            key={prop}
+                            title={`${prop}: #${color}`}
+                            className="w-5 h-5 rounded-md border border-white/10"
+                            style={{ backgroundColor: `#${color}` }}
+                          />
+                        ) : null;
+                      })}
                       <span className="text-[11px] text-white/25 ml-1 self-center">
                         bg · accent · text
                       </span>
