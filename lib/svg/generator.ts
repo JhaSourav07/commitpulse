@@ -1,6 +1,50 @@
 // lib/svg/generator.ts
 import type { BadgeParams, ContributionCalendar, StreakStats } from '../../types';
 
+function deterministicRandom(seed: string): number {
+  let hash = 2166136261;
+  for (let i = 0; i < seed.length; i++) {
+    hash ^= seed.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0) / 4294967296;
+}
+
+function generateParticles(
+  x: number,
+  y: number,
+  height: number,
+  color: string,
+  count: number
+): string {
+  let particles = '';
+  const particleCount = Math.min(5, Math.max(3, Math.floor(count / 4))); // 3-5 particles for count >= 10
+
+  for (let i = 0; i < particleCount; i++) {
+    const seed = `${x}:${y}:${height}:${color}:${count}:${i}`;
+    const offsetX = deterministicRandom(`${seed}:offsetX`) * 6 - 3;
+    const delay = deterministicRandom(`${seed}:delay`) * 1.5;
+
+    particles += `
+      <circle cx="${x + offsetX}" cy="${y - height}" r="1.5" fill="${color}" opacity="1">
+        <animate attributeName="cy"
+          from="${y - height}"
+          to="${y - height - 20}"
+          dur="1.5s"
+          begin="${delay}s"
+          repeatCount="indefinite" />
+        <animate attributeName="opacity"
+          from="1" to="0"
+          dur="1.5s"
+          begin="${delay}s"
+          repeatCount="indefinite" />
+      </circle>
+    `;
+  }
+
+  return `<g class="heat-particles">${particles}</g>`;
+}
+
 export function generateSVG(
   stats: StreakStats,
   params: BadgeParams,
@@ -43,6 +87,10 @@ export function generateSVG(
           <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="${color}" fill-opacity="${opacity}" />
           ${day.contributionCount > 5 ? `<path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="white" fill-opacity="0.2" />` : ''}
         </g>`;
+
+      if (day.contributionCount >= 10) {
+        towers += generateParticles(x, y, h, accent, day.contributionCount);
+      }
     });
   });
 
@@ -61,6 +109,9 @@ export function generateSVG(
         .stats { font-family: 'Space Grotesk', sans-serif; fill: ${text}; font-size: 42px; font-weight: 700; }
         .total-val { font-family: 'Syncopate', sans-serif; fill: ${accent}; font-size: 24px; font-weight: 700; }
         .label { font-family: 'Space Grotesk', sans-serif; fill: ${accent}; font-size: 11px; font-weight: 700; letter-spacing: 2px; opacity: 0.7; }
+        @media (prefers-reduced-motion: reduce) {
+          .heat-particles { display: none; }
+        }
       </style>
 
       <rect width="600" height="420" rx="32" fill="${bg}" />
