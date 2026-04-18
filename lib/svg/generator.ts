@@ -1,7 +1,5 @@
 import type { BadgeParams, ContributionCalendar, StreakStats } from '../../types';
 
-
-
 const FONT_MAP: Record<string, string> = {
   jetbrains: 'JetBrains Mono',
   fira: 'Fira Code',
