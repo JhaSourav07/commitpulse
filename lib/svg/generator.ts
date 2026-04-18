@@ -75,6 +75,9 @@ export function generateSVG(
 
   const selectedFont = FONT_MAP[params.font?.toLowerCase() || ''] || 'JetBrains Mono';
 
+  // ✅ FIX: use radius param safely
+  const radius = Math.max(0, Math.min(Number(params.radius) || 8, 50));
+
   const weeks = calendar.weeks.slice(-14);
   let towers = '';
 
@@ -101,12 +104,24 @@ export function generateSVG(
 
       towers += `
         <g transform="translate(${x}, ${y - h})">
-          ${isTodayWithCommits ? `<animate attributeName="opacity" values="1;0.4;1" dur="1.5s" repeatCount="indefinite" />` : ''}
+          ${
+            isTodayWithCommits
+              ? `<animate attributeName="opacity" values="1;0.4;1" dur="1.5s" repeatCount="indefinite" />`
+              : ''
+          }
           <title>${tooltip}</title>
-          <path d="M0 10 L0 ${10 + h} L-16 ${h} L-16 0 Z" fill="${color}" fill-opacity="${opacity * 0.5}" />
-          <path d="M0 10 L0 ${10 + h} L16 ${h} L16 0 Z" fill="${color}" fill-opacity="${opacity * 0.3}" />
+          <path d="M0 10 L0 ${10 + h} L-16 ${h} L-16 0 Z" fill="${color}" fill-opacity="${
+            opacity * 0.5
+          }" />
+          <path d="M0 10 L0 ${10 + h} L16 ${h} L16 0 Z" fill="${color}" fill-opacity="${
+            opacity * 0.3
+          }" />
           <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="${color}" fill-opacity="${opacity}" />
-          ${day.contributionCount > 5 ? `<path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="white" fill-opacity="0.2" />` : ''}
+          ${
+            day.contributionCount > 5
+              ? `<path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="white" fill-opacity="0.2" />`
+              : ''
+          }
         </g>`;
 
       if (day.contributionCount >= 10) {
@@ -137,7 +152,8 @@ export function generateSVG(
         }
       </style>
 
-      <rect width="600" height="420" rx="32" fill="${bg}" />
+      <!-- ✅ FIX APPLIED HERE -->
+      <rect width="600" height="420" rx="${radius}" fill="${bg}" />
 
       <g transform="translate(0, 20)">
         ${towers}
