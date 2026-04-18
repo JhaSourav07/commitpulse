@@ -43,7 +43,6 @@ export async function GET(request: Request) {
 
     const svg = generateSVG(stats, params, calendar);
 
-
     // 4. Calculate Cache Control (Reset at UTC Midnight)
     const secondsToMidnight = getSecondsUntilUTCMidnight();
     const refresh = searchParams.get('refresh') === 'true';

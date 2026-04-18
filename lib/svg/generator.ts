@@ -68,8 +68,7 @@ export function generateSVG(
   const accent = `#${(params.accent || '00ffaa').replace('#', '')}`;
   const text = `#${(params.text || 'ffffff').replace('#', '')}`;
 
-  const selectedFont =
-    FONT_MAP[params.font?.toLowerCase() || ''] || 'JetBrains Mono';
+  const selectedFont = FONT_MAP[params.font?.toLowerCase() || ''] || 'JetBrains Mono';
 
   const radius = Math.max(0, Math.min(Number(params.radius) || 8, 50));
 
@@ -78,9 +77,7 @@ export function generateSVG(
 
   weeks.forEach((week, i) => {
     week.contributionDays.forEach((day, j) => {
-      const isToday =
-        i === weeks.length - 1 &&
-        j === week.contributionDays.length - 1;
+      const isToday = i === weeks.length - 1 && j === week.contributionDays.length - 1;
 
       const hasCommits = day.contributionCount > 0;
       const isTodayWithCommits = isToday && hasCommits;
@@ -91,12 +88,7 @@ export function generateSVG(
 
       const h =
         params.scale === 'log'
-          ? Math.min(
-              day.contributionCount > 0
-                ? Math.log2(day.contributionCount + 1) * 12
-                : 0,
-              80
-            )
+          ? Math.min(day.contributionCount > 0 ? Math.log2(day.contributionCount + 1) * 12 : 0, 80)
           : Math.min(day.contributionCount * 5, 50);
 
       const x = 300 + (i - j) * 16;
@@ -128,13 +120,7 @@ export function generateSVG(
         </g>`;
 
       if (day.contributionCount >= 10) {
-        towers += generateParticles(
-          x,
-          y,
-          h,
-          accent,
-          day.contributionCount
-        );
+        towers += generateParticles(x, y, h, accent, day.contributionCount);
       }
     });
   });
