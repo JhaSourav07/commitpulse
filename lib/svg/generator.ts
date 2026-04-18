@@ -15,9 +15,9 @@ interface ContributionCalendar {
 }
 
 const FONT_MAP: Record<string, string> = {
-  jetbrains: "JetBrains Mono",
-  fira: "Fira Code",
-  roboto: "Roboto Mono"
+  jetbrains: 'JetBrains Mono',
+  fira: 'Fira Code',
+  roboto: 'Roboto Mono',
 };
 
 function deterministicRandom(seed: string): number {
@@ -73,8 +73,7 @@ export function generateSVG(
   const accent = `#${(params.accent || '00ffaa').replace('#', '')}`;
   const text = `#${(params.text || 'ffffff').replace('#', '')}`;
 
-  const selectedFont =
-    FONT_MAP[params.font?.toLowerCase() || ""] || "JetBrains Mono";
+  const selectedFont = FONT_MAP[params.font?.toLowerCase() || ''] || 'JetBrains Mono';
 
   const weeks = calendar.weeks.slice(-14);
   let towers = '';
