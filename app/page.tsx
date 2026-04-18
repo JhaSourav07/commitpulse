@@ -88,23 +88,7 @@ export default function LandingPage() {
         <div className="absolute -right-[10%] top-[20%] h-[30%] w-[30%] rounded-full bg-purple-500/10 blur-[120px]" />
       </div>
 
-      <main className="relative z-10 mx-auto max-w-6xl px-6 pb-32 pt-12">
-        <nav className="mb-20 flex items-center justify-between">
-          <div className="flex items-center gap-3 text-xl font-bold tracking-tighter">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.4)]">
-              <Icons.Box />
-            </div>
-            COMMITPULSE
-          </div>
-          <a
-            href="https://github.com/jhasourav07/commitpulse"
-            target="_blank"
-            rel="noreferrer"
-            className="rounded-full border border-white/10 p-2 transition-colors hover:bg-white/5"
-          >
-            <Icons.Github />
-          </a>
-        </nav>
+      <main className="relative z-10 mx-auto max-w-6xl px-6 pb-32">
 
         <div className="mb-16 text-center">
           <motion.div
