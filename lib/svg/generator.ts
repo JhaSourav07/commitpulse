@@ -1,4 +1,3 @@
-// lib/svg/generator.ts
 import { StreakStats, BadgeParams } from '../../types';
 
 interface ContributionDay {
@@ -14,6 +13,12 @@ interface ContributionCalendar {
   totalContributions: number;
   weeks: ContributionWeek[];
 }
+
+const FONT_MAP: Record<string, string> = {
+  jetbrains: "JetBrains Mono",
+  fira: "Fira Code",
+  roboto: "Roboto Mono"
+};
 
 function deterministicRandom(seed: string): number {
   let hash = 2166136261;
@@ -32,7 +37,7 @@ function generateParticles(
   count: number
 ): string {
   let particles = '';
-  const particleCount = Math.min(5, Math.max(3, Math.floor(count / 4))); // 3-5 particles for count >= 10
+  const particleCount = Math.min(5, Math.max(3, Math.floor(count / 4)));
 
   for (let i = 0; i < particleCount; i++) {
     const seed = `${x}:${y}:${height}:${color}:${count}:${i}`;
@@ -68,7 +73,10 @@ export function generateSVG(
   const accent = `#${(params.accent || '00ffaa').replace('#', '')}`;
   const text = `#${(params.text || 'ffffff').replace('#', '')}`;
 
-  const weeks = calendar.weeks.slice(-14); // 14 weeks for better symmetry
+  const selectedFont =
+    FONT_MAP[params.font?.toLowerCase() || ""] || "JetBrains Mono";
+
+  const weeks = calendar.weeks.slice(-14);
   let towers = '';
 
   weeks.forEach((week: ContributionWeek, i: number) => {
@@ -81,11 +89,11 @@ export function generateSVG(
         ? `TODAY: ${day.date}: ${day.contributionCount} contributions`
         : `${day.date}: ${day.contributionCount} contributions`;
 
-      // Height scales with contribution count (linear or logarithmic)
       const h =
         params.scale === 'log'
           ? Math.min(day.contributionCount > 0 ? Math.log2(day.contributionCount + 1) * 12 : 0, 80)
           : Math.min(day.contributionCount * 5, 50);
+
       const x = 300 + (i - j) * 16;
       const y = 120 + (i + j) * 9;
 
@@ -118,11 +126,13 @@ export function generateSVG(
       </defs>
 
       <style>
-        @import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@700&amp;family=Space+Grotesk:wght@300;500;700&amp;display=swap');
-        .title { font-family: 'Syncopate', sans-serif; fill: ${text}; font-size: 18px; letter-spacing: 6px; opacity: 0.8; }
-        .stats { font-family: 'Space Grotesk', sans-serif; fill: ${text}; font-size: 42px; font-weight: 700; }
-        .total-val { font-family: 'Syncopate', sans-serif; fill: ${accent}; font-size: 24px; font-weight: 700; }
-        .label { font-family: 'Space Grotesk', sans-serif; fill: ${accent}; font-size: 11px; font-weight: 700; letter-spacing: 2px; opacity: 0.7; }
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono&family=Fira+Code&family=Roboto+Mono&display=swap');
+
+        .title { font-family: '${selectedFont}', monospace; fill: ${text}; font-size: 18px; letter-spacing: 6px; opacity: 0.8; }
+        .stats { font-family: '${selectedFont}', monospace; fill: ${text}; font-size: 42px; font-weight: 700; }
+        .total-val { font-family: '${selectedFont}', monospace; fill: ${accent}; font-size: 24px; font-weight: 700; }
+        .label { font-family: '${selectedFont}', monospace; fill: ${accent}; font-size: 11px; font-weight: 700; letter-spacing: 2px; opacity: 0.7; }
+
         @media (prefers-reduced-motion: reduce) {
           .heat-particles { display: none; }
         }
