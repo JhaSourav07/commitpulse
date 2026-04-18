@@ -1,12 +1,12 @@
-"use client";
+'use client';
 
-import type { ReactNode } from "react";
-import Image from "next/image";
-import Link from "next/link";
-import { useRef, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import type { ReactNode } from 'react';
+import Image from 'next/image';
+import Link from 'next/link';
+import { useRef, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 
-import { CommitPulseLogo } from "@/components/commitpulse-logo";
+import { CommitPulseLogo } from '@/components/commitpulse-logo';
 
 const Icons = {
   Github: () => (
@@ -73,7 +73,7 @@ import { SuccessGuide } from './components/SuccessGuide';
 import { CustomizeCTA } from './components/CustomizeCTA';
 
 export default function LandingPage() {
-  const [username, setUsername] = useState("jhasourav07");
+  const [username, setUsername] = useState('jhasourav07');
   const [copied, setCopied] = useState(false);
   const guideRef = useRef<HTMLDivElement>(null);
 
@@ -84,7 +84,7 @@ export default function LandingPage() {
     navigator.clipboard.writeText(markdown);
     setCopied(true);
     setTimeout(() => {
-      guideRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      guideRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 80);
     setTimeout(() => setCopied(false), 50000);
   };
@@ -131,8 +131,8 @@ export default function LandingPage() {
             transition={{ delay: 0.3 }}
             className="mx-auto max-w-2xl text-lg leading-relaxed text-gray-400 md:text-xl"
           >
-            Stop settling for flat grids. Generate high-fidelity, 3D isometric monoliths
-            that visualize your coding rhythm with professional precision.
+            Stop settling for flat grids. Generate high-fidelity, 3D isometric monoliths that
+            visualize your coding rhythm with professional precision.
           </motion.p>
         </div>
 
@@ -152,11 +152,21 @@ export default function LandingPage() {
               >
                 <AnimatePresence mode="wait">
                   {copied ? (
-                    <motion.div key="check" initial={{ y: 10 }} animate={{ y: 0 }} className="flex items-center gap-2">
+                    <motion.div
+                      key="check"
+                      initial={{ y: 10 }}
+                      animate={{ y: 0 }}
+                      className="flex items-center gap-2"
+                    >
                       <Icons.Check /> Copied
                     </motion.div>
                   ) : (
-                    <motion.div key="copy" initial={{ y: -10 }} animate={{ y: 0 }} className="flex items-center gap-2">
+                    <motion.div
+                      key="copy"
+                      initial={{ y: -10 }}
+                      animate={{ y: 0 }}
+                      className="flex items-center gap-2"
+                    >
                       <Icons.Copy /> Copy Link
                     </motion.div>
                   )}
@@ -182,9 +192,7 @@ export default function LandingPage() {
 
         <div ref={guideRef}>
           <AnimatePresence>
-            {copied && (
-              <SuccessGuide markdown={markdown} onDismiss={() => setCopied(false)} />
-            )}
+            {copied && <SuccessGuide markdown={markdown} onDismiss={() => setCopied(false)} />}
           </AnimatePresence>
         </div>
 
@@ -260,48 +268,41 @@ function FeatureCard({
 
 const STEPS = [
   {
-    n: "01",
-    title: "Open Your Profile Repo",
-    body: "Navigate to github.com/YOUR_USERNAME/YOUR_USERNAME - your special profile repository.",
+    n: '01',
+    title: 'Open Your Profile Repo',
+    body: 'Navigate to github.com/YOUR_USERNAME/YOUR_USERNAME - your special profile repository.',
   },
   {
-    n: "02",
-    title: "Edit README.md",
+    n: '02',
+    title: 'Edit README.md',
     body: "Click the pencil icon to open the file in GitHub's built-in editor.",
   },
   {
-    n: "03",
-    title: "Paste the Snippet",
-    body: "Place your cursor wherever you want the monolith to appear, then paste (Ctrl+V / Cmd+V).",
+    n: '03',
+    title: 'Paste the Snippet',
+    body: 'Place your cursor wherever you want the monolith to appear, then paste (Ctrl+V / Cmd+V).',
   },
   {
-    n: "04",
-    title: "Save & Ship It",
+    n: '04',
+    title: 'Save & Ship It',
     body: 'Click "Commit changes" and visit your profile. Your 3D streak is now live.',
   },
 ];
 
-function SuccessGuide({
-  markdown,
-  onDismiss,
-}: {
-  markdown: string;
-  onDismiss: () => void;
-}) {
+function SuccessGuide({ markdown, onDismiss }: { markdown: string; onDismiss: () => void }) {
   return (
     <motion.div
       key="success-guide"
       initial={{ opacity: 0, y: 32, scale: 0.97 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: 24, scale: 0.97 }}
-      transition={{ type: "spring", stiffness: 260, damping: 28 }}
+      transition={{ type: 'spring', stiffness: 260, damping: 28 }}
       className="mx-auto mb-12 max-w-4xl"
     >
       <div
         className="relative overflow-hidden rounded-[2rem] border border-emerald-500/20 bg-[#050505]/80 backdrop-blur-2xl"
         style={{
-          boxShadow:
-            "0 0 60px -10px rgba(16,185,129,0.15), 0 0 0 1px rgba(16,185,129,0.08) inset",
+          boxShadow: '0 0 60px -10px rgba(16,185,129,0.15), 0 0 0 1px rgba(16,185,129,0.08) inset',
         }}
       >
         <div className="pointer-events-none absolute -top-24 left-1/2 h-48 w-3/4 -translate-x-1/2 rounded-full bg-emerald-500/10 blur-[80px]" />
@@ -375,9 +376,9 @@ function SuccessGuide({
             </code>
           </div>
           <p className="mt-4 text-xs leading-relaxed text-white/25">
-            Tip: Add <code className="text-white/40">?theme=neon</code> or{" "}
-            <code className="text-white/40">?accent=ff6b35</code> to the URL to change your monolith&apos;s
-            colour palette.
+            Tip: Add <code className="text-white/40">?theme=neon</code> or{' '}
+            <code className="text-white/40">?accent=ff6b35</code> to the URL to change your
+            monolith&apos;s colour palette.
           </p>
         </div>
       </div>

@@ -1,6 +1,6 @@
 // lib/github.ts
 
-import type { ContributionCalendar } from "../types";
+import type { ContributionCalendar } from '../types';
 
 const GITHUB_API_URL = 'https://api.github.com/graphql';
 

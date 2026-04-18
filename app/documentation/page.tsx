@@ -1,124 +1,124 @@
-import type { Metadata } from "next";
-import type { ReactNode } from "react";
-import Link from "next/link";
+import type { Metadata } from 'next';
+import type { ReactNode } from 'react';
+import Link from 'next/link';
 
-import { CodeBlock } from "./code-block";
-import { CommitPulseLogo } from "@/components/commitpulse-logo";
-import { themes as themePalette } from "@/lib/svg/themes";
+import { CodeBlock } from './code-block';
+import { CommitPulseLogo } from '@/components/commitpulse-logo';
+import { themes as themePalette } from '@/lib/svg/themes';
 
 export const metadata: Metadata = {
-  title: "Documentation | CommitPulse",
+  title: 'Documentation | CommitPulse',
   description:
-    "Complete guide to embedding and customizing your CommitPulse streak badge. API parameters, themes, and examples.",
+    'Complete guide to embedding and customizing your CommitPulse streak badge. API parameters, themes, and examples.',
 };
 
-const API_BASE_URL = "https://commitpulse.vercel.app/api/streak";
-const USERNAME_PLACEHOLDER = "YOUR_USERNAME";
+const API_BASE_URL = 'https://commitpulse.vercel.app/api/streak';
+const USERNAME_PLACEHOLDER = 'YOUR_USERNAME';
 
-const buildSnippet = (query = "") =>
+const buildSnippet = (query = '') =>
   `![CommitPulse](${API_BASE_URL}?user=${USERNAME_PLACEHOLDER}${query})`;
 
 const quickStartSnippet = buildSnippet();
 
 const exampleSnippets = [
   {
-    title: "Default embed",
-    description: "The fastest way to drop the monolith into your profile README.",
+    title: 'Default embed',
+    description: 'The fastest way to drop the monolith into your profile README.',
     code: buildSnippet(),
   },
   {
-    title: "Neon theme",
-    description: "Swap the default palette for the high-contrast cyberpunk preset.",
-    code: buildSnippet("&theme=neon"),
+    title: 'Neon theme',
+    description: 'Swap the default palette for the high-contrast cyberpunk preset.',
+    code: buildSnippet('&theme=neon'),
   },
   {
-    title: "Custom colors",
-    description: "Override the background, accent, and text colors directly with hex values.",
-    code: buildSnippet("&bg=0a0a0a&accent=ff6b35&text=ffffff&radius=16"),
+    title: 'Custom colors',
+    description: 'Override the background, accent, and text colors directly with hex values.',
+    code: buildSnippet('&bg=0a0a0a&accent=ff6b35&text=ffffff&radius=16'),
   },
   {
-    title: "Fresh data",
-    description: "Force a cache bypass when you want the latest contribution state immediately.",
-    code: buildSnippet("&refresh=true"),
+    title: 'Fresh data',
+    description: 'Force a cache bypass when you want the latest contribution state immediately.',
+    code: buildSnippet('&refresh=true'),
   },
 ];
 
 const parameters = [
   {
-    name: "user",
-    type: "string",
-    required: "Yes",
-    defaultValue: "None",
-    description: "GitHub username to render. This is the only required parameter.",
+    name: 'user',
+    type: 'string',
+    required: 'Yes',
+    defaultValue: 'None',
+    description: 'GitHub username to render. This is the only required parameter.',
   },
   {
-    name: "theme",
-    type: "string",
-    required: "No",
-    defaultValue: "dark",
-    description: "Preset palette name. Choose from dark, neon, dracula, github, or light.",
+    name: 'theme',
+    type: 'string',
+    required: 'No',
+    defaultValue: 'dark',
+    description: 'Preset palette name. Choose from dark, neon, dracula, github, or light.',
   },
   {
-    name: "bg",
-    type: "hex",
-    required: "No",
-    defaultValue: "Theme default",
-    description: "Background color without the # prefix.",
+    name: 'bg',
+    type: 'hex',
+    required: 'No',
+    defaultValue: 'Theme default',
+    description: 'Background color without the # prefix.',
   },
   {
-    name: "accent",
-    type: "hex",
-    required: "No",
-    defaultValue: "Theme default",
-    description: "Tower, glow, and emphasis color without the # prefix.",
+    name: 'accent',
+    type: 'hex',
+    required: 'No',
+    defaultValue: 'Theme default',
+    description: 'Tower, glow, and emphasis color without the # prefix.',
   },
   {
-    name: "text",
-    type: "hex",
-    required: "No",
-    defaultValue: "Theme default",
-    description: "Label and stat text color without the # prefix.",
+    name: 'text',
+    type: 'hex',
+    required: 'No',
+    defaultValue: 'Theme default',
+    description: 'Label and stat text color without the # prefix.',
   },
   {
-    name: "radius",
-    type: "number",
-    required: "No",
-    defaultValue: "8",
-    description: "Border radius in pixels for the generated SVG card.",
+    name: 'radius',
+    type: 'number',
+    required: 'No',
+    defaultValue: '8',
+    description: 'Border radius in pixels for the generated SVG card.',
   },
   {
-    name: "refresh",
-    type: "boolean",
-    required: "No",
-    defaultValue: "false",
-    description: "Bypass the cache for real-time refreshes.",
+    name: 'refresh',
+    type: 'boolean',
+    required: 'No',
+    defaultValue: 'false',
+    description: 'Bypass the cache for real-time refreshes.',
   },
 ];
 
 const themeDescriptions = {
   dark: {
-    name: "Dark",
-    vibe: "GitHub-dark default with calm blue highlights.",
+    name: 'Dark',
+    vibe: 'GitHub-dark default with calm blue highlights.',
   },
   neon: {
-    name: "Neon",
-    vibe: "Pure black with magenta towers and cyan text.",
+    name: 'Neon',
+    vibe: 'Pure black with magenta towers and cyan text.',
   },
   dracula: {
-    name: "Dracula",
-    vibe: "Purple-forward palette inspired by Dracula Pro.",
+    name: 'Dracula',
+    vibe: 'Purple-forward palette inspired by Dracula Pro.',
   },
   github: {
-    name: "GitHub",
-    vibe: "Deep GitHub green for a more native contribution feel.",
+    name: 'GitHub',
+    vibe: 'Deep GitHub green for a more native contribution feel.',
   },
   light: {
-    name: "Light",
-    vibe: "Bright, minimal surface for portfolios and white backgrounds.",
+    name: 'Light',
+    vibe: 'Bright, minimal surface for portfolios and white backgrounds.',
   },
 } as const;
 
-const themeOrder = ["dark", "neon", "dracula", "github", "light"] as const;
+const themeOrder = ['dark', 'neon', 'dracula', 'github', 'light'] as const;
 
 const themes = themeOrder.map((slug) => ({
   slug,
@@ -127,9 +127,9 @@ const themes = themeOrder.map((slug) => ({
 }));
 
 const contributorNotes = [
-  "URL parameters override theme defaults, and theme defaults override the system fallback palette.",
-  "Contribution counts stay aligned with GitHub by syncing cache invalidation to UTC midnight boundaries.",
-  "The API layer bypasses internal fetch caching so HTTP cache headers stay the single source of truth.",
+  'URL parameters override theme defaults, and theme defaults override the system fallback palette.',
+  'Contribution counts stay aligned with GitHub by syncing cache invalidation to UTC midnight boundaries.',
+  'The API layer bypasses internal fetch caching so HTTP cache headers stay the single source of truth.',
 ];
 
 export default function DocumentationPage() {
@@ -180,8 +180,8 @@ export default function DocumentationPage() {
                 The manual for building your profile monument.
               </h1>
               <p className="mt-5 max-w-2xl text-base leading-8 text-white/65 md:text-lg">
-                Everything in the README, reshaped into a cleaner in-product guide so users can go from
-                copy-paste embed to fully customized monolith without leaving the site.
+                Everything in the README, reshaped into a cleaner in-product guide so users can go
+                from copy-paste embed to fully customized monolith without leaving the site.
               </p>
             </div>
             <div className="rounded-[1.75rem] border border-white/10 bg-black/40 p-5">
@@ -211,7 +211,8 @@ export default function DocumentationPage() {
           >
             <CodeBlock code={quickStartSnippet} />
             <p className="mt-4 text-sm leading-7 text-white/50">
-              Replace <code className="rounded bg-white/10 px-1.5 py-0.5 text-white/80">YOUR_USERNAME</code>{" "}
+              Replace{' '}
+              <code className="rounded bg-white/10 px-1.5 py-0.5 text-white/80">YOUR_USERNAME</code>{' '}
               with your GitHub handle and the API will render the default dark theme automatically.
             </p>
           </Panel>
@@ -271,11 +272,17 @@ export default function DocumentationPage() {
                     <tbody className="bg-black/25">
                       {parameters.map((parameter) => (
                         <tr key={parameter.name} className="border-t border-white/8 align-top">
-                          <td className="px-4 py-4 font-mono text-sm text-emerald-300">{parameter.name}</td>
+                          <td className="px-4 py-4 font-mono text-sm text-emerald-300">
+                            {parameter.name}
+                          </td>
                           <td className="px-4 py-4 text-sm text-white/70">{parameter.type}</td>
                           <td className="px-4 py-4 text-sm text-white/70">{parameter.required}</td>
-                          <td className="px-4 py-4 text-sm text-white/70">{parameter.defaultValue}</td>
-                          <td className="px-4 py-4 text-sm leading-6 text-white/60">{parameter.description}</td>
+                          <td className="px-4 py-4 text-sm text-white/70">
+                            {parameter.defaultValue}
+                          </td>
+                          <td className="px-4 py-4 text-sm leading-6 text-white/60">
+                            {parameter.description}
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -306,10 +313,16 @@ export default function DocumentationPage() {
                     }}
                   >
                     <div className="flex h-full items-end justify-between p-4">
-                      <span className="text-xs font-semibold uppercase tracking-[0.22em]" style={{ color: `#${theme.text}` }}>
+                      <span
+                        className="text-xs font-semibold uppercase tracking-[0.22em]"
+                        style={{ color: `#${theme.text}` }}
+                      >
                         {theme.name}
                       </span>
-                      <span className="text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ color: `#${theme.accent}` }}>
+                      <span
+                        className="text-[10px] font-semibold uppercase tracking-[0.18em]"
+                        style={{ color: `#${theme.accent}` }}
+                      >
                         {theme.slug}
                       </span>
                     </div>
@@ -317,9 +330,15 @@ export default function DocumentationPage() {
                   <h3 className="text-base font-semibold text-white">{theme.name}</h3>
                   <p className="mt-2 text-sm leading-6 text-white/55">{theme.vibe}</p>
                   <div className="mt-4 space-y-2 text-xs text-white/45">
-                    <div><span className="text-white/65">bg</span> #{theme.bg}</div>
-                    <div><span className="text-white/65">accent</span> #{theme.accent}</div>
-                    <div><span className="text-white/65">text</span> #{theme.text}</div>
+                    <div>
+                      <span className="text-white/65">bg</span> #{theme.bg}
+                    </div>
+                    <div>
+                      <span className="text-white/65">accent</span> #{theme.accent}
+                    </div>
+                    <div>
+                      <span className="text-white/65">text</span> #{theme.text}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -354,8 +373,8 @@ export default function DocumentationPage() {
             <div className="flex h-full flex-col justify-between rounded-[1.5rem] border border-white/8 bg-black/35 p-5">
               <div>
                 <p className="text-sm leading-7 text-white/60">
-                  This page is the fast implementation manual. For self-hosting, architecture details,
-                  and repository-level contributor guidance, jump to the full source docs.
+                  This page is the fast implementation manual. For self-hosting, architecture
+                  details, and repository-level contributor guidance, jump to the full source docs.
                 </p>
               </div>
               <div className="mt-6 flex flex-wrap gap-3">
@@ -395,11 +414,12 @@ function Panel({
 }) {
   return (
     <section className="rounded-[2rem] border border-white/10 bg-white/[0.03] p-6 shadow-[0_30px_80px_rgba(0,0,0,0.32)] backdrop-blur md:p-8">
-      <p className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-300">{eyebrow}</p>
+      <p className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-300">
+        {eyebrow}
+      </p>
       <h2 className="mt-3 text-2xl font-bold tracking-tight text-white md:text-3xl">{title}</h2>
       <p className="mt-3 max-w-3xl text-sm leading-7 text-white/55 md:text-base">{description}</p>
       <div className="mt-6">{children}</div>
     </section>
   );
 }
-

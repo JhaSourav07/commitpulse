@@ -2,7 +2,7 @@ type CommitPulseLogoProps = {
   className?: string;
 };
 
-export function CommitPulseLogo({ className = "h-5 w-5" }: CommitPulseLogoProps) {
+export function CommitPulseLogo({ className = 'h-5 w-5' }: CommitPulseLogoProps) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"

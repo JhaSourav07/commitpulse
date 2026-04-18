@@ -48,7 +48,7 @@ function generateParticles(
 export function generateSVG(
   stats: StreakStats,
   params: BadgeParams,
-  calendar: ContributionCalendar,
+  calendar: ContributionCalendar
 ) {
   const bg = `#${(params.bg || '0d1117').replace('#', '')}`;
   const accent = `#${(params.accent || '00ffaa').replace('#', '')}`;
