@@ -10,6 +10,20 @@ export interface BadgeTheme {
   accent: string;
 }
 
+export interface ContributionDay {
+  contributionCount: number;
+  date: string;
+}
+
+export interface ContributionWeek {
+  contributionDays: ContributionDay[];
+}
+
+export interface ContributionCalendar {
+  totalContributions: number;
+  weeks: ContributionWeek[];
+}
+
 export interface BadgeParams {
   user: string;
   theme?: string;

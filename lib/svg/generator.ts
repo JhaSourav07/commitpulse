@@ -1,19 +1,5 @@
 // lib/svg/generator.ts
-import { StreakStats, BadgeParams } from '../../types';
-
-interface ContributionDay {
-  date: string;
-  contributionCount: number;
-}
-
-interface ContributionWeek {
-  contributionDays: ContributionDay[];
-}
-
-interface ContributionCalendar {
-  totalContributions: number;
-  weeks: ContributionWeek[];
-}
+import type { BadgeParams, ContributionCalendar, StreakStats } from '../../types';
 
 function deterministicRandom(seed: string): number {
   let hash = 2166136261;
@@ -71,8 +57,8 @@ export function generateSVG(
   const weeks = calendar.weeks.slice(-14); // 14 weeks for better symmetry
   let towers = '';
 
-  weeks.forEach((week: ContributionWeek, i: number) => {
-    week.contributionDays.forEach((day: ContributionDay, j: number) => {
+  weeks.forEach((week, i: number) => {
+    week.contributionDays.forEach((day, j: number) => {
       const isToday = i === weeks.length - 1 && j === week.contributionDays.length - 1;
       const hasCommits = day.contributionCount > 0;
       const isTodayWithCommits = isToday && hasCommits;

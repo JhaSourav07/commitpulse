@@ -3,7 +3,8 @@ import { NextResponse } from 'next/server';
 import { fetchGitHubContributions } from '../../../lib/github';
 import { calculateStreak } from '../../../lib/calculate';
 import { generateSVG } from '../../../lib/svg/generator';
-import { BadgeParams } from '../../../types';
+import { getSecondsUntilUTCMidnight } from '../../../utils/time';
+import type { BadgeParams } from '../../../types';
 import { themes } from '../../../lib/svg/themes';
 
 export async function GET(request: Request) {
@@ -18,7 +19,7 @@ export async function GET(request: Request) {
 
     // Look up theme from our library, fallback to 'dark'
     const themeName = searchParams.get('theme') || 'dark';
-    const selectedTheme = themes[themeName] || themes['dark'];
+    const selectedTheme = themes[themeName] || themes.dark;
 
     // Parse speed: validate it's a number followed by 's', default to '8s'
     const rawSpeed = searchParams.get('speed') || '8s';
@@ -46,21 +47,24 @@ export async function GET(request: Request) {
     // 3. Generate the SVG string
     const svg = generateSVG(stats, params, calendar);
 
+    // 4. Calculate Cache Control (Reset at UTC Midnight)
+    const secondsToMidnight = getSecondsUntilUTCMidnight();
+    const refresh = searchParams.get('refresh') === 'true';
+    const cacheControl = refresh
+      ? 'no-cache, no-store, must-revalidate'
+      : `public, s-maxage=${secondsToMidnight}, stale-while-revalidate=86400`;
+
     // 5. Return the Image Response
     return new NextResponse(svg, {
       headers: {
         'Content-Type': 'image/svg+xml',
-        // max-age=0 tells GitHub NOT to cache it for long
-        // s-maxage=0 tells the Vercel Edge cache the same
-        // must-revalidate forces the proxy to check for updates
-        'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0, s-maxage=0',
+        'Cache-Control': cacheControl,
         'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline';",
       },
     });
   } catch (error: unknown) {
     console.error('Streak API Error:', error);
-
-    const message = error instanceof Error ? error.message : 'An unexpected error occurred';
+    const message = error instanceof Error ? error.message : 'Unknown error';
 
     const errorSvg = `
       <svg xmlns="http://www.w3.org/2000/svg" width="400" height="150" viewBox="0 0 400 150">
