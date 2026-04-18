@@ -89,7 +89,6 @@ export default function LandingPage() {
       </div>
 
       <main className="relative z-10 mx-auto max-w-6xl px-6 pb-32">
-
         <div className="mb-16 text-center">
           <motion.div
             initial={{ opacity: 0, y: 20 }}

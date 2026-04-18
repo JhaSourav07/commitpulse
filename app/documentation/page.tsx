@@ -3,7 +3,6 @@ import type { ReactNode } from 'react';
 import Link from 'next/link';
 
 import { CodeBlock } from './code-block';
-import { CommitPulseLogo } from '@/components/commitpulse-logo';
 import { themes as themePalette } from '@/lib/svg/themes';
 
 export const metadata: Metadata = {
@@ -141,35 +140,7 @@ export default function DocumentationPage() {
         <div className="absolute bottom-[-10%] left-[20%] h-[24rem] w-[24rem] rounded-full bg-orange-400/10 blur-[140px]" />
       </div>
 
-      <div className="relative mx-auto flex min-h-screen max-w-6xl flex-col px-6 py-10 md:px-8">
-        <header className="mb-16 flex items-center justify-between gap-4">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-3 text-sm font-semibold uppercase tracking-[0.28em] text-white/90 transition hover:text-emerald-300"
-          >
-            <span className="flex h-10 w-10 items-center justify-center rounded-2xl border border-emerald-400/30 bg-emerald-500/10 text-emerald-300 shadow-[0_0_30px_rgba(16,185,129,0.18)]">
-              <CommitPulseLogo className="h-5 w-5" />
-            </span>
-            CommitPulse
-          </Link>
-          <div className="flex items-center gap-3 text-sm">
-            <Link
-              href="/"
-              className="rounded-full border border-white/10 px-4 py-2 text-white/70 transition hover:border-white/20 hover:text-white"
-            >
-              Home
-            </Link>
-            <a
-              href="https://github.com/JhaSourav07/commitpulse"
-              target="_blank"
-              rel="noreferrer"
-              className="rounded-full border border-white/10 px-4 py-2 text-white/70 transition hover:border-white/20 hover:text-white"
-            >
-              GitHub
-            </a>
-          </div>
-        </header>
-
+      <div className="relative mx-auto flex min-h-screen max-w-6xl flex-col px-6 pb-10 pt-6 md:px-8">
         <section className="mb-10 rounded-[2rem] border border-white/10 bg-white/[0.03] px-6 py-10 shadow-[0_30px_100px_rgba(0,0,0,0.45)] backdrop-blur md:px-10">
           <div className="mb-6 inline-flex items-center rounded-full border border-emerald-400/20 bg-emerald-500/10 px-4 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-emerald-300">
             Documentation
