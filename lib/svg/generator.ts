@@ -1,24 +1,10 @@
 // lib/svg/generator.ts
-import { StreakStats, BadgeParams } from '../../types';
-
-interface ContributionDay {
-  date: string;
-  contributionCount: number;
-}
-
-interface ContributionWeek {
-  contributionDays: ContributionDay[];
-}
-
-interface ContributionCalendar {
-  totalContributions: number;
-  weeks: ContributionWeek[];
-}
+import type { BadgeParams, ContributionCalendar, StreakStats } from '../../types';
 
 export function generateSVG(
   stats: StreakStats,
   params: BadgeParams,
-  calendar: ContributionCalendar
+  calendar: ContributionCalendar,
 ) {
   const bg = `#${(params.bg || '0d1117').replace('#', '')}`;
   const accent = `#${(params.accent || '00ffaa').replace('#', '')}`;
@@ -27,8 +13,8 @@ export function generateSVG(
   const weeks = calendar.weeks.slice(-14); // 14 weeks for better symmetry
   let towers = '';
 
-  weeks.forEach((week: ContributionWeek, i: number) => {
-    week.contributionDays.forEach((day: ContributionDay, j: number) => {
+  weeks.forEach((week, i: number) => {
+    week.contributionDays.forEach((day, j: number) => {
       const isToday = i === weeks.length - 1 && j === week.contributionDays.length - 1;
       const hasCommits = day.contributionCount > 0;
       const isTodayWithCommits = isToday && hasCommits;

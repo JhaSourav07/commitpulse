@@ -1,8 +1,21 @@
 // lib/github.ts
 
+import type { ContributionCalendar } from "../types";
+
 const GITHUB_API_URL = 'https://api.github.com/graphql';
 
-export async function fetchGitHubContributions(username: string) {
+type GitHubContributionResponse = {
+  data: {
+    user: {
+      contributionsCollection: {
+        contributionCalendar: ContributionCalendar;
+      };
+    } | null;
+  };
+  errors?: Array<{ message: string }>;
+};
+
+export async function fetchGitHubContributions(username: string): Promise<ContributionCalendar> {
   const query = `
     query($login: String!) {
       user(login: $login) {
@@ -36,10 +49,14 @@ export async function fetchGitHubContributions(username: string) {
     throw new Error(`GitHub API returned status ${res.status}`);
   }
 
-  const data = await res.json();
+  const data: GitHubContributionResponse = await res.json();
 
   if (data.errors) {
     throw new Error(data.errors[0].message);
+  }
+
+  if (!data.data.user) {
+    throw new Error(`GitHub user "${username}" not found`);
   }
 
   return data.data.user.contributionsCollection.contributionCalendar;
