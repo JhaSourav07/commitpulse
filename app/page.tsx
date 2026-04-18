@@ -7,6 +7,7 @@ import { useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 
 import { CommitPulseLogo } from '@/components/commitpulse-logo';
+import { CustomizeCTA } from './components/CustomizeCTA';
 
 const Icons = {
   Github: () => (
@@ -62,15 +63,6 @@ const Icons = {
     </svg>
   ),
 };
-import { useState, useEffect, useRef, startTransition } from 'react';
-import Image from 'next/image';
-import { motion, AnimatePresence } from 'framer-motion';
-import { FeatureCard } from './components/FeatureCard';
-import { Footer } from './components/Footer';
-import { HeroSection } from './components/HeroSection';
-import { BoxIcon, CheckIcon, CopyIcon, ZapIcon } from './components/Icons';
-import { SuccessGuide } from './components/SuccessGuide';
-import { CustomizeCTA } from './components/CustomizeCTA';
 
 export default function LandingPage() {
   const [username, setUsername] = useState('jhasourav07');
@@ -196,10 +188,9 @@ export default function LandingPage() {
           </AnimatePresence>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-3">
         <CustomizeCTA />
 
-        <div className="grid md:grid-cols-3 gap-6">
+        <div className="grid gap-6 md:grid-cols-3">
           <FeatureCard
             icon={<Icons.Zap />}
             accent="text-emerald-400"
