@@ -15,16 +15,32 @@ interface ContributionCalendar {
   weeks: ContributionWeek[];
 }
 
-function generateParticles(x: number, y: number, height: number, color: string, count: number): string {
-  let particles = "";
-  const particleCount = Math.min(6, Math.floor(count / 5)); // Scale with intensity, max 6
+function deterministicRandom(seed: string): number {
+  let hash = 2166136261;
+  for (let i = 0; i < seed.length; i++) {
+    hash ^= seed.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0) / 4294967296;
+}
+
+function generateParticles(
+  x: number,
+  y: number,
+  height: number,
+  color: string,
+  count: number
+): string {
+  let particles = '';
+  const particleCount = Math.min(5, Math.max(3, Math.floor(count / 4))); // 3-5 particles for count >= 10
 
   for (let i = 0; i < particleCount; i++) {
-    const offsetX = Math.random() * 6 - 3;
-    const delay = Math.random() * 1.5;
+    const seed = `${x}:${y}:${height}:${color}:${count}:${i}`;
+    const offsetX = deterministicRandom(`${seed}:offsetX`) * 6 - 3;
+    const delay = deterministicRandom(`${seed}:delay`) * 1.5;
 
     particles += `
-      <circle cx="${x + offsetX}" cy="${y - height}" r="1.5" fill="${color}" opacity="0.8">
+      <circle cx="${x + offsetX}" cy="${y - height}" r="1.5" fill="${color}" opacity="1">
         <animate attributeName="cy"
           from="${y - height}"
           to="${y - height - 20}"
