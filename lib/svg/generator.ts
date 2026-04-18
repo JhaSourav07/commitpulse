@@ -1,4 +1,4 @@
-import { StreakStats, BadgeParams } from '../../types';
+import type { BadgeParams, ContributionCalendar, StreakStats } from '../../types';
 
 interface ContributionDay {
   date: string;
@@ -78,8 +78,8 @@ export function generateSVG(
   const weeks = calendar.weeks.slice(-14);
   let towers = '';
 
-  weeks.forEach((week: ContributionWeek, i: number) => {
-    week.contributionDays.forEach((day: ContributionDay, j: number) => {
+  weeks.forEach((week, i: number) => {
+    week.contributionDays.forEach((day, j: number) => {
       const isToday = i === weeks.length - 1 && j === week.contributionDays.length - 1;
       const hasCommits = day.contributionCount > 0;
       const isTodayWithCommits = isToday && hasCommits;

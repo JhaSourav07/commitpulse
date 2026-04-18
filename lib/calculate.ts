@@ -1,23 +1,9 @@
 // lib/calculate.ts
-import { StreakStats } from '../types';
-
-interface ContributionDay {
-  date: string;
-  contributionCount: number;
-}
-
-interface ContributionWeek {
-  contributionDays: ContributionDay[];
-}
-
-interface ContributionCalendar {
-  totalContributions: number;
-  weeks: ContributionWeek[];
-}
+import type { ContributionCalendar, StreakStats } from '../types';
 
 export function calculateStreak(calendar: ContributionCalendar): StreakStats {
   const weeks = calendar.weeks;
-  const days = weeks.flatMap((week: ContributionWeek) => week.contributionDays);
+  const days = weeks.flatMap((week) => week.contributionDays);
 
   let currentStreak = 0;
   let longestStreak = 0;
