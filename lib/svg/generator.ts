@@ -5,10 +5,6 @@ interface ContributionDay {
   contributionCount: number;
 }
 
-interface ContributionWeek {
-  contributionDays: ContributionDay[];
-}
-
 const FONT_MAP: Record<string, string> = {
   jetbrains: 'JetBrains Mono',
   fira: 'Fira Code',
