@@ -1,9 +1,6 @@
 import type { BadgeParams, ContributionCalendar, StreakStats } from '../../types';
 
-interface ContributionDay {
-  date: string;
-  contributionCount: number;
-}
+
 
 const FONT_MAP: Record<string, string> = {
   jetbrains: 'JetBrains Mono',
