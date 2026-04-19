@@ -211,6 +211,8 @@ refactor(generator): extract tower path builder into helper function
 ## Checklist
 
 - [ ] I've tested this locally
+- [ ] All new logic/features have accompanying Vitest tests
+- [ ] `npm run test` passes locally
 - [ ] The SVG output matches the CommitPulse aesthetic standard
 - [ ] I've updated README.md if I added a new parameter or theme
 - [ ] My commits follow the Conventional Commits format
@@ -220,13 +222,13 @@ refactor(generator): extract tower path builder into helper function
 
 ---
 
-## 🧹 Code Style & Quality Gates
+## 🧹 Code Style, Testing & Quality Gates
 
-CommitPulse enforces code quality using **ESLint** (correctness & TypeScript rules) and **Prettier** (consistent formatting). Both run automatically in CI on every PR — there are no exceptions.
+CommitPulse enforces code quality using **ESLint** (correctness & TypeScript rules), **Prettier** (consistent formatting), and **Vitest** (unit and integration testing). All of these run automatically in CI on every PR — there are no exceptions.
 
 ### Before Every Commit
 
-Run these two commands locally before you open a PR. In that order:
+Run these three commands locally before you open a PR:
 
 ```bash
 # 1. Auto-format all files to match the project's Prettier config
@@ -234,12 +236,25 @@ npm run format
 
 # 2. Check for any remaining linting errors
 npm run lint
+
+# 3. Ensure all tests pass
+npm run test
 ```
 
-Fix every error `lint` reports before pushing. Warnings should be addressed where possible.
+Fix every error before pushing. If you add new logic or features, you are expected to write tests for them.
+
+### Testing Guidelines
+
+We use **Vitest** alongside **React Testing Library** for our test suite.
+
+- **File Naming:** Test files must be co-located with the code they test and end in `.test.ts` or `.test.tsx` (e.g., `lib/calculate.test.ts`).
+- **Unit Tests:** All core utility and calculation functions (like streak counting or timezone logic) must have exhaustive unit tests covering edge cases (zero contributions, grace periods, leap years).
+- **Component Tests:** UI components must verify correct rendering, prop handling, and accessibility. We mock animation libraries (like `framer-motion`) to keep DOM tests stable.
+- **API Tests:** API routes must be tested to ensure correct status codes, caching headers, and parameter validation. External network calls (like the GitHub GraphQL API) must be mocked using `vi.spyOn(global, 'fetch')` so tests are fast, deterministic, and run offline.
+- **Humanic Comments:** Comments in test files should explain *why* a test exists or what specific edge-case it covers, rather than just repeating what the code does line-by-line.
 
 > **🚨 GitHub Actions CI Gate**
-> Our CI pipeline runs `npm run lint` and `npm run format --check` automatically on **every pull request**. If your code fails either check, **the PR will be blocked from merging** until the issues are resolved. There is no way to bypass this gate — so run both commands locally first and save yourself the round-trip.
+> Our CI pipeline runs `npm run lint`, `npm run format --check`, and `npm run test` automatically on **every pull request**. If your code fails any check, **the PR will be blocked from merging** until the issues are resolved. There is no way to bypass this gate — so run the commands locally first and save yourself the round-trip.
 
 **Key style rules:**
 
