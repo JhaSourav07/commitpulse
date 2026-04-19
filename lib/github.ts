@@ -16,8 +16,7 @@ type GitHubContributionResponse = {
 };
 
 export async function fetchGitHubContributions(username: string): Promise<ContributionCalendar> {
-  
-  console.log("TOKEN CHECK:", process.env.GITHUB_TOKEN);
+  console.log('TOKEN CHECK:', process.env.GITHUB_TOKEN);
 
   const query = `
     query($login: String!) {
