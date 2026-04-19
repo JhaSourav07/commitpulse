@@ -90,11 +90,7 @@ export function generateSVG(
 
       towers += `
         <g transform="translate(${x}, ${y - h})">
-          ${
-            isTodayWithCommits
-              ? `<animate attributeName="opacity" values="1;0.4;1" dur="1.5s" repeatCount="indefinite" />`
-              : ''
-          }
+          ${isTodayWithCommits ? '<animate attributeName="opacity" values="1;0.4;1" dur="1.5s" repeatCount="indefinite" />' : ''}
           <title>${tooltip}</title>
           <path d="M0 10 L0 ${10 + h} L-16 ${h} L-16 0 Z" fill="${color}" fill-opacity="${
             opacity * 0.5
@@ -126,7 +122,7 @@ export function generateSVG(
       </defs>
 
       <style>
-        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono&family=Fira+Code&family=Roboto+Mono&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono&amp;family=Fira+Code&amp;family=Roboto+Mono&amp;display=swap');
 
         .title { font-family: '${selectedFont}', monospace; fill: ${text}; font-size: 18px; letter-spacing: 6px; opacity: 0.8; }
         .stats { font-family: '${selectedFont}', monospace; fill: ${text}; font-size: 42px; font-weight: 700; }
@@ -164,7 +160,7 @@ export function generateSVG(
       </text>
 
       <rect x="100" y="60" width="400" height="1" fill="${accent}" fill-opacity="0.3">
-        <animate attributeName="y" values="80;320;80" dur="${params.speed || '8s'}" repeatCount="indefinite" />
+        <animate attributeName="y" values="80;320;80" dur="${params.speed}" repeatCount="indefinite" />
       </rect>
     </svg>
   `;
