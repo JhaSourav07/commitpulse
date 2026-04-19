@@ -63,13 +63,7 @@ export function generateSVG(
 
   const parsedRadius = Number(params.radius);
 
-const radius = Math.max(
-  0,
-  Math.min(
-    Number.isNaN(parsedRadius) ? 8 : parsedRadius,
-    50
-  )
-);
+  const radius = Math.max(0, Math.min(Number.isNaN(parsedRadius) ? 8 : parsedRadius, 50));
 
   const weeks = calendar.weeks.slice(-14);
   let towers = '';

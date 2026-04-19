@@ -16,7 +16,6 @@ type GitHubContributionResponse = {
 };
 
 export async function fetchGitHubContributions(username: string): Promise<ContributionCalendar> {
-
   const query = `
     query($login: String!) {
       user(login: $login) {
@@ -38,7 +37,7 @@ export async function fetchGitHubContributions(username: string): Promise<Contri
   const res = await fetch(GITHUB_API_URL, {
     method: 'POST',
     headers: {
-     Authorization: `bearer ${process.env.GITHUB_PAT}`,
+      Authorization: `bearer ${process.env.GITHUB_PAT}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({ query, variables: { login: username } }),
