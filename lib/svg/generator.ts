@@ -61,7 +61,15 @@ export function generateSVG(
 
   const selectedFont = FONT_MAP[params.font?.toLowerCase() || ''] || 'JetBrains Mono';
 
-  const radius = Math.max(0, Math.min(Number(params.radius) || 8, 50));
+  const parsedRadius = Number(params.radius);
+
+const radius = Math.max(
+  0,
+  Math.min(
+    Number.isNaN(parsedRadius) ? 8 : parsedRadius,
+    50
+  )
+);
 
   const weeks = calendar.weeks.slice(-14);
   let towers = '';
