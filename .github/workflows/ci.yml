@@ -9,7 +9,7 @@ on:
 jobs:
   # ── Job 1: Code Quality (runs in parallel with build) ──────────────────────
   quality:
-    name: Format · Lint · Typecheck
+    name: Format · Lint · Typecheck · Test
     runs-on: ubuntu-latest
 
     steps:
@@ -33,6 +33,9 @@ jobs:
 
       - name: TypeScript Type Check
         run: npm run typecheck
+
+      - name: Run Unit Tests (Vitest)
+        run: npm run test
 
   # ── Job 2: Production Build ─────────────────────────────────────────────────
   build:
