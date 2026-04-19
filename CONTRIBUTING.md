@@ -251,7 +251,7 @@ We use **Vitest** alongside **React Testing Library** for our test suite.
 - **Unit Tests:** All core utility and calculation functions (like streak counting or timezone logic) must have exhaustive unit tests covering edge cases (zero contributions, grace periods, leap years).
 - **Component Tests:** UI components must verify correct rendering, prop handling, and accessibility. We mock animation libraries (like `framer-motion`) to keep DOM tests stable.
 - **API Tests:** API routes must be tested to ensure correct status codes, caching headers, and parameter validation. External network calls (like the GitHub GraphQL API) must be mocked using `vi.spyOn(global, 'fetch')` so tests are fast, deterministic, and run offline.
-- **Humanic Comments:** Comments in test files should explain *why* a test exists or what specific edge-case it covers, rather than just repeating what the code does line-by-line.
+- **Humanic Comments:** Comments in test files should explain _why_ a test exists or what specific edge-case it covers, rather than just repeating what the code does line-by-line.
 
 > **🚨 GitHub Actions CI Gate**
 > Our CI pipeline runs `npm run lint`, `npm run format --check`, and `npm run test` automatically on **every pull request**. If your code fails any check, **the PR will be blocked from merging** until the issues are resolved. There is no way to bypass this gate — so run the commands locally first and save yourself the round-trip.
