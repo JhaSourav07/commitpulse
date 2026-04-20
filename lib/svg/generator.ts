@@ -59,7 +59,9 @@ export function generateSVG(
   const accent = `#${(params.accent || '00ffaa').replace('#', '')}`;
   const text = `#${(params.text || 'ffffff').replace('#', '')}`;
 
-  const selectedFont = FONT_MAP[params.font?.toLowerCase() || ''] || 'JetBrains Mono';
+const selectedFont = params.font
+  ? FONT_MAP[params.font.toLowerCase()] || 'JetBrains Mono'
+  : null;
 
   const parsedRadius = Number(params.radius);
 
@@ -124,13 +126,23 @@ export function generateSVG(
       </defs>
 
       <style>
-        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono&amp;family=Fira+Code&amp;family=Roboto+Mono&amp;display=swap');
+     ${selectedFont
+  ? `
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono&family=Fira+Code&family=Roboto+Mono&display=swap');
 
-        .title { font-family: '${selectedFont}', monospace; fill: ${text}; font-size: 18px; letter-spacing: 6px; opacity: 0.8; }
-        .stats { font-family: '${selectedFont}', monospace; fill: ${text}; font-size: 42px; font-weight: 700; }
-        .total-val { font-family: '${selectedFont}', monospace; fill: ${accent}; font-size: 24px; font-weight: 700; }
-        .label { font-family: '${selectedFont}', monospace; fill: ${accent}; font-size: 11px; font-weight: 700; letter-spacing: 2px; opacity: 0.7; }
+.title { font-family: '${selectedFont}', monospace; fill: ${text}; font-size: 18px; letter-spacing: 6px; opacity: 0.8; }
+.stats { font-family: '${selectedFont}', monospace; fill: ${text}; font-size: 42px; font-weight: 700; }
+.total-val { font-family: '${selectedFont}', monospace; fill: ${accent}; font-size: 24px; font-weight: 700; }
+.label { font-family: '${selectedFont}', monospace; fill: ${accent}; font-size: 11px; font-weight: 700; letter-spacing: 2px; }
+`
+  : `
+@import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@700&family=Space+Grotesk:wght@300;500;700&display=swap');
 
+.title { font-family: 'Syncopate', sans-serif; fill: ${text}; font-size: 18px; letter-spacing: 6px; opacity: 0.8; }
+.stats { font-family: 'Space Grotesk', sans-serif; fill: ${text}; font-size: 42px; font-weight: 700; }
+.total-val { font-family: 'Syncopate', sans-serif; fill: ${accent}; font-size: 24px; font-weight: 700; }
+.label { font-family: 'Space Grotesk', sans-serif; fill: ${accent}; font-size: 11px; font-weight: 700; letter-spacing: 2px; }
+`}
         @media (prefers-reduced-motion: reduce) {
           .heat-particles { display: none; }
         }
