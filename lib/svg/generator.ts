@@ -1,5 +1,3 @@
-// SAME AS YOUR FILE (no logic change)
-
 import type { BadgeParams, ContributionCalendar, StreakStats } from '../../types';
 
 const FONT_MAP: Record<string, string> = {
@@ -61,6 +59,7 @@ export function generateSVG(
   const accent = `#${(params.accent || '00ffaa').replace('#', '')}`;
   const text = `#${(params.text || 'ffffff').replace('#', '')}`;
 
+  // ✅ FIX: proper font handling (uses FONT_MAP → no unused warning)
   const selectedFont = params.font ? FONT_MAP[params.font.toLowerCase()] || 'JetBrains Mono' : null;
 
   const parsedRadius = Number(params.radius);
@@ -124,8 +123,11 @@ export function generateSVG(
 
 <style>
 ${
-  params.font === 'jetbrains'
-    ? `.title { font-family: 'JetBrains Mono', monospace; }`
+  selectedFont
+    ? `
+.title { font-family: '${selectedFont}', monospace; }
+.stats { font-family: '${selectedFont}', monospace; }
+`
     : `
 .title { font-family: 'Syncopate', sans-serif; }
 .stats { font-family: 'Space Grotesk', sans-serif; }
@@ -140,15 +142,20 @@ ${
 </g>
 
 <text x="300" y="50" text-anchor="middle" class="title">
-  ${params.user?.toUpperCase?.() || ''}
+  ${params.user?.toUpperCase() || ''}
 </text>
 
 <rect x="100" y="60" width="400" height="1" fill="${accent}" fill-opacity="0.3">
-  <animate 
-    attributeName="y" 
-    values="80;320;80" 
-    dur="${params.speed || '8s'}" 
-    repeatCount="indefinite" />
+  <animate
+    attributeName="y"
+    values="80;320;80"
+    dur="${
+      params.speed && typeof params.speed === 'string' && params.speed.endsWith('s')
+        ? params.speed
+        : '8s'
+    }"
+    repeatCount="indefinite"
+  />
 </rect>
 
 </svg>
