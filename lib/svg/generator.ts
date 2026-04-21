@@ -135,13 +135,38 @@ export function generateSVG(
     });
   });
 
-  return `
-    <svg xmlns="http://www.w3.org/2000/svg" width="600" height="420" viewBox="0 0 600 420" fill="none">
-      <rect width="600" height="420" rx="${radius}" fill="${bg}" />
-      ${towers}
-      <text x="300" y="50" text-anchor="middle">
-        ${params.user?.toUpperCase?.() || ''}
-      </text>
-    </svg>
-  `;
+return `
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="420" viewBox="0 0 600 420" fill="none">
+
+<style>
+${
+  params.font === 'jetbrains'
+    ? `.title { font-family: 'JetBrains Mono', monospace; }`
+    : `
+.title { font-family: 'Syncopate', sans-serif; }
+.stats { font-family: 'Space Grotesk', sans-serif; }
+`
+}
+</style>
+
+<rect width="600" height="420" rx="${radius}" fill="${bg}" />
+
+<g transform="translate(0, 20)">
+  ${towers}
+</g>
+
+<text x="300" y="50" text-anchor="middle" class="title">
+  ${params.user?.toUpperCase?.() || ''}
+</text>
+
+<rect x="100" y="60" width="400" height="1" fill="${accent}" fill-opacity="0.3">
+  <animate 
+    attributeName="y" 
+    values="80;320;80" 
+    dur="${params.speed || '8s'}" 
+    repeatCount="indefinite" />
+</rect>
+
+</svg>
+`;
 }
