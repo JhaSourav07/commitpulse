@@ -27,4 +27,29 @@ export const themes: Record<string, BadgeTheme> = {
     text: 'f8f8f2',
     accent: 'bd93f9',
   },
+  ocean: {
+    bg: '0a192f',
+    text: 'ccd6f6',
+    accent: '64ffda',
+  },
+  sunset: {
+    bg: '1a0a0a',
+    text: 'ffd6c0',
+    accent: 'ff6b35',
+  },
+  forest: {
+    bg: '0d1f0d',
+    text: 'c8f0c8',
+    accent: '39d353',
+  },
+  rose: {
+    bg: '1f0d14',
+    text: 'f0c8d4',
+    accent: 'ff6b9d',
+  },
+  nord: {
+    bg: '2e3440',
+    text: 'd8dee9',
+    accent: '88c0d0',
+  },
 };
