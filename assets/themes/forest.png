@@ -1,0 +1,1318 @@
+
+    <svg xmlns="http://www.w3.org/2000/svg" width="600" height="420" viewBox="0 0 600 420" fill="none">
+      <defs>
+        <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="5" result="blur" />
+          <feComposite in="SourceGraphic" in2="blur" operator="over" />
+        </filter>
+      </defs>
+
+      <style>
+        @import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@700&amp;family=Space+Grotesk:wght@300;500;700&amp;display=swap');
+        .title { font-family: 'Syncopate', sans-serif; fill: #c9d1d9; font-size: 18px; letter-spacing: 6px; opacity: 0.8; }
+        .stats { font-family: 'Space Grotesk', sans-serif; fill: #c9d1d9; font-size: 42px; font-weight: 700; }
+        .total-val { font-family: 'Syncopate', sans-serif; fill: #58a6ff; font-size: 24px; font-weight: 700; }
+        .label { font-family: 'Space Grotesk', sans-serif; fill: #58a6ff; font-size: 11px; font-weight: 700; letter-spacing: 2px; opacity: 0.7; }
+        @media (prefers-reduced-motion: reduce) {
+          .heat-particles { display: none; }
+        }
+      </style>
+
+      <rect width="600" height="420" rx="32" fill="#0d1117" />
+
+      <g transform="translate(0, 20)">
+        
+        <g transform="translate(300, 120)">
+          
+          <title>2026-01-18: 0 contributions</title>
+          <path d="M0 10 L0 10 L-16 0 L-16 0 Z" fill="#c9d1d9" fill-opacity="0.025" />
+          <path d="M0 10 L0 10 L16 0 L16 0 Z" fill="#c9d1d9" fill-opacity="0.015" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#c9d1d9" fill-opacity="0.05" />
+          
+        </g>
+        <g transform="translate(284, 129)">
+          
+          <title>2026-01-19: 0 contributions</title>
+          <path d="M0 10 L0 10 L-16 0 L-16 0 Z" fill="#c9d1d9" fill-opacity="0.025" />
+          <path d="M0 10 L0 10 L16 0 L16 0 Z" fill="#c9d1d9" fill-opacity="0.015" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#c9d1d9" fill-opacity="0.05" />
+          
+        </g>
+        <g transform="translate(268, 138)">
+          
+          <title>2026-01-20: 0 contributions</title>
+          <path d="M0 10 L0 10 L-16 0 L-16 0 Z" fill="#c9d1d9" fill-opacity="0.025" />
+          <path d="M0 10 L0 10 L16 0 L16 0 Z" fill="#c9d1d9" fill-opacity="0.015" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#c9d1d9" fill-opacity="0.05" />
+          
+        </g>
+        <g transform="translate(252, 147)">
+          
+          <title>2026-01-21: 0 contributions</title>
+          <path d="M0 10 L0 10 L-16 0 L-16 0 Z" fill="#c9d1d9" fill-opacity="0.025" />
+          <path d="M0 10 L0 10 L16 0 L16 0 Z" fill="#c9d1d9" fill-opacity="0.015" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#c9d1d9" fill-opacity="0.05" />
+          
+        </g>
+        <g transform="translate(236, 156)">
+          
+          <title>2026-01-22: 0 contributions</title>
+          <path d="M0 10 L0 10 L-16 0 L-16 0 Z" fill="#c9d1d9" fill-opacity="0.025" />
+          <path d="M0 10 L0 10 L16 0 L16 0 Z" fill="#c9d1d9" fill-opacity="0.015" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#c9d1d9" fill-opacity="0.05" />
+          
+        </g>
+        <g transform="translate(220, 165)">
+          
+          <title>2026-01-23: 0 contributions</title>
+          <path d="M0 10 L0 10 L-16 0 L-16 0 Z" fill="#c9d1d9" fill-opacity="0.025" />
+          <path d="M0 10 L0 10 L16 0 L16 0 Z" fill="#c9d1d9" fill-opacity="0.015" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#c9d1d9" fill-opacity="0.05" />
+          
+        </g>
+        <g transform="translate(204, 174)">
+          
+          <title>2026-01-24: 0 contributions</title>
+          <path d="M0 10 L0 10 L-16 0 L-16 0 Z" fill="#c9d1d9" fill-opacity="0.025" />
+          <path d="M0 10 L0 10 L16 0 L16 0 Z" fill="#c9d1d9" fill-opacity="0.015" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#c9d1d9" fill-opacity="0.05" />
+          
+        </g>
+        <g transform="translate(316, 99)">
+          
+          <title>2026-01-25: 6 contributions</title>
+          <path d="M0 10 L0 40 L-16 30 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 40 L16 30 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="white" fill-opacity="0.2" />
+        </g>
+        <g transform="translate(300, 138)">
+          
+          <title>2026-01-26: 0 contributions</title>
+          <path d="M0 10 L0 10 L-16 0 L-16 0 Z" fill="#c9d1d9" fill-opacity="0.025" />
+          <path d="M0 10 L0 10 L16 0 L16 0 Z" fill="#c9d1d9" fill-opacity="0.015" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#c9d1d9" fill-opacity="0.05" />
+          
+        </g>
+        <g transform="translate(284, 132)">
+          
+          <title>2026-01-27: 3 contributions</title>
+          <path d="M0 10 L0 25 L-16 15 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 25 L16 15 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          
+        </g>
+        <g transform="translate(268, 141)">
+          
+          <title>2026-01-28: 3 contributions</title>
+          <path d="M0 10 L0 25 L-16 15 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 25 L16 15 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          
+        </g>
+        <g transform="translate(252, 140)">
+          
+          <title>2026-01-29: 5 contributions</title>
+          <path d="M0 10 L0 35 L-16 25 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 35 L16 25 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          
+        </g>
+        <g transform="translate(236, 164)">
+          
+          <title>2026-01-30: 2 contributions</title>
+          <path d="M0 10 L0 20 L-16 10 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 20 L16 10 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          
+        </g>
+        <g transform="translate(220, 168)">
+          
+          <title>2026-01-31: 3 contributions</title>
+          <path d="M0 10 L0 25 L-16 15 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 25 L16 15 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          
+        </g>
+        <g transform="translate(332, 133)">
+          
+          <title>2026-02-01: 1 contributions</title>
+          <path d="M0 10 L0 15 L-16 5 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 15 L16 5 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          
+        </g>
+        <g transform="translate(316, 137)">
+          
+          <title>2026-02-02: 2 contributions</title>
+          <path d="M0 10 L0 20 L-16 10 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 20 L16 10 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          
+        </g>
+        <g transform="translate(300, 141)">
+          
+          <title>2026-02-03: 3 contributions</title>
+          <path d="M0 10 L0 25 L-16 15 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 25 L16 15 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          
+        </g>
+        <g transform="translate(284, 160)">
+          
+          <title>2026-02-04: 1 contributions</title>
+          <path d="M0 10 L0 15 L-16 5 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 15 L16 5 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          
+        </g>
+        <g transform="translate(268, 159)">
+          
+          <title>2026-02-05: 3 contributions</title>
+          <path d="M0 10 L0 25 L-16 15 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 25 L16 15 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          
+        </g>
+        <g transform="translate(252, 168)">
+          
+          <title>2026-02-06: 3 contributions</title>
+          <path d="M0 10 L0 25 L-16 15 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 25 L16 15 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          
+        </g>
+        <g transform="translate(236, 167)">
+          
+          <title>2026-02-07: 5 contributions</title>
+          <path d="M0 10 L0 35 L-16 25 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 35 L16 25 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          
+        </g>
+        <g transform="translate(348, 127)">
+          
+          <title>2026-02-08: 4 contributions</title>
+          <path d="M0 10 L0 30 L-16 20 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 30 L16 20 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          
+        </g>
+        <g transform="translate(332, 151)">
+          
+          <title>2026-02-09: 1 contributions</title>
+          <path d="M0 10 L0 15 L-16 5 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 15 L16 5 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          
+        </g>
+        <g transform="translate(316, 155)">
+          
+          <title>2026-02-10: 2 contributions</title>
+          <path d="M0 10 L0 20 L-16 10 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 20 L16 10 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          
+        </g>
+        <g transform="translate(300, 164)">
+          
+          <title>2026-02-11: 2 contributions</title>
+          <path d="M0 10 L0 20 L-16 10 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 20 L16 10 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          
+        </g>
+        <g transform="translate(284, 178)">
+          
+          <title>2026-02-12: 1 contributions</title>
+          <path d="M0 10 L0 15 L-16 5 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 15 L16 5 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          
+        </g>
+        <g transform="translate(268, 157)">
+          
+          <title>2026-02-13: 7 contributions</title>
+          <path d="M0 10 L0 45 L-16 35 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 45 L16 35 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="white" fill-opacity="0.2" />
+        </g>
+        <g transform="translate(252, 186)">
+          
+          <title>2026-02-14: 3 contributions</title>
+          <path d="M0 10 L0 25 L-16 15 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 25 L16 15 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          
+        </g>
+        <g transform="translate(364, 106)">
+          
+          <title>2026-02-15: 13 contributions</title>
+          <path d="M0 10 L0 60 L-16 50 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 60 L16 50 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="white" fill-opacity="0.2" />
+        </g><g class="heat-particles">
+      <circle cx="362.4036885392852" cy="106" r="1.5" fill="#58a6ff" opacity="1">
+        <animate attributeName="cy"
+          from="106"
+          to="86"
+          dur="1.5s"
+          begin="0.7573074497049674s"
+          repeatCount="indefinite" />
+        <animate attributeName="opacity"
+          from="1" to="0"
+          dur="1.5s"
+          begin="0.7573074497049674s"
+          repeatCount="indefinite" />
+      </circle>
+    
+      <circle cx="366.3212282061577" cy="106" r="1.5" fill="#58a6ff" opacity="1">
+        <animate attributeName="cy"
+          from="106"
+          to="86"
+          dur="1.5s"
+          begin="0.5791088396217674s"
+          repeatCount="indefinite" />
+        <animate attributeName="opacity"
+          from="1" to="0"
+          dur="1.5s"
+          begin="0.5791088396217674s"
+          repeatCount="indefinite" />
+      </circle>
+    
+      <circle cx="363.38984488649294" cy="106" r="1.5" fill="#58a6ff" opacity="1">
+        <animate attributeName="cy"
+          from="106"
+          to="86"
+          dur="1.5s"
+          begin="0.7640242940979078s"
+          repeatCount="indefinite" />
+        <animate attributeName="opacity"
+          from="1" to="0"
+          dur="1.5s"
+          begin="0.7640242940979078s"
+          repeatCount="indefinite" />
+      </circle>
+    </g>
+        <g transform="translate(348, 140)">
+          
+          <title>2026-02-16: 5 contributions</title>
+          <path d="M0 10 L0 35 L-16 25 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 35 L16 25 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          
+        </g>
+        <g transform="translate(332, 164)">
+          
+          <title>2026-02-17: 2 contributions</title>
+          <path d="M0 10 L0 20 L-16 10 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 20 L16 10 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          
+        </g>
+        <g transform="translate(316, 178)">
+          
+          <title>2026-02-18: 1 contributions</title>
+          <path d="M0 10 L0 15 L-16 5 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 15 L16 5 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          
+        </g>
+        <g transform="translate(300, 157)">
+          
+          <title>2026-02-19: 7 contributions</title>
+          <path d="M0 10 L0 45 L-16 35 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 45 L16 35 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="white" fill-opacity="0.2" />
+        </g>
+        <g transform="translate(284, 161)">
+          
+          <title>2026-02-20: 8 contributions</title>
+          <path d="M0 10 L0 50 L-16 40 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 50 L16 40 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="white" fill-opacity="0.2" />
+        </g>
+        <g transform="translate(268, 175)">
+          
+          <title>2026-02-21: 7 contributions</title>
+          <path d="M0 10 L0 45 L-16 35 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 45 L16 35 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="white" fill-opacity="0.2" />
+        </g>
+        <g transform="translate(380, 135)">
+          
+          <title>2026-02-22: 6 contributions</title>
+          <path d="M0 10 L0 40 L-16 30 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 40 L16 30 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="white" fill-opacity="0.2" />
+        </g>
+        <g transform="translate(364, 164)">
+          
+          <title>2026-02-23: 2 contributions</title>
+          <path d="M0 10 L0 20 L-16 10 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 20 L16 10 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          
+        </g>
+        <g transform="translate(348, 133)">
+          
+          <title>2026-02-24: 11 contributions</title>
+          <path d="M0 10 L0 60 L-16 50 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 60 L16 50 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="white" fill-opacity="0.2" />
+        </g><g class="heat-particles">
+      <circle cx="345.8608975703828" cy="133" r="1.5" fill="#58a6ff" opacity="1">
+        <animate attributeName="cy"
+          from="133"
+          to="113"
+          dur="1.5s"
+          begin="1.4513216848718002s"
+          repeatCount="indefinite" />
+        <animate attributeName="opacity"
+          from="1" to="0"
+          dur="1.5s"
+          begin="1.4513216848718002s"
+          repeatCount="indefinite" />
+      </circle>
+    
+      <circle cx="347.2443385636434" cy="133" r="1.5" fill="#58a6ff" opacity="1">
+        <animate attributeName="cy"
+          from="133"
+          to="113"
+          dur="1.5s"
+          begin="1.4865226806141436s"
+          repeatCount="indefinite" />
+        <animate attributeName="opacity"
+          from="1" to="0"
+          dur="1.5s"
+          begin="1.4865226806141436s"
+          repeatCount="indefinite" />
+      </circle>
+    
+      <circle cx="345.12822839291766" cy="133" r="1.5" fill="#58a6ff" opacity="1">
+        <animate attributeName="cy"
+          from="133"
+          to="113"
+          dur="1.5s"
+          begin="1.2186971496557817s"
+          repeatCount="indefinite" />
+        <animate attributeName="opacity"
+          from="1" to="0"
+          dur="1.5s"
+          begin="1.2186971496557817s"
+          repeatCount="indefinite" />
+      </circle>
+    </g>
+        <g transform="translate(332, 172)">
+          
+          <title>2026-02-25: 4 contributions</title>
+          <path d="M0 10 L0 30 L-16 20 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 30 L16 20 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          
+        </g>
+        <g transform="translate(316, 161)">
+          
+          <title>2026-02-26: 8 contributions</title>
+          <path d="M0 10 L0 50 L-16 40 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 50 L16 40 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="white" fill-opacity="0.2" />
+        </g>
+        <g transform="translate(300, 195)">
+          
+          <title>2026-02-27: 3 contributions</title>
+          <path d="M0 10 L0 25 L-16 15 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 25 L16 15 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          
+        </g>
+        <g transform="translate(284, 169)">
+          
+          <title>2026-02-28: 11 contributions</title>
+          <path d="M0 10 L0 60 L-16 50 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 60 L16 50 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="white" fill-opacity="0.2" />
+        </g><g class="heat-particles">
+      <circle cx="284.1854393258691" cy="169" r="1.5" fill="#58a6ff" opacity="1">
+        <animate attributeName="cy"
+          from="169"
+          to="149"
+          dur="1.5s"
+          begin="0.4737828222569078s"
+          repeatCount="indefinite" />
+        <animate attributeName="opacity"
+          from="1" to="0"
+          dur="1.5s"
+          begin="0.4737828222569078s"
+          repeatCount="indefinite" />
+      </circle>
+    
+      <circle cx="286.35579377086833" cy="169" r="1.5" fill="#58a6ff" opacity="1">
+        <animate attributeName="cy"
+          from="169"
+          to="149"
+          dur="1.5s"
+          begin="1.1521902795648202s"
+          repeatCount="indefinite" />
+        <animate attributeName="opacity"
+          from="1" to="0"
+          dur="1.5s"
+          begin="1.1521902795648202s"
+          repeatCount="indefinite" />
+      </circle>
+    
+      <circle cx="285.0532729839906" cy="169" r="1.5" fill="#58a6ff" opacity="1">
+        <animate attributeName="cy"
+          from="169"
+          to="149"
+          dur="1.5s"
+          begin="1.434500275645405s"
+          repeatCount="indefinite" />
+        <animate attributeName="opacity"
+          from="1" to="0"
+          dur="1.5s"
+          begin="1.434500275645405s"
+          repeatCount="indefinite" />
+      </circle>
+    </g>
+        <g transform="translate(396, 124)">
+          
+          <title>2026-03-01: 15 contributions</title>
+          <path d="M0 10 L0 60 L-16 50 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 60 L16 50 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="white" fill-opacity="0.2" />
+        </g><g class="heat-particles">
+      <circle cx="394.95159301534295" cy="124" r="1.5" fill="#58a6ff" opacity="1">
+        <animate attributeName="cy"
+          from="124"
+          to="104"
+          dur="1.5s"
+          begin="0.07599523547105491s"
+          repeatCount="indefinite" />
+        <animate attributeName="opacity"
+          from="1" to="0"
+          dur="1.5s"
+          begin="0.07599523547105491s"
+          repeatCount="indefinite" />
+      </circle>
+    
+      <circle cx="397.7543515940197" cy="124" r="1.5" fill="#58a6ff" opacity="1">
+        <animate attributeName="cy"
+          from="124"
+          to="104"
+          dur="1.5s"
+          begin="1.4396710539003834s"
+          repeatCount="indefinite" />
+        <animate attributeName="opacity"
+          from="1" to="0"
+          dur="1.5s"
+          begin="1.4396710539003834s"
+          repeatCount="indefinite" />
+      </circle>
+    
+      <circle cx="394.16476071160287" cy="124" r="1.5" fill="#58a6ff" opacity="1">
+        <animate attributeName="cy"
+          from="124"
+          to="104"
+          dur="1.5s"
+          begin="1.44617680599913s"
+          repeatCount="indefinite" />
+        <animate attributeName="opacity"
+          from="1" to="0"
+          dur="1.5s"
+          begin="1.44617680599913s"
+          repeatCount="indefinite" />
+      </circle>
+    </g>
+        <g transform="translate(380, 168)">
+          
+          <title>2026-03-02: 3 contributions</title>
+          <path d="M0 10 L0 25 L-16 15 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 25 L16 15 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          
+        </g>
+        <g transform="translate(364, 157)">
+          
+          <title>2026-03-03: 7 contributions</title>
+          <path d="M0 10 L0 45 L-16 35 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 45 L16 35 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="white" fill-opacity="0.2" />
+        </g>
+        <g transform="translate(348, 176)">
+          
+          <title>2026-03-04: 5 contributions</title>
+          <path d="M0 10 L0 35 L-16 25 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 35 L16 25 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          
+        </g>
+        <g transform="translate(332, 200)">
+          
+          <title>2026-03-05: 2 contributions</title>
+          <path d="M0 10 L0 20 L-16 10 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 20 L16 10 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          
+        </g>
+        <g transform="translate(316, 214)">
+          
+          <title>2026-03-06: 1 contributions</title>
+          <path d="M0 10 L0 15 L-16 5 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 15 L16 5 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          
+        </g>
+        <g transform="translate(300, 213)">
+          
+          <title>2026-03-07: 3 contributions</title>
+          <path d="M0 10 L0 25 L-16 15 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 25 L16 15 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          
+        </g>
+        <g transform="translate(412, 168)">
+          
+          <title>2026-03-08: 3 contributions</title>
+          <path d="M0 10 L0 25 L-16 15 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 25 L16 15 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          
+        </g>
+        <g transform="translate(396, 157)">
+          
+          <title>2026-03-09: 7 contributions</title>
+          <path d="M0 10 L0 45 L-16 35 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 45 L16 35 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="white" fill-opacity="0.2" />
+        </g>
+        <g transform="translate(380, 151)">
+          
+          <title>2026-03-10: 15 contributions</title>
+          <path d="M0 10 L0 60 L-16 50 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 60 L16 50 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="white" fill-opacity="0.2" />
+        </g><g class="heat-particles">
+      <circle cx="382.2034697951749" cy="151" r="1.5" fill="#58a6ff" opacity="1">
+        <animate attributeName="cy"
+          from="151"
+          to="131"
+          dur="1.5s"
+          begin="1.3151882328093052s"
+          repeatCount="indefinite" />
+        <animate attributeName="opacity"
+          from="1" to="0"
+          dur="1.5s"
+          begin="1.3151882328093052s"
+          repeatCount="indefinite" />
+      </circle>
+    
+      <circle cx="379.09338325774297" cy="151" r="1.5" fill="#58a6ff" opacity="1">
+        <animate attributeName="cy"
+          from="151"
+          to="131"
+          dur="1.5s"
+          begin="1.0006895946571603s"
+          repeatCount="indefinite" />
+        <animate attributeName="opacity"
+          from="1" to="0"
+          dur="1.5s"
+          begin="1.0006895946571603s"
+          repeatCount="indefinite" />
+      </circle>
+    
+      <circle cx="382.4734106268734" cy="151" r="1.5" fill="#58a6ff" opacity="1">
+        <animate attributeName="cy"
+          from="151"
+          to="131"
+          dur="1.5s"
+          begin="0.3601466913241893s"
+          repeatCount="indefinite" />
+        <animate attributeName="opacity"
+          from="1" to="0"
+          dur="1.5s"
+          begin="0.3601466913241893s"
+          repeatCount="indefinite" />
+      </circle>
+    </g>
+        <g transform="translate(364, 190)">
+          
+          <title>2026-03-11: 4 contributions</title>
+          <path d="M0 10 L0 30 L-16 20 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 30 L16 20 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          
+        </g>
+        <g transform="translate(348, 199)">
+          
+          <title>2026-03-12: 4 contributions</title>
+          <path d="M0 10 L0 30 L-16 20 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 30 L16 20 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          
+        </g>
+        <g transform="translate(332, 218)">
+          
+          <title>2026-03-13: 2 contributions</title>
+          <path d="M0 10 L0 20 L-16 10 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 20 L16 10 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          
+        </g>
+        <g transform="translate(316, 217)">
+          
+          <title>2026-03-14: 4 contributions</title>
+          <path d="M0 10 L0 30 L-16 20 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 30 L16 20 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          
+        </g>
+        <g transform="translate(428, 162)">
+          
+          <title>2026-03-15: 6 contributions</title>
+          <path d="M0 10 L0 40 L-16 30 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 40 L16 30 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="white" fill-opacity="0.2" />
+        </g>
+        <g transform="translate(412, 191)">
+          
+          <title>2026-03-16: 2 contributions</title>
+          <path d="M0 10 L0 20 L-16 10 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 20 L16 10 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          
+        </g>
+        <g transform="translate(396, 205)">
+          
+          <title>2026-03-17: 1 contributions</title>
+          <path d="M0 10 L0 15 L-16 5 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 15 L16 5 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          
+        </g>
+        <g transform="translate(380, 214)">
+          
+          <title>2026-03-18: 1 contributions</title>
+          <path d="M0 10 L0 15 L-16 5 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 15 L16 5 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          
+        </g>
+        <g transform="translate(364, 203)">
+          
+          <title>2026-03-19: 5 contributions</title>
+          <path d="M0 10 L0 35 L-16 25 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 35 L16 25 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          
+        </g>
+        <g transform="translate(348, 232)">
+          
+          <title>2026-03-20: 1 contributions</title>
+          <path d="M0 10 L0 15 L-16 5 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 15 L16 5 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          
+        </g>
+        <g transform="translate(332, 236)">
+          
+          <title>2026-03-21: 2 contributions</title>
+          <path d="M0 10 L0 20 L-16 10 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 20 L16 10 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          
+        </g>
+        <g transform="translate(444, 151)">
+          
+          <title>2026-03-22: 14 contributions</title>
+          <path d="M0 10 L0 60 L-16 50 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 60 L16 50 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="white" fill-opacity="0.2" />
+        </g><g class="heat-particles">
+      <circle cx="443.09233135543764" cy="151" r="1.5" fill="#58a6ff" opacity="1">
+        <animate attributeName="cy"
+          from="151"
+          to="131"
+          dur="1.5s"
+          begin="0.13800644245930016s"
+          repeatCount="indefinite" />
+        <animate attributeName="opacity"
+          from="1" to="0"
+          dur="1.5s"
+          begin="0.13800644245930016s"
+          repeatCount="indefinite" />
+      </circle>
+    
+      <circle cx="446.54947394365445" cy="151" r="1.5" fill="#58a6ff" opacity="1">
+        <animate attributeName="cy"
+          from="151"
+          to="131"
+          dur="1.5s"
+          begin="1.458928374457173s"
+          repeatCount="indefinite" />
+        <animate attributeName="opacity"
+          from="1" to="0"
+          dur="1.5s"
+          begin="1.458928374457173s"
+          repeatCount="indefinite" />
+      </circle>
+    
+      <circle cx="446.6300311954692" cy="151" r="1.5" fill="#58a6ff" opacity="1">
+        <animate attributeName="cy"
+          from="151"
+          to="131"
+          dur="1.5s"
+          begin="0.047604404389858246s"
+          repeatCount="indefinite" />
+        <animate attributeName="opacity"
+          from="1" to="0"
+          dur="1.5s"
+          begin="0.047604404389858246s"
+          repeatCount="indefinite" />
+      </circle>
+    </g>
+        <g transform="translate(428, 175)">
+          
+          <title>2026-03-23: 7 contributions</title>
+          <path d="M0 10 L0 45 L-16 35 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 45 L16 35 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="white" fill-opacity="0.2" />
+        </g>
+        <g transform="translate(412, 199)">
+          
+          <title>2026-03-24: 4 contributions</title>
+          <path d="M0 10 L0 30 L-16 20 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 30 L16 20 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          
+        </g>
+        <g transform="translate(396, 223)">
+          
+          <title>2026-03-25: 1 contributions</title>
+          <path d="M0 10 L0 15 L-16 5 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 15 L16 5 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          
+        </g>
+        <g transform="translate(380, 217)">
+          
+          <title>2026-03-26: 4 contributions</title>
+          <path d="M0 10 L0 30 L-16 20 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 30 L16 20 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          
+        </g>
+        <g transform="translate(364, 236)">
+          
+          <title>2026-03-27: 2 contributions</title>
+          <path d="M0 10 L0 20 L-16 10 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 20 L16 10 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          
+        </g>
+        <g transform="translate(348, 250)">
+          
+          <title>2026-03-28: 1 contributions</title>
+          <path d="M0 10 L0 15 L-16 5 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 15 L16 5 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          
+        </g>
+        <g transform="translate(460, 195)">
+          
+          <title>2026-03-29: 3 contributions</title>
+          <path d="M0 10 L0 25 L-16 15 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 25 L16 15 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          
+        </g>
+        <g transform="translate(444, 214)">
+          
+          <title>2026-03-30: 1 contributions</title>
+          <path d="M0 10 L0 15 L-16 5 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 15 L16 5 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          
+        </g>
+        <g transform="translate(428, 218)">
+          
+          <title>2026-03-31: 2 contributions</title>
+          <path d="M0 10 L0 20 L-16 10 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 20 L16 10 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          
+        </g>
+        <g transform="translate(412, 227)">
+          
+          <title>2026-04-01: 2 contributions</title>
+          <path d="M0 10 L0 20 L-16 10 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 20 L16 10 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          
+        </g>
+        <g transform="translate(396, 196)">
+          
+          <title>2026-04-02: 10 contributions</title>
+          <path d="M0 10 L0 60 L-16 50 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 60 L16 50 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="white" fill-opacity="0.2" />
+        </g><g class="heat-particles">
+      <circle cx="395.30865208106115" cy="196" r="1.5" fill="#58a6ff" opacity="1">
+        <animate attributeName="cy"
+          from="196"
+          to="176"
+          dur="1.5s"
+          begin="0.3066112393280491s"
+          repeatCount="indefinite" />
+        <animate attributeName="opacity"
+          from="1" to="0"
+          dur="1.5s"
+          begin="0.3066112393280491s"
+          repeatCount="indefinite" />
+      </circle>
+    
+      <circle cx="398.5058935023844" cy="196" r="1.5" fill="#58a6ff" opacity="1">
+        <animate attributeName="cy"
+          from="196"
+          to="176"
+          dur="1.5s"
+          begin="0.4429354208987206s"
+          repeatCount="indefinite" />
+        <animate attributeName="opacity"
+          from="1" to="0"
+          dur="1.5s"
+          begin="0.4429354208987206s"
+          repeatCount="indefinite" />
+      </circle>
+    
+      <circle cx="394.63935085712" cy="196" r="1.5" fill="#58a6ff" opacity="1">
+        <animate attributeName="cy"
+          from="196"
+          to="176"
+          dur="1.5s"
+          begin="0.1727404670091346s"
+          repeatCount="indefinite" />
+        <animate attributeName="opacity"
+          from="1" to="0"
+          dur="1.5s"
+          begin="0.1727404670091346s"
+          repeatCount="indefinite" />
+      </circle>
+    </g>
+        <g transform="translate(380, 250)">
+          
+          <title>2026-04-03: 1 contributions</title>
+          <path d="M0 10 L0 15 L-16 5 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 15 L16 5 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          
+        </g>
+        <g transform="translate(364, 259)">
+          
+          <title>2026-04-04: 1 contributions</title>
+          <path d="M0 10 L0 15 L-16 5 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 15 L16 5 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          
+        </g>
+        <g transform="translate(476, 204)">
+          
+          <title>2026-04-05: 3 contributions</title>
+          <path d="M0 10 L0 25 L-16 15 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 25 L16 15 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          
+        </g>
+        <g transform="translate(460, 223)">
+          
+          <title>2026-04-06: 1 contributions</title>
+          <path d="M0 10 L0 15 L-16 5 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 15 L16 5 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          
+        </g>
+        <g transform="translate(444, 217)">
+          
+          <title>2026-04-07: 4 contributions</title>
+          <path d="M0 10 L0 30 L-16 20 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 30 L16 20 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          
+        </g>
+        <g transform="translate(428, 241)">
+          
+          <title>2026-04-08: 1 contributions</title>
+          <path d="M0 10 L0 15 L-16 5 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 15 L16 5 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          
+        </g>
+        <g transform="translate(412, 250)">
+          
+          <title>2026-04-09: 1 contributions</title>
+          <path d="M0 10 L0 15 L-16 5 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 15 L16 5 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          
+        </g>
+        <g transform="translate(396, 254)">
+          
+          <title>2026-04-10: 2 contributions</title>
+          <path d="M0 10 L0 20 L-16 10 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 20 L16 10 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          
+        </g>
+        <g transform="translate(380, 233)">
+          
+          <title>2026-04-11: 8 contributions</title>
+          <path d="M0 10 L0 50 L-16 40 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 50 L16 40 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="white" fill-opacity="0.2" />
+        </g>
+        <g transform="translate(492, 223)">
+          
+          <title>2026-04-12: 1 contributions</title>
+          <path d="M0 10 L0 15 L-16 5 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 15 L16 5 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          
+        </g>
+        <g transform="translate(476, 222)">
+          
+          <title>2026-04-13: 3 contributions</title>
+          <path d="M0 10 L0 25 L-16 15 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 25 L16 15 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          
+        </g>
+        <g transform="translate(460, 196)">
+          
+          <title>2026-04-14: 12 contributions</title>
+          <path d="M0 10 L0 60 L-16 50 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 60 L16 50 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="white" fill-opacity="0.2" />
+        </g><g class="heat-particles">
+      <circle cx="458.84946060506627" cy="196" r="1.5" fill="#58a6ff" opacity="1">
+        <animate attributeName="cy"
+          from="196"
+          to="176"
+          dur="1.5s"
+          begin="1.3039687966229394s"
+          repeatCount="indefinite" />
+        <animate attributeName="opacity"
+          from="1" to="0"
+          dur="1.5s"
+          begin="1.3039687966229394s"
+          repeatCount="indefinite" />
+      </circle>
+    
+      <circle cx="461.643503527157" cy="196" r="1.5" fill="#58a6ff" opacity="1">
+        <animate attributeName="cy"
+          from="196"
+          to="176"
+          dur="1.5s"
+          begin="0.13580499915406108s"
+          repeatCount="indefinite" />
+        <animate attributeName="opacity"
+          from="1" to="0"
+          dur="1.5s"
+          begin="0.13580499915406108s"
+          repeatCount="indefinite" />
+      </circle>
+    
+      <circle cx="458.2443649326451" cy="196" r="1.5" fill="#58a6ff" opacity="1">
+        <animate attributeName="cy"
+          from="196"
+          to="176"
+          dur="1.5s"
+          begin="0.9314451006939635s"
+          repeatCount="indefinite" />
+        <animate attributeName="opacity"
+          from="1" to="0"
+          dur="1.5s"
+          begin="0.9314451006939635s"
+          repeatCount="indefinite" />
+      </circle>
+    </g>
+        <g transform="translate(444, 205)">
+          
+          <title>2026-04-15: 16 contributions</title>
+          <path d="M0 10 L0 60 L-16 50 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 60 L16 50 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="white" fill-opacity="0.2" />
+        </g><g class="heat-particles">
+      <circle cx="443.59600780019537" cy="205" r="1.5" fill="#58a6ff" opacity="1">
+        <animate attributeName="cy"
+          from="205"
+          to="185"
+          dur="1.5s"
+          begin="0.9166035231901333s"
+          repeatCount="indefinite" />
+        <animate attributeName="opacity"
+          from="1" to="0"
+          dur="1.5s"
+          begin="0.9166035231901333s"
+          repeatCount="indefinite" />
+      </circle>
+    
+      <circle cx="444.7770640645176" cy="205" r="1.5" fill="#58a6ff" opacity="1">
+        <animate attributeName="cy"
+          from="205"
+          to="185"
+          dur="1.5s"
+          begin="1.2750349512789398s"
+          repeatCount="indefinite" />
+        <animate attributeName="opacity"
+          from="1" to="0"
+          dur="1.5s"
+          begin="1.2750349512789398s"
+          repeatCount="indefinite" />
+      </circle>
+    
+      <circle cx="442.25659134378657" cy="205" r="1.5" fill="#58a6ff" opacity="1">
+        <animate attributeName="cy"
+          from="205"
+          to="185"
+          dur="1.5s"
+          begin="0.7126961272442713s"
+          repeatCount="indefinite" />
+        <animate attributeName="opacity"
+          from="1" to="0"
+          dur="1.5s"
+          begin="0.7126961272442713s"
+          repeatCount="indefinite" />
+      </circle>
+    
+      <circle cx="443.9523428985849" cy="205" r="1.5" fill="#58a6ff" opacity="1">
+        <animate attributeName="cy"
+          from="205"
+          to="185"
+          dur="1.5s"
+          begin="0.4151041293516755s"
+          repeatCount="indefinite" />
+        <animate attributeName="opacity"
+          from="1" to="0"
+          dur="1.5s"
+          begin="0.4151041293516755s"
+          repeatCount="indefinite" />
+      </circle>
+    </g>
+        <g transform="translate(428, 214)">
+          
+          <title>2026-04-16: 18 contributions</title>
+          <path d="M0 10 L0 60 L-16 50 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 60 L16 50 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="white" fill-opacity="0.2" />
+        </g><g class="heat-particles">
+      <circle cx="425.9386859931983" cy="214" r="1.5" fill="#58a6ff" opacity="1">
+        <animate attributeName="cy"
+          from="214"
+          to="194"
+          dur="1.5s"
+          begin="1.3265541120199487s"
+          repeatCount="indefinite" />
+        <animate attributeName="opacity"
+          from="1" to="0"
+          dur="1.5s"
+          begin="1.3265541120199487s"
+          repeatCount="indefinite" />
+      </circle>
+    
+      <circle cx="428.0658025275916" cy="214" r="1.5" fill="#58a6ff" opacity="1">
+        <animate attributeName="cy"
+          from="214"
+          to="194"
+          dur="1.5s"
+          begin="0.057334083365276456s"
+          repeatCount="indefinite" />
+        <animate attributeName="opacity"
+          from="1" to="0"
+          dur="1.5s"
+          begin="0.057334083365276456s"
+          repeatCount="indefinite" />
+      </circle>
+    
+      <circle cx="427.67151313787326" cy="214" r="1.5" fill="#58a6ff" opacity="1">
+        <animate attributeName="cy"
+          from="214"
+          to="194"
+          dur="1.5s"
+          begin="0.3278595028677955s"
+          repeatCount="indefinite" />
+        <animate attributeName="opacity"
+          from="1" to="0"
+          dur="1.5s"
+          begin="0.3278595028677955s"
+          repeatCount="indefinite" />
+      </circle>
+    
+      <circle cx="425.1289962576702" cy="214" r="1.5" fill="#58a6ff" opacity="1">
+        <animate attributeName="cy"
+          from="214"
+          to="194"
+          dur="1.5s"
+          begin="0.9383561331778765s"
+          repeatCount="indefinite" />
+        <animate attributeName="opacity"
+          from="1" to="0"
+          dur="1.5s"
+          begin="0.9383561331778765s"
+          repeatCount="indefinite" />
+      </circle>
+    </g>
+        <g transform="translate(412, 233)">
+          
+          <title>2026-04-17: 8 contributions</title>
+          <path d="M0 10 L0 50 L-16 40 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 50 L16 40 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="white" fill-opacity="0.2" />
+        </g>
+        <g transform="translate(396, 257)">
+          
+          <title>2026-04-18: 5 contributions</title>
+          <path d="M0 10 L0 35 L-16 25 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 35 L16 25 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          
+        </g>
+        <g transform="translate(508, 197)">
+          
+          <title>2026-04-19: 8 contributions</title>
+          <path d="M0 10 L0 50 L-16 40 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 50 L16 40 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="white" fill-opacity="0.2" />
+        </g>
+        <g transform="translate(492, 196)">
+          
+          <title>2026-04-20: 41 contributions</title>
+          <path d="M0 10 L0 60 L-16 50 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 60 L16 50 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="white" fill-opacity="0.2" />
+        </g><g class="heat-particles">
+      <circle cx="493.51193068921566" cy="196" r="1.5" fill="#58a6ff" opacity="1">
+        <animate attributeName="cy"
+          from="196"
+          to="176"
+          dur="1.5s"
+          begin="1.484409132739529s"
+          repeatCount="indefinite" />
+        <animate attributeName="opacity"
+          from="1" to="0"
+          dur="1.5s"
+          begin="1.484409132739529s"
+          repeatCount="indefinite" />
+      </circle>
+    
+      <circle cx="489.6983684641309" cy="196" r="1.5" fill="#58a6ff" opacity="1">
+        <animate attributeName="cy"
+          from="196"
+          to="176"
+          dur="1.5s"
+          begin="0.6591684505110607s"
+          repeatCount="indefinite" />
+        <animate attributeName="opacity"
+          from="1" to="0"
+          dur="1.5s"
+          begin="0.6591684505110607s"
+          repeatCount="indefinite" />
+      </circle>
+    
+      <circle cx="493.5112572899088" cy="196" r="1.5" fill="#58a6ff" opacity="1">
+        <animate attributeName="cy"
+          from="196"
+          to="176"
+          dur="1.5s"
+          begin="1.381660953629762s"
+          repeatCount="indefinite" />
+        <animate attributeName="opacity"
+          from="1" to="0"
+          dur="1.5s"
+          begin="1.381660953629762s"
+          repeatCount="indefinite" />
+      </circle>
+    
+      <circle cx="493.5804753075354" cy="196" r="1.5" fill="#58a6ff" opacity="1">
+        <animate attributeName="cy"
+          from="196"
+          to="176"
+          dur="1.5s"
+          begin="0.4285805627005175s"
+          repeatCount="indefinite" />
+        <animate attributeName="opacity"
+          from="1" to="0"
+          dur="1.5s"
+          begin="0.4285805627005175s"
+          repeatCount="indefinite" />
+      </circle>
+    
+      <circle cx="493.37577416561544" cy="196" r="1.5" fill="#58a6ff" opacity="1">
+        <animate attributeName="cy"
+          from="196"
+          to="176"
+          dur="1.5s"
+          begin="0.28478895616717637s"
+          repeatCount="indefinite" />
+        <animate attributeName="opacity"
+          from="1" to="0"
+          dur="1.5s"
+          begin="0.28478895616717637s"
+          repeatCount="indefinite" />
+      </circle>
+    </g>
+        <g transform="translate(476, 245)">
+          <animate attributeName="opacity" values="1;0.4;1" dur="1.5s" repeatCount="indefinite" />
+          <title>TODAY: 2026-04-21: 2 contributions</title>
+          <path d="M0 10 L0 20 L-16 10 L-16 0 Z" fill="#58a6ff" fill-opacity="0.35" />
+          <path d="M0 10 L0 20 L16 10 L16 0 Z" fill="#58a6ff" fill-opacity="0.21" />
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.7" />
+          
+        </g>
+      </g>
+
+      <g transform="translate(40, 340)">
+        <text class="label">CURRENT_STREAK</text>
+        <text y="40" class="stats" filter="url(#glow)">85</text>
+      </g>
+
+      <g transform="translate(300, 340)" text-anchor="middle">
+        <text class="label">ANNUAL_SYNC_TOTAL</text>
+        <text y="40" class="total-val" filter="url(#glow)">481</text>
+      </g>
+
+      <g transform="translate(560, 340)" text-anchor="end">
+        <text class="label">PEAK_STREAK</text>
+        <text y="40" class="stats">85</text>
+      </g>
+
+      <text x="300" y="50" text-anchor="middle" class="title">JHASOURAV07</text>
+
+      <rect x="100" y="60" width="400" height="1" fill="#58a6ff" fill-opacity="0.3">
+        <animate attributeName="y" values="80;320;80" dur="8s" repeatCount="indefinite" />
+      </rect>
+    </svg>
+  
