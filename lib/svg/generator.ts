@@ -1,10 +1,6 @@
 // SAME AS YOUR FILE (no logic change)
 
-import type {
-  BadgeParams,
-  ContributionCalendar,
-  StreakStats,
-} from '../../types';
+import type { BadgeParams, ContributionCalendar, StreakStats } from '../../types';
 
 const FONT_MAP: Record<string, string> = {
   jetbrains: 'JetBrains Mono',
@@ -65,24 +61,17 @@ export function generateSVG(
   const accent = `#${(params.accent || '00ffaa').replace('#', '')}`;
   const text = `#${(params.text || 'ffffff').replace('#', '')}`;
 
-  const selectedFont = params.font
-    ? FONT_MAP[params.font.toLowerCase()] || 'JetBrains Mono'
-    : null;
+  const selectedFont = params.font ? FONT_MAP[params.font.toLowerCase()] || 'JetBrains Mono' : null;
 
   const parsedRadius = Number(params.radius);
-  const radius = Math.max(
-    0,
-    Math.min(Number.isNaN(parsedRadius) ? 8 : parsedRadius, 50)
-  );
+  const radius = Math.max(0, Math.min(Number.isNaN(parsedRadius) ? 8 : parsedRadius, 50));
 
   const weeks = calendar.weeks.slice(-14);
   let towers = '';
 
   weeks.forEach((week, i) => {
     week.contributionDays.forEach((day, j) => {
-      const isToday =
-        i === weeks.length - 1 &&
-        j === week.contributionDays.length - 1;
+      const isToday = i === weeks.length - 1 && j === week.contributionDays.length - 1;
 
       const hasCommits = day.contributionCount > 0;
       const isTodayWithCommits = isToday && hasCommits;
@@ -93,12 +82,7 @@ export function generateSVG(
 
       const h =
         params.scale === 'log'
-          ? Math.min(
-              day.contributionCount > 0
-                ? Math.log2(day.contributionCount + 1) * 12
-                : 0,
-              80
-            )
+          ? Math.min(day.contributionCount > 0 ? Math.log2(day.contributionCount + 1) * 12 : 0, 80)
           : Math.min(day.contributionCount * 5, 50);
 
       const x = 300 + (i - j) * 16;
@@ -116,11 +100,11 @@ export function generateSVG(
           }
           <title>${tooltip}</title>
           <path d="M0 10 L0 ${10 + h} L-16 ${h} L-16 0 Z" fill="${color}" fill-opacity="${
-        opacity * 0.5
-      }" />
+            opacity * 0.5
+          }" />
           <path d="M0 10 L0 ${10 + h} L16 ${h} L16 0 Z" fill="${color}" fill-opacity="${
-        opacity * 0.3
-      }" />
+            opacity * 0.3
+          }" />
           <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="${color}" fill-opacity="${opacity}" />
           ${
             day.contributionCount > 5
@@ -135,7 +119,7 @@ export function generateSVG(
     });
   });
 
-return `
+  return `
 <svg xmlns="http://www.w3.org/2000/svg" width="600" height="420" viewBox="0 0 600 420" fill="none">
 
 <style>

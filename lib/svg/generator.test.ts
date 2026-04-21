@@ -14,21 +14,13 @@ describe('generateSVG', () => {
   });
 
   it('applies custom font when font is provided', () => {
-    const svg = generateSVG(
-      mockStats,
-      { user: 'avi', font: 'jetbrains' } as any,
-      mockCalendar
-    );
+    const svg = generateSVG(mockStats, { user: 'avi', font: 'jetbrains' } as any, mockCalendar);
 
     expect(svg).toContain('JetBrains Mono');
   });
 
   it('handles radius=0 correctly', () => {
-    const svg = generateSVG(
-      mockStats,
-      { user: 'avi', radius: 0 } as any,
-      mockCalendar
-    );
+    const svg = generateSVG(mockStats, { user: 'avi', radius: 0 } as any, mockCalendar);
 
     expect(svg).toContain('rx="0"');
   });
