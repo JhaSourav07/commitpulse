@@ -1,12 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import { generateSVG } from './generator';
+import type { StreakStats } from '../../types';
 
 describe('generateSVG', () => {
-  const mockStats = {} as unknown;
-  const mockCalendar = { weeks: [] } as unknown;
+  const mockStats = {} as StreakStats;
+  const mockCalendar = { weeks: [] } as any;
 
   it('uses default typography when no font is passed', () => {
-    const svg = generateSVG(mockStats, { user: 'avi' } as unknown, mockCalendar);
+    const svg = generateSVG(mockStats, { user: 'avi' } as any, mockCalendar);
 
     expect(svg).toContain('Syncopate');
     expect(svg).toContain('Space Grotesk');
@@ -15,7 +16,7 @@ describe('generateSVG', () => {
   it('applies custom font when font is provided', () => {
     const svg = generateSVG(
       mockStats,
-      { user: 'avi', font: 'jetbrains' } as unknown,
+      { user: 'avi', font: 'jetbrains' } as any,
       mockCalendar
     );
 
@@ -25,7 +26,7 @@ describe('generateSVG', () => {
   it('handles radius=0 correctly', () => {
     const svg = generateSVG(
       mockStats,
-      { user: 'avi', radius: 0 } as unknown,
+      { user: 'avi', radius: 0 } as any,
       mockCalendar
     );
 
