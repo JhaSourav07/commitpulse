@@ -174,7 +174,7 @@ export default function DocumentationPage() {
           </div>
         </section>
 
-        <section className="mb-8 grid items-start gap-6 lg:grid-cols-[0.95fr_1.05fr]">
+        <section className="mb-8 flex flex-col items-stretch gap-6">
           <Panel
             eyebrow="Quick Start"
             title="Add the default badge in one line"
