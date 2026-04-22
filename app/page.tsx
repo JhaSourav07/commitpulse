@@ -167,7 +167,13 @@ export default function LandingPage() {
 
         <div ref={guideRef}>
           <AnimatePresence>
-            {copied && <SuccessGuide markdown={markdown} username={username} onDismiss={() => setCopied(false)} />}
+            {copied && (
+              <SuccessGuide
+                markdown={markdown}
+                username={username}
+                onDismiss={() => setCopied(false)}
+              />
+            )}
           </AnimatePresence>
         </div>
 
@@ -263,7 +269,15 @@ const STEPS = [
   },
 ];
 
-function SuccessGuide({ markdown, username, onDismiss }: { markdown: string; username: string; onDismiss: () => void }) {
+function SuccessGuide({
+  markdown,
+  username,
+  onDismiss,
+}: {
+  markdown: string;
+  username: string;
+  onDismiss: () => void;
+}) {
   return (
     <motion.div
       key="success-guide"

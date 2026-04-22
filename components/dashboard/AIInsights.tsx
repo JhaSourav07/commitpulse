@@ -32,22 +32,20 @@ export default function AIInsights({ insights }: { insights: AIInsight[] }) {
       <div className="flex flex-col gap-3 relative z-10">
         {insights.map((insight, i) => {
           const Icon = iconMap[insight.icon] || Sparkles;
-          
+
           return (
-            <motion.div 
+            <motion.div
               key={insight.id}
               initial={{ opacity: 0, x: -10 }}
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
-              transition={{ delay: 0.3 + (i * 0.1) }}
+              transition={{ delay: 0.3 + i * 0.1 }}
               className="flex items-start gap-3 p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors group"
             >
               <div className="mt-0.5 text-purple-400 group-hover:text-pink-400 transition-colors">
                 <Icon size={16} />
               </div>
-              <p className="text-sm text-white/80 leading-relaxed">
-                {insight.text}
-              </p>
+              <p className="text-sm text-white/80 leading-relaxed">{insight.text}</p>
             </motion.div>
           );
         })}

@@ -55,7 +55,7 @@ export async function fetchGitHubContributions(username: string): Promise<Contri
   });
 
   if (!res.ok) {
-    if (res.status === 401) throw new Error("GitHub PAT is invalid or missing");
+    if (res.status === 401) throw new Error('GitHub PAT is invalid or missing');
     throw new Error(`GitHub GraphQL API returned status ${res.status}`);
   }
 
@@ -75,27 +75,27 @@ export async function fetchGitHubContributions(username: string): Promise<Contri
 export async function fetchUserProfile(username: string) {
   const res = await fetch(`${GITHUB_REST_URL}/users/${username}`, {
     headers: getHeaders(),
-    cache: 'no-store'
+    cache: 'no-store',
   });
-  
+
   if (!res.ok) {
-    if (res.status === 404) throw new Error("User not found");
+    if (res.status === 404) throw new Error('User not found');
     throw new Error(`GitHub REST API error: ${res.status}`);
   }
-  
+
   return res.json();
 }
 
 export async function fetchUserRepos(username: string) {
   const res = await fetch(`${GITHUB_REST_URL}/users/${username}/repos?per_page=100&sort=pushed`, {
     headers: getHeaders(),
-    cache: 'no-store'
+    cache: 'no-store',
   });
-  
+
   if (!res.ok) {
     throw new Error(`GitHub REST API error: ${res.status}`);
   }
-  
+
   return res.json();
 }
 
@@ -115,32 +115,38 @@ export async function getFullDashboardData(username: string) {
       isPro: profileData.plan?.name === 'pro' || profileData.public_repos > 50,
       bio: profileData.bio || 'No bio available',
       location: profileData.location || 'Earth',
-      joinedDate: new Date(profileData.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
-      developerScore: Math.min(Math.floor((profileData.public_repos * 2 + profileData.followers * 5) / 10), 100),
+      joinedDate: new Date(profileData.created_at).toLocaleDateString('en-US', {
+        month: 'short',
+        year: 'numeric',
+      }),
+      developerScore: Math.min(
+        Math.floor((profileData.public_repos * 2 + profileData.followers * 5) / 10),
+        100
+      ),
       stats: {
         repositories: profileData.public_repos,
         followers: profileData.followers,
         following: profileData.following,
         stars: reposData.reduce((acc: number, repo: GitHubRepo) => acc + repo.stargazers_count, 0),
-      }
+      },
     };
 
     // 2. Streaks & Activity Mapping
     const streakStats = calculateStreak(calendarData);
-    
+
     // Flatten days for charts
-    const allDays = calendarData.weeks.flatMap(w => w.contributionDays);
-    const activity = allDays.map(day => {
+    const allDays = calendarData.weeks.flatMap((w) => w.contributionDays);
+    const activity = allDays.map((day) => {
       let intensity: 0 | 1 | 2 | 3 | 4 = 0;
       if (day.contributionCount > 0) intensity = 1;
       if (day.contributionCount > 3) intensity = 2;
       if (day.contributionCount > 6) intensity = 3;
       if (day.contributionCount > 10) intensity = 4;
-      
+
       return {
         date: day.date,
         count: day.contributionCount,
-        intensity
+        intensity,
       };
     });
 
@@ -162,7 +168,7 @@ export async function getFullDashboardData(username: string) {
       HTML: '#e34c26',
       CSS: '#563d7c',
       Go: '#00ADD8',
-      Rust: '#dea584'
+      Rust: '#dea584',
     };
 
     const totalLangs = Object.values(langCounts).reduce((a, b) => a + b, 0);
@@ -170,22 +176,34 @@ export async function getFullDashboardData(username: string) {
       .map(([name, count]) => ({
         name,
         percentage: Math.round((count / totalLangs) * 100),
-        color: languageColors[name] || '#a855f7' // fallback purple
+        color: languageColors[name] || '#a855f7', // fallback purple
       }))
       .sort((a, b) => b.percentage - a.percentage)
       .slice(0, 5); // top 5
 
     // 4. Insights Generation
     const insights = [
-      { id: "1", icon: "Flame", text: `You have a total of ${streakStats.totalContributions} contributions this year.` },
-      { id: "2", icon: "Code", text: `Your primary language is ${languages[0]?.name || 'Unknown'}.` },
-      { id: "3", icon: "Star", text: `Your longest coding streak is ${streakStats.longestStreak} days!` },
+      {
+        id: '1',
+        icon: 'Flame',
+        text: `You have a total of ${streakStats.totalContributions} contributions this year.`,
+      },
+      {
+        id: '2',
+        icon: 'Code',
+        text: `Your primary language is ${languages[0]?.name || 'Unknown'}.`,
+      },
+      {
+        id: '3',
+        icon: 'Star',
+        text: `Your longest coding streak is ${streakStats.longestStreak} days!`,
+      },
     ];
 
     // Simulate 24h cycle (because GitHub events API is heavily rate limited to 300 events which doesn't give a full picture)
     const commitClock = Array.from({ length: 24 }).map((_, i) => ({
       hour: i,
-      commits: Math.floor(Math.random() * 20) + (i >= 9 && i <= 17 ? 30 : 0) // working hours peak
+      commits: Math.floor(Math.random() * 20) + (i >= 9 && i <= 17 ? 30 : 0), // working hours peak
     }));
 
     return {
@@ -193,12 +211,12 @@ export async function getFullDashboardData(username: string) {
       stats: {
         currentStreak: streakStats.currentStreak,
         peakStreak: streakStats.longestStreak,
-        totalContributions: streakStats.totalContributions
+        totalContributions: streakStats.totalContributions,
       },
       languages,
       activity,
       insights,
-      commitClock
+      commitClock,
     };
   } catch (error: unknown) {
     if (error instanceof Error) {
