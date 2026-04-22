@@ -1,4 +1,4 @@
-export interface StreakStats {
+﻿export interface StreakStats {
   currentStreak: number;
   longestStreak: number;
   totalContributions: number;
@@ -33,4 +33,5 @@ export interface BadgeParams {
   radius?: string;
   speed?: string;
   scale?: 'linear' | 'log';
+  font?: string;
 }

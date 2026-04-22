@@ -4,7 +4,7 @@ This gallery showcases all available themes for the CommitPulse streak card.
 
 ---
 
-## 🌑 Neon
+## 🌌 Neon
 
 ![Neon](assets/themes/neon.png)
 
@@ -28,7 +28,7 @@ Usage: `/api/streak?user=yourusername&theme=dark`
 
 ---
 
-## 🤍 Light
+## 🌕 Light
 
 ![Light](assets/themes/light.png)
 
@@ -68,7 +68,7 @@ Usage: `/api/streak?user=yourusername&theme=forest`
 
 ---
 
-## 🌹 Rose
+## 🌸 Rose
 
 ![Rose](assets/themes/rose.png)
 
@@ -81,3 +81,4 @@ Usage: `/api/streak?user=yourusername&theme=rose`
 ![Nord](assets/themes/nord.png)
 
 Usage: `/api/streak?user=yourusername&theme=nord`
+'@

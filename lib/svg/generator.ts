@@ -1,5 +1,13 @@
-// lib/svg/generator.ts
+﻿// lib/svg/generator.ts
 import type { BadgeParams, ContributionCalendar, StreakStats } from '../../types';
+
+export const FONT_OPTIONS: Record<string, { title: string; display: string; body: string }> = {
+  default: { title: 'Default', display: 'Syncopate', body: 'Space Grotesk' },
+  mono: { title: 'Mono', display: 'JetBrains Mono', body: 'JetBrains Mono' },
+  elegant: { title: 'Elegant', display: 'Playfair Display', body: 'Lato' },
+  minimal: { title: 'Minimal', display: 'DM Sans', body: 'DM Sans' },
+  retro: { title: 'Retro', display: 'Press Start 2P', body: 'VT323' },
+};
 
 function deterministicRandom(seed: string): number {
   let hash = 2166136261;
@@ -18,7 +26,7 @@ function generateParticles(
   count: number
 ): string {
   let particles = '';
-  const particleCount = Math.min(5, Math.max(3, Math.floor(count / 4))); // 3-5 particles for count >= 10
+  const particleCount = Math.min(5, Math.max(3, Math.floor(count / 4)));
 
   for (let i = 0; i < particleCount; i++) {
     const seed = `${x}:${y}:${height}:${color}:${count}:${i}`;
@@ -54,7 +62,10 @@ export function generateSVG(
   const accent = `#${(params.accent || '00ffaa').replace('#', '')}`;
   const text = `#${(params.text || 'ffffff').replace('#', '')}`;
 
-  const weeks = calendar.weeks.slice(-14); // 14 weeks for better symmetry
+  const fontKey = params.font && FONT_OPTIONS[params.font] ? params.font : 'default';
+  const { display: displayFont, body: bodyFont } = FONT_OPTIONS[fontKey];
+
+  const weeks = calendar.weeks.slice(-14);
   let towers = '';
 
   weeks.forEach((week, i: number) => {
@@ -67,7 +78,6 @@ export function generateSVG(
         ? `TODAY: ${day.date}: ${day.contributionCount} contributions`
         : `${day.date}: ${day.contributionCount} contributions`;
 
-      // Height scales with contribution count (linear or logarithmic)
       const h =
         params.scale === 'log'
           ? Math.min(day.contributionCount > 0 ? Math.log2(day.contributionCount + 1) * 12 : 0, 80)
@@ -94,6 +104,8 @@ export function generateSVG(
     });
   });
 
+  const importUrl = `https://fonts.googleapis.com/css2?family=${displayFont.replace(/ /g, '+')}:wght@700&amp;family=${bodyFont.replace(/ /g, '+')}:wght@300;500;700&amp;display=swap`;
+
   return `
     <svg xmlns="http://www.w3.org/2000/svg" width="600" height="420" viewBox="0 0 600 420" fill="none">
       <defs>
@@ -104,11 +116,11 @@ export function generateSVG(
       </defs>
 
       <style>
-        @import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@700&amp;family=Space+Grotesk:wght@300;500;700&amp;display=swap');
-        .title { font-family: 'Syncopate', sans-serif; fill: ${text}; font-size: 18px; letter-spacing: 6px; opacity: 0.8; }
-        .stats { font-family: 'Space Grotesk', sans-serif; fill: ${text}; font-size: 42px; font-weight: 700; }
-        .total-val { font-family: 'Syncopate', sans-serif; fill: ${accent}; font-size: 24px; font-weight: 700; }
-        .label { font-family: 'Space Grotesk', sans-serif; fill: ${accent}; font-size: 11px; font-weight: 700; letter-spacing: 2px; opacity: 0.7; }
+        @import url('${importUrl}');
+        .title { font-family: '${displayFont}', sans-serif; fill: ${text}; font-size: 18px; letter-spacing: 6px; opacity: 0.8; }
+        .stats { font-family: '${bodyFont}', sans-serif; fill: ${text}; font-size: 42px; font-weight: 700; }
+        .total-val { font-family: '${displayFont}', sans-serif; fill: ${accent}; font-size: 24px; font-weight: 700; }
+        .label { font-family: '${bodyFont}', sans-serif; fill: ${accent}; font-size: 11px; font-weight: 700; letter-spacing: 2px; opacity: 0.7; }
         @media (prefers-reduced-motion: reduce) {
           .heat-particles { display: none; }
         }
