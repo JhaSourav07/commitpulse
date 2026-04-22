@@ -1,11 +1,10 @@
-# 🎨 CommitPulse Theme Gallery
+﻿# 🎨 CommitPulse Theme Gallery
 
 This gallery showcases all available themes for the CommitPulse streak card.
 
 ---
 
 ## 🌌 Neon
-
 ![Neon](assets/themes/neon.png)
 
 Usage:
@@ -14,7 +13,6 @@ Usage:
 ---
 
 ## 🧛 Dracula
-
 ![Dracula](assets/themes/dracula.png)
 
 Usage:
@@ -23,7 +21,6 @@ Usage:
 ---
 
 ## 🌑 Dark
-
 ![Dark](assets/themes/dark.png)
 
 Usage:
@@ -32,7 +29,6 @@ Usage:
 ---
 
 ## 🌕 Light
-
 ![Light](assets/themes/light.png)
 
 Usage:
@@ -41,7 +37,6 @@ Usage:
 ---
 
 ## 🐙 GitHub
-
 ![GitHub](assets/themes/github.png)
 
 Usage:
@@ -49,40 +44,40 @@ Usage:
 
 ---
 
-## ?? Ocean
-
+## 🌊 Ocean
 ![Ocean](assets/themes/ocean.png)
+
 Usage:
 `/api/streak?user=yourusername&theme=ocean`
 
 ---
 
-## ?? Sunset
-
+## 🌅 Sunset
 ![Sunset](assets/themes/sunset.png)
+
 Usage:
 `/api/streak?user=yourusername&theme=sunset`
 
 ---
 
-## ?? Forest
-
+## 🌲 Forest
 ![Forest](assets/themes/forest.png)
+
 Usage:
 `/api/streak?user=yourusername&theme=forest`
 
 ---
 
-## ?? Rose
-
+## 🌸 Rose
 ![Rose](assets/themes/rose.png)
+
 Usage:
 `/api/streak?user=yourusername&theme=rose`
 
 ---
 
-## ?? Nord
-
+## ❄️ Nord
 ![Nord](assets/themes/nord.png)
+
 Usage:
 `/api/streak?user=yourusername&theme=nord`
