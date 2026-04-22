@@ -34,7 +34,4 @@ export interface BadgeParams {
   speed?: string;
   scale?: 'linear' | 'log';
   font?: string;
-  font?: string;
-  font?: string;
 }
-
