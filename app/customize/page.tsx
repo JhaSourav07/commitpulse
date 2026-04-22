@@ -388,7 +388,9 @@ export default function CustomizePage() {
                   <div className="relative">
                     <StyledSelect id="font-select" value={font} onChange={setFont}>
                       {FONT_KEYS.map((k) => (
-                        <option key={k} value={k}>{FONT_OPTIONS[k].title}</option>
+                        <option key={k} value={k}>
+                          {FONT_OPTIONS[k].title}
+                        </option>
                       ))}
                     </StyledSelect>
                   </div>
@@ -396,7 +398,6 @@ export default function CustomizePage() {
 
                 {/* Divider */}
                 <div className="h-px bg-white/5" />
-
 
                 {/* Scan speed */}
                 <ControlRow label="Radar Scan Speed">
@@ -514,8 +515,8 @@ export default function CustomizePage() {
 
               <p className="mt-4 text-[11px] text-white/20 leading-relaxed">
                 Paste this into your GitHub profile&apos;s{' '}
-                <code className="text-white/35">README.md</code> â€” the badge renders server-side, no
-                script required.
+                <code className="text-white/35">README.md</code> â€” the badge renders server-side,
+                no script required.
               </p>
             </div>
 
@@ -546,8 +547,3 @@ export default function CustomizePage() {
     </div>
   );
 }
-
-
-
-
-

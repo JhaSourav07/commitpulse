@@ -2,11 +2,11 @@
 import type { BadgeParams, ContributionCalendar, StreakStats } from '../../types';
 
 export const FONT_OPTIONS: Record<string, { title: string; display: string; body: string }> = {
-  default: { title: 'Default', display: 'Syncopate',        body: 'Space Grotesk' },
-  mono:    { title: 'Mono',    display: 'JetBrains Mono',   body: 'JetBrains Mono' },
+  default: { title: 'Default', display: 'Syncopate', body: 'Space Grotesk' },
+  mono: { title: 'Mono', display: 'JetBrains Mono', body: 'JetBrains Mono' },
   elegant: { title: 'Elegant', display: 'Playfair Display', body: 'Lato' },
-  minimal: { title: 'Minimal', display: 'DM Sans',          body: 'DM Sans' },
-  retro:   { title: 'Retro',   display: 'Press Start 2P',   body: 'VT323' },
+  minimal: { title: 'Minimal', display: 'DM Sans', body: 'DM Sans' },
+  retro: { title: 'Retro', display: 'Press Start 2P', body: 'VT323' },
 };
 
 function deterministicRandom(seed: string): number {
