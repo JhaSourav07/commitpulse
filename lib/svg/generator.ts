@@ -1,10 +1,9 @@
 import type { BadgeParams, ContributionCalendar, StreakStats } from '../../types';
 
 const FONT_MAP: Record<string, string> = {
-  // different categories and styles
-  jetbrains: '"Courier New", Courier, monospace',        // Monospace
-  fira: '"Arial", Helvetica, sans-serif',                // sans-serif
-  roboto: '"Times New Roman", Times, serif',             // Classic serif
+  jetbrains: '"JetBrains Mono", monospace',
+  fira: '"Fira Code", monospace',
+  roboto: '"Roboto", sans-serif',
 };
 
 function deterministicRandom(seed: string): number {
@@ -60,8 +59,15 @@ export function generateSVG(
   const accent = `#${(params.accent || '00ffaa').replace('#', '')}`;
   const text = `#${(params.text || 'ffffff').replace('#', '')}`;
 
-  // ✅ FIX: proper font handling (uses FONT_MAP → no unused warning)
-  const selectedFont = params.font ? FONT_MAP[params.font.toLowerCase()] || 'JetBrains Mono' : null;
+  const selectedFont = params.font
+    ? FONT_MAP[params.font.toLowerCase()] || '"JetBrains Mono", monospace'
+    : null;
+
+  const defaultTitleFont = '"Syncopate", sans-serif';
+  const defaultBodyFont = '"Space Grotesk", sans-serif';
+
+  const statsFont = selectedFont || defaultBodyFont;
+  const labelFont = '"Roboto", sans-serif';
 
   const parsedRadius = Number(params.radius);
   const radius = Math.max(0, Math.min(Number.isNaN(parsedRadius) ? 8 : parsedRadius, 50));
@@ -129,14 +135,44 @@ export function generateSVG(
   </defs>
 
   <style>
-    .title { font-family: ${selectedFont || '"Trebuchet MS", "Lucida Sans Unicode", "Lucida Grande", sans-serif'}; fill: ${text}; font-size: 18px; letter-spacing: 6px; opacity: 0.8; }
-    .stats { font-family: ${selectedFont || '"Arial Black", "Arial Bold", Gadget, sans-serif'}; fill: ${text}; font-size: 42px; font-weight: 700; }
-    .total-val { font-family: ${selectedFont || '"Arial Black", "Arial Bold", Gadget, sans-serif'}; fill: ${accent}; font-size: 24px; font-weight: 700; }
-    .label { font-family: ${selectedFont || '"Trebuchet MS", "Lucida Sans Unicode", "Lucida Grande", sans-serif'}; fill: ${accent}; font-size: 11px; font-weight: 700; letter-spacing: 2px; opacity: 0.7; }
+  @import url('https://fonts.googleapis.com/css2?family=Fira+Code&amp;family=JetBrains+Mono&amp;family=Roboto&amp;display=swap');
 
-    @media (prefers-reduced-motion: reduce) {
-      .heat-particles { display: none; }
-    }
+  .title {
+    font-family: ${selectedFont || defaultTitleFont};
+    fill: ${text};
+    font-size: 18px;
+    letter-spacing: 6px;
+    font-weight: 400;
+    opacity: 0.8;
+  }
+
+  .stats {
+    font-family: ${statsFont};
+    fill: ${text};
+    font-size: 42px;
+    font-weight: 500;
+    letter-spacing: 0;
+  }
+
+  .total-val {
+    font-family: ${statsFont};
+    fill: ${accent};
+    font-size: 24px;
+    font-weight: 500;
+  }
+
+  .label {
+    font-family: ${labelFont};
+    fill: ${accent};
+    font-size: 11px;
+    font-weight: 400;
+    letter-spacing: 2px;
+    opacity: 0.7;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .heat-particles { display: none; }
+  }
   </style>
 
   <rect width="600" height="420" rx="${radius}" fill="${bg}" />
@@ -160,7 +196,7 @@ export function generateSVG(
     <text y="40" class="stats">${stats.longestStreak}</text>
   </g>
 
-  <text x="300" y="50" text-anchor="middle" class="title">${params.user.toUpperCase()}</text>
+  <text x="300" y="50" text-anchor="middle" class="title">${params.user?.toUpperCase() || ''}</text>
 
   <rect x="100" y="60" width="400" height="1" fill="${accent}" fill-opacity="0.3">
     <animate attributeName="y" values="80;320;80" dur="${params.speed || '8s'}" repeatCount="indefinite" />
