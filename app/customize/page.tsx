@@ -1,11 +1,13 @@
-'use client';
+﻿'use client';
 
 import { useState, useCallback } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { themes } from '../../lib/svg/themes';
+import { FONT_OPTIONS } from '../../lib/svg/generator';
+const FONT_KEYS = Object.keys(FONT_OPTIONS);
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 type Scale = 'linear' | 'log';
 
@@ -19,13 +21,13 @@ const SPEEDS = [
   { value: '20s', label: 'Ultra-slow (20s)' },
 ] as const;
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function stripHash(val: string) {
   return val.replace(/^#/, '');
 }
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
+// â”€â”€â”€ Sub-components â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
@@ -89,7 +91,7 @@ function HexInput({
     <div className="flex flex-col gap-1.5">
       <SectionLabel>{label}</SectionLabel>
       <div className="relative flex items-center gap-2">
-        {/* ── Color picker trigger ── */}
+        {/* â”€â”€ Color picker trigger â”€â”€ */}
         <label
           htmlFor={`${id}-picker`}
           title="Open color picker"
@@ -116,7 +118,7 @@ function HexInput({
           />
         </label>
 
-        {/* ── Text input ── */}
+        {/* â”€â”€ Text input â”€â”€ */}
         <div className="relative flex-1 flex items-center">
           <span className="absolute left-3 text-white/30 text-sm select-none pointer-events-none">
             #
@@ -136,7 +138,7 @@ function HexInput({
   );
 }
 
-// ─── Main Page ────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Main Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export default function CustomizePage() {
   const [username, setUsername] = useState('jhasourav07');
@@ -146,9 +148,10 @@ export default function CustomizePage() {
   const [textHex, setTextHex] = useState('');
   const [scale, setScale] = useState<Scale>('linear');
   const [speed, setSpeed] = useState('8s');
+  const [font, setFont] = useState('default');
   const [copied, setCopied] = useState(false);
 
-  // ── buildQueryParams ──────────────────────────────────────────────────────
+  // â”€â”€ buildQueryParams â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   const buildQueryParams = useCallback(() => {
     const params = new URLSearchParams();
@@ -167,9 +170,10 @@ export default function CustomizePage() {
 
     if (scale !== 'linear') params.set('scale', scale);
     if (speed !== '8s') params.set('speed', speed);
+    if (font !== 'default') params.set('font', font);
 
     return params.toString();
-  }, [username, theme, bgHex, accentHex, textHex, scale, speed]);
+  }, [username, theme, bgHex, accentHex, textHex, scale, speed, font]);
 
   const queryString = buildQueryParams();
   const previewSrc = `/api/streak?${queryString}`;
@@ -191,7 +195,7 @@ export default function CustomizePage() {
       </div>
 
       <div className="relative z-10 max-w-[1400px] mx-auto px-6 py-8">
-        {/* ── Top Bar ───────────────────────────────────────────────────────── */}
+        {/* â”€â”€ Top Bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -228,7 +232,7 @@ export default function CustomizePage() {
           </div>
         </motion.div>
 
-        {/* ── Page heading ─────────────────────────────────────────────────── */}
+        {/* â”€â”€ Page heading â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
@@ -240,13 +244,13 @@ export default function CustomizePage() {
           </h1>
           <p className="text-gray-500 text-sm max-w-xl">
             Every change below updates the preview in real-time. Copy the Markdown snippet when
-            you&apos;re done — no extra steps required.
+            you&apos;re done â€” no extra steps required.
           </p>
         </motion.div>
 
-        {/* ── Split layout ─────────────────────────────────────────────────── */}
+        {/* â”€â”€ Split layout â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <div className="grid lg:grid-cols-[380px_1fr] gap-6 items-start">
-          {/* ════ LEFT: Control Panel ════════════════════════════════════════ */}
+          {/* â•â•â•â• LEFT: Control Panel â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
           <motion.aside
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -284,7 +288,7 @@ export default function CustomizePage() {
                         </option>
                       ))}
                     </StyledSelect>
-                    {/* Theme color swatches — driven from the imported themes object */}
+                    {/* Theme color swatches â€” driven from the imported themes object */}
                     <div className="mt-2 flex gap-1.5">
                       {(['bg', 'accent', 'text'] as const).map((prop) => {
                         const color = themes[theme]?.[prop];
@@ -298,7 +302,7 @@ export default function CustomizePage() {
                         ) : null;
                       })}
                       <span className="text-[11px] text-white/25 ml-1 self-center">
-                        bg · accent · text
+                        bg Â· accent Â· text
                       </span>
                     </div>
                   </div>
@@ -347,7 +351,7 @@ export default function CustomizePage() {
                       }}
                       className="mt-3 text-[11px] text-red-400/60 hover:text-red-400 transition-colors"
                     >
-                      ✕ Clear overrides
+                      âœ• Clear overrides
                     </button>
                   )}
                 </div>
@@ -375,10 +379,24 @@ export default function CustomizePage() {
                   </div>
                   <p className="text-[11px] text-white/25 mt-1.5 leading-relaxed">
                     {scale === 'log'
-                      ? 'Log mode compresses extreme outliers — great for power committers.'
+                      ? 'Log mode compresses extreme outliers â€” great for power committers.'
                       : 'Linear mode shows raw commit counts as tower heights.'}
                   </p>
                 </ControlRow>
+                {/* Font Style */}
+                <ControlRow label="Font Style">
+                  <div className="relative">
+                    <StyledSelect id="font-select" value={font} onChange={setFont}>
+                      {FONT_KEYS.map((k) => (
+                        <option key={k} value={k}>{FONT_OPTIONS[k].title}</option>
+                      ))}
+                    </StyledSelect>
+                  </div>
+                </ControlRow>
+
+                {/* Divider */}
+                <div className="h-px bg-white/5" />
+
 
                 {/* Scan speed */}
                 <ControlRow label="Radar Scan Speed">
@@ -396,7 +414,7 @@ export default function CustomizePage() {
             </div>
           </motion.aside>
 
-          {/* ════ RIGHT: Preview + Export ════════════════════════════════════ */}
+          {/* â•â•â•â• RIGHT: Preview + Export â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -430,7 +448,7 @@ export default function CustomizePage() {
               </div>
 
               <p className="mt-3 text-[11px] text-white/20 text-center">
-                Preview updates on every change · Hosted badge is cached at UTC midnight
+                Preview updates on every change Â· Hosted badge is cached at UTC midnight
               </p>
             </div>
 
@@ -496,7 +514,7 @@ export default function CustomizePage() {
 
               <p className="mt-4 text-[11px] text-white/20 leading-relaxed">
                 Paste this into your GitHub profile&apos;s{' '}
-                <code className="text-white/35">README.md</code> — the badge renders server-side, no
+                <code className="text-white/35">README.md</code> â€” the badge renders server-side, no
                 script required.
               </p>
             </div>
@@ -528,3 +546,8 @@ export default function CustomizePage() {
     </div>
   );
 }
+
+
+
+
+
