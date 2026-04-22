@@ -120,44 +120,52 @@ export function generateSVG(
 
   return `
 <svg xmlns="http://www.w3.org/2000/svg" width="600" height="420" viewBox="0 0 600 420" fill="none">
+  <defs>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="5" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
 
-<style>
-${
-  selectedFont
-    ? `
-.title { font-family: '${selectedFont}', monospace; }
-.stats { font-family: '${selectedFont}', monospace; }
-`
-    : `
-.title { font-family: 'Syncopate', sans-serif; }
-.stats { font-family: 'Space Grotesk', sans-serif; }
-`
-}
-</style>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono&amp;family=Fira+Code&amp;family=Roboto+Mono&amp;family=Syncopate&amp;family=Space+Grotesk&amp;display=swap');
 
-<rect width="600" height="420" rx="${radius}" fill="${bg}" />
+    .title { font-family: '${selectedFont || 'Syncopate'}', sans-serif; fill: ${text}; font-size: 18px; letter-spacing: 6px; opacity: 0.8; }
+    .stats { font-family: '${selectedFont || 'Space Grotesk'}', sans-serif; fill: ${text}; font-size: 42px; font-weight: 700; }
+    .total-val { font-family: '${selectedFont || 'Space Grotesk'}', sans-serif; fill: ${accent}; font-size: 24px; font-weight: 700; }
+    .label { font-family: '${selectedFont || 'Syncopate'}', sans-serif; fill: ${accent}; font-size: 11px; font-weight: 700; letter-spacing: 2px; opacity: 0.7; }
 
-<g transform="translate(0, 20)">
-  ${towers}
-</g>
+    @media (prefers-reduced-motion: reduce) {
+      .heat-particles { display: none; }
+    }
+  </style>
 
-<text x="300" y="50" text-anchor="middle" class="title">
-  ${params.user?.toUpperCase() || ''}
-</text>
+  <rect width="600" height="420" rx="${radius}" fill="${bg}" />
 
-<rect x="100" y="60" width="400" height="1" fill="${accent}" fill-opacity="0.3">
-  <animate
-    attributeName="y"
-    values="80;320;80"
-    dur="${
-      params.speed && typeof params.speed === 'string' && params.speed.endsWith('s')
-        ? params.speed
-        : '8s'
-    }"
-    repeatCount="indefinite"
-  />
-</rect>
+  <g transform="translate(0, 20)">
+    ${towers}
+  </g>
 
+  <g transform="translate(40, 340)">
+    <text class="label">CURRENT_STREAK</text>
+    <text y="40" class="stats" filter="url(#glow)">${stats.currentStreak}</text>
+  </g>
+
+  <g transform="translate(300, 340)" text-anchor="middle">
+    <text class="label">ANNUAL_SYNC_TOTAL</text>
+    <text y="40" class="total-val" filter="url(#glow)">${stats.totalContributions}</text>
+  </g>
+
+  <g transform="translate(560, 340)" text-anchor="end">
+    <text class="label">PEAK_STREAK</text>
+    <text y="40" class="stats">${stats.longestStreak}</text>
+  </g>
+
+  <text x="300" y="50" text-anchor="middle" class="title">${params.user.toUpperCase()}</text>
+
+  <rect x="100" y="60" width="400" height="1" fill="${accent}" fill-opacity="0.3">
+    <animate attributeName="y" values="80;320;80" dur="${params.speed || '8s'}" repeatCount="indefinite" />
+  </rect>
 </svg>
 `;
 }
