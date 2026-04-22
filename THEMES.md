@@ -1,4 +1,4 @@
-﻿# 🎨 CommitPulse Theme Gallery
+# 🎨 CommitPulse Theme Gallery
 
 This gallery showcases all available themes for the CommitPulse streak card.
 
@@ -71,3 +71,4 @@ Usage: `/api/streak?user=yourusername&theme=rose`
 ![Nord](assets/themes/nord.png)
 
 Usage: `/api/streak?user=yourusername&theme=nord`
+'@

@@ -82,7 +82,7 @@ export default function LandingPage() {
   };
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-[#050505] font-sans text-white selection:bg-emerald-500/30">
+    <div className="min-h-screen overflow-x-hidden bg-transparent font-sans text-white selection:bg-emerald-500/30">
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
         <div className="absolute -left-[10%] -top-[10%] h-[40%] w-[40%] rounded-full bg-emerald-500/10 blur-[120px]" />
         <div className="absolute -right-[10%] top-[20%] h-[30%] w-[30%] rounded-full bg-purple-500/10 blur-[120px]" />
@@ -167,7 +167,13 @@ export default function LandingPage() {
 
         <div ref={guideRef}>
           <AnimatePresence>
-            {copied && <SuccessGuide markdown={markdown} onDismiss={() => setCopied(false)} />}
+            {copied && (
+              <SuccessGuide
+                markdown={markdown}
+                username={username}
+                onDismiss={() => setCopied(false)}
+              />
+            )}
           </AnimatePresence>
         </div>
 
@@ -263,7 +269,15 @@ const STEPS = [
   },
 ];
 
-function SuccessGuide({ markdown, onDismiss }: { markdown: string; onDismiss: () => void }) {
+function SuccessGuide({
+  markdown,
+  username,
+  onDismiss,
+}: {
+  markdown: string;
+  username: string;
+  onDismiss: () => void;
+}) {
   return (
     <motion.div
       key="success-guide"
@@ -354,6 +368,13 @@ function SuccessGuide({ markdown, onDismiss }: { markdown: string; onDismiss: ()
             <code className="text-white/40">?accent=ff6b35</code> to the URL to change your
             monolith&apos;s colour palette.
           </p>
+          <div className="mt-8 flex justify-center border-t border-white/5 pt-6">
+            <Link href={`/${username}`}>
+              <button className="bg-gradient-to-r from-emerald-500 to-purple-600 px-8 py-3 rounded-xl font-bold text-white transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-emerald-500/25">
+                Watch Your Dashboard
+              </button>
+            </Link>
+          </div>
         </div>
       </div>
     </motion.div>
