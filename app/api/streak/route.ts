@@ -56,7 +56,7 @@ export async function GET(request: Request) {
         'Content-Type': 'image/svg+xml',
         'Cache-Control': cacheControl,
 
-        'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline';",
+        'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'; font-src https://fonts.gstatic.com; connect-src https://fonts.gstatic.com;",
       },
     });
   } catch (error: unknown) {
