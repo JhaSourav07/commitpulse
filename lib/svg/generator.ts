@@ -1,9 +1,10 @@
 import type { BadgeParams, ContributionCalendar, StreakStats } from '../../types';
 
 const FONT_MAP: Record<string, string> = {
-  jetbrains: 'JetBrains Mono',
-  fira: 'Fira Code',
-  roboto: 'Roboto Mono',
+  // different categories and styles
+  jetbrains: '"Courier New", Courier, monospace',        // Monospace
+  fira: '"Arial", Helvetica, sans-serif',                // sans-serif
+  roboto: '"Times New Roman", Times, serif',             // Classic serif
 };
 
 function deterministicRandom(seed: string): number {
@@ -128,12 +129,10 @@ export function generateSVG(
   </defs>
 
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono&amp;family=Fira+Code&amp;family=Roboto+Mono&amp;family=Syncopate&amp;family=Space+Grotesk&amp;display=swap');
-
-    .title { font-family: '${selectedFont || 'Syncopate'}', sans-serif; fill: ${text}; font-size: 18px; letter-spacing: 6px; opacity: 0.8; }
-    .stats { font-family: '${selectedFont || 'Space Grotesk'}', sans-serif; fill: ${text}; font-size: 42px; font-weight: 700; }
-    .total-val { font-family: '${selectedFont || 'Space Grotesk'}', sans-serif; fill: ${accent}; font-size: 24px; font-weight: 700; }
-    .label { font-family: '${selectedFont || 'Syncopate'}', sans-serif; fill: ${accent}; font-size: 11px; font-weight: 700; letter-spacing: 2px; opacity: 0.7; }
+    .title { font-family: ${selectedFont || '"Trebuchet MS", "Lucida Sans Unicode", "Lucida Grande", sans-serif'}; fill: ${text}; font-size: 18px; letter-spacing: 6px; opacity: 0.8; }
+    .stats { font-family: ${selectedFont || '"Arial Black", "Arial Bold", Gadget, sans-serif'}; fill: ${text}; font-size: 42px; font-weight: 700; }
+    .total-val { font-family: ${selectedFont || '"Arial Black", "Arial Bold", Gadget, sans-serif'}; fill: ${accent}; font-size: 24px; font-weight: 700; }
+    .label { font-family: ${selectedFont || '"Trebuchet MS", "Lucida Sans Unicode", "Lucida Grande", sans-serif'}; fill: ${accent}; font-size: 11px; font-weight: 700; letter-spacing: 2px; opacity: 0.7; }
 
     @media (prefers-reduced-motion: reduce) {
       .heat-particles { display: none; }
