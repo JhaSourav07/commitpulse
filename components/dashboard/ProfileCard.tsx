@@ -22,16 +22,12 @@ export default function ProfileCard({ user }: { user: UserProfile }) {
         <div className="relative mb-6">
           <motion.div
             animate={{ rotate: 360 }}
-            transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+            transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
             className="absolute -inset-1 rounded-full bg-gradient-to-r from-cyan-400 via-purple-500 to-pink-500 opacity-70 blur-md group-hover:opacity-100 transition-opacity duration-500"
           />
           <div className="relative w-28 h-28 rounded-full overflow-hidden border-2 border-[#050505]">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img 
-              src={user.avatarUrl} 
-              alt={user.name} 
-              className="w-full h-full object-cover"
-            />
+            <img src={user.avatarUrl} alt={user.name} className="w-full h-full object-cover" />
           </div>
           {user.isPro && (
             <div className="absolute -bottom-2 -right-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-[10px] font-bold px-2 py-1 rounded-full border-2 border-[#050505] shadow-[0_0_10px_rgba(219,39,119,0.5)]">
@@ -43,9 +39,7 @@ export default function ProfileCard({ user }: { user: UserProfile }) {
         {/* User Info */}
         <h2 className="text-2xl font-bold text-white mb-1">{user.name}</h2>
         <p className="text-cyan-400 font-medium mb-4">@{user.username}</p>
-        <p className="text-white/70 text-sm mb-6 leading-relaxed">
-          {user.bio}
-        </p>
+        <p className="text-white/70 text-sm mb-6 leading-relaxed">{user.bio}</p>
 
         <div className="flex flex-col gap-2 w-full mb-6">
           <div className="flex items-center justify-center gap-2 text-white/50 text-xs">
@@ -61,16 +55,18 @@ export default function ProfileCard({ user }: { user: UserProfile }) {
         {/* Developer Score */}
         <div className="w-full bg-white/5 rounded-xl p-4 mb-6 border border-white/5">
           <div className="flex justify-between items-center mb-2">
-            <span className="text-xs font-semibold text-white/60 uppercase tracking-wider">Developer Score</span>
+            <span className="text-xs font-semibold text-white/60 uppercase tracking-wider">
+              Developer Score
+            </span>
             <span className="text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500">
               {user.developerScore}
             </span>
           </div>
           <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden relative">
-            <motion.div 
+            <motion.div
               initial={{ width: 0 }}
               animate={{ width: `${user.developerScore}%` }}
-              transition={{ duration: 1.5, ease: "easeOut", delay: 0.2 }}
+              transition={{ duration: 1.5, ease: 'easeOut', delay: 0.2 }}
               className="absolute top-0 left-0 h-full bg-gradient-to-r from-cyan-400 via-purple-500 to-pink-500 rounded-full shadow-[0_0_10px_rgba(6,182,212,0.6)]"
             />
           </div>

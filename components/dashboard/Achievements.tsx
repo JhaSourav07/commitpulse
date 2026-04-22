@@ -9,7 +9,7 @@ const iconMap: Record<string, LucideIcon> = {
   Flame,
   Code,
   Sun,
-  Trophy
+  Trophy,
 };
 
 export default function Achievements({ achievements }: { achievements: Achievement[] }) {
@@ -33,14 +33,14 @@ export default function Achievements({ achievements }: { achievements: Achieveme
       <div className="grid grid-cols-2 gap-3 relative z-10">
         {achievements.map((achievement, i) => {
           const Icon = iconMap[achievement.icon] || Trophy;
-          
+
           return (
-            <motion.div 
+            <motion.div
               key={achievement.id}
               initial={{ opacity: 0, scale: 0.9 }}
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
-              transition={{ delay: 0.4 + (i * 0.1) }}
+              transition={{ delay: 0.4 + i * 0.1 }}
               whileHover={{ scale: 1.05 }}
               className={`p-3 flex flex-col items-center text-center rounded-xl border transition-all duration-300 ${
                 achievement.isUnlocked
@@ -48,10 +48,14 @@ export default function Achievements({ achievements }: { achievements: Achieveme
                   : 'bg-white/5 border-white/5 opacity-50 grayscale'
               }`}
             >
-              <div className={`p-2 rounded-full mb-2 ${achievement.isUnlocked ? 'bg-gradient-to-br from-purple-500/20 to-pink-500/20 text-pink-400' : 'bg-white/10 text-white/50'}`}>
+              <div
+                className={`p-2 rounded-full mb-2 ${achievement.isUnlocked ? 'bg-gradient-to-br from-purple-500/20 to-pink-500/20 text-pink-400' : 'bg-white/10 text-white/50'}`}
+              >
                 <Icon size={20} />
               </div>
-              <h4 className="text-xs font-bold text-white mb-1 line-clamp-1 w-full">{achievement.title}</h4>
+              <h4 className="text-xs font-bold text-white mb-1 line-clamp-1 w-full">
+                {achievement.title}
+              </h4>
               <p className="text-[10px] text-white/50 line-clamp-2 w-full">
                 {achievement.description}
               </p>

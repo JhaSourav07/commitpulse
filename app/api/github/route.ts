@@ -11,7 +11,7 @@ export async function GET(request: Request) {
 
   try {
     const data = await getFullDashboardData(username);
-    
+
     return NextResponse.json(data, {
       status: 200,
       headers: {
@@ -23,9 +23,12 @@ export async function GET(request: Request) {
     if (errMessage.includes('not found')) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
-    
+
     if (errMessage.includes('API limit reached') || errMessage.includes('status 403')) {
-      return NextResponse.json({ error: 'GitHub API rate limit reached. Please configure GITHUB_TOKEN.' }, { status: 403 });
+      return NextResponse.json(
+        { error: 'GitHub API rate limit reached. Please configure GITHUB_TOKEN.' },
+        { status: 403 }
+      );
     }
 
     return NextResponse.json({ error: errMessage || 'Internal Server Error' }, { status: 500 });

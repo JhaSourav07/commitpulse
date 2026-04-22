@@ -41,15 +41,33 @@ export default function CherryBlossom() {
   if (!mounted) return null;
 
   return (
-    <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+    <div className="fixed inset-0 pointer-events-none z-10 overflow-hidden">
       {/* Blurred Cherry Blossom Branch top right */}
       <div className="absolute -top-10 -right-10 w-[400px] h-[300px] opacity-40 blur-sm mix-blend-screen transform rotate-12">
         <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
           {/* Main branch */}
-          <path d="M 200 0 C 150 50, 100 80, 50 150" stroke="#4a3b32" strokeWidth="8" fill="none" strokeLinecap="round" />
-          <path d="M 120 70 C 90 90, 70 120, 30 130" stroke="#4a3b32" strokeWidth="4" fill="none" strokeLinecap="round" />
-          <path d="M 160 30 C 180 60, 190 90, 200 120" stroke="#4a3b32" strokeWidth="3" fill="none" strokeLinecap="round" />
-          
+          <path
+            d="M 200 0 C 150 50, 100 80, 50 150"
+            stroke="#4a3b32"
+            strokeWidth="8"
+            fill="none"
+            strokeLinecap="round"
+          />
+          <path
+            d="M 120 70 C 90 90, 70 120, 30 130"
+            stroke="#4a3b32"
+            strokeWidth="4"
+            fill="none"
+            strokeLinecap="round"
+          />
+          <path
+            d="M 160 30 C 180 60, 190 90, 200 120"
+            stroke="#4a3b32"
+            strokeWidth="3"
+            fill="none"
+            strokeLinecap="round"
+          />
+
           {/* Blossoms */}
           <circle cx="150" cy="50" r="15" fill="#ffb7c5" opacity="0.8" />
           <circle cx="140" cy="60" r="12" fill="#ff9eb3" opacity="0.9" />
@@ -58,12 +76,12 @@ export default function CherryBlossom() {
           <circle cx="100" cy="80" r="18" fill="#ffb7c5" opacity="0.8" />
           <circle cx="90" cy="95" r="14" fill="#ff9eb3" opacity="0.9" />
           <circle cx="115" cy="85" r="16" fill="#ffd1dc" opacity="0.7" />
-          
+
           <circle cx="60" cy="140" r="12" fill="#ffb7c5" opacity="0.8" />
           <circle cx="45" cy="145" r="10" fill="#ff9eb3" opacity="0.9" />
-          
+
           <circle cx="180" cy="25" r="14" fill="#ffb7c5" opacity="0.8" />
-          
+
           <circle cx="190" cy="100" r="10" fill="#ffb7c5" opacity="0.8" />
         </svg>
       </div>
@@ -71,8 +89,20 @@ export default function CherryBlossom() {
       {/* Blurred Cherry Blossom Branch top left */}
       <div className="absolute -top-20 -left-20 w-[500px] h-[400px] opacity-30 blur-[6px] mix-blend-screen transform -rotate-12 scale-x-[-1]">
         <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-          <path d="M 200 0 C 150 50, 100 80, 50 150" stroke="#4a3b32" strokeWidth="8" fill="none" strokeLinecap="round" />
-          <path d="M 120 70 C 90 90, 70 120, 30 130" stroke="#4a3b32" strokeWidth="4" fill="none" strokeLinecap="round" />
+          <path
+            d="M 200 0 C 150 50, 100 80, 50 150"
+            stroke="#4a3b32"
+            strokeWidth="8"
+            fill="none"
+            strokeLinecap="round"
+          />
+          <path
+            d="M 120 70 C 90 90, 70 120, 30 130"
+            stroke="#4a3b32"
+            strokeWidth="4"
+            fill="none"
+            strokeLinecap="round"
+          />
           <circle cx="150" cy="50" r="20" fill="#ffb7c5" opacity="0.8" />
           <circle cx="100" cy="80" r="25" fill="#ff9eb3" opacity="0.8" />
           <circle cx="60" cy="140" r="15" fill="#ffb7c5" opacity="0.8" />
@@ -92,7 +122,12 @@ export default function CherryBlossom() {
             opacity: 0,
           }}
           animate={{
-            x: [`${petal.x}vw`, `${petal.x - petal.sway}vw`, `${petal.x + petal.sway}vw`, `${petal.x - petal.sway/2}vw`],
+            x: [
+              `${petal.x}vw`,
+              `${petal.x - petal.sway}vw`,
+              `${petal.x + petal.sway}vw`,
+              `${petal.x - petal.sway / 2}vw`,
+            ],
             y: ['-10vh', '40vh', '80vh', '110vh'],
             rotate: petal.rotation + petal.rotationSpeed,
             opacity: [0, 0.8, 0.8, 0],
@@ -101,7 +136,7 @@ export default function CherryBlossom() {
             duration: petal.duration,
             delay: petal.delay,
             repeat: Infinity,
-            ease: "linear",
+            ease: 'linear',
           }}
         >
           {/* SVG Petal Shape */}

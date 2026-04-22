@@ -21,8 +21,8 @@ export default function StatsCard({ title, value, description, icon }: StatsCard
 
   // Deterministic chart data based on value length/index for the mini chart
   const baseSeed = title.length;
-  const miniChartData = Array.from({ length: 10 }).map((_, i) => 
-    ((baseSeed * 17 + i * 31) % 100) + (i > 5 ? 50 : 0)
+  const miniChartData = Array.from({ length: 10 }).map(
+    (_, i) => ((baseSeed * 17 + i * 31) % 100) + (i > 5 ? 50 : 0)
   );
 
   return (
@@ -43,16 +43,19 @@ export default function StatsCard({ title, value, description, icon }: StatsCard
           <p className="text-xs text-white/40 mt-1">{description}</p>
         </div>
         <div className="p-2 bg-gradient-to-br from-cyan-500/20 to-purple-500/20 rounded-xl border border-white/5 group-hover:border-cyan-500/30 transition-colors">
-          <IconComponent size={20} className="text-cyan-400 group-hover:text-pink-400 transition-colors" />
+          <IconComponent
+            size={20}
+            className="text-cyan-400 group-hover:text-pink-400 transition-colors"
+          />
         </div>
       </div>
 
       {/* Mini SVG Chart */}
       <div className="w-full h-10 flex items-end justify-between gap-[2px] mt-2 opacity-50 group-hover:opacity-100 transition-opacity">
         {miniChartData.map((h, i) => (
-          <div 
-            key={i} 
-            className="flex-1 bg-gradient-to-t from-cyan-500/20 to-purple-500/80 rounded-t-[2px]" 
+          <div
+            key={i}
+            className="flex-1 bg-gradient-to-t from-cyan-500/20 to-purple-500/80 rounded-t-[2px]"
             style={{ height: `${Math.max(h, 15)}%` }}
           />
         ))}

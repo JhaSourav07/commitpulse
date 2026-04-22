@@ -1,4 +1,3 @@
-
 import ProfileCard from '@/components/dashboard/ProfileCard';
 import ActivityLandscape from '@/components/dashboard/ActivityLandscape';
 import StatsCard from '@/components/dashboard/StatsCard';
@@ -13,14 +12,13 @@ export const revalidate = 3600; // Cache for 1 hour
 
 export default async function DashboardPage({ params }: { params: Promise<{ username: string }> }) {
   const { username } = await params;
-  
+
   // Fetch real GitHub data
   const data = await getFullDashboardData(username);
 
   return (
     <div className="p-4 md:p-6 lg:p-8 min-h-screen">
       <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr_320px] gap-6 lg:gap-8">
-        
         {/* Left Sidebar */}
         <aside className="flex flex-col gap-6">
           <ProfileCard user={data.profile} />
@@ -45,36 +43,61 @@ export default async function DashboardPage({ params }: { params: Promise<{ user
         {/* Right Sidebar */}
         <aside className="flex flex-col gap-6">
           <div className="flex flex-col gap-4">
-            <StatsCard 
-              title="Current Streak" 
-              value={data.stats.currentStreak.toString()} 
+            <StatsCard
+              title="Current Streak"
+              value={data.stats.currentStreak.toString()}
               description="Days"
               icon="Flame"
             />
-            <StatsCard 
-              title="Peak Streak" 
-              value={data.stats.peakStreak.toString()} 
+            <StatsCard
+              title="Peak Streak"
+              value={data.stats.peakStreak.toString()}
               description="Days"
               icon="TrendingUp"
             />
-            <StatsCard 
-              title="Contributions" 
-              value={data.stats.totalContributions.toString()} 
+            <StatsCard
+              title="Contributions"
+              value={data.stats.totalContributions.toString()}
               description="Last Year"
               icon="GitCommit"
             />
           </div>
-          
+
           <AIInsights insights={data.insights} />
           {/* We omit real achievements data generation for now and just show a placeholder based on streaks */}
-          <Achievements achievements={[
-            { id: "1", title: "Streak Master", description: "Reached a 7 day streak", icon: "Flame", isUnlocked: data.stats.currentStreak >= 7 },
-            { id: "2", title: "Consistent", description: "Over 100 contributions", icon: "GitCommit", isUnlocked: data.stats.totalContributions >= 100 },
-            { id: "3", title: "Polyglot", description: "Uses multiple languages", icon: "Code", isUnlocked: data.languages.length >= 2 },
-            { id: "4", title: "Night Owl", description: "Commits late at night", icon: "Moon", isUnlocked: true }
-          ]} />
+          <Achievements
+            achievements={[
+              {
+                id: '1',
+                title: 'Streak Master',
+                description: 'Reached a 7 day streak',
+                icon: 'Flame',
+                isUnlocked: data.stats.currentStreak >= 7,
+              },
+              {
+                id: '2',
+                title: 'Consistent',
+                description: 'Over 100 contributions',
+                icon: 'GitCommit',
+                isUnlocked: data.stats.totalContributions >= 100,
+              },
+              {
+                id: '3',
+                title: 'Polyglot',
+                description: 'Uses multiple languages',
+                icon: 'Code',
+                isUnlocked: data.languages.length >= 2,
+              },
+              {
+                id: '4',
+                title: 'Night Owl',
+                description: 'Commits late at night',
+                icon: 'Moon',
+                isUnlocked: true,
+              },
+            ]}
+          />
         </aside>
-
       </div>
     </div>
   );
