@@ -26,12 +26,16 @@ export interface ContributionCalendar {
 
 export interface BadgeParams {
   user: string;
-  theme?: string;
-  bg?: string;
-  text?: string;
-  accent?: string;
+  bg: string;
+  text: string;
+  accent: string;
+  speed: string;
+  scale: 'linear' | 'log';
+  font?: string;
   radius?: string;
+  
   speed?: string;
   scale?: 'linear' | 'log';
   font?: string;
+
 }
