@@ -107,6 +107,30 @@ export async function getFullDashboardData(username: string) {
       fetchGitHubContributions(username),
     ]);
 
+    // Pre-compute streak + stars early so developerScore can use them
+    const streakStats = calculateStreak(calendarData);
+    const totalStars = reposData.reduce(
+      (acc: number, repo: GitHubRepo) => acc + repo.stargazers_count,
+      0
+    );
+
+    // Developer Score — 5-factor weighted formula (max 100 pts)
+    // Repos:         up to 25 pts  (saturates at 50 public repos)
+    // Followers:     up to 25 pts  (saturates at 50 followers)
+    // Stars:         up to 20 pts  (saturates at 100 total stars)
+    // Contributions: up to 20 pts  (saturates at 400 yearly contributions)
+    // Streak:        up to 10 pts  (saturates at a 50-day longest streak)
+    const developerScore = Math.min(
+      Math.round(
+        Math.min(profileData.public_repos * 0.5, 25) +
+          Math.min(profileData.followers * 0.5, 25) +
+          Math.min(totalStars * 0.2, 20) +
+          Math.min(streakStats.totalContributions / 20, 20) +
+          Math.min(streakStats.longestStreak * 0.2, 10)
+      ),
+      100
+    );
+
     // 1. Profile Mapping
     const profile = {
       username: profileData.login,
@@ -119,20 +143,16 @@ export async function getFullDashboardData(username: string) {
         month: 'short',
         year: 'numeric',
       }),
-      developerScore: Math.min(
-        Math.floor((profileData.public_repos * 2 + profileData.followers * 5) / 10),
-        100
-      ),
+      developerScore,
       stats: {
         repositories: profileData.public_repos,
         followers: profileData.followers,
         following: profileData.following,
-        stars: reposData.reduce((acc: number, repo: GitHubRepo) => acc + repo.stargazers_count, 0),
+        stars: totalStars,
       },
     };
 
-    // 2. Streaks & Activity Mapping
-    const streakStats = calculateStreak(calendarData);
+    // 2. Streaks & Activity Mapping (streakStats already computed above)
 
     // Flatten days for charts
     const allDays = calendarData.weeks.flatMap((w) => w.contributionDays);
