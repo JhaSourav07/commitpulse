@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ActivityData } from '@/types/dashboard';
 
 const CELL = 14;
-const GAP  = 3;
+const GAP = 3;
 
 interface TooltipState {
   text: string;
@@ -39,12 +39,18 @@ export default function Heatmap({ data }: { data: ActivityData[] }) {
 
   const getIntensityColor = (intensity: number) => {
     switch (intensity) {
-      case 0: return 'bg-[#1a1a1a]';
-      case 1: return 'bg-zinc-800';
-      case 2: return 'bg-zinc-600';
-      case 3: return 'bg-zinc-400';
-      case 4: return 'bg-white';
-      default: return 'bg-[#1a1a1a]';
+      case 0:
+        return 'bg-[#1a1a1a]';
+      case 1:
+        return 'bg-zinc-800';
+      case 2:
+        return 'bg-zinc-600';
+      case 3:
+        return 'bg-zinc-400';
+      case 4:
+        return 'bg-white';
+      default:
+        return 'bg-[#1a1a1a]';
     }
   };
 
@@ -72,7 +78,9 @@ export default function Heatmap({ data }: { data: ActivityData[] }) {
         {/* Header */}
         <div className="flex justify-between items-end mb-4">
           <div>
-            <h3 className="text-sm font-semibold text-white tracking-tight">Contribution Heatmap</h3>
+            <h3 className="text-sm font-semibold text-white tracking-tight">
+              Contribution Heatmap
+            </h3>
             <p className="text-xs text-[#A1A1AA] mt-0.5">Last 365 days</p>
           </div>
           <div className="flex items-center gap-2 text-xs text-[#A1A1AA]">

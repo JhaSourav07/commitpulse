@@ -241,9 +241,7 @@ function FeatureCard({
       className="group rounded-xl border border-[rgba(255,255,255,0.08)] bg-[#0a0a0a] p-8 hover:border-[rgba(255,255,255,0.14)] hover:bg-[#0d0d0d] transition-all duration-200"
     >
       <div className={`mb-5 w-fit rounded-lg bg-[#111] p-2.5 ${accent}`}>{icon}</div>
-      <h3 className="mb-2 text-sm font-semibold text-white tracking-tight">
-        {title}
-      </h3>
+      <h3 className="mb-2 text-sm font-semibold text-white tracking-tight">{title}</h3>
       <p className="text-sm leading-relaxed text-[#A1A1AA]">{desc}</p>
     </motion.div>
   );
@@ -290,9 +288,7 @@ function SuccessGuide({
       transition={{ type: 'spring', stiffness: 260, damping: 28 }}
       className="mx-auto mb-12 max-w-4xl"
     >
-      <div
-        className="relative overflow-hidden rounded-xl border border-[rgba(255,255,255,0.1)] bg-[#0a0a0a]"
-      >
+      <div className="relative overflow-hidden rounded-xl border border-[rgba(255,255,255,0.1)] bg-[#0a0a0a]">
         <div className="pointer-events-none absolute -top-24 left-1/2 h-48 w-3/4 -translate-x-1/2 rounded-full bg-white/3 blur-[80px]" />
 
         <div className="flex items-start justify-between border-b border-white/5 px-8 pb-6 pt-8">

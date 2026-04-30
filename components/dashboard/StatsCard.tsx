@@ -31,12 +31,17 @@ export default function StatsCard({ title, value, description, icon }: StatsCard
     >
       <div className="flex justify-between items-start mb-6">
         <div>
-          <p className="text-xs text-[#A1A1AA] uppercase tracking-widest font-medium mb-3">{title}</p>
+          <p className="text-xs text-[#A1A1AA] uppercase tracking-widest font-medium mb-3">
+            {title}
+          </p>
           <p className="text-4xl font-semibold text-white tracking-tight">{value}</p>
           <p className="text-xs text-[#A1A1AA] mt-1.5">{description}</p>
         </div>
         <div className="p-2 rounded-lg bg-[#111] border border-[rgba(255,255,255,0.06)] group-hover:border-[rgba(99,102,241,0.2)] transition-colors duration-200">
-          <IconComponent size={18} className="text-[#A1A1AA] group-hover:text-white transition-colors duration-200" />
+          <IconComponent
+            size={18}
+            className="text-[#A1A1AA] group-hover:text-white transition-colors duration-200"
+          />
         </div>
       </div>
 

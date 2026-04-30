@@ -68,10 +68,10 @@ export default function ProfileCard({ user }: { user: UserProfile }) {
           {/* Stats */}
           <div className="grid grid-cols-2 gap-2 w-full mb-5">
             {[
-              { icon: GitBranch, label: 'Repos',     value: user.stats.repositories },
-              { icon: Star,       label: 'Stars',     value: user.stats.stars },
-              { icon: Users,      label: 'Followers', value: user.stats.followers },
-              { icon: UserPlus,   label: 'Following', value: user.stats.following },
+              { icon: GitBranch, label: 'Repos', value: user.stats.repositories },
+              { icon: Star, label: 'Stars', value: user.stats.stars },
+              { icon: Users, label: 'Followers', value: user.stats.followers },
+              { icon: UserPlus, label: 'Following', value: user.stats.following },
             ].map(({ icon: Icon, label, value }) => (
               <div
                 key={label}
@@ -79,7 +79,9 @@ export default function ProfileCard({ user }: { user: UserProfile }) {
               >
                 <Icon size={13} className="text-[#A1A1AA] mb-1.5" />
                 <span className="text-sm font-semibold text-white">{value}</span>
-                <span className="text-[9px] text-[#A1A1AA] uppercase tracking-widest mt-0.5">{label}</span>
+                <span className="text-[9px] text-[#A1A1AA] uppercase tracking-widest mt-0.5">
+                  {label}
+                </span>
               </div>
             ))}
           </div>
@@ -97,11 +99,7 @@ export default function ProfileCard({ user }: { user: UserProfile }) {
         </div>
       </motion.div>
 
-      <ShareSheet
-        username={user.username}
-        isOpen={shareOpen}
-        onClose={() => setShareOpen(false)}
-      />
+      <ShareSheet username={user.username} isOpen={shareOpen} onClose={() => setShareOpen(false)} />
     </>
   );
 }

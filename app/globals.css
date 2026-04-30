@@ -9,9 +9,9 @@
   --color-surface-0: #000000;
   --color-surface-1: #0a0a0a;
   --color-surface-2: #111111;
-  --color-border:    rgba(255, 255, 255, 0.08);
-  --color-muted:     #A1A1AA;
-  --color-accent:    rgba(99, 102, 241, 0.5);  /* indigo glow, hover only */
+  --color-border: rgba(255, 255, 255, 0.08);
+  --color-muted: #a1a1aa;
+  --color-accent: rgba(99, 102, 241, 0.5); /* indigo glow, hover only */
 }
 
 body {
@@ -30,6 +30,13 @@ body {
 }
 
 /* Smooth scrollbar on dark bg */
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: #000; }
-::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #000;
+}
+::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 3px;
+}

@@ -50,10 +50,10 @@ export default function CommitClock({ data }: { data: CommitClockData[] }) {
                 transition={{ delay: i * 0.04, duration: 0.2 }}
               >
                 <line
-                  x1={r4((cx - 10) + radius * Math.cos(rad))}
-                  y1={r4((cy - 10) + radius * Math.sin(rad))}
-                  x2={r4((cx - 10) + (radius + length) * Math.cos(rad))}
-                  y2={r4((cy - 10) + (radius + length) * Math.sin(rad))}
+                  x1={r4(cx - 10 + radius * Math.cos(rad))}
+                  y1={r4(cy - 10 + radius * Math.sin(rad))}
+                  x2={r4(cx - 10 + (radius + length) * Math.cos(rad))}
+                  y2={r4(cy - 10 + (radius + length) * Math.sin(rad))}
                   stroke={isHigh ? '#ffffff' : 'rgba(255,255,255,0.2)'}
                   strokeWidth="5"
                   strokeLinecap="round"
@@ -65,10 +65,10 @@ export default function CommitClock({ data }: { data: CommitClockData[] }) {
           {/* Hour labels */}
           {(['6h', '12h', '18h', '24h'] as const).map((label, i) => {
             const positions = [
-              { x: (cx - 10) + radius - 14, y: (cy - 10) + 4 },
-              { x: (cx - 10),               y: (cy - 10) + radius - 8 },
-              { x: (cx - 10) - radius + 14, y: (cy - 10) + 4 },
-              { x: (cx - 10),               y: (cy - 10) - radius + 14 },
+              { x: cx - 10 + radius - 14, y: cy - 10 + 4 },
+              { x: cx - 10, y: cy - 10 + radius - 8 },
+              { x: cx - 10 - radius + 14, y: cy - 10 + 4 },
+              { x: cx - 10, y: cy - 10 - radius + 14 },
             ];
             const p = positions[i];
             return (

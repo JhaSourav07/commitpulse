@@ -32,8 +32,13 @@ export default function AIInsights({ insights }: { insights: AIInsight[] }) {
               transition={{ delay: 0.1 + i * 0.07, duration: 0.2 }}
               className="flex items-start gap-3 p-3 rounded-lg bg-[#111] border border-[rgba(255,255,255,0.05)] hover:border-[rgba(255,255,255,0.1)] hover:bg-[#141414] transition-all duration-200 group"
             >
-              <Icon size={14} className="text-[#A1A1AA] mt-0.5 shrink-0 group-hover:text-white transition-colors duration-200" />
-              <p className="text-sm text-[#A1A1AA] leading-relaxed group-hover:text-white/80 transition-colors duration-200">{insight.text}</p>
+              <Icon
+                size={14}
+                className="text-[#A1A1AA] mt-0.5 shrink-0 group-hover:text-white transition-colors duration-200"
+              />
+              <p className="text-sm text-[#A1A1AA] leading-relaxed group-hover:text-white/80 transition-colors duration-200">
+                {insight.text}
+              </p>
             </motion.div>
           );
         })}
