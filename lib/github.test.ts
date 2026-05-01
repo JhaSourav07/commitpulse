@@ -5,6 +5,8 @@ import {
   fetchUserProfile,
   fetchUserRepos,
   getFullDashboardData,
+  clearGitHubApiCacheForTests,
+  GITHUB_CACHE_TTL_MS,
 } from './github';
 import type { ContributionCalendar } from '../types';
 
@@ -27,6 +29,14 @@ function mockResponse(body: unknown, status = 200): Response {
     headers: { 'Content-Type': 'application/json' },
   });
 }
+
+beforeEach(() => {
+  clearGitHubApiCacheForTests();
+});
+
+afterEach(() => {
+  clearGitHubApiCacheForTests();
+});
 
 describe('fetchGitHubContributions', () => {
   beforeEach(() => {
@@ -245,5 +255,69 @@ describe('getFullDashboardData', () => {
       });
     });
     await expect(getFullDashboardData('octocat')).rejects.toThrow('An unknown error occurred');
+  });
+});
+
+describe('GitHub API cache behavior', () => {
+  beforeEach(() => {
+    clearGitHubApiCacheForTests();
+    vi.spyOn(global, 'fetch');
+    vi.useRealTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+    clearGitHubApiCacheForTests();
+  });
+
+  it('cache hit: second contributions call uses cached value', async () => {
+    vi.mocked(fetch).mockResolvedValue(
+      mockResponse({
+        data: {
+          user: { contributionsCollection: { contributionCalendar: mockCalendar } },
+        },
+      })
+    );
+
+    await fetchGitHubContributions('octocat');
+    await fetchGitHubContributions('octocat');
+
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('refresh bypass: bypassCache=true forces a fresh fetch', async () => {
+    vi.mocked(fetch).mockResolvedValue(
+      mockResponse({
+        data: {
+          user: { contributionsCollection: { contributionCalendar: mockCalendar } },
+        },
+      })
+    );
+
+    await fetchGitHubContributions('octocat');
+    await fetchGitHubContributions('octocat', { bypassCache: true });
+
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it('cache expiry: expired entry triggers a new fetch', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-01-01T00:00:00.000Z'));
+
+    vi.mocked(fetch).mockResolvedValue(
+      mockResponse({
+        data: {
+          user: { contributionsCollection: { contributionCalendar: mockCalendar } },
+        },
+      })
+    );
+
+    await fetchGitHubContributions('octocat');
+
+    vi.setSystemTime(Date.now() + GITHUB_CACHE_TTL_MS + 1);
+    await fetchGitHubContributions('octocat');
+
+    expect(fetch).toHaveBeenCalledTimes(2);
   });
 });
