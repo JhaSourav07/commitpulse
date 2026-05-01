@@ -1,5 +1,11 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { fetchGitHubContributions } from './github';
+import {
+  fetchGitHubContributions,
+  fetchUserProfile,
+  fetchUserRepos,
+  getFullDashboardData,
+} from './github';
 import type { ContributionCalendar } from '../types';
 
 const mockCalendar: ContributionCalendar = {
@@ -125,5 +131,119 @@ describe('fetchGitHubContributions', () => {
     await expect(fetchGitHubContributions('ghost-user-xyz')).rejects.toThrow(
       'GitHub user "ghost-user-xyz" not found'
     );
+  });
+});
+
+describe('fetchUserProfile', () => {
+  beforeEach(() => vi.spyOn(global, 'fetch'));
+  afterEach(() => vi.restoreAllMocks());
+
+  it('returns profile data on success', async () => {
+    vi.mocked(fetch).mockResolvedValue(mockResponse({ login: 'octocat', name: 'The Octocat' }));
+    const result = await fetchUserProfile('octocat');
+    expect(result.name).toBe('The Octocat');
+  });
+
+  it('throws "User not found" on 404', async () => {
+    vi.mocked(fetch).mockResolvedValue(mockResponse({ message: 'Not Found' }, 404));
+    await expect(fetchUserProfile('ghost')).rejects.toThrow('User not found');
+  });
+
+  it('throws status code error on other failures', async () => {
+    vi.mocked(fetch).mockResolvedValue(mockResponse({ message: 'Error' }, 500));
+    await expect(fetchUserProfile('octocat')).rejects.toThrow('GitHub REST API error: 500');
+  });
+});
+
+describe('fetchUserRepos', () => {
+  beforeEach(() => vi.spyOn(global, 'fetch'));
+  afterEach(() => vi.restoreAllMocks());
+
+  it('returns repos data on success', async () => {
+    vi.mocked(fetch).mockResolvedValue(mockResponse([{ name: 'repo1' }]));
+    const result = await fetchUserRepos('octocat');
+    expect(result[0].name).toBe('repo1');
+  });
+
+  it('throws status code error on failure', async () => {
+    vi.mocked(fetch).mockResolvedValue(mockResponse({ message: 'Error' }, 500));
+    await expect(fetchUserRepos('octocat')).rejects.toThrow('GitHub REST API error: 500');
+  });
+});
+
+describe('getFullDashboardData', () => {
+  beforeEach(() => vi.spyOn(global, 'fetch'));
+  afterEach(() => vi.restoreAllMocks());
+
+  it('returns full dashboard data correctly', async () => {
+    vi.mocked(fetch).mockImplementation(async (url: any) => {
+      if (typeof url === 'string' && url.includes('/users/octocat/repos')) {
+        return mockResponse([
+          { stargazers_count: 10, language: 'TypeScript' },
+          { stargazers_count: 5, language: 'TypeScript' },
+          { stargazers_count: 20, language: 'Rust' },
+        ]);
+      }
+      if (typeof url === 'string' && url.includes('/users/octocat')) {
+        return mockResponse({
+          login: 'octocat',
+          name: 'The Octocat',
+          avatar_url: 'avatar.png',
+          public_repos: 3,
+          followers: 10,
+          following: 5,
+          created_at: '2020-01-01T00:00:00Z',
+          bio: 'Hello world',
+          location: 'Earth',
+        });
+      }
+      // GraphQL
+      return mockResponse({
+        data: {
+          user: { contributionsCollection: { contributionCalendar: mockCalendar } },
+        },
+      });
+    });
+
+    const result = await getFullDashboardData('octocat');
+
+    expect(result.profile.username).toBe('octocat');
+    expect(result.profile.stats.stars).toBe(35);
+    expect(result.languages).toEqual([
+      { name: 'TypeScript', percentage: 67, color: '#3178c6' },
+      { name: 'Rust', percentage: 33, color: '#dea584' },
+    ]);
+    expect(result.insights).toBeDefined();
+    expect(result.commitClock).toBeDefined();
+  });
+
+  it('throws if any fetch fails', async () => {
+    vi.mocked(fetch).mockImplementation(async (url: any) => {
+      if (typeof url === 'string' && url.includes('/users/octocat/repos')) {
+        return mockResponse([]);
+      }
+      if (typeof url === 'string' && url.includes('/users/octocat')) {
+        throw new Error('Network error');
+      }
+      return mockResponse({
+        data: { user: { contributionsCollection: { contributionCalendar: mockCalendar } } },
+      });
+    });
+    await expect(getFullDashboardData('octocat')).rejects.toThrow('Network error');
+  });
+
+  it('throws unknown error for non-error throws', async () => {
+    vi.mocked(fetch).mockImplementation(async (url: any) => {
+      if (typeof url === 'string' && url.includes('/users/octocat/repos')) {
+        return mockResponse([]);
+      }
+      if (typeof url === 'string' && url.includes('/users/octocat')) {
+        throw 'String error';
+      }
+      return mockResponse({
+        data: { user: { contributionsCollection: { contributionCalendar: mockCalendar } } },
+      });
+    });
+    await expect(getFullDashboardData('octocat')).rejects.toThrow('An unknown error occurred');
   });
 });
