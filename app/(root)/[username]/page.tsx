@@ -8,6 +8,7 @@ import Heatmap from '@/components/dashboard/Heatmap';
 import AIInsights from '@/components/dashboard/AIInsights';
 import Achievements from '@/components/dashboard/Achievements';
 import { getFullDashboardData } from '@/lib/github';
+import Link from 'next/link';
 
 export const revalidate = 3600; // Cache for 1 hour
 
@@ -55,11 +56,65 @@ export default async function DashboardPage({ params }: { params: Promise<{ user
   const data = await getFullDashboardData(username);
 
   return (
-    <div id="dashboard-root" data-dashboard className="p-4 md:p-6 lg:p-8 min-h-screen">
+    <div id="dashboard-root" data-dashboard className="p-4 md:p-6 lg:p-8 min-h-screen relative">
+      <div id="generate-dashboard-btn" className="flex justify-end mb-6">
+        <Link 
+          href="/"
+          className="flex items-center gap-2 rounded-xl border border-[rgba(255,255,255,0.15)] bg-black px-4 py-2 text-sm font-semibold text-white transition-all duration-200 hover:bg-white/5 active:scale-[0.98]"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+          </svg>
+          Generate Your Own Dashboard
+        </Link>
+      </div>
       <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr_320px] gap-6 lg:gap-8">
         {/* Left Sidebar */}
         <aside className="flex flex-col gap-6">
           <ProfileCard user={data.profile} />
+          {/* We omit real achievements data generation for now and just show a placeholder based on streaks */}
+          <Achievements
+            achievements={[
+              {
+                id: '1',
+                title: 'Streak Master',
+                description: 'Reached a 7 day streak',
+                icon: 'Flame',
+                isUnlocked: data.stats.currentStreak >= 7,
+              },
+              {
+                id: '2',
+                title: 'Consistent',
+                description: 'Over 100 contributions',
+                icon: 'GitCommit',
+                isUnlocked: data.stats.totalContributions >= 100,
+              },
+              {
+                id: '3',
+                title: 'Polyglot',
+                description: 'Uses multiple languages',
+                icon: 'Code',
+                isUnlocked: data.languages.length >= 2,
+              },
+              {
+                id: '4',
+                title: 'Night Owl',
+                description: 'Commits late at night',
+                icon: 'Moon',
+                isUnlocked: true,
+              },
+            ]}
+          />
         </aside>
 
         {/* Main Content */}
@@ -102,39 +157,6 @@ export default async function DashboardPage({ params }: { params: Promise<{ user
           </div>
 
           <AIInsights insights={data.insights} />
-          {/* We omit real achievements data generation for now and just show a placeholder based on streaks */}
-          <Achievements
-            achievements={[
-              {
-                id: '1',
-                title: 'Streak Master',
-                description: 'Reached a 7 day streak',
-                icon: 'Flame',
-                isUnlocked: data.stats.currentStreak >= 7,
-              },
-              {
-                id: '2',
-                title: 'Consistent',
-                description: 'Over 100 contributions',
-                icon: 'GitCommit',
-                isUnlocked: data.stats.totalContributions >= 100,
-              },
-              {
-                id: '3',
-                title: 'Polyglot',
-                description: 'Uses multiple languages',
-                icon: 'Code',
-                isUnlocked: data.languages.length >= 2,
-              },
-              {
-                id: '4',
-                title: 'Night Owl',
-                description: 'Commits late at night',
-                icon: 'Moon',
-                isUnlocked: true,
-              },
-            ]}
-          />
         </aside>
       </div>
     </div>

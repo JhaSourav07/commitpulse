@@ -121,32 +121,40 @@ export default function LandingPage() {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
               />
-              <button
-                onClick={copyToClipboard}
-                className="relative flex min-w-[160px] items-center justify-center gap-2 overflow-hidden rounded-xl bg-white px-6 py-3.5 text-sm font-semibold text-black transition-all duration-200 hover:bg-zinc-100 active:scale-[0.98]"
-              >
-                <AnimatePresence mode="wait">
-                  {copied ? (
-                    <motion.div
-                      key="check"
-                      initial={{ y: 10 }}
-                      animate={{ y: 0 }}
-                      className="flex items-center gap-2"
-                    >
-                      <Icons.Check /> Copied
-                    </motion.div>
-                  ) : (
-                    <motion.div
-                      key="copy"
-                      initial={{ y: -10 }}
-                      animate={{ y: 0 }}
-                      className="flex items-center gap-2"
-                    >
-                      <Icons.Copy /> Copy Link
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </button>
+              <div className="flex flex-col sm:flex-row gap-4">
+                <button
+                  onClick={copyToClipboard}
+                  className="relative flex min-w-[160px] items-center justify-center gap-2 overflow-hidden rounded-xl bg-white px-6 py-3.5 text-sm font-semibold text-black transition-all duration-200 hover:bg-zinc-100 active:scale-[0.98]"
+                >
+                  <AnimatePresence mode="wait">
+                    {copied ? (
+                      <motion.div
+                        key="check"
+                        initial={{ y: 10 }}
+                        animate={{ y: 0 }}
+                        className="flex items-center gap-2"
+                      >
+                        <Icons.Check /> Copied
+                      </motion.div>
+                    ) : (
+                      <motion.div
+                        key="copy"
+                        initial={{ y: -10 }}
+                        animate={{ y: 0 }}
+                        className="flex items-center gap-2"
+                      >
+                        <Icons.Copy /> Copy Link
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </button>
+                <Link
+                  href={`/${username}`}
+                  className="relative flex min-w-[160px] items-center justify-center gap-2 overflow-hidden rounded-xl border border-[rgba(255,255,255,0.15)] bg-transparent px-6 py-3.5 text-sm font-semibold text-white transition-all duration-200 hover:bg-white/5 active:scale-[0.98]"
+                >
+                  Watch Dashboard
+                </Link>
+              </div>
             </div>
 
             <div className="group relative">

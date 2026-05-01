@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Link2, Download, Share2, Check, Loader2, Smartphone } from 'lucide-react';
+import { toPng } from 'html-to-image';
 
 // Inline branded icons (Twitter/X brand, LinkedIn brand)
 const XBrandIcon = ({ size = 18 }: { size?: number }) => (
@@ -85,9 +86,6 @@ export default function ShareSheet({ username, isOpen, onClose }: ShareSheetProp
   const handleDownloadPNG = async () => {
     setOptionState('png', 'loading');
     try {
-      // Dynamically import html-to-image to keep bundle size down
-      const { toPng } = await import('html-to-image');
-
       // Target the whole dashboard wrapper; fall back to body
       const node =
         document.getElementById('dashboard-root') ??
@@ -99,8 +97,11 @@ export default function ShareSheet({ username, isOpen, onClose }: ShareSheetProp
         pixelRatio: 2,
         backgroundColor: '#050505',
         filter: (el) => {
-          // Exclude the share sheet itself from the capture
-          if (el instanceof HTMLElement && el.id === 'share-sheet-overlay') return false;
+          // Exclude the share sheet itself and the generate button from the capture
+          if (el instanceof HTMLElement) {
+            if (el.id === 'share-sheet-overlay') return false;
+            if (el.id === 'generate-dashboard-btn') return false;
+          }
           return true;
         },
       });
