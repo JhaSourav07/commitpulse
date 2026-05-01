@@ -7,6 +7,7 @@ We take the security of CommitPulse seriously. If you discover a vulnerability, 
 - Please contact maintainers via GitHub (preferred)
 
 Please include:
+
 - Description of the vulnerability
 - Steps to reproduce
 - Potential impact
@@ -21,9 +22,9 @@ Please include:
 We aim to support the latest version of CommitPulse.
 
 | Version | Supported |
-|---------|----------|
-| Latest  | ✅ Yes   |
-| Older   | ❌ No    |
+| ------- | --------- |
+| Latest  | ✅ Yes    |
+| Older   | ❌ No     |
 
 ---
 
@@ -61,6 +62,7 @@ We appreciate responsible disclosure and will:
 ## 🙏 Acknowledgements
 
 Thanks to all contributors who help keep CommitPulse secure.
+
 # 🔐 Security Policy
 
 ## 📢 Reporting a Vulnerability
