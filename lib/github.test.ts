@@ -287,7 +287,7 @@ describe('GitHub API cache behavior', () => {
   });
 
   it('refresh bypass: bypassCache=true forces a fresh fetch', async () => {
-    vi.mocked(fetch).mockResolvedValue(
+    vi.mocked(fetch).mockImplementation(async () =>
       mockResponse({
         data: {
           user: { contributionsCollection: { contributionCalendar: mockCalendar } },
@@ -305,7 +305,7 @@ describe('GitHub API cache behavior', () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-01-01T00:00:00.000Z'));
 
-    vi.mocked(fetch).mockResolvedValue(
+    vi.mocked(fetch).mockImplementation(async () =>
       mockResponse({
         data: {
           user: { contributionsCollection: { contributionCalendar: mockCalendar } },
