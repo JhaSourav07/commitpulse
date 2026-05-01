@@ -170,9 +170,11 @@ describe('fetchUserRepos', () => {
   afterEach(() => vi.restoreAllMocks());
 
   it('returns repos data on success', async () => {
-    vi.mocked(fetch).mockResolvedValue(mockResponse([{ name: 'repo1' }]));
+    vi.mocked(fetch).mockResolvedValue(
+      mockResponse([{ stargazers_count: 1, language: 'TypeScript' }])
+    );
     const result = await fetchUserRepos('octocat');
-    expect(result[0].name).toBe('repo1');
+    expect(result[0].stargazers_count).toBe(1);
   });
 
   it('throws status code error on failure', async () => {
