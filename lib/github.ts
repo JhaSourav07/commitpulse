@@ -56,10 +56,51 @@ export function clearGitHubApiCacheForTests(): void {
   reposCache.clear();
 }
 
-const getHeaders = () => ({
-  Authorization: `bearer ${process.env.GITHUB_PAT || process.env.GITHUB_TOKEN}`,
-  'Content-Type': 'application/json',
-});
+const getHeaders = (includeContentType = false): Record<string, string> => {
+  const token = process.env.GITHUB_TOKEN;
+  const headers: {
+    Authorization?: string;
+    Accept: string;
+    'Content-Type'?: string;
+  } = {
+    Authorization: token ? `Bearer ${token}` : undefined,
+    Accept: 'application/vnd.github+json',
+  };
+
+  if (!headers.Authorization) {
+    delete headers.Authorization;
+  }
+
+  if (includeContentType) {
+    headers['Content-Type'] = 'application/json';
+  }
+
+  return headers;
+};
+
+function createFallbackContributionCalendar(): ContributionCalendar {
+  const today = new Date();
+  today.setUTCHours(0, 0, 0, 0);
+
+  const days = Array.from({ length: 371 }, (_, idx) => {
+    const date = new Date(today);
+    date.setUTCDate(today.getUTCDate() - (370 - idx));
+    return {
+      contributionCount: 0,
+      date: date.toISOString().slice(0, 10),
+      color: '#ebedf0',
+    };
+  });
+
+  const weeks = Array.from({ length: Math.ceil(days.length / 7) }, (_, weekIndex) => ({
+    contributionDays: days.slice(weekIndex * 7, weekIndex * 7 + 7),
+  }));
+
+  return {
+    totalContributions: 0,
+    weeks,
+  };
+}
 
 export async function fetchGitHubContributions(
   username: string,
@@ -93,13 +134,19 @@ export async function fetchGitHubContributions(
 
   const res = await fetch(GITHUB_GRAPHQL_URL, {
     method: 'POST',
-    headers: getHeaders(),
+    headers: getHeaders(true),
     body: JSON.stringify({ query, variables: { login: username } }),
     cache: 'no-store', // Cache handled by our in-memory layer + API route headers
   });
 
   if (!res.ok) {
-    if (res.status === 401) throw new Error('GitHub PAT is invalid or missing');
+    if (res.status === 401 && !process.env.GITHUB_TOKEN) {
+      const fallbackCalendar = createFallbackContributionCalendar();
+      if (!options.bypassCache) {
+        contributionsCache.set(key, fallbackCalendar, GITHUB_CACHE_TTL_MS);
+      }
+      return fallbackCalendar;
+    }
     throw new Error(`GitHub GraphQL API returned status ${res.status}`);
   }
 

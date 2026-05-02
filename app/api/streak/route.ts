@@ -1,5 +1,4 @@
 // app/api/streak/route.ts
-import { NextResponse } from 'next/server';
 import { fetchGitHubContributions } from '../../../lib/github';
 import { calculateStreak } from '../../../lib/calculate';
 import { generateSVG } from '../../../lib/svg/generator';
@@ -10,17 +9,12 @@ import { themes } from '../../../lib/svg/themes';
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const user = searchParams.get('user');
-
-    if (!user) {
-      return new NextResponse('Missing "user" parameter', { status: 400 });
-    }
-
+    const user = searchParams.get('user') || 'unknown';
     const themeName = searchParams.get('theme') || 'dark';
     const selectedTheme = themes[themeName] || themes.dark;
 
     const rawSpeed = searchParams.get('speed') || '8s';
-    const speed = /^\d+(\.\d+)?s$/.test(rawSpeed) ? rawSpeed : '8s';
+    const speed = /^\\d+(\\.\\d+)?s$/.test(rawSpeed) ? rawSpeed : '8s';
 
     const rawScale = searchParams.get('scale');
     const scale = rawScale === 'log' ? 'log' : 'linear';
@@ -52,7 +46,7 @@ export async function GET(request: Request) {
       : `public, s-maxage=${secondsToMidnight}, stale-while-revalidate=86400`;
 
     // 5. Return the Image Response
-    return new NextResponse(svg, {
+    return new Response(svg, {
       headers: {
         'Content-Type': 'image/svg+xml',
         'Cache-Control': cacheControl,
@@ -61,25 +55,17 @@ export async function GET(request: Request) {
           "default-src 'none'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://fonts.gstatic.com;",
       },
     });
-  } catch (error: unknown) {
+  } catch (error) {
     console.error('Streak API Error:', error);
-    const message = error instanceof Error ? error.message : 'Unknown error';
-
-    const errorSvg = `
-      <svg xmlns="http://www.w3.org/2000/svg" width="400" height="150" viewBox="0 0 400 150">
-        <rect width="100%" height="100%" fill="#2d0000" rx="8"/>
-        <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#ffcccc" font-family="sans-serif" font-size="14">
-          Error: ${message}
+    return new Response(`
+      <svg xmlns="http://www.w3.org/2000/svg" width="400" height="100">
+        <rect width="100%" height="100%" fill="#0a0a0a"/>
+        <text x="20" y="50" fill="#888" font-size="14">
+          No data available
         </text>
       </svg>
-    `;
-
-    return new NextResponse(errorSvg, {
-      status: 500,
-      headers: {
-        'Content-Type': 'image/svg+xml',
-        'Cache-Control': 'no-cache',
-      },
+    `.trim(), {
+      headers: { 'Content-Type': 'image/svg+xml' }
     });
   }
 }

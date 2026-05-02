@@ -66,11 +66,13 @@ const Icons = {
 
 export default function LandingPage() {
   const [username, setUsername] = useState('jhasourav07');
+  const [theme, setTheme] = useState('dark');
   const [copied, setCopied] = useState(false);
   const guideRef = useRef<HTMLDivElement>(null);
+  const themes = ['dark', 'neon', 'dracula', 'github', 'light'];
 
-  const badgeUrl = `/api/streak?user=${username}`;
-  const markdown = `![CommitPulse](https://commitpulse.vercel.app/api/streak?user=${username})`;
+  const badgeUrl = `/api/streak?user=${username}&theme=${theme}`;
+  const markdown = `![CommitPulse](https://commitpulse.vercel.app/api/streak?user=${username}&theme=${theme})`;
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(markdown);
@@ -78,7 +80,7 @@ export default function LandingPage() {
     setTimeout(() => {
       guideRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 80);
-    setTimeout(() => setCopied(false), 50000);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   return (
@@ -130,17 +132,21 @@ export default function LandingPage() {
                     {copied ? (
                       <motion.div
                         key="check"
-                        initial={{ y: 10 }}
-                        animate={{ y: 0 }}
+                        initial={{ y: 10, opacity: 0, scale: 0.98 }}
+                        animate={{ y: 0, opacity: 1, scale: 1 }}
+                        exit={{ y: -8, opacity: 0, scale: 0.98 }}
+                        transition={{ duration: 0.22 }}
                         className="flex items-center gap-2"
                       >
-                        <Icons.Check /> Copied
+                        <Icons.Check /> Copied!
                       </motion.div>
                     ) : (
                       <motion.div
                         key="copy"
-                        initial={{ y: -10 }}
-                        animate={{ y: 0 }}
+                        initial={{ y: -10, opacity: 0, scale: 0.98 }}
+                        animate={{ y: 0, opacity: 1, scale: 1 }}
+                        exit={{ y: 8, opacity: 0, scale: 0.98 }}
+                        transition={{ duration: 0.22 }}
                         className="flex items-center gap-2"
                       >
                         <Icons.Copy /> Copy Link
@@ -160,16 +166,50 @@ export default function LandingPage() {
             <div className="group relative">
               <div className="absolute -inset-1 rounded-[2rem] bg-white/5 opacity-50 blur-xl transition duration-1000 group-hover:opacity-100" />
               <div className="relative flex min-h-[320px] items-center justify-center overflow-hidden rounded-xl border border-[rgba(255,255,255,0.06)] bg-black p-6">
-                <Image
-                  src={badgeUrl}
-                  alt="Preview"
-                  width={900}
-                  height={600}
-                  unoptimized
-                  loading="eager"
-                  priority
-                  className="h-auto max-w-full drop-shadow-[0_20px_50px_rgba(0,0,0,0.5)]"
-                />
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={badgeUrl}
+                    initial={{ opacity: 0, y: 10, scale: 0.985 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -8, scale: 0.985 }}
+                    transition={{ duration: 0.26, ease: 'easeOut' }}
+                    className="w-full"
+                  >
+                    <Image
+                      src={badgeUrl}
+                      alt="Preview"
+                      width={900}
+                      height={600}
+                      unoptimized
+                      loading="eager"
+                      priority
+                      className="h-auto max-w-full drop-shadow-[0_20px_50px_rgba(0,0,0,0.5)]"
+                    />
+                  </motion.div>
+                </AnimatePresence>
+              </div>
+            </div>
+
+            <div className="mt-6">
+              <p className="mb-3 text-xs font-bold uppercase tracking-[0.15em] text-white/30">
+                Choose Theme
+              </p>
+              <div className="flex flex-wrap items-center gap-2.5">
+                {themes.map((themeName) => (
+                  <motion.button
+                    key={themeName}
+                    onClick={() => setTheme(themeName)}
+                    whileHover={{ y: -1.5, scale: 1.03 }}
+                    whileTap={{ scale: 0.97 }}
+                    className={`rounded-lg border px-3 py-2 text-xs font-semibold uppercase tracking-wide transition-all duration-200 ${
+                      theme === themeName
+                        ? 'border-white/35 bg-white text-black shadow-[0_0_20px_rgba(255,255,255,0.22)]'
+                        : 'border-[rgba(255,255,255,0.12)] bg-[#111] text-white/70 hover:border-white/25 hover:bg-white/5 hover:text-white active:bg-white/10'
+                    }`}
+                  >
+                    {themeName}
+                  </motion.button>
+                ))}
               </div>
             </div>
           </div>
