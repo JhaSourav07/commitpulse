@@ -30,7 +30,13 @@ function deterministicRandom(seed: string): number {
   return (hash >>> 0) / 4294967296;
 }
 
-function generateParticles(x: number, y: number, height: number, color: string, count: number): string {
+function generateParticles(
+  x: number,
+  y: number,
+  height: number,
+  color: string,
+  count: number
+): string {
   let particles = '';
   const particleCount = Math.min(5, Math.max(3, Math.floor(count / 4)));
 

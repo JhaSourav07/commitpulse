@@ -20,9 +20,9 @@ const SPEEDS = [
 ] as const;
 
 const SIZES: { value: Size; label: string; dims: string }[] = [
-  { value: 'small',  label: 'Small',  dims: '400×280' },
+  { value: 'small', label: 'Small', dims: '400×280' },
   { value: 'medium', label: 'Medium', dims: '600×420' },
-  { value: 'large',  label: 'Large',  dims: '800×560' },
+  { value: 'large', label: 'Large', dims: '800×560' },
 ];
 
 function stripHash(val: string) {
@@ -296,14 +296,36 @@ export default function CustomizePage() {
                     <code className="text-white/40">#</code>.
                   </p>
                   <div className="flex flex-col gap-3">
-                    <HexInput id="bg-hex-input" label="Background" value={bgHex} onChange={setBgHex} placeholder="e.g. 0a0a0a" />
-                    <HexInput id="accent-hex-input" label="Accent / Tower Color" value={accentHex} onChange={setAccentHex} placeholder="e.g. 00ffaa" />
-                    <HexInput id="text-hex-input" label="Text / Label Color" value={textHex} onChange={setTextHex} placeholder="e.g. ffffff" />
+                    <HexInput
+                      id="bg-hex-input"
+                      label="Background"
+                      value={bgHex}
+                      onChange={setBgHex}
+                      placeholder="e.g. 0a0a0a"
+                    />
+                    <HexInput
+                      id="accent-hex-input"
+                      label="Accent / Tower Color"
+                      value={accentHex}
+                      onChange={setAccentHex}
+                      placeholder="e.g. 00ffaa"
+                    />
+                    <HexInput
+                      id="text-hex-input"
+                      label="Text / Label Color"
+                      value={textHex}
+                      onChange={setTextHex}
+                      placeholder="e.g. ffffff"
+                    />
                   </div>
                   {(bgHex || accentHex || textHex) && (
                     <button
                       id="clear-overrides-btn"
-                      onClick={() => { setBgHex(''); setAccentHex(''); setTextHex(''); }}
+                      onClick={() => {
+                        setBgHex('');
+                        setAccentHex('');
+                        setTextHex('');
+                      }}
                       className="mt-3 text-[11px] text-red-400/60 hover:text-red-400 transition-colors"
                     >
                       ✕ Clear overrides
@@ -440,14 +462,34 @@ export default function CustomizePage() {
                 >
                   {copied ? (
                     <>
-                      <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="w-3.5 h-3.5"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="3"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden="true"
+                      >
                         <polyline points="20 6 9 17 4 12" />
                       </svg>
                       Copied!
                     </>
                   ) : (
                     <>
-                      <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="w-3.5 h-3.5"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden="true"
+                      >
                         <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
                         <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
                       </svg>
@@ -463,8 +505,8 @@ export default function CustomizePage() {
               </div>
               <p className="mt-4 text-[11px] text-white/20 leading-relaxed">
                 Paste this into your GitHub profile&apos;s{' '}
-                <code className="text-white/35">README.md</code> — the badge renders server-side,
-                no script required.
+                <code className="text-white/35">README.md</code> — the badge renders server-side, no
+                script required.
               </p>
             </div>
 
@@ -477,7 +519,10 @@ export default function CustomizePage() {
                 {queryString.split('&').map((pair) => {
                   const [k, v] = pair.split('=');
                   return (
-                    <span key={k} className="inline-flex items-center gap-1.5 bg-white/4 border border-white/8 rounded-lg px-3 py-1.5 text-xs font-mono">
+                    <span
+                      key={k}
+                      className="inline-flex items-center gap-1.5 bg-white/4 border border-white/8 rounded-lg px-3 py-1.5 text-xs font-mono"
+                    >
                       <span className="text-purple-400">{decodeURIComponent(k)}</span>
                       <span className="text-white/20">=</span>
                       <span className="text-emerald-400">{decodeURIComponent(v)}</span>
