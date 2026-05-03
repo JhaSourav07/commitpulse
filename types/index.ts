@@ -33,9 +33,8 @@ export interface BadgeParams {
   scale: 'linear' | 'log';
   font?: string;
   radius?: string;
-  
+
   speed?: string;
   scale?: 'linear' | 'log';
   font?: string;
-
 }
