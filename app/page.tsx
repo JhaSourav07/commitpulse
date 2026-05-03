@@ -82,10 +82,10 @@ export default function LandingPage() {
   };
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-transparent font-sans text-white selection:bg-emerald-500/30">
+    <div className="min-h-screen overflow-x-hidden bg-transparent font-sans text-white selection:bg-white/20">
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute -left-[10%] -top-[10%] h-[40%] w-[40%] rounded-full bg-emerald-500/10 blur-[120px]" />
-        <div className="absolute -right-[10%] top-[20%] h-[30%] w-[30%] rounded-full bg-purple-500/10 blur-[120px]" />
+        <div className="absolute -left-[10%] -top-[10%] h-[40%] w-[40%] rounded-full bg-white/3 blur-[120px]" />
+        <div className="absolute -right-[10%] top-[20%] h-[30%] w-[30%] rounded-full bg-white/2 blur-[120px]" />
       </div>
 
       <main className="relative z-10 mx-auto max-w-6xl px-6 pb-32">
@@ -112,52 +112,62 @@ export default function LandingPage() {
         </div>
 
         <section className="mx-auto mb-32 max-w-4xl">
-          <div className="rounded-[2.5rem] border border-white/5 bg-[#0f0f0f] p-4 shadow-2xl backdrop-blur-sm md:p-8">
+          <div className="rounded-2xl border border-[rgba(255,255,255,0.08)] bg-[#0a0a0a] p-4 md:p-8">
             <div className="mb-8 flex flex-col gap-4 md:flex-row">
               <input
                 type="text"
                 placeholder="Enter GitHub Username"
-                className="flex-1 rounded-2xl border border-white/10 bg-black px-6 py-4 font-mono text-emerald-400 outline-none transition-all placeholder:text-white/20 focus:border-emerald-500/50"
+                className="flex-1 rounded-xl border border-[rgba(255,255,255,0.08)] bg-[#111] px-5 py-3.5 text-sm text-white outline-none transition-all placeholder:text-[#A1A1AA] focus:border-[rgba(255,255,255,0.18)]"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
               />
-              <button
-                onClick={copyToClipboard}
-                className="relative flex min-w-[200px] items-center justify-center gap-2 overflow-hidden rounded-2xl bg-white px-8 py-4 font-bold text-black transition-all hover:scale-[1.02] active:scale-[0.98]"
-              >
-                <AnimatePresence mode="wait">
-                  {copied ? (
-                    <motion.div
-                      key="check"
-                      initial={{ y: 10 }}
-                      animate={{ y: 0 }}
-                      className="flex items-center gap-2"
-                    >
-                      <Icons.Check /> Copied
-                    </motion.div>
-                  ) : (
-                    <motion.div
-                      key="copy"
-                      initial={{ y: -10 }}
-                      animate={{ y: 0 }}
-                      className="flex items-center gap-2"
-                    >
-                      <Icons.Copy /> Copy Link
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </button>
+              <div className="flex flex-col sm:flex-row gap-4">
+                <button
+                  onClick={copyToClipboard}
+                  className="relative flex min-w-[160px] items-center justify-center gap-2 overflow-hidden rounded-xl bg-white px-6 py-3.5 text-sm font-semibold text-black transition-all duration-200 hover:bg-zinc-100 active:scale-[0.98]"
+                >
+                  <AnimatePresence mode="wait">
+                    {copied ? (
+                      <motion.div
+                        key="check"
+                        initial={{ y: 10 }}
+                        animate={{ y: 0 }}
+                        className="flex items-center gap-2"
+                      >
+                        <Icons.Check /> Copied
+                      </motion.div>
+                    ) : (
+                      <motion.div
+                        key="copy"
+                        initial={{ y: -10 }}
+                        animate={{ y: 0 }}
+                        className="flex items-center gap-2"
+                      >
+                        <Icons.Copy /> Copy Link
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </button>
+                <Link
+                  href={`/${username}`}
+                  className="relative flex min-w-[160px] items-center justify-center gap-2 overflow-hidden rounded-xl border border-[rgba(255,255,255,0.15)] bg-transparent px-6 py-3.5 text-sm font-semibold text-white transition-all duration-200 hover:bg-white/5 active:scale-[0.98]"
+                >
+                  Watch Dashboard
+                </Link>
+              </div>
             </div>
 
             <div className="group relative">
-              <div className="absolute -inset-1 rounded-[2rem] bg-gradient-to-r from-emerald-500/20 to-purple-500/20 opacity-50 blur-xl transition duration-1000 group-hover:opacity-100" />
-              <div className="relative flex min-h-[350px] items-center justify-center overflow-hidden rounded-[1.5rem] border border-white/10 bg-[#050505] p-6">
+              <div className="absolute -inset-1 rounded-[2rem] bg-white/5 opacity-50 blur-xl transition duration-1000 group-hover:opacity-100" />
+              <div className="relative flex min-h-[320px] items-center justify-center overflow-hidden rounded-xl border border-[rgba(255,255,255,0.06)] bg-black p-6">
                 <Image
                   src={badgeUrl}
                   alt="Preview"
                   width={900}
                   height={600}
                   unoptimized
+                  loading="eager"
+                  priority
                   className="h-auto max-w-full drop-shadow-[0_20px_50px_rgba(0,0,0,0.5)]"
                 />
               </div>
@@ -182,19 +192,19 @@ export default function LandingPage() {
         <div className="grid gap-6 md:grid-cols-3">
           <FeatureCard
             icon={<Icons.Zap />}
-            accent="text-emerald-400"
+            accent="text-white"
             title="Real-time Sync"
             desc="Pulled directly from GitHub GraphQL API. Your streak updates as fast as your code pushes."
           />
           <FeatureCard
             icon={<Icons.Copy />}
-            accent="text-purple-400"
+            accent="text-white"
             title="Theme Engine"
             desc="Switch between Neon, Dracula, or custom HEX modes via simple URL management."
           />
           <FeatureCard
             icon={<Icons.Box />}
-            accent="text-blue-400"
+            accent="text-white"
             title="Isometric Math"
             desc="Sophisticated 3D projection formulas turn 2D data into digital architecture."
           />
@@ -234,14 +244,13 @@ function FeatureCard({
 }) {
   return (
     <motion.div
-      whileHover={{ y: -5 }}
-      className="group rounded-[2rem] border border-white/5 bg-[#0f0f0f] p-10 transition-all hover:border-white/20"
+      whileHover={{ y: -3 }}
+      transition={{ duration: 0.2 }}
+      className="group rounded-xl border border-[rgba(255,255,255,0.08)] bg-[#0a0a0a] p-8 hover:border-[rgba(255,255,255,0.14)] hover:bg-[#0d0d0d] transition-all duration-200"
     >
-      <div className={`mb-6 w-fit rounded-xl bg-white/5 p-3 ${accent}`}>{icon}</div>
-      <h3 className="mb-3 text-sm font-bold uppercase tracking-widest transition-colors group-hover:text-emerald-400">
-        {title}
-      </h3>
-      <p className="font-medium leading-relaxed text-gray-500">{desc}</p>
+      <div className={`mb-5 w-fit rounded-lg bg-[#111] p-2.5 ${accent}`}>{icon}</div>
+      <h3 className="mb-2 text-sm font-semibold text-white tracking-tight">{title}</h3>
+      <p className="text-sm leading-relaxed text-[#A1A1AA]">{desc}</p>
     </motion.div>
   );
 }
@@ -287,22 +296,17 @@ function SuccessGuide({
       transition={{ type: 'spring', stiffness: 260, damping: 28 }}
       className="mx-auto mb-12 max-w-4xl"
     >
-      <div
-        className="relative overflow-hidden rounded-[2rem] border border-emerald-500/20 bg-[#050505]/80 backdrop-blur-2xl"
-        style={{
-          boxShadow: '0 0 60px -10px rgba(16,185,129,0.15), 0 0 0 1px rgba(16,185,129,0.08) inset',
-        }}
-      >
-        <div className="pointer-events-none absolute -top-24 left-1/2 h-48 w-3/4 -translate-x-1/2 rounded-full bg-emerald-500/10 blur-[80px]" />
+      <div className="relative overflow-hidden rounded-xl border border-[rgba(255,255,255,0.1)] bg-[#0a0a0a]">
+        <div className="pointer-events-none absolute -top-24 left-1/2 h-48 w-3/4 -translate-x-1/2 rounded-full bg-white/3 blur-[80px]" />
 
         <div className="flex items-start justify-between border-b border-white/5 px-8 pb-6 pt-8">
           <div className="flex items-center gap-4">
-            <span className="relative mt-1 flex h-3 w-3">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-              <span className="relative inline-flex h-3 w-3 rounded-full bg-emerald-500" />
+            <span className="relative mt-1 flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white opacity-30" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-white" />
             </span>
             <div>
-              <p className="mb-0.5 text-xs font-bold uppercase tracking-[0.2em] text-emerald-400">
+              <p className="mb-0.5 text-xs font-medium uppercase tracking-[0.2em] text-[#A1A1AA]">
                 Markdown Copied
               </p>
               <h2 className="text-2xl font-extrabold tracking-tight text-white">
@@ -342,7 +346,7 @@ function SuccessGuide({
               transition={{ delay: 0.08 * i, duration: 0.4 }}
               className="flex gap-4 bg-[#050505] p-6"
             >
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-emerald-500/20 bg-emerald-500/10 text-xs font-black tracking-widest text-emerald-400">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[rgba(255,255,255,0.08)] bg-[#111] text-xs font-bold tracking-widest text-[#A1A1AA]">
                 {step.n}
               </span>
               <div>
@@ -358,19 +362,18 @@ function SuccessGuide({
             Your copied snippet
           </p>
           <div className="flex items-center gap-3 rounded-xl border border-white/8 bg-black/60 px-4 py-3 font-mono text-sm">
-            <span className="shrink-0 select-none text-emerald-400/60">$</span>
-            <code className="flex-1 overflow-x-auto break-all leading-relaxed text-emerald-300">
+            <span className="shrink-0 select-none text-[#A1A1AA]">$</span>
+            <code className="flex-1 overflow-x-auto break-all leading-relaxed text-white/80">
               {markdown}
             </code>
           </div>
           <p className="mt-4 text-xs leading-relaxed text-white/25">
-            Tip: Add <code className="text-white/40">?theme=neon</code> or{' '}
-            <code className="text-white/40">?accent=ff6b35</code> to the URL to change your
+            Tip: Add <code className="text-white/40">?accent=808080</code> to the URL to change your
             monolith&apos;s colour palette.
           </p>
           <div className="mt-8 flex justify-center border-t border-white/5 pt-6">
             <Link href={`/${username}`}>
-              <button className="bg-gradient-to-r from-emerald-500 to-purple-600 px-8 py-3 rounded-xl font-bold text-white transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-emerald-500/25">
+              <button className="bg-white text-black hover:bg-zinc-100 px-6 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 hover:scale-[1.01] active:scale-[0.99]">
                 Watch Your Dashboard
               </button>
             </Link>

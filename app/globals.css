@@ -1,19 +1,42 @@
 @import 'tailwindcss';
 
-/* If you want to customize colors or fonts in v4, you do it here: */
 @theme {
-  --color-emerald-custom: #10b981;
   --font-sans: 'Inter', ui-sans-serif, system-ui;
 }
+
 :root {
-  --foreground-rgb: 255, 255, 255;
-  --background-start-rgb: 0, 0, 0;
-  --background-end-rgb: 0, 0, 0;
+  /* Vercel-inspired token set */
+  --color-surface-0: #000000;
+  --color-surface-1: #0a0a0a;
+  --color-surface-2: #111111;
+  --color-border: rgba(255, 255, 255, 0.08);
+  --color-muted: #a1a1aa;
+  --color-accent: rgba(99, 102, 241, 0.5); /* indigo glow, hover only */
 }
 
 body {
-  background: #050505;
-  color: white;
+  background: #000000;
+  color: #ffffff;
   margin: 0;
   padding: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Vercel-style focus ring */
+*:focus-visible {
+  outline: 2px solid rgba(99, 102, 241, 0.6);
+  outline-offset: 2px;
+}
+
+/* Smooth scrollbar on dark bg */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #000;
+}
+::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 3px;
 }

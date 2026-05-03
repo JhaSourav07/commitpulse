@@ -4,18 +4,22 @@ import { getFullDashboardData } from '@/lib/github';
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const username = searchParams.get('username');
+  const refresh = searchParams.get('refresh') === 'true';
 
   if (!username) {
     return NextResponse.json({ error: 'Username is required' }, { status: 400 });
   }
 
   try {
-    const data = await getFullDashboardData(username);
+    const data = await getFullDashboardData(username, { bypassCache: refresh });
+    const cacheControl = refresh
+      ? 'no-cache, no-store, must-revalidate'
+      : 's-maxage=3600, stale-while-revalidate';
 
     return NextResponse.json(data, {
       status: 200,
       headers: {
-        'Cache-Control': 's-maxage=3600, stale-while-revalidate',
+        'Cache-Control': cacheControl,
       },
     });
   } catch (error: unknown) {

@@ -2,6 +2,7 @@
 
 import type { ContributionCalendar } from '../types';
 import { calculateStreak } from './calculate';
+import { TTLCache } from './cache';
 
 interface GitHubRepo {
   stargazers_count: number;
@@ -22,12 +23,55 @@ type GitHubContributionResponse = {
   errors?: Array<{ message: string }>;
 };
 
+type FetchOptions = {
+  bypassCache?: boolean;
+};
+
+export const GITHUB_CACHE_TTL_MS = 5 * 60 * 1000;
+
+interface GitHubUserProfile {
+  login: string;
+  name: string | null;
+  avatar_url: string;
+  public_repos: number;
+  followers: number;
+  following: number;
+  created_at: string;
+  bio: string | null;
+  location: string | null;
+  plan?: { name?: string } | null;
+}
+
+const contributionsCache = new TTLCache<ContributionCalendar>();
+const profileCache = new TTLCache<GitHubUserProfile>();
+const reposCache = new TTLCache<GitHubRepo[]>();
+
+function cacheKey(kind: 'contributions' | 'profile' | 'repos', username: string): string {
+  return `${kind}:${username.toLowerCase()}`;
+}
+
+export function clearGitHubApiCacheForTests(): void {
+  contributionsCache.clear();
+  profileCache.clear();
+  reposCache.clear();
+}
+
 const getHeaders = () => ({
   Authorization: `bearer ${process.env.GITHUB_PAT || process.env.GITHUB_TOKEN}`,
   'Content-Type': 'application/json',
 });
 
-export async function fetchGitHubContributions(username: string): Promise<ContributionCalendar> {
+export async function fetchGitHubContributions(
+  username: string,
+  options: FetchOptions = {}
+): Promise<ContributionCalendar> {
+  const key = cacheKey('contributions', username);
+
+  if (!options.bypassCache) {
+    const cached = contributionsCache.get(key);
+    if (cached) return cached;
+  }
+
   const query = `
     query($login: String!) {
       user(login: $login) {
@@ -51,7 +95,7 @@ export async function fetchGitHubContributions(username: string): Promise<Contri
     method: 'POST',
     headers: getHeaders(),
     body: JSON.stringify({ query, variables: { login: username } }),
-    cache: 'no-store', // Cache handled at the API route
+    cache: 'no-store', // Cache handled by our in-memory layer + API route headers
   });
 
   if (!res.ok) {
@@ -69,10 +113,26 @@ export async function fetchGitHubContributions(username: string): Promise<Contri
     throw new Error(`GitHub user "${username}" not found`);
   }
 
-  return data.data.user.contributionsCollection.contributionCalendar;
+  const calendar = data.data.user.contributionsCollection.contributionCalendar;
+
+  if (!options.bypassCache) {
+    contributionsCache.set(key, calendar, GITHUB_CACHE_TTL_MS);
+  }
+
+  return calendar;
 }
 
-export async function fetchUserProfile(username: string) {
+export async function fetchUserProfile(
+  username: string,
+  options: FetchOptions = {}
+): Promise<GitHubUserProfile> {
+  const key = cacheKey('profile', username);
+
+  if (!options.bypassCache) {
+    const cached = profileCache.get(key);
+    if (cached) return cached;
+  }
+
   const res = await fetch(`${GITHUB_REST_URL}/users/${username}`, {
     headers: getHeaders(),
     cache: 'no-store',
@@ -83,10 +143,26 @@ export async function fetchUserProfile(username: string) {
     throw new Error(`GitHub REST API error: ${res.status}`);
   }
 
-  return res.json();
+  const profile = (await res.json()) as GitHubUserProfile;
+
+  if (!options.bypassCache) {
+    profileCache.set(key, profile, GITHUB_CACHE_TTL_MS);
+  }
+
+  return profile;
 }
 
-export async function fetchUserRepos(username: string) {
+export async function fetchUserRepos(
+  username: string,
+  options: FetchOptions = {}
+): Promise<GitHubRepo[]> {
+  const key = cacheKey('repos', username);
+
+  if (!options.bypassCache) {
+    const cached = reposCache.get(key);
+    if (cached) return cached;
+  }
+
   const res = await fetch(`${GITHUB_REST_URL}/users/${username}/repos?per_page=100&sort=pushed`, {
     headers: getHeaders(),
     cache: 'no-store',
@@ -96,16 +172,46 @@ export async function fetchUserRepos(username: string) {
     throw new Error(`GitHub REST API error: ${res.status}`);
   }
 
-  return res.json();
+  const repos = (await res.json()) as GitHubRepo[];
+
+  if (!options.bypassCache) {
+    reposCache.set(key, repos, GITHUB_CACHE_TTL_MS);
+  }
+
+  return repos;
 }
 
-export async function getFullDashboardData(username: string) {
+export async function getFullDashboardData(username: string, options: FetchOptions = {}) {
   try {
     const [profileData, reposData, calendarData] = await Promise.all([
-      fetchUserProfile(username),
-      fetchUserRepos(username),
-      fetchGitHubContributions(username),
+      fetchUserProfile(username, options),
+      fetchUserRepos(username, options),
+      fetchGitHubContributions(username, options),
     ]);
+
+    // Pre-compute streak + stars early so developerScore can use them
+    const streakStats = calculateStreak(calendarData);
+    const totalStars = reposData.reduce(
+      (acc: number, repo: GitHubRepo) => acc + repo.stargazers_count,
+      0
+    );
+
+    // Developer Score — 5-factor weighted formula (max 100 pts)
+    // Repos:         up to 25 pts  (saturates at 50 public repos)
+    // Followers:     up to 25 pts  (saturates at 50 followers)
+    // Stars:         up to 20 pts  (saturates at 100 total stars)
+    // Contributions: up to 20 pts  (saturates at 400 yearly contributions)
+    // Streak:        up to 10 pts  (saturates at a 50-day longest streak)
+    const developerScore = Math.min(
+      Math.round(
+        Math.min(profileData.public_repos * 0.5, 25) +
+          Math.min(profileData.followers * 0.5, 25) +
+          Math.min(totalStars * 0.2, 20) +
+          Math.min(streakStats.totalContributions / 20, 20) +
+          Math.min(streakStats.longestStreak * 0.2, 10)
+      ),
+      100
+    );
 
     // 1. Profile Mapping
     const profile = {
@@ -119,20 +225,16 @@ export async function getFullDashboardData(username: string) {
         month: 'short',
         year: 'numeric',
       }),
-      developerScore: Math.min(
-        Math.floor((profileData.public_repos * 2 + profileData.followers * 5) / 10),
-        100
-      ),
+      developerScore,
       stats: {
         repositories: profileData.public_repos,
         followers: profileData.followers,
         following: profileData.following,
-        stars: reposData.reduce((acc: number, repo: GitHubRepo) => acc + repo.stargazers_count, 0),
+        stars: totalStars,
       },
     };
 
-    // 2. Streaks & Activity Mapping
-    const streakStats = calculateStreak(calendarData);
+    // 2. Streaks & Activity Mapping (streakStats already computed above)
 
     // Flatten days for charts
     const allDays = calendarData.weeks.flatMap((w) => w.contributionDays);

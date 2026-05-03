@@ -38,14 +38,15 @@ export async function GET(request: Request) {
       font,
     };
 
-    const calendar = await fetchGitHubContributions(user);
+    const refresh = searchParams.get('refresh') === 'true';
+
+    const calendar = await fetchGitHubContributions(user, { bypassCache: refresh });
     const stats = calculateStreak(calendar);
 
     const svg = generateSVG(stats, params, calendar);
 
     // 4. Calculate Cache Control (Reset at UTC Midnight)
     const secondsToMidnight = getSecondsUntilUTCMidnight();
-    const refresh = searchParams.get('refresh') === 'true';
     const cacheControl = refresh
       ? 'no-cache, no-store, must-revalidate'
       : `public, s-maxage=${secondsToMidnight}, stale-while-revalidate=86400`;
