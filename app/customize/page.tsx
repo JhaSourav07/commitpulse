@@ -7,11 +7,9 @@ import { themes } from '../../lib/svg/themes';
 import { FONT_OPTIONS } from '../../lib/svg/generator';
 const FONT_KEYS = Object.keys(FONT_OPTIONS);
 
-// â”€â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
 type Scale = 'linear' | 'log';
+type Size = 'small' | 'medium' | 'large';
 
-// Theme options are derived dynamically from lib/svg/themes.ts
 const THEME_KEYS = Object.keys(themes);
 
 const SPEEDS = [
@@ -21,13 +19,15 @@ const SPEEDS = [
   { value: '20s', label: 'Ultra-slow (20s)' },
 ] as const;
 
-// â”€â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+const SIZES: { value: Size; label: string; dims: string }[] = [
+  { value: 'small',  label: 'Small',  dims: '400×280' },
+  { value: 'medium', label: 'Medium', dims: '600×420' },
+  { value: 'large',  label: 'Large',  dims: '800×560' },
+];
 
 function stripHash(val: string) {
   return val.replace(/^#/, '');
 }
-
-// â”€â”€â”€ Sub-components â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
@@ -82,7 +82,6 @@ function HexInput({
   onChange: (v: string) => void;
   placeholder: string;
 }) {
-  // Normalise to a valid 6-char hex for the color picker (falls back to #000000)
   const isValidHex = /^[0-9a-fA-F]{6}$/.test(stripHash(value));
   const pickerValue = isValidHex ? `#${stripHash(value)}` : '#000000';
   const swatchColor = isValidHex ? pickerValue : null;
@@ -91,14 +90,12 @@ function HexInput({
     <div className="flex flex-col gap-1.5">
       <SectionLabel>{label}</SectionLabel>
       <div className="relative flex items-center gap-2">
-        {/* â”€â”€ Color picker trigger â”€â”€ */}
         <label
           htmlFor={`${id}-picker`}
           title="Open color picker"
           className="relative shrink-0 w-9 h-9 rounded-xl border border-white/10 overflow-hidden cursor-pointer hover:border-emerald-500/50 transition-colors"
           style={{ backgroundColor: swatchColor ?? '#1a1a1a' }}
         >
-          {/* Checkerboard shown when no color is set */}
           {!swatchColor && (
             <span
               className="absolute inset-0"
@@ -118,7 +115,6 @@ function HexInput({
           />
         </label>
 
-        {/* â”€â”€ Text input â”€â”€ */}
         <div className="relative flex-1 flex items-center">
           <span className="absolute left-3 text-white/30 text-sm select-none pointer-events-none">
             #
@@ -138,8 +134,6 @@ function HexInput({
   );
 }
 
-// â”€â”€â”€ Main Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
 export default function CustomizePage() {
   const [username, setUsername] = useState('jhasourav07');
   const [theme, setTheme] = useState('dark');
@@ -149,31 +143,23 @@ export default function CustomizePage() {
   const [scale, setScale] = useState<Scale>('linear');
   const [speed, setSpeed] = useState('8s');
   const [font, setFont] = useState('default');
+  const [size, setSize] = useState<Size>('medium');
   const [copied, setCopied] = useState(false);
-
-  // â”€â”€ buildQueryParams â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   const buildQueryParams = useCallback(() => {
     const params = new URLSearchParams();
-
     params.set('user', username || 'jhasourav07');
-
     const hasCustomColors = bgHex || accentHex || textHex;
-
-    // Custom hex colors take priority over theme
-    if (!hasCustomColors) {
-      params.set('theme', theme);
-    }
+    if (!hasCustomColors) params.set('theme', theme);
     if (bgHex) params.set('bg', stripHash(bgHex));
     if (accentHex) params.set('accent', stripHash(accentHex));
     if (textHex) params.set('text', stripHash(textHex));
-
     if (scale !== 'linear') params.set('scale', scale);
     if (speed !== '8s') params.set('speed', speed);
     if (font !== 'default') params.set('font', font);
-
+    if (size !== 'medium') params.set('size', size);
     return params.toString();
-  }, [username, theme, bgHex, accentHex, textHex, scale, speed, font]);
+  }, [username, theme, bgHex, accentHex, textHex, scale, speed, font, size]);
 
   const queryString = buildQueryParams();
   const previewSrc = `/api/streak?${queryString}`;
@@ -187,7 +173,6 @@ export default function CustomizePage() {
 
   return (
     <div className="min-h-screen bg-transparent text-white font-sans overflow-x-hidden">
-      {/* Ambient background */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-[10%] -left-[10%] w-[35%] h-[35%] bg-emerald-500/8 blur-[120px] rounded-full" />
         <div className="absolute top-[30%] -right-[10%] w-[25%] h-[25%] bg-purple-500/8 blur-[120px] rounded-full" />
@@ -195,7 +180,6 @@ export default function CustomizePage() {
       </div>
 
       <div className="relative z-10 max-w-[1400px] mx-auto px-6 py-8">
-        {/* â”€â”€ Top Bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -222,9 +206,7 @@ export default function CustomizePage() {
             </svg>
             Back to Home
           </Link>
-
           <div className="h-4 w-px bg-white/10" />
-
           <div>
             <span className="text-xs font-bold uppercase tracking-[0.22em] text-emerald-400">
               Customization Studio
@@ -232,7 +214,6 @@ export default function CustomizePage() {
           </div>
         </motion.div>
 
-        {/* â”€â”€ Page heading â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
@@ -244,13 +225,12 @@ export default function CustomizePage() {
           </h1>
           <p className="text-gray-500 text-sm max-w-xl">
             Every change below updates the preview in real-time. Copy the Markdown snippet when
-            you&apos;re done â€” no extra steps required.
+            you&apos;re done — no extra steps required.
           </p>
         </motion.div>
 
-        {/* â”€â”€ Split layout â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <div className="grid lg:grid-cols-[380px_1fr] gap-6 items-start">
-          {/* â•â•â•â• LEFT: Control Panel â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+          {/* LEFT: Control Panel */}
           <motion.aside
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -275,7 +255,6 @@ export default function CustomizePage() {
                   />
                 </ControlRow>
 
-                {/* Divider */}
                 <div className="h-px bg-white/5" />
 
                 {/* Theme */}
@@ -288,7 +267,6 @@ export default function CustomizePage() {
                         </option>
                       ))}
                     </StyledSelect>
-                    {/* Theme color swatches â€” driven from the imported themes object */}
                     <div className="mt-2 flex gap-1.5">
                       {(['bg', 'accent', 'text'] as const).map((prop) => {
                         const color = themes[theme]?.[prop];
@@ -302,13 +280,12 @@ export default function CustomizePage() {
                         ) : null;
                       })}
                       <span className="text-[11px] text-white/25 ml-1 self-center">
-                        bg Â· accent Â· text
+                        bg · accent · text
                       </span>
                     </div>
                   </div>
                 </ControlRow>
 
-                {/* Divider */}
                 <div className="h-px bg-white/5" />
 
                 {/* Custom hex overrides */}
@@ -319,44 +296,44 @@ export default function CustomizePage() {
                     <code className="text-white/40">#</code>.
                   </p>
                   <div className="flex flex-col gap-3">
-                    <HexInput
-                      id="bg-hex-input"
-                      label="Background"
-                      value={bgHex}
-                      onChange={setBgHex}
-                      placeholder="e.g. 0a0a0a"
-                    />
-                    <HexInput
-                      id="accent-hex-input"
-                      label="Accent / Tower Color"
-                      value={accentHex}
-                      onChange={setAccentHex}
-                      placeholder="e.g. 00ffaa"
-                    />
-                    <HexInput
-                      id="text-hex-input"
-                      label="Text / Label Color"
-                      value={textHex}
-                      onChange={setTextHex}
-                      placeholder="e.g. ffffff"
-                    />
+                    <HexInput id="bg-hex-input" label="Background" value={bgHex} onChange={setBgHex} placeholder="e.g. 0a0a0a" />
+                    <HexInput id="accent-hex-input" label="Accent / Tower Color" value={accentHex} onChange={setAccentHex} placeholder="e.g. 00ffaa" />
+                    <HexInput id="text-hex-input" label="Text / Label Color" value={textHex} onChange={setTextHex} placeholder="e.g. ffffff" />
                   </div>
                   {(bgHex || accentHex || textHex) && (
                     <button
                       id="clear-overrides-btn"
-                      onClick={() => {
-                        setBgHex('');
-                        setAccentHex('');
-                        setTextHex('');
-                      }}
+                      onClick={() => { setBgHex(''); setAccentHex(''); setTextHex(''); }}
                       className="mt-3 text-[11px] text-red-400/60 hover:text-red-400 transition-colors"
                     >
-                      âœ• Clear overrides
+                      ✕ Clear overrides
                     </button>
                   )}
                 </div>
 
-                {/* Divider */}
+                <div className="h-px bg-white/5" />
+
+                {/* Badge Size — NEW */}
+                <ControlRow label="Badge Size">
+                  <div className="grid grid-cols-3 gap-2">
+                    {SIZES.map((s) => (
+                      <button
+                        key={s.value}
+                        id={`size-${s.value}-btn`}
+                        onClick={() => setSize(s.value)}
+                        className={`py-2.5 rounded-xl text-xs font-bold transition-all flex flex-col items-center gap-0.5 ${
+                          size === s.value
+                            ? 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-400'
+                            : 'bg-black border border-white/8 text-white/30 hover:text-white/60 hover:border-white/20'
+                        }`}
+                      >
+                        <span>{s.label}</span>
+                        <span className="text-[10px] opacity-60">{s.dims}</span>
+                      </button>
+                    ))}
+                  </div>
+                </ControlRow>
+
                 <div className="h-px bg-white/5" />
 
                 {/* Scale */}
@@ -379,10 +356,11 @@ export default function CustomizePage() {
                   </div>
                   <p className="text-[11px] text-white/25 mt-1.5 leading-relaxed">
                     {scale === 'log'
-                      ? 'Log mode compresses extreme outliers â€” great for power committers.'
+                      ? 'Log mode compresses extreme outliers — great for power committers.'
                       : 'Linear mode shows raw commit counts as tower heights.'}
                   </p>
                 </ControlRow>
+
                 {/* Font Style */}
                 <ControlRow label="Font Style">
                   <div className="relative">
@@ -396,7 +374,6 @@ export default function CustomizePage() {
                   </div>
                 </ControlRow>
 
-                {/* Divider */}
                 <div className="h-px bg-white/5" />
 
                 {/* Scan speed */}
@@ -415,27 +392,21 @@ export default function CustomizePage() {
             </div>
           </motion.aside>
 
-          {/* â•â•â•â• RIGHT: Preview + Export â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
+          {/* RIGHT: Preview + Export */}
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5, delay: 0.15 }}
             className="flex flex-col gap-6"
           >
-            {/* Live Preview */}
             <div className="bg-[#0a0a0a] border border-white/5 rounded-[1.75rem] p-6">
               <p className="text-xs font-bold uppercase tracking-[0.22em] text-emerald-400 mb-5">
                 Live Preview
               </p>
-
               <div className="group relative">
-                {/* Glow ring */}
                 <div className="absolute -inset-px bg-gradient-to-br from-emerald-500/20 to-purple-500/20 rounded-[1.5rem] opacity-0 group-hover:opacity-100 transition-opacity duration-700 blur-lg pointer-events-none" />
-
                 <div className="relative bg-[#050505] border border-white/8 rounded-[1.25rem] overflow-hidden flex items-center justify-center p-6 min-h-[280px]">
-                  {/* Scanning line effect behind image */}
                   <div className="absolute inset-0 bg-gradient-to-b from-transparent via-emerald-500/3 to-transparent animate-[pulse_3s_ease-in-out_infinite] pointer-events-none" />
-
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     key={previewSrc}
@@ -447,9 +418,8 @@ export default function CustomizePage() {
                   />
                 </div>
               </div>
-
               <p className="mt-3 text-[11px] text-white/20 text-center">
-                Preview updates on every change Â· Hosted badge is cached at UTC midnight
+                Preview updates on every change · Hosted badge is cached at UTC midnight
               </p>
             </div>
 
@@ -470,34 +440,14 @@ export default function CustomizePage() {
                 >
                   {copied ? (
                     <>
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="w-3.5 h-3.5"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="3"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        aria-hidden="true"
-                      >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                         <polyline points="20 6 9 17 4 12" />
                       </svg>
                       Copied!
                     </>
                   ) : (
                     <>
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="w-3.5 h-3.5"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        aria-hidden="true"
-                      >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                         <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
                         <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
                       </svg>
@@ -506,21 +456,19 @@ export default function CustomizePage() {
                   )}
                 </button>
               </div>
-
               <div className="bg-black/60 border border-white/8 rounded-xl px-5 py-4 overflow-x-auto">
                 <code className="text-emerald-300 text-xs font-mono leading-relaxed break-all whitespace-pre-wrap">
                   {markdownSnippet}
                 </code>
               </div>
-
               <p className="mt-4 text-[11px] text-white/20 leading-relaxed">
                 Paste this into your GitHub profile&apos;s{' '}
-                <code className="text-white/35">README.md</code> â€” the badge renders server-side,
+                <code className="text-white/35">README.md</code> — the badge renders server-side,
                 no script required.
               </p>
             </div>
 
-            {/* URL breakdown */}
+            {/* Active Parameters */}
             <div className="bg-[#0a0a0a] border border-white/5 rounded-[1.75rem] p-6">
               <p className="text-xs font-bold uppercase tracking-[0.22em] text-white/30 mb-4">
                 Active Parameters
@@ -529,10 +477,7 @@ export default function CustomizePage() {
                 {queryString.split('&').map((pair) => {
                   const [k, v] = pair.split('=');
                   return (
-                    <span
-                      key={k}
-                      className="inline-flex items-center gap-1.5 bg-white/4 border border-white/8 rounded-lg px-3 py-1.5 text-xs font-mono"
-                    >
+                    <span key={k} className="inline-flex items-center gap-1.5 bg-white/4 border border-white/8 rounded-lg px-3 py-1.5 text-xs font-mono">
                       <span className="text-purple-400">{decodeURIComponent(k)}</span>
                       <span className="text-white/20">=</span>
                       <span className="text-emerald-400">{decodeURIComponent(v)}</span>
