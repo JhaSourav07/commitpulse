@@ -1,4 +1,5 @@
-// lib/svg/generator.ts
+
+﻿// lib/svg/generator.ts
 import type { BadgeParams, ContributionCalendar, StreakStats } from '../../types';
 
 export const FONT_OPTIONS: Record<string, { title: string; display: string; body: string }> = {
@@ -7,19 +8,14 @@ export const FONT_OPTIONS: Record<string, { title: string; display: string; body
   elegant: { title: 'Elegant', display: 'Playfair Display', body: 'Lato' },
   minimal: { title: 'Minimal', display: 'DM Sans', body: 'DM Sans' },
   retro: { title: 'Retro', display: 'Press Start 2P', body: 'VT323' },
-};
+import type { BadgeParams, ContributionCalendar, StreakStats } from '../../types';
 
 const FONT_MAP: Record<string, string> = {
   jetbrains: '"JetBrains Mono", monospace',
   fira: '"Fira Code", monospace',
   roboto: '"Roboto", sans-serif',
-};
 
-const SIZE_MAP = {
-  small:  { width: 400, height: 280 },
-  medium: { width: 600, height: 420 },
-  large:  { width: 800, height: 560 },
-} as const;
+};
 
 function deterministicRandom(seed: string): number {
   let hash = 2166136261;
@@ -88,9 +84,6 @@ export function generateSVG(
   const parsedRadius = Number(params.radius);
   const radius = Math.max(0, Math.min(Number.isNaN(parsedRadius) ? 8 : parsedRadius, 50));
 
-  const sizeKey = (params.size as keyof typeof SIZE_MAP) ?? 'medium';
-  const { width, height } = SIZE_MAP[sizeKey] ?? SIZE_MAP.medium;
-  const scale = width / 600;
 
   const weeks = calendar.weeks.slice(-14);
   let towers = '';
@@ -98,6 +91,7 @@ export function generateSVG(
   weeks.forEach((week, i) => {
     week.contributionDays.forEach((day, j) => {
       const isToday = i === weeks.length - 1 && j === week.contributionDays.length - 1;
+
       const hasCommits = day.contributionCount > 0;
       const isTodayWithCommits = isToday && hasCommits;
 
@@ -124,10 +118,18 @@ export function generateSVG(
               : ''
           }
           <title>${tooltip}</title>
-          <path d="M0 10 L0 ${10 + h} L-16 ${h} L-16 0 Z" fill="${color}" fill-opacity="${opacity * 0.5}" />
-          <path d="M0 10 L0 ${10 + h} L16 ${h} L16 0 Z" fill="${color}" fill-opacity="${opacity * 0.3}" />
+          <path d="M0 10 L0 ${10 + h} L-16 ${h} L-16 0 Z" fill="${color}" fill-opacity="${
+            opacity * 0.5
+          }" />
+          <path d="M0 10 L0 ${10 + h} L16 ${h} L16 0 Z" fill="${color}" fill-opacity="${
+            opacity * 0.3
+          }" />
           <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="${color}" fill-opacity="${opacity}" />
-          ${day.contributionCount > 5 ? `<path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="white" fill-opacity="0.2" />` : ''}
+          ${
+            day.contributionCount > 5
+              ? `<path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="white" fill-opacity="0.2" />`
+              : ''
+          }
         </g>`;
 
       if (day.contributionCount >= 10) {
@@ -139,7 +141,8 @@ export function generateSVG(
   const importUrl = `https://fonts.googleapis.com/css2?family=${displayFont.replace(/ /g, '+')}:wght@700&amp;family=${bodyFont.replace(/ /g, '+')}:wght@300;500;700&amp;display=swap`;
 
   return `
-    <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" fill="none">
+
+    <svg xmlns="http://www.w3.org/2000/svg" width="600" height="420" viewBox="0 0 600 420" fill="none">
       <defs>
         <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
           <feGaussianBlur stdDeviation="5" result="blur" />
@@ -149,41 +152,119 @@ export function generateSVG(
 
       <style>
         @import url('${importUrl}');
-        .title { font-family: '${displayFont}', sans-serif; fill: ${text}; font-size: ${18 * scale}px; letter-spacing: 6px; opacity: 0.8; }
-        .stats { font-family: '${bodyFont}', sans-serif; fill: ${text}; font-size: ${42 * scale}px; font-weight: 700; }
-        .total-val { font-family: '${displayFont}', sans-serif; fill: ${accent}; font-size: ${24 * scale}px; font-weight: 700; }
-        .label { font-family: '${bodyFont}', sans-serif; fill: ${accent}; font-size: ${11 * scale}px; font-weight: 700; letter-spacing: 2px; opacity: 0.7; }
+        .title { font-family: '${displayFont}', sans-serif; fill: ${text}; font-size: 18px; letter-spacing: 6px; opacity: 0.8; }
+        .stats { font-family: '${bodyFont}', sans-serif; fill: ${text}; font-size: 42px; font-weight: 700; }
+        .total-val { font-family: '${displayFont}', sans-serif; fill: ${accent}; font-size: 24px; font-weight: 700; }
+        .label { font-family: '${bodyFont}', sans-serif; fill: ${accent}; font-size: 11px; font-weight: 700; letter-spacing: 2px; opacity: 0.7; }
         @media (prefers-reduced-motion: reduce) {
           .heat-particles { display: none; }
         }
       </style>
 
-      <rect width="${width}" height="${height}" rx="${radius}" fill="${bg}" />
+      <rect width="600" height="420" rx="32" fill="${bg}" />
 
-      <g transform="translate(0, ${20 * scale}) scale(${scale})">
+      <g transform="translate(0, 20)">
         ${towers}
       </g>
 
-      <g transform="translate(${40 * scale}, ${340 * scale})">
+      <g transform="translate(40, 340)">
         <text class="label">CURRENT_STREAK</text>
-        <text y="${40 * scale}" class="stats" filter="url(#glow)">${stats.currentStreak}</text>
+        <text y="40" class="stats" filter="url(#glow)">${stats.currentStreak}</text>
       </g>
 
-      <g transform="translate(${width / 2}, ${340 * scale})" text-anchor="middle">
+      <g transform="translate(300, 340)" text-anchor="middle">
         <text class="label">ANNUAL_SYNC_TOTAL</text>
-        <text y="${40 * scale}" class="total-val" filter="url(#glow)">${stats.totalContributions}</text>
+        <text y="40" class="total-val" filter="url(#glow)">${stats.totalContributions}</text>
       </g>
 
-      <g transform="translate(${width - 40 * scale}, ${340 * scale})" text-anchor="end">
+      <g transform="translate(560, 340)" text-anchor="end">
         <text class="label">PEAK_STREAK</text>
-        <text y="${40 * scale}" class="stats">${stats.longestStreak}</text>
+        <text y="40" class="stats">${stats.longestStreak}</text>
       </g>
 
-      <text x="${width / 2}" y="${50 * scale}" text-anchor="middle" class="title">${params.user?.toUpperCase() || ''}</text>
+      <text x="300" y="50" text-anchor="middle" class="title">${params.user.toUpperCase()}</text>
 
-      <rect x="${100 * scale}" y="${60 * scale}" width="${400 * scale}" height="1" fill="${accent}" fill-opacity="0.3">
-        <animate attributeName="y" values="${80 * scale};${320 * scale};${80 * scale}" dur="${params.speed || '8s'}" repeatCount="indefinite" />
+      <rect x="100" y="60" width="400" height="1" fill="${accent}" fill-opacity="0.3">
+        <animate attributeName="y" values="80;320;80" dur="${params.speed || '8s'}" repeatCount="indefinite" />
       </rect>
     </svg>
   `;
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="420" viewBox="0 0 600 420" fill="none">
+  <defs>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="5" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <style>
+  @import url('https://fonts.googleapis.com/css2?family=Fira+Code&amp;family=JetBrains+Mono&amp;family=Roboto&amp;display=swap');
+
+  .title {
+    font-family: ${selectedFont || defaultTitleFont};
+    fill: ${text};
+    font-size: 18px;
+    letter-spacing: 6px;
+    font-weight: 400;
+    opacity: 0.8;
+  }
+
+  .stats {
+    font-family: ${statsFont};
+    fill: ${text};
+    font-size: 42px;
+    font-weight: 500;
+    letter-spacing: 0;
+  }
+
+  .total-val {
+    font-family: ${statsFont};
+    fill: ${accent};
+    font-size: 24px;
+    font-weight: 500;
+  }
+
+  .label {
+    font-family: ${labelFont};
+    fill: ${accent};
+    font-size: 11px;
+    font-weight: 400;
+    letter-spacing: 2px;
+    opacity: 0.7;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .heat-particles { display: none; }
+  }
+  </style>
+
+  <rect width="600" height="420" rx="${radius}" fill="${bg}" />
+
+  <g transform="translate(0, 20)">
+    ${towers}
+  </g>
+
+  <g transform="translate(40, 340)">
+    <text class="label">CURRENT_STREAK</text>
+    <text y="40" class="stats" filter="url(#glow)">${stats.currentStreak}</text>
+  </g>
+
+  <g transform="translate(300, 340)" text-anchor="middle">
+    <text class="label">ANNUAL_SYNC_TOTAL</text>
+    <text y="40" class="total-val" filter="url(#glow)">${stats.totalContributions}</text>
+  </g>
+
+  <g transform="translate(560, 340)" text-anchor="end">
+    <text class="label">PEAK_STREAK</text>
+    <text y="40" class="stats">${stats.longestStreak}</text>
+  </g>
+
+  <text x="300" y="50" text-anchor="middle" class="title">${params.user?.toUpperCase() || ''}</text>
+
+  <rect x="100" y="60" width="400" height="1" fill="${accent}" fill-opacity="0.3">
+    <animate attributeName="y" values="80;320;80" dur="${params.speed || '8s'}" repeatCount="indefinite" />
+  </rect>
+</svg>
+`;
+
 }
