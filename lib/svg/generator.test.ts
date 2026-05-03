@@ -103,4 +103,3 @@ describe('generateSVG', () => {
     expect(svg).toContain('00ffaa'); // default accent
     expect(svg).toContain('ffffff'); // default text
   });
-});
