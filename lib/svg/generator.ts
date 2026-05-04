@@ -4,15 +4,10 @@ import type { BadgeParams, ContributionCalendar, StreakStats } from '../../types
 export const FONT_OPTIONS: Record<string, { title: string; display: string; body: string }> = {
   default: { title: 'Default', display: 'Syncopate', body: 'Space Grotesk' },
   mono: { title: 'Mono', display: 'JetBrains Mono', body: 'JetBrains Mono' },
+  jetbrains: { title: 'JetBrains', display: 'JetBrains Mono', body: 'JetBrains Mono' },
   elegant: { title: 'Elegant', display: 'Playfair Display', body: 'Lato' },
   minimal: { title: 'Minimal', display: 'DM Sans', body: 'DM Sans' },
   retro: { title: 'Retro', display: 'Press Start 2P', body: 'VT323' },
-};
-
-const FONT_MAP: Record<string, string> = {
-  jetbrains: '"JetBrains Mono", monospace',
-  fira: '"Fira Code", monospace',
-  roboto: '"Roboto", sans-serif',
 };
 
 const SIZE_MAP = {
@@ -65,16 +60,14 @@ export function generateSVG(
   const accent = `#${(params.accent || '00ffaa').replace('#', '')}`;
   const text = `#${(params.text || 'ffffff').replace('#', '')}`;
 
-  const fontKey = params.font && FONT_OPTIONS[params.font] ? params.font : 'default';
+  const fontKey = params.font
+    ? FONT_OPTIONS[params.font]
+      ? params.font
+      : 'jetbrains'
+    : 'default';
   const { display: displayFont, body: bodyFont } = FONT_OPTIONS[fontKey];
 
-  const selectedFont = params.font
-    ? FONT_MAP[params.font.toLowerCase()] || '"JetBrains Mono", monospace'
-    : null;
-
-  const defaultBodyFont = '"Space Grotesk", sans-serif';
-  const statsFont = selectedFont || defaultBodyFont;
-  const labelFont = '"Roboto", sans-serif';
+  const labelFont = 'Roboto';
 
   const parsedRadius = Number(params.radius);
   const radius = Math.max(0, Math.min(Number.isNaN(parsedRadius) ? 8 : parsedRadius, 50));
