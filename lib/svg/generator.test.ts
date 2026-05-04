@@ -43,7 +43,6 @@ describe('generateSVG', () => {
     expect(svg).toContain('rx="0"');
   });
 
-
   it('uses medium size (600x420) by default', () => {
     const svg = generateSVG(mockStats, { user: 'avi' } as unknown as BadgeParams, mockCalendar);
 
@@ -72,7 +71,6 @@ describe('generateSVG', () => {
     expect(svg).toContain('width="800"');
     expect(svg).toContain('height="560"');
   });
-});
 
   it('handles log scale parameter correctly', () => {
     const svg = generateSVG(
