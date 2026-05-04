@@ -60,11 +60,7 @@ export function generateSVG(
   const accent = `#${(params.accent || '00ffaa').replace('#', '')}`;
   const text = `#${(params.text || 'ffffff').replace('#', '')}`;
 
-  const fontKey = params.font
-    ? FONT_OPTIONS[params.font]
-      ? params.font
-      : 'jetbrains'
-    : 'default';
+  const fontKey = params.font ? (FONT_OPTIONS[params.font] ? params.font : 'jetbrains') : 'default';
   const { display: displayFont, body: bodyFont } = FONT_OPTIONS[fontKey];
 
   const labelFont = 'Roboto';
