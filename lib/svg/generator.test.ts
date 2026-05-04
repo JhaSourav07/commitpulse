@@ -43,6 +43,35 @@ describe('generateSVG', () => {
     expect(svg).toContain('rx="0"');
   });
 
+  it('uses medium size (600x420) by default', () => {
+    const svg = generateSVG(mockStats, { user: 'avi' } as unknown as BadgeParams, mockCalendar);
+
+    expect(svg).toContain('width="600"');
+    expect(svg).toContain('height="420"');
+  });
+
+  it('renders small size (400x280) when size=small', () => {
+    const svg = generateSVG(
+      mockStats,
+      { user: 'avi', size: 'small' } as unknown as BadgeParams,
+      mockCalendar
+    );
+
+    expect(svg).toContain('width="400"');
+    expect(svg).toContain('height="280"');
+  });
+
+  it('renders large size (800x560) when size=large', () => {
+    const svg = generateSVG(
+      mockStats,
+      { user: 'avi', size: 'large' } as unknown as BadgeParams,
+      mockCalendar
+    );
+
+    expect(svg).toContain('width="800"');
+    expect(svg).toContain('height="560"');
+  });
+
   it('handles log scale parameter correctly', () => {
     const svg = generateSVG(
       mockStats,

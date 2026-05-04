@@ -1,4 +1,4 @@
-export interface StreakStats {
+﻿export interface StreakStats {
   currentStreak: number;
   longestStreak: number;
   totalContributions: number;
@@ -26,11 +26,13 @@ export interface ContributionCalendar {
 
 export interface BadgeParams {
   user: string;
-  bg: string;
-  text: string;
-  accent: string;
-  speed: string;
-  scale: 'linear' | 'log';
+  bg?: string;
+  text?: string;
+  accent?: string;
+  speed?: string;
+  scale?: 'linear' | 'log';
   font?: string;
   radius?: string;
+  theme?: string;
+  size?: 'small' | 'medium' | 'large';
 }

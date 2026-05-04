@@ -1,15 +1,15 @@
-'use client';
+﻿'use client';
 
 import { useState, useCallback } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { themes } from '../../lib/svg/themes';
-
-// ─── Types ────────────────────────────────────────────────────────────────────
+import { FONT_OPTIONS } from '../../lib/svg/generator';
+const FONT_KEYS = Object.keys(FONT_OPTIONS);
 
 type Scale = 'linear' | 'log';
+type Size = 'small' | 'medium' | 'large';
 
-// Theme options are derived dynamically from lib/svg/themes.ts
 const THEME_KEYS = Object.keys(themes);
 
 const SPEEDS = [
@@ -19,13 +19,15 @@ const SPEEDS = [
   { value: '20s', label: 'Ultra-slow (20s)' },
 ] as const;
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+const SIZES: { value: Size; label: string; dims: string }[] = [
+  { value: 'small', label: 'Small', dims: '400×280' },
+  { value: 'medium', label: 'Medium', dims: '600×420' },
+  { value: 'large', label: 'Large', dims: '800×560' },
+];
 
 function stripHash(val: string) {
   return val.replace(/^#/, '');
 }
-
-// ─── Sub-components ───────────────────────────────────────────────────────────
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
@@ -80,7 +82,6 @@ function HexInput({
   onChange: (v: string) => void;
   placeholder: string;
 }) {
-  // Normalise to a valid 6-char hex for the color picker (falls back to #000000)
   const isValidHex = /^[0-9a-fA-F]{6}$/.test(stripHash(value));
   const pickerValue = isValidHex ? `#${stripHash(value)}` : '#000000';
   const swatchColor = isValidHex ? pickerValue : null;
@@ -89,14 +90,12 @@ function HexInput({
     <div className="flex flex-col gap-1.5">
       <SectionLabel>{label}</SectionLabel>
       <div className="relative flex items-center gap-2">
-        {/* ── Color picker trigger ── */}
         <label
           htmlFor={`${id}-picker`}
           title="Open color picker"
           className="relative shrink-0 w-9 h-9 rounded-xl border border-white/10 overflow-hidden cursor-pointer hover:border-emerald-500/50 transition-colors"
           style={{ backgroundColor: swatchColor ?? '#1a1a1a' }}
         >
-          {/* Checkerboard shown when no color is set */}
           {!swatchColor && (
             <span
               className="absolute inset-0"
@@ -116,7 +115,6 @@ function HexInput({
           />
         </label>
 
-        {/* ── Text input ── */}
         <div className="relative flex-1 flex items-center">
           <span className="absolute left-3 text-white/30 text-sm select-none pointer-events-none">
             #
@@ -136,8 +134,6 @@ function HexInput({
   );
 }
 
-// ─── Main Page ────────────────────────────────────────────────────────────────
-
 export default function CustomizePage() {
   const [username, setUsername] = useState('jhasourav07');
   const [theme, setTheme] = useState('dark');
@@ -146,30 +142,24 @@ export default function CustomizePage() {
   const [textHex, setTextHex] = useState('');
   const [scale, setScale] = useState<Scale>('linear');
   const [speed, setSpeed] = useState('8s');
+  const [font, setFont] = useState('default');
+  const [size, setSize] = useState<Size>('medium');
   const [copied, setCopied] = useState(false);
-
-  // ── buildQueryParams ──────────────────────────────────────────────────────
 
   const buildQueryParams = useCallback(() => {
     const params = new URLSearchParams();
-
     params.set('user', username || 'jhasourav07');
-
     const hasCustomColors = bgHex || accentHex || textHex;
-
-    // Custom hex colors take priority over theme
-    if (!hasCustomColors) {
-      params.set('theme', theme);
-    }
+    if (!hasCustomColors) params.set('theme', theme);
     if (bgHex) params.set('bg', stripHash(bgHex));
     if (accentHex) params.set('accent', stripHash(accentHex));
     if (textHex) params.set('text', stripHash(textHex));
-
     if (scale !== 'linear') params.set('scale', scale);
     if (speed !== '8s') params.set('speed', speed);
-
+    if (font !== 'default') params.set('font', font);
+    if (size !== 'medium') params.set('size', size);
     return params.toString();
-  }, [username, theme, bgHex, accentHex, textHex, scale, speed]);
+  }, [username, theme, bgHex, accentHex, textHex, scale, speed, font, size]);
 
   const queryString = buildQueryParams();
   const previewSrc = `/api/streak?${queryString}`;
@@ -183,7 +173,6 @@ export default function CustomizePage() {
 
   return (
     <div className="min-h-screen bg-transparent text-white font-sans overflow-x-hidden">
-      {/* Ambient background */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-[10%] -left-[10%] w-[35%] h-[35%] bg-emerald-500/8 blur-[120px] rounded-full" />
         <div className="absolute top-[30%] -right-[10%] w-[25%] h-[25%] bg-purple-500/8 blur-[120px] rounded-full" />
@@ -191,7 +180,6 @@ export default function CustomizePage() {
       </div>
 
       <div className="relative z-10 max-w-[1400px] mx-auto px-6 py-8">
-        {/* ── Top Bar ───────────────────────────────────────────────────────── */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -218,9 +206,7 @@ export default function CustomizePage() {
             </svg>
             Back to Home
           </Link>
-
           <div className="h-4 w-px bg-white/10" />
-
           <div>
             <span className="text-xs font-bold uppercase tracking-[0.22em] text-emerald-400">
               Customization Studio
@@ -228,7 +214,6 @@ export default function CustomizePage() {
           </div>
         </motion.div>
 
-        {/* ── Page heading ─────────────────────────────────────────────────── */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
@@ -244,9 +229,8 @@ export default function CustomizePage() {
           </p>
         </motion.div>
 
-        {/* ── Split layout ─────────────────────────────────────────────────── */}
         <div className="grid lg:grid-cols-[380px_1fr] gap-6 items-start">
-          {/* ════ LEFT: Control Panel ════════════════════════════════════════ */}
+          {/* LEFT: Control Panel */}
           <motion.aside
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -271,7 +255,6 @@ export default function CustomizePage() {
                   />
                 </ControlRow>
 
-                {/* Divider */}
                 <div className="h-px bg-white/5" />
 
                 {/* Theme */}
@@ -284,7 +267,6 @@ export default function CustomizePage() {
                         </option>
                       ))}
                     </StyledSelect>
-                    {/* Theme color swatches — driven from the imported themes object */}
                     <div className="mt-2 flex gap-1.5">
                       {(['bg', 'accent', 'text'] as const).map((prop) => {
                         const color = themes[theme]?.[prop];
@@ -304,7 +286,6 @@ export default function CustomizePage() {
                   </div>
                 </ControlRow>
 
-                {/* Divider */}
                 <div className="h-px bg-white/5" />
 
                 {/* Custom hex overrides */}
@@ -352,7 +333,29 @@ export default function CustomizePage() {
                   )}
                 </div>
 
-                {/* Divider */}
+                <div className="h-px bg-white/5" />
+
+                {/* Badge Size — NEW */}
+                <ControlRow label="Badge Size">
+                  <div className="grid grid-cols-3 gap-2">
+                    {SIZES.map((s) => (
+                      <button
+                        key={s.value}
+                        id={`size-${s.value}-btn`}
+                        onClick={() => setSize(s.value)}
+                        className={`py-2.5 rounded-xl text-xs font-bold transition-all flex flex-col items-center gap-0.5 ${
+                          size === s.value
+                            ? 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-400'
+                            : 'bg-black border border-white/8 text-white/30 hover:text-white/60 hover:border-white/20'
+                        }`}
+                      >
+                        <span>{s.label}</span>
+                        <span className="text-[10px] opacity-60">{s.dims}</span>
+                      </button>
+                    ))}
+                  </div>
+                </ControlRow>
+
                 <div className="h-px bg-white/5" />
 
                 {/* Scale */}
@@ -380,6 +383,21 @@ export default function CustomizePage() {
                   </p>
                 </ControlRow>
 
+                {/* Font Style */}
+                <ControlRow label="Font Style">
+                  <div className="relative">
+                    <StyledSelect id="font-select" value={font} onChange={setFont}>
+                      {FONT_KEYS.map((k) => (
+                        <option key={k} value={k}>
+                          {FONT_OPTIONS[k].title}
+                        </option>
+                      ))}
+                    </StyledSelect>
+                  </div>
+                </ControlRow>
+
+                <div className="h-px bg-white/5" />
+
                 {/* Scan speed */}
                 <ControlRow label="Radar Scan Speed">
                   <div className="relative">
@@ -396,27 +414,21 @@ export default function CustomizePage() {
             </div>
           </motion.aside>
 
-          {/* ════ RIGHT: Preview + Export ════════════════════════════════════ */}
+          {/* RIGHT: Preview + Export */}
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5, delay: 0.15 }}
             className="flex flex-col gap-6"
           >
-            {/* Live Preview */}
             <div className="bg-[#0a0a0a] border border-white/5 rounded-[1.75rem] p-6">
               <p className="text-xs font-bold uppercase tracking-[0.22em] text-emerald-400 mb-5">
                 Live Preview
               </p>
-
               <div className="group relative">
-                {/* Glow ring */}
                 <div className="absolute -inset-px bg-gradient-to-br from-emerald-500/20 to-purple-500/20 rounded-[1.5rem] opacity-0 group-hover:opacity-100 transition-opacity duration-700 blur-lg pointer-events-none" />
-
                 <div className="relative bg-[#050505] border border-white/8 rounded-[1.25rem] overflow-hidden flex items-center justify-center p-6 min-h-[280px]">
-                  {/* Scanning line effect behind image */}
                   <div className="absolute inset-0 bg-gradient-to-b from-transparent via-emerald-500/3 to-transparent animate-[pulse_3s_ease-in-out_infinite] pointer-events-none" />
-
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     key={previewSrc}
@@ -428,7 +440,6 @@ export default function CustomizePage() {
                   />
                 </div>
               </div>
-
               <p className="mt-3 text-[11px] text-white/20 text-center">
                 Preview updates on every change · Hosted badge is cached at UTC midnight
               </p>
@@ -487,13 +498,11 @@ export default function CustomizePage() {
                   )}
                 </button>
               </div>
-
               <div className="bg-black/60 border border-white/8 rounded-xl px-5 py-4 overflow-x-auto">
                 <code className="text-emerald-300 text-xs font-mono leading-relaxed break-all whitespace-pre-wrap">
                   {markdownSnippet}
                 </code>
               </div>
-
               <p className="mt-4 text-[11px] text-white/20 leading-relaxed">
                 Paste this into your GitHub profile&apos;s{' '}
                 <code className="text-white/35">README.md</code> — the badge renders server-side, no
@@ -501,7 +510,7 @@ export default function CustomizePage() {
               </p>
             </div>
 
-            {/* URL breakdown */}
+            {/* Active Parameters */}
             <div className="bg-[#0a0a0a] border border-white/5 rounded-[1.75rem] p-6">
               <p className="text-xs font-bold uppercase tracking-[0.22em] text-white/30 mb-4">
                 Active Parameters
