@@ -139,7 +139,7 @@ function HexInput({
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function CustomizePage() {
-  const [username, setUsername] = useState('jhasourav07');
+  const [username, setUsername] = useState('');
   const [theme, setTheme] = useState('dark');
   const [bgHex, setBgHex] = useState('');
   const [accentHex, setAccentHex] = useState('');
@@ -147,13 +147,17 @@ export default function CustomizePage() {
   const [scale, setScale] = useState<Scale>('linear');
   const [speed, setSpeed] = useState('8s');
   const [copied, setCopied] = useState(false);
+  const trimmedUsername = username.trim();
+  const hasUsername = trimmedUsername.length > 0;
 
   // ── buildQueryParams ──────────────────────────────────────────────────────
 
   const buildQueryParams = useCallback(() => {
     const params = new URLSearchParams();
 
-    params.set('user', username || 'jhasourav07');
+    if (hasUsername) {
+      params.set('user', trimmedUsername);
+    }
 
     const hasCustomColors = bgHex || accentHex || textHex;
 
@@ -169,13 +173,15 @@ export default function CustomizePage() {
     if (speed !== '8s') params.set('speed', speed);
 
     return params.toString();
-  }, [username, theme, bgHex, accentHex, textHex, scale, speed]);
+  }, [hasUsername, trimmedUsername, theme, bgHex, accentHex, textHex, scale, speed]);
 
   const queryString = buildQueryParams();
   const previewSrc = `/api/streak?${queryString}`;
   const markdownSnippet = `![CommitPulse](https://commitpulse.vercel.app/api/streak?${queryString})`;
 
   const copyMarkdown = () => {
+    if (!hasUsername) return;
+
     navigator.clipboard.writeText(markdownSnippet);
     setCopied(true);
     setTimeout(() => setCopied(false), 3000);
@@ -417,20 +423,51 @@ export default function CustomizePage() {
                   {/* Scanning line effect behind image */}
                   <div className="absolute inset-0 bg-gradient-to-b from-transparent via-emerald-500/3 to-transparent animate-[pulse_3s_ease-in-out_infinite] pointer-events-none" />
 
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    key={previewSrc}
-                    src={previewSrc}
-                    alt="CommitPulse live preview"
-                    width={600}
-                    height={420}
-                    className="max-w-full h-auto drop-shadow-[0_20px_60px_rgba(0,0,0,0.6)] transition-opacity duration-300"
-                  />
+                  {hasUsername ? (
+                    <>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        key={previewSrc}
+                        src={previewSrc}
+                        alt="CommitPulse live preview"
+                        width={600}
+                        height={420}
+                        className="max-w-full h-auto drop-shadow-[0_20px_60px_rgba(0,0,0,0.6)] transition-opacity duration-300"
+                      />
+                    </>
+                  ) : (
+                    <div className="relative z-10 flex w-full max-w-xl flex-col items-center justify-center rounded-[1.25rem] border border-dashed border-white/10 bg-white/[0.02] px-6 py-12 text-center">
+                      <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-emerald-300/70">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-6 w-6"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          aria-hidden="true"
+                        >
+                          <path d="M12 19V5" />
+                          <path d="m5 12 7-7 7 7" />
+                        </svg>
+                      </div>
+                      <p className="text-lg font-semibold tracking-tight text-white">
+                        Enter a GitHub username to preview
+                      </p>
+                      <p className="mt-2 max-w-md text-sm leading-relaxed text-white/45">
+                        The live badge preview will appear here once a username is added.
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
 
               <p className="mt-3 text-[11px] text-white/20 text-center">
-                Preview updates on every change · Hosted badge is cached at UTC midnight
+                {hasUsername
+                  ? 'Preview updates on every change · Hosted badge is cached at UTC midnight'
+                  : 'Add a username to enable live preview and Markdown export'}
               </p>
             </div>
 
@@ -443,10 +480,13 @@ export default function CustomizePage() {
                 <button
                   id="copy-markdown-btn"
                   onClick={copyMarkdown}
+                  disabled={!hasUsername}
                   className={`relative inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 ${
-                    copied
-                      ? 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-400'
-                      : 'bg-white text-black hover:scale-[1.03] active:scale-[0.97]'
+                    !hasUsername
+                      ? 'bg-white/[0.04] border border-white/8 text-white/30'
+                      : copied
+                        ? 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-400'
+                        : 'bg-white text-black hover:scale-[1.03] active:scale-[0.97]'
                   }`}
                 >
                   {copied ? (
@@ -490,7 +530,9 @@ export default function CustomizePage() {
 
               <div className="bg-black/60 border border-white/8 rounded-xl px-5 py-4 overflow-x-auto">
                 <code className="text-emerald-300 text-xs font-mono leading-relaxed break-all whitespace-pre-wrap">
-                  {markdownSnippet}
+                  {hasUsername
+                    ? markdownSnippet
+                    : '![CommitPulse](https://commitpulse.vercel.app/api/streak?user=your-github-username)'}
                 </code>
               </div>
 
@@ -507,19 +549,21 @@ export default function CustomizePage() {
                 Active Parameters
               </p>
               <div className="flex flex-wrap gap-2">
-                {queryString.split('&').map((pair) => {
-                  const [k, v] = pair.split('=');
-                  return (
-                    <span
-                      key={k}
-                      className="inline-flex items-center gap-1.5 bg-white/4 border border-white/8 rounded-lg px-3 py-1.5 text-xs font-mono"
-                    >
-                      <span className="text-purple-400">{decodeURIComponent(k)}</span>
-                      <span className="text-white/20">=</span>
-                      <span className="text-emerald-400">{decodeURIComponent(v)}</span>
-                    </span>
-                  );
-                })}
+                {(hasUsername ? queryString.split('&') : ['user=your-github-username']).map(
+                  (pair) => {
+                    const [k, v] = pair.split('=');
+                    return (
+                      <span
+                        key={k}
+                        className="inline-flex items-center gap-1.5 bg-white/4 border border-white/8 rounded-lg px-3 py-1.5 text-xs font-mono"
+                      >
+                        <span className="text-purple-400">{decodeURIComponent(k)}</span>
+                        <span className="text-white/20">=</span>
+                        <span className="text-emerald-400">{decodeURIComponent(v)}</span>
+                      </span>
+                    );
+                  }
+                )}
               </div>
             </div>
           </motion.div>

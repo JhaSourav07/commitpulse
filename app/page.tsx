@@ -65,14 +65,18 @@ const Icons = {
 };
 
 export default function LandingPage() {
-  const [username, setUsername] = useState('jhasourav07');
+  const [username, setUsername] = useState('');
   const [copied, setCopied] = useState(false);
   const guideRef = useRef<HTMLDivElement>(null);
+  const trimmedUsername = username.trim();
+  const hasUsername = trimmedUsername.length > 0;
 
-  const badgeUrl = `/api/streak?user=${username}`;
-  const markdown = `![CommitPulse](https://commitpulse.vercel.app/api/streak?user=${username})`;
+  const badgeUrl = `/api/streak?user=${trimmedUsername}`;
+  const markdown = `![CommitPulse](https://commitpulse.vercel.app/api/streak?user=${trimmedUsername})`;
 
   const copyToClipboard = () => {
+    if (!hasUsername) return;
+
     navigator.clipboard.writeText(markdown);
     setCopied(true);
     setTimeout(() => {
@@ -124,7 +128,12 @@ export default function LandingPage() {
               <div className="flex flex-col sm:flex-row gap-4">
                 <button
                   onClick={copyToClipboard}
-                  className="relative flex min-w-[160px] items-center justify-center gap-2 overflow-hidden rounded-xl bg-white px-6 py-3.5 text-sm font-semibold text-black transition-all duration-200 hover:bg-zinc-100 active:scale-[0.98]"
+                  disabled={!hasUsername}
+                  className={`relative flex min-w-[160px] items-center justify-center gap-2 overflow-hidden rounded-xl px-6 py-3.5 text-sm font-semibold transition-all duration-200 active:scale-[0.98] ${
+                    hasUsername
+                      ? 'bg-white text-black hover:bg-zinc-100'
+                      : 'bg-white/10 text-white/35'
+                  }`}
                 >
                   <AnimatePresence mode="wait">
                     {copied ? (
@@ -149,8 +158,16 @@ export default function LandingPage() {
                   </AnimatePresence>
                 </button>
                 <Link
-                  href={`/${username}`}
-                  className="relative flex min-w-[160px] items-center justify-center gap-2 overflow-hidden rounded-xl border border-[rgba(255,255,255,0.15)] bg-transparent px-6 py-3.5 text-sm font-semibold text-white transition-all duration-200 hover:bg-white/5 active:scale-[0.98]"
+                  href={hasUsername ? `/${trimmedUsername}` : '/'}
+                  aria-disabled={!hasUsername}
+                  onClick={(e) => {
+                    if (!hasUsername) e.preventDefault();
+                  }}
+                  className={`relative flex min-w-[160px] items-center justify-center gap-2 overflow-hidden rounded-xl border px-6 py-3.5 text-sm font-semibold transition-all duration-200 active:scale-[0.98] ${
+                    hasUsername
+                      ? 'border-[rgba(255,255,255,0.15)] bg-transparent text-white hover:bg-white/5'
+                      : 'border-[rgba(255,255,255,0.08)] bg-white/[0.02] text-white/35'
+                  }`}
                 >
                   Watch Dashboard
                 </Link>
@@ -160,16 +177,30 @@ export default function LandingPage() {
             <div className="group relative">
               <div className="absolute -inset-1 rounded-[2rem] bg-white/5 opacity-50 blur-xl transition duration-1000 group-hover:opacity-100" />
               <div className="relative flex min-h-[320px] items-center justify-center overflow-hidden rounded-xl border border-[rgba(255,255,255,0.06)] bg-black p-6">
-                <Image
-                  src={badgeUrl}
-                  alt="Preview"
-                  width={900}
-                  height={600}
-                  unoptimized
-                  loading="eager"
-                  priority
-                  className="h-auto max-w-full drop-shadow-[0_20px_50px_rgba(0,0,0,0.5)]"
-                />
+                {hasUsername ? (
+                  <Image
+                    src={badgeUrl}
+                    alt="CommitPulse preview"
+                    width={900}
+                    height={600}
+                    unoptimized
+                    loading="eager"
+                    priority
+                    className="h-auto max-w-full drop-shadow-[0_20px_50px_rgba(0,0,0,0.5)]"
+                  />
+                ) : (
+                  <div className="flex w-full max-w-2xl flex-col items-center justify-center rounded-[1.5rem] border border-dashed border-white/10 bg-white/[0.02] px-6 py-12 text-center">
+                    <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-white/60">
+                      <Icons.Github />
+                    </div>
+                    <p className="text-lg font-semibold tracking-tight text-white">
+                      Enter a GitHub username to preview
+                    </p>
+                    <p className="mt-2 max-w-md text-sm leading-relaxed text-[#A1A1AA]">
+                      Your 3D contribution monolith will appear here as soon as you add a username.
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -180,7 +211,7 @@ export default function LandingPage() {
             {copied && (
               <SuccessGuide
                 markdown={markdown}
-                username={username}
+                username={trimmedUsername}
                 onDismiss={() => setCopied(false)}
               />
             )}

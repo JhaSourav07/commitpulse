@@ -67,11 +67,18 @@ describe('LandingPage', () => {
     expect(screen.getByText(/Contribution Story/i)).toBeDefined();
   });
 
-  it('renders the input field with default username', () => {
+  it('renders the input field empty by default', () => {
     render(<LandingPage />);
     const input = screen.getByPlaceholderText('Enter GitHub Username') as HTMLInputElement;
     expect(input).toBeDefined();
-    expect(input.value).toBe('jhasourav07');
+    expect(input.value).toBe('');
+  });
+
+  it('renders an empty state before a username is entered', () => {
+    render(<LandingPage />);
+
+    expect(screen.getByText('Enter a GitHub username to preview')).toBeDefined();
+    expect(screen.queryByTestId('next-image')).toBeNull();
   });
 
   it('updates the username when input changes', () => {
@@ -88,6 +95,8 @@ describe('LandingPage', () => {
 
   it('handles copying to clipboard and showing the SuccessGuide', async () => {
     render(<LandingPage />);
+    const input = screen.getByPlaceholderText('Enter GitHub Username') as HTMLInputElement;
+    fireEvent.change(input, { target: { value: 'jhasourav07' } });
 
     const copyButton = screen.getByText('Copy Link').closest('button');
     fireEvent.click(copyButton!);
@@ -120,6 +129,8 @@ describe('LandingPage', () => {
 
   it('can dismiss the SuccessGuide', async () => {
     render(<LandingPage />);
+    const input = screen.getByPlaceholderText('Enter GitHub Username') as HTMLInputElement;
+    fireEvent.change(input, { target: { value: 'jhasourav07' } });
 
     // Trigger copy to show guide
     const copyButton = screen.getByText('Copy Link').closest('button');
