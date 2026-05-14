@@ -92,14 +92,14 @@ export default function LandingPage() {
         <div className="absolute -right-[10%] top-[20%] h-[30%] w-[30%] rounded-full bg-white/2 blur-[120px]" />
       </div>
 
-      <main className="relative z-10 mx-auto max-w-6xl px-6 pb-32">
+      <main className="relative z-10 mx-auto max-w-6xl px-4 pb-24 sm:px-6 sm:pb-32">
         <div className="mb-16 text-center">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
           >
-            <h1 className="mb-8 bg-gradient-to-b from-white to-white/30 bg-clip-text text-5xl font-extrabold tracking-tight text-transparent md:text-8xl">
+            <h1 className="mb-8 bg-gradient-to-b from-white to-white/30 bg-clip-text text-4xl font-extrabold leading-tight tracking-tight text-transparent sm:text-5xl md:text-7xl lg:text-8xl">
               Elevate Your <br /> Contribution Story.
             </h1>
           </motion.div>
@@ -108,14 +108,14 @@ export default function LandingPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.3 }}
-            className="mx-auto max-w-2xl text-lg leading-relaxed text-gray-400 md:text-xl"
+           className="mx-auto max-w-2xl text-base leading-relaxed text-gray-400 sm:text-lg md:text-xl"
           >
             Stop settling for flat grids. Generate high-fidelity, 3D isometric monoliths that
             visualize your coding rhythm with professional precision.
           </motion.p>
         </div>
 
-        <section className="mx-auto mb-32 max-w-4xl">
+        <section className="mx-auto mb-24 max-w-4xl sm:mb-32">
           <div className="rounded-2xl border border-[rgba(255,255,255,0.08)] bg-[#0a0a0a] p-4 md:p-8">
             <div className="mb-8 flex flex-col gap-4 md:flex-row">
               <input
@@ -125,11 +125,11 @@ export default function LandingPage() {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
               />
-              <div className="flex flex-col sm:flex-row gap-4">
+             <div className="flex w-full flex-col gap-4 sm:flex-row md:w-auto">
                 <button
                   onClick={copyToClipboard}
                   disabled={!hasUsername}
-                  className={`relative flex min-w-[160px] items-center justify-center gap-2 overflow-hidden rounded-xl px-6 py-3.5 text-sm font-semibold transition-all duration-200 active:scale-[0.98] ${
+                  className={`relative flex w-full min-w-[160px] items-center justify-center gap-2 overflow-hidden rounded-xl px-6 py-3.5 text-sm font-semibold transition-all duration-200 active:scale-[0.98] sm:w-auto${
                     hasUsername
                       ? 'bg-white text-black hover:bg-zinc-100'
                       : 'bg-white/10 text-white/35'
@@ -163,7 +163,7 @@ export default function LandingPage() {
                   onClick={(e) => {
                     if (!hasUsername) e.preventDefault();
                   }}
-                  className={`relative flex min-w-[160px] items-center justify-center gap-2 overflow-hidden rounded-xl border px-6 py-3.5 text-sm font-semibold transition-all duration-200 active:scale-[0.98] ${
+                  className={`relative flex w-full min-w-[160px] items-center justify-center gap-2 overflow-hidden rounded-xl border px-6 py-3.5 text-sm font-semibold transition-all duration-200 active:scale-[0.98] sm:w-auto${
                     hasUsername
                       ? 'border-[rgba(255,255,255,0.15)] bg-transparent text-white hover:bg-white/5'
                       : 'border-[rgba(255,255,255,0.08)] bg-white/[0.02] text-white/35'
@@ -189,7 +189,7 @@ export default function LandingPage() {
                     className="h-auto max-w-full drop-shadow-[0_20px_50px_rgba(0,0,0,0.5)]"
                   />
                 ) : (
-                  <div className="flex w-full max-w-2xl flex-col items-center justify-center rounded-[1.5rem] border border-dashed border-white/10 bg-white/[0.02] px-6 py-12 text-center">
+                  <div className="flex w-full max-w-2xl flex-col items-center justify-center rounded-[1.5rem] border border-dashed border-white/10 bg-white/[0.02] px-4 py-10 text-center sm:px-6 sm:py-12">
                     <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-white/60">
                       <Icons.Github />
                     </div>
@@ -220,7 +220,7 @@ export default function LandingPage() {
 
         <CustomizeCTA />
 
-        <div className="grid gap-6 md:grid-cols-3">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3">
           <FeatureCard
             icon={<Icons.Zap />}
             accent="text-white"
@@ -241,7 +241,7 @@ export default function LandingPage() {
           />
         </div>
 
-        <footer className="mt-32 flex flex-col items-center justify-between gap-6 border-t border-white/5 pt-8 text-sm text-white/30 md:flex-row">
+        <footer className="mt-24 flex flex-col items-center justify-between gap-6 border-t border-white/5 pt-8 text-center text-sm text-white/30 sm:mt-32 md:flex-row md:text-left">
           <p>&copy; 2026 CommitPulse. Designed for the elite builder community.</p>
           <div className="flex gap-8">
             <Link href="/documentation" className="transition-colors hover:text-white">
@@ -277,11 +277,11 @@ function FeatureCard({
     <motion.div
       whileHover={{ y: -3 }}
       transition={{ duration: 0.2 }}
-      className="group rounded-xl border border-[rgba(255,255,255,0.08)] bg-[#0a0a0a] p-8 hover:border-[rgba(255,255,255,0.14)] hover:bg-[#0d0d0d] transition-all duration-200"
+      className="group w-full overflow-hidden rounded-xl border border-[rgba(255,255,255,0.08)] bg-[#0a0a0a] p-5 sm:p-6 md:p-8 hover:border-[rgba(255,255,255,0.14)] hover:bg-[#0d0d0d] transition-all duration-200"
     >
       <div className={`mb-5 w-fit rounded-lg bg-[#111] p-2.5 ${accent}`}>{icon}</div>
-      <h3 className="mb-2 text-sm font-semibold text-white tracking-tight">{title}</h3>
-      <p className="text-sm leading-relaxed text-[#A1A1AA]">{desc}</p>
+      <h3 className="mb-2 break-words text-base font-semibold tracking-tight text-white sm:text-sm">{title}</h3>
+      <p className="break-words text-sm leading-relaxed text-[#A1A1AA]">{desc}</p>
     </motion.div>
   );
 }
