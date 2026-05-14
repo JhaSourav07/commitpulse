@@ -126,7 +126,9 @@ export function generateSVG(
   });
 
   return `
-<svg xmlns="http://www.w3.org/2000/svg" width="600" height="420" viewBox="0 0 600 420" fill="none">
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="420" viewBox="0 0 600 420" fill="none" role="img" aria-labelledby="commitpulse-title commitpulse-desc">
+  <title id="commitpulse-title">CommitPulse Stats for ${params.user || 'user'}</title>
+  <desc id="commitpulse-desc">${params.user || 'user'} has ${stats.totalContributions} total contributions and a longest streak of ${stats.longestStreak} days.</desc>
   <defs>
     <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
       <feGaussianBlur stdDeviation="5" result="blur" />
