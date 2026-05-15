@@ -1,46 +1,153 @@
-import './globals.css';
-import { Inter } from 'next/font/google';
-import { Analytics } from '@vercel/analytics/next';
-import Navbar from './components/navbar';
-import CherryBlossom from '@/components/CherryBlossom';
+import { ImageResponse } from 'next/og';
+import { NextRequest } from 'next/server';
 
-const inter = Inter({ subsets: ['latin'] });
+export const runtime = 'edge';
 
-export const metadata = {
-  title: 'CommitPulse | Visualize Your Rhythm',
-  description: 'Premium GitHub streak monoliths',
-  openGraph: {
-    title: 'CommitPulse | Visualize Your Rhythm',
-    description: 'Your GitHub contributions as a cinematic SVG monolith.',
-    url: 'https://commitpulse.vercel.app',
-    siteName: 'CommitPulse',
-    images: [
-      {
-        url: '/api/og?user=jhasourav07',
-        width: 1200,
-        height: 630,
-        alt: 'CommitPulse Preview',
+export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+  const user = searchParams.get('user') ?? 'unknown';
+
+  let totalCommits = 0;
+  let longestStreak = 0;
+  let currentStreak = 0;
+
+  try {
+    const baseUrl = req.nextUrl.origin;
+    const res = await fetch(`${baseUrl}/api/streak?user=${user}&refresh=true`, {
+      cache: 'no-store',
+    });
+    if (res.ok) {
+      const data = (await res.json()) as {
+        totalContributions?: number;
+        longestStreak?: number;
+        currentStreak?: number;
+      };
+      totalCommits = data.totalContributions ?? 0;
+      longestStreak = data.longestStreak ?? 0;
+      currentStreak = data.currentStreak ?? 0;
+    }
+  } catch {
+    // Fallback to zeros if fetch fails
+  }
+
+  return new ImageResponse(
+    (
+      <div
+        style={{
+          width: '1200px',
+          height: '630px',
+          background: '#0d1117',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontFamily: 'sans-serif',
+          position: 'relative',
+        }}
+      >
+        <div
+          style={{
+            position: 'absolute',
+            width: '600px',
+            height: '300px',
+            background: 'radial-gradient(ellipse, #58a6ff22 0%, transparent 70%)',
+            top: '50px',
+            left: '300px',
+          }}
+        />
+        <div
+          style={{
+            fontSize: '48px',
+            color: '#58a6ff',
+            fontWeight: 'bold',
+            marginBottom: '24px',
+          }}
+        >
+          ⚡ CommitPulse
+        </div>
+        <div
+          style={{
+            fontSize: '32px',
+            color: '#c9d1d9',
+            marginBottom: '48px',
+          }}
+        >
+          @{user}
+        </div>
+        <div style={{ display: 'flex', gap: '48px' }}>
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              background: '#161b22',
+              border: '1px solid #30363d',
+              borderRadius: '16px',
+              padding: '32px 48px',
+            }}
+          >
+            <div style={{ fontSize: '56px', fontWeight: 'bold', color: '#58a6ff' }}>
+              {totalCommits}
+            </div>
+            <div style={{ fontSize: '18px', color: '#8b949e', marginTop: '8px' }}>
+              Total Commits
+            </div>
+          </div>
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              background: '#161b22',
+              border: '1px solid #30363d',
+              borderRadius: '16px',
+              padding: '32px 48px',
+            }}
+          >
+            <div style={{ fontSize: '56px', fontWeight: 'bold', color: '#f78166' }}>
+              {longestStreak}
+            </div>
+            <div style={{ fontSize: '18px', color: '#8b949e', marginTop: '8px' }}>
+              Longest Streak 🔥
+            </div>
+          </div>
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              background: '#161b22',
+              border: '1px solid #30363d',
+              borderRadius: '16px',
+              padding: '32px 48px',
+            }}
+          >
+            <div style={{ fontSize: '56px', fontWeight: 'bold', color: '#3fb950' }}>
+              {currentStreak}
+            </div>
+            <div style={{ fontSize: '18px', color: '#8b949e', marginTop: '8px' }}>
+              Current Streak ⚡
+            </div>
+          </div>
+        </div>
+        <div
+          style={{
+            position: 'absolute',
+            bottom: '32px',
+            fontSize: '16px',
+            color: '#484f58',
+          }}
+        >
+          commitpulse.vercel.app
+        </div>
+      </div>
+    ),
+    {
+      width: 1200,
+      height: 630,
+      headers: {
+        'Cache-Control': 'public, max-age=3600, stale-while-revalidate=86400',
       },
-    ],
-    type: 'website',
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'CommitPulse | Visualize Your Rhythm',
-    description: 'Your GitHub contributions as a cinematic SVG monolith.',
-    images: ['/api/og?user=jhasourav07'],
-  },
-};
-
-export default function RootLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <html lang="en">
-      <body className={`${inter.className} bg-black`}>
-        <CherryBlossom />
-        <Navbar />
-        <div className="pt-24 sm:pt-28 relative z-10">{children}</div>
-        <Analytics />
-      </body>
-    </html>
+    }
   );
 }
