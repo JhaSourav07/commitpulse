@@ -92,7 +92,7 @@ export default function LandingPage() {
         <div className="absolute -right-[10%] top-[20%] h-[30%] w-[30%] rounded-full bg-white/2 blur-[120px]" />
       </div>
 
-      <main className="relative z-10 mx-auto max-w-6xl px-4 pb-24 sm:px-6 sm:pb-32">
+      <main className="relative z-10 mx-auto max-w-6xl px-4 pb-24 sm:px-6 sm:pb-32">//changed
         <div className="mb-16 text-center">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -129,7 +129,7 @@ export default function LandingPage() {
                 <button
                   onClick={copyToClipboard}
                   disabled={!hasUsername}
-                  className={`relative flex w-full min-w-[160px] items-center justify-center gap-2 overflow-hidden rounded-xl px-6 py-3.5 text-sm font-semibold transition-all duration-200 active:scale-[0.98] sm:w-auto${
+                  className={`relative flex w-full min-w-[160px] items-center justify-center gap-2 overflow-hidden rounded-xl px-6 py-3.5 text-sm font-semibold transition-all duration-200 active:scale-[0.98] sm:w-auto ${
                     hasUsername
                       ? 'bg-white text-black hover:bg-zinc-100'
                       : 'bg-white/10 text-white/35'
@@ -163,7 +163,7 @@ export default function LandingPage() {
                   onClick={(e) => {
                     if (!hasUsername) e.preventDefault();
                   }}
-                  className={`relative flex w-full min-w-[160px] items-center justify-center gap-2 overflow-hidden rounded-xl border px-6 py-3.5 text-sm font-semibold transition-all duration-200 active:scale-[0.98] sm:w-auto${
+                  className={`relative flex w-full min-w-[160px] items-center justify-center gap-2 overflow-hidden rounded-xl border px-6 py-3.5 text-sm font-semibold transition-all duration-200 active:scale-[0.98] sm:w-auto ${
                     hasUsername
                       ? 'border-[rgba(255,255,255,0.15)] bg-transparent text-white hover:bg-white/5'
                       : 'border-[rgba(255,255,255,0.08)] bg-white/[0.02] text-white/35'
