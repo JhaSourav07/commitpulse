@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import Link from 'next/link';
+import { useParams } from 'next/navigation';
 
 export default function DashboardError({
   error,
@@ -10,6 +11,10 @@ export default function DashboardError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  // Extract the username directly from the route parameters
+  const params = useParams();
+  const username = params?.username as string;
+
   useEffect(() => {
     // Log the error to an error reporting service
     console.error(error);
@@ -23,11 +28,11 @@ export default function DashboardError({
       <div className="p-8 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-xl max-w-md w-full relative overflow-hidden">
         <div className="absolute -top-20 -right-20 w-40 h-40 bg-pink-500/20 blur-[60px] rounded-full" />
 
-        <h2 className="text-4xl mb-4">{isNotFound ? '🕵️‍♂️' : isRateLimit ? '⏳' : '⚠️'}</h2>
+        <h2 className="text-5xl mb-4">{isNotFound ? '🪨🔨' : isRateLimit ? '⏳' : '⚠️'}</h2>
 
         <h1 className="text-2xl font-bold text-white mb-2">
           {isNotFound
-            ? 'User Not Found'
+            ? `User ${username ? `"${username}"` : ''} not found on GitHub`
             : isRateLimit
               ? 'API Limit Reached'
               : 'Something went wrong'}
@@ -35,19 +40,21 @@ export default function DashboardError({
 
         <p className="text-gray-400 mb-8 leading-relaxed">
           {isNotFound
-            ? "We couldn't find a GitHub user with that username. Please check the spelling and try again."
+            ? "We couldn't find a GitHub profile matching that username. Please check the spelling and try again."
             : isRateLimit
               ? "GitHub's API rate limit has been reached. Please add a GITHUB_TOKEN to your environment variables to increase the limit, or try again later."
               : error.message || 'An unexpected error occurred while fetching the dashboard data.'}
         </p>
 
         <div className="flex flex-col gap-3">
-          <button
-            onClick={() => reset()}
-            className="w-full py-3 rounded-xl bg-white/10 hover:bg-white/20 text-white font-medium transition-colors"
-          >
-            Try again
-          </button>
+          {!isNotFound && (
+            <button
+              onClick={() => reset()}
+              className="w-full py-3 rounded-xl bg-white/10 hover:bg-white/20 text-white font-medium transition-colors"
+            >
+              Try again
+            </button>
+          )}
           <Link href="/">
             <button className="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-purple-600 text-white font-bold shadow-lg hover:shadow-cyan-500/25 transition-all">
               Go back home
