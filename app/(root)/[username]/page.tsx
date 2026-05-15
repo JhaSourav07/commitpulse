@@ -81,7 +81,10 @@ export default async function DashboardPage({ params }: { params: Promise<{ user
       <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr_320px] gap-6 lg:gap-8">
         {/* Left Sidebar */}
         <aside className="flex flex-col gap-6">
-          <ProfileCard user={data.profile} />
+          <ProfileCard
+            user={data.profile}
+            exportData={{ stats: data.stats, languages: data.languages }}
+          />
           {/* We omit real achievements data generation for now and just show a placeholder based on streaks */}
           <Achievements
             achievements={[

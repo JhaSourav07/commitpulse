@@ -64,21 +64,50 @@ export async function GET(request: Request) {
   } catch (error: unknown) {
     console.error('Streak API Error:', error);
     const message = error instanceof Error ? error.message : 'Unknown error';
+    
+    // Check if it's a 404/Not Found error
+    const isNotFound = message.toLowerCase().includes('not found');
+    
+    // Theme-consistent colors (obsidian/ruby style)
+    const errorBg = '#0d0d0d';
+    const errorAccent = isNotFound ? '#ff4d4d' : '#facc15'; // Red for 404, Yellow for others
+    const errorText = '#ffffff';
 
     const errorSvg = `
-      <svg xmlns="http://www.w3.org/2000/svg" width="400" height="150" viewBox="0 0 400 150">
-        <rect width="100%" height="100%" fill="#2d0000" rx="8"/>
-        <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#ffcccc" font-family="sans-serif" font-size="14">
-          Error: ${message}
+      <svg xmlns="http://www.w3.org/2000/svg" width="600" height="420" viewBox="0 0 600 420" fill="none">
+        <rect width="600" height="420" rx="12" fill="${errorBg}" />
+        
+        <g opacity="0.1" transform="translate(300, 150)">
+          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="${errorAccent}" />
+          <path d="M40 20 L56 30 L40 40 L24 30 Z" fill="${errorAccent}" />
+          <path d="M-40 20 L-24 30 L-40 40 L-56 30 Z" fill="${errorAccent}" />
+        </g>
+
+        <g transform="translate(300, 210)" text-anchor="middle">
+          <text y="-40" fill="${errorAccent}" font-family="sans-serif" font-size="48" font-weight="bold">
+            ${isNotFound ? '🪨🔨' : '⚠️'}
+          </text>
+          <text y="10" fill="${errorText}" font-family="sans-serif" font-size="18" font-weight="bold" letter-spacing="2">
+            ${isNotFound ? 'USER_NOT_FOUND' : 'SYNC_ERROR'}
+          </text>
+          <text y="40" fill="${errorText}" fill-opacity="0.6" font-family="sans-serif" font-size="14">
+            ${message}
+          </text>
+          
+          <rect x="-100" y="70" width="200" height="1" fill="${errorAccent}" fill-opacity="0.3" />
+        </g>
+        
+        <text x="300" y="380" text-anchor="middle" fill="${errorText}" fill-opacity="0.3" font-family="sans-serif" font-size="10" letter-spacing="4">
+          COMMITPULSE_ERROR_LOG
         </text>
       </svg>
     `;
 
     return new NextResponse(errorSvg, {
-      status: 500,
+      status: isNotFound ? 404 : 500,
       headers: {
         'Content-Type': 'image/svg+xml',
-        'Cache-Control': 'no-cache',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
       },
     });
   }
