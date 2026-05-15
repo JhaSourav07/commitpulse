@@ -10,6 +10,27 @@ const inter = Inter({ subsets: ['latin'] });
 export const metadata = {
   title: 'CommitPulse | Visualize Your Rhythm',
   description: 'Premium GitHub streak monoliths',
+  openGraph: {
+    title: 'CommitPulse | Visualize Your Rhythm',
+    description: 'Your GitHub contributions as a cinematic SVG monolith.',
+    url: 'https://commitpulse.vercel.app',
+    siteName: 'CommitPulse',
+    images: [
+      {
+        url: '/api/og?user=jhasourav07',
+        width: 1200,
+        height: 630,
+        alt: 'CommitPulse Preview',
+      },
+    ],
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'CommitPulse | Visualize Your Rhythm',
+    description: 'Your GitHub contributions as a cinematic SVG monolith.',
+    images: ['/api/og?user=jhasourav07'],
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
