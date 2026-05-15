@@ -13,21 +13,24 @@ export async function GET(req: NextRequest) {
 
   try {
     const baseUrl = req.nextUrl.origin;
+
     const res = await fetch(`${baseUrl}/api/streak?user=${user}&refresh=true`, {
       cache: 'no-store',
     });
+
     if (res.ok) {
       const data = (await res.json()) as {
         totalContributions?: number;
         longestStreak?: number;
         currentStreak?: number;
       };
+
       totalCommits = data.totalContributions ?? 0;
       longestStreak = data.longestStreak ?? 0;
       currentStreak = data.currentStreak ?? 0;
     }
   } catch {
-    // Fallback to zeros if fetch fails
+    // fallback
   }
 
   return new ImageResponse(
@@ -54,6 +57,7 @@ export async function GET(req: NextRequest) {
           left: '300px',
         }}
       />
+
       <div
         style={{
           fontSize: '48px',
@@ -64,6 +68,7 @@ export async function GET(req: NextRequest) {
       >
         ⚡ CommitPulse
       </div>
+
       <div
         style={{
           fontSize: '32px',
@@ -73,7 +78,13 @@ export async function GET(req: NextRequest) {
       >
         @{user}
       </div>
-      <div style={{ display: 'flex', gap: '48px' }}>
+
+      <div
+        style={{
+          display: 'flex',
+          gap: '48px',
+        }}
+      >
         <div
           style={{
             display: 'flex',
@@ -85,11 +96,27 @@ export async function GET(req: NextRequest) {
             padding: '32px 48px',
           }}
         >
-          <div style={{ fontSize: '56px', fontWeight: 'bold', color: '#58a6ff' }}>
+          <div
+            style={{
+              fontSize: '56px',
+              fontWeight: 'bold',
+              color: '#58a6ff',
+            }}
+          >
             {totalCommits}
           </div>
-          <div style={{ fontSize: '18px', color: '#8b949e', marginTop: '8px' }}>Total Commits</div>
+
+          <div
+            style={{
+              fontSize: '18px',
+              color: '#8b949e',
+              marginTop: '8px',
+            }}
+          >
+            Total Commits
+          </div>
         </div>
+
         <div
           style={{
             display: 'flex',
@@ -101,13 +128,27 @@ export async function GET(req: NextRequest) {
             padding: '32px 48px',
           }}
         >
-          <div style={{ fontSize: '56px', fontWeight: 'bold', color: '#f78166' }}>
+          <div
+            style={{
+              fontSize: '56px',
+              fontWeight: 'bold',
+              color: '#f78166',
+            }}
+          >
             {longestStreak}
           </div>
-          <div style={{ fontSize: '18px', color: '#8b949e', marginTop: '8px' }}>
+
+          <div
+            style={{
+              fontSize: '18px',
+              color: '#8b949e',
+              marginTop: '8px',
+            }}
+          >
             Longest Streak 🔥
           </div>
         </div>
+
         <div
           style={{
             display: 'flex',
@@ -119,14 +160,28 @@ export async function GET(req: NextRequest) {
             padding: '32px 48px',
           }}
         >
-          <div style={{ fontSize: '56px', fontWeight: 'bold', color: '#3fb950' }}>
+          <div
+            style={{
+              fontSize: '56px',
+              fontWeight: 'bold',
+              color: '#3fb950',
+            }}
+          >
             {currentStreak}
           </div>
-          <div style={{ fontSize: '18px', color: '#8b949e', marginTop: '8px' }}>
+
+          <div
+            style={{
+              fontSize: '18px',
+              color: '#8b949e',
+              marginTop: '8px',
+            }}
+          >
             Current Streak ⚡
           </div>
         </div>
       </div>
+
       <div
         style={{
           position: 'absolute',
