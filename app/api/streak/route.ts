@@ -16,7 +16,10 @@ export async function GET(request: Request) {
       return new NextResponse('Missing "user" parameter', { status: 400 });
     }
 
-    const themeName = searchParams.get('theme') || 'dark';
+    const rawTheme = searchParams.get('theme') || 'dark';
+    const themeKeys = Object.keys(themes);
+    const themeName =
+      rawTheme === 'random' ? themeKeys[Math.floor(Math.random() * themeKeys.length)] : rawTheme;
     const selectedTheme = themes[themeName] || themes.dark;
 
     const rawSpeed = searchParams.get('speed') || '8s';
