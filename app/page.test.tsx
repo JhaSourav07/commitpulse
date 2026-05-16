@@ -148,4 +148,20 @@ describe('LandingPage', () => {
       expect(screen.queryByText('Your Monolith is Ready - Deploy It in 4 Steps')).toBeNull();
     });
   });
+
+  it('toggles the clear button X visibility and clears the input in username field on click', () => {
+    render(<LandingPage />);
+    const input = screen.getByPlaceholderText('Enter GitHub Username') as HTMLInputElement;
+
+    expect(screen.queryByLabelText('Clear input')).toBeNull();
+
+    fireEvent.change(input, { target: { value: 'a' } });
+    const clearButton = screen.getByLabelText('Clear input');
+    expect(clearButton).toBeDefined();
+
+    fireEvent.click(clearButton);
+    expect(input.value).toBe('');
+
+    expect(screen.queryByLabelText('Clear input')).toBeNull();
+  });
 });

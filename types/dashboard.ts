@@ -51,3 +51,8 @@ export interface CommitClockData {
   hour: number; // 0 - 23
   commits: number;
 }
+
+export interface DashboardExportData {
+  stats: UserStats;
+  languages: LanguageData[];
+}

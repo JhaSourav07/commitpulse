@@ -6,7 +6,10 @@ export type ExportFormat = 'markdown' | 'html';
 
 export type ThemeKey = Extract<keyof typeof themes, string>;
 
-export const THEME_KEYS = Object.keys(themes) as ThemeKey[];
+// 'auto' is a virtual theme that uses CSS prefers-color-scheme to
+// switch between light and dark at runtime — it has no entry in the
+// themes record, so we prepend it manually.
+export const THEME_KEYS: (ThemeKey | 'auto')[] = ['auto', ...(Object.keys(themes) as ThemeKey[])];
 
 export const SPEEDS = [
   { value: '4s', label: 'Fast  (4s)' },

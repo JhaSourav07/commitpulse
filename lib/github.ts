@@ -58,6 +58,8 @@ type GitHubContributionResponse = {
 
 type FetchOptions = {
   bypassCache?: boolean;
+  from?: string;
+  to?: string;
 };
 
 export const GITHUB_CACHE_TTL_MS = 5 * 60 * 1000;
@@ -79,8 +81,12 @@ const contributionsCache = new TTLCache<ContributionCalendar>();
 const profileCache = new TTLCache<GitHubUserProfile>();
 const reposCache = new TTLCache<GitHubRepo[]>();
 
-function cacheKey(kind: 'contributions' | 'profile' | 'repos', username: string): string {
-  return `${kind}:${username.toLowerCase()}`;
+function cacheKey(
+  kind: 'contributions' | 'profile' | 'repos',
+  username: string,
+  year?: string
+): string {
+  return year ? `${kind}:${username.toLowerCase()}:${year}` : `${kind}:${username.toLowerCase()}`;
 }
 
 export function clearGitHubApiCacheForTests(): void {
@@ -98,7 +104,7 @@ export async function fetchGitHubContributions(
   username: string,
   options: FetchOptions = {}
 ): Promise<ContributionCalendar> {
-  const key = cacheKey('contributions', username);
+  const key = cacheKey('contributions', username, options.from?.substring(0, 4));
 
   if (!options.bypassCache) {
     const cached = contributionsCache.get(key);
@@ -106,9 +112,9 @@ export async function fetchGitHubContributions(
   }
 
   const query = `
-    query($login: String!) {
+    query($login: String!, $from: DateTime, $to: DateTime) {
       user(login: $login) {
-        contributionsCollection {
+        contributionsCollection(from: $from, to: $to) {
           contributionCalendar {
             totalContributions
             weeks {
@@ -127,7 +133,10 @@ export async function fetchGitHubContributions(
   const res = await fetchWithRetry(GITHUB_GRAPHQL_URL, {
     method: 'POST',
     headers: getHeaders(),
-    body: JSON.stringify({ query, variables: { login: username } }),
+    body: JSON.stringify({
+      query,
+      variables: { login: username, from: options.from, to: options.to },
+    }),
     cache: 'no-store', // Cache handled by our in-memory layer + API route headers
   });
 

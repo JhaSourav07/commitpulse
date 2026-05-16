@@ -36,6 +36,17 @@ describe('ShareSheet', () => {
     username: 'octocat',
     isOpen: true,
     onClose: vi.fn(),
+    exportData: {
+      stats: {
+        currentStreak: 7,
+        peakStreak: 14,
+        totalContributions: 365,
+      },
+      languages: [
+        { name: 'TypeScript', percentage: 72, color: '#3178c6' },
+        { name: 'JavaScript', percentage: 28, color: '#f1e05a' },
+      ],
+    },
   };
 
   beforeEach(() => {
@@ -50,6 +61,15 @@ describe('ShareSheet', () => {
 
     // Mock window.open
     vi.spyOn(window, 'open').mockImplementation(() => null);
+    Object.defineProperty(URL, 'createObjectURL', {
+      configurable: true,
+      value: vi.fn().mockReturnValue('blob:mock-download'),
+    });
+    Object.defineProperty(URL, 'revokeObjectURL', {
+      configurable: true,
+      value: vi.fn(),
+    });
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
   });
 
   afterEach(() => {
@@ -67,6 +87,7 @@ describe('ShareSheet', () => {
     expect(screen.getByText('@octocat')).toBeDefined();
     expect(screen.getByText('Copy Link')).toBeDefined();
     expect(screen.getByText('Share on X')).toBeDefined();
+    expect(screen.getByText('Download JSON')).toBeDefined();
   });
 
   it('calls onClose when close button is clicked', () => {
@@ -140,5 +161,30 @@ describe('ShareSheet', () => {
     });
 
     document.body.removeChild(mockRoot);
+  });
+
+  it('downloads dashboard data as formatted JSON', async () => {
+    render(<ShareSheet {...defaultProps} />);
+
+    const jsonButton = screen.getByText('Download JSON').closest('button');
+    fireEvent.click(jsonButton!);
+
+    const blob = vi.mocked(URL.createObjectURL).mock.calls[0][0] as Blob;
+    const json = JSON.parse(await blob.text());
+
+    expect(json).toMatchObject({
+      username: 'octocat',
+      currentStreak: 7,
+      longestStreak: 14,
+      totalContributions: 365,
+      topLanguages: defaultProps.exportData.languages,
+    });
+    expect(json.profileUrl).toContain('/octocat');
+    expect(HTMLAnchorElement.prototype.click).toHaveBeenCalled();
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:mock-download');
+
+    await waitFor(() => {
+      expect(screen.getByText('JSON Downloaded!')).toBeDefined();
+    });
   });
 });

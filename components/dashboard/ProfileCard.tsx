@@ -3,10 +3,15 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { MapPin, Calendar, GitBranch, Users, UserPlus, Star, Share2 } from 'lucide-react';
-import { UserProfile } from '@/types/dashboard';
+import type { DashboardExportData, UserProfile } from '@/types/dashboard';
 import ShareSheet from './ShareSheet';
 
-export default function ProfileCard({ user }: { user: UserProfile }) {
+interface ProfileCardProps {
+  user: UserProfile;
+  exportData: DashboardExportData;
+}
+
+export default function ProfileCard({ user, exportData }: ProfileCardProps) {
   const [shareOpen, setShareOpen] = useState(false);
 
   return (
@@ -99,7 +104,12 @@ export default function ProfileCard({ user }: { user: UserProfile }) {
         </div>
       </motion.div>
 
-      <ShareSheet username={user.username} isOpen={shareOpen} onClose={() => setShareOpen(false)} />
+      <ShareSheet
+        username={user.username}
+        isOpen={shareOpen}
+        onClose={() => setShareOpen(false)}
+        exportData={exportData}
+      />
     </>
   );
 }

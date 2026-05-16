@@ -2,8 +2,9 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Link2, Download, Share2, Check, Loader2, Smartphone } from 'lucide-react';
+import { Check, Download, FileJson, Link2, Loader2, Share2, Smartphone, X } from 'lucide-react';
 import { toPng } from 'html-to-image';
+import type { DashboardExportData } from '@/types/dashboard';
 
 // Inline branded icons (Twitter/X brand, LinkedIn brand)
 const XBrandIcon = ({ size = 18 }: { size?: number }) => (
@@ -22,6 +23,7 @@ interface ShareSheetProps {
   username: string;
   isOpen: boolean;
   onClose: () => void;
+  exportData: DashboardExportData;
 }
 
 type OptionState = 'idle' | 'loading' | 'success' | 'error';
@@ -31,7 +33,7 @@ const PROFILE_URL = (username: string) =>
     ? `${window.location.origin}/${username}`
     : `https://commitpulse.vercel.app/${username}`;
 
-export default function ShareSheet({ username, isOpen, onClose }: ShareSheetProps) {
+export default function ShareSheet({ username, isOpen, onClose, exportData }: ShareSheetProps) {
   const [states, setStates] = useState<Record<string, OptionState>>({});
   const overlayRef = useRef<HTMLDivElement>(null);
 
@@ -116,6 +118,33 @@ export default function ShareSheet({ username, isOpen, onClose }: ShareSheetProp
     }
   };
 
+  const handleDownloadJSON = () => {
+    setOptionState('json', 'loading');
+    try {
+      const payload = {
+        username,
+        profileUrl: PROFILE_URL(username),
+        exportedAt: new Date().toISOString(),
+        currentStreak: exportData.stats.currentStreak,
+        longestStreak: exportData.stats.peakStreak,
+        totalContributions: exportData.stats.totalContributions,
+        topLanguages: exportData.languages,
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], {
+        type: 'application/json',
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.download = `commitpulse-${username}.json`;
+      link.href = url;
+      link.click();
+      URL.revokeObjectURL(url);
+      setOptionState('json', 'success');
+    } catch {
+      setOptionState('json', 'error');
+    }
+  };
+
   const handleNativeShare = async () => {
     if (!('share' in navigator)) {
       // Graceful fallback: just copy the link
@@ -179,6 +208,15 @@ export default function ShareSheet({ username, isOpen, onClose }: ShareSheetProp
       gradient: 'bg-zinc-800',
       glow: 'transparent',
       action: handleDownloadPNG,
+    },
+    {
+      key: 'json',
+      icon: FileJson,
+      label: 'Download JSON',
+      description: 'Export raw streak and language data',
+      gradient: 'bg-zinc-800',
+      glow: 'transparent',
+      action: handleDownloadJSON,
     },
     {
       key: 'native',
@@ -275,7 +313,9 @@ export default function ShareSheet({ username, isOpen, onClose }: ShareSheetProp
                                 ? 'Link Copied!'
                                 : opt.key === 'png'
                                   ? 'Downloaded!'
-                                  : opt.label
+                                  : opt.key === 'json'
+                                    ? 'JSON Downloaded!'
+                                    : opt.label
                               : state === 'error'
                                 ? 'Failed — try again'
                                 : opt.label}

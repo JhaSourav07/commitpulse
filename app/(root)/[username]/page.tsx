@@ -9,6 +9,7 @@ import AIInsights from '@/components/dashboard/AIInsights';
 import Achievements from '@/components/dashboard/Achievements';
 import { getFullDashboardData } from '@/lib/github';
 import Link from 'next/link';
+import { notFound } from 'next/navigation';
 
 export const revalidate = 3600; // Cache for 1 hour
 
@@ -53,8 +54,15 @@ export default async function DashboardPage({ params }: { params: Promise<{ user
   const { username } = await params;
 
   // Fetch real GitHub data
-  const data = await getFullDashboardData(username);
-
+  let data;
+  try {
+    data = await getFullDashboardData(username);
+  } catch (error) {
+    if (error instanceof Error) {
+      return notFound();
+    }
+    throw Error;
+  }
   return (
     <div id="dashboard-root" data-dashboard className="p-4 md:p-6 lg:p-8 min-h-screen relative">
       <div id="generate-dashboard-btn" className="flex justify-end mb-6">
@@ -81,7 +89,10 @@ export default async function DashboardPage({ params }: { params: Promise<{ user
       <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr_320px] gap-6 lg:gap-8">
         {/* Left Sidebar */}
         <aside className="flex flex-col gap-6">
-          <ProfileCard user={data.profile} />
+          <ProfileCard
+            user={data.profile}
+            exportData={{ stats: data.stats, languages: data.languages }}
+          />
           {/* We omit real achievements data generation for now and just show a placeholder based on streaks */}
           <Achievements
             achievements={[

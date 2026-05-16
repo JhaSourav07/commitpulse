@@ -193,29 +193,29 @@ refactor(generator): extract tower path builder into helper function
 4. **Open a PR** with the following template filled out:
 
 ```md
-## What does this PR do?
+## Description
 
-<!-- One sentence summary -->
+Fixes # (issue number)
 
 ## Pillar
 
-- [ ] New Theme Design
-- [ ] Geometric SVG Improvement
-- [ ] Timezone Logic Optimization
-- [ ] Other (describe below)
+- [ ] 🎨 Pillar 1 — New Theme Design
+- [ ] 📐 Pillar 2 — Geometric SVG Improvement
+- [ ] 🕐 Pillar 3 — Timezone Logic Optimization
+- [ ] 🛠️ Other (Bug fix, refactoring, docs)
 
 ## Visual Preview
 
-<!-- Paste a screenshot or embed the SVG output URL -->
+## Checklist before requesting a review:
 
-## Checklist
-
-- [ ] I've tested this locally
-- [ ] All new logic/features have accompanying Vitest tests
-- [ ] `npm run test` passes locally
-- [ ] The SVG output matches the CommitPulse aesthetic standard
-- [ ] I've updated README.md if I added a new parameter or theme
-- [ ] My commits follow the Conventional Commits format
+- [ ] I have read the `CONTRIBUTING.md` file.
+- [ ] I have tested these changes locally (`localhost:3000/api/streak?user=YOUR_USERNAME`).
+- [ ] I have run `npm run format` and `npm run lint` locally and resolved all errors (CI will fail otherwise).
+- [ ] My commits follow the Conventional Commits format (e.g., `feat(themes): ...`, `fix(calculate): ...`).
+- [ ] I have updated `README.md` if I added a new theme or URL parameter.
+- [ ] I have started the repo.
+- [ ] I have made sure that i have only one commit to merge in this PR.
+- [ ] The SVG output matches the CommitPulse "premium quality" aesthetic standard (no raw elements, smooth animations, correct fonts).
 ```
 
 > **PRs without a visual preview for any SVG-touching changes will be asked for one before review.**

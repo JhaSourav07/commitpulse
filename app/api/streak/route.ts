@@ -16,8 +16,13 @@ export async function GET(request: Request) {
       return new NextResponse('Missing "user" parameter', { status: 400 });
     }
 
+    const yearParam = searchParams.get('year');
+    const from = yearParam ? `${yearParam}-01-01T00:00:00Z` : undefined;
+    const to = yearParam ? `${yearParam}-12-31T23:59:59Z` : undefined;
+
     const themeName = searchParams.get('theme') || 'dark';
-    const selectedTheme = themes[themeName] || themes.dark;
+    const isAutoTheme = themeName === 'auto';
+    const selectedTheme = isAutoTheme ? themes.light : themes[themeName] || themes.dark;
 
     const rawSpeed = searchParams.get('speed') || '8s';
     const speed = /^\d+(\.\d+)?s$/.test(rawSpeed) ? rawSpeed : '8s';
@@ -27,20 +32,26 @@ export async function GET(request: Request) {
 
     const font = searchParams.get('font') || undefined;
 
+    // Auto-theme ignores custom hex overrides — the SVG uses CSS
+    // custom properties with a prefers-color-scheme media query, so
+    // fixed colors would conflict with the dual-palette switching.
     const params: BadgeParams = {
       user,
-      bg: searchParams.get('bg') || selectedTheme.bg,
-      text: searchParams.get('text') || selectedTheme.text,
-      accent: searchParams.get('accent') || selectedTheme.accent,
+      bg: isAutoTheme ? selectedTheme.bg : searchParams.get('bg') || selectedTheme.bg,
+      text: isAutoTheme ? selectedTheme.text : searchParams.get('text') || selectedTheme.text,
+      accent: isAutoTheme
+        ? selectedTheme.accent
+        : searchParams.get('accent') || selectedTheme.accent,
       radius: searchParams.get('radius') || '8',
       speed,
       scale,
       font,
+      autoTheme: isAutoTheme,
     };
 
     const refresh = searchParams.get('refresh') === 'true';
 
-    const calendar = await fetchGitHubContributions(user, { bypassCache: refresh });
+    const calendar = await fetchGitHubContributions(user, { bypassCache: refresh, from, to });
     const stats = calculateStreak(calendar);
 
     const svg = generateSVG(stats, params, calendar);

@@ -33,6 +33,8 @@ export function ThemeSelector({
   theme: string;
   onThemeChange: (theme: string) => void;
 }): ReactElement {
+  const isAuto = theme === 'auto';
+
   return (
     <div className="flex flex-col gap-1.5">
       <SectionLabel>Theme Preset</SectionLabel>
@@ -40,24 +42,42 @@ export function ThemeSelector({
         <StyledSelect id="theme-select" value={theme} onChange={onThemeChange}>
           {THEME_KEYS.map((key) => (
             <option key={key} value={key}>
-              {key.charAt(0).toUpperCase() + key.slice(1)}
+              {key === 'auto' ? 'Auto (System)' : key.charAt(0).toUpperCase() + key.slice(1)}
             </option>
           ))}
         </StyledSelect>
 
         <div className="mt-2 flex gap-1.5">
-          {(['bg', 'accent', 'text'] as const).map((prop) => {
-            const color = themes[theme as ThemeKey]?.[prop];
-            return color ? (
+          {isAuto ? (
+            <>
+              {/* Split swatch: left half = light bg, right half = dark bg */}
               <span
-                key={prop}
-                title={`${prop}: #${color}`}
-                className="w-5 h-5 rounded-md border border-white/10"
-                style={{ backgroundColor: `#${color}` }}
-              />
-            ) : null;
-          })}
-          <span className="text-[11px] text-white/25 ml-1 self-center">bg · accent · text</span>
+                title="Light → Dark (auto)"
+                className="w-5 h-5 rounded-md border border-white/10 overflow-hidden flex"
+              >
+                <span className="w-1/2 h-full" style={{ backgroundColor: `#${themes.light.bg}` }} />
+                <span className="w-1/2 h-full" style={{ backgroundColor: `#${themes.dark.bg}` }} />
+              </span>
+              <span className="text-[11px] text-white/25 ml-1 self-center">
+                switches with OS theme
+              </span>
+            </>
+          ) : (
+            <>
+              {(['bg', 'accent', 'text'] as const).map((prop) => {
+                const color = themes[theme as ThemeKey]?.[prop];
+                return color ? (
+                  <span
+                    key={prop}
+                    title={`${prop}: #${color}`}
+                    className="w-5 h-5 rounded-md border border-white/10"
+                    style={{ backgroundColor: `#${color}` }}
+                  />
+                ) : null;
+              })}
+              <span className="text-[11px] text-white/25 ml-1 self-center">bg · accent · text</span>
+            </>
+          )}
         </div>
       </div>
     </div>

@@ -33,4 +33,5 @@ export interface BadgeParams {
   scale: 'linear' | 'log';
   font?: string;
   radius?: string;
+  autoTheme?: boolean;
 }

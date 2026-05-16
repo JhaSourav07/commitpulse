@@ -76,34 +76,47 @@ URL Parameter > Theme Default > System Fallback
 
 ### Parameter Reference
 
-| Parameter | Type      | Required   | Default       | Description                                           |
-| --------- | --------- | ---------- | ------------- | ----------------------------------------------------- |
-| `user`    | `string`  | ✅ **Yes** | —             | GitHub username to render                             |
-| `theme`   | `string`  | No         | `dark`        | Preset theme name (see below)                         |
-| `bg`      | `hex`     | No         | Theme default | Background color — **without** `#`                    |
-| `accent`  | `hex`     | No         | Theme default | Tower & glow color — **without** `#`                  |
-| `text`    | `hex`     | No         | Theme default | Label & stat text color — **without** `#`             |
-| `radius`  | `number`  | No         | `8`           | Border corner radius in pixels                        |
-| `speed`   | `string`  | No         | `8s`          | Radar scan animation duration (e.g. `4s`, `12s`)      |
-| `scale`   | `string`  | No         | `linear`      | Tower height scaling: `linear` or `log` (logarithmic) |
-| `refresh` | `boolean` | No         | `false`       | Bypass cache for real-time data                       |
+| Parameter | Type      | Required   | Default                        | Description                                           |
+| --------- | --------- | ---------- | ------------------------------ | ----------------------------------------------------- |
+| `user`    | `string`  | ✅ **Yes** | —                              | GitHub username to render                             |
+| `theme`   | `string`  | No         | `dark`                         | Preset theme name (see below)                         |
+| `bg`      | `hex`     | No         | Theme default                  | Background color — **without** `#`                    |
+| `accent`  | `hex`     | No         | Theme default                  | Tower & glow color — **without** `#`                  |
+| `text`    | `hex`     | No         | Theme default                  | Label & stat text color — **without** `#`             |
+| `radius`  | `number`  | No         | `8`                            | Border corner radius in pixels                        |
+| `speed`   | `string`  | No         | `8s`                           | Radar scan animation duration (e.g. `4s`, `12s`)      |
+| `scale`   | `string`  | No         | `linear`                       | Tower height scaling: `linear` or `log` (logarithmic) |
+| `font`    | `string`  | No         | CommitPulse default typography | Any **Google Font** name (e.g., `Orbitron`, `Inter`)  |
+| `refresh` | `boolean` | No         | `false`                        | Bypass cache for real-time data                       |
+| `year`    | `string`  | No         | —                              | Calendar year to render (e.g. `2023`, `2024`)         |
 
 ### Theme Presets
 
-| Theme              | Preview         | `bg`     | `accent` | `text`   |
-| ------------------ | --------------- | -------- | -------- | -------- |
-| `dark` _(default)_ | GitHub dark     | `0d1117` | `58a6ff` | `c9d1d9` |
-| `neon`             | Cyberpunk       | `000000` | `ff00ff` | `00ffcc` |
-| `dracula`          | Dracula Pro     | `282a36` | `bd93f9` | `f8f8f2` |
-| `github`           | GitHub green    | `0d1117` | `238636` | `ffffff` |
-| `light`            | Clean & minimal | `ffffff` | `0969da` | `24292f` |
+| Theme              | Preview             | `bg`     | `accent` | `text`   |
+| ------------------ | ------------------- | -------- | -------- | -------- |
+| `auto`             | System light / dark | _adapts_ | _adapts_ | _adapts_ |
+| `dark` _(default)_ | GitHub dark         | `0d1117` | `58a6ff` | `c9d1d9` |
+| `neon`             | Cyberpunk           | `000000` | `ff00ff` | `00ffcc` |
+| `dracula`          | Dracula Pro         | `282a36` | `bd93f9` | `f8f8f2` |
+| `github`           | GitHub green        | `0d1117` | `238636` | `ffffff` |
+| `light`            | Clean & minimal     | `ffffff` | `0969da` | `24292f` |
+
+> **`auto` uses CSS `@media (prefers-color-scheme)`** inside the SVG so the badge switches between the `light` and `dark` palettes based on the viewer's OS setting — no JavaScript required. This is ideal for GitHub profile READMEs where visitors may use either mode.
 
 ### Examples
 
 ```md
+<!-- Auto theme — adapts to the viewer's light/dark system preference -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=auto)
+
 <!-- The Dracula aesthetic -->
 
 ![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=dracula)
+
+<!-- Dynamic Google Fonts — Space-age look with Orbitron -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&font=Orbitron)
 
 <!-- Fully custom — hot orange on void black -->
 
@@ -116,6 +129,10 @@ URL Parameter > Theme Default > System Fallback
 <!-- Fast scan + logarithmic scaling for power users -->
 
 ![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&speed=4s&scale=log)
+
+<!-- View contributions for a specific past year -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&year=2023)
 ```
 
 ---

@@ -111,6 +111,7 @@ export function ControlsPanel({
   onClearOverrides: () => void;
 }): ReactElement {
   const hasOverrides = Boolean(bgHex || accentHex || textHex);
+  const isAutoTheme = theme === 'auto';
 
   return (
     <div>
@@ -138,41 +139,51 @@ export function ControlsPanel({
 
         <div>
           <SectionLabel>Custom Color Overrides</SectionLabel>
-          <p className="text-[11px] text-white/25 mb-3 leading-relaxed">
-            These override the theme preset above. Enter HEX values without&nbsp;
-            <code className="text-white/40">#</code>.
-          </p>
-          <div className="flex flex-col gap-3">
-            <HexInput
-              id="bg-hex-input"
-              label="Background"
-              value={bgHex}
-              onChange={onBgHexChange}
-              placeholder="e.g. 0a0a0a"
-            />
-            <HexInput
-              id="accent-hex-input"
-              label="Accent / Tower Color"
-              value={accentHex}
-              onChange={onAccentHexChange}
-              placeholder="e.g. 00ffaa"
-            />
-            <HexInput
-              id="text-hex-input"
-              label="Text / Label Color"
-              value={textHex}
-              onChange={onTextHexChange}
-              placeholder="e.g. ffffff"
-            />
-          </div>
-          {hasOverrides && (
-            <button
-              id="clear-overrides-btn"
-              onClick={onClearOverrides}
-              className="mt-3 text-[11px] text-red-400/60 hover:text-red-400 transition-colors"
-            >
-              Clear overrides
-            </button>
+          {isAutoTheme ? (
+            <p className="text-[11px] text-white/30 mt-2 leading-relaxed">
+              Custom colors are disabled for the <strong className="text-white/50">Auto</strong>{' '}
+              theme. The badge switches between light and dark palettes automatically based on the
+              viewer&apos;s system preference.
+            </p>
+          ) : (
+            <>
+              <p className="text-[11px] text-white/25 mb-3 leading-relaxed">
+                These override the theme preset above. Enter HEX values without&nbsp;
+                <code className="text-white/40">#</code>.
+              </p>
+              <div className="flex flex-col gap-3">
+                <HexInput
+                  id="bg-hex-input"
+                  label="Background"
+                  value={bgHex}
+                  onChange={onBgHexChange}
+                  placeholder="e.g. 0a0a0a"
+                />
+                <HexInput
+                  id="accent-hex-input"
+                  label="Accent / Tower Color"
+                  value={accentHex}
+                  onChange={onAccentHexChange}
+                  placeholder="e.g. 00ffaa"
+                />
+                <HexInput
+                  id="text-hex-input"
+                  label="Text / Label Color"
+                  value={textHex}
+                  onChange={onTextHexChange}
+                  placeholder="e.g. ffffff"
+                />
+              </div>
+              {hasOverrides && (
+                <button
+                  id="clear-overrides-btn"
+                  onClick={onClearOverrides}
+                  className="mt-3 text-[11px] text-red-400/60 hover:text-red-400 transition-colors"
+                >
+                  Clear overrides
+                </button>
+              )}
+            </>
           )}
         </div>
 

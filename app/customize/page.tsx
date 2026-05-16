@@ -22,6 +22,18 @@ export default function CustomizePage(): ReactElement {
   const [copied, setCopied] = useState(false);
   const trimmedUsername = username.trim();
   const hasUsername = trimmedUsername.length > 0;
+  const isAutoTheme = theme === 'auto';
+
+  // Clear custom hex overrides when switching to auto — fixed colors
+  // conflict with the dual-palette prefers-color-scheme switching.
+  const handleThemeChange = useCallback((newTheme: string): void => {
+    setTheme(newTheme);
+    if (newTheme === 'auto') {
+      setBgHex('');
+      setAccentHex('');
+      setTextHex('');
+    }
+  }, []);
 
   // ── buildQueryParams ──────────────────────────────────────────────────────
 
@@ -32,21 +44,26 @@ export default function CustomizePage(): ReactElement {
       params.set('user', trimmedUsername);
     }
 
-    const hasCustomColors = bgHex || accentHex || textHex;
+    if (isAutoTheme) {
+      // Auto always emits theme=auto — no custom color params
+      params.set('theme', 'auto');
+    } else {
+      const hasCustomColors = bgHex || accentHex || textHex;
 
-    // Custom hex colors take priority over theme
-    if (!hasCustomColors) {
-      params.set('theme', theme);
+      // Custom hex colors take priority over theme
+      if (!hasCustomColors) {
+        params.set('theme', theme);
+      }
+      if (bgHex) params.set('bg', stripHash(bgHex));
+      if (accentHex) params.set('accent', stripHash(accentHex));
+      if (textHex) params.set('text', stripHash(textHex));
     }
-    if (bgHex) params.set('bg', stripHash(bgHex));
-    if (accentHex) params.set('accent', stripHash(accentHex));
-    if (textHex) params.set('text', stripHash(textHex));
 
     if (scale !== 'linear') params.set('scale', scale);
     if (speed !== '8s') params.set('speed', speed);
 
     return params.toString();
-  }, [hasUsername, trimmedUsername, theme, bgHex, accentHex, textHex, scale, speed]);
+  }, [hasUsername, trimmedUsername, theme, isAutoTheme, bgHex, accentHex, textHex, scale, speed]);
 
   const queryString = buildQueryParams();
   const previewSrc = `/api/streak?${queryString}`;
@@ -141,7 +158,7 @@ export default function CustomizePage(): ReactElement {
               scale={scale}
               speed={speed}
               onUsernameChange={setUsername}
-              onThemeChange={setTheme}
+              onThemeChange={handleThemeChange}
               onBgHexChange={setBgHex}
               onAccentHexChange={setAccentHex}
               onTextHexChange={setTextHex}
