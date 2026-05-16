@@ -66,11 +66,22 @@ const Icons = {
 
 export default function LandingPage() {
   const [username, setUsername] = useState('');
+  const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
+  const cleanUsername = (value: string) => {
+  return value
+    .trim()
+    .replace(/^https?:\/\/(www\.)?github\.com\//i, '')
+    .replace(/\/$/, '')
+    .replace(/\s/g, ''); 
+};
+
+const isValidUsername = (value: string) => {
+  return /^(?!-)(?!.*--)[A-Za-z0-9-]{1,39}(?<!-)$/.test(value);
+};
   const guideRef = useRef<HTMLDivElement>(null);
   const trimmedUsername = username.trim();
-  const hasUsername = trimmedUsername.length > 0;
-
+  const hasUsername = trimmedUsername.length > 0 && error === '';
   const badgeUrl = `/api/streak?user=${trimmedUsername}`;
   const markdown = `![CommitPulse](https://commitpulse.vercel.app/api/streak?user=${trimmedUsername})`;
 
@@ -117,14 +128,36 @@ export default function LandingPage() {
 
         <section className="mx-auto mb-32 max-w-4xl">
           <div className="rounded-2xl border border-[rgba(255,255,255,0.08)] bg-[#0a0a0a] p-4 md:p-8">
-            <div className="mb-8 flex flex-col gap-4 md:flex-row">
-              <input
-                type="text"
-                placeholder="Enter GitHub Username"
-                className="flex-1 rounded-xl border border-[rgba(255,255,255,0.08)] bg-[#111] px-5 py-3.5 text-sm text-white outline-none transition-all placeholder:text-[#A1A1AA] focus:border-[rgba(255,255,255,0.18)]"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-              />
+            <div className="mb-8">
+              <div className="flex flex-col gap-4 md:flex-row">
+                <input
+                  type="text"
+                  placeholder="Enter GitHub Username"
+                  className="flex-1 rounded-xl border border-[rgba(255,255,255,0.08)] bg-[#111] px-5 py-3.5 text-sm text-white outline-none transition-all placeholder:text-[#A1A1AA] focus:border-[rgba(255,255,255,0.18)]"
+                  value={username}
+                  onChange={(e) => {
+                    const raw = e.target.value;
+                    const cleaned = cleanUsername(raw);
+
+                    setUsername(cleaned);
+
+                    if (cleaned && !isValidUsername(cleaned)) {
+                      setError('Invalid GitHub username format');
+                    } else {
+                      setError('');
+                    }
+                  }}
+                />
+              </div>
+
+              {error && (
+                <p className="mt-2 text-sm text-red-400">
+                  Invalid GitHub username format
+                </p>
+              )}
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-4">
               <div className="flex flex-col sm:flex-row gap-4">
                 <button
                   onClick={copyToClipboard}
