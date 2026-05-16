@@ -16,6 +16,10 @@ export async function GET(request: Request) {
       return new NextResponse('Missing "user" parameter', { status: 400 });
     }
 
+    const yearParam = searchParams.get('year');
+    const from = yearParam ? `${yearParam}-01-01T00:00:00Z` : undefined;
+    const to = yearParam ? `${yearParam}-12-31T23:59:59Z` : undefined;
+
     const themeName = searchParams.get('theme') || 'dark';
     const isAutoTheme = themeName === 'auto';
     const selectedTheme = isAutoTheme ? themes.light : themes[themeName] || themes.dark;
@@ -47,7 +51,7 @@ export async function GET(request: Request) {
 
     const refresh = searchParams.get('refresh') === 'true';
 
-    const calendar = await fetchGitHubContributions(user, { bypassCache: refresh });
+    const calendar = await fetchGitHubContributions(user, { bypassCache: refresh, from, to });
     const stats = calculateStreak(calendar);
 
     const svg = generateSVG(stats, params, calendar);

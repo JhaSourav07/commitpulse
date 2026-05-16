@@ -123,7 +123,7 @@ export default function LandingPage() {
                 <input
                   type="text"
                   placeholder="Enter GitHub Username"
-                  className="flex-1 rounded-xl border border-[rgba(255,255,255,0.08)] bg-[#111] px-5 py-3.5 text-sm text-white outline-none transition-all placeholder:text-[#A1A1AA] focus:border-[rgba(255,255,255,0.18)]"
+                  className="flex-1 rounded-xl border border-[rgba(255,255,255,0.08)] bg-[#111] px-5 py-3.5 text-sm text-white outline-none transition-all duration-200 placeholder:text-[#A1A1AA] focus:outline-none focus:ring-2 focus:ring-[#00ffaa] focus:border-transparent"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                 />

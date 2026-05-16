@@ -87,6 +87,7 @@ URL Parameter > Theme Default > System Fallback
 | `speed`   | `string`  | No         | `8s`          | Radar scan animation duration (e.g. `4s`, `12s`)      |
 | `scale`   | `string`  | No         | `linear`      | Tower height scaling: `linear` or `log` (logarithmic) |
 | `refresh` | `boolean` | No         | `false`       | Bypass cache for real-time data                       |
+| `year`    | `string`  | No         | —             | Calendar year to render (e.g. `2023`, `2024`)         |
 
 ### Theme Presets
 
@@ -123,6 +124,10 @@ URL Parameter > Theme Default > System Fallback
 <!-- Fast scan + logarithmic scaling for power users -->
 
 ![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&speed=4s&scale=log)
+
+<!-- View contributions for a specific past year -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&year=2023)
 ```
 
 ---
