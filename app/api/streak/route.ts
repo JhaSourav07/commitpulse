@@ -6,21 +6,29 @@ import { generateSVG } from '../../../lib/svg/generator';
 import { getSecondsUntilUTCMidnight } from '../../../utils/time';
 import type { BadgeParams } from '../../../types';
 import { themes } from '../../../lib/svg/themes';
+import { streakParamsSchema } from '../../../lib/validations';
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const user = searchParams.get('user');
 
-    if (!user) {
-      return new NextResponse('Missing "user" parameter', { status: 400 });
+    // Parse and validate all incoming params through Zod schema
+    const parseResult = streakParamsSchema.safeParse(Object.fromEntries(searchParams.entries()));
+
+    if (!parseResult.success) {
+      return NextResponse.json(
+        { error: 'Invalid parameters', details: parseResult.error.flatten() },
+        { status: 400 }
+      );
     }
 
-    const yearParam = searchParams.get('year');
-    const from = yearParam ? `${yearParam}-01-01T00:00:00Z` : undefined;
-    const to = yearParam ? `${yearParam}-12-31T23:59:59Z` : undefined;
+    const { user, theme, bg, text, accent, scale, speed, radius, font, year, refresh } =
+      parseResult.data;
 
-    const themeName = searchParams.get('theme') || 'dark';
+    const from = year ? `${year}-01-01T00:00:00Z` : undefined;
+    const to = year ? `${year}-12-31T23:59:59Z` : undefined;
+
+    const themeName = theme;
     const isAutoTheme = themeName === 'auto';
     const isRandomTheme = themeName === 'random';
     const selectedTheme = (() => {
@@ -46,38 +54,33 @@ export async function GET(request: Request) {
     // fixed colors would conflict with the dual-palette switching.
     const params: BadgeParams = {
       user,
-      bg: isAutoTheme ? selectedTheme.bg : searchParams.get('bg') || selectedTheme.bg,
-      text: isAutoTheme ? selectedTheme.text : searchParams.get('text') || selectedTheme.text,
-      accent: isAutoTheme
-        ? selectedTheme.accent
-        : searchParams.get('accent') || selectedTheme.accent,
-      radius: searchParams.get('radius') || '8',
+      bg: isAutoTheme ? selectedTheme.bg : bg || selectedTheme.bg,
+      text: isAutoTheme ? selectedTheme.text : text || selectedTheme.text,
+      accent: isAutoTheme ? selectedTheme.accent : accent || selectedTheme.accent,
+      radius,
       speed,
       scale,
       font,
       autoTheme: isAutoTheme,
     };
 
-    const refresh = searchParams.get('refresh') === 'true';
-
     const calendar = await fetchGitHubContributions(user, { bypassCache: refresh, from, to });
     const stats = calculateStreak(calendar);
 
     const svg = generateSVG(stats, params, calendar);
 
-    // 4. Calculate Cache Control (Reset at UTC Midnight)
+    //4. Calculate Cache Control (Reset at UTC Midnight)
     const secondsToMidnight = getSecondsUntilUTCMidnight();
     const cacheControl =
       refresh || isRandomTheme
         ? 'no-cache, no-store, must-revalidate'
         : `public, s-maxage=${secondsToMidnight}, stale-while-revalidate=86400`;
 
-    // 5. Return the Image Response
+    //5. Return the Image Response
     return new NextResponse(svg, {
       headers: {
         'Content-Type': 'image/svg+xml',
         'Cache-Control': cacheControl,
-
         'Content-Security-Policy':
           "default-src 'none'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://fonts.gstatic.com;",
       },
