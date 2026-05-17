@@ -1,51 +1,62 @@
-// lib/github.ts
 
-import type { ContributionCalendar } from '../types';
-import { calculateStreak } from './calculate';
-import { TTLCache } from './cache';
 
-interface GitHubRepo {
-  stargazers_count: number;
-  language: string | null;
+const GITHUB_API_URL = 'https://api.github.com/graphql';
+
+
+const token = process.env.GITHUB_PAT;
+
+if (!token) {
+  throw new Error(
+    '\n\n' +
+    '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n' +
+    '  Missing environment variable: GITHUB_PAT\n' +
+    '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n' +
+    '  1. Copy the template:  cp .env.example .env.local\n' +
+    '  2. Open .env.local\n' +
+    '  3. Set GITHUB_PAT=ghp_your_token_here\n' +
+    '  4. Generate a token: https://github.com/settings/tokens/new\n' +
+    '     (Only "read:user" scope required)\n' +
+    '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'
+  );
 }
 
-const MAX_RETRIES = 3;
-const BASE_DELAY_MS = 500;
-
-/**
- * Wraps fetch with exponential backoff retry logic.
- * Retries ONLY on network errors, 429 Too Many Requests, and 5xx server errors.
- * Returns immediately for all other statuses (2xx success, 3xx redirects, 4xx client errors).
- */
-export async function fetchWithRetry(
-  url: string,
-  options: RequestInit,
-  attempt = 0
-): Promise<Response> {
-  let res: Response | null = null;
-  try {
-    res = await fetch(url, options);
-  } catch (err) {
-    // Network error — retry if attempts remain, otherwise rethrow
-    if (attempt >= MAX_RETRIES) throw err;
-    const delay = BASE_DELAY_MS * Math.pow(2, attempt);
-    await new Promise((resolve) => setTimeout(resolve, delay));
-    return fetchWithRetry(url, options, attempt + 1);
+const CONTRIBUTIONS_QUERY = (
+  username: string,
+  from: string,
+  to: string
+) => `
+  query {
+    user(login: "${username}") {
+      contributionsCollection(from: "${from}", to: "${to}") {
+        contributionCalendar {
+          totalContributions
+          weeks {
+            contributionDays {
+              contributionCount
+              date
+            }
+          }
+        }
+      }
+    }
   }
+`;
 
-  // Only retry on 429 or 5xx — all other statuses are returned immediately
-  const shouldRetry = res.status === 429 || res.status >= 500;
-  if (!shouldRetry || attempt >= MAX_RETRIES) return res;
-
-  const delay = BASE_DELAY_MS * Math.pow(2, attempt);
-  await new Promise((resolve) => setTimeout(resolve, delay));
-  return fetchWithRetry(url, options, attempt + 1);
+export interface ContributionDay {
+  contributionCount: number;
+  date: string;
 }
 
-const GITHUB_GRAPHQL_URL = 'https://api.github.com/graphql';
-const GITHUB_REST_URL = 'https://api.github.com';
+export interface ContributionWeek {
+  contributionDays: ContributionDay[];
+}
 
-type GitHubContributionResponse = {
+export interface ContributionCalendar {
+  totalContributions: number;
+  weeks: ContributionWeek[];
+}
+
+export interface GitHubContributionsResponse {
   data: {
     user: {
       contributionsCollection: {
@@ -53,322 +64,80 @@ type GitHubContributionResponse = {
       };
     } | null;
   };
-  errors?: Array<{ message: string }>;
-};
-
-type FetchOptions = {
-  bypassCache?: boolean;
-  from?: string;
-  to?: string;
-};
-
-export const GITHUB_CACHE_TTL_MS = 5 * 60 * 1000;
-
-interface GitHubUserProfile {
-  login: string;
-  name: string | null;
-  avatar_url: string;
-  public_repos: number;
-  followers: number;
-  following: number;
-  created_at: string;
-  bio: string | null;
-  location: string | null;
-  plan?: { name?: string } | null;
+  errors?: { message: string }[];
 }
 
-const contributionsCache = new TTLCache<ContributionCalendar>();
-const profileCache = new TTLCache<GitHubUserProfile>();
-const reposCache = new TTLCache<GitHubRepo[]>();
-
-function cacheKey(
-  kind: 'contributions' | 'profile' | 'repos',
+export async function fetchContributions(
   username: string,
-  year?: string
-): string {
-  return year ? `${kind}:${username.toLowerCase()}:${year}` : `${kind}:${username.toLowerCase()}`;
-}
-
-export function clearGitHubApiCacheForTests(): void {
-  contributionsCache.clear();
-  profileCache.clear();
-  reposCache.clear();
-}
-
-const getHeaders = () => ({
-  Authorization: `bearer ${process.env.GITHUB_PAT || process.env.GITHUB_TOKEN}`,
-  'Content-Type': 'application/json',
-});
-
-export async function fetchGitHubContributions(
-  username: string,
-  options: FetchOptions = {}
+  from: string,
+  to: string
 ): Promise<ContributionCalendar> {
-  const key = cacheKey('contributions', username, options.from?.substring(0, 4));
-
-  if (!options.bypassCache) {
-    const cached = contributionsCache.get(key);
-    if (cached) return cached;
-  }
-
-  const query = `
-    query($login: String!, $from: DateTime, $to: DateTime) {
-      user(login: $login) {
-        contributionsCollection(from: $from, to: $to) {
-          contributionCalendar {
-            totalContributions
-            weeks {
-              contributionDays {
-                contributionCount
-                date
-                color
-              }
-            }
-          }
-        }
-      }
-    }
-  `;
-
-  const res = await fetchWithRetry(GITHUB_GRAPHQL_URL, {
+  const res = await fetch(GITHUB_API_URL, {
     method: 'POST',
-    headers: getHeaders(),
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+      'User-Agent': 'CommitPulse/1.0',
+    },
     body: JSON.stringify({
-      query,
-      variables: { login: username, from: options.from, to: options.to },
+      query: CONTRIBUTIONS_QUERY(username, from, to),
     }),
-    cache: 'no-store', // Cache handled by our in-memory layer + API route headers
-  });
-
-  if (!res.ok) {
-    if (res.status === 401) throw new Error('GitHub PAT is invalid or missing');
-    throw new Error(`GitHub GraphQL API returned status ${res.status}`);
-  }
-
-  const data: GitHubContributionResponse = await res.json();
-
-  if (data.errors) {
-    throw new Error(data.errors[0].message);
-  }
-
-  if (!data.data.user) {
-    throw new Error(`GitHub user "${username}" not found`);
-  }
-
-  const calendar = data.data.user.contributionsCollection.contributionCalendar;
-
-  if (!options.bypassCache) {
-    contributionsCache.set(key, calendar, GITHUB_CACHE_TTL_MS);
-  }
-
-  return calendar;
-}
-
-export async function fetchUserProfile(
-  username: string,
-  options: FetchOptions = {}
-): Promise<GitHubUserProfile> {
-  const key = cacheKey('profile', username);
-
-  if (!options.bypassCache) {
-    const cached = profileCache.get(key);
-    if (cached) return cached;
-  }
-
-  const res = await fetchWithRetry(`${GITHUB_REST_URL}/users/${username}`, {
-    headers: getHeaders(),
     cache: 'no-store',
   });
 
-  if (!res.ok) {
-    if (res.status === 404) throw new Error('User not found');
-    throw new Error(`GitHub REST API error: ${res.status}`);
-  }
-
-  const profile = (await res.json()) as GitHubUserProfile;
-
-  if (!options.bypassCache) {
-    profileCache.set(key, profile, GITHUB_CACHE_TTL_MS);
-  }
-
-  return profile;
-}
-
-export async function fetchUserRepos(
-  username: string,
-  options: FetchOptions = {}
-): Promise<GitHubRepo[]> {
-  const key = cacheKey('repos', username);
-
-  if (!options.bypassCache) {
-    const cached = reposCache.get(key);
-    if (cached) return cached;
-  }
-
-  const res = await fetchWithRetry(
-    `${GITHUB_REST_URL}/users/${username}/repos?per_page=100&sort=pushed`,
-    {
-      headers: getHeaders(),
-      cache: 'no-store',
-    }
+  const remaining = parseInt(
+    res.headers.get('X-RateLimit-Remaining') ?? '1',
+    10
+  );
+  const resetAt = parseInt(
+    res.headers.get('X-RateLimit-Reset') ?? '0',
+    10
   );
 
+  if (res.status === 403 || res.status === 429 || remaining === 0) {
+    const resetDate = new Date(resetAt * 1000).toUTCString();
+    throw new RateLimitError(
+      `GitHub API rate limit exhausted. Resets at ${resetDate}.`,
+      resetAt
+    );
+  }
+
   if (!res.ok) {
-    throw new Error(`GitHub REST API error: ${res.status}`);
+    throw new Error(
+      `GitHub GraphQL API returned ${res.status} ${res.statusText}`
+    );
   }
 
-  const repos = (await res.json()) as GitHubRepo[];
+  const json: GitHubContributionsResponse = await res.json();
 
-  if (!options.bypassCache) {
-    reposCache.set(key, repos, GITHUB_CACHE_TTL_MS);
+  if (json.errors?.length) {
+    const messages = json.errors.map((e) => e.message).join(', ');
+    throw new Error(`GitHub GraphQL error: ${messages}`);
   }
 
-  return repos;
+  if (!json.data?.user) {
+    throw new UserNotFoundError(
+      `GitHub user "${username}" not found or has no public contributions.`
+    );
+  }
+
+  return json.data.user.contributionsCollection.contributionCalendar;
 }
 
-export async function getFullDashboardData(username: string, options: FetchOptions = {}) {
-  try {
-    const [profileData, reposData, calendarData] = await Promise.all([
-      fetchUserProfile(username, options),
-      fetchUserRepos(username, options),
-      fetchGitHubContributions(username, options),
-    ]);
 
-    // Pre-compute streak + stars early so developerScore can use them
-    const streakStats = calculateStreak(calendarData);
-    const totalStars = reposData.reduce(
-      (acc: number, repo: GitHubRepo) => acc + repo.stargazers_count,
-      0
-    );
+export class RateLimitError extends Error {
+  public readonly resetAt: number;
 
-    // Developer Score — 5-factor weighted formula (max 100 pts)
-    // Repos:         up to 25 pts  (saturates at 50 public repos)
-    // Followers:     up to 25 pts  (saturates at 50 followers)
-    // Stars:         up to 20 pts  (saturates at 100 total stars)
-    // Contributions: up to 20 pts  (saturates at 400 yearly contributions)
-    // Streak:        up to 10 pts  (saturates at a 50-day longest streak)
-    const developerScore = Math.min(
-      Math.round(
-        Math.min(profileData.public_repos * 0.5, 25) +
-          Math.min(profileData.followers * 0.5, 25) +
-          Math.min(totalStars * 0.2, 20) +
-          Math.min(streakStats.totalContributions / 20, 20) +
-          Math.min(streakStats.longestStreak * 0.2, 10)
-      ),
-      100
-    );
+  constructor(message: string, resetAt: number) {
+    super(message);
+    this.name = 'RateLimitError';
+    this.resetAt = resetAt;
+  }
+}
 
-    // 1. Profile Mapping
-    const profile = {
-      username: profileData.login,
-      name: profileData.name || profileData.login,
-      avatarUrl: profileData.avatar_url,
-      isPro: profileData.plan?.name === 'pro' || profileData.public_repos > 50,
-      bio: profileData.bio || 'No bio available',
-      location: profileData.location || 'Earth',
-      joinedDate: new Date(profileData.created_at).toLocaleDateString('en-US', {
-        month: 'short',
-        year: 'numeric',
-      }),
-      developerScore,
-      stats: {
-        repositories: profileData.public_repos,
-        followers: profileData.followers,
-        following: profileData.following,
-        stars: totalStars,
-      },
-    };
-
-    // 2. Streaks & Activity Mapping (streakStats already computed above)
-
-    // Flatten days for charts
-    const allDays = calendarData.weeks.flatMap((w) => w.contributionDays);
-    const activity = allDays.map((day) => {
-      let intensity: 0 | 1 | 2 | 3 | 4 = 0;
-      if (day.contributionCount > 0) intensity = 1;
-      if (day.contributionCount > 3) intensity = 2;
-      if (day.contributionCount > 6) intensity = 3;
-      if (day.contributionCount > 10) intensity = 4;
-
-      return {
-        date: day.date,
-        count: day.contributionCount,
-        intensity,
-      };
-    });
-
-    // 3. Languages Mapping
-    const langCounts: Record<string, number> = {};
-    reposData.forEach((repo: GitHubRepo) => {
-      if (repo.language) {
-        langCounts[repo.language] = (langCounts[repo.language] || 0) + 1;
-      }
-    });
-
-    // Fixed color mapping for common languages to avoid random colors
-    const languageColors: Record<string, string> = {
-      TypeScript: '#3178c6',
-      JavaScript: '#f1e05a',
-      Python: '#3572A5',
-      Java: '#b07219',
-      'C++': '#f34b7d',
-      HTML: '#e34c26',
-      CSS: '#563d7c',
-      Go: '#00ADD8',
-      Rust: '#dea584',
-    };
-
-    const totalLangs = Object.values(langCounts).reduce((a, b) => a + b, 0);
-    const languages = Object.entries(langCounts)
-      .map(([name, count]) => ({
-        name,
-        percentage: Math.round((count / totalLangs) * 100),
-        color: languageColors[name] || '#a855f7', // fallback purple
-      }))
-      .sort((a, b) => b.percentage - a.percentage)
-      .slice(0, 5); // top 5
-
-    // 4. Insights Generation
-    const insights = [
-      {
-        id: '1',
-        icon: 'Flame',
-        text: `You have a total of ${streakStats.totalContributions} contributions this year.`,
-      },
-      {
-        id: '2',
-        icon: 'Code',
-        text: `Your primary language is ${languages[0]?.name || 'Unknown'}.`,
-      },
-      {
-        id: '3',
-        icon: 'Star',
-        text: `Your longest coding streak is ${streakStats.longestStreak} days!`,
-      },
-    ];
-
-    // Simulate 24h cycle (because GitHub events API is heavily rate limited to 300 events which doesn't give a full picture)
-    const commitClock = Array.from({ length: 24 }).map((_, i) => ({
-      hour: i,
-      commits: Math.floor(Math.random() * 20) + (i >= 9 && i <= 17 ? 30 : 0), // working hours peak
-    }));
-
-    return {
-      profile,
-      stats: {
-        currentStreak: streakStats.currentStreak,
-        peakStreak: streakStats.longestStreak,
-        totalContributions: streakStats.totalContributions,
-      },
-      languages,
-      activity,
-      insights,
-      commitClock,
-    };
-  } catch (error: unknown) {
-    if (error instanceof Error) {
-      throw new Error(error.message);
-    }
-    throw new Error('An unknown error occurred');
+export class UserNotFoundError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'UserNotFoundError';
   }
 }
