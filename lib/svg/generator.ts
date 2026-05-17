@@ -277,10 +277,11 @@ export function generateSVG(
   </g>
 
   <text x="300" y="50" text-anchor="middle" class="title">${safeUser.toUpperCase()}</text>
-
+${!params.disable_radar ? `
   <rect x="100" y="60" width="400" height="1" fill="${accent}" fill-opacity="0.3">
     <animate attributeName="y" values="80;320;80" dur="${params.speed || '8s'}" repeatCount="indefinite" />
   </rect>
+  ` : ""}
 </svg>
 `;
 }
@@ -380,10 +381,11 @@ function generateAutoThemeSVG(
   </g>
 
   <text x="300" y="50" text-anchor="middle" class="title">${safeUser.toUpperCase()}</text>
-
+${!params.disable_radar ? `
   <rect x="100" y="60" width="400" height="1" class="cp-accent-fill" fill-opacity="0.3">
     <animate attributeName="y" values="80;320;80" dur="${params.speed || '8s'}" repeatCount="indefinite" />
   </rect>
+  ` : ""}
 </svg>
 `;
 }

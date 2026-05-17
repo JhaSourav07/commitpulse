@@ -7,7 +7,6 @@ on:
     branches: [main, dev]
 
 jobs:
-  
   quality:
     name: Format · Lint · Typecheck · Test
     runs-on: ubuntu-latest
@@ -36,7 +35,6 @@ jobs:
 
       - name: Run Unit Tests (Vitest)
         run: npm run test
-
 
   build:
     name: Production Build

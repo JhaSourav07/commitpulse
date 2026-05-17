@@ -3,7 +3,7 @@ name: PR Template Enforcer
 on:
   pull_request_target:
     types: [opened, edited, reopened]
-  workflow_dispatch: 
+  workflow_dispatch:
 
 permissions:
   issues: write
