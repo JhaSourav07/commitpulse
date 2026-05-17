@@ -68,10 +68,12 @@ touch .env.local   # On Windows: New-Item .env.local
 Open `.env.local` and add your token:
 
 ```env
-GITHUB_TOKEN=ghp_your_personal_access_token_here
+GITHUB_PAT=ghp_your_personal_access_token_here
 ```
 
-> **Why is this required?** The GitHub GraphQL API requires authentication. Without a valid `GITHUB_TOKEN`, every request to `/api/streak` will return a `401 Unauthorized` error and the badge will not render.
+>  **Why is this required?** The GitHub GraphQL API requires authentication. Without a valid `GITHUB_PAT`, every request to `/api/streak` will return a `401 Unauthorized` error and the badge will not render.
+> 
+> ⚠️ **Important:** The variable is named `GITHUB_PAT`, **not** `GITHUB_TOKEN`. `GITHUB_TOKEN` is a name reserved by GitHub Actions for its automatically-generated workflow token — using it here causes a silent `401` with no clear error message.
 
 **Generating a Personal Access Token (classic):**
 Go to **GitHub → Settings → Developer settings → Personal access tokens → Tokens (classic)** and click **Generate new token (classic)**. Enable the `read:user` scope, set an expiry, and copy the generated token into your `.env.local`.
