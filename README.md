@@ -120,6 +120,7 @@ Transform your GitHub contribution history into a cinematic 3D monolith.
 ```md
 ![CommitPulse](https://commitpulse.vercel.app/api/streak?user=jhasourav07&bg=0a0a0a&accent=ff6b35&text=ffffff)
 ```
+
 ---
 
 ## 🎨 Deep Customization — URL Parameters
