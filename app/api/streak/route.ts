@@ -22,48 +22,32 @@ export async function GET(request: Request) {
 
     const yearParam = searchParams.get('year');
 
-    const from = yearParam
-      ? `${yearParam}-01-01T00:00:00Z`
-      : undefined;
+    const from = yearParam ? `${yearParam}-01-01T00:00:00Z` : undefined;
 
-    const to = yearParam
-      ? `${yearParam}-12-31T23:59:59Z`
-      : undefined;
+    const to = yearParam ? `${yearParam}-12-31T23:59:59Z` : undefined;
 
     const themeName = searchParams.get('theme') || 'dark';
 
     const isAutoTheme = themeName === 'auto';
 
-    const selectedTheme =
-      isAutoTheme
-        ? themes.light
-        : themes[themeName] || themes.dark;
+    const selectedTheme = isAutoTheme ? themes.light : themes[themeName] || themes.dark;
 
     const rawSpeed = searchParams.get('speed') || '8s';
 
-    const speed = /^\d+(\.\d+)?s$/.test(rawSpeed)
-      ? rawSpeed
-      : '8s';
+    const speed = /^\d+(\.\d+)?s$/.test(rawSpeed) ? rawSpeed : '8s';
 
     const rawScale = searchParams.get('scale');
 
-    const scale =
-      rawScale === 'log'
-        ? 'log'
-        : 'linear';
+    const scale = rawScale === 'log' ? 'log' : 'linear';
 
     const font = searchParams.get('font') || undefined;
 
     const params: BadgeParams = {
       user,
 
-      bg: isAutoTheme
-        ? selectedTheme.bg
-        : searchParams.get('bg') || selectedTheme.bg,
+      bg: isAutoTheme ? selectedTheme.bg : searchParams.get('bg') || selectedTheme.bg,
 
-      text: isAutoTheme
-        ? selectedTheme.text
-        : searchParams.get('text') || selectedTheme.text,
+      text: isAutoTheme ? selectedTheme.text : searchParams.get('text') || selectedTheme.text,
 
       accent: isAutoTheme
         ? selectedTheme.accent
@@ -88,8 +72,7 @@ export async function GET(request: Request) {
 
     const svg = generateSVG(stats, params, calendar);
 
-    const cacheControl =
-      'public, s-maxage=14400, stale-while-revalidate=86400';
+    const cacheControl = 'public, s-maxage=14400, stale-while-revalidate=86400';
 
     return new NextResponse(svg, {
       headers: {
@@ -102,10 +85,7 @@ export async function GET(request: Request) {
   } catch (error: unknown) {
     console.error('Streak API Error:', error);
 
-    const message =
-      error instanceof Error
-        ? error.message
-        : 'Unknown error';
+    const message = error instanceof Error ? error.message : 'Unknown error';
 
     const errorSvg = `
       <svg xmlns="http://www.w3.org/2000/svg" width="400" height="150" viewBox="0 0 400 150">
