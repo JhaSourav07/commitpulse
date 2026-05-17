@@ -214,13 +214,15 @@ git clone https://github.com/JhaSourav07/commitpulse.git && cd commitpulse
 npm install
 
 # 3. Create your environment file
-echo "GITHUB_PAT=your_token_here" > .env.local
+cp .env.example .env.local
+# Then open .env.local and replace the placeholder with your real token:
+# GITHUB_PAT=ghp_your_actual_token_here
 
 # 4. Start the development server
 npm run dev
 ```
 
-> **📌 Token Scope:** Your GitHub Personal Access Token needs the `read:user` scope only. No write permissions required.
+>> **📌 Token Scope:** Your GitHub Personal Access Token needs the `read:user` scope only. No write permissions required. Set it as `GITHUB_PAT` in your `.env.local` file (copy from `.env.example`).
 
 Then visit: `http://localhost:3000/api/streak?user=YOUR_USERNAME`
 
