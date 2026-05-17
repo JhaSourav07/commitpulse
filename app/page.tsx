@@ -81,14 +81,14 @@ function trackUser(name: string) {
 
 export default function LandingPage() {
   const [username, setUsername] = useState('');
+  const [theme, setTheme] = useState('dark');
   const [copied, setCopied] = useState(false);
   const guideRef = useRef<HTMLDivElement>(null);
   const trimmedUsername = username.trim();
   const hasUsername = trimmedUsername.length > 0;
 
-  const badgeUrl = `/api/streak?user=${trimmedUsername}`;
-  const markdown = `![CommitPulse](https://commitpulse.vercel.app/api/streak?user=${trimmedUsername})`;
-
+  const badgeUrl = `/api/streak?user=${trimmedUsername}&theme=${theme}`;
+  const markdown = `![CommitPulse](https://commitpulse.vercel.app/api/streak?user=${trimmedUsername}&theme=${theme})`;
   const copyToClipboard = () => {
     if (!hasUsername) return;
 
@@ -99,7 +99,7 @@ export default function LandingPage() {
     setTimeout(() => {
       guideRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 80);
-    setTimeout(() => setCopied(false), 50000);
+    setTimeout(() => setCopied(false), 3000);
   };
 
   return (
@@ -174,31 +174,34 @@ export default function LandingPage() {
 
         <section className="mx-auto mb-32 max-w-4xl">
           <div className="rounded-2xl border border-[rgba(255,255,255,0.08)] bg-[#0a0a0a] p-4 md:p-8">
-            <div className="mb-8 flex flex-col gap-4 md:flex-row">
-              <div className="relative flex-1 flex items-center">
-                <input
-                  type="text"
-                  placeholder="Enter GitHub Username"
-                  className="flex-1 rounded-xl border border-[rgba(255,255,255,0.08)] bg-[#111] px-5 py-3.5 text-sm text-white outline-none transition-all duration-200 placeholder:text-[#A1A1AA] focus:outline-none focus:ring-2 focus:ring-[#00ffaa] focus:border-transparent"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                />
-                {username.length > 0 ? (
-                  <button
-                    onClick={() => setUsername('')}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-[#A1A1AA] transition-colors hover:text-white"
-                    aria-label="Clear input"
-                    type="button"
-                  >
-                    <X size={18} />
-                  </button>
-                ) : null}
-              </div>
-              <div className="flex flex-col sm:flex-row gap-4">
+            <div className="mb-8 flex flex-col gap-4">
+              {/* ROW 1: Input + Action Buttons */}
+              <div className="flex flex-col md:flex-row md:items-center gap-4 w-full relative">
+                <div className="relative flex-1 w-full">
+                  <input
+                    type="text"
+                    placeholder="Enter GitHub Username"
+                    className="w-full rounded-xl border border-[rgba(255,255,255,0.08)] bg-[#111] px-5 py-3.5 text-sm text-white outline-none transition-all duration-200 placeholder:text-[#A1A1AA] focus:outline-none focus:ring-2 focus:ring-[#00ffaa] focus:border-transparent"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                  />
+                  {username.length > 0 ? (
+                    <button
+                      onClick={() => setUsername('')}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-[#A1A1AA] transition-colors hover:text-white"
+                      aria-label="Clear input"
+                      type="button"
+                    >
+                      <X size={18} />
+                    </button>
+                  ) : null}
+                </div>
+
+                {/* Copy Link Button */}
                 <button
                   onClick={copyToClipboard}
                   disabled={!hasUsername}
-                  className={`relative flex min-w-[160px] items-center justify-center gap-2 overflow-hidden rounded-xl px-6 py-3.5 text-sm font-semibold transition-all duration-200 active:scale-[0.98] ${
+                  className={`relative flex min-w-[160px] w-full md:w-auto items-center justify-center gap-2 overflow-hidden rounded-xl px-6 py-3.5 text-sm font-semibold transition-all duration-200 active:scale-[0.98] ${
                     hasUsername
                       ? 'bg-white text-black hover:bg-zinc-100'
                       : 'bg-white/10 text-white/35'
@@ -226,6 +229,8 @@ export default function LandingPage() {
                     )}
                   </AnimatePresence>
                 </button>
+
+                {/* Watch Dashboard Link */}
                 <Link
                   href={hasUsername ? `/dashboard/${trimmedUsername}` : '/'}
                   aria-disabled={!hasUsername}
@@ -236,7 +241,7 @@ export default function LandingPage() {
                       trackUser(trimmedUsername);
                     }
                   }}
-                  className={`relative flex min-w-[160px] items-center justify-center gap-2 overflow-hidden rounded-xl border px-6 py-3.5 text-sm font-semibold transition-all duration-200 active:scale-[0.98] ${
+                  className={`relative flex min-w-[160px] w-full md:w-auto items-center justify-center gap-2 overflow-hidden rounded-xl border px-6 py-3.5 text-sm font-semibold transition-all duration-200 active:scale-[0.98] ${
                     hasUsername
                       ? 'border-[rgba(255,255,255,0.15)] bg-transparent text-white hover:bg-white/5'
                       : 'border-[rgba(255,255,255,0.08)] bg-white/[0.02] text-white/35'
@@ -245,8 +250,27 @@ export default function LandingPage() {
                   Watch Dashboard
                 </Link>
               </div>
+
+              {/* ROW 2: Themes Preset Selection */}
+              <div className="flex flex-wrap items-center justify-end gap-2">
+                {['dark', 'neon', 'dracula', 'github', 'light'].map((preset) => (
+                  <button
+                    key={preset}
+                    type="button"
+                    onClick={() => setTheme(preset)}
+                    className={`rounded-xl border px-4 py-3 text-sm font-medium capitalize transition-all duration-200 ${
+                      theme === preset
+                        ? 'border-[#00ffaa] bg-[#00ffaa]/10 text-[#00ffaa]'
+                        : 'border-[rgba(255,255,255,0.08)] bg-[#111] text-white/70 hover:bg-white/10 hover:text-white'
+                    }`}
+                  >
+                    {preset}
+                  </button>
+                ))}
+              </div>
             </div>
 
+            {/* Preview Window Block remains exactly the same below */}
             <div className="group relative">
               <div className="absolute -inset-1 rounded-[2rem] bg-white/5 opacity-50 blur-xl transition duration-1000 group-hover:opacity-100" />
               <div className="relative flex min-h-[320px] items-center justify-center overflow-hidden rounded-xl border border-[rgba(255,255,255,0.06)] bg-black p-6">

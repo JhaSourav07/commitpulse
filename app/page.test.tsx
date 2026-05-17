@@ -108,7 +108,7 @@ describe('LandingPage', () => {
 
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
       expect.stringContaining(
-        '![CommitPulse](https://commitpulse.vercel.app/api/streak?user=jhasourav07)'
+        '![CommitPulse](https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=dark)'
       )
     );
 
