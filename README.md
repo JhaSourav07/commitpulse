@@ -56,41 +56,46 @@ Transform your GitHub contribution history into a cinematic 3D monolith.
 
 <table align="center">
 <tr>
-<td align="center" width="33%">
 
-### 🌑 Default
+<td align="center">
 
-<img 
-  src="https://commitpulse.vercel.app/api/streak?user=jhasourav07" 
-  width="300" 
-  style="max-width:100%; height:auto;" 
-/>
+#### Default
 
-</td>
-
-<td align="center" width="33%">
-
-### 🌟 Neon
-
-<img 
-  src="https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=neon" 
-  width="300" 
-  style="max-width:100%; height:auto;" 
-/>
+<a href="https://commitpulse.vercel.app/api/streak?user=jhasourav07">
+  <img 
+    src="https://commitpulse.vercel.app/api/streak?user=jhasourav07" 
+    width="600"
+  />
+</a>
 
 </td>
 
-<td align="center" width="33%">
+<td align="center">
 
-### 🔥 Custom
+#### Neon
 
-<img 
-  src="https://commitpulse.vercel.app/api/streak?user=jhasourav07&bg=0a0a0a&accent=ff6b35&text=ffffff" 
-  width="300" 
-  style="max-width:100%; height:auto;" 
-/>
+<a href="https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=neon">
+  <img 
+    src="https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=neon" 
+    width="600"
+  />
+</a>
 
 </td>
+
+<td align="center">
+
+#### Custom
+
+<a href="https://commitpulse.vercel.app/api/streak?user=jhasourav07&bg=0a0a0a&accent=ff6b35&text=ffffff">
+  <img 
+    src="https://commitpulse.vercel.app/api/streak?user=jhasourav07&bg=0a0a0a&accent=ff6b35&text=ffffff" 
+    width="600"
+  />
+</a>
+
+</td>
+
 </tr>
 </table>
 
