@@ -309,7 +309,7 @@ export async function getFullDashboardData(username: string, options: FetchOptio
       username: profileData.login,
       name: profileData.name || profileData.login,
       avatarUrl: profileData.avatar_url,
-      isPro: profileData.plan?.name === 'pro' || profileData.public_repos > 50,
+      isPro: profileData.plan?.name === 'pro',
       bio: profileData.bio || 'No bio available',
       location: profileData.location || 'Earth',
       joinedDate: new Date(profileData.created_at).toLocaleDateString('en-US', {
