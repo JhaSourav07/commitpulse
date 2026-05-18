@@ -85,6 +85,7 @@ export function ControlsPanel({
   textHex,
   scale,
   speed,
+  year,
   onUsernameChange,
   onThemeChange,
   onBgHexChange,
@@ -92,6 +93,7 @@ export function ControlsPanel({
   onTextHexChange,
   onScaleChange,
   onSpeedChange,
+  onYearChange,
   onClearOverrides,
 }: {
   username: string;
@@ -101,6 +103,7 @@ export function ControlsPanel({
   textHex: string;
   scale: Scale;
   speed: string;
+  year: string;
   onUsernameChange: (value: string) => void;
   onThemeChange: (value: string) => void;
   onBgHexChange: (value: string) => void;
@@ -108,6 +111,7 @@ export function ControlsPanel({
   onTextHexChange: (value: string) => void;
   onScaleChange: (value: Scale) => void;
   onSpeedChange: (value: string) => void;
+  onYearChange: (value: string) => void;
   onClearOverrides: () => void;
 }): ReactElement {
   const hasOverrides = Boolean(bgHex || accentHex || textHex);
@@ -129,6 +133,29 @@ export function ControlsPanel({
             placeholder="jhasourav07"
             className="w-full bg-black border border-white/10 rounded-xl px-4 py-2.5 text-sm font-mono text-emerald-300 placeholder:text-white/20 outline-none focus:border-emerald-500/50 transition-colors"
           />
+        </ControlRow>
+
+        <div className="h-px bg-white/5" />
+        <ControlRow label="Year">
+          <div className="relative">
+            <StyledSelect id="year-select" value={year} onChange={(value) => onYearChange(value)}>
+              <option value="">Current Year</option>
+
+              {Array.from(
+                { length: new Date().getFullYear() - 2019 },
+                (_, i) => {
+                  const currentYear = new Date().getFullYear();
+                  const yearOption = currentYear - i-1;
+
+                  return (
+                    <option key={yearOption} value={yearOption.toString()}>
+                      {yearOption}
+                    </option>
+                  );
+                }
+              )}
+            </StyledSelect>
+          </div>
         </ControlRow>
 
         <div className="h-px bg-white/5" />
