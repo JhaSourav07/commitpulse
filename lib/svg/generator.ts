@@ -8,6 +8,29 @@ const LINEAR_SCALE_MULTIPLIER = 5;
 const MAX_LOG_HEIGHT = 80;
 const MAX_LINEAR_HEIGHT = 50;
 
+// TOWER_BASE_Y: the vertical midpoint of the isometric ground floor diamond in local SVG space.
+// The diamond paths are drawn from y=0 (back vertex) to y=20 (front vertex), making y=10
+// the horizontal center line that acts as the visual ground level for each tower.
+// This value is used as the CSS transform-origin for the grow-up animation so towers
+// scale upward from their ground tile rather than from the SVG origin.
+const TOWER_BASE_Y = 10;
+
+// Shared animation CSS injected into both static and auto-theme SVG renderers.
+// Defined once here to avoid duplication — any curve/timing change only needs updating in one place.
+const TOWER_ANIMATION_CSS = `
+  .cp-tower {
+    transform: scaleY(0);
+    transform-origin: 0 ${TOWER_BASE_Y}px;
+    animation: grow-up 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+  @keyframes grow-up {
+    from { transform: scaleY(0); }
+    to   { transform: scaleY(1); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .cp-tower { animation: none !important; transform: scaleY(1) !important; }
+  }`;
+
 const FONT_MAP: Record<string, string> = {
   jetbrains: '"JetBrains Mono", monospace',
   fira: '"Fira Code", monospace',
@@ -35,6 +58,9 @@ interface TowerData {
   faceOpacity: FaceOpacity;
   strokeOpacity: number;
   strokeWidth: number;
+  /** Grid position used to compute the staggered animation-delay (row + col) * offset */
+  row: number;
+  col: number;
 }
 
 // helpers
@@ -113,6 +139,8 @@ function computeTowers(calendar: ContributionCalendar, scale: 'linear' | 'log'):
         faceOpacity: computeFaceOpacity(day.contributionCount, shouldShowGhostCity),
         strokeOpacity: isGhost ? 0.3 : 0,
         strokeWidth: isGhost ? 0.5 : 0,
+        row: i,
+        col: j,
       });
     });
   });
@@ -208,15 +236,24 @@ export function generateSVG(
 
   for (const t of towerData) {
     const color = t.isGhost ? text : accent;
+    // Stagger delay creates a diagonal wave across the isometric grid (back-to-front)
+    const delay = ((t.row + t.col) * 0.015).toFixed(3);
 
+    // The outer <g> positions the group at the ground tile (t.x, t.y).
+    // The inner <g class="cp-tower"> is what CSS animates with scaleY.
+    // Keeping these two responsibilities in separate elements prevents the
+    // CSS transform from fighting the SVG translate — they operate independently.
+    // Geometry paths are drawn offset by -t.h so they extend upward from y=10 (ground).
     towers += `
-        <g transform="translate(${t.x}, ${t.y - t.h})">
-          ${t.isTodayWithCommits ? '<animate attributeName="opacity" values="1;0.4;1" dur="1.5s" repeatCount="indefinite" />' : ''}
-          <title>${t.tooltip}</title>
-          <path d="M0 10 L0 ${10 + t.h} L-16 ${t.h} L-16 0 Z" fill="${color}" fill-opacity="${t.faceOpacity.left}" stroke="${color}" stroke-opacity="${t.strokeOpacity}" stroke-width="${t.strokeWidth}" />
-          <path d="M0 10 L0 ${10 + t.h} L16 ${t.h} L16 0 Z" fill="${color}" fill-opacity="${t.faceOpacity.right}" stroke="${color}" stroke-opacity="${t.strokeOpacity}" stroke-width="${t.strokeWidth}" />
-          <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="${color}" fill-opacity="${t.faceOpacity.top}" stroke="${color}" stroke-opacity="${t.strokeOpacity}" stroke-width="${t.strokeWidth}" />
-          ${t.contributionCount > 5 ? `<path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="white" fill-opacity="0.2" />` : ''}
+        <g transform="translate(${t.x}, ${t.y})">
+          <g class="cp-tower" style="animation-delay: ${delay}s;">
+            ${t.isTodayWithCommits ? '<animate attributeName="opacity" values="1;0.4;1" dur="1.5s" repeatCount="indefinite" />' : ''}
+            <title>${t.tooltip}</title>
+            <path d="M0 ${10 - t.h} L0 10 L-16 0 L-16 ${-t.h} Z" fill="${color}" fill-opacity="${t.faceOpacity.left}" stroke="${color}" stroke-opacity="${t.strokeOpacity}" stroke-width="${t.strokeWidth}" />
+            <path d="M0 ${10 - t.h} L0 10 L16 0 L16 ${-t.h} Z" fill="${color}" fill-opacity="${t.faceOpacity.right}" stroke="${color}" stroke-opacity="${t.strokeOpacity}" stroke-width="${t.strokeWidth}" />
+            <path d="M0 ${-t.h} L16 ${10 - t.h} L0 ${20 - t.h} L-16 ${10 - t.h} Z" fill="${color}" fill-opacity="${t.faceOpacity.top}" stroke="${color}" stroke-opacity="${t.strokeOpacity}" stroke-width="${t.strokeWidth}" />
+            ${t.contributionCount > 5 ? `<path d="M0 ${-t.h} L16 ${10 - t.h} L0 ${20 - t.h} L-16 ${10 - t.h} Z" fill="white" fill-opacity="0.2" />` : ''}
+          </g>
         </g>`;
     if (t.contributionCount >= 10)
       towers += generateParticles(t.x, t.y, t.h, accent, t.contributionCount);
@@ -248,6 +285,7 @@ export function generateSVG(
   <style>
   @import url('https://fonts.googleapis.com/css2?family=Fira+Code&amp;family=JetBrains+Mono&amp;family=Roboto&amp;display=swap');
   ${googleFontsImport}
+  ${TOWER_ANIMATION_CSS}
 
   .title { font-family: ${selectedFont || '"Syncopate", sans-serif'}; fill: ${text}; font-size: 18px; letter-spacing: 6px; font-weight: 400; opacity: 0.8; }
   .stats { font-family: ${statsFont}; fill: ${text}; font-size: 42px; font-weight: 500; letter-spacing: 0; }
@@ -314,16 +352,28 @@ function generateAutoThemeSVG(
   let towers = '';
 
   for (const t of towerData) {
-    const fillClass = t.hasCommits ? 'cp-accent-fill' : 'cp-text-fill';
+    // isGhost is the single source of truth for color class — no hasCommits redundancy
+    const fillClass = t.isGhost ? 'cp-text-fill' : 'cp-accent-fill';
+    // Ghost strokes use --cp-text; active towers have no outline (strokeOpacity=0 handles suppression)
+    const strokeColor = t.isGhost ? 'var(--cp-text)' : 'var(--cp-accent)';
+    // Stagger delay creates a diagonal wave across the isometric grid (back-to-front)
+    const delay = ((t.row + t.col) * 0.015).toFixed(3);
 
+    // The outer <g> positions the group at the ground tile (t.x, t.y).
+    // The inner <g class="cp-tower"> is what CSS animates with scaleY.
+    // Keeping these two responsibilities in separate elements prevents the
+    // CSS transform from fighting the SVG translate — they operate independently.
+    // Geometry paths are drawn offset by -t.h so they extend upward from y=10 (ground).
     towers += `
-        <g transform="translate(${t.x}, ${t.y - t.h})">
-          ${t.isTodayWithCommits ? '<animate attributeName="opacity" values="1;0.4;1" dur="1.5s" repeatCount="indefinite" />' : ''}
-          <title>${t.tooltip}</title>
-          <path d="M0 10 L0 ${10 + t.h} L-16 ${t.h} L-16 0 Z" class="${fillClass}" fill-opacity="${t.faceOpacity.left}" stroke="currentColor" stroke-opacity="${t.strokeOpacity}" stroke-width="${t.strokeWidth}" />
-          <path d="M0 10 L0 ${10 + t.h} L16 ${t.h} L16 0 Z" class="${fillClass}" fill-opacity="${t.faceOpacity.right}" stroke="currentColor" stroke-opacity="${t.strokeOpacity}" stroke-width="${t.strokeWidth}" />
-          <path d="M0 0 L16 10 L0 20 L-16 10 Z" class="${fillClass}" fill-opacity="${t.faceOpacity.top}" stroke="currentColor" stroke-opacity="${t.strokeOpacity}" stroke-width="${t.strokeWidth}" />
-          ${t.contributionCount > 5 ? `<path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="white" fill-opacity="0.2" />` : ''}
+        <g transform="translate(${t.x}, ${t.y})">
+          <g class="cp-tower" style="animation-delay: ${delay}s;">
+            ${t.isTodayWithCommits ? '<animate attributeName="opacity" values="1;0.4;1" dur="1.5s" repeatCount="indefinite" />' : ''}
+            <title>${t.tooltip}</title>
+            <path d="M0 ${10 - t.h} L0 10 L-16 0 L-16 ${-t.h} Z" class="${fillClass}" fill-opacity="${t.faceOpacity.left}" stroke="${strokeColor}" stroke-opacity="${t.strokeOpacity}" stroke-width="${t.strokeWidth}" />
+            <path d="M0 ${10 - t.h} L0 10 L16 0 L16 ${-t.h} Z" class="${fillClass}" fill-opacity="${t.faceOpacity.right}" stroke="${strokeColor}" stroke-opacity="${t.strokeOpacity}" stroke-width="${t.strokeWidth}" />
+            <path d="M0 ${-t.h} L16 ${10 - t.h} L0 ${20 - t.h} L-16 ${10 - t.h} Z" class="${fillClass}" fill-opacity="${t.faceOpacity.top}" stroke="${strokeColor}" stroke-opacity="${t.strokeOpacity}" stroke-width="${t.strokeWidth}" />
+            ${t.contributionCount > 5 ? `<path d="M0 ${-t.h} L16 ${10 - t.h} L0 ${20 - t.h} L-16 ${10 - t.h} Z" fill="white" fill-opacity="0.2" />` : ''}
+          </g>
         </g>`;
     if (t.contributionCount >= 10)
       towers += generateAutoParticles(t.x, t.y, t.h, t.contributionCount);
@@ -351,6 +401,7 @@ function generateAutoThemeSVG(
   :root { --cp-bg: #${light.bg}; --cp-text: #${light.text}; --cp-accent: #${light.accent}; }
   @media (prefers-color-scheme: dark) { :root { --cp-bg: #${dark.bg}; --cp-text: #${dark.text}; --cp-accent: #${dark.accent}; } }
   .cp-bg-fill { fill: var(--cp-bg); } .cp-text-fill { fill: var(--cp-text); color: var(--cp-text); } .cp-accent-fill { fill: var(--cp-accent); color: var(--cp-accent); }
+  ${TOWER_ANIMATION_CSS}
   .title { font-family: ${selectedFont || '"Syncopate", sans-serif'}; fill: var(--cp-text); font-size: 18px; letter-spacing: 6px; font-weight: 400; opacity: 0.8; }
   .stats { font-family: ${statsFont}; fill: var(--cp-text); font-size: 42px; font-weight: 500; letter-spacing: 0; }
   .total-val { font-family: ${statsFont}; fill: var(--cp-accent); font-size: 24px; font-weight: 500; }
