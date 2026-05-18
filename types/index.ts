@@ -25,6 +25,7 @@ export interface ContributionCalendar {
 }
 
 export interface BadgeParams {
+  disable_radar?: boolean;
   user: string;
   bg: string;
   text: string;
