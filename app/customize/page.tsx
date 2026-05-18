@@ -184,26 +184,19 @@ export default function CustomizePage(): ReactElement {
               <p className="text-xs font-bold uppercase tracking-[0.22em] text-emerald-400 mb-5">
                 Live Preview
               </p>
-<div className="relative flex min-h-[320px] items-center justify-center overflow-hidden rounded-2xl border border-white/5 bg-black">
-  {hasUsername ? (
-    <img
-      src={previewSrc}
-      alt="CommitPulse Preview"
-      className="max-w-full h-auto"
-    />
-  ) : (
-    <div className="flex flex-col items-center justify-center text-center px-6">
-      <p className="text-white/70 text-lg font-semibold mb-2">
-        No Preview Yet
-      </p>
+              <div className="relative flex min-h-[320px] items-center justify-center overflow-hidden rounded-2xl border border-white/5 bg-black">
+                {hasUsername ? (
+                  <img src={previewSrc} alt="CommitPulse Preview" className="max-w-full h-auto" />
+                ) : (
+                  <div className="flex flex-col items-center justify-center text-center px-6">
+                    <p className="text-white/70 text-lg font-semibold mb-2">No Preview Yet</p>
 
-      <p className="text-sm text-white/30 max-w-md">
-        Enter your GitHub username in the control panel to generate a live preview.
-      </p>
-    </div>
-  )}
-</div>
-              
+                    <p className="text-sm text-white/30 max-w-md">
+                      Enter your GitHub username in the control panel to generate a live preview.
+                    </p>
+                  </div>
+                )}
+              </div>
 
               <p className="mt-3 text-[11px] text-white/20 text-center">
                 {hasUsername
