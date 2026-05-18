@@ -4,6 +4,41 @@
   --font-sans: 'Inter', ui-sans-serif, system-ui;
 }
 
+@layer utilities {
+  .slider::-webkit-slider-thumb {
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 9999px;
+    background: black;
+    border: 1px solid rgb(16 185 129 / 0.5);
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.12);
+    transition: box-shadow 150ms;
+  }
+
+  .slider:hover::-webkit-slider-thumb {
+    border-color: rgb(16 185 129);
+    box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.22);
+  }
+
+  .slider::-webkit-slider-runnable-track {
+    background: transparent;
+  }
+
+  .slider::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 9999px;
+    background: black;
+    border: 1px solid rgb(16 185 129 / 0.5);
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.12);
+  }
+
+  .slider::-moz-range-track {
+    background: transparent;
+  }
+}
+
 :root {
   /* Vercel-inspired token set */
   --color-surface-0: #000000;
@@ -12,6 +47,10 @@
   --color-border: rgba(255, 255, 255, 0.08);
   --color-muted: #a1a1aa;
   --color-accent: rgba(99, 102, 241, 0.5);
+<<<<<<< HEAD
+=======
+  /* indigo glow, hover only */
+>>>>>>> c3826c5 (feat(SVG):added border radius to customization page)
 }
 
 body {

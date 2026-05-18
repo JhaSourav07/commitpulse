@@ -95,6 +95,7 @@ URL Parameter > Theme Default > System Fallback
 | `font`    | `string`  | No         | CommitPulse default typography | Any **Google Font** name (e.g., `Orbitron`, `Inter`)  |
 | `refresh` | `boolean` | No         | `false`                        | Bypass cache for real-time data                       |
 | `year`    | `string`  | No         | —                              | Calendar year to render (e.g. `2023`, `2024`)         |
+| `radius`  | `number`  | NO         | `8`                            | border radius to the SVG baDGE                        |
 
 ### Theme Presets
 
