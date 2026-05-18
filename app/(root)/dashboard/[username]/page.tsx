@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import type { Metadata } from 'next';
 import ProfileCard from '@/components/dashboard/ProfileCard';
 import ActivityLandscape from '@/components/dashboard/ActivityLandscape';
@@ -49,14 +50,33 @@ export async function generateMetadata({
     },
   };
 }
+async function ActivityLandscapeSection({
+  dataPromise,
+}: {
+  dataPromise: ReturnType<typeof getFullDashboardData>;
+}) {
+  const data = await dataPromise;
 
+  return <ActivityLandscape data={data.activity} />;
+}
+async function AIInsightsSection({
+  dataPromise,
+}: {
+  dataPromise: ReturnType<typeof getFullDashboardData>;
+}) {
+  const data = await dataPromise;
+
+  return <AIInsights insights={data.insights} />;
+}
 export default async function DashboardPage({ params }: { params: Promise<{ username: string }> }) {
   const { username } = await params;
 
   // Fetch real GitHub data
-  let data;
-  try {
-    data = await getFullDashboardData(username);
+  const dataPromise = getFullDashboardData(username);
+
+let data;
+try {
+  data = await dataPromise;
   } catch (error) {
     if (error instanceof Error) {
       return notFound();
@@ -131,7 +151,9 @@ export default async function DashboardPage({ params }: { params: Promise<{ user
         {/* Main Content */}
         <div className="flex flex-col gap-6 lg:gap-8 min-w-0">
           <section>
-            <ActivityLandscape data={data.activity} />
+           <Suspense fallback={<div className="h-64 rounded-2xl bg-white/5 border border-white/10 animate-pulse" />}>
+            <ActivityLandscapeSection dataPromise={dataPromise} />
+           </Suspense>
           </section>
 
           <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -167,7 +189,9 @@ export default async function DashboardPage({ params }: { params: Promise<{ user
             />
           </div>
 
-          <AIInsights insights={data.insights} />
+          <Suspense fallback={<div className="h-48 rounded-2xl bg-white/5 border border-white/10 animate-pulse" />}>
+           <AIInsightsSection dataPromise={dataPromise} />
+          </Suspense>
         </aside>
       </div>
     </div>
