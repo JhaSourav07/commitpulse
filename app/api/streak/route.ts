@@ -31,8 +31,6 @@ export async function GET(request: Request) {
     const themeName = searchParams.get('theme') || 'dark';
     const from = year ? `${year}-01-01T00:00:00Z` : undefined;
     const to = year ? `${year}-12-31T23:59:59Z` : undefined;
-
-    const themeName = theme;
     const isAutoTheme = themeName === 'auto';
     const isRandomTheme = themeName === 'random';
     const selectedTheme = (() => {
