@@ -2,7 +2,17 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Check, Download, FileJson, Link2, Loader2, Share2, Smartphone, X } from 'lucide-react';
+import {
+  Check,
+  Code,
+  Download,
+  FileJson,
+  Link2,
+  Loader2,
+  Share2,
+  Smartphone,
+  X,
+} from 'lucide-react';
 import { toPng } from 'html-to-image';
 import type { DashboardExportData } from '@/types/dashboard';
 
@@ -30,8 +40,8 @@ type OptionState = 'idle' | 'loading' | 'success' | 'error';
 
 const PROFILE_URL = (username: string) =>
   typeof window !== 'undefined'
-    ? `${window.location.origin}/${username}`
-    : `https://commitpulse.vercel.app/${username}`;
+    ? `${window.location.origin}/dashboard/${username}`
+    : `https://commitpulse.vercel.app/dashboard/${username}`;
 
 export default function ShareSheet({ username, isOpen, onClose, exportData }: ShareSheetProps) {
   const [states, setStates] = useState<Record<string, OptionState>>({});
@@ -117,6 +127,36 @@ export default function ShareSheet({ username, isOpen, onClose, exportData }: Sh
       setOptionState('png', 'error');
     }
   };
+  const handleDownloadSVG = async () => {
+    setOptionState('svg', 'loading');
+    try {
+      const response = await fetch(`/api/streak?user=${encodeURIComponent(username)}`);
+      if (!response.ok) throw new Error('Failed to fetch SVG');
+      const svgText = await response.text();
+      const blob = new Blob([svgText], { type: 'image/svg+xml' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.download = `${username}-commitpulse.svg`;
+      link.href = url;
+      link.click();
+      URL.revokeObjectURL(url);
+      setOptionState('svg', 'success');
+    } catch {
+      setOptionState('svg', 'error');
+    }
+  };
+
+  const handleCopyMarkdown = async () => {
+    setOptionState('markdown', 'loading');
+    try {
+      const markdown = `![CommitPulse](${PROFILE_URL(username).replace(username, `api/streak?user=${username}`)})`;
+      await navigator.clipboard.writeText(markdown);
+      setOptionState('markdown', 'success');
+      setTimeout(() => onClose(), 800);
+    } catch {
+      setOptionState('markdown', 'error');
+    }
+  };
 
   const handleDownloadJSON = () => {
     setOptionState('json', 'loading');
@@ -200,6 +240,16 @@ export default function ShareSheet({ username, isOpen, onClose, exportData }: Sh
       glow: 'rgba(37,99,235,0.35)',
       action: handleLinkedIn,
     },
+
+    {
+      key: 'markdown',
+      icon: Code,
+      label: 'Copy Markdown',
+      description: 'Copy markdown snippet for your README',
+      gradient: 'bg-zinc-800',
+      glow: 'transparent',
+      action: handleCopyMarkdown,
+    },
     {
       key: 'png',
       icon: Download,
@@ -208,6 +258,15 @@ export default function ShareSheet({ username, isOpen, onClose, exportData }: Sh
       gradient: 'bg-zinc-800',
       glow: 'transparent',
       action: handleDownloadPNG,
+    },
+    {
+      key: 'svg',
+      icon: Download,
+      label: 'Download SVG',
+      description: 'Download the raw monolith SVG',
+      gradient: 'bg-zinc-800',
+      glow: 'transparent',
+      action: handleDownloadSVG,
     },
     {
       key: 'json',
@@ -315,7 +374,9 @@ export default function ShareSheet({ username, isOpen, onClose, exportData }: Sh
                                   ? 'Downloaded!'
                                   : opt.key === 'json'
                                     ? 'JSON Downloaded!'
-                                    : opt.label
+                                    : opt.key === 'svg'
+                                      ? 'SVG Downloaded!'
+                                      : opt.label
                               : state === 'error'
                                 ? 'Failed — try again'
                                 : opt.label}

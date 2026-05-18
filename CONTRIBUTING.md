@@ -10,6 +10,7 @@
 - [The Standard We Hold](#-the-standard-we-hold)
 - [Local Setup](#-local-setup)
 - [What to Contribute](#-what-to-contribute)
+- [Automated Issue Management & Claiming](#-automated-issue-management--claiming)
 - [Branch & Commit Conventions](#-branch--commit-conventions)
 - [Opening a Pull Request](#-opening-a-pull-request)
 - [Code Style & Quality Gates](#-code-style--quality-gates)
@@ -59,18 +60,15 @@ cd commitpulse
 # Step 2 — Install dependencies
 npm install
 
-# Step 3 — Create your local environment file
-# Create a file named .env.local in the project root:
-touch .env.local   # On Windows: New-Item .env.local
+# Step 3 — Set up your environment variables from the provided template
+cp .env.local.example .env.local
 ```
 
-Open `.env.local` and add your token:
+Open `.env.local` and fill in your values. Every variable is documented inside the file. The key ones are:
 
-```env
-GITHUB_TOKEN=ghp_your_personal_access_token_here
-```
+> **Why is `GITHUB_TOKEN` required?** The GitHub GraphQL API requires authentication. Without a valid `GITHUB_TOKEN`, every request to `/api/streak` will return a `401 Unauthorized` error and the badge will not render.
 
-> **Why is this required?** The GitHub GraphQL API requires authentication. Without a valid `GITHUB_TOKEN`, every request to `/api/streak` will return a `401 Unauthorized` error and the badge will not render.
+> **Why is `MONGODB_URI` optional?** The `/api/track-user` route is designed to degrade gracefully. If the variable is missing, it logs a warning to the console and skips the DB write — your local dev experience is completely unaffected.
 
 **Generating a Personal Access Token (classic):**
 Go to **GitHub → Settings → Developer settings → Personal access tokens → Tokens (classic)** and click **Generate new token (classic)**. Enable the `read:user` scope, set an expiry, and copy the generated token into your `.env.local`.
@@ -144,9 +142,55 @@ The accuracy engine lives in `utils/time.ts` and `lib/calculate.ts`.
 
 **Rules for logic changes:**
 
-- All changes must be backward-compatible (no breaking the default behavior)
+- All logic changes must be backward-compatible (no breaking the default behavior)
 - Include a code comment explaining _why_ the logic works, not just _what_ it does
 - If you add a new URL parameter, document it in `README.md`'s parameter table
+
+---
+
+## 🤖 Automated Issue Management & Claiming
+
+CommitPulse uses a custom, lightweight **GitHub Actions** automation system to manage issues fairly. This ensures that everyone (especially during events like **GSSoC**) gets a chance to contribute and prevents "issue hoarding".
+
+> [!IMPORTANT]
+> **The Golden Rule:** You can only be assigned to **ONE** open issue at a time. Finish it or unassign yourself before claiming another.
+
+### 🎮 Available Commands
+
+Our automation runs entirely through issue comments. Here is how you interact with it:
+
+| Command                       | Who Can Use It?      | What It Does                                              |
+| ----------------------------- | -------------------- | --------------------------------------------------------- |
+| `/claim`                      | **Anyone**           | Self-assigns the issue to you.                            |
+| `/addlabel <label1> <label2>` | **Anyone**           | Adds labels to the issue (e.g. `/addlabel frontend bug`). |
+| `/unassign @username`         | **Maintainers Only** | Removes the assignee from an issue.                       |
+| `/assign @username`           | **Maintainers Only** | Manually assigns someone to an issue.                     |
+
+### ⏳ The Inactivity Policy (Assignment Expiry)
+
+To keep the project moving, assignments are not permanent.
+
+- **The 3-Day Rule:** If an issue has an assignee but sees **no activity for 3 days**, our automated background job will remove the assignment.
+- **What counts as activity?** Posting a comment, opening a linked PR, or a maintainer adding a label.
+- **Why?** It frees up stale issues so other active contributors can pick them up. If your issue expires, you can always `/claim` it again if it's still available!
+
+### 💡 GSSoC Contributor Flow
+
+1. Find an unassigned open issue you want to work on.
+2. Comment `/claim` to lock it in.
+3. Need labels? Comment `/addlabel good-first-issue` (labels must already exist in the repo).
+4. Work on your code and submit a PR within 3 days to avoid expiry.
+5. Once your PR is merged and the issue is closed, you can `/claim` your next one!
+
+### 🆘 Troubleshooting & Edge Cases
+
+If the bot rejects your command, check these common scenarios:
+
+- **"Commands cannot be used on closed issues"**: You cannot claim, assign, or unassign on closed issues. Find an open one!
+- **"You already have an active assigned issue"**: You must finish your current task. If you're stuck, ask a maintainer to `/unassign` you from the old one.
+- **"This issue is already assigned to @username"**: Be faster next time! Look for issues without assignees.
+- **"The following label(s) do not exist"**: You can only add existing repo labels. The bot will reply with a list of valid labels you can use.
+- **"You don't have permission"**: You tried to use `/assign` or `/unassign`. Please use `/claim` instead.
 
 ---
 
@@ -216,7 +260,10 @@ Fixes # (issue number)
 - [ ] I have started the repo.
 - [ ] I have made sure that i have only one commit to merge in this PR.
 - [ ] The SVG output matches the CommitPulse "premium quality" aesthetic standard (no raw elements, smooth animations, correct fonts).
+- [ ] (Recommended) I joined the CommitPulse Discord server for faster collaboration, mentorship, and PR support.
 ```
+
+[![Join CommitPulse Discord](https://img.shields.io/badge/Join-CommitPulse%20Discord-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/Cb73bS79j)
 
 > **PRs without a visual preview for any SVG-touching changes will be asked for one before review.**
 
@@ -250,7 +297,7 @@ We use **Vitest** alongside **React Testing Library** for our test suite.
 - **File Naming:** Test files must be co-located with the code they test and end in `.test.ts` or `.test.tsx` (e.g., `lib/calculate.test.ts`).
 - **Unit Tests:** All core utility and calculation functions (like streak counting or timezone logic) must have exhaustive unit tests covering edge cases (zero contributions, grace periods, leap years).
 - **Component Tests:** UI components must verify correct rendering, prop handling, and accessibility. We mock animation libraries (like `framer-motion`) to keep DOM tests stable.
-- **API Tests:** API routes must be tested to ensure correct status codes, caching headers, and parameter validation. External network calls (like the GitHub GraphQL API) must be mocked using `vi.spyOn(global, 'fetch')` so tests are fast, deterministic, and run offline.
+- **API Tests:** API routes must be tested to ensure correct status codes, caching headers, and parameter validation. External network calls (like the GitHub GraphQL API) must be mocked using `vi.spyOn(global, 'fetch')` so tests are fast, deterministic, and run offline. For routes that depend on optional environment variables (like `MONGODB_URI` for `/api/track-user`), write tests for **both the bypass path** (env var absent) and the **live path** (env var present with mocked DB).
 - **Humanic Comments:** Comments in test files should explain _why_ a test exists or what specific edge-case it covers, rather than just repeating what the code does line-by-line.
 
 > **🚨 GitHub Actions CI Gate**

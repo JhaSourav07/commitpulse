@@ -38,6 +38,11 @@ vi.mock('framer-motion', () => ({
         {children}
       </p>
     ),
+    a: ({ children, className, href, ...props }: any) => (
+      <a href={href} className={className} data-testid="motion-a" {...props}>
+        {children}
+      </a>
+    ),
   },
   AnimatePresence: ({ children }: any) => <>{children}</>,
 }));

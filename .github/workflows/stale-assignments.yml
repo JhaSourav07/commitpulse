@@ -1,0 +1,29 @@
+name: Stale Assignment Expiry
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # Runs daily at midnight UTC
+  workflow_dispatch: # Allows manual triggering from the Actions tab
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  remove-stale-assignments:
+    name: Remove Stale Assignments
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: .github/scripts
+          sparse-checkout-cone-mode: false
+
+      - name: Process Stale Assignments
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const script = require('./.github/scripts/issue-management/stale-assignment.js');
+            await script({ github, context, core });

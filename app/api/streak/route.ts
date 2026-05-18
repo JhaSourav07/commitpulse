@@ -22,7 +22,16 @@ export async function GET(request: Request) {
 
     const themeName = searchParams.get('theme') || 'dark';
     const isAutoTheme = themeName === 'auto';
-    const selectedTheme = isAutoTheme ? themes.light : themes[themeName] || themes.dark;
+    const isRandomTheme = themeName === 'random';
+    const selectedTheme = (() => {
+      if (isAutoTheme) return themes.light;
+      if (isRandomTheme) {
+        const themeKeys = Object.keys(themes);
+        const randomKey = themeKeys[Math.floor(Math.random() * themeKeys.length)];
+        return themes[randomKey] || themes.dark;
+      }
+      return themes[themeName] || themes.dark;
+    })();
 
     const rawSpeed = searchParams.get('speed') || '8s';
     const speed = /^\d+(\.\d+)?s$/.test(rawSpeed) ? rawSpeed : '8s';
@@ -58,9 +67,10 @@ export async function GET(request: Request) {
 
     // 4. Calculate Cache Control (Reset at UTC Midnight)
     const secondsToMidnight = getSecondsUntilUTCMidnight();
-    const cacheControl = refresh
-      ? 'no-cache, no-store, must-revalidate'
-      : `public, s-maxage=${secondsToMidnight}, stale-while-revalidate=86400`;
+    const cacheControl =
+      refresh || isRandomTheme
+        ? 'no-cache, no-store, must-revalidate'
+        : `public, s-maxage=${secondsToMidnight}, stale-while-revalidate=86400`;
 
     // 5. Return the Image Response
     return new NextResponse(svg, {

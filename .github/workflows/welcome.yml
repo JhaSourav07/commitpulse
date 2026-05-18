@@ -1,0 +1,62 @@
+name: Welcome First-Time Contributors
+
+on:
+  issues:
+    types: [opened]
+  pull_request_target:
+    types: [opened]
+
+permissions:
+  issues: write
+  pull-requests: write
+
+jobs:
+  welcome:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Welcome first-time issue opener
+        if: >
+          github.event_name == 'issues' &&
+          github.event.issue.author_association == 'NONE'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: `👋 Hey @${context.payload.issue.user.login}, welcome to **CommitPulse**! 🎉
+
+            Thanks for opening your first issue — we're glad you're here.
+
+            Before diving in, please take a moment to:
+            - 📖 Read the [**CONTRIBUTING.md**](https://github.com/${context.repo.owner}/${context.repo.repo}/blob/main/CONTRIBUTING.md) guide
+            - 💬 Join our [**Discord community**](https://discord.gg/Cb73bS79j) for faster support and collaboration
+            - 🏷️ Comment \`/claim\` on any open, unassigned issue you'd like to work on
+
+            A maintainer will review your issue shortly. Happy contributing! 🚀`
+            });
+
+      - name: Welcome first-time PR opener
+        if: >
+          github.event_name == 'pull_request_target' &&
+          github.event.pull_request.author_association == 'NONE'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+              body: `👋 Hey @${context.payload.pull_request.user.login}, welcome to **CommitPulse**! 🎉
+
+            Thanks for opening your first pull request — this is a big deal and we appreciate the effort!
+
+            While you wait for a review, please double-check:
+            - ✅ You've read the [**CONTRIBUTING.md**](https://github.com/${context.repo.owner}/${context.repo.repo}/blob/main/CONTRIBUTING.md) checklist
+            - ✅ \`npm run lint\`, \`npm run format\`, and \`npm run test\` all pass locally
+            - ✅ Your PR has a visual preview if it touches any SVG output
+            - 💬 You've joined our [**Discord**](https://discord.gg/Cb73bS79j) for faster PR feedback
+
+            A maintainer will review your PR shortly. Hang tight! 🚀`
+            });

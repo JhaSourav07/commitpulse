@@ -133,11 +133,14 @@ const contributorNotes = [
 
 export default function DocumentationPage() {
   return (
-    <main className="min-h-screen overflow-x-hidden bg-[#050505] text-white">
+    <main className="min-h-screen overflow-x-hidden bg-transparent text-white">
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute left-[-10%] top-[-8%] h-[28rem] w-[28rem] rounded-full bg-emerald-500/10 blur-[130px]" />
-        <div className="absolute right-[-8%] top-[20%] h-[24rem] w-[24rem] rounded-full bg-cyan-400/10 blur-[120px]" />
-        <div className="absolute bottom-[-10%] left-[20%] h-[24rem] w-[24rem] rounded-full bg-orange-400/10 blur-[140px]" />
+        {/* Layered brand glows for depth */}
+        <div className="absolute left-[-10%] top-[-8%] h-[40rem] w-[40rem] rounded-full bg-emerald-500/15 blur-[120px]" />
+        <div className="absolute right-[-5%] top-[10%] h-[35rem] w-[35rem] rounded-full bg-cyan-400/10 blur-[100px]" />
+        <div className="absolute bottom-[-15%] left-[15%] h-[45rem] w-[45rem] rounded-full bg-indigo-500/10 blur-[140px]" />
+        {/* Noise texture overlay for a premium surface feel */}
+        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.03] mix-blend-overlay" />
       </div>
 
       <div className="relative mx-auto flex min-h-screen max-w-6xl flex-col px-6 pb-10 pt-6 md:px-8">

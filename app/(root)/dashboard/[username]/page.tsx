@@ -35,7 +35,7 @@ export async function generateMetadata({
     openGraph: {
       title,
       description,
-      url: `${BASE_URL}/${username}`,
+      url: `${BASE_URL}/dashboard/${username}`,
       siteName: 'CommitPulse',
       images: [{ url: ogImage, width: 1200, height: 630, alt: title }],
       type: 'profile',

@@ -2,7 +2,7 @@ import './globals.css';
 import { Inter } from 'next/font/google';
 import { Analytics } from '@vercel/analytics/next';
 import Navbar from './components/navbar';
-import CherryBlossom from '@/components/CherryBlossom';
+import BrandParticles from '@/components/BrandParticles';
 import type { Metadata } from 'next';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -66,7 +66,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body className={`${inter.className} bg-black`}>
-        <CherryBlossom />
+        <BrandParticles />
         <Navbar />
         <div className="pt-24 sm:pt-28 relative z-10">{children}</div>
         <Analytics />

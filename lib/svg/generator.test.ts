@@ -202,4 +202,51 @@ describe('generateSVG', () => {
       expect(svg).toContain('prefers-reduced-motion');
     });
   });
+
+  // Ghost City Placeholder Mode tests
+  describe('Ghost City Mode', () => {
+    const emptyCalendar: ContributionCalendar = {
+      totalContributions: 0,
+      weeks: [
+        {
+          contributionDays: [
+            { contributionCount: 0, date: '2024-06-10' },
+            { contributionCount: 0, date: '2024-06-11' },
+          ],
+        },
+      ],
+    };
+
+    const activeCalendar: ContributionCalendar = {
+      totalContributions: 5,
+      weeks: [
+        {
+          contributionDays: [
+            { contributionCount: 0, date: '2024-06-10' },
+            { contributionCount: 5, date: '2024-06-11' },
+          ],
+        },
+      ],
+    };
+
+    it('renders Ghost City blueprint when user has 0 total contributions', () => {
+      const svg = generateSVG(mockStats, { user: 'avi' } as unknown as BadgeParams, emptyCalendar);
+
+      // Should contain wireframe strokes
+      expect(svg).toContain('stroke-width="0.5"');
+      expect(svg).toContain('stroke-opacity="0.3"');
+      // Should use the GHOST_HEIGHT_PX which is 4 (10 + 4 = 14)
+      expect(svg).toContain('L0 14 L-16 4 L-16 0 Z');
+    });
+
+    it('does not render Ghost City when user has active contributions', () => {
+      const svg = generateSVG(mockStats, { user: 'avi' } as unknown as BadgeParams, activeCalendar);
+
+      // Should NOT contain wireframe strokes
+      expect(svg).not.toContain('stroke-width="0.5"');
+      expect(svg).not.toContain('stroke-opacity="0.3"');
+      // Active mode empty days should have h=0 (10 + 0 = 10)
+      expect(svg).toContain('L0 10 L-16 0 L-16 0 Z');
+    });
+  });
 });

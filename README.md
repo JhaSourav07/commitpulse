@@ -16,6 +16,8 @@
 
 ![CommitPulse Live Demo](https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=neon)
 
+[![Join CommitPulse Discord](https://img.shields.io/badge/Join-CommitPulse%20Discord-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/Cb73bS79j)
+
 ```md
 ![CommitPulse](https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME)
 ```
@@ -30,7 +32,11 @@ Most GitHub stat badges are **flat**. Flat bars, flat text, flat colors. They bl
 
 **CommitPulse is different.**
 
-We render your contribution data as a **3D Isometric City** — a grid of glowing towers where each column's height is directly proportional to your commit count that day. The more you grind, the taller your skyline grows. This is not decoration. This is a **live, animated data visualization** that makes your dedication impossible to ignore.
+We render your contribution data as a **3D Isometric City** — a grid of glowing towers where each column's height is directly proportional to your commit count that day. The more you grind, the taller your skyline grows.
+
+**Ghost City Architecture:** In this mode, zero-contribution days aren't just empty space. They are rendered as thin, wireframe-style **blueprint foundations** (4px high). This gives your commit landscape a structured, architectural "work-in-progress" look even during rest days, maintaining the premium 3D aesthetic across the entire calendar.
+
+This is not decoration. This is a **live, animated data visualization** that makes your dedication impossible to ignore.
 
 ### Why Isometric > Flat
 
@@ -92,14 +98,15 @@ URL Parameter > Theme Default > System Fallback
 
 ### Theme Presets
 
-| Theme              | Preview             | `bg`     | `accent` | `text`   |
-| ------------------ | ------------------- | -------- | -------- | -------- |
-| `auto`             | System light / dark | _adapts_ | _adapts_ | _adapts_ |
-| `dark` _(default)_ | GitHub dark         | `0d1117` | `58a6ff` | `c9d1d9` |
-| `neon`             | Cyberpunk           | `000000` | `ff00ff` | `00ffcc` |
-| `dracula`          | Dracula Pro         | `282a36` | `bd93f9` | `f8f8f2` |
-| `github`           | GitHub green        | `0d1117` | `238636` | `ffffff` |
-| `light`            | Clean & minimal     | `ffffff` | `0969da` | `24292f` |
+| Theme              | Preview                  | `bg`     | `accent` | `text`   |
+| ------------------ | ------------------------ | -------- | -------- | -------- |
+| `auto`             | System light / dark      | _adapts_ | _adapts_ | _adapts_ |
+| `dark` _(default)_ | GitHub dark              | `0d1117` | `58a6ff` | `c9d1d9` |
+| `neon`             | Cyberpunk                | `000000` | `ff00ff` | `00ffcc` |
+| `dracula`          | Dracula Pro              | `282a36` | `bd93f9` | `f8f8f2` |
+| `github`           | GitHub green             | `0d1117` | `238636` | `ffffff` |
+| `light`            | Clean & minimal          | `ffffff` | `0969da` | `24292f` |
+| `random`           | Surprise theme on reload | _varies_ | _varies_ | _varies_ |
 
 > **`auto` uses CSS `@media (prefers-color-scheme)`** inside the SVG so the badge switches between the `light` and `dark` palettes based on the viewer's OS setting — no JavaScript required. This is ideal for GitHub profile READMEs where visitors may use either mode.
 
@@ -180,13 +187,16 @@ Caching is handled entirely at the HTTP response layer (`Cache-Control: s-maxage
 ## 🏗️ Architecture & Tech Stack
 
 ```
-app/api/streak/route.ts     →  Next.js 16 Edge-compatible API Route
-lib/github.ts               →  GitHub GraphQL API client
-lib/calculate.ts            →  Streak algorithm (current + longest + grace period)
-lib/svg/generator.ts        →  3D Isometric SVG renderer + CSS animations
-lib/svg/themes.ts           →  Prebuilt theme palette system
-utils/time.ts               →  UTC midnight synchronization utilities
-types/index.ts              →  TypeScript interfaces (StreakStats, BadgeParams, BadgeTheme)
+app/api/streak/route.ts       →  Next.js 16 Edge-compatible API Route
+app/api/track-user/route.ts   →  User tracking API — records GitHub usernames to MongoDB
+lib/github.ts                 →  GitHub GraphQL API client
+lib/calculate.ts              →  Streak algorithm (current + longest + grace period)
+lib/mongodb.ts                →  Cached MongoDB connection utility (serverless-safe)
+lib/svg/generator.ts          →  3D Isometric SVG renderer + CSS animations
+lib/svg/themes.ts             →  Prebuilt theme palette system
+models/User.ts                →  Mongoose User schema
+utils/time.ts                 →  UTC midnight synchronization utilities
+types/index.ts                →  TypeScript interfaces (StreakStats, BadgeParams, BadgeTheme)
 ```
 
 | Layer           | Technology                               | Purpose                                                            |
@@ -194,6 +204,7 @@ types/index.ts              →  TypeScript interfaces (StreakStats, BadgeParams
 | **Framework**   | Next.js 16 (App Router)                  | API routes, edge deployment                                        |
 | **Language**    | TypeScript 5                             | Type-safe parameters and interfaces                                |
 | **Data Source** | GitHub GraphQL API v4                    | `contributionsCollection` query                                    |
+| **Database**    | MongoDB + Mongoose                       | Tracks GitHub usernames of users who generate a monolith           |
 | **Rendering**   | Pure SVG + SVG Filters                   | `<feGaussianBlur>` for the glow effect                             |
 | **Animation**   | SVG `<animate>`                          | Radar scan line + current-day block pulsing, no external libraries |
 | **Typography**  | Google Fonts (Syncopate + Space Grotesk) | Loaded inline via `@import`                                        |
@@ -212,7 +223,12 @@ git clone https://github.com/JhaSourav07/commitpulse.git && cd commitpulse
 npm install
 
 # 3. Create your environment file
-echo "GITHUB_PAT=your_token_here" > .env.local
+cat > .env.local << 'EOF'
+GITHUB_TOKEN=your_github_pat_here
+
+# Optional — enables user tracking (see below)
+# MONGODB_URI=mongodb+srv://...
+EOF
 
 # 4. Start the development server
 npm run dev
@@ -222,6 +238,24 @@ npm run dev
 
 Then visit: `http://localhost:3000/api/streak?user=YOUR_USERNAME`
 
+### Optional: MongoDB User Tracking
+
+CommitPulse records the GitHub username of everyone who generates a monolith from the landing page into a MongoDB collection. This is **entirely optional for local development** — the app works perfectly without it.
+
+If `MONGODB_URI` is not set, the `/api/track-user` endpoint will log a warning and skip the database write gracefully:
+
+```
+WARN: MONGODB_URI is not set. Bypassing user tracking for local development.
+```
+
+To enable tracking locally, add your connection string to `.env.local`:
+
+```env
+MONGODB_URI=mongodb+srv://<user>:<password>@cluster.mongodb.net/commitpulse
+```
+
+For production (Vercel), add `MONGODB_URI` to your project's **Environment Variables** settings.
+
 ---
 
 ## 🌐 Deploy Your Own
@@ -229,6 +263,21 @@ Then visit: `http://localhost:3000/api/streak?user=YOUR_USERNAME`
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/JhaSourav07/commitpulse&env=GITHUB_PAT&envDescription=GitHub%20Personal%20Access%20Token%20with%20read%3Auser%20scope)
 
 Set the `GITHUB_PAT` environment variable in your Vercel project settings, and you're live.
+
+---
+
+## 🤖 Automated Contributor Workflow
+
+CommitPulse features a fully custom, GitHub Actions-powered **Issue Management System** designed for large open-source events like GSSoC.
+
+We built an anti-hoarding, self-service automation layer right into the repository:
+
+- **Self-Claiming:** Contributors can grab issues instantly by commenting `/claim`.
+- **Fair Play:** A strict one-active-issue-per-contributor rule prevents issue hoarding.
+- **Stale Expiry:** A scheduled chron job automatically unassigns inactive contributors after 3 days.
+- **Self-Service Labels:** Anyone can tag issues using `/addlabel <tag>`.
+
+This ensures maintainers aren't bottlenecks and the community moves incredibly fast.
 
 ---
 

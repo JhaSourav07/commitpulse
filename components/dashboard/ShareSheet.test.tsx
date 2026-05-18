@@ -187,4 +187,31 @@ describe('ShareSheet', () => {
       expect(screen.getByText('JSON Downloaded!')).toBeDefined();
     });
   });
+
+  it('handles Download SVG action', async () => {
+    // Mock fetch
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      text: vi.fn().mockResolvedValue('<svg>mock</svg>'),
+    });
+
+    render(<ShareSheet {...defaultProps} />);
+
+    const svgButton = screen.getByText('Download SVG').closest('button');
+    fireEvent.click(svgButton!);
+
+    await waitFor(() => {
+      expect(screen.getByText('SVG Downloaded!')).toBeDefined();
+    });
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      `/api/streak?user=${encodeURIComponent(defaultProps.username)}`
+    );
+
+    const blob = vi.mocked(URL.createObjectURL).mock.calls[0][0] as Blob;
+    expect(blob.type).toBe('image/svg+xml');
+
+    expect(HTMLAnchorElement.prototype.click).toHaveBeenCalled();
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:mock-download');
+  });
 });

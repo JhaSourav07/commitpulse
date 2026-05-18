@@ -1,0 +1,42 @@
+name: Issue Management
+
+on:
+  issue_comment:
+    types: [created]
+
+concurrency:
+  group: issue-management-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  handle-command:
+    name: Handle Slash Command
+    runs-on: ubuntu-latest
+    if: |
+      !github.event.issue.pull_request &&
+      (
+        contains(github.event.comment.body, '/assign') ||
+        contains(github.event.comment.body, '/unassign') ||
+        contains(github.event.comment.body, '/addlabel') ||
+        contains(github.event.comment.body, '/claim')
+      )
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: .github/scripts
+          sparse-checkout-cone-mode: false
+
+      - name: Process Slash Command
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const script = require('./.github/scripts/issue-management/main.js');
+            await script({ github, context, core });
+        env:
+          GITHUB_REPOSITORY: ${{ github.repository }}

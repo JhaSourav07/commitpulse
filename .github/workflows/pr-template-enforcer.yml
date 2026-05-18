@@ -1,0 +1,133 @@
+name: PR Template Enforcer
+
+on:
+  pull_request_target:
+    types: [opened, edited, reopened]
+  workflow_dispatch:
+
+permissions:
+  issues: write
+  pull-requests: write
+
+jobs:
+  enforce-template:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check PR body against template structure
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const label = 'needs-details';
+
+            // Build the list of PRs to check:
+            // - workflow_dispatch: scan all open PRs
+            // - pull_request_target: check only the triggering PR
+            let prsToCheck;
+            if (context.eventName === 'workflow_dispatch') {
+              const { data } = await github.rest.pulls.list({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                state: 'open',
+                per_page: 100,
+              });
+              prsToCheck = data;
+            } else {
+              prsToCheck = [context.payload.pull_request];
+            }
+
+            const body_template = pr => pr.body ?? '';
+
+            // Required section headings from .github/pull_request_template.md
+            const requiredSections = [
+              '## Description',
+              '## Pillar',
+              '## Checklist',
+            ];
+
+            // Minimum character threshold — catches "fixed issue" type bodies
+            const MIN_LENGTH = 80;
+
+            // Ensure the label exists once before the loop
+            try {
+              await github.rest.issues.getLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                name: label,
+              });
+            } catch {
+              await github.rest.issues.createLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                name: label,
+                color: 'f97316',
+                description: 'This PR is missing required description details.',
+              });
+            }
+
+            for (const pr of prsToCheck) {
+              const body = body_template(pr);
+
+              const missingSection = requiredSections.find(
+                section => !body.toLowerCase().includes(section.toLowerCase())
+              );
+              const isTooShort = body.trim().length < MIN_LENGTH;
+              const needsAction = missingSection || isTooShort;
+
+              const currentLabels = pr.labels.map(l => l.name);
+              const alreadyLabeled = currentLabels.includes(label);
+
+              if (needsAction) {
+                // Apply label
+                if (!alreadyLabeled) {
+                  await github.rest.issues.addLabels({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: pr.number,
+                    labels: [label],
+                  });
+                }
+
+                // Check for an existing enforcement comment to avoid duplicates
+                const { data: comments } = await github.rest.issues.listComments({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: pr.number,
+                  per_page: 100,
+                });
+
+                const alreadyCommented = comments.some(c =>
+                  c.user?.login === 'github-actions[bot]' &&
+                  c.body?.includes("didn't use our PR template")
+                );
+
+                if (!alreadyCommented) {
+                  const reason = missingSection
+                    ? `The section **\`${missingSection}\`** is missing from your PR description.`
+                    : `Your PR description is too short (${body.trim().length} characters — minimum is ${MIN_LENGTH}).`;
+
+                  await github.rest.issues.createComment({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: pr.number,
+                    body: `👋 Hey @${pr.user.login}, it looks like you didn't use our PR template!
+
+            ${reason}
+
+            Please update your PR description to include all required sections so we can review this properly:
+            - **\`## Description\`** — What does this PR do? Which issue does it fix?
+            - **\`## Pillar\`** — Which contribution pillar does this fall under?
+            - **\`## Checklist\`** — Have you ticked off the quality checklist?
+
+            You can find the full template in [CONTRIBUTING.md](https://github.com/${context.repo.owner}/${context.repo.repo}/blob/main/CONTRIBUTING.md#-opening-a-pull-request). Just edit your PR description and the \`needs-details\` label will be removed automatically. 🙌`,
+                  });
+                }
+              } else if (!needsAction && alreadyLabeled) {
+                // PR has been updated and now meets the requirements — remove the label
+                await github.rest.issues.removeLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: pr.number,
+                  name: label,
+                });
+              }
+            }
