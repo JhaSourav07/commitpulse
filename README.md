@@ -1,3 +1,5 @@
+
+
 <div align="center">
 
 # ⚡ CommitPulse
@@ -106,7 +108,6 @@ URL Parameter > Theme Default > System Fallback
 | `dracula`          | Dracula Pro              | `282a36` | `bd93f9` | `f8f8f2` |
 | `github`           | GitHub green             | `0d1117` | `238636` | `ffffff` |
 | `light`            | Clean & minimal          | `ffffff` | `0969da` | `24292f` |
-| `gruvbox`          | retro warm dark          | `282828` | `fe8019` | `ebdbb2` |
 | `random`           | Surprise theme on reload | _varies_ | _varies_ | _varies_ |
 
 > **`auto` uses CSS `@media (prefers-color-scheme)`** inside the SVG so the badge switches between the `light` and `dark` palettes based on the viewer's OS setting — no JavaScript required. This is ideal for GitHub profile READMEs where visitors may use either mode.
@@ -135,8 +136,9 @@ URL Parameter > Theme Default > System Fallback
 ![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&refresh=true)
 
 <!-- Fast scan + logarithmic scaling for power users -->
-
 ![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&speed=4s&scale=log)
+
+> `speed` supports values between `2s` and `20s` (default: `8s`).
 
 <!-- View contributions for a specific past year -->
 

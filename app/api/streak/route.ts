@@ -1,3 +1,7 @@
+api/
+route.ts
+
+
 // app/api/streak/route.ts
 import { NextResponse } from 'next/server';
 import { fetchGitHubContributions } from '../../../lib/github';
@@ -6,29 +10,21 @@ import { generateSVG } from '../../../lib/svg/generator';
 import { getSecondsUntilUTCMidnight } from '../../../utils/time';
 import type { BadgeParams } from '../../../types';
 import { themes } from '../../../lib/svg/themes';
-import { streakParamsSchema } from '../../../lib/validations';
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
+    const user = searchParams.get('user');
 
-    // Parse and validate all incoming params through Zod schema
-    const parseResult = streakParamsSchema.safeParse(Object.fromEntries(searchParams.entries()));
-
-    if (!parseResult.success) {
-      return NextResponse.json(
-        { error: 'Invalid parameters', details: parseResult.error.flatten() },
-        { status: 400 }
-      );
+    if (!user) {
+      return new NextResponse('Missing "user" parameter', { status: 400 });
     }
 
-    const { user, theme, bg, text, accent, scale, speed, radius, font, year, refresh } =
-      parseResult.data;
+    const yearParam = searchParams.get('year');
+    const from = yearParam ? `${yearParam}-01-01T00:00:00Z` : undefined;
+    const to = yearParam ? `${yearParam}-12-31T23:59:59Z` : undefined;
 
-    const from = year ? `${year}-01-01T00:00:00Z` : undefined;
-    const to = year ? `${year}-12-31T23:59:59Z` : undefined;
-
-    const themeName = theme;
+    const themeName = searchParams.get('theme') || 'dark';
     const isAutoTheme = themeName === 'auto';
     const isRandomTheme = themeName === 'random';
     const selectedTheme = (() => {
@@ -41,38 +37,68 @@ export async function GET(request: Request) {
       return themes[themeName] || themes.dark;
     })();
 
+  
+const SPEED_DEFAULT = '8s';
+const SPEED_MIN = 2;
+const SPEED_MAX = 20;
+
+function parseSpeed(raw: string | null): string {
+  if (!raw) return SPEED_DEFAULT;
+  
+  const match = raw.match(/^(\d+(?:\.\d+)?)s$/);
+  if (!match) return SPEED_DEFAULT;
+  
+  const value = parseFloat(match[1]);
+  return value >= SPEED_MIN && value <= SPEED_MAX
+  ? `${value}s`
+  : SPEED_DEFAULT;
+}
+
+const speed = parseSpeed(searchParams.get('speed'));
+    const rawScale = searchParams.get('scale');
+    const scale = rawScale === 'log' ? 'log' : 'linear';
+
+    const font = searchParams.get('font') || undefined;
+
+    
+
     // Auto-theme ignores custom hex overrides — the SVG uses CSS
     // custom properties with a prefers-color-scheme media query, so
     // fixed colors would conflict with the dual-palette switching.
     const params: BadgeParams = {
       user,
-      bg: isAutoTheme ? selectedTheme.bg : bg || selectedTheme.bg,
-      text: isAutoTheme ? selectedTheme.text : text || selectedTheme.text,
-      accent: isAutoTheme ? selectedTheme.accent : accent || selectedTheme.accent,
-      radius,
+      bg: isAutoTheme ? selectedTheme.bg : searchParams.get('bg') || selectedTheme.bg,
+      text: isAutoTheme ? selectedTheme.text : searchParams.get('text') || selectedTheme.text,
+      accent: isAutoTheme
+        ? selectedTheme.accent
+        : searchParams.get('accent') || selectedTheme.accent,
+      radius: searchParams.get('radius') || '8',
       speed,
       scale,
       font,
       autoTheme: isAutoTheme,
     };
 
+    const refresh = searchParams.get('refresh') === 'true';
+
     const calendar = await fetchGitHubContributions(user, { bypassCache: refresh, from, to });
     const stats = calculateStreak(calendar);
 
     const svg = generateSVG(stats, params, calendar);
 
-    //4. Calculate Cache Control (Reset at UTC Midnight)
+    // 4. Calculate Cache Control (Reset at UTC Midnight)
     const secondsToMidnight = getSecondsUntilUTCMidnight();
     const cacheControl =
       refresh || isRandomTheme
         ? 'no-cache, no-store, must-revalidate'
         : `public, s-maxage=${secondsToMidnight}, stale-while-revalidate=86400`;
 
-    //5. Return the Image Response
+    // 5. Return the Image Response
     return new NextResponse(svg, {
       headers: {
         'Content-Type': 'image/svg+xml',
         'Cache-Control': cacheControl,
+
         'Content-Security-Policy':
           "default-src 'none'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://fonts.gstatic.com;",
       },
