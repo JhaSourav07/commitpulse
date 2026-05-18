@@ -1,14 +1,12 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
 import { useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
 
 import { CommitPulseLogo } from '@/components/commitpulse-logo';
-import { CustomizeCTA } from './components/CustomizeCTA';
 
 const Icons = {
   Github: () => (
@@ -94,23 +92,23 @@ export default function LandingPage() {
 const isValidUsername = (value: string) => {
   return /^(?!-)(?!.*--)[A-Za-z0-9-]{1,39}(?<!-)$/.test(value);
 };
-  const guideRef = useRef<HTMLDivElement>(null);
   const trimmedUsername = username.trim();
   const hasUsername = trimmedUsername.length > 0 && error === '';
-  const badgeUrl = `/api/streak?user=${trimmedUsername}`;
   const markdown = `![CommitPulse](https://commitpulse.vercel.app/api/streak?user=${trimmedUsername})`;
+  const copyToClipboard = async () => {
+  if (!hasUsername) return;
 
-  const copyToClipboard = () => {
-    if (!hasUsername) return;
-
+  try {
     trackUser(trimmedUsername);
 
-    navigator.clipboard.writeText(markdown);
+    await navigator.clipboard.writeText(markdown);
+
     setCopied(true);
-    setTimeout(() => {
-      guideRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 80);
+
     setTimeout(() => setCopied(false), 50000);
+  } catch (err) {
+    console.error('Clipboard copy failed', err);
+  }
   };
 
   return (
@@ -185,199 +183,117 @@ const isValidUsername = (value: string) => {
 
         <section className="mx-auto mb-32 max-w-4xl">
           <div className="rounded-2xl border border-[rgba(255,255,255,0.08)] bg-[#0a0a0a] p-4 md:p-8">
-<<<<<<< HEAD
-            <div className="mb-8">
-              <div className="flex flex-col gap-4 md:flex-row">
-                <input
-                  type="text"
-                  placeholder="Enter GitHub Username"
-                  className="flex-1 rounded-xl border border-[rgba(255,255,255,0.08)] bg-[#111] px-5 py-3.5 text-sm text-white outline-none transition-all placeholder:text-[#A1A1AA] focus:border-[rgba(255,255,255,0.18)]"
-                  value={username}
-                  onChange={(e) => {
-                    const raw = e.target.value;
-                    const cleaned = cleanUsername(raw);
+<div className="mb-8">
+  <div className="flex flex-col gap-4 md:flex-row">
+    <div className="relative flex-1 flex items-center">
+      <input
+        type="text"
+        placeholder="Enter GitHub Username"
+        autoComplete="off"
+        spellCheck={false}
+        className="flex-1 rounded-xl border border-[rgba(255,255,255,0.08)] bg-[#111] px-5 py-3.5 text-sm text-white outline-none transition-all duration-200 placeholder:text-[#A1A1AA] focus:outline-none focus:ring-2 focus:ring-[#00ffaa] focus:border-transparent"
+        value={username}
+        onChange={(e) => {
+          const raw = e.target.value;
+          const cleaned = cleanUsername(raw);
 
-                    setUsername(cleaned);
+          setUsername(cleaned);
 
-                    if (cleaned && !isValidUsername(cleaned)) {
-                      setError('Invalid GitHub username format');
-                    } else {
-                      setError('');
-                    }
-                  }}
-                />
-              </div>
+          if (cleaned && !isValidUsername(cleaned)) {
+            setError('Invalid GitHub username format');
+          } else {
+            setError('');
+          }
+        }}
+      />
 
-              {error && (
-                <p className="mt-2 text-sm text-red-400">
-                  Invalid GitHub username format
-                </p>
-              )}
-            </div>
-
-            <div className="flex flex-col sm:flex-row gap-4">
-=======
-            <div className="mb-8 flex flex-col gap-4 md:flex-row">
-              <div className="relative flex-1 flex items-center">
-                <input
-                  type="text"
-                  placeholder="Enter GitHub Username"
-                  className="flex-1 rounded-xl border border-[rgba(255,255,255,0.08)] bg-[#111] px-5 py-3.5 text-sm text-white outline-none transition-all duration-200 placeholder:text-[#A1A1AA] focus:outline-none focus:ring-2 focus:ring-[#00ffaa] focus:border-transparent"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                />
-                {username.length > 0 ? (
-                  <button
-                    onClick={() => setUsername('')}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-[#A1A1AA] transition-colors hover:text-white"
-                    aria-label="Clear input"
-                    type="button"
-                  >
-                    <X size={18} />
-                  </button>
-                ) : null}
-              </div>
->>>>>>> 42231861dfb8eb62e766887e5419365e7e1082ab
-              <div className="flex flex-col sm:flex-row gap-4">
-                <button
-                  onClick={copyToClipboard}
-                  disabled={!hasUsername}
-                  className={`relative flex min-w-[160px] items-center justify-center gap-2 overflow-hidden rounded-xl px-6 py-3.5 text-sm font-semibold transition-all duration-200 active:scale-[0.98] ${
-                    hasUsername
-                      ? 'bg-white text-black hover:bg-zinc-100'
-                      : 'bg-white/10 text-white/35'
-                  }`}
-                >
-                  <AnimatePresence mode="wait">
-                    {copied ? (
-                      <motion.div
-                        key="check"
-                        initial={{ y: 10 }}
-                        animate={{ y: 0 }}
-                        className="flex items-center gap-2"
-                      >
-                        <Icons.Check /> Copied
-                      </motion.div>
-                    ) : (
-                      <motion.div
-                        key="copy"
-                        initial={{ y: -10 }}
-                        animate={{ y: 0 }}
-                        className="flex items-center gap-2"
-                      >
-                        <Icons.Copy /> Copy Link
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </button>
-                <Link
-                  href={hasUsername ? `/dashboard/${trimmedUsername}` : '/'}
-                  aria-disabled={!hasUsername}
-                  onClick={(e) => {
-                    if (!hasUsername) {
-                      e.preventDefault();
-                    } else {
-                      trackUser(trimmedUsername);
-                    }
-                  }}
-                  className={`relative flex min-w-[160px] items-center justify-center gap-2 overflow-hidden rounded-xl border px-6 py-3.5 text-sm font-semibold transition-all duration-200 active:scale-[0.98] ${
-                    hasUsername
-                      ? 'border-[rgba(255,255,255,0.15)] bg-transparent text-white hover:bg-white/5'
-                      : 'border-[rgba(255,255,255,0.08)] bg-white/[0.02] text-white/35'
-                  }`}
-                >
-                  Watch Dashboard
-                </Link>
-              </div>
-            </div>
-
-            <div className="group relative">
-              <div className="absolute -inset-1 rounded-[2rem] bg-white/5 opacity-50 blur-xl transition duration-1000 group-hover:opacity-100" />
-              <div className="relative flex min-h-[320px] items-center justify-center overflow-hidden rounded-xl border border-[rgba(255,255,255,0.06)] bg-black p-6">
-                {hasUsername ? (
-                  <Image
-                    src={badgeUrl}
-                    alt="CommitPulse preview"
-                    width={900}
-                    height={600}
-                    unoptimized
-                    loading="eager"
-                    priority
-                    className="h-auto max-w-full drop-shadow-[0_20px_50px_rgba(0,0,0,0.5)]"
-                  />
-                ) : (
-                  <div className="flex w-full max-w-2xl flex-col items-center justify-center rounded-[1.5rem] border border-dashed border-white/10 bg-white/[0.02] px-6 py-12 text-center">
-                    <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-white/60">
-                      <Icons.Github />
-                    </div>
-                    <p className="text-lg font-semibold tracking-tight text-white">
-                      Enter a GitHub username to preview
-                    </p>
-                    <p className="mt-2 max-w-md text-sm leading-relaxed text-[#A1A1AA]">
-                      Your 3D contribution monolith will appear here as soon as you add a username.
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <div ref={guideRef}>
-          <AnimatePresence>
-            {copied && (
-              <SuccessGuide
-                markdown={markdown}
-                username={trimmedUsername}
-                onDismiss={() => setCopied(false)}
-              />
-            )}
-          </AnimatePresence>
-        </div>
-
-        <CustomizeCTA />
-
-        <div className="grid gap-6 md:grid-cols-3">
-          <FeatureCard
-            icon={<Icons.Zap />}
-            accent="text-white"
-            title="Real-time Sync"
-            desc="Pulled directly from GitHub GraphQL API. Your streak updates as fast as your code pushes."
-          />
-          <FeatureCard
-            icon={<Icons.Copy />}
-            accent="text-white"
-            title="Theme Engine"
-            desc="Switch between Neon, Dracula, or custom HEX modes via simple URL management."
-          />
-          <FeatureCard
-            icon={<Icons.Box />}
-            accent="text-white"
-            title="Isometric Math"
-            desc="Sophisticated 3D projection formulas turn 2D data into digital architecture."
-          />
-        </div>
-
-        <footer className="mt-32 flex flex-col items-center justify-between gap-6 border-t border-white/5 pt-8 text-sm text-white/30 md:flex-row">
-          <p>&copy; 2026 CommitPulse. Designed for the elite builder community.</p>
-          <div className="flex gap-8">
-            <Link href="/documentation" className="transition-colors hover:text-white">
-              Documentation
-            </Link>
-            <a
-              href="https://github.com/jhasourav07"
-              target="_blank"
-              rel="noreferrer"
-              className="transition-colors hover:text-white"
-            >
-              Creator
-            </a>
-          </div>
-        </footer>
-      </main>
+      {username.length > 0 ? (
+        <button
+          onClick={() => setUsername('')}
+          className="absolute right-4 top-1/2 -translate-y-1/2 text-[#A1A1AA] transition-colors hover:text-white"
+          aria-label="Clear input"
+          type="button"
+        >
+          <X size={18} />
+        </button>
+      ) : null}
     </div>
-  );
+  </div>
+  {copied && (
+  <SuccessGuide
+    markdown={markdown}
+    username={trimmedUsername}
+    onDismiss={() => setCopied(false)}
+  />
+)}
+
+  {error && (
+    <p className="mt-2 text-sm text-red-400">
+      Invalid GitHub username format
+    </p>
+  )}
+</div>
+
+<div className="flex flex-col sm:flex-row gap-4">
+  <button
+    onClick={copyToClipboard}
+    disabled={!hasUsername}
+    className={`relative flex min-w-[160px] items-center justify-center gap-2 overflow-hidden rounded-xl px-6 py-3.5 text-sm font-semibold transition-all duration-200 active:scale-[0.98] ${
+      hasUsername
+        ? 'bg-white text-black hover:bg-zinc-100'
+        : 'bg-white/10 text-white/35'
+    }`}
+  >
+    <AnimatePresence mode="wait">
+      {copied ? (
+        <motion.div
+          key="check"
+          initial={{ y: 10 }}
+          animate={{ y: 0 }}
+          className="flex items-center gap-2"
+        >
+          <Icons.Check /> Copied
+        </motion.div>
+      ) : (
+        <motion.div
+          key="copy"
+          initial={{ y: -10 }}
+          animate={{ y: 0 }}
+          className="flex items-center gap-2"
+        >
+          <Icons.Copy /> Copy Link
+        </motion.div>
+      )}
+    </AnimatePresence>
+  </button>
+
+  <Link
+    href={hasUsername ? `/dashboard/${trimmedUsername}` : '/'}
+    aria-disabled={!hasUsername}
+    onClick={(e) => {
+      if (!hasUsername) {
+        e.preventDefault();
+      } else {
+        trackUser(trimmedUsername);
+      }
+    }}
+    className={`relative flex min-w-[160px] items-center justify-center gap-2 overflow-hidden rounded-xl border px-6 py-3.5 text-sm font-semibold transition-all duration-200 active:scale-[0.98] ${
+      hasUsername
+        ? 'border-[rgba(255,255,255,0.15)] bg-transparent text-white hover:bg-white/5'
+        : 'border-[rgba(255,255,255,0.08)] bg-white/[0.02] text-white/35'
+    }`}
+  >
+    Watch Dashboard
+  </Link>
+</div>
+
+</div>
+</section>
+</main>
+</div>
+);
 }
+
 
 function FeatureCard({
   icon,

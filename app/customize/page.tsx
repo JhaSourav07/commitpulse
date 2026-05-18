@@ -184,55 +184,26 @@ export default function CustomizePage(): ReactElement {
               <p className="text-xs font-bold uppercase tracking-[0.22em] text-emerald-400 mb-5">
                 Live Preview
               </p>
+<div className="relative flex min-h-[320px] items-center justify-center overflow-hidden rounded-2xl border border-white/5 bg-black">
+  {hasUsername ? (
+    <img
+      src={previewSrc}
+      alt="CommitPulse Preview"
+      className="max-w-full h-auto"
+    />
+  ) : (
+    <div className="flex flex-col items-center justify-center text-center px-6">
+      <p className="text-white/70 text-lg font-semibold mb-2">
+        No Preview Yet
+      </p>
 
-              <div className="group relative">
-                {/* Glow ring */}
-                <div className="absolute -inset-px bg-gradient-to-br from-emerald-500/20 to-purple-500/20 rounded-[1.5rem] opacity-0 group-hover:opacity-100 transition-opacity duration-700 blur-lg pointer-events-none" />
-
-                <div className="relative bg-[#050505] border border-white/8 rounded-[1.25rem] overflow-hidden flex items-center justify-center p-6 min-h-[280px]">
-                  {/* Scanning line effect behind image */}
-                  <div className="absolute inset-0 bg-gradient-to-b from-transparent via-emerald-500/3 to-transparent animate-[pulse_3s_ease-in-out_infinite] pointer-events-none" />
-
-                  {hasUsername ? (
-                    <>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        key={previewSrc}
-                        src={previewSrc}
-                        alt="CommitPulse live preview"
-                        width={600}
-                        height={420}
-                        className="max-w-full h-auto drop-shadow-[0_20px_60px_rgba(0,0,0,0.6)] transition-opacity duration-300"
-                      />
-                    </>
-                  ) : (
-                    <div className="relative z-10 flex w-full max-w-xl flex-col items-center justify-center rounded-[1.25rem] border border-dashed border-white/10 bg-white/[0.02] px-6 py-12 text-center">
-                      <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-emerald-300/70">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="h-6 w-6"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          aria-hidden="true"
-                        >
-                          <path d="M12 19V5" />
-                          <path d="m5 12 7-7 7 7" />
-                        </svg>
-                      </div>
-                      <p className="text-lg font-semibold tracking-tight text-white">
-                        Enter a GitHub username to preview
-                      </p>
-                      <p className="mt-2 max-w-md text-sm leading-relaxed text-white/45">
-                        The live badge preview will appear here once a username is added.
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
+      <p className="text-sm text-white/30 max-w-md">
+        Enter your GitHub username in the control panel to generate a live preview.
+      </p>
+    </div>
+  )}
+</div>
+              
 
               <p className="mt-3 text-[11px] text-white/20 text-center">
                 {hasUsername
