@@ -205,25 +205,36 @@ export async function fetchUserRepos(
     if (cached) return cached;
   }
 
-  const res = await fetchWithRetry(
-    `${GITHUB_REST_URL}/users/${username}/repos?per_page=100&sort=pushed`,
-    {
-      headers: getHeaders(),
-      cache: 'no-store',
+  // Paginate through all pages until a page returns fewer than 100 items
+  const allRepos: GitHubRepo[] = [];
+  let page = 1;
+
+  while (true) {
+    const res = await fetchWithRetry(
+      `${GITHUB_REST_URL}/users/${username}/repos?per_page=100&sort=pushed&page=${page}`,
+      {
+        headers: getHeaders(),
+        cache: 'no-store',
+      }
+    );
+
+    if (!res.ok) {
+      throw new Error(`GitHub REST API error: ${res.status}`);
     }
-  );
 
-  if (!res.ok) {
-    throw new Error(`GitHub REST API error: ${res.status}`);
+    const repos = (await res.json()) as GitHubRepo[];
+    allRepos.push(...repos);
+
+    // Stop when the last page is reached
+    if (repos.length < 100) break;
+    page++;
   }
-
-  const repos = (await res.json()) as GitHubRepo[];
 
   if (!options.bypassCache) {
-    reposCache.set(key, repos, GITHUB_CACHE_TTL_MS);
+    reposCache.set(key, allRepos, GITHUB_CACHE_TTL_MS);
   }
 
-  return repos;
+  return allRepos;
 }
 
 export async function getFullDashboardData(username: string, options: FetchOptions = {}) {

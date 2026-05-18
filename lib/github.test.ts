@@ -181,6 +181,46 @@ describe('fetchUserRepos', () => {
     vi.mocked(fetch).mockResolvedValue(mockResponse({ message: 'Error' }, 500));
     await expect(fetchUserRepos('octocat')).rejects.toThrow('GitHub REST API error: 500');
   });
+
+  it('paginates through all pages and merges results', async () => {
+    // Page 1 returns a full page of 100 repos, page 2 returns 30 — loop must stop after page 2
+    const page1 = Array.from({ length: 100 }, (_, i) => ({
+      stargazers_count: i,
+      language: 'TypeScript',
+    }));
+    const page2 = Array.from({ length: 30 }, (_, i) => ({
+      stargazers_count: i + 100,
+      language: 'Rust',
+    }));
+
+    let callCount = 0;
+    vi.mocked(fetch).mockImplementation(async () => {
+      callCount++;
+      return mockResponse(callCount === 1 ? page1 : page2);
+    });
+
+    const result = await fetchUserRepos('power-user');
+
+    expect(result).toHaveLength(130);
+    expect(fetch).toHaveBeenCalledTimes(2);
+    // Verify page parameters were used correctly
+    expect(vi.mocked(fetch).mock.calls[0][0]).toContain('page=1');
+    expect(vi.mocked(fetch).mock.calls[1][0]).toContain('page=2');
+  });
+
+  it('makes only one request when the first page has fewer than 100 repos', async () => {
+    const smallPage = Array.from({ length: 5 }, (_, i) => ({
+      stargazers_count: i,
+      language: 'Go',
+    }));
+
+    vi.mocked(fetch).mockResolvedValue(mockResponse(smallPage));
+
+    const result = await fetchUserRepos('small-user');
+
+    expect(result).toHaveLength(5);
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe('getFullDashboardData', () => {
