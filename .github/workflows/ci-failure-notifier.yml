@@ -1,0 +1,277 @@
+name: CI Failure Notifier
+
+on:
+  workflow_run:
+    workflows: ['CI Pipeline']
+    types: [completed]
+  workflow_dispatch: # Manually scan ALL open PRs from the Actions tab
+
+permissions:
+  issues: write
+  pull-requests: write
+
+jobs:
+  notify-ci-failure:
+    # Only act when CI failed and was triggered by a pull_request event
+    if: >
+      github.event.workflow_run.conclusion == 'failure' &&
+      github.event.workflow_run.event == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Add label and comment on failing PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const label = 'status:blocked';
+            const run = context.payload.workflow_run;
+
+            // Retrieve the PR associated with this workflow run
+            const prs = run.pull_requests;
+            if (!prs || prs.length === 0) {
+              core.warning('No pull requests associated with this workflow run. Skipping.');
+              return;
+            }
+
+            const pr = prs[0];
+            const prNumber = pr.number;
+
+            // Fetch full PR data to get author and current labels
+            const { data: fullPR } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber,
+            });
+
+            const author = fullPR.user.login;
+            const currentLabels = fullPR.labels.map(l => l.name);
+
+            // Ensure the label exists in the repo
+            try {
+              await github.rest.issues.getLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                name: label,
+              });
+            } catch {
+              await github.rest.issues.createLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                name: label,
+                color: 'dc2626',
+                description: 'This PR is blocked due to a failing CI check.',
+              });
+            }
+
+            // Apply the label if not already present
+            if (!currentLabels.includes(label)) {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                labels: [label],
+              });
+            }
+
+            // Check for an existing failure comment to avoid spamming
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+              per_page: 100,
+            });
+
+            const alreadyCommented = comments.some(c =>
+              c.user?.login === 'github-actions[bot]' &&
+              c.body?.includes('CI Pipeline is failing')
+            );
+
+            if (!alreadyCommented) {
+              const runUrl = run.html_url;
+
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                body: `🚨 Hey @${author}, the **CI Pipeline is failing** on this PR and it has been marked as \`status:blocked\`.
+
+            Please fix the issues before this can be reviewed. Here's how:
+
+            **1. Run checks locally before pushing:**
+            \`\`\`bash
+            npm run format:check   # Check Prettier formatting
+            npm run lint           # Run ESLint
+            npm run typecheck      # TypeScript type check
+            npm run test           # Run unit tests (Vitest)
+            npm run build          # Verify production build passes
+            \`\`\`
+
+            **2. Auto-fix common issues:**
+            \`\`\`bash
+            npm run format         # Auto-fix formatting with Prettier
+            npm run lint -- --fix  # Auto-fix lint errors where possible
+            \`\`\`
+
+            **3. Check the full failure log here:**
+            👉 [View CI Run](${runUrl})
+
+            Once you push a fix and the CI passes, the \`status:blocked\` label will be removed automatically. 💪`,
+              });
+            }
+
+      - name: Remove blocked label when CI passes
+        if: github.event.workflow_run.conclusion == 'success'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const label = 'status:blocked';
+            const run = context.payload.workflow_run;
+            const prs = run.pull_requests;
+
+            if (!prs || prs.length === 0) return;
+
+            const prNumber = prs[0].number;
+
+            const { data: fullPR } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber,
+            });
+
+            const hasLabel = fullPR.labels.some(l => l.name === label);
+            if (hasLabel) {
+              await github.rest.issues.removeLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                name: label,
+              });
+              core.info(`Removed '${label}' from PR #${prNumber} — CI is now passing.`);
+            }
+
+  # ── Manual scan: runs when triggered from the Actions tab ─────────────────
+  scan-all-prs:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Scan all open PRs for CI failures
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const label = 'status:blocked';
+
+            // Ensure the label exists
+            try {
+              await github.rest.issues.getLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                name: label,
+              });
+            } catch {
+              await github.rest.issues.createLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                name: label,
+                color: 'dc2626',
+                description: 'This PR is blocked due to a failing CI check.',
+              });
+            }
+
+            // Fetch all open PRs
+            const { data: openPRs } = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              per_page: 100,
+            });
+
+            core.info(`Scanning ${openPRs.length} open PRs...`);
+
+            for (const pr of openPRs) {
+              // Get the latest CI Pipeline run for this PR's HEAD commit
+              const { data: runsData } = await github.rest.actions.listWorkflowRunsForRepo({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                head_sha: pr.head.sha,
+                per_page: 20,
+              });
+
+              // Find the most recent completed run of our CI pipeline
+              const ciRun = runsData.workflow_runs
+                .filter(r => r.name === 'CI Pipeline' && r.status === 'completed')
+                .sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at))[0];
+
+              const currentLabels = pr.labels.map(l => l.name);
+              const hasBlockedLabel = currentLabels.includes(label);
+
+              if (!ciRun) {
+                core.info(`PR #${pr.number}: No completed CI run found. Skipping.`);
+                continue;
+              }
+
+              core.info(`PR #${pr.number} (@${pr.user.login}): CI conclusion = ${ciRun.conclusion}`);
+
+              if (ciRun.conclusion === 'failure') {
+                // Apply label
+                if (!hasBlockedLabel) {
+                  await github.rest.issues.addLabels({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: pr.number,
+                    labels: [label],
+                  });
+                }
+
+                // Avoid duplicate comments
+                const { data: comments } = await github.rest.issues.listComments({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: pr.number,
+                  per_page: 100,
+                });
+
+                const alreadyCommented = comments.some(c =>
+                  c.user?.login === 'github-actions[bot]' &&
+                  c.body?.includes('CI Pipeline is failing')
+                );
+
+                if (!alreadyCommented) {
+                  await github.rest.issues.createComment({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: pr.number,
+                    body: `🚨 Hey @${pr.user.login}, the **CI Pipeline is failing** on this PR and it has been marked as \`status:blocked\`.
+
+            Please fix the issues before this can be reviewed. Here's how:
+
+            **1. Run checks locally before pushing:**
+            \`\`\`bash
+            npm run format:check   # Check Prettier formatting
+            npm run lint           # Run ESLint
+            npm run typecheck      # TypeScript type check
+            npm run test           # Run unit tests (Vitest)
+            npm run build          # Verify production build passes
+            \`\`\`
+
+            **2. Auto-fix common issues:**
+            \`\`\`bash
+            npm run format         # Auto-fix formatting with Prettier
+            npm run lint -- --fix  # Auto-fix lint errors where possible
+            \`\`\`
+
+            **3. Check the full failure log here:**
+            👉 [View CI Run](${ciRun.html_url})
+
+            Once you push a fix and the CI passes, the \`status:blocked\` label will be removed automatically. 💪`,
+                  });
+                }
+              } else if (ciRun.conclusion === 'success' && hasBlockedLabel) {
+                // CI is now passing — remove the stale blocked label
+                await github.rest.issues.removeLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: pr.number,
+                  name: label,
+                });
+                core.info(`PR #${pr.number}: CI passing — removed '${label}'.`);
+              }
+            }
