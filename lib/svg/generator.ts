@@ -260,7 +260,9 @@ export function generateSVG(
   <rect width="600" height="420" rx="${radius}" fill="${bg}" />
 
   <g transform="translate(0, 20)">${towers}</g>
-  ${!params.hide_stats ? `
+  ${
+    !params.hide_stats
+      ? `
   <g transform="translate(40, 340)">
     <text class="label">CURRENT_STREAK</text>
     <text y="40" class="stats" filter="url(#glow)">${stats.currentStreak}</text>
@@ -275,7 +277,9 @@ export function generateSVG(
     <text class="label">PEAK_STREAK</text>
     <text y="40" class="stats">${stats.longestStreak}</text>
   </g>
-  ` : ''}
+  `
+      : ''
+  }
   <text x="300" y="50" text-anchor="middle" class="title">${safeUser.toUpperCase()}</text>
 
   <rect x="100" y="60" width="400" height="1" fill="${accent}" fill-opacity="0.3">
@@ -363,7 +367,9 @@ function generateAutoThemeSVG(
   <g transform="translate(0, 20)">
     ${towers}
   </g>
-  ${!params.hide_stats ? `
+  ${
+    !params.hide_stats
+      ? `
   <g transform="translate(40, 340)">
     <text class="label">CURRENT_STREAK</text>
     <text y="40" class="stats" filter="url(#glow)">${stats.currentStreak}</text>
@@ -378,7 +384,9 @@ function generateAutoThemeSVG(
     <text class="label">PEAK_STREAK</text>
     <text y="40" class="stats">${stats.longestStreak}</text>
   </g>
-  ` : ''}
+  `
+      : ''
+  }
   <text x="300" y="50" text-anchor="middle" class="title">${safeUser.toUpperCase()}</text>
 
   <rect x="100" y="60" width="400" height="1" class="cp-accent-fill" fill-opacity="0.3">

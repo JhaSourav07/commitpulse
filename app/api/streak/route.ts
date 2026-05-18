@@ -63,7 +63,7 @@ export async function GET(request: Request) {
 
     const calendar = await fetchGitHubContributions(user, { bypassCache: refresh, from, to });
     const stats = calculateStreak(calendar);
-    
+
     const svg = generateSVG(stats, params, calendar);
 
     //4. Calculate Cache Control (Reset at UTC Midnight)
