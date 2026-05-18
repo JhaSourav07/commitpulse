@@ -314,11 +314,11 @@ export default function DocumentationPage() {
             title="Preset palettes for different moods"
             description="Use the theme parameter for fast styling, then override individual values only when you need a custom blend."
           >
-           <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {allthemes.map((theme) => (
                 <div
                   key={theme.slug}
-                 className="rounded-[1.5rem] border border-white/8 bg-black/35 p-5 transition hover:-translate-y-1"
+                  className="rounded-[1.5rem] border border-white/8 bg-black/35 p-5 transition hover:-translate-y-1"
                 >
                   <div
                     className="mb-4 h-32 rounded-[1.25rem] border border-white/10"
@@ -343,9 +343,7 @@ export default function DocumentationPage() {
                     </div>
                   </div>
                   <h3 className="text-base font-semibold text-white">{theme.name}</h3>
-                  <p className="mt-2 min-h-[72px] text-sm leading-7 text-white/55">
-  {theme.vibe}
-</p>
+                  <p className="mt-2 min-h-[72px] text-sm leading-7 text-white/55">{theme.vibe}</p>
                   <div className="mt-4 space-y-2 text-xs text-white/45">
                     <div>
                       <span className="text-white/65">bg</span> #{theme.bg}
