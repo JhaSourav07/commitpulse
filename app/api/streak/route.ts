@@ -39,20 +39,9 @@ export async function GET(request: Request) {
       refresh,
       hide_title,
       hide_background,
-      hide_stats: hideStatsParam,
+      hide_stats,
       lang,
     } = parseResult.data;
-
-    //sanitizing font
-    const sanitizedFont = ((): string | undefined => {
-      if (!font) return undefined;
-      const trimmed = font.trim();
-      if (!trimmed) return undefined;
-      const cleaned = trimmed.replace(/[^a-zA-Z0-9\s\-']/g, '').trim();
-      return cleaned || undefined;
-    })();
-
-    const hide_stats = hideStatsParam === 'true' || hideStatsParam === '1';
 
     const themeName = theme || 'dark';
     const from = year ? `${year}-01-01T00:00:00Z` : undefined;
@@ -84,9 +73,6 @@ export async function GET(request: Request) {
       return themes[theme] || themes.dark;
     })();
 
-    // â ï¸ Safety layer for rendering only (not parsing logic)
-    const parsedRadius = Number(radius);
-    const safeRadius = Number.isFinite(parsedRadius) ? Math.min(32, Math.max(0, parsedRadius)) : 8;
     const params: BadgeParams = {
       user,
 
@@ -94,14 +80,14 @@ export async function GET(request: Request) {
       text: isAutoTheme ? selectedTheme.text : text || selectedTheme.text,
       accent: isAutoTheme ? selectedTheme.accent : accent || selectedTheme.accent,
 
-      radius: safeRadius,
+      radius,
       speed,
       scale,
-      font: sanitizedFont,
+      font,
       autoTheme: isAutoTheme,
       hide_title,
       hideBackground: hide_background,
-      hide_stats: hide_stats,
+      hide_stats,
       lang,
       size,
     };

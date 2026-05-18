@@ -3,6 +3,7 @@ import { getLabels } from '../i18n/badgeLabels';
 import { AUTO_DARK_THEME, AUTO_LIGHT_THEME } from './themes';
 import { TOWER_ANIMATION_CSS } from './animations';
 import { computeTowers, type TowerData } from './layout';
+import { sanitizeFont, sanitizeHexColor, sanitizeRadius } from './sanitizer';
 
 const FONT_MAP: Record<string, string> = {
   jetbrains: '"JetBrains Mono", monospace',
@@ -108,12 +109,11 @@ export function generateSVG(
   }
   const safeUser = escapeXML(params.user || 'GitHub User');
 
-  const bg = `#${(params.bg || '0d1117').replace('#', '')}`;
-  const accent = `#${(params.accent || '00ffaa').replace('#', '')}`;
-  const text = `#${(params.text || 'ffffff').replace('#', '')}`;
+  const bg = `#${sanitizeHexColor(params.bg, '0d1117')}`;
+  const accent = `#${sanitizeHexColor(params.accent, '00ffaa')}`;
+  const text = `#${sanitizeHexColor(params.text, 'ffffff')}`;
 
-  const sanitizeFont = (name: string): string => name.replace(/[^a-zA-Z0-9\s\-']/g, '').trim();
-  const sanitizedFont = params.font ? sanitizeFont(params.font) : null;
+  const sanitizedFont = sanitizeFont(params.font);
   const predefinedFont = sanitizedFont ? FONT_MAP[sanitizedFont.toLowerCase()] : null;
   const isPredefinedFont = Boolean(predefinedFont);
   const selectedFont = isPredefinedFont
@@ -124,8 +124,7 @@ export function generateSVG(
 
   const statsFont = selectedFont || '"Space Grotesk", sans-serif';
   const sf = getSizeScale(params.size);
-  const parsedRadius = Number(params.radius);
-  const radius = Math.max(0, Math.min(Number.isNaN(parsedRadius) ? 8 : parsedRadius, 50)) * sf;
+  const radius = sanitizeRadius(params.radius, 8) * sf;
   const labels = getLabels(params.lang);
 
   const W = Math.round(600 * sf);
@@ -242,14 +241,13 @@ function generateAutoThemeSVG(
   const light = AUTO_LIGHT_THEME;
   const dark = AUTO_DARK_THEME;
   const safeUser = escapeXML(params.user || 'GitHub User');
-  const sanitizeFont = (name: string): string => name.replace(/[^a-zA-Z0-9\s\-']/g, '').trim();
-  const sanitizedFont = params.font ? sanitizeFont(params.font) : null;
-  const predefinedFont = sanitizedFont ? FONT_MAP[sanitizedFont.toLowerCase()] : null;
-  const selectedFont = predefinedFont || (sanitizedFont ? `"${sanitizedFont}", sans-serif` : null);
+  const sanitizedFont = sanitizeFont(params.font);
+  const selectedFont = sanitizedFont
+    ? FONT_MAP[sanitizedFont.toLowerCase()] || `"${sanitizedFont}", sans-serif`
+    : null;
   const statsFont = selectedFont || '"Space Grotesk", sans-serif';
   const sf = getSizeScale(params.size);
-  const parsedRadius = Number(params.radius);
-  const radius = Math.max(0, Math.min(Number.isNaN(parsedRadius) ? 8 : parsedRadius, 50)) * sf;
+  const radius = sanitizeRadius(params.radius, 8) * sf;
   const labels = getLabels(params.lang);
 
   const W = Math.round(600 * sf);

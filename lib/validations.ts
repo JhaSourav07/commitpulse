@@ -1,13 +1,23 @@
 import { z } from 'zod';
+import { sanitizeHexColor, sanitizeSpeed, sanitizeRadius, sanitizeFont } from './svg/sanitizer';
 
 export const streakParamsSchema = z.object({
   // Required — missing user surfaces as "Missing" to match existing tests
   user: z.string({ error: 'Missing user parameter' }).min(1, { message: 'Missing user parameter' }),
 
   theme: z.string().default('dark'),
-  bg: z.string().optional(),
-  text: z.string().optional(),
-  accent: z.string().optional(),
+  bg: z
+    .string()
+    .optional()
+    .transform((val) => (val ? sanitizeHexColor(val, '0d1117') : undefined)),
+  text: z
+    .string()
+    .optional()
+    .transform((val) => (val ? sanitizeHexColor(val, 'ffffff') : undefined)),
+  accent: z
+    .string()
+    .optional()
+    .transform((val) => (val ? sanitizeHexColor(val, '00ffaa') : undefined)),
 
   // Silently fall back to 'linear' for unknown values (matches old behavior)
   scale: z.enum(['linear', 'log']).catch('linear').default('linear'),
@@ -17,21 +27,17 @@ export const streakParamsSchema = z.object({
   // Silently fall back to '8s' for invalid format (matches old behavior)
   speed: z
     .string()
-    .regex(/^\d+(\.\d+)?s$/)
-    .transform((value) => {
-      const numeric = parseFloat(value.replace('s', ''));
-
-      if (numeric < 2 || numeric > 20) {
-        return '8s';
-      }
-
-      return `${numeric}s`;
-    })
-    .catch('8s')
+    .transform((val) => sanitizeSpeed(val, '8s'))
     .default('8s'),
 
-  radius: z.string().default('8'),
-  font: z.string().optional(),
+  radius: z
+    .string()
+    .transform((val) => sanitizeRadius(val, 8))
+    .default(8),
+  font: z
+    .string()
+    .optional()
+    .transform((val) => sanitizeFont(val) || undefined),
   year: z
     .string()
     .regex(/^\d{4}$/, {
@@ -63,7 +69,10 @@ export const streakParamsSchema = z.object({
     .optional()
     .transform((val) => val === 'true'),
 
-  hide_stats: z.string().optional(),
+  hide_stats: z
+    .string()
+    .optional()
+    .transform((val) => val === 'true' || val === '1'),
   lang: z.string().optional().default('en'),
 });
 
