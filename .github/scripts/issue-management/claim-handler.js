@@ -70,12 +70,18 @@ async function handleClaim({ github, context }) {
     assignees: [commenter],
   });
 
-  await github.rest.issues.createComment({
-    owner,
-    repo,
-    issue_number: issueNumber,
-    body: `✅ Successfully assigned issue to @${commenter}\n\n> 💡 Please read [CONTRIBUTING.md](../blob/main/CONTRIBUTING.md) if you haven't already. Good luck! 🚀`,
-  });
+ await github.rest.issues.createComment({
+  owner,
+  repo,
+  issue_number: issueNumber,
+  body: `🎉 **Assigned!** Welcome to the project, @${commenter}. 
+
+⏳ **Reminder:** You have **3 days** to submit a Pull Request. After 3 days of inactivity, you will be automatically unassigned to give others a chance (as per our GSSoC anti-hoarding policy).
+
+📖 Please read [CONTRIBUTING.md](../blob/main/CONTRIBUTING.md) if you haven't already.
+
+Happy coding! 🚀`,
+});
 }
 
 module.exports = { handleClaim };
