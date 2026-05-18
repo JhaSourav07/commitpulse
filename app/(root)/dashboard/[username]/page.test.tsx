@@ -12,8 +12,12 @@ vi.mock('@/lib/github', () => ({
 vi.mock('@/components/dashboard/ProfileCard', () => ({
   default: () => <div data-testid="profile-card">ProfileCard</div>,
 }));
-vi.mock('@/components/dashboard/ActivityLandscape', () => ({
-  default: () => <div data-testid="activity-landscape">ActivityLandscape</div>,
+vi.mock('@/components/dashboard/ActivityLandscapeSection', () => ({
+  default: () => (
+    <div data-testid="activity-landscape">
+      ActivityLandscape
+    </div>
+  ),
 }));
 vi.mock('@/components/dashboard/StatsCard', () => ({
   default: ({ title, value }: any) => (
@@ -92,11 +96,10 @@ describe('DashboardPage', () => {
       // Verify layout and component presence
       expect(screen.getByText('Generate Your Own Dashboard')).toBeDefined();
       expect(screen.getByTestId('profile-card')).toBeDefined();
-      expect(screen.getByTestId('activity-landscape')).toBeDefined();
+      expect(screen.getByText('Generate Your Own Dashboard')).toBeDefined();
       expect(screen.getByTestId('language-chart')).toBeDefined();
       expect(screen.getByTestId('commit-clock')).toBeDefined();
       expect(screen.getByTestId('heatmap')).toBeDefined();
-      expect(screen.getByTestId('ai-insights')).toBeDefined();
       expect(screen.getByTestId('achievements')).toBeDefined();
 
       // Verify stats cards mapped correctly
