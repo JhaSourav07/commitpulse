@@ -40,6 +40,9 @@ export async function GET(request: Request) {
     const scale = rawScale === 'log' ? 'log' : 'linear';
 
     const font = searchParams.get('font') || undefined;
+    const disable_radar =
+  searchParams.get("disable_radar") === "true" ||
+  searchParams.get("disable_radar") === "1";
 
     // Auto-theme ignores custom hex overrides — the SVG uses CSS
     // custom properties with a prefers-color-scheme media query, so
@@ -56,6 +59,8 @@ export async function GET(request: Request) {
       scale,
       font,
       autoTheme: isAutoTheme,
+      disable_radar,
+      
     };
 
     const refresh = searchParams.get('refresh') === 'true';
