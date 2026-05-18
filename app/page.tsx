@@ -120,7 +120,7 @@ export default function LandingPage() {
             transition={{ duration: 0.5, delay: 0.1 }}
             whileHover={{ scale: 1.04, backgroundColor: 'rgba(255,255,255,0.07)' }}
             whileTap={{ scale: 0.97 }}
-            className="mb-8 inline-flex items-center gap-2.5 rounded-full border border-white/10 bg-white/[0.04] px-4 py-1.5 text-xs font-medium text-white/50 backdrop-blur-sm transition-colors duration-200 hover:border-white/20 hover:text-white/80"
+            className="mb-8 inline-flex items-center gap-2.5 rounded-full border border-white/10 bg-white/[0.04] px-4 py-1.5 text-xs font-medium text-white/50 backdrop-blur-sm transition-colors duration-200 hover:border-white/20 hover:text-white/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
           >
             <span className="relative flex h-1.5 w-1.5">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white/50" />
@@ -179,14 +179,14 @@ export default function LandingPage() {
                 <input
                   type="text"
                   placeholder="Enter GitHub Username"
-                  className="flex-1 rounded-xl border border-[rgba(255,255,255,0.08)] bg-[#111] px-5 py-3.5 text-sm text-white outline-none transition-all duration-200 placeholder:text-[#A1A1AA] focus:outline-none focus:ring-2 focus:ring-[#00ffaa] focus:border-transparent"
+                  className="flex-1 rounded-xl border border-[rgba(255,255,255,0.08)] bg-[#111] px-5 py-3.5 text-sm text-white outline-none transition-all duration-200 placeholder:text-[#A1A1AA] focus:outline-none focus:ring-2 focus:ring-[#00ffaa] focus:border-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                 />
                 {username.length > 0 ? (
                   <button
                     onClick={() => setUsername('')}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-[#A1A1AA] transition-colors hover:text-white"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-[#A1A1AA] transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black rounded"
                     aria-label="Clear input"
                     type="button"
                   >
@@ -198,7 +198,7 @@ export default function LandingPage() {
                 <button
                   onClick={copyToClipboard}
                   disabled={!hasUsername}
-                  className={`relative flex min-w-[160px] items-center justify-center gap-2 overflow-hidden rounded-xl px-6 py-3.5 text-sm font-semibold transition-all duration-200 active:scale-[0.98] ${
+                  className={`relative flex min-w-[160px] items-center justify-center gap-2 overflow-hidden rounded-xl px-6 py-3.5 text-sm font-semibold transition-all duration-200 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black ${
                     hasUsername
                       ? 'bg-white text-black hover:bg-zinc-100'
                       : 'bg-white/10 text-white/35'
@@ -236,7 +236,7 @@ export default function LandingPage() {
                       trackUser(trimmedUsername);
                     }
                   }}
-                  className={`relative flex min-w-[160px] items-center justify-center gap-2 overflow-hidden rounded-xl border px-6 py-3.5 text-sm font-semibold transition-all duration-200 active:scale-[0.98] ${
+                  className={`relative flex min-w-[160px] items-center justify-center gap-2 overflow-hidden rounded-xl border px-6 py-3.5 text-sm font-semibold transition-all duration-200 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black ${
                     hasUsername
                       ? 'border-[rgba(255,255,255,0.15)] bg-transparent text-white hover:bg-white/5'
                       : 'border-[rgba(255,255,255,0.08)] bg-white/[0.02] text-white/35'
@@ -317,14 +317,17 @@ export default function LandingPage() {
         <footer className="mt-32 flex flex-col items-center justify-between gap-6 border-t border-white/5 pt-8 text-sm text-white/30 md:flex-row">
           <p>&copy; 2026 CommitPulse. Designed for the elite builder community.</p>
           <div className="flex gap-8">
-            <Link href="/documentation" className="transition-colors hover:text-white">
+            <Link
+              href="/documentation"
+              className="transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black rounded"
+            >
               Documentation
             </Link>
             <a
               href="https://github.com/jhasourav07"
               target="_blank"
               rel="noreferrer"
-              className="transition-colors hover:text-white"
+              className="transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black rounded"
             >
               Creator
             </a>
@@ -421,7 +424,7 @@ function SuccessGuide({
 
           <button
             onClick={onDismiss}
-            className="ml-4 mt-1 shrink-0 rounded-xl p-2 text-white/30 transition-all hover:bg-white/5 hover:text-white"
+            className="ml-4 mt-1 shrink-0 rounded-xl p-2 text-white/30 transition-all hover:bg-white/5 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
             aria-label="Dismiss guide"
           >
             <svg
@@ -477,7 +480,7 @@ function SuccessGuide({
           </p>
           <div className="mt-8 flex justify-center border-t border-white/5 pt-6">
             <Link href={`/dashboard/${username}`} onClick={() => trackUser(username)}>
-              <button className="bg-white text-black hover:bg-zinc-100 px-6 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 hover:scale-[1.01] active:scale-[0.99]">
+              <button className="bg-white text-black hover:bg-zinc-100 px-6 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black">
                 Watch Your Dashboard
               </button>
             </Link>

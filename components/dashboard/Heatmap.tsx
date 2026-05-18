@@ -112,7 +112,10 @@ export default function Heatmap({ data }: { data: ActivityData[] }) {
                       key={dIndex}
                       onMouseEnter={(e) => handleMouseEnter(e, day)}
                       onMouseLeave={handleMouseLeave}
-                      className={`rounded-sm cursor-pointer transition-all duration-150 hover:brightness-125 hover:scale-125 ${getIntensityColor(day.intensity)}`}
+                      tabIndex={0}
+                      role="button"
+                      aria-label={`${day.count} contribution${day.count !== 1 ? 's' : ''} on ${day.date}`}
+                      className={`rounded-sm cursor-pointer transition-all duration-150 hover:brightness-125 hover:scale-125 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black ${getIntensityColor(day.intensity)}`}
                       style={{ width: CELL, height: CELL }}
                     />
                   ))}

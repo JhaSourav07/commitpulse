@@ -45,7 +45,7 @@ export default function ActivityLandscape({ data }: { data: ActivityData[] }) {
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`px-3.5 py-1.5 text-xs font-medium transition-all duration-200 border-r border-[rgba(255,255,255,0.08)] last:border-r-0 ${
+              className={`px-3.5 py-1.5 text-xs font-medium transition-all duration-200 border-r border-[rgba(255,255,255,0.08)] last:border-r-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black rounded ${
                 activeTab === tab
                   ? 'bg-white text-black'
                   : 'bg-transparent text-[#A1A1AA] hover:text-white hover:bg-[rgba(255,255,255,0.05)]'

@@ -23,10 +23,40 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Vercel-style focus ring */
+/* Accessibility: Keyboard focus styles with ring utilities */
 *:focus-visible {
-  outline: 2px solid rgba(99, 102, 241, 0.6);
+  outline: none;
+}
+
+/* Default focus-visible ring for interactive elements */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[role='button']:focus-visible,
+[role='link']:focus-visible,
+[role='tab']:focus-visible,
+[role='menuitem']:focus-visible {
+  outline: 2px solid #6366f1;
   outline-offset: 2px;
+}
+
+/* Enhanced focus styles for dark mode */
+@media (prefers-color-scheme: dark) {
+  button:focus-visible,
+  a:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible,
+  [role='button']:focus-visible,
+  [role='link']:focus-visible,
+  [role='tab']:focus-visible,
+  [role='menuitem']:focus-visible {
+    outline: 2px solid #818cf8;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+  }
 }
 
 /* Smooth scrollbar on dark bg */

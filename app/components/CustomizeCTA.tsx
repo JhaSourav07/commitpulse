@@ -35,7 +35,10 @@ export function CustomizeCTA() {
 
           <div className="shrink-0">
             <Link href="/customize" id="open-customization-studio-cta">
-              <span className="relative inline-flex items-center gap-2 px-7 py-4 rounded-2xl font-bold text-sm text-black bg-white hover:scale-[1.03] active:scale-[0.97] transition-transform duration-200 shadow-[0_0_30px_-4px_rgba(255,255,255,0.25)] cursor-pointer select-none">
+              <span
+                className="relative inline-flex items-center gap-2 px-7 py-4 rounded-2xl font-bold text-sm text-black bg-white hover:scale-[1.03] active:scale-[0.97] transition-transform duration-200 shadow-[0_0_30px_-4px_rgba(255,255,255,0.25)] cursor-pointer select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+                tabIndex={0}
+              >
                 {/* Button shimmer */}
                 <span
                   aria-hidden="true"

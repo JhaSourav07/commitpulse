@@ -71,7 +71,7 @@ export default function NotFound() {
         <div className="flex flex-col sm:flex-row gap-3 w-full">
           <Link
             href="https://github.com/JhaSourav07/commitpulse"
-            className="flex-1 py-3 rounded-xl font-semibold text-sm text-white text-center transition-all hover:scale-[1.02] active:scale-[0.98]"
+            className="flex-1 py-3 rounded-xl font-semibold text-sm text-white text-center transition-all hover:scale-[1.02] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
             style={{
               background: 'linear-gradient(135deg, #7c3aed, #0ea5e9)',
               boxShadow: '0 0 30px rgba(124,58,237,0.3)',
@@ -81,7 +81,7 @@ export default function NotFound() {
           </Link>
           <Link
             href="/"
-            className="flex-1 py-3 rounded-xl font-semibold text-sm text-white/60 text-center border border-white/10 hover:bg-white/5 hover:text-white transition-all"
+            className="flex-1 py-3 rounded-xl font-semibold text-sm text-white/60 text-center border border-white/10 hover:bg-white/5 hover:text-white transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
           >
             Go back home
           </Link>
