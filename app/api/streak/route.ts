@@ -18,15 +18,15 @@ export async function GET(request: Request) {
 
     const yearParam = searchParams.get('year');
     if (yearParam) {
-  const year = parseInt(yearParam, 10);
+      const year = parseInt(yearParam, 10);
 
-  if (!isNaN(year) && year < 2008) {
-    return new NextResponse(
-      'GitHub was founded in 2008. Please provide a year of 2008 or later.',
-      { status: 400 }
-    );
-  }
-}
+      if (!isNaN(year) && year < 2008) {
+        return new NextResponse(
+          'GitHub was founded in 2008. Please provide a year of 2008 or later.',
+          { status: 400 }
+        );
+      }
+    }
     const from = yearParam ? `${yearParam}-01-01T00:00:00Z` : undefined;
     const to = yearParam ? `${yearParam}-12-31T23:59:59Z` : undefined;
 
