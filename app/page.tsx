@@ -4,8 +4,8 @@ import type { ReactNode } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRef, useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
-import { X } from 'lucide-react';
+import { AnimatePresence, motion, Variants } from 'framer-motion';
+import { X, Layers } from 'lucide-react'; // Added Layers for the 4th card icon
 
 import { CommitPulseLogo } from '@/components/commitpulse-logo';
 import { CustomizeCTA } from './components/CustomizeCTA';
@@ -63,11 +63,11 @@ const Icons = {
       <polyline points="20 6 9 17 4 12" />
     </svg>
   ),
+  Layers: () => <Layers className="h-6 w-6" />,
 };
 
 function trackUser(name: string) {
   const payload = JSON.stringify({ username: name });
-  // sendBeacon is truly fire-and-forget — it doesn't block navigation
   if (navigator.sendBeacon) {
     navigator.sendBeacon('/api/track-user', new Blob([payload], { type: 'application/json' }));
   } else {
@@ -78,6 +78,42 @@ function trackUser(name: string) {
     }).catch(console.error);
   }
 }
+
+// Framer Motion Variants for the exploding layout orchestration
+const containerVariants = {
+  hidden: {},
+  visible: {
+    transition: {
+      staggerChildren: 0.15,
+      delayChildren: 0.6, // Gives the logo card a moment in the center first
+    },
+  },
+};
+
+const centralCardVariants: Variants = {
+  hidden: { scale: 0.3, opacity: 0 },
+  visible: {
+    scale: 1,
+    opacity: 1,
+    transition: { type: 'spring', stiffness: 120, damping: 14 },
+  },
+};
+
+// Directional vectors to explode outward from the center point
+const cardVariants: Variants = {
+  hidden: { x: 0, y: 0, scale: 0.6, opacity: 0 },
+  visible: (direction: { x: number; y: number }) => ({
+    x: direction.x,
+    y: direction.y,
+    scale: 1,
+    opacity: 1,
+    transition: {
+      type: 'spring',
+      stiffness: 90,
+      damping: 16,
+    },
+  }),
+};
 
 export default function LandingPage() {
   const [username, setUsername] = useState('');
@@ -91,9 +127,7 @@ export default function LandingPage() {
 
   const copyToClipboard = () => {
     if (!hasUsername) return;
-
     trackUser(trimmedUsername);
-
     navigator.clipboard.writeText(markdown);
     setCopied(true);
     setTimeout(() => {
@@ -126,49 +160,23 @@ export default function LandingPage() {
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white/50" />
               <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-white/70" />
             </span>
-            <svg
-              width="13"
-              height="13"
-              viewBox="0 0 24 24"
-              fill="currentColor"
-              className="opacity-60"
-            >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" className="opacity-60">
               <path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3333-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3333-.946 2.4189-2.1568 2.4189Z" />
             </svg>
             Join the community on Discord
-            <svg
-              width="10"
-              height="10"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="opacity-40"
-            >
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-40">
               <path d="M7 17L17 7M17 7H7M17 7v10" />
             </svg>
           </motion.a>
 
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.15 }}
-          >
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.15 }}>
             <h1 className="mb-8 bg-gradient-to-b from-white to-white/30 bg-clip-text text-5xl font-extrabold tracking-tight text-transparent md:text-8xl">
               Elevate Your <br /> Contribution Story.
             </h1>
           </motion.div>
 
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.3 }}
-            className="mx-auto max-w-2xl text-lg leading-relaxed text-gray-400 md:text-xl"
-          >
-            Stop settling for flat grids. Generate high-fidelity, 3D isometric monoliths that
-            visualize your coding rhythm with professional precision.
+          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="mx-auto max-w-2xl text-lg leading-relaxed text-gray-400 md:text-xl">
+            Stop settling for flat grids. Generate high-fidelity, 3D isometric monoliths that visualize your coding rhythm with professional precision.
           </motion.p>
         </div>
 
@@ -179,17 +187,12 @@ export default function LandingPage() {
                 <input
                   type="text"
                   placeholder="Enter GitHub Username"
-                  className="flex-1 rounded-xl border border-[rgba(255,255,255,0.08)] bg-[#111] px-5 py-3.5 text-sm text-white outline-none transition-all duration-200 placeholder:text-[#A1A1AA] focus:outline-none focus:ring-2 focus:ring-[#00ffaa] focus:border-transparent"
+                  className="flex-1 rounded-xl border border border-[rgba(255,255,255,0.08)] bg-[#111] px-5 py-3.5 text-sm text-white outline-none transition-all duration-200 placeholder:text-[#A1A1AA] focus:outline-none focus:ring-2 focus:ring-[#00ffaa] focus:border-transparent"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                 />
                 {username.length > 0 ? (
-                  <button
-                    onClick={() => setUsername('')}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-[#A1A1AA] transition-colors hover:text-white"
-                    aria-label="Clear input"
-                    type="button"
-                  >
+                  <button onClick={() => setUsername('')} className="absolute right-4 top-1/2 -translate-y-1/2 text-[#A1A1AA] transition-colors hover:text-white" aria-label="Clear input" type="button">
                     <X size={18} />
                   </button>
                 ) : null}
@@ -198,29 +201,16 @@ export default function LandingPage() {
                 <button
                   onClick={copyToClipboard}
                   disabled={!hasUsername}
-                  className={`relative flex min-w-[160px] items-center justify-center gap-2 overflow-hidden rounded-xl px-6 py-3.5 text-sm font-semibold transition-all duration-200 active:scale-[0.98] ${
-                    hasUsername
-                      ? 'bg-white text-black hover:bg-zinc-100'
-                      : 'bg-white/10 text-white/35'
-                  }`}
+                  className={`relative flex min-w-[160px] items-center justify-center gap-2 overflow-hidden rounded-xl px-6 py-3.5 text-sm font-semibold transition-all duration-200 active:scale-[0.98] ${hasUsername ? 'bg-white text-black hover:bg-zinc-100' : 'bg-white/10 text-white/35'
+                    }`}
                 >
                   <AnimatePresence mode="wait">
                     {copied ? (
-                      <motion.div
-                        key="check"
-                        initial={{ y: 10 }}
-                        animate={{ y: 0 }}
-                        className="flex items-center gap-2"
-                      >
+                      <motion.div key="check" initial={{ y: 10 }} animate={{ y: 0 }} className="flex items-center gap-2">
                         <Icons.Check /> Copied
                       </motion.div>
                     ) : (
-                      <motion.div
-                        key="copy"
-                        initial={{ y: -10 }}
-                        animate={{ y: 0 }}
-                        className="flex items-center gap-2"
-                      >
+                      <motion.div key="copy" initial={{ y: -10 }} animate={{ y: 0 }} className="flex items-center gap-2">
                         <Icons.Copy /> Copy Link
                       </motion.div>
                     )}
@@ -236,11 +226,8 @@ export default function LandingPage() {
                       trackUser(trimmedUsername);
                     }
                   }}
-                  className={`relative flex min-w-[160px] items-center justify-center gap-2 overflow-hidden rounded-xl border px-6 py-3.5 text-sm font-semibold transition-all duration-200 active:scale-[0.98] ${
-                    hasUsername
-                      ? 'border-[rgba(255,255,255,0.15)] bg-transparent text-white hover:bg-white/5'
-                      : 'border-[rgba(255,255,255,0.08)] bg-white/[0.02] text-white/35'
-                  }`}
+                  className={`relative flex min-w-[160px] items-center justify-center gap-2 overflow-hidden rounded-xl border px-6 py-3.5 text-sm font-semibold transition-all duration-200 active:scale-[0.98] ${hasUsername ? 'border-[rgba(255,255,255,0.15)] bg-transparent text-white hover:bg-white/5' : 'border-[rgba(255,255,255,0.08)] bg-white/[0.02] text-white/35'
+                    }`}
                 >
                   Watch Dashboard
                 </Link>
@@ -251,27 +238,14 @@ export default function LandingPage() {
               <div className="absolute -inset-1 rounded-[2rem] bg-white/5 opacity-50 blur-xl transition duration-1000 group-hover:opacity-100" />
               <div className="relative flex min-h-[320px] items-center justify-center overflow-hidden rounded-xl border border-[rgba(255,255,255,0.06)] bg-black p-6">
                 {hasUsername ? (
-                  <Image
-                    src={badgeUrl}
-                    alt="CommitPulse preview"
-                    width={900}
-                    height={600}
-                    unoptimized
-                    loading="eager"
-                    priority
-                    className="h-auto max-w-full drop-shadow-[0_20px_50px_rgba(0,0,0,0.5)]"
-                  />
+                  <Image src={badgeUrl} alt="CommitPulse preview" width={900} height={600} unoptimized loading="eager" priority className="h-auto max-w-full drop-shadow-[0_20px_50px_rgba(0,0,0,0.5)]" />
                 ) : (
                   <div className="flex w-full max-w-2xl flex-col items-center justify-center rounded-[1.5rem] border border-dashed border-white/10 bg-white/[0.02] px-6 py-12 text-center">
                     <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-white/60">
                       <Icons.Github />
                     </div>
-                    <p className="text-lg font-semibold tracking-tight text-white">
-                      Enter a GitHub username to preview
-                    </p>
-                    <p className="mt-2 max-w-md text-sm leading-relaxed text-[#A1A1AA]">
-                      Your 3D contribution monolith will appear here as soon as you add a username.
-                    </p>
+                    <p className="text-lg font-semibold tracking-tight text-white">Enter a GitHub username to preview</p>
+                    <p className="mt-2 max-w-md text-sm leading-relaxed text-[#A1A1AA]">Your 3D contribution monolith will appear here as soon as you add a username.</p>
                   </div>
                 )}
               </div>
@@ -281,38 +255,68 @@ export default function LandingPage() {
 
         <div ref={guideRef}>
           <AnimatePresence>
-            {copied && (
-              <SuccessGuide
-                markdown={markdown}
-                username={trimmedUsername}
-                onDismiss={() => setCopied(false)}
-              />
-            )}
+            {copied && <SuccessGuide markdown={markdown} username={trimmedUsername} onDismiss={() => setCopied(false)} />}
           </AnimatePresence>
         </div>
 
         <CustomizeCTA />
 
-        <div className="grid gap-6 md:grid-cols-3">
+        {/* --- ANIMATED CARDS CONTAINER SECTION --- */}
+        <motion.div
+          className="relative mx-auto grid max-w-4xl gap-6 sm:grid-cols-2"
+          variants={containerVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-100px" }}
+        >
+          {/* Central Logo Overlay Card - Starts centered, reveals underlying cards */}
+          <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center">
+            <motion.div
+              variants={centralCardVariants}
+              className="flex flex-col items-center justify-center rounded-2xl border border-white/10 bg-black/90 px-10 py-6 text-center shadow-[0_0_50px_rgba(0,0,0,0.9)] backdrop-blur-md"
+            >
+              <CommitPulseLogo className="h-12 w-12 text-white mb-2" />
+              <h3 className="text-xl font-black tracking-wider text-white">CommitPulse</h3>
+            </motion.div>
+          </div>
+
+          {/* Top-Left Card */}
           <FeatureCard
             icon={<Icons.Zap />}
             accent="text-white"
             title="Real-time Sync"
             desc="Pulled directly from GitHub GraphQL API. Your streak updates as fast as your code pushes."
+            customDirection={{ x: -16, y: -16 }}
           />
+
+          {/* Top-Right Card */}
           <FeatureCard
             icon={<Icons.Copy />}
             accent="text-white"
             title="Theme Engine"
             desc="Switch between Neon, Dracula, or custom HEX modes via simple URL management."
+            customDirection={{ x: 16, y: -16 }}
           />
+
+          {/* Bottom-Left Card */}
           <FeatureCard
             icon={<Icons.Box />}
             accent="text-white"
             title="Isometric Math"
             desc="Sophisticated 3D projection formulas turn 2D data into digital architecture."
+            customDirection={{ x: -16, y: 16 }}
           />
-        </div>
+
+          {/* Bottom-Right Card (New Contextual 4th Card to complete grid layout) */}
+          <FeatureCard
+            icon={<Icons.Layers />}
+            accent="text-white"
+            title="GraphQL Performance"
+            desc="Optimized query architecture delivers lightweight assets without rendering overhead."
+            customDirection={{ x: 16, y: 16 }}
+          />
+        </motion.div>
+        {/* --- END OF CARDS CONTAINER SECTION --- */}
 
         <footer className="mt-32 flex flex-col items-center justify-between gap-6 border-t border-white/5 pt-8 text-sm text-white/30 md:flex-row">
           <p>&copy; 2026 CommitPulse. Designed for the elite builder community.</p>
@@ -320,12 +324,7 @@ export default function LandingPage() {
             <Link href="/documentation" className="transition-colors hover:text-white">
               Documentation
             </Link>
-            <a
-              href="https://github.com/jhasourav07"
-              target="_blank"
-              rel="noreferrer"
-              className="transition-colors hover:text-white"
-            >
+            <a href="https://github.com/jhasourav07" target="_blank" rel="noreferrer" className="transition-colors hover:text-white">
               Creator
             </a>
           </div>
@@ -340,17 +339,21 @@ function FeatureCard({
   title,
   desc,
   accent,
+  customDirection = { x: 0, y: 0 }
 }: {
   icon: ReactNode;
   title: string;
   desc: string;
   accent: string;
+  customDirection?: { x: number; y: number };
 }) {
   return (
     <motion.div
-      whileHover={{ y: -3 }}
+      custom={customDirection}
+      variants={cardVariants}
+      whileHover={{ y: -3, borderColor: "rgba(255,255,255,0.14)", backgroundColor: "#0d0d0d" }}
       transition={{ duration: 0.2 }}
-      className="group rounded-xl border border-[rgba(255,255,255,0.08)] bg-[#0a0a0a] p-8 hover:border-[rgba(255,255,255,0.14)] hover:bg-[#0d0d0d] transition-all duration-200"
+      className="group z-10 rounded-xl border border-[rgba(255,255,255,0.08)] bg-[#0a0a0a] p-8 transition-colors duration-200"
     >
       <div className={`mb-5 w-fit rounded-lg bg-[#111] p-2.5 ${accent}`}>{icon}</div>
       <h3 className="mb-2 text-sm font-semibold text-white tracking-tight">{title}</h3>
