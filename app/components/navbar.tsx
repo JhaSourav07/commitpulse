@@ -2,7 +2,7 @@
 
 import { CSSProperties, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { Menu, X, Activity } from 'lucide-react';
+import { Menu, X, Activity, Sun, Moon } from 'lucide-react';
 
 function GithubMark() {
   return (
@@ -21,6 +21,32 @@ const NAV_LINKS = [
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
+
+  const [isDark, setIsDark] = useState(true);
+
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme') || 'dark';
+    const shouldBeDark = savedTheme === 'dark';
+
+    if (shouldBeDark) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, []);
+
+  const toggleTheme = () => {
+    const newTheme = !isDark;
+    setIsDark(newTheme);
+    if (newTheme) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
+  };
+
   const shellRef = useRef<HTMLDivElement>(null);
   const rectRef = useRef<DOMRect | null>(null);
   const animationRef = useRef<number | null>(null);
@@ -138,21 +164,17 @@ export default function Navbar() {
       <div className="mx-auto max-w-6xl">
         <div
           ref={shellRef}
-          className="relative overflow-hidden rounded-2xl border border-white/25 bg-black/45 backdrop-blur-xl shadow-[0_14px_40px_rgba(0,0,0,0.45)]"
+          className="relative overflow-hidden rounded-2xl border border-black/[0.03] dark:border-white/10 bg-white/70 dark:bg-black/40 backdrop-blur-md shadow-sm transition-all duration-500"
           style={shellVars}
           onMouseEnter={updateRect}
           onMouseMove={(event) => {
             if (!rectRef.current) {
               rectRef.current = event.currentTarget.getBoundingClientRect();
             }
-
             const rect = rectRef.current;
-
             if (!rect) return;
-
             const x = ((event.clientX - rect.left) / rect.width) * 100;
             const y = ((event.clientY - rect.top) / rect.height) * 100;
-
             targetRef.current = { x, y };
             activeRef.current = true;
             startAnimation();
@@ -163,6 +185,7 @@ export default function Navbar() {
             startAnimation();
           }}
         >
+          {/* Internal Glows */}
           <div
             className="pointer-events-none absolute inset-0 transition-opacity duration-300 ease-out"
             style={{
@@ -171,18 +194,7 @@ export default function Navbar() {
                 'radial-gradient(180px 105px at var(--mx) var(--my), rgba(255,255,255,0.26), rgba(191,219,254,0.18) 30%, rgba(244,114,182,0.1) 48%, rgba(0,0,0,0) 68%)',
             }}
           />
-          <div className="pointer-events-none absolute inset-0 rounded-2xl border border-white/20" />
-          <div
-            className="pointer-events-none absolute inset-0 rounded-2xl p-px transition-opacity duration-300 ease-out"
-            style={{
-              opacity: 'var(--border-opacity)',
-              background:
-                'radial-gradient(150px 90px at var(--mx) var(--my), rgba(255,255,255,0.98), rgba(186,230,253,0.64) 32%, rgba(196,181,253,0.34) 50%, rgba(0,0,0,0) 68%)',
-              WebkitMask: 'linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)',
-              WebkitMaskComposite: 'xor',
-              maskComposite: 'exclude',
-            }}
-          />
+
           <nav className="relative flex items-center justify-between px-4 py-3 sm:px-6">
             <Link
               href="/"
@@ -190,42 +202,55 @@ export default function Navbar() {
               className="group inline-flex items-center gap-3"
               onClick={handleLogoClick}
             >
-              <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/35 bg-white/10 text-white shadow-[0_0_25px_rgba(255,255,255,0.22)] transition-transform duration-300 group-hover:scale-105">
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-black/20 dark:border-white/35 bg-black/5 dark:bg-white/10 text-black dark:text-white shadow-[0_0_25px_rgba(255,255,255,0.1)] dark:shadow-[0_0_25px_rgba(255,255,255,0.22)] transition-transform duration-300 group-hover:scale-105">
                 <Activity size={19} />
               </span>
-              <span className="text-base font-semibold tracking-[0.08em] text-white sm:text-lg">
+              <span className="text-base font-semibold tracking-[0.08em] text-black dark:text-white sm:text-lg">
                 CommitPulse
               </span>
             </Link>
 
-            <div className="hidden items-center gap-3 md:flex">
-              {NAV_LINKS.map((link) => (
-                <a
-                  key={link.href}
-                  href={link.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-white/90 transition hover:border-white/45 hover:bg-white/10"
-                >
-                  <GithubMark />
-                  {link.label}
-                </a>
-              ))}
-            </div>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={toggleTheme}
+                className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-black/10 dark:border-white/15 bg-black/5 dark:bg-white/5 text-black dark:text-white transition hover:bg-black/10 dark:hover:bg-white/10"
+                aria-label="Toggle theme"
+              >
+                <span suppressHydrationWarning>
+                  {isDark ? <Sun size={18} /> : <Moon size={18} />}
+                </span>{' '}
+              </button>
 
-            <button
-              type="button"
-              className="inline-flex items-center justify-center rounded-xl border border-white/15 bg-white/5 p-2 text-white/90 transition hover:bg-white/10 md:hidden"
-              aria-label={open ? 'Close menu' : 'Open menu'}
-              aria-expanded={open}
-              onClick={() => setOpen((prev) => !prev)}
-            >
-              {open ? <X size={20} /> : <Menu size={20} />}
-            </button>
+              <div className="hidden items-center gap-3 md:flex">
+                {NAV_LINKS.map((link) => (
+                  <a
+                    key={link.href}
+                    href={link.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 rounded-xl border border-black/10 dark:border-white/15 bg-black/5 dark:bg-white/5 px-4 py-2 text-sm font-medium text-black/90 dark:text-white/90 transition hover:border-black/30 dark:hover:border-white/45 hover:bg-black/10 dark:hover:bg-white/10"
+                  >
+                    <GithubMark />
+                    {link.label}
+                  </a>
+                ))}
+              </div>
+
+              <button
+                type="button"
+                className="inline-flex items-center justify-center rounded-xl border border-black/10 dark:border-white/15 bg-black/5 dark:bg-white/5 p-2 text-black/90 dark:text-white/90 transition hover:bg-black/10 dark:hover:bg-white/10 md:hidden"
+                aria-label={open ? 'Close menu' : 'Open menu'}
+                aria-expanded={open}
+                onClick={() => setOpen((prev) => !prev)}
+              >
+                {open ? <X size={20} /> : <Menu size={20} />}
+              </button>
+            </div>
           </nav>
 
-          {open ? (
-            <div className="border-t border-white/10 px-4 py-3 md:hidden">
+          {open && (
+            <div className="border-t border-black/5 dark:border-white/10 px-4 py-3 md:hidden">
               <ul className="space-y-2">
                 {NAV_LINKS.map((link) => (
                   <li key={link.href}>
@@ -234,7 +259,7 @@ export default function Navbar() {
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={() => setOpen(false)}
-                      className="inline-flex w-full items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-white/90 transition hover:border-white/45 hover:bg-white/10"
+                      className="inline-flex w-full items-center gap-2 rounded-xl border border-black/10 dark:border-white/15 bg-black/5 dark:bg-white/5 px-4 py-2 text-sm font-medium text-black/90 dark:text-white/90 transition hover:border-black/30 dark:hover:border-white/45 hover:bg-black/10 dark:hover:bg-white/10"
                     >
                       <GithubMark />
                       {link.label}
@@ -243,7 +268,7 @@ export default function Navbar() {
                 ))}
               </ul>
             </div>
-          ) : null}
+          )}
         </div>
       </div>
     </header>
