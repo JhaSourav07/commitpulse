@@ -95,6 +95,7 @@ URL Parameter > Theme Default > System Fallback
 | `font`    | `string`  | No         | CommitPulse default typography | Any **Google Font** name (e.g., `Orbitron`, `Inter`)  |
 | `refresh` | `boolean` | No         | `false`                        | Bypass cache for real-time data                       |
 | `year`    | `string`  | No         | —                              | Calendar year to render (e.g. `2023`, `2024`)         |
+| `hide_stats`    | `boolean`  | No         | `false`                            |Hides the bottom row displaying Current Streak, Annual Sync Total, and Peak Streak stats when set to `true` or `1`.       |
 
 ### Theme Presets
 
