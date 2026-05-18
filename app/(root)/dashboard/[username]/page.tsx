@@ -74,9 +74,9 @@ export default async function DashboardPage({ params }: { params: Promise<{ user
   // Fetch real GitHub data
   const dataPromise = getFullDashboardData(username);
 
-let data;
-try {
-  data = await dataPromise;
+  let data;
+  try {
+    data = await dataPromise;
   } catch (error) {
     if (error instanceof Error) {
       return notFound();
@@ -151,9 +151,13 @@ try {
         {/* Main Content */}
         <div className="flex flex-col gap-6 lg:gap-8 min-w-0">
           <section>
-           <Suspense fallback={<div className="h-64 rounded-2xl bg-white/5 border border-white/10 animate-pulse" />}>
-            <ActivityLandscapeSection dataPromise={dataPromise} />
-           </Suspense>
+            <Suspense
+              fallback={
+                <div className="h-64 rounded-2xl bg-white/5 border border-white/10 animate-pulse" />
+              }
+            >
+              <ActivityLandscapeSection dataPromise={dataPromise} />
+            </Suspense>
           </section>
 
           <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -189,8 +193,12 @@ try {
             />
           </div>
 
-          <Suspense fallback={<div className="h-48 rounded-2xl bg-white/5 border border-white/10 animate-pulse" />}>
-           <AIInsightsSection dataPromise={dataPromise} />
+          <Suspense
+            fallback={
+              <div className="h-48 rounded-2xl bg-white/5 border border-white/10 animate-pulse" />
+            }
+          >
+            <AIInsightsSection dataPromise={dataPromise} />
           </Suspense>
         </aside>
       </div>
