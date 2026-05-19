@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { RefreshCw } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 
 type RefreshButtonProps = {
@@ -10,25 +10,30 @@ type RefreshButtonProps = {
 };
 
 export default function RefreshButton({ username }: RefreshButtonProps) {
+  const router = useRouter();
+
+  const searchParams = useSearchParams();
+
   const [loading, setLoading] = useState(false);
+
   useEffect(() => {
-    const refreshed = sessionStorage.getItem('dashboard-refreshed');
+    const refreshed = searchParams.get('refresh');
 
     if (refreshed === 'true') {
       toast.success('Dashboard refreshed successfully');
 
-      sessionStorage.removeItem('dashboard-refreshed');
+      setLoading(false);
+
+      router.replace(`/dashboard/${username}`);
     }
-  }, []);
+  }, [searchParams, router, username]);
 
-  const router = useRouter();
-
-  const handleRefresh = async () => {
+  const handleRefresh = () => {
     setLoading(true);
 
-    sessionStorage.setItem('dashboard-refreshed', 'true');
-
     router.push(`/dashboard/${username}?refresh=true`);
+
+    router.refresh();
   };
 
   return (
