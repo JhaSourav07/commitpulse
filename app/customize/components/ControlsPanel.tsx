@@ -141,19 +141,16 @@ export function ControlsPanel({
             <StyledSelect id="year-select" value={year} onChange={(value) => onYearChange(value)}>
               <option value="">Current Year</option>
 
-              {Array.from(
-                { length: new Date().getFullYear() - 2019 },
-                (_, i) => {
-                  const currentYear = new Date().getFullYear();
-                  const yearOption = currentYear - i-1;
+              {Array.from({ length: new Date().getFullYear() - 2019 }, (_, i) => {
+                const currentYear = new Date().getFullYear();
+                const yearOption = currentYear - i - 1;
 
-                  return (
-                    <option key={yearOption} value={yearOption.toString()}>
-                      {yearOption}
-                    </option>
-                  );
-                }
-              )}
+                return (
+                  <option key={yearOption} value={yearOption.toString()}>
+                    {yearOption}
+                  </option>
+                );
+              })}
             </StyledSelect>
           </div>
         </ControlRow>

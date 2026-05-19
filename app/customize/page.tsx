@@ -64,7 +64,18 @@ export default function CustomizePage(): ReactElement {
     if (speed !== '8s') params.set('speed', speed);
     if (year) params.set('year', year);
     return params.toString();
-  }, [hasUsername, trimmedUsername, theme, isAutoTheme, bgHex, accentHex, textHex, scale, speed, year]);
+  }, [
+    hasUsername,
+    trimmedUsername,
+    theme,
+    isAutoTheme,
+    bgHex,
+    accentHex,
+    textHex,
+    scale,
+    speed,
+    year,
+  ]);
 
   const queryString = buildQueryParams();
   const previewSrc = `/api/streak?${queryString}`;
