@@ -35,5 +35,6 @@ export interface BadgeParams {
   font?: string;
   radius?: string;
   view?: BadgeView;
+  radius?: number;
   autoTheme?: boolean;
 }
