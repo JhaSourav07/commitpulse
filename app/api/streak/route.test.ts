@@ -204,6 +204,36 @@ describe('GET /api/streak', () => {
     });
   });
 
+  describe('radius parameter', () => {
+    it('uses the default radius when the parameter is omitted', async () => {
+      const response = await GET(makeRequest({ user: 'octocat' }));
+      const body = await response.text();
+
+      expect(body).toContain('rx="8"');
+    });
+
+    it('defaults to 8 when radius is not numeric', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', radius: 'abc' }));
+      const body = await response.text();
+
+      expect(body).toContain('rx="8"');
+    });
+
+    it('clamps negative radius to 0', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', radius: '-10' }));
+      const body = await response.text();
+
+      expect(body).toContain('rx="0"');
+    });
+
+    it('clamps large radius to 32', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', radius: '999' }));
+      const body = await response.text();
+
+      expect(body).toContain('rx="32"');
+    });
+  });
+
   describe('scale parameter', () => {
     it('returns 200 when scale=log is given', async () => {
       const response = await GET(makeRequest({ user: 'octocat', scale: 'log' }));
