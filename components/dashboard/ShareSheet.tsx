@@ -28,6 +28,11 @@ const LinkedInIcon = ({ size = 18 }: { size?: number }) => (
     <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
   </svg>
 );
+const RedditIcon = ({ size = 18 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
+    <path d="M14.47 19.02c-.84.42-1.86.64-2.97.64s-2.13-.22-2.97-.64a1 1 0 1 1 .9-1.79c.56.28 1.3.43 2.07.43s1.51-.15 2.07-.43a1 1 0 0 1 .9 1.79Zm-4.44-4.65a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5Zm5.94-2.5a1.25 1.25 0 1 0 0 2.5 1.25 1.25 0 0 0 0-2.5Zm5.03-.24a2.03 2.03 0 0 0-3.44-1.44c-1.2-.82-2.8-1.35-4.57-1.42l.97-3.07 2.64.62a1.44 1.44 0 1 0 .33-1.01l-3.1-.73a.5.5 0 0 0-.6.34l-1.16 3.68c-1.84.05-3.5.58-4.73 1.42A2.03 2.03 0 1 0 4 13.02c0 .18.02.35.07.52-.01.11-.02.22-.02.34 0 3.01 3.13 5.46 6.98 5.46 3.86 0 6.99-2.45 6.99-5.46 0-.11-.01-.23-.02-.34.04-.17.06-.34.06-.52 0-.53-.2-1.03-.56-1.41a2.03 2.03 0 0 0 3.5-1.38Z" />
+  </svg>
+);
 
 interface ShareSheetProps {
   username: string;
@@ -46,8 +51,6 @@ const PROFILE_URL = (username: string) =>
 export default function ShareSheet({ username, isOpen, onClose, exportData }: ShareSheetProps) {
   const [states, setStates] = useState<Record<string, OptionState>>({});
   const overlayRef = useRef<HTMLDivElement>(null);
-
-  // Close on Escape
   useEffect(() => {
     const handler = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
     window.addEventListener('keydown', handler);
@@ -94,6 +97,22 @@ export default function ShareSheet({ username, isOpen, onClose, exportData }: Sh
     window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${url}`, '_blank', 'noopener');
     onClose();
   };
+
+  const handleReddit = () => {
+  const url = encodeURIComponent(PROFILE_URL(username));
+
+  const title = encodeURIComponent(
+    'Check out my GitHub commit pulse on CommitPulse 🚀'
+  );
+
+  window.open(
+    `https://www.reddit.com/submit?url=${url}&title=${title}`,
+    '_blank',
+    'noopener'
+  );
+
+  onClose();
+};
 
   const handleDownloadPNG = async () => {
     setOptionState('png', 'loading');
@@ -240,6 +259,15 @@ export default function ShareSheet({ username, isOpen, onClose, exportData }: Sh
       glow: 'rgba(37,99,235,0.35)',
       action: handleLinkedIn,
     },
+    {
+  key: 'reddit',
+  icon: RedditIcon,
+  label: 'Share on Reddit',
+  description: 'Post your pulse to Reddit communities',
+  gradient: 'from-orange-500 to-orange-700',
+  glow: 'rgba(249,115,22,0.35)',
+  action: handleReddit,
+},
 
     {
       key: 'markdown',
@@ -351,7 +379,7 @@ export default function ShareSheet({ username, isOpen, onClose, exportData }: Sh
                         className="group flex items-center gap-3 w-full px-3 py-3 rounded-lg hover:bg-[rgba(255,255,255,0.05)] border border-transparent hover:border-[rgba(255,255,255,0.08)] transition-all duration-200 text-left disabled:opacity-40 disabled:cursor-not-allowed"
                       >
                         {/* Icon box */}
-                        <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-zinc-900 border border-[rgba(255,255,255,0.08)] flex items-center justify-center">
+                        <div className={`flex-shrink-0 w-8 h-8 rounded-lg bg-gradient-to-br ${opt.gradient} border border-[rgba(255,255,255,0.08)] flex items-center justify-center`}>
                           {state === 'loading' ? (
                             <Loader2 size={15} className="text-[#A1A1AA] animate-spin" />
                           ) : state === 'success' ? (

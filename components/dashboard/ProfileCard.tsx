@@ -104,12 +104,12 @@ export default function ProfileCard({ user, exportData }: ProfileCardProps) {
         </div>
       </motion.div>
 
-      <ShareSheet
-        username={user.username}
-        isOpen={shareOpen}
-        onClose={() => setShareOpen(false)}
-        exportData={exportData}
-      />
+   <ShareSheet
+  username={user.username}
+  isOpen={shareOpen}
+  onClose={() => setShareOpen(false)}
+  exportData={exportData}
+/>
     </>
   );
 }
