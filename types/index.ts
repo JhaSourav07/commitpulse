@@ -32,7 +32,7 @@ export interface BadgeParams {
   speed: string;
   scale: 'linear' | 'log';
   font?: string;
-  radius?: string;
+  radius?: number;
   autoTheme?: boolean;
   hideBackground?: boolean;
 }
