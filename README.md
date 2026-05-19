@@ -143,6 +143,18 @@ URL Parameter > Theme Default > System Fallback
 ```
 
 ---
+## 📅 Monthly Summary View
+
+Display a **compact, text-focused badge** showing your current month's contribution total and month-over-month change. Perfect for tight spaces like GitHub profile sidebars, Twitter bios, or minimalist READMEs.
+
+### Quick Start
+
+```md
+<!-- Basic monthly view -->
+![Monthly Contributions](https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&view=monthly)
+
+<!-- With theme + custom styling -->
+![Monthly](https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&view=monthly&theme=neon&radius=12)
 
 ## 🎯 Real-Time Accuracy — The Contribution Count Problem
 

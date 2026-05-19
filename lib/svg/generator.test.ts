@@ -249,4 +249,242 @@ describe('generateSVG', () => {
       expect(svg).toContain('L0 10 L-16 0 L-16 0 Z');
     });
   });
+
+// View : monthly Tests
+  describe('view=monthly', () => {
+    function makeCalendar(dates: { date: string; count: number }[]): ContributionCalendar {
+      const weeks = [
+        {
+          contributionDays: dates.map(({ date, count }) => ({
+            date,
+            contributionCount: count,
+          })),
+        },
+      ];
+      return { totalContributions: dates.reduce((sum, d) => sum + d.count, 0), weeks } as ContributionCalendar;
+    }
+
+    const monthlyParams: BadgeParams = {
+      user: 'octocat',
+      bg: '0d1117',
+      text: 'c9d1d9',
+      accent: '58a6ff',
+      radius: '8',
+      speed: '8s',
+      scale: 'linear',
+      autoTheme: false,
+      view: 'monthly',
+    };
+
+    describe('view routing', () => {
+      it('uses default view when view param is missing', () => {
+        const params: BadgeParams = { ...monthlyParams, view: undefined };
+        const svg = generateSVG(mockStats, params, mockCalendar);
+
+        expect(svg).toContain('width="600"');
+        expect(svg).toContain('height="420"');
+        expect(svg).toContain('CURRENT_STREAK');
+        expect(svg).not.toContain('last mo');
+      });
+
+      it('uses default view when view param is invalid', () => {
+        const params: BadgeParams = { ...monthlyParams, view: 'invalid' as any };
+        const svg = generateSVG(mockStats, params, mockCalendar);
+
+        expect(svg).toContain('width="600"');
+        expect(svg).not.toContain('viewBox="0 0 280 60"');
+      });
+
+      it('uses monthly view when view=monthly', () => {
+        const svg = generateSVG(mockStats, monthlyParams, mockCalendar);
+
+        expect(svg).toContain('width="280"');
+        expect(svg).toContain('height="60"');
+        expect(svg).toContain('viewBox="0 0 280 60"');
+      });
+    });
+
+    describe('monthly stats calculation', () => {
+      it('calculates current month total correctly', () => {
+        const calendar = makeCalendar([
+          { date: '2026-05-01', count: 3 },
+          { date: '2026-05-10', count: 5 },
+          { date: '2026-05-15', count: 2 },
+          { date: '2026-04-20', count: 10 },
+        ]);
+
+        const svg = generateSVG(mockStats, monthlyParams, calendar);
+
+        expect(svg).toMatch(/font-weight="700">[\s\n]*10[\s\n]*<\/text>/);
+        expect(svg).toContain('May 2026');
+      });
+
+      it('calculates delta correctly (positive)', () => {
+        const calendar = makeCalendar([
+          { date: '2026-05-01', count: 5 },
+          { date: '2026-05-10', count: 10 },
+          { date: '2026-04-05', count: 10 },
+        ]);
+
+        const svg = generateSVG(mockStats, monthlyParams, calendar);
+
+        expect(svg).toContain('+50%');
+        expect(svg).toContain('vs 10 last mo');
+      });
+
+      it('calculates delta correctly (negative)', () => {
+        const calendar = makeCalendar([
+          { date: '2026-05-01', count: 5 },
+          { date: '2026-04-01', count: 20 },
+        ]);
+
+        const svg = generateSVG(mockStats, monthlyParams, calendar);
+
+        expect(svg).toContain('-75%');
+      });
+
+      it('handles zero previous month (avoids division by zero)', () => {
+        const calendar = makeCalendar([
+          { date: '2026-05-01', count: 8 },
+        ]);
+
+        const svg = generateSVG(mockStats, monthlyParams, calendar);
+
+        expect(svg).toContain('+100%');
+        expect(svg).toContain('vs 0 last mo');
+      });
+
+      it('handles zero current month', () => {
+        const calendar = makeCalendar([
+          { date: '2026-04-10', count: 12 },
+        ]);
+
+        const svg = generateSVG(mockStats, monthlyParams, calendar);
+
+        expect(svg).toMatch(/font-weight="700">[\s\n]*0[\s\n]*<\/text>/);
+        expect(svg).toContain('-100%');
+      });
+    });
+
+    describe('monthly SVG layout', () => {
+      it('renders compact text-focused layout', () => {
+        const svg = generateSVG(mockStats, monthlyParams, mockCalendar);
+
+        // Should contain month name and year
+        expect(svg).toMatch(/(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) \d{4}/);
+
+        // Should contain the delta percentage with sign
+        expect(svg).toMatch(/[+-]\d+%/);
+
+        // Should contain "vs X last mo" comparison text
+        expect(svg).toContain('last mo');
+
+        // Should NOT contain default view elements
+        expect(svg).not.toContain('CURRENT_STREAK');
+        expect(svg).not.toContain('ANNUAL_SYNC_TOTAL');
+        expect(svg).not.toContain('PEAK_STREAK');
+      });
+
+      it('applies theme colors correctly (static theme)', () => {
+        const svg = generateSVG(mockStats, monthlyParams, mockCalendar);
+
+        // Background should use the provided hex (with # prefix normalized)
+        expect(svg).toContain('fill="#0d1117"');
+
+        // Accent color for the contribution number
+        expect(svg).toContain('fill="#58a6ff"');
+
+        // Text color for labels
+        expect(svg).toContain('fill="#c9d1d9"');
+      });
+
+      it('applies border radius parameter', () => {
+        const svg = generateSVG(mockStats, { ...monthlyParams, radius: '12' }, mockCalendar);
+        expect(svg).toContain('rx="12"');
+      });
+
+      it('uses delta color coding (green for positive, red for negative)', () => {
+        const positiveCalendar = makeCalendar([
+          { date: '2026-05-01', count: 20 }, // Current: 20
+          { date: '2026-04-01', count: 10 }, // Previous: 10 → +100%
+        ]);
+        const positiveSvg = generateSVG(mockStats, monthlyParams, positiveCalendar);
+        expect(positiveSvg).toContain('#2ea44f'); // GitHub green
+
+        const negativeCalendar = makeCalendar([
+          { date: '2026-05-01', count: 5 },  // Current: 5
+          { date: '2026-04-01', count: 20 }, // Previous: 20 → -75%
+        ]);
+        const negativeSvg = generateSVG(mockStats, monthlyParams, negativeCalendar);
+        expect(negativeSvg).toContain('#f85149'); // GitHub red
+      });
+    });
+
+    describe('autoTheme compatibility', () => {
+      it('generates CSS variables for auto theme in monthly view', () => {
+        const autoMonthlyParams = { ...monthlyParams, autoTheme: true };
+        const svg = generateSVG(mockStats, autoMonthlyParams, mockCalendar);
+
+        expect(svg).toContain('--cp-bg:');
+        expect(svg).toContain('--cp-text:');
+        expect(svg).toContain('--cp-accent:');
+
+        expect(svg).toContain('prefers-color-scheme: dark');
+
+        expect(svg).toContain('class="cp-bg-fill"');
+        expect(svg).toContain('class="cp-text-fill"');
+        expect(svg).toContain('class="cp-accent-fill"');
+      });
+
+      it('does not use inline hex colors when autoTheme is enabled', () => {
+        const autoMonthlyParams = { ...monthlyParams, autoTheme: true };
+        const svg = generateSVG(mockStats, autoMonthlyParams, mockCalendar);
+
+        expect(svg).toMatch(/<rect[^>]*class="cp-bg-fill"[^>]*\/>/);
+
+        expect(svg).toContain('class="cp-text-fill"');
+        expect(svg).toContain('class="cp-accent-fill"');
+      });
+    });
+
+    describe('snapshot tests', () => {
+      it('matches monthly badge snapshot (static theme)', () => {
+        const svg = generateSVG(mockStats, monthlyParams, mockCalendar);
+        expect(svg).toMatchSnapshot('monthly-badge-static');
+      });
+
+      it('matches monthly badge snapshot (auto theme)', () => {
+        const autoParams = { ...monthlyParams, autoTheme: true };
+        const svg = generateSVG(mockStats, autoParams, mockCalendar);
+        expect(svg).toMatchSnapshot('monthly-badge-auto');
+      });
+
+      it('matches monthly badge with custom radius', () => {
+        const svg = generateSVG(
+          mockStats,
+          { ...monthlyParams, radius: '16', bg: '1a1a2e' },
+          mockCalendar
+        );
+        expect(svg).toMatchSnapshot('monthly-badge-custom-radius');
+      });
+    });
+
+    describe('backward compatibility', () => {
+      it('default view output is unchanged when monthly tests are added', () => {
+        const defaultParams: BadgeParams = { ...monthlyParams, view: 'default' };
+        const svg = generateSVG(mockStats, defaultParams, mockCalendar);
+
+        expect(svg).toContain('width="600"');
+        expect(svg).toContain('height="420"');
+        expect(svg).toContain('CURRENT_STREAK');
+        expect(svg).toContain('ANNUAL_SYNC_TOTAL');
+        expect(svg).toContain('PEAK_STREAK');
+
+        expect(svg).not.toContain('viewBox="0 0 280 60"');
+        expect(svg).not.toContain('last mo');
+      });
+    });
+  });
+
 });
+

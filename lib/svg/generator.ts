@@ -37,6 +37,12 @@ interface TowerData {
   strokeWidth: number;
 }
 
+interface MonthlyTotals {
+  current: { name: string; year: number; total: number };
+  previous: { total: number };
+  delta: { absolute: number; percent: number };
+}
+
 // helpers
 function deterministicRandom(seed: string): number {
   let hash = 2166136261;
@@ -182,6 +188,11 @@ export function generateSVG(
   // This keeps the existing static-theme path completely unchanged.
   if (params.autoTheme) {
     return generateAutoThemeSVG(stats, params, calendar);
+  }
+
+  if (params.view === 'monthly') {
+    const monthlyData = getMonthlyTotals(calendar);
+    return drawMonthlyBadge(monthlyData, params);
   }
   const safeUser = escapeXML(params.user || 'GitHub User');
 
@@ -386,4 +397,117 @@ function generateAutoThemeSVG(
   </rect>
 </svg>
 `;
+}
+
+function getMonthlyTotals(calendar: ContributionCalendar): {
+  current: { name: string; year: number; total: number };
+  previous: { total: number };
+  delta: { absolute: number; percent: number };
+} {
+  const now = new Date();
+  const currentMonth = now.getMonth()
+  const currentYear = now.getFullYear();
+  
+  const prevMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+  const prevYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+
+  let currentTotal = 0;
+  let previousTotal = 0;
+
+  for (const week of calendar.weeks) {
+    for (const day of week.contributionDays) {
+      const date = new Date(day.date);
+      
+      // Is this day in the current month?
+      if (date.getFullYear() === currentYear && date.getMonth() === currentMonth) {
+        currentTotal += day.contributionCount;
+      }
+      
+      if (date.getFullYear() === prevYear && date.getMonth() === prevMonth) {
+        previousTotal += day.contributionCount;
+      }
+    }
+  }
+
+  const diff = currentTotal - previousTotal;
+  const percent = previousTotal === 0 
+    ? (currentTotal > 0 ? 1 : 0)
+    : diff / previousTotal;
+
+  return {
+    current: {
+      name: now.toLocaleString('en-US', { month: 'short' }), // "May"
+      year: currentYear,
+      total: currentTotal,
+    },
+    previous: { total: previousTotal },
+    delta: {
+      absolute: diff,
+      percent: percent,
+    },
+  };
+}
+
+function drawMonthlyBadge(
+  monthlyData: MonthlyTotals, 
+  params: BadgeParams
+): string {
+  const { current, previous, delta } = monthlyData;
+  const { bg, text, accent, radius, autoTheme } = params;
+  
+  const sign = delta.absolute >= 0 ? '+' : '';
+  const percent = Math.round(delta.percent * 100);
+  const deltaColor = delta.absolute >= 0 ? '#2ea44f' : '#f85149';
+
+  if (autoTheme) {
+    const light = AUTO_LIGHT_THEME;
+    const dark = AUTO_DARK_THEME;
+    
+    return `
+<svg xmlns="http://www.w3.org/2000/svg" width="280" height="60" viewBox="0 0 280 60">
+  <defs>
+    <style>
+      :root { --cp-bg: #${light.bg}; --cp-text: #${light.text}; --cp-accent: #${light.accent}; }
+      @media (prefers-color-scheme: dark) { :root { --cp-bg: #${dark.bg}; --cp-text: #${dark.text}; --cp-accent: #${dark.accent}; } }
+      .cp-bg-fill { fill: var(--cp-bg); }
+      .cp-text-fill { fill: var(--cp-text); }
+      .cp-accent-fill { fill: var(--cp-accent); }
+    </style>
+  </defs>
+  <rect width="100%" height="100%" rx="${radius}" class="cp-bg-fill"/>
+  <text x="16" y="22" class="cp-text-fill" font-family="sans-serif" font-size="13" font-weight="600">
+    ${current.name} ${current.year}
+  </text>
+  <text x="16" y="44" class="cp-accent-fill" font-family="sans-serif" font-size="20" font-weight="700">
+    ${current.total}
+  </text>
+  <g transform="translate(180, 18)">
+    <text fill="${deltaColor}" font-family="sans-serif" font-size="14" font-weight="600">
+      ${sign}${percent}%
+    </text>
+    <text x="0" y="16" class="cp-text-fill" font-family="sans-serif" font-size="11" opacity="0.8">
+      vs ${previous.total} last mo
+    </text>
+  </g>
+</svg>`.trim();
+  }
+
+  return `
+<svg xmlns="http://www.w3.org/2000/svg" width="280" height="60" viewBox="0 0 280 60">
+  <rect width="100%" height="100%" rx="${radius}" fill="#${bg.replace('#', '')}"/>
+  <text x="16" y="22" fill="#${text.replace('#', '')}" font-family="sans-serif" font-size="13" font-weight="600">
+    ${current.name} ${current.year}
+  </text>
+  <text x="16" y="44" fill="#${accent.replace('#', '')}" font-family="sans-serif" font-size="20" font-weight="700">
+    ${current.total}
+  </text>
+  <g transform="translate(180, 18)">
+    <text fill="${deltaColor}" font-family="sans-serif" font-size="14" font-weight="600">
+      ${sign}${percent}%
+    </text>
+    <text x="0" y="16" fill="#${text.replace('#', '')}" font-family="sans-serif" font-size="11" opacity="0.8">
+      vs ${previous.total} last mo
+    </text>
+  </g>
+</svg>`.trim();
 }

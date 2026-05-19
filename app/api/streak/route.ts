@@ -4,7 +4,7 @@ import { fetchGitHubContributions } from '../../../lib/github';
 import { calculateStreak } from '../../../lib/calculate';
 import { generateSVG } from '../../../lib/svg/generator';
 import { getSecondsUntilUTCMidnight } from '../../../utils/time';
-import type { BadgeParams } from '../../../types';
+import type { BadgeView, BadgeParams } from '../../../types';
 import { themes } from '../../../lib/svg/themes';
 
 export async function GET(request: Request) {
@@ -41,6 +41,12 @@ export async function GET(request: Request) {
 
     const font = searchParams.get('font') || undefined;
 
+    const viewParam = searchParams.get('view');
+    const validViews: BadgeView[] = ['default', 'monthly'];
+    const view: BadgeView = validViews.includes(viewParam as BadgeView)
+      ? (viewParam as BadgeView)
+      : 'default';
+
     // Auto-theme ignores custom hex overrides — the SVG uses CSS
     // custom properties with a prefers-color-scheme media query, so
     // fixed colors would conflict with the dual-palette switching.
@@ -56,6 +62,7 @@ export async function GET(request: Request) {
       scale,
       font,
       autoTheme: isAutoTheme,
+      view,
     };
 
     const refresh = searchParams.get('refresh') === 'true';

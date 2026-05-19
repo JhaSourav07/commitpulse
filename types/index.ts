@@ -23,6 +23,7 @@ export interface ContributionCalendar {
   totalContributions: number;
   weeks: ContributionWeek[];
 }
+export type BadgeView = 'default' | 'monthly';
 
 export interface BadgeParams {
   user: string;
@@ -33,5 +34,6 @@ export interface BadgeParams {
   scale: 'linear' | 'log';
   font?: string;
   radius?: string;
+  view?: BadgeView;
   autoTheme?: boolean;
 }
