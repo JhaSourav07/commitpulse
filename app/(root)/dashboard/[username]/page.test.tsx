@@ -83,7 +83,10 @@ describe('DashboardPage', () => {
 
   describe('DashboardPage rendering', () => {
     it('renders the dashboard components with the fetched data', async () => {
-      const PageContent = await DashboardPage({ params: Promise.resolve({ username: 'octocat' }) });
+      const PageContent = await DashboardPage({
+        params: Promise.resolve({ username: 'octocat' }),
+        searchParams: Promise.resolve({}),
+      });
       render(PageContent);
 
       // Verify data fetching
