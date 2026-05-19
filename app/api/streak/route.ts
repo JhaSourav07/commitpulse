@@ -22,8 +22,20 @@ export async function GET(request: Request) {
       );
     }
 
-    const { user, theme, bg, text, accent, scale, speed, radius, font, year, refresh, hide_stats: hideStatsParam } =
-      parseResult.data;
+    const {
+      user,
+      theme,
+      bg,
+      text,
+      accent,
+      scale,
+      speed,
+      radius,
+      font,
+      year,
+      refresh,
+      hide_stats: hideStatsParam,
+    } = parseResult.data;
 
     const hide_stats = hideStatsParam === 'true' || hideStatsParam === '1';
 
@@ -60,8 +72,8 @@ export async function GET(request: Request) {
 
     const calendar = await fetchGitHubContributions(user, { bypassCache: refresh, from, to });
     const stats = calculateStreak(calendar);
-    
-    const svg = generateSVG(stats, params, calendar as any);
+
+    const svg = generateSVG(stats, params, calendar);
 
     //4. Calculate Cache Control (Reset at UTC Midnight)
     const secondsToMidnight = getSecondsUntilUTCMidnight();
