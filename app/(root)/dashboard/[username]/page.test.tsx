@@ -87,7 +87,9 @@ describe('DashboardPage', () => {
       render(PageContent);
 
       // Verify data fetching
-      expect(getFullDashboardData).toHaveBeenCalledWith('octocat');
+      expect(getFullDashboardData).toHaveBeenCalledWith('octocat', {
+        bypassCache: false,
+      });
 
       // Verify layout and component presence
       expect(screen.getByText('Generate Your Own Dashboard')).toBeDefined();
