@@ -391,12 +391,21 @@ export async function getFullDashboardData(username: string, options: FetchOptio
         icon: 'Code',
         text: `Your primary language is ${languages[0]?.name || 'Unknown'}.`,
       },
-      {
+    ];
+
+    if (streakStats.currentStreak > 3) {
+      insights.push({
+        id: '3',
+        icon: 'Zap',
+        text: `🔥 You are currently on an active ${streakStats.currentStreak}-day streak! Keep it going!`,
+      });
+    } else {
+      insights.push({
         id: '3',
         icon: 'Star',
         text: `Your longest coding streak is ${streakStats.longestStreak} days!`,
-      },
-    ];
+      });
+    }
 
     // Simulate 24h cycle (because GitHub events API is heavily rate limited to 300 events which doesn't give a full picture)
     const commitClock = Array.from({ length: 24 }).map((_, i) => ({
