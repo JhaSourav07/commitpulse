@@ -34,6 +34,7 @@ export function ThemeSelector({
   onThemeChange: (theme: string) => void;
 }): ReactElement {
   const isAuto = theme === 'auto';
+  const isRandom = theme === 'random';
 
   return (
     <div className="flex flex-col gap-1.5">
@@ -42,7 +43,11 @@ export function ThemeSelector({
         <StyledSelect id="theme-select" value={theme} onChange={onThemeChange}>
           {THEME_KEYS.map((key) => (
             <option key={key} value={key}>
-              {key === 'auto' ? 'Auto (System)' : key.charAt(0).toUpperCase() + key.slice(1)}
+              {key === 'auto'
+                ? 'Auto (System)'
+                : key === 'random'
+                  ? 'Random'
+                  : key.charAt(0).toUpperCase() + key.slice(1)}
             </option>
           ))}
         </StyledSelect>
@@ -60,6 +65,25 @@ export function ThemeSelector({
               </span>
               <span className="text-[11px] text-white/25 ml-1 self-center">
                 switches with OS theme
+              </span>
+            </>
+          ) : isRandom ? (
+            <>
+              {/* Multi-color swatch: segments from a few theme accents */}
+              <span
+                title="Picks a random theme"
+                className="w-5 h-5 rounded-md border border-white/10 overflow-hidden flex"
+              >
+                {(['neon', 'dracula', 'ocean', 'sunset', 'forest'] as const).map((key) => (
+                  <span
+                    key={key}
+                    className="h-full"
+                    style={{ backgroundColor: `#${themes[key].accent}`, flex: 1 }}
+                  />
+                ))}
+              </span>
+              <span className="text-[11px] text-white/25 ml-1 self-center">
+                picks a new theme each request
               </span>
             </>
           ) : (

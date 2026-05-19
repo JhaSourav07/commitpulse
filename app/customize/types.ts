@@ -9,7 +9,13 @@ export type ThemeKey = Extract<keyof typeof themes, string>;
 // 'auto' is a virtual theme that uses CSS prefers-color-scheme to
 // switch between light and dark at runtime — it has no entry in the
 // themes record, so we prepend it manually.
-export const THEME_KEYS: (ThemeKey | 'auto')[] = ['auto', ...(Object.keys(themes) as ThemeKey[])];
+// 'random' is a virtual theme that picks a random palette on each
+// request — it also has no entry in the themes record.
+export const THEME_KEYS: (ThemeKey | 'auto' | 'random')[] = [
+  'auto',
+  ...(Object.keys(themes) as ThemeKey[]),
+  'random',
+];
 
 export const SPEEDS = [
   { value: '4s', label: 'Fast  (4s)' },

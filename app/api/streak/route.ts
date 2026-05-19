@@ -12,12 +12,15 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
 
-    // Parse and validate all incoming params through Zod schema
+    // ✅ Single source of truth: Zod
     const parseResult = streakParamsSchema.safeParse(Object.fromEntries(searchParams.entries()));
 
     if (!parseResult.success) {
       return NextResponse.json(
-        { error: 'Invalid parameters', details: parseResult.error.flatten() },
+        {
+          error: 'Invalid parameters',
+          details: parseResult.error.flatten(),
+        },
         { status: 400 }
       );
     }
@@ -28,47 +31,56 @@ export async function GET(request: Request) {
     const from = year ? `${year}-01-01T00:00:00Z` : undefined;
     const to = year ? `${year}-12-31T23:59:59Z` : undefined;
 
-    const themeName = theme;
-    const isAutoTheme = themeName === 'auto';
-    const isRandomTheme = themeName === 'random';
+    // Theme selection
+    const isAutoTheme = theme === 'auto';
+    const isRandomTheme = theme === 'random';
+
     const selectedTheme = (() => {
       if (isAutoTheme) return themes.light;
+
       if (isRandomTheme) {
-        const themeKeys = Object.keys(themes);
-        const randomKey = themeKeys[Math.floor(Math.random() * themeKeys.length)];
+        const keys = Object.keys(themes);
+        const randomKey = keys[Math.floor(Math.random() * keys.length)];
         return themes[randomKey] || themes.dark;
       }
-      return themes[themeName] || themes.dark;
+
+      return themes[theme] || themes.dark;
     })();
 
-    // Auto-theme ignores custom hex overrides — the SVG uses CSS
-    // custom properties with a prefers-color-scheme media query, so
-    // fixed colors would conflict with the dual-palette switching.
+    // ⚠️ Safety layer for rendering only (not parsing logic)
+    const parsedRadius = Number(radius);
+    const safeRadius = Number.isFinite(parsedRadius) ? Math.min(32, Math.max(0, parsedRadius)) : 8;
     const params: BadgeParams = {
       user,
+
       bg: isAutoTheme ? selectedTheme.bg : bg || selectedTheme.bg,
       text: isAutoTheme ? selectedTheme.text : text || selectedTheme.text,
       accent: isAutoTheme ? selectedTheme.accent : accent || selectedTheme.accent,
-      radius,
+
+      radius: safeRadius,
       speed,
       scale,
       font,
+
       autoTheme: isAutoTheme,
     };
 
-    const calendar = await fetchGitHubContributions(user, { bypassCache: refresh, from, to });
-    const stats = calculateStreak(calendar);
+    const calendar = await fetchGitHubContributions(user, {
+      bypassCache: refresh,
+      from,
+      to,
+    });
 
+    const stats = calculateStreak(calendar);
     const svg = generateSVG(stats, params, calendar);
 
-    //4. Calculate Cache Control (Reset at UTC Midnight)
     const secondsToMidnight = getSecondsUntilUTCMidnight();
+
     const cacheControl =
       refresh || isRandomTheme
         ? 'no-cache, no-store, must-revalidate'
         : `public, s-maxage=${secondsToMidnight}, stale-while-revalidate=86400`;
 
-    //5. Return the Image Response
     return new NextResponse(svg, {
       headers: {
         'Content-Type': 'image/svg+xml',
@@ -78,13 +90,12 @@ export async function GET(request: Request) {
       },
     });
   } catch (error: unknown) {
-    console.error('Streak API Error:', error);
     const message = error instanceof Error ? error.message : 'Unknown error';
 
     const errorSvg = `
-      <svg xmlns="http://www.w3.org/2000/svg" width="400" height="150" viewBox="0 0 400 150">
+      <svg xmlns="http://www.w3.org/2000/svg" width="400" height="150">
         <rect width="100%" height="100%" fill="#2d0000" rx="8"/>
-        <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#ffcccc" font-family="sans-serif" font-size="14">
+        <text x="50%" y="50%" text-anchor="middle" fill="#ffcccc">
           Error: ${message}
         </text>
       </svg>

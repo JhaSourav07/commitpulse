@@ -18,17 +18,21 @@ export default function CustomizePage(): ReactElement {
   const [textHex, setTextHex] = useState('');
   const [scale, setScale] = useState<Scale>('linear');
   const [speed, setSpeed] = useState('8s');
+  const [radius, setRadius] = useState(8);
   const [exportFormat, setExportFormat] = useState<ExportFormat>('markdown');
   const [copied, setCopied] = useState(false);
   const trimmedUsername = username.trim();
   const hasUsername = trimmedUsername.length > 0;
   const isAutoTheme = theme === 'auto';
 
-  // Clear custom hex overrides when switching to auto — fixed colors
-  // conflict with the dual-palette prefers-color-scheme switching.
+  const isRandomTheme = theme === 'random';
+
+  // Clear custom hex overrides when switching to auto or random —
+  // fixed colors conflict with auto's dual-palette switching and
+  // random's per-request palette selection.
   const handleThemeChange = useCallback((newTheme: string): void => {
     setTheme(newTheme);
-    if (newTheme === 'auto') {
+    if (newTheme === 'auto' || newTheme === 'random') {
       setBgHex('');
       setAccentHex('');
       setTextHex('');
@@ -47,6 +51,9 @@ export default function CustomizePage(): ReactElement {
     if (isAutoTheme) {
       // Auto always emits theme=auto — no custom color params
       params.set('theme', 'auto');
+    } else if (isRandomTheme) {
+      // Random always emits theme=random — no custom color params
+      params.set('theme', 'random');
     } else {
       const hasCustomColors = bgHex || accentHex || textHex;
 
@@ -61,9 +68,22 @@ export default function CustomizePage(): ReactElement {
 
     if (scale !== 'linear') params.set('scale', scale);
     if (speed !== '8s') params.set('speed', speed);
+    if (radius !== 8) params.set('radius', radius.toString());
 
     return params.toString();
-  }, [hasUsername, trimmedUsername, theme, isAutoTheme, bgHex, accentHex, textHex, scale, speed]);
+  }, [
+    hasUsername,
+    trimmedUsername,
+    theme,
+    isAutoTheme,
+    isRandomTheme,
+    bgHex,
+    accentHex,
+    textHex,
+    scale,
+    speed,
+    radius,
+  ]);
 
   const queryString = buildQueryParams();
   const previewSrc = `/api/streak?${queryString}`;
@@ -157,6 +177,7 @@ export default function CustomizePage(): ReactElement {
               textHex={textHex}
               scale={scale}
               speed={speed}
+              radius={radius}
               onUsernameChange={setUsername}
               onThemeChange={handleThemeChange}
               onBgHexChange={setBgHex}
@@ -164,6 +185,7 @@ export default function CustomizePage(): ReactElement {
               onTextHexChange={setTextHex}
               onScaleChange={setScale}
               onSpeedChange={setSpeed}
+              onRadiusChange={setRadius}
               onClearOverrides={() => {
                 setBgHex('');
                 setAccentHex('');

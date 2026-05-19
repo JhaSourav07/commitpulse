@@ -85,6 +85,7 @@ export function ControlsPanel({
   textHex,
   scale,
   speed,
+  radius,
   onUsernameChange,
   onThemeChange,
   onBgHexChange,
@@ -93,6 +94,7 @@ export function ControlsPanel({
   onScaleChange,
   onSpeedChange,
   onClearOverrides,
+  onRadiusChange,
 }: {
   username: string;
   theme: string;
@@ -101,6 +103,7 @@ export function ControlsPanel({
   textHex: string;
   scale: Scale;
   speed: string;
+  radius: number;
   onUsernameChange: (value: string) => void;
   onThemeChange: (value: string) => void;
   onBgHexChange: (value: string) => void;
@@ -109,9 +112,11 @@ export function ControlsPanel({
   onScaleChange: (value: Scale) => void;
   onSpeedChange: (value: string) => void;
   onClearOverrides: () => void;
+  onRadiusChange: (value: number) => void;
 }): ReactElement {
   const hasOverrides = Boolean(bgHex || accentHex || textHex);
   const isAutoTheme = theme === 'auto';
+  const isRandomTheme = theme === 'random';
 
   return (
     <div>
@@ -144,6 +149,13 @@ export function ControlsPanel({
               Custom colors are disabled for the <strong className="text-white/50">Auto</strong>{' '}
               theme. The badge switches between light and dark palettes automatically based on the
               viewer&apos;s system preference.
+            </p>
+          ) : isRandomTheme ? (
+            <p className="text-[11px] text-white/30 mt-2 leading-relaxed">
+              Custom colors are disabled for the <strong className="text-white/50">Random</strong>{' '}
+              theme. A new palette is picked on each request, so fixed overrides would not apply
+              consistently. Caching is disabled for random badges to ensure a fresh theme every
+              load.
             </p>
           ) : (
             <>
@@ -222,6 +234,26 @@ export function ControlsPanel({
                 </option>
               ))}
             </StyledSelect>
+          </div>
+        </ControlRow>
+
+        <ControlRow label="Border Radius">
+          <div className="relative flex items-center">
+            <div className="absolute inset-x-0 h-0.75  rounded-full  bg-white/6 " />
+            <input
+              type="range"
+              min="0"
+              max="50"
+              step="1"
+              value={radius}
+              onChange={(e) => onRadiusChange(Number(e.target.value))}
+              className="w-full relative bg-transparent appearance-none outline-none slider"
+            />
+          </div>
+          <div className="flex justify-between text-sm text-white/20 ">
+            <span>0</span>
+            <span className="text-emerald-300/60 font-mono text-[11px]">{radius}</span>
+            <span>50</span>
           </div>
         </ControlRow>
       </div>
