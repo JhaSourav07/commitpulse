@@ -47,10 +47,6 @@
   --color-border: rgba(255, 255, 255, 0.08);
   --color-muted: #a1a1aa;
   --color-accent: rgba(99, 102, 241, 0.5);
-<<<<<<< HEAD
-=======
-  /* indigo glow, hover only */
->>>>>>> c3826c5 (feat(SVG):added border radius to customization page)
 }
 
 body {
