@@ -71,6 +71,7 @@ describe('DashboardPage', () => {
     languages: [{ name: 'TypeScript', percentage: 100, color: '#3178c6' }],
     activity: [],
     insights: [],
+    achievements: [],
     commitClock: [],
   };
 
