@@ -12,7 +12,6 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
 
-    // Parse and validate all incoming params through Zod schema
     const parseResult = streakParamsSchema.safeParse(
       Object.fromEntries(searchParams.entries())
     );
@@ -38,7 +37,6 @@ export async function GET(request: Request) {
       refresh,
     } = parseResult.data;
 
-    // Validate GitHub founding year
     if (year) {
       const parsedYear = parseInt(year, 10);
 
@@ -71,7 +69,6 @@ export async function GET(request: Request) {
       return themes[themeName] || themes.dark;
     })();
 
-    // Auto-theme ignores custom hex overrides
     const params: BadgeParams = {
       user,
       bg: isAutoTheme ? selectedTheme.bg : bg || selectedTheme.bg,
@@ -96,7 +93,6 @@ export async function GET(request: Request) {
 
     const svg = generateSVG(stats, params, calendar);
 
-    // Calculate Cache Control
     const secondsToMidnight = getSecondsUntilUTCMidnight();
 
     const cacheControl =
