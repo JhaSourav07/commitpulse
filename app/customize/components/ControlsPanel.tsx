@@ -115,6 +115,7 @@ export function ControlsPanel({
   onClearOverrides: () => void;
 }): ReactElement {
   const hasOverrides = Boolean(bgHex || accentHex || textHex);
+  const currentYear = new Date().getFullYear();
   const isAutoTheme = theme === 'auto';
 
   return (
@@ -135,14 +136,15 @@ export function ControlsPanel({
           />
         </ControlRow>
 
+        <ThemeSelector theme={theme} onThemeChange={onThemeChange} />
+
         <div className="h-px bg-white/5" />
         <ControlRow label="Year">
           <div className="relative">
             <StyledSelect id="year-select" value={year} onChange={(value) => onYearChange(value)}>
-              <option value="">Current Year</option>
+              <option value="">{currentYear} (current)</option>
 
-              {Array.from({ length: new Date().getFullYear() - 2019 }, (_, i) => {
-                const currentYear = new Date().getFullYear();
+              {Array.from({ length: currentYear - 2019 }, (_, i) => {
                 const yearOption = currentYear - i - 1;
 
                 return (
@@ -156,8 +158,6 @@ export function ControlsPanel({
         </ControlRow>
 
         <div className="h-px bg-white/5" />
-
-        <ThemeSelector theme={theme} onThemeChange={onThemeChange} />
 
         <div className="h-px bg-white/5" />
 
