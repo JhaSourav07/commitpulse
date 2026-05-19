@@ -166,70 +166,56 @@ describe('GET /api/streak', () => {
   });
 
   describe('speed parameter', () => {
-  it('accepts a valid integer speed like "3s" and passes it to the SVG', async () => {
-    const response = await GET(
-      makeRequest({ user: 'octocat', speed: '3s' }),
-    );
-    const body = await response.text();
+    it('accepts a valid integer speed like "3s" and passes it to the SVG', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', speed: '3s' }));
+      const body = await response.text();
 
-    expect(body).toContain('3s');
+      expect(body).toContain('3s');
+    });
+
+    it('falls back to 8s for decimal values below minimum bound', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', speed: '1.5s' }));
+      const body = await response.text();
+
+      expect(body).toContain('8s');
+    });
+
+    it('falls back to 8s when the speed format is invalid (no unit)', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', speed: 'fast' }));
+      const body = await response.text();
+
+      expect(body).toContain('8s');
+      expect(body).not.toContain('fast');
+    });
+
+    it('falls back to 8s when speed is a bare number without the "s" suffix', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', speed: '5' }));
+      const body = await response.text();
+
+      expect(body).toContain('8s');
+    });
+
+    it('falls back to 8s when speed=10 is provided without unit', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', speed: '10' }));
+      const body = await response.text();
+
+      expect(body).toContain('8s');
+    });
+
+    it('falls back to 8s when speed is below minimum bound', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', speed: '1s' }));
+      const body = await response.text();
+
+      expect(body).toContain('8s');
+    });
+
+    it('falls back to 8s when speed exceeds maximum bound', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', speed: '999s' }));
+      const body = await response.text();
+
+      expect(body).toContain('8s');
+    });
   });
-
-  it('falls back to 8s for decimal values below minimum bound', async () => {
-    const response = await GET(
-      makeRequest({ user: 'octocat', speed: '1.5s' }),
-    );
-    const body = await response.text();
-
-    expect(body).toContain('8s');
-  });
-
-  it('falls back to 8s when the speed format is invalid (no unit)', async () => {
-    const response = await GET(
-      makeRequest({ user: 'octocat', speed: 'fast' }),
-    );
-    const body = await response.text();
-
-    expect(body).toContain('8s');
-    expect(body).not.toContain('fast');
-  });
-
-  it('falls back to 8s when speed is a bare number without the "s" suffix', async () => {
-    const response = await GET(
-      makeRequest({ user: 'octocat', speed: '5' }),
-    );
-    const body = await response.text();
-
-    expect(body).toContain('8s');
-  });
-
-  it('falls back to 8s when speed=10 is provided without unit', async () => {
-    const response = await GET(
-      makeRequest({ user: 'octocat', speed: '10' }),
-    );
-    const body = await response.text();
-
-    expect(body).toContain('8s');
-  });
-
-  it('falls back to 8s when speed is below minimum bound', async () => {
-    const response = await GET(
-      makeRequest({ user: 'octocat', speed: '1s' }),
-    );
-    const body = await response.text();
-
-    expect(body).toContain('8s');
-  });
-
-  it('falls back to 8s when speed exceeds maximum bound', async () => {
-    const response = await GET(
-      makeRequest({ user: 'octocat', speed: '999s' }),
-    );
-    const body = await response.text();
-
-    expect(body).toContain('8s');
-  });
-});
 
   describe('scale parameter', () => {
     it('returns 200 when scale=log is given', async () => {

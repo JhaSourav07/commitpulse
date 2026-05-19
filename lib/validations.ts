@@ -13,20 +13,20 @@ export const streakParamsSchema = z.object({
   scale: z.enum(['linear', 'log']).catch('linear').default('linear'),
 
   // Silently fall back to '8s' for invalid format (matches old behavior)
- speed: z
-  .string()
-  .regex(/^\d+(\.\d+)?s$/)
-  .transform((value) => {
-    const numeric = parseFloat(value.replace('s', ''));
+  speed: z
+    .string()
+    .regex(/^\d+(\.\d+)?s$/)
+    .transform((value) => {
+      const numeric = parseFloat(value.replace('s', ''));
 
-    if (numeric < 2 || numeric > 20) {
-      return '8s';
-    }
+      if (numeric < 2 || numeric > 20) {
+        return '8s';
+      }
 
-    return `${numeric}s`;
-  })
-  .catch('8s')
-  .default('8s'),
+      return `${numeric}s`;
+    })
+    .catch('8s')
+    .default('8s'),
 
   radius: z.string().default('8'),
   font: z.string().optional(),
