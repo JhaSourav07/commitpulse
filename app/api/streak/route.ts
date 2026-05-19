@@ -22,8 +22,20 @@ export async function GET(request: Request) {
       );
     }
 
-    const { user, theme, bg, text, accent, scale, speed, radius, font, year, refresh } =
-      parseResult.data;
+    const {
+      user,
+      theme,
+      bg,
+      text,
+      accent,
+      scale,
+      speed,
+      radius,
+      font,
+      year,
+      refresh,
+      hide_background,
+    } = parseResult.data;
 
     const from = year ? `${year}-01-01T00:00:00Z` : undefined;
     const to = year ? `${year}-12-31T23:59:59Z` : undefined;
@@ -54,6 +66,7 @@ export async function GET(request: Request) {
       scale,
       font,
       autoTheme: isAutoTheme,
+      hideBackground: hide_background,
     };
 
     const calendar = await fetchGitHubContributions(user, { bypassCache: refresh, from, to });
