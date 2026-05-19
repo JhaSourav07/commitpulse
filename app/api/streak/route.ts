@@ -25,16 +25,28 @@ export async function GET(request: Request) {
       );
     }
 
-    const { user, theme, bg, text, accent, scale, speed, radius, font, year, refresh } =
-      parseResult.data;
+    const {
+      user,
+      theme,
+      bg,
+      text,
+      accent,
+      scale,
+      speed,
+      radius,
+      font,
+      year,
+      refresh,
+      hide_stats: hideStatsParam,
+    } = parseResult.data;
 
+    const hide_stats = hideStatsParam === 'true' || hideStatsParam === '1';
+
+    const themeName = theme || 'dark';
     const from = year ? `${year}-01-01T00:00:00Z` : undefined;
     const to = year ? `${year}-12-31T23:59:59Z` : undefined;
-
-    // Theme selection
-    const isAutoTheme = theme === 'auto';
-    const isRandomTheme = theme === 'random';
-
+    const isAutoTheme = themeName === 'auto';
+    const isRandomTheme = themeName === 'random';
     const selectedTheme = (() => {
       if (isAutoTheme) return themes.light;
 
@@ -63,6 +75,7 @@ export async function GET(request: Request) {
       font,
 
       autoTheme: isAutoTheme,
+      hide_stats: hide_stats,
     };
 
     const calendar = await fetchGitHubContributions(user, {
