@@ -12,7 +12,7 @@ type RefreshButtonProps = {
 export default function RefreshButton({ username }: RefreshButtonProps) {
   const [loading, setLoading] = useState(false);
   useEffect(() => {
-  const refreshed = sessionStorage.getItem('dashboard-refreshed');
+    const refreshed = sessionStorage.getItem('dashboard-refreshed');
 
     if (refreshed === 'true') {
       toast.success('Dashboard refreshed successfully');
