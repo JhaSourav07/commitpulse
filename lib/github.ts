@@ -352,6 +352,7 @@ export async function getFullDashboardData(username: string, options: FetchOptio
     });
 
     // Fixed color mapping for common languages to avoid random colors
+    // Fixed color mapping for common languages to avoid random colors
     const languageColors: Record<string, string> = {
       TypeScript: '#3178c6',
       JavaScript: '#f1e05a',
@@ -362,6 +363,22 @@ export async function getFullDashboardData(username: string, options: FetchOptio
       CSS: '#563d7c',
       Go: '#00ADD8',
       Rust: '#dea584',
+
+      C: '#555555',
+      'C#': '#178600',
+      PHP: '#4F5D95',
+      Ruby: '#701516',
+      Swift: '#F05138',
+      Kotlin: '#A97BFF',
+      Dart: '#00B4AB',
+      Lua: '#000080',
+      R: '#198CE7',
+      Scala: '#c22d40',
+      Perl: '#0298c3',
+      Haskell: '#5e5086',
+      Elixir: '#6e4a7e',
+      Vue: '#41b883',
+      Svelte: '#ff3e00',
     };
 
     const totalLangs = Object.values(langCounts).reduce((a, b) => a + b, 0);
