@@ -78,3 +78,15 @@ body {
   background: #333;
   border-radius: 3px;
 }
+
+
+/* Custom text selection color matching dark theme */
+::selection {
+  background: rgba(99, 102, 241, 0.4);
+  color: #ffffff;
+}
+
+::-moz-selection {
+  background: rgba(99, 102, 241, 0.4);
+  color: #ffffff;
+}
