@@ -94,40 +94,8 @@ export default async function DashboardPage({ params }: { params: Promise<{ user
             exportData={{ stats: data.stats, languages: data.languages }}
           />
           {/* We omit real achievements data generation for now and just show a placeholder based on streaks */}
-          <Achievements
-            achievements={[
-              {
-                id: '1',
-                title: 'Streak Master',
-                description: 'Reached a 7 day streak',
-                icon: 'Flame',
-                isUnlocked: data.stats.currentStreak >= 7,
-              },
-              {
-                id: '2',
-                title: 'Consistent',
-                description: 'Over 100 contributions',
-                icon: 'GitCommit',
-                isUnlocked: data.stats.totalContributions >= 100,
-              },
-              {
-                id: '3',
-                title: 'Polyglot',
-                description: 'Uses multiple languages',
-                icon: 'Code',
-                isUnlocked: data.languages.length >= 2,
-              },
-              {
-                id: '4',
-                title: 'Night Owl',
-                description: 'Commits late at night',
-                icon: 'Moon',
-                isUnlocked: true,
-              },
-            ]}
-          />
+          <Achievements achievements={data.achievements} />
         </aside>
-
         {/* Main Content */}
         <div className="flex flex-col gap-6 lg:gap-8 min-w-0">
           <section>
