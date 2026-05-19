@@ -97,6 +97,7 @@ URL Parameter > Theme Default > System Fallback
 | `year`            | `string`  | No         | —                              | Calendar year to render (e.g. `2023`, `2024`)                                                                       |
 | `hide_background` | `boolean` | No         | `false`                        | Remove the background rect, letting the monolith float on the page                                                  |
 | `hide_stats`      | `boolean` | No         | `false`                        | Hides the bottom row displaying Current Streak, Annual Sync Total, and Peak Streak stats when set to `true` or `1`. |
+| `lang`            | `string`  | No         | `en`                           | Language code for labels (`en`, `es`, `hi`, `fr`)                                                                   |
 
 ### Theme Presets
 
