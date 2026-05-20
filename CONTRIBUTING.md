@@ -164,6 +164,15 @@ To maintain high quality in our codebase, we use structured **Issue Templates** 
 
 By using these templates, you provide maintainers with clear details and context. Since you authored the issue, you can immediately claim it for yourself by commenting `/claim`!
 
+### 🔍 Semantic Duplicate Detection
+
+To help maintainers keep the repository organized and prevent multiple contributors from working on the same problem, we have an automated **Semantic Duplicate Detector** workflow in place:
+
+- **AI-Powered Matching:** A custom GitHub Action uses the Google Gemini API (`text-embedding-004`) to generate text embeddings for all open issues (analyzing the title and body).
+- **Cosine Similarity Scan:** The detector compares issues pairwise. If the semantic similarity between a new issue and an older issue exceeds **85%**, it flags them.
+- **Automatic Flagging:** The bot will post a friendly alert comment on the newer issue pointing to the older issue, and apply a `possible-duplicate` label.
+- **What this means for contributors:** Before starting to work on an issue, check if the duplicate detection bot has flagged it. If it is indeed a duplicate of an existing open issue, we encourage you to collaborate on or contribute to the original issue instead of creating a duplicate.
+
 ### 🎮 Available Commands
 
 Our automation runs entirely through issue comments. Here is how you interact with it:
