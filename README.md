@@ -280,6 +280,7 @@ We built an anti-hoarding, self-service automation layer right into the reposito
 - **Fair Play:** A strict one-active-issue-per-contributor rule prevents issue hoarding.
 - **Stale Expiry:** A scheduled chron job automatically unassigns inactive contributors after 3 days.
 - **Self-Service Labels:** Anyone can tag issues using `/addlabel <tag>`.
+- **Semantic Duplicate Detection:** An AI-powered duplicate detector automatically scans open issues using the Google Gemini API (`text-embedding-004`) to generate vector embeddings. It calculates cosine similarity and flags potential duplicate issues with a comment and a `possible-duplicate` label.
 
 This ensures maintainers aren't bottlenecks and the community moves incredibly fast.
 
