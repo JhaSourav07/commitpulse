@@ -159,12 +159,12 @@ CommitPulse uses a custom, lightweight **GitHub Actions** automation system to m
 
 Our automation runs entirely through issue comments. Here is how you interact with it:
 
-| Command                       | Who Can Use It?      | What It Does                                              |
-| ----------------------------- | -------------------- | --------------------------------------------------------- |
-| `/claim`                      | **Issue Author Only**| Self-assigns the issue to you (only if you created it).   |
-| `/addlabel <label1> <label2>` | **Anyone**           | Adds labels to the issue (e.g. `/addlabel frontend bug`). |
-| `/unassign @username`         | **Maintainers Only** | Removes the assignee from an issue.                       |
-| `/assign @username`           | **Maintainers Only** | Manually assigns someone to an issue.                     |
+| Command                       | Who Can Use It?       | What It Does                                              |
+| ----------------------------- | --------------------- | --------------------------------------------------------- |
+| `/claim`                      | **Issue Author Only** | Self-assigns the issue to you (only if you created it).   |
+| `/addlabel <label1> <label2>` | **Anyone**            | Adds labels to the issue (e.g. `/addlabel frontend bug`). |
+| `/unassign @username`         | **Maintainers Only**  | Removes the assignee from an issue.                       |
+| `/assign @username`           | **Maintainers Only**  | Manually assigns someone to an issue.                     |
 
 ### ⏳ The Inactivity Policy (Assignment Expiry)
 
