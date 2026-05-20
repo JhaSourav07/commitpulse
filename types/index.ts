@@ -35,4 +35,5 @@ export interface BadgeParams {
   radius?: number;
   autoTheme?: boolean;
   hide_stats?: boolean;
+  disable_particles?: boolean;
 }

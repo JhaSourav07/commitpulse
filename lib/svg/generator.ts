@@ -8,15 +8,8 @@ const LINEAR_SCALE_MULTIPLIER = 5;
 const MAX_LOG_HEIGHT = 80;
 const MAX_LINEAR_HEIGHT = 50;
 
-// TOWER_BASE_Y: the vertical midpoint of the isometric ground floor diamond in local SVG space.
-// The diamond paths are drawn from y=0 (back vertex) to y=20 (front vertex), making y=10
-// the horizontal center line that acts as the visual ground level for each tower.
-// This value is used as the CSS transform-origin for the grow-up animation so towers
-// scale upward from their ground tile rather than from the SVG origin.
 const TOWER_BASE_Y = 10;
 
-// Shared animation CSS injected into both static and auto-theme SVG renderers.
-// Defined once here to avoid duplication — any curve/timing change only needs updating in one place.
 const TOWER_ANIMATION_CSS = `
   .cp-tower {
     transform: scaleY(0);
@@ -37,8 +30,6 @@ const FONT_MAP: Record<string, string> = {
   roboto: '"Roboto", sans-serif',
 };
 
-// types
-/** Shared layout data for a single isometric tower. */
 interface FaceOpacity {
   left: number;
   right: number;
@@ -58,12 +49,10 @@ interface TowerData {
   faceOpacity: FaceOpacity;
   strokeOpacity: number;
   strokeWidth: number;
-  /** Grid position used to compute the staggered animation-delay (row + col) * offset */
   row: number;
   col: number;
 }
 
-// helpers
 function deterministicRandom(seed: string): number {
   let hash = 2166136261;
   for (let i = 0; i < seed.length; i++) {
@@ -72,6 +61,7 @@ function deterministicRandom(seed: string): number {
   }
   return (hash >>> 0) / 4294967296;
 }
+
 function computeTowerHeight(
   count: number,
   scale: 'linear' | 'log',
@@ -94,16 +84,10 @@ function computeFaceOpacity(count: number, isGhostCityMode: boolean): FaceOpacit
   return { left: 0.35, right: 0.21, top: 0.7 };
 }
 
-/**
- * Computes tower positions and heights from the last 14 weeks of
- * contribution data. The layout math is identical for both the
- * static-theme and auto-theme rendering paths.
- */
 function computeTowers(calendar: ContributionCalendar, scale: 'linear' | 'log'): TowerData[] {
   const weeks = calendar.weeks.slice(-14);
   const towers: TowerData[] = [];
 
-  // Calculate if the entire monolith is empty
   let totalVisibleContributions = 0;
   weeks.forEach((week) => {
     week.contributionDays.forEach((day) => {
@@ -124,8 +108,6 @@ function computeTowers(calendar: ContributionCalendar, scale: 'linear' | 'log'):
         ? `TODAY: ${day.date}: ${day.contributionCount} contributions`
         : `${day.date}: ${day.contributionCount} contributions`;
 
-      // If not ghost city and no commits, height is 0, so don't render face if not needed,
-      // but we return 0 for height so it won't be visible.
       towers.push({
         x: 300 + (i - j) * 16,
         y: 120 + (i + j) * 9,
@@ -156,6 +138,7 @@ function escapeXML(str: string): string {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
 }
+
 function generateParticles(
   x: number,
   y: number,
@@ -178,6 +161,7 @@ function generateParticles(
       </circle>
     `;
   }
+
   return `<g class="heat-particles">${particles}</g>`;
 }
 
@@ -197,20 +181,19 @@ function generateAutoParticles(x: number, y: number, height: number, count: numb
       </circle>
     `;
   }
+
   return `<g class="heat-particles">${particles}</g>`;
 }
 
-// main renderers
 export function generateSVG(
   stats: StreakStats,
   params: BadgeParams,
   calendar: ContributionCalendar
 ): string {
-  // Dispatch to the auto-theme renderer when the caller requests it.
-  // This keeps the existing static-theme path completely unchanged.
   if (params.autoTheme) {
     return generateAutoThemeSVG(stats, params, calendar);
   }
+
   const safeUser = escapeXML(params.user || 'GitHub User');
 
   const bg = `#${(params.bg || '0d1117').replace('#', '')}`;
@@ -236,14 +219,8 @@ export function generateSVG(
 
   for (const t of towerData) {
     const color = t.isGhost ? text : accent;
-    // Stagger delay creates a diagonal wave across the isometric grid (back-to-front)
     const delay = ((t.row + t.col) * 0.015).toFixed(3);
 
-    // The outer <g> positions the group at the ground tile (t.x, t.y).
-    // The inner <g class="cp-tower"> is what CSS animates with scaleY.
-    // Keeping these two responsibilities in separate elements prevents the
-    // CSS transform from fighting the SVG translate — they operate independently.
-    // Geometry paths are drawn offset by -t.h so they extend upward from y=10 (ground).
     towers += `
         <g transform="translate(${t.x}, ${t.y})">
           <g class="cp-tower" style="animation-delay: ${delay}s;">
@@ -255,11 +232,12 @@ export function generateSVG(
             ${t.contributionCount > 5 ? `<path d="M0 ${-t.h} L16 ${10 - t.h} L0 ${20 - t.h} L-16 ${10 - t.h} Z" fill="white" fill-opacity="0.2" />` : ''}
           </g>
         </g>`;
-    if (t.contributionCount >= 10)
+
+    if (t.contributionCount >= 10 && !params.disable_particles) {
       towers += generateParticles(t.x, t.y, t.h, accent, t.contributionCount);
+    }
   }
 
-  // dynamic google fonts import
   const googleFontsImport =
     sanitizedFont && !isPredefinedFont
       ? `@import url('https://fonts.googleapis.com/css2?family=${encodeURIComponent(sanitizedFont).replace(/%20/g, '+')}&amp;display=swap');`
@@ -327,16 +305,6 @@ export function generateSVG(
 `;
 }
 
-/**
- * Generates an SVG that automatically switches between a light and
- * dark color palette using CSS @media (prefers-color-scheme: dark).
- *
- * All fill colors are driven by CSS custom properties (--cp-bg,
- * --cp-text, --cp-accent) so the browser swaps them at runtime
- * without any JavaScript.  Because GitHub README images are served
- * as <img> resources, the browser's native CSS engine renders the
- * SVG and fully respects the media query.
- */
 function generateAutoThemeSVG(
   stats: StreakStats,
   params: BadgeParams,
@@ -356,18 +324,10 @@ function generateAutoThemeSVG(
   let towers = '';
 
   for (const t of towerData) {
-    // isGhost is the single source of truth for color class — no hasCommits redundancy
     const fillClass = t.isGhost ? 'cp-text-fill' : 'cp-accent-fill';
-    // Ghost strokes use --cp-text; active towers have no outline (strokeOpacity=0 handles suppression)
     const strokeColor = t.isGhost ? 'var(--cp-text)' : 'var(--cp-accent)';
-    // Stagger delay creates a diagonal wave across the isometric grid (back-to-front)
     const delay = ((t.row + t.col) * 0.015).toFixed(3);
 
-    // The outer <g> positions the group at the ground tile (t.x, t.y).
-    // The inner <g class="cp-tower"> is what CSS animates with scaleY.
-    // Keeping these two responsibilities in separate elements prevents the
-    // CSS transform from fighting the SVG translate — they operate independently.
-    // Geometry paths are drawn offset by -t.h so they extend upward from y=10 (ground).
     towers += `
         <g transform="translate(${t.x}, ${t.y})">
           <g class="cp-tower" style="animation-delay: ${delay}s;">
@@ -379,8 +339,10 @@ function generateAutoThemeSVG(
             ${t.contributionCount > 5 ? `<path d="M0 ${-t.h} L16 ${10 - t.h} L0 ${20 - t.h} L-16 ${10 - t.h} Z" fill="white" fill-opacity="0.2" />` : ''}
           </g>
         </g>`;
-    if (t.contributionCount >= 10)
+
+    if (t.contributionCount >= 10 && !params.disable_particles) {
       towers += generateAutoParticles(t.x, t.y, t.h, t.contributionCount);
+    }
   }
 
   return `

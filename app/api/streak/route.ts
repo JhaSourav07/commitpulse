@@ -12,7 +12,6 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
 
-    // ✅ Single source of truth: Zod
     const parseResult = streakParamsSchema.safeParse(Object.fromEntries(searchParams.entries()));
 
     if (!parseResult.success) {
@@ -38,9 +37,12 @@ export async function GET(request: Request) {
       year,
       refresh,
       hide_stats: hideStatsParam,
+      disable_particles: disableParticlesParam,
     } = parseResult.data;
 
     const hide_stats = hideStatsParam === 'true' || hideStatsParam === '1';
+    const disable_particles =
+      disableParticlesParam === 'true' || disableParticlesParam === '1';
 
     const themeName = theme || 'dark';
     const from = year ? `${year}-01-01T00:00:00Z` : undefined;
@@ -59,9 +61,9 @@ export async function GET(request: Request) {
       return themes[theme] || themes.dark;
     })();
 
-    // ⚠️ Safety layer for rendering only (not parsing logic)
     const parsedRadius = Number(radius);
     const safeRadius = Number.isFinite(parsedRadius) ? Math.min(32, Math.max(0, parsedRadius)) : 8;
+
     const params: BadgeParams = {
       user,
 
@@ -75,7 +77,8 @@ export async function GET(request: Request) {
       font,
 
       autoTheme: isAutoTheme,
-      hide_stats: hide_stats,
+      hide_stats,
+      disable_particles,
     };
 
     const calendar = await fetchGitHubContributions(user, {

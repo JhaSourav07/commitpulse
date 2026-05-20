@@ -27,6 +27,7 @@ export const streakParamsSchema = z.object({
     .optional()
     .transform((val) => val === 'true'),
   hide_stats: z.string().optional(),
+  disable_particles: z.string().optional(),
 });
 
 export const githubParamsSchema = z.object({

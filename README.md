@@ -96,6 +96,7 @@ URL Parameter > Theme Default > System Fallback
 | `refresh`    | `boolean` | No         | `false`                        | Bypass cache for real-time data                                                                                     |
 | `year`       | `string`  | No         | —                              | Calendar year to render (e.g. `2023`, `2024`)                                                                       |
 | `hide_stats` | `boolean` | No         | `false`                        | Hides the bottom row displaying Current Streak, Annual Sync Total, and Peak Streak stats when set to `true` or `1`. |
+| `disable_particles` | `boolean` | No         | `false`                        | Disables animated SVG particles when set to `true` or `1`. |
 
 ### Theme Presets
 
@@ -142,6 +143,10 @@ URL Parameter > Theme Default > System Fallback
 <!-- View contributions for a specific past year -->
 
 ![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&year=2023)
+
+<!-- Disable animated SVG particles -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&disable_particles=true)
 ```
 
 ---
