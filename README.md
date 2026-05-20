@@ -36,7 +36,7 @@ We render your contribution data as a **3D Isometric City** — a grid of glowin
 
 **Ghost City Architecture:** In this mode, zero-contribution days aren't just empty space. They are rendered as thin, wireframe-style **blueprint foundations** (4px high). This gives your commit landscape a structured, architectural "work-in-progress" look even during rest days, maintaining the premium 3D aesthetic across the entire calendar.
 
-This is not decoration. This is a **live, animated data visualization** that makes your dedication impossible to ignore.
+This is not decoration. This is a **live , animated data visualization** that makes your dedication impossible to ignore.
 
 ### Why Isometric > Flat
 
@@ -96,6 +96,20 @@ URL Parameter > Theme Default > System Fallback
 | `refresh`         | `boolean` | No         | `false`                        | Bypass cache for real-time data                                    |
 | `year`            | `string`  | No         | —                              | Calendar year to render (e.g. `2023`, `2024`)                      |
 | `hide_background` | `boolean` | No         | `false`                        | Remove the background rect, letting the monolith float on the page |
+| Parameter    | Type      | Required   | Default                        | Description                                                                                                         |
+| ------------ | --------- | ---------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
+| `user`       | `string`  | ✅ **Yes** | —                              | GitHub username to render                                                                                           |
+| `theme`      | `string`  | No         | `dark`                         | Preset theme name (see below)                                                                                       |
+| `bg`         | `hex`     | No         | Theme default                  | Background color — **without** `#`                                                                                  |
+| `accent`     | `hex`     | No         | Theme default                  | Tower & glow color — **without** `#`                                                                                |
+| `text`       | `hex`     | No         | Theme default                  | Label & stat text color — **without** `#`                                                                           |
+| `radius`     | `number`  | No         | `8`                            | Border corner radius in pixels                                                                                      |
+| `speed`      | `string`  | No         | `8s`                           | Radar scan animation duration (e.g. `4s`, `12s`)                                                                    |
+| `scale`      | `string`  | No         | `linear`                       | Tower height scaling: `linear` or `log` (logarithmic)                                                               |
+| `font`       | `string`  | No         | CommitPulse default typography | Any **Google Font** name (e.g., `Orbitron`, `Inter`)                                                                |
+| `refresh`    | `boolean` | No         | `false`                        | Bypass cache for real-time data                                                                                     |
+| `year`       | `string`  | No         | —                              | Calendar year to render (e.g. `2023`, `2024`)                                                                       |
+| `hide_stats` | `boolean` | No         | `false`                        | Hides the bottom row displaying Current Streak, Annual Sync Total, and Peak Streak stats when set to `true` or `1`. |
 
 ### Theme Presets
 

@@ -85,6 +85,7 @@ export function ControlsPanel({
   textHex,
   scale,
   speed,
+  year,
   radius,
   onUsernameChange,
   onThemeChange,
@@ -93,6 +94,7 @@ export function ControlsPanel({
   onTextHexChange,
   onScaleChange,
   onSpeedChange,
+  onYearChange,
   onClearOverrides,
   onRadiusChange,
 }: {
@@ -103,6 +105,7 @@ export function ControlsPanel({
   textHex: string;
   scale: Scale;
   speed: string;
+  year: string;
   radius: number;
   onUsernameChange: (value: string) => void;
   onThemeChange: (value: string) => void;
@@ -111,10 +114,12 @@ export function ControlsPanel({
   onTextHexChange: (value: string) => void;
   onScaleChange: (value: Scale) => void;
   onSpeedChange: (value: string) => void;
+  onYearChange: (value: string) => void;
   onClearOverrides: () => void;
   onRadiusChange: (value: number) => void;
 }): ReactElement {
   const hasOverrides = Boolean(bgHex || accentHex || textHex);
+  const currentYear = new Date().getFullYear();
   const isAutoTheme = theme === 'auto';
 
   return (
@@ -135,9 +140,28 @@ export function ControlsPanel({
           />
         </ControlRow>
 
-        <div className="h-px bg-white/5" />
-
         <ThemeSelector theme={theme} onThemeChange={onThemeChange} />
+
+        <div className="h-px bg-white/5" />
+        <ControlRow label="Year">
+          <div className="relative">
+            <StyledSelect id="year-select" value={year} onChange={(value) => onYearChange(value)}>
+              <option value="">{currentYear} (current)</option>
+
+              {Array.from({ length: currentYear - 2019 }, (_, i) => {
+                const yearOption = currentYear - i - 1;
+
+                return (
+                  <option key={yearOption} value={yearOption.toString()}>
+                    {yearOption}
+                  </option>
+                );
+              })}
+            </StyledSelect>
+          </div>
+        </ControlRow>
+
+        <div className="h-px bg-white/5" />
 
         <div className="h-px bg-white/5" />
 
