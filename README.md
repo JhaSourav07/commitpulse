@@ -82,6 +82,7 @@ URL Parameter > Theme Default > System Fallback
 
 ### Parameter Reference
 
+<<<<<<< HEAD
 | Parameter         | Type      | Required   | Default                        | Description                                                                                                                                                               |
 | ----------------- | --------- | ---------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `user`            | `string`  | ✅ **Yes** | —                              | GitHub username to render                                                                                                                                                 |
@@ -100,6 +101,40 @@ URL Parameter > Theme Default > System Fallback
 | `hide_stats`      | `boolean` | No         | `false`                        | Hides the bottom row displaying Current Streak, Annual Sync Total, and Peak Streak stats when set to `true` or `1`.                                                       |
 | `tz`              | `string`  | No         | Omitted = UTC                  | IANA timezone (e.g. `Asia/Kolkata`, `America/New_York`) — aligns "today" with the user local midnight. Note: `?tz=UTC` is valid but cached separately from omitting `tz`. |
 | `lang`            | `string`  | No         | `en`                           | Language code for labels (`en`, `es`, `hi`, `fr`)                                                                                                                         |
+=======
+<<<<<<< HEAD
+| Parameter | Type | Required | Default | Description |
+| ------------ | --------- | ---------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
+| `user` | `string` | ✅ **Yes** | — | GitHub username to render |
+| `theme` | `string` | No | `dark` | Preset theme name (see below) |
+| `bg` | `hex` | No | Theme default | Background color — **without** `#` |
+| `accent` | `hex` | No | Theme default | Tower & glow color — **without** `#` |
+| `text` | `hex` | No | Theme default | Label & stat text color — **without** `#` |
+| `radius` | `number` | No | `8` | Border corner radius in pixels |
+| `speed` | `string` | No | `8s` | Radar scan animation duration (e.g. `4s`, `12s`) |
+| `scale` | `string` | No | `linear` | Tower height scaling: `linear` or `log` (logarithmic) |
+| `font` | `string` | No | CommitPulse default typography | Any **Google Font** name (e.g., `Orbitron`, `Inter`) |
+| `refresh` | `boolean` | No | `false` | Bypass cache for real-time data |
+| `year` | `string` | No | — | Calendar year to render (e.g. `2023`, `2024`) |
+| `hide_stats` | `boolean` | No | `false` | Hides the bottom row displaying Current Streak, Annual Sync Total, and Peak Streak stats when set to `true` or `1`. |
+=======
+| Parameter | Type | Required | Default | Description |
+| --------- | --------- | ---------- | ------------------------------ | ----------------------------------------------------- |
+| `user` | `string` | ✅ **Yes** | — | GitHub username to render |
+| `theme` | `string` | No | `dark` | Preset theme name (see below) |
+| `bg` | `hex` | No | Theme default | Background color — **without** `#` |
+| `accent` | `hex` | No | Theme default | Tower & glow color — **without** `#` |
+| `border` | `hex` | No | — | Border stroke color — **without** `#` |
+| `text` | `hex` | No | Theme default | Label & stat text color — **without** `#` |
+| `radius` | `number` | No | `8` | Border corner radius in pixels |
+| `speed` | `string` | No | `8s` | Radar scan animation duration (e.g. `4s`, `12s`) |
+| `scale` | `string` | No | `linear` | Tower height scaling: `linear` or `log` (logarithmic) |
+| `font` | `string` | No | CommitPulse default typography | Any **Google Font** name (e.g., `Orbitron`, `Inter`) |
+| `refresh` | `boolean` | No | `false` | Bypass cache for real-time data |
+| `year` | `string` | No | — | Calendar year to render (e.g. `2023`, `2024`) |
+
+> > > > > > > 84d63b7 (feat: add border color URL parameter support)
+>>>>>>> a47a046 (feat: add border color URL parameter support)
 
 ### Theme Presets
 
@@ -131,9 +166,9 @@ URL Parameter > Theme Default > System Fallback
 
 ![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&font=Orbitron)
 
-<!-- Fully custom — hot orange on void black -->
+<!-- Custom border color -->
 
-![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&bg=080808&accent=ff4500&text=eeeeee&radius=16)
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&bg=080808&accent=ff4500&text=eeeeee&border=58a6ff)
 
 <!-- Force bypass cache for latest data -->
 

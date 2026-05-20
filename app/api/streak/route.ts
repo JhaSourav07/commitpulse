@@ -12,8 +12,10 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
 
-    // â Single source of truth: Zod
-    const parseResult = streakParamsSchema.safeParse(Object.fromEntries(searchParams.entries()));
+    // ✅ Single source of truth: Zod
+    const parseResult = streakParamsSchema.safeParse(
+      Object.fromEntries(searchParams.entries())
+    );
 
     if (!parseResult.success) {
       return NextResponse.json(
@@ -72,12 +74,15 @@ export async function GET(request: Request) {
     }
     const isAutoTheme = themeName === 'auto';
     const isRandomTheme = themeName === 'random';
+
     const selectedTheme = (() => {
       if (isAutoTheme) return themes.light;
 
       if (isRandomTheme) {
         const keys = Object.keys(themes);
-        const randomKey = keys[Math.floor(Math.random() * keys.length)];
+        const randomKey =
+          keys[Math.floor(Math.random() * keys.length)];
+
         return themes[randomKey] || themes.dark;
       }
 
@@ -86,21 +91,53 @@ export async function GET(request: Request) {
 
     // â ï¸ Safety layer for rendering only (not parsing logic)
     const parsedRadius = Number(radius);
-    const safeRadius = Number.isFinite(parsedRadius) ? Math.min(32, Math.max(0, parsedRadius)) : 8;
+
+    const safeRadius = Number.isFinite(parsedRadius)
+      ? Math.min(32, Math.max(0, parsedRadius))
+      : 8;
+
+
+    const border =
+      searchParams.get('border') || undefined;
+
+    const sanitizedBorder =
+      border &&
+      /^#?([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/.test(border)
+        ? border.startsWith('#')
+          ? border
+          : `#${border}`
+        : undefined;
+
+    // Auto-theme ignores custom hex overrides — the SVG uses CSS
+    // custom properties with a prefers-color-scheme media query, so
+    // fixed colors would conflict with the dual-palette switching.
     const params: BadgeParams = {
       user,
 
-      bg: isAutoTheme ? selectedTheme.bg : bg || selectedTheme.bg,
-      text: isAutoTheme ? selectedTheme.text : text || selectedTheme.text,
-      accent: isAutoTheme ? selectedTheme.accent : accent || selectedTheme.accent,
+      bg: isAutoTheme
+        ? selectedTheme.bg
+        : bg || selectedTheme.bg,
+
+      text: isAutoTheme
+        ? selectedTheme.text
+        : text || selectedTheme.text,
+
+      accent: isAutoTheme
+        ? selectedTheme.accent
+        : accent || selectedTheme.accent,
+
+      border: sanitizedBorder,
 
       radius: safeRadius,
+
       speed,
       scale,
       font: sanitizedFont,
       autoTheme: isAutoTheme,
       hide_title,
       hideBackground: hide_background,
+
+
       hide_stats: hide_stats,
       lang,
     };
@@ -133,7 +170,10 @@ export async function GET(request: Request) {
       },
     });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Unknown error';
+    const message =
+      error instanceof Error
+        ? error.message
+        : 'Unknown error';
 
     const errorSvg = `
       <svg xmlns="http://www.w3.org/2000/svg" width="400" height="150">

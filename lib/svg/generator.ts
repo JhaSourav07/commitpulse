@@ -311,7 +311,17 @@ export function generateSVG(
   @media (prefers-reduced-motion: reduce) { .heat-particles { display: none; } }
   </style>
 
+<<<<<<< HEAD
   <rect width="600" height="420" rx="${radius}" fill="${params.hideBackground ? 'transparent' : bg}" />
+=======
+ <rect
+  width="600"
+  height="420"
+  rx="${radius}"
+  fill="${bg}"
+  ${params.border ? `stroke="${params.border}" stroke-width="2"` : ''}
+ />
+>>>>>>> a47a046 (feat: add border color URL parameter support)
 
   <g transform="translate(0, 20)">${towers}</g>
   ${

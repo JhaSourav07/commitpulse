@@ -30,6 +30,7 @@ export interface BadgeParams {
   bg: string;
   text: string;
   accent: string;
+  border?: string;
   speed: string;
   scale: 'linear' | 'log';
   font?: string;
