@@ -12,11 +12,13 @@ global.ResizeObserver = vi.fn().mockImplementation(() => ({
 // Mock framer-motion to avoid animation issues in tests
 vi.mock('framer-motion', async () => {
   const React = await import('react');
-  const MotionDiv = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>((props, ref) => {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any
-    const { viewport, whileInView, initial, animate, exit, transition, ...rest } = props as any;
-    return <div ref={ref} {...rest} />;
-  });
+  const MotionDiv = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+    (props, ref) => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any
+      const { viewport, whileInView, initial, animate, exit, transition, ...rest } = props as any;
+      return <div ref={ref} {...rest} />;
+    }
+  );
   MotionDiv.displayName = 'MotionDiv';
 
   return {
