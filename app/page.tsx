@@ -156,7 +156,7 @@ export default function LandingPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.15 }}
           >
-            <h1 className="mb-8 bg-gradient-to-b from-white to-white/30 bg-clip-text text-5xl font-extrabold tracking-tight text-transparent md:text-8xl">
+            <h1 className="mb-8 bg-linear-to-b from-white to-white/30 bg-clip-text text-4xl sm:text-5xl font-extrabold tracking-tight text-transparent md:text-8xl ">
               Elevate Your <br /> Contribution Story.
             </h1>
           </motion.div>
@@ -165,7 +165,7 @@ export default function LandingPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.3 }}
-            className="mx-auto max-w-2xl text-lg leading-relaxed text-gray-400 md:text-xl"
+            className="mx-auto max-w-2xl text-md sm:text-lg leading-relaxed text-gray-400 md:text-xl "
           >
             Stop settling for flat grids. Generate high-fidelity, 3D isometric monoliths that
             visualize your coding rhythm with professional precision.
