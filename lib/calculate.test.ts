@@ -164,4 +164,20 @@ describe('calculateStreak', () => {
     expect(result.totalContributions).toBe(1);
     expect(result.longestStreak).toBe(1);
   });
+
+  it('handles a single inactive day safely (0 contributions)', () => {
+    const calendar = buildCalendar([0]);
+    expect(() => calculateStreak(calendar)).not.toThrow();
+    const result = calculateStreak(calendar);
+    expect(result.currentStreak).toBe(0);
+    expect(result.longestStreak).toBe(0);
+  });
+
+  it('handles an empty contribution calendar safely without crashing', () => {
+    const calendar = buildCalendar([]);
+    expect(() => calculateStreak(calendar)).not.toThrow();
+    const result = calculateStreak(calendar);
+    expect(result.currentStreak).toBe(0);
+    expect(result.longestStreak).toBe(0);
+  });
 });
