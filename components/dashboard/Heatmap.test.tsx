@@ -10,26 +10,28 @@ global.ResizeObserver = vi.fn().mockImplementation(() => ({
 }));
 
 // Mock framer-motion to avoid animation issues in tests
-vi.mock('framer-motion', () => {
-  const React = require('react');
+vi.mock('framer-motion', async () => {
+  const React = await import('react');
+  const MotionDiv = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>((props, ref) => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any
+    const { viewport, whileInView, initial, animate, exit, transition, ...rest } = props as any;
+    return <div ref={ref} {...rest} />;
+  });
+  MotionDiv.displayName = 'MotionDiv';
+
   return {
-    motion: {
-      div: React.forwardRef((props: any, ref: any) => {
-        const { viewport, whileInView, initial, animate, exit, transition, ...rest } = props;
-        return <div ref={ref} {...rest} />;
-      }),
-    },
-    AnimatePresence: ({ children }: any) => <>{children}</>,
+    motion: { div: MotionDiv },
+    AnimatePresence: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   };
 });
 
 describe('Heatmap', () => {
   it('renders a fallback UI when data is empty', () => {
     render(<Heatmap data={[]} />);
-    
+
     // Check for the header
     expect(screen.getByText('Contribution Heatmap')).toBeDefined();
-    
+
     // Check for the fallback text
     expect(screen.getByText('No recent activity to display.')).toBeDefined();
   });
