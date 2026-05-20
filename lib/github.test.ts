@@ -228,6 +228,15 @@ describe('getFullDashboardData', () => {
     ]);
     expect(result.insights).toBeDefined();
     expect(result.commitClock).toBeDefined();
+    expect(result.commitClock).toHaveLength(7);
+    expect(result.commitClock[0]).toHaveProperty('day');
+    expect(result.commitClock[0]).toHaveProperty('commits');
+    // Verify determinism: same input always produces the same output
+    const totalClockCommits = result.commitClock.reduce(
+      (sum: number, d: { commits: number }) => sum + d.commits,
+      0
+    );
+    expect(totalClockCommits).toBe(8); // 3 + 0 + 5 from mockCalendar
   });
 
   it('throws if any fetch fails', async () => {
