@@ -1,0 +1,63 @@
+name: 🐛 Bug Report
+description: Create a report to help us improve CommitPulse
+title: "bug: <short description of the issue>"
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting an issue! Please fill out this form as completely as possible.
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: A clear and concise description of what the bug is.
+    validations:
+      required: true
+  - type: textarea
+    id: steps-to-reproduce
+    attributes:
+      label: Steps to Reproduce
+      description: How can we reproduce this bug? Please be specific.
+      placeholder: |
+        1. Go to '...'
+        2. Click on '....'
+        3. Scroll down to '....'
+        4. See error
+    validations:
+      required: true
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: Expected Behavior
+      description: What did you expect to happen?
+    validations:
+      required: true
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots / Logs
+      description: If applicable, drag and drop screenshots or paste error logs here to help explain your problem.
+    validations:
+      required: false
+  - type: input
+    id: username
+    attributes:
+      label: GitHub Username (If applicable)
+      description: The GitHub username you were trying to generate a badge for.
+    validations:
+      required: false
+  - type: dropdown
+    id: browser
+    attributes:
+      label: Environment
+      description: What browser/environment are you experiencing this in?
+      options:
+        - Chrome
+        - Firefox
+        - Safari
+        - Edge
+        - GitHub Mobile App
+        - Other
+    validations:
+      required: true
