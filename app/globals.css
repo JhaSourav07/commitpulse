@@ -11,7 +11,7 @@
   --color-surface-2: #111111;
   --color-border: rgba(255, 255, 255, 0.08);
   --color-muted: #a1a1aa;
-  --color-accent: rgba(99, 102, 241, 0.5); /* indigo glow, hover only */
+  --color-accent: rgba(99, 102, 241, 0.5);
 }
 
 body {
@@ -63,9 +63,11 @@ textarea:focus-visible,
 ::-webkit-scrollbar {
   width: 6px;
 }
+
 ::-webkit-scrollbar-track {
   background: #000;
 }
+
 ::-webkit-scrollbar-thumb {
   background: #333;
   border-radius: 3px;
