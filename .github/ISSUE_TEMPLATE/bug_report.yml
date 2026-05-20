@@ -1,7 +1,7 @@
 name: 🐛 Bug Report
 description: Create a report to help us improve CommitPulse
-title: "bug: <short description of the issue>"
-labels: ["bug", "triage"]
+title: 'bug: <short description of the issue>'
+labels: ['bug', 'triage']
 body:
   - type: markdown
     attributes:
