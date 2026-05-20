@@ -1,6 +1,6 @@
 # 🤖 Gemini Semantic Duplicate Issue Detector
 
-A production-ready custom GitHub Action that performs semantic search across open issues in your repository to detect and flag potential duplicates. Powered by the Google Gemini API `text-embedding-004` model.
+A production-ready custom GitHub Action that performs semantic search across open issues in your repository to detect and flag potential duplicates. Powered by the Google Gemini API `gemini-embedding-001` model.
 
 ---
 

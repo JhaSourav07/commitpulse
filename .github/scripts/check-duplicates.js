@@ -51,10 +51,10 @@ async function run() {
 
   // 2. Initialize Gemini API
   const genAI = new GoogleGenerativeAI(geminiApiKey);
-  const model = genAI.getGenerativeModel({ model: 'text-embedding-004' });
+  const model = genAI.getGenerativeModel({ model: 'gemini-embedding-001' });
 
   // 3. Generate embeddings with 4.1s rate limit delay
-  console.log('Generating semantic embeddings using text-embedding-004...');
+  console.log('Generating semantic embeddings using gemini-embedding-001...');
   for (let i = 0; i < openIssues.length; i++) {
     const issue = openIssues[i];
     const textToEmbed = `Title: ${issue.title}\nBody: ${issue.body || ''}`.slice(0, 3000);
