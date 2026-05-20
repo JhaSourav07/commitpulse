@@ -5,6 +5,7 @@ import {
   fetchUserProfile,
   fetchUserRepos,
   getFullDashboardData,
+  generateAchievements,
   clearGitHubApiCacheForTests,
   GITHUB_CACHE_TTL_MS,
 } from './github';
@@ -321,5 +322,26 @@ describe('GitHub API cache behavior', () => {
     await fetchGitHubContributions('octocat');
 
     expect(fetch).toHaveBeenCalledTimes(2);
+  });
+});
+describe('generateAchievements', () => {
+  it('marks contribution milestones correctly', () => {
+    const achievements = generateAchievements(600, 10);
+
+    const unlocked = achievements.filter((a) => a.isUnlocked);
+
+    expect(unlocked.some((a) => a.title === '500 Contributions')).toBe(true);
+
+    expect(unlocked.some((a) => a.title === '1000 Contributions')).toBe(false);
+  });
+
+  it('marks streak milestones correctly', () => {
+    const achievements = generateAchievements(50, 35);
+
+    const unlocked = achievements.filter((a) => a.isUnlocked);
+
+    expect(unlocked.some((a) => a.title === '30 Day Streak')).toBe(true);
+
+    expect(unlocked.some((a) => a.title === '100 Day Streak')).toBe(false);
   });
 });

@@ -48,6 +48,14 @@ module.exports = async ({ github, context, core }) => {
       case 'claim':
         await handleClaim({ github, context });
         break;
+      case 'ping':
+        await github.rest.issues.createComment({
+          owner,
+          repo,
+          issue_number: issueNumber,
+          body: `🏓 **Pong!** CommitPulse Bot is online and fully operational.\n> UTC: ${new Date().toUTCString()}`,
+        });
+        break;
     }
   } catch (error) {
     core.error(`Error processing command /${parsed.command}: ${error.message}`);

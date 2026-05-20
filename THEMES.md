@@ -44,6 +44,14 @@ Usage: `/api/streak?user=yourusername&theme=github`
 
 ---
 
+## 🟠 Gruvbox
+
+![Gruvbox](assets/themes/gruvbox.png)
+
+Usage: `/api/streak?user=yourusername&theme=gruvbox`
+
+---
+
 ## 🌊 Ocean
 
 ![Ocean](assets/themes/ocean.png)
