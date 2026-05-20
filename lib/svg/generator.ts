@@ -295,7 +295,7 @@ export function generateSVG(
   @media (prefers-reduced-motion: reduce) { .heat-particles { display: none; } }
   </style>
 
-  <rect width="600" height="420" rx="${radius}" fill="${bg}" />
+  <rect width="600" height="420" rx="${radius}" fill="${params.hideBackground ? 'transparent' : bg}" />
 
   <g transform="translate(0, 20)">${towers}</g>
   ${
@@ -414,7 +414,7 @@ function generateAutoThemeSVG(
   @media (prefers-reduced-motion: reduce) { .heat-particles { display: none; } }
   </style>
 
-  <rect width="600" height="420" rx="${radius}" class="cp-bg-fill" />
+  <rect width="600" height="420" rx="${radius}" ${params.hideBackground ? 'fill="transparent"' : 'class="cp-bg-fill"'} />
   <g transform="translate(0, 20)">
     ${towers}
   </g>
