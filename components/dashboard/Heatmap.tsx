@@ -76,18 +76,21 @@ export default function Heatmap({ data }: { data: ActivityData[] }) {
         className="p-6 rounded-xl bg-[#0a0a0a] border border-[rgba(255,255,255,0.08)]"
       >
         {/* Header */}
+        <h3 className=" text-sm font-semibold text-white tracking-tight my-1">
+          Contribution Heatmap
+        </h3>
         <div className="flex justify-between items-end mb-4">
           <div>
-            <h3 className=" text-sm font-semibold text-white tracking-tight">
-              Contribution Heatmap
-            </h3>
             <p className="text-xs text-[#A1A1AA] mt-0.5">Last 365 days</p>
           </div>
           <div className="flex items-center gap-2 text-xs text-[#A1A1AA]">
             <span>Less</span>
             <div className="flex gap-1">
               {[0, 1, 2, 3, 4].map((level) => (
-                <div key={level} className={`w-3 h-3 rounded-sm ${getIntensityColor(level)}`} />
+                <div
+                  key={level}
+                  className={` h-2 w-2 xs:w-3 xs:h-3 rounded-sm ${getIntensityColor(level)}`}
+                />
               ))}
             </div>
             <span>More</span>
