@@ -22,13 +22,22 @@ export function calculateStreak(calendar: ContributionCalendar): StreakStats {
   // 2. Calculate Current Streak (Backwards loop with Grace Period)
   // We look at the very last day in the array (Today in UTC)
   const todayIndex = days.length - 1;
+  if (todayIndex < 0) {
+    return {
+      currentStreak: 0,
+      longestStreak: 0,
+      totalContributions: calendar.totalContributions,
+    };
+  }
+
   const today = days[todayIndex];
-  const yesterday = days[todayIndex - 1];
+  const yesterday = todayIndex > 0 ? days[todayIndex - 1] : null;
 
   // If I committed today, the streak is alive.
   // If I haven't committed today, but I committed yesterday,
   // the streak is STILL alive (Grace Period).
-  const isStreakAlive = today.contributionCount > 0 || yesterday.contributionCount > 0;
+  const isStreakAlive =
+    today.contributionCount > 0 || (yesterday ? yesterday.contributionCount > 0 : false);
 
   if (isStreakAlive) {
     // Count backwards from the first day that has a contribution
