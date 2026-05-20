@@ -161,7 +161,7 @@ Our automation runs entirely through issue comments. Here is how you interact wi
 
 | Command                       | Who Can Use It?      | What It Does                                              |
 | ----------------------------- | -------------------- | --------------------------------------------------------- |
-| `/claim`                      | **Anyone**           | Self-assigns the issue to you.                            |
+| `/claim`                      | **Issue Author Only**| Self-assigns the issue to you (only if you created it).   |
 | `/addlabel <label1> <label2>` | **Anyone**           | Adds labels to the issue (e.g. `/addlabel frontend bug`). |
 | `/unassign @username`         | **Maintainers Only** | Removes the assignee from an issue.                       |
 | `/assign @username`           | **Maintainers Only** | Manually assigns someone to an issue.                     |
@@ -176,11 +176,11 @@ To keep the project moving, assignments are not permanent.
 
 ### 💡 GSSoC Contributor Flow
 
-1. Find an unassigned open issue you want to work on.
-2. Comment `/claim` to lock it in.
+1. Create a new issue describing the bug or feature request you want to work on (or find an open issue you authored).
+2. Comment `/claim` on the issue to lock it in.
 3. Need labels? Comment `/addlabel good-first-issue` (labels must already exist in the repo).
 4. Work on your code and submit a PR within 3 days to avoid expiry.
-5. Once your PR is merged and the issue is closed, you can `/claim` your next one!
+5. Once your PR is merged and the issue is closed, you can create and `/claim` your next one!
 
 ### 🆘 Troubleshooting & Edge Cases
 
@@ -189,6 +189,7 @@ If the bot rejects your command, check these common scenarios:
 - **"Commands cannot be used on closed issues"**: You cannot claim, assign, or unassign on closed issues. Find an open one!
 - **"You already have an active assigned issue"**: You must finish your current task. If you're stuck, ask a maintainer to `/unassign` you from the old one.
 - **"This issue is already assigned to @username"**: Be faster next time! Look for issues without assignees.
+- **"Only the author of this issue can claim it"**: You tried to `/claim` an issue you did not create. You can only claim issues that you authored.
 - **"The following label(s) do not exist"**: You can only add existing repo labels. The bot will reply with a list of valid labels you can use.
 - **"You don't have permission"**: You tried to use `/assign` or `/unassign`. Please use `/claim` instead.
 
