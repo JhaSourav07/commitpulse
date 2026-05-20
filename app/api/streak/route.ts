@@ -41,8 +41,7 @@ export async function GET(request: Request) {
     } = parseResult.data;
 
     const hide_stats = hideStatsParam === 'true' || hideStatsParam === '1';
-    const disable_particles =
-      disableParticlesParam === 'true' || disableParticlesParam === '1';
+    const disable_particles = disableParticlesParam === 'true' || disableParticlesParam === '1';
 
     const themeName = theme || 'dark';
     const from = year ? `${year}-01-01T00:00:00Z` : undefined;
