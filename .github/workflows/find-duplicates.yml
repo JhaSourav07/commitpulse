@@ -2,6 +2,8 @@ name: Find Semantic Duplicates
 
 on:
   workflow_dispatch:
+  issues:
+    types: [opened]
 
 permissions:
   issues: write
