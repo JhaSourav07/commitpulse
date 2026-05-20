@@ -83,24 +83,24 @@ URL Parameter > Theme Default > System Fallback
 ### Parameter Reference
 
 <<<<<<< HEAD
-| Parameter         | Type      | Required   | Default                        | Description                                                                                                                                                               |
+| Parameter | Type | Required | Default | Description |
 | ----------------- | --------- | ---------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `user`            | `string`  | ✅ **Yes** | —                              | GitHub username to render                                                                                                                                                 |
-| `theme`           | `string`  | No         | `dark`                         | Preset theme name (see below)                                                                                                                                             |
-| `bg`              | `hex`     | No         | Theme default                  | Background color — **without** `#`                                                                                                                                        |
-| `accent`          | `hex`     | No         | Theme default                  | Tower & glow color — **without** `#`                                                                                                                                      |
-| `text`            | `hex`     | No         | Theme default                  | Label & stat text color — **without** `#`                                                                                                                                 |
-| `radius`          | `number`  | No         | `8`                            | Border corner radius in pixels                                                                                                                                            |
-| `speed`           | `string`  | No         | `8s`                           | Radar scan duration (`2s`–`20s`, default `8s`)                                                                                                                            |
-| `scale`           | `string`  | No         | `linear`                       | Tower height scaling: `linear` or `log` (logarithmic)                                                                                                                     |
-| `font`            | `string`  | No         | CommitPulse default typography | Any **Google Font** name (e.g. `Orbitron`, `Inter`)                                                                                                                       |
-| `refresh`         | `boolean` | No         | `false`                        | Bypass cache for real-time data                                                                                                                                           |
-| `year`            | `string`  | No         | —                              | Calendar year to render (e.g. `2023`, `2024`)                                                                                                                             |
-| `hide_title`      | `boolean` | No         | `false`                        | Hide GitHub username/title from the SVG badge                                                                                                                             |
-| `hide_background` | `boolean` | No         | `false`                        | Remove the background rect, letting the monolith float on the page                                                                                                        |
-| `hide_stats`      | `boolean` | No         | `false`                        | Hides the bottom row displaying Current Streak, Annual Sync Total, and Peak Streak stats when set to `true` or `1`.                                                       |
-| `tz`              | `string`  | No         | Omitted = UTC                  | IANA timezone (e.g. `Asia/Kolkata`, `America/New_York`) — aligns "today" with the user local midnight. Note: `?tz=UTC` is valid but cached separately from omitting `tz`. |
-| `lang`            | `string`  | No         | `en`                           | Language code for labels (`en`, `es`, `hi`, `fr`)                                                                                                                         |
+| `user` | `string` | ✅ **Yes** | — | GitHub username to render |
+| `theme` | `string` | No | `dark` | Preset theme name (see below) |
+| `bg` | `hex` | No | Theme default | Background color — **without** `#` |
+| `accent` | `hex` | No | Theme default | Tower & glow color — **without** `#` |
+| `text` | `hex` | No | Theme default | Label & stat text color — **without** `#` |
+| `radius` | `number` | No | `8` | Border corner radius in pixels |
+| `speed` | `string` | No | `8s` | Radar scan duration (`2s`–`20s`, default `8s`) |
+| `scale` | `string` | No | `linear` | Tower height scaling: `linear` or `log` (logarithmic) |
+| `font` | `string` | No | CommitPulse default typography | Any **Google Font** name (e.g. `Orbitron`, `Inter`) |
+| `refresh` | `boolean` | No | `false` | Bypass cache for real-time data |
+| `year` | `string` | No | — | Calendar year to render (e.g. `2023`, `2024`) |
+| `hide_title` | `boolean` | No | `false` | Hide GitHub username/title from the SVG badge |
+| `hide_background` | `boolean` | No | `false` | Remove the background rect, letting the monolith float on the page |
+| `hide_stats` | `boolean` | No | `false` | Hides the bottom row displaying Current Streak, Annual Sync Total, and Peak Streak stats when set to `true` or `1`. |
+| `tz` | `string` | No | Omitted = UTC | IANA timezone (e.g. `Asia/Kolkata`, `America/New_York`) — aligns "today" with the user local midnight. Note: `?tz=UTC` is valid but cached separately from omitting `tz`. |
+| `lang` | `string` | No | `en` | Language code for labels (`en`, `es`, `hi`, `fr`) |
 =======
 <<<<<<< HEAD
 | Parameter | Type | Required | Default | Description |
@@ -134,7 +134,7 @@ URL Parameter > Theme Default > System Fallback
 | `year` | `string` | No | — | Calendar year to render (e.g. `2023`, `2024`) |
 
 > > > > > > > 84d63b7 (feat: add border color URL parameter support)
->>>>>>> a47a046 (feat: add border color URL parameter support)
+> > > > > > > a47a046 (feat: add border color URL parameter support)
 
 ### Theme Presets
 

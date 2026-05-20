@@ -13,9 +13,7 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
 
     // ✅ Single source of truth: Zod
-    const parseResult = streakParamsSchema.safeParse(
-      Object.fromEntries(searchParams.entries())
-    );
+    const parseResult = streakParamsSchema.safeParse(Object.fromEntries(searchParams.entries()));
 
     if (!parseResult.success) {
       return NextResponse.json(
@@ -72,6 +70,7 @@ export async function GET(request: Request) {
         return new NextResponse(`Invalid "tz" parameter: "${tzParam}"`, { status: 400 });
       }
     }
+
     const isAutoTheme = themeName === 'auto';
     const isRandomTheme = themeName === 'random';
 
@@ -80,8 +79,7 @@ export async function GET(request: Request) {
 
       if (isRandomTheme) {
         const keys = Object.keys(themes);
-        const randomKey =
-          keys[Math.floor(Math.random() * keys.length)];
+        const randomKey = keys[Math.floor(Math.random() * keys.length)];
 
         return themes[randomKey] || themes.dark;
       }
@@ -92,17 +90,12 @@ export async function GET(request: Request) {
     // â ï¸ Safety layer for rendering only (not parsing logic)
     const parsedRadius = Number(radius);
 
-    const safeRadius = Number.isFinite(parsedRadius)
-      ? Math.min(32, Math.max(0, parsedRadius))
-      : 8;
+    const safeRadius = Number.isFinite(parsedRadius) ? Math.min(32, Math.max(0, parsedRadius)) : 8;
 
-
-    const border =
-      searchParams.get('border') || undefined;
+    const border = searchParams.get('border') || undefined;
 
     const sanitizedBorder =
-      border &&
-      /^#?([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/.test(border)
+      border && /^#?([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/.test(border)
         ? border.startsWith('#')
           ? border
           : `#${border}`
@@ -114,17 +107,11 @@ export async function GET(request: Request) {
     const params: BadgeParams = {
       user,
 
-      bg: isAutoTheme
-        ? selectedTheme.bg
-        : bg || selectedTheme.bg,
+      bg: isAutoTheme ? selectedTheme.bg : bg || selectedTheme.bg,
 
-      text: isAutoTheme
-        ? selectedTheme.text
-        : text || selectedTheme.text,
+      text: isAutoTheme ? selectedTheme.text : text || selectedTheme.text,
 
-      accent: isAutoTheme
-        ? selectedTheme.accent
-        : accent || selectedTheme.accent,
+      accent: isAutoTheme ? selectedTheme.accent : accent || selectedTheme.accent,
 
       border: sanitizedBorder,
 
@@ -137,7 +124,6 @@ export async function GET(request: Request) {
       hide_title,
       hideBackground: hide_background,
 
-
       hide_stats: hide_stats,
       lang,
     };
@@ -147,6 +133,7 @@ export async function GET(request: Request) {
       from,
       to,
     });
+
     const stats = calculateStreak(calendar, timezone);
     const svg = generateSVG(stats, params, calendar);
 
@@ -156,6 +143,7 @@ export async function GET(request: Request) {
     const secondsToMidnight = tzParam
       ? getSecondsUntilMidnightInTimezone(timezone)
       : getSecondsUntilUTCMidnight();
+
     const cacheControl =
       refresh || isRandomTheme
         ? 'no-cache, no-store, must-revalidate'
@@ -170,10 +158,7 @@ export async function GET(request: Request) {
       },
     });
   } catch (error: unknown) {
-    const message =
-      error instanceof Error
-        ? error.message
-        : 'Unknown error';
+    const message = error instanceof Error ? error.message : 'Unknown error';
 
     const errorSvg = `
       <svg xmlns="http://www.w3.org/2000/svg" width="400" height="150">
