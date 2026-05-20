@@ -275,7 +275,7 @@ CommitPulse features a fully custom, GitHub Actions-powered **Issue Management S
 
 We built an anti-hoarding, self-service automation layer right into the repository:
 
-- **Self-Claiming:** Contributors can grab issues instantly by commenting `/claim`.
+- **Self-Claiming:** Issue authors can grab their issues instantly by commenting `/claim` (only the author of the issue can claim it).
 - **Fair Play:** A strict one-active-issue-per-contributor rule prevents issue hoarding.
 - **Stale Expiry:** A scheduled chron job automatically unassigns inactive contributors after 3 days.
 - **Self-Service Labels:** Anyone can tag issues using `/addlabel <tag>`.
