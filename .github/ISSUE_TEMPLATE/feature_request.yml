@@ -7,6 +7,8 @@ body:
     attributes:
       value: |
         Thank you for suggesting an idea! Please explain your request in detail.
+
+        💡 **Pro-Tip:** Once you submit this issue, you can claim it for yourself by commenting `/claim`! Only you, as the author of the issue, have permission to claim it.
   - type: textarea
     id: problem
     attributes:

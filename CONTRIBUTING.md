@@ -155,6 +155,15 @@ CommitPulse uses a custom, lightweight **GitHub Actions** automation system to m
 > [!IMPORTANT]
 > **The Golden Rule:** You can only be assigned to **ONE** open issue at a time. Finish it or unassign yourself before claiming another.
 
+### 📋 Structured Issue Templates
+
+To maintain high quality in our codebase, we use structured **Issue Templates** when opening new issues:
+
+- **🐛 Bug Report Template**: For reporting visual glitches, API errors, or unexpected behavior.
+- **✨ Feature Request Template**: For suggesting new isometric monolith designs, themes, or time/accuracy improvements.
+
+By using these templates, you provide maintainers with clear details and context. Since you authored the issue, you can immediately claim it for yourself by commenting `/claim`!
+
 ### 🎮 Available Commands
 
 Our automation runs entirely through issue comments. Here is how you interact with it:
@@ -176,7 +185,7 @@ To keep the project moving, assignments are not permanent.
 
 ### 💡 GSSoC Contributor Flow
 
-1. Create a new issue describing the bug or feature request you want to work on (or find an open issue you authored).
+1. Create a new issue describing the bug or feature request you want to work on using our **Structured Issue Templates** (or find an open issue you authored).
 2. Comment `/claim` on the issue to lock it in.
 3. Need labels? Comment `/addlabel good-first-issue` (labels must already exist in the repo).
 4. Work on your code and submit a PR within 3 days to avoid expiry.
