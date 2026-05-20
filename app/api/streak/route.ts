@@ -37,6 +37,7 @@ export async function GET(request: Request) {
       font,
       year,
       refresh,
+      hide_background,
       hide_stats: hideStatsParam,
     } = parseResult.data;
 
@@ -89,6 +90,7 @@ export async function GET(request: Request) {
       font,
 
       autoTheme: isAutoTheme,
+      hideBackground: hide_background,
       hide_stats: hide_stats,
     };
 

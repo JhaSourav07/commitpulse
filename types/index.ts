@@ -34,5 +34,6 @@ export interface BadgeParams {
   font?: string;
   radius?: number;
   autoTheme?: boolean;
+  hideBackground?: boolean;
   hide_stats?: boolean;
 }
