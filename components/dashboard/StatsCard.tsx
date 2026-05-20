@@ -49,13 +49,9 @@ export default function StatsCard({
             {title}
           </p>
 
-          <p className="text-4xl font-semibold text-white tracking-tight">
-            {value}
-          </p>
+          <p className="text-4xl font-semibold text-white tracking-tight">{value}</p>
 
-          <p className="text-xs text-[#A1A1AA] mt-1.5">
-            {description}
-          </p>
+          <p className="text-xs text-[#A1A1AA] mt-1.5">{description}</p>
 
           {showUTCDisclaimer && (
             <div className="mt-3 space-y-1">
@@ -63,11 +59,7 @@ export default function StatsCard({
                 ℹ Streaks are calculated in UTC and may differ from your local timezone.
               </p>
 
-              {utcDate && (
-                <p className="text-[10px] text-[#52525B]">
-                  UTC Date: {utcDate}
-                </p>
-              )}
+              {utcDate && <p className="text-[10px] text-[#52525B]">UTC Date: {utcDate}</p>}
             </div>
           )}
         </div>
