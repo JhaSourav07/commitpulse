@@ -78,7 +78,7 @@ export default function Heatmap({ data }: { data: ActivityData[] }) {
         {/* Header */}
         <div className="flex justify-between items-end mb-4">
           <div>
-            <h3 className="text-sm font-semibold text-white tracking-tight">
+            <h3 className=" text-sm font-semibold text-white tracking-tight">
               Contribution Heatmap
             </h3>
             <p className="text-xs text-[#A1A1AA] mt-0.5">Last 365 days</p>
@@ -104,7 +104,7 @@ export default function Heatmap({ data }: { data: ActivityData[] }) {
               height: (7 * (CELL + GAP) - GAP) * scale,
             }}
           >
-            <div className="flex" style={{ gap: GAP }}>
+            <div className="flex " style={{ gap: GAP }}>
               {weeks.map((week, wIndex) => (
                 <div key={wIndex} className="flex flex-col" style={{ gap: GAP }}>
                   {week.map((day, dIndex) => (

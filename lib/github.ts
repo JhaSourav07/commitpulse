@@ -11,6 +11,8 @@ interface GitHubRepo {
 
 const MAX_RETRIES = 3;
 const BASE_DELAY_MS = 500;
+const CONTRIBUTION_MILESTONES = [1, 10, 100, 250, 500, 1000];
+const STREAK_MILESTONES = [3, 7, 30, 100];
 
 /**
  * Wraps fetch with exponential backoff retry logic.
@@ -226,6 +228,50 @@ export async function fetchUserRepos(
   return repos;
 }
 
+export function generateAchievements(totalContributions: number, currentStreak: number) {
+  const achievements = [];
+
+  // Contribution milestones
+  for (const threshold of CONTRIBUTION_MILESTONES) {
+    achievements.push({
+      id: `contrib-${threshold}`,
+      title:
+        threshold === 1
+          ? 'First Contribution'
+          : threshold === 10
+            ? 'Contributor'
+            : `${threshold} Contributions`,
+      description: `Reached ${threshold} total contributions`,
+      icon: '🏆',
+      isUnlocked: totalContributions >= threshold,
+      type: 'contributions' as const,
+      threshold,
+      currentValue: totalContributions,
+      progress: Math.min(100, Math.round((totalContributions / threshold) * 100)),
+    });
+  }
+
+  // Streak milestones
+  for (const threshold of STREAK_MILESTONES) {
+    achievements.push({
+      id: `streak-${threshold}`,
+      title: threshold === 3 ? 'Getting Started' : `${threshold} Day Streak`,
+      description:
+        threshold === 3
+          ? 'Maintained a 3-day coding streak'
+          : `Maintained a ${threshold}-day coding streak`,
+      icon: '🔥',
+      isUnlocked: currentStreak >= threshold,
+      type: 'streak' as const,
+      threshold,
+      currentValue: currentStreak,
+      progress: Math.min(100, Math.round((currentStreak / threshold) * 100)),
+    });
+  }
+
+  return achievements;
+}
+
 export async function getFullDashboardData(username: string, options: FetchOptions = {}) {
   try {
     const [profileData, reposData, calendarData] = await Promise.all([
@@ -328,6 +374,11 @@ export async function getFullDashboardData(username: string, options: FetchOptio
       .sort((a, b) => b.percentage - a.percentage)
       .slice(0, 5); // top 5
 
+    const achievements = generateAchievements(
+      streakStats.totalContributions,
+      streakStats.currentStreak
+    );
+
     // 4. Insights Generation
     const insights = [
       {
@@ -363,6 +414,7 @@ export async function getFullDashboardData(username: string, options: FetchOptio
       languages,
       activity,
       insights,
+      achievements,
       commitClock,
     };
   } catch (error: unknown) {
