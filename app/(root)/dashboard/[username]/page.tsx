@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import RefreshButton from '@/components/dashboard/RefreshButton';
 import ProfileCard from '@/components/dashboard/ProfileCard';
 import ActivityLandscape from '@/components/dashboard/ActivityLandscape';
 import StatsCard from '@/components/dashboard/StatsCard';
@@ -50,14 +51,24 @@ export async function generateMetadata({
   };
 }
 
-export default async function DashboardPage({ params }: { params: Promise<{ username: string }> }) {
+export default async function DashboardPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ username: string }>;
+  searchParams: Promise<{ refresh?: string }>;
+}) {
   const { username } = await params;
+  const refreshParams = await searchParams;
+  const bypassCache = refreshParams?.refresh === 'true';
 
   // Fetch real GitHub data
   let data;
 
   try {
-    data = await getFullDashboardData(username);
+    data = await getFullDashboardData(username, {
+      bypassCache,
+    });
   } catch (error) {
     if (error instanceof Error) {
       return notFound();
@@ -68,7 +79,8 @@ export default async function DashboardPage({ params }: { params: Promise<{ user
 
   return (
     <div id="dashboard-root" data-dashboard className="p-4 md:p-6 lg:p-8 min-h-screen relative">
-      <div id="generate-dashboard-btn" className="flex justify-end mb-6">
+      <div id="generate-dashboard-btn" className="flex justify-end gap-4 mb-6">
+        <RefreshButton username={username} />
         <Link
           href="/"
           className="flex items-center gap-2 rounded-xl border border-[rgba(255,255,255,0.15)] bg-black px-4 py-2 text-sm font-semibold text-white transition-all duration-200 hover:bg-white/5 active:scale-[0.98]"
