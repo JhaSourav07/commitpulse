@@ -70,8 +70,6 @@ Paste into any Markdown file — GitHub README, Notion, or your portfolio:
 ![CommitPulse](https://commitpulse.vercel.app/api/streak?user=jhasourav07&bg=0a0a0a&accent=ff6b35&text=ffffff)
 ```
 
----
-
 ## 🎨 Deep Customization — URL Parameters
 
 CommitPulse is designed to be **fully composable**. Every visual attribute is controllable via a URL parameter, following a clear priority chain:
@@ -80,84 +78,104 @@ CommitPulse is designed to be **fully composable**. Every visual attribute is co
 URL Parameter > Theme Default > System Fallback
 ```
 
-### Parameter Reference
+### Complete Parameter Reference
 
-| Parameter         | Type      | Required   | Default                        | Description                                                                                                                                                               |
-| ----------------- | --------- | ---------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `user`            | `string`  | ✅ **Yes** | —                              | GitHub username to render                                                                                                                                                 |
-| `theme`           | `string`  | No         | `dark`                         | Preset theme name (see below)                                                                                                                                             |
-| `bg`              | `hex`     | No         | Theme default                  | Background color — **without** `#`                                                                                                                                        |
-| `accent`          | `hex`     | No         | Theme default                  | Tower & glow color — **without** `#`                                                                                                                                      |
-| `text`            | `hex`     | No         | Theme default                  | Label & stat text color — **without** `#`                                                                                                                                 |
-| `radius`          | `number`  | No         | `8`                            | Border corner radius in pixels                                                                                                                                            |
-| `speed`           | `string`  | No         | `8s`                           | Radar scan animation duration (e.g. `4s`, `12s`)                                                                                                                          |
-| `scale`           | `string`  | No         | `linear`                       | Tower height scaling: `linear` or `log` (logarithmic)                                                                                                                     |
-| `font`            | `string`  | No         | CommitPulse default typography | Any **Google Font** name (e.g., `Orbitron`, `Inter`)                                                                                                                      |
-| `refresh`         | `boolean` | No         | `false`                        | Bypass cache for real-time data                                                                                                                                           |
-| `year`            | `string`  | No         | —                              | Calendar year to render (e.g. `2023`, `2024`)                                                                                                                             |
-| `hide_background` | `boolean` | No         | `false`                        | Remove the background rect, letting the monolith float on the page                                                                                                        |
-| `hide_stats`      | `boolean` | No         | `false`                        | Hides the bottom row displaying Current Streak, Annual Sync Total, and Peak Streak stats when set to `true` or `1`.                                                       |
-| `tz`              | `string`  | No         | Omitted = UTC                  | IANA timezone (e.g. `Asia/Kolkata`, `America/New_York`) — aligns "today" with the user local midnight. Note: `?tz=UTC` is valid but cached separately from omitting `tz`. |
-
-| Parameter | Type      | Required   | Default                        | Description                                           |
-| --------- | --------- | ---------- | ------------------------------ | ----------------------------------------------------- |
-| `user`    | `string`  | ✅ **Yes** | —                              | GitHub username to render                             |
-| `theme`   | `string`  | No         | `dark`                         | Preset theme name (see below)                         |
-| `bg`      | `hex`     | No         | Theme default                  | Background color — **without** `#`                    |
-| `accent`  | `hex`     | No         | Theme default                  | Tower & glow color — **without** `#`                  |
-| `text`    | `hex`     | No         | Theme default                  | Label & stat text color — **without** `#`             |
-| `radius`  | `number`  | No         | `8`                            | Border corner radius in pixels                        |
-| `speed`   | `string`  | No         | `8s`                           | Radar scan duration (`2s`–`20s`, default `8s`)        |
-| `scale`   | `string`  | No         | `linear`                       | Tower height scaling: `linear` or `log` (logarithmic) |
-| `font`    | `string`  | No         | CommitPulse default typography | Any **Google Font** name (e.g., `Orbitron`, `Inter`)  |
-| `refresh` | `boolean` | No         | `false`                        | Bypass cache for real-time data                       |
-| `year`    | `string`  | No         | —                              | Calendar year to render (e.g. `2023`, `2024`)         |
+| Parameter         | Type      | Default                   | Constraints                                                                                                                                 | Example                 |
+| ----------------- | --------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- |
+| `user`            | `string`  | **— (required)**          | Valid GitHub username                                                                                                                       | `?user=jhasourav07`     |
+| `theme`           | `string`  | `dark`                    | One of: `dark`, `light`, `neon`, `dracula`, `github`, `gruvbox`, `ocean`, `sunset`, `forest`, `rose`, `nord`, `synthwave`, `auto`, `random` | `?theme=neon`           |
+| `bg`              | `hex`     | Theme default             | Hex color — **without** `#`                                                                                                                 | `?bg=0d1117`            |
+| `accent`          | `hex`     | Theme default             | Hex color — **without** `#`                                                                                                                 | `?accent=ff00ff`        |
+| `text`            | `hex`     | Theme default             | Hex color — **without** `#`                                                                                                                 | `?text=ffffff`          |
+| `radius`          | `number`  | `8`                       | `0`–`50` (pixels)                                                                                                                           | `?radius=16`            |
+| `speed`           | `string`  | `8s`                      | `2s`–`20s` (must end in `s`)                                                                                                                | `?speed=4s`             |
+| `scale`           | `string`  | `linear`                  | `linear` or `log`                                                                                                                           | `?scale=log`            |
+| `font`            | `string`  | Syncopate / Space Grotesk | Any **Google Font** name                                                                                                                    | `?font=Orbitron`        |
+| `year`            | `string`  | Current year              | 4-digit year (e.g. `2023`, `2024`)                                                                                                          | `?year=2023`            |
+| `tz`              | `string`  | `UTC`                     | Valid IANA timezone (e.g. `Asia/Kolkata`, `America/New_York`)                                                                               | `?tz=Asia/Kolkata`      |
+| `refresh`         | `boolean` | `false`                   | `true` to bypass cache                                                                                                                      | `?refresh=true`         |
+| `hide_background` | `boolean` | `false`                   | `true` to remove background rect                                                                                                            | `?hide_background=true` |
+| `hide_stats`      | `boolean` | `false`                   | `true` or `1` to hide stats row                                                                                                             | `?hide_stats=1`         |
 
 ### Theme Presets
 
-| Theme              | Preview                  | `bg`     | `accent` | `text`   |
-| ------------------ | ------------------------ | -------- | -------- | -------- |
-| `auto`             | System light / dark      | _adapts_ | _adapts_ | _adapts_ |
-| `dark` _(default)_ | GitHub dark              | `0d1117` | `58a6ff` | `c9d1d9` |
-| `neon`             | Cyberpunk                | `000000` | `ff00ff` | `00ffcc` |
-| `dracula`          | Dracula Pro              | `282a36` | `bd93f9` | `f8f8f2` |
-| `github`           | GitHub green             | `0d1117` | `238636` | `ffffff` |
-| `light`            | Clean & minimal          | `ffffff` | `0969da` | `24292f` |
-| `gruvbox`          | retro warm dark          | `282828` | `fe8019` | `ebdbb2` |
-| `random`           | Surprise theme on reload | _varies_ | _varies_ | _varies_ |
+CommitPulse ships with **12 curated themes** plus `auto` and `random` modes. Browse full previews in the [Theme Gallery](./THEMES.md).
 
-> **`auto` uses CSS `@media (prefers-color-scheme)`** inside the SVG so the badge switches between the `light` and `dark` palettes based on the viewer's OS setting — no JavaScript required. This is ideal for GitHub profile READMEs where visitors may use either mode.
+| Theme              | Preview             | `bg`     | `accent` | `text`   |
+| ------------------ | ------------------- | -------- | -------- | -------- |
+| `auto`             | System light / dark | _adapts_ | _adapts_ | _adapts_ |
+| `dark` _(default)_ | GitHub dark         | `0d1117` | `58a6ff` | `c9d1d9` |
+| `light`            | Clean & minimal     | `ffffff` | `0969da` | `24292f` |
+| `neon`             | Cyberpunk           | `000000` | `ff00ff` | `00ffcc` |
+| `dracula`          | Dracula Pro         | `282a36` | `bd93f9` | `f8f8f2` |
+| `github`           | GitHub green        | `0d1117` | `238636` | `ffffff` |
+| `gruvbox`          | Retro warm dark     | `282828` | `fe8019` | `ebdbb2` |
+| `ocean`            | Deep sea            | `0a192f` | `64ffda` | `ccd6f6` |
+| `sunset`           | Warm evening        | `1a0a0a` | `ff6b35` | `ffd6c0` |
+| `forest`           | Verdant green       | `0d1f0d` | `39d353` | `c8f0c8` |
+| `rose`             | Soft pink           | `1f0d14` | `ff6b9d` | `f0c8d4` |
+| `nord`             | Arctic, bluish      | `2e3440` | `88c0d0` | `d8dee9` |
+| `synthwave`        | Retro 80s           | `0d0221` | `ff2d78` | `f8f8f2` |
+| `random`           | Surprise on reload  | _varies_ | _varies_ | _varies_ |
 
-### Examples
+> **`auto`** uses CSS `@media (prefers-color-scheme)` inside the SVG so the badge switches between the `light` and `dark` palettes based on the viewer's OS setting — no JavaScript required. Ideal for profile READMEs where visitors may use either mode.
+>
+> **`random`** picks a random theme from the full palette on each request. Random badges are never cached.
+
+### Practical Examples
 
 ```md
-<!-- Auto theme — adapts to the viewer's light/dark system preference -->
+<!-- Default dark theme -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07)
+
+<!-- Neon cyberpunk -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=neon)
+
+<!-- Auto theme — adapts to viewer's OS setting -->
 
 ![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=auto)
 
-<!-- The Dracula aesthetic -->
+<!-- Dracula aesthetic -->
 
 ![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=dracula)
 
-<!-- Dynamic Google Fonts — Space-age look with Orbitron -->
-
-![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&font=Orbitron)
-
-<!-- Fully custom — hot orange on void black -->
+<!-- Custom colors — hot orange on void black -->
 
 ![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&bg=080808&accent=ff4500&text=eeeeee&radius=16)
 
-<!-- Force bypass cache for latest data -->
+<!-- Logarithmic scale for high contributors -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&scale=log)
+
+<!-- Faster radar scan -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&speed=4s)
+
+<!-- Custom Google Font — Orbitron -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&font=Orbitron)
+
+<!-- Specific year -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&year=2023)
+
+<!-- Timezone-aware today marker -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&tz=Asia/Kolkata)
+
+<!-- Bypass cache for fresh data -->
 
 ![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&refresh=true)
 
-<!-- Fast scan + logarithmic scaling for power users -->
+<!-- Hide background (floating monolith) -->
 
-![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&speed=4s&scale=log)
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&hide_background=true)
 
-<!-- View contributions for a specific past year -->
+<!-- Hide stats row -->
 
-![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&year=2023)
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&hide_stats=true)
 ```
 
 ---

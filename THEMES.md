@@ -97,3 +97,19 @@ Usage: `/api/streak?user=yourusername&theme=nord`
 Retro 80s-inspired palette — deep indigo background, neon pink glow, crisp white text.
 
 Usage: `/api/streak?user=yourusername&theme=synthwave`
+
+---
+
+## 🖥️ Auto
+
+The `auto` theme adapts to the viewer's OS-level light/dark preference using CSS `@media (prefers-color-scheme)` inside the SVG. No JavaScript required — works in any Markdown renderer that supports SVG.
+
+Usage: `/api/streak?user=yourusername&theme=auto`
+
+---
+
+## 🎲 Random
+
+The `random` theme picks a surprise theme from the full palette on every request. Note: random badges are never cached so every load fetches fresh data.
+
+Usage: `/api/streak?user=yourusername&theme=random`
