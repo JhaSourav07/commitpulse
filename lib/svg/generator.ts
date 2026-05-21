@@ -331,14 +331,19 @@ export function generateSVG(
     <text class="label">${labels.PEAK_STREAK}</text>
     <text y="40" class="stats">${stats.longestStreak}</text>
   </g>
-  `
+`
       : ''
   }
-  <text x="300" y="50" text-anchor="middle" class="title">${safeUser.toUpperCase()}</text>
 
-  <rect x="100" y="60" width="400" height="1" fill="${accent}" fill-opacity="0.3">
-    <animate attributeName="y" values="80;320;80" dur="${params.speed || '8s'}" repeatCount="indefinite" />
-  </rect>
+${
+  !params.hide_title
+    ? `<text x="300" y="50" text-anchor="middle" class="title">${safeUser.toUpperCase()}</text>`
+    : ''
+}
+
+<rect x="100" y="60" width="400" height="1" fill="${accent}" fill-opacity="0.3">
+  <animate attributeName="y" values="80;320;80" dur="${params.speed || '8s'}" repeatCount="indefinite" />
+</rect>
 </svg>
 `;
 }
@@ -453,14 +458,19 @@ function generateAutoThemeSVG(
     <text class="label">${labels.PEAK_STREAK}</text>
     <text y="40" class="stats">${stats.longestStreak}</text>
   </g>
-  `
+`
       : ''
   }
-  <text x="300" y="50" text-anchor="middle" class="title">${safeUser.toUpperCase()}</text>
 
-  <rect x="100" y="60" width="400" height="1" class="cp-accent-fill" fill-opacity="0.3">
-    <animate attributeName="y" values="80;320;80" dur="${params.speed || '8s'}" repeatCount="indefinite" />
-  </rect>
+${
+  !params.hide_title
+    ? `<text x="300" y="50" text-anchor="middle" class="title">${safeUser.toUpperCase()}</text>`
+    : ''
+}
+
+<rect x="100" y="60" width="400" height="1" class="cp-accent-fill" fill-opacity="0.3">
+  <animate attributeName="y" values="80;320;80" dur="${params.speed || '8s'}" repeatCount="indefinite" />
+</rect>
 </svg>
 `;
 }

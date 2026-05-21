@@ -92,9 +92,10 @@ URL Parameter > Theme Default > System Fallback
 | `radius`          | `number`  | No         | `8`                            | Border corner radius in pixels                                                                                                                                            |
 | `speed`           | `string`  | No         | `8s`                           | Radar scan duration (`2s`–`20s`, default `8s`)                                                                                                                            |
 | `scale`           | `string`  | No         | `linear`                       | Tower height scaling: `linear` or `log` (logarithmic)                                                                                                                     |
-| `font`            | `string`  | No         | CommitPulse default typography | Any **Google Font** name (e.g., `Orbitron`, `Inter`)                                                                                                                      |
+| `font`            | `string`  | No         | CommitPulse default typography | Any **Google Font** name (e.g. `Orbitron`, `Inter`)                                                                                                                       |
 | `refresh`         | `boolean` | No         | `false`                        | Bypass cache for real-time data                                                                                                                                           |
 | `year`            | `string`  | No         | —                              | Calendar year to render (e.g. `2023`, `2024`)                                                                                                                             |
+| `hide_title`      | `boolean` | No         | `false`                        | Hide GitHub username/title from the SVG badge                                                                                                                             |
 | `hide_background` | `boolean` | No         | `false`                        | Remove the background rect, letting the monolith float on the page                                                                                                        |
 | `hide_stats`      | `boolean` | No         | `false`                        | Hides the bottom row displaying Current Streak, Annual Sync Total, and Peak Streak stats when set to `true` or `1`.                                                       |
 | `tz`              | `string`  | No         | Omitted = UTC                  | IANA timezone (e.g. `Asia/Kolkata`, `America/New_York`) — aligns "today" with the user local midnight. Note: `?tz=UTC` is valid but cached separately from omitting `tz`. |
@@ -145,6 +146,10 @@ URL Parameter > Theme Default > System Fallback
 <!-- View contributions for a specific past year -->
 
 ![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&year=2023)
+
+<!-- Hide GitHub username/title -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&hide_title=true)
 ```
 
 ---
