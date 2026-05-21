@@ -42,6 +42,15 @@ export async function GET(request: Request) {
       lang,
     } = parseResult.data;
 
+    //sanitizing font
+    const sanitizedFont = ((): string | undefined => {
+      if (!font) return undefined;
+      const trimmed = font.trim();
+      if (!trimmed) return undefined;
+      const cleaned = trimmed.replace(/[^a-zA-Z0-9\s\-']/g, '').trim();
+      return cleaned || undefined;
+    })();
+
     const hide_stats = hideStatsParam === 'true' || hideStatsParam === '1';
 
     const themeName = theme || 'dark';
@@ -98,8 +107,7 @@ export async function GET(request: Request) {
       radius: safeRadius,
       speed,
       scale,
-      font,
-
+      font: sanitizedFont,
       autoTheme: isAutoTheme,
       hideBackground: hide_background,
       hide_stats: hide_stats,

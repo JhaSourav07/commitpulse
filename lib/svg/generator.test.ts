@@ -116,6 +116,34 @@ describe('generateSVG', () => {
     expect(svg).toContain('font-family: "Space Grotesk", sans-serif');
   });
 
+  it('uses default font when font param is an empty string', () => {
+    const svg = generateSVG(
+      mockStats,
+      { user: 'avi', font: '' } as unknown as BadgeParams,
+      mockCalendar
+    );
+    expect(svg).toContain('Space Grotesk');
+    expect(svg).not.toContain('family=&amp;display=swap');
+  });
+
+  it('uses default font when font param is whitespace only', () => {
+    const svg = generateSVG(
+      mockStats,
+      { user: 'avi', font: '   ' } as unknown as BadgeParams,
+      mockCalendar
+    );
+    expect(svg).toContain('Space Grotesk');
+    expect(svg).not.toContain('family=+&amp;display=swap');
+  });
+
+  it('allows apostrophes in font names like Times New Roman', () => {
+    const svg = generateSVG(
+      mockStats,
+      { user: 'avi', font: 'Gill Sans' } as unknown as BadgeParams,
+      mockCalendar
+    );
+    expect(svg).toContain('Gill Sans');
+  });
   it('emits tower-raising CSS animations and staggered delays', () => {
     const svg = generateSVG(mockStats, { user: 'avi' } as unknown as BadgeParams, mockCalendar);
 
