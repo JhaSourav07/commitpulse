@@ -80,24 +80,24 @@ URL Parameter > Theme Default > System Fallback
 
 ### Complete Parameter Reference
 
-| Parameter | Type | Default | Constraints | Example |
-|-----------|------|---------|-------------|---------|
-| `user` | `string` | **— (required)** | Valid GitHub username | `?user=jhasourav07` |
-| `theme` | `string` | `dark` | Built-in themes: `dark`, `light`, `neon`, `dracula`, `github`, `gruvbox`, `ocean`, `sunset`, `forest`, `rose`, `nord`, `synthwave`, `auto`, `random`. Unknown values fall back to `dark`. | `?theme=neon` |
-| `bg` | `hex` | Theme default | Hex color — **without** `#` | `?bg=0d1117` |
-| `accent` | `hex` | Theme default | Hex color — **without** `#` | `?accent=ff00ff` |
-| `text` | `hex` | Theme default | Hex color — **without** `#` | `?text=ffffff` |
-| `radius` | `number` | `8` | `0`–`50` (pixels) | `?radius=16` |
-| `speed` | `string` | `8s` | `2s`–`20s` (must end in `s`) | `?speed=4s` |
-| `scale` | `string` | `linear` | `linear` or `log` | `?scale=log` |
-| `font` | `string` | Syncopate / Space Grotesk | Any **Google Font** name | `?font=Orbitron` |
-| `year` | `string` | Current year | 4-digit year (e.g. `2023`, `2024`) | `?year=2023` |
-| `tz` | `string` | `UTC` | Valid IANA timezone (e.g. `Asia/Kolkata`, `America/New_York`) | `?tz=Asia/Kolkata` |
-| `lang` | `string` | `en` | Language code: `en`, `es`, `hi`, `fr` | `?lang=es` |
-| `refresh` | `boolean` | `false` | `true` to bypass cache | `?refresh=true` |
-| `hide_title` | `boolean` | `false` | `true` to hide the username title | `?hide_title=true` |
-| `hide_background` | `boolean` | `false` | `true` to remove background rect | `?hide_background=true` |
-| `hide_stats` | `boolean` | `false` | `true` or `1` to hide stats row | `?hide_stats=1` |
+| Parameter         | Type      | Default                   | Constraints                                                                                                                                                                               | Example                 |
+| ----------------- | --------- | ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- |
+| `user`            | `string`  | **— (required)**          | Valid GitHub username                                                                                                                                                                     | `?user=jhasourav07`     |
+| `theme`           | `string`  | `dark`                    | Built-in themes: `dark`, `light`, `neon`, `dracula`, `github`, `gruvbox`, `ocean`, `sunset`, `forest`, `rose`, `nord`, `synthwave`, `auto`, `random`. Unknown values fall back to `dark`. | `?theme=neon`           |
+| `bg`              | `hex`     | Theme default             | Hex color — **without** `#`                                                                                                                                                               | `?bg=0d1117`            |
+| `accent`          | `hex`     | Theme default             | Hex color — **without** `#`                                                                                                                                                               | `?accent=ff00ff`        |
+| `text`            | `hex`     | Theme default             | Hex color — **without** `#`                                                                                                                                                               | `?text=ffffff`          |
+| `radius`          | `number`  | `8`                       | `0`–`50` (pixels)                                                                                                                                                                         | `?radius=16`            |
+| `speed`           | `string`  | `8s`                      | `2s`–`20s` (must end in `s`)                                                                                                                                                              | `?speed=4s`             |
+| `scale`           | `string`  | `linear`                  | `linear` or `log`                                                                                                                                                                         | `?scale=log`            |
+| `font`            | `string`  | Syncopate / Space Grotesk | Any **Google Font** name                                                                                                                                                                  | `?font=Orbitron`        |
+| `year`            | `string`  | Current year              | 4-digit year (e.g. `2023`, `2024`)                                                                                                                                                        | `?year=2023`            |
+| `tz`              | `string`  | `UTC`                     | Valid IANA timezone (e.g. `Asia/Kolkata`, `America/New_York`)                                                                                                                             | `?tz=Asia/Kolkata`      |
+| `lang`            | `string`  | `en`                      | Language code: `en`, `es`, `hi`, `fr`                                                                                                                                                     | `?lang=es`              |
+| `refresh`         | `boolean` | `false`                   | `true` to bypass cache                                                                                                                                                                    | `?refresh=true`         |
+| `hide_title`      | `boolean` | `false`                   | `true` to hide the username title                                                                                                                                                         | `?hide_title=true`      |
+| `hide_background` | `boolean` | `false`                   | `true` to remove background rect                                                                                                                                                          | `?hide_background=true` |
+| `hide_stats`      | `boolean` | `false`                   | `true` or `1` to hide stats row                                                                                                                                                           | `?hide_stats=1`         |
 
 ### Theme Presets
 
