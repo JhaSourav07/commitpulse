@@ -14,8 +14,11 @@ vi.mock('next/navigation', () => ({
   useSearchParams: () => ({
     get: vi.fn(),
   }),
+  notFound: vi.fn(),
 }));
-
+vi.mock('@/components/dashboard/RefreshButton', () => ({
+  default: () => <div data-testid="refresh-button">RefreshButton</div>,
+}));
 vi.mock('@/lib/github', () => ({
   getFullDashboardData: vi.fn(),
 }));
@@ -24,7 +27,7 @@ vi.mock('@/lib/github', () => ({
 vi.mock('@/components/dashboard/ProfileCard', () => ({
   default: () => <div data-testid="profile-card">ProfileCard</div>,
 }));
-vi.mock('@/components/dashboard/ActivityLandscapeSection', () => ({
+vi.mock('@/components/dashboard/ActivityLandscape', () => ({
   default: () => <div data-testid="activity-landscape">ActivityLandscape</div>,
 }));
 vi.mock('@/components/dashboard/StatsCard', () => ({
@@ -97,9 +100,11 @@ describe('DashboardPage', () => {
   describe('DashboardPage rendering', () => {
     it('renders the dashboard components with the fetched data', async () => {
       const PageContent = await DashboardPage({
-        params: Promise.resolve({ username: 'octocat' }),
-        searchParams: Promise.resolve({}),
-      });
+      params: Promise.resolve({ username: 'octocat' }),
+      searchParams: Promise.resolve({}),} as {
+      params: Promise<{ username: string }>;
+      searchParams: Promise<{ refresh?: string }>;
+    });
       render(PageContent);
 
       // Verify data fetching
