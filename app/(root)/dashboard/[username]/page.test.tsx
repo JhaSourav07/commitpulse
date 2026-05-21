@@ -4,6 +4,18 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import DashboardPage, { generateMetadata } from './page';
 import { getFullDashboardData } from '@/lib/github';
 
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({
+    push: vi.fn(),
+    replace: vi.fn(),
+    refresh: vi.fn(),
+  }),
+
+  useSearchParams: () => ({
+    get: vi.fn(),
+  }),
+}));
+
 vi.mock('@/lib/github', () => ({
   getFullDashboardData: vi.fn(),
 }));
@@ -84,11 +96,16 @@ describe('DashboardPage', () => {
 
   describe('DashboardPage rendering', () => {
     it('renders the dashboard components with the fetched data', async () => {
-      const PageContent = await DashboardPage({ params: Promise.resolve({ username: 'octocat' }) });
+      const PageContent = await DashboardPage({
+        params: Promise.resolve({ username: 'octocat' }),
+        searchParams: Promise.resolve({}),
+      });
       render(PageContent);
 
       // Verify data fetching
-      expect(getFullDashboardData).toHaveBeenCalledWith('octocat');
+      expect(getFullDashboardData).toHaveBeenCalledWith('octocat', {
+        bypassCache: false,
+      });
 
       // Verify layout and component presence
       expect(screen.getByText('Generate Your Own Dashboard')).toBeDefined();

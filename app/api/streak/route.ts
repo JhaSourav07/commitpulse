@@ -37,9 +37,20 @@ export async function GET(request: Request) {
       font,
       year,
       refresh,
+      hide_title,
       hide_background,
       hide_stats: hideStatsParam,
+      lang,
     } = parseResult.data;
+
+    //sanitizing font
+    const sanitizedFont = ((): string | undefined => {
+      if (!font) return undefined;
+      const trimmed = font.trim();
+      if (!trimmed) return undefined;
+      const cleaned = trimmed.replace(/[^a-zA-Z0-9\s\-']/g, '').trim();
+      return cleaned || undefined;
+    })();
 
     const hide_stats = hideStatsParam === 'true' || hideStatsParam === '1';
 
@@ -86,11 +97,12 @@ export async function GET(request: Request) {
       radius: safeRadius,
       speed,
       scale,
-      font,
-
+      font: sanitizedFont,
       autoTheme: isAutoTheme,
+      hide_title,
       hideBackground: hide_background,
       hide_stats: hide_stats,
+      lang,
     };
 
     const calendar = await fetchGitHubContributions(user, {

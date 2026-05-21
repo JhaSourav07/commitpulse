@@ -424,10 +424,16 @@ export async function getFullDashboardData(username: string, options: FetchOptio
       });
     }
 
-    // Simulate 24h cycle (because GitHub events API is heavily rate limited to 300 events which doesn't give a full picture)
-    const commitClock = Array.from({ length: 24 }).map((_, i) => ({
-      hour: i,
-      commits: Math.floor(Math.random() * 20) + (i >= 9 && i <= 17 ? 30 : 0), // working hours peak
+    // Aggregate real contribution data by day of week from the already-fetched calendar
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const dayTotals = new Array(7).fill(0);
+    for (const day of allDays) {
+      const dow = new Date(day.date).getUTCDay();
+      dayTotals[dow] += day.contributionCount;
+    }
+    const commitClock = dayNames.map((name, i) => ({
+      day: name,
+      commits: dayTotals[i],
     }));
 
     return {

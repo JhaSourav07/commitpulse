@@ -1,4 +1,5 @@
 import type { BadgeParams, ContributionCalendar, StreakStats } from '../../types';
+import { getLabels } from '../i18n/badgeLabels';
 import { AUTO_DARK_THEME, AUTO_LIGHT_THEME } from './themes';
 
 // constants
@@ -231,7 +232,7 @@ export function generateSVG(
   const accent = `#${(params.accent || '00ffaa').replace('#', '')}`;
   const text = `#${(params.text || 'ffffff').replace('#', '')}`;
 
-  const sanitizeFont = (name: string) => name.replace(/[^a-zA-Z0-9\s-]/g, '').trim();
+  const sanitizeFont = (name: string): string => name.replace(/[^a-zA-Z0-9\s\-']/g, '').trim();
   const sanitizedFont = params.font ? sanitizeFont(params.font) : null;
   const predefinedFont = sanitizedFont ? FONT_MAP[sanitizedFont.toLowerCase()] : null;
   const isPredefinedFont = Boolean(predefinedFont);
@@ -244,6 +245,7 @@ export function generateSVG(
   const statsFont = selectedFont || '"Space Grotesk", sans-serif';
   const parsedRadius = Number(params.radius);
   const radius = Math.max(0, Math.min(Number.isNaN(parsedRadius) ? 8 : parsedRadius, 50));
+  const labels = getLabels(params.lang);
 
   const towerData = computeTowers(calendar, params.scale, stats.todayDate);
   let towers = '';
@@ -316,27 +318,32 @@ export function generateSVG(
     !params.hide_stats
       ? `
   <g transform="translate(40, 340)">
-    <text class="label">CURRENT_STREAK</text>
+    <text class="label">${labels.CURRENT_STREAK}</text>
     <text y="40" class="stats" filter="url(#glow)">${stats.currentStreak}</text>
   </g>
 
   <g transform="translate(300, 340)" text-anchor="middle">
-    <text class="label">ANNUAL_SYNC_TOTAL</text>
+    <text class="label">${labels.ANNUAL_SYNC_TOTAL}</text>
     <text y="40" class="total-val" filter="url(#glow)">${stats.totalContributions}</text>
   </g>
 
   <g transform="translate(560, 340)" text-anchor="end">
-    <text class="label">PEAK_STREAK</text>
+    <text class="label">${labels.PEAK_STREAK}</text>
     <text y="40" class="stats">${stats.longestStreak}</text>
   </g>
-  `
+`
       : ''
   }
-  <text x="300" y="50" text-anchor="middle" class="title">${safeUser.toUpperCase()}</text>
 
-  <rect x="100" y="60" width="400" height="1" fill="${accent}" fill-opacity="0.3">
-    <animate attributeName="y" values="80;320;80" dur="${params.speed || '8s'}" repeatCount="indefinite" />
-  </rect>
+${
+  !params.hide_title
+    ? `<text x="300" y="50" text-anchor="middle" class="title">${safeUser.toUpperCase()}</text>`
+    : ''
+}
+
+<rect x="100" y="60" width="400" height="1" fill="${accent}" fill-opacity="0.3">
+  <animate attributeName="y" values="80;320;80" dur="${params.speed || '8s'}" repeatCount="indefinite" />
+</rect>
 </svg>
 `;
 }
@@ -359,12 +366,14 @@ function generateAutoThemeSVG(
   const light = AUTO_LIGHT_THEME;
   const dark = AUTO_DARK_THEME;
   const safeUser = escapeXML(params.user || 'GitHub User');
-  const selectedFont = params.font
-    ? FONT_MAP[params.font.toLowerCase()] || '"JetBrains Mono", monospace'
-    : null;
+  const sanitizeFont = (name: string): string => name.replace(/[^a-zA-Z0-9\s\-']/g, '').trim();
+  const sanitizedFont = params.font ? sanitizeFont(params.font) : null;
+  const predefinedFont = sanitizedFont ? FONT_MAP[sanitizedFont.toLowerCase()] : null;
+  const selectedFont = predefinedFont || (sanitizedFont ? `"${sanitizedFont}", sans-serif` : null);
   const statsFont = selectedFont || '"Space Grotesk", sans-serif';
   const parsedRadius = Number(params.radius);
   const radius = Math.max(0, Math.min(Number.isNaN(parsedRadius) ? 8 : parsedRadius, 50));
+  const labels = getLabels(params.lang);
 
   const towerData = computeTowers(calendar, params.scale, stats.todayDate);
   let towers = '';
@@ -436,27 +445,32 @@ function generateAutoThemeSVG(
     !params.hide_stats
       ? `
   <g transform="translate(40, 340)">
-    <text class="label">CURRENT_STREAK</text>
+    <text class="label">${labels.CURRENT_STREAK}</text>
     <text y="40" class="stats" filter="url(#glow)">${stats.currentStreak}</text>
   </g>
 
   <g transform="translate(300, 340)" text-anchor="middle">
-    <text class="label">ANNUAL_SYNC_TOTAL</text>
+    <text class="label">${labels.ANNUAL_SYNC_TOTAL}</text>
     <text y="40" class="total-val" filter="url(#glow)">${stats.totalContributions}</text>
   </g>
 
   <g transform="translate(560, 340)" text-anchor="end">
-    <text class="label">PEAK_STREAK</text>
+    <text class="label">${labels.PEAK_STREAK}</text>
     <text y="40" class="stats">${stats.longestStreak}</text>
   </g>
-  `
+`
       : ''
   }
-  <text x="300" y="50" text-anchor="middle" class="title">${safeUser.toUpperCase()}</text>
 
-  <rect x="100" y="60" width="400" height="1" class="cp-accent-fill" fill-opacity="0.3">
-    <animate attributeName="y" values="80;320;80" dur="${params.speed || '8s'}" repeatCount="indefinite" />
-  </rect>
+${
+  !params.hide_title
+    ? `<text x="300" y="50" text-anchor="middle" class="title">${safeUser.toUpperCase()}</text>`
+    : ''
+}
+
+<rect x="100" y="60" width="400" height="1" class="cp-accent-fill" fill-opacity="0.3">
+  <animate attributeName="y" values="80;320;80" dur="${params.speed || '8s'}" repeatCount="indefinite" />
+</rect>
 </svg>
 `;
 }
