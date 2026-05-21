@@ -195,6 +195,43 @@ describe('GET /api/streak', () => {
       // "5" doesn't match /^\d+(\.\d+)?s$/, so the default kicks in.
       expect(body).toContain('8s');
     });
+
+    it('falls back to 8s when speed=10 is provided', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', speed: '10' }));
+      const body = await response.text();
+
+      expect(body).toContain('8s');
+    });
+  });
+
+  describe('radius parameter', () => {
+    it('uses the default radius when the parameter is omitted', async () => {
+      const response = await GET(makeRequest({ user: 'octocat' }));
+      const body = await response.text();
+
+      expect(body).toContain('rx="8"');
+    });
+
+    it('defaults to 8 when radius is not numeric', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', radius: 'abc' }));
+      const body = await response.text();
+
+      expect(body).toContain('rx="8"');
+    });
+
+    it('clamps negative radius to 0', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', radius: '-10' }));
+      const body = await response.text();
+
+      expect(body).toContain('rx="0"');
+    });
+
+    it('clamps large radius to 32', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', radius: '999' }));
+      const body = await response.text();
+
+      expect(body).toContain('rx="32"');
+    });
   });
 
   describe('scale parameter', () => {
@@ -208,6 +245,12 @@ describe('GET /api/streak', () => {
       // The route only accepts "log" — anything else is treated as "linear".
       // A 200 response confirms no crash; the generator silently uses the default.
       const response = await GET(makeRequest({ user: 'octocat', scale: 'exponential' }));
+
+      expect(response.status).toBe(200);
+    });
+
+    it('defaults to linear scale when scale=foo is given', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', scale: 'foo' }));
 
       expect(response.status).toBe(200);
     });

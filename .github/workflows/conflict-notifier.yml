@@ -2,7 +2,7 @@ name: Merge Conflict Notifier
 
 on:
   schedule:
-    - cron: '0 0 * * *'
+    - cron: '0 * * * *'
   workflow_dispatch:
 
 permissions:
@@ -45,12 +45,21 @@ jobs:
             });
 
             for (const pr of openPRs) {
-              // GitHub computes `mergeable` lazily — fetch each PR individually to trigger computation
-              const { data: fullPR } = await github.rest.pulls.get({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                pull_number: pr.number,
-              });
+              // GitHub computes `mergeable` lazily — fetch each PR individually with retries to trigger and wait for computation
+              let fullPR = null;
+              for (let attempt = 1; attempt <= 3; attempt++) {
+                const { data } = await github.rest.pulls.get({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  pull_number: pr.number,
+                });
+                fullPR = data;
+                if (fullPR.mergeable !== null) {
+                  break;
+                }
+                core.info(`PR #${pr.number}: mergeable is null, waiting 5 seconds (attempt ${attempt}/3)...`);
+                await new Promise(resolve => setTimeout(resolve, 5000));
+              }
 
               const isConflicting = fullPR.mergeable === false;
               const currentLabels = fullPR.labels.map(l => l.name);
