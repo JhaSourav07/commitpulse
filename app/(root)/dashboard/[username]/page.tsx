@@ -34,11 +34,7 @@ export async function generateMetadata({
   };
 }
 
-export default async function DashboardPage({
-  params,
-}: {
-  params: Promise<{ username: string }>;
-}) {
+export default async function DashboardPage({ params }: { params: Promise<{ username: string }> }) {
   const { username } = await params;
 
   const data = {
@@ -103,11 +99,7 @@ export default async function DashboardPage({
   };
 
   return (
-    <div
-      id="dashboard-root"
-      data-dashboard
-      className="p-4 md:p-6 lg:p-8 min-h-screen relative"
-    >
+    <div id="dashboard-root" data-dashboard className="p-4 md:p-6 lg:p-8 min-h-screen relative">
       <div id="generate-dashboard-btn" className="flex justify-end mb-6">
         <Link
           href="/"

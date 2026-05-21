@@ -99,20 +99,14 @@ export default function ShareSheet({ username, isOpen, onClose, exportData }: Sh
   };
 
   const handleReddit = () => {
-  const url = encodeURIComponent(PROFILE_URL(username));
+    const url = encodeURIComponent(PROFILE_URL(username));
 
-  const title = encodeURIComponent(
-    'Check out my GitHub commit pulse on CommitPulse 🚀'
-  );
+    const title = encodeURIComponent('Check out my GitHub commit pulse on CommitPulse 🚀');
 
-  window.open(
-    `https://www.reddit.com/submit?url=${url}&title=${title}`,
-    '_blank',
-    'noopener'
-  );
+    window.open(`https://www.reddit.com/submit?url=${url}&title=${title}`, '_blank', 'noopener');
 
-  onClose();
-};
+    onClose();
+  };
 
   const handleDownloadPNG = async () => {
     setOptionState('png', 'loading');
@@ -260,14 +254,14 @@ export default function ShareSheet({ username, isOpen, onClose, exportData }: Sh
       action: handleLinkedIn,
     },
     {
-  key: 'reddit',
-  icon: RedditIcon,
-  label: 'Share on Reddit',
-  description: 'Post your pulse to Reddit communities',
-  gradient: 'from-orange-500 to-orange-700',
-  glow: 'rgba(249,115,22,0.35)',
-  action: handleReddit,
-},
+      key: 'reddit',
+      icon: RedditIcon,
+      label: 'Share on Reddit',
+      description: 'Post your pulse to Reddit communities',
+      gradient: 'from-orange-500 to-orange-700',
+      glow: 'rgba(249,115,22,0.35)',
+      action: handleReddit,
+    },
 
     {
       key: 'markdown',
@@ -379,7 +373,9 @@ export default function ShareSheet({ username, isOpen, onClose, exportData }: Sh
                         className="group flex items-center gap-3 w-full px-3 py-3 rounded-lg hover:bg-[rgba(255,255,255,0.05)] border border-transparent hover:border-[rgba(255,255,255,0.08)] transition-all duration-200 text-left disabled:opacity-40 disabled:cursor-not-allowed"
                       >
                         {/* Icon box */}
-                        <div className={`flex-shrink-0 w-8 h-8 rounded-lg bg-gradient-to-br ${opt.gradient} border border-[rgba(255,255,255,0.08)] flex items-center justify-center`}>
+                        <div
+                          className={`flex-shrink-0 w-8 h-8 rounded-lg bg-gradient-to-br ${opt.gradient} border border-[rgba(255,255,255,0.08)] flex items-center justify-center`}
+                        >
                           {state === 'loading' ? (
                             <Loader2 size={15} className="text-[#A1A1AA] animate-spin" />
                           ) : state === 'success' ? (

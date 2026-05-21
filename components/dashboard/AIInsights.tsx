@@ -25,7 +25,7 @@ export default function AIInsights({ insights }: { insights: AIInsight[] }) {
           const Icon = iconMap[insight.icon] || Sparkles;
           return (
             <motion.div
-             key={`${insight.id}-${i}`}
+              key={`${insight.id}-${i}`}
               initial={{ opacity: 0, x: -8 }}
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
