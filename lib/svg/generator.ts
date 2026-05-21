@@ -99,7 +99,11 @@ function computeFaceOpacity(count: number, isGhostCityMode: boolean): FaceOpacit
  * contribution data. The layout math is identical for both the
  * static-theme and auto-theme rendering paths.
  */
-function computeTowers(calendar: ContributionCalendar, scale: 'linear' | 'log'): TowerData[] {
+function computeTowers(
+  calendar: ContributionCalendar,
+  scale: 'linear' | 'log',
+  todayDate: string
+): TowerData[] {
   const weeks = calendar.weeks.slice(-14);
   const towers: TowerData[] = [];
 
@@ -113,9 +117,19 @@ function computeTowers(calendar: ContributionCalendar, scale: 'linear' | 'log'):
 
   const shouldShowGhostCity = totalVisibleContributions === 0;
 
+  // Pre-check: is todayDate present in the visible 14-week window?
+  // If not (e.g. stale cache or todayDate outside the window), fall back to
+  // marking the last visible day as "today" so the pulse always appears.
+  const todayInWindow = weeks.some((w) => w.contributionDays.some((d) => d.date === todayDate));
+
   weeks.forEach((week, i) => {
     week.contributionDays.forEach((day, j) => {
-      const isToday = i === weeks.length - 1 && j === week.contributionDays.length - 1;
+      // Use the caller-supplied local date so the pulse animation fires on the
+      // correct tower for users in non-UTC timezones, not always the last UTC entry.
+      const isToday =
+        day.date === todayDate ||
+        // Fallback: if todayDate isn't in the visible window, keep the old behaviour.
+        (!todayInWindow && i === weeks.length - 1 && j === week.contributionDays.length - 1);
       const hasCommits = day.contributionCount > 0;
       const isGhost = !hasCommits && shouldShowGhostCity;
       const isTodayWithCommits = isToday && hasCommits;
@@ -231,7 +245,7 @@ export function generateSVG(
   const parsedRadius = Number(params.radius);
   const radius = Math.max(0, Math.min(Number.isNaN(parsedRadius) ? 8 : parsedRadius, 50));
 
-  const towerData = computeTowers(calendar, params.scale);
+  const towerData = computeTowers(calendar, params.scale, stats.todayDate);
   let towers = '';
 
   for (const t of towerData) {
@@ -352,7 +366,7 @@ function generateAutoThemeSVG(
   const parsedRadius = Number(params.radius);
   const radius = Math.max(0, Math.min(Number.isNaN(parsedRadius) ? 8 : parsedRadius, 50));
 
-  const towerData = computeTowers(calendar, params.scale);
+  const towerData = computeTowers(calendar, params.scale, stats.todayDate);
   let towers = '';
 
   for (const t of towerData) {

@@ -5,6 +5,7 @@ const stats = {
   currentStreak: 12,
   longestStreak: 48,
   totalContributions: 1240,
+  todayDate: '2024-01-07',
 };
 
 const baseParams = {
