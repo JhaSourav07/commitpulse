@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { getSecondsUntilUTCMidnight } from './time';
+import { getSecondsUntilUTCMidnight, getSecondsUntilMidnightInTimezone } from './time';
 
 describe('getSecondsUntilUTCMidnight', () => {
   beforeEach(() => {
@@ -62,5 +62,73 @@ describe('getSecondsUntilUTCMidnight', () => {
     vi.setSystemTime(new Date('2024-12-31T06:00:00.000Z'));
 
     expect(getSecondsUntilUTCMidnight()).toBe(64800); // 18 hours = 64800 s
+  });
+});
+
+describe('getSecondsUntilMidnightInTimezone', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  // All tests use 'Etc/GMT+4' (UTC-4, no DST) so results are deterministic.
+
+  it('returns 86400 seconds at local midnight in the given timezone', () => {
+    // 2024-06-15T04:00:00Z is 00:00:00 in Etc/GMT+4 (UTC-4)
+    vi.setSystemTime(new Date('2024-06-15T04:00:00.000Z'));
+
+    expect(getSecondsUntilMidnightInTimezone('Etc/GMT+4')).toBe(86400);
+  });
+
+  it('returns 43200 seconds (12 hours) at local noon', () => {
+    // 2024-06-15T16:00:00Z is 12:00:00 in Etc/GMT+4
+    vi.setSystemTime(new Date('2024-06-15T16:00:00.000Z'));
+
+    expect(getSecondsUntilMidnightInTimezone('Etc/GMT+4')).toBe(43200);
+  });
+
+  it('returns 1 second when it is one second before local midnight', () => {
+    // 2024-06-16T03:59:59Z is 23:59:59 in Etc/GMT+4
+    vi.setSystemTime(new Date('2024-06-16T03:59:59.000Z'));
+
+    expect(getSecondsUntilMidnightInTimezone('Etc/GMT+4')).toBe(1);
+  });
+
+  it('gives a different result from getSecondsUntilUTCMidnight when tz is not UTC', () => {
+    // At 2024-06-15T10:00:00Z:
+    //   - UTC midnight is 14 hours away (50400 s)
+    //   - Etc/GMT+4 midnight is 18 hours away (64800 s)
+    vi.setSystemTime(new Date('2024-06-15T10:00:00.000Z'));
+
+    const utcResult = getSecondsUntilUTCMidnight();
+    const tzResult = getSecondsUntilMidnightInTimezone('Etc/GMT+4');
+
+    expect(utcResult).toBe(50400);
+    expect(tzResult).toBe(64800);
+    expect(tzResult).not.toBe(utcResult);
+  });
+
+  it('matches getSecondsUntilUTCMidnight when tz is UTC', () => {
+    vi.setSystemTime(new Date('2024-06-15T10:00:00.000Z'));
+
+    expect(getSecondsUntilMidnightInTimezone('UTC')).toBe(getSecondsUntilUTCMidnight());
+  });
+
+  it('always returns a non-negative integer', () => {
+    const times = [
+      '2024-03-01T05:15:00.000Z',
+      '2024-06-15T19:45:30.123Z',
+      '2024-12-31T23:00:00.000Z',
+    ];
+
+    for (const t of times) {
+      vi.setSystemTime(new Date(t));
+      const result = getSecondsUntilMidnightInTimezone('Etc/GMT+4');
+      expect(result).toBeGreaterThanOrEqual(0);
+      expect(Number.isInteger(result)).toBe(true);
+    }
   });
 });

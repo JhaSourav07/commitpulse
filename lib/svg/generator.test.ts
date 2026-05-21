@@ -3,7 +3,12 @@ import { generateSVG } from './generator';
 import type { BadgeParams, ContributionCalendar, StreakStats } from '../../types';
 
 describe('generateSVG', () => {
-  const mockStats = { currentStreak: 5, longestStreak: 10, totalContributions: 100 } as StreakStats;
+  const mockStats: StreakStats = {
+    currentStreak: 5,
+    longestStreak: 10,
+    totalContributions: 100,
+    todayDate: '2024-06-12',
+  };
   const mockCalendar = {
     weeks: [
       {
@@ -274,6 +279,51 @@ describe('generateSVG', () => {
       expect(svg).not.toContain('stroke-opacity="0.3"');
       // Active mode empty days should have h=0 (10 + 0 = 10)
       expect(svg).toContain('L0 10 L-16 0 L-16 0 Z');
+    });
+  });
+
+  // ── Timezone-aware pulse animation tests ─────────────────────────────────
+  describe('todayDate pulse animation', () => {
+    const calendar: ContributionCalendar = {
+      totalContributions: 20,
+      weeks: [
+        {
+          contributionDays: [
+            { contributionCount: 5, date: '2024-06-11' },
+            { contributionCount: 5, date: '2024-06-12' }, // local "today" with commits
+            { contributionCount: 0, date: '2024-06-13' }, // UTC last entry, no commits
+          ],
+        },
+      ],
+    };
+
+    it('fires the pulse animation on the local today tower, not the last UTC entry', () => {
+      // todayDate = '2024-06-12' (has commits) — pulse should appear
+      // last entry = '2024-06-13' (no commits) — no pulse without timezone fix
+      const stats: StreakStats = {
+        currentStreak: 2,
+        longestStreak: 2,
+        totalContributions: 10,
+        todayDate: '2024-06-12',
+      };
+
+      const svg = generateSVG(stats, { user: 'avi' } as unknown as BadgeParams, calendar);
+
+      expect(svg).toContain('attributeName="opacity" values="1;0.4;1"');
+    });
+
+    it('does not pulse when todayDate has no commits even if another day does', () => {
+      // todayDate = '2024-06-13' (0 commits) — no pulse
+      const stats: StreakStats = {
+        currentStreak: 0,
+        longestStreak: 2,
+        totalContributions: 10,
+        todayDate: '2024-06-13',
+      };
+
+      const svg = generateSVG(stats, { user: 'avi' } as unknown as BadgeParams, calendar);
+
+      expect(svg).not.toContain('attributeName="opacity" values="1;0.4;1"');
     });
   });
 });

@@ -38,10 +38,12 @@ export default function ProfileCard({ user, exportData }: ProfileCardProps) {
 
           <h2 className="text-lg font-semibold text-white mb-0.5">{user.name}</h2>
           <p className="text-sm text-[#A1A1AA] mb-4">@{user.username}</p>
-          <p className="text-sm text-[#A1A1AA] leading-relaxed mb-5 max-w-[220px]">{user.bio}</p>
+          <p className=" text-xs xs:text-sm text-[#A1A1AA] leading-relaxed mb-5 max-w-[220px]">
+            {user.bio}
+          </p>
 
           {/* Meta */}
-          <div className="flex flex-col gap-1.5 w-full mb-6">
+          <div className="flex md:flex-col justify-around gap-1.5 w-full mb-6">
             <div className="flex items-center justify-center gap-1.5 text-[#A1A1AA] text-xs">
               <MapPin size={12} />
               <span>{user.location}</span>
