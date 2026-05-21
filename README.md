@@ -99,6 +99,20 @@ URL Parameter > Theme Default > System Fallback
 | `hide_stats`      | `boolean` | No         | `false`                        | Hides the bottom row displaying Current Streak, Annual Sync Total, and Peak Streak stats when set to `true` or `1`.                                                       |
 | `tz`              | `string`  | No         | Omitted = UTC                  | IANA timezone (e.g. `Asia/Kolkata`, `America/New_York`) — aligns "today" with the user local midnight. Note: `?tz=UTC` is valid but cached separately from omitting `tz`. |
 
+| Parameter | Type      | Required   | Default                        | Description                                           |
+| --------- | --------- | ---------- | ------------------------------ | ----------------------------------------------------- |
+| `user`    | `string`  | ✅ **Yes** | —                              | GitHub username to render                             |
+| `theme`   | `string`  | No         | `dark`                         | Preset theme name (see below)                         |
+| `bg`      | `hex`     | No         | Theme default                  | Background color — **without** `#`                    |
+| `accent`  | `hex`     | No         | Theme default                  | Tower & glow color — **without** `#`                  |
+| `text`    | `hex`     | No         | Theme default                  | Label & stat text color — **without** `#`             |
+| `radius`  | `number`  | No         | `8`                            | Border corner radius in pixels                        |
+| `speed`   | `string`  | No         | `8s`                           | Radar scan duration (`2s`–`20s`, default `8s`)        |
+| `scale`   | `string`  | No         | `linear`                       | Tower height scaling: `linear` or `log` (logarithmic) |
+| `font`    | `string`  | No         | CommitPulse default typography | Any **Google Font** name (e.g., `Orbitron`, `Inter`)  |
+| `refresh` | `boolean` | No         | `false`                        | Bypass cache for real-time data                       |
+| `year`    | `string`  | No         | —                              | Calendar year to render (e.g. `2023`, `2024`)         |
+
 ### Theme Presets
 
 | Theme              | Preview                  | `bg`     | `accent` | `text`   |
