@@ -124,16 +124,13 @@ export function ThemeSelector({
 }): ReactElement {
   const isAuto = theme === 'auto';
 
- const handleRandomTheme = (): void => {
-  const availableThemes = THEME_KEYS.filter(
-    (key) => key !== 'auto' && key !== theme
-  );
+  const handleRandomTheme = (): void => {
+    const availableThemes = THEME_KEYS.filter((key) => key !== 'auto' && key !== theme);
 
-  const randomTheme =
-    availableThemes[Math.floor(Math.random() * availableThemes.length)];
+    const randomTheme = availableThemes[Math.floor(Math.random() * availableThemes.length)];
 
-  onThemeChange(randomTheme);
-};
+    onThemeChange(randomTheme);
+  };
 
   return (
     <div className="flex flex-col gap-1.5">
@@ -143,16 +140,10 @@ export function ThemeSelector({
         {/* Select + Shuffle Button */}
         <div className="flex items-center gap-2">
           <div className="flex-1">
-            <StyledSelect
-              id="theme-select"
-              value={theme}
-              onChange={onThemeChange}
-            >
+            <StyledSelect id="theme-select" value={theme} onChange={onThemeChange}>
               {THEME_KEYS.map((key) => (
                 <option key={key} value={key}>
-                  {key === 'auto'
-                    ? 'Auto (System)'
-                    : key.charAt(0).toUpperCase() + key.slice(1)}
+                  {key === 'auto' ? 'Auto (System)' : key.charAt(0).toUpperCase() + key.slice(1)}
                 </option>
               ))}
             </StyledSelect>
@@ -162,7 +153,7 @@ export function ThemeSelector({
             type="button"
             onClick={handleRandomTheme}
             title="Shuffle Theme"
-          className="h-10 w-10 cursor-pointer flex items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white/70 transition-all duration-200 hover:bg-white/15 hover:border-white/20 hover:text-white hover:scale-105 active:scale-95"
+            className="h-10 w-10 cursor-pointer flex items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white/70 transition-all duration-200 hover:bg-white/15 hover:border-white/20 hover:text-white hover:scale-105 active:scale-95"
           >
             <Shuffle className="w-4 h-4" />
           </button>
@@ -176,14 +167,8 @@ export function ThemeSelector({
                 title="Light → Dark (auto)"
                 className="w-5 h-5 rounded-md border border-white/10 overflow-hidden flex"
               >
-                <span
-                  className="w-1/2 h-full"
-                  style={{ backgroundColor: `#${themes.light.bg}` }}
-                />
-                <span
-                  className="w-1/2 h-full"
-                  style={{ backgroundColor: `#${themes.dark.bg}` }}
-                />
+                <span className="w-1/2 h-full" style={{ backgroundColor: `#${themes.light.bg}` }} />
+                <span className="w-1/2 h-full" style={{ backgroundColor: `#${themes.dark.bg}` }} />
               </span>
 
               <span className="text-[11px] text-white/25 ml-1 self-center">
@@ -205,9 +190,7 @@ export function ThemeSelector({
                 ) : null;
               })}
 
-              <span className="text-[11px] text-white/25 ml-1 self-center">
-                bg · accent · text
-              </span>
+              <span className="text-[11px] text-white/25 ml-1 self-center">bg · accent · text</span>
             </>
           )}
         </div>
