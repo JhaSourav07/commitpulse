@@ -4,6 +4,7 @@ import StatsCard from '@/components/dashboard/StatsCard';
 import AIInsights from '@/components/dashboard/AIInsights';
 import Achievements from '@/components/dashboard/Achievements';
 import Link from 'next/link';
+
 export const revalidate = 3600;
 
 const BASE_URL =
@@ -33,31 +34,35 @@ export async function generateMetadata({
   };
 }
 
-export default async function DashboardPage({ params }: { params: Promise<{ username: string }> }) {
+export default async function DashboardPage({
+  params,
+}: {
+  params: Promise<{ username: string }>;
+}) {
   const { username } = await params;
 
   const data = {
-  profile: {
-  username,
-  login: username,
-  avatar_url: 'https://avatars.githubusercontent.com/u/583231?v=4',
-  avatarUrl: 'https://avatars.githubusercontent.com/u/583231?v=4',
-  bio: 'Mock developer profile for testing',
-  html_url: `https://github.com/${username}`,
-  name: username,
+    profile: {
+      username,
+      login: username,
+      avatar_url: 'https://avatars.githubusercontent.com/u/583231?v=4',
+      avatarUrl: 'https://avatars.githubusercontent.com/u/583231?v=4',
+      bio: 'Mock developer profile for testing',
+      html_url: `https://github.com/${username}`,
+      name: username,
 
-  isPro: false,
-  location: 'Earth 🌍',
-  joinedDate: '2024-01-01',
-  developerScore: 87,
+      isPro: false,
+      location: 'Earth 🌍',
+      joinedDate: '2024-01-01',
+      developerScore: 87,
 
-  stats: {
-    repositories: 32,
-    stars: 128,
-    followers: 120,
-    following: 45,
-  },
-},
+      stats: {
+        repositories: 32,
+        stars: 128,
+        followers: 120,
+        following: 45,
+      },
+    },
 
     stats: {
       currentStreak: 14,
@@ -77,27 +82,32 @@ export default async function DashboardPage({ params }: { params: Promise<{ user
         color: '#F7DF1E',
       },
     ],
-insights: [
-  {
-    id: '1',
-    text: 'Most active during late evenings.',
-    icon: 'Moon',
-  },
-  {
-    id: '2',
-    text: 'Consistent contribution streak this month.',
-    icon: 'Flame',
-  },
-  {
-    id: '3',
-    text: 'Strong focus on frontend technologies.',
-    icon: 'Code',
-  },
-],
+
+    insights: [
+      {
+        id: '1',
+        text: 'Most active during late evenings.',
+        icon: 'Moon',
+      },
+      {
+        id: '2',
+        text: 'Consistent contribution streak this month.',
+        icon: 'Flame',
+      },
+      {
+        id: '3',
+        text: 'Strong focus on frontend technologies.',
+        icon: 'Code',
+      },
+    ],
   };
 
   return (
-    <div id="dashboard-root" data-dashboard className="p-4 md:p-6 lg:p-8 min-h-screen relative">
+    <div
+      id="dashboard-root"
+      data-dashboard
+      className="p-4 md:p-6 lg:p-8 min-h-screen relative"
+    >
       <div id="generate-dashboard-btn" className="flex justify-end mb-6">
         <Link
           href="/"
@@ -108,7 +118,6 @@ insights: [
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr_320px] gap-6 lg:gap-8">
-        {/* Left Sidebar */}
         <aside className="flex flex-col gap-6">
           <ProfileCard
             user={data.profile}
@@ -131,14 +140,12 @@ insights: [
           />
         </aside>
 
-        {/* Main */}
         <div className="flex flex-col gap-6 lg:gap-8 min-w-0">
           <div className="rounded-2xl border border-white/10 p-8 text-white">
             Mock Dashboard Loaded Successfully 🚀
           </div>
         </div>
 
-        {/* Right Sidebar */}
         <aside className="flex flex-col gap-6">
           <div className="flex flex-col gap-4">
             <StatsCard
