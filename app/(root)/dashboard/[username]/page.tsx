@@ -11,7 +11,7 @@ import Achievements from '@/components/dashboard/Achievements';
 import { getFullDashboardData } from '@/lib/github';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-
+import RefreshButton from '@/components/dashboard/RefreshButton';
 export const revalidate = 3600; // Cache for 1 hour
 
 const BASE_URL =
@@ -68,21 +68,28 @@ async function AIInsightsSection({
 
   return <AIInsights insights={data.insights} />;
 }
-export default async function DashboardPage({ params }: { params: Promise<{ username: string }> }) {
+export default async function DashboardPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ username: string }>;
+  searchParams: Promise<{ refresh?: string }>;
+}) {
   const { username } = await params;
-
-  // Fetch real GitHub data
-  const dataPromise = getFullDashboardData(username);
+  const resolvedSearchParams = await searchParams;
+  const bypassCache = resolvedSearchParams?.refresh === 'true';
 
   let data;
   try {
-    data = await dataPromise;
+    data = await getFullDashboardData(username, { bypassCache });
   } catch (error) {
     if (error instanceof Error) {
       return notFound();
     }
     throw error;
   }
+
+  const dataPromise = Promise.resolve(data);
   return (
     <div id="dashboard-root" data-dashboard className="p-4 md:p-6 lg:p-8 min-h-screen relative">
       <div id="generate-dashboard-btn" className="flex justify-end mb-6">
