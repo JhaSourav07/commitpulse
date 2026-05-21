@@ -82,21 +82,58 @@ URL Parameter > Theme Default > System Fallback
 
 ### Parameter Reference
 
-| Parameter         | Type      | Required   | Default                        | Description                                                                                                         |
-| ----------------- | --------- | ---------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
-| `user`            | `string`  | ✅ **Yes** | —                              | GitHub username to render                                                                                           |
-| `theme`           | `string`  | No         | `dark`                         | Preset theme name (see below)                                                                                       |
-| `bg`              | `hex`     | No         | Theme default                  | Background color — **without** `#`                                                                                  |
-| `accent`          | `hex`     | No         | Theme default                  | Tower & glow color — **without** `#`                                                                                |
-| `text`            | `hex`     | No         | Theme default                  | Label & stat text color — **without** `#`                                                                           |
-| `radius`          | `number`  | No         | `8`                            | Border corner radius in pixels                                                                                      |
-| `speed`           | `string`  | No         | `8s`                           | Radar scan animation duration (e.g. `4s`, `12s`)                                                                    |
-| `scale`           | `string`  | No         | `linear`                       | Tower height scaling: `linear` or `log` (logarithmic)                                                               |
-| `font`            | `string`  | No         | CommitPulse default typography | Any **Google Font** name (e.g., `Orbitron`, `Inter`)                                                                |
-| `refresh`         | `boolean` | No         | `false`                        | Bypass cache for real-time data                                                                                     |
-| `year`            | `string`  | No         | —                              | Calendar year to render (e.g. `2023`, `2024`)                                                                       |
-| `hide_background` | `boolean` | No         | `false`                        | Remove the background rect, letting the monolith float on the page                                                  |
-| `hide_stats`      | `boolean` | No         | `false`                        | Hides the bottom row displaying Current Streak, Annual Sync Total, and Peak Streak stats when set to `true` or `1`. |
+| Parameter         | Type      | Required   | Default                        | Allowed values / constraints                   | Description                                                            |
+| ----------------- | --------- | ---------- | ------------------------------ | ---------------------------------------------- | ---------------------------------------------------------------------- |
+| `user`            | `string`  | ✅ **Yes** | —                              | Any valid GitHub username                      | GitHub username to render                                              |
+| `theme`           | `string`  | No         | `dark`                         | See [Theme Presets](#theme-presets) table below | Preset theme name; unknown values fall back to `dark`                 |
+| `bg`              | `hex`     | No         | Theme default                  | 3- or 6-digit hex **without** `#`              | Background color (e.g. `0d1117`)                                       |
+| `accent`          | `hex`     | No         | Theme default                  | 3- or 6-digit hex **without** `#`              | Tower & glow color (e.g. `58a6ff`)                                     |
+| `text`            | `hex`     | No         | Theme default                  | 3- or 6-digit hex **without** `#`              | Label & stat text color (e.g. `c9d1d9`)                                |
+| `radius`          | `number`  | No         | `8`                            | Integer `0`–`32` (clamped)                     | Border corner radius in pixels                                         |
+| `speed`           | `string`  | No         | `8s`                           | `{number}s` — e.g. `4s`, `12s`, `0.5s`        | Radar scan animation duration; invalid values fall back to `8s`        |
+| `scale`           | `string`  | No         | `linear`                       | `linear` \| `log`                              | Tower height scaling; unknown values fall back to `linear`             |
+| `font`            | `string`  | No         | CommitPulse default            | Any [Google Font](https://fonts.google.com) name | Custom typeface (e.g. `Orbitron`, `Inter`)                           |
+| `refresh`         | `boolean` | No         | `false`                        | `true`                                         | Bypass CDN cache to fetch real-time data                               |
+| `year`            | `string`  | No         | Current year                   | 4-digit year — e.g. `2023`, `2024`             | Render contributions for a specific past year                          |
+| `hide_background` | `boolean` | No         | `false`                        | `true`                                         | Remove the background rect so the monolith floats on the page          |
+| `hide_stats`      | `boolean` | No         | `false`                        | `true` or `1`                                  | Hide the bottom row (Current Streak, Annual Total, Peak Streak)        |
+
+#### Per-parameter quick examples
+
+```md
+<!-- Required: your GitHub username -->
+![](https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME)
+
+<!-- theme: named preset -->
+![](https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&theme=dracula)
+
+<!-- bg / accent / text: full custom palette (hex without #) -->
+![](https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&bg=0a0a0a&accent=ff6b35&text=ffffff)
+
+<!-- radius: rounded corners (0–32) -->
+![](https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&radius=16)
+
+<!-- speed: faster radar scan -->
+![](https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&speed=4s)
+
+<!-- scale: logarithmic tower heights for heavy contributors -->
+![](https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&scale=log)
+
+<!-- font: space-age look with a Google Font -->
+![](https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&font=Orbitron)
+
+<!-- refresh: bypass cache for live data -->
+![](https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&refresh=true)
+
+<!-- year: view a specific past year -->
+![](https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&year=2023)
+
+<!-- hide_background: floating monolith (transparent bg) -->
+![](https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&hide_background=true)
+
+<!-- hide_stats: visualisation only, no stat numbers -->
+![](https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&hide_stats=true)
+```
 
 ### Theme Presets
 
