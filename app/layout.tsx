@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google';
 import { Analytics } from '@vercel/analytics/next';
 import Navbar from './components/navbar';
 import BrandParticles from '@/components/BrandParticles';
+import { Providers } from './providers';
 import type { Metadata } from 'next';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -64,11 +65,13 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
-      <body className={`${inter.className} bg-black`}>
-        <BrandParticles />
-        <Navbar />
-        <div className="pt-24 sm:pt-28 relative z-10">{children}</div>
+    <html lang="en" suppressHydrationWarning>
+      <body className={`${inter.className} bg-white text-black dark:bg-black dark:text-white transition-colors duration-300`}>
+        <Providers>
+          <BrandParticles />
+          <Navbar />
+          <div className="pt-24 sm:pt-28 relative z-10">{children}</div>
+        </Providers>
         <Analytics />
       </body>
     </html>

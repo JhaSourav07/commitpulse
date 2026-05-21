@@ -79,15 +79,29 @@ function trackUser(name: string) {
   }
 }
 
+import { useSearchParams } from 'next/navigation';
+import { Suspense } from 'react';
+
 export default function LandingPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen overflow-x-hidden bg-transparent" />}>
+      <LandingContent />
+    </Suspense>
+  );
+}
+
+function LandingContent() {
   const [username, setUsername] = useState('');
   const [copied, setCopied] = useState(false);
   const guideRef = useRef<HTMLDivElement>(null);
+  const searchParams = useSearchParams();
+  const theme = searchParams.get('theme') || 'neon';
+  
   const trimmedUsername = username.trim();
   const hasUsername = trimmedUsername.length > 0;
 
-  const badgeUrl = `/api/streak?user=${trimmedUsername}`;
-  const markdown = `![CommitPulse](https://commitpulse.vercel.app/api/streak?user=${trimmedUsername})`;
+  const badgeUrl = `/api/streak?user=${trimmedUsername}&theme=${theme}`;
+  const markdown = `![CommitPulse](https://commitpulse.vercel.app/api/streak?user=${trimmedUsername}&theme=${theme})`;
 
   const copyToClipboard = () => {
     if (!hasUsername) return;
@@ -103,10 +117,10 @@ export default function LandingPage() {
   };
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-transparent font-sans text-white selection:bg-white/20">
+    <div className="min-h-screen overflow-x-hidden bg-transparent font-sans text-black dark:text-white selection:bg-black/10 dark:selection:bg-white/20">
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute -left-[10%] -top-[10%] h-[40%] w-[40%] rounded-full bg-white/3 blur-[120px]" />
-        <div className="absolute -right-[10%] top-[20%] h-[30%] w-[30%] rounded-full bg-white/2 blur-[120px]" />
+        <div className="absolute -left-[10%] -top-[10%] h-[40%] w-[40%] rounded-full bg-black/5 dark:bg-white/3 blur-[120px]" />
+        <div className="absolute -right-[10%] top-[20%] h-[30%] w-[30%] rounded-full bg-black/5 dark:bg-white/2 blur-[120px]" />
       </div>
 
       <main className="relative z-10 mx-auto max-w-6xl px-6 pb-32">
@@ -120,7 +134,7 @@ export default function LandingPage() {
             transition={{ duration: 0.5, delay: 0.1 }}
             whileHover={{ scale: 1.04, backgroundColor: 'rgba(255,255,255,0.07)' }}
             whileTap={{ scale: 0.97 }}
-            className="mb-8 inline-flex items-center gap-2.5 rounded-full border border-white/10 bg-white/[0.04] px-4 py-1.5 text-xs font-medium text-white/50 backdrop-blur-sm transition-colors duration-200 hover:border-white/20 hover:text-white/80"
+            className="mb-8 inline-flex items-center gap-2.5 rounded-full border border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/[0.04] px-4 py-1.5 text-xs font-medium text-black/60 dark:text-white/50 backdrop-blur-sm transition-colors duration-200 hover:border-black/20 dark:hover:border-white/20 hover:text-black/90 dark:hover:text-white/80"
           >
             <span className="relative flex h-1.5 w-1.5">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white/50" />
@@ -156,7 +170,7 @@ export default function LandingPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.15 }}
           >
-            <h1 className="mb-8 bg-gradient-to-b from-white to-white/30 bg-clip-text text-5xl font-extrabold tracking-tight text-transparent md:text-8xl">
+            <h1 className="mb-8 bg-gradient-to-b from-black to-black/60 dark:from-white dark:to-white/30 bg-clip-text text-5xl font-extrabold tracking-tight text-transparent md:text-8xl">
               Elevate Your <br /> Contribution Story.
             </h1>
           </motion.div>
@@ -165,7 +179,7 @@ export default function LandingPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.3 }}
-            className="mx-auto max-w-2xl text-lg leading-relaxed text-gray-400 md:text-xl"
+            className="mx-auto max-w-2xl text-lg leading-relaxed text-gray-600 dark:text-gray-400 md:text-xl"
           >
             Stop settling for flat grids. Generate high-fidelity, 3D isometric monoliths that
             visualize your coding rhythm with professional precision.
@@ -173,13 +187,13 @@ export default function LandingPage() {
         </div>
 
         <section className="mx-auto mb-32 max-w-4xl">
-          <div className="rounded-2xl border border-[rgba(255,255,255,0.08)] bg-[#0a0a0a] p-4 md:p-8">
+          <div className="rounded-2xl border border-black/10 dark:border-[rgba(255,255,255,0.08)] bg-white dark:bg-[#0a0a0a] p-4 md:p-8">
             <div className="mb-8 flex flex-col gap-4 md:flex-row">
               <div className="relative flex-1 flex items-center">
                 <input
                   type="text"
                   placeholder="Enter GitHub Username"
-                  className="flex-1 rounded-xl border border-[rgba(255,255,255,0.08)] bg-[#111] px-5 py-3.5 text-sm text-white outline-none transition-all duration-200 placeholder:text-[#A1A1AA] focus:outline-none focus:ring-2 focus:ring-[#00ffaa] focus:border-transparent"
+                  className="flex-1 rounded-xl border border-black/10 dark:border-[rgba(255,255,255,0.08)] bg-gray-50 dark:bg-[#111] px-5 py-3.5 text-sm text-black dark:text-white outline-none transition-all duration-200 placeholder:text-gray-400 dark:placeholder:text-[#A1A1AA] focus:outline-none focus:ring-2 focus:ring-[#00ffaa] focus:border-transparent"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                 />
@@ -200,8 +214,8 @@ export default function LandingPage() {
                   disabled={!hasUsername}
                   className={`relative flex min-w-[160px] items-center justify-center gap-2 overflow-hidden rounded-xl px-6 py-3.5 text-sm font-semibold transition-all duration-200 active:scale-[0.98] ${
                     hasUsername
-                      ? 'bg-white text-black hover:bg-zinc-100'
-                      : 'bg-white/10 text-white/35'
+                      ? 'bg-black text-white hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-zinc-100'
+                      : 'bg-black/10 text-black/40 dark:bg-white/10 dark:text-white/35'
                   }`}
                 >
                   <AnimatePresence mode="wait">
@@ -238,8 +252,8 @@ export default function LandingPage() {
                   }}
                   className={`relative flex min-w-[160px] items-center justify-center gap-2 overflow-hidden rounded-xl border px-6 py-3.5 text-sm font-semibold transition-all duration-200 active:scale-[0.98] ${
                     hasUsername
-                      ? 'border-[rgba(255,255,255,0.15)] bg-transparent text-white hover:bg-white/5'
-                      : 'border-[rgba(255,255,255,0.08)] bg-white/[0.02] text-white/35'
+                      ? 'border-black/20 bg-transparent text-black hover:bg-black/5 dark:border-[rgba(255,255,255,0.15)] dark:text-white dark:hover:bg-white/5'
+                      : 'border-black/10 bg-black/[0.02] text-black/40 dark:border-[rgba(255,255,255,0.08)] dark:bg-white/[0.02] dark:text-white/35'
                   }`}
                 >
                   Watch Dashboard
@@ -248,8 +262,8 @@ export default function LandingPage() {
             </div>
 
             <div className="group relative">
-              <div className="absolute -inset-1 rounded-[2rem] bg-white/5 opacity-50 blur-xl transition duration-1000 group-hover:opacity-100" />
-              <div className="relative flex min-h-[320px] items-center justify-center overflow-hidden rounded-xl border border-[rgba(255,255,255,0.06)] bg-black p-6">
+              <div className="absolute -inset-1 rounded-[2rem] bg-black/5 dark:bg-white/5 opacity-50 blur-xl transition duration-1000 group-hover:opacity-100" />
+              <div className="relative flex min-h-[320px] items-center justify-center overflow-hidden rounded-xl border border-black/10 dark:border-[rgba(255,255,255,0.06)] bg-gray-50 dark:bg-black p-6">
                 {hasUsername ? (
                   <Image
                     src={badgeUrl}
@@ -262,11 +276,11 @@ export default function LandingPage() {
                     className="h-auto max-w-full drop-shadow-[0_20px_50px_rgba(0,0,0,0.5)]"
                   />
                 ) : (
-                  <div className="flex w-full max-w-2xl flex-col items-center justify-center rounded-[1.5rem] border border-dashed border-white/10 bg-white/[0.02] px-6 py-12 text-center">
-                    <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-white/60">
+                  <div className="flex w-full max-w-2xl flex-col items-center justify-center rounded-[1.5rem] border border-dashed border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/[0.02] px-6 py-12 text-center">
+                    <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/[0.04] text-black/60 dark:text-white/60">
                       <Icons.Github />
                     </div>
-                    <p className="text-lg font-semibold tracking-tight text-white">
+                    <p className="text-lg font-semibold tracking-tight text-black dark:text-white">
                       Enter a GitHub username to preview
                     </p>
                     <p className="mt-2 max-w-md text-sm leading-relaxed text-[#A1A1AA]">
@@ -296,35 +310,35 @@ export default function LandingPage() {
         <div className="grid gap-6 md:grid-cols-3">
           <FeatureCard
             icon={<Icons.Zap />}
-            accent="text-white"
+            accent="text-black dark:text-white"
             title="Real-time Sync"
             desc="Pulled directly from GitHub GraphQL API. Your streak updates as fast as your code pushes."
           />
           <FeatureCard
             icon={<Icons.Copy />}
-            accent="text-white"
+            accent="text-black dark:text-white"
             title="Theme Engine"
             desc="Switch between Neon, Dracula, or custom HEX modes via simple URL management."
           />
           <FeatureCard
             icon={<Icons.Box />}
-            accent="text-white"
+            accent="text-black dark:text-white"
             title="Isometric Math"
             desc="Sophisticated 3D projection formulas turn 2D data into digital architecture."
           />
         </div>
 
-        <footer className="mt-32 flex flex-col items-center justify-between gap-6 border-t border-white/5 pt-8 text-sm text-white/30 md:flex-row">
+        <footer className="mt-32 flex flex-col items-center justify-between gap-6 border-t border-black/10 dark:border-white/5 pt-8 text-sm text-black/50 dark:text-white/30 md:flex-row">
           <p>&copy; 2026 CommitPulse. Designed for the elite builder community.</p>
           <div className="flex gap-8">
-            <Link href="/documentation" className="transition-colors hover:text-white">
+            <Link href="/documentation" className="transition-colors hover:text-black dark:hover:text-white">
               Documentation
             </Link>
             <a
               href="https://github.com/jhasourav07"
               target="_blank"
               rel="noreferrer"
-              className="transition-colors hover:text-white"
+              className="transition-colors hover:text-black dark:hover:text-white"
             >
               Creator
             </a>
@@ -350,10 +364,10 @@ function FeatureCard({
     <motion.div
       whileHover={{ y: -3 }}
       transition={{ duration: 0.2 }}
-      className="group rounded-xl border border-[rgba(255,255,255,0.08)] bg-[#0a0a0a] p-8 hover:border-[rgba(255,255,255,0.14)] hover:bg-[#0d0d0d] transition-all duration-200"
+      className="group rounded-xl border border-black/10 dark:border-[rgba(255,255,255,0.08)] bg-white dark:bg-[#0a0a0a] p-8 hover:border-black/20 dark:hover:border-[rgba(255,255,255,0.14)] hover:bg-gray-50 dark:hover:bg-[#0d0d0d] transition-all duration-200"
     >
-      <div className={`mb-5 w-fit rounded-lg bg-[#111] p-2.5 ${accent}`}>{icon}</div>
-      <h3 className="mb-2 text-sm font-semibold text-white tracking-tight">{title}</h3>
+      <div className={`mb-5 w-fit rounded-lg bg-gray-100 dark:bg-[#111] p-2.5 ${accent}`}>{icon}</div>
+      <h3 className="mb-2 text-sm font-semibold text-black dark:text-white tracking-tight">{title}</h3>
       <p className="text-sm leading-relaxed text-[#A1A1AA]">{desc}</p>
     </motion.div>
   );
