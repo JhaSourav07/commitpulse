@@ -174,7 +174,15 @@ export default function LandingPage() {
 
         <section className="mx-auto mb-32 max-w-4xl">
           <div className="rounded-2xl border border-[rgba(255,255,255,0.08)] bg-[#0a0a0a] p-4 md:p-8">
-            <div className="mb-8 flex flex-col gap-4 md:flex-row">
+            
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  copyToClipboard()
+                }}
+                className="flex flex-col sm:flex-row gap-4 w-full"
+              >
+
               <div className="relative flex-1 flex items-center">
                 <input
                   type="text"
@@ -193,10 +201,11 @@ export default function LandingPage() {
                     <X size={18} />
                   </button>
                 ) : null}
-              </div>
+                </div>
+             
               <div className="flex flex-col sm:flex-row gap-4">
                 <button
-                  onClick={copyToClipboard}
+                  type="submit"
                   disabled={!hasUsername}
                   className={`relative flex min-w-[160px] items-center justify-center gap-2 overflow-hidden rounded-xl px-6 py-3.5 text-sm font-semibold transition-all duration-200 active:scale-[0.98] ${
                     hasUsername
@@ -245,6 +254,7 @@ export default function LandingPage() {
                   Watch Dashboard
                 </Link>
               </div>
+              </form>
             </div>
 
             <div className="group relative">
@@ -276,7 +286,7 @@ export default function LandingPage() {
                 )}
               </div>
             </div>
-          </div>
+          
         </section>
 
         <div ref={guideRef}>
