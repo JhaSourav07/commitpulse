@@ -1,11 +1,13 @@
 import { ImageResponse } from 'next/og';
 import { NextRequest } from 'next/server';
+import { ogParamsSchema } from '../../../lib/validations';
 
 export const runtime = 'edge';
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
-  const user = searchParams.get('user') ?? 'unknown';
+
+  const { user } = ogParamsSchema.parse(Object.fromEntries(searchParams.entries()));
 
   let totalCommits = 0;
   let longestStreak = 0;
@@ -57,34 +59,11 @@ export async function GET(req: NextRequest) {
           left: '300px',
         }}
       />
-
-      <div
-        style={{
-          fontSize: '48px',
-          color: '#58a6ff',
-          fontWeight: 'bold',
-          marginBottom: '24px',
-        }}
-      >
+      <div style={{ fontSize: '48px', color: '#58a6ff', fontWeight: 'bold', marginBottom: '24px' }}>
         ⚡ CommitPulse
       </div>
-
-      <div
-        style={{
-          fontSize: '32px',
-          color: '#c9d1d9',
-          marginBottom: '48px',
-        }}
-      >
-        @{user}
-      </div>
-
-      <div
-        style={{
-          display: 'flex',
-          gap: '48px',
-        }}
-      >
+      <div style={{ fontSize: '32px', color: '#c9d1d9', marginBottom: '48px' }}>@{user}</div>
+      <div style={{ display: 'flex', gap: '48px' }}>
         <div
           style={{
             display: 'flex',
@@ -96,27 +75,11 @@ export async function GET(req: NextRequest) {
             padding: '32px 48px',
           }}
         >
-          <div
-            style={{
-              fontSize: '56px',
-              fontWeight: 'bold',
-              color: '#58a6ff',
-            }}
-          >
+          <div style={{ fontSize: '56px', fontWeight: 'bold', color: '#58a6ff' }}>
             {totalCommits}
           </div>
-
-          <div
-            style={{
-              fontSize: '18px',
-              color: '#8b949e',
-              marginTop: '8px',
-            }}
-          >
-            Total Commits
-          </div>
+          <div style={{ fontSize: '18px', color: '#8b949e', marginTop: '8px' }}>Total Commits</div>
         </div>
-
         <div
           style={{
             display: 'flex',
@@ -128,27 +91,13 @@ export async function GET(req: NextRequest) {
             padding: '32px 48px',
           }}
         >
-          <div
-            style={{
-              fontSize: '56px',
-              fontWeight: 'bold',
-              color: '#f78166',
-            }}
-          >
+          <div style={{ fontSize: '56px', fontWeight: 'bold', color: '#f78166' }}>
             {longestStreak}
           </div>
-
-          <div
-            style={{
-              fontSize: '18px',
-              color: '#8b949e',
-              marginTop: '8px',
-            }}
-          >
+          <div style={{ fontSize: '18px', color: '#8b949e', marginTop: '8px' }}>
             Longest Streak 🔥
           </div>
         </div>
-
         <div
           style={{
             display: 'flex',
@@ -160,36 +109,15 @@ export async function GET(req: NextRequest) {
             padding: '32px 48px',
           }}
         >
-          <div
-            style={{
-              fontSize: '56px',
-              fontWeight: 'bold',
-              color: '#3fb950',
-            }}
-          >
+          <div style={{ fontSize: '56px', fontWeight: 'bold', color: '#3fb950' }}>
             {currentStreak}
           </div>
-
-          <div
-            style={{
-              fontSize: '18px',
-              color: '#8b949e',
-              marginTop: '8px',
-            }}
-          >
+          <div style={{ fontSize: '18px', color: '#8b949e', marginTop: '8px' }}>
             Current Streak ⚡
           </div>
         </div>
       </div>
-
-      <div
-        style={{
-          position: 'absolute',
-          bottom: '32px',
-          fontSize: '16px',
-          color: '#484f58',
-        }}
-      >
+      <div style={{ position: 'absolute', bottom: '32px', fontSize: '16px', color: '#484f58' }}>
         commitpulse.vercel.app
       </div>
     </div>,

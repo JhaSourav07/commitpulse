@@ -4,6 +4,26 @@ import { motion } from 'framer-motion';
 import { LanguageData } from '@/types/dashboard';
 
 export default function LanguageChart({ languages }: { languages: LanguageData[] }) {
+  if (languages.length === 0) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.3 }}
+        className="p-6 rounded-xl bg-[#0a0a0a] border border-[rgba(255,255,255,0.08)] flex flex-col min-h-[300px]"
+      >
+        <h3 className="text-sm font-semibold text-white w-full text-left mb-6 tracking-tight">
+          Top Languages
+        </h3>
+
+        <div className="flex flex-1 items-center justify-center text-center">
+          <p className="text-sm text-[#A1A1AA]">No language data found</p>
+        </div>
+      </motion.div>
+    );
+  }
+
   const gradientStops = languages
     .reduce<{ stops: string[]; current: number }>(
       (acc, lang) => {

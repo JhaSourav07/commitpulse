@@ -1,5 +1,6 @@
 import { Suspense } from 'react';
 import type { Metadata } from 'next';
+import RefreshButton from '@/components/dashboard/RefreshButton';
 import ProfileCard from '@/components/dashboard/ProfileCard';
 import ActivityLandscape from '@/components/dashboard/ActivityLandscape';
 import StatsCard from '@/components/dashboard/StatsCard';
@@ -69,23 +70,38 @@ async function AIInsightsSection({
   return <AIInsights insights={data.insights} />;
 }
 export default async function DashboardPage({ params }: { params: Promise<{ username: string }> }) {
+export default async function DashboardPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ username: string }>;
+  searchParams: Promise<{ refresh?: string }>;
+}) {
   const { username } = await params;
+  const refreshParams = await searchParams;
+  const bypassCache = refreshParams?.refresh === 'true';
 
   // Fetch real GitHub data
   const dataPromise = getFullDashboardData(username);
 
   let data;
+
   try {
-    data = await dataPromise;
+    data = await getFullDashboardData(username, {
+      bypassCache,
+    });
   } catch (error) {
     if (error instanceof Error) {
       return notFound();
     }
+
     throw Error;
   }
+
   return (
     <div id="dashboard-root" data-dashboard className="p-4 md:p-6 lg:p-8 min-h-screen relative">
-      <div id="generate-dashboard-btn" className="flex justify-end mb-6">
+      <div id="generate-dashboard-btn" className="flex justify-end gap-4 mb-6">
+        <RefreshButton username={username} />
         <Link
           href="/"
           className="flex items-center gap-2 rounded-xl border border-[rgba(255,255,255,0.15)] bg-black px-4 py-2 text-sm font-semibold text-white transition-all duration-200 hover:bg-white/5 active:scale-[0.98]"
@@ -106,48 +122,20 @@ export default async function DashboardPage({ params }: { params: Promise<{ user
           Generate Your Own Dashboard
         </Link>
       </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr_320px] gap-6 lg:gap-8">
         {/* Left Sidebar */}
         <aside className="flex flex-col gap-6">
           <ProfileCard
             user={data.profile}
-            exportData={{ stats: data.stats, languages: data.languages }}
+            exportData={{
+              stats: data.stats,
+              languages: data.languages,
+            }}
           />
           {/* We omit real achievements data generation for now and just show a placeholder based on streaks */}
-          <Achievements
-            achievements={[
-              {
-                id: '1',
-                title: 'Streak Master',
-                description: 'Reached a 7 day streak',
-                icon: 'Flame',
-                isUnlocked: data.stats.currentStreak >= 7,
-              },
-              {
-                id: '2',
-                title: 'Consistent',
-                description: 'Over 100 contributions',
-                icon: 'GitCommit',
-                isUnlocked: data.stats.totalContributions >= 100,
-              },
-              {
-                id: '3',
-                title: 'Polyglot',
-                description: 'Uses multiple languages',
-                icon: 'Code',
-                isUnlocked: data.languages.length >= 2,
-              },
-              {
-                id: '4',
-                title: 'Night Owl',
-                description: 'Commits late at night',
-                icon: 'Moon',
-                isUnlocked: true,
-              },
-            ]}
-          />
+          <Achievements achievements={data.achievements} />
         </aside>
-
         {/* Main Content */}
         <div className="flex flex-col gap-6 lg:gap-8 min-w-0">
           <section>
@@ -179,13 +167,17 @@ export default async function DashboardPage({ params }: { params: Promise<{ user
               value={data.stats.currentStreak.toString()}
               description="Days"
               icon="Flame"
+              showUTCDisclaimer={true}
+              utcDate={new Date().toISOString().split('T')[0]}
             />
+
             <StatsCard
               title="Peak Streak"
               value={data.stats.peakStreak.toString()}
               description="Days"
               icon="TrendingUp"
             />
+
             <StatsCard
               title="Contributions"
               value={data.stats.totalContributions.toString()}

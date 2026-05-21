@@ -3,7 +3,12 @@ import { generateSVG } from './generator';
 import type { BadgeParams, ContributionCalendar, StreakStats } from '../../types';
 
 describe('generateSVG', () => {
-  const mockStats = { currentStreak: 5, longestStreak: 10, totalContributions: 100 } as StreakStats;
+  const mockStats: StreakStats = {
+    currentStreak: 5,
+    longestStreak: 10,
+    totalContributions: 100,
+    todayDate: '2024-06-12',
+  };
   const mockCalendar = {
     weeks: [
       {
@@ -111,6 +116,68 @@ describe('generateSVG', () => {
     expect(svg).toContain('font-family: "Space Grotesk", sans-serif');
   });
 
+  it('uses default font when font param is an empty string', () => {
+    const svg = generateSVG(
+      mockStats,
+      { user: 'avi', font: '' } as unknown as BadgeParams,
+      mockCalendar
+    );
+    expect(svg).toContain('Space Grotesk');
+    expect(svg).not.toContain('family=&amp;display=swap');
+  });
+
+  it('uses default font when font param is whitespace only', () => {
+    const svg = generateSVG(
+      mockStats,
+      { user: 'avi', font: '   ' } as unknown as BadgeParams,
+      mockCalendar
+    );
+    expect(svg).toContain('Space Grotesk');
+    expect(svg).not.toContain('family=+&amp;display=swap');
+  });
+
+  it('allows apostrophes in font names like Times New Roman', () => {
+    const svg = generateSVG(
+      mockStats,
+      { user: 'avi', font: 'Gill Sans' } as unknown as BadgeParams,
+      mockCalendar
+    );
+    expect(svg).toContain('Gill Sans');
+  });
+  it('emits tower-raising CSS animations and staggered delays', () => {
+    const svg = generateSVG(mockStats, { user: 'avi' } as unknown as BadgeParams, mockCalendar);
+
+    // Check for CSS keyframes and class
+    expect(svg).toContain('.cp-tower');
+    expect(svg).toContain('@keyframes grow-up');
+
+    // Check for inline animation-delay style on the nested group
+    expect(svg).toMatch(/style="animation-delay: \d+\.\d+s;"/);
+  });
+
+  it('uses English labels by default', () => {
+    const svg = generateSVG(mockStats, { user: 'avi' } as unknown as BadgeParams, mockCalendar);
+    expect(svg).toContain('CURRENT_STREAK');
+  });
+
+  it('uses Spanish labels when lang=es', () => {
+    const svg = generateSVG(
+      mockStats,
+      { user: 'avi', lang: 'es' } as unknown as BadgeParams,
+      mockCalendar
+    );
+    expect(svg).toContain('RACHA_ACTUAL');
+  });
+
+  it('falls back to English labels for unknown language', () => {
+    const svg = generateSVG(
+      mockStats,
+      { user: 'avi', lang: 'unknown' } as unknown as BadgeParams,
+      mockCalendar
+    );
+    expect(svg).toContain('CURRENT_STREAK');
+  });
+
   // ── Auto-theme (prefers-color-scheme) tests ──────────────────────────────
   // These verify that theme=auto produces an SVG that switches between light
   // and dark color palettes using CSS custom properties and a media query,
@@ -154,12 +221,19 @@ describe('generateSVG', () => {
       // Background rect should use a class, not a hardcoded fill
       expect(svg).toContain('class="cp-bg-fill"');
 
-      // Towers should use accent/text CSS classes
+      // Active towers should use the accent class
       expect(svg).toContain('class="cp-accent-fill"');
-      expect(svg).toContain('class="cp-text-fill"');
 
       // The radar scan line should also use the accent class
       expect(svg).toMatch(/rect[^>]*class="cp-accent-fill"/);
+
+      // cp-text-fill is emitted only in Ghost City mode (0 total contributions)
+      const ghostCalendar: ContributionCalendar = {
+        totalContributions: 0,
+        weeks: [{ contributionDays: [{ contributionCount: 0, date: '2024-06-10' }] }],
+      };
+      const ghostSvg = generateSVG(mockStats, autoParams, ghostCalendar);
+      expect(ghostSvg).toContain('class="cp-text-fill"');
     });
 
     it('references var() in CSS class definitions', () => {
@@ -201,6 +275,14 @@ describe('generateSVG', () => {
       const svg = generateSVG(mockStats, autoParams, mockCalendar);
       expect(svg).toContain('prefers-reduced-motion');
     });
+
+    it('emits tower-raising CSS animations and staggered delays in auto mode', () => {
+      const svg = generateSVG(mockStats, autoParams, mockCalendar);
+
+      expect(svg).toContain('.cp-tower');
+      expect(svg).toContain('@keyframes grow-up');
+      expect(svg).toMatch(/style="animation-delay: \d+\.\d+s;"/);
+    });
   });
 
   // Ghost City Placeholder Mode tests
@@ -235,8 +317,9 @@ describe('generateSVG', () => {
       // Should contain wireframe strokes
       expect(svg).toContain('stroke-width="0.5"');
       expect(svg).toContain('stroke-opacity="0.3"');
-      // Should use the GHOST_HEIGHT_PX which is 4 (10 + 4 = 14)
-      expect(svg).toContain('L0 14 L-16 4 L-16 0 Z');
+      // With GHOST_HEIGHT_PX=4, paths are drawn upward from ground (y=10):
+      // Left face: M0 6 L0 10 L-16 0 L-16 -4 Z
+      expect(svg).toContain('L0 10 L-16 0 L-16 -4 Z');
     });
 
     it('does not render Ghost City when user has active contributions', () => {
@@ -247,6 +330,51 @@ describe('generateSVG', () => {
       expect(svg).not.toContain('stroke-opacity="0.3"');
       // Active mode empty days should have h=0 (10 + 0 = 10)
       expect(svg).toContain('L0 10 L-16 0 L-16 0 Z');
+    });
+  });
+
+  // ── Timezone-aware pulse animation tests ─────────────────────────────────
+  describe('todayDate pulse animation', () => {
+    const calendar: ContributionCalendar = {
+      totalContributions: 20,
+      weeks: [
+        {
+          contributionDays: [
+            { contributionCount: 5, date: '2024-06-11' },
+            { contributionCount: 5, date: '2024-06-12' }, // local "today" with commits
+            { contributionCount: 0, date: '2024-06-13' }, // UTC last entry, no commits
+          ],
+        },
+      ],
+    };
+
+    it('fires the pulse animation on the local today tower, not the last UTC entry', () => {
+      // todayDate = '2024-06-12' (has commits) — pulse should appear
+      // last entry = '2024-06-13' (no commits) — no pulse without timezone fix
+      const stats: StreakStats = {
+        currentStreak: 2,
+        longestStreak: 2,
+        totalContributions: 10,
+        todayDate: '2024-06-12',
+      };
+
+      const svg = generateSVG(stats, { user: 'avi' } as unknown as BadgeParams, calendar);
+
+      expect(svg).toContain('attributeName="opacity" values="1;0.4;1"');
+    });
+
+    it('does not pulse when todayDate has no commits even if another day does', () => {
+      // todayDate = '2024-06-13' (0 commits) — no pulse
+      const stats: StreakStats = {
+        currentStreak: 0,
+        longestStreak: 2,
+        totalContributions: 10,
+        todayDate: '2024-06-13',
+      };
+
+      const svg = generateSVG(stats, { user: 'avi' } as unknown as BadgeParams, calendar);
+
+      expect(svg).not.toContain('attributeName="opacity" values="1;0.4;1"');
     });
   });
 });

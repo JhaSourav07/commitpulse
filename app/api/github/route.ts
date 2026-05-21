@@ -1,14 +1,20 @@
 import { NextResponse } from 'next/server';
 import { getFullDashboardData } from '@/lib/github';
+import { githubParamsSchema } from '../../../lib/validations';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const username = searchParams.get('username');
-  const refresh = searchParams.get('refresh') === 'true';
 
-  if (!username) {
-    return NextResponse.json({ error: 'Username is required' }, { status: 400 });
+  const parseResult = githubParamsSchema.safeParse(Object.fromEntries(searchParams.entries()));
+
+  if (!parseResult.success) {
+    return NextResponse.json(
+      { error: 'Invalid parameters', details: parseResult.error.flatten() },
+      { status: 400 }
+    );
   }
+
+  const { username, refresh } = parseResult.data;
 
   try {
     const data = await getFullDashboardData(username, { bypassCache: refresh });

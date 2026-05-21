@@ -43,12 +43,17 @@ export interface Achievement {
   id: string;
   title: string;
   description: string;
-  icon: string; // e.g. lucide icon name or emoji
+  icon: string;
   isUnlocked: boolean;
+
+  type?: 'contributions' | 'streak';
+  threshold?: number;
+  currentValue?: number;
+  progress?: number;
 }
 
 export interface CommitClockData {
-  hour: number; // 0 - 23
+  day: string; // 'Sun' | 'Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri' | 'Sat'
   commits: number;
 }
 
