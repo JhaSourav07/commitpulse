@@ -81,3 +81,8 @@ body {
   background: #333;
   border-radius: 3px;
 }
+/* Custom text selection color to match site theme */
+::selection {
+  background-color: #00ffaa;
+  color: #0d1117;
+}

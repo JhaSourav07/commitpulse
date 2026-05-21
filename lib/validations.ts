@@ -16,6 +16,15 @@ export const streakParamsSchema = z.object({
   speed: z
     .string()
     .regex(/^\d+(\.\d+)?s$/)
+    .transform((value) => {
+      const numeric = parseFloat(value.replace('s', ''));
+
+      if (numeric < 2 || numeric > 20) {
+        return '8s';
+      }
+
+      return `${numeric}s`;
+    })
     .catch('8s')
     .default('8s'),
 

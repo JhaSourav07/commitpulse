@@ -2,6 +2,7 @@ export interface StreakStats {
   currentStreak: number;
   longestStreak: number;
   totalContributions: number;
+  todayDate: string; // local calendar date used as "today" (YYYY-MM-DD)
 }
 
 export interface BadgeTheme {
