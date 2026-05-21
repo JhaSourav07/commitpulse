@@ -110,6 +110,6 @@ Usage: `/api/streak?user=yourusername&theme=auto`
 
 ## 🎲 Random
 
-The `random` theme picks a surprise theme from the full palette on every request. Note: random badges are never cached so every load fetches fresh data.
+The `random` theme picks a surprise theme from the curated theme palette on every request. Note: random badges are never cached so every load fetches fresh data.
 
 Usage: `/api/streak?user=yourusername&theme=random`
