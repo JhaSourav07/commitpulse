@@ -11,6 +11,8 @@ interface GitHubRepo {
 
 const MAX_RETRIES = 3;
 const BASE_DELAY_MS = 500;
+const CONTRIBUTION_MILESTONES = [1, 10, 100, 250, 500, 1000];
+const STREAK_MILESTONES = [3, 7, 30, 100];
 
 /**
  * Wraps fetch with exponential backoff retry logic.
@@ -226,6 +228,50 @@ export async function fetchUserRepos(
   return repos;
 }
 
+export function generateAchievements(totalContributions: number, currentStreak: number) {
+  const achievements = [];
+
+  // Contribution milestones
+  for (const threshold of CONTRIBUTION_MILESTONES) {
+    achievements.push({
+      id: `contrib-${threshold}`,
+      title:
+        threshold === 1
+          ? 'First Contribution'
+          : threshold === 10
+            ? 'Contributor'
+            : `${threshold} Contributions`,
+      description: `Reached ${threshold} total contributions`,
+      icon: '🏆',
+      isUnlocked: totalContributions >= threshold,
+      type: 'contributions' as const,
+      threshold,
+      currentValue: totalContributions,
+      progress: Math.min(100, Math.round((totalContributions / threshold) * 100)),
+    });
+  }
+
+  // Streak milestones
+  for (const threshold of STREAK_MILESTONES) {
+    achievements.push({
+      id: `streak-${threshold}`,
+      title: threshold === 3 ? 'Getting Started' : `${threshold} Day Streak`,
+      description:
+        threshold === 3
+          ? 'Maintained a 3-day coding streak'
+          : `Maintained a ${threshold}-day coding streak`,
+      icon: '🔥',
+      isUnlocked: currentStreak >= threshold,
+      type: 'streak' as const,
+      threshold,
+      currentValue: currentStreak,
+      progress: Math.min(100, Math.round((currentStreak / threshold) * 100)),
+    });
+  }
+
+  return achievements;
+}
+
 export async function getFullDashboardData(username: string, options: FetchOptions = {}) {
   try {
     const [profileData, reposData, calendarData] = await Promise.all([
@@ -263,7 +309,7 @@ export async function getFullDashboardData(username: string, options: FetchOptio
       username: profileData.login,
       name: profileData.name || profileData.login,
       avatarUrl: profileData.avatar_url,
-      isPro: profileData.plan?.name === 'pro' || profileData.public_repos > 50,
+      isPro: profileData.plan?.name === 'pro',
       bio: profileData.bio || 'No bio available',
       location: profileData.location || 'Earth',
       joinedDate: new Date(profileData.created_at).toLocaleDateString('en-US', {
@@ -306,6 +352,7 @@ export async function getFullDashboardData(username: string, options: FetchOptio
     });
 
     // Fixed color mapping for common languages to avoid random colors
+    // Fixed color mapping for common languages to avoid random colors
     const languageColors: Record<string, string> = {
       TypeScript: '#3178c6',
       JavaScript: '#f1e05a',
@@ -316,6 +363,22 @@ export async function getFullDashboardData(username: string, options: FetchOptio
       CSS: '#563d7c',
       Go: '#00ADD8',
       Rust: '#dea584',
+
+      C: '#555555',
+      'C#': '#178600',
+      PHP: '#4F5D95',
+      Ruby: '#701516',
+      Swift: '#F05138',
+      Kotlin: '#A97BFF',
+      Dart: '#00B4AB',
+      Lua: '#000080',
+      R: '#198CE7',
+      Scala: '#c22d40',
+      Perl: '#0298c3',
+      Haskell: '#5e5086',
+      Elixir: '#6e4a7e',
+      Vue: '#41b883',
+      Svelte: '#ff3e00',
     };
 
     const totalLangs = Object.values(langCounts).reduce((a, b) => a + b, 0);
@@ -327,6 +390,11 @@ export async function getFullDashboardData(username: string, options: FetchOptio
       }))
       .sort((a, b) => b.percentage - a.percentage)
       .slice(0, 5); // top 5
+
+    const achievements = generateAchievements(
+      streakStats.totalContributions,
+      streakStats.currentStreak
+    );
 
     // 4. Insights Generation
     const insights = [
@@ -340,17 +408,32 @@ export async function getFullDashboardData(username: string, options: FetchOptio
         icon: 'Code',
         text: `Your primary language is ${languages[0]?.name || 'Unknown'}.`,
       },
-      {
+    ];
+
+    if (streakStats.currentStreak > 3) {
+      insights.push({
+        id: '3',
+        icon: 'Zap',
+        text: `You are currently on an active ${streakStats.currentStreak}-day streak! Keep it going!`,
+      });
+    } else {
+      insights.push({
         id: '3',
         icon: 'Star',
         text: `Your longest coding streak is ${streakStats.longestStreak} days!`,
-      },
-    ];
+      });
+    }
 
-    // Simulate 24h cycle (because GitHub events API is heavily rate limited to 300 events which doesn't give a full picture)
-    const commitClock = Array.from({ length: 24 }).map((_, i) => ({
-      hour: i,
-      commits: Math.floor(Math.random() * 20) + (i >= 9 && i <= 17 ? 30 : 0), // working hours peak
+    // Aggregate real contribution data by day of week from the already-fetched calendar
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const dayTotals = new Array(7).fill(0);
+    for (const day of allDays) {
+      const dow = new Date(day.date).getUTCDay();
+      dayTotals[dow] += day.contributionCount;
+    }
+    const commitClock = dayNames.map((name, i) => ({
+      day: name,
+      commits: dayTotals[i],
     }));
 
     return {
@@ -363,6 +446,7 @@ export async function getFullDashboardData(username: string, options: FetchOptio
       languages,
       activity,
       insights,
+      achievements,
       commitClock,
     };
   } catch (error: unknown) {
