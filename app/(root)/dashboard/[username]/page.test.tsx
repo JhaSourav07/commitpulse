@@ -100,11 +100,12 @@ describe('DashboardPage', () => {
   describe('DashboardPage rendering', () => {
     it('renders the dashboard components with the fetched data', async () => {
       const PageContent = await DashboardPage({
-      params: Promise.resolve({ username: 'octocat' }),
-      searchParams: Promise.resolve({}),} as {
-      params: Promise<{ username: string }>;
-      searchParams: Promise<{ refresh?: string }>;
-    });
+        params: Promise.resolve({ username: 'octocat' }),
+        searchParams: Promise.resolve({}),
+      } as {
+        params: Promise<{ username: string }>;
+        searchParams: Promise<{ refresh?: string }>;
+      });
       render(PageContent);
 
       // Verify data fetching
