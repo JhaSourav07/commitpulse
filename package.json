@@ -19,6 +19,15 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.3",
-    "typescript": "^5"
+    "eslint-config-prettier": "^10.1.8",
+    "jsdom": "^29.0.2",
+    "node-mocks-http": "^1.17.2",
+    "postcss": "^8.5.9",
+    "prettier": "^3.8.3",
+    "react-is": "^19.2.6",
+    "tailwindcss": "^4.2.2",
+    "tsx": "^4.22.2",
+    "typescript": "^5",
+    "vitest": "^4.1.4"
   }
 }
