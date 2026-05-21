@@ -16,7 +16,6 @@
     "bench:svg": "tsx scripts/benchmark-svg.ts"
   },
   "dependencies": {
-    "@tailwindcss/postcss": "^4.2.2",
     "@vercel/analytics": "^1.6.1",
     "framer-motion": "^12.38.0",
     "html-to-image": "^1.11.13",
@@ -29,6 +28,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.0",
     "@testing-library/react": "^16.3.2",
     "@types/node": "^20",
     "@types/react": "^19",
