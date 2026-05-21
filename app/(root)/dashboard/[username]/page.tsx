@@ -55,14 +55,17 @@ export default async function DashboardPage({ params }: { params: Promise<{ user
 
   // Fetch real GitHub data
   let data;
+
   try {
     data = await getFullDashboardData(username);
   } catch (error) {
     if (error instanceof Error) {
       return notFound();
     }
+
     throw Error;
   }
+
   return (
     <div id="dashboard-root" data-dashboard className="p-4 md:p-6 lg:p-8 min-h-screen relative">
       <div id="generate-dashboard-btn" className="flex justify-end mb-6">
@@ -86,12 +89,16 @@ export default async function DashboardPage({ params }: { params: Promise<{ user
           Generate Your Own Dashboard
         </Link>
       </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr_320px] gap-6 lg:gap-8">
         {/* Left Sidebar */}
         <aside className="flex flex-col gap-6">
           <ProfileCard
             user={data.profile}
-            exportData={{ stats: data.stats, languages: data.languages }}
+            exportData={{
+              stats: data.stats,
+              languages: data.languages,
+            }}
           />
           {/* We omit real achievements data generation for now and just show a placeholder based on streaks */}
           <Achievements achievements={data.achievements} />
@@ -120,13 +127,17 @@ export default async function DashboardPage({ params }: { params: Promise<{ user
               value={data.stats.currentStreak.toString()}
               description="Days"
               icon="Flame"
+              showUTCDisclaimer={true}
+              utcDate={new Date().toISOString().split('T')[0]}
             />
+
             <StatsCard
               title="Peak Streak"
               value={data.stats.peakStreak.toString()}
               description="Days"
               icon="TrendingUp"
             />
+
             <StatsCard
               title="Contributions"
               value={data.stats.totalContributions.toString()}
