@@ -9,6 +9,7 @@
     "lint": "eslint",
     "format:check": "prettier --check .",
     "format:write": "prettier --write .",
+    "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage",
