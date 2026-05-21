@@ -2,16 +2,18 @@
   "name": "github-streak-badge",
   "version": "0.1.0",
   "private": true,
-  "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint",
-    "test": "vitest run",
-    "test:ui": "vitest --ui",
-    "test:coverage": "vitest --coverage",
-    "bench:svg": "tsx scripts/benchmark-svg.ts"
-  },
+"scripts": {
+  "dev": "next dev",
+  "build": "next build",
+  "start": "next start",
+  "lint": "eslint",
+  "format:check": "prettier --check .",
+  "format:write": "prettier --write .",
+  "test": "vitest run",
+  "test:ui": "vitest --ui",
+  "test:coverage": "vitest --coverage",
+  "bench:svg": "tsx scripts/benchmark-svg.ts"
+},
   "dependencies": {
     "@tailwindcss/postcss": "^4.2.2",
     "@vercel/analytics": "^1.6.1",
