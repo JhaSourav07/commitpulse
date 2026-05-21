@@ -397,7 +397,7 @@ export async function getFullDashboardData(username: string, options: FetchOptio
       insights.push({
         id: '3',
         icon: 'Zap',
-        text: `🔥 You are currently on an active ${streakStats.currentStreak}-day streak! Keep it going!`,
+        text: `You are currently on an active ${streakStats.currentStreak}-day streak! Keep it going!`,
       });
     } else {
       insights.push({
