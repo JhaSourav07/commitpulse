@@ -127,6 +127,29 @@ describe('generateSVG', () => {
     expect(svg).toMatch(/style="animation-delay: \d+\.\d+s;"/);
   });
 
+  it('uses English labels by default', () => {
+    const svg = generateSVG(mockStats, { user: 'avi' } as unknown as BadgeParams, mockCalendar);
+    expect(svg).toContain('CURRENT_STREAK');
+  });
+
+  it('uses Spanish labels when lang=es', () => {
+    const svg = generateSVG(
+      mockStats,
+      { user: 'avi', lang: 'es' } as unknown as BadgeParams,
+      mockCalendar
+    );
+    expect(svg).toContain('RACHA_ACTUAL');
+  });
+
+  it('falls back to English labels for unknown language', () => {
+    const svg = generateSVG(
+      mockStats,
+      { user: 'avi', lang: 'unknown' } as unknown as BadgeParams,
+      mockCalendar
+    );
+    expect(svg).toContain('CURRENT_STREAK');
+  });
+
   // ── Auto-theme (prefers-color-scheme) tests ──────────────────────────────
   // These verify that theme=auto produces an SVG that switches between light
   // and dark color palettes using CSS custom properties and a media query,

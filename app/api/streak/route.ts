@@ -39,6 +39,7 @@ export async function GET(request: Request) {
       refresh,
       hide_background,
       hide_stats: hideStatsParam,
+      lang,
     } = parseResult.data;
 
     const hide_stats = hideStatsParam === 'true' || hideStatsParam === '1';
@@ -102,6 +103,7 @@ export async function GET(request: Request) {
       autoTheme: isAutoTheme,
       hideBackground: hide_background,
       hide_stats: hide_stats,
+      lang,
     };
 
     const calendar = await fetchGitHubContributions(user, {

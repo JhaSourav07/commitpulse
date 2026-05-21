@@ -37,4 +37,5 @@ export interface BadgeParams {
   autoTheme?: boolean;
   hideBackground?: boolean;
   hide_stats?: boolean;
+  lang?: string;
 }

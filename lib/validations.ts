@@ -40,6 +40,7 @@ export const streakParamsSchema = z.object({
     .optional()
     .transform((val) => val === 'true'),
   hide_stats: z.string().optional(),
+  lang: z.string().optional().default('en'),
 });
 
 export const githubParamsSchema = z.object({

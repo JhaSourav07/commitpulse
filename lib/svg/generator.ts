@@ -1,4 +1,5 @@
 import type { BadgeParams, ContributionCalendar, StreakStats } from '../../types';
+import { getLabels } from '../i18n/badgeLabels';
 import { AUTO_DARK_THEME, AUTO_LIGHT_THEME } from './themes';
 
 // constants
@@ -244,6 +245,7 @@ export function generateSVG(
   const statsFont = selectedFont || '"Space Grotesk", sans-serif';
   const parsedRadius = Number(params.radius);
   const radius = Math.max(0, Math.min(Number.isNaN(parsedRadius) ? 8 : parsedRadius, 50));
+  const labels = getLabels(params.lang);
 
   const towerData = computeTowers(calendar, params.scale, stats.todayDate);
   let towers = '';
@@ -316,17 +318,17 @@ export function generateSVG(
     !params.hide_stats
       ? `
   <g transform="translate(40, 340)">
-    <text class="label">CURRENT_STREAK</text>
+    <text class="label">${labels.CURRENT_STREAK}</text>
     <text y="40" class="stats" filter="url(#glow)">${stats.currentStreak}</text>
   </g>
 
   <g transform="translate(300, 340)" text-anchor="middle">
-    <text class="label">ANNUAL_SYNC_TOTAL</text>
+    <text class="label">${labels.ANNUAL_SYNC_TOTAL}</text>
     <text y="40" class="total-val" filter="url(#glow)">${stats.totalContributions}</text>
   </g>
 
   <g transform="translate(560, 340)" text-anchor="end">
-    <text class="label">PEAK_STREAK</text>
+    <text class="label">${labels.PEAK_STREAK}</text>
     <text y="40" class="stats">${stats.longestStreak}</text>
   </g>
   `
@@ -365,6 +367,7 @@ function generateAutoThemeSVG(
   const statsFont = selectedFont || '"Space Grotesk", sans-serif';
   const parsedRadius = Number(params.radius);
   const radius = Math.max(0, Math.min(Number.isNaN(parsedRadius) ? 8 : parsedRadius, 50));
+  const labels = getLabels(params.lang);
 
   const towerData = computeTowers(calendar, params.scale, stats.todayDate);
   let towers = '';
@@ -436,17 +439,17 @@ function generateAutoThemeSVG(
     !params.hide_stats
       ? `
   <g transform="translate(40, 340)">
-    <text class="label">CURRENT_STREAK</text>
+    <text class="label">${labels.CURRENT_STREAK}</text>
     <text y="40" class="stats" filter="url(#glow)">${stats.currentStreak}</text>
   </g>
 
   <g transform="translate(300, 340)" text-anchor="middle">
-    <text class="label">ANNUAL_SYNC_TOTAL</text>
+    <text class="label">${labels.ANNUAL_SYNC_TOTAL}</text>
     <text y="40" class="total-val" filter="url(#glow)">${stats.totalContributions}</text>
   </g>
 
   <g transform="translate(560, 340)" text-anchor="end">
-    <text class="label">PEAK_STREAK</text>
+    <text class="label">${labels.PEAK_STREAK}</text>
     <text y="40" class="stats">${stats.longestStreak}</text>
   </g>
   `
