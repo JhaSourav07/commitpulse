@@ -323,5 +323,7 @@ _Built with obsession, shipped with precision._
 Thanks to all contributors who have helped make CommitPulse better!
 
 <a href="https://github.com/JhaSourav07/commitpulse/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=JhaSourav07/commitpulse" alt="Contributors" />
+  <img src="https://contrib.rocks/image?repo=JhaSourav07/commitpulse&max=100&columns=14" alt="Contributors" />
 </a>
+
+<sub>View the [full contributor list →](https://github.com/JhaSourav07/commitpulse/graphs/contributors)</sub>
