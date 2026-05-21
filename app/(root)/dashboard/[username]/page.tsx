@@ -4,7 +4,12 @@ import StatsCard from '@/components/dashboard/StatsCard';
 import AIInsights from '@/components/dashboard/AIInsights';
 import Achievements from '@/components/dashboard/Achievements';
 import Link from 'next/link';
-
+import Heatmap from '@/components/dashboard/Heatmap';
+import { notFound } from 'next/navigation';
+import ActivityLandscape from '@/components/dashboard/ActivityLandscape';
+import LanguageChart from '@/components/dashboard/LanguageChart';
+import CommitClock from '@/components/dashboard/CommitClock';
+import { getFullDashboardData } from '@/lib/github';
 export const revalidate = 3600;
 
 const BASE_URL =
@@ -19,8 +24,7 @@ export async function generateMetadata({
   const { username } = await params;
 
   const title = `${username}'s Commit Pulse`;
-  const description = `Mock dashboard for testing`;
-
+  const description = `${username}'s GitHub contribution pulse`;
   return {
     title,
     description,
@@ -30,6 +34,11 @@ export async function generateMetadata({
       url: `${BASE_URL}/dashboard/${username}`,
       siteName: 'CommitPulse',
       type: 'profile',
+      images: [
+        {
+          url: `${BASE_URL}/api/og?username=${username}`,
+        },
+      ],
     },
   };
 }
@@ -37,66 +46,19 @@ export async function generateMetadata({
 export default async function DashboardPage({ params }: { params: Promise<{ username: string }> }) {
   const { username } = await params;
 
-  const data = {
-    profile: {
-      username,
-      login: username,
-      avatar_url: 'https://avatars.githubusercontent.com/u/583231?v=4',
-      avatarUrl: 'https://avatars.githubusercontent.com/u/583231?v=4',
-      bio: 'Mock developer profile for testing',
-      html_url: `https://github.com/${username}`,
-      name: username,
+  let data;
 
-      isPro: false,
-      location: 'Earth 🌍',
-      joinedDate: '2024-01-01',
-      developerScore: 87,
+  try {
+    data = await getFullDashboardData(username, {
+      bypassCache: false,
+    });
+  } catch (error) {
+    if (error instanceof Error) {
+      return notFound();
+    }
 
-      stats: {
-        repositories: 32,
-        stars: 128,
-        followers: 120,
-        following: 45,
-      },
-    },
-
-    stats: {
-      currentStreak: 14,
-      peakStreak: 62,
-      totalContributions: 1847,
-    },
-
-    languages: [
-      {
-        name: 'TypeScript',
-        percentage: 45,
-        color: '#3178C6',
-      },
-      {
-        name: 'JavaScript',
-        percentage: 25,
-        color: '#F7DF1E',
-      },
-    ],
-
-    insights: [
-      {
-        id: '1',
-        text: 'Most active during late evenings.',
-        icon: 'Moon',
-      },
-      {
-        id: '2',
-        text: 'Consistent contribution streak this month.',
-        icon: 'Flame',
-      },
-      {
-        id: '3',
-        text: 'Strong focus on frontend technologies.',
-        icon: 'Code',
-      },
-    ],
-  };
+    throw error;
+  }
 
   return (
     <div id="dashboard-root" data-dashboard className="p-4 md:p-6 lg:p-8 min-h-screen relative">
@@ -119,23 +81,18 @@ export default async function DashboardPage({ params }: { params: Promise<{ user
             }}
           />
 
-          <Achievements
-            achievements={[
-              {
-                id: '1',
-                title: 'Streak Master',
-                description: 'Reached a 7 day streak',
-                icon: 'Flame',
-                isUnlocked: true,
-              },
-            ]}
-          />
+          <Achievements achievements={data.achievements} />
         </aside>
 
         <div className="flex flex-col gap-6 lg:gap-8 min-w-0">
-          <div className="rounded-2xl border border-white/10 p-8 text-white">
-            Mock Dashboard Loaded Successfully 🚀
+          <ActivityLandscape data={data.activity} />
+
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            <LanguageChart languages={data.languages} />
+            <CommitClock data={data.commitClock} />
           </div>
+
+          <Heatmap data={data.activity} />
         </div>
 
         <aside className="flex flex-col gap-6">
