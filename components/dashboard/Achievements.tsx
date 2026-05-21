@@ -1,12 +1,13 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Trophy, Moon, Flame, Code, Sun, LucideIcon } from 'lucide-react';
+import { useState } from 'react';
+import { Trophy, Flame } from 'lucide-react';
 import { Achievement } from '@/types/dashboard';
 
-const iconMap: Record<string, LucideIcon> = { Moon, Flame, Code, Sun, Trophy };
-
 export default function Achievements({ achievements }: { achievements: Achievement[] }) {
+  const [showAll, setShowAll] = useState(false);
+  const visibleAchievements = showAll ? achievements : achievements.slice(0, 4);
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
@@ -21,8 +22,8 @@ export default function Achievements({ achievements }: { achievements: Achieveme
       </div>
 
       <div className="grid grid-cols-2 gap-2">
-        {achievements.map((achievement, i) => {
-          const Icon = iconMap[achievement.icon] || Trophy;
+        {visibleAchievements.map((achievement, i) => {
+          const Icon = achievement.type === 'streak' ? Flame : Trophy;
           return (
             <motion.div
               key={achievement.id}
@@ -40,16 +41,29 @@ export default function Achievements({ achievements }: { achievements: Achieveme
                 size={18}
                 className={`mb-2.5 ${achievement.isUnlocked ? 'text-[#A1A1AA]' : 'text-[#555]'}`}
               />
-              <h4 className="text-[11px] font-semibold text-white mb-1 line-clamp-1 w-full leading-snug">
+              <h4 className="text-[11px] font-semibold text-white mb-1 text-center w-full leading-snug">
                 {achievement.title}
               </h4>
               <p className="text-[10px] text-[#A1A1AA] line-clamp-2 w-full leading-relaxed">
                 {achievement.description}
               </p>
+              {achievement.progress !== undefined && !achievement.isUnlocked && (
+                <p className="text-[10px] text-[#777] mt-2">
+                  {achievement.currentValue}/{achievement.threshold}
+                </p>
+              )}
             </motion.div>
           );
         })}
       </div>
+      {achievements.length > 4 && (
+        <button
+          onClick={() => setShowAll(!showAll)}
+          className="mt-4 w-full rounded-lg border border-[rgba(255,255,255,0.08)] bg-[#111] py-2 text-xs font-medium text-white transition-all hover:bg-[#161616]"
+        >
+          {showAll ? 'Show Less' : 'See All Achievements'}
+        </button>
+      )}
     </motion.div>
   );
 }

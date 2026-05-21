@@ -2,6 +2,7 @@
 
 @theme {
   --font-sans: 'Inter', ui-sans-serif, system-ui;
+  --breakpoint-xs: 26rem;
 }
 
 @layer utilities {
@@ -60,9 +61,11 @@ body {
 }
 
 /* Vercel-style focus ring */
-*:focus-visible {
-  outline: 2px solid rgba(99, 102, 241, 0.6);
-  outline-offset: 2px;
+@layer base {
+  *:focus-visible {
+    outline: 2px solid rgba(99, 102, 241, 0.6);
+    outline-offset: 2px;
+  }
 }
 
 /* Smooth scrollbar on dark bg */
