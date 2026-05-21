@@ -158,6 +158,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ user
             >
               <ActivityLandscapeSection dataPromise={dataPromise} />
             </Suspense>
+            {/*Activity section loads separately without blocking the dashboard shell */}
           </section>
 
           <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -200,6 +201,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ user
           >
             <AIInsightsSection dataPromise={dataPromise} />
           </Suspense>
+          {/*// AI insights are streamed separately with a lightweight skeleton fallback*/}
         </aside>
       </div>
     </div>

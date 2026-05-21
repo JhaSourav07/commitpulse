@@ -13,11 +13,7 @@ vi.mock('@/components/dashboard/ProfileCard', () => ({
   default: () => <div data-testid="profile-card">ProfileCard</div>,
 }));
 vi.mock('@/components/dashboard/ActivityLandscapeSection', () => ({
-  default: () => (
-    <div data-testid="activity-landscape">
-      ActivityLandscape
-    </div>
-  ),
+  default: () => <div data-testid="activity-landscape">ActivityLandscape</div>,
 }));
 vi.mock('@/components/dashboard/StatsCard', () => ({
   default: ({ title, value }: any) => (
