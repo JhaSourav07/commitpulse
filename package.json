@@ -7,12 +7,13 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "format": "prettier --write .",
-    "format:check": "prettier --check .",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,md,css,json,yml,yaml}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,md,css,json,yml,yaml}\"",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:ui": "vitest --ui",
-    "test:coverage": "vitest --coverage"
+    "test:coverage": "vitest --coverage",
+    "bench:svg": "tsx scripts/benchmark-svg.ts"
   },
   "dependencies": {
     "@tailwindcss/postcss": "^4.2.2",
@@ -42,6 +43,7 @@
     "postcss": "^8.5.9",
     "prettier": "^3.8.3",
     "tailwindcss": "^4.2.2",
+    "tsx": "^4.22.2",
     "typescript": "^5",
     "vitest": "^4.1.4"
   }

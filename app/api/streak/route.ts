@@ -12,7 +12,6 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
 
-    // ✅ Single source of truth: Zod
     const parseResult = streakParamsSchema.safeParse(Object.fromEntries(searchParams.entries()));
 
     if (!parseResult.success) {
@@ -25,9 +24,25 @@ export async function GET(request: Request) {
       );
     }
 
-    const { user, theme, bg, text, accent, scale, speed, radius, font, year, refresh } =
-      parseResult.data;
+    const {
+      user,
+      theme,
+      bg,
+      text,
+      accent,
+      scale,
+      speed,
+      radius,
+      font,
+      year,
+      refresh,
+      hide_background,
+      hide_stats: hideStatsParam,
+    } = parseResult.data;
 
+    const hide_stats = hideStatsParam === 'true' || hideStatsParam === '1';
+
+    const themeName = theme || 'dark';
     const from = year ? `${year}-01-01T00:00:00Z` : undefined;
     const to = year ? `${year}-12-31T23:59:59Z` : undefined;
 
@@ -63,6 +78,8 @@ export async function GET(request: Request) {
       font,
 
       autoTheme: isAutoTheme,
+      hideBackground: hide_background,
+      hide_stats: hide_stats,
     };
 
     const calendar = await fetchGitHubContributions(user, {
