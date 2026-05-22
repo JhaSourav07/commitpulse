@@ -116,6 +116,27 @@ describe('ShareSheet', () => {
     });
   });
 
+  it('handles Copy Markdown action', async () => {
+    render(<ShareSheet {...defaultProps} />);
+    const copyButton = screen.getByText('Copy Markdown').closest('button');
+
+    fireEvent.click(copyButton!);
+
+    // Wait for the async clipboard write to be called
+    await waitFor(() => {
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+        expect.stringContaining('![CommitPulse](')
+      );
+    });
+
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+      expect.stringContaining('/api/streak?user=octocat')
+    );
+    expect(navigator.clipboard.writeText).not.toHaveBeenCalledWith(
+      expect.stringContaining('/dashboard/')
+    );
+  });
+
   it('handles Share on X action', () => {
     render(<ShareSheet {...defaultProps} />);
     const twitterButton = screen.getByText('Share on X').closest('button');
