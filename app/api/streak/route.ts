@@ -56,7 +56,7 @@ export async function GET(request: Request) {
 
     const themeName = theme || 'dark';
     const from = year ? `${year}-01-01T00:00:00Z` : undefined;
-    const to = year ? `${year}-12-31T23:59:59Z` : undefined;    
+    const to = year ? `${year}-12-31T23:59:59Z` : undefined;
 
     // Validate the IANA timezone name early so callers get a clear 400 rather than a
     // silent fallback or a 500. Intl.DateTimeFormat throws a RangeError on unknown zones.
