@@ -30,6 +30,18 @@ async function handleClaim({ github, context }) {
     return;
   }
 
+  const issueAuthor = context.payload.issue.user.login;
+
+  if (commenter.toLowerCase() !== issueAuthor.toLowerCase()) {
+    await github.rest.issues.createComment({
+      owner,
+      repo,
+      issue_number: issueNumber,
+      body: `❌ Only the author of this issue (@${issueAuthor}) can claim it.`,
+    });
+    return;
+  }
+
   const currentAssignees = context.payload.issue.assignees.map((a) => a.login.toLowerCase());
 
   if (currentAssignees.length > 0) {

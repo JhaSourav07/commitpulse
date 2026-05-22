@@ -29,6 +29,18 @@ const LinkedInIcon = ({ size = 18 }: { size?: number }) => (
   </svg>
 );
 
+const RedditIcon = ({ size = 18 }: { size?: number }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="currentColor"
+  >
+    <path d="M14.47 15.67a1.09 1.09 0 0 1-1.09 1.09 1.09 1.09 0 0 1-1.09-1.09 1.09 1.09 0 0 1 1.09-1.09 1.09 1.09 0 0 1 1.09 1.09Zm-4.75-1.09a1.09 1.09 0 1 0 0 2.18 1.09 1.09 0 0 0 0-2.18Zm8.18-4.05a1.64 1.64 0 0 0-1.64-1.64 1.61 1.61 0 0 0-1.18.5 6.18 6.18 0 0 0-2.95-.77l.5-2.36 1.64.36a1.09 1.09 0 1 0 .18-.82l-2-.41a.41.41 0 0 0-.5.32l-.59 2.77a6.54 6.54 0 0 0-3.09.77 1.64 1.64 0 1 0-2.5 2.14 3.27 3.27 0 0 0-.09.77c0 2.45 2.86 4.41 6.41 4.41s6.41-2 6.41-4.41a3.27 3.27 0 0 0-.09-.77 1.63 1.63 0 0 0 .91-1.46Z" />
+  </svg>
+);
+
 interface ShareSheetProps {
   username: string;
   isOpen: boolean;
@@ -92,6 +104,15 @@ export default function ShareSheet({ username, isOpen, onClose, exportData }: Sh
   const handleLinkedIn = () => {
     const url = encodeURIComponent(PROFILE_URL(username));
     window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${url}`, '_blank', 'noopener');
+    onClose();
+  };
+
+  const handleReddit = () => {
+    const url = encodeURIComponent(PROFILE_URL(username));
+    const title = encodeURIComponent('Check out my CommitPulse dashboard 🚀');
+
+    window.open(`https://www.reddit.com/submit?url=${url}&title=${title}`, '_blank');
+
     onClose();
   };
 
@@ -291,6 +312,15 @@ export default function ShareSheet({ username, isOpen, onClose, exportData }: Sh
       gradient: 'bg-zinc-800',
       glow: 'transparent',
       action: handleNativeShare,
+    },
+    {
+      key: 'reddit',
+      label: 'Reddit',
+      description: 'Share on Reddit',
+      icon: RedditIcon,
+      action: handleReddit,
+      gradient: 'from-orange-500 to-orange-700',
+      glow: 'rgba(249,115,22,0.35)',
     },
   ];
 

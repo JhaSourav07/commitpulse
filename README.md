@@ -82,34 +82,38 @@ URL Parameter > Theme Default > System Fallback
 
 ### Parameter Reference
 
-| Parameter         | Type      | Required   | Default                        | Description                                                                                                         |
-| ----------------- | --------- | ---------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
-| `user`            | `string`  | ✅ **Yes** | —                              | GitHub username to render                                                                                           |
-| `theme`           | `string`  | No         | `dark`                         | Preset theme name (see below)                                                                                       |
-| `bg`              | `hex`     | No         | Theme default                  | Background color — **without** `#`                                                                                  |
-| `accent`          | `hex`     | No         | Theme default                  | Tower & glow color — **without** `#`                                                                                |
-| `text`            | `hex`     | No         | Theme default                  | Label & stat text color — **without** `#`                                                                           |
-| `radius`          | `number`  | No         | `8`                            | Border corner radius in pixels                                                                                      |
-| `speed`           | `string`  | No         | `8s`                           | Radar scan animation duration (e.g. `4s`, `12s`)                                                                    |
-| `scale`           | `string`  | No         | `linear`                       | Tower height scaling: `linear` or `log` (logarithmic)                                                               |
-| `font`            | `string`  | No         | CommitPulse default typography | Any **Google Font** name (e.g., `Orbitron`, `Inter`)                                                                |
-| `refresh`         | `boolean` | No         | `false`                        | Bypass cache for real-time data                                                                                     |
-| `year`            | `string`  | No         | —                              | Calendar year to render (e.g. `2023`, `2024`)                                                                       |
-| `hide_background` | `boolean` | No         | `false`                        | Remove the background rect, letting the monolith float on the page                                                  |
-| `hide_stats`      | `boolean` | No         | `false`                        | Hides the bottom row displaying Current Streak, Annual Sync Total, and Peak Streak stats when set to `true` or `1`. |
+| Parameter         | Type      | Required   | Default                        | Description                                                                                                                                                               |
+| ----------------- | --------- | ---------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `user`            | `string`  | ✅ **Yes** | —                              | GitHub username to render                                                                                                                                                 |
+| `theme`           | `string`  | No         | `dark`                         | Preset theme name (see below)                                                                                                                                             |
+| `bg`              | `hex`     | No         | Theme default                  | Background color — **without** `#`                                                                                                                                        |
+| `accent`          | `hex`     | No         | Theme default                  | Tower & glow color — **without** `#`                                                                                                                                      |
+| `text`            | `hex`     | No         | Theme default                  | Label & stat text color — **without** `#`                                                                                                                                 |
+| `radius`          | `number`  | No         | `8`                            | Border corner radius in pixels                                                                                                                                            |
+| `speed`           | `string`  | No         | `8s`                           | Radar scan duration (`2s`–`20s`, default `8s`)                                                                                                                            |
+| `scale`           | `string`  | No         | `linear`                       | Tower height scaling: `linear` or `log` (logarithmic)                                                                                                                     |
+| `font`            | `string`  | No         | CommitPulse default typography | Any **Google Font** name (e.g. `Orbitron`, `Inter`)                                                                                                                       |
+| `refresh`         | `boolean` | No         | `false`                        | Bypass cache for real-time data                                                                                                                                           |
+| `year`            | `string`  | No         | —                              | Calendar year to render (e.g. `2023`, `2024`)                                                                                                                             |
+| `hide_title`      | `boolean` | No         | `false`                        | Hide GitHub username/title from the SVG badge                                                                                                                             |
+| `hide_background` | `boolean` | No         | `false`                        | Remove the background rect, letting the monolith float on the page                                                                                                        |
+| `hide_stats`      | `boolean` | No         | `false`                        | Hides the bottom row displaying Current Streak, Annual Sync Total, and Peak Streak stats when set to `true` or `1`.                                                       |
+| `tz`              | `string`  | No         | Omitted = UTC                  | IANA timezone (e.g. `Asia/Kolkata`, `America/New_York`) — aligns "today" with the user local midnight. Note: `?tz=UTC` is valid but cached separately from omitting `tz`. |
+| `lang`            | `string`  | No         | `en`                           | Language code for labels (`en`, `es`, `hi`, `fr`)                                                                                                                         |
 
 ### Theme Presets
 
-| Theme              | Preview                  | `bg`     | `accent` | `text`   |
-| ------------------ | ------------------------ | -------- | -------- | -------- |
-| `auto`             | System light / dark      | _adapts_ | _adapts_ | _adapts_ |
-| `dark` _(default)_ | GitHub dark              | `0d1117` | `58a6ff` | `c9d1d9` |
-| `neon`             | Cyberpunk                | `000000` | `ff00ff` | `00ffcc` |
-| `dracula`          | Dracula Pro              | `282a36` | `bd93f9` | `f8f8f2` |
-| `github`           | GitHub green             | `0d1117` | `238636` | `ffffff` |
-| `light`            | Clean & minimal          | `ffffff` | `0969da` | `24292f` |
-| `gruvbox`          | retro warm dark          | `282828` | `fe8019` | `ebdbb2` |
-| `random`           | Surprise theme on reload | _varies_ | _varies_ | _varies_ |
+| Theme              | Preview                     | `bg`     | `accent` | `text`   |
+| ------------------ | --------------------------- | -------- | -------- | -------- |
+| `auto`             | System light / dark         | _adapts_ | _adapts_ | _adapts_ |
+| `dark` _(default)_ | GitHub dark                 | `0d1117` | `58a6ff` | `c9d1d9` |
+| `neon`             | Cyberpunk                   | `000000` | `ff00ff` | `00ffcc` |
+| `dracula`          | Dracula Pro                 | `282a36` | `bd93f9` | `f8f8f2` |
+| `github`           | GitHub green                | `0d1117` | `238636` | `ffffff` |
+| `light`            | Clean & minimal             | `ffffff` | `0969da` | `24292f` |
+| `gruvbox`          | retro warm dark             | `282828` | `fe8019` | `ebdbb2` |
+| `random`           | Surprise theme on reload    | _varies_ | _varies_ | _varies_ |
+| `highcontrast`     | Accessibility high contrast | `0a0a0a` | `ff4500` | `888888` |
 
 > **`auto` uses CSS `@media (prefers-color-scheme)`** inside the SVG so the badge switches between the `light` and `dark` palettes based on the viewer's OS setting — no JavaScript required. This is ideal for GitHub profile READMEs where visitors may use either mode.
 
@@ -143,6 +147,10 @@ URL Parameter > Theme Default > System Fallback
 <!-- View contributions for a specific past year -->
 
 ![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&year=2023)
+
+<!-- Hide GitHub username/title -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&hide_title=true)
 ```
 
 ---
@@ -275,10 +283,12 @@ CommitPulse features a fully custom, GitHub Actions-powered **Issue Management S
 
 We built an anti-hoarding, self-service automation layer right into the repository:
 
-- **Self-Claiming:** Contributors can grab issues instantly by commenting `/claim`.
+- **Structured Issue Templates:** We use specific templates for Bug Reports and Feature Requests to maintain high quality and clarity.
+- **Self-Claiming:** Issue authors can grab their issues instantly by commenting `/claim` (only the author of the issue can claim it).
 - **Fair Play:** A strict one-active-issue-per-contributor rule prevents issue hoarding.
 - **Stale Expiry:** A scheduled chron job automatically unassigns inactive contributors after 3 days.
 - **Self-Service Labels:** Anyone can tag issues using `/addlabel <tag>`.
+- **Semantic Duplicate Detection:** An AI-powered duplicate detector automatically scans open issues using the Google Gemini API (`gemini-embedding-001`) to generate vector embeddings. It calculates cosine similarity and flags potential duplicate issues with a comment and a `possible-duplicate` label.
 
 This ensures maintainers aren't bottlenecks and the community moves incredibly fast.
 
@@ -321,5 +331,7 @@ _Built with obsession, shipped with precision._
 Thanks to all contributors who have helped make CommitPulse better!
 
 <a href="https://github.com/JhaSourav07/commitpulse/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=JhaSourav07/commitpulse" alt="Contributors" />
+  <img src="https://contrib.rocks/image?repo=JhaSourav07/commitpulse&max=100&columns=14" alt="Contributors" />
 </a>
+
+<sub>View the [full contributor list →](https://github.com/JhaSourav07/commitpulse/graphs/contributors)</sub>

@@ -237,11 +237,10 @@ export default function LandingPage() {
                         : 'rgba(0, 0, 0, 0.05)'
                       : 'rgba(128, 128, 128, 0.05)',
 
-                    color: theme === 'dark' ? 'black' : 'black',
+                    color: theme === 'dark' ? 'white' : 'black',
                   }}
-                  className={`relative flex min-w-[160px] w-full md:w-auto items-center justify-center gap-2 overflow-hidden rounded-xl border border-black/5 dark:border-white/10 px-6 py-3.5 text-sm font-bold transition-all duration-200 active:scale-[0.98] ${
-                    hasUsername ? 'opacity-100 shadow-sm' : 'opacity-40 pointer-events-none'
-                  }`}
+                  className={`relative flex min-w-[160px] w-full md:w-auto items-center justify-center gap-2 overflow-hidden rounded-xl border border-black/5 dark:border-white/10 px-6 py-3.5 text-sm font-bold transition-all duration-200 active:scale-[0.98] ${hasUsername ? 'opacity-100 shadow-sm' : 'opacity-40 pointer-events-none'
+                    }`}
                 >
                   <AnimatePresence mode="wait">
                     {copied ? (

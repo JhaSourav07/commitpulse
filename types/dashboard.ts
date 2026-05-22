@@ -53,7 +53,7 @@ export interface Achievement {
 }
 
 export interface CommitClockData {
-  hour: number; // 0 - 23
+  day: string; // 'Sun' | 'Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri' | 'Sat'
   commits: number;
 }
 

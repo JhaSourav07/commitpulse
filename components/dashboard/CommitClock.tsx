@@ -6,9 +6,13 @@ import { CommitClockData } from '@/types/dashboard';
 export default function CommitClock({ data }: { data: CommitClockData[] }) {
   const maxCommits = Math.max(...data.map((d) => d.commits), 1);
   const radius = 80;
-  const cx = 150;
-  const cy = 150;
+  const cx = 140;
+  const cy = 140;
   const r4 = (n: number) => Math.round(n * 1e4) / 1e4;
+  const maxSpokeLength = 42;
+
+  // Find the peak day index
+  const peakIndex = data.reduce((peak, d, i) => (d.commits > data[peak].commits ? i : peak), 0);
 
   return (
     <motion.div
@@ -20,76 +24,145 @@ export default function CommitClock({ data }: { data: CommitClockData[] }) {
     >
       <div className="w-full mb-1">
         <h3 className="text-sm font-semibold text-white tracking-tight">Commit Clock</h3>
-        <p className="text-xs text-[#A1A1AA] mt-1">24-hour activity cycle</p>
+        <p className="text-xs text-[#A1A1AA] mt-1">Weekly activity cycle</p>
       </div>
 
       <div className="relative w-[280px] h-[280px] flex items-center justify-center mt-4">
-        <svg width="280" height="280" className="rotate-[-90deg]">
+        <svg width="280" height="280" className="overflow-visible rotate-[-90deg]">
+          <defs>
+            <filter id="spoke-glow" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation="3" result="blur" />
+              <feComposite in="SourceGraphic" in2="blur" operator="over" />
+            </filter>
+          </defs>
+
           {/* Base ring */}
           <circle
-            cx={cx - 10}
-            cy={cy - 10}
+            cx={cx}
+            cy={cy}
             r={radius}
             fill="none"
             stroke="rgba(255,255,255,0.04)"
             strokeWidth="18"
           />
 
-          {/* Spokes */}
-          {data.map((d, i) => {
-            const angle = (i * 360) / 24;
-            const length = Math.max((d.commits / maxCommits) * 38, 4);
-            const isHigh = d.commits > maxCommits * 0.7;
+          {/* Outer boundary ring */}
+          <circle
+            cx={cx}
+            cy={cy}
+            r={radius + maxSpokeLength + 8}
+            fill="none"
+            stroke="rgba(255,255,255,0.08)"
+            strokeWidth="1"
+          />
+
+          {/* Subtle background dial (35 ticks = 7 days * 5 sub-intervals) */}
+          {Array.from({ length: 35 }).map((_, i) => {
+            const angle = (i * 360) / 35;
             const rad = (angle * Math.PI) / 180;
+            const isMain = i % 5 === 0;
+
+            // Main spokes get a full-length faint track, interval ticks are short
+            const tickLength = isMain ? maxSpokeLength : 4;
+            const innerOffset = isMain ? 0 : 4;
 
             return (
-              <motion.g
-                key={i}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: i * 0.04, duration: 0.2 }}
-              >
-                <line
-                  x1={r4(cx - 10 + radius * Math.cos(rad))}
-                  y1={r4(cy - 10 + radius * Math.sin(rad))}
-                  x2={r4(cx - 10 + (radius + length) * Math.cos(rad))}
-                  y2={r4(cy - 10 + (radius + length) * Math.sin(rad))}
-                  stroke={isHigh ? '#ffffff' : 'rgba(255,255,255,0.2)'}
-                  strokeWidth="5"
-                  strokeLinecap="round"
-                />
-              </motion.g>
+              <line
+                key={`bg-tick-${i}`}
+                x1={r4(cx + (radius + innerOffset) * Math.cos(rad))}
+                y1={r4(cy + (radius + innerOffset) * Math.sin(rad))}
+                x2={r4(cx + (radius + tickLength) * Math.cos(rad))}
+                y2={r4(cy + (radius + tickLength) * Math.sin(rad))}
+                stroke={isMain ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.06)'}
+                strokeWidth={isMain ? '4' : '2'}
+                strokeLinecap="round"
+              />
             );
           })}
 
-          {/* Hour labels */}
-          {(['6h', '12h', '18h', '24h'] as const).map((label, i) => {
-            const positions = [
-              { x: cx - 10 + radius - 14, y: cy - 10 + 4 },
-              { x: cx - 10, y: cy - 10 + radius - 8 },
-              { x: cx - 10 - radius + 14, y: cy - 10 + 4 },
-              { x: cx - 10, y: cy - 10 - radius + 14 },
-            ];
-            const p = positions[i];
+          {/* Spokes — one per day of week */}
+          {data.map((d, i) => {
+            const angle = (i * 360) / 7;
+            const length = Math.max((d.commits / maxCommits) * maxSpokeLength, 4);
+            const isHigh = d.commits > maxCommits * 0.7;
+            const isPeak = i === peakIndex && d.commits > 0;
+            const rad = (angle * Math.PI) / 180;
+
+            // Scale stroke width: 3px base, up to 6px for peak
+            const strokeW = isPeak ? 6 : isHigh ? 5 : 4;
+
+            const x1 = r4(cx + radius * Math.cos(rad));
+            const y1 = r4(cy + radius * Math.sin(rad));
+            const x2 = r4(cx + (radius + length) * Math.cos(rad));
+            const y2 = r4(cy + (radius + length) * Math.sin(rad));
+            const labelX = r4(cx + (radius + maxSpokeLength + 14) * Math.cos(rad));
+            const labelY = r4(cy + (radius + maxSpokeLength + 14) * Math.sin(rad));
+
             return (
-              <text
-                key={label}
-                x={p.x}
-                y={p.y}
-                fill="rgba(255,255,255,0.25)"
-                fontSize="9"
-                textAnchor="middle"
-                transform={`rotate(90, ${p.x}, ${p.y})`}
+              <motion.g
+                key={d.day}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: i * 0.08, duration: 0.3 }}
               >
-                {label}
-              </text>
+                <line
+                  x1={x1}
+                  y1={y1}
+                  x2={x2}
+                  y2={y2}
+                  stroke={
+                    isPeak ? '#ffffff' : isHigh ? 'rgba(255,255,255,0.8)' : 'rgba(255,255,255,0.3)'
+                  }
+                  strokeWidth={strokeW}
+                  strokeLinecap="round"
+                  filter={isPeak ? 'url(#spoke-glow)' : undefined}
+                />
+
+                {/* Dot at the end of each spoke */}
+                {d.commits > 0 && (
+                  <circle
+                    cx={x2}
+                    cy={y2}
+                    r={isPeak ? 3 : 2}
+                    fill={isPeak ? '#ffffff' : isHigh ? '#ffffff' : 'rgba(255,255,255,0.5)'}
+                    filter={isPeak ? 'url(#spoke-glow)' : undefined}
+                  />
+                )}
+
+                {/* Day and Commit Count Label (stacked vertically via tspan to avoid side overlaps) */}
+                <text
+                  x={labelX}
+                  y={labelY}
+                  fill={
+                    isPeak ? '#ffffff' : isHigh ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.35)'
+                  }
+                  fontSize="9"
+                  fontWeight={isPeak ? '700' : '400'}
+                  textAnchor="middle"
+                  transform={`rotate(90, ${labelX}, ${labelY})`}
+                >
+                  <tspan x={labelX} dy="-2">
+                    {d.day}
+                  </tspan>
+                  <tspan
+                    x={labelX}
+                    dy="10"
+                    fill={isPeak ? '#ffffff' : 'rgba(255,255,255,0.3)'}
+                    fontSize="7"
+                    fontWeight="400"
+                  >
+                    {d.commits}
+                  </tspan>
+                </text>
+              </motion.g>
             );
           })}
         </svg>
 
         {/* Center label */}
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <span className="text-xl font-semibold text-white/60">24h</span>
+        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+          <span className="text-lg font-semibold text-white/60">7d</span>
+          <span className="text-[8px] text-white/20 mt-0.5">CYCLE</span>
         </div>
       </div>
     </motion.div>

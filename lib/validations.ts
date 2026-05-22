@@ -16,21 +16,53 @@ export const streakParamsSchema = z.object({
   speed: z
     .string()
     .regex(/^\d+(\.\d+)?s$/)
+    .transform((value) => {
+      const numeric = parseFloat(value.replace('s', ''));
+
+      if (numeric < 2 || numeric > 20) {
+        return '8s';
+      }
+
+      return `${numeric}s`;
+    })
     .catch('8s')
     .default('8s'),
 
   radius: z.string().default('8'),
   font: z.string().optional(),
-  year: z.string().optional(),
+  year: z
+    .string()
+    .regex(/^\d{4}$/, {
+      message: 'Invalid "year" parameter. Use YYYY format, e.g. 2024.',
+    })
+    .refine(
+      (year) => {
+        const yearNum = parseInt(year, 10);
+        const currentYear = new Date().getFullYear();
+
+        return yearNum >= 2005 && yearNum <= currentYear;
+      },
+      {
+        message: 'Invalid "year" parameter. Use YYYY format, e.g. 2024.',
+      }
+    )
+    .optional(),
   refresh: z
     .string()
     .optional()
     .transform((val) => val === 'true'),
+  hide_title: z
+    .string()
+    .optional()
+    .transform((val) => val === 'true' || val === '1'),
+
   hide_background: z
     .string()
     .optional()
     .transform((val) => val === 'true'),
+
   hide_stats: z.string().optional(),
+  lang: z.string().optional().default('en'),
 });
 
 export const githubParamsSchema = z.object({
