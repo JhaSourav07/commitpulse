@@ -95,7 +95,7 @@ function LandingContent() {
   const [copied, setCopied] = useState(false);
   const guideRef = useRef<HTMLDivElement>(null);
   const searchParams = useSearchParams();
-  const theme = searchParams.get('theme') || 'neon';
+  const theme = searchParams?.get('theme') || 'neon';
 
   const trimmedUsername = username.trim();
   const hasUsername = trimmedUsername.length > 0;
