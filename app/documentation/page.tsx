@@ -94,35 +94,76 @@ const parameters = [
   },
 ];
 
-const themeDescriptions = {
+const themeDescriptions: Record<
+  string,
+  {
+    name: string;
+    vibe: string;
+  }
+> = {
   dark: {
     name: 'Dark',
     vibe: 'GitHub-dark default with calm blue highlights.',
   },
+
   neon: {
     name: 'Neon',
     vibe: 'Pure black with magenta towers and cyan text.',
   },
+
   dracula: {
     name: 'Dracula',
     vibe: 'Purple-forward palette inspired by Dracula Pro.',
   },
+
   github: {
     name: 'GitHub',
     vibe: 'Deep GitHub green for a more native contribution feel.',
   },
+
   light: {
     name: 'Light',
     vibe: 'Bright, minimal surface for portfolios and white backgrounds.',
   },
-} as const;
 
-const themeOrder = ['dark', 'neon', 'dracula', 'github', 'light'] as const;
+  ocean: {
+    name: 'Ocean',
+    vibe: 'Deep navy with teal towers and soft blue text.',
+  },
 
-const themes = themeOrder.map((slug) => ({
+  sunset: {
+    name: 'Sunset',
+    vibe: 'Dark crimson base with warm orange accent.',
+  },
+
+  forest: {
+    name: 'Forest',
+    vibe: 'Dark green canvas with bright contribution green.',
+  },
+
+  rose: {
+    name: 'Rose',
+    vibe: 'Deep rose background with pink accent tones.',
+  },
+
+  nord: {
+    name: 'Nord',
+    vibe: 'Muted arctic palette from the Nord color scheme.',
+  },
+
+  synthwave: {
+    name: 'Synthwave',
+    vibe: 'Near-black with hot pink for a retro-futurist feel.',
+  },
+};
+
+const allthemes = Object.entries(themePalette).map(([slug, palette]) => ({
   slug,
-  ...themeDescriptions[slug],
-  ...themePalette[slug],
+  ...(themeDescriptions[slug] || {
+    name: slug.charAt(0).toUpperCase() + slug.slice(1),
+    vibe: 'Custom theme palette.',
+  }),
+  ...palette,
 }));
 
 const contributorNotes = [
@@ -143,7 +184,7 @@ export default function DocumentationPage() {
         <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.03] mix-blend-overlay" />
       </div>
 
-      <div className="relative mx-auto flex min-h-screen max-w-6xl flex-col px-6 pb-10 pt-6 md:px-8">
+      <div className="relative mx-auto flex min-h-screen max-w-[1600px] flex-col px-6 pb-10 pt-6 md:px-8">
         <section className="mb-10 rounded-[2rem] border border-white/10 bg-white/[0.03] px-6 py-10 shadow-[0_30px_100px_rgba(0,0,0,0.45)] backdrop-blur md:px-10">
           <div className="mb-6 inline-flex items-center rounded-full border border-emerald-400/20 bg-emerald-500/10 px-4 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-emerald-300">
             Documentation
@@ -273,14 +314,14 @@ export default function DocumentationPage() {
             title="Preset palettes for different moods"
             description="Use the theme parameter for fast styling, then override individual values only when you need a custom blend."
           >
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-              {themes.map((theme) => (
+            <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {allthemes.map((theme) => (
                 <div
                   key={theme.slug}
-                  className="rounded-[1.5rem] border border-white/8 bg-black/35 p-4"
+                  className="rounded-[1.5rem] border border-white/8 bg-black/35 p-5 transition hover:-translate-y-1"
                 >
                   <div
-                    className="mb-4 h-28 rounded-[1.25rem] border border-white/10"
+                    className="mb-4 h-32 rounded-[1.25rem] border border-white/10"
                     style={{
                       background: `linear-gradient(145deg, #${theme.bg}, #111111)`,
                       boxShadow: `inset 0 0 0 1px rgba(255,255,255,0.03), 0 20px 40px -24px #${theme.accent}`,
@@ -302,7 +343,7 @@ export default function DocumentationPage() {
                     </div>
                   </div>
                   <h3 className="text-base font-semibold text-white">{theme.name}</h3>
-                  <p className="mt-2 text-sm leading-6 text-white/55">{theme.vibe}</p>
+                  <p className="mt-2 min-h-[72px] text-sm leading-7 text-white/55">{theme.vibe}</p>
                   <div className="mt-4 space-y-2 text-xs text-white/45">
                     <div>
                       <span className="text-white/65">bg</span> #{theme.bg}

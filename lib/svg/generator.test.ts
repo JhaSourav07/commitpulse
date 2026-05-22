@@ -116,6 +116,34 @@ describe('generateSVG', () => {
     expect(svg).toContain('font-family: "Space Grotesk", sans-serif');
   });
 
+  it('uses default font when font param is an empty string', () => {
+    const svg = generateSVG(
+      mockStats,
+      { user: 'avi', font: '' } as unknown as BadgeParams,
+      mockCalendar
+    );
+    expect(svg).toContain('Space Grotesk');
+    expect(svg).not.toContain('family=&amp;display=swap');
+  });
+
+  it('uses default font when font param is whitespace only', () => {
+    const svg = generateSVG(
+      mockStats,
+      { user: 'avi', font: '   ' } as unknown as BadgeParams,
+      mockCalendar
+    );
+    expect(svg).toContain('Space Grotesk');
+    expect(svg).not.toContain('family=+&amp;display=swap');
+  });
+
+  it('allows apostrophes in font names like Times New Roman', () => {
+    const svg = generateSVG(
+      mockStats,
+      { user: 'avi', font: 'Gill Sans' } as unknown as BadgeParams,
+      mockCalendar
+    );
+    expect(svg).toContain('Gill Sans');
+  });
   it('emits tower-raising CSS animations and staggered delays', () => {
     const svg = generateSVG(mockStats, { user: 'avi' } as unknown as BadgeParams, mockCalendar);
 
@@ -125,6 +153,29 @@ describe('generateSVG', () => {
 
     // Check for inline animation-delay style on the nested group
     expect(svg).toMatch(/style="animation-delay: \d+\.\d+s;"/);
+  });
+
+  it('uses English labels by default', () => {
+    const svg = generateSVG(mockStats, { user: 'avi' } as unknown as BadgeParams, mockCalendar);
+    expect(svg).toContain('CURRENT_STREAK');
+  });
+
+  it('uses Spanish labels when lang=es', () => {
+    const svg = generateSVG(
+      mockStats,
+      { user: 'avi', lang: 'es' } as unknown as BadgeParams,
+      mockCalendar
+    );
+    expect(svg).toContain('RACHA_ACTUAL');
+  });
+
+  it('falls back to English labels for unknown language', () => {
+    const svg = generateSVG(
+      mockStats,
+      { user: 'avi', lang: 'unknown' } as unknown as BadgeParams,
+      mockCalendar
+    );
+    expect(svg).toContain('CURRENT_STREAK');
   });
 
   // ── Auto-theme (prefers-color-scheme) tests ──────────────────────────────
