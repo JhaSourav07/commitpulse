@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 import { fetchGitHubContributions } from '../../../lib/github';
 import { calculateStreak } from '../../../lib/calculate';
 import { generateSVG } from '../../../lib/svg/generator';
-import { getSecondsUntilUTCMidnight } from '../../../utils/time';
+import { getSecondsUntilUTCMidnight, getSecondsUntilMidnightInTimezone } from '../../../utils/time';
 import type { BadgeParams } from '../../../types';
 import { themes } from '../../../lib/svg/themes';
 import { streakParamsSchema } from '../../../lib/validations';
@@ -12,6 +12,7 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
 
+    // â Single source of truth: Zod
     const parseResult = streakParamsSchema.safeParse(Object.fromEntries(searchParams.entries()));
 
     if (!parseResult.success) {
@@ -36,20 +37,41 @@ export async function GET(request: Request) {
       font,
       year,
       refresh,
+      hide_title,
       hide_background,
       hide_stats: hideStatsParam,
+      lang,
     } = parseResult.data;
+
+    //sanitizing font
+    const sanitizedFont = ((): string | undefined => {
+      if (!font) return undefined;
+      const trimmed = font.trim();
+      if (!trimmed) return undefined;
+      const cleaned = trimmed.replace(/[^a-zA-Z0-9\s\-']/g, '').trim();
+      return cleaned || undefined;
+    })();
 
     const hide_stats = hideStatsParam === 'true' || hideStatsParam === '1';
 
     const themeName = theme || 'dark';
     const from = year ? `${year}-01-01T00:00:00Z` : undefined;
-    const to = year ? `${year}-12-31T23:59:59Z` : undefined;
+    const to = year ? `${year}-12-31T23:59:59Z` : undefined;    
 
-    // Theme selection
-    const isAutoTheme = theme === 'auto';
-    const isRandomTheme = theme === 'random';
-
+    // Validate the IANA timezone name early so callers get a clear 400 rather than a
+    // silent fallback or a 500. Intl.DateTimeFormat throws a RangeError on unknown zones.
+    const tzParam = searchParams.get('tz');
+    let timezone = 'UTC';
+    if (tzParam) {
+      try {
+        timezone = new Intl.DateTimeFormat(undefined, { timeZone: tzParam }).resolvedOptions()
+          .timeZone;
+      } catch {
+        return new NextResponse(`Invalid "tz" parameter: "${tzParam}"`, { status: 400 });
+      }
+    }
+    const isAutoTheme = themeName === 'auto';
+    const isRandomTheme = themeName === 'random';
     const selectedTheme = (() => {
       if (isAutoTheme) return themes.light;
 
@@ -62,7 +84,7 @@ export async function GET(request: Request) {
       return themes[theme] || themes.dark;
     })();
 
-    // ⚠️ Safety layer for rendering only (not parsing logic)
+    // â ï¸ Safety layer for rendering only (not parsing logic)
     const parsedRadius = Number(radius);
     const safeRadius = Number.isFinite(parsedRadius) ? Math.min(32, Math.max(0, parsedRadius)) : 8;
     const params: BadgeParams = {
@@ -75,11 +97,12 @@ export async function GET(request: Request) {
       radius: safeRadius,
       speed,
       scale,
-      font,
-
+      font: sanitizedFont,
       autoTheme: isAutoTheme,
+      hide_title,
       hideBackground: hide_background,
       hide_stats: hide_stats,
+      lang,
     };
 
     const calendar = await fetchGitHubContributions(user, {
@@ -87,12 +110,15 @@ export async function GET(request: Request) {
       from,
       to,
     });
-
-    const stats = calculateStreak(calendar);
+    const stats = calculateStreak(calendar, timezone);
     const svg = generateSVG(stats, params, calendar);
 
-    const secondsToMidnight = getSecondsUntilUTCMidnight();
-
+    // 4. Calculate Cache Control  reset at local midnight when ?tz= is supplied,
+    //    otherwise fall back to UTC midnight (original behaviour).
+    //    Random themes are never cached because their output changes on every request.
+    const secondsToMidnight = tzParam
+      ? getSecondsUntilMidnightInTimezone(timezone)
+      : getSecondsUntilUTCMidnight();
     const cacheControl =
       refresh || isRandomTheme
         ? 'no-cache, no-store, must-revalidate'

@@ -1,7 +1,11 @@
 // lib/calculate.ts
 import type { ContributionCalendar, StreakStats } from '../types';
 
-export function calculateStreak(calendar: ContributionCalendar): StreakStats {
+export function calculateStreak(
+  calendar: ContributionCalendar,
+  timezone: string = 'UTC',
+  now: Date = new Date()
+): StreakStats {
   const weeks = calendar.weeks;
   const days = weeks.flatMap((week) => week.contributionDays);
 
@@ -20,13 +24,21 @@ export function calculateStreak(calendar: ContributionCalendar): StreakStats {
   }
 
   // 2. Calculate Current Streak (Backwards loop with Grace Period)
-  // We look at the very last day in the array (Today in UTC)
-  const todayIndex = days.length - 1;
+  // Find "today" in the user's timezone. Without this, a user in UTC-8 at 07:00 UTC
+  // (still the previous calendar day locally) would have the UTC "today" — which has
+  // no commits yet — treated as their current day, silently breaking their streak.
+  const localTodayStr = new Intl.DateTimeFormat('en-CA', { timeZone: timezone }).format(now);
+  const localTodayIndex = days.findIndex((d) => d.date === localTodayStr);
+  // If the local date isn't in the GitHub data (timezone ahead of UTC, or calendar
+  // doesn't extend to today), fall back to the last available day.
+  const todayIndex = localTodayIndex !== -1 ? localTodayIndex : days.length - 1;
+
   if (todayIndex < 0) {
     return {
       currentStreak: 0,
       longestStreak: 0,
       totalContributions: calendar.totalContributions,
+      todayDate: localTodayStr,
     };
   }
 
@@ -36,8 +48,7 @@ export function calculateStreak(calendar: ContributionCalendar): StreakStats {
   // If I committed today, the streak is alive.
   // If I haven't committed today, but I committed yesterday,
   // the streak is STILL alive (Grace Period).
-  const isStreakAlive =
-    today.contributionCount > 0 || (yesterday ? yesterday.contributionCount > 0 : false);
+  const isStreakAlive = today.contributionCount > 0 || (yesterday?.contributionCount ?? 0) > 0;
 
   if (isStreakAlive) {
     // Count backwards from the first day that has a contribution
@@ -52,9 +63,16 @@ export function calculateStreak(calendar: ContributionCalendar): StreakStats {
     currentStreak = 0;
   }
 
+  // When the local date isn't in the calendar (e.g. UTC+14 user whose local date is
+  // already tomorrow), fall back to the last available day so todayDate always refers
+  // to a date that exists in the calendar and the SVG pulse can match it.
+  const todayDate =
+    localTodayIndex !== -1 ? localTodayStr : (days[todayIndex]?.date ?? localTodayStr);
+
   return {
     currentStreak,
     longestStreak,
     totalContributions: calendar.totalContributions,
+    todayDate,
   };
 }

@@ -3,19 +3,33 @@
 import { motion } from 'framer-motion';
 import { Flame, TrendingUp, GitCommit, LucideIcon } from 'lucide-react';
 
-const iconMap: Record<string, LucideIcon> = { Flame, TrendingUp, GitCommit };
+const iconMap: Record<string, LucideIcon> = {
+  Flame,
+  TrendingUp,
+  GitCommit,
+};
 
 interface StatsCardProps {
   title: string;
   value: string;
   description: string;
   icon: string;
+  showUTCDisclaimer?: boolean;
+  utcDate?: string;
 }
 
-export default function StatsCard({ title, value, description, icon }: StatsCardProps) {
+export default function StatsCard({
+  title,
+  value,
+  description,
+  icon,
+  showUTCDisclaimer,
+  utcDate,
+}: StatsCardProps) {
   const IconComponent = iconMap[icon] || Flame;
 
   const baseSeed = title.length;
+
   const miniChartData = Array.from({ length: 12 }).map(
     (_, i) => ((baseSeed * 17 + i * 31) % 100) + (i > 6 ? 40 : 0)
   );
@@ -34,9 +48,22 @@ export default function StatsCard({ title, value, description, icon }: StatsCard
           <p className="text-xs text-[#A1A1AA] uppercase tracking-widest font-medium mb-3">
             {title}
           </p>
+
           <p className="text-4xl font-semibold text-white tracking-tight">{value}</p>
+
           <p className="text-xs text-[#A1A1AA] mt-1.5">{description}</p>
+
+          {showUTCDisclaimer && (
+            <div className="mt-3 space-y-1">
+              <p className="text-[11px] text-[#71717A] leading-relaxed">
+                ℹ Streaks are calculated in UTC and may differ from your local timezone.
+              </p>
+
+              {utcDate && <p className="text-[10px] text-[#52525B]">UTC Date: {utcDate}</p>}
+            </div>
+          )}
         </div>
+
         <div className="p-2 rounded-lg bg-[#111] border border-[rgba(255,255,255,0.06)] group-hover:border-[rgba(99,102,241,0.2)] transition-colors duration-200">
           <IconComponent
             size={18}

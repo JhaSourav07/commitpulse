@@ -181,3 +181,80 @@ describe('calculateStreak', () => {
     expect(result.longestStreak).toBe(0);
   });
 });
+
+describe('calculateStreak — timezone awareness', () => {
+  // These tests use real date strings so we can verify timezone-based "today" lookup.
+  //
+  // Core scenario: a UTC-8 user opens the badge early in the UTC morning.
+  //   now = 2024-06-16T07:00:00Z  →  local date in Etc/GMT+8 (UTC-8) = 2024-06-15
+  //
+  // The GitHub data includes June 15 (with commits) and June 16 (no commits yet).
+  // Without timezone awareness the last entry (June 16, 0 commits) becomes "today"
+  // and both today+yesterday have 0 commits → streak broken incorrectly.
+  // With timezone=Etc/GMT+8, "today" resolves to June 15 (has commits) → streak alive.
+
+  const tzCalendar = {
+    totalContributions: 3,
+    weeks: [
+      {
+        contributionDays: [
+          { contributionCount: 1, date: '2024-06-12' },
+          { contributionCount: 1, date: '2024-06-13' },
+          { contributionCount: 1, date: '2024-06-14' },
+          { contributionCount: 0, date: '2024-06-15' },
+          { contributionCount: 0, date: '2024-06-16' },
+        ],
+      },
+    ],
+  };
+
+  // 2024-06-16T07:00Z = 2024-06-15 23:00 in Etc/GMT+8 (UTC-8)
+  const nowUTC = new Date('2024-06-16T07:00:00.000Z');
+
+  it('breaks the streak when evaluated in UTC because today and yesterday both have 0 commits', () => {
+    const result = calculateStreak(tzCalendar, 'UTC', nowUTC);
+
+    // In UTC: today=June 16 (0), yesterday=June 15 (0) → no grace period
+    expect(result.currentStreak).toBe(0);
+  });
+
+  it('preserves the streak when the local date (UTC-8) maps to a day with commits via grace period', () => {
+    // In Etc/GMT+8 (UTC-8): local date = June 15, which has 0 commits,
+    // but local yesterday = June 14 (1 commit) → grace period → streak alive
+    const result = calculateStreak(tzCalendar, 'Etc/GMT+8', nowUTC);
+
+    expect(result.currentStreak).toBe(3);
+  });
+
+  it('falls back to the last available day when the local date is ahead of the calendar data', () => {
+    // Etc/GMT-14 is UTC+14 — the furthest-ahead timezone on earth.
+    // At 2024-06-16T07:00Z, local date in UTC+14 = 2024-06-16T21:00 → June 16.
+    // June 16 IS in the calendar (last entry, 0 commits), so the lookup succeeds.
+    // Choosing a now where local date would be June 17 (not in calendar) tests the fallback.
+    const futureNow = new Date('2024-06-16T12:00:00.000Z'); // UTC+14 → June 17 02:00
+    const result = calculateStreak(tzCalendar, 'Etc/GMT-14', futureNow);
+
+    // Falls back to days.length-1 = June 16 (0 commits), yesterday = June 15 (0 commits) → 0
+    expect(result.currentStreak).toBe(0);
+    expect(result.longestStreak).toBe(3);
+  });
+
+  it('still calculates longestStreak correctly regardless of timezone', () => {
+    const result = calculateStreak(tzCalendar, 'Etc/GMT+8', nowUTC);
+
+    expect(result.longestStreak).toBe(3);
+    expect(result.totalContributions).toBe(3);
+  });
+
+  it('returns the correct local todayDate for use by the SVG generator', () => {
+    // nowUTC = 2024-06-16T07:00Z → local date in Etc/GMT+8 (UTC-8) = 2024-06-15
+    const result = calculateStreak(tzCalendar, 'Etc/GMT+8', nowUTC);
+    expect(result.todayDate).toBe('2024-06-15');
+  });
+
+  it('returns UTC date as todayDate when no timezone is given', () => {
+    // nowUTC = 2024-06-16T07:00Z → UTC date = 2024-06-16
+    const result = calculateStreak(tzCalendar, 'UTC', nowUTC);
+    expect(result.todayDate).toBe('2024-06-16');
+  });
+});
