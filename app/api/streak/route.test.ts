@@ -10,10 +10,11 @@ vi.mock('../../../lib/github', () => ({
 
 vi.mock('../../../utils/time', () => ({
   getSecondsUntilUTCMidnight: vi.fn(),
+  getSecondsUntilMidnightInTimezone: vi.fn(),
 }));
 
 import { fetchGitHubContributions } from '../../../lib/github';
-import { getSecondsUntilUTCMidnight } from '../../../utils/time';
+import { getSecondsUntilUTCMidnight, getSecondsUntilMidnightInTimezone } from '../../../utils/time';
 import type { ContributionCalendar } from '../../../types';
 
 // Two weeks of realistic data. The last day has 0 contributions so the streak
@@ -56,9 +57,11 @@ function makeRequest(params: Record<string, string> = {}): Request {
 
 describe('GET /api/streak', () => {
   beforeEach(() => {
+    vi.clearAllMocks(); // reset call counts so per-test call assertions are isolated
     vi.mocked(fetchGitHubContributions).mockResolvedValue(mockCalendar);
-    // Fixed value so Cache-Control assertions don't depend on the real clock.
+    // Fixed values so Cache-Control assertions don't depend on the real clock.
     vi.mocked(getSecondsUntilUTCMidnight).mockReturnValue(3600);
+    vi.mocked(getSecondsUntilMidnightInTimezone).mockReturnValue(7200);
   });
 
   describe('parameter validation', () => {
@@ -173,11 +176,11 @@ describe('GET /api/streak', () => {
       expect(body).toContain('3s');
     });
 
-    it('accepts a decimal speed like "1.5s"', async () => {
+    it('falls back to 8s for decimal values below minimum bound', async () => {
       const response = await GET(makeRequest({ user: 'octocat', speed: '1.5s' }));
       const body = await response.text();
 
-      expect(body).toContain('1.5s');
+      expect(body).toContain('8s');
     });
 
     it('falls back to 8s when the speed format is invalid (no unit)', async () => {
@@ -192,12 +195,25 @@ describe('GET /api/streak', () => {
       const response = await GET(makeRequest({ user: 'octocat', speed: '5' }));
       const body = await response.text();
 
-      // "5" doesn't match /^\d+(\.\d+)?s$/, so the default kicks in.
       expect(body).toContain('8s');
     });
 
-    it('falls back to 8s when speed=10 is provided', async () => {
+    it('falls back to 8s when speed=10 is provided without unit', async () => {
       const response = await GET(makeRequest({ user: 'octocat', speed: '10' }));
+      const body = await response.text();
+
+      expect(body).toContain('8s');
+    });
+
+    it('falls back to 8s when speed is below minimum bound', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', speed: '1s' }));
+      const body = await response.text();
+
+      expect(body).toContain('8s');
+    });
+
+    it('falls back to 8s when speed exceeds maximum bound', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', speed: '999s' }));
       const body = await response.text();
 
       expect(body).toContain('8s');
@@ -303,6 +319,48 @@ describe('GET /api/streak', () => {
 
       expect(body).toContain('<svg');
       expect(body).toContain('</svg>');
+    });
+  });
+
+  describe('timezone parameter (?tz=)', () => {
+    it('returns 400 when an unrecognised IANA timezone is supplied', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', tz: 'Not/ATimezone' }));
+
+      expect(response.status).toBe(400);
+      const body = await response.text();
+      expect(body).toContain('Invalid "tz" parameter');
+    });
+
+    it('returns 400 and names the bad value in the error message', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', tz: 'garbage' }));
+      const body = await response.text();
+
+      expect(body).toContain('garbage');
+    });
+
+    it('returns 200 with a valid IANA timezone', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', tz: 'America/New_York' }));
+
+      expect(response.status).toBe(200);
+    });
+
+    it('uses getSecondsUntilMidnightInTimezone (not UTC) for the cache TTL when ?tz= is set', async () => {
+      // getSecondsUntilMidnightInTimezone is mocked to return 7200 in beforeEach.
+      // getSecondsUntilUTCMidnight returns 3600. The header should use 7200.
+      const response = await GET(makeRequest({ user: 'octocat', tz: 'America/New_York' }));
+
+      expect(response.headers.get('Cache-Control')).toBe(
+        'public, s-maxage=7200, stale-while-revalidate=86400'
+      );
+      expect(getSecondsUntilMidnightInTimezone).toHaveBeenCalledWith('America/New_York');
+      expect(getSecondsUntilUTCMidnight).not.toHaveBeenCalled();
+    });
+
+    it('still uses getSecondsUntilUTCMidnight when no ?tz= param is given', async () => {
+      await GET(makeRequest({ user: 'octocat' }));
+
+      expect(getSecondsUntilUTCMidnight).toHaveBeenCalled();
+      expect(getSecondsUntilMidnightInTimezone).not.toHaveBeenCalled();
     });
   });
 });

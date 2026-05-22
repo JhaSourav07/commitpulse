@@ -16,6 +16,15 @@ export const streakParamsSchema = z.object({
   speed: z
     .string()
     .regex(/^\d+(\.\d+)?s$/)
+    .transform((value) => {
+      const numeric = parseFloat(value.replace('s', ''));
+
+      if (numeric < 2 || numeric > 20) {
+        return '8s';
+      }
+
+      return `${numeric}s`;
+    })
     .catch('8s')
     .default('8s'),
 
@@ -26,6 +35,18 @@ export const streakParamsSchema = z.object({
     .string()
     .optional()
     .transform((val) => val === 'true'),
+  hide_title: z
+    .string()
+    .optional()
+    .transform((val) => val === 'true' || val === '1'),
+
+  hide_background: z
+    .string()
+    .optional()
+    .transform((val) => val === 'true'),
+
+  hide_stats: z.string().optional(),
+  lang: z.string().optional().default('en'),
 });
 
 export const githubParamsSchema = z.object({

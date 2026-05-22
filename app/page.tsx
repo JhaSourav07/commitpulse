@@ -170,7 +170,7 @@ function LandingContent() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.15 }}
           >
-            <h1 className="mb-8 bg-gradient-to-b from-black to-black/60 dark:from-white dark:to-white/30 bg-clip-text text-5xl font-extrabold tracking-tight text-transparent md:text-8xl">
+            <h1 className="mb-8 bg-linear-to-b from-black to-black/60 dark:from-white dark:to-white/30 bg-clip-text text-4xl sm:text-5xl font-extrabold tracking-tight text-transparent md:text-8xl">
               Elevate Your <br /> Contribution Story.
             </h1>
           </motion.div>
@@ -179,7 +179,7 @@ function LandingContent() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.3 }}
-            className="mx-auto max-w-2xl text-lg leading-relaxed text-gray-600 dark:text-gray-400 md:text-xl"
+            className="mx-auto max-w-2xl text-sm sm:text-lg leading-relaxed text-gray-600 dark:text-gray-400 md:text-xl"
           >
             Stop settling for flat grids. Generate high-fidelity, 3D isometric monoliths that
             visualize your coding rhythm with professional precision.
@@ -280,10 +280,10 @@ function LandingContent() {
                     <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/[0.04] text-black/60 dark:text-white/60">
                       <Icons.Github />
                     </div>
-                    <p className="text-lg font-semibold tracking-tight text-black dark:text-white">
+                    <p className="md:text-lg text-md font-semibold tracking-tight text-black dark:text-white">
                       Enter a GitHub username to preview
                     </p>
-                    <p className="mt-2 max-w-md text-sm leading-relaxed text-[#A1A1AA]">
+                    <p className="mt-2 max-w-md text-xs xs:text-sm leading-relaxed text-[#A1A1AA]">
                       Your 3D contribution monolith will appear here as soon as you add a username.
                     </p>
                   </div>

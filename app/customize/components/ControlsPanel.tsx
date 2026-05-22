@@ -85,6 +85,8 @@ export function ControlsPanel({
   textHex,
   scale,
   speed,
+  year,
+  radius,
   onUsernameChange,
   onThemeChange,
   onBgHexChange,
@@ -92,7 +94,9 @@ export function ControlsPanel({
   onTextHexChange,
   onScaleChange,
   onSpeedChange,
+  onYearChange,
   onClearOverrides,
+  onRadiusChange,
 }: {
   username: string;
   theme: string;
@@ -101,6 +105,8 @@ export function ControlsPanel({
   textHex: string;
   scale: Scale;
   speed: string;
+  year: string;
+  radius: number;
   onUsernameChange: (value: string) => void;
   onThemeChange: (value: string) => void;
   onBgHexChange: (value: string) => void;
@@ -108,9 +114,12 @@ export function ControlsPanel({
   onTextHexChange: (value: string) => void;
   onScaleChange: (value: Scale) => void;
   onSpeedChange: (value: string) => void;
+  onYearChange: (value: string) => void;
   onClearOverrides: () => void;
+  onRadiusChange: (value: number) => void;
 }): ReactElement {
   const hasOverrides = Boolean(bgHex || accentHex || textHex);
+  const currentYear = new Date().getFullYear();
   const isAutoTheme = theme === 'auto';
 
   return (
@@ -131,9 +140,28 @@ export function ControlsPanel({
           />
         </ControlRow>
 
-        <div className="h-px bg-white/5" />
-
         <ThemeSelector theme={theme} onThemeChange={onThemeChange} />
+
+        <div className="h-px bg-white/5" />
+        <ControlRow label="Year">
+          <div className="relative">
+            <StyledSelect id="year-select" value={year} onChange={(value) => onYearChange(value)}>
+              <option value="">{currentYear} (current)</option>
+
+              {Array.from({ length: currentYear - 2019 }, (_, i) => {
+                const yearOption = currentYear - i - 1;
+
+                return (
+                  <option key={yearOption} value={yearOption.toString()}>
+                    {yearOption}
+                  </option>
+                );
+              })}
+            </StyledSelect>
+          </div>
+        </ControlRow>
+
+        <div className="h-px bg-white/5" />
 
         <div className="h-px bg-white/5" />
 
@@ -222,6 +250,26 @@ export function ControlsPanel({
                 </option>
               ))}
             </StyledSelect>
+          </div>
+        </ControlRow>
+
+        <ControlRow label="Border Radius">
+          <div className="relative flex items-center">
+            <div className="absolute inset-x-0 h-0.75  rounded-full  bg-white/6 " />
+            <input
+              type="range"
+              min="0"
+              max="50"
+              step="1"
+              value={radius}
+              onChange={(e) => onRadiusChange(Number(e.target.value))}
+              className="w-full relative bg-transparent appearance-none outline-none slider"
+            />
+          </div>
+          <div className="flex justify-between text-sm text-white/20 ">
+            <span>0</span>
+            <span className="text-emerald-300/60 font-mono text-[11px]">{radius}</span>
+            <span>50</span>
           </div>
         </ControlRow>
       </div>
