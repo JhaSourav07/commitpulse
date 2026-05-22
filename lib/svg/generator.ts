@@ -1,4 +1,5 @@
 import type { BadgeParams, ContributionCalendar, StreakStats } from '../../types';
+import { getLabels } from '../i18n/badgeLabels';
 import { AUTO_DARK_THEME, AUTO_LIGHT_THEME } from './themes';
 
 // constants
@@ -99,7 +100,11 @@ function computeFaceOpacity(count: number, isGhostCityMode: boolean): FaceOpacit
  * contribution data. The layout math is identical for both the
  * static-theme and auto-theme rendering paths.
  */
-function computeTowers(calendar: ContributionCalendar, scale: 'linear' | 'log'): TowerData[] {
+function computeTowers(
+  calendar: ContributionCalendar,
+  scale: 'linear' | 'log',
+  todayDate: string
+): TowerData[] {
   const weeks = calendar.weeks.slice(-14);
   const towers: TowerData[] = [];
 
@@ -113,9 +118,19 @@ function computeTowers(calendar: ContributionCalendar, scale: 'linear' | 'log'):
 
   const shouldShowGhostCity = totalVisibleContributions === 0;
 
+  // Pre-check: is todayDate present in the visible 14-week window?
+  // If not (e.g. stale cache or todayDate outside the window), fall back to
+  // marking the last visible day as "today" so the pulse always appears.
+  const todayInWindow = weeks.some((w) => w.contributionDays.some((d) => d.date === todayDate));
+
   weeks.forEach((week, i) => {
     week.contributionDays.forEach((day, j) => {
-      const isToday = i === weeks.length - 1 && j === week.contributionDays.length - 1;
+      // Use the caller-supplied local date so the pulse animation fires on the
+      // correct tower for users in non-UTC timezones, not always the last UTC entry.
+      const isToday =
+        day.date === todayDate ||
+        // Fallback: if todayDate isn't in the visible window, keep the old behaviour.
+        (!todayInWindow && i === weeks.length - 1 && j === week.contributionDays.length - 1);
       const hasCommits = day.contributionCount > 0;
       const isGhost = !hasCommits && shouldShowGhostCity;
       const isTodayWithCommits = isToday && hasCommits;
@@ -217,7 +232,7 @@ export function generateSVG(
   const accent = `#${(params.accent || '00ffaa').replace('#', '')}`;
   const text = `#${(params.text || 'ffffff').replace('#', '')}`;
 
-  const sanitizeFont = (name: string) => name.replace(/[^a-zA-Z0-9\s-]/g, '').trim();
+  const sanitizeFont = (name: string): string => name.replace(/[^a-zA-Z0-9\s\-']/g, '').trim();
   const sanitizedFont = params.font ? sanitizeFont(params.font) : null;
   const predefinedFont = sanitizedFont ? FONT_MAP[sanitizedFont.toLowerCase()] : null;
   const isPredefinedFont = Boolean(predefinedFont);
@@ -230,8 +245,9 @@ export function generateSVG(
   const statsFont = selectedFont || '"Space Grotesk", sans-serif';
   const parsedRadius = Number(params.radius);
   const radius = Math.max(0, Math.min(Number.isNaN(parsedRadius) ? 8 : parsedRadius, 50));
+  const labels = getLabels(params.lang);
 
-  const towerData = computeTowers(calendar, params.scale);
+  const towerData = computeTowers(calendar, params.scale, stats.todayDate);
   let towers = '';
 
   for (const t of towerData) {
@@ -302,41 +318,37 @@ export function generateSVG(
     !params.hide_stats
       ? `
   <g transform="translate(40, 340)">
-    <text class="label">CURRENT_STREAK</text>
+    <text class="label">${labels.CURRENT_STREAK}</text>
     <text y="40" class="stats" filter="url(#glow)">${stats.currentStreak}</text>
   </g>
 
   <g transform="translate(300, 340)" text-anchor="middle">
-    <text class="label">ANNUAL_SYNC_TOTAL</text>
+    <text class="label">${labels.ANNUAL_SYNC_TOTAL}</text>
     <text y="40" class="total-val" filter="url(#glow)">${stats.totalContributions}</text>
   </g>
 
   <g transform="translate(560, 340)" text-anchor="end">
-    <text class="label">PEAK_STREAK</text>
+    <text class="label">${labels.PEAK_STREAK}</text>
     <text y="40" class="stats">${stats.longestStreak}</text>
   </g>
-  `
+`
       : ''
   }
-  <text x="300" y="50" text-anchor="middle" class="title">${safeUser.toUpperCase()}</text>
 
-  <rect x="100" y="60" width="400" height="1" fill="${accent}" fill-opacity="0.3">
-    <animate attributeName="y" values="80;320;80" dur="${params.speed || '8s'}" repeatCount="indefinite" />
-  </rect>
+${
+  !params.hide_title
+    ? `<text x="300" y="50" text-anchor="middle" class="title">${safeUser.toUpperCase()}</text>`
+    : ''
+}
+
+<rect x="100" y="60" width="400" height="1" fill="${accent}" fill-opacity="0.3">
+  <animate attributeName="y" values="80;320;80" dur="${params.speed || '8s'}" repeatCount="indefinite" />
+</rect>
 </svg>
 `;
 }
 
-/**
- * Generates an SVG that automatically switches between a light and
- * dark color palette using CSS @media (prefers-color-scheme: dark).
- *
- * All fill colors are driven by CSS custom properties (--cp-bg,
- * --cp-text, --cp-accent) so the browser swaps them at runtime
- * without any JavaScript.  Because GitHub README images are served
- * as <img> resources, the browser's native CSS engine renders the
- * SVG and fully respects the media query.
- */
+//generates an svg for the non existent users
 function generateAutoThemeSVG(
   stats: StreakStats,
   params: BadgeParams,
@@ -345,14 +357,16 @@ function generateAutoThemeSVG(
   const light = AUTO_LIGHT_THEME;
   const dark = AUTO_DARK_THEME;
   const safeUser = escapeXML(params.user || 'GitHub User');
-  const selectedFont = params.font
-    ? FONT_MAP[params.font.toLowerCase()] || '"JetBrains Mono", monospace'
-    : null;
+  const sanitizeFont = (name: string): string => name.replace(/[^a-zA-Z0-9\s\-']/g, '').trim();
+  const sanitizedFont = params.font ? sanitizeFont(params.font) : null;
+  const predefinedFont = sanitizedFont ? FONT_MAP[sanitizedFont.toLowerCase()] : null;
+  const selectedFont = predefinedFont || (sanitizedFont ? `"${sanitizedFont}", sans-serif` : null);
   const statsFont = selectedFont || '"Space Grotesk", sans-serif';
   const parsedRadius = Number(params.radius);
   const radius = Math.max(0, Math.min(Number.isNaN(parsedRadius) ? 8 : parsedRadius, 50));
+  const labels = getLabels(params.lang);
 
-  const towerData = computeTowers(calendar, params.scale);
+  const towerData = computeTowers(calendar, params.scale, stats.todayDate);
   let towers = '';
 
   for (const t of towerData) {
@@ -422,27 +436,216 @@ function generateAutoThemeSVG(
     !params.hide_stats
       ? `
   <g transform="translate(40, 340)">
-    <text class="label">CURRENT_STREAK</text>
+    <text class="label">${labels.CURRENT_STREAK}</text>
     <text y="40" class="stats" filter="url(#glow)">${stats.currentStreak}</text>
   </g>
 
   <g transform="translate(300, 340)" text-anchor="middle">
-    <text class="label">ANNUAL_SYNC_TOTAL</text>
+    <text class="label">${labels.ANNUAL_SYNC_TOTAL}</text>
     <text y="40" class="total-val" filter="url(#glow)">${stats.totalContributions}</text>
   </g>
 
   <g transform="translate(560, 340)" text-anchor="end">
-    <text class="label">PEAK_STREAK</text>
+    <text class="label">${labels.PEAK_STREAK}</text>
     <text y="40" class="stats">${stats.longestStreak}</text>
   </g>
-  `
+`
       : ''
   }
-  <text x="300" y="50" text-anchor="middle" class="title">${safeUser.toUpperCase()}</text>
 
-  <rect x="100" y="60" width="400" height="1" class="cp-accent-fill" fill-opacity="0.3">
-    <animate attributeName="y" values="80;320;80" dur="${params.speed || '8s'}" repeatCount="indefinite" />
-  </rect>
+${
+  !params.hide_title
+    ? `<text x="300" y="50" text-anchor="middle" class="title">${safeUser.toUpperCase()}</text>`
+    : ''
+}
+
+<rect x="100" y="60" width="400" height="1" class="cp-accent-fill" fill-opacity="0.3">
+  <animate attributeName="y" values="80;320;80" dur="${params.speed || '8s'}" repeatCount="indefinite" />
+</rect>
 </svg>
 `;
+}
+
+export function generateNotFoundSVG(
+  username: string,
+  bg: string,
+  accent: string,
+  text: string,
+  radius: number,
+  speed: string = '8s'
+): string {
+  const safeName = escapeXML(username.toUpperCase());
+
+  // Ghost towers — same isometric math as computeTowers() but with fixed
+  // deterministic heights so the silhouette looks like a real city.
+  const ghostLayout: { col: number; row: number; h: number }[] = [
+    { col: 0, row: 0, h: 8 },
+    { col: 1, row: 0, h: 20 },
+    { col: 2, row: 0, h: 12 },
+    { col: 3, row: 0, h: 30 },
+    { col: 4, row: 0, h: 16 },
+    { col: 5, row: 0, h: 10 },
+    { col: 6, row: 0, h: 24 },
+    { col: 7, row: 0, h: 8 },
+
+    { col: 0, row: 1, h: 6 },
+    { col: 1, row: 1, h: 14 },
+    { col: 2, row: 1, h: 36 },
+    { col: 3, row: 1, h: 22 },
+    { col: 4, row: 1, h: 44 },
+    { col: 5, row: 1, h: 18 },
+    { col: 6, row: 1, h: 10 },
+    { col: 7, row: 1, h: 28 },
+
+    { col: 0, row: 2, h: 10 },
+    { col: 1, row: 2, h: 26 },
+    { col: 2, row: 2, h: 16 },
+    { col: 3, row: 2, h: 38 },
+    { col: 4, row: 2, h: 20 },
+    { col: 5, row: 2, h: 32 },
+    { col: 6, row: 2, h: 14 },
+    { col: 7, row: 2, h: 6 },
+
+    { col: 0, row: 3, h: 4 },
+    { col: 1, row: 3, h: 18 },
+    { col: 2, row: 3, h: 28 },
+    { col: 3, row: 3, h: 12 },
+    { col: 4, row: 3, h: 34 },
+    { col: 5, row: 3, h: 8 },
+    { col: 6, row: 3, h: 22 },
+    { col: 7, row: 3, h: 16 },
+
+    { col: 0, row: 4, h: 8 },
+    { col: 1, row: 4, h: 30 },
+    { col: 2, row: 4, h: 10 },
+    { col: 3, row: 4, h: 20 },
+    { col: 4, row: 4, h: 16 },
+    { col: 5, row: 4, h: 40 },
+    { col: 6, row: 4, h: 12 },
+    { col: 7, row: 4, h: 24 },
+
+    { col: 0, row: 5, h: 14 },
+    { col: 1, row: 5, h: 8 },
+    { col: 2, row: 5, h: 22 },
+    { col: 3, row: 5, h: 32 },
+    { col: 4, row: 5, h: 10 },
+    { col: 5, row: 5, h: 18 },
+    { col: 6, row: 5, h: 28 },
+    { col: 7, row: 5, h: 6 },
+  ];
+
+  let ghostTowers = '';
+  for (const { col, row, h } of ghostLayout) {
+    const tx = 300 + (col - row) * 16;
+    const ty = 120 + (col + row) * 9;
+
+    ghostTowers += `
+      <g transform="translate(${tx}, ${ty - h})">
+        <path d="M0 10 L0 ${10 + h} L-16 ${h} L-16 0 Z"
+          fill="${accent}" fill-opacity="0.08"
+          stroke="${accent}" stroke-opacity="0.18" stroke-width="0.5"/>
+        <path d="M0 10 L0 ${10 + h} L16 ${h} L16 0 Z"
+          fill="${accent}" fill-opacity="0.05"
+          stroke="${accent}" stroke-opacity="0.12" stroke-width="0.5"/>
+        <path d="M0 0 L16 10 L0 20 L-16 10 Z"
+          fill="${accent}" fill-opacity="0.14"
+          stroke="${accent}" stroke-opacity="0.22" stroke-width="0.5"/>
+      </g>`;
+  }
+
+  return `<svg
+  xmlns="http://www.w3.org/2000/svg"
+  width="600"
+  height="420"
+  viewBox="0 0 600 420"
+  fill="none"
+  role="img"
+>
+  <title>User not found — ${safeName}</title>
+  <defs>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="5" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+    <filter id="softglow" x="-80%" y="-80%" width="360%" height="360%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+    <!-- Fade the ghost city out toward the bottom -->
+    <linearGradient id="ghostFade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="30%" stop-color="${bg}" stop-opacity="0"/>
+      <stop offset="100%" stop-color="${bg}" stop-opacity="1"/>
+    </linearGradient>
+  </defs>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600&amp;display=swap');
+    .title  { font-family: "Syncopate", sans-serif; fill: ${text}; font-size: 18px; letter-spacing: 6px; font-weight: 400; opacity: 0.5; }
+    .label  { font-family: "Roboto", sans-serif; fill: ${accent}; font-size: 11px; letter-spacing: 2px; opacity: 0.4; }
+    .stats  { font-family: "Space Grotesk", sans-serif; fill: ${text}; font-size: 42px; font-weight: 500; opacity: 0.2; }
+    .ghost-pulse { animation: gp 2.6s ease-in-out infinite; }
+    @keyframes gp { 0%,100%{opacity:.55} 50%{opacity:1} }
+    @media (prefers-reduced-motion: reduce) { .ghost-pulse { animation: none; } }
+  </style>
+
+  <!-- Background -->
+  <rect width="600" height="420" rx="${radius}" fill="${bg}"/>
+
+  <!-- Ghost isometric city — same grid as real badge -->
+  <g transform="translate(0, 20)" class="ghost-pulse">
+    ${ghostTowers}
+  </g>
+
+  <!-- Fade overlay so ghost city dissolves into background -->
+  <rect width="600" height="420" rx="${radius}" fill="url(#ghostFade)"/>
+
+  <!-- Radar scan line (same as real badge, but very faint) -->
+  <rect x="100" y="60" width="400" height="1" fill="${accent}" fill-opacity="0.12">
+    <animate attributeName="y" values="80;320;80" dur="${speed}" repeatCount="indefinite"/>
+  </rect>
+
+  <!-- Username label (same position as real badge) -->
+  <text x="300" y="50" text-anchor="middle" class="title">${safeName}</text>
+
+  <!-- Divider below title -->
+  <rect x="180" y="62" width="240" height="1" fill="${accent}" fill-opacity="0.15"/>
+
+  <!-- Central error mark -->
+  <circle cx="300" cy="190" r="32" fill="none"
+    stroke="${accent}" stroke-width="1.2" stroke-opacity="0.3" filter="url(#softglow)"/>
+  <line x1="286" y1="176" x2="314" y2="204"
+    stroke="${accent}" stroke-width="1.8" stroke-linecap="round" stroke-opacity="0.55"/>
+  <line x1="314" y1="176" x2="286" y2="204"
+    stroke="${accent}" stroke-width="1.8" stroke-linecap="round" stroke-opacity="0.55"/>
+
+  <!-- "NOT FOUND" badge -->
+  <rect x="230" y="235" width="140" height="22" rx="4"
+    fill="${accent}" fill-opacity="0.08"
+    stroke="${accent}" stroke-width="0.8" stroke-opacity="0.25"/>
+  <text x="300" y="250" text-anchor="middle"
+    font-family="Syncopate, sans-serif" font-size="9" font-weight="700"
+    fill="${accent}" opacity="0.7" letter-spacing="4">NOT FOUND</text>
+
+  <!-- Sub-hint -->
+  <text x="300" y="278" text-anchor="middle"
+    font-family="Space Grotesk, sans-serif" font-size="11"
+    fill="${text}" opacity="0.3">
+    This GitHub user doesn't exist
+  </text>
+
+  <!-- Bottom stat placeholders (same layout as real badge, greyed out) -->
+  <g transform="translate(40, 340)">
+    <text class="label">CURRENT_STREAK</text>
+    <text y="40" class="stats">—</text>
+  </g>
+  <g transform="translate(300, 340)" text-anchor="middle">
+    <text class="label">ANNUAL_SYNC_TOTAL</text>
+    <text y="40" font-family="Space Grotesk,sans-serif" font-size="24"
+      fill="${accent}" opacity="0.2">—</text>
+  </g>
+  <g transform="translate(560, 340)" text-anchor="end">
+    <text class="label">PEAK_STREAK</text>
+    <text y="40" class="stats">—</text>
+  </g>
+</svg>`;
 }

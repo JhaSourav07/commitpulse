@@ -9,6 +9,7 @@ import { X, Layers } from 'lucide-react'; // Added Layers for the 4th card icon
 
 import { CommitPulseLogo } from '@/components/commitpulse-logo';
 import { CustomizeCTA } from './components/CustomizeCTA';
+import { useRecentSearches } from '@/hooks/useRecentSearches';
 
 const Icons = {
   Github: () => (
@@ -119,6 +120,7 @@ export default function LandingPage() {
   const [username, setUsername] = useState('');
   const [copied, setCopied] = useState(false);
   const guideRef = useRef<HTMLDivElement>(null);
+  const { searches, addSearch, clearSearches } = useRecentSearches();
   const trimmedUsername = username.trim();
   const hasUsername = trimmedUsername.length > 0;
 
@@ -128,6 +130,8 @@ export default function LandingPage() {
   const copyToClipboard = () => {
     if (!hasUsername) return;
     trackUser(trimmedUsername);
+    addSearch(trimmedUsername);
+
     navigator.clipboard.writeText(markdown);
     setCopied(true);
     setTimeout(() => {
@@ -224,6 +228,7 @@ export default function LandingPage() {
                       e.preventDefault();
                     } else {
                       trackUser(trimmedUsername);
+                      addSearch(trimmedUsername);
                     }
                   }}
                   className={`relative flex min-w-[160px] items-center justify-center gap-2 overflow-hidden rounded-xl border px-6 py-3.5 text-sm font-semibold transition-all duration-200 active:scale-[0.98] ${hasUsername ? 'border-[rgba(255,255,255,0.15)] bg-transparent text-white hover:bg-white/5' : 'border-[rgba(255,255,255,0.08)] bg-white/[0.02] text-white/35'
@@ -233,6 +238,27 @@ export default function LandingPage() {
                 </Link>
               </div>
             </div>
+
+            {searches.length > 0 && (
+              <div className="flex flex-wrap items-center gap-2 mb-6 mt-3">
+                <span className="text-xs text-[#A1A1AA]">Recent:</span>
+                {searches.map((s) => (
+                  <button
+                    key={s}
+                    onClick={() => setUsername(s)}
+                    className="rounded-full border border-[rgba(255,255,255,0.08)] bg-[#111] px-3 py-1 text-xs text-white/70 transition-all hover:border-[rgba(255,255,255,0.2)] hover:text-white"
+                  >
+                    {s}
+                  </button>
+                ))}
+                <button
+                  onClick={clearSearches}
+                  className="text-xs text-[#A1A1AA] underline hover:text-white transition-colors"
+                >
+                  Clear
+                </button>
+              </div>
+            )}
 
             <div className="group relative">
               <div className="absolute -inset-1 rounded-[2rem] bg-white/5 opacity-50 blur-xl transition duration-1000 group-hover:opacity-100" />
