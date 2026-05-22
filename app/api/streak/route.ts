@@ -2,19 +2,18 @@
 import { NextResponse } from 'next/server';
 import { fetchGitHubContributions } from '../../../lib/github';
 import { calculateStreak } from '../../../lib/calculate';
-import { generateSVG } from '../../../lib/svg/generator';
+import { generateNotFoundSVG, generateSVG } from '../../../lib/svg/generator';
 import { getSecondsUntilUTCMidnight, getSecondsUntilMidnightInTimezone } from '../../../utils/time';
 import type { BadgeParams } from '../../../types';
 import { themes } from '../../../lib/svg/themes';
 import { streakParamsSchema } from '../../../lib/validations';
 
 export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+
+  // Parse and validate all incoming params through Zod schema
+  const parseResult = streakParamsSchema.safeParse(Object.fromEntries(searchParams.entries()));
   try {
-    const { searchParams } = new URL(request.url);
-
-    // â Single source of truth: Zod
-    const parseResult = streakParamsSchema.safeParse(Object.fromEntries(searchParams.entries()));
-
     if (!parseResult.success) {
       return NextResponse.json(
         {
@@ -134,7 +133,37 @@ export async function GET(request: Request) {
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';
+    const isNotFound =
+      message.toLowerCase().includes('not found') ||
+      message.toLowerCase().includes('could not resolve');
 
+    const errBg = `#${(parseResult.success && parseResult.data.bg) || '0d1117'}`;
+    const errAccent = `#${(parseResult.success && parseResult.data.accent) || '58a6ff'}`;
+    const errText = `#${(parseResult.success && parseResult.data.text) || 'c9d1d9'}`;
+    const errRadius = parseResult.success
+      ? (() => {
+          const r = Number(parseResult.data.radius);
+          return Number.isFinite(r) ? Math.min(32, Math.max(0, r)) : 8;
+        })()
+      : 8;
+    const errSpeed = (parseResult.success && parseResult.data.speed) || '8s';
+
+    if (isNotFound) {
+      const match = message.match(/"([^"]+)"|login of '([^']+)'/);
+      const badUsername =
+        match?.[1] ?? match?.[2] ?? (parseResult.success ? parseResult.data.user : 'unknown');
+
+      const svg = generateNotFoundSVG(badUsername, errBg, errAccent, errText, errRadius, errSpeed);
+      return new NextResponse(svg, {
+        status: 404,
+        headers: {
+          'Content-Type': 'image/svg+xml',
+          'Cache-Control': 'no-cache',
+          'Content-Security-Policy':
+            "default-src 'none'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com;",
+        },
+      });
+    }
     const errorSvg = `
       <svg xmlns="http://www.w3.org/2000/svg" width="400" height="150">
         <rect width="100%" height="100%" fill="#2d0000" rx="8"/>

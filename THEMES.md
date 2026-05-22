@@ -113,3 +113,11 @@ Usage: `/api/streak?user=yourusername&theme=auto`
 The `random` theme picks a surprise theme from the curated theme palette on every request. Note: random badges are never cached so every load fetches fresh data.
 
 Usage: `/api/streak?user=yourusername&theme=random`
+
+---
+
+## 🔥 High Contrast
+
+Near-black background with vivid red-orange accent and medium-grey text — maximum legibility on both solid and transparent backgrounds for low-vision accessibility.
+
+Usage: `/api/streak?user=yourusername&theme=highcontrast`
