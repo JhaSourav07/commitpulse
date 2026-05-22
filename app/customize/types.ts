@@ -17,3 +17,11 @@ export const SPEEDS = [
   { value: '12s', label: 'Slow  (12s)' },
   { value: '20s', label: 'Ultra-slow (20s)' },
 ] as const;
+
+export type BadgeSize = 'small' | 'medium' | 'large';
+
+export const SIZES = [
+  { value: 'small', label: 'Small' },
+  { value: 'medium', label: 'Medium (Default)' },
+  { value: 'large', label: 'Large' },
+] as const;

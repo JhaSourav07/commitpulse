@@ -12,6 +12,8 @@ export const streakParamsSchema = z.object({
   // Silently fall back to 'linear' for unknown values (matches old behavior)
   scale: z.enum(['linear', 'log']).catch('linear').default('linear'),
 
+  size: z.enum(['small', 'medium', 'large']).catch('medium').default('medium'),
+
   // Silently fall back to '8s' for invalid format (matches old behavior)
   speed: z
     .string()

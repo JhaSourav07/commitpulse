@@ -65,6 +65,12 @@ interface TowerData {
 }
 
 // helpers
+function getSizeScale(size?: 'small' | 'medium' | 'large'): number {
+  if (size === 'small') return 400 / 600;
+  if (size === 'large') return 800 / 600;
+  return 1; // medium (default)
+}
+
 function deterministicRandom(seed: string): number {
   let hash = 2166136261;
   for (let i = 0; i < seed.length; i++) {
@@ -103,7 +109,8 @@ function computeFaceOpacity(count: number, isGhostCityMode: boolean): FaceOpacit
 function computeTowers(
   calendar: ContributionCalendar,
   scale: 'linear' | 'log',
-  todayDate: string
+  todayDate: string,
+  sf: number = 1
 ): TowerData[] {
   const weeks = calendar.weeks.slice(-14);
   const towers: TowerData[] = [];
@@ -142,9 +149,9 @@ function computeTowers(
       // If not ghost city and no commits, height is 0, so don't render face if not needed,
       // but we return 0 for height so it won't be visible.
       towers.push({
-        x: 300 + (i - j) * 16,
-        y: 120 + (i + j) * 9,
-        h: computeTowerHeight(day.contributionCount, scale, shouldShowGhostCity),
+        x: Math.round((300 + (i - j) * 16) * sf),
+        y: Math.round((120 + (i + j) * 9) * sf),
+        h: computeTowerHeight(day.contributionCount, scale, shouldShowGhostCity) * sf,
         hasCommits,
         isGhost,
         isToday,
@@ -163,7 +170,7 @@ function computeTowers(
   return towers;
 }
 
-function escapeXML(str: string): string {
+export function escapeXML(str: string): string {
   return str
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
@@ -176,7 +183,8 @@ function generateParticles(
   y: number,
   height: number,
   color: string,
-  count: number
+  count: number,
+  sf: number
 ): string {
   let particles = '';
   const particleCount = Math.min(5, Math.max(3, Math.floor(count / 4)));
@@ -187,7 +195,7 @@ function generateParticles(
     const delay = deterministicRandom(`${seed}:delay`) * 1.5;
 
     particles += `
-      <circle cx="${x + offsetX}" cy="${y - height}" r="1.5" fill="${color}" opacity="1">
+      <circle cx="${x + offsetX}" cy="${y - height}" r="${1.5 * sf}" fill="${color}" opacity="1">
         <animate attributeName="cy" from="${y - height}" to="${y - height - 20}" dur="1.5s" begin="${delay}s" repeatCount="indefinite" />
         <animate attributeName="opacity" from="1" to="0" dur="1.5s" begin="${delay}s" repeatCount="indefinite" />
       </circle>
@@ -196,7 +204,13 @@ function generateParticles(
   return `<g class="heat-particles">${particles}</g>`;
 }
 
-function generateAutoParticles(x: number, y: number, height: number, count: number): string {
+function generateAutoParticles(
+  x: number,
+  y: number,
+  height: number,
+  count: number,
+  sf: number
+): string {
   let particles = '';
   const particleCount = Math.min(5, Math.max(3, Math.floor(count / 4)));
 
@@ -206,7 +220,7 @@ function generateAutoParticles(x: number, y: number, height: number, count: numb
     const delay = deterministicRandom(`${seed}:delay`) * 1.5;
 
     particles += `
-      <circle class="cp-accent-fill" cx="${x + offsetX}" cy="${y - height}" r="1.5" opacity="1">
+      <circle class="cp-accent-fill" cx="${x + offsetX}" cy="${y - height}" r="${1.5 * sf}" opacity="1">
         <animate attributeName="cy" from="${y - height}" to="${y - height - 20}" dur="1.5s" begin="${delay}s" repeatCount="indefinite" />
         <animate attributeName="opacity" from="1" to="0" dur="1.5s" begin="${delay}s" repeatCount="indefinite" />
       </circle>
@@ -243,11 +257,14 @@ export function generateSVG(
       : null;
 
   const statsFont = selectedFont || '"Space Grotesk", sans-serif';
+  const sf = getSizeScale(params.size);
   const parsedRadius = Number(params.radius);
-  const radius = Math.max(0, Math.min(Number.isNaN(parsedRadius) ? 8 : parsedRadius, 50));
+  const radius = Math.max(0, Math.min(Number.isNaN(parsedRadius) ? 8 : parsedRadius, 50)) * sf;
   const labels = getLabels(params.lang);
 
-  const towerData = computeTowers(calendar, params.scale, stats.todayDate);
+  const W = Math.round(600 * sf);
+  const H = Math.round(420 * sf);
+  const towerData = computeTowers(calendar, params.scale, stats.todayDate, sf);
   let towers = '';
 
   for (const t of towerData) {
@@ -272,7 +289,7 @@ export function generateSVG(
           </g>
         </g>`;
     if (t.contributionCount >= 10)
-      towers += generateParticles(t.x, t.y, t.h, accent, t.contributionCount);
+      towers += generateParticles(t.x, t.y, t.h, accent, t.contributionCount, sf);
   }
 
   // dynamic google fonts import
@@ -281,12 +298,15 @@ export function generateSVG(
       ? `@import url('https://fonts.googleapis.com/css2?family=${encodeURIComponent(sanitizedFont).replace(/%20/g, '+')}&amp;display=swap');`
       : '';
 
+  const s = (n: number) => Math.round(n * sf);
+  const fs = (n: number) => Math.round(n * sf * 10) / 10;
+
   return `
 <svg
   xmlns="http://www.w3.org/2000/svg"
-  width="600"
-  height="420"
-  viewBox="0 0 600 420"
+  width="${W}"
+  height="${H}"
+  viewBox="0 0 ${W} ${H}"
   fill="none"
   role="img"
 >
@@ -295,7 +315,7 @@ export function generateSVG(
     ${params.user || 'This user'} has ${stats.totalContributions} total contributions and a longest streak of ${stats.longestStreak} days.
   </desc>
   <defs>
-    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="5" result="blur" /><feComposite in="SourceGraphic" in2="blur" operator="over" /></filter>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="${fs(5)}" result="blur" /><feComposite in="SourceGraphic" in2="blur" operator="over" /></filter>
   </defs>
 
   <style>
@@ -303,47 +323,46 @@ export function generateSVG(
   ${googleFontsImport}
   ${TOWER_ANIMATION_CSS}
 
-  .title { font-family: ${selectedFont || '"Syncopate", sans-serif'}; fill: ${text}; font-size: 18px; letter-spacing: 6px; font-weight: 400; opacity: 0.8; }
-  .stats { font-family: ${statsFont}; fill: ${text}; font-size: 42px; font-weight: 500; letter-spacing: 0; }
-  .total-val { font-family: ${statsFont}; fill: ${accent}; font-size: 24px; font-weight: 500; }
-  .label { font-family: "Roboto", sans-serif; fill: ${accent}; font-size: 11px; font-weight: 400; letter-spacing: 2px; opacity: 0.7; }
+  .title { font-family: ${selectedFont || '"Syncopate", sans-serif'}; fill: ${text}; font-size: ${fs(18)}px; letter-spacing: ${fs(6)}px; font-weight: 400; opacity: 0.8; }
+  .stats { font-family: ${statsFont}; fill: ${text}; font-size: ${fs(42)}px; font-weight: 500; letter-spacing: 0; }
+  .total-val { font-family: ${statsFont}; fill: ${accent}; font-size: ${fs(24)}px; font-weight: 500; }
+  .label { font-family: "Roboto", sans-serif; fill: ${accent}; font-size: ${fs(11)}px; font-weight: 400; letter-spacing: ${fs(2)}px; opacity: 0.7; }
 
   @media (prefers-reduced-motion: reduce) { .heat-particles { display: none; } }
   </style>
 
-  <rect width="600" height="420" rx="${radius}" fill="${params.hideBackground ? 'transparent' : bg}" />
+  <rect width="${W}" height="${H}" rx="${radius}" fill="${params.hideBackground ? 'transparent' : bg}" />
 
-  <g transform="translate(0, 20)">${towers}</g>
+  <g transform="translate(0, ${s(20)})">${towers}</g>
   ${
     !params.hide_stats
       ? `
-  <g transform="translate(40, 340)">
+  <g transform="translate(${s(40)}, ${s(340)})">
     <text class="label">${labels.CURRENT_STREAK}</text>
-    <text y="40" class="stats" filter="url(#glow)">${stats.currentStreak}</text>
+    <text y="${s(40)}" class="stats" filter="url(#glow)">${stats.currentStreak}</text>
   </g>
 
-  <g transform="translate(300, 340)" text-anchor="middle">
+  <g transform="translate(${s(300)}, ${s(340)})" text-anchor="middle">
     <text class="label">${labels.ANNUAL_SYNC_TOTAL}</text>
-    <text y="40" class="total-val" filter="url(#glow)">${stats.totalContributions}</text>
+    <text y="${s(40)}" class="total-val" filter="url(#glow)">${stats.totalContributions}</text>
   </g>
 
-  <g transform="translate(560, 340)" text-anchor="end">
+  <g transform="translate(${s(560)}, ${s(340)})" text-anchor="end">
     <text class="label">${labels.PEAK_STREAK}</text>
-    <text y="40" class="stats">${stats.longestStreak}</text>
+    <text y="${s(40)}" class="stats">${stats.longestStreak}</text>
   </g>
 `
       : ''
   }
-
 ${
   !params.hide_title
-    ? `<text x="300" y="50" text-anchor="middle" class="title">${safeUser.toUpperCase()}</text>`
+    ? `<text x="${s(300)}" y="${s(50)}" text-anchor="middle" class="title">${safeUser.toUpperCase()}</text>`
     : ''
 }
 
-<rect x="100" y="60" width="400" height="1" fill="${accent}" fill-opacity="0.3">
-  <animate attributeName="y" values="80;320;80" dur="${params.speed || '8s'}" repeatCount="indefinite" />
-</rect>
+  <rect x="${s(100)}" y="${s(60)}" width="${s(400)}" height="${sf}" fill="${accent}" fill-opacity="0.3">
+    <animate attributeName="y" values="${s(80)};${s(320)};${s(80)}" dur="${params.speed || '8s'}" repeatCount="indefinite" />
+  </rect>
 </svg>
 `;
 }
@@ -362,11 +381,14 @@ function generateAutoThemeSVG(
   const predefinedFont = sanitizedFont ? FONT_MAP[sanitizedFont.toLowerCase()] : null;
   const selectedFont = predefinedFont || (sanitizedFont ? `"${sanitizedFont}", sans-serif` : null);
   const statsFont = selectedFont || '"Space Grotesk", sans-serif';
+  const sf = getSizeScale(params.size);
   const parsedRadius = Number(params.radius);
-  const radius = Math.max(0, Math.min(Number.isNaN(parsedRadius) ? 8 : parsedRadius, 50));
+  const radius = Math.max(0, Math.min(Number.isNaN(parsedRadius) ? 8 : parsedRadius, 50)) * sf;
   const labels = getLabels(params.lang);
 
-  const towerData = computeTowers(calendar, params.scale, stats.todayDate);
+  const W = Math.round(600 * sf);
+  const H = Math.round(420 * sf);
+  const towerData = computeTowers(calendar, params.scale, stats.todayDate, sf);
   let towers = '';
 
   for (const t of towerData) {
@@ -394,15 +416,18 @@ function generateAutoThemeSVG(
           </g>
         </g>`;
     if (t.contributionCount >= 10)
-      towers += generateAutoParticles(t.x, t.y, t.h, t.contributionCount);
+      towers += generateAutoParticles(t.x, t.y, t.h, t.contributionCount, sf);
   }
+
+  const s = (n: number) => Math.round(n * sf);
+  const fs = (n: number) => Math.round(n * sf * 10) / 10;
 
   return `
 <svg
   xmlns="http://www.w3.org/2000/svg"
-  width="600"
-  height="420"
-  viewBox="0 0 600 420"
+  width="${W}"
+  height="${H}"
+  viewBox="0 0 ${W} ${H}"
   fill="none"
   role="img"
 >
@@ -411,7 +436,7 @@ function generateAutoThemeSVG(
     ${params.user || 'This user'} has ${stats.totalContributions} total contributions and a longest streak of ${stats.longestStreak} days.
   </desc>
   <defs>
-    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="5" result="blur" /><feComposite in="SourceGraphic" in2="blur" operator="over" /></filter>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="${fs(5)}" result="blur" /><feComposite in="SourceGraphic" in2="blur" operator="over" /></filter>
   </defs>
 
   <style>
@@ -420,48 +445,47 @@ function generateAutoThemeSVG(
   @media (prefers-color-scheme: dark) { :root { --cp-bg: #${dark.bg}; --cp-text: #${dark.text}; --cp-accent: #${dark.accent}; } }
   .cp-bg-fill { fill: var(--cp-bg); } .cp-text-fill { fill: var(--cp-text); color: var(--cp-text); } .cp-accent-fill { fill: var(--cp-accent); color: var(--cp-accent); }
   ${TOWER_ANIMATION_CSS}
-  .title { font-family: ${selectedFont || '"Syncopate", sans-serif'}; fill: var(--cp-text); font-size: 18px; letter-spacing: 6px; font-weight: 400; opacity: 0.8; }
-  .stats { font-family: ${statsFont}; fill: var(--cp-text); font-size: 42px; font-weight: 500; letter-spacing: 0; }
-  .total-val { font-family: ${statsFont}; fill: var(--cp-accent); font-size: 24px; font-weight: 500; }
-  .label { font-family: "Roboto", sans-serif; fill: var(--cp-accent); font-size: 11px; font-weight: 400; letter-spacing: 2px; opacity: 0.7; }
+  .title { font-family: ${selectedFont || '"Syncopate", sans-serif'}; fill: var(--cp-text); font-size: ${fs(18)}px; letter-spacing: ${fs(6)}px; font-weight: 400; opacity: 0.8; }
+  .stats { font-family: ${statsFont}; fill: var(--cp-text); font-size: ${fs(42)}px; font-weight: 500; letter-spacing: 0; }
+  .total-val { font-family: ${statsFont}; fill: var(--cp-accent); font-size: ${fs(24)}px; font-weight: 500; }
+  .label { font-family: "Roboto", sans-serif; fill: var(--cp-accent); font-size: ${fs(11)}px; font-weight: 400; letter-spacing: ${fs(2)}px; opacity: 0.7; }
 
   @media (prefers-reduced-motion: reduce) { .heat-particles { display: none; } }
   </style>
 
-  <rect width="600" height="420" rx="${radius}" ${params.hideBackground ? 'fill="transparent"' : 'class="cp-bg-fill"'} />
-  <g transform="translate(0, 20)">
+  <rect width="${W}" height="${H}" rx="${radius}" ${params.hideBackground ? 'fill="transparent"' : 'class="cp-bg-fill"'} />
+  <g transform="translate(0, ${s(20)})">
     ${towers}
   </g>
   ${
     !params.hide_stats
       ? `
-  <g transform="translate(40, 340)">
+  <g transform="translate(${s(40)}, ${s(340)})">
     <text class="label">${labels.CURRENT_STREAK}</text>
-    <text y="40" class="stats" filter="url(#glow)">${stats.currentStreak}</text>
+    <text y="${s(40)}" class="stats" filter="url(#glow)">${stats.currentStreak}</text>
   </g>
 
-  <g transform="translate(300, 340)" text-anchor="middle">
+  <g transform="translate(${s(300)}, ${s(340)})" text-anchor="middle">
     <text class="label">${labels.ANNUAL_SYNC_TOTAL}</text>
-    <text y="40" class="total-val" filter="url(#glow)">${stats.totalContributions}</text>
+    <text y="${s(40)}" class="total-val" filter="url(#glow)">${stats.totalContributions}</text>
   </g>
 
-  <g transform="translate(560, 340)" text-anchor="end">
+  <g transform="translate(${s(560)}, ${s(340)})" text-anchor="end">
     <text class="label">${labels.PEAK_STREAK}</text>
-    <text y="40" class="stats">${stats.longestStreak}</text>
+    <text y="${s(40)}" class="stats">${stats.longestStreak}</text>
   </g>
 `
       : ''
   }
-
 ${
   !params.hide_title
-    ? `<text x="300" y="50" text-anchor="middle" class="title">${safeUser.toUpperCase()}</text>`
+    ? `<text x="${s(300)}" y="${s(50)}" text-anchor="middle" class="title">${safeUser.toUpperCase()}</text>`
     : ''
 }
 
-<rect x="100" y="60" width="400" height="1" class="cp-accent-fill" fill-opacity="0.3">
-  <animate attributeName="y" values="80;320;80" dur="${params.speed || '8s'}" repeatCount="indefinite" />
-</rect>
+  <rect x="${s(100)}" y="${s(60)}" width="${s(400)}" height="${sf}" class="cp-accent-fill" fill-opacity="0.3">
+    <animate attributeName="y" values="${s(80)};${s(320)};${s(80)}" dur="${params.speed || '8s'}" repeatCount="indefinite" />
+  </rect>
 </svg>
 `;
 }
