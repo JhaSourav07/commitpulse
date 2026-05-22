@@ -2,7 +2,7 @@ import type { BadgeParams, ContributionCalendar, StreakStats } from '../../types
 import { getLabels } from '../i18n/badgeLabels';
 import { AUTO_DARK_THEME, AUTO_LIGHT_THEME } from './themes';
 import { TOWER_ANIMATION_CSS } from './animations';
-import { computeTowers } from './layout';
+import { computeTowers, type TowerData } from './layout';
 
 const FONT_MAP: Record<string, string> = {
   jetbrains: '"JetBrains Mono", monospace',
@@ -25,95 +25,15 @@ function deterministicRandom(seed: string): number {
   }
   return (hash >>> 0) / 4294967296;
 }
-function computeTowerHeight(
-  count: number,
-  scale: 'linear' | 'log',
-  shouldShowGhostCity: boolean
-): number {
-  if (count === 0 && shouldShowGhostCity) return GHOST_HEIGHT_PX;
-  if (count === 0) return 0;
-  return scale === 'log'
-    ? Math.min(Math.log2(count + 1) * LOG_SCALE_MULTIPLIER, MAX_LOG_HEIGHT)
-    : Math.min(count * LINEAR_SCALE_MULTIPLIER, MAX_LINEAR_HEIGHT);
-}
 
-function computeFaceOpacity(count: number, isGhostCityMode: boolean): FaceOpacity {
-  if (isGhostCityMode) {
-    return { left: 0, right: 0, top: 0.02 };
-  }
-  if (count === 0) {
-    return { left: 0, right: 0, top: 0.02 };
-  }
-  return { left: 0.35, right: 0.21, top: 0.7 };
-}
-
-/**
- * Computes tower positions and heights from the last 14 weeks of
- * contribution data. The layout math is identical for both the
- * static-theme and auto-theme rendering paths.
- */
-function computeTowers(
-  calendar: ContributionCalendar,
-  scale: 'linear' | 'log',
-  todayDate: string,
-  sf: number = 1
-): TowerData[] {
-  const weeks = calendar.weeks.slice(-14);
-  const towers: TowerData[] = [];
-
-  // Calculate if the entire monolith is empty
-  let totalVisibleContributions = 0;
-  weeks.forEach((week) => {
-    week.contributionDays.forEach((day) => {
-      totalVisibleContributions += day.contributionCount;
-    });
-  });
-
-  const shouldShowGhostCity = totalVisibleContributions === 0;
-
-  // Pre-check: is todayDate present in the visible 14-week window?
-  // If not (e.g. stale cache or todayDate outside the window), fall back to
-  // marking the last visible day as "today" so the pulse always appears.
-  const todayInWindow = weeks.some((w) => w.contributionDays.some((d) => d.date === todayDate));
-
-  weeks.forEach((week, i) => {
-    week.contributionDays.forEach((day, j) => {
-      // Use the caller-supplied local date so the pulse animation fires on the
-      // correct tower for users in non-UTC timezones, not always the last UTC entry.
-      const isToday =
-        day.date === todayDate ||
-        // Fallback: if todayDate isn't in the visible window, keep the old behaviour.
-        (!todayInWindow && i === weeks.length - 1 && j === week.contributionDays.length - 1);
-      const hasCommits = day.contributionCount > 0;
-      const isGhost = !hasCommits && shouldShowGhostCity;
-      const isTodayWithCommits = isToday && hasCommits;
-
-      const tooltip = isTodayWithCommits
-        ? `TODAY: ${day.date}: ${day.contributionCount} contributions`
-        : `${day.date}: ${day.contributionCount} contributions`;
-
-      // If not ghost city and no commits, height is 0, so don't render face if not needed,
-      // but we return 0 for height so it won't be visible.
-      towers.push({
-        x: Math.round((300 + (i - j) * 16) * sf),
-        y: Math.round((120 + (i + j) * 9) * sf),
-        h: computeTowerHeight(day.contributionCount, scale, shouldShowGhostCity) * sf,
-        hasCommits,
-        isGhost,
-        isToday,
-        isTodayWithCommits,
-        tooltip,
-        contributionCount: day.contributionCount,
-        faceOpacity: computeFaceOpacity(day.contributionCount, shouldShowGhostCity),
-        strokeOpacity: isGhost ? 0.3 : 0,
-        strokeWidth: isGhost ? 0.5 : 0,
-        row: i,
-        col: j,
-      });
-    });
-  });
-
-  return towers;
+function scaleTowerData(towerData: TowerData[], sf: number): TowerData[] {
+  if (sf === 1) return towerData;
+  return towerData.map((t) => ({
+    ...t,
+    x: Math.round(t.x * sf),
+    y: Math.round(t.y * sf),
+    h: t.h * sf,
+  }));
 }
 
 export function escapeXML(str: string): string {
@@ -210,7 +130,7 @@ export function generateSVG(
 
   const W = Math.round(600 * sf);
   const H = Math.round(420 * sf);
-  const towerData = computeTowers(calendar, params.scale, stats.todayDate, sf);
+  const towerData = scaleTowerData(computeTowers(calendar, params.scale, stats.todayDate), sf);
   let towers = '';
 
   for (const t of towerData) {
@@ -334,7 +254,7 @@ function generateAutoThemeSVG(
 
   const W = Math.round(600 * sf);
   const H = Math.round(420 * sf);
-  const towerData = computeTowers(calendar, params.scale, stats.todayDate, sf);
+  const towerData = scaleTowerData(computeTowers(calendar, params.scale, stats.todayDate), sf);
   let towers = '';
 
   for (const t of towerData) {
