@@ -96,7 +96,7 @@ function LandingContent() {
   const guideRef = useRef<HTMLDivElement>(null);
   const searchParams = useSearchParams();
   const theme = searchParams.get('theme') || 'neon';
-  
+
   const trimmedUsername = username.trim();
   const hasUsername = trimmedUsername.length > 0;
 
@@ -331,7 +331,10 @@ function LandingContent() {
         <footer className="mt-32 flex flex-col items-center justify-between gap-6 border-t border-black/10 dark:border-white/5 pt-8 text-sm text-black/50 dark:text-white/30 md:flex-row">
           <p>&copy; 2026 CommitPulse. Designed for the elite builder community.</p>
           <div className="flex gap-8">
-            <Link href="/documentation" className="transition-colors hover:text-black dark:hover:text-white">
+            <Link
+              href="/documentation"
+              className="transition-colors hover:text-black dark:hover:text-white"
+            >
               Documentation
             </Link>
             <a
@@ -366,8 +369,12 @@ function FeatureCard({
       transition={{ duration: 0.2 }}
       className="group rounded-xl border border-black/10 dark:border-[rgba(255,255,255,0.08)] bg-white dark:bg-[#0a0a0a] p-8 hover:border-black/20 dark:hover:border-[rgba(255,255,255,0.14)] hover:bg-gray-50 dark:hover:bg-[#0d0d0d] transition-all duration-200"
     >
-      <div className={`mb-5 w-fit rounded-lg bg-gray-100 dark:bg-[#111] p-2.5 ${accent}`}>{icon}</div>
-      <h3 className="mb-2 text-sm font-semibold text-black dark:text-white tracking-tight">{title}</h3>
+      <div className={`mb-5 w-fit rounded-lg bg-gray-100 dark:bg-[#111] p-2.5 ${accent}`}>
+        {icon}
+      </div>
+      <h3 className="mb-2 text-sm font-semibold text-black dark:text-white tracking-tight">
+        {title}
+      </h3>
       <p className="text-sm leading-relaxed text-[#A1A1AA]">{desc}</p>
     </motion.div>
   );

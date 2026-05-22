@@ -1,6 +1,6 @@
 'use client';
 
-import { CSSProperties, useEffect, useRef, useState, Suspense } from 'react';
+import { CSSProperties, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { useTheme } from 'next-themes';
 import Link from 'next/link';
 import { Menu, X, Activity, Sun, Moon } from 'lucide-react';
@@ -20,16 +20,20 @@ const NAV_LINKS = [
   },
 ];
 
+const emptySubscribe = () => () => {};
+
 function ThemeToggle() {
   const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const mounted = useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false
+  );
 
   if (!mounted) {
-    return <div className="w-9 h-9 rounded-xl border border-black/10 dark:border-white/15 bg-black/5 dark:bg-white/5" />;
+    return (
+      <div className="w-9 h-9 rounded-xl border border-black/10 dark:border-white/15 bg-black/5 dark:bg-white/5" />
+    );
   }
 
   return (
