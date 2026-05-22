@@ -80,46 +80,46 @@ URL Parameter > Theme Default > System Fallback
 
 ### Complete Parameter Reference
 
-| Parameter         | Type      | Default                   | Constraints                                                                                                                                                                               | Example                 |
-| ----------------- | --------- | ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- |
-| `user`            | `string`  | **— (required)**          | Valid GitHub username                                                                                                                                                                     | `?user=jhasourav07`     |
+| Parameter         | Type      | Default                   | Constraints                                                                                                                                                                                               | Example                 |
+| ----------------- | --------- | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- |
+| `user`            | `string`  | **— (required)**          | Valid GitHub username                                                                                                                                                                                     | `?user=jhasourav07`     |
 | `theme`           | `string`  | `dark`                    | Built-in themes: `dark`, `light`, `neon`, `dracula`, `github`, `gruvbox`, `ocean`, `sunset`, `forest`, `rose`, `nord`, `synthwave`, `highcontrast`, `auto`, `random`. Unknown values fall back to `dark`. | `?theme=neon`           |
-| `bg`              | `hex`     | Theme default             | Hex color — **without** `#`                                                                                                                                                               | `?bg=0d1117`            |
-| `accent`          | `hex`     | Theme default             | Hex color — **without** `#`                                                                                                                                                               | `?accent=ff00ff`        |
-| `text`            | `hex`     | Theme default             | Hex color — **without** `#`                                                                                                                                                               | `?text=ffffff`          |
-| `radius`          | `number`  | `8`                       | `0`–`50` (pixels)                                                                                                                                                                         | `?radius=16`            |
-| `speed`           | `string`  | `8s`                      | `2s`–`20s` (must end in `s`)                                                                                                                                                              | `?speed=4s`             |
-| `scale`           | `string`  | `linear`                  | `linear` or `log`                                                                                                                                                                         | `?scale=log`            |
-| `font`            | `string`  | Syncopate / Space Grotesk | Any **Google Font** name                                                                                                                                                                  | `?font=Orbitron`        |
-| `year`            | `string`  | Current year              | 4-digit year (e.g. `2023`, `2024`)                                                                                                                                                        | `?year=2023`            |
-| `tz`              | `string`  | `UTC`                     | Valid IANA timezone (e.g. `Asia/Kolkata`, `America/New_York`)                                                                                                                             | `?tz=Asia/Kolkata`      |
-| `lang`            | `string`  | `en`                      | Language code: `en`, `es`, `hi`, `fr`                                                                                                                                                     | `?lang=es`              |
-| `refresh`         | `boolean` | `false`                   | `true` to bypass cache                                                                                                                                                                    | `?refresh=true`         |
-| `hide_title`      | `boolean` | `false`                   | `true` to hide the username title                                                                                                                                                         | `?hide_title=true`      |
-| `hide_background` | `boolean` | `false`                   | `true` to remove background rect                                                                                                                                                          | `?hide_background=true` |
-| `hide_stats`      | `boolean` | `false`                   | `true` or `1` to hide stats row                                                                                                                                                           | `?hide_stats=1`         |
+| `bg`              | `hex`     | Theme default             | Hex color — **without** `#`                                                                                                                                                                               | `?bg=0d1117`            |
+| `accent`          | `hex`     | Theme default             | Hex color — **without** `#`                                                                                                                                                                               | `?accent=ff00ff`        |
+| `text`            | `hex`     | Theme default             | Hex color — **without** `#`                                                                                                                                                                               | `?text=ffffff`          |
+| `radius`          | `number`  | `8`                       | `0`–`50` (pixels)                                                                                                                                                                                         | `?radius=16`            |
+| `speed`           | `string`  | `8s`                      | `2s`–`20s` (must end in `s`)                                                                                                                                                                              | `?speed=4s`             |
+| `scale`           | `string`  | `linear`                  | `linear` or `log`                                                                                                                                                                                         | `?scale=log`            |
+| `font`            | `string`  | Syncopate / Space Grotesk | Any **Google Font** name                                                                                                                                                                                  | `?font=Orbitron`        |
+| `year`            | `string`  | Current year              | 4-digit year (e.g. `2023`, `2024`)                                                                                                                                                                        | `?year=2023`            |
+| `tz`              | `string`  | `UTC`                     | Valid IANA timezone (e.g. `Asia/Kolkata`, `America/New_York`)                                                                                                                                             | `?tz=Asia/Kolkata`      |
+| `lang`            | `string`  | `en`                      | Language code: `en`, `es`, `hi`, `fr`                                                                                                                                                                     | `?lang=es`              |
+| `refresh`         | `boolean` | `false`                   | `true` to bypass cache                                                                                                                                                                                    | `?refresh=true`         |
+| `hide_title`      | `boolean` | `false`                   | `true` to hide the username title                                                                                                                                                                         | `?hide_title=true`      |
+| `hide_background` | `boolean` | `false`                   | `true` to remove background rect                                                                                                                                                                          | `?hide_background=true` |
+| `hide_stats`      | `boolean` | `false`                   | `true` or `1` to hide stats row                                                                                                                                                                           | `?hide_stats=1`         |
 
 ### Theme Presets
 
 CommitPulse ships with **12 curated themes** plus `auto` and `random` modes. Browse full previews in the [Theme Gallery](./THEMES.md).
 
-| Theme              | Preview                   | `bg`     | `accent` | `text`   |
-| ------------------ | ------------------------- | -------- | -------- | -------- |
-| `auto`             | System light / dark       | _adapts_ | _adapts_ | _adapts_ |
-| `dark` _(default)_ | GitHub dark               | `0d1117` | `58a6ff` | `c9d1d9` |
-| `light`            | Clean & minimal           | `ffffff` | `0969da` | `24292f` |
-| `neon`             | Cyberpunk                 | `000000` | `ff00ff` | `00ffcc` |
-| `dracula`          | Dracula Pro               | `282a36` | `bd93f9` | `f8f8f2` |
-| `github`           | GitHub green              | `0d1117` | `238636` | `ffffff` |
-| `gruvbox`          | Retro warm dark           | `282828` | `fe8019` | `ebdbb2` |
-| `ocean`            | Deep sea                  | `0a192f` | `64ffda` | `ccd6f6` |
-| `sunset`           | Warm evening              | `1a0a0a` | `ff6b35` | `ffd6c0` |
-| `forest`           | Verdant green             | `0d1f0d` | `39d353` | `c8f0c8` |
-| `rose`             | Soft pink                 | `1f0d14` | `ff6b9d` | `f0c8d4` |
-| `nord`             | Arctic, bluish            | `2e3440` | `88c0d0` | `d8dee9` |
-| `synthwave`        | Retro 80s                 | `0d0221` | `ff2d78` | `f8f8f2` |
+| Theme              | Preview                     | `bg`     | `accent` | `text`   |
+| ------------------ | --------------------------- | -------- | -------- | -------- |
+| `auto`             | System light / dark         | _adapts_ | _adapts_ | _adapts_ |
+| `dark` _(default)_ | GitHub dark                 | `0d1117` | `58a6ff` | `c9d1d9` |
+| `light`            | Clean & minimal             | `ffffff` | `0969da` | `24292f` |
+| `neon`             | Cyberpunk                   | `000000` | `ff00ff` | `00ffcc` |
+| `dracula`          | Dracula Pro                 | `282a36` | `bd93f9` | `f8f8f2` |
+| `github`           | GitHub green                | `0d1117` | `238636` | `ffffff` |
+| `gruvbox`          | Retro warm dark             | `282828` | `fe8019` | `ebdbb2` |
+| `ocean`            | Deep sea                    | `0a192f` | `64ffda` | `ccd6f6` |
+| `sunset`           | Warm evening                | `1a0a0a` | `ff6b35` | `ffd6c0` |
+| `forest`           | Verdant green               | `0d1f0d` | `39d353` | `c8f0c8` |
+| `rose`             | Soft pink                   | `1f0d14` | `ff6b9d` | `f0c8d4` |
+| `nord`             | Arctic, bluish              | `2e3440` | `88c0d0` | `d8dee9` |
+| `synthwave`        | Retro 80s                   | `0d0221` | `ff2d78` | `f8f8f2` |
 | `highcontrast`     | Accessibility high contrast | `0a0a0a` | `ff4500` | `888888` |
-| `random`           | Surprise on reload        | _varies_ | _varies_ | _varies_ |
+| `random`           | Surprise on reload          | _varies_ | _varies_ | _varies_ |
 
 > **`auto`** uses CSS `@media (prefers-color-scheme)` inside the SVG so the badge switches between the `light` and `dark` palettes based on the viewer's OS setting — no JavaScript required. Ideal for profile READMEs where visitors may use either mode.
 >
