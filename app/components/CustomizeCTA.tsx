@@ -24,47 +24,50 @@ export function CustomizeCTA() {
             <p className="text-xs font-bold uppercase tracking-[0.25em] text-emerald-400 mb-3">
               Customization Studio
             </p>
+
             <h2 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight mb-3 leading-snug">
               Want to fine-tune your monolith?
             </h2>
+
             <p className="text-gray-500 text-sm leading-relaxed max-w-lg">
-              Dial in every pixel — swap accent colors, try a dark or neon theme, toggle logarithmic
-              height scaling, and preview changes live before you paste a single line.
+              Dial in every pixel — swap accent colors, try a dark or neon theme,
+              toggle logarithmic height scaling, and preview changes live before
+              you paste a single line.
             </p>
           </div>
 
           <div className="shrink-0">
-  <Link href="/customize" id="open-customization-studio-cta">
-    <span
-      className="relative inline-flex items-center gap-2 px-4 md:px-7 py-4 rounded-2xl font-bold text-sm text-black bg-white hover:scale-[1.03] active:scale-[0.97] transition-transform duration-200 shadow-[0_0_30px_-4px_rgba(255,255,255,0.25)] cursor-pointer select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
-      tabIndex={0}
-    >
-      {/* Button shimmer */}
-      <span
-        aria-hidden="true"
-        className="absolute inset-0 rounded-2xl bg-gradient-to-r from-emerald-400 via-white to-purple-400 opacity-0 group-hover:opacity-10 transition-opacity duration-700"
-      />
+            <Link href="/customize" id="open-customization-studio-cta">
+              <span
+                className="relative inline-flex items-center gap-2 px-4 md:px-7 py-4 rounded-2xl font-bold text-sm text-black bg-white hover:scale-[1.03] active:scale-[0.97] transition-transform duration-200 shadow-[0_0_30px_-4px_rgba(255,255,255,0.25)] cursor-pointer select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+                tabIndex={0}
+              >
+                {/* Button shimmer */}
+                <span
+                  aria-hidden="true"
+                  className="absolute inset-0 rounded-2xl bg-gradient-to-r from-emerald-400 via-white to-purple-400 opacity-0 group-hover:opacity-10 transition-opacity duration-700"
+                />
 
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        className="w-4 h-4"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        aria-hidden="true"
-      >
-        <circle cx="12" cy="12" r="3" />
-        <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
-        <path d="M4.93 4.93a10 10 0 0 0 0 14.14" />
-      </svg>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="w-4 h-4"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <circle cx="12" cy="12" r="3" />
+                  <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+                  <path d="M4.93 4.93a10 10 0 0 0 0 14.14" />
+                </svg>
 
-      Open Customization Studio
-    </span>
-  </Link>
-</div>
+                Open Customization Studio
+              </span>
+            </Link>
+          </div>
         </div>
       </div>
     </motion.div>

@@ -5,6 +5,13 @@
   --breakpoint-xs: 26rem;
 }
 
+@layer base {
+  *:focus-visible {
+    outline: 2px solid rgba(99, 102, 241, 0.6);
+    outline-offset: 2px;
+  }
+}
+
 @layer utilities {
   .slider::-webkit-slider-thumb {
     appearance: none;
@@ -108,6 +115,7 @@ textarea:focus-visible,
   background: #333;
   border-radius: 3px;
 }
+
 /* Custom text selection color to match site theme */
 ::selection {
   background-color: #00ffaa;
