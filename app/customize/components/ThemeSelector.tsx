@@ -2,6 +2,7 @@ import type { ReactElement, ReactNode } from 'react';
 import { themes } from '../../../lib/svg/themes';
 import { THEME_KEYS, type ThemeKey } from '../types';
 import { SectionLabel } from './SectionLabel';
+import { ThemeQuickPresets } from './ThemeQuickPresets';
 
 function StyledSelect({
   id,
@@ -38,6 +39,9 @@ export function ThemeSelector({
   return (
     <div className="flex flex-col gap-1.5">
       <SectionLabel>Theme Preset</SectionLabel>
+
+      <ThemeQuickPresets theme={theme} onThemeChange={onThemeChange} />
+
       <div className="relative">
         <StyledSelect id="theme-select" value={theme} onChange={onThemeChange}>
           {THEME_KEYS.map((key) => (
