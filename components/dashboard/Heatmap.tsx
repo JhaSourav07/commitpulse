@@ -11,9 +11,17 @@ interface TooltipState {
   text: string;
   x: number;
   y: number;
+  count: number;
+  label: string;
 }
 
 export default function Heatmap({ data }: { data: ActivityData[] }) {
+  const getActivityLabel = (count: number) => {
+  if (count === 0) return 'No Activity';
+  if (count <= 3) return 'Low Activity';
+  if (count <= 7) return 'Productive';
+  return 'Highly Active 🚀';
+};
   const containerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
@@ -56,12 +64,15 @@ export default function Heatmap({ data }: { data: ActivityData[] }) {
 
   const handleMouseEnter = (e: React.MouseEvent<HTMLDivElement>, day: ActivityData) => {
     const rect = e.currentTarget.getBoundingClientRect();
-    setTooltip({
-      text: `${day.count} contribution${day.count !== 1 ? 's' : ''} on ${day.date}`,
-      // Centre the tooltip above the cell
-      x: rect.left + rect.width / 2,
-      y: rect.top - 8,
-    });
+   setTooltip({
+  text: `${day.count} contribution${day.count !== 1 ? 's' : ''} on ${day.date}`,
+  
+  x: rect.left + rect.width / 2,
+  y: rect.top - 8,
+
+  count: day.count,
+  label: getActivityLabel(day.count),
+});
   };
 
   const handleMouseLeave = () => setTooltip(null);
@@ -139,7 +150,19 @@ export default function Heatmap({ data }: { data: ActivityData[] }) {
             style={{ left: tooltip.x, top: tooltip.y }}
           >
             <div className="bg-[#111] border border-[rgba(255,255,255,0.1)] px-2.5 py-1.5 rounded-md text-[11px] text-white shadow-lg whitespace-nowrap">
-              {tooltip.text}
+              {<div className="flex flex-col gap-1">
+  <span className="text-[11px] font-semibold text-cyan-400">
+    {tooltip.label}
+  </span>
+
+  <span className="text-sm font-medium text-white">
+    {tooltip.count} contributions
+  </span>
+
+  <span className="text-[11px] text-zinc-400">
+    {tooltip.text}
+  </span>
+</div>}
             </div>
             {/* Arrow */}
             <div className="mx-auto w-2 h-2 bg-black/90 border-r border-b border-white/10 rotate-45 -mt-1" />
