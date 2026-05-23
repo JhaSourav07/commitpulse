@@ -138,7 +138,7 @@ export default function Navbar() {
       <div className="flex w-full items-center justify-between gap-3">
         <div
           ref={shellRef}
-          className="relative overflow-hidden rounded-2xl border border-white/25 bg-black/45 backdrop-blur-xl shadow-[0_14px_40px_rgba(0,0,0,0.45)] w-auto"
+          className="relative w-full overflow-hidden rounded-2xl border border-white/25 bg-black/45 backdrop-blur-xl shadow-[0_14px_40px_rgba(0,0,0,0.45)] md:w-auto"
           style={shellVars}
           onMouseEnter={updateRect}
           onMouseMove={(event) => {
