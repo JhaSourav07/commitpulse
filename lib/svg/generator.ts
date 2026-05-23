@@ -33,7 +33,7 @@ const TOWER_ANIMATION_CSS = `
   }`;
 
 const FONT_MAP: Record<string, string> = {
-  jetbrains: '"JetBrains Mono", monospace',
+  jetbrains: '"JetBrains Mono", "Fira Code", "Courier New", monospace',
   fira: '"Fira Code", monospace',
   roboto: '"Roboto", sans-serif',
 };
