@@ -16,8 +16,6 @@
     "bench:svg": "tsx scripts/benchmark-svg.ts"
   },
   "dependencies": {
-    "@emnapi/core": "^1.9.2",
-    "@emnapi/runtime": "^1.9.2",
     "@tailwindcss/postcss": "^4.2.2",
     "@vercel/analytics": "^1.6.1",
     "framer-motion": "^12.38.0",
