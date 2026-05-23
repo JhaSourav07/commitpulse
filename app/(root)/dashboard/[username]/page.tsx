@@ -11,7 +11,6 @@ import Achievements from '@/components/dashboard/Achievements';
 import { getFullDashboardData } from '@/lib/github';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import RefreshButton from '@/components/dashboard/RefreshButton';
 export const revalidate = 3600; // Cache for 1 hour
 
 const BASE_URL =
@@ -78,18 +77,16 @@ export default async function DashboardPage({
   const { username } = await params;
   const resolvedSearchParams = await searchParams;
   const bypassCache = resolvedSearchParams?.refresh === 'true';
-
+  const dataPromise = getFullDashboardData(username, { bypassCache });
   let data;
   try {
-    data = await getFullDashboardData(username, { bypassCache });
+    data = await dataPromise;
   } catch (error) {
     if (error instanceof Error) {
       return notFound();
     }
     throw error;
   }
-
-  const dataPromise = Promise.resolve(data);
   return (
     <div id="dashboard-root" data-dashboard className="p-4 md:p-6 lg:p-8 min-h-screen relative">
       <div id="generate-dashboard-btn" className="flex justify-end mb-6">
@@ -121,38 +118,7 @@ export default async function DashboardPage({
             exportData={{ stats: data.stats, languages: data.languages }}
           />
           {/* We omit real achievements data generation for now and just show a placeholder based on streaks */}
-          <Achievements
-            achievements={[
-              {
-                id: '1',
-                title: 'Streak Master',
-                description: 'Reached a 7 day streak',
-                icon: 'Flame',
-                isUnlocked: data.stats.currentStreak >= 7,
-              },
-              {
-                id: '2',
-                title: 'Consistent',
-                description: 'Over 100 contributions',
-                icon: 'GitCommit',
-                isUnlocked: data.stats.totalContributions >= 100,
-              },
-              {
-                id: '3',
-                title: 'Polyglot',
-                description: 'Uses multiple languages',
-                icon: 'Code',
-                isUnlocked: data.languages.length >= 2,
-              },
-              {
-                id: '4',
-                title: 'Night Owl',
-                description: 'Commits late at night',
-                icon: 'Moon',
-                isUnlocked: true,
-              },
-            ]}
-          />
+          <Achievements achievements={data.achievements} />
         </aside>
 
         {/* Main Content */}
@@ -186,6 +152,8 @@ export default async function DashboardPage({
               value={data.stats.currentStreak.toString()}
               description="Days"
               icon="Flame"
+              showUTCDisclaimer={true}
+              utcDate={new Date().toISOString().split('T')[0]}
             />
             <StatsCard
               title="Peak Streak"
