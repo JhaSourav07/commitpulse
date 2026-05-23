@@ -19,6 +19,9 @@ const NAV_LINKS = [
   },
 ];
 
+const shellCardClasses =
+  'relative overflow-hidden rounded-2xl border border-white/25 bg-black/45 backdrop-blur-xl shadow-[0_14px_40px_rgba(0,0,0,0.45)]';
+
 export default function Navbar() {
   const [open, setOpen] = useState(false);
   const shellRef = useRef<HTMLDivElement>(null);
@@ -135,10 +138,10 @@ export default function Navbar() {
 
   return (
     <header className="fixed inset-x-0 top-0 z-50 px-4 pt-4 sm:px-6">
-      <div className="flex w-full items-center justify-between gap-3">
+      <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-3">
         <div
           ref={shellRef}
-          className="relative w-full overflow-hidden rounded-2xl border border-white/25 bg-black/45 backdrop-blur-xl shadow-[0_14px_40px_rgba(0,0,0,0.45)] md:w-auto"
+          className={`${shellCardClasses} w-auto`}
           style={shellVars}
           onMouseEnter={updateRect}
           onMouseMove={(event) => {
@@ -231,8 +234,8 @@ export default function Navbar() {
           ) : null}
         </div>
 
-        <div className="hidden md:block">
-          <div className="relative overflow-hidden rounded-2xl border border-white/25 bg-black/45 backdrop-blur-xl shadow-[0_14px_40px_rgba(0,0,0,0.45)] p-3 md:p-4">
+        <nav aria-label="External repository" className="hidden md:block">
+          <div className={`${shellCardClasses} p-3 md:p-4`}>
             <div className="flex items-center gap-3">
               {NAV_LINKS.map((link) => (
                 <a
@@ -248,7 +251,7 @@ export default function Navbar() {
               ))}
             </div>
           </div>
-        </div>
+        </nav>
       </div>
     </header>
   );
