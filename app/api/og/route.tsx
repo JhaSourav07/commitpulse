@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
   try {
     const baseUrl = req.nextUrl.origin;
 
-    const res = await fetch(`${baseUrl}/api/streak?user=${user}&refresh=true`, {
+    const res = await fetch(`${baseUrl}/api/streak?user=${user}`, {
       cache: 'no-store',
     });
 
