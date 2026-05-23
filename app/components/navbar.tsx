@@ -135,10 +135,10 @@ export default function Navbar() {
 
   return (
     <header className="fixed inset-x-0 top-0 z-50 px-4 pt-4 sm:px-6">
-      <div className="mx-auto max-w-6xl">
+      <div className="flex w-full items-center justify-between gap-3">
         <div
           ref={shellRef}
-          className="relative overflow-hidden rounded-2xl border border-white/25 bg-black/45 backdrop-blur-xl shadow-[0_14px_40px_rgba(0,0,0,0.45)]"
+          className="relative overflow-hidden rounded-2xl border border-white/25 bg-black/45 backdrop-blur-xl shadow-[0_14px_40px_rgba(0,0,0,0.45)] w-auto"
           style={shellVars}
           onMouseEnter={updateRect}
           onMouseMove={(event) => {
@@ -183,7 +183,7 @@ export default function Navbar() {
               maskComposite: 'exclude',
             }}
           />
-          <nav className="relative flex items-center justify-between px-4 py-3 sm:px-6">
+          <nav className="relative flex flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6">
             <Link
               href="/"
               aria-label="Go to home"
@@ -197,21 +197,6 @@ export default function Navbar() {
                 CommitPulse
               </span>
             </Link>
-
-            <div className="hidden items-center gap-3 md:flex">
-              {NAV_LINKS.map((link) => (
-                <a
-                  key={link.href}
-                  href={link.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-white/90 transition hover:border-white/45 hover:bg-white/10"
-                >
-                  <GithubMark />
-                  {link.label}
-                </a>
-              ))}
-            </div>
 
             <button
               type="button"
@@ -244,6 +229,25 @@ export default function Navbar() {
               </ul>
             </div>
           ) : null}
+        </div>
+
+        <div className="hidden md:block">
+          <div className="relative overflow-hidden rounded-2xl border border-white/25 bg-black/45 backdrop-blur-xl shadow-[0_14px_40px_rgba(0,0,0,0.45)] p-3 md:p-4">
+            <div className="flex items-center gap-3">
+              {NAV_LINKS.map((link) => (
+                <a
+                  key={link.href}
+                  href={link.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-white/90 transition hover:border-white/45 hover:bg-white/10"
+                >
+                  <GithubMark />
+                  {link.label}
+                </a>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     </header>
