@@ -322,7 +322,7 @@ export async function getFullDashboardData(username: string, options: FetchOptio
     // 1. Profile Mapping
     const profile = {
       username: profileData.login,
-      name: profileData.name || profileData.login,
+      name: displayName(profileData),
       avatarUrl: profileData.avatar_url,
       isPro: profileData.plan?.name === 'pro',
       bio: profileData.bio || 'No bio available',
