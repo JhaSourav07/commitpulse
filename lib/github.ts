@@ -9,18 +9,28 @@ interface GitHubRepo {
   language: string | null;
 }
 
+export function validateGitHubUsername(username: string): boolean {
+  if (!/^[a-zA-Z0-9-]{1,39}$/.test(username)) {
+    throw new Error('Invalid GitHub username format');
+  }
+  return true;
+}
+
+// Maximum number of attempts (initial + retries)
 const MAX_RETRIES = 3;
+// Initial delay in ms; doubles on each retry
 const BASE_DELAY_MS = 500;
 const CONTRIBUTION_MILESTONES = [1, 10, 100, 250, 500, 1000];
 const STREAK_MILESTONES = [3, 7, 30, 100];
 
+// delay = BASE_DELAY_MS * 2^attempt
 /**
  * Wraps fetch with exponential backoff retry logic.
  * Retries ONLY on network errors, 429 Too Many Requests, and 5xx server errors.
  * Returns immediately for all other statuses (2xx success, 3xx redirects, 4xx client errors).
  */
 export async function fetchWithRetry(
-  url: string,
+  url: string | URL,
   options: RequestInit,
   attempt = 0
 ): Promise<Response> {
@@ -106,6 +116,7 @@ export async function fetchGitHubContributions(
   username: string,
   options: FetchOptions = {}
 ): Promise<ContributionCalendar> {
+  validateGitHubUsername(username);
   const key = cacheKey('contributions', username, options.from?.substring(0, 4));
 
   if (!options.bypassCache) {
@@ -270,6 +281,10 @@ export function generateAchievements(totalContributions: number, currentStreak: 
   }
 
   return achievements;
+}
+
+export function displayName(profile: { name: string | null; login: string }): string {
+  return profile.name || profile.login;
 }
 
 export async function getFullDashboardData(username: string, options: FetchOptions = {}) {

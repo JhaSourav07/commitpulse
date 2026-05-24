@@ -6,6 +6,7 @@ import {
   fetchUserRepos,
   getFullDashboardData,
   generateAchievements,
+  validateGitHubUsername,
   clearGitHubApiCacheForTests,
   GITHUB_CACHE_TTL_MS,
 } from './github';
@@ -37,6 +38,24 @@ beforeEach(() => {
 
 afterEach(() => {
   clearGitHubApiCacheForTests();
+});
+
+describe('validateGitHubUsername', () => {
+  it('returns true for a valid username', () => {
+    expect(validateGitHubUsername('octocat')).toBe(true);
+  });
+
+  it('throws for a username longer than 39 characters', () => {
+    expect(() => validateGitHubUsername('a'.repeat(40))).toThrow('Invalid GitHub username format');
+  });
+
+  it('throws for a username with underscore', () => {
+    expect(() => validateGitHubUsername('invalid_user')).toThrow('Invalid GitHub username format');
+  });
+
+  it('throws for a username with space', () => {
+    expect(() => validateGitHubUsername('user name')).toThrow('Invalid GitHub username format');
+  });
 });
 
 describe('fetchGitHubContributions', () => {
@@ -220,6 +239,23 @@ describe('fetchUserRepos', () => {
   it('throws status code error on failure', async () => {
     vi.mocked(fetch).mockResolvedValue(mockResponse({ message: 'Error' }, 500));
     await expect(fetchUserRepos('octocat')).rejects.toThrow('GitHub REST API error: 500');
+  });
+});
+
+describe('displayName', () => {
+  it('returns name when profile name is present', () => {
+    const { displayName } = require('./github');
+    expect(displayName({ name: 'Mona Lisa', login: 'mona' })).toBe('Mona Lisa');
+  });
+
+  it('falls back to login when profile name is null', () => {
+    const { displayName } = require('./github');
+    expect(displayName({ name: null, login: 'mona' })).toBe('mona');
+  });
+
+  it('falls back to login when profile name is empty string', () => {
+    const { displayName } = require('./github');
+    expect(displayName({ name: '', login: 'mona' })).toBe('mona');
   });
 });
 
