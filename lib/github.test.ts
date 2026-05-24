@@ -5,6 +5,7 @@ import {
   fetchUserProfile,
   fetchUserRepos,
   getFullDashboardData,
+  generateAchievements,
   clearGitHubApiCacheForTests,
   GITHUB_CACHE_TTL_MS,
 } from './github';
@@ -227,6 +228,15 @@ describe('getFullDashboardData', () => {
     ]);
     expect(result.insights).toBeDefined();
     expect(result.commitClock).toBeDefined();
+    expect(result.commitClock).toHaveLength(7);
+    expect(result.commitClock[0]).toHaveProperty('day');
+    expect(result.commitClock[0]).toHaveProperty('commits');
+    // Verify determinism: same input always produces the same output
+    const totalClockCommits = result.commitClock.reduce(
+      (sum: number, d: { commits: number }) => sum + d.commits,
+      0
+    );
+    expect(totalClockCommits).toBe(8); // 3 + 0 + 5 from mockCalendar
   });
 
   it('throws if any fetch fails', async () => {
@@ -321,5 +331,26 @@ describe('GitHub API cache behavior', () => {
     await fetchGitHubContributions('octocat');
 
     expect(fetch).toHaveBeenCalledTimes(2);
+  });
+});
+describe('generateAchievements', () => {
+  it('marks contribution milestones correctly', () => {
+    const achievements = generateAchievements(600, 10);
+
+    const unlocked = achievements.filter((a) => a.isUnlocked);
+
+    expect(unlocked.some((a) => a.title === '500 Contributions')).toBe(true);
+
+    expect(unlocked.some((a) => a.title === '1000 Contributions')).toBe(false);
+  });
+
+  it('marks streak milestones correctly', () => {
+    const achievements = generateAchievements(50, 35);
+
+    const unlocked = achievements.filter((a) => a.isUnlocked);
+
+    expect(unlocked.some((a) => a.title === '30 Day Streak')).toBe(true);
+
+    expect(unlocked.some((a) => a.title === '100 Day Streak')).toBe(false);
   });
 });

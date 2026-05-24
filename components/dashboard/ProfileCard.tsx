@@ -38,10 +38,12 @@ export default function ProfileCard({ user, exportData }: ProfileCardProps) {
 
           <h2 className="text-lg font-semibold text-white mb-0.5">{user.name}</h2>
           <p className="text-sm text-[#A1A1AA] mb-4">@{user.username}</p>
-          <p className="text-sm text-[#A1A1AA] leading-relaxed mb-5 max-w-[220px]">{user.bio}</p>
+          <p className=" text-xs xs:text-sm text-[#A1A1AA] leading-relaxed mb-5 max-w-[220px]">
+            {user.bio}
+          </p>
 
           {/* Meta */}
-          <div className="flex flex-col gap-1.5 w-full mb-6">
+          <div className="flex md:flex-col justify-around gap-1.5 w-full mb-6">
             <div className="flex items-center justify-center gap-1.5 text-[#A1A1AA] text-xs">
               <MapPin size={12} />
               <span>{user.location}</span>
@@ -96,7 +98,7 @@ export default function ProfileCard({ user, exportData }: ProfileCardProps) {
             whileHover={{ scale: 1.01 }}
             whileTap={{ scale: 0.99 }}
             onClick={() => setShareOpen(true)}
-            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-white text-black text-sm font-semibold hover:bg-zinc-100 transition-colors duration-200"
+            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-white text-black text-sm font-semibold hover:bg-zinc-100 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
           >
             <Share2 size={14} />
             Share Your Pulse

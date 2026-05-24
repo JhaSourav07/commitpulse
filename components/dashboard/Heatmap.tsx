@@ -76,18 +76,21 @@ export default function Heatmap({ data }: { data: ActivityData[] }) {
         className="p-6 rounded-xl bg-[#0a0a0a] border border-[rgba(255,255,255,0.08)]"
       >
         {/* Header */}
+        <h3 className=" text-sm font-semibold text-white tracking-tight my-1">
+          Contribution Heatmap
+        </h3>
         <div className="flex justify-between items-end mb-4">
           <div>
-            <h3 className="text-sm font-semibold text-white tracking-tight">
-              Contribution Heatmap
-            </h3>
             <p className="text-xs text-[#A1A1AA] mt-0.5">Last 365 days</p>
           </div>
           <div className="flex items-center gap-2 text-xs text-[#A1A1AA]">
             <span>Less</span>
             <div className="flex gap-1">
               {[0, 1, 2, 3, 4].map((level) => (
-                <div key={level} className={`w-3 h-3 rounded-sm ${getIntensityColor(level)}`} />
+                <div
+                  key={level}
+                  className={` h-2 w-2 xs:w-3 xs:h-3 rounded-sm ${getIntensityColor(level)}`}
+                />
               ))}
             </div>
             <span>More</span>
@@ -104,7 +107,7 @@ export default function Heatmap({ data }: { data: ActivityData[] }) {
               height: (7 * (CELL + GAP) - GAP) * scale,
             }}
           >
-            <div className="flex" style={{ gap: GAP }}>
+            <div className="flex " style={{ gap: GAP }}>
               {weeks.map((week, wIndex) => (
                 <div key={wIndex} className="flex flex-col" style={{ gap: GAP }}>
                   {week.map((day, dIndex) => (
@@ -112,7 +115,10 @@ export default function Heatmap({ data }: { data: ActivityData[] }) {
                       key={dIndex}
                       onMouseEnter={(e) => handleMouseEnter(e, day)}
                       onMouseLeave={handleMouseLeave}
-                      className={`rounded-sm cursor-pointer transition-all duration-150 hover:brightness-125 hover:scale-125 ${getIntensityColor(day.intensity)}`}
+                      tabIndex={0}
+                      role="button"
+                      aria-label={`${day.count} contribution${day.count !== 1 ? 's' : ''} on ${day.date}`}
+                      className={`rounded-sm cursor-pointer transition-all duration-150 hover:brightness-125 hover:scale-125 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black ${getIntensityColor(day.intensity)}`}
                       style={{ width: CELL, height: CELL }}
                     />
                   ))}

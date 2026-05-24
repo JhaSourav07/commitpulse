@@ -327,7 +327,7 @@ export default function ShareSheet({ username, isOpen, onClose, exportData }: Sh
                   </div>
                   <button
                     onClick={onClose}
-                    className="w-7 h-7 rounded-md bg-transparent hover:bg-white/6 flex items-center justify-center transition-colors duration-150 border border-[rgba(255,255,255,0.08)]"
+                    className="w-7 h-7 rounded-md bg-transparent hover:bg-white/6 flex items-center justify-center transition-colors duration-150 border border-[rgba(255,255,255,0.08)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
                     aria-label="Close"
                   >
                     <X size={14} className="text-[#A1A1AA]" />
@@ -348,7 +348,7 @@ export default function ShareSheet({ username, isOpen, onClose, exportData }: Sh
                         transition={{ delay: idx * 0.04, duration: 0.15 }}
                         onClick={opt.action}
                         disabled={state === 'loading'}
-                        className="group flex items-center gap-3 w-full px-3 py-3 rounded-lg hover:bg-[rgba(255,255,255,0.05)] border border-transparent hover:border-[rgba(255,255,255,0.08)] transition-all duration-200 text-left disabled:opacity-40 disabled:cursor-not-allowed"
+                        className="group flex items-center gap-3 w-full px-3 py-3 rounded-lg hover:bg-[rgba(255,255,255,0.05)] border border-transparent hover:border-[rgba(255,255,255,0.08)] transition-all duration-200 text-left disabled:opacity-40 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
                       >
                         {/* Icon box */}
                         <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-zinc-900 border border-[rgba(255,255,255,0.08)] flex items-center justify-center">

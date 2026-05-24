@@ -36,7 +36,7 @@ function HexInput({
         <label
           htmlFor={`${id}-picker`}
           title="Open color picker"
-          className="relative shrink-0 w-9 h-9 rounded-xl border border-white/10 overflow-hidden cursor-pointer hover:border-emerald-500/50 transition-colors"
+          className="relative shrink-0 w-9 h-9 rounded-xl border border-white/10 overflow-hidden cursor-pointer hover:border-emerald-500/50 transition-colors focus-within:outline-none focus-within:ring-2 focus-within:ring-indigo-500 focus-within:ring-offset-2 focus-within:ring-offset-black"
           style={{ backgroundColor: swatchColor ?? '#1a1a1a' }}
         >
           {!swatchColor && (
@@ -53,7 +53,7 @@ function HexInput({
             type="color"
             value={pickerValue}
             onChange={(e) => onChange(stripHash(e.target.value))}
-            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
             aria-label={`Color picker for ${label}`}
           />
         </label>
@@ -69,7 +69,7 @@ function HexInput({
             onChange={(e) => onChange(e.target.value.replace(/^#/, ''))}
             placeholder={placeholder.replace(/^#/, '')}
             maxLength={6}
-            className="w-full bg-black border border-white/10 rounded-xl pl-7 pr-4 py-2.5 text-sm font-mono text-emerald-300 placeholder:text-white/20 outline-none focus:border-emerald-500/50 transition-colors"
+            className="w-full bg-black border border-white/10 rounded-xl pl-7 pr-4 py-2.5 text-sm font-mono text-emerald-300 placeholder:text-white/20 outline-none focus:border-emerald-500/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
           />
         </div>
       </div>
@@ -85,6 +85,8 @@ export function ControlsPanel({
   textHex,
   scale,
   speed,
+  year,
+  radius,
   onUsernameChange,
   onThemeChange,
   onBgHexChange,
@@ -92,7 +94,9 @@ export function ControlsPanel({
   onTextHexChange,
   onScaleChange,
   onSpeedChange,
+  onYearChange,
   onClearOverrides,
+  onRadiusChange,
 }: {
   username: string;
   theme: string;
@@ -101,6 +105,8 @@ export function ControlsPanel({
   textHex: string;
   scale: Scale;
   speed: string;
+  year: string;
+  radius: number;
   onUsernameChange: (value: string) => void;
   onThemeChange: (value: string) => void;
   onBgHexChange: (value: string) => void;
@@ -108,9 +114,12 @@ export function ControlsPanel({
   onTextHexChange: (value: string) => void;
   onScaleChange: (value: Scale) => void;
   onSpeedChange: (value: string) => void;
+  onYearChange: (value: string) => void;
   onClearOverrides: () => void;
+  onRadiusChange: (value: number) => void;
 }): ReactElement {
   const hasOverrides = Boolean(bgHex || accentHex || textHex);
+  const currentYear = new Date().getFullYear();
   const isAutoTheme = theme === 'auto';
 
   return (
@@ -127,13 +136,32 @@ export function ControlsPanel({
             value={username}
             onChange={(e) => onUsernameChange(e.target.value)}
             placeholder="jhasourav07"
-            className="w-full bg-black border border-white/10 rounded-xl px-4 py-2.5 text-sm font-mono text-emerald-300 placeholder:text-white/20 outline-none focus:border-emerald-500/50 transition-colors"
+            className="w-full bg-black border border-white/10 rounded-xl px-4 py-2.5 text-sm font-mono text-emerald-300 placeholder:text-white/20 outline-none focus:border-emerald-500/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
           />
         </ControlRow>
 
-        <div className="h-px bg-white/5" />
-
         <ThemeSelector theme={theme} onThemeChange={onThemeChange} />
+
+        <div className="h-px bg-white/5" />
+        <ControlRow label="Year">
+          <div className="relative">
+            <StyledSelect id="year-select" value={year} onChange={(value) => onYearChange(value)}>
+              <option value="">{currentYear} (current)</option>
+
+              {Array.from({ length: currentYear - 2019 }, (_, i) => {
+                const yearOption = currentYear - i - 1;
+
+                return (
+                  <option key={yearOption} value={yearOption.toString()}>
+                    {yearOption}
+                  </option>
+                );
+              })}
+            </StyledSelect>
+          </div>
+        </ControlRow>
+
+        <div className="h-px bg-white/5" />
 
         <div className="h-px bg-white/5" />
 
@@ -178,7 +206,7 @@ export function ControlsPanel({
                 <button
                   id="clear-overrides-btn"
                   onClick={onClearOverrides}
-                  className="mt-3 text-[11px] text-red-400/60 hover:text-red-400 transition-colors"
+                  className="mt-3 text-[11px] text-red-400/60 hover:text-red-400 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black rounded"
                 >
                   Clear overrides
                 </button>
@@ -196,7 +224,7 @@ export function ControlsPanel({
                 key={currentScale}
                 id={`scale-${currentScale}-btn`}
                 onClick={() => onScaleChange(currentScale)}
-                className={`py-2.5 rounded-xl text-sm font-bold transition-all ${
+                className={`py-2.5 rounded-xl text-sm font-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black ${
                   scale === currentScale
                     ? 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-400'
                     : 'bg-black border border-white/8 text-white/30 hover:text-white/60 hover:border-white/20'
@@ -222,6 +250,26 @@ export function ControlsPanel({
                 </option>
               ))}
             </StyledSelect>
+          </div>
+        </ControlRow>
+
+        <ControlRow label="Border Radius">
+          <div className="relative flex items-center">
+            <div className="absolute inset-x-0 h-0.75  rounded-full  bg-white/6 " />
+            <input
+              type="range"
+              min="0"
+              max="50"
+              step="1"
+              value={radius}
+              onChange={(e) => onRadiusChange(Number(e.target.value))}
+              className="w-full relative bg-transparent appearance-none outline-none slider"
+            />
+          </div>
+          <div className="flex justify-between text-sm text-white/20 ">
+            <span>0</span>
+            <span className="text-emerald-300/60 font-mono text-[11px]">{radius}</span>
+            <span>50</span>
           </div>
         </ControlRow>
       </div>

@@ -57,6 +57,11 @@ export const themes: Record<string, BadgeTheme> = {
     text: 'f8f8f2',
     accent: 'ff2d78',
   },
+  gruvbox: {
+    bg: '282828',
+    text: 'ebdbb2',
+    accent: 'fe8019',
+  },
 };
 
 // Auto-theme pairs: the SVG switches between these two palettes

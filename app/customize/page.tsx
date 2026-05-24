@@ -18,6 +18,8 @@ export default function CustomizePage(): ReactElement {
   const [textHex, setTextHex] = useState('');
   const [scale, setScale] = useState<Scale>('linear');
   const [speed, setSpeed] = useState('8s');
+  const [year, setYear] = useState('');
+  const [radius, setRadius] = useState(8);
   const [exportFormat, setExportFormat] = useState<ExportFormat>('markdown');
   const [copied, setCopied] = useState(false);
   const trimmedUsername = username.trim();
@@ -61,9 +63,22 @@ export default function CustomizePage(): ReactElement {
 
     if (scale !== 'linear') params.set('scale', scale);
     if (speed !== '8s') params.set('speed', speed);
-
+    if (year) params.set('year', year);
+    if (radius !== 8) params.set('radius', radius.toString());
     return params.toString();
-  }, [hasUsername, trimmedUsername, theme, isAutoTheme, bgHex, accentHex, textHex, scale, speed]);
+  }, [
+    hasUsername,
+    trimmedUsername,
+    theme,
+    isAutoTheme,
+    bgHex,
+    accentHex,
+    textHex,
+    scale,
+    speed,
+    year,
+    radius,
+  ]);
 
   const queryString = buildQueryParams();
   const previewSrc = `/api/streak?${queryString}`;
@@ -157,6 +172,8 @@ export default function CustomizePage(): ReactElement {
               textHex={textHex}
               scale={scale}
               speed={speed}
+              year={year}
+              radius={radius}
               onUsernameChange={setUsername}
               onThemeChange={handleThemeChange}
               onBgHexChange={setBgHex}
@@ -164,6 +181,8 @@ export default function CustomizePage(): ReactElement {
               onTextHexChange={setTextHex}
               onScaleChange={setScale}
               onSpeedChange={setSpeed}
+              onYearChange={setYear}
+              onRadiusChange={setRadius}
               onClearOverrides={() => {
                 setBgHex('');
                 setAccentHex('');
