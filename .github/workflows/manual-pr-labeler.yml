@@ -95,14 +95,13 @@ jobs:
             } else {
               console.log('🔍 Fetching all pull requests (open & closed/merged) in repository...');
               try {
-                const { data } = await github.rest.pulls.list({
+                prs = await github.paginate(github.rest.pulls.list, {
                   owner,
                   repo,
                   state: 'all',
                   per_page: 100
                 });
-                prs = data;
-                console.log(`  Found ${prs.length} PR(s) to analyze.`);
+                console.log(`  Found ${prs.length} total PR(s) to analyze.`);
               } catch (err) {
                 core.setFailed(`Failed to fetch PRs: ${err.message}`);
                 return;
