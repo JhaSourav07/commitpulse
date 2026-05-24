@@ -99,6 +99,7 @@ const themeDescriptions: Record<
   {
     name: string;
     vibe: string;
+    previewUrl?: string;
   }
 > = {
   dark: {
@@ -134,11 +135,13 @@ const themeDescriptions: Record<
   sunset: {
     name: 'Sunset',
     vibe: 'Dark crimson base with warm orange accent.',
+    previewUrl: `${API_BASE_URL}?user=jhasourav07&theme=sunset`,
   },
 
   forest: {
     name: 'Forest',
     vibe: 'Dark green canvas with bright contribution green.',
+    previewUrl: `${API_BASE_URL}?user=jhasourav07&theme=forest`,
   },
 
   rose: {
@@ -321,26 +324,37 @@ export default function DocumentationPage() {
                   className="rounded-[1.5rem] border border-white/8 bg-black/35 p-5 transition hover:-translate-y-1"
                 >
                   <div
-                    className="mb-4 h-32 rounded-[1.25rem] border border-white/10"
+                    className="mb-4 h-32 rounded-[1.25rem] border border-white/10 overflow-hidden"
                     style={{
-                      background: `linear-gradient(145deg, #${theme.bg}, #111111)`,
+                      background: theme.previewUrl
+                        ? undefined
+                        : `linear-gradient(145deg, #${theme.bg}, #111111)`,
                       boxShadow: `inset 0 0 0 1px rgba(255,255,255,0.03), 0 20px 40px -24px #${theme.accent}`,
                     }}
                   >
-                    <div className="flex h-full items-end justify-between p-4">
-                      <span
-                        className="text-xs font-semibold uppercase tracking-[0.22em]"
-                        style={{ color: `#${theme.text}` }}
-                      >
-                        {theme.name}
-                      </span>
-                      <span
-                        className="text-[10px] font-semibold uppercase tracking-[0.18em]"
-                        style={{ color: `#${theme.accent}` }}
-                      >
-                        {theme.slug}
-                      </span>
-                    </div>
+                    {theme.previewUrl ? (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img
+                        src={theme.previewUrl}
+                        alt={`${theme.name} theme preview`}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-full items-end justify-between p-4">
+                        <span
+                          className="text-xs font-semibold uppercase tracking-[0.22em]"
+                          style={{ color: `#${theme.text}` }}
+                        >
+                          {theme.name}
+                        </span>
+                        <span
+                          className="text-[10px] font-semibold uppercase tracking-[0.18em]"
+                          style={{ color: `#${theme.accent}` }}
+                        >
+                          {theme.slug}
+                        </span>
+                      </div>
+                    )}
                   </div>
                   <h3 className="text-base font-semibold text-white">{theme.name}</h3>
                   <p className="mt-2 min-h-[72px] text-sm leading-7 text-white/55">{theme.vibe}</p>
