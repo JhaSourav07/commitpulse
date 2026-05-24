@@ -69,7 +69,7 @@ function HexInput({
             onChange={(e) => onChange(e.target.value.replace(/^#/, ''))}
             placeholder={placeholder.replace(/^#/, '')}
             maxLength={6}
-            className="w-full bg-black border border-white/10 rounded-xl pl-7 pr-4 py-2.5 text-sm font-mono text-emerald-300 placeholder:text-white/20 outline-none focus:border-emerald-500/50 transition-colors"
+            className="w-full bg-black border border-white/10 rounded-xl pl-7 pr-4 py-2.5 text-sm font-mono text-emerald-300 placeholder:text-white/20 outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:outline-none focus:border-emerald-500/50 transition-colors"
           />
         </div>
       </div>
