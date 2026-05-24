@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { generateSVG } from './generator';
-import type { BadgeParams, ContributionCalendar, StreakStats } from '../../types';
+import { generateSVG, generateMonthlySVG } from './generator';
+import type { BadgeParams, ContributionCalendar, StreakStats, MonthlyStats } from '../../types';
 
 describe('generateSVG', () => {
   const mockStats: StreakStats = {
@@ -376,5 +376,51 @@ describe('generateSVG', () => {
 
       expect(svg).not.toContain('attributeName="opacity" values="1;0.4;1"');
     });
+  });
+});
+
+describe('generateMonthlySVG', () => {
+  const mockMonthlyStats: MonthlyStats = {
+    currentMonthTotal: 42,
+    previousMonthTotal: 30,
+    deltaPercentage: 40,
+    deltaAbsolute: 12,
+    currentMonthName: 'June',
+  };
+
+  it('renders monthly stats correctly with absolute delta', () => {
+    const svg = generateMonthlySVG(mockMonthlyStats, {
+      user: 'octocat',
+      delta_format: 'absolute',
+    } as unknown as BadgeParams);
+    expect(svg).toContain('JUNE');
+    expect(svg).toContain('42');
+    expect(svg).toContain('+12 commits');
+  });
+
+  it('renders monthly stats correctly with percentage delta', () => {
+    const svg = generateMonthlySVG(mockMonthlyStats, {
+      user: 'octocat',
+      delta_format: 'percent',
+    } as unknown as BadgeParams);
+    expect(svg).toContain('+40%');
+  });
+
+  it('renders monthly stats correctly with both delta formats', () => {
+    const svg = generateMonthlySVG(mockMonthlyStats, {
+      user: 'octocat',
+      delta_format: 'both',
+    } as unknown as BadgeParams);
+    expect(svg).toContain('+40% (+12)');
+  });
+
+  it('respects custom width and height parameters', () => {
+    const svg = generateMonthlySVG(mockMonthlyStats, {
+      user: 'octocat',
+      width: 400,
+      height: 200,
+    } as unknown as BadgeParams);
+    expect(svg).toContain('width="400"');
+    expect(svg).toContain('height="200"');
   });
 });

@@ -156,6 +156,10 @@ URL Parameter > Theme Default > System Fallback
 | `hide_stats`      | `boolean` | No         | `false`                        | Hides the bottom row displaying Current Streak, Annual Sync Total, and Peak Streak stats when set to `true` or `1`.                                                       |
 | `tz`              | `string`  | No         | Omitted = UTC                  | IANA timezone (e.g. `Asia/Kolkata`, `America/New_York`) — aligns "today" with the user local midnight. Note: `?tz=UTC` is valid but cached separately from omitting `tz`. |
 | `lang`            | `string`  | No         | `en`                           | Language code for labels (`en`, `es`, `hi`, `fr`)                                                                                                                         |
+| `view`            | `string`  | No         | `default`                      | Rendering mode: `default` (3D Monolith) or `monthly` (Compact monthly stats)                                                                                              |
+| `delta_format`    | `string`  | No         | `percent`                      | Format for month-over-month delta in monthly view: `percent` (e.g. +12%), `absolute` (e.g. +15 commits), or `both`                                                        |
+| `width`           | `number`  | No         | `300`                          | Custom width for the SVG canvas (currently only applies to `view=monthly`)                                                                                                |
+| `height`          | `number`  | No         | `120`                          | Custom height for the SVG canvas (currently only applies to `view=monthly`)                                                                                               |
 
 ### Theme Presets
 
@@ -203,6 +207,14 @@ URL Parameter > Theme Default > System Fallback
 <!-- View contributions for a specific past year -->
 
 ![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&year=2023)
+
+<!-- Compact Monthly Stats View -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&view=monthly)
+
+<!-- Monthly View with Absolute Delta and Custom Dimensions -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&view=monthly&delta_format=absolute&width=400&height=150)
 
 <!-- Hide GitHub username/title -->
 

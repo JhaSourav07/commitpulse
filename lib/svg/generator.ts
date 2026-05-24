@@ -1,4 +1,4 @@
-import type { BadgeParams, ContributionCalendar, StreakStats } from '../../types';
+import type { BadgeParams, ContributionCalendar, StreakStats, MonthlyStats } from '../../types';
 import { getLabels } from '../i18n/badgeLabels';
 import { AUTO_DARK_THEME, AUTO_LIGHT_THEME } from './themes';
 import { TOWER_ANIMATION_CSS } from './animations';
@@ -350,6 +350,182 @@ ${
   <rect x="${s(100)}" y="${s(60)}" width="${s(400)}" height="${sf}" class="cp-accent-fill" fill-opacity="0.3">
     <animate attributeName="y" values="${s(80)};${s(320)};${s(80)}" dur="${params.speed || '8s'}" repeatCount="indefinite" />
   </rect>
+</svg>
+`;
+}
+
+export function generateMonthlySVG(stats: MonthlyStats, params: BadgeParams): string {
+  if (params.autoTheme) {
+    return generateAutoThemeMonthlySVG(stats, params);
+  }
+
+  const safeUser = escapeXML(params.user || 'GitHub User');
+  const bg = `#${(params.bg || '0d1117').replace('#', '')}`;
+  const accent = `#${(params.accent || '00ffaa').replace('#', '')}`;
+  const text = `#${(params.text || 'ffffff').replace('#', '')}`;
+
+  const sanitizeFont = (name: string) => name.replace(/[^a-zA-Z0-9\s-]/g, '').trim();
+  const sanitizedFont = params.font ? sanitizeFont(params.font) : null;
+  const predefinedFont = sanitizedFont ? FONT_MAP[sanitizedFont.toLowerCase()] : null;
+  const isPredefinedFont = Boolean(predefinedFont);
+  const selectedFont = isPredefinedFont
+    ? predefinedFont
+    : sanitizedFont
+      ? `"${sanitizedFont}", sans-serif`
+      : null;
+
+  const statsFont = selectedFont || '"Space Grotesk", sans-serif';
+  const parsedRadius = Number(params.radius);
+  const radius = Math.max(0, Math.min(Number.isNaN(parsedRadius) ? 8 : parsedRadius, 50));
+  const labels = getLabels(params.lang);
+
+  const width = params.width || 300;
+  const height = params.height || 120;
+
+  const googleFontsImport =
+    sanitizedFont && !isPredefinedFont
+      ? `@import url('https://fonts.googleapis.com/css2?family=${encodeURIComponent(sanitizedFont).replace(/%20/g, '+')}&amp;display=swap');`
+      : '';
+
+  let deltaText = '';
+  if (params.delta_format === 'absolute') {
+    deltaText =
+      stats.deltaAbsolute > 0
+        ? `+${stats.deltaAbsolute} commits`
+        : stats.deltaAbsolute === 0
+          ? `0 commits`
+          : `${stats.deltaAbsolute} commits`;
+  } else if (params.delta_format === 'both') {
+    deltaText =
+      stats.deltaPercentage > 0
+        ? `+${stats.deltaPercentage}% (+${stats.deltaAbsolute})`
+        : stats.deltaPercentage < 0
+          ? `${stats.deltaPercentage}% (${stats.deltaAbsolute})`
+          : `0% (${stats.deltaAbsolute > 0 ? '+' : ''}${stats.deltaAbsolute})`;
+  } else {
+    deltaText =
+      stats.deltaPercentage > 0
+        ? `+${stats.deltaPercentage}%`
+        : stats.deltaPercentage < 0
+          ? `${stats.deltaPercentage}%`
+          : `0%`;
+  }
+  const deltaColor = stats.deltaAbsolute >= 0 ? accent : '#ff4444';
+
+  return `
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  width="${width}"
+  height="${height}"
+  viewBox="0 0 ${width} ${height}"
+  fill="none"
+  role="img"
+>
+  <title>Monthly Stats for ${safeUser}</title>
+  <style>
+  @import url('https://fonts.googleapis.com/css2?family=Fira+Code&amp;family=JetBrains+Mono&amp;family=Roboto&amp;display=swap');
+  ${googleFontsImport}
+
+  .title { font-family: ${selectedFont || '"Syncopate", sans-serif'}; fill: ${text}; font-size: 14px; letter-spacing: 2px; font-weight: 400; opacity: 0.8; }
+  .stats { font-family: ${statsFont}; fill: ${accent}; font-size: 36px; font-weight: 600; letter-spacing: 0; }
+  .label { font-family: "Roboto", sans-serif; fill: ${text}; font-size: 10px; font-weight: 400; letter-spacing: 1px; opacity: 0.7; }
+  .delta { font-family: "Roboto", sans-serif; fill: ${deltaColor}; font-size: 12px; font-weight: 500; }
+  </style>
+
+  <rect width="${width}" height="${height}" rx="${radius}" fill="${params.hideBackground ? 'transparent' : bg}" />
+
+  <text x="20" y="40" class="title">${stats.currentMonthName.toUpperCase()}</text>
+  <text x="20" y="85" class="stats">${stats.currentMonthTotal}</text>
+  <text x="20" y="105" class="label">${labels.COMMITS_THIS_MONTH}</text>
+
+  <g transform="translate(${width - 20}, 80)" text-anchor="end">
+    <text class="delta">${deltaText}</text>
+    <text y="20" class="label">${labels.VS_LAST_MONTH}</text>
+  </g>
+</svg>
+`;
+}
+
+function generateAutoThemeMonthlySVG(stats: MonthlyStats, params: BadgeParams): string {
+  const light = AUTO_LIGHT_THEME;
+  const dark = AUTO_DARK_THEME;
+  const safeUser = escapeXML(params.user || 'GitHub User');
+  const sanitizeFont = (name: string) => name.replace(/[^a-zA-Z0-9\s-]/g, '').trim();
+  const sanitizedFont = params.font ? sanitizeFont(params.font) : null;
+  const predefinedFont = sanitizedFont ? FONT_MAP[sanitizedFont.toLowerCase()] : null;
+  const isPredefinedFont = Boolean(predefinedFont);
+  const selectedFont = isPredefinedFont
+    ? predefinedFont
+    : sanitizedFont
+      ? `"${sanitizedFont}", sans-serif`
+      : null;
+  const statsFont = selectedFont || '"Space Grotesk", sans-serif';
+  const parsedRadius = Number(params.radius);
+  const radius = Math.max(0, Math.min(Number.isNaN(parsedRadius) ? 8 : parsedRadius, 50));
+  const labels = getLabels(params.lang);
+
+  const width = params.width || 300;
+  const height = params.height || 120;
+
+  let deltaText = '';
+  if (params.delta_format === 'absolute') {
+    deltaText =
+      stats.deltaAbsolute > 0
+        ? `+${stats.deltaAbsolute} commits`
+        : stats.deltaAbsolute === 0
+          ? `0 commits`
+          : `${stats.deltaAbsolute} commits`;
+  } else if (params.delta_format === 'both') {
+    deltaText =
+      stats.deltaPercentage > 0
+        ? `+${stats.deltaPercentage}% (+${stats.deltaAbsolute})`
+        : stats.deltaPercentage < 0
+          ? `${stats.deltaPercentage}% (${stats.deltaAbsolute})`
+          : `0% (${stats.deltaAbsolute > 0 ? '+' : ''}${stats.deltaAbsolute})`;
+  } else {
+    deltaText =
+      stats.deltaPercentage > 0
+        ? `+${stats.deltaPercentage}%`
+        : stats.deltaPercentage < 0
+          ? `${stats.deltaPercentage}%`
+          : `0%`;
+  }
+
+  return `
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  width="${width}"
+  height="${height}"
+  viewBox="0 0 ${width} ${height}"
+  fill="none"
+  role="img"
+>
+  <title>Monthly Stats for ${safeUser}</title>
+  <style>
+  @import url('https://fonts.googleapis.com/css2?family=Fira+Code&amp;family=JetBrains+Mono&amp;family=Roboto&amp;display=swap');
+  :root { --cp-bg: #${light.bg}; --cp-text: #${light.text}; --cp-accent: #${light.accent}; --cp-negative: #ff4444; }
+  @media (prefers-color-scheme: dark) { :root { --cp-bg: #${dark.bg}; --cp-text: #${dark.text}; --cp-accent: #${dark.accent}; --cp-negative: #ff6666; } }
+  .cp-bg-fill { fill: var(--cp-bg); } 
+  .cp-text-fill { fill: var(--cp-text); color: var(--cp-text); } 
+  .cp-accent-fill { fill: var(--cp-accent); color: var(--cp-accent); }
+  .cp-delta-fill { fill: ${stats.deltaAbsolute >= 0 ? 'var(--cp-accent)' : 'var(--cp-negative)'}; }
+  
+  .title { font-family: ${selectedFont || '"Syncopate", sans-serif'}; fill: var(--cp-text); font-size: 14px; letter-spacing: 2px; font-weight: 400; opacity: 0.8; }
+  .stats { font-family: ${statsFont}; fill: var(--cp-accent); font-size: 36px; font-weight: 600; letter-spacing: 0; }
+  .label { font-family: "Roboto", sans-serif; fill: var(--cp-text); font-size: 10px; font-weight: 400; letter-spacing: 1px; opacity: 0.7; }
+  .delta { font-family: "Roboto", sans-serif; font-size: 12px; font-weight: 500; }
+  </style>
+
+  <rect width="${width}" height="${height}" rx="${radius}" ${params.hideBackground ? 'fill="transparent"' : 'class="cp-bg-fill"'} />
+
+  <text x="20" y="40" class="title">${stats.currentMonthName.toUpperCase()}</text>
+  <text x="20" y="85" class="stats">${stats.currentMonthTotal}</text>
+  <text x="20" y="105" class="label">${labels.COMMITS_THIS_MONTH}</text>
+
+  <g transform="translate(${width - 20}, 80)" text-anchor="end">
+    <text class="delta cp-delta-fill">${deltaText}</text>
+    <text y="20" class="label">${labels.VS_LAST_MONTH}</text>
+  </g>
 </svg>
 `;
 }
