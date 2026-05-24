@@ -4,9 +4,18 @@ on:
   workflow_dispatch:
     inputs:
       pr_number:
-        description: 'Specific PR number to label (leave blank to scan all open PRs)'
+        description: 'Specific PR number to label (leave blank to scan PRs by state)'
         required: false
         type: string
+      pr_state:
+        description: 'State of PRs to scan (only used when PR number is blank)'
+        required: false
+        type: choice
+        options:
+          - open
+          - closed
+          - all
+        default: open
       dry_run:
         description: 'Dry run (only print proposed labels without applying them)'
         required: false
@@ -33,6 +42,7 @@ jobs:
             const repo = context.repo.repo;
 
             const prNumberInput = '${{ github.event.inputs.pr_number }}'.trim();
+            const prStateInput = '${{ github.event.inputs.pr_state }}' || 'open';
             const dryRun = ${{ github.event.inputs.dry_run || 'false' }};
 
             // Define the 10 label types, colors, and descriptions
@@ -93,18 +103,18 @@ jobs:
                 return;
               }
             } else {
-              console.log('🔍 Fetching all open PRs in repository...');
+              console.log(`🔍 Fetching PRs with state "${prStateInput}" in repository...`);
               try {
                 const { data } = await github.rest.pulls.list({
                   owner,
                   repo,
-                  state: 'open',
+                  state: prStateInput,
                   per_page: 100
                 });
                 prs = data;
-                console.log(`  Found ${prs.length} open PR(s) to analyze.`);
+                console.log(`  Found ${prs.length} PR(s) with state "${prStateInput}" to analyze.`);
               } catch (err) {
-                core.setFailed(`Failed to fetch open PRs: ${err.message}`);
+                core.setFailed(`Failed to fetch PRs: ${err.message}`);
                 return;
               }
             }
