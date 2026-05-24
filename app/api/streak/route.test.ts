@@ -344,7 +344,7 @@ describe('GET /api/streak', () => {
 
       const response = await GET(makeRequest({ user: 'octocat' }));
 
-      expect(response.headers.get('Cache-Control')).toBe('no-cache');
+      expect(response.headers.get('Cache-Control')).toBe('public, s-maxage=60');
     });
 
     it('returns a valid 500 SVG even when something non-Error is thrown', async () => {
