@@ -41,33 +41,37 @@ export default function StatsCard({
       viewport={{ once: true }}
       whileHover={{ y: -2 }}
       transition={{ duration: 0.2, ease: 'easeOut' }}
-      className="group p-6 rounded-xl bg-[#0a0a0a] border border-[rgba(255,255,255,0.08)] hover:border-[rgba(255,255,255,0.14)] hover:shadow-[0_0_24px_rgba(99,102,241,0.08)] transition-all duration-200 relative overflow-hidden"
+      className="group p-6 rounded-xl bg-white dark:bg-[#0a0a0a] border border-black/10 dark:border-white/8 hover:border-black/20 dark:hover:border-[rgba(255,255,255,0.14)] hover:shadow-[0_10px_30px_rgba(0,0,0,0.04)] dark:hover:shadow-[0_0_24px_rgba(99,102,241,0.08)] transition-all duration-200 relative overflow-hidden"
     >
       <div className="flex justify-between items-start mb-6">
         <div>
-          <p className="text-xs text-[#A1A1AA] uppercase tracking-widest font-medium mb-3">
+          <p className="text-xs text-zinc-500 dark:text-[#A1A1AA] uppercase tracking-widest font-medium mb-3">
             {title}
           </p>
 
-          <p className="text-4xl font-semibold text-white tracking-tight">{value}</p>
+          <p className="text-4xl font-semibold text-zinc-900 dark:text-white tracking-tight">
+            {value}
+          </p>
 
-          <p className="text-xs text-[#A1A1AA] mt-1.5">{description}</p>
+          <p className="text-xs text-zinc-500 dark:text-[#A1A1AA] mt-1.5">{description}</p>
 
           {showUTCDisclaimer && (
             <div className="mt-3 space-y-1">
-              <p className="text-[11px] text-[#71717A] leading-relaxed">
+              <p className="text-[11px] text-zinc-400 dark:text-[#71717A] leading-relaxed">
                 ℹ Streaks are calculated in UTC and may differ from your local timezone.
               </p>
 
-              {utcDate && <p className="text-[10px] text-[#52525B]">UTC Date: {utcDate}</p>}
+              {utcDate && (
+                <p className="text-[10px] text-zinc-400 dark:text-[#52525B]">UTC Date: {utcDate}</p>
+              )}
             </div>
           )}
         </div>
 
-        <div className="p-2 rounded-lg bg-[#111] border border-[rgba(255,255,255,0.06)] group-hover:border-[rgba(99,102,241,0.2)] transition-colors duration-200">
+        <div className="p-2 rounded-lg bg-zinc-50 dark:bg-[#111] border border-black/10 dark:border-white/6 group-hover:border-zinc-300 dark:group-hover:border-[rgba(99,102,241,0.2)] transition-colors duration-200">
           <IconComponent
             size={18}
-            className="text-[#A1A1AA] group-hover:text-white transition-colors duration-200"
+            className="text-zinc-500 dark:text-[#A1A1AA] group-hover:text-zinc-900 dark:group-hover:text-white transition-colors duration-200"
           />
         </div>
       </div>
@@ -77,7 +81,7 @@ export default function StatsCard({
         {miniChartData.map((h, i) => (
           <div
             key={i}
-            className="flex-1 bg-white rounded-t-[1px]"
+            className="flex-1 bg-zinc-900 dark:bg-white rounded-t-[1px]"
             style={{ height: `${Math.max(h / 1.4, 10)}%` }}
           />
         ))}

@@ -20,11 +20,13 @@ export default function CommitClock({ data }: { data: CommitClockData[] }) {
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ duration: 0.3, delay: 0.1 }}
-      className="p-6 rounded-xl bg-[#0a0a0a] border border-[rgba(255,255,255,0.08)] flex flex-col items-center min-h-[300px]"
+      className="p-6 rounded-xl bg-white dark:bg-[#0a0a0a] border border-black/10 dark:border-white/8 shadow-sm flex flex-col items-center min-h-[300px]"
     >
       <div className="w-full mb-1">
-        <h3 className="text-sm font-semibold text-white tracking-tight">Commit Clock</h3>
-        <p className="text-xs text-[#A1A1AA] mt-1">Weekly activity cycle</p>
+        <h3 className="text-sm font-semibold text-zinc-900 dark:text-white tracking-tight">
+          Commit Clock
+        </h3>
+        <p className="text-xs text-zinc-500 dark:text-[#A1A1AA] mt-1">Weekly activity cycle</p>
       </div>
 
       <div className="relative w-[280px] h-[280px] flex items-center justify-center mt-4">
@@ -42,7 +44,8 @@ export default function CommitClock({ data }: { data: CommitClockData[] }) {
             cy={cy}
             r={radius}
             fill="none"
-            stroke="rgba(255,255,255,0.04)"
+            stroke="currentColor"
+            className="text-black/5 dark:text-white/4"
             strokeWidth="18"
           />
 
@@ -52,7 +55,8 @@ export default function CommitClock({ data }: { data: CommitClockData[] }) {
             cy={cy}
             r={radius + maxSpokeLength + 8}
             fill="none"
-            stroke="rgba(255,255,255,0.08)"
+            stroke="currentColor"
+            className="text-black/10 dark:text-white/8"
             strokeWidth="1"
           />
 
@@ -73,7 +77,10 @@ export default function CommitClock({ data }: { data: CommitClockData[] }) {
                 y1={r4(cy + (radius + innerOffset) * Math.sin(rad))}
                 x2={r4(cx + (radius + tickLength) * Math.cos(rad))}
                 y2={r4(cy + (radius + tickLength) * Math.sin(rad))}
-                stroke={isMain ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.06)'}
+                stroke="currentColor"
+                className={
+                  isMain ? 'text-black/15 dark:text-white/12' : 'text-black/5 dark:text-white/6'
+                }
                 strokeWidth={isMain ? '4' : '2'}
                 strokeLinecap="round"
               />
@@ -110,8 +117,13 @@ export default function CommitClock({ data }: { data: CommitClockData[] }) {
                   y1={y1}
                   x2={x2}
                   y2={y2}
-                  stroke={
-                    isPeak ? '#ffffff' : isHigh ? 'rgba(255,255,255,0.8)' : 'rgba(255,255,255,0.3)'
+                  stroke="currentColor"
+                  className={
+                    isPeak
+                      ? 'text-zinc-900 dark:text-white'
+                      : isHigh
+                        ? 'text-zinc-800/70 dark:text-white/80'
+                        : 'text-zinc-800/25 dark:text-white/30'
                   }
                   strokeWidth={strokeW}
                   strokeLinecap="round"
@@ -124,7 +136,14 @@ export default function CommitClock({ data }: { data: CommitClockData[] }) {
                     cx={x2}
                     cy={y2}
                     r={isPeak ? 3 : 2}
-                    fill={isPeak ? '#ffffff' : isHigh ? '#ffffff' : 'rgba(255,255,255,0.5)'}
+                    fill="currentColor"
+                    className={
+                      isPeak
+                        ? 'text-zinc-900 dark:text-white'
+                        : isHigh
+                          ? 'text-zinc-900 dark:text-white'
+                          : 'text-zinc-800/40 dark:text-white/50'
+                    }
                     filter={isPeak ? 'url(#spoke-glow)' : undefined}
                   />
                 )}
@@ -133,8 +152,13 @@ export default function CommitClock({ data }: { data: CommitClockData[] }) {
                 <text
                   x={labelX}
                   y={labelY}
-                  fill={
-                    isPeak ? '#ffffff' : isHigh ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.35)'
+                  fill="currentColor"
+                  className={
+                    isPeak
+                      ? 'text-zinc-900 dark:text-white'
+                      : isHigh
+                        ? 'text-zinc-800/70 dark:text-white/70'
+                        : 'text-zinc-800/35 dark:text-white/35'
                   }
                   fontSize="9"
                   fontWeight={isPeak ? '700' : '400'}
@@ -147,7 +171,12 @@ export default function CommitClock({ data }: { data: CommitClockData[] }) {
                   <tspan
                     x={labelX}
                     dy="10"
-                    fill={isPeak ? '#ffffff' : 'rgba(255,255,255,0.3)'}
+                    fill="currentColor"
+                    className={
+                      isPeak
+                        ? 'text-zinc-900 dark:text-white'
+                        : 'text-zinc-800/30 dark:text-white/30'
+                    }
                     fontSize="7"
                     fontWeight="400"
                   >
@@ -161,8 +190,8 @@ export default function CommitClock({ data }: { data: CommitClockData[] }) {
 
         {/* Center label */}
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-          <span className="text-lg font-semibold text-white/60">7d</span>
-          <span className="text-[8px] text-white/20 mt-0.5">CYCLE</span>
+          <span className="text-lg font-semibold text-zinc-500 dark:text-white/60">7d</span>
+          <span className="text-[8px] text-zinc-400 dark:text-white/20 mt-0.5">CYCLE</span>
         </div>
       </div>
     </motion.div>

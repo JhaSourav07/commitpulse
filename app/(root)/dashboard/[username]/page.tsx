@@ -83,7 +83,7 @@ export default async function DashboardPage({
         <RefreshButton username={username} />
         <Link
           href="/"
-          className="flex items-center gap-2 rounded-xl border border-[rgba(255,255,255,0.15)] bg-black px-4 py-2 text-sm font-semibold text-white transition-all duration-200 hover:bg-white/5 active:scale-[0.98]"
+          className="flex items-center gap-2 rounded-xl border border-black/10 dark:border-white/15 bg-zinc-900 text-white dark:bg-black px-4 py-2 text-sm font-semibold transition-all duration-200 hover:bg-zinc-800 dark:hover:bg-white/5 active:scale-[0.98] shadow-sm"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"

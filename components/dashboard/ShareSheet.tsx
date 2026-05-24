@@ -128,7 +128,11 @@ export default function ShareSheet({ username, isOpen, onClose, exportData }: Sh
       const dataUrl = await toPng(node, {
         quality: 0.95,
         pixelRatio: 2,
-        backgroundColor: '#050505',
+        backgroundColor:
+          document.documentElement.classList.contains('dark') ||
+          document.body.classList.contains('dark')
+            ? '#050505'
+            : '#ffffff',
         filter: (el) => {
           // Exclude the share sheet itself and the generate button from the capture
           if (el instanceof HTMLElement) {
@@ -348,19 +352,21 @@ export default function ShareSheet({ username, isOpen, onClose, exportData }: Sh
               className="relative w-full max-w-sm"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="rounded-xl bg-[#0a0a0a] border border-[rgba(255,255,255,0.1)] shadow-[0_24px_64px_rgba(0,0,0,0.9)] overflow-hidden">
+              <div className="rounded-xl bg-white dark:bg-[#0a0a0a] border border-black/15 dark:border-[rgba(255,255,255,0.1)] shadow-[0_24px_64px_rgba(0,0,0,0.15)] dark:shadow-[0_24px_64px_rgba(0,0,0,0.9)] overflow-hidden">
                 {/* Header */}
-                <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-[rgba(255,255,255,0.06)]">
+                <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-black/10 dark:border-[rgba(255,255,255,0.06)]">
                   <div>
-                    <h2 className="text-sm font-semibold text-white tracking-tight">Share Pulse</h2>
-                    <p className="text-xs text-[#A1A1AA] mt-0.5">@{username}</p>
+                    <h2 className="text-sm font-semibold text-zinc-900 dark:text-white tracking-tight">
+                      Share Pulse
+                    </h2>
+                    <p className="text-xs text-zinc-500 dark:text-[#A1A1AA] mt-0.5">@{username}</p>
                   </div>
                   <button
                     onClick={onClose}
-                    className="w-7 h-7 rounded-md bg-transparent hover:bg-white/6 flex items-center justify-center transition-colors duration-150 border border-[rgba(255,255,255,0.08)]"
+                    className="w-7 h-7 rounded-md bg-transparent hover:bg-black/5 dark:hover:bg-white/6 flex items-center justify-center transition-colors duration-150 border border-black/10 dark:border-[rgba(255,255,255,0.08)]"
                     aria-label="Close"
                   >
-                    <X size={14} className="text-[#A1A1AA]" />
+                    <X size={14} className="text-zinc-500 dark:text-[#A1A1AA]" />
                   </button>
                 </div>
 
@@ -378,25 +384,28 @@ export default function ShareSheet({ username, isOpen, onClose, exportData }: Sh
                         transition={{ delay: idx * 0.04, duration: 0.15 }}
                         onClick={opt.action}
                         disabled={state === 'loading'}
-                        className="group flex items-center gap-3 w-full px-3 py-3 rounded-lg hover:bg-[rgba(255,255,255,0.05)] border border-transparent hover:border-[rgba(255,255,255,0.08)] transition-all duration-200 text-left disabled:opacity-40 disabled:cursor-not-allowed"
+                        className="group flex items-center gap-3 w-full px-3 py-3 rounded-lg hover:bg-zinc-50 dark:hover:bg-white/5 border border-transparent hover:border-black/10 dark:hover:border-[rgba(255,255,255,0.08)] transition-all duration-200 text-left disabled:opacity-40 disabled:cursor-not-allowed"
                       >
                         {/* Icon box */}
-                        <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-zinc-900 border border-[rgba(255,255,255,0.08)] flex items-center justify-center">
+                        <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-zinc-100 dark:bg-zinc-900 border border-black/10 dark:border-[rgba(255,255,255,0.08)] flex items-center justify-center">
                           {state === 'loading' ? (
-                            <Loader2 size={15} className="text-[#A1A1AA] animate-spin" />
+                            <Loader2
+                              size={15}
+                              className="text-zinc-500 dark:text-[#A1A1AA] animate-spin"
+                            />
                           ) : state === 'success' ? (
-                            <Check size={15} className="text-white" />
+                            <Check size={15} className="text-zinc-800 dark:text-white" />
                           ) : (
                             <Icon
                               size={15}
-                              className="text-[#A1A1AA] group-hover:text-white transition-colors duration-200"
+                              className="text-zinc-500 dark:text-[#A1A1AA] group-hover:text-zinc-900 group-hover:dark:text-white transition-colors duration-200"
                             />
                           )}
                         </div>
 
                         {/* Label */}
                         <div className="flex flex-col min-w-0">
-                          <span className="text-sm text-white font-medium leading-tight">
+                          <span className="text-sm text-zinc-850 dark:text-white font-medium leading-tight">
                             {state === 'success'
                               ? opt.key === 'copy'
                                 ? 'Link Copied!'
@@ -411,7 +420,7 @@ export default function ShareSheet({ username, isOpen, onClose, exportData }: Sh
                                 ? 'Failed — try again'
                                 : opt.label}
                           </span>
-                          <span className="text-xs text-[#A1A1AA] mt-0.5 truncate">
+                          <span className="text-xs text-zinc-500 dark:text-[#A1A1AA] mt-0.5 truncate">
                             {opt.description}
                           </span>
                         </div>

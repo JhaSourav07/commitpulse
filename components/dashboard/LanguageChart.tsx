@@ -11,14 +11,14 @@ export default function LanguageChart({ languages }: { languages: LanguageData[]
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
         transition={{ duration: 0.3 }}
-        className="p-6 rounded-xl bg-[#0a0a0a] border border-[rgba(255,255,255,0.08)] flex flex-col min-h-[300px]"
+        className="p-6 rounded-xl bg-white dark:bg-[#0a0a0a] border border-black/10 dark:border-[rgba(255,255,255,0.08)] shadow-sm flex flex-col min-h-[300px]"
       >
-        <h3 className="text-sm font-semibold text-white w-full text-left mb-6 tracking-tight">
+        <h3 className="text-sm font-semibold text-zinc-900 dark:text-white w-full text-left mb-6 tracking-tight">
           Top Languages
         </h3>
 
         <div className="flex flex-1 items-center justify-center text-center">
-          <p className="text-sm text-[#A1A1AA]">No language data found</p>
+          <p className="text-sm text-zinc-500 dark:text-[#A1A1AA]">No language data found</p>
         </div>
       </motion.div>
     );
@@ -41,9 +41,9 @@ export default function LanguageChart({ languages }: { languages: LanguageData[]
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ duration: 0.3 }}
-      className="p-6 rounded-xl bg-[#0a0a0a] border border-[rgba(255,255,255,0.08)] flex flex-col items-center justify-between min-h-[300px]"
+      className="p-6 rounded-xl bg-white dark:bg-[#0a0a0a] border border-black/10 dark:border-[rgba(255,255,255,0.08)] shadow-sm flex flex-col items-center justify-between min-h-[300px]"
     >
-      <h3 className="text-sm font-semibold text-white w-full text-left mb-6 tracking-tight">
+      <h3 className="text-sm font-semibold text-zinc-900 dark:text-white w-full text-left mb-6 tracking-tight">
         Top Languages
       </h3>
 
@@ -62,8 +62,10 @@ export default function LanguageChart({ languages }: { languages: LanguageData[]
         />
         {/* Center */}
         <div className="relative z-10 flex flex-col items-center">
-          <span className="text-xl font-semibold text-white">{languages[0].percentage}%</span>
-          <span className="text-[10px] text-[#A1A1AA] uppercase tracking-widest mt-0.5">
+          <span className="text-xl font-semibold text-zinc-900 dark:text-white">
+            {languages[0].percentage}%
+          </span>
+          <span className="text-[10px] text-zinc-500 dark:text-[#A1A1AA] uppercase tracking-widest mt-0.5">
             {languages[0].name}
           </span>
         </div>
@@ -74,9 +76,11 @@ export default function LanguageChart({ languages }: { languages: LanguageData[]
           <div key={lang.name} className="flex items-center justify-between text-xs">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full" style={{ backgroundColor: lang.color }} />
-              <span className="text-[#A1A1AA]">{lang.name}</span>
+              <span className="text-zinc-500 dark:text-[#A1A1AA]">{lang.name}</span>
             </div>
-            <span className="font-mono text-white/60 text-[11px]">{lang.percentage}%</span>
+            <span className="font-mono text-zinc-600 dark:text-white/60 text-[11px]">
+              {lang.percentage}%
+            </span>
           </div>
         ))}
       </div>

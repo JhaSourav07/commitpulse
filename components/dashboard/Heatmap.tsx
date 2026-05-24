@@ -40,17 +40,17 @@ export default function Heatmap({ data }: { data: ActivityData[] }) {
   const getIntensityColor = (intensity: number) => {
     switch (intensity) {
       case 0:
-        return 'bg-[#1a1a1a]';
+        return 'bg-zinc-100 dark:bg-zinc-900';
       case 1:
-        return 'bg-zinc-800';
+        return 'bg-zinc-200 dark:bg-zinc-800';
       case 2:
-        return 'bg-zinc-600';
+        return 'bg-zinc-400 dark:bg-zinc-600';
       case 3:
-        return 'bg-zinc-400';
+        return 'bg-zinc-650 dark:bg-zinc-400';
       case 4:
-        return 'bg-white';
+        return 'bg-zinc-900 dark:bg-white';
       default:
-        return 'bg-[#1a1a1a]';
+        return 'bg-zinc-100 dark:bg-zinc-900';
     }
   };
 
@@ -73,17 +73,17 @@ export default function Heatmap({ data }: { data: ActivityData[] }) {
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
         transition={{ duration: 0.5, delay: 0.2 }}
-        className="p-6 rounded-xl bg-[#0a0a0a] border border-[rgba(255,255,255,0.08)]"
+        className="p-6 rounded-xl bg-white dark:bg-[#0a0a0a] border border-black/10 dark:border-[rgba(255,255,255,0.08)] shadow-sm"
       >
         {/* Header */}
-        <h3 className=" text-sm font-semibold text-white tracking-tight my-1">
+        <h3 className=" text-sm font-semibold text-zinc-900 dark:text-white tracking-tight my-1">
           Contribution Heatmap
         </h3>
         <div className="flex justify-between items-end mb-4">
           <div>
-            <p className="text-xs text-[#A1A1AA] mt-0.5">Last 365 days</p>
+            <p className="text-xs text-zinc-500 dark:text-[#A1A1AA] mt-0.5">Last 365 days</p>
           </div>
-          <div className="flex items-center gap-2 text-xs text-[#A1A1AA]">
+          <div className="flex items-center gap-2 text-xs text-zinc-500 dark:text-[#A1A1AA]">
             <span>Less</span>
             <div className="flex gap-1">
               {[0, 1, 2, 3, 4].map((level) => (
@@ -138,11 +138,11 @@ export default function Heatmap({ data }: { data: ActivityData[] }) {
             className="fixed z-[9999] pointer-events-none -translate-x-1/2 -translate-y-full"
             style={{ left: tooltip.x, top: tooltip.y }}
           >
-            <div className="bg-[#111] border border-[rgba(255,255,255,0.1)] px-2.5 py-1.5 rounded-md text-[11px] text-white shadow-lg whitespace-nowrap">
+            <div className="bg-zinc-950 border border-white/10 px-2.5 py-1.5 rounded-md text-[11px] text-white shadow-lg whitespace-nowrap">
               {tooltip.text}
             </div>
             {/* Arrow */}
-            <div className="mx-auto w-2 h-2 bg-black/90 border-r border-b border-white/10 rotate-45 -mt-1" />
+            <div className="mx-auto w-2 h-2 bg-zinc-950 border-r border-b border-white/10 rotate-45 -mt-1" />
           </motion.div>
         )}
       </AnimatePresence>

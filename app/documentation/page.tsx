@@ -174,43 +174,43 @@ const contributorNotes = [
 
 export default function DocumentationPage() {
   return (
-    <main className="min-h-screen overflow-x-hidden bg-transparent text-white">
+    <main className="min-h-screen overflow-x-hidden bg-transparent text-zinc-900 dark:text-white">
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         {/* Layered brand glows for depth */}
-        <div className="absolute left-[-10%] top-[-8%] h-[40rem] w-[40rem] rounded-full bg-emerald-500/15 blur-[120px]" />
-        <div className="absolute right-[-5%] top-[10%] h-[35rem] w-[35rem] rounded-full bg-cyan-400/10 blur-[100px]" />
-        <div className="absolute bottom-[-15%] left-[15%] h-[45rem] w-[45rem] rounded-full bg-indigo-500/10 blur-[140px]" />
+        <div className="absolute left-[-10%] top-[-8%] h-[40rem] w-[40rem] rounded-full bg-emerald-500/10 dark:bg-emerald-500/15 blur-[120px]" />
+        <div className="absolute right-[-5%] top-[10%] h-[35rem] w-[35rem] rounded-full bg-cyan-400/5 dark:bg-cyan-400/10 blur-[100px]" />
+        <div className="absolute bottom-[-15%] left-[15%] h-[45rem] w-[45rem] rounded-full bg-indigo-500/5 dark:bg-indigo-500/10 blur-[140px]" />
         {/* Noise texture overlay for a premium surface feel */}
         <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.03] mix-blend-overlay" />
       </div>
 
       <div className="relative mx-auto flex min-h-screen max-w-[1600px] flex-col px-6 pb-10 pt-6 md:px-8">
-        <section className="mb-10 rounded-[2rem] border border-white/10 bg-white/[0.03] px-6 py-10 shadow-[0_30px_100px_rgba(0,0,0,0.45)] backdrop-blur md:px-10">
-          <div className="mb-6 inline-flex items-center rounded-full border border-emerald-400/20 bg-emerald-500/10 px-4 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-emerald-300">
+        <section className="mb-10 rounded-[2rem] border border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/[0.03] px-6 py-10 shadow-[0_30px_100px_rgba(0,0,0,0.05)] dark:shadow-[0_30px_100px_rgba(0,0,0,0.45)] backdrop-blur md:px-10">
+          <div className="mb-6 inline-flex items-center rounded-full border border-emerald-400/20 bg-emerald-500/10 px-4 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-emerald-600 dark:text-emerald-300">
             Documentation
           </div>
           <div className="grid gap-10 lg:grid-cols-[1.2fr_0.8fr] lg:items-end">
             <div>
-              <h1 className="max-w-3xl text-4xl font-black tracking-tight text-white md:text-6xl">
+              <h1 className="max-w-3xl text-4xl font-black tracking-tight text-zinc-900 dark:text-white md:text-6xl">
                 The manual for building your profile monument.
               </h1>
-              <p className="mt-5 max-w-2xl text-base leading-8 text-white/65 md:text-lg">
+              <p className="mt-5 max-w-2xl text-base leading-8 text-zinc-600 dark:text-white/65 md:text-lg">
                 Everything in the README, reshaped into a cleaner in-product guide so users can go
                 from copy-paste embed to fully customized monolith without leaving the site.
               </p>
             </div>
-            <div className="rounded-[1.75rem] border border-white/10 bg-black/40 p-5">
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/40">
+            <div className="rounded-[1.75rem] border border-black/10 dark:border-white/10 bg-zinc-100/80 dark:bg-black/40 p-5">
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-500 dark:text-white/40">
                 Priority chain
               </p>
-              <div className="mt-4 space-y-3 text-sm text-white/80">
-                <div className="rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3">
+              <div className="mt-4 space-y-3 text-sm text-zinc-800 dark:text-white/80">
+                <div className="rounded-2xl border border-black/5 dark:border-white/8 bg-zinc-200/50 dark:bg-white/[0.03] px-4 py-3">
                   URL Parameter
                 </div>
-                <div className="rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3">
+                <div className="rounded-2xl border border-black/5 dark:border-white/8 bg-zinc-200/50 dark:bg-white/[0.03] px-4 py-3">
                   Theme Default
                 </div>
-                <div className="rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3">
+                <div className="rounded-2xl border border-black/5 dark:border-white/8 bg-zinc-200/50 dark:bg-white/[0.03] px-4 py-3">
                   System Fallback
                 </div>
               </div>
@@ -225,9 +225,11 @@ export default function DocumentationPage() {
             description="Paste this snippet into any Markdown surface that supports remote images, including your GitHub profile README, a portfolio page, or internal docs."
           >
             <CodeBlock code={quickStartSnippet} />
-            <p className="mt-4 text-sm leading-7 text-white/50">
+            <p className="mt-4 text-sm leading-7 text-zinc-500 dark:text-white/50">
               Replace{' '}
-              <code className="rounded bg-white/10 px-1.5 py-0.5 text-white/80">YOUR_USERNAME</code>{' '}
+              <code className="rounded bg-black/10 dark:bg-white/10 px-1.5 py-0.5 text-zinc-800 dark:text-white/80">
+                YOUR_USERNAME
+              </code>{' '}
               with your GitHub handle and the API will render the default dark theme automatically.
             </p>
           </Panel>
@@ -241,15 +243,19 @@ export default function DocumentationPage() {
               {exampleSnippets.map((snippet) => (
                 <div
                   key={snippet.title}
-                  className="rounded-[1.5rem] border border-white/8 bg-black/35 p-4"
+                  className="rounded-[1.5rem] border border-black/10 dark:border-white/8 bg-zinc-100/80 dark:bg-black/35 p-4"
                 >
                   <div className="mb-2 flex items-center justify-between gap-3">
-                    <h3 className="text-base font-semibold text-white">{snippet.title}</h3>
-                    <span className="rounded-full border border-white/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-white/45">
+                    <h3 className="text-base font-semibold text-zinc-900 dark:text-white">
+                      {snippet.title}
+                    </h3>
+                    <span className="rounded-full border border-black/10 dark:border-white/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-zinc-500 dark:text-white/45">
                       snippet
                     </span>
                   </div>
-                  <p className="mb-3 text-sm leading-6 text-white/55">{snippet.description}</p>
+                  <p className="mb-3 text-sm leading-6 text-zinc-655 dark:text-white/55">
+                    {snippet.description}
+                  </p>
                   <CodeBlock code={snippet.code} />
                 </div>
               ))}
@@ -263,19 +269,19 @@ export default function DocumentationPage() {
             title="Every URL knob, organized for implementation"
             description="All color parameters expect hex values without a leading #. When both a theme and manual colors are provided, the manual colors win."
           >
-            <div className="overflow-hidden rounded-[1.5rem] border border-white/8">
-              <div className="flex items-center justify-between gap-3 border-b border-white/8 bg-white/[0.03] px-4 py-3 text-xs uppercase tracking-[0.18em] text-white/40">
+            <div className="overflow-hidden rounded-[1.5rem] border border-black/10 dark:border-white/8">
+              <div className="flex items-center justify-between gap-3 border-b border-black/10 dark:border-white/8 bg-zinc-100/50 dark:bg-white/[0.03] px-4 py-3 text-xs uppercase tracking-[0.18em] text-zinc-500 dark:text-white/40">
                 <span>Swipe to view all columns on smaller screens</span>
-                <span className="hidden rounded-full border border-white/10 px-2 py-1 text-[10px] text-white/35 sm:inline-flex">
+                <span className="hidden rounded-full border border-black/10 dark:border-white/10 px-2 py-1 text-[10px] text-zinc-500 dark:text-white/35 sm:inline-flex">
                   scroll
                 </span>
               </div>
               <div className="relative">
-                <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-8 bg-gradient-to-r from-[#050505] to-transparent sm:hidden" />
-                <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-12 bg-gradient-to-l from-[#050505] via-[#050505]/90 to-transparent sm:hidden" />
+                <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-8 bg-gradient-to-r from-white dark:from-black to-transparent sm:hidden" />
+                <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-12 bg-gradient-to-l from-white dark:from-black via-white/90 dark:via-black/90 to-transparent sm:hidden" />
                 <div className="overflow-x-auto">
                   <table className="min-w-[760px] border-collapse text-left sm:min-w-full">
-                    <thead className="bg-white/[0.05] text-xs uppercase tracking-[0.2em] text-white/45">
+                    <thead className="bg-black/5 dark:bg-white/[0.05] text-xs uppercase tracking-[0.2em] text-zinc-500 dark:text-white/45">
                       <tr>
                         <th className="px-4 py-4 font-semibold">Parameter</th>
                         <th className="px-4 py-4 font-semibold">Type</th>
@@ -284,18 +290,25 @@ export default function DocumentationPage() {
                         <th className="px-4 py-4 font-semibold">Description</th>
                       </tr>
                     </thead>
-                    <tbody className="bg-black/25">
+                    <tbody className="bg-zinc-50/50 dark:bg-black/25">
                       {parameters.map((parameter) => (
-                        <tr key={parameter.name} className="border-t border-white/8 align-top">
-                          <td className="px-4 py-4 font-mono text-sm text-emerald-300">
+                        <tr
+                          key={parameter.name}
+                          className="border-t border-black/10 dark:border-white/8 align-top"
+                        >
+                          <td className="px-4 py-4 font-mono text-sm text-emerald-600 dark:text-emerald-300">
                             {parameter.name}
                           </td>
-                          <td className="px-4 py-4 text-sm text-white/70">{parameter.type}</td>
-                          <td className="px-4 py-4 text-sm text-white/70">{parameter.required}</td>
-                          <td className="px-4 py-4 text-sm text-white/70">
+                          <td className="px-4 py-4 text-sm text-zinc-700 dark:text-white/70">
+                            {parameter.type}
+                          </td>
+                          <td className="px-4 py-4 text-sm text-zinc-700 dark:text-white/70">
+                            {parameter.required}
+                          </td>
+                          <td className="px-4 py-4 text-sm text-zinc-700 dark:text-white/70">
                             {parameter.defaultValue}
                           </td>
-                          <td className="px-4 py-4 text-sm leading-6 text-white/60">
+                          <td className="px-4 py-4 text-sm leading-6 text-zinc-600 dark:text-white/60">
                             {parameter.description}
                           </td>
                         </tr>
@@ -318,10 +331,10 @@ export default function DocumentationPage() {
               {allthemes.map((theme) => (
                 <div
                   key={theme.slug}
-                  className="rounded-[1.5rem] border border-white/8 bg-black/35 p-5 transition hover:-translate-y-1"
+                  className="rounded-[1.5rem] border border-black/10 dark:border-white/8 bg-zinc-100/80 dark:bg-black/35 p-5 transition hover:-translate-y-1"
                 >
                   <div
-                    className="mb-4 h-32 rounded-[1.25rem] border border-white/10"
+                    className="mb-4 h-32 rounded-[1.25rem] border border-black/10 dark:border-white/10"
                     style={{
                       background: `linear-gradient(145deg, #${theme.bg}, #111111)`,
                       boxShadow: `inset 0 0 0 1px rgba(255,255,255,0.03), 0 20px 40px -24px #${theme.accent}`,
@@ -342,17 +355,22 @@ export default function DocumentationPage() {
                       </span>
                     </div>
                   </div>
-                  <h3 className="text-base font-semibold text-white">{theme.name}</h3>
-                  <p className="mt-2 min-h-[72px] text-sm leading-7 text-white/55">{theme.vibe}</p>
-                  <div className="mt-4 space-y-2 text-xs text-white/45">
+                  <h3 className="text-base font-semibold text-zinc-900 dark:text-white">
+                    {theme.name}
+                  </h3>
+                  <p className="mt-2 min-h-[72px] text-sm leading-7 text-zinc-600 dark:text-white/55">
+                    {theme.vibe}
+                  </p>
+                  <div className="mt-4 space-y-2 text-xs text-zinc-500 dark:text-white/45">
                     <div>
-                      <span className="text-white/65">bg</span> #{theme.bg}
+                      <span className="text-zinc-700 dark:text-white/65">bg</span> #{theme.bg}
                     </div>
                     <div>
-                      <span className="text-white/65">accent</span> #{theme.accent}
+                      <span className="text-zinc-700 dark:text-white/65">accent</span> #
+                      {theme.accent}
                     </div>
                     <div>
-                      <span className="text-white/65">text</span> #{theme.text}
+                      <span className="text-zinc-700 dark:text-white/65">text</span> #{theme.text}
                     </div>
                   </div>
                 </div>
@@ -371,10 +389,10 @@ export default function DocumentationPage() {
               {contributorNotes.map((note) => (
                 <div
                   key={note}
-                  className="flex gap-3 rounded-[1.25rem] border border-white/8 bg-black/35 px-4 py-4"
+                  className="flex gap-3 rounded-[1.25rem] border border-black/10 dark:border-white/8 bg-zinc-100/80 dark:bg-black/35 px-4 py-4"
                 >
                   <span className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-400 shadow-[0_0_18px_rgba(52,211,153,0.9)]" />
-                  <p className="text-sm leading-7 text-white/60">{note}</p>
+                  <p className="text-sm leading-7 text-zinc-700 dark:text-white/60">{note}</p>
                 </div>
               ))}
             </div>
@@ -385,9 +403,9 @@ export default function DocumentationPage() {
             title="Need deeper project context?"
             description="The README still covers architecture, deployment, and contributor onboarding in more detail."
           >
-            <div className="flex h-full flex-col justify-between rounded-[1.5rem] border border-white/8 bg-black/35 p-5">
+            <div className="flex h-full flex-col justify-between rounded-[1.5rem] border border-black/10 dark:border-white/8 bg-zinc-100/80 dark:bg-black/35 p-5">
               <div>
-                <p className="text-sm leading-7 text-white/60">
+                <p className="text-sm leading-7 text-zinc-700 dark:text-white/60">
                   This page is the fast implementation manual. For self-hosting, architecture
                   details, and repository-level contributor guidance, jump to the full source docs.
                 </p>
@@ -397,13 +415,13 @@ export default function DocumentationPage() {
                   href="https://github.com/JhaSourav07/commitpulse/blob/main/README.md"
                   target="_blank"
                   rel="noreferrer"
-                  className="rounded-full bg-white px-5 py-3 text-sm font-semibold text-black transition hover:scale-[1.01]"
+                  className="rounded-full bg-zinc-900 text-white dark:bg-white dark:text-black px-5 py-3 text-sm font-semibold transition hover:scale-[1.01] shadow-sm"
                 >
                   Open README
                 </a>
                 <Link
                   href="/"
-                  className="rounded-full border border-white/10 px-5 py-3 text-sm font-semibold text-white/75 transition hover:border-white/20 hover:text-white"
+                  className="rounded-full border border-black/10 dark:border-white/10 px-5 py-3 text-sm font-semibold text-zinc-750 dark:text-white/75 transition hover:border-black/20 dark:hover:border-white/20 hover:text-zinc-900 dark:hover:text-white"
                 >
                   Back to Home
                 </Link>
@@ -428,12 +446,16 @@ function Panel({
   children: ReactNode;
 }) {
   return (
-    <section className="rounded-[2rem] border border-white/10 bg-white/[0.03] p-6 shadow-[0_30px_80px_rgba(0,0,0,0.32)] backdrop-blur md:p-8">
-      <p className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-300">
+    <section className="rounded-[2rem] border border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/[0.03] p-6 shadow-[0_30px_80px_rgba(0,0,0,0.05)] dark:shadow-[0_30px_80px_rgba(0,0,0,0.32)] backdrop-blur md:p-8">
+      <p className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-600 dark:text-emerald-300">
         {eyebrow}
       </p>
-      <h2 className="mt-3 text-2xl font-bold tracking-tight text-white md:text-3xl">{title}</h2>
-      <p className="mt-3 max-w-3xl text-sm leading-7 text-white/55 md:text-base">{description}</p>
+      <h2 className="mt-3 text-2xl font-bold tracking-tight text-zinc-900 dark:text-white md:text-3xl">
+        {title}
+      </h2>
+      <p className="mt-3 max-w-3xl text-sm leading-7 text-zinc-600 dark:text-white/55 md:text-base">
+        {description}
+      </p>
       <div className="mt-6">{children}</div>
     </section>
   );

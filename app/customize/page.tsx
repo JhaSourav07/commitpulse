@@ -117,12 +117,12 @@ function CustomizeContent(): ReactElement {
   };
 
   return (
-    <div className="min-h-screen bg-transparent text-white font-sans overflow-x-hidden">
+    <div className="min-h-screen bg-transparent text-zinc-900 dark:text-white font-sans overflow-x-hidden">
       {/* Ambient background */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-[10%] -left-[10%] w-[35%] h-[35%] bg-emerald-500/8 blur-[120px] rounded-full" />
-        <div className="absolute top-[30%] -right-[10%] w-[25%] h-[25%] bg-purple-500/8 blur-[120px] rounded-full" />
-        <div className="absolute bottom-0 left-1/2 w-[30%] h-[30%] bg-blue-500/5 blur-[120px] rounded-full" />
+        <div className="absolute -top-[10%] -left-[10%] w-[35%] h-[35%] bg-emerald-500/5 dark:bg-emerald-500/8 blur-[120px] rounded-full" />
+        <div className="absolute top-[30%] -right-[10%] w-[25%] h-[25%] bg-purple-500/5 dark:bg-purple-500/8 blur-[120px] rounded-full" />
+        <div className="absolute bottom-0 left-1/2 w-[30%] h-[30%] bg-blue-500/3 dark:bg-blue-500/5 blur-[120px] rounded-full" />
       </div>
 
       <div className="relative z-10 max-w-[1400px] mx-auto px-6 py-8">
@@ -136,7 +136,7 @@ function CustomizeContent(): ReactElement {
           <Link
             href="/"
             id="back-to-home-link"
-            className="inline-flex items-center gap-2 text-sm text-white/40 hover:text-white transition-colors group"
+            className="inline-flex items-center gap-2 text-sm text-zinc-500 dark:text-white/40 hover:text-zinc-900 dark:hover:text-white transition-colors group"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -154,10 +154,10 @@ function CustomizeContent(): ReactElement {
             Back to Home
           </Link>
 
-          <div className="h-4 w-px bg-white/10" />
+          <div className="h-4 w-px bg-black/10 dark:bg-white/10" />
 
           <div>
-            <span className="text-xs font-bold uppercase tracking-[0.22em] text-emerald-400">
+            <span className="text-xs font-bold uppercase tracking-[0.22em] text-emerald-600 dark:text-emerald-400">
               Customization Studio
             </span>
           </div>
@@ -170,10 +170,10 @@ function CustomizeContent(): ReactElement {
           transition={{ duration: 0.5, delay: 0.05 }}
           className="mb-10"
         >
-          <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-white leading-tight mb-2">
+          <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-zinc-900 dark:text-white leading-tight mb-2">
             Fine-tune your monolith.
           </h1>
-          <p className="text-gray-500 text-sm max-w-xl">
+          <p className="text-zinc-500 dark:text-gray-405 text-sm max-w-xl">
             Every change below updates the preview in real-time. Copy the export snippet when
             you&apos;re done. No extra steps required.
           </p>
@@ -186,7 +186,7 @@ function CustomizeContent(): ReactElement {
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="bg-[#0a0a0a] border border-white/5 rounded-[1.75rem] p-6 flex flex-col gap-6 sticky top-6"
+            className="bg-white dark:bg-[#0a0a0a] border border-black/10 dark:border-white/5 rounded-[1.75rem] p-6 flex flex-col gap-6 sticky top-6 shadow-sm"
           >
             <ControlsPanel
               username={username}
@@ -225,8 +225,8 @@ function CustomizeContent(): ReactElement {
             className="flex flex-col gap-6"
           >
             {/* Live Preview */}
-            <div className="bg-[#0a0a0a] border border-white/5 rounded-[1.75rem] p-6">
-              <p className="text-xs font-bold uppercase tracking-[0.22em] text-emerald-400 mb-5">
+            <div className="bg-white dark:bg-[#0a0a0a] border border-black/10 dark:border-white/5 rounded-[1.75rem] p-6 shadow-sm">
+              <p className="text-xs font-bold uppercase tracking-[0.22em] text-emerald-600 dark:text-emerald-400 mb-5">
                 Live Preview
               </p>
 
@@ -234,7 +234,7 @@ function CustomizeContent(): ReactElement {
                 {/* Glow ring */}
                 <div className="absolute -inset-px bg-gradient-to-br from-emerald-500/20 to-purple-500/20 rounded-[1.5rem] opacity-0 group-hover:opacity-100 transition-opacity duration-700 blur-lg pointer-events-none" />
 
-                <div className="relative bg-[#050505] border border-white/8 rounded-[1.25rem] overflow-hidden flex items-center justify-center p-6 min-h-[280px]">
+                <div className="relative bg-zinc-50 dark:bg-[#050505] border border-black/10 dark:border-white/8 rounded-[1.25rem] overflow-hidden flex items-center justify-center p-6 min-h-[280px]">
                   {/* Scanning line effect behind image */}
                   <div className="absolute inset-0 bg-gradient-to-b from-transparent via-emerald-500/3 to-transparent animate-[pulse_3s_ease-in-out_infinite] pointer-events-none" />
 
@@ -247,12 +247,12 @@ function CustomizeContent(): ReactElement {
                         alt="CommitPulse live preview"
                         width={600}
                         height={420}
-                        className="max-w-full h-auto drop-shadow-[0_20px_60px_rgba(0,0,0,0.6)] transition-opacity duration-300"
+                        className="max-w-full h-auto drop-shadow-[0_20px_60px_rgba(0,0,0,0.15)] dark:drop-shadow-[0_20px_60px_rgba(0,0,0,0.6)] transition-opacity duration-300"
                       />
                     </>
                   ) : (
-                    <div className="relative z-10 flex w-full max-w-xl flex-col items-center justify-center rounded-[1.25rem] border border-dashed border-white/10 bg-white/[0.02] px-6 py-12 text-center">
-                      <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-emerald-300/70">
+                    <div className="relative z-10 flex w-full max-w-xl flex-col items-center justify-center rounded-[1.25rem] border border-dashed border-black/15 dark:border-white/10 bg-black/[0.01] dark:bg-white/[0.02] px-6 py-12 text-center">
+                      <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/[0.04] text-emerald-600 dark:text-emerald-300/70">
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
                           className="h-6 w-6"
@@ -268,10 +268,10 @@ function CustomizeContent(): ReactElement {
                           <path d="m5 12 7-7 7 7" />
                         </svg>
                       </div>
-                      <p className="text-lg font-semibold tracking-tight text-white">
+                      <p className="text-lg font-semibold tracking-tight text-zinc-900 dark:text-white">
                         Enter a GitHub username to preview
                       </p>
-                      <p className="mt-2 max-w-md text-sm leading-relaxed text-white/45">
+                      <p className="mt-2 max-w-md text-sm leading-relaxed text-zinc-500 dark:text-white/45">
                         The live badge preview will appear here once a username is added.
                       </p>
                     </div>
@@ -279,7 +279,7 @@ function CustomizeContent(): ReactElement {
                 </div>
               </div>
 
-              <p className="mt-3 text-[11px] text-white/20 text-center">
+              <p className="mt-3 text-[11px] text-zinc-400 dark:text-white/20 text-center">
                 {hasUsername
                   ? isRandomTheme
                     ? 'Random theme changes on every page load and disables caching'
@@ -298,8 +298,8 @@ function CustomizeContent(): ReactElement {
             />
 
             {/* URL breakdown */}
-            <div className="bg-[#0a0a0a] border border-white/5 rounded-[1.75rem] p-6">
-              <p className="text-xs font-bold uppercase tracking-[0.22em] text-white/30 mb-4">
+            <div className="bg-white dark:bg-[#0a0a0a] border border-black/10 dark:border-white/5 rounded-[1.75rem] p-6 shadow-sm">
+              <p className="text-xs font-bold uppercase tracking-[0.22em] text-zinc-500 dark:text-white/30 mb-4">
                 Active Parameters
               </p>
               <div className="flex flex-wrap gap-2">
@@ -309,11 +309,15 @@ function CustomizeContent(): ReactElement {
                     return (
                       <span
                         key={k}
-                        className="inline-flex items-center gap-1.5 bg-white/4 border border-white/8 rounded-lg px-3 py-1.5 text-xs font-mono"
+                        className="inline-flex items-center gap-1.5 bg-zinc-50 dark:bg-white/4 border border-black/10 dark:border-white/8 rounded-lg px-3 py-1.5 text-xs font-mono"
                       >
-                        <span className="text-purple-400">{decodeURIComponent(k)}</span>
-                        <span className="text-white/20">=</span>
-                        <span className="text-emerald-400">{decodeURIComponent(v)}</span>
+                        <span className="text-purple-600 dark:text-purple-400">
+                          {decodeURIComponent(k)}
+                        </span>
+                        <span className="text-zinc-400 dark:text-white/20">=</span>
+                        <span className="text-emerald-600 dark:text-emerald-400">
+                          {decodeURIComponent(v)}
+                        </span>
                       </span>
                     );
                   }

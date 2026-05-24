@@ -14,11 +14,13 @@ export default function Achievements({ achievements }: { achievements: Achieveme
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ duration: 0.3, delay: 0.1 }}
-      className="p-6 rounded-xl bg-[#0a0a0a] border border-[rgba(255,255,255,0.08)]"
+      className="p-6 rounded-xl bg-white dark:bg-[#0a0a0a] border border-black/10 dark:border-[rgba(255,255,255,0.08)] shadow-sm"
     >
       <div className="flex items-center gap-2.5 mb-5">
-        <Trophy size={15} className="text-[#A1A1AA]" />
-        <h3 className="text-sm font-semibold text-white tracking-tight">Achievements</h3>
+        <Trophy size={15} className="text-zinc-500 dark:text-[#A1A1AA]" />
+        <h3 className="text-sm font-semibold text-zinc-900 dark:text-white tracking-tight">
+          Achievements
+        </h3>
       </div>
 
       <div className="grid grid-cols-2 gap-2">
@@ -33,22 +35,22 @@ export default function Achievements({ achievements }: { achievements: Achieveme
               transition={{ delay: 0.15 + i * 0.07, duration: 0.2 }}
               className={`p-4 flex flex-col items-center text-center rounded-lg border transition-all duration-200 ${
                 achievement.isUnlocked
-                  ? 'bg-[#111] border-[rgba(255,255,255,0.08)] hover:border-[rgba(255,255,255,0.16)] hover:bg-[#161616] cursor-default'
-                  : 'bg-[#0a0a0a] border-[rgba(255,255,255,0.04)] opacity-30 grayscale pointer-events-none'
+                  ? 'bg-zinc-50 dark:bg-[#111] border-black/10 dark:border-[rgba(255,255,255,0.08)] hover:border-black/20 dark:hover:border-[rgba(255,255,255,0.16)] hover:bg-zinc-100 dark:hover:bg-[#161616] cursor-default'
+                  : 'bg-zinc-50/50 dark:bg-[#0a0a0a] border-black/5 dark:border-[rgba(255,255,255,0.04)] opacity-30 grayscale pointer-events-none'
               }`}
             >
               <Icon
                 size={18}
-                className={`mb-2.5 ${achievement.isUnlocked ? 'text-[#A1A1AA]' : 'text-[#555]'}`}
+                className={`mb-2.5 ${achievement.isUnlocked ? 'text-zinc-500 dark:text-[#A1A1AA]' : 'text-zinc-300 dark:text-[#555]'}`}
               />
-              <h4 className="text-[11px] font-semibold text-white mb-1 text-center w-full leading-snug">
+              <h4 className="text-[11px] font-semibold text-zinc-900 dark:text-white mb-1 text-center w-full leading-snug">
                 {achievement.title}
               </h4>
-              <p className="text-[10px] text-[#A1A1AA] line-clamp-2 w-full leading-relaxed">
+              <p className="text-[10px] text-zinc-500 dark:text-[#A1A1AA] line-clamp-2 w-full leading-relaxed">
                 {achievement.description}
               </p>
               {achievement.progress !== undefined && !achievement.isUnlocked && (
-                <p className="text-[10px] text-[#777] mt-2">
+                <p className="text-[10px] text-zinc-400 dark:text-[#777] mt-2">
                   {achievement.currentValue}/{achievement.threshold}
                 </p>
               )}
@@ -59,7 +61,7 @@ export default function Achievements({ achievements }: { achievements: Achieveme
       {achievements.length > 4 && (
         <button
           onClick={() => setShowAll(!showAll)}
-          className="mt-4 w-full rounded-lg border border-[rgba(255,255,255,0.08)] bg-[#111] py-2 text-xs font-medium text-white transition-all hover:bg-[#161616]"
+          className="mt-4 w-full rounded-lg border border-black/10 dark:border-[rgba(255,255,255,0.08)] bg-zinc-50 dark:bg-[#111] py-2 text-xs font-medium text-zinc-850 dark:text-white transition-all hover:bg-zinc-100 dark:hover:bg-[#161616]"
         >
           {showAll ? 'Show Less' : 'See All Achievements'}
         </button>

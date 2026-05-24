@@ -350,17 +350,46 @@ export function ThemeQuickPresets({ theme, onThemeChange }: ThemeQuickPresetsPro
             box-shadow 150ms ease;
           overflow: hidden;
         }
+        :root {
+          --tqp-hover-border: rgba(0, 0, 0, 0.15);
+          --tqp-active-border: rgba(0, 0, 0, 0.25);
+          --tqp-active-ring: rgba(0, 0, 0, 0.08);
+          --tqp-active-dot: rgba(0, 0, 0, 0.75);
+        }
+        .dark {
+          --tqp-hover-border: rgba(255, 255, 255, 0.22);
+          --tqp-active-border: rgba(255, 255, 255, 0.38);
+          --tqp-active-ring: rgba(255, 255, 255, 0.1);
+          --tqp-active-dot: rgba(255, 255, 255, 0.85);
+        }
+        .tqp-btn {
+          position: relative;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 40px;
+          height: 40px;
+          border-radius: 11px;
+          border: 1.5px solid transparent;
+          cursor: pointer;
+          outline: none;
+          transition:
+            transform 150ms cubic-bezier(.34,1.56,.64,1),
+            border-color 150ms ease,
+            box-shadow 150ms ease;
+          overflow: hidden;
+        }
         .tqp-btn:hover:not(.tqp-on) {
           transform: scale(1.06);
-          border-color: rgba(255,255,255,0.22);
-          box-shadow: 0 3px 12px rgba(0,0,0,0.3);
+          border-color: var(--tqp-hover-border);
+          box-shadow: 0 3px 12px rgba(0,0,0,0.15);
         }
         .tqp-btn:focus-visible {
           box-shadow: 0 0 0 3px rgba(99,179,237,0.55);
         }
         .tqp-on {
-          border-color: rgba(255,255,255,0.38);
-          box-shadow: 0 0 0 1.5px rgba(255,255,255,0.1), 0 3px 12px rgba(0,0,0,0.35);
+          border-color: var(--tqp-active-border);
+          box-shadow: 0 0 0 1.5px var(--tqp-active-ring), 0 3px 12px rgba(0,0,0,0.20);
           transform: scale(1.03);
         }
         /* glass shine overlay */
@@ -382,7 +411,7 @@ export function ThemeQuickPresets({ theme, onThemeChange }: ThemeQuickPresetsPro
           position: absolute;
           inset: -2px;
           border-radius: 13px;
-          border: 1px solid rgba(255,255,255,0.28);
+          border: 1px solid var(--tqp-active-border);
         }
         /* small active indicator dot */
         .tqp-dot {
@@ -392,7 +421,7 @@ export function ThemeQuickPresets({ theme, onThemeChange }: ThemeQuickPresetsPro
           width: 4px;
           height: 4px;
           border-radius: 50%;
-          background: rgba(255,255,255,0.85);
+          background: var(--tqp-active-dot);
         }
       `}</style>
 
