@@ -97,6 +97,17 @@ export default function CustomizePage(): ReactElement {
     setTimeout(() => setCopied(false), 3000);
   };
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        document.getElementById('username-input')?.focus();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   return (
     <div className="min-h-screen bg-transparent text-white font-sans overflow-x-hidden">
       {/* Ambient background */}
