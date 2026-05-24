@@ -7,6 +7,7 @@ import {
   getFullDashboardData,
   generateAchievements,
   validateGitHubUsername,
+  displayName,
   clearGitHubApiCacheForTests,
   GITHUB_CACHE_TTL_MS,
 } from './github';
@@ -239,6 +240,20 @@ describe('fetchUserRepos', () => {
   it('throws status code error on failure', async () => {
     vi.mocked(fetch).mockResolvedValue(mockResponse({ message: 'Error' }, 500));
     await expect(fetchUserRepos('octocat')).rejects.toThrow('GitHub REST API error: 500');
+  });
+});
+
+describe('displayName', () => {
+  it('returns name when profile name is present', () => {
+    expect(displayName({ name: 'Mona Lisa', login: 'mona' })).toBe('Mona Lisa');
+  });
+
+  it('falls back to login when profile name is null', () => {
+    expect(displayName({ name: null, login: 'mona' })).toBe('mona');
+  });
+
+  it('falls back to login when profile name is empty string', () => {
+    expect(displayName({ name: '', login: 'mona' })).toBe('mona');
   });
 });
 
