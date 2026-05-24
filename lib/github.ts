@@ -102,10 +102,18 @@ const getHeaders = () => ({
   'Content-Type': 'application/json',
 });
 
+export function validateGitHubUsername(username: string): boolean {
+  return /^[a-zA-Z0-9-]{1,39}$/.test(username);
+}
+
 export async function fetchGitHubContributions(
   username: string,
   options: FetchOptions = {}
 ): Promise<ContributionCalendar> {
+  if (!validateGitHubUsername(username)) {
+    throw new Error('Invalid GitHub username format');
+  }
+
   const key = cacheKey('contributions', username, options.from?.substring(0, 4));
 
   if (!options.bypassCache) {
