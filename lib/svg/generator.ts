@@ -305,6 +305,24 @@ function generateAutoThemeSVG(
 
   <style>
   @import url('https://fonts.googleapis.com/css2?family=Fira+Code&amp;family=JetBrains+Mono&amp;family=Roboto&amp;display=swap');
+  /*
+   * Auto-theme strategy:
+   *
+   * Instead of hardcoding hex colours into every fill/stroke attribute, we
+   * define three CSS custom properties on :root — --cp-bg, --cp-text, and
+   * --cp-accent — and reference them inside SVG via utility classes
+   * (.cp-bg-fill, .cp-text-fill, .cp-accent-fill).
+   *
+   * A @media (prefers-color-scheme: dark) block overrides the same
+   * properties, so the badge automatically adapts to the user's system
+   * theme without any JavaScript or server-side colour injection.
+   *
+   * Classes are used instead of inline fills because CSS custom properties
+   * inside inline fill="..." attributes are not supported in all SVG
+   * renderers. Applying them through class-based selectors guarantees
+   * broader compatiblity (GitHub's Markdown renderer, image proxies,
+   * etc.).
+   */
   :root { --cp-bg: #${light.bg}; --cp-text: #${light.text}; --cp-accent: #${light.accent}; }
   @media (prefers-color-scheme: dark) { :root { --cp-bg: #${dark.bg}; --cp-text: #${dark.text}; --cp-accent: #${dark.accent}; } }
   .cp-bg-fill { fill: var(--cp-bg); } .cp-text-fill { fill: var(--cp-text); color: var(--cp-text); } .cp-accent-fill { fill: var(--cp-accent); color: var(--cp-accent); }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useState, type ReactElement } from 'react';
+import { useCallback, useEffect, useState, type ReactElement } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { ControlsPanel } from './components/ControlsPanel';
@@ -287,7 +287,18 @@ export default function CustomizePage(): ReactElement {
                 {(hasUsername ? queryString.split('&') : ['user=your-github-username']).map(
                   (pair) => {
                     const [k, v] = pair.split('=');
-                    return (
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        document.getElementById('username-input')?.focus();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  return (
                       <span
                         key={k}
                         className="inline-flex items-center gap-1.5 bg-white/4 border border-white/8 rounded-lg px-3 py-1.5 text-xs font-mono"
