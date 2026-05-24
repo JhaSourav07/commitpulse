@@ -66,6 +66,10 @@ type FetchOptions = {
 
 export const GITHUB_CACHE_TTL_MS = 5 * 60 * 1000;
 
+export function validateGitHubUsername(username: string): boolean {
+  return /^(?!-)(?!.*--)[A-Za-z0-9-]{1,39}(?<!-)$/.test(username);
+}
+
 interface GitHubUserProfile {
   login: string;
   name: string | null;
@@ -106,6 +110,10 @@ export async function fetchGitHubContributions(
   username: string,
   options: FetchOptions = {}
 ): Promise<ContributionCalendar> {
+  if (!validateGitHubUsername(username)) {
+    throw new Error('Invalid GitHub username format');
+  }
+
   const key = cacheKey('contributions', username, options.from?.substring(0, 4));
 
   if (!options.bypassCache) {

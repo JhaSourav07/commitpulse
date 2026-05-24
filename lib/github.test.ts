@@ -8,6 +8,7 @@ import {
   generateAchievements,
   clearGitHubApiCacheForTests,
   GITHUB_CACHE_TTL_MS,
+  validateGitHubUsername,
 } from './github';
 import type { ContributionCalendar } from '../types';
 
@@ -37,6 +38,23 @@ beforeEach(() => {
 
 afterEach(() => {
   clearGitHubApiCacheForTests();
+});
+
+describe('validateGitHubUsername', () => {
+  it('accepts valid GitHub usernames', () => {
+    expect(validateGitHubUsername('octocat')).toBe(true);
+    expect(validateGitHubUsername('github-actions')).toBe(true);
+    expect(validateGitHubUsername('user123')).toBe(true);
+  });
+
+  it('rejects invalid GitHub usernames', () => {
+    expect(validateGitHubUsername('a'.repeat(40))).toBe(false);
+    expect(validateGitHubUsername('octo_cat')).toBe(false);
+    expect(validateGitHubUsername('octo cat')).toBe(false);
+    expect(validateGitHubUsername('-octocat')).toBe(false);
+    expect(validateGitHubUsername('octocat-')).toBe(false);
+    expect(validateGitHubUsername('octo--cat')).toBe(false);
+  });
 });
 
 describe('fetchGitHubContributions', () => {
@@ -99,6 +117,14 @@ describe('fetchGitHubContributions', () => {
     const result = await fetchGitHubContributions('new-user');
 
     expect(result).toEqual(emptyCalendar);
+  });
+
+  it('throws before fetching when the username format is invalid', async () => {
+    await expect(fetchGitHubContributions('octo_cat')).rejects.toThrow(
+      'Invalid GitHub username format'
+    );
+
+    expect(fetch).not.toHaveBeenCalled();
   });
 
   it('throws with the status code when the server returns 500', async () => {
