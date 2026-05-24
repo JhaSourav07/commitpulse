@@ -2,6 +2,7 @@ import type { ReactElement, ReactNode } from 'react';
 import { themes } from '../../../lib/svg/themes';
 import { THEME_KEYS, type ThemeKey } from '../types';
 import { SectionLabel } from './SectionLabel';
+import { ThemeQuickPresets } from './ThemeQuickPresets';
 
 function StyledSelect({
   id,
@@ -34,15 +35,24 @@ export function ThemeSelector({
   onThemeChange: (theme: string) => void;
 }): ReactElement {
   const isAuto = theme === 'auto';
+  const isRandom = theme === 'random';
+  const randomAccentColors = [themes.neon.accent, themes.ocean.accent, themes.sunset.accent];
 
   return (
     <div className="flex flex-col gap-1.5">
       <SectionLabel>Theme Preset</SectionLabel>
+
+      <ThemeQuickPresets theme={theme} onThemeChange={onThemeChange} />
+
       <div className="relative">
         <StyledSelect id="theme-select" value={theme} onChange={onThemeChange}>
           {THEME_KEYS.map((key) => (
             <option key={key} value={key}>
-              {key === 'auto' ? 'Auto (System)' : key.charAt(0).toUpperCase() + key.slice(1)}
+              {key === 'auto'
+                ? 'Auto (System)'
+                : key === 'random'
+                  ? 'Random'
+                  : key.charAt(0).toUpperCase() + key.slice(1)}
             </option>
           ))}
         </StyledSelect>
@@ -60,6 +70,20 @@ export function ThemeSelector({
               </span>
               <span className="text-[11px] text-white/25 ml-1 self-center">
                 switches with OS theme
+              </span>
+            </>
+          ) : isRandom ? (
+            <>
+              {randomAccentColors.map((color, index) => (
+                <span
+                  key={color}
+                  title={`Random accent sample ${index + 1}: #${color}`}
+                  className="w-5 h-5 rounded-full border border-white/10"
+                  style={{ backgroundColor: `#${color}` }}
+                />
+              ))}
+              <span className="text-[11px] text-white/25 ml-1 self-center">
+                changes on each load
               </span>
             </>
           ) : (

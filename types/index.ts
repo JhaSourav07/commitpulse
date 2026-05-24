@@ -39,4 +39,5 @@ export interface BadgeParams {
   hideBackground?: boolean;
   hide_stats?: boolean;
   lang?: string;
+  size?: 'small' | 'medium' | 'large';
 }

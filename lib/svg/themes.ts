@@ -62,6 +62,11 @@ export const themes: Record<string, BadgeTheme> = {
     text: 'ebdbb2',
     accent: 'fe8019',
   },
+  highcontrast: {
+    bg: '0a0a0a', // High-contrast theme: vivid red-orange accent on near-black background.
+    text: '888888',
+    accent: 'ff4500',
+  },
 };
 
 // Auto-theme pairs: the SVG switches between these two palettes

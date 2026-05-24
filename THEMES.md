@@ -97,3 +97,9 @@ Usage: `/api/streak?user=yourusername&theme=nord`
 Retro 80s-inspired palette — deep indigo background, neon pink glow, crisp white text.
 
 Usage: `/api/streak?user=yourusername&theme=synthwave`
+
+## 🔥 High Contrast
+
+Near-black background with vivid red-orange accent and medium-grey text — maximum legibility on both solid and transparent backgrounds for low-vision accessibility.
+
+Usage: `/api/streak?user=yourusername&theme=highcontrast`

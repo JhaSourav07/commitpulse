@@ -6,7 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { ControlsPanel } from './components/ControlsPanel';
 import { ExportPanel } from './components/ExportPanel';
-import type { ExportFormat, Scale } from './types';
+import type { ExportFormat, Scale, BadgeSize } from './types';
 import { getExportSnippet, stripHash } from './utils';
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
@@ -33,17 +33,20 @@ function CustomizeContent(): ReactElement {
   const [speed, setSpeed] = useState('8s');
   const [year, setYear] = useState('');
   const [radius, setRadius] = useState(8);
+  const [size, setSize] = useState<BadgeSize>('medium');
   const [exportFormat, setExportFormat] = useState<ExportFormat>('markdown');
   const [copied, setCopied] = useState(false);
   const trimmedUsername = username.trim();
   const hasUsername = trimmedUsername.length > 0;
   const isAutoTheme = theme === 'auto';
+  const isRandomTheme = theme === 'random';
+  const skipsCustomColors = isAutoTheme || isRandomTheme;
 
-  // Clear custom hex overrides when switching to auto — fixed colors
-  // conflict with the dual-palette prefers-color-scheme switching.
+  // Clear custom hex overrides when switching to virtual themes because
+  // fixed colors conflict with their palette-selection behavior.
   const handleThemeChange = useCallback((newTheme: string): void => {
     setTheme(newTheme);
-    if (newTheme === 'auto') {
+    if (newTheme === 'auto' || newTheme === 'random') {
       setBgHex('');
       setAccentHex('');
       setTextHex('');
@@ -59,9 +62,9 @@ function CustomizeContent(): ReactElement {
       params.set('user', trimmedUsername);
     }
 
-    if (isAutoTheme) {
-      // Auto always emits theme=auto — no custom color params
-      params.set('theme', 'auto');
+    if (skipsCustomColors) {
+      // Virtual themes always emit theme=<name> and skip custom color params.
+      params.set('theme', theme);
     } else {
       const hasCustomColors = bgHex || accentHex || textHex;
 
@@ -78,12 +81,13 @@ function CustomizeContent(): ReactElement {
     if (speed !== '8s') params.set('speed', speed);
     if (year) params.set('year', year);
     if (radius !== 8) params.set('radius', radius.toString());
+    if (size !== 'medium') params.set('size', size);
     return params.toString();
   }, [
     hasUsername,
     trimmedUsername,
     theme,
-    isAutoTheme,
+    skipsCustomColors,
     bgHex,
     accentHex,
     textHex,
@@ -91,6 +95,7 @@ function CustomizeContent(): ReactElement {
     speed,
     year,
     radius,
+    size,
   ]);
 
   const queryString = buildQueryParams();
@@ -187,6 +192,7 @@ function CustomizeContent(): ReactElement {
               speed={speed}
               year={year}
               radius={radius}
+              size={size}
               onUsernameChange={setUsername}
               onThemeChange={handleThemeChange}
               onBgHexChange={setBgHex}
@@ -196,6 +202,7 @@ function CustomizeContent(): ReactElement {
               onSpeedChange={setSpeed}
               onYearChange={setYear}
               onRadiusChange={setRadius}
+              onSizeChange={setSize}
               onClearOverrides={() => {
                 setBgHex('');
                 setAccentHex('');
@@ -268,7 +275,9 @@ function CustomizeContent(): ReactElement {
 
               <p className="mt-3 text-[11px] text-white/20 text-center">
                 {hasUsername
-                  ? 'Preview updates on every change. Hosted badge is cached at UTC midnight'
+                  ? isRandomTheme
+                    ? 'Random theme changes on every page load and disables caching'
+                    : 'Preview updates on every change. Hosted badge is cached at UTC midnight'
                   : 'Add a username to enable live preview and export snippets'}
               </p>
             </div>

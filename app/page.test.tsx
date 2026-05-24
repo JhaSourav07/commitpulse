@@ -47,6 +47,14 @@ vi.mock('framer-motion', () => ({
   AnimatePresence: ({ children }: any) => <>{children}</>,
 }));
 
+vi.mock('@/hooks/useRecentSearches', () => ({
+  useRecentSearches: () => ({
+    searches: [],
+    addSearch: vi.fn(),
+    clearSearches: vi.fn(),
+  }),
+}));
+
 describe('LandingPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();

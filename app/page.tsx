@@ -9,6 +9,7 @@ import { X } from 'lucide-react';
 
 import { CommitPulseLogo } from '@/components/commitpulse-logo';
 import { CustomizeCTA } from './components/CustomizeCTA';
+import { useRecentSearches } from '@/hooks/useRecentSearches';
 
 const Icons = {
   Github: () => (
@@ -96,7 +97,7 @@ function LandingContent() {
   const guideRef = useRef<HTMLDivElement>(null);
   const searchParams = useSearchParams();
   const theme = searchParams?.get('theme') || 'neon';
-
+  const { searches, addSearch, clearSearches } = useRecentSearches();
   const trimmedUsername = username.trim();
   const hasUsername = trimmedUsername.length > 0;
 
@@ -107,6 +108,7 @@ function LandingContent() {
     if (!hasUsername) return;
 
     trackUser(trimmedUsername);
+    addSearch(trimmedUsername);
 
     navigator.clipboard.writeText(markdown);
     setCopied(true);
@@ -188,7 +190,13 @@ function LandingContent() {
 
         <section className="mx-auto mb-32 max-w-4xl">
           <div className="rounded-2xl border border-black/10 dark:border-[rgba(255,255,255,0.08)] bg-white dark:bg-[#0a0a0a] p-4 md:p-8">
-            <div className="mb-8 flex flex-col gap-4 md:flex-row">
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                copyToClipboard();
+              }}
+              className="mb-8 flex flex-col gap-4 md:flex-row"
+            >
               <div className="relative flex-1 flex items-center">
                 <input
                   type="text"
@@ -208,9 +216,10 @@ function LandingContent() {
                   </button>
                 ) : null}
               </div>
+
               <div className="flex flex-col sm:flex-row gap-4">
                 <button
-                  onClick={copyToClipboard}
+                  type="submit"
                   disabled={!hasUsername}
                   className={`relative flex min-w-[160px] items-center justify-center gap-2 overflow-hidden rounded-xl px-6 py-3.5 text-sm font-semibold transition-all duration-200 active:scale-[0.98] ${
                     hasUsername
@@ -248,6 +257,7 @@ function LandingContent() {
                       e.preventDefault();
                     } else {
                       trackUser(trimmedUsername);
+                      addSearch(trimmedUsername);
                     }
                   }}
                   className={`relative flex min-w-[160px] items-center justify-center gap-2 overflow-hidden rounded-xl border px-6 py-3.5 text-sm font-semibold transition-all duration-200 active:scale-[0.98] ${
@@ -259,36 +269,57 @@ function LandingContent() {
                   Watch Dashboard
                 </Link>
               </div>
-            </div>
+            </form>
+          </div>
 
-            <div className="group relative">
-              <div className="absolute -inset-1 rounded-[2rem] bg-black/5 dark:bg-white/5 opacity-50 blur-xl transition duration-1000 group-hover:opacity-100" />
-              <div className="relative flex min-h-[320px] items-center justify-center overflow-hidden rounded-xl border border-black/10 dark:border-[rgba(255,255,255,0.06)] bg-gray-50 dark:bg-black p-6">
-                {hasUsername ? (
-                  <Image
-                    src={badgeUrl}
-                    alt="CommitPulse preview"
-                    width={900}
-                    height={600}
-                    unoptimized
-                    loading="eager"
-                    priority
-                    className="h-auto max-w-full drop-shadow-[0_20px_50px_rgba(0,0,0,0.5)]"
-                  />
-                ) : (
-                  <div className="flex w-full max-w-2xl flex-col items-center justify-center rounded-[1.5rem] border border-dashed border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/[0.02] px-6 py-12 text-center">
-                    <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/[0.04] text-black/60 dark:text-white/60">
-                      <Icons.Github />
-                    </div>
-                    <p className="md:text-lg text-md font-semibold tracking-tight text-black dark:text-white">
-                      Enter a GitHub username to preview
-                    </p>
-                    <p className="mt-2 max-w-md text-xs xs:text-sm leading-relaxed text-[#A1A1AA]">
-                      Your 3D contribution monolith will appear here as soon as you add a username.
-                    </p>
+          {searches.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2 mb-6 mt-3">
+              <span className="text-xs text-gray-500 dark:text-[#A1A1AA]">Recent:</span>
+              {searches.map((s) => (
+                <button
+                  key={s}
+                  onClick={() => setUsername(s)}
+                  className="rounded-full border border-black/10 dark:border-[rgba(255,255,255,0.08)] bg-gray-50 dark:bg-[#111] px-3 py-1 text-xs text-black/70 dark:text-white/70 transition-all hover:border-black/20 dark:hover:border-[rgba(255,255,255,0.2)] hover:text-black dark:hover:text-white"
+                >
+                  {s}
+                </button>
+              ))}
+              <button
+                onClick={clearSearches}
+                className="text-xs text-gray-500 dark:text-[#A1A1AA] underline hover:text-black dark:hover:text-white transition-colors"
+              >
+                Clear
+              </button>
+            </div>
+          )}
+
+          <div className="group relative">
+            <div className="absolute -inset-1 rounded-[2rem] bg-black/5 dark:bg-white/5 opacity-50 blur-xl transition duration-1000 group-hover:opacity-100" />
+            <div className="relative flex min-h-[320px] items-center justify-center overflow-hidden rounded-xl border border-black/10 dark:border-[rgba(255,255,255,0.06)] bg-gray-50 dark:bg-black p-6">
+              {hasUsername ? (
+                <Image
+                  src={badgeUrl}
+                  alt="CommitPulse preview"
+                  width={900}
+                  height={600}
+                  unoptimized
+                  loading="eager"
+                  priority
+                  className="h-auto max-w-full drop-shadow-[0_20px_50px_rgba(0,0,0,0.5)]"
+                />
+              ) : (
+                <div className="flex w-full max-w-2xl flex-col items-center justify-center rounded-[1.5rem] border border-dashed border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/[0.02] px-6 py-12 text-center">
+                  <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/[0.04] text-black/60 dark:text-white/60">
+                    <Icons.Github />
                   </div>
-                )}
-              </div>
+                  <p className="md:text-lg text-md font-semibold tracking-tight text-black dark:text-white">
+                    Enter a GitHub username to preview
+                  </p>
+                  <p className="mt-2 max-w-md text-xs xs:text-sm leading-relaxed text-[#A1A1AA]">
+                    Your 3D contribution monolith will appear here as soon as you add a username.
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </section>
