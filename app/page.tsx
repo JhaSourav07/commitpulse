@@ -4,11 +4,38 @@ import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { useRef, useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { X } from 'lucide-react';
+import { ArrowRight, Palette, X } from 'lucide-react';
 
 import { CommitPulseLogo } from '@/components/commitpulse-logo';
 import { CustomizeCTA } from './components/CustomizeCTA';
 import { useRecentSearches } from '@/hooks/useRecentSearches';
+import { themes } from '@/lib/svg/themes';
+
+const BADGE_BASE_URL = 'https://commitpulse.vercel.app/api/streak';
+const HOME_THEME_OPTIONS = ['dark', 'neon', 'dracula', 'ocean', 'synthwave', 'github'] as const;
+
+function getBadgeQueryString(username: string, theme: string) {
+  const params = new URLSearchParams();
+  params.set('user', username);
+  params.set('theme', theme);
+  return params.toString();
+}
+
+function getMarkdown(username: string, theme: string) {
+  return `![CommitPulse](${BADGE_BASE_URL}?${getBadgeQueryString(username, theme)})`;
+}
+
+function getCustomizeHref(username: string, theme: string) {
+  return `/customize?${getBadgeQueryString(username, theme)}`;
+}
+
+function formatThemeName(theme: string) {
+  const brandedThemeNames: Record<string, string> = {
+    github: 'GitHub',
+  };
+
+  return brandedThemeNames[theme] ?? theme.charAt(0).toUpperCase() + theme.slice(1);
+}
 
 const Icons = {
   Github: () => (
@@ -81,6 +108,7 @@ function trackUser(name: string) {
 
 export default function LandingPage() {
   const [username, setUsername] = useState('');
+  const [theme, setTheme] = useState('dark');
   const [copied, setCopied] = useState(false);
   const [svgContent, setSvgContent] = useState<string | null>(null);
   const [svgState, setSvgState] = useState<'idle' | 'loading' | 'loaded'>('idle');
@@ -89,8 +117,17 @@ export default function LandingPage() {
   const trimmedUsername = username.trim();
   const hasUsername = trimmedUsername.length > 0;
 
-  const badgeUrl = `/api/streak?user=${trimmedUsername}`;
-  const markdown = `![CommitPulse](https://commitpulse.vercel.app/api/streak?user=${trimmedUsername})`;
+  const badgeQueryString = getBadgeQueryString(trimmedUsername, theme);
+  const badgeUrl = `/api/streak?${badgeQueryString}`;
+  const markdown = getMarkdown(trimmedUsername, theme);
+
+  const handleThemeChange = (nextTheme: string) => {
+    setTheme(nextTheme);
+
+    if (copied && hasUsername) {
+      navigator.clipboard.writeText(getMarkdown(trimmedUsername, nextTheme));
+    }
+  };
 
   const [prevUsername, setPrevUsername] = useState('');
   if (trimmedUsername !== prevUsername) {
@@ -350,6 +387,8 @@ export default function LandingPage() {
               <SuccessGuide
                 markdown={markdown}
                 username={trimmedUsername}
+                theme={theme}
+                onThemeChange={handleThemeChange}
                 onDismiss={() => setCopied(false)}
               />
             )}
@@ -450,10 +489,14 @@ const STEPS = [
 function SuccessGuide({
   markdown,
   username,
+  theme,
+  onThemeChange,
   onDismiss,
 }: {
   markdown: string;
   username: string;
+  theme: string;
+  onThemeChange: (theme: string) => void;
   onDismiss: () => void;
 }) {
   return (
@@ -537,9 +580,61 @@ function SuccessGuide({
             </code>
           </div>
           <p className="mt-4 text-xs leading-relaxed text-white/25">
-            Tip: Add <code className="text-white/40">?accent=808080</code> to the URL to change your
-            monolith&apos;s colour palette.
+            Tip: Add <code className="text-white/40">&amp;accent=808080</code> to the URL to change
+            your monolith&apos;s colour palette.
           </p>
+          <div className="mt-6 border-t border-white/5 pt-6">
+            <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+              <div>
+                <div className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.15em] text-white/30">
+                  <Palette className="h-4 w-4" aria-hidden="true" />
+                  Theme
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {HOME_THEME_OPTIONS.map((option) => {
+                    const palette = themes[option];
+                    const isActive = theme === option;
+
+                    return (
+                      <button
+                        key={option}
+                        type="button"
+                        aria-label={`${formatThemeName(option)} theme`}
+                        aria-pressed={isActive}
+                        onClick={() => onThemeChange(option)}
+                        className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition-all duration-200 ${
+                          isActive
+                            ? 'border-white/30 bg-white text-black'
+                            : 'border-white/8 bg-white/[0.03] text-white/65 hover:border-white/20 hover:text-white'
+                        }`}
+                      >
+                        <span className="flex -space-x-1" aria-hidden="true">
+                          <span
+                            className="h-3.5 w-3.5 rounded-full border border-black/20"
+                            style={{ backgroundColor: `#${palette.bg}` }}
+                          />
+                          <span
+                            className="h-3.5 w-3.5 rounded-full border border-black/20"
+                            style={{ backgroundColor: `#${palette.accent}` }}
+                          />
+                        </span>
+                        {formatThemeName(option)}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <Link
+                href={getCustomizeHref(username, theme)}
+                className="inline-flex items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-4 py-2.5 text-sm font-semibold text-white transition-all duration-200 hover:border-white/25 hover:bg-white/8"
+              >
+                Customize More
+                <ArrowRight className="h-4 w-4" aria-hidden="true" />
+              </Link>
+            </div>
+          </div>
+
           <div className="mt-8 flex justify-center border-t border-white/5 pt-6">
             <Link href={`/dashboard/${username}`} onClick={() => trackUser(username)}>
               <button className="bg-white text-black hover:bg-zinc-100 px-6 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 hover:scale-[1.01] active:scale-[0.99]">

@@ -141,7 +141,7 @@ describe('LandingPage', () => {
 
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
       expect.stringContaining(
-        '![CommitPulse](https://commitpulse.vercel.app/api/streak?user=jhasourav07)'
+        '![CommitPulse](https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=dark)'
       )
     );
 
@@ -163,6 +163,31 @@ describe('LandingPage', () => {
   it('renders the CustomizeCTA', () => {
     render(<LandingPage />);
     expect(screen.getByTestId('customize-cta')).toBeDefined();
+  });
+
+  it('updates the badge snippet, preview, and customize link when a theme is selected', async () => {
+    render(<LandingPage />);
+    const input = screen.getByPlaceholderText('Enter GitHub Username') as HTMLInputElement;
+    fireEvent.change(input, { target: { value: 'jhasourav07' } });
+
+    const copyButton = screen.getByText('Copy Link').closest('button');
+    fireEvent.click(copyButton!);
+
+    await waitFor(() => {
+      expect(screen.getByText('Your Monolith is Ready - Deploy It in 4 Steps')).toBeDefined();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Neon theme' }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/theme=neon/)).toBeDefined();
+      expect(navigator.clipboard.writeText).toHaveBeenLastCalledWith(
+        '![CommitPulse](https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=neon)'
+      );
+      expect(screen.getByRole('link', { name: /Customize More/i }).getAttribute('href')).toBe(
+        '/customize?user=jhasourav07&theme=neon'
+      );
+    });
   });
 
   it('can dismiss the SuccessGuide', async () => {

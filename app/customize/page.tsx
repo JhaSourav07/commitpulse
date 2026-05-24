@@ -1,18 +1,38 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState, type ReactElement } from 'react';
+import { Suspense, useCallback, useEffect, useRef, useState, type ReactElement } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { ControlsPanel } from './components/ControlsPanel';
 import { ExportPanel } from './components/ExportPanel';
-import type { ExportFormat, Scale, BadgeSize } from './types';
+import {
+  THEME_KEYS,
+  type ExportFormat,
+  type Scale,
+  type BadgeSize,
+  type ThemeOption,
+} from './types';
 import { getExportSnippet, stripHash } from './utils';
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
+function getInitialTheme(theme: string | null): string {
+  return theme && THEME_KEYS.includes(theme as ThemeOption) ? theme : 'dark';
+}
+
 export default function CustomizePage(): ReactElement {
-  const [username, setUsername] = useState('');
-  const [theme, setTheme] = useState('dark');
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-transparent text-white" />}>
+      <CustomizePageContent />
+    </Suspense>
+  );
+}
+
+function CustomizePageContent(): ReactElement {
+  const searchParams = useSearchParams();
+  const [username, setUsername] = useState(searchParams.get('user')?.trim() || '');
+  const [theme, setTheme] = useState(getInitialTheme(searchParams.get('theme')));
   const [bgHex, setBgHex] = useState('');
   const [accentHex, setAccentHex] = useState('');
   const [textHex, setTextHex] = useState('');
