@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { useRecentSearches } from './useRecentSearches';
+import { MAX, useRecentSearches } from './useRecentSearches';
 
 const store: Record<string, string> = {};
 

@@ -27,6 +27,8 @@ export default function ActivityLandscape({ data }: { data: ActivityData[] }) {
 
   return (
     <motion.div
+      role="img"
+      aria-label="Activity chart showing commit frequency over time"
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
@@ -73,6 +75,8 @@ export default function ActivityLandscape({ data }: { data: ActivityData[] }) {
 
               {/* Bar */}
               <motion.div
+                role="img"
+                aria-label={`${day.date}: ${day.count} commits`}
                 initial={{ height: 0 }}
                 animate={{ height: `${heightPercent}%` }}
                 transition={{ duration: 0.6, delay: i * 0.008, ease: [0.16, 1, 0.3, 1] }}

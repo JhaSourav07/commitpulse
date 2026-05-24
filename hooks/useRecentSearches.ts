@@ -2,13 +2,13 @@
 
 import { useState } from 'react';
 
-const KEY = 'recentSearches';
-const MAX = 5;
+export const STORAGE_STORAGE_KEY = 'recentSearches';
+export const MAX = 5;
 
 function loadFromStorage(): string[] {
   if (typeof window === 'undefined') return [];
   try {
-    const stored = localStorage.getItem(KEY);
+    const stored = localStorage.getItem(STORAGE_KEY);
     return stored ? (JSON.parse(stored) as string[]) : [];
   } catch {
     return [];
@@ -23,7 +23,7 @@ export function useRecentSearches() {
     setSearches((prev) => {
       const deduped = [query, ...prev.filter((s) => s !== query)].slice(0, MAX);
       try {
-        localStorage.setItem(KEY, JSON.stringify(deduped));
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(deduped));
       } catch {}
       return deduped;
     });
@@ -32,7 +32,7 @@ export function useRecentSearches() {
   const clearSearches = () => {
     setSearches([]);
     try {
-      localStorage.removeItem(KEY);
+      localStorage.removeItem(STORAGE_KEY);
     } catch {}
   };
 
