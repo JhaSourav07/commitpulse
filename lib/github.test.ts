@@ -222,6 +222,53 @@ describe('fetchUserRepos', () => {
     vi.mocked(fetch).mockResolvedValue(mockResponse({ message: 'Error' }, 500));
     await expect(fetchUserRepos('octocat')).rejects.toThrow('GitHub REST API error: 500');
   });
+
+  it('fetches multiple pages of repos', async () => {
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(
+        mockResponse(
+          Array.from({ length: 100 }, (_, i) => ({
+            id: i,
+            stargazers_count: i,
+            language: 'TypeScript',
+          }))
+        )
+      )
+      .mockResolvedValueOnce(
+        mockResponse([
+          {
+            id: 101,
+            stargazers_count: 101,
+            language: 'JavaScript',
+          },
+        ])
+      )
+      .mockImplementation(() => Promise.resolve(mockResponse([])) as Promise<Response>);
+
+    const result = await fetchUserRepos('octocat');
+
+    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(result.length).toBe(101);
+  });
+
+  it('stops fetching after reaching max pages', async () => {
+    vi.mocked(fetch).mockImplementation(
+      () =>
+        Promise.resolve(
+          mockResponse(
+            Array.from({ length: 100 }, (_, i) => ({
+              id: i,
+              stargazers_count: i,
+              language: 'TypeScript',
+            }))
+          )
+        ) as Promise<Response>
+    );
+
+    await fetchUserRepos('octocat');
+
+    expect(fetch).toHaveBeenCalledTimes(100);
+  });
 });
 
 describe('getFullDashboardData', () => {

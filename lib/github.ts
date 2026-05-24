@@ -238,26 +238,39 @@ export async function fetchUserRepos(
     const cached = reposCache.get(key);
     if (cached) return cached;
   }
+  const allRepos: GitHubRepo[] = [];
 
-  const res = await fetchWithRetry(
-    `${GITHUB_REST_URL}/users/${username}/repos?per_page=100&sort=pushed`,
-    {
-      headers: getHeaders(),
-      cache: 'no-store',
+  let PAGE = 1;
+  const MAX_PAGES = 100;
+  while (PAGE <= MAX_PAGES) {
+    const res = await fetchWithRetry(
+      `${GITHUB_REST_URL}/users/${username}/repos?per_page=100&page=${PAGE}&sort=pushed`,
+      {
+        headers: getHeaders(),
+        cache: 'no-store',
+      }
+    );
+
+    if (!res.ok) {
+      throw new Error(`GitHub REST API error: ${res.status}`);
     }
-  );
 
-  if (!res.ok) {
-    throw new Error(`GitHub REST API error: ${res.status}`);
+    const repos = (await res.json()) as GitHubRepo[];
+
+    allRepos.push(...repos);
+
+    if (repos.length < 100) {
+      break;
+    }
+
+    PAGE++;
   }
-
-  const repos = (await res.json()) as GitHubRepo[];
 
   if (!options.bypassCache) {
-    reposCache.set(key, repos, GITHUB_CACHE_TTL_MS);
+    reposCache.set(key, allRepos, GITHUB_CACHE_TTL_MS);
   }
 
-  return repos;
+  return allRepos;
 }
 
 export function generateAchievements(totalContributions: number, currentStreak: number) {
