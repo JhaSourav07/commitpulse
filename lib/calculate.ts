@@ -1,5 +1,5 @@
 // lib/calculate.ts
-import type { ContributionCalendar, StreakStats } from '../types';
+import type { ContributionCalendar, StreakStats, MonthlyStats } from '../types';
 
 export function calculateStreak(
   calendar: ContributionCalendar,
@@ -74,5 +74,64 @@ export function calculateStreak(
     longestStreak,
     totalContributions: calendar.totalContributions,
     todayDate,
+  };
+}
+
+export function calculateMonthlyStats(
+  calendar: ContributionCalendar,
+  timezone: string = 'UTC',
+  now: Date = new Date()
+): MonthlyStats {
+  const days = calendar.weeks.flatMap((week) => week.contributionDays);
+
+  const localTodayStr = new Intl.DateTimeFormat('en-CA', { timeZone: timezone }).format(now);
+  const [currentYearStr, currentMonthStr] = localTodayStr.split('-');
+  const currentYear = parseInt(currentYearStr, 10);
+  const currentMonth = parseInt(currentMonthStr, 10);
+
+  let prevMonth = currentMonth - 1;
+  let prevYear = currentYear;
+  if (prevMonth === 0) {
+    prevMonth = 12;
+    prevYear -= 1;
+  }
+
+  const currentMonthPrefix = `${currentYear}-${currentMonth.toString().padStart(2, '0')}`;
+  const prevMonthPrefix = `${prevYear}-${prevMonth.toString().padStart(2, '0')}`;
+
+  let currentMonthTotal = 0;
+  let previousMonthTotal = 0;
+
+  for (const day of days) {
+    if (day.date.startsWith(currentMonthPrefix)) {
+      currentMonthTotal += day.contributionCount;
+    } else if (day.date.startsWith(prevMonthPrefix)) {
+      previousMonthTotal += day.contributionCount;
+    }
+  }
+
+  const currentMonthName = new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone,
+    month: 'long',
+  }).format(now);
+
+  const deltaAbsolute = currentMonthTotal - previousMonthTotal;
+  let deltaPercentage = 0;
+
+  if (previousMonthTotal === 0) {
+    if (currentMonthTotal > 0) {
+      deltaPercentage = 100;
+    }
+  } else {
+    deltaPercentage = Math.round((deltaAbsolute / previousMonthTotal) * 100);
+    if (deltaPercentage === -0) deltaPercentage = 0;
+  }
+
+  return {
+    currentMonthTotal,
+    previousMonthTotal,
+    deltaPercentage,
+    deltaAbsolute,
+    currentMonthName,
   };
 }

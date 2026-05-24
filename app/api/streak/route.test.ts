@@ -411,4 +411,23 @@ describe('GET /api/streak', () => {
       expect(getSecondsUntilMidnightInTimezone).not.toHaveBeenCalled();
     });
   });
+
+  describe('monthly view parameter', () => {
+    it('returns 200 when view=monthly is given', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', view: 'monthly' }));
+
+      expect(response.status).toBe(200);
+      const body = await response.text();
+      expect(body).toContain('COMMITS THIS MONTH');
+    });
+
+    it('defaults to default view when an unknown view is given', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', view: 'invalid' }));
+
+      expect(response.status).toBe(200);
+      const body = await response.text();
+      // It should generate the default streak SVG and have "CURRENT_STREAK"
+      expect(body).toContain('CURRENT_STREAK');
+    });
+  });
 });
