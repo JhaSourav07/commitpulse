@@ -13,7 +13,13 @@ import { getExportSnippet, stripHash } from './utils';
 
 export default function CustomizePage(): ReactElement {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-transparent text-white font-sans overflow-x-hidden flex items-center justify-center">Loading...</div>}>
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-transparent text-white font-sans overflow-x-hidden flex items-center justify-center">
+          Loading...
+        </div>
+      }
+    >
       <CustomizeContent />
     </Suspense>
   );
