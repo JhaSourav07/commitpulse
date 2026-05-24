@@ -496,10 +496,15 @@ function SuccessGuide({
             Tip: Add <code className="text-white/40">?accent=808080</code> to the URL to change your
             monolith&apos;s colour palette.
           </p>
-          <div className="mt-8 flex justify-center border-t border-white/5 pt-6">
+          <div className="mt-8 flex flex-col sm:flex-row justify-center items-center gap-4 border-t border-white/5 pt-6">
             <Link href={`/dashboard/${username}`} onClick={() => trackUser(username)}>
-              <button className="bg-white text-black hover:bg-zinc-100 px-6 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 hover:scale-[1.01] active:scale-[0.99]">
+              <button className="w-full sm:w-auto bg-white text-black hover:bg-zinc-100 px-8 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 hover:scale-[1.01] active:scale-[0.99]">
                 Watch Your Dashboard
+              </button>
+            </Link>
+            <Link href={`/customize?user=${username}`}>
+              <button className="w-full sm:w-auto border border-white/10 bg-transparent text-white hover:bg-white/5 px-6 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 hover:scale-[1.01] active:scale-[0.99]">
+                Want to customize more?
               </button>
             </Link>
           </div>

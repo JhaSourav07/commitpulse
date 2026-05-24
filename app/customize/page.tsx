@@ -1,7 +1,8 @@
 'use client';
 
-import { useCallback, useState, type ReactElement } from 'react';
+import { useCallback, useState, Suspense, type ReactElement } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { ControlsPanel } from './components/ControlsPanel';
 import { ExportPanel } from './components/ExportPanel';
@@ -11,8 +12,20 @@ import { getExportSnippet, stripHash } from './utils';
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function CustomizePage(): ReactElement {
-  const [username, setUsername] = useState('');
-  const [theme, setTheme] = useState('dark');
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-transparent text-white font-sans overflow-x-hidden flex items-center justify-center">Loading...</div>}>
+      <CustomizeContent />
+    </Suspense>
+  );
+}
+
+function CustomizeContent(): ReactElement {
+  const searchParams = useSearchParams();
+  const initialUser = searchParams?.get('user') || '';
+  const initialTheme = searchParams?.get('theme') || 'dark';
+
+  const [username, setUsername] = useState(initialUser);
+  const [theme, setTheme] = useState(initialTheme);
   const [bgHex, setBgHex] = useState('');
   const [accentHex, setAccentHex] = useState('');
   const [textHex, setTextHex] = useState('');
