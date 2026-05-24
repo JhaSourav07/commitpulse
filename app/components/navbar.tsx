@@ -149,7 +149,6 @@ export default function Navbar() {
             const rect = rectRef.current;
 
             if (!rect) return;
-
             const x = ((event.clientX - rect.left) / rect.width) * 100;
             const y = ((event.clientY - rect.top) / rect.height) * 100;
 

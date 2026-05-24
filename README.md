@@ -54,19 +54,74 @@ The design philosophy is simple: **your commit history deserves a monument, not 
 
 ## 🔴 Live Demo
 
-Paste into any Markdown file — GitHub README, Notion, or your portfolio:
+Transform your GitHub contribution history into a cinematic 3D monolith.
+
+### ✨ Theme Showcase
+
+<table align="center">
+<tr>
+
+<td align="center">
+
+#### Default
+
+<a href="https://commitpulse.vercel.app/api/streak?user=jhasourav07">
+  <img 
+    src="https://commitpulse.vercel.app/api/streak?user=jhasourav07" 
+    width="600"
+  />
+</a>
+
+</td>
+
+<td align="center">
+
+#### Neon
+
+<a href="https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=neon">
+  <img 
+    src="https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=neon" 
+    width="600"
+  />
+</a>
+
+</td>
+
+<td align="center">
+
+#### Custom
+
+<a href="https://commitpulse.vercel.app/api/streak?user=jhasourav07&bg=0a0a0a&accent=ff6b35&text=ffffff">
+  <img 
+    src="https://commitpulse.vercel.app/api/streak?user=jhasourav07&bg=0a0a0a&accent=ff6b35&text=ffffff" 
+    width="600"
+  />
+</a>
+
+</td>
+
+</tr>
+</table>
+
+---
+
+### 📋 Copy Examples
+
+#### 🌑 Default
 
 ```md
-<!-- Default (Dark theme) -->
-
 ![CommitPulse](https://commitpulse.vercel.app/api/streak?user=jhasourav07)
+```
 
-<!-- Neon theme -->
+#### 🌟 Neon
 
+```md
 ![CommitPulse](https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=neon)
+```
 
-<!-- Custom colors -->
+#### 🔥 Custom
 
+```md
 ![CommitPulse](https://commitpulse.vercel.app/api/streak?user=jhasourav07&bg=0a0a0a&accent=ff6b35&text=ffffff)
 ```
 
@@ -82,42 +137,6 @@ URL Parameter > Theme Default > System Fallback
 
 ### Parameter Reference
 
-<<<<<<< HEAD
-| Parameter | Type | Required | Default | Description |
-| ----------------- | --------- | ---------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `user` | `string` | ✅ **Yes** | — | GitHub username to render |
-| `theme` | `string` | No | `dark` | Preset theme name (see below) |
-| `bg` | `hex` | No | Theme default | Background color — **without** `#` |
-| `accent` | `hex` | No | Theme default | Tower & glow color — **without** `#` |
-| `text` | `hex` | No | Theme default | Label & stat text color — **without** `#` |
-| `radius` | `number` | No | `8` | Border corner radius in pixels |
-| `speed` | `string` | No | `8s` | Radar scan duration (`2s`–`20s`, default `8s`) |
-| `scale` | `string` | No | `linear` | Tower height scaling: `linear` or `log` (logarithmic) |
-| `font` | `string` | No | CommitPulse default typography | Any **Google Font** name (e.g. `Orbitron`, `Inter`) |
-| `refresh` | `boolean` | No | `false` | Bypass cache for real-time data |
-| `year` | `string` | No | — | Calendar year to render (e.g. `2023`, `2024`) |
-| `hide_title` | `boolean` | No | `false` | Hide GitHub username/title from the SVG badge |
-| `hide_background` | `boolean` | No | `false` | Remove the background rect, letting the monolith float on the page |
-| `hide_stats` | `boolean` | No | `false` | Hides the bottom row displaying Current Streak, Annual Sync Total, and Peak Streak stats when set to `true` or `1`. |
-| `tz` | `string` | No | Omitted = UTC | IANA timezone (e.g. `Asia/Kolkata`, `America/New_York`) — aligns "today" with the user local midnight. Note: `?tz=UTC` is valid but cached separately from omitting `tz`. |
-| `lang` | `string` | No | `en` | Language code for labels (`en`, `es`, `hi`, `fr`) |
-=======
-<<<<<<< HEAD
-| Parameter | Type | Required | Default | Description |
-| ------------ | --------- | ---------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
-| `user` | `string` | ✅ **Yes** | — | GitHub username to render |
-| `theme` | `string` | No | `dark` | Preset theme name (see below) |
-| `bg` | `hex` | No | Theme default | Background color — **without** `#` |
-| `accent` | `hex` | No | Theme default | Tower & glow color — **without** `#` |
-| `text` | `hex` | No | Theme default | Label & stat text color — **without** `#` |
-| `radius` | `number` | No | `8` | Border corner radius in pixels |
-| `speed` | `string` | No | `8s` | Radar scan animation duration (e.g. `4s`, `12s`) |
-| `scale` | `string` | No | `linear` | Tower height scaling: `linear` or `log` (logarithmic) |
-| `font` | `string` | No | CommitPulse default typography | Any **Google Font** name (e.g., `Orbitron`, `Inter`) |
-| `refresh` | `boolean` | No | `false` | Bypass cache for real-time data |
-| `year` | `string` | No | — | Calendar year to render (e.g. `2023`, `2024`) |
-| `hide_stats` | `boolean` | No | `false` | Hides the bottom row displaying Current Streak, Annual Sync Total, and Peak Streak stats when set to `true` or `1`. |
-=======
 | Parameter | Type | Required | Default | Description |
 | --------- | --------- | ---------- | ------------------------------ | ----------------------------------------------------- |
 | `user` | `string` | ✅ **Yes** | — | GitHub username to render |
@@ -135,19 +154,37 @@ URL Parameter > Theme Default > System Fallback
 
 > > > > > > > 84d63b7 (feat: add border color URL parameter support)
 > > > > > > > a47a046 (feat: add border color URL parameter support)
+| `user`            | `string`  | ✅ **Yes** | —                              | GitHub username to render                                                                                                                                                 |
+| `theme`           | `string`  | No         | `dark`                         | Preset theme name (see below)                                                                                                                                             |
+| `bg`              | `hex`     | No         | Theme default                  | Background color — **without** `#`                                                                                                                                        |
+| `accent`          | `hex`     | No         | Theme default                  | Tower & glow color — **without** `#`                                                                                                                                      |
+| `text`            | `hex`     | No         | Theme default                  | Label & stat text color — **without** `#`                                                                                                                                 |
+| `radius`          | `number`  | No         | `8`                            | Border corner radius in pixels                                                                                                                                            |
+| `speed`           | `string`  | No         | `8s`                           | Radar scan duration (`2s`–`20s`, default `8s`)                                                                                                                            |
+| `scale`           | `string`  | No         | `linear`                       | Tower height scaling: `linear` or `log` (logarithmic)                                                                                                                     |
+| `size`            | `string`  | No         | `medium`                       | Badge dimensions: `small` (400×280), `medium` (600×420), `large` (800×560)                                                                                                |
+| `font`            | `string`  | No         | CommitPulse default typography | Any **Google Font** name (e.g. `Orbitron`, `Inter`)                                                                                                                       |
+| `refresh`         | `boolean` | No         | `false`                        | Bypass cache for real-time data                                                                                                                                           |
+| `year`            | `string`  | No         | —                              | Calendar year to render (e.g. `2023`, `2024`)                                                                                                                             |
+| `hide_title`      | `boolean` | No         | `false`                        | Hide GitHub username/title from the SVG badge                                                                                                                             |
+| `hide_background` | `boolean` | No         | `false`                        | Remove the background rect, letting the monolith float on the page                                                                                                        |
+| `hide_stats`      | `boolean` | No         | `false`                        | Hides the bottom row displaying Current Streak, Annual Sync Total, and Peak Streak stats when set to `true` or `1`.                                                       |
+| `tz`              | `string`  | No         | Omitted = UTC                  | IANA timezone (e.g. `Asia/Kolkata`, `America/New_York`) — aligns "today" with the user local midnight. Note: `?tz=UTC` is valid but cached separately from omitting `tz`. |
+| `lang`            | `string`  | No         | `en`                           | Language code for labels (`en`, `es`, `hi`, `fr`)                                                                                                                         |
 
 ### Theme Presets
 
-| Theme              | Preview                  | `bg`     | `accent` | `text`   |
-| ------------------ | ------------------------ | -------- | -------- | -------- |
-| `auto`             | System light / dark      | _adapts_ | _adapts_ | _adapts_ |
-| `dark` _(default)_ | GitHub dark              | `0d1117` | `58a6ff` | `c9d1d9` |
-| `neon`             | Cyberpunk                | `000000` | `ff00ff` | `00ffcc` |
-| `dracula`          | Dracula Pro              | `282a36` | `bd93f9` | `f8f8f2` |
-| `github`           | GitHub green             | `0d1117` | `238636` | `ffffff` |
-| `light`            | Clean & minimal          | `ffffff` | `0969da` | `24292f` |
-| `gruvbox`          | retro warm dark          | `282828` | `fe8019` | `ebdbb2` |
-| `random`           | Surprise theme on reload | _varies_ | _varies_ | _varies_ |
+| Theme              | Preview                     | `bg`     | `accent` | `text`   |
+| ------------------ | --------------------------- | -------- | -------- | -------- |
+| `auto`             | System light / dark         | _adapts_ | _adapts_ | _adapts_ |
+| `dark` _(default)_ | GitHub dark                 | `0d1117` | `58a6ff` | `c9d1d9` |
+| `neon`             | Cyberpunk                   | `000000` | `ff00ff` | `00ffcc` |
+| `dracula`          | Dracula Pro                 | `282a36` | `bd93f9` | `f8f8f2` |
+| `github`           | GitHub green                | `0d1117` | `238636` | `ffffff` |
+| `light`            | Clean & minimal             | `ffffff` | `0969da` | `24292f` |
+| `gruvbox`          | retro warm dark             | `282828` | `fe8019` | `ebdbb2` |
+| `random`           | Surprise theme on reload    | _varies_ | _varies_ | _varies_ |
+| `highcontrast`     | Accessibility high contrast | `0a0a0a` | `ff4500` | `888888` |
 
 > **`auto` uses CSS `@media (prefers-color-scheme)`** inside the SVG so the badge switches between the `light` and `dark` palettes based on the viewer's OS setting — no JavaScript required. This is ideal for GitHub profile READMEs where visitors may use either mode.
 

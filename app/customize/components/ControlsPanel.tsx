@@ -1,5 +1,5 @@
 import type { ReactElement, ReactNode } from 'react';
-import { SPEEDS, type Scale } from '../types';
+import { SIZES, SPEEDS, type BadgeSize, type Scale } from '../types';
 import { isValidHex, stripHash } from '../utils';
 import { SectionLabel } from './SectionLabel';
 import { StyledSelect, ThemeSelector } from './ThemeSelector';
@@ -87,6 +87,7 @@ export function ControlsPanel({
   speed,
   year,
   radius,
+  size,
   onUsernameChange,
   onThemeChange,
   onBgHexChange,
@@ -95,6 +96,7 @@ export function ControlsPanel({
   onScaleChange,
   onSpeedChange,
   onYearChange,
+  onSizeChange,
   onClearOverrides,
   onRadiusChange,
 }: {
@@ -107,6 +109,7 @@ export function ControlsPanel({
   speed: string;
   year: string;
   radius: number;
+  size: BadgeSize;
   onUsernameChange: (value: string) => void;
   onThemeChange: (value: string) => void;
   onBgHexChange: (value: string) => void;
@@ -115,6 +118,7 @@ export function ControlsPanel({
   onScaleChange: (value: Scale) => void;
   onSpeedChange: (value: string) => void;
   onYearChange: (value: string) => void;
+  onSizeChange: (value: BadgeSize) => void;
   onClearOverrides: () => void;
   onRadiusChange: (value: number) => void;
 }): ReactElement {
@@ -270,6 +274,22 @@ export function ControlsPanel({
             <span>0</span>
             <span className="text-emerald-300/60 font-mono text-[11px]">{radius}</span>
             <span>50</span>
+          </div>
+        </ControlRow>
+
+        <ControlRow label="Badge Size">
+          <div className="relative">
+            <StyledSelect
+              id="size-select"
+              value={size}
+              onChange={(v) => onSizeChange(v as BadgeSize)}
+            >
+              {SIZES.map((sizeOption) => (
+                <option key={sizeOption.value} value={sizeOption.value}>
+                  {sizeOption.label}
+                </option>
+              ))}
+            </StyledSelect>
           </div>
         </ControlRow>
       </div>

@@ -258,3 +258,32 @@ describe('calculateStreak — timezone awareness', () => {
     expect(result.todayDate).toBe('2024-06-16');
   });
 });
+
+describe('calculateStreak — empty and sparse year edge cases', () => {
+  it('returns stable output when all weeks have zero-contribution days', () => {
+    const calendar = buildCalendar([
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    ]);
+    const result = calculateStreak(calendar);
+    expect(result.currentStreak).toBe(0);
+    expect(result.longestStreak).toBe(0);
+    expect(result.totalContributions).toBe(0);
+    expect(result.todayDate).toBeDefined();
+  });
+
+  it('is deterministic: same empty calendar always returns identical output', () => {
+    const calendar = buildCalendar([]);
+    const fixedNow = new Date('2024-01-15T12:00:00Z');
+    const r1 = calculateStreak(calendar, 'UTC', fixedNow);
+    const r2 = calculateStreak(calendar, 'UTC', fixedNow);
+    expect(r1).toEqual(r2);
+  });
+
+  it('handles partial year — only one week of data — without crashing', () => {
+    const calendar = buildCalendar([0, 1, 0, 0, 1, 0, 0]);
+    expect(() => calculateStreak(calendar)).not.toThrow();
+    const result = calculateStreak(calendar);
+    expect(result.longestStreak).toBe(1);
+    expect(result.totalContributions).toBe(2);
+  });
+});
