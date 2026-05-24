@@ -9,6 +9,13 @@ interface GitHubRepo {
   language: string | null;
 }
 
+export function validateGitHubUsername(username: string): boolean {
+  if (!/^[a-zA-Z0-9-]{1,39}$/.test(username)) {
+    throw new Error('Invalid GitHub username format');
+  }
+  return true;
+}
+
 const MAX_RETRIES = 3;
 const BASE_DELAY_MS = 500;
 const CONTRIBUTION_MILESTONES = [1, 10, 100, 250, 500, 1000];
@@ -106,6 +113,7 @@ export async function fetchGitHubContributions(
   username: string,
   options: FetchOptions = {}
 ): Promise<ContributionCalendar> {
+  validateGitHubUsername(username);
   const key = cacheKey('contributions', username, options.from?.substring(0, 4));
 
   if (!options.bypassCache) {

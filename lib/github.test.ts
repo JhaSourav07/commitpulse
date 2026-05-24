@@ -6,6 +6,7 @@ import {
   fetchUserRepos,
   getFullDashboardData,
   generateAchievements,
+  validateGitHubUsername,
   clearGitHubApiCacheForTests,
   GITHUB_CACHE_TTL_MS,
 } from './github';
@@ -37,6 +38,24 @@ beforeEach(() => {
 
 afterEach(() => {
   clearGitHubApiCacheForTests();
+});
+
+describe('validateGitHubUsername', () => {
+  it('returns true for a valid username', () => {
+    expect(validateGitHubUsername('octocat')).toBe(true);
+  });
+
+  it('throws for a username longer than 39 characters', () => {
+    expect(() => validateGitHubUsername('a'.repeat(40))).toThrow('Invalid GitHub username format');
+  });
+
+  it('throws for a username with underscore', () => {
+    expect(() => validateGitHubUsername('invalid_user')).toThrow('Invalid GitHub username format');
+  });
+
+  it('throws for a username with space', () => {
+    expect(() => validateGitHubUsername('user name')).toThrow('Invalid GitHub username format');
+  });
 });
 
 describe('fetchGitHubContributions', () => {
