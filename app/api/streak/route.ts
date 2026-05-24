@@ -22,34 +22,21 @@ export async function GET(request: Request) {
 
     const yearParam = searchParams.get('year');
 
-    const from = yearParam
-      ? `${yearParam}-01-01T00:00:00Z`
-      : undefined;
-
-    const to = yearParam
-      ? `${yearParam}-12-31T23:59:59Z`
-      : undefined;
+    const from = yearParam ? `${yearParam}-01-01T00:00:00Z` : undefined;
+    const to = yearParam ? `${yearParam}-12-31T23:59:59Z` : undefined;
 
     const themeName = searchParams.get('theme') || 'dark';
-
     const isAutoTheme = themeName === 'auto';
 
-    const selectedTheme =
-      isAutoTheme
-        ? themes.light
-        : themes[themeName] || themes.dark;
+    const selectedTheme = isAutoTheme
+      ? themes.light
+      : themes[themeName] || themes.dark;
 
     const rawSpeed = searchParams.get('speed') || '8s';
 
-    const speed = /^\d+(\.\d+)?s$/.test(rawSpeed)
-      ? rawSpeed
-      : '8s';
+    const speed = /^\d+(\.\d+)?s$/.test(rawSpeed) ? rawSpeed : '8s';
 
-    const rawScale = searchParams.get('scale');
-
-    const scale = rawScale === 'log'
-      ? 'log'
-      : 'linear';
+    const scale = searchParams.get('scale') === 'log' ? 'log' : 'linear';
 
     const font = searchParams.get('font') || undefined;
 
@@ -89,11 +76,9 @@ export async function GET(request: Request) {
       headers: {
         'Content-Type': 'image/svg+xml; charset=utf-8',
 
-        // Optimized CDN caching
         'Cache-Control':
           'public, max-age=0, s-maxage=14400, stale-while-revalidate=86400',
 
-        // Security headers
         'Content-Security-Policy':
           "default-src 'none'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com;",
 
@@ -104,9 +89,7 @@ export async function GET(request: Request) {
     console.error('Streak API Error:', error);
 
     const message =
-      error instanceof Error
-        ? error.message
-        : 'Unknown error';
+      error instanceof Error ? error.message : 'Unknown error';
 
     const errorSvg = `
       <svg xmlns="http://www.w3.org/2000/svg" width="400" height="150">
