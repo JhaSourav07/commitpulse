@@ -99,6 +99,7 @@ const themeDescriptions: Record<
   {
     name: string;
     vibe: string;
+    previewUrl?: string;
   }
 > = {
   dark: {
@@ -113,7 +114,7 @@ const themeDescriptions: Record<
 
   dracula: {
     name: 'Dracula',
-    vibe: 'Purple-forward palette inspired by Dracula Pro.',
+    vibe: 'Dark 282a36 backdrop with signature bd93f9 purple towers and soft f8f8f2 text, true to the Dracula color scheme.',
   },
 
   github: {
@@ -134,11 +135,13 @@ const themeDescriptions: Record<
   sunset: {
     name: 'Sunset',
     vibe: 'Dark crimson base with warm orange accent.',
+    previewUrl: `${API_BASE_URL}?user=jhasourav07&theme=sunset`,
   },
 
   forest: {
     name: 'Forest',
     vibe: 'Dark green canvas with bright contribution green.',
+    previewUrl: `${API_BASE_URL}?user=jhasourav07&theme=forest`,
   },
 
   rose: {
