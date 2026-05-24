@@ -45,6 +45,12 @@ export function escapeXML(str: string): string {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
 }
+
+export function particleCount(count: number): number {
+  if (count === 0) return 0;
+  return Math.min(5, Math.max(3, Math.floor(count / 4)));
+}
+
 function generateParticles(
   x: number,
   y: number,
@@ -54,9 +60,9 @@ function generateParticles(
   sf: number
 ): string {
   let particles = '';
-  const particleCount = Math.min(5, Math.max(3, Math.floor(count / 4)));
+  const numParticles = particleCount(count);
 
-  for (let i = 0; i < particleCount; i++) {
+  for (let i = 0; i < numParticles; i++) {
     const seed = `${x}:${y}:${height}:${color}:${count}:${i}`;
     const offsetX = deterministicRandom(`${seed}:offsetX`) * 6 - 3;
     const delay = deterministicRandom(`${seed}:delay`) * 1.5;
@@ -79,9 +85,9 @@ function generateAutoParticles(
   sf: number
 ): string {
   let particles = '';
-  const particleCount = Math.min(5, Math.max(3, Math.floor(count / 4)));
+  const numParticles = particleCount(count);
 
-  for (let i = 0; i < particleCount; i++) {
+  for (let i = 0; i < numParticles; i++) {
     const seed = `${x}:${y}:${height}:auto:${count}:${i}`;
     const offsetX = deterministicRandom(`${seed}:offsetX`) * 6 - 3;
     const delay = deterministicRandom(`${seed}:delay`) * 1.5;

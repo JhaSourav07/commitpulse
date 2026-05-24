@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { generateSVG, generateMonthlySVG } from './generator';
+import { generateSVG, generateMonthlySVG, particleCount } from './generator';
 import type { BadgeParams, ContributionCalendar, StreakStats, MonthlyStats } from '../../types';
 
 describe('generateSVG', () => {
@@ -422,5 +422,24 @@ describe('generateMonthlySVG', () => {
     } as unknown as BadgeParams);
     expect(svg).toContain('width="400"');
     expect(svg).toContain('height="200"');
+  });
+});
+
+describe('particleCount', () => {
+  it('returns 0 when count is 0', () => {
+    expect(particleCount(0)).toBe(0);
+  });
+
+  it('clamps to lower bound of 3 for low counts (e.g., 10 -> 3)', () => {
+    expect(particleCount(10)).toBe(3);
+  });
+
+  it('scales correctly between bounds (e.g., 16 -> 4)', () => {
+    expect(particleCount(16)).toBe(4);
+  });
+
+  it('clamps to upper bound of 5 for high counts (e.g., 20 -> 5, 100 -> 5)', () => {
+    expect(particleCount(20)).toBe(5);
+    expect(particleCount(100)).toBe(5);
   });
 });
