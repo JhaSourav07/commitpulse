@@ -411,4 +411,16 @@ describe('validateGitHubUsername', () => {
   it('returns false for a username with spaces', () => {
     expect(validateGitHubUsername('invalid username')).toBe(false);
   });
+
+  it('returns false for a leading hyphen', () => {
+    expect(validateGitHubUsername('-invalid')).toBe(false);
+  });
+
+  it('returns false for a trailing hyphen', () => {
+    expect(validateGitHubUsername('invalid-')).toBe(false);
+  });
+
+  it('returns false for consecutive hyphens', () => {
+    expect(validateGitHubUsername('in--valid')).toBe(false);
+  });
 });

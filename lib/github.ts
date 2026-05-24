@@ -103,7 +103,7 @@ const getHeaders = () => ({
 });
 
 export function validateGitHubUsername(username: string): boolean {
-  return /^[a-zA-Z0-9-]{1,39}$/.test(username);
+  return /^[a-z\d](?:[a-z\d]|-(?=[a-z\d])){0,38}$/i.test(username);
 }
 
 export async function fetchGitHubContributions(
@@ -178,6 +178,10 @@ export async function fetchUserProfile(
   username: string,
   options: FetchOptions = {}
 ): Promise<GitHubUserProfile> {
+  if (!validateGitHubUsername(username)) {
+    throw new Error('Invalid GitHub username format');
+  }
+
   const key = cacheKey('profile', username);
 
   if (!options.bypassCache) {
@@ -208,6 +212,10 @@ export async function fetchUserRepos(
   username: string,
   options: FetchOptions = {}
 ): Promise<GitHubRepo[]> {
+  if (!validateGitHubUsername(username)) {
+    throw new Error('Invalid GitHub username format');
+  }
+
   const key = cacheKey('repos', username);
 
   if (!options.bypassCache) {
@@ -281,6 +289,9 @@ export function generateAchievements(totalContributions: number, currentStreak: 
 }
 
 export async function getFullDashboardData(username: string, options: FetchOptions = {}) {
+  if (!validateGitHubUsername(username)) {
+    throw new Error('Invalid GitHub username format');
+  }
   try {
     const [profileData, reposData, calendarData] = await Promise.all([
       fetchUserProfile(username, options),
