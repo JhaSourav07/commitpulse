@@ -46,6 +46,7 @@
   0% {
     background-position: -200% 0;
   }
+
   100% {
     background-position: 200% 0;
   }
@@ -81,6 +82,7 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
 .dark body {
   background: #000000;
   color: #ffffff;
@@ -107,6 +109,7 @@ body {
   background: #333;
   border-radius: 3px;
 }
+
 /* Custom text selection color to match site theme */
 ::selection {
   background-color: #00ffaa;
