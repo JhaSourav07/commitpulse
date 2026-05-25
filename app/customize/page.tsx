@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useState, type ReactElement } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactElement } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { ControlsPanel } from './components/ControlsPanel';
@@ -23,12 +23,24 @@ export default function CustomizePage(): ReactElement {
   const [size, setSize] = useState<BadgeSize>('medium');
   const [exportFormat, setExportFormat] = useState<ExportFormat>('markdown');
   const [copied, setCopied] = useState(false);
+  const [copyStatusMessage, setCopyStatusMessage] = useState('');
+  const copyResetTimeoutRef = useRef<number | null>(null);
   const trimmedUsername = username.trim();
   const hasUsername = trimmedUsername.length > 0;
   const isAutoTheme = theme === 'auto';
   const isRandomTheme = theme === 'random';
   const skipsCustomColors = isAutoTheme || isRandomTheme;
 
+  useEffect(() => {
+    return () => {
+      if (copyResetTimeoutRef.current !== null) {
+        window.clearTimeout(copyResetTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Clear custom hex overrides when switching to auto — fixed colors
+  // conflict with the dual-palette prefers-color-scheme switching.
   // Clear custom hex overrides when switching to virtual themes because
   // fixed colors conflict with their palette-selection behavior.
   const handleThemeChange = useCallback((newTheme: string): void => {
@@ -89,12 +101,37 @@ export default function CustomizePage(): ReactElement {
   const previewSrc = `/api/streak?${queryString}`;
   const exportSnippet = getExportSnippet(exportFormat, queryString);
 
-  const copyExportSnippet = (): void => {
+  const announceCopyStatus = useCallback((message: string): void => {
+    setCopyStatusMessage('');
+    window.setTimeout(() => {
+      setCopyStatusMessage(message);
+    }, 0);
+  }, []);
+
+  const copyExportSnippet = async (): Promise<void> => {
     if (!hasUsername) return;
 
-    navigator.clipboard.writeText(exportSnippet);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 3000);
+    try {
+      await navigator.clipboard.writeText(exportSnippet);
+      setCopied(true);
+      announceCopyStatus(
+        `${exportFormat === 'markdown' ? 'Markdown' : 'HTML'} snippet copied to clipboard.`
+      );
+
+      if (copyResetTimeoutRef.current !== null) {
+        window.clearTimeout(copyResetTimeoutRef.current);
+      }
+
+      copyResetTimeoutRef.current = window.setTimeout(() => {
+        setCopied(false);
+        setCopyStatusMessage('');
+      }, 3000);
+    } catch {
+      setCopied(false);
+      announceCopyStatus(
+        `Unable to copy the ${exportFormat === 'markdown' ? 'Markdown' : 'HTML'} snippet.`
+      );
+    }
   };
 
   return (
@@ -273,6 +310,7 @@ export default function CustomizePage(): ReactElement {
               format={exportFormat}
               snippet={exportSnippet}
               copied={copied}
+              copyStatusMessage={copyStatusMessage}
               hasUsername={hasUsername}
               onFormatChange={setExportFormat}
               onCopy={copyExportSnippet}
