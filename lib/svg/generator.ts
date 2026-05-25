@@ -96,6 +96,14 @@ function generateAutoParticles(
   return `<g class="heat-particles">${particles}</g>`;
 }
 
+function renderA11yMeta(safeUser: string, stats: StreakStats): string {
+  return `
+  <title>CommitPulse Stats for ${safeUser}</title>
+  <desc>
+    ${safeUser} has ${stats.totalContributions} total contributions and a longest streak of ${stats.longestStreak} days.
+  </desc>`;
+}
+
 // main renderers
 export function generateSVG(
   stats: StreakStats,
@@ -175,10 +183,7 @@ export function generateSVG(
   fill="none"
   role="img"
 >
-  <title>CommitPulse Stats for ${safeUser}</title>
-  <desc>
-    ${params.user || 'This user'} has ${stats.totalContributions} total contributions and a longest streak of ${stats.longestStreak} days.
-  </desc>
+  ${renderA11yMeta(safeUser, stats)}
   <defs>
     <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="${fs(5)}" result="blur" /><feComposite in="SourceGraphic" in2="blur" operator="over" /></filter>
   </defs>
@@ -295,10 +300,7 @@ function generateAutoThemeSVG(
   fill="none"
   role="img"
 >
-  <title>CommitPulse Stats for ${safeUser} </title>
-  <desc>
-    ${params.user || 'This user'} has ${stats.totalContributions} total contributions and a longest streak of ${stats.longestStreak} days.
-  </desc>
+  ${renderA11yMeta(safeUser, stats)}
   <defs>
     <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="${fs(5)}" result="blur" /><feComposite in="SourceGraphic" in2="blur" operator="over" /></filter>
   </defs>
