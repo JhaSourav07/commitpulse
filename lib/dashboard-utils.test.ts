@@ -8,7 +8,7 @@ describe('getFilteredActivityData', () => {
     return Array.from({ length: count }, (_, i) => ({
       date: `2024-01-${(i % 28) + 1}`,
       count: i + 1,
-      intensity: Math.floor(Math.random() * 5),
+      intensity: Math.floor(Math.random() * 5) as 0 | 1 | 2 | 3 | 4,
     }));
   };
 
