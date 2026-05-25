@@ -122,6 +122,13 @@ export function validateGitHubUsername(username: string): boolean {
   return /^[a-z\d](?:[a-z\d]|-(?=[a-z\d])){0,38}$/i.test(username);
 }
 
+export function displayName(profile: GitHubUserProfile): string {
+  if (typeof profile.name === 'string' && profile.name.trim() !== '') {
+    return profile.name;
+  }
+  return profile.login;
+}
+
 export async function fetchGitHubContributions(
   username: string,
   options: FetchOptions = {}
@@ -355,7 +362,7 @@ export async function getFullDashboardData(username: string, options: FetchOptio
     // 1. Profile Mapping
     const profile = {
       username: profileData.login,
-      name: profileData.name || profileData.login,
+      name: displayName(profileData),
       avatarUrl: profileData.avatar_url,
       isPro: profileData.plan?.name === 'pro',
       bio: profileData.bio || 'No bio available',
