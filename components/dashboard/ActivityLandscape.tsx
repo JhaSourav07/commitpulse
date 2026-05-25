@@ -58,13 +58,21 @@ export default function ActivityLandscape({ data }: { data: ActivityData[] }) {
       </div>
 
       {/* Graph */}
-      <div className="h-[200px] w-full flex items-end justify-between gap-[2px] relative">
+      <div
+        className="h-[200px] w-full flex items-end justify-between gap-[2px] relative"
+        role="img"
+        aria-label="Activity chart showing commit frequency over time"
+      >
         {displayData.map((day, i) => {
           const heightPercent = Math.max((day.count / maxCount) * 100, 3);
           const isHigh = day.intensity >= 3;
 
           return (
-            <div key={i} className="relative flex-1 flex items-end group/bar h-full">
+            <div
+              key={i}
+              className="relative flex-1 flex items-end group/bar h-full"
+              aria-label={`${day.date}: ${day.count} commits`}
+            >
               {/* Tooltip */}
               <div className="absolute -top-11 left-1/2 -translate-x-1/2 bg-[#111] border border-[rgba(255,255,255,0.1)] px-2.5 py-1.5 rounded-md opacity-0 group-hover/bar:opacity-100 transition-opacity duration-150 pointer-events-none z-20 flex flex-col items-center whitespace-nowrap shadow-xl">
                 <span className="text-[10px] text-[#A1A1AA]">{day.date}</span>
