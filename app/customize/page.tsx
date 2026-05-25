@@ -39,8 +39,20 @@ export default function CustomizePage(): ReactElement {
     };
   }, []);
 
-  // Clear custom hex overrides when switching to auto — fixed colors
-  // conflict with the dual-palette prefers-color-scheme switching.
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+        const input = document.querySelector<HTMLInputElement>('#username-input');
+        if (!input || document.activeElement === input) return;
+        event.preventDefault();
+        input.focus();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   // Clear custom hex overrides when switching to virtual themes because
   // fixed colors conflict with their palette-selection behavior.
   const handleThemeChange = useCallback((newTheme: string): void => {
