@@ -25,6 +25,14 @@ export interface ContributionCalendar {
   weeks: ContributionWeek[];
 }
 
+export interface MonthlyStats {
+  currentMonthTotal: number;
+  previousMonthTotal: number;
+  deltaPercentage: number;
+  deltaAbsolute: number;
+  currentMonthName: string;
+}
+
 export interface BadgeParams {
   user: string;
   bg: string;
@@ -39,5 +47,9 @@ export interface BadgeParams {
   hideBackground?: boolean;
   hide_stats?: boolean;
   lang?: string;
+  view?: 'default' | 'monthly';
+  delta_format?: 'percent' | 'absolute' | 'both';
+  width?: number;
+  height?: number;
   size?: 'small' | 'medium' | 'large';
 }

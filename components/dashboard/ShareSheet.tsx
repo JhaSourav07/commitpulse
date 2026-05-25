@@ -170,7 +170,7 @@ export default function ShareSheet({ username, isOpen, onClose, exportData }: Sh
   const handleCopyMarkdown = async () => {
     setOptionState('markdown', 'loading');
     try {
-      const markdown = `![CommitPulse](${PROFILE_URL(username).replace(username, `api/streak?user=${username}`)})`;
+      const markdown = `![CommitPulse](${window.location.origin}/api/streak?user=${encodeURIComponent(username)})`;
       await navigator.clipboard.writeText(markdown);
       setOptionState('markdown', 'success');
       setTimeout(() => onClose(), 800);

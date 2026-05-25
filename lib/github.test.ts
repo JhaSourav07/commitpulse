@@ -8,6 +8,7 @@ import {
   generateAchievements,
   clearGitHubApiCacheForTests,
   GITHUB_CACHE_TTL_MS,
+  validateGitHubUsername,
 } from './github';
 import type { ContributionCalendar } from '../types';
 
@@ -391,5 +392,35 @@ describe('generateAchievements', () => {
     expect(unlocked.some((a) => a.title === '30 Day Streak')).toBe(true);
 
     expect(unlocked.some((a) => a.title === '100 Day Streak')).toBe(false);
+  });
+});
+
+describe('validateGitHubUsername', () => {
+  it('returns true for a valid username', () => {
+    expect(validateGitHubUsername('valid-username-123')).toBe(true);
+  });
+
+  it('returns false for a too long username', () => {
+    expect(validateGitHubUsername('a'.repeat(40))).toBe(false);
+  });
+
+  it('returns false for a username with underscore', () => {
+    expect(validateGitHubUsername('invalid_username')).toBe(false);
+  });
+
+  it('returns false for a username with spaces', () => {
+    expect(validateGitHubUsername('invalid username')).toBe(false);
+  });
+
+  it('returns false for a leading hyphen', () => {
+    expect(validateGitHubUsername('-invalid')).toBe(false);
+  });
+
+  it('returns false for a trailing hyphen', () => {
+    expect(validateGitHubUsername('invalid-')).toBe(false);
+  });
+
+  it('returns false for consecutive hyphens', () => {
+    expect(validateGitHubUsername('in--valid')).toBe(false);
   });
 });
