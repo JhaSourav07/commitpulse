@@ -8,6 +8,11 @@ const eslintConfig = defineConfig([
   ...nextTs,
   eslintConfigPrettier,
   globalIgnores(['.next/**', 'out/**', 'build/**', 'next-env.d.ts', 'coverage/**', '.github/**']),
+  {
+    rules: {
+      'no-console': ['warn', { allow: ['warn', 'error', 'info'] }],
+    },
+  },
 ]);
 
 export default eslintConfig;
