@@ -13,6 +13,47 @@ import type { BadgeParams } from '../../../types';
 import { themes } from '../../../lib/svg/themes';
 import { streakParamsSchema } from '../../../lib/validations';
 
+/**
+ * GET handler to generate a GitHub contribution streak or monthly stats SVG.
+ *
+ * @param {Request} request - The incoming HTTP request containing query parameters.
+ * @param {string} [request.url?user] - GitHub username.
+ * @param {string} [request.url?theme='dark'] - Visual theme ('light', 'dark', 'auto', 'random').
+ * @param {string} [request.url?bg] - Background color (hex).
+ * @param {string} [request.url?text] - Text color (hex).
+ * @param {string} [request.url?accent] - Accent color (hex).
+ * @param {number} [request.url?scale] - Scale of the chart.
+ * @param {string} [request.url?size] - Size of the badge.
+ * @param {string} [request.url?speed] - Animation speed (e.g., '8s').
+ * @param {number} [request.url?radius] - Border radius.
+ * @param {string} [request.url?font] - Font family.
+ * @param {string} [request.url?year] - Specific year for the visualization.
+ * @param {boolean} [request.url?refresh] - If true, bypasses cache to fetch fresh data.
+ * @param {boolean} [request.url?hide_title] - Hides the title.
+ * @param {boolean} [request.url?hide_background] - Hides the background.
+ * @param {boolean} [request.url?hide_stats] - Hides the statistics.
+ * @param {string} [request.url?lang] - Language for the visualization.
+ * @param {string} [request.url?view] - View mode ('monthly' for monthly stats, otherwise streak).
+ * @param {string} [request.url?delta_format] - Format for deltas.
+ * @param {number} [request.url?width] - SVG width.
+ * @param {number} [request.url?height] - SVG height.
+ * @param {string} [request.url?tz] - Timezone (e.g., 'Europe/Madrid').
+ *
+ * @returns {Promise<NextResponse>} A promise that resolves to a `NextResponse` containing:
+ * - 200 OK: An `image/svg+xml` response with the generated chart.
+ * - 400 Bad Request: A JSON response with error details if parameters are invalid.
+ * - 400 Bad Request: A plain text response if the `tz` parameter is invalid.
+ * - 404 Not Found: An `image/svg+xml` response indicating the user was not found.
+ * - 500 Internal Server Error: An `image/svg+xml` response with the error message.
+ *
+ * @example
+ * // Generate a dark theme streak for user 'octocat'
+ * // GET /api/streak?user=octocat&theme=dark
+ *
+ * @example
+ * // Generate monthly stats for 'octocat' in 2023
+ * // GET /api/streak?user=octocat&view=monthly&year=2023
+ */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
 
