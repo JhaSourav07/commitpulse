@@ -11,3 +11,4 @@ flowchart TD
     C --> D[lib/calculate.ts]
     D --> E[lib/svg/generator.ts]
     E --> F[SVG Response]
+```
