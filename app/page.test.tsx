@@ -181,6 +181,10 @@ describe('LandingPage', () => {
 
     await waitFor(() => {
       expect(screen.getByText(/theme=neon/)).toBeDefined();
+      expect(vi.mocked(fetch)).toHaveBeenCalledWith(
+        expect.stringContaining('theme=neon'),
+        expect.objectContaining({ signal: expect.any(AbortSignal) })
+      );
       expect(navigator.clipboard.writeText).toHaveBeenLastCalledWith(
         '![CommitPulse](https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=neon)'
       );

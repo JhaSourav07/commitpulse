@@ -110,8 +110,10 @@ export default function LandingPage() {
   const [username, setUsername] = useState('');
   const [theme, setTheme] = useState('dark');
   const [copied, setCopied] = useState(false);
-  const [svgContent, setSvgContent] = useState<string | null>(null);
-  const [svgState, setSvgState] = useState<'idle' | 'loading' | 'loaded'>('idle');
+  const [svgPreview, setSvgPreview] = useState<{
+    content: string | null;
+    url: string;
+  } | null>(null);
   const guideRef = useRef<HTMLDivElement>(null);
   const { searches, addSearch, clearSearches } = useRecentSearches();
   const trimmedUsername = username.trim();
@@ -120,6 +122,13 @@ export default function LandingPage() {
   const badgeQueryString = getBadgeQueryString(trimmedUsername, theme);
   const badgeUrl = `/api/streak?${badgeQueryString}`;
   const markdown = getMarkdown(trimmedUsername, theme);
+  const currentSvgPreview = svgPreview?.url === badgeUrl ? svgPreview : null;
+  const svgContent = currentSvgPreview?.content ?? null;
+  const svgState: 'idle' | 'loading' | 'loaded' = !hasUsername
+    ? 'idle'
+    : currentSvgPreview
+      ? 'loaded'
+      : 'loading';
 
   const handleThemeChange = (nextTheme: string) => {
     setTheme(nextTheme);
@@ -129,14 +138,7 @@ export default function LandingPage() {
     }
   };
 
-  const [prevUsername, setPrevUsername] = useState('');
-  if (trimmedUsername !== prevUsername) {
-    setPrevUsername(trimmedUsername);
-    setSvgContent(null);
-    setSvgState(trimmedUsername ? 'loading' : 'idle');
-  }
-
-  // Fetch SVG content whenever username changes.
+  // Fetch SVG content whenever the username or selected theme changes.
   // We fetch as text and render inline to avoid the browser CSP restriction
   // that blocks <img> from loading SVGs whose response has a restrictive
   // Content-Security-Policy header (default-src 'none').
@@ -148,12 +150,11 @@ export default function LandingPage() {
     fetch(badgeUrl, { signal: controller.signal })
       .then((res) => res.text())
       .then((text) => {
-        setSvgContent(text);
-        setSvgState('loaded');
+        setSvgPreview({ content: text, url: badgeUrl });
       })
       .catch((err) => {
         if (err.name === 'AbortError') return;
-        setSvgState('loaded'); // show nothing rather than hang on loading
+        setSvgPreview({ content: null, url: badgeUrl }); // show nothing rather than hang on loading
       });
 
     return () => controller.abort();
