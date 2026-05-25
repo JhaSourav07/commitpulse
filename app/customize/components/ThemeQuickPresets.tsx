@@ -305,7 +305,46 @@ function IconSynthwave({ bg, text, accent }: IC): ReactElement {
   );
 }
 
-const ICON_MAP: Record<string, (c: IC) => ReactElement> = {
+function IconGruvbox({ text, accent }: IC): ReactElement {
+  return (
+    <svg width="22" height="22" viewBox="0 0 28 28" fill="none" aria-hidden="true">
+      {/* lantern body */}
+      <rect x="10" y="13" width="8" height="10" rx="1.5" fill={text} opacity="0.75" />
+      {/* lantern top cap */}
+      <rect x="9" y="12" width="10" height="2.5" rx="1" fill={text} opacity="0.85" />
+      {/* handle */}
+      <path
+        d="M12 12 Q14 6 16 12"
+        stroke={text}
+        strokeWidth="1.4"
+        strokeLinecap="round"
+        fill="none"
+        opacity="0.6"
+      />
+      {/* warm glow */}
+      <ellipse cx="14" cy="18" rx="2.8" ry="3.5" fill={accent} opacity="0.85" />
+      {/* flame core */}
+      <path d="M14 15 Q12.5 18 14 20 Q15.5 18 14 15 Z" fill={accent} opacity="0.95" />
+    </svg>
+  );
+}
+
+function IconHighcontrast({ text, accent }: IC): ReactElement {
+  return (
+    <svg width="22" height="22" viewBox="0 0 28 28" fill="none" aria-hidden="true">
+      {/* outer eye shape */}
+      <path d="M2 14 C6 6 22 6 26 14 C22 22 6 22 2 14 Z" fill={accent} opacity="0.88" />
+      {/* iris */}
+      <circle cx="14" cy="14" r="5" fill={text} opacity="0.9" />
+      {/* pupil */}
+      <circle cx="14" cy="14" r="2.2" fill="#000" opacity="0.95" />
+      {/* catchlight */}
+      <circle cx="15.8" cy="12.5" r="1.2" fill="#fff" opacity="0.85" />
+    </svg>
+  );
+}
+
+const ICON_MAP: Record<ThemeKey, (c: IC) => ReactElement> = {
   dark: (c) => <IconDark {...c} />,
   light: (c) => <IconLight {...c} />,
   neon: (c) => <IconNeon {...c} />,
@@ -317,6 +356,8 @@ const ICON_MAP: Record<string, (c: IC) => ReactElement> = {
   rose: (c) => <IconRose {...c} />,
   nord: (c) => <IconNord {...c} />,
   synthwave: (c) => <IconSynthwave {...c} />,
+  gruvbox: (c) => <IconGruvbox {...c} />,
+  highcontrast: (c) => <IconHighcontrast {...c} />,
 };
 
 export function ThemeQuickPresets({ theme, onThemeChange }: ThemeQuickPresetsProps): ReactElement {

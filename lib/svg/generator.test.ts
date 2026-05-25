@@ -376,6 +376,64 @@ describe('generateSVG', () => {
 
       expect(svg).not.toContain('attributeName="opacity" values="1;0.4;1"');
     });
+    it('includes accessible title and description metadata', () => {
+      const svg = generateSVG(
+        mockStats,
+        { user: 'octocat' } as unknown as BadgeParams,
+        mockCalendar
+      );
+
+      expect(svg).toContain('<title>CommitPulse Stats for octocat</title>');
+      expect(svg).toContain('<desc>');
+      expect(svg).toContain('100');
+      expect(svg).toContain('10');
+    });
+  });
+
+  describe('tower top highlight', () => {
+    it('renders white highlight on tower top when contributionCount > 5', () => {
+      const calendarWithHighCount: ContributionCalendar = {
+        totalContributions: 9,
+        weeks: [
+          {
+            contributionDays: [
+              { contributionCount: 6, date: '2024-06-10' },
+              { contributionCount: 3, date: '2024-06-11' },
+            ],
+          },
+        ],
+      };
+
+      const svg = generateSVG(
+        mockStats,
+        { user: 'avi' } as unknown as BadgeParams,
+        calendarWithHighCount
+      );
+
+      expect(svg).toContain('fill="white" fill-opacity="0.2"');
+    });
+
+    it('does not render white highlight when all days have contributionCount <= 5', () => {
+      const calendarWithLowCount: ContributionCalendar = {
+        totalContributions: 8,
+        weeks: [
+          {
+            contributionDays: [
+              { contributionCount: 3, date: '2024-06-10' },
+              { contributionCount: 5, date: '2024-06-11' },
+            ],
+          },
+        ],
+      };
+
+      const svg = generateSVG(
+        mockStats,
+        { user: 'avi' } as unknown as BadgeParams,
+        calendarWithLowCount
+      );
+
+      expect(svg).not.toContain('fill="white" fill-opacity="0.2"');
+    });
   });
 });
 

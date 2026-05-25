@@ -1,6 +1,56 @@
 // lib/calculate.ts
 import type { ContributionCalendar, StreakStats, MonthlyStats } from '../types';
 
+/*
+Calculates streak statistics from a GitHub contribution calendar.
+
+This function computes:
+- Current streak length (with a one-day grace period)
+- Longest streak length across the calendar
+- Total contributions made
+- Effective "today" date used for UI display
+
+Current Streak Logic:
+The streak remains active if there are no contributions today
+but there were contributions yesterday. This prevents streaks
+from breaking prematurely due to timezone differences.
+
+Timezone Handling:
+Contribution dates are calendar-based. The provided IANA timezone
+determines what "today" means for the user, ensuring streaks are
+calculated correctly in local time (e.g., "Asia/Kolkata",
+"America/Los_Angeles"). Defaults to "UTC".
+
+@param {ContributionCalendar} calendar
+  GitHub contribution calendar data containing weekly entries.
+
+@param {string} [timezone='UTC']
+  IANA timezone string used to determine the local date.
+
+@param {Date} [now=new Date()]
+  Current time reference for calculations. Useful for testing
+  or overriding the system clock.
+
+@returns {StreakStats}
+  An object with:
+  - currentStreak: active streak length
+  - longestStreak: longest historical streak
+  - totalContributions: total contribution count
+  - todayDate: effective date used for streak/UI calculations
+
+@example
+// Calculate streak stats using a specific timezone
+const stats = calculateStreak(calendar, 'Asia/Kolkata');
+
+@example
+// Override both timezone and current time (useful in tests)
+const stats = calculateStreak(
+  calendar,
+  'America/Los_Angeles',
+  new Date('2026-05-25T10:00:00Z')
+);
+*/
+
 export function calculateStreak(
   calendar: ContributionCalendar,
   timezone: string = 'UTC',
@@ -76,6 +126,34 @@ export function calculateStreak(
     todayDate,
   };
 }
+
+/*
+  Calculates monthly contribution statistics from a GitHub contribution calendar.
+
+  Figures out how many contributions were made this month and last month, then compares them.
+
+  @param {ContributionCalendar} calendar
+    Weekly GitHub contribution data.
+
+ @param {string} [timezone='UTC']
+    Timezone to decide which month is "current".
+    Example: 'Asia/Kolkata' ensures local month is used.
+
+  @param {Date} [now=new Date()]
+    Current date/time reference (useful for testing).
+
+  @returns {MonthlyStats}
+   - currentMonthTotal: contributions this month
+   - previousMonthTotal: contributions last month
+   - deltaAbsolute: difference (this − last)
+   - deltaPercentage: % change, rounded
+   - currentMonthName: name of this month (e.g. "May")
+
+  @example
+  const stats = calculateMonthlyStats(calendar, 'Asia/Kolkata');
+  stats.currentMonthName → "May"
+  stats.deltaPercentage → 42
+*/
 
 export function calculateMonthlyStats(
   calendar: ContributionCalendar,
