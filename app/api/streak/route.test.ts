@@ -96,10 +96,16 @@ describe('GET /api/streak', () => {
       expect(body).toContain('</svg>');
     });
 
-    it('forwards the username to fetchGitHubContributions', async () => {
-      await GET(makeRequest({ user: 'octocat' }));
+    it("forwards the username to fetchGitHubContributions", async () => {
+      await GET(makeRequest({ user: "octocat" }));
 
-      expect(fetchGitHubContributions).toHaveBeenCalledWith('octocat', { bypassCache: false });
+      expect(fetchGitHubContributions).toHaveBeenCalledWith("octocat", { bypassCache: false });
+    });
+
+    it("passes bypassCache=true to fetchGitHubContributions when ?refresh=true", async () => {
+      await GET(makeRequest({ user: "octocat", refresh: "true" }));
+
+      expect(fetchGitHubContributions).toHaveBeenCalledWith("octocat", { bypassCache: true });
     });
 
     it('embeds the username (uppercased) in the SVG title', async () => {
@@ -135,12 +141,6 @@ describe('GET /api/streak', () => {
       const response = await GET(makeRequest({ user: 'octocat', refresh: 'true' }));
 
       expect(response.headers.get('Cache-Control')).toBe('no-cache, no-store, must-revalidate');
-    });
-
-    it('passes bypassCache=true when refresh=true', async () => {
-      await GET(makeRequest({ user: 'octocat', refresh: 'true' }));
-
-      expect(fetchGitHubContributions).toHaveBeenCalledWith('octocat', { bypassCache: true });
     });
 
     it('keeps normal caching when refresh is "false"', async () => {
