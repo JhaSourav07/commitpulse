@@ -10,6 +10,7 @@ import { X } from 'lucide-react';
 import { CommitPulseLogo } from '@/components/commitpulse-logo';
 import { CustomizeCTA } from './components/CustomizeCTA';
 import { useRecentSearches } from '@/hooks/useRecentSearches';
+import { trackUser } from '@/utils/tracking';
 
 const Icons = {
   Github: () => (
@@ -65,20 +66,6 @@ const Icons = {
     </svg>
   ),
 };
-
-function trackUser(name: string) {
-  const payload = JSON.stringify({ username: name });
-  // sendBeacon is truly fire-and-forget — it doesn't block navigation
-  if (navigator.sendBeacon) {
-    navigator.sendBeacon('/api/track-user', new Blob([payload], { type: 'application/json' }));
-  } else {
-    fetch('/api/track-user', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: payload,
-    }).catch(console.error);
-  }
-}
 
 export default function LandingPage() {
   const [username, setUsername] = useState('');
