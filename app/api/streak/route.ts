@@ -1,8 +1,13 @@
 // app/api/streak/route.ts
 import { NextResponse } from 'next/server';
 import { fetchGitHubContributions } from '../../../lib/github';
-import { calculateStreak } from '../../../lib/calculate';
-import { generateNotFoundSVG, generateSVG, escapeXML } from '../../../lib/svg/generator';
+import { calculateStreak, calculateMonthlyStats } from '../../../lib/calculate';
+import {
+  generateNotFoundSVG,
+  generateSVG,
+  generateMonthlySVG,
+  escapeXML,
+} from '../../../lib/svg/generator';
 import { getSecondsUntilUTCMidnight, getSecondsUntilMidnightInTimezone } from '../../../utils/time';
 import type { BadgeParams } from '../../../types';
 import { themes } from '../../../lib/svg/themes';
@@ -40,6 +45,10 @@ export async function GET(request: Request) {
       hide_background,
       hide_stats,
       lang,
+      view,
+      delta_format,
+      width,
+      height,
     } = parseResult.data;
 
     const themeName = theme || 'dark';
@@ -83,6 +92,10 @@ export async function GET(request: Request) {
       hideBackground: hide_background,
       hide_stats,
       lang,
+      view,
+      delta_format,
+      width: width ? parseInt(width, 10) : undefined,
+      height: height ? parseInt(height, 10) : undefined,
       size,
     };
 
@@ -91,8 +104,15 @@ export async function GET(request: Request) {
       from,
       to,
     });
-    const stats = calculateStreak(calendar, timezone);
-    const svg = generateSVG(stats, params, calendar);
+
+    let svg = '';
+    if (view === 'monthly') {
+      const stats = calculateMonthlyStats(calendar, timezone);
+      svg = generateMonthlySVG(stats, params);
+    } else {
+      const stats = calculateStreak(calendar, timezone);
+      svg = generateSVG(stats, params, calendar);
+    }
 
     const secondsToMidnight = tzParam
       ? getSecondsUntilMidnightInTimezone(timezone)

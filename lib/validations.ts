@@ -71,6 +71,10 @@ export const streakParamsSchema = z.object({
     .optional()
     .transform((val) => val === 'true' || val === '1'),
   lang: z.string().optional().default('en'),
+  view: z.enum(['default', 'monthly']).catch('default').default('default'),
+  delta_format: z.enum(['percent', 'absolute', 'both']).catch('percent').default('percent'),
+  width: z.string().optional(),
+  height: z.string().optional(),
 });
 
 export const githubParamsSchema = z.object({

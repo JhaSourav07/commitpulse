@@ -13,27 +13,43 @@ const MAX_RETRIES = 3;
 const BASE_DELAY_MS = 500;
 const CONTRIBUTION_MILESTONES = [1, 10, 100, 250, 500, 1000];
 const STREAK_MILESTONES = [3, 7, 30, 100];
+const GRAPHQL_TIMEOUT_MS = 8000; // 8s for GraphQL endpoint
+const REST_TIMEOUT_MS = 5000; // 5s for REST endpoints
 
-/**
- * Wraps fetch with exponential backoff retry logic.
- * Retries ONLY on network errors, 429 Too Many Requests, and 5xx server errors.
- * Returns immediately for all other statuses (2xx success, 3xx redirects, 4xx client errors).
- */
 export async function fetchWithRetry(
   url: string,
   options: RequestInit,
-  attempt = 0
+  attempt = 0,
+  timeoutMs?: number
 ): Promise<Response> {
+  // Determine default timeout based on endpoint type if not explicitly provided.
+  // GraphQL calls carry a larger payload and need a slightly longer window.
+  const resolvedTimeout =
+    timeoutMs ?? (url.includes('graphql') ? GRAPHQL_TIMEOUT_MS : REST_TIMEOUT_MS);
+
+  // Each retry attempt gets a fresh AbortController so the timeout window
+  // resets per attempt — not cumulative across the entire retry chain.
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), resolvedTimeout);
+
   let res: Response | null = null;
   try {
-    res = await fetch(url, options);
+    res = await fetch(url, { ...options, signal: controller.signal });
   } catch (err) {
+    clearTimeout(timeoutId);
+    // AbortError means the timeout fired — throw a clear typed message.
+    if (err instanceof Error && err.name === 'AbortError') {
+      const seconds = resolvedTimeout / 1000;
+      throw new Error(`GitHub API request timed out after ${seconds}s`);
+    }
     // Network error — retry if attempts remain, otherwise rethrow
     if (attempt >= MAX_RETRIES) throw err;
     const delay = BASE_DELAY_MS * Math.pow(2, attempt);
     await new Promise((resolve) => setTimeout(resolve, delay));
-    return fetchWithRetry(url, options, attempt + 1);
+    return fetchWithRetry(url, options, attempt + 1, timeoutMs);
   }
+
+  clearTimeout(timeoutId);
 
   // Only retry on 429 or 5xx — all other statuses are returned immediately
   const shouldRetry = res.status === 429 || res.status >= 500;
@@ -41,7 +57,7 @@ export async function fetchWithRetry(
 
   const delay = BASE_DELAY_MS * Math.pow(2, attempt);
   await new Promise((resolve) => setTimeout(resolve, delay));
-  return fetchWithRetry(url, options, attempt + 1);
+  return fetchWithRetry(url, options, attempt + 1, timeoutMs);
 }
 
 const GITHUB_GRAPHQL_URL = 'https://api.github.com/graphql';
@@ -102,10 +118,18 @@ const getHeaders = () => ({
   'Content-Type': 'application/json',
 });
 
+export function validateGitHubUsername(username: string): boolean {
+  return /^[a-z\d](?:[a-z\d]|-(?=[a-z\d])){0,38}$/i.test(username);
+}
+
 export async function fetchGitHubContributions(
   username: string,
   options: FetchOptions = {}
 ): Promise<ContributionCalendar> {
+  if (!validateGitHubUsername(username)) {
+    throw new Error('Invalid GitHub username format');
+  }
+
   const key = cacheKey('contributions', username, options.from?.substring(0, 4));
 
   if (!options.bypassCache) {
@@ -170,6 +194,10 @@ export async function fetchUserProfile(
   username: string,
   options: FetchOptions = {}
 ): Promise<GitHubUserProfile> {
+  if (!validateGitHubUsername(username)) {
+    throw new Error('Invalid GitHub username format');
+  }
+
   const key = cacheKey('profile', username);
 
   if (!options.bypassCache) {
@@ -200,6 +228,10 @@ export async function fetchUserRepos(
   username: string,
   options: FetchOptions = {}
 ): Promise<GitHubRepo[]> {
+  if (!validateGitHubUsername(username)) {
+    throw new Error('Invalid GitHub username format');
+  }
+
   const key = cacheKey('repos', username);
 
   if (!options.bypassCache) {
@@ -273,6 +305,9 @@ export function generateAchievements(totalContributions: number, currentStreak: 
 }
 
 export async function getFullDashboardData(username: string, options: FetchOptions = {}) {
+  if (!validateGitHubUsername(username)) {
+    throw new Error('Invalid GitHub username format');
+  }
   try {
     const [profileData, reposData, calendarData] = await Promise.all([
       fetchUserProfile(username, options),

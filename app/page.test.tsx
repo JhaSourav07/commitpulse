@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @next/next/no-img-element, jsx-a11y/alt-text */
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import LandingPage from './page';
 
@@ -13,8 +13,11 @@ vi.mock('@/components/commitpulse-logo', () => ({
   CommitPulseLogo: () => <svg data-testid="commitpulse-logo"></svg>,
 }));
 
+// next/image is no longer used — SVG preview is fetched via useEffect and
+// rendered inline. The mock below keeps the import from erroring if any
+// other test file still imports it.
 vi.mock('next/image', () => ({
-  default: (props: any) => <img {...props} data-testid="next-image" />,
+  default: (props: any) => <img {...props} />,
 }));
 
 vi.mock('next/link', () => ({
@@ -59,6 +62,16 @@ describe('LandingPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
+    // Mock fetch so the SVG preview useEffect resolves without a real network call.
+    // Returns a minimal valid SVG so dangerouslySetInnerHTML has something to render.
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        text: () =>
+          Promise.resolve('<svg data-testid="badge-svg" xmlns="http://www.w3.org/2000/svg"></svg>'),
+      })
+    );
+
     // Mock navigator.clipboard
     Object.assign(navigator, {
       clipboard: {
@@ -91,19 +104,31 @@ describe('LandingPage', () => {
     render(<LandingPage />);
 
     expect(screen.getByText('Enter a GitHub username to preview')).toBeDefined();
-    expect(screen.queryByTestId('next-image')).toBeNull();
+    // No SVG badge should be present yet
+    expect(screen.queryByTestId('badge-svg')).toBeNull();
   });
 
-  it('updates the username when input changes', () => {
+  it('updates the username when input changes and fetches the badge', async () => {
     render(<LandingPage />);
     const input = screen.getByPlaceholderText('Enter GitHub Username') as HTMLInputElement;
 
-    fireEvent.change(input, { target: { value: 'octocat' } });
+    await act(async () => {
+      fireEvent.change(input, { target: { value: 'octocat' } });
+    });
     expect(input.value).toBe('octocat');
 
-    // The image src should also update
-    const image = screen.getByTestId('next-image') as HTMLImageElement;
-    expect(image.src).toContain('user=octocat');
+    // The component fetches the badge SVG from the API with the correct URL
+    await waitFor(() => {
+      expect(vi.mocked(fetch)).toHaveBeenCalledWith(
+        expect.stringContaining('user=octocat'),
+        expect.objectContaining({ signal: expect.any(AbortSignal) })
+      );
+    });
+
+    // After the fetch resolves the inline SVG should be in the DOM
+    await waitFor(() => {
+      expect(screen.getByTestId('badge-svg')).toBeDefined();
+    });
   });
 
   it('handles copying to clipboard and showing the SuccessGuide', async () => {

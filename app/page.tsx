@@ -1,9 +1,8 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
 
@@ -83,6 +82,8 @@ function trackUser(name: string) {
 export default function LandingPage() {
   const [username, setUsername] = useState('');
   const [copied, setCopied] = useState(false);
+  const [svgContent, setSvgContent] = useState<string | null>(null);
+  const [svgState, setSvgState] = useState<'idle' | 'loading' | 'loaded'>('idle');
   const guideRef = useRef<HTMLDivElement>(null);
   const { searches, addSearch, clearSearches } = useRecentSearches();
   const trimmedUsername = username.trim();
@@ -90,6 +91,36 @@ export default function LandingPage() {
 
   const badgeUrl = `/api/streak?user=${trimmedUsername}`;
   const markdown = `![CommitPulse](https://commitpulse.vercel.app/api/streak?user=${trimmedUsername})`;
+
+  const [prevUsername, setPrevUsername] = useState('');
+  if (trimmedUsername !== prevUsername) {
+    setPrevUsername(trimmedUsername);
+    setSvgContent(null);
+    setSvgState(trimmedUsername ? 'loading' : 'idle');
+  }
+
+  // Fetch SVG content whenever username changes.
+  // We fetch as text and render inline to avoid the browser CSP restriction
+  // that blocks <img> from loading SVGs whose response has a restrictive
+  // Content-Security-Policy header (default-src 'none').
+  useEffect(() => {
+    if (!hasUsername) return;
+
+    const controller = new AbortController();
+
+    fetch(badgeUrl, { signal: controller.signal })
+      .then((res) => res.text())
+      .then((text) => {
+        setSvgContent(text);
+        setSvgState('loaded');
+      })
+      .catch((err) => {
+        if (err.name === 'AbortError') return;
+        setSvgState('loaded'); // show nothing rather than hang on loading
+      });
+
+    return () => controller.abort();
+  }, [badgeUrl, hasUsername]);
 
   const copyToClipboard = () => {
     if (!hasUsername) return;
@@ -284,16 +315,18 @@ export default function LandingPage() {
             <div className="absolute -inset-1 rounded-[2rem] bg-white/5 opacity-50 blur-xl transition duration-1000 group-hover:opacity-100" />
             <div className="relative flex min-h-[320px] items-center justify-center overflow-hidden rounded-xl border border-[rgba(255,255,255,0.06)] bg-black p-6">
               {hasUsername ? (
-                <Image
-                  src={badgeUrl}
-                  alt="CommitPulse preview"
-                  width={900}
-                  height={600}
-                  unoptimized
-                  loading="eager"
-                  priority
-                  className="h-auto max-w-full drop-shadow-[0_20px_50px_rgba(0,0,0,0.5)]"
-                />
+                <div className="w-full flex items-center justify-center">
+                  {svgState === 'loading' && (
+                    <div className="h-[200px] w-full max-w-[600px] rounded-xl bg-white/5 animate-pulse" />
+                  )}
+                  {svgState === 'loaded' && svgContent && (
+                    <div
+                      className="w-full max-w-[600px] drop-shadow-[0_20px_50px_rgba(0,0,0,0.5)] [&>svg]:w-full [&>svg]:h-auto"
+                      // Safe: SVG is generated server-side by our own trusted generator
+                      dangerouslySetInnerHTML={{ __html: svgContent }}
+                    />
+                  )}
+                </div>
               ) : (
                 <div className="flex w-full max-w-2xl flex-col items-center justify-center rounded-[1.5rem] border border-dashed border-white/10 bg-white/[0.02] px-6 py-12 text-center">
                   <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-white/60">
