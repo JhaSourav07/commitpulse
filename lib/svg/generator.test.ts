@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { generateSVG } from './generator';
+import { AUTO_DARK_THEME } from './themes';
 import type { BadgeParams, ContributionCalendar, StreakStats } from '../../types';
 
 describe('generateSVG', () => {
@@ -213,6 +214,14 @@ describe('generateSVG', () => {
       expect(svg).toContain('--cp-bg: #0d1117');
       expect(svg).toContain('--cp-text: #c9d1d9');
       expect(svg).toContain('--cp-accent: #58a6ff');
+    });
+
+    it('dark palette CSS variables match AUTO_DARK_THEME constants', () => {
+      const svg = generateSVG(mockStats, autoParams, mockCalendar);
+
+      expect(svg).toContain(`--cp-bg: #${AUTO_DARK_THEME.bg}`);
+      expect(svg).toContain(`--cp-text: #${AUTO_DARK_THEME.text}`);
+      expect(svg).toContain(`--cp-accent: #${AUTO_DARK_THEME.accent}`);
     });
 
     it('uses CSS utility classes instead of hardcoded fill attributes', () => {
