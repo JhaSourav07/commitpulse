@@ -376,6 +376,18 @@ describe('generateSVG', () => {
 
       expect(svg).not.toContain('attributeName="opacity" values="1;0.4;1"');
     });
+    it('includes accessible title and description metadata', () => {
+      const svg = generateSVG(
+        mockStats,
+        { user: 'octocat' } as unknown as BadgeParams,
+        mockCalendar
+      );
+
+      expect(svg).toContain('<title>CommitPulse Stats for octocat</title>');
+      expect(svg).toContain('<desc>');
+      expect(svg).toContain('100');
+      expect(svg).toContain('10');
+    });
   });
 
   describe('tower top highlight', () => {
