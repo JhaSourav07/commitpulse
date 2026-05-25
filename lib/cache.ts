@@ -6,10 +6,10 @@ type CacheItem<T> = {
 export class TTLCache<T> {
   private store = new Map<string, CacheItem<T>>();
   private cleanupInterval: ReturnType<typeof setInterval> | null = null;
-  private readonly maxSize: number;
+  private readonly maxSize?: number;
 
-  constructor(maxSize: number = 1000, cleanupIntervalMs: number = 60000) {
-    this.maxSize = Math.max(1, maxSize);
+  constructor(maxSize?: number, cleanupIntervalMs: number = 60000) {
+    this.maxSize = maxSize === undefined ? undefined : Math.max(1, maxSize);
     const interval = Math.max(1000, cleanupIntervalMs);
 
     // Only run cleanup if we are in an environment that supports setInterval
@@ -49,7 +49,7 @@ export class TTLCache<T> {
 
   set(key: string, value: T, ttlMs: number): void {
     // Capacity eviction (FIFO / LRU-lite)
-    if (this.store.size >= this.maxSize && !this.store.has(key)) {
+    if (this.maxSize !== undefined && this.store.size >= this.maxSize && !this.store.has(key)) {
       this.sweep(); // Remove expired entries first to free up capacity
       if (this.store.size >= this.maxSize) {
         // Find the oldest item (first inserted) and remove it
