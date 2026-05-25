@@ -28,6 +28,8 @@ export default function CustomizePage(): ReactElement {
   const trimmedUsername = username.trim();
   const hasUsername = trimmedUsername.length > 0;
   const isAutoTheme = theme === 'auto';
+  const isRandomTheme = theme === 'random';
+  const skipsCustomColors = isAutoTheme || isRandomTheme;
 
   useEffect(() => {
     return () => {
@@ -39,9 +41,11 @@ export default function CustomizePage(): ReactElement {
 
   // Clear custom hex overrides when switching to auto — fixed colors
   // conflict with the dual-palette prefers-color-scheme switching.
+  // Clear custom hex overrides when switching to virtual themes because
+  // fixed colors conflict with their palette-selection behavior.
   const handleThemeChange = useCallback((newTheme: string): void => {
     setTheme(newTheme);
-    if (newTheme === 'auto') {
+    if (newTheme === 'auto' || newTheme === 'random') {
       setBgHex('');
       setAccentHex('');
       setTextHex('');
@@ -57,9 +61,9 @@ export default function CustomizePage(): ReactElement {
       params.set('user', trimmedUsername);
     }
 
-    if (isAutoTheme) {
-      // Auto always emits theme=auto — no custom color params
-      params.set('theme', 'auto');
+    if (skipsCustomColors) {
+      // Virtual themes always emit theme=<name> and skip custom color params.
+      params.set('theme', theme);
     } else {
       const hasCustomColors = bgHex || accentHex || textHex;
 
@@ -82,7 +86,7 @@ export default function CustomizePage(): ReactElement {
     hasUsername,
     trimmedUsername,
     theme,
-    isAutoTheme,
+    skipsCustomColors,
     bgHex,
     accentHex,
     textHex,
@@ -295,7 +299,9 @@ export default function CustomizePage(): ReactElement {
 
               <p className="mt-3 text-[11px] text-white/20 text-center">
                 {hasUsername
-                  ? 'Preview updates on every change. Hosted badge is cached at UTC midnight'
+                  ? isRandomTheme
+                    ? 'Random theme changes on every page load and disables caching'
+                    : 'Preview updates on every change. Hosted badge is cached at UTC midnight'
                   : 'Add a username to enable live preview and export snippets'}
               </p>
             </div>

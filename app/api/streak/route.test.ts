@@ -344,7 +344,7 @@ describe('GET /api/streak', () => {
 
       const response = await GET(makeRequest({ user: 'octocat' }));
 
-      expect(response.headers.get('Cache-Control')).toBe('no-cache');
+      expect(response.headers.get('Cache-Control')).toBe('public, s-maxage=60');
     });
 
     it('returns a valid 500 SVG even when something non-Error is thrown', async () => {
@@ -409,6 +409,25 @@ describe('GET /api/streak', () => {
 
       expect(getSecondsUntilUTCMidnight).toHaveBeenCalled();
       expect(getSecondsUntilMidnightInTimezone).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('monthly view parameter', () => {
+    it('returns 200 when view=monthly is given', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', view: 'monthly' }));
+
+      expect(response.status).toBe(200);
+      const body = await response.text();
+      expect(body).toContain('COMMITS THIS MONTH');
+    });
+
+    it('defaults to default view when an unknown view is given', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', view: 'invalid' }));
+
+      expect(response.status).toBe(200);
+      const body = await response.text();
+      // It should generate the default streak SVG and have "CURRENT_STREAK"
+      expect(body).toContain('CURRENT_STREAK');
     });
   });
 });

@@ -1,8 +1,13 @@
 // app/api/streak/route.ts
 import { NextResponse } from 'next/server';
 import { fetchGitHubContributions } from '../../../lib/github';
-import { calculateStreak } from '../../../lib/calculate';
-import { generateNotFoundSVG, generateSVG, escapeXML } from '../../../lib/svg/generator';
+import { calculateStreak, calculateMonthlyStats } from '../../../lib/calculate';
+import {
+  generateNotFoundSVG,
+  generateSVG,
+  generateMonthlySVG,
+  escapeXML,
+} from '../../../lib/svg/generator';
 import { getSecondsUntilUTCMidnight, getSecondsUntilMidnightInTimezone } from '../../../utils/time';
 import type { BadgeParams } from '../../../types';
 import { themes } from '../../../lib/svg/themes';
@@ -11,7 +16,6 @@ import { streakParamsSchema } from '../../../lib/validations';
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
 
-  // Parse and validate all incoming params through Zod schema
   const parseResult = streakParamsSchema.safeParse(Object.fromEntries(searchParams.entries()));
   try {
     if (!parseResult.success) {
@@ -41,14 +45,16 @@ export async function GET(request: Request) {
       hide_background,
       hide_stats,
       lang,
+      view,
+      delta_format,
+      width,
+      height,
     } = parseResult.data;
 
     const themeName = theme || 'dark';
     const from = year ? `${year}-01-01T00:00:00Z` : undefined;
     const to = year ? `${year}-12-31T23:59:59Z` : undefined;
 
-    // Validate the IANA timezone name early so callers get a clear 400 rather than a
-    // silent fallback or a 500. Intl.DateTimeFormat throws a RangeError on unknown zones.
     const tzParam = searchParams.get('tz');
     let timezone = 'UTC';
     if (tzParam) {
@@ -59,27 +65,24 @@ export async function GET(request: Request) {
         return new NextResponse(`Invalid "tz" parameter: "${tzParam}"`, { status: 400 });
       }
     }
+
     const isAutoTheme = themeName === 'auto';
     const isRandomTheme = themeName === 'random';
     const selectedTheme = (() => {
       if (isAutoTheme) return themes.light;
-
       if (isRandomTheme) {
         const keys = Object.keys(themes);
         const randomKey = keys[Math.floor(Math.random() * keys.length)];
         return themes[randomKey] || themes.dark;
       }
-
       return themes[theme] || themes.dark;
     })();
 
     const params: BadgeParams = {
       user,
-
       bg: isAutoTheme ? selectedTheme.bg : bg || selectedTheme.bg,
       text: isAutoTheme ? selectedTheme.text : text || selectedTheme.text,
       accent: isAutoTheme ? selectedTheme.accent : accent || selectedTheme.accent,
-
       radius,
       speed,
       scale,
@@ -89,6 +92,10 @@ export async function GET(request: Request) {
       hideBackground: hide_background,
       hide_stats,
       lang,
+      view,
+      delta_format,
+      width: width ? parseInt(width, 10) : undefined,
+      height: height ? parseInt(height, 10) : undefined,
       size,
     };
 
@@ -97,12 +104,16 @@ export async function GET(request: Request) {
       from,
       to,
     });
-    const stats = calculateStreak(calendar, timezone);
-    const svg = generateSVG(stats, params, calendar);
 
-    // 4. Calculate Cache Control  reset at local midnight when ?tz= is supplied,
-    //    otherwise fall back to UTC midnight (original behaviour).
-    //    Random themes are never cached because their output changes on every request.
+    let svg = '';
+    if (view === 'monthly') {
+      const stats = calculateMonthlyStats(calendar, timezone);
+      svg = generateMonthlySVG(stats, params);
+    } else {
+      const stats = calculateStreak(calendar, timezone);
+      svg = generateSVG(stats, params, calendar);
+    }
+
     const secondsToMidnight = tzParam
       ? getSecondsUntilMidnightInTimezone(timezone)
       : getSecondsUntilUTCMidnight();
@@ -140,7 +151,6 @@ export async function GET(request: Request) {
       const match = message.match(/"([^"]+)"|login of '([^']+)'/);
       const badUsername =
         match?.[1] ?? match?.[2] ?? (parseResult.success ? parseResult.data.user : 'unknown');
-
       const svg = generateNotFoundSVG(badUsername, errBg, errAccent, errText, errRadius, errSpeed);
       return new NextResponse(svg, {
         status: 404,
@@ -152,6 +162,7 @@ export async function GET(request: Request) {
         },
       });
     }
+
     const errorSvg = `
       <svg xmlns="http://www.w3.org/2000/svg" width="400" height="150">
         <rect width="100%" height="100%" fill="#2d0000" rx="8"/>
@@ -165,7 +176,7 @@ export async function GET(request: Request) {
       status: 500,
       headers: {
         'Content-Type': 'image/svg+xml',
-        'Cache-Control': 'no-cache',
+        'Cache-Control': 'public, s-maxage=60',
       },
     });
   }

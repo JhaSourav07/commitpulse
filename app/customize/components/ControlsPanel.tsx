@@ -125,6 +125,8 @@ export function ControlsPanel({
   const hasOverrides = Boolean(bgHex || accentHex || textHex);
   const currentYear = new Date().getFullYear();
   const isAutoTheme = theme === 'auto';
+  const isRandomTheme = theme === 'random';
+  const disablesCustomColors = isAutoTheme || isRandomTheme;
 
   return (
     <div>
@@ -171,12 +173,21 @@ export function ControlsPanel({
 
         <div>
           <SectionLabel>Custom Color Overrides</SectionLabel>
-          {isAutoTheme ? (
-            <p className="text-[11px] text-white/30 mt-2 leading-relaxed">
-              Custom colors are disabled for the <strong className="text-white/50">Auto</strong>{' '}
-              theme. The badge switches between light and dark palettes automatically based on the
-              viewer&apos;s system preference.
-            </p>
+          {disablesCustomColors ? (
+            <div className="mt-2 flex flex-col gap-2">
+              <p className="text-[11px] text-white/30 leading-relaxed">
+                Custom colors are disabled for the{' '}
+                <strong className="text-white/50">{isAutoTheme ? 'Auto' : 'Random'}</strong> theme.{' '}
+                {isAutoTheme
+                  ? "The badge switches between light and dark palettes automatically based on the viewer's system preference."
+                  : 'The badge chooses a different preset palette for each request.'}
+              </p>
+              {isRandomTheme && (
+                <p className="rounded-lg border border-amber-400/15 bg-amber-400/5 px-3 py-2 text-[11px] leading-relaxed text-amber-200/70">
+                  Random changes on every page load and disables caching for the badge URL.
+                </p>
+              )}
+            </div>
           ) : (
             <>
               <p className="text-[11px] text-white/25 mb-3 leading-relaxed">

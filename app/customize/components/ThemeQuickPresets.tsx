@@ -397,7 +397,7 @@ export function ThemeQuickPresets({ theme, onThemeChange }: ThemeQuickPresetsPro
       `}</style>
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-        {THEME_KEYS.filter((key) => key !== 'auto').map((key) => {
+        {THEME_KEYS.filter((key) => key !== 'auto' && key !== 'random').map((key) => {
           const t = themes[key as ThemeKey];
           if (!t) return null;
 
