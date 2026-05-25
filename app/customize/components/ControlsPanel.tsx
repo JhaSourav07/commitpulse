@@ -1,5 +1,5 @@
 import type { ReactElement, ReactNode } from 'react';
-import { SPEEDS, type Scale } from '../types';
+import { SIZES, SPEEDS, type BadgeSize, type Scale } from '../types';
 import { isValidHex, stripHash } from '../utils';
 import { SectionLabel } from './SectionLabel';
 import { StyledSelect, ThemeSelector } from './ThemeSelector';
@@ -87,6 +87,7 @@ export function ControlsPanel({
   speed,
   year,
   radius,
+  size,
   onUsernameChange,
   onThemeChange,
   onBgHexChange,
@@ -95,6 +96,7 @@ export function ControlsPanel({
   onScaleChange,
   onSpeedChange,
   onYearChange,
+  onSizeChange,
   onClearOverrides,
   onRadiusChange,
 }: {
@@ -107,6 +109,7 @@ export function ControlsPanel({
   speed: string;
   year: string;
   radius: number;
+  size: BadgeSize;
   onUsernameChange: (value: string) => void;
   onThemeChange: (value: string) => void;
   onBgHexChange: (value: string) => void;
@@ -115,12 +118,15 @@ export function ControlsPanel({
   onScaleChange: (value: Scale) => void;
   onSpeedChange: (value: string) => void;
   onYearChange: (value: string) => void;
+  onSizeChange: (value: BadgeSize) => void;
   onClearOverrides: () => void;
   onRadiusChange: (value: number) => void;
 }): ReactElement {
   const hasOverrides = Boolean(bgHex || accentHex || textHex);
   const currentYear = new Date().getFullYear();
   const isAutoTheme = theme === 'auto';
+  const isRandomTheme = theme === 'random';
+  const disablesCustomColors = isAutoTheme || isRandomTheme;
 
   return (
     <div>
@@ -167,12 +173,21 @@ export function ControlsPanel({
 
         <div>
           <SectionLabel>Custom Color Overrides</SectionLabel>
-          {isAutoTheme ? (
-            <p className="text-[11px] text-white/30 mt-2 leading-relaxed">
-              Custom colors are disabled for the <strong className="text-white/50">Auto</strong>{' '}
-              theme. The badge switches between light and dark palettes automatically based on the
-              viewer&apos;s system preference.
-            </p>
+          {disablesCustomColors ? (
+            <div className="mt-2 flex flex-col gap-2">
+              <p className="text-[11px] text-white/30 leading-relaxed">
+                Custom colors are disabled for the{' '}
+                <strong className="text-white/50">{isAutoTheme ? 'Auto' : 'Random'}</strong> theme.{' '}
+                {isAutoTheme
+                  ? "The badge switches between light and dark palettes automatically based on the viewer's system preference."
+                  : 'The badge chooses a different preset palette for each request.'}
+              </p>
+              {isRandomTheme && (
+                <p className="rounded-lg border border-amber-400/15 bg-amber-400/5 px-3 py-2 text-[11px] leading-relaxed text-amber-200/70">
+                  Random changes on every page load and disables caching for the badge URL.
+                </p>
+              )}
+            </div>
           ) : (
             <>
               <p className="text-[11px] text-white/25 mb-3 leading-relaxed">
@@ -270,6 +285,22 @@ export function ControlsPanel({
             <span>0</span>
             <span className="text-emerald-300/60 font-mono text-[11px]">{radius}</span>
             <span>50</span>
+          </div>
+        </ControlRow>
+
+        <ControlRow label="Badge Size">
+          <div className="relative">
+            <StyledSelect
+              id="size-select"
+              value={size}
+              onChange={(v) => onSizeChange(v as BadgeSize)}
+            >
+              {SIZES.map((sizeOption) => (
+                <option key={sizeOption.value} value={sizeOption.value}>
+                  {sizeOption.label}
+                </option>
+              ))}
+            </StyledSelect>
           </div>
         </ControlRow>
       </div>

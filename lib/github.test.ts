@@ -8,6 +8,7 @@ import {
   generateAchievements,
   clearGitHubApiCacheForTests,
   GITHUB_CACHE_TTL_MS,
+  validateGitHubUsername,
 } from './github';
 import type { ContributionCalendar } from '../types';
 
@@ -142,6 +143,45 @@ describe('fetchGitHubContributions', () => {
     await expect(fetchGitHubContributions('ghost-user-xyz')).rejects.toThrow(
       'GitHub user "ghost-user-xyz" not found'
     );
+  });
+  it('handles calendar with all days having zero contributions', async () => {
+    const sparseCalendar: ContributionCalendar = {
+      totalContributions: 0,
+      weeks: [
+        {
+          contributionDays: [
+            { contributionCount: 0, date: '2024-01-01' },
+            { contributionCount: 0, date: '2024-01-02' },
+          ],
+        },
+      ],
+    };
+    vi.mocked(fetch).mockResolvedValue(
+      mockResponse({
+        data: {
+          user: { contributionsCollection: { contributionCalendar: sparseCalendar } },
+        },
+      })
+    );
+    const result = await fetchGitHubContributions('sparse-user');
+    expect(result.totalContributions).toBe(0);
+    expect(result.weeks).toHaveLength(1);
+  });
+
+  it('is deterministic: two calls with empty-year response return identical data', async () => {
+    const emptyCalendar: ContributionCalendar = { totalContributions: 0, weeks: [] };
+
+    vi.mocked(fetch).mockImplementation(async () =>
+      mockResponse({
+        data: {
+          user: { contributionsCollection: { contributionCalendar: emptyCalendar } },
+        },
+      })
+    );
+
+    const r1 = await fetchGitHubContributions('empty-user', { bypassCache: true });
+    const r2 = await fetchGitHubContributions('empty-user', { bypassCache: true });
+    expect(r1).toEqual(r2);
   });
 });
 
@@ -352,5 +392,35 @@ describe('generateAchievements', () => {
     expect(unlocked.some((a) => a.title === '30 Day Streak')).toBe(true);
 
     expect(unlocked.some((a) => a.title === '100 Day Streak')).toBe(false);
+  });
+});
+
+describe('validateGitHubUsername', () => {
+  it('returns true for a valid username', () => {
+    expect(validateGitHubUsername('valid-username-123')).toBe(true);
+  });
+
+  it('returns false for a too long username', () => {
+    expect(validateGitHubUsername('a'.repeat(40))).toBe(false);
+  });
+
+  it('returns false for a username with underscore', () => {
+    expect(validateGitHubUsername('invalid_username')).toBe(false);
+  });
+
+  it('returns false for a username with spaces', () => {
+    expect(validateGitHubUsername('invalid username')).toBe(false);
+  });
+
+  it('returns false for a leading hyphen', () => {
+    expect(validateGitHubUsername('-invalid')).toBe(false);
+  });
+
+  it('returns false for a trailing hyphen', () => {
+    expect(validateGitHubUsername('invalid-')).toBe(false);
+  });
+
+  it('returns false for consecutive hyphens', () => {
+    expect(validateGitHubUsername('in--valid')).toBe(false);
   });
 });

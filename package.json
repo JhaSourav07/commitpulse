@@ -13,7 +13,15 @@
     "test": "vitest run",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage",
-    "bench:svg": "tsx scripts/benchmark-svg.ts"
+    "bench:svg": "tsx scripts/benchmark-svg.ts",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{md,css,json,yml,yaml}": "prettier --write"
   },
   "dependencies": {
     "@tailwindcss/postcss": "^4.2.2",
@@ -39,7 +47,9 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.3",
     "eslint-config-prettier": "^10.1.8",
+    "husky": "^9.1.7",
     "jsdom": "^29.0.2",
+    "lint-staged": "^15.2.11",
     "node-mocks-http": "^1.17.2",
     "postcss": "^8.5.9",
     "prettier": "^3.8.3",

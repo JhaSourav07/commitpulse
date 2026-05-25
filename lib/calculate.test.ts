@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { calculateStreak } from './calculate';
+import { calculateStreak, calculateMonthlyStats } from './calculate';
 import type { ContributionCalendar } from '../types';
 
 // Turns a flat array of daily counts into the ContributionCalendar shape,
@@ -256,5 +256,133 @@ describe('calculateStreak — timezone awareness', () => {
     // nowUTC = 2024-06-16T07:00Z → UTC date = 2024-06-16
     const result = calculateStreak(tzCalendar, 'UTC', nowUTC);
     expect(result.todayDate).toBe('2024-06-16');
+  });
+});
+
+describe('calculateMonthlyStats', () => {
+  it('calculates monthly stats correctly when both months have commits', () => {
+    const calendar = {
+      totalContributions: 15,
+      weeks: [
+        {
+          contributionDays: [
+            { contributionCount: 5, date: '2024-05-15' },
+            { contributionCount: 10, date: '2024-06-10' },
+          ],
+        },
+      ],
+    };
+    const now = new Date('2024-06-15T12:00:00Z');
+    const result = calculateMonthlyStats(calendar, 'UTC', now);
+
+    expect(result.currentMonthTotal).toBe(10);
+    expect(result.previousMonthTotal).toBe(5);
+    expect(result.deltaAbsolute).toBe(5);
+    expect(result.deltaPercentage).toBe(100);
+    expect(result.currentMonthName).toBe('June');
+  });
+
+  it('handles zero previous month contributions', () => {
+    const calendar = {
+      totalContributions: 10,
+      weeks: [
+        {
+          contributionDays: [{ contributionCount: 10, date: '2024-06-10' }],
+        },
+      ],
+    };
+    const now = new Date('2024-06-15T12:00:00Z');
+    const result = calculateMonthlyStats(calendar, 'UTC', now);
+
+    expect(result.previousMonthTotal).toBe(0);
+    expect(result.currentMonthTotal).toBe(10);
+    expect(result.deltaPercentage).toBe(100);
+  });
+
+  it('handles zero current month contributions', () => {
+    const calendar = {
+      totalContributions: 5,
+      weeks: [
+        {
+          contributionDays: [{ contributionCount: 5, date: '2024-05-10' }],
+        },
+      ],
+    };
+    const now = new Date('2024-06-15T12:00:00Z');
+    const result = calculateMonthlyStats(calendar, 'UTC', now);
+
+    expect(result.previousMonthTotal).toBe(5);
+    expect(result.currentMonthTotal).toBe(0);
+    expect(result.deltaPercentage).toBe(-100);
+  });
+
+  it('handles negative delta correctly', () => {
+    const calendar = {
+      totalContributions: 15,
+      weeks: [
+        {
+          contributionDays: [
+            { contributionCount: 10, date: '2024-05-10' },
+            { contributionCount: 5, date: '2024-06-10' },
+          ],
+        },
+      ],
+    };
+    const now = new Date('2024-06-15T12:00:00Z');
+    const result = calculateMonthlyStats(calendar, 'UTC', now);
+
+    expect(result.previousMonthTotal).toBe(10);
+    expect(result.currentMonthTotal).toBe(5);
+    expect(result.deltaPercentage).toBe(-50);
+    expect(result.deltaAbsolute).toBe(-5);
+  });
+
+  it('handles year boundary correctly (Jan vs Dec)', () => {
+    const calendar = {
+      totalContributions: 15,
+      weeks: [
+        {
+          contributionDays: [
+            { contributionCount: 10, date: '2023-12-15' },
+            { contributionCount: 5, date: '2024-01-15' },
+          ],
+        },
+      ],
+    };
+    const now = new Date('2024-01-15T12:00:00Z');
+    const result = calculateMonthlyStats(calendar, 'UTC', now);
+
+    expect(result.previousMonthTotal).toBe(10);
+    expect(result.currentMonthTotal).toBe(5);
+    expect(result.currentMonthName).toBe('January');
+  });
+});
+
+describe('calculateStreak — empty and sparse year edge cases', () => {
+  it('returns stable output when all weeks have zero-contribution days', () => {
+    const calendar = buildCalendar([
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    ]);
+    const result = calculateStreak(calendar);
+    expect(result.currentStreak).toBe(0);
+    expect(result.longestStreak).toBe(0);
+    expect(result.totalContributions).toBe(0);
+    expect(result.todayDate).toBeDefined();
+  });
+
+  it('is deterministic: same empty calendar always returns identical output', () => {
+    const calendar = buildCalendar([]);
+    const fixedNow = new Date('2024-01-15T12:00:00Z');
+    const r1 = calculateStreak(calendar, 'UTC', fixedNow);
+    const r2 = calculateStreak(calendar, 'UTC', fixedNow);
+    expect(r1).toEqual(r2);
+  });
+
+  it('handles partial year — only one week of data — without crashing', () => {
+    const calendar = buildCalendar([0, 1, 0, 0, 1, 0, 0]);
+    expect(() => calculateStreak(calendar)).not.toThrow();
+    const result = calculateStreak(calendar);
+    expect(result.longestStreak).toBe(1);
+    expect(result.totalContributions).toBe(2);
   });
 });

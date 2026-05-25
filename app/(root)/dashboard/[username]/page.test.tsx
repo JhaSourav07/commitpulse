@@ -27,9 +27,11 @@ vi.mock('@/lib/github', () => ({
 vi.mock('@/components/dashboard/ProfileCard', () => ({
   default: () => <div data-testid="profile-card">ProfileCard</div>,
 }));
+
 vi.mock('@/components/dashboard/ActivityLandscape', () => ({
   default: () => <div data-testid="activity-landscape">ActivityLandscape</div>,
 }));
+
 vi.mock('@/components/dashboard/StatsCard', () => ({
   default: ({ title, value }: any) => (
     <div data-testid="stats-card">
@@ -37,20 +39,30 @@ vi.mock('@/components/dashboard/StatsCard', () => ({
     </div>
   ),
 }));
+
 vi.mock('@/components/dashboard/LanguageChart', () => ({
   default: () => <div data-testid="language-chart">LanguageChart</div>,
 }));
+
 vi.mock('@/components/dashboard/CommitClock', () => ({
   default: () => <div data-testid="commit-clock">CommitClock</div>,
 }));
+
 vi.mock('@/components/dashboard/Heatmap', () => ({
   default: () => <div data-testid="heatmap">Heatmap</div>,
 }));
+
 vi.mock('@/components/dashboard/AIInsights', () => ({
   default: () => <div data-testid="ai-insights">AIInsights</div>,
 }));
+
 vi.mock('@/components/dashboard/Achievements', () => ({
   default: () => <div data-testid="achievements">Achievements</div>,
+}));
+
+// ADD THIS
+vi.mock('@/components/dashboard/RefreshButton', () => ({
+  default: () => <div data-testid="refresh-button">RefreshButton</div>,
 }));
 
 describe('DashboardPage', () => {
@@ -89,7 +101,9 @@ describe('DashboardPage', () => {
 
   describe('generateMetadata', () => {
     it('generates correct metadata for a given user', async () => {
-      const metadata = await generateMetadata({ params: Promise.resolve({ username: 'octocat' }) });
+      const metadata = await generateMetadata({
+        params: Promise.resolve({ username: 'octocat' }),
+      });
 
       expect(metadata.title).toBe("octocat's Commit Pulse");
       expect(metadata.description).toContain("octocat's GitHub contribution pulse");
@@ -106,14 +120,13 @@ describe('DashboardPage', () => {
         params: Promise<{ username: string }>;
         searchParams: Promise<{ refresh?: string }>;
       });
+
       render(PageContent);
 
-      // Verify data fetching
       expect(getFullDashboardData).toHaveBeenCalledWith('octocat', {
         bypassCache: false,
       });
 
-      // Verify layout and component presence
       expect(screen.getByText('Generate Your Own Dashboard')).toBeDefined();
       expect(screen.getByTestId('profile-card')).toBeDefined();
       expect(screen.getByText('Generate Your Own Dashboard')).toBeDefined();
@@ -122,7 +135,6 @@ describe('DashboardPage', () => {
       expect(screen.getByTestId('heatmap')).toBeDefined();
       expect(screen.getByTestId('achievements')).toBeDefined();
 
-      // Verify stats cards mapped correctly
       expect(screen.getByText('Current Streak: 5')).toBeDefined();
       expect(screen.getByText('Peak Streak: 15')).toBeDefined();
       expect(screen.getByText('Contributions: 500')).toBeDefined();
