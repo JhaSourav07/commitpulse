@@ -113,9 +113,9 @@ const themeDescriptions: Record<
 
   dracula: {
     name: 'Dracula',
-    vibe: 'Purple-forward palette inspired by Dracula Pro.',
+    vibe: 'A Dracula-inspired dark theme with deep backgrounds and signature purple (#bd93f9) accents.',
   },
-
+  
   github: {
     name: 'GitHub',
     vibe: 'Deep GitHub green for a more native contribution feel.',
