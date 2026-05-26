@@ -6,23 +6,23 @@ import { ActivityData } from '@/types/dashboard';
 
 const tabs = ['1W', '1M', '3M', '1Y'];
 
+export const getFilteredData = (data: ActivityData[], activeTab: string): ActivityData[] => {
+  let days = 90;
+  if (activeTab === '1W') days = 7;
+  if (activeTab === '1M') days = 30;
+  if (activeTab === '1Y') days = 365;
+  const recent = data.slice(-days);
+  if (recent.length > 60) {
+    const step = Math.ceil(recent.length / 60);
+    return recent.filter((_, i) => i % step === 0).slice(-60);
+  }
+  return recent;
+};
+
 export default function ActivityLandscape({ data }: { data: ActivityData[] }) {
   const [activeTab, setActiveTab] = useState('3M');
 
-  const getFilteredData = () => {
-    let days = 90;
-    if (activeTab === '1W') days = 7;
-    if (activeTab === '1M') days = 30;
-    if (activeTab === '1Y') days = 365;
-    const recent = data.slice(-days);
-    if (recent.length > 60) {
-      const step = Math.ceil(recent.length / 60);
-      return recent.filter((_, i) => i % step === 0).slice(-60);
-    }
-    return recent;
-  };
-
-  const displayData = getFilteredData();
+  const displayData = getFilteredData(data, activeTab);
   const maxCount = Math.max(...displayData.map((d) => d.count), 1);
 
   return (

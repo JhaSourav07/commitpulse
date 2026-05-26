@@ -1,5 +1,5 @@
 'use client';
-
+import { trackUser } from '@/utils/tracking';
 import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { useRef, useState, useEffect } from 'react';
@@ -65,23 +65,8 @@ const Icons = {
   ),
 };
 
-function trackUser(name: string) {
-  const payload = JSON.stringify({ username: name });
-  // sendBeacon is truly fire-and-forget — it doesn't block navigation
-  if (navigator.sendBeacon) {
-    navigator.sendBeacon('/api/track-user', new Blob([payload], { type: 'application/json' }));
-  } else {
-    fetch('/api/track-user', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: payload,
-    }).catch(console.error);
-  }
-}
-
 import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
-
 export default function LandingPage() {
   return (
     <Suspense fallback={<div className="min-h-screen overflow-x-hidden bg-transparent" />}>
@@ -401,6 +386,23 @@ function LandingContent() {
             >
               Documentation
             </Link>
+
+            <Link
+              href="/contributors"
+              className="transition-colors hover:text-black dark:hover:text-white"
+            >
+              Contributors
+            </Link>
+
+            <a
+              href="https://github.com/JhaSourav07/commitpulse/blob/main/README.md"
+              target="_blank"
+              rel="noreferrer"
+              className="transition-colors hover:text-white"
+            >
+              Documentation
+            </a>
+
             <a
               href="https://github.com/jhasourav07"
               target="_blank"

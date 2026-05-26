@@ -12,6 +12,8 @@ import { getSecondsUntilUTCMidnight, getSecondsUntilMidnightInTimezone } from '.
 import type { BadgeParams } from '../../../types';
 import { themes } from '../../../lib/svg/themes';
 import { streakParamsSchema } from '../../../lib/validations';
+const SVG_CSP_HEADER =
+  "default-src 'none'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://fonts.gstatic.com;";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -126,8 +128,7 @@ export async function GET(request: Request) {
       headers: {
         'Content-Type': 'image/svg+xml',
         'Cache-Control': cacheControl,
-        'Content-Security-Policy':
-          "default-src 'none'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://fonts.gstatic.com;",
+        'Content-Security-Policy': SVG_CSP_HEADER,
       },
     });
   } catch (error: unknown) {
@@ -157,8 +158,7 @@ export async function GET(request: Request) {
         headers: {
           'Content-Type': 'image/svg+xml',
           'Cache-Control': 'no-cache',
-          'Content-Security-Policy':
-            "default-src 'none'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com;",
+          'Content-Security-Policy': SVG_CSP_HEADER,
         },
       });
     }

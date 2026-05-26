@@ -103,57 +103,67 @@ const themeDescriptions: Record<
 > = {
   dark: {
     name: 'Dark',
-    vibe: 'GitHub-dark default with calm blue highlights.',
+    vibe: 'GitHub-inspired dark mode with cool blue highlights and balanced contrast.',
   },
 
   neon: {
     name: 'Neon',
-    vibe: 'Pure black with magenta towers and cyan text.',
+    vibe: 'Cyberpunk-inspired black canvas with glowing cyan text and vivid magenta accents.',
   },
 
   dracula: {
     name: 'Dracula',
-    vibe: 'Purple-forward palette inspired by Dracula Pro.',
+    vibe: 'Moody purple-toned palette inspired by the popular Dracula editor theme.',
   },
 
   github: {
     name: 'GitHub',
-    vibe: 'Deep GitHub green for a more native contribution feel.',
+    vibe: 'Classic GitHub-inspired dark palette with signature contribution green accents.',
   },
 
   light: {
     name: 'Light',
-    vibe: 'Bright, minimal surface for portfolios and white backgrounds.',
+    vibe: 'Clean bright theme designed for minimal portfolios and light backgrounds.',
   },
 
   ocean: {
     name: 'Ocean',
-    vibe: 'Deep navy with teal towers and soft blue text.',
+    vibe: 'Deep oceanic blues with soft teal accents for a calm futuristic aesthetic.',
   },
 
   sunset: {
     name: 'Sunset',
-    vibe: 'Dark crimson base with warm orange accent.',
+    vibe: 'Warm sunset-inspired palette with glowing orange accents and soft peach text.',
   },
 
   forest: {
     name: 'Forest',
-    vibe: 'Dark green canvas with bright contribution green.',
+    vibe: 'Nature-inspired dark green theme with vibrant emerald highlights.',
   },
 
   rose: {
     name: 'Rose',
-    vibe: 'Deep rose background with pink accent tones.',
+    vibe: 'Elegant rose-tinted palette with soft pink highlights and deep berry tones.',
   },
 
   nord: {
     name: 'Nord',
-    vibe: 'Muted arctic palette from the Nord color scheme.',
+    vibe: 'Muted arctic-inspired colors with icy blue accents and soft contrast.',
   },
 
   synthwave: {
     name: 'Synthwave',
-    vibe: 'Near-black with hot pink for a retro-futurist feel.',
+    vibe: 'Retro-futuristic neon palette with electric pink highlights on deep violet tones.',
+  },
+
+  gruvbox: {
+    name: 'Gruvbox',
+    vibe: 'Retro-inspired warm palette with earthy tones and vintage terminal aesthetics.',
+  },
+
+  highcontrast: {
+    name: 'High Contrast',
+    vibe: 'Ultra-high contrast dark theme with bold orange-red highlights for maximum visibility.',
   },
 };
 
