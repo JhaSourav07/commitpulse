@@ -59,10 +59,20 @@ export async function GET(req: NextRequest) {
           left: '300px',
         }}
       />
-      <div style={{ fontSize: '48px', color: '#58a6ff', fontWeight: 'bold', marginBottom: '24px' }}>
+      <div
+        style={{
+          display: 'flex',
+          fontSize: '48px',
+          color: '#58a6ff',
+          fontWeight: 'bold',
+          marginBottom: '24px',
+        }}
+      >
         ⚡ CommitPulse
       </div>
-      <div style={{ fontSize: '32px', color: '#c9d1d9', marginBottom: '48px' }}>@{user}</div>
+      <div
+        style={{ display: 'flex', fontSize: '32px', color: '#c9d1d9', marginBottom: '48px' }}
+      >{`@${user}`}</div>
       <div style={{ display: 'flex', gap: '48px' }}>
         <div
           style={{
@@ -117,7 +127,15 @@ export async function GET(req: NextRequest) {
           </div>
         </div>
       </div>
-      <div style={{ position: 'absolute', bottom: '32px', fontSize: '16px', color: '#484f58' }}>
+      <div
+        style={{
+          display: 'flex',
+          position: 'absolute',
+          bottom: '32px',
+          fontSize: '16px',
+          color: '#484f58',
+        }}
+      >
         commitpulse.vercel.app
       </div>
     </div>,

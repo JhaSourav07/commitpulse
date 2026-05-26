@@ -24,7 +24,6 @@ export default function Achievements({ achievements }: { achievements: Achieveme
       </div>
 
       <div className="grid grid-cols-2 gap-2">
-        F
         {visibleAchievements.map((achievement, i) => {
           const Icon = achievement.type === 'streak' ? Flame : Trophy;
           return (

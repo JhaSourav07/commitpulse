@@ -219,6 +219,22 @@ URL Parameter > Theme Default > System Fallback
 <!-- Hide GitHub username/title -->
 
 ![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&hide_title=true)
+
+<!-- Hide bottom statistics row -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&hide_stats=true)
+
+<!-- Use local timezone instead of UTC -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&tz=Asia/Kolkata)
+
+<!-- Render labels in Hindi -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&lang=hi)
+
+<!-- Large badge size -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&size=large)
 ```
 
 ---

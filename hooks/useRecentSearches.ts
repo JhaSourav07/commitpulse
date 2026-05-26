@@ -7,6 +7,30 @@ const MAX = 5;
 
 type State = { searches: string[]; mounted: boolean };
 
+function loadFromStorage(): string[] {
+  let saved: string[] = [];
+  try {
+    const stored = localStorage.getItem(KEY);
+    if (stored) saved = JSON.parse(stored) as string[];
+  } catch {
+    // ignore malformed storage
+  }
+  return saved;
+}
+
+function writeStorage(searches: string[] | null): void {
+  try {
+    if (searches === null) {
+      localStorage.removeItem(KEY);
+      return;
+    }
+
+    localStorage.setItem(KEY, JSON.stringify(searches));
+  } catch {
+    // ignore storage write failures
+  }
+}
+
 export function useRecentSearches() {
   // Always start with [] and mounted:false on both server and client so the
   // initial render matches (SSR-safe). A single setState in the mount effect
@@ -16,13 +40,8 @@ export function useRecentSearches() {
   const [state, setState] = useState<State>({ searches: [], mounted: false });
 
   useEffect(() => {
-    let saved: string[] = [];
-    try {
-      const stored = localStorage.getItem(KEY);
-      if (stored) saved = JSON.parse(stored) as string[];
-    } catch {
-      // ignore malformed storage
-    }
+    const saved = loadFromStorage();
+
     // Single setState call — reads external system (localStorage) and syncs
     // React state in one update, which is exactly what effects are for.
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -33,18 +52,16 @@ export function useRecentSearches() {
     if (!query.trim()) return;
     setState((prev) => {
       const deduped = [query, ...prev.searches.filter((s) => s !== query)].slice(0, MAX);
-      try {
-        localStorage.setItem(KEY, JSON.stringify(deduped));
-      } catch {}
+
+      writeStorage(deduped);
+
       return { ...prev, searches: deduped };
     });
   };
 
   const clearSearches = () => {
     setState((prev) => ({ ...prev, searches: [] }));
-    try {
-      localStorage.removeItem(KEY);
-    } catch {}
+    writeStorage(null);
   };
 
   // Return empty searches until after hydration to prevent SSR/client mismatch.

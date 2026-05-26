@@ -353,8 +353,8 @@ export default function ShareSheet({ username, isOpen, onClose, exportData }: Sh
                   </div>
                   <button
                     onClick={onClose}
-                    className="w-7 h-7 rounded-md bg-gray-100 hover:bg-gray-200 dark:bg-white/[0.03] dark:hover:bg-white/[0.08] flex items-center justify-center transition-colors duration-150 border border-[rgba(255,255,255,0.08)]"
-                    aria-label="Close"
+                    className="w-7 h-7 rounded-md bg-transparent hover:bg-white/6 flex items-center justify-center transition-colors duration-150 border border-[rgba(255,255,255,0.08)]"
+                    aria-label="Close share options panel"
                   >
                     <X size={14} className="text-gray-500 dark:text-white/45" />
                   </button>

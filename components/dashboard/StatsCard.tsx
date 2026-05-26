@@ -79,7 +79,7 @@ export default function StatsCard({
         {miniChartData.map((h, i) => (
           <div
             key={i}
-            className="flex-1 bg-gray-500 dark:bg-white rounded-t-[1px]"
+            className="flex-1 bg-black dark:bg-white rounded-t-[1px]"
             style={{ height: `${Math.max(h / 1.4, 10)}%` }}
           />
         ))}

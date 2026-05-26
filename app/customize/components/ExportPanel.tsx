@@ -11,6 +11,7 @@ export function ExportPanel({
   format,
   snippet,
   copied,
+  copyStatusMessage,
   hasUsername,
   onFormatChange,
   onCopy,
@@ -18,12 +19,16 @@ export function ExportPanel({
   format: ExportFormat;
   snippet: string;
   copied: boolean;
+  copyStatusMessage: string;
   hasUsername: boolean;
   onFormatChange: (format: ExportFormat) => void;
-  onCopy: () => void;
+  onCopy: () => void | Promise<void>;
 }): ReactElement {
   const activeSnippet = hasUsername ? snippet : getPlaceholderSnippet(format);
   const formatLabel = format === 'markdown' ? 'Markdown' : 'HTML';
+  const copyButtonLabel = hasUsername
+    ? `Copy ${formatLabel} export snippet to clipboard`
+    : `Add a GitHub username to enable copying the ${formatLabel} export snippet`;
 
   return (
     <div className="bg-white/70 backdrop-blur-xl border border-black/10 dark:bg-black/35 dark:border-white/10 rounded-[1.75rem] p-6 shadow-[0_20px_60px_rgba(0,0,0,0.15)]">
@@ -63,6 +68,8 @@ export function ExportPanel({
             id="copy-markdown-btn"
             onClick={onCopy}
             disabled={!hasUsername}
+            aria-label={copyButtonLabel}
+            aria-describedby="export-copy-status"
             className={`relative inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 ${
               !hasUsername
                 ? 'bg-gray-200/90 border border-black/10 text-gray-500 cursor-not-allowed dark:bg-white/10 dark:border-white/10 dark:text-white/35'
@@ -110,6 +117,16 @@ export function ExportPanel({
           </button>
         </div>
       </div>
+
+      <p
+        id="export-copy-status"
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        className="sr-only"
+      >
+        {copyStatusMessage}
+      </p>
 
       <div className="bg-gray-100/80 backdrop-blur-md border border-black/10 dark:bg-white/[0.03] dark:border-white/10 rounded-xl px-5 py-4 overflow-x-auto">
         <code className="text-emerald-600 dark:text-emerald-300 text-xs font-mono leading-relaxed break-all whitespace-pre-wrap">
