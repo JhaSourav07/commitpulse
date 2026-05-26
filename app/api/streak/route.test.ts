@@ -430,4 +430,37 @@ describe('GET /api/streak', () => {
       expect(body).toContain('CURRENT_STREAK');
     });
   });
+  describe('hide_title and hide_stats parameters', () => {
+    it('removes username when hide_title=true', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', hide_title: 'true' }));
+      const body = await response.text();
+
+      expect(body).not.toContain('OCTOCAT');
+    });
+
+    it('removes stats section when hide_stats=true', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', hide_stats: 'true' }));
+      const body = await response.text();
+
+      expect(body).not.toContain('CURRENT_STREAK');
+    });
+
+    it('shows everything when both params are false', async () => {
+      const response = await GET(makeRequest({ user: 'octocat' }));
+      const body = await response.text();
+
+      expect(body).toContain('OCTOCAT');
+      expect(body).toContain('CURRENT_STREAK');
+    });
+
+    it('removes both when both params are true', async () => {
+      const response = await GET(
+        makeRequest({ user: 'octocat', hide_title: 'true', hide_stats: 'true' })
+      );
+      const body = await response.text();
+
+      expect(body).not.toContain('OCTOCAT');
+      expect(body).not.toContain('CURRENT_STREAK');
+    });
+  });
 });
