@@ -22,9 +22,12 @@ const NAV_LINKS = [
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
-  const [isDark, setIsDark] = useState(
-    () => typeof window !== 'undefined' && localStorage.getItem('theme') !== 'light'
-  );
+
+  const [isDark, setIsDark] = useState(() => {
+    if (typeof window === 'undefined') return true;
+
+    return localStorage.getItem('theme') !== 'light';
+  });
 
   const { shellRef, shellVars, handleMouseEnter, handleMouseMove, handleMouseLeave } =
     useGlowEffect();
