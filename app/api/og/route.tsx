@@ -60,9 +60,14 @@ export async function GET(req: NextRequest) {
         }}
       />
       <div style={{ fontSize: '48px', color: '#58a6ff', fontWeight: 'bold', marginBottom: '24px' }}>
-        ⚡ CommitPulse
+        {`⚡ CommitPulse`}
       </div>
-      <div style={{ fontSize: '32px', color: '#c9d1d9', marginBottom: '48px' }}>@{user}</div>
+
+      {/* ✅ FIX 1: @{user} → template literal, added display: flex */}
+      <div style={{ fontSize: '32px', color: '#c9d1d9', marginBottom: '48px', display: 'flex' }}>
+        {`@${user}`}
+      </div>
+
       <div style={{ display: 'flex', gap: '48px' }}>
         <div
           style={{
@@ -78,7 +83,9 @@ export async function GET(req: NextRequest) {
           <div style={{ fontSize: '56px', fontWeight: 'bold', color: '#58a6ff' }}>
             {totalCommits}
           </div>
-          <div style={{ fontSize: '18px', color: '#8b949e', marginTop: '8px' }}>Total Commits</div>
+          <div style={{ fontSize: '18px', color: '#8b949e', marginTop: '8px', display: 'flex' }}>
+            {`Total Commits`}
+          </div>
         </div>
         <div
           style={{
@@ -94,8 +101,9 @@ export async function GET(req: NextRequest) {
           <div style={{ fontSize: '56px', fontWeight: 'bold', color: '#f78166' }}>
             {longestStreak}
           </div>
-          <div style={{ fontSize: '18px', color: '#8b949e', marginTop: '8px' }}>
-            Longest Streak 🔥
+          {/* ✅ FIX 2: emoji + text = template literal */}
+          <div style={{ fontSize: '18px', color: '#8b949e', marginTop: '8px', display: 'flex' }}>
+            {`Longest Streak 🔥`}
           </div>
         </div>
         <div
@@ -112,13 +120,14 @@ export async function GET(req: NextRequest) {
           <div style={{ fontSize: '56px', fontWeight: 'bold', color: '#3fb950' }}>
             {currentStreak}
           </div>
-          <div style={{ fontSize: '18px', color: '#8b949e', marginTop: '8px' }}>
-            Current Streak ⚡
+          {/* ✅ FIX 3: emoji + text = template literal */}
+          <div style={{ fontSize: '18px', color: '#8b949e', marginTop: '8px', display: 'flex' }}>
+            {`Current Streak ⚡`}
           </div>
         </div>
       </div>
       <div style={{ position: 'absolute', bottom: '32px', fontSize: '16px', color: '#484f58' }}>
-        commitpulse.vercel.app
+        {`commitpulse.vercel.app`}
       </div>
     </div>,
     {
