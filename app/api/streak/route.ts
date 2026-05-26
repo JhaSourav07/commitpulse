@@ -15,6 +15,38 @@ import { streakParamsSchema } from '../../../lib/validations';
 const SVG_CSP_HEADER =
   "default-src 'none'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://fonts.gstatic.com;";
 
+/**
+ * GET /api/streak - Returns GitHub contribution streak as SVG image
+ *
+ * Query Parameters:
+ * - username (string, required): GitHub username
+ * - theme (string, optional): 'default', 'dark', 'light' (default: 'default')
+ * - hide_border (boolean, optional): Hide card border (default: false)
+ * - hide_title (boolean, optional): Hide card title (default: false)
+ * - hide_total (boolean, optional): Hide total contributions (default: false)
+ * - count_private (boolean, optional): Include private contributions (default: false)
+ * - show_icons (boolean, optional): Show contribution icons (default: true)
+ * - ring_color (string, optional): Ring color hex (default: '#2c3e50')
+ * - curr_streak_color (string, optional): Current streak text color (default: '#2c3e50')
+ * - side_streak_color (string, optional): Longest streak text color (default: '#7f8c8d')
+ * - curr_streak_label (string, optional): Current streak label (default: 'Current streak')
+ * - side_streak_label (string, optional): Longest streak label (default: 'Longest streak')
+ * - date_format (string, optional): Date format (default: 'YYYY-MM-DD')
+ *
+ * Response:
+ * - 200: SVG image with Content-Type: image/svg+xml
+ * - Cache-Control: public, max-age=3600, s-maxage=3600, stale-while-revalidate=60
+ * - CSP: default-src 'none'; style-src 'unsafe-inline'
+ * - 400: { "error": "Missing required parameter: username" }
+ * - 404: { "error": "User not found or has no contributions" }
+ * - 500: { "error": "Failed to fetch streak data" }
+ *
+ * Caching:
+ * - Success: Cached 1 hour, stale-while-revalidate 60 seconds
+ * - Errors: Not cached
+ * - Cache key includes username and theme
+ */
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
 
