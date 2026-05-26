@@ -30,25 +30,27 @@ export default function ActivityLandscape({ data }: { data: ActivityData[] }) {
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      className="p-6 rounded-xl bg-[#0a0a0a] border border-[rgba(255,255,255,0.08)] overflow-hidden"
+      className="p-6 rounded-xl bg-white dark:bg-[#0a0a0a] border border-black/10 dark:border-[rgba(255,255,255,0.08)] overflow-hidden"
     >
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
         <div>
-          <h2 className="text-base font-semibold text-white tracking-tight">Activity Landscape</h2>
+          <h2 className="text-base font-semibold text-gray-900 dark:text-white tracking-tight">
+            Activity Landscape
+          </h2>
           <p className="text-xs text-[#A1A1AA] mt-1">Commit frequency over time</p>
         </div>
 
         {/* Tabs */}
-        <div className="flex rounded-lg border border-[rgba(255,255,255,0.08)] overflow-hidden">
+        <div className="flex rounded-lg border border-black/10 dark:border-[rgba(255,255,255,0.08)] overflow-hidden">
           {tabs.map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`px-3.5 py-1.5 text-xs font-medium transition-all duration-200 border-r border-[rgba(255,255,255,0.08)] last:border-r-0 ${
+              className={`px-3.5 py-1.5 text-xs font-medium transition-all duration-200 border-r border-black/10 dark:border-[rgba(255,255,255,0.08)] last:border-r-0 ${
                 activeTab === tab
-                  ? 'bg-white text-black'
-                  : 'bg-transparent text-[#A1A1AA] hover:text-white hover:bg-[rgba(255,255,255,0.05)]'
+                  ? 'bg-black dark:bg-white text-white dark:text-black'
+                  : 'bg-gray-100 dark:bg-transparent text-gray-600 dark:text-[#A1A1AA] hover:bg-gray-200 dark:hover:bg-[rgba(255,255,255,0.05)] hover:text-black dark:hover:text-white'
               }`}
             >
               {tab}
@@ -74,9 +76,11 @@ export default function ActivityLandscape({ data }: { data: ActivityData[] }) {
               aria-label={`${day.date}: ${day.count} commits`}
             >
               {/* Tooltip */}
-              <div className="absolute -top-11 left-1/2 -translate-x-1/2 bg-[#111] border border-[rgba(255,255,255,0.1)] px-2.5 py-1.5 rounded-md opacity-0 group-hover/bar:opacity-100 transition-opacity duration-150 pointer-events-none z-20 flex flex-col items-center whitespace-nowrap shadow-xl">
+              <div className="absolute -top-11 left-1/2 -translate-x-1/2 bg-gray-100 dark:bg-[#111] border border-black/10 dark:border-[rgba(255,255,255,0.1)] px-2.5 py-1.5 rounded-md opacity-0 group-hover/bar:opacity-100 transition-opacity duration-150 pointer-events-none z-20 flex flex-col items-center whitespace-nowrap shadow-xl">
                 <span className="text-[10px] text-[#A1A1AA]">{day.date}</span>
-                <span className="text-xs font-semibold text-white">{day.count}</span>
+                <span className="text-xs font-semibold text-gray-900 dark:text-white">
+                  {day.count}
+                </span>
               </div>
 
               {/* Bar */}
@@ -86,10 +90,10 @@ export default function ActivityLandscape({ data }: { data: ActivityData[] }) {
                 transition={{ duration: 0.6, delay: i * 0.008, ease: [0.16, 1, 0.3, 1] }}
                 className={`w-full rounded-t-[2px] transition-all duration-200 ${
                   isHigh
-                    ? 'bg-white group-hover/bar:bg-white'
+                    ? 'bg-black dark:bg-white'
                     : day.intensity > 0
-                      ? 'bg-zinc-600 group-hover/bar:bg-zinc-400'
-                      : 'bg-zinc-800 group-hover/bar:bg-zinc-700'
+                      ? 'bg-zinc-500 dark:bg-zinc-600 hover:bg-zinc-700 dark:hover:bg-zinc-400'
+                      : 'bg-zinc-300 dark:bg-zinc-800 hover:bg-zinc-400 dark:hover:bg-zinc-700'
                 }`}
               />
             </div>
