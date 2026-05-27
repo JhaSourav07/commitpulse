@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
-import { Menu, X, Activity, Moon, Sun } from 'lucide-react';
+import { Menu, X, Activity, Moon, Sun, Search } from 'lucide-react';
 import { useGlowEffect } from '@/hooks/useGlowEffect';
 
 function GithubMark() {
@@ -22,15 +22,24 @@ const NAV_LINKS = [
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Mounted state to prevent hydration mismatch
+  const [mounted, setMounted] = useState(false);
 
   const [isDark, setIsDark] = useState(() => {
     if (typeof window === 'undefined') return true;
-
     return localStorage.getItem('theme') !== 'light';
   });
 
   const { shellRef, shellVars, handleMouseEnter, handleMouseMove, handleMouseLeave } =
     useGlowEffect();
+
+  // Set mounted to true once the client takes over
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', isDark);
@@ -43,26 +52,31 @@ export default function Navbar() {
 
   useEffect(() => {
     const mediaQuery = window.matchMedia('(min-width: 768px)');
-
     const handleBreakpointChange = (event: MediaQueryListEvent) => {
       if (event.matches) {
         setOpen(false);
       }
     };
-
-    // Defer the initial check so it doesn't cause a synchronous setState
-    // inside the effect body (which would trigger cascading re-renders).
     const initialCheckTimer = setTimeout(() => {
       if (mediaQuery.matches) {
         setOpen(false);
       }
     }, 0);
-
     mediaQuery.addEventListener('change', handleBreakpointChange);
-
     return () => {
       clearTimeout(initialCheckTimer);
       mediaQuery.removeEventListener('change', handleBreakpointChange);
+    };
+  }, []);
+
+  // Listen for the global '/' shortcut
+  useEffect(() => {
+    const handleFocusSearch = () => {
+      searchInputRef.current?.focus();
+    };
+    document.addEventListener('focusSearch', handleFocusSearch as EventListener);
+    return () => {
+      document.removeEventListener('focusSearch', handleFocusSearch as EventListener);
     };
   }, []);
 
@@ -118,13 +132,27 @@ export default function Navbar() {
             </Link>
 
             <div className="hidden items-center gap-3 md:flex">
+              <div className="relative flex items-center">
+                <Search size={16} className="absolute left-3 text-white/50" />
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  placeholder="Search..."
+                  aria-label="Search"
+                  className="h-10 w-48 rounded-xl border border-white/15 bg-white/5 pl-9 pr-8 text-sm text-white placeholder-white/50 transition hover:bg-white/10 focus:border-white/30 focus:outline-none focus:ring-1 focus:ring-white/30"
+                />
+                <kbd className="absolute right-2 top-2.5 hidden sm:inline-block rounded border border-white/20 bg-white/10 px-1.5 font-mono text-[10px] font-medium text-white/50">
+                  /
+                </kbd>
+              </div>
+
               <button
                 type="button"
                 onClick={toggleTheme}
                 className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/15 bg-white/5 text-white transition hover:bg-white/10"
                 aria-label="Toggle theme"
               >
-                {isDark ? <Sun size={18} /> : <Moon size={18} />}
+                {!mounted ? <Sun size={18} /> : isDark ? <Sun size={18} /> : <Moon size={18} />}
               </button>
 
               {NAV_LINKS.map((link) => (
@@ -154,7 +182,18 @@ export default function Navbar() {
 
           {open ? (
             <div className="border-t border-white/10 px-4 py-3 md:hidden">
-              <ul className="space-y-2">
+              <ul className="space-y-3">
+                <li>
+                  <div className="relative flex items-center">
+                    <Search size={16} className="absolute left-3 text-white/50" />
+                    <input
+                      type="text"
+                      placeholder="Search..."
+                      aria-label="Search"
+                      className="h-10 w-full rounded-xl border border-white/15 bg-white/5 pl-9 pr-4 text-sm text-white placeholder-white/50 focus:border-white/30 focus:outline-none focus:ring-1 focus:ring-white/30"
+                    />
+                  </div>
+                </li>
                 {NAV_LINKS.map((link) => (
                   <li key={link.href}>
                     <a
