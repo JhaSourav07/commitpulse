@@ -61,7 +61,6 @@ vi.mock('@/components/dashboard/Achievements', () => ({
   default: () => <div data-testid="achievements">Achievements</div>,
 }));
 
-// ADD THIS
 vi.mock('@/components/dashboard/RefreshButton', () => ({
   default: () => <div data-testid="refresh-button">RefreshButton</div>,
 }));
@@ -102,13 +101,20 @@ describe('DashboardPage', () => {
 
   describe('generateMetadata', () => {
     it('generates correct metadata for a given user', async () => {
+      const username = 'octocat';
       const metadata = await generateMetadata({
-        params: Promise.resolve({ username: 'octocat' }),
+        params: Promise.resolve({ username }),
       });
+
+      const openGraphImage = (metadata.openGraph?.images as any[])?.[0];
 
       expect(metadata.title).toBe("octocat's Commit Pulse");
       expect(metadata.description).toContain("octocat's GitHub contribution pulse");
-      expect((metadata.openGraph?.images as any[])?.[0].url).toContain('api/og?username=octocat');
+      expect(openGraphImage.url).toContain('api/og?username=octocat');
+      expect(openGraphImage.width).toBe(1200);
+      expect(openGraphImage.height).toBe(630);
+      expect(openGraphImage.alt).toContain(username);
+      expect((metadata.twitter as any)?.card).toBe('summary_large_image');
     });
   });
 
