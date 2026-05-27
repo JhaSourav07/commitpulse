@@ -264,6 +264,13 @@ describe('generateSVG', () => {
       expect(svg).not.toContain('class="cp-bg-fill"');
     });
 
+    it('includes desc element in auto-theme SVG output', () => {
+      const svg = generateSVG(mockStats, autoParams, mockCalendar);
+
+      expect(svg).toContain('<desc>');
+      expect(svg).toContain(String(mockStats.totalContributions));
+    });
+
     it('generates heat particles with CSS class instead of inline fill', () => {
       const svg = generateSVG(mockStats, autoParams, mockCalendar);
 

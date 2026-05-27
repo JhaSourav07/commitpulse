@@ -27,7 +27,14 @@ export default function ProfileCard({ user, exportData }: ProfileCardProps) {
           <div className="relative mb-5">
             <div className="w-24 h-24 rounded-full overflow-hidden border border-black/10 dark:border-[rgba(255,255,255,0.12)]">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={user.avatarUrl} alt={user.name} className="w-full h-full object-cover" />
+              <img
+                src={`${user.avatarUrl}${user.avatarUrl.includes('?') ? '&' : '?'}s=120`}
+                alt={user.name || 'Contributor Avatar'}
+                width={96}
+                height={96}
+                loading="lazy"
+                className="w-full h-full aspect-square object-cover"
+              />
             </div>
             {user.isPro && (
               <span className="absolute -bottom-1 -right-1 text-[9px] font-bold bg-black text-white dark:bg-white dark:text-black px-1.5 py-0.5 rounded-full tracking-wide">

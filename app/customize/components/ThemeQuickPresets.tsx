@@ -308,23 +308,32 @@ function IconSynthwave({ bg, text, accent }: IC): ReactElement {
 function IconGruvbox({ text, accent }: IC): ReactElement {
   return (
     <svg width="22" height="22" viewBox="0 0 28 28" fill="none" aria-hidden="true">
-      {/* lantern body */}
-      <rect x="10" y="13" width="8" height="10" rx="1.5" fill={text} opacity="0.75" />
-      {/* lantern top cap */}
-      <rect x="9" y="12" width="10" height="2.5" rx="1" fill={text} opacity="0.85" />
-      {/* handle */}
+      {/* top handle */}
       <path
-        d="M12 12 Q14 6 16 12"
+        d="M11 9C11 6.8 12.3 5.5 14 5.5C15.7 5.5 17 6.8 17 9"
         stroke={text}
-        strokeWidth="1.4"
+        strokeWidth="2"
         strokeLinecap="round"
-        fill="none"
-        opacity="0.6"
+        opacity="0.85"
       />
+      {/* handle connectors */}
+      <path
+        d="M11.5 9.5L10 12.5M16.5 9.5L18 12.5"
+        stroke={text}
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        opacity="0.75"
+      />
+      {/* lantern body */}
+      <rect x="8" y="11" width="12" height="11" rx="2.5" fill={text} opacity="0.82" />
+      {/* glass chamber */}
+      <rect x="10.2" y="13" width="7.6" height="6.8" rx="1.5" fill="#1d2021" opacity="0.9" />
       {/* warm glow */}
-      <ellipse cx="14" cy="18" rx="2.8" ry="3.5" fill={accent} opacity="0.85" />
-      {/* flame core */}
-      <path d="M14 15 Q12.5 18 14 20 Q15.5 18 14 15 Z" fill={accent} opacity="0.95" />
+      <ellipse cx="14" cy="16.5" rx="2.8" ry="3.2" fill={accent} opacity="0.95" />
+      {/* flame */}
+      <path d="M14 13.8C12.8 15.5 13.1 16.8 14 18.3C14.9 16.8 15.2 15.5 14 13.8Z" fill={accent} />
+      {/* bottom base */}
+      <rect x="9.5" y="22" width="9" height="1.8" rx="0.9" fill={text} opacity="0.7" />
     </svg>
   );
 }
