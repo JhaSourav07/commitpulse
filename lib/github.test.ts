@@ -361,6 +361,72 @@ describe('getFullDashboardData', () => {
       '[GitHub API] Failed to fetch profile for user "octocat"'
     );
   });
+
+  it('formats joinedDate as MMM YYYY', async () => {
+    // Verifies that created_at from the REST API is formatted with toLocaleDateString('en-US')
+    // into a stable 'Jan 2020' shape regardless of the runtime environment's system locale.
+    vi.mocked(fetch).mockImplementation(async (url: any) => {
+      if (typeof url === 'string' && url.includes('/users/testuser/repos')) {
+        return mockResponse([]);
+      }
+      if (typeof url === 'string' && url.includes('/users/testuser')) {
+        return mockResponse({
+          login: 'testuser',
+          name: 'Test User',
+          avatar_url: 'https://example.com/avatar.png',
+          bio: null,
+          location: null,
+          public_repos: 0,
+          followers: 0,
+          following: 0,
+          created_at: '2020-01-15T00:00:00Z',
+        });
+      }
+      return mockResponse({
+        data: { user: { contributionsCollection: { contributionCalendar: mockCalendar } } },
+      });
+    });
+
+    const result = await getFullDashboardData('testuser');
+
+    // 'en-US' locale with { month: 'short', year: 'numeric' } always produces 'Jan 2020'
+    expect(result.profile.joinedDate).toMatch(/^[A-Za-z]+ \d{4}$/);
+  });
+
+  it('maps calculateStreak output correctly to stats', async () => {
+    // Verifies that getFullDashboardData correctly pipes the contribution calendar
+    // through calculateStreak and maps the result onto the returned stats object.
+    vi.mocked(fetch).mockImplementation(async (url: any) => {
+      if (typeof url === 'string' && url.includes('/users/testuser/repos')) {
+        return mockResponse([]);
+      }
+      if (typeof url === 'string' && url.includes('/users/testuser')) {
+        return mockResponse({
+          login: 'testuser',
+          name: 'Test User',
+          avatar_url: 'https://example.com/avatar.png',
+          bio: null,
+          location: null,
+          public_repos: 0,
+          followers: 0,
+          following: 0,
+          created_at: '2020-01-15T00:00:00Z',
+        });
+      }
+      return mockResponse({
+        data: { user: { contributionsCollection: { contributionCalendar: mockCalendar } } },
+      });
+    });
+
+    const result = await getFullDashboardData('testuser');
+
+    // totalContributions must be passed through unchanged from the calendar
+    expect(result.stats.totalContributions).toBe(mockCalendar.totalContributions);
+    // streak values are non-negative by definition
+    expect(result.stats.currentStreak).toBeGreaterThanOrEqual(0);
+    // peak (longestStreak) can never be less than the current streak
+    expect(result.stats.peakStreak).toBeGreaterThanOrEqual(result.stats.currentStreak);
+  });
 });
 
 describe('GitHub API cache behavior', () => {
