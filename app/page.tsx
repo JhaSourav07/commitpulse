@@ -70,7 +70,7 @@ export default function LandingPage() {
   const [username, setUsername] = useState('');
   const [copied, setCopied] = useState(false);
   const [svgContent, setSvgContent] = useState<string | null>(null);
-  const [svgState, setSvgState] = useState<'idle' | 'loading' | 'loaded'>('idle');
+  const [svgState, setSvgState] = useState<'idle' | 'loading' | 'loaded' | 'error'>('idle');
   const guideRef = useRef<HTMLDivElement>(null);
   const { searches, addSearch, clearSearches, removeSearch } = useRecentSearches();
   const trimmedUsername = username.trim();
@@ -102,16 +102,22 @@ export default function LandingPage() {
     const controller = new AbortController();
 
     fetch(badgeUrl, { signal: controller.signal })
-      .then((res) => res.text())
+      .then((res) => {
+        if (res.status === 404) {
+          setSvgState('error');
+          return;
+        }
+        return res.text();
+      })
       .then((text) => {
+        if (!text) return;
         setSvgContent(text);
         setSvgState('loaded');
       })
       .catch((err) => {
         if (err.name === 'AbortError') return;
-        setSvgState('loaded'); // show nothing rather than hang on loading
+        setSvgState('error');
       });
-
     return () => controller.abort();
   }, [badgeUrl, hasUsername]);
 
@@ -324,6 +330,17 @@ export default function LandingPage() {
                 <div className="w-full flex items-center justify-center">
                   {svgState === 'loading' && (
                     <div className="h-[200px] w-full max-w-[600px] rounded-xl bg-white/5 animate-pulse" />
+                  )}
+                  {svgState === 'error' && (
+                    <div className="flex flex-col items-center justify-center gap-3 py-10 text-center">
+                      <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-red-500/20 bg-red-500/10">
+                        <X size={28} className="text-red-400" />
+                      </div>
+                      <p className="text-base font-semibold text-white">GitHub user not found</p>
+                      <p className="text-sm text-[#A1A1AA]">
+                        Please check the username and try again.
+                      </p>
+                    </div>
                   )}
                   {svgState === 'loaded' && svgContent && (
                     <div
