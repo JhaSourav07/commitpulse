@@ -1,6 +1,6 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { useRecentSearches, MAX_SEARCHES } from './useRecentSearches';
+import { useRecentSearches, MAX_SEARCHES, STORAGE_KEY } from './useRecentSearches';
 
 const store: Record<string, string> = {};
 
@@ -62,15 +62,21 @@ describe('useRecentSearches', () => {
     expect(result.current.searches.length).toBe(MAX_SEARCHES);
   });
 
-  it('clears all searches', () => {
+  it('clears all searches and removes localStorage key', () => {
+    const removeItemSpy = vi.spyOn(window.localStorage, 'removeItem');
+
     const { result } = renderHook(() => useRecentSearches());
+
     act(() => {
       result.current.addSearch('torvalds');
     });
+
     act(() => {
       result.current.clearSearches();
     });
+
     expect(result.current.searches).toEqual([]);
+    expect(removeItemSpy).toHaveBeenCalledWith(STORAGE_KEY);
   });
 
   it('persists searches across remounts', () => {

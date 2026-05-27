@@ -129,7 +129,7 @@ describe('DashboardPage', () => {
       expect(screen.getByTestId('heatmap')).toBeDefined();
       expect(screen.getByTestId('ai-insights')).toBeDefined();
       expect(screen.getByTestId('achievements')).toBeDefined();
-
+      expect(screen.getAllByTestId('stats-card')).toHaveLength(3);
       expect(screen.getByText('Current Streak: 5')).toBeDefined();
       expect(screen.getByText('Peak Streak: 15')).toBeDefined();
       expect(screen.getByText('Contributions: 500')).toBeDefined();
