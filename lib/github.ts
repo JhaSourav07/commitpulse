@@ -3,6 +3,7 @@
 import type { ContributionCalendar } from '../types';
 import { calculateStreak } from './calculate';
 import { TTLCache } from './cache';
+import { LANGUAGE_COLORS } from './svg/languageColors';
 
 interface GitHubRepo {
   stargazers_count: number;
@@ -459,41 +460,12 @@ export async function getFullDashboardData(username: string, options: FetchOptio
     }
   });
 
-  // Fixed color mapping for common languages to avoid random colors
-  const languageColors: Record<string, string> = {
-    TypeScript: '#3178c6',
-    JavaScript: '#f1e05a',
-    Python: '#3572A5',
-    Java: '#b07219',
-    'C++': '#f34b7d',
-    HTML: '#e34c26',
-    CSS: '#563d7c',
-    Go: '#00ADD8',
-    Rust: '#dea584',
-
-    C: '#555555',
-    'C#': '#178600',
-    PHP: '#4F5D95',
-    Ruby: '#701516',
-    Swift: '#F05138',
-    Kotlin: '#A97BFF',
-    Dart: '#00B4AB',
-    Lua: '#000080',
-    R: '#198CE7',
-    Scala: '#c22d40',
-    Perl: '#0298c3',
-    Haskell: '#5e5086',
-    Elixir: '#6e4a7e',
-    Vue: '#41b883',
-    Svelte: '#ff3e00',
-  };
-
   const totalLangs = Object.values(langCounts).reduce((a, b) => a + b, 0);
   const languages = Object.entries(langCounts)
     .map(([name, count]) => ({
       name,
       percentage: Math.round((count / totalLangs) * 100),
-      color: languageColors[name] || '#a855f7', // fallback purple
+      color: LANGUAGE_COLORS[name] || '#a855f7', // fallback purple
     }))
     .sort((a, b) => b.percentage - a.percentage)
     .slice(0, 5); // top 5
