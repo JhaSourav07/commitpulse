@@ -4,15 +4,9 @@ import { AUTO_DARK_THEME, AUTO_LIGHT_THEME } from './themes';
 import { TOWER_ANIMATION_CSS } from './animations';
 import { computeTowers, type TowerData } from './layout';
 import { sanitizeFont, sanitizeHexColor, sanitizeRadius, sanitizeGoogleFontUrl } from './sanitizer';
-
+import { FONT_MAP } from './fonts';
 const SVG_WIDTH = 600;
 const SVG_HEIGHT = 420;
-
-const FONT_MAP: Record<string, string> = {
-  jetbrains: '"JetBrains Mono", monospace',
-  fira: '"Fira Code", monospace',
-  roboto: '"Roboto", sans-serif',
-};
 
 // helpers
 function getSizeScale(size?: 'small' | 'medium' | 'large'): number {
