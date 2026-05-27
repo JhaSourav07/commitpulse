@@ -166,52 +166,58 @@ export async function GET(request: Request) {
       },
     });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    const isNotFound =
-      message.toLowerCase().includes('not found') ||
-      message.toLowerCase().includes('could not resolve');
+    return buildErrorResponse(error, parseResult);
+  }
+}
 
-    const errBg = `#${(parseResult.success && parseResult.data.bg) || '0d1117'}`;
-    const errAccent = `#${(parseResult.success && parseResult.data.accent) || '58a6ff'}`;
-    const errText = `#${(parseResult.success && parseResult.data.text) || 'c9d1d9'}`;
-    const errRadius = parseResult.success
-      ? (() => {
-          const r = Number(parseResult.data.radius);
-          return Number.isFinite(r) ? Math.min(32, Math.max(0, r)) : 8;
-        })()
-      : 8;
-    const errSpeed = (parseResult.success && parseResult.data.speed) || '8s';
+type ParseResult = ReturnType<typeof streakParamsSchema.safeParse>;
 
-    if (isNotFound) {
-      const match = message.match(/"([^"]+)"|login of '([^']+)'/);
-      const badUsername =
-        match?.[1] ?? match?.[2] ?? (parseResult.success ? parseResult.data.user : 'unknown');
-      const svg = generateNotFoundSVG(badUsername, errBg, errAccent, errText, errRadius, errSpeed);
-      return new NextResponse(svg, {
-        status: 404,
-        headers: {
-          'Content-Type': 'image/svg+xml',
-          'Cache-Control': 'no-cache',
-          'Content-Security-Policy': SVG_CSP_HEADER,
-        },
-      });
-    }
+function buildErrorResponse(error: unknown, parseResult: ParseResult): NextResponse {
+  const message = error instanceof Error ? error.message : 'Unknown error';
+  const isNotFound =
+    message.toLowerCase().includes('not found') ||
+    message.toLowerCase().includes('could not resolve');
 
-    const errorSvg = `
-      <svg xmlns="http://www.w3.org/2000/svg" width="400" height="150">
-        <rect width="100%" height="100%" fill="#2d0000" rx="8"/>
-        <text x="50%" y="50%" text-anchor="middle" fill="#ffcccc">
-          Error: ${escapeXML(message)}
-        </text>
-      </svg>
-    `;
+  const errBg = `#${(parseResult.success && parseResult.data.bg) || '0d1117'}`;
+  const errAccent = `#${(parseResult.success && parseResult.data.accent) || '58a6ff'}`;
+  const errText = `#${(parseResult.success && parseResult.data.text) || 'c9d1d9'}`;
+  const errRadius = parseResult.success
+    ? (() => {
+        const r = Number(parseResult.data.radius);
+        return Number.isFinite(r) ? Math.min(32, Math.max(0, r)) : 8;
+      })()
+    : 8;
+  const errSpeed = (parseResult.success && parseResult.data.speed) || '8s';
 
-    return new NextResponse(errorSvg, {
-      status: 500,
+  if (isNotFound) {
+    const match = message.match(/"([^"]+)"|login of '([^']+)'/);
+    const badUsername =
+      match?.[1] ?? match?.[2] ?? (parseResult.success ? parseResult.data.user : 'unknown');
+    const svg = generateNotFoundSVG(badUsername, errBg, errAccent, errText, errRadius, errSpeed);
+    return new NextResponse(svg, {
+      status: 404,
       headers: {
         'Content-Type': 'image/svg+xml',
-        'Cache-Control': 'public, s-maxage=60',
+        'Cache-Control': 'no-cache',
+        'Content-Security-Policy': SVG_CSP_HEADER,
       },
     });
   }
+
+  const errorSvg = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="400" height="150">
+      <rect width="100%" height="100%" fill="#2d0000" rx="8"/>
+      <text x="50%" y="50%" text-anchor="middle" fill="#ffcccc">
+        Error: ${escapeXML(message)}
+      </text>
+    </svg>
+  `;
+
+  return new NextResponse(errorSvg, {
+    status: 500,
+    headers: {
+      'Content-Type': 'image/svg+xml',
+      'Cache-Control': 'public, s-maxage=60',
+    },
+  });
 }
