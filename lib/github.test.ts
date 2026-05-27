@@ -328,6 +328,61 @@ describe('getFullDashboardData', () => {
     expect(totalClockCommits).toBe(8); // 3 + 0 + 5 from mockCalendar
   });
 
+  it('maps contribution counts to correct intensity levels', async () => {
+    const intensityCalendar: ContributionCalendar = {
+      totalContributions: 30,
+      weeks: [
+        {
+          contributionDays: [
+            { contributionCount: 0, date: '2024-06-10' },
+            { contributionCount: 2, date: '2024-06-11' },
+            { contributionCount: 5, date: '2024-06-12' },
+            { contributionCount: 8, date: '2024-06-13' },
+            { contributionCount: 15, date: '2024-06-14' },
+          ],
+        },
+      ],
+    };
+
+    vi.mocked(fetch).mockImplementation(async (url: any) => {
+      if (typeof url === 'string' && url.includes('/users/octocat/repos')) {
+        return mockResponse([]);
+      }
+
+      if (typeof url === 'string' && url.includes('/users/octocat')) {
+        return mockResponse({
+          login: 'octocat',
+          name: 'The Octocat',
+          avatar_url: 'avatar.png',
+          public_repos: 0,
+          followers: 0,
+          following: 0,
+          created_at: '2020-01-01T00:00:00Z',
+        });
+      }
+
+      return mockResponse({
+        data: {
+          user: {
+            contributionsCollection: {
+              contributionCalendar: intensityCalendar,
+            },
+          },
+        },
+      });
+    });
+
+    const result = await getFullDashboardData('octocat');
+
+    const activities = result.activity;
+
+    expect(activities[0].intensity).toBe(0);
+    expect(activities[1].intensity).toBe(1);
+    expect(activities[2].intensity).toBe(2);
+    expect(activities[3].intensity).toBe(3);
+    expect(activities[4].intensity).toBe(4);
+  });
+
   it('throws if profile fetch fails', async () => {
     vi.mocked(fetch).mockImplementation(async (url: any) => {
       if (typeof url === 'string' && url.includes('/users/octocat/repos')) {
