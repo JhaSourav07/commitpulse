@@ -5,14 +5,7 @@ import { TOWER_ANIMATION_CSS } from './animations';
 import { computeTowers, type TowerData } from './layout';
 import { sanitizeFont, sanitizeHexColor, sanitizeRadius, sanitizeGoogleFontUrl } from './sanitizer';
 
-const SVG_WIDTH = 600;
-const SVG_HEIGHT = 420;
-
-const FONT_MAP: Record<string, string> = {
-  jetbrains: '"JetBrains Mono", monospace',
-  fira: '"Fira Code", monospace',
-  roboto: '"Roboto", sans-serif',
-};
+import { SVG_WIDTH, SVG_HEIGHT, FONT_MAP } from './constants';
 
 // helpers
 function getSizeScale(size?: 'small' | 'medium' | 'large'): number {

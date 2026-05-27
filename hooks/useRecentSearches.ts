@@ -31,6 +31,14 @@ function writeStorage(searches: string[] | null): void {
   }
 }
 
+/**
+ * A hook to manage and persist a list of recent searches.
+ *
+ * It uses localStorage for persistence and ensures SSR compatibility by starting
+ * with an empty state on the first render and updating upon hydration.
+ *
+ * @returns An object containing the recent searches, a function to add a search, and a function to clear all searches.
+ */
 export function useRecentSearches() {
   // Always start with [] and mounted:false on both server and client so the
   // initial render matches (SSR-safe). A single setState in the mount effect
@@ -46,6 +54,13 @@ export function useRecentSearches() {
     setState({ searches: loadFromStorage(), mounted: true });
   }, []);
 
+  /**
+   * Adds a new search query to the recent searches list.
+   * If the query already exists, it is moved to the top.
+   * The list is truncated to the maximum number of searches allowed.
+   *
+   * @param query - The search query to add.
+   */
   const addSearch = (query: string) => {
     if (!query.trim()) return;
     setState((prev) => {
@@ -55,6 +70,9 @@ export function useRecentSearches() {
     });
   };
 
+  /**
+   * Clears all recent searches from state and localStorage.
+   */
   const clearSearches = () => {
     setState((prev) => ({ ...prev, searches: [] }));
     writeStorage(null);
