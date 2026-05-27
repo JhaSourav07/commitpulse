@@ -38,6 +38,21 @@ export function ThemeSelector({
   const isRandom = theme === 'random';
   const randomAccentColors = [themes.neon.accent, themes.ocean.accent, themes.sunset.accent];
 
+  // ✅ ADD THIS FUNCTION
+  const handleRandomTheme = () => {
+    const filteredThemes = THEME_KEYS.filter((key) => key !== 'auto' && key !== 'random');
+
+    let randomTheme = theme;
+
+    // ensure new theme is different
+    while (randomTheme === theme) {
+      const randomIndex = Math.floor(Math.random() * filteredThemes.length);
+      randomTheme = filteredThemes[randomIndex];
+    }
+
+    onThemeChange(randomTheme);
+  };
+
   return (
     <div className="flex flex-col gap-1.5">
       <SectionLabel>Theme Preset</SectionLabel>
@@ -57,10 +72,18 @@ export function ThemeSelector({
           ))}
         </StyledSelect>
 
+        {/* ✅ ADD BUTTON HERE */}
+        <button
+          onClick={handleRandomTheme}
+          className="mt-2 px-3 py-1.5 text-xs rounded-lg bg-black/80 text-white hover:bg-black dark:bg-white/10 dark:hover:bg-white/20 transition"
+          title="Shuffle theme"
+        >
+          🎲 Random Theme
+        </button>
+
         <div className="mt-2 flex gap-1.5">
           {isAuto ? (
             <>
-              {/* Split swatch: left half = light bg, right half = dark bg */}
               <span
                 title="Light → Dark (auto)"
                 className="w-5 h-5 rounded-md border border-white/10 overflow-hidden flex"
@@ -101,7 +124,7 @@ export function ThemeSelector({
               })}
               <span className="text-[11px] text-gray-500 dark:text-white/25 ml-1 self-center">
                 bg · accent · text
-              </span>{' '}
+              </span>
             </>
           )}
         </div>
