@@ -19,7 +19,6 @@ export function middleware(request: NextRequest) {
     request.headers.get('x-real-ip') ??
     '127.0.0.1';
 
-
   // Apply rate limiting
   // 60 requests per 60,000ms (1 minute)
   const result = rateLimit(ip, 60, 60000);
