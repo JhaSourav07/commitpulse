@@ -224,6 +224,73 @@ function renderFooter(
   />`;
 }
 
+const MONTH_NAMES = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+];
+
+function renderIsometricLabels(
+  calendar: ContributionCalendar,
+  params: BadgeParams,
+  color: string,
+  sf: number
+): string {
+  if (!params.labels) return '';
+
+  const s = createScaler(sf);
+  let elements = '';
+
+  const weeks = calendar.weeks.slice(-14);
+  const monthLabels: { text: string; col: number }[] = [];
+  let prevMonthStr = '';
+
+  weeks.forEach((week, i) => {
+    if (week.contributionDays.length === 0) return;
+    const firstDay = week.contributionDays[0];
+    const monthNum = parseInt(firstDay.date.substring(5, 7), 10);
+    const monthStr = MONTH_NAMES[monthNum - 1];
+
+    if (i === 0 || monthStr !== prevMonthStr) {
+      monthLabels.push({ text: monthStr, col: i });
+      prevMonthStr = monthStr;
+    }
+  });
+
+  const labelColorHex = params.labelColor ? `#${params.labelColor}` : color;
+
+  monthLabels.forEach((label) => {
+    const tx = s(300 + (label.col - 7.2) * 16 + 8);
+    const ty = s(120 + (label.col + 7.2) * 9 + 20) + Math.round(20 * sf);
+    elements += `
+    <text x="${tx}" y="${ty}" text-anchor="middle" fill="${labelColorHex}" fill-opacity="0.6" font-family="&quot;Roboto&quot;, sans-serif" font-size="${Math.round(10 * sf)}px" font-weight="400" letter-spacing="1px">${label.text}</text>`;
+  });
+
+  const weekdays = [
+    { text: 'Mon', row: 1 },
+    { text: 'Wed', row: 3 },
+    { text: 'Fri', row: 5 },
+  ];
+
+  weekdays.forEach((day) => {
+    const tx = s(300 + (-1.2 - day.row) * 16);
+    const ty = s(120 + (-1.2 + day.row) * 9 + 20) + Math.round(20 * sf);
+    elements += `
+    <text x="${tx}" y="${ty}" text-anchor="end" fill="${labelColorHex}" fill-opacity="0.6" font-family="&quot;Roboto&quot;, sans-serif" font-size="${Math.round(10 * sf)}px" font-weight="400" letter-spacing="1px">${day.text}</text>`;
+  });
+
+  return `<g class="isometric-labels">${elements}</g>`;
+}
+
 // ── Main static-theme renderer ────────────────────────────────────────────
 
 export function generateSVG(
@@ -271,6 +338,7 @@ export function generateSVG(
   ${renderStyle(selectedFont, statsFont, googleFontsImport, text, accent, sf)}
   <rect width="${W}" height="${H}" rx="${radius}" fill="${params.hideBackground ? 'transparent' : bg}" />
   <g transform="translate(0, ${Math.round(20 * sf)})">${towers}</g>
+  ${renderIsometricLabels(calendar, params, text, sf)}
   ${renderFooter(stats, params, labels, safeUser, accent, sf)}
 </svg>`;
 }
@@ -367,6 +435,7 @@ function generateAutoThemeSVG(
   <g transform="translate(0, ${s(20)})">
     ${towers}
   </g>
+  ${renderIsometricLabels(calendar, params, 'var(--cp-text)', sf)}
   ${!params.hide_stats ? renderStatsSection(stats, labels, s, params) : ''}
 ${
   !params.hide_title

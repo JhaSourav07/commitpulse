@@ -52,6 +52,8 @@ export async function GET(request: Request) {
       mode,
       repo,
       org,
+      labels,
+      labelColor,
     } = parseResult.data;
 
     const themeName = theme || 'dark';
@@ -107,6 +109,8 @@ export async function GET(request: Request) {
       mode,
       repo,
       org,
+      labels,
+      labelColor,
     };
 
     let calendar;
