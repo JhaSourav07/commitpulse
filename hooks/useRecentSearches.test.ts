@@ -72,4 +72,14 @@ describe('useRecentSearches', () => {
     });
     expect(result.current.searches).toEqual([]);
   });
+
+  it('persists searches across remounts', () => {
+    const { result, unmount } = renderHook(() => useRecentSearches());
+    act(() => {
+      result.current.addSearch('octocat');
+    });
+    unmount();
+    const { result: result2 } = renderHook(() => useRecentSearches());
+    expect(result2.current.searches[0]).toBe('octocat');
+  });
 });
