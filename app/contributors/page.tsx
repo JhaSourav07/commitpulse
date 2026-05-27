@@ -149,7 +149,7 @@ export default async function ContributorsPage() {
             </p>
           </div>
 
-          <div className="rounded-3xl border border-black/10 bg-white/40 dark:border-white/10 dark:bg-white/[0.04] shadow-[0_8px_30px_rgba(0,0,0,0.04)] dark:shadow-none dark:border-white/10 dark:bg-white/[0.04] p-8 backdrop-blur-xl">
+          <div className="rounded-3xl border border-black/10 bg-white/40 dark:border-white/10 dark:bg-white/[0.04] shadow-[0_8px_30px_rgba(0,0,0,0.04)] dark:shadow-none p-8 backdrop-blur-xl">
             <div className="space-y-6">
               {topContributors.map((contributor, index) => (
                 <div key={contributor.id}>
