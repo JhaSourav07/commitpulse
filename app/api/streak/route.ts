@@ -241,7 +241,7 @@ function buildErrorResponse(
     status: 500,
     headers: {
       'Content-Type': 'image/svg+xml',
-      'Cache-Control': 'public, s-maxage=60',
+      'Cache-Control': 'no-store',
     },
   });
 }
