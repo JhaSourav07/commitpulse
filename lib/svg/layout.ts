@@ -1,11 +1,12 @@
 import type { ContributionCalendar } from '../../types';
 
-// constants
-const GHOST_HEIGHT_PX = 4;
-const LOG_SCALE_MULTIPLIER = 12;
-const LINEAR_SCALE_MULTIPLIER = 5;
-const MAX_LOG_HEIGHT = 80;
-const MAX_LINEAR_HEIGHT = 50;
+import {
+  GHOST_HEIGHT_PX,
+  LOG_SCALE_MULTIPLIER,
+  LINEAR_SCALE_MULTIPLIER,
+  MAX_LOG_HEIGHT,
+  MAX_LINEAR_HEIGHT,
+} from './constants';
 
 /** Shared layout data for a single isometric tower. */
 export interface FaceOpacity {
