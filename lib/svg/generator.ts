@@ -298,6 +298,10 @@ function generateAutoThemeSVG(
 
   <style>
   @import url('https://fonts.googleapis.com/css2?family=Fira+Code&amp;family=JetBrains+Mono&amp;family=Roboto&amp;display=swap');
+  /* Auto-theme strategy: expose the palette as CSS variables so the SVG can
+     switch from light to dark through prefers-color-scheme. Shapes use classes
+     instead of inline fills because inline fill attributes would override these
+     variables and prevent the theme from updating automatically. */
   :root { --cp-bg: #${light.bg}; --cp-text: #${light.text}; --cp-accent: #${light.accent}; }
   @media (prefers-color-scheme: dark) { :root { --cp-bg: #${dark.bg}; --cp-text: #${dark.text}; --cp-accent: #${dark.accent}; } }
   .cp-bg-fill { fill: var(--cp-bg); } .cp-text-fill { fill: var(--cp-text); color: var(--cp-text); } .cp-accent-fill { fill: var(--cp-accent); color: var(--cp-accent); }
