@@ -485,6 +485,38 @@ describe('GitHub API cache behavior', () => {
 
     expect(fetch).toHaveBeenCalledTimes(2);
   });
+
+  it('handles a new account with no public repos correctly', async () => {
+    vi.mocked(fetch).mockImplementation(async (url: any) => {
+      if (typeof url === 'string' && url.includes('/users/octocat/repos')) {
+        return mockResponse([]);
+      }
+      if (typeof url === 'string' && url.includes('/users/octocat')) {
+        return mockResponse({
+          login: 'octocat',
+          name: 'The Octocat',
+          avatar_url: 'avatar.png',
+          public_repos: 0,
+          followers: 0,
+          following: 0,
+          created_at: '2024-01-01T00:00:00Z',
+          bio: null,
+          location: null,
+        });
+      }
+      return mockResponse({
+        data: {
+          user: { contributionsCollection: { contributionCalendar: mockCalendar } },
+        },
+      });
+    });
+
+    const result = await getFullDashboardData('octocat');
+
+    expect(result.languages).toEqual([]);
+    expect(result.profile.stats.stars).toBe(0);
+    expect(result.profile.developerScore).toBeGreaterThanOrEqual(0);
+  });
 });
 describe('generateAchievements', () => {
   it('marks contribution milestones correctly', () => {
