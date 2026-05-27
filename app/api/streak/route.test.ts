@@ -310,6 +310,21 @@ describe('GET /api/streak', () => {
       expect(response.status).toBe(400);
       expect(body.details.fieldErrors.year[0]).toContain('GitHub was founded in 2008');
     });
+
+    it('accepts year=2008 (the earliest valid year)', async () => {
+      // 2008 is the GitHub founding year — the lower boundary of the valid range
+      const response = await GET(makeRequest({ user: 'octocat', year: '2008' }));
+
+      expect(response.status).toBe(200);
+    });
+
+    it('accepts the current year', async () => {
+      // Upper boundary — the current year must always be accepted
+      const currentYear = new Date().getFullYear().toString();
+      const response = await GET(makeRequest({ user: 'octocat', year: currentYear }));
+
+      expect(response.status).toBe(200);
+    });
   });
 
   describe('radius parameter', () => {
@@ -332,6 +347,22 @@ describe('GET /api/streak', () => {
       const body = await response.text();
 
       expect(body).toContain('rx="50"');
+    });
+
+    it('clamps negative radius to 0', async () => {
+      // sanitizeRadius uses Math.max(0, ...) so negatives must floor at 0
+      const response = await GET(makeRequest({ user: 'octocat', radius: '-5' }));
+      const body = await response.text();
+
+      expect(response.status).toBe(200);
+      expect(body).toContain('rx="0"');
+    });
+
+    it('handles non-numeric radius gracefully', async () => {
+      // sanitizeRadius returns the fallback (8) when parseInt produces NaN
+      const response = await GET(makeRequest({ user: 'octocat', radius: 'abc' }));
+
+      expect(response.status).toBe(200);
     });
   });
 
@@ -544,6 +575,15 @@ describe('GET /api/streak', () => {
       // It should generate the default streak SVG and have "CURRENT_STREAK"
       expect(body).toContain('CURRENT_STREAK');
     });
+
+    it('returns streak view when view=streak is given', async () => {
+      // "streak" is not in the enum so .catch("default") applies — same output as default
+      const response = await GET(makeRequest({ user: 'octocat', view: 'streak' }));
+      const body = await response.text();
+
+      expect(response.status).toBe(200);
+      expect(body).toContain('CURRENT_STREAK');
+    });
   });
 
   describe('theme=random cache header', () => {
@@ -605,6 +645,137 @@ describe('GET /api/streak', () => {
       expect(body).toContain('CURRENT_STREAK');
       expect(body).toContain('ANNUAL_SYNC_TOTAL');
       expect(body).toContain('PEAK_STREAK');
+    });
+  });
+
+  describe('font parameter sanitization', () => {
+    it('uses the default font when font param is omitted', async () => {
+      const response = await GET(makeRequest({ user: 'octocat' }));
+      const body = await response.text();
+
+      expect(response.status).toBe(200);
+      // Default body font is Space Grotesk
+      expect(body).toContain('Space Grotesk');
+    });
+
+    it('uses the default font when font param is an empty string', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', font: '' }));
+      const body = await response.text();
+
+      expect(response.status).toBe(200);
+      expect(body).toContain('Space Grotesk');
+    });
+
+    it('uses the default font when font param is whitespace only', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', font: '   ' }));
+      const body = await response.text();
+
+      expect(response.status).toBe(200);
+      expect(body).toContain('Space Grotesk');
+      // Whitespace-only should not produce a Google Fonts import with an empty family
+      expect(body).not.toContain('family=+&amp;display=swap');
+    });
+
+    it('passes a valid predefined font name through to the SVG', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', font: 'jetbrains' }));
+      const body = await response.text();
+
+      expect(response.status).toBe(200);
+      expect(body).toContain('JetBrains Mono');
+    });
+
+    it('passes a valid custom font name through and emits a Google Fonts import', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', font: 'Inter' }));
+      const body = await response.text();
+
+      expect(response.status).toBe(200);
+      expect(body).toContain('family=Inter');
+      expect(body).toContain('"Inter", sans-serif');
+    });
+
+    it('encodes spaces in multi-word font names as "+" in the Google Fonts URL', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', font: 'Open Sans' }));
+      const body = await response.text();
+
+      expect(response.status).toBe(200);
+      expect(body).toContain('family=Open+Sans');
+    });
+
+    it('falls back to the default font when font contains only special characters', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', font: '!!!' }));
+      const body = await response.text();
+
+      expect(response.status).toBe(200);
+      expect(body).toContain('Space Grotesk');
+      // No empty Google Fonts import should be emitted
+      expect(body).not.toContain('family=&amp;display=swap');
+    });
+
+    it('strips dangerous characters from a font name containing a double-quote', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', font: 'Inter"' }));
+      const body = await response.text();
+
+      expect(response.status).toBe(200);
+      // The quote is stripped; the cleaned name "Inter" should still be used
+      expect(body).toContain('Inter');
+      // The raw unescaped quote must not appear in the SVG output
+      expect(body).not.toContain("font: 'Inter\"'");
+      expect(body).not.toContain('font-family: Inter"');
+    });
+
+    it('rejects a font name containing a semicolon (CSS injection attempt)', async () => {
+      // sanitizeGoogleFontUrl rejects names with semicolons — no Google Fonts import
+      const response = await GET(makeRequest({ user: 'octocat', font: 'Inter; @import evil' }));
+      const body = await response.text();
+
+      expect(response.status).toBe(200);
+      expect(body).not.toContain('@import evil');
+      expect(body).not.toContain('family=Inter%3B');
+    });
+
+    it('strips special characters from a URL-like font name (path traversal / injection attempt)', async () => {
+      // sanitizeFont strips ":", "/", "." — "https://evil.com" becomes "httpsevilcom"
+      // sanitizeGoogleFontUrl then rejects it because "." is not in the whitelist
+      const response = await GET(makeRequest({ user: 'octocat', font: 'https://evil.com' }));
+      const body = await response.text();
+
+      expect(response.status).toBe(200);
+      // The original URL must not appear verbatim in the SVG
+      expect(body).not.toContain('https://evil.com');
+      // The domain must not appear in the output
+      expect(body).not.toContain('evil.com');
+    });
+
+    it('rejects a font name containing a script tag (XSS attempt)', async () => {
+      const response = await GET(
+        makeRequest({ user: 'octocat', font: '<script>alert(1)</script>' })
+      );
+      const body = await response.text();
+
+      expect(response.status).toBe(200);
+      expect(body).not.toContain('<script>');
+      expect(body).not.toContain('alert(1)');
+    });
+
+    it('does not emit a Google Fonts import when a predefined font is used', async () => {
+      // Predefined fonts (fira, jetbrains, roboto) are already bundled via the
+      // static @import at the top of the <style> block — no extra import needed.
+      const response = await GET(makeRequest({ user: 'octocat', font: 'fira' }));
+      const body = await response.text();
+
+      expect(response.status).toBe(200);
+      expect(body).toContain('Fira Code');
+      // Should NOT emit a second dynamic import for the same font
+      expect(body).not.toContain('family=fira&amp;display=swap');
+    });
+
+    it('returns 200 and a valid SVG even when an extreme font value is supplied', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', font: 'a'.repeat(200) }));
+      const body = await response.text();
+
+      expect(response.status).toBe(200);
+      expect(body).toContain('<svg');
+      expect(body).toContain('</svg>');
     });
   });
 });
