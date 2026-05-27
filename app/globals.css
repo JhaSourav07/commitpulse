@@ -5,7 +5,9 @@
   --font-sans: 'Inter', ui-sans-serif, system-ui;
   --breakpoint-xs: 26rem;
 }
-
+html {
+  scroll-behavior: smooth;
+}
 @layer utilities {
   .slider::-webkit-slider-thumb {
     appearance: none;
@@ -127,3 +129,6 @@ body {
   background-color: #00ffaa;
   color: #0d1117;
 }
+/* html {
+  scroll-behavior: smooth;
+} */

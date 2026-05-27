@@ -78,7 +78,7 @@ export default function ContributorsSearch({ contributors }: { contributors: Con
                 {contributor.contributions} contributions
               </p>
 
-              <div className="mt-6 inline-flex items-center gap-2 rounded-xl border border-black/10 bg-black/[0.03] dark:border-white/10 dark:bg-white/5 px-5 py-3 text-sm font-medium text-zinc-700 dark:text-zinc-300 transition-all duration-300 group-hover:border-cyan-400/30 group-hover:bg-cyan-400/10 group-hover:text-white">
+              <div className="mt-6 inline-flex items-center gap-2 rounded-xl border border-black/10 bg-black/[0.03] dark:border-white/10 dark:bg-white/5 px-5 py-3 text-sm font-medium text-zinc-700 dark:text-zinc-300 transition-all duration-300 group-hover:border-cyan-400/30 group-hover:bg-cyan-400/10 group-hover:text-black dark:group-hover:text-white">
                 <Globe className="h-4 w-4" />
                 View Profile
               </div>

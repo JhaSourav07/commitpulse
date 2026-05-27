@@ -3,7 +3,7 @@ import { Globe, Sparkles, Users, GitPullRequest, ArrowRight } from 'lucide-react
 
 import BrandParticles from '@/components/BrandParticles';
 import { Footer } from '@/app/components/Footer';
-import ContributorsSearch from './ContributorsSearch'; // ← ADDED
+import ContributorsSearch from './ContributorsSearch';
 
 interface Contributor {
   id: number;
@@ -195,7 +195,6 @@ export default async function ContributorsPage() {
             </p>
           </div>
 
-          {/* ← search bar + grid handled by client component */}
           <ContributorsSearch contributors={contributors} />
         </section>
 
