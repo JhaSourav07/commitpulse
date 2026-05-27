@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { generateSVG, generateMonthlySVG, particleCount } from './generator';
+import { generateSVG, generateMonthlySVG, particleCount, escapeXML } from './generator';
 import type { BadgeParams, ContributionCalendar, StreakStats, MonthlyStats } from '../../types';
 
 describe('generateSVG', () => {
@@ -480,6 +480,39 @@ describe('generateMonthlySVG', () => {
     } as unknown as BadgeParams);
     expect(svg).toContain('width="400"');
     expect(svg).toContain('height="200"');
+  });
+});
+
+describe('escapeXML', () => {
+  it('escapes ampersands (&)', () => {
+    expect(escapeXML('foo & bar')).toBe('foo &amp; bar');
+  });
+
+  it('escapes less-than signs (<)', () => {
+    expect(escapeXML('<div>')).toBe('&lt;div&gt;');
+  });
+
+  it('escapes greater-than signs (>)', () => {
+    expect(escapeXML('a > b')).toBe('a &gt; b');
+  });
+
+  it('escapes double quotes (")', () => {
+    expect(escapeXML('class="btn"')).toBe('class=&quot;btn&quot;');
+  });
+
+  it("escapes single quotes (')", () => {
+    expect(escapeXML("it's working")).toBe('it&#39;s working');
+  });
+
+  it('escapes a string combining all five special characters', () => {
+    const combined = `<element attr="val" data-quote='yes'>&</element>`;
+    const expected = `&lt;element attr=&quot;val&quot; data-quote=&#39;yes&#39;&gt;&amp;&lt;/element&gt;`;
+    expect(escapeXML(combined)).toBe(expected);
+  });
+
+  it('leaves a safe string unchanged', () => {
+    const safe = 'Hello World 123!@#%^*()_+-=[]{}|;:,./?`~';
+    expect(escapeXML(safe)).toBe(safe);
   });
 });
 

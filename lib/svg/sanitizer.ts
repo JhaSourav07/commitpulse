@@ -70,3 +70,28 @@ export function sanitizeFont(font: string | undefined | null): string | null {
   const cleaned = trimmed.replace(/[^a-zA-Z0-9\s\-']/g, '').trim();
   return cleaned || null;
 }
+
+/**
+ * Validates and sanitizes a Google Font name for safe use in external @import URLs.
+ * Returns the URL-safe font name (spaces replaced with '+') or null if invalid/unsafe.
+ */
+export function sanitizeGoogleFontUrl(fontName: string | undefined | null): string | null {
+  if (!fontName) return null;
+
+  const trimmed = fontName.trim();
+  if (!trimmed) return null;
+
+  // Whitelist approach: Only allow alphanumeric characters, spaces, and hyphens.
+  // This completely eliminates any possibility of URL/CSS injection, path traversal,
+  // or breaking out of quotes in external font imports.
+  if (!/^[a-zA-Z0-9\s\-]+$/.test(trimmed)) {
+    return null;
+  }
+
+  // Also apply standard font name sanitization to ensure consistency
+  const cleaned = sanitizeFont(trimmed);
+  if (!cleaned) return null;
+
+  // Return the encoded font name suitable for Google Fonts API URL (spaces replaced with '+')
+  return encodeURIComponent(cleaned).replace(/%20/g, '+');
+}

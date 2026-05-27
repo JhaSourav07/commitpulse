@@ -166,7 +166,7 @@ export default function CustomizePage(): ReactElement {
           <Link
             href="/"
             id="back-to-home-link"
-            className="inline-flex items-center gap-2 text-sm text-white/40 hover:text-white transition-colors group"
+            className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-black dark:text-white/40 dark:hover:text-white transition-colors group"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -200,10 +200,10 @@ export default function CustomizePage(): ReactElement {
           transition={{ duration: 0.5, delay: 0.05 }}
           className="mb-10"
         >
-          <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-white leading-tight mb-2">
+          <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-black dark:text-white leading-tight mb-2">
             Fine-tune your monolith.
           </h1>
-          <p className="text-gray-500 text-sm max-w-xl">
+          <p className="text-gray-600 dark:text-white/50 text-sm max-w-xl">
             Every change below updates the preview in real-time. Copy the export snippet when
             you&apos;re done. No extra steps required.
           </p>
@@ -216,7 +216,7 @@ export default function CustomizePage(): ReactElement {
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="bg-[#0a0a0a] border border-white/5 rounded-[1.75rem] p-6 flex flex-col gap-6 sticky top-6"
+            className="bg-white/70 backdrop-blur-xl border border-black/10 dark:bg-black/35 dark:border-white/10 rounded-[1.75rem] p-6 flex flex-col gap-6 sticky top-6 shadow-[0_20px_60px_rgba(0,0,0,0.35)]"
           >
             <ControlsPanel
               username={username}
@@ -255,7 +255,7 @@ export default function CustomizePage(): ReactElement {
             className="flex flex-col gap-6"
           >
             {/* Live Preview */}
-            <div className="bg-[#0a0a0a] border border-white/5 rounded-[1.75rem] p-6">
+            <div className="bg-white/70 backdrop-blur-xl border border-black/10 dark:bg-black/35 dark:border-white/10 rounded-[1.75rem] p-6 shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
               <p className="text-xs font-bold uppercase tracking-[0.22em] text-emerald-400 mb-5">
                 Live Preview
               </p>
@@ -264,7 +264,7 @@ export default function CustomizePage(): ReactElement {
                 {/* Glow ring */}
                 <div className="absolute -inset-px bg-gradient-to-br from-emerald-500/20 to-purple-500/20 rounded-[1.5rem] opacity-0 group-hover:opacity-100 transition-opacity duration-700 blur-lg pointer-events-none" />
 
-                <div className="relative bg-[#050505] border border-white/8 rounded-[1.25rem] overflow-hidden flex items-center justify-center p-6 min-h-[280px]">
+                <div className="relative bg-white/60 backdrop-blur-md border border-black/10 dark:bg-black/40 dark:border-white/10 rounded-[1.25rem] overflow-hidden flex items-center justify-center p-6 min-h-[280px]">
                   {/* Scanning line effect behind image */}
                   <div className="absolute inset-0 bg-gradient-to-b from-transparent via-emerald-500/3 to-transparent animate-[pulse_3s_ease-in-out_infinite] pointer-events-none" />
 
@@ -281,8 +281,8 @@ export default function CustomizePage(): ReactElement {
                       />
                     </>
                   ) : (
-                    <div className="relative z-10 flex w-full max-w-xl flex-col items-center justify-center rounded-[1.25rem] border border-dashed border-white/10 bg-white/[0.02] px-6 py-12 text-center">
-                      <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-emerald-300/70">
+                    <div className="relative z-10 flex w-full max-w-xl flex-col items-center justify-center rounded-[1.25rem] border border-dashed border-black/10 bg-gray-100/80 backdrop-blur-md dark:border-white/10 dark:bg-white/[0.03] px-6 py-12 text-center">
+                      <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-black/10 bg-gray-100/80 dark:border-white/10 dark:bg-white/[0.04] text-gray-500 dark:text-emerald-300/70">
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
                           className="h-6 w-6"
@@ -298,10 +298,10 @@ export default function CustomizePage(): ReactElement {
                           <path d="m5 12 7-7 7 7" />
                         </svg>
                       </div>
-                      <p className="text-lg font-semibold tracking-tight text-white">
+                      <p className="text-lg font-semibold tracking-tight text-black dark:text-white">
                         Enter a GitHub username to preview
                       </p>
-                      <p className="mt-2 max-w-md text-sm leading-relaxed text-white/45">
+                      <p className="mt-2 max-w-md text-sm leading-relaxed text-gray-500 dark:text-white/45">
                         The live badge preview will appear here once a username is added.
                       </p>
                     </div>
@@ -309,7 +309,7 @@ export default function CustomizePage(): ReactElement {
                 </div>
               </div>
 
-              <p className="mt-3 text-[11px] text-white/20 text-center">
+              <p className="mt-3 text-[11px] text-gray-500 dark:text-white/30 text-center">
                 {hasUsername
                   ? isRandomTheme
                     ? 'Random theme changes on every page load and disables caching'
@@ -329,8 +329,8 @@ export default function CustomizePage(): ReactElement {
             />
 
             {/* URL breakdown */}
-            <div className="bg-[#0a0a0a] border border-white/5 rounded-[1.75rem] p-6">
-              <p className="text-xs font-bold uppercase tracking-[0.22em] text-white/30 mb-4">
+            <div className="bg-white/70 backdrop-blur-xl border border-black/10 dark:bg-black/35 dark:border-white/10 rounded-[1.75rem] p-6 shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
+              <p className="text-xs font-bold uppercase tracking-[0.22em] text-gray-500 dark:text-white/30 mb-4">
                 Active Parameters
               </p>
               <div className="flex flex-wrap gap-2">
@@ -340,10 +340,10 @@ export default function CustomizePage(): ReactElement {
                     return (
                       <span
                         key={k}
-                        className="inline-flex items-center gap-1.5 bg-white/4 border border-white/8 rounded-lg px-3 py-1.5 text-xs font-mono"
+                        className="inline-flex items-center gap-1.5 bg-gray-100/80 backdrop-blur-md border border-black/10 dark:bg-white/[0.03] dark:border-white/10 rounded-lg px-3 py-1.5 text-xs font-mono"
                       >
                         <span className="text-purple-400">{decodeURIComponent(k)}</span>
-                        <span className="text-white/20">=</span>
+                        <span className="text-gray-400 dark:text-white/20">=</span>
                         <span className="text-emerald-400">{decodeURIComponent(v)}</span>
                       </span>
                     );

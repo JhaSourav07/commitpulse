@@ -326,7 +326,7 @@ describe('getFullDashboardData', () => {
     expect(totalClockCommits).toBe(8); // 3 + 0 + 5 from mockCalendar
   });
 
-  it('throws if any fetch fails', async () => {
+  it('throws if profile fetch fails', async () => {
     vi.mocked(fetch).mockImplementation(async (url: any) => {
       if (typeof url === 'string' && url.includes('/users/octocat/repos')) {
         return mockResponse([]);
@@ -338,10 +338,12 @@ describe('getFullDashboardData', () => {
         data: { user: { contributionsCollection: { contributionCalendar: mockCalendar } } },
       });
     });
-    await expect(getFullDashboardData('octocat')).rejects.toThrow('Network error');
+    await expect(getFullDashboardData('octocat')).rejects.toThrow(
+      '[GitHub API] Failed to fetch profile for user "octocat"'
+    );
   });
 
-  it('throws unknown error for non-error throws', async () => {
+  it('throws correctly for non-error throws in profile fetch', async () => {
     vi.mocked(fetch).mockImplementation(async (url: any) => {
       if (typeof url === 'string' && url.includes('/users/octocat/repos')) {
         return mockResponse([]);
@@ -353,7 +355,9 @@ describe('getFullDashboardData', () => {
         data: { user: { contributionsCollection: { contributionCalendar: mockCalendar } } },
       });
     });
-    await expect(getFullDashboardData('octocat')).rejects.toThrow('An unknown error occurred');
+    await expect(getFullDashboardData('octocat')).rejects.toThrow(
+      '[GitHub API] Failed to fetch profile for user "octocat"'
+    );
   });
 });
 

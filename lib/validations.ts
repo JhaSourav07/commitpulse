@@ -91,6 +91,16 @@ export const ogParamsSchema = z.object({
   user: z.string().optional().default('unknown'),
 });
 
+export const statsParamsSchema = z.object({
+  user: z.string({ error: 'Missing user parameter' }).min(1, { message: 'Missing user parameter' }),
+  refresh: z
+    .string()
+    .optional()
+    .transform((val) => val === 'true'),
+  tz: z.string().optional(),
+});
+
 export type StreakParams = z.infer<typeof streakParamsSchema>;
 export type GithubParams = z.infer<typeof githubParamsSchema>;
 export type OgParams = z.infer<typeof ogParamsSchema>;
+export type StatsParams = z.infer<typeof statsParamsSchema>;
