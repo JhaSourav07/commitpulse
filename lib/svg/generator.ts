@@ -5,13 +5,18 @@ import { TOWER_ANIMATION_CSS } from './animations';
 import { computeTowers, type TowerData } from './layout';
 import { sanitizeFont, sanitizeHexColor, sanitizeRadius, sanitizeGoogleFontUrl } from './sanitizer';
 
-import { SVG_WIDTH, SVG_HEIGHT, FONT_MAP } from './constants';
+import { SVG_WIDTH, SVG_HEIGHT, FONT_MAP, isFontKey } from './generatorConstants';
 
 // helpers
 function truncateUsername(name: string, max = 20): string {
   return name.length > max ? name.slice(0, max) + '…' : name;
 }
 
+function getFontFromMap(font: string | null): string | null {
+  if (!font) return null;
+  const f = font.toLowerCase();
+  return isFontKey(f) ? FONT_MAP[f] : null;
+}
 function getSizeScale(size?: 'small' | 'medium' | 'large'): number {
   if (size === 'small') return 400 / SVG_WIDTH;
   if (size === 'large') return 800 / SVG_WIDTH;
@@ -256,7 +261,7 @@ export function generateSVG(
   const text = `#${sanitizeHexColor(params.text, 'ffffff')}`;
 
   const sanitizedFont = sanitizeFont(params.font);
-  const predefinedFont = sanitizedFont ? FONT_MAP[sanitizedFont.toLowerCase()] : null;
+  const predefinedFont = getFontFromMap(sanitizedFont);
   const isPredefinedFont = Boolean(predefinedFont);
   const selectedFont = isPredefinedFont
     ? predefinedFont
@@ -300,7 +305,7 @@ function generateAutoThemeSVG(
   const safeUser = escapeXML(params.user || 'GitHub User');
   const sanitizedFont = sanitizeFont(params.font);
   const selectedFont = sanitizedFont
-    ? FONT_MAP[sanitizedFont.toLowerCase()] || `"${sanitizedFont}", sans-serif`
+    ? getFontFromMap(sanitizedFont) || `"${sanitizedFont}", sans-serif`
     : null;
   const statsFont = selectedFont || '"Space Grotesk", sans-serif';
   const sf = getSizeScale(params.size);
@@ -402,7 +407,7 @@ export function generateMonthlySVG(stats: MonthlyStats, params: BadgeParams): st
 
   const sanitizeFont = (name: string) => name.replace(/[^a-zA-Z0-9\s-]/g, '').trim();
   const sanitizedFont = params.font ? sanitizeFont(params.font) : null;
-  const predefinedFont = sanitizedFont ? FONT_MAP[sanitizedFont.toLowerCase()] : null;
+  const predefinedFont = getFontFromMap(sanitizedFont);
   const isPredefinedFont = Boolean(predefinedFont);
   const selectedFont = isPredefinedFont
     ? predefinedFont
@@ -489,7 +494,7 @@ function generateAutoThemeMonthlySVG(stats: MonthlyStats, params: BadgeParams): 
   const safeUser = escapeXML(params.user || 'GitHub User');
   const sanitizeFont = (name: string) => name.replace(/[^a-zA-Z0-9\s-]/g, '').trim();
   const sanitizedFont = params.font ? sanitizeFont(params.font) : null;
-  const predefinedFont = sanitizedFont ? FONT_MAP[sanitizedFont.toLowerCase()] : null;
+  const predefinedFont = getFontFromMap(sanitizedFont);
   const isPredefinedFont = Boolean(predefinedFont);
   const selectedFont = isPredefinedFont
     ? predefinedFont

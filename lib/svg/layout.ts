@@ -6,7 +6,7 @@ import {
   LINEAR_SCALE_MULTIPLIER,
   MAX_LOG_HEIGHT,
   MAX_LINEAR_HEIGHT,
-} from './constants';
+} from './layoutConstants';
 
 /** Shared layout data for a single isometric tower. */
 export interface FaceOpacity {
