@@ -129,7 +129,7 @@ const contributionsCache = new TTLCache<ContributionCalendar>(MAX_CONTRIBUTIONS_
 const profileCache = new TTLCache<GitHubUserProfile>(MAX_PROFILE_CACHE_SIZE);
 const reposCache = new TTLCache<GitHubRepo[]>(MAX_REPOS_CACHE_SIZE);
 
-function cacheKey(
+export function cacheKey(
   kind: 'contributions' | 'profile' | 'repos',
   username: string,
   year?: string
