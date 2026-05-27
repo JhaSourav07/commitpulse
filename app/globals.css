@@ -1,7 +1,9 @@
 @import 'tailwindcss';
+@custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
   --font-sans: 'Inter', ui-sans-serif, system-ui;
+  --breakpoint-xs: 26rem;
 }
 
 @layer utilities {
@@ -39,6 +41,28 @@
   }
 }
 
+/* Shimmer Animation */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.08) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
 :root {
   /* Vercel-inspired token set */
   --color-surface-0: #000000;
@@ -51,12 +75,17 @@
 }
 
 body {
-  background: #000000;
-  color: #ffffff;
+  background: #ffffff;
+  color: #000000;
   margin: 0;
   padding: 0;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+.dark body {
+  background: #000000;
+  color: #ffffff;
 }
 
 /* Vercel-style focus ring */
@@ -67,16 +96,34 @@ body {
   }
 }
 
-/* Smooth scrollbar on dark bg */
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 10px;
+  height: 10px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #000;
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #333;
-  border-radius: 3px;
+  background: rgba(120, 120, 120, 0.35);
+  border-radius: 999px;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(120, 120, 120, 0.55);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Custom text selection color to match site theme */
+::selection {
+  background-color: #00ffaa;
+  color: #0d1117;
 }

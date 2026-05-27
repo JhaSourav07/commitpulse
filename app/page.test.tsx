@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @next/next/no-img-element, jsx-a11y/alt-text */
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import LandingPage from './page';
 
@@ -13,8 +13,11 @@ vi.mock('@/components/commitpulse-logo', () => ({
   CommitPulseLogo: () => <svg data-testid="commitpulse-logo"></svg>,
 }));
 
+// next/image is no longer used — SVG preview is fetched via useEffect and
+// rendered inline. The mock below keeps the import from erroring if any
+// other test file still imports it.
 vi.mock('next/image', () => ({
-  default: (props: any) => <img {...props} data-testid="next-image" />,
+  default: (props: any) => <img {...props} />,
 }));
 
 vi.mock('next/link', () => ({
@@ -47,9 +50,27 @@ vi.mock('framer-motion', () => ({
   AnimatePresence: ({ children }: any) => <>{children}</>,
 }));
 
+vi.mock('@/hooks/useRecentSearches', () => ({
+  useRecentSearches: () => ({
+    searches: ['octocat', 'torvalds'],
+    addSearch: vi.fn(),
+    clearSearches: vi.fn(),
+  }),
+}));
+
 describe('LandingPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+
+    // Mock fetch so the SVG preview useEffect resolves without a real network call.
+    // Returns a minimal valid SVG so dangerouslySetInnerHTML has something to render.
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        text: () =>
+          Promise.resolve('<svg data-testid="badge-svg" xmlns="http://www.w3.org/2000/svg"></svg>'),
+      })
+    );
 
     // Mock navigator.clipboard
     Object.assign(navigator, {
@@ -79,23 +100,48 @@ describe('LandingPage', () => {
     expect(input.value).toBe('');
   });
 
+  it('renders recent searches and applies a recent search when clicked', () => {
+    render(<LandingPage />);
+    const input = screen.getByPlaceholderText('Enter GitHub Username') as HTMLInputElement;
+    const octocatButton = screen.getByRole('button', { name: 'octocat' });
+
+    expect(octocatButton).toBeDefined();
+    expect(screen.getByRole('button', { name: 'Clear' })).toBeDefined();
+
+    fireEvent.click(octocatButton);
+
+    expect(input.value).toBe('octocat');
+  });
+
   it('renders an empty state before a username is entered', () => {
     render(<LandingPage />);
 
     expect(screen.getByText('Enter a GitHub username to preview')).toBeDefined();
-    expect(screen.queryByTestId('next-image')).toBeNull();
+    // No SVG badge should be present yet
+    expect(screen.queryByTestId('badge-svg')).toBeNull();
   });
 
-  it('updates the username when input changes', () => {
+  it('updates the username when input changes and fetches the badge', async () => {
     render(<LandingPage />);
     const input = screen.getByPlaceholderText('Enter GitHub Username') as HTMLInputElement;
 
-    fireEvent.change(input, { target: { value: 'octocat' } });
+    await act(async () => {
+      fireEvent.change(input, { target: { value: 'octocat' } });
+    });
     expect(input.value).toBe('octocat');
 
-    // The image src should also update
-    const image = screen.getByTestId('next-image') as HTMLImageElement;
-    expect(image.src).toContain('user=octocat');
+    // The component fetches the badge SVG from the API with the correct URL
+    await waitFor(() => {
+      expect(vi.mocked(fetch)).toHaveBeenCalledWith(
+        expect.stringContaining('user=octocat'),
+        expect.objectContaining({ signal: expect.any(AbortSignal) })
+      );
+    });
+
+    // After the fetch resolves the inline SVG should be in the DOM
+    await waitFor(() => {
+      expect(screen.getByTestId('badge-svg')).toBeDefined();
+    });
   });
 
   it('handles copying to clipboard and showing the SuccessGuide', async () => {
@@ -118,6 +164,24 @@ describe('LandingPage', () => {
       // The SuccessGuide should appear
       expect(screen.getByText('Your Monolith is Ready - Deploy It in 4 Steps')).toBeDefined();
     });
+  });
+
+  it('disables Copy Link button when username is empty', () => {
+    render(<LandingPage />);
+
+    const copyButton = screen.getByText('Copy Link').closest('button');
+
+    expect(copyButton?.disabled).toBe(true);
+  });
+
+  it('does not copy link when username is empty', () => {
+    render(<LandingPage />);
+
+    const copyButton = screen.getByText('Copy Link').closest('button');
+
+    fireEvent.click(copyButton!);
+
+    expect(navigator.clipboard.writeText).not.toHaveBeenCalled();
   });
 
   it('renders the FeatureCards', () => {

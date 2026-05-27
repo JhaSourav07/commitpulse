@@ -10,6 +10,14 @@ const { mockNotFound } = vi.hoisted(() => ({
 
 vi.mock('next/navigation', () => ({
   notFound: mockNotFound,
+  useRouter: () => ({
+    push: vi.fn(),
+    replace: vi.fn(),
+    refresh: vi.fn(),
+  }),
+  useSearchParams: () => ({
+    get: vi.fn(),
+  }),
 }));
 
 vi.mock('@/lib/github', () => ({
@@ -50,6 +58,10 @@ vi.mock('@/components/dashboard/AIInsights', () => ({
 
 vi.mock('@/components/dashboard/Achievements', () => ({
   default: () => <div data-testid="achievements">Achievements</div>,
+}));
+
+vi.mock('@/components/dashboard/RefreshButton', () => ({
+  default: () => <div data-testid="refresh-button">RefreshButton</div>,
 }));
 
 describe('DashboardPage', () => {
@@ -102,11 +114,14 @@ describe('DashboardPage', () => {
     it('renders the dashboard components with the fetched data', async () => {
       const PageContent = await DashboardPage({
         params: Promise.resolve({ username: 'octocat' }),
+        searchParams: Promise.resolve({}),
       });
 
       render(PageContent);
 
-      expect(getFullDashboardData).toHaveBeenCalledWith('octocat');
+      expect(getFullDashboardData).toHaveBeenCalledWith('octocat', {
+        bypassCache: false,
+      });
 
       expect(screen.getByText('Generate Your Own Dashboard')).toBeDefined();
       expect(screen.getByTestId('profile-card')).toBeDefined();
@@ -127,6 +142,7 @@ describe('DashboardPage', () => {
 
       await DashboardPage({
         params: Promise.resolve({ username: 'missing-user' }),
+        searchParams: Promise.resolve({}),
       });
 
       expect(mockNotFound).toHaveBeenCalledOnce();

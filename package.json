@@ -4,15 +4,24 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint .",
-    "format": "prettier --write .",
-    "format:check": "prettier --check .",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,md,css,json,yml,yaml}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,md,css,json,yml,yaml}\"",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:ui": "vitest --ui",
-    "test:coverage": "vitest --coverage"
+    "test:coverage": "vitest --coverage",
+    "bench:svg": "tsx scripts/benchmark-svg.ts",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{md,css,json,yml,yaml}": "prettier --write"
   },
   "dependencies": {
     "@tailwindcss/postcss": "^4.2.2",
@@ -24,9 +33,12 @@
     "next": "^16.2.3",
     "react": "19.2.4",
     "react-dom": "19.2.4",
+    "sonner": "^2.0.7",
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@emnapi/core": "^1.10.0",
+    "@emnapi/runtime": "^1.10.0",
     "@testing-library/react": "^16.3.2",
     "@types/node": "^20",
     "@types/react": "^19",
@@ -37,11 +49,15 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.3",
     "eslint-config-prettier": "^10.1.8",
+    "husky": "^9.1.7",
     "jsdom": "^29.0.2",
+    "lint-staged": "^15.2.11",
     "node-mocks-http": "^1.17.2",
     "postcss": "^8.5.9",
     "prettier": "^3.8.3",
+    "react-is": "^19.2.6",
     "tailwindcss": "^4.2.2",
+    "tsx": "^4.22.2",
     "typescript": "^5",
     "vitest": "^4.1.4"
   }

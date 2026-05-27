@@ -116,6 +116,27 @@ describe('ShareSheet', () => {
     });
   });
 
+  it('handles Copy Markdown action', async () => {
+    render(<ShareSheet {...defaultProps} />);
+    const copyButton = screen.getByText('Copy Markdown').closest('button');
+
+    fireEvent.click(copyButton!);
+
+    // Wait for the async clipboard write to be called
+    await waitFor(() => {
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+        expect.stringContaining('![CommitPulse](')
+      );
+    });
+
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+      expect.stringContaining('/api/streak?user=octocat')
+    );
+    expect(navigator.clipboard.writeText).not.toHaveBeenCalledWith(
+      expect.stringContaining('/dashboard/')
+    );
+  });
+
   it('handles Share on X action', () => {
     render(<ShareSheet {...defaultProps} />);
     const twitterButton = screen.getByText('Share on X').closest('button');
@@ -140,6 +161,27 @@ describe('ShareSheet', () => {
       'noopener'
     );
     expect(defaultProps.onClose).toHaveBeenCalled();
+  });
+
+  it('handles Share via OS Sheet action', async () => {
+    const shareMock = vi.fn().mockResolvedValue(undefined);
+    Object.assign(navigator, {
+      share: shareMock,
+    });
+    render(<ShareSheet {...defaultProps} />);
+    const shareButton = screen.getByText('Share via OS Sheet').closest('button');
+    fireEvent.click(shareButton!);
+    await waitFor(() => {
+      expect(shareMock).toHaveBeenCalled();
+    });
+
+    expect(shareMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: expect.any(String),
+        text: expect.any(String),
+        url: expect.any(String),
+      })
+    );
   });
 
   it('handles Download PNG action', async () => {

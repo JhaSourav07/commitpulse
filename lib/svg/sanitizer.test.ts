@@ -1,0 +1,153 @@
+import { describe, it, expect } from 'vitest';
+import {
+  isValidHex,
+  sanitizeHexColor,
+  sanitizeSpeed,
+  sanitizeRadius,
+  sanitizeFont,
+  sanitizeGoogleFontUrl,
+} from './sanitizer';
+
+describe('SVG Sanitizer Utilities', () => {
+  describe('isValidHex', () => {
+    it('returns true for valid 6-digit hex', () => {
+      expect(isValidHex('ffffff')).toBe(true);
+      expect(isValidHex('#ffffff')).toBe(true);
+    });
+
+    it('returns true for valid 3-digit hex', () => {
+      expect(isValidHex('abc')).toBe(true);
+      expect(isValidHex('#abc')).toBe(true);
+    });
+
+    it('returns true for valid 8-digit hex', () => {
+      expect(isValidHex('ff00ff00')).toBe(true);
+    });
+
+    it('returns false for invalid characters', () => {
+      expect(isValidHex('zzzzzz')).toBe(false);
+      expect(isValidHex('ff00ff"')).toBe(false);
+    });
+
+    it('returns false for invalid length', () => {
+      expect(isValidHex('f')).toBe(false);
+      expect(isValidHex('ff')).toBe(false);
+      expect(isValidHex('fffff')).toBe(false);
+    });
+  });
+
+  describe('sanitizeHexColor', () => {
+    it('returns sanitized hex without #', () => {
+      expect(sanitizeHexColor('#ff00ff', '000000')).toBe('ff00ff');
+      expect(sanitizeHexColor('ff00ff', '000000')).toBe('ff00ff');
+    });
+
+    it('returns fallback for invalid input', () => {
+      expect(sanitizeHexColor('invalid', '000000')).toBe('000000');
+      expect(sanitizeHexColor('"><script>', '000000')).toBe('000000');
+    });
+
+    it('returns fallback for null/undefined', () => {
+      expect(sanitizeHexColor(null, '000000')).toBe('000000');
+      expect(sanitizeHexColor(undefined, '000000')).toBe('000000');
+    });
+  });
+
+  describe('sanitizeSpeed', () => {
+    it('returns valid speed strings within 2s-20s range', () => {
+      expect(sanitizeSpeed('8s', '5s')).toBe('8s');
+      expect(sanitizeSpeed('2s', '5s')).toBe('2s');
+      expect(sanitizeSpeed('20s', '5s')).toBe('20s');
+    });
+
+    it('returns fallback for speed outside 2s-20s range', () => {
+      expect(sanitizeSpeed('1.5s', '5s')).toBe('5s');
+      expect(sanitizeSpeed('21s', '5s')).toBe('5s');
+    });
+
+    it('returns fallback for invalid speed format', () => {
+      expect(sanitizeSpeed('fast', '8s')).toBe('8s');
+      expect(sanitizeSpeed('8', '8s')).toBe('8s');
+      expect(sanitizeSpeed('s', '8s')).toBe('8s');
+    });
+  });
+
+  describe('sanitizeRadius', () => {
+    it('returns valid numbers', () => {
+      expect(sanitizeRadius('10', 8)).toBe(10);
+      expect(sanitizeRadius(20, 8)).toBe(20);
+    });
+
+    it('clamps values between 0 and 50', () => {
+      expect(sanitizeRadius('-10', 8)).toBe(0);
+      expect(sanitizeRadius('100', 8)).toBe(50);
+    });
+
+    it('returns fallback for invalid input', () => {
+      expect(sanitizeRadius('invalid', 8)).toBe(8);
+    });
+  });
+
+  describe('sanitizeFont', () => {
+    it('removes unsafe characters', () => {
+      expect(sanitizeFont('Inter"')).toBe('Inter');
+      expect(sanitizeFont('Open Sans"')).toBe('Open Sans');
+    });
+
+    it('returns null for completely invalid font', () => {
+      expect(sanitizeFont('!!!')).toBe(null);
+    });
+
+    it('returns null for null input', () => {
+      expect(sanitizeFont(null)).toBe(null);
+    });
+
+    it('returns null for whitespace-only input', () => {
+      expect(sanitizeFont('   ')).toBe(null);
+    });
+
+    it('preserves valid font names with spaces', () => {
+      expect(sanitizeFont('Fira Code')).toBe('Fira Code');
+    });
+
+    it('allows numeric font names', () => {
+      expect(sanitizeFont('123')).toBe('123');
+    });
+
+    it('sanitizes script injection attempts', () => {
+      expect(sanitizeFont('<script>alert(1)</script>')).toBe('scriptalert1script');
+    });
+
+    it('returns null when sanitization removes all characters', () => {
+      expect(sanitizeFont('@@@')).toBe(null);
+    });
+  });
+
+  describe('sanitizeGoogleFontUrl', () => {
+    it('handles normal font names and spaces', () => {
+      expect(sanitizeGoogleFontUrl('Roboto')).toBe('Roboto');
+      expect(sanitizeGoogleFontUrl('Open Sans')).toBe('Open+Sans');
+      expect(sanitizeGoogleFontUrl('Space-Grotesk')).toBe('Space-Grotesk');
+      expect(sanitizeGoogleFontUrl('  PT Sans  ')).toBe('PT+Sans');
+    });
+
+    it('returns null for empty strings, null, and undefined', () => {
+      expect(sanitizeGoogleFontUrl('')).toBe(null);
+      expect(sanitizeGoogleFontUrl('   ')).toBe(null);
+      expect(sanitizeGoogleFontUrl(null)).toBe(null);
+      expect(sanitizeGoogleFontUrl(undefined)).toBe(null);
+    });
+
+    it('returns null for malicious or injection inputs', () => {
+      expect(sanitizeGoogleFontUrl("Open Sans'")).toBe(null);
+      expect(sanitizeGoogleFontUrl('Open Sans"')).toBe(null);
+      expect(sanitizeGoogleFontUrl('Open Sans;')).toBe(null);
+      expect(sanitizeGoogleFontUrl('Open Sans/')).toBe(null);
+      expect(sanitizeGoogleFontUrl('Open Sans\\')).toBe(null);
+      expect(sanitizeGoogleFontUrl('<script>')).toBe(null);
+      expect(sanitizeGoogleFontUrl('Open Sans); @import url(http://evil.com)')).toBe(null);
+      expect(sanitizeGoogleFontUrl('../invalid')).toBe(null);
+      expect(sanitizeGoogleFontUrl('https://example.com')).toBe(null);
+    });
+  });
+});
