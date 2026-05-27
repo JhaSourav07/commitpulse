@@ -58,6 +58,30 @@ describe('generateSVG', () => {
     expect(svg).toContain('svg');
   });
 
+  it('uses transparent background when hideBackground is true', () => {
+    const svg = generateSVG(
+      mockStats,
+      {
+        user: 'avi',
+        hideBackground: true,
+      } as unknown as BadgeParams,
+      mockCalendar
+    );
+    expect(svg).toContain('fill="transparent"');
+  });
+
+  it('uses normal background when hideBackground is false or omitted', () => {
+    const svg = generateSVG(
+      mockStats,
+      {
+        user: 'avi',
+        bg: '0d1117',
+      } as unknown as BadgeParams,
+      mockCalendar
+    );
+    expect(svg).not.toContain('fill="transparent"');
+  });
+
   it('generates particles for days with 10 or more contributions', () => {
     const svg = generateSVG(mockStats, { user: 'avi' } as unknown as BadgeParams, mockCalendar);
     expect(svg).toContain('class="heat-particles"');
