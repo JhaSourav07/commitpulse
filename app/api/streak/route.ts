@@ -83,6 +83,7 @@ export async function GET(request: Request) {
       delta_format,
       width,
       height,
+      grace,
     } = parseResult.data;
 
     const themeName = theme || 'dark';
@@ -131,6 +132,7 @@ export async function GET(request: Request) {
       width: width ? parseInt(width, 10) : undefined,
       height: height ? parseInt(height, 10) : undefined,
       size,
+      grace,
     };
 
     const calendar = await fetchGitHubContributions(user, {
@@ -144,7 +146,7 @@ export async function GET(request: Request) {
       const stats = calculateMonthlyStats(calendar, timezone);
       svg = generateMonthlySVG(stats, params);
     } else {
-      const stats = calculateStreak(calendar, timezone);
+      const stats = calculateStreak(calendar, timezone, undefined, grace);
       svg = generateSVG(stats, params, calendar);
     }
 

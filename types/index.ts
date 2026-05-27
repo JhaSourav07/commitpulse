@@ -54,4 +54,5 @@ export interface BadgeParams {
   width?: number;
   height?: number;
   size?: 'small' | 'medium' | 'large';
+  grace?: number;
 }

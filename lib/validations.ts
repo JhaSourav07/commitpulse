@@ -81,6 +81,15 @@ export const streakParamsSchema = z.object({
   delta_format: z.enum(['percent', 'absolute', 'both']).catch('percent').default('percent'),
   width: z.string().optional(),
   height: z.string().optional(),
+  grace: z
+    .string()
+    .optional()
+    .transform((val) => {
+      if (!val) return 1;
+      const parsed = Number(val);
+      return isNaN(parsed) ? 1 : Math.max(0, Math.min(parsed, 7));
+    })
+    .default(1),
 });
 
 export const githubParamsSchema = z.object({

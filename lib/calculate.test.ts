@@ -153,6 +153,36 @@ describe('calculateStreak', () => {
     expect(result.longestStreak).toBe(2);
   });
 
+  it('keeps the streak alive with a grace period > 1 (e.g. grace=2)', () => {
+    // Today is 0, yesterday is 0, but 2 days ago is 1.
+    // With grace=1 (default), streak is broken. With grace=2, streak is alive.
+    const calendar = buildCalendar([
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0, // week 1
+      0,
+      0,
+      0,
+      0,
+      1,
+      0,
+      0, // week 2 — today=0, yesterday=0, day before=1
+    ]);
+
+    // Using default grace (1)
+    const resultGrace1 = calculateStreak(calendar, 'UTC', undefined, 1);
+    expect(resultGrace1.currentStreak).toBe(0);
+
+    // Using grace = 2
+    const resultGrace2 = calculateStreak(calendar, 'UTC', undefined, 2);
+    expect(resultGrace2.currentStreak).toBe(1);
+    expect(resultGrace2.longestStreak).toBe(1);
+  });
+
   it('handles a single active day without crashing (edge case: no "yesterday")', () => {
     // A calendar with only one day could make `days[todayIndex - 1]` undefined.
     // The function should survive this gracefully and return currentStreak = 1.
