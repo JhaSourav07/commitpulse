@@ -4,6 +4,7 @@ import { Analytics } from '@vercel/analytics/next';
 import Navbar from './components/navbar';
 import BrandParticles from '@/components/BrandParticles';
 import type { Metadata } from 'next';
+import { Toaster } from 'react-hot-toast';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -70,6 +71,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Navbar />
         <div className="pt-24 sm:pt-28 relative z-10">{children}</div>
         <Analytics />
+
+        {children}
+        <Toaster position="top-right" />
       </body>
     </html>
   );

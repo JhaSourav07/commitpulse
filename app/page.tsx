@@ -10,6 +10,8 @@ import { CommitPulseLogo } from '@/components/commitpulse-logo';
 import { CustomizeCTA } from './components/CustomizeCTA';
 import { useRecentSearches } from '@/hooks/useRecentSearches';
 
+import toast from 'react-hot-toast';
+
 const Icons = {
   Github: () => (
     <svg height="24" width="24" viewBox="0 0 16 16" fill="currentColor">
@@ -108,18 +110,32 @@ export default function LandingPage() {
     return () => controller.abort();
   }, [badgeUrl, hasUsername]);
 
-  const copyToClipboard = () => {
+  const copyToClipboard = async () => {
     if (!hasUsername) return;
 
-    trackUser(trimmedUsername);
-    addSearch(trimmedUsername);
+    try {
+      trackUser(trimmedUsername);
+      addSearch(trimmedUsername);
 
-    navigator.clipboard.writeText(markdown);
-    setCopied(true);
-    setTimeout(() => {
-      guideRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 80);
-    setTimeout(() => setCopied(false), 50000);
+      await navigator.clipboard.writeText(markdown);
+
+      setCopied(true);
+
+      toast.success('Markdown copied successfully!', {
+        id: 'copy-success',
+      });
+
+      setTimeout(() => {
+        guideRef.current?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start',
+        });
+      }, 80);
+
+      setTimeout(() => setCopied(false), 2000);
+    } catch (error) {
+      toast.error('Failed to copy markdown');
+    }
   };
 
   return (
