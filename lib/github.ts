@@ -114,9 +114,20 @@ interface GitHubUserProfile {
   plan?: { name?: string } | null;
 }
 
-const contributionsCache = new TTLCache<ContributionCalendar>();
-const profileCache = new TTLCache<GitHubUserProfile>();
-const reposCache = new TTLCache<GitHubRepo[]>();
+// Named constants to avoid magic numbers and allow future tuning
+const MAX_CONTRIBUTIONS_CACHE_SIZE = 1000;
+const MAX_PROFILE_CACHE_SIZE = 1000;
+const MAX_REPOS_CACHE_SIZE = 500;
+
+// Bounded capacity controls to prevent unbounded heap memory leaks (OOM).
+// Under continuous crawler/bot scanning or viral peaks, unbounded cache size
+// allocations will exhaust Node/Vercel serverless RAM.
+// Specifying explicit capacity limits enforces a First-In, First-Out (FIFO)
+// eviction strategy (since standard ES6 Map maintains key insertion order) and
+// bounds max memory consumption to stable, predictable boundaries.
+const contributionsCache = new TTLCache<ContributionCalendar>(MAX_CONTRIBUTIONS_CACHE_SIZE);
+const profileCache = new TTLCache<GitHubUserProfile>(MAX_PROFILE_CACHE_SIZE);
+const reposCache = new TTLCache<GitHubRepo[]>(MAX_REPOS_CACHE_SIZE);
 
 function cacheKey(
   kind: 'contributions' | 'profile' | 'repos',
