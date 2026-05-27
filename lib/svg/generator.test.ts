@@ -59,15 +59,15 @@ describe('generateSVG', () => {
   });
 
   it('uses transparent background when hideBackground is true', () => {
-  const svg = generateSVG(
-    mockStats,
-    {
-      user: 'avi',
-      hideBackground: true,
-    } as unknown as BadgeParams,
-    mockCalendar
-  );
-  expect(svg).toContain('fill="transparent"');
+    const svg = generateSVG(
+      mockStats,
+      {
+        user: 'avi',
+        hideBackground: true,
+      } as unknown as BadgeParams,
+      mockCalendar
+    );
+    expect(svg).toContain('fill="transparent"');
   });
 
   it('uses normal background when hideBackground is false or omitted', () => {
