@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { toPng } from 'html-to-image';
 import type { DashboardExportData } from '@/types/dashboard';
+import { getDashboardUrl } from '@/utils/urls'; // Adjust path if needed
 
 // Inline branded icons (Twitter/X brand, LinkedIn brand)
 const XBrandIcon = ({ size = 18 }: { size?: number }) => (
@@ -50,11 +51,6 @@ interface ShareSheetProps {
 
 type OptionState = 'idle' | 'loading' | 'success' | 'error';
 
-const PROFILE_URL = (username: string) =>
-  typeof window !== 'undefined'
-    ? `${window.location.origin}/dashboard/${username}`
-    : `https://commitpulse.vercel.app/dashboard/${username}`;
-
 export default function ShareSheet({ username, isOpen, onClose, exportData }: ShareSheetProps) {
   const [states, setStates] = useState<Record<string, OptionState>>({});
   const overlayRef = useRef<HTMLDivElement>(null);
@@ -86,7 +82,7 @@ export default function ShareSheet({ username, isOpen, onClose, exportData }: Sh
   const handleCopyLink = async () => {
     setOptionState('copy', 'loading');
     try {
-      await navigator.clipboard.writeText(PROFILE_URL(username));
+      await navigator.clipboard.writeText(getDashboardUrl(username));
       setOptionState('copy', 'success');
       setTimeout(() => onClose(), 800);
     } catch {
@@ -95,20 +91,20 @@ export default function ShareSheet({ username, isOpen, onClose, exportData }: Sh
   };
 
   const handleTwitter = () => {
-    const url = PROFILE_URL(username);
+    const url = getDashboardUrl(username);
     const text = encodeURIComponent(`Check out my GitHub commit pulse on CommitPulse 🚀\n${url}`);
     window.open(`https://twitter.com/intent/tweet?text=${text}`, '_blank', 'noopener');
     onClose();
   };
 
   const handleLinkedIn = () => {
-    const url = encodeURIComponent(PROFILE_URL(username));
+    const url = encodeURIComponent(getDashboardUrl(username));
     window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${url}`, '_blank', 'noopener');
     onClose();
   };
 
   const handleReddit = () => {
-    const url = encodeURIComponent(PROFILE_URL(username));
+    const url = encodeURIComponent(getDashboardUrl(username));
     const title = encodeURIComponent('Check out my CommitPulse dashboard 🚀');
 
     window.open(`https://www.reddit.com/submit?url=${url}&title=${title}`, '_blank');
@@ -184,7 +180,7 @@ export default function ShareSheet({ username, isOpen, onClose, exportData }: Sh
     try {
       const payload = {
         username,
-        profileUrl: PROFILE_URL(username),
+        profileUrl: getDashboardUrl(username),
         exportedAt: new Date().toISOString(),
         currentStreak: exportData.stats.currentStreak,
         longestStreak: exportData.stats.peakStreak,
@@ -217,7 +213,7 @@ export default function ShareSheet({ username, isOpen, onClose, exportData }: Sh
       await navigator.share({
         title: `${username}'s Commit Pulse`,
         text: `Check out my GitHub contribution pulse — streaks, insights, and more.`,
-        url: PROFILE_URL(username),
+        url: getDashboardUrl(username),
       });
       setOptionState('native', 'success');
       setTimeout(() => onClose(), 600);
