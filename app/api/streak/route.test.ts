@@ -395,6 +395,24 @@ describe('GET /api/streak', () => {
       expect(response.status).toBe(200);
     });
 
+    it('returns SVG content type for theme=neon', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', theme: 'neon' }));
+
+      expect(response.headers.get('Content-Type')).toBe('image/svg+xml');
+    });
+
+    it('returns SVG content type for theme=dracula', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', theme: 'dracula' }));
+
+      expect(response.headers.get('Content-Type')).toBe('image/svg+xml');
+    });
+
+    it('returns SVG content type for theme=auto', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', theme: 'auto' }));
+
+      expect(response.headers.get('Content-Type')).toBe('image/svg+xml');
+    });
+
     it('returns auto-theme SVG markup with dark-mode CSS variables when theme=auto', async () => {
       const response = await GET(makeRequest({ user: 'octocat', theme: 'auto' }));
       const body = await response.text();
