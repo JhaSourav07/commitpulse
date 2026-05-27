@@ -79,6 +79,20 @@ describe('useRecentSearches', () => {
     expect(removeItemSpy).toHaveBeenCalledWith(STORAGE_KEY);
   });
 
+  it('removes an individual search', () => {
+    const { result } = renderHook(() => useRecentSearches());
+    act(() => {
+      result.current.addSearch('torvalds');
+    });
+    act(() => {
+      result.current.addSearch('gaearon');
+    });
+    act(() => {
+      result.current.removeSearch('torvalds');
+    });
+    expect(result.current.searches).toEqual(['gaearon']);
+  });
+
   it('persists searches across remounts', () => {
     const { result, unmount } = renderHook(() => useRecentSearches());
     act(() => {

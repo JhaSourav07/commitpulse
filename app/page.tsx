@@ -72,7 +72,7 @@ export default function LandingPage() {
   const [svgContent, setSvgContent] = useState<string | null>(null);
   const [svgState, setSvgState] = useState<'idle' | 'loading' | 'loaded'>('idle');
   const guideRef = useRef<HTMLDivElement>(null);
-  const { searches, addSearch, clearSearches } = useRecentSearches();
+  const { searches, addSearch, clearSearches, removeSearch } = useRecentSearches();
   const trimmedUsername = username.trim();
   const hasUsername = trimmedUsername.length > 0;
 
@@ -281,13 +281,26 @@ export default function LandingPage() {
             <div className="flex flex-wrap items-center gap-2 mb-6 mt-3">
               <span className="text-xs text-[#A1A1AA]">Recent:</span>
               {searches.map((s) => (
-                <button
+                <span
                   key={s}
-                  onClick={() => setUsername(s)}
-                  className="rounded-full border border-[rgba(255,255,255,0.08)] bg-[#111] px-3 py-1 text-xs text-white/70 transition-all hover:border-[rgba(255,255,255,0.2)] hover:text-white"
+                  className="inline-flex items-center gap-1.5 rounded-full border border-[rgba(255,255,255,0.08)] bg-[#111] pl-3 pr-2 py-1 text-xs text-white/70 transition-all hover:border-[rgba(255,255,255,0.2)] hover:text-white group/pill"
                 >
-                  {s}
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => setUsername(s)}
+                    className="transition-colors hover:text-white"
+                  >
+                    {s}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => removeSearch(s)}
+                    className="rounded-full p-0.5 text-white/40 hover:bg-white/10 hover:text-white transition-all flex items-center justify-center"
+                    aria-label={`Remove ${s} from recent searches`}
+                  >
+                    <X size={10} />
+                  </button>
+                </span>
               ))}
               <button
                 onClick={clearSearches}
