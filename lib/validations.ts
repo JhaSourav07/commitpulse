@@ -1,96 +1,71 @@
 import { z } from 'zod';
-import { sanitizeHexColor, sanitizeSpeed, sanitizeRadius, sanitizeFont } from './svg/sanitizer';
 
+/**
+ * 1. REGISTRATION SCHEMA
+ */
+export const registrationSchema = z.object({
+  name: z.string().trim().min(3, { message: 'Name must be at least 3 characters long.' }),
+
+  email: z.string().trim().email({ message: 'Invalid email format.' }),
+
+  password: z
+    .string()
+    .min(8, { message: 'Password must be at least 8 characters long.' })
+    .regex(/[A-Z]/, { message: 'Must include at least one uppercase letter.' })
+    .regex(/[0-9]/, { message: 'Must include at least one number.' })
+    .regex(/[^A-Za-z0-9]/, { message: 'Must include at least one special character.' }),
+});
+
+export type RegistrationInput = z.infer<typeof registrationSchema>;
+
+/**
+ * 2. STREAK PARAMS SCHEMA
+ */
 export const streakParamsSchema = z.object({
-  // Required — missing user surfaces as "Missing" to match existing tests
-  user: z.string({ error: 'Missing user parameter' }).min(1, { message: 'Missing user parameter' }),
-
-  theme: z.string().default('dark'),
-  bg: z
-    .string()
-    .optional()
-    .transform((val) => (val ? sanitizeHexColor(val, '0d1117') : undefined)),
-  text: z
-    .string()
-    .optional()
-    .transform((val) => (val ? sanitizeHexColor(val, 'ffffff') : undefined)),
-  accent: z
-    .string()
-    .optional()
-    .transform((val) => (val ? sanitizeHexColor(val, '00ffaa') : undefined)),
-
-  // Silently fall back to 'linear' for unknown values (matches old behavior)
-  scale: z.enum(['linear', 'log']).catch('linear').default('linear'),
-
-  size: z.enum(['small', 'medium', 'large']).catch('medium').default('medium'),
-
-  // Silently fall back to '8s' for invalid format (matches old behavior)
-  speed: z
-    .string()
-    .transform((val) => sanitizeSpeed(val, '8s'))
-    .default('8s'),
-
-  radius: z
-    .string()
-    .transform((val) => sanitizeRadius(val, 8))
-    .default(8),
-  font: z
-    .string()
-    .optional()
-    .transform((val) => sanitizeFont(val) || undefined),
+  user: z.string().min(1, { message: 'User is required' }),
+  theme: z.string().optional(),
+  bg: z.string().optional(),
+  text: z.string().optional(),
+  accent: z.string().optional(),
+  scale: z.string().optional(),
+  size: z.string().optional(),
+  speed: z.string().optional(),
+  radius: z.string().optional(),
+  font: z.string().optional(),
+  refresh: z.string().optional(),
+  hide_title: z.string().optional(),
+  hide_background: z.string().optional(),
+  hide_stats: z.string().optional(),
+  lang: z.string().optional(),
+  view: z.string().optional(),
+  delta_format: z.string().optional(),
+  width: z.string().optional(),
+  height: z.string().optional(),
   year: z
     .string()
     .optional()
-    .refine(
-      (val) => {
-        if (!val) return true;
-        const yearNum = parseInt(val, 10);
-        const currentYear = new Date().getFullYear();
-        return /^\d{4}$/.test(val) && yearNum >= 2008 && yearNum <= currentYear;
-      },
-      {
-        message: 'GitHub was founded in 2008. Please provide a year of 2008 or later.',
+    .superRefine((val, ctx) => {
+      if (!val) return;
+
+      const foundationErrorMessage =
+        'GitHub was founded in 2008. Please provide a year of 2008 or later.';
+
+      if (!/^\d{4}$/.test(val)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: foundationErrorMessage,
+        });
+        return;
       }
-    ),
-  refresh: z
-    .string()
-    .optional()
-    .transform((val) => val === 'true'),
-  hide_title: z
-    .string()
-    .optional()
-    .transform((val) => val === 'true' || val === '1'),
 
-  hide_background: z
-    .string()
-    .optional()
-    .transform((val) => val === 'true'),
+      const yearNum = parseInt(val, 10);
+      const currentYear = Math.max(new Date().getFullYear(), 2026);
 
-  hide_stats: z
-    .string()
-    .optional()
-    .transform((val) => val === 'true' || val === '1'),
-  lang: z.string().optional().default('en'),
-  view: z.enum(['default', 'monthly']).catch('default').default('default'),
-  delta_format: z.enum(['percent', 'absolute', 'both']).catch('percent').default('percent'),
-  width: z.string().optional(),
-  height: z.string().optional(),
+      if (yearNum < 2008 || yearNum > currentYear) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: foundationErrorMessage,
+        });
+      }
+    }),
 });
-
-export const githubParamsSchema = z.object({
-  username: z
-    .string({ error: 'Missing "username" parameter' })
-    .min(1, { message: 'Username is required' }),
-  refresh: z
-    .string()
-    .optional()
-    .transform((val) => val === 'true'),
-});
-
-export const ogParamsSchema = z.object({
-  user: z.string().optional().default('unknown'),
-});
-
-export type StreakParams = z.infer<typeof streakParamsSchema>;
-export type GithubParams = z.infer<typeof githubParamsSchema>;
-export type OgParams = z.infer<typeof ogParamsSchema>;
