@@ -432,4 +432,12 @@ describe('GET /api/streak', () => {
       expect(body).toContain('CURRENT_STREAK');
     });
   });
+
+  describe('theme=random cache header', () => {
+    it('returns no-cache header when ?theme=random is given', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', theme: 'random' }));
+
+      expect(response.headers.get('Cache-Control')).toBe('no-cache, no-store, must-revalidate');
+    });
+  });
 });
