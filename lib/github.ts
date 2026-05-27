@@ -194,7 +194,9 @@ export async function fetchGitHubContributions(
 
   if (!res.ok) {
     if (res.status === 401) throw new Error('GitHub PAT is invalid or missing');
-    throw new Error(`GitHub GraphQL API returned status ${res.status}`);
+    throw new Error(
+      `GitHub GraphQL API returned status ${res.status} after ${MAX_RETRIES} retries`
+    );
   }
 
   const data: GitHubContributionResponse = await res.json();
