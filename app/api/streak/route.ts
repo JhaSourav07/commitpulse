@@ -5,6 +5,7 @@ import { fetchGitHubContributions, getOrgDashboardData } from '@/lib/github';
 import { calculateStreak, calculateMonthlyStats } from '@/lib/calculate';
 import {
   generateNotFoundSVG,
+  generateRateLimitSVG,
   generateSVG,
   generateMonthlySVG,
   generateVersusSVG,
@@ -214,6 +215,7 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
   const isNotFound =
     message.toLowerCase().includes('not found') ||
     message.toLowerCase().includes('could not resolve');
+  const isRateLimit = message.toLowerCase().includes('rate limit');
 
   const errBg = `#${(parseResult.success && parseResult.data.bg) || '0d1117'}`;
   const errAccent = `#${
@@ -231,6 +233,18 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
       })()
     : 8;
   const errSpeed = (parseResult.success && parseResult.data.speed) || '8s';
+
+  if (isRateLimit) {
+    const svg = generateRateLimitSVG(errBg, errAccent, errText, errRadius, errSpeed);
+    return new NextResponse(svg, {
+      status: 429,
+      headers: {
+        'Content-Type': 'image/svg+xml',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Content-Security-Policy': SVG_CSP_HEADER,
+      },
+    });
+  }
 
   if (isNotFound) {
     const match = message.match(/"([^"]+)"|login of '([^']+)'/);
