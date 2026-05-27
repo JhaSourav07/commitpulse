@@ -47,24 +47,24 @@ export class TTLCache<T> {
     return hit.value;
   }
 
- set(key: string, value: T, ttlMs: number): void {
-  if (ttlMs <= 0) throw new RangeError(`ttlMs must be positive, got ${ttlMs}`);
+  set(key: string, value: T, ttlMs: number): void {
+    if (ttlMs <= 0) throw new RangeError(`ttlMs must be positive, got ${ttlMs}`);
 
-  const maxSize = this.maxSize;
-  if (maxSize !== undefined && this.store.size >= maxSize && !this.store.has(key)) {
-    this.sweep();
-    if (this.store.size >= maxSize) {
-      const oldestKey = this.store.keys().next().value as string | undefined;
-      if (oldestKey !== undefined) {
-        this.store.delete(oldestKey);
+    const maxSize = this.maxSize;
+    if (maxSize !== undefined && this.store.size >= maxSize && !this.store.has(key)) {
+      this.sweep();
+      if (this.store.size >= maxSize) {
+        const oldestKey = this.store.keys().next().value as string | undefined;
+        if (oldestKey !== undefined) {
+          this.store.delete(oldestKey);
+        }
       }
     }
-  }
 
-  // Fix: delete first so updated keys move to end (newest position)
-  this.store.delete(key);
-  this.store.set(key, { value, expiresAt: Date.now() + ttlMs });
-}
+    // Fix: delete first so updated keys move to end (newest position)
+    this.store.delete(key);
+    this.store.set(key, { value, expiresAt: Date.now() + ttlMs });
+  }
 
   clear(): void {
     this.store.clear();
