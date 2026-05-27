@@ -1,5 +1,15 @@
 // utils/time.ts
 
+/**
+ * Calculates the number of seconds remaining until the next UTC midnight.
+ *
+ * @returns Number of seconds until the upcoming UTC midnight
+ *
+ * @example
+ * const seconds = getSecondsUntilUTCMidnight();
+ * console.log(seconds); // e.g., 3600
+ */
+
 export function getSecondsUntilUTCMidnight(): number {
   const now = new Date();
 
@@ -12,11 +22,21 @@ export function getSecondsUntilUTCMidnight(): number {
   return Math.floor((midnight.getTime() - now.getTime()) / 1000);
 }
 
-// Returns seconds until midnight in the given IANA timezone (e.g. 'America/New_York').
-// Used to set CDN cache TTLs that reset at the user's local midnight rather than UTC midnight.
-// Note: on DST transition days (spring-forward/fall-back) the day is 23 or 25 hours,
-// so the returned TTL can be off by up to one hour on those two days per year — acceptable
-// for a cache TTL.
+/**
+ * Calculates the number of seconds remaining until midnight in a given timezone.
+ *
+ * @param tz - IANA timezone string (e.g., "America/New_York", "Asia/Kolkata")
+ * @returns Number of seconds until the next midnight in the specified timezone
+ *
+ * @remarks
+ * ⚠️ On Daylight Saving Time (DST) transition days (spring-forward/fall-back),
+ * the day length may be 23 or 25 hours. As a result, the returned value can be
+ * off by up to one hour. This is acceptable for use cases like cache TTL.
+ *
+ * @example
+ * const seconds = getSecondsUntilMidnightInTimezone("Asia/Kolkata");
+ * console.log(seconds);
+ */
 export function getSecondsUntilMidnightInTimezone(tz: string): number {
   const now = new Date();
 

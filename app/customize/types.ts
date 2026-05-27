@@ -26,3 +26,12 @@ export const SIZES = [
   { value: 'medium', label: 'Medium (Default)' },
   { value: 'large', label: 'Large' },
 ] as const;
+
+export const FONTS = [
+  { value: '', label: 'Default' },
+  { value: 'jetbrains', label: 'JetBrains Mono' },
+  { value: 'fira', label: 'Fira Code' },
+  { value: 'roboto', label: 'Roboto' },
+] as const satisfies readonly { value: string; label: string }[];
+
+export type Font = (typeof FONTS)[number]['value'];

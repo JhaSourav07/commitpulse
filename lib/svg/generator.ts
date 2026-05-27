@@ -1,18 +1,11 @@
 import type { BadgeParams, ContributionCalendar, StreakStats, MonthlyStats } from '../../types';
 import { getLabels, type BadgeLabels } from '../i18n/badgeLabels';
-import { AUTO_DARK_THEME, AUTO_LIGHT_THEME } from './themes';
+import { AUTO_THEME_DARK, AUTO_THEME_LIGHT } from './themes';
 import { TOWER_ANIMATION_CSS } from './animations';
 import { computeTowers, type TowerData } from './layout';
 import { sanitizeFont, sanitizeHexColor, sanitizeRadius, sanitizeGoogleFontUrl } from './sanitizer';
 
-const SVG_WIDTH = 600;
-const SVG_HEIGHT = 420;
-
-const FONT_MAP: Record<string, string> = {
-  jetbrains: '"JetBrains Mono", monospace',
-  fira: '"Fira Code", monospace',
-  roboto: '"Roboto", sans-serif',
-};
+import { SVG_WIDTH, SVG_HEIGHT, FONT_MAP } from './constants';
 
 // helpers
 function getSizeScale(size?: 'small' | 'medium' | 'large'): number {
@@ -48,6 +41,26 @@ function createScaler(sf: number): Scaler {
   return (n: number): number => Math.round(n * sf);
 }
 
+/**
+ * Escapes special XML characters in a string so it can be safely
+ * embedded inside SVG or XML markup.
+ *
+ * Converts:
+ * - & to &amp;
+ * - < to &lt;
+ * - > to &gt;
+ * - " to &quot;
+ * - ' to &#39;
+ *
+ * @param str - Raw string that may contain XML-sensitive characters.
+ *
+ * @returns An XML-safe escaped string.
+ *
+ * @example
+ * const safe = escapeXML('<text>Hello & Welcome</text>');
+ * // Returns:
+ * // '&lt;text&gt;Hello &amp; Welcome&lt;/text&gt;'
+ */
 export function escapeXML(str: string): string {
   return str
     .replace(/&/g, '&amp;')
@@ -185,6 +198,42 @@ function renderFooter(
 }
 
 // ── Main static-theme renderer ────────────────────────────────────────────
+
+/**
+ * Generates the main CommitPulse SVG badge using contribution
+ * calendar data and streak statistics.
+ *
+ * The SVG includes animated contribution towers, statistics,
+ * theme styling, and optional auto-theme support.
+ *
+ * @param stats - Contribution streak statistics including current streak,
+ * longest streak, total contributions, and today's date.
+ * @param params - Badge customization options such as colors, fonts,
+ * animations, scaling, visibility toggles, and theme settings.
+ * @param params.autoTheme - Enables automatic switching between
+ * light and dark themes based on the user's system color scheme.
+ * @param calendar - Contribution calendar data containing weekly
+contribution entries and per-day contribution counts used to
+generate the tower layout.
+ * 
+ * @returns A fully generated SVG badge string.
+ *
+ * @example
+ * const svg = generateSVG(
+ *   {
+ *     currentStreak: 12,
+ *     longestStreak: 30,
+ *     totalContributions: 542,
+ *     todayDate: '2026-05-27',
+ *   },
+ *   {
+ *     user: 'octocat',
+ *     autoTheme: true,
+ *     accent: '00ffaa',
+ *   },
+ *   calendar
+ * );
+ */
 export function generateSVG(
   stats: StreakStats,
   params: BadgeParams,
@@ -237,8 +286,8 @@ function generateAutoThemeSVG(
   params: BadgeParams,
   calendar: ContributionCalendar
 ): string {
-  const light = AUTO_LIGHT_THEME;
-  const dark = AUTO_DARK_THEME;
+  const light = AUTO_THEME_LIGHT;
+  const dark = AUTO_THEME_DARK;
   const safeUser = escapeXML(params.user || 'GitHub User');
   const sanitizedFont = sanitizeFont(params.font);
   const selectedFont = sanitizedFont
@@ -294,16 +343,14 @@ function generateAutoThemeSVG(
   fill="none"
   role="img"
 >
-  <title>CommitPulse Stats for ${safeUser} </title>
-  <desc>
-    ${params.user || 'This user'} has ${stats.totalContributions} total contributions and a longest streak of ${stats.longestStreak} days.
-  </desc>
-  <defs>
-    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="${fs(5)}" result="blur" /><feComposite in="SourceGraphic" in2="blur" operator="over" /></filter>
-  </defs>
+  ${renderHeader(safeUser, stats, sf)}
 
   <style>
   @import url('https://fonts.googleapis.com/css2?family=Fira+Code&amp;family=JetBrains+Mono&amp;family=Roboto&amp;display=swap');
+  /* Auto-theme strategy: expose the palette as CSS variables so the SVG can
+     switch from light to dark through prefers-color-scheme. Shapes use classes
+     instead of inline fills because inline fill attributes would override these
+     variables and prevent the theme from updating automatically. */
   :root { --cp-bg: #${light.bg}; --cp-text: #${light.text}; --cp-accent: #${light.accent}; }
   @media (prefers-color-scheme: dark) { :root { --cp-bg: #${dark.bg}; --cp-text: #${dark.text}; --cp-accent: #${dark.accent}; } }
   .cp-bg-fill { fill: var(--cp-bg); } .cp-text-fill { fill: var(--cp-text); color: var(--cp-text); } .cp-accent-fill { fill: var(--cp-accent); color: var(--cp-accent); }
@@ -340,9 +387,9 @@ export function generateMonthlySVG(stats: MonthlyStats, params: BadgeParams): st
   }
 
   const safeUser = escapeXML(params.user || 'GitHub User');
-  const bg = `#${(params.bg || '0d1117').replace('#', '')}`;
-  const accent = `#${(params.accent || '00ffaa').replace('#', '')}`;
-  const text = `#${(params.text || 'ffffff').replace('#', '')}`;
+  const bg = `#${sanitizeHexColor(params.bg, '0d1117')}`;
+  const accent = `#${sanitizeHexColor(params.accent, '00ffaa')}`;
+  const text = `#${sanitizeHexColor(params.text, 'ffffff')}`;
 
   const sanitizeFont = (name: string) => name.replace(/[^a-zA-Z0-9\s-]/g, '').trim();
   const sanitizedFont = params.font ? sanitizeFont(params.font) : null;
@@ -428,8 +475,8 @@ export function generateMonthlySVG(stats: MonthlyStats, params: BadgeParams): st
 }
 
 function generateAutoThemeMonthlySVG(stats: MonthlyStats, params: BadgeParams): string {
-  const light = AUTO_LIGHT_THEME;
-  const dark = AUTO_DARK_THEME;
+  const light = AUTO_THEME_LIGHT;
+  const dark = AUTO_THEME_DARK;
   const safeUser = escapeXML(params.user || 'GitHub User');
   const sanitizeFont = (name: string) => name.replace(/[^a-zA-Z0-9\s-]/g, '').trim();
   const sanitizedFont = params.font ? sanitizeFont(params.font) : null;
@@ -511,6 +558,34 @@ function generateAutoThemeMonthlySVG(stats: MonthlyStats, params: BadgeParams): 
 `;
 }
 
+/**
+ * Generates a fallback SVG badge for users that do not exist
+ * or when contribution data cannot be loaded.
+ *
+ * The SVG renders a ghost-style city layout with an animated
+ * error-state design while preserving the standard badge layout.
+ *
+ * @param username - GitHub username displayed in the error badge.
+ * @param bg - Background color used for the SVG container.
+ * @param accent - Accent color used for highlights, outlines,
+ * and animated elements.
+ * @param text - Primary text color used throughout the badge.
+ * @param radius - Border radius applied to the SVG background.
+ * @param speed - Animation speed for the radar scan effect.
+ * Defaults to '8s'.
+ *
+ * @returns A generated SVG string representing the not-found state.
+ *
+ * @example
+ * const svg = generateNotFoundSVG(
+ *   'octocat',
+ *   '#0d1117',
+ *   '#00ffaa',
+ *   '#ffffff',
+ *   8,
+ *   '8s'
+ * );
+ */
 export function generateNotFoundSVG(
   username: string,
   bg: string,

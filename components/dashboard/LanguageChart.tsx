@@ -3,6 +3,23 @@
 import { motion } from 'framer-motion';
 import { LanguageData } from '@/types/dashboard';
 
+export function buildGradientStops(languages: LanguageData[]): string {
+  return languages
+    .reduce<{ stops: string[]; current: number }>(
+      (acc, lang) => {
+        const next = acc.current + lang.percentage;
+
+        acc.stops.push(`${lang.color} ${acc.current}% ${next}%`);
+
+        return {
+          stops: acc.stops,
+          current: next,
+        };
+      },
+      { stops: [], current: 0 }
+    )
+    .stops.join(', ');
+}
 export default function LanguageChart({ languages }: { languages: LanguageData[] }) {
   if (languages.length === 0) {
     return (
@@ -24,16 +41,7 @@ export default function LanguageChart({ languages }: { languages: LanguageData[]
     );
   }
 
-  const gradientStops = languages
-    .reduce<{ stops: string[]; current: number }>(
-      (acc, lang) => {
-        const next = acc.current + lang.percentage;
-        acc.stops.push(`${lang.color} ${acc.current}% ${next}%`);
-        return { stops: acc.stops, current: next };
-      },
-      { stops: [], current: 0 }
-    )
-    .stops.join(', ');
+  const gradientStops = buildGradientStops(languages);
 
   return (
     <motion.div

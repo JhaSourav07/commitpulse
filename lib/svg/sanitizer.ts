@@ -3,6 +3,8 @@
  * Prevents attribute injection and malformed SVG generation.
  */
 
+import type { HexColor } from '../../types/index';
+
 const HEX_COLOR_REGEX = /^([0-9A-Fa-f]{3}|[0-9A-Fa-f]{4}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$/;
 
 /**
@@ -16,19 +18,35 @@ export function isValidHex(color?: string): boolean {
 }
 
 /**
+ * Converts a known-safe hex color literal to the `HexColor` branded type.
+ * Intended for hardcoded values in theme definitions, tests, and fixtures
+ * where the color is authored by a developer rather than supplied by user input.
+ *
+ * If the value is invalid, falls back to `fallback` (defaults to `'000000'`).
+ * For user-supplied input, use `sanitizeHexColor` instead.
+ */
+export function hexColor(value: string, fallback = '000000'): HexColor {
+  const cleaned = value.replace('#', '');
+  if (HEX_COLOR_REGEX.test(cleaned)) {
+    return cleaned as HexColor;
+  }
+  return fallback.replace('#', '') as HexColor;
+}
+
+/**
  * Sanitizes a color input, ensuring it's a valid hex or falls back to a safe value.
  * Always returns a hex string WITHOUT the leading #.
  */
-export function sanitizeHexColor(input: string | undefined | null, fallback: string): string {
-  if (!input) return fallback.replace('#', '');
+export function sanitizeHexColor(input: string | undefined | null, fallback: string): HexColor {
+  if (!input) return fallback.replace('#', '') as HexColor;
 
   const cleanInput = input.trim().replace('#', '');
 
   if (HEX_COLOR_REGEX.test(cleanInput)) {
-    return cleanInput;
+    return cleanInput as HexColor;
   }
 
-  return fallback.replace('#', '');
+  return fallback.replace('#', '') as HexColor;
 }
 
 /**

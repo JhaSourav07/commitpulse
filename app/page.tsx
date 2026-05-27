@@ -9,6 +9,7 @@ import { X } from 'lucide-react';
 import { CommitPulseLogo } from '@/components/commitpulse-logo';
 import { CustomizeCTA } from './components/CustomizeCTA';
 import { useRecentSearches } from '@/hooks/useRecentSearches';
+import { Footer } from '@/app/components/Footer';
 
 const Icons = {
   Github: () => (
@@ -129,7 +130,7 @@ export default function LandingPage() {
         <div className="absolute -right-[10%] top-[20%] h-[30%] w-[30%] rounded-full bg-white/2 blur-[120px]" />
       </div>
 
-      <main className="relative z-10 mx-auto max-w-6xl px-6 pb-32">
+      <main className="relative z-10 mx-auto max-w-6xl px-6 mt-32">
         <div className="mb-16 text-center">
           <motion.a
             href="https://discord.gg/Cb73bS79j"
@@ -364,36 +365,7 @@ export default function LandingPage() {
             desc="Sophisticated 3D projection formulas turn 2D data into digital architecture."
           />
         </div>
-
-        <footer className="mt-32 flex flex-col items-center justify-between gap-6 border-t border-black/10 pt-8 text-sm text-gray-600 dark:border-white/5 dark:text-white/30 md:flex-row">
-          <p>&copy; 2026 CommitPulse. Designed for the elite builder community.</p>
-          <div className="flex gap-8">
-            <Link
-              href="/contributors"
-              className="transition-colors hover:text-black dark:hover:text-white"
-            >
-              Contributors
-            </Link>
-
-            <a
-              href="https://github.com/JhaSourav07/commitpulse/blob/main/README.md"
-              target="_blank"
-              rel="noreferrer"
-              className="transition-colors hover:text-white"
-            >
-              Documentation
-            </a>
-
-            <a
-              href="https://github.com/jhasourav07"
-              target="_blank"
-              rel="noreferrer"
-              className="transition-colors hover:text-black dark:hover:text-white"
-            >
-              Creator
-            </a>
-          </div>
-        </footer>
+        <Footer />
       </main>
     </div>
   );

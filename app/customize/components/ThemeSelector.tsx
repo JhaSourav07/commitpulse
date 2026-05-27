@@ -20,7 +20,7 @@ function StyledSelect({
       id={id}
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="w-full bg-gray-100/80 backdrop-blur-md border border-black/10 dark:bg-white/[0.03] dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-black dark:text-white outline-none focus:border-emerald-500/50 transition-colors appearance-none cursor-pointer"
+      className="w-full bg-gray-100/80 backdrop-blur-md border border-black/10 dark:bg-white/[0.03] dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-black dark:text-white outline-none focus:border-emerald-500/50 transition-colors appearance-none cursor-pointer [color-scheme:light] dark:[color-scheme:dark] [&>option]:bg-white [&>option]:text-black dark:[&>option]:bg-[#0a0a0a] dark:[&>option]:text-white"
     >
       {children}
     </select>
