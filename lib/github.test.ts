@@ -9,6 +9,7 @@ import {
   clearGitHubApiCacheForTests,
   GITHUB_CACHE_TTL_MS,
   validateGitHubUsername,
+  fetchWithRetry,
 } from './github';
 import type { ContributionCalendar } from '../types';
 
@@ -473,5 +474,75 @@ describe('validateGitHubUsername', () => {
 
   it('returns false for consecutive hyphens', () => {
     expect(validateGitHubUsername('in--valid')).toBe(false);
+  });
+});
+describe('fetchWithRetry', () => {
+  beforeEach(() => {
+    vi.spyOn(global, 'fetch');
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('resolves immediately on first attempt when fetch returns 200', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(mockResponse({ ok: true }, 200));
+
+    const res = await fetchWithRetry('https://api.github.com/rest', {});
+
+    expect(res.status).toBe(200);
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('retries once on 429 (rate limit) and resolves on second attempt', async () => {
+    vi.useFakeTimers();
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(mockResponse({}, 429))
+      .mockResolvedValueOnce(mockResponse({}, 200));
+
+    const promise = fetchWithRetry('https://api.github.com/rest', {});
+    await vi.runAllTimersAsync();
+    const res = await promise;
+
+    expect(res.status).toBe(200);
+    expect(fetch).toHaveBeenCalledTimes(2);
+    vi.useRealTimers();
+  });
+
+  it('retries once on 500 (server error) and resolves on second attempt', async () => {
+    vi.useFakeTimers();
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(mockResponse({}, 500))
+      .mockResolvedValueOnce(mockResponse({}, 200));
+
+    const promise = fetchWithRetry('https://api.github.com/rest', {});
+    await vi.runAllTimersAsync();
+    const res = await promise;
+
+    expect(res.status).toBe(200);
+    expect(fetch).toHaveBeenCalledTimes(2);
+    vi.useRealTimers();
+  });
+
+  it('returns the bad response after exhausting all retries on 429', async () => {
+    vi.useFakeTimers();
+    vi.mocked(fetch).mockResolvedValue(mockResponse({}, 429));
+
+    const promise = fetchWithRetry('https://api.github.com/rest', {});
+    await vi.runAllTimersAsync();
+    const res = await promise;
+
+    expect(res.status).toBe(429);
+    vi.useRealTimers();
+  });
+
+  it('propagates network error after exhausting all retries', async () => {
+    // Use real timers so retry delays actually fire and resolve cleanly
+    vi.useRealTimers();
+    vi.mocked(fetch).mockRejectedValue(new Error('network failure'));
+
+    await expect(fetchWithRetry('https://api.github.com/rest', {})).rejects.toThrow(
+      'network failure'
+    );
   });
 });
