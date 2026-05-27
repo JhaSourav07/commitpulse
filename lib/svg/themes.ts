@@ -29,5 +29,5 @@ export const themes: Record<string, BadgeTheme> = {
 // Auto-theme pairs: the SVG switches between these two palettes
 // using @media (prefers-color-scheme) so the badge adapts to the
 // viewer's OS-level light/dark setting without any JavaScript.
-export const AUTO_LIGHT_THEME: BadgeTheme = themes.light;
-export const AUTO_DARK_THEME: BadgeTheme = themes.dark;
+export const AUTO_THEME_LIGHT: BadgeTheme = themes.light;
+export const AUTO_THEME_DARK: BadgeTheme = themes.dark;
