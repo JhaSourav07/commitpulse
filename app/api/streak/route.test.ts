@@ -389,6 +389,36 @@ describe('GET /api/streak', () => {
     });
   });
 
+  describe('hide parameters', () => {
+    it('removes the username title when hide_title=true', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', hide_title: 'true' }));
+      const body = await response.text();
+
+      expect(body).not.toContain('OCTOCAT');
+    });
+
+    it('keeps the username title when hide_title=false', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', hide_title: 'false' }));
+      const body = await response.text();
+
+      expect(body).toContain('OCTOCAT');
+    });
+
+    it('removes the stats section when hide_stats=true', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', hide_stats: 'true' }));
+      const body = await response.text();
+
+      expect(body).not.toContain('CURRENT_STREAK');
+    });
+
+    it('keeps the stats section when hide_stats=false', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', hide_stats: 'false' }));
+      const body = await response.text();
+
+      expect(body).toContain('CURRENT_STREAK');
+    });
+  });
+
   describe('error handling', () => {
     it('returns 500 with SVG content type when fetchGitHubContributions throws', async () => {
       vi.mocked(fetchGitHubContributions).mockRejectedValue(new Error('API is down'));
