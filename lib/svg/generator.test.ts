@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { generateSVG, generateMonthlySVG, particleCount, escapeXML } from './generator';
 import type { BadgeParams, ContributionCalendar, StreakStats, MonthlyStats } from '../../types';
+import { hexColor } from './sanitizer';
 
 describe('generateSVG', () => {
   const mockStats: StreakStats = {
@@ -186,9 +187,9 @@ describe('generateSVG', () => {
   describe('autoTheme', () => {
     const autoParams: BadgeParams = {
       user: 'avi',
-      bg: 'ffffff',
-      text: '24292f',
-      accent: '0969da',
+      bg: hexColor('ffffff'),
+      text: hexColor('24292f'),
+      accent: hexColor('0969da'),
       speed: '8s',
       scale: 'linear',
       autoTheme: true,
@@ -247,9 +248,9 @@ describe('generateSVG', () => {
     it('does NOT inject a media query for non-auto themes', () => {
       const staticParams: BadgeParams = {
         user: 'avi',
-        bg: '0d1117',
-        text: 'c9d1d9',
-        accent: '58a6ff',
+        bg: hexColor('0d1117'),
+        text: hexColor('c9d1d9'),
+        accent: hexColor('58a6ff'),
         speed: '8s',
         scale: 'linear',
         autoTheme: false,
