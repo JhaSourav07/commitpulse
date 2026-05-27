@@ -10,6 +10,7 @@ import {
   GITHUB_CACHE_TTL_MS,
   validateGitHubUsername,
   cacheKey,
+  buildCommitClock,
 } from './github';
 import type { ContributionCalendar } from '../types';
 
@@ -560,5 +561,28 @@ describe('cacheKey', () => {
 
   it('supports contributions kind', () => {
     expect(cacheKey('contributions', 'testuser')).toContain('contributions');
+  });
+});
+
+describe('buildCommitClock', () => {
+  it('aggregates commits correctly by day of week', () => {
+    const allDays = [
+      { date: '2024-06-09', contributionCount: 2 }, // Sun
+      { date: '2024-06-10', contributionCount: 5 }, // Mon
+      { date: '2024-06-10', contributionCount: 3 }, // Mon
+      { date: '2024-06-12', contributionCount: 4 }, // Wed
+    ];
+
+    const result = buildCommitClock(allDays);
+
+    expect(result).toEqual([
+      { day: 'Sun', commits: 2 },
+      { day: 'Mon', commits: 8 },
+      { day: 'Tue', commits: 0 },
+      { day: 'Wed', commits: 4 },
+      { day: 'Thu', commits: 0 },
+      { day: 'Fri', commits: 0 },
+      { day: 'Sat', commits: 0 },
+    ]);
   });
 });

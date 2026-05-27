@@ -1,6 +1,6 @@
 // lib/github.ts
 
-import type { ContributionCalendar } from '../types';
+import type { ContributionCalendar, ContributionDay } from '../types';
 import { calculateStreak } from './calculate';
 import { TTLCache } from './cache';
 import { LANGUAGE_COLORS } from './svg/languageColors';
@@ -365,6 +365,21 @@ export function generateAchievements(totalContributions: number, currentStreak: 
   return achievements;
 }
 
+export function buildCommitClock(allDays: ContributionDay[]) {
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const dayTotals = new Array(7).fill(0);
+
+  for (const day of allDays) {
+    const dow = new Date(day.date).getUTCDay();
+    dayTotals[dow] += day.contributionCount;
+  }
+
+  return dayNames.map((name, i) => ({
+    day: name,
+    commits: dayTotals[i],
+  }));
+}
+
 export async function getFullDashboardData(username: string, options: FetchOptions = {}) {
   if (!validateGitHubUsername(username)) {
     console.warn(
@@ -518,18 +533,7 @@ export async function getFullDashboardData(username: string, options: FetchOptio
       text: `Your longest coding streak is ${streakStats.longestStreak} days!`,
     });
   }
-
-  // Aggregate real contribution data by day of week from the already-fetched calendar
-  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  const dayTotals = new Array(7).fill(0);
-  for (const day of allDays) {
-    const dow = new Date(day.date).getUTCDay();
-    dayTotals[dow] += day.contributionCount;
-  }
-  const commitClock = dayNames.map((name, i) => ({
-    day: name,
-    commits: dayTotals[i],
-  }));
+  const commitClock = buildCommitClock(allDays);
 
   return {
     profile,
