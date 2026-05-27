@@ -65,7 +65,7 @@ export default function Heatmap({ data }: { data: ActivityData[] }) {
   const handleMouseEnter = (e: React.MouseEvent<HTMLDivElement>, day: ActivityData) => {
     const rect = e.currentTarget.getBoundingClientRect();
     setTooltip({
-      text: `${day.count} contribution${day.count !== 1 ? 's' : ''} on ${day.date}`,
+      text: `${day.date}`,
 
       x: rect.left + rect.width / 2,
       y: rect.top - 8,
