@@ -50,6 +50,12 @@ const stats = calculateStreak(
   new Date('2026-05-25T10:00:00Z')
 );
 */
+export function isStreakAlive(
+  today: { contributionCount: number },
+  yesterday: { contributionCount: number } | null
+): boolean {
+  return today.contributionCount > 0 || (yesterday?.contributionCount ?? 0) > 0;
+}
 
 export function calculateStreak(
   calendar: ContributionCalendar,
@@ -93,23 +99,18 @@ export function calculateStreak(
     };
   }
 
-  // If I committed today, or any day within the grace period (e.g. yesterday for grace=1),
-  // the streak is STILL alive.
-  let isStreakAlive = false;
-  for (let i = 0; i <= grace; i++) {
-    const checkIndex = todayIndex - i;
-    if (checkIndex >= 0 && days[checkIndex].contributionCount > 0) {
-      isStreakAlive = true;
-      break;
-    }
-  }
+  const today = days[todayIndex];
+  const yesterday = todayIndex > 0 ? days[todayIndex - 1] : null;
 
-  if (isStreakAlive) {
-    // Find the most recent day with a contribution within the grace period
-    let i = todayIndex;
-    while (i >= todayIndex - grace && i >= 0 && days[i].contributionCount === 0) {
-      i--;
-    }
+  // If I committed today, the streak is alive.
+  // If I haven't committed today, but I committed yesterday,
+  // the streak is STILL alive (Grace Period).
+  const streakAlive = isStreakAlive(today, yesterday);
+
+  if (streakAlive) {
+    // Count backwards from the first day that has a contribution
+    // starting from either today or yesterday.
+    let i = today.contributionCount > 0 ? todayIndex : todayIndex - 1;
 
     // Count backwards from the first day that has a contribution
     while (i >= 0 && days[i].contributionCount > 0) {
