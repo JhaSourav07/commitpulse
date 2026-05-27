@@ -307,6 +307,15 @@ describe('GET /api/streak', () => {
       expect(response.status).toBe(200);
     });
 
+    it('returns auto-theme SVG markup with dark-mode CSS variables when theme=auto', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', theme: 'auto' }));
+      const body = await response.text();
+
+      expect(response.status).toBe(200);
+      expect(body).toContain('prefers-color-scheme: dark');
+      expect(body).toContain('--cp-bg');
+    });
+
     it('falls back to the dark theme without crashing when an unknown theme is given', async () => {
       const response = await GET(makeRequest({ user: 'octocat', theme: 'does-not-exist' }));
       const body = await response.text();
