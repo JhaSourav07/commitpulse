@@ -3,6 +3,8 @@
  * Prevents attribute injection and malformed SVG generation.
  */
 
+import type { HexColor } from '../../types/index';
+
 const HEX_COLOR_REGEX = /^([0-9A-Fa-f]{3}|[0-9A-Fa-f]{4}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$/;
 
 /**
@@ -16,19 +18,35 @@ export function isValidHex(color?: string): boolean {
 }
 
 /**
+ * Converts a known-safe hex color literal to the `HexColor` branded type.
+ * Intended for hardcoded values in theme definitions, tests, and fixtures
+ * where the color is authored by a developer rather than supplied by user input.
+ *
+ * If the value is invalid, falls back to `fallback` (defaults to `'000000'`).
+ * For user-supplied input, use `sanitizeHexColor` instead.
+ */
+export function hexColor(value: string, fallback = '000000'): HexColor {
+  const cleaned = value.replace('#', '');
+  if (HEX_COLOR_REGEX.test(cleaned)) {
+    return cleaned as HexColor;
+  }
+  return fallback.replace('#', '') as HexColor;
+}
+
+/**
  * Sanitizes a color input, ensuring it's a valid hex or falls back to a safe value.
  * Always returns a hex string WITHOUT the leading #.
  */
-export function sanitizeHexColor(input: string | undefined | null, fallback: string): string {
-  if (!input) return fallback.replace('#', '');
+export function sanitizeHexColor(input: string | undefined | null, fallback: string): HexColor {
+  if (!input) return fallback.replace('#', '') as HexColor;
 
   const cleanInput = input.trim().replace('#', '');
 
   if (HEX_COLOR_REGEX.test(cleanInput)) {
-    return cleanInput;
+    return cleanInput as HexColor;
   }
 
-  return fallback.replace('#', '');
+  return fallback.replace('#', '') as HexColor;
 }
 
 /**
@@ -69,4 +87,29 @@ export function sanitizeFont(font: string | undefined | null): string | null {
   if (!trimmed) return null;
   const cleaned = trimmed.replace(/[^a-zA-Z0-9\s\-']/g, '').trim();
   return cleaned || null;
+}
+
+/**
+ * Validates and sanitizes a Google Font name for safe use in external @import URLs.
+ * Returns the URL-safe font name (spaces replaced with '+') or null if invalid/unsafe.
+ */
+export function sanitizeGoogleFontUrl(fontName: string | undefined | null): string | null {
+  if (!fontName) return null;
+
+  const trimmed = fontName.trim();
+  if (!trimmed) return null;
+
+  // Whitelist approach: Only allow alphanumeric characters, spaces, and hyphens.
+  // This completely eliminates any possibility of URL/CSS injection, path traversal,
+  // or breaking out of quotes in external font imports.
+  if (!/^[a-zA-Z0-9\s\-]+$/.test(trimmed)) {
+    return null;
+  }
+
+  // Also apply standard font name sanitization to ensure consistency
+  const cleaned = sanitizeFont(trimmed);
+  if (!cleaned) return null;
+
+  // Return the encoded font name suitable for Google Fonts API URL (spaces replaced with '+')
+  return encodeURIComponent(cleaned).replace(/%20/g, '+');
 }

@@ -305,7 +305,55 @@ function IconSynthwave({ bg, text, accent }: IC): ReactElement {
   );
 }
 
-const ICON_MAP: Record<string, (c: IC) => ReactElement> = {
+function IconGruvbox({ text, accent }: IC): ReactElement {
+  return (
+    <svg width="22" height="22" viewBox="0 0 28 28" fill="none" aria-hidden="true">
+      {/* top handle */}
+      <path
+        d="M11 9C11 6.8 12.3 5.5 14 5.5C15.7 5.5 17 6.8 17 9"
+        stroke={text}
+        strokeWidth="2"
+        strokeLinecap="round"
+        opacity="0.85"
+      />
+      {/* handle connectors */}
+      <path
+        d="M11.5 9.5L10 12.5M16.5 9.5L18 12.5"
+        stroke={text}
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        opacity="0.75"
+      />
+      {/* lantern body */}
+      <rect x="8" y="11" width="12" height="11" rx="2.5" fill={text} opacity="0.82" />
+      {/* glass chamber */}
+      <rect x="10.2" y="13" width="7.6" height="6.8" rx="1.5" fill="#1d2021" opacity="0.9" />
+      {/* warm glow */}
+      <ellipse cx="14" cy="16.5" rx="2.8" ry="3.2" fill={accent} opacity="0.95" />
+      {/* flame */}
+      <path d="M14 13.8C12.8 15.5 13.1 16.8 14 18.3C14.9 16.8 15.2 15.5 14 13.8Z" fill={accent} />
+      {/* bottom base */}
+      <rect x="9.5" y="22" width="9" height="1.8" rx="0.9" fill={text} opacity="0.7" />
+    </svg>
+  );
+}
+
+function IconHighcontrast({ text, accent }: IC): ReactElement {
+  return (
+    <svg width="22" height="22" viewBox="0 0 28 28" fill="none" aria-hidden="true">
+      {/* outer eye shape */}
+      <path d="M2 14 C6 6 22 6 26 14 C22 22 6 22 2 14 Z" fill={accent} opacity="0.88" />
+      {/* iris */}
+      <circle cx="14" cy="14" r="5" fill={text} opacity="0.9" />
+      {/* pupil */}
+      <circle cx="14" cy="14" r="2.2" fill="#000" opacity="0.95" />
+      {/* catchlight */}
+      <circle cx="15.8" cy="12.5" r="1.2" fill="#fff" opacity="0.85" />
+    </svg>
+  );
+}
+
+const ICON_MAP: Record<ThemeKey, (c: IC) => ReactElement> = {
   dark: (c) => <IconDark {...c} />,
   light: (c) => <IconLight {...c} />,
   neon: (c) => <IconNeon {...c} />,
@@ -317,6 +365,8 @@ const ICON_MAP: Record<string, (c: IC) => ReactElement> = {
   rose: (c) => <IconRose {...c} />,
   nord: (c) => <IconNord {...c} />,
   synthwave: (c) => <IconSynthwave {...c} />,
+  gruvbox: (c) => <IconGruvbox {...c} />,
+  highcontrast: (c) => <IconHighcontrast {...c} />,
 };
 
 export function ThemeQuickPresets({ theme, onThemeChange }: ThemeQuickPresetsProps): ReactElement {

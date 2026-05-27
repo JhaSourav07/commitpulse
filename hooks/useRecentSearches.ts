@@ -2,11 +2,43 @@
 
 import { useState, useEffect } from 'react';
 
-const KEY = 'recentSearches';
-const MAX = 5;
+export const STORAGE_KEY = 'recentSearches';
+export const MAX_SEARCHES = 5;
 
 type State = { searches: string[]; mounted: boolean };
 
+function loadFromStorage(): string[] {
+  let saved: string[] = [];
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) saved = JSON.parse(stored) as string[];
+  } catch {
+    // ignore malformed storage
+  }
+  return saved;
+}
+
+function writeStorage(searches: string[] | null): void {
+  try {
+    if (searches === null) {
+      localStorage.removeItem(STORAGE_KEY);
+      return;
+    }
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(searches));
+  } catch {
+    // ignore storage write failures
+  }
+}
+
+/**
+ * A hook to manage and persist a list of recent searches.
+ *
+ * It uses localStorage for persistence and ensures SSR compatibility by starting
+ * with an empty state on the first render and updating upon hydration.
+ *
+ * @returns An object containing the recent searches, a function to add a search, and a function to clear all searches.
+ */
 export function useRecentSearches() {
   // Always start with [] and mounted:false on both server and client so the
   // initial render matches (SSR-safe). A single setState in the mount effect
@@ -16,35 +48,34 @@ export function useRecentSearches() {
   const [state, setState] = useState<State>({ searches: [], mounted: false });
 
   useEffect(() => {
-    let saved: string[] = [];
-    try {
-      const stored = localStorage.getItem(KEY);
-      if (stored) saved = JSON.parse(stored) as string[];
-    } catch {
-      // ignore malformed storage
-    }
     // Single setState call — reads external system (localStorage) and syncs
     // React state in one update, which is exactly what effects are for.
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setState({ searches: saved, mounted: true });
+    setState({ searches: loadFromStorage(), mounted: true });
   }, []);
 
+  /**
+   * Adds a new search query to the recent searches list.
+   * If the query already exists, it is moved to the top.
+   * The list is truncated to the maximum number of searches allowed.
+   *
+   * @param query - The search query to add.
+   */
   const addSearch = (query: string) => {
     if (!query.trim()) return;
     setState((prev) => {
-      const deduped = [query, ...prev.searches.filter((s) => s !== query)].slice(0, MAX);
-      try {
-        localStorage.setItem(KEY, JSON.stringify(deduped));
-      } catch {}
+      const deduped = [query, ...prev.searches.filter((s) => s !== query)].slice(0, MAX_SEARCHES);
+      writeStorage(deduped);
       return { ...prev, searches: deduped };
     });
   };
 
+  /**
+   * Clears all recent searches from state and localStorage.
+   */
   const clearSearches = () => {
     setState((prev) => ({ ...prev, searches: [] }));
-    try {
-      localStorage.removeItem(KEY);
-    } catch {}
+    writeStorage(null);
   };
 
   // Return empty searches until after hydration to prevent SSR/client mismatch.
