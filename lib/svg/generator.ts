@@ -8,6 +8,10 @@ import { sanitizeFont, sanitizeHexColor, sanitizeRadius, sanitizeGoogleFontUrl }
 import { SVG_WIDTH, SVG_HEIGHT, FONT_MAP } from './constants';
 
 // helpers
+function truncateUsername(name: string, max = 20): string {
+  return name.length > max ? name.slice(0, max) + '…' : name;
+}
+
 function getSizeScale(size?: 'small' | 'medium' | 'large'): number {
   if (size === 'small') return 400 / SVG_WIDTH;
   if (size === 'large') return 800 / SVG_WIDTH;
@@ -191,7 +195,7 @@ function renderFooter(
   const s = createScaler(sf);
   return `
   ${!params.hide_stats ? renderStatsSection(stats, labels, s) : ''}
-  ${!params.hide_title ? `<text x="${s(300)}" y="${s(50)}" text-anchor="middle" class="title">${safeUser.toUpperCase()}</text>` : ''}
+  ${!params.hide_title ? `<text x="${s(300)}" y="${s(50)}" text-anchor="middle" class="title">${truncateUsername(safeUser).toUpperCase()}</text>` : ''}
   <rect x="${s(100)}" y="${s(60)}" width="${s(400)}" height="${sf}" fill="${accent}" fill-opacity="0.3">
     <animate attributeName="y" values="${s(80)};${s(320)};${s(80)}" dur="${params.speed || '8s'}" repeatCount="indefinite" />
   </rect>`;
@@ -370,7 +374,7 @@ function generateAutoThemeSVG(
   ${!params.hide_stats ? renderStatsSection(stats, labels, s) : ''}
 ${
   !params.hide_title
-    ? `<text x="${s(300)}" y="${s(50)}" text-anchor="middle" class="title">${safeUser.toUpperCase()}</text>`
+    ? `<text x="${s(300)}" y="${s(50)}" text-anchor="middle" class="title">${truncateUsername(safeUser).toUpperCase()}</text>`
     : ''
 }
 
