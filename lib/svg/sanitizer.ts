@@ -11,7 +11,7 @@ const HEX_COLOR_REGEX = /^([0-9A-Fa-f]{3}|[0-9A-Fa-f]{4}|[0-9A-Fa-f]{6}|[0-9A-Fa
  */
 export function isValidHex(color?: string): boolean {
   if (!color) return false;
-  const cleanColor = color.replace('#', '');
+  const cleanColor = color.replace(/^#+/, '');
   return HEX_COLOR_REGEX.test(cleanColor);
 }
 
@@ -20,15 +20,15 @@ export function isValidHex(color?: string): boolean {
  * Always returns a hex string WITHOUT the leading #.
  */
 export function sanitizeHexColor(input: string | undefined | null, fallback: string): string {
-  if (!input) return fallback.replace('#', '');
+  if (!input) return fallback.replace(/^#+/, '');
 
-  const cleanInput = input.trim().replace('#', '');
+  const cleanInput = input.trim().replace(/^#+/, '');
 
   if (HEX_COLOR_REGEX.test(cleanInput)) {
     return cleanInput;
   }
 
-  return fallback.replace('#', '');
+  return fallback.replace(/^#+/, '');
 }
 
 /**

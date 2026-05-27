@@ -40,6 +40,8 @@ describe('SVG Sanitizer Utilities', () => {
     it('returns sanitized hex without #', () => {
       expect(sanitizeHexColor('#ff00ff', '000000')).toBe('ff00ff');
       expect(sanitizeHexColor('ff00ff', '000000')).toBe('ff00ff');
+      // Handles multiple leading hashes gracefully
+      expect(sanitizeHexColor('##ff00ff', '000000')).toBe('ff00ff');
     });
 
     it('returns fallback for invalid input', () => {
