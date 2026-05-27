@@ -55,9 +55,44 @@ function computeFaceOpacity(count: number, isGhostCityMode: boolean): FaceOpacit
 }
 
 /**
- * Computes tower positions and heights from the last 14 weeks of
- * contribution data. The layout math is identical for both the
- * static-theme and auto-theme rendering paths.
+ * Computes the full isometric tower layout used by the SVG renderer.
+ *
+ * The function transforms the GitHub contribution calendar into a
+ * normalized array of TowerData objects consumed by both the static-theme
+ * and auto-theme rendering paths.
+ *
+ * Only the most recent 14 weeks are rendered to keep the visualization
+ * compact and visually consistent across different contribution histories.
+ *
+ * Ghost city mode is enabled when the visible 14-week window contains
+ * zero contributions. In this mode, empty towers render with minimal
+ * placeholder height/opacities so the scene still has visible structure.
+ *
+ * The todayDate parameter is used to determine which tower should receive
+ * the animated "today" pulse effect. If the supplied date does not exist
+ * inside the visible 14-week slice (for example because of stale cache
+ * data or timezone differences), the final visible day automatically
+ * falls back to being treated as "today" so the pulse animation always
+ * remains visible.
+ *
+ * Each TowerData object contains:
+ * - x/y: projected isometric screen coordinates
+ * - h: tower height in pixels
+ * - hasCommits: whether the day has contributions
+ * - isGhost: whether ghost city rendering is active for the tower
+ * - isToday: whether the tower represents the current local day
+ * - isTodayWithCommits: whether today also contains contributions
+ * - tooltip: hover label shown in the SVG
+ * - contributionCount: raw GitHub contribution count
+ * - faceOpacity: opacity configuration for isometric faces
+ * - strokeOpacity/strokeWidth: outline styling for ghost towers
+ * - row/col: logical grid coordinates used for staggered animations
+ *
+ * @param calendar GitHub contribution calendar response data.
+ * @param scale Height scaling mode used for tower height calculation.
+ * @param todayDate Local current date string used to determine the
+ * animated "today" tower highlight.
+ * @returns Array of normalized TowerData objects used by SVG renderers.
  */
 export function computeTowers(
   calendar: ContributionCalendar,
