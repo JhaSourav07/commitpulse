@@ -72,7 +72,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <div className="pt-24 sm:pt-28 relative z-10">{children}</div>
         <Analytics />
 
-        {children}
         <Toaster position="top-right" />
       </body>
     </html>
