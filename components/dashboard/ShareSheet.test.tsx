@@ -163,6 +163,27 @@ describe('ShareSheet', () => {
     expect(defaultProps.onClose).toHaveBeenCalled();
   });
 
+  it('handles Share via OS Sheet action', async () => {
+    const shareMock = vi.fn().mockResolvedValue(undefined);
+    Object.assign(navigator, {
+      share: shareMock,
+    });
+    render(<ShareSheet {...defaultProps} />);
+    const shareButton = screen.getByText('Share via OS Sheet').closest('button');
+    fireEvent.click(shareButton!);
+    await waitFor(() => {
+      expect(shareMock).toHaveBeenCalled();
+    });
+
+    expect(shareMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: expect.any(String),
+        text: expect.any(String),
+        url: expect.any(String),
+      })
+    );
+  });
+
   it('handles Download PNG action', async () => {
     render(<ShareSheet {...defaultProps} />);
 
