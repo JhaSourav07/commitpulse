@@ -120,11 +120,17 @@ export class TTLCache<T> {
     this.store.clear();
   }
 
+
+size(): number {
+    this.sweep();
+    return this.store.size;
+  }
   /**
    * Stops the cleanup interval and clears the cache.
    *
    * @returns void
    */
+
   destroy(): void {
     if (this.cleanupInterval) {
       clearInterval(this.cleanupInterval);
