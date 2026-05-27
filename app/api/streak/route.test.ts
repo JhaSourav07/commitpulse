@@ -249,6 +249,16 @@ describe('GET /api/streak', () => {
       expect(response.status).toBe(200);
     });
 
+    it('passes correct from/to range when ?year=2023 is provided', async () => {
+      await GET(makeRequest({ user: 'octocat', year: '2023' }));
+
+      expect(fetchGitHubContributions).toHaveBeenCalledWith('octocat', {
+        bypassCache: false,
+        from: '2023-01-01T00:00:00Z',
+        to: '2023-12-31T23:59:59Z',
+      });
+    });
+
     it('functions normally when the year parameter is missing', async () => {
       const response = await GET(makeRequest({ user: 'octocat' }));
 
