@@ -826,4 +826,18 @@ describe('GET /api/streak', () => {
       expect(body).toContain('</svg>');
     });
   });
+
+  describe('stale-while-revalidate cache header', () => {
+    it('contains stale-while-revalidate=86400 for normal request', async () => {
+      const response = await GET(makeRequest({ user: 'octocat' }));
+
+      expect(response.headers.get('Cache-Control')).toContain('stale-while-revalidate=86400');
+    });
+
+    it('does NOT contain stale-while-revalidate when ?refresh=true', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', refresh: 'true' }));
+
+      expect(response.headers.get('Cache-Control')).not.toContain('stale-while-revalidate=86400');
+    });
+  });
 });
