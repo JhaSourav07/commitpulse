@@ -155,7 +155,11 @@ URL Parameter > Theme Default > System Fallback
 | `hide_background` | `boolean` | No         | `false`                        | Remove the background rect, letting the monolith float on the page                                                                                                        |
 | `hide_stats`      | `boolean` | No         | `false`                        | Hides the bottom row displaying Current Streak, Annual Sync Total, and Peak Streak stats when set to `true` or `1`.                                                       |
 | `tz`              | `string`  | No         | Omitted = UTC                  | IANA timezone (e.g. `Asia/Kolkata`, `America/New_York`) — aligns "today" with the user local midnight. Note: `?tz=UTC` is valid but cached separately from omitting `tz`. |
+<<<<<<< HEAD
 | `lang`            | `string`  | No         | `en`                           | Language code for labels (`en`, `es`, `hi`, `fr`, `pt`)                                                                                                                   |
+=======
+| `lang`            | `string`  | No         | `en`                           | Language code for labels (`en`, `es`, `hi`, `fr`, `ko`)                                                                                                                   |
+>>>>>>> f9ccd96 (refactor(i18n): add Korean locale to badge labels)
 | `view`            | `string`  | No         | `default`                      | Rendering mode: `default` (3D Monolith) or `monthly` (Compact monthly stats)                                                                                              |
 | `delta_format`    | `string`  | No         | `percent`                      | Format for month-over-month delta in monthly view: `percent` (e.g. +12%), `absolute` (e.g. +15 commits), or `both`                                                        |
 | `width`           | `number`  | No         | `300`                          | Custom width for the SVG canvas (currently only applies to `view=monthly`)                                                                                                |
