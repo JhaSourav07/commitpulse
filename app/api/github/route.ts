@@ -2,6 +2,23 @@ import { NextResponse } from 'next/server';
 import { getFullDashboardData } from '@/lib/github';
 import { githubParamsSchema } from '../../../lib/validations';
 
+/**
+ * Returns GitHub dashboard data as JSON.
+ *
+ * Query params:
+ * - username: GitHub username to fetch dashboard statistics for
+ * - refresh: Optional boolean to bypass cache and fetch fresh data
+ *
+ * Success (200):
+ * - Returns dashboard profile, repositories, activity and contribution data
+ *
+ * Error codes:
+ * - 400 → Invalid query parameters
+ * - 403 → GitHub API rate limit reached
+ * - 404 → GitHub user not found
+ * - 500 → Internal server error
+ */
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
 

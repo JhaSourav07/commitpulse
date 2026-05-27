@@ -2,6 +2,7 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import LanguageChart from './LanguageChart';
+import { buildGradientStops } from './LanguageChart';
 
 vi.mock('framer-motion', () => ({
   motion: {
@@ -42,5 +43,53 @@ describe('LanguageChart', () => {
     expect(screen.getAllByText('72%')).toHaveLength(2);
     expect(screen.getAllByText('TypeScript')).toHaveLength(2);
     expect(screen.getByText('JavaScript')).toBeDefined();
+  });
+});
+
+describe('buildGradientStops', () => {
+  it('builds gradient for one language', () => {
+    const result = buildGradientStops([
+      {
+        name: 'TypeScript',
+        percentage: 100,
+        color: '#3178c6',
+      },
+    ]);
+
+    expect(result).toBe('#3178c6 0% 100%');
+  });
+
+  it('builds gradient for two languages', () => {
+    const result = buildGradientStops([
+      {
+        name: 'TypeScript',
+        percentage: 60,
+        color: '#3178c6',
+      },
+      {
+        name: 'JavaScript',
+        percentage: 40,
+        color: '#f7df1e',
+      },
+    ]);
+
+    expect(result).toBe('#3178c6 0% 60%, #f7df1e 60% 100%');
+  });
+
+  it('handles decimal percentages correctly', () => {
+    const result = buildGradientStops([
+      {
+        name: 'TS',
+        percentage: 33.3,
+        color: '#3178c6',
+      },
+      {
+        name: 'JS',
+        percentage: 66.7,
+        color: '#f7df1e',
+      },
+    ]);
+
+    expect(result).toBe('#3178c6 0% 33.3%, #f7df1e 33.3% 100%');
   });
 });

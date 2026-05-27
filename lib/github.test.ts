@@ -9,6 +9,7 @@ import {
   clearGitHubApiCacheForTests,
   GITHUB_CACHE_TTL_MS,
   validateGitHubUsername,
+  cacheKey,
 } from './github';
 import type { ContributionCalendar } from '../types';
 
@@ -106,7 +107,7 @@ describe('fetchGitHubContributions', () => {
     vi.mocked(fetch).mockResolvedValue(mockResponse({ message: 'Internal Server Error' }, 500));
 
     await expect(fetchGitHubContributions('octocat')).rejects.toThrow(
-      'GitHub GraphQL API returned status 500'
+      'GitHub GraphQL API returned status 500 after 3 retries'
     );
   });
 
@@ -222,6 +223,53 @@ describe('fetchUserRepos', () => {
     vi.mocked(fetch).mockResolvedValue(mockResponse({ message: 'Error' }, 500));
     await expect(fetchUserRepos('octocat')).rejects.toThrow('GitHub REST API error: 500');
   });
+
+  it('fetches multiple pages of repos', async () => {
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(
+        mockResponse(
+          Array.from({ length: 100 }, (_, i) => ({
+            id: i,
+            stargazers_count: i,
+            language: 'TypeScript',
+          }))
+        )
+      )
+      .mockResolvedValueOnce(
+        mockResponse([
+          {
+            id: 101,
+            stargazers_count: 101,
+            language: 'JavaScript',
+          },
+        ])
+      )
+      .mockImplementation(() => Promise.resolve(mockResponse([])) as Promise<Response>);
+
+    const result = await fetchUserRepos('octocat');
+
+    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(result.length).toBe(101);
+  });
+
+  it('stops fetching after reaching max pages', async () => {
+    vi.mocked(fetch).mockImplementation(
+      () =>
+        Promise.resolve(
+          mockResponse(
+            Array.from({ length: 100 }, (_, i) => ({
+              id: i,
+              stargazers_count: i,
+              language: 'TypeScript',
+            }))
+          )
+        ) as Promise<Response>
+    );
+
+    await fetchUserRepos('octocat');
+
+    expect(fetch).toHaveBeenCalledTimes(3);
+  });
 });
 
 describe('getFullDashboardData', () => {
@@ -279,7 +327,7 @@ describe('getFullDashboardData', () => {
     expect(totalClockCommits).toBe(8); // 3 + 0 + 5 from mockCalendar
   });
 
-  it('throws if any fetch fails', async () => {
+  it('throws if profile fetch fails', async () => {
     vi.mocked(fetch).mockImplementation(async (url: any) => {
       if (typeof url === 'string' && url.includes('/users/octocat/repos')) {
         return mockResponse([]);
@@ -291,10 +339,12 @@ describe('getFullDashboardData', () => {
         data: { user: { contributionsCollection: { contributionCalendar: mockCalendar } } },
       });
     });
-    await expect(getFullDashboardData('octocat')).rejects.toThrow('Network error');
+    await expect(getFullDashboardData('octocat')).rejects.toThrow(
+      '[GitHub API] Failed to fetch profile for user "octocat"'
+    );
   });
 
-  it('throws unknown error for non-error throws', async () => {
+  it('throws correctly for non-error throws in profile fetch', async () => {
     vi.mocked(fetch).mockImplementation(async (url: any) => {
       if (typeof url === 'string' && url.includes('/users/octocat/repos')) {
         return mockResponse([]);
@@ -306,7 +356,9 @@ describe('getFullDashboardData', () => {
         data: { user: { contributionsCollection: { contributionCalendar: mockCalendar } } },
       });
     });
-    await expect(getFullDashboardData('octocat')).rejects.toThrow('An unknown error occurred');
+    await expect(getFullDashboardData('octocat')).rejects.toThrow(
+      '[GitHub API] Failed to fetch profile for user "octocat"'
+    );
   });
 });
 
@@ -372,6 +424,66 @@ describe('GitHub API cache behavior', () => {
 
     expect(fetch).toHaveBeenCalledTimes(2);
   });
+
+  it('cache hit: second profile call uses cached value', async () => {
+    vi.mocked(fetch).mockResolvedValue(
+      mockResponse({
+        login: 'octocat',
+        name: 'The Octocat',
+      })
+    );
+
+    await fetchUserProfile('octocat');
+    await fetchUserProfile('octocat');
+
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('refresh bypass: bypassCache=true forces fresh profile fetch', async () => {
+    vi.mocked(fetch).mockImplementation(async () =>
+      mockResponse({
+        login: 'octocat',
+        name: 'The Octocat',
+      })
+    );
+
+    await fetchUserProfile('octocat');
+    await fetchUserProfile('octocat', { bypassCache: true });
+
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it('cache hit: second repos call uses cached value', async () => {
+    vi.mocked(fetch).mockResolvedValue(
+      mockResponse([
+        {
+          stargazers_count: 1,
+          language: 'TypeScript',
+        },
+      ])
+    );
+
+    await fetchUserRepos('octocat');
+    await fetchUserRepos('octocat');
+
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('refresh bypass: bypassCache=true forces fresh repos fetch', async () => {
+    vi.mocked(fetch).mockImplementation(async () =>
+      mockResponse([
+        {
+          stargazers_count: 1,
+          language: 'TypeScript',
+        },
+      ])
+    );
+
+    await fetchUserRepos('octocat');
+    await fetchUserRepos('octocat', { bypassCache: true });
+
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
 });
 describe('generateAchievements', () => {
   it('marks contribution milestones correctly', () => {
@@ -422,5 +534,31 @@ describe('validateGitHubUsername', () => {
 
   it('returns false for consecutive hyphens', () => {
     expect(validateGitHubUsername('in--valid')).toBe(false);
+  });
+});
+
+describe('cacheKey', () => {
+  it('creates key without year', () => {
+    expect(cacheKey('profile', 'DeepSikha')).toBe('profile:deepsikha');
+  });
+
+  it('creates key with year', () => {
+    expect(cacheKey('contributions', 'DeepSikha', '2025')).toBe('contributions:deepsikha:2025');
+  });
+
+  it('converts username to lowercase', () => {
+    expect(cacheKey('repos', 'DeEpSiKhA')).toBe('repos:deepsikha');
+  });
+
+  it('supports profile kind', () => {
+    expect(cacheKey('profile', 'testuser')).toContain('profile');
+  });
+
+  it('supports repos kind', () => {
+    expect(cacheKey('repos', 'testuser')).toContain('repos');
+  });
+
+  it('supports contributions kind', () => {
+    expect(cacheKey('contributions', 'testuser')).toContain('contributions');
   });
 });

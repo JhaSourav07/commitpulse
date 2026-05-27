@@ -30,7 +30,9 @@ async function handleClaim({ github, context }) {
 
   const issueAuthor = context.payload.issue.user.login;
 
-  if (commenter.toLowerCase() !== issueAuthor.toLowerCase()) {
+  const isAuthorJhasourav07 = issueAuthor.toLowerCase() === 'jhasourav07';
+
+  if (!isAuthorJhasourav07 && commenter.toLowerCase() !== issueAuthor.toLowerCase()) {
     await github.rest.issues.createComment({
       owner,
       repo,

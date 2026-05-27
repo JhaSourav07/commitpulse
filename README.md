@@ -155,7 +155,7 @@ URL Parameter > Theme Default > System Fallback
 | `hide_background` | `boolean` | No         | `false`                        | Remove the background rect, letting the monolith float on the page                                                                                                        |
 | `hide_stats`      | `boolean` | No         | `false`                        | Hides the bottom row displaying Current Streak, Annual Sync Total, and Peak Streak stats when set to `true` or `1`.                                                       |
 | `tz`              | `string`  | No         | Omitted = UTC                  | IANA timezone (e.g. `Asia/Kolkata`, `America/New_York`) — aligns "today" with the user local midnight. Note: `?tz=UTC` is valid but cached separately from omitting `tz`. |
-| `lang`            | `string`  | No         | `en`                           | Language code for labels (`en`, `es`, `hi`, `fr`)                                                                                                                         |
+| `lang`            | `string`  | No         | `en`                           | Language code for labels (`en`, `es`, `hi`, `fr`, `pt`, `ko`)                                                                                                             |
 | `view`            | `string`  | No         | `default`                      | Rendering mode: `default` (3D Monolith) or `monthly` (Compact monthly stats)                                                                                              |
 | `delta_format`    | `string`  | No         | `percent`                      | Format for month-over-month delta in monthly view: `percent` (e.g. +12%), `absolute` (e.g. +15 commits), or `both`                                                        |
 | `width`           | `number`  | No         | `300`                          | Custom width for the SVG canvas (currently only applies to `view=monthly`)                                                                                                |
@@ -219,6 +219,22 @@ URL Parameter > Theme Default > System Fallback
 <!-- Hide GitHub username/title -->
 
 ![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&hide_title=true)
+
+<!-- Hide bottom statistics row -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&hide_stats=true)
+
+<!-- Use local timezone instead of UTC -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&tz=Asia/Kolkata)
+
+<!-- Render labels in Hindi -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&lang=hi)
+
+<!-- Large badge size -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&size=large)
 ```
 
 ---
@@ -352,7 +368,7 @@ CommitPulse features a fully custom, GitHub Actions-powered **Issue Management S
 We built an anti-hoarding, self-service automation layer right into the repository:
 
 - **Structured Issue Templates:** We use specific templates for Bug Reports and Feature Requests to maintain high quality and clarity.
-- **Self-Claiming:** Issue authors can grab their issues instantly by commenting `/claim` (only the author of the issue can claim it).
+- **Self-Claiming:** Issue authors can grab their issues instantly by commenting `/claim` (only the author of the issue can claim it, unless it was authored by `jhasourav07`, in which case anyone can claim it).
 - **Fair Play:** A strict one-active-issue-per-contributor rule prevents issue hoarding.
 - **Stale Expiry:** A scheduled chron job automatically unassigns inactive contributors after 3 days.
 - **Self-Service Labels:** Anyone can tag issues using `/addlabel <tag>`.

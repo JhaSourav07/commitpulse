@@ -20,7 +20,7 @@ function StyledSelect({
       id={id}
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="w-full bg-black border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white outline-none focus:border-emerald-500/50 transition-colors appearance-none cursor-pointer"
+      className="w-full bg-gray-100/80 backdrop-blur-md border border-black/10 dark:bg-white/[0.03] dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-black dark:text-white outline-none focus:border-emerald-500/50 transition-colors appearance-none cursor-pointer"
     >
       {children}
     </select>
@@ -68,7 +68,7 @@ export function ThemeSelector({
                 <span className="w-1/2 h-full" style={{ backgroundColor: `#${themes.light.bg}` }} />
                 <span className="w-1/2 h-full" style={{ backgroundColor: `#${themes.dark.bg}` }} />
               </span>
-              <span className="text-[11px] text-white/25 ml-1 self-center">
+              <span className="text-[11px] text-gray-500 dark:text-white/25 ml-1 self-center">
                 switches with OS theme
               </span>
             </>
@@ -78,11 +78,11 @@ export function ThemeSelector({
                 <span
                   key={color}
                   title={`Random accent sample ${index + 1}: #${color}`}
-                  className="w-5 h-5 rounded-full border border-white/10"
+                  className="w-5 h-5 rounded-full border border-black/10 dark:border-white/10"
                   style={{ backgroundColor: `#${color}` }}
                 />
               ))}
-              <span className="text-[11px] text-white/25 ml-1 self-center">
+              <span className="text-[11px] text-gray-500 dark:text-white/25 ml-1 self-center">
                 changes on each load
               </span>
             </>
@@ -94,12 +94,14 @@ export function ThemeSelector({
                   <span
                     key={prop}
                     title={`${prop}: #${color}`}
-                    className="w-5 h-5 rounded-md border border-white/10"
+                    className="w-5 h-5 rounded-md border border-black/10 dark:border-white/10"
                     style={{ backgroundColor: `#${color}` }}
                   />
                 ) : null;
               })}
-              <span className="text-[11px] text-white/25 ml-1 self-center">bg · accent · text</span>
+              <span className="text-[11px] text-gray-500 dark:text-white/25 ml-1 self-center">
+                bg · accent · text
+              </span>{' '}
             </>
           )}
         </div>
