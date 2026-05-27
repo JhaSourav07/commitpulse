@@ -76,6 +76,12 @@ export default function LandingPage() {
   const trimmedUsername = username.trim();
   const hasUsername = trimmedUsername.length > 0;
 
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMounted(true);
+  }, []);
+
   const badgeUrl = `/api/streak?user=${trimmedUsername}`;
   const markdown = `![CommitPulse](https://commitpulse.vercel.app/api/streak?user=${trimmedUsername})`;
 
@@ -225,7 +231,7 @@ export default function LandingPage() {
               <div className="flex flex-col sm:flex-row gap-4">
                 <button
                   type="submit"
-                  disabled={!hasUsername}
+                  disabled={!mounted || !hasUsername}
                   className={`relative flex min-w-[160px] items-center justify-center gap-2 overflow-hidden rounded-xl px-6 py-3.5 text-sm font-semibold transition-all duration-200 active:scale-[0.98] ${
                     hasUsername
                       ? 'bg-black text-white hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-zinc-100'
@@ -256,7 +262,7 @@ export default function LandingPage() {
                 </button>
                 <Link
                   href={hasUsername ? `/dashboard/${trimmedUsername}` : '/'}
-                  aria-disabled={!hasUsername}
+                  aria-disabled={!mounted || !hasUsername}
                   onClick={(e) => {
                     if (!hasUsername) {
                       e.preventDefault();
@@ -321,7 +327,7 @@ export default function LandingPage() {
                   )}
                   {svgState === 'loaded' && svgContent && (
                     <div
-                      className="w-full max-w-[600px] drop-shadow-[0_20px_50px_rgba(0,0,0,0.5)] [&>svg]:w-full [&>svg]:h-auto"
+                      className="cp-svg-container w-full max-w-[600px] drop-shadow-[0_20px_50px_rgba(0,0,0,0.5)] [&>svg]:w-full [&>svg]:h-auto"
                       // Safe: SVG is generated server-side by our own trusted generator
                       dangerouslySetInnerHTML={{ __html: svgContent }}
                     />
