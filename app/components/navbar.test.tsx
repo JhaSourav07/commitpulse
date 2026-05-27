@@ -3,6 +3,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import Navbar from './navbar';
 import type { ReactNode } from 'react';
 
+// Mock matchMedia
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
   value: vi.fn().mockImplementation((query) => ({
@@ -17,18 +18,21 @@ Object.defineProperty(window, 'matchMedia', {
   })),
 });
 
+// Mock framer-motion
 vi.mock('framer-motion', () => ({
   motion: {
     div: ({ children }: { children: ReactNode }) => <div>{children}</div>,
   },
 }));
 
+// Mock lucide-react icons (including the newly added Search icon)
 vi.mock('lucide-react', () => ({
   Menu: () => <div>MenuIcon</div>,
   X: () => <div>CloseIcon</div>,
   Activity: () => <div>ActivityIcon</div>,
   Sun: () => <div>SunIcon</div>,
   Moon: () => <div>MoonIcon</div>,
+  Search: () => <div>SearchIcon</div>, // <-- THIS WAS MISSING
 }));
 
 describe('Navbar mobile menu', () => {
@@ -80,6 +84,7 @@ describe('Navbar mobile menu', () => {
 
     window.dispatchEvent(new Event('resize'));
 
+    // Note: this assertion tests that the state changed correctly based on your test logic
     expect(button.getAttribute('aria-expanded')).toBe('true');
   });
 });
