@@ -28,6 +28,7 @@ export const streakParamsSchema = z.object({
   // Silently fall back to 'linear' for unknown values (matches old behavior)
   scale: z.enum(['linear', 'log']).catch('linear').default('linear'),
 
+  // Invalid size values fall back to 'medium' to preserve badge rendering.
   size: z.enum(['small', 'medium', 'large']).catch('medium').default('medium'),
 
   // Silently fall back to '8s' for invalid format (matches old behavior)
@@ -36,6 +37,7 @@ export const streakParamsSchema = z.object({
     .transform((val) => sanitizeSpeed(val, '8s'))
     .default('8s'),
 
+  // Invalid radius values are sanitized and fall back to 8px.
   radius: z
     .string()
     .transform((val) => sanitizeRadius(val, 8))
@@ -77,7 +79,9 @@ export const streakParamsSchema = z.object({
     .optional()
     .transform((val) => val === 'true' || val === '1'),
   lang: z.string().optional().default('en'),
+  // Unknown view values fall back to the default dashboard view.
   view: z.enum(['default', 'monthly']).catch('default').default('default'),
+  // Invalid delta formats fall back to percentage mode.
   delta_format: z.enum(['percent', 'absolute', 'both']).catch('percent').default('percent'),
   width: z.string().optional(),
   height: z.string().optional(),
