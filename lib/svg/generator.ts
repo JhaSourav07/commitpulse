@@ -109,7 +109,7 @@ function renderHeader(safeUser: string, stats: StreakStats, sf: number): string 
 /** Renders the three-column stats row (Current Streak / Annual Sync Total / Peak Streak). */
 function renderStatsSection(stats: StreakStats, labels: BadgeLabels, s: Scaler): string {
   return `
-  <g transform="translate(${s(40)}, ${s(340)})">
+  <g transform="translate(${s(100)}, ${s(340)})" text-anchor="middle">
     <text class="label">${labels.CURRENT_STREAK}</text>
     <text y="${s(40)}" class="stats" filter="url(#glow)">${stats.currentStreak}</text>
   </g>
@@ -117,7 +117,7 @@ function renderStatsSection(stats: StreakStats, labels: BadgeLabels, s: Scaler):
     <text class="label">${labels.ANNUAL_SYNC_TOTAL}</text>
     <text y="${s(40)}" class="total-val" filter="url(#glow)">${stats.totalContributions}</text>
   </g>
-  <g transform="translate(${s(560)}, ${s(340)})" text-anchor="end">
+  <g transform="translate(${s(500)}, ${s(340)})" text-anchor="middle">
     <text class="label">${labels.PEAK_STREAK}</text>
     <text y="${s(40)}" class="stats">${stats.longestStreak}</text>
   </g>`;
@@ -679,7 +679,7 @@ export function generateNotFoundSVG(
   </text>
 
   <!-- Bottom stat placeholders (same layout as real badge, greyed out) -->
-  <g transform="translate(40, 340)">
+  <g transform="translate(100, 340)" text-anchor="middle">
     <text class="label">CURRENT_STREAK</text>
     <text y="40" class="stats">—</text>
   </g>
@@ -688,7 +688,7 @@ export function generateNotFoundSVG(
     <text y="40" font-family="Space Grotesk,sans-serif" font-size="24"
       fill="${accent}" opacity="0.2">—</text>
   </g>
-  <g transform="translate(560, 340)" text-anchor="end">
+  <g transform="translate(500, 340)" text-anchor="middle">
     <text class="label">PEAK_STREAK</text>
     <text y="40" class="stats">—</text>
   </g>
