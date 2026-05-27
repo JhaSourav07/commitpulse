@@ -334,9 +334,9 @@ export function generateMonthlySVG(stats: MonthlyStats, params: BadgeParams): st
   }
 
   const safeUser = escapeXML(params.user || 'GitHub User');
-  const bg = `#${(params.bg || '0d1117').replace('#', '')}`;
-  const accent = `#${(params.accent || '00ffaa').replace('#', '')}`;
-  const text = `#${(params.text || 'ffffff').replace('#', '')}`;
+  const bg = `#${sanitizeHexColor(params.bg, '0d1117')}`;
+  const accent = `#${sanitizeHexColor(params.accent, '00ffaa')}`;
+  const text = `#${sanitizeHexColor(params.text, 'ffffff')}`;
 
   const sanitizeFont = (name: string) => name.replace(/[^a-zA-Z0-9\s-]/g, '').trim();
   const sanitizedFont = params.font ? sanitizeFont(params.font) : null;
