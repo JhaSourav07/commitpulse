@@ -133,7 +133,7 @@ export default function LandingPage() {
       }, 80);
 
       setTimeout(() => setCopied(false), 2000);
-    } catch (error) {
+    } catch {
       toast.error('Failed to copy markdown');
     }
   };
