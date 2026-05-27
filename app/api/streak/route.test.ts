@@ -323,6 +323,14 @@ describe('GET /api/streak', () => {
       expect(body.details.fieldErrors.year[0]).toContain('GitHub was founded in 2008');
     });
 
+    it('returns 400 for the year=2007(before GitHub was founded)', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', year: '2007' }));
+      const body = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(body.details.fieldErrors.year[0]).toContain('GitHub was founded in 2008');
+    });
+
     it('returns 400 for future years', async () => {
       const futureYear = (new Date().getFullYear() + 1).toString();
 
