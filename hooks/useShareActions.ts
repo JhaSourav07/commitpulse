@@ -1,3 +1,4 @@
+'use client';
 import { useState, useRef, useEffect } from 'react';
 import { toPng } from 'html-to-image';
 import type { DashboardExportData } from '@/types/dashboard';
@@ -35,14 +36,16 @@ export function useShareActions(
     };
   }, []);
 
-  const handleCopyLink = async () => {
+  const handleCopyLink = async (): Promise<boolean> => {
     setOptionState('copy', 'loading');
     try {
       await navigator.clipboard.writeText(PROFILE_URL(username));
       setOptionState('copy', 'success');
       setTimeout(() => onClose(), 800);
+      return true;
     } catch {
       setOptionState('copy', 'error');
+      return false;
     }
   };
 
@@ -158,18 +161,19 @@ export function useShareActions(
   const handleNativeShare = async () => {
     if (!('share' in navigator)) {
       setOptionState('native', 'loading');
-      await handleCopyLink();
-      setOptionState('native', 'success');
+      const success = await handleCopyLink();
+      setOptionState('native', success ? 'success' : 'error');
       return;
     }
     setOptionState('native', 'loading');
     try {
       await navigator.share({
         title: `${username}'s Commit Pulse`,
+        text: `Check out my GitHub commit pulse on CommitPulse 🚀`,
         url: PROFILE_URL(username),
       });
       setOptionState('native', 'success');
-      onClose();
+      setTimeout(() => onClose(), 800);
     } catch (err) {
       if (err instanceof Error && err.name !== 'AbortError') {
         setOptionState('native', 'error');
