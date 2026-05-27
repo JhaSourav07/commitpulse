@@ -4,6 +4,7 @@ import type { ContributionCalendar, ContributionDay } from '@/types';
 import { calculateStreak, aggregateCalendars, calculateWrappedStats } from '@/lib/calculate';
 import { TTLCache } from '@/lib/cache';
 import { LANGUAGE_COLORS } from '@/lib/svg/languageColors';
+import { CONTRIBUTION_MILESTONES, STREAK_MILESTONES } from './svg/constants';
 
 interface GitHubRepo {
   stargazers_count: number;
@@ -12,10 +13,8 @@ interface GitHubRepo {
 
 const MAX_RETRIES = 3;
 const BASE_DELAY_MS = 500;
-const CONTRIBUTION_MILESTONES = [1, 10, 100, 250, 500, 1000];
-const STREAK_MILESTONES = [3, 7, 30, 100];
-const GRAPHQL_TIMEOUT_MS = 8000;
-const REST_TIMEOUT_MS = 5000;
+const GRAPHQL_TIMEOUT_MS = 8000; // 8s for GraphQL endpoint
+const REST_TIMEOUT_MS = 5000; // 5s for REST endpoints
 
 export async function fetchWithRetry(
   url: string | URL,
