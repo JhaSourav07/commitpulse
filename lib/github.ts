@@ -82,15 +82,34 @@ const GITHUB_GRAPHQL_URL = 'https://api.github.com/graphql';
 const GITHUB_REST_URL = 'https://api.github.com';
 
 type GitHubContributionResponse = {
-  data: {
+  data?: {
     user: {
       contributionsCollection: {
         contributionCalendar: ContributionCalendar;
       };
     } | null;
   };
-  errors?: Array<{ message: string }>;
+  errors?: unknown;
 };
+
+const UNKNOWN_GRAPHQL_ERROR_MESSAGE = 'GitHub GraphQL API returned an unknown error';
+
+function getGraphQLErrorMessage(errors: unknown): string {
+  if (!Array.isArray(errors)) return UNKNOWN_GRAPHQL_ERROR_MESSAGE;
+
+  const firstError = errors[0];
+  if (
+    firstError &&
+    typeof firstError === 'object' &&
+    'message' in firstError &&
+    typeof firstError.message === 'string' &&
+    firstError.message.trim() !== ''
+  ) {
+    return firstError.message;
+  }
+
+  return UNKNOWN_GRAPHQL_ERROR_MESSAGE;
+}
 
 /**
  * Configuration options for GitHub API fetch requests.
@@ -264,11 +283,11 @@ export async function fetchGitHubContributions(
 
   const data: GitHubContributionResponse = await res.json();
 
-  if (data.errors) {
-    throw new Error(data.errors[0].message);
+  if (data.errors !== undefined) {
+    throw new Error(getGraphQLErrorMessage(data.errors));
   }
 
-  if (!data.data.user) {
+  if (!data.data?.user) {
     throw new Error(`GitHub user "${username}" not found`);
   }
 

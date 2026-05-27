@@ -135,8 +135,32 @@ describe('fetchGitHubContributions', () => {
       })
     );
 
-    // Only the first error surfaces — the source always reads errors[0].
+    // Preserve the existing behavior of surfacing the first GitHub error message.
     await expect(fetchGitHubContributions('octocat')).rejects.toThrow('Bad credentials');
+  });
+
+  it('throws a stable fallback when GraphQL returns an empty errors array', async () => {
+    vi.mocked(fetch).mockResolvedValue(
+      mockResponse({
+        errors: [],
+      })
+    );
+
+    await expect(fetchGitHubContributions('octocat')).rejects.toThrow(
+      'GitHub GraphQL API returned an unknown error'
+    );
+  });
+
+  it('throws a stable fallback when the first GraphQL error has no message', async () => {
+    vi.mocked(fetch).mockResolvedValue(
+      mockResponse({
+        errors: [{}],
+      })
+    );
+
+    await expect(fetchGitHubContributions('octocat')).rejects.toThrow(
+      'GitHub GraphQL API returned an unknown error'
+    );
   });
 
   it('throws a descriptive "user not found" error when the username does not exist on GitHub', async () => {
