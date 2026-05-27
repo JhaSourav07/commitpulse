@@ -90,6 +90,25 @@ describe('GET /api/streak', () => {
 
       expect(fetchGitHubContributions).not.toHaveBeenCalled();
     });
+
+    it('returns 400 for invalid monthly badge dimensions', async () => {
+      const invalidDimensionParams: Array<Record<string, string>> = [
+        { width: 'abc' },
+        { width: '-50' },
+        { width: '1201' },
+        { height: 'abc' },
+        { height: '0' },
+        { height: '801' },
+      ];
+
+      for (const params of invalidDimensionParams) {
+        const response = await GET(makeRequest({ user: 'octocat', view: 'monthly', ...params }));
+
+        expect(response.status).toBe(400);
+      }
+
+      expect(fetchGitHubContributions).not.toHaveBeenCalled();
+    });
   });
 
   describe('successful response', () => {
@@ -613,6 +632,18 @@ describe('GET /api/streak', () => {
       expect(response.status).toBe(200);
       const body = await response.text();
       expect(body).toContain('COMMITS THIS MONTH');
+    });
+
+    it('uses valid custom width and height in monthly SVG output', async () => {
+      const response = await GET(
+        makeRequest({ user: 'octocat', view: 'monthly', width: '400', height: '200' })
+      );
+      const body = await response.text();
+
+      expect(response.status).toBe(200);
+      expect(body).toContain('width="400"');
+      expect(body).toContain('height="200"');
+      expect(body).toContain('viewBox="0 0 400 200"');
     });
 
     it('defaults to default view when an unknown view is given', async () => {

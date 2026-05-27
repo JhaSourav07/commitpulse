@@ -129,8 +129,8 @@ export async function GET(request: Request) {
       lang,
       view,
       delta_format,
-      width: width ? parseInt(width, 10) : undefined,
-      height: height ? parseInt(height, 10) : undefined,
+      width,
+      height,
       size,
       grace,
     };
