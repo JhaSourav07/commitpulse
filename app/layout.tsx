@@ -69,7 +69,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className={`${inter.className} bg-black`}>
         <BrandParticles />
         <Navbar />
-        <div className="pt-24 sm:pt-28 relative z-10">{children}</div>
+        <div className="relative z-10">{children}</div>
         <ReturnToTop />
         <Analytics />
       </body>
