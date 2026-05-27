@@ -472,4 +472,27 @@ describe('GET /api/streak', () => {
       expect(response.headers.get('Cache-Control')).toBe('no-cache, no-store, must-revalidate');
     });
   });
+
+  describe('radius parameter', () => {
+    it('applies rx="16" when ?radius=16 is given', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', radius: '16' }));
+      const body = await response.text();
+
+      expect(body).toContain('rx="16"');
+    });
+
+    it('applies rx="0" when ?radius=0 is given', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', radius: '0' }));
+      const body = await response.text();
+
+      expect(body).toContain('rx="0"');
+    });
+
+    it('clamps to rx="50" when a value over the cap (e.g., 200) is given', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', radius: '200' }));
+      const body = await response.text();
+
+      expect(body).toContain('rx="50"');
+    });
+  });
 });
