@@ -5,6 +5,7 @@ import {
   sanitizeSpeed,
   sanitizeRadius,
   sanitizeFont,
+  sanitizeGoogleFontUrl,
 } from './sanitizer';
 
 describe('SVG Sanitizer Utilities', () => {
@@ -95,6 +96,34 @@ describe('SVG Sanitizer Utilities', () => {
 
     it('returns null for completely invalid font', () => {
       expect(sanitizeFont('!!!')).toBe(null);
+    });
+  });
+
+  describe('sanitizeGoogleFontUrl', () => {
+    it('handles normal font names and spaces', () => {
+      expect(sanitizeGoogleFontUrl('Roboto')).toBe('Roboto');
+      expect(sanitizeGoogleFontUrl('Open Sans')).toBe('Open+Sans');
+      expect(sanitizeGoogleFontUrl('Space-Grotesk')).toBe('Space-Grotesk');
+      expect(sanitizeGoogleFontUrl('  PT Sans  ')).toBe('PT+Sans');
+    });
+
+    it('returns null for empty strings, null, and undefined', () => {
+      expect(sanitizeGoogleFontUrl('')).toBe(null);
+      expect(sanitizeGoogleFontUrl('   ')).toBe(null);
+      expect(sanitizeGoogleFontUrl(null)).toBe(null);
+      expect(sanitizeGoogleFontUrl(undefined)).toBe(null);
+    });
+
+    it('returns null for malicious or injection inputs', () => {
+      expect(sanitizeGoogleFontUrl("Open Sans'")).toBe(null);
+      expect(sanitizeGoogleFontUrl('Open Sans"')).toBe(null);
+      expect(sanitizeGoogleFontUrl('Open Sans;')).toBe(null);
+      expect(sanitizeGoogleFontUrl('Open Sans/')).toBe(null);
+      expect(sanitizeGoogleFontUrl('Open Sans\\')).toBe(null);
+      expect(sanitizeGoogleFontUrl('<script>')).toBe(null);
+      expect(sanitizeGoogleFontUrl('Open Sans); @import url(http://evil.com)')).toBe(null);
+      expect(sanitizeGoogleFontUrl('../invalid')).toBe(null);
+      expect(sanitizeGoogleFontUrl('https://example.com')).toBe(null);
     });
   });
 });

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { useRecentSearches } from './useRecentSearches';
+import { useRecentSearches, MAX_SEARCHES } from './useRecentSearches';
 
 const store: Record<string, string> = {};
 
@@ -49,14 +49,17 @@ describe('useRecentSearches', () => {
     expect(result.current.searches.length).toBe(2);
   });
 
-  it('caps at 5 entries', () => {
+  it(`caps at ${MAX_SEARCHES} entries`, () => {
     const { result } = renderHook(() => useRecentSearches());
-    ['a', 'b', 'c', 'd', 'e', 'f'].forEach((u) => {
+    const testData = Array.from({ length: MAX_SEARCHES + 1 }, (_, i) =>
+      String.fromCharCode(97 + i)
+    );
+    testData.forEach((u) => {
       act(() => {
         result.current.addSearch(u);
       });
     });
-    expect(result.current.searches.length).toBe(5);
+    expect(result.current.searches.length).toBe(MAX_SEARCHES);
   });
 
   it('clears all searches', () => {

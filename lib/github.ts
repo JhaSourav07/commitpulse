@@ -78,6 +78,7 @@ type FetchOptions = {
   bypassCache?: boolean;
   from?: string;
   to?: string;
+  signal?: AbortSignal;
 };
 
 export const GITHUB_CACHE_TTL_MS = 5 * 60 * 1000;
@@ -171,6 +172,7 @@ export async function fetchGitHubContributions(
       variables: { login: username, from: options.from, to: options.to },
     }),
     cache: 'no-store', // Cache handled by our in-memory layer + API route headers
+    signal: options.signal,
   });
 
   if (!res.ok) {
@@ -215,6 +217,7 @@ export async function fetchUserProfile(
   const res = await fetchWithRetry(`${GITHUB_REST_URL}/users/${username}`, {
     headers: getHeaders(),
     cache: 'no-store',
+    signal: options.signal,
   });
 
   if (!res.ok) {
@@ -341,23 +344,13 @@ export async function getFullDashboardData(username: string, options: FetchOptio
       (acc: number, repo: GitHubRepo) => acc + repo.stargazers_count,
       0
     );
+  }
 
-    // Developer Score — 5-factor weighted formula (max 100 pts)
-    // Repos:         up to 25 pts  (saturates at 50 public repos)
-    // Followers:     up to 25 pts  (saturates at 50 followers)
-    // Stars:         up to 20 pts  (saturates at 100 total stars)
-    // Contributions: up to 20 pts  (saturates at 400 yearly contributions)
-    // Streak:        up to 10 pts  (saturates at a 50-day longest streak)
-    const developerScore = Math.min(
-      Math.round(
-        Math.min(profileData.public_repos * 0.5, 25) +
-          Math.min(profileData.followers * 0.5, 25) +
-          Math.min(totalStars * 0.2, 20) +
-          Math.min(streakStats.totalContributions / 20, 20) +
-          Math.min(streakStats.longestStreak * 0.2, 10)
-      ),
-      100
-    );
+  const [profileResult, reposResult, calendarResult] = await Promise.allSettled([
+    fetchUserProfile(username, options),
+    fetchUserRepos(username, options),
+    fetchGitHubContributions(username, options),
+  ]);
 
     // 1. Profile Mapping
     const profile = {
@@ -397,117 +390,195 @@ export async function getFullDashboardData(username: string, options: FetchOptio
         intensity,
       };
     });
+  }
+  const profileData = profileResult.value;
 
-    // 3. Languages Mapping
-    const langCounts: Record<string, number> = {};
-    reposData.forEach((repo: GitHubRepo) => {
-      if (repo.language) {
-        langCounts[repo.language] = (langCounts[repo.language] || 0) + 1;
-      }
-    });
+  const reposData = reposResult.status === 'fulfilled' ? reposResult.value : [];
 
-    // Fixed color mapping for common languages to avoid random colors
-    // Fixed color mapping for common languages to avoid random colors
-    const languageColors: Record<string, string> = {
-      TypeScript: '#3178c6',
-      JavaScript: '#f1e05a',
-      Python: '#3572A5',
-      Java: '#b07219',
-      'C++': '#f34b7d',
-      HTML: '#e34c26',
-      CSS: '#563d7c',
-      Go: '#00ADD8',
-      Rust: '#dea584',
-
-      C: '#555555',
-      'C#': '#178600',
-      PHP: '#4F5D95',
-      Ruby: '#701516',
-      Swift: '#F05138',
-      Kotlin: '#A97BFF',
-      Dart: '#00B4AB',
-      Lua: '#000080',
-      R: '#198CE7',
-      Scala: '#c22d40',
-      Perl: '#0298c3',
-      Haskell: '#5e5086',
-      Elixir: '#6e4a7e',
-      Vue: '#41b883',
-      Svelte: '#ff3e00',
-    };
-
-    const totalLangs = Object.values(langCounts).reduce((a, b) => a + b, 0);
-    const languages = Object.entries(langCounts)
-      .map(([name, count]) => ({
-        name,
-        percentage: Math.round((count / totalLangs) * 100),
-        color: languageColors[name] || '#a855f7', // fallback purple
-      }))
-      .sort((a, b) => b.percentage - a.percentage)
-      .slice(0, 5); // top 5
-
-    const achievements = generateAchievements(
-      streakStats.totalContributions,
-      streakStats.currentStreak
+  if (reposResult.status === 'rejected' && process.env.NODE_ENV === 'development') {
+    console.error(
+      `[GitHub API] Failed to fetch repos for user "${username}" (fallback to empty list):`,
+      reposResult.reason
     );
+  }
 
-    // 4. Insights Generation
-    const insights = [
-      {
-        id: '1',
-        icon: 'Flame',
-        text: `You have a total of ${streakStats.totalContributions} contributions this year.`,
-      },
-      {
-        id: '2',
-        icon: 'Code',
-        text: `Your primary language is ${languages[0]?.name || 'Unknown'}.`,
-      },
-    ];
+  const calendarData =
+    calendarResult.status === 'fulfilled'
+      ? calendarResult.value
+      : ({ totalContributions: 0, weeks: [] } as ContributionCalendar);
+  if (calendarResult.status === 'rejected' && process.env.NODE_ENV === 'development') {
+    console.error(
+      `[GitHub API] Failed to fetch calendar for user "${username}" (fallback to 0 contributions):`,
+      calendarResult.reason
+    );
+  }
 
-    if (streakStats.currentStreak > 3) {
-      insights.push({
-        id: '3',
-        icon: 'Zap',
-        text: `You are currently on an active ${streakStats.currentStreak}-day streak! Keep it going!`,
-      });
-    } else {
-      insights.push({
-        id: '3',
-        icon: 'Star',
-        text: `Your longest coding streak is ${streakStats.longestStreak} days!`,
-      });
-    }
+  // Pre-compute streak + stars early so developerScore can use them
+  const streakStats = calculateStreak(calendarData);
+  const totalStars = reposData.reduce(
+    (acc: number, repo: GitHubRepo) => acc + repo.stargazers_count,
+    0
+  );
 
-    // Aggregate real contribution data by day of week from the already-fetched calendar
-    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    const dayTotals = new Array(7).fill(0);
-    for (const day of allDays) {
-      const dow = new Date(day.date).getUTCDay();
-      dayTotals[dow] += day.contributionCount;
-    }
-    const commitClock = dayNames.map((name, i) => ({
-      day: name,
-      commits: dayTotals[i],
-    }));
+  // Developer Score — 5-factor weighted formula (max 100 pts)
+  // Repos:         up to 25 pts  (saturates at 50 public repos)
+  // Followers:     up to 25 pts  (saturates at 50 followers)
+  // Stars:         up to 20 pts  (saturates at 100 total stars)
+  // Contributions: up to 20 pts  (saturates at 400 yearly contributions)
+  // Streak:        up to 10 pts  (saturates at a 50-day longest streak)
+  const developerScore = Math.min(
+    Math.round(
+      Math.min(profileData.public_repos * 0.5, 25) +
+        Math.min(profileData.followers * 0.5, 25) +
+        Math.min(totalStars * 0.2, 20) +
+        Math.min(streakStats.totalContributions / 20, 20) +
+        Math.min(streakStats.longestStreak * 0.2, 10)
+    ),
+    100
+  );
+
+  // 1. Profile Mapping
+  const profile = {
+    username: profileData.login,
+    name: displayName(profileData),
+    avatarUrl: profileData.avatar_url,
+    isPro: profileData.plan?.name === 'pro',
+    bio: profileData.bio || 'No bio available',
+    location: profileData.location || 'Earth',
+    joinedDate: new Date(profileData.created_at).toLocaleDateString('en-US', {
+      month: 'short',
+      year: 'numeric',
+    }),
+    developerScore,
+    stats: {
+      repositories: profileData.public_repos,
+      followers: profileData.followers,
+      following: profileData.following,
+      stars: totalStars,
+    },
+  };
+
+  // 2. Streaks & Activity Mapping (streakStats already computed above)
+
+  // Flatten days for charts
+  const allDays = calendarData.weeks.flatMap((w) => w.contributionDays);
+  const activity = allDays.map((day) => {
+    let intensity: 0 | 1 | 2 | 3 | 4 = 0;
+    if (day.contributionCount > 0) intensity = 1;
+    if (day.contributionCount > 3) intensity = 2;
+    if (day.contributionCount > 6) intensity = 3;
+    if (day.contributionCount > 10) intensity = 4;
 
     return {
-      profile,
-      stats: {
-        currentStreak: streakStats.currentStreak,
-        peakStreak: streakStats.longestStreak,
-        totalContributions: streakStats.totalContributions,
-      },
-      languages,
-      activity,
-      insights,
-      achievements,
-      commitClock,
+      date: day.date,
+      count: day.contributionCount,
+      intensity,
     };
-  } catch (error: unknown) {
-    if (error instanceof Error) {
-      throw new Error(error.message);
+  });
+
+  // 3. Languages Mapping
+  const langCounts: Record<string, number> = {};
+  reposData.forEach((repo: GitHubRepo) => {
+    if (repo.language) {
+      langCounts[repo.language] = (langCounts[repo.language] || 0) + 1;
     }
-    throw new Error('An unknown error occurred');
+  });
+
+  // Fixed color mapping for common languages to avoid random colors
+  const languageColors: Record<string, string> = {
+    TypeScript: '#3178c6',
+    JavaScript: '#f1e05a',
+    Python: '#3572A5',
+    Java: '#b07219',
+    'C++': '#f34b7d',
+    HTML: '#e34c26',
+    CSS: '#563d7c',
+    Go: '#00ADD8',
+    Rust: '#dea584',
+
+    C: '#555555',
+    'C#': '#178600',
+    PHP: '#4F5D95',
+    Ruby: '#701516',
+    Swift: '#F05138',
+    Kotlin: '#A97BFF',
+    Dart: '#00B4AB',
+    Lua: '#000080',
+    R: '#198CE7',
+    Scala: '#c22d40',
+    Perl: '#0298c3',
+    Haskell: '#5e5086',
+    Elixir: '#6e4a7e',
+    Vue: '#41b883',
+    Svelte: '#ff3e00',
+  };
+
+  const totalLangs = Object.values(langCounts).reduce((a, b) => a + b, 0);
+  const languages = Object.entries(langCounts)
+    .map(([name, count]) => ({
+      name,
+      percentage: Math.round((count / totalLangs) * 100),
+      color: languageColors[name] || '#a855f7', // fallback purple
+    }))
+    .sort((a, b) => b.percentage - a.percentage)
+    .slice(0, 5); // top 5
+
+  const achievements = generateAchievements(
+    streakStats.totalContributions,
+    streakStats.currentStreak
+  );
+
+  // 4. Insights Generation
+  const insights = [
+    {
+      id: '1',
+      icon: 'Flame',
+      text: `You have a total of ${streakStats.totalContributions} contributions this year.`,
+    },
+    {
+      id: '2',
+      icon: 'Code',
+      text: `Your primary language is ${languages[0]?.name || 'Unknown'}.`,
+    },
+  ];
+
+  if (streakStats.currentStreak > 3) {
+    insights.push({
+      id: '3',
+      icon: 'Zap',
+      text: `You are currently on an active ${streakStats.currentStreak}-day streak! Keep it going!`,
+    });
+  } else {
+    insights.push({
+      id: '3',
+      icon: 'Star',
+      text: `Your longest coding streak is ${streakStats.longestStreak} days!`,
+    });
   }
+
+  // Aggregate real contribution data by day of week from the already-fetched calendar
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const dayTotals = new Array(7).fill(0);
+  for (const day of allDays) {
+    const dow = new Date(day.date).getUTCDay();
+    dayTotals[dow] += day.contributionCount;
+  }
+  const commitClock = dayNames.map((name, i) => ({
+    day: name,
+    commits: dayTotals[i],
+  }));
+
+  return {
+    profile,
+    stats: {
+      currentStreak: streakStats.currentStreak,
+      peakStreak: streakStats.longestStreak,
+      totalContributions: streakStats.totalContributions,
+    },
+    languages,
+    activity,
+    insights,
+    achievements,
+    commitClock,
+  };
 }

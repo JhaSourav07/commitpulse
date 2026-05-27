@@ -1,0 +1,70 @@
+// app/api/stats/route.ts
+import { NextResponse } from 'next/server';
+import { fetchGitHubContributions } from '../../../lib/github';
+import { calculateStreak } from '../../../lib/calculate';
+import { statsParamsSchema } from '../../../lib/validations';
+
+/**
+ * GET /api/stats?user=<username>[&refresh=true][&tz=<IANA timezone>]
+ *
+ * Returns JSON contribution stats for a GitHub user. Used by the OG image
+ * endpoint (/api/og) and any other consumer that needs numeric stats rather
+ * than the SVG badge returned by /api/streak.
+ *
+ * Response shape:
+ * {
+ *   "totalContributions": number,
+ *   "longestStreak":       number,
+ *   "currentStreak":       number
+ * }
+ */
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+
+  const parseResult = statsParamsSchema.safeParse(Object.fromEntries(searchParams.entries()));
+
+  if (!parseResult.success) {
+    return NextResponse.json(
+      {
+        error: 'Invalid parameters',
+        details: parseResult.error.flatten(),
+      },
+      { status: 400 }
+    );
+  }
+
+  const { user, refresh, tz } = parseResult.data;
+
+  // Validate the optional IANA timezone early so callers get a clear 400
+  // rather than a silent fallback or a 500.
+  let timezone = 'UTC';
+  if (tz) {
+    try {
+      timezone = new Intl.DateTimeFormat(undefined, { timeZone: tz }).resolvedOptions().timeZone;
+    } catch {
+      return NextResponse.json({ error: `Invalid "tz" parameter: "${tz}"` }, { status: 400 });
+    }
+  }
+
+  try {
+    const calendar = await fetchGitHubContributions(user, { bypassCache: refresh });
+    const stats = calculateStreak(calendar, timezone);
+
+    return NextResponse.json(
+      {
+        totalContributions: stats.totalContributions,
+        longestStreak: stats.longestStreak,
+        currentStreak: stats.currentStreak,
+      },
+      {
+        headers: {
+          // Cache until next UTC midnight; clients can bust with ?refresh=true
+          'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
+        },
+      }
+    );
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}

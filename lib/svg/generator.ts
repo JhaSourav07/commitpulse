@@ -3,7 +3,10 @@ import { getLabels } from '../i18n/badgeLabels';
 import { AUTO_DARK_THEME, AUTO_LIGHT_THEME } from './themes';
 import { TOWER_ANIMATION_CSS } from './animations';
 import { computeTowers, type TowerData } from './layout';
-import { sanitizeFont, sanitizeHexColor, sanitizeRadius } from './sanitizer';
+import { sanitizeFont, sanitizeHexColor, sanitizeRadius, sanitizeGoogleFontUrl } from './sanitizer';
+
+const SVG_WIDTH = 600;
+const SVG_HEIGHT = 420;
 
 const FONT_MAP: Record<string, string> = {
   jetbrains: '"JetBrains Mono", monospace',
@@ -13,8 +16,8 @@ const FONT_MAP: Record<string, string> = {
 
 // helpers
 function getSizeScale(size?: 'small' | 'medium' | 'large'): number {
-  if (size === 'small') return 400 / 600;
-  if (size === 'large') return 800 / 600;
+  if (size === 'small') return 400 / SVG_WIDTH;
+  if (size === 'large') return 800 / SVG_WIDTH;
   return 1; // medium (default)
 }
 
@@ -37,6 +40,14 @@ function scaleTowerData(towerData: TowerData[], sf: number): TowerData[] {
   }));
 }
 
+/** Rounds a base value by the current size-scale factor. */
+type Scaler = (n: number) => number;
+
+/** Avoids duplicating the rounding scaler in every rendering function. */
+function createScaler(sf: number): Scaler {
+  return (n: number): number => Math.round(n * sf);
+}
+
 export function escapeXML(str: string): string {
   return str
     .replace(/&/g, '&amp;')
@@ -55,9 +66,10 @@ function generateParticles(
   x: number,
   y: number,
   height: number,
-  color: string,
   count: number,
-  sf: number
+  sf: number,
+  autoTheme: boolean = false,
+  color: string = ''
 ): string {
   let particles = '';
   const numParticles = particleCount(count);
@@ -67,8 +79,10 @@ function generateParticles(
     const offsetX = deterministicRandom(`${seed}:offsetX`) * 6 - 3;
     const delay = deterministicRandom(`${seed}:delay`) * 1.5;
 
+    const fillAttr = autoTheme ? 'class="cp-accent-fill"' : `fill="${color}"`;
+
     particles += `
-      <circle cx="${x + offsetX}" cy="${y - height}" r="${1.5 * sf}" fill="${color}" opacity="1">
+      <circle ${fillAttr} cx="${x + offsetX}" cy="${y - height}" r="${1.5 * sf}" opacity="1">
         <animate attributeName="cy" from="${y - height}" to="${y - height - 20}" dur="1.5s" begin="${delay}s" repeatCount="indefinite" />
         <animate attributeName="opacity" from="1" to="0" dur="1.5s" begin="${delay}s" repeatCount="indefinite" />
       </circle>
@@ -77,11 +91,43 @@ function generateParticles(
   return `<g class="heat-particles">${particles}</g>`;
 }
 
-function generateAutoParticles(
-  x: number,
-  y: number,
-  height: number,
-  count: number,
+// ── Section helpers for generateSVG ──────────────────────────────────────
+
+function renderHeader(safeUser: string, stats: StreakStats, sf: number): string {
+  const fs = (n: number) => Math.round(n * sf * 10) / 10;
+  return `
+  <title>CommitPulse Stats for ${safeUser}</title>
+  <desc>
+    ${safeUser} has ${stats.totalContributions} total contributions and a longest streak of ${stats.longestStreak} days.
+  </desc>
+  <defs>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="${fs(5)}" result="blur" /><feComposite in="SourceGraphic" in2="blur" operator="over" /></filter>
+  </defs>`;
+}
+
+/** Renders the three-column stats row (Current Streak / Annual Sync Total / Peak Streak). */
+function renderStatsSection(stats: StreakStats, labels: BadgeLabels, s: Scaler): string {
+  return `
+  <g transform="translate(${s(40)}, ${s(340)})">
+    <text class="label">${labels.CURRENT_STREAK}</text>
+    <text y="${s(40)}" class="stats" filter="url(#glow)">${stats.currentStreak}</text>
+  </g>
+  <g transform="translate(${s(300)}, ${s(340)})" text-anchor="middle">
+    <text class="label">${labels.ANNUAL_SYNC_TOTAL}</text>
+    <text y="${s(40)}" class="total-val" filter="url(#glow)">${stats.totalContributions}</text>
+  </g>
+  <g transform="translate(${s(560)}, ${s(340)})" text-anchor="end">
+    <text class="label">${labels.PEAK_STREAK}</text>
+    <text y="${s(40)}" class="stats">${stats.longestStreak}</text>
+  </g>`;
+}
+
+function renderStyle(
+  selectedFont: string | null,
+  statsFont: string,
+  googleFontsImport: string,
+  text: string,
+  accent: string,
   sf: number
 ): string {
   let particles = '';
@@ -92,14 +138,26 @@ function generateAutoParticles(
     const offsetX = deterministicRandom(`${seed}:offsetX`) * 6 - 3;
     const delay = deterministicRandom(`${seed}:delay`) * 1.5;
 
-    particles += `
-      <circle class="cp-accent-fill" cx="${x + offsetX}" cy="${y - height}" r="${1.5 * sf}" opacity="1">
-        <animate attributeName="cy" from="${y - height}" to="${y - height - 20}" dur="1.5s" begin="${delay}s" repeatCount="indefinite" />
-        <animate attributeName="opacity" from="1" to="0" dur="1.5s" begin="${delay}s" repeatCount="indefinite" />
-      </circle>
-    `;
+function renderTowers(towerData: TowerData[], accent: string, text: string, sf: number): string {
+  let towers = '';
+  for (const t of towerData) {
+    const color = t.isGhost ? text : accent;
+    const delay = ((t.row + t.col) * 0.015).toFixed(3);
+    towers += `
+        <g transform="translate(${t.x}, ${t.y})">
+          <g class="cp-tower" style="animation-delay: ${delay}s;">
+            ${t.isTodayWithCommits ? '<animate attributeName="opacity" values="1;0.4;1" dur="1.5s" repeatCount="indefinite" />' : ''}
+            <title>${t.tooltip}</title>
+            <path d="M0 ${10 - t.h} L0 10 L-16 0 L-16 ${-t.h} Z" fill="${color}" fill-opacity="${t.faceOpacity.left}" stroke="${color}" stroke-opacity="${t.strokeOpacity}" stroke-width="${t.strokeWidth}" />
+            <path d="M0 ${10 - t.h} L0 10 L16 0 L16 ${-t.h} Z" fill="${color}" fill-opacity="${t.faceOpacity.right}" stroke="${color}" stroke-opacity="${t.strokeOpacity}" stroke-width="${t.strokeWidth}" />
+            <path d="M0 ${-t.h} L16 ${10 - t.h} L0 ${20 - t.h} L-16 ${10 - t.h} Z" fill="${color}" fill-opacity="${t.faceOpacity.top}" stroke="${color}" stroke-opacity="${t.strokeOpacity}" stroke-width="${t.strokeWidth}" />
+            ${t.contributionCount > 5 ? `<path d="M0 ${-t.h} L16 ${10 - t.h} L0 ${20 - t.h} L-16 ${10 - t.h} Z" fill="white" fill-opacity="0.2" />` : ''}
+          </g>
+        </g>`;
+    if (t.contributionCount >= 10)
+      towers += generateParticles(t.x, t.y, t.h, t.contributionCount, sf, false, accent);
   }
-  return `<g class="heat-particles">${particles}</g>`;
+  return towers;
 }
 
 // ── Section helpers for generateSVG ──────────────────────────────────────
@@ -257,8 +315,8 @@ function generateAutoThemeSVG(
   const radius = sanitizeRadius(params.radius, 8) * sf;
   const labels = getLabels(params.lang);
 
-  const W = Math.round(600 * sf);
-  const H = Math.round(420 * sf);
+  const W = Math.round(SVG_WIDTH * sf);
+  const H = Math.round(SVG_HEIGHT * sf);
   const towerData = scaleTowerData(computeTowers(calendar, params.scale, stats.todayDate), sf);
   let towers = '';
 
@@ -287,11 +345,11 @@ function generateAutoThemeSVG(
           </g>
         </g>`;
     if (t.contributionCount >= 10)
-      towers += generateAutoParticles(t.x, t.y, t.h, t.contributionCount, sf);
+      towers += generateParticles(t.x, t.y, t.h, t.contributionCount, sf, true);
   }
 
-  const s = (n: number) => Math.round(n * sf);
-  const fs = (n: number) => Math.round(n * sf * 10) / 10;
+  const s = createScaler(sf);
+  const fs = (n: number): number => Math.round(n * sf * 10) / 10;
 
   return `
 <svg
@@ -328,26 +386,7 @@ function generateAutoThemeSVG(
   <g transform="translate(0, ${s(20)})">
     ${towers}
   </g>
-  ${
-    !params.hide_stats
-      ? `
-  <g transform="translate(${s(40)}, ${s(340)})">
-    <text class="label">${labels.CURRENT_STREAK}</text>
-    <text y="${s(40)}" class="stats" filter="url(#glow)">${stats.currentStreak}</text>
-  </g>
-
-  <g transform="translate(${s(300)}, ${s(340)})" text-anchor="middle">
-    <text class="label">${labels.ANNUAL_SYNC_TOTAL}</text>
-    <text y="${s(40)}" class="total-val" filter="url(#glow)">${stats.totalContributions}</text>
-  </g>
-
-  <g transform="translate(${s(560)}, ${s(340)})" text-anchor="end">
-    <text class="label">${labels.PEAK_STREAK}</text>
-    <text y="${s(40)}" class="stats">${stats.longestStreak}</text>
-  </g>
-`
-      : ''
-  }
+  ${!params.hide_stats ? renderStatsSection(stats, labels, s) : ''}
 ${
   !params.hide_title
     ? `<text x="${s(300)}" y="${s(50)}" text-anchor="middle" class="title">${safeUser.toUpperCase()}</text>`
@@ -626,9 +665,9 @@ export function generateNotFoundSVG(
 
   return `<svg
   xmlns="http://www.w3.org/2000/svg"
-  width="600"
-  height="420"
-  viewBox="0 0 600 420"
+  width="${SVG_WIDTH}"
+  height="${SVG_HEIGHT}"
+  viewBox="0 0 ${SVG_WIDTH} ${SVG_HEIGHT}"
   fill="none"
   role="img"
 >
@@ -660,7 +699,7 @@ export function generateNotFoundSVG(
   </style>
 
   <!-- Background -->
-  <rect width="600" height="420" rx="${radius}" fill="${bg}"/>
+  <rect width="${SVG_WIDTH}" height="${SVG_HEIGHT}" rx="${radius}" fill="${bg}"/>
 
   <!-- Ghost isometric city — same grid as real badge -->
   <g transform="translate(0, 20)" class="ghost-pulse">
@@ -668,7 +707,7 @@ export function generateNotFoundSVG(
   </g>
 
   <!-- Fade overlay so ghost city dissolves into background -->
-  <rect width="600" height="420" rx="${radius}" fill="url(#ghostFade)"/>
+  <rect width="${SVG_WIDTH}" height="${SVG_HEIGHT}" rx="${radius}" fill="url(#ghostFade)"/>
 
   <!-- Radar scan line (same as real badge, but very faint) -->
   <rect x="100" y="60" width="400" height="1" fill="${accent}" fill-opacity="0.12">

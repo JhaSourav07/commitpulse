@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from 'react';
 
-const KEY = 'recentSearches';
-const MAX = 5;
+export const STORAGE_KEY = 'recentSearches';
+export const MAX_SEARCHES = 5;
+
+type State = { searches: string[]; mounted: boolean };
 
 type State = { searches: string[]; mounted: boolean };
 
@@ -34,7 +36,7 @@ export function useRecentSearches() {
     setState((prev) => {
       const deduped = [query, ...prev.searches.filter((s) => s !== query)].slice(0, MAX);
       try {
-        localStorage.setItem(KEY, JSON.stringify(deduped));
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(deduped));
       } catch {}
       return { ...prev, searches: deduped };
     });
@@ -43,7 +45,7 @@ export function useRecentSearches() {
   const clearSearches = () => {
     setState((prev) => ({ ...prev, searches: [] }));
     try {
-      localStorage.removeItem(KEY);
+      localStorage.removeItem(STORAGE_KEY);
     } catch {}
   };
 

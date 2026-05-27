@@ -299,8 +299,10 @@ describe('GET /api/streak', () => {
 
     it('falls back to the dark theme without crashing when an unknown theme is given', async () => {
       const response = await GET(makeRequest({ user: 'octocat', theme: 'does-not-exist' }));
+      const body = await response.text();
 
       expect(response.status).toBe(200);
+      expect(body).toContain('58a6ff'); // Dark theme accent is #58a6ff — confirms the dark fallback is actually applied
     });
   });
 

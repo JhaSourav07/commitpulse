@@ -40,17 +40,17 @@ export default function Heatmap({ data }: { data: ActivityData[] }) {
   const getIntensityColor = (intensity: number) => {
     switch (intensity) {
       case 0:
-        return 'bg-[#1a1a1a]';
+        return 'bg-gray-200 dark:bg-[#161616]';
       case 1:
-        return 'bg-zinc-800';
+        return 'bg-gray-400 dark:bg-zinc-700';
       case 2:
-        return 'bg-zinc-600';
+        return 'bg-gray-500 dark:bg-zinc-500';
       case 3:
-        return 'bg-zinc-400';
+        return 'bg-gray-700 dark:bg-zinc-300';
       case 4:
-        return 'bg-white';
+        return 'bg-black dark:bg-white';
       default:
-        return 'bg-[#1a1a1a]';
+        return 'bg-gray-200 dark:bg-[#161616]';
     }
   };
 
@@ -73,10 +73,10 @@ export default function Heatmap({ data }: { data: ActivityData[] }) {
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
         transition={{ duration: 0.5, delay: 0.2 }}
-        className="p-6 rounded-xl bg-[#0a0a0a] border border-[rgba(255,255,255,0.08)]"
+        className="p-6 rounded-xl bg-white dark:bg-[#0a0a0a] border border-black/10 dark:border-[rgba(255,255,255,0.08)]"
       >
         {/* Header */}
-        <h3 className=" text-sm font-semibold text-white tracking-tight my-1">
+        <h3 className=" text-sm font-semibold text-gray-900 dark:text-white tracking-tight my-1">
           Contribution Heatmap
         </h3>
         <div className="flex justify-between items-end mb-4">
@@ -138,11 +138,11 @@ export default function Heatmap({ data }: { data: ActivityData[] }) {
             className="fixed z-[9999] pointer-events-none -translate-x-1/2 -translate-y-full"
             style={{ left: tooltip.x, top: tooltip.y }}
           >
-            <div className="bg-[#111] border border-[rgba(255,255,255,0.1)] px-2.5 py-1.5 rounded-md text-[11px] text-white shadow-lg whitespace-nowrap">
+            <div className="bg-gray-100 dark:bg-[#111] border border-[rgba(255,255,255,0.1)] px-2.5 py-1.5 rounded-md text-[11px] text-gray-900 dark:text-white shadow-lg whitespace-nowrap">
               {tooltip.text}
             </div>
             {/* Arrow */}
-            <div className="mx-auto w-2 h-2 bg-black/90 border-r border-b border-white/10 rotate-45 -mt-1" />
+            <div className="mx-auto w-2 h-2 bg-gray-100 dark:bg-[#111] border-r border-b border-black/10 dark:border-white/10 rotate-45 -mt-1" />
           </motion.div>
         )}
       </AnimatePresence>
