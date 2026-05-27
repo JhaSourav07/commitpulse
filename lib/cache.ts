@@ -47,22 +47,24 @@ export class TTLCache<T> {
     return hit.value;
   }
 
-  set(key: string, value: T, ttlMs: number): void {
-    // Capacity eviction (FIFO / LRU-lite)
-    const maxSize = this.maxSize;
-    if (maxSize !== undefined && this.store.size >= maxSize && !this.store.has(key)) {
-      this.sweep(); // Remove expired entries first to free up capacity
-      if (this.store.size >= maxSize) {
-        // Find the oldest item (first inserted) and remove it
-        const oldestKey = this.store.keys().next().value;
-        if (oldestKey !== undefined) {
-          this.store.delete(oldestKey);
-        }
+ set(key: string, value: T, ttlMs: number): void {
+  if (ttlMs <= 0) throw new RangeError(`ttlMs must be positive, got ${ttlMs}`);
+
+  const maxSize = this.maxSize;
+  if (maxSize !== undefined && this.store.size >= maxSize && !this.store.has(key)) {
+    this.sweep();
+    if (this.store.size >= maxSize) {
+      const oldestKey = this.store.keys().next().value as string | undefined;
+      if (oldestKey !== undefined) {
+        this.store.delete(oldestKey);
       }
     }
-
-    this.store.set(key, { value, expiresAt: Date.now() + ttlMs });
   }
+
+  // Fix: delete first so updated keys move to end (newest position)
+  this.store.delete(key);
+  this.store.set(key, { value, expiresAt: Date.now() + ttlMs });
+}
 
   clear(): void {
     this.store.clear();
