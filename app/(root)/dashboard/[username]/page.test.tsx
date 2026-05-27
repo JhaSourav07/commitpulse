@@ -121,7 +121,9 @@ describe('DashboardPage', () => {
         bypassCache: false,
       });
 
-      expect(screen.getByText('Generate Your Own Dashboard')).toBeDefined();
+      const generateLink = screen.getByText('Generate Your Own Dashboard').closest('a');
+      expect(generateLink).toBeDefined();
+      expect(generateLink?.getAttribute('href')).toBe('/');
       expect(screen.getByTestId('profile-card')).toBeDefined();
       expect(screen.getByTestId('activity-landscape')).toBeDefined();
       expect(screen.getByTestId('language-chart')).toBeDefined();
