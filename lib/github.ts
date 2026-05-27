@@ -76,6 +76,53 @@ export async function fetchWithRetry(
 
 const GITHUB_GRAPHQL_URL = 'https://api.github.com/graphql';
 const GITHUB_REST_URL = 'https://api.github.com';
+type GitHubRateLimitInfo = {
+  limit: number | null;
+  remaining: number | null;
+  reset: number | null;
+  resetAt: string | null;
+};
+
+function parseRateLimitHeader(value: string | null): number | null {
+  if (!value) return null;
+
+  const parsed = parseInt(value, 10);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function getGitHubRateLimitInfo(res: Response): GitHubRateLimitInfo {
+  const limit = parseRateLimitHeader(res.headers.get('x-ratelimit-limit'));
+  const remaining = parseRateLimitHeader(res.headers.get('x-ratelimit-remaining'));
+  const reset = parseRateLimitHeader(res.headers.get('x-ratelimit-reset'));
+
+  return {
+    limit,
+    remaining,
+    reset,
+    resetAt: reset ? new Date(reset * 1000).toISOString() : null,
+  };
+}
+
+function createRateLimitError(res: Response): Error {
+  const rateLimit = getGitHubRateLimitInfo(res);
+  const resetMessage = rateLimit.resetAt ? ` Please try again after ${rateLimit.resetAt}.` : '';
+
+  return new Error(
+    `GitHub API rate limit exceeded.${resetMessage} Configure GITHUB_TOKEN to increase the request limit.`
+  );
+}
+
+function throwIfRateLimited(res: Response): void {
+  const rateLimit = getGitHubRateLimitInfo(res);
+
+  if (res.status === 403 && rateLimit.remaining === 0) {
+    throw createRateLimitError(res);
+  }
+
+  if (res.status === 429) {
+    throw createRateLimitError(res);
+  }
+}
 
 type GitHubContributionResponse = {
   data: {
@@ -192,6 +239,7 @@ export async function fetchGitHubContributions(
   });
 
   if (!res.ok) {
+    throwIfRateLimited(res);
     if (res.status === 401) throw new Error('GitHub PAT is invalid or missing');
     throw new Error(`GitHub GraphQL API returned status ${res.status}`);
   }
@@ -239,6 +287,7 @@ export async function fetchUserProfile(
   });
 
   if (!res.ok) {
+    throwIfRateLimited(res);
     if (res.status === 404) throw new Error('User not found');
     throw new Error(`GitHub REST API error: ${res.status}`);
   }
@@ -283,6 +332,7 @@ export async function fetchUserRepos(
     );
 
     if (!res.ok) {
+      throwIfRateLimited(res);
       throw new Error(`GitHub REST API error: ${res.status}`);
     }
 
