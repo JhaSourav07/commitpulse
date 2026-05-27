@@ -92,10 +92,30 @@ type GitHubContributionResponse = {
   errors?: Array<{ message: string }>;
 };
 
+/**
+ * Configuration options for GitHub API fetch requests.
+ */
 type FetchOptions = {
+  /**
+   * Skips the in-memory cache and forces a fresh GitHub API request.
+   */
   bypassCache?: boolean;
+
+  /**
+   * Start date used for filtering contribution data.
+   * Expected format: YYYY-MM-DD.
+   */
   from?: string;
+
+  /**
+   * End date used for filtering contribution data.
+   * Expected format: YYYY-MM-DD.
+   */
   to?: string;
+
+  /**
+   * Optional AbortSignal used to cancel the request.
+   */
   signal?: AbortSignal;
 };
 
@@ -159,6 +179,35 @@ export function displayName(profile: GitHubUserProfile): string {
   return profile.login;
 }
 
+/**
+ * Fetches a user's GitHub contribution calendar using the GitHub GraphQL API.
+ *
+ * Requests are automatically retried on rate limiting (429) and server errors (5xx)
+ * using exponential backoff.
+ *
+ * @param username - GitHub username to fetch contributions for.
+ * @param options - Optional fetch configuration.
+ * @param options.bypassCache - Forces a fresh API request instead of using cached data.
+ * @param options.from - Start date for contribution filtering.
+ * @param options.to - End date for contribution filtering.
+ * @param options.signal - Optional AbortSignal used to cancel the request.
+ *
+ * @returns A promise resolving to the user's contribution calendar.
+ *
+ * @throws {Error} If the GitHub PAT is missing or invalid.
+ * @throws {Error} If the GitHub user cannot be found.
+ * @throws {Error} If the GitHub API request fails after all retry attempts.
+ * @throws {Error} If the request times out or is aborted.
+ *
+ * @example
+ * ```ts
+ * const calendar = await fetchGitHubContributions("octocat", {
+ *   from: "2025-01-01",
+ *   to: "2025-12-31",
+ *   bypassCache: true,
+ * });
+ * ```
+ */
 export async function fetchGitHubContributions(
   username: string,
   options: FetchOptions = {}
@@ -232,6 +281,32 @@ export async function fetchGitHubContributions(
   return calendar;
 }
 
+/**
+ * Fetches public GitHub profile information for a user.
+ *
+ * Requests are automatically retried on rate limiting (429) and server errors (5xx)
+ * using exponential backoff.
+ *
+ * @param username - GitHub username to fetch profile data for.
+ * @param options - Optional fetch configuration.
+ * @param options.bypassCache - Forces a fresh API request instead of using cached data.
+ * @param options.signal - Optional AbortSignal used to cancel the request.
+ *
+ * @returns A promise resolving to the user's GitHub profile data.
+ *
+ * @throws {Error} If the GitHub user cannot be found.
+ * @throws {Error} If the GitHub REST API request fails.
+ * @throws {Error} If the request times out or is aborted.
+ *
+ * @example
+ * ```ts
+ * const controller = new AbortController();
+ *
+ * const profile = await fetchUserProfile("octocat", {
+ *   signal: controller.signal,
+ * });
+ * ```
+ */
 export async function fetchUserProfile(
   username: string,
   options: FetchOptions = {}
@@ -269,6 +344,32 @@ export async function fetchUserProfile(
   return profile;
 }
 
+/**
+ * Fetches public repositories for a GitHub user.
+ *
+ * Repository data is fetched from the GitHub REST API with automatic retries
+ * for rate limiting (429) and server errors (5xx).
+ *
+ * Results are paginated with a maximum limit of 300 repositories
+ * across 3 API pages.
+ *
+ * @param username - GitHub username to fetch repositories for.
+ * @param options - Optional fetch configuration.
+ * @param options.bypassCache - Forces a fresh API request instead of using cached data.
+ * @param options.signal - Optional AbortSignal used to cancel the request.
+ *
+ * @returns A promise resolving to an array of GitHub repositories.
+ *
+ * @throws {Error} If the GitHub API request fails after all retry attempts.
+ * @throws {Error} If the request times out or is aborted.
+ *
+ * @example
+ * ```ts
+ * const repos = await fetchUserRepos("octocat");
+ *
+ * console.log(repos.length);
+ * ```
+ */
 export async function fetchUserRepos(
   username: string,
   options: FetchOptions = {}
