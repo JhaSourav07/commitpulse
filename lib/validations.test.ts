@@ -51,6 +51,15 @@ describe('githubParamsSchema', () => {
     }
   });
 });
+describe('streakParamsSchema user validation', () => {
+  it('should pass when user is valid', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+    });
+
+    expect(result.success).toBe(true);
+  });
+});
 
 describe('streakParamsSchema', () => {
   it('should fail when user is missing', () => {
@@ -401,5 +410,25 @@ describe('ogParamsSchema', () => {
     if (result.success) {
       expect(result.data.user).toBe('unknown');
     }
+  });
+
+  it('should parse "user" parameter successfully', () => {
+    const result = ogParamsSchema.parse({ user: 'octocat' });
+    expect(result.user).toBe('octocat');
+  });
+
+  it('should parse "username" parameter successfully and fallback to user key', () => {
+    const result = ogParamsSchema.parse({ username: 'octocat' });
+    expect(result.user).toBe('octocat');
+  });
+
+  it('should prioritize "user" over "username" when both are provided', () => {
+    const result = ogParamsSchema.parse({ user: 'octocat', username: 'ignored' });
+    expect(result.user).toBe('octocat');
+  });
+
+  it('should fall back to "unknown" when neither are provided', () => {
+    const result = ogParamsSchema.parse({});
+    expect(result.user).toBe('unknown');
   });
 });

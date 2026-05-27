@@ -172,39 +172,48 @@ export const githubParamsSchema = z.object({
     .transform((val) => val === 'true'),
 });
 
-export const ogParamsSchema = z.object({
-  user: z
-    .string()
-    .trim()
-    .optional()
-    .transform((val) => (val === '' ? undefined : val))
-    .default('unknown'),
-  theme: z
-    .string()
-    .trim()
-    .optional()
-    .transform((val) => (val === '' ? undefined : val))
-    .transform((val) => (val && Object.hasOwn(themes, val) ? val : 'dark'))
-    .default('dark'),
-  bg: z
-    .string()
-    .trim()
-    .optional()
-    .transform((val) => (val === '' ? undefined : val))
-    .transform((val) => (val && isValidHex(val) ? sanitizeHexColor(val, '000000') : undefined)),
-  text: z
-    .string()
-    .trim()
-    .optional()
-    .transform((val) => (val === '' ? undefined : val))
-    .transform((val) => (val && isValidHex(val) ? sanitizeHexColor(val, '000000') : undefined)),
-  accent: z
-    .string()
-    .trim()
-    .optional()
-    .transform((val) => (val === '' ? undefined : val))
-    .transform((val) => (val && isValidHex(val) ? sanitizeHexColor(val, '000000') : undefined)),
-});
+export const ogParamsSchema = z
+  .object({
+    user: z
+      .string()
+      .trim()
+      .optional()
+      .transform((val) => (val === '' ? undefined : val)),
+    username: z
+      .string()
+      .trim()
+      .optional()
+      .transform((val) => (val === '' ? undefined : val)),
+    theme: z
+      .string()
+      .trim()
+      .optional()
+      .transform((val) => (val === '' ? undefined : val))
+      .transform((val) => (val && Object.hasOwn(themes, val) ? val : 'dark'))
+      .default('dark'),
+    bg: z
+      .string()
+      .trim()
+      .optional()
+      .transform((val) => (val === '' ? undefined : val))
+      .transform((val) => (val && isValidHex(val) ? sanitizeHexColor(val, '000000') : undefined)),
+    text: z
+      .string()
+      .trim()
+      .optional()
+      .transform((val) => (val === '' ? undefined : val))
+      .transform((val) => (val && isValidHex(val) ? sanitizeHexColor(val, '000000') : undefined)),
+    accent: z
+      .string()
+      .trim()
+      .optional()
+      .transform((val) => (val === '' ? undefined : val))
+      .transform((val) => (val && isValidHex(val) ? sanitizeHexColor(val, '000000') : undefined)),
+  })
+  .transform((data) => ({
+    ...data,
+    user: data.user || data.username || 'unknown',
+  }));
 
 export const statsParamsSchema = z.object({
   user: z.string({ error: 'Missing user parameter' }).min(1, { message: 'Missing user parameter' }),
