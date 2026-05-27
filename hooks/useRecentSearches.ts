@@ -47,10 +47,21 @@ export function useRecentSearches() {
     } catch {}
   };
 
+  const removeSearch = (query: string): void => {
+    setState((prev) => {
+      const filtered = prev.searches.filter((s) => s !== query);
+      try {
+        localStorage.setItem(KEY, JSON.stringify(filtered));
+      } catch {}
+      return { ...prev, searches: filtered };
+    });
+  };
+
   // Return empty searches until after hydration to prevent SSR/client mismatch.
   return {
     searches: state.mounted ? state.searches : [],
     addSearch,
     clearSearches,
+    removeSearch,
   };
 }

@@ -50,12 +50,15 @@ vi.mock('framer-motion', () => ({
   AnimatePresence: ({ children }: any) => <>{children}</>,
 }));
 
+const mockRecentSearches = {
+  searches: [] as string[],
+  addSearch: vi.fn(),
+  clearSearches: vi.fn(),
+  removeSearch: vi.fn(),
+};
+
 vi.mock('@/hooks/useRecentSearches', () => ({
-  useRecentSearches: () => ({
-    searches: [],
-    addSearch: vi.fn(),
-    clearSearches: vi.fn(),
-  }),
+  useRecentSearches: () => mockRecentSearches,
 }));
 
 describe('LandingPage', () => {
@@ -201,5 +204,22 @@ describe('LandingPage', () => {
     expect(input.value).toBe('');
 
     expect(screen.queryByLabelText('Clear input')).toBeNull();
+  });
+
+  it('renders recent searches and handles individual deletion', () => {
+    mockRecentSearches.searches = ['octocat', 'jhasourav07'];
+    render(<LandingPage />);
+
+    expect(screen.getByText('octocat')).toBeDefined();
+    expect(screen.getByText('jhasourav07')).toBeDefined();
+
+    const deleteButtons = screen.getAllByLabelText(/Remove/);
+    expect(deleteButtons.length).toBe(2);
+
+    fireEvent.click(deleteButtons[0]);
+    expect(mockRecentSearches.removeSearch).toHaveBeenCalledWith('octocat');
+
+    // Cleanup
+    mockRecentSearches.searches = [];
   });
 });

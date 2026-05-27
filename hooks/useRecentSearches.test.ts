@@ -69,4 +69,18 @@ describe('useRecentSearches', () => {
     });
     expect(result.current.searches).toEqual([]);
   });
+
+  it('removes an individual search', () => {
+    const { result } = renderHook(() => useRecentSearches());
+    act(() => {
+      result.current.addSearch('torvalds');
+    });
+    act(() => {
+      result.current.addSearch('gaearon');
+    });
+    act(() => {
+      result.current.removeSearch('torvalds');
+    });
+    expect(result.current.searches).toEqual(['gaearon']);
+  });
 });
