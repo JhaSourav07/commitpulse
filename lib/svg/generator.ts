@@ -1,6 +1,6 @@
 import type { BadgeParams, ContributionCalendar, StreakStats, MonthlyStats } from '../../types';
 import { getLabels, type BadgeLabels } from '../i18n/badgeLabels';
-import { AUTO_DARK_THEME, AUTO_LIGHT_THEME } from './themes';
+import { AUTO_THEME_DARK, AUTO_THEME_LIGHT } from './themes';
 import { TOWER_ANIMATION_CSS } from './animations';
 import { computeTowers, type TowerData } from './layout';
 import { sanitizeFont, sanitizeHexColor, sanitizeRadius, sanitizeGoogleFontUrl } from './sanitizer';
@@ -237,8 +237,8 @@ function generateAutoThemeSVG(
   params: BadgeParams,
   calendar: ContributionCalendar
 ): string {
-  const light = AUTO_LIGHT_THEME;
-  const dark = AUTO_DARK_THEME;
+  const light = AUTO_THEME_LIGHT;
+  const dark = AUTO_THEME_DARK;
   const safeUser = escapeXML(params.user || 'GitHub User');
   const sanitizedFont = sanitizeFont(params.font);
   const selectedFont = sanitizedFont
@@ -426,8 +426,8 @@ export function generateMonthlySVG(stats: MonthlyStats, params: BadgeParams): st
 }
 
 function generateAutoThemeMonthlySVG(stats: MonthlyStats, params: BadgeParams): string {
-  const light = AUTO_LIGHT_THEME;
-  const dark = AUTO_DARK_THEME;
+  const light = AUTO_THEME_LIGHT;
+  const dark = AUTO_THEME_DARK;
   const safeUser = escapeXML(params.user || 'GitHub User');
   const sanitizeFont = (name: string) => name.replace(/[^a-zA-Z0-9\s-]/g, '').trim();
   const sanitizedFont = params.font ? sanitizeFont(params.font) : null;
