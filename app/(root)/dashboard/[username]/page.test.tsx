@@ -140,6 +140,19 @@ describe('DashboardPage', () => {
       expect(screen.getByText('Peak Streak: 15')).toBeDefined();
       expect(screen.getByText('Contributions: 500')).toBeDefined();
     });
+
+    it('calls getFullDashboardData with bypassCache: true when refresh param is set', async () => {
+      const PageContent = await DashboardPage({
+        params: Promise.resolve({ username: 'octocat' }),
+        searchParams: Promise.resolve({ refresh: 'true' }),
+      });
+
+      render(PageContent);
+
+      expect(getFullDashboardData).toHaveBeenCalledWith('octocat', {
+        bypassCache: true,
+      });
+    });
   });
   it('passes the correct activity data to Heatmap', async () => {
     const PageContent = await DashboardPage({
