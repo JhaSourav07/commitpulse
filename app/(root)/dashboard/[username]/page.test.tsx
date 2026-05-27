@@ -46,7 +46,11 @@ vi.mock('@/components/dashboard/CommitClock', () => ({
 }));
 
 vi.mock('@/components/dashboard/Heatmap', () => ({
-  default: () => <div data-testid="heatmap">Heatmap</div>,
+  default: ({ data }: { data: unknown[] }) => (
+    <div data-testid="heatmap" data-prop={JSON.stringify(data)}>
+      Heatmap
+    </div>
+  ),
 }));
 
 vi.mock('@/components/dashboard/AIInsights', () => ({
@@ -136,5 +140,16 @@ describe('DashboardPage', () => {
       expect(screen.getByText('Peak Streak: 15')).toBeDefined();
       expect(screen.getByText('Contributions: 500')).toBeDefined();
     });
+  });
+  it('passes the correct activity data to Heatmap', async () => {
+    const PageContent = await DashboardPage({
+      params: Promise.resolve({ username: 'octocat' }),
+      searchParams: Promise.resolve({}),
+    });
+
+    render(PageContent);
+
+    const heatmap = screen.getByTestId('heatmap');
+    expect(JSON.parse(heatmap.getAttribute('data-prop') ?? '[]')).toEqual(mockData.activity);
   });
 });
