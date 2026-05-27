@@ -10,10 +10,11 @@ vi.mock('../../../lib/github', () => ({
 
 vi.mock('../../../utils/time', () => ({
   getSecondsUntilUTCMidnight: vi.fn(),
+  getSecondsUntilMidnightInTimezone: vi.fn(),
 }));
 
 import { fetchGitHubContributions } from '../../../lib/github';
-import { getSecondsUntilUTCMidnight } from '../../../utils/time';
+import { getSecondsUntilUTCMidnight, getSecondsUntilMidnightInTimezone } from '../../../utils/time';
 import type { ContributionCalendar } from '../../../types';
 
 // Two weeks of realistic data. The last day has 0 contributions so the streak
@@ -56,9 +57,11 @@ function makeRequest(params: Record<string, string> = {}): Request {
 
 describe('GET /api/streak', () => {
   beforeEach(() => {
+    vi.clearAllMocks(); // reset call counts so per-test call assertions are isolated
     vi.mocked(fetchGitHubContributions).mockResolvedValue(mockCalendar);
-    // Fixed value so Cache-Control assertions don't depend on the real clock.
+    // Fixed values so Cache-Control assertions don't depend on the real clock.
     vi.mocked(getSecondsUntilUTCMidnight).mockReturnValue(3600);
+    vi.mocked(getSecondsUntilMidnightInTimezone).mockReturnValue(7200);
   });
 
   describe('parameter validation', () => {
@@ -72,6 +75,18 @@ describe('GET /api/streak', () => {
 
     it('does not hit the GitHub API at all when user is missing', async () => {
       await GET(makeRequest());
+
+      expect(fetchGitHubContributions).not.toHaveBeenCalled();
+    });
+
+    it('returns 400 for malformed GitHub usernames', async () => {
+      const invalidUsers = ['http://localhost', 'harendra-', 'a--b', 'a'.repeat(40)];
+
+      for (const user of invalidUsers) {
+        const response = await GET(makeRequest({ user }));
+
+        expect(response.status).toBe(400);
+      }
 
       expect(fetchGitHubContributions).not.toHaveBeenCalled();
     });
@@ -173,11 +188,11 @@ describe('GET /api/streak', () => {
       expect(body).toContain('3s');
     });
 
-    it('accepts a decimal speed like "1.5s"', async () => {
+    it('falls back to 8s for decimal values below minimum bound', async () => {
       const response = await GET(makeRequest({ user: 'octocat', speed: '1.5s' }));
       const body = await response.text();
 
-      expect(body).toContain('1.5s');
+      expect(body).toContain('8s');
     });
 
     it('falls back to 8s when the speed format is invalid (no unit)', async () => {
@@ -192,45 +207,28 @@ describe('GET /api/streak', () => {
       const response = await GET(makeRequest({ user: 'octocat', speed: '5' }));
       const body = await response.text();
 
-      // "5" doesn't match /^\d+(\.\d+)?s$/, so the default kicks in.
       expect(body).toContain('8s');
     });
 
-    it('falls back to 8s when speed=10 is provided', async () => {
+    it('falls back to 8s when speed=10 is provided without unit', async () => {
       const response = await GET(makeRequest({ user: 'octocat', speed: '10' }));
       const body = await response.text();
 
       expect(body).toContain('8s');
     });
-  });
 
-  describe('radius parameter', () => {
-    it('uses the default radius when the parameter is omitted', async () => {
-      const response = await GET(makeRequest({ user: 'octocat' }));
+    it('falls back to 8s when speed is below minimum bound', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', speed: '1s' }));
       const body = await response.text();
 
-      expect(body).toContain('rx="8"');
+      expect(body).toContain('8s');
     });
 
-    it('defaults to 8 when radius is not numeric', async () => {
-      const response = await GET(makeRequest({ user: 'octocat', radius: 'abc' }));
+    it('falls back to 8s when speed exceeds maximum bound', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', speed: '999s' }));
       const body = await response.text();
 
-      expect(body).toContain('rx="8"');
-    });
-
-    it('clamps negative radius to 0', async () => {
-      const response = await GET(makeRequest({ user: 'octocat', radius: '-10' }));
-      const body = await response.text();
-
-      expect(body).toContain('rx="0"');
-    });
-
-    it('clamps large radius to 32', async () => {
-      const response = await GET(makeRequest({ user: 'octocat', radius: '999' }));
-      const body = await response.text();
-
-      expect(body).toContain('rx="32"');
+      expect(body).toContain('8s');
     });
   });
 
@@ -256,6 +254,87 @@ describe('GET /api/streak', () => {
     });
   });
 
+  describe('year parameter', () => {
+    it('accepts a valid 4-digit year', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', year: '2024' }));
+
+      expect(response.status).toBe(200);
+    });
+
+    it('passes correct from/to range when ?year=2023 is provided', async () => {
+      await GET(makeRequest({ user: 'octocat', year: '2023' }));
+
+      expect(fetchGitHubContributions).toHaveBeenCalledWith('octocat', {
+        bypassCache: false,
+        from: '2023-01-01T00:00:00Z',
+        to: '2023-12-31T23:59:59Z',
+      });
+    });
+
+    it('functions normally when the year parameter is missing', async () => {
+      const response = await GET(makeRequest({ user: 'octocat' }));
+
+      expect(response.status).toBe(200);
+    });
+
+    it('returns 400 for invalid year format', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', year: 'abcd' }));
+      const body = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(body.details.fieldErrors.year[0]).toContain('GitHub was founded in 2008');
+    });
+
+    it('returns 400 for malformed numeric year', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', year: '100000' }));
+      const body = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(body.details.fieldErrors.year[0]).toContain('GitHub was founded in 2008');
+    });
+
+    it('returns 400 for years before GitHub existed', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', year: '1999' }));
+      const body = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(body.details.fieldErrors.year[0]).toContain('GitHub was founded in 2008');
+    });
+
+    it('returns 400 for future years', async () => {
+      const futureYear = (new Date().getFullYear() + 1).toString();
+
+      const response = await GET(makeRequest({ user: 'octocat', year: futureYear }));
+      const body = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(body.details.fieldErrors.year[0]).toContain('GitHub was founded in 2008');
+    });
+  });
+
+  describe('radius parameter', () => {
+    it('applies radius=16 to the SVG background rect', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', radius: '16' }));
+      const body = await response.text();
+
+      expect(body).toContain('rx="16"');
+    });
+
+    it('applies radius=0 to the SVG background rect', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', radius: '0' }));
+      const body = await response.text();
+
+      expect(body).toContain('rx="0"');
+    });
+
+    it('clamps radius values above the maximum limit', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', radius: '200' }));
+      const body = await response.text();
+
+      expect(body).toContain('rx="50"');
+    });
+  });
+
   describe('theme parameter', () => {
     it('returns 200 for a valid known theme like "neon"', async () => {
       const response = await GET(makeRequest({ user: 'octocat', theme: 'neon' }));
@@ -263,10 +342,21 @@ describe('GET /api/streak', () => {
       expect(response.status).toBe(200);
     });
 
-    it('falls back to the dark theme without crashing when an unknown theme is given', async () => {
-      const response = await GET(makeRequest({ user: 'octocat', theme: 'does-not-exist' }));
+    it('returns auto-theme SVG markup with dark-mode CSS variables when theme=auto', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', theme: 'auto' }));
+      const body = await response.text();
 
       expect(response.status).toBe(200);
+      expect(body).toContain('prefers-color-scheme: dark');
+      expect(body).toContain('--cp-bg');
+    });
+
+    it('falls back to the dark theme without crashing when an unknown theme is given', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', theme: 'does-not-exist' }));
+      const body = await response.text();
+
+      expect(response.status).toBe(200);
+      expect(body).toContain('58a6ff'); // Dark theme accent is #58a6ff — confirms the dark fallback is actually applied
     });
   });
 
@@ -283,6 +373,49 @@ describe('GET /api/streak', () => {
       const body = await response.text();
 
       expect(body).toContain('#00ff00');
+    });
+
+    it('embeds a custom text color in the SVG when text is provided', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', text: 'ff0000' }));
+      const body = await response.text();
+
+      expect(body).toContain('#ff0000');
+    });
+
+    it('does not crash when an invalid text color is provided', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', text: 'notacolor' }));
+
+      expect(response.status).toBe(200);
+    });
+  });
+
+  describe('hide parameters', () => {
+    it('removes the username title when hide_title=true', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', hide_title: 'true' }));
+      const body = await response.text();
+
+      expect(body).not.toContain('OCTOCAT');
+    });
+
+    it('keeps the username title when hide_title=false', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', hide_title: 'false' }));
+      const body = await response.text();
+
+      expect(body).toContain('OCTOCAT');
+    });
+
+    it('removes the stats section when hide_stats=true', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', hide_stats: 'true' }));
+      const body = await response.text();
+
+      expect(body).not.toContain('CURRENT_STREAK');
+    });
+
+    it('keeps the stats section when hide_stats=false', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', hide_stats: 'false' }));
+      const body = await response.text();
+
+      expect(body).toContain('CURRENT_STREAK');
     });
   });
 
@@ -310,7 +443,7 @@ describe('GET /api/streak', () => {
 
       const response = await GET(makeRequest({ user: 'octocat' }));
 
-      expect(response.headers.get('Cache-Control')).toBe('no-cache');
+      expect(response.headers.get('Cache-Control')).toBe('public, s-maxage=60');
     });
 
     it('returns a valid 500 SVG even when something non-Error is thrown', async () => {
@@ -333,6 +466,145 @@ describe('GET /api/streak', () => {
 
       expect(body).toContain('<svg');
       expect(body).toContain('</svg>');
+    });
+  });
+
+  describe('timezone parameter (?tz=)', () => {
+    it('returns 400 when an unrecognised IANA timezone is supplied', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', tz: 'Not/ATimezone' }));
+
+      expect(response.status).toBe(400);
+      const body = await response.text();
+      expect(body).toContain('Invalid "tz" parameter');
+    });
+
+    it('returns 400 and names the bad value in the error message', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', tz: 'garbage' }));
+      const body = await response.text();
+
+      expect(body).toContain('garbage');
+    });
+
+    it('returns 200 with a valid IANA timezone', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', tz: 'America/New_York' }));
+
+      expect(response.status).toBe(200);
+    });
+
+    it('uses getSecondsUntilMidnightInTimezone (not UTC) for the cache TTL when ?tz= is set', async () => {
+      // getSecondsUntilMidnightInTimezone is mocked to return 7200 in beforeEach.
+      // getSecondsUntilUTCMidnight returns 3600. The header should use 7200.
+      const response = await GET(makeRequest({ user: 'octocat', tz: 'America/New_York' }));
+
+      expect(response.headers.get('Cache-Control')).toBe(
+        'public, s-maxage=7200, stale-while-revalidate=86400'
+      );
+      expect(getSecondsUntilMidnightInTimezone).toHaveBeenCalledWith('America/New_York');
+      expect(getSecondsUntilUTCMidnight).not.toHaveBeenCalled();
+    });
+
+    it('still uses getSecondsUntilUTCMidnight when no ?tz= param is given', async () => {
+      await GET(makeRequest({ user: 'octocat' }));
+
+      expect(getSecondsUntilUTCMidnight).toHaveBeenCalled();
+      expect(getSecondsUntilMidnightInTimezone).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('hide_background parameter', () => {
+    it('produces a transparent background when ?hide_background=true is set', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', hide_background: 'true' }));
+      const body = await response.text();
+
+      expect(body).toContain('fill="transparent"');
+    });
+
+    it('does not produce a transparent background when ?hide_background is omitted', async () => {
+      const response = await GET(makeRequest({ user: 'octocat' }));
+      const body = await response.text();
+
+      expect(body).not.toContain('fill="transparent"');
+    });
+  });
+
+  describe('monthly view parameter', () => {
+    it('returns 200 when view=monthly is given', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', view: 'monthly' }));
+
+      expect(response.status).toBe(200);
+      const body = await response.text();
+      expect(body).toContain('COMMITS THIS MONTH');
+    });
+
+    it('defaults to default view when an unknown view is given', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', view: 'invalid' }));
+
+      expect(response.status).toBe(200);
+      const body = await response.text();
+      // It should generate the default streak SVG and have "CURRENT_STREAK"
+      expect(body).toContain('CURRENT_STREAK');
+    });
+  });
+
+  describe('theme=random cache header', () => {
+    it('returns no-cache header when ?theme=random is given', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', theme: 'random' }));
+
+      expect(response.headers.get('Cache-Control')).toBe('no-cache, no-store, must-revalidate');
+    });
+  });
+
+  describe('Ghost City Mode (route integration)', () => {
+    it('returns ghost city SVG when user has 0 total contributions', async () => {
+      const emptyCalendar: ContributionCalendar = {
+        totalContributions: 0,
+        weeks: [
+          {
+            contributionDays: [{ contributionCount: 0, date: '2024-06-10' }],
+          },
+        ],
+      };
+
+      vi.mocked(fetchGitHubContributions).mockResolvedValue(emptyCalendar);
+      const response = await GET(makeRequest({ user: 'octocat' }));
+      const body = await response.text();
+
+      expect(body).toContain('stroke-width="0.5"');
+      expect(body).toContain('stroke-opacity="0.3"');
+    });
+  });
+
+  describe('lang parameter', () => {
+    it('returns Spanish translations when ?lang=es is given', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', lang: 'es' }));
+      const body = await response.text();
+      expect(body).toContain('RACHA_ACTUAL');
+      expect(body).toContain('TOTAL_ANUAL');
+      expect(body).toContain('RACHA_MÁXIMA');
+    });
+
+    it('returns Hindi translations when ?lang=hi is given', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', lang: 'hi' }));
+      const body = await response.text();
+      expect(body).toContain('वर्तमान_स्ट्रीक');
+      expect(body).toContain('वार्षिक_कुल');
+      expect(body).toContain('अधिकतम_स्ट्रीक');
+    });
+
+    it('returns French translations when ?lang=fr is given', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', lang: 'fr' }));
+      const body = await response.text();
+      expect(body).toContain('SÉRIE_ACTUELLE');
+      expect(body).toContain('TOTAL_ANNUEL');
+      expect(body).toContain('SÉRIE_MAXIMALE');
+    });
+
+    it('falls back to English when an unknown ?lang=xx is given', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', lang: 'xx' }));
+      const body = await response.text();
+      expect(body).toContain('CURRENT_STREAK');
+      expect(body).toContain('ANNUAL_SYNC_TOTAL');
+      expect(body).toContain('PEAK_STREAK');
     });
   });
 });

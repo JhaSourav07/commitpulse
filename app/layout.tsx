@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google';
 import { Analytics } from '@vercel/analytics/next';
 import Navbar from './components/navbar';
 import BrandParticles from '@/components/BrandParticles';
+import ReturnToTop from '@/components/ReturnToTop';
 import type { Metadata } from 'next';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -69,6 +70,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <BrandParticles />
         <Navbar />
         <div className="pt-24 sm:pt-28 relative z-10">{children}</div>
+        <ReturnToTop />
         <Analytics />
       </body>
     </html>
