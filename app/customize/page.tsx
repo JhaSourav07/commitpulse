@@ -158,7 +158,7 @@ export default function CustomizePage(): ReactElement {
         <div className="absolute bottom-0 left-1/2 w-[30%] h-[30%] bg-blue-500/5 blur-[120px] rounded-full" />
       </div>
 
-      <div className="relative z-10 max-w-[1400px] mx-auto px-6 py-8">
+      <div className="relative z-10 max-w-7xl mx-auto px-6 py-8">
         {/* ── Top Bar ───────────────────────────────────────────────────────── */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}
