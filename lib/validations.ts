@@ -7,7 +7,7 @@ export const streakParamsSchema = z.object({
     .string({ error: 'Missing user parameter' })
     .min(1, { message: 'Missing user parameter' })
     .max(39, { message: 'GitHub username cannot exceed 39 characters' })
-    .regex(/^(?!-)[a-zA-Z0-9-]+(?<!-)$/, {
+    .regex(/^[a-zA-Z0-9](?:[a-zA-Z0-9]|-(?=[a-zA-Z0-9]))*$/, {
       message: 'Invalid GitHub username',
     }),
 
