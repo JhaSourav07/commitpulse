@@ -300,6 +300,29 @@ describe('GET /api/streak', () => {
     });
   });
 
+  describe('radius parameter', () => {
+    it('applies radius=16 to the SVG background rect', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', radius: '16' }));
+      const body = await response.text();
+
+      expect(body).toContain('rx="16"');
+    });
+
+    it('applies radius=0 to the SVG background rect', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', radius: '0' }));
+      const body = await response.text();
+
+      expect(body).toContain('rx="0"');
+    });
+
+    it('clamps radius values above the maximum limit', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', radius: '200' }));
+      const body = await response.text();
+
+      expect(body).toContain('rx="50"');
+    });
+  });
+
   describe('theme parameter', () => {
     it('returns 200 for a valid known theme like "neon"', async () => {
       const response = await GET(makeRequest({ user: 'octocat', theme: 'neon' }));
