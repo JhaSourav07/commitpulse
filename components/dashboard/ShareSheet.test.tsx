@@ -89,6 +89,17 @@ describe('ShareSheet', () => {
     expect(screen.getByText('Share on X')).toBeDefined();
     expect(screen.getByText('Download JSON')).toBeDefined();
   });
+  it('renders close button with correct aria-label and calls onClose', () => {
+    render(<ShareSheet {...defaultProps} />);
+
+    const closeButton = screen.getByLabelText('Close share options panel');
+
+    expect(closeButton).toBeDefined();
+
+    fireEvent.click(closeButton);
+
+    expect(defaultProps.onClose).toHaveBeenCalled();
+  });
 
   it('calls onClose when close button is clicked', () => {
     render(<ShareSheet {...defaultProps} />);
