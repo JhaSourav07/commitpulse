@@ -78,6 +78,18 @@ describe('GET /api/streak', () => {
 
       expect(fetchGitHubContributions).not.toHaveBeenCalled();
     });
+
+    it('returns 400 for malformed GitHub usernames', async () => {
+      const invalidUsers = ['http://localhost', 'harendra-', 'a--b', 'a'.repeat(40)];
+
+      for (const user of invalidUsers) {
+        const response = await GET(makeRequest({ user }));
+
+        expect(response.status).toBe(400);
+      }
+
+      expect(fetchGitHubContributions).not.toHaveBeenCalled();
+    });
   });
 
   describe('successful response', () => {
@@ -249,6 +261,16 @@ describe('GET /api/streak', () => {
       expect(response.status).toBe(200);
     });
 
+    it('passes correct from/to range when ?year=2023 is provided', async () => {
+      await GET(makeRequest({ user: 'octocat', year: '2023' }));
+
+      expect(fetchGitHubContributions).toHaveBeenCalledWith('octocat', {
+        bypassCache: false,
+        from: '2023-01-01T00:00:00Z',
+        to: '2023-12-31T23:59:59Z',
+      });
+    });
+
     it('functions normally when the year parameter is missing', async () => {
       const response = await GET(makeRequest({ user: 'octocat' }));
 
@@ -290,6 +312,29 @@ describe('GET /api/streak', () => {
     });
   });
 
+  describe('radius parameter', () => {
+    it('applies radius=16 to the SVG background rect', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', radius: '16' }));
+      const body = await response.text();
+
+      expect(body).toContain('rx="16"');
+    });
+
+    it('applies radius=0 to the SVG background rect', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', radius: '0' }));
+      const body = await response.text();
+
+      expect(body).toContain('rx="0"');
+    });
+
+    it('clamps radius values above the maximum limit', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', radius: '200' }));
+      const body = await response.text();
+
+      expect(body).toContain('rx="50"');
+    });
+  });
+
   describe('theme parameter', () => {
     it('returns 200 for a valid known theme like "neon"', async () => {
       const response = await GET(makeRequest({ user: 'octocat', theme: 'neon' }));
@@ -297,10 +342,21 @@ describe('GET /api/streak', () => {
       expect(response.status).toBe(200);
     });
 
-    it('falls back to the dark theme without crashing when an unknown theme is given', async () => {
-      const response = await GET(makeRequest({ user: 'octocat', theme: 'does-not-exist' }));
+    it('returns auto-theme SVG markup with dark-mode CSS variables when theme=auto', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', theme: 'auto' }));
+      const body = await response.text();
 
       expect(response.status).toBe(200);
+      expect(body).toContain('prefers-color-scheme: dark');
+      expect(body).toContain('--cp-bg');
+    });
+
+    it('falls back to the dark theme without crashing when an unknown theme is given', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', theme: 'does-not-exist' }));
+      const body = await response.text();
+
+      expect(response.status).toBe(200);
+      expect(body).toContain('58a6ff'); // Dark theme accent is #58a6ff — confirms the dark fallback is actually applied
     });
   });
 
@@ -317,6 +373,49 @@ describe('GET /api/streak', () => {
       const body = await response.text();
 
       expect(body).toContain('#00ff00');
+    });
+
+    it('embeds a custom text color in the SVG when text is provided', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', text: 'ff0000' }));
+      const body = await response.text();
+
+      expect(body).toContain('#ff0000');
+    });
+
+    it('does not crash when an invalid text color is provided', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', text: 'notacolor' }));
+
+      expect(response.status).toBe(200);
+    });
+  });
+
+  describe('hide parameters', () => {
+    it('removes the username title when hide_title=true', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', hide_title: 'true' }));
+      const body = await response.text();
+
+      expect(body).not.toContain('OCTOCAT');
+    });
+
+    it('keeps the username title when hide_title=false', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', hide_title: 'false' }));
+      const body = await response.text();
+
+      expect(body).toContain('OCTOCAT');
+    });
+
+    it('removes the stats section when hide_stats=true', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', hide_stats: 'true' }));
+      const body = await response.text();
+
+      expect(body).not.toContain('CURRENT_STREAK');
+    });
+
+    it('keeps the stats section when hide_stats=false', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', hide_stats: 'false' }));
+      const body = await response.text();
+
+      expect(body).toContain('CURRENT_STREAK');
     });
   });
 
@@ -412,6 +511,22 @@ describe('GET /api/streak', () => {
     });
   });
 
+  describe('hide_background parameter', () => {
+    it('produces a transparent background when ?hide_background=true is set', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', hide_background: 'true' }));
+      const body = await response.text();
+
+      expect(body).toContain('fill="transparent"');
+    });
+
+    it('does not produce a transparent background when ?hide_background is omitted', async () => {
+      const response = await GET(makeRequest({ user: 'octocat' }));
+      const body = await response.text();
+
+      expect(body).not.toContain('fill="transparent"');
+    });
+  });
+
   describe('monthly view parameter', () => {
     it('returns 200 when view=monthly is given', async () => {
       const response = await GET(makeRequest({ user: 'octocat', view: 'monthly' }));
@@ -428,6 +543,68 @@ describe('GET /api/streak', () => {
       const body = await response.text();
       // It should generate the default streak SVG and have "CURRENT_STREAK"
       expect(body).toContain('CURRENT_STREAK');
+    });
+  });
+
+  describe('theme=random cache header', () => {
+    it('returns no-cache header when ?theme=random is given', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', theme: 'random' }));
+
+      expect(response.headers.get('Cache-Control')).toBe('no-cache, no-store, must-revalidate');
+    });
+  });
+
+  describe('Ghost City Mode (route integration)', () => {
+    it('returns ghost city SVG when user has 0 total contributions', async () => {
+      const emptyCalendar: ContributionCalendar = {
+        totalContributions: 0,
+        weeks: [
+          {
+            contributionDays: [{ contributionCount: 0, date: '2024-06-10' }],
+          },
+        ],
+      };
+
+      vi.mocked(fetchGitHubContributions).mockResolvedValue(emptyCalendar);
+      const response = await GET(makeRequest({ user: 'octocat' }));
+      const body = await response.text();
+
+      expect(body).toContain('stroke-width="0.5"');
+      expect(body).toContain('stroke-opacity="0.3"');
+    });
+  });
+
+  describe('lang parameter', () => {
+    it('returns Spanish translations when ?lang=es is given', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', lang: 'es' }));
+      const body = await response.text();
+      expect(body).toContain('RACHA_ACTUAL');
+      expect(body).toContain('TOTAL_ANUAL');
+      expect(body).toContain('RACHA_MÁXIMA');
+    });
+
+    it('returns Hindi translations when ?lang=hi is given', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', lang: 'hi' }));
+      const body = await response.text();
+      expect(body).toContain('वर्तमान_स्ट्रीक');
+      expect(body).toContain('वार्षिक_कुल');
+      expect(body).toContain('अधिकतम_स्ट्रीक');
+    });
+
+    it('returns French translations when ?lang=fr is given', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', lang: 'fr' }));
+      const body = await response.text();
+      expect(body).toContain('SÉRIE_ACTUELLE');
+      expect(body).toContain('TOTAL_ANNUEL');
+      expect(body).toContain('SÉRIE_MAXIMALE');
+    });
+
+    it('falls back to English when an unknown ?lang=xx is given', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', lang: 'xx' }));
+      const body = await response.text();
+      expect(body).toContain('CURRENT_STREAK');
+      expect(body).toContain('ANNUAL_SYNC_TOTAL');
+      expect(body).toContain('PEAK_STREAK');
     });
   });
 });

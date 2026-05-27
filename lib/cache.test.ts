@@ -44,6 +44,16 @@ describe('TTLCache', () => {
   });
 
   describe('capacity eviction (maxSize)', () => {
+    it('keeps entries unlimited when maxSize is not provided', () => {
+      const cache = new TTLCache<number>();
+      for (let i = 0; i < 1001; i++) {
+        cache.set(`key-${i}`, i, 60_000);
+      }
+      expect(cache.get('key-0')).toBe(0);
+      expect(cache.get('key-1000')).toBe(1000);
+      cache.destroy();
+    });
+
     it('does not exceed maxSize — evicts the oldest key on overflow', () => {
       const cache = new TTLCache<number>(3);
       cache.set('a', 1, 60_000);

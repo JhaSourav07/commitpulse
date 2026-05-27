@@ -1,20 +1,16 @@
 import type { BadgeParams, ContributionCalendar, StreakStats, MonthlyStats } from '../../types';
-import { getLabels } from '../i18n/badgeLabels';
-import { AUTO_DARK_THEME, AUTO_LIGHT_THEME } from './themes';
+import { getLabels, type BadgeLabels } from '../i18n/badgeLabels';
+import { AUTO_THEME_DARK, AUTO_THEME_LIGHT } from './themes';
 import { TOWER_ANIMATION_CSS } from './animations';
 import { computeTowers, type TowerData } from './layout';
-import { sanitizeFont, sanitizeHexColor, sanitizeRadius } from './sanitizer';
+import { sanitizeFont, sanitizeHexColor, sanitizeRadius, sanitizeGoogleFontUrl } from './sanitizer';
 
-const FONT_MAP: Record<string, string> = {
-  jetbrains: '"JetBrains Mono", monospace',
-  fira: '"Fira Code", monospace',
-  roboto: '"Roboto", sans-serif',
-};
+import { SVG_WIDTH, SVG_HEIGHT, FONT_MAP } from './constants';
 
 // helpers
 function getSizeScale(size?: 'small' | 'medium' | 'large'): number {
-  if (size === 'small') return 400 / 600;
-  if (size === 'large') return 800 / 600;
+  if (size === 'small') return 400 / SVG_WIDTH;
+  if (size === 'large') return 800 / SVG_WIDTH;
   return 1; // medium (default)
 }
 
@@ -37,6 +33,34 @@ function scaleTowerData(towerData: TowerData[], sf: number): TowerData[] {
   }));
 }
 
+/** Rounds a base value by the current size-scale factor. */
+type Scaler = (n: number) => number;
+
+/** Avoids duplicating the rounding scaler in every rendering function. */
+function createScaler(sf: number): Scaler {
+  return (n: number): number => Math.round(n * sf);
+}
+
+/**
+ * Escapes special XML characters in a string so it can be safely
+ * embedded inside SVG or XML markup.
+ *
+ * Converts:
+ * - & to &amp;
+ * - < to &lt;
+ * - > to &gt;
+ * - " to &quot;
+ * - ' to &#39;
+ *
+ * @param str - Raw string that may contain XML-sensitive characters.
+ *
+ * @returns An XML-safe escaped string.
+ *
+ * @example
+ * const safe = escapeXML('<text>Hello & Welcome</text>');
+ * // Returns:
+ * // '&lt;text&gt;Hello &amp; Welcome&lt;/text&gt;'
+ */
 export function escapeXML(str: string): string {
   return str
     .replace(/&/g, '&amp;')
@@ -55,45 +79,24 @@ function generateParticles(
   x: number,
   y: number,
   height: number,
-  color: string,
   count: number,
-  sf: number
+  sf: number,
+  autoTheme: boolean = false,
+  color: string = ''
 ): string {
   let particles = '';
   const numParticles = particleCount(count);
 
   for (let i = 0; i < numParticles; i++) {
-    const seed = `${x}:${y}:${height}:${color}:${count}:${i}`;
+    const themeSeed = autoTheme ? 'auto' : color;
+    const seed = `${x}:${y}:${height}:${themeSeed}:${count}:${i}`;
     const offsetX = deterministicRandom(`${seed}:offsetX`) * 6 - 3;
     const delay = deterministicRandom(`${seed}:delay`) * 1.5;
 
-    particles += `
-      <circle cx="${x + offsetX}" cy="${y - height}" r="${1.5 * sf}" fill="${color}" opacity="1">
-        <animate attributeName="cy" from="${y - height}" to="${y - height - 20}" dur="1.5s" begin="${delay}s" repeatCount="indefinite" />
-        <animate attributeName="opacity" from="1" to="0" dur="1.5s" begin="${delay}s" repeatCount="indefinite" />
-      </circle>
-    `;
-  }
-  return `<g class="heat-particles">${particles}</g>`;
-}
-
-function generateAutoParticles(
-  x: number,
-  y: number,
-  height: number,
-  count: number,
-  sf: number
-): string {
-  let particles = '';
-  const numParticles = particleCount(count);
-
-  for (let i = 0; i < numParticles; i++) {
-    const seed = `${x}:${y}:${height}:auto:${count}:${i}`;
-    const offsetX = deterministicRandom(`${seed}:offsetX`) * 6 - 3;
-    const delay = deterministicRandom(`${seed}:delay`) * 1.5;
+    const fillAttr = autoTheme ? 'class="cp-accent-fill"' : `fill="${color}"`;
 
     particles += `
-      <circle class="cp-accent-fill" cx="${x + offsetX}" cy="${y - height}" r="${1.5 * sf}" opacity="1">
+      <circle ${fillAttr} cx="${x + offsetX}" cy="${y - height}" r="${1.5 * sf}" opacity="1">
         <animate attributeName="cy" from="${y - height}" to="${y - height - 20}" dur="1.5s" begin="${delay}s" repeatCount="indefinite" />
         <animate attributeName="opacity" from="1" to="0" dur="1.5s" begin="${delay}s" repeatCount="indefinite" />
       </circle>
@@ -114,6 +117,23 @@ function renderHeader(safeUser: string, stats: StreakStats, sf: number): string 
   <defs>
     <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="${fs(5)}" result="blur" /><feComposite in="SourceGraphic" in2="blur" operator="over" /></filter>
   </defs>`;
+}
+
+/** Renders the three-column stats row (Current Streak / Annual Sync Total / Peak Streak). */
+function renderStatsSection(stats: StreakStats, labels: BadgeLabels, s: Scaler): string {
+  return `
+  <g transform="translate(${s(40)}, ${s(340)})">
+    <text class="label">${labels.CURRENT_STREAK}</text>
+    <text y="${s(40)}" class="stats" filter="url(#glow)">${stats.currentStreak}</text>
+  </g>
+  <g transform="translate(${s(300)}, ${s(340)})" text-anchor="middle">
+    <text class="label">${labels.ANNUAL_SYNC_TOTAL}</text>
+    <text y="${s(40)}" class="total-val" filter="url(#glow)">${stats.totalContributions}</text>
+  </g>
+  <g transform="translate(${s(560)}, ${s(340)})" text-anchor="end">
+    <text class="label">${labels.PEAK_STREAK}</text>
+    <text y="${s(40)}" class="stats">${stats.longestStreak}</text>
+  </g>`;
 }
 
 function renderStyle(
@@ -155,7 +175,7 @@ function renderTowers(towerData: TowerData[], accent: string, text: string, sf: 
           </g>
         </g>`;
     if (t.contributionCount >= 10)
-      towers += generateParticles(t.x, t.y, t.h, accent, t.contributionCount, sf);
+      towers += generateParticles(t.x, t.y, t.h, t.contributionCount, sf, false, accent);
   }
   return towers;
 }
@@ -168,25 +188,9 @@ function renderFooter(
   accent: string,
   sf: number
 ): string {
-  const s = (n: number) => Math.round(n * sf);
+  const s = createScaler(sf);
   return `
-  ${
-    !params.hide_stats
-      ? `
-  <g transform="translate(${s(40)}, ${s(340)})">
-    <text class="label">${labels.CURRENT_STREAK}</text>
-    <text y="${s(40)}" class="stats" filter="url(#glow)">${stats.currentStreak}</text>
-  </g>
-  <g transform="translate(${s(300)}, ${s(340)})" text-anchor="middle">
-    <text class="label">${labels.ANNUAL_SYNC_TOTAL}</text>
-    <text y="${s(40)}" class="total-val" filter="url(#glow)">${stats.totalContributions}</text>
-  </g>
-  <g transform="translate(${s(560)}, ${s(340)})" text-anchor="end">
-    <text class="label">${labels.PEAK_STREAK}</text>
-    <text y="${s(40)}" class="stats">${stats.longestStreak}</text>
-  </g>`
-      : ''
-  }
+  ${!params.hide_stats ? renderStatsSection(stats, labels, s) : ''}
   ${!params.hide_title ? `<text x="${s(300)}" y="${s(50)}" text-anchor="middle" class="title">${safeUser.toUpperCase()}</text>` : ''}
   <rect x="${s(100)}" y="${s(60)}" width="${s(400)}" height="${sf}" fill="${accent}" fill-opacity="0.3">
     <animate attributeName="y" values="${s(80)};${s(320)};${s(80)}" dur="${params.speed || '8s'}" repeatCount="indefinite" />
@@ -194,6 +198,42 @@ function renderFooter(
 }
 
 // ── Main static-theme renderer ────────────────────────────────────────────
+
+/**
+ * Generates the main CommitPulse SVG badge using contribution
+ * calendar data and streak statistics.
+ *
+ * The SVG includes animated contribution towers, statistics,
+ * theme styling, and optional auto-theme support.
+ *
+ * @param stats - Contribution streak statistics including current streak,
+ * longest streak, total contributions, and today's date.
+ * @param params - Badge customization options such as colors, fonts,
+ * animations, scaling, visibility toggles, and theme settings.
+ * @param params.autoTheme - Enables automatic switching between
+ * light and dark themes based on the user's system color scheme.
+ * @param calendar - Contribution calendar data containing weekly
+contribution entries and per-day contribution counts used to
+generate the tower layout.
+ * 
+ * @returns A fully generated SVG badge string.
+ *
+ * @example
+ * const svg = generateSVG(
+ *   {
+ *     currentStreak: 12,
+ *     longestStreak: 30,
+ *     totalContributions: 542,
+ *     todayDate: '2026-05-27',
+ *   },
+ *   {
+ *     user: 'octocat',
+ *     autoTheme: true,
+ *     accent: '00ffaa',
+ *   },
+ *   calendar
+ * );
+ */
 export function generateSVG(
   stats: StreakStats,
   params: BadgeParams,
@@ -215,16 +255,17 @@ export function generateSVG(
       ? `"${sanitizedFont}", sans-serif`
       : null;
   const statsFont = selectedFont || '"Space Grotesk", sans-serif';
-  const googleFontsImport =
-    sanitizedFont && !isPredefinedFont
-      ? `@import url('https://fonts.googleapis.com/css2?family=${encodeURIComponent(sanitizedFont).replace(/%20/g, '+')}&amp;display=swap');`
-      : '';
+  const googleFontUrlPart =
+    sanitizedFont && !isPredefinedFont ? sanitizeGoogleFontUrl(sanitizedFont) : null;
+  const googleFontsImport = googleFontUrlPart
+    ? `@import url('https://fonts.googleapis.com/css2?family=${googleFontUrlPart}&amp;display=swap');`
+    : '';
 
   const sf = getSizeScale(params.size);
   const radius = sanitizeRadius(params.radius, 8) * sf;
   const labels = getLabels(params.lang);
-  const W = Math.round(600 * sf);
-  const H = Math.round(420 * sf);
+  const W = Math.round(SVG_WIDTH * sf);
+  const H = Math.round(SVG_HEIGHT * sf);
 
   const towerData = scaleTowerData(computeTowers(calendar, params.scale, stats.todayDate), sf);
   const towers = renderTowers(towerData, accent, text, sf);
@@ -245,8 +286,8 @@ function generateAutoThemeSVG(
   params: BadgeParams,
   calendar: ContributionCalendar
 ): string {
-  const light = AUTO_LIGHT_THEME;
-  const dark = AUTO_DARK_THEME;
+  const light = AUTO_THEME_LIGHT;
+  const dark = AUTO_THEME_DARK;
   const safeUser = escapeXML(params.user || 'GitHub User');
   const sanitizedFont = sanitizeFont(params.font);
   const selectedFont = sanitizedFont
@@ -257,8 +298,8 @@ function generateAutoThemeSVG(
   const radius = sanitizeRadius(params.radius, 8) * sf;
   const labels = getLabels(params.lang);
 
-  const W = Math.round(600 * sf);
-  const H = Math.round(420 * sf);
+  const W = Math.round(SVG_WIDTH * sf);
+  const H = Math.round(SVG_HEIGHT * sf);
   const towerData = scaleTowerData(computeTowers(calendar, params.scale, stats.todayDate), sf);
   let towers = '';
 
@@ -287,11 +328,11 @@ function generateAutoThemeSVG(
           </g>
         </g>`;
     if (t.contributionCount >= 10)
-      towers += generateAutoParticles(t.x, t.y, t.h, t.contributionCount, sf);
+      towers += generateParticles(t.x, t.y, t.h, t.contributionCount, sf, true);
   }
 
-  const s = (n: number) => Math.round(n * sf);
-  const fs = (n: number) => Math.round(n * sf * 10) / 10;
+  const s = createScaler(sf);
+  const fs = (n: number): number => Math.round(n * sf * 10) / 10;
 
   return `
 <svg
@@ -302,16 +343,14 @@ function generateAutoThemeSVG(
   fill="none"
   role="img"
 >
-  <title>CommitPulse Stats for ${safeUser} </title>
-  <desc>
-    ${params.user || 'This user'} has ${stats.totalContributions} total contributions and a longest streak of ${stats.longestStreak} days.
-  </desc>
-  <defs>
-    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="${fs(5)}" result="blur" /><feComposite in="SourceGraphic" in2="blur" operator="over" /></filter>
-  </defs>
+  ${renderHeader(safeUser, stats, sf)}
 
   <style>
   @import url('https://fonts.googleapis.com/css2?family=Fira+Code&amp;family=JetBrains+Mono&amp;family=Roboto&amp;display=swap');
+  /* Auto-theme strategy: expose the palette as CSS variables so the SVG can
+     switch from light to dark through prefers-color-scheme. Shapes use classes
+     instead of inline fills because inline fill attributes would override these
+     variables and prevent the theme from updating automatically. */
   :root { --cp-bg: #${light.bg}; --cp-text: #${light.text}; --cp-accent: #${light.accent}; }
   @media (prefers-color-scheme: dark) { :root { --cp-bg: #${dark.bg}; --cp-text: #${dark.text}; --cp-accent: #${dark.accent}; } }
   .cp-bg-fill { fill: var(--cp-bg); } .cp-text-fill { fill: var(--cp-text); color: var(--cp-text); } .cp-accent-fill { fill: var(--cp-accent); color: var(--cp-accent); }
@@ -328,26 +367,7 @@ function generateAutoThemeSVG(
   <g transform="translate(0, ${s(20)})">
     ${towers}
   </g>
-  ${
-    !params.hide_stats
-      ? `
-  <g transform="translate(${s(40)}, ${s(340)})">
-    <text class="label">${labels.CURRENT_STREAK}</text>
-    <text y="${s(40)}" class="stats" filter="url(#glow)">${stats.currentStreak}</text>
-  </g>
-
-  <g transform="translate(${s(300)}, ${s(340)})" text-anchor="middle">
-    <text class="label">${labels.ANNUAL_SYNC_TOTAL}</text>
-    <text y="${s(40)}" class="total-val" filter="url(#glow)">${stats.totalContributions}</text>
-  </g>
-
-  <g transform="translate(${s(560)}, ${s(340)})" text-anchor="end">
-    <text class="label">${labels.PEAK_STREAK}</text>
-    <text y="${s(40)}" class="stats">${stats.longestStreak}</text>
-  </g>
-`
-      : ''
-  }
+  ${!params.hide_stats ? renderStatsSection(stats, labels, s) : ''}
 ${
   !params.hide_title
     ? `<text x="${s(300)}" y="${s(50)}" text-anchor="middle" class="title">${safeUser.toUpperCase()}</text>`
@@ -367,9 +387,9 @@ export function generateMonthlySVG(stats: MonthlyStats, params: BadgeParams): st
   }
 
   const safeUser = escapeXML(params.user || 'GitHub User');
-  const bg = `#${(params.bg || '0d1117').replace('#', '')}`;
-  const accent = `#${(params.accent || '00ffaa').replace('#', '')}`;
-  const text = `#${(params.text || 'ffffff').replace('#', '')}`;
+  const bg = `#${sanitizeHexColor(params.bg, '0d1117')}`;
+  const accent = `#${sanitizeHexColor(params.accent, '00ffaa')}`;
+  const text = `#${sanitizeHexColor(params.text, 'ffffff')}`;
 
   const sanitizeFont = (name: string) => name.replace(/[^a-zA-Z0-9\s-]/g, '').trim();
   const sanitizedFont = params.font ? sanitizeFont(params.font) : null;
@@ -389,10 +409,11 @@ export function generateMonthlySVG(stats: MonthlyStats, params: BadgeParams): st
   const width = params.width || 300;
   const height = params.height || 120;
 
-  const googleFontsImport =
-    sanitizedFont && !isPredefinedFont
-      ? `@import url('https://fonts.googleapis.com/css2?family=${encodeURIComponent(sanitizedFont).replace(/%20/g, '+')}&amp;display=swap');`
-      : '';
+  const googleFontUrlPart =
+    sanitizedFont && !isPredefinedFont ? sanitizeGoogleFontUrl(sanitizedFont) : null;
+  const googleFontsImport = googleFontUrlPart
+    ? `@import url('https://fonts.googleapis.com/css2?family=${googleFontUrlPart}&amp;display=swap');`
+    : '';
 
   let deltaText = '';
   if (params.delta_format === 'absolute') {
@@ -454,8 +475,8 @@ export function generateMonthlySVG(stats: MonthlyStats, params: BadgeParams): st
 }
 
 function generateAutoThemeMonthlySVG(stats: MonthlyStats, params: BadgeParams): string {
-  const light = AUTO_LIGHT_THEME;
-  const dark = AUTO_DARK_THEME;
+  const light = AUTO_THEME_LIGHT;
+  const dark = AUTO_THEME_DARK;
   const safeUser = escapeXML(params.user || 'GitHub User');
   const sanitizeFont = (name: string) => name.replace(/[^a-zA-Z0-9\s-]/g, '').trim();
   const sanitizedFont = params.font ? sanitizeFont(params.font) : null;
@@ -537,6 +558,34 @@ function generateAutoThemeMonthlySVG(stats: MonthlyStats, params: BadgeParams): 
 `;
 }
 
+/**
+ * Generates a fallback SVG badge for users that do not exist
+ * or when contribution data cannot be loaded.
+ *
+ * The SVG renders a ghost-style city layout with an animated
+ * error-state design while preserving the standard badge layout.
+ *
+ * @param username - GitHub username displayed in the error badge.
+ * @param bg - Background color used for the SVG container.
+ * @param accent - Accent color used for highlights, outlines,
+ * and animated elements.
+ * @param text - Primary text color used throughout the badge.
+ * @param radius - Border radius applied to the SVG background.
+ * @param speed - Animation speed for the radar scan effect.
+ * Defaults to '8s'.
+ *
+ * @returns A generated SVG string representing the not-found state.
+ *
+ * @example
+ * const svg = generateNotFoundSVG(
+ *   'octocat',
+ *   '#0d1117',
+ *   '#00ffaa',
+ *   '#ffffff',
+ *   8,
+ *   '8s'
+ * );
+ */
 export function generateNotFoundSVG(
   username: string,
   bg: string,
@@ -626,9 +675,9 @@ export function generateNotFoundSVG(
 
   return `<svg
   xmlns="http://www.w3.org/2000/svg"
-  width="600"
-  height="420"
-  viewBox="0 0 600 420"
+  width="${SVG_WIDTH}"
+  height="${SVG_HEIGHT}"
+  viewBox="0 0 ${SVG_WIDTH} ${SVG_HEIGHT}"
   fill="none"
   role="img"
 >
@@ -660,7 +709,7 @@ export function generateNotFoundSVG(
   </style>
 
   <!-- Background -->
-  <rect width="600" height="420" rx="${radius}" fill="${bg}"/>
+  <rect width="${SVG_WIDTH}" height="${SVG_HEIGHT}" rx="${radius}" fill="${bg}"/>
 
   <!-- Ghost isometric city — same grid as real badge -->
   <g transform="translate(0, 20)" class="ghost-pulse">
@@ -668,7 +717,7 @@ export function generateNotFoundSVG(
   </g>
 
   <!-- Fade overlay so ghost city dissolves into background -->
-  <rect width="600" height="420" rx="${radius}" fill="url(#ghostFade)"/>
+  <rect width="${SVG_WIDTH}" height="${SVG_HEIGHT}" rx="${radius}" fill="url(#ghostFade)"/>
 
   <!-- Radar scan line (same as real badge, but very faint) -->
   <rect x="100" y="60" width="400" height="1" fill="${accent}" fill-opacity="0.12">

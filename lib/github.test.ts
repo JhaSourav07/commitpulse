@@ -9,6 +9,8 @@ import {
   clearGitHubApiCacheForTests,
   GITHUB_CACHE_TTL_MS,
   validateGitHubUsername,
+  cacheKey,
+  buildCommitClock,
 } from './github';
 import type { ContributionCalendar } from '../types';
 
@@ -106,7 +108,7 @@ describe('fetchGitHubContributions', () => {
     vi.mocked(fetch).mockResolvedValue(mockResponse({ message: 'Internal Server Error' }, 500));
 
     await expect(fetchGitHubContributions('octocat')).rejects.toThrow(
-      'GitHub GraphQL API returned status 500'
+      'GitHub GraphQL API returned status 500 after 3 retries'
     );
   });
 
@@ -267,7 +269,7 @@ describe('fetchUserRepos', () => {
 
     await fetchUserRepos('octocat');
 
-    expect(fetch).toHaveBeenCalledTimes(100);
+    expect(fetch).toHaveBeenCalledTimes(3);
   });
 });
 
@@ -326,7 +328,7 @@ describe('getFullDashboardData', () => {
     expect(totalClockCommits).toBe(8); // 3 + 0 + 5 from mockCalendar
   });
 
-  it('throws if any fetch fails', async () => {
+  it('throws if profile fetch fails', async () => {
     vi.mocked(fetch).mockImplementation(async (url: any) => {
       if (typeof url === 'string' && url.includes('/users/octocat/repos')) {
         return mockResponse([]);
@@ -338,10 +340,12 @@ describe('getFullDashboardData', () => {
         data: { user: { contributionsCollection: { contributionCalendar: mockCalendar } } },
       });
     });
-    await expect(getFullDashboardData('octocat')).rejects.toThrow('Network error');
+    await expect(getFullDashboardData('octocat')).rejects.toThrow(
+      '[GitHub API] Failed to fetch profile for user "octocat"'
+    );
   });
 
-  it('throws unknown error for non-error throws', async () => {
+  it('throws correctly for non-error throws in profile fetch', async () => {
     vi.mocked(fetch).mockImplementation(async (url: any) => {
       if (typeof url === 'string' && url.includes('/users/octocat/repos')) {
         return mockResponse([]);
@@ -353,7 +357,9 @@ describe('getFullDashboardData', () => {
         data: { user: { contributionsCollection: { contributionCalendar: mockCalendar } } },
       });
     });
-    await expect(getFullDashboardData('octocat')).rejects.toThrow('An unknown error occurred');
+    await expect(getFullDashboardData('octocat')).rejects.toThrow(
+      '[GitHub API] Failed to fetch profile for user "octocat"'
+    );
   });
 });
 
@@ -419,6 +425,98 @@ describe('GitHub API cache behavior', () => {
 
     expect(fetch).toHaveBeenCalledTimes(2);
   });
+
+  it('cache hit: second profile call uses cached value', async () => {
+    vi.mocked(fetch).mockResolvedValue(
+      mockResponse({
+        login: 'octocat',
+        name: 'The Octocat',
+      })
+    );
+
+    await fetchUserProfile('octocat');
+    await fetchUserProfile('octocat');
+
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('refresh bypass: bypassCache=true forces fresh profile fetch', async () => {
+    vi.mocked(fetch).mockImplementation(async () =>
+      mockResponse({
+        login: 'octocat',
+        name: 'The Octocat',
+      })
+    );
+
+    await fetchUserProfile('octocat');
+    await fetchUserProfile('octocat', { bypassCache: true });
+
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it('cache hit: second repos call uses cached value', async () => {
+    vi.mocked(fetch).mockResolvedValue(
+      mockResponse([
+        {
+          stargazers_count: 1,
+          language: 'TypeScript',
+        },
+      ])
+    );
+
+    await fetchUserRepos('octocat');
+    await fetchUserRepos('octocat');
+
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('refresh bypass: bypassCache=true forces fresh repos fetch', async () => {
+    vi.mocked(fetch).mockImplementation(async () =>
+      mockResponse([
+        {
+          stargazers_count: 1,
+          language: 'TypeScript',
+        },
+      ])
+    );
+
+    await fetchUserRepos('octocat');
+    await fetchUserRepos('octocat', { bypassCache: true });
+
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it('handles a new account with no public repos correctly', async () => {
+    vi.mocked(fetch).mockImplementation(async (url: any) => {
+      if (typeof url === 'string' && url.includes('/users/octocat/repos')) {
+        return mockResponse([]);
+      }
+      if (typeof url === 'string' && url.includes('/users/octocat')) {
+        return mockResponse({
+          login: 'octocat',
+          name: 'The Octocat',
+          avatar_url: 'avatar.png',
+          public_repos: 0,
+          followers: 0,
+          following: 0,
+          created_at: '2024-01-01T00:00:00Z',
+          bio: null,
+          location: null,
+        });
+      }
+      return mockResponse({
+        data: {
+          user: { contributionsCollection: { contributionCalendar: mockCalendar } },
+        },
+      });
+    });
+
+    const result = await getFullDashboardData('octocat');
+
+    expect(result.languages).toEqual([]);
+    expect(result.profile.stats.stars).toBe(0);
+    expect(result.profile.developerScore).toBeGreaterThanOrEqual(0);
+  });
 });
 describe('generateAchievements', () => {
   it('marks contribution milestones correctly', () => {
@@ -469,5 +567,54 @@ describe('validateGitHubUsername', () => {
 
   it('returns false for consecutive hyphens', () => {
     expect(validateGitHubUsername('in--valid')).toBe(false);
+  });
+});
+
+describe('cacheKey', () => {
+  it('creates key without year', () => {
+    expect(cacheKey('profile', 'DeepSikha')).toBe('profile:deepsikha');
+  });
+
+  it('creates key with year', () => {
+    expect(cacheKey('contributions', 'DeepSikha', '2025')).toBe('contributions:deepsikha:2025');
+  });
+
+  it('converts username to lowercase', () => {
+    expect(cacheKey('repos', 'DeEpSiKhA')).toBe('repos:deepsikha');
+  });
+
+  it('supports profile kind', () => {
+    expect(cacheKey('profile', 'testuser')).toContain('profile');
+  });
+
+  it('supports repos kind', () => {
+    expect(cacheKey('repos', 'testuser')).toContain('repos');
+  });
+
+  it('supports contributions kind', () => {
+    expect(cacheKey('contributions', 'testuser')).toContain('contributions');
+  });
+});
+
+describe('buildCommitClock', () => {
+  it('aggregates commits correctly by day of week', () => {
+    const allDays = [
+      { date: '2024-06-09', contributionCount: 2 }, // Sun
+      { date: '2024-06-10', contributionCount: 5 }, // Mon
+      { date: '2024-06-10', contributionCount: 3 }, // Mon
+      { date: '2024-06-12', contributionCount: 4 }, // Wed
+    ];
+
+    const result = buildCommitClock(allDays);
+
+    expect(result).toEqual([
+      { day: 'Sun', commits: 2 },
+      { day: 'Mon', commits: 8 },
+      { day: 'Tue', commits: 0 },
+      { day: 'Wed', commits: 4 },
+      { day: 'Thu', commits: 0 },
+      { day: 'Fri', commits: 0 },
+      { day: 'Sat', commits: 0 },
+    ]);
   });
 });

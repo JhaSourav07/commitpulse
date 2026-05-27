@@ -88,6 +88,59 @@ http://localhost:3000/api/streak?user=YOUR_GITHUB_USERNAME
 
 ---
 
+## 🤝 Contributor Onboarding
+
+### 📁 Project Structure
+
+```text
+app/api/streak/route.ts       → API route for SVG generation
+lib/github.ts                 → GitHub GraphQL API client
+lib/calculate.ts              → Streak calculation logic
+lib/svg/generator.ts          → SVG rendering engine
+lib/svg/themes.ts             → Theme configuration system
+utils/time.ts                 → UTC & timezone utilities
+types/index.ts                → Shared TypeScript interfaces
+```
+
+---
+
+### ⚠️ Local Setup Troubleshooting
+
+Common issues during setup:
+
+- **401 Unauthorized** → Invalid or missing `GITHUB_TOKEN`
+- **MongoDB errors** → `MONGODB_URI` is optional for local development
+- **Empty SVG output** → Ensure the GitHub username exists and has public contributions
+
+---
+
+### 🌱 Beginner-Friendly Contribution Areas
+
+Good first contributions:
+
+- Documentation improvements
+- New theme presets
+- SVG styling enhancements
+- UI polish and accessibility improvements
+
+---
+
+### 🔁 Simplified PR Workflow
+
+```text
+Fork Repository
+      ↓
+Create Branch
+      ↓
+Make Changes
+      ↓
+Run Tests & Lint
+      ↓
+Open Pull Request
+```
+
+---
+
 ## 🎯 What to Contribute
 
 We welcome contributions in three focused pillars. Staying within these areas ensures every PR adds clear, compounding value.
@@ -162,7 +215,7 @@ To maintain high quality in our codebase, we use structured **Issue Templates** 
 - **🐛 Bug Report Template**: For reporting visual glitches, API errors, or unexpected behavior.
 - **✨ Feature Request Template**: For suggesting new isometric monolith designs, themes, or time/accuracy improvements.
 
-By using these templates, you provide maintainers with clear details and context. Since you authored the issue, you can immediately claim it for yourself by commenting `/claim`!
+By using these templates, you provide maintainers with clear details and context. Since you authored the issue, you can immediately claim it for yourself by commenting `/claim`! (Note: Issues authored by `jhasourav07` can be claimed by anyone).
 
 ### 🔍 Semantic Duplicate Detection
 
@@ -177,12 +230,12 @@ To help maintainers keep the repository organized and prevent multiple contribut
 
 Our automation runs entirely through issue comments. Here is how you interact with it:
 
-| Command                       | Who Can Use It?       | What It Does                                              |
-| ----------------------------- | --------------------- | --------------------------------------------------------- |
-| `/claim`                      | **Issue Author Only** | Self-assigns the issue to you (only if you created it).   |
-| `/addlabel <label1> <label2>` | **Anyone**            | Adds labels to the issue (e.g. `/addlabel frontend bug`). |
-| `/unassign @username`         | **Maintainers Only**  | Removes the assignee from an issue.                       |
-| `/assign @username`           | **Maintainers Only**  | Manually assigns someone to an issue.                     |
+| Command                       | Who Can Use It?                                         | What It Does                                              |
+| ----------------------------- | ------------------------------------------------------- | --------------------------------------------------------- |
+| `/claim`                      | **Issue Author (or Anyone if authored by jhasourav07)** | Self-assigns the issue to you.                            |
+| `/addlabel <label1> <label2>` | **Anyone**                                              | Adds labels to the issue (e.g. `/addlabel frontend bug`). |
+| `/unassign @username`         | **Maintainers Only**                                    | Removes the assignee from an issue.                       |
+| `/assign @username`           | **Maintainers Only**                                    | Manually assigns someone to an issue.                     |
 
 ### ⏳ The Inactivity Policy (Assignment Expiry)
 
@@ -207,7 +260,7 @@ If the bot rejects your command, check these common scenarios:
 - **"Commands cannot be used on closed issues"**: You cannot claim, assign, or unassign on closed issues. Find an open one!
 - **"You already have X/3 active assigned issues"**: You have reached the maximum of 3 concurrent assignments. Finish one of your current tasks before claiming a new issue. If you're stuck, ask a maintainer to `/unassign` you from one.
 - **"This issue is already assigned to @username"**: Be faster next time! Look for issues without assignees.
-- **"Only the author of this issue can claim it"**: You tried to `/claim` an issue you did not create. You can only claim issues that you authored.
+- **"Only the author of this issue can claim it"**: You tried to `/claim` an issue you did not create. You can only claim issues that you authored (unless the issue was authored by `jhasourav07`, which anyone can claim).
 - **"The following label(s) do not exist"**: You can only add existing repo labels. The bot will reply with a list of valid labels you can use.
 - **"You don't have permission"**: You tried to use `/assign` or `/unassign`. Please use `/claim` instead.
 

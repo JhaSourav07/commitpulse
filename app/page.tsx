@@ -1,5 +1,5 @@
 'use client';
-
+import { trackUser } from '@/utils/tracking';
 import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { useRef, useState, useEffect } from 'react';
@@ -9,6 +9,7 @@ import { X } from 'lucide-react';
 import { CommitPulseLogo } from '@/components/commitpulse-logo';
 import { CustomizeCTA } from './components/CustomizeCTA';
 import { useRecentSearches } from '@/hooks/useRecentSearches';
+import { Footer } from '@/app/components/Footer';
 
 const Icons = {
   Github: () => (
@@ -64,20 +65,6 @@ const Icons = {
     </svg>
   ),
 };
-
-function trackUser(name: string) {
-  const payload = JSON.stringify({ username: name });
-  // sendBeacon is truly fire-and-forget — it doesn't block navigation
-  if (navigator.sendBeacon) {
-    navigator.sendBeacon('/api/track-user', new Blob([payload], { type: 'application/json' }));
-  } else {
-    fetch('/api/track-user', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: payload,
-    }).catch(console.error);
-  }
-}
 
 export default function LandingPage() {
   const [username, setUsername] = useState('');
@@ -137,13 +124,13 @@ export default function LandingPage() {
   };
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-transparent font-sans text-white selection:bg-white/20">
+    <div className="min-h-screen overflow-x-hidden bg-transparent font-sans text-black dark:text-white selection:bg-black/20 dark:selection:bg-white/20">
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
         <div className="absolute -left-[10%] -top-[10%] h-[40%] w-[40%] rounded-full bg-white/3 blur-[120px]" />
         <div className="absolute -right-[10%] top-[20%] h-[30%] w-[30%] rounded-full bg-white/2 blur-[120px]" />
       </div>
 
-      <main className="relative z-10 mx-auto max-w-6xl px-6 pb-32">
+      <main className="relative z-10 mx-auto max-w-6xl px-6 mt-32">
         <div className="mb-16 text-center">
           <motion.a
             href="https://discord.gg/Cb73bS79j"
@@ -154,11 +141,11 @@ export default function LandingPage() {
             transition={{ duration: 0.5, delay: 0.1 }}
             whileHover={{ scale: 1.04, backgroundColor: 'rgba(255,255,255,0.07)' }}
             whileTap={{ scale: 0.97 }}
-            className="mb-8 inline-flex items-center gap-2.5 rounded-full border border-white/10 bg-white/[0.04] px-4 py-1.5 text-xs font-medium text-white/50 backdrop-blur-sm transition-colors duration-200 hover:border-white/20 hover:text-white/80"
+            className="mb-8 inline-flex items-center gap-2.5 rounded-full border border-black/10 bg-white px-4 py-1.5 text-xs font-medium text-gray-700 shadow-sm backdrop-blur-sm transition-colors duration-200 hover:border-black/20 hover:text-black dark:border-white/10 dark:bg-white/[0.04] dark:text-white/50 dark:hover:border-white/20 dark:hover:text-white/80"
           >
             <span className="relative flex h-1.5 w-1.5">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white/50" />
-              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-white/70" />
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-black/40 dark:bg-white/50" />
+              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-black/70 dark:bg-white/70" />
             </span>
             <svg
               width="13"
@@ -190,7 +177,7 @@ export default function LandingPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.15 }}
           >
-            <h1 className="mb-8 bg-linear-to-b from-white to-white/30 bg-clip-text text-4xl sm:text-5xl font-extrabold tracking-tight text-transparent md:text-8xl ">
+            <h1 className="mb-8 bg-gradient-to-b from-black to-black/40 dark:from-white dark:to-white/30 bg-clip-text text-transparent sm:text-5xl font-extrabold tracking-tight md:text-8xl">
               Elevate Your <br /> Contribution Story.
             </h1>
           </motion.div>
@@ -199,7 +186,7 @@ export default function LandingPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.3 }}
-            className="mx-auto max-w-2xl text-sm sm:text-lg leading-relaxed text-gray-400 md:text-xl "
+            className="mx-auto max-w-2xl text-sm sm:text-lg leading-relaxed text-gray-600 dark:text-gray-400 md:text-xl "
           >
             Stop settling for flat grids. Generate high-fidelity, 3D isometric monoliths that
             visualize your coding rhythm with professional precision.
@@ -207,7 +194,7 @@ export default function LandingPage() {
         </div>
 
         <section className="mx-auto mb-32 max-w-4xl">
-          <div className="rounded-2xl border border-[rgba(255,255,255,0.08)] bg-[#0a0a0a] p-4 md:p-8">
+          <div className="rounded-2xl border border-black/10 bg-white p-4 dark:border-[rgba(255,255,255,0.08)] dark:bg-[#0a0a0a] md:p-8">
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -219,14 +206,14 @@ export default function LandingPage() {
                 <input
                   type="text"
                   placeholder="Enter GitHub Username"
-                  className="flex-1 rounded-xl border border-[rgba(255,255,255,0.08)] bg-[#111] px-5 py-3.5 text-sm text-white outline-none transition-all duration-200 placeholder:text-[#A1A1AA] focus:outline-none focus:ring-2 focus:ring-[#00ffaa] focus:border-transparent"
+                  className="flex-1 rounded-xl border border-black/10 bg-gray-100 px-5 py-3.5 text-sm text-black outline-none transition-all duration-200 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#00ffaa] focus:border-transparent dark:border-[rgba(255,255,255,0.08)] dark:bg-[#111] dark:text-white dark:placeholder:text-[#A1A1AA]"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                 />
                 {username.length > 0 ? (
                   <button
                     onClick={() => setUsername('')}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-[#A1A1AA] transition-colors hover:text-white"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 transition-colors hover:text-black dark:text-[#A1A1AA] dark:hover:text-white"
                     aria-label="Clear input"
                     type="button"
                   >
@@ -241,8 +228,8 @@ export default function LandingPage() {
                   disabled={!hasUsername}
                   className={`relative flex min-w-[160px] items-center justify-center gap-2 overflow-hidden rounded-xl px-6 py-3.5 text-sm font-semibold transition-all duration-200 active:scale-[0.98] ${
                     hasUsername
-                      ? 'bg-white text-black hover:bg-zinc-100'
-                      : 'bg-white/10 text-white/35'
+                      ? 'bg-black text-white hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-zinc-100'
+                      : 'bg-gray-200 text-gray-500 dark:bg-white/10 dark:text-white/35'
                   }`}
                 >
                   <AnimatePresence mode="wait">
@@ -280,8 +267,8 @@ export default function LandingPage() {
                   }}
                   className={`relative flex min-w-[160px] items-center justify-center gap-2 overflow-hidden rounded-xl border px-6 py-3.5 text-sm font-semibold transition-all duration-200 active:scale-[0.98] ${
                     hasUsername
-                      ? 'border-[rgba(255,255,255,0.15)] bg-transparent text-white hover:bg-white/5'
-                      : 'border-[rgba(255,255,255,0.08)] bg-white/[0.02] text-white/35'
+                      ? 'border-black/10 bg-gray-100 text-black hover:bg-gray-200 dark:border-[rgba(255,255,255,0.15)] dark:bg-white/[0.04] dark:text-white dark:hover:bg-white/10'
+                      : 'border-black/10 bg-gray-100 text-gray-500 dark:border-[rgba(255,255,255,0.08)] dark:bg-white/[0.02] dark:text-white/35'
                   }`}
                 >
                   Watch Dashboard
@@ -326,7 +313,7 @@ export default function LandingPage() {
 
           <div className="group relative">
             <div className="absolute -inset-1 rounded-[2rem] bg-white/5 opacity-50 blur-xl transition duration-1000 group-hover:opacity-100" />
-            <div className="relative flex min-h-[320px] items-center justify-center overflow-hidden rounded-xl border border-[rgba(255,255,255,0.06)] bg-black p-6">
+            <div className="relative flex min-h-[320px] items-center justify-center overflow-hidden rounded-xl border border-black/10 bg-white p-6 dark:border-[rgba(255,255,255,0.06)] dark:bg-black">
               {hasUsername ? (
                 <div className="w-full flex items-center justify-center">
                   {svgState === 'loading' && (
@@ -341,14 +328,14 @@ export default function LandingPage() {
                   )}
                 </div>
               ) : (
-                <div className="flex w-full max-w-2xl flex-col items-center justify-center rounded-[1.5rem] border border-dashed border-white/10 bg-white/[0.02] px-6 py-12 text-center">
-                  <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-white/60">
+                <div className="flex w-full max-w-2xl flex-col items-center justify-center rounded-[1.5rem] border border-dashed border-black/10 bg-gray-100 px-6 py-12 text-center dark:border-white/10 dark:bg-white/[0.02]">
+                  <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-black/10 bg-white text-gray-600 dark:border-white/10 dark:bg-white/[0.04] dark:text-white/60">
                     <Icons.Github />
                   </div>
-                  <p className="md:text-lg text-md font-semibold tracking-tight text-white">
+                  <p className="md:text-lg text-md font-semibold tracking-tight text-black dark:text-white">
                     Enter a GitHub username to preview
                   </p>
-                  <p className="mt-2 max-w-md text-xs xs:text-sm leading-relaxed text-[#A1A1AA]">
+                  <p className="mt-2 max-w-md text-xs xs:text-sm leading-relaxed text-gray-600 dark:text-[#A1A1AA]">
                     Your 3D contribution monolith will appear here as soon as you add a username.
                   </p>
                 </div>
@@ -374,40 +361,24 @@ export default function LandingPage() {
         <div className="grid gap-6 md:grid-cols-3">
           <FeatureCard
             icon={<Icons.Zap />}
-            accent="text-white"
+            accent="text-black dark:text-white"
             title="Real-time Sync"
             desc="Pulled directly from GitHub GraphQL API. Your streak updates as fast as your code pushes."
           />
           <FeatureCard
             icon={<Icons.Copy />}
-            accent="text-white"
+            accent="text-black dark:text-white"
             title="Theme Engine"
             desc="Switch between Neon, Dracula, or custom HEX modes via simple URL management."
           />
           <FeatureCard
             icon={<Icons.Box />}
-            accent="text-white"
+            accent="text-black dark:text-white"
             title="Isometric Math"
             desc="Sophisticated 3D projection formulas turn 2D data into digital architecture."
           />
         </div>
-
-        <footer className="mt-32 flex flex-col items-center justify-between gap-6 border-t border-white/5 pt-8 text-sm text-white/30 md:flex-row">
-          <p>&copy; 2026 CommitPulse. Designed for the elite builder community.</p>
-          <div className="flex gap-8">
-            <Link href="/documentation" className="transition-colors hover:text-white">
-              Documentation
-            </Link>
-            <a
-              href="https://github.com/jhasourav07"
-              target="_blank"
-              rel="noreferrer"
-              className="transition-colors hover:text-white"
-            >
-              Creator
-            </a>
-          </div>
-        </footer>
+        <Footer />
       </main>
     </div>
   );
@@ -428,11 +399,17 @@ function FeatureCard({
     <motion.div
       whileHover={{ y: -3 }}
       transition={{ duration: 0.2 }}
-      className="group rounded-xl border border-[rgba(255,255,255,0.08)] bg-[#0a0a0a] p-8 hover:border-[rgba(255,255,255,0.14)] hover:bg-[#0d0d0d] transition-all duration-200"
+      className="group rounded-xl border border-black/10 bg-white p-8 hover:border-black/20 hover:bg-gray-50 dark:border-[rgba(255,255,255,0.08)] dark:bg-[#0a0a0a] dark:hover:border-[rgba(255,255,255,0.14)] dark:hover:bg-[#0d0d0d] transition-all duration-200"
     >
-      <div className={`mb-5 w-fit rounded-lg bg-[#111] p-2.5 ${accent}`}>{icon}</div>
-      <h3 className="mb-2 text-sm font-semibold text-white tracking-tight">{title}</h3>
-      <p className="text-sm leading-relaxed text-[#A1A1AA]">{desc}</p>
+      <div
+        className={`mb-5 w-fit rounded-lg bg-gray-100 p-2.5 text-black dark:bg-[#111] dark:text-white ${accent}`}
+      >
+        {icon}
+      </div>
+      <h3 className="mb-2 text-sm font-semibold text-black dark:text-white tracking-tight">
+        {title}
+      </h3>
+      <p className="text-sm leading-relaxed text-gray-600 dark:text-[#A1A1AA]">{desc}</p>
     </motion.div>
   );
 }
@@ -478,20 +455,20 @@ function SuccessGuide({
       transition={{ type: 'spring', stiffness: 260, damping: 28 }}
       className="mx-auto mb-12 max-w-4xl"
     >
-      <div className="relative overflow-hidden rounded-xl border border-[rgba(255,255,255,0.1)] bg-[#0a0a0a]">
+      <div className="relative overflow-hidden rounded-xl border border-black/10 bg-white dark:border-[rgba(255,255,255,0.1)] dark:bg-[#0a0a0a]">
         <div className="pointer-events-none absolute -top-24 left-1/2 h-48 w-3/4 -translate-x-1/2 rounded-full bg-white/3 blur-[80px]" />
 
-        <div className="flex items-start justify-between border-b border-white/5 px-8 pb-6 pt-8">
+        <div className="flex items-start justify-between border-b border-black/10 px-8 pb-6 pt-8 dark:border-white/5">
           <div className="flex items-center gap-4">
             <span className="relative mt-1 flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white opacity-30" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-white" />
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-black/40 opacity-40 dark:bg-white/70" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-black dark:bg-white shadow-[0_0_10px_rgba(255,255,255,0.9)]" />
             </span>
             <div>
-              <p className="mb-0.5 text-xs font-medium uppercase tracking-[0.2em] text-[#A1A1AA]">
+              <p className="mb-0.5 text-xs font-medium uppercase tracking-[0.2em] text-gray-500 dark:text-[#A1A1AA]">
                 Markdown Copied
               </p>
-              <h2 className="text-2xl font-extrabold tracking-tight text-white">
+              <h2 className="text-2xl font-extrabold tracking-tight text-black dark:text-white">
                 Your Monolith is Ready - Deploy It in 4 Steps
               </h2>
             </div>
@@ -499,7 +476,7 @@ function SuccessGuide({
 
           <button
             onClick={onDismiss}
-            className="ml-4 mt-1 shrink-0 rounded-xl p-2 text-white/30 transition-all hover:bg-white/5 hover:text-white"
+            className="ml-4 mt-1 shrink-0 rounded-xl p-2 text-gray-500 transition-all hover:bg-gray-100 hover:text-black dark:text-white/30 dark:hover:bg-white/5 dark:hover:text-white"
             aria-label="Dismiss guide"
           >
             <svg
@@ -519,43 +496,45 @@ function SuccessGuide({
           </button>
         </div>
 
-        <div className="grid gap-px border-b border-white/5 bg-white/5 sm:grid-cols-2">
+        <div className="grid gap-px border-b border-black/10 bg-black/5 dark:border-white/5 dark:bg-white/5 sm:grid-cols-2">
           {STEPS.map((step, i) => (
             <motion.div
               key={step.n}
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.08 * i, duration: 0.4 }}
-              className="flex gap-4 bg-[#050505] p-6"
+              className="flex gap-4 bg-white p-6 dark:bg-[#050505]"
             >
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[rgba(255,255,255,0.08)] bg-[#111] text-xs font-bold tracking-widest text-[#A1A1AA]">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-black/10 bg-gray-100 text-xs font-bold tracking-widest text-gray-600 dark:border-[rgba(255,255,255,0.08)] dark:bg-[#111] dark:text-[#A1A1AA]">
                 {step.n}
               </span>
               <div>
-                <p className="mb-1 text-sm font-bold text-white">{step.title}</p>
-                <p className="text-sm leading-relaxed text-gray-500">{step.body}</p>
+                <p className="mb-1 text-sm font-bold text-black dark:text-white">{step.title}</p>
+                <p className="text-sm leading-relaxed text-gray-600 dark:text-gray-500">
+                  {step.body}
+                </p>
               </div>
             </motion.div>
           ))}
         </div>
 
         <div className="px-8 py-6">
-          <p className="mb-3 text-xs font-bold uppercase tracking-[0.15em] text-white/30">
+          <p className="mb-3 text-xs font-bold uppercase tracking-[0.15em] text-gray-500 dark:text-white/30">
             Your copied snippet
           </p>
-          <div className="flex items-center gap-3 rounded-xl border border-white/8 bg-black/60 px-4 py-3 font-mono text-sm">
-            <span className="shrink-0 select-none text-[#A1A1AA]">$</span>
-            <code className="flex-1 overflow-x-auto break-all leading-relaxed text-white/80">
+          <div className="flex items-center gap-3 rounded-xl border border-black/10 bg-gray-100 px-4 py-3 font-mono text-sm dark:border-white/8 dark:bg-black/60">
+            <span className="shrink-0 select-none text-gray-500 dark:text-[#A1A1AA]">$</span>
+            <code className="flex-1 overflow-x-auto break-all leading-relaxed text-black dark:text-white/80">
               {markdown}
             </code>
           </div>
-          <p className="mt-4 text-xs leading-relaxed text-white/25">
-            Tip: Add <code className="text-white/40">?accent=808080</code> to the URL to change your
-            monolith&apos;s colour palette.
+          <p className="mt-4 text-xs leading-relaxed text-gray-500 dark:text-white/25">
+            Tip: Add <code className="text-gray-700 dark:text-white/40">?accent=808080</code> to the
+            URL to change your monolith&apos;s colour palette.
           </p>
-          <div className="mt-8 flex justify-center border-t border-white/5 pt-6">
+          <div className="mt-8 flex justify-center border-t border-black/10 pt-6 dark:border-white/5">
             <Link href={`/dashboard/${username}`} onClick={() => trackUser(username)}>
-              <button className="bg-white text-black hover:bg-zinc-100 px-6 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 hover:scale-[1.01] active:scale-[0.99]">
+              <button className="border border-black/10 bg-gray-100 px-6 py-2.5 rounded-lg text-sm font-semibold text-black transition-all duration-200 hover:bg-gray-200 hover:scale-[1.01] active:scale-[0.99] dark:border-[rgba(255,255,255,0.15)] dark:bg-white dark:text-black dark:hover:bg-zinc-100">
                 Watch Your Dashboard
               </button>
             </Link>

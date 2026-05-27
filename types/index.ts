@@ -1,3 +1,5 @@
+export type HexColor = string & { __brand: 'HexColor' };
+
 export interface StreakStats {
   currentStreak: number;
   longestStreak: number;
@@ -6,9 +8,9 @@ export interface StreakStats {
 }
 
 export interface BadgeTheme {
-  bg: string;
-  text: string;
-  accent: string;
+  bg: HexColor;
+  text: HexColor;
+  accent: HexColor;
 }
 
 export interface ContributionDay {
@@ -35,9 +37,9 @@ export interface MonthlyStats {
 
 export interface BadgeParams {
   user: string;
-  bg: string;
-  text: string;
-  accent: string;
+  bg: HexColor;
+  text: HexColor;
+  accent: HexColor;
   speed: string;
   scale: 'linear' | 'log';
   font?: string;
@@ -52,4 +54,5 @@ export interface BadgeParams {
   width?: number;
   height?: number;
   size?: 'small' | 'medium' | 'large';
+  grace?: number;
 }
