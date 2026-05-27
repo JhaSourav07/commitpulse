@@ -112,13 +112,18 @@ function generateParticles(
 // ── Section helpers for generateSVG ──────────────────────────────────────
 
 function renderHeader(safeUser: string, stats: StreakStats, sf: number): string {
-  const fs = (n: number) => Math.round(n * sf * 10) / 10;
   return `
   <title>CommitPulse Stats for ${safeUser}</title>
   <desc>
     ${safeUser} has ${stats.totalContributions} total contributions and a longest streak of ${stats.longestStreak} days.
   </desc>
-  <defs>
+  ${renderDefs(sf)}`;
+}
+
+/** Renders the shared SVG <defs> block (glow filter) scaled by the size factor. */
+function renderDefs(sf: number): string {
+  const fs = (n: number): number => Math.round(n * sf * 10) / 10;
+  return `<defs>
     <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="${fs(5)}" result="blur" /><feComposite in="SourceGraphic" in2="blur" operator="over" /></filter>
   </defs>`;
 }
