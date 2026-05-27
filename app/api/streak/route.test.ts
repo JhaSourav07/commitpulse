@@ -472,4 +472,24 @@ describe('GET /api/streak', () => {
       expect(response.headers.get('Cache-Control')).toBe('no-cache, no-store, must-revalidate');
     });
   });
+
+  describe('Ghost City Mode (route integration)', () => {
+    it('returns ghost city SVG when user has 0 total contributions', async () => {
+      const emptyCalendar: ContributionCalendar = {
+        totalContributions: 0,
+        weeks: [
+          {
+            contributionDays: [{ contributionCount: 0, date: '2024-06-10' }],
+          },
+        ],
+      };
+
+      vi.mocked(fetchGitHubContributions).mockResolvedValue(emptyCalendar);
+      const response = await GET(makeRequest({ user: 'octocat' }));
+      const body = await response.text();
+
+      expect(body).toContain('stroke-width="0.5"');
+      expect(body).toContain('stroke-opacity="0.3"');
+    });
+  });
 });
