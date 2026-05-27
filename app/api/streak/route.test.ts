@@ -339,6 +339,19 @@ describe('GET /api/streak', () => {
 
       expect(body).toContain('#00ff00');
     });
+
+    it('embeds a custom text color in the SVG when text is provided', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', text: 'ff0000' }));
+      const body = await response.text();
+
+      expect(body).toContain('#ff0000');
+    });
+
+    it('does not crash when an invalid text color is provided', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', text: 'notacolor' }));
+
+      expect(response.status).toBe(200);
+    });
   });
 
   describe('error handling', () => {
