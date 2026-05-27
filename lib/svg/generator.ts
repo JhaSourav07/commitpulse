@@ -48,6 +48,26 @@ function createScaler(sf: number): Scaler {
   return (n: number): number => Math.round(n * sf);
 }
 
+/**
+ * Escapes special XML characters in a string so it can be safely
+ * embedded inside SVG or XML markup.
+ *
+ * Converts:
+ * - & to &amp;
+ * - < to &lt;
+ * - > to &gt;
+ * - " to &quot;
+ * - ' to &#39;
+ *
+ * @param str - Raw string that may contain XML-sensitive characters.
+ *
+ * @returns An XML-safe escaped string.
+ *
+ * @example
+ * const safe = escapeXML('<text>Hello & Welcome</text>');
+ * // Returns:
+ * // '&lt;text&gt;Hello &amp; Welcome&lt;/text&gt;'
+ */
 export function escapeXML(str: string): string {
   return str
     .replace(/&/g, '&amp;')
@@ -185,6 +205,42 @@ function renderFooter(
 }
 
 // ── Main static-theme renderer ────────────────────────────────────────────
+
+/**
+ * Generates the main CommitPulse SVG badge using contribution
+ * calendar data and streak statistics.
+ *
+ * The SVG includes animated contribution towers, statistics,
+ * theme styling, and optional auto-theme support.
+ *
+ * @param stats - Contribution streak statistics including current streak,
+ * longest streak, total contributions, and today's date.
+ * @param params - Badge customization options such as colors, fonts,
+ * animations, scaling, visibility toggles, and theme settings.
+ * @param params.autoTheme - Enables automatic switching between
+ * light and dark themes based on the user's system color scheme.
+ * @param calendar - Contribution calendar data containing weekly
+contribution entries and per-day contribution counts used to
+generate the tower layout.
+ * 
+ * @returns A fully generated SVG badge string.
+ *
+ * @example
+ * const svg = generateSVG(
+ *   {
+ *     currentStreak: 12,
+ *     longestStreak: 30,
+ *     totalContributions: 542,
+ *     todayDate: '2026-05-27',
+ *   },
+ *   {
+ *     user: 'octocat',
+ *     autoTheme: true,
+ *     accent: '00ffaa',
+ *   },
+ *   calendar
+ * );
+ */
 export function generateSVG(
   stats: StreakStats,
   params: BadgeParams,
@@ -509,6 +565,34 @@ function generateAutoThemeMonthlySVG(stats: MonthlyStats, params: BadgeParams): 
 `;
 }
 
+/**
+ * Generates a fallback SVG badge for users that do not exist
+ * or when contribution data cannot be loaded.
+ *
+ * The SVG renders a ghost-style city layout with an animated
+ * error-state design while preserving the standard badge layout.
+ *
+ * @param username - GitHub username displayed in the error badge.
+ * @param bg - Background color used for the SVG container.
+ * @param accent - Accent color used for highlights, outlines,
+ * and animated elements.
+ * @param text - Primary text color used throughout the badge.
+ * @param radius - Border radius applied to the SVG background.
+ * @param speed - Animation speed for the radar scan effect.
+ * Defaults to '8s'.
+ *
+ * @returns A generated SVG string representing the not-found state.
+ *
+ * @example
+ * const svg = generateNotFoundSVG(
+ *   'octocat',
+ *   '#0d1117',
+ *   '#00ffaa',
+ *   '#ffffff',
+ *   8,
+ *   '8s'
+ * );
+ */
 export function generateNotFoundSVG(
   username: string,
   bg: string,
