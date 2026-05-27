@@ -36,6 +36,7 @@ describe('POST /api/track-user', () => {
     it('returns 400 for malformed JSON request bodies', async () => {
       const malformedRequest = {
         json: vi.fn().mockRejectedValue(new SyntaxError('Unexpected token')),
+        headers: new Headers(),
       } as unknown as Request;
 
       const response = await POST(malformedRequest);
