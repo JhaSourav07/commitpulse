@@ -204,13 +204,13 @@ describe('generateSVG', () => {
       expect(svg).toContain('--cp-accent: #0969da');
     });
 
-    it('injects @media (prefers-color-scheme: dark) with dark palette', () => {
+    it('injects @media (prefers-color-scheme: dark) with exact dark palette hex values', () => {
       const svg = generateSVG(mockStats, autoParams, mockCalendar);
 
       // Media query block must be present
       expect(svg).toContain('prefers-color-scheme: dark');
 
-      // Dark-mode CSS variables inside the media query
+      // Check for exact hex values used in AUTO_DARK_THEME
       expect(svg).toContain('--cp-bg: #0d1117');
       expect(svg).toContain('--cp-text: #c9d1d9');
       expect(svg).toContain('--cp-accent: #58a6ff');
