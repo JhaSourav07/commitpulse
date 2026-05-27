@@ -602,7 +602,12 @@ describe('generateSVG', () => {
   });
 
   describe('isometric labels', () => {
-    it('does not render labels when labels parameter is absent or false', () => {
+    it('does not render labels when labels parameter is absent', () => {
+      const svg = generateSVG(mockStats, { user: 'avi' } as unknown as BadgeParams, mockCalendar);
+      expect(svg).not.toContain('class="isometric-labels"');
+    });
+
+    it('does not render labels when labels parameter is false', () => {
       const svg = generateSVG(
         mockStats,
         { user: 'avi', labels: false } as unknown as BadgeParams,

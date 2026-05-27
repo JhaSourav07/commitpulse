@@ -176,6 +176,7 @@ function renderStyle(
       transform: translateY(var(--scan-start, ${fs(20)}px)) !important;
     }
   }
+  .isometric-label { font-family: ${selectedFont || '"Roboto", sans-serif'}; font-size: ${fs(10)}px; font-weight: 400; letter-spacing: 1px; fill-opacity: 0.6; }
   </style>`;
 }
 
@@ -239,7 +240,13 @@ const MONTH_NAMES = [
   'Dec',
 ];
 
+// Layout constants for 3D isometric grid positioning to avoid magic numbers
+const GRID_ORIGIN_X = 300;
+const GRID_ORIGIN_Y = 120;
+const TILE_WIDTH_HALF = 16;
+const TILE_HEIGHT_HALF = 9;
 const ISOMETRIC_VERTICAL_OFFSET = 20;
+
 const MONTH_LABEL_ROW_OFFSET = 7.2;
 const WEEKDAY_LABEL_COL_OFFSET = -1.2;
 function renderIsometricLabels(
@@ -272,11 +279,15 @@ function renderIsometricLabels(
   const labelColorHex = params.labelColor ? `#${params.labelColor}` : color;
 
   monthLabels.forEach((label) => {
-    const coords = projectIsometric(label.col, MONTH_LABEL_ROW_OFFSET);
-    const tx = s(coords.x + 8);
-    const ty = s(coords.y + ISOMETRIC_VERTICAL_OFFSET) + Math.round(20 * sf);
+    const tx = s(GRID_ORIGIN_X + (label.col - MONTH_LABEL_ROW_OFFSET) * TILE_WIDTH_HALF + 8);
+    const ty =
+      s(
+        GRID_ORIGIN_Y +
+          (label.col + MONTH_LABEL_ROW_OFFSET) * TILE_HEIGHT_HALF +
+          ISOMETRIC_VERTICAL_OFFSET
+      ) + Math.round(20 * sf);
     elements += `
-    <text x="${tx}" y="${ty}" text-anchor="middle" fill="${labelColorHex}" fill-opacity="0.6" font-family="&quot;Roboto&quot;, sans-serif" font-size="${Math.round(10 * sf)}px" font-weight="400" letter-spacing="1px">${label.text}</text>`;
+    <text x="${tx}" y="${ty}" text-anchor="middle" fill="${labelColorHex}" class="isometric-label">${label.text}</text>`;
   });
 
   const weekdays = [
@@ -286,11 +297,15 @@ function renderIsometricLabels(
   ];
 
   weekdays.forEach((day) => {
-    const coords = projectIsometric(WEEKDAY_LABEL_COL_OFFSET, day.row);
-    const tx = s(coords.x);
-    const ty = s(coords.y + ISOMETRIC_VERTICAL_OFFSET) + Math.round(20 * sf);
+    const tx = s(GRID_ORIGIN_X + (WEEKDAY_LABEL_COL_OFFSET - day.row) * TILE_WIDTH_HALF);
+    const ty =
+      s(
+        GRID_ORIGIN_Y +
+          (WEEKDAY_LABEL_COL_OFFSET + day.row) * TILE_HEIGHT_HALF +
+          ISOMETRIC_VERTICAL_OFFSET
+      ) + Math.round(20 * sf);
     elements += `
-    <text x="${tx}" y="${ty}" text-anchor="end" fill="${labelColorHex}" fill-opacity="0.6" font-family="&quot;Roboto&quot;, sans-serif" font-size="${Math.round(10 * sf)}px" font-weight="400" letter-spacing="1px">${day.text}</text>`;
+    <text x="${tx}" y="${ty}" text-anchor="end" fill="${labelColorHex}" class="isometric-label">${day.text}</text>`;
   });
 
   return `<g class="isometric-labels">${elements}</g>`;
@@ -426,6 +441,7 @@ function generateAutoThemeSVG(
   .stats { font-family: ${statsFont}; fill: var(--cp-text); font-size: ${fs(42)}px; font-weight: 500; letter-spacing: 0; }
   .total-val { font-family: ${statsFont}; fill: var(--cp-accent); font-size: ${fs(24)}px; font-weight: 500; }
   .label { font-family: "Roboto", sans-serif; fill: var(--cp-accent); font-size: ${fs(11)}px; font-weight: 400; letter-spacing: ${fs(2)}px; opacity: 0.7; }
+  .isometric-label { font-family: ${selectedFont || '"Roboto", sans-serif'}; font-size: ${fs(10)}px; font-weight: 400; letter-spacing: 1px; fill-opacity: 0.6; }
 
   @media (prefers-reduced-motion: reduce) {
     .heat-particles { display: none; }
