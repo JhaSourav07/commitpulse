@@ -1,5 +1,6 @@
 import StatsCardSkeleton from '@/components/dashboard/StatsCardSkeleton';
 import AchievementsSkeleton from '@/components/dashboard/AchievementsSkeleton';
+import AIInsightsSkeleton from '@/components/dashboard/AIInsightsSkeleton';
 
 export default function DashboardLoading() {
   return (
@@ -40,7 +41,7 @@ export default function DashboardLoading() {
           <div className="h-24 rounded-2xl shimmer border border-white/10" />
           <div className="h-24 rounded-2xl shimmer border border-white/10" />
           <div className="h-24 rounded-2xl shimmer border border-white/10" />
-          <div className="h-48 rounded-2xl shimmer border border-white/10" />
+          <AIInsightsSkeleton />
         </div>
       </div>
     </div>
