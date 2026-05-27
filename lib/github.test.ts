@@ -538,6 +538,16 @@ describe('generateAchievements', () => {
 
     expect(unlocked.some((a) => a.title === '100 Day Streak')).toBe(false);
   });
+
+  it('caps progress between 0 and 100 for extreme values', () => {
+    const achievements = generateAchievements(999999, 999999);
+
+    for (const item of achievements) {
+      expect(Number.isFinite(item.progress)).toBe(true);
+      expect(item.progress).toBeGreaterThanOrEqual(0);
+      expect(item.progress).toBeLessThanOrEqual(100);
+    }
+  });
 });
 
 describe('validateGitHubUsername', () => {
