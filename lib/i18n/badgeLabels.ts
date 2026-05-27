@@ -28,6 +28,13 @@ export const labels: Record<string, BadgeLabels> = {
     COMMITS_THIS_MONTH: 'इस महीने के कमिट्स',
     VS_LAST_MONTH: 'पिछले महीने की तुलना में',
   },
+  pt: {
+    CURRENT_STREAK: 'SÉRIE_ATUAL',
+    ANNUAL_SYNC_TOTAL: 'TOTAL_ANUAL',
+    PEAK_STREAK: 'SÉRIE_MÁXIMA',
+    COMMITS_THIS_MONTH: 'COMMITS ESTE MÊS',
+    VS_LAST_MONTH: 'vs mês passado',
+  },
   fr: {
     CURRENT_STREAK: 'SÉRIE_ACTUELLE',
     ANNUAL_SYNC_TOTAL: 'TOTAL_ANNUEL',
