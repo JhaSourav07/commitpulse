@@ -7,9 +7,15 @@ export class TTLCache<T> {
   private store = new Map<string, CacheItem<T>>();
   private cleanupInterval: ReturnType<typeof setInterval> | null = null;
   private readonly maxSize: number;
+  private readonly staleGraceMs: number;
 
-  constructor(maxSize: number = 1000, cleanupIntervalMs: number = 60000) {
+  constructor(
+    maxSize: number = 1000,
+    cleanupIntervalMs: number = 60000,
+    staleGraceMs: number = 12 * 60 * 60 * 1000 // 12 hours default grace
+  ) {
     this.maxSize = Math.max(1, maxSize);
+    this.staleGraceMs = staleGraceMs;
     const interval = Math.max(1000, cleanupIntervalMs);
 
     // Only run cleanup if we are in an environment that supports setInterval
@@ -29,18 +35,17 @@ export class TTLCache<T> {
   private sweep(): void {
     const now = Date.now();
     for (const [key, item] of this.store.entries()) {
-      if (now > item.expiresAt) {
+      if (now > item.expiresAt + this.staleGraceMs) {
         this.store.delete(key);
       }
     }
   }
 
-  get(key: string): T | null {
+  get(key: string, allowExpired = false): T | null {
     const hit = this.store.get(key);
     if (!hit) return null;
 
-    if (Date.now() > hit.expiresAt) {
-      this.store.delete(key);
+    if (Date.now() > hit.expiresAt && !allowExpired) {
       return null;
     }
 

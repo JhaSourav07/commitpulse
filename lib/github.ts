@@ -99,6 +99,10 @@ const contributionsCache = new TTLCache<ContributionCalendar>();
 const profileCache = new TTLCache<GitHubUserProfile>();
 const reposCache = new TTLCache<GitHubRepo[]>();
 
+const inflightContributions = new Map<string, Promise<ContributionCalendar>>();
+const inflightProfiles = new Map<string, Promise<GitHubUserProfile>>();
+const inflightRepos = new Map<string, Promise<GitHubRepo[]>>();
+
 function cacheKey(
   kind: 'contributions' | 'profile' | 'repos',
   username: string,
@@ -111,6 +115,9 @@ export function clearGitHubApiCacheForTests(): void {
   contributionsCache.clear();
   profileCache.clear();
   reposCache.clear();
+  inflightContributions.clear();
+  inflightProfiles.clear();
+  inflightRepos.clear();
 }
 
 const getHeaders = () => ({
@@ -137,57 +144,78 @@ export async function fetchGitHubContributions(
     if (cached) return cached;
   }
 
-  const query = `
-    query($login: String!, $from: DateTime, $to: DateTime) {
-      user(login: $login) {
-        contributionsCollection(from: $from, to: $to) {
-          contributionCalendar {
-            totalContributions
-            weeks {
-              contributionDays {
-                contributionCount
-                date
-                color
+  let promise = inflightContributions.get(key);
+  if (!promise) {
+    promise = (async () => {
+      try {
+        const query = `
+          query($login: String!, $from: DateTime, $to: DateTime) {
+            user(login: $login) {
+              contributionsCollection(from: $from, to: $to) {
+                contributionCalendar {
+                  totalContributions
+                  weeks {
+                    contributionDays {
+                      contributionCount
+                      date
+                      color
+                    }
+                  }
+                }
               }
             }
           }
+        `;
+
+        const res = await fetchWithRetry(GITHUB_GRAPHQL_URL, {
+          method: 'POST',
+          headers: getHeaders(),
+          body: JSON.stringify({
+            query,
+            variables: { login: username, from: options.from, to: options.to },
+          }),
+          cache: 'no-store', // Cache handled by our in-memory layer + API route headers
+        });
+
+        if (!res.ok) {
+          if (res.status === 401) throw new Error('GitHub PAT is invalid or missing');
+          throw new Error(`GitHub GraphQL API returned status ${res.status}`);
         }
+
+        const data: GitHubContributionResponse = await res.json();
+
+        if (data.errors) {
+          throw new Error(data.errors[0].message);
+        }
+
+        if (!data.data.user) {
+          throw new Error(`GitHub user "${username}" not found`);
+        }
+
+        const calendar = data.data.user.contributionsCollection.contributionCalendar;
+
+        if (!options.bypassCache) {
+          contributionsCache.set(key, calendar, GITHUB_CACHE_TTL_MS);
+        }
+
+        return calendar;
+      } catch (error: unknown) {
+        const stale = contributionsCache.get(key, true);
+        if (stale) {
+          console.warn(
+            `GitHub API request failed: ${error instanceof Error ? error.message : String(error)}. Serving stale contributions cache as fallback.`
+          );
+          return stale;
+        }
+        throw error;
+      } finally {
+        inflightContributions.delete(key);
       }
-    }
-  `;
-
-  const res = await fetchWithRetry(GITHUB_GRAPHQL_URL, {
-    method: 'POST',
-    headers: getHeaders(),
-    body: JSON.stringify({
-      query,
-      variables: { login: username, from: options.from, to: options.to },
-    }),
-    cache: 'no-store', // Cache handled by our in-memory layer + API route headers
-  });
-
-  if (!res.ok) {
-    if (res.status === 401) throw new Error('GitHub PAT is invalid or missing');
-    throw new Error(`GitHub GraphQL API returned status ${res.status}`);
+    })();
+    inflightContributions.set(key, promise);
   }
 
-  const data: GitHubContributionResponse = await res.json();
-
-  if (data.errors) {
-    throw new Error(data.errors[0].message);
-  }
-
-  if (!data.data.user) {
-    throw new Error(`GitHub user "${username}" not found`);
-  }
-
-  const calendar = data.data.user.contributionsCollection.contributionCalendar;
-
-  if (!options.bypassCache) {
-    contributionsCache.set(key, calendar, GITHUB_CACHE_TTL_MS);
-  }
-
-  return calendar;
+  return promise;
 }
 
 export async function fetchUserProfile(
@@ -205,23 +233,44 @@ export async function fetchUserProfile(
     if (cached) return cached;
   }
 
-  const res = await fetchWithRetry(`${GITHUB_REST_URL}/users/${username}`, {
-    headers: getHeaders(),
-    cache: 'no-store',
-  });
+  let promise = inflightProfiles.get(key);
+  if (!promise) {
+    promise = (async () => {
+      try {
+        const res = await fetchWithRetry(`${GITHUB_REST_URL}/users/${username}`, {
+          headers: getHeaders(),
+          cache: 'no-store',
+        });
 
-  if (!res.ok) {
-    if (res.status === 404) throw new Error('User not found');
-    throw new Error(`GitHub REST API error: ${res.status}`);
+        if (!res.ok) {
+          if (res.status === 404) throw new Error('User not found');
+          throw new Error(`GitHub REST API error: ${res.status}`);
+        }
+
+        const profile = (await res.json()) as GitHubUserProfile;
+
+        if (!options.bypassCache) {
+          profileCache.set(key, profile, GITHUB_CACHE_TTL_MS);
+        }
+
+        return profile;
+      } catch (error: unknown) {
+        const stale = profileCache.get(key, true);
+        if (stale) {
+          console.warn(
+            `GitHub API request failed: ${error instanceof Error ? error.message : String(error)}. Serving stale profile cache as fallback.`
+          );
+          return stale;
+        }
+        throw error;
+      } finally {
+        inflightProfiles.delete(key);
+      }
+    })();
+    inflightProfiles.set(key, promise);
   }
 
-  const profile = (await res.json()) as GitHubUserProfile;
-
-  if (!options.bypassCache) {
-    profileCache.set(key, profile, GITHUB_CACHE_TTL_MS);
-  }
-
-  return profile;
+  return promise;
 }
 
 export async function fetchUserRepos(
@@ -238,39 +287,61 @@ export async function fetchUserRepos(
     const cached = reposCache.get(key);
     if (cached) return cached;
   }
-  const allRepos: GitHubRepo[] = [];
 
-  let PAGE = 1;
-  const MAX_PAGES = 100;
-  while (PAGE <= MAX_PAGES) {
-    const res = await fetchWithRetry(
-      `${GITHUB_REST_URL}/users/${username}/repos?per_page=100&page=${PAGE}&sort=pushed`,
-      {
-        headers: getHeaders(),
-        cache: 'no-store',
+  let promise = inflightRepos.get(key);
+  if (!promise) {
+    promise = (async () => {
+      try {
+        const allRepos: GitHubRepo[] = [];
+
+        let PAGE = 1;
+        const MAX_PAGES = 100;
+        while (PAGE <= MAX_PAGES) {
+          const res = await fetchWithRetry(
+            `${GITHUB_REST_URL}/users/${username}/repos?per_page=100&page=${PAGE}&sort=pushed`,
+            {
+              headers: getHeaders(),
+              cache: 'no-store',
+            }
+          );
+
+          if (!res.ok) {
+            throw new Error(`GitHub REST API error: ${res.status}`);
+          }
+
+          const repos = (await res.json()) as GitHubRepo[];
+
+          allRepos.push(...repos);
+
+          if (repos.length < 100) {
+            break;
+          }
+
+          PAGE++;
+        }
+
+        if (!options.bypassCache) {
+          reposCache.set(key, allRepos, GITHUB_CACHE_TTL_MS);
+        }
+
+        return allRepos;
+      } catch (error: unknown) {
+        const stale = reposCache.get(key, true);
+        if (stale) {
+          console.warn(
+            `GitHub API request failed: ${error instanceof Error ? error.message : String(error)}. Serving stale repos cache as fallback.`
+          );
+          return stale;
+        }
+        throw error;
+      } finally {
+        inflightRepos.delete(key);
       }
-    );
-
-    if (!res.ok) {
-      throw new Error(`GitHub REST API error: ${res.status}`);
-    }
-
-    const repos = (await res.json()) as GitHubRepo[];
-
-    allRepos.push(...repos);
-
-    if (repos.length < 100) {
-      break;
-    }
-
-    PAGE++;
+    })();
+    inflightRepos.set(key, promise);
   }
 
-  if (!options.bypassCache) {
-    reposCache.set(key, allRepos, GITHUB_CACHE_TTL_MS);
-  }
-
-  return allRepos;
+  return promise;
 }
 
 export function generateAchievements(totalContributions: number, currentStreak: number) {

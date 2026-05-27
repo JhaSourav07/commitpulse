@@ -471,3 +471,65 @@ describe('validateGitHubUsername', () => {
     expect(validateGitHubUsername('in--valid')).toBe(false);
   });
 });
+
+describe('GitHub Client request deduplication and fallback', () => {
+  beforeEach(() => {
+    clearGitHubApiCacheForTests();
+    vi.spyOn(global, 'fetch');
+    vi.useRealTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+    clearGitHubApiCacheForTests();
+  });
+
+  it('deduplicates parallel requests to a single fetch call', async () => {
+    vi.mocked(fetch).mockResolvedValue(
+      mockResponse({
+        data: {
+          user: { contributionsCollection: { contributionCalendar: mockCalendar } },
+        },
+      })
+    );
+
+    // Call fetchGitHubContributions twice concurrently
+    const [r1, r2] = await Promise.all([
+      fetchGitHubContributions('octocat'),
+      fetchGitHubContributions('octocat'),
+    ]);
+
+    expect(r1).toEqual(mockCalendar);
+    expect(r2).toEqual(mockCalendar);
+    expect(fetch).toHaveBeenCalledOnce();
+  });
+
+  it('serves stale cache value on API failure', async () => {
+    // 1. Populate cache with mockCalendar
+    vi.mocked(fetch).mockResolvedValueOnce(
+      mockResponse({
+        data: {
+          user: { contributionsCollection: { contributionCalendar: mockCalendar } },
+        },
+      })
+    );
+    await fetchGitHubContributions('octocat');
+    expect(fetch).toHaveBeenCalledOnce();
+
+    // 2. Manually mock Date.now to simulate cache expiration
+    const realDateNow = Date.now;
+    Date.now = () => realDateNow() + GITHUB_CACHE_TTL_MS + 1000;
+
+    // 3. Make fetch fail with 400 (which does not trigger retries)
+    vi.mocked(fetch).mockResolvedValueOnce(mockResponse({ message: 'Bad request' }, 400));
+
+    try {
+      // 4. This should succeed by serving the stale cached calendar instead of throwing
+      const result = await fetchGitHubContributions('octocat');
+      expect(result).toEqual(mockCalendar);
+    } finally {
+      Date.now = realDateNow;
+    }
+  });
+});

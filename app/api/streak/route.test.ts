@@ -430,4 +430,22 @@ describe('GET /api/streak', () => {
       expect(body).toContain('CURRENT_STREAK');
     });
   });
+
+  describe('rate limiting', () => {
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    it('returns 429 and an error SVG when rate limit is exceeded', async () => {
+      const { ipRateLimiter } = await import('../../../lib/rate-limiter');
+      vi.spyOn(ipRateLimiter, 'isLimitExceeded').mockReturnValue(true);
+
+      const response = await GET(makeRequest({ user: 'octocat' }));
+
+      expect(response.status).toBe(429);
+      expect(response.headers.get('Content-Type')).toBe('image/svg+xml');
+      const body = await response.text();
+      expect(body).toContain('Rate limit exceeded');
+    });
+  });
 });

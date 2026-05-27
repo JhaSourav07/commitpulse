@@ -12,8 +12,28 @@ import { getSecondsUntilUTCMidnight, getSecondsUntilMidnightInTimezone } from '.
 import type { BadgeParams } from '../../../types';
 import { themes } from '../../../lib/svg/themes';
 import { streakParamsSchema } from '../../../lib/validations';
+import { ipRateLimiter } from '../../../lib/rate-limiter';
 
 export async function GET(request: Request) {
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim() || '127.0.0.1';
+  if (ipRateLimiter.isLimitExceeded(ip)) {
+    const limitSvg = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="400" height="150">
+        <rect width="100%" height="100%" fill="#2d0000" rx="8"/>
+        <text x="50%" y="50%" text-anchor="middle" fill="#ffcccc" font-family="system-ui, sans-serif" font-size="14">
+          Error: Rate limit exceeded (Too many requests)
+        </text>
+      </svg>
+    `;
+    return new NextResponse(limitSvg, {
+      status: 429,
+      headers: {
+        'Content-Type': 'image/svg+xml',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+      },
+    });
+  }
+
   const { searchParams } = new URL(request.url);
 
   const parseResult = streakParamsSchema.safeParse(Object.fromEntries(searchParams.entries()));

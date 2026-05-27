@@ -98,4 +98,31 @@ describe('TTLCache', () => {
       clearIntervalSpy.mockRestore();
     });
   });
+
+  describe('stale grace period & expired retrieval', () => {
+    it('returns expired item if allowExpired is true, but null if false', () => {
+      vi.useFakeTimers();
+      const cache = new TTLCache<string>(1000, 60_000, 5000); // 5s stale grace
+      cache.set('key', 'val', 1000); // expires in 1s
+
+      vi.advanceTimersByTime(2000); // now past 1s expiration
+
+      expect(cache.get('key', false)).toBeNull();
+      expect(cache.get('key', true)).toBe('val');
+
+      cache.destroy();
+    });
+
+    it('removes expired item in sweep only after stale grace period', () => {
+      vi.useFakeTimers();
+      const cache = new TTLCache<string>(1000, 10_000, 5000); // 10s sweep, 5s stale grace
+      cache.set('key', 'val', 1000); // expires in 1s
+
+      vi.advanceTimersByTime(2000); // 2s: past expiration but within stale grace
+      vi.advanceTimersByTime(10_000); // triggers sweep (at 12s, which is > 1s + 5s = 6s)
+
+      expect(cache.get('key', true)).toBeNull(); // should be swept now
+      cache.destroy();
+    });
+  });
 });

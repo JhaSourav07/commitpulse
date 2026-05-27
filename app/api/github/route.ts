@@ -1,8 +1,17 @@
 import { NextResponse } from 'next/server';
 import { getFullDashboardData } from '@/lib/github';
 import { githubParamsSchema } from '../../../lib/validations';
+import { ipRateLimiter } from '../../../lib/rate-limiter';
 
 export async function GET(request: Request) {
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim() || '127.0.0.1';
+  if (ipRateLimiter.isLimitExceeded(ip)) {
+    return NextResponse.json(
+      { error: 'Too many requests. Please try again later.' },
+      { status: 429 }
+    );
+  }
+
   const { searchParams } = new URL(request.url);
 
   const parseResult = githubParamsSchema.safeParse(Object.fromEntries(searchParams.entries()));
