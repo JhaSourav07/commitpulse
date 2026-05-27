@@ -73,17 +73,28 @@ describe('DashboardPage', () => {
 
   describe('generateMetadata', () => {
     it('generates correct metadata for a given user', async () => {
-      const metadata = await generateMetadata({ params: Promise.resolve({ username: 'octocat' }) });
+      const username = 'octocat';
+      const metadata = await generateMetadata({
+        params: Promise.resolve({ username }),
+      });
+
+      const openGraphImage = (metadata.openGraph?.images as any[])?.[0];
 
       expect(metadata.title).toBe("octocat's Commit Pulse");
       expect(metadata.description).toContain("octocat's GitHub contribution pulse");
-      expect((metadata.openGraph?.images as any[])?.[0].url).toContain('api/og?username=octocat');
+      expect(openGraphImage.url).toContain('api/og?username=octocat');
+      expect(openGraphImage.width).toBe(1200);
+      expect(openGraphImage.height).toBe(630);
+      expect(openGraphImage.alt).toContain(username);
+      expect((metadata.twitter as any)?.card).toBe('summary_large_image');
     });
   });
 
   describe('DashboardPage rendering', () => {
     it('renders the dashboard components with the fetched data', async () => {
-      const PageContent = await DashboardPage({ params: Promise.resolve({ username: 'octocat' }) });
+      const PageContent = await DashboardPage({
+        params: Promise.resolve({ username: 'octocat' }),
+      });
       render(PageContent);
 
       // Verify data fetching
