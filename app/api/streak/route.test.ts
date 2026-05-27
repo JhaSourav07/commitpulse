@@ -492,4 +492,38 @@ describe('GET /api/streak', () => {
       expect(body).toContain('stroke-opacity="0.3"');
     });
   });
+
+  describe('lang parameter', () => {
+    it('returns Spanish translations when ?lang=es is given', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', lang: 'es' }));
+      const body = await response.text();
+      expect(body).toContain('RACHA_ACTUAL');
+      expect(body).toContain('TOTAL_ANUAL');
+      expect(body).toContain('RACHA_MÁXIMA');
+    });
+
+    it('returns Hindi translations when ?lang=hi is given', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', lang: 'hi' }));
+      const body = await response.text();
+      expect(body).toContain('वर्तमान_स्ट्रीक');
+      expect(body).toContain('वार्षिक_कुल');
+      expect(body).toContain('अधिकतम_स्ट्रीक');
+    });
+
+    it('returns French translations when ?lang=fr is given', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', lang: 'fr' }));
+      const body = await response.text();
+      expect(body).toContain('SÉRIE_ACTUELLE');
+      expect(body).toContain('TOTAL_ANNUEL');
+      expect(body).toContain('SÉRIE_MAXIMALE');
+    });
+
+    it('falls back to English when an unknown ?lang=xx is given', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', lang: 'xx' }));
+      const body = await response.text();
+      expect(body).toContain('CURRENT_STREAK');
+      expect(body).toContain('ANNUAL_SYNC_TOTAL');
+      expect(body).toContain('PEAK_STREAK');
+    });
+  });
 });
