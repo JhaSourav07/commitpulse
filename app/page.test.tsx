@@ -166,6 +166,24 @@ describe('LandingPage', () => {
     });
   });
 
+  it('disables Copy Link button when username is empty', () => {
+    render(<LandingPage />);
+
+    const copyButton = screen.getByText('Copy Link').closest('button');
+
+    expect(copyButton?.disabled).toBe(true);
+  });
+
+  it('does not copy link when username is empty', () => {
+    render(<LandingPage />);
+
+    const copyButton = screen.getByText('Copy Link').closest('button');
+
+    fireEvent.click(copyButton!);
+
+    expect(navigator.clipboard.writeText).not.toHaveBeenCalled();
+  });
+
   it('renders the FeatureCards', () => {
     render(<LandingPage />);
     expect(screen.getByText('Real-time Sync')).toBeDefined();
