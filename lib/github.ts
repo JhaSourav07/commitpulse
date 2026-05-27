@@ -10,13 +10,16 @@ interface GitHubRepo {
   language: string | null;
 }
 
+// Maximum number of attempts (initial + retries).
 const MAX_RETRIES = 3;
+// Initial delay in ms; doubles on each retry.
 const BASE_DELAY_MS = 500;
 const CONTRIBUTION_MILESTONES = [1, 10, 100, 250, 500, 1000];
 const STREAK_MILESTONES = [3, 7, 30, 100];
 const GRAPHQL_TIMEOUT_MS = 8000; // 8s for GraphQL endpoint
 const REST_TIMEOUT_MS = 5000; // 5s for REST endpoints
 
+// Retry delay uses exponential backoff: delay = BASE_DELAY_MS * 2^attempt.
 export async function fetchWithRetry(
   url: string,
   options: RequestInit,
