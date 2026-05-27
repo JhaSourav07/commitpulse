@@ -481,6 +481,22 @@ describe('GET /api/streak', () => {
     });
   });
 
+  describe('hide_background parameter', () => {
+    it('produces a transparent background when ?hide_background=true is set', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', hide_background: 'true' }));
+      const body = await response.text();
+
+      expect(body).toContain('fill="transparent"');
+    });
+
+    it('does not produce a transparent background when ?hide_background is omitted', async () => {
+      const response = await GET(makeRequest({ user: 'octocat' }));
+      const body = await response.text();
+
+      expect(body).not.toContain('fill="transparent"');
+    });
+  });
+
   describe('monthly view parameter', () => {
     it('returns 200 when view=monthly is given', async () => {
       const response = await GET(makeRequest({ user: 'octocat', view: 'monthly' }));
