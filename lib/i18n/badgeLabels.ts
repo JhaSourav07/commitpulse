@@ -35,6 +35,13 @@ export const labels: Record<string, BadgeLabels> = {
     COMMITS_THIS_MONTH: 'COMMITS ESTE MÊS',
     VS_LAST_MONTH: 'vs mês passado',
   },
+  ko: {
+    CURRENT_STREAK: '현재_연속',
+    ANNUAL_SYNC_TOTAL: '연간_총합',
+    PEAK_STREAK: '최고_연속',
+    COMMITS_THIS_MONTH: '이번 달 커밋',
+    VS_LAST_MONTH: '지난달 대비',
+  },
   fr: {
     CURRENT_STREAK: 'SÉRIE_ACTUELLE',
     ANNUAL_SYNC_TOTAL: 'TOTAL_ANNUEL',
