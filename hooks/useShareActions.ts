@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { toPng } from 'html-to-image';
 import type { DashboardExportData } from '@/types/dashboard';
 
@@ -16,12 +16,24 @@ export function useShareActions(
 ) {
   const [states, setStates] = useState<Record<string, OptionState>>({});
 
+  const timeoutsRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+
   const setOptionState = (key: string, state: OptionState) => {
     setStates((prev) => ({ ...prev, [key]: state }));
     if (state === 'success' || state === 'error') {
-      setTimeout(() => setStates((prev) => ({ ...prev, [key]: 'idle' })), 2500);
+      if (timeoutsRef.current[key]) clearTimeout(timeoutsRef.current[key]);
+      timeoutsRef.current[key] = setTimeout(
+        () => setStates((prev) => ({ ...prev, [key]: 'idle' })),
+        2500
+      );
     }
   };
+  useEffect(() => {
+    const t = timeoutsRef.current;
+    return () => {
+      Object.values(t).forEach(clearTimeout);
+    };
+  }, []);
 
   const handleCopyLink = async () => {
     setOptionState('copy', 'loading');
@@ -50,7 +62,11 @@ export function useShareActions(
   const handleReddit = () => {
     const url = encodeURIComponent(PROFILE_URL(username));
     const title = encodeURIComponent('Check out my CommitPulse dashboard 🚀');
-    window.open(`https://www.reddit.com/submit?url=${url}&title=${title}`, '_blank');
+    window.open(
+      `https://www.reddit.com/submit?url=${url}&title=${title}`,
+      '_blank',
+      'noopener,noreferrer'
+    );
     onClose();
   };
 
@@ -141,7 +157,9 @@ export function useShareActions(
 
   const handleNativeShare = async () => {
     if (!('share' in navigator)) {
+      setOptionState('native', 'loading');
       await handleCopyLink();
+      setOptionState('native', 'success');
       return;
     }
     setOptionState('native', 'loading');
