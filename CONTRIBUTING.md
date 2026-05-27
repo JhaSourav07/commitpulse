@@ -100,7 +100,7 @@ lib/svg/generator.ts          → SVG rendering engine
 lib/svg/themes.ts             → Theme configuration system
 utils/time.ts                 → UTC & timezone utilities
 types/index.ts                → Shared TypeScript interfaces
-````
+```
 
 ---
 
@@ -108,9 +108,9 @@ types/index.ts                → Shared TypeScript interfaces
 
 Common issues during setup:
 
-* **401 Unauthorized** → Invalid or missing `GITHUB_TOKEN`
-* **MongoDB errors** → `MONGODB_URI` is optional for local development
-* **Empty SVG output** → Ensure the GitHub username exists and has public contributions
+- **401 Unauthorized** → Invalid or missing `GITHUB_TOKEN`
+- **MongoDB errors** → `MONGODB_URI` is optional for local development
+- **Empty SVG output** → Ensure the GitHub username exists and has public contributions
 
 ---
 
@@ -118,10 +118,10 @@ Common issues during setup:
 
 Good first contributions:
 
-* Documentation improvements
-* New theme presets
-* SVG styling enhancements
-* UI polish and accessibility improvements
+- Documentation improvements
+- New theme presets
+- SVG styling enhancements
+- UI polish and accessibility improvements
 
 ---
 
@@ -138,6 +138,7 @@ Run Tests & Lint
       ↓
 Open Pull Request
 ```
+
 ---
 
 ## 🎯 What to Contribute

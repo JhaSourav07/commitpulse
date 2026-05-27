@@ -181,17 +181,18 @@ URL Parameter > Theme Default > System Fallback
 
 Explore some of the built-in CommitPulse themes and quickly copy the style you like.
 
-| Theme | Usage Example |
-|-------|----------------|
-| Dark | `?theme=dark` |
-| Neon | `?theme=neon` |
+| Theme   | Usage Example    |
+| ------- | ---------------- |
+| Dark    | `?theme=dark`    |
+| Neon    | `?theme=neon`    |
 | Dracula | `?theme=dracula` |
 | Gruvbox | `?theme=gruvbox` |
-| GitHub | `?theme=github` |
+| GitHub  | `?theme=github`  |
 
 ![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=neon)
 
 ### Examples
+
 ```md
 <!-- Auto theme — adapts to the viewer's light/dark system preference -->
 
@@ -323,17 +324,17 @@ types/index.ts                →  TypeScript interfaces (StreakStats, BadgePara
 
 🏗️ Architecture Diagram
 GitHub GraphQL API
-        ↓
+↓
 Contribution Processing
-        ↓
+↓
 Streak Calculation Engine
-        ↓
+↓
 SVG Geometry Renderer
-        ↓
+↓
 Animation Layer
-        ↓
+↓
 Edge Cache/CDN
-        ↓
+↓
 Generated SVG Badge
 
 ---
@@ -408,31 +409,34 @@ This ensures maintainers aren't bottlenecks and the community moves incredibly f
 
 ---
 
-
 ## ❓ FAQ
 
 ### Why does my contribution count differ from GitHub?
+
 GitHub calculates contribution data using UTC timestamps. CommitPulse syncs cache invalidation with UTC midnight to ensure consistent results.
 
 ### Why are my latest commits not visible immediately?
+
 Data is cached for performance. Use `&refresh=true` to force fresh data.
 
 ### Can I use my local timezone?
+
 Yes. Use the `tz` parameter with any valid IANA timezone.
 
 Example:
 `?tz=Asia/Kolkata`
 
 ### Do private contributions count?
+
 Yes — if private contributions visibility is enabled in your GitHub settings.
 
 ### Are there GitHub API rate limits?
+
 Yes, but CommitPulse minimizes API usage using caching and optimized GraphQL queries.
 
 ---
 
 ## 🤝 Contributing
-
 
 CommitPulse is an open project built for the Web3 and open-source community. Whether you want to design a new theme, refine the isometric geometry, or improve timezone edge cases — you are welcome here.
 
