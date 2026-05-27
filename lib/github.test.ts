@@ -10,6 +10,7 @@ import {
   GITHUB_CACHE_TTL_MS,
   validateGitHubUsername,
   cacheKey,
+  buildInsights,
 } from './github';
 import type { ContributionCalendar } from '../types';
 
@@ -560,5 +561,45 @@ describe('cacheKey', () => {
 
   it('supports contributions kind', () => {
     expect(cacheKey('contributions', 'testuser')).toContain('contributions');
+  });
+});
+describe('buildInsights', () => {
+  it('uses active streak message when current streak > 3', () => {
+    const result = buildInsights(
+      {
+        totalContributions: 120,
+        currentStreak: 7,
+        longestStreak: 20,
+      },
+      [{ name: 'TypeScript' }]
+    );
+
+    expect(result[2].text).toContain('active 7-day streak');
+  });
+
+  it('uses longest streak message when current streak <= 3', () => {
+    const result = buildInsights(
+      {
+        totalContributions: 120,
+        currentStreak: 2,
+        longestStreak: 15,
+      },
+      [{ name: 'Rust' }]
+    );
+
+    expect(result[2].text).toContain('15 days');
+  });
+
+  it('falls back to Unknown when languages list is empty', () => {
+    const result = buildInsights(
+      {
+        totalContributions: 50,
+        currentStreak: 1,
+        longestStreak: 5,
+      },
+      []
+    );
+
+    expect(result[1].text).toContain('Unknown');
   });
 });

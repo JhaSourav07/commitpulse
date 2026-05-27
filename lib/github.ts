@@ -364,6 +364,46 @@ export function generateAchievements(totalContributions: number, currentStreak: 
 
   return achievements;
 }
+type StreakStats = {
+  totalContributions: number;
+  currentStreak: number;
+  longestStreak: number;
+};
+
+type Language = {
+  name: string;
+};
+
+export function buildInsights(streakStats: StreakStats, languages: Language[]) {
+  const insights = [
+    {
+      id: '1',
+      icon: 'Flame',
+      text: `You have a total of ${streakStats.totalContributions} contributions this year.`,
+    },
+    {
+      id: '2',
+      icon: 'Code',
+      text: `Your primary language is ${languages[0]?.name || 'Unknown'}.`,
+    },
+  ];
+
+  if (streakStats.currentStreak > 3) {
+    insights.push({
+      id: '3',
+      icon: 'Zap',
+      text: `You are currently on an active ${streakStats.currentStreak}-day streak! Keep it going!`,
+    });
+  } else {
+    insights.push({
+      id: '3',
+      icon: 'Star',
+      text: `Your longest coding streak is ${streakStats.longestStreak} days!`,
+    });
+  }
+
+  return insights;
+}
 
 export async function getFullDashboardData(username: string, options: FetchOptions = {}) {
   if (!validateGitHubUsername(username)) {
@@ -492,32 +532,7 @@ export async function getFullDashboardData(username: string, options: FetchOptio
   );
 
   // 4. Insights Generation
-  const insights = [
-    {
-      id: '1',
-      icon: 'Flame',
-      text: `You have a total of ${streakStats.totalContributions} contributions this year.`,
-    },
-    {
-      id: '2',
-      icon: 'Code',
-      text: `Your primary language is ${languages[0]?.name || 'Unknown'}.`,
-    },
-  ];
-
-  if (streakStats.currentStreak > 3) {
-    insights.push({
-      id: '3',
-      icon: 'Zap',
-      text: `You are currently on an active ${streakStats.currentStreak}-day streak! Keep it going!`,
-    });
-  } else {
-    insights.push({
-      id: '3',
-      icon: 'Star',
-      text: `Your longest coding streak is ${streakStats.longestStreak} days!`,
-    });
-  }
+  const insights = buildInsights(streakStats, languages);
 
   // Aggregate real contribution data by day of week from the already-fetched calendar
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
