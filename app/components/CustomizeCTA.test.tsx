@@ -49,18 +49,22 @@ describe('CustomizeCTA', () => {
     it('renders the descriptive body copy', () => {
       render(<CustomizeCTA />);
 
-      // Partial match because the text is long and may contain internal whitespace in the DOM.
       expect(screen.getByText(/Dial in every pixel/i)).toBeTruthy();
     });
   });
 
   describe('document structure', () => {
-    it('renders the section heading as an <h2>', () => {
+    it('renders the section heading as exactly one <h2>', () => {
       render(<CustomizeCTA />);
 
-      const heading = screen.getByRole('heading', { level: 2 });
+      const heading = screen.getByRole('heading', {
+        level: 2,
+        name: 'Want to fine-tune your monolith?',
+      });
+
       expect(heading).toBeTruthy();
-      expect(heading.textContent).toContain('Want to fine-tune your monolith?');
+      expect(screen.getAllByRole('heading', { level: 2 })).toHaveLength(1);
+      expect(heading.textContent).toBe('Want to fine-tune your monolith?');
     });
 
     it('renders exactly one link', () => {
@@ -108,8 +112,6 @@ describe('CustomizeCTA', () => {
     it('marks the decorative shimmer overlay as aria-hidden', () => {
       const { container } = render(<CustomizeCTA />);
 
-      // The shimmer span is purely visual — hiding it prevents screen readers
-      // from announcing it as a mysterious empty element.
       const hiddenSpans = container.querySelectorAll('span[aria-hidden="true"]');
       expect(hiddenSpans.length).toBeGreaterThan(0);
     });
