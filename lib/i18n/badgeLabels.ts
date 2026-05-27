@@ -49,6 +49,13 @@ export const labels: Record<string, BadgeLabels> = {
     COMMITS_THIS_MONTH: 'COMMITS CE MOIS',
     VS_LAST_MONTH: 'vs mois dernier',
   },
+  ja: {
+    CURRENT_STREAK: '現在_ストリーク',
+    ANNUAL_SYNC_TOTAL: '年間_合計',
+    PEAK_STREAK: '最高_ストリーク',
+    COMMITS_THIS_MONTH: '今月のコミット数',
+    VS_LAST_MONTH: '先月比',
+  },
 };
 
 export function getLabels(lang: string = 'en'): BadgeLabels {
