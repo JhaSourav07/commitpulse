@@ -2,8 +2,8 @@ import Link from 'next/link';
 
 export function Footer() {
   return (
-    <footer className="mt-14 border-t border-black/15 dark:border-white/10 bg-transparent pt-10 pb-4 text-sm transition-colors">
-      <div className="mx-auto flex max-w-7xl flex-col items-start justify-between gap-8 px-6 md:flex-row">
+    <footer className="mt-14 border-t border-black/15 dark:border-white/10 bg-transparent pt-10 pb-24 md:pb-6 text-sm transition-colors">
+      <div className="mx-auto flex max-w-7xl flex-col items-center text-center  justify-between gap-8 px-6 md:flex-row md:items-start md:text-left">
         {/* LEFT */}
         <div className="text-center md:text-left">
           <h2 className="text-lg font-semibold text-black dark:text-white">CommitPulse</h2>
@@ -14,7 +14,7 @@ export function Footer() {
         </div>
 
         {/* RIGHT */}
-        <div className="flex items-start gap-6 text-sm font-medium text-zinc-600 dark:text-zinc-400">
+        <div className="flex flex-wrap justify-center items-center gap-6 font-medium text-zinc-600 dark:text-zinc-400">
           {' '}
           <Link
             href="/contributors"
