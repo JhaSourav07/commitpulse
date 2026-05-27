@@ -78,6 +78,18 @@ describe('GET /api/streak', () => {
 
       expect(fetchGitHubContributions).not.toHaveBeenCalled();
     });
+
+    it('returns 400 for malformed GitHub usernames', async () => {
+      const invalidUsers = ['http://localhost', 'harendra-', 'a--b', 'a'.repeat(40)];
+
+      for (const user of invalidUsers) {
+        const response = await GET(makeRequest({ user }));
+
+        expect(response.status).toBe(400);
+      }
+
+      expect(fetchGitHubContributions).not.toHaveBeenCalled();
+    });
   });
 
   describe('successful response', () => {
