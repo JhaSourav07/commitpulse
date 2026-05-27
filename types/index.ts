@@ -89,6 +89,9 @@ export interface BadgeParams {
   /** GitHub username whose contribution data will be fetched and rendered. Required. */
   user: string;
 
+  /** Number of grace days before a streak resets (handles timezone edge cases). Defaults to 1. */
+  grace?: number;
+
   /** Background fill color as a hex string WITHOUT the leading '#'. Overrides theme default. */
   bg: HexColor;
 
