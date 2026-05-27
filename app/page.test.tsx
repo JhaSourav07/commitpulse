@@ -52,7 +52,7 @@ vi.mock('framer-motion', () => ({
 
 vi.mock('@/hooks/useRecentSearches', () => ({
   useRecentSearches: () => ({
-    searches: [],
+    searches: ['octocat', 'torvalds'],
     addSearch: vi.fn(),
     clearSearches: vi.fn(),
   }),
@@ -98,6 +98,19 @@ describe('LandingPage', () => {
     const input = screen.getByPlaceholderText('Enter GitHub Username') as HTMLInputElement;
     expect(input).toBeDefined();
     expect(input.value).toBe('');
+  });
+
+  it('renders recent searches and applies a recent search when clicked', () => {
+    render(<LandingPage />);
+    const input = screen.getByPlaceholderText('Enter GitHub Username') as HTMLInputElement;
+    const octocatButton = screen.getByRole('button', { name: 'octocat' });
+
+    expect(octocatButton).toBeDefined();
+    expect(screen.getByRole('button', { name: 'Clear' })).toBeDefined();
+
+    fireEvent.click(octocatButton);
+
+    expect(input.value).toBe('octocat');
   });
 
   it('renders an empty state before a username is entered', () => {
