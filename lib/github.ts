@@ -272,7 +272,7 @@ export async function fetchUserRepos(
   const allRepos: GitHubRepo[] = [];
 
   let PAGE = 1;
-  const MAX_PAGES = 100;
+  const MAX_PAGES = 3; // Hard cap at 3 pages (300 repos) to prevent API rate limit exhaustion (DoS)
   while (PAGE <= MAX_PAGES) {
     const res = await fetchWithRetry(
       `${GITHUB_REST_URL}/users/${username}/repos?per_page=100&page=${PAGE}&sort=pushed`,

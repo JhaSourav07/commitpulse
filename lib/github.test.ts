@@ -268,7 +268,7 @@ describe('fetchUserRepos', () => {
 
     await fetchUserRepos('octocat');
 
-    expect(fetch).toHaveBeenCalledTimes(100);
+    expect(fetch).toHaveBeenCalledTimes(3);
   });
 });
 
