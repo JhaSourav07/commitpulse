@@ -3,7 +3,13 @@ import { sanitizeHexColor, sanitizeSpeed, sanitizeRadius, sanitizeFont } from '.
 
 export const streakParamsSchema = z.object({
   // Required — missing user surfaces as "Missing" to match existing tests
-  user: z.string({ error: 'Missing user parameter' }).min(1, { message: 'Missing user parameter' }),
+  user: z
+    .string({ error: 'Missing user parameter' })
+    .min(1, { message: 'Missing user parameter' })
+    .max(39, { message: 'GitHub username cannot exceed 39 characters' })
+    .regex(/^[a-zA-Z0-9](?:[a-zA-Z0-9]|-(?=[a-zA-Z0-9]))*$/, {
+      message: 'Invalid GitHub username',
+    }),
 
   theme: z.string().default('dark'),
   bg: z
