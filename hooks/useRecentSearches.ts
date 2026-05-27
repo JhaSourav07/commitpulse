@@ -81,9 +81,7 @@ export function useRecentSearches() {
   const removeSearch = (query: string): void => {
     setState((prev) => {
       const filtered = prev.searches.filter((s) => s !== query);
-      try {
-        localStorage.setItem(KEY, JSON.stringify(filtered));
-      } catch {}
+      writeStorage(filtered);
       return { ...prev, searches: filtered };
     });
   };
