@@ -8,13 +8,14 @@ vi.mock('@/lib/github', () => ({
   getFullDashboardData: vi.fn(),
 }));
 
-// Mock the dashboard components to keep the test focused on the page rendering logic
 vi.mock('@/components/dashboard/ProfileCard', () => ({
   default: () => <div data-testid="profile-card">ProfileCard</div>,
 }));
+
 vi.mock('@/components/dashboard/ActivityLandscape', () => ({
   default: () => <div data-testid="activity-landscape">ActivityLandscape</div>,
 }));
+
 vi.mock('@/components/dashboard/StatsCard', () => ({
   default: ({ title, value }: any) => (
     <div data-testid="stats-card">
@@ -22,18 +23,23 @@ vi.mock('@/components/dashboard/StatsCard', () => ({
     </div>
   ),
 }));
+
 vi.mock('@/components/dashboard/LanguageChart', () => ({
   default: () => <div data-testid="language-chart">LanguageChart</div>,
 }));
+
 vi.mock('@/components/dashboard/CommitClock', () => ({
   default: () => <div data-testid="commit-clock">CommitClock</div>,
 }));
+
 vi.mock('@/components/dashboard/Heatmap', () => ({
   default: () => <div data-testid="heatmap">Heatmap</div>,
 }));
+
 vi.mock('@/components/dashboard/AIInsights', () => ({
   default: () => <div data-testid="ai-insights">AIInsights</div>,
 }));
+
 vi.mock('@/components/dashboard/Achievements', () => ({
   default: () => <div data-testid="achievements">Achievements</div>,
 }));
@@ -73,23 +79,33 @@ describe('DashboardPage', () => {
 
   describe('generateMetadata', () => {
     it('generates correct metadata for a given user', async () => {
-      const metadata = await generateMetadata({ params: Promise.resolve({ username: 'octocat' }) });
+      const username = 'octocat';
+      const metadata = await generateMetadata({
+        params: Promise.resolve({ username }),
+      });
+
+      const openGraphImage = (metadata.openGraph?.images as any[])?.[0];
 
       expect(metadata.title).toBe("octocat's Commit Pulse");
       expect(metadata.description).toContain("octocat's GitHub contribution pulse");
-      expect((metadata.openGraph?.images as any[])?.[0].url).toContain('api/og?username=octocat');
+      expect(openGraphImage.url).toContain('api/og?username=octocat');
+      expect(openGraphImage.width).toBe(1200);
+      expect(openGraphImage.height).toBe(630);
+      expect(openGraphImage.alt).toContain(username);
+      expect((metadata.twitter as any)?.card).toBe('summary_large_image');
     });
   });
 
   describe('DashboardPage rendering', () => {
     it('renders the dashboard components with the fetched data', async () => {
-      const PageContent = await DashboardPage({ params: Promise.resolve({ username: 'octocat' }) });
+      const PageContent = await DashboardPage({
+        params: Promise.resolve({ username: 'octocat' }),
+      });
+
       render(PageContent);
 
-      // Verify data fetching
       expect(getFullDashboardData).toHaveBeenCalledWith('octocat');
 
-      // Verify layout and component presence
       expect(screen.getByText('Generate Your Own Dashboard')).toBeDefined();
       expect(screen.getByTestId('profile-card')).toBeDefined();
       expect(screen.getByTestId('activity-landscape')).toBeDefined();
@@ -99,7 +115,6 @@ describe('DashboardPage', () => {
       expect(screen.getByTestId('ai-insights')).toBeDefined();
       expect(screen.getByTestId('achievements')).toBeDefined();
 
-      // Verify stats cards mapped correctly
       expect(screen.getByText('Current Streak: 5')).toBeDefined();
       expect(screen.getByText('Peak Streak: 15')).toBeDefined();
       expect(screen.getByText('Contributions: 500')).toBeDefined();
