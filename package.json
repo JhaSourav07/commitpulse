@@ -57,6 +57,7 @@
     "prettier": "^3.8.3",
     "react-is": "^19.2.6",
     "tailwindcss": "^4.2.2",
+    "tinybench": "^6.0.2",
     "tsx": "^4.22.2",
     "typescript": "^5",
     "vitest": "^4.1.4"
