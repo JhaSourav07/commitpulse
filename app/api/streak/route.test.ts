@@ -155,16 +155,16 @@ describe('GET /api/streak', () => {
   });
 
   describe('security headers', () => {
-  it('sets a strict Content-Security-Policy with safe SVG styling rules', async () => {
-    const response = await GET(makeRequest({ user: 'octocat' }));
-    const csp = response.headers.get('Content-Security-Policy');
+    it('sets a strict Content-Security-Policy with safe SVG styling rules', async () => {
+      const response = await GET(makeRequest({ user: 'octocat' }));
+      const csp = response.headers.get('Content-Security-Policy');
 
-    expect(csp).toContain("default-src 'none'");
-    expect(csp).toContain("style-src 'unsafe-inline'");
-    expect(csp).toContain('https://fonts.googleapis.com');
-    expect(csp).not.toContain('script-src');
+      expect(csp).toContain("default-src 'none'");
+      expect(csp).toContain("style-src 'unsafe-inline'");
+      expect(csp).toContain('https://fonts.googleapis.com');
+      expect(csp).not.toContain('script-src');
+    });
   });
-});
 
   describe('speed parameter', () => {
     it('accepts a valid integer speed like "3s" and passes it to the SVG', async () => {
