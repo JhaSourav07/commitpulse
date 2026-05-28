@@ -28,12 +28,33 @@ export const labels: Record<string, BadgeLabels> = {
     COMMITS_THIS_MONTH: 'इस महीने के कमिट्स',
     VS_LAST_MONTH: 'पिछले महीने की तुलना में',
   },
+  pt: {
+    CURRENT_STREAK: 'SÉRIE_ATUAL',
+    ANNUAL_SYNC_TOTAL: 'TOTAL_ANUAL',
+    PEAK_STREAK: 'SÉRIE_MÁXIMA',
+    COMMITS_THIS_MONTH: 'COMMITS ESTE MÊS',
+    VS_LAST_MONTH: 'vs mês passado',
+  },
+  ko: {
+    CURRENT_STREAK: '현재_연속',
+    ANNUAL_SYNC_TOTAL: '연간_총합',
+    PEAK_STREAK: '최고_연속',
+    COMMITS_THIS_MONTH: '이번 달 커밋',
+    VS_LAST_MONTH: '지난달 대비',
+  },
   fr: {
     CURRENT_STREAK: 'SÉRIE_ACTUELLE',
     ANNUAL_SYNC_TOTAL: 'TOTAL_ANNUEL',
     PEAK_STREAK: 'SÉRIE_MAXIMALE',
     COMMITS_THIS_MONTH: 'COMMITS CE MOIS',
     VS_LAST_MONTH: 'vs mois dernier',
+  },
+  ja: {
+    CURRENT_STREAK: '現在_ストリーク',
+    ANNUAL_SYNC_TOTAL: '年間_合計',
+    PEAK_STREAK: '最高_ストリーク',
+    COMMITS_THIS_MONTH: '今月のコミット数',
+    VS_LAST_MONTH: '先月比',
   },
 };
 

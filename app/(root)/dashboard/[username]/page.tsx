@@ -103,7 +103,7 @@ export default async function DashboardPage({
         <RefreshButton username={username} />
         <Link
           href="/"
-          className="flex items-center gap-2 rounded-xl border border-[rgba(255,255,255,0.15)] bg-black px-4 py-2 text-sm font-semibold text-white transition-all duration-200 hover:bg-white/5 active:scale-[0.98]"
+          className="flex items-center gap-2 rounded-xl border border-black/10 dark:border-[rgba(255,255,255,0.15)] bg-black dark:bg-black px-4 py-2 text-sm font-semibold text-white dark:text-white transition-all duration-200 hover:bg-gray-200 dark:hover:bg-white/10 active:scale-[0.98]"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -175,7 +175,7 @@ export default async function DashboardPage({
             <StatsCard
               title="Contributions"
               value={data.stats.totalContributions.toString()}
-              description="Last Year"
+              description="Last 365 Days"
               icon="GitCommit"
             />
           </div>
