@@ -156,7 +156,7 @@ describe('LandingPage', () => {
     const dashboardLink = screen.getByRole('link', { name: 'Watch Dashboard' });
 
     expect(dashboardLink.getAttribute('aria-disabled')).toBe('true');
-    expect(dashboardLink.getAttribute('href')).toBe('/');
+    expect(dashboardLink.getAttribute('href')).toBe('#');
   });
 
   it('enables the Watch Dashboard link after a username is entered', () => {
@@ -172,6 +172,7 @@ describe('LandingPage', () => {
 
   it('handles copying to clipboard and showing the SuccessGuide', async () => {
     render(<LandingPage />);
+
     const input = screen.getByPlaceholderText('Enter GitHub Username') as HTMLInputElement;
     fireEvent.change(input, { target: { value: 'jhasourav07' } });
 
