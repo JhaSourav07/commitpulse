@@ -1,6 +1,7 @@
 // app/api/streak/route.ts
 
 import { NextResponse } from 'next/server';
+<<<<<<< HEAD
 import { fetchGitHubContributions, getOrgDashboardData } from '@/lib/github';
 import { calculateStreak, calculateMonthlyStats } from '@/lib/calculate';
 import { generateNotFoundSVG, generateSVG, generateMonthlySVG } from '@/lib/svg/generator';
@@ -9,6 +10,15 @@ import type { BadgeParams } from '@/types';
 import { themes } from '@/lib/svg/themes';
 import { streakParamsSchema } from '@/lib/validations';
 
+=======
+import { fetchGitHubContributions } from '../../../lib/github';
+import { calculateStreak, calculateMonthlyStats } from '../../../lib/calculate';
+import { generateNotFoundSVG, generateSVG, generateMonthlySVG } from '../../../lib/svg/generator';
+import { getSecondsUntilUTCMidnight, getSecondsUntilMidnightInTimezone } from '../../../utils/time';
+import type { BadgeParams } from '../../../types';
+import { themes } from '../../../lib/svg/themes';
+import { streakParamsSchema } from '../../../lib/validations';
+>>>>>>> bbdd929 (test(generator): add coverage for exact SVG dimensions per size parameter)
 const SVG_CSP_HEADER =
   "default-src 'none'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://fonts.gstatic.com;";
 
