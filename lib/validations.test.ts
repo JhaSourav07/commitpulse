@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { githubParamsSchema, streakParamsSchema } from './validations';
+import { githubParamsSchema, ogParamsSchema, streakParamsSchema } from './validations';
 
 describe('githubParamsSchema', () => {
   it('should pass when username is valid', () => {
@@ -118,15 +118,11 @@ describe('streakParamsSchema', () => {
   });
 });
 
-// Helper — parse only the fields we care about, supplying the required `user` field.
 function parse(params: Record<string, string>) {
   return streakParamsSchema.parse({ user: 'octocat', ...params });
 }
 
 describe('streakParamsSchema — scale fallback behavior', () => {
-  // z.enum(['linear', 'log']).catch('linear') — unknown values silently fall
-  // back to 'linear' instead of throwing a validation error.
-
   it('accepts "log" as a valid scale value', () => {
     expect(parse({ scale: 'log' }).scale).toBe('log');
   });
@@ -149,9 +145,6 @@ describe('streakParamsSchema — scale fallback behavior', () => {
 });
 
 describe('streakParamsSchema — size fallback behavior', () => {
-  // z.enum(['small', 'medium', 'large']).catch('medium') — unknown values
-  // silently fall back to 'medium' to preserve badge rendering.
-
   it('accepts "small" as a valid size value', () => {
     expect(parse({ size: 'small' }).size).toBe('small');
   });
@@ -174,5 +167,41 @@ describe('streakParamsSchema — size fallback behavior', () => {
 
   it('falls back to "medium" for empty string', () => {
     expect(parse({ size: '' }).size).toBe('medium');
+  });
+});
+
+describe('ogParamsSchema', () => {
+  it('should keep provided user value', () => {
+    const result = ogParamsSchema.safeParse({
+      user: 'octocat',
+    });
+
+    expect(result.success).toBe(true);
+
+    if (result.success) {
+      expect(result.data.user).toBe('octocat');
+    }
+  });
+
+  it('should default user to unknown when omitted', () => {
+    const result = ogParamsSchema.safeParse({});
+
+    expect(result.success).toBe(true);
+
+    if (result.success) {
+      expect(result.data.user).toBe('unknown');
+    }
+  });
+
+  it('should allow empty string user', () => {
+    const result = ogParamsSchema.safeParse({
+      user: '',
+    });
+
+    expect(result.success).toBe(true);
+
+    if (result.success) {
+      expect(result.data.user).toBe('');
+    }
   });
 });
