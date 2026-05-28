@@ -80,6 +80,7 @@ export async function fetchWithRetry(
 
 const GITHUB_GRAPHQL_URL = 'https://api.github.com/graphql';
 const GITHUB_REST_URL = 'https://api.github.com';
+const MISSING_GITHUB_TOKEN_MESSAGE = 'GitHub token is missing. Set GITHUB_PAT or GITHUB_TOKEN.';
 
 type GitHubContributionResponse = {
   data?: {
@@ -182,8 +183,17 @@ export function clearGitHubApiCacheForTests(): void {
   reposCache.clear();
 }
 
+function getGitHubToken(): string {
+  const token = process.env.GITHUB_PAT || process.env.GITHUB_TOKEN;
+  if (!token || token.trim() === '') {
+    throw new Error(MISSING_GITHUB_TOKEN_MESSAGE);
+  }
+
+  return token;
+}
+
 const getHeaders = () => ({
-  Authorization: `bearer ${process.env.GITHUB_PAT || process.env.GITHUB_TOKEN}`,
+  Authorization: `bearer ${getGitHubToken()}`,
   'Content-Type': 'application/json',
 });
 
