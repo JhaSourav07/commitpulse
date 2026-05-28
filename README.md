@@ -105,6 +105,21 @@ Transform your GitHub contribution history into a cinematic 3D monolith.
 
 ---
 
+### 1. Prerequisites
+Ensure you have the following installed on your machine:
+- **[Node.js](https://nodejs.org/)** (v18 or higher recommended)
+- **[Git](https://git-scm.com/)**
+- **A GitHub Account**
+
+### 2. Local Setup
+
+**Step A: Fork & Clone**
+1. Fork the repository to your own GitHub account.
+2. Clone your fork:
+   ```bash
+   git clone https://github.com/YOUR_USERNAME/commitpulse.git
+   cd commitpulse
+
 ### 📋 Copy Examples
 
 #### 🌑 Default
