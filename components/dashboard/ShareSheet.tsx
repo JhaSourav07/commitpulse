@@ -35,6 +35,12 @@ const RedditIcon = ({ size = 18, className = '' }: { size?: number; className?: 
   </svg>
 );
 
+const WhatsAppIcon = ({ size = 18, className = '' }: { size?: number; className?: string }) => (
+  <svg width={size} height={size} viewBox="0 0 32 32" fill="currentColor" className={className}>
+    <path d="M19.11 17.2c-.3-.15-1.77-.87-2.04-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.95 1.17-.17.2-.35.22-.65.07-.3-.15-1.28-.47-2.43-1.5-.9-.8-1.5-1.8-1.67-2.1-.17-.3-.02-.47.13-.62.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.07-.15-.67-1.62-.92-2.22-.24-.58-.48-.5-.67-.51h-.57c-.2 0-.52.07-.8.37-.27.3-1.05 1.02-1.05 2.5s1.07 2.9 1.22 3.1c.15.2 2.1 3.2 5.1 4.48.7.3 1.25.47 1.67.6.7.22 1.35.2 1.85.12.57-.08 1.77-.72 2.02-1.42.25-.7.25-1.3.17-1.42-.07-.12-.27-.2-.57-.35ZM16.02 3C8.84 3 3 8.74 3 15.82c0 2.27.6 4.48 1.74 6.42L3 29l6.96-1.82a13.1 13.1 0 0 0 6.06 1.54h.01c7.18 0 13.02-5.74 13.02-12.82C29.04 8.74 23.2 3 16.02 3Zm0 23.5h-.01a10.8 10.8 0 0 1-5.5-1.5l-.4-.24-4.13 1.08 1.1-4.02-.26-.42a10.58 10.58 0 0 1-1.64-5.58c0-5.9 4.86-10.7 10.84-10.7 2.9 0 5.63 1.12 7.67 3.14a10.56 10.56 0 0 1 3.18 7.56c0 5.9-4.86 10.7-10.85 10.7Z" />
+  </svg>
+);
+
 interface ShareSheetProps {
   username: string;
   isOpen: boolean;
@@ -106,6 +112,18 @@ export default function ShareSheet({ username, isOpen, onClose, exportData }: Sh
     const title = encodeURIComponent('Check out my CommitPulse dashboard 🚀');
 
     window.open(`https://www.reddit.com/submit?url=${url}&title=${title}`, '_blank');
+
+    onClose();
+  };
+
+  const handleWhatsApp = () => {
+    const url = PROFILE_URL(username);
+
+    const message = encodeURIComponent(
+      `Check out my GitHub commit pulse on CommitPulse 🚀\n${url}`
+    );
+
+    window.open(`https://api.whatsapp.com/send?text=${message}`, '_blank', 'noopener');
 
     onClose();
   };
@@ -316,6 +334,15 @@ export default function ShareSheet({ username, isOpen, onClose, exportData }: Sh
       gradient: 'from-orange-500 to-orange-700',
       glow: 'rgba(249,115,22,0.35)',
     },
+    {
+      key: 'whatsapp',
+      label: 'Share on WhatsApp',
+      description: 'Share your pulse in chats and groups',
+      icon: WhatsAppIcon,
+      action: handleWhatsApp,
+      gradient: 'from-green-500 to-green-700',
+      glow: 'rgba(34,197,94,0.35)',
+    },
   ];
 
   return (
@@ -342,7 +369,7 @@ export default function ShareSheet({ username, isOpen, onClose, exportData }: Sh
               className="relative w-full max-w-sm"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="rounded-xl bg-white/60 dark:bg-white/[0.05] dark:bg-white/[0.05] backdrop-blur-xl  border border-black/10 dark:border-white/10 shadow-[0_24px_64px_rgba(0,0,0,0.18)] dark:shadow-[0_24px_64px_rgba(0,0,0,0.7)] overflow-hidden">
+              <div className="rounded-xl bg-white/60 dark:bg-white/[0.05] backdrop-blur-xl  border border-black/10 dark:border-white/10 shadow-[0_24px_64px_rgba(0,0,0,0.18)] dark:shadow-[0_24px_64px_rgba(0,0,0,0.7)] overflow-hidden">
                 {/* Header */}
                 <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-white/10">
                   <div>
