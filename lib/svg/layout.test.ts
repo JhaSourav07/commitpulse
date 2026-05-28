@@ -161,3 +161,36 @@ describe('computeTowers edge cases', () => {
     expect(towers[0].h).toBe(24);
   });
 });
+
+it('assigns correct row and col values based on week/day position', () => {
+  const calendar = {
+    totalContributions: 0,
+    weeks: [
+      {
+        contributionDays: [
+          { contributionCount: 1, date: '2024-06-10' },
+          { contributionCount: 1, date: '2024-06-11' },
+          { contributionCount: 1, date: '2024-06-12' },
+        ],
+      },
+      {
+        contributionDays: [
+          { contributionCount: 1, date: '2024-06-13' },
+          { contributionCount: 1, date: '2024-06-14' },
+          { contributionCount: 1, date: '2024-06-15' },
+        ],
+      },
+    ],
+  } as unknown as ContributionCalendar;
+
+  const towers = computeTowers(calendar, 'linear', '2024-06-15');
+
+  expect(towers[0].row).toBe(0);
+  expect(towers[0].col).toBe(0);
+
+  expect(towers[1].row).toBe(0);
+  expect(towers[1].col).toBe(1);
+
+  expect(towers[3].row).toBe(1);
+  expect(towers[3].col).toBe(0);
+});
