@@ -194,6 +194,13 @@ describe('GET /api/streak', () => {
       }
       expect(fetchGitHubContributions).not.toHaveBeenCalled();
     });
+    it('returns 400 when user contains spaces', async () => {
+      const response = await GET(makeRequest({ user: 'john doe' }));
+      const body = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(body.details.fieldErrors.user[0]).toContain('Invalid GitHub username');
+    });
 
     it('returns 400 when user contains spaces', async () => {
       const response = await GET(makeRequest({ user: 'john doe' }));
