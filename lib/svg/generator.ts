@@ -356,7 +356,9 @@ export function generateMonthlySVG(stats: MonthlyStats, params: BadgeParams): st
   const text = `#${sanitizeHexColor(params.text, 'ffffff')}`;
 
   const sanitizedFont = sanitizeFont(params.font);
-  const predefinedFont = sanitizedFont ? FONT_MAP[sanitizedFont.toLowerCase()] : null;
+  const predefinedFont = sanitizedFont
+    ? (FONT_MAP[sanitizedFont.toLowerCase() as keyof typeof FONT_MAP] ?? null)
+    : null;
   const isPredefinedFont = Boolean(predefinedFont);
   const selectedFont = isPredefinedFont
     ? predefinedFont
@@ -445,7 +447,9 @@ function generateAutoThemeMonthlySVG(stats: MonthlyStats, params: BadgeParams): 
   const dark = AUTO_THEME_DARK;
   const safeUser = escapeXML(params.user || 'GitHub User');
   const sanitizedFont = sanitizeFont(params.font);
-  const predefinedFont = sanitizedFont ? FONT_MAP[sanitizedFont.toLowerCase()] : null;
+  const predefinedFont = sanitizedFont
+    ? (FONT_MAP[sanitizedFont.toLowerCase() as keyof typeof FONT_MAP] ?? null)
+    : null;
   const isPredefinedFont = Boolean(predefinedFont);
   const selectedFont = isPredefinedFont
     ? predefinedFont
