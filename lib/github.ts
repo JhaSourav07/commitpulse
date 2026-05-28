@@ -496,6 +496,30 @@ export async function getWrappedData(username: string, year: string) {
  * UTILS & EXPORTS
  * ========================================================================== */
 
+/**
+ * Generates contribution and streak achievement metadata for a user.
+ *
+ * Achievements are unlocked when the provided contribution count
+ * or streak value meets the corresponding milestone threshold.
+ *
+ * Progress values are clamped between 0 and 100 using `Math.min`
+ * to prevent percentages from exceeding 100%.
+ *
+ * @param totalContributions - Total number of contributions made by the user.
+ * @param currentStreak - Current active contribution streak in days.
+ * @param weekendCommits - Total number of contributions made on weekends.
+ * @param uniqueLanguages - Number of distinct languages used.
+ *
+ * @returns An array of achievement objects for contribution and streak milestones,
+ * including unlock status, progress percentage, threshold values, and display metadata.
+ *
+ * @example
+ * ```ts
+ * const achievements = generateAchievements(125, 10);
+ *
+ * console.log(achievements);
+ * ```
+ */
 export function generateAchievements(
   totalContributions: number,
   currentStreak: number,
