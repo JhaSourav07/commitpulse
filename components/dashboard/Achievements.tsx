@@ -14,11 +14,13 @@ export default function Achievements({ achievements }: { achievements: Achieveme
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ duration: 0.3, delay: 0.1 }}
-      className="p-6 rounded-xl bg-[#0a0a0a] border border-[rgba(255,255,255,0.08)]"
+      className="p-6 rounded-xl bg-white dark:bg-[#0a0a0a] border border-black/10 dark:border-[rgba(255,255,255,0.08)]"
     >
       <div className="flex items-center gap-2.5 mb-5">
         <Trophy size={15} className="text-[#A1A1AA]" />
-        <h3 className="text-sm font-semibold text-white tracking-tight">Achievements</h3>
+        <h3 className="text-sm font-semibold text-gray-900 dark:text-white tracking-tight">
+          Achievements
+        </h3>
       </div>
 
       <div className="grid grid-cols-2 gap-2">
@@ -33,15 +35,15 @@ export default function Achievements({ achievements }: { achievements: Achieveme
               transition={{ delay: 0.15 + i * 0.07, duration: 0.2 }}
               className={`p-4 flex flex-col items-center text-center rounded-lg border transition-all duration-200 ${
                 achievement.isUnlocked
-                  ? 'bg-[#111] border-[rgba(255,255,255,0.08)] hover:border-[rgba(255,255,255,0.16)] hover:bg-[#161616] cursor-default'
-                  : 'bg-[#0a0a0a] border-[rgba(255,255,255,0.04)] opacity-30 grayscale pointer-events-none'
+                  ? 'bg-gray-100 dark:bg-[#111] border-[rgba(255,255,255,0.08)] hover:border-[rgba(255,255,255,0.16)] hover:bg-gray-200 dark:hover:bg-[#161616] cursor-default'
+                  : 'bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-[rgba(255,255,255,0.04)] opacity-30 grayscale pointer-events-none'
               }`}
             >
               <Icon
                 size={18}
                 className={`mb-2.5 ${achievement.isUnlocked ? 'text-[#A1A1AA]' : 'text-[#555]'}`}
               />
-              <h4 className="text-[11px] font-semibold text-white mb-1 text-center w-full leading-snug">
+              <h4 className="text-[11px] font-semibold text-gray-900 dark:text-white mb-1 text-center w-full leading-snug">
                 {achievement.title}
               </h4>
               <p className="text-[10px] text-[#A1A1AA] line-clamp-2 w-full leading-relaxed">
@@ -59,7 +61,7 @@ export default function Achievements({ achievements }: { achievements: Achieveme
       {achievements.length > 4 && (
         <button
           onClick={() => setShowAll(!showAll)}
-          className="mt-4 w-full rounded-lg border border-[rgba(255,255,255,0.08)] bg-[#111] py-2 text-xs font-medium text-white transition-all hover:bg-[#161616]"
+          className="mt-4 w-full rounded-lg border border-black/10 dark:border-[rgba(255,255,255,0.08)] bg-black dark:bg-white py-2 text-xs font-medium text-white dark:text-black transition-all hover:bg-zinc-800 dark:hover:bg-zinc-100"
         >
           {showAll ? 'Show Less' : 'See All Achievements'}
         </button>
