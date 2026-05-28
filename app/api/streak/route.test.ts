@@ -533,7 +533,8 @@ describe('GET /api/streak', () => {
       const response = await GET(makeRequest({ user: 'octocat' }));
       const body = await response.text();
 
-      expect(body).toContain('API is down');
+      expect(body).toContain('Something went wrong. Please try again later.');
+      expect(body).not.toContain('API is down');
     });
 
     it('never caches an error response', async () => {
@@ -553,7 +554,8 @@ describe('GET /api/streak', () => {
 
       expect(response.status).toBe(500);
       const body = await response.text();
-      expect(body).toContain('Unknown error');
+      expect(body).toContain('Something went wrong. Please try again later.');
+      expect(body).not.toContain('Unknown error');
     });
 
     it('returns a well-formed SVG structure even in the error state', async () => {
