@@ -85,6 +85,64 @@ describe('fetchGitHubContributions', () => {
     expect(result.weeks[0].contributionDays[0]).toHaveProperty('locAdditions');
   });
 
+  it('injects positive locAdditions and non-negative locDeletions for contribution days', async () => {
+    const calendarWithContributions: ContributionCalendar = {
+      totalContributions: 5,
+      weeks: [
+        {
+          contributionDays: [{ contributionCount: 5, date: '2024-06-10' }],
+        },
+      ],
+    };
+
+    vi.mocked(fetch).mockResolvedValue(
+      mockResponse({
+        data: {
+          user: {
+            contributionsCollection: {
+              contributionCalendar: calendarWithContributions,
+            },
+          },
+        },
+      })
+    );
+
+    const result = await fetchGitHubContributions('octocat');
+    const day = result.weeks[0].contributionDays[0];
+
+    expect(day.locAdditions).toBeGreaterThan(0);
+    expect(day.locDeletions).toBeGreaterThanOrEqual(0);
+  });
+
+  it('sets locAdditions and locDeletions to zero for zero-contribution days', async () => {
+    const calendarWithZeroContribution: ContributionCalendar = {
+      totalContributions: 0,
+      weeks: [
+        {
+          contributionDays: [{ contributionCount: 0, date: '2024-06-11' }],
+        },
+      ],
+    };
+
+    vi.mocked(fetch).mockResolvedValue(
+      mockResponse({
+        data: {
+          user: {
+            contributionsCollection: {
+              contributionCalendar: calendarWithZeroContribution,
+            },
+          },
+        },
+      })
+    );
+
+    const result = await fetchGitHubContributions('octocat');
+    const day = result.weeks[0].contributionDays[0];
+
+    expect(day.locAdditions).toBe(0);
+    expect(day.locDeletions).toBe(0);
+  });
+
   it('sends a POST request to the GitHub GraphQL endpoint with the correct body', async () => {
     vi.mocked(fetch).mockResolvedValue(
       mockResponse({
