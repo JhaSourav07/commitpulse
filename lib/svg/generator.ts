@@ -173,6 +173,7 @@ function renderStyle(
     .heat-particles { display: none; }
     .scan-line {
       animation: none !important;
+      transition: none !important;
       transform: translateY(var(--scan-start, ${fs(20)}px)) !important;
     }
   }
@@ -447,6 +448,7 @@ function generateAutoThemeSVG(
     .heat-particles { display: none; }
     .scan-line {
       animation: none !important;
+      transition: none !important;
       transform: translateY(var(--scan-start, ${s(20)}px)) !important;
     }
   }
@@ -561,6 +563,9 @@ export function generateMonthlySVG(stats: MonthlyStats, params: BadgeParams): st
   .stats { font-family: ${statsFont}; fill: ${accent}; font-size: 36px; font-weight: 600; letter-spacing: 0; }
   .label { font-family: "Roboto", sans-serif; fill: ${text}; font-size: 10px; font-weight: 400; letter-spacing: 1px; opacity: 0.7; }
   .delta { font-family: "Roboto", sans-serif; fill: ${deltaColor}; font-size: 12px; font-weight: 500; }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
   </style>
 
   <rect width="${width}" height="${height}" rx="${radius}" fill="${params.hideBackground ? 'transparent' : bg}" />
@@ -652,6 +657,9 @@ function generateAutoThemeMonthlySVG(stats: MonthlyStats, params: BadgeParams): 
   .stats { font-family: ${statsFont}; fill: var(--cp-accent); font-size: 36px; font-weight: 600; letter-spacing: 0; }
   .label { font-family: "Roboto", sans-serif; fill: var(--cp-text); font-size: 10px; font-weight: 400; letter-spacing: 1px; opacity: 0.7; }
   .delta { font-family: "Roboto", sans-serif; font-size: 12px; font-weight: 500; }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
   </style>
 
   <rect width="${width}" height="${height}" rx="${radius}" ${params.hideBackground ? 'fill="transparent"' : 'class="cp-bg-fill"'} />
@@ -813,9 +821,10 @@ export function generateNotFoundSVG(
     @keyframes gp { 0%,100%{opacity:.55} 50%{opacity:1} }
     @keyframes scan-sweep { from { transform: translateY(20px); } to { transform: translateY(260px); } }
     @media (prefers-reduced-motion: reduce) {
-      .ghost-pulse { animation: none; }
+      .ghost-pulse { animation: none !important; transition: none !important; }
       .scan-line {
         animation: none !important;
+        transition: none !important;
         transform: translateY(20px) !important;
       }
     }

@@ -204,6 +204,7 @@ describe('generateSVG', () => {
     expect(svg).toContain('prefers-reduced-motion: reduce');
     expect(svg).toContain('.scan-line');
     expect(svg).toContain('animation: none !important');
+    expect(svg).toContain('transition: none !important');
   });
 
   it('uses English labels by default', () => {
@@ -368,6 +369,22 @@ describe('generateSVG', () => {
   describe('notFoundSVG', () => {
     it('includes reduced-motion CSS for the scan line and ghost pulse', () => {
       const svg = generateNotFoundSVG(
+        'avi',
+        hexColor('0d1117'),
+        hexColor('00ffaa'),
+        hexColor('ffffff'),
+        8,
+        '8s'
+      );
+
+      expect(svg).toContain('prefers-reduced-motion: reduce');
+      expect(svg).toContain('.scan-line');
+      expect(svg).toContain('animation: none !important');
+      expect(svg).toContain('transition: none !important');
+      expect(svg).toContain('class="scan-line"');
+    });
+  });
+
   // ── Timezone-aware pulse animation tests ─────────────────────────────────
   describe('todayDate pulse animation', () => {
     const calendar: ContributionCalendar = {
@@ -604,6 +621,27 @@ describe('generateMonthlySVG', () => {
     } as unknown as BadgeParams);
     expect(svg).toContain('width="400"');
     expect(svg).toContain('height="200"');
+  });
+
+  it('includes prefers-reduced-motion media query in static monthly SVG output', () => {
+    const svg = generateMonthlySVG(mockMonthlyStats, {
+      user: 'octocat',
+    } as unknown as BadgeParams);
+
+    expect(svg).toContain('prefers-reduced-motion: reduce');
+    expect(svg).toContain('animation: none !important');
+    expect(svg).toContain('transition: none !important');
+  });
+
+  it('includes prefers-reduced-motion media query in auto-theme monthly SVG output', () => {
+    const svg = generateMonthlySVG(mockMonthlyStats, {
+      user: 'octocat',
+      autoTheme: true,
+    } as unknown as BadgeParams);
+
+    expect(svg).toContain('prefers-reduced-motion: reduce');
+    expect(svg).toContain('animation: none !important');
+    expect(svg).toContain('transition: none !important');
   });
 });
 describe('escapeXML', () => {
