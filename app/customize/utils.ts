@@ -30,9 +30,20 @@ export function getExportSnippet(format: ExportFormat, queryString: string): str
     return `<img src="${badgeUrl}" alt="CommitPulse" />`;
   }
 
+  if (format === 'iframe') {
+    return `<iframe src="${badgeUrl}" width="480" height="200" frameborder="0" scrolling="no" title="CommitPulse Badge"></iframe>`;
+  }
+
   return `![CommitPulse](${badgeUrl})`;
 }
 
 export function getPlaceholderSnippet(format: ExportFormat): string {
   return getExportSnippet(format, 'user=your-github-username');
+}
+
+export function syncParamsToURL(queryString: string): void {
+  if (typeof window === 'undefined') return;
+  const url = new URL(window.location.href);
+  url.search = queryString ? `?${queryString}` : '';
+  window.history.replaceState(null, '', url.toString());
 }

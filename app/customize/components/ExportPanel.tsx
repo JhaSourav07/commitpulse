@@ -6,6 +6,7 @@ import { getPlaceholderSnippet } from '../utils';
 const EXPORT_FORMATS: { value: ExportFormat; label: string }[] = [
   { value: 'markdown', label: 'Markdown' },
   { value: 'html', label: 'HTML' },
+  { value: 'iframe', label: 'iFrame' },
 ];
 
 export function ExportPanel({
@@ -26,7 +27,8 @@ export function ExportPanel({
   onCopy: () => void | Promise<void>;
 }): ReactElement {
   const activeSnippet = hasUsername ? snippet : getPlaceholderSnippet(format);
-  const formatLabel = format === 'markdown' ? 'Markdown' : 'HTML';
+  // ✅ AFTER
+  const formatLabel = format === 'markdown' ? 'Markdown' : format === 'iframe' ? 'iFrame' : 'HTML';
   const copyButtonLabel = hasUsername
     ? `Copy ${formatLabel} export snippet to clipboard`
     : `Add a GitHub username to enable copying the ${formatLabel} export snippet`;

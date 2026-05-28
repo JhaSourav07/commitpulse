@@ -44,11 +44,27 @@ describe('LanguageChart', () => {
     expect(screen.getByText('JavaScript')).toBeDefined();
   });
 
-  it('renders donut background with language color and percentage', () => {
-    const result = buildGradientStops([{ name: 'TypeScript', percentage: 100, color: '#3178c6' }]);
+  it('renders every language row passed to the component', () => {
+    const languages = [
+      { name: 'TypeScript', percentage: 30, color: '#3178c6' },
+      { name: 'JavaScript', percentage: 20, color: '#f1e05a' },
+      { name: 'Python', percentage: 15, color: '#3572A5' },
+      { name: 'Go', percentage: 12, color: '#00ADD8' },
+      { name: 'Rust', percentage: 8, color: '#dea584' },
+      { name: 'Ruby', percentage: 6, color: '#701516' },
+      { name: 'PHP', percentage: 5, color: '#4F5D95' },
+      { name: 'CSS', percentage: 4, color: '#563d7c' },
+    ];
 
-    expect(result).toContain('#3178c6');
-    expect(result).toContain('100%');
+    render(<LanguageChart languages={languages} />);
+
+    const renderedLanguageNameElements = screen.getAllByText(
+      (content, element) =>
+        languages.some((language) => language.name === content) &&
+        element?.className === 'text-[#A1A1AA]'
+    );
+
+    expect(renderedLanguageNameElements).toHaveLength(8);
   });
 });
 

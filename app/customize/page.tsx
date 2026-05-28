@@ -1,44 +1,64 @@
 'use client';
 
+import { Suspense } from 'react';
 import { useCallback, useEffect, useRef, useState, type ReactElement } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { ControlsPanel } from './components/ControlsPanel';
 import { ExportPanel } from './components/ExportPanel';
 import type {
   ExportFormat,
-  Font,
   Scale,
   BadgeSize,
+  Font,
   ViewMode,
-  DeltaFormat,
   Language,
+  DeltaFormat,
 } from './types';
-import { getExportSnippet, stripHash } from './utils';
+import { getExportSnippet, stripHash, syncParamsToURL } from './utils';
 
-// ─── Main Page ────────────────────────────────────────────────────────────────
+// ─── Inner Page (needs useSearchParams) ───────────────────────────────────────
 
-export default function CustomizePage(): ReactElement {
-  const [username, setUsername] = useState('');
-  const [theme, setTheme] = useState('dark');
-  const [bgHex, setBgHex] = useState('');
-  const [accentHex, setAccentHex] = useState('');
-  const [textHex, setTextHex] = useState('');
-  const [scale, setScale] = useState<Scale>('linear');
-  const [speed, setSpeed] = useState('8s');
-  const [font, setFont] = useState<Font>('');
-  const [year, setYear] = useState('');
-  const [radius, setRadius] = useState(8);
+function CustomizePageInner(): ReactElement {
+  const searchParams = useSearchParams();
+
+  const [username, setUsername] = useState(() => searchParams.get('user') ?? '');
+  const [theme, setTheme] = useState(() => searchParams.get('theme') ?? 'dark');
+  const [bgHex, setBgHex] = useState(() => searchParams.get('bg') ?? '');
+  const [accentHex, setAccentHex] = useState(() => searchParams.get('accent') ?? '');
+  const [textHex, setTextHex] = useState(() => searchParams.get('text') ?? '');
+  const [scale, setScale] = useState<Scale>(() =>
+    searchParams.get('scale') === 'log' ? 'log' : 'linear'
+  );
+  const [speed, setSpeed] = useState(() => searchParams.get('speed') ?? '8s');
+  const [year, setYear] = useState(() => searchParams.get('year') ?? '');
+  const [radius, setRadius] = useState(() => Number(searchParams.get('radius') ?? 8));
   const [size, setSize] = useState<BadgeSize>('medium');
-  const [hideTitle, setHideTitle] = useState(false);
-  const [hideBackground, setHideBackground] = useState(false);
-  const [hideStats, setHideStats] = useState(false);
-  const [viewMode, setViewMode] = useState<ViewMode>('default');
-  const [deltaFormat, setDeltaFormat] = useState<DeltaFormat>('percent');
-  const [badgeWidth, setBadgeWidth] = useState<number | ''>('');
-  const [badgeHeight, setBadgeHeight] = useState<number | ''>('');
-  const [grace, setGrace] = useState<number>(1);
-  const [language, setLanguage] = useState<Language>('en');
+  const [font, setFont] = useState<Font>(() => (searchParams.get('font') as Font) ?? '');
+  const [viewMode, setViewMode] = useState<ViewMode>(() =>
+    searchParams.get('view') === 'monthly' ? 'monthly' : 'default'
+  );
+  const [hideTitle, setHideTitle] = useState(() => searchParams.get('hide_title') === 'true');
+  const [hideBackground, setHideBackground] = useState(
+    () => searchParams.get('hide_background') === 'true'
+  );
+  const [hideStats, setHideStats] = useState(() => searchParams.get('hide_stats') === 'true');
+  const [language, setLanguage] = useState<Language>(
+    () => (searchParams.get('lang') as Language) ?? 'en'
+  );
+  const [deltaFormat, setDeltaFormat] = useState<DeltaFormat>(
+    () => (searchParams.get('delta') as DeltaFormat) ?? 'percent'
+  );
+  const [badgeWidth, setBadgeWidth] = useState<number | ''>(() => {
+    const v = Number(searchParams.get('width'));
+    return Number.isNaN(v) || v === 0 ? '' : v;
+  });
+  const [badgeHeight, setBadgeHeight] = useState<number | ''>(() => {
+    const v = Number(searchParams.get('height'));
+    return Number.isNaN(v) || v === 0 ? '' : v;
+  });
+  const [grace, setGrace] = useState(() => Number(searchParams.get('grace') ?? 0));
   const [exportFormat, setExportFormat] = useState<ExportFormat>('markdown');
   const [copied, setCopied] = useState(false);
   const [copyStatusMessage, setCopyStatusMessage] = useState('');
@@ -71,8 +91,6 @@ export default function CustomizePage(): ReactElement {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Clear custom hex overrides when switching to virtual themes because
-  // fixed colors conflict with their palette-selection behavior.
   const handleThemeChange = useCallback((newTheme: string): void => {
     setTheme(newTheme);
     if (newTheme === 'auto' || newTheme === 'random') {
@@ -87,20 +105,13 @@ export default function CustomizePage(): ReactElement {
   const buildQueryParams = useCallback((): string => {
     const params = new URLSearchParams();
 
-    if (hasUsername) {
-      params.set('user', trimmedUsername);
-    }
+    if (hasUsername) params.set('user', trimmedUsername);
 
     if (skipsCustomColors) {
-      // Virtual themes always emit theme=<name> and skip custom color params.
       params.set('theme', theme);
     } else {
       const hasCustomColors = bgHex || accentHex || textHex;
-
-      // Custom hex colors take priority over theme
-      if (!hasCustomColors) {
-        params.set('theme', theme);
-      }
+      if (!hasCustomColors) params.set('theme', theme);
       if (bgHex) params.set('bg', stripHash(bgHex));
       if (accentHex) params.set('accent', stripHash(accentHex));
       if (textHex) params.set('text', stripHash(textHex));
@@ -108,20 +119,19 @@ export default function CustomizePage(): ReactElement {
 
     if (scale !== 'linear') params.set('scale', scale);
     if (speed !== '8s') params.set('speed', speed);
-    if (font) params.set('font', font);
     if (year) params.set('year', year);
     if (radius !== 8) params.set('radius', radius.toString());
     if (size !== 'medium') params.set('size', size);
-
+    if (font) params.set('font', font);
+    if (viewMode !== 'default') params.set('view', viewMode);
     if (hideTitle) params.set('hide_title', 'true');
     if (hideBackground) params.set('hide_background', 'true');
     if (hideStats) params.set('hide_stats', 'true');
-    if (viewMode !== 'default') params.set('view', viewMode);
-    if (deltaFormat !== 'percent') params.set('delta_format', deltaFormat);
+    if (language !== 'en') params.set('lang', language);
+    if (deltaFormat !== 'percent') params.set('delta', deltaFormat);
     if (badgeWidth !== '') params.set('width', badgeWidth.toString());
     if (badgeHeight !== '') params.set('height', badgeHeight.toString());
-    if (grace !== 1) params.set('grace', grace.toString());
-    if (language !== 'en') params.set('lang', language);
+    if (grace !== 0) params.set('grace', grace.toString());
 
     return params.toString();
   }, [
@@ -134,24 +144,29 @@ export default function CustomizePage(): ReactElement {
     textHex,
     scale,
     speed,
-    font,
     year,
     radius,
     size,
+    font,
+    viewMode,
     hideTitle,
     hideBackground,
     hideStats,
-    viewMode,
+    language,
     deltaFormat,
     badgeWidth,
     badgeHeight,
     grace,
-    language,
   ]);
 
   const queryString = buildQueryParams();
   const previewSrc = `/api/streak?${queryString}`;
   const exportSnippet = getExportSnippet(exportFormat, queryString);
+
+  // ── Sync all params to URL so the page is shareable ───────────────────────
+  useEffect(() => {
+    syncParamsToURL(queryString);
+  }, [queryString]);
 
   const announceCopyStatus = useCallback((message: string): void => {
     setCopyStatusMessage('');
@@ -167,7 +182,7 @@ export default function CustomizePage(): ReactElement {
       await navigator.clipboard.writeText(exportSnippet);
       setCopied(true);
       announceCopyStatus(
-        `${exportFormat === 'markdown' ? 'Markdown' : 'HTML'} snippet copied to clipboard.`
+        `${exportFormat === 'markdown' ? 'Markdown' : exportFormat === 'iframe' ? 'iFrame' : 'HTML'} snippet copied to clipboard.`
       );
 
       if (copyResetTimeoutRef.current !== null) {
@@ -181,7 +196,7 @@ export default function CustomizePage(): ReactElement {
     } catch {
       setCopied(false);
       announceCopyStatus(
-        `Unable to copy the ${exportFormat === 'markdown' ? 'Markdown' : 'HTML'} snippet.`
+        `Unable to copy the ${exportFormat === 'markdown' ? 'Markdown' : exportFormat === 'iframe' ? 'iFrame' : 'HTML'} snippet.`
       );
     }
   };
@@ -195,7 +210,7 @@ export default function CustomizePage(): ReactElement {
         <div className="absolute bottom-0 left-1/2 w-[30%] h-[30%] bg-blue-500/5 blur-[120px] rounded-full" />
       </div>
 
-      <div className="relative z-10 max-w-7xl mx-auto px-6 py-8">
+      <div className="relative z-10 max-w-[1400px] mx-auto px-6 py-8">
         {/* ── Top Bar ───────────────────────────────────────────────────────── */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}
@@ -266,10 +281,19 @@ export default function CustomizePage(): ReactElement {
               textHex={textHex}
               scale={scale}
               speed={speed}
-              font={font}
               year={year}
               radius={radius}
               size={size}
+              font={font}
+              viewMode={viewMode}
+              hideTitle={hideTitle}
+              hideBackground={hideBackground}
+              hideStats={hideStats}
+              language={language}
+              deltaFormat={deltaFormat}
+              badgeWidth={badgeWidth}
+              badgeHeight={badgeHeight}
+              grace={grace}
               onUsernameChange={setUsername}
               onThemeChange={handleThemeChange}
               onBgHexChange={setBgHex}
@@ -277,33 +301,24 @@ export default function CustomizePage(): ReactElement {
               onTextHexChange={setTextHex}
               onScaleChange={setScale}
               onSpeedChange={setSpeed}
-              onFontChange={setFont}
               onYearChange={setYear}
-              onRadiusChange={setRadius}
               onSizeChange={setSize}
               onClearOverrides={() => {
                 setBgHex('');
                 setAccentHex('');
                 setTextHex('');
               }}
-              hideTitle={hideTitle}
-              hideBackground={hideBackground}
-              hideStats={hideStats}
-              viewMode={viewMode}
-              deltaFormat={deltaFormat}
-              badgeWidth={badgeWidth}
-              badgeHeight={badgeHeight}
-              grace={grace}
-              language={language}
+              onRadiusChange={setRadius}
+              onFontChange={setFont}
+              onViewModeChange={setViewMode}
               onHideTitleChange={setHideTitle}
               onHideBackgroundChange={setHideBackground}
               onHideStatsChange={setHideStats}
-              onViewModeChange={setViewMode}
+              onLanguageChange={setLanguage}
               onDeltaFormatChange={setDeltaFormat}
               onBadgeWidthChange={setBadgeWidth}
               onBadgeHeightChange={setBadgeHeight}
               onGraceChange={setGrace}
-              onLanguageChange={setLanguage}
             />
           </motion.aside>
 
@@ -321,11 +336,9 @@ export default function CustomizePage(): ReactElement {
               </p>
 
               <div className="group relative">
-                {/* Glow ring */}
                 <div className="absolute -inset-px bg-gradient-to-br from-emerald-500/20 to-purple-500/20 rounded-[1.5rem] opacity-0 group-hover:opacity-100 transition-opacity duration-700 blur-lg pointer-events-none" />
 
                 <div className="relative bg-white/60 backdrop-blur-md border border-black/10 dark:bg-black/40 dark:border-white/10 rounded-[1.25rem] overflow-hidden flex items-center justify-center p-6 min-h-[280px]">
-                  {/* Scanning line effect behind image */}
                   <div className="absolute inset-0 bg-gradient-to-b from-transparent via-emerald-500/3 to-transparent animate-[pulse_3s_ease-in-out_infinite] pointer-events-none" />
 
                   {hasUsername ? (
@@ -404,7 +417,7 @@ export default function CustomizePage(): ReactElement {
                       >
                         <span className="text-purple-400">{decodeURIComponent(k)}</span>
                         <span className="text-gray-400 dark:text-white/20">=</span>
-                        <span className="text-emerald-400">{decodeURIComponent(v)}</span>
+                        <span className="text-emerald-400">{decodeURIComponent(v ?? '')}</span>
                       </span>
                     );
                   }
@@ -415,5 +428,15 @@ export default function CustomizePage(): ReactElement {
         </div>
       </div>
     </div>
+  );
+}
+
+// ─── Main Export (wrapped in Suspense for useSearchParams) ────────────────────
+
+export default function CustomizePage(): ReactElement {
+  return (
+    <Suspense fallback={<div className="min-h-screen" />}>
+      <CustomizePageInner />
+    </Suspense>
   );
 }
