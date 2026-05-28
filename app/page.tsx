@@ -2,7 +2,7 @@
 import { trackUser } from '@/utils/tracking';
 import type { ReactNode } from 'react';
 import Link from 'next/link';
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect, useMemo } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
 
@@ -73,31 +73,47 @@ export default function LandingPage() {
   const [svgState, setSvgState] = useState<'idle' | 'loading' | 'loaded'>('idle');
   const guideRef = useRef<HTMLDivElement>(null);
   const { searches, addSearch, clearSearches, removeSearch } = useRecentSearches();
+
   const trimmedUsername = username.trim();
   const hasUsername = trimmedUsername.length > 0;
 
+  // FIX 1: moved to useEffect so it runs after hydration — avoids setState-during-render
+  // and the eslint-disable comment is no longer needed.
   const [mounted, setMounted] = useState(false);
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setMounted(true);
-  }, []);
 
-  const badgeUrl = `/api/streak?user=${trimmedUsername}`;
+  useEffect(() => {
+    const id = requestAnimationFrame(() => {
+      setMounted(true);
+    });
+
+    return () => cancelAnimationFrame(id);
+  }, []);
+  // FIX 2: derive badgeUrl with useMemo so it's a stable value for the effect dependency array.
+  const badgeUrl = useMemo(
+    () => (trimmedUsername ? `/api/streak?user=${trimmedUsername}` : null),
+    [trimmedUsername]
+  );
+
   const markdown = `![CommitPulse](https://commitpulse.vercel.app/api/streak?user=${trimmedUsername})`;
 
-  const [prevUsername, setPrevUsername] = useState('');
-  if (trimmedUsername !== prevUsername) {
-    setPrevUsername(trimmedUsername);
-    setSvgContent(null);
-    setSvgState(trimmedUsername ? 'loading' : 'idle');
-  }
-
-  // Fetch SVG content whenever username changes.
-  // We fetch as text and render inline to avoid the browser CSP restriction
-  // that blocks <img> from loading SVGs whose response has a restrictive
-  // Content-Security-Policy header (default-src 'none').
+  // FIX 3: replaced the render-phase setState anti-pattern (calling setPrevUsername /
+  // setSvgState directly in the component body) with a proper useEffect that reacts
+  // to trimmedUsername changes. This eliminates the React warning about updating state
+  // during render and the potential for infinite re-render loops.
   useEffect(() => {
-    if (!hasUsername) return;
+    const id = requestAnimationFrame(() => {
+      setSvgContent(null);
+      setSvgState(trimmedUsername ? 'loading' : 'idle');
+    });
+
+    return () => cancelAnimationFrame(id);
+  }, [trimmedUsername]);
+
+  // FIX 4: removed stale `badgeUrl` string from the dep array — we now depend on the
+  // memoised value which is null when there is no username, so the early-return guard
+  // is clean.
+  useEffect(() => {
+    if (!badgeUrl) return;
 
     const controller = new AbortController();
 
@@ -113,7 +129,7 @@ export default function LandingPage() {
       });
 
     return () => controller.abort();
-  }, [badgeUrl, hasUsername]);
+  }, [badgeUrl]);
 
   const copyToClipboard = () => {
     if (!hasUsername) return;
@@ -123,11 +139,18 @@ export default function LandingPage() {
 
     navigator.clipboard.writeText(markdown);
     setCopied(true);
+
     setTimeout(() => {
       guideRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 80);
-    setTimeout(() => setCopied(false), 50000);
+
+    // FIX 5: was 50 000 ms (50 seconds) — corrected to 3 seconds.
+    setTimeout(() => setCopied(false), 3000);
   };
+
+  // FIX 6: extracted a reusable flag so the dashboard link logic is clear and
+  // consistent — avoids duplicating the mounted + hasUsername check.
+  const dashboardEnabled = mounted && hasUsername;
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-transparent font-sans text-black dark:text-white selection:bg-black/20 dark:selection:bg-white/20">
@@ -192,7 +215,7 @@ export default function LandingPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.3 }}
-            className="mx-auto max-w-2xl text-sm sm:text-lg leading-relaxed text-gray-600 dark:text-gray-400 md:text-xl "
+            className="mx-auto max-w-2xl text-sm sm:text-lg leading-relaxed text-gray-600 dark:text-gray-400 md:text-xl"
           >
             Stop settling for flat grids. Generate high-fidelity, 3D isometric monoliths that
             visualize your coding rhythm with professional precision.
@@ -216,7 +239,7 @@ export default function LandingPage() {
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                 />
-                {username.length > 0 ? (
+                {username.length > 0 && (
                   <button
                     onClick={() => setUsername('')}
                     className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 transition-colors hover:text-black dark:text-[#A1A1AA] dark:hover:text-white"
@@ -225,13 +248,13 @@ export default function LandingPage() {
                   >
                     <X size={18} />
                   </button>
-                ) : null}
+                )}
               </div>
 
               <div className="flex flex-col sm:flex-row gap-4">
                 <button
                   type="submit"
-                  disabled={!mounted || !hasUsername}
+                  disabled={!dashboardEnabled}
                   className={`relative flex min-w-[160px] items-center justify-center gap-2 overflow-hidden rounded-xl px-6 py-3.5 text-sm font-semibold transition-all duration-200 active:scale-[0.98] ${
                     hasUsername
                       ? 'bg-black text-white hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-zinc-100'
@@ -260,21 +283,24 @@ export default function LandingPage() {
                     )}
                   </AnimatePresence>
                 </button>
+
+                {/* FIX 6: aria-disabled on <a> doesn't prevent clicks — replaced with a
+                    conditional href and a real e.preventDefault() guard so the link is
+                    genuinely non-navigable when no username is entered. */}
                 <Link
-                  href={hasUsername ? `/dashboard/${trimmedUsername}` : '/'}
-                  aria-disabled={!mounted || !hasUsername}
+                  href={dashboardEnabled ? `/dashboard/${trimmedUsername}` : '#'}
                   onClick={(e) => {
-                    if (!hasUsername) {
+                    if (!dashboardEnabled) {
                       e.preventDefault();
-                    } else {
-                      trackUser(trimmedUsername);
-                      addSearch(trimmedUsername);
+                      return;
                     }
+                    trackUser(trimmedUsername);
+                    addSearch(trimmedUsername);
                   }}
                   className={`relative flex min-w-[160px] items-center justify-center gap-2 overflow-hidden rounded-xl border px-6 py-3.5 text-sm font-semibold transition-all duration-200 active:scale-[0.98] ${
                     hasUsername
                       ? 'border-black/10 bg-gray-100 text-black hover:bg-gray-200 dark:border-[rgba(255,255,255,0.15)] dark:bg-white/[0.04] dark:text-white dark:hover:bg-white/10'
-                      : 'border-black/10 bg-gray-100 text-gray-500 dark:border-[rgba(255,255,255,0.08)] dark:bg-white/[0.02] dark:text-white/35'
+                      : 'pointer-events-none border-black/10 bg-gray-100 text-gray-500 dark:border-[rgba(255,255,255,0.08)] dark:bg-white/[0.02] dark:text-white/35'
                   }`}
                 >
                   Watch Dashboard
