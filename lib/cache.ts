@@ -97,6 +97,20 @@ export class TTLCache<T> {
 
     return true;
   }
+  /**
+   * Removes a single entry from the cache.
+   *
+   * Does nothing if the key does not exist.
+   *
+   * @param key - Cache key to remove.
+   * @returns `true` if the key existed and was deleted, `false` otherwise.
+   *
+   * @example
+   * cache.delete("user:1");
+   */
+  delete(key: string): boolean {
+    return this.store.delete(key);
+  }
 
   /**
    * Stores a value in the cache with a TTL.

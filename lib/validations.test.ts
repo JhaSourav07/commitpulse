@@ -51,16 +51,9 @@ describe('githubParamsSchema', () => {
     }
   });
 });
-describe('streakParamsSchema user validation', () => {
-  it('should pass when user is valid', () => {
-    const result = streakParamsSchema.safeParse({
-      user: 'octocat',
-    });
 
-    expect(result.success).toBe(true);
-  });
-
-  it('should fail when user is omitted', () => {
+describe('streakParamsSchema', () => {
+  it('should fail when user is missing', () => {
     const result = streakParamsSchema.safeParse({});
 
     expect(result.success).toBe(false);
@@ -69,7 +62,7 @@ describe('streakParamsSchema user validation', () => {
     }
   });
 
-  it('should fail when user is empty', () => {
+  it('should fail when user is empty string', () => {
     const result = streakParamsSchema.safeParse({
       user: '',
     });
@@ -77,6 +70,28 @@ describe('streakParamsSchema user validation', () => {
     expect(result.success).toBe(false);
     if (!result.success) {
       expect(result.error.issues[0]?.message).toBe('Missing user parameter');
+    }
+  });
+
+  it('should succeed when user is a valid username', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.user).toBe('octocat');
+    }
+  });
+
+  it('should fail when user is whitespace-only input', () => {
+    const result = streakParamsSchema.safeParse({
+      user: '   ',
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toBe('Invalid GitHub username');
     }
   });
 
@@ -100,5 +115,64 @@ describe('streakParamsSchema user validation', () => {
     if (!result.success) {
       expect(result.error.issues[0]?.message).toBe('Invalid GitHub username');
     }
+  });
+});
+
+// Helper — parse only the fields we care about, supplying the required `user` field.
+function parse(params: Record<string, string>) {
+  return streakParamsSchema.parse({ user: 'octocat', ...params });
+}
+
+describe('streakParamsSchema — scale fallback behavior', () => {
+  // z.enum(['linear', 'log']).catch('linear') — unknown values silently fall
+  // back to 'linear' instead of throwing a validation error.
+
+  it('accepts "log" as a valid scale value', () => {
+    expect(parse({ scale: 'log' }).scale).toBe('log');
+  });
+
+  it('accepts "linear" as a valid scale value', () => {
+    expect(parse({ scale: 'linear' }).scale).toBe('linear');
+  });
+
+  it('falls back to "linear" for unknown scale value', () => {
+    expect(parse({ scale: 'exponential' }).scale).toBe('linear');
+  });
+
+  it('falls back to "linear" for empty string', () => {
+    expect(parse({ scale: '' }).scale).toBe('linear');
+  });
+
+  it('defaults to "linear" when scale is omitted', () => {
+    expect(parse({}).scale).toBe('linear');
+  });
+});
+
+describe('streakParamsSchema — size fallback behavior', () => {
+  // z.enum(['small', 'medium', 'large']).catch('medium') — unknown values
+  // silently fall back to 'medium' to preserve badge rendering.
+
+  it('accepts "small" as a valid size value', () => {
+    expect(parse({ size: 'small' }).size).toBe('small');
+  });
+
+  it('accepts "medium" as a valid size value', () => {
+    expect(parse({ size: 'medium' }).size).toBe('medium');
+  });
+
+  it('accepts "large" as a valid size value', () => {
+    expect(parse({ size: 'large' }).size).toBe('large');
+  });
+
+  it('falls back to "medium" for unknown size value', () => {
+    expect(parse({ size: 'giant' }).size).toBe('medium');
+  });
+
+  it('defaults to "medium" when size is omitted', () => {
+    expect(parse({}).size).toBe('medium');
+  });
+
+  it('falls back to "medium" for empty string', () => {
+    expect(parse({ size: '' }).size).toBe('medium');
   });
 });

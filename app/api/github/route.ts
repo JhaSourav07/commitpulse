@@ -1,6 +1,8 @@
+// app/api/github/route.ts
+
 import { NextResponse } from 'next/server';
 import { getFullDashboardData } from '@/lib/github';
-import { githubParamsSchema } from '../../../lib/validations';
+import { githubParamsSchema } from '@/lib/validations';
 
 /**
  * Returns GitHub dashboard data as JSON.

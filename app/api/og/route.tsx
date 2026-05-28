@@ -1,8 +1,10 @@
+// app/api/og/route.tsx
+
 import { ImageResponse } from 'next/og';
 import { NextRequest } from 'next/server';
-import { ogParamsSchema } from '../../../lib/validations';
-import { fetchGitHubContributions } from '../../../lib/github';
-import { calculateStreak } from '../../../lib/calculate';
+import { ogParamsSchema } from '@/lib/validations';
+import { fetchGitHubContributions } from '@/lib/github';
+import { calculateStreak } from '@/lib/calculate';
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
