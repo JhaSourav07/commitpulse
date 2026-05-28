@@ -1,180 +1,110 @@
-import { NextResponse } from 'next/server';
-
+import { NextRequest } from 'next/server';
 import { fetchGitHubContributions } from '../../../lib/github';
-
 import { calculateStreak, calculateMonthlyStats } from '../../../lib/calculate';
-
+import { generateSVG, generateMonthlySVG, escapeXML } from '../../../lib/svg/generator';
 import {
-  generateNotFoundSVG,
-  generateSVG,
-  generateMonthlySVG,
-  escapeXML,
-} from '../../../lib/svg/generator';
+  getSecondsUntilUTCMidnight,
+  getSecondsUntilMidnightInTimezone,
+} from '../../../utils/time';
 
-import { getSecondsUntilUTCMidnight, getSecondsUntilMidnightInTimezone } from '../../../utils/time';
+function validationError(field: string, message: string) {
+  return new Response(
+    JSON.stringify({
+      error: 'Validation failed',
+      details: { fieldErrors: { [field]: [message] } },
+    }),
+    { status: 400, headers: { 'Content-Type': 'application/json' } }
+  );
+}
 
-import type { BadgeParams } from '../../../types';
+function tzError(tz: string) {
+  return new Response(`Invalid "tz" parameter: ${tz}`, { status: 400 });
+}
 
-import { themes } from '../../../lib/svg/themes';
-
-import { streakParamsSchema } from '../../../lib/validations';
-
-export async function GET(request: Request) {
+function isValidTimezone(tz: string) {
   try {
-    const { searchParams } = new URL(request.url);
+    Intl.DateTimeFormat(undefined, { timeZone: tz });
+    return true;
+  } catch {
+    return false;
+  }
+}
 
-    const rawParams = Object.fromEntries(searchParams.entries());
+export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
 
-    const parseResult = streakParamsSchema.safeParse(rawParams);
+  const user = searchParams.get('user');
+  const tz = searchParams.get('tz') || undefined;
+  const year = searchParams.get('year') || undefined;
+  const refresh = searchParams.get('refresh') || undefined;
+  const view = searchParams.get('view') || undefined;
 
-    if (!parseResult.success) {
-      return NextResponse.json(
-        {
-          error: 'Invalid parameters',
-          details: parseResult.error.flatten(),
-        },
-        { status: 400 }
-      );
+  if (!user) {
+    return validationError('user', 'Missing "user" parameter');
+  }
+
+  if (tz && !isValidTimezone(tz)) {
+    return tzError(tz);
+  }
+
+  if (year) {
+    if (!/^[0-9]{4}$/.test(year)) {
+      return validationError('year', 'Year must be a 4-digit year. GitHub was founded in 2008');
     }
+    const yearNum = Number(year);
+    const nowYear = new Date().getFullYear();
+    if (yearNum < 2008 || yearNum > nowYear) {
+      return validationError('year', 'GitHub was founded in 2008');
+    }
+  }
 
-    const {
-      user,
-      theme,
-      bg,
-      text,
-      accent,
-      scale,
-      size,
-      speed,
-      radius,
-      font,
-      year,
-      refresh,
-      hide_title,
-      hide_background,
-      hide_stats,
-      lang,
-      view,
-      delta_format,
-      width,
-      height,
-    } = parseResult.data;
+  const bypassCache = refresh === 'true';
+  const headers: Record<string, string> = {
+    'Content-Type': 'image/svg+xml',
+    'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'",
+  };
 
-    const themeName = theme || 'dark';
+  try {
+    const calendar = await fetchGitHubContributions(user, {
+      bypassCache,
+      from: year ? `${year}-01-01` : undefined,
+      to: year ? `${year}-12-31` : undefined,
+    });
 
-    const selectedTheme = themes[themeName as keyof typeof themes] || themes.dark;
+    const stats = calculateStreak(calendar, tz || 'UTC');
+    const params: Record<string, string | undefined> = Object.fromEntries(searchParams.entries());
 
-    const from = year ? `${year}-01-01T00:00:00Z` : undefined;
-
-    const to = year ? `${year}-12-31T23:59:59Z` : undefined;
-
-    const tzParam = searchParams.get('tz');
-
-    let timezone = 'UTC';
-
-    if (tzParam) {
-      try {
-        timezone = new Intl.DateTimeFormat(undefined, {
-          timeZone: tzParam,
-        }).resolvedOptions().timeZone;
-      } catch {
-        return NextResponse.json(
-          {
-            error: `Invalid "tz" parameter: ${tzParam}`,
-          },
-          { status: 400 }
-        );
+    if (params.speed) {
+      const match = params.speed.match(/^([0-9]+)s$/);
+      if (!match) {
+        delete params.speed;
+      } else {
+        const speedValue = Number(match[1]);
+        if (speedValue < 2 || speedValue > 20) delete params.speed;
       }
     }
 
-    const params = {
-      user,
-
-      bg: bg || selectedTheme.bg,
-
-      text: text || selectedTheme.text,
-
-      accent: accent || selectedTheme.accent,
-
-      radius: radius ? Number(radius) : undefined,
-
-      speed: speed || '8s',
-
-      scale: scale === 'linear' || scale === 'log' ? scale : 'linear',
-
-      font: font || undefined,
-
-      size: size === 'small' || size === 'medium' || size === 'large' ? size : 'medium',
-
-      hide_title: hide_title === 'true',
-
-      hideBackground: hide_background === 'true',
-
-      hide_stats: hide_stats === 'true',
-
-      lang,
-
-      view: view === 'default' || view === 'monthly' ? view : 'default',
-
-      delta_format:
-        delta_format === 'percent' || delta_format === 'absolute' || delta_format === 'both'
-          ? delta_format
-          : 'both',
-
-      width: width ? parseInt(width, 10) : undefined,
-
-      height: height ? parseInt(height, 10) : undefined,
-    } as BadgeParams;
-
-    const calendar = await fetchGitHubContributions(user, {
-      bypassCache: refresh === 'true',
-      from,
-      to,
-    });
-
-    let svg = '';
-
+    let svg: string;
     if (view === 'monthly') {
-      const stats = calculateMonthlyStats(calendar, timezone);
-
-      svg = generateMonthlySVG(stats, params);
+      const monthly = calculateMonthlyStats(calendar, tz || 'UTC');
+      svg = generateMonthlySVG(monthly as any, params as any);
     } else {
-      const stats = calculateStreak(calendar, timezone);
-
-      svg = generateSVG(stats, params, calendar);
+      svg = generateSVG(stats as any, params as any, calendar as any);
     }
 
-    const secondsToMidnight = tzParam
-      ? getSecondsUntilMidnightInTimezone(timezone)
-      : getSecondsUntilUTCMidnight();
+    if (bypassCache) {
+      headers['Cache-Control'] = 'no-cache, no-store, must-revalidate';
+    } else {
+      const ttl = tz ? getSecondsUntilMidnightInTimezone(tz) : getSecondsUntilUTCMidnight();
+      headers['Cache-Control'] = `public, s-maxage=${ttl}, stale-while-revalidate=86400`;
+    }
 
-    return new NextResponse(svg, {
-      headers: {
-        'Content-Type': 'image/svg+xml',
-
-        'Cache-Control': `public, s-maxage=${secondsToMidnight}, stale-while-revalidate=86400`,
-
-        'Content-Security-Policy':
-          "default-src 'none'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com;",
-      },
-    });
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Unknown error';
-
-    const errorSvg = `
-      <svg xmlns="http://www.w3.org/2000/svg" width="450" height="120">
-        <rect width="100%" height="100%" fill="#2d0000"/>
-        <text x="50%" y="50%" text-anchor="middle" fill="#ffffff">
-          ${escapeXML(message)}
-        </text>
-      </svg>
-    `;
-
-    return new NextResponse(errorSvg, {
-      status: 500,
-      headers: {
-        'Content-Type': 'image/svg+xml',
-      },
-    });
+    return new Response(svg, { status: 200, headers });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    const safeMessage = escapeXML(message);
+    const body = `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="120" role="img"><title>Error</title><text>${safeMessage}</text></svg>`;
+    headers['Cache-Control'] = 'public, s-maxage=60';
+    return new Response(body, { status: 500, headers });
   }
 }
