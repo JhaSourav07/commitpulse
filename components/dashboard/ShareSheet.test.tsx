@@ -279,6 +279,30 @@ describe('ShareSheet', () => {
     });
   });
 
+  it('handles Reddit share URL correctly', async () => {
+    render(<ShareSheet {...defaultProps} />);
+
+    const redditButton = screen.getByText('Reddit').closest('button');
+
+    fireEvent.click(redditButton!);
+
+    await waitFor(() => {
+      expect(window.open).toHaveBeenCalled();
+    });
+
+    expect(window.open).toHaveBeenCalledWith(
+      expect.stringContaining('reddit.com/submit'),
+      '_blank',
+      'noopener,noreferrer'
+    );
+
+    const calledUrl = vi.mocked(window.open).mock.calls[0][0] as string;
+
+    expect(calledUrl).toContain(encodeURIComponent(`/dashboard/${defaultProps.username}`));
+
+    expect(calledUrl).toContain('title=');
+  });
+
   it('handles Download SVG action', async () => {
     // Mock fetch
     global.fetch = vi.fn().mockResolvedValue({
