@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { generateSVG, generateMonthlySVG, particleCount, escapeXML } from './generator';
+import {
+  generateSVG,
+  generateMonthlySVG,
+  generateNotFoundSVG,
+  particleCount,
+  escapeXML,
+} from './generator';
 import type { BadgeParams, ContributionCalendar, StreakStats, MonthlyStats } from '../../types';
 import { hexColor } from './sanitizer';
 
@@ -220,6 +226,14 @@ describe('generateSVG', () => {
     expect(svg).toMatch(/style="animation-delay: \d+\.\d+s;"/);
   });
 
+  it('includes reduced-motion CSS for the scan line in the main SVG output', () => {
+    const svg = generateSVG(mockStats, { user: 'avi' } as unknown as BadgeParams, mockCalendar);
+
+    expect(svg).toContain('prefers-reduced-motion: reduce');
+    expect(svg).toContain('.scan-line');
+    expect(svg).toContain('animation: none !important');
+  });
+
   it('uses English labels by default', () => {
     const svg = generateSVG(mockStats, { user: 'avi' } as unknown as BadgeParams, mockCalendar);
     expect(svg).toContain('CURRENT_STREAK');
@@ -289,8 +303,8 @@ describe('generateSVG', () => {
       // Active towers should use the accent class
       expect(svg).toContain('class="cp-accent-fill"');
 
-      // The radar scan line should also use the accent class
-      expect(svg).toMatch(/rect[^>]*class="cp-accent-fill"/);
+      // The radar scan line should also use the accent class and scan-line hook
+      expect(svg).toContain('class="cp-accent-fill scan-line"');
 
       // cp-text-fill is emitted only in Ghost City mode (0 total contributions)
       const ghostCalendar: ContributionCalendar = {
@@ -409,6 +423,24 @@ describe('generateSVG', () => {
     });
   });
 
+  describe('notFoundSVG', () => {
+    it('includes reduced-motion CSS for the scan line and ghost pulse', () => {
+      const svg = generateNotFoundSVG(
+        'avi',
+        hexColor('0d1117'),
+        hexColor('00ffaa'),
+        hexColor('ffffff'),
+        8,
+        '8s'
+      );
+
+      expect(svg).toContain('prefers-reduced-motion: reduce');
+      expect(svg).toContain('.scan-line');
+      expect(svg).toContain('animation: none !important');
+      expect(svg).toContain('class="scan-line"');
+    });
+  });
+
   // ── Timezone-aware pulse animation tests ─────────────────────────────────
   describe('todayDate pulse animation', () => {
     const calendar: ContributionCalendar = {
@@ -459,7 +491,7 @@ describe('generateSVG', () => {
         mockCalendar
       );
 
-      expect(svg).toContain('<title>CommitPulse Stats for octocat</title>');
+      expect(svg).toContain('<title>CommitPulse User Stats for octocat</title>');
       expect(svg).toContain('<desc>');
       expect(svg).toContain('100');
       expect(svg).toContain('10');
@@ -509,6 +541,63 @@ describe('generateSVG', () => {
       );
 
       expect(svg).not.toContain('fill="white" fill-opacity="0.2"');
+    });
+  });
+
+  describe('hide_title parameter', () => {
+    it('omits the username title text when hide_title is true', () => {
+      const svg = generateSVG(
+        mockStats,
+        { user: 'octocat', hide_title: true } as unknown as BadgeParams,
+        mockCalendar
+      );
+
+      expect(svg).not.toContain('OCTOCAT');
+    });
+
+    it('renders the username title text when hide_title is false', () => {
+      const svg = generateSVG(
+        mockStats,
+        { user: 'octocat', hide_title: false } as unknown as BadgeParams,
+        mockCalendar
+      );
+
+      expect(svg).toContain('OCTOCAT');
+    });
+  });
+
+  describe('SVG dimensions per size', () => {
+    it('renders width="600" and height="420" for medium size (default)', () => {
+      const svg = generateSVG(
+        mockStats,
+        { user: 'avi', size: 'medium' } as unknown as BadgeParams,
+        mockCalendar
+      );
+
+      expect(svg).toContain('width="600"');
+      expect(svg).toContain('height="420"');
+    });
+
+    it('renders width="400" and height="280" for small size', () => {
+      const svg = generateSVG(
+        mockStats,
+        { user: 'avi', size: 'small' } as unknown as BadgeParams,
+        mockCalendar
+      );
+
+      expect(svg).toContain('width="400"');
+      expect(svg).toContain('height="280"');
+    });
+
+    it('renders width="800" and height="560" for large size', () => {
+      const svg = generateSVG(
+        mockStats,
+        { user: 'avi', size: 'large' } as unknown as BadgeParams,
+        mockCalendar
+      );
+
+      expect(svg).toContain('width="800"');
+      expect(svg).toContain('height="560"');
     });
   });
 });

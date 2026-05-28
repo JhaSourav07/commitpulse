@@ -6,6 +6,7 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ['next/og'],
   // Allow the local network IP to access dev resources without cross-origin warnings
   allowedDevOrigins: ['172.31.128.1'],
+  devIndicators: false,
   images: {
     remotePatterns: [
       {
