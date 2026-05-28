@@ -1,6 +1,6 @@
 import { performance } from 'perf_hooks';
 import { generateSVG } from '../lib/svg/generator';
-import { hexColor } from '../lib/svg/sanitizer';
+import { hexColor, sanitizeSpeed } from '../lib/svg/sanitizer';
 
 const stats = {
   currentStreak: 12,
@@ -15,7 +15,7 @@ const baseParams = {
   accent: '00ffaa',
   text: 'ffffff',
   scale: 'linear' as const,
-  speed: '8s',
+  speed: sanitizeSpeed('8s'),
 };
 
 const calendar = {
