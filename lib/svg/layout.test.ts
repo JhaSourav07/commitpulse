@@ -67,8 +67,11 @@ describe('computeTowers edge cases', () => {
       ],
     } as unknown as ContributionCalendar;
     const towers = computeTowers(calendar, 'linear', '2024-12-31');
-    expect(towers[1].isToday).toBe(true); // fallback marks the last one
+    const lastTower = towers[towers.length - 1];
+
+    expect(towers).toHaveLength(2);
     expect(towers[0].isToday).toBe(false);
+    expect(lastTower.isToday).toBe(true);
   });
 
   it('correctly assigns isToday when todayDate is in window', () => {
