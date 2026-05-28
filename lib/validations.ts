@@ -86,6 +86,11 @@ export const streakParamsSchema = z.object({
     .optional()
     .transform((val) => val === 'true' || val === '1'),
 
+  disable_particles: z
+    .string()
+    .optional()
+    .transform((val) => val === 'true' || val === '1'),
+
   hide_background: z
     .string()
     .optional()

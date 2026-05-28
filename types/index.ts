@@ -119,6 +119,9 @@ export interface BadgeParams {
   /** When true, hides the username title from the badge. */
   hide_title?: boolean;
 
+  /** When true, disables animated SVG particles. */
+  disable_particles?: boolean;
+
   /** When true, renders the badge without a background card. */
   hideBackground?: boolean;
 

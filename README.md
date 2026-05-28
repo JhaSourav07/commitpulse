@@ -154,6 +154,7 @@ URL Parameter > Theme Default > System Fallback
 | `hide_title`      | `boolean` | No         | `false`                        | Hide GitHub username/title from the SVG badge                                                                                                                             |
 | `hide_background` | `boolean` | No         | `false`                        | Remove the background rect, letting the monolith float on the page                                                                                                        |
 | `hide_stats`      | `boolean` | No         | `false`                        | Hides the bottom row displaying Current Streak, Annual Sync Total, and Peak Streak stats when set to `true` or `1`.                                                       |
+| `disable_particles` | `boolean` | No         | `false`                        | When true, disables animated SVG particles that appear on days with high contribution counts (>= 10).                                                                     |
 | `tz`              | `string`  | No         | Omitted = UTC                  | IANA timezone (e.g. `Asia/Kolkata`, `America/New_York`) — aligns "today" with the user local midnight. Note: `?tz=UTC` is valid but cached separately from omitting `tz`. |
 | `lang`            | `string`  | No         | `en`                           | Language code for labels (`en`, `es`, `hi`, `fr`, `pt`, `ko`, `ja`)                                                                                                       |
 | `view`            | `string`  | No         | `default`                      | Rendering mode: `default` (3D Monolith) or `monthly` (Compact monthly stats)                                                                                              |
@@ -237,6 +238,10 @@ Explore some of the built-in CommitPulse themes and quickly copy the style you l
 <!-- Hide bottom statistics row -->
 
 ![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&hide_stats=true)
+
+<!-- Disable animated particles for a cleaner look -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&disable_particles=true)
 
 <!-- Use local timezone instead of UTC -->
 

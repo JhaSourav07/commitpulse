@@ -167,7 +167,13 @@ function renderStyle(
   </style>`;
 }
 
-function renderTowers(towerData: TowerData[], accent: string, text: string, sf: number): string {
+function renderTowers(
+  towerData: TowerData[],
+  accent: string,
+  text: string,
+  sf: number,
+  params: BadgeParams
+): string {
   let towers = '';
   for (const t of towerData) {
     const color = t.isGhost ? text : accent;
@@ -183,7 +189,7 @@ function renderTowers(towerData: TowerData[], accent: string, text: string, sf: 
             ${t.contributionCount > 5 ? `<path d="M0 ${-t.h} L16 ${10 - t.h} L0 ${20 - t.h} L-16 ${10 - t.h} Z" fill="white" fill-opacity="0.2" />` : ''}
           </g>
         </g>`;
-    if (t.contributionCount >= 10)
+    if (t.contributionCount >= 10 && !params.disable_particles)
       towers += generateParticles(t.x, t.y, t.h, t.contributionCount, sf, false, accent);
   }
   return towers;
@@ -277,7 +283,7 @@ export function generateSVG(
   const H = Math.round(SVG_HEIGHT * sf);
 
   const towerData = scaleTowerData(computeTowers(calendar, params.scale, stats.todayDate), sf);
-  const towers = renderTowers(towerData, accent, text, sf);
+  const towers = renderTowers(towerData, accent, text, sf, params);
 
   return `
 <svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" fill="none" role="img">
@@ -336,7 +342,7 @@ function generateAutoThemeSVG(
             ${t.contributionCount > 5 ? `<path d="M0 ${-t.h} L16 ${10 - t.h} L0 ${20 - t.h} L-16 ${10 - t.h} Z" fill="white" fill-opacity="0.2" />` : ''}
           </g>
         </g>`;
-    if (t.contributionCount >= 10)
+    if (t.contributionCount >= 10 && !params.disable_particles)
       towers += generateParticles(t.x, t.y, t.h, t.contributionCount, sf, true);
   }
 

@@ -22,6 +22,7 @@ export default function CustomizePage(): ReactElement {
   const [year, setYear] = useState('');
   const [radius, setRadius] = useState(8);
   const [size, setSize] = useState<BadgeSize>('medium');
+  const [disableParticles, setDisableParticles] = useState(false);
   const [exportFormat, setExportFormat] = useState<ExportFormat>('markdown');
   const [copied, setCopied] = useState(false);
   const [copyStatusMessage, setCopyStatusMessage] = useState('');
@@ -95,6 +96,7 @@ export default function CustomizePage(): ReactElement {
     if (year) params.set('year', year);
     if (radius !== 8) params.set('radius', radius.toString());
     if (size !== 'medium') params.set('size', size);
+    if (disableParticles) params.set('disable_particles', 'true');
     return params.toString();
   }, [
     hasUsername,
@@ -110,6 +112,7 @@ export default function CustomizePage(): ReactElement {
     year,
     radius,
     size,
+    disableParticles,
   ]);
 
   const queryString = buildQueryParams();
@@ -233,6 +236,7 @@ export default function CustomizePage(): ReactElement {
               year={year}
               radius={radius}
               size={size}
+              disableParticles={disableParticles}
               onUsernameChange={setUsername}
               onThemeChange={handleThemeChange}
               onBgHexChange={setBgHex}
@@ -244,6 +248,7 @@ export default function CustomizePage(): ReactElement {
               onYearChange={setYear}
               onRadiusChange={setRadius}
               onSizeChange={setSize}
+              onDisableParticlesChange={setDisableParticles}
               onClearOverrides={() => {
                 setBgHex('');
                 setAccentHex('');
