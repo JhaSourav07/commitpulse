@@ -12,6 +12,7 @@ export default function InteractiveViewer({ children, className = '' }: Interact
   const [zoom, setZoom] = useState(1);
   const containerRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
+  const [isDraggingState, setIsDraggingState] = useState(false);
   const lastMousePos = useRef({ x: 0, y: 0 });
 
   useEffect(() => {
@@ -54,7 +55,7 @@ export default function InteractiveViewer({ children, className = '' }: Interact
         default:
           return; // Let normal key presses pass through
       }
-      
+
       // Prevent default scrolling for mapped keys
       e.preventDefault();
     };
@@ -65,6 +66,7 @@ export default function InteractiveViewer({ children, className = '' }: Interact
 
   const handlePointerDown = (e: React.PointerEvent) => {
     isDragging.current = true;
+    setIsDraggingState(true);
     lastMousePos.current = { x: e.clientX, y: e.clientY };
     e.currentTarget.setPointerCapture(e.pointerId);
   };
@@ -79,6 +81,7 @@ export default function InteractiveViewer({ children, className = '' }: Interact
 
   const handlePointerUp = (e: React.PointerEvent) => {
     isDragging.current = false;
+    setIsDraggingState(false);
     e.currentTarget.releasePointerCapture(e.pointerId);
   };
 
@@ -107,7 +110,7 @@ export default function InteractiveViewer({ children, className = '' }: Interact
       <div
         style={{
           transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
-          transition: isDragging.current ? 'none' : 'transform 0.1s ease-out',
+          transition: isDraggingState ? 'none' : 'transform 0.1s ease-out',
           willChange: 'transform',
         }}
       >
