@@ -83,8 +83,8 @@ export interface MonthlyStats {
   /** Total number of contributions in the previous calendar month. */
   previousMonthTotal: number;
 
-  /** Percentage change in contributions compared to the previous month (can be negative). */
-  deltaPercentage: number;
+  /** Percentage change in contributions compared to the previous month (can be negative). Null when previous month has zero contributions (undefined baseline). */
+  deltaPercentage: number | null;
 
   /** Absolute change in contribution count compared to the previous month (can be negative). */
   deltaAbsolute: number;

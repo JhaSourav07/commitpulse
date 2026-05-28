@@ -121,16 +121,16 @@ export function calculateMonthlyStats(
   }).format(now);
 
   const deltaAbsolute = currentMonthTotal - previousMonthTotal;
-  let deltaPercentage = 0;
-
-  if (previousMonthTotal === 0) {
-    if (currentMonthTotal > 0) {
-      deltaPercentage = 100;
-    }
-  } else {
-    deltaPercentage = Math.round((deltaAbsolute / previousMonthTotal) * 100);
-    if (deltaPercentage === -0) deltaPercentage = 0;
-  }
+  // When there is no baseline (previous month = 0), the percentage change is
+  // mathematically undefined. Return null so the renderer can display 'N/A'
+  // instead of the misleading hardcoded +100%.
+  const deltaPercentage: number | null =
+    previousMonthTotal === 0
+      ? null
+      : (() => {
+          const pct = Math.round((deltaAbsolute / previousMonthTotal) * 100);
+          return pct === -0 ? 0 : pct;
+        })();
 
   return {
     currentMonthTotal,

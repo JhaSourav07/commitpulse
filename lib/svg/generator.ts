@@ -393,18 +393,22 @@ export function generateMonthlySVG(stats: MonthlyStats, params: BadgeParams): st
           : `${stats.deltaAbsolute} ${deltaUnit}`;
   } else if (params.delta_format === 'both') {
     deltaText =
-      stats.deltaPercentage > 0
-        ? `+${stats.deltaPercentage}% (+${stats.deltaAbsolute})`
-        : stats.deltaPercentage < 0
-          ? `${stats.deltaPercentage}% (${stats.deltaAbsolute})`
-          : `0% (${stats.deltaAbsolute > 0 ? '+' : ''}${stats.deltaAbsolute})`;
+      stats.deltaPercentage === null
+        ? `N/A (${stats.deltaAbsolute > 0 ? '+' : ''}${stats.deltaAbsolute})`
+        : stats.deltaPercentage > 0
+          ? `+${stats.deltaPercentage}% (+${stats.deltaAbsolute})`
+          : stats.deltaPercentage < 0
+            ? `${stats.deltaPercentage}% (${stats.deltaAbsolute})`
+            : `0% (${stats.deltaAbsolute > 0 ? '+' : ''}${stats.deltaAbsolute})`;
   } else {
     deltaText =
-      stats.deltaPercentage > 0
-        ? `+${stats.deltaPercentage}%`
-        : stats.deltaPercentage < 0
-          ? `${stats.deltaPercentage}%`
-          : `0%`;
+      stats.deltaPercentage === null
+        ? 'N/A'
+        : stats.deltaPercentage > 0
+          ? `+${stats.deltaPercentage}%`
+          : stats.deltaPercentage < 0
+            ? `${stats.deltaPercentage}%`
+            : `0%`;
   }
   const deltaColor = stats.deltaAbsolute >= 0 ? accent : '#ff4444';
 
@@ -476,18 +480,22 @@ function generateAutoThemeMonthlySVG(stats: MonthlyStats, params: BadgeParams): 
           : `${stats.deltaAbsolute} ${deltaUnit}`;
   } else if (params.delta_format === 'both') {
     deltaText =
-      stats.deltaPercentage > 0
-        ? `+${stats.deltaPercentage}% (+${stats.deltaAbsolute})`
-        : stats.deltaPercentage < 0
-          ? `${stats.deltaPercentage}% (${stats.deltaAbsolute})`
-          : `0% (${stats.deltaAbsolute > 0 ? '+' : ''}${stats.deltaAbsolute})`;
+      stats.deltaPercentage === null
+        ? `N/A (${stats.deltaAbsolute > 0 ? '+' : ''}${stats.deltaAbsolute})`
+        : stats.deltaPercentage > 0
+          ? `+${stats.deltaPercentage}% (+${stats.deltaAbsolute})`
+          : stats.deltaPercentage < 0
+            ? `${stats.deltaPercentage}% (${stats.deltaAbsolute})`
+            : `0% (${stats.deltaAbsolute > 0 ? '+' : ''}${stats.deltaAbsolute})`;
   } else {
     deltaText =
-      stats.deltaPercentage > 0
-        ? `+${stats.deltaPercentage}%`
-        : stats.deltaPercentage < 0
-          ? `${stats.deltaPercentage}%`
-          : `0%`;
+      stats.deltaPercentage === null
+        ? 'N/A'
+        : stats.deltaPercentage > 0
+          ? `+${stats.deltaPercentage}%`
+          : stats.deltaPercentage < 0
+            ? `${stats.deltaPercentage}%`
+            : `0%`;
   }
 
   return `
