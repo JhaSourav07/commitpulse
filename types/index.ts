@@ -175,7 +175,11 @@ export interface BadgeParams {
   /** Custom text color for the labels. Overrides text parameter. */
   labelColor?: HexColor;
 
-  /** Opt-in to shade columns based on contribution count. */
+  /**
+   * When true, applies intensity-based opacity shading to tower faces so
+   * lower intensity levels appear slightly translucent/dimmer.
+   * Default is false (opt-in).
+   */
   shading?: boolean;
 
   /** Opt-in to show volumetric gradients on the monolith floor. */

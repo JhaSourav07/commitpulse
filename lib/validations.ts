@@ -195,9 +195,9 @@ export const streakParamsSchema = z.object({
     .optional()
     .transform((val) => {
       if (val === undefined) return undefined;
-      return val !== 'false';
+      return val === 'true';
     })
-    .default(true),
+    .default(false),
   gradient: z
     .string()
     .optional()
