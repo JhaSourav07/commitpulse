@@ -91,6 +91,8 @@ describe('DashboardPage', () => {
     insights: [],
     achievements: [],
     commitClock: [],
+    popularRepos: [],
+    pinnedRepos: [],
   };
 
   beforeEach(() => {
