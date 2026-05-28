@@ -259,6 +259,115 @@ describe('streakParamsSchema — size fallback behavior', () => {
   });
 });
 
+describe('streakParamsSchema — boolean transform fields', () => {
+  // ── refresh ────────────────────────────────────────────────────────────────
+  // Only the exact string 'true' should enable cache bypass.
+  // Any other value (including '1', 'TRUE', 'false', omitted) must stay false.
+
+  describe('refresh', () => {
+    it('returns true when refresh="true"', () => {
+      const data = streakParamsSchema.parse({ user: 'octocat', refresh: 'true' });
+      expect(data.refresh).toBe(true);
+    });
+
+    it('returns false when refresh="false"', () => {
+      const data = streakParamsSchema.parse({ user: 'octocat', refresh: 'false' });
+      expect(data.refresh).toBe(false);
+    });
+
+    it('returns false when refresh="1" (only exact "true" triggers)', () => {
+      const data = streakParamsSchema.parse({ user: 'octocat', refresh: '1' });
+      expect(data.refresh).toBe(false);
+    });
+
+    it('returns false when refresh="TRUE" (case-sensitive match)', () => {
+      expect(parse({ refresh: 'TRUE' }).refresh).toBe(false);
+    });
+
+    it('returns false when refresh is omitted', () => {
+      expect(parse({}).refresh).toBe(false);
+    });
+  });
+
+  // ── hide_title ─────────────────────────────────────────────────────────────
+  // Accepts both 'true' and '1' as truthy values.
+
+  describe('hide_title', () => {
+    it('returns true when hide_title="true"', () => {
+      const data = streakParamsSchema.parse({ user: 'octocat', hide_title: 'true' });
+      expect(data.hide_title).toBe(true);
+    });
+
+    it('returns true when hide_title="1"', () => {
+      const data = streakParamsSchema.parse({ user: 'octocat', hide_title: '1' });
+      expect(data.hide_title).toBe(true);
+    });
+
+    it('returns false when hide_title is omitted', () => {
+      const data = streakParamsSchema.parse({ user: 'octocat' });
+      expect(data.hide_title).toBe(false);
+    });
+
+    it('returns false when hide_title="false"', () => {
+      expect(parse({ hide_title: 'false' }).hide_title).toBe(false);
+    });
+
+    it('returns false when hide_title="0"', () => {
+      expect(parse({ hide_title: '0' }).hide_title).toBe(false);
+    });
+  });
+
+  // ── hide_stats ─────────────────────────────────────────────────────────────
+  // Same dual-value rule as hide_title: 'true' and '1' are both truthy.
+
+  describe('hide_stats', () => {
+    it('returns false when hide_stats="0"', () => {
+      const data = streakParamsSchema.parse({ user: 'octocat', hide_stats: '0' });
+      expect(data.hide_stats).toBe(false);
+    });
+
+    it('returns true when hide_stats="1"', () => {
+      const data = streakParamsSchema.parse({ user: 'octocat', hide_stats: '1' });
+      expect(data.hide_stats).toBe(true);
+    });
+
+    it('returns false when hide_stats is omitted', () => {
+      const data = streakParamsSchema.parse({ user: 'octocat' });
+      expect(data.hide_stats).toBe(false);
+    });
+
+    it('returns true when hide_stats="true"', () => {
+      expect(parse({ hide_stats: 'true' }).hide_stats).toBe(true);
+    });
+
+    it('returns false when hide_stats="false"', () => {
+      expect(parse({ hide_stats: 'false' }).hide_stats).toBe(false);
+    });
+  });
+
+  // ── hide_background ────────────────────────────────────────────────────────
+  // Stricter than hide_title/hide_stats — only exact 'true' is accepted,
+  // '1' does NOT enable it.
+
+  describe('hide_background', () => {
+    it('returns true when hide_background="true"', () => {
+      expect(parse({ hide_background: 'true' }).hide_background).toBe(true);
+    });
+
+    it('returns false when hide_background="1" (only exact "true" accepted)', () => {
+      expect(parse({ hide_background: '1' }).hide_background).toBe(false);
+    });
+
+    it('returns false when hide_background="false"', () => {
+      expect(parse({ hide_background: 'false' }).hide_background).toBe(false);
+    });
+
+    it('returns false when hide_background is omitted', () => {
+      expect(parse({}).hide_background).toBe(false);
+    });
+  });
+});
+
 describe('ogParamsSchema', () => {
   it('should keep provided user value', () => {
     const result = ogParamsSchema.safeParse({
