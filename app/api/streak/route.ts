@@ -5,8 +5,7 @@ import { calculateStreak, calculateMonthlyStats } from '../../../lib/calculate';
 import {
   generateNotFoundSVG,
   generateSVG,
-  generateMonthlySVG,
-  escapeXML,
+  generateMonthlySVG
 } from '../../../lib/svg/generator';
 import { getSecondsUntilUTCMidnight, getSecondsUntilMidnightInTimezone } from '../../../utils/time';
 import type { BadgeParams } from '../../../types';
