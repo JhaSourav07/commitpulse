@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { generateSVG, generateMonthlySVG, particleCount, escapeXML } from './generator';
+import {
+  generateSVG,
+  generateMonthlySVG,
+  generateNotFoundSVG,
+  particleCount,
+  escapeXML,
+} from './generator';
 import type { BadgeParams, ContributionCalendar, StreakStats, MonthlyStats } from '../../types';
 import { hexColor } from './sanitizer';
 
@@ -220,6 +226,14 @@ describe('generateSVG', () => {
     expect(svg).toMatch(/style="animation-delay: \d+\.\d+s;"/);
   });
 
+  it('includes reduced-motion CSS for the scan line in the main SVG output', () => {
+    const svg = generateSVG(mockStats, { user: 'avi' } as unknown as BadgeParams, mockCalendar);
+
+    expect(svg).toContain('prefers-reduced-motion: reduce');
+    expect(svg).toContain('.scan-line');
+    expect(svg).toContain('animation: none !important');
+  });
+
   it('uses English labels by default', () => {
     const svg = generateSVG(mockStats, { user: 'avi' } as unknown as BadgeParams, mockCalendar);
     expect(svg).toContain('CURRENT_STREAK');
@@ -289,8 +303,8 @@ describe('generateSVG', () => {
       // Active towers should use the accent class
       expect(svg).toContain('class="cp-accent-fill"');
 
-      // The radar scan line should also use the accent class
-      expect(svg).toMatch(/rect[^>]*class="cp-accent-fill"/);
+      // The radar scan line should also use the accent class and scan-line hook
+      expect(svg).toContain('class="cp-accent-fill scan-line"');
 
       // cp-text-fill is emitted only in Ghost City mode (0 total contributions)
       const ghostCalendar: ContributionCalendar = {
@@ -406,6 +420,24 @@ describe('generateSVG', () => {
       expect(svg).not.toContain('stroke-opacity="0.3"');
       // Active mode empty days should have h=0 (10 + 0 = 10)
       expect(svg).toContain('L0 10 L-16 0 L-16 0 Z');
+    });
+  });
+
+  describe('notFoundSVG', () => {
+    it('includes reduced-motion CSS for the scan line and ghost pulse', () => {
+      const svg = generateNotFoundSVG(
+        'avi',
+        hexColor('0d1117'),
+        hexColor('00ffaa'),
+        hexColor('ffffff'),
+        8,
+        '8s'
+      );
+
+      expect(svg).toContain('prefers-reduced-motion: reduce');
+      expect(svg).toContain('.scan-line');
+      expect(svg).toContain('animation: none !important');
+      expect(svg).toContain('class="scan-line"');
     });
   });
 
