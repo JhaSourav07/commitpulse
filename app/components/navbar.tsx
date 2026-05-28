@@ -23,22 +23,18 @@ const NAV_LINKS = [
 export default function Navbar() {
   const [open, setOpen] = useState(false);
 
-  const [isDark, setIsDark] = useState(() => {
-    if (typeof window === 'undefined') return true;
-
-    return localStorage.getItem('theme') !== 'light';
-  });
-
   const { shellRef, shellVars, handleMouseEnter, handleMouseMove, handleMouseLeave } =
     useGlowEffect();
 
   useEffect(() => {
-    document.documentElement.classList.toggle('dark', isDark);
-    localStorage.setItem('theme', isDark ? 'dark' : 'light');
-  }, [isDark]);
+    const storedTheme = localStorage.getItem('theme');
+    document.documentElement.classList.toggle('dark', storedTheme !== 'light');
+  }, []);
 
   const toggleTheme = () => {
-    setIsDark((prev) => !prev);
+    const isDark = document.documentElement.classList.toggle('dark');
+
+    localStorage.setItem('theme', isDark ? 'dark' : 'light');
   };
 
   useEffect(() => {
@@ -76,7 +72,10 @@ export default function Navbar() {
       <div className="mx-auto max-w-6xl">
         <div
           ref={shellRef}
-          className="relative overflow-hidden rounded-2xl border border-white/25 bg-black/45 backdrop-blur-xl shadow-[0_14px_40px_rgba(0,0,0,0.45)]"
+          className={`relative overflow-hidden rounded-2xl backdrop-blur-xl transition-all duration-300
+            border border-black/10 bg-white/75 shadow-[0_8px_30px_rgba(0,0,0,0.08)]
+            dark:border-white/10 dark:bg-black/45 dark:shadow-[0_14px_40px_rgba(0,0,0,0.45)]
+          `}
           style={shellVars}
           onMouseEnter={handleMouseEnter}
           onMouseMove={handleMouseMove}
@@ -109,10 +108,10 @@ export default function Navbar() {
               className="group inline-flex items-center gap-3"
               onClick={handleLogoClick}
             >
-              <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/35 bg-white/10 text-white shadow-[0_0_25px_rgba(255,255,255,0.22)] transition-transform duration-300 group-hover:scale-105">
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-black/10 bg-black/5 text-black shadow-[0_0_25px_rgba(255,255,255,0.22)] transition-transform duration-300 group-hover:scale-105 dark:border-white/35 dark:bg-white/10 dark:text-white">
                 <Activity size={19} />
               </span>
-              <span className="text-base font-semibold tracking-[0.08em] text-white sm:text-lg">
+              <span className="text-base font-semibold tracking-[0.08em] text-black sm:text-lg dark:text-white">
                 CommitPulse
               </span>
             </Link>
@@ -121,10 +120,11 @@ export default function Navbar() {
               <button
                 type="button"
                 onClick={toggleTheme}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/15 bg-white/5 text-white transition hover:bg-white/10"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-black/10 bg-black/5 text-black transition hover:bg-black/10 dark:border-white/15 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
                 aria-label="Toggle theme"
               >
-                {isDark ? <Sun size={18} /> : <Moon size={18} />}
+                <Sun size={18} className="hidden dark:block" />
+                <Moon size={18} className="block dark:hidden" />
               </button>
 
               {NAV_LINKS.map((link) => (
@@ -133,7 +133,7 @@ export default function Navbar() {
                   href={link.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-white/90 transition hover:border-white/45 hover:bg-white/10"
+                  className="inline-flex items-center gap-2 rounded-xl border border-black/10 bg-black/5 px-4 py-2 text-sm font-medium text-black/90 transition hover:border-black/20 hover:bg-black/10 dark:border-white/15 dark:bg-white/5 dark:text-white/90 dark:hover:border-white/45 dark:hover:bg-white/10"
                 >
                   <GithubMark />
                   {link.label}
@@ -143,7 +143,7 @@ export default function Navbar() {
 
             <button
               type="button"
-              className="md:hidden inline-flex items-center justify-center rounded-xl border border-white/15 bg-white/5 p-2 text-white/90 transition hover:bg-white/10"
+              className="md:hidden inline-flex items-center justify-center rounded-xl border border-black/10 bg-black/5 p-2 text-black/90 transition hover:bg-black/10 dark:border-white/15 dark:bg-white/5 dark:text-white/90 dark:hover:bg-white/10"
               aria-label={open ? 'Close menu' : 'Open menu'}
               aria-expanded={open}
               onClick={() => setOpen((prev) => !prev)}
@@ -153,7 +153,7 @@ export default function Navbar() {
           </nav>
 
           {open ? (
-            <div className="border-t border-white/10 px-4 py-3 md:hidden">
+            <div className="border-t border-black/10 px-4 py-3 dark:border-white/10 md:hidden">
               <ul className="space-y-2">
                 {NAV_LINKS.map((link) => (
                   <li key={link.href}>
@@ -162,7 +162,7 @@ export default function Navbar() {
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={() => setOpen(false)}
-                      className="inline-flex w-full items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-white/90 transition hover:border-white/45 hover:bg-white/10"
+                      className="inline-flex w-full items-center gap-2 rounded-xl border border-black/10 bg-black/5 px-4 py-2 text-sm font-medium text-black/90 transition hover:border-black/20 hover:bg-black/10 dark:border-white/15 dark:bg-white/5 dark:text-white/90 dark:hover:border-white/45 dark:hover:bg-white/10"
                     >
                       <GithubMark />
                       {link.label}
