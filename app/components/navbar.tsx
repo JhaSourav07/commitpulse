@@ -161,15 +161,25 @@ export default function Navbar() {
               ))}
             </div>
 
-            <button
-              type="button"
-              className="md:hidden inline-flex items-center justify-center rounded-xl border border-white/15 bg-white/5 p-2 text-white/90 transition hover:bg-white/10"
-              aria-label={open ? 'Close menu' : 'Open menu'}
-              aria-expanded={open}
-              onClick={() => setOpen((prev) => !prev)}
-            >
-              {open ? <X size={20} /> : <Menu size={20} />}
-            </button>
+            <div className="md:hidden inline-flex items-center justify-center gap-2">
+              <button
+                type="button"
+                onClick={toggleTheme}
+                className="hidden sm:inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/15 bg-white/5 text-white transition hover:bg-white/10"
+                aria-label="Toggle theme"
+              >
+                {isDark ? <Sun size={18} /> : <Moon size={18} />}
+              </button>
+              <button
+                type="button"
+                className="md:hidden inline-flex items-center justify-center rounded-xl border border-white/15 bg-white/5 p-2 text-white/90 transition hover:bg-white/10"
+                aria-label={open ? 'Close menu' : 'Open menu'}
+                aria-expanded={open}
+                onClick={() => setOpen((prev) => !prev)}
+              >
+                {open ? <X size={20} /> : <Menu size={20} />}
+              </button>
+            </div>
           </nav>
 
           {open ? (
@@ -189,6 +199,17 @@ export default function Navbar() {
                     </a>
                   </li>
                 ))}
+                <li className="sm:hidden">
+                  <button
+                    type="button"
+                    onClick={toggleTheme}
+                    className="inline-flex w-full items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-white/90 transition hover:border-white/45 hover:bg-white/10"
+                    aria-label="Toggle theme"
+                  >
+                    {isDark ? <Sun size={18} /> : <Moon size={18} />}
+                    {isDark ? 'Light Mode' : 'Dark Mode'}
+                  </button>
+                </li>
               </ul>
             </div>
           ) : null}
