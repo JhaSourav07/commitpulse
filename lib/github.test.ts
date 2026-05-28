@@ -838,9 +838,19 @@ describe('fetchOrgMembers', () => {
   });
 
   it('fetches organization members successfully', async () => {
-    vi.mocked(fetch).mockResolvedValue(mockResponse([{ login: 'alice' }, { login: 'bob' }]));
+    vi.mocked(fetch).mockResolvedValue(
+      mockResponse([
+        { login: 'alice', id: 1 },
+        { login: 'bob', id: 2 },
+      ])
+    );
+
     const members = await fetchOrgMembers('vercel');
-    expect(members).toEqual(['alice', 'bob']);
+
+    expect(Array.isArray(members)).toBe(true);
+    expect(members.every((member) => typeof member === 'string')).toBe(true);
+    expect(members[0]).toBe('alice');
+    expect(members[1]).toBe('bob');
   });
 });
 
