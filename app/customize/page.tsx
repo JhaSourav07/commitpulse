@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { ControlsPanel } from './components/ControlsPanel';
 import { ExportPanel } from './components/ExportPanel';
-import type { ExportFormat, Scale, BadgeSize } from './types';
+import type { ExportFormat, Font, Scale, BadgeSize } from './types';
 import { getExportSnippet, stripHash } from './utils';
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
@@ -18,6 +18,7 @@ export default function CustomizePage(): ReactElement {
   const [textHex, setTextHex] = useState('');
   const [scale, setScale] = useState<Scale>('linear');
   const [speed, setSpeed] = useState('8s');
+  const [font, setFont] = useState<Font>('');
   const [year, setYear] = useState('');
   const [radius, setRadius] = useState(8);
   const [size, setSize] = useState<BadgeSize>('medium');
@@ -90,6 +91,7 @@ export default function CustomizePage(): ReactElement {
 
     if (scale !== 'linear') params.set('scale', scale);
     if (speed !== '8s') params.set('speed', speed);
+    if (font) params.set('font', font);
     if (year) params.set('year', year);
     if (radius !== 8) params.set('radius', radius.toString());
     if (size !== 'medium') params.set('size', size);
@@ -104,6 +106,7 @@ export default function CustomizePage(): ReactElement {
     textHex,
     scale,
     speed,
+    font,
     year,
     radius,
     size,
@@ -155,7 +158,7 @@ export default function CustomizePage(): ReactElement {
         <div className="absolute bottom-0 left-1/2 w-[30%] h-[30%] bg-blue-500/5 blur-[120px] rounded-full" />
       </div>
 
-      <div className="relative z-10 max-w-[1400px] mx-auto px-6 py-8">
+      <div className="relative z-10 max-w-7xl mx-auto px-6 py-8">
         {/* ── Top Bar ───────────────────────────────────────────────────────── */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}
@@ -226,6 +229,7 @@ export default function CustomizePage(): ReactElement {
               textHex={textHex}
               scale={scale}
               speed={speed}
+              font={font}
               year={year}
               radius={radius}
               size={size}
@@ -236,6 +240,7 @@ export default function CustomizePage(): ReactElement {
               onTextHexChange={setTextHex}
               onScaleChange={setScale}
               onSpeedChange={setSpeed}
+              onFontChange={setFont}
               onYearChange={setYear}
               onRadiusChange={setRadius}
               onSizeChange={setSize}

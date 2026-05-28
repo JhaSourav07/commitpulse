@@ -1,23 +1,27 @@
 // lib/github.ts
 
-import type { ContributionCalendar } from '../types';
+import type { ContributionCalendar, ContributionDay } from '../types';
 import { calculateStreak } from './calculate';
 import { TTLCache } from './cache';
+import { LANGUAGE_COLORS } from './svg/languageColors';
 
 interface GitHubRepo {
   stargazers_count: number;
   language: string | null;
 }
 
+// Maximum number of attempts (initial + retries).
 const MAX_RETRIES = 3;
+// Initial delay in ms; doubles on each retry.
 const BASE_DELAY_MS = 500;
 const CONTRIBUTION_MILESTONES = [1, 10, 100, 250, 500, 1000];
 const STREAK_MILESTONES = [3, 7, 30, 100];
 const GRAPHQL_TIMEOUT_MS = 8000; // 8s for GraphQL endpoint
 const REST_TIMEOUT_MS = 5000; // 5s for REST endpoints
 
+// Retry delay uses exponential backoff: delay = BASE_DELAY_MS * 2^attempt.
 export async function fetchWithRetry(
-  url: string,
+  url: string | URL,
   options: RequestInit,
   attempt = 0,
   timeoutMs?: number
@@ -25,7 +29,7 @@ export async function fetchWithRetry(
   // Determine default timeout based on endpoint type if not explicitly provided.
   // GraphQL calls carry a larger payload and need a slightly longer window.
   const resolvedTimeout =
-    timeoutMs ?? (url.includes('graphql') ? GRAPHQL_TIMEOUT_MS : REST_TIMEOUT_MS);
+    timeoutMs ?? (url.toString().includes('graphql') ? GRAPHQL_TIMEOUT_MS : REST_TIMEOUT_MS);
 
   if (options.signal?.aborted) {
     throw new Error('AbortError');
@@ -78,20 +82,59 @@ const GITHUB_GRAPHQL_URL = 'https://api.github.com/graphql';
 const GITHUB_REST_URL = 'https://api.github.com';
 
 type GitHubContributionResponse = {
-  data: {
+  data?: {
     user: {
       contributionsCollection: {
         contributionCalendar: ContributionCalendar;
       };
     } | null;
   };
-  errors?: Array<{ message: string }>;
+  errors?: unknown;
 };
 
+const UNKNOWN_GRAPHQL_ERROR_MESSAGE = 'GitHub GraphQL API returned an unknown error';
+
+function getGraphQLErrorMessage(errors: unknown): string {
+  if (!Array.isArray(errors)) return UNKNOWN_GRAPHQL_ERROR_MESSAGE;
+
+  const firstError = errors[0];
+  if (
+    firstError &&
+    typeof firstError === 'object' &&
+    'message' in firstError &&
+    typeof firstError.message === 'string' &&
+    firstError.message.trim() !== ''
+  ) {
+    return firstError.message;
+  }
+
+  return UNKNOWN_GRAPHQL_ERROR_MESSAGE;
+}
+
+/**
+ * Configuration options for GitHub API fetch requests.
+ */
 type FetchOptions = {
+  /**
+   * Skips the in-memory cache and forces a fresh GitHub API request.
+   */
   bypassCache?: boolean;
+
+  /**
+   * Start date used for filtering contribution data.
+   * Expected format: YYYY-MM-DD.
+   */
   from?: string;
+
+  /**
+   * End date used for filtering contribution data.
+   * Expected format: YYYY-MM-DD.
+   */
   to?: string;
+
+  /**
+   * Optional AbortSignal used to cancel the request.
+   */
   signal?: AbortSignal;
 };
 
@@ -110,11 +153,22 @@ interface GitHubUserProfile {
   plan?: { name?: string } | null;
 }
 
-const contributionsCache = new TTLCache<ContributionCalendar>();
-const profileCache = new TTLCache<GitHubUserProfile>();
-const reposCache = new TTLCache<GitHubRepo[]>();
+// Named constants to avoid magic numbers and allow future tuning
+const MAX_CONTRIBUTIONS_CACHE_SIZE = 1000;
+const MAX_PROFILE_CACHE_SIZE = 1000;
+const MAX_REPOS_CACHE_SIZE = 500;
 
-function cacheKey(
+// Bounded capacity controls to prevent unbounded heap memory leaks (OOM).
+// Under continuous crawler/bot scanning or viral peaks, unbounded cache size
+// allocations will exhaust Node/Vercel serverless RAM.
+// Specifying explicit capacity limits enforces a First-In, First-Out (FIFO)
+// eviction strategy (since standard ES6 Map maintains key insertion order) and
+// bounds max memory consumption to stable, predictable boundaries.
+const contributionsCache = new TTLCache<ContributionCalendar>(MAX_CONTRIBUTIONS_CACHE_SIZE);
+const profileCache = new TTLCache<GitHubUserProfile>(MAX_PROFILE_CACHE_SIZE);
+const reposCache = new TTLCache<GitHubRepo[]>(MAX_REPOS_CACHE_SIZE);
+
+export function cacheKey(
   kind: 'contributions' | 'profile' | 'repos',
   username: string,
   year?: string
@@ -144,6 +198,35 @@ export function displayName(profile: GitHubUserProfile): string {
   return profile.login;
 }
 
+/**
+ * Fetches a user's GitHub contribution calendar using the GitHub GraphQL API.
+ *
+ * Requests are automatically retried on rate limiting (429) and server errors (5xx)
+ * using exponential backoff.
+ *
+ * @param username - GitHub username to fetch contributions for.
+ * @param options - Optional fetch configuration.
+ * @param options.bypassCache - Forces a fresh API request instead of using cached data.
+ * @param options.from - Start date for contribution filtering.
+ * @param options.to - End date for contribution filtering.
+ * @param options.signal - Optional AbortSignal used to cancel the request.
+ *
+ * @returns A promise resolving to the user's contribution calendar.
+ *
+ * @throws {Error} If the GitHub PAT is missing or invalid.
+ * @throws {Error} If the GitHub user cannot be found.
+ * @throws {Error} If the GitHub API request fails after all retry attempts.
+ * @throws {Error} If the request times out or is aborted.
+ *
+ * @example
+ * ```ts
+ * const calendar = await fetchGitHubContributions("octocat", {
+ *   from: "2025-01-01",
+ *   to: "2025-12-31",
+ *   bypassCache: true,
+ * });
+ * ```
+ */
 export async function fetchGitHubContributions(
   username: string,
   options: FetchOptions = {}
@@ -193,16 +276,18 @@ export async function fetchGitHubContributions(
 
   if (!res.ok) {
     if (res.status === 401) throw new Error('GitHub PAT is invalid or missing');
-    throw new Error(`GitHub GraphQL API returned status ${res.status}`);
+    throw new Error(
+      `GitHub GraphQL API returned status ${res.status} after ${MAX_RETRIES} retries`
+    );
   }
 
   const data: GitHubContributionResponse = await res.json();
 
-  if (data.errors) {
-    throw new Error(data.errors[0].message);
+  if (data.errors !== undefined) {
+    throw new Error(getGraphQLErrorMessage(data.errors));
   }
 
-  if (!data.data.user) {
+  if (!data.data?.user) {
     throw new Error(`GitHub user "${username}" not found`);
   }
 
@@ -215,6 +300,32 @@ export async function fetchGitHubContributions(
   return calendar;
 }
 
+/**
+ * Fetches public GitHub profile information for a user.
+ *
+ * Requests are automatically retried on rate limiting (429) and server errors (5xx)
+ * using exponential backoff.
+ *
+ * @param username - GitHub username to fetch profile data for.
+ * @param options - Optional fetch configuration.
+ * @param options.bypassCache - Forces a fresh API request instead of using cached data.
+ * @param options.signal - Optional AbortSignal used to cancel the request.
+ *
+ * @returns A promise resolving to the user's GitHub profile data.
+ *
+ * @throws {Error} If the GitHub user cannot be found.
+ * @throws {Error} If the GitHub REST API request fails.
+ * @throws {Error} If the request times out or is aborted.
+ *
+ * @example
+ * ```ts
+ * const controller = new AbortController();
+ *
+ * const profile = await fetchUserProfile("octocat", {
+ *   signal: controller.signal,
+ * });
+ * ```
+ */
 export async function fetchUserProfile(
   username: string,
   options: FetchOptions = {}
@@ -252,6 +363,32 @@ export async function fetchUserProfile(
   return profile;
 }
 
+/**
+ * Fetches public repositories for a GitHub user.
+ *
+ * Repository data is fetched from the GitHub REST API with automatic retries
+ * for rate limiting (429) and server errors (5xx).
+ *
+ * Results are paginated with a maximum limit of 300 repositories
+ * across 3 API pages.
+ *
+ * @param username - GitHub username to fetch repositories for.
+ * @param options - Optional fetch configuration.
+ * @param options.bypassCache - Forces a fresh API request instead of using cached data.
+ * @param options.signal - Optional AbortSignal used to cancel the request.
+ *
+ * @returns A promise resolving to an array of GitHub repositories.
+ *
+ * @throws {Error} If the GitHub API request fails after all retry attempts.
+ * @throws {Error} If the request times out or is aborted.
+ *
+ * @example
+ * ```ts
+ * const repos = await fetchUserRepos("octocat");
+ *
+ * console.log(repos.length);
+ * ```
+ */
 export async function fetchUserRepos(
   username: string,
   options: FetchOptions = {}
@@ -271,7 +408,7 @@ export async function fetchUserRepos(
   const allRepos: GitHubRepo[] = [];
 
   let PAGE = 1;
-  const MAX_PAGES = 100;
+  const MAX_PAGES = 3; // Hard cap at 3 pages (300 repos) to prevent API rate limit exhaustion (DoS)
   while (PAGE <= MAX_PAGES) {
     const res = await fetchWithRetry(
       `${GITHUB_REST_URL}/users/${username}/repos?per_page=100&page=${PAGE}&sort=pushed`,
@@ -346,6 +483,21 @@ export function generateAchievements(totalContributions: number, currentStreak: 
   }
 
   return achievements;
+}
+
+export function buildCommitClock(allDays: ContributionDay[]) {
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const dayTotals = new Array(7).fill(0);
+
+  for (const day of allDays) {
+    const dow = new Date(day.date).getUTCDay();
+    dayTotals[dow] += day.contributionCount;
+  }
+
+  return dayNames.map((name, i) => ({
+    day: name,
+    commits: dayTotals[i],
+  }));
 }
 
 export async function getFullDashboardData(username: string, options: FetchOptions = {}) {
@@ -459,41 +611,12 @@ export async function getFullDashboardData(username: string, options: FetchOptio
     }
   });
 
-  // Fixed color mapping for common languages to avoid random colors
-  const languageColors: Record<string, string> = {
-    TypeScript: '#3178c6',
-    JavaScript: '#f1e05a',
-    Python: '#3572A5',
-    Java: '#b07219',
-    'C++': '#f34b7d',
-    HTML: '#e34c26',
-    CSS: '#563d7c',
-    Go: '#00ADD8',
-    Rust: '#dea584',
-
-    C: '#555555',
-    'C#': '#178600',
-    PHP: '#4F5D95',
-    Ruby: '#701516',
-    Swift: '#F05138',
-    Kotlin: '#A97BFF',
-    Dart: '#00B4AB',
-    Lua: '#000080',
-    R: '#198CE7',
-    Scala: '#c22d40',
-    Perl: '#0298c3',
-    Haskell: '#5e5086',
-    Elixir: '#6e4a7e',
-    Vue: '#41b883',
-    Svelte: '#ff3e00',
-  };
-
   const totalLangs = Object.values(langCounts).reduce((a, b) => a + b, 0);
   const languages = Object.entries(langCounts)
     .map(([name, count]) => ({
       name,
       percentage: Math.round((count / totalLangs) * 100),
-      color: languageColors[name] || '#a855f7', // fallback purple
+      color: LANGUAGE_COLORS[name] || '#a855f7', // fallback purple
     }))
     .sort((a, b) => b.percentage - a.percentage)
     .slice(0, 5); // top 5
@@ -530,18 +653,7 @@ export async function getFullDashboardData(username: string, options: FetchOptio
       text: `Your longest coding streak is ${streakStats.longestStreak} days!`,
     });
   }
-
-  // Aggregate real contribution data by day of week from the already-fetched calendar
-  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  const dayTotals = new Array(7).fill(0);
-  for (const day of allDays) {
-    const dow = new Date(day.date).getUTCDay();
-    dayTotals[dow] += day.contributionCount;
-  }
-  const commitClock = dayNames.map((name, i) => ({
-    day: name,
-    commits: dayTotals[i],
-  }));
+  const commitClock = buildCommitClock(allDays);
 
   return {
     profile,
