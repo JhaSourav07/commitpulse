@@ -153,7 +153,7 @@ export default async function DashboardPage({
             <StatsCard
               title="Contributions"
               value={data.stats.totalContributions.toString()}
-              description="Last Year"
+              description="Last 365 Days"
               icon="GitCommit"
             />
           </div>
