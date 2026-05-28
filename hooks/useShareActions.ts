@@ -80,10 +80,12 @@ export function useShareActions(
         document.getElementById('dashboard-root') ??
         document.querySelector<HTMLElement>('[data-dashboard]') ??
         document.body;
+      const isDark =
+        typeof document !== 'undefined' && document.documentElement.classList.contains('dark');
       const dataUrl = await toPng(node, {
         quality: 0.95,
         pixelRatio: 2,
-        backgroundColor: '#050505',
+        backgroundColor: isDark ? '#050505' : '#ffffff',
         filter: (el) => {
           if (el instanceof HTMLElement) {
             if (el.id === 'share-sheet-overlay') return false;
