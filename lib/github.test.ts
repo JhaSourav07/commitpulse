@@ -66,9 +66,11 @@ afterEach(() => {
 describe('fetchWithRetry', () => {
   beforeEach(() => {
     vi.spyOn(global, 'fetch');
+    vi.useFakeTimers();
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     vi.restoreAllMocks();
   });
 
@@ -108,6 +110,40 @@ describe('fetchWithRetry', () => {
 
     await expect(request).rejects.toThrow('Aborted');
     expect(fetch).toHaveBeenCalledOnce();
+  });
+
+  it('retries on 429 with numeric retry-after', async () => {
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(new Response(null, { status: 429, headers: { 'retry-after': '2' } }))
+      .mockResolvedValueOnce(new Response('ok', { status: 200 }));
+
+    const promise = fetchWithRetry('http://test', {});
+    await vi.advanceTimersByTimeAsync(2000);
+    const res = await promise;
+    expect(res.status).toBe(200);
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it('retries on 403 with x-ratelimit-remaining: 0', async () => {
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(
+        new Response(null, { status: 403, headers: { 'x-ratelimit-remaining': '0' } })
+      )
+      .mockResolvedValueOnce(new Response('ok', { status: 200 }));
+
+    const promise = fetchWithRetry('http://test', {});
+    await vi.advanceTimersByTimeAsync(500); // default backoff for attempt 0
+    const res = await promise;
+    expect(res.status).toBe(200);
+  });
+
+  it('exits early without retrying if delay > 5000', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(
+      new Response(null, { status: 429, headers: { 'retry-after': '6' } }) // 6000ms
+    );
+    const res = await fetchWithRetry('http://test', {});
+    expect(res.status).toBe(429);
+    expect(fetch).toHaveBeenCalledTimes(1);
   });
 });
 

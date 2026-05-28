@@ -670,6 +670,17 @@ describe('GET /api/streak', () => {
       expect(response.headers.get('Cache-Control')).toBe('no-store');
     });
 
+    it('returns 429 with no-cache headers and rate limit SVG when rate limited', async () => {
+      vi.mocked(fetchGitHubContributions).mockRejectedValue(new Error('API Rate Limit Exceeded'));
+
+      const response = await GET(makeRequest({ user: 'octocat' }));
+
+      expect(response.status).toBe(429);
+      expect(response.headers.get('Cache-Control')).toBe('no-cache, no-store, must-revalidate');
+      const body = await response.text();
+      expect(body).toContain('API RATE LIMIT');
+    });
+
     it('returns a valid 500 SVG even when something non-Error is thrown', async () => {
       // JavaScript lets you throw anything — strings, numbers, plain objects.
       // The catch block checks instanceof Error; if that fails it falls back to "Unknown error".

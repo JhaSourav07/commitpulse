@@ -2,11 +2,12 @@ import { describe, it, expect } from 'vitest';
 import {
   generateSVG,
   generateMonthlySVG,
+  generateNotFoundSVG,
+  generateRateLimitSVG,
   particleCount,
   escapeXML,
-  generateNotFoundSVG,
+  getSizeScale,
 } from './generator';
-import { getSizeScale } from './generator';
 import type { BadgeParams, ContributionCalendar, StreakStats, MonthlyStats } from '../../types';
 import { hexColor } from './sanitizer';
 
@@ -1117,5 +1118,16 @@ describe('getSizeScale', () => {
 
   it('returns ~1.333 for large', () => {
     expect(getSizeScale('large')).toBeCloseTo(1.333, 2);
+  });
+});
+
+describe('generateRateLimitSVG', () => {
+  it('generates a valid SVG with rate limit messaging', () => {
+    const svg = generateRateLimitSVG('#000000', '#ffffff', '#aaaaaa', 8, '8s');
+    expect(svg).toContain('<svg');
+    expect(svg).toContain('API RATE LIMIT');
+    expect(svg).toContain('RATE LIMITED');
+    expect(svg).toContain('Please wait a moment before trying again');
+    expect(svg).toContain('</svg>');
   });
 });

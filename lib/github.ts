@@ -70,10 +70,21 @@ export async function fetchWithRetry(
   if (isRateLimited) {
     if (attempt >= MAX_RETRIES) return res;
 
-    // Use retry-after if provided, else exponential backoff
-    const delay = retryAfter
-      ? parseInt(retryAfter, 10) * 1000
-      : BASE_DELAY_MS * Math.pow(2, attempt);
+    let delay = BASE_DELAY_MS * Math.pow(2, attempt);
+    if (retryAfter) {
+      const parsed = parseInt(retryAfter, 10);
+      if (!Number.isNaN(parsed) && String(parsed) === retryAfter) {
+        delay = parsed * 1000;
+      } else {
+        const dateDelay = Date.parse(retryAfter) - Date.now();
+        if (!Number.isNaN(dateDelay) && dateDelay > 0) {
+          delay = dateDelay;
+        }
+      }
+    }
+
+    // Clamp between exponential default and maximum safe delay before we early exit anyway
+    delay = Math.max(BASE_DELAY_MS, delay);
 
     // If the delay is too long (e.g., > 5 seconds), it's a hard limit.
     // Return immediately to avoid serverless function timeouts.
