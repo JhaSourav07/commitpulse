@@ -9,6 +9,8 @@ import { rateLimit } from './lib/rate-limit';
  * - /api/streak
  * - /api/github
  * - /api/track-user
+ * - /api/stats
+ * - /api/og
  *
  * Limit: 60 requests per minute per IP.
  */
@@ -52,5 +54,11 @@ export function middleware(request: NextRequest) {
  * Using a matcher is more efficient than checking pathnames inside the middleware.
  */
 export const config = {
-  matcher: ['/api/streak/:path*', '/api/github/:path*', '/api/track-user/:path*'],
+  matcher: [
+    '/api/streak/:path*',
+    '/api/github/:path*',
+    '/api/track-user/:path*',
+    '/api/stats/:path*',
+    '/api/og/:path*',
+  ],
 };

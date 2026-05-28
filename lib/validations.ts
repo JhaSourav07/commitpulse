@@ -1,3 +1,5 @@
+// lib/validations.ts
+
 import { z } from 'zod';
 import { sanitizeHexColor, sanitizeSpeed, sanitizeRadius, sanitizeFont } from './svg/sanitizer';
 
@@ -111,6 +113,13 @@ export const streakParamsSchema = z.object({
       return isNaN(parsed) ? 1 : Math.max(0, Math.min(parsed, 7));
     })
     .default(1),
+
+  /* ==========================================================================
+   * NEW EPIC FEATURE PARAMS
+   * ========================================================================== */
+  mode: z.enum(['commits', 'loc']).catch('commits').default('commits'),
+  repo: z.string().optional(),
+  org: z.string().optional(),
 });
 
 export const githubParamsSchema = z.object({

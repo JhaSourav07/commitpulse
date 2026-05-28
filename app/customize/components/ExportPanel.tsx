@@ -124,7 +124,7 @@ export function ExportPanel({
     <div className="bg-white/70 backdrop-blur-xl border border-black/10 dark:bg-black/35 dark:border-white/10 rounded-[1.75rem] p-6 shadow-[0_20px_60px_rgba(0,0,0,0.15)]">
       <div className="flex flex-col gap-4 mb-5 md:flex-row md:items-center md:justify-between">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.22em] text-emerald-400">
+          <p className="text-xs font-bold uppercase tracking-[0.22em] text-emerald-600 dark:text-emerald-400">
             {formatLabel} Export Snippet
           </p>
           <p className="mt-1 text-[11px] text-gray-500 dark:text-white/25">
@@ -145,7 +145,7 @@ export function ExportPanel({
                 aria-pressed={format === option.value}
                 className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
                   format === option.value
-                    ? 'bg-emerald-500/15 text-emerald-300 shadow-[0_0_24px_rgba(16,185,129,0.16)]'
+                    ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 shadow-[0_0_24px_rgba(16,185,129,0.16)]'
                     : 'text-gray-600 hover:text-black bg-gray-100/70 dark:bg-transparent dark:text-white/35 dark:hover:text-white'
                 }`}
               >

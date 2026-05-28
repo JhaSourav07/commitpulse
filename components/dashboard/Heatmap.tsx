@@ -26,6 +26,7 @@ export default function Heatmap({ data }: { data: ActivityData[] }) {
   }
 
   const naturalWidth = weeks.length * (CELL + GAP) - GAP;
+  const hasData = data.length > 0 && data.some((d) => d.count > 0);
 
   // Recalculate scale whenever the card resizes
   useEffect(() => {
@@ -82,32 +83,38 @@ export default function Heatmap({ data }: { data: ActivityData[] }) {
         </div>
 
         {/* Scale wrapper */}
-        <div ref={containerRef} className="w-full overflow-hidden">
-          <div
-            style={{
-              width: naturalWidth,
-              transformOrigin: 'top left',
-              transform: `scale(${scale})`,
-              height: (7 * (CELL + GAP) - GAP) * scale,
-            }}
-          >
-            <div className="flex " style={{ gap: GAP }}>
-              {weeks.map((week, wIndex) => (
-                <div key={wIndex} className="flex flex-col" style={{ gap: GAP }}>
-                  {week.map((day, dIndex) => (
-                    <div
-                      key={dIndex}
-                      onMouseEnter={(e) => handleMouseEnter(e, day)}
-                      onMouseLeave={handleMouseLeave}
-                      className={`rounded-sm cursor-pointer transition-all duration-150 hover:brightness-125 hover:scale-125 ${getIntensityColor(day.intensity)}`}
-                      style={{ width: CELL, height: CELL }}
-                    />
-                  ))}
-                </div>
-              ))}
+        {hasData ? (
+          <div ref={containerRef} className="w-full overflow-hidden">
+            <div
+              style={{
+                width: naturalWidth,
+                transformOrigin: 'top left',
+                transform: `scale(${scale})`,
+                height: (7 * (CELL + GAP) - GAP) * scale,
+              }}
+            >
+              <div className="flex " style={{ gap: GAP }}>
+                {weeks.map((week, wIndex) => (
+                  <div key={wIndex} className="flex flex-col" style={{ gap: GAP }}>
+                    {week.map((day, dIndex) => (
+                      <div
+                        key={dIndex}
+                        onMouseEnter={(e) => handleMouseEnter(e, day)}
+                        onMouseLeave={handleMouseLeave}
+                        className={`rounded-sm cursor-pointer transition-all duration-150 hover:brightness-125 hover:scale-125 ${getIntensityColor(day.intensity)}`}
+                        style={{ width: CELL, height: CELL }}
+                      />
+                    ))}
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
-        </div>
+        ) : (
+          <div className="h-[120px] flex items-center justify-center rounded-lg border border-dashed border-black/10 dark:border-[rgba(255,255,255,0.08)] text-sm text-[#A1A1AA]">
+            No recent activity to display
+          </div>
+        )}
       </motion.div>
 
       {/* Tooltip rendered at viewport level — unaffected by scale/overflow */}
