@@ -11,6 +11,9 @@ import Achievements from '@/components/dashboard/Achievements';
 import { getFullDashboardData } from '@/lib/github';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { headers } from 'next/headers';
+import dbConnect from '@/lib/mongodb';
+import { User } from '@/models/User';
 
 export const revalidate = 3600; // Cache for 1 hour
 
@@ -62,12 +65,29 @@ export default async function DashboardPage({
   const refreshParams = await searchParams;
   const bypassCache = refreshParams?.refresh === 'true';
 
+  const headersList = await headers();
+  const detectedTz = headersList.get('x-detected-timezone') || 'UTC';
+
+  let userTimezone = detectedTz;
+  try {
+    if (process.env.MONGODB_URI) {
+      await dbConnect();
+      const user = await User.findOne({ username: username.toLowerCase().trim() });
+      if (user && user.timezone) {
+        userTimezone = user.timezone;
+      }
+    }
+  } catch (err) {
+    console.error('Error fetching user timezone:', err);
+  }
+
   // Fetch real GitHub data
   let data;
 
   try {
     data = await getFullDashboardData(username, {
       bypassCache,
+      timezone: userTimezone,
     });
   } catch (error) {
     if (error instanceof Error) {
@@ -141,6 +161,8 @@ export default async function DashboardPage({
               icon="Flame"
               showUTCDisclaimer={true}
               utcDate={new Date().toISOString().split('T')[0]}
+              timezone={userTimezone}
+              localDate={data.stats.todayDate}
             />
 
             <StatsCard

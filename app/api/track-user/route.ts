@@ -1,11 +1,13 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import { User } from '@/models/User';
+import { Info } from 'luxon';
+import { invalidateUserCache } from '@/lib/github';
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { username } = body;
+    const { username, timezone } = body;
 
     if (!username || typeof username !== 'string') {
       return NextResponse.json(
@@ -15,6 +17,18 @@ export async function POST(req: Request) {
     }
 
     const trimmedUsername = username.trim().toLowerCase();
+    let validatedTimezone = 'UTC';
+
+    if (timezone && typeof timezone === 'string') {
+      if (Info.isValidIANAZone(timezone)) {
+        validatedTimezone = timezone;
+      } else {
+        return NextResponse.json(
+          { success: false, error: `Invalid timezone parameter: ${timezone}` },
+          { status: 400 }
+        );
+      }
+    }
 
     // If MONGODB_URI is not set, skip tracking to allow local development without a DB
     if (!process.env.MONGODB_URI) {
@@ -25,12 +39,29 @@ export async function POST(req: Request) {
     // Connect to database
     await dbConnect();
 
-    // Upsert the user: create if doesn't exist, do nothing if exists
-    await User.findOneAndUpdate(
-      { username: trimmedUsername },
-      { $setOnInsert: { username: trimmedUsername } },
-      { upsert: true, new: true }
-    );
+    // Upsert the user: create or update the timezone
+    let timezoneChanged = false;
+    if (timezone && typeof User.findOne === 'function') {
+      const oldUser = await User.findOne({ username: trimmedUsername });
+      timezoneChanged = oldUser && oldUser.timezone !== validatedTimezone;
+    }
+
+    const updateObj = timezone
+      ? {
+          $set: { timezone: validatedTimezone },
+          $setOnInsert: { username: trimmedUsername },
+        }
+      : { $setOnInsert: { username: trimmedUsername } };
+
+    await User.findOneAndUpdate({ username: trimmedUsername }, updateObj, {
+      upsert: true,
+      new: true,
+    });
+
+    // If the timezone changed, invalidate the cache for this user
+    if (timezoneChanged) {
+      invalidateUserCache(trimmedUsername);
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

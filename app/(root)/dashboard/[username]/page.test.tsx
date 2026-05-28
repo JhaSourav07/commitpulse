@@ -16,6 +16,12 @@ vi.mock('next/navigation', () => ({
   }),
 }));
 
+vi.mock('next/headers', () => ({
+  headers: vi.fn().mockResolvedValue({
+    get: (key: string) => (key === 'x-detected-timezone' ? 'UTC' : null),
+  }),
+}));
+
 vi.mock('@/lib/github', () => ({
   getFullDashboardData: vi.fn(),
 }));
@@ -119,6 +125,7 @@ describe('DashboardPage', () => {
 
       expect(getFullDashboardData).toHaveBeenCalledWith('octocat', {
         bypassCache: false,
+        timezone: 'UTC',
       });
 
       expect(screen.getByText('Generate Your Own Dashboard')).toBeDefined();

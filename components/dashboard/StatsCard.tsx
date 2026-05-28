@@ -16,6 +16,8 @@ interface StatsCardProps {
   icon: string;
   showUTCDisclaimer?: boolean;
   utcDate?: string;
+  timezone?: string;
+  localDate?: string;
 }
 
 export default function StatsCard({
@@ -25,6 +27,8 @@ export default function StatsCard({
   icon,
   showUTCDisclaimer,
   utcDate,
+  timezone,
+  localDate,
 }: StatsCardProps) {
   const IconComponent = iconMap[icon] || Flame;
 
@@ -56,10 +60,16 @@ export default function StatsCard({
           {showUTCDisclaimer && (
             <div className="mt-3 space-y-1">
               <p className="text-[11px] text-[#71717A] leading-relaxed">
-                ℹ Streaks are calculated in UTC and may differ from your local timezone.
+                {timezone && timezone !== 'UTC'
+                  ? `ℹ Streaks are calculated in your local timezone (${timezone}).`
+                  : 'ℹ Streaks are calculated in UTC and may differ from your local timezone.'}
               </p>
 
-              {utcDate && <p className="text-[10px] text-[#52525B]">UTC Date: {utcDate}</p>}
+              {timezone && timezone !== 'UTC' && localDate ? (
+                <p className="text-[10px] text-[#52525B]">Local Date: {localDate}</p>
+              ) : (
+                utcDate && <p className="text-[10px] text-[#52525B]">UTC Date: {utcDate}</p>
+              )}
             </div>
           )}
         </div>

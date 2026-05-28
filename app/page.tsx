@@ -66,7 +66,9 @@ const Icons = {
 };
 
 function trackUser(name: string) {
-  const payload = JSON.stringify({ username: name });
+  const timezone =
+    typeof Intl !== 'undefined' ? Intl.DateTimeFormat().resolvedOptions().timeZone : 'UTC';
+  const payload = JSON.stringify({ username: name, timezone });
   // sendBeacon is truly fire-and-forget — it doesn't block navigation
   if (navigator.sendBeacon) {
     navigator.sendBeacon('/api/track-user', new Blob([payload], { type: 'application/json' }));

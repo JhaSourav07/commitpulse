@@ -78,6 +78,7 @@ type FetchOptions = {
   bypassCache?: boolean;
   from?: string;
   to?: string;
+  timezone?: string;
 };
 
 export const GITHUB_CACHE_TTL_MS = 5 * 60 * 1000;
@@ -93,6 +94,7 @@ interface GitHubUserProfile {
   bio: string | null;
   location: string | null;
   plan?: { name?: string } | null;
+  timezone?: string;
 }
 
 const contributionsCache = new TTLCache<ContributionCalendar>();
@@ -111,6 +113,18 @@ export function clearGitHubApiCacheForTests(): void {
   contributionsCache.clear();
   profileCache.clear();
   reposCache.clear();
+}
+
+export function invalidateUserCache(username: string): void {
+  const normalized = username.toLowerCase().trim();
+  contributionsCache.delete(cacheKey('contributions', normalized));
+  profileCache.delete(cacheKey('profile', normalized));
+  reposCache.delete(cacheKey('repos', normalized));
+
+  const currentYear = new Date().getFullYear();
+  for (let y = 2008; y <= currentYear; y++) {
+    contributionsCache.delete(cacheKey('contributions', normalized, y.toString()));
+  }
 }
 
 const getHeaders = () => ({
@@ -329,7 +343,7 @@ export async function getFullDashboardData(username: string, options: FetchOptio
     ]);
 
     // Pre-compute streak + stars early so developerScore can use them
-    const streakStats = calculateStreak(calendarData);
+    const streakStats = calculateStreak(calendarData, options.timezone);
     const totalStars = reposData.reduce(
       (acc: number, repo: GitHubRepo) => acc + repo.stargazers_count,
       0
@@ -490,6 +504,7 @@ export async function getFullDashboardData(username: string, options: FetchOptio
         currentStreak: streakStats.currentStreak,
         peakStreak: streakStats.longestStreak,
         totalContributions: streakStats.totalContributions,
+        todayDate: streakStats.todayDate,
       },
       languages,
       activity,

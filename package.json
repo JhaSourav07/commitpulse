@@ -29,6 +29,7 @@
     "framer-motion": "^12.38.0",
     "html-to-image": "^1.11.13",
     "lucide-react": "^1.8.0",
+    "luxon": "^3.7.2",
     "mongoose": "^9.6.2",
     "next": "^16.2.3",
     "react": "19.2.4",
@@ -38,6 +39,7 @@
   },
   "devDependencies": {
     "@testing-library/react": "^16.3.2",
+    "@types/luxon": "^3.7.1",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

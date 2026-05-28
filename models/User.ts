@@ -2,6 +2,7 @@ import mongoose, { Document, Model, Schema } from 'mongoose';
 
 export interface IUser extends Document {
   username: string;
+  timezone: string;
   createdAt: Date;
 }
 
@@ -11,6 +12,11 @@ const UserSchema: Schema = new Schema({
     required: true,
     unique: true,
     lowercase: true,
+    trim: true,
+  },
+  timezone: {
+    type: String,
+    default: 'UTC',
     trim: true,
   },
   createdAt: {

@@ -1,5 +1,27 @@
 // lib/calculate.ts
 import type { ContributionCalendar, StreakStats, MonthlyStats } from '../types';
+import { DateTime } from 'luxon';
+
+// Timezone offset cache for high-performance streak calculations
+class TimezoneOffsetCache {
+  private cache = new Map<string, string>(); // Key: "timezone:timestamp_ms", Value: "YYYY-MM-DD"
+
+  getLocalDateStr(timezone: string, now: Date): string {
+    const key = `${timezone}:${now.getTime()}`;
+    if (this.cache.has(key)) {
+      return this.cache.get(key)!;
+    }
+    const val = DateTime.fromJSDate(now).setZone(timezone).toISODate() || '';
+    this.cache.set(key, val);
+    return val;
+  }
+
+  clear() {
+    this.cache.clear();
+  }
+}
+
+export const timezoneOffsetCache = new TimezoneOffsetCache();
 
 /*
 Calculates streak statistics from a GitHub contribution calendar.
@@ -77,7 +99,7 @@ export function calculateStreak(
   // Find "today" in the user's timezone. Without this, a user in UTC-8 at 07:00 UTC
   // (still the previous calendar day locally) would have the UTC "today" — which has
   // no commits yet — treated as their current day, silently breaking their streak.
-  const localTodayStr = new Intl.DateTimeFormat('en-CA', { timeZone: timezone }).format(now);
+  const localTodayStr = timezoneOffsetCache.getLocalDateStr(timezone, now);
   const localTodayIndex = days.findIndex((d) => d.date === localTodayStr);
   // If the local date isn't in the GitHub data (timezone ahead of UTC, or calendar
   // doesn't extend to today), fall back to the last available day.
@@ -145,8 +167,8 @@ export function calculateStreak(
   @returns {MonthlyStats}
    - currentMonthTotal: contributions this month
    - previousMonthTotal: contributions last month
-   - deltaAbsolute: difference (this − last)
    - deltaPercentage: % change, rounded
+   - deltaAbsolute: difference (this − last)
    - currentMonthName: name of this month (e.g. "May")
 
   @example
@@ -162,7 +184,7 @@ export function calculateMonthlyStats(
 ): MonthlyStats {
   const days = calendar.weeks.flatMap((week) => week.contributionDays);
 
-  const localTodayStr = new Intl.DateTimeFormat('en-CA', { timeZone: timezone }).format(now);
+  const localTodayStr = timezoneOffsetCache.getLocalDateStr(timezone, now);
   const [currentYearStr, currentMonthStr] = localTodayStr.split('-');
   const currentYear = parseInt(currentYearStr, 10);
   const currentMonth = parseInt(currentMonthStr, 10);
@@ -188,10 +210,8 @@ export function calculateMonthlyStats(
     }
   }
 
-  const currentMonthName = new Intl.DateTimeFormat('en-US', {
-    timeZone: timezone,
-    month: 'long',
-  }).format(now);
+  const currentMonthName =
+    DateTime.fromJSDate(now).setZone(timezone).setLocale('en-US').monthLong || '';
 
   const deltaAbsolute = currentMonthTotal - previousMonthTotal;
   let deltaPercentage = 0;
