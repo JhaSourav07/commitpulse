@@ -231,7 +231,7 @@ export default function LandingPage() {
                 </div>
                 {username.length === 39 && (
                   <p className="text-red-500 text-xs mt-1 self-start pl-1">
-                    GitHub usernames cannot exceed 39 characters
+                    GitHub username limit reached (39 characters maximum)
                   </p>
                 )}
               </div>
