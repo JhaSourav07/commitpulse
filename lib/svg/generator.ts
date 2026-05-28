@@ -128,7 +128,7 @@ function renderStatsSection(
   const totalLabel = params.mode === 'loc' ? 'TOTAL LINES OF CODE' : labels.ANNUAL_SYNC_TOTAL;
 
   return `
-  <g transform="translate(${s(40)}, ${s(340)})">
+  <g transform="translate(${s(100)}, ${s(340)})" text-anchor="middle">
     <text class="label">${labels.CURRENT_STREAK}</text>
     <text y="${s(40)}" class="stats" filter="url(#glow)">${stats.currentStreak}</text>
   </g>
@@ -136,7 +136,7 @@ function renderStatsSection(
     <text class="label">${totalLabel}</text>
     <text y="${s(40)}" class="total-val" filter="url(#glow)">${stats.totalContributions}</text>
   </g>
-  <g transform="translate(${s(560)}, ${s(340)})" text-anchor="end">
+  <g transform="translate(${s(500)}, ${s(340)})" text-anchor="middle">
     <text class="label">${labels.PEAK_STREAK}</text>
     <text y="${s(40)}" class="stats">${stats.longestStreak}</text>
   </g>`;
@@ -782,7 +782,7 @@ export function generateNotFoundSVG(
     <text y="40" font-family="Space Grotesk,sans-serif" font-size="24"
       fill="${accent}" opacity="0.2">—</text>
   </g>
-  <g transform="translate(560, 340)" text-anchor="end">
+  <g transform="translate(500, 340)" text-anchor="middle">
     <text class="label">PEAK_STREAK</text>
     <text y="40" class="stats">—</text>
   </g>
