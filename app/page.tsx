@@ -238,7 +238,7 @@ export default function LandingPage() {
                 <button
                   type="submit"
                   disabled={!mounted || !hasUsername}
-                  className={`relative flex min-w-[160px] items-center justify-center gap-2 overflow-hidden rounded-xl px-6 py-3.5 text-sm font-semibold transition-all duration-200 active:scale-[0.98] ${
+                  className={`relative flex min-w-[160px] items-center justify-center gap-2 overflow-hidden rounded-xl px-6 py-3.5 text-sm font-semibold transition-all duration-200 transform cursor-pointer hover:scale-105 hover:brightness-125 active:scale-[0.98] disabled:cursor-not-allowed ${
                     hasUsername
                       ? 'bg-black text-white hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-zinc-100'
                       : 'bg-gray-200 text-gray-500 dark:bg-white/10 dark:text-white/35'
