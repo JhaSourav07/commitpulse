@@ -484,8 +484,15 @@ export async function getWrappedData(username: string, year: string) {
  * UTILS & EXPORTS
  * ========================================================================== */
 
-export function generateAchievements(totalContributions: number, currentStreak: number) {
+export function generateAchievements(
+  totalContributions: number,
+  currentStreak: number,
+  weekendCommits: number = 0,
+  uniqueLanguages: number = 0
+) {
   const achievements = [];
+
+  // ── Contribution milestones ────────────────────────────────────────────────
   for (const threshold of CONTRIBUTION_MILESTONES) {
     achievements.push({
       id: `contrib-${threshold}`,
@@ -504,6 +511,8 @@ export function generateAchievements(totalContributions: number, currentStreak: 
       progress: Math.min(100, Math.round((totalContributions / threshold) * 100)),
     });
   }
+
+  // ── Streak milestones ──────────────────────────────────────────────────────
   for (const threshold of STREAK_MILESTONES) {
     achievements.push({
       id: `streak-${threshold}`,
@@ -520,6 +529,57 @@ export function generateAchievements(totalContributions: number, currentStreak: 
       progress: Math.min(100, Math.round((currentStreak / threshold) * 100)),
     });
   }
+
+  // ── Consistency King (tiered total-contribution milestones) ────────────────
+  const CONSISTENCY_MILESTONES = [500, 1000, 2000] as const;
+  const CONSISTENCY_LABELS = [
+    'Consistency King',
+    'Consistency King II',
+    'Consistency King III',
+  ] as const;
+  for (let i = 0; i < CONSISTENCY_MILESTONES.length; i++) {
+    const threshold = CONSISTENCY_MILESTONES[i];
+    achievements.push({
+      id: `consistency-${threshold}`,
+      title: CONSISTENCY_LABELS[i],
+      description: `Reached ${threshold.toLocaleString()} total contributions`,
+      icon: '👑',
+      isUnlocked: totalContributions >= threshold,
+      type: 'contributions' as const,
+      threshold,
+      currentValue: totalContributions,
+      progress: Math.min(100, Math.round((totalContributions / threshold) * 100)),
+    });
+  }
+
+  // ── Weekend Warrior ────────────────────────────────────────────────────────
+  // Computed from commitClock: dayTotals[0] (Sun) + dayTotals[6] (Sat).
+  achievements.push({
+    id: 'weekend-warrior',
+    title: 'Weekend Warrior',
+    description: '10+ contributions on weekends (Sat & Sun)',
+    icon: '🏋️',
+    isUnlocked: weekendCommits >= 10,
+    type: 'behavior' as const,
+    threshold: 10,
+    currentValue: weekendCommits,
+    progress: Math.min(100, Math.round((weekendCommits / 10) * 100)),
+  });
+
+  // ── Polyglot ───────────────────────────────────────────────────────────────
+  // Computed from fetchUserRepos: count of distinct repo.language values.
+  achievements.push({
+    id: 'polyglot',
+    title: 'Polyglot',
+    description: 'Used 5+ distinct programming languages',
+    icon: '🐙',
+    isUnlocked: uniqueLanguages >= 5,
+    type: 'behavior' as const,
+    threshold: 5,
+    currentValue: uniqueLanguages,
+    progress: Math.min(100, Math.round((uniqueLanguages / 5) * 100)),
+  });
+
   return achievements;
 }
 type StreakStats = {
@@ -599,10 +659,10 @@ export async function getFullDashboardData(username: string, options: FetchOptio
   const developerScore = Math.min(
     Math.round(
       Math.min(profileData.public_repos * 0.5, 25) +
-        Math.min(profileData.followers * 0.5, 25) +
-        Math.min(totalStars * 0.2, 20) +
-        Math.min(streakStats.totalContributions / 20, 20) +
-        Math.min(streakStats.longestStreak * 0.2, 10)
+      Math.min(profileData.followers * 0.5, 25) +
+      Math.min(totalStars * 0.2, 20) +
+      Math.min(streakStats.totalContributions / 20, 20) +
+      Math.min(streakStats.longestStreak * 0.2, 10)
     ),
     100
   );
@@ -658,25 +718,21 @@ export async function getFullDashboardData(username: string, options: FetchOptio
     .sort((a, b) => b.percentage - a.percentage)
     .slice(0, 5);
 
+  const commitClock = buildCommitClock(allDays);
+  const weekendCommits =
+    (commitClock.find((d) => d.day === 'Sun')?.commits ?? 0) +
+    (commitClock.find((d) => d.day === 'Sat')?.commits ?? 0);
+
+  const uniqueLanguages = Object.keys(langCounts).length;
+
   const achievements = generateAchievements(
     streakStats.totalContributions,
-    streakStats.currentStreak
+    streakStats.currentStreak,
+    weekendCommits,
+    uniqueLanguages
   );
 
-  // 4. Insights Generation
   const insights = buildInsights(streakStats, languages);
-
-  // Aggregate real contribution data by day of week from the already-fetched calendar
-  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  const dayTotals = new Array(7).fill(0);
-  for (const day of allDays) {
-    const dow = new Date(day.date).getUTCDay();
-    dayTotals[dow] += day.contributionCount;
-  }
-  const commitClock = dayNames.map((name, i) => ({
-    day: name,
-    commits: dayTotals[i],
-  }));
 
   return {
     profile,
@@ -692,3 +748,4 @@ export async function getFullDashboardData(username: string, options: FetchOptio
     commitClock,
   };
 }
+

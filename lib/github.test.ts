@@ -751,15 +751,48 @@ describe('GitHub API cache behavior', () => {
 
 describe('generateAchievements', () => {
   it('marks contribution milestones correctly', () => {
-    const achievements = generateAchievements(600, 10);
+    // 600 contributions satisfies the '500 Contributions' achievement but not '1000 Contributions'
+    const achievements = generateAchievements(600, 10, 0, 0);
+
     const unlocked = achievements.filter((a) => a.isUnlocked);
     expect(unlocked.some((a) => a.title === '500 Contributions')).toBe(true);
+    expect(unlocked.some((a) => a.title === 'Consistency King')).toBe(true);
     expect(unlocked.some((a) => a.title === '1000 Contributions')).toBe(false);
   });
 
   it('unlocks all achievements for max contribution and streak values', () => {
-    const achievements = generateAchievements(1001, 101);
+    // Consistency King III requires 2000, streak needs 100, weekend needs 10, polyglot needs 5
+    const achievements = generateAchievements(2001, 101, 11, 6);
+
     expect(achievements.every((achievement) => achievement.isUnlocked === true)).toBe(true);
+  });
+
+  it('marks streak milestones correctly', () => {
+    const achievements = generateAchievements(50, 35, 0, 0);
+
+    const unlocked = achievements.filter((a) => a.isUnlocked);
+
+    expect(unlocked.some((a) => a.title === '30 Day Streak')).toBe(true);
+    expect(unlocked.some((a) => a.title === '100 Day Streak')).toBe(false);
+  });
+
+  it('marks behavior milestones correctly', () => {
+    const achievements = generateAchievements(10, 1, 15, 6);
+
+    const unlocked = achievements.filter((a) => a.isUnlocked);
+
+    expect(unlocked.some((a) => a.title === 'Weekend Warrior')).toBe(true);
+    expect(unlocked.some((a) => a.title === 'Polyglot')).toBe(true);
+  });
+
+  it('caps progress between 0 and 100 for extreme values', () => {
+    const achievements = generateAchievements(999999, 999999, 999999, 999999);
+
+    for (const item of achievements) {
+      expect(Number.isFinite(item.progress)).toBe(true);
+      expect(item.progress).toBeGreaterThanOrEqual(0);
+      expect(item.progress).toBeLessThanOrEqual(100);
+    }
   });
 });
 
