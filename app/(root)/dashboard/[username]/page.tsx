@@ -65,9 +65,11 @@ export default async function DashboardPage({
   // Fetch real GitHub data
   let data;
 
+  const controller = new AbortController();
   try {
     data = await getFullDashboardData(username, {
       bypassCache,
+      signal: controller.signal,
     });
   } catch (error) {
     if (error instanceof Error) {
