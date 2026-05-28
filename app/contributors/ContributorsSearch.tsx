@@ -24,6 +24,8 @@ export default function ContributorsSearch({ contributors }: { contributors: Con
       <div className="mx-auto mb-10 max-w-xl">
         <input
           type="text"
+          id="contributor-search"
+          name="contributor-search"
           placeholder="Search contributors by name..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}

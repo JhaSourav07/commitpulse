@@ -63,6 +63,7 @@ function HexInput({
           )}
           <input
             id={`${id}-picker`}
+            name={`${id}-picker`}
             type="color"
             value={pickerValue}
             onChange={(e) => onChange(stripHash(e.target.value))}
@@ -77,6 +78,7 @@ function HexInput({
           </span>
           <input
             id={id}
+            name={id}
             type="text"
             value={value}
             onChange={(e) => onChange(e.target.value.replace(/^#/, ''))}
@@ -191,6 +193,7 @@ export function ControlsPanel({
         <ControlRow label="GitHub Username">
           <input
             id="username-input"
+            name="username"
             type="text"
             value={username}
             onChange={(e) => onUsernameChange(e.target.value)}
@@ -202,14 +205,18 @@ export function ControlsPanel({
         <ThemeSelector theme={theme} onThemeChange={onThemeChange} />
 
         <div className="h-px bg-black/5 dark:bg-white/5" />
+
         <ControlRow label="Year">
           <div className="relative">
-            <StyledSelect id="year-select" value={year} onChange={(value) => onYearChange(value)}>
+            <StyledSelect
+              id="year-select"
+              name="year"
+              value={year}
+              onChange={(value) => onYearChange(value)}
+            >
               <option value="">{currentYear} (current)</option>
-
               {Array.from({ length: currentYear - 2019 }, (_, i) => {
                 const yearOption = currentYear - i - 1;
-
                 return (
                   <option key={yearOption} value={yearOption.toString()}>
                     {yearOption}
@@ -219,8 +226,6 @@ export function ControlsPanel({
             </StyledSelect>
           </div>
         </ControlRow>
-
-        <div className="h-px bg-black/5 dark:bg-white/5" />
 
         <div className="h-px bg-black/5 dark:bg-white/5" />
 
@@ -314,7 +319,7 @@ export function ControlsPanel({
 
         <ControlRow label="Radar Scan Speed">
           <div className="relative">
-            <StyledSelect id="speed-select" value={speed} onChange={onSpeedChange}>
+            <StyledSelect id="speed-select" name="speed" value={speed} onChange={onSpeedChange}>
               {SPEEDS.map((speedOption) => (
                 <option key={speedOption.value} value={speedOption.value}>
                   {speedOption.label}
@@ -326,7 +331,12 @@ export function ControlsPanel({
 
         <ControlRow label="Font">
           <div className="relative">
-            <StyledSelect id="font-select" value={font} onChange={(v) => onFontChange(v as Font)}>
+            <StyledSelect
+              id="font-select"
+              name="font"
+              value={font}
+              onChange={(v) => onFontChange(v as Font)}
+            >
               {FONTS.map((fontOption) => (
                 <option key={fontOption.value} value={fontOption.value}>
                   {fontOption.label}
@@ -340,6 +350,8 @@ export function ControlsPanel({
           <div className="relative flex items-center">
             <div className="absolute inset-x-0 h-1 rounded-full bg-gray-300 dark:bg-white/6" />
             <input
+              id="radius-slider"
+              name="radius"
               type="range"
               min="0"
               max="50"
@@ -362,6 +374,7 @@ export function ControlsPanel({
           <div className="relative">
             <StyledSelect
               id="size-select"
+              name="size"
               value={size}
               onChange={(v) => onSizeChange(v as BadgeSize)}
             >
@@ -398,6 +411,8 @@ export function ControlsPanel({
               <div className="flex flex-col gap-2">
                 <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-700 dark:text-white/70">
                   <input
+                    id="hide-title"
+                    name="hideTitle"
                     type="checkbox"
                     checked={hideTitle}
                     onChange={(e) => onHideTitleChange(e.target.checked)}
@@ -407,6 +422,8 @@ export function ControlsPanel({
                 </label>
                 <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-700 dark:text-white/70">
                   <input
+                    id="hide-background"
+                    name="hideBackground"
                     type="checkbox"
                     checked={hideBackground}
                     onChange={(e) => onHideBackgroundChange(e.target.checked)}
@@ -416,6 +433,8 @@ export function ControlsPanel({
                 </label>
                 <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-700 dark:text-white/70">
                   <input
+                    id="hide-stats"
+                    name="hideStats"
                     type="checkbox"
                     checked={hideStats}
                     onChange={(e) => onHideStatsChange(e.target.checked)}
@@ -433,6 +452,7 @@ export function ControlsPanel({
               <div className="relative">
                 <StyledSelect
                   id="view-select"
+                  name="viewMode"
                   value={viewMode}
                   onChange={(v) => onViewModeChange(v as ViewMode)}
                 >
@@ -449,6 +469,7 @@ export function ControlsPanel({
               <div className="relative">
                 <StyledSelect
                   id="delta-select"
+                  name="deltaFormat"
                   value={deltaFormat}
                   onChange={(v) => onDeltaFormatChange(v as DeltaFormat)}
                 >
@@ -467,6 +488,8 @@ export function ControlsPanel({
             <div className="grid grid-cols-2 gap-4">
               <ControlRow label="Width">
                 <input
+                  id="badge-width"
+                  name="badgeWidth"
                   type="number"
                   min="100"
                   max="1200"
@@ -481,6 +504,8 @@ export function ControlsPanel({
               </ControlRow>
               <ControlRow label="Height">
                 <input
+                  id="badge-height"
+                  name="badgeHeight"
                   type="number"
                   min="80"
                   max="800"
@@ -502,6 +527,8 @@ export function ControlsPanel({
               <div className="relative flex items-center">
                 <div className="absolute inset-x-0 h-1 rounded-full bg-gray-300 dark:bg-white/6" />
                 <input
+                  id="grace-slider"
+                  name="grace"
                   type="range"
                   min="0"
                   max="7"
@@ -524,6 +551,7 @@ export function ControlsPanel({
               <div className="relative">
                 <StyledSelect
                   id="lang-select"
+                  name="language"
                   value={language}
                   onChange={(v) => onLanguageChange(v as Language)}
                 >

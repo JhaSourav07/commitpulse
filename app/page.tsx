@@ -211,6 +211,9 @@ export default function LandingPage() {
               <div className="relative flex-1 flex items-center">
                 <input
                   type="text"
+                  id="username"
+                  name="username"
+                  autoComplete="username"
                   placeholder="Enter GitHub Username"
                   className="flex-1 rounded-xl border border-black/10 bg-gray-100 px-5 py-3.5 text-sm text-black outline-none transition-all duration-200 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#00ffaa] focus:border-transparent dark:border-[rgba(255,255,255,0.08)] dark:bg-[#111] dark:text-white dark:placeholder:text-[#A1A1AA]"
                   value={username}
