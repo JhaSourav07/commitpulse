@@ -88,6 +88,59 @@ http://localhost:3000/api/streak?user=YOUR_GITHUB_USERNAME
 
 ---
 
+## 🤝 Contributor Onboarding
+
+### 📁 Project Structure
+
+```text
+app/api/streak/route.ts       → API route for SVG generation
+lib/github.ts                 → GitHub GraphQL API client
+lib/calculate.ts              → Streak calculation logic
+lib/svg/generator.ts          → SVG rendering engine
+lib/svg/themes.ts             → Theme configuration system
+utils/time.ts                 → UTC & timezone utilities
+types/index.ts                → Shared TypeScript interfaces
+```
+
+---
+
+### ⚠️ Local Setup Troubleshooting
+
+Common issues during setup:
+
+- **401 Unauthorized** → Invalid or missing `GITHUB_TOKEN`
+- **MongoDB errors** → `MONGODB_URI` is optional for local development
+- **Empty SVG output** → Ensure the GitHub username exists and has public contributions
+
+---
+
+### 🌱 Beginner-Friendly Contribution Areas
+
+Good first contributions:
+
+- Documentation improvements
+- New theme presets
+- SVG styling enhancements
+- UI polish and accessibility improvements
+
+---
+
+### 🔁 Simplified PR Workflow
+
+```text
+Fork Repository
+      ↓
+Create Branch
+      ↓
+Make Changes
+      ↓
+Run Tests & Lint
+      ↓
+Open Pull Request
+```
+
+---
+
 ## 🎯 What to Contribute
 
 We welcome contributions in three focused pillars. Staying within these areas ensures every PR adds clear, compounding value.

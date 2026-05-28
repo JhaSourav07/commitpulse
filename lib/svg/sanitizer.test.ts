@@ -97,6 +97,30 @@ describe('SVG Sanitizer Utilities', () => {
     it('returns null for completely invalid font', () => {
       expect(sanitizeFont('!!!')).toBe(null);
     });
+
+    it('returns null for null input', () => {
+      expect(sanitizeFont(null)).toBe(null);
+    });
+
+    it('returns null for whitespace-only input', () => {
+      expect(sanitizeFont('   ')).toBe(null);
+    });
+
+    it('preserves valid font names with spaces', () => {
+      expect(sanitizeFont('Fira Code')).toBe('Fira Code');
+    });
+
+    it('allows numeric font names', () => {
+      expect(sanitizeFont('123')).toBe('123');
+    });
+
+    it('sanitizes script injection attempts', () => {
+      expect(sanitizeFont('<script>alert(1)</script>')).toBe('scriptalert1script');
+    });
+
+    it('returns null when sanitization removes all characters', () => {
+      expect(sanitizeFont('@@@')).toBe(null);
+    });
   });
 
   describe('sanitizeGoogleFontUrl', () => {

@@ -96,6 +96,44 @@ describe('TTLCache', () => {
     });
   });
 
+  describe('size()', () => {
+    it('returns 0 for an empty cache', () => {
+      const cache = new TTLCache<number>();
+      expect(cache.size()).toBe(0);
+      cache.destroy();
+    });
+
+    it('counts only entries before expiry', () => {
+      vi.useFakeTimers();
+      const cache = new TTLCache<number>();
+      cache.set('a', 1, 10_000);
+      cache.set('b', 2, 20_000);
+      expect(cache.size()).toBe(2);
+
+      vi.advanceTimersByTime(15_000);
+      expect(cache.size()).toBe(1);
+      cache.destroy();
+    });
+
+    it('returns 0 when all entries have expired (after TTL expiry)', () => {
+      vi.useFakeTimers();
+      const cache = new TTLCache<number>();
+      cache.set('a', 1, 10_000);
+      vi.advanceTimersByTime(15_000);
+      expect(cache.size()).toBe(0);
+      cache.destroy();
+    });
+
+    it('returns 0 after clear() is called', () => {
+      const cache = new TTLCache<number>();
+      cache.set('a', 1, 10_000);
+      expect(cache.size()).toBe(1);
+      cache.clear();
+      expect(cache.size()).toBe(0);
+      cache.destroy();
+    });
+  });
+
   describe('destroy()', () => {
     it('clears the store and stops the interval', () => {
       vi.useFakeTimers();

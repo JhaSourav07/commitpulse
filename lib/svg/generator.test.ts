@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { generateSVG, generateMonthlySVG, particleCount, escapeXML } from './generator';
 import type { BadgeParams, ContributionCalendar, StreakStats, MonthlyStats } from '../../types';
+import { hexColor } from './sanitizer';
 
 describe('generateSVG', () => {
   const mockStats: StreakStats = {
@@ -20,6 +21,46 @@ describe('generateSVG', () => {
       },
     ],
   } as ContributionCalendar;
+
+  it('omits stats labels when hide_stats is true', () => {
+    const svg = generateSVG(
+      mockStats,
+      {
+        user: 'avi',
+        bg: hexColor('0d1117'),
+        text: hexColor('c9d1d9'),
+        accent: hexColor('58a6ff'),
+        speed: '8s',
+        scale: 'linear',
+        hide_stats: true,
+      },
+      mockCalendar
+    );
+
+    expect(svg).not.toContain('CURRENT_STREAK');
+    expect(svg).not.toContain('ANNUAL_SYNC_TOTAL');
+    expect(svg).not.toContain('PEAK_STREAK');
+  });
+
+  it('renders stats labels when hide_stats is false', () => {
+    const svg = generateSVG(
+      mockStats,
+      {
+        user: 'avi',
+        bg: hexColor('0d1117'),
+        text: hexColor('c9d1d9'),
+        accent: hexColor('58a6ff'),
+        speed: '8s',
+        scale: 'linear',
+        hide_stats: false,
+      },
+      mockCalendar
+    );
+
+    expect(svg).toContain('CURRENT_STREAK');
+    expect(svg).toContain('ANNUAL_SYNC_TOTAL');
+    expect(svg).toContain('PEAK_STREAK');
+  });
 
   it('uses default typography when no font is passed', () => {
     const svg = generateSVG(mockStats, { user: 'avi' } as unknown as BadgeParams, mockCalendar);
@@ -55,6 +96,30 @@ describe('generateSVG', () => {
       mockCalendar
     );
     expect(svg).toContain('svg');
+  });
+
+  it('uses transparent background when hideBackground is true', () => {
+    const svg = generateSVG(
+      mockStats,
+      {
+        user: 'avi',
+        hideBackground: true,
+      } as unknown as BadgeParams,
+      mockCalendar
+    );
+    expect(svg).toContain('fill="transparent"');
+  });
+
+  it('uses normal background when hideBackground is false or omitted', () => {
+    const svg = generateSVG(
+      mockStats,
+      {
+        user: 'avi',
+        bg: '0d1117',
+      } as unknown as BadgeParams,
+      mockCalendar
+    );
+    expect(svg).not.toContain('fill="transparent"');
   });
 
   it('generates particles for days with 10 or more contributions', () => {
@@ -186,9 +251,9 @@ describe('generateSVG', () => {
   describe('autoTheme', () => {
     const autoParams: BadgeParams = {
       user: 'avi',
-      bg: 'ffffff',
-      text: '24292f',
-      accent: '0969da',
+      bg: hexColor('ffffff'),
+      text: hexColor('24292f'),
+      accent: hexColor('0969da'),
       speed: '8s',
       scale: 'linear',
       autoTheme: true,
@@ -203,13 +268,13 @@ describe('generateSVG', () => {
       expect(svg).toContain('--cp-accent: #0969da');
     });
 
-    it('injects @media (prefers-color-scheme: dark) with dark palette', () => {
+    it('injects @media (prefers-color-scheme: dark) with exact dark palette hex values', () => {
       const svg = generateSVG(mockStats, autoParams, mockCalendar);
 
       // Media query block must be present
       expect(svg).toContain('prefers-color-scheme: dark');
 
-      // Dark-mode CSS variables inside the media query
+      // Check for exact hex values used in AUTO_DARK_THEME
       expect(svg).toContain('--cp-bg: #0d1117');
       expect(svg).toContain('--cp-text: #c9d1d9');
       expect(svg).toContain('--cp-accent: #58a6ff');
@@ -247,9 +312,9 @@ describe('generateSVG', () => {
     it('does NOT inject a media query for non-auto themes', () => {
       const staticParams: BadgeParams = {
         user: 'avi',
-        bg: '0d1117',
-        text: 'c9d1d9',
-        accent: '58a6ff',
+        bg: hexColor('0d1117'),
+        text: hexColor('c9d1d9'),
+        accent: hexColor('58a6ff'),
         speed: '8s',
         scale: 'linear',
         autoTheme: false,
@@ -261,6 +326,17 @@ describe('generateSVG', () => {
       expect(svg).not.toContain('prefers-color-scheme: dark');
       expect(svg).not.toContain('--cp-bg');
       expect(svg).not.toContain('class="cp-bg-fill"');
+    });
+
+    it('includes desc element in auto-theme SVG output', () => {
+      const svg = generateSVG(mockStats, autoParams, mockCalendar);
+      expect(svg).toContain('<desc>');
+      expect(svg).toContain(String(mockStats.totalContributions));
+    });
+
+    it('includes role="img" in auto-theme SVG output', () => {
+      const svg = generateSVG(mockStats, autoParams, mockCalendar);
+      expect(svg).toContain('role="img"');
     });
 
     it('generates heat particles with CSS class instead of inline fill', () => {
