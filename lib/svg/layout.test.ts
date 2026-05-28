@@ -142,6 +142,7 @@ describe('computeTowers edge cases', () => {
       ],
     } as unknown as ContributionCalendar;
     const towers = computeTowers(calendar, 'linear', '2024-06-10');
+    expect(towers.every((tower) => tower.isGhost === false)).toBe(true);
     expect(towers[0].isGhost).toBe(false);
     expect(towers[0].h).toBe(0); // 0 count non-ghost = 0 height
     expect(towers[0].strokeOpacity).toBe(0);
