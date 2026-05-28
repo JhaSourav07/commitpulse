@@ -2,12 +2,7 @@
 import { NextResponse } from 'next/server';
 import { fetchGitHubContributions } from '../../../lib/github';
 import { calculateStreak, calculateMonthlyStats } from '../../../lib/calculate';
-import {
-  generateNotFoundSVG,
-  generateSVG,
-  generateMonthlySVG,
-  escapeXML,
-} from '../../../lib/svg/generator';
+import { generateNotFoundSVG, generateSVG, generateMonthlySVG } from '../../../lib/svg/generator';
 import { getSecondsUntilUTCMidnight, getSecondsUntilMidnightInTimezone } from '../../../utils/time';
 import type { BadgeParams } from '../../../types';
 import { themes } from '../../../lib/svg/themes';
@@ -49,8 +44,33 @@ const SVG_CSP_HEADER =
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-
+  const widthParam = searchParams.get('width');
   const parseResult = streakParamsSchema.safeParse(Object.fromEntries(searchParams.entries()));
+  const DEFAULT_WIDTH = 800;
+  const MIN_WIDTH = 300;
+  const MAX_WIDTH = 2000;
+
+  let svgWidth = DEFAULT_WIDTH;
+
+  if (widthParam !== null) {
+    const parsed = Number(widthParam);
+
+    if (!Number.isInteger(parsed) || parsed <= 0) {
+      return new Response(
+        JSON.stringify({
+          error: 'Invalid width parameter. Width must be a positive integer.',
+        }),
+        {
+          status: 400,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+    }
+
+    svgWidth = Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, parsed));
+  }
   try {
     if (!parseResult.success) {
       return NextResponse.json(
@@ -81,7 +101,6 @@ export async function GET(request: Request) {
       lang,
       view,
       delta_format,
-      width,
       height,
       grace,
     } = parseResult.data;
@@ -129,7 +148,7 @@ export async function GET(request: Request) {
       lang,
       view,
       delta_format,
-      width,
+      width: svgWidth,
       height,
       size,
       grace,
@@ -166,13 +185,17 @@ export async function GET(request: Request) {
       },
     });
   } catch (error: unknown) {
-    return buildErrorResponse(error, parseResult);
+    return buildErrorResponse(error, parseResult, svgWidth);
   }
 }
 
 type ParseResult = ReturnType<typeof streakParamsSchema.safeParse>;
 
-function buildErrorResponse(error: unknown, parseResult: ParseResult): NextResponse {
+function buildErrorResponse(
+  error: unknown,
+  parseResult: ParseResult,
+  svgWidth: number
+): NextResponse {
   const message = error instanceof Error ? error.message : 'Unknown error';
   const isNotFound =
     message.toLowerCase().includes('not found') ||
@@ -193,7 +216,15 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
     const match = message.match(/"([^"]+)"|login of '([^']+)'/);
     const badUsername =
       match?.[1] ?? match?.[2] ?? (parseResult.success ? parseResult.data.user : 'unknown');
-    const svg = generateNotFoundSVG(badUsername, errBg, errAccent, errText, errRadius, errSpeed);
+    const svg = generateNotFoundSVG(
+      badUsername,
+      errBg,
+      errAccent,
+      errText,
+      errRadius,
+      errSpeed,
+      svgWidth
+    );
     return new NextResponse(svg, {
       status: 404,
       headers: {

@@ -158,7 +158,7 @@ URL Parameter > Theme Default > System Fallback
 | `lang`            | `string`  | No         | `en`                           | Language code for labels (`en`, `es`, `hi`, `fr`, `pt`, `ko`, `ja`)                                                                                                       |
 | `view`            | `string`  | No         | `default`                      | Rendering mode: `default` (3D Monolith) or `monthly` (Compact monthly stats)                                                                                              |
 | `delta_format`    | `string`  | No         | `percent`                      | Format for month-over-month delta in monthly view: `percent` (e.g. +12%), `absolute` (e.g. +15 commits), or `both`                                                        |
-| `width`           | `number`  | No         | `300`                          | Custom width for the SVG canvas (currently only applies to `view=monthly`)                                                                                                |
+| `width`           | `number`  | No         | `800`                          | Custom width for the SVG canvas                                                                                                                                           |
 | `height`          | `number`  | No         | `120`                          | Custom height for the SVG canvas (currently only applies to `view=monthly`)                                                                                               |
 
 ### Theme Presets

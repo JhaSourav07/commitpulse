@@ -273,7 +273,8 @@ export function generateSVG(
   const sf = getSizeScale(params.size);
   const radius = sanitizeRadius(params.radius, 8) * sf;
   const labels = getLabels(params.lang);
-  const W = Math.round(SVG_WIDTH * sf);
+  const baseWidth = params.width || SVG_WIDTH;
+  const W = Math.round(baseWidth * sf);
   const H = Math.round(SVG_HEIGHT * sf);
 
   const towerData = scaleTowerData(computeTowers(calendar, params.scale, stats.todayDate), sf);
@@ -595,15 +596,20 @@ function generateAutoThemeMonthlySVG(stats: MonthlyStats, params: BadgeParams): 
  *   '8s'
  * );
  */
+
 export function generateNotFoundSVG(
   username: string,
   bg: string,
   accent: string,
   text: string,
   radius: number,
-  speed: string = '8s'
+  speed: string = '8s',
+  width: number = 800
 ): string {
   const safeName = escapeXML(username.toUpperCase());
+
+  const height = SVG_HEIGHT;
+  const centerX = width / 2;
 
   // Ghost towers — same isometric math as computeTowers() but with fixed
   // deterministic heights so the silhouette looks like a real city.
@@ -664,8 +670,9 @@ export function generateNotFoundSVG(
   ];
 
   let ghostTowers = '';
+
   for (const { col, row, h } of ghostLayout) {
-    const tx = 300 + (col - row) * 16;
+    const tx = centerX + (col - row) * 16;
     const ty = 120 + (col + row) * 9;
 
     ghostTowers += `
@@ -684,23 +691,25 @@ export function generateNotFoundSVG(
 
   return `<svg
   xmlns="http://www.w3.org/2000/svg"
-  width="${SVG_WIDTH}"
-  height="${SVG_HEIGHT}"
-  viewBox="0 0 ${SVG_WIDTH} ${SVG_HEIGHT}"
+  width="${width}"
+  height="${height}"
+  viewBox="0 0 ${width} ${height}"
   fill="none"
   role="img"
 >
   <title>User not found — ${safeName}</title>
+
   <defs>
     <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
       <feGaussianBlur stdDeviation="5" result="blur"/>
       <feComposite in="SourceGraphic" in2="blur" operator="over"/>
     </filter>
+
     <filter id="softglow" x="-80%" y="-80%" width="360%" height="360%">
       <feGaussianBlur stdDeviation="8" result="blur"/>
       <feComposite in="SourceGraphic" in2="blur" operator="over"/>
     </filter>
-    <!-- Fade the ghost city out toward the bottom -->
+
     <linearGradient id="ghostFade" x1="0" y1="0" x2="0" y2="1">
       <stop offset="30%" stop-color="${bg}" stop-opacity="0"/>
       <stop offset="100%" stop-color="${bg}" stop-opacity="1"/>
@@ -709,70 +718,191 @@ export function generateNotFoundSVG(
 
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600&amp;display=swap');
-    .title  { font-family: "Syncopate", sans-serif; fill: ${text}; font-size: 18px; letter-spacing: 6px; font-weight: 400; opacity: 0.5; }
-    .label  { font-family: "Roboto", sans-serif; fill: ${accent}; font-size: 11px; letter-spacing: 2px; opacity: 0.4; }
-    .stats  { font-family: "Space Grotesk", sans-serif; fill: ${text}; font-size: 42px; font-weight: 500; opacity: 0.2; }
-    .ghost-pulse { animation: gp 2.6s ease-in-out infinite; }
-    @keyframes gp { 0%,100%{opacity:.55} 50%{opacity:1} }
-    @media (prefers-reduced-motion: reduce) { .ghost-pulse { animation: none; } }
+
+    .title  {
+      font-family: "Syncopate", sans-serif;
+      fill: ${text};
+      font-size: 18px;
+      letter-spacing: 6px;
+      font-weight: 400;
+      opacity: 0.5;
+    }
+
+    .label  {
+      font-family: "Roboto", sans-serif;
+      fill: ${accent};
+      font-size: 11px;
+      letter-spacing: 2px;
+      opacity: 0.4;
+    }
+
+    .stats  {
+      font-family: "Space Grotesk", sans-serif;
+      fill: ${text};
+      font-size: 42px;
+      font-weight: 500;
+      opacity: 0.2;
+    }
+
+    .ghost-pulse {
+      animation: gp 2.6s ease-in-out infinite;
+    }
+
+    @keyframes gp {
+      0%,100% { opacity:.55 }
+      50% { opacity:1 }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .ghost-pulse {
+        animation: none;
+      }
+    }
   </style>
 
-  <!-- Background -->
-  <rect width="${SVG_WIDTH}" height="${SVG_HEIGHT}" rx="${radius}" fill="${bg}"/>
+  <rect
+    width="${width}"
+    height="${height}"
+    rx="${radius}"
+    fill="${bg}"
+  />
 
-  <!-- Ghost isometric city — same grid as real badge -->
   <g transform="translate(0, 20)" class="ghost-pulse">
     ${ghostTowers}
   </g>
 
-  <!-- Fade overlay so ghost city dissolves into background -->
-  <rect width="${SVG_WIDTH}" height="${SVG_HEIGHT}" rx="${radius}" fill="url(#ghostFade)"/>
+  <rect
+    width="${width}"
+    height="${height}"
+    rx="${radius}"
+    fill="url(#ghostFade)"
+  />
 
-  <!-- Radar scan line (same as real badge, but very faint) -->
-  <rect x="100" y="60" width="400" height="1" fill="${accent}" fill-opacity="0.12">
-    <animate attributeName="y" values="80;320;80" dur="${speed}" repeatCount="indefinite"/>
+  <rect
+    x="${centerX - 200}"
+    y="60"
+    width="400"
+    height="1"
+    fill="${accent}"
+    fill-opacity="0.12"
+  >
+    <animate
+      attributeName="y"
+      values="80;320;80"
+      dur="${speed}"
+      repeatCount="indefinite"
+    />
   </rect>
 
-  <!-- Username label (same position as real badge) -->
-  <text x="300" y="50" text-anchor="middle" class="title">${safeName}</text>
+  <text
+    x="${centerX}"
+    y="50"
+    text-anchor="middle"
+    class="title"
+  >
+    ${safeName}
+  </text>
 
-  <!-- Divider below title -->
-  <rect x="180" y="62" width="240" height="1" fill="${accent}" fill-opacity="0.15"/>
+  <rect
+    x="${centerX - 120}"
+    y="62"
+    width="240"
+    height="1"
+    fill="${accent}"
+    fill-opacity="0.15"
+  />
 
-  <!-- Central error mark -->
-  <circle cx="300" cy="190" r="32" fill="none"
-    stroke="${accent}" stroke-width="1.2" stroke-opacity="0.3" filter="url(#softglow)"/>
-  <line x1="286" y1="176" x2="314" y2="204"
-    stroke="${accent}" stroke-width="1.8" stroke-linecap="round" stroke-opacity="0.55"/>
-  <line x1="314" y1="176" x2="286" y2="204"
-    stroke="${accent}" stroke-width="1.8" stroke-linecap="round" stroke-opacity="0.55"/>
+  <circle
+    cx="${centerX}"
+    cy="190"
+    r="32"
+    fill="none"
+    stroke="${accent}"
+    stroke-width="1.2"
+    stroke-opacity="0.3"
+    filter="url(#softglow)"
+  />
 
-  <!-- "NOT FOUND" badge -->
-  <rect x="230" y="235" width="140" height="22" rx="4"
-    fill="${accent}" fill-opacity="0.08"
-    stroke="${accent}" stroke-width="0.8" stroke-opacity="0.25"/>
-  <text x="300" y="250" text-anchor="middle"
-    font-family="Syncopate, sans-serif" font-size="9" font-weight="700"
-    fill="${accent}" opacity="0.7" letter-spacing="4">NOT FOUND</text>
+  <line
+    x1="${centerX - 14}"
+    y1="176"
+    x2="${centerX + 14}"
+    y2="204"
+    stroke="${accent}"
+    stroke-width="1.8"
+    stroke-linecap="round"
+    stroke-opacity="0.55"
+  />
 
-  <!-- Sub-hint -->
-  <text x="300" y="278" text-anchor="middle"
-    font-family="Space Grotesk, sans-serif" font-size="11"
-    fill="${text}" opacity="0.3">
+  <line
+    x1="${centerX + 14}"
+    y1="176"
+    x2="${centerX - 14}"
+    y2="204"
+    stroke="${accent}"
+    stroke-width="1.8"
+    stroke-linecap="round"
+    stroke-opacity="0.55"
+  />
+
+  <rect
+    x="${centerX - 70}"
+    y="235"
+    width="140"
+    height="22"
+    rx="4"
+    fill="${accent}"
+    fill-opacity="0.08"
+    stroke="${accent}"
+    stroke-width="0.8"
+    stroke-opacity="0.25"
+  />
+
+  <text
+    x="${centerX}"
+    y="250"
+    text-anchor="middle"
+    font-family="Syncopate, sans-serif"
+    font-size="9"
+    font-weight="700"
+    fill="${accent}"
+    opacity="0.7"
+    letter-spacing="4"
+  >
+    NOT FOUND
+  </text>
+
+  <text
+    x="${centerX}"
+    y="278"
+    text-anchor="middle"
+    font-family="Space Grotesk, sans-serif"
+    font-size="11"
+    fill="${text}"
+    opacity="0.3"
+  >
     This GitHub user doesn't exist
   </text>
 
-  <!-- Bottom stat placeholders (same layout as real badge, greyed out) -->
   <g transform="translate(40, 340)">
     <text class="label">CURRENT_STREAK</text>
     <text y="40" class="stats">—</text>
   </g>
-  <g transform="translate(300, 340)" text-anchor="middle">
+
+  <g transform="translate(${centerX}, 340)" text-anchor="middle">
     <text class="label">ANNUAL_SYNC_TOTAL</text>
-    <text y="40" font-family="Space Grotesk,sans-serif" font-size="24"
-      fill="${accent}" opacity="0.2">—</text>
+    <text
+      y="40"
+      font-family="Space Grotesk,sans-serif"
+      font-size="24"
+      fill="${accent}"
+      opacity="0.2"
+    >
+      —
+    </text>
   </g>
-  <g transform="translate(560, 340)" text-anchor="end">
+
+  <g transform="translate(${width - 40}, 340)" text-anchor="end">
     <text class="label">PEAK_STREAK</text>
     <text y="40" class="stats">—</text>
   </g>
