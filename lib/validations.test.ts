@@ -54,6 +54,16 @@ describe('githubParamsSchema', () => {
 
 describe('streakParamsSchema', () => {
   it('should fail when user is missing', () => {
+describe('streakParamsSchema user validation', () => {
+  it('should pass when user is valid', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it('should fail when user is omitted', () => {
     const result = streakParamsSchema.safeParse({});
 
     expect(result.success).toBe(false);
@@ -63,6 +73,7 @@ describe('streakParamsSchema', () => {
   });
 
   it('should fail when user is empty string', () => {
+  it('should fail when user is empty', () => {
     const result = streakParamsSchema.safeParse({
       user: '',
     });
@@ -87,6 +98,20 @@ describe('streakParamsSchema', () => {
   it('should fail when user is whitespace-only input', () => {
     const result = streakParamsSchema.safeParse({
       user: '   ',
+  it('should fail when user exceeds 39 characters', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'a'.repeat(40),
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toBe('GitHub username cannot exceed 39 characters');
+    }
+  });
+
+  it('should fail when user has invalid characters', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octo_cat',
     });
 
     expect(result.success).toBe(false);
