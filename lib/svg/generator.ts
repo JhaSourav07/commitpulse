@@ -4,7 +4,7 @@ import type { BadgeParams, ContributionCalendar, StreakStats, MonthlyStats } fro
 import { getLabels, type BadgeLabels } from '../i18n/badgeLabels';
 import { AUTO_THEME_DARK, AUTO_THEME_LIGHT } from './themes';
 import { TOWER_ANIMATION_CSS } from './animations';
-import { computeTowers, type TowerData } from './layout';
+import { computeTowers, projectIsometric, type TowerData } from './layout';
 import { sanitizeFont, sanitizeHexColor, sanitizeRadius, sanitizeGoogleFontUrl } from './sanitizer';
 
 import { SVG_WIDTH, SVG_HEIGHT, FONT_MAP, isFontKey } from './generatorConstants';
@@ -239,6 +239,9 @@ const MONTH_NAMES = [
   'Dec',
 ];
 
+const ISOMETRIC_VERTICAL_OFFSET = 20;
+const MONTH_LABEL_ROW_OFFSET = 7.2;
+const WEEKDAY_LABEL_COL_OFFSET = -1.2;
 function renderIsometricLabels(
   calendar: ContributionCalendar,
   params: BadgeParams,
@@ -269,8 +272,9 @@ function renderIsometricLabels(
   const labelColorHex = params.labelColor ? `#${params.labelColor}` : color;
 
   monthLabels.forEach((label) => {
-    const tx = s(300 + (label.col - 7.2) * 16 + 8);
-    const ty = s(120 + (label.col + 7.2) * 9 + 20) + Math.round(20 * sf);
+    const coords = projectIsometric(label.col, MONTH_LABEL_ROW_OFFSET);
+    const tx = s(coords.x + 8);
+    const ty = s(coords.y + ISOMETRIC_VERTICAL_OFFSET) + Math.round(20 * sf);
     elements += `
     <text x="${tx}" y="${ty}" text-anchor="middle" fill="${labelColorHex}" fill-opacity="0.6" font-family="&quot;Roboto&quot;, sans-serif" font-size="${Math.round(10 * sf)}px" font-weight="400" letter-spacing="1px">${label.text}</text>`;
   });
@@ -282,8 +286,9 @@ function renderIsometricLabels(
   ];
 
   weekdays.forEach((day) => {
-    const tx = s(300 + (-1.2 - day.row) * 16);
-    const ty = s(120 + (-1.2 + day.row) * 9 + 20) + Math.round(20 * sf);
+    const coords = projectIsometric(WEEKDAY_LABEL_COL_OFFSET, day.row);
+    const tx = s(coords.x);
+    const ty = s(coords.y + ISOMETRIC_VERTICAL_OFFSET) + Math.round(20 * sf);
     elements += `
     <text x="${tx}" y="${ty}" text-anchor="end" fill="${labelColorHex}" fill-opacity="0.6" font-family="&quot;Roboto&quot;, sans-serif" font-size="${Math.round(10 * sf)}px" font-weight="400" letter-spacing="1px">${day.text}</text>`;
   });
