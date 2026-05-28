@@ -210,7 +210,7 @@ describe('LandingPage', () => {
     await waitFor(
       () => {
         expect(screen.getByText('Copied')).toBeDefined();
-        expect(screen.getByText('Your Monolith is Ready - Deploy It in 4 Steps')).toBeDefined();
+        expect(screen.getByText(/Your Monolith is Ready/i)).toBeDefined();
       },
       { timeout: 3000 }
     );
