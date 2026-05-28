@@ -5,7 +5,15 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { ControlsPanel } from './components/ControlsPanel';
 import { ExportPanel } from './components/ExportPanel';
-import type { ExportFormat, Font, Scale, BadgeSize } from './types';
+import type {
+  ExportFormat,
+  Font,
+  Scale,
+  BadgeSize,
+  ViewMode,
+  DeltaFormat,
+  Language,
+} from './types';
 import { getExportSnippet, stripHash } from './utils';
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
@@ -22,6 +30,15 @@ export default function CustomizePage(): ReactElement {
   const [year, setYear] = useState('');
   const [radius, setRadius] = useState(8);
   const [size, setSize] = useState<BadgeSize>('medium');
+  const [hideTitle, setHideTitle] = useState(false);
+  const [hideBackground, setHideBackground] = useState(false);
+  const [hideStats, setHideStats] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>('default');
+  const [deltaFormat, setDeltaFormat] = useState<DeltaFormat>('percent');
+  const [badgeWidth, setBadgeWidth] = useState<number | ''>('');
+  const [badgeHeight, setBadgeHeight] = useState<number | ''>('');
+  const [grace, setGrace] = useState<number>(1);
+  const [language, setLanguage] = useState<Language>('en');
   const [exportFormat, setExportFormat] = useState<ExportFormat>('markdown');
   const [copied, setCopied] = useState(false);
   const [copyStatusMessage, setCopyStatusMessage] = useState('');
@@ -95,6 +112,17 @@ export default function CustomizePage(): ReactElement {
     if (year) params.set('year', year);
     if (radius !== 8) params.set('radius', radius.toString());
     if (size !== 'medium') params.set('size', size);
+
+    if (hideTitle) params.set('hide_title', 'true');
+    if (hideBackground) params.set('hide_background', 'true');
+    if (hideStats) params.set('hide_stats', 'true');
+    if (viewMode !== 'default') params.set('view', viewMode);
+    if (deltaFormat !== 'percent') params.set('delta_format', deltaFormat);
+    if (badgeWidth !== '') params.set('width', badgeWidth.toString());
+    if (badgeHeight !== '') params.set('height', badgeHeight.toString());
+    if (grace !== 1) params.set('grace', grace.toString());
+    if (language !== 'en') params.set('lang', language);
+
     return params.toString();
   }, [
     hasUsername,
@@ -110,11 +138,44 @@ export default function CustomizePage(): ReactElement {
     year,
     radius,
     size,
+    hideTitle,
+    hideBackground,
+    hideStats,
+    viewMode,
+    deltaFormat,
+    badgeWidth,
+    badgeHeight,
+    grace,
+    language,
   ]);
 
   const queryString = buildQueryParams();
   const previewSrc = `/api/streak?${queryString}`;
   const exportSnippet = getExportSnippet(exportFormat, queryString);
+
+  const fallbackCopyToClipboard = (text: string): boolean => {
+    try {
+      const textArea = document.createElement('textarea');
+
+      textArea.value = text;
+      textArea.style.position = 'fixed';
+      textArea.style.opacity = '0';
+      textArea.style.pointerEvents = 'none';
+
+      document.body.appendChild(textArea);
+
+      textArea.focus();
+      textArea.select();
+
+      const successful = document.execCommand('copy');
+
+      document.body.removeChild(textArea);
+
+      return successful;
+    } catch {
+      return false;
+    }
+  };
 
   const announceCopyStatus = useCallback((message: string): void => {
     setCopyStatusMessage('');
@@ -127,8 +188,18 @@ export default function CustomizePage(): ReactElement {
     if (!hasUsername) return;
 
     try {
-      await navigator.clipboard.writeText(exportSnippet);
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(exportSnippet);
+      } else {
+        const copiedSuccessfully = fallbackCopyToClipboard(exportSnippet);
+
+        if (!copiedSuccessfully) {
+          throw new Error('Fallback clipboard copy failed.');
+        }
+      }
+
       setCopied(true);
+
       announceCopyStatus(
         `${exportFormat === 'markdown' ? 'Markdown' : 'HTML'} snippet copied to clipboard.`
       );
@@ -143,6 +214,7 @@ export default function CustomizePage(): ReactElement {
       }, 3000);
     } catch {
       setCopied(false);
+
       announceCopyStatus(
         `Unable to copy the ${exportFormat === 'markdown' ? 'Markdown' : 'HTML'} snippet.`
       );
@@ -158,7 +230,7 @@ export default function CustomizePage(): ReactElement {
         <div className="absolute bottom-0 left-1/2 w-[30%] h-[30%] bg-blue-500/5 blur-[120px] rounded-full" />
       </div>
 
-      <div className="relative z-10 max-w-[1400px] mx-auto px-6 py-8">
+      <div className="relative z-10 max-w-7xl mx-auto px-6 py-8">
         {/* ── Top Bar ───────────────────────────────────────────────────────── */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}
@@ -190,7 +262,7 @@ export default function CustomizePage(): ReactElement {
           <div className="h-4 w-px bg-white/10" />
 
           <div>
-            <span className="text-xs font-bold uppercase tracking-[0.22em] text-emerald-400">
+            <span className="text-xs font-bold uppercase tracking-[0.22em] text-emerald-600 dark:text-emerald-400">
               Customization Studio
             </span>
           </div>
@@ -249,6 +321,24 @@ export default function CustomizePage(): ReactElement {
                 setAccentHex('');
                 setTextHex('');
               }}
+              hideTitle={hideTitle}
+              hideBackground={hideBackground}
+              hideStats={hideStats}
+              viewMode={viewMode}
+              deltaFormat={deltaFormat}
+              badgeWidth={badgeWidth}
+              badgeHeight={badgeHeight}
+              grace={grace}
+              language={language}
+              onHideTitleChange={setHideTitle}
+              onHideBackgroundChange={setHideBackground}
+              onHideStatsChange={setHideStats}
+              onViewModeChange={setViewMode}
+              onDeltaFormatChange={setDeltaFormat}
+              onBadgeWidthChange={setBadgeWidth}
+              onBadgeHeightChange={setBadgeHeight}
+              onGraceChange={setGrace}
+              onLanguageChange={setLanguage}
             />
           </motion.aside>
 
@@ -261,7 +351,7 @@ export default function CustomizePage(): ReactElement {
           >
             {/* Live Preview */}
             <div className="bg-white/70 backdrop-blur-xl border border-black/10 dark:bg-black/35 dark:border-white/10 rounded-[1.75rem] p-6 shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
-              <p className="text-xs font-bold uppercase tracking-[0.22em] text-emerald-400 mb-5">
+              <p className="text-xs font-bold uppercase tracking-[0.22em] text-emerald-600 dark:text-emerald-400 mb-5">
                 Live Preview
               </p>
 
@@ -349,7 +439,9 @@ export default function CustomizePage(): ReactElement {
                       >
                         <span className="text-purple-400">{decodeURIComponent(k)}</span>
                         <span className="text-gray-400 dark:text-white/20">=</span>
-                        <span className="text-emerald-400">{decodeURIComponent(v)}</span>
+                        <span className="text-emerald-600 dark:text-emerald-400">
+                          {decodeURIComponent(v)}
+                        </span>
                       </span>
                     );
                   }

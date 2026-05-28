@@ -1,5 +1,24 @@
+// lib/validations.ts
+
 import { z } from 'zod';
 import { sanitizeHexColor, sanitizeSpeed, sanitizeRadius, sanitizeFont } from './svg/sanitizer';
+
+function dimensionParam(name: string, min: number, max: number) {
+  return z
+    .string()
+    .optional()
+    .refine(
+      (val) => {
+        if (val === undefined) return true;
+        if (!/^\d+$/.test(val)) return false;
+
+        const parsed = Number(val);
+        return parsed >= min && parsed <= max;
+      },
+      { message: `${name} must be an integer between ${min} and ${max}` }
+    )
+    .transform((val) => (val === undefined ? undefined : Number(val)));
+}
 
 export const streakParamsSchema = z.object({
   // Required — missing user surfaces as "Missing" to match existing tests
@@ -83,8 +102,8 @@ export const streakParamsSchema = z.object({
   view: z.enum(['default', 'monthly']).catch('default').default('default'),
   // Invalid delta formats fall back to percentage mode.
   delta_format: z.enum(['percent', 'absolute', 'both']).catch('percent').default('percent'),
-  width: z.string().optional(),
-  height: z.string().optional(),
+  width: dimensionParam('width', 100, 1200),
+  height: dimensionParam('height', 80, 800),
   grace: z
     .string()
     .optional()
@@ -94,6 +113,13 @@ export const streakParamsSchema = z.object({
       return isNaN(parsed) ? 1 : Math.max(0, Math.min(parsed, 7));
     })
     .default(1),
+
+  /* ==========================================================================
+   * NEW EPIC FEATURE PARAMS
+   * ========================================================================== */
+  mode: z.enum(['commits', 'loc']).catch('commits').default('commits'),
+  repo: z.string().optional(),
+  org: z.string().optional(),
 });
 
 export const githubParamsSchema = z.object({

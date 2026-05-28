@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { calculateStreak, calculateMonthlyStats, isStreakAlive } from './calculate';
+import {
+  calculateStreak,
+  calculateMonthlyStats,
+  isStreakAlive,
+  aggregateCalendars,
+  calculateWrappedStats,
+} from './calculate';
 import type { ContributionCalendar } from '../types';
 
 // Turns a flat array of daily counts into the ContributionCalendar shape,
@@ -188,7 +194,6 @@ describe('calculateStreak', () => {
     // The function should survive this gracefully and return currentStreak = 1.
     const calendar = buildCalendar([1]);
 
-    // We only assert it doesn't throw and that the counts make sense.
     expect(() => calculateStreak(calendar)).not.toThrow();
     const result = calculateStreak(calendar);
     expect(result.totalContributions).toBe(1);
@@ -210,19 +215,57 @@ describe('calculateStreak', () => {
     expect(result.currentStreak).toBe(0);
     expect(result.longestStreak).toBe(0);
   });
+
+  it('should find the longest streak when it is in the middle of the calendar', () => {
+    // buildCalendar groups elements by sets of 7 (weeks) from left to right.
+    // The very last element of the flat array represents "today".
+    const calendar = buildCalendar([
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0, // Week 1 — Buffer gap
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1, // Week 2 — Longest streak start (7 days)
+      1,
+      1,
+      1,
+      0,
+      0,
+      0,
+      0, // Week 3 — Longest streak ends (+3 days = 10 total) followed by a gap
+      1,
+      1,
+      1,
+      1,
+      1,
+      0,
+      0, // Week 4 — Intermediate streak (5 days) broken by a gap
+      0,
+      0,
+      1,
+      1,
+      1,
+      1,
+      1, // Week 5 — 5-day active current streak ending on the final day ("today")
+    ]);
+
+    const result = calculateStreak(calendar);
+
+    // Assertions (Definition of Done)
+    expect(result.longestStreak).toBe(10);
+    expect(result.currentStreak).toBe(5);
+  });
 });
 
 describe('calculateStreak — timezone awareness', () => {
-  // These tests use real date strings so we can verify timezone-based "today" lookup.
-  //
-  // Core scenario: a UTC-8 user opens the badge early in the UTC morning.
-  //   now = 2024-06-16T07:00:00Z  →  local date in Etc/GMT+8 (UTC-8) = 2024-06-15
-  //
-  // The GitHub data includes June 15 (with commits) and June 16 (no commits yet).
-  // Without timezone awareness the last entry (June 16, 0 commits) becomes "today"
-  // and both today+yesterday have 0 commits → streak broken incorrectly.
-  // With timezone=Etc/GMT+8, "today" resolves to June 15 (has commits) → streak alive.
-
   const tzCalendar = {
     totalContributions: 3,
     weeks: [
@@ -238,52 +281,37 @@ describe('calculateStreak — timezone awareness', () => {
     ],
   };
 
-  // 2024-06-16T07:00Z = 2024-06-15 23:00 in Etc/GMT+8 (UTC-8)
   const nowUTC = new Date('2024-06-16T07:00:00.000Z');
 
   it('breaks the streak when evaluated in UTC because today and yesterday both have 0 commits', () => {
     const result = calculateStreak(tzCalendar, 'UTC', nowUTC);
-
-    // In UTC: today=June 16 (0), yesterday=June 15 (0) → no grace period
     expect(result.currentStreak).toBe(0);
   });
 
   it('preserves the streak when the local date (UTC-8) maps to a day with commits via grace period', () => {
-    // In Etc/GMT+8 (UTC-8): local date = June 15, which has 0 commits,
-    // but local yesterday = June 14 (1 commit) → grace period → streak alive
     const result = calculateStreak(tzCalendar, 'Etc/GMT+8', nowUTC);
-
     expect(result.currentStreak).toBe(3);
   });
 
   it('falls back to the last available day when the local date is ahead of the calendar data', () => {
-    // Etc/GMT-14 is UTC+14 — the furthest-ahead timezone on earth.
-    // At 2024-06-16T07:00Z, local date in UTC+14 = 2024-06-16T21:00 → June 16.
-    // June 16 IS in the calendar (last entry, 0 commits), so the lookup succeeds.
-    // Choosing a now where local date would be June 17 (not in calendar) tests the fallback.
-    const futureNow = new Date('2024-06-16T12:00:00.000Z'); // UTC+14 → June 17 02:00
+    const futureNow = new Date('2024-06-16T12:00:00.000Z');
     const result = calculateStreak(tzCalendar, 'Etc/GMT-14', futureNow);
-
-    // Falls back to days.length-1 = June 16 (0 commits), yesterday = June 15 (0 commits) → 0
     expect(result.currentStreak).toBe(0);
     expect(result.longestStreak).toBe(3);
   });
 
   it('still calculates longestStreak correctly regardless of timezone', () => {
     const result = calculateStreak(tzCalendar, 'Etc/GMT+8', nowUTC);
-
     expect(result.longestStreak).toBe(3);
     expect(result.totalContributions).toBe(3);
   });
 
   it('returns the correct local todayDate for use by the SVG generator', () => {
-    // nowUTC = 2024-06-16T07:00Z → local date in Etc/GMT+8 (UTC-8) = 2024-06-15
     const result = calculateStreak(tzCalendar, 'Etc/GMT+8', nowUTC);
     expect(result.todayDate).toBe('2024-06-15');
   });
 
   it('returns UTC date as todayDate when no timezone is given', () => {
-    // nowUTC = 2024-06-16T07:00Z → UTC date = 2024-06-16
     const result = calculateStreak(tzCalendar, 'UTC', nowUTC);
     expect(result.todayDate).toBe('2024-06-16');
   });
@@ -348,7 +376,7 @@ describe('calculateMonthlyStats', () => {
 
     expect(result.previousMonthTotal).toBe(0);
     expect(result.currentMonthTotal).toBe(10);
-    expect(result.deltaPercentage).toBe(100);
+    expect(result.deltaPercentage).toBeNull();
   });
 
   it('handles zero current month contributions', () => {
@@ -436,5 +464,42 @@ describe('calculateStreak — empty and sparse year edge cases', () => {
     const result = calculateStreak(calendar);
     expect(result.longestStreak).toBe(1);
     expect(result.totalContributions).toBe(2);
+  });
+});
+
+// ---------- EPIC ENHANCEMENT TESTS ----------
+
+describe('aggregateCalendars', () => {
+  it('returns an empty calendar if no calendars are provided', () => {
+    const result = aggregateCalendars([]);
+    expect(result.totalContributions).toBe(0);
+    expect(result.weeks).toEqual([]);
+  });
+
+  it('aggregates multiple calendars correctly for orgs', () => {
+    const cal1 = buildCalendar([1, 0, 2]); // total: 3
+    const cal2 = buildCalendar([0, 3, 1]); // total: 4
+
+    const result = aggregateCalendars([cal1, cal2]);
+
+    expect(result.totalContributions).toBe(7);
+    expect(result.weeks[0].contributionDays[0].contributionCount).toBe(1); // 1 + 0
+    expect(result.weeks[0].contributionDays[1].contributionCount).toBe(3); // 0 + 3
+    expect(result.weeks[0].contributionDays[2].contributionCount).toBe(3); // 2 + 1
+  });
+});
+
+describe('calculateWrappedStats', () => {
+  it('calculates GitHub Wrapped stats accurately', () => {
+    // 2024-01-01 was a Monday. Indices 5 (Sat) and 6 (Sun) are the weekend.
+    const cal = buildCalendar([0, 0, 0, 0, 0, 5, 15]);
+
+    const result = calculateWrappedStats(cal);
+
+    expect(result.totalContributions).toBe(20);
+    expect(result.highestDailyCount).toBe(15);
+    expect(result.mostActiveDate).toBe('2024-01-07');
+    expect(result.busiestMonth).toBe('2024-01');
+    expect(result.weekendRatio).toBe(100);
   });
 });

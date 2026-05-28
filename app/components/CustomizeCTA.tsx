@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 export function CustomizeCTA() {
   return (
     <motion.div
+      id="customization-studio"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: 'easeOut' }}
@@ -21,7 +22,7 @@ export function CustomizeCTA() {
 
         <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8 px-8 py-10">
           <div className="flex-1 text-center md:text-left">
-            <p className="text-xs font-bold uppercase tracking-[0.25em] text-emerald-400 mb-3">
+            <p className="text-xs font-bold uppercase tracking-[0.25em] text-emerald-600 dark:text-emerald-400 mb-3">
               Customization Studio
             </p>
             <h2 className="text-2xl md:text-3xl font-extrabold text-black dark:text-white tracking-tight mb-3 leading-snug">

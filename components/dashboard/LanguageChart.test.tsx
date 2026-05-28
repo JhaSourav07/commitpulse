@@ -1,8 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import LanguageChart from './LanguageChart';
-import { buildGradientStops } from './LanguageChart';
+import LanguageChart, { buildGradientStops } from './LanguageChart';
 
 vi.mock('framer-motion', () => ({
   motion: {
@@ -43,6 +42,29 @@ describe('LanguageChart', () => {
     expect(screen.getAllByText('72%')).toHaveLength(2);
     expect(screen.getAllByText('TypeScript')).toHaveLength(2);
     expect(screen.getByText('JavaScript')).toBeDefined();
+  });
+
+  it('renders every language row passed to the component', () => {
+    const languages = [
+      { name: 'TypeScript', percentage: 30, color: '#3178c6' },
+      { name: 'JavaScript', percentage: 20, color: '#f1e05a' },
+      { name: 'Python', percentage: 15, color: '#3572A5' },
+      { name: 'Go', percentage: 12, color: '#00ADD8' },
+      { name: 'Rust', percentage: 8, color: '#dea584' },
+      { name: 'Ruby', percentage: 6, color: '#701516' },
+      { name: 'PHP', percentage: 5, color: '#4F5D95' },
+      { name: 'CSS', percentage: 4, color: '#563d7c' },
+    ];
+
+    render(<LanguageChart languages={languages} />);
+
+    const renderedLanguageNameElements = screen.getAllByText(
+      (content, element) =>
+        languages.some((language) => language.name === content) &&
+        element?.className === 'text-[#A1A1AA]'
+    );
+
+    expect(renderedLanguageNameElements).toHaveLength(8);
   });
 });
 
