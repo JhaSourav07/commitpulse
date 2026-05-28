@@ -268,10 +268,32 @@ describe('fetchUserProfile', () => {
   beforeEach(() => vi.spyOn(global, 'fetch'));
   afterEach(() => vi.restoreAllMocks());
 
-  it('returns profile data on success', async () => {
-    vi.mocked(fetch).mockResolvedValue(mockResponse({ login: 'octocat', name: 'The Octocat' }));
+  it('returns all profile fields on success', async () => {
+    const mockProfile = {
+      login: 'octocat',
+      name: 'The Octocat',
+      avatar_url: 'https://github.com/images/error/octocat_happy.gif',
+      public_repos: 8,
+      followers: 100,
+      following: 5,
+      created_at: '2011-01-25T18:44:36Z',
+      bio: 'GitHub mascot',
+      location: 'San Francisco',
+      plan: { name: 'pro' },
+    };
+
+    vi.mocked(fetch).mockResolvedValue(mockResponse(mockProfile));
+
     const result = await fetchUserProfile('octocat');
-    expect(result.name).toBe('The Octocat');
+
+    expect(result.login).toBe(mockProfile.login);
+    expect(result.bio).toBe(mockProfile.bio);
+    expect(result.location).toBe(mockProfile.location);
+    expect(result.created_at).toBe(mockProfile.created_at);
+    expect(result.public_repos).toBe(mockProfile.public_repos);
+    expect(result.followers).toBe(mockProfile.followers);
+    expect(result.following).toBe(mockProfile.following);
+    expect(result.avatar_url).toBe(mockProfile.avatar_url);
   });
 
   it('throws "User not found" on 404', async () => {
