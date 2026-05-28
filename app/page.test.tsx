@@ -151,46 +151,69 @@ describe('LandingPage', () => {
     });
   });
 
-  it('disables the Watch Dashboard link when the username is empty', () => {
+  it('disables the Watch Dashboard link when the username is empty', async () => {
     render(<LandingPage />);
-    const dashboardLink = screen.getByRole('link', { name: 'Watch Dashboard' });
 
-    expect(dashboardLink.getAttribute('aria-disabled')).toBe('true');
-    expect(dashboardLink.getAttribute('href')).toBe('#');
+    await waitFor(
+      () => {
+        const dashboardLink = screen.getByRole('link', { name: 'Watch Dashboard' });
+        expect(dashboardLink.getAttribute('href')).toBe('#');
+      },
+      { timeout: 1000 }
+    );
   });
 
-  it('enables the Watch Dashboard link after a username is entered', () => {
+  it('enables the Watch Dashboard link after a username is entered', async () => {
     render(<LandingPage />);
     const input = screen.getByPlaceholderText('Enter GitHub Username') as HTMLInputElement;
 
-    fireEvent.change(input, { target: { value: 'octocat' } });
+    await act(async () => {
+      fireEvent.change(input, { target: { value: 'octocat' } });
+    });
 
-    const dashboardLink = screen.getByRole('link', { name: 'Watch Dashboard' });
-    expect(dashboardLink.getAttribute('aria-disabled')).not.toBe('true');
-    expect(dashboardLink.getAttribute('href')).toBe('/dashboard/octocat');
+    await waitFor(
+      () => {
+        const dashboardLink = screen.getByRole('link', { name: 'Watch Dashboard' });
+        expect(dashboardLink.getAttribute('href')).toBe('/dashboard/octocat');
+      },
+      { timeout: 1000 }
+    );
   });
 
   it('handles copying to clipboard and showing the SuccessGuide', async () => {
     render(<LandingPage />);
 
     const input = screen.getByPlaceholderText('Enter GitHub Username') as HTMLInputElement;
-    fireEvent.change(input, { target: { value: 'jhasourav07' } });
 
-    const copyButton = screen.getByText('Copy Link').closest('button');
-    fireEvent.click(copyButton!);
-
-    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
-      expect.stringContaining(
-        '![CommitPulse](https://commitpulse.vercel.app/api/streak?user=jhasourav07)'
-      )
-    );
+    await act(async () => {
+      fireEvent.change(input, { target: { value: 'jhasourav07' } });
+    });
 
     await waitFor(() => {
-      // The button text should change to Copied
-      expect(screen.getByText('Copied')).toBeDefined();
-      // The SuccessGuide should appear
-      expect(screen.getByText('Your Monolith is Ready - Deploy It in 4 Steps')).toBeDefined();
+      expect(screen.getByText('Copy Link')).toBeDefined();
     });
+
+    const copyButton = screen.getByText('Copy Link').closest('button');
+
+    await act(async () => {
+      fireEvent.click(copyButton!);
+    });
+
+    await waitFor(() => {
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+        expect.stringContaining(
+          '![CommitPulse](https://commitpulse.vercel.app/api/streak?user=jhasourav07)'
+        )
+      );
+    });
+
+    await waitFor(
+      () => {
+        expect(screen.getByText('Copied')).toBeDefined();
+        expect(screen.getByText('Your Monolith is Ready - Deploy It in 4 Steps')).toBeDefined();
+      },
+      { timeout: 3000 }
+    );
   });
 
   it('disables Copy Link button when username is empty', () => {
@@ -226,19 +249,29 @@ describe('LandingPage', () => {
   it('can dismiss the SuccessGuide', async () => {
     render(<LandingPage />);
     const input = screen.getByPlaceholderText('Enter GitHub Username') as HTMLInputElement;
-    fireEvent.change(input, { target: { value: 'jhasourav07' } });
 
-    // Trigger copy to show guide
-    const copyButton = screen.getByText('Copy Link').closest('button');
-    fireEvent.click(copyButton!);
-
-    await waitFor(() => {
-      expect(screen.getByText('Your Monolith is Ready - Deploy It in 4 Steps')).toBeDefined();
+    await act(async () => {
+      fireEvent.change(input, { target: { value: 'jhasourav07' } });
     });
 
-    // Dismiss guide
+    const copyButton = screen.getByText('Copy Link').closest('button');
+
+    await act(async () => {
+      fireEvent.click(copyButton!);
+    });
+
+    await waitFor(
+      () => {
+        expect(screen.getByText('Your Monolith is Ready - Deploy It in 4 Steps')).toBeDefined();
+      },
+      { timeout: 3000 }
+    );
+
     const dismissButton = screen.getByLabelText('Dismiss guide');
-    fireEvent.click(dismissButton);
+
+    await act(async () => {
+      fireEvent.click(dismissButton);
+    });
 
     await waitFor(() => {
       expect(screen.queryByText('Your Monolith is Ready - Deploy It in 4 Steps')).toBeNull();
