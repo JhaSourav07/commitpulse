@@ -39,6 +39,8 @@ describe('Cost-Based Rate Limiting Integration Tests', () => {
     (globalRateLimiter as any).refillRate = 100 / 1000;
     (globalRateLimiter as any).maxQueueWaitMs = 1000;
     globalRateLimiter.clear();
+    // Stub GITHUB_TOKEN so that getGitHubToken() does not throw in tests
+    vi.stubEnv('GITHUB_TOKEN', 'mock-github-token');
   });
 
   afterEach(() => {
@@ -56,6 +58,9 @@ describe('Cost-Based Rate Limiting Integration Tests', () => {
     );
 
     const response = await GET(makeRequest({ user: 'octocat' }, '10.0.0.1'));
+    if (response.status === 500) {
+      console.log('500 ERROR BODY:', await response.text());
+    }
     expect(response.status).toBe(200);
 
     expect(response.headers.get('X-Query-Complexity')).toBeDefined();

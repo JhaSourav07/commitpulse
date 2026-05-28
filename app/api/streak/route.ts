@@ -2,12 +2,7 @@
 import { NextResponse } from 'next/server';
 import { fetchGitHubContributions } from '../../../lib/github';
 import { calculateStreak, calculateMonthlyStats } from '../../../lib/calculate';
-import {
-  generateNotFoundSVG,
-  generateSVG,
-  generateMonthlySVG,
-  escapeXML,
-} from '../../../lib/svg/generator';
+import { generateNotFoundSVG, generateSVG, generateMonthlySVG } from '../../../lib/svg/generator';
 import { getSecondsUntilUTCMidnight, getSecondsUntilMidnightInTimezone } from '../../../utils/time';
 import type { BadgeParams } from '../../../types';
 import { themes } from '../../../lib/svg/themes';
@@ -272,7 +267,7 @@ function buildErrorResponse(
     const badUsername =
       match?.[1] ?? match?.[2] ?? (parseResult.success ? parseResult.data.user : 'unknown');
     const svg = generateNotFoundSVG(badUsername, errBg, errAccent, errText, errRadius, errSpeed);
-    
+
     errHeaders['Cache-Control'] = 'no-cache';
     errHeaders['Content-Security-Policy'] = SVG_CSP_HEADER;
 

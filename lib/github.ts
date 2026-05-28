@@ -167,7 +167,10 @@ const MAX_REPOS_CACHE_SIZE = 500;
 // Specifying explicit capacity limits enforces a First-In, First-Out (FIFO)
 // eviction strategy (since standard ES6 Map maintains key insertion order) and
 // bounds max memory consumption to stable, predictable boundaries.
-const contributionsCache = new CostAwareCache<ContributionCalendar>(MAX_CONTRIBUTIONS_CACHE_SIZE, GITHUB_CACHE_TTL_MS);
+const contributionsCache = new CostAwareCache<ContributionCalendar>(
+  MAX_CONTRIBUTIONS_CACHE_SIZE,
+  GITHUB_CACHE_TTL_MS
+);
 const profileCache = new TTLCache<GitHubUserProfile>(MAX_PROFILE_CACHE_SIZE);
 const reposCache = new TTLCache<GitHubRepo[]>(MAX_REPOS_CACHE_SIZE);
 
