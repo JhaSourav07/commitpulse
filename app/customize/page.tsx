@@ -124,6 +124,7 @@ export default function CustomizePage(): ReactElement {
     if (badgeHeight !== '') params.set('height', badgeHeight.toString());
     if (grace !== 1) params.set('grace', grace.toString());
     if (language !== 'en') params.set('lang', language);
+
     return params.toString();
   }, [
     hasUsername,
