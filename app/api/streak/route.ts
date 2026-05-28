@@ -77,8 +77,9 @@ export async function GET(request: Request) {
       if (isAutoTheme) return themes.light;
       if (isRandomTheme) {
         const keys = Object.keys(themes);
-        const randomKey = keys[Math.floor(Math.random() * keys.length)];
-        return themes[randomKey] || themes.dark;
+        const hash = user.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
+        const stableKey = keys[hash % keys.length];
+        return themes[stableKey] || themes.dark;
       }
       return themes[theme] || themes.dark;
     })();
@@ -143,10 +144,9 @@ export async function GET(request: Request) {
     const secondsToMidnight = tzParam
       ? getSecondsUntilMidnightInTimezone(timezone)
       : getSecondsUntilUTCMidnight();
-    const cacheControl =
-      refresh || isRandomTheme
-        ? 'no-cache, no-store, must-revalidate'
-        : `public, s-maxage=${secondsToMidnight}, stale-while-revalidate=86400`;
+    const cacheControl = refresh
+      ? 'no-cache, no-store, must-revalidate'
+      : `public, s-maxage=${secondsToMidnight}, stale-while-revalidate=86400`;
 
     return new NextResponse(svg, {
       headers: {
