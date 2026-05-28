@@ -3,6 +3,8 @@
 import type { ContributionCalendar } from '../types';
 import { calculateStreak } from './calculate';
 import { TTLCache } from './cache';
+import { CostAwareCache } from './cache/ttl-cache';
+import { calculateQueryComplexity, CONTRIBUTIONS_QUERY } from './graphql/client';
 
 interface GitHubRepo {
   stargazers_count: number;
@@ -95,7 +97,7 @@ interface GitHubUserProfile {
   plan?: { name?: string } | null;
 }
 
-const contributionsCache = new TTLCache<ContributionCalendar>();
+const contributionsCache = new CostAwareCache<ContributionCalendar>(1000, GITHUB_CACHE_TTL_MS);
 const profileCache = new TTLCache<GitHubUserProfile>();
 const reposCache = new TTLCache<GitHubRepo[]>();
 
@@ -137,24 +139,7 @@ export async function fetchGitHubContributions(
     if (cached) return cached;
   }
 
-  const query = `
-    query($login: String!, $from: DateTime, $to: DateTime) {
-      user(login: $login) {
-        contributionsCollection(from: $from, to: $to) {
-          contributionCalendar {
-            totalContributions
-            weeks {
-              contributionDays {
-                contributionCount
-                date
-                color
-              }
-            }
-          }
-        }
-      }
-    }
-  `;
+  const query = CONTRIBUTIONS_QUERY;
 
   const res = await fetchWithRetry(GITHUB_GRAPHQL_URL, {
     method: 'POST',
@@ -184,7 +169,12 @@ export async function fetchGitHubContributions(
   const calendar = data.data.user.contributionsCollection.contributionCalendar;
 
   if (!options.bypassCache) {
-    contributionsCache.set(key, calendar, GITHUB_CACHE_TTL_MS);
+    const complexity = calculateQueryComplexity(query, {
+      login: username,
+      from: options.from,
+      to: options.to,
+    });
+    contributionsCache.setWithCost(key, calendar, complexity);
   }
 
   return calendar;

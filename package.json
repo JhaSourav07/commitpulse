@@ -27,6 +27,8 @@
     "@tailwindcss/postcss": "^4.2.2",
     "@vercel/analytics": "^1.6.1",
     "framer-motion": "^12.38.0",
+    "graphql": "^16.14.0",
+    "graphql-query-complexity": "^1.1.0",
     "html-to-image": "^1.11.13",
     "lucide-react": "^1.8.0",
     "mongoose": "^9.6.2",

@@ -7,7 +7,6 @@ import {
   getFullDashboardData,
   generateAchievements,
   clearGitHubApiCacheForTests,
-  GITHUB_CACHE_TTL_MS,
   validateGitHubUsername,
 } from './github';
 import type { ContributionCalendar } from '../types';
@@ -414,7 +413,7 @@ describe('GitHub API cache behavior', () => {
 
     await fetchGitHubContributions('octocat');
 
-    vi.setSystemTime(Date.now() + GITHUB_CACHE_TTL_MS + 1);
+    vi.setSystemTime(Date.now() + 2 * 60 * 60 * 1000); // Advance past max TTL of cost-aware cache (1 hour)
     await fetchGitHubContributions('octocat');
 
     expect(fetch).toHaveBeenCalledTimes(2);
