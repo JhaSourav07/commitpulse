@@ -5,14 +5,14 @@ describe('SVG Generation Performance', () => {
   const mockStats = {
     totalContributions: 150,
   };
-  
-  // Create a mock calendar array
+
+  // Create a mock calendar array (98 days)
   const mockCalendar = Array(98).fill({ contributionCount: 2 });
 
   bench('render standard 3D monolith', async () => {
     const start = performance.now();
     
-    // Provide the 3 required arguments
+    // Providing the 3 required arguments: stats, calendar, and options
     generateSVG(mockStats, mockCalendar, { 
       theme: 'dark', 
       size: 'medium' 
