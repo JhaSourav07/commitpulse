@@ -110,7 +110,7 @@ describe('DashboardPage', () => {
 
       expect(metadata.title).toBe("octocat's Commit Pulse");
       expect(metadata.description).toContain("octocat's GitHub contribution pulse");
-      expect(openGraphImage.url).toContain('api/og?username=octocat');
+      expect(openGraphImage.url).toContain('api/og?user=octocat');
       expect(openGraphImage.width).toBe(1200);
       expect(openGraphImage.height).toBe(630);
       expect(openGraphImage.alt).toContain(username);
@@ -131,7 +131,7 @@ describe('DashboardPage', () => {
         bypassCache: false,
       });
 
-      const generateLink = screen.getByText('Generate Your Own Dashboard').closest('a');
+      const generateLink = screen.getByText('Generate Your Own').closest('a');
       expect(generateLink).toBeDefined();
       expect(generateLink?.getAttribute('href')).toBe('/');
       expect(screen.getByTestId('profile-card')).toBeDefined();
@@ -160,6 +160,7 @@ describe('DashboardPage', () => {
       });
     });
   });
+
   it('passes the correct activity data to Heatmap', async () => {
     const PageContent = await DashboardPage({
       params: Promise.resolve({ username: 'octocat' }),

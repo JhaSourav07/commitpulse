@@ -459,7 +459,7 @@ describe('generateSVG', () => {
         mockCalendar
       );
 
-      expect(svg).toContain('<title>CommitPulse Stats for octocat</title>');
+      expect(svg).toContain('<title>CommitPulse User Stats for octocat</title>');
       expect(svg).toContain('<desc>');
       expect(svg).toContain('100');
       expect(svg).toContain('10');

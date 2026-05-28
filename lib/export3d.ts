@@ -98,11 +98,8 @@ export function generateMonolithSTL(towers: TowerData[]): string {
   const totalDepth = (maxCol + 1) * (TILE_SIZE + GAP) - GAP;
 
   // Center the entire model around (0,0) for easier 3D slicer placement
-  const offsetX = -totalWidth / 2;
-  const offsetY = -totalDepth / 2;
-
-  // Adjust all coordinates generated so far (we apply this offset virtually via slicer or we could shift here)
-  // For simplicity, we just generate it from (0,0) and let the slicer center it, but adding the base plate at 0,0
+  // We apply this offset virtually via slicer or we could shift here
+  // For simplicity, we just generate it from (0,0) and let the slicer center it
   addBox(0, 0, 0, totalWidth, totalDepth, BASE_HEIGHT);
 
   stl += 'endsolid commitpulse_monolith\n';
