@@ -56,6 +56,7 @@ export default function ShareSheet({ username, isOpen, onClose, exportData }: Sh
     handleLinkedIn,
     handleReddit,
     handleDownloadPNG,
+    handleDownloadWEBP,
     handleDownloadSVG,
     handleCopyMarkdown,
     handleDownloadJSON,
@@ -179,6 +180,15 @@ endsolid commitpulse_monolith`;
       gradient: 'bg-zinc-800',
       glow: 'transparent',
       action: handleDownloadPNG,
+    },
+    {
+      key: 'webp',
+      icon: Download,
+      label: 'Download as WebP',
+      description: 'Download optimized WebP image',
+      gradient: 'bg-zinc-800',
+      glow: 'transparent',
+      action: handleDownloadWEBP,
     },
     {
       key: 'svg',
