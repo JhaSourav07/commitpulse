@@ -11,13 +11,13 @@ describe('SVG Generation Performance', () => {
 
   bench('render standard 3D monolith', async () => {
     const start = performance.now();
-    
-    // Providing the 3 required arguments: stats, calendar, and options
-    generateSVG(mockStats, mockCalendar, { 
-      theme: 'dark', 
-      size: 'medium' 
+
+    // Now providing the 3 required arguments: stats, calendar, and options
+    generateSVG(mockStats, mockCalendar, {
+      theme: 'dark',
+      size: 'medium',
     });
-    
+
     const end = performance.now();
 <<<<<<< HEAD
     
