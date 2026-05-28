@@ -56,6 +56,7 @@ html {
 }
 
 .shimmer {
+  background-color: #1a1a1a; /* base dark gray */
   background: linear-gradient(
     90deg,
     rgba(255, 255, 255, 0) 0%,
