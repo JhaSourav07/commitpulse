@@ -407,31 +407,53 @@ export async function fetchUserRepos(
   }
   const allRepos: GitHubRepo[] = [];
 
-  let PAGE = 1;
-  const MAX_PAGES = 3; // Hard cap at 3 pages (300 repos) to prevent API rate limit exhaustion (DoS)
-  while (PAGE <= MAX_PAGES) {
-    const res = await fetchWithRetry(
-      `${GITHUB_REST_URL}/users/${username}/repos?per_page=100&page=${PAGE}&sort=pushed`,
-      {
-        headers: getHeaders(),
-        cache: 'no-store',
-        signal: options.signal,
-      }
+  // Fetch the first page of repositories to check if more pages exist
+  const res = await fetchWithRetry(
+    `${GITHUB_REST_URL}/users/${username}/repos?per_page=100&page=1&sort=pushed`,
+    {
+      headers: getHeaders(),
+      cache: 'no-store',
+      signal: options.signal,
+    }
+  );
+
+  if (!res.ok) {
+    throw new Error(`GitHub REST API error: ${res.status}`);
+  }
+
+  const firstPageRepos = (await res.json()) as GitHubRepo[];
+  allRepos.push(...firstPageRepos);
+
+  // Hard cap on total pages to prevent API rate limit exhaustion (DoS) and bound concurrent requests
+  const MAX_PAGES = 3;
+
+  // If the first page is full, concurrently fetch pages 2 and 3 to minimize latency
+  if (firstPageRepos.length === 100) {
+    const remainingPages = Array.from({ length: MAX_PAGES - 1 }, (_, i) => i + 2);
+    const fetchPromises = remainingPages.map((page) =>
+      fetchWithRetry(
+        `${GITHUB_REST_URL}/users/${username}/repos?per_page=100&page=${page}&sort=pushed`,
+        {
+          headers: getHeaders(),
+          cache: 'no-store',
+          signal: options.signal,
+        }
+      )
     );
 
-    if (!res.ok) {
-      throw new Error(`GitHub REST API error: ${res.status}`);
+    const responses = await Promise.all(fetchPromises);
+    const pagesRepos = await Promise.all(
+      responses.map(async (response) => {
+        if (!response.ok) {
+          throw new Error(`GitHub REST API error: ${response.status}`);
+        }
+        return (await response.json()) as GitHubRepo[];
+      })
+    );
+
+    for (const repos of pagesRepos) {
+      allRepos.push(...repos);
     }
-
-    const repos = (await res.json()) as GitHubRepo[];
-
-    allRepos.push(...repos);
-
-    if (repos.length < 100) {
-      break;
-    }
-
-    PAGE++;
   }
 
   if (!options.bypassCache) {
