@@ -607,6 +607,47 @@ describe('getFullDashboardData', () => {
     const result = await getFullDashboardData('testuser');
     expect(result.profile.joinedDate).toMatch(/^[A-Za-z]+ \d{4}$/);
   });
+
+  it('handles repos fetch failure gracefully', async () => {
+    vi.mocked(fetch).mockImplementation(async (url) => {
+      const urlStr = typeof url === 'string' ? url : (url?.toString() ?? '');
+
+      // Repos fetch fails
+      if (urlStr.includes('/users/octocat/repos')) {
+        throw new Error('Repos fetch failed');
+      }
+
+      // Profile fetch succeeds
+      if (urlStr.includes('/users/octocat')) {
+        return mockResponse({
+          login: 'octocat',
+          name: 'The Octocat',
+          avatar_url: 'avatar.png',
+          public_repos: 10,
+          followers: 20,
+          following: 5,
+          created_at: '2020-01-01T00:00:00Z',
+        });
+      }
+
+      // GraphQL contributions succeed
+      return mockResponse({
+        data: {
+          user: {
+            contributionsCollection: {
+              contributionCalendar: mockCalendar,
+            },
+          },
+        },
+      });
+    });
+
+    const result = await getFullDashboardData('octocat');
+
+    expect(result).toBeDefined();
+    expect(result.profile.stats.stars).toBe(0);
+    expect(result.languages).toEqual([]);
+  });
 });
 
 describe('GitHub API cache behavior', () => {
@@ -813,7 +854,7 @@ describe('getOrgDashboardData', () => {
 
   it('aggregates org data correctly', async () => {
     vi.mocked(fetch).mockImplementation(async (url) => {
-      const urlStr = url.toString();
+      const urlStr = typeof url === 'string' ? url : (url?.toString() ?? '');
       if (urlStr.includes('/orgs/vercel/members')) return mockResponse([{ login: 'alice' }]);
       if (urlStr.includes('/users/vercel/repos')) return mockResponse([{ stargazers_count: 100 }]);
       if (urlStr.includes('/users/vercel'))
@@ -838,7 +879,7 @@ describe('getOrgDashboardData', () => {
 
   it('throws an error if the target is a User instead of an Organization', async () => {
     vi.mocked(fetch).mockImplementation(async (url) => {
-      const urlStr = url.toString();
+      const urlStr = typeof url === 'string' ? url : (url?.toString() ?? '');
       // Specifically catch the repos and members endpoints so they return valid arrays
       if (urlStr.includes('/orgs/notanorg/members')) return mockResponse([]);
       if (urlStr.includes('/users/notanorg/repos')) return mockResponse([]);
@@ -865,7 +906,7 @@ describe('getWrappedData', () => {
 
   it('returns wrapped statistics and top language correctly', async () => {
     vi.mocked(fetch).mockImplementation(async (url) => {
-      const urlStr = url.toString();
+      const urlStr = typeof url === 'string' ? url : (url?.toString() ?? '');
       // Return 2 TS repos, 1 Rust repo
       if (urlStr.includes('/repos'))
         return mockResponse([
