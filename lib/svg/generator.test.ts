@@ -22,6 +22,46 @@ describe('generateSVG', () => {
     ],
   } as ContributionCalendar;
 
+  it('omits stats labels when hide_stats is true', () => {
+    const svg = generateSVG(
+      mockStats,
+      {
+        user: 'avi',
+        bg: hexColor('0d1117'),
+        text: hexColor('c9d1d9'),
+        accent: hexColor('58a6ff'),
+        speed: '8s',
+        scale: 'linear',
+        hide_stats: true,
+      },
+      mockCalendar
+    );
+
+    expect(svg).not.toContain('CURRENT_STREAK');
+    expect(svg).not.toContain('ANNUAL_SYNC_TOTAL');
+    expect(svg).not.toContain('PEAK_STREAK');
+  });
+
+  it('renders stats labels when hide_stats is false', () => {
+    const svg = generateSVG(
+      mockStats,
+      {
+        user: 'avi',
+        bg: hexColor('0d1117'),
+        text: hexColor('c9d1d9'),
+        accent: hexColor('58a6ff'),
+        speed: '8s',
+        scale: 'linear',
+        hide_stats: false,
+      },
+      mockCalendar
+    );
+
+    expect(svg).toContain('CURRENT_STREAK');
+    expect(svg).toContain('ANNUAL_SYNC_TOTAL');
+    expect(svg).toContain('PEAK_STREAK');
+  });
+
   it('uses default typography when no font is passed', () => {
     const svg = generateSVG(mockStats, { user: 'avi' } as unknown as BadgeParams, mockCalendar);
 
@@ -56,6 +96,30 @@ describe('generateSVG', () => {
       mockCalendar
     );
     expect(svg).toContain('svg');
+  });
+
+  it('uses transparent background when hideBackground is true', () => {
+    const svg = generateSVG(
+      mockStats,
+      {
+        user: 'avi',
+        hideBackground: true,
+      } as unknown as BadgeParams,
+      mockCalendar
+    );
+    expect(svg).toContain('fill="transparent"');
+  });
+
+  it('uses normal background when hideBackground is false or omitted', () => {
+    const svg = generateSVG(
+      mockStats,
+      {
+        user: 'avi',
+        bg: '0d1117',
+      } as unknown as BadgeParams,
+      mockCalendar
+    );
+    expect(svg).not.toContain('fill="transparent"');
   });
 
   it('generates particles for days with 10 or more contributions', () => {
@@ -266,9 +330,13 @@ describe('generateSVG', () => {
 
     it('includes desc element in auto-theme SVG output', () => {
       const svg = generateSVG(mockStats, autoParams, mockCalendar);
-
       expect(svg).toContain('<desc>');
       expect(svg).toContain(String(mockStats.totalContributions));
+    });
+
+    it('includes role="img" in auto-theme SVG output', () => {
+      const svg = generateSVG(mockStats, autoParams, mockCalendar);
+      expect(svg).toContain('role="img"');
     });
 
     it('generates heat particles with CSS class instead of inline fill', () => {

@@ -119,7 +119,7 @@ export async function GET(request: Request) {
       text: isAutoTheme ? selectedTheme.text : text || selectedTheme.text,
       accent: isAutoTheme ? selectedTheme.accent : accent || selectedTheme.accent,
       radius,
-      speed,
+      speed: speed && /^(?:[2-9]|1\d|20)s$/.test(speed) ? speed : '8s',
       scale,
       font,
       autoTheme: isAutoTheme,
@@ -129,8 +129,8 @@ export async function GET(request: Request) {
       lang,
       view,
       delta_format,
-      width: width ? parseInt(width, 10) : undefined,
-      height: height ? parseInt(height, 10) : undefined,
+      width,
+      height,
       size,
       grace,
     };
@@ -204,14 +204,16 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
     });
   }
 
+  console.error('[streak] Unhandled error:', message);
+
   const errorSvg = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="400" height="150">
-      <rect width="100%" height="100%" fill="#2d0000" rx="8"/>
-      <text x="50%" y="50%" text-anchor="middle" fill="#ffcccc">
-        Error: ${escapeXML(message)}
-      </text>
-    </svg>
-  `;
+      <svg xmlns="http://www.w3.org/2000/svg" width="400" height="150">
+        <rect width="100%" height="100%" fill="#2d0000" rx="8"/>
+        <text x="50%" y="50%" text-anchor="middle" fill="#ffcccc">
+          Something went wrong. Please try again later.
+        </text>
+      </svg>
+    `;
 
   return new NextResponse(errorSvg, {
     status: 500,

@@ -23,6 +23,7 @@ export const themes: Record<string, BadgeTheme> = {
   nord: makeTheme('2e3440', 'd8dee9', '88c0d0'),
   synthwave: makeTheme('0d0221', 'f8f8f2', 'ff2d78'),
   gruvbox: makeTheme('282828', 'ebdbb2', 'fe8019'),
+  aurora_cyberpunk: makeTheme('090B13', 'EAF2FF', '9D5CFF'),
   highcontrast: makeTheme('0a0a0a', '888888', 'ff4500'),
 };
 

@@ -58,6 +58,7 @@ export default function LanguageChart({ languages }: { languages: LanguageData[]
       <div className="relative w-36 h-36 flex items-center justify-center">
         {/* Donut */}
         <motion.div
+          data-testid="donut-chart"
           initial={{ rotate: -90, scale: 0.8, opacity: 0 }}
           animate={{ rotate: 0, scale: 1, opacity: 1 }}
           transition={{ duration: 0.8, type: 'spring', stiffness: 80 }}

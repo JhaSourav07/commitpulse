@@ -8,6 +8,10 @@ import { sanitizeFont, sanitizeHexColor, sanitizeRadius, sanitizeGoogleFontUrl }
 import { SVG_WIDTH, SVG_HEIGHT, FONT_MAP } from './constants';
 
 // helpers
+function truncateUsername(name: string, max = 20): string {
+  return name.length > max ? name.slice(0, max) + '…' : name;
+}
+
 function getSizeScale(size?: 'small' | 'medium' | 'large'): number {
   if (size === 'small') return 400 / SVG_WIDTH;
   if (size === 'large') return 800 / SVG_WIDTH;
@@ -108,13 +112,18 @@ function generateParticles(
 // ── Section helpers for generateSVG ──────────────────────────────────────
 
 function renderHeader(safeUser: string, stats: StreakStats, sf: number): string {
-  const fs = (n: number) => Math.round(n * sf * 10) / 10;
   return `
   <title>CommitPulse Stats for ${safeUser}</title>
   <desc>
     ${safeUser} has ${stats.totalContributions} total contributions and a longest streak of ${stats.longestStreak} days.
   </desc>
-  <defs>
+  ${renderDefs(sf)}`;
+}
+
+/** Renders the shared SVG <defs> block (glow filter) scaled by the size factor. */
+function renderDefs(sf: number): string {
+  const fs = (n: number): number => Math.round(n * sf * 10) / 10;
+  return `<defs>
     <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="${fs(5)}" result="blur" /><feComposite in="SourceGraphic" in2="blur" operator="over" /></filter>
   </defs>`;
 }
@@ -147,7 +156,7 @@ function renderStyle(
   const fs = (n: number) => Math.round(n * sf * 10) / 10;
   return `
   <style>
-  @import url('https://fonts.googleapis.com/css2?family=Fira+Code&amp;family=JetBrains+Mono&amp;family=Roboto&amp;display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Fira+Code&amp;family=JetBrains+Mono&amp;family=Roboto&amp;family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');
   ${googleFontsImport}
   ${TOWER_ANIMATION_CSS}
   .title { font-family: ${selectedFont || '"Syncopate", sans-serif'}; fill: ${text}; font-size: ${fs(18)}px; letter-spacing: ${fs(6)}px; font-weight: 400; opacity: 0.8; }
@@ -191,7 +200,7 @@ function renderFooter(
   const s = createScaler(sf);
   return `
   ${!params.hide_stats ? renderStatsSection(stats, labels, s) : ''}
-  ${!params.hide_title ? `<text x="${s(300)}" y="${s(50)}" text-anchor="middle" class="title">${safeUser.toUpperCase()}</text>` : ''}
+  ${!params.hide_title ? `<text x="${s(300)}" y="${s(50)}" text-anchor="middle" class="title">${truncateUsername(safeUser).toUpperCase()}</text>` : ''}
   <rect x="${s(100)}" y="${s(60)}" width="${s(400)}" height="${sf}" fill="${accent}" fill-opacity="0.3">
     <animate attributeName="y" values="${s(80)};${s(320)};${s(80)}" dur="${params.speed || '8s'}" repeatCount="indefinite" />
   </rect>`;
@@ -346,7 +355,7 @@ function generateAutoThemeSVG(
   ${renderHeader(safeUser, stats, sf)}
 
   <style>
-  @import url('https://fonts.googleapis.com/css2?family=Fira+Code&amp;family=JetBrains+Mono&amp;family=Roboto&amp;display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Fira+Code&amp;family=JetBrains+Mono&amp;family=Roboto&amp;family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');
   /* Auto-theme strategy: expose the palette as CSS variables so the SVG can
      switch from light to dark through prefers-color-scheme. Shapes use classes
      instead of inline fills because inline fill attributes would override these
@@ -370,7 +379,7 @@ function generateAutoThemeSVG(
   ${!params.hide_stats ? renderStatsSection(stats, labels, s) : ''}
 ${
   !params.hide_title
-    ? `<text x="${s(300)}" y="${s(50)}" text-anchor="middle" class="title">${safeUser.toUpperCase()}</text>`
+    ? `<text x="${s(300)}" y="${s(50)}" text-anchor="middle" class="title">${truncateUsername(safeUser).toUpperCase()}</text>`
     : ''
 }
 
@@ -451,7 +460,7 @@ export function generateMonthlySVG(stats: MonthlyStats, params: BadgeParams): st
 >
   <title>Monthly Stats for ${safeUser}</title>
   <style>
-  @import url('https://fonts.googleapis.com/css2?family=Fira+Code&amp;family=JetBrains+Mono&amp;family=Roboto&amp;display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Fira+Code&amp;family=JetBrains+Mono&amp;family=Roboto&amp;family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');
   ${googleFontsImport}
 
   .title { font-family: ${selectedFont || '"Syncopate", sans-serif'}; fill: ${text}; font-size: 14px; letter-spacing: 2px; font-weight: 400; opacity: 0.8; }
@@ -530,7 +539,7 @@ function generateAutoThemeMonthlySVG(stats: MonthlyStats, params: BadgeParams): 
 >
   <title>Monthly Stats for ${safeUser}</title>
   <style>
-  @import url('https://fonts.googleapis.com/css2?family=Fira+Code&amp;family=JetBrains+Mono&amp;family=Roboto&amp;display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Fira+Code&amp;family=JetBrains+Mono&amp;family=Roboto&amp;family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');
   :root { --cp-bg: #${light.bg}; --cp-text: #${light.text}; --cp-accent: #${light.accent}; --cp-negative: #ff4444; }
   @media (prefers-color-scheme: dark) { :root { --cp-bg: #${dark.bg}; --cp-text: #${dark.text}; --cp-accent: #${dark.accent}; --cp-negative: #ff6666; } }
   .cp-bg-fill { fill: var(--cp-bg); } 

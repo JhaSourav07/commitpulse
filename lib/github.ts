@@ -80,17 +80,37 @@ export async function fetchWithRetry(
 
 const GITHUB_GRAPHQL_URL = 'https://api.github.com/graphql';
 const GITHUB_REST_URL = 'https://api.github.com';
+const MISSING_GITHUB_TOKEN_MESSAGE = 'GitHub token is missing. Set GITHUB_PAT or GITHUB_TOKEN.';
 
 type GitHubContributionResponse = {
-  data: {
+  data?: {
     user: {
       contributionsCollection: {
         contributionCalendar: ContributionCalendar;
       };
     } | null;
   };
-  errors?: Array<{ message: string }>;
+  errors?: unknown;
 };
+
+const UNKNOWN_GRAPHQL_ERROR_MESSAGE = 'GitHub GraphQL API returned an unknown error';
+
+function getGraphQLErrorMessage(errors: unknown): string {
+  if (!Array.isArray(errors)) return UNKNOWN_GRAPHQL_ERROR_MESSAGE;
+
+  const firstError = errors[0];
+  if (
+    firstError &&
+    typeof firstError === 'object' &&
+    'message' in firstError &&
+    typeof firstError.message === 'string' &&
+    firstError.message.trim() !== ''
+  ) {
+    return firstError.message;
+  }
+
+  return UNKNOWN_GRAPHQL_ERROR_MESSAGE;
+}
 
 /**
  * Configuration options for GitHub API fetch requests.
@@ -163,8 +183,17 @@ export function clearGitHubApiCacheForTests(): void {
   reposCache.clear();
 }
 
+function getGitHubToken(): string {
+  const token = process.env.GITHUB_PAT || process.env.GITHUB_TOKEN;
+  if (!token || token.trim() === '') {
+    throw new Error(MISSING_GITHUB_TOKEN_MESSAGE);
+  }
+
+  return token;
+}
+
 const getHeaders = () => ({
-  Authorization: `bearer ${process.env.GITHUB_PAT || process.env.GITHUB_TOKEN}`,
+  Authorization: `bearer ${getGitHubToken()}`,
   'Content-Type': 'application/json',
 });
 
@@ -264,11 +293,11 @@ export async function fetchGitHubContributions(
 
   const data: GitHubContributionResponse = await res.json();
 
-  if (data.errors) {
-    throw new Error(data.errors[0].message);
+  if (data.errors !== undefined) {
+    throw new Error(getGraphQLErrorMessage(data.errors));
   }
 
-  if (!data.data.user) {
+  if (!data.data?.user) {
     throw new Error(`GitHub user "${username}" not found`);
   }
 
@@ -388,31 +417,53 @@ export async function fetchUserRepos(
   }
   const allRepos: GitHubRepo[] = [];
 
-  let PAGE = 1;
-  const MAX_PAGES = 3; // Hard cap at 3 pages (300 repos) to prevent API rate limit exhaustion (DoS)
-  while (PAGE <= MAX_PAGES) {
-    const res = await fetchWithRetry(
-      `${GITHUB_REST_URL}/users/${username}/repos?per_page=100&page=${PAGE}&sort=pushed`,
-      {
-        headers: getHeaders(),
-        cache: 'no-store',
-        signal: options.signal,
-      }
+  // Fetch the first page of repositories to check if more pages exist
+  const res = await fetchWithRetry(
+    `${GITHUB_REST_URL}/users/${username}/repos?per_page=100&page=1&sort=pushed`,
+    {
+      headers: getHeaders(),
+      cache: 'no-store',
+      signal: options.signal,
+    }
+  );
+
+  if (!res.ok) {
+    throw new Error(`GitHub REST API error: ${res.status}`);
+  }
+
+  const firstPageRepos = (await res.json()) as GitHubRepo[];
+  allRepos.push(...firstPageRepos);
+
+  // Hard cap on total pages to prevent API rate limit exhaustion (DoS) and bound concurrent requests
+  const MAX_PAGES = 3;
+
+  // If the first page is full, concurrently fetch pages 2 and 3 to minimize latency
+  if (firstPageRepos.length === 100) {
+    const remainingPages = Array.from({ length: MAX_PAGES - 1 }, (_, i) => i + 2);
+    const fetchPromises = remainingPages.map((page) =>
+      fetchWithRetry(
+        `${GITHUB_REST_URL}/users/${username}/repos?per_page=100&page=${page}&sort=pushed`,
+        {
+          headers: getHeaders(),
+          cache: 'no-store',
+          signal: options.signal,
+        }
+      )
     );
 
-    if (!res.ok) {
-      throw new Error(`GitHub REST API error: ${res.status}`);
+    const responses = await Promise.all(fetchPromises);
+    const pagesRepos = await Promise.all(
+      responses.map(async (response) => {
+        if (!response.ok) {
+          throw new Error(`GitHub REST API error: ${response.status}`);
+        }
+        return (await response.json()) as GitHubRepo[];
+      })
+    );
+
+    for (const repos of pagesRepos) {
+      allRepos.push(...repos);
     }
-
-    const repos = (await res.json()) as GitHubRepo[];
-
-    allRepos.push(...repos);
-
-    if (repos.length < 100) {
-      break;
-    }
-
-    PAGE++;
   }
 
   if (!options.bypassCache) {

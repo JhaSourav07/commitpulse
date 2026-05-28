@@ -74,8 +74,20 @@ export function useRecentSearches() {
    * Clears all recent searches from state and localStorage.
    */
   const clearSearches = () => {
-    setState((prev) => ({ ...prev, searches: [] }));
     writeStorage(null);
+
+    setState((prev) => ({
+      ...prev,
+      searches: [],
+    }));
+  };
+
+  const removeSearch = (query: string): void => {
+    setState((prev) => {
+      const filtered = prev.searches.filter((s) => s !== query);
+      writeStorage(filtered);
+      return { ...prev, searches: filtered };
+    });
   };
 
   // Return empty searches until after hydration to prevent SSR/client mismatch.
@@ -83,5 +95,6 @@ export function useRecentSearches() {
     searches: state.mounted ? state.searches : [],
     addSearch,
     clearSearches,
+    removeSearch,
   };
 }
