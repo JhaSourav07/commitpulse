@@ -153,6 +153,30 @@ export default function CustomizePage(): ReactElement {
   const previewSrc = `/api/streak?${queryString}`;
   const exportSnippet = getExportSnippet(exportFormat, queryString);
 
+  const fallbackCopyToClipboard = (text: string): boolean => {
+    try {
+      const textArea = document.createElement('textarea');
+
+      textArea.value = text;
+      textArea.style.position = 'fixed';
+      textArea.style.opacity = '0';
+      textArea.style.pointerEvents = 'none';
+
+      document.body.appendChild(textArea);
+
+      textArea.focus();
+      textArea.select();
+
+      const successful = document.execCommand('copy');
+
+      document.body.removeChild(textArea);
+
+      return successful;
+    } catch {
+      return false;
+    }
+  };
+
   const announceCopyStatus = useCallback((message: string): void => {
     setCopyStatusMessage('');
     window.setTimeout(() => {
@@ -164,8 +188,18 @@ export default function CustomizePage(): ReactElement {
     if (!hasUsername) return;
 
     try {
-      await navigator.clipboard.writeText(exportSnippet);
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(exportSnippet);
+      } else {
+        const copiedSuccessfully = fallbackCopyToClipboard(exportSnippet);
+
+        if (!copiedSuccessfully) {
+          throw new Error('Fallback clipboard copy failed.');
+        }
+      }
+
       setCopied(true);
+
       announceCopyStatus(
         `${exportFormat === 'markdown' ? 'Markdown' : 'HTML'} snippet copied to clipboard.`
       );
@@ -180,6 +214,7 @@ export default function CustomizePage(): ReactElement {
       }, 3000);
     } catch {
       setCopied(false);
+
       announceCopyStatus(
         `Unable to copy the ${exportFormat === 'markdown' ? 'Markdown' : 'HTML'} snippet.`
       );

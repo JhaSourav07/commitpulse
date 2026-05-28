@@ -9,7 +9,7 @@ import {
   GITHUB_CACHE_TTL_MS,
   validateGitHubUsername,
   cacheKey,
-  buildCommitClock,
+  buildInsights,
   fetchOrgMembers,
   getOrgDashboardData,
   getWrappedData,
@@ -455,8 +455,6 @@ describe('getFullDashboardData', () => {
       { name: 'Rust', percentage: 33, color: '#dea584' },
     ]);
     expect(result.insights).toBeDefined();
-    expect(result.commitClock).toBeDefined();
-    expect(result.commitClock).toHaveLength(7);
   });
 
   it('maps contribution counts to correct intensity levels', async () => {
@@ -670,27 +668,44 @@ describe('cacheKey', () => {
     expect(cacheKey('contributions', 'DeepSikha', '2025')).toBe('contributions:deepsikha:2025');
   });
 });
+describe('buildInsights', () => {
+  it('uses active streak message when current streak > 3', () => {
+    const result = buildInsights(
+      {
+        totalContributions: 120,
+        currentStreak: 7,
+        longestStreak: 20,
+      },
+      [{ name: 'TypeScript' }]
+    );
 
-describe('buildCommitClock', () => {
-  it('aggregates commits correctly by day of week', () => {
-    const allDays = [
-      { date: '2024-06-09', contributionCount: 2 }, // Sun
-      { date: '2024-06-10', contributionCount: 5 }, // Mon
-      { date: '2024-06-10', contributionCount: 3 }, // Mon
-      { date: '2024-06-12', contributionCount: 4 }, // Wed
-    ];
+    expect(result[2].text).toContain('active 7-day streak');
+  });
 
-    const result = buildCommitClock(allDays);
+  it('uses longest streak message when current streak <= 3', () => {
+    const result = buildInsights(
+      {
+        totalContributions: 120,
+        currentStreak: 2,
+        longestStreak: 15,
+      },
+      [{ name: 'Rust' }]
+    );
 
-    expect(result).toEqual([
-      { day: 'Sun', commits: 2 },
-      { day: 'Mon', commits: 8 },
-      { day: 'Tue', commits: 0 },
-      { day: 'Wed', commits: 4 },
-      { day: 'Thu', commits: 0 },
-      { day: 'Fri', commits: 0 },
-      { day: 'Sat', commits: 0 },
-    ]);
+    expect(result[2].text).toContain('15 days');
+  });
+
+  it('falls back to Unknown when languages list is empty', () => {
+    const result = buildInsights(
+      {
+        totalContributions: 50,
+        currentStreak: 1,
+        longestStreak: 5,
+      },
+      []
+    );
+
+    expect(result[1].text).toContain('Unknown');
   });
 });
 

@@ -14,6 +14,25 @@
 
 > **Drop this into your GitHub profile README and stop being boring.**
 
+## 📖 Table of Contents
+
+- [Design Philosophy](#the-isometric-monolith--design-philosophy)
+- [Live Demo](#live-demo)
+- [Deep Customization](#deep-customization--url-parameters)
+- [Theme Presets](#theme-presets)
+- [Theme Preview Gallery](#theme-preview-gallery)
+- [Real-Time Accuracy](#real-time-accuracy--the-contribution-count-problem)
+- [Architecture & Tech Stack](#architecture--tech-stack)
+- [Self-Hosting](#self-hosting-in-4-steps)
+- [Automated Contributor Workflow](#automated-contributor-workflow)
+- [FAQ](#faq)
+- [Contributing](#contributing)
+- [License](#license)
+- [Themes](#themes)
+- [Contributors](#contributors)
+
+---
+
 ![CommitPulse Live Demo](https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=neon)
 
 [![Join CommitPulse Discord](https://img.shields.io/badge/Join-CommitPulse%20Discord-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/Cb73bS79j)
@@ -155,7 +174,7 @@ URL Parameter > Theme Default > System Fallback
 | `hide_background` | `boolean` | No         | `false`                        | Remove the background rect, letting the monolith float on the page                                                                                                        |
 | `hide_stats`      | `boolean` | No         | `false`                        | Hides the bottom row displaying Current Streak, Annual Sync Total, and Peak Streak stats when set to `true` or `1`.                                                       |
 | `tz`              | `string`  | No         | Omitted = UTC                  | IANA timezone (e.g. `Asia/Kolkata`, `America/New_York`) — aligns "today" with the user local midnight. Note: `?tz=UTC` is valid but cached separately from omitting `tz`. |
-| `lang`            | `string`  | No         | `en`                           | Language code for labels (`en`, `es`, `hi`, `fr`, `pt`, `ko`, `ja`)                                                                                                       |
+| `lang`            | `string`  | No         | `en`                           | Language code for labels (`en`, `es`, `hi`, `fr`, `pt`, `ko`, `ja`, `de`)                                                                                                 |
 | `view`            | `string`  | No         | `default`                      | Rendering mode: `default` (3D Monolith) or `monthly` (Compact monthly stats)                                                                                              |
 | `delta_format`    | `string`  | No         | `percent`                      | Format for month-over-month delta in monthly view: `percent` (e.g. +12%), `absolute` (e.g. +15 commits), or `both`                                                        |
 | `width`           | `number`  | No         | `300`                          | Custom width for the SVG canvas (currently only applies to `view=monthly`)                                                                                                |

@@ -59,9 +59,9 @@ export const labels: Record<string, BadgeLabels> = {
   de: {
     CURRENT_STREAK: 'AKTUELLE_SERIE',
     ANNUAL_SYNC_TOTAL: 'JAHRES_GESAMT',
-    PEAK_STREAK: 'LÄNGSTE_SERIE',
+    PEAK_STREAK: 'SPITZEN_SERIE',
     COMMITS_THIS_MONTH: 'COMMITS DIESEN MONAT',
-    VS_LAST_MONTH: 'vs. letzten Monat',
+    VS_LAST_MONTH: 'im Vgl. zum Vormonat',
   },
 };
 
