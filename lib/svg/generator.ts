@@ -1,3 +1,5 @@
+// lib/svg/generator.ts
+
 import type { BadgeParams, ContributionCalendar, StreakStats, MonthlyStats } from '../../types';
 import { getLabels, type BadgeLabels } from '../i18n/badgeLabels';
 import { AUTO_THEME_DARK, AUTO_THEME_LIGHT } from './themes';
@@ -42,34 +44,12 @@ function scaleTowerData(towerData: TowerData[], sf: number): TowerData[] {
   }));
 }
 
-/** Rounds a base value by the current size-scale factor. */
 type Scaler = (n: number) => number;
 
-/** Avoids duplicating the rounding scaler in every rendering function. */
 function createScaler(sf: number): Scaler {
   return (n: number): number => Math.round(n * sf);
 }
 
-/**
- * Escapes special XML characters in a string so it can be safely
- * embedded inside SVG or XML markup.
- *
- * Converts:
- * - & to &amp;
- * - < to &lt;
- * - > to &gt;
- * - " to &quot;
- * - ' to &#39;
- *
- * @param str - Raw string that may contain XML-sensitive characters.
- *
- * @returns An XML-safe escaped string.
- *
- * @example
- * const safe = escapeXML('<text>Hello & Welcome</text>');
- * // Returns:
- * // '&lt;text&gt;Hello &amp; Welcome&lt;/text&gt;'
- */
 export function escapeXML(str: string): string {
   return str
     .replace(/&/g, '&amp;')
@@ -116,16 +96,22 @@ function generateParticles(
 
 // ── Section helpers for generateSVG ──────────────────────────────────────
 
-function renderHeader(safeUser: string, stats: StreakStats, sf: number): string {
+function renderHeader(
+  safeUser: string,
+  stats: StreakStats,
+  sf: number,
+  params: BadgeParams
+): string {
+  const unit = params.mode === 'loc' ? 'lines of code' : 'total contributions';
+  const entity = params.org ? 'Organization' : params.repo ? 'Repository' : 'User';
   return `
-  <title>CommitPulse Stats for ${safeUser}</title>
+  <title>CommitPulse ${entity} Stats for ${safeUser}</title>
   <desc>
-    ${safeUser} has ${stats.totalContributions} total contributions and a longest streak of ${stats.longestStreak} days.
+    ${safeUser} has ${stats.totalContributions} ${unit} and a longest streak of ${stats.longestStreak} days.
   </desc>
   ${renderDefs(sf)}`;
 }
 
-/** Renders the shared SVG <defs> block (glow filter) scaled by the size factor. */
 function renderDefs(sf: number): string {
   const fs = (n: number): number => Math.round(n * sf * 10) / 10;
   return `<defs>
@@ -133,15 +119,21 @@ function renderDefs(sf: number): string {
   </defs>`;
 }
 
-/** Renders the three-column stats row (Current Streak / Annual Sync Total / Peak Streak). */
-function renderStatsSection(stats: StreakStats, labels: BadgeLabels, s: Scaler): string {
+function renderStatsSection(
+  stats: StreakStats,
+  labels: BadgeLabels,
+  s: Scaler,
+  params: BadgeParams
+): string {
+  const totalLabel = params.mode === 'loc' ? 'TOTAL LINES OF CODE' : labels.ANNUAL_SYNC_TOTAL;
+
   return `
   <g transform="translate(${s(40)}, ${s(340)})">
     <text class="label">${labels.CURRENT_STREAK}</text>
     <text y="${s(40)}" class="stats" filter="url(#glow)">${stats.currentStreak}</text>
   </g>
   <g transform="translate(${s(300)}, ${s(340)})" text-anchor="middle">
-    <text class="label">${labels.ANNUAL_SYNC_TOTAL}</text>
+    <text class="label">${totalLabel}</text>
     <text y="${s(40)}" class="total-val" filter="url(#glow)">${stats.totalContributions}</text>
   </g>
   <g transform="translate(${s(560)}, ${s(340)})" text-anchor="end">
@@ -204,7 +196,7 @@ function renderFooter(
 ): string {
   const s = createScaler(sf);
   return `
-  ${!params.hide_stats ? renderStatsSection(stats, labels, s) : ''}
+  ${!params.hide_stats ? renderStatsSection(stats, labels, s, params) : ''}
   ${!params.hide_title ? `<text x="${s(300)}" y="${s(50)}" text-anchor="middle" class="title">${truncateUsername(safeUser).toUpperCase()}</text>` : ''}
   <rect x="${s(100)}" y="${s(60)}" width="${s(400)}" height="${sf}" fill="${accent}" fill-opacity="0.3">
     <animate attributeName="y" values="${s(80)};${s(320)};${s(80)}" dur="${params.speed || '8s'}" repeatCount="indefinite" />
@@ -213,41 +205,6 @@ function renderFooter(
 
 // ── Main static-theme renderer ────────────────────────────────────────────
 
-/**
- * Generates the main CommitPulse SVG badge using contribution
- * calendar data and streak statistics.
- *
- * The SVG includes animated contribution towers, statistics,
- * theme styling, and optional auto-theme support.
- *
- * @param stats - Contribution streak statistics including current streak,
- * longest streak, total contributions, and today's date.
- * @param params - Badge customization options such as colors, fonts,
- * animations, scaling, visibility toggles, and theme settings.
- * @param params.autoTheme - Enables automatic switching between
- * light and dark themes based on the user's system color scheme.
- * @param calendar - Contribution calendar data containing weekly
-contribution entries and per-day contribution counts used to
-generate the tower layout.
- * 
- * @returns A fully generated SVG badge string.
- *
- * @example
- * const svg = generateSVG(
- *   {
- *     currentStreak: 12,
- *     longestStreak: 30,
- *     totalContributions: 542,
- *     todayDate: '2026-05-27',
- *   },
- *   {
- *     user: 'octocat',
- *     autoTheme: true,
- *     accent: '00ffaa',
- *   },
- *   calendar
- * );
- */
 export function generateSVG(
   stats: StreakStats,
   params: BadgeParams,
@@ -281,12 +238,15 @@ export function generateSVG(
   const W = Math.round(SVG_WIDTH * sf);
   const H = Math.round(SVG_HEIGHT * sf);
 
-  const towerData = scaleTowerData(computeTowers(calendar, params.scale, stats.todayDate), sf);
+  const towerData = scaleTowerData(
+    computeTowers(calendar, params.scale, stats.todayDate, params.mode),
+    sf
+  );
   const towers = renderTowers(towerData, accent, text, sf);
 
   return `
 <svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" fill="none" role="img">
-  ${renderHeader(safeUser, stats, sf)}
+  ${renderHeader(safeUser, stats, sf, params)}
   ${renderStyle(selectedFont, statsFont, googleFontsImport, text, accent, sf)}
   <rect width="${W}" height="${H}" rx="${radius}" fill="${params.hideBackground ? 'transparent' : bg}" />
   <g transform="translate(0, ${Math.round(20 * sf)})">${towers}</g>
@@ -294,7 +254,6 @@ export function generateSVG(
 </svg>`;
 }
 
-//generates an svg for the non existent users
 function generateAutoThemeSVG(
   stats: StreakStats,
   params: BadgeParams,
@@ -314,22 +273,17 @@ function generateAutoThemeSVG(
 
   const W = Math.round(SVG_WIDTH * sf);
   const H = Math.round(SVG_HEIGHT * sf);
-  const towerData = scaleTowerData(computeTowers(calendar, params.scale, stats.todayDate), sf);
+  const towerData = scaleTowerData(
+    computeTowers(calendar, params.scale, stats.todayDate, params.mode),
+    sf
+  );
   let towers = '';
 
   for (const t of towerData) {
-    // isGhost is the single source of truth for color class — no hasCommits redundancy
     const fillClass = t.isGhost ? 'cp-text-fill' : 'cp-accent-fill';
-    // Ghost strokes use --cp-text; active towers have no outline (strokeOpacity=0 handles suppression)
     const strokeColor = t.isGhost ? 'var(--cp-text)' : 'var(--cp-accent)';
-    // Stagger delay creates a diagonal wave across the isometric grid (back-to-front)
     const delay = ((t.row + t.col) * 0.015).toFixed(3);
 
-    // The outer <g> positions the group at the ground tile (t.x, t.y).
-    // The inner <g class="cp-tower"> is what CSS animates with scaleY.
-    // Keeping these two responsibilities in separate elements prevents the
-    // CSS transform from fighting the SVG translate — they operate independently.
-    // Geometry paths are drawn offset by -t.h so they extend upward from y=10 (ground).
     towers += `
         <g transform="translate(${t.x}, ${t.y})">
           <g class="cp-tower" style="animation-delay: ${delay}s;">
@@ -357,14 +311,10 @@ function generateAutoThemeSVG(
   fill="none"
   role="img"
 >
-  ${renderHeader(safeUser, stats, sf)}
+  ${renderHeader(safeUser, stats, sf, params)}
 
   <style>
   @import url('https://fonts.googleapis.com/css2?family=Fira+Code&amp;family=JetBrains+Mono&amp;family=Roboto&amp;family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');
-  /* Auto-theme strategy: expose the palette as CSS variables so the SVG can
-     switch from light to dark through prefers-color-scheme. Shapes use classes
-     instead of inline fills because inline fill attributes would override these
-     variables and prevent the theme from updating automatically. */
   :root { --cp-bg: #${light.bg}; --cp-text: #${light.text}; --cp-accent: #${light.accent}; }
   @media (prefers-color-scheme: dark) { :root { --cp-bg: #${dark.bg}; --cp-text: #${dark.text}; --cp-accent: #${dark.accent}; } }
   .cp-bg-fill { fill: var(--cp-bg); } .cp-text-fill { fill: var(--cp-text); color: var(--cp-text); } .cp-accent-fill { fill: var(--cp-accent); color: var(--cp-accent); }
@@ -381,7 +331,7 @@ function generateAutoThemeSVG(
   <g transform="translate(0, ${s(20)})">
     ${towers}
   </g>
-  ${!params.hide_stats ? renderStatsSection(stats, labels, s) : ''}
+  ${!params.hide_stats ? renderStatsSection(stats, labels, s, params) : ''}
 ${
   !params.hide_title
     ? `<text x="${s(300)}" y="${s(50)}" text-anchor="middle" class="title">${truncateUsername(safeUser).toUpperCase()}</text>`
@@ -429,14 +379,17 @@ export function generateMonthlySVG(stats: MonthlyStats, params: BadgeParams): st
     ? `@import url('https://fonts.googleapis.com/css2?family=${googleFontUrlPart}&amp;display=swap');`
     : '';
 
+  const commitsLabel = params.mode === 'loc' ? 'LINES THIS MONTH' : labels.COMMITS_THIS_MONTH;
+  const deltaUnit = params.mode === 'loc' ? 'lines' : 'commits';
+
   let deltaText = '';
   if (params.delta_format === 'absolute') {
     deltaText =
       stats.deltaAbsolute > 0
-        ? `+${stats.deltaAbsolute} commits`
+        ? `+${stats.deltaAbsolute} ${deltaUnit}`
         : stats.deltaAbsolute === 0
-          ? `0 commits`
-          : `${stats.deltaAbsolute} commits`;
+          ? `0 ${deltaUnit}`
+          : `${stats.deltaAbsolute} ${deltaUnit}`;
   } else if (params.delta_format === 'both') {
     deltaText =
       stats.deltaPercentage > 0
@@ -478,7 +431,7 @@ export function generateMonthlySVG(stats: MonthlyStats, params: BadgeParams): st
 
   <text x="20" y="40" class="title">${stats.currentMonthName.toUpperCase()}</text>
   <text x="20" y="85" class="stats">${stats.currentMonthTotal}</text>
-  <text x="20" y="105" class="label">${labels.COMMITS_THIS_MONTH}</text>
+  <text x="20" y="105" class="label">${commitsLabel}</text>
 
   <g transform="translate(${width - 20}, 80)" text-anchor="end">
     <text class="delta">${deltaText}</text>
@@ -509,14 +462,17 @@ function generateAutoThemeMonthlySVG(stats: MonthlyStats, params: BadgeParams): 
   const width = params.width || 300;
   const height = params.height || 120;
 
+  const commitsLabel = params.mode === 'loc' ? 'LINES THIS MONTH' : labels.COMMITS_THIS_MONTH;
+  const deltaUnit = params.mode === 'loc' ? 'lines' : 'commits';
+
   let deltaText = '';
   if (params.delta_format === 'absolute') {
     deltaText =
       stats.deltaAbsolute > 0
-        ? `+${stats.deltaAbsolute} commits`
+        ? `+${stats.deltaAbsolute} ${deltaUnit}`
         : stats.deltaAbsolute === 0
-          ? `0 commits`
-          : `${stats.deltaAbsolute} commits`;
+          ? `0 ${deltaUnit}`
+          : `${stats.deltaAbsolute} ${deltaUnit}`;
   } else if (params.delta_format === 'both') {
     deltaText =
       stats.deltaPercentage > 0
@@ -562,7 +518,7 @@ function generateAutoThemeMonthlySVG(stats: MonthlyStats, params: BadgeParams): 
 
   <text x="20" y="40" class="title">${stats.currentMonthName.toUpperCase()}</text>
   <text x="20" y="85" class="stats">${stats.currentMonthTotal}</text>
-  <text x="20" y="105" class="label">${labels.COMMITS_THIS_MONTH}</text>
+  <text x="20" y="105" class="label">${commitsLabel}</text>
 
   <g transform="translate(${width - 20}, 80)" text-anchor="end">
     <text class="delta cp-delta-fill">${deltaText}</text>
@@ -572,34 +528,6 @@ function generateAutoThemeMonthlySVG(stats: MonthlyStats, params: BadgeParams): 
 `;
 }
 
-/**
- * Generates a fallback SVG badge for users that do not exist
- * or when contribution data cannot be loaded.
- *
- * The SVG renders a ghost-style city layout with an animated
- * error-state design while preserving the standard badge layout.
- *
- * @param username - GitHub username displayed in the error badge.
- * @param bg - Background color used for the SVG container.
- * @param accent - Accent color used for highlights, outlines,
- * and animated elements.
- * @param text - Primary text color used throughout the badge.
- * @param radius - Border radius applied to the SVG background.
- * @param speed - Animation speed for the radar scan effect.
- * Defaults to '8s'.
- *
- * @returns A generated SVG string representing the not-found state.
- *
- * @example
- * const svg = generateNotFoundSVG(
- *   'octocat',
- *   '#0d1117',
- *   '#00ffaa',
- *   '#ffffff',
- *   8,
- *   '8s'
- * );
- */
 export function generateNotFoundSVG(
   username: string,
   bg: string,
@@ -610,8 +538,6 @@ export function generateNotFoundSVG(
 ): string {
   const safeName = escapeXML(username.toUpperCase());
 
-  // Ghost towers — same isometric math as computeTowers() but with fixed
-  // deterministic heights so the silhouette looks like a real city.
   const ghostLayout: { col: number; row: number; h: number }[] = [
     { col: 0, row: 0, h: 8 },
     { col: 1, row: 0, h: 20 },
@@ -733,12 +659,11 @@ export function generateNotFoundSVG(
   <!-- Fade overlay so ghost city dissolves into background -->
   <rect width="${SVG_WIDTH}" height="${SVG_HEIGHT}" rx="${radius}" fill="url(#ghostFade)"/>
 
-  <!-- Radar scan line (same as real badge, but very faint) -->
+  <!-- Radar scan line -->
   <rect x="100" y="60" width="400" height="1" fill="${accent}" fill-opacity="0.12">
     <animate attributeName="y" values="80;320;80" dur="${speed}" repeatCount="indefinite"/>
   </rect>
 
-  <!-- Username label (same position as real badge) -->
   <text x="300" y="50" text-anchor="middle" class="title">${safeName}</text>
 
   <!-- Divider below title -->
@@ -760,14 +685,13 @@ export function generateNotFoundSVG(
     font-family="Syncopate, sans-serif" font-size="9" font-weight="700"
     fill="${accent}" opacity="0.7" letter-spacing="4">NOT FOUND</text>
 
-  <!-- Sub-hint -->
   <text x="300" y="278" text-anchor="middle"
     font-family="Space Grotesk, sans-serif" font-size="11"
     fill="${text}" opacity="0.3">
     This GitHub user doesn't exist
   </text>
 
-  <!-- Bottom stat placeholders (same layout as real badge, greyed out) -->
+  <!-- Bottom stat placeholders -->
   <g transform="translate(40, 340)">
     <text class="label">CURRENT_STREAK</text>
     <text y="40" class="stats">—</text>

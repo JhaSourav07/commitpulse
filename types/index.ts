@@ -1,3 +1,5 @@
+// types/index.ts
+
 export type HexColor = string & { __brand: 'HexColor' };
 
 export type Scale = 'linear' | 'log';
@@ -46,6 +48,10 @@ export interface ContributionDay {
 
   /** Calendar date of this contribution entry (format: YYYY-MM-DD). */
   date: string;
+
+  // Added for LoC (Lines of Code) Mode
+  locAdditions?: number;
+  locDeletions?: number;
 }
 
 /**
@@ -148,4 +154,17 @@ export interface BadgeParams {
 
   /** Preset size of the badge. 'small', 'medium', or 'large'. Overrides width and height. */
   size?: BadgeSize;
+
+  /* ==========================================================================
+   * NEW EPIC FEATURE PARAMS
+   * ========================================================================== */
+
+  /** Rendering mode. 'commits' is the default. 'loc' switches to Lines of Code landscape. */
+  mode?: 'commits' | 'loc';
+
+  /** Render the monolith for a specific repository (e.g. "owner/repo") instead of the whole profile. */
+  repo?: string;
+
+  /** Organization name to generate a Mega-City for. */
+  org?: string;
 }
