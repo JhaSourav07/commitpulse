@@ -1,5 +1,4 @@
 import React from 'react';
-import '@testing-library/jest-dom';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
 import InteractiveViewer from './InteractiveViewer';
@@ -11,7 +10,7 @@ describe('InteractiveViewer', () => {
         <div data-testid="child">Test Child</div>
       </InteractiveViewer>
     );
-    expect(screen.getByTestId('child')).toBeInTheDocument();
+    expect(screen.getByTestId('child')).toBeDefined();
   });
 
   it('handles keyboard navigation for panning', () => {
