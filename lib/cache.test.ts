@@ -381,6 +381,25 @@ describe('TTLCache', () => {
       expect([null, 'lived']).toContain(result);
       cache.destroy();
     });
+    it('does not throw when ttlMs is Number.EPSILON', () => {
+      const cache = new TTLCache<string>();
+
+      expect(() => {
+        cache.set('key', 'value', Number.EPSILON);
+      }).not.toThrow();
+
+      cache.destroy();
+    });
+
+    it('does not throw when ttlMs is a very small positive number', () => {
+      const cache = new TTLCache<string>();
+
+      expect(() => {
+        cache.set('key', 'value', 0.0001);
+      }).not.toThrow();
+
+      cache.destroy();
+    });
 
     it('multiple clear operations work correctly', () => {
       const cache = new TTLCache<string>();
