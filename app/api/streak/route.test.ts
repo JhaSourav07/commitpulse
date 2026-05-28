@@ -151,6 +151,14 @@ describe('GET /api/streak', () => {
       // The generator puts params.user.toUpperCase() in the SVG as the badge title.
       expect(body).toContain('OCTOCAT');
     });
+
+    it('should contain a <title> element with accessible label in the SVG response', async () => {
+      const response = await GET(makeRequest({ user: 'octocat' }));
+      const body = await response.text();
+
+      expect(body).toContain('<title>');
+      expect(body).toContain('Stats for');
+    });
   });
 
   describe('cache-control header', () => {
