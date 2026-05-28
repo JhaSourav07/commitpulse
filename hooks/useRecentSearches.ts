@@ -10,30 +10,6 @@ type State = {
   mounted: boolean;
 };
 
-function loadFromStorage(): string[] {
-  let saved: string[] = [];
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) saved = JSON.parse(stored) as string[];
-  } catch {
-    // ignore malformed storage
-  }
-  return saved;
-}
-
-function writeStorage(searches: string[] | null): void {
-  try {
-    if (searches === null) {
-      localStorage.removeItem(STORAGE_KEY);
-      return;
-    }
-
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(searches));
-  } catch {
-    // ignore storage write failures
-  }
-}
-
 export function useRecentSearches() {
   const [state, setState] = useState<State>(() => {
     if (typeof window === 'undefined') {
