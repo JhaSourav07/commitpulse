@@ -52,8 +52,16 @@ const stats = calculateStreak(
 */
 export function isStreakAlive(
   today: { contributionCount: number },
-  yesterday: { contributionCount: number } | null
+  yesterday: { contributionCount: number } | null,
+  grace: number = 1,
+  days: { contributionCount: number }[] = [],
+  todayIndex: number = 0
 ): boolean {
+  // Grace period: streak alive if any day within grace window has contributions
+  for (let i = 0; i <= grace; i++) {
+    const checkIndex = todayIndex - i;
+    if (checkIndex >= 0 && days[checkIndex]?.contributionCount > 0) return true;
+  }
   return today.contributionCount > 0 || (yesterday?.contributionCount ?? 0) > 0;
 }
 
@@ -105,22 +113,29 @@ export function calculateStreak(
   // If I committed today, the streak is alive.
   // If I haven't committed today, but I committed yesterday,
   // the streak is STILL alive (Grace Period).
-  const streakAlive = isStreakAlive(today, yesterday);
+  const streakAlive = isStreakAlive(today, yesterday, grace, days, todayIndex);
 
   if (streakAlive) {
-    // Count backwards from the first day that has a contribution
-    // starting from either today or yesterday.
-    let i = today.contributionCount > 0 ? todayIndex : todayIndex - 1;
-
-    // Count backwards from the first day that has a contribution
-    while (i >= 0 && days[i].contributionCount > 0) {
-      currentStreak++;
-      i--;
+    // Find the most recent day within the grace window that has contributions
+    // then count backwards from there
+    let startIndex = -1;
+    for (let i = 0; i <= grace; i++) {
+      const checkIndex = todayIndex - i;
+      if (checkIndex >= 0 && days[checkIndex].contributionCount > 0) {
+        startIndex = checkIndex;
+        break;
+      }
+    }
+    if (startIndex >= 0) {
+      let i = startIndex;
+      while (i >= 0 && days[i].contributionCount > 0) {
+        currentStreak++;
+        i--;
+      }
     }
   } else {
     currentStreak = 0;
   }
-
   // When the local date isn't in the calendar (e.g. UTC+14 user whose local date is
   // already tomorrow), fall back to the last available day so todayDate always refers
   // to a date that exists in the calendar and the SVG pulse can match it.
