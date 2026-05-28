@@ -1,6 +1,6 @@
 import type { ExportFormat } from './types';
 
-const BADGE_BASE_URL = 'https://commitpulse.vercel.app/api/streak';
+const BADGE_BASE_URL = `${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://commitpulse.vercel.app'}/api/streak`;
 
 /**
  * Removes the leading # from a hex color string.
