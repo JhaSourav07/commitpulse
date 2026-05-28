@@ -215,6 +215,54 @@ describe('calculateStreak', () => {
     expect(result.currentStreak).toBe(0);
     expect(result.longestStreak).toBe(0);
   });
+
+  it('should find the longest streak when it is in the middle of the calendar', () => {
+    // buildCalendar groups elements by sets of 7 (weeks) from left to right.
+    // The very last element of the flat array represents "today".
+    const calendar = buildCalendar([
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0, // Week 1 — Buffer gap
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1, // Week 2 — Longest streak start (7 days)
+      1,
+      1,
+      1,
+      0,
+      0,
+      0,
+      0, // Week 3 — Longest streak ends (+3 days = 10 total) followed by a gap
+      1,
+      1,
+      1,
+      1,
+      1,
+      0,
+      0, // Week 4 — Intermediate streak (5 days) broken by a gap
+      0,
+      0,
+      1,
+      1,
+      1,
+      1,
+      1, // Week 5 — 5-day active current streak ending on the final day ("today")
+    ]);
+
+    const result = calculateStreak(calendar);
+
+    // Assertions (Definition of Done)
+    expect(result.longestStreak).toBe(10);
+    expect(result.currentStreak).toBe(5);
+  });
 });
 
 describe('calculateStreak — timezone awareness', () => {
