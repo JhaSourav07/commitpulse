@@ -69,8 +69,9 @@ describe('GET /api/streak', () => {
       const response = await GET(makeRequest());
 
       expect(response.status).toBe(400);
-      const body = await response.text();
-      expect(body).toContain('Missing');
+     const body = await response.json();
+      expect(body.error).toBe('Invalid parameters');
+      expect(typeof body.details).toBe('object');
     });
 
     it('does not hit the GitHub API at all when user is missing', async () => {
