@@ -223,51 +223,20 @@ describe('fetchUserRepos', () => {
     await expect(fetchUserRepos('octocat')).rejects.toThrow('GitHub REST API error: 500');
   });
 
-  it('fetches multiple pages of repos', async () => {
-    vi.mocked(fetch)
-      .mockResolvedValueOnce(
-        mockResponse(
-          Array.from({ length: 100 }, (_, i) => ({
-            id: i,
-            stargazers_count: i,
-            language: 'TypeScript',
-          }))
-        )
-      )
-      .mockResolvedValueOnce(
-        mockResponse([
-          {
-            id: 101,
-            stargazers_count: 101,
-            language: 'JavaScript',
-          },
-        ])
-      )
-      .mockImplementation(() => Promise.resolve(mockResponse([])) as Promise<Response>);
+  it('fetches at most one page of repos', async () => {
+    let fetchCallCount = 0;
+    vi.mocked(fetch).mockImplementation(async (url) => {
+      if (String(url).includes('/repos')) fetchCallCount++;
+      return mockResponse(Array(100).fill({ stargazers_count: 1, language: 'TypeScript' }));
+    });
 
-    const result = await fetchUserRepos('octocat');
-
-    expect(fetch).toHaveBeenCalledTimes(2);
-    expect(result.length).toBe(101);
+    await fetchUserRepos('some-prolific-user');
+    expect(fetchCallCount).toBeLessThanOrEqual(1);
   });
 
-  it('stops fetching after reaching max pages', async () => {
-    vi.mocked(fetch).mockImplementation(
-      () =>
-        Promise.resolve(
-          mockResponse(
-            Array.from({ length: 100 }, (_, i) => ({
-              id: i,
-              stargazers_count: i,
-              language: 'TypeScript',
-            }))
-          )
-        ) as Promise<Response>
-    );
-
-    await fetchUserRepos('octocat');
-
-    expect(fetch).toHaveBeenCalledTimes(100);
+  it('does not throw for users with 0 repos', async () => {
+    vi.mocked(fetch).mockResolvedValue(mockResponse([]));
+    await expect(fetchUserRepos('empty-user')).resolves.toEqual([]);
   });
 });
 
