@@ -25,6 +25,7 @@ export default function Heatmap({ data }: { data: ActivityData[] }) {
   }
 
   const naturalWidth = weeks.length * (CELL + GAP) - GAP;
+  const hasData = data.length > 0 && data.some((d) => d.count > 0);
 
   // Recalculate scale whenever the card resizes
   useEffect(() => {
@@ -98,6 +99,7 @@ export default function Heatmap({ data }: { data: ActivityData[] }) {
         </div>
 
         {/* Scale wrapper */}
+        {hasData ? (
         <div ref={containerRef} className="w-full overflow-hidden">
           <div
             style={{
@@ -124,6 +126,11 @@ export default function Heatmap({ data }: { data: ActivityData[] }) {
             </div>
           </div>
         </div>
+        ) : (
+  <div className="h-[120px] flex items-center justify-center rounded-lg border border-dashed border-black/10 dark:border-[rgba(255,255,255,0.08)] text-sm text-[#A1A1AA]">
+    No recent activity to display
+  </div>
+)}
       </motion.div>
 
       {/* Tooltip rendered at viewport level — unaffected by scale/overflow */}

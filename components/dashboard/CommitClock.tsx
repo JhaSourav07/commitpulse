@@ -13,6 +13,7 @@ export default function CommitClock({ data }: { data: CommitClockData[] }) {
 
   // Find the peak day index
   const peakIndex = data.reduce((peak, d, i) => (d.commits > data[peak].commits ? i : peak), 0);
+  const hasData = data.length > 0 && data.some((d) => d.commits > 0);
 
   return (
     <motion.div
@@ -30,6 +31,7 @@ export default function CommitClock({ data }: { data: CommitClockData[] }) {
       </div>
 
       <div className="relative w-[280px] h-[280px] flex items-center justify-center mt-4">
+        {hasData ? (
         <svg width="280" height="280" className="overflow-visible rotate-[-90deg]">
           <defs>
             <filter id="spoke-glow" x="-50%" y="-50%" width="200%" height="200%">
@@ -189,6 +191,11 @@ export default function CommitClock({ data }: { data: CommitClockData[] }) {
             );
           })}
         </svg>
+        ) : (
+  <div className="h-[280px] flex items-center justify-center w-full rounded-lg border border-dashed border-black/10 dark:border-[rgba(255,255,255,0.08)] text-sm text-[#A1A1AA]">
+    No recent activity to display
+  </div>
+)}
 
         {/* Center label */}
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
