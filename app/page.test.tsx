@@ -50,17 +50,24 @@ vi.mock('framer-motion', () => ({
   AnimatePresence: ({ children }: any) => <>{children}</>,
 }));
 
+const mockRecentSearches = {
+  searches: ['octocat', 'torvalds'] as string[],
+  addSearch: vi.fn(),
+  clearSearches: vi.fn(),
+  removeSearch: vi.fn(),
+};
+
 vi.mock('@/hooks/useRecentSearches', () => ({
-  useRecentSearches: () => ({
-    searches: [],
-    addSearch: vi.fn(),
-    clearSearches: vi.fn(),
-  }),
+  useRecentSearches: () => mockRecentSearches,
 }));
 
 describe('LandingPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockRecentSearches.searches = ['octocat', 'torvalds'];
+    mockRecentSearches.addSearch = vi.fn();
+    mockRecentSearches.clearSearches = vi.fn();
+    mockRecentSearches.removeSearch = vi.fn();
 
     // Mock fetch so the SVG preview useEffect resolves without a real network call.
     // Returns a minimal valid SVG so dangerouslySetInnerHTML has something to render.
@@ -100,6 +107,19 @@ describe('LandingPage', () => {
     expect(input.value).toBe('');
   });
 
+  it('renders recent searches and applies a recent search when clicked', () => {
+    render(<LandingPage />);
+    const input = screen.getByPlaceholderText('Enter GitHub Username') as HTMLInputElement;
+    const octocatButton = screen.getByRole('button', { name: 'octocat' });
+
+    expect(octocatButton).toBeDefined();
+    expect(screen.getByRole('button', { name: 'Clear' })).toBeDefined();
+
+    fireEvent.click(octocatButton);
+
+    expect(input.value).toBe('octocat');
+  });
+
   it('renders an empty state before a username is entered', () => {
     render(<LandingPage />);
 
@@ -131,6 +151,25 @@ describe('LandingPage', () => {
     });
   });
 
+  it('disables the Watch Dashboard link when the username is empty', () => {
+    render(<LandingPage />);
+    const dashboardLink = screen.getByRole('link', { name: 'Watch Dashboard' });
+
+    expect(dashboardLink.getAttribute('aria-disabled')).toBe('true');
+    expect(dashboardLink.getAttribute('href')).toBe('/');
+  });
+
+  it('enables the Watch Dashboard link after a username is entered', () => {
+    render(<LandingPage />);
+    const input = screen.getByPlaceholderText('Enter GitHub Username') as HTMLInputElement;
+
+    fireEvent.change(input, { target: { value: 'octocat' } });
+
+    const dashboardLink = screen.getByRole('link', { name: 'Watch Dashboard' });
+    expect(dashboardLink.getAttribute('aria-disabled')).not.toBe('true');
+    expect(dashboardLink.getAttribute('href')).toBe('/dashboard/octocat');
+  });
+
   it('handles copying to clipboard and showing the SuccessGuide', async () => {
     render(<LandingPage />);
     const input = screen.getByPlaceholderText('Enter GitHub Username') as HTMLInputElement;
@@ -151,6 +190,24 @@ describe('LandingPage', () => {
       // The SuccessGuide should appear
       expect(screen.getByText('Your Monolith is Ready - Deploy It in 4 Steps')).toBeDefined();
     });
+  });
+
+  it('disables Copy Link button when username is empty', () => {
+    render(<LandingPage />);
+
+    const copyButton = screen.getByText('Copy Link').closest('button');
+
+    expect(copyButton?.disabled).toBe(true);
+  });
+
+  it('does not copy link when username is empty', () => {
+    render(<LandingPage />);
+
+    const copyButton = screen.getByText('Copy Link').closest('button');
+
+    fireEvent.click(copyButton!);
+
+    expect(navigator.clipboard.writeText).not.toHaveBeenCalled();
   });
 
   it('renders the FeatureCards', () => {
@@ -201,5 +258,22 @@ describe('LandingPage', () => {
     expect(input.value).toBe('');
 
     expect(screen.queryByLabelText('Clear input')).toBeNull();
+  });
+
+  it('renders recent searches and handles individual deletion', () => {
+    mockRecentSearches.searches = ['octocat', 'jhasourav07'];
+    render(<LandingPage />);
+
+    expect(screen.getByText('octocat')).toBeDefined();
+    expect(screen.getByText('jhasourav07')).toBeDefined();
+
+    const deleteButtons = screen.getAllByLabelText(/Remove/);
+    expect(deleteButtons.length).toBe(2);
+
+    fireEvent.click(deleteButtons[0]);
+    expect(mockRecentSearches.removeSearch).toHaveBeenCalledWith('octocat');
+
+    // Cleanup
+    mockRecentSearches.searches = [];
   });
 });

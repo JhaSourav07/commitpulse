@@ -26,3 +26,39 @@ export const SIZES = [
   { value: 'medium', label: 'Medium (Default)' },
   { value: 'large', label: 'Large' },
 ] as const;
+
+export const FONTS = [
+  { value: '', label: 'Default' },
+  { value: 'jetbrains', label: 'JetBrains Mono' },
+  { value: 'fira', label: 'Fira Code' },
+  { value: 'roboto', label: 'Roboto' },
+] as const satisfies readonly { value: string; label: string }[];
+
+export type Font = (typeof FONTS)[number]['value'];
+
+export const VIEW_MODES = [
+  { value: 'default', label: 'Default' },
+  { value: 'monthly', label: 'Monthly' },
+] as const satisfies readonly { value: string; label: string }[];
+
+export type ViewMode = (typeof VIEW_MODES)[number]['value'];
+
+export const DELTA_FORMATS = [
+  { value: 'percent', label: 'Percent' },
+  { value: 'absolute', label: 'Absolute' },
+  { value: 'both', label: 'Both' },
+] as const satisfies readonly { value: string; label: string }[];
+
+export type DeltaFormat = (typeof DELTA_FORMATS)[number]['value'];
+
+export const LANGUAGES = [
+  { value: 'en', label: 'English' },
+  { value: 'es', label: 'Spanish' },
+  { value: 'hi', label: 'Hindi' },
+  { value: 'pt', label: 'Portuguese' },
+  { value: 'ko', label: 'Korean' },
+  { value: 'fr', label: 'French' },
+  { value: 'ja', label: 'Japanese' },
+] as const satisfies readonly { value: string; label: string }[];
+
+export type Language = (typeof LANGUAGES)[number]['value'];

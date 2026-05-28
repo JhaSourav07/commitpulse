@@ -20,10 +20,12 @@ export default function CommitClock({ data }: { data: CommitClockData[] }) {
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ duration: 0.3, delay: 0.1 }}
-      className="p-6 rounded-xl bg-[#0a0a0a] border border-[rgba(255,255,255,0.08)] flex flex-col items-center min-h-[300px]"
+      className="p-6 rounded-xl bg-white dark:bg-[#0a0a0a] border border-black/10 dark:border-[rgba(255,255,255,0.08)] flex flex-col items-center min-h-[300px]"
     >
       <div className="w-full mb-1">
-        <h3 className="text-sm font-semibold text-white tracking-tight">Commit Clock</h3>
+        <h3 className="text-sm font-semibold text-gray-900 dark:text-white tracking-tight">
+          Commit Clock
+        </h3>
         <p className="text-xs text-[#A1A1AA] mt-1">Weekly activity cycle</p>
       </div>
 
@@ -36,13 +38,29 @@ export default function CommitClock({ data }: { data: CommitClockData[] }) {
             </filter>
           </defs>
 
+          <style>
+            {`
+    :root {
+      --peak-spoke: #111111;
+      --peak-dot: rgba(17,17,17,0.7);
+      --peak-label: #111111;
+    }
+
+    .dark {
+      --peak-spoke: #ffffff;
+      --peak-dot: rgba(255,255,255,0.8);
+      --peak-label: #ffffff;
+    }
+  `}
+          </style>
+
           {/* Base ring */}
           <circle
             cx={cx}
             cy={cy}
             r={radius}
             fill="none"
-            stroke="rgba(255,255,255,0.04)"
+            stroke="rgba(120,120,120,0.15)"
             strokeWidth="18"
           />
 
@@ -52,7 +70,7 @@ export default function CommitClock({ data }: { data: CommitClockData[] }) {
             cy={cy}
             r={radius + maxSpokeLength + 8}
             fill="none"
-            stroke="rgba(255,255,255,0.08)"
+            stroke="rgba(120,120,120,0.22)"
             strokeWidth="1"
           />
 
@@ -73,7 +91,7 @@ export default function CommitClock({ data }: { data: CommitClockData[] }) {
                 y1={r4(cy + (radius + innerOffset) * Math.sin(rad))}
                 x2={r4(cx + (radius + tickLength) * Math.cos(rad))}
                 y2={r4(cy + (radius + tickLength) * Math.sin(rad))}
-                stroke={isMain ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.06)'}
+                stroke={isMain ? 'rgba(120,120,120,0.28)' : 'rgba(120,120,120,0.14)'}
                 strokeWidth={isMain ? '4' : '2'}
                 strokeLinecap="round"
               />
@@ -98,6 +116,23 @@ export default function CommitClock({ data }: { data: CommitClockData[] }) {
             const labelX = r4(cx + (radius + maxSpokeLength + 14) * Math.cos(rad));
             const labelY = r4(cy + (radius + maxSpokeLength + 14) * Math.sin(rad));
 
+            const spokeColor = isPeak
+              ? 'var(--peak-spoke)'
+              : isHigh
+                ? 'rgba(160,160,160,0.85)'
+                : 'rgba(110,110,110,0.55)';
+
+            const dotColor = isPeak
+              ? 'var(--peak-dot)'
+              : isHigh
+                ? 'rgba(180,180,180,0.75)'
+                : 'rgba(120,120,120,0.55)';
+
+            const labelColor = isPeak
+              ? 'var(--peak-label)'
+              : isHigh
+                ? 'rgba(180,180,180,0.75)'
+                : 'rgba(120,120,120,0.6)';
             return (
               <motion.g
                 key={d.day}
@@ -110,9 +145,7 @@ export default function CommitClock({ data }: { data: CommitClockData[] }) {
                   y1={y1}
                   x2={x2}
                   y2={y2}
-                  stroke={
-                    isPeak ? '#ffffff' : isHigh ? 'rgba(255,255,255,0.8)' : 'rgba(255,255,255,0.3)'
-                  }
+                  stroke={spokeColor}
                   strokeWidth={strokeW}
                   strokeLinecap="round"
                   filter={isPeak ? 'url(#spoke-glow)' : undefined}
@@ -123,8 +156,8 @@ export default function CommitClock({ data }: { data: CommitClockData[] }) {
                   <circle
                     cx={x2}
                     cy={y2}
-                    r={isPeak ? 3 : 2}
-                    fill={isPeak ? '#ffffff' : isHigh ? '#ffffff' : 'rgba(255,255,255,0.5)'}
+                    r={isPeak ? 2.2 : 2}
+                    fill={dotColor}
                     filter={isPeak ? 'url(#spoke-glow)' : undefined}
                   />
                 )}
@@ -133,9 +166,7 @@ export default function CommitClock({ data }: { data: CommitClockData[] }) {
                 <text
                   x={labelX}
                   y={labelY}
-                  fill={
-                    isPeak ? '#ffffff' : isHigh ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.35)'
-                  }
+                  fill={isPeak ? 'var(--peak-label)' : 'rgba(120,120,120,0.55)'}
                   fontSize="9"
                   fontWeight={isPeak ? '700' : '400'}
                   textAnchor="middle"
@@ -147,9 +178,9 @@ export default function CommitClock({ data }: { data: CommitClockData[] }) {
                   <tspan
                     x={labelX}
                     dy="10"
-                    fill={isPeak ? '#ffffff' : 'rgba(255,255,255,0.3)'}
+                    fill={isPeak ? 'var(--peak-label)' : labelColor}
                     fontSize="7"
-                    fontWeight="400"
+                    fontWeight="700"
                   >
                     {d.commits}
                   </tspan>
@@ -161,8 +192,8 @@ export default function CommitClock({ data }: { data: CommitClockData[] }) {
 
         {/* Center label */}
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-          <span className="text-lg font-semibold text-white/60">7d</span>
-          <span className="text-[8px] text-white/20 mt-0.5">CYCLE</span>
+          <span className="text-lg font-semibold text-gray-700 dark:text-white/60">7d</span>
+          <span className="text-[8px] text-gray-400 dark:text-white/20 mt-0.5">CYCLE</span>
         </div>
       </div>
     </motion.div>
