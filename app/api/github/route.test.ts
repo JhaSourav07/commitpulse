@@ -1,12 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { GET } from './route';
-
 // Replace the real GitHub API with a fake function so tests can run without hitting real APIs
-vi.mock('@/lib/github', () => ({
+vi.mock('../../../lib/github', () => ({
   getFullDashboardData: vi.fn(),
 }));
 
-import { getFullDashboardData } from '@/lib/github';
+import { getFullDashboardData } from '../../../lib/github';
 
 function makeRequest(params: Record<string, string> = {}): Request {
   const url = new URL('http://localhost/api/github');
