@@ -722,6 +722,12 @@ describe('generateAchievements', () => {
     expect(unlocked.some((a) => a.title === '1000 Contributions')).toBe(false);
   });
 
+  it('unlocks all achievements for max contribution and streak values', () => {
+    const achievements = generateAchievements(1001, 101);
+
+    expect(achievements.every((achievement) => achievement.isUnlocked === true)).toBe(true);
+  });
+
   it('marks streak milestones correctly', () => {
     const achievements = generateAchievements(50, 35);
 
