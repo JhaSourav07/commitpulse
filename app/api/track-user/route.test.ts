@@ -10,7 +10,8 @@ vi.mock('@/lib/mongodb', () => ({
 
 vi.mock('@/models/User', () => ({
   User: {
-    updateOne: vi.fn(),
+    findOne: vi.fn().mockResolvedValue(null),
+    findOneAndUpdate: vi.fn().mockResolvedValue(null),
   },
 }));
 
@@ -91,6 +92,9 @@ describe('POST /api/track-user', () => {
   describe('With MONGODB_URI', () => {
     beforeEach(() => {
       process.env.MONGODB_URI = 'mongodb://localhost:27017/test';
+      // Re-apply default mock implementations after vi.clearAllMocks() resets them
+      vi.mocked(User.findOne).mockResolvedValue(null);
+      vi.mocked(User.findOneAndUpdate).mockResolvedValue(null);
     });
 
     it('connects to DB and upserts the user', async () => {
@@ -98,11 +102,11 @@ describe('POST /api/track-user', () => {
 
       expect(dbConnect).toHaveBeenCalled();
 
-      // Trims and lowercases
-      expect(User.updateOne).toHaveBeenCalledWith(
+      // Trims and lowercases — route uses findOneAndUpdate for timezone-aware upsert
+      expect(User.findOneAndUpdate).toHaveBeenCalledWith(
         { username: 'octocat' },
         { $setOnInsert: { username: 'octocat' } },
-        { upsert: true }
+        { upsert: true, new: true }
       );
 
       expect(response.status).toBe(200);
@@ -134,7 +138,7 @@ describe('POST /api/track-user', () => {
       };
       mongoError.code = 11000;
       mongoError.keyPattern = { username: 1 };
-      vi.mocked(User.updateOne).mockRejectedValueOnce(mongoError);
+      vi.mocked(User.findOneAndUpdate).mockRejectedValueOnce(mongoError);
 
       const response = await POST(makeRequest({ username: 'octocat' }));
 
@@ -157,7 +161,7 @@ describe('POST /api/track-user', () => {
       };
       mongoError.code = 11000;
       mongoError.keyPattern = { other_field: 1 };
-      vi.mocked(User.updateOne).mockRejectedValueOnce(mongoError);
+      vi.mocked(User.findOneAndUpdate).mockRejectedValueOnce(mongoError);
 
       const response = await POST(makeRequest({ username: 'octocat' }));
 

@@ -39,12 +39,17 @@ describe('trackUser', () => {
 
     trackUser('testuser');
 
-    expect(fetchMock).toHaveBeenCalledWith('/api/track-user', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: 'testuser' }),
-      keepalive: true,
-    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url, opts] = fetchMock.mock.calls[0];
+    expect(url).toBe('/api/track-user');
+    expect(opts.method).toBe('POST');
+    expect(opts.headers).toEqual({ 'Content-Type': 'application/json' });
+    expect(opts.keepalive).toBe(true);
+
+    const parsedBody = JSON.parse(opts.body);
+    expect(parsedBody.username).toBe('testuser');
+    expect(typeof parsedBody.timezone).toBe('string');
+    expect(parsedBody.timezone.length).toBeGreaterThan(0);
   });
 
   it('falls back to fetch when sendBeacon returns false', () => {

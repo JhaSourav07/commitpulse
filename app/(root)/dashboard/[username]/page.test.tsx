@@ -164,6 +164,7 @@ describe('DashboardPage', () => {
 
       expect(getFullDashboardData).toHaveBeenCalledWith('octocat', {
         bypassCache: true,
+        timezone: 'UTC',
       });
     });
   });
