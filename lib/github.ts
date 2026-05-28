@@ -452,6 +452,46 @@ export function generateAchievements(totalContributions: number, currentStreak: 
   }
   return achievements;
 }
+type StreakStats = {
+  totalContributions: number;
+  currentStreak: number;
+  longestStreak: number;
+};
+
+type Language = {
+  name: string;
+};
+
+export function buildInsights(streakStats: StreakStats, languages: Language[]) {
+  const insights = [
+    {
+      id: '1',
+      icon: 'Flame',
+      text: `You have a total of ${streakStats.totalContributions} contributions this year.`,
+    },
+    {
+      id: '2',
+      icon: 'Code',
+      text: `Your primary language is ${languages[0]?.name || 'Unknown'}.`,
+    },
+  ];
+
+  if (streakStats.currentStreak > 3) {
+    insights.push({
+      id: '3',
+      icon: 'Zap',
+      text: `You are currently on an active ${streakStats.currentStreak}-day streak! Keep it going!`,
+    });
+  } else {
+    insights.push({
+      id: '3',
+      icon: 'Star',
+      text: `Your longest coding streak is ${streakStats.longestStreak} days!`,
+    });
+  }
+
+  return insights;
+}
 
 export function buildCommitClock(allDays: ContributionDay[]) {
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -553,29 +593,20 @@ export async function getFullDashboardData(username: string, options: FetchOptio
     streakStats.currentStreak
   );
 
-  const insights = [
-    {
-      id: '1',
-      icon: 'Flame',
-      text: `You have a total of ${streakStats.totalContributions} contributions this year.`,
-    },
-    { id: '2', icon: 'Code', text: `Your primary language is ${languages[0]?.name || 'Unknown'}.` },
-  ];
-  if (streakStats.currentStreak > 3) {
-    insights.push({
-      id: '3',
-      icon: 'Zap',
-      text: `You are currently on an active ${streakStats.currentStreak}-day streak! Keep it going!`,
-    });
-  } else {
-    insights.push({
-      id: '3',
-      icon: 'Star',
-      text: `Your longest coding streak is ${streakStats.longestStreak} days!`,
-    });
-  }
+  // 4. Insights Generation
+  const insights = buildInsights(streakStats, languages);
 
-  const commitClock = buildCommitClock(allDays);
+  // Aggregate real contribution data by day of week from the already-fetched calendar
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const dayTotals = new Array(7).fill(0);
+  for (const day of allDays) {
+    const dow = new Date(day.date).getUTCDay();
+    dayTotals[dow] += day.contributionCount;
+  }
+  const commitClock = dayNames.map((name, i) => ({
+    day: name,
+    commits: dayTotals[i],
+  }));
 
   return {
     profile,
