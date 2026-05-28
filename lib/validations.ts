@@ -1,7 +1,14 @@
 // lib/validations.ts
 
 import { z } from 'zod';
-import { sanitizeHexColor, sanitizeSpeed, sanitizeRadius, sanitizeFont } from './svg/sanitizer';
+import {
+  isValidHex,
+  sanitizeHexColor,
+  sanitizeSpeed,
+  sanitizeRadius,
+  sanitizeFont,
+} from './svg/sanitizer';
+import { themes } from './svg/themes';
 
 function dimensionParam(name: string, min: number, max: number) {
   return z
@@ -146,7 +153,37 @@ export const githubParamsSchema = z.object({
 });
 
 export const ogParamsSchema = z.object({
-  user: z.string().optional().default('unknown'),
+  user: z
+    .string()
+    .trim()
+    .optional()
+    .transform((val) => (val === '' ? undefined : val))
+    .default('unknown'),
+  theme: z
+    .string()
+    .trim()
+    .optional()
+    .transform((val) => (val === '' ? undefined : val))
+    .transform((val) => (val && Object.hasOwn(themes, val) ? val : 'dark'))
+    .default('dark'),
+  bg: z
+    .string()
+    .trim()
+    .optional()
+    .transform((val) => (val === '' ? undefined : val))
+    .transform((val) => (val && isValidHex(val) ? sanitizeHexColor(val, '000000') : undefined)),
+  text: z
+    .string()
+    .trim()
+    .optional()
+    .transform((val) => (val === '' ? undefined : val))
+    .transform((val) => (val && isValidHex(val) ? sanitizeHexColor(val, '000000') : undefined)),
+  accent: z
+    .string()
+    .trim()
+    .optional()
+    .transform((val) => (val === '' ? undefined : val))
+    .transform((val) => (val && isValidHex(val) ? sanitizeHexColor(val, '000000') : undefined)),
 });
 
 export const statsParamsSchema = z.object({

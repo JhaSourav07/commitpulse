@@ -193,7 +193,7 @@ describe('ogParamsSchema', () => {
     }
   });
 
-  it('should allow empty string user', () => {
+  it('should default empty string user to unknown', () => {
     const result = ogParamsSchema.safeParse({
       user: '',
     });
@@ -201,7 +201,7 @@ describe('ogParamsSchema', () => {
     expect(result.success).toBe(true);
 
     if (result.success) {
-      expect(result.data.user).toBe('');
+      expect(result.data.user).toBe('unknown');
     }
   });
 });

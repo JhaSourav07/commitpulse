@@ -103,17 +103,33 @@ describe('DashboardPage', () => {
   });
 
   describe('generateMetadata', () => {
-    it('generates correct metadata for a given user', async () => {
+    it('generates correct metadata for a given user and forwards valid searchParams', async () => {
       const username = 'octocat';
       const metadata = await generateMetadata({
         params: Promise.resolve({ username }),
+        searchParams: Promise.resolve({
+          theme: 'neon',
+          bg: '000000',
+          text: '00ff00',
+          accent: 'ff00ff',
+          ignoredArray: ['a', 'b'],
+          ignoredUndefined: undefined,
+        }),
       });
 
       const openGraphImage = (metadata.openGraph?.images as any[])?.[0];
 
       expect(metadata.title).toBe("octocat's Commit Pulse");
       expect(metadata.description).toContain("octocat's GitHub contribution pulse");
-      expect(openGraphImage.url).toContain('api/og?user=octocat');
+      const url = openGraphImage.url;
+      expect(url).toContain('api/og?');
+      expect(url).toContain('user=octocat');
+      expect(url).toContain('theme=neon');
+      expect(url).toContain('bg=000000');
+      expect(url).toContain('text=00ff00');
+      expect(url).toContain('accent=ff00ff');
+      expect(url).not.toContain('ignoredArray');
+      expect(url).not.toContain('ignoredUndefined');
       expect(openGraphImage.width).toBe(1200);
       expect(openGraphImage.height).toBe(630);
       expect(openGraphImage.alt).toContain(username);
