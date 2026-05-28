@@ -232,6 +232,7 @@ describe('generateSVG', () => {
     expect(svg).toContain('prefers-reduced-motion: reduce');
     expect(svg).toContain('.scan-line');
     expect(svg).toContain('animation: none !important');
+    expect(svg).toContain('transition: none !important');
   });
 
   it('uses English labels by default', () => {
@@ -437,6 +438,7 @@ describe('generateSVG', () => {
       expect(svg).toContain('prefers-reduced-motion: reduce');
       expect(svg).toContain('.scan-line');
       expect(svg).toContain('animation: none !important');
+      expect(svg).toContain('transition: none !important');
       expect(svg).toContain('class="scan-line"');
     });
   });
@@ -600,6 +602,54 @@ describe('generateSVG', () => {
       expect(svg).toContain('height="560"');
     });
   });
+
+  describe('isometric labels', () => {
+    it('does not render labels when labels parameter is absent', () => {
+      const svg = generateSVG(mockStats, { user: 'avi' } as unknown as BadgeParams, mockCalendar);
+      expect(svg).not.toContain('class="isometric-labels"');
+    });
+
+    it('does not render labels when labels parameter is false', () => {
+      const svg = generateSVG(
+        mockStats,
+        { user: 'avi', labels: false } as unknown as BadgeParams,
+        mockCalendar
+      );
+      expect(svg).not.toContain('class="isometric-labels"');
+    });
+
+    it('renders month and weekday labels when labels=true', () => {
+      const svg = generateSVG(
+        mockStats,
+        { user: 'avi', labels: true } as unknown as BadgeParams,
+        mockCalendar
+      );
+      expect(svg).toContain('class="isometric-labels"');
+      expect(svg).toContain('Jun'); // June is first date in calendar '2024-06-10'
+      expect(svg).toContain('Mon');
+      expect(svg).toContain('Wed');
+      expect(svg).toContain('Fri');
+    });
+
+    it('applies custom labelColor when provided', () => {
+      const svg = generateSVG(
+        mockStats,
+        { user: 'avi', labels: true, labelColor: 'ff00aa' } as unknown as BadgeParams,
+        mockCalendar
+      );
+      expect(svg).toContain('fill="#ff00aa"');
+    });
+
+    it('renders labels in auto-theme mode', () => {
+      const svg = generateSVG(
+        mockStats,
+        { user: 'avi', labels: true, autoTheme: true } as unknown as BadgeParams,
+        mockCalendar
+      );
+      expect(svg).toContain('class="isometric-labels"');
+      expect(svg).toContain('fill="var(--cp-text)"');
+    });
+  });
 });
 
 describe('generateMonthlySVG', () => {
@@ -645,6 +695,27 @@ describe('generateMonthlySVG', () => {
     } as unknown as BadgeParams);
     expect(svg).toContain('width="400"');
     expect(svg).toContain('height="200"');
+  });
+
+  it('includes prefers-reduced-motion media query in static monthly SVG output', () => {
+    const svg = generateMonthlySVG(mockMonthlyStats, {
+      user: 'octocat',
+    } as unknown as BadgeParams);
+
+    expect(svg).toContain('prefers-reduced-motion: reduce');
+    expect(svg).toContain('animation: none !important');
+    expect(svg).toContain('transition: none !important');
+  });
+
+  it('includes prefers-reduced-motion media query in auto-theme monthly SVG output', () => {
+    const svg = generateMonthlySVG(mockMonthlyStats, {
+      user: 'octocat',
+      autoTheme: true,
+    } as unknown as BadgeParams);
+
+    expect(svg).toContain('prefers-reduced-motion: reduce');
+    expect(svg).toContain('animation: none !important');
+    expect(svg).toContain('transition: none !important');
   });
 });
 

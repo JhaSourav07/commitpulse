@@ -4,7 +4,7 @@ import type { BadgeParams, ContributionCalendar, StreakStats, MonthlyStats } fro
 import { getLabels, type BadgeLabels } from '../i18n/badgeLabels';
 import { AUTO_THEME_DARK, AUTO_THEME_LIGHT } from './themes';
 import { TOWER_ANIMATION_CSS } from './animations';
-import { computeTowers, type TowerData } from './layout';
+import { computeTowers, projectIsometric, type TowerData } from './layout';
 import { sanitizeFont, sanitizeHexColor, sanitizeRadius, sanitizeGoogleFontUrl } from './sanitizer';
 
 import { SVG_WIDTH, SVG_HEIGHT, FONT_MAP, isFontKey } from './generatorConstants';
@@ -173,9 +173,11 @@ function renderStyle(
     .heat-particles { display: none; }
     .scan-line {
       animation: none !important;
+      transition: none !important;
       transform: translateY(var(--scan-start, ${fs(20)}px)) !important;
     }
   }
+  .isometric-label { font-family: ${selectedFont || '"Roboto", sans-serif'}; font-size: ${fs(10)}px; font-weight: 400; letter-spacing: 1px; fill-opacity: 0.6; }
   </style>`;
 }
 
@@ -222,6 +224,92 @@ function renderFooter(
     fill-opacity="0.3"
     style="--scan-speed: ${params.speed || '8s'}; --scan-start: ${s(20)}px; --scan-end: ${s(260)}px;"
   />`;
+}
+
+const MONTH_NAMES = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+];
+
+// Layout constants for 3D isometric grid positioning to avoid magic numbers
+const GRID_ORIGIN_X = 300;
+const GRID_ORIGIN_Y = 120;
+const TILE_WIDTH_HALF = 16;
+const TILE_HEIGHT_HALF = 9;
+const ISOMETRIC_VERTICAL_OFFSET = 20;
+
+const MONTH_LABEL_ROW_OFFSET = 7.2;
+const WEEKDAY_LABEL_COL_OFFSET = -1.2;
+function renderIsometricLabels(
+  calendar: ContributionCalendar,
+  params: BadgeParams,
+  color: string,
+  sf: number
+): string {
+  if (!params.labels) return '';
+
+  const s = createScaler(sf);
+  let elements = '';
+
+  const weeks = calendar.weeks.slice(-14);
+  const monthLabels: { text: string; col: number }[] = [];
+  let prevMonthStr = '';
+
+  weeks.forEach((week, i) => {
+    if (week.contributionDays.length === 0) return;
+    const firstDay = week.contributionDays[0];
+    const monthNum = parseInt(firstDay.date.substring(5, 7), 10);
+    const monthStr = MONTH_NAMES[monthNum - 1];
+
+    if (i === 0 || monthStr !== prevMonthStr) {
+      monthLabels.push({ text: monthStr, col: i });
+      prevMonthStr = monthStr;
+    }
+  });
+
+  const labelColorHex = params.labelColor ? `#${params.labelColor}` : color;
+
+  monthLabels.forEach((label) => {
+    const tx = s(GRID_ORIGIN_X + (label.col - MONTH_LABEL_ROW_OFFSET) * TILE_WIDTH_HALF + 8);
+    const ty =
+      s(
+        GRID_ORIGIN_Y +
+          (label.col + MONTH_LABEL_ROW_OFFSET) * TILE_HEIGHT_HALF +
+          ISOMETRIC_VERTICAL_OFFSET
+      ) + Math.round(20 * sf);
+    elements += `
+    <text x="${tx}" y="${ty}" text-anchor="middle" fill="${labelColorHex}" class="isometric-label">${label.text}</text>`;
+  });
+
+  const weekdays = [
+    { text: 'Mon', row: 1 },
+    { text: 'Wed', row: 3 },
+    { text: 'Fri', row: 5 },
+  ];
+
+  weekdays.forEach((day) => {
+    const tx = s(GRID_ORIGIN_X + (WEEKDAY_LABEL_COL_OFFSET - day.row) * TILE_WIDTH_HALF);
+    const ty =
+      s(
+        GRID_ORIGIN_Y +
+          (WEEKDAY_LABEL_COL_OFFSET + day.row) * TILE_HEIGHT_HALF +
+          ISOMETRIC_VERTICAL_OFFSET
+      ) + Math.round(20 * sf);
+    elements += `
+    <text x="${tx}" y="${ty}" text-anchor="end" fill="${labelColorHex}" class="isometric-label">${day.text}</text>`;
+  });
+
+  return `<g class="isometric-labels">${elements}</g>`;
 }
 
 // ── Main static-theme renderer ────────────────────────────────────────────
@@ -271,6 +359,7 @@ export function generateSVG(
   ${renderStyle(selectedFont, statsFont, googleFontsImport, text, accent, sf)}
   <rect width="${W}" height="${H}" rx="${radius}" fill="${params.hideBackground ? 'transparent' : bg}" />
   <g transform="translate(0, ${Math.round(20 * sf)})">${towers}</g>
+  ${renderIsometricLabels(calendar, params, text, sf)}
   ${renderFooter(stats, params, labels, safeUser, accent, sf)}
 </svg>`;
 }
@@ -353,11 +442,13 @@ function generateAutoThemeSVG(
   .stats { font-family: ${statsFont}; fill: var(--cp-text); font-size: ${fs(42)}px; font-weight: 500; letter-spacing: 0; }
   .total-val { font-family: ${statsFont}; fill: var(--cp-accent); font-size: ${fs(24)}px; font-weight: 500; }
   .label { font-family: "Roboto", sans-serif; fill: var(--cp-accent); font-size: ${fs(11)}px; font-weight: 400; letter-spacing: ${fs(2)}px; opacity: 0.7; }
+  .isometric-label { font-family: ${selectedFont || '"Roboto", sans-serif'}; font-size: ${fs(10)}px; font-weight: 400; letter-spacing: 1px; fill-opacity: 0.6; }
 
   @media (prefers-reduced-motion: reduce) {
     .heat-particles { display: none; }
     .scan-line {
       animation: none !important;
+      transition: none !important;
       transform: translateY(var(--scan-start, ${s(20)}px)) !important;
     }
   }
@@ -367,6 +458,7 @@ function generateAutoThemeSVG(
   <g transform="translate(0, ${s(20)})">
     ${towers}
   </g>
+  ${renderIsometricLabels(calendar, params, 'var(--cp-text)', sf)}
   ${!params.hide_stats ? renderStatsSection(stats, labels, s, params) : ''}
 ${
   !params.hide_title
@@ -471,6 +563,9 @@ export function generateMonthlySVG(stats: MonthlyStats, params: BadgeParams): st
   .stats { font-family: ${statsFont}; fill: ${accent}; font-size: 36px; font-weight: 600; letter-spacing: 0; }
   .label { font-family: "Roboto", sans-serif; fill: ${text}; font-size: 10px; font-weight: 400; letter-spacing: 1px; opacity: 0.7; }
   .delta { font-family: "Roboto", sans-serif; fill: ${deltaColor}; font-size: 12px; font-weight: 500; }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
   </style>
 
   <rect width="${width}" height="${height}" rx="${radius}" fill="${params.hideBackground ? 'transparent' : bg}" />
@@ -562,6 +657,9 @@ function generateAutoThemeMonthlySVG(stats: MonthlyStats, params: BadgeParams): 
   .stats { font-family: ${statsFont}; fill: var(--cp-accent); font-size: 36px; font-weight: 600; letter-spacing: 0; }
   .label { font-family: "Roboto", sans-serif; fill: var(--cp-text); font-size: 10px; font-weight: 400; letter-spacing: 1px; opacity: 0.7; }
   .delta { font-family: "Roboto", sans-serif; font-size: 12px; font-weight: 500; }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
   </style>
 
   <rect width="${width}" height="${height}" rx="${radius}" ${params.hideBackground ? 'fill="transparent"' : 'class="cp-bg-fill"'} />
@@ -723,9 +821,10 @@ export function generateNotFoundSVG(
     @keyframes gp { 0%,100%{opacity:.55} 50%{opacity:1} }
     @keyframes scan-sweep { from { transform: translateY(20px); } to { transform: translateY(260px); } }
     @media (prefers-reduced-motion: reduce) {
-      .ghost-pulse { animation: none; }
+      .ghost-pulse { animation: none !important; transition: none !important; }
       .scan-line {
         animation: none !important;
+        transition: none !important;
         transform: translateY(20px) !important;
       }
     }
