@@ -629,6 +629,25 @@ describe('GitHub API cache behavior', () => {
 
     expect(fetch).toHaveBeenCalledTimes(2);
   });
+
+  it('normalizes username casing for cache keys', async () => {
+    vi.mocked(fetch).mockResolvedValue(
+      mockResponse({
+        data: {
+          user: {
+            contributionsCollection: {
+              contributionCalendar: mockCalendar,
+            },
+          },
+        },
+      })
+    );
+
+    await fetchGitHubContributions('octocat');
+    await fetchGitHubContributions('OctoCat');
+
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe('generateAchievements', () => {
