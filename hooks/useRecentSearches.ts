@@ -53,6 +53,23 @@ export function useRecentSearches() {
     });
   };
 
+  const removeSearch = (query: string) => {
+    setState((prev) => {
+      const updated = prev.searches.filter((s) => s !== query);
+
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+      } catch {
+        // ignore storage write errors
+      }
+
+      return {
+        ...prev,
+        searches: updated,
+      };
+    });
+  };
+
   const clearSearches = () => {
     setState((prev) => ({
       ...prev,
@@ -69,6 +86,7 @@ export function useRecentSearches() {
   return {
     searches: state.mounted ? state.searches : [],
     addSearch,
+    removeSearch,
     clearSearches,
   };
 }
