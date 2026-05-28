@@ -376,7 +376,7 @@ describe('calculateMonthlyStats', () => {
 
     expect(result.previousMonthTotal).toBe(0);
     expect(result.currentMonthTotal).toBe(10);
-    expect(result.deltaPercentage).toBe(100);
+    expect(result.deltaPercentage).toBeNull();
   });
 
   it('handles zero current month contributions', () => {
