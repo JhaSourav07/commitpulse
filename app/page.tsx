@@ -214,26 +214,33 @@ export default function LandingPage() {
               }}
               className="flex flex-col sm:flex-row gap-4 w-full"
             >
-              <div className="relative flex-1 flex items-center">
-                <input
-                  type="text"
-                  placeholder="Enter GitHub Username"
-                  className="flex-1 rounded-xl border border-black/10 bg-gray-100 px-5 py-3.5 text-sm text-black outline-none transition-all duration-200 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#00ffaa] focus:border-transparent dark:border-[rgba(255,255,255,0.08)] dark:bg-[#111] dark:text-white dark:placeholder:text-[#A1A1AA]"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                />
-                {username.length > 0 ? (
-                  <button
-                    onClick={() => setUsername('')}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 transition-colors hover:text-black dark:text-[#A1A1AA] dark:hover:text-white"
-                    aria-label="Clear input"
-                    type="button"
-                  >
-                    <X size={18} />
-                  </button>
-                ) : null}
+              <div className="relative flex-1 flex items-center flex-col">
+                <div className="relative flex-1 flex items-center w-full">
+                  <input
+                    type="text"
+                    placeholder="Enter GitHub Username"
+                    className="flex-1 rounded-xl border border-black/10 bg-gray-100 px-5 py-3.5 text-sm text-black outline-none transition-all duration-200 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#00ffaa] focus:border-transparent dark:border-[rgba(255,255,255,0.08)] dark:bg-[#111] dark:text-white dark:placeholder:text-[#A1A1AA]"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    maxLength={39}
+                  />
+                  {username.length > 0 ? (
+                    <button
+                      onClick={() => setUsername('')}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 transition-colors hover:text-black dark:text-[#A1A1AA] dark:hover:text-white"
+                      aria-label="Clear input"
+                      type="button"
+                    >
+                      <X size={18} />
+                    </button>
+                  ) : null}
+                </div>
+                {username.length === 39 && (
+                  <p className="text-red-500 text-xs mt-1 self-start pl-1">
+                    GitHub username limit reached (39 characters maximum)
+                  </p>
+                )}
               </div>
-
               <div className="flex flex-col sm:flex-row gap-4">
                 <button
                   type="submit"
