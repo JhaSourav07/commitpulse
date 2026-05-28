@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { githubParamsSchema } from './validations';
+import { githubParamsSchema, streakParamsSchema } from './validations';
 
 describe('githubParamsSchema', () => {
   it('should pass when username is valid', () => {
@@ -48,6 +48,50 @@ describe('githubParamsSchema', () => {
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.refresh).toBe(false);
+    }
+  });
+});
+
+describe('streakParamsSchema', () => {
+  it('should fail when user is missing', () => {
+    const result = streakParamsSchema.safeParse({});
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toBe('Missing user parameter');
+    }
+  });
+
+  it('should fail when user is empty string', () => {
+    const result = streakParamsSchema.safeParse({
+      user: '',
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toBe('Missing user parameter');
+    }
+  });
+
+  it('should succeed when user is a valid username', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.user).toBe('octocat');
+    }
+  });
+
+  it('should fail when user is whitespace-only input', () => {
+    const result = streakParamsSchema.safeParse({
+      user: '   ',
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toBe('Invalid GitHub username');
     }
   });
 });
