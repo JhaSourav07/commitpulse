@@ -250,30 +250,32 @@ describe('fetchUserRepos', () => {
   });
 
   it('fetches multiple pages of repos', async () => {
-    vi.mocked(fetch)
-      .mockResolvedValueOnce(
-        mockResponse(
+    vi.mocked(fetch).mockImplementation(async (url: RequestInfo | URL) => {
+      const urlStr = typeof url === 'string' ? url : url ? url.toString() : '';
+      if (urlStr.includes('page=1&')) {
+        return mockResponse(
           Array.from({ length: 100 }, (_, i) => ({
             id: i,
             stargazers_count: i,
             language: 'TypeScript',
           }))
-        )
-      )
-      .mockResolvedValueOnce(
-        mockResponse([
+        );
+      }
+      if (urlStr.includes('page=2&')) {
+        return mockResponse([
           {
             id: 101,
             stargazers_count: 101,
             language: 'JavaScript',
           },
-        ])
-      )
-      .mockImplementation(() => Promise.resolve(mockResponse([])) as Promise<Response>);
+        ]);
+      }
+      return mockResponse([]);
+    });
 
-    const result = await fetchUserRepos('octocat');
+    const result = await fetchUserRepos('octocat', { bypassCache: true });
 
-    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(fetch).toHaveBeenCalledTimes(3);
     expect(result.length).toBe(101);
   });
 
@@ -291,9 +293,55 @@ describe('fetchUserRepos', () => {
         ) as Promise<Response>
     );
 
-    await fetchUserRepos('octocat');
+    await fetchUserRepos('octocat', { bypassCache: true });
 
     expect(fetch).toHaveBeenCalledTimes(3);
+  });
+
+  it('handles concurrent pagination behavior and maintains stable response ordering', async () => {
+    vi.mocked(fetch).mockImplementation(async (url: RequestInfo | URL) => {
+      const urlStr = typeof url === 'string' ? url : url ? url.toString() : '';
+      if (urlStr.includes('page=1&')) {
+        return mockResponse(
+          Array.from({ length: 100 }, (_, i) => ({
+            name: `repo-page1-${i}`,
+            stargazers_count: i,
+            language: 'TypeScript',
+          }))
+        );
+      }
+      if (urlStr.includes('page=2&')) {
+        return mockResponse(
+          Array.from({ length: 100 }, (_, i) => ({
+            name: `repo-page2-${i}`,
+            stargazers_count: 101,
+            language: 'JavaScript',
+          }))
+        );
+      }
+      if (urlStr.includes('page=3&')) {
+        return mockResponse([
+          {
+            name: 'repo-page3-1',
+            stargazers_count: 102,
+            language: 'Rust',
+          },
+        ]);
+      }
+      return mockResponse([]);
+    });
+
+    const result = await fetchUserRepos('octocat', { bypassCache: true });
+
+    expect(fetch).toHaveBeenCalledTimes(3);
+    expect(result.length).toBe(201);
+
+    // Verify ordering is perfectly preserved: Page 1, then Page 2, then Page 3
+    expect((result[0] as any).name).toBe('repo-page1-0');
+    expect((result[99] as any).name).toBe('repo-page1-99');
+    expect((result[100] as any).name).toBe('repo-page2-0');
+    expect((result[199] as any).name).toBe('repo-page2-99');
+    expect((result[200] as any).name).toBe('repo-page3-1');
   });
 });
 
@@ -302,7 +350,7 @@ describe('getFullDashboardData', () => {
   afterEach(() => vi.restoreAllMocks());
 
   it('returns full dashboard data correctly', async () => {
-    vi.mocked(fetch).mockImplementation(async (url: any) => {
+    vi.mocked(fetch).mockImplementation(async (url: RequestInfo | URL) => {
       if (typeof url === 'string' && url.includes('/users/octocat/repos')) {
         return mockResponse([
           { stargazers_count: 10, language: 'TypeScript' },
@@ -368,7 +416,7 @@ describe('getFullDashboardData', () => {
       ],
     };
 
-    vi.mocked(fetch).mockImplementation(async (url: any) => {
+    vi.mocked(fetch).mockImplementation(async (url: RequestInfo | URL) => {
       if (typeof url === 'string' && url.includes('/users/octocat/repos')) {
         return mockResponse([]);
       }
@@ -408,7 +456,7 @@ describe('getFullDashboardData', () => {
   });
 
   it('throws if profile fetch fails', async () => {
-    vi.mocked(fetch).mockImplementation(async (url: any) => {
+    vi.mocked(fetch).mockImplementation(async (url: RequestInfo | URL) => {
       if (typeof url === 'string' && url.includes('/users/octocat/repos')) {
         return mockResponse([]);
       }
@@ -425,7 +473,7 @@ describe('getFullDashboardData', () => {
   });
 
   it('throws correctly for non-error throws in profile fetch', async () => {
-    vi.mocked(fetch).mockImplementation(async (url: any) => {
+    vi.mocked(fetch).mockImplementation(async (url: RequestInfo | URL) => {
       if (typeof url === 'string' && url.includes('/users/octocat/repos')) {
         return mockResponse([]);
       }
@@ -444,7 +492,7 @@ describe('getFullDashboardData', () => {
   it('formats joinedDate as MMM YYYY', async () => {
     // Verifies that created_at from the REST API is formatted with toLocaleDateString('en-US')
     // into a stable 'Jan 2020' shape regardless of the runtime environment's system locale.
-    vi.mocked(fetch).mockImplementation(async (url: any) => {
+    vi.mocked(fetch).mockImplementation(async (url: RequestInfo | URL) => {
       if (typeof url === 'string' && url.includes('/users/testuser/repos')) {
         return mockResponse([]);
       }
@@ -475,7 +523,7 @@ describe('getFullDashboardData', () => {
   it('maps calculateStreak output correctly to stats', async () => {
     // Verifies that getFullDashboardData correctly pipes the contribution calendar
     // through calculateStreak and maps the result onto the returned stats object.
-    vi.mocked(fetch).mockImplementation(async (url: any) => {
+    vi.mocked(fetch).mockImplementation(async (url: RequestInfo | URL) => {
       if (typeof url === 'string' && url.includes('/users/testuser/repos')) {
         return mockResponse([]);
       }
@@ -632,7 +680,7 @@ describe('GitHub API cache behavior', () => {
   });
 
   it('handles a new account with no public repos correctly', async () => {
-    vi.mocked(fetch).mockImplementation(async (url: any) => {
+    vi.mocked(fetch).mockImplementation(async (url: RequestInfo | URL) => {
       if (typeof url === 'string' && url.includes('/users/octocat/repos')) {
         return mockResponse([]);
       }
