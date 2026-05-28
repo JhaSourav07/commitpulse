@@ -1,8 +1,8 @@
 // app/api/stats/route.ts
 import { NextResponse } from 'next/server';
-import { fetchGitHubContributions } from '../../../lib/github';
-import { calculateStreak } from '../../../lib/calculate';
-import { statsParamsSchema } from '../../../lib/validations';
+import { fetchGitHubContributions } from '@/lib/github';
+import { calculateStreak } from '@/lib/calculate';
+import { statsParamsSchema } from '@/lib/validations';
 
 /**
  * GET /api/stats?user=<username>[&refresh=true][&tz=<IANA timezone>]

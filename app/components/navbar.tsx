@@ -15,13 +15,20 @@ function GithubMark() {
 
 const NAV_LINKS = [
   {
+    label: 'Customization Studio',
+    href: '#customization-studio',
+    isExternal: false,
+  },
+  {
     label: 'GitHub Repo',
     href: 'https://github.com/JhaSourav07/commitpulse',
+    isExternal: true,
   },
 ];
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   const [isDark, setIsDark] = useState(() => {
     if (typeof window === 'undefined') return true;
@@ -31,6 +38,11 @@ export default function Navbar() {
 
   const { shellRef, shellVars, handleMouseEnter, handleMouseMove, handleMouseLeave } =
     useGlowEffect();
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', isDark);
@@ -72,7 +84,7 @@ export default function Navbar() {
   };
 
   return (
-    <header className="fixed inset-x-0 top-0 z-50 px-4 pt-4 sm:px-6">
+    <header className="relative z-50 px-4 pt-4 sm:px-6 w-full">
       <div className="mx-auto max-w-6xl">
         <div
           ref={shellRef}
@@ -124,18 +136,26 @@ export default function Navbar() {
                 className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/15 bg-white/5 text-white transition hover:bg-white/10"
                 aria-label="Toggle theme"
               >
-                {isDark ? <Sun size={18} /> : <Moon size={18} />}
+                {mounted ? (
+                  isDark ? (
+                    <Sun size={18} />
+                  ) : (
+                    <Moon size={18} />
+                  )
+                ) : (
+                  <span className="w-[18px] h-[18px]" />
+                )}
               </button>
 
               {NAV_LINKS.map((link) => (
                 <a
                   key={link.href}
                   href={link.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  target={link.isExternal ? '_blank' : undefined}
+                  rel={link.isExternal ? 'noopener noreferrer' : undefined}
                   className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-white/90 transition hover:border-white/45 hover:bg-white/10"
                 >
-                  <GithubMark />
+                  {link.isExternal && <GithubMark />}
                   {link.label}
                 </a>
               ))}
@@ -159,12 +179,12 @@ export default function Navbar() {
                   <li key={link.href}>
                     <a
                       href={link.href}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                      target={link.isExternal ? '_blank' : undefined}
+                      rel={link.isExternal ? 'noopener noreferrer' : undefined}
                       onClick={() => setOpen(false)}
                       className="inline-flex w-full items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-white/90 transition hover:border-white/45 hover:bg-white/10"
                     >
-                      <GithubMark />
+                      {link.isExternal && <GithubMark />}
                       {link.label}
                     </a>
                   </li>
