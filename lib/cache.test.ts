@@ -226,6 +226,26 @@ describe('TTLCache', () => {
 
       cache.destroy();
     });
+    it('returns correct values around the exact TTL boundary', () => {
+      vi.useFakeTimers();
+
+      const cache = new TTLCache<string>();
+      cache.set('key', 'value', 1000);
+
+      // 999ms -> still valid
+      vi.advanceTimersByTime(999);
+      expect(cache.get('key')).toBe('value');
+
+      // 1000ms exact boundary -> still valid
+      vi.advanceTimersByTime(1);
+      expect(cache.get('key')).toBe('value');
+
+      // 1001ms -> expired
+      vi.advanceTimersByTime(1);
+      expect(cache.get('key')).toBeNull();
+
+      cache.destroy();
+    });
 
     it('returns null after passing TTL expiry', () => {
       vi.useFakeTimers();
