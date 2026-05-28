@@ -5,7 +5,15 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { ControlsPanel } from './components/ControlsPanel';
 import { ExportPanel } from './components/ExportPanel';
-import type { ExportFormat, Font, Scale, BadgeSize } from './types';
+import type {
+  ExportFormat,
+  Font,
+  Scale,
+  BadgeSize,
+  ViewMode,
+  DeltaFormat,
+  Language,
+} from './types';
 import { getExportSnippet, stripHash } from './utils';
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
@@ -23,6 +31,15 @@ export default function CustomizePage(): ReactElement {
   const [radius, setRadius] = useState(8);
   const [size, setSize] = useState<BadgeSize>('medium');
   const [disableParticles, setDisableParticles] = useState(false);
+  const [hideTitle, setHideTitle] = useState(false);
+  const [hideBackground, setHideBackground] = useState(false);
+  const [hideStats, setHideStats] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>('default');
+  const [deltaFormat, setDeltaFormat] = useState<DeltaFormat>('percent');
+  const [badgeWidth, setBadgeWidth] = useState<number | ''>('');
+  const [badgeHeight, setBadgeHeight] = useState<number | ''>('');
+  const [grace, setGrace] = useState<number>(1);
+  const [language, setLanguage] = useState<Language>('en');
   const [exportFormat, setExportFormat] = useState<ExportFormat>('markdown');
   const [copied, setCopied] = useState(false);
   const [copyStatusMessage, setCopyStatusMessage] = useState('');
@@ -97,6 +114,16 @@ export default function CustomizePage(): ReactElement {
     if (radius !== 8) params.set('radius', radius.toString());
     if (size !== 'medium') params.set('size', size);
     if (disableParticles) params.set('disable_particles', 'true');
+
+    if (hideTitle) params.set('hide_title', 'true');
+    if (hideBackground) params.set('hide_background', 'true');
+    if (hideStats) params.set('hide_stats', 'true');
+    if (viewMode !== 'default') params.set('view', viewMode);
+    if (deltaFormat !== 'percent') params.set('delta_format', deltaFormat);
+    if (badgeWidth !== '') params.set('width', badgeWidth.toString());
+    if (badgeHeight !== '') params.set('height', badgeHeight.toString());
+    if (grace !== 1) params.set('grace', grace.toString());
+    if (language !== 'en') params.set('lang', language);
     return params.toString();
   }, [
     hasUsername,
@@ -113,6 +140,15 @@ export default function CustomizePage(): ReactElement {
     radius,
     size,
     disableParticles,
+    hideTitle,
+    hideBackground,
+    hideStats,
+    viewMode,
+    deltaFormat,
+    badgeWidth,
+    badgeHeight,
+    grace,
+    language,
   ]);
 
   const queryString = buildQueryParams();
@@ -254,6 +290,24 @@ export default function CustomizePage(): ReactElement {
                 setAccentHex('');
                 setTextHex('');
               }}
+              hideTitle={hideTitle}
+              hideBackground={hideBackground}
+              hideStats={hideStats}
+              viewMode={viewMode}
+              deltaFormat={deltaFormat}
+              badgeWidth={badgeWidth}
+              badgeHeight={badgeHeight}
+              grace={grace}
+              language={language}
+              onHideTitleChange={setHideTitle}
+              onHideBackgroundChange={setHideBackground}
+              onHideStatsChange={setHideStats}
+              onViewModeChange={setViewMode}
+              onDeltaFormatChange={setDeltaFormat}
+              onBadgeWidthChange={setBadgeWidth}
+              onBadgeHeightChange={setBadgeHeight}
+              onGraceChange={setGrace}
+              onLanguageChange={setLanguage}
             />
           </motion.aside>
 
