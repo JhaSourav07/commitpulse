@@ -1,76 +1,34 @@
 // lib/svg/themes.ts
 import { BadgeTheme } from '../../types';
+import { hexColor } from './sanitizer';
+
+function makeTheme(bg: string, text: string, accent: string): BadgeTheme {
+  return {
+    bg: hexColor(bg),
+    text: hexColor(text),
+    accent: hexColor(accent),
+  };
+}
 
 export const themes: Record<string, BadgeTheme> = {
-  dark: {
-    bg: '0d1117',
-    text: 'c9d1d9',
-    accent: '58a6ff',
-  },
-  light: {
-    bg: 'ffffff',
-    text: '24292f',
-    accent: '0969da',
-  },
-  neon: {
-    bg: '000000',
-    text: '00ffcc',
-    accent: 'ff00ff',
-  },
-  github: {
-    bg: '0d1117',
-    text: 'ffffff',
-    accent: '238636', // The classic green
-  },
-  dracula: {
-    bg: '282a36',
-    text: 'f8f8f2',
-    accent: 'bd93f9',
-  },
-  ocean: {
-    bg: '0a192f',
-    text: 'ccd6f6',
-    accent: '64ffda',
-  },
-  sunset: {
-    bg: '1a0a0a',
-    text: 'ffd6c0',
-    accent: 'ff6b35',
-  },
-  forest: {
-    bg: '0d1f0d',
-    text: 'c8f0c8',
-    accent: '39d353',
-  },
-  rose: {
-    bg: '1f0d14',
-    text: 'f0c8d4',
-    accent: 'ff6b9d',
-  },
-  nord: {
-    bg: '2e3440',
-    text: 'd8dee9',
-    accent: '88c0d0',
-  },
-  synthwave: {
-    bg: '0d0221',
-    text: 'f8f8f2',
-    accent: 'ff2d78',
-  },
-  gruvbox: {
-    bg: '282828',
-    text: 'ebdbb2',
-    accent: 'fe8019',
-  },
-  highcontrast: {
-    bg: '0a0a0a', // High-contrast theme: vivid red-orange accent on near-black background.
-    text: '888888',
-    accent: 'ff4500',
-  },
+  dark: makeTheme('0d1117', 'c9d1d9', '58a6ff'),
+  light: makeTheme('ffffff', '24292f', '0969da'),
+  neon: makeTheme('000000', '00ffcc', 'ff00ff'),
+  github: makeTheme('0d1117', 'ffffff', '238636'),
+  dracula: makeTheme('282a36', 'f8f8f2', 'bd93f9'),
+  ocean: makeTheme('0a192f', 'ccd6f6', '64ffda'),
+  sunset: makeTheme('1a0a0a', 'ffd6c0', 'ff6b35'),
+  forest: makeTheme('0d1f0d', 'c8f0c8', '39d353'),
+  rose: makeTheme('1f0d14', 'f0c8d4', 'ff6b9d'),
+  nord: makeTheme('2e3440', 'd8dee9', '88c0d0'),
+  synthwave: makeTheme('0d0221', 'f8f8f2', 'ff2d78'),
+  gruvbox: makeTheme('282828', 'ebdbb2', 'fe8019'),
+  aurora_cyberpunk: makeTheme('090B13', 'EAF2FF', '9D5CFF'),
+  highcontrast: makeTheme('0a0a0a', '888888', 'ff4500'),
 };
 
 // Auto-theme pairs: the SVG switches between these two palettes
 // using @media (prefers-color-scheme) so the badge adapts to the
 // viewer's OS-level light/dark setting without any JavaScript.
-export const AUTO_LIGHT_THEME: BadgeTheme = themes.light;
-export const AUTO_DARK_THEME: BadgeTheme = themes.dark;
+export const AUTO_THEME_LIGHT: BadgeTheme = themes.light;
+export const AUTO_THEME_DARK: BadgeTheme = themes.dark;
