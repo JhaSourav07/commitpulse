@@ -115,7 +115,7 @@ function renderHeader(
 
 function renderDefs(sf: number, params: BadgeParams): string {
   const fs = (n: number): number => Math.round(n * sf * 10) / 10;
-  
+
   let gradients = '';
   if (params.gradient) {
     if (params.autoTheme) {
@@ -264,11 +264,11 @@ function renderTowers(
     let rightFaceOpacity = t.faceOpacity.right;
     let topFaceOpacity = t.faceOpacity.top;
 
-    if (!isGhost && t.intensityLevel > 0 && params.shading !== false) {
+    if (!isGhost && t.intensityLevel > 0 && params.shading === true) {
       const mult = opacityMultipliers[t.intensityLevel - 1];
-      leftFaceOpacity *= mult;
-      rightFaceOpacity *= mult;
-      topFaceOpacity *= mult;
+      leftFaceOpacity = Math.round(leftFaceOpacity * mult * 100) / 100;
+      rightFaceOpacity = Math.round(rightFaceOpacity * mult * 100) / 100;
+      topFaceOpacity = Math.round(topFaceOpacity * mult * 100) / 100;
     }
 
     let leftFillAttr = leftRightFillAttr;

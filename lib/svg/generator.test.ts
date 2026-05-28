@@ -899,6 +899,70 @@ describe('shading and gradients', () => {
   });
 });
 
+describe('shading', () => {
+  // A calendar with a mix of contribution counts to produce towers at different
+  // intensity levels — needed so that shading multipliers actually apply.
+  const shadingCalendar = {
+    weeks: [
+      {
+        contributionDays: [
+          { contributionCount: 2, date: '2024-06-10' }, // low intensity
+          { contributionCount: 10, date: '2024-06-11' }, // mid intensity
+          { contributionCount: 15, date: '2024-06-12' }, // high intensity
+        ],
+      },
+    ],
+  } as ContributionCalendar;
+
+  const shadingStats: StreakStats = {
+    currentStreak: 3,
+    longestStreak: 10,
+    totalContributions: 27,
+    todayDate: '2024-06-12',
+  };
+
+  it('applies reduced face-opacity (shading) when shading is not disabled', () => {
+    // With shading on, low-intensity towers use opacity multiplier 0.4, so their
+    // face-opacity should be lower than the unshaded base value.
+    const svgShading = generateSVG(
+      shadingStats,
+      { user: 'avi', shading: true } as unknown as BadgeParams,
+      shadingCalendar
+    );
+    // The shaded SVG should still contain the tower paths
+    expect(svgShading).toContain('class="cp-tower"');
+    // For level 1 (mult=0.4), base top face opacity 0.7 becomes 0.28
+    // Check for that specific derived value to ensure shading actually multiplied it.
+    expect(svgShading).toContain('fill-opacity="0.28"');
+  });
+
+  it('does not apply shading multipliers when shading=false', () => {
+    const svgShading = generateSVG(
+      shadingStats,
+      { user: 'avi', shading: true } as unknown as BadgeParams,
+      shadingCalendar
+    );
+    const svgNoShading = generateSVG(
+      shadingStats,
+      { user: 'avi', shading: false } as unknown as BadgeParams,
+      shadingCalendar
+    );
+    // The two renders must differ — shading changes face opacities
+    expect(svgShading).not.toBe(svgNoShading);
+  });
+
+  it('falls back to default accent #00ffaa when accent array is empty', () => {
+    const svg = generateSVG(
+      shadingStats,
+      // Simulate what validation returns for accent=,,, (empty array is
+      // now normalised to undefined, but if it somehow reached the renderer
+      // as [] the fallback should still fire without crashing).
+      { user: 'avi', accent: [] } as unknown as BadgeParams,
+      shadingCalendar
+    );
+    expect(svg).toContain('00ffaa');
+  });
+});
 describe('escapeXML', () => {
   it('escapes ampersands (&)', () => {
     expect(escapeXML('foo & bar')).toBe('foo &amp; bar');

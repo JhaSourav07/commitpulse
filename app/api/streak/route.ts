@@ -208,7 +208,13 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
     message.toLowerCase().includes('could not resolve');
 
   const errBg = `#${(parseResult.success && parseResult.data.bg) || '0d1117'}`;
-  const errAccent = `#${(parseResult.success && parseResult.data.accent) || '58a6ff'}`;
+  const errAccent = `#${
+    (parseResult.success &&
+      (Array.isArray(parseResult.data.accent)
+        ? parseResult.data.accent[parseResult.data.accent.length - 1]
+        : parseResult.data.accent)) ||
+    '58a6ff'
+  }`;
   const errText = `#${(parseResult.success && parseResult.data.text) || 'c9d1d9'}`;
   const errRadius = parseResult.success
     ? (() => {
