@@ -4,7 +4,6 @@ import { AUTO_THEME_DARK, AUTO_THEME_LIGHT } from './themes';
 import { TOWER_ANIMATION_CSS } from './animations';
 import { computeTowers, type TowerData } from './layout';
 import { sanitizeFont, sanitizeHexColor, sanitizeRadius, sanitizeGoogleFontUrl } from './sanitizer';
-import { FONT_MAP } from './fonts';
 import { SVG_WIDTH, SVG_HEIGHT } from './constants';
 
 // helpers
