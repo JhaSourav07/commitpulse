@@ -204,14 +204,16 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
     });
   }
 
+  console.error('[streak] Unhandled error:', message);
+
   const errorSvg = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="400" height="150">
-      <rect width="100%" height="100%" fill="#2d0000" rx="8"/>
-      <text x="50%" y="50%" text-anchor="middle" fill="#ffcccc">
-        Error: ${escapeXML(message)}
-      </text>
-    </svg>
-  `;
+      <svg xmlns="http://www.w3.org/2000/svg" width="400" height="150">
+        <rect width="100%" height="100%" fill="#2d0000" rx="8"/>
+        <text x="50%" y="50%" text-anchor="middle" fill="#ffcccc">
+          Something went wrong. Please try again later.
+        </text>
+      </svg>
+    `;
 
   return new NextResponse(errorSvg, {
     status: 500,
