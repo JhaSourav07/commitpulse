@@ -58,11 +58,7 @@ const mockRecentSearches = {
 };
 
 vi.mock('@/hooks/useRecentSearches', () => ({
-  useRecentSearches: () => ({
-    searches: ['octocat', 'torvalds'],
-    addSearch: vi.fn(),
-    clearSearches: vi.fn(),
-  }),
+  useRecentSearches: () => mockRecentSearches,
 }));
 
 describe('LandingPage', () => {
