@@ -88,6 +88,7 @@ describe('DashboardPage', () => {
       currentStreak: 5,
       peakStreak: 15,
       totalContributions: 500,
+      todayDate: '2024-01-01',
     },
     languages: [{ name: 'TypeScript', percentage: 100, color: '#3178c6' }],
     activity: [],

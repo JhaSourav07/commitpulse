@@ -94,7 +94,10 @@ describe('POST /api/user/timezone', () => {
 
     it('upserts timezone, invalidates cache if timezone changed', async () => {
       // Old user exists and had "UTC"
-      vi.mocked(User.findOne).mockResolvedValueOnce({ username: 'octocat', timezone: 'UTC' });
+      vi.mocked(User.findOne).mockResolvedValueOnce({
+        username: 'octocat',
+        timezone: 'UTC',
+      } as unknown as Awaited<ReturnType<typeof User.findOne>>);
 
       const response = await POST(
         makeRequest({ username: 'OctoCat', timezone: 'America/New_York' })
@@ -122,7 +125,7 @@ describe('POST /api/user/timezone', () => {
       vi.mocked(User.findOne).mockResolvedValueOnce({
         username: 'octocat',
         timezone: 'America/New_York',
-      });
+      } as unknown as Awaited<ReturnType<typeof User.findOne>>);
 
       const response = await POST(
         makeRequest({ username: 'OctoCat', timezone: 'America/New_York' })
