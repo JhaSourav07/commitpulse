@@ -129,7 +129,6 @@ function renderDefs(sf: number, params: BadgeParams): string {
       }
     } else {
       const accent = params.accent;
-      const bg = params.bg;
       const colors = Array.isArray(accent)
         ? [0, 1, 2, 3].map((i) => {
             const idx = Math.min(i, accent.length - 1);
