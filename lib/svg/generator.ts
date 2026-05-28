@@ -743,6 +743,7 @@ export function generateNotFoundSVG(
     ${ghostTowers}
   </g>
 
+  <!-- Fade overlay so ghost city dissolves into background -->
   <rect
     width="${width}"
     height="${height}"
