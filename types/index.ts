@@ -1,5 +1,11 @@
 export type HexColor = string & { __brand: 'HexColor' };
 
+export type Scale = 'linear' | 'log';
+
+export type BadgeSize = 'small' | 'medium' | 'large';
+
+export type SpeedString = `${number}s`;
+
 /**
  * Processed streak statistics calculated from the user's GitHub contribution data.
  */
@@ -102,10 +108,10 @@ export interface BadgeParams {
   accent: HexColor;
 
   /** Duration of the radar scan line animation (e.g. '4s', '8s', '12s'). Defaults to '8s'. */
-  speed: string;
+  speed: SpeedString;
 
   /** Tower height scaling algorithm. 'linear' scales proportionally; 'log' uses logarithmic scale for high contributors. Defaults to 'linear'. */
-  scale: 'linear' | 'log';
+  scale: Scale;
 
   /** Font family override for badge typography (e.g. 'monospace'). Defaults to theme font. */
   font?: string;
@@ -141,5 +147,5 @@ export interface BadgeParams {
   height?: number;
 
   /** Preset size of the badge. 'small', 'medium', or 'large'. Overrides width and height. */
-  size?: 'small' | 'medium' | 'large';
+  size?: BadgeSize;
 }
