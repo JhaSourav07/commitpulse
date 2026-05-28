@@ -437,6 +437,42 @@ describe('generateSVG', () => {
     });
   });
 
+  describe('SVG dimensions per size', () => {
+    it('renders width="600" and height="420" for medium size (default)', () => {
+      const svg = generateSVG(
+        mockStats,
+        { user: 'avi', size: 'medium' } as unknown as BadgeParams,
+        mockCalendar
+      );
+
+      expect(svg).toContain('width="600"');
+      expect(svg).toContain('height="420"');
+    });
+
+    it('renders width="400" and height="280" for small size', () => {
+      const svg = generateSVG(
+        mockStats,
+        { user: 'avi', size: 'small' } as unknown as BadgeParams,
+        mockCalendar
+      );
+
+      expect(svg).toContain('width="400"');
+      expect(svg).toContain('height="280"');
+    });
+
+    it('renders width="800" and height="560" for large size', () => {
+      const svg = generateSVG(
+        mockStats,
+        { user: 'avi', size: 'large' } as unknown as BadgeParams,
+        mockCalendar
+      );
+
+      expect(svg).toContain('width="800"');
+      expect(svg).toContain('height="560"');
+    });
+  });
+
+
   describe('hide_title parameter', () => {
     it('omits the username title text when hide_title is true', () => {
       const svg = generateSVG(
