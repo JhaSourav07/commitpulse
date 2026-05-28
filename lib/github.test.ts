@@ -2269,7 +2269,7 @@ describe('getWrappedData', () => {
 
   it('returns wrapped statistics and top language correctly', async () => {
     vi.mocked(fetch).mockImplementation(async (url) => {
-      const urlStr = typeof url === 'string' ? url : (url?.toString() ?? '');
+      const urlStr = url.toString();
 
       if (urlStr.includes('/repos')) {
         return mockResponse([
@@ -2651,5 +2651,36 @@ describe('getWrappedData weekendRatio', () => {
     });
     const result = await getWrappedData('octocat', '2024');
     expect(result.weekendRatio).toBe(0);
+  });
+
+  it('passes the correct from and to date range to GitHub contributions fetch', async () => {
+    vi.mocked(fetch).mockImplementation(async (url) => {
+      const urlStr = url.toString();
+
+      if (urlStr.includes('/repos')) {
+        return mockResponse([]);
+      }
+
+      return mockResponse({
+        data: {
+          user: {
+            contributionsCollection: {
+              contributionCalendar: mockCalendar,
+            },
+          },
+        },
+      });
+    });
+
+    await getWrappedData('octocat', '2024');
+
+    const graphQLCall = vi
+      .mocked(fetch)
+      .mock.calls.find(([url]) => url.toString().includes('/graphql'));
+
+    const body = JSON.parse(graphQLCall?.[1]?.body as string);
+
+    expect(body.variables.from).toBe('2024-01-01T00:00:00Z');
+    expect(body.variables.to).toBe('2024-12-31T23:59:59Z');
   });
 });
