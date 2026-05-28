@@ -227,7 +227,7 @@ export default function CustomizePage(): ReactElement {
           <div className="h-4 w-px bg-white/10" />
 
           <div>
-            <span className="text-xs font-bold uppercase tracking-[0.22em] text-emerald-400">
+            <span className="text-xs font-bold uppercase tracking-[0.22em] text-emerald-600 dark:text-emerald-400">
               Customization Studio
             </span>
           </div>
@@ -316,7 +316,7 @@ export default function CustomizePage(): ReactElement {
           >
             {/* Live Preview */}
             <div className="bg-white/70 backdrop-blur-xl border border-black/10 dark:bg-black/35 dark:border-white/10 rounded-[1.75rem] p-6 shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
-              <p className="text-xs font-bold uppercase tracking-[0.22em] text-emerald-400 mb-5">
+              <p className="text-xs font-bold uppercase tracking-[0.22em] text-emerald-600 dark:text-emerald-400 mb-5">
                 Live Preview
               </p>
 
@@ -404,7 +404,9 @@ export default function CustomizePage(): ReactElement {
                       >
                         <span className="text-purple-400">{decodeURIComponent(k)}</span>
                         <span className="text-gray-400 dark:text-white/20">=</span>
-                        <span className="text-emerald-400">{decodeURIComponent(v)}</span>
+                        <span className="text-emerald-600 dark:text-emerald-400">
+                          {decodeURIComponent(v)}
+                        </span>
                       </span>
                     );
                   }

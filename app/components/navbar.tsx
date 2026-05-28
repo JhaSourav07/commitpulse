@@ -28,6 +28,7 @@ const NAV_LINKS = [
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   const [isDark, setIsDark] = useState(() => {
     if (typeof window === 'undefined') return true;
@@ -37,6 +38,11 @@ export default function Navbar() {
 
   const { shellRef, shellVars, handleMouseEnter, handleMouseMove, handleMouseLeave } =
     useGlowEffect();
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', isDark);
@@ -130,7 +136,15 @@ export default function Navbar() {
                 className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/15 bg-white/5 text-white transition hover:bg-white/10"
                 aria-label="Toggle theme"
               >
-                {isDark ? <Sun size={18} /> : <Moon size={18} />}
+                {mounted ? (
+                  isDark ? (
+                    <Sun size={18} />
+                  ) : (
+                    <Moon size={18} />
+                  )
+                ) : (
+                  <span className="w-[18px] h-[18px]" />
+                )}
               </button>
 
               {NAV_LINKS.map((link) => (
