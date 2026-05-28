@@ -14,6 +14,25 @@
 
 > **Drop this into your GitHub profile README and stop being boring.**
 
+## 📖 Table of Contents
+
+- [Design Philosophy](#the-isometric-monolith--design-philosophy)
+- [Live Demo](#live-demo)
+- [Deep Customization](#deep-customization--url-parameters)
+- [Theme Presets](#theme-presets)
+- [Theme Preview Gallery](#theme-preview-gallery)
+- [Real-Time Accuracy](#real-time-accuracy--the-contribution-count-problem)
+- [Architecture & Tech Stack](#architecture--tech-stack)
+- [Self-Hosting](#self-hosting-in-4-steps)
+- [Automated Contributor Workflow](#automated-contributor-workflow)
+- [FAQ](#faq)
+- [Contributing](#contributing)
+- [License](#license)
+- [Themes](#themes)
+- [Contributors](#contributors)
+
+---
+
 ![CommitPulse Live Demo](https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=neon)
 
 [![Join CommitPulse Discord](https://img.shields.io/badge/Join-CommitPulse%20Discord-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/Cb73bS79j)
