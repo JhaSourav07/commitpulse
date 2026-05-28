@@ -459,6 +459,50 @@ export default function DocumentationPage() {
             </div>
           </Panel>
         </section>
+        <section className="mb-8">
+          <Panel
+            eyebrow="FAQ"
+            title="Frequently Asked Questions"
+            description="Quick answers to the most common questions from the CommitPulse community."
+          >
+            <div className="space-y-3">
+              {[
+                {
+                  q: 'How do I change the accent color of my badge?',
+                  a: 'Add &accent=ff6b35 to your URL with any hex color (no # needed). This overrides the theme accent color.',
+                },
+                {
+                  q: 'Can I use a custom font?',
+                  a: 'Yes — use the &font= parameter. Pass any Google Font name (e.g. &font=Fira+Code). If left blank, the theme default is used.',
+                },
+                {
+                  q: 'Why does my badge show NOT FOUND?',
+                  a: 'This means the GitHub username does not exist or has no public contribution data. Double-check your username spelling.',
+                },
+                {
+                  q: 'How do I embed the badge in my README?',
+                  a: 'Copy the markdown snippet from the homepage and paste it into your GitHub profile README. The badge renders automatically.',
+                },
+                {
+                  q: 'Can I preview my badge before adding it to my README?',
+                  a: 'Yes! Enter your GitHub username on the homepage to instantly preview your 3D contribution monolith before copying the link.',
+                },
+                {
+                  q: 'Which themes are available?',
+                  a: 'CommitPulse includes dark, neon, dracula, github, light, ocean, sunset, forest, rose, nord, synthwave, gruvbox and highcontrast. See the Theme Gallery above for previews.',
+                },
+              ].map(({ q, a }) => (
+                <div
+                  key={q}
+                  className="rounded-[1.25rem] border border-black/10 bg-gray-50 px-5 py-4 dark:border-white/8 dark:bg-black/35"
+                >
+                  <p className="text-sm font-semibold text-black dark:text-white">{q}</p>
+                  <p className="mt-2 text-sm leading-7 text-gray-600 dark:text-white/60">{a}</p>
+                </div>
+              ))}
+            </div>
+          </Panel>
+        </section>
       </div>
     </main>
   );
