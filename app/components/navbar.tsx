@@ -15,8 +15,14 @@ function GithubMark() {
 
 const NAV_LINKS = [
   {
+    label: 'Customization Studio',
+    href: '#customization-studio',
+    isExternal: false,
+  },
+  {
     label: 'GitHub Repo',
     href: 'https://github.com/JhaSourav07/commitpulse',
+    isExternal: true,
   },
 ];
 
@@ -131,11 +137,11 @@ export default function Navbar() {
                 <a
                   key={link.href}
                   href={link.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  target={link.isExternal ? '_blank' : undefined}
+                  rel={link.isExternal ? 'noopener noreferrer' : undefined}
                   className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-white/90 transition hover:border-white/45 hover:bg-white/10"
                 >
-                  <GithubMark />
+                  {link.isExternal && <GithubMark />}
                   {link.label}
                 </a>
               ))}
@@ -159,12 +165,12 @@ export default function Navbar() {
                   <li key={link.href}>
                     <a
                       href={link.href}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                      target={link.isExternal ? '_blank' : undefined}
+                      rel={link.isExternal ? 'noopener noreferrer' : undefined}
                       onClick={() => setOpen(false)}
                       className="inline-flex w-full items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-white/90 transition hover:border-white/45 hover:bg-white/10"
                     >
-                      <GithubMark />
+                      {link.isExternal && <GithubMark />}
                       {link.label}
                     </a>
                   </li>
