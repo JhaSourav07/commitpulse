@@ -3,12 +3,7 @@
 import { NextResponse } from 'next/server';
 import { fetchGitHubContributions, getOrgDashboardData } from '@/lib/github';
 import { calculateStreak, calculateMonthlyStats } from '@/lib/calculate';
-import {
-  generateNotFoundSVG,
-  generateSVG,
-  generateMonthlySVG,
-  escapeXML,
-} from '@/lib/svg/generator';
+import { generateNotFoundSVG, generateSVG, generateMonthlySVG } from '@/lib/svg/generator';
 import { getSecondsUntilUTCMidnight, getSecondsUntilMidnightInTimezone } from '@/utils/time';
 import type { BadgeParams } from '@/types';
 import { themes } from '@/lib/svg/themes';

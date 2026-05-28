@@ -75,7 +75,7 @@ export default async function DashboardPage({
         if (fallbackProfile.type === 'Organization') {
           redirect(`/dashboard/org/${username}`);
         }
-      } catch (fallbackError) {
+      } catch {
         // If it's truly neither a user nor an org, show 404
         return notFound();
       }
