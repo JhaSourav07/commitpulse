@@ -5,9 +5,7 @@ import StatsCardSkeleton from './StatsCardSkeleton';
 
 describe('StatsCardSkeleton', () => {
   it('renders without crashing', () => {
-    const { container } = render(<StatsCardSkeleton />);
-
-    expect(container).toBeDefined();
+    expect(() => render(<StatsCardSkeleton />)).not.toThrow();
   });
 
   it('renders exactly 12 chart bar elements', () => {
