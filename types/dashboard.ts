@@ -46,10 +46,10 @@ export interface Achievement {
   icon: string;
   isUnlocked: boolean;
 
-  type?: 'contributions' | 'streak';
-  threshold?: number;
-  currentValue?: number;
-  progress?: number;
+  type: 'contributions' | 'streak' | 'behavior';
+  threshold: number;
+  currentValue: number;
+  progress: number; // 0–100
 }
 
 export interface CommitClockData {

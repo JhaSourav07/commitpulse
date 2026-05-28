@@ -473,10 +473,15 @@ export async function fetchUserRepos(
   return allRepos;
 }
 
-export function generateAchievements(totalContributions: number, currentStreak: number) {
+export function generateAchievements(
+  totalContributions: number,
+  currentStreak: number,
+  weekendCommits: number = 0,
+  uniqueLanguages: number = 0
+) {
   const achievements = [];
 
-  // Contribution milestones
+  // ── Contribution milestones ────────────────────────────────────────────────
   for (const threshold of CONTRIBUTION_MILESTONES) {
     achievements.push({
       id: `contrib-${threshold}`,
@@ -496,7 +501,7 @@ export function generateAchievements(totalContributions: number, currentStreak: 
     });
   }
 
-  // Streak milestones
+  // ── Streak milestones ──────────────────────────────────────────────────────
   for (const threshold of STREAK_MILESTONES) {
     achievements.push({
       id: `streak-${threshold}`,
@@ -513,6 +518,56 @@ export function generateAchievements(totalContributions: number, currentStreak: 
       progress: Math.min(100, Math.round((currentStreak / threshold) * 100)),
     });
   }
+
+  // ── Consistency King (tiered total-contribution milestones) ────────────────
+  const CONSISTENCY_MILESTONES = [500, 1000, 2000] as const;
+  const CONSISTENCY_LABELS = [
+    'Consistency King',
+    'Consistency King II',
+    'Consistency King III',
+  ] as const;
+  for (let i = 0; i < CONSISTENCY_MILESTONES.length; i++) {
+    const threshold = CONSISTENCY_MILESTONES[i];
+    achievements.push({
+      id: `consistency-${threshold}`,
+      title: CONSISTENCY_LABELS[i],
+      description: `Reached ${threshold.toLocaleString()} total contributions`,
+      icon: '👑',
+      isUnlocked: totalContributions >= threshold,
+      type: 'contributions' as const,
+      threshold,
+      currentValue: totalContributions,
+      progress: Math.min(100, Math.round((totalContributions / threshold) * 100)),
+    });
+  }
+
+  // ── Weekend Warrior ────────────────────────────────────────────────────────
+  // Computed from commitClock: dayTotals[0] (Sun) + dayTotals[6] (Sat).
+  achievements.push({
+    id: 'weekend-warrior',
+    title: 'Weekend Warrior',
+    description: '10+ contributions on weekends (Sat & Sun)',
+    icon: '🏋️',
+    isUnlocked: weekendCommits >= 10,
+    type: 'behavior' as const,
+    threshold: 10,
+    currentValue: weekendCommits,
+    progress: Math.min(100, Math.round((weekendCommits / 10) * 100)),
+  });
+
+  // ── Polyglot ───────────────────────────────────────────────────────────────
+  // Computed from fetchUserRepos: count of distinct repo.language values.
+  achievements.push({
+    id: 'polyglot',
+    title: 'Polyglot',
+    description: 'Used 5+ distinct programming languages',
+    icon: '🐙',
+    isUnlocked: uniqueLanguages >= 5,
+    type: 'behavior' as const,
+    threshold: 5,
+    currentValue: uniqueLanguages,
+    progress: Math.min(100, Math.round((uniqueLanguages / 5) * 100)),
+  });
 
   return achievements;
 }
@@ -653,9 +708,22 @@ export async function getFullDashboardData(username: string, options: FetchOptio
     .sort((a, b) => b.percentage - a.percentage)
     .slice(0, 5); // top 5
 
+  // Weekend commits = Sunday (index 0) + Saturday (index 6) totals from commitClock.
+  // Both are already computed above — no extra API call needed.
+  const allDaysForClock = calendarData.weeks.flatMap((w) => w.contributionDays);
+  const commitClockRaw = buildCommitClock(allDaysForClock);
+  const weekendCommits =
+    (commitClockRaw.find((d) => d.day === 'Sun')?.commits ?? 0) +
+    (commitClockRaw.find((d) => d.day === 'Sat')?.commits ?? 0);
+
+  // Unique languages = count of distinct language keys already computed in langCounts.
+  const uniqueLanguages = Object.keys(langCounts).length;
+
   const achievements = generateAchievements(
     streakStats.totalContributions,
-    streakStats.currentStreak
+    streakStats.currentStreak,
+    weekendCommits,
+    uniqueLanguages
   );
 
   // 4. Insights Generation
