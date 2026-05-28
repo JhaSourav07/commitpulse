@@ -183,7 +183,7 @@ export function ControlsPanel({
 
   return (
     <div>
-      <p className="text-xs font-bold uppercase tracking-[0.22em] text-emerald-400 mb-4">
+      <p className="text-xs font-bold uppercase tracking-[0.22em] text-emerald-600 dark:text-emerald-400 mb-4">
         Controls
       </p>
 

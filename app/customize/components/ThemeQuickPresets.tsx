@@ -309,7 +309,7 @@ function IconSynthwave({ bg, text, accent }: IC): ReactElement {
   );
 }
 
-function IconGruvbox({ text, accent }: IC): ReactElement {
+function IconGruvbox({ bg, text, accent }: IC): ReactElement {
   return (
     <svg width="22" height="22" viewBox="0 0 28 28" fill="none" aria-hidden="true">
       {/* top handle */}
@@ -331,7 +331,7 @@ function IconGruvbox({ text, accent }: IC): ReactElement {
       {/* lantern body */}
       <rect x="8" y="11" width="12" height="11" rx="2.5" fill={text} opacity="0.82" />
       {/* glass chamber */}
-      <rect x="10.2" y="13" width="7.6" height="6.8" rx="1.5" fill="#1d2021" opacity="0.9" />
+      <rect x="10.2" y="13" width="7.6" height="6.8" rx="1.5" fill={bg} opacity="0.9" />
       {/* warm glow */}
       <ellipse cx="14" cy="16.5" rx="2.8" ry="3.2" fill={accent} opacity="0.95" />
       {/* flame */}
@@ -357,7 +357,145 @@ function IconHighcontrast({ text, accent }: IC): ReactElement {
   );
 }
 
-const ICON_MAP: Record<ThemeKey, (c: IC) => ReactElement> = {
+function IconCatppuccinLatte({ text, accent }: IC): ReactElement {
+  return (
+    <svg width="22" height="22" viewBox="0 0 28 28" fill="none" aria-hidden="true">
+      {/* Cup body */}
+      <path d="M6 10 C6 17, 7 20, 14 20 C21 20, 22 17, 22 10 Z" fill={accent} opacity="0.9" />
+      {/* Cup handle */}
+      <path
+        d="M22 12 C24.5 12, 24.5 16, 22 16"
+        stroke={accent}
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        fill="none"
+      />
+      {/* Latte art / foam */}
+      <ellipse cx="14" cy="10" rx="6.5" ry="1.8" fill={text} opacity="0.9" />
+      {/* Steam lines */}
+      <path
+        d="M11 7 C11 5, 13 5, 13 3"
+        stroke={text}
+        strokeWidth="1.2"
+        strokeLinecap="round"
+        fill="none"
+        opacity="0.6"
+      />
+      <path
+        d="M15 7 C15 5, 17 5, 17 3"
+        stroke={text}
+        strokeWidth="1.2"
+        strokeLinecap="round"
+        fill="none"
+        opacity="0.6"
+      />
+    </svg>
+  );
+}
+
+function IconSolarizedLight({ text, accent }: IC): ReactElement {
+  return (
+    <svg width="22" height="22" viewBox="0 0 28 28" fill="none" aria-hidden="true">
+      <circle cx="14" cy="14" r="5" stroke={accent} strokeWidth="2" opacity="0.95" />
+      <circle cx="14" cy="14" r="2" fill={text} opacity="0.9" />
+      {/* Solar/Astronomical clean geometric rays */}
+      <line x1="14" y1="3" x2="14" y2="6" stroke={accent} strokeWidth="1.8" strokeLinecap="round" />
+      <line
+        x1="14"
+        y1="22"
+        x2="14"
+        y2="25"
+        stroke={accent}
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+      <line x1="3" y1="14" x2="6" y2="14" stroke={accent} strokeWidth="1.8" strokeLinecap="round" />
+      <line
+        x1="22"
+        y1="14"
+        x2="25"
+        y2="14"
+        stroke={accent}
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+      <line
+        x1="6.2"
+        y1="6.2"
+        x2="8.3"
+        y2="8.3"
+        stroke={accent}
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        opacity="0.7"
+      />
+      <line
+        x1="19.7"
+        y1="19.7"
+        x2="21.8"
+        y2="21.8"
+        stroke={accent}
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        opacity="0.7"
+      />
+      <line
+        x1="19.7"
+        y1="6.2"
+        x2="17.6"
+        y2="8.3"
+        stroke={accent}
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        opacity="0.7"
+      />
+      <line
+        x1="6.2"
+        y1="19.7"
+        x2="8.3"
+        y2="17.6"
+        stroke={accent}
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        opacity="0.7"
+      />
+    </svg>
+  );
+}
+
+function IconAuroraCyberpunk({ text, accent }: IC): ReactElement {
+  return (
+    <svg width="22" height="22" viewBox="0 0 28 28" fill="none" aria-hidden="true">
+      {/* Cyberpunk double triangles */}
+      <polygon
+        points="14,4 24,20 4,20"
+        stroke={accent}
+        strokeWidth="2.2"
+        strokeLinejoin="round"
+        opacity="0.9"
+      />
+      <polygon
+        points="14,10 20,20 8,20"
+        stroke={text}
+        strokeWidth="1.2"
+        strokeLinejoin="round"
+        opacity="0.7"
+      />
+      <line
+        x1="14"
+        y1="4"
+        x2="14"
+        y2="20"
+        stroke={accent}
+        strokeWidth="1"
+        strokeDasharray="2 2"
+        opacity="0.5"
+      />
+    </svg>
+  );
+}
+
+const ICON_MAP: Record<string, (c: IC) => ReactElement> = {
   dark: (c) => <IconDark {...c} />,
   light: (c) => <IconLight {...c} />,
   neon: (c) => <IconNeon {...c} />,
@@ -372,6 +510,11 @@ const ICON_MAP: Record<ThemeKey, (c: IC) => ReactElement> = {
   gruvbox: (c) => <IconGruvbox {...c} />,
   aurora_cyberpunk: (c) => <IconDark {...c} />,
   highcontrast: (c) => <IconHighcontrast {...c} />,
+  aurora_cyberpunk: (c) => <IconAuroraCyberpunk {...c} />,
+  catppuccin_latte: (c) => <IconCatppuccinLatte {...c} />,
+  solarized_light: (c) => <IconSolarizedLight {...c} />,
+  gruvbox_light: (c) => <IconGruvbox {...c} />,
+  nord_light: (c) => <IconNord {...c} />,
 };
 
 export function ThemeQuickPresets({ theme, onThemeChange }: ThemeQuickPresetsProps): ReactElement {
