@@ -107,15 +107,15 @@ export default function LandingPage() {
   // setSvgState directly in the component body) with a proper useEffect that reacts
   // to trimmedUsername changes. This eliminates the React warning about updating state
   // during render and the potential for infinite re-render loops.
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
-    const timeout = setTimeout(() => {
-      setSvgContent(null);
-      setSvgState(trimmedUsername ? 'loading' : 'idle');
-    }, 0);
-
-    return () => clearTimeout(timeout);
+    if (trimmedUsername) {
+      setSvgState('loading');
+    } else {
+      setSvgState('idle');
+    }
   }, [trimmedUsername]);
-
+  /* eslint-enable react-hooks/set-state-in-effect */
   // FIX 4: removed stale `badgeUrl` string from the dep array — we now depend on the
   // memoised value which is null when there is no username, so the early-return guard
   // is clean.
@@ -358,7 +358,6 @@ export default function LandingPage() {
                   )}
                   {svgState === 'loaded' && svgContent && (
                     <div
-                      data-testid="badge-svg" // ✅ Add this here
                       className="cp-svg-container w-full max-w-[600px] drop-shadow-[0_20px_50px_rgba(0,0,0,0.5)] [&>svg]:w-full [&>svg]:h-auto"
                       dangerouslySetInnerHTML={{ __html: svgContent }}
                     />
