@@ -27,6 +27,9 @@ const mockCalendar: ContributionCalendar = {
   ],
 };
 
+const originalGitHubPat = process.env.GITHUB_PAT;
+const originalGitHubToken = process.env.GITHUB_TOKEN;
+
 function mockResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
@@ -36,10 +39,23 @@ function mockResponse(body: unknown, status = 200): Response {
 
 beforeEach(() => {
   clearGitHubApiCacheForTests();
+  process.env.GITHUB_PAT = 'test-token';
+  delete process.env.GITHUB_TOKEN;
 });
 
 afterEach(() => {
   clearGitHubApiCacheForTests();
+  if (originalGitHubPat === undefined) {
+    delete process.env.GITHUB_PAT;
+  } else {
+    process.env.GITHUB_PAT = originalGitHubPat;
+  }
+
+  if (originalGitHubToken === undefined) {
+    delete process.env.GITHUB_TOKEN;
+  } else {
+    process.env.GITHUB_TOKEN = originalGitHubToken;
+  }
 });
 
 describe('fetchGitHubContributions', () => {
@@ -81,11 +97,44 @@ describe('fetchGitHubContributions', () => {
     const [url, options] = vi.mocked(fetch).mock.calls[0];
     expect(url).toBe('https://api.github.com/graphql');
     expect(options?.method).toBe('POST');
+    expect(options?.headers).toMatchObject({
+      Authorization: 'bearer test-token',
+      'Content-Type': 'application/json',
+    });
 
     // Make sure the username is wired into the GraphQL variables, not hardcoded.
     const body = JSON.parse(options?.body as string);
     expect(body.variables).toEqual({ login: 'octocat' });
     expect(body.query).toContain('contributionCalendar');
+  });
+
+  it('uses GITHUB_TOKEN when GITHUB_PAT is not configured', async () => {
+    delete process.env.GITHUB_PAT;
+    process.env.GITHUB_TOKEN = 'actions-token';
+    vi.mocked(fetch).mockResolvedValue(
+      mockResponse({
+        data: {
+          user: { contributionsCollection: { contributionCalendar: mockCalendar } },
+        },
+      })
+    );
+
+    await fetchGitHubContributions('octocat');
+
+    const [, options] = vi.mocked(fetch).mock.calls[0];
+    expect(options?.headers).toMatchObject({
+      Authorization: 'bearer actions-token',
+    });
+  });
+
+  it('throws before fetching when no GitHub token is configured', async () => {
+    delete process.env.GITHUB_PAT;
+    delete process.env.GITHUB_TOKEN;
+
+    await expect(fetchGitHubContributions('octocat')).rejects.toThrow(
+      'GitHub token is missing. Set GITHUB_PAT or GITHUB_TOKEN.'
+    );
+    expect(fetch).not.toHaveBeenCalled();
   });
 
   it('works correctly for a brand-new user who has zero contribution weeks', async () => {
