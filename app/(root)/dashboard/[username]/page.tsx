@@ -1,4 +1,9 @@
+// app/(root)/dashboard/[username]/page.tsx
+
 import type { Metadata } from 'next';
+import { notFound, redirect } from 'next/navigation';
+import Link from 'next/link';
+
 import RefreshButton from '@/components/dashboard/RefreshButton';
 import ProfileCard from '@/components/dashboard/ProfileCard';
 import ActivityLandscape from '@/components/dashboard/ActivityLandscape';
@@ -8,9 +13,7 @@ import CommitClock from '@/components/dashboard/CommitClock';
 import Heatmap from '@/components/dashboard/Heatmap';
 import AIInsights from '@/components/dashboard/AIInsights';
 import Achievements from '@/components/dashboard/Achievements';
-import { getFullDashboardData } from '@/lib/github';
-import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import { getFullDashboardData, fetchUserProfile } from '@/lib/github';
 
 export const revalidate = 3600; // Cache for 1 hour
 
@@ -23,10 +26,8 @@ export async function generateMetadata({
 }: {
   params: Promise<{ username: string }>;
 }): Promise<Metadata> {
-  // Lightweight — no API calls here.
-  // Real data is fetched by /api/og on demand when social platforms render the preview.
   const { username } = await params;
-  const ogImage = `${BASE_URL}/api/og?username=${username}`;
+  const ogImage = `${BASE_URL}/api/og?user=${username}`;
   const title = `${username}'s Commit Pulse`;
   const description = `Check out ${username}'s GitHub contribution pulse — streaks, insights, and more on CommitPulse.`;
 
@@ -62,19 +63,25 @@ export default async function DashboardPage({
   const refreshParams = await searchParams;
   const bypassCache = refreshParams?.refresh === 'true';
 
-  // Fetch real GitHub data
   let data;
 
   try {
-    data = await getFullDashboardData(username, {
-      bypassCache,
-    });
+    data = await getFullDashboardData(username, { bypassCache });
   } catch (error) {
-    if (error instanceof Error) {
+    if (error instanceof Error && error.message.includes('not found')) {
+      // Smart Redirect: If the GraphQL "user" query fails, check if it's actually an Organization
+      try {
+        const fallbackProfile = await fetchUserProfile(username, { bypassCache });
+        if (fallbackProfile.type === 'Organization') {
+          redirect(`/dashboard/org/${username}`);
+        }
+      } catch {
+        // If it's truly neither a user nor an org, show 404
+        return notFound();
+      }
       return notFound();
     }
-
-    throw Error;
+    throw error;
   }
 
   return (
@@ -98,7 +105,7 @@ export default async function DashboardPage({
           >
             <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
           </svg>
-          Generate Your Own Dashboard
+          Generate Your Own
         </Link>
       </div>
 
@@ -112,9 +119,9 @@ export default async function DashboardPage({
               languages: data.languages,
             }}
           />
-          {/* We omit real achievements data generation for now and just show a placeholder based on streaks */}
           <Achievements achievements={data.achievements} />
         </aside>
+
         {/* Main Content */}
         <div className="flex flex-col gap-6 lg:gap-8 min-w-0">
           <section>
