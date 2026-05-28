@@ -511,6 +511,28 @@ describe('generateSVG', () => {
       expect(svg).not.toContain('fill="white" fill-opacity="0.2"');
     });
   });
+
+  describe('hide_title parameter', () => {
+    it('omits the username title text when hide_title is true', () => {
+      const svg = generateSVG(
+        mockStats,
+        { user: 'octocat', hide_title: true } as unknown as BadgeParams,
+        mockCalendar
+      );
+
+      expect(svg).not.toContain('OCTOCAT');
+    });
+
+    it('renders the username title text when hide_title is false', () => {
+      const svg = generateSVG(
+        mockStats,
+        { user: 'octocat', hide_title: false } as unknown as BadgeParams,
+        mockCalendar
+      );
+
+      expect(svg).toContain('OCTOCAT');
+    });
+  });
 });
 
 describe('generateMonthlySVG', () => {
