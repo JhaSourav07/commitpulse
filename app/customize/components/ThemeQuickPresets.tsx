@@ -1,3 +1,4 @@
+// app/customize/components/ThemeQuickPresets.tsx
 import type { ReactElement } from 'react';
 import { themes } from '../../../lib/svg/themes';
 import { THEME_KEYS, type ThemeKey } from '../types';
@@ -8,6 +9,9 @@ type ThemeQuickPresetsProps = {
 };
 
 type IC = { bg: string; text: string; accent: string };
+
+// Helper to round floating-point math to avoid Server/Client hydration mismatches
+const r3 = (n: number) => Number(n.toFixed(3));
 
 function IconDark({ bg, text, accent }: IC): ReactElement {
   return (
@@ -31,10 +35,10 @@ function IconLight({ text, accent }: IC): ReactElement {
         return (
           <line
             key={deg}
-            x1={14 + 7.5 * Math.cos(r)}
-            y1={14 + 7.5 * Math.sin(r)}
-            x2={14 + 10.5 * Math.cos(r)}
-            y2={14 + 10.5 * Math.sin(r)}
+            x1={r3(14 + 7.5 * Math.cos(r))}
+            y1={r3(14 + 7.5 * Math.sin(r))}
+            x2={r3(14 + 10.5 * Math.cos(r))}
+            y2={r3(14 + 10.5 * Math.sin(r))}
             stroke={text}
             strokeWidth="1.6"
             strokeLinecap="round"
@@ -263,18 +267,18 @@ function IconNord({ text, accent }: IC): ReactElement {
             <line
               x1="14"
               y1="14"
-              x2={x2}
-              y2={y2}
+              x2={r3(x2)}
+              y2={r3(y2)}
               stroke={text}
               strokeWidth="1.5"
               strokeLinecap="round"
               opacity="0.82"
             />
             <line
-              x1={mx - 2.5 * px}
-              y1={my - 2.5 * py}
-              x2={mx + 2.5 * px}
-              y2={my + 2.5 * py}
+              x1={r3(mx - 2.5 * px)}
+              y1={r3(my - 2.5 * py)}
+              x2={r3(mx + 2.5 * px)}
+              y2={r3(my + 2.5 * py)}
               stroke={text}
               strokeWidth="1.2"
               strokeLinecap="round"
@@ -366,6 +370,7 @@ const ICON_MAP: Record<ThemeKey, (c: IC) => ReactElement> = {
   nord: (c) => <IconNord {...c} />,
   synthwave: (c) => <IconSynthwave {...c} />,
   gruvbox: (c) => <IconGruvbox {...c} />,
+  aurora_cyberpunk: (c) => <IconDark {...c} />,
   highcontrast: (c) => <IconHighcontrast {...c} />,
 };
 
@@ -457,7 +462,7 @@ export function ThemeQuickPresets({ theme, onThemeChange }: ThemeQuickPresetsPro
             text: `#${t.text}`,
             accent: `#${t.accent}`,
           };
-          const renderIcon = ICON_MAP[key];
+          const renderIcon = ICON_MAP[key as ThemeKey];
 
           return (
             <button
