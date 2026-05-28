@@ -508,7 +508,6 @@ const ICON_MAP: Record<string, (c: IC) => ReactElement> = {
   nord: (c) => <IconNord {...c} />,
   synthwave: (c) => <IconSynthwave {...c} />,
   gruvbox: (c) => <IconGruvbox {...c} />,
-  aurora_cyberpunk: (c) => <IconDark {...c} />,
   highcontrast: (c) => <IconHighcontrast {...c} />,
   aurora_cyberpunk: (c) => <IconAuroraCyberpunk {...c} />,
   catppuccin_latte: (c) => <IconCatppuccinLatte {...c} />,
