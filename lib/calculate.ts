@@ -50,6 +50,12 @@ const stats = calculateStreak(
   new Date('2026-05-25T10:00:00Z')
 );
 */
+export function isStreakAlive(
+  today: { contributionCount: number },
+  yesterday: { contributionCount: number } | null
+): boolean {
+  return today.contributionCount > 0 || (yesterday?.contributionCount ?? 0) > 0;
+}
 
 export function calculateStreak(
   calendar: ContributionCalendar,

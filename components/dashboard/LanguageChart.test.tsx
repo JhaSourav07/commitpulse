@@ -1,8 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import LanguageChart from './LanguageChart';
-import { buildGradientStops } from './LanguageChart';
+import LanguageChart, { buildGradientStops } from './LanguageChart';
 
 vi.mock('framer-motion', () => ({
   motion: {
@@ -43,6 +42,13 @@ describe('LanguageChart', () => {
     expect(screen.getAllByText('72%')).toHaveLength(2);
     expect(screen.getAllByText('TypeScript')).toHaveLength(2);
     expect(screen.getByText('JavaScript')).toBeDefined();
+  });
+
+  it('renders donut background with language color and percentage', () => {
+    const result = buildGradientStops([{ name: 'TypeScript', percentage: 100, color: '#3178c6' }]);
+
+    expect(result).toContain('#3178c6');
+    expect(result).toContain('100%');
   });
 });
 

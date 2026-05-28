@@ -11,8 +11,6 @@ import { CustomizeCTA } from './components/CustomizeCTA';
 import { useRecentSearches } from '@/hooks/useRecentSearches';
 import { Footer } from '@/app/components/Footer';
 
-import toast from 'react-hot-toast';
-
 const Icons = {
   Github: () => (
     <svg height="24" width="24" viewBox="0 0 16 16" fill="currentColor">
@@ -74,9 +72,15 @@ export default function LandingPage() {
   const [svgContent, setSvgContent] = useState<string | null>(null);
   const [svgState, setSvgState] = useState<'idle' | 'loading' | 'loaded'>('idle');
   const guideRef = useRef<HTMLDivElement>(null);
-  const { searches, addSearch, clearSearches } = useRecentSearches();
+  const { searches, addSearch, clearSearches, removeSearch } = useRecentSearches();
   const trimmedUsername = username.trim();
   const hasUsername = trimmedUsername.length > 0;
+
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMounted(true);
+  }, []);
 
   const badgeUrl = `/api/streak?user=${trimmedUsername}`;
   const markdown = `![CommitPulse](https://commitpulse.vercel.app/api/streak?user=${trimmedUsername})`;
@@ -111,32 +115,18 @@ export default function LandingPage() {
     return () => controller.abort();
   }, [badgeUrl, hasUsername]);
 
-  const copyToClipboard = async () => {
+  const copyToClipboard = () => {
     if (!hasUsername) return;
 
-    try {
-      trackUser(trimmedUsername);
-      addSearch(trimmedUsername);
+    trackUser(trimmedUsername);
+    addSearch(trimmedUsername);
 
-      await navigator.clipboard.writeText(markdown);
-
-      setCopied(true);
-
-      toast.success('Markdown copied successfully!', {
-        id: 'copy-success',
-      });
-
-      setTimeout(() => {
-        guideRef.current?.scrollIntoView({
-          behavior: 'smooth',
-          block: 'start',
-        });
-      }, 80);
-
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      toast.error('Failed to copy markdown');
-    }
+    navigator.clipboard.writeText(markdown);
+    setCopied(true);
+    setTimeout(() => {
+      guideRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 80);
+    setTimeout(() => setCopied(false), 50000);
   };
 
   return (
@@ -241,7 +231,7 @@ export default function LandingPage() {
               <div className="flex flex-col sm:flex-row gap-4">
                 <button
                   type="submit"
-                  disabled={!hasUsername}
+                  disabled={!mounted || !hasUsername}
                   className={`relative flex min-w-[160px] items-center justify-center gap-2 overflow-hidden rounded-xl px-6 py-3.5 text-sm font-semibold transition-all duration-200 active:scale-[0.98] ${
                     hasUsername
                       ? 'bg-black text-white hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-zinc-100'
@@ -272,7 +262,7 @@ export default function LandingPage() {
                 </button>
                 <Link
                   href={hasUsername ? `/dashboard/${trimmedUsername}` : '/'}
-                  aria-disabled={!hasUsername}
+                  aria-disabled={!mounted || !hasUsername}
                   onClick={(e) => {
                     if (!hasUsername) {
                       e.preventDefault();
@@ -297,13 +287,26 @@ export default function LandingPage() {
             <div className="flex flex-wrap items-center gap-2 mb-6 mt-3">
               <span className="text-xs text-[#A1A1AA]">Recent:</span>
               {searches.map((s) => (
-                <button
+                <span
                   key={s}
-                  onClick={() => setUsername(s)}
-                  className="rounded-full border border-[rgba(255,255,255,0.08)] bg-[#111] px-3 py-1 text-xs text-white/70 transition-all hover:border-[rgba(255,255,255,0.2)] hover:text-white"
+                  className="inline-flex items-center gap-1.5 rounded-full border border-[rgba(255,255,255,0.08)] bg-[#111] pl-3 pr-2 py-1 text-xs text-white/70 transition-all hover:border-[rgba(255,255,255,0.2)] hover:text-white group/pill"
                 >
-                  {s}
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => setUsername(s)}
+                    className="transition-colors hover:text-white"
+                  >
+                    {s}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => removeSearch(s)}
+                    className="rounded-full p-0.5 text-white/40 hover:bg-white/10 hover:text-white transition-all flex items-center justify-center"
+                    aria-label={`Remove ${s} from recent searches`}
+                  >
+                    <X size={10} />
+                  </button>
+                </span>
               ))}
               <button
                 onClick={clearSearches}
@@ -324,7 +327,7 @@ export default function LandingPage() {
                   )}
                   {svgState === 'loaded' && svgContent && (
                     <div
-                      className="w-full max-w-[600px] drop-shadow-[0_20px_50px_rgba(0,0,0,0.5)] [&>svg]:w-full [&>svg]:h-auto"
+                      className="cp-svg-container w-full max-w-[600px] drop-shadow-[0_20px_50px_rgba(0,0,0,0.5)] [&>svg]:w-full [&>svg]:h-auto"
                       // Safe: SVG is generated server-side by our own trusted generator
                       dangerouslySetInnerHTML={{ __html: svgContent }}
                     />

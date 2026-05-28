@@ -65,6 +65,19 @@ describe('getSecondsUntilUTCMidnight', () => {
   });
 });
 
+it('returns positive seconds for every hour of day', () => {
+  for (let hour = 0; hour < 24; hour++) {
+    const fakeDate = new Date(Date.UTC(2025, 0, 1, hour, 0, 0));
+
+    vi.setSystemTime(fakeDate);
+
+    const seconds = getSecondsUntilUTCMidnight();
+
+    expect(seconds).toBeGreaterThan(0);
+    expect(seconds).toBeLessThanOrEqual(86400);
+  }
+});
+
 describe('getSecondsUntilMidnightInTimezone', () => {
   beforeEach(() => {
     vi.useFakeTimers();
