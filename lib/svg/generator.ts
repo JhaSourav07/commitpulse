@@ -528,6 +528,38 @@ function generateAutoThemeMonthlySVG(stats: MonthlyStats, params: BadgeParams): 
 </svg>
 `;
 }
+
+/**
+ * Generates a fallback SVG badge for users that do not exist
+ * or when contribution data cannot be loaded.
+ *
+ * The SVG renders a ghost-style city layout with an animated
+ * error-state design while preserving the standard badge layout.
+ *
+ * @param username - GitHub username displayed in the error badge.
+ * @param bg - Background color used for the SVG container.
+ * @param accent - Accent color used for highlights, outlines,
+ * and animated elements.
+ * @param text - Primary text color used throughout the badge.
+ * @param radius - Border radius applied to the SVG background.
+ * @param speed - Animation speed for the radar scan effect.
+ * Defaults to '8s'.
+ *
+ * @returns A generated SVG string representing the not-found state.
+ *
+ * @example
+ * const svg = generateNotFoundSVG(
+ *   'octocat',
+ *   '#0d1117',
+ *   '#00ffaa',
+ *   '#ffffff',
+ *   8,
+ *   '8s'
+ * );
+ */
+// Fixed isometric tower layout for the not-found ghost city.
+// Heights are deterministic so the silhouette always looks like a real city
+// regardless of the username or theme passed to generateNotFoundSVG.
 const GHOST_LAYOUT: { col: number; row: number; h: number }[] = [
   { col: 0, row: 0, h: 8 },
   { col: 1, row: 0, h: 20 },
@@ -537,7 +569,6 @@ const GHOST_LAYOUT: { col: number; row: number; h: number }[] = [
   { col: 5, row: 0, h: 10 },
   { col: 6, row: 0, h: 24 },
   { col: 7, row: 0, h: 8 },
-
   { col: 0, row: 1, h: 6 },
   { col: 1, row: 1, h: 14 },
   { col: 2, row: 1, h: 36 },
@@ -546,7 +577,6 @@ const GHOST_LAYOUT: { col: number; row: number; h: number }[] = [
   { col: 5, row: 1, h: 18 },
   { col: 6, row: 1, h: 10 },
   { col: 7, row: 1, h: 28 },
-
   { col: 0, row: 2, h: 10 },
   { col: 1, row: 2, h: 26 },
   { col: 2, row: 2, h: 16 },
@@ -555,7 +585,6 @@ const GHOST_LAYOUT: { col: number; row: number; h: number }[] = [
   { col: 5, row: 2, h: 32 },
   { col: 6, row: 2, h: 14 },
   { col: 7, row: 2, h: 6 },
-
   { col: 0, row: 3, h: 4 },
   { col: 1, row: 3, h: 18 },
   { col: 2, row: 3, h: 28 },
@@ -564,7 +593,6 @@ const GHOST_LAYOUT: { col: number; row: number; h: number }[] = [
   { col: 5, row: 3, h: 8 },
   { col: 6, row: 3, h: 22 },
   { col: 7, row: 3, h: 16 },
-
   { col: 0, row: 4, h: 8 },
   { col: 1, row: 4, h: 30 },
   { col: 2, row: 4, h: 10 },
@@ -573,7 +601,6 @@ const GHOST_LAYOUT: { col: number; row: number; h: number }[] = [
   { col: 5, row: 4, h: 40 },
   { col: 6, row: 4, h: 12 },
   { col: 7, row: 4, h: 24 },
-
   { col: 0, row: 5, h: 14 },
   { col: 1, row: 5, h: 8 },
   { col: 2, row: 5, h: 22 },
@@ -594,7 +621,6 @@ export function generateNotFoundSVG(
   width: number = 800
 ): string {
   const safeName = escapeXML(username.toUpperCase());
-
   const height = SVG_HEIGHT;
   const centerX = width / 2;
 
