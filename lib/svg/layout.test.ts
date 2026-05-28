@@ -103,6 +103,32 @@ describe('computeTowers edge cases', () => {
     expect(towers[0].strokeWidth).toBe(0.5);
   });
 
+  it('marks every tower as a ghost with ghost height for an all-zero calendar', () => {
+    const calendar = {
+      totalContributions: 0,
+      weeks: [
+        {
+          contributionDays: [
+            { contributionCount: 0, date: '2024-06-10' },
+            { contributionCount: 0, date: '2024-06-11' },
+          ],
+        },
+        {
+          contributionDays: [
+            { contributionCount: 0, date: '2024-06-12' },
+            { contributionCount: 0, date: '2024-06-13' },
+          ],
+        },
+      ],
+    } as unknown as ContributionCalendar;
+    const towers = computeTowers(calendar, 'linear', '2024-06-13');
+
+    towers.forEach((tower) => {
+      expect(tower.isGhost).toBe(true);
+      expect(tower.h).toBe(4); // GHOST_HEIGHT_PX
+    });
+  });
+
   it('disables ghost city mode when total visible contributions > 0', () => {
     const calendar = {
       totalContributions: 0,
