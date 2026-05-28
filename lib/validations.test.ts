@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { githubParamsSchema } from './validations';
+import { githubParamsSchema, ogParamsSchema } from './validations';
 
 describe('githubParamsSchema', () => {
   it('should pass when username is valid', () => {
@@ -48,6 +48,42 @@ describe('githubParamsSchema', () => {
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.refresh).toBe(false);
+    }
+  });
+});
+
+describe('ogParamsSchema', () => {
+  it('should keep provided user value', () => {
+    const result = ogParamsSchema.safeParse({
+      user: 'octocat',
+    });
+
+    expect(result.success).toBe(true);
+
+    if (result.success) {
+      expect(result.data.user).toBe('octocat');
+    }
+  });
+
+  it('should default user to unknown when omitted', () => {
+    const result = ogParamsSchema.safeParse({});
+
+    expect(result.success).toBe(true);
+
+    if (result.success) {
+      expect(result.data.user).toBe('unknown');
+    }
+  });
+
+  it('should allow empty string user', () => {
+    const result = ogParamsSchema.safeParse({
+      user: '',
+    });
+
+    expect(result.success).toBe(true);
+
+    if (result.success) {
+      expect(result.data.user).toBe('');
     }
   });
 });
