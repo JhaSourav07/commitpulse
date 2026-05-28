@@ -72,7 +72,7 @@ export default function Navbar() {
   };
 
   return (
-    <header className="fixed inset-x-0 top-0 z-50 px-4 pt-4 sm:px-6">
+    <header className="relative z-50 px-4 pt-4 sm:px-6 w-full">
       <div className="mx-auto max-w-6xl">
         <div
           ref={shellRef}

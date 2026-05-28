@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { ReactElement } from 'react';
 import type { ExportFormat } from '../types';
 import { getPlaceholderSnippet } from '../utils';
@@ -29,6 +30,95 @@ export function ExportPanel({
   const copyButtonLabel = hasUsername
     ? `Copy ${formatLabel} export snippet to clipboard`
     : `Add a GitHub username to enable copying the ${formatLabel} export snippet`;
+
+  // Track async server download states
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  const handleDownloadBadge = async () => {
+    if (!hasUsername || !snippet) return;
+
+    try {
+      setIsDownloading(true);
+
+      // 1. Extract the API URL source string from the template snippet container
+      const urlMatch = snippet.match(/\((https?:\/\/[^)]+)\)/) || snippet.match(/src="([^"]+)"/);
+      let targetUrl = urlMatch ? urlMatch[1] : '';
+
+      if (!targetUrl) {
+        console.error('Could not parse the live API badge target URL from snippet.');
+        return;
+      }
+
+      // 2. Clear out HTML character entities if grabbed from HTML embed strings
+      targetUrl = targetUrl.replace(/&amp;/g, '&');
+
+      // 3. SECURE LOCAL WORKSPACE TESTING: Redirect backend calls to your local server instance
+      if (targetUrl.includes('https://commitpulse.vercel.app')) {
+        targetUrl = targetUrl.replace('https://commitpulse.vercel.app', window.location.origin);
+      }
+
+      // 4. Append a cache-busting refresh query parameter to guarantee the latest custom colors
+      if (targetUrl.includes('?')) {
+        targetUrl += '&refresh=true';
+      } else {
+        targetUrl += '?refresh=true';
+      }
+
+      // 5. Fetch the real, server-side generated raw XML text of the SVG from your local server
+      const response = await fetch(targetUrl);
+      if (!response.ok) throw new Error('Network response failed to retrieve badge data stream.');
+
+      let svgText = await response.text();
+
+      // 6. ABSOLUTE VIEWPORT CENTERING INJECTION
+      // We attach absolute positioning properties directly into the root vector stylesheet.
+      // This forces the standalone browser view to scale up and lock dead center in the viewport grid!
+      const standaloneStyles = `
+        <style id="standalone-canvas-centering">
+          svg {
+            display: block !important;
+            margin: auto !important;
+            position: absolute !important;
+            top: 0 !important; bottom: 0 !important;
+            left: 0 !important; right: 0 !important;
+            max-width: 90vw !important;
+            max-height: 85vh !important;
+            width: 100% !important;
+            height: 100% !important;
+          }
+          html, body {
+            background-color: #0d1117 !important; /* Premium matching background void */
+            margin: 0 !important;
+            padding: 0 !important;
+            overflow: hidden !important;
+          }
+        </style>
+      `;
+
+      // Inject directly right after the opening tag to guarantee compilation matching
+      svgText = svgText.replace(/<svg[^>]*>/, (match) => `${match}${standaloneStyles}`);
+
+      // 7. Convert the modified markup string into an optimal vector image blob buffer
+      const blob = new Blob([svgText], { type: 'image/svg+xml;charset=utf-8' });
+
+      // 8. Instantiate a virtual link and fire an automated native download with a unique timestamp
+      const downloadUrl = URL.createObjectURL(blob);
+      const downloadLink = document.createElement('a');
+      downloadLink.href = downloadUrl;
+      downloadLink.download = `perfect-centered-monolith-${Date.now()}.svg`;
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+
+      // 9. Housekeeping memory cleanup optimization
+      document.body.removeChild(downloadLink);
+      URL.revokeObjectURL(downloadUrl);
+    } catch (error) {
+      console.error('Failed to download custom vector badge image asset:', error);
+      alert('Failed to download the badge asset directly from the server pipeline.');
+    } finally {
+      setIsDownloading(false);
+    }
+  };
 
   return (
     <div className="bg-white/70 backdrop-blur-xl border border-black/10 dark:bg-black/35 dark:border-white/10 rounded-[1.75rem] p-6 shadow-[0_20px_60px_rgba(0,0,0,0.15)]">
@@ -64,6 +154,47 @@ export function ExportPanel({
             ))}
           </div>
 
+          {/* Centered High-Definition Vector Download Button */}
+          <button
+            type="button"
+            onClick={handleDownloadBadge}
+            disabled={!hasUsername || isDownloading}
+            aria-label={
+              hasUsername
+                ? 'Download custom monolith layout as an image'
+                : 'Add a GitHub username to enable image downloads'
+            }
+            className={`relative inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 ${
+              !hasUsername || isDownloading
+                ? 'bg-gray-200/90 border border-black/10 text-gray-500 cursor-not-allowed dark:bg-white/10 dark:border-white/10 dark:text-white/35'
+                : 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-500 hover:bg-emerald-500/20 hover:scale-[1.03] active:scale-[0.97]'
+            }`}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className={`w-3.5 h-3.5 ${isDownloading ? 'animate-spin' : ''}`}
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              {isDownloading ? (
+                <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
+              ) : (
+                <>
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v4" />
+                  <polyline points="7 10 12 15 17 10" />
+                  <line x1="12" y1="15" x2="12" y2="3" />
+                </>
+              )}
+            </svg>
+            {isDownloading ? 'Downloading...' : 'Download Badge'}
+          </button>
+
+          {/* Clipboard Copy Button */}
           <button
             id="copy-markdown-btn"
             onClick={onCopy}

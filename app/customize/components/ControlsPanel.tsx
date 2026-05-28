@@ -1,5 +1,5 @@
 import type { ReactElement, ReactNode } from 'react';
-import { SIZES, SPEEDS, type BadgeSize, type Scale } from '../types';
+import { FONTS, SIZES, SPEEDS, type BadgeSize, type Font, type Scale } from '../types';
 import { isValidHex, stripHash } from '../utils';
 import { SectionLabel } from './SectionLabel';
 import { StyledSelect, ThemeSelector } from './ThemeSelector';
@@ -85,6 +85,7 @@ export function ControlsPanel({
   textHex,
   scale,
   speed,
+  font,
   year,
   radius,
   size,
@@ -95,6 +96,7 @@ export function ControlsPanel({
   onTextHexChange,
   onScaleChange,
   onSpeedChange,
+  onFontChange,
   onYearChange,
   onSizeChange,
   onClearOverrides,
@@ -107,6 +109,7 @@ export function ControlsPanel({
   textHex: string;
   scale: Scale;
   speed: string;
+  font: Font;
   year: string;
   radius: number;
   size: BadgeSize;
@@ -117,6 +120,7 @@ export function ControlsPanel({
   onTextHexChange: (value: string) => void;
   onScaleChange: (value: Scale) => void;
   onSpeedChange: (value: string) => void;
+  onFontChange: (value: Font) => void;
   onYearChange: (value: string) => void;
   onSizeChange: (value: BadgeSize) => void;
   onClearOverrides: () => void;
@@ -265,6 +269,18 @@ export function ControlsPanel({
               {SPEEDS.map((speedOption) => (
                 <option key={speedOption.value} value={speedOption.value}>
                   {speedOption.label}
+                </option>
+              ))}
+            </StyledSelect>
+          </div>
+        </ControlRow>
+
+        <ControlRow label="Font">
+          <div className="relative">
+            <StyledSelect id="font-select" value={font} onChange={(v) => onFontChange(v as Font)}>
+              {FONTS.map((fontOption) => (
+                <option key={fontOption.value} value={fontOption.value}>
+                  {fontOption.label}
                 </option>
               ))}
             </StyledSelect>
