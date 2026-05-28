@@ -156,11 +156,26 @@ function renderStyle(
   @import url('https://fonts.googleapis.com/css2?family=Fira+Code&amp;family=JetBrains+Mono&amp;family=Roboto&amp;family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');
   ${googleFontsImport}
   ${TOWER_ANIMATION_CSS}
+  .scan-line {
+    animation: scan-sweep var(--scan-speed, 8s) linear infinite;
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+  @keyframes scan-sweep {
+    from { transform: translateY(var(--scan-start, ${fs(20)}px)); }
+    to { transform: translateY(var(--scan-end, ${fs(260)}px)); }
+  }
   .title { font-family: ${selectedFont || '"Syncopate", sans-serif'}; fill: ${text}; font-size: ${fs(18)}px; letter-spacing: ${fs(6)}px; font-weight: 400; opacity: 0.8; }
   .stats { font-family: ${statsFont}; fill: ${text}; font-size: ${fs(42)}px; font-weight: 500; letter-spacing: 0; }
   .total-val { font-family: ${statsFont}; fill: ${accent}; font-size: ${fs(24)}px; font-weight: 500; }
   .label { font-family: "Roboto", sans-serif; fill: ${accent}; font-size: ${fs(11)}px; font-weight: 400; letter-spacing: ${fs(2)}px; opacity: 0.7; }
-  @media (prefers-reduced-motion: reduce) { .heat-particles { display: none; } }
+  @media (prefers-reduced-motion: reduce) {
+    .heat-particles { display: none; }
+    .scan-line {
+      animation: none !important;
+      transform: translateY(var(--scan-start, ${fs(20)}px)) !important;
+    }
+  }
   </style>`;
 }
 
@@ -198,9 +213,15 @@ function renderFooter(
   return `
   ${!params.hide_stats ? renderStatsSection(stats, labels, s, params) : ''}
   ${!params.hide_title ? `<text x="${s(300)}" y="${s(50)}" text-anchor="middle" class="title">${truncateUsername(safeUser).toUpperCase()}</text>` : ''}
-  <rect x="${s(100)}" y="${s(60)}" width="${s(400)}" height="${sf}" fill="${accent}" fill-opacity="0.3">
-    <animate attributeName="y" values="${s(80)};${s(320)};${s(80)}" dur="${params.speed || '8s'}" repeatCount="indefinite" />
-  </rect>`;
+  <rect
+    x="${s(100)}"
+    y="${s(60)}"
+    width="${s(400)}"
+    height="${sf}"
+    class="cp-accent-fill scan-line"
+    fill-opacity="0.3"
+    style="--scan-speed: ${params.speed || '8s'}; --scan-start: ${s(20)}px; --scan-end: ${s(260)}px;"
+  />`;
 }
 
 // ── Main static-theme renderer ────────────────────────────────────────────
@@ -319,12 +340,27 @@ function generateAutoThemeSVG(
   @media (prefers-color-scheme: dark) { :root { --cp-bg: #${dark.bg}; --cp-text: #${dark.text}; --cp-accent: #${dark.accent}; } }
   .cp-bg-fill { fill: var(--cp-bg); } .cp-text-fill { fill: var(--cp-text); color: var(--cp-text); } .cp-accent-fill { fill: var(--cp-accent); color: var(--cp-accent); }
   ${TOWER_ANIMATION_CSS}
+  .scan-line {
+    animation: scan-sweep var(--scan-speed, 8s) linear infinite;
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+  @keyframes scan-sweep {
+    from { transform: translateY(var(--scan-start, ${s(20)}px)); }
+    to { transform: translateY(var(--scan-end, ${s(260)}px)); }
+  }
   .title { font-family: ${selectedFont || '"Syncopate", sans-serif'}; fill: var(--cp-text); font-size: ${fs(18)}px; letter-spacing: ${fs(6)}px; font-weight: 400; opacity: 0.8; }
   .stats { font-family: ${statsFont}; fill: var(--cp-text); font-size: ${fs(42)}px; font-weight: 500; letter-spacing: 0; }
   .total-val { font-family: ${statsFont}; fill: var(--cp-accent); font-size: ${fs(24)}px; font-weight: 500; }
   .label { font-family: "Roboto", sans-serif; fill: var(--cp-accent); font-size: ${fs(11)}px; font-weight: 400; letter-spacing: ${fs(2)}px; opacity: 0.7; }
 
-  @media (prefers-reduced-motion: reduce) { .heat-particles { display: none; } }
+  @media (prefers-reduced-motion: reduce) {
+    .heat-particles { display: none; }
+    .scan-line {
+      animation: none !important;
+      transform: translateY(var(--scan-start, ${s(20)}px)) !important;
+    }
+  }
   </style>
 
   <rect width="${W}" height="${H}" rx="${radius}" ${params.hideBackground ? 'fill="transparent"' : 'class="cp-bg-fill"'} />
@@ -338,9 +374,15 @@ ${
     : ''
 }
 
-  <rect x="${s(100)}" y="${s(60)}" width="${s(400)}" height="${sf}" class="cp-accent-fill" fill-opacity="0.3">
-    <animate attributeName="y" values="${s(80)};${s(320)};${s(80)}" dur="${params.speed || '8s'}" repeatCount="indefinite" />
-  </rect>
+  <rect
+    x="${s(100)}"
+    y="${s(60)}"
+    width="${s(400)}"
+    height="${sf}"
+    class="cp-accent-fill scan-line"
+    fill-opacity="0.3"
+    style="--scan-speed: ${params.speed || '8s'}; --scan-start: ${s(20)}px; --scan-end: ${s(260)}px;"
+  />
 </svg>
 `;
 }
@@ -677,8 +719,16 @@ export function generateNotFoundSVG(
     .label  { font-family: "Roboto", sans-serif; fill: ${accent}; font-size: 11px; letter-spacing: 2px; opacity: 0.4; }
     .stats  { font-family: "Space Grotesk", sans-serif; fill: ${text}; font-size: 42px; font-weight: 500; opacity: 0.2; }
     .ghost-pulse { animation: gp 2.6s ease-in-out infinite; }
+    .scan-line { animation: scan-sweep var(--scan-speed, 8s) linear infinite; }
     @keyframes gp { 0%,100%{opacity:.55} 50%{opacity:1} }
-    @media (prefers-reduced-motion: reduce) { .ghost-pulse { animation: none; } }
+    @keyframes scan-sweep { from { transform: translateY(20px); } to { transform: translateY(260px); } }
+    @media (prefers-reduced-motion: reduce) {
+      .ghost-pulse { animation: none; }
+      .scan-line {
+        animation: none !important;
+        transform: translateY(20px) !important;
+      }
+    }
   </style>
 
   <!-- Background -->
@@ -693,9 +743,7 @@ export function generateNotFoundSVG(
   <rect width="${SVG_WIDTH}" height="${SVG_HEIGHT}" rx="${radius}" fill="url(#ghostFade)"/>
 
   <!-- Radar scan line -->
-  <rect x="100" y="60" width="400" height="1" fill="${accent}" fill-opacity="0.12">
-    <animate attributeName="y" values="80;320;80" dur="${speed}" repeatCount="indefinite"/>
-  </rect>
+  <rect x="100" y="60" width="400" height="1" class="scan-line" fill="${accent}" fill-opacity="0.12" style="--scan-speed: ${speed};"/>
 
   <text x="300" y="50" text-anchor="middle" class="title">${safeName}</text>
 

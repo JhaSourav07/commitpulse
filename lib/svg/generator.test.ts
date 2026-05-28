@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { generateSVG, generateMonthlySVG, particleCount, escapeXML } from './generator';
+import {
+  generateSVG,
+  generateMonthlySVG,
+  generateNotFoundSVG,
+  particleCount,
+  escapeXML,
+} from './generator';
 import type { BadgeParams, ContributionCalendar, StreakStats, MonthlyStats } from '../../types';
 import { hexColor } from './sanitizer';
 describe('generateSVG', () => {
@@ -191,6 +197,15 @@ describe('generateSVG', () => {
     // Check for inline animation-delay style on the nested group
     expect(svg).toMatch(/style="animation-delay: \d+\.\d+s;"/);
   });
+
+  it('includes reduced-motion CSS for the scan line in the main SVG output', () => {
+    const svg = generateSVG(mockStats, { user: 'avi' } as unknown as BadgeParams, mockCalendar);
+
+    expect(svg).toContain('prefers-reduced-motion: reduce');
+    expect(svg).toContain('.scan-line');
+    expect(svg).toContain('animation: none !important');
+  });
+
   it('uses English labels by default', () => {
     const svg = generateSVG(mockStats, { user: 'avi' } as unknown as BadgeParams, mockCalendar);
     expect(svg).toContain('CURRENT_STREAK');
@@ -247,8 +262,10 @@ describe('generateSVG', () => {
       expect(svg).toContain('class="cp-bg-fill"');
       // Active towers should use the accent class
       expect(svg).toContain('class="cp-accent-fill"');
-      // The radar scan line should also use the accent class
-      expect(svg).toMatch(/rect[\s\S]*?class="cp-accent-fill"/);
+
+      // The radar scan line should also use the accent class and scan-line hook
+      expect(svg).toContain('class="cp-accent-fill scan-line"');
+
       // cp-text-fill is emitted only in Ghost City mode (0 total contributions)
       const ghostCalendar: ContributionCalendar = {
         totalContributions: 0,
@@ -347,6 +364,10 @@ describe('generateSVG', () => {
       expect(svg).toContain('L0 10 L-16 0 L-16 0 Z');
     });
   });
+
+  describe('notFoundSVG', () => {
+    it('includes reduced-motion CSS for the scan line and ghost pulse', () => {
+      const svg = generateNotFoundSVG(
   // ── Timezone-aware pulse animation tests ─────────────────────────────────
   describe('todayDate pulse animation', () => {
     const calendar: ContributionCalendar = {
