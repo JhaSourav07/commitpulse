@@ -61,7 +61,53 @@ export async function fetchWithRetry(
 
 const GITHUB_GRAPHQL_URL = 'https://api.github.com/graphql';
 const GITHUB_REST_URL = 'https://api.github.com';
-const MISSING_GITHUB_TOKEN_MESSAGE = 'GitHub token is missing. Set GITHUB_PAT or GITHUB_TOKEN.';
+type GitHubRateLimitInfo = {
+  limit: number | null;
+  remaining: number | null;
+  reset: number | null;
+  resetAt: string | null;
+};
+
+function parseRateLimitHeader(value: string | null): number | null {
+  if (!value) return null;
+
+  const parsed = parseInt(value, 10);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function getGitHubRateLimitInfo(res: Response): GitHubRateLimitInfo {
+  const limit = parseRateLimitHeader(res.headers.get('x-ratelimit-limit'));
+  const remaining = parseRateLimitHeader(res.headers.get('x-ratelimit-remaining'));
+  const reset = parseRateLimitHeader(res.headers.get('x-ratelimit-reset'));
+
+  return {
+    limit,
+    remaining,
+    reset,
+    resetAt: reset ? new Date(reset * 1000).toISOString() : null,
+  };
+}
+
+function createRateLimitError(res: Response): Error {
+  const rateLimit = getGitHubRateLimitInfo(res);
+  const resetMessage = rateLimit.resetAt ? ` Please try again after ${rateLimit.resetAt}.` : '';
+
+  return new Error(
+    `GitHub API rate limit exceeded.${resetMessage} Configure GITHUB_TOKEN to increase the request limit.`
+  );
+}
+
+function throwIfRateLimited(res: Response): void {
+  const rateLimit = getGitHubRateLimitInfo(res);
+
+  if (res.status === 403 && rateLimit.remaining === 0) {
+    throw createRateLimitError(res);
+  }
+
+  if (res.status === 429) {
+    throw createRateLimitError(res);
+  }
+}
 
 type GitHubContributionResponse = {
   data?: {
@@ -127,7 +173,11 @@ export function clearGitHubApiCacheForTests(): void {
 
 function getGitHubToken(): string {
   const token = process.env.GITHUB_PAT || process.env.GITHUB_TOKEN;
-  if (!token || token.trim() === '') throw new Error(MISSING_GITHUB_TOKEN_MESSAGE);
+  const MISSING_GITHUB_TOKEN_MESSAGE = 'GitHub token is missing. Set GITHUB_PAT or GITHUB_TOKEN.';
+  if (!token || token.trim() === '') {
+    throw new Error(MISSING_GITHUB_TOKEN_MESSAGE);
+  }
+
   return token;
 }
 
@@ -190,6 +240,7 @@ export async function fetchGitHubContributions(
   });
 
   if (!res.ok) {
+    throwIfRateLimited(res);
     if (res.status === 401) throw new Error('GitHub PAT is invalid or missing');
     throw new Error(`GitHub GraphQL API returned status ${res.status}`);
   }
@@ -252,6 +303,7 @@ export async function fetchUserProfile(
   });
 
   if (!res.ok) {
+    throwIfRateLimited(res);
     if (res.status === 404) throw new Error('User not found');
     throw new Error(`GitHub REST API error: ${res.status}`);
   }
@@ -270,9 +322,8 @@ export async function fetchUserRepos(
     const cached = reposCache.get(key);
     if (cached) return cached;
   }
-  const allRepos: GitHubRepo[] = [];
 
-  const res = await fetchWithRetry(
+  const firstPageRes = await fetchWithRetry(
     `${GITHUB_REST_URL}/users/${username}/repos?per_page=100&page=1&sort=pushed`,
     {
       headers: getHeaders(),
@@ -281,25 +332,45 @@ export async function fetchUserRepos(
     }
   );
 
-  if (!res.ok) throw new Error(`GitHub REST API error: ${res.status}`);
-  const firstPageRepos = (await res.json()) as GitHubRepo[];
-  allRepos.push(...firstPageRepos);
+  if (!firstPageRes.ok) {
+    throwIfRateLimited(firstPageRes);
+    throw new Error(`GitHub REST API error: ${firstPageRes.status}`);
+  }
+
+  const firstPageRepos = (await firstPageRes.json()) as GitHubRepo[];
+  const allRepos: GitHubRepo[] = [...firstPageRepos];
+
+  const MAX_PAGES = 3;
 
   if (firstPageRepos.length === 100) {
-    const fetchPromises = [2, 3].map((page) =>
-      fetchWithRetry(
-        `${GITHUB_REST_URL}/users/${username}/repos?per_page=100&page=${page}&sort=pushed`,
-        {
-          headers: getHeaders(),
-          cache: 'no-store',
-          signal: options.signal,
-        }
+    const remainingPages = Array.from({ length: MAX_PAGES - 1 }, (_, i) => i + 2);
+
+    const responses = await Promise.all(
+      remainingPages.map((page) =>
+        fetchWithRetry(
+          `${GITHUB_REST_URL}/users/${username}/repos?per_page=100&page=${page}&sort=pushed`,
+          {
+            headers: getHeaders(),
+            cache: 'no-store',
+            signal: options.signal,
+          }
+        )
       )
     );
 
-    const responses = await Promise.all(fetchPromises);
-    for (const response of responses) {
-      if (response.ok) allRepos.push(...((await response.json()) as GitHubRepo[]));
+    const pagesRepos = await Promise.all(
+      responses.map(async (response) => {
+        if (!response.ok) {
+          throwIfRateLimited(response);
+          throw new Error(`GitHub REST API error: ${response.status}`);
+        }
+
+        return (await response.json()) as GitHubRepo[];
+      })
+    );
+
+    for (const repos of pagesRepos) {
+      allRepos.push(...repos);
     }
   }
 
