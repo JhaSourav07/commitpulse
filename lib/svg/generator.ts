@@ -255,6 +255,9 @@ export function generateSVG(
   const accent = `#${sanitizeHexColor(params.accent, '00ffaa')}`;
   const text = `#${sanitizeHexColor(params.text, 'ffffff')}`;
 
+  // NEW LOGIC: Conditionally create the stroke attributes
+  const borderAttr = params.border ? `stroke="#${params.border}" stroke-width="2"` : '';
+
   const sanitizedFont = sanitizeFont(params.font);
   const predefinedFont = sanitizedFont ? FONT_MAP[sanitizedFont.toLowerCase()] : null;
   const isPredefinedFont = Boolean(predefinedFont);
@@ -267,7 +270,7 @@ export function generateSVG(
   const googleFontUrlPart =
     sanitizedFont && !isPredefinedFont ? sanitizeGoogleFontUrl(sanitizedFont) : null;
   const googleFontsImport = googleFontUrlPart
-    ? `@import url('https://fonts.googleapis.com/css2?family=${googleFontUrlPart}&amp;display=swap');`
+    ? `@import url('https://fonts.googleapis.com/css2?family=${googleFontUrlPart}&display=swap');`
     : '';
 
   const sf = getSizeScale(params.size);
@@ -283,7 +286,7 @@ export function generateSVG(
 <svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" fill="none" role="img">
   ${renderHeader(safeUser, stats, sf)}
   ${renderStyle(selectedFont, statsFont, googleFontsImport, text, accent, sf)}
-  <rect width="${W}" height="${H}" rx="${radius}" fill="${params.hideBackground ? 'transparent' : bg}" />
+  <rect width="${W}" height="${H}" rx="${radius}" fill="${params.hideBackground ? 'transparent' : bg}" ${borderAttr} />
   <g transform="translate(0, ${Math.round(20 * sf)})">${towers}</g>
   ${renderFooter(stats, params, labels, safeUser, accent, sf)}
 </svg>`;
