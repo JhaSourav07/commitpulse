@@ -32,6 +32,18 @@ export default function Navbar() {
   const { shellRef, shellVars, handleMouseEnter, handleMouseMove, handleMouseLeave } =
     useGlowEffect();
 
+  const shellClassName = isDark
+    ? 'relative overflow-hidden rounded-2xl border border-white/25 bg-black/45 backdrop-blur-xl shadow-[0_14px_40px_rgba(0,0,0,0.45)]'
+    : 'relative overflow-hidden rounded-2xl border border-slate-200/90 bg-white/90 backdrop-blur-xl shadow-[0_14px_40px_rgba(15,23,42,0.12)]';
+
+  const glowBackground = isDark
+    ? 'radial-gradient(180px 105px at var(--mx) var(--my), rgba(255,255,255,0.26), rgba(191,219,254,0.18) 30%, rgba(244,114,182,0.1) 48%, rgba(0,0,0,0) 68%)'
+    : 'radial-gradient(180px 105px at var(--mx) var(--my), rgba(255,255,255,0.95), rgba(226,232,240,0.7) 30%, rgba(186,230,253,0.35) 48%, rgba(0,0,0,0) 68%)';
+
+  const borderGlowBackground = isDark
+    ? 'radial-gradient(150px 90px at var(--mx) var(--my), rgba(255,255,255,0.98), rgba(186,230,253,0.64) 32%, rgba(196,181,253,0.34) 50%, rgba(0,0,0,0) 68%)'
+    : 'radial-gradient(150px 90px at var(--mx) var(--my), rgba(255,255,255,1), rgba(191,219,254,0.72) 32%, rgba(226,232,240,0.36) 50%, rgba(0,0,0,0) 68%)';
+
   useEffect(() => {
     document.documentElement.classList.toggle('dark', isDark);
     localStorage.setItem('theme', isDark ? 'dark' : 'light');
@@ -76,7 +88,7 @@ export default function Navbar() {
       <div className="mx-auto max-w-6xl">
         <div
           ref={shellRef}
-          className="relative overflow-hidden rounded-2xl border border-white/25 bg-black/45 backdrop-blur-xl shadow-[0_14px_40px_rgba(0,0,0,0.45)]"
+          className={shellClassName}
           style={shellVars}
           onMouseEnter={handleMouseEnter}
           onMouseMove={handleMouseMove}
@@ -86,17 +98,21 @@ export default function Navbar() {
             className="pointer-events-none absolute inset-0 transition-opacity duration-300 ease-out"
             style={{
               opacity: 'var(--glow-opacity)',
-              background:
-                'radial-gradient(180px 105px at var(--mx) var(--my), rgba(255,255,255,0.26), rgba(191,219,254,0.18) 30%, rgba(244,114,182,0.1) 48%, rgba(0,0,0,0) 68%)',
+              background: glowBackground,
             }}
           />
-          <div className="pointer-events-none absolute inset-0 rounded-2xl border border-white/20" />
+          <div
+            className={
+              isDark
+                ? 'pointer-events-none absolute inset-0 rounded-2xl border border-white/20'
+                : 'pointer-events-none absolute inset-0 rounded-2xl border border-slate-200/80'
+            }
+          />
           <div
             className="pointer-events-none absolute inset-0 rounded-2xl p-px transition-opacity duration-300 ease-out"
             style={{
               opacity: 'var(--border-opacity)',
-              background:
-                'radial-gradient(150px 90px at var(--mx) var(--my), rgba(255,255,255,0.98), rgba(186,230,253,0.64) 32%, rgba(196,181,253,0.34) 50%, rgba(0,0,0,0) 68%)',
+              background: borderGlowBackground,
               WebkitMask: 'linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)',
               WebkitMaskComposite: 'xor',
               maskComposite: 'exclude',
@@ -109,10 +125,22 @@ export default function Navbar() {
               className="group inline-flex items-center gap-3"
               onClick={handleLogoClick}
             >
-              <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/35 bg-white/10 text-white shadow-[0_0_25px_rgba(255,255,255,0.22)] transition-transform duration-300 group-hover:scale-105">
+              <span
+                className={
+                  isDark
+                    ? 'flex h-10 w-10 items-center justify-center rounded-xl border border-white/35 bg-white/10 text-white shadow-[0_0_25px_rgba(255,255,255,0.22)] transition-transform duration-300 group-hover:scale-105'
+                    : 'flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-slate-100 text-slate-900 shadow-[0_0_25px_rgba(15,23,42,0.08)] transition-transform duration-300 group-hover:scale-105'
+                }
+              >
                 <Activity size={19} />
               </span>
-              <span className="text-base font-semibold tracking-[0.08em] text-white sm:text-lg">
+              <span
+                className={
+                  isDark
+                    ? 'text-base font-semibold tracking-[0.08em] text-white sm:text-lg'
+                    : 'text-base font-semibold tracking-[0.08em] text-slate-900 sm:text-lg'
+                }
+              >
                 CommitPulse
               </span>
             </Link>
@@ -121,7 +149,11 @@ export default function Navbar() {
               <button
                 type="button"
                 onClick={toggleTheme}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/15 bg-white/5 text-white transition hover:bg-white/10"
+                className={
+                  isDark
+                    ? 'inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/15 bg-white/5 text-white transition hover:bg-white/10'
+                    : 'inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-slate-100 text-slate-900 transition hover:bg-slate-200'
+                }
                 aria-label="Toggle theme"
               >
                 {isDark ? <Sun size={18} /> : <Moon size={18} />}
@@ -133,7 +165,11 @@ export default function Navbar() {
                   href={link.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-white/90 transition hover:border-white/45 hover:bg-white/10"
+                  className={
+                    isDark
+                      ? 'inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-white/90 transition hover:border-white/45 hover:bg-white/10'
+                      : 'inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-100 px-4 py-2 text-sm font-medium text-slate-900 transition hover:border-slate-300 hover:bg-slate-200'
+                  }
                 >
                   <GithubMark />
                   {link.label}
@@ -143,7 +179,11 @@ export default function Navbar() {
 
             <button
               type="button"
-              className="md:hidden inline-flex items-center justify-center rounded-xl border border-white/15 bg-white/5 p-2 text-white/90 transition hover:bg-white/10"
+              className={
+                isDark
+                  ? 'md:hidden inline-flex items-center justify-center rounded-xl border border-white/15 bg-white/5 p-2 text-white/90 transition hover:bg-white/10'
+                  : 'md:hidden inline-flex items-center justify-center rounded-xl border border-slate-200 bg-slate-100 p-2 text-slate-900 transition hover:bg-slate-200'
+              }
               aria-label={open ? 'Close menu' : 'Open menu'}
               aria-expanded={open}
               onClick={() => setOpen((prev) => !prev)}
@@ -153,7 +193,13 @@ export default function Navbar() {
           </nav>
 
           {open ? (
-            <div className="border-t border-white/10 px-4 py-3 md:hidden">
+            <div
+              className={
+                isDark
+                  ? 'border-t border-white/10 px-4 py-3 md:hidden'
+                  : 'border-t border-slate-200 px-4 py-3 md:hidden'
+              }
+            >
               <ul className="space-y-2">
                 {NAV_LINKS.map((link) => (
                   <li key={link.href}>
@@ -162,7 +208,11 @@ export default function Navbar() {
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={() => setOpen(false)}
-                      className="inline-flex w-full items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-white/90 transition hover:border-white/45 hover:bg-white/10"
+                      className={
+                        isDark
+                          ? 'inline-flex w-full items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-white/90 transition hover:border-white/45 hover:bg-white/10'
+                          : 'inline-flex w-full items-center gap-2 rounded-xl border border-slate-200 bg-slate-100 px-4 py-2 text-sm font-medium text-slate-900 transition hover:border-slate-300 hover:bg-slate-200'
+                      }
                     >
                       <GithubMark />
                       {link.label}
