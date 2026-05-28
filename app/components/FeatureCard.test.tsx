@@ -108,6 +108,14 @@ describe('FeatureCard', () => {
       const iconWrapper = container.querySelector('.bg-white\\/5');
       expect(iconWrapper).toBeTruthy();
     });
+
+    it('applies group-hover:text-emerald-400 to the heading', () => {
+      render(<FeatureCard {...defaultProps} />);
+
+      const heading = screen.getByRole('heading', { level: 3 });
+
+      expect(heading.className).toContain('group-hover:text-emerald-400');
+    });
   });
 
   describe('multiple instances', () => {

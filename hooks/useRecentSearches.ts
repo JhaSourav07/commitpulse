@@ -31,6 +31,14 @@ function writeStorage(searches: string[] | null): void {
   }
 }
 
+/**
+ * A hook to manage and persist a list of recent searches.
+ *
+ * It uses localStorage for persistence and ensures SSR compatibility by starting
+ * with an empty state on the first render and updating upon hydration.
+ *
+ * @returns An object containing the recent searches, a function to add a search, and a function to clear all searches.
+ */
 export function useRecentSearches() {
   // Always start with [] and mounted:false on both server and client so the
   // initial render matches (SSR-safe). A single setState in the mount effect
@@ -40,35 +48,46 @@ export function useRecentSearches() {
   const [state, setState] = useState<State>({ searches: [], mounted: false });
 
   useEffect(() => {
-    let saved: string[] = [];
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) saved = JSON.parse(stored) as string[];
-    } catch {
-      // ignore malformed storage
-    }
     // Single setState call — reads external system (localStorage) and syncs
     // React state in one update, which is exactly what effects are for.
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setState({ searches: saved, mounted: true });
+    setState({ searches: loadFromStorage(), mounted: true });
   }, []);
 
+  /**
+   * Adds a new search query to the recent searches list.
+   * If the query already exists, it is moved to the top.
+   * The list is truncated to the maximum number of searches allowed.
+   *
+   * @param query - The search query to add.
+   */
   const addSearch = (query: string) => {
     if (!query.trim()) return;
     setState((prev) => {
       const deduped = [query, ...prev.searches.filter((s) => s !== query)].slice(0, MAX_SEARCHES);
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(deduped));
-      } catch {}
+      writeStorage(deduped);
       return { ...prev, searches: deduped };
     });
   };
 
+  /**
+   * Clears all recent searches from state and localStorage.
+   */
   const clearSearches = () => {
-    setState((prev) => ({ ...prev, searches: [] }));
-    try {
-      localStorage.removeItem(STORAGE_KEY);
-    } catch {}
+    writeStorage(null);
+
+    setState((prev) => ({
+      ...prev,
+      searches: [],
+    }));
+  };
+
+  const removeSearch = (query: string): void => {
+    setState((prev) => {
+      const filtered = prev.searches.filter((s) => s !== query);
+      writeStorage(filtered);
+      return { ...prev, searches: filtered };
+    });
   };
 
   // Return empty searches until after hydration to prevent SSR/client mismatch.
@@ -76,5 +95,6 @@ export function useRecentSearches() {
     searches: state.mounted ? state.searches : [],
     addSearch,
     clearSearches,
+    removeSearch,
   };
 }

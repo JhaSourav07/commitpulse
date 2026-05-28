@@ -1,9 +1,32 @@
 import { z } from 'zod';
 import { sanitizeHexColor, sanitizeSpeed, sanitizeRadius, sanitizeFont } from './svg/sanitizer';
 
+function dimensionParam(name: string, min: number, max: number) {
+  return z
+    .string()
+    .optional()
+    .refine(
+      (val) => {
+        if (val === undefined) return true;
+        if (!/^\d+$/.test(val)) return false;
+
+        const parsed = Number(val);
+        return parsed >= min && parsed <= max;
+      },
+      { message: `${name} must be an integer between ${min} and ${max}` }
+    )
+    .transform((val) => (val === undefined ? undefined : Number(val)));
+}
+
 export const streakParamsSchema = z.object({
   // Required — missing user surfaces as "Missing" to match existing tests
-  user: z.string({ error: 'Missing user parameter' }).min(1, { message: 'Missing user parameter' }),
+  user: z
+    .string({ error: 'Missing user parameter' })
+    .min(1, { message: 'Missing user parameter' })
+    .max(39, { message: 'GitHub username cannot exceed 39 characters' })
+    .regex(/^[a-zA-Z0-9](?:[a-zA-Z0-9]|-(?=[a-zA-Z0-9]))*$/, {
+      message: 'Invalid GitHub username',
+    }),
 
   theme: z.string().default('dark'),
   bg: z
@@ -22,6 +45,7 @@ export const streakParamsSchema = z.object({
   // Silently fall back to 'linear' for unknown values (matches old behavior)
   scale: z.enum(['linear', 'log']).catch('linear').default('linear'),
 
+  // Invalid size values fall back to 'medium' to preserve badge rendering.
   size: z.enum(['small', 'medium', 'large']).catch('medium').default('medium'),
 
   // Silently fall back to '8s' for invalid format (matches old behavior)
@@ -30,6 +54,7 @@ export const streakParamsSchema = z.object({
     .transform((val) => sanitizeSpeed(val, '8s'))
     .default('8s'),
 
+  // Invalid radius values are sanitized and fall back to 8px.
   radius: z
     .string()
     .transform((val) => sanitizeRadius(val, 8))
@@ -71,10 +96,21 @@ export const streakParamsSchema = z.object({
     .optional()
     .transform((val) => val === 'true' || val === '1'),
   lang: z.string().optional().default('en'),
+  // Unknown view values fall back to the default dashboard view.
   view: z.enum(['default', 'monthly']).catch('default').default('default'),
+  // Invalid delta formats fall back to percentage mode.
   delta_format: z.enum(['percent', 'absolute', 'both']).catch('percent').default('percent'),
-  width: z.string().optional(),
-  height: z.string().optional(),
+  width: dimensionParam('width', 100, 1200),
+  height: dimensionParam('height', 80, 800),
+  grace: z
+    .string()
+    .optional()
+    .transform((val) => {
+      if (!val) return 1;
+      const parsed = Number(val);
+      return isNaN(parsed) ? 1 : Math.max(0, Math.min(parsed, 7));
+    })
+    .default(1),
 });
 
 export const githubParamsSchema = z.object({

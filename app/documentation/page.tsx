@@ -113,7 +113,7 @@ const themeDescriptions: Record<
 
   dracula: {
     name: 'Dracula',
-    vibe: 'Moody purple-toned palette inspired by the popular Dracula editor theme.',
+    vibe: 'A Dracula-inspired dark theme with deep backgrounds and signature purple (#bd93f9) accents.',
   },
 
   github: {

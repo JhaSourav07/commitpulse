@@ -9,6 +9,7 @@ import { X } from 'lucide-react';
 import { CommitPulseLogo } from '@/components/commitpulse-logo';
 import { CustomizeCTA } from './components/CustomizeCTA';
 import { useRecentSearches } from '@/hooks/useRecentSearches';
+import { Footer } from '@/app/components/Footer';
 
 const Icons = {
   Github: () => (
@@ -71,9 +72,15 @@ export default function LandingPage() {
   const [svgContent, setSvgContent] = useState<string | null>(null);
   const [svgState, setSvgState] = useState<'idle' | 'loading' | 'loaded'>('idle');
   const guideRef = useRef<HTMLDivElement>(null);
-  const { searches, addSearch, clearSearches } = useRecentSearches();
+  const { searches, addSearch, clearSearches, removeSearch } = useRecentSearches();
   const trimmedUsername = username.trim();
   const hasUsername = trimmedUsername.length > 0;
+
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMounted(true);
+  }, []);
 
   const badgeUrl = `/api/streak?user=${trimmedUsername}`;
   const markdown = `![CommitPulse](https://commitpulse.vercel.app/api/streak?user=${trimmedUsername})`;
@@ -129,7 +136,7 @@ export default function LandingPage() {
         <div className="absolute -right-[10%] top-[20%] h-[30%] w-[30%] rounded-full bg-white/2 blur-[120px]" />
       </div>
 
-      <main className="relative z-10 mx-auto max-w-6xl px-6 pb-32">
+      <main className="relative z-10 mx-auto max-w-6xl px-6 mt-32">
         <div className="mb-16 text-center">
           <motion.a
             href="https://discord.gg/Cb73bS79j"
@@ -224,7 +231,7 @@ export default function LandingPage() {
               <div className="flex flex-col sm:flex-row gap-4">
                 <button
                   type="submit"
-                  disabled={!hasUsername}
+                  disabled={!mounted || !hasUsername}
                   className={`relative flex min-w-[160px] items-center justify-center gap-2 overflow-hidden rounded-xl px-6 py-3.5 text-sm font-semibold transition-all duration-200 active:scale-[0.98] ${
                     hasUsername
                       ? 'bg-black text-white hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-zinc-100'
@@ -255,7 +262,7 @@ export default function LandingPage() {
                 </button>
                 <Link
                   href={hasUsername ? `/dashboard/${trimmedUsername}` : '/'}
-                  aria-disabled={!hasUsername}
+                  aria-disabled={!mounted || !hasUsername}
                   onClick={(e) => {
                     if (!hasUsername) {
                       e.preventDefault();
@@ -280,13 +287,26 @@ export default function LandingPage() {
             <div className="flex flex-wrap items-center gap-2 mb-6 mt-3">
               <span className="text-xs text-[#A1A1AA]">Recent:</span>
               {searches.map((s) => (
-                <button
+                <span
                   key={s}
-                  onClick={() => setUsername(s)}
-                  className="rounded-full border border-[rgba(255,255,255,0.08)] bg-[#111] px-3 py-1 text-xs text-white/70 transition-all hover:border-[rgba(255,255,255,0.2)] hover:text-white"
+                  className="inline-flex items-center gap-1.5 rounded-full border border-[rgba(255,255,255,0.08)] bg-[#111] pl-3 pr-2 py-1 text-xs text-white/70 transition-all hover:border-[rgba(255,255,255,0.2)] hover:text-white group/pill"
                 >
-                  {s}
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => setUsername(s)}
+                    className="transition-colors hover:text-white"
+                  >
+                    {s}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => removeSearch(s)}
+                    className="rounded-full p-0.5 text-white/40 hover:bg-white/10 hover:text-white transition-all flex items-center justify-center"
+                    aria-label={`Remove ${s} from recent searches`}
+                  >
+                    <X size={10} />
+                  </button>
+                </span>
               ))}
               <button
                 onClick={clearSearches}
@@ -307,7 +327,7 @@ export default function LandingPage() {
                   )}
                   {svgState === 'loaded' && svgContent && (
                     <div
-                      className="w-full max-w-[600px] drop-shadow-[0_20px_50px_rgba(0,0,0,0.5)] [&>svg]:w-full [&>svg]:h-auto"
+                      className="cp-svg-container w-full max-w-[600px] drop-shadow-[0_20px_50px_rgba(0,0,0,0.5)] [&>svg]:w-full [&>svg]:h-auto"
                       // Safe: SVG is generated server-side by our own trusted generator
                       dangerouslySetInnerHTML={{ __html: svgContent }}
                     />
@@ -364,36 +384,7 @@ export default function LandingPage() {
             desc="Sophisticated 3D projection formulas turn 2D data into digital architecture."
           />
         </div>
-
-        <footer className="mt-32 flex flex-col items-center justify-between gap-6 border-t border-black/10 pt-8 text-sm text-gray-600 dark:border-white/5 dark:text-white/30 md:flex-row">
-          <p>&copy; 2026 CommitPulse. Designed for the elite builder community.</p>
-          <div className="flex gap-8">
-            <Link
-              href="/contributors"
-              className="transition-colors hover:text-black dark:hover:text-white"
-            >
-              Contributors
-            </Link>
-
-            <a
-              href="https://github.com/JhaSourav07/commitpulse/blob/main/README.md"
-              target="_blank"
-              rel="noreferrer"
-              className="transition-colors hover:text-white"
-            >
-              Documentation
-            </a>
-
-            <a
-              href="https://github.com/jhasourav07"
-              target="_blank"
-              rel="noreferrer"
-              className="transition-colors hover:text-black dark:hover:text-white"
-            >
-              Creator
-            </a>
-          </div>
-        </footer>
+        <Footer />
       </main>
     </div>
   );
