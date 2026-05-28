@@ -489,9 +489,10 @@ export function generateMonthlySVG(stats: MonthlyStats, params: BadgeParams): st
   const accent = `#${sanitizeHexColor(params.accent, '00ffaa')}`;
   const text = `#${sanitizeHexColor(params.text, 'ffffff')}`;
 
-  const sanitizeFont = (name: string) => name.replace(/[^a-zA-Z0-9\s-]/g, '').trim();
-  const sanitizedFont = params.font ? sanitizeFont(params.font) : null;
-  const predefinedFont = getFontFromMap(sanitizedFont);
+  const sanitizedFont = sanitizeFont(params.font);
+  const predefinedFont = sanitizedFont
+    ? (FONT_MAP[sanitizedFont.toLowerCase() as keyof typeof FONT_MAP] ?? null)
+    : null;
   const isPredefinedFont = Boolean(predefinedFont);
   const selectedFont = isPredefinedFont
     ? predefinedFont
@@ -586,9 +587,10 @@ function generateAutoThemeMonthlySVG(stats: MonthlyStats, params: BadgeParams): 
   const light = AUTO_THEME_LIGHT;
   const dark = AUTO_THEME_DARK;
   const safeUser = escapeXML(params.user || 'GitHub User');
-  const sanitizeFont = (name: string) => name.replace(/[^a-zA-Z0-9\s-]/g, '').trim();
-  const sanitizedFont = params.font ? sanitizeFont(params.font) : null;
-  const predefinedFont = getFontFromMap(sanitizedFont);
+  const sanitizedFont = sanitizeFont(params.font);
+  const predefinedFont = sanitizedFont
+    ? (FONT_MAP[sanitizedFont.toLowerCase() as keyof typeof FONT_MAP] ?? null)
+    : null;
   const isPredefinedFont = Boolean(predefinedFont);
   const selectedFont = isPredefinedFont
     ? predefinedFont
