@@ -167,4 +167,11 @@ export interface BadgeParams {
 
   /** Organization name to generate a Mega-City for. */
   org?: string;
+
+  /**
+   * Second GitHub username for head-to-head versus mode.
+   * When provided, renders both users' isometric cities side-by-side on one canvas.
+   * Usage: /api/streak?user=alice&versus=bob
+   */
+  versus?: string;
 }

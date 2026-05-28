@@ -120,6 +120,22 @@ export const streakParamsSchema = z.object({
   mode: z.enum(['commits', 'loc']).catch('commits').default('commits'),
   repo: z.string().optional(),
   org: z.string().optional(),
+
+  // Versus mode — second username for side-by-side city comparison
+  versus: z
+    .string()
+    .optional()
+    .refine(
+      (val) => {
+        if (!val) return true;
+        return (
+          val.length >= 1 &&
+          val.length <= 39 &&
+          /^[a-zA-Z0-9](?:[a-zA-Z0-9]|-(?=[a-zA-Z0-9]))*$/.test(val)
+        );
+      },
+      { message: 'Invalid GitHub username for versus parameter' }
+    ),
 });
 
 export const githubParamsSchema = z.object({

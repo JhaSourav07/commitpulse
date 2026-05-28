@@ -57,16 +57,34 @@ export default async function DashboardPage({
   searchParams,
 }: {
   params: Promise<{ username: string }>;
-  searchParams: Promise<{ refresh?: string }>;
+  searchParams: Promise<{ refresh?: string; versus?: string }>;
 }) {
   const { username } = await params;
   const refreshParams = await searchParams;
   const bypassCache = refreshParams?.refresh === 'true';
+  const versusUsername = refreshParams?.versus;
 
   let data;
+  let versusData = null;
+  let versusError = null;
 
   try {
     data = await getFullDashboardData(username, { bypassCache });
+
+    // Fetch versus user data if provided
+    if (versusUsername) {
+      try {
+        versusData = await getFullDashboardData(versusUsername, { bypassCache });
+      } catch (versusErrorCatch) {
+        console.error(`Failed to fetch versus user "${versusUsername}":`, versusErrorCatch);
+        // Don't throw - continue with single user view, but set error flag
+        versusData = null;
+        versusError =
+          versusErrorCatch instanceof Error
+            ? versusErrorCatch.message
+            : 'Failed to load versus user data';
+      }
+    }
   } catch (error) {
     if (error instanceof Error && error.message.includes('not found')) {
       // Smart Redirect: If the GraphQL "user" query fails, check if it's actually an Organization
@@ -124,8 +142,21 @@ export default async function DashboardPage({
 
         {/* Main Content */}
         <div className="flex flex-col gap-6 lg:gap-8 min-w-0">
+          {versusError && (
+            <section className="p-4 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
+              <p className="text-sm text-red-800 dark:text-red-200">
+                ⚠️ Could not load versus user &quot;{versusUsername}&quot;: {versusError}. Showing
+                single user view.
+              </p>
+            </section>
+          )}
           <section>
-            <ActivityLandscape data={data.activity} />
+            <ActivityLandscape
+              data={data.activity}
+              versusData={versusData?.activity || null}
+              username={data.profile.username}
+              versusUsername={versusData?.profile.username ?? ''}
+            />
           </section>
 
           <section className="grid grid-cols-1 md:grid-cols-2 gap-6">

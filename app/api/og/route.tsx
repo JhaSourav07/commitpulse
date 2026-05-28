@@ -9,10 +9,13 @@ import { calculateStreak } from '@/lib/calculate';
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const { user } = ogParamsSchema.parse(Object.fromEntries(searchParams.entries()));
+  const versus = searchParams.get('versus');
 
   let totalCommits = 0;
   let longestStreak = 0;
   let currentStreak = 0;
+  let versusTotalCommits = 0;
+  let versusLongestStreak = 0;
 
   // Only the data fetching is wrapped in try/catch — not the JSX rendering.
   try {
@@ -24,6 +27,19 @@ export async function GET(req: NextRequest) {
   } catch (err) {
     console.error('[OG] stats fetch failed:', err);
     // fallback to zeros if GitHub is unreachable
+  }
+
+  // Fetch versus user data if provided
+  if (versus) {
+    try {
+      const versusCalendar = await fetchGitHubContributions(versus, { bypassCache: true });
+      const versusStats = calculateStreak(versusCalendar);
+      versusTotalCommits = versusStats.totalContributions;
+      versusLongestStreak = versusStats.longestStreak;
+    } catch (err) {
+      console.error('[OG] versus stats fetch failed:', err);
+      // fallback to zeros if GitHub is unreachable
+    }
   }
 
   return new ImageResponse(
@@ -70,67 +86,223 @@ export async function GET(req: NextRequest) {
           marginBottom: '48px',
         }}
       >
-        {`@${user}`}
+        {versus ? `@${user} vs @${versus}` : `@${user}`}
       </div>
-      <div style={{ display: 'flex', gap: '48px' }}>
-        {/* Total Commits */}
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            background: '#161b22',
-            border: '1px solid #30363d',
-            borderRadius: '16px',
-            padding: '32px 48px',
-          }}
-        >
-          <div style={{ display: 'flex', fontSize: '56px', fontWeight: 'bold', color: '#58a6ff' }}>
-            {String(totalCommits)}
+      {versus ? (
+        <div style={{ display: 'flex', gap: '24px' }}>
+          {/* User 1 Stats */}
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              background: '#161b22',
+              border: '1px solid #30363d',
+              borderRadius: '16px',
+              padding: '24px 32px',
+            }}
+          >
+            <div
+              style={{ display: 'flex', fontSize: '24px', color: '#58a6ff', marginBottom: '16px' }}
+            >
+              {`@${user}`}
+            </div>
+            <div style={{ display: 'flex', gap: '16px' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    fontSize: '36px',
+                    fontWeight: 'bold',
+                    color: '#58a6ff',
+                  }}
+                >
+                  {String(totalCommits)}
+                </div>
+                <div
+                  style={{ display: 'flex', fontSize: '14px', color: '#8b949e', marginTop: '4px' }}
+                >
+                  Commits
+                </div>
+              </div>
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    fontSize: '36px',
+                    fontWeight: 'bold',
+                    color: '#f78166',
+                  }}
+                >
+                  {String(longestStreak)}
+                </div>
+                <div
+                  style={{ display: 'flex', fontSize: '14px', color: '#8b949e', marginTop: '4px' }}
+                >
+                  Streak
+                </div>
+              </div>
+            </div>
           </div>
-          <div style={{ display: 'flex', fontSize: '18px', color: '#8b949e', marginTop: '8px' }}>
-            Total Commits
+          {/* VS Badge */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '32px',
+              fontWeight: 'bold',
+              color: '#f78166',
+            }}
+          >
+            VS
+          </div>
+          {/* User 2 Stats */}
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              background: '#161b22',
+              border: '1px solid #30363d',
+              borderRadius: '16px',
+              padding: '24px 32px',
+            }}
+          >
+            <div
+              style={{ display: 'flex', fontSize: '24px', color: '#a855f7', marginBottom: '16px' }}
+            >
+              {`@${versus}`}
+            </div>
+            <div style={{ display: 'flex', gap: '16px' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    fontSize: '36px',
+                    fontWeight: 'bold',
+                    color: '#a855f7',
+                  }}
+                >
+                  {String(versusTotalCommits)}
+                </div>
+                <div
+                  style={{ display: 'flex', fontSize: '14px', color: '#8b949e', marginTop: '4px' }}
+                >
+                  Commits
+                </div>
+              </div>
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    fontSize: '36px',
+                    fontWeight: 'bold',
+                    color: '#f78166',
+                  }}
+                >
+                  {String(versusLongestStreak)}
+                </div>
+                <div
+                  style={{ display: 'flex', fontSize: '14px', color: '#8b949e', marginTop: '4px' }}
+                >
+                  Streak
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-        {/* Longest Streak */}
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            background: '#161b22',
-            border: '1px solid #30363d',
-            borderRadius: '16px',
-            padding: '32px 48px',
-          }}
-        >
-          <div style={{ display: 'flex', fontSize: '56px', fontWeight: 'bold', color: '#f78166' }}>
-            {String(longestStreak)}
+      ) : (
+        <div style={{ display: 'flex', gap: '48px' }}>
+          {/* Total Commits */}
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              background: '#161b22',
+              border: '1px solid #30363d',
+              borderRadius: '16px',
+              padding: '32px 48px',
+            }}
+          >
+            <div
+              style={{ display: 'flex', fontSize: '56px', fontWeight: 'bold', color: '#58a6ff' }}
+            >
+              {String(totalCommits)}
+            </div>
+            <div style={{ display: 'flex', fontSize: '18px', color: '#8b949e', marginTop: '8px' }}>
+              Total Commits
+            </div>
           </div>
-          <div style={{ display: 'flex', fontSize: '18px', color: '#8b949e', marginTop: '8px' }}>
-            {'Longest Streak 🔥'}
+          {/* Longest Streak */}
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              background: '#161b22',
+              border: '1px solid #30363d',
+              borderRadius: '16px',
+              padding: '32px 48px',
+            }}
+          >
+            <div
+              style={{ display: 'flex', fontSize: '56px', fontWeight: 'bold', color: '#f78166' }}
+            >
+              {String(longestStreak)}
+            </div>
+            <div style={{ display: 'flex', fontSize: '18px', color: '#8b949e', marginTop: '8px' }}>
+              {'Longest Streak 🔥'}
+            </div>
+          </div>
+          {/* Current Streak */}
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              background: '#161b22',
+              border: '1px solid #30363d',
+              borderRadius: '16px',
+              padding: '32px 48px',
+            }}
+          >
+            <div
+              style={{ display: 'flex', fontSize: '56px', fontWeight: 'bold', color: '#3fb950' }}
+            >
+              {String(currentStreak)}
+            </div>
+            <div style={{ display: 'flex', fontSize: '18px', color: '#8b949e', marginTop: '8px' }}>
+              {'Current Streak ⚡'}
+            </div>
           </div>
         </div>
-        {/* Current Streak */}
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            background: '#161b22',
-            border: '1px solid #30363d',
-            borderRadius: '16px',
-            padding: '32px 48px',
-          }}
-        >
-          <div style={{ display: 'flex', fontSize: '56px', fontWeight: 'bold', color: '#3fb950' }}>
-            {String(currentStreak)}
-          </div>
-          <div style={{ display: 'flex', fontSize: '18px', color: '#8b949e', marginTop: '8px' }}>
-            {'Current Streak ⚡'}
-          </div>
-        </div>
-      </div>
+      )}
       <div
         style={{
           display: 'flex',
