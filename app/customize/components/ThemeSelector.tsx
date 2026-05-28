@@ -16,14 +16,27 @@ function StyledSelect({
   children: ReactNode;
 }): ReactElement {
   return (
-    <select
-      id={id}
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      className="w-full bg-gray-100/80 backdrop-blur-md border border-black/10 dark:bg-white/[0.03] dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-black dark:text-white outline-none focus:border-emerald-500/50 transition-colors appearance-none cursor-pointer [color-scheme:light] dark:[color-scheme:dark] [&>option]:bg-white [&>option]:text-black dark:[&>option]:bg-[#0a0a0a] dark:[&>option]:text-white"
-    >
-      {children}
-    </select>
+    <div className="relative">
+      <select
+        id={id}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="cp-select"
+      >
+        {children}
+      </select>
+      <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-white/30">
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
+          <path
+            d="M1.5 3.5L5 7L8.5 3.5"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </div>
+    </div>
   );
 }
 
@@ -39,72 +52,68 @@ export function ThemeSelector({
   const randomAccentColors = [themes.neon.accent, themes.ocean.accent, themes.sunset.accent];
 
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="flex flex-col gap-3">
       <SectionLabel>Theme Preset</SectionLabel>
 
       <ThemeQuickPresets theme={theme} onThemeChange={onThemeChange} />
 
-      <div className="relative">
-        <StyledSelect id="theme-select" value={theme} onChange={onThemeChange}>
-          {THEME_KEYS.map((key) => (
-            <option key={key} value={key}>
-              {key === 'auto'
-                ? 'Auto (System)'
-                : key === 'random'
-                  ? 'Random'
-                  : key.charAt(0).toUpperCase() + key.slice(1)}
-            </option>
-          ))}
-        </StyledSelect>
+      <StyledSelect id="theme-select" value={theme} onChange={onThemeChange}>
+        {THEME_KEYS.map((key) => (
+          <option key={key} value={key}>
+            {key === 'auto'
+              ? 'Auto (System)'
+              : key === 'random'
+                ? 'Random'
+                : key.charAt(0).toUpperCase() + key.slice(1)}
+          </option>
+        ))}
+      </StyledSelect>
 
-        <div className="mt-2 flex gap-1.5">
-          {isAuto ? (
-            <>
-              {/* Split swatch: left half = light bg, right half = dark bg */}
+      {/* Swatch row */}
+      <div className="flex items-center gap-2 px-0.5">
+        {isAuto ? (
+          <>
+            <span
+              title="Light → Dark (auto)"
+              className="w-4 h-4 rounded flex-shrink-0 overflow-hidden flex"
+              style={{ border: '1px solid rgba(255,255,255,0.12)' }}
+            >
+              <span className="w-1/2 h-full" style={{ backgroundColor: `#${themes.light.bg}` }} />
+              <span className="w-1/2 h-full" style={{ backgroundColor: `#${themes.dark.bg}` }} />
+            </span>
+            <span className="text-[10px] text-white/30">switches with OS theme</span>
+          </>
+        ) : isRandom ? (
+          <>
+            {randomAccentColors.map((color, i) => (
               <span
-                title="Light → Dark (auto)"
-                className="w-5 h-5 rounded-md border border-white/10 overflow-hidden flex"
-              >
-                <span className="w-1/2 h-full" style={{ backgroundColor: `#${themes.light.bg}` }} />
-                <span className="w-1/2 h-full" style={{ backgroundColor: `#${themes.dark.bg}` }} />
-              </span>
-              <span className="text-[11px] text-gray-500 dark:text-white/25 ml-1 self-center">
-                switches with OS theme
-              </span>
-            </>
-          ) : isRandom ? (
-            <>
-              {randomAccentColors.map((color, index) => (
+                key={color}
+                title={`Sample ${i + 1}: #${color}`}
+                className="w-4 h-4 rounded-full flex-shrink-0"
+                style={{ backgroundColor: `#${color}`, border: '1px solid rgba(255,255,255,0.12)' }}
+              />
+            ))}
+            <span className="text-[10px] text-white/30">changes on each load</span>
+          </>
+        ) : (
+          <>
+            {(['bg', 'accent', 'text'] as const).map((prop) => {
+              const color = themes[theme as ThemeKey]?.[prop];
+              return color ? (
                 <span
-                  key={color}
-                  title={`Random accent sample ${index + 1}: #${color}`}
-                  className="w-5 h-5 rounded-full border border-black/10 dark:border-white/10"
-                  style={{ backgroundColor: `#${color}` }}
+                  key={prop}
+                  title={`${prop}: #${color}`}
+                  className="w-4 h-4 rounded flex-shrink-0"
+                  style={{
+                    backgroundColor: `#${color}`,
+                    border: '1px solid rgba(255,255,255,0.12)',
+                  }}
                 />
-              ))}
-              <span className="text-[11px] text-gray-500 dark:text-white/25 ml-1 self-center">
-                changes on each load
-              </span>
-            </>
-          ) : (
-            <>
-              {(['bg', 'accent', 'text'] as const).map((prop) => {
-                const color = themes[theme as ThemeKey]?.[prop];
-                return color ? (
-                  <span
-                    key={prop}
-                    title={`${prop}: #${color}`}
-                    className="w-5 h-5 rounded-md border border-black/10 dark:border-white/10"
-                    style={{ backgroundColor: `#${color}` }}
-                  />
-                ) : null;
-              })}
-              <span className="text-[11px] text-gray-500 dark:text-white/25 ml-1 self-center">
-                bg · accent · text
-              </span>{' '}
-            </>
-          )}
-        </div>
+              ) : null;
+            })}
+            <span className="text-[10px] text-white/30">bg · accent · text</span>
+          </>
+        )}
       </div>
     </div>
   );
