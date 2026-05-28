@@ -138,7 +138,8 @@ function renderDefs(sf: number, params: BadgeParams): string {
           })
         : [0, 1, 2, 3].map(() => (String(accent).startsWith('#') ? String(accent) : `#${accent}`));
 
-      const bgHex = bg.startsWith('#') ? bg : `#${bg}`;
+      const bgStr = params.bg || '0d1117';
+      const bgHex = bgStr.startsWith('#') ? bgStr : `#${bgStr}`;
 
       colors.forEach((c, idx) => {
         const level = idx + 1;
@@ -241,7 +242,9 @@ function renderTowers(
       leftRightFillAttr = isGhost ? 'class="cp-text-fill"' : 'class="cp-accent-fill"';
       topFillAttr = leftRightFillAttr;
     } else {
-      const baseAccentColor = Array.isArray(accent) ? accent[accent.length - 1] : accent;
+      const baseAccentColor = Array.isArray(accent)
+        ? accent[accent.length - 1] || '00ffaa'
+        : accent || '00ffaa';
 
       const accentColorHex = baseAccentColor.startsWith('#')
         ? baseAccentColor
@@ -251,7 +254,7 @@ function renderTowers(
       let resolvedSolidColor = isGhost ? textColorHex : accentColorHex;
       if (!isGhost && t.intensityLevel > 0 && Array.isArray(accent)) {
         const quartileIdx = Math.min(t.intensityLevel - 1, accent.length - 1);
-        const quartileColor = accent[quartileIdx] || accent[accent.length - 1];
+        const quartileColor = accent[quartileIdx] || accent[accent.length - 1] || '00ffaa';
         resolvedSolidColor = quartileColor.startsWith('#') ? quartileColor : `#${quartileColor}`;
       }
 
@@ -311,8 +314,8 @@ function renderTowers(
     if (t.contributionCount >= 10) {
       const pIdx = Math.min(t.intensityLevel - 1, accent.length - 1);
       const pColorResolved = Array.isArray(accent)
-        ? accent[pIdx] || accent[accent.length - 1]
-        : accent;
+        ? accent[pIdx] || accent[accent.length - 1] || '00ffaa'
+        : accent || '00ffaa';
       const pColor = isAutoTheme
         ? ''
         : pColorResolved.startsWith('#')
@@ -483,7 +486,9 @@ export function generateSVG(
   );
   const towers = renderTowers(towerData, params, accent, text, sf, false);
 
-  const mainAccent = Array.isArray(accent) ? accent[accent.length - 1] : accent;
+  const mainAccent = Array.isArray(accent)
+    ? accent[accent.length - 1] || '00ffaa'
+    : accent || '00ffaa';
   const mainAccentHex = mainAccent.startsWith('#') ? mainAccent : `#${mainAccent}`;
 
   return `
