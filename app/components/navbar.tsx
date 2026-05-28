@@ -2,7 +2,7 @@
 
 import { CSSProperties, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { Menu, X, Activity } from 'lucide-react';
+import { Menu, X, Activity, Palette } from 'lucide-react';
 
 function GithubMark() {
   return (
@@ -14,8 +14,14 @@ function GithubMark() {
 
 const NAV_LINKS = [
   {
+    label: 'Change Theme',
+    href: '/customize',
+    isExternal: false,
+  },
+  {
     label: 'GitHub Repo',
     href: 'https://github.com/JhaSourav07/commitpulse',
+    isExternal: true,
   },
 ];
 
@@ -198,18 +204,33 @@ export default function Navbar() {
             </Link>
 
             <div className="hidden items-center gap-3 md:flex">
-              {NAV_LINKS.map((link) => (
-                <a
-                  key={link.href}
-                  href={link.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-white/90 transition hover:border-white/45 hover:bg-white/10"
-                >
-                  <GithubMark />
-                  {link.label}
-                </a>
-              ))}
+              {NAV_LINKS.map((link) => {
+                if (link.isExternal) {
+                  return (
+                    <a
+                      key={link.href}
+                      href={link.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-white/90 transition hover:border-white/45 hover:bg-white/10"
+                    >
+                      <GithubMark />
+                      {link.label}
+                    </a>
+                  );
+                } else {
+                  return (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-white/90 transition hover:border-white/45 hover:bg-white/10"
+                    >
+                      <Palette size={16} />
+                      {link.label}
+                    </Link>
+                  );
+                }
+              })}
             </div>
 
             <button
@@ -228,16 +249,27 @@ export default function Navbar() {
               <ul className="space-y-2">
                 {NAV_LINKS.map((link) => (
                   <li key={link.href}>
-                    <a
-                      href={link.href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={() => setOpen(false)}
-                      className="inline-flex w-full items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-white/90 transition hover:border-white/45 hover:bg-white/10"
-                    >
-                      <GithubMark />
-                      {link.label}
-                    </a>
+                    {link.isExternal ? (
+                      <a
+                        href={link.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={() => setOpen(false)}
+                        className="inline-flex w-full items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-white/90 transition hover:border-white/45 hover:bg-white/10"
+                      >
+                        <GithubMark />
+                        {link.label}
+                      </a>
+                    ) : (
+                      <Link
+                        href={link.href}
+                        onClick={() => setOpen(false)}
+                        className="inline-flex w-full items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-white/90 transition hover:border-white/45 hover:bg-white/10"
+                      >
+                        <Palette size={16} />
+                        {link.label}
+                      </Link>
+                    )}
                   </li>
                 ))}
               </ul>
