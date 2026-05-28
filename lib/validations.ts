@@ -34,14 +34,23 @@ export const streakParamsSchema = z.object({
   bg: z
     .string()
     .optional()
+    .refine((val) => !val || /^[0-9a-fA-F]{3,4}$|^[0-9a-fA-F]{6,8}$/.test(val.replace('#', '')), {
+      message: 'bg must be a valid 3 or 6 character hex color without #',
+    })
     .transform((val) => (val ? sanitizeHexColor(val, '0d1117') : undefined)),
   text: z
     .string()
     .optional()
+    .refine((val) => !val || /^[0-9a-fA-F]{3,4}$|^[0-9a-fA-F]{6,8}$/.test(val.replace('#', '')), {
+      message: 'text must be a valid 3 or 6 character hex color without #',
+    })
     .transform((val) => (val ? sanitizeHexColor(val, 'ffffff') : undefined)),
   accent: z
     .string()
     .optional()
+    .refine((val) => !val || /^[0-9a-fA-F]{3,4}$|^[0-9a-fA-F]{6,8}$/.test(val.replace('#', '')), {
+      message: 'accent must be a valid 3 or 6 character hex color without #',
+    })
     .transform((val) => (val ? sanitizeHexColor(val, '00ffaa') : undefined)),
 
   // Silently fall back to 'linear' for unknown values (matches old behavior)

@@ -488,7 +488,7 @@ describe('GET /api/streak', () => {
     it('does not crash when an invalid text color is provided', async () => {
       const response = await GET(makeRequest({ user: 'octocat', text: 'notacolor' }));
 
-      expect(response.status).toBe(200);
+      expect(response.status).toBe(400);
     });
   });
 
