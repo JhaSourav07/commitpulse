@@ -103,6 +103,14 @@ export function computeTowers(
         ? `TODAY: ${day.date}: ${count} ${unit}`
         : `${day.date}: ${count} ${unit}`;
 
+      // Isometric projection: Maps 2D grid coordinates (i, j) to a 3D isometric screen space.
+      // - Origin: (300, 120) anchors the grid layout on the SVG canvas.
+      // - Indices: 'i' represents the week/column index; 'j' represents the day/row index.
+      // - Geometry:
+      //   * (i - j) * 16 handles the horizontal shift. Increasing 'i' moves right; increasing 'j' moves left.
+      //   * (i + j) * 9 handles the vertical depth. Both indices move the tile downward.
+      // - Constants: 16 and 9 represent half-widths and half-heights of the diamond tiles,
+      //   maintaining a clean ~2:1 aspect ratio for isometric perspective.
       towers.push({
         x: 300 + (i - j) * 16,
         y: 120 + (i + j) * 9,
