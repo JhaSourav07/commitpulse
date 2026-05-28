@@ -122,6 +122,24 @@ describe('POST /api/track-user', () => {
       expect(data.bypassed).toBeUndefined();
     });
 
+    it('normalizes purely uppercase usernames to lowercase', async () => {
+      const response = await POST(makeRequest({ username: 'GITHUB' }));
+
+      expect(dbConnect).toHaveBeenCalled();
+
+      expect(User.updateOne).toHaveBeenCalledWith(
+        { username: 'github' },
+        { $setOnInsert: { username: 'github' } },
+        { upsert: true }
+      );
+
+      expect(response.status).toBe(200);
+
+      const data = await response.json();
+
+      expect(data.success).toBe(true);
+    });
+
     it('returns 500 when database connection fails', async () => {
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
       vi.mocked(dbConnect).mockRejectedValueOnce(new Error('DB Down'));
