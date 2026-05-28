@@ -4,7 +4,7 @@ import AIInsightsSkeleton from '@/components/dashboard/AIInsightsSkeleton';
 
 export default function DashboardLoading() {
   return (
-    <div className="p-4 md:p-6 lg:p-8 min-h-screen">
+    <div className="p-4 md:p-6 lg:p-8 min-h-screen bg-black text-white">
       <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr_320px] gap-6 lg:gap-8">
         {/* Left Sidebar Skeleton */}
         <div className="flex flex-col gap-6">
@@ -37,7 +37,7 @@ export default function DashboardLoading() {
         </div>
 
         {/* Right Sidebar Skeleton */}
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-6">
           <div className="h-24 rounded-2xl shimmer border border-white/10" />
           <div className="h-24 rounded-2xl shimmer border border-white/10" />
           <div className="h-24 rounded-2xl shimmer border border-white/10" />
