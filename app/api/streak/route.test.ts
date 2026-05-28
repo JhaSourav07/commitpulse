@@ -95,6 +95,13 @@ describe('GET /api/streak', () => {
       expect(fetchGitHubContributions).not.toHaveBeenCalled();
     });
 
+    it('returns 400 when user exceeds 39 characters', async () => {
+      const response = await GET(makeRequest({ user: 'a'.repeat(40) }));
+      expect(response.status).toBe(400);
+      const body = await response.json();
+      expect(JSON.stringify(body)).toContain('cannot exceed 39 characters');
+    });
+
     it('returns 400 for invalid monthly badge dimensions', async () => {
       const invalidDimensionParams: Array<Record<string, string>> = [
         { width: 'abc' },
