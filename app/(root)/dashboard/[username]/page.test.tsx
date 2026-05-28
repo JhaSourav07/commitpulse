@@ -4,13 +4,17 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import DashboardPage, { generateMetadata } from './page';
 import { getFullDashboardData } from '@/lib/github';
 
+const { mockNotFound } = vi.hoisted(() => ({
+  mockNotFound: vi.fn(),
+}));
+
 vi.mock('next/navigation', () => ({
+  notFound: mockNotFound,
   useRouter: () => ({
     push: vi.fn(),
     replace: vi.fn(),
     refresh: vi.fn(),
   }),
-
   useSearchParams: () => ({
     get: vi.fn(),
   }),
@@ -20,7 +24,6 @@ vi.mock('@/lib/github', () => ({
   getFullDashboardData: vi.fn(),
 }));
 
-// Mock the dashboard components to keep the test focused on the page rendering logic
 vi.mock('@/components/dashboard/ProfileCard', () => ({
   default: () => <div data-testid="profile-card">ProfileCard</div>,
 }));
@@ -159,17 +162,28 @@ describe('DashboardPage', () => {
         bypassCache: true,
       });
     });
-  });
 
-  it('passes the correct activity data to Heatmap', async () => {
-    const PageContent = await DashboardPage({
-      params: Promise.resolve({ username: 'octocat' }),
-      searchParams: Promise.resolve({}),
+    it('passes the correct activity data to Heatmap', async () => {
+      const PageContent = await DashboardPage({
+        params: Promise.resolve({ username: 'octocat' }),
+        searchParams: Promise.resolve({}),
+      });
+
+      render(PageContent);
+
+      const heatmap = screen.getByTestId('heatmap');
+      expect(JSON.parse(heatmap.getAttribute('data-prop') ?? '[]')).toEqual(mockData.activity);
     });
 
-    render(PageContent);
+    it('calls notFound when dashboard data fetch throws an error', async () => {
+      vi.mocked(getFullDashboardData).mockRejectedValueOnce(new Error('User not found'));
 
-    const heatmap = screen.getByTestId('heatmap');
-    expect(JSON.parse(heatmap.getAttribute('data-prop') ?? '[]')).toEqual(mockData.activity);
+      await DashboardPage({
+        params: Promise.resolve({ username: 'missing-user' }),
+        searchParams: Promise.resolve({}),
+      });
+
+      expect(mockNotFound).toHaveBeenCalledOnce();
+    });
   });
 });
