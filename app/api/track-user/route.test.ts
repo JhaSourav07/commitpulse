@@ -23,13 +23,28 @@ function makeRequest(body: Record<string, unknown>): Request {
 }
 
 describe('POST /api/track-user', () => {
+  let originalNodeEnv: string | undefined;
+  let originalMongoUri: string | undefined;
+
   beforeEach(() => {
+    originalNodeEnv = process.env.NODE_ENV;
+    originalMongoUri = process.env.MONGODB_URI;
     vi.clearAllMocks();
   });
 
   afterEach(() => {
-    // Clean up environment variables
-    delete process.env.MONGODB_URI;
+    // Restore environment variables
+    if (originalNodeEnv === undefined) {
+      Reflect.deleteProperty(process.env, 'NODE_ENV');
+    } else {
+      Reflect.set(process.env, 'NODE_ENV', originalNodeEnv);
+    }
+
+    if (originalMongoUri === undefined) {
+      delete process.env.MONGODB_URI;
+    } else {
+      process.env.MONGODB_URI = originalMongoUri;
+    }
   });
 
   describe('Validation', () => {
