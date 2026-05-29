@@ -23,12 +23,20 @@ export async function GET(request: Request) {
   const parseResult = streakParamsSchema.safeParse(Object.fromEntries(searchParams.entries()));
   try {
     if (!parseResult.success) {
+      const fieldErrors = parseResult.error.flatten();
+
       return NextResponse.json(
         {
           error: 'Invalid parameters',
-          details: parseResult.error.flatten(),
+          details: fieldErrors,
         },
-        { status: 400 }
+        {
+          status: 400,
+          headers: {
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-store',
+          },
+        }
       );
     }
 
