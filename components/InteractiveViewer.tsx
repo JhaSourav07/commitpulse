@@ -22,7 +22,7 @@ interface ParallaxParticle {
 }
 
 /** Builds a stable set of contribution-square particles for the parallax layer.
- *  Deterministic math prevents random values from causing SSR/CSR mismatches. */
+ * Deterministic math prevents random values from causing SSR/CSR mismatches. */
 function buildParticles(): ParallaxParticle[] {
   const colors = ['#10b981', '#8b5cf6', '#06b6d4', '#3b82f6', '#f59e0b'];
   return Array.from(
@@ -110,6 +110,7 @@ export default function InteractiveViewer({
   const activeTooltipRef = useRef<ActiveTooltipState | null>(null);
   const startPointerPos = useRef({ x: 0, y: 0 });
   const [mounted, setMounted] = useState(false);
+  
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);

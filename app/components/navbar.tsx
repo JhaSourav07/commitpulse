@@ -154,10 +154,10 @@ export default function Navbar() {
               >
                 {mounted ? (
                   isDark ? (
-                    <Moon
-                      size={18}
-                      className="transition-transform duration-300 group-hover:-rotate-12"
-                    />
+<Moon
+  size={18}
+  className="transition-transform duration-300 group-hover:-rotate-12"
+/>
                   ) : (
                     <Sun
                       size={18}
@@ -242,7 +242,7 @@ export default function Navbar() {
                   >
                     {mounted ? (
                       isDark ? (
-                        <Moon size={18} />
+<Moon size={18} />
                       ) : (
                         <Sun size={18} />
                       )
