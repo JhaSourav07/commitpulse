@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest';
 import { generateSVG, generateMonthlySVG, particleCount, escapeXML } from './generator';
 import type { BadgeParams, ContributionCalendar, StreakStats, MonthlyStats } from '../../types';
 import { hexColor } from './sanitizer';
-
 describe('generateSVG', () => {
   const mockStats: StreakStats = {
     currentStreak: 5,
@@ -21,7 +20,6 @@ describe('generateSVG', () => {
       },
     ],
   } as ContributionCalendar;
-
   it('omits stats labels when hide_stats is true', () => {
     const svg = generateSVG(
       mockStats,
@@ -36,12 +34,10 @@ describe('generateSVG', () => {
       },
       mockCalendar
     );
-
     expect(svg).not.toContain('CURRENT_STREAK');
     expect(svg).not.toContain('ANNUAL_SYNC_TOTAL');
     expect(svg).not.toContain('PEAK_STREAK');
   });
-
   it('renders stats labels when hide_stats is false', () => {
     const svg = generateSVG(
       mockStats,
@@ -56,39 +52,31 @@ describe('generateSVG', () => {
       },
       mockCalendar
     );
-
     expect(svg).toContain('CURRENT_STREAK');
     expect(svg).toContain('ANNUAL_SYNC_TOTAL');
     expect(svg).toContain('PEAK_STREAK');
   });
-
   it('uses default typography when no font is passed', () => {
     const svg = generateSVG(mockStats, { user: 'avi' } as unknown as BadgeParams, mockCalendar);
-
     expect(svg).toContain('Syncopate');
     expect(svg).toContain('Space Grotesk');
   });
-
   it('applies custom font when font is provided', () => {
     const svg = generateSVG(
       mockStats,
       { user: 'avi', font: 'jetbrains' } as unknown as BadgeParams,
       mockCalendar
     );
-
     expect(svg).toContain('JetBrains Mono');
   });
-
   it('handles radius=0 correctly', () => {
     const svg = generateSVG(
       mockStats,
       { user: 'avi', radius: 0 } as unknown as BadgeParams,
       mockCalendar
     );
-
     expect(svg).toContain('rx="0"');
   });
-
   it('handles log scale parameter correctly', () => {
     const svg = generateSVG(
       mockStats,
@@ -97,7 +85,6 @@ describe('generateSVG', () => {
     );
     expect(svg).toContain('svg');
   });
-
   it('uses transparent background when hideBackground is true', () => {
     const svg = generateSVG(
       mockStats,
@@ -109,7 +96,6 @@ describe('generateSVG', () => {
     );
     expect(svg).toContain('fill="transparent"');
   });
-
   it('uses normal background when hideBackground is false or omitted', () => {
     const svg = generateSVG(
       mockStats,
@@ -121,54 +107,45 @@ describe('generateSVG', () => {
     );
     expect(svg).not.toContain('fill="transparent"');
   });
-
   it('generates particles for days with 10 or more contributions', () => {
     const svg = generateSVG(mockStats, { user: 'avi' } as unknown as BadgeParams, mockCalendar);
     expect(svg).toContain('class="heat-particles"');
   });
-
   it('supports dynamic Google Fonts for non-predefined fonts', () => {
     const svg = generateSVG(
       mockStats,
       { user: 'avi', font: 'Inter' } as unknown as BadgeParams,
       mockCalendar
     );
-
     expect(svg).toContain(
       "@import url('https://fonts.googleapis.com/css2?family=Inter&amp;display=swap');"
     );
     expect(svg).toContain('font-family: "Inter", sans-serif;');
   });
-
   it('replaces spaces with plus sign in dynamic Google Font URLs', () => {
     const svg = generateSVG(
       mockStats,
       { user: 'avi', font: 'Open Sans' } as unknown as BadgeParams,
       mockCalendar
     );
-
     expect(svg).toContain('family=Open+Sans');
   });
-
   it('sanitizes dangerous characters in font names to prevent CSS injection', () => {
     const svg = generateSVG(
       mockStats,
       { user: 'avi', font: 'Inter"</style><script>alert(1)</script>' } as unknown as BadgeParams,
       mockCalendar
     );
-
     expect(svg).toContain('family=Interstylescriptalert1script');
     expect(svg).not.toContain('alert(1)');
     expect(svg).not.toContain('<script>');
   });
-
   it('handles missing params with defaults', () => {
     const svg = generateSVG(mockStats, {} as unknown as BadgeParams, mockCalendar);
     expect(svg).toContain('0d1117'); // default bg
     expect(svg).toContain('00ffaa'); // default accent
     expect(svg).toContain('ffffff'); // default text
   });
-
   it('falls back to default typography for completely invalid font names', () => {
     const svg = generateSVG(
       mockStats,
@@ -180,7 +157,6 @@ describe('generateSVG', () => {
     // Should use default body font
     expect(svg).toContain('font-family: "Space Grotesk", sans-serif');
   });
-
   it('uses default font when font param is an empty string', () => {
     const svg = generateSVG(
       mockStats,
@@ -190,7 +166,6 @@ describe('generateSVG', () => {
     expect(svg).toContain('Space Grotesk');
     expect(svg).not.toContain('family=&amp;display=swap');
   });
-
   it('uses default font when font param is whitespace only', () => {
     const svg = generateSVG(
       mockStats,
@@ -200,7 +175,6 @@ describe('generateSVG', () => {
     expect(svg).toContain('Space Grotesk');
     expect(svg).not.toContain('family=+&amp;display=swap');
   });
-
   it('allows apostrophes in font names like Times New Roman', () => {
     const svg = generateSVG(
       mockStats,
@@ -211,20 +185,16 @@ describe('generateSVG', () => {
   });
   it('emits tower-raising CSS animations and staggered delays', () => {
     const svg = generateSVG(mockStats, { user: 'avi' } as unknown as BadgeParams, mockCalendar);
-
     // Check for CSS keyframes and class
     expect(svg).toContain('.cp-tower');
     expect(svg).toContain('@keyframes grow-up');
-
     // Check for inline animation-delay style on the nested group
     expect(svg).toMatch(/style="animation-delay: \d+\.\d+s;"/);
   });
-
   it('uses English labels by default', () => {
     const svg = generateSVG(mockStats, { user: 'avi' } as unknown as BadgeParams, mockCalendar);
     expect(svg).toContain('CURRENT_STREAK');
   });
-
   it('uses Spanish labels when lang=es', () => {
     const svg = generateSVG(
       mockStats,
@@ -233,7 +203,6 @@ describe('generateSVG', () => {
     );
     expect(svg).toContain('RACHA_ACTUAL');
   });
-
   it('falls back to English labels for unknown language', () => {
     const svg = generateSVG(
       mockStats,
@@ -242,12 +211,10 @@ describe('generateSVG', () => {
     );
     expect(svg).toContain('CURRENT_STREAK');
   });
-
   // ── Auto-theme (prefers-color-scheme) tests ──────────────────────────────
   // These verify that theme=auto produces an SVG that switches between light
   // and dark color palettes using CSS custom properties and a media query,
   // without any JavaScript.
-
   describe('autoTheme', () => {
     const autoParams: BadgeParams = {
       user: 'avi',
@@ -258,40 +225,30 @@ describe('generateSVG', () => {
       scale: 'linear',
       autoTheme: true,
     };
-
     it('injects CSS custom properties for light-mode defaults', () => {
       const svg = generateSVG(mockStats, autoParams, mockCalendar);
-
       // Light-mode CSS variables (the "default" palette)
       expect(svg).toContain('--cp-bg: #ffffff');
       expect(svg).toContain('--cp-text: #24292f');
       expect(svg).toContain('--cp-accent: #0969da');
     });
-
     it('injects @media (prefers-color-scheme: dark) with exact dark palette hex values', () => {
       const svg = generateSVG(mockStats, autoParams, mockCalendar);
-
       // Media query block must be present
       expect(svg).toContain('prefers-color-scheme: dark');
-
       // Check for exact hex values used in AUTO_DARK_THEME
       expect(svg).toContain('--cp-bg: #0d1117');
       expect(svg).toContain('--cp-text: #c9d1d9');
       expect(svg).toContain('--cp-accent: #58a6ff');
     });
-
     it('uses CSS utility classes instead of hardcoded fill attributes', () => {
       const svg = generateSVG(mockStats, autoParams, mockCalendar);
-
       // Background rect should use a class, not a hardcoded fill
       expect(svg).toContain('class="cp-bg-fill"');
-
       // Active towers should use the accent class
       expect(svg).toContain('class="cp-accent-fill"');
-
       // The radar scan line should also use the accent class
       expect(svg).toMatch(/rect[^>]*class="cp-accent-fill"/);
-
       // cp-text-fill is emitted only in Ghost City mode (0 total contributions)
       const ghostCalendar: ContributionCalendar = {
         totalContributions: 0,
@@ -300,15 +257,12 @@ describe('generateSVG', () => {
       const ghostSvg = generateSVG(mockStats, autoParams, ghostCalendar);
       expect(ghostSvg).toContain('class="cp-text-fill"');
     });
-
     it('references var() in CSS class definitions', () => {
       const svg = generateSVG(mockStats, autoParams, mockCalendar);
-
       expect(svg).toContain('fill: var(--cp-bg)');
       expect(svg).toContain('fill: var(--cp-text)');
       expect(svg).toContain('fill: var(--cp-accent)');
     });
-
     it('does NOT inject a media query for non-auto themes', () => {
       const staticParams: BadgeParams = {
         user: 'avi',
@@ -319,48 +273,38 @@ describe('generateSVG', () => {
         scale: 'linear',
         autoTheme: false,
       };
-
       const svg = generateSVG(mockStats, staticParams, mockCalendar);
-
       // Static themes must NOT contain the auto-theme machinery
       expect(svg).not.toContain('prefers-color-scheme: dark');
       expect(svg).not.toContain('--cp-bg');
       expect(svg).not.toContain('class="cp-bg-fill"');
     });
-
     it('includes desc element in auto-theme SVG output', () => {
       const svg = generateSVG(mockStats, autoParams, mockCalendar);
       expect(svg).toContain('<desc>');
       expect(svg).toContain(String(mockStats.totalContributions));
     });
-
     it('includes role="img" in auto-theme SVG output', () => {
       const svg = generateSVG(mockStats, autoParams, mockCalendar);
       expect(svg).toContain('role="img"');
     });
-
     it('generates heat particles with CSS class instead of inline fill', () => {
       const svg = generateSVG(mockStats, autoParams, mockCalendar);
-
       // Auto particles use the cp-accent-fill class instead of fill="<hex>"
       expect(svg).toContain('class="cp-accent-fill"');
       expect(svg).toContain('class="heat-particles"');
     });
-
     it('still respects prefers-reduced-motion for particles', () => {
       const svg = generateSVG(mockStats, autoParams, mockCalendar);
       expect(svg).toContain('prefers-reduced-motion');
     });
-
     it('emits tower-raising CSS animations and staggered delays in auto mode', () => {
       const svg = generateSVG(mockStats, autoParams, mockCalendar);
-
       expect(svg).toContain('.cp-tower');
       expect(svg).toContain('@keyframes grow-up');
       expect(svg).toMatch(/style="animation-delay: \d+\.\d+s;"/);
     });
   });
-
   // Ghost City Placeholder Mode tests
   describe('Ghost City Mode', () => {
     const emptyCalendar: ContributionCalendar = {
@@ -374,7 +318,6 @@ describe('generateSVG', () => {
         },
       ],
     };
-
     const activeCalendar: ContributionCalendar = {
       totalContributions: 5,
       weeks: [
@@ -386,10 +329,8 @@ describe('generateSVG', () => {
         },
       ],
     };
-
     it('renders Ghost City blueprint when user has 0 total contributions', () => {
       const svg = generateSVG(mockStats, { user: 'avi' } as unknown as BadgeParams, emptyCalendar);
-
       // Should contain wireframe strokes
       expect(svg).toContain('stroke-width="0.5"');
       expect(svg).toContain('stroke-opacity="0.3"');
@@ -397,10 +338,8 @@ describe('generateSVG', () => {
       // Left face: M0 6 L0 10 L-16 0 L-16 -4 Z
       expect(svg).toContain('L0 10 L-16 0 L-16 -4 Z');
     });
-
     it('does not render Ghost City when user has active contributions', () => {
       const svg = generateSVG(mockStats, { user: 'avi' } as unknown as BadgeParams, activeCalendar);
-
       // Should NOT contain wireframe strokes
       expect(svg).not.toContain('stroke-width="0.5"');
       expect(svg).not.toContain('stroke-opacity="0.3"');
@@ -408,7 +347,6 @@ describe('generateSVG', () => {
       expect(svg).toContain('L0 10 L-16 0 L-16 0 Z');
     });
   });
-
   // ── Timezone-aware pulse animation tests ─────────────────────────────────
   describe('todayDate pulse animation', () => {
     const calendar: ContributionCalendar = {
@@ -423,7 +361,6 @@ describe('generateSVG', () => {
         },
       ],
     };
-
     it('fires the pulse animation on the local today tower, not the last UTC entry', () => {
       // todayDate = '2024-06-12' (has commits) — pulse should appear
       // last entry = '2024-06-13' (no commits) — no pulse without timezone fix
@@ -433,12 +370,9 @@ describe('generateSVG', () => {
         totalContributions: 10,
         todayDate: '2024-06-12',
       };
-
       const svg = generateSVG(stats, { user: 'avi' } as unknown as BadgeParams, calendar);
-
       expect(svg).toContain('attributeName="opacity" values="1;0.4;1"');
     });
-
     it('does not pulse when todayDate has no commits even if another day does', () => {
       // todayDate = '2024-06-13' (0 commits) — no pulse
       const stats: StreakStats = {
@@ -447,9 +381,7 @@ describe('generateSVG', () => {
         totalContributions: 10,
         todayDate: '2024-06-13',
       };
-
       const svg = generateSVG(stats, { user: 'avi' } as unknown as BadgeParams, calendar);
-
       expect(svg).not.toContain('attributeName="opacity" values="1;0.4;1"');
     });
     it('includes accessible title and description metadata', () => {
@@ -458,14 +390,12 @@ describe('generateSVG', () => {
         { user: 'octocat' } as unknown as BadgeParams,
         mockCalendar
       );
-
       expect(svg).toContain('<title>CommitPulse Stats for octocat</title>');
       expect(svg).toContain('<desc>');
       expect(svg).toContain('100');
       expect(svg).toContain('10');
     });
   });
-
   describe('tower top highlight', () => {
     it('renders white highlight on tower top when contributionCount > 5', () => {
       const calendarWithHighCount: ContributionCalendar = {
@@ -479,16 +409,13 @@ describe('generateSVG', () => {
           },
         ],
       };
-
       const svg = generateSVG(
         mockStats,
         { user: 'avi' } as unknown as BadgeParams,
         calendarWithHighCount
       );
-
       expect(svg).toContain('fill="white" fill-opacity="0.2"');
     });
-
     it('does not render white highlight when all days have contributionCount <= 5', () => {
       const calendarWithLowCount: ContributionCalendar = {
         totalContributions: 8,
@@ -501,18 +428,15 @@ describe('generateSVG', () => {
           },
         ],
       };
-
       const svg = generateSVG(
         mockStats,
         { user: 'avi' } as unknown as BadgeParams,
         calendarWithLowCount
       );
-
       expect(svg).not.toContain('fill="white" fill-opacity="0.2"');
     });
   });
 });
-
 describe('generateMonthlySVG', () => {
   const mockMonthlyStats: MonthlyStats = {
     currentMonthTotal: 42,
@@ -521,7 +445,6 @@ describe('generateMonthlySVG', () => {
     deltaAbsolute: 12,
     currentMonthName: 'June',
   };
-
   it('renders monthly stats correctly with absolute delta', () => {
     const svg = generateMonthlySVG(mockMonthlyStats, {
       user: 'octocat',
@@ -531,7 +454,6 @@ describe('generateMonthlySVG', () => {
     expect(svg).toContain('42');
     expect(svg).toContain('+12 commits');
   });
-
   it('renders monthly stats correctly with percentage delta', () => {
     const svg = generateMonthlySVG(mockMonthlyStats, {
       user: 'octocat',
@@ -539,7 +461,6 @@ describe('generateMonthlySVG', () => {
     } as unknown as BadgeParams);
     expect(svg).toContain('+40%');
   });
-
   it('renders monthly stats correctly with both delta formats', () => {
     const svg = generateMonthlySVG(mockMonthlyStats, {
       user: 'octocat',
@@ -547,7 +468,6 @@ describe('generateMonthlySVG', () => {
     } as unknown as BadgeParams);
     expect(svg).toContain('+40% (+12)');
   });
-
   it('respects custom width and height parameters', () => {
     const svg = generateMonthlySVG(mockMonthlyStats, {
       user: 'octocat',
@@ -558,59 +478,47 @@ describe('generateMonthlySVG', () => {
     expect(svg).toContain('height="200"');
   });
 });
-
 describe('escapeXML', () => {
   it('escapes ampersands (&)', () => {
     expect(escapeXML('foo & bar')).toBe('foo &amp; bar');
   });
-
   it('escapes less-than signs (<)', () => {
     expect(escapeXML('<div>')).toBe('&lt;div&gt;');
   });
-
   it('escapes greater-than signs (>)', () => {
     expect(escapeXML('a > b')).toBe('a &gt; b');
   });
-
   it('escapes double quotes (")', () => {
     expect(escapeXML('class="btn"')).toBe('class=&quot;btn&quot;');
   });
-
   it("escapes single quotes (')", () => {
     expect(escapeXML("it's working")).toBe('it&#39;s working');
   });
-
   it('escapes a string combining all five special characters', () => {
     const combined = `<element attr="val" data-quote='yes'>&</element>`;
     const expected = `&lt;element attr=&quot;val&quot; data-quote=&#39;yes&#39;&gt;&amp;&lt;/element&gt;`;
     expect(escapeXML(combined)).toBe(expected);
   });
-
   it('leaves a safe string unchanged', () => {
     const safe = 'Hello World 123!@#%^*()_+-=[]{}|;:,./?`~';
     expect(escapeXML(safe)).toBe(safe);
   });
 });
-
 describe('particleCount', () => {
   it('returns 0 when count is 0', () => {
     expect(particleCount(0)).toBe(0);
   });
-
   it('clamps to lower bound of 3 for low counts (e.g., 10 -> 3)', () => {
     expect(particleCount(10)).toBe(3);
   });
-
   it('scales correctly between bounds (e.g., 16 -> 4)', () => {
     expect(particleCount(16)).toBe(4);
   });
-
   it('clamps to upper bound of 5 for high counts (e.g., 20 -> 5, 100 -> 5)', () => {
     expect(particleCount(20)).toBe(5);
     expect(particleCount(100)).toBe(5);
   });
 });
-
 describe('truncateUsername', () => {
   it('truncates long usernames to 20 chars with ellipsis', () => {
     const svg = generateSVG(
@@ -618,10 +526,7 @@ describe('truncateUsername', () => {
         currentStreak: 5,
         longestStreak: 10,
         totalContributions: 100,
-        today: 0,
         todayDate: new Date().toISOString().split('T')[0],
-        streakDates: { start: '', end: '' },
-        longestDates: { start: '', end: '' },
       },
       {
         user: 'averylongusernamethatexceeds20chars',
@@ -649,17 +554,13 @@ describe('truncateUsername', () => {
     expect(svg).toContain('…');
     expect(svg).not.toContain('averylongusernamethatexceeds20chars');
   });
-
   it('does not truncate short usernames', () => {
     const svg = generateSVG(
       {
         currentStreak: 5,
         longestStreak: 10,
         totalContributions: 100,
-        today: 0,
         todayDate: new Date().toISOString().split('T')[0],
-        streakDates: { start: '', end: '' },
-        longestDates: { start: '', end: '' },
       },
       {
         user: 'abc',
