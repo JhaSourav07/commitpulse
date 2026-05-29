@@ -90,6 +90,7 @@ describe('ComparisonStatsCard', () => {
 
     expect(screen.queryByText('Winner')).toBeNull();
   });
+
   it('renders neutral fallback progress bar when both values are zero', () => {
     const { container } = render(
       <ComparisonStatsCard
@@ -124,5 +125,38 @@ describe('ComparisonStatsCard', () => {
 
     expect(userOneSegment).toBeDefined();
     expect(userTwoSegment).toBeDefined();
+  });
+
+  it.each(['Flame', 'TrendingUp', 'GitCommit', 'GitBranch', 'Users', 'UserPlus', 'Award'])(
+    'renders %s icon without crashing',
+    (icon) => {
+      render(
+        <ComparisonStatsCard
+          title={`${icon} Metric`}
+          valueA={10}
+          valueB={5}
+          labelA="User One"
+          labelB="User Two"
+          icon={icon}
+        />
+      );
+
+      expect(screen.getByText(`${icon} Metric`)).toBeDefined();
+    }
+  );
+
+  it('falls back to Award icon for unknown icon name without crashing', () => {
+    render(
+      <ComparisonStatsCard
+        title="Unknown Metric"
+        valueA={10}
+        valueB={5}
+        labelA="User One"
+        labelB="User Two"
+        icon="UnknownIcon"
+      />
+    );
+
+    expect(screen.getByText('Unknown Metric')).toBeDefined();
   });
 });
