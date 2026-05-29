@@ -168,6 +168,55 @@ describe('streakParamsSchema — size fallback behavior', () => {
   it('falls back to "medium" for empty string', () => {
     expect(parse({ size: '' }).size).toBe('medium');
   });
+  it('should accept org parameter when provided', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      org: 'vercel',
+    });
+
+    expect(result.success).toBe(true);
+
+    if (result.success) {
+      expect(result.data.org).toBe('vercel');
+    }
+  });
+
+  it('should keep org undefined when omitted', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+    });
+
+    expect(result.success).toBe(true);
+
+    if (result.success) {
+      expect(result.data.org).toBeUndefined();
+    }
+  });
+
+  it('should accept repo parameter when provided', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      repo: 'JhaSourav07/commitpulse',
+    });
+
+    expect(result.success).toBe(true);
+
+    if (result.success) {
+      expect(result.data.repo).toBe('JhaSourav07/commitpulse');
+    }
+  });
+
+  it('should keep repo undefined when omitted', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+    });
+
+    expect(result.success).toBe(true);
+
+    if (result.success) {
+      expect(result.data.repo).toBeUndefined();
+    }
+  });
 });
 
 describe('ogParamsSchema', () => {
