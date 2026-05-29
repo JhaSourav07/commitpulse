@@ -215,15 +215,15 @@ function renderStyle(
 }
 
 function renderTowers(
-    towerData: TowerData[],
-    params: BadgeParams,
-    accent: string | string[],
-    text: string,
-    sf: number,
-    isAutoTheme: boolean = false
-  ): string {
-    let towers = '';
-    const opacityMultipliers = [0.4, 0.6, 0.8, 1.0];
+  towerData: TowerData[],
+  params: BadgeParams,
+  accent: string | string[],
+  text: string,
+  sf: number,
+  isAutoTheme: boolean = false
+): string {
+  let towers = '';
+  const opacityMultipliers = [0.4, 0.6, 0.8, 1.0];
 
   for (const t of towerData) {
     const isGhost = t.isGhost;
