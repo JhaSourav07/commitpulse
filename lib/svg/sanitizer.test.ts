@@ -35,6 +35,12 @@ describe('SVG Sanitizer Utilities', () => {
       expect(isValidHex('ff')).toBe(false);
       expect(isValidHex('fffff')).toBe(false);
     });
+
+    it('returns false for undefined, null, or empty string', () => {
+      expect(isValidHex(undefined)).toBe(false);
+      expect(isValidHex(null as unknown as string)).toBe(false);
+      expect(isValidHex('')).toBe(false);
+    });
   });
 
   describe('hexColor', () => {
@@ -91,6 +97,11 @@ describe('SVG Sanitizer Utilities', () => {
       expect(sanitizeSpeed('8', '8s')).toBe('8s');
       expect(sanitizeSpeed('s', '8s')).toBe('8s');
     });
+
+    it('returns fallback for null or undefined speed', () => {
+      expect(sanitizeSpeed(undefined, '8s')).toBe('8s');
+      expect(sanitizeSpeed(null, '8s')).toBe('8s');
+    });
   });
 
   describe('sanitizeRadius', () => {
@@ -106,6 +117,19 @@ describe('SVG Sanitizer Utilities', () => {
 
     it('returns fallback for invalid input', () => {
       expect(sanitizeRadius('invalid', 8)).toBe(8);
+    });
+
+    it('handles float strings, extreme negative values, leading zeros, and boundaries', () => {
+      expect(sanitizeRadius('8.7', 8)).toBe(8);
+      expect(sanitizeRadius('-999', 8)).toBe(0);
+      expect(sanitizeRadius('50', 8)).toBe(50);
+      expect(sanitizeRadius('51', 8)).toBe(50);
+      expect(sanitizeRadius('00', 8)).toBe(0);
+    });
+
+    it('returns fallback for null or undefined input', () => {
+      expect(sanitizeRadius(undefined, 8)).toBe(8);
+      expect(sanitizeRadius(null, 8)).toBe(8);
     });
   });
 
