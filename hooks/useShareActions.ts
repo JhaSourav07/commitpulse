@@ -1,6 +1,6 @@
 'use client';
 import { useState, useRef, useEffect } from 'react';
-import { toPng } from 'html-to-image';
+import { toPng, toCanvas } from 'html-to-image';
 import type { DashboardExportData } from '@/types/dashboard';
 
 type OptionState = 'idle' | 'loading' | 'success' | 'error';
@@ -80,10 +80,12 @@ export function useShareActions(
         document.getElementById('dashboard-root') ??
         document.querySelector<HTMLElement>('[data-dashboard]') ??
         document.body;
+      const isDark =
+        typeof document !== 'undefined' && document.documentElement.classList.contains('dark');
       const dataUrl = await toPng(node, {
         quality: 0.95,
         pixelRatio: 2,
-        backgroundColor: '#050505',
+        backgroundColor: isDark ? '#050505' : '#ffffff',
         filter: (el) => {
           if (el instanceof HTMLElement) {
             if (el.id === 'share-sheet-overlay') return false;
@@ -99,6 +101,38 @@ export function useShareActions(
       setOptionState('png', 'success');
     } catch {
       setOptionState('png', 'error');
+    }
+  };
+
+  const handleDownloadWEBP = async () => {
+    setOptionState('webp', 'loading');
+    try {
+      const node =
+        document.getElementById('dashboard-root') ??
+        document.querySelector<HTMLElement>('[data-dashboard]') ??
+        document.body;
+      const isDark =
+        typeof document !== 'undefined' && document.documentElement.classList.contains('dark');
+      const canvas = await toCanvas(node, {
+        quality: 0.95,
+        pixelRatio: 2,
+        backgroundColor: isDark ? '#050505' : '#ffffff',
+        filter: (el) => {
+          if (el instanceof HTMLElement) {
+            if (el.id === 'share-sheet-overlay') return false;
+            if (el.id === 'generate-dashboard-btn') return false;
+          }
+          return true;
+        },
+      });
+      const dataUrl = canvas.toDataURL('image/webp');
+      const link = document.createElement('a');
+      link.download = `${username}-commitpulse.webp`;
+      link.href = dataUrl;
+      link.click();
+      setOptionState('webp', 'success');
+    } catch {
+      setOptionState('webp', 'error');
     }
   };
 
@@ -190,6 +224,7 @@ export function useShareActions(
     handleLinkedIn,
     handleReddit,
     handleDownloadPNG,
+    handleDownloadWEBP,
     handleDownloadSVG,
     handleCopyMarkdown,
     handleDownloadJSON,

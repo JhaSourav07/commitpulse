@@ -210,11 +210,15 @@ describe('LandingPage', () => {
     expect(navigator.clipboard.writeText).not.toHaveBeenCalled();
   });
 
-  it('renders the FeatureCards', () => {
+  it('renders exactly 3 FeatureCards with correct titles', () => {
     render(<LandingPage />);
-    expect(screen.getByText('Real-time Sync')).toBeDefined();
-    expect(screen.getByText('Theme Engine')).toBeDefined();
-    expect(screen.getByText('Isometric Math')).toBeDefined();
+
+    const featureHeadings = screen.getAllByRole('heading', { level: 3 });
+
+    expect(featureHeadings).toHaveLength(3);
+
+    const titles = featureHeadings.map((h) => h.textContent);
+    expect(titles).toEqual(['Real-time Sync', 'Theme Engine', 'Isometric Math']);
   });
 
   it('renders the CustomizeCTA', () => {
