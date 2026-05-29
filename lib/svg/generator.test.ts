@@ -875,6 +875,28 @@ describe('shading and gradients', () => {
     expect(svg).toContain('fill="#333333"');
     expect(svg).toContain('fill="#444444"');
   });
+
+  it('gracefully handles and clamps accent color arrays with fewer than 4 items without crashing', () => {
+    const calendarWithAllQuartiles = {
+      weeks: [
+        {
+          contributionDays: [
+            { contributionCount: 2, date: '2024-06-10' },
+            { contributionCount: 6, date: '2024-06-11' },
+            { contributionCount: 10, date: '2024-06-12' },
+            { contributionCount: 15, date: '2024-06-13' },
+          ],
+        },
+      ],
+    } as ContributionCalendar;
+
+    const svg = generateSVG(
+      mockStats,
+      { user: 'avi', accent: ['111111'] } as unknown as BadgeParams,
+      calendarWithAllQuartiles
+    );
+    expect(svg).toContain('fill="#111111"');
+  });
 });
 
 describe('escapeXML', () => {

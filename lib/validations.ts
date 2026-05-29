@@ -68,7 +68,12 @@ export const streakParamsSchema = z.object({
     .transform((val) => {
       if (!val) return undefined;
       if (val.includes(',')) {
-        return val.split(',').map((c) => sanitizeHexColor(c.trim(), '00ffaa'));
+        return val
+          .split(',')
+          .map((c) => c.trim())
+          .filter((c) => c.length > 0)
+          .slice(0, 4)
+          .map((c) => sanitizeHexColor(c, '00ffaa'));
       }
       return sanitizeHexColor(val, '00ffaa');
     }),
@@ -188,12 +193,19 @@ export const streakParamsSchema = z.object({
   shading: z
     .string()
     .optional()
-    .transform((val) => val !== 'false'),
+    .transform((val) => {
+      if (val === undefined) return undefined;
+      return val !== 'false';
+    })
+    .default(true),
   gradient: z
     .string()
     .optional()
-    .transform((val) => val === 'true'),
->>>>>>> f03a8e8 (feat: add dynamic contribution-level color shading and volumetric gradients)
+    .transform((val) => {
+      if (val === undefined) return undefined;
+      return val === 'true';
+    })
+    .default(false),
 });
 
 export const githubParamsSchema = z.object({

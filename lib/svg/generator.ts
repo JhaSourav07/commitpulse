@@ -131,8 +131,12 @@ function renderDefs(sf: number, params: BadgeParams): string {
       const accent = params.accent;
       const bg = params.bg;
       const colors = Array.isArray(accent)
-        ? accent.map((c) => (c.startsWith('#') ? c : `#${c}`))
-        : [1, 2, 3, 4].map(() => (String(accent).startsWith('#') ? String(accent) : `#${accent}`));
+        ? [0, 1, 2, 3].map((i) => {
+            const idx = Math.min(i, accent.length - 1);
+            const c = accent[idx] || accent[accent.length - 1] || '00ffaa';
+            return c.startsWith('#') ? c : `#${c}`;
+          })
+        : [0, 1, 2, 3].map(() => (String(accent).startsWith('#') ? String(accent) : `#${accent}`));
 
       const bgHex = bg.startsWith('#') ? bg : `#${bg}`;
 
@@ -229,13 +233,13 @@ function renderTowers(
   for (const t of towerData) {
     const isGhost = t.isGhost;
     let strokeColor = '';
-    let fillClassLeftRight = '';
-    let fillClassTop = '';
+    let leftRightFillAttr = '';
+    let topFillAttr = '';
 
     if (isAutoTheme) {
       strokeColor = isGhost ? 'var(--cp-text)' : 'var(--cp-accent)';
-      fillClassLeftRight = isGhost ? 'class="cp-text-fill"' : 'class="cp-accent-fill"';
-      fillClassTop = fillClassLeftRight;
+      leftRightFillAttr = isGhost ? 'class="cp-text-fill"' : 'class="cp-accent-fill"';
+      topFillAttr = leftRightFillAttr;
     } else {
       const baseAccentColor = Array.isArray(accent) ? accent[accent.length - 1] : accent;
 
@@ -246,13 +250,14 @@ function renderTowers(
 
       let resolvedSolidColor = isGhost ? textColorHex : accentColorHex;
       if (!isGhost && t.intensityLevel > 0 && Array.isArray(accent)) {
-        const quartileColor = accent[t.intensityLevel - 1];
+        const quartileIdx = Math.min(t.intensityLevel - 1, accent.length - 1);
+        const quartileColor = accent[quartileIdx] || accent[accent.length - 1];
         resolvedSolidColor = quartileColor.startsWith('#') ? quartileColor : `#${quartileColor}`;
       }
 
       strokeColor = resolvedSolidColor;
-      fillClassLeftRight = `fill="${resolvedSolidColor}"`;
-      fillClassTop = fillClassLeftRight;
+      leftRightFillAttr = `fill="${resolvedSolidColor}"`;
+      topFillAttr = leftRightFillAttr;
     }
 
     let leftFaceOpacity = t.faceOpacity.left;
@@ -266,20 +271,23 @@ function renderTowers(
       topFaceOpacity *= mult;
     }
 
-    let leftFillAttr = fillClassLeftRight;
-    let rightFillAttr = fillClassLeftRight;
-    let topFillAttr = fillClassTop;
+    let leftFillAttr = leftRightFillAttr;
+    let rightFillAttr = leftRightFillAttr;
+    let finalTopFillAttr = topFillAttr;
 
     if (!isGhost && t.intensityLevel > 0 && params.gradient === true) {
       leftFillAttr = `fill="url(#tower-grad-level-${t.intensityLevel})"`;
       rightFillAttr = `fill="url(#tower-grad-level-${t.intensityLevel})"`;
 
       if (isAutoTheme) {
-        topFillAttr = 'class="cp-accent-fill"';
+        finalTopFillAttr = 'class="cp-accent-fill"';
       } else {
-        const baseAccentColor = Array.isArray(accent) ? accent[t.intensityLevel - 1] : accent;
+        const capIdx = Math.min(t.intensityLevel - 1, accent.length - 1);
+        const baseAccentColor = Array.isArray(accent)
+          ? accent[capIdx] || accent[accent.length - 1]
+          : accent;
         const capColor = baseAccentColor.startsWith('#') ? baseAccentColor : `#${baseAccentColor}`;
-        topFillAttr = `fill="${capColor}"`;
+        finalTopFillAttr = `fill="${capColor}"`;
       }
     }
 
@@ -295,21 +303,21 @@ function renderTowers(
             <title>${escapeXML(t.tooltip)}</title>
             <path d="M0 ${10 - t.h} L0 10 L-16 0 L-16 ${-t.h} Z" ${leftFillAttr} fill-opacity="${leftFaceOpacity}" ${strokeAttr} />
             <path d="M0 ${10 - t.h} L0 10 L16 0 L16 ${-t.h} Z" ${rightFillAttr} fill-opacity="${rightFaceOpacity}" ${strokeAttr} />
-            <path d="M0 ${-t.h} L16 ${10 - t.h} L0 ${20 - t.h} L-16 ${10 - t.h} Z" ${topFillAttr} fill-opacity="${topFaceOpacity}" ${strokeAttr} />
+            <path d="M0 ${-t.h} L16 ${10 - t.h} L0 ${20 - t.h} L-16 ${10 - t.h} Z" ${finalTopFillAttr} fill-opacity="${topFaceOpacity}" ${strokeAttr} />
             ${t.contributionCount > 5 ? `<path d="M0 ${-t.h} L16 ${10 - t.h} L0 ${20 - t.h} L-16 ${10 - t.h} Z" fill="white" fill-opacity="0.2" />` : ''}
           </g>
         </g>`;
 
     if (t.contributionCount >= 10) {
+      const pIdx = Math.min(t.intensityLevel - 1, accent.length - 1);
+      const pColorResolved = Array.isArray(accent)
+        ? accent[pIdx] || accent[accent.length - 1]
+        : accent;
       const pColor = isAutoTheme
         ? ''
-        : Array.isArray(accent)
-          ? accent[t.intensityLevel - 1].startsWith('#')
-            ? accent[t.intensityLevel - 1]
-            : `#${accent[t.intensityLevel - 1]}`
-          : accent.startsWith('#')
-            ? accent
-            : `#${accent}`;
+        : pColorResolved.startsWith('#')
+          ? pColorResolved
+          : `#${pColorResolved}`;
       towers += generateParticles(t.x, t.y, t.h, t.contributionCount, sf, isAutoTheme, pColor);
     }
   }
