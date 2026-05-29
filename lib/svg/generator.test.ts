@@ -141,7 +141,7 @@ describe('generateSVG', () => {
     );
 
     expect(svg).toContain(
-      "@import url('https://fonts.googleapis.com/css2?family=Inter&amp;display=swap');"
+      "@import url('https://fonts.googleapis.com/css2?family=Inter&display=swap');"
     );
     expect(svg).toContain('font-family: "Inter", sans-serif;');
   });
@@ -182,7 +182,7 @@ describe('generateSVG', () => {
       mockCalendar
     );
     // Should NOT contain a dynamic google fonts import for an empty/invalid family
-    expect(svg).not.toContain('family=&amp;display=swap');
+    expect(svg).not.toContain('family=&display=swap');
     // Should use default body font
     expect(svg).toContain('font-family: "Space Grotesk", sans-serif');
   });
@@ -194,7 +194,7 @@ describe('generateSVG', () => {
       mockCalendar
     );
     expect(svg).toContain('Space Grotesk');
-    expect(svg).not.toContain('family=&amp;display=swap');
+    expect(svg).not.toContain('family=&display=swap');
   });
 
   it('uses default font when font param is whitespace only', () => {
@@ -204,7 +204,7 @@ describe('generateSVG', () => {
       mockCalendar
     );
     expect(svg).toContain('Space Grotesk');
-    expect(svg).not.toContain('family=+&amp;display=swap');
+    expect(svg).not.toContain('family=+&display=swap');
   });
 
   it('allows apostrophes in font names like Times New Roman', () => {
@@ -431,6 +431,19 @@ describe('generateSVG', () => {
 
       expect(svg).toContain('<title>TODAY: 2024-06-12 &amp; &lt;bad&gt;: 3 contributions</title>');
       expect(svg).not.toContain('<title>TODAY: 2024-06-12 & <bad>: 3 contributions</title>');
+    });
+
+    it('supports dynamic Google Fonts for non-predefined fonts in auto-theme mode', () => {
+      const svg = generateSVG(
+        mockStats,
+        { ...autoParams, font: 'Inter' } as unknown as BadgeParams,
+        mockCalendar
+      );
+
+      expect(svg).toContain(
+        "@import url('https://fonts.googleapis.com/css2?family=Inter&display=swap');"
+      );
+      expect(svg).toContain('font-family: "Inter", sans-serif;');
     });
   });
 
@@ -784,6 +797,19 @@ describe('generateMonthlySVG', () => {
     expect(svg).toContain('prefers-reduced-motion: reduce');
     expect(svg).toContain('animation: none !important');
     expect(svg).toContain('transition: none !important');
+  });
+
+  it('supports dynamic Google Fonts for non-predefined fonts in monthly auto-theme mode', () => {
+    const svg = generateMonthlySVG(mockMonthlyStats, {
+      user: 'octocat',
+      autoTheme: true,
+      font: 'Inter',
+    } as unknown as BadgeParams);
+
+    expect(svg).toContain(
+      "@import url('https://fonts.googleapis.com/css2?family=Inter&display=swap');"
+    );
+    expect(svg).toContain('font-family: "Inter", sans-serif;');
   });
 });
 
