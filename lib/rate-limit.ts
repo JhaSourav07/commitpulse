@@ -46,6 +46,20 @@ export class RateLimiter {
     this.cache.set(ip, current + 1, this.windowMs);
     return true;
   }
+  /**
+   * Resets the request count for a given IP address.
+   *
+   * Useful for clearing rate limit state after a successful
+   * authentication or admin action.
+   *
+   * @param ip - The IP address to reset.
+   *
+   * @example
+   * rateLimiter.reset("192.168.1.1");
+   */
+  reset(ip: string): void {
+    this.cache.delete(ip);
+  }
 }
 
 // Global instance for track-user endpoint (5 requests per IP per minute)
