@@ -113,9 +113,9 @@ function generateParticles(
 
 function renderHeader(safeUser: string, stats: StreakStats, sf: number): string {
   return `
-  <title>CommitPulse Stats for ${safeUser}</title>
+  <title>CommitPulse Stats for ${truncateUsername(safeUser)}</title>
   <desc>
-    ${safeUser} has ${stats.totalContributions} total contributions and a longest streak of ${stats.longestStreak} days.
+    ${truncateUsername(safeUser)} has ${stats.totalContributions} total contributions and a longest streak of ${stats.longestStreak} days.
   </desc>
   ${renderDefs(sf)}`;
 }
