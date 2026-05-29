@@ -610,3 +610,81 @@ describe('particleCount', () => {
     expect(particleCount(100)).toBe(5);
   });
 });
+
+describe('truncateUsername', () => {
+  it('truncates long usernames to 20 chars with ellipsis', () => {
+    const svg = generateSVG(
+      {
+        currentStreak: 5,
+        longestStreak: 10,
+        totalContributions: 100,
+        today: 0,
+        todayDate: new Date().toISOString().split('T')[0],
+        streakDates: { start: '', end: '' },
+        longestDates: { start: '', end: '' },
+      },
+      {
+        user: 'averylongusernamethatexceeds20chars',
+        bg: '0d1117',
+        text: 'ffffff',
+        accent: '00ffaa',
+        radius: 8,
+        speed: '8s',
+        scale: 'linear',
+        font: undefined,
+        autoTheme: false,
+        hide_title: false,
+        hideBackground: false,
+        hide_stats: false,
+        lang: 'en',
+        view: 'default',
+        delta_format: 'percent',
+        width: undefined,
+        height: undefined,
+        size: 'medium',
+        grace: 1,
+      },
+      { totalContributions: 100, weeks: [] }
+    );
+    expect(svg).toContain('…');
+    expect(svg).not.toContain('averylongusernamethatexceeds20chars');
+  });
+
+  it('does not truncate short usernames', () => {
+    const svg = generateSVG(
+      {
+        currentStreak: 5,
+        longestStreak: 10,
+        totalContributions: 100,
+        today: 0,
+        todayDate: new Date().toISOString().split('T')[0],
+        streakDates: { start: '', end: '' },
+        longestDates: { start: '', end: '' },
+      },
+      {
+        user: 'abc',
+        bg: '0d1117',
+        text: 'ffffff',
+        accent: '00ffaa',
+        radius: 8,
+        speed: '8s',
+        scale: 'linear',
+        font: undefined,
+        autoTheme: false,
+        hide_title: false,
+        hideBackground: false,
+        hide_stats: false,
+        lang: 'en',
+        view: 'default',
+        delta_format: 'percent',
+        width: undefined,
+        height: undefined,
+        size: 'medium',
+        grace: 1,
+      },
+      { totalContributions: 100, weeks: [] }
+    );
+    expect(svg).not.toContain('…');
+    expect(svg).toContain('abc');
+  });
+});
