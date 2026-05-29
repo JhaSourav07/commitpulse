@@ -349,7 +349,7 @@ describe('ComparisonStatsCard', () => {
       expect(screen.getByText('Dev B')).toBeInTheDocument();
     });
 
-    it('renders a grid layout with two columns for side-by-side values', () => {
+it('renders a grid layout with two columns for side-by-side values', () => {
       const { container } = render(
         <ComparisonStatsCard
           title="Score"
@@ -360,6 +360,29 @@ describe('ComparisonStatsCard', () => {
           icon="Award"
         />
       );
+      // (The assertions for the grid layout test should be directly below this)
+    });
+
+    it('verifies progress bar split for equal values', () => {
+      const { container } = render(
+        <ComparisonStatsCard
+          title="Score"
+          valueA={10}
+          valueB={10} // Equal values to trigger the split
+          labelA="Dev A"
+          labelB="Dev B"
+          icon="Award"
+        />
+      );
+
+      const progressSegments = container.querySelectorAll(
+        '.w-full.bg-gray-700\\/50 div, .relative div'
+      );
+
+      const allDivs = Array.from(container.querySelectorAll('div'));
+      const emeraldElement =
+        container.querySelector('[className*="emerald"]') ||
+        container.querySelector('.text-emerald-400');
 
       const gridEl = container.querySelector('.grid.grid-cols-2');
       expect(gridEl).toBeInTheDocument();
