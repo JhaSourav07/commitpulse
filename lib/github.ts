@@ -1167,6 +1167,7 @@ export async function getOrgDashboardData(
     isPartial,
   };
 }
+
 export function generateAchievements(
   totalContributions: number,
   currentStreak: number,
@@ -1672,48 +1673,13 @@ export async function getFullDashboardData(username: string, options: FetchOptio
     .sort((a, b) => b.percentage - a.percentage)
     .slice(0, 5);
 
-  const nodes: GraphNode[] = [
-    {
-      id: profileData.login,
-      name: displayName(profileData),
-      type: 'User',
-      val: 30,
-      color: '#E2E8F0',
-    },
-  ];
-  const links: GraphLink[] = [];
-  reposData.forEach((r) => {
-    nodes.push({
-      id: r.name,
-      name: r.name,
-      type: r.fork ? 'Fork' : 'Repo',
-      val: Math.max(5, Math.min(20, r.stargazers_count + 5)),
-      color: r.fork ? '#F97316' : '#3B82F6',
-      stats: {
-        stars: r.stargazers_count,
-        forks: r.forks_count,
-        language: r.language,
-        updatedAt: r.updated_at,
-      },
-    });
-    links.push({ source: profileData.login, target: r.name });
-  });
-  contributedRepos.forEach((r) => {
-    nodes.push({
-      id: r.nameWithOwner,
-      name: r.name,
-      type: 'Contribution',
-      val: Math.max(5, Math.min(20, r.stargazerCount / 10 + 5)),
-      color: '#22C55E',
-      stats: {
-        stars: r.stargazerCount,
-        forks: r.forkCount,
-        language: r.primaryLanguage?.name,
-        updatedAt: r.updatedAt,
-      },
-    });
-    links.push({ source: profileData.login, target: r.nameWithOwner });
-  });
+  const achievements = generateAchievements(
+    streakStats.totalContributions,
+    streakStats.currentStreak,
+    weekendCommits,
+    uniqueLanguages,
+    streakStats.longestStreak
+  );
 
   const hallOfFame: import('../types/dashboard').HallOfFameAward[] = [];
 
@@ -1976,29 +1942,19 @@ export async function getFullDashboardData(username: string, options: FetchOptio
 
 export async function getWrappedData(
   username: string,
-  year?: string,
-  options?: FetchOptions,
-  timezone: string = 'UTC'
+  year: string
 ): Promise<import('../types/dashboard').WrappedStats> {
-  const trimmedYear = typeof year === 'string' ? year.trim() : '';
-  const fallbackYear = new Date().getFullYear().toString();
-  const normalizedYear = /^\d{4}$/.test(trimmedYear) ? trimmedYear : fallbackYear;
+  const from = `${year}-01-01T00:00:00Z`;
+  const to = `${year}-12-31T23:59:59Z`;
+  const options: FetchOptions = { from, to, bypassCache: true };
 
-  const from = convertLocalToUtc(parseInt(normalizedYear, 10), 1, 1, 0, 0, 0, timezone);
-  const to = convertLocalToUtc(parseInt(normalizedYear, 10), 12, 31, 23, 59, 59, timezone);
-  const fetchOptions: FetchOptions = {
-    from,
-    to,
-    bypassCache: options?.bypassCache ?? false,
-    signal: options?.signal,
-  };
-
-  const [userData, repos] = await Promise.all([
-    fetchGitHubContributions(username, fetchOptions),
-    fetchUserRepos(username, fetchOptions),
+  const [calendar, repos] = await Promise.all([
+    fetchGitHubContributions(username, options),
+    fetchUserRepos(username, options),
   ]);
-  const calendar = userData.calendar;
+
   const allDays = calendar.weeks.flatMap((w) => w.contributionDays);
+
   const totalContributions = calendar.totalContributions;
 
   const mostActiveDay = allDays.reduce(
@@ -2012,14 +1968,11 @@ export async function getWrappedData(
     monthTotals[month] = (monthTotals[month] || 0) + day.contributionCount;
   }
   const busiestMonth =
-    Object.entries(monthTotals).sort((a, b) => b[1] - a[1])[0]?.[0] ?? `${normalizedYear}-01`;
+    Object.entries(monthTotals).sort((a, b) => b[1] - a[1])[0]?.[0] ?? `${year}-01`;
 
   const weekendDays = allDays.filter((d) => {
-    const dowStr = new Intl.DateTimeFormat('en-US', {
-      timeZone: timezone,
-      weekday: 'short',
-    }).format(new Date(d.date + 'T12:00:00Z'));
-    return dowStr === 'Sat' || dowStr === 'Sun';
+    const dow = new Date(d.date).getUTCDay();
+    return dow === 0 || dow === 6;
   });
   const weekendTotal = weekendDays.reduce((sum, d) => sum + d.contributionCount, 0);
   const weekendRatio =
@@ -2038,35 +1991,5 @@ export async function getWrappedData(
     busiestMonth,
     weekendRatio,
     topLanguage,
-    calendar,
   };
-}
-
-export async function runCappedConcurrency<T, R>(
-  items: T[],
-  limit: number,
-  fn: (item: T) => Promise<R>
-): Promise<R[]> {
-  const results: R[] = new Array(items.length);
-  let currentIndex = 0;
-
-  async function worker(): Promise<void> {
-    while (currentIndex < items.length) {
-      const index = currentIndex++;
-      try {
-        results[index] = await fn(items[index]);
-      } catch {
-        results[index] = null as unknown as R;
-      }
-    }
-  }
-
-  const workers: Promise<void>[] = [];
-  const workerCount = Math.min(limit, items.length);
-  for (let i = 0; i < workerCount; i++) {
-    workers.push(worker());
-  }
-
-  await Promise.all(workers);
-  return results;
 }
