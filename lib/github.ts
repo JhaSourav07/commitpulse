@@ -468,9 +468,9 @@ export async function getOrgDashboardData(orgName: string, options: FetchOptions
 export function generateAchievements(
   totalContributions: number,
   currentStreak: number,
-  longestStreak: number = currentStreak,
   weekendCommits: number = 0,
-  uniqueLanguages: number = 0
+  uniqueLanguages: number = 0,
+  longestStreak: number = currentStreak
 ) {
   const achievements = [];
 
@@ -710,9 +710,9 @@ export async function getFullDashboardData(username: string, options: FetchOptio
   const achievements = generateAchievements(
     streakStats.totalContributions,
     streakStats.currentStreak,
-    streakStats.longestStreak,
     weekendCommits,
-    uniqueLanguages
+    uniqueLanguages,
+    streakStats.longestStreak
   );
 
   const insights = buildInsights(streakStats, languages);
@@ -747,7 +747,7 @@ export async function getWrappedData(
 
   const allDays = calendar.weeks.flatMap((w) => w.contributionDays);
 
-  const totalContributions = allDays.reduce((sum, d) => sum + d.contributionCount, 0);
+  const totalContributions = calendar.totalContributions;
 
   const mostActiveDay = allDays.reduce(
     (max, d) => (d.contributionCount > max.contributionCount ? d : max),
