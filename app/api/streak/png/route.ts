@@ -35,7 +35,7 @@ export async function GET(request: Request) {
       headers.set('Cache-Control', cacheControl);
     }
 
-    return new NextResponse(pngBuffer, {
+    return new NextResponse(pngBuffer as unknown as BodyInit, {
       status: 200,
       headers,
     });
