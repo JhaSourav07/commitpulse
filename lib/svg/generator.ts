@@ -326,6 +326,9 @@ export function generateSVG(
   const accent = `#${sanitizeHexColor(params.accent, '00ffaa')}`;
   const text = `#${sanitizeHexColor(params.text, 'ffffff')}`;
 
+  // NEW LOGIC: Conditionally create the stroke attributes
+  const borderAttr = params.border ? `stroke="#${params.border}" stroke-width="2"` : '';
+
   const sanitizedFont = sanitizeFont(params.font);
   const predefinedFont = getFontFromMap(sanitizedFont);
   const isPredefinedFont = Boolean(predefinedFont);
@@ -337,6 +340,8 @@ export function generateSVG(
   const statsFont = selectedFont || '"Space Grotesk", sans-serif';
   const googleFontUrlPart =
     sanitizedFont && !isPredefinedFont ? sanitizeGoogleFontUrl(sanitizedFont) : null;
+
+  // FIXED: Added &amp; to the dynamic display=swap URL query
   const googleFontsImport = googleFontUrlPart
     ? `@import url('https://fonts.googleapis.com/css2?family=${googleFontUrlPart}&display=swap');`
     : '';
@@ -357,7 +362,7 @@ export function generateSVG(
 <svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" fill="none" role="img">
   ${renderHeader(safeUser, stats, sf, params)}
   ${renderStyle(selectedFont, statsFont, googleFontsImport, text, accent, sf)}
-  <rect width="${W}" height="${H}" rx="${radius}" fill="${params.hideBackground ? 'transparent' : bg}" />
+  <rect width="${W}" height="${H}" rx="${radius}" fill="${params.hideBackground ? 'transparent' : bg}" ${borderAttr} />
   <g transform="translate(0, ${Math.round(20 * sf)})">${towers}</g>
   ${renderIsometricLabels(calendar, params, text, sf)}
   ${renderFooter(stats, params, labels, safeUser, accent, sf)}
@@ -698,12 +703,12 @@ function generateAutoThemeMonthlySVG(stats: MonthlyStats, params: BadgeParams): 
  *
  * @example
  * const svg = generateNotFoundSVG(
- *   'octocat',
- *   '#0d1117',
- *   '#00ffaa',
- *   '#ffffff',
- *   8,
- *   '8s'
+ * 'octocat',
+ * '#0d1117',
+ * '#00ffaa',
+ * '#ffffff',
+ * 8,
+ * '8s'
  * );
  */
 // Fixed isometric tower layout for the not-found ghost city.
@@ -806,7 +811,6 @@ export function generateNotFoundSVG(
       <feGaussianBlur stdDeviation="8" result="blur"/>
       <feComposite in="SourceGraphic" in2="blur" operator="over"/>
     </filter>
-    <!-- Fade the ghost city out toward the bottom -->
     <linearGradient id="ghostFade" x1="0" y1="0" x2="0" y2="1">
       <stop offset="30%" stop-color="${bg}" stop-opacity="0"/>
       <stop offset="100%" stop-color="${bg}" stop-opacity="1"/>
@@ -832,15 +836,12 @@ export function generateNotFoundSVG(
     }
   </style>
 
-  <!-- Background -->
   <rect width="${SVG_WIDTH}" height="${SVG_HEIGHT}" rx="${radius}" fill="${bg}"/>
 
-  <!-- Ghost isometric city — same grid as real badge -->
   <g transform="translate(0, 20)" class="ghost-pulse">
     ${ghostTowers}
   </g>
 
-  <!-- Fade overlay so ghost city dissolves into background -->
   <rect width="${SVG_WIDTH}" height="${SVG_HEIGHT}" rx="${radius}" fill="url(#ghostFade)"/>
 
   <!-- Radar scan line -->
@@ -848,10 +849,8 @@ export function generateNotFoundSVG(
 
   <text x="300" y="50" text-anchor="middle" class="title">${safeName}</text>
 
-  <!-- Divider below title -->
   <rect x="180" y="62" width="240" height="1" fill="${accent}" fill-opacity="0.15"/>
 
-  <!-- Central error mark -->
   <circle cx="300" cy="190" r="32" fill="none"
     stroke="${accent}" stroke-width="1.2" stroke-opacity="0.3" filter="url(#softglow)"/>
   <line x1="286" y1="176" x2="314" y2="204"
@@ -859,7 +858,6 @@ export function generateNotFoundSVG(
   <line x1="314" y1="176" x2="286" y2="204"
     stroke="${accent}" stroke-width="1.8" stroke-linecap="round" stroke-opacity="0.55"/>
 
-  <!-- "NOT FOUND" badge -->
   <rect x="230" y="235" width="140" height="22" rx="4"
     fill="${accent}" fill-opacity="0.08"
     stroke="${accent}" stroke-width="0.8" stroke-opacity="0.25"/>

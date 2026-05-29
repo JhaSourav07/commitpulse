@@ -128,6 +128,9 @@ export interface BadgeParams {
   /** Border corner radius in pixels. Defaults to 8. */
   radius?: number;
 
+  /** Custom stroke color for the main SVG container. Hex string WITHOUT the leading '#'. */
+  border?: string;
+
   /** When true, automatically selects a theme based on the viewer's system color scheme. */
   autoTheme?: boolean;
 

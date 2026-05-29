@@ -102,12 +102,16 @@ export async function GET(request: Request) {
 
     // If 'org' is provided, we use it as the display user
     const targetEntity = org || user;
+    // NEW LOGIC: Extract and sanitize the border query parameter
+    const borderParam = searchParams.get('border');
+    const sanitizedBorder = borderParam ? borderParam.replace(/[^a-fA-F0-9]/g, '') : undefined;
 
     const params: BadgeParams = {
       user: targetEntity,
       bg: isAutoTheme ? selectedTheme.bg : bg || selectedTheme.bg,
       text: isAutoTheme ? selectedTheme.text : text || selectedTheme.text,
       accent: isAutoTheme ? selectedTheme.accent : accent || selectedTheme.accent,
+      border: sanitizedBorder, // <--- Passed down to the generator here
       radius,
       speed: speed && /^(?:[2-9]|1\d|20)s$/.test(speed) ? speed : '8s',
       scale,
