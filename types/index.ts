@@ -174,4 +174,11 @@ export interface BadgeParams {
    * Usage: /api/streak?user=alice&versus=bob
    */
   versus?: string;
+
+  /**
+   * When set to false, disables all SVG animations for accessibility.
+   * Respects user's prefers-reduced-motion setting by default.
+   * Usage: /api/streak?user=alice&animations=false
+   */
+  animations?: boolean;
 }

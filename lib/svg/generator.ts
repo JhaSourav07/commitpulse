@@ -105,8 +105,8 @@ function renderHeader(
   const unit = params.mode === 'loc' ? 'lines of code' : 'total contributions';
   const entity = params.org ? 'Organization' : params.repo ? 'Repository' : 'User';
   return `
-  <title>CommitPulse ${entity} Stats for ${safeUser}</title>
-  <desc>
+  <title id="svg-title">CommitPulse ${entity} Stats for ${safeUser}</title>
+  <desc id="svg-desc">
     ${safeUser} has ${stats.totalContributions} ${unit} and a longest streak of ${stats.longestStreak} days.
   </desc>
   ${renderDefs(sf)}`;
@@ -128,17 +128,17 @@ function renderStatsSection(
   const totalLabel = params.mode === 'loc' ? 'TOTAL LINES OF CODE' : labels.ANNUAL_SYNC_TOTAL;
 
   return `
-  <g transform="translate(${s(40)}, ${s(340)})">
+  <g transform="translate(${s(40)}, ${s(340)})" role="group" aria-label="Current streak statistics">
     <text class="label">${labels.CURRENT_STREAK}</text>
-    <text y="${s(40)}" class="stats" filter="url(#glow)">${stats.currentStreak}</text>
+    <text y="${s(40)}" class="stats" filter="url(#glow)" aria-label="${stats.currentStreak} days current streak">${stats.currentStreak}</text>
   </g>
-  <g transform="translate(${s(300)}, ${s(340)})" text-anchor="middle">
+  <g transform="translate(${s(300)}, ${s(340)})" text-anchor="middle" role="group" aria-label="Total contributions statistics">
     <text class="label">${totalLabel}</text>
-    <text y="${s(40)}" class="total-val" filter="url(#glow)">${stats.totalContributions}</text>
+    <text y="${s(40)}" class="total-val" filter="url(#glow)" aria-label="${stats.totalContributions} total contributions">${stats.totalContributions}</text>
   </g>
-  <g transform="translate(${s(560)}, ${s(340)})" text-anchor="end">
+  <g transform="translate(${s(560)}, ${s(340)})" text-anchor="end" role="group" aria-label="Longest streak statistics">
     <text class="label">${labels.PEAK_STREAK}</text>
-    <text y="${s(40)}" class="stats">${stats.longestStreak}</text>
+    <text y="${s(40)}" class="stats" aria-label="${stats.longestStreak} days longest streak">${stats.longestStreak}</text>
   </g>`;
 }
 
@@ -148,13 +148,12 @@ function renderStyle(
   googleFontsImport: string,
   text: string,
   accent: string,
-  sf: number
+  sf: number,
+  animationsEnabled: boolean = true
 ): string {
   const fs = (n: number) => Math.round(n * sf * 10) / 10;
-  return `
-  <style>
-  @import url('https://fonts.googleapis.com/css2?family=Fira+Code&amp;family=JetBrains+Mono&amp;family=Roboto&amp;family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');
-  ${googleFontsImport}
+  const animationsCSS = animationsEnabled
+    ? `
   ${TOWER_ANIMATION_CSS}
   .scan-line {
     animation: scan-sweep var(--scan-speed, 8s) linear infinite;
@@ -164,11 +163,10 @@ function renderStyle(
   @keyframes scan-sweep {
     from { transform: translateY(var(--scan-start, ${fs(20)}px)); }
     to { transform: translateY(var(--scan-end, ${fs(260)}px)); }
-  }
-  .title { font-family: ${selectedFont || '"Syncopate", sans-serif'}; fill: ${text}; font-size: ${fs(18)}px; letter-spacing: ${fs(6)}px; font-weight: 400; opacity: 0.8; }
-  .stats { font-family: ${statsFont}; fill: ${text}; font-size: ${fs(42)}px; font-weight: 500; letter-spacing: 0; }
-  .total-val { font-family: ${statsFont}; fill: ${accent}; font-size: ${fs(24)}px; font-weight: 500; }
-  .label { font-family: "Roboto", sans-serif; fill: ${accent}; font-size: ${fs(11)}px; font-weight: 400; letter-spacing: ${fs(2)}px; opacity: 0.7; }
+  }`
+    : '';
+  const reducedMotionCSS = animationsEnabled
+    ? `
   @media (prefers-reduced-motion: reduce) {
     .heat-particles { display: none; }
     .scan-line {
@@ -176,27 +174,56 @@ function renderStyle(
       transition: none !important;
       transform: translateY(var(--scan-start, ${fs(20)}px)) !important;
     }
-  }
+  }`
+    : `
+  .heat-particles { display: none; }
+  .scan-line {
+    animation: none !important;
+    transition: none !important;
+    transform: translateY(var(--scan-start, ${fs(20)}px)) !important;
+  }`;
+  return `
+  <style>
+  @import url('https://fonts.googleapis.com/css2?family=Fira+Code&amp;family=JetBrains+Mono&amp;family=Roboto&amp;family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');
+  ${googleFontsImport}
+  ${animationsCSS}
+  .title { font-family: ${selectedFont || '"Syncopate", sans-serif'}; fill: ${text}; font-size: ${fs(18)}px; letter-spacing: ${fs(6)}px; font-weight: 400; opacity: 0.8; }
+  .stats { font-family: ${statsFont}; fill: ${text}; font-size: ${fs(42)}px; font-weight: 500; letter-spacing: 0; }
+  .total-val { font-family: ${statsFont}; fill: ${accent}; font-size: ${fs(24)}px; font-weight: 500; }
+  .label { font-family: "Roboto", sans-serif; fill: ${accent}; font-size: ${fs(11)}px; font-weight: 400; letter-spacing: ${fs(2)}px; opacity: 0.7; }
+  ${reducedMotionCSS}
   </style>`;
 }
 
-function renderTowers(towerData: TowerData[], accent: string, text: string, sf: number): string {
+function renderTowers(
+  towerData: TowerData[],
+  accent: string,
+  text: string,
+  sf: number,
+  animationsEnabled: boolean = true
+): string {
   let towers = '';
   for (const t of towerData) {
     const color = t.isGhost ? text : accent;
     const delay = ((t.row + t.col) * 0.015).toFixed(3);
+    const animationStyle = animationsEnabled ? `animation-delay: ${delay}s;` : '';
+    const pulseAnimation =
+      animationsEnabled && t.isTodayWithCommits
+        ? '<animate attributeName="opacity" values="1;0.4;1" dur="1.5s" repeatCount="indefinite" />'
+        : '';
     towers += `
-        <g transform="translate(${t.x}, ${t.y})">
-          <g class="cp-tower" style="animation-delay: ${delay}s;">
-            ${t.isTodayWithCommits ? '<animate attributeName="opacity" values="1;0.4;1" dur="1.5s" repeatCount="indefinite" />' : ''}
+        <g transform="translate(${t.x}, ${t.y})" role="img" aria-label="${t.tooltip}">
+          <g class="cp-tower" style="${animationStyle}">
+            ${pulseAnimation}
             <title>${t.tooltip}</title>
-            <path d="M0 ${10 - t.h} L0 10 L-16 0 L-16 ${-t.h} Z" fill="${color}" fill-opacity="${t.faceOpacity.left}" stroke="${color}" stroke-opacity="${t.strokeOpacity}" stroke-width="${t.strokeWidth}" />
-            <path d="M0 ${10 - t.h} L0 10 L16 0 L16 ${-t.h} Z" fill="${color}" fill-opacity="${t.faceOpacity.right}" stroke="${color}" stroke-opacity="${t.strokeOpacity}" stroke-width="${t.strokeWidth}" />
-            <path d="M0 ${-t.h} L16 ${10 - t.h} L0 ${20 - t.h} L-16 ${10 - t.h} Z" fill="${color}" fill-opacity="${t.faceOpacity.top}" stroke="${color}" stroke-opacity="${t.strokeOpacity}" stroke-width="${t.strokeWidth}" />
-            ${t.contributionCount > 5 ? `<path d="M0 ${-t.h} L16 ${10 - t.h} L0 ${20 - t.h} L-16 ${10 - t.h} Z" fill="white" fill-opacity="0.2" />` : ''}
+            <desc>${t.tooltip}. ${t.contributionCount} contribution${t.contributionCount !== 1 ? 's' : ''} on this day.</desc>
+            <path d="M0 ${10 - t.h} L0 10 L-16 0 L-16 ${-t.h} Z" fill="${color}" fill-opacity="${t.faceOpacity.left}" stroke="${color}" stroke-opacity="${t.strokeOpacity}" stroke-width="${t.strokeWidth}" aria-hidden="true" />
+            <path d="M0 ${10 - t.h} L0 10 L16 0 L16 ${-t.h} Z" fill="${color}" fill-opacity="${t.faceOpacity.right}" stroke="${color}" stroke-opacity="${t.strokeOpacity}" stroke-width="${t.strokeWidth}" aria-hidden="true" />
+            <path d="M0 ${-t.h} L16 ${10 - t.h} L0 ${20 - t.h} L-16 ${10 - t.h} Z" fill="${color}" fill-opacity="${t.faceOpacity.top}" stroke="${color}" stroke-opacity="${t.strokeOpacity}" stroke-width="${t.strokeWidth}" aria-hidden="true" />
+            ${t.contributionCount > 5 ? `<path d="M0 ${-t.h} L16 ${10 - t.h} L0 ${20 - t.h} L-16 ${10 - t.h} Z" fill="white" fill-opacity="0.2" aria-hidden="true" />` : ''}
           </g>
         </g>`;
-    if (t.contributionCount >= 10)
+    if (t.contributionCount >= 10 && animationsEnabled)
       towers += generateParticles(t.x, t.y, t.h, t.contributionCount, sf, false, accent);
   }
   return towers;
@@ -260,16 +287,18 @@ export function generateSVG(
   const W = Math.round(SVG_WIDTH * sf);
   const H = Math.round(SVG_HEIGHT * sf);
 
+  const animationsEnabled = params.animations !== false;
+
   const towerData = scaleTowerData(
     computeTowers(calendar, params.scale, stats.todayDate, params.mode),
     sf
   );
-  const towers = renderTowers(towerData, accent, text, sf);
+  const towers = renderTowers(towerData, accent, text, sf, animationsEnabled);
 
   return `
-<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" fill="none" role="img">
+<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" fill="none" role="img" aria-labelledby="svg-title svg-desc">
   ${renderHeader(safeUser, stats, sf, params)}
-  ${renderStyle(selectedFont, statsFont, googleFontsImport, text, accent, sf)}
+  ${renderStyle(selectedFont, statsFont, googleFontsImport, text, accent, sf, animationsEnabled)}
   <rect width="${W}" height="${H}" rx="${radius}" fill="${params.hideBackground ? 'transparent' : bg}" />
   <g transform="translate(0, ${Math.round(20 * sf)})">${towers}</g>
   ${renderFooter(stats, params, labels, safeUser, accent, sf)}
@@ -295,6 +324,8 @@ function generateAutoThemeSVG(
 
   const W = Math.round(SVG_WIDTH * sf);
   const H = Math.round(SVG_HEIGHT * sf);
+  const animationsEnabled = params.animations !== false;
+
   const towerData = scaleTowerData(
     computeTowers(calendar, params.scale, stats.todayDate, params.mode),
     sf
@@ -305,41 +336,32 @@ function generateAutoThemeSVG(
     const fillClass = t.isGhost ? 'cp-text-fill' : 'cp-accent-fill';
     const strokeColor = t.isGhost ? 'var(--cp-text)' : 'var(--cp-accent)';
     const delay = ((t.row + t.col) * 0.015).toFixed(3);
+    const animationStyle = animationsEnabled ? `animation-delay: ${delay}s;` : '';
+    const pulseAnimation =
+      animationsEnabled && t.isTodayWithCommits
+        ? '<animate attributeName="opacity" values="1;0.4;1" dur="1.5s" repeatCount="indefinite" />'
+        : '';
 
     towers += `
-        <g transform="translate(${t.x}, ${t.y})">
-          <g class="cp-tower" style="animation-delay: ${delay}s;">
-            ${t.isTodayWithCommits ? '<animate attributeName="opacity" values="1;0.4;1" dur="1.5s" repeatCount="indefinite" />' : ''}
+        <g transform="translate(${t.x}, ${t.y})" role="img" aria-label="${t.tooltip}">
+          <g class="cp-tower" style="${animationStyle}">
+            ${pulseAnimation}
             <title>${t.tooltip}</title>
-            <path d="M0 ${10 - t.h} L0 10 L-16 0 L-16 ${-t.h} Z" class="${fillClass}" fill-opacity="${t.faceOpacity.left}" stroke="${strokeColor}" stroke-opacity="${t.strokeOpacity}" stroke-width="${t.strokeWidth}" />
-            <path d="M0 ${10 - t.h} L0 10 L16 0 L16 ${-t.h} Z" class="${fillClass}" fill-opacity="${t.faceOpacity.right}" stroke="${strokeColor}" stroke-opacity="${t.strokeOpacity}" stroke-width="${t.strokeWidth}" />
-            <path d="M0 ${-t.h} L16 ${10 - t.h} L0 ${20 - t.h} L-16 ${10 - t.h} Z" class="${fillClass}" fill-opacity="${t.faceOpacity.top}" stroke="${strokeColor}" stroke-opacity="${t.strokeOpacity}" stroke-width="${t.strokeWidth}" />
-            ${t.contributionCount > 5 ? `<path d="M0 ${-t.h} L16 ${10 - t.h} L0 ${20 - t.h} L-16 ${10 - t.h} Z" fill="white" fill-opacity="0.2" />` : ''}
+            <desc>${t.tooltip}. ${t.contributionCount} contribution${t.contributionCount !== 1 ? 's' : ''} on this day.</desc>
+            <path d="M0 ${10 - t.h} L0 10 L-16 0 L-16 ${-t.h} Z" class="${fillClass}" fill-opacity="${t.faceOpacity.left}" stroke="${strokeColor}" stroke-opacity="${t.strokeOpacity}" stroke-width="${t.strokeWidth}" aria-hidden="true" />
+            <path d="M0 ${10 - t.h} L0 10 L16 0 L16 ${-t.h} Z" class="${fillClass}" fill-opacity="${t.faceOpacity.right}" stroke="${strokeColor}" stroke-opacity="${t.strokeOpacity}" stroke-width="${t.strokeWidth}" aria-hidden="true" />
+            <path d="M0 ${-t.h} L16 ${10 - t.h} L0 ${20 - t.h} L-16 ${10 - t.h} Z" class="${fillClass}" fill-opacity="${t.faceOpacity.top}" stroke="${strokeColor}" stroke-opacity="${t.strokeOpacity}" stroke-width="${t.strokeWidth}" aria-hidden="true" />
+            ${t.contributionCount > 5 ? `<path d="M0 ${-t.h} L16 ${10 - t.h} L0 ${20 - t.h} L-16 ${10 - t.h} Z" fill="white" fill-opacity="0.2" aria-hidden="true" />` : ''}
           </g>
         </g>`;
-    if (t.contributionCount >= 10)
+    if (t.contributionCount >= 10 && animationsEnabled)
       towers += generateParticles(t.x, t.y, t.h, t.contributionCount, sf, true);
   }
 
   const s = createScaler(sf);
   const fs = (n: number): number => Math.round(n * sf * 10) / 10;
-
-  return `
-<svg
-  xmlns="http://www.w3.org/2000/svg"
-  width="${W}"
-  height="${H}"
-  viewBox="0 0 ${W} ${H}"
-  fill="none"
-  role="img"
->
-  ${renderHeader(safeUser, stats, sf, params)}
-
-  <style>
-  @import url('https://fonts.googleapis.com/css2?family=Fira+Code&amp;family=JetBrains+Mono&amp;family=Roboto&amp;family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');
-  :root { --cp-bg: #${light.bg}; --cp-text: #${light.text}; --cp-accent: #${light.accent}; }
-  @media (prefers-color-scheme: dark) { :root { --cp-bg: #${dark.bg}; --cp-text: #${dark.text}; --cp-accent: #${dark.accent}; } }
-  .cp-bg-fill { fill: var(--cp-bg); } .cp-text-fill { fill: var(--cp-text); color: var(--cp-text); } .cp-accent-fill { fill: var(--cp-accent); color: var(--cp-accent); }
+  const animationsCSS = animationsEnabled
+    ? `
   ${TOWER_ANIMATION_CSS}
   .scan-line {
     animation: scan-sweep var(--scan-speed, 8s) linear infinite;
@@ -349,12 +371,10 @@ function generateAutoThemeSVG(
   @keyframes scan-sweep {
     from { transform: translateY(var(--scan-start, ${s(20)}px)); }
     to { transform: translateY(var(--scan-end, ${s(260)}px)); }
-  }
-  .title { font-family: ${selectedFont || '"Syncopate", sans-serif'}; fill: var(--cp-text); font-size: ${fs(18)}px; letter-spacing: ${fs(6)}px; font-weight: 400; opacity: 0.8; }
-  .stats { font-family: ${statsFont}; fill: var(--cp-text); font-size: ${fs(42)}px; font-weight: 500; letter-spacing: 0; }
-  .total-val { font-family: ${statsFont}; fill: var(--cp-accent); font-size: ${fs(24)}px; font-weight: 500; }
-  .label { font-family: "Roboto", sans-serif; fill: var(--cp-accent); font-size: ${fs(11)}px; font-weight: 400; letter-spacing: ${fs(2)}px; opacity: 0.7; }
-
+  }`
+    : '';
+  const reducedMotionCSS = animationsEnabled
+    ? `
   @media (prefers-reduced-motion: reduce) {
     .heat-particles { display: none; }
     .scan-line {
@@ -362,7 +382,38 @@ function generateAutoThemeSVG(
       transition: none !important;
       transform: translateY(var(--scan-start, ${s(20)}px)) !important;
     }
-  }
+  }`
+    : `
+  .heat-particles { display: none; }
+  .scan-line {
+    animation: none !important;
+    transition: none !important;
+    transform: translateY(var(--scan-start, ${s(20)}px)) !important;
+  }`;
+
+  return `
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  width="${W}"
+  height="${H}"
+  viewBox="0 0 ${W} ${H}"
+  fill="none"
+  role="img"
+  aria-labelledby="svg-title svg-desc"
+>
+  ${renderHeader(safeUser, stats, sf, params)}
+
+  <style>
+  @import url('https://fonts.googleapis.com/css2?family=Fira+Code&amp;family=JetBrains+Mono&amp;family=Roboto&amp;family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');
+  :root { --cp-bg: #${light.bg}; --cp-text: #${light.text}; --cp-accent: #${light.accent}; }
+  @media (prefers-color-scheme: dark) { :root { --cp-bg: #${dark.bg}; --cp-text: #${dark.text}; --cp-accent: #${dark.accent}; } }
+  .cp-bg-fill { fill: var(--cp-bg); } .cp-text-fill { fill: var(--cp-text); color: var(--cp-text); } .cp-accent-fill { fill: var(--cp-accent); color: var(--cp-accent); }
+  ${animationsCSS}
+  .title { font-family: ${selectedFont || '"Syncopate", sans-serif'}; fill: var(--cp-text); font-size: ${fs(18)}px; letter-spacing: ${fs(6)}px; font-weight: 400; opacity: 0.8; }
+  .stats { font-family: ${statsFont}; fill: var(--cp-text); font-size: ${fs(42)}px; font-weight: 500; letter-spacing: 0; }
+  .total-val { font-family: ${statsFont}; fill: var(--cp-accent); font-size: ${fs(24)}px; font-weight: 500; }
+  .label { font-family: "Roboto", sans-serif; fill: var(--cp-accent); font-size: ${fs(11)}px; font-weight: 400; letter-spacing: ${fs(2)}px; opacity: 0.7; }
+  ${reducedMotionCSS}
   </style>
 
   <rect width="${W}" height="${H}" rx="${radius}" ${params.hideBackground ? 'fill="transparent"' : 'class="cp-bg-fill"'} />
@@ -459,8 +510,10 @@ export function generateMonthlySVG(stats: MonthlyStats, params: BadgeParams): st
   viewBox="0 0 ${width} ${height}"
   fill="none"
   role="img"
+  aria-labelledby="monthly-title monthly-desc"
 >
-  <title>Monthly Stats for ${safeUser}</title>
+  <title id="monthly-title">Monthly Stats for ${safeUser}</title>
+  <desc id="monthly-desc">${stats.currentMonthName}: ${stats.currentMonthTotal} ${deltaUnit}. ${deltaText} compared to last month.</desc>
   <style>
   @import url('https://fonts.googleapis.com/css2?family=Fira+Code&amp;family=JetBrains+Mono&amp;family=Roboto&amp;family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');
   ${googleFontsImport}
@@ -477,11 +530,11 @@ export function generateMonthlySVG(stats: MonthlyStats, params: BadgeParams): st
   <rect width="${width}" height="${height}" rx="${radius}" fill="${params.hideBackground ? 'transparent' : bg}" />
 
   <text x="20" y="40" class="title">${stats.currentMonthName.toUpperCase()}</text>
-  <text x="20" y="85" class="stats">${stats.currentMonthTotal}</text>
+  <text x="20" y="85" class="stats" aria-label="${stats.currentMonthTotal} ${commitsLabel}">${stats.currentMonthTotal}</text>
   <text x="20" y="105" class="label">${commitsLabel}</text>
 
-  <g transform="translate(${width - 20}, 80)" text-anchor="end">
-    <text class="delta">${deltaText}</text>
+  <g transform="translate(${width - 20}, 80)" text-anchor="end" role="group" aria-label="Month over month comparison">
+    <text class="delta" aria-label="${deltaText} change compared to last month">${deltaText}</text>
     <text y="20" class="label">${labels.VS_LAST_MONTH}</text>
   </g>
 </svg>
@@ -544,8 +597,10 @@ function generateAutoThemeMonthlySVG(stats: MonthlyStats, params: BadgeParams): 
   viewBox="0 0 ${width} ${height}"
   fill="none"
   role="img"
+  aria-labelledby="monthly-title monthly-desc"
 >
-  <title>Monthly Stats for ${safeUser}</title>
+  <title id="monthly-title">Monthly Stats for ${safeUser}</title>
+  <desc id="monthly-desc">${stats.currentMonthName}: ${stats.currentMonthTotal} ${deltaUnit}. ${deltaText} compared to last month.</desc>
   <style>
   @import url('https://fonts.googleapis.com/css2?family=Fira+Code&amp;family=JetBrains+Mono&amp;family=Roboto&amp;family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');
   :root { --cp-bg: #${light.bg}; --cp-text: #${light.text}; --cp-accent: #${light.accent}; --cp-negative: #ff4444; }
@@ -567,11 +622,11 @@ function generateAutoThemeMonthlySVG(stats: MonthlyStats, params: BadgeParams): 
   <rect width="${width}" height="${height}" rx="${radius}" ${params.hideBackground ? 'fill="transparent"' : 'class="cp-bg-fill"'} />
 
   <text x="20" y="40" class="title">${stats.currentMonthName.toUpperCase()}</text>
-  <text x="20" y="85" class="stats">${stats.currentMonthTotal}</text>
+  <text x="20" y="85" class="stats" aria-label="${stats.currentMonthTotal} ${commitsLabel}">${stats.currentMonthTotal}</text>
   <text x="20" y="105" class="label">${commitsLabel}</text>
 
-  <g transform="translate(${width - 20}, 80)" text-anchor="end">
-    <text class="delta cp-delta-fill">${deltaText}</text>
+  <g transform="translate(${width - 20}, 80)" text-anchor="end" role="group" aria-label="Month over month comparison">
+    <text class="delta cp-delta-fill" aria-label="${deltaText} change compared to last month">${deltaText}</text>
     <text y="20" class="label">${labels.VS_LAST_MONTH}</text>
   </g>
 </svg>
@@ -666,7 +721,8 @@ export function generateNotFoundSVG(
   accent: string,
   text: string,
   radius: number,
-  speed: string = '8s'
+  speed: string = '8s',
+  animationsEnabled: boolean = true
 ): string {
   const safeName = escapeXML(username.toUpperCase());
   let ghostTowers = '';
@@ -675,7 +731,7 @@ export function generateNotFoundSVG(
     const ty = 120 + (col + row) * 9;
 
     ghostTowers += `
-      <g transform="translate(${tx}, ${ty - h})">
+      <g transform="translate(${tx}, ${ty - h})" aria-hidden="true">
         <path d="M0 10 L0 ${10 + h} L-16 ${h} L-16 0 Z"
           fill="${accent}" fill-opacity="0.08"
           stroke="${accent}" stroke-opacity="0.18" stroke-width="0.5"/>
@@ -688,6 +744,31 @@ export function generateNotFoundSVG(
       </g>`;
   }
 
+  const animationsCSS = animationsEnabled
+    ? `
+    .ghost-pulse { animation: gp 2.6s ease-in-out infinite; }
+    .scan-line { animation: scan-sweep var(--scan-speed, 8s) linear infinite; }
+    @keyframes gp { 0%,100%{opacity:.55} 50%{opacity:1} }
+    @keyframes scan-sweep { from { transform: translateY(20px); } to { transform: translateY(260px); } }`
+    : '';
+  const reducedMotionCSS = animationsEnabled
+    ? `
+    @media (prefers-reduced-motion: reduce) {
+      .ghost-pulse { animation: none !important; transition: none !important; }
+      .scan-line {
+        animation: none !important;
+        transition: none !important;
+        transform: translateY(20px) !important;
+      }
+    }`
+    : `
+    .ghost-pulse { animation: none !important; transition: none !important; }
+    .scan-line {
+      animation: none !important;
+      transition: none !important;
+      transform: translateY(20px) !important;
+    }`;
+
   return `<svg
   xmlns="http://www.w3.org/2000/svg"
   width="${SVG_WIDTH}"
@@ -695,8 +776,10 @@ export function generateNotFoundSVG(
   viewBox="0 0 ${SVG_WIDTH} ${SVG_HEIGHT}"
   fill="none"
   role="img"
+  aria-labelledby="notfound-title notfound-desc"
 >
-  <title>User not found — ${safeName}</title>
+  <title id="notfound-title">User not found — ${safeName}</title>
+  <desc id="notfound-desc">The GitHub user ${username} does not exist or could not be found.</desc>
   <defs>
     <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
       <feGaussianBlur stdDeviation="5" result="blur"/>
@@ -718,18 +801,8 @@ export function generateNotFoundSVG(
     .title  { font-family: "Syncopate", sans-serif; fill: ${text}; font-size: 18px; letter-spacing: 6px; font-weight: 400; opacity: 0.5; }
     .label  { font-family: "Roboto", sans-serif; fill: ${accent}; font-size: 11px; letter-spacing: 2px; opacity: 0.4; }
     .stats  { font-family: "Space Grotesk", sans-serif; fill: ${text}; font-size: 42px; font-weight: 500; opacity: 0.2; }
-    .ghost-pulse { animation: gp 2.6s ease-in-out infinite; }
-    .scan-line { animation: scan-sweep var(--scan-speed, 8s) linear infinite; }
-    @keyframes gp { 0%,100%{opacity:.55} 50%{opacity:1} }
-    @keyframes scan-sweep { from { transform: translateY(20px); } to { transform: translateY(260px); } }
-    @media (prefers-reduced-motion: reduce) {
-      .ghost-pulse { animation: none !important; transition: none !important; }
-      .scan-line {
-        animation: none !important;
-        transition: none !important;
-        transform: translateY(20px) !important;
-      }
-    }
+    ${animationsCSS}
+    ${reducedMotionCSS}
   </style>
 
   <!-- Background -->
@@ -753,11 +826,11 @@ export function generateNotFoundSVG(
 
   <!-- Central error mark -->
   <circle cx="300" cy="190" r="32" fill="none"
-    stroke="${accent}" stroke-width="1.2" stroke-opacity="0.3" filter="url(#softglow)"/>
+    stroke="${accent}" stroke-width="1.2" stroke-opacity="0.3" filter="url(#softglow)" aria-hidden="true"/>
   <line x1="286" y1="176" x2="314" y2="204"
-    stroke="${accent}" stroke-width="1.8" stroke-linecap="round" stroke-opacity="0.55"/>
+    stroke="${accent}" stroke-width="1.8" stroke-linecap="round" stroke-opacity="0.55" aria-hidden="true"/>
   <line x1="314" y1="176" x2="286" y2="204"
-    stroke="${accent}" stroke-width="1.8" stroke-linecap="round" stroke-opacity="0.55"/>
+    stroke="${accent}" stroke-width="1.8" stroke-linecap="round" stroke-opacity="0.55" aria-hidden="true"/>
 
   <!-- "NOT FOUND" badge -->
   <rect x="230" y="235" width="140" height="22" rx="4"
@@ -774,18 +847,18 @@ export function generateNotFoundSVG(
   </text>
 
   <!-- Bottom stat placeholders -->
-  <g transform="translate(40, 340)">
+  <g transform="translate(40, 340)" role="group" aria-label="Current streak placeholder">
     <text class="label">CURRENT_STREAK</text>
-    <text y="40" class="stats">—</text>
+    <text y="40" class="stats" aria-label="Not available">—</text>
   </g>
-  <g transform="translate(300, 340)" text-anchor="middle">
+  <g transform="translate(300, 340)" text-anchor="middle" role="group" aria-label="Total contributions placeholder">
     <text class="label">ANNUAL_SYNC_TOTAL</text>
     <text y="40" font-family="Space Grotesk,sans-serif" font-size="24"
-      fill="${accent}" opacity="0.2">—</text>
+      fill="${accent}" opacity="0.2" aria-label="Not available">—</text>
   </g>
-  <g transform="translate(560, 340)" text-anchor="end">
+  <g transform="translate(560, 340)" text-anchor="end" role="group" aria-label="Longest streak placeholder">
     <text class="label">PEAK_STREAK</text>
-    <text y="40" class="stats">—</text>
+    <text y="40" class="stats" aria-label="Not available">—</text>
   </g>
 </svg>`;
 }
