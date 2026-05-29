@@ -69,6 +69,7 @@ it('generates structurally valid ASCII STL facets', () => {
       strokeWidth: 1,
       row: 0,
       col: 0,
+      intensityLevel: 2,
     },
   ];
 
