@@ -160,6 +160,7 @@ URL Parameter > Theme Default > System Fallback
 | `delta_format`    | `string`  | No         | `percent`                      | Format for month-over-month delta in monthly view: `percent` (e.g. +12%), `absolute` (e.g. +15 commits), or `both`                                                        |
 | `width`           | `number`  | No         | `300`                          | Custom width for the SVG canvas (currently only applies to `view=monthly`)                                                                                                |
 | `height`          | `number`  | No         | `120`                          | Custom height for the SVG canvas (currently only applies to `view=monthly`)                                                                                               |
+| `animations`      | `boolean` | No         | `true`                         | Enable/disable SVG animations for accessibility. When `false`, all animations are disabled regardless of `prefers-reduced-motion` setting                                 |
 
 ### Theme Presets
 
@@ -249,6 +250,10 @@ Explore some of the built-in CommitPulse themes and quickly copy the style you l
 <!-- Large badge size -->
 
 ![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&size=large)
+
+<!-- Disable animations for accessibility -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&animations=false)
 ```
 
 ---

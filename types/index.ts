@@ -167,4 +167,11 @@ export interface BadgeParams {
 
   /** Organization name to generate a Mega-City for. */
   org?: string;
+
+  /**
+   * When set to false, disables all SVG animations for accessibility.
+   * Respects user's prefers-reduced-motion setting by default.
+   * Usage: /api/streak?user=alice&animations=false
+   */
+  animations?: boolean;
 }
