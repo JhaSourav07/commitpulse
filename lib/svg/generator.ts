@@ -493,13 +493,8 @@ export function generateSVG(
   return `
 <svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" fill="none" role="img">
   ${renderHeader(safeUser, stats, sf, params)}
-<<<<<<< HEAD
-  ${renderStyle(selectedFont, statsFont, googleFontsImport, text, accent, sf)}
-  <rect width="${W}" height="${H}" rx="${radius}" fill="${params.hideBackground ? 'transparent' : bg}" ${borderAttr} />
-=======
   ${renderStyle(selectedFont, statsFont, googleFontsImport, text, mainAccentHex, sf)}
-  <rect width="${W}" height="${H}" rx="${radius}" fill="${params.hideBackground ? 'transparent' : bg}" />
->>>>>>> f03a8e8 (feat: add dynamic contribution-level color shading and volumetric gradients)
+  <rect width="${W}" height="${H}" rx="${radius}" fill="${params.hideBackground ? 'transparent' : bg}" ${borderAttr} />
   <g transform="translate(0, ${Math.round(20 * sf)})">${towers}</g>
   ${renderIsometricLabels(calendar, params, text, sf)}
   ${renderFooter(stats, params, labels, safeUser, mainAccentHex, sf)}
@@ -1022,7 +1017,10 @@ export function generateVersusSVG(
   const safeUser1 = escapeXML(params.user || 'User 1');
   const safeUser2 = escapeXML(params.versus || 'User 2');
   const bg = `#${sanitizeHexColor(params.bg, '0d1117')}`;
-  const accent = `#${sanitizeHexColor(params.accent, '00ffaa')}`;
+  const rawAccent = Array.isArray(params.accent)
+    ? params.accent[params.accent.length - 1]
+    : params.accent;
+  const accent = `#${sanitizeHexColor(rawAccent, '00ffaa')}`;
   const text = `#${sanitizeHexColor(params.text, 'ffffff')}`;
 
   const sanitizedFont = sanitizeFont(params.font);
@@ -1057,8 +1055,8 @@ export function generateVersusSVG(
     sf
   );
 
-  const towers1 = renderTowers(towerData1, accent, text, sf);
-  const towers2 = renderTowers(towerData2, accent, text, sf);
+  const towers1 = renderTowers(towerData1, params, accent, text, sf, false);
+  const towers2 = renderTowers(towerData2, params, accent, text, sf, false);
 
   const s = createScaler(sf);
   const unit = params.mode === 'loc' ? 'lines of code' : 'total contributions';
@@ -1067,7 +1065,7 @@ export function generateVersusSVG(
 <svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" fill="none" role="img">
   <title>CommitPulse Versus Stats: ${safeUser1} vs ${safeUser2}</title>
   <desc>${safeUser1} has ${stats1.totalContributions} ${unit}. ${safeUser2} has ${stats2.totalContributions} ${unit}.</desc>
-  ${renderDefs(sf)}
+  ${renderDefs(sf, params)}
   ${renderStyle(selectedFont, statsFont, googleFontsImport, text, accent, sf)}
   <rect width="${W}" height="${H}" rx="${radius}" fill="${params.hideBackground ? 'transparent' : bg}" />
   
@@ -1177,7 +1175,7 @@ function generateAutoThemeVersusSVG(
 <svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" fill="none" role="img">
   <title>CommitPulse Versus Stats: ${safeUser1} vs ${safeUser2}</title>
   <desc>${safeUser1} has ${stats1.totalContributions} ${unit}. ${safeUser2} has ${stats2.totalContributions} ${unit}.</desc>
-  ${renderDefs(sf)}
+  ${renderDefs(sf, params)}
   
   <style>
   @import url('https://fonts.googleapis.com/css2?family=Fira+Code&family=JetBrains+Mono&family=Roboto&family=Syncopate:wght@400;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
