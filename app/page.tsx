@@ -171,8 +171,8 @@ export default function LandingPage() {
             transition={{ delay: 0.3 }}
             className="mx-auto max-w-2xl text-sm sm:text-lg leading-relaxed text-gray-600 dark:text-white/65 md:text-xl "
           >
-            Stop settling for flat grids. Generate high-fidelity, 3D isometric monoliths that
-            visualize your coding rhythm with professional precision.
+            CommitPulse converts your GitHub commit history into a live, 3D animated badge. The more
+            you commit, the taller your city grows! Embed it in your profile README with one line.
           </motion.p>
         </div>
 
