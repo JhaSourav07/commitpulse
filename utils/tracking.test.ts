@@ -28,6 +28,29 @@ describe('trackUser', () => {
     expect(sendBeaconMock).toHaveBeenCalledWith('/api/track-user', expect.any(Blob));
   });
 
+  it('should verify trackUser sends correct JSON payload structure via sendBeacon Blob content', async () => {
+    const sendBeaconMock = vi.fn().mockReturnValue(true);
+
+    Object.defineProperty(navigator, 'sendBeacon', {
+      value: sendBeaconMock,
+      configurable: true,
+    });
+
+    trackUser('octocat');
+
+    expect(sendBeaconMock).toHaveBeenCalledTimes(1);
+
+    const callArguments = sendBeaconMock.mock.calls[0];
+    const blobPayload = callArguments[1] as Blob;
+
+    expect(blobPayload).toBeInstanceOf(Blob);
+
+    const textContent = await blobPayload.text();
+    const parsedJSON = JSON.parse(textContent);
+
+    expect(parsedJSON).toEqual({ username: 'octocat' });
+  });
+
   it('falls back to fetch when sendBeacon is not available', () => {
     Object.defineProperty(navigator, 'sendBeacon', {
       value: undefined,
