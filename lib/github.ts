@@ -29,27 +29,39 @@ export async function fetchWithRetry(
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), resolvedTimeout);
+  const abortRequest = () => controller.abort();
 
   if (options.signal) {
-    options.signal.addEventListener('abort', () => controller.abort(), { once: true });
+    options.signal.addEventListener('abort', abortRequest, { once: true });
   }
 
   let res: Response | null = null;
+  let fetchError: unknown;
+  let didThrow = false;
+
   try {
     res = await fetch(url, { ...options, signal: controller.signal });
-  } catch (err) {
+  } catch (err: unknown) {
+    fetchError = err;
+    didThrow = true;
+  } finally {
     clearTimeout(timeoutId);
-    if (options.signal?.aborted) throw err;
-    if (err instanceof Error && err.name === 'AbortError') {
+    options.signal?.removeEventListener('abort', abortRequest);
+  }
+
+  if (didThrow) {
+    if (options.signal?.aborted) throw fetchError;
+    if (fetchError instanceof Error && fetchError.name === 'AbortError') {
       throw new Error(`GitHub API request timed out after ${resolvedTimeout / 1000}s`);
     }
-    if (attempt >= MAX_RETRIES) throw err;
+    if (attempt >= MAX_RETRIES) throw fetchError;
     const delay = BASE_DELAY_MS * Math.pow(2, attempt);
     await new Promise((resolve) => setTimeout(resolve, delay));
     return fetchWithRetry(url, options, attempt + 1, timeoutMs);
   }
 
-  clearTimeout(timeoutId);
+  if (!res) throw new Error('GitHub API request failed without a response');
+
   const shouldRetry = res.status === 429 || res.status >= 500;
   if (!shouldRetry || attempt >= MAX_RETRIES) return res;
 
