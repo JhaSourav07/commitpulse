@@ -32,7 +32,6 @@ export default function Navbar() {
 
   const [isDark, setIsDark] = useState(() => {
     if (typeof window === 'undefined') return true;
-
     return localStorage.getItem('theme') !== 'light';
   });
 
@@ -62,8 +61,6 @@ export default function Navbar() {
       }
     };
 
-    // Defer the initial check so it doesn't cause a synchronous setState
-    // inside the effect body (which would trigger cascading re-renders).
     const initialCheckTimer = setTimeout(() => {
       if (mediaQuery.matches) {
         setOpen(false);
@@ -159,6 +156,21 @@ export default function Navbar() {
                   {link.label}
                 </a>
               ))}
+
+              <div className="ml-2 flex items-center gap-3 border-l border-white/15 pl-4">
+                <Link
+                  href="/login"
+                  className="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium text-white/80 transition hover:text-white"
+                >
+                  Log in
+                </Link>
+                <Link
+                  href="/signup"
+                  className="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-4 py-2 text-sm font-medium text-white shadow-[0_0_15px_rgba(255,255,255,0.05)] transition hover:border-white/45 hover:bg-white/20"
+                >
+                  Sign up
+                </Link>
+              </div>
             </div>
 
             <div className="md:hidden inline-flex items-center justify-center gap-2">
@@ -199,7 +211,27 @@ export default function Navbar() {
                     </a>
                   </li>
                 ))}
-                <li className="sm:hidden">
+
+                <li>
+                  <Link
+                    href="/login"
+                    onClick={() => setOpen(false)}
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-transparent bg-transparent px-4 py-2 text-sm font-medium text-white/90 transition hover:bg-white/5"
+                  >
+                    Log in
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/signup"
+                    onClick={() => setOpen(false)}
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/10 px-4 py-2 text-sm font-medium text-white transition hover:border-white/45 hover:bg-white/20"
+                  >
+                    Sign up
+                  </Link>
+                </li>
+
+                <li className="sm:hidden pt-2 mt-2 border-t border-white/10">
                   <button
                     type="button"
                     onClick={toggleTheme}
