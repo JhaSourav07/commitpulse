@@ -233,6 +233,54 @@ describe('DashboardClient', () => {
     expect(screen.getAllByText('Shivangi').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Sourav').length).toBeGreaterThan(0);
   });
+
+  // =========================================================================
+  // ISSUE OBJECTIVE: Add a test for exiting compare mode
+  // =========================================================================
+  it('exits compare mode and restores single profile view', async () => {
+    // Mock successful fetch response to enter compare mode first
+    const mockFetch = vi.fn().mockImplementation(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(mockSecondData),
+      })
+    );
+    vi.stubGlobal('fetch', mockFetch);
+
+    render(<DashboardClient initialData={mockInitialData} username="Shivangi1515" />);
+
+    // 1. Enter compare mode
+    const compareBtn = screen.getByText('Compare Profile');
+    fireEvent.click(compareBtn);
+
+    const input = screen.getByPlaceholderText('Enter GitHub Username');
+    fireEvent.change(input, { target: { value: 'JhaSourav07' } });
+
+    const submitBtn = screen.getByText('Compare');
+    fireEvent.click(submitBtn);
+
+    // Wait for state to update and Exit button to render
+    await waitFor(() => {
+      expect(screen.getByText('Exit Compare Mode')).toBeDefined();
+    });
+
+    // 2. Assert 'Exit Compare Mode' button is visible
+    const exitBtn = screen.getByText('Exit Compare Mode');
+    expect(exitBtn).toBeDefined();
+
+    // 3. Click it
+    fireEvent.click(exitBtn);
+
+    // 4. Assert 'Compare Profile' button is visible again
+    expect(screen.getByText('Compare Profile')).toBeDefined();
+
+    // 5. Assert 'Exit Compare Mode' button is gone
+    expect(screen.queryByText('Exit Compare Mode')).toBeNull();
+
+    // Verify the second profile is removed from the DOM
+    expect(screen.queryByText('Sourav')).toBeNull();
+  });
+
   it('generate your own button points to root /', () => {
     render(<DashboardClient initialData={mockInitialData} username="Shivangi1515" />);
 
