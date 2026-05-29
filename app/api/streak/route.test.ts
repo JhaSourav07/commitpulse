@@ -737,6 +737,49 @@ describe('GET /api/streak', () => {
       expect(response.status).toBe(200);
       expect(body).toContain('CURRENT_STREAK');
     });
+// =========================================================================
+  // ISSUE OBJECTIVE: Custom dimensions in monthly view (?width & ?height)
+  // =========================================================================
+  it('applies custom width and height parameters to the monthly SVG', async () => {
+    // 1. Create a fresh mock function and inject it globally just for this test
+    const tempMockFetch = vi.fn().mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        data: {
+          user: {
+            createdAt: '2020-01-01T00:00:00Z',
+            contributionsCollection: {
+              contributionCalendar: {
+                totalContributions: 100,
+                weeks: [],
+              },
+            },
+          },
+        },
+      }),
+    });
+    vi.stubGlobal('fetch', tempMockFetch);
+
+    // 2. Make request with ?view=monthly&width=400&height=150
+    const req = new Request(
+      'http://localhost:3000/api/streak?user=octocat&view=monthly&width=400&height=150'
+    );
+    const res = await GET(req as any);
+
+    // Assert status is 200 OK
+    expect(res.status).toBe(200);
+
+    const body = await res.text();
+
+    // 3. Assert body contains width="400"
+    expect(body).toContain('width="400"');
+
+    // 4. Assert body contains height="150"
+    expect(body).toContain('height="150"');
+    
+    // Cleanup the stub so it doesn't leak into other tests
+    vi.unstubAllGlobals();
+  });
   });
 
   describe('theme=random cache header', () => {
