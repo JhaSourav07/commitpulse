@@ -62,6 +62,89 @@ describe('streakParamsSchema user validation', () => {
 });
 
 describe('streakParamsSchema', () => {
+  it('accepts a valid width value', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      width: '400',
+    });
+
+    expect(result.success).toBe(true);
+
+    if (result.success) {
+      expect(result.data.width).toBe(400);
+    }
+  });
+
+  it('rejects width below minimum', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      width: '99',
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects width above maximum', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      width: '1201',
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it('accepts a valid height value', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      height: '120',
+    });
+
+    expect(result.success).toBe(true);
+
+    if (result.success) {
+      expect(result.data.height).toBe(120);
+    }
+  });
+
+  it('rejects height below minimum', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      height: '79',
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects height above maximum', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      height: '801',
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects non-numeric width values', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      width: 'abc',
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it('leaves width undefined when omitted', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+    });
+
+    expect(result.success).toBe(true);
+
+    if (result.success) {
+      expect(result.data.width).toBeUndefined();
+    }
+  });
+
   it('should fail when user is missing', () => {
     const result = streakParamsSchema.safeParse({});
 
