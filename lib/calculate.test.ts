@@ -500,6 +500,35 @@ describe('calculateStreak — empty and sparse year edge cases', () => {
 // ---------- EPIC ENHANCEMENT TESTS ----------
 
 describe('aggregateCalendars', () => {
+  it('handles calendars with different numbers of weeks', () => {
+    const cal1 = {
+      totalContributions: 15,
+      weeks: [
+        {
+          contributionDays: [{ date: '2024-01-01', contributionCount: 5 }],
+        },
+        {
+          contributionDays: [{ date: '2024-01-08', contributionCount: 10 }],
+        },
+      ],
+    };
+
+    const cal2 = {
+      totalContributions: 3,
+      weeks: [
+        {
+          contributionDays: [{ date: '2024-01-01', contributionCount: 3 }],
+        },
+      ],
+    };
+
+    const result = aggregateCalendars([cal1, cal2]);
+
+    expect(result.weeks).toHaveLength(2);
+    expect(result.weeks[0].contributionDays[0].contributionCount).toBe(8);
+    expect(result.weeks[1].contributionDays[0].contributionCount).toBe(10);
+  });
+
   it('returns an empty calendar if no calendars are provided', () => {
     const result = aggregateCalendars([]);
     expect(result.totalContributions).toBe(0);
