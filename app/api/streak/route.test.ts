@@ -190,6 +190,22 @@ describe('GET /api/streak', () => {
       expect(body).toContain('</svg>');
     });
 
+    it('returns valid SVG when mode=loc is given', async () => {
+      const response = await GET(
+        makeRequest({
+          user: 'octocat',
+          mode: 'loc',
+        })
+      );
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get('Content-Type')).toBe('image/svg+xml');
+
+      const body = await response.text();
+
+      expect(body).toContain('<svg');
+    });
+
     it('forwards the username to fetchGitHubContributions', async () => {
       await GET(makeRequest({ user: 'octocat' }));
 
