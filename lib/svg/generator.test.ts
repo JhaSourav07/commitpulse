@@ -150,19 +150,25 @@ describe('generateSVG', () => {
       mockCalendar
     );
 
-    const mediumMatch = svgMedium.match(/<animate attributeName="cy" from="([\d.-]+)" to="([\d.-]+)"/);
+    const mediumMatch = svgMedium.match(
+      /<animate attributeName="cy" from="([\d.-]+)" to="([\d.-]+)"/
+    );
     expect(mediumMatch).not.toBeNull();
     const fromMedium = parseFloat(mediumMatch![1]);
     const toMedium = parseFloat(mediumMatch![2]);
     expect(Math.round(fromMedium - toMedium)).toBe(20);
 
-    const smallMatch = svgSmall.match(/<animate attributeName="cy" from="([\d.-]+)" to="([\d.-]+)"/);
+    const smallMatch = svgSmall.match(
+      /<animate attributeName="cy" from="([\d.-]+)" to="([\d.-]+)"/
+    );
     expect(smallMatch).not.toBeNull();
     const fromSmall = parseFloat(smallMatch![1]);
     const toSmall = parseFloat(smallMatch![2]);
     expect(Math.round(fromSmall - toSmall)).toBe(13);
 
-    const largeMatch = svgLarge.match(/<animate attributeName="cy" from="([\d.-]+)" to="([\d.-]+)"/);
+    const largeMatch = svgLarge.match(
+      /<animate attributeName="cy" from="([\d.-]+)" to="([\d.-]+)"/
+    );
     expect(largeMatch).not.toBeNull();
     const fromLarge = parseFloat(largeMatch![1]);
     const toLarge = parseFloat(largeMatch![2]);
