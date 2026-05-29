@@ -234,7 +234,7 @@ describe('DashboardClient', () => {
     expect(screen.getAllByText('Sourav').length).toBeGreaterThan(0);
   });
 
-  it("awards 'Most Consistent' badge to the profile with the higher peak streak in compare mode", async () => {
+  it('awards Most Consistent badge to profile with higher peak streak in compare mode', async () => {
     const initialData = {
       ...mockInitialData,
       stats: { ...mockInitialData.stats, peakStreak: 50 },
@@ -272,7 +272,6 @@ describe('DashboardClient', () => {
     expect(firstProfileCard).toBeDefined();
     expect(within(firstProfileCard!).getByText('Most Consistent')).toBeDefined();
   });
-
   it('generate your own button points to root /', () => {
     render(<DashboardClient initialData={mockInitialData} username="Shivangi1515" />);
 
