@@ -273,17 +273,7 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
     : 8;
   const errSpeed = (parseResult.success && parseResult.data.speed) || '8s';
 
-  if (isRateLimit) {
-    const svg = generateRateLimitSVG(errBg, errAccent, errText, errRadius, errSpeed);
-    return new NextResponse(svg, {
-      status: 429,
-      headers: {
-        'Content-Type': 'image/svg+xml',
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Content-Security-Policy': SVG_CSP_HEADER,
-      },
-    });
-  }
+
 
   if (isNotFound) {
     const match = message.match(/"([^"]+)"|login of '([^']+)'/);
