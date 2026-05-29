@@ -443,6 +443,29 @@ describe('calculateMonthlyStats', () => {
     expect(result.currentMonthTotal).toBe(5);
     expect(result.currentMonthName).toBe('January');
   });
+  // =========================================================================
+  // ISSUE OBJECTIVE: Empty calendar passed to calculateMonthlyStats
+  // =========================================================================
+  it('returns zeros and does not crash when given an empty calendar', () => {
+    const emptyCalendar = {
+      totalContributions: 0,
+      weeks: [],
+    } as Parameters<typeof calculateMonthlyStats>[0];
+
+    const testDate = new Date('2026-05-29T12:00:00Z');
+    let result: ReturnType<typeof calculateMonthlyStats>;
+
+    // 1. Assert does not throw
+    expect(() => {
+      result = calculateMonthlyStats(emptyCalendar, 'UTC', testDate);
+    }).not.toThrow();
+
+    // 2. Assert currentMonthTotal === 0
+    expect(result!.currentMonthTotal).toBe(0);
+
+    // 3. Assert previousMonthTotal === 0
+    expect(result!.previousMonthTotal).toBe(0);
+  });
 });
 
 describe('calculateStreak — empty and sparse year edge cases', () => {
