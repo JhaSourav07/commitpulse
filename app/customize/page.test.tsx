@@ -31,6 +31,7 @@ vi.mock('framer-motion', () => ({
   motion: {
     aside: ({ children, ...props }: MockContainerProps) => <aside {...props}>{children}</aside>,
     div: ({ children, ...props }: MockContainerProps) => <div {...props}>{children}</div>,
+    nav: ({ children, ...props }: MockContainerProps) => <nav {...props}>{children}</nav>,
   },
 }));
 
