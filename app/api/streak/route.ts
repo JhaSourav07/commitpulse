@@ -3,7 +3,12 @@
 import { NextResponse } from 'next/server';
 import { fetchGitHubContributions, getOrgDashboardData } from '@/lib/github';
 import { calculateStreak, calculateMonthlyStats } from '@/lib/calculate';
-import { generateNotFoundSVG, generateSVG, generateMonthlySVG } from '@/lib/svg/generator';
+import {
+  generateNotFoundSVG,
+  generateSVG,
+  generateMonthlySVG,
+  generateVersusSVG,
+} from '@/lib/svg/generator';
 import { getSecondsUntilUTCMidnight, getSecondsUntilMidnightInTimezone } from '@/utils/time';
 import type { BadgeParams } from '@/types';
 import { themes } from '@/lib/svg/themes';
@@ -56,6 +61,7 @@ export async function GET(request: Request) {
       org,
       labels,
       labelColor,
+      versus,
     } = parseResult.data;
 
     const themeName = theme || 'dark';
@@ -122,9 +128,11 @@ export async function GET(request: Request) {
       org,
       labels,
       labelColor,
+      versus,
     };
 
     let calendar;
+    let versusCalendar;
 
     // Fetch Organization Mega-City Data OR Single User Data
     if (org) {
@@ -140,12 +148,24 @@ export async function GET(request: Request) {
         from,
         to,
       });
+
+      if (versus) {
+        versusCalendar = await fetchGitHubContributions(versus, {
+          bypassCache: refresh,
+          from,
+          to,
+        });
+      }
     }
 
     let svg = '';
     if (view === 'monthly') {
       const stats = calculateMonthlyStats(calendar, timezone);
       svg = generateMonthlySVG(stats, params);
+    } else if (versus && versusCalendar) {
+      const stats1 = calculateStreak(calendar, timezone, undefined, grace);
+      const stats2 = calculateStreak(versusCalendar, timezone, undefined, grace);
+      svg = generateVersusSVG(stats1, stats2, params, calendar, versusCalendar);
     } else {
       const stats = calculateStreak(calendar, timezone, undefined, grace);
       svg = generateSVG(stats, params, calendar);

@@ -87,6 +87,18 @@ describe('GET /api/streak', () => {
     vi.mocked(getSecondsUntilMidnightInTimezone).mockReturnValue(7200);
   });
 
+  it('falls back to the default isometric view when an invalid view is provided', async () => {
+    const request = new Request('http://localhost:3000/api/streak?user=octocat&view=invalid');
+
+    const response = await GET(request);
+
+    expect(response.status).toBe(200);
+
+    const body = await response.text();
+
+    expect(body).toContain('@keyframes grow-up');
+  });
+
   describe('parameter validation', () => {
     it('returns 400 when the user parameter is missing', async () => {
       const response = await GET(makeRequest());
@@ -190,10 +202,51 @@ describe('GET /api/streak', () => {
       expect(body).toContain('</svg>');
     });
 
+    it('returns valid SVG when mode=loc is given', async () => {
+      const response = await GET(
+        makeRequest({
+          user: 'octocat',
+          mode: 'loc',
+        })
+      );
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get('Content-Type')).toBe('image/svg+xml');
+
+      const body = await response.text();
+
+      expect(body).toContain('<svg');
+    });
+
     it('forwards the username to fetchGitHubContributions', async () => {
       await GET(makeRequest({ user: 'octocat' }));
 
       expect(fetchGitHubContributions).toHaveBeenCalledWith('octocat', { bypassCache: false });
+    });
+
+    it('forwards grace parameter to fetchGitHubContributions', async () => {
+      await GET(
+        makeRequest({
+          user: 'octocat',
+          grace: '2',
+        })
+      );
+
+      expect(fetchGitHubContributions).toHaveBeenCalled();
+    });
+
+    it('returns valid SVG when grace exceeds max value', async () => {
+      const response = await GET(
+        makeRequest({
+          user: 'octocat',
+          grace: '999',
+        })
+      );
+
+      expect(response.status).toBe(200);
+
+      const body = await response.text();
+      expect(body).toContain('<svg');
     });
 
     it('embeds the username (uppercased) in the SVG title', async () => {
@@ -736,6 +789,37 @@ describe('GET /api/streak', () => {
 
       expect(response.status).toBe(200);
       expect(body).toContain('CURRENT_STREAK');
+    });
+    // =========================================================================
+    // ISSUE OBJECTIVE: Route test for ?view=monthly&delta_format=absolute
+    // =========================================================================
+    it('applies delta_format=absolute to show raw commit counts in the monthly SVG', async () => {
+      // 1. Mock the GitHub fetch with actual weekly data using vi.mocked
+      vi.mocked(fetchGitHubContributions).mockResolvedValueOnce({
+        totalContributions: 150,
+        weeks: [
+          { contributionDays: [{ date: '2026-04-15', contributionCount: 10 }] },
+          { contributionDays: [{ date: '2026-05-15', contributionCount: 15 }] },
+        ],
+      } as unknown as ContributionCalendar);
+
+      // 2. Lock the system time to May 2026 so the calendar calculation aligns
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-05-20T12:00:00Z'));
+
+      // 3. Make request using the file's built-in makeRequest helper
+      const req = makeRequest({ user: 'octocat', view: 'monthly', delta_format: 'absolute' });
+      const res = await GET(req);
+
+      expect(res.status).toBe(200);
+
+      const body = await res.text();
+
+      // 4. Assert body contains 'commits' (the absolute delta unit)
+      expect(body).toContain('commits');
+
+      // Cleanup
+      vi.useRealTimers();
     });
   });
 

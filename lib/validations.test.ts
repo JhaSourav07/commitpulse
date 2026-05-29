@@ -62,6 +62,57 @@ describe('streakParamsSchema user validation', () => {
 });
 
 describe('streakParamsSchema', () => {
+  it('accepts commits mode', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      mode: 'commits',
+    });
+
+    expect(result.success).toBe(true);
+
+    if (result.success) {
+      expect(result.data.mode).toBe('commits');
+    }
+  });
+
+  it('accepts loc mode', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      mode: 'loc',
+    });
+
+    expect(result.success).toBe(true);
+
+    if (result.success) {
+      expect(result.data.mode).toBe('loc');
+    }
+  });
+
+  it('falls back to commits for unknown mode', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      mode: 'unknown',
+    });
+
+    expect(result.success).toBe(true);
+
+    if (result.success) {
+      expect(result.data.mode).toBe('commits');
+    }
+  });
+
+  it('defaults to commits when mode is omitted', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+    });
+
+    expect(result.success).toBe(true);
+
+    if (result.success) {
+      expect(result.data.mode).toBe('commits');
+    }
+  });
+
   it('accepts a valid width value', () => {
     const result = streakParamsSchema.safeParse({
       user: 'octocat',
@@ -206,6 +257,69 @@ describe('streakParamsSchema', () => {
     expect(result.success).toBe(false);
     if (!result.success) {
       expect(result.error.issues[0]?.message).toBe('Invalid GitHub username');
+    }
+  });
+  it('should accept delta_format percent', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      delta_format: 'percent',
+    });
+
+    expect(result.success).toBe(true);
+
+    if (result.success) {
+      expect(result.data.delta_format).toBe('percent');
+    }
+  });
+
+  it('should accept delta_format absolute', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      delta_format: 'absolute',
+    });
+
+    expect(result.success).toBe(true);
+
+    if (result.success) {
+      expect(result.data.delta_format).toBe('absolute');
+    }
+  });
+
+  it('should accept delta_format both', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      delta_format: 'both',
+    });
+
+    expect(result.success).toBe(true);
+
+    if (result.success) {
+      expect(result.data.delta_format).toBe('both');
+    }
+  });
+
+  it('should fallback to percent for invalid delta_format', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      delta_format: 'unknown',
+    });
+
+    expect(result.success).toBe(true);
+
+    if (result.success) {
+      expect(result.data.delta_format).toBe('percent');
+    }
+  });
+
+  it('should default delta_format to percent when omitted', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+    });
+
+    expect(result.success).toBe(true);
+
+    if (result.success) {
+      expect(result.data.delta_format).toBe('percent');
     }
   });
 });
