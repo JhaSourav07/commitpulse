@@ -1,7 +1,7 @@
 // lib/github.ts
 
 import type { ContributionCalendar, ContributionDay } from '@/types';
-import { calculateStreak, aggregateCalendars, calculateWrappedStats } from '@/lib/calculate';
+import { calculateStreak, aggregateCalendars } from '@/lib/calculate';
 import { TTLCache } from '@/lib/cache';
 import { LANGUAGE_COLORS } from '@/lib/svg/languageColors';
 import { CONTRIBUTION_MILESTONES, STREAK_MILESTONES } from './svg/constants';
@@ -122,7 +122,9 @@ function throwIfRateLimited(res: Response): void {
 
 type GitHubContributionResponse = {
   data?: {
-    user: { contributionsCollection: { contributionCalendar: ContributionCalendar } } | null;
+    user: {
+      contributionsCollection: { contributionCalendar: ContributionCalendar };
+    } | null;
   };
   errors?: unknown;
 };
@@ -302,12 +304,13 @@ export async function fetchUserProfile(
   options: FetchOptions = {}
 ): Promise<GitHubUserProfile> {
   const key = cacheKey('profile', username);
+  const encodedUsername = encodeURIComponent(username);
   if (!options.bypassCache) {
     const cached = profileCache.get(key);
     if (cached) return cached;
   }
 
-  const res = await fetchWithRetry(`${GITHUB_REST_URL}/users/${username}`, {
+  const res = await fetchWithRetry(`${GITHUB_REST_URL}/users/${encodedUsername}`, {
     headers: getHeaders(),
     cache: 'no-store',
     signal: options.signal,
@@ -329,13 +332,14 @@ export async function fetchUserRepos(
   options: FetchOptions = {}
 ): Promise<GitHubRepo[]> {
   const key = cacheKey('repos', username);
+  const encodedUsername = encodeURIComponent(username);
   if (!options.bypassCache) {
     const cached = reposCache.get(key);
     if (cached) return cached;
   }
 
   const firstPageRes = await fetchWithRetry(
-    `${GITHUB_REST_URL}/users/${username}/repos?per_page=100&page=1&sort=pushed`,
+    `${GITHUB_REST_URL}/users/${encodedUsername}/repos?per_page=100&page=1&sort=pushed`,
     {
       headers: getHeaders(),
       cache: 'no-store',
@@ -359,7 +363,7 @@ export async function fetchUserRepos(
     const responses = await Promise.all(
       remainingPages.map((page) =>
         fetchWithRetry(
-          `${GITHUB_REST_URL}/users/${username}/repos?per_page=100&page=${page}&sort=pushed`,
+          `${GITHUB_REST_URL}/users/${encodedUsername}/repos?per_page=100&page=${page}&sort=pushed`,
           {
             headers: getHeaders(),
             cache: 'no-store',
@@ -465,66 +469,12 @@ export async function getOrgDashboardData(orgName: string, options: FetchOptions
   };
 }
 
-/**
- * Fetches data specifically tailored for the end-of-year GitHub Wrapped infographic.
- */
-export async function getWrappedData(username: string, year: string) {
-  const options = {
-    from: `${year}-01-01T00:00:00Z`,
-    to: `${year}-12-31T23:59:59Z`,
-    bypassCache: true,
-  };
-  const calendar = await fetchGitHubContributions(username, options);
-  const repos = await fetchUserRepos(username, options);
-
-  const wrappedStats = calculateWrappedStats(calendar);
-
-  // Top languages specific to wrapped
-  const langCounts: Record<string, number> = {};
-  repos.forEach((r) => {
-    if (r.language) langCounts[r.language] = (langCounts[r.language] || 0) + 1;
-  });
-
-  return {
-    ...wrappedStats,
-    topLanguage:
-      Object.keys(langCounts).sort((a, b) => langCounts[b] - langCounts[a])[0] || 'Unknown',
-  };
-}
-
-/* ==========================================================================
- * UTILS & EXPORTS
- * ========================================================================== */
-
-/**
- * Generates contribution and streak achievement metadata for a user.
- *
- * Achievements are unlocked when the provided contribution count
- * or streak value meets the corresponding milestone threshold.
- *
- * Progress values are clamped between 0 and 100 using `Math.min`
- * to prevent percentages from exceeding 100%.
- *
- * @param totalContributions - Total number of contributions made by the user.
- * @param currentStreak - Current active contribution streak in days.
- * @param weekendCommits - Total number of contributions made on weekends.
- * @param uniqueLanguages - Number of distinct languages used.
- *
- * @returns An array of achievement objects for contribution and streak milestones,
- * including unlock status, progress percentage, threshold values, and display metadata.
- *
- * @example
- * ```ts
- * const achievements = generateAchievements(125, 10);
- *
- * console.log(achievements);
- * ```
- */
 export function generateAchievements(
   totalContributions: number,
   currentStreak: number,
   weekendCommits: number = 0,
-  uniqueLanguages: number = 0
+  uniqueLanguages: number = 0,
+  longestStreak: number = currentStreak
 ) {
   const achievements = [];
 
@@ -558,11 +508,11 @@ export function generateAchievements(
           ? 'Maintained a 3-day coding streak'
           : `Maintained a ${threshold}-day coding streak`,
       icon: '🔥',
-      isUnlocked: currentStreak >= threshold,
+      isUnlocked: longestStreak >= threshold,
       type: 'streak' as const,
       threshold,
-      currentValue: currentStreak,
-      progress: Math.min(100, Math.round((currentStreak / threshold) * 100)),
+      currentValue: longestStreak,
+      progress: Math.min(100, Math.round((longestStreak / threshold) * 100)),
     });
   }
 
@@ -765,7 +715,8 @@ export async function getFullDashboardData(username: string, options: FetchOptio
     streakStats.totalContributions,
     streakStats.currentStreak,
     weekendCommits,
-    uniqueLanguages
+    uniqueLanguages,
+    streakStats.longestStreak
   );
 
   const insights = buildInsights(streakStats, languages);
@@ -782,5 +733,59 @@ export async function getFullDashboardData(username: string, options: FetchOptio
     insights,
     achievements,
     commitClock,
+  };
+}
+
+export async function getWrappedData(
+  username: string,
+  year: string
+): Promise<import('../types/dashboard').WrappedStats> {
+  const from = `${year}-01-01T00:00:00Z`;
+  const to = `${year}-12-31T23:59:59Z`;
+  const options: FetchOptions = { from, to, bypassCache: true };
+
+  const [calendar, repos] = await Promise.all([
+    fetchGitHubContributions(username, options),
+    fetchUserRepos(username, options),
+  ]);
+
+  const allDays = calendar.weeks.flatMap((w) => w.contributionDays);
+
+  const totalContributions = calendar.totalContributions;
+
+  const mostActiveDay = allDays.reduce(
+    (max, d) => (d.contributionCount > max.contributionCount ? d : max),
+    allDays[0] ?? { date: '', contributionCount: 0 }
+  );
+
+  const monthTotals: Record<string, number> = {};
+  for (const day of allDays) {
+    const month = day.date.slice(0, 7);
+    monthTotals[month] = (monthTotals[month] || 0) + day.contributionCount;
+  }
+  const busiestMonth =
+    Object.entries(monthTotals).sort((a, b) => b[1] - a[1])[0]?.[0] ?? `${year}-01`;
+
+  const weekendDays = allDays.filter((d) => {
+    const dow = new Date(d.date).getUTCDay();
+    return dow === 0 || dow === 6;
+  });
+  const weekendTotal = weekendDays.reduce((sum, d) => sum + d.contributionCount, 0);
+  const weekendRatio =
+    totalContributions > 0 ? Math.round((weekendTotal / totalContributions) * 100) : 0;
+
+  const langCounts: Record<string, number> = {};
+  for (const repo of repos) {
+    if (repo.language) langCounts[repo.language] = (langCounts[repo.language] || 0) + 1;
+  }
+  const topLanguage = Object.entries(langCounts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? 'Unknown';
+
+  return {
+    totalContributions,
+    mostActiveDate: mostActiveDay.date,
+    highestDailyCount: mostActiveDay.contributionCount,
+    busiestMonth,
+    weekendRatio,
+    topLanguage,
   };
 }

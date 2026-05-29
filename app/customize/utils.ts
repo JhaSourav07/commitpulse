@@ -30,7 +30,36 @@ export function getExportSnippet(format: ExportFormat, queryString: string): str
     return `<img src="${badgeUrl}" alt="CommitPulse" />`;
   }
 
-  return `![CommitPulse](${badgeUrl})`;
+  if (format === 'action') {
+    return [
+      'name: CommitPulse Streak Badge',
+      '',
+      'on:',
+      '  schedule:',
+      "    - cron: '0 0 * * *' # Runs daily at midnight",
+      '  workflow_dispatch:',
+      '',
+      'jobs:',
+      '  update-badge:',
+      '    runs-on: ubuntu-latest',
+      '    steps:',
+      '      - uses: actions/checkout@v4',
+      '      - name: Fetch CommitPulse Badge',
+      `        run: curl -o commitpulse.svg "${badgeUrl}"`,
+      '      - name: Commit Badge',
+      '        uses: stefanzweifel/git-auto-commit-action@v5',
+      '        with:',
+      '          commit_message: "chore: update CommitPulse badge"',
+      '          file_pattern: commitpulse.svg',
+    ].join('\n');
+  }
+
+  if (format === 'markdown') {
+    return `![CommitPulse](${badgeUrl})`;
+  }
+
+  // Defensive fallback for any unexpected formats (though TS should catch this)
+  throw new Error(`Unsupported export format: ${format}`);
 }
 
 export function getPlaceholderSnippet(format: ExportFormat): string {

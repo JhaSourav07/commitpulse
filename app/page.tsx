@@ -69,6 +69,7 @@ const Icons = {
 };
 
 export default function LandingPage() {
+  const [mounted, setMounted] = useState(false);
   const [username, setUsername] = useState('');
   const [copied, setCopied] = useState(false);
   const [svgContent, setSvgContent] = useState<string | null>(null);
@@ -80,7 +81,11 @@ export default function LandingPage() {
   const hasUsername = debouncedUsername.length > 0;
 
   const badgeUrl = `/api/streak?user=${debouncedUsername}`;
-  const markdown = `![CommitPulse](https://commitpulse.vercel.app/api/streak?user=${trimmedUsername})`;
+  const markdown = `![CommitPulse](${
+    mounted
+      ? window.location.origin
+      : (process.env.NEXT_PUBLIC_SITE_URL ?? 'https://commitpulse.vercel.app')
+  }/api/streak?user=${trimmedUsername})`;
 
   // Fetch SVG content whenever debounced username changes.
   useEffect(() => {
@@ -100,7 +105,7 @@ export default function LandingPage() {
 
     fetch(badgeUrl, { signal: controller.signal })
       .then((res) => {
-        if (res.status === 404) {
+        if (!res.ok) {
           setSvgState('error');
           return;
         }

@@ -134,6 +134,48 @@ describe('generateSVG', () => {
     expect(svg).toContain('class="heat-particles"');
   });
 
+  it('scales particle floating height according to badge size', () => {
+    const svgMedium = generateSVG(
+      mockStats,
+      { user: 'avi', size: 'medium' } as unknown as BadgeParams,
+      mockCalendar
+    );
+    const svgSmall = generateSVG(
+      mockStats,
+      { user: 'avi', size: 'small' } as unknown as BadgeParams,
+      mockCalendar
+    );
+    const svgLarge = generateSVG(
+      mockStats,
+      { user: 'avi', size: 'large' } as unknown as BadgeParams,
+      mockCalendar
+    );
+
+    const mediumMatch = svgMedium.match(
+      /<animate attributeName="cy" from="([\d.-]+)" to="([\d.-]+)"/
+    );
+    expect(mediumMatch).not.toBeNull();
+    const fromMedium = parseFloat(mediumMatch![1]);
+    const toMedium = parseFloat(mediumMatch![2]);
+    expect(Math.round(fromMedium - toMedium)).toBe(20);
+
+    const smallMatch = svgSmall.match(
+      /<animate attributeName="cy" from="([\d.-]+)" to="([\d.-]+)"/
+    );
+    expect(smallMatch).not.toBeNull();
+    const fromSmall = parseFloat(smallMatch![1]);
+    const toSmall = parseFloat(smallMatch![2]);
+    expect(Math.round(fromSmall - toSmall)).toBe(13);
+
+    const largeMatch = svgLarge.match(
+      /<animate attributeName="cy" from="([\d.-]+)" to="([\d.-]+)"/
+    );
+    expect(largeMatch).not.toBeNull();
+    const fromLarge = parseFloat(largeMatch![1]);
+    const toLarge = parseFloat(largeMatch![2]);
+    expect(Math.round(fromLarge - toLarge)).toBe(27);
+  });
+
   it('supports dynamic Google Fonts for non-predefined fonts', () => {
     const svg = generateSVG(
       mockStats,
@@ -142,7 +184,7 @@ describe('generateSVG', () => {
     );
 
     expect(svg).toContain(
-      "@import url('https://fonts.googleapis.com/css2?family=Inter&display=swap');"
+      "@import url('https://fonts.googleapis.com/css2?family=Inter&amp;display=swap');"
     );
     expect(svg).toContain('font-family: "Inter", sans-serif;');
   });
@@ -432,6 +474,19 @@ describe('generateSVG', () => {
 
       expect(svg).toContain('<title>TODAY: 2024-06-12 &amp; &lt;bad&gt;: 3 contributions</title>');
       expect(svg).not.toContain('<title>TODAY: 2024-06-12 & <bad>: 3 contributions</title>');
+    });
+
+    it('supports dynamic Google Fonts for non-predefined fonts in auto-theme mode', () => {
+      const svg = generateSVG(
+        mockStats,
+        { ...autoParams, font: 'Inter' } as unknown as BadgeParams,
+        mockCalendar
+      );
+
+      expect(svg).toContain(
+        "@import url('https://fonts.googleapis.com/css2?family=Inter&display=swap');"
+      );
+      expect(svg).toContain('font-family: "Inter", sans-serif;');
     });
   });
 
@@ -847,6 +902,20 @@ describe('generateMonthlySVG', () => {
     expect(svg).toContain('animation: none !important');
     expect(svg).toContain('transition: none !important');
   });
+
+  it('supports dynamic Google Fonts for non-predefined fonts in monthly auto-theme mode', () => {
+    const svg = generateMonthlySVG(mockMonthlyStats, {
+      user: 'octocat',
+      autoTheme: true,
+      font: 'Inter',
+    } as unknown as BadgeParams);
+
+    expect(svg).toContain(
+      "@import url('https://fonts.googleapis.com/css2?family=Inter&display=swap');"
+    );
+    expect(svg).toContain('font-family: "Inter", sans-serif;');
+  });
+
   it('renders English label for commits this month by default', () => {
     const svg = generateMonthlySVG(mockMonthlyStats, {
       user: 'octocat',

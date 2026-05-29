@@ -49,10 +49,10 @@ function computeTowerHeight(
 
 function computeFaceOpacity(count: number, isGhostCityMode: boolean): FaceOpacity {
   if (isGhostCityMode) {
-    return { left: 0, right: 0, top: 0.02 };
+    return { left: 0, right: 0, top: 0.08 };
   }
   if (count === 0) {
-    return { left: 0, right: 0, top: 0.02 };
+    return { left: 0, right: 0, top: 0.08 };
   }
   return { left: 0.35, right: 0.21, top: 0.7 };
 }

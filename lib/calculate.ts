@@ -150,32 +150,46 @@ export function calculateMonthlyStats(
  * Used for Organization and Team dashboards.
  */
 export function aggregateCalendars(calendars: ContributionCalendar[]): ContributionCalendar {
-  if (calendars.length === 0) return { totalContributions: 0, weeks: [] };
+  if (calendars.length === 0) {
+    return { totalContributions: 0, weeks: [] };
+  }
 
-  // Clone the structure of the first valid calendar to act as our base accumulator
-  const baseCalendar = JSON.parse(JSON.stringify(calendars[0])) as ContributionCalendar;
+  // Calculate total contributions across all calendars
+  const totalContributions = calendars.reduce((sum, cal) => sum + cal.totalContributions, 0);
 
-  let totalOrgContributions = baseCalendar.totalContributions;
+  // Use a Map keyed by the date string 'YYYY-MM-DD' to safely aggregate daily counts
+  const dateMap = new Map<string, number>();
 
-  // Add all subsequent calendars onto the base
-  for (let i = 1; i < calendars.length; i++) {
-    const cal = calendars[i];
-    totalOrgContributions += cal.totalContributions;
+  // Find the calendar with the most weeks to serve as our structural base
+  let baseCalendar = calendars[0];
+  for (const cal of calendars) {
+    if (cal.weeks.length > baseCalendar.weeks.length) {
+      baseCalendar = cal;
+    }
 
-    cal.weeks.forEach((week, weekIdx) => {
-      week.contributionDays.forEach((day, dayIdx) => {
-        if (baseCalendar.weeks[weekIdx] && baseCalendar.weeks[weekIdx].contributionDays[dayIdx]) {
-          baseCalendar.weeks[weekIdx].contributionDays[dayIdx].contributionCount +=
-            day.contributionCount;
-        }
+    // Populate the Map with all contributions from all calendars
+    cal.weeks.forEach((week) => {
+      week.contributionDays.forEach((day) => {
+        const currentCount = dateMap.get(day.date) || 0;
+        dateMap.set(day.date, currentCount + day.contributionCount);
       });
     });
   }
 
-  baseCalendar.totalContributions = totalOrgContributions;
-  return baseCalendar;
-}
+  // Deep clone the base calendar so we don't mutate the original object
+  const aggregatedBase = JSON.parse(JSON.stringify(baseCalendar)) as ContributionCalendar;
 
+  aggregatedBase.totalContributions = totalContributions;
+
+  // Re-map the structural base using our aggregated date map
+  aggregatedBase.weeks.forEach((week) => {
+    week.contributionDays.forEach((day) => {
+      day.contributionCount = dateMap.get(day.date) || 0;
+    });
+  });
+
+  return aggregatedBase;
+}
 /**
  * Processes a calendar to generate deep insights for "GitHub Wrapped"
  */
