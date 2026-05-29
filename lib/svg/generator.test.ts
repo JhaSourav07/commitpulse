@@ -827,6 +827,8 @@ describe('generateMonthlySVG', () => {
       "@import url('https://fonts.googleapis.com/css2?family=Inter&display=swap');"
     );
     expect(svg).toContain('font-family: "Inter", sans-serif;');
+    });
+
     it('renders English label for commits this month by default', () => {
       const svg = generateMonthlySVG(mockMonthlyStats, {
         user: 'octocat',
@@ -887,4 +889,4 @@ describe('generateMonthlySVG', () => {
       expect(particleCount(100)).toBe(5);
     });
   });
-});
+
