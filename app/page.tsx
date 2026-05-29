@@ -70,7 +70,7 @@ export default function LandingPage() {
   const [username, setUsername] = useState('');
   const [copied, setCopied] = useState(false);
   const [svgContent, setSvgContent] = useState<string | null>(null);
-  const [svgState, setSvgState] = useState<'idle' | 'loading' | 'loaded'>('idle');
+  const [svgState, setSvgState] = useState<'idle' | 'loading' | 'loaded' | 'error'>('idle');
   const guideRef = useRef<HTMLDivElement>(null);
   const { searches, addSearch, clearSearches, removeSearch } = useRecentSearches();
   const trimmedUsername = username.trim();
@@ -102,16 +102,22 @@ export default function LandingPage() {
     const controller = new AbortController();
 
     fetch(badgeUrl, { signal: controller.signal })
-      .then((res) => res.text())
+      .then((res) => {
+        if (res.status === 404) {
+          setSvgState('error');
+          return;
+        }
+        return res.text();
+      })
       .then((text) => {
+        if (!text) return;
         setSvgContent(text);
         setSvgState('loaded');
       })
       .catch((err) => {
         if (err.name === 'AbortError') return;
-        setSvgState('loaded'); // show nothing rather than hang on loading
+        setSvgState('error');
       });
-
     return () => controller.abort();
   }, [badgeUrl, hasUsername]);
 
@@ -208,31 +214,38 @@ export default function LandingPage() {
               }}
               className="flex flex-col sm:flex-row gap-4 w-full"
             >
-              <div className="relative flex-1 flex items-center">
-                <input
-                  type="text"
-                  placeholder="Enter GitHub Username"
-                  className="flex-1 rounded-xl border border-black/10 bg-gray-100 px-5 py-3.5 text-sm text-black outline-none transition-all duration-200 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#00ffaa] focus:border-transparent dark:border-[rgba(255,255,255,0.08)] dark:bg-[#111] dark:text-white dark:placeholder:text-[#A1A1AA]"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                />
-                {username.length > 0 ? (
-                  <button
-                    onClick={() => setUsername('')}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 transition-colors hover:text-black dark:text-[#A1A1AA] dark:hover:text-white"
-                    aria-label="Clear input"
-                    type="button"
-                  >
-                    <X size={18} />
-                  </button>
-                ) : null}
+              <div className="relative flex-1 flex items-center flex-col">
+                <div className="relative flex-1 flex items-center w-full">
+                  <input
+                    type="text"
+                    placeholder="Enter GitHub Username"
+                    className="flex-1 rounded-xl border border-black/10 bg-gray-100 px-5 py-3.5 text-sm text-black outline-none transition-all duration-200 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#00ffaa] focus:border-transparent dark:border-[rgba(255,255,255,0.08)] dark:bg-[#111] dark:text-white dark:placeholder:text-[#A1A1AA]"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    maxLength={39}
+                  />
+                  {username.length > 0 ? (
+                    <button
+                      onClick={() => setUsername('')}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 transition-colors hover:text-black dark:text-[#A1A1AA] dark:hover:text-white"
+                      aria-label="Clear input"
+                      type="button"
+                    >
+                      <X size={18} />
+                    </button>
+                  ) : null}
+                </div>
+                {username.length === 39 && (
+                  <p className="text-red-500 text-xs mt-1 self-start pl-1">
+                    GitHub username limit reached (39 characters maximum)
+                  </p>
+                )}
               </div>
-
               <div className="flex flex-col sm:flex-row gap-4">
                 <button
                   type="submit"
                   disabled={!mounted || !hasUsername}
-                  className={`relative flex min-w-[160px] items-center justify-center gap-2 overflow-hidden rounded-xl px-6 py-3.5 text-sm font-semibold transition-all duration-200 active:scale-[0.98] ${
+                  className={`relative flex min-w-[160px] items-center justify-center gap-2 overflow-hidden rounded-xl px-6 py-3.5 text-sm font-semibold transition-all duration-200 transform cursor-pointer hover:scale-105 hover:brightness-125 active:scale-[0.98] disabled:cursor-not-allowed ${
                     hasUsername
                       ? 'bg-black text-white hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-zinc-100'
                       : 'bg-gray-200 text-gray-500 dark:bg-white/10 dark:text-white/35'
@@ -324,6 +337,17 @@ export default function LandingPage() {
                 <div className="w-full flex items-center justify-center">
                   {svgState === 'loading' && (
                     <div className="h-[200px] w-full max-w-[600px] rounded-xl bg-white/5 animate-pulse" />
+                  )}
+                  {svgState === 'error' && (
+                    <div className="flex flex-col items-center justify-center gap-3 py-10 text-center">
+                      <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-red-500/20 bg-red-500/10">
+                        <X size={28} className="text-red-400" />
+                      </div>
+                      <p className="text-base font-semibold text-white">GitHub user not found</p>
+                      <p className="text-sm text-[#A1A1AA]">
+                        Please check the username and try again.
+                      </p>
+                    </div>
                   )}
                   {svgState === 'loaded' && svgContent && (
                     <div

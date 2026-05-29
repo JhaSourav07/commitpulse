@@ -142,6 +142,7 @@ describe('computeTowers edge cases', () => {
       ],
     } as unknown as ContributionCalendar;
     const towers = computeTowers(calendar, 'linear', '2024-06-10');
+    expect(towers.every((tower) => tower.isGhost === false)).toBe(true);
     expect(towers[0].isGhost).toBe(false);
     expect(towers[0].h).toBe(0); // 0 count non-ghost = 0 height
     expect(towers[0].strokeOpacity).toBe(0);
@@ -159,4 +160,37 @@ describe('computeTowers edge cases', () => {
     // Math.log2(3 + 1) * 12 = 2 * 12 = 24
     expect(towers[0].h).toBe(24);
   });
+});
+
+it('assigns correct row and col values based on week/day position', () => {
+  const calendar = {
+    totalContributions: 0,
+    weeks: [
+      {
+        contributionDays: [
+          { contributionCount: 1, date: '2024-06-10' },
+          { contributionCount: 1, date: '2024-06-11' },
+          { contributionCount: 1, date: '2024-06-12' },
+        ],
+      },
+      {
+        contributionDays: [
+          { contributionCount: 1, date: '2024-06-13' },
+          { contributionCount: 1, date: '2024-06-14' },
+          { contributionCount: 1, date: '2024-06-15' },
+        ],
+      },
+    ],
+  } as unknown as ContributionCalendar;
+
+  const towers = computeTowers(calendar, 'linear', '2024-06-15');
+
+  expect(towers[0].row).toBe(0);
+  expect(towers[0].col).toBe(0);
+
+  expect(towers[1].row).toBe(0);
+  expect(towers[1].col).toBe(1);
+
+  expect(towers[3].row).toBe(1);
+  expect(towers[3].col).toBe(0);
 });
