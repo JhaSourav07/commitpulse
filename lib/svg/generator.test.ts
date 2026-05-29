@@ -827,63 +827,64 @@ describe('generateMonthlySVG', () => {
       "@import url('https://fonts.googleapis.com/css2?family=Inter&display=swap');"
     );
     expect(svg).toContain('font-family: "Inter", sans-serif;');
-  it('renders English label for commits this month by default', () => {
-    const svg = generateMonthlySVG(mockMonthlyStats, {
-      user: 'octocat',
-    } as unknown as BadgeParams);
+    it('renders English label for commits this month by default', () => {
+      const svg = generateMonthlySVG(mockMonthlyStats, {
+        user: 'octocat',
+      } as unknown as BadgeParams);
 
-    expect(svg).toContain('COMMITS THIS MONTH');
-  });
-});
-
-describe('escapeXML', () => {
-  it('escapes ampersands (&)', () => {
-    expect(escapeXML('foo & bar')).toBe('foo &amp; bar');
+      expect(svg).toContain('COMMITS THIS MONTH');
+    });
   });
 
-  it('escapes less-than signs (<)', () => {
-    expect(escapeXML('<div>')).toBe('&lt;div&gt;');
+  describe('escapeXML', () => {
+    it('escapes ampersands (&)', () => {
+      expect(escapeXML('foo & bar')).toBe('foo &amp; bar');
+    });
+
+    it('escapes less-than signs (<)', () => {
+      expect(escapeXML('<div>')).toBe('&lt;div&gt;');
+    });
+
+    it('escapes greater-than signs (>)', () => {
+      expect(escapeXML('a > b')).toBe('a &gt; b');
+    });
+
+    it('escapes double quotes (")', () => {
+      expect(escapeXML('class="btn"')).toBe('class=&quot;btn&quot;');
+    });
+
+    it("escapes single quotes (')", () => {
+      expect(escapeXML("it's working")).toBe('it&#39;s working');
+    });
+
+    it('escapes a string combining all five special characters', () => {
+      const combined = `<element attr="val" data-quote='yes'>&</element>`;
+      const expected = `&lt;element attr=&quot;val&quot; data-quote=&#39;yes&#39;&gt;&amp;&lt;/element&gt;`;
+      expect(escapeXML(combined)).toBe(expected);
+    });
+
+    it('leaves a safe string unchanged', () => {
+      const safe = 'Hello World 123!@#%^*()_+-=[]{}|;:,./?`~';
+      expect(escapeXML(safe)).toBe(safe);
+    });
   });
 
-  it('escapes greater-than signs (>)', () => {
-    expect(escapeXML('a > b')).toBe('a &gt; b');
-  });
+  describe('particleCount', () => {
+    it('returns 0 when count is 0', () => {
+      expect(particleCount(0)).toBe(0);
+    });
 
-  it('escapes double quotes (")', () => {
-    expect(escapeXML('class="btn"')).toBe('class=&quot;btn&quot;');
-  });
+    it('clamps to lower bound of 3 for low counts (e.g., 10 -> 3)', () => {
+      expect(particleCount(10)).toBe(3);
+    });
 
-  it("escapes single quotes (')", () => {
-    expect(escapeXML("it's working")).toBe('it&#39;s working');
-  });
+    it('scales correctly between bounds (e.g., 16 -> 4)', () => {
+      expect(particleCount(16)).toBe(4);
+    });
 
-  it('escapes a string combining all five special characters', () => {
-    const combined = `<element attr="val" data-quote='yes'>&</element>`;
-    const expected = `&lt;element attr=&quot;val&quot; data-quote=&#39;yes&#39;&gt;&amp;&lt;/element&gt;`;
-    expect(escapeXML(combined)).toBe(expected);
-  });
-
-  it('leaves a safe string unchanged', () => {
-    const safe = 'Hello World 123!@#%^*()_+-=[]{}|;:,./?`~';
-    expect(escapeXML(safe)).toBe(safe);
-  });
-});
-
-describe('particleCount', () => {
-  it('returns 0 when count is 0', () => {
-    expect(particleCount(0)).toBe(0);
-  });
-
-  it('clamps to lower bound of 3 for low counts (e.g., 10 -> 3)', () => {
-    expect(particleCount(10)).toBe(3);
-  });
-
-  it('scales correctly between bounds (e.g., 16 -> 4)', () => {
-    expect(particleCount(16)).toBe(4);
-  });
-
-  it('clamps to upper bound of 5 for high counts (e.g., 20 -> 5, 100 -> 5)', () => {
-    expect(particleCount(20)).toBe(5);
-    expect(particleCount(100)).toBe(5);
+    it('clamps to upper bound of 5 for high counts (e.g., 20 -> 5, 100 -> 5)', () => {
+      expect(particleCount(20)).toBe(5);
+      expect(particleCount(100)).toBe(5);
+    });
   });
 });
