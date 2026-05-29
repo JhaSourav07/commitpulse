@@ -2,10 +2,8 @@ import { NextRequest } from 'next/server';
 import { fetchGitHubContributions } from '../../../lib/github';
 import { calculateStreak, calculateMonthlyStats } from '../../../lib/calculate';
 import { generateSVG, generateMonthlySVG, escapeXML } from '../../../lib/svg/generator';
-import {
-  getSecondsUntilUTCMidnight,
-  getSecondsUntilMidnightInTimezone,
-} from '../../../utils/time';
+import { getSecondsUntilUTCMidnight, getSecondsUntilMidnightInTimezone } from '../../../utils/time';
+import type { BadgeParams, ContributionCalendar, StreakStats, MonthlyStats } from '../../../types';
 
 function validationError(field: string, message: string) {
   return new Response(
@@ -65,13 +63,13 @@ export async function GET(req: NextRequest) {
   };
 
   try {
-    const calendar = await fetchGitHubContributions(user, {
+    const calendar = (await fetchGitHubContributions(user, {
       bypassCache,
       from: year ? `${year}-01-01` : undefined,
       to: year ? `${year}-12-31` : undefined,
-    });
+    })) as ContributionCalendar;
 
-    const stats = calculateStreak(calendar, tz || 'UTC');
+    const stats = calculateStreak(calendar, tz || 'UTC') as StreakStats;
     // Build a typed params object for the SVG generator. Preserve raw
     // color strings (bg, text, accent) so tests that assert exact colors
     // continue to pass. Convert or filter optional params to reasonable
@@ -88,7 +86,7 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    const badgeParams: Record<string, any> = {
+    const badgeParams: Partial<BadgeParams> & { user: string } = {
       user,
       // preserve raw hex fragments (without #) so generator prefixes/sanitizes them
       bg: raw.bg,
@@ -100,7 +98,8 @@ export async function GET(req: NextRequest) {
       radius: raw.radius ? Number(raw.radius) : undefined,
       autoTheme: raw.autoTheme === 'true' || raw.autoTheme === '1' ? true : undefined,
       hide_title: raw.hide_title === 'true' || raw.hide_title === '1' ? true : undefined,
-      hideBackground: raw.hide_background === 'true' || raw.hide_background === '1' ? true : undefined,
+      hideBackground:
+        raw.hide_background === 'true' || raw.hide_background === '1' ? true : undefined,
       hide_stats: raw.hide_stats === 'true' || raw.hide_stats === '1' ? true : undefined,
       lang: raw.lang ?? undefined,
       view: raw.view === 'monthly' ? 'monthly' : undefined,
@@ -113,14 +112,14 @@ export async function GET(req: NextRequest) {
     // remove keys with undefined values so downstream code can rely on presence
     const finalParams = Object.fromEntries(
       Object.entries(badgeParams).filter(([, v]) => v !== undefined)
-    ) as unknown as Parameters<typeof generateSVG>[1];
+    ) as unknown as BadgeParams;
 
     let svg: string;
     if (view === 'monthly') {
-      const monthly = calculateMonthlyStats(calendar, tz || 'UTC');
-      svg = generateMonthlySVG(monthly as any, finalParams as any);
+      const monthly = calculateMonthlyStats(calendar, tz || 'UTC') as MonthlyStats;
+      svg = generateMonthlySVG(monthly, finalParams);
     } else {
-      svg = generateSVG(stats as any, finalParams as any, calendar as any);
+      svg = generateSVG(stats, finalParams, calendar);
     }
 
     if (bypassCache) {
