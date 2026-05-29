@@ -99,6 +99,39 @@ describe('POST /api/track-user', () => {
     });
   });
 
+  describe('Without MONGODB_URI (Production Environment)', () => {
+    afterEach(() => {
+      // Clean up NODE_ENV after production tests
+      delete (process.env as Record<string, string | undefined>).NODE_ENV;
+    });
+
+    it('returns 500 error when MONGODB_URI is missing in production', async () => {
+      (process.env as Record<string, string | undefined>).NODE_ENV = 'production';
+      delete process.env.MONGODB_URI;
+
+      // Spy on console.error
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      const response = await POST(makeRequest({ username: 'octocat' }));
+
+      expect(response.status).toBe(500);
+      const data = await response.json();
+      expect(data.success).toBe(false);
+      expect(data.error).toBe('Database configuration error');
+      expect(data.bypassed).toBeUndefined();
+
+      // Verify critical error was logged for monitoring/alerting
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        'CRITICAL: MONGODB_URI is not set in production environment. User tracking is disabled.'
+      );
+
+      // Verify database connection was never attempted
+      expect(dbConnect).not.toHaveBeenCalled();
+
+      consoleErrorSpy.mockRestore();
+    });
+  });
+
   describe('With MONGODB_URI', () => {
     beforeEach(() => {
       process.env.MONGODB_URI = 'mongodb://localhost:27017/test';
