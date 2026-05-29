@@ -10,19 +10,14 @@ import { sanitizeFont, sanitizeHexColor, sanitizeRadius, sanitizeGoogleFontUrl }
 import { SVG_WIDTH, SVG_HEIGHT, FONT_MAP, isFontKey } from './generatorConstants';
 
 // helpers
-export function truncateUsername(name: string, max = 20): string {
-  return name.length > max ? name.slice(0, max) + '…' : name;
-}
-
-function getFontFromMap(font: string | null): string | null {
-  if (!font) return null;
-  const f = font.toLowerCase();
-  return isFontKey(f) ? FONT_MAP[f] : null;
-}
-function getSizeScale(size?: 'small' | 'medium' | 'large'): number {
+export function getSizeScale(size?: 'small' | 'medium' | 'large') {
   if (size === 'small') return 400 / SVG_WIDTH;
   if (size === 'large') return 800 / SVG_WIDTH;
-  return 1; // medium (default)
+  return 1;
+}
+
+function truncateUsername(username: string): string {
+  return username.length > 12 ? `${username.slice(0, 12)}...` : username;
 }
 
 function deterministicRandom(seed: string): number {
@@ -457,7 +452,9 @@ export function generateSVG(
   const borderAttr = params.border ? `stroke="#${params.border}" stroke-width="2"` : '';
 
   const sanitizedFont = sanitizeFont(params.font);
-  const predefinedFont = getFontFromMap(sanitizedFont);
+  const predefinedFont = sanitizedFont
+    ? (FONT_MAP[sanitizedFont.toLowerCase() as keyof typeof FONT_MAP] ?? null)
+    : null;
   const isPredefinedFont = Boolean(predefinedFont);
   const selectedFont = isPredefinedFont
     ? predefinedFont
@@ -511,7 +508,8 @@ function generateAutoThemeSVG(
   const safeUser = escapeXML(params.user || 'GitHub User');
   const sanitizedFont = sanitizeFont(params.font);
   const selectedFont = sanitizedFont
-    ? getFontFromMap(sanitizedFont) || `"${sanitizedFont}", sans-serif`
+    ? (FONT_MAP[sanitizedFont.toLowerCase() as keyof typeof FONT_MAP] ?? null) ||
+      `"${sanitizedFont}", sans-serif`
     : null;
   const statsFont = selectedFont || '"Space Grotesk", sans-serif';
   const sf = getSizeScale(params.size);
@@ -1024,7 +1022,9 @@ export function generateVersusSVG(
   const text = `#${sanitizeHexColor(params.text, 'ffffff')}`;
 
   const sanitizedFont = sanitizeFont(params.font);
-  const predefinedFont = getFontFromMap(sanitizedFont);
+  const predefinedFont = sanitizedFont
+    ? (FONT_MAP[sanitizedFont.toLowerCase() as keyof typeof FONT_MAP] ?? null)
+    : null;
   const isPredefinedFont = Boolean(predefinedFont);
   const selectedFont = isPredefinedFont
     ? predefinedFont
@@ -1107,7 +1107,8 @@ function generateAutoThemeVersusSVG(
   const safeUser2 = escapeXML(params.versus || 'User 2');
   const sanitizedFont = sanitizeFont(params.font);
   const selectedFont = sanitizedFont
-    ? getFontFromMap(sanitizedFont) || `"${sanitizedFont}", sans-serif`
+    ? (FONT_MAP[sanitizedFont.toLowerCase() as keyof typeof FONT_MAP] ?? null) ||
+      `"${sanitizedFont}", sans-serif`
     : null;
   const statsFont = selectedFont || '"Space Grotesk", sans-serif';
   const sf = getSizeScale(params.size);

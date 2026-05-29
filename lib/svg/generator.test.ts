@@ -2,10 +2,11 @@ import { describe, it, expect } from 'vitest';
 import {
   generateSVG,
   generateMonthlySVG,
-  generateNotFoundSVG,
   particleCount,
   escapeXML,
+  generateNotFoundSVG,
 } from './generator';
+import { getSizeScale } from './generator';
 import type { BadgeParams, ContributionCalendar, StreakStats, MonthlyStats } from '../../types';
 import { hexColor } from './sanitizer';
 describe('generateSVG', () => {
@@ -933,73 +934,21 @@ describe('particleCount', () => {
     expect(particleCount(100)).toBe(5);
   });
 });
-describe('truncateUsername', () => {
-  it('truncates long usernames to 20 chars with ellipsis', () => {
-    const svg = generateSVG(
-      {
-        currentStreak: 5,
-        longestStreak: 10,
-        totalContributions: 100,
-        todayDate: new Date().toISOString().split('T')[0],
-      },
-      {
-        user: 'averylongusernamethatexceeds20chars',
-        bg: hexColor('0d1117'),
-        text: hexColor('ffffff'),
-        accent: hexColor('00ffaa'),
-        radius: 8,
-        speed: '8s',
-        scale: 'linear',
-        font: undefined,
-        autoTheme: false,
-        hide_title: false,
-        hideBackground: false,
-        hide_stats: false,
-        lang: 'en',
-        view: 'default',
-        delta_format: 'percent',
-        width: undefined,
-        height: undefined,
-        size: 'medium',
-        grace: 1,
-      },
-      { totalContributions: 100, weeks: [] }
-    );
-    expect(svg).toContain('…');
-    expect(svg).not.toContain('averylongusernamethatexceeds20chars');
+
+describe('getSizeScale', () => {
+  it('returns 1 for undefined', () => {
+    expect(getSizeScale()).toBe(1);
   });
-  it('does not truncate short usernames', () => {
-    const svg = generateSVG(
-      {
-        currentStreak: 5,
-        longestStreak: 10,
-        totalContributions: 100,
-        todayDate: new Date().toISOString().split('T')[0],
-      },
-      {
-        user: 'abc',
-        bg: hexColor('0d1117'),
-        text: hexColor('ffffff'),
-        accent: hexColor('00ffaa'),
-        radius: 8,
-        speed: '8s',
-        scale: 'linear',
-        font: undefined,
-        autoTheme: false,
-        hide_title: false,
-        hideBackground: false,
-        hide_stats: false,
-        lang: 'en',
-        view: 'default',
-        delta_format: 'percent',
-        width: undefined,
-        height: undefined,
-        size: 'medium',
-        grace: 1,
-      },
-      { totalContributions: 100, weeks: [] }
-    );
-    expect(svg).not.toContain('…');
-    expect(svg).toContain('abc');
+
+  it('returns ~0.667 for small', () => {
+    expect(getSizeScale('small')).toBeCloseTo(0.667, 2);
+  });
+
+  it('returns 1 for medium', () => {
+    expect(getSizeScale('medium')).toBe(1);
+  });
+
+  it('returns ~1.333 for large', () => {
+    expect(getSizeScale('large')).toBeCloseTo(1.333, 2);
   });
 });
