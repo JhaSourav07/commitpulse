@@ -327,6 +327,31 @@ describe('DashboardClient', () => {
       expect(screen.getByText(/Cannot compare a profile with itself/i)).toBeDefined();
     });
   });
+
+  // =========================================================================
+  // ISSUE OBJECTIVE #1063: Verify compare modal input can be cleared
+  // =========================================================================
+  it('verify compare modal input can be cleared', async () => {
+    render(<DashboardClient initialData={mockInitialData} username="Shivangi1515" />);
+
+    // 1. Open modal
+    const compareBtn = screen.getByText('Compare Profile');
+    fireEvent.click(compareBtn);
+
+    // 2. Type a username into the input
+    const input = screen.getByPlaceholderText('Enter GitHub Username');
+    fireEvent.change(input, { target: { value: 'testuser' } });
+
+    // 3. Assert 'Clear input' (aria-label) button appears
+    const clearButton = screen.getByRole('button', { name: 'Clear input' });
+    expect(clearButton).toBeDefined();
+
+    // 4. Click clear button
+    fireEvent.click(clearButton);
+
+    // 5. Assert input value is empty
+    expect((input as HTMLInputElement).value).toBe('');
+  });
 });
 it('shows Most Consistent badge for profile with higher peak streak in compare mode', async () => {
   const mockFetch = vi.fn().mockResolvedValue({
