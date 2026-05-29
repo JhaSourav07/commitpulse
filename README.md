@@ -192,7 +192,7 @@ URL Parameter > Theme Default > System Fallback
 | `light`            | Clean & minimal             | `ffffff` | `0969da` | `24292f` |
 | `gruvbox`          | retro warm dark             | `282828` | `fe8019` | `ebdbb2` |
 | `random`           | Surprise theme on reload    | _varies_ | _varies_ | _varies_ |
-| `highcontrast`     | Accessibility high contrast | `0a0a0a` | `ff4500` | `888888` |
+| `highcontrast`     | Accessibility high contrast | `0a0a0a` | `ff4500` | `ffffff` |
 
 > **`auto` uses CSS `@media (prefers-color-scheme)`** inside the SVG so the badge switches between the `light` and `dark` palettes based on the viewer's OS setting — no JavaScript required. This is ideal for GitHub profile READMEs where visitors may use either mode.
 
