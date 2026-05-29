@@ -473,7 +473,11 @@ export async function fetchUserRepos(
   return allRepos;
 }
 
-export function generateAchievements(totalContributions: number, currentStreak: number) {
+export function generateAchievements(
+  totalContributions: number,
+  currentStreak: number,
+  longestStreak: number = currentStreak
+) {
   const achievements = [];
 
   // Contribution milestones
@@ -506,11 +510,11 @@ export function generateAchievements(totalContributions: number, currentStreak: 
           ? 'Maintained a 3-day coding streak'
           : `Maintained a ${threshold}-day coding streak`,
       icon: '🔥',
-      isUnlocked: currentStreak >= threshold,
+      isUnlocked: longestStreak >= threshold,
       type: 'streak' as const,
       threshold,
-      currentValue: currentStreak,
-      progress: Math.min(100, Math.round((currentStreak / threshold) * 100)),
+      currentValue: longestStreak,
+      progress: Math.min(100, Math.round((longestStreak / threshold) * 100)),
     });
   }
 
@@ -655,7 +659,8 @@ export async function getFullDashboardData(username: string, options: FetchOptio
 
   const achievements = generateAchievements(
     streakStats.totalContributions,
-    streakStats.currentStreak
+    streakStats.currentStreak,
+    streakStats.longestStreak
   );
 
   // 4. Insights Generation
