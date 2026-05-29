@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { generateSVG, generateMonthlySVG, particleCount, escapeXML } from './generator';
+import {
+  generateSVG,
+  generateMonthlySVG,
+  particleCount,
+  escapeXML,
+  generateNotFoundSVG,
+} from './generator';
 import type { BadgeParams, ContributionCalendar, StreakStats, MonthlyStats } from '../../types';
 
 describe('generateSVG', () => {
@@ -532,5 +538,56 @@ describe('particleCount', () => {
   it('clamps to upper bound of 5 for high counts (e.g., 20 -> 5, 100 -> 5)', () => {
     expect(particleCount(20)).toBe(5);
     expect(particleCount(100)).toBe(5);
+  });
+});
+
+describe('generateNotFoundSVG', () => {
+  it('generates valid SVG output containing svg tags', () => {
+    const svg = generateNotFoundSVG('test-user', '#0d1117', '#00ffaa', '#ffffff', 8);
+    expect(svg).toContain('<svg');
+    expect(svg).toContain('</svg>');
+  });
+
+  it('renders the capitalized and escaped username in the output', () => {
+    const username = 'test-user&co';
+    const svg = generateNotFoundSVG(username, '#0d1117', '#00ffaa', '#ffffff', 8);
+    expect(svg).toContain('TEST-USER&amp;CO');
+  });
+
+  it('renders the "NOT FOUND" text badge', () => {
+    const svg = generateNotFoundSVG('test-user', '#0d1117', '#00ffaa', '#ffffff', 8);
+    expect(svg).toContain('NOT FOUND');
+  });
+
+  it('renders ghost towers with expected stroke attributes', () => {
+    const svg = generateNotFoundSVG('test-user', '#0d1117', '#00ffaa', '#ffffff', 8);
+    expect(svg).toContain('stroke-width="0.5"');
+    expect(svg).toContain('stroke-opacity="0.18"');
+    expect(svg).toContain('stroke-opacity="0.12"');
+    expect(svg).toContain('stroke-opacity="0.22"');
+  });
+
+  it('applies custom background, accent, and text colors', () => {
+    const customBg = '#112233';
+    const customAccent = '#445566';
+    const customText = '#778899';
+    const svg = generateNotFoundSVG('test-user', customBg, customAccent, customText, 8);
+
+    // Check background color
+    expect(svg).toContain(`fill="${customBg}"`);
+    // Check custom text color in CSS styles
+    expect(svg).toContain(`fill: ${customText};`);
+    // Check custom accent color in SVG attributes / CSS styles
+    expect(svg).toContain(`fill: ${customAccent};`);
+    expect(svg).toContain(`stroke="${customAccent}"`);
+  });
+
+  it('applies custom speed and radius parameters', () => {
+    const svg = generateNotFoundSVG('test-user', '#0d1117', '#00ffaa', '#ffffff', 12, '15s');
+
+    // Check speed attribute in animation
+    expect(svg).toContain('dur="15s"');
+    // Check radius attribute on background rect
+    expect(svg).toContain('rx="12"');
   });
 });
