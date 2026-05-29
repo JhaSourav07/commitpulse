@@ -25,6 +25,16 @@ describe('Export Snippet utilities', () => {
       expect(result).toBe(`<img src="${EXPECTED_BASE_URL}?${queryString}" alt="CommitPulse" />`);
     });
 
+    it('generates action snippet', () => {
+      const queryString = 'user=testuser&theme=dark';
+      const result = getExportSnippet('action', queryString);
+
+      expect(typeof result).toBe('string');
+      expect(result.startsWith('name: CommitPulse Streak Badge')).toBe(true);
+      expect(result).toContain(EXPECTED_BASE_URL);
+      expect(result).toContain(`curl -o commitpulse.svg "${EXPECTED_BASE_URL}?${queryString}"`);
+    });
+
     it('handles empty query string', () => {
       const emptyQuery = '';
       const markdownResult = getExportSnippet('markdown', emptyQuery);
@@ -44,6 +54,11 @@ describe('Export Snippet utilities', () => {
       expect(result).toContain(complexQuery);
       expect(result).toBe(`![CommitPulse](${EXPECTED_BASE_URL}?${complexQuery})`);
     });
+
+    it('throws error for unknown format', () => {
+      // @ts-expect-error Testing invalid format at runtime
+      expect(() => getExportSnippet('unknown', '')).toThrow('Unsupported export format: unknown');
+    });
   });
 
   describe('getPlaceholderSnippet', () => {
@@ -59,6 +74,14 @@ describe('Export Snippet utilities', () => {
       const result = getPlaceholderSnippet('html');
 
       expect(result.startsWith('<img src=')).toBe(true);
+      expect(result).toContain('your-github-username');
+      expect(result).toContain(EXPECTED_BASE_URL);
+    });
+
+    it('includes placeholder username in action', () => {
+      const result = getPlaceholderSnippet('action');
+
+      expect(result.startsWith('name: CommitPulse Streak Badge')).toBe(true);
       expect(result).toContain('your-github-username');
       expect(result).toContain(EXPECTED_BASE_URL);
     });

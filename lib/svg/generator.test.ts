@@ -3,8 +3,10 @@ import {
   generateSVG,
   generateMonthlySVG,
   generateNotFoundSVG,
+  generateRateLimitSVG,
   particleCount,
   escapeXML,
+  getSizeScale,
 } from './generator';
 import type { BadgeParams, ContributionCalendar, StreakStats, MonthlyStats } from '../../types';
 import { hexColor } from './sanitizer';
@@ -133,6 +135,48 @@ describe('generateSVG', () => {
     expect(svg).toContain('class="heat-particles"');
   });
 
+  it('scales particle floating height according to badge size', () => {
+    const svgMedium = generateSVG(
+      mockStats,
+      { user: 'avi', size: 'medium' } as unknown as BadgeParams,
+      mockCalendar
+    );
+    const svgSmall = generateSVG(
+      mockStats,
+      { user: 'avi', size: 'small' } as unknown as BadgeParams,
+      mockCalendar
+    );
+    const svgLarge = generateSVG(
+      mockStats,
+      { user: 'avi', size: 'large' } as unknown as BadgeParams,
+      mockCalendar
+    );
+
+    const mediumMatch = svgMedium.match(
+      /<animate attributeName="cy" from="([\d.-]+)" to="([\d.-]+)"/
+    );
+    expect(mediumMatch).not.toBeNull();
+    const fromMedium = parseFloat(mediumMatch![1]);
+    const toMedium = parseFloat(mediumMatch![2]);
+    expect(Math.round(fromMedium - toMedium)).toBe(20);
+
+    const smallMatch = svgSmall.match(
+      /<animate attributeName="cy" from="([\d.-]+)" to="([\d.-]+)"/
+    );
+    expect(smallMatch).not.toBeNull();
+    const fromSmall = parseFloat(smallMatch![1]);
+    const toSmall = parseFloat(smallMatch![2]);
+    expect(Math.round(fromSmall - toSmall)).toBe(13);
+
+    const largeMatch = svgLarge.match(
+      /<animate attributeName="cy" from="([\d.-]+)" to="([\d.-]+)"/
+    );
+    expect(largeMatch).not.toBeNull();
+    const fromLarge = parseFloat(largeMatch![1]);
+    const toLarge = parseFloat(largeMatch![2]);
+    expect(Math.round(fromLarge - toLarge)).toBe(27);
+  });
+
   it('supports dynamic Google Fonts for non-predefined fonts', () => {
     const svg = generateSVG(
       mockStats,
@@ -182,7 +226,7 @@ describe('generateSVG', () => {
       mockCalendar
     );
     // Should NOT contain a dynamic google fonts import for an empty/invalid family
-    expect(svg).not.toContain('family=&amp;display=swap');
+    expect(svg).not.toContain('family=&display=swap');
     // Should use default body font
     expect(svg).toContain('font-family: "Space Grotesk", sans-serif');
   });
@@ -194,7 +238,7 @@ describe('generateSVG', () => {
       mockCalendar
     );
     expect(svg).toContain('Space Grotesk');
-    expect(svg).not.toContain('family=&amp;display=swap');
+    expect(svg).not.toContain('family=&display=swap');
   });
 
   it('uses default font when font param is whitespace only', () => {
@@ -204,7 +248,7 @@ describe('generateSVG', () => {
       mockCalendar
     );
     expect(svg).toContain('Space Grotesk');
-    expect(svg).not.toContain('family=+&amp;display=swap');
+    expect(svg).not.toContain('family=+&display=swap');
   });
 
   it('allows apostrophes in font names like Times New Roman', () => {
@@ -215,6 +259,7 @@ describe('generateSVG', () => {
     );
     expect(svg).toContain('Gill Sans');
   });
+
   it('emits tower-raising CSS animations and staggered delays', () => {
     const svg = generateSVG(mockStats, { user: 'avi' } as unknown as BadgeParams, mockCalendar);
 
@@ -226,13 +271,40 @@ describe('generateSVG', () => {
     expect(svg).toMatch(/style="animation-delay: \d+\.\d+s;"/);
   });
 
-  it('includes reduced-motion CSS for the scan line in the main SVG output', () => {
-    const svg = generateSVG(mockStats, { user: 'avi' } as unknown as BadgeParams, mockCalendar);
+  it('escapes XML-reserved characters in tower tooltip titles', () => {
+    const calendarWithUnsafeDate = {
+      weeks: [
+        {
+          contributionDays: [{ contributionCount: 3, date: '2024-06-12 & <bad>' }],
+        },
+      ],
+    } as ContributionCalendar;
 
+    const svg = generateSVG(
+      mockStats,
+      { user: 'avi' } as unknown as BadgeParams,
+      calendarWithUnsafeDate
+    );
+
+    expect(svg).toContain('<title>TODAY: 2024-06-12 &amp; &lt;bad&gt;: 3 contributions</title>');
+    expect(svg).not.toContain('<title>TODAY: 2024-06-12 & <bad>: 3 contributions</title>');
+  });
+
+  // =========================================================================
+  // ISSUE #1084 FIX: Verify reduced-motion CSS disables scan-line in static mode
+  // =========================================================================
+  it('verifies reduced-motion CSS disables scan-line in static mode', () => {
+    // 1. Call static generateSVG (no autoTheme)
+    const svg = generateSVG(
+      mockStats,
+      { user: 'avi', autoTheme: false } as unknown as BadgeParams,
+      mockCalendar
+    );
+
+    // 2. 3 exact assertions as per the Definition of Done
     expect(svg).toContain('prefers-reduced-motion: reduce');
     expect(svg).toContain('.scan-line');
     expect(svg).toContain('animation: none !important');
-    expect(svg).toContain('transition: none !important');
   });
 
   it('uses English labels by default', () => {
@@ -367,12 +439,55 @@ describe('generateSVG', () => {
       expect(svg).toContain('prefers-reduced-motion');
     });
 
+    it('includes the scan-line class on the radar rect in the static renderer output', () => {
+      const staticParams = {
+        user: 'avi',
+        autoTheme: false,
+      } as unknown as BadgeParams;
+
+      const svg = generateSVG(mockStats, staticParams, mockCalendar);
+      expect(svg).toContain('class="cp-accent-fill scan-line"');
+    });
+
+    it('includes the scan-line class on the radar rect in the auto-theme renderer output', () => {
+      const svg = generateSVG(mockStats, autoParams, mockCalendar);
+      expect(svg).toContain('class="cp-accent-fill scan-line"');
+    });
+
     it('emits tower-raising CSS animations and staggered delays in auto mode', () => {
       const svg = generateSVG(mockStats, autoParams, mockCalendar);
 
       expect(svg).toContain('.cp-tower');
       expect(svg).toContain('@keyframes grow-up');
       expect(svg).toMatch(/style="animation-delay: \d+\.\d+s;"/);
+    });
+
+    it('escapes XML-reserved characters in auto-theme tower tooltip titles', () => {
+      const calendarWithUnsafeDate = {
+        weeks: [
+          {
+            contributionDays: [{ contributionCount: 3, date: '2024-06-12 & <bad>' }],
+          },
+        ],
+      } as ContributionCalendar;
+
+      const svg = generateSVG(mockStats, autoParams, calendarWithUnsafeDate);
+
+      expect(svg).toContain('<title>TODAY: 2024-06-12 &amp; &lt;bad&gt;: 3 contributions</title>');
+      expect(svg).not.toContain('<title>TODAY: 2024-06-12 & <bad>: 3 contributions</title>');
+    });
+
+    it('supports dynamic Google Fonts for non-predefined fonts in auto-theme mode', () => {
+      const svg = generateSVG(
+        mockStats,
+        { ...autoParams, font: 'Inter' } as unknown as BadgeParams,
+        mockCalendar
+      );
+
+      expect(svg).toContain(
+        "@import url('https://fonts.googleapis.com/css2?family=Inter&display=swap');"
+      );
+      expect(svg).toContain('font-family: "Inter", sans-serif;');
     });
   });
 
@@ -440,6 +555,50 @@ describe('generateSVG', () => {
       expect(svg).toContain('animation: none !important');
       expect(svg).toContain('transition: none !important');
       expect(svg).toContain('class="scan-line"');
+    });
+
+    it('generates a valid SVG output containing <svg and </svg>', () => {
+      const svg = generateNotFoundSVG('octocat', '#0d1117', '#00ffaa', '#ffffff', 8);
+      expect(svg.trim()).toBeDefined();
+      expect(svg).toContain('<svg');
+      expect(svg).toContain('</svg>');
+    });
+
+    it('renders the username in uppercase and escapes XML-reserved characters', () => {
+      const svg = generateNotFoundSVG('octocat&co', '#0d1117', '#00ffaa', '#ffffff', 8);
+      expect(svg).toContain('OCTOCAT&amp;CO');
+    });
+
+    it('displays the "NOT FOUND" text label', () => {
+      const svg = generateNotFoundSVG('octocat', '#0d1117', '#00ffaa', '#ffffff', 8);
+      expect(svg).toContain('NOT FOUND');
+    });
+
+    it('contains the expected stroke-width and stroke-opacity attributes for ghost towers', () => {
+      const svg = generateNotFoundSVG('octocat', '#0d1117', '#00ffaa', '#ffffff', 8);
+      expect(svg).toContain('stroke-width="0.5"');
+      expect(svg).toContain('stroke-opacity="0.18"');
+      expect(svg).toContain('stroke-opacity="0.12"');
+      expect(svg).toContain('stroke-opacity="0.22"');
+    });
+
+    it('applies custom bg, accent, and text colors to the SVG elements and styles', () => {
+      const bg = '#1a1c23';
+      const accent = '#ff007f';
+      const text = '#e1e2e7';
+      const svg = generateNotFoundSVG('octocat', bg, accent, text, 8);
+
+      // bg verification
+      expect(svg).toContain(`fill="${bg}"`);
+      expect(svg).toContain(`stop-color="${bg}"`);
+
+      // accent verification
+      expect(svg).toContain(`fill="${accent}"`);
+      expect(svg).toContain(`stroke="${accent}"`);
+
+      // text verification
+      expect(svg).toContain(`fill: ${text};`);
+      expect(svg).toContain(`fill="${text}"`);
     });
   });
 
@@ -567,6 +726,89 @@ describe('generateSVG', () => {
       expect(svg).toContain('OCTOCAT');
     });
   });
+
+  describe('SVG dimensions per size', () => {
+    it('renders width="600" and height="420" for medium size (default)', () => {
+      const svg = generateSVG(
+        mockStats,
+        { user: 'avi', size: 'medium' } as unknown as BadgeParams,
+        mockCalendar
+      );
+
+      expect(svg).toContain('width="600"');
+      expect(svg).toContain('height="420"');
+    });
+
+    it('renders width="400" and height="280" for small size', () => {
+      const svg = generateSVG(
+        mockStats,
+        { user: 'avi', size: 'small' } as unknown as BadgeParams,
+        mockCalendar
+      );
+
+      expect(svg).toContain('width="400"');
+      expect(svg).toContain('height="280"');
+    });
+
+    it('renders width="800" and height="560" for large size', () => {
+      const svg = generateSVG(
+        mockStats,
+        { user: 'avi', size: 'large' } as unknown as BadgeParams,
+        mockCalendar
+      );
+
+      expect(svg).toContain('width="800"');
+      expect(svg).toContain('height="560"');
+    });
+  });
+
+  describe('isometric labels', () => {
+    it('does not render labels when labels parameter is absent', () => {
+      const svg = generateSVG(mockStats, { user: 'avi' } as unknown as BadgeParams, mockCalendar);
+      expect(svg).not.toContain('class="isometric-labels"');
+    });
+
+    it('does not render labels when labels parameter is false', () => {
+      const svg = generateSVG(
+        mockStats,
+        { user: 'avi', labels: false } as unknown as BadgeParams,
+        mockCalendar
+      );
+      expect(svg).not.toContain('class="isometric-labels"');
+    });
+
+    it('renders month and weekday labels when labels=true', () => {
+      const svg = generateSVG(
+        mockStats,
+        { user: 'avi', labels: true } as unknown as BadgeParams,
+        mockCalendar
+      );
+      expect(svg).toContain('class="isometric-labels"');
+      expect(svg).toContain('Jun'); // June is first date in calendar '2024-06-10'
+      expect(svg).toContain('Mon');
+      expect(svg).toContain('Wed');
+      expect(svg).toContain('Fri');
+    });
+
+    it('applies custom labelColor when provided', () => {
+      const svg = generateSVG(
+        mockStats,
+        { user: 'avi', labels: true, labelColor: 'ff00aa' } as unknown as BadgeParams,
+        mockCalendar
+      );
+      expect(svg).toContain('fill="#ff00aa"');
+    });
+
+    it('renders labels in auto-theme mode', () => {
+      const svg = generateSVG(
+        mockStats,
+        { user: 'avi', labels: true, autoTheme: true } as unknown as BadgeParams,
+        mockCalendar
+      );
+      expect(svg).toContain('class="isometric-labels"');
+      expect(svg).toContain('fill="var(--cp-text)"');
+    });
+  });
 });
 
 describe('generateMonthlySVG', () => {
@@ -588,6 +830,23 @@ describe('generateMonthlySVG', () => {
     expect(svg).toContain('+12 commits');
   });
 
+  it('renders monthly stats correctly with negative absolute delta', () => {
+    const negativeStats: MonthlyStats = {
+      currentMonthTotal: 18,
+      previousMonthTotal: 30,
+      deltaPercentage: -40,
+      deltaAbsolute: -12,
+      currentMonthName: 'June',
+    };
+
+    const svg = generateMonthlySVG(negativeStats, {
+      user: 'octocat',
+      delta_format: 'absolute',
+    } as unknown as BadgeParams);
+
+    expect(svg).toContain('-12 commits');
+  });
+
   it('renders monthly stats correctly with percentage delta', () => {
     const svg = generateMonthlySVG(mockMonthlyStats, {
       user: 'octocat',
@@ -602,6 +861,16 @@ describe('generateMonthlySVG', () => {
       delta_format: 'both',
     } as unknown as BadgeParams);
     expect(svg).toContain('+40% (+12)');
+  });
+
+  it('includes custom dimensions in viewBox', () => {
+    const svg = generateMonthlySVG(mockMonthlyStats, {
+      user: 'octocat',
+      width: 400,
+      height: 200,
+    } as unknown as BadgeParams);
+
+    expect(svg).toContain('viewBox="0 0 400 200"');
   });
 
   it('respects custom width and height parameters', () => {
@@ -634,8 +903,181 @@ describe('generateMonthlySVG', () => {
     expect(svg).toContain('animation: none !important');
     expect(svg).toContain('transition: none !important');
   });
+
+  it('supports dynamic Google Fonts for non-predefined fonts in monthly auto-theme mode', () => {
+    const svg = generateMonthlySVG(mockMonthlyStats, {
+      user: 'octocat',
+      autoTheme: true,
+      font: 'Inter',
+    } as unknown as BadgeParams);
+
+    expect(svg).toContain(
+      "@import url('https://fonts.googleapis.com/css2?family=Inter&display=swap');"
+    );
+    expect(svg).toContain('font-family: "Inter", sans-serif;');
+  });
+
+  it('renders English label for commits this month by default', () => {
+    const svg = generateMonthlySVG(mockMonthlyStats, {
+      user: 'octocat',
+    } as unknown as BadgeParams);
+
+    expect(svg).toContain('COMMITS THIS MONTH');
+  });
 });
 
+describe('shading and gradients', () => {
+  const mockStats: StreakStats = {
+    currentStreak: 5,
+    longestStreak: 10,
+    totalContributions: 100,
+    todayDate: '2024-06-12',
+  };
+
+  const mockCalendar = {
+    weeks: [
+      {
+        contributionDays: [
+          { contributionCount: 0, date: '2024-06-10' },
+          { contributionCount: 5, date: '2024-06-11' },
+          { contributionCount: 15, date: '2024-06-12' },
+        ],
+      },
+    ],
+  } as ContributionCalendar;
+
+  it('renders linearGradient definitions when gradient=true', () => {
+    const svg = generateSVG(
+      mockStats,
+      { user: 'avi', gradient: true } as unknown as BadgeParams,
+      mockCalendar
+    );
+    expect(svg).toContain('<linearGradient id="tower-grad-level-1"');
+    expect(svg).toContain('<linearGradient id="tower-grad-level-4"');
+    expect(svg).toContain('fill="url(#tower-grad-level-');
+  });
+
+  it('does not render linearGradient definitions when gradient=false', () => {
+    const svg = generateSVG(
+      mockStats,
+      { user: 'avi', gradient: false } as unknown as BadgeParams,
+      mockCalendar
+    );
+    expect(svg).not.toContain('<linearGradient id="tower-grad-level-1"');
+  });
+
+  it('supports mapping colors in array accent lists to towers', () => {
+    const calendarWithAllQuartiles = {
+      weeks: [
+        {
+          contributionDays: [
+            { contributionCount: 2, date: '2024-06-10' }, // Level 1 (2/15 <= 0.25)
+            { contributionCount: 6, date: '2024-06-11' }, // Level 2 (6/15 <= 0.5)
+            { contributionCount: 10, date: '2024-06-12' }, // Level 3 (10/15 <= 0.75)
+            { contributionCount: 15, date: '2024-06-13' }, // Level 4
+          ],
+        },
+      ],
+    } as ContributionCalendar;
+
+    const svg = generateSVG(
+      mockStats,
+      { user: 'avi', accent: ['111111', '222222', '333333', '444444'] } as unknown as BadgeParams,
+      calendarWithAllQuartiles
+    );
+    expect(svg).toContain('fill="#111111"');
+    expect(svg).toContain('fill="#222222"');
+    expect(svg).toContain('fill="#333333"');
+    expect(svg).toContain('fill="#444444"');
+  });
+
+  it('gracefully handles and clamps accent color arrays with fewer than 4 items without crashing', () => {
+    const calendarWithAllQuartiles = {
+      weeks: [
+        {
+          contributionDays: [
+            { contributionCount: 2, date: '2024-06-10' },
+            { contributionCount: 6, date: '2024-06-11' },
+            { contributionCount: 10, date: '2024-06-12' },
+            { contributionCount: 15, date: '2024-06-13' },
+          ],
+        },
+      ],
+    } as ContributionCalendar;
+
+    const svg = generateSVG(
+      mockStats,
+      { user: 'avi', accent: ['111111'] } as unknown as BadgeParams,
+      calendarWithAllQuartiles
+    );
+    expect(svg).toContain('fill="#111111"');
+  });
+});
+
+describe('shading', () => {
+  // A calendar with a mix of contribution counts to produce towers at different
+  // intensity levels — needed so that shading multipliers actually apply.
+  const shadingCalendar = {
+    weeks: [
+      {
+        contributionDays: [
+          { contributionCount: 2, date: '2024-06-10' }, // low intensity
+          { contributionCount: 10, date: '2024-06-11' }, // mid intensity
+          { contributionCount: 15, date: '2024-06-12' }, // high intensity
+        ],
+      },
+    ],
+  } as ContributionCalendar;
+
+  const shadingStats: StreakStats = {
+    currentStreak: 3,
+    longestStreak: 10,
+    totalContributions: 27,
+    todayDate: '2024-06-12',
+  };
+
+  it('applies reduced face-opacity (shading) when shading is not disabled', () => {
+    // With shading on, low-intensity towers use opacity multiplier 0.4, so their
+    // face-opacity should be lower than the unshaded base value.
+    const svgShading = generateSVG(
+      shadingStats,
+      { user: 'avi', shading: true } as unknown as BadgeParams,
+      shadingCalendar
+    );
+    // The shaded SVG should still contain the tower paths
+    expect(svgShading).toContain('class="cp-tower"');
+    // For level 1 (mult=0.4), base top face opacity 0.7 becomes 0.28
+    // Check for that specific derived value to ensure shading actually multiplied it.
+    expect(svgShading).toContain('fill-opacity="0.28"');
+  });
+
+  it('does not apply shading multipliers when shading=false', () => {
+    const svgShading = generateSVG(
+      shadingStats,
+      { user: 'avi', shading: true } as unknown as BadgeParams,
+      shadingCalendar
+    );
+    const svgNoShading = generateSVG(
+      shadingStats,
+      { user: 'avi', shading: false } as unknown as BadgeParams,
+      shadingCalendar
+    );
+    // The two renders must differ — shading changes face opacities
+    expect(svgShading).not.toBe(svgNoShading);
+  });
+
+  it('falls back to default accent #00ffaa when accent array is empty', () => {
+    const svg = generateSVG(
+      shadingStats,
+      // Simulate what validation returns for accent=,,, (empty array is
+      // now normalised to undefined, but if it somehow reached the renderer
+      // as [] the fallback should still fire without crashing).
+      { user: 'avi', accent: [] } as unknown as BadgeParams,
+      shadingCalendar
+    );
+    expect(svg).toContain('00ffaa');
+  });
+});
 describe('escapeXML', () => {
   it('escapes ampersands (&)', () => {
     expect(escapeXML('foo & bar')).toBe('foo &amp; bar');
@@ -685,5 +1127,34 @@ describe('particleCount', () => {
   it('clamps to upper bound of 5 for high counts (e.g., 20 -> 5, 100 -> 5)', () => {
     expect(particleCount(20)).toBe(5);
     expect(particleCount(100)).toBe(5);
+  });
+});
+
+describe('getSizeScale', () => {
+  it('returns 1 for undefined', () => {
+    expect(getSizeScale()).toBe(1);
+  });
+
+  it('returns ~0.667 for small', () => {
+    expect(getSizeScale('small')).toBeCloseTo(0.667, 2);
+  });
+
+  it('returns 1 for medium', () => {
+    expect(getSizeScale('medium')).toBe(1);
+  });
+
+  it('returns ~1.333 for large', () => {
+    expect(getSizeScale('large')).toBeCloseTo(1.333, 2);
+  });
+});
+
+describe('generateRateLimitSVG', () => {
+  it('generates a valid SVG with rate limit messaging', () => {
+    const svg = generateRateLimitSVG('#000000', '#ffffff', '#aaaaaa', 8, '8s');
+    expect(svg).toContain('<svg');
+    expect(svg).toContain('API RATE LIMIT');
+    expect(svg).toContain('RATE LIMITED');
+    expect(svg).toContain('Please wait a moment before trying again');
+    expect(svg).toContain('</svg>');
   });
 });

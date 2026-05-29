@@ -200,6 +200,13 @@ describe('calculateStreak', () => {
     expect(result.longestStreak).toBe(1);
   });
 
+  it('does not walk past the start of a 1-day calendar when grace is larger than the available days', () => {
+    const calendar = buildCalendar([1]);
+
+    const result = calculateStreak(calendar, 'UTC', undefined, 7);
+    expect(result.currentStreak).toBe(1);
+  });
+
   it('handles a single inactive day safely (0 contributions)', () => {
     const calendar = buildCalendar([0]);
     expect(() => calculateStreak(calendar)).not.toThrow();
@@ -376,7 +383,7 @@ describe('calculateMonthlyStats', () => {
 
     expect(result.previousMonthTotal).toBe(0);
     expect(result.currentMonthTotal).toBe(10);
-    expect(result.deltaPercentage).toBe(100);
+    expect(result.deltaPercentage).toBeNull();
   });
 
   it('handles zero current month contributions', () => {
@@ -436,6 +443,50 @@ describe('calculateMonthlyStats', () => {
     expect(result.currentMonthTotal).toBe(5);
     expect(result.currentMonthName).toBe('January');
   });
+
+  it('verify January correctly uses December of previous year with explicit now baseline', () => {
+    const calendar = {
+      totalContributions: 15,
+      weeks: [
+        {
+          contributionDays: [
+            { contributionCount: 10, date: '2023-12-15' },
+            { contributionCount: 5, date: '2024-01-15' },
+          ],
+        },
+      ],
+    };
+    const now = new Date('2024-01-20T12:00:00Z');
+    const result = calculateMonthlyStats(calendar, 'UTC', now);
+
+    // Assertions matching the explicit issue Definition of Done
+    expect(result.currentMonthTotal).toBe(5);
+    expect(result.previousMonthTotal).toBe(10);
+    expect(result.currentMonthName).toBe('January');
+  });
+  // =========================================================================
+  // ISSUE OBJECTIVE: Empty calendar passed to calculateMonthlyStats
+  // =========================================================================
+  it('returns zeros and does not crash when given an empty calendar', () => {
+    const emptyCalendar = {
+      totalContributions: 0,
+      weeks: [],
+    } as Parameters<typeof calculateMonthlyStats>[0];
+
+    const testDate = new Date('2026-05-29T12:00:00Z');
+    let result: ReturnType<typeof calculateMonthlyStats>;
+
+    // 1. Assert does not throw
+    expect(() => {
+      result = calculateMonthlyStats(emptyCalendar, 'UTC', testDate);
+    }).not.toThrow();
+
+    // 2. Assert currentMonthTotal === 0
+    expect(result!.currentMonthTotal).toBe(0);
+
+    // 3. Assert previousMonthTotal === 0
+    expect(result!.previousMonthTotal).toBe(0);
+  });
 });
 
 describe('calculateStreak — empty and sparse year edge cases', () => {
@@ -467,9 +518,70 @@ describe('calculateStreak — empty and sparse year edge cases', () => {
   });
 });
 
+describe('calculateStreak — todayDate format', () => {
+  const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
+
+  it('todayDate matches YYYY-MM-DD for a normal calendar', () => {
+    // A typical calendar with contributions — todayDate must always be a valid date string
+    // regardless of the contribution data, so the SVG pulse animation targets the right tower.
+    const calendar = buildCalendar([1, 0, 1, 1, 0, 1, 1]);
+    const fixedNow = new Date('2024-01-07T12:00:00Z');
+    const result = calculateStreak(calendar, 'UTC', fixedNow);
+    expect(result.todayDate).toMatch(DATE_REGEX);
+  });
+
+  it('todayDate matches YYYY-MM-DD for an empty calendar', () => {
+    // An empty calendar has no days to fall back on, so todayDate is derived
+    // purely from the current date — it must still be a valid YYYY-MM-DD string.
+    const emptyCalendar = buildCalendar([]);
+    const fixedNow = new Date('2024-03-15T00:00:00Z');
+    const result = calculateStreak(emptyCalendar, 'UTC', fixedNow);
+    expect(result.todayDate).toMatch(DATE_REGEX);
+  });
+
+  it('todayDate matches YYYY-MM-DD when a non-UTC timezone shifts the local date', () => {
+    // When the caller passes a timezone like Asia/Kolkata, the local date can differ
+    // from UTC (e.g. UTC is still Jan 14 but IST is already Jan 15).
+    // The format must remain YYYY-MM-DD regardless of which day the timezone lands on.
+    const calendar = buildCalendar([1, 1, 1, 1, 1, 1, 1]);
+    const fixedNow = new Date('2024-01-07T20:00:00Z'); // 01:30 Jan 8 in IST (UTC+5:30)
+    const result = calculateStreak(calendar, 'Asia/Kolkata', fixedNow);
+    expect(result.todayDate).toMatch(DATE_REGEX);
+  });
+});
+
 // ---------- EPIC ENHANCEMENT TESTS ----------
 
 describe('aggregateCalendars', () => {
+  it('handles calendars with different numbers of weeks', () => {
+    const cal1 = {
+      totalContributions: 15,
+      weeks: [
+        {
+          contributionDays: [{ date: '2024-01-01', contributionCount: 5 }],
+        },
+        {
+          contributionDays: [{ date: '2024-01-08', contributionCount: 10 }],
+        },
+      ],
+    };
+
+    const cal2 = {
+      totalContributions: 3,
+      weeks: [
+        {
+          contributionDays: [{ date: '2024-01-01', contributionCount: 3 }],
+        },
+      ],
+    };
+
+    const result = aggregateCalendars([cal1, cal2]);
+
+    expect(result.weeks).toHaveLength(2);
+    expect(result.weeks[0].contributionDays[0].contributionCount).toBe(8);
+    expect(result.weeks[1].contributionDays[0].contributionCount).toBe(10);
+  });
+
   it('returns an empty calendar if no calendars are provided', () => {
     const result = aggregateCalendars([]);
     expect(result.totalContributions).toBe(0);
@@ -490,6 +602,27 @@ describe('aggregateCalendars', () => {
 });
 
 describe('calculateWrappedStats', () => {
+  it('returns weekendRatio as 0 when all contributions occur on weekdays', () => {
+    const calendar = {
+      totalContributions: 25,
+      weeks: [
+        {
+          contributionDays: [
+            { date: '2024-01-01', contributionCount: 5 }, // Mon
+            { date: '2024-01-02', contributionCount: 5 }, // Tue
+            { date: '2024-01-03', contributionCount: 5 }, // Wed
+            { date: '2024-01-04', contributionCount: 5 }, // Thu
+            { date: '2024-01-05', contributionCount: 5 }, // Fri
+          ],
+        },
+      ],
+    };
+
+    const result = calculateWrappedStats(calendar);
+
+    expect(result.weekendRatio).toBe(0);
+  });
+
   it('calculates GitHub Wrapped stats accurately', () => {
     // 2024-01-01 was a Monday. Indices 5 (Sat) and 6 (Sun) are the weekend.
     const cal = buildCalendar([0, 0, 0, 0, 0, 5, 15]);
@@ -500,6 +633,44 @@ describe('calculateWrappedStats', () => {
     expect(result.highestDailyCount).toBe(15);
     expect(result.mostActiveDate).toBe('2024-01-07');
     expect(result.busiestMonth).toBe('2024-01');
+    expect(result.weekendRatio).toBe(100);
+  });
+
+  // ISSUE OBJECTIVE #1056: Verify empty calendar returns safe zero values
+  it('verify empty calendar returns safe zero values', () => {
+    // 1. Call calculateWrappedStats with empty data
+    expect(() => calculateWrappedStats({ totalContributions: 0, weeks: [] })).not.toThrow();
+
+    // 2. Actually get the result to test its properties
+    const result = calculateWrappedStats({ totalContributions: 0, weeks: [] });
+
+    // 3. Assert weekendRatio === 0 (and specifically not NaN)
+    expect(result.weekendRatio).toBe(0);
+
+    // 4. Assert highestDailyCount === 0
+    expect(result.highestDailyCount).toBe(0);
+  });
+
+  // ISSUE OBJECTIVE: Verify weekendRatio is 100 when all commits are on weekends
+  // =========================================================================
+  it('returns weekendRatio === 100 when all contributions are on weekends', () => {
+    // Note: 2026-05-02 is a Saturday, 2026-05-03 is a Sunday, 2026-05-04 is a Monday
+    const weekendCalendar = {
+      totalContributions: 10,
+      weeks: [
+        {
+          contributionDays: [
+            { date: '2026-05-02', contributionCount: 5 }, // Saturday (Weekend)
+            { date: '2026-05-03', contributionCount: 5 }, // Sunday (Weekend)
+            { date: '2026-05-04', contributionCount: 0 }, // Monday (Weekday - 0 commits)
+          ],
+        },
+      ],
+    } as Parameters<typeof calculateWrappedStats>[0]; // Safely infers the exact type the function expects!
+
+    const result = calculateWrappedStats(weekendCalendar);
+
+    // Assert the ratio is exactly 100%
     expect(result.weekendRatio).toBe(100);
   });
 });

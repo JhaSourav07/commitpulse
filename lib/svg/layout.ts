@@ -32,6 +32,7 @@ export interface TowerData {
   /** Grid position used to compute the staggered animation-delay (row + col) * offset */
   row: number;
   col: number;
+  intensityLevel: number; // Quartile level (0 for no commits, 1 to 4 based on contribution intensity)
 }
 
 function computeTowerHeight(
@@ -48,12 +49,26 @@ function computeTowerHeight(
 
 function computeFaceOpacity(count: number, isGhostCityMode: boolean): FaceOpacity {
   if (isGhostCityMode) {
-    return { left: 0, right: 0, top: 0.02 };
+    return { left: 0, right: 0, top: 0.08 };
   }
   if (count === 0) {
-    return { left: 0, right: 0, top: 0.02 };
+    return { left: 0, right: 0, top: 0.08 };
   }
   return { left: 0.35, right: 0.21, top: 0.7 };
+}
+
+/**
+ * Projects 2D grid coordinates (weekIndex, dayIndex) into 3D isometric screen coordinates.
+ *
+ * @param weekIndex The week column index (0 to 13).
+ * @param dayIndex The day-of-week row index (0 to 6).
+ * @returns Projected x and y coordinate offsets in pixels.
+ */
+export function projectIsometric(weekIndex: number, dayIndex: number): { x: number; y: number } {
+  return {
+    x: 300 + (weekIndex - dayIndex) * 16,
+    y: 120 + (weekIndex + dayIndex) * 9,
+  };
 }
 
 /**
@@ -70,13 +85,17 @@ export function computeTowers(
   const weeks = calendar.weeks.slice(-14);
   const towers: TowerData[] = [];
 
-  // Calculate if the entire monolith is empty based on the selected mode metric
+  // Calculate if the entire monolith is empty and retrieve the maximum count (commits or LoC)
   let totalVisibleContributions = 0;
+  let maxCommits = 0;
   weeks.forEach((week) => {
     week.contributionDays.forEach((day) => {
       const count =
         mode === 'loc' ? (day.locAdditions || 0) + (day.locDeletions || 0) : day.contributionCount;
       totalVisibleContributions += count;
+      if (count > maxCommits) {
+        maxCommits = count;
+      }
     });
   });
 
@@ -103,17 +122,24 @@ export function computeTowers(
         ? `TODAY: ${day.date}: ${count} ${unit}`
         : `${day.date}: ${count} ${unit}`;
 
-      // Isometric projection: Maps 2D grid coordinates (i, j) to a 3D isometric screen space.
-      // - Origin: (300, 120) anchors the grid layout on the SVG canvas.
-      // - Indices: 'i' represents the week/column index; 'j' represents the day/row index.
-      // - Geometry:
-      //   * (i - j) * 16 handles the horizontal shift. Increasing 'i' moves right; increasing 'j' moves left.
-      //   * (i + j) * 9 handles the vertical depth. Both indices move the tile downward.
-      // - Constants: 16 and 9 represent half-widths and half-heights of the diamond tiles,
-      //   maintaining a clean ~2:1 aspect ratio for isometric perspective.
+      const coords = projectIsometric(i, j);
+
+      let intensityLevel = 0;
+      if (hasCommits) {
+        if (maxCommits <= 4) {
+          intensityLevel = Math.min(4, day.contributionCount);
+        } else {
+          const ratio = day.contributionCount / maxCommits;
+          if (ratio <= 0.25) intensityLevel = 1;
+          else if (ratio <= 0.5) intensityLevel = 2;
+          else if (ratio <= 0.75) intensityLevel = 3;
+          else intensityLevel = 4;
+        }
+      }
+
       towers.push({
-        x: 300 + (i - j) * 16,
-        y: 120 + (i + j) * 9,
+        x: coords.x,
+        y: coords.y,
         h: computeTowerHeight(count, scale, shouldShowGhostCity),
         hasCommits,
         isGhost,
@@ -126,6 +152,7 @@ export function computeTowers(
         strokeWidth: isGhost ? 0.5 : 0,
         row: i,
         col: j,
+        intensityLevel,
       });
     });
   });

@@ -1,4 +1,3 @@
-import '@testing-library/jest-dom';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { HeroSection } from './HeroSection';
@@ -20,19 +19,19 @@ describe('HeroSection', () => {
       level: 1,
     });
 
-    expect(heading).toBeInTheDocument();
+    expect(heading).toBeDefined();
   });
 
   it("heading contains 'Elevate Your'", () => {
     render(<HeroSection />);
 
-    expect(screen.getByText(/Elevate Your/i)).toBeInTheDocument();
+    expect(screen.getByText(/Elevate Your/i)).toBeDefined();
   });
 
   it("heading contains 'Contribution Story'", () => {
     render(<HeroSection />);
 
-    expect(screen.getByText(/Contribution Story/i)).toBeInTheDocument();
+    expect(screen.getByText(/Contribution Story/i)).toBeDefined();
   });
 
   it('renders the descriptive paragraph', () => {
@@ -40,12 +39,12 @@ describe('HeroSection', () => {
 
     const paragraph = screen.getByText(/isometric/i);
 
-    expect(paragraph).toBeInTheDocument();
+    expect(paragraph).toBeDefined();
   });
 
   it("paragraph mentions 'isometric'", () => {
     render(<HeroSection />);
 
-    expect(screen.getByText(/isometric/i)).toHaveTextContent(/isometric/i);
+    expect(screen.getByText(/isometric/i).textContent).toMatch(/isometric/i);
   });
 });

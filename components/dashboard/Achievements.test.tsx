@@ -37,7 +37,7 @@ const mockAchievements = [
     id: '1',
     title: 'Achiev 1',
     description: 'Desc 1',
-    icon: 'award',
+    icon: '🏆',
     type: 'streak' as const,
     isUnlocked: true,
     currentValue: 10,
@@ -48,7 +48,7 @@ const mockAchievements = [
     id: '2',
     title: 'Achiev 2',
     description: 'Desc 2',
-    icon: 'award',
+    icon: '🏆',
     type: 'contributions' as const,
     isUnlocked: false,
     currentValue: 5,
@@ -59,7 +59,7 @@ const mockAchievements = [
     id: '3',
     title: 'Achiev 3',
     description: 'Desc 3',
-    icon: 'award',
+    icon: '🔥',
     type: 'streak' as const,
     isUnlocked: true,
     currentValue: 5,
@@ -70,7 +70,7 @@ const mockAchievements = [
     id: '4',
     title: 'Achiev 4',
     description: 'Desc 4',
-    icon: 'award',
+    icon: '🏆',
     type: 'contributions' as const,
     isUnlocked: false,
     currentValue: 1,
@@ -81,12 +81,49 @@ const mockAchievements = [
     id: '5',
     title: 'Achiev 5',
     description: 'Desc 5',
-    icon: 'award',
+    icon: '🔥',
     type: 'streak' as const,
     isUnlocked: false,
     currentValue: 0,
     threshold: 100,
     progress: 0,
+  },
+];
+
+// New achievement types for extended tests
+const behaviorAchievements = [
+  {
+    id: 'weekend-warrior',
+    title: 'Weekend Warrior',
+    description: '10+ contributions on weekends (Sat & Sun)',
+    icon: '🏋️',
+    type: 'behavior' as const,
+    isUnlocked: true,
+    currentValue: 15,
+    threshold: 10,
+    progress: 100,
+  },
+  {
+    id: 'polyglot',
+    title: 'Polyglot',
+    description: 'Used 5+ distinct programming languages',
+    icon: '🐙',
+    type: 'behavior' as const,
+    isUnlocked: false,
+    currentValue: 3,
+    threshold: 5,
+    progress: 60,
+  },
+  {
+    id: 'consistency-500',
+    title: 'Consistency King',
+    description: 'Reached 500 total contributions',
+    icon: '👑',
+    type: 'contributions' as const,
+    isUnlocked: false,
+    currentValue: 250,
+    threshold: 500,
+    progress: 50,
   },
 ];
 
@@ -131,5 +168,38 @@ describe('Achievements', () => {
 
     expect(screen.queryByText('Achiev 5')).toBeNull();
     expect(screen.getByText('See All Achievements')).toBeDefined();
+  });
+
+  // ── New achievement type tests ──────────────────────────────────────────────
+
+  it('renders a behavior achievement (Weekend Warrior) when unlocked', () => {
+    render(<Achievements achievements={behaviorAchievements} />);
+    expect(screen.getByText('Weekend Warrior')).toBeDefined();
+    const card = screen.getByText('Weekend Warrior').parentElement;
+    // Unlocked card should NOT have grayscale
+    expect(card?.className).not.toContain('grayscale');
+    expect(card?.className).toContain('bg-gray-100');
+  });
+
+  it('renders a behavior achievement (Polyglot) as locked with progress bar text', () => {
+    render(<Achievements achievements={behaviorAchievements} />);
+    expect(screen.getByText('Polyglot')).toBeDefined();
+    const card = screen.getByText('Polyglot').parentElement;
+    // Locked card has grayscale
+    expect(card?.className).toContain('grayscale');
+    // Progress counter should appear (3/5)
+    expect(screen.getByText('3/5')).toBeDefined();
+  });
+
+  it('renders Consistency King as locked with correct progress text', () => {
+    render(<Achievements achievements={behaviorAchievements} />);
+    expect(screen.getByText('Consistency King')).toBeDefined();
+    // Progress counter shows 250/500
+    expect(screen.getByText('250/500')).toBeDefined();
+  });
+
+  it('does not render a "See All" button when 4 or fewer achievements', () => {
+    render(<Achievements achievements={behaviorAchievements} />);
+    expect(screen.queryByText('See All Achievements')).toBeNull();
   });
 });

@@ -25,7 +25,7 @@ https://commitpulse.vercel.app/api/badge?username=YOUR_USERNAME&theme=<slug>
 | nord         | `#2e3440`  | `#d8dee9` | `#88c0d0` |
 | synthwave    | `#0d0221`  | `#f8f8f2` | `#ff2d78` |
 | gruvbox      | `#282828`  | `#ebdbb2` | `#fe8019` |
-| highcontrast | `#0a0a0a`  | `#888888` | `#ff4500` |
+| highcontrast | `#0a0a0a`  | `#ffffff` | `#ff4500` |
 
 ---
 
