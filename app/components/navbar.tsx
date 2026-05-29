@@ -227,41 +227,9 @@ export default function Navbar() {
               >
                 {mounted ? (
                   isDark ? (
-                    <Moon
-                      size={18}
-                      className="transition-transform duration-300 group-hover:-rotate-12"
-                    />
+                    <Sun size={18} />
                   ) : (
-                    <Sun
-                      size={18}
-                      className="transition-transform duration-300 group-hover:rotate-45"
-                    />
-                  )
-                ) : (
-                  <span className="w-[18px] h-[18px]" />
-                )}
-              </button>
-            </div>
-
-            {/* Mobile Menu Buttons */}
-            <div className="md:hidden inline-flex items-center justify-center gap-1">
-              <button
-                type="button"
-                onClick={toggleTheme}
-                className="group hidden sm:inline-flex h-10 w-10 items-center justify-center rounded-xl text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-white"
-                aria-label={t('navbar.theme_toggle')}
-              >
-                {mounted ? (
-                  isDark ? (
-                    <Moon
-                      size={18}
-                      className="transition-transform duration-300 group-hover:-rotate-12"
-                    />
-                  ) : (
-                    <Sun
-                      size={18}
-                      className="transition-transform duration-300 group-hover:rotate-45"
-                    />
+                    <Moon size={18} />
                   )
                 ) : (
                   <span className="w-[18px] h-[18px]" />
@@ -321,14 +289,14 @@ export default function Navbar() {
                   >
                     {mounted ? (
                       isDark ? (
-                        <Moon size={18} />
-                      ) : (
                         <Sun size={18} />
+                      ) : (
+                        <Moon size={18} />
                       )
                     ) : (
                       <span className="w-[18px] h-[18px]" />
                     )}
-                    {mounted ? (isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode') : 'Theme'}
+                    {mounted ? (isDark ? 'Light Mode' : 'Dark Mode') : 'Theme'}
                   </button>
                 </li>
               </ul>

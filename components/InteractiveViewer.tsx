@@ -1,9 +1,6 @@
 'use client';
 
-import React, { useState, useRef, ReactNode, useMemo, useEffect, type ReactElement } from 'react';
-import { createPortal } from 'react-dom';
-import { AnimatePresence } from 'framer-motion';
-import VisualizationTooltip from './dashboard/VisualizationTooltip';
+import React, { useState, useRef, ReactNode, useMemo, type ReactElement } from 'react';
 
 // ── Parallax particle configuration ──────────────────────────────────────────
 // Particles are generated deterministically so SSR and client renders match,
@@ -48,37 +45,6 @@ function buildParticles(): ParallaxParticle[] {
 // container edge. Shallower particles shift proportionally less.
 const PARALLAX_STRENGTH = 80;
 
-interface ActiveTooltipState {
-  date: string;
-  count: number;
-  metric: string;
-  x: number;
-  y: number;
-}
-
-export const formatDate = (dateStr: string): string => {
-  if (!dateStr) return '';
-  const parts = dateStr.split('-');
-  if (parts.length !== 3) return dateStr;
-  const year = parseInt(parts[0], 10);
-  const month = parseInt(parts[1], 10);
-  const day = parseInt(parts[2], 10);
-  if (isNaN(year) || isNaN(month) || isNaN(day)) return dateStr;
-  try {
-    const date = new Date(`${dateStr}T00:00:00Z`);
-    if (isNaN(date.getTime())) return dateStr;
-    const formatted = date.toLocaleDateString('en-US', {
-      timeZone: 'UTC',
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    });
-    return formatted === 'Invalid Date' ? dateStr : formatted;
-  } catch {
-    return dateStr;
-  }
-};
-
 interface InteractiveViewerProps {
   children: ReactNode;
   className?: string;
@@ -90,9 +56,6 @@ interface InteractiveViewerProps {
 export default function InteractiveViewer({
   children,
   className = '',
-  is3DMode = false,
-  onRotate3D,
-  onReset3D,
 }: InteractiveViewerProps): ReactElement {
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
@@ -225,51 +188,11 @@ export default function InteractiveViewer({
     }
 
     // Only apply pan logic when actively dragging
-    if (isDragging.current) {
-      const dx = e.clientX - lastMousePos.current.x;
-      const dy = e.clientY - lastMousePos.current.y;
-
-      if (is3DMode && onRotate3D) {
-        onRotate3D(dx, dy);
-      } else {
-        setPan((p) => ({ x: p.x + dx, y: p.y + dy }));
-      }
-
-      lastMousePos.current = { x: e.clientX, y: e.clientY };
-      // Hide tooltip during active drag/pan
-      activeTooltipRef.current = null;
-      setActiveTooltip(null);
-      return;
-    }
-
-    // Detect if we are hovering over an interactive tower
-    const targetElement = e.target as HTMLElement;
-    const tower = targetElement.closest('.interactive-tower');
-    if (tower) {
-      const date = tower.getAttribute('data-date');
-      const countStr = tower.getAttribute('data-count');
-      const metric = tower.getAttribute('data-metric');
-      if (date && countStr && metric) {
-        if (!activeTooltipRef.current || activeTooltipRef.current.date !== date) {
-          const count = parseInt(countStr, 10);
-          const towerRect = tower.getBoundingClientRect();
-          const newTooltip = {
-            date,
-            count,
-            metric,
-            x: towerRect.left + towerRect.width / 2,
-            y: towerRect.top,
-          };
-          activeTooltipRef.current = newTooltip;
-          setActiveTooltip(newTooltip);
-        }
-      }
-    } else {
-      if (activeTooltipRef.current) {
-        activeTooltipRef.current = null;
-        setActiveTooltip(null);
-      }
-    }
+    if (!isDragging.current) return;
+    const dx = e.clientX - lastMousePos.current.x;
+    const dy = e.clientY - lastMousePos.current.y;
+    setPan((p) => ({ x: p.x + dx, y: p.y + dy }));
+    lastMousePos.current = { x: e.clientX, y: e.clientY };
   };
 
   const handlePointerUp = (e: React.PointerEvent): void => {
@@ -313,8 +236,6 @@ export default function InteractiveViewer({
     setIsHovering(false);
     // Reset cursor position to center so the glow fades out gracefully from center
     setMousePos({ x: 0.5, y: 0.5 });
-    activeTooltipRef.current = null;
-    setActiveTooltip(null);
   };
 
   const handleWheel = (e: React.WheelEvent): void => {
