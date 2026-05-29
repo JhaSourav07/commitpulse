@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   fetchGitHubContributions,
+  fetchWithRetry,
   fetchUserProfile,
   fetchUserRepos,
   getFullDashboardData,
@@ -58,6 +59,54 @@ afterEach(() => {
   } else {
     process.env.GITHUB_TOKEN = originalGitHubToken;
   }
+});
+
+describe('fetchWithRetry', () => {
+  beforeEach(() => {
+    vi.spyOn(global, 'fetch');
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('removes caller abort listeners after a successful request', async () => {
+    const controller = new AbortController();
+    const addListenerSpy = vi.spyOn(controller.signal, 'addEventListener');
+    const removeListenerSpy = vi.spyOn(controller.signal, 'removeEventListener');
+
+    vi.mocked(fetch).mockResolvedValue(mockResponse({ ok: true }));
+
+    await fetchWithRetry('https://api.github.com/test', { signal: controller.signal }, 0, 1000);
+
+    const abortListener = addListenerSpy.mock.calls.find(([event]) => event === 'abort')?.[1];
+
+    expect(abortListener).toEqual(expect.any(Function));
+    expect(addListenerSpy).toHaveBeenCalledWith('abort', abortListener, { once: true });
+    expect(removeListenerSpy).toHaveBeenCalledWith('abort', abortListener);
+  });
+
+  it('still aborts the in-flight request when the caller signal is aborted', async () => {
+    const controller = new AbortController();
+
+    vi.mocked(fetch).mockImplementation(
+      (_url: RequestInfo | URL, options?: RequestInit) =>
+        new Promise<Response>((_resolve, reject) => {
+          options?.signal?.addEventListener(
+            'abort',
+            () => reject(new DOMException('Aborted', 'AbortError')),
+            { once: true }
+          );
+        })
+    );
+
+    const request = fetchWithRetry('https://api.github.com/test', { signal: controller.signal });
+
+    controller.abort();
+
+    await expect(request).rejects.toThrow('Aborted');
+    expect(fetch).toHaveBeenCalledOnce();
+  });
 });
 
 describe('fetchGitHubContributions', () => {
