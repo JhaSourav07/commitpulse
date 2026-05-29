@@ -118,6 +118,46 @@ describe('streakParamsSchema', () => {
   });
 });
 
+it('should succeed when username contains hyphens', () => {
+  const result = streakParamsSchema.safeParse({
+    user: 'valid-user',
+  });
+
+  expect(result.success).toBe(true);
+});
+
+it('should succeed when username contains multiple hyphens', () => {
+  const result = streakParamsSchema.safeParse({
+    user: 'valid-user-name-123',
+  });
+
+  expect(result.success).toBe(true);
+});
+
+it('should fail when username ends with hyphen', () => {
+  const result = streakParamsSchema.safeParse({
+    user: 'user-',
+  });
+
+  expect(result.success).toBe(false);
+});
+
+it('should fail when username starts with hyphen', () => {
+  const result = streakParamsSchema.safeParse({
+    user: '-user',
+  });
+
+  expect(result.success).toBe(false);
+});
+
+it('should fail when username contains consecutive hyphens', () => {
+  const result = streakParamsSchema.safeParse({
+    user: 'user--name',
+  });
+
+  expect(result.success).toBe(false);
+});
+
 function parse(params: Record<string, string>) {
   return streakParamsSchema.parse({ user: 'octocat', ...params });
 }
