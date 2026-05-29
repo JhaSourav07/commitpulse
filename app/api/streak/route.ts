@@ -8,6 +8,7 @@ import {
   generateSVG,
   generateMonthlySVG,
   generateRateLimitSVG,
+  generateVersusSVG,
 } from '@/lib/svg/generator';
 import { getSecondsUntilUTCMidnight, getSecondsUntilMidnightInTimezone } from '@/utils/time';
 import type { BadgeParams } from '@/types';
@@ -35,7 +36,6 @@ function getMonthlyReferenceDate(year: string | undefined, timezone: string): Da
 
   return selectedYear < currentYear ? new Date(`${year}-12-15T12:00:00Z`) : undefined;
 }
-
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
 
@@ -269,19 +269,22 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
 
 
 
-  if (isNotFound) {
-    const match = message.match(/"([^"]+)"|login of '([^']+)'/);
-    const fallbackTarget = parseResult.success
-      ? parseResult.data.org || parseResult.data.user
-      : 'unknown';
-    const badUsername = match?.[1] ?? match?.[2] ?? fallbackTarget;
+  // 3. Return a 400 Bad Request for Validation Errors
+  if (isValidationError) {
+    const validationSvg = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="400" height="150">
+        <rect width="100%" height="100%" fill="#2d0000" rx="8"/>
+        <text x="50%" y="50%" text-anchor="middle" fill="#ffcccc" font-family="sans-serif">
+          ${message}
+        </text>
+      </svg>
+    `;
 
-    const svg = generateNotFoundSVG(badUsername, errBg, errAccent, errText, errRadius, errSpeed);
-    return new NextResponse(svg, {
-      status: 404,
+    return new NextResponse(validationSvg, {
+      status: 400,
       headers: {
         'Content-Type': 'image/svg+xml',
-        'Cache-Control': 'no-cache',
+        'Cache-Control': 'no-store',
         'Content-Security-Policy': SVG_CSP_HEADER,
       },
     });
@@ -303,6 +306,63 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
     });
   }
 
+  if (isNotFound) {
+    const match = message.match(/"([^"]+)"|login of '([^']+)'/);
+    const fallbackTarget = parseResult.success
+      ? parseResult.data.org || parseResult.data.user
+      : 'unknown';
+    const badUsername = match?.[1] ?? match?.[2] ?? fallbackTarget;
+
+    const svg = generateNotFoundSVG(badUsername, errBg, errAccent, errText, errRadius, errSpeed);
+    return new NextResponse(svg, {
+      status: 404,
+      headers: {
+        'Content-Type': 'image/svg+xml',
+        'Cache-Control': 'no-cache',
+        'Content-Security-Policy': SVG_CSP_HEADER,
+      },
+    });
+  }
+
+<<<<<<< HEAD
+  if (isRateLimit) {
+    // Extract retry-after time from error message if available
+    const retryMatch = message.match(/retry after (\d{1,2}:\d{2})/i);
+    const retryAfter = retryMatch ? `${retryMatch[1]} UTC` : undefined;
+
+    const svg = generateRateLimitSVG(errBg, errAccent, errText, errRadius, errSpeed, retryAfter);
+    return new NextResponse(svg, {
+      status: 429,
+      headers: {
+        'Content-Type': 'image/svg+xml',
+        'Cache-Control': 'public, s-maxage=60',
+=======
+  // 3. Return a 400 Bad Request for Validation Errors
+  if (isValidationError) {
+    const validationSvg = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="400" height="150">
+        <rect width="100%" height="100%" fill="#2d0000" rx="8"/>
+        <text x="50%" y="50%" text-anchor="middle" fill="#ffcccc" font-family="sans-serif">
+          ${message}
+        </text>
+      </svg>
+    `;
+
+    return new NextResponse(validationSvg, {
+      status: 400,
+      headers: {
+        'Content-Type': 'image/svg+xml',
+        'Cache-Control': 'no-store',
+>>>>>>> ea5cc89 (chore: apply formatting and lint fixes)
+        'Content-Security-Policy': SVG_CSP_HEADER,
+      },
+    });
+  }
+
+<<<<<<< HEAD
+=======
+  // 4. Return a 500 Internal Server Error for real crashes
+>>>>>>> ea5cc89 (chore: apply formatting and lint fixes)
   console.error('[streak] Unhandled error:', message);
 
   const errorSvg = `
