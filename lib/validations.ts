@@ -47,13 +47,13 @@ export const streakParamsSchema = z.object({
     .superRefine((val, ctx) => {
       if (!val) return;
 
-      const foundationErrorMessage =
-        'GitHub was founded in 2008. Please provide a year of 2008 or later.';
+      const formatErrorMessage = 'Year must be a 4-digit year. GitHub was founded in 2008';
+      const foundationErrorMessage = 'GitHub was founded in 2008';
 
       if (!/^\d{4}$/.test(val)) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: foundationErrorMessage,
+          message: formatErrorMessage,
         });
         return;
       }

@@ -72,24 +72,55 @@ export async function GET(req: NextRequest) {
     });
 
     const stats = calculateStreak(calendar, tz || 'UTC');
-    const params: Record<string, string | undefined> = Object.fromEntries(searchParams.entries());
+    // Build a typed params object for the SVG generator. Preserve raw
+    // color strings (bg, text, accent) so tests that assert exact colors
+    // continue to pass. Convert or filter optional params to reasonable
+    // types to satisfy BadgeParams at call sites.
+    const raw: Record<string, string> = Object.fromEntries(searchParams.entries());
 
-    if (params.speed) {
-      const match = params.speed.match(/^([0-9]+)s$/);
-      if (!match) {
-        delete params.speed;
-      } else {
-        const speedValue = Number(match[1]);
-        if (speedValue < 2 || speedValue > 20) delete params.speed;
+    // sanitize speed: accept only integer seconds like "3s" in range [2,20]
+    let speed: string | undefined = undefined;
+    if (raw.speed) {
+      const m = raw.speed.match(/^([0-9]+)s$/);
+      if (m) {
+        const v = Number(m[1]);
+        if (v >= 2 && v <= 20) speed = `${v}s`;
       }
     }
+
+    const badgeParams: Record<string, any> = {
+      user,
+      // preserve raw hex fragments (without #) so generator prefixes/sanitizes them
+      bg: raw.bg,
+      text: raw.text,
+      accent: raw.accent,
+      speed: speed,
+      scale: raw.scale === 'log' ? 'log' : 'linear',
+      font: raw.font ?? undefined,
+      radius: raw.radius ? Number(raw.radius) : undefined,
+      autoTheme: raw.autoTheme === 'true' || raw.autoTheme === '1' ? true : undefined,
+      hide_title: raw.hide_title === 'true' || raw.hide_title === '1' ? true : undefined,
+      hideBackground: raw.hide_background === 'true' || raw.hide_background === '1' ? true : undefined,
+      hide_stats: raw.hide_stats === 'true' || raw.hide_stats === '1' ? true : undefined,
+      lang: raw.lang ?? undefined,
+      view: raw.view === 'monthly' ? 'monthly' : undefined,
+      delta_format: raw.delta_format ?? undefined,
+      width: raw.width ? Number(raw.width) : undefined,
+      height: raw.height ? Number(raw.height) : undefined,
+      size: raw.size ?? undefined,
+    };
+
+    // remove keys with undefined values so downstream code can rely on presence
+    const finalParams = Object.fromEntries(
+      Object.entries(badgeParams).filter(([, v]) => v !== undefined)
+    ) as unknown as Parameters<typeof generateSVG>[1];
 
     let svg: string;
     if (view === 'monthly') {
       const monthly = calculateMonthlyStats(calendar, tz || 'UTC');
-      svg = generateMonthlySVG(monthly as any, params as any);
+      svg = generateMonthlySVG(monthly as any, finalParams as any);
     } else {
-      svg = generateSVG(stats as any, params as any, calendar as any);
+      svg = generateSVG(stats as any, finalParams as any, calendar as any);
     }
 
     if (bypassCache) {
