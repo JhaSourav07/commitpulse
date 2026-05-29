@@ -599,7 +599,7 @@ describe('calculateWrappedStats', () => {
     // 4. Assert highestDailyCount === 0
     expect(result.highestDailyCount).toBe(0);
   });
-  
+
   // ISSUE OBJECTIVE: Verify weekendRatio is 100 when all commits are on weekends
   // =========================================================================
   it('returns weekendRatio === 100 when all contributions are on weekends', () => {
