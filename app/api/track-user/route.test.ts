@@ -48,6 +48,17 @@ describe('POST /api/track-user', () => {
       expect(data.success).toBe(false);
       expect(data.error).toBe('Malformed JSON request body');
     });
+    it('returns 400 when body is plain text (not JSON)', async () => {
+      const req = new Request('http://localhost/api/track-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: 'not json',
+      });
+      const response = await POST(req);
+      expect(response.status).toBe(400);
+      const data = await response.json();
+      expect(data.success).toBe(false);
+    });
 
     it('returns 400 when username is missing', async () => {
       const response = await POST(makeRequest({}));

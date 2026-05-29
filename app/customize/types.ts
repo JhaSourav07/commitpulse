@@ -59,6 +59,7 @@ export const LANGUAGES = [
   { value: 'ko', label: 'Korean' },
   { value: 'fr', label: 'French' },
   { value: 'ja', label: 'Japanese' },
+  { value: 'de', label: 'German' },
 ] as const satisfies readonly { value: string; label: string }[];
 
 export type Language = (typeof LANGUAGES)[number]['value'];

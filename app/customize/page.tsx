@@ -7,6 +7,7 @@ import { useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { ControlsPanel } from './components/ControlsPanel';
 import { ExportPanel } from './components/ExportPanel';
+import InteractiveViewer from '@/components/InteractiveViewer';
 import type {
   ExportFormat,
   Scale,
@@ -163,10 +164,28 @@ function CustomizePageInner(): ReactElement {
   const previewSrc = `/api/streak?${queryString}`;
   const exportSnippet = getExportSnippet(exportFormat, queryString);
 
-  // ── Sync all params to URL so the page is shareable ───────────────────────
+// ── Sync all params to URL so the page is shareable ───────────────────────
   useEffect(() => {
     syncParamsToURL(queryString);
   }, [queryString]);
+
+  const fallbackCopyToClipboard = (text: string): boolean => {
+    try {
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      textArea.style.position = 'fixed';
+      textArea.style.opacity = '0';
+      textArea.style.pointerEvents = 'none';
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      const successful = document.execCommand('copy');
+      document.body.removeChild(textArea);
+      return successful;
+    } catch {
+      return false;
+    }
+  };
 
   const announceCopyStatus = useCallback((message: string): void => {
     setCopyStatusMessage('');
@@ -179,8 +198,18 @@ function CustomizePageInner(): ReactElement {
     if (!hasUsername) return;
 
     try {
-      await navigator.clipboard.writeText(exportSnippet);
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(exportSnippet);
+      } else {
+        const copiedSuccessfully = fallbackCopyToClipboard(exportSnippet);
+
+        if (!copiedSuccessfully) {
+          throw new Error('Fallback clipboard copy failed.');
+        }
+      }
+
       setCopied(true);
+
       announceCopyStatus(
         `${exportFormat === 'markdown' ? 'Markdown' : exportFormat === 'iframe' ? 'iFrame' : 'HTML'} snippet copied to clipboard.`
       );
@@ -195,6 +224,7 @@ function CustomizePageInner(): ReactElement {
       }, 3000);
     } catch {
       setCopied(false);
+
       announceCopyStatus(
         `Unable to copy the ${exportFormat === 'markdown' ? 'Markdown' : exportFormat === 'iframe' ? 'iFrame' : 'HTML'} snippet.`
       );
@@ -242,7 +272,7 @@ function CustomizePageInner(): ReactElement {
           <div className="h-4 w-px bg-white/10" />
 
           <div>
-            <span className="text-xs font-bold uppercase tracking-[0.22em] text-emerald-400">
+            <span className="text-xs font-bold uppercase tracking-[0.22em] text-emerald-600 dark:text-emerald-400">
               Customization Studio
             </span>
           </div>
@@ -331,14 +361,14 @@ function CustomizePageInner(): ReactElement {
           >
             {/* Live Preview */}
             <div className="bg-white/70 backdrop-blur-xl border border-black/10 dark:bg-black/35 dark:border-white/10 rounded-[1.75rem] p-6 shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
-              <p className="text-xs font-bold uppercase tracking-[0.22em] text-emerald-400 mb-5">
+              <p className="text-xs font-bold uppercase tracking-[0.22em] text-emerald-600 dark:text-emerald-400 mb-5">
                 Live Preview
               </p>
 
               <div className="group relative">
                 <div className="absolute -inset-px bg-gradient-to-br from-emerald-500/20 to-purple-500/20 rounded-[1.5rem] opacity-0 group-hover:opacity-100 transition-opacity duration-700 blur-lg pointer-events-none" />
-
-                <div className="relative bg-white/60 backdrop-blur-md border border-black/10 dark:bg-black/40 dark:border-white/10 rounded-[1.25rem] overflow-hidden flex items-center justify-center p-6 min-h-[280px]">
+                 <InteractiveViewer className="relative bg-white/60 backdrop-blur-md border border-black/10 dark:bg-black/40 dark:border-white/10 rounded-[1.25rem] flex items-center justify-center p-6 min-h-[280px]">
+                  {/* Scanning line effect behind image */}
                   <div className="absolute inset-0 bg-gradient-to-b from-transparent via-emerald-500/3 to-transparent animate-[pulse_3s_ease-in-out_infinite] pointer-events-none" />
 
                   {hasUsername ? (
@@ -379,7 +409,7 @@ function CustomizePageInner(): ReactElement {
                       </p>
                     </div>
                   )}
-                </div>
+                </InteractiveViewer>
               </div>
 
               <p className="mt-3 text-[11px] text-gray-500 dark:text-white/30 text-center">
@@ -417,7 +447,9 @@ function CustomizePageInner(): ReactElement {
                       >
                         <span className="text-purple-400">{decodeURIComponent(k)}</span>
                         <span className="text-gray-400 dark:text-white/20">=</span>
-                        <span className="text-emerald-400">{decodeURIComponent(v ?? '')}</span>
+                        <span className="text-emerald-600 dark:text-emerald-400">
+                          {decodeURIComponent(v ?? '')}
+                        </span>
                       </span>
                     );
                   }

@@ -1,46 +1,15 @@
 // app/api/streak/route.ts
+
 import { NextResponse } from 'next/server';
-import { fetchGitHubContributions } from '../../../lib/github';
-import { calculateStreak, calculateMonthlyStats } from '../../../lib/calculate';
-import { generateNotFoundSVG, generateSVG, generateMonthlySVG } from '../../../lib/svg/generator';
-import { getSecondsUntilUTCMidnight, getSecondsUntilMidnightInTimezone } from '../../../utils/time';
-import type { BadgeParams } from '../../../types';
-import { themes } from '../../../lib/svg/themes';
-import { streakParamsSchema } from '../../../lib/validations';
+import { fetchGitHubContributions, getOrgDashboardData } from '@/lib/github';
+import { calculateStreak, calculateMonthlyStats } from '@/lib/calculate';
+import { generateNotFoundSVG, generateSVG, generateMonthlySVG } from '@/lib/svg/generator';
+import { getSecondsUntilUTCMidnight, getSecondsUntilMidnightInTimezone } from '@/utils/time';
+import type { BadgeParams } from '@/types';
+import { themes } from '@/lib/svg/themes';
+import { streakParamsSchema } from '@/lib/validations';
 const SVG_CSP_HEADER =
   "default-src 'none'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://fonts.gstatic.com;";
-
-/**
- * GET /api/streak - Returns GitHub contribution streak as SVG image
- *
- * Query Parameters:
- * - username (string, required): GitHub username
- * - theme (string, optional): 'default', 'dark', 'light' (default: 'default')
- * - hide_border (boolean, optional): Hide card border (default: false)
- * - hide_title (boolean, optional): Hide card title (default: false)
- * - hide_total (boolean, optional): Hide total contributions (default: false)
- * - count_private (boolean, optional): Include private contributions (default: false)
- * - show_icons (boolean, optional): Show contribution icons (default: true)
- * - ring_color (string, optional): Ring color hex (default: '#2c3e50')
- * - curr_streak_color (string, optional): Current streak text color (default: '#2c3e50')
- * - side_streak_color (string, optional): Longest streak text color (default: '#7f8c8d')
- * - curr_streak_label (string, optional): Current streak label (default: 'Current streak')
- * - side_streak_label (string, optional): Longest streak label (default: 'Longest streak')
- * - date_format (string, optional): Date format (default: 'YYYY-MM-DD')
- *
- * Response:
- * - 200: SVG image with Content-Type: image/svg+xml
- * - Cache-Control: public, max-age=3600, s-maxage=3600, stale-while-revalidate=60
- * - CSP: default-src 'none'; style-src 'unsafe-inline'
- * - 400: { "error": "Missing required parameter: username" }
- * - 404: { "error": "User not found or has no contributions" }
- * - 500: { "error": "Failed to fetch streak data" }
- *
- * Caching:
- * - Success: Cached 1 hour, stale-while-revalidate 60 seconds
- * - Errors: Not cached
- * - Cache key includes username and theme
- */
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -69,6 +38,8 @@ export async function GET(request: Request) {
       radius,
       font,
       year,
+      from: customFrom,
+      to: customTo,
       refresh,
       hide_title,
       hide_background,
@@ -79,11 +50,25 @@ export async function GET(request: Request) {
       width,
       height,
       grace,
+      mode,
+      repo,
+      org,
+      labels,
+      labelColor,
+      versus,
     } = parseResult.data;
 
     const themeName = theme || 'dark';
-    const from = year ? `${year}-01-01T00:00:00Z` : undefined;
-    const to = year ? `${year}-12-31T23:59:59Z` : undefined;
+    const from = customFrom
+      ? new Date(customFrom).toISOString()
+      : year
+        ? `${year}-01-01T00:00:00Z`
+        : undefined;
+    const to = customTo
+      ? new Date(customTo).toISOString()
+      : year
+        ? `${year}-12-31T23:59:59Z`
+        : undefined;
 
     const tzParam = searchParams.get('tz');
     let timezone = 'UTC';
@@ -102,17 +87,25 @@ export async function GET(request: Request) {
       if (isAutoTheme) return themes.light;
       if (isRandomTheme) {
         const keys = Object.keys(themes);
-        const randomKey = keys[Math.floor(Math.random() * keys.length)];
-        return themes[randomKey] || themes.dark;
+        const hash = user.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
+        const stableKey = keys[hash % keys.length];
+        return themes[stableKey] || themes.dark;
       }
       return themes[theme] || themes.dark;
     })();
 
+    // If 'org' is provided, we use it as the display user
+    const targetEntity = org || user;
+    // NEW LOGIC: Extract and sanitize the border query parameter
+    const borderParam = searchParams.get('border');
+    const sanitizedBorder = borderParam ? borderParam.replace(/[^a-fA-F0-9]/g, '') : undefined;
+
     const params: BadgeParams = {
-      user,
+      user: targetEntity,
       bg: isAutoTheme ? selectedTheme.bg : bg || selectedTheme.bg,
       text: isAutoTheme ? selectedTheme.text : text || selectedTheme.text,
       accent: isAutoTheme ? selectedTheme.accent : accent || selectedTheme.accent,
+      border: sanitizedBorder, // <--- Passed down to the generator here
       radius,
       speed: speed && /^(?:[2-9]|1\d|20)s$/.test(speed) ? speed : '8s',
       scale,
@@ -128,18 +121,49 @@ export async function GET(request: Request) {
       height,
       size,
       grace,
+      mode,
+      repo,
+      org,
+      labels,
+      labelColor,
+      versus,
     };
 
-    const calendar = await fetchGitHubContributions(user, {
-      bypassCache: refresh,
-      from,
-      to,
-    });
+    let calendar;
+    let versusCalendar;
+
+    // Fetch Organization Mega-City Data OR Single User Data
+    if (org) {
+      const orgData = await getOrgDashboardData(org, {
+        bypassCache: refresh,
+        from,
+        to,
+      });
+      calendar = orgData.calendar;
+    } else {
+      calendar = await fetchGitHubContributions(user, {
+        bypassCache: refresh,
+        from,
+        to,
+      });
+
+      if (versus) {
+        versusCalendar = await fetchGitHubContributions(versus, {
+          bypassCache: refresh,
+          from,
+          to,
+        });
+      }
+    }
 
     let svg = '';
     if (view === 'monthly') {
       const stats = calculateMonthlyStats(calendar, timezone);
       svg = generateMonthlySVG(stats, params);
+    } else if (versus && versusCalendar) {
+      const stats1 = calculateStreak(calendar, timezone, undefined, grace);
+      const stats2 = calculateStreak(versusCalendar, timezone, undefined, grace);
+      svg = generateVersusSVG(stats1, stats2, params, calendar, versusCalendar);
     } else {
       const stats = calculateStreak(calendar, timezone, undefined, grace);
       svg = generateSVG(stats, params, calendar);
@@ -148,16 +172,16 @@ export async function GET(request: Request) {
     const secondsToMidnight = tzParam
       ? getSecondsUntilMidnightInTimezone(timezone)
       : getSecondsUntilUTCMidnight();
-    const cacheControl =
-      refresh || isRandomTheme
-        ? 'no-cache, no-store, must-revalidate'
-        : `public, s-maxage=${secondsToMidnight}, stale-while-revalidate=86400`;
+    const cacheControl = refresh
+      ? 'no-cache, no-store, must-revalidate'
+      : `public, s-maxage=${secondsToMidnight}, stale-while-revalidate=86400`;
 
     return new NextResponse(svg, {
       headers: {
         'Content-Type': 'image/svg+xml',
         'Cache-Control': cacheControl,
         'Content-Security-Policy': SVG_CSP_HEADER,
+        'X-Cache-Status': refresh ? `BYPASS, fetched=${new Date().toISOString()}` : 'HIT',
       },
     });
   } catch (error: unknown) {
@@ -186,8 +210,12 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
 
   if (isNotFound) {
     const match = message.match(/"([^"]+)"|login of '([^']+)'/);
-    const badUsername =
-      match?.[1] ?? match?.[2] ?? (parseResult.success ? parseResult.data.user : 'unknown');
+    // If the org parameter was used and failed, fallback to that, otherwise user
+    const fallbackTarget = parseResult.success
+      ? parseResult.data.org || parseResult.data.user
+      : 'unknown';
+    const badUsername = match?.[1] ?? match?.[2] ?? fallbackTarget;
+
     const svg = generateNotFoundSVG(badUsername, errBg, errAccent, errText, errRadius, errSpeed);
     return new NextResponse(svg, {
       status: 404,
@@ -214,7 +242,7 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
     status: 500,
     headers: {
       'Content-Type': 'image/svg+xml',
-      'Cache-Control': 'public, s-maxage=60',
+      'Cache-Control': 'no-store',
     },
   });
 }

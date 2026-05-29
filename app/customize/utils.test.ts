@@ -1,82 +1,66 @@
-import { describe, it, expect } from 'vitest';
-import { stripHash, isValidHex } from './utils';
+import { describe, expect, it } from 'vitest';
+import { getExportSnippet, getPlaceholderSnippet } from './utils';
 
-describe('Customize Utils', () => {
-  describe('stripHash', () => {
-    it('removes leading # from hex color', () => {
-      expect(stripHash('#ff0000')).toBe('ff0000');
+describe('Export Snippet utilities', () => {
+  const EXPECTED_BASE_URL = 'https://commitpulse.vercel.app/api/streak';
+
+  describe('getExportSnippet', () => {
+    it('generates markdown snippet', () => {
+      const queryString = 'user=testuser&theme=dark';
+      const result = getExportSnippet('markdown', queryString);
+
+      expect(typeof result).toBe('string');
+      expect(result.startsWith('![CommitPulse]')).toBe(true);
+      expect(result).toContain(EXPECTED_BASE_URL);
+      expect(result).toBe(`![CommitPulse](${EXPECTED_BASE_URL}?${queryString})`);
     });
 
-    it('returns unchanged string if no # prefix', () => {
-      expect(stripHash('ff0000')).toBe('ff0000');
+    it('generates html snippet', () => {
+      const queryString = 'user=testuser&theme=dark';
+      const result = getExportSnippet('html', queryString);
+
+      expect(typeof result).toBe('string');
+      expect(result.startsWith('<img src=')).toBe(true);
+      expect(result).toContain(EXPECTED_BASE_URL);
+      expect(result).toBe(`<img src="${EXPECTED_BASE_URL}?${queryString}" alt="CommitPulse" />`);
     });
 
-    it('handles empty string', () => {
-      expect(stripHash('')).toBe('');
+    it('handles empty query string', () => {
+      const emptyQuery = '';
+      const markdownResult = getExportSnippet('markdown', emptyQuery);
+      const htmlResult = getExportSnippet('html', emptyQuery);
+
+      expect(markdownResult.startsWith('![CommitPulse]')).toBe(true);
+      expect(markdownResult).toContain(EXPECTED_BASE_URL);
+
+      expect(htmlResult.startsWith('<img src=')).toBe(true);
+      expect(htmlResult).toContain(EXPECTED_BASE_URL);
     });
 
-    it('only removes leading #, not all occurrences', () => {
-      expect(stripHash('##ff0000')).toBe('#ff0000');
-    });
+    it('handles complex query strings', () => {
+      const complexQuery = 'user=complex%20name&ring=ff0000%2C00ff00&fire=true';
+      const result = getExportSnippet('markdown', complexQuery);
 
-    it('handles just # character', () => {
-      expect(stripHash('#')).toBe('');
+      expect(result).toContain(complexQuery);
+      expect(result).toBe(`![CommitPulse](${EXPECTED_BASE_URL}?${complexQuery})`);
     });
   });
 
-  describe('isValidHex', () => {
-    describe('valid 6-digit hex colors', () => {
-      it('accepts lowercase hex without #', () => {
-        expect(isValidHex('ffffff')).toBe(true);
-        expect(isValidHex('000000')).toBe(true);
-        expect(isValidHex('ff0000')).toBe(true);
-      });
+  describe('getPlaceholderSnippet', () => {
+    it('includes placeholder username in markdown', () => {
+      const result = getPlaceholderSnippet('markdown');
 
-      it('accepts uppercase hex without #', () => {
-        expect(isValidHex('FFFFFF')).toBe(true);
-        expect(isValidHex('FF0000')).toBe(true);
-      });
-
-      it('accepts mixed case hex without #', () => {
-        expect(isValidHex('FfFfFf')).toBe(true);
-        expect(isValidHex('aAbBcC')).toBe(true);
-      });
-
-      it('accepts 6-digit hex with # prefix', () => {
-        expect(isValidHex('#ffffff')).toBe(true);
-        expect(isValidHex('#000000')).toBe(true);
-      });
+      expect(result.startsWith('![CommitPulse]')).toBe(true);
+      expect(result).toContain('your-github-username');
+      expect(result).toContain(EXPECTED_BASE_URL);
     });
 
-    describe('invalid hex colors', () => {
-      it('rejects non-hex characters', () => {
-        expect(isValidHex('zzzzzz')).toBe(false);
-        expect(isValidHex('gggggg')).toBe(false);
-        expect(isValidHex('ff@0000')).toBe(false);
-      });
+    it('includes placeholder username in html', () => {
+      const result = getPlaceholderSnippet('html');
 
-      it('rejects wrong length', () => {
-        expect(isValidHex('f')).toBe(false);
-        expect(isValidHex('ff')).toBe(false);
-        expect(isValidHex('fff')).toBe(false);
-        expect(isValidHex('fffff')).toBe(false);
-        expect(isValidHex('fffffff')).toBe(false);
-        expect(isValidHex('ffffffff')).toBe(false);
-      });
-
-      it('rejects hex with # but invalid length', () => {
-        expect(isValidHex('#fff')).toBe(false);
-        expect(isValidHex('#fffff')).toBe(false);
-      });
-
-      it('rejects empty string', () => {
-        expect(isValidHex('')).toBe(false);
-      });
-
-      it('rejects hex with invalid characters and #', () => {
-        expect(isValidHex('#zzzzzz')).toBe(false);
-        expect(isValidHex('#ff@000')).toBe(false);
-      });
+      expect(result.startsWith('<img src=')).toBe(true);
+      expect(result).toContain('your-github-username');
+      expect(result).toContain(EXPECTED_BASE_URL);
     });
   });
 });
