@@ -287,4 +287,28 @@ describe('DashboardClient', () => {
     const generateLink = screen.getByRole('link', { name: /generate your own/i });
     expect(generateLink.getAttribute('href')).toBe('/');
   });
+  // =========================================================================
+  // ISSUE OBJECTIVE: Verify error is shown when comparing with same username
+  // =========================================================================
+  it('shows an error when comparing with the same username (case-insensitive)', async () => {
+    render(<DashboardClient initialData={mockInitialData} username="Shivangi1515" />);
+
+    // 1. Open modal
+    const compareBtn = screen.getByText('Compare Profile');
+    fireEvent.click(compareBtn);
+
+    // 2. Type the same username as props.username, but all lowercase to test case-insensitivity
+    const input = screen.getByPlaceholderText('Enter GitHub Username');
+    fireEvent.change(input, { target: { value: 'shivangi1515' } });
+
+    // 3. Click 'Compare'
+    const submitBtn = screen.getByText('Compare');
+    fireEvent.click(submitBtn);
+
+    // 4. Assert error message 'Cannot compare a profile with itself.' appears
+    await waitFor(() => {
+      // Using Regex /.../i to match the text even if there is an emoji next to it!
+      expect(screen.getByText(/Cannot compare a profile with itself/i)).toBeDefined();
+    });
+  });
 });
