@@ -7,7 +7,7 @@ import { TOWER_ANIMATION_CSS } from './animations';
 import { computeTowers, type TowerData } from './layout';
 import { sanitizeFont, sanitizeHexColor, sanitizeRadius, sanitizeGoogleFontUrl } from './sanitizer';
 
-import { SVG_WIDTH, SVG_HEIGHT, FONT_MAP, isFontKey } from './generatorConstants';
+import { SVG_WIDTH, SVG_HEIGHT, FONT_MAP } from './generatorConstants';
 
 // helpers
 export function getSizeScale(size?: 'small' | 'medium' | 'large') {

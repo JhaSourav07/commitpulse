@@ -497,6 +497,38 @@ describe('calculateStreak — empty and sparse year edge cases', () => {
   });
 });
 
+describe('calculateStreak — todayDate format', () => {
+  const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
+
+  it('todayDate matches YYYY-MM-DD for a normal calendar', () => {
+    // A typical calendar with contributions — todayDate must always be a valid date string
+    // regardless of the contribution data, so the SVG pulse animation targets the right tower.
+    const calendar = buildCalendar([1, 0, 1, 1, 0, 1, 1]);
+    const fixedNow = new Date('2024-01-07T12:00:00Z');
+    const result = calculateStreak(calendar, 'UTC', fixedNow);
+    expect(result.todayDate).toMatch(DATE_REGEX);
+  });
+
+  it('todayDate matches YYYY-MM-DD for an empty calendar', () => {
+    // An empty calendar has no days to fall back on, so todayDate is derived
+    // purely from the current date — it must still be a valid YYYY-MM-DD string.
+    const emptyCalendar = buildCalendar([]);
+    const fixedNow = new Date('2024-03-15T00:00:00Z');
+    const result = calculateStreak(emptyCalendar, 'UTC', fixedNow);
+    expect(result.todayDate).toMatch(DATE_REGEX);
+  });
+
+  it('todayDate matches YYYY-MM-DD when a non-UTC timezone shifts the local date', () => {
+    // When the caller passes a timezone like Asia/Kolkata, the local date can differ
+    // from UTC (e.g. UTC is still Jan 14 but IST is already Jan 15).
+    // The format must remain YYYY-MM-DD regardless of which day the timezone lands on.
+    const calendar = buildCalendar([1, 1, 1, 1, 1, 1, 1]);
+    const fixedNow = new Date('2024-01-07T20:00:00Z'); // 01:30 Jan 8 in IST (UTC+5:30)
+    const result = calculateStreak(calendar, 'Asia/Kolkata', fixedNow);
+    expect(result.todayDate).toMatch(DATE_REGEX);
+  });
+});
+
 // ---------- EPIC ENHANCEMENT TESTS ----------
 
 describe('aggregateCalendars', () => {

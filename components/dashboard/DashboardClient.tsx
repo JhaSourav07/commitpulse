@@ -70,18 +70,6 @@ interface DashboardClientProps {
   username: string;
 }
 
-// ------------------------------------------------------------
-// Analytical Helpers for Profile Comparison
-// ------------------------------------------------------------
-
-function getUsernameHash(username: string): number {
-  let hash = 0;
-  for (let i = 0; i < username.length; i++) {
-    hash = username.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return Math.abs(hash);
-}
-
 export interface ProfileMetrics {
   currentStreak: number;
   commitClock: { day: string; commits: number }[]; // e.g., Sun-Sat daily totals
