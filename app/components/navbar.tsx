@@ -16,7 +16,7 @@ function GithubMark() {
 const NAV_LINKS = [
   {
     label: 'Customization Studio',
-    href: '#customization-studio',
+    href: '/#customization-studio',
     isExternal: false,
   },
   {
