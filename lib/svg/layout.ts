@@ -32,6 +32,7 @@ export interface TowerData {
   /** Grid position used to compute the staggered animation-delay (row + col) * offset */
   row: number;
   col: number;
+  intensityLevel: number; // Quartile level (0 for no commits, 1 to 4 based on contribution intensity)
 }
 
 function computeTowerHeight(
@@ -48,10 +49,10 @@ function computeTowerHeight(
 
 function computeFaceOpacity(count: number, isGhostCityMode: boolean): FaceOpacity {
   if (isGhostCityMode) {
-    return { left: 0, right: 0, top: 0.02 };
+    return { left: 0, right: 0, top: 0.08 };
   }
   if (count === 0) {
-    return { left: 0, right: 0, top: 0.02 };
+    return { left: 0, right: 0, top: 0.08 };
   }
   return { left: 0.35, right: 0.21, top: 0.7 };
 }
@@ -84,13 +85,17 @@ export function computeTowers(
   const weeks = calendar.weeks.slice(-14);
   const towers: TowerData[] = [];
 
-  // Calculate if the entire monolith is empty based on the selected mode metric
+  // Calculate if the entire monolith is empty and retrieve the maximum count (commits or LoC)
   let totalVisibleContributions = 0;
+  let maxCommits = 0;
   weeks.forEach((week) => {
     week.contributionDays.forEach((day) => {
       const count =
         mode === 'loc' ? (day.locAdditions || 0) + (day.locDeletions || 0) : day.contributionCount;
       totalVisibleContributions += count;
+      if (count > maxCommits) {
+        maxCommits = count;
+      }
     });
   });
 
@@ -119,6 +124,19 @@ export function computeTowers(
 
       const coords = projectIsometric(i, j);
 
+      let intensityLevel = 0;
+      if (hasCommits) {
+        if (maxCommits <= 4) {
+          intensityLevel = Math.min(4, day.contributionCount);
+        } else {
+          const ratio = day.contributionCount / maxCommits;
+          if (ratio <= 0.25) intensityLevel = 1;
+          else if (ratio <= 0.5) intensityLevel = 2;
+          else if (ratio <= 0.75) intensityLevel = 3;
+          else intensityLevel = 4;
+        }
+      }
+
       towers.push({
         x: coords.x,
         y: coords.y,
@@ -134,6 +152,7 @@ export function computeTowers(
         strokeWidth: isGhost ? 0.5 : 0,
         row: i,
         col: j,
+        intensityLevel,
       });
     });
   });

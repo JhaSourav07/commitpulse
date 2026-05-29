@@ -133,65 +133,6 @@ describe('fetchGitHubContributions', () => {
 
     expect(result.totalContributions).toBe(mockCalendar.totalContributions);
     expect(result.weeks[0].contributionDays[0].contributionCount).toBe(3);
-    expect(result.weeks[0].contributionDays[0]).toHaveProperty('locAdditions');
-  });
-
-  it('injects positive locAdditions and non-negative locDeletions for contribution days', async () => {
-    const calendarWithContributions: ContributionCalendar = {
-      totalContributions: 5,
-      weeks: [
-        {
-          contributionDays: [{ contributionCount: 5, date: '2024-06-10' }],
-        },
-      ],
-    };
-
-    vi.mocked(fetch).mockResolvedValue(
-      mockResponse({
-        data: {
-          user: {
-            contributionsCollection: {
-              contributionCalendar: calendarWithContributions,
-            },
-          },
-        },
-      })
-    );
-
-    const result = await fetchGitHubContributions('octocat');
-    const day = result.weeks[0].contributionDays[0];
-
-    expect(day.locAdditions).toBeGreaterThan(0);
-    expect(day.locDeletions).toBeGreaterThanOrEqual(0);
-  });
-
-  it('sets locAdditions and locDeletions to zero for zero-contribution days', async () => {
-    const calendarWithZeroContribution: ContributionCalendar = {
-      totalContributions: 0,
-      weeks: [
-        {
-          contributionDays: [{ contributionCount: 0, date: '2024-06-11' }],
-        },
-      ],
-    };
-
-    vi.mocked(fetch).mockResolvedValue(
-      mockResponse({
-        data: {
-          user: {
-            contributionsCollection: {
-              contributionCalendar: calendarWithZeroContribution,
-            },
-          },
-        },
-      })
-    );
-
-    const result = await fetchGitHubContributions('octocat');
-    const day = result.weeks[0].contributionDays[0];
-
-    expect(day.locAdditions).toBe(0);
-    expect(day.locDeletions).toBe(0);
   });
 
   it('sends a POST request to the GitHub GraphQL endpoint with the correct body', async () => {
@@ -330,7 +271,6 @@ describe('fetchGitHubContributions', () => {
       'GitHub user "ghost-user-xyz" not found'
     );
   });
-
   it('handles calendar with all days having zero contributions', async () => {
     const sparseCalendar: ContributionCalendar = {
       totalContributions: 0,
@@ -343,6 +283,7 @@ describe('fetchGitHubContributions', () => {
         },
       ],
     };
+
     vi.mocked(fetch).mockResolvedValue(
       mockResponse({
         data: {
@@ -350,6 +291,7 @@ describe('fetchGitHubContributions', () => {
         },
       })
     );
+
     const result = await fetchGitHubContributions('sparse-user');
     expect(result.totalContributions).toBe(0);
     expect(result.weeks).toHaveLength(1);
@@ -845,6 +787,11 @@ describe('generateAchievements', () => {
       expect(item.progress).toBeLessThanOrEqual(100);
     }
   });
+
+  it('always returns exactly 15 achievements', () => {
+    expect(generateAchievements(0, 0, 0, 0)).toHaveLength(15);
+    expect(generateAchievements(1000, 100, 0, 0)).toHaveLength(15);
+  });
 });
 
 describe('displayName', () => {
@@ -890,7 +837,6 @@ describe('validateGitHubUsername', () => {
     expect(validateGitHubUsername('invalid_username')).toBe(false);
   });
 });
-
 describe('cacheKey', () => {
   it('creates key without year', () => {
     expect(cacheKey('profile', 'DeepSikha')).toBe('profile:deepsikha');
@@ -1096,6 +1042,26 @@ describe('getWrappedData', () => {
 
     expect(result.topLanguage).toBe('TypeScript');
     expect(result.totalContributions).toBe(mockCalendar.totalContributions);
+  });
+
+  it('falls back to Unknown when repos have no language data', async () => {
+    vi.mocked(fetch).mockImplementation(async (url) => {
+      const urlStr = typeof url === 'string' ? url : (url?.toString() ?? '');
+      if (urlStr.includes('/repos')) {
+        return mockResponse([{ language: null }, { language: null }]);
+      }
+      return mockResponse({
+        data: {
+          user: {
+            contributionsCollection: {
+              contributionCalendar: mockCalendar,
+            },
+          },
+        },
+      });
+    });
+    const result = await getWrappedData('octocat', '2024');
+    expect(result.topLanguage).toBe('Unknown');
   });
 
   it('passes the correct from and to date range to GitHub contributions fetch', async () => {

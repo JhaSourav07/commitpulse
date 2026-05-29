@@ -23,12 +23,20 @@ export async function GET(request: Request) {
   const parseResult = streakParamsSchema.safeParse(Object.fromEntries(searchParams.entries()));
   try {
     if (!parseResult.success) {
+      const fieldErrors = parseResult.error.flatten();
+
       return NextResponse.json(
         {
           error: 'Invalid parameters',
-          details: parseResult.error.flatten(),
+          details: fieldErrors,
         },
-        { status: 400 }
+        {
+          status: 400,
+          headers: {
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-store',
+          },
+        }
       );
     }
 
@@ -62,6 +70,8 @@ export async function GET(request: Request) {
       labels,
       labelColor,
       versus,
+      shading,
+      gradient,
     } = parseResult.data;
 
     const themeName = theme || 'dark';
@@ -102,12 +112,16 @@ export async function GET(request: Request) {
 
     // If 'org' is provided, we use it as the display user
     const targetEntity = org || user;
+    // NEW LOGIC: Extract and sanitize the border query parameter
+    const borderParam = searchParams.get('border');
+    const sanitizedBorder = borderParam ? borderParam.replace(/[^a-fA-F0-9]/g, '') : undefined;
 
     const params: BadgeParams = {
       user: targetEntity,
       bg: isAutoTheme ? selectedTheme.bg : bg || selectedTheme.bg,
       text: isAutoTheme ? selectedTheme.text : text || selectedTheme.text,
       accent: isAutoTheme ? selectedTheme.accent : accent || selectedTheme.accent,
+      border: sanitizedBorder, // <--- Passed down to the generator here
       radius,
       speed: speed && /^(?:[2-9]|1\d|20)s$/.test(speed) ? speed : '8s',
       scale,
@@ -129,6 +143,8 @@ export async function GET(request: Request) {
       labels,
       labelColor,
       versus,
+      shading,
+      gradient,
     };
 
     let calendar;
@@ -200,7 +216,13 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
     message.toLowerCase().includes('could not resolve');
 
   const errBg = `#${(parseResult.success && parseResult.data.bg) || '0d1117'}`;
-  const errAccent = `#${(parseResult.success && parseResult.data.accent) || '58a6ff'}`;
+  const errAccent = `#${
+    (parseResult.success &&
+      (Array.isArray(parseResult.data.accent)
+        ? parseResult.data.accent[parseResult.data.accent.length - 1]
+        : parseResult.data.accent)) ||
+    '58a6ff'
+  }`;
   const errText = `#${(parseResult.success && parseResult.data.text) || 'c9d1d9'}`;
   const errRadius = parseResult.success
     ? (() => {

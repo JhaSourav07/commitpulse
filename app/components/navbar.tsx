@@ -31,8 +31,8 @@ export default function Navbar() {
   const [mounted, setMounted] = useState(false);
 
   const [isDark, setIsDark] = useState(() => {
-    if (typeof window === 'undefined') return true;
-    return localStorage.getItem('theme') !== 'light';
+    if (typeof window === 'undefined' || !window.localStorage) return true;
+    return window.localStorage.getItem('theme') !== 'light';
   });
 
   const { shellRef, shellVars, handleMouseEnter, handleMouseMove, handleMouseLeave } =
@@ -45,7 +45,9 @@ export default function Navbar() {
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', isDark);
-    localStorage.setItem('theme', isDark ? 'dark' : 'light');
+    if (typeof window !== 'undefined' && window.localStorage) {
+      window.localStorage.setItem('theme', isDark ? 'dark' : 'light');
+    }
   }, [isDark]);
 
   const toggleTheme = () => {
@@ -135,9 +137,9 @@ export default function Navbar() {
               >
                 {mounted ? (
                   isDark ? (
-                    <Sun size={18} />
-                  ) : (
                     <Moon size={18} />
+                  ) : (
+                    <Sun size={18} />
                   )
                 ) : (
                   <span className="w-[18px] h-[18px]" />
@@ -165,7 +167,15 @@ export default function Navbar() {
                 className="hidden sm:inline-flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200 bg-gray-50 text-gray-700 transition hover:bg-gray-100 dark:border-white/15 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
                 aria-label="Toggle theme"
               >
-                {isDark ? <Sun size={18} /> : <Moon size={18} />}
+                {mounted ? (
+                  isDark ? (
+                    <Moon size={18} />
+                  ) : (
+                    <Sun size={18} />
+                  )
+                ) : (
+                  <span className="w-[18px] h-[18px]" />
+                )}
               </button>
               <button
                 type="button"
@@ -204,8 +214,16 @@ export default function Navbar() {
                     className="inline-flex w-full items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-gray-300 hover:bg-gray-100 dark:border-white/15 dark:bg-white/5 dark:text-white/90 dark:hover:border-white/45 dark:hover:bg-white/10"
                     aria-label="Toggle theme"
                   >
-                    {isDark ? <Sun size={18} /> : <Moon size={18} />}
-                    {isDark ? 'Light Mode' : 'Dark Mode'}
+                    {mounted ? (
+                      isDark ? (
+                        <Moon size={18} />
+                      ) : (
+                        <Sun size={18} />
+                      )
+                    ) : (
+                      <span className="w-[18px] h-[18px]" />
+                    )}
+                    {mounted ? (isDark ? 'Light Mode' : 'Dark Mode') : 'Theme'}
                   </button>
                 </li>
               </ul>
