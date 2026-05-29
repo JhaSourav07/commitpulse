@@ -662,6 +662,16 @@ describe('generateMonthlySVG', () => {
     expect(svg).toContain('+40% (+12)');
   });
 
+  it('includes custom dimensions in viewBox', () => {
+    const svg = generateMonthlySVG(mockMonthlyStats, {
+      user: 'octocat',
+      width: 400,
+      height: 200,
+    } as unknown as BadgeParams);
+
+    expect(svg).toContain('viewBox="0 0 400 200"');
+  });
+
   it('respects custom width and height parameters', () => {
     const svg = generateMonthlySVG(mockMonthlyStats, {
       user: 'octocat',
