@@ -196,6 +196,31 @@ describe('GET /api/streak', () => {
       expect(fetchGitHubContributions).toHaveBeenCalledWith('octocat', { bypassCache: false });
     });
 
+    it('forwards grace parameter to fetchGitHubContributions', async () => {
+      await GET(
+        makeRequest({
+          user: 'octocat',
+          grace: '2',
+        })
+      );
+
+      expect(fetchGitHubContributions).toHaveBeenCalled();
+    });
+
+    it('returns valid SVG when grace exceeds max value', async () => {
+      const response = await GET(
+        makeRequest({
+          user: 'octocat',
+          grace: '999',
+        })
+      );
+
+      expect(response.status).toBe(200);
+
+      const body = await response.text();
+      expect(body).toContain('<svg');
+    });
+
     it('embeds the username (uppercased) in the SVG title', async () => {
       const response = await GET(makeRequest({ user: 'octocat' }));
       const body = await response.text();
