@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   isValidHex,
+  hexColor,
   sanitizeHexColor,
   sanitizeSpeed,
   sanitizeRadius,
@@ -33,6 +34,24 @@ describe('SVG Sanitizer Utilities', () => {
       expect(isValidHex('f')).toBe(false);
       expect(isValidHex('ff')).toBe(false);
       expect(isValidHex('fffff')).toBe(false);
+    });
+  });
+
+  describe('hexColor', () => {
+    it('returns hex without # for valid string without #', () => {
+      expect(hexColor('ff0000')).toBe('ff0000');
+    });
+
+    it('strips # and returns valid hex', () => {
+      expect(hexColor('#ff0000')).toBe('ff0000');
+    });
+
+    it('returns fallback for invalid string', () => {
+      expect(hexColor('invalid', '000000')).toBe('000000');
+    });
+
+    it('returns default fallback for empty string', () => {
+      expect(hexColor('')).toBe('000000');
     });
   });
 
