@@ -86,9 +86,9 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    const badgeParams: Partial<BadgeParams> & { user: string } = {
+    const badgeParams: any = {
       user,
-      // preserve raw hex fragments (without #) so generator prefixes/sanitizes them
+      
       bg: raw.bg,
       text: raw.text,
       accent: raw.accent,
@@ -104,9 +104,10 @@ export async function GET(req: NextRequest) {
       lang: raw.lang ?? undefined,
       view: raw.view === 'monthly' ? 'monthly' : undefined,
       delta_format: raw.delta_format ?? undefined,
+      size: raw.size ?? undefined,
       width: raw.width ? Number(raw.width) : undefined,
       height: raw.height ? Number(raw.height) : undefined,
-      size: raw.size ?? undefined,
+
     };
 
     // remove keys with undefined values so downstream code can rely on presence
