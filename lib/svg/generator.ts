@@ -104,18 +104,56 @@ function renderHeader(
 ): string {
   const unit = params.mode === 'loc' ? 'lines of code' : 'total contributions';
   const entity = params.org ? 'Organization' : params.repo ? 'Repository' : 'User';
+
   return `
   <title>CommitPulse ${entity} Stats for ${truncateUsername(safeUser)}</title>
   <desc>
     ${truncateUsername(safeUser)} has ${stats.totalContributions} ${unit} and a longest streak of ${stats.longestStreak} days.
   </desc>
-  ${renderDefs(sf)}`;
+  ${renderDefs(sf, params)}`;
 }
 
-function renderDefs(sf: number): string {
+function renderDefs(sf: number, params: BadgeParams): string {
   const fs = (n: number): number => Math.round(n * sf * 10) / 10;
+
+  let gradients = '';
+  if (params.gradient) {
+    if (params.autoTheme) {
+      for (let i = 0; i < 4; i++) {
+        const level = i + 1;
+        gradients += `
+      <linearGradient id="tower-grad-level-${level}" x1="0" y1="1" x2="0" y2="0">
+        <stop offset="0%" stop-color="var(--cp-bg)" stop-opacity="0.1" />
+        <stop offset="100%" stop-color="var(--cp-accent)" stop-opacity="${0.4 + i * 0.2}" />
+      </linearGradient>`;
+      }
+    } else {
+      const accent = params.accent;
+      const colors = Array.isArray(accent)
+        ? [0, 1, 2, 3].map((i) => {
+            const idx = Math.min(i, accent.length - 1);
+            const c = accent[idx] || accent[accent.length - 1] || '00ffaa';
+            return c.startsWith('#') ? c : `#${c}`;
+          })
+        : [0, 1, 2, 3].map(() => (String(accent).startsWith('#') ? String(accent) : `#${accent}`));
+
+      const bgStr = params.bg || '0d1117';
+      const bgHex = bgStr.startsWith('#') ? bgStr : `#${bgStr}`;
+
+      colors.forEach((c, idx) => {
+        const level = idx + 1;
+        gradients += `
+      <linearGradient id="tower-grad-level-${level}" x1="0" y1="1" x2="0" y2="0">
+        <stop offset="0%" stop-color="${bgHex}" stop-opacity="0.1" />
+        <stop offset="100%" stop-color="${c}" stop-opacity="${0.4 + idx * 0.2}" />
+      </linearGradient>`;
+      });
+    }
+  }
+
   return `<defs>
     <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="${fs(5)}" result="blur" /><feComposite in="SourceGraphic" in2="blur" operator="over" /></filter>
+    ${gradients}
   </defs>`;
 }
 
@@ -181,24 +219,109 @@ function renderStyle(
   </style>`;
 }
 
-function renderTowers(towerData: TowerData[], accent: string, text: string, sf: number): string {
+function renderTowers(
+  towerData: TowerData[],
+  params: BadgeParams,
+  accent: string | string[],
+  text: string,
+  sf: number,
+  isAutoTheme: boolean = false
+): string {
   let towers = '';
+  const opacityMultipliers = [0.4, 0.6, 0.8, 1.0];
+
   for (const t of towerData) {
-    const color = t.isGhost ? text : accent;
+    const isGhost = t.isGhost;
+    let strokeColor = '';
+    let leftRightFillAttr = '';
+    let topFillAttr = '';
+
+    if (isAutoTheme) {
+      strokeColor = isGhost ? 'var(--cp-text)' : 'var(--cp-accent)';
+      leftRightFillAttr = isGhost ? 'class="cp-text-fill"' : 'class="cp-accent-fill"';
+      topFillAttr = leftRightFillAttr;
+    } else {
+      const baseAccentColor = Array.isArray(accent)
+        ? accent[accent.length - 1] || '00ffaa'
+        : accent || '00ffaa';
+
+      const accentColorHex = baseAccentColor.startsWith('#')
+        ? baseAccentColor
+        : `#${baseAccentColor}`;
+      const textColorHex = text.startsWith('#') ? text : `#${text}`;
+
+      let resolvedSolidColor = isGhost ? textColorHex : accentColorHex;
+      if (!isGhost && t.intensityLevel > 0 && Array.isArray(accent)) {
+        const quartileIdx = Math.min(t.intensityLevel - 1, accent.length - 1);
+        const quartileColor = accent[quartileIdx] || accent[accent.length - 1] || '00ffaa';
+        resolvedSolidColor = quartileColor.startsWith('#') ? quartileColor : `#${quartileColor}`;
+      }
+
+      strokeColor = resolvedSolidColor;
+      leftRightFillAttr = `fill="${resolvedSolidColor}"`;
+      topFillAttr = leftRightFillAttr;
+    }
+
+    let leftFaceOpacity = t.faceOpacity.left;
+    let rightFaceOpacity = t.faceOpacity.right;
+    let topFaceOpacity = t.faceOpacity.top;
+
+    if (!isGhost && t.intensityLevel > 0 && params.shading === true) {
+      const mult = opacityMultipliers[t.intensityLevel - 1];
+      leftFaceOpacity = Math.round(leftFaceOpacity * mult * 100) / 100;
+      rightFaceOpacity = Math.round(rightFaceOpacity * mult * 100) / 100;
+      topFaceOpacity = Math.round(topFaceOpacity * mult * 100) / 100;
+    }
+
+    let leftFillAttr = leftRightFillAttr;
+    let rightFillAttr = leftRightFillAttr;
+    let finalTopFillAttr = topFillAttr;
+
+    if (!isGhost && t.intensityLevel > 0 && params.gradient === true) {
+      leftFillAttr = `fill="url(#tower-grad-level-${t.intensityLevel})"`;
+      rightFillAttr = `fill="url(#tower-grad-level-${t.intensityLevel})"`;
+
+      if (isAutoTheme) {
+        finalTopFillAttr = 'class="cp-accent-fill"';
+      } else {
+        const capIdx = Math.min(t.intensityLevel - 1, accent.length - 1);
+        const baseAccentColor = Array.isArray(accent)
+          ? accent[capIdx] || accent[accent.length - 1]
+          : accent;
+        const capColor = baseAccentColor.startsWith('#') ? baseAccentColor : `#${baseAccentColor}`;
+        finalTopFillAttr = `fill="${capColor}"`;
+      }
+    }
+
+    const strokeAttr = isGhost
+      ? `stroke="${strokeColor}" stroke-opacity="${t.strokeOpacity}" stroke-width="${t.strokeWidth}"`
+      : '';
     const delay = ((t.row + t.col) * 0.015).toFixed(3);
+
     towers += `
         <g transform="translate(${t.x}, ${t.y})">
           <g class="cp-tower" style="animation-delay: ${delay}s;">
             ${t.isTodayWithCommits ? '<animate attributeName="opacity" values="1;0.4;1" dur="1.5s" repeatCount="indefinite" />' : ''}
             <title>${escapeXML(t.tooltip)}</title>
-            <path d="M0 ${10 - t.h} L0 10 L-16 0 L-16 ${-t.h} Z" fill="${color}" fill-opacity="${t.faceOpacity.left}" stroke="${color}" stroke-opacity="${t.strokeOpacity}" stroke-width="${t.strokeWidth}" />
-            <path d="M0 ${10 - t.h} L0 10 L16 0 L16 ${-t.h} Z" fill="${color}" fill-opacity="${t.faceOpacity.right}" stroke="${color}" stroke-opacity="${t.strokeOpacity}" stroke-width="${t.strokeWidth}" />
-            <path d="M0 ${-t.h} L16 ${10 - t.h} L0 ${20 - t.h} L-16 ${10 - t.h} Z" fill="${color}" fill-opacity="${t.faceOpacity.top}" stroke="${color}" stroke-opacity="${t.strokeOpacity}" stroke-width="${t.strokeWidth}" />
+            <path d="M0 ${10 - t.h} L0 10 L-16 0 L-16 ${-t.h} Z" ${leftFillAttr} fill-opacity="${leftFaceOpacity}" ${strokeAttr} />
+            <path d="M0 ${10 - t.h} L0 10 L16 0 L16 ${-t.h} Z" ${rightFillAttr} fill-opacity="${rightFaceOpacity}" ${strokeAttr} />
+            <path d="M0 ${-t.h} L16 ${10 - t.h} L0 ${20 - t.h} L-16 ${10 - t.h} Z" ${finalTopFillAttr} fill-opacity="${topFaceOpacity}" ${strokeAttr} />
             ${t.contributionCount > 5 ? `<path d="M0 ${-t.h} L16 ${10 - t.h} L0 ${20 - t.h} L-16 ${10 - t.h} Z" fill="white" fill-opacity="0.2" />` : ''}
           </g>
         </g>`;
-    if (t.contributionCount >= 10)
-      towers += generateParticles(t.x, t.y, t.h, t.contributionCount, sf, false, accent);
+
+    if (t.contributionCount >= 10) {
+      const pIdx = Math.min(t.intensityLevel - 1, accent.length - 1);
+      const pColorResolved = Array.isArray(accent)
+        ? accent[pIdx] || accent[accent.length - 1] || '00ffaa'
+        : accent || '00ffaa';
+      const pColor = isAutoTheme
+        ? ''
+        : pColorResolved.startsWith('#')
+          ? pColorResolved
+          : `#${pColorResolved}`;
+      towers += generateParticles(t.x, t.y, t.h, t.contributionCount, sf, isAutoTheme, pColor);
+    }
   }
   return towers;
 }
@@ -323,7 +446,11 @@ export function generateSVG(
 
   const safeUser = escapeXML(params.user || 'GitHub User');
   const bg = `#${sanitizeHexColor(params.bg, '0d1117')}`;
-  const accent = `#${sanitizeHexColor(params.accent, '00ffaa')}`;
+
+  const accent = Array.isArray(params.accent)
+    ? params.accent.map((c) => sanitizeHexColor(c, '00ffaa'))
+    : sanitizeHexColor(params.accent, '00ffaa');
+
   const text = `#${sanitizeHexColor(params.text, 'ffffff')}`;
 
   // NEW LOGIC: Conditionally create the stroke attributes
@@ -356,16 +483,21 @@ export function generateSVG(
     computeTowers(calendar, params.scale, stats.todayDate, params.mode),
     sf
   );
-  const towers = renderTowers(towerData, accent, text, sf);
+  const towers = renderTowers(towerData, params, accent, text, sf, false);
+
+  const mainAccent = Array.isArray(accent)
+    ? accent[accent.length - 1] || '00ffaa'
+    : accent || '00ffaa';
+  const mainAccentHex = mainAccent.startsWith('#') ? mainAccent : `#${mainAccent}`;
 
   return `
 <svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" fill="none" role="img">
   ${renderHeader(safeUser, stats, sf, params)}
-  ${renderStyle(selectedFont, statsFont, googleFontsImport, text, accent, sf)}
+  ${renderStyle(selectedFont, statsFont, googleFontsImport, text, mainAccentHex, sf)}
   <rect width="${W}" height="${H}" rx="${radius}" fill="${params.hideBackground ? 'transparent' : bg}" ${borderAttr} />
   <g transform="translate(0, ${Math.round(20 * sf)})">${towers}</g>
   ${renderIsometricLabels(calendar, params, text, sf)}
-  ${renderFooter(stats, params, labels, safeUser, accent, sf)}
+  ${renderFooter(stats, params, labels, safeUser, mainAccentHex, sf)}
 </svg>`;
 }
 
@@ -392,27 +524,7 @@ function generateAutoThemeSVG(
     computeTowers(calendar, params.scale, stats.todayDate, params.mode),
     sf
   );
-  let towers = '';
-
-  for (const t of towerData) {
-    const fillClass = t.isGhost ? 'cp-text-fill' : 'cp-accent-fill';
-    const strokeColor = t.isGhost ? 'var(--cp-text)' : 'var(--cp-accent)';
-    const delay = ((t.row + t.col) * 0.015).toFixed(3);
-
-    towers += `
-        <g transform="translate(${t.x}, ${t.y})">
-          <g class="cp-tower" style="animation-delay: ${delay}s;">
-            ${t.isTodayWithCommits ? '<animate attributeName="opacity" values="1;0.4;1" dur="1.5s" repeatCount="indefinite" />' : ''}
-            <title>${escapeXML(t.tooltip)}</title>
-            <path d="M0 ${10 - t.h} L0 10 L-16 0 L-16 ${-t.h} Z" class="${fillClass}" fill-opacity="${t.faceOpacity.left}" stroke="${strokeColor}" stroke-opacity="${t.strokeOpacity}" stroke-width="${t.strokeWidth}" />
-            <path d="M0 ${10 - t.h} L0 10 L16 0 L16 ${-t.h} Z" class="${fillClass}" fill-opacity="${t.faceOpacity.right}" stroke="${strokeColor}" stroke-opacity="${t.strokeOpacity}" stroke-width="${t.strokeWidth}" />
-            <path d="M0 ${-t.h} L16 ${10 - t.h} L0 ${20 - t.h} L-16 ${10 - t.h} Z" class="${fillClass}" fill-opacity="${t.faceOpacity.top}" stroke="${strokeColor}" stroke-opacity="${t.strokeOpacity}" stroke-width="${t.strokeWidth}" />
-            ${t.contributionCount > 5 ? `<path d="M0 ${-t.h} L16 ${10 - t.h} L0 ${20 - t.h} L-16 ${10 - t.h} Z" fill="white" fill-opacity="0.2" />` : ''}
-          </g>
-        </g>`;
-    if (t.contributionCount >= 10)
-      towers += generateParticles(t.x, t.y, t.h, t.contributionCount, sf, true);
-  }
+  const towers = renderTowers(towerData, params, '', '', sf, true);
 
   const s = createScaler(sf);
   const fs = (n: number): number => Math.round(n * sf * 10) / 10;
@@ -491,7 +603,12 @@ export function generateMonthlySVG(stats: MonthlyStats, params: BadgeParams): st
 
   const safeUser = escapeXML(params.user || 'GitHub User');
   const bg = `#${sanitizeHexColor(params.bg, '0d1117')}`;
-  const accent = `#${sanitizeHexColor(params.accent, '00ffaa')}`;
+
+  const rawAccent = Array.isArray(params.accent)
+    ? params.accent[params.accent.length - 1]
+    : params.accent;
+  const accent = `#${sanitizeHexColor(rawAccent, '00ffaa')}`;
+
   const text = `#${sanitizeHexColor(params.text, 'ffffff')}`;
 
   const sanitizedFont = sanitizeFont(params.font);
@@ -900,7 +1017,10 @@ export function generateVersusSVG(
   const safeUser1 = escapeXML(params.user || 'User 1');
   const safeUser2 = escapeXML(params.versus || 'User 2');
   const bg = `#${sanitizeHexColor(params.bg, '0d1117')}`;
-  const accent = `#${sanitizeHexColor(params.accent, '00ffaa')}`;
+  const rawAccent = Array.isArray(params.accent)
+    ? params.accent[params.accent.length - 1]
+    : params.accent;
+  const accent = `#${sanitizeHexColor(rawAccent, '00ffaa')}`;
   const text = `#${sanitizeHexColor(params.text, 'ffffff')}`;
 
   const sanitizedFont = sanitizeFont(params.font);
@@ -935,8 +1055,8 @@ export function generateVersusSVG(
     sf
   );
 
-  const towers1 = renderTowers(towerData1, accent, text, sf);
-  const towers2 = renderTowers(towerData2, accent, text, sf);
+  const towers1 = renderTowers(towerData1, params, accent, text, sf, false);
+  const towers2 = renderTowers(towerData2, params, accent, text, sf, false);
 
   const s = createScaler(sf);
   const unit = params.mode === 'loc' ? 'lines of code' : 'total contributions';
@@ -945,7 +1065,7 @@ export function generateVersusSVG(
 <svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" fill="none" role="img">
   <title>CommitPulse Versus Stats: ${safeUser1} vs ${safeUser2}</title>
   <desc>${safeUser1} has ${stats1.totalContributions} ${unit}. ${safeUser2} has ${stats2.totalContributions} ${unit}.</desc>
-  ${renderDefs(sf)}
+  ${renderDefs(sf, params)}
   ${renderStyle(selectedFont, statsFont, googleFontsImport, text, accent, sf)}
   <rect width="${W}" height="${H}" rx="${radius}" fill="${params.hideBackground ? 'transparent' : bg}" />
   
@@ -1055,7 +1175,7 @@ function generateAutoThemeVersusSVG(
 <svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" fill="none" role="img">
   <title>CommitPulse Versus Stats: ${safeUser1} vs ${safeUser2}</title>
   <desc>${safeUser1} has ${stats1.totalContributions} ${unit}. ${safeUser2} has ${stats2.totalContributions} ${unit}.</desc>
-  ${renderDefs(sf)}
+  ${renderDefs(sf, params)}
   
   <style>
   @import url('https://fonts.googleapis.com/css2?family=Fira+Code&family=JetBrains+Mono&family=Roboto&family=Syncopate:wght@400;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
