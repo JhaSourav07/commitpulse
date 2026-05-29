@@ -63,3 +63,16 @@ export const LANGUAGES = [
 ] as const satisfies readonly { value: string; label: string }[];
 
 export type Language = (typeof LANGUAGES)[number]['value'];
+
+export const TIMEZONES = [
+  { value: 'UTC', label: 'UTC (Default)' },
+  { value: 'America/New_York', label: 'New York' },
+  { value: 'America/Los_Angeles', label: 'Los Angeles' },
+  { value: 'Europe/London', label: 'London' },
+  { value: 'Europe/Berlin', label: 'Berlin' },
+  { value: 'Asia/Kolkata', label: 'Kolkata' },
+  { value: 'Asia/Tokyo', label: 'Tokyo' },
+  { value: 'Australia/Sydney', label: 'Sydney' },
+] as const satisfies readonly { value: string; label: string }[];
+
+export type Timezone = (typeof TIMEZONES)[number]['value'];
