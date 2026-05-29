@@ -9,6 +9,7 @@ import { X } from 'lucide-react';
 import { CommitPulseLogo } from '@/components/commitpulse-logo';
 import { CustomizeCTA } from './components/CustomizeCTA';
 import { useRecentSearches } from '@/hooks/useRecentSearches';
+import { useDebounce } from '@/hooks/useDebounce';
 import { Footer } from '@/app/components/Footer';
 import InteractiveViewer from '@/components/InteractiveViewer';
 
@@ -75,7 +76,8 @@ export default function LandingPage() {
   const guideRef = useRef<HTMLDivElement>(null);
   const { searches, addSearch, clearSearches, removeSearch } = useRecentSearches();
   const trimmedUsername = username.trim();
-  const hasUsername = trimmedUsername.length > 0;
+  const debouncedUsername = useDebounce(trimmedUsername, 500);
+  const hasUsername = debouncedUsername.length > 0;
 
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
@@ -83,22 +85,22 @@ export default function LandingPage() {
     setMounted(true);
   }, []);
 
-  const badgeUrl = `/api/streak?user=${trimmedUsername}`;
+  const badgeUrl = `/api/streak?user=${debouncedUsername}`;
   const markdown = `![CommitPulse](https://commitpulse.vercel.app/api/streak?user=${trimmedUsername})`;
 
-  const [prevUsername, setPrevUsername] = useState('');
-  if (trimmedUsername !== prevUsername) {
-    setPrevUsername(trimmedUsername);
-    setSvgContent(null);
-    setSvgState(trimmedUsername ? 'loading' : 'idle');
-  }
-
-  // Fetch SVG content whenever username changes.
-  // We fetch as text and render inline to avoid the browser CSP restriction
-  // that blocks <img> from loading SVGs whose response has a restrictive
-  // Content-Security-Policy header (default-src 'none').
+  // Fetch SVG content whenever debounced username changes.
   useEffect(() => {
-    if (!hasUsername) return;
+    if (!hasUsername) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setSvgContent(null);
+
+      setSvgState('idle');
+      return;
+    }
+
+    setSvgState('loading');
+
+    setSvgContent(null);
 
     const controller = new AbortController();
 
@@ -123,7 +125,7 @@ export default function LandingPage() {
   }, [badgeUrl, hasUsername]);
 
   const copyToClipboard = () => {
-    if (!hasUsername) return;
+    if (trimmedUsername.length === 0) return;
 
     trackUser(trimmedUsername);
     addSearch(trimmedUsername);
@@ -139,8 +141,8 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen overflow-x-hidden bg-transparent font-sans text-black dark:text-white selection:bg-black/20 dark:selection:bg-white/20">
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute -left-[10%] -top-[10%] h-[40%] w-[40%] rounded-full bg-white/3 blur-[120px]" />
-        <div className="absolute -right-[10%] top-[20%] h-[30%] w-[30%] rounded-full bg-white/2 blur-[120px]" />
+        <div className="absolute -left-[10%] -top-[10%] h-[40%] w-[40%] rounded-full bg-emerald-500/5 blur-[120px]" />
+        <div className="absolute -right-[10%] top-[20%] h-[30%] w-[30%] rounded-full bg-cyan-500/5 blur-[120px]" />
       </div>
 
       <main className="relative z-10 mx-auto max-w-6xl px-6 mt-32">
@@ -245,11 +247,11 @@ export default function LandingPage() {
               <div className="flex flex-col sm:flex-row gap-4">
                 <button
                   type="submit"
-                  disabled={!mounted || !hasUsername}
-                  className={`relative flex min-w-[160px] items-center justify-center gap-2 overflow-hidden rounded-xl px-6 py-3.5 text-sm font-semibold transition-all duration-200 transform cursor-pointer hover:scale-105 hover:brightness-125 active:scale-[0.98] disabled:cursor-not-allowed ${
-                    hasUsername
-                      ? 'bg-black text-white hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-zinc-100'
-                      : 'bg-gray-200 text-gray-500 dark:bg-white/10 dark:text-white/35'
+                  disabled={!mounted || trimmedUsername.length === 0}
+                  className={`relative flex min-w-[160px] items-center justify-center gap-2 overflow-hidden rounded-2xl px-6 py-4 text-sm font-semibold transition-all duration-300 transform cursor-pointer hover:scale-[1.02] hover:shadow-lg active:scale-[0.98] disabled:cursor-not-allowed ${
+                    trimmedUsername.length > 0
+                      ? 'bg-black text-white hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-gray-100 shadow-md'
+                      : 'bg-gray-100 text-gray-400 dark:bg-white/5 dark:text-white/20'
                   }`}
                 >
                   <AnimatePresence mode="wait">
@@ -275,10 +277,10 @@ export default function LandingPage() {
                   </AnimatePresence>
                 </button>
                 <Link
-                  href={hasUsername ? `/dashboard/${trimmedUsername}` : '/'}
-                  aria-disabled={!mounted || !hasUsername}
+                  href={trimmedUsername.length > 0 ? `/dashboard/${trimmedUsername}` : '/'}
+                  aria-disabled={!mounted || trimmedUsername.length === 0}
                   onClick={(e) => {
-                    if (!hasUsername) {
+                    if (trimmedUsername.length === 0) {
                       e.preventDefault();
                     } else {
                       trackUser(trimmedUsername);
@@ -337,23 +339,29 @@ export default function LandingPage() {
               {hasUsername ? (
                 <div className="w-full flex items-center justify-center">
                   {svgState === 'loading' && (
-                    <div className="h-[200px] w-full max-w-[600px] rounded-xl bg-white/5 animate-pulse" />
+                    <div className="h-[240px] w-full max-w-[700px] rounded-2xl bg-black/5 dark:bg-white/5 animate-pulse" />
                   )}
                   {svgState === 'error' && (
-                    <div className="flex flex-col items-center justify-center gap-3 py-10 text-center">
-                      <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-red-500/20 bg-red-500/10">
-                        <X size={28} className="text-red-400" />
+                    <div className="flex flex-col items-center justify-center gap-4 py-12 text-center">
+                      <div className="flex h-16 w-16 items-center justify-center rounded-3xl border border-red-500/20 bg-red-500/10 shadow-inner">
+                        <X size={32} className="text-red-500" />
                       </div>
-                      <p className="text-base font-semibold text-white">GitHub user not found</p>
-                      <p className="text-sm text-[#A1A1AA]">
-                        Please check the username and try again.
-                      </p>
+                      <div>
+                        <p className="text-lg font-bold text-gray-900 dark:text-white tracking-tight">
+                          GitHub user not found
+                        </p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                          Please check the username and try again.
+                        </p>
+                      </div>
                     </div>
                   )}
                   {svgState === 'loaded' && svgContent && (
-                    <div
-                      className="cp-svg-container w-full max-w-[600px] drop-shadow-[0_20px_50px_rgba(0,0,0,0.5)] [&>svg]:w-full [&>svg]:h-auto"
-                      // Safe: SVG is generated server-side by our own trusted generator
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ duration: 0.5, ease: 'easeOut' }}
+                      className="cp-svg-container w-full max-w-[700px] drop-shadow-[0_30px_60px_rgba(0,0,0,0.15)] dark:drop-shadow-[0_30px_60px_rgba(0,0,0,0.5)] [&>svg]:w-full [&>svg]:h-auto"
                       dangerouslySetInnerHTML={{ __html: svgContent }}
                     />
                   )}
@@ -363,11 +371,12 @@ export default function LandingPage() {
                   <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-gray-300 bg-gray-50 text-gray-700">
                     <Icons.Github />
                   </div>
-                  <p className="md:text-lg text-md font-semibold tracking-tight text-black dark:text-white">
-                    Enter a GitHub username to preview
+                  <p className="text-xl font-bold tracking-tight text-gray-900 dark:text-white">
+                    Ready to visualize your rhythm?
                   </p>
-                  <p className="mt-2 max-w-md text-xs xs:text-sm leading-relaxed text-gray-600 dark:text-[#A1A1AA]">
-                    Your 3D contribution monolith will appear here as soon as you add a username.
+                  <p className="mt-3 max-w-md text-sm leading-relaxed text-gray-500 dark:text-gray-400">
+                    Enter a GitHub username above to instantly generate your 3D contribution
+                    monolith preview.
                   </p>
                 </div>
               )}
@@ -432,12 +441,13 @@ function FeatureCard({
       transition={{ duration: 0.2 }}
       className="group rounded-xl border border-gray-300 bg-white p-8 shadow-sm hover:shadow-md hover:border-black/20 hover:bg-gray-50 dark:border-[rgba(255,255,255,0.08)] dark:bg-[#0a0a0a] dark:hover:border-[rgba(255,255,255,0.14)] dark:hover:bg-[#0d0d0d] transition-all duration-200"
     >
+      <div className="absolute -right-20 -top-20 h-40 w-40 rounded-full bg-emerald-500/10 blur-3xl transition-all duration-500 group-hover:bg-emerald-500/20" />
       <div
-        className={`mb-5 w-fit rounded-lg bg-gray-100 p-2.5 text-black dark:bg-[#111] dark:text-white ${accent}`}
+        className={`mb-6 w-fit rounded-2xl bg-gradient-to-br from-gray-100 to-gray-50 p-3.5 text-black shadow-sm ring-1 ring-black/5 dark:from-white/10 dark:to-white/5 dark:text-white dark:ring-white/10 ${accent}`}
       >
         {icon}
       </div>
-      <h3 className="mb-2 text-sm font-semibold text-black dark:text-white tracking-tight">
+      <h3 className="mb-3 text-lg font-bold text-gray-900 dark:text-white tracking-tight">
         {title}
       </h3>
       <p className="text-sm leading-relaxed text-gray-700 dark:text-[#A1A1AA]">{desc}</p>
@@ -565,9 +575,9 @@ function SuccessGuide({
           </p>
           <div className="mt-8 flex justify-center border-t border-black/10 pt-6 dark:border-white/5">
             <Link href={`/dashboard/${username}`} onClick={() => trackUser(username)}>
-              <button className="border border-black/10 bg-gray-100 px-6 py-2.5 rounded-lg text-sm font-semibold text-black transition-all duration-200 hover:bg-gray-200 hover:scale-[1.01] active:scale-[0.99] dark:border-[rgba(255,255,255,0.15)] dark:bg-white dark:text-black dark:hover:bg-zinc-100">
+              <span className="border border-black/10 bg-gray-100 px-6 py-2.5 rounded-lg text-sm font-semibold text-black transition-all duration-200 hover:bg-gray-200 hover:scale-[1.01] active:scale-[0.99] dark:border-[rgba(255,255,255,0.15)] dark:bg-white dark:text-black dark:hover:bg-zinc-100">
                 Watch Your Dashboard
-              </button>
+              </span>
             </Link>
           </div>
         </div>

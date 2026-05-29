@@ -55,10 +55,31 @@ export const streakParamsSchema = z.object({
   accent: z
     .string()
     .optional()
-    .refine((val) => !val || /^[0-9a-fA-F]{3,4}$|^[0-9a-fA-F]{6,8}$/.test(val.replace('#', '')), {
-      message: 'accent must be a valid 3 or 6 character hex color without #',
-    })
-    .transform((val) => (val ? sanitizeHexColor(val, '00ffaa') : undefined)),
+    .refine(
+      (val) => {
+        if (!val) return true;
+        const parts = val.includes(',') ? val.split(',') : [val];
+        return parts.every((p) =>
+          /^[0-9a-fA-F]{3,4}$|^[0-9a-fA-F]{6,8}$/.test(p.trim().replace('#', ''))
+        );
+      },
+      {
+        message:
+          'accent must be a valid 3 or 6 character hex color without #, or a comma-separated list of them',
+      }
+    )
+    .transform((val) => {
+      if (!val) return undefined;
+      if (val.includes(',')) {
+        return val
+          .split(',')
+          .map((c) => c.trim())
+          .filter((c) => c.length > 0)
+          .slice(0, 4)
+          .map((c) => sanitizeHexColor(c, '00ffaa'));
+      }
+      return sanitizeHexColor(val, '00ffaa');
+    }),
 
   // Silently fall back to 'linear' for unknown values (matches old behavior)
   scale: z.enum(['linear', 'log']).catch('linear').default('linear'),
@@ -170,6 +191,22 @@ export const streakParamsSchema = z.object({
       },
       { message: 'Invalid versus GitHub username' }
     ),
+  shading: z
+    .string()
+    .optional()
+    .transform((val) => {
+      if (val === undefined) return undefined;
+      return val === 'true';
+    })
+    .default(false),
+  gradient: z
+    .string()
+    .optional()
+    .transform((val) => {
+      if (val === undefined) return undefined;
+      return val === 'true';
+    })
+    .default(false),
 });
 
 export const githubParamsSchema = z.object({

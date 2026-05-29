@@ -21,6 +21,7 @@ describe('generateMonolithSTL', () => {
         strokeWidth: 1,
         row: 0,
         col: 0,
+        intensityLevel: 2,
       },
       {
         x: 0,
@@ -37,6 +38,7 @@ describe('generateMonolithSTL', () => {
         strokeWidth: 1,
         row: 1,
         col: 1,
+        intensityLevel: 0,
       },
     ];
 
@@ -67,6 +69,7 @@ it('generates structurally valid ASCII STL facets', () => {
       strokeWidth: 1,
       row: 0,
       col: 0,
+      intensityLevel: 2,
     },
   ];
 
