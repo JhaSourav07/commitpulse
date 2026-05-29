@@ -74,6 +74,8 @@ describe('LandingPage', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
         text: () =>
           Promise.resolve('<svg data-testid="badge-svg" xmlns="http://www.w3.org/2000/svg"></svg>'),
       })
@@ -280,5 +282,57 @@ describe('LandingPage', () => {
 
     // Cleanup
     mockRecentSearches.searches = [];
+  });
+
+  it('shows the friendly error UI instead of raw JSON when the API returns a 400', async () => {
+    // Username with an underscore passes the UI 39-char limit but fails the API regex,
+    // which returns JSON {error: 'Invalid parameters'} with status 400. Without the fix
+    // that JSON string would be rendered via dangerouslySetInnerHTML.
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 400,
+        text: () => Promise.resolve(JSON.stringify({ error: 'Invalid parameters' })),
+      })
+    );
+
+    render(<LandingPage />);
+    const input = screen.getByPlaceholderText('Enter GitHub Username') as HTMLInputElement;
+
+    await act(async () => {
+      fireEvent.change(input, { target: { value: 'invalid_user' } });
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('GitHub user not found')).toBeDefined();
+    });
+
+    // The raw JSON error payload must never appear in the DOM
+    expect(screen.queryByText(/Invalid parameters/)).toBeNull();
+  });
+
+  it('shows the friendly error UI for any non-ok API response (e.g. 429 rate limit)', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 429,
+        text: () => Promise.resolve(JSON.stringify({ error: 'Too Many Requests' })),
+      })
+    );
+
+    render(<LandingPage />);
+    const input = screen.getByPlaceholderText('Enter GitHub Username') as HTMLInputElement;
+
+    await act(async () => {
+      fireEvent.change(input, { target: { value: 'octocat' } });
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('GitHub user not found')).toBeDefined();
+    });
+
+    expect(screen.queryByText(/Too Many Requests/)).toBeNull();
   });
 });
