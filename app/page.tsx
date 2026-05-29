@@ -565,9 +565,9 @@ function SuccessGuide({
           </p>
           <div className="mt-8 flex justify-center border-t border-black/10 pt-6 dark:border-white/5">
             <Link href={`/dashboard/${username}`} onClick={() => trackUser(username)}>
-              <button className="border border-black/10 bg-gray-100 px-6 py-2.5 rounded-lg text-sm font-semibold text-black transition-all duration-200 hover:bg-gray-200 hover:scale-[1.01] active:scale-[0.99] dark:border-[rgba(255,255,255,0.15)] dark:bg-white dark:text-black dark:hover:bg-zinc-100">
+              <span className="border border-black/10 bg-gray-100 px-6 py-2.5 rounded-lg text-sm font-semibold text-black transition-all duration-200 hover:bg-gray-200 hover:scale-[1.01] active:scale-[0.99] dark:border-[rgba(255,255,255,0.15)] dark:bg-white dark:text-black dark:hover:bg-zinc-100">
                 Watch Your Dashboard
-              </button>
+              </span>
             </Link>
           </div>
         </div>
