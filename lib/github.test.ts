@@ -6,6 +6,7 @@ import {
   fetchUserRepos,
   getFullDashboardData,
   generateAchievements,
+  buildCommitClock,
   clearGitHubApiCacheForTests,
   GITHUB_CACHE_TTL_MS,
   validateGitHubUsername,
@@ -906,6 +907,46 @@ describe('buildInsights', () => {
     );
 
     expect(result[1].text).toContain('Unknown');
+  });
+});
+
+describe('buildCommitClock', () => {
+  it('counts commits only on Sunday when all days are Sunday', () => {
+    const result = buildCommitClock([
+      { date: '2024-01-07', contributionCount: 3 },
+      { date: '2024-01-14', contributionCount: 2 },
+    ]);
+
+    expect(result).toHaveLength(7);
+    expect(result[0].commits).toBeGreaterThan(0);
+    expect(result.slice(1).every((item) => item.commits === 0)).toBe(true);
+  });
+
+  it('returns 7 days with zero commits for empty input', () => {
+    const result = buildCommitClock([]);
+
+    expect(result).toHaveLength(7);
+    expect(result.every((item) => item.commits === 0)).toBe(true);
+  });
+
+  it('always returns exactly 7 items', () => {
+    const result = buildCommitClock([{ date: '2024-01-07', contributionCount: 1 }]);
+
+    expect(result).toHaveLength(7);
+  });
+
+  it('uses weekday labels from Sunday to Saturday', () => {
+    const result = buildCommitClock([]);
+
+    expect(result.map((item) => item.day)).toEqual([
+      'Sun',
+      'Mon',
+      'Tue',
+      'Wed',
+      'Thu',
+      'Fri',
+      'Sat',
+    ]);
   });
 });
 
