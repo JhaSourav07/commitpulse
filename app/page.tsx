@@ -34,6 +34,7 @@ export const metadata: Metadata = {
 };
 
 export default function LandingPage() {
+  const [mounted, setMounted] = useState(false);
   const [username, setUsername] = useState('');
   const [copied, setCopied] = useState(false);
   const [svgContent, setSvgContent] = useState<string | null>(null);
@@ -44,8 +45,17 @@ export default function LandingPage() {
   const debouncedUsername = useDebounce(trimmedUsername, 500);
   const hasUsername = debouncedUsername.length > 0;
 
-  const badgeUrl = `/api/streak?user=${trimmedUsername}`;
-  const markdown = `![CommitPulse](https://commitpulse.vercel.app/api/streak?user=${trimmedUsername})`;
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMounted(true);
+  }, []);
+
+  const badgeUrl = `/api/streak?user=${debouncedUsername}`;
+  const markdown = `![CommitPulse](${
+    mounted
+      ? window.location.origin
+      : (process.env.NEXT_PUBLIC_SITE_URL ?? 'https://commitpulse.vercel.app')
+  }/api/streak?user=${trimmedUsername})`;
 
   // Fetch SVG content whenever debounced username changes.
   useEffect(() => {
