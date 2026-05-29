@@ -89,3 +89,11 @@ it('generates structurally valid ASCII STL facets', () => {
     expect(line.trim()).toMatch(/^vertex -?\d+\.\d+ -?\d+\.\d+ -?\d+\.\d+$/);
   });
 });
+
+it('always includes a base plate even with no tower data', () => {
+  const stl = generateMonolithSTL([]);
+
+  expect(stl).toContain('solid commitpulse_monolith');
+  expect(stl).toContain('endsolid commitpulse_monolith');
+  expect(stl).toContain('facet normal');
+});
