@@ -62,6 +62,57 @@ describe('streakParamsSchema user validation', () => {
 });
 
 describe('streakParamsSchema', () => {
+  it('accepts commits mode', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      mode: 'commits',
+    });
+
+    expect(result.success).toBe(true);
+
+    if (result.success) {
+      expect(result.data.mode).toBe('commits');
+    }
+  });
+
+  it('accepts loc mode', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      mode: 'loc',
+    });
+
+    expect(result.success).toBe(true);
+
+    if (result.success) {
+      expect(result.data.mode).toBe('loc');
+    }
+  });
+
+  it('falls back to commits for unknown mode', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      mode: 'unknown',
+    });
+
+    expect(result.success).toBe(true);
+
+    if (result.success) {
+      expect(result.data.mode).toBe('commits');
+    }
+  });
+
+  it('defaults to commits when mode is omitted', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+    });
+
+    expect(result.success).toBe(true);
+
+    if (result.success) {
+      expect(result.data.mode).toBe('commits');
+    }
+  });
+
   it('accepts a valid width value', () => {
     const result = streakParamsSchema.safeParse({
       user: 'octocat',
