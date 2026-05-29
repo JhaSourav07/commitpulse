@@ -12,6 +12,7 @@ import {
   validateGitHubUsername,
   cacheKey,
   buildInsights,
+  displayName,
   fetchOrgMembers,
   getOrgDashboardData,
   getWrappedData,
@@ -805,13 +806,13 @@ describe('generateAchievements', () => {
     const achievements = generateAchievements(600, 10, 0, 0);
 
     const unlocked = achievements.filter((a) => a.isUnlocked);
+
     expect(unlocked.some((a) => a.title === '500 Contributions')).toBe(true);
     expect(unlocked.some((a) => a.title === 'Consistency King')).toBe(true);
     expect(unlocked.some((a) => a.title === '1000 Contributions')).toBe(false);
   });
 
   it('unlocks all achievements for max contribution and streak values', () => {
-    // Consistency King III requires 2000, streak needs 100, weekend needs 10, polyglot needs 5
     const achievements = generateAchievements(2001, 101, 11, 6);
 
     expect(achievements.every((achievement) => achievement.isUnlocked === true)).toBe(true);
@@ -843,6 +844,36 @@ describe('generateAchievements', () => {
       expect(item.progress).toBeGreaterThanOrEqual(0);
       expect(item.progress).toBeLessThanOrEqual(100);
     }
+  });
+});
+
+describe('displayName', () => {
+  const makeProfile = (name: string | null) => ({
+    login: 'octocat',
+    name,
+    avatar_url: 'avatar.png',
+    public_repos: 0,
+    followers: 0,
+    following: 0,
+    created_at: '2020-01-01T00:00:00Z',
+    bio: null,
+    location: null,
+  });
+
+  it('returns the name when present', () => {
+    expect(displayName(makeProfile('The Octocat'))).toBe('The Octocat');
+  });
+
+  it('falls back to login when name is null', () => {
+    expect(displayName(makeProfile(null))).toBe('octocat');
+  });
+
+  it('falls back to login when name is empty', () => {
+    expect(displayName(makeProfile(''))).toBe('octocat');
+  });
+
+  it('falls back to login when name contains only whitespace', () => {
+    expect(displayName(makeProfile('   '))).toBe('octocat');
   });
 });
 
