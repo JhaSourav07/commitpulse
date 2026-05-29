@@ -191,22 +191,6 @@ const mockSecondData = {
   pinnedRepos: [],
 };
 
-const initialDataWithHigherStreak = {
-  ...mockInitialData,
-  stats: {
-    ...mockInitialData.stats,
-    peakStreak: 50,
-  },
-};
-
-const secondDataWithLowerStreak = {
-  ...mockSecondData,
-  stats: {
-    ...mockSecondData.stats,
-    peakStreak: 10,
-  },
-};
-
 const mockPeriod = {
   kind: 'year' as const,
   label: '2026',
@@ -382,7 +366,7 @@ describe('DashboardClient', () => {
     expect(generateLink.getAttribute('href')).toBe('/');
   });
 
-  it('shows a success toast after the dashboard link is copied', async () => {
+it('shows a success toast after the dashboard link is copied', async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     Object.defineProperty(navigator, 'clipboard', {
       value: { writeText },
@@ -490,7 +474,6 @@ describe('DashboardClient', () => {
     });
     expect(toast.error).not.toHaveBeenCalledWith('Failed to share comparison link');
   });
-
   // =========================================================================
   // ISSUE OBJECTIVE: Verify error is shown when comparing with same username
   // =========================================================================
@@ -577,58 +560,35 @@ describe('DashboardClient', () => {
     const tags = screen.getAllByText(/Consistency Beast/i);
     expect(tags).toHaveLength(2);
   });
-});
-it('shows Most Consistent badge for profile with higher peak streak in compare mode', async () => {
-  const mockFetch = vi.fn().mockResolvedValue({
-    ok: true,
-    json: async () => secondDataWithLowerStreak,
+
+  it('shows Most Consistent badge for profile with higher peak streak in compare mode', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => secondDataWithLowerStreak,
+    });
+
+    vi.stubGlobal('fetch', mockFetch);
+
+    render(
+      <DashboardClient
+        initialData={initialDataWithHigherStreak}
+        username="Shivangi1515"
+        period={mockPeriod}
+      />
+    );
+
+    fireEvent.click(screen.getByText('Compare Profile'));
+
+    fireEvent.change(screen.getByPlaceholderText('Enter GitHub Username'), {
+      target: { value: 'JhaSourav07' },
+    });
+
+    fireEvent.click(screen.getByText('Compare'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Exit Compare Mode')).toBeDefined();
+    });
+
+    expect(screen.getByText(/Most Consistent/i)).toBeDefined();
   });
-
-  vi.stubGlobal('fetch', mockFetch);
-
-  render(
-    <DashboardClient
-      initialData={initialDataWithHigherStreak}
-      username="Shivangi1515"
-      period={mockPeriod}
-    />
-  );
-
-  fireEvent.click(screen.getByText('Compare Profile'));
-
-  fireEvent.change(screen.getByPlaceholderText('Enter GitHub Username'), {
-    target: { value: 'JhaSourav07' },
-  });
-
-  fireEvent.click(screen.getByText('Compare'));
-
-  await waitFor(() => {
-    expect(screen.getByText('Exit Compare Mode')).toBeDefined();
-  });
-
-  expect(screen.getByText(/Most Consistent/i)).toBeDefined();
-});
-it('shows Most Consistent badge for profile with higher peak streak in compare mode', async () => {
-  const mockFetch = vi.fn().mockResolvedValue({
-    ok: true,
-    json: async () => secondDataWithLowerStreak,
-  });
-
-  vi.stubGlobal('fetch', mockFetch);
-
-  render(<DashboardClient initialData={initialDataWithHigherStreak} username="Shivangi1515" />);
-
-  fireEvent.click(screen.getByText('Compare Profile'));
-
-  fireEvent.change(screen.getByPlaceholderText('Enter GitHub Username'), {
-    target: { value: 'JhaSourav07' },
-  });
-
-  fireEvent.click(screen.getByText('Compare'));
-
-  await waitFor(() => {
-    expect(screen.getByText('Exit Compare Mode')).toBeDefined();
-  });
-
-  expect(screen.getByText(/Most Consistent/i)).toBeDefined();
 });
