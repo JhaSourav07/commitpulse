@@ -160,6 +160,37 @@ describe('computeTowers edge cases', () => {
     // Math.log2(3 + 1) * 12 = 2 * 12 = 24
     expect(towers[0].h).toBe(24);
   });
+
+  // =========================================================================
+  // ISSUE OBJECTIVE: LoC Mode Tests
+  // =========================================================================
+  it('calculates tower height based on LoC additions and deletions in "loc" mode', () => {
+    const todayDate = '2026-05-29';
+    const calendar = {
+      totalContributions: 0,
+      weeks: [
+        {
+          contributionDays: [
+            {
+              date: todayDate,
+              contributionCount: 0,
+              locAdditions: 50,
+              locDeletions: 10,
+            },
+          ],
+        },
+      ],
+    } as unknown as ContributionCalendar;
+
+    // Call computeTowers with 'loc' mode parameter
+    const towers = computeTowers(calendar, 'linear', todayDate, 'loc');
+    const testTower = towers[0];
+
+    // Assert the computed count is 60 (50 + 10)
+    expect(testTower.contributionCount).toBe(60);
+    // Assert h > 0 (not ghost despite 0 normal contributions)
+    expect(testTower.h).toBeGreaterThan(0);
+  });
 });
 
 it('assigns correct row and col values based on week/day position', () => {
