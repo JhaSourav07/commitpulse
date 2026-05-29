@@ -790,6 +790,37 @@ describe('GET /api/streak', () => {
       expect(response.status).toBe(200);
       expect(body).toContain('CURRENT_STREAK');
     });
+    // =========================================================================
+    // ISSUE OBJECTIVE: Route test for ?view=monthly&delta_format=absolute
+    // =========================================================================
+    it('applies delta_format=absolute to show raw commit counts in the monthly SVG', async () => {
+      // 1. Mock the GitHub fetch with actual weekly data using vi.mocked
+      vi.mocked(fetchGitHubContributions).mockResolvedValueOnce({
+        totalContributions: 150,
+        weeks: [
+          { contributionDays: [{ date: '2026-04-15', contributionCount: 10 }] },
+          { contributionDays: [{ date: '2026-05-15', contributionCount: 15 }] },
+        ],
+      } as unknown as ContributionCalendar);
+
+      // 2. Lock the system time to May 2026 so the calendar calculation aligns
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-05-20T12:00:00Z'));
+
+      // 3. Make request using the file's built-in makeRequest helper
+      const req = makeRequest({ user: 'octocat', view: 'monthly', delta_format: 'absolute' });
+      const res = await GET(req);
+
+      expect(res.status).toBe(200);
+
+      const body = await res.text();
+
+      // 4. Assert body contains 'commits' (the absolute delta unit)
+      expect(body).toContain('commits');
+
+      // Cleanup
+      vi.useRealTimers();
+    });
   });
 
   describe('theme=random cache header', () => {
