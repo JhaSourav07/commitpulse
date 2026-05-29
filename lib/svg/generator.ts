@@ -789,3 +789,144 @@ export function generateNotFoundSVG(
   </g>
 </svg>`;
 }
+
+/**
+ * Generates a branded SVG badge for GitHub API rate limit errors.
+ *
+ * The SVG renders a clock-style design with an animated hourglass effect
+ * while preserving the standard badge layout and user theme colors.
+ *
+ * @param bg - Background color used for the SVG container.
+ * @param accent - Accent color used for highlights, outlines,
+ * and animated elements.
+ * @param text - Primary text color used throughout the badge.
+ * @param radius - Border radius applied to the SVG background.
+ * @param speed - Animation speed for the radar scan effect.
+ * Defaults to '8s'.
+ * @param retryAfter - Optional retry-after time in UTC format (e.g., "14:30 UTC").
+ * If not provided, a generic message is shown.
+ *
+ * @returns A generated SVG string representing the rate limit error state.
+ *
+ * @example
+ * const svg = generateRateLimitSVG(
+ *   '#0d1117',
+ *   '#00ffaa',
+ *   '#ffffff',
+ *   8,
+ *   '8s',
+ *   '14:30 UTC'
+ * );
+ */
+export function generateRateLimitSVG(
+  bg: string,
+  accent: string,
+  text: string,
+  radius: number,
+  speed: string = '8s',
+  retryAfter?: string
+): string {
+  const retryMessage = retryAfter
+    ? `Rate limited — please retry after ${retryAfter}`
+    : 'Rate limited — please try again later';
+
+  return `<svg
+  xmlns="http://www.w3.org/2000/svg"
+  width="${SVG_WIDTH}"
+  height="${SVG_HEIGHT}"
+  viewBox="0 0 ${SVG_WIDTH} ${SVG_HEIGHT}"
+  fill="none"
+  role="img"
+>
+  <title>Rate limit exceeded</title>
+  <defs>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="5" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+    <filter id="softglow" x="-80%" y="-80%" width="360%" height="360%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+  </defs>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600&amp;display=swap');
+    .title  { font-family: "Syncopate", sans-serif; fill: ${text}; font-size: 18px; letter-spacing: 6px; font-weight: 400; opacity: 0.5; }
+    .label  { font-family: "Roboto", sans-serif; fill: ${accent}; font-size: 11px; letter-spacing: 2px; opacity: 0.4; }
+    .stats  { font-family: "Space Grotesk", sans-serif; fill: ${text}; font-size: 42px; font-weight: 500; opacity: 0.2; }
+    .clock-pulse { animation: cp 3s ease-in-out infinite; }
+    .hourglass-sand { animation: hs 4s ease-in-out infinite; }
+    .scan-line { animation: scan-sweep var(--scan-speed, 8s) linear infinite; }
+    @keyframes cp { 0%,100%{opacity:.4} 50%{opacity:1} }
+    @keyframes hs { 0%,100%{transform:translateY(0)} 50%{transform:translateY(8px)} }
+    @keyframes scan-sweep { from { transform: translateY(20px); } to { transform: translateY(260px); } }
+    @media (prefers-reduced-motion: reduce) {
+      .clock-pulse { animation: none !important; transition: none !important; }
+      .hourglass-sand { animation: none !important; transition: none !important; }
+      .scan-line {
+        animation: none !important;
+        transition: none !important;
+        transform: translateY(20px) !important;
+      }
+    }
+  </style>
+
+  <!-- Background -->
+  <rect width="${SVG_WIDTH}" height="${SVG_HEIGHT}" rx="${radius}" fill="${bg}"/>
+
+  <!-- Radar scan line -->
+  <rect x="100" y="60" width="400" height="1" class="scan-line" fill="${accent}" fill-opacity="0.12" style="--scan-speed: ${speed};"/>
+
+  <text x="300" y="50" text-anchor="middle" class="title">GITHUB API</text>
+
+  <!-- Divider below title -->
+  <rect x="180" y="62" width="240" height="1" fill="${accent}" fill-opacity="0.15"/>
+
+  <!-- Clock/Time icon -->
+  <g transform="translate(300, 180)" class="clock-pulse">
+    <!-- Clock circle -->
+    <circle cx="0" cy="0" r="45" fill="none"
+      stroke="${accent}" stroke-width="1.5" stroke-opacity="0.3" filter="url(#softglow)"/>
+    <!-- Hour markers -->
+    <line x1="0" y1="-40" x2="0" y2="-35" stroke="${accent}" stroke-width="2" stroke-opacity="0.4"/>
+    <line x1="40" y1="0" x2="35" y2="0" stroke="${accent}" stroke-width="2" stroke-opacity="0.4"/>
+    <line x1="0" y1="40" x2="0" y2="35" stroke="${accent}" stroke-width="2" stroke-opacity="0.4"/>
+    <line x1="-40" y1="0" x2="-35" y2="0" stroke="${accent}" stroke-width="2" stroke-opacity="0.4"/>
+    <!-- Clock hands -->
+    <line x1="0" y1="0" x2="0" y2="-25" stroke="${accent}" stroke-width="2" stroke-linecap="round" stroke-opacity="0.6"/>
+    <line x1="0" y1="0" x2="18" y2="0" stroke="${accent}" stroke-width="2" stroke-linecap="round" stroke-opacity="0.5"/>
+    <!-- Center dot -->
+    <circle cx="0" cy="0" r="4" fill="${accent}" fill-opacity="0.6"/>
+  </g>
+
+  <!-- "RATE LIMITED" badge -->
+  <rect x="220" y="240" width="160" height="22" rx="4"
+    fill="${accent}" fill-opacity="0.08"
+    stroke="${accent}" stroke-width="0.8" stroke-opacity="0.25"/>
+  <text x="300" y="255" text-anchor="middle"
+    font-family="Syncopate, sans-serif" font-size="9" font-weight="700"
+    fill="${accent}" opacity="0.7" letter-spacing="3">RATE LIMITED</text>
+
+  <text x="300" y="285" text-anchor="middle"
+    font-family="Space Grotesk, sans-serif" font-size="12"
+    fill="${text}" opacity="0.4">
+    ${escapeXML(retryMessage)}
+  </text>
+
+  <!-- Bottom stat placeholders -->
+  <g transform="translate(40, 340)">
+    <text class="label">CURRENT_STREAK</text>
+    <text y="40" class="stats">—</text>
+  </g>
+  <g transform="translate(300, 340)" text-anchor="middle">
+    <text class="label">ANNUAL_SYNC_TOTAL</text>
+    <text y="40" font-family="Space Grotesk,sans-serif" font-size="24"
+      fill="${accent}" opacity="0.2">—</text>
+  </g>
+  <g transform="translate(560, 340)" text-anchor="end">
+    <text class="label">PEAK_STREAK</text>
+    <text y="40" class="stats">—</text>
+  </g>
+</svg>`;
+}

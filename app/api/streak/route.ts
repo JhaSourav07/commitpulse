@@ -3,7 +3,12 @@
 import { NextResponse } from 'next/server';
 import { fetchGitHubContributions, getOrgDashboardData } from '@/lib/github';
 import { calculateStreak, calculateMonthlyStats } from '@/lib/calculate';
-import { generateNotFoundSVG, generateSVG, generateMonthlySVG } from '@/lib/svg/generator';
+import {
+  generateNotFoundSVG,
+  generateSVG,
+  generateMonthlySVG,
+  generateRateLimitSVG,
+} from '@/lib/svg/generator';
 import { getSecondsUntilUTCMidnight, getSecondsUntilMidnightInTimezone } from '@/utils/time';
 import type { BadgeParams } from '@/types';
 import { themes } from '@/lib/svg/themes';
@@ -164,6 +169,11 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
     message.toLowerCase().includes('not found') ||
     message.toLowerCase().includes('could not resolve');
 
+  const isRateLimit =
+    message.toLowerCase().includes('rate limit') ||
+    message.toLowerCase().includes('api rate limit exceeded') ||
+    message.toLowerCase().includes('403');
+
   const errBg = `#${(parseResult.success && parseResult.data.bg) || '0d1117'}`;
   const errAccent = `#${(parseResult.success && parseResult.data.accent) || '58a6ff'}`;
   const errText = `#${(parseResult.success && parseResult.data.text) || 'c9d1d9'}`;
@@ -189,6 +199,22 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
       headers: {
         'Content-Type': 'image/svg+xml',
         'Cache-Control': 'no-cache',
+        'Content-Security-Policy': SVG_CSP_HEADER,
+      },
+    });
+  }
+
+  if (isRateLimit) {
+    // Extract retry-after time from error message if available
+    const retryMatch = message.match(/retry after (\d{1,2}:\d{2})/i);
+    const retryAfter = retryMatch ? `${retryMatch[1]} UTC` : undefined;
+
+    const svg = generateRateLimitSVG(errBg, errAccent, errText, errRadius, errSpeed, retryAfter);
+    return new NextResponse(svg, {
+      status: 429,
+      headers: {
+        'Content-Type': 'image/svg+xml',
+        'Cache-Control': 'public, s-maxage=60',
         'Content-Security-Policy': SVG_CSP_HEADER,
       },
     });
