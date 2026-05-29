@@ -845,6 +845,11 @@ describe('generateAchievements', () => {
       expect(item.progress).toBeLessThanOrEqual(100);
     }
   });
+
+  it('always returns exactly 15 achievements', () => {
+    expect(generateAchievements(0, 0, 0, 0)).toHaveLength(15);
+    expect(generateAchievements(1000, 100, 0, 0)).toHaveLength(15);
+  });
 });
 
 describe('displayName', () => {
