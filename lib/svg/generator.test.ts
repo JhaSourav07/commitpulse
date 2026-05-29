@@ -590,4 +590,32 @@ describe('generateNotFoundSVG', () => {
     // Check radius attribute on background rect
     expect(svg).toContain('rx="12"');
   });
+
+  it('sanitizes unsafe parameters to prevent injection', () => {
+    const unsafeBg = '"><script>alert("bg")</script>';
+    const unsafeAccent = '"><script>alert("accent")</script>';
+    const unsafeText = '"><script>alert("text")</script>';
+    const unsafeSpeed = 'invalid';
+    const unsafeRadius = -5;
+
+    const svg = generateNotFoundSVG(
+      'test-user',
+      unsafeBg,
+      unsafeAccent,
+      unsafeText,
+      unsafeRadius,
+      unsafeSpeed
+    );
+
+    // Should NOT contain the scripts or dangerous characters
+    expect(svg).not.toContain('<script>');
+    expect(svg).not.toContain('alert');
+
+    // Should fallback to safe sanitized values
+    expect(svg).toContain('fill="#0d1117"'); // fallback bg
+    expect(svg).toContain('fill: #ffffff;'); // fallback text
+    expect(svg).toContain('fill: #00ffaa;'); // fallback accent
+    expect(svg).toContain('rx="0"'); // fallback radius clamped to 0
+    expect(svg).toContain('dur="8s"'); // fallback speed
+  });
 });

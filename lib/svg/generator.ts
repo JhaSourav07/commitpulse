@@ -3,7 +3,13 @@ import { getLabels, type BadgeLabels } from '../i18n/badgeLabels';
 import { AUTO_DARK_THEME, AUTO_LIGHT_THEME } from './themes';
 import { TOWER_ANIMATION_CSS } from './animations';
 import { computeTowers, type TowerData } from './layout';
-import { sanitizeFont, sanitizeHexColor, sanitizeRadius, sanitizeGoogleFontUrl } from './sanitizer';
+import {
+  sanitizeFont,
+  sanitizeHexColor,
+  sanitizeRadius,
+  sanitizeGoogleFontUrl,
+  sanitizeSpeed,
+} from './sanitizer';
 
 const SVG_WIDTH = 600;
 const SVG_HEIGHT = 420;
@@ -176,11 +182,12 @@ function renderFooter(
   sf: number
 ): string {
   const s = createScaler(sf);
+  const cleanSpeed = sanitizeSpeed(params.speed, '8s');
   return `
   ${!params.hide_stats ? renderStatsSection(stats, labels, s) : ''}
   ${!params.hide_title ? `<text x="${s(300)}" y="${s(50)}" text-anchor="middle" class="title">${safeUser.toUpperCase()}</text>` : ''}
   <rect x="${s(100)}" y="${s(60)}" width="${s(400)}" height="${sf}" fill="${accent}" fill-opacity="0.3">
-    <animate attributeName="y" values="${s(80)};${s(320)};${s(80)}" dur="${params.speed || '8s'}" repeatCount="indefinite" />
+    <animate attributeName="y" values="${s(80)};${s(320)};${s(80)}" dur="${cleanSpeed}" repeatCount="indefinite" />
   </rect>`;
 }
 
@@ -241,6 +248,7 @@ function generateAutoThemeSVG(
   const dark = AUTO_DARK_THEME;
   const safeUser = escapeXML(params.user || 'GitHub User');
   const sanitizedFont = sanitizeFont(params.font);
+  const cleanSpeed = sanitizeSpeed(params.speed, '8s');
   const selectedFont = sanitizedFont
     ? FONT_MAP[sanitizedFont.toLowerCase()] || `"${sanitizedFont}", sans-serif`
     : null;
@@ -328,7 +336,7 @@ ${
 }
 
   <rect x="${s(100)}" y="${s(60)}" width="${s(400)}" height="${sf}" class="cp-accent-fill" fill-opacity="0.3">
-    <animate attributeName="y" values="${s(80)};${s(320)};${s(80)}" dur="${params.speed || '8s'}" repeatCount="indefinite" />
+    <animate attributeName="y" values="${s(80)};${s(320)};${s(80)}" dur="${cleanSpeed}" repeatCount="indefinite" />
   </rect>
 </svg>
 `;
@@ -520,6 +528,11 @@ export function generateNotFoundSVG(
   speed: string = '8s'
 ): string {
   const safeName = escapeXML(username.toUpperCase());
+  const cleanBg = `#${sanitizeHexColor(bg, '0d1117')}`;
+  const cleanAccent = `#${sanitizeHexColor(accent, '00ffaa')}`;
+  const cleanText = `#${sanitizeHexColor(text, 'ffffff')}`;
+  const cleanRadius = sanitizeRadius(radius, 8);
+  const cleanSpeed = sanitizeSpeed(speed, '8s');
 
   // Ghost towers — same isometric math as computeTowers() but with fixed
   // deterministic heights so the silhouette looks like a real city.
@@ -587,14 +600,14 @@ export function generateNotFoundSVG(
     ghostTowers += `
       <g transform="translate(${tx}, ${ty - h})">
         <path d="M0 10 L0 ${10 + h} L-16 ${h} L-16 0 Z"
-          fill="${accent}" fill-opacity="0.08"
-          stroke="${accent}" stroke-opacity="0.18" stroke-width="0.5"/>
+          fill="${cleanAccent}" fill-opacity="0.08"
+          stroke="${cleanAccent}" stroke-opacity="0.18" stroke-width="0.5"/>
         <path d="M0 10 L0 ${10 + h} L16 ${h} L16 0 Z"
-          fill="${accent}" fill-opacity="0.05"
-          stroke="${accent}" stroke-opacity="0.12" stroke-width="0.5"/>
-        <path d="M0 0 L16 10 L0 20 L-16 10 Z"
-          fill="${accent}" fill-opacity="0.14"
-          stroke="${accent}" stroke-opacity="0.22" stroke-width="0.5"/>
+          fill="${cleanAccent}" fill-opacity="0.05"
+          stroke="${cleanAccent}" stroke-opacity="0.12" stroke-width="0.5"/>
+         <path d="M0 0 L16 10 L0 20 L-16 10 Z"
+          fill="${cleanAccent}" fill-opacity="0.14"
+          stroke="${cleanAccent}" stroke-opacity="0.22" stroke-width="0.5"/>
       </g>`;
   }
 
@@ -618,23 +631,23 @@ export function generateNotFoundSVG(
     </filter>
     <!-- Fade the ghost city out toward the bottom -->
     <linearGradient id="ghostFade" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="30%" stop-color="${bg}" stop-opacity="0"/>
-      <stop offset="100%" stop-color="${bg}" stop-opacity="1"/>
+      <stop offset="30%" stop-color="${cleanBg}" stop-opacity="0"/>
+      <stop offset="100%" stop-color="${cleanBg}" stop-opacity="1"/>
     </linearGradient>
   </defs>
 
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600&amp;display=swap');
-    .title  { font-family: "Syncopate", sans-serif; fill: ${text}; font-size: 18px; letter-spacing: 6px; font-weight: 400; opacity: 0.5; }
-    .label  { font-family: "Roboto", sans-serif; fill: ${accent}; font-size: 11px; letter-spacing: 2px; opacity: 0.4; }
-    .stats  { font-family: "Space Grotesk", sans-serif; fill: ${text}; font-size: 42px; font-weight: 500; opacity: 0.2; }
+    .title  { font-family: "Syncopate", sans-serif; fill: ${cleanText}; font-size: 18px; letter-spacing: 6px; font-weight: 400; opacity: 0.5; }
+    .label  { font-family: "Roboto", sans-serif; fill: ${cleanAccent}; font-size: 11px; letter-spacing: 2px; opacity: 0.4; }
+    .stats  { font-family: "Space Grotesk", sans-serif; fill: ${cleanText}; font-size: 42px; font-weight: 500; opacity: 0.2; }
     .ghost-pulse { animation: gp 2.6s ease-in-out infinite; }
     @keyframes gp { 0%,100%{opacity:.55} 50%{opacity:1} }
     @media (prefers-reduced-motion: reduce) { .ghost-pulse { animation: none; } }
   </style>
 
   <!-- Background -->
-  <rect width="${SVG_WIDTH}" height="${SVG_HEIGHT}" rx="${radius}" fill="${bg}"/>
+  <rect width="${SVG_WIDTH}" height="${SVG_HEIGHT}" rx="${cleanRadius}" fill="${cleanBg}"/>
 
   <!-- Ghost isometric city — same grid as real badge -->
   <g transform="translate(0, 20)" class="ghost-pulse">
@@ -642,39 +655,39 @@ export function generateNotFoundSVG(
   </g>
 
   <!-- Fade overlay so ghost city dissolves into background -->
-  <rect width="${SVG_WIDTH}" height="${SVG_HEIGHT}" rx="${radius}" fill="url(#ghostFade)"/>
+  <rect width="${SVG_WIDTH}" height="${SVG_HEIGHT}" rx="${cleanRadius}" fill="url(#ghostFade)"/>
 
   <!-- Radar scan line (same as real badge, but very faint) -->
-  <rect x="100" y="60" width="400" height="1" fill="${accent}" fill-opacity="0.12">
-    <animate attributeName="y" values="80;320;80" dur="${speed}" repeatCount="indefinite"/>
+  <rect x="100" y="60" width="400" height="1" fill="${cleanAccent}" fill-opacity="0.12">
+    <animate attributeName="y" values="80;320;80" dur="${cleanSpeed}" repeatCount="indefinite"/>
   </rect>
 
   <!-- Username label (same position as real badge) -->
   <text x="300" y="50" text-anchor="middle" class="title">${safeName}</text>
 
   <!-- Divider below title -->
-  <rect x="180" y="62" width="240" height="1" fill="${accent}" fill-opacity="0.15"/>
+  <rect x="180" y="62" width="240" height="1" fill="${cleanAccent}" fill-opacity="0.15"/>
 
   <!-- Central error mark -->
   <circle cx="300" cy="190" r="32" fill="none"
-    stroke="${accent}" stroke-width="1.2" stroke-opacity="0.3" filter="url(#softglow)"/>
+    stroke="${cleanAccent}" stroke-width="1.2" stroke-opacity="0.3" filter="url(#softglow)"/>
   <line x1="286" y1="176" x2="314" y2="204"
-    stroke="${accent}" stroke-width="1.8" stroke-linecap="round" stroke-opacity="0.55"/>
+    stroke="${cleanAccent}" stroke-width="1.8" stroke-linecap="round" stroke-opacity="0.55"/>
   <line x1="314" y1="176" x2="286" y2="204"
-    stroke="${accent}" stroke-width="1.8" stroke-linecap="round" stroke-opacity="0.55"/>
+    stroke="${cleanAccent}" stroke-width="1.8" stroke-linecap="round" stroke-opacity="0.55"/>
 
   <!-- "NOT FOUND" badge -->
   <rect x="230" y="235" width="140" height="22" rx="4"
-    fill="${accent}" fill-opacity="0.08"
-    stroke="${accent}" stroke-width="0.8" stroke-opacity="0.25"/>
+    fill="${cleanAccent}" fill-opacity="0.08"
+    stroke="${cleanAccent}" stroke-width="0.8" stroke-opacity="0.25"/>
   <text x="300" y="250" text-anchor="middle"
     font-family="Syncopate, sans-serif" font-size="9" font-weight="700"
-    fill="${accent}" opacity="0.7" letter-spacing="4">NOT FOUND</text>
+    fill="${cleanAccent}" opacity="0.7" letter-spacing="4">NOT FOUND</text>
 
   <!-- Sub-hint -->
   <text x="300" y="278" text-anchor="middle"
     font-family="Space Grotesk, sans-serif" font-size="11"
-    fill="${text}" opacity="0.3">
+    fill="${cleanText}" opacity="0.3">
     This GitHub user doesn't exist
   </text>
 
@@ -686,7 +699,7 @@ export function generateNotFoundSVG(
   <g transform="translate(300, 340)" text-anchor="middle">
     <text class="label">ANNUAL_SYNC_TOTAL</text>
     <text y="40" font-family="Space Grotesk,sans-serif" font-size="24"
-      fill="${accent}" opacity="0.2">—</text>
+      fill="${cleanAccent}" opacity="0.2">—</text>
   </g>
   <g transform="translate(560, 340)" text-anchor="end">
     <text class="label">PEAK_STREAK</text>
