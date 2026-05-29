@@ -1,6 +1,6 @@
 'use client';
 import { useState, useRef, useEffect } from 'react';
-import { toPng } from 'html-to-image';
+import { toPng, toCanvas } from 'html-to-image';
 import type { DashboardExportData } from '@/types/dashboard';
 
 type OptionState = 'idle' | 'loading' | 'success' | 'error';
@@ -80,10 +80,12 @@ export function useShareActions(
         document.getElementById('dashboard-root') ??
         document.querySelector<HTMLElement>('[data-dashboard]') ??
         document.body;
+      const isDark =
+        typeof document !== 'undefined' && document.documentElement.classList.contains('dark');
       const dataUrl = await toPng(node, {
         quality: 0.95,
         pixelRatio: 2,
-        backgroundColor: '#050505',
+        backgroundColor: isDark ? '#050505' : '#ffffff',
         filter: (el) => {
           if (el instanceof HTMLElement) {
             if (el.id === 'share-sheet-overlay') return false;
@@ -99,6 +101,38 @@ export function useShareActions(
       setOptionState('png', 'success');
     } catch {
       setOptionState('png', 'error');
+    }
+  };
+
+  const handleDownloadWEBP = async () => {
+    setOptionState('webp', 'loading');
+    try {
+      const node =
+        document.getElementById('dashboard-root') ??
+        document.querySelector<HTMLElement>('[data-dashboard]') ??
+        document.body;
+      const isDark =
+        typeof document !== 'undefined' && document.documentElement.classList.contains('dark');
+      const canvas = await toCanvas(node, {
+        quality: 0.95,
+        pixelRatio: 2,
+        backgroundColor: isDark ? '#050505' : '#ffffff',
+        filter: (el) => {
+          if (el instanceof HTMLElement) {
+            if (el.id === 'share-sheet-overlay') return false;
+            if (el.id === 'generate-dashboard-btn') return false;
+          }
+          return true;
+        },
+      });
+      const dataUrl = canvas.toDataURL('image/webp');
+      const link = document.createElement('a');
+      link.download = `${username}-commitpulse.webp`;
+      link.href = dataUrl;
+      link.click();
+      setOptionState('webp', 'success');
+    } catch {
+      setOptionState('webp', 'error');
     }
   };
 
@@ -133,25 +167,86 @@ export function useShareActions(
     }
   };
 
+  const downloadTextFile = (content: string, filename: string, type: string) => {
+    const blob = new Blob([content], { type });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+
+    link.download = filename;
+    link.href = url;
+    link.click();
+
+    URL.revokeObjectURL(url);
+  };
+
+  const escapeCsvValue = (value: string | number | null | undefined): string => {
+    const stringValue = value == null ? '' : String(value);
+
+    if (/[",\n\r]/.test(stringValue)) {
+      return `"${stringValue.replace(/"/g, '""')}"`;
+    }
+
+    return stringValue;
+  };
+
+  const handleDownloadCSV = () => {
+    setOptionState('csv', 'loading');
+
+    try {
+      const exportedAt = new Date().toISOString();
+      const dailyActivity = exportData.activity ?? [];
+
+      const rows: Array<Array<string | number>> = [
+        ['field', 'value'],
+        ['username', username],
+        ['profileUrl', PROFILE_URL(username)],
+        ['exportedAt', exportedAt],
+        ['totalContributions', exportData.stats.totalContributions],
+        ['currentStreak', exportData.stats.currentStreak],
+        ['longestStreak', exportData.stats.peakStreak],
+        [],
+        ['date', 'dailyContributionCount', 'intensity'],
+        ...dailyActivity.map((day) => [day.date, day.count, day.intensity]),
+      ];
+
+      const csv = rows.map((row) => row.map(escapeCsvValue).join(',')).join('\n');
+
+      downloadTextFile(csv, `commitpulse-${username}-stats.csv`, 'text/csv;charset=utf-8');
+
+      setOptionState('csv', 'success');
+    } catch {
+      setOptionState('csv', 'error');
+    }
+  };
+
   const handleDownloadJSON = () => {
     setOptionState('json', 'loading');
+
     try {
+      const dailyContributions = (exportData.activity ?? []).map((day) => ({
+        date: day.date,
+        count: day.count,
+        intensity: day.intensity,
+      }));
+
       const payload = {
         username,
         profileUrl: PROFILE_URL(username),
         exportedAt: new Date().toISOString(),
+        totalContributions: exportData.stats.totalContributions,
         currentStreak: exportData.stats.currentStreak,
         longestStreak: exportData.stats.peakStreak,
-        totalContributions: exportData.stats.totalContributions,
+        contributionDates: dailyContributions.map((day) => day.date),
+        dailyContributions,
         topLanguages: exportData.languages,
       };
-      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.download = `commitpulse-${username}.json`;
-      link.href = url;
-      link.click();
-      URL.revokeObjectURL(url);
+
+      downloadTextFile(
+        JSON.stringify(payload, null, 2),
+        `commitpulse-${username}-stats.json`,
+        'application/json'
+      );
+
       setOptionState('json', 'success');
     } catch {
       setOptionState('json', 'error');
@@ -190,8 +285,10 @@ export function useShareActions(
     handleLinkedIn,
     handleReddit,
     handleDownloadPNG,
+    handleDownloadWEBP,
     handleDownloadSVG,
     handleCopyMarkdown,
+    handleDownloadCSV,
     handleDownloadJSON,
     handleNativeShare,
   };

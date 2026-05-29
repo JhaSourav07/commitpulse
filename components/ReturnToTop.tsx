@@ -42,7 +42,7 @@ export default function ReturnToTop() {
           exit={{ opacity: 0, y: 20 }}
           transition={{ duration: 0.3 }}
           onClick={scrollToTop}
-          className="fixed bottom-8 right-8 p-3 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white rounded-full shadow-lg hover:shadow-xl transition-shadow duration-300 z-50 flex items-center justify-center"
+          className="fixed bottom-8 right-8 p-3 rounded-full border border-emerald-500/20 bg-white text-emerald-600 hover:bg-emerald-500 hover:text-white hover:border-emerald-500 dark:border-emerald-400/20 dark:bg-black dark:text-emerald-400 dark:hover:bg-emerald-400 dark:hover:text-black dark:hover:border-emerald-400 hover:scale-110 active:scale-95 shadow-[0_4px_20px_rgba(16,185,129,0.15)] dark:shadow-[0_4px_30px_rgba(16,185,129,0.3)] transition-all duration-300 z-50 flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00ffaa] focus-visible:ring-offset-2"
           aria-label="Return to top"
         >
           <ChevronUp size={24} />

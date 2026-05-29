@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   isValidHex,
+  hexColor,
   sanitizeHexColor,
   sanitizeSpeed,
   sanitizeRadius,
@@ -36,10 +37,30 @@ describe('SVG Sanitizer Utilities', () => {
     });
   });
 
+  describe('hexColor', () => {
+    it('returns hex without # for valid string without #', () => {
+      expect(hexColor('ff0000')).toBe('ff0000');
+    });
+
+    it('strips # and returns valid hex', () => {
+      expect(hexColor('#ff0000')).toBe('ff0000');
+    });
+
+    it('returns fallback for invalid string', () => {
+      expect(hexColor('invalid', '000000')).toBe('000000');
+    });
+
+    it('returns default fallback for empty string', () => {
+      expect(hexColor('')).toBe('000000');
+    });
+  });
+
   describe('sanitizeHexColor', () => {
     it('returns sanitized hex without #', () => {
       expect(sanitizeHexColor('#ff00ff', '000000')).toBe('ff00ff');
       expect(sanitizeHexColor('ff00ff', '000000')).toBe('ff00ff');
+      // Handles multiple leading hashes gracefully
+      expect(sanitizeHexColor('##ff00ff', '000000')).toBe('ff00ff');
     });
 
     it('returns fallback for invalid input', () => {
