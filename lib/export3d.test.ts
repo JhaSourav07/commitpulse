@@ -49,3 +49,43 @@ describe('generateMonolithSTL', () => {
     expect(stl).toContain('endsolid commitpulse_monolith');
   });
 });
+
+it('generates structurally valid ASCII STL facets', () => {
+  const mockTowers: TowerData[] = [
+    {
+      x: 0,
+      y: 0,
+      h: 10,
+      hasCommits: true,
+      isGhost: false,
+      isToday: false,
+      isTodayWithCommits: false,
+      tooltip: '',
+      contributionCount: 5,
+      faceOpacity: { left: 1, right: 1, top: 1 },
+      strokeOpacity: 1,
+      strokeWidth: 1,
+      row: 0,
+      col: 0,
+    },
+  ];
+
+  const stl = generateMonolithSTL(mockTowers);
+
+  const facetCount = (stl.match(/facet normal/g) ?? []).length;
+  const endFacetCount = (stl.match(/endfacet/g) ?? []).length;
+
+  const outerLoopCount = (stl.match(/outer loop/g) ?? []).length;
+  const endLoopCount = (stl.match(/endloop/g) ?? []).length;
+
+  expect(facetCount).toBe(endFacetCount);
+  expect(outerLoopCount).toBe(endLoopCount);
+
+  const vertexLines = stl.split('\n').filter((line) => line.trim().startsWith('vertex'));
+
+  expect(vertexLines.length).toBeGreaterThan(0);
+
+  vertexLines.forEach((line) => {
+    expect(line.trim()).toMatch(/^vertex -?\d+\.\d+ -?\d+\.\d+ -?\d+\.\d+$/);
+  });
+});
