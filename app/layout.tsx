@@ -5,6 +5,7 @@ import Navbar from './components/navbar';
 import BrandParticles from '@/components/BrandParticles';
 import ReturnToTop from '@/components/ReturnToTop';
 import type { Metadata } from 'next';
+import CustomCursor from '@/components/CustomCursor';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -48,7 +49,6 @@ export const metadata: Metadata = {
     description:
       'Generate a cinematic, isometric 3D SVG of your GitHub contributions for your README.',
     images: ['https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=neon'],
-    // creator: '@your_twitter_handle', // Uncomment and add your Twitter handle here
   },
   robots: {
     index: true,
@@ -66,7 +66,15 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className={`${inter.className} bg-black`}>
+      {/* md:cursor-none lagane se desktop screens par default cursor safely hide ho jayega, 
+        aur mobile screens (touch inputs) par normal performance bahaal rahegi.
+      */}
+      <body
+        className={`${inter.className} bg-black relative md:cursor-none antialiased selection:bg-emerald-500/30`}
+      >
+        {/* Custom Cursor Component Rendering at the Top Level */}
+        <CustomCursor />
+
         <BrandParticles />
         <Navbar />
         <div className="relative z-10">{children}</div>

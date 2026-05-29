@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -39,7 +40,6 @@ export default function Navbar() {
     useGlowEffect();
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
   }, []);
 
@@ -128,6 +128,7 @@ export default function Navbar() {
               </span>
             </Link>
 
+            {/* Desktop Navigation Wrapper */}
             <div className="hidden items-center gap-3 md:flex">
               <button
                 type="button"
@@ -160,6 +161,7 @@ export default function Navbar() {
               ))}
             </div>
 
+            {/* Mobile View Responsive Container */}
             <div className="md:hidden inline-flex items-center justify-center gap-2">
               <button
                 type="button"
@@ -179,7 +181,7 @@ export default function Navbar() {
               </button>
               <button
                 type="button"
-                className="md:hidden inline-flex items-center justify-center rounded-xl border border-gray-200 bg-gray-50 p-2 text-gray-700 transition hover:bg-gray-100 dark:border-white/15 dark:bg-white/5 dark:text-white/90 dark:hover:bg-white/10"
+                className="inline-flex items-center justify-center rounded-xl border border-gray-200 bg-gray-50 p-2 text-gray-700 transition hover:bg-gray-100 dark:border-white/15 dark:bg-white/5 dark:text-white/90 dark:hover:bg-white/10"
                 aria-label={open ? 'Close menu' : 'Open menu'}
                 aria-expanded={open}
                 onClick={() => setOpen((prev) => !prev)}
@@ -189,7 +191,8 @@ export default function Navbar() {
             </div>
           </nav>
 
-          {open ? (
+          {/* Collapsible Mobile Menu Drawer */}
+          {open && (
             <div className="border-t border-gray-200 dark:border-white/10 px-4 py-3 md:hidden">
               <ul className="space-y-2">
                 {NAV_LINKS.map((link) => (
@@ -212,23 +215,31 @@ export default function Navbar() {
                     type="button"
                     onClick={toggleTheme}
                     className="inline-flex w-full items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-gray-300 hover:bg-gray-100 dark:border-white/15 dark:bg-white/5 dark:text-white/90 dark:hover:border-white/45 dark:hover:bg-white/10"
-                    aria-label="Toggle theme"
+                    aria-label="Toggle theme mobile"
                   >
                     {mounted ? (
                       isDark ? (
-                        <Moon size={18} />
+                        <>
+                          <Moon size={18} />
+                          <span>Light Mode</span>
+                        </>
                       ) : (
-                        <Sun size={18} />
+                        <>
+                          <Sun size={18} />
+                          <span>Dark Mode</span>
+                        </>
                       )
                     ) : (
-                      <span className="w-[18px] h-[18px]" />
+                      <>
+                        <span className="w-[18px] h-[18px]" />
+                        <span>Theme</span>
+                      </>
                     )}
-                    {mounted ? (isDark ? 'Light Mode' : 'Dark Mode') : 'Theme'}
                   </button>
                 </li>
               </ul>
             </div>
-          ) : null}
+          )}
         </div>
       </div>
     </header>

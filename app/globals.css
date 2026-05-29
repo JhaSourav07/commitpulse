@@ -191,3 +191,15 @@ body {
     transform: scaleY(1) !important;
   }
 }
+
+/* Safely hide default browser cursor globally on desktop screens except form fields */
+@media (min-width: 768px) {
+  html,
+  body,
+  a,
+  button,
+  [role='button'],
+  .interactive-card {
+    cursor: none !important;
+  }
+}
