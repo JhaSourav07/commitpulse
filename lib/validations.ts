@@ -59,10 +59,13 @@ export const streakParamsSchema = z.object({
       (val) => {
         if (!val) return true;
         const parts = val.includes(',') ? val.split(',') : [val];
-        return parts.every((p) => /^[0-9a-fA-F]{3,4}$|^[0-9a-fA-F]{6,8}$/.test(p.trim().replace('#', '')));
+        return parts.every((p) =>
+          /^[0-9a-fA-F]{3,4}$|^[0-9a-fA-F]{6,8}$/.test(p.trim().replace('#', ''))
+        );
       },
       {
-        message: 'accent must be a valid 3 or 6 character hex color without #, or a comma-separated list of them',
+        message:
+          'accent must be a valid 3 or 6 character hex color without #, or a comma-separated list of them',
       }
     )
     .transform((val) => {
