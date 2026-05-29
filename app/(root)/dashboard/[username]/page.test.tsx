@@ -4,13 +4,17 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import DashboardPage, { generateMetadata } from './page';
 import { getFullDashboardData } from '@/lib/github';
 
+const { mockNotFound } = vi.hoisted(() => ({
+  mockNotFound: vi.fn(),
+}));
+
 vi.mock('next/navigation', () => ({
+  notFound: mockNotFound,
   useRouter: () => ({
     push: vi.fn(),
     replace: vi.fn(),
     refresh: vi.fn(),
   }),
-
   useSearchParams: () => ({
     get: vi.fn(),
   }),
@@ -20,7 +24,6 @@ vi.mock('@/lib/github', () => ({
   getFullDashboardData: vi.fn(),
 }));
 
-// Mock the dashboard components to keep the test focused on the page rendering logic
 vi.mock('@/components/dashboard/ProfileCard', () => ({
   default: () => <div data-testid="profile-card">ProfileCard</div>,
 }));
@@ -100,17 +103,33 @@ describe('DashboardPage', () => {
   });
 
   describe('generateMetadata', () => {
-    it('generates correct metadata for a given user', async () => {
+    it('generates correct metadata for a given user and forwards valid searchParams', async () => {
       const username = 'octocat';
       const metadata = await generateMetadata({
         params: Promise.resolve({ username }),
+        searchParams: Promise.resolve({
+          theme: 'neon',
+          bg: '000000',
+          text: '00ff00',
+          accent: 'ff00ff',
+          ignoredArray: ['a', 'b'],
+          ignoredUndefined: undefined,
+        }),
       });
 
       const openGraphImage = (metadata.openGraph?.images as any[])?.[0];
 
       expect(metadata.title).toBe("octocat's Commit Pulse");
       expect(metadata.description).toContain("octocat's GitHub contribution pulse");
-      expect(openGraphImage.url).toContain('api/og?username=octocat');
+      const url = openGraphImage.url;
+      expect(url).toContain('api/og?');
+      expect(url).toContain('user=octocat');
+      expect(url).toContain('theme=neon');
+      expect(url).toContain('bg=000000');
+      expect(url).toContain('text=00ff00');
+      expect(url).toContain('accent=ff00ff');
+      expect(url).not.toContain('ignoredArray');
+      expect(url).not.toContain('ignoredUndefined');
       expect(openGraphImage.width).toBe(1200);
       expect(openGraphImage.height).toBe(630);
       expect(openGraphImage.alt).toContain(username);
@@ -131,7 +150,7 @@ describe('DashboardPage', () => {
         bypassCache: false,
       });
 
-      const generateLink = screen.getByText('Generate Your Own Dashboard').closest('a');
+      const generateLink = screen.getByText('Generate Your Own').closest('a');
       expect(generateLink).toBeDefined();
       expect(generateLink?.getAttribute('href')).toBe('/');
       expect(screen.getByTestId('profile-card')).toBeDefined();
@@ -159,16 +178,28 @@ describe('DashboardPage', () => {
         bypassCache: true,
       });
     });
-  });
-  it('passes the correct activity data to Heatmap', async () => {
-    const PageContent = await DashboardPage({
-      params: Promise.resolve({ username: 'octocat' }),
-      searchParams: Promise.resolve({}),
+
+    it('passes the correct activity data to Heatmap', async () => {
+      const PageContent = await DashboardPage({
+        params: Promise.resolve({ username: 'octocat' }),
+        searchParams: Promise.resolve({}),
+      });
+
+      render(PageContent);
+
+      const heatmap = screen.getByTestId('heatmap');
+      expect(JSON.parse(heatmap.getAttribute('data-prop') ?? '[]')).toEqual(mockData.activity);
     });
 
-    render(PageContent);
+    it('calls notFound when dashboard data fetch throws an error', async () => {
+      vi.mocked(getFullDashboardData).mockRejectedValueOnce(new Error('User not found'));
 
-    const heatmap = screen.getByTestId('heatmap');
-    expect(JSON.parse(heatmap.getAttribute('data-prop') ?? '[]')).toEqual(mockData.activity);
+      await DashboardPage({
+        params: Promise.resolve({ username: 'missing-user' }),
+        searchParams: Promise.resolve({}),
+      });
+
+      expect(mockNotFound).toHaveBeenCalledOnce();
+    });
   });
 });

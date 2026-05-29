@@ -1,3 +1,4 @@
+import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useRecentSearches, MAX_SEARCHES, STORAGE_KEY } from './useRecentSearches';
@@ -76,6 +77,7 @@ describe('useRecentSearches', () => {
     });
 
     expect(result.current.searches).toEqual([]);
+    expect(removeItemSpy).toHaveBeenCalledTimes(1);
     expect(removeItemSpy).toHaveBeenCalledWith(STORAGE_KEY);
   });
 
@@ -101,5 +103,46 @@ describe('useRecentSearches', () => {
     unmount();
     const { result: result2 } = renderHook(() => useRecentSearches());
     expect(result2.current.searches[0]).toBe('octocat');
+  });
+
+  it('is safe under Strict Mode double invocation', () => {
+    const setItemSpy = vi.spyOn(window.localStorage, 'setItem');
+    const removeItemSpy = vi.spyOn(window.localStorage, 'removeItem');
+    const { result } = renderHook(() => useRecentSearches(), {
+      wrapper: React.StrictMode,
+    });
+
+    // Hydration sets the state from storage (starts empty)
+    expect(result.current.searches).toEqual([]);
+    expect(setItemSpy).not.toHaveBeenCalled();
+    expect(removeItemSpy).not.toHaveBeenCalled();
+
+    act(() => {
+      result.current.addSearch('torvalds');
+    });
+
+    expect(result.current.searches).toEqual(['torvalds']);
+    expect(setItemSpy).toHaveBeenCalledTimes(1);
+    expect(setItemSpy).toHaveBeenCalledWith(STORAGE_KEY, JSON.stringify(['torvalds']));
+    expect(removeItemSpy).not.toHaveBeenCalled();
+  });
+
+  it('performs localStorage writes reactively outside state updater logic', () => {
+    const setItemSpy = vi.spyOn(window.localStorage, 'setItem');
+    const removeItemSpy = vi.spyOn(window.localStorage, 'removeItem');
+    const { result } = renderHook(() => useRecentSearches());
+
+    // Initially loading from storage should not trigger any writes or removals
+    expect(setItemSpy).not.toHaveBeenCalled();
+    expect(removeItemSpy).not.toHaveBeenCalled();
+
+    act(() => {
+      result.current.addSearch('gaearon');
+    });
+
+    // Verify localStorage.setItem is synchronized correctly
+    expect(setItemSpy).toHaveBeenCalledTimes(1);
+    expect(setItemSpy).toHaveBeenCalledWith(STORAGE_KEY, JSON.stringify(['gaearon']));
+    expect(removeItemSpy).not.toHaveBeenCalled();
   });
 });
