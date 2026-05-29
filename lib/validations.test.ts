@@ -432,3 +432,21 @@ describe('ogParamsSchema', () => {
     expect(result.user).toBe('unknown');
   });
 });
+
+describe('streakParamsSchema — view fallback behavior', () => {
+  it('accepts "default" as a valid view value', () => {
+    expect(parse({ view: 'default' }).view).toBe('default');
+  });
+
+  it('accepts "monthly" as a valid view value', () => {
+    expect(parse({ view: 'monthly' }).view).toBe('monthly');
+  });
+
+  it('falls back to "default" for unknown view value', () => {
+    expect(parse({ view: 'radar' }).view).toBe('default');
+  });
+
+  it('defaults to "default" when view is omitted', () => {
+    expect(parse({}).view).toBe('default');
+  });
+});
