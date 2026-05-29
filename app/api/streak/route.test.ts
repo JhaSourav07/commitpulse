@@ -127,6 +127,17 @@ describe('GET /api/streak', () => {
 
       expect(fetchGitHubContributions).not.toHaveBeenCalled();
     });
+
+    it('should return 200 OK and valid SVG when the optional repo query parameter is provided', async () => {
+      // 1. Make request with both parameters present
+      const response = await GET(makeRequest({ user: 'octocat', repo: 'commitpulse' }));
+
+      // 2. Assert definitions of done
+      expect(response.status).toBe(200);
+
+      const textOutput = await response.text();
+      expect(textOutput).toContain('<svg');
+    });
   });
 
   describe('successful response', () => {
