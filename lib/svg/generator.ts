@@ -525,7 +525,6 @@ function generateAutoThemeSVG(
     sf
   );
   const towers = renderTowers(towerData, params, '', '', sf, true);
-
   const s = createScaler(sf);
   const fs = (n: number): number => Math.round(n * sf * 10) / 10;
 
