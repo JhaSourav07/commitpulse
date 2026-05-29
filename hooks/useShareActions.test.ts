@@ -47,4 +47,37 @@ describe('useShareActions', () => {
 
     expect(result.current.states['copy']).toBe('idle');
   });
+  it('copies dashboard image to clipboard successfully', async () => {
+    const writeMock = vi.fn().mockResolvedValue(undefined);
+
+    Object.assign(navigator, {
+      clipboard: {
+        write: writeMock,
+        writeText: vi.fn().mockResolvedValue(undefined),
+      },
+    });
+
+    document.body.innerHTML = '<div id="dashboard-root">Dashboard</div>';
+
+    const mockBlob = new Blob(['test'], { type: 'image/png' });
+
+    vi.mock('html-to-image', async () => {
+      const actual = await vi.importActual('html-to-image');
+      return {
+        ...actual,
+        toCanvas: vi.fn().mockResolvedValue({
+          toBlob: (cb: (blob: Blob) => void) => cb(mockBlob),
+        }),
+      };
+    });
+
+    const { result } = renderHook(() => useShareActions('testuser', mockExportData, vi.fn()));
+
+    await act(async () => {
+      await result.current.handleCopyImage();
+    });
+
+    expect(writeMock).toHaveBeenCalled();
+    expect(result.current.states['copyImage']).toBe('success');
+  });
 });
