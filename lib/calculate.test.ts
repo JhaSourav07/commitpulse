@@ -443,6 +443,27 @@ describe('calculateMonthlyStats', () => {
     expect(result.currentMonthTotal).toBe(5);
     expect(result.currentMonthName).toBe('January');
   });
+
+  it('verify January correctly uses December of previous year with explicit now baseline', () => {
+    const calendar = {
+      totalContributions: 15,
+      weeks: [
+        {
+          contributionDays: [
+            { contributionCount: 10, date: '2023-12-15' },
+            { contributionCount: 5, date: '2024-01-15' },
+          ],
+        },
+      ],
+    };
+    const now = new Date('2024-01-20T12:00:00Z');
+    const result = calculateMonthlyStats(calendar, 'UTC', now);
+
+    // Assertions matching the explicit issue Definition of Done
+    expect(result.currentMonthTotal).toBe(5);
+    expect(result.previousMonthTotal).toBe(10);
+    expect(result.currentMonthName).toBe('January');
+  });
   // =========================================================================
   // ISSUE OBJECTIVE: Empty calendar passed to calculateMonthlyStats
   // =========================================================================
