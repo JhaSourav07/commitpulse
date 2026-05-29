@@ -451,7 +451,14 @@ Yes — if private contributions visibility is enabled in your GitHub settings.
 
 ### Are there GitHub API rate limits?
 
-Yes, but CommitPulse minimizes API usage using caching and optimized GraphQL queries.
+Yes. CommitPulse minimizes API usage via caching and optimized GraphQL queries, but if you hit the GitHub API rate limit (typically 5,000 requests per hour for authenticated users), you might see errors or missing data.
+
+#### Troubleshooting Rate Limit Errors
+
+1. **Wait it out:** Rate limits automatically reset every hour.
+2. **Provide your own PAT:** If self-hosting, ensure you've provided a valid `GITHUB_TOKEN` in `.env.local` to get the authenticated rate limit.
+3. **Avoid aggressive bypassing:** Avoid repeatedly using the `&refresh=true` parameter, which bypasses the cache and consumes API quota on every load.
+4. **Check GitHub API Status:** Occasionally, GitHub's GraphQL API itself experiences degradation. Check [githubstatus.com](https://www.githubstatus.com/).
 
 ---
 
