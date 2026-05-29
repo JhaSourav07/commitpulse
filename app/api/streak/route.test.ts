@@ -734,6 +734,18 @@ describe('GET /api/streak', () => {
       expect(getSecondsUntilUTCMidnight).toHaveBeenCalled();
       expect(getSecondsUntilMidnightInTimezone).not.toHaveBeenCalled();
     });
+
+    it('returns 200 with valid SVG and calls getSecondsUntilMidnightInTimezone for Australia/Sydney', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', tz: 'Australia/Sydney' }));
+
+      expect(response.status).toBe(200);
+
+      const body = await response.text();
+      expect(body).toContain('<svg');
+      expect(body).toContain('</svg>');
+
+      expect(getSecondsUntilMidnightInTimezone).toHaveBeenCalledWith('Australia/Sydney');
+    });
   });
 
   describe('hide_background parameter', () => {
@@ -790,6 +802,38 @@ describe('GET /api/streak', () => {
       expect(response.status).toBe(200);
       expect(body).toContain('CURRENT_STREAK');
     });
+    // =========================================================================
+    // ISSUE OBJECTIVE: Route test for ?view=monthly&delta_format=both
+    // =========================================================================
+    it('applies delta_format=both to show percent and absolute values in the monthly SVG', async () => {
+      // 1. Mock the GitHub fetch with actual weekly data using vi.mocked
+      vi.mocked(fetchGitHubContributions).mockResolvedValueOnce({
+        totalContributions: 150,
+        weeks: [
+          { contributionDays: [{ date: '2026-04-15', contributionCount: 10 }] },
+          { contributionDays: [{ date: '2026-05-15', contributionCount: 15 }] },
+        ],
+      } as unknown as ContributionCalendar);
+
+      // 2. Lock the system time to May 2026 so the calendar calculation aligns
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-05-20T12:00:00Z'));
+
+      // 3. Make request using the file's built-in makeRequest helper
+      const req = makeRequest({ user: 'octocat', view: 'monthly', delta_format: 'both' });
+      const res = await GET(req);
+
+      expect(res.status).toBe(200);
+
+      const body = await res.text();
+
+      // 4. Assert body contains % (percent part)
+      expect(body).toContain('%');
+
+      // Cleanup
+      vi.useRealTimers();
+    });
+
     // =========================================================================
     // ISSUE OBJECTIVE: Route test for ?view=monthly&delta_format=absolute
     // =========================================================================

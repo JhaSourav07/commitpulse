@@ -7,6 +7,7 @@ import {
   Code,
   Download,
   FileJson,
+  FileText,
   Link2,
   Loader2,
   Share2,
@@ -59,6 +60,7 @@ export default function ShareSheet({ username, isOpen, onClose, exportData }: Sh
     handleDownloadWEBP,
     handleDownloadSVG,
     handleCopyMarkdown,
+    handleDownloadCSV,
     handleDownloadJSON,
     handleNativeShare,
   } = useShareActions(username, exportData, onClose);
@@ -209,6 +211,15 @@ endsolid commitpulse_monolith`;
       action: handleDownloadSTL,
     },
     {
+      key: 'csv',
+      icon: FileText,
+      label: 'Download CSV',
+      description: 'Export stats and daily contribution counts',
+      gradient: 'bg-zinc-800',
+      glow: 'transparent',
+      action: handleDownloadCSV,
+    },
+    {
       key: 'json',
       icon: FileJson,
       label: 'Download JSON',
@@ -320,13 +331,15 @@ endsolid commitpulse_monolith`;
                                 ? 'Link Copied!'
                                 : opt.key === 'png'
                                   ? 'Downloaded!'
-                                  : opt.key === 'json'
-                                    ? 'JSON Downloaded!'
-                                    : opt.key === 'svg'
-                                      ? 'SVG Downloaded!'
-                                      : opt.key === 'stl'
-                                        ? 'STL Generated!'
-                                        : opt.label
+                                  : opt.key === 'csv'
+                                    ? 'CSV Downloaded!'
+                                    : opt.key === 'json'
+                                      ? 'JSON Downloaded!'
+                                      : opt.key === 'svg'
+                                        ? 'SVG Downloaded!'
+                                        : opt.key === 'stl'
+                                          ? 'STL Generated!'
+                                          : opt.label
                               : state === 'error'
                                 ? 'Failed — try again'
                                 : opt.label}

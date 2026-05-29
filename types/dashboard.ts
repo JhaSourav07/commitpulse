@@ -69,6 +69,7 @@ export interface CommitClockData {
 export interface DashboardExportData {
   stats: UserStats;
   languages: LanguageData[];
+  activity?: ActivityData[];
 }
 
 /* ==========================================================================

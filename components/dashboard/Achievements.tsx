@@ -75,7 +75,7 @@ export default function Achievements({ achievements }: { achievements: Achieveme
       {achievements.length > 4 && (
         <button
           onClick={() => setShowAll(!showAll)}
-          className="mt-4 w-full rounded-lg border border-black/10 dark:border-[rgba(255,255,255,0.08)] bg-black dark:bg-white py-2 text-xs font-medium text-white dark:text-black transition-all hover:bg-zinc-800 dark:hover:bg-zinc-100"
+          className="mt-4 w-full rounded-lg border border-black/10 dark:border-[rgba(255,255,255,0.08)] bg-black dark:bg-white py-2 text-xs font-medium text-white dark:text-black cursor-pointer transition-all duration-300 ease-in-out hover:bg-zinc-800 dark:hover:bg-zinc-100 hover:opacity-90 hover:scale-[1.02] hover:shadow-md"
         >
           {showAll ? 'Show Less' : 'See All Achievements'}
         </button>

@@ -14,6 +14,7 @@ import type {
   ViewMode,
   DeltaFormat,
   Language,
+  Timezone,
 } from './types';
 import { getExportSnippet, stripHash } from './utils';
 
@@ -38,6 +39,7 @@ export default function CustomizePage(): ReactElement {
   const [badgeHeight, setBadgeHeight] = useState<number | ''>('');
   const [grace, setGrace] = useState<number>(1);
   const [language, setLanguage] = useState<Language>('en');
+  const [timezone, setTimezone] = useState<Timezone>('UTC');
   const [exportFormat, setExportFormat] = useState<ExportFormat>('markdown');
   const [copied, setCopied] = useState(false);
   const [copyStatusMessage, setCopyStatusMessage] = useState('');
@@ -104,6 +106,7 @@ export default function CustomizePage(): ReactElement {
     if (badgeHeight !== '') params.set('height', badgeHeight.toString());
     if (grace !== 1) params.set('grace', grace.toString());
     if (language !== 'en') params.set('lang', language);
+    if (timezone !== 'UTC') params.set('tz', timezone);
     return params.toString();
   }, [
     hasUsername,
@@ -128,6 +131,7 @@ export default function CustomizePage(): ReactElement {
     badgeHeight,
     grace,
     language,
+    timezone,
   ]);
 
   const queryString = buildQueryParams();
@@ -343,6 +347,7 @@ export default function CustomizePage(): ReactElement {
                   badgeHeight={badgeHeight}
                   grace={grace}
                   language={language}
+                  timezone={timezone}
                   onHideTitleChange={setHideTitle}
                   onHideBackgroundChange={setHideBackground}
                   onHideStatsChange={setHideStats}
@@ -352,6 +357,7 @@ export default function CustomizePage(): ReactElement {
                   onBadgeHeightChange={setBadgeHeight}
                   onGraceChange={setGrace}
                   onLanguageChange={setLanguage}
+                  onTimezoneChange={setTimezone}
                 />
               </div>
             </div>
@@ -467,6 +473,7 @@ export default function CustomizePage(): ReactElement {
               copied={copied}
               copyStatusMessage={copyStatusMessage}
               hasUsername={hasUsername}
+              username={trimmedUsername}
               onFormatChange={setExportFormat}
               onCopy={copyExportSnippet}
             />

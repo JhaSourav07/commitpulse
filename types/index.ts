@@ -100,7 +100,6 @@ export interface MonthlyStats {
 export interface BadgeParams {
   /** GitHub username whose contribution data will be fetched and rendered. Required. */
   user: string;
-
   /** GitHub username of the opponent to compare against. */
   versus?: string;
 
@@ -114,7 +113,7 @@ export interface BadgeParams {
   text: HexColor;
 
   /** Tower and glow accent color as a hex string WITHOUT the leading '#'. Overrides theme default. */
-  accent: HexColor;
+  accent: HexColor | HexColor[];
 
   /** Duration of the radar scan line animation (e.g. '4s', '8s', '12s'). Defaults to '8s'. */
   speed: SpeedString;
@@ -175,4 +174,14 @@ export interface BadgeParams {
 
   /** Custom text color for the labels. Overrides text parameter. */
   labelColor?: HexColor;
+
+  /**
+   * When true, applies intensity-based opacity shading to tower faces so
+   * lower intensity levels appear slightly translucent/dimmer.
+   * Default is false (opt-in).
+   */
+  shading?: boolean;
+
+  /** Opt-in to show volumetric gradients on the monolith floor. */
+  gradient?: boolean;
 }

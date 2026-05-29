@@ -37,8 +37,20 @@ export async function POST(req: Request) {
 
     const trimmedUsername = username.trim().toLowerCase();
 
-    // If MONGODB_URI is not set, skip tracking to allow local development without a DB
+    // If MONGODB_URI is not set, handle based on environment
     if (!process.env.MONGODB_URI) {
+      // In production, this is a critical configuration failure
+      if (process.env.NODE_ENV === 'production') {
+        console.error(
+          'CRITICAL: MONGODB_URI is not set in production environment. User tracking is disabled.'
+        );
+        return NextResponse.json(
+          { success: false, error: 'Database configuration error' },
+          { status: 500 }
+        );
+      }
+
+      // For development/non-production environments, bypass gracefully
       console.warn('MONGODB_URI is not set. Bypassing user tracking for local development.');
       return NextResponse.json({ success: true, bypassed: true });
     }

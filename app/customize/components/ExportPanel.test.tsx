@@ -13,6 +13,7 @@ describe('ExportPanel', () => {
         copied
         copyStatusMessage="Markdown snippet copied to clipboard."
         hasUsername
+        username="octocat"
         onFormatChange={vi.fn()}
         onCopy={onCopy}
       />

@@ -9,34 +9,24 @@ function StyledSelect({
   value,
   onChange,
   children,
+  ariaLabel,
 }: {
   id: string;
   value: string;
   onChange: (v: string) => void;
   children: ReactNode;
+  ariaLabel?: string;
 }): ReactElement {
   return (
-    <div className="relative">
-      <select
-        id={id}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="cp-select"
-      >
-        {children}
-      </select>
-      <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-white/30">
-        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
-          <path
-            d="M1.5 3.5L5 7L8.5 3.5"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-      </div>
-    </div>
+    <select
+      id={id}
+      aria-label={ariaLabel}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className="w-full bg-gray-100/80 backdrop-blur-md border border-black/10 dark:bg-white/[0.03] dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-black dark:text-white outline-none focus:border-emerald-500/50 transition-colors appearance-none cursor-pointer [color-scheme:light] dark:[color-scheme:dark] [&>option]:bg-white [&>option]:text-black dark:[&>option]:bg-[#0a0a0a] dark:[&>option]:text-white"
+    >
+      {children}
+    </select>
   );
 }
 

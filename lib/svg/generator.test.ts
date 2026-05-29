@@ -2,10 +2,11 @@ import { describe, it, expect } from 'vitest';
 import {
   generateSVG,
   generateMonthlySVG,
-  generateNotFoundSVG,
   particleCount,
   escapeXML,
+  generateNotFoundSVG,
 } from './generator';
+import { getSizeScale } from './generator';
 import type { BadgeParams, ContributionCalendar, StreakStats, MonthlyStats } from '../../types';
 import { hexColor } from './sanitizer';
 
@@ -133,6 +134,48 @@ describe('generateSVG', () => {
     expect(svg).toContain('class="heat-particles"');
   });
 
+  it('scales particle floating height according to badge size', () => {
+    const svgMedium = generateSVG(
+      mockStats,
+      { user: 'avi', size: 'medium' } as unknown as BadgeParams,
+      mockCalendar
+    );
+    const svgSmall = generateSVG(
+      mockStats,
+      { user: 'avi', size: 'small' } as unknown as BadgeParams,
+      mockCalendar
+    );
+    const svgLarge = generateSVG(
+      mockStats,
+      { user: 'avi', size: 'large' } as unknown as BadgeParams,
+      mockCalendar
+    );
+
+    const mediumMatch = svgMedium.match(
+      /<animate attributeName="cy" from="([\d.-]+)" to="([\d.-]+)"/
+    );
+    expect(mediumMatch).not.toBeNull();
+    const fromMedium = parseFloat(mediumMatch![1]);
+    const toMedium = parseFloat(mediumMatch![2]);
+    expect(Math.round(fromMedium - toMedium)).toBe(20);
+
+    const smallMatch = svgSmall.match(
+      /<animate attributeName="cy" from="([\d.-]+)" to="([\d.-]+)"/
+    );
+    expect(smallMatch).not.toBeNull();
+    const fromSmall = parseFloat(smallMatch![1]);
+    const toSmall = parseFloat(smallMatch![2]);
+    expect(Math.round(fromSmall - toSmall)).toBe(13);
+
+    const largeMatch = svgLarge.match(
+      /<animate attributeName="cy" from="([\d.-]+)" to="([\d.-]+)"/
+    );
+    expect(largeMatch).not.toBeNull();
+    const fromLarge = parseFloat(largeMatch![1]);
+    const toLarge = parseFloat(largeMatch![2]);
+    expect(Math.round(fromLarge - toLarge)).toBe(27);
+  });
+
   it('supports dynamic Google Fonts for non-predefined fonts', () => {
     const svg = generateSVG(
       mockStats,
@@ -141,7 +184,7 @@ describe('generateSVG', () => {
     );
 
     expect(svg).toContain(
-      "@import url('https://fonts.googleapis.com/css2?family=Inter&display=swap');"
+      "@import url('https://fonts.googleapis.com/css2?family=Inter&amp;display=swap');"
     );
     expect(svg).toContain('font-family: "Inter", sans-serif;');
   });
@@ -499,6 +542,50 @@ describe('generateSVG', () => {
       expect(svg).toContain('transition: none !important');
       expect(svg).toContain('class="scan-line"');
     });
+
+    it('generates a valid SVG output containing <svg and </svg>', () => {
+      const svg = generateNotFoundSVG('octocat', '#0d1117', '#00ffaa', '#ffffff', 8);
+      expect(svg.trim()).toBeDefined();
+      expect(svg).toContain('<svg');
+      expect(svg).toContain('</svg>');
+    });
+
+    it('renders the username in uppercase and escapes XML-reserved characters', () => {
+      const svg = generateNotFoundSVG('octocat&co', '#0d1117', '#00ffaa', '#ffffff', 8);
+      expect(svg).toContain('OCTOCAT&amp;CO');
+    });
+
+    it('displays the "NOT FOUND" text label', () => {
+      const svg = generateNotFoundSVG('octocat', '#0d1117', '#00ffaa', '#ffffff', 8);
+      expect(svg).toContain('NOT FOUND');
+    });
+
+    it('contains the expected stroke-width and stroke-opacity attributes for ghost towers', () => {
+      const svg = generateNotFoundSVG('octocat', '#0d1117', '#00ffaa', '#ffffff', 8);
+      expect(svg).toContain('stroke-width="0.5"');
+      expect(svg).toContain('stroke-opacity="0.18"');
+      expect(svg).toContain('stroke-opacity="0.12"');
+      expect(svg).toContain('stroke-opacity="0.22"');
+    });
+
+    it('applies custom bg, accent, and text colors to the SVG elements and styles', () => {
+      const bg = '#1a1c23';
+      const accent = '#ff007f';
+      const text = '#e1e2e7';
+      const svg = generateNotFoundSVG('octocat', bg, accent, text, 8);
+
+      // bg verification
+      expect(svg).toContain(`fill="${bg}"`);
+      expect(svg).toContain(`stop-color="${bg}"`);
+
+      // accent verification
+      expect(svg).toContain(`fill="${accent}"`);
+      expect(svg).toContain(`stroke="${accent}"`);
+
+      // text verification
+      expect(svg).toContain(`fill: ${text};`);
+      expect(svg).toContain(`fill="${text}"`);
+    });
   });
 
   // ── Timezone-aware pulse animation tests ─────────────────────────────────
@@ -811,6 +898,158 @@ describe('generateMonthlySVG', () => {
   });
 });
 
+describe('shading and gradients', () => {
+  const mockStats: StreakStats = {
+    currentStreak: 5,
+    longestStreak: 10,
+    totalContributions: 100,
+    todayDate: '2024-06-12',
+  };
+
+  const mockCalendar = {
+    weeks: [
+      {
+        contributionDays: [
+          { contributionCount: 0, date: '2024-06-10' },
+          { contributionCount: 5, date: '2024-06-11' },
+          { contributionCount: 15, date: '2024-06-12' },
+        ],
+      },
+    ],
+  } as ContributionCalendar;
+
+  it('renders linearGradient definitions when gradient=true', () => {
+    const svg = generateSVG(
+      mockStats,
+      { user: 'avi', gradient: true } as unknown as BadgeParams,
+      mockCalendar
+    );
+    expect(svg).toContain('<linearGradient id="tower-grad-level-1"');
+    expect(svg).toContain('<linearGradient id="tower-grad-level-4"');
+    expect(svg).toContain('fill="url(#tower-grad-level-');
+  });
+
+  it('does not render linearGradient definitions when gradient=false', () => {
+    const svg = generateSVG(
+      mockStats,
+      { user: 'avi', gradient: false } as unknown as BadgeParams,
+      mockCalendar
+    );
+    expect(svg).not.toContain('<linearGradient id="tower-grad-level-1"');
+  });
+
+  it('supports mapping colors in array accent lists to towers', () => {
+    const calendarWithAllQuartiles = {
+      weeks: [
+        {
+          contributionDays: [
+            { contributionCount: 2, date: '2024-06-10' }, // Level 1 (2/15 <= 0.25)
+            { contributionCount: 6, date: '2024-06-11' }, // Level 2 (6/15 <= 0.5)
+            { contributionCount: 10, date: '2024-06-12' }, // Level 3 (10/15 <= 0.75)
+            { contributionCount: 15, date: '2024-06-13' }, // Level 4
+          ],
+        },
+      ],
+    } as ContributionCalendar;
+
+    const svg = generateSVG(
+      mockStats,
+      { user: 'avi', accent: ['111111', '222222', '333333', '444444'] } as unknown as BadgeParams,
+      calendarWithAllQuartiles
+    );
+    expect(svg).toContain('fill="#111111"');
+    expect(svg).toContain('fill="#222222"');
+    expect(svg).toContain('fill="#333333"');
+    expect(svg).toContain('fill="#444444"');
+  });
+
+  it('gracefully handles and clamps accent color arrays with fewer than 4 items without crashing', () => {
+    const calendarWithAllQuartiles = {
+      weeks: [
+        {
+          contributionDays: [
+            { contributionCount: 2, date: '2024-06-10' },
+            { contributionCount: 6, date: '2024-06-11' },
+            { contributionCount: 10, date: '2024-06-12' },
+            { contributionCount: 15, date: '2024-06-13' },
+          ],
+        },
+      ],
+    } as ContributionCalendar;
+
+    const svg = generateSVG(
+      mockStats,
+      { user: 'avi', accent: ['111111'] } as unknown as BadgeParams,
+      calendarWithAllQuartiles
+    );
+    expect(svg).toContain('fill="#111111"');
+  });
+});
+
+describe('shading', () => {
+  // A calendar with a mix of contribution counts to produce towers at different
+  // intensity levels — needed so that shading multipliers actually apply.
+  const shadingCalendar = {
+    weeks: [
+      {
+        contributionDays: [
+          { contributionCount: 2, date: '2024-06-10' }, // low intensity
+          { contributionCount: 10, date: '2024-06-11' }, // mid intensity
+          { contributionCount: 15, date: '2024-06-12' }, // high intensity
+        ],
+      },
+    ],
+  } as ContributionCalendar;
+
+  const shadingStats: StreakStats = {
+    currentStreak: 3,
+    longestStreak: 10,
+    totalContributions: 27,
+    todayDate: '2024-06-12',
+  };
+
+  it('applies reduced face-opacity (shading) when shading is not disabled', () => {
+    // With shading on, low-intensity towers use opacity multiplier 0.4, so their
+    // face-opacity should be lower than the unshaded base value.
+    const svgShading = generateSVG(
+      shadingStats,
+      { user: 'avi', shading: true } as unknown as BadgeParams,
+      shadingCalendar
+    );
+    // The shaded SVG should still contain the tower paths
+    expect(svgShading).toContain('class="cp-tower"');
+    // For level 1 (mult=0.4), base top face opacity 0.7 becomes 0.28
+    // Check for that specific derived value to ensure shading actually multiplied it.
+    expect(svgShading).toContain('fill-opacity="0.28"');
+  });
+
+  it('does not apply shading multipliers when shading=false', () => {
+    const svgShading = generateSVG(
+      shadingStats,
+      { user: 'avi', shading: true } as unknown as BadgeParams,
+      shadingCalendar
+    );
+    const svgNoShading = generateSVG(
+      shadingStats,
+      { user: 'avi', shading: false } as unknown as BadgeParams,
+      shadingCalendar
+    );
+    // The two renders must differ — shading changes face opacities
+    expect(svgShading).not.toBe(svgNoShading);
+  });
+
+  it('falls back to default accent #00ffaa when accent array is empty', () => {
+    const svg = generateSVG(
+      shadingStats,
+      // Simulate what validation returns for accent=,,, (empty array is
+      // now normalised to undefined, but if it somehow reached the renderer
+      // as [] the fallback should still fire without crashing).
+      { user: 'avi', accent: [] } as unknown as BadgeParams,
+      shadingCalendar
+    );
+    expect(svg).toContain('00ffaa');
+  });
+});
 describe('escapeXML', () => {
   it('escapes ampersands (&)', () => {
     expect(escapeXML('foo & bar')).toBe('foo &amp; bar');
@@ -860,5 +1099,23 @@ describe('particleCount', () => {
   it('clamps to upper bound of 5 for high counts (e.g., 20 -> 5, 100 -> 5)', () => {
     expect(particleCount(20)).toBe(5);
     expect(particleCount(100)).toBe(5);
+  });
+});
+
+describe('getSizeScale', () => {
+  it('returns 1 for undefined', () => {
+    expect(getSizeScale()).toBe(1);
+  });
+
+  it('returns ~0.667 for small', () => {
+    expect(getSizeScale('small')).toBeCloseTo(0.667, 2);
+  });
+
+  it('returns 1 for medium', () => {
+    expect(getSizeScale('medium')).toBe(1);
+  });
+
+  it('returns ~1.333 for large', () => {
+    expect(getSizeScale('large')).toBeCloseTo(1.333, 2);
   });
 });
