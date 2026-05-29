@@ -33,6 +33,8 @@ describe('POST /api/track-user', () => {
   });
 
   afterEach(() => {
+    vi.restoreAllMocks();
+
     // Restore environment variables
     if (originalNodeEnv === undefined) {
       Reflect.deleteProperty(process.env, 'NODE_ENV');
@@ -109,17 +111,10 @@ describe('POST /api/track-user', () => {
         'MONGODB_URI is not set. Bypassing user tracking for local development.'
       );
       expect(dbConnect).not.toHaveBeenCalled();
-
-      consoleSpy.mockRestore();
     });
   });
 
   describe('Without MONGODB_URI (Production Environment)', () => {
-    afterEach(() => {
-      // Clean up NODE_ENV after production tests
-      delete (process.env as Record<string, string | undefined>).NODE_ENV;
-    });
-
     it('returns 500 error when MONGODB_URI is missing in production', async () => {
       (process.env as Record<string, string | undefined>).NODE_ENV = 'production';
       delete process.env.MONGODB_URI;
@@ -142,8 +137,6 @@ describe('POST /api/track-user', () => {
 
       // Verify database connection was never attempted
       expect(dbConnect).not.toHaveBeenCalled();
-
-      consoleErrorSpy.mockRestore();
     });
   });
 
@@ -171,7 +164,7 @@ describe('POST /api/track-user', () => {
     });
 
     it('returns 500 when database connection fails', async () => {
-      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      vi.spyOn(console, 'error').mockImplementation(() => {});
       vi.mocked(dbConnect).mockRejectedValueOnce(new Error('DB Down'));
 
       const response = await POST(makeRequest({ username: 'octocat' }));
@@ -180,8 +173,6 @@ describe('POST /api/track-user', () => {
       const data = await response.json();
       expect(data.success).toBe(false);
       expect(data.error).toBe('Internal server error');
-
-      consoleErrorSpy.mockRestore();
     });
 
     it('gracefully handles concurrent duplicate key (code 11000) race conditions', async () => {
@@ -201,8 +192,6 @@ describe('POST /api/track-user', () => {
       const data = await response.json();
       expect(data.success).toBe(true);
       expect(consoleErrorSpy).not.toHaveBeenCalled();
-
-      consoleErrorSpy.mockRestore();
     });
 
     it('rethrows duplicate key (code 11000) error if it is not related to username', async () => {
@@ -225,8 +214,6 @@ describe('POST /api/track-user', () => {
       expect(data.success).toBe(false);
       expect(data.error).toBe('Internal server error');
       expect(consoleErrorSpy).toHaveBeenCalled();
-
-      consoleErrorSpy.mockRestore();
     });
   });
 });
