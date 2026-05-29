@@ -233,4 +233,30 @@ describe('DashboardClient', () => {
     expect(screen.getAllByText('Shivangi').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Sourav').length).toBeGreaterThan(0);
   });
+  it('renders personality tags for both profiles in compare mode', async () => {
+    const mockFetch = vi.fn().mockImplementation(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(mockSecondData),
+      })
+    );
+
+    vi.stubGlobal('fetch', mockFetch);
+
+    render(<DashboardClient initialData={mockInitialData} username="Shivangi1515" />);
+
+    fireEvent.click(screen.getByText('Compare Profile'));
+
+    fireEvent.change(screen.getByPlaceholderText('Enter GitHub Username'), {
+      target: { value: 'JhaSourav07' },
+    });
+
+    fireEvent.click(screen.getByText('Compare'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Exit Compare Mode')).toBeDefined();
+    });
+
+    expect(screen.getByText(/Full Stack Builder/i)).toBeDefined();
+  });
 });
