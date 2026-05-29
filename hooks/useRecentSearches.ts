@@ -1,11 +1,32 @@
 'use client';
 
+const writeStorage = (searches: string[]) => {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(searches));
+};
+
+const readStorage = (): string[] => {
+  const raw = localStorage.getItem(STORAGE_KEY);
+  return raw ? JSON.parse(raw) : [];
+};
+
 import { useState, useEffect } from 'react';
 
 export const STORAGE_KEY = 'recentSearches';
 export const MAX_SEARCHES = 5;
 
 type State = { searches: string[]; mounted: boolean };
+
+const loadFromStorage = () => {
+  if (typeof window === 'undefined') return [];
+
+  const stored = localStorage.getItem('recent-searches');
+
+  try {
+    return stored ? JSON.parse(stored) : [];
+  } catch {
+    return [];
+  }
+};
 
 export function useRecentSearches() {
   // Always start with [] and mounted:false on both server and client so the
@@ -33,7 +54,7 @@ export function useRecentSearches() {
 
   const clearSearches = () => {
     setState((prev) => ({ ...prev, searches: [] }));
-    writeStorage(null);
+    writeStorage([]);
   };
 
   // Return empty searches until after hydration to prevent SSR/client mismatch.
