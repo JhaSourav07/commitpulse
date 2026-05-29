@@ -582,12 +582,10 @@ describe('calculateWrappedStats', () => {
     expect(result.busiestMonth).toBe('2024-01');
     expect(result.weekendRatio).toBe(100);
   });
-  // =========================================================================
+
   // ISSUE OBJECTIVE #1056: Verify empty calendar returns safe zero values
-  // =========================================================================
   it('verify empty calendar returns safe zero values', () => {
     // 1. Call calculateWrappedStats with empty data
-    // We wrap it in a function to explicitly assert that it does not throw an error
     expect(() => calculateWrappedStats({ totalContributions: 0, weeks: [] })).not.toThrow();
 
     // 2. Actually get the result to test its properties
