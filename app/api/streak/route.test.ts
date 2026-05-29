@@ -910,7 +910,7 @@ describe('GET /api/streak', () => {
       expect(response.status).toBe(200);
       expect(body).toContain('Space Grotesk');
       // Whitespace-only should not produce a Google Fonts import with an empty family
-      expect(body).not.toContain('family=+&amp;display=swap');
+      expect(body).not.toContain('family=+&display=swap');
     });
 
     it('passes a valid predefined font name through to the SVG', async () => {
@@ -945,7 +945,7 @@ describe('GET /api/streak', () => {
       expect(response.status).toBe(200);
       expect(body).toContain('Space Grotesk');
       // No empty Google Fonts import should be emitted
-      expect(body).not.toContain('family=&amp;display=swap');
+      expect(body).not.toContain('family=&display=swap');
     });
 
     it('strips dangerous characters from a font name containing a double-quote', async () => {
@@ -1003,7 +1003,7 @@ describe('GET /api/streak', () => {
       expect(response.status).toBe(200);
       expect(body).toContain('Fira Code');
       // Should NOT emit a second dynamic import for the same font
-      expect(body).not.toContain('family=fira&amp;display=swap');
+      expect(body).not.toContain('family=fira&display=swap');
     });
 
     it('returns 200 and a valid SVG even when an extreme font value is supplied', async () => {

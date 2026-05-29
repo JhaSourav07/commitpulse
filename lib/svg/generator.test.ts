@@ -124,7 +124,7 @@ describe('generateSVG', () => {
       mockCalendar
     );
     expect(svg).toContain(
-      "@import url('https://fonts.googleapis.com/css2?family=Inter&amp;display=swap');"
+      "@import url('https://fonts.googleapis.com/css2?family=Inter&display=swap');"
     );
     expect(svg).toContain('font-family: "Inter", sans-serif;');
   });
@@ -159,7 +159,7 @@ describe('generateSVG', () => {
       mockCalendar
     );
     // Should NOT contain a dynamic google fonts import for an empty/invalid family
-    expect(svg).not.toContain('family=&amp;display=swap');
+    expect(svg).not.toContain('family=&display=swap');
     // Should use default body font
     expect(svg).toContain('font-family: "Space Grotesk", sans-serif');
   });
@@ -170,7 +170,7 @@ describe('generateSVG', () => {
       mockCalendar
     );
     expect(svg).toContain('Space Grotesk');
-    expect(svg).not.toContain('family=&amp;display=swap');
+    expect(svg).not.toContain('family=&display=swap');
   });
   it('uses default font when font param is whitespace only', () => {
     const svg = generateSVG(
@@ -179,7 +179,7 @@ describe('generateSVG', () => {
       mockCalendar
     );
     expect(svg).toContain('Space Grotesk');
-    expect(svg).not.toContain('family=+&amp;display=swap');
+    expect(svg).not.toContain('family=+&display=swap');
   });
   it('allows apostrophes in font names like Times New Roman', () => {
     const svg = generateSVG(
