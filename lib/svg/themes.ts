@@ -29,6 +29,9 @@ export const themes: Record<string, BadgeTheme> = {
   solarized_light: makeTheme('fdf6e3', '586e75', '268bd2'),
   gruvbox_light: makeTheme('fbf1c7', '3c3836', 'd65d0e'),
   nord_light: makeTheme('eceff4', '2e3440', '5e81ac'),
+  cyberpunk: makeTheme('000b18', '00ff9f', '00b8ff'),
+  outrun: makeTheme('14081c', 'ff00ff', '00ffff'),
+  monokai: makeTheme('272822', 'f8f8f2', 'f92672'),
 };
 
 // Auto-theme pairs: the SVG switches between these two palettes

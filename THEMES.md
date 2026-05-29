@@ -26,6 +26,9 @@ https://commitpulse.vercel.app/api/badge?username=YOUR_USERNAME&theme=<slug>
 | synthwave    | `#0d0221`  | `#f8f8f2` | `#ff2d78` |
 | gruvbox      | `#282828`  | `#ebdbb2` | `#fe8019` |
 | highcontrast | `#0a0a0a`  | `#888888` | `#ff4500` |
+| cyberpunk    | `#000b18`  | `#00ff9f` | `#00b8ff` |
+| outrun       | `#14081c`  | `#ff00ff` | `#00ffff` |
+| monokai      | `#272822`  | `#f8f8f2` | `#f92672` |
 
 ---
 
@@ -84,6 +87,18 @@ Use these URLs to preview each theme in your README:
 **highcontrast**
 
 ![highcontrast](https://commitpulse.vercel.app/api/badge?username=demo&theme=highcontrast)
+
+**cyberpunk**
+
+![cyberpunk](https://commitpulse.vercel.app/api/badge?username=demo&theme=cyberpunk)
+
+**outrun**
+
+![outrun](https://commitpulse.vercel.app/api/badge?username=demo&theme=outrun)
+
+**monokai**
+
+![monokai](https://commitpulse.vercel.app/api/badge?username=demo&theme=monokai)
 
 ---
 

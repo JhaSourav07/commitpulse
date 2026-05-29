@@ -514,6 +514,9 @@ const ICON_MAP: Record<string, (c: IC) => ReactElement> = {
   solarized_light: (c) => <IconSolarizedLight {...c} />,
   gruvbox_light: (c) => <IconGruvbox {...c} />,
   nord_light: (c) => <IconNord {...c} />,
+  cyberpunk: (c) => <IconAuroraCyberpunk {...c} />,
+  outrun: (c) => <IconSynthwave {...c} />,
+  monokai: (c) => <IconDark {...c} />,
 };
 
 export function ThemeQuickPresets({ theme, onThemeChange }: ThemeQuickPresetsProps): ReactElement {
