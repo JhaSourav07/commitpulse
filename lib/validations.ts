@@ -1,5 +1,14 @@
+// lib/validations.ts
+
 import { z } from 'zod';
-import { sanitizeHexColor, sanitizeSpeed, sanitizeRadius, sanitizeFont } from './svg/sanitizer';
+import {
+  isValidHex,
+  sanitizeHexColor,
+  sanitizeSpeed,
+  sanitizeRadius,
+  sanitizeFont,
+} from './svg/sanitizer';
+import { themes } from './svg/themes';
 
 function dimensionParam(name: string, min: number, max: number) {
   return z
@@ -32,15 +41,45 @@ export const streakParamsSchema = z.object({
   bg: z
     .string()
     .optional()
+    .refine((val) => !val || /^[0-9a-fA-F]{3,4}$|^[0-9a-fA-F]{6,8}$/.test(val.replace('#', '')), {
+      message: 'bg must be a valid 3 or 6 character hex color without #',
+    })
     .transform((val) => (val ? sanitizeHexColor(val, '0d1117') : undefined)),
   text: z
     .string()
     .optional()
+    .refine((val) => !val || /^[0-9a-fA-F]{3,4}$|^[0-9a-fA-F]{6,8}$/.test(val.replace('#', '')), {
+      message: 'text must be a valid 3 or 6 character hex color without #',
+    })
     .transform((val) => (val ? sanitizeHexColor(val, 'ffffff') : undefined)),
   accent: z
     .string()
     .optional()
-    .transform((val) => (val ? sanitizeHexColor(val, '00ffaa') : undefined)),
+    .refine(
+      (val) => {
+        if (!val) return true;
+        const parts = val.includes(',') ? val.split(',') : [val];
+        return parts.every((p) =>
+          /^[0-9a-fA-F]{3,4}$|^[0-9a-fA-F]{6,8}$/.test(p.trim().replace('#', ''))
+        );
+      },
+      {
+        message:
+          'accent must be a valid 3 or 6 character hex color without #, or a comma-separated list of them',
+      }
+    )
+    .transform((val) => {
+      if (!val) return undefined;
+      if (val.includes(',')) {
+        return val
+          .split(',')
+          .map((c) => c.trim())
+          .filter((c) => c.length > 0)
+          .slice(0, 4)
+          .map((c) => sanitizeHexColor(c, '00ffaa'));
+      }
+      return sanitizeHexColor(val, '00ffaa');
+    }),
 
   // Silently fall back to 'linear' for unknown values (matches old behavior)
   scale: z.enum(['linear', 'log']).catch('linear').default('linear'),
@@ -77,6 +116,26 @@ export const streakParamsSchema = z.object({
         message: 'GitHub was founded in 2008. Please provide a year of 2008 or later.',
       }
     ),
+  from: z
+    .string()
+    .optional()
+    .refine(
+      (val) => {
+        if (!val) return true;
+        return !isNaN(Date.parse(val));
+      },
+      { message: 'Invalid "from" date format. Use ISO 8601 (e.g. 2023-01-01).' }
+    ),
+  to: z
+    .string()
+    .optional()
+    .refine(
+      (val) => {
+        if (!val) return true;
+        return !isNaN(Date.parse(val));
+      },
+      { message: 'Invalid "to" date format. Use ISO 8601 (e.g. 2023-12-31).' }
+    ),
   refresh: z
     .string()
     .optional()
@@ -111,21 +170,101 @@ export const streakParamsSchema = z.object({
       return isNaN(parsed) ? 1 : Math.max(0, Math.min(parsed, 7));
     })
     .default(1),
+  mode: z.enum(['commits', 'loc']).catch('commits').default('commits'),
+  repo: z.string().optional(),
+  org: z.string().optional(),
+  labels: z
+    .string()
+    .optional()
+    .transform((val) => val === 'true' || val === '1'),
+  labelColor: z
+    .string()
+    .optional()
+    .transform((val) => (val ? sanitizeHexColor(val, '7f8c8d') : undefined)),
+  versus: z
+    .string()
+    .optional()
+    .refine(
+      (val) => {
+        if (!val) return true;
+        return /^[a-zA-Z0-9](?:[a-zA-Z0-9]|-(?=[a-zA-Z0-9]))*$/.test(val);
+      },
+      { message: 'Invalid versus GitHub username' }
+    ),
+  shading: z
+    .string()
+    .optional()
+    .transform((val) => {
+      if (val === undefined) return undefined;
+      return val === 'true';
+    })
+    .default(false),
+  gradient: z
+    .string()
+    .optional()
+    .transform((val) => {
+      if (val === undefined) return undefined;
+      return val === 'true';
+    })
+    .default(false),
 });
 
 export const githubParamsSchema = z.object({
   username: z
     .string({ error: 'Missing "username" parameter' })
-    .min(1, { message: 'Username is required' }),
+    .min(1, { message: 'Username is required' })
+    .max(39, { message: 'GitHub username cannot exceed 39 characters' })
+    .regex(/^[a-zA-Z0-9](?:[a-zA-Z0-9]|-(?=[a-zA-Z0-9]))*$/, {
+      message: 'Invalid GitHub username format',
+    }),
   refresh: z
     .string()
     .optional()
     .transform((val) => val === 'true'),
 });
 
-export const ogParamsSchema = z.object({
-  user: z.string().optional().default('unknown'),
-});
+export const ogParamsSchema = z
+  .object({
+    user: z
+      .string()
+      .trim()
+      .optional()
+      .transform((val) => (val === '' ? undefined : val)),
+    username: z
+      .string()
+      .trim()
+      .optional()
+      .transform((val) => (val === '' ? undefined : val)),
+    theme: z
+      .string()
+      .trim()
+      .optional()
+      .transform((val) => (val === '' ? undefined : val))
+      .transform((val) => (val && Object.hasOwn(themes, val) ? val : 'dark'))
+      .default('dark'),
+    bg: z
+      .string()
+      .trim()
+      .optional()
+      .transform((val) => (val === '' ? undefined : val))
+      .transform((val) => (val && isValidHex(val) ? sanitizeHexColor(val, '000000') : undefined)),
+    text: z
+      .string()
+      .trim()
+      .optional()
+      .transform((val) => (val === '' ? undefined : val))
+      .transform((val) => (val && isValidHex(val) ? sanitizeHexColor(val, '000000') : undefined)),
+    accent: z
+      .string()
+      .trim()
+      .optional()
+      .transform((val) => (val === '' ? undefined : val))
+      .transform((val) => (val && isValidHex(val) ? sanitizeHexColor(val, '000000') : undefined)),
+  })
+  .transform((data) => ({
+    ...data,
+    user: data.user || data.username || 'unknown',
+  }));
 
 export const statsParamsSchema = z.object({
   user: z.string({ error: 'Missing user parameter' }).min(1, { message: 'Missing user parameter' }),

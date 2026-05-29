@@ -1,55 +1,10 @@
 // lib/calculate.ts
 import type { ContributionCalendar, StreakStats, MonthlyStats } from '../types';
 
-/*
-Calculates streak statistics from a GitHub contribution calendar.
+/* ==========================================================================
+ * STREAK & CALENDAR CALCULATIONS
+ * ========================================================================== */
 
-This function computes:
-- Current streak length (with a one-day grace period)
-- Longest streak length across the calendar
-- Total contributions made
-- Effective "today" date used for UI display
-
-Current Streak Logic:
-The streak remains active if there are no contributions today
-but there were contributions yesterday. This prevents streaks
-from breaking prematurely due to timezone differences.
-
-Timezone Handling:
-Contribution dates are calendar-based. The provided IANA timezone
-determines what "today" means for the user, ensuring streaks are
-calculated correctly in local time (e.g., "Asia/Kolkata",
-"America/Los_Angeles"). Defaults to "UTC".
-
-@param {ContributionCalendar} calendar
-  GitHub contribution calendar data containing weekly entries.
-
-@param {string} [timezone='UTC']
-  IANA timezone string used to determine the local date.
-
-@param {Date} [now=new Date()]
-  Current time reference for calculations. Useful for testing
-  or overriding the system clock.
-
-@returns {StreakStats}
-  An object with:
-  - currentStreak: active streak length
-  - longestStreak: longest historical streak
-  - totalContributions: total contribution count
-  - todayDate: effective date used for streak/UI calculations
-
-@example
-// Calculate streak stats using a specific timezone
-const stats = calculateStreak(calendar, 'Asia/Kolkata');
-
-@example
-// Override both timezone and current time (useful in tests)
-const stats = calculateStreak(
-  calendar,
-  'America/Los_Angeles',
-  new Date('2026-05-25T10:00:00Z')
-);
-*/
 export function isStreakAlive(
   today: { contributionCount: number },
   yesterday: { contributionCount: number } | null
@@ -81,13 +36,8 @@ export function calculateStreak(
   }
 
   // 2. Calculate Current Streak (Backwards loop with Grace Period)
-  // Find "today" in the user's timezone. Without this, a user in UTC-8 at 07:00 UTC
-  // (still the previous calendar day locally) would have the UTC "today" — which has
-  // no commits yet — treated as their current day, silently breaking their streak.
   const localTodayStr = new Intl.DateTimeFormat('en-CA', { timeZone: timezone }).format(now);
   const localTodayIndex = days.findIndex((d) => d.date === localTodayStr);
-  // If the local date isn't in the GitHub data (timezone ahead of UTC, or calendar
-  // doesn't extend to today), fall back to the last available day.
   const todayIndex = localTodayIndex !== -1 ? localTodayIndex : days.length - 1;
 
   if (todayIndex < 0) {
@@ -99,8 +49,6 @@ export function calculateStreak(
     };
   }
 
-  // If I committed today, or any day within the grace period (e.g. yesterday for grace=1),
-  // the streak is STILL alive.
   let isStreakAlive = false;
   for (let i = 0; i <= grace; i++) {
     const checkIndex = todayIndex - i;
@@ -111,13 +59,10 @@ export function calculateStreak(
   }
 
   if (isStreakAlive) {
-    // Find the most recent day with a contribution within the grace period
     let i = todayIndex;
     while (i >= todayIndex - grace && i >= 0 && days[i].contributionCount === 0) {
       i--;
     }
-
-    // Count backwards from the first day that has a contribution
     while (i >= 0 && days[i].contributionCount > 0) {
       currentStreak++;
       i--;
@@ -126,9 +71,6 @@ export function calculateStreak(
     currentStreak = 0;
   }
 
-  // When the local date isn't in the calendar (e.g. UTC+14 user whose local date is
-  // already tomorrow), fall back to the last available day so todayDate always refers
-  // to a date that exists in the calendar and the SVG pulse can match it.
   const todayDate =
     localTodayIndex !== -1 ? localTodayStr : (days[todayIndex]?.date ?? localTodayStr);
 
@@ -139,34 +81,6 @@ export function calculateStreak(
     todayDate,
   };
 }
-
-/*
-  Calculates monthly contribution statistics from a GitHub contribution calendar.
-
-  Figures out how many contributions were made this month and last month, then compares them.
-
-  @param {ContributionCalendar} calendar
-    Weekly GitHub contribution data.
-
- @param {string} [timezone='UTC']
-    Timezone to decide which month is "current".
-    Example: 'Asia/Kolkata' ensures local month is used.
-
-  @param {Date} [now=new Date()]
-    Current date/time reference (useful for testing).
-
-  @returns {MonthlyStats}
-   - currentMonthTotal: contributions this month
-   - previousMonthTotal: contributions last month
-   - deltaAbsolute: difference (this − last)
-   - deltaPercentage: % change, rounded
-   - currentMonthName: name of this month (e.g. "May")
-
-  @example
-  const stats = calculateMonthlyStats(calendar, 'Asia/Kolkata');
-  stats.currentMonthName → "May"
-  stats.deltaPercentage → 42
-*/
 
 export function calculateMonthlyStats(
   calendar: ContributionCalendar,
@@ -207,16 +121,16 @@ export function calculateMonthlyStats(
   }).format(now);
 
   const deltaAbsolute = currentMonthTotal - previousMonthTotal;
-  let deltaPercentage = 0;
-
-  if (previousMonthTotal === 0) {
-    if (currentMonthTotal > 0) {
-      deltaPercentage = 100;
-    }
-  } else {
-    deltaPercentage = Math.round((deltaAbsolute / previousMonthTotal) * 100);
-    if (deltaPercentage === -0) deltaPercentage = 0;
-  }
+  // When there is no baseline (previous month = 0), the percentage change is
+  // mathematically undefined. Return null so the renderer can display 'N/A'
+  // instead of the misleading hardcoded +100%.
+  const deltaPercentage: number | null =
+    previousMonthTotal === 0
+      ? null
+      : (() => {
+          const pct = Math.round((deltaAbsolute / previousMonthTotal) * 100);
+          return pct === -0 ? 0 : pct;
+        })();
 
   return {
     currentMonthTotal,
@@ -224,5 +138,100 @@ export function calculateMonthlyStats(
     deltaPercentage,
     deltaAbsolute,
     currentMonthName,
+  };
+}
+
+/* ==========================================================================
+ * EPIC FEATURES (ORG AGGREGATION & GITHUB WRAPPED)
+ * ========================================================================== */
+
+/**
+ * Aggregates multiple user contribution calendars into a single "Mega-City" calendar.
+ * Used for Organization and Team dashboards.
+ */
+export function aggregateCalendars(calendars: ContributionCalendar[]): ContributionCalendar {
+  if (calendars.length === 0) {
+    return { totalContributions: 0, weeks: [] };
+  }
+
+  // Calculate total contributions across all calendars
+  const totalContributions = calendars.reduce((sum, cal) => sum + cal.totalContributions, 0);
+
+  // Use a Map keyed by the date string 'YYYY-MM-DD' to safely aggregate daily counts
+  const dateMap = new Map<string, number>();
+
+  // Find the calendar with the most weeks to serve as our structural base
+  let baseCalendar = calendars[0];
+  for (const cal of calendars) {
+    if (cal.weeks.length > baseCalendar.weeks.length) {
+      baseCalendar = cal;
+    }
+
+    // Populate the Map with all contributions from all calendars
+    cal.weeks.forEach((week) => {
+      week.contributionDays.forEach((day) => {
+        const currentCount = dateMap.get(day.date) || 0;
+        dateMap.set(day.date, currentCount + day.contributionCount);
+      });
+    });
+  }
+
+  // Deep clone the base calendar so we don't mutate the original object
+  const aggregatedBase = JSON.parse(JSON.stringify(baseCalendar)) as ContributionCalendar;
+
+  aggregatedBase.totalContributions = totalContributions;
+
+  // Re-map the structural base using our aggregated date map
+  aggregatedBase.weeks.forEach((week) => {
+    week.contributionDays.forEach((day) => {
+      day.contributionCount = dateMap.get(day.date) || 0;
+    });
+  });
+
+  return aggregatedBase;
+}
+/**
+ * Processes a calendar to generate deep insights for "GitHub Wrapped"
+ */
+export function calculateWrappedStats(calendar: ContributionCalendar) {
+  const days = calendar.weeks.flatMap((w) => w.contributionDays);
+
+  let mostActiveDay = { date: '', count: 0 };
+  const monthCounts: Record<string, number> = {};
+  let weekendCommits = 0;
+  let weekdayCommits = 0;
+
+  days.forEach((day) => {
+    // 1. Highest single day
+    if (day.contributionCount > mostActiveDay.count) {
+      mostActiveDay = { date: day.date, count: day.contributionCount };
+    }
+
+    // 2. Busiest month
+    const month = day.date.substring(0, 7); // YYYY-MM
+    monthCounts[month] = (monthCounts[month] || 0) + day.contributionCount;
+
+    // 3. Weekday vs Weekend grind
+    const dateObj = new Date(day.date);
+    const dayOfWeek = dateObj.getUTCDay(); // 0 is Sunday, 6 is Saturday
+    if (dayOfWeek === 0 || dayOfWeek === 6) {
+      weekendCommits += day.contributionCount;
+    } else {
+      weekdayCommits += day.contributionCount;
+    }
+  });
+
+  // Find busiest month string
+  const busiestMonthStr = Object.keys(monthCounts).reduce(
+    (a, b) => (monthCounts[a] > monthCounts[b] ? a : b),
+    ''
+  );
+
+  return {
+    totalContributions: calendar.totalContributions,
+    mostActiveDate: mostActiveDay.date,
+    highestDailyCount: mostActiveDay.count,
+    busiestMonth: busiestMonthStr,
+    weekendRatio: Math.round((weekendCommits / (weekendCommits + weekdayCommits || 1)) * 100),
   };
 }

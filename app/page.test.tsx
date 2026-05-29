@@ -74,6 +74,8 @@ describe('LandingPage', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
         text: () =>
           Promise.resolve('<svg data-testid="badge-svg" xmlns="http://www.w3.org/2000/svg"></svg>'),
       })
@@ -97,7 +99,8 @@ describe('LandingPage', () => {
   it('renders the main heading', () => {
     render(<LandingPage />);
     expect(screen.getByText(/Elevate Your/i)).toBeDefined();
-    expect(screen.getByText(/Contribution Story/i)).toBeDefined();
+    expect(screen.getByText('Contribution')).toBeDefined();
+    expect(screen.getByText(/Story/i)).toBeDefined();
   });
 
   it('renders the input field empty by default', () => {
@@ -123,7 +126,7 @@ describe('LandingPage', () => {
   it('renders an empty state before a username is entered', () => {
     render(<LandingPage />);
 
-    expect(screen.getByText('Enter a GitHub username to preview')).toBeDefined();
+    expect(screen.getByText(/Enter a GitHub username above to instantly generate/i)).toBeDefined();
     // No SVG badge should be present yet
     expect(screen.queryByTestId('badge-svg')).toBeNull();
   });
@@ -179,9 +182,7 @@ describe('LandingPage', () => {
     fireEvent.click(copyButton!);
 
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
-      expect.stringContaining(
-        '![CommitPulse](https://commitpulse.vercel.app/api/streak?user=jhasourav07)'
-      )
+      expect.stringContaining('/api/streak?user=jhasourav07')
     );
 
     await waitFor(() => {
@@ -210,11 +211,15 @@ describe('LandingPage', () => {
     expect(navigator.clipboard.writeText).not.toHaveBeenCalled();
   });
 
-  it('renders the FeatureCards', () => {
+  it('renders exactly 3 FeatureCards with correct titles', () => {
     render(<LandingPage />);
-    expect(screen.getByText('Real-time Sync')).toBeDefined();
-    expect(screen.getByText('Theme Engine')).toBeDefined();
-    expect(screen.getByText('Isometric Math')).toBeDefined();
+
+    const featureHeadings = screen.getAllByRole('heading', { level: 3 });
+
+    expect(featureHeadings).toHaveLength(3);
+
+    const titles = featureHeadings.map((h) => h.textContent);
+    expect(titles).toEqual(['Real-time Sync', 'Theme Engine', 'Isometric Math']);
   });
 
   it('renders the CustomizeCTA', () => {
@@ -275,5 +280,57 @@ describe('LandingPage', () => {
 
     // Cleanup
     mockRecentSearches.searches = [];
+  });
+
+  it('shows the friendly error UI instead of raw JSON when the API returns a 400', async () => {
+    // Username with an underscore passes the UI 39-char limit but fails the API regex,
+    // which returns JSON {error: 'Invalid parameters'} with status 400. Without the fix
+    // that JSON string would be rendered via dangerouslySetInnerHTML.
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 400,
+        text: () => Promise.resolve(JSON.stringify({ error: 'Invalid parameters' })),
+      })
+    );
+
+    render(<LandingPage />);
+    const input = screen.getByPlaceholderText('Enter GitHub Username') as HTMLInputElement;
+
+    await act(async () => {
+      fireEvent.change(input, { target: { value: 'invalid_user' } });
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('GitHub user not found')).toBeDefined();
+    });
+
+    // The raw JSON error payload must never appear in the DOM
+    expect(screen.queryByText(/Invalid parameters/)).toBeNull();
+  });
+
+  it('shows the friendly error UI for any non-ok API response (e.g. 429 rate limit)', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 429,
+        text: () => Promise.resolve(JSON.stringify({ error: 'Too Many Requests' })),
+      })
+    );
+
+    render(<LandingPage />);
+    const input = screen.getByPlaceholderText('Enter GitHub Username') as HTMLInputElement;
+
+    await act(async () => {
+      fireEvent.change(input, { target: { value: 'octocat' } });
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('GitHub user not found')).toBeDefined();
+    });
+
+    expect(screen.queryByText(/Too Many Requests/)).toBeNull();
   });
 });

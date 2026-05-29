@@ -101,6 +101,7 @@ describe('computeTowers edge cases', () => {
     expect(towers[0].h).toBe(4); // GHOST_HEIGHT_PX
     expect(towers[0].strokeOpacity).toBe(0.3);
     expect(towers[0].strokeWidth).toBe(0.5);
+    expect(towers[0].faceOpacity.top).toBe(0.08);
   });
 
   it('marks every tower as a ghost with ghost height for an all-zero calendar', () => {
@@ -126,6 +127,7 @@ describe('computeTowers edge cases', () => {
     towers.forEach((tower) => {
       expect(tower.isGhost).toBe(true);
       expect(tower.h).toBe(4); // GHOST_HEIGHT_PX
+      expect(tower.faceOpacity.top).toBe(0.08);
     });
   });
 
@@ -142,12 +144,15 @@ describe('computeTowers edge cases', () => {
       ],
     } as unknown as ContributionCalendar;
     const towers = computeTowers(calendar, 'linear', '2024-06-10');
+    expect(towers.every((tower) => tower.isGhost === false)).toBe(true);
     expect(towers[0].isGhost).toBe(false);
     expect(towers[0].h).toBe(0); // 0 count non-ghost = 0 height
     expect(towers[0].strokeOpacity).toBe(0);
     expect(towers[0].strokeWidth).toBe(0);
+    expect(towers[0].faceOpacity.top).toBe(0.08);
     expect(towers[1].isGhost).toBe(false);
     expect(towers[1].h).toBeGreaterThan(0);
+    expect(towers[1].faceOpacity.top).toBe(0.7);
   });
 
   it('uses logarithmic scale heights', () => {
@@ -159,4 +164,68 @@ describe('computeTowers edge cases', () => {
     // Math.log2(3 + 1) * 12 = 2 * 12 = 24
     expect(towers[0].h).toBe(24);
   });
+
+  // =========================================================================
+  // ISSUE OBJECTIVE: LoC Mode Tests
+  // =========================================================================
+  it('calculates tower height based on LoC additions and deletions in "loc" mode', () => {
+    const todayDate = '2026-05-29';
+    const calendar = {
+      totalContributions: 0,
+      weeks: [
+        {
+          contributionDays: [
+            {
+              date: todayDate,
+              contributionCount: 0,
+              locAdditions: 50,
+              locDeletions: 10,
+            },
+          ],
+        },
+      ],
+    } as unknown as ContributionCalendar;
+
+    // Call computeTowers with 'loc' mode parameter
+    const towers = computeTowers(calendar, 'linear', todayDate, 'loc');
+    const testTower = towers[0];
+
+    // Assert the computed count is 60 (50 + 10)
+    expect(testTower.contributionCount).toBe(60);
+    // Assert h > 0 (not ghost despite 0 normal contributions)
+    expect(testTower.h).toBeGreaterThan(0);
+  });
+});
+
+it('assigns correct row and col values based on week/day position', () => {
+  const calendar = {
+    totalContributions: 0,
+    weeks: [
+      {
+        contributionDays: [
+          { contributionCount: 1, date: '2024-06-10' },
+          { contributionCount: 1, date: '2024-06-11' },
+          { contributionCount: 1, date: '2024-06-12' },
+        ],
+      },
+      {
+        contributionDays: [
+          { contributionCount: 1, date: '2024-06-13' },
+          { contributionCount: 1, date: '2024-06-14' },
+          { contributionCount: 1, date: '2024-06-15' },
+        ],
+      },
+    ],
+  } as unknown as ContributionCalendar;
+
+  const towers = computeTowers(calendar, 'linear', '2024-06-15');
+
+  expect(towers[0].row).toBe(0);
+  expect(towers[0].col).toBe(0);
+
+  expect(towers[1].row).toBe(0);
+  expect(towers[1].col).toBe(1);
+
+  expect(towers[3].row).toBe(1);
+  expect(towers[3].col).toBe(0);
 });
