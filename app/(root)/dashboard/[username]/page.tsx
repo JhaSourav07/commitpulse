@@ -137,6 +137,7 @@ export default async function DashboardPage({
             <StatsCard
               title="Current Streak"
               value={data.stats.currentStreak.toString()}
+              chartData={data.activity.slice(-12).map((d) => d.count)}
               description="Days"
               icon="Flame"
               showUTCDisclaimer={true}
@@ -146,6 +147,7 @@ export default async function DashboardPage({
             <StatsCard
               title="Peak Streak"
               value={data.stats.peakStreak.toString()}
+              chartData={data.activity.slice(-12).map((d) => d.count)}
               description="Days"
               icon="TrendingUp"
             />
@@ -153,6 +155,7 @@ export default async function DashboardPage({
             <StatsCard
               title="Contributions"
               value={data.stats.totalContributions.toString()}
+              chartData={data.activity.slice(-12).map((d) => d.count)}
               description="Last 365 Days"
               icon="GitCommit"
             />
