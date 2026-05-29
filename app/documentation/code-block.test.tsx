@@ -5,6 +5,7 @@ import { CodeBlock } from './code-block';
 describe('CodeBlock', () => {
   const codeSnippet = "const status = 'ready';";
   const writeTextMock = vi.fn().mockResolvedValue(undefined);
+  const originalClipboard = navigator.clipboard;
 
   beforeEach(() => {
     Object.defineProperty(navigator, 'clipboard', {
@@ -18,6 +19,10 @@ describe('CodeBlock', () => {
 
   afterEach(() => {
     vi.useRealTimers();
+    Object.defineProperty(navigator, 'clipboard', {
+      value: originalClipboard,
+      configurable: true,
+    });
   });
 
   it('renders the code prop inside a code element', () => {
@@ -61,13 +66,14 @@ describe('CodeBlock', () => {
 
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: /copy/i }));
+      await Promise.resolve();
     });
 
     expect(writeTextMock).toHaveBeenCalledWith(codeSnippet);
     expect(screen.getByRole('button', { name: /copied/i })).toBeTruthy();
 
-    act(() => {
-      vi.advanceTimersByTime(2000);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2000);
     });
 
     expect(screen.getByRole('button', { name: /copy/i })).toBeTruthy();
