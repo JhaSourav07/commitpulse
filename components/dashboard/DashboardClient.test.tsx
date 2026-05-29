@@ -233,4 +233,10 @@ describe('DashboardClient', () => {
     expect(screen.getAllByText('Shivangi').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Sourav').length).toBeGreaterThan(0);
   });
+  it('generate your own button points to root /', () => {
+    render(<DashboardClient initialData={mockInitialData} username="Shivangi1515" />);
+
+    const generateLink = screen.getByRole('link', { name: /generate your own/i });
+    expect(generateLink.getAttribute('href')).toBe('/');
+  });
 });
