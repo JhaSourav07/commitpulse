@@ -101,6 +101,9 @@ export interface BadgeParams {
   /** GitHub username whose contribution data will be fetched and rendered. Required. */
   user: string;
 
+  /** GitHub username of the opponent to compare against. */
+  versus?: string;
+
   /** Number of grace days before a streak resets (handles timezone edge cases). Defaults to 1. */
   grace?: number;
 
