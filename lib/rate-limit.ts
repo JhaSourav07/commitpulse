@@ -1,5 +1,12 @@
 import { TTLCache } from './cache';
 
+interface RateLimitResult {
+  success: boolean;
+  limit: number;
+  remaining: number;
+  reset: number;
+}
+
 /**
  * In-memory rate limiter to prevent basic DoS/spam (Denial of Wallet).
  *
@@ -11,6 +18,8 @@ export class RateLimiter {
   private cache: TTLCache<number>;
   private limit: number;
   private windowMs: number;
+  private allowlist = new Set<string>();
+  private blocklist = new Set<string>();
 
   /**
    * Creates a new RateLimiter instance.
@@ -39,12 +48,50 @@ export class RateLimiter {
    * }
    */
   check(ip: string): boolean {
-    const current = this.cache.get(ip) || 0;
-    if (current >= this.limit) {
-      return false;
+    if (this.allowlist.has(ip)) return true;
+    if (this.blocklist.has(ip)) return false;
+    const current = this.cache.get(ip) ?? 0;
+    if (current >= this.limit) return false;
+    if (current === 0) {
+      this.cache.set(ip, 1, this.windowMs);
+    } else {
+      this.cache.set(ip, current + 1, this.windowMs);
     }
-    this.cache.set(ip, current + 1, this.windowMs);
     return true;
+  }
+  checkWithResult(ip: string): RateLimitResult {
+    if (this.allowlist.has(ip))
+      return {
+        success: true,
+        limit: this.limit,
+        remaining: this.limit,
+        reset: Date.now() + this.windowMs,
+      };
+    if (this.blocklist.has(ip))
+      return { success: false, limit: this.limit, remaining: 0, reset: Date.now() + this.windowMs };
+    const now = Date.now();
+    const current = this.cache.get(ip) ?? 0;
+
+    if (current >= this.limit) {
+      return {
+        success: false,
+        limit: this.limit,
+        remaining: 0,
+        reset: now + this.windowMs,
+      };
+    }
+
+    if (current === 0) {
+      this.cache.set(ip, 1, this.windowMs);
+    } else {
+      this.cache.set(ip, current + 1, this.windowMs);
+    }
+    return {
+      success: true,
+      limit: this.limit,
+      remaining: this.limit - (current + 1),
+      reset: now + this.windowMs,
+    };
   }
   /**
    * Resets the request count for a given IP address.
@@ -60,6 +107,24 @@ export class RateLimiter {
   reset(ip: string): void {
     this.cache.delete(ip);
   }
+
+  allow(ip: string): void {
+    this.allowlist.add(ip);
+    this.blocklist.delete(ip);
+  }
+
+  block(ip: string): void {
+    this.blocklist.add(ip);
+    this.allowlist.delete(ip);
+  }
+
+  unallow(ip: string): void {
+    this.allowlist.delete(ip);
+  }
+
+  unblock(ip: string): void {
+    this.blocklist.delete(ip);
+  }
 }
 
 // Global instance for track-user endpoint (5 requests per IP per minute)
@@ -71,13 +136,6 @@ export const trackUserRateLimiter = new RateLimiter(5, 60000);
  * Note: In a distributed edge environment, this is per-instance.
  * For global rate limiting, a distributed store like Redis would be required.
  */
-
-interface RateLimitResult {
-  success: boolean;
-  limit: number;
-  remaining: number;
-  reset: number;
-}
 
 const trackers = new TTLCache<{ count: number }>(2000, 60000);
 

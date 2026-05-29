@@ -141,7 +141,7 @@ describe('generateSVG', () => {
     );
 
     expect(svg).toContain(
-      "@import url('https://fonts.googleapis.com/css2?family=Inter&amp;display=swap');"
+      "@import url('https://fonts.googleapis.com/css2?family=Inter&display=swap');"
     );
     expect(svg).toContain('font-family: "Inter", sans-serif;');
   });
@@ -182,7 +182,7 @@ describe('generateSVG', () => {
       mockCalendar
     );
     // Should NOT contain a dynamic google fonts import for an empty/invalid family
-    expect(svg).not.toContain('family=&amp;display=swap');
+    expect(svg).not.toContain('family=&display=swap');
     // Should use default body font
     expect(svg).toContain('font-family: "Space Grotesk", sans-serif');
   });
@@ -194,7 +194,7 @@ describe('generateSVG', () => {
       mockCalendar
     );
     expect(svg).toContain('Space Grotesk');
-    expect(svg).not.toContain('family=&amp;display=swap');
+    expect(svg).not.toContain('family=&display=swap');
   });
 
   it('uses default font when font param is whitespace only', () => {
@@ -204,7 +204,7 @@ describe('generateSVG', () => {
       mockCalendar
     );
     expect(svg).toContain('Space Grotesk');
-    expect(svg).not.toContain('family=+&amp;display=swap');
+    expect(svg).not.toContain('family=+&display=swap');
   });
 
   it('allows apostrophes in font names like Times New Roman', () => {
@@ -729,6 +729,23 @@ describe('generateMonthlySVG', () => {
     expect(svg).toContain('+12 commits');
   });
 
+  it('renders monthly stats correctly with negative absolute delta', () => {
+    const negativeStats: MonthlyStats = {
+      currentMonthTotal: 18,
+      previousMonthTotal: 30,
+      deltaPercentage: -40,
+      deltaAbsolute: -12,
+      currentMonthName: 'June',
+    };
+
+    const svg = generateMonthlySVG(negativeStats, {
+      user: 'octocat',
+      delta_format: 'absolute',
+    } as unknown as BadgeParams);
+
+    expect(svg).toContain('-12 commits');
+  });
+
   it('renders monthly stats correctly with percentage delta', () => {
     const svg = generateMonthlySVG(mockMonthlyStats, {
       user: 'octocat',
@@ -784,6 +801,13 @@ describe('generateMonthlySVG', () => {
     expect(svg).toContain('prefers-reduced-motion: reduce');
     expect(svg).toContain('animation: none !important');
     expect(svg).toContain('transition: none !important');
+  });
+  it('renders English label for commits this month by default', () => {
+    const svg = generateMonthlySVG(mockMonthlyStats, {
+      user: 'octocat',
+    } as unknown as BadgeParams);
+
+    expect(svg).toContain('COMMITS THIS MONTH');
   });
 });
 

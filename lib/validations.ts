@@ -160,6 +160,16 @@ export const streakParamsSchema = z.object({
     .string()
     .optional()
     .transform((val) => (val ? sanitizeHexColor(val, '7f8c8d') : undefined)),
+  versus: z
+    .string()
+    .optional()
+    .refine(
+      (val) => {
+        if (!val) return true;
+        return /^[a-zA-Z0-9](?:[a-zA-Z0-9]|-(?=[a-zA-Z0-9]))*$/.test(val);
+      },
+      { message: 'Invalid versus GitHub username' }
+    ),
 });
 
 export const githubParamsSchema = z.object({

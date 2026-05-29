@@ -24,6 +24,7 @@
     "*.{md,css,json,yml,yaml}": "prettier --write"
   },
   "dependencies": {
+    "@resvg/resvg-js": "^2.6.2",
     "@tailwindcss/postcss": "^4.2.2",
     "@vercel/analytics": "^1.6.1",
     "framer-motion": "^12.38.0",
