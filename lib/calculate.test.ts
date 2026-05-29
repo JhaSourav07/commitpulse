@@ -509,4 +509,27 @@ describe('calculateWrappedStats', () => {
     expect(result.busiestMonth).toBe('2024-01');
     expect(result.weekendRatio).toBe(100);
   });
+  // =========================================================================
+  // ISSUE OBJECTIVE: Verify weekendRatio is 100 when all commits are on weekends
+  // =========================================================================
+  it('returns weekendRatio === 100 when all contributions are on weekends', () => {
+    // Note: 2026-05-02 is a Saturday, 2026-05-03 is a Sunday, 2026-05-04 is a Monday
+    const weekendCalendar = {
+      totalContributions: 10,
+      weeks: [
+        {
+          contributionDays: [
+            { date: '2026-05-02', contributionCount: 5 }, // Saturday (Weekend)
+            { date: '2026-05-03', contributionCount: 5 }, // Sunday (Weekend)
+            { date: '2026-05-04', contributionCount: 0 }, // Monday (Weekday - 0 commits)
+          ],
+        },
+      ],
+    } as Parameters<typeof calculateWrappedStats>[0]; // Safely infers the exact type the function expects!
+
+    const result = calculateWrappedStats(weekendCalendar);
+
+    // Assert the ratio is exactly 100%
+    expect(result.weekendRatio).toBe(100);
+  });
 });
