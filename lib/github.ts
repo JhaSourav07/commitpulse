@@ -468,7 +468,9 @@ export async function getOrgDashboardData(orgName: string, options: FetchOptions
 export function generateAchievements(
   totalContributions: number,
   currentStreak: number,
-  longestStreak: number = currentStreak
+  longestStreak: number = currentStreak,
+  weekendCommits: number = 0,
+  uniqueLanguages: number = 0
 ) {
   const achievements = [];
 
@@ -708,6 +710,7 @@ export async function getFullDashboardData(username: string, options: FetchOptio
   const achievements = generateAchievements(
     streakStats.totalContributions,
     streakStats.currentStreak,
+    streakStats.longestStreak,
     weekendCommits,
     uniqueLanguages
   );
