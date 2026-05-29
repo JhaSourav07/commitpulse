@@ -137,9 +137,9 @@ export default function Navbar() {
               >
                 {mounted ? (
                   isDark ? (
-                    <Sun size={18} />
-                  ) : (
                     <Moon size={18} />
+                  ) : (
+                    <Sun size={18} />
                   )
                 ) : (
                   <span className="w-[18px] h-[18px]" />
@@ -169,9 +169,9 @@ export default function Navbar() {
               >
                 {mounted ? (
                   isDark ? (
-                    <Sun size={18} />
-                  ) : (
                     <Moon size={18} />
+                  ) : (
+                    <Sun size={18} />
                   )
                 ) : (
                   <span className="w-[18px] h-[18px]" />
@@ -216,9 +216,9 @@ export default function Navbar() {
                   >
                     {mounted ? (
                       isDark ? (
-                        <Sun size={18} />
-                      ) : (
                         <Moon size={18} />
+                      ) : (
+                        <Sun size={18} />
                       )
                     ) : (
                       <span className="w-[18px] h-[18px]" />
