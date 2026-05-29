@@ -49,6 +49,10 @@ describe('useShareActions', () => {
   });
   it('copies dashboard image to clipboard successfully', async () => {
     const writeMock = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(globalThis, 'ClipboardItem', {
+      value: vi.fn((data: Record<string, Blob>) => data),
+      writable: true,
+    });
 
     Object.assign(navigator, {
       clipboard: {
