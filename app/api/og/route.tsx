@@ -7,8 +7,6 @@ import { themes } from '@/lib/svg/themes';
 import { fetchGitHubContributions } from '@/lib/github';
 import { calculateStreak } from '@/lib/calculate';
 
-export const runtime = 'edge';
-
 function getLuminance(hex: string) {
   let normalizedHex = hex.trim();
   // Normalize short hex (e.g., #fff or #ffff) to #rrggbb (alpha is ignored for luminance)
