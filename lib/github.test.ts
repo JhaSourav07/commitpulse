@@ -10,6 +10,7 @@ import {
   validateGitHubUsername,
   cacheKey,
   buildInsights,
+  displayName,
   fetchOrgMembers,
   getOrgDashboardData,
   getWrappedData,
@@ -83,6 +84,64 @@ describe('fetchGitHubContributions', () => {
     expect(result.totalContributions).toBe(mockCalendar.totalContributions);
     expect(result.weeks[0].contributionDays[0].contributionCount).toBe(3);
     expect(result.weeks[0].contributionDays[0]).toHaveProperty('locAdditions');
+  });
+
+  it('injects positive locAdditions and non-negative locDeletions for contribution days', async () => {
+    const calendarWithContributions: ContributionCalendar = {
+      totalContributions: 5,
+      weeks: [
+        {
+          contributionDays: [{ contributionCount: 5, date: '2024-06-10' }],
+        },
+      ],
+    };
+
+    vi.mocked(fetch).mockResolvedValue(
+      mockResponse({
+        data: {
+          user: {
+            contributionsCollection: {
+              contributionCalendar: calendarWithContributions,
+            },
+          },
+        },
+      })
+    );
+
+    const result = await fetchGitHubContributions('octocat');
+    const day = result.weeks[0].contributionDays[0];
+
+    expect(day.locAdditions).toBeGreaterThan(0);
+    expect(day.locDeletions).toBeGreaterThanOrEqual(0);
+  });
+
+  it('sets locAdditions and locDeletions to zero for zero-contribution days', async () => {
+    const calendarWithZeroContribution: ContributionCalendar = {
+      totalContributions: 0,
+      weeks: [
+        {
+          contributionDays: [{ contributionCount: 0, date: '2024-06-11' }],
+        },
+      ],
+    };
+
+    vi.mocked(fetch).mockResolvedValue(
+      mockResponse({
+        data: {
+          user: {
+            contributionsCollection: {
+              contributionCalendar: calendarWithZeroContribution,
+            },
+          },
+        },
+      })
+    );
+
+    const result = await fetchGitHubContributions('octocat');
+    const day = result.weeks[0].contributionDays[0];
+
+    expect(day.locAdditions).toBe(0);
+    expect(day.locDeletions).toBe(0);
   });
 
   it('sends a POST request to the GitHub GraphQL endpoint with the correct body', async () => {
@@ -549,6 +608,47 @@ describe('getFullDashboardData', () => {
     const result = await getFullDashboardData('testuser');
     expect(result.profile.joinedDate).toMatch(/^[A-Za-z]+ \d{4}$/);
   });
+
+  it('handles repos fetch failure gracefully', async () => {
+    vi.mocked(fetch).mockImplementation(async (url) => {
+      const urlStr = typeof url === 'string' ? url : (url?.toString() ?? '');
+
+      // Repos fetch fails
+      if (urlStr.includes('/users/octocat/repos')) {
+        throw new Error('Repos fetch failed');
+      }
+
+      // Profile fetch succeeds
+      if (urlStr.includes('/users/octocat')) {
+        return mockResponse({
+          login: 'octocat',
+          name: 'The Octocat',
+          avatar_url: 'avatar.png',
+          public_repos: 10,
+          followers: 20,
+          following: 5,
+          created_at: '2020-01-01T00:00:00Z',
+        });
+      }
+
+      // GraphQL contributions succeed
+      return mockResponse({
+        data: {
+          user: {
+            contributionsCollection: {
+              contributionCalendar: mockCalendar,
+            },
+          },
+        },
+      });
+    });
+
+    const result = await getFullDashboardData('octocat');
+
+    expect(result).toBeDefined();
+    expect(result.profile.stats.stars).toBe(0);
+    expect(result.languages).toEqual([]);
+  });
 });
 
 describe('GitHub API cache behavior', () => {
@@ -629,19 +729,70 @@ describe('GitHub API cache behavior', () => {
 
     expect(fetch).toHaveBeenCalledTimes(2);
   });
+
+  it('normalizes username casing for cache keys', async () => {
+    vi.mocked(fetch).mockResolvedValue(
+      mockResponse({
+        data: {
+          user: {
+            contributionsCollection: {
+              contributionCalendar: mockCalendar,
+            },
+          },
+        },
+      })
+    );
+
+    await fetchGitHubContributions('octocat');
+    await fetchGitHubContributions('OctoCat');
+
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe('generateAchievements', () => {
   it('marks contribution milestones correctly', () => {
     const achievements = generateAchievements(600, 10);
     const unlocked = achievements.filter((a) => a.isUnlocked);
+
     expect(unlocked.some((a) => a.title === '500 Contributions')).toBe(true);
     expect(unlocked.some((a) => a.title === '1000 Contributions')).toBe(false);
   });
 
   it('unlocks all achievements for max contribution and streak values', () => {
     const achievements = generateAchievements(1001, 101);
+
     expect(achievements.every((achievement) => achievement.isUnlocked === true)).toBe(true);
+  });
+});
+
+describe('displayName', () => {
+  const makeProfile = (name: string | null) => ({
+    login: 'octocat',
+    name,
+    avatar_url: 'avatar.png',
+    public_repos: 0,
+    followers: 0,
+    following: 0,
+    created_at: '2020-01-01T00:00:00Z',
+    bio: null,
+    location: null,
+  });
+
+  it('returns the name when present', () => {
+    expect(displayName(makeProfile('The Octocat'))).toBe('The Octocat');
+  });
+
+  it('falls back to login when name is null', () => {
+    expect(displayName(makeProfile(null))).toBe('octocat');
+  });
+
+  it('falls back to login when name is empty', () => {
+    expect(displayName(makeProfile(''))).toBe('octocat');
+  });
+
+  it('falls back to login when name contains only whitespace', () => {
+    expect(displayName(makeProfile('   '))).toBe('octocat');
   });
 });
 
@@ -720,9 +871,19 @@ describe('fetchOrgMembers', () => {
   });
 
   it('fetches organization members successfully', async () => {
-    vi.mocked(fetch).mockResolvedValue(mockResponse([{ login: 'alice' }, { login: 'bob' }]));
+    vi.mocked(fetch).mockResolvedValue(
+      mockResponse([
+        { login: 'alice', id: 1 },
+        { login: 'bob', id: 2 },
+      ])
+    );
+
     const members = await fetchOrgMembers('vercel');
-    expect(members).toEqual(['alice', 'bob']);
+
+    expect(Array.isArray(members)).toBe(true);
+    expect(members.every((member) => typeof member === 'string')).toBe(true);
+    expect(members[0]).toBe('alice');
+    expect(members[1]).toBe('bob');
   });
 });
 
@@ -736,7 +897,7 @@ describe('getOrgDashboardData', () => {
 
   it('aggregates org data correctly', async () => {
     vi.mocked(fetch).mockImplementation(async (url) => {
-      const urlStr = url.toString();
+      const urlStr = typeof url === 'string' ? url : (url?.toString() ?? '');
       if (urlStr.includes('/orgs/vercel/members')) return mockResponse([{ login: 'alice' }]);
       if (urlStr.includes('/users/vercel/repos')) return mockResponse([{ stargazers_count: 100 }]);
       if (urlStr.includes('/users/vercel'))
@@ -761,7 +922,7 @@ describe('getOrgDashboardData', () => {
 
   it('throws an error if the target is a User instead of an Organization', async () => {
     vi.mocked(fetch).mockImplementation(async (url) => {
-      const urlStr = url.toString();
+      const urlStr = typeof url === 'string' ? url : (url?.toString() ?? '');
       // Specifically catch the repos and members endpoints so they return valid arrays
       if (urlStr.includes('/orgs/notanorg/members')) return mockResponse([]);
       if (urlStr.includes('/users/notanorg/repos')) return mockResponse([]);
@@ -782,22 +943,31 @@ describe('getWrappedData', () => {
   beforeEach(() => {
     vi.spyOn(global, 'fetch');
   });
+
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
   it('returns wrapped statistics and top language correctly', async () => {
     vi.mocked(fetch).mockImplementation(async (url) => {
-      const urlStr = url.toString();
-      // Return 2 TS repos, 1 Rust repo
-      if (urlStr.includes('/repos'))
+      const urlStr = typeof url === 'string' ? url : (url?.toString() ?? '');
+
+      if (urlStr.includes('/repos')) {
         return mockResponse([
           { language: 'TypeScript' },
           { language: 'TypeScript' },
           { language: 'Rust' },
         ]);
+      }
+
       return mockResponse({
-        data: { user: { contributionsCollection: { contributionCalendar: mockCalendar } } },
+        data: {
+          user: {
+            contributionsCollection: {
+              contributionCalendar: mockCalendar,
+            },
+          },
+        },
       });
     });
 
@@ -805,5 +975,36 @@ describe('getWrappedData', () => {
 
     expect(result.topLanguage).toBe('TypeScript');
     expect(result.totalContributions).toBe(mockCalendar.totalContributions);
+  });
+
+  it('passes the correct from and to date range to GitHub contributions fetch', async () => {
+    vi.mocked(fetch).mockImplementation(async (url) => {
+      const urlStr = typeof url === 'string' ? url : (url?.toString() ?? '');
+
+      if (urlStr.includes('/repos')) {
+        return mockResponse([]);
+      }
+
+      return mockResponse({
+        data: {
+          user: {
+            contributionsCollection: {
+              contributionCalendar: mockCalendar,
+            },
+          },
+        },
+      });
+    });
+
+    await getWrappedData('octocat', '2024');
+
+    const graphQLCall = vi
+      .mocked(fetch)
+      .mock.calls.find(([url]) => url.toString().includes('/graphql'));
+
+    const body = JSON.parse(graphQLCall?.[1]?.body as string);
+
+    expect(body.variables.from).toBe('2024-01-01T00:00:00Z');
+    expect(body.variables.to).toBe('2024-12-31T23:59:59Z');
   });
 });
