@@ -1,5 +1,12 @@
 import { TTLCache } from './cache';
 
+interface RateLimitResult {
+  success: boolean;
+  limit: number;
+  remaining: number;
+  reset: number;
+}
+
 /**
  * In-memory rate limiter to prevent basic DoS/spam (Denial of Wallet).
  *
@@ -46,6 +53,27 @@ export class RateLimiter {
     this.cache.set(ip, current + 1, this.windowMs);
     return true;
   }
+  checkWithResult(ip: string): RateLimitResult {
+    const now = Date.now();
+    const current = this.cache.get(ip) ?? 0;
+
+    if (current >= this.limit) {
+      return {
+        success: false,
+        limit: this.limit,
+        remaining: 0,
+        reset: now + this.windowMs,
+      };
+    }
+
+    this.cache.set(ip, current + 1, this.windowMs);
+    return {
+      success: true,
+      limit: this.limit,
+      remaining: this.limit - (current + 1),
+      reset: now + this.windowMs,
+    };
+  }
   /**
    * Resets the request count for a given IP address.
    *
@@ -71,13 +99,6 @@ export const trackUserRateLimiter = new RateLimiter(5, 60000);
  * Note: In a distributed edge environment, this is per-instance.
  * For global rate limiting, a distributed store like Redis would be required.
  */
-
-interface RateLimitResult {
-  success: boolean;
-  limit: number;
-  remaining: number;
-  reset: number;
-}
 
 const trackers = new TTLCache<{ count: number }>(2000, 60000);
 
