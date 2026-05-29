@@ -28,13 +28,17 @@ function IconLight({ text, accent }: IC): ReactElement {
       <circle cx="14" cy="14" r="5.5" fill={accent} opacity="0.95" />
       {rays.map((deg) => {
         const r = (deg * Math.PI) / 180;
+        const x1 = parseFloat((14 + 7.5 * Math.cos(r)).toFixed(3));
+        const y1 = parseFloat((14 + 7.5 * Math.sin(r)).toFixed(3));
+        const x2 = parseFloat((14 + 10.5 * Math.cos(r)).toFixed(3));
+        const y2 = parseFloat((14 + 10.5 * Math.sin(r)).toFixed(3));
         return (
           <line
             key={deg}
-            x1={14 + 7.5 * Math.cos(r)}
-            y1={14 + 7.5 * Math.sin(r)}
-            x2={14 + 10.5 * Math.cos(r)}
-            y2={14 + 10.5 * Math.sin(r)}
+            x1={x1}
+            y1={y1}
+            x2={x2}
+            y2={y2}
             stroke={text}
             strokeWidth="1.6"
             strokeLinecap="round"
@@ -252,12 +256,12 @@ function IconNord({ text, accent }: IC): ReactElement {
         const r = (deg * Math.PI) / 180;
         const sx = Math.sin(r),
           cy = Math.cos(r);
-        const x2 = 14 + 10 * sx,
-          y2 = 14 - 10 * cy;
-        const mx = 14 + 6 * sx,
-          my = 14 - 6 * cy;
-        const px = cy,
-          py = sx;
+        const x2 = parseFloat((14 + 10 * sx).toFixed(3));
+        const y2 = parseFloat((14 - 10 * cy).toFixed(3));
+        const mx = parseFloat((14 + 6 * sx).toFixed(3));
+        const my = parseFloat((14 - 6 * cy).toFixed(3));
+        const px = parseFloat(cy.toFixed(3));
+        const py = parseFloat(sx.toFixed(3));
         return (
           <g key={deg}>
             <line
@@ -271,10 +275,10 @@ function IconNord({ text, accent }: IC): ReactElement {
               opacity="0.82"
             />
             <line
-              x1={mx - 2.5 * px}
-              y1={my - 2.5 * py}
-              x2={mx + 2.5 * px}
-              y2={my + 2.5 * py}
+              x1={parseFloat((mx - 2.5 * px).toFixed(3))}
+              y1={parseFloat((my - 2.5 * py).toFixed(3))}
+              x2={parseFloat((mx + 2.5 * px).toFixed(3))}
+              y2={parseFloat((my + 2.5 * py).toFixed(3))}
               stroke={text}
               strokeWidth="1.2"
               strokeLinecap="round"
