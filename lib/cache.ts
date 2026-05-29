@@ -29,11 +29,9 @@ export class TTLCache<T> {
     this.maxSize = maxSize === undefined ? undefined : Math.max(1, maxSize);
     const interval = Math.max(1000, cleanupIntervalMs);
 
-    // Only run cleanup if we are in an environment that supports setInterval
     if (typeof setInterval !== 'undefined') {
       const timer = setInterval(() => this.sweep(), interval);
 
-      // Unref the timer so it doesn't prevent Node.js from exiting during tests or teardown
       const nodeTimer = timer as unknown as { unref?: () => void };
       if (nodeTimer && typeof nodeTimer.unref === 'function') {
         nodeTimer.unref();
@@ -76,6 +74,45 @@ export class TTLCache<T> {
   }
 
   /**
+   * Checks whether a key exists in the cache and has not expired.
+   *
+   * Unlike `get()`, this does not return the value.
+   *
+   * @param key - Cache key.
+   * @returns `true` if the key exists and is still valid, `false` otherwise.
+   *
+   * @example
+   * if (cache.has("user:1")) {
+   *   // safe to call get()
+   * }
+   */
+  has(key: string): boolean {
+    const hit = this.store.get(key);
+    if (!hit) return false;
+
+    if (Date.now() > hit.expiresAt) {
+      this.store.delete(key);
+      return false;
+    }
+
+    return true;
+  }
+  /**
+   * Removes a single entry from the cache.
+   *
+   * Does nothing if the key does not exist.
+   *
+   * @param key - Cache key to remove.
+   * @returns `true` if the key existed and was deleted, `false` otherwise.
+   *
+   * @example
+   * cache.delete("user:1");
+   */
+  delete(key: string): boolean {
+    return this.store.delete(key);
+  }
+
+  /**
    * Stores a value in the cache with a TTL.
    *
    * If the cache reaches its maximum capacity, the oldest item
@@ -87,22 +124,23 @@ export class TTLCache<T> {
    * @returns void
    *
    * @example
-   * cache.set("user:1",userData,5000);
+   * cache.set("user:1", userData, 5000);
    */
   set(key: string, value: T, ttlMs: number): void {
-    // Capacity eviction (FIFO / LRU-lite)
+    if (ttlMs <= 0) throw new RangeError(`ttlMs must be positive, got ${ttlMs}`);
+
     const maxSize = this.maxSize;
     if (maxSize !== undefined && this.store.size >= maxSize && !this.store.has(key)) {
-      this.sweep(); // Remove expired entries first to free up capacity
+      this.sweep();
       if (this.store.size >= maxSize) {
-        // Find the oldest item (first inserted) and remove it
-        const oldestKey = this.store.keys().next().value;
+        const oldestKey = this.store.keys().next().value as string | undefined;
         if (oldestKey !== undefined) {
           this.store.delete(oldestKey);
         }
       }
     }
 
+    this.store.delete(key);
     this.store.set(key, { value, expiresAt: Date.now() + ttlMs });
   }
 
@@ -118,11 +156,11 @@ export class TTLCache<T> {
     this.store.clear();
   }
 
-  /**
-   * Stops the cleanup interval and clears the cache.
-   *
-   * @returns void
-   */
+  size(): number {
+    this.sweep();
+    return this.store.size;
+  }
+
   destroy(): void {
     if (this.cleanupInterval) {
       clearInterval(this.cleanupInterval);

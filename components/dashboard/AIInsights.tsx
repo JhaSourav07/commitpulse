@@ -22,9 +22,10 @@ export default function AIInsights({ insights }: { insights: AIInsight[] }) {
         </h3>
       </div>
 
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-6">
         {insights.map((insight, i) => {
           const Icon = iconMap[insight.icon] || Sparkles;
+
           return (
             <motion.div
               key={insight.id}
@@ -38,7 +39,8 @@ export default function AIInsights({ insights }: { insights: AIInsight[] }) {
                 size={14}
                 className="text-[#A1A1AA] mt-0.5 shrink-0 group-hover:text-white transition-colors duration-200"
               />
-              <p className="text-xs xs:text-sm  text-[#A1A1AA] leading-relaxed group-hover:text-white/80 transition-colors duration-200">
+
+              <p className="text-xs xs:text-sm text-[#A1A1AA] leading-relaxed group-hover:text-white/80 transition-colors duration-200">
                 {insight.text}
               </p>
             </motion.div>

@@ -10,7 +10,7 @@ vi.mock('@/lib/mongodb', () => ({
 
 vi.mock('@/models/User', () => ({
   User: {
-    findOneAndUpdate: vi.fn(),
+    updateOne: vi.fn(),
   },
 }));
 
@@ -47,6 +47,17 @@ describe('POST /api/track-user', () => {
 
       expect(data.success).toBe(false);
       expect(data.error).toBe('Malformed JSON request body');
+    });
+    it('returns 400 when body is plain text (not JSON)', async () => {
+      const req = new Request('http://localhost/api/track-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: 'not json',
+      });
+      const response = await POST(req);
+      expect(response.status).toBe(400);
+      const data = await response.json();
+      expect(data.success).toBe(false);
     });
 
     it('returns 400 when username is missing', async () => {
@@ -99,10 +110,10 @@ describe('POST /api/track-user', () => {
       expect(dbConnect).toHaveBeenCalled();
 
       // Trims and lowercases
-      expect(User.findOneAndUpdate).toHaveBeenCalledWith(
+      expect(User.updateOne).toHaveBeenCalledWith(
         { username: 'octocat' },
         { $setOnInsert: { username: 'octocat' } },
-        { upsert: true, new: true }
+        { upsert: true }
       );
 
       expect(response.status).toBe(200);
@@ -121,6 +132,51 @@ describe('POST /api/track-user', () => {
       const data = await response.json();
       expect(data.success).toBe(false);
       expect(data.error).toBe('Internal server error');
+
+      consoleErrorSpy.mockRestore();
+    });
+
+    it('gracefully handles concurrent duplicate key (code 11000) race conditions', async () => {
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      const mongoError = new Error('E11000 duplicate key error collection: username') as Error & {
+        code?: number;
+        keyPattern?: Record<string, number>;
+      };
+      mongoError.code = 11000;
+      mongoError.keyPattern = { username: 1 };
+      vi.mocked(User.updateOne).mockRejectedValueOnce(mongoError);
+
+      const response = await POST(makeRequest({ username: 'octocat' }));
+
+      expect(response.status).toBe(200);
+      const data = await response.json();
+      expect(data.success).toBe(true);
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+
+      consoleErrorSpy.mockRestore();
+    });
+
+    it('rethrows duplicate key (code 11000) error if it is not related to username', async () => {
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      const mongoError = new Error(
+        'E11000 duplicate key error collection: other_field'
+      ) as Error & {
+        code?: number;
+        keyPattern?: Record<string, number>;
+      };
+      mongoError.code = 11000;
+      mongoError.keyPattern = { other_field: 1 };
+      vi.mocked(User.updateOne).mockRejectedValueOnce(mongoError);
+
+      const response = await POST(makeRequest({ username: 'octocat' }));
+
+      expect(response.status).toBe(500);
+      const data = await response.json();
+      expect(data.success).toBe(false);
+      expect(data.error).toBe('Internal server error');
+      expect(consoleErrorSpy).toHaveBeenCalled();
 
       consoleErrorSpy.mockRestore();
     });

@@ -23,11 +23,16 @@ export const themes: Record<string, BadgeTheme> = {
   nord: makeTheme('2e3440', 'd8dee9', '88c0d0'),
   synthwave: makeTheme('0d0221', 'f8f8f2', 'ff2d78'),
   gruvbox: makeTheme('282828', 'ebdbb2', 'fe8019'),
-  highcontrast: makeTheme('0a0a0a', '888888', 'ff4500'),
+  aurora_cyberpunk: makeTheme('090B13', 'EAF2FF', '9D5CFF'),
+  highcontrast: makeTheme('0a0a0a', 'ffffff', 'ff4500'),
+  catppuccin_latte: makeTheme('eff1f5', '4c4f69', '1e66f5'),
+  solarized_light: makeTheme('fdf6e3', '586e75', '268bd2'),
+  gruvbox_light: makeTheme('fbf1c7', '3c3836', 'd65d0e'),
+  nord_light: makeTheme('eceff4', '2e3440', '5e81ac'),
 };
 
 // Auto-theme pairs: the SVG switches between these two palettes
 // using @media (prefers-color-scheme) so the badge adapts to the
 // viewer's OS-level light/dark setting without any JavaScript.
-export const AUTO_LIGHT_THEME: BadgeTheme = themes.light;
-export const AUTO_DARK_THEME: BadgeTheme = themes.dark;
+export const AUTO_THEME_LIGHT: BadgeTheme = themes.light;
+export const AUTO_THEME_DARK: BadgeTheme = themes.dark;

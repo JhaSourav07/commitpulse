@@ -1,6 +1,8 @@
+// app/api/github/route.ts
+
 import { NextResponse } from 'next/server';
 import { getFullDashboardData } from '@/lib/github';
-import { githubParamsSchema } from '../../../lib/validations';
+import { githubParamsSchema } from '@/lib/validations';
 
 /**
  * Returns GitHub dashboard data as JSON.
@@ -37,7 +39,7 @@ export async function GET(request: Request) {
     const data = await getFullDashboardData(username, { bypassCache: refresh });
     const cacheControl = refresh
       ? 'no-cache, no-store, must-revalidate'
-      : 's-maxage=3600, stale-while-revalidate';
+      : 's-maxage=3600, stale-while-revalidate=86400';
 
     return NextResponse.json(data, {
       status: 200,

@@ -88,6 +88,59 @@ http://localhost:3000/api/streak?user=YOUR_GITHUB_USERNAME
 
 ---
 
+## 🤝 Contributor Onboarding
+
+### 📁 Project Structure
+
+```text
+app/api/streak/route.ts       → API route for SVG generation
+lib/github.ts                 → GitHub GraphQL API client
+lib/calculate.ts              → Streak calculation logic
+lib/svg/generator.ts          → SVG rendering engine
+lib/svg/themes.ts             → Theme configuration system
+utils/time.ts                 → UTC & timezone utilities
+types/index.ts                → Shared TypeScript interfaces
+```
+
+---
+
+### ⚠️ Local Setup Troubleshooting
+
+Common issues during setup:
+
+- **401 Unauthorized** → Invalid or missing `GITHUB_TOKEN`
+- **MongoDB errors** → `MONGODB_URI` is optional for local development
+- **Empty SVG output** → Ensure the GitHub username exists and has public contributions
+
+---
+
+### 🌱 Beginner-Friendly Contribution Areas
+
+Good first contributions:
+
+- Documentation improvements
+- New theme presets
+- SVG styling enhancements
+- UI polish and accessibility improvements
+
+---
+
+### 🔁 Simplified PR Workflow
+
+```text
+Fork Repository
+      ↓
+Create Branch
+      ↓
+Make Changes
+      ↓
+Run Tests & Lint
+      ↓
+Open Pull Request
+```
+
+---
+
 ## 🎯 What to Contribute
 
 We welcome contributions in three focused pillars. Staying within these areas ensures every PR adds clear, compounding value.
@@ -188,7 +241,7 @@ Our automation runs entirely through issue comments. Here is how you interact wi
 
 To keep the project moving, assignments are not permanent.
 
-- **The 3-Day Rule:** If an issue has an assignee but sees **no activity for 3 days**, our automated background job will remove the assignment.
+- **The 2-Day Rule:** If an issue has an assignee but sees **no activity for 2 days**, our automated background job will remove the assignment.
 - **What counts as activity?** Posting a comment, opening a linked PR, or a maintainer adding a label.
 - **Why?** It frees up stale issues so other active contributors can pick them up. If your issue expires, you can always `/claim` it again if it's still available!
 
@@ -197,7 +250,7 @@ To keep the project moving, assignments are not permanent.
 1. Create a new issue describing the bug or feature request you want to work on using our **Structured Issue Templates** (or find an open issue you authored).
 2. Comment `/claim` on the issue to lock it in.
 3. Need labels? Comment `/addlabel good-first-issue` (labels must already exist in the repo).
-4. Work on your code and submit a PR within 3 days to avoid expiry.
+4. Work on your code and submit a PR within 2 days to avoid expiry.
 5. Once your PR is merged and the issue is closed, you can create and `/claim` your next one!
 
 ### 🆘 Troubleshooting & Edge Cases
