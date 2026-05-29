@@ -811,6 +811,72 @@ describe('generateMonthlySVG', () => {
   });
 });
 
+describe('shading and gradients', () => {
+  const mockStats: StreakStats = {
+    currentStreak: 5,
+    longestStreak: 10,
+    totalContributions: 100,
+    todayDate: '2024-06-12',
+  };
+
+  const mockCalendar = {
+    weeks: [
+      {
+        contributionDays: [
+          { contributionCount: 0, date: '2024-06-10' },
+          { contributionCount: 5, date: '2024-06-11' },
+          { contributionCount: 15, date: '2024-06-12' },
+        ],
+      },
+    ],
+  } as ContributionCalendar;
+
+  it('renders linearGradient definitions when gradient=true', () => {
+    const svg = generateSVG(
+      mockStats,
+      { user: 'avi', gradient: true } as unknown as BadgeParams,
+      mockCalendar
+    );
+    expect(svg).toContain('<linearGradient id="tower-grad-level-1"');
+    expect(svg).toContain('<linearGradient id="tower-grad-level-4"');
+    expect(svg).toContain('fill="url(#tower-grad-level-');
+  });
+
+  it('does not render linearGradient definitions when gradient=false', () => {
+    const svg = generateSVG(
+      mockStats,
+      { user: 'avi', gradient: false } as unknown as BadgeParams,
+      mockCalendar
+    );
+    expect(svg).not.toContain('<linearGradient id="tower-grad-level-1"');
+  });
+
+  it('supports mapping colors in array accent lists to towers', () => {
+    const calendarWithAllQuartiles = {
+      weeks: [
+        {
+          contributionDays: [
+            { contributionCount: 2, date: '2024-06-10' }, // Level 1 (2/15 <= 0.25)
+            { contributionCount: 6, date: '2024-06-11' }, // Level 2 (6/15 <= 0.5)
+            { contributionCount: 10, date: '2024-06-12' }, // Level 3 (10/15 <= 0.75)
+            { contributionCount: 15, date: '2024-06-13' }, // Level 4
+          ],
+        },
+      ],
+    } as ContributionCalendar;
+
+    const svg = generateSVG(
+      mockStats,
+      { user: 'avi', accent: ['111111', '222222', '333333', '444444'] } as unknown as BadgeParams,
+      calendarWithAllQuartiles
+    );
+    expect(svg).toContain('fill="#111111"');
+    expect(svg).toContain('fill="#222222"');
+    expect(svg).toContain('fill="#333333"');
+    expect(svg).toContain('fill="#444444"');
+  });
+});
+
 describe('escapeXML', () => {
   it('escapes ampersands (&)', () => {
     expect(escapeXML('foo & bar')).toBe('foo &amp; bar');

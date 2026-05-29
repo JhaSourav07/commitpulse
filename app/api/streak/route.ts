@@ -62,6 +62,8 @@ export async function GET(request: Request) {
       labels,
       labelColor,
       versus,
+      shading,
+      gradient,
     } = parseResult.data;
 
     const themeName = theme || 'dark';
@@ -133,6 +135,8 @@ export async function GET(request: Request) {
       labels,
       labelColor,
       versus,
+      shading,
+      gradient,
     };
 
     let calendar;
