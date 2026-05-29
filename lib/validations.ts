@@ -95,6 +95,26 @@ export const streakParamsSchema = z.object({
         message: 'GitHub was founded in 2008. Please provide a year of 2008 or later.',
       }
     ),
+  from: z
+    .string()
+    .optional()
+    .refine(
+      (val) => {
+        if (!val) return true;
+        return !isNaN(Date.parse(val));
+      },
+      { message: 'Invalid "from" date format. Use ISO 8601 (e.g. 2023-01-01).' }
+    ),
+  to: z
+    .string()
+    .optional()
+    .refine(
+      (val) => {
+        if (!val) return true;
+        return !isNaN(Date.parse(val));
+      },
+      { message: 'Invalid "to" date format. Use ISO 8601 (e.g. 2023-12-31).' }
+    ),
   refresh: z
     .string()
     .optional()
