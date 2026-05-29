@@ -342,6 +342,7 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
     },
   });
 }
+
 // app/api/streak/route.ts
 
 import { NextResponse } from 'next/server';
