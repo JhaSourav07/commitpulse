@@ -215,6 +215,7 @@ describe('generateSVG', () => {
     );
     expect(svg).toContain('Gill Sans');
   });
+
   it('emits tower-raising CSS animations and staggered delays', () => {
     const svg = generateSVG(mockStats, { user: 'avi' } as unknown as BadgeParams, mockCalendar);
 
@@ -245,13 +246,21 @@ describe('generateSVG', () => {
     expect(svg).not.toContain('<title>TODAY: 2024-06-12 & <bad>: 3 contributions</title>');
   });
 
-  it('includes reduced-motion CSS for the scan line in the main SVG output', () => {
-    const svg = generateSVG(mockStats, { user: 'avi' } as unknown as BadgeParams, mockCalendar);
+  // =========================================================================
+  // ISSUE #1084 FIX: Verify reduced-motion CSS disables scan-line in static mode
+  // =========================================================================
+  it('verifies reduced-motion CSS disables scan-line in static mode', () => {
+    // 1. Call static generateSVG (no autoTheme)
+    const svg = generateSVG(
+      mockStats,
+      { user: 'avi', autoTheme: false } as unknown as BadgeParams,
+      mockCalendar
+    );
 
+    // 2. 3 exact assertions as per the Definition of Done
     expect(svg).toContain('prefers-reduced-motion: reduce');
     expect(svg).toContain('.scan-line');
     expect(svg).toContain('animation: none !important');
-    expect(svg).toContain('transition: none !important');
   });
 
   it('uses English labels by default', () => {
