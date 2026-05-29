@@ -95,6 +95,26 @@ export const streakParamsSchema = z.object({
         message: 'GitHub was founded in 2008. Please provide a year of 2008 or later.',
       }
     ),
+  from: z
+    .string()
+    .optional()
+    .refine(
+      (val) => {
+        if (!val) return true;
+        return !isNaN(Date.parse(val));
+      },
+      { message: 'Invalid "from" date format. Use ISO 8601 (e.g. 2023-01-01).' }
+    ),
+  to: z
+    .string()
+    .optional()
+    .refine(
+      (val) => {
+        if (!val) return true;
+        return !isNaN(Date.parse(val));
+      },
+      { message: 'Invalid "to" date format. Use ISO 8601 (e.g. 2023-12-31).' }
+    ),
   refresh: z
     .string()
     .optional()
@@ -152,39 +172,48 @@ export const githubParamsSchema = z.object({
     .transform((val) => val === 'true'),
 });
 
-export const ogParamsSchema = z.object({
-  user: z
-    .string()
-    .trim()
-    .optional()
-    .transform((val) => (val === '' ? undefined : val))
-    .default('unknown'),
-  theme: z
-    .string()
-    .trim()
-    .optional()
-    .transform((val) => (val === '' ? undefined : val))
-    .transform((val) => (val && Object.hasOwn(themes, val) ? val : 'dark'))
-    .default('dark'),
-  bg: z
-    .string()
-    .trim()
-    .optional()
-    .transform((val) => (val === '' ? undefined : val))
-    .transform((val) => (val && isValidHex(val) ? sanitizeHexColor(val, '000000') : undefined)),
-  text: z
-    .string()
-    .trim()
-    .optional()
-    .transform((val) => (val === '' ? undefined : val))
-    .transform((val) => (val && isValidHex(val) ? sanitizeHexColor(val, '000000') : undefined)),
-  accent: z
-    .string()
-    .trim()
-    .optional()
-    .transform((val) => (val === '' ? undefined : val))
-    .transform((val) => (val && isValidHex(val) ? sanitizeHexColor(val, '000000') : undefined)),
-});
+export const ogParamsSchema = z
+  .object({
+    user: z
+      .string()
+      .trim()
+      .optional()
+      .transform((val) => (val === '' ? undefined : val)),
+    username: z
+      .string()
+      .trim()
+      .optional()
+      .transform((val) => (val === '' ? undefined : val)),
+    theme: z
+      .string()
+      .trim()
+      .optional()
+      .transform((val) => (val === '' ? undefined : val))
+      .transform((val) => (val && Object.hasOwn(themes, val) ? val : 'dark'))
+      .default('dark'),
+    bg: z
+      .string()
+      .trim()
+      .optional()
+      .transform((val) => (val === '' ? undefined : val))
+      .transform((val) => (val && isValidHex(val) ? sanitizeHexColor(val, '000000') : undefined)),
+    text: z
+      .string()
+      .trim()
+      .optional()
+      .transform((val) => (val === '' ? undefined : val))
+      .transform((val) => (val && isValidHex(val) ? sanitizeHexColor(val, '000000') : undefined)),
+    accent: z
+      .string()
+      .trim()
+      .optional()
+      .transform((val) => (val === '' ? undefined : val))
+      .transform((val) => (val && isValidHex(val) ? sanitizeHexColor(val, '000000') : undefined)),
+  })
+  .transform((data) => ({
+    ...data,
+    user: data.user || data.username || 'unknown',
+  }));
 
 export const statsParamsSchema = z.object({
   user: z.string({ error: 'Missing user parameter' }).min(1, { message: 'Missing user parameter' }),

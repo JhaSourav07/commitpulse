@@ -39,6 +39,8 @@ export async function GET(request: Request) {
       radius,
       font,
       year,
+      from: customFrom,
+      to: customTo,
       refresh,
       hide_title,
       hide_background,
@@ -57,8 +59,16 @@ export async function GET(request: Request) {
     } = parseResult.data;
 
     const themeName = theme || 'dark';
-    const from = year ? `${year}-01-01T00:00:00Z` : undefined;
-    const to = year ? `${year}-12-31T23:59:59Z` : undefined;
+    const from = customFrom
+      ? new Date(customFrom).toISOString()
+      : year
+        ? `${year}-01-01T00:00:00Z`
+        : undefined;
+    const to = customTo
+      ? new Date(customTo).toISOString()
+      : year
+        ? `${year}-12-31T23:59:59Z`
+        : undefined;
 
     const tzParam = searchParams.get('tz');
     let timezone = 'UTC';

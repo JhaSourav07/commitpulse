@@ -420,7 +420,7 @@ We built an anti-hoarding, self-service automation layer right into the reposito
 - **Structured Issue Templates:** We use specific templates for Bug Reports and Feature Requests to maintain high quality and clarity.
 - **Self-Claiming:** Issue authors can grab their issues instantly by commenting `/claim` (only the author of the issue can claim it, unless it was authored by `jhasourav07`, in which case anyone can claim it).
 - **Fair Play:** A strict one-active-issue-per-contributor rule prevents issue hoarding.
-- **Stale Expiry:** A scheduled chron job automatically unassigns inactive contributors after 3 days.
+- **Stale Expiry:** A scheduled chron job automatically unassigns inactive contributors after 2 days.
 - **Self-Service Labels:** Anyone can tag issues using `/addlabel <tag>`.
 - **Semantic Duplicate Detection:** An AI-powered duplicate detector automatically scans open issues using the Google Gemini API (`gemini-embedding-001`) to generate vector embeddings. It calculates cosine similarity and flags potential duplicate issues with a comment and a `possible-duplicate` label.
 
@@ -451,7 +451,14 @@ Yes — if private contributions visibility is enabled in your GitHub settings.
 
 ### Are there GitHub API rate limits?
 
-Yes, but CommitPulse minimizes API usage using caching and optimized GraphQL queries.
+Yes. CommitPulse minimizes API usage via caching and optimized GraphQL queries, but if you hit the GitHub API rate limit (typically 5,000 requests per hour for authenticated users), you might see errors or missing data.
+
+#### Troubleshooting Rate Limit Errors
+
+1. **Wait it out:** Rate limits automatically reset every hour.
+2. **Provide your own PAT:** If self-hosting, ensure you've provided a valid `GITHUB_TOKEN` in `.env.local` to get the authenticated rate limit.
+3. **Avoid aggressive bypassing:** Avoid repeatedly using the `&refresh=true` parameter, which bypasses the cache and consumes API quota on every load.
+4. **Check GitHub API Status:** Occasionally, GitHub's GraphQL API itself experiences degradation. Check [githubstatus.com](https://www.githubstatus.com/).
 
 ---
 

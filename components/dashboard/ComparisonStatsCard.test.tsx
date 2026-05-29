@@ -125,4 +125,30 @@ describe('ComparisonStatsCard', () => {
     expect(userOneSegment).toBeDefined();
     expect(userTwoSegment).toBeDefined();
   });
+
+  it('renders a balanced 50/50 split progress bar without any emerald color highlight when values are equal', () => {
+    const { container } = render(
+      <ComparisonStatsCard
+        title="Developer Score"
+        valueA={50}
+        valueB={50}
+        labelA="User One"
+        labelB="User Two"
+        icon="Award"
+      />
+    );
+
+    const progressSegments = container.querySelectorAll(
+      '.w-full.bg-gray-700\\/50 div, .relative div'
+    );
+
+    const allDivs = Array.from(container.querySelectorAll('div'));
+
+    const emeraldElement =
+      container.querySelector('[className*="emerald"]') ||
+      container.querySelector('.text-emerald-400');
+
+    expect(emeraldElement).toBeNull();
+    expect(screen.queryByText('Winner')).toBeNull();
+  });
 });

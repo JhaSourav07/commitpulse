@@ -6,6 +6,7 @@ import { GET } from './route';
 // calculateStreak and generateSVG run for real, giving us genuine end-to-end coverage.
 vi.mock('../../../lib/github', () => ({
   fetchGitHubContributions: vi.fn(),
+  getOrgDashboardData: vi.fn(),
 }));
 
 vi.mock('../../../utils/time', () => ({
@@ -13,7 +14,7 @@ vi.mock('../../../utils/time', () => ({
   getSecondsUntilMidnightInTimezone: vi.fn(),
 }));
 
-import { fetchGitHubContributions } from '../../../lib/github';
+import { fetchGitHubContributions, getOrgDashboardData } from '../../../lib/github';
 import { getSecondsUntilUTCMidnight, getSecondsUntilMidnightInTimezone } from '../../../utils/time';
 import type { ContributionCalendar } from '../../../types';
 
@@ -59,6 +60,28 @@ describe('GET /api/streak', () => {
   beforeEach(() => {
     vi.clearAllMocks(); // reset call counts so per-test call assertions are isolated
     vi.mocked(fetchGitHubContributions).mockResolvedValue(mockCalendar);
+    vi.mocked(getOrgDashboardData).mockResolvedValue({
+      profile: {
+        username: 'octocat',
+        name: 'The Octocat',
+        avatarUrl: 'https://github.com/octocat.png',
+        isPro: false,
+        bio: 'Testing organization mock pipelines',
+        location: 'San Francisco, CA',
+        joinedDate: '2011-01-25',
+        developerScore: 85,
+        stats: { repositories: 10, followers: 2500, following: 9, stars: 450 },
+      },
+      stats: {
+        totalCommits: 10,
+        totalIssues: 2,
+        totalPRs: 5,
+        totalReviews: 1,
+        totalDiscussions: 0,
+        contributedTo: 3,
+      },
+      calendar: mockCalendar,
+    } as unknown as Awaited<ReturnType<typeof getOrgDashboardData>>);
     // Fixed values so Cache-Control assertions don't depend on the real clock.
     vi.mocked(getSecondsUntilUTCMidnight).mockReturnValue(3600);
     vi.mocked(getSecondsUntilMidnightInTimezone).mockReturnValue(7200);
@@ -131,6 +154,17 @@ describe('GET /api/streak', () => {
     it('should return 200 OK and valid SVG when the optional repo query parameter is provided', async () => {
       // 1. Make request with both parameters present
       const response = await GET(makeRequest({ user: 'octocat', repo: 'commitpulse' }));
+
+      // 2. Assert definitions of done
+      expect(response.status).toBe(200);
+
+      const textOutput = await response.text();
+      expect(textOutput).toContain('<svg');
+    });
+
+    it('should return 200 OK and valid SVG when the optional org query parameter is provided', async () => {
+      // 1. Make request with both parameters present
+      const response = await GET(makeRequest({ user: 'octocat', org: 'vercel' }));
 
       // 2. Assert definitions of done
       expect(response.status).toBe(200);

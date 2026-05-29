@@ -6,11 +6,13 @@ import {
   fetchUserRepos,
   getFullDashboardData,
   generateAchievements,
+  buildCommitClock,
   clearGitHubApiCacheForTests,
   GITHUB_CACHE_TTL_MS,
   validateGitHubUsername,
   cacheKey,
   buildInsights,
+  displayName,
   fetchOrgMembers,
   getOrgDashboardData,
   getWrappedData,
@@ -804,13 +806,13 @@ describe('generateAchievements', () => {
     const achievements = generateAchievements(600, 10, 0, 0);
 
     const unlocked = achievements.filter((a) => a.isUnlocked);
+
     expect(unlocked.some((a) => a.title === '500 Contributions')).toBe(true);
     expect(unlocked.some((a) => a.title === 'Consistency King')).toBe(true);
     expect(unlocked.some((a) => a.title === '1000 Contributions')).toBe(false);
   });
 
   it('unlocks all achievements for max contribution and streak values', () => {
-    // Consistency King III requires 2000, streak needs 100, weekend needs 10, polyglot needs 5
     const achievements = generateAchievements(2001, 101, 11, 6);
 
     expect(achievements.every((achievement) => achievement.isUnlocked === true)).toBe(true);
@@ -842,6 +844,36 @@ describe('generateAchievements', () => {
       expect(item.progress).toBeGreaterThanOrEqual(0);
       expect(item.progress).toBeLessThanOrEqual(100);
     }
+  });
+});
+
+describe('displayName', () => {
+  const makeProfile = (name: string | null) => ({
+    login: 'octocat',
+    name,
+    avatar_url: 'avatar.png',
+    public_repos: 0,
+    followers: 0,
+    following: 0,
+    created_at: '2020-01-01T00:00:00Z',
+    bio: null,
+    location: null,
+  });
+
+  it('returns the name when present', () => {
+    expect(displayName(makeProfile('The Octocat'))).toBe('The Octocat');
+  });
+
+  it('falls back to login when name is null', () => {
+    expect(displayName(makeProfile(null))).toBe('octocat');
+  });
+
+  it('falls back to login when name is empty', () => {
+    expect(displayName(makeProfile(''))).toBe('octocat');
+  });
+
+  it('falls back to login when name contains only whitespace', () => {
+    expect(displayName(makeProfile('   '))).toBe('octocat');
   });
 });
 
@@ -906,6 +938,46 @@ describe('buildInsights', () => {
     );
 
     expect(result[1].text).toContain('Unknown');
+  });
+});
+
+describe('buildCommitClock', () => {
+  it('counts commits only on Sunday when all days are Sunday', () => {
+    const result = buildCommitClock([
+      { date: '2024-01-07', contributionCount: 3 },
+      { date: '2024-01-14', contributionCount: 2 },
+    ]);
+
+    expect(result).toHaveLength(7);
+    expect(result[0].commits).toBeGreaterThan(0);
+    expect(result.slice(1).every((item) => item.commits === 0)).toBe(true);
+  });
+
+  it('returns 7 days with zero commits for empty input', () => {
+    const result = buildCommitClock([]);
+
+    expect(result).toHaveLength(7);
+    expect(result.every((item) => item.commits === 0)).toBe(true);
+  });
+
+  it('always returns exactly 7 items', () => {
+    const result = buildCommitClock([{ date: '2024-01-07', contributionCount: 1 }]);
+
+    expect(result).toHaveLength(7);
+  });
+
+  it('uses weekday labels from Sunday to Saturday', () => {
+    const result = buildCommitClock([]);
+
+    expect(result.map((item) => item.day)).toEqual([
+      'Sun',
+      'Mon',
+      'Tue',
+      'Wed',
+      'Thu',
+      'Fri',
+      'Sat',
+    ]);
   });
 });
 
@@ -992,6 +1064,7 @@ describe('getWrappedData', () => {
   beforeEach(() => {
     vi.spyOn(global, 'fetch');
   });
+
   afterEach(() => {
     vi.restoreAllMocks();
   });
@@ -999,15 +1072,23 @@ describe('getWrappedData', () => {
   it('returns wrapped statistics and top language correctly', async () => {
     vi.mocked(fetch).mockImplementation(async (url) => {
       const urlStr = typeof url === 'string' ? url : (url?.toString() ?? '');
-      // Return 2 TS repos, 1 Rust repo
-      if (urlStr.includes('/repos'))
+
+      if (urlStr.includes('/repos')) {
         return mockResponse([
           { language: 'TypeScript' },
           { language: 'TypeScript' },
           { language: 'Rust' },
         ]);
+      }
+
       return mockResponse({
-        data: { user: { contributionsCollection: { contributionCalendar: mockCalendar } } },
+        data: {
+          user: {
+            contributionsCollection: {
+              contributionCalendar: mockCalendar,
+            },
+          },
+        },
       });
     });
 
@@ -1015,5 +1096,36 @@ describe('getWrappedData', () => {
 
     expect(result.topLanguage).toBe('TypeScript');
     expect(result.totalContributions).toBe(mockCalendar.totalContributions);
+  });
+
+  it('passes the correct from and to date range to GitHub contributions fetch', async () => {
+    vi.mocked(fetch).mockImplementation(async (url) => {
+      const urlStr = typeof url === 'string' ? url : (url?.toString() ?? '');
+
+      if (urlStr.includes('/repos')) {
+        return mockResponse([]);
+      }
+
+      return mockResponse({
+        data: {
+          user: {
+            contributionsCollection: {
+              contributionCalendar: mockCalendar,
+            },
+          },
+        },
+      });
+    });
+
+    await getWrappedData('octocat', '2024');
+
+    const graphQLCall = vi
+      .mocked(fetch)
+      .mock.calls.find(([url]) => url.toString().includes('/graphql'));
+
+    const body = JSON.parse(graphQLCall?.[1]?.body as string);
+
+    expect(body.variables.from).toBe('2024-01-01T00:00:00Z');
+    expect(body.variables.to).toBe('2024-12-31T23:59:59Z');
   });
 });

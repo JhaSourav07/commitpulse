@@ -10,6 +10,7 @@ import { CommitPulseLogo } from '@/components/commitpulse-logo';
 import { CustomizeCTA } from './components/CustomizeCTA';
 import { useRecentSearches } from '@/hooks/useRecentSearches';
 import { Footer } from '@/app/components/Footer';
+import InteractiveViewer from '@/components/InteractiveViewer';
 
 const Icons = {
   Github: () => (
@@ -332,7 +333,7 @@ export default function LandingPage() {
 
           <div className="group relative">
             <div className="absolute -inset-1 rounded-[2rem] bg-white/5 opacity-50 blur-xl transition duration-1000 group-hover:opacity-100" />
-            <div className="relative flex min-h-[320px] items-center justify-center overflow-hidden rounded-xl border border-black/10 bg-white p-6 dark:border-[rgba(255,255,255,0.06)] dark:bg-black">
+            <InteractiveViewer className="relative flex min-h-[320px] items-center justify-center overflow-hidden rounded-xl border border-black/10 bg-white p-6 dark:border-[rgba(255,255,255,0.06)] dark:bg-black">
               {hasUsername ? (
                 <div className="w-full flex items-center justify-center">
                   {svgState === 'loading' && (
@@ -370,7 +371,7 @@ export default function LandingPage() {
                   </p>
                 </div>
               )}
-            </div>
+            </InteractiveViewer>
           </div>
         </section>
 

@@ -241,7 +241,7 @@ Our automation runs entirely through issue comments. Here is how you interact wi
 
 To keep the project moving, assignments are not permanent.
 
-- **The 3-Day Rule:** If an issue has an assignee but sees **no activity for 3 days**, our automated background job will remove the assignment.
+- **The 2-Day Rule:** If an issue has an assignee but sees **no activity for 2 days**, our automated background job will remove the assignment.
 - **What counts as activity?** Posting a comment, opening a linked PR, or a maintainer adding a label.
 - **Why?** It frees up stale issues so other active contributors can pick them up. If your issue expires, you can always `/claim` it again if it's still available!
 
@@ -250,7 +250,7 @@ To keep the project moving, assignments are not permanent.
 1. Create a new issue describing the bug or feature request you want to work on using our **Structured Issue Templates** (or find an open issue you authored).
 2. Comment `/claim` on the issue to lock it in.
 3. Need labels? Comment `/addlabel good-first-issue` (labels must already exist in the repo).
-4. Work on your code and submit a PR within 3 days to avoid expiry.
+4. Work on your code and submit a PR within 2 days to avoid expiry.
 5. Once your PR is merged and the issue is closed, you can create and `/claim` your next one!
 
 ### 🆘 Troubleshooting & Edge Cases
