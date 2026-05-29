@@ -79,12 +79,6 @@ export default function LandingPage() {
   const debouncedUsername = useDebounce(trimmedUsername, 500);
   const hasUsername = debouncedUsername.length > 0;
 
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setMounted(true);
-  }, []);
-
   const badgeUrl = `/api/streak?user=${debouncedUsername}`;
   const markdown = `![CommitPulse](https://commitpulse.vercel.app/api/streak?user=${trimmedUsername})`;
 
@@ -247,7 +241,7 @@ export default function LandingPage() {
               <div className="flex flex-col sm:flex-row gap-4">
                 <button
                   type="submit"
-                  disabled={!mounted || trimmedUsername.length === 0}
+                  disabled={trimmedUsername.length === 0}
                   className={`relative flex min-w-[160px] items-center justify-center gap-2 overflow-hidden rounded-2xl px-6 py-4 text-sm font-semibold transition-all duration-300 transform cursor-pointer hover:scale-[1.02] hover:shadow-lg active:scale-[0.98] disabled:cursor-not-allowed ${
                     trimmedUsername.length > 0
                       ? 'bg-black text-white hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-gray-100 shadow-md'
@@ -278,7 +272,7 @@ export default function LandingPage() {
                 </button>
                 <Link
                   href={trimmedUsername.length > 0 ? `/dashboard/${trimmedUsername}` : '/'}
-                  aria-disabled={!mounted || trimmedUsername.length === 0}
+                  aria-disabled={trimmedUsername.length === 0}
                   onClick={(e) => {
                     if (trimmedUsername.length === 0) {
                       e.preventDefault();
