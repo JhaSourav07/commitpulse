@@ -87,6 +87,18 @@ describe('GET /api/streak', () => {
     vi.mocked(getSecondsUntilMidnightInTimezone).mockReturnValue(7200);
   });
 
+  it('falls back to the default isometric view when an invalid view is provided', async () => {
+    const request = new Request('http://localhost:3000/api/streak?user=octocat&view=invalid');
+
+    const response = await GET(request);
+
+    expect(response.status).toBe(200);
+
+    const body = await response.text();
+
+    expect(body).toContain('@keyframes grow-up');
+  });
+
   describe('parameter validation', () => {
     it('returns 400 when the user parameter is missing', async () => {
       const response = await GET(makeRequest());
