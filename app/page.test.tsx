@@ -97,8 +97,7 @@ describe('LandingPage', () => {
   it('renders the main heading', () => {
     render(<LandingPage />);
     expect(screen.getByText(/Elevate Your/i)).toBeDefined();
-    expect(screen.getByText('Contribution')).toBeDefined();
-    expect(screen.getByText(/Story/i)).toBeDefined();
+    expect(screen.getByText(/Contribution Story/i)).toBeDefined();
   });
 
   it('renders the input field empty by default', () => {
@@ -124,7 +123,7 @@ describe('LandingPage', () => {
   it('renders an empty state before a username is entered', () => {
     render(<LandingPage />);
 
-    expect(screen.getByText(/Enter a GitHub username above to instantly generate/i)).toBeDefined();
+    expect(screen.getByText(/Enter a GitHub username to preview/i)).toBeDefined();
     // No SVG badge should be present yet
     expect(screen.queryByTestId('badge-svg')).toBeNull();
   });
