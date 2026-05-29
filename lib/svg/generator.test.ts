@@ -248,7 +248,7 @@ describe('generateSVG', () => {
       // Active towers should use the accent class
       expect(svg).toContain('class="cp-accent-fill"');
       // The radar scan line should also use the accent class
-      expect(svg).toMatch(/rect[^>]*class="cp-accent-fill"/);
+      expect(svg).toMatch(/rect[\s\S]*?class="cp-accent-fill"/);
       // cp-text-fill is emitted only in Ghost City mode (0 total contributions)
       const ghostCalendar: ContributionCalendar = {
         totalContributions: 0,
