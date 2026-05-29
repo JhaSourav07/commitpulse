@@ -17,6 +17,14 @@ import { streakParamsSchema } from '@/lib/validations';
 const SVG_CSP_HEADER =
   "default-src 'none'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://fonts.gstatic.com;";
 
+// 1. Define a custom Error class for Validation
+export class ValidationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ValidationError';
+  }
+}
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
 
@@ -83,7 +91,8 @@ export async function GET(request: Request) {
         timezone = new Intl.DateTimeFormat(undefined, { timeZone: tzParam }).resolvedOptions()
           .timeZone;
       } catch {
-        return new NextResponse(`Invalid "tz" parameter: "${tzParam}"`, { status: 400 });
+        // We throw our new ValidationError here instead of returning directly
+        throw new ValidationError(`Invalid "tz" parameter: "${tzParam}"`);
       }
     }
 
@@ -102,7 +111,6 @@ export async function GET(request: Request) {
 
     // If 'org' is provided, we use it as the display user
     const targetEntity = org || user;
-    // NEW LOGIC: Extract and sanitize the border query parameter
     const borderParam = searchParams.get('border');
     const sanitizedBorder = borderParam ? borderParam.replace(/[^a-fA-F0-9]/g, '') : undefined;
 
@@ -111,7 +119,7 @@ export async function GET(request: Request) {
       bg: isAutoTheme ? selectedTheme.bg : bg || selectedTheme.bg,
       text: isAutoTheme ? selectedTheme.text : text || selectedTheme.text,
       accent: isAutoTheme ? selectedTheme.accent : accent || selectedTheme.accent,
-      border: sanitizedBorder, // <--- Passed down to the generator here
+      border: sanitizedBorder,
       radius,
       speed: speed && /^(?:[2-9]|1\d|20)s$/.test(speed) ? speed : '8s',
       scale,
@@ -198,10 +206,17 @@ export async function GET(request: Request) {
 type ParseResult = ReturnType<typeof streakParamsSchema.safeParse>;
 
 function buildErrorResponse(error: unknown, parseResult: ParseResult): NextResponse {
-  const message = error instanceof Error ? error.message : 'Unknown error';
+  const message = error instanceof Error ? error.message : String(error);
+
   const isNotFound =
     message.toLowerCase().includes('not found') ||
     message.toLowerCase().includes('could not resolve');
+
+  // 2. Safely detect if the error was a validation/client error
+  const isValidationError =
+    (error instanceof Error && error.name === 'ValidationError') ||
+    message.toLowerCase().includes('invalid') ||
+    message.toLowerCase().includes('validation');
 
   const errBg = `#${(parseResult.success && parseResult.data.bg) || '0d1117'}`;
   const errAccent = `#${(parseResult.success && parseResult.data.accent) || '58a6ff'}`;
@@ -216,7 +231,6 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
 
   if (isNotFound) {
     const match = message.match(/"([^"]+)"|login of '([^']+)'/);
-    // If the org parameter was used and failed, fallback to that, otherwise user
     const fallbackTarget = parseResult.success
       ? parseResult.data.org || parseResult.data.user
       : 'unknown';
@@ -233,12 +247,34 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
     });
   }
 
+  // 3. Return a 400 Bad Request for Validation Errors
+  if (isValidationError) {
+    const validationSvg = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="400" height="150">
+        <rect width="100%" height="100%" fill="#2d0000" rx="8"/>
+        <text x="50%" y="50%" text-anchor="middle" fill="#ffcccc" font-family="sans-serif">
+          ${message}
+        </text>
+      </svg>
+    `;
+
+    return new NextResponse(validationSvg, {
+      status: 400,
+      headers: {
+        'Content-Type': 'image/svg+xml',
+        'Cache-Control': 'no-store',
+        'Content-Security-Policy': SVG_CSP_HEADER,
+      },
+    });
+  }
+
+  // 4. Return a 500 Internal Server Error for real crashes
   console.error('[streak] Unhandled error:', message);
 
   const errorSvg = `
       <svg xmlns="http://www.w3.org/2000/svg" width="400" height="150">
         <rect width="100%" height="100%" fill="#2d0000" rx="8"/>
-        <text x="50%" y="50%" text-anchor="middle" fill="#ffcccc">
+        <text x="50%" y="50%" text-anchor="middle" fill="#ffcccc" font-family="sans-serif">
           Something went wrong. Please try again later.
         </text>
       </svg>
