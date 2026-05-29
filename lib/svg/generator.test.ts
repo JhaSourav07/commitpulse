@@ -101,7 +101,7 @@ describe('generateSVG', () => {
       mockStats,
       {
         user: 'avi',
-        bg: '0d1117',
+        bg: hexColor('0d1117'),
       } as unknown as BadgeParams,
       mockCalendar
     );
@@ -530,9 +530,9 @@ describe('truncateUsername', () => {
       },
       {
         user: 'averylongusernamethatexceeds20chars',
-        bg: '0d1117',
-        text: 'ffffff',
-        accent: '00ffaa',
+        bg: hexColor('0d1117'),
+        text: hexColor('ffffff'),
+        accent: hexColor('00ffaa'),
         radius: 8,
         speed: '8s',
         scale: 'linear',
@@ -564,9 +564,9 @@ describe('truncateUsername', () => {
       },
       {
         user: 'abc',
-        bg: '0d1117',
-        text: 'ffffff',
-        accent: '00ffaa',
+        bg: hexColor('0d1117'),
+        text: hexColor('ffffff'),
+        accent: hexColor('00ffaa'),
         radius: 8,
         speed: '8s',
         scale: 'linear',
