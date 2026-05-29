@@ -500,6 +500,50 @@ describe('generateSVG', () => {
       expect(svg).toContain('transition: none !important');
       expect(svg).toContain('class="scan-line"');
     });
+
+    it('generates a valid SVG output containing <svg and </svg>', () => {
+      const svg = generateNotFoundSVG('octocat', '#0d1117', '#00ffaa', '#ffffff', 8);
+      expect(svg.trim()).toBeDefined();
+      expect(svg).toContain('<svg');
+      expect(svg).toContain('</svg>');
+    });
+
+    it('renders the username in uppercase and escapes XML-reserved characters', () => {
+      const svg = generateNotFoundSVG('octocat&co', '#0d1117', '#00ffaa', '#ffffff', 8);
+      expect(svg).toContain('OCTOCAT&amp;CO');
+    });
+
+    it('displays the "NOT FOUND" text label', () => {
+      const svg = generateNotFoundSVG('octocat', '#0d1117', '#00ffaa', '#ffffff', 8);
+      expect(svg).toContain('NOT FOUND');
+    });
+
+    it('contains the expected stroke-width and stroke-opacity attributes for ghost towers', () => {
+      const svg = generateNotFoundSVG('octocat', '#0d1117', '#00ffaa', '#ffffff', 8);
+      expect(svg).toContain('stroke-width="0.5"');
+      expect(svg).toContain('stroke-opacity="0.18"');
+      expect(svg).toContain('stroke-opacity="0.12"');
+      expect(svg).toContain('stroke-opacity="0.22"');
+    });
+
+    it('applies custom bg, accent, and text colors to the SVG elements and styles', () => {
+      const bg = '#1a1c23';
+      const accent = '#ff007f';
+      const text = '#e1e2e7';
+      const svg = generateNotFoundSVG('octocat', bg, accent, text, 8);
+
+      // bg verification
+      expect(svg).toContain(`fill="${bg}"`);
+      expect(svg).toContain(`stop-color="${bg}"`);
+
+      // accent verification
+      expect(svg).toContain(`fill="${accent}"`);
+      expect(svg).toContain(`stroke="${accent}"`);
+
+      // text verification
+      expect(svg).toContain(`fill: ${text};`);
+      expect(svg).toContain(`fill="${text}"`);
+    });
   });
 
   // ── Timezone-aware pulse animation tests ─────────────────────────────────
