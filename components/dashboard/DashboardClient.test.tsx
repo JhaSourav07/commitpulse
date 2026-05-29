@@ -172,6 +172,22 @@ const mockSecondData = {
   commitClock: [],
 };
 
+const initialDataWithHigherStreak = {
+  ...mockInitialData,
+  stats: {
+    ...mockInitialData.stats,
+    peakStreak: 50,
+  },
+};
+
+const secondDataWithLowerStreak = {
+  ...mockSecondData,
+  stats: {
+    ...mockSecondData.stats,
+    peakStreak: 10,
+  },
+};
+
 describe('DashboardClient', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
@@ -311,4 +327,28 @@ describe('DashboardClient', () => {
       expect(screen.getByText(/Cannot compare a profile with itself/i)).toBeDefined();
     });
   });
+});
+it('shows Most Consistent badge for profile with higher peak streak in compare mode', async () => {
+  const mockFetch = vi.fn().mockResolvedValue({
+    ok: true,
+    json: async () => secondDataWithLowerStreak,
+  });
+
+  vi.stubGlobal('fetch', mockFetch);
+
+  render(<DashboardClient initialData={initialDataWithHigherStreak} username="Shivangi1515" />);
+
+  fireEvent.click(screen.getByText('Compare Profile'));
+
+  fireEvent.change(screen.getByPlaceholderText('Enter GitHub Username'), {
+    target: { value: 'JhaSourav07' },
+  });
+
+  fireEvent.click(screen.getByText('Compare'));
+
+  await waitFor(() => {
+    expect(screen.getByText('Exit Compare Mode')).toBeDefined();
+  });
+
+  expect(screen.getByText(/Most Consistent/i)).toBeDefined();
 });
