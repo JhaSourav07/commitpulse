@@ -19,7 +19,7 @@ const SVG_CSP_HEADER =
   "default-src 'none'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://fonts.gstatic.com;";
 
 // 1. Define a custom Error class for Validation
-class ValidationError extends Error {
+export class ValidationError extends Error {
   constructor(message: string) {
     super(message);
     this.name = 'ValidationError';
@@ -244,12 +244,10 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
     message.toLowerCase().includes('not found') ||
     message.toLowerCase().includes('could not resolve');
 
-  // 2. Safely detect if the error was a validation/client error
   const isValidationError =
     (error instanceof Error && error.name === 'ValidationError') ||
     message.toLowerCase().includes('invalid') ||
-    message.toLowerCase().includes('validation') ||
-    message.toLowerCase().includes('strictly for organizations');
+    message.toLowerCase().includes('validation');
 
   const isRateLimit =
     message.toLowerCase().includes('rate limit') ||
@@ -273,28 +271,6 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
     : 8;
   const errSpeed = (parseResult.success && parseResult.data.speed) || '8s';
 
-
-
-  if (isNotFound) {
-    const match = message.match(/"([^"]+)"|login of '([^']+)'/);
-    const fallbackTarget = parseResult.success
-      ? parseResult.data.org || parseResult.data.user
-      : 'unknown';
-    const badUsername = match?.[1] ?? match?.[2] ?? fallbackTarget;
-
-    const svg = generateNotFoundSVG(badUsername, errBg, errAccent, errText, errRadius, errSpeed);
-    return new NextResponse(svg, {
-      status: 404,
-      headers: {
-        'Content-Type': 'image/svg+xml',
-        'Cache-Control': 'no-cache',
-        'Content-Security-Policy': SVG_CSP_HEADER,
-      },
-    });
-  }
-
-<<<<<<< HEAD
-  // 3. Return a 400 Bad Request for Validation Errors
   if (isValidationError) {
     const validationSvg = `
       <svg xmlns="http://www.w3.org/2000/svg" width="400" height="150">
@@ -310,44 +286,55 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
       headers: {
         'Content-Type': 'image/svg+xml',
         'Cache-Control': 'no-store',
-=======
-  if (isRateLimit) {
-    // Extract retry-after time from error message if available
-    const retryMatch = message.match(/retry after (\d{1,2}:\d{2})/i);
-    const retryAfter = retryMatch ? `${retryMatch[1]} UTC` : undefined;
-
-    const svg = generateRateLimitSVG(errBg, errAccent, errText, errRadius, errSpeed, retryAfter);
-    return new NextResponse(svg, {
-      status: 429,
-      headers: {
-        'Content-Type': 'image/svg+xml',
-        'Cache-Control': 'public, s-maxage=60',
->>>>>>> 29ad0ab (fix: render branded SVG for rate limit errors instead of plain fallback)
         'Content-Security-Policy': SVG_CSP_HEADER,
       },
     });
   }
 
-<<<<<<< HEAD
-  // 4. Return a 500 Internal Server Error for real crashes
-=======
->>>>>>> 29ad0ab (fix: render branded SVG for rate limit errors instead of plain fallback)
-  console.error('[streak] Unhandled error:', message);
+  if (isRateLimit) {
+    const retryMatch = message.match(/retry after (\d{1,2}:\d{2})/i);
+    const retryAfter = retryMatch ? `${retryMatch[1]} UTC` : undefined;
+    const svg = generateRateLimitSVG(errBg, errAccent, errText, errRadius, errSpeed, retryAfter);
+    return new NextResponse(svg, {
+      status: 429,
+      headers: {
+        'Content-Type': 'image/svg+xml',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Content-Security-Policy': SVG_CSP_HEADER,
+      },
+    });
+  }
 
-  const errorSvg = `
-      <svg xmlns="http://www.w3.org/2000/svg" width="400" height="150">
-        <rect width="100%" height="100%" fill="#2d0000" rx="8"/>
-        <text x="50%" y="50%" text-anchor="middle" fill="#ffcccc" font-family="sans-serif">
-          Something went wrong. Please try again later.
-        </text>
-      </svg>
-    `;
+  if (isNotFound) {
+    const match = message.match(/"([^\"]+)"|login of '([^']+)'/);
+    const fallbackTarget = parseResult.success ? parseResult.data.org || parseResult.data.user : 'unknown';
+    const badUsername = match?.[1] ?? match?.[2] ?? fallbackTarget;
 
-  return new NextResponse(errorSvg, {
+    const svg = generateNotFoundSVG(badUsername, errBg, errAccent, errText, errRadius, errSpeed);
+    return new NextResponse(svg, {
+      status: 404,
+      headers: {
+        'Content-Type': 'image/svg+xml',
+        'Cache-Control': 'no-cache',
+        'Content-Security-Policy': SVG_CSP_HEADER,
+      },
+    });
+  }
+
+  const genericSvg = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="400" height="150">
+      <rect width="100%" height="100%" fill="#1a1a1a" rx="8"/>
+      <text x="50%" y="50%" text-anchor="middle" fill="#f3f3f3" font-family="sans-serif">
+        ${escapeSVGText(message)}
+      </text>
+    </svg>
+  `;
+
+  return new NextResponse(genericSvg, {
     status: 500,
     headers: {
       'Content-Type': 'image/svg+xml',
-      'Cache-Control': 'no-store',
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
       'Content-Security-Policy': SVG_CSP_HEADER,
     },
   });
