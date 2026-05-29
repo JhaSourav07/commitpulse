@@ -131,14 +131,16 @@ export default function LandingPage() {
     setTimeout(() => {
       guideRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 80);
-    // Fixed: Standardized timeout window interval down to 5000ms
     setTimeout(() => setCopied(false), 5000);
   };
 
   const handleDownloadSVG = () => {
     if (!svgContent || !hasUsername) return;
 
-    const blob = new Blob([svgContent], { type: 'image/svg+xml' });
+    // Fixed: Escapes raw ampersand nodes to guarantee compliant XML vector structures for the download file stream wrapper
+    const sanitizedSvgContent = svgContent.replace(/&(?!(amp|lt|gt|quot|apos);)/g, '&amp;');
+
+    const blob = new Blob([sanitizedSvgContent], { type: 'image/svg+xml;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.download = `${trimmedUsername}-commitpulse.svg`;
