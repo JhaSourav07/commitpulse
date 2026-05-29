@@ -68,18 +68,35 @@ html {
 }
 
 :root {
-  /* Vercel-inspired token set */
-  --color-surface-0: #000000;
-  --color-surface-1: #0a0a0a;
-  --color-surface-2: #111111;
-  --color-border: rgba(255, 255, 255, 0.08);
-  --color-muted: #a1a1aa;
-  --color-accent: rgba(99, 102, 241, 0.5);
-  /* indigo glow, hover only */
-}
+  --color-surface-0: #f5f5f7;
+  --color-surface-1: rgba(255, 255, 255, 0.7);
+  --color-surface-2: rgba(255, 255, 255, 0.55);
 
+  --color-border: rgba(0, 0, 0, 0.06);
+
+  --color-text-primary: #0a0a0a;
+  --color-text-secondary: #52525b;
+
+  --color-muted: #71717a;
+
+  --color-accent: rgba(92, 69, 253, 0.16);
+}
+.dark {
+  --color-surface-0: #000000;
+  --color-surface-1: rgba(255, 255, 255, 0.04);
+  --color-surface-2: rgba(255, 255, 255, 0.06);
+
+  --color-border: rgba(255, 255, 255, 0.08);
+
+  --color-text-primary: #ffffff;
+  --color-text-secondary: #a1a1aa;
+
+  --color-muted: #71717a;
+
+  --color-accent: rgba(92, 69, 253, 0.24);
+}
 body {
-  background: #ffffff;
+  background: #f5f5f7;
   color: #000000;
   margin: 0;
   padding: 0;
@@ -91,7 +108,13 @@ body {
   background: #000000;
   color: #ffffff;
 }
-
+* {
+  transition:
+    background-color 0.3s ease,
+    border-color 0.3s ease,
+    color 0.3s ease,
+    box-shadow 0.3s ease;
+}
 /* Vercel-style focus ring */
 @layer base {
   *:focus-visible {
@@ -110,8 +133,8 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(120, 120, 120, 0.35);
-  border-radius: 999px;
+  background: rgba(120, 120, 120, 0.22);
+  backdrop-filter: blur(12px);
 }
 
 .dark ::-webkit-scrollbar-thumb {
@@ -128,8 +151,8 @@ body {
 
 /* Custom text selection color to match site theme */
 ::selection {
-  background-color: #00ffaa;
-  color: #0d1117;
+  background-color: rgba(92, 69, 253, 0.24);
+  color: #111111;
 }
 /* html {
   scroll-behavior: smooth;
