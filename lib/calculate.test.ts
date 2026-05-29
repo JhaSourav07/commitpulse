@@ -200,6 +200,13 @@ describe('calculateStreak', () => {
     expect(result.longestStreak).toBe(1);
   });
 
+  it('does not walk past the start of a 1-day calendar when grace is larger than the available days', () => {
+    const calendar = buildCalendar([1]);
+
+    const result = calculateStreak(calendar, 'UTC', undefined, 7);
+    expect(result.currentStreak).toBe(1);
+  });
+
   it('handles a single inactive day safely (0 contributions)', () => {
     const calendar = buildCalendar([0]);
     expect(() => calculateStreak(calendar)).not.toThrow();
@@ -500,6 +507,29 @@ describe('calculateWrappedStats', () => {
     expect(result.highestDailyCount).toBe(15);
     expect(result.mostActiveDate).toBe('2024-01-07');
     expect(result.busiestMonth).toBe('2024-01');
+    expect(result.weekendRatio).toBe(100);
+  });
+  // =========================================================================
+  // ISSUE OBJECTIVE: Verify weekendRatio is 100 when all commits are on weekends
+  // =========================================================================
+  it('returns weekendRatio === 100 when all contributions are on weekends', () => {
+    // Note: 2026-05-02 is a Saturday, 2026-05-03 is a Sunday, 2026-05-04 is a Monday
+    const weekendCalendar = {
+      totalContributions: 10,
+      weeks: [
+        {
+          contributionDays: [
+            { date: '2026-05-02', contributionCount: 5 }, // Saturday (Weekend)
+            { date: '2026-05-03', contributionCount: 5 }, // Sunday (Weekend)
+            { date: '2026-05-04', contributionCount: 0 }, // Monday (Weekday - 0 commits)
+          ],
+        },
+      ],
+    } as Parameters<typeof calculateWrappedStats>[0]; // Safely infers the exact type the function expects!
+
+    const result = calculateWrappedStats(weekendCalendar);
+
+    // Assert the ratio is exactly 100%
     expect(result.weekendRatio).toBe(100);
   });
 });

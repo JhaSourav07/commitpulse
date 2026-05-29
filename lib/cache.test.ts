@@ -226,6 +226,26 @@ describe('TTLCache', () => {
 
       cache.destroy();
     });
+    it('returns correct values around the exact TTL boundary', () => {
+      vi.useFakeTimers();
+
+      const cache = new TTLCache<string>();
+      cache.set('key', 'value', 1000);
+
+      // 999ms -> still valid
+      vi.advanceTimersByTime(999);
+      expect(cache.get('key')).toBe('value');
+
+      // 1000ms exact boundary -> still valid
+      vi.advanceTimersByTime(1);
+      expect(cache.get('key')).toBe('value');
+
+      // 1001ms -> expired
+      vi.advanceTimersByTime(1);
+      expect(cache.get('key')).toBeNull();
+
+      cache.destroy();
+    });
 
     it('returns null after passing TTL expiry', () => {
       vi.useFakeTimers();
@@ -379,6 +399,25 @@ describe('TTLCache', () => {
       // (depends on exact timing, but get() should handle it gracefully)
       const result = cache.get('short');
       expect([null, 'lived']).toContain(result);
+      cache.destroy();
+    });
+    it('does not throw when ttlMs is Number.EPSILON', () => {
+      const cache = new TTLCache<string>();
+
+      expect(() => {
+        cache.set('key', 'value', Number.EPSILON);
+      }).not.toThrow();
+
+      cache.destroy();
+    });
+
+    it('does not throw when ttlMs is a very small positive number', () => {
+      const cache = new TTLCache<string>();
+
+      expect(() => {
+        cache.set('key', 'value', 0.0001);
+      }).not.toThrow();
+
       cache.destroy();
     });
 

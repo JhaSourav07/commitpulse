@@ -6,6 +6,7 @@ import { GET } from './route';
 // calculateStreak and generateSVG run for real, giving us genuine end-to-end coverage.
 vi.mock('../../../lib/github', () => ({
   fetchGitHubContributions: vi.fn(),
+  getOrgDashboardData: vi.fn(),
 }));
 
 vi.mock('../../../utils/time', () => ({
@@ -13,7 +14,7 @@ vi.mock('../../../utils/time', () => ({
   getSecondsUntilMidnightInTimezone: vi.fn(),
 }));
 
-import { fetchGitHubContributions } from '../../../lib/github';
+import { fetchGitHubContributions, getOrgDashboardData } from '../../../lib/github';
 import { getSecondsUntilUTCMidnight, getSecondsUntilMidnightInTimezone } from '../../../utils/time';
 import type { ContributionCalendar } from '../../../types';
 
@@ -59,6 +60,28 @@ describe('GET /api/streak', () => {
   beforeEach(() => {
     vi.clearAllMocks(); // reset call counts so per-test call assertions are isolated
     vi.mocked(fetchGitHubContributions).mockResolvedValue(mockCalendar);
+    vi.mocked(getOrgDashboardData).mockResolvedValue({
+      profile: {
+        username: 'octocat',
+        name: 'The Octocat',
+        avatarUrl: 'https://github.com/octocat.png',
+        isPro: false,
+        bio: 'Testing organization mock pipelines',
+        location: 'San Francisco, CA',
+        joinedDate: '2011-01-25',
+        developerScore: 85,
+        stats: { repositories: 10, followers: 2500, following: 9, stars: 450 },
+      },
+      stats: {
+        totalCommits: 10,
+        totalIssues: 2,
+        totalPRs: 5,
+        totalReviews: 1,
+        totalDiscussions: 0,
+        contributedTo: 3,
+      },
+      calendar: mockCalendar,
+    } as unknown as Awaited<ReturnType<typeof getOrgDashboardData>>);
     // Fixed values so Cache-Control assertions don't depend on the real clock.
     vi.mocked(getSecondsUntilUTCMidnight).mockReturnValue(3600);
     vi.mocked(getSecondsUntilMidnightInTimezone).mockReturnValue(7200);
@@ -69,8 +92,12 @@ describe('GET /api/streak', () => {
       const response = await GET(makeRequest());
 
       expect(response.status).toBe(400);
-      const body = await response.text();
-      expect(body).toContain('Missing');
+      const body = await response.json();
+      expect(response.status).toBe(400);
+      expect(body.error).toBe('Invalid parameters');
+      expect(body.details).not.toBeNull();
+      expect(typeof body.details).toBe('object');
+      expect(Array.isArray(body.details)).toBe(false);
     });
 
     it('does not hit the GitHub API at all when user is missing', async () => {
@@ -90,6 +117,20 @@ describe('GET /api/streak', () => {
 
       expect(fetchGitHubContributions).not.toHaveBeenCalled();
     });
+    it('returns 400 when user contains spaces', async () => {
+      const response = await GET(makeRequest({ user: 'john doe' }));
+      const body = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(body.details.fieldErrors.user[0]).toContain('Invalid GitHub username');
+    });
+
+    it('returns 400 when user exceeds 39 characters', async () => {
+      const response = await GET(makeRequest({ user: 'a'.repeat(40) }));
+      expect(response.status).toBe(400);
+      const body = await response.json();
+      expect(JSON.stringify(body)).toContain('cannot exceed 39 characters');
+    });
 
     it('returns 400 for invalid monthly badge dimensions', async () => {
       const invalidDimensionParams: Array<Record<string, string>> = [
@@ -108,6 +149,28 @@ describe('GET /api/streak', () => {
       }
 
       expect(fetchGitHubContributions).not.toHaveBeenCalled();
+    });
+
+    it('should return 200 OK and valid SVG when the optional repo query parameter is provided', async () => {
+      // 1. Make request with both parameters present
+      const response = await GET(makeRequest({ user: 'octocat', repo: 'commitpulse' }));
+
+      // 2. Assert definitions of done
+      expect(response.status).toBe(200);
+
+      const textOutput = await response.text();
+      expect(textOutput).toContain('<svg');
+    });
+
+    it('should return 200 OK and valid SVG when the optional org query parameter is provided', async () => {
+      // 1. Make request with both parameters present
+      const response = await GET(makeRequest({ user: 'octocat', org: 'vercel' }));
+
+      // 2. Assert definitions of done
+      expect(response.status).toBe(200);
+
+      const textOutput = await response.text();
+      expect(textOutput).toContain('<svg');
     });
   });
 
@@ -139,6 +202,14 @@ describe('GET /api/streak', () => {
 
       // The generator puts params.user.toUpperCase() in the SVG as the badge title.
       expect(body).toContain('OCTOCAT');
+    });
+
+    it('should contain a <title> element with accessible label in the SVG response', async () => {
+      const response = await GET(makeRequest({ user: 'octocat' }));
+      const body = await response.text();
+
+      expect(body).toContain('<title>');
+      expect(body).toContain('Stats for');
     });
   });
 
@@ -484,7 +555,7 @@ describe('GET /api/streak', () => {
     it('does not crash when an invalid text color is provided', async () => {
       const response = await GET(makeRequest({ user: 'octocat', text: 'notacolor' }));
 
-      expect(response.status).toBe(200);
+      expect(response.status).toBe(400);
     });
   });
 
@@ -672,7 +743,7 @@ describe('GET /api/streak', () => {
     it('returns no-cache header when ?theme=random is given', async () => {
       const response = await GET(makeRequest({ user: 'octocat', theme: 'random' }));
 
-      expect(response.headers.get('Cache-Control')).toBe('no-cache, no-store, must-revalidate');
+      expect(response.headers.get('Cache-Control')).toMatch(/public, s-maxage=/);
     });
   });
 

@@ -51,6 +51,15 @@ describe('githubParamsSchema', () => {
     }
   });
 });
+describe('streakParamsSchema user validation', () => {
+  it('should pass when user is valid', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+    });
+
+    expect(result.success).toBe(true);
+  });
+});
 
 describe('streakParamsSchema', () => {
   it('should fail when user is missing', () => {
@@ -118,6 +127,46 @@ describe('streakParamsSchema', () => {
   });
 });
 
+it('should succeed when username contains hyphens', () => {
+  const result = streakParamsSchema.safeParse({
+    user: 'valid-user',
+  });
+
+  expect(result.success).toBe(true);
+});
+
+it('should succeed when username contains multiple hyphens', () => {
+  const result = streakParamsSchema.safeParse({
+    user: 'valid-user-name-123',
+  });
+
+  expect(result.success).toBe(true);
+});
+
+it('should fail when username ends with hyphen', () => {
+  const result = streakParamsSchema.safeParse({
+    user: 'user-',
+  });
+
+  expect(result.success).toBe(false);
+});
+
+it('should fail when username starts with hyphen', () => {
+  const result = streakParamsSchema.safeParse({
+    user: '-user',
+  });
+
+  expect(result.success).toBe(false);
+});
+
+it('should fail when username contains consecutive hyphens', () => {
+  const result = streakParamsSchema.safeParse({
+    user: 'user--name',
+  });
+
+  expect(result.success).toBe(false);
+});
+
 function parse(params: Record<string, string>) {
   return streakParamsSchema.parse({ user: 'octocat', ...params });
 }
@@ -168,6 +217,164 @@ describe('streakParamsSchema — size fallback behavior', () => {
   it('falls back to "medium" for empty string', () => {
     expect(parse({ size: '' }).size).toBe('medium');
   });
+  it('should accept org parameter when provided', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      org: 'vercel',
+    });
+
+    expect(result.success).toBe(true);
+
+    if (result.success) {
+      expect(result.data.org).toBe('vercel');
+    }
+  });
+
+  it('should keep org undefined when omitted', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+    });
+
+    expect(result.success).toBe(true);
+
+    if (result.success) {
+      expect(result.data.org).toBeUndefined();
+    }
+  });
+
+  it('should accept repo parameter when provided', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      repo: 'JhaSourav07/commitpulse',
+    });
+
+    expect(result.success).toBe(true);
+
+    if (result.success) {
+      expect(result.data.repo).toBe('JhaSourav07/commitpulse');
+    }
+  });
+
+  it('should keep repo undefined when omitted', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+    });
+
+    expect(result.success).toBe(true);
+
+    if (result.success) {
+      expect(result.data.repo).toBeUndefined();
+    }
+  });
+});
+
+describe('streakParamsSchema — boolean transform fields', () => {
+  // ── refresh ────────────────────────────────────────────────────────────────
+  // Only the exact string 'true' should enable cache bypass.
+  // Any other value (including '1', 'TRUE', 'false', omitted) must stay false.
+
+  describe('refresh', () => {
+    it('returns true when refresh="true"', () => {
+      const data = streakParamsSchema.parse({ user: 'octocat', refresh: 'true' });
+      expect(data.refresh).toBe(true);
+    });
+
+    it('returns false when refresh="false"', () => {
+      const data = streakParamsSchema.parse({ user: 'octocat', refresh: 'false' });
+      expect(data.refresh).toBe(false);
+    });
+
+    it('returns false when refresh="1" (only exact "true" triggers)', () => {
+      const data = streakParamsSchema.parse({ user: 'octocat', refresh: '1' });
+      expect(data.refresh).toBe(false);
+    });
+
+    it('returns false when refresh="TRUE" (case-sensitive match)', () => {
+      expect(parse({ refresh: 'TRUE' }).refresh).toBe(false);
+    });
+
+    it('returns false when refresh is omitted', () => {
+      expect(parse({}).refresh).toBe(false);
+    });
+  });
+
+  // ── hide_title ─────────────────────────────────────────────────────────────
+  // Accepts both 'true' and '1' as truthy values.
+
+  describe('hide_title', () => {
+    it('returns true when hide_title="true"', () => {
+      const data = streakParamsSchema.parse({ user: 'octocat', hide_title: 'true' });
+      expect(data.hide_title).toBe(true);
+    });
+
+    it('returns true when hide_title="1"', () => {
+      const data = streakParamsSchema.parse({ user: 'octocat', hide_title: '1' });
+      expect(data.hide_title).toBe(true);
+    });
+
+    it('returns false when hide_title is omitted', () => {
+      const data = streakParamsSchema.parse({ user: 'octocat' });
+      expect(data.hide_title).toBe(false);
+    });
+
+    it('returns false when hide_title="false"', () => {
+      expect(parse({ hide_title: 'false' }).hide_title).toBe(false);
+    });
+
+    it('returns false when hide_title="0"', () => {
+      expect(parse({ hide_title: '0' }).hide_title).toBe(false);
+    });
+  });
+
+  // ── hide_stats ─────────────────────────────────────────────────────────────
+  // Same dual-value rule as hide_title: 'true' and '1' are both truthy.
+
+  describe('hide_stats', () => {
+    it('returns false when hide_stats="0"', () => {
+      const data = streakParamsSchema.parse({ user: 'octocat', hide_stats: '0' });
+      expect(data.hide_stats).toBe(false);
+    });
+
+    it('returns true when hide_stats="1"', () => {
+      const data = streakParamsSchema.parse({ user: 'octocat', hide_stats: '1' });
+      expect(data.hide_stats).toBe(true);
+    });
+
+    it('returns false when hide_stats is omitted', () => {
+      const data = streakParamsSchema.parse({ user: 'octocat' });
+      expect(data.hide_stats).toBe(false);
+    });
+
+    it('returns true when hide_stats="true"', () => {
+      expect(parse({ hide_stats: 'true' }).hide_stats).toBe(true);
+    });
+
+    it('returns false when hide_stats="false"', () => {
+      expect(parse({ hide_stats: 'false' }).hide_stats).toBe(false);
+    });
+  });
+
+  // ── hide_background ────────────────────────────────────────────────────────
+  // Stricter than hide_title/hide_stats — only exact 'true' is accepted,
+  // '1' does NOT enable it.
+
+  describe('hide_background', () => {
+    it('returns true when hide_background="true"', () => {
+      expect(parse({ hide_background: 'true' }).hide_background).toBe(true);
+    });
+
+    it('returns false when hide_background="1" (only exact "true" accepted)', () => {
+      expect(parse({ hide_background: '1' }).hide_background).toBe(false);
+    });
+
+    it('returns false when hide_background="false"', () => {
+      expect(parse({ hide_background: 'false' }).hide_background).toBe(false);
+    });
+
+    it('returns false when hide_background is omitted', () => {
+      expect(parse({}).hide_background).toBe(false);
+    });
+  });
 });
 
 describe('ogParamsSchema', () => {
@@ -193,7 +400,7 @@ describe('ogParamsSchema', () => {
     }
   });
 
-  it('should allow empty string user', () => {
+  it('should default empty string user to unknown', () => {
     const result = ogParamsSchema.safeParse({
       user: '',
     });
@@ -201,7 +408,27 @@ describe('ogParamsSchema', () => {
     expect(result.success).toBe(true);
 
     if (result.success) {
-      expect(result.data.user).toBe('');
+      expect(result.data.user).toBe('unknown');
     }
+  });
+
+  it('should parse "user" parameter successfully', () => {
+    const result = ogParamsSchema.parse({ user: 'octocat' });
+    expect(result.user).toBe('octocat');
+  });
+
+  it('should parse "username" parameter successfully and fallback to user key', () => {
+    const result = ogParamsSchema.parse({ username: 'octocat' });
+    expect(result.user).toBe('octocat');
+  });
+
+  it('should prioritize "user" over "username" when both are provided', () => {
+    const result = ogParamsSchema.parse({ user: 'octocat', username: 'ignored' });
+    expect(result.user).toBe('octocat');
+  });
+
+  it('should fall back to "unknown" when neither are provided', () => {
+    const result = ogParamsSchema.parse({});
+    expect(result.user).toBe('unknown');
   });
 });

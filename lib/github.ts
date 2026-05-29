@@ -4,6 +4,7 @@ import type { ContributionCalendar, ContributionDay } from '@/types';
 import { calculateStreak, aggregateCalendars, calculateWrappedStats } from '@/lib/calculate';
 import { TTLCache } from '@/lib/cache';
 import { LANGUAGE_COLORS } from '@/lib/svg/languageColors';
+import { CONTRIBUTION_MILESTONES, STREAK_MILESTONES } from './svg/constants';
 
 interface GitHubRepo {
   stargazers_count: number;
@@ -12,10 +13,8 @@ interface GitHubRepo {
 
 const MAX_RETRIES = 3;
 const BASE_DELAY_MS = 500;
-const CONTRIBUTION_MILESTONES = [1, 10, 100, 250, 500, 1000];
-const STREAK_MILESTONES = [3, 7, 30, 100];
-const GRAPHQL_TIMEOUT_MS = 8000;
-const REST_TIMEOUT_MS = 5000;
+const GRAPHQL_TIMEOUT_MS = 8000; // 8s for GraphQL endpoint
+const REST_TIMEOUT_MS = 5000; // 5s for REST endpoints
 
 export async function fetchWithRetry(
   url: string | URL,
@@ -30,27 +29,39 @@ export async function fetchWithRetry(
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), resolvedTimeout);
+  const abortRequest = () => controller.abort();
 
   if (options.signal) {
-    options.signal.addEventListener('abort', () => controller.abort(), { once: true });
+    options.signal.addEventListener('abort', abortRequest, { once: true });
   }
 
   let res: Response | null = null;
+  let fetchError: unknown;
+  let didThrow = false;
+
   try {
     res = await fetch(url, { ...options, signal: controller.signal });
-  } catch (err) {
+  } catch (err: unknown) {
+    fetchError = err;
+    didThrow = true;
+  } finally {
     clearTimeout(timeoutId);
-    if (options.signal?.aborted) throw err;
-    if (err instanceof Error && err.name === 'AbortError') {
+    options.signal?.removeEventListener('abort', abortRequest);
+  }
+
+  if (didThrow) {
+    if (options.signal?.aborted) throw fetchError;
+    if (fetchError instanceof Error && fetchError.name === 'AbortError') {
       throw new Error(`GitHub API request timed out after ${resolvedTimeout / 1000}s`);
     }
-    if (attempt >= MAX_RETRIES) throw err;
+    if (attempt >= MAX_RETRIES) throw fetchError;
     const delay = BASE_DELAY_MS * Math.pow(2, attempt);
     await new Promise((resolve) => setTimeout(resolve, delay));
     return fetchWithRetry(url, options, attempt + 1, timeoutMs);
   }
 
-  clearTimeout(timeoutId);
+  if (!res) throw new Error('GitHub API request failed without a response');
+
   const shouldRetry = res.status === 429 || res.status >= 500;
   if (!shouldRetry || attempt >= MAX_RETRIES) return res;
 
@@ -61,7 +72,53 @@ export async function fetchWithRetry(
 
 const GITHUB_GRAPHQL_URL = 'https://api.github.com/graphql';
 const GITHUB_REST_URL = 'https://api.github.com';
-const MISSING_GITHUB_TOKEN_MESSAGE = 'GitHub token is missing. Set GITHUB_PAT or GITHUB_TOKEN.';
+type GitHubRateLimitInfo = {
+  limit: number | null;
+  remaining: number | null;
+  reset: number | null;
+  resetAt: string | null;
+};
+
+function parseRateLimitHeader(value: string | null): number | null {
+  if (!value) return null;
+
+  const parsed = parseInt(value, 10);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function getGitHubRateLimitInfo(res: Response): GitHubRateLimitInfo {
+  const limit = parseRateLimitHeader(res.headers.get('x-ratelimit-limit'));
+  const remaining = parseRateLimitHeader(res.headers.get('x-ratelimit-remaining'));
+  const reset = parseRateLimitHeader(res.headers.get('x-ratelimit-reset'));
+
+  return {
+    limit,
+    remaining,
+    reset,
+    resetAt: reset ? new Date(reset * 1000).toISOString() : null,
+  };
+}
+
+function createRateLimitError(res: Response): Error {
+  const rateLimit = getGitHubRateLimitInfo(res);
+  const resetMessage = rateLimit.resetAt ? ` Please try again after ${rateLimit.resetAt}.` : '';
+
+  return new Error(
+    `GitHub API rate limit exceeded.${resetMessage} Configure GITHUB_TOKEN to increase the request limit.`
+  );
+}
+
+function throwIfRateLimited(res: Response): void {
+  const rateLimit = getGitHubRateLimitInfo(res);
+
+  if (res.status === 403 && rateLimit.remaining === 0) {
+    throw createRateLimitError(res);
+  }
+
+  if (res.status === 429) {
+    throw createRateLimitError(res);
+  }
+}
 
 type GitHubContributionResponse = {
   data?: {
@@ -127,7 +184,11 @@ export function clearGitHubApiCacheForTests(): void {
 
 function getGitHubToken(): string {
   const token = process.env.GITHUB_PAT || process.env.GITHUB_TOKEN;
-  if (!token || token.trim() === '') throw new Error(MISSING_GITHUB_TOKEN_MESSAGE);
+  const MISSING_GITHUB_TOKEN_MESSAGE = 'GitHub token is missing. Set GITHUB_PAT or GITHUB_TOKEN.';
+  if (!token || token.trim() === '') {
+    throw new Error(MISSING_GITHUB_TOKEN_MESSAGE);
+  }
+
   return token;
 }
 
@@ -190,6 +251,7 @@ export async function fetchGitHubContributions(
   });
 
   if (!res.ok) {
+    throwIfRateLimited(res);
     if (res.status === 401) throw new Error('GitHub PAT is invalid or missing');
     throw new Error(`GitHub GraphQL API returned status ${res.status}`);
   }
@@ -252,6 +314,7 @@ export async function fetchUserProfile(
   });
 
   if (!res.ok) {
+    throwIfRateLimited(res);
     if (res.status === 404) throw new Error('User not found');
     throw new Error(`GitHub REST API error: ${res.status}`);
   }
@@ -270,9 +333,8 @@ export async function fetchUserRepos(
     const cached = reposCache.get(key);
     if (cached) return cached;
   }
-  const allRepos: GitHubRepo[] = [];
 
-  const res = await fetchWithRetry(
+  const firstPageRes = await fetchWithRetry(
     `${GITHUB_REST_URL}/users/${username}/repos?per_page=100&page=1&sort=pushed`,
     {
       headers: getHeaders(),
@@ -281,25 +343,45 @@ export async function fetchUserRepos(
     }
   );
 
-  if (!res.ok) throw new Error(`GitHub REST API error: ${res.status}`);
-  const firstPageRepos = (await res.json()) as GitHubRepo[];
-  allRepos.push(...firstPageRepos);
+  if (!firstPageRes.ok) {
+    throwIfRateLimited(firstPageRes);
+    throw new Error(`GitHub REST API error: ${firstPageRes.status}`);
+  }
+
+  const firstPageRepos = (await firstPageRes.json()) as GitHubRepo[];
+  const allRepos: GitHubRepo[] = [...firstPageRepos];
+
+  const MAX_PAGES = 3;
 
   if (firstPageRepos.length === 100) {
-    const fetchPromises = [2, 3].map((page) =>
-      fetchWithRetry(
-        `${GITHUB_REST_URL}/users/${username}/repos?per_page=100&page=${page}&sort=pushed`,
-        {
-          headers: getHeaders(),
-          cache: 'no-store',
-          signal: options.signal,
-        }
+    const remainingPages = Array.from({ length: MAX_PAGES - 1 }, (_, i) => i + 2);
+
+    const responses = await Promise.all(
+      remainingPages.map((page) =>
+        fetchWithRetry(
+          `${GITHUB_REST_URL}/users/${username}/repos?per_page=100&page=${page}&sort=pushed`,
+          {
+            headers: getHeaders(),
+            cache: 'no-store',
+            signal: options.signal,
+          }
+        )
       )
     );
 
-    const responses = await Promise.all(fetchPromises);
-    for (const response of responses) {
-      if (response.ok) allRepos.push(...((await response.json()) as GitHubRepo[]));
+    const pagesRepos = await Promise.all(
+      responses.map(async (response) => {
+        if (!response.ok) {
+          throwIfRateLimited(response);
+          throw new Error(`GitHub REST API error: ${response.status}`);
+        }
+
+        return (await response.json()) as GitHubRepo[];
+      })
+    );
+
+    for (const repos of pagesRepos) {
+      allRepos.push(...repos);
     }
   }
 
@@ -339,12 +421,12 @@ export async function getOrgDashboardData(orgName: string, options: FetchOptions
   }
 
   // Fetch calendars for all members concurrently (Capped by member limit to avoid 429)
-  const memberCalendarsPromises = members.map((member) =>
+  const memberCalendarsPromises = members.map((member: string) =>
     fetchGitHubContributions(member, options).catch(() => null)
   );
 
   const calendars = (await Promise.all(memberCalendarsPromises)).filter(
-    (c) => c !== null
+    (c: ContributionCalendar | null) => c !== null
   ) as ContributionCalendar[];
 
   // Create the Mega-City
@@ -368,7 +450,7 @@ export async function getOrgDashboardData(orgName: string, options: FetchOptions
       repositories: profileData.public_repos,
       followers: profileData.followers,
       following: members.length, // Display members count here
-      stars: reposData.reduce((acc, r) => acc + r.stargazers_count, 0),
+      stars: reposData.reduce((acc: number, r: GitHubRepo) => acc + r.stargazers_count, 0),
     },
   };
 
@@ -414,8 +496,15 @@ export async function getWrappedData(username: string, year: string) {
  * UTILS & EXPORTS
  * ========================================================================== */
 
-export function generateAchievements(totalContributions: number, currentStreak: number) {
+export function generateAchievements(
+  totalContributions: number,
+  currentStreak: number,
+  weekendCommits: number = 0,
+  uniqueLanguages: number = 0
+) {
   const achievements = [];
+
+  // ── Contribution milestones ────────────────────────────────────────────────
   for (const threshold of CONTRIBUTION_MILESTONES) {
     achievements.push({
       id: `contrib-${threshold}`,
@@ -434,6 +523,8 @@ export function generateAchievements(totalContributions: number, currentStreak: 
       progress: Math.min(100, Math.round((totalContributions / threshold) * 100)),
     });
   }
+
+  // ── Streak milestones ──────────────────────────────────────────────────────
   for (const threshold of STREAK_MILESTONES) {
     achievements.push({
       id: `streak-${threshold}`,
@@ -450,6 +541,57 @@ export function generateAchievements(totalContributions: number, currentStreak: 
       progress: Math.min(100, Math.round((currentStreak / threshold) * 100)),
     });
   }
+
+  // ── Consistency King (tiered total-contribution milestones) ────────────────
+  const CONSISTENCY_MILESTONES = [500, 1000, 2000] as const;
+  const CONSISTENCY_LABELS = [
+    'Consistency King',
+    'Consistency King II',
+    'Consistency King III',
+  ] as const;
+  for (let i = 0; i < CONSISTENCY_MILESTONES.length; i++) {
+    const threshold = CONSISTENCY_MILESTONES[i];
+    achievements.push({
+      id: `consistency-${threshold}`,
+      title: CONSISTENCY_LABELS[i],
+      description: `Reached ${threshold.toLocaleString()} total contributions`,
+      icon: '👑',
+      isUnlocked: totalContributions >= threshold,
+      type: 'contributions' as const,
+      threshold,
+      currentValue: totalContributions,
+      progress: Math.min(100, Math.round((totalContributions / threshold) * 100)),
+    });
+  }
+
+  // ── Weekend Warrior ────────────────────────────────────────────────────────
+  // Computed from commitClock: dayTotals[0] (Sun) + dayTotals[6] (Sat).
+  achievements.push({
+    id: 'weekend-warrior',
+    title: 'Weekend Warrior',
+    description: '10+ contributions on weekends (Sat & Sun)',
+    icon: '🏋️',
+    isUnlocked: weekendCommits >= 10,
+    type: 'behavior' as const,
+    threshold: 10,
+    currentValue: weekendCommits,
+    progress: Math.min(100, Math.round((weekendCommits / 10) * 100)),
+  });
+
+  // ── Polyglot ───────────────────────────────────────────────────────────────
+  // Computed from fetchUserRepos: count of distinct repo.language values.
+  achievements.push({
+    id: 'polyglot',
+    title: 'Polyglot',
+    description: 'Used 5+ distinct programming languages',
+    icon: '🐙',
+    isUnlocked: uniqueLanguages >= 5,
+    type: 'behavior' as const,
+    threshold: 5,
+    currentValue: uniqueLanguages,
+    progress: Math.min(100, Math.round((uniqueLanguages / 5) * 100)),
+  });
+
   return achievements;
 }
 type StreakStats = {
@@ -588,25 +730,21 @@ export async function getFullDashboardData(username: string, options: FetchOptio
     .sort((a, b) => b.percentage - a.percentage)
     .slice(0, 5);
 
+  const commitClock = buildCommitClock(allDays);
+  const weekendCommits =
+    (commitClock.find((d) => d.day === 'Sun')?.commits ?? 0) +
+    (commitClock.find((d) => d.day === 'Sat')?.commits ?? 0);
+
+  const uniqueLanguages = Object.keys(langCounts).length;
+
   const achievements = generateAchievements(
     streakStats.totalContributions,
-    streakStats.currentStreak
+    streakStats.currentStreak,
+    weekendCommits,
+    uniqueLanguages
   );
 
-  // 4. Insights Generation
   const insights = buildInsights(streakStats, languages);
-
-  // Aggregate real contribution data by day of week from the already-fetched calendar
-  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  const dayTotals = new Array(7).fill(0);
-  for (const day of allDays) {
-    const dow = new Date(day.date).getUTCDay();
-    dayTotals[dow] += day.contributionCount;
-  }
-  const commitClock = dayNames.map((name, i) => ({
-    day: name,
-    commits: dayTotals[i],
-  }));
 
   return {
     profile,

@@ -4,7 +4,7 @@ import type { BadgeParams, ContributionCalendar, StreakStats, MonthlyStats } fro
 import { getLabels, type BadgeLabels } from '../i18n/badgeLabels';
 import { AUTO_THEME_DARK, AUTO_THEME_LIGHT } from './themes';
 import { TOWER_ANIMATION_CSS } from './animations';
-import { computeTowers, projectIsometric, type TowerData } from './layout';
+import { computeTowers, type TowerData } from './layout';
 import { sanitizeFont, sanitizeHexColor, sanitizeRadius, sanitizeGoogleFontUrl } from './sanitizer';
 
 import { SVG_WIDTH, SVG_HEIGHT, FONT_MAP, isFontKey } from './generatorConstants';
@@ -173,6 +173,7 @@ function renderStyle(
     .heat-particles { display: none; }
     .scan-line {
       animation: none !important;
+      transition: none !important;
       transform: translateY(var(--scan-start, ${fs(20)}px)) !important;
     }
   }
@@ -189,7 +190,7 @@ function renderTowers(towerData: TowerData[], accent: string, text: string, sf: 
         <g transform="translate(${t.x}, ${t.y})">
           <g class="cp-tower" style="animation-delay: ${delay}s;">
             ${t.isTodayWithCommits ? '<animate attributeName="opacity" values="1;0.4;1" dur="1.5s" repeatCount="indefinite" />' : ''}
-            <title>${t.tooltip}</title>
+            <title>${escapeXML(t.tooltip)}</title>
             <path d="M0 ${10 - t.h} L0 10 L-16 0 L-16 ${-t.h} Z" fill="${color}" fill-opacity="${t.faceOpacity.left}" stroke="${color}" stroke-opacity="${t.strokeOpacity}" stroke-width="${t.strokeWidth}" />
             <path d="M0 ${10 - t.h} L0 10 L16 0 L16 ${-t.h} Z" fill="${color}" fill-opacity="${t.faceOpacity.right}" stroke="${color}" stroke-opacity="${t.strokeOpacity}" stroke-width="${t.strokeWidth}" />
             <path d="M0 ${-t.h} L16 ${10 - t.h} L0 ${20 - t.h} L-16 ${10 - t.h} Z" fill="${color}" fill-opacity="${t.faceOpacity.top}" stroke="${color}" stroke-opacity="${t.strokeOpacity}" stroke-width="${t.strokeWidth}" />
@@ -397,7 +398,7 @@ function generateAutoThemeSVG(
         <g transform="translate(${t.x}, ${t.y})">
           <g class="cp-tower" style="animation-delay: ${delay}s;">
             ${t.isTodayWithCommits ? '<animate attributeName="opacity" values="1;0.4;1" dur="1.5s" repeatCount="indefinite" />' : ''}
-            <title>${t.tooltip}</title>
+            <title>${escapeXML(t.tooltip)}</title>
             <path d="M0 ${10 - t.h} L0 10 L-16 0 L-16 ${-t.h} Z" class="${fillClass}" fill-opacity="${t.faceOpacity.left}" stroke="${strokeColor}" stroke-opacity="${t.strokeOpacity}" stroke-width="${t.strokeWidth}" />
             <path d="M0 ${10 - t.h} L0 10 L16 0 L16 ${-t.h} Z" class="${fillClass}" fill-opacity="${t.faceOpacity.right}" stroke="${strokeColor}" stroke-opacity="${t.strokeOpacity}" stroke-width="${t.strokeWidth}" />
             <path d="M0 ${-t.h} L16 ${10 - t.h} L0 ${20 - t.h} L-16 ${10 - t.h} Z" class="${fillClass}" fill-opacity="${t.faceOpacity.top}" stroke="${strokeColor}" stroke-opacity="${t.strokeOpacity}" stroke-width="${t.strokeWidth}" />
@@ -447,6 +448,7 @@ function generateAutoThemeSVG(
     .heat-particles { display: none; }
     .scan-line {
       animation: none !important;
+      transition: none !important;
       transform: translateY(var(--scan-start, ${s(20)}px)) !important;
     }
   }
@@ -487,9 +489,10 @@ export function generateMonthlySVG(stats: MonthlyStats, params: BadgeParams): st
   const accent = `#${sanitizeHexColor(params.accent, '00ffaa')}`;
   const text = `#${sanitizeHexColor(params.text, 'ffffff')}`;
 
-  const sanitizeFont = (name: string) => name.replace(/[^a-zA-Z0-9\s-]/g, '').trim();
-  const sanitizedFont = params.font ? sanitizeFont(params.font) : null;
-  const predefinedFont = getFontFromMap(sanitizedFont);
+  const sanitizedFont = sanitizeFont(params.font);
+  const predefinedFont = sanitizedFont
+    ? (FONT_MAP[sanitizedFont.toLowerCase() as keyof typeof FONT_MAP] ?? null)
+    : null;
   const isPredefinedFont = Boolean(predefinedFont);
   const selectedFont = isPredefinedFont
     ? predefinedFont
@@ -561,6 +564,9 @@ export function generateMonthlySVG(stats: MonthlyStats, params: BadgeParams): st
   .stats { font-family: ${statsFont}; fill: ${accent}; font-size: 36px; font-weight: 600; letter-spacing: 0; }
   .label { font-family: "Roboto", sans-serif; fill: ${text}; font-size: 10px; font-weight: 400; letter-spacing: 1px; opacity: 0.7; }
   .delta { font-family: "Roboto", sans-serif; fill: ${deltaColor}; font-size: 12px; font-weight: 500; }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
   </style>
 
   <rect width="${width}" height="${height}" rx="${radius}" fill="${params.hideBackground ? 'transparent' : bg}" />
@@ -581,9 +587,10 @@ function generateAutoThemeMonthlySVG(stats: MonthlyStats, params: BadgeParams): 
   const light = AUTO_THEME_LIGHT;
   const dark = AUTO_THEME_DARK;
   const safeUser = escapeXML(params.user || 'GitHub User');
-  const sanitizeFont = (name: string) => name.replace(/[^a-zA-Z0-9\s-]/g, '').trim();
-  const sanitizedFont = params.font ? sanitizeFont(params.font) : null;
-  const predefinedFont = getFontFromMap(sanitizedFont);
+  const sanitizedFont = sanitizeFont(params.font);
+  const predefinedFont = sanitizedFont
+    ? (FONT_MAP[sanitizedFont.toLowerCase() as keyof typeof FONT_MAP] ?? null)
+    : null;
   const isPredefinedFont = Boolean(predefinedFont);
   const selectedFont = isPredefinedFont
     ? predefinedFont
@@ -652,6 +659,9 @@ function generateAutoThemeMonthlySVG(stats: MonthlyStats, params: BadgeParams): 
   .stats { font-family: ${statsFont}; fill: var(--cp-accent); font-size: 36px; font-weight: 600; letter-spacing: 0; }
   .label { font-family: "Roboto", sans-serif; fill: var(--cp-text); font-size: 10px; font-weight: 400; letter-spacing: 1px; opacity: 0.7; }
   .delta { font-family: "Roboto", sans-serif; font-size: 12px; font-weight: 500; }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
   </style>
 
   <rect width="${width}" height="${height}" rx="${radius}" ${params.hideBackground ? 'fill="transparent"' : 'class="cp-bg-fill"'} />
@@ -813,9 +823,10 @@ export function generateNotFoundSVG(
     @keyframes gp { 0%,100%{opacity:.55} 50%{opacity:1} }
     @keyframes scan-sweep { from { transform: translateY(20px); } to { transform: translateY(260px); } }
     @media (prefers-reduced-motion: reduce) {
-      .ghost-pulse { animation: none; }
+      .ghost-pulse { animation: none !important; transition: none !important; }
       .scan-line {
         animation: none !important;
+        transition: none !important;
         transform: translateY(20px) !important;
       }
     }

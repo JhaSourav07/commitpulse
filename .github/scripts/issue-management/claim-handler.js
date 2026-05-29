@@ -89,7 +89,7 @@ async function handleClaim({ github, context }) {
     owner,
     repo,
     issue_number: issueNumber,
-    body: `🎉 **Assigned!** Welcome to the project, @${commenter}.\n\n⏳ **Reminder:** You have **3 days** to submit a Pull Request. After 3 days of inactivity, you will be automatically unassigned to give others a chance (as per our GSSoC anti-hoarding policy).\n\n> 💡 Please read [CONTRIBUTING.md](../blob/main/CONTRIBUTING.md) if you haven't already.\n\nHappy coding! 🚀`,
+    body: `🎉 **Assigned!** Welcome to the project, @${commenter}.\n\n⏳ **Reminder:** You have **2 days** to submit a Pull Request. After 2 days of inactivity, you will be automatically unassigned to give others a chance (as per our GSSoC anti-hoarding policy).\n\n> 💡 Please read [CONTRIBUTING.md](../blob/main/CONTRIBUTING.md) if you haven't already.\n\nHappy coding! 🚀`,
   });
 }
 

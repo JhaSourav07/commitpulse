@@ -215,6 +215,7 @@ describe('generateSVG', () => {
     );
     expect(svg).toContain('Gill Sans');
   });
+
   it('emits tower-raising CSS animations and staggered delays', () => {
     const svg = generateSVG(mockStats, { user: 'avi' } as unknown as BadgeParams, mockCalendar);
 
@@ -226,9 +227,37 @@ describe('generateSVG', () => {
     expect(svg).toMatch(/style="animation-delay: \d+\.\d+s;"/);
   });
 
-  it('includes reduced-motion CSS for the scan line in the main SVG output', () => {
-    const svg = generateSVG(mockStats, { user: 'avi' } as unknown as BadgeParams, mockCalendar);
+  it('escapes XML-reserved characters in tower tooltip titles', () => {
+    const calendarWithUnsafeDate = {
+      weeks: [
+        {
+          contributionDays: [{ contributionCount: 3, date: '2024-06-12 & <bad>' }],
+        },
+      ],
+    } as ContributionCalendar;
 
+    const svg = generateSVG(
+      mockStats,
+      { user: 'avi' } as unknown as BadgeParams,
+      calendarWithUnsafeDate
+    );
+
+    expect(svg).toContain('<title>TODAY: 2024-06-12 &amp; &lt;bad&gt;: 3 contributions</title>');
+    expect(svg).not.toContain('<title>TODAY: 2024-06-12 & <bad>: 3 contributions</title>');
+  });
+
+  // =========================================================================
+  // ISSUE #1084 FIX: Verify reduced-motion CSS disables scan-line in static mode
+  // =========================================================================
+  it('verifies reduced-motion CSS disables scan-line in static mode', () => {
+    // 1. Call static generateSVG (no autoTheme)
+    const svg = generateSVG(
+      mockStats,
+      { user: 'avi', autoTheme: false } as unknown as BadgeParams,
+      mockCalendar
+    );
+
+    // 2. 3 exact assertions as per the Definition of Done
     expect(svg).toContain('prefers-reduced-motion: reduce');
     expect(svg).toContain('.scan-line');
     expect(svg).toContain('animation: none !important');
@@ -366,12 +395,42 @@ describe('generateSVG', () => {
       expect(svg).toContain('prefers-reduced-motion');
     });
 
+    it('includes the scan-line class on the radar rect in the static renderer output', () => {
+      const staticParams = {
+        user: 'avi',
+        autoTheme: false,
+      } as unknown as BadgeParams;
+
+      const svg = generateSVG(mockStats, staticParams, mockCalendar);
+      expect(svg).toContain('class="cp-accent-fill scan-line"');
+    });
+
+    it('includes the scan-line class on the radar rect in the auto-theme renderer output', () => {
+      const svg = generateSVG(mockStats, autoParams, mockCalendar);
+      expect(svg).toContain('class="cp-accent-fill scan-line"');
+    });
+
     it('emits tower-raising CSS animations and staggered delays in auto mode', () => {
       const svg = generateSVG(mockStats, autoParams, mockCalendar);
 
       expect(svg).toContain('.cp-tower');
       expect(svg).toContain('@keyframes grow-up');
       expect(svg).toMatch(/style="animation-delay: \d+\.\d+s;"/);
+    });
+
+    it('escapes XML-reserved characters in auto-theme tower tooltip titles', () => {
+      const calendarWithUnsafeDate = {
+        weeks: [
+          {
+            contributionDays: [{ contributionCount: 3, date: '2024-06-12 & <bad>' }],
+          },
+        ],
+      } as ContributionCalendar;
+
+      const svg = generateSVG(mockStats, autoParams, calendarWithUnsafeDate);
+
+      expect(svg).toContain('<title>TODAY: 2024-06-12 &amp; &lt;bad&gt;: 3 contributions</title>');
+      expect(svg).not.toContain('<title>TODAY: 2024-06-12 & <bad>: 3 contributions</title>');
     });
   });
 
@@ -437,6 +496,7 @@ describe('generateSVG', () => {
       expect(svg).toContain('prefers-reduced-motion: reduce');
       expect(svg).toContain('.scan-line');
       expect(svg).toContain('animation: none !important');
+      expect(svg).toContain('transition: none !important');
       expect(svg).toContain('class="scan-line"');
     });
   });
@@ -693,6 +753,27 @@ describe('generateMonthlySVG', () => {
     } as unknown as BadgeParams);
     expect(svg).toContain('width="400"');
     expect(svg).toContain('height="200"');
+  });
+
+  it('includes prefers-reduced-motion media query in static monthly SVG output', () => {
+    const svg = generateMonthlySVG(mockMonthlyStats, {
+      user: 'octocat',
+    } as unknown as BadgeParams);
+
+    expect(svg).toContain('prefers-reduced-motion: reduce');
+    expect(svg).toContain('animation: none !important');
+    expect(svg).toContain('transition: none !important');
+  });
+
+  it('includes prefers-reduced-motion media query in auto-theme monthly SVG output', () => {
+    const svg = generateMonthlySVG(mockMonthlyStats, {
+      user: 'octocat',
+      autoTheme: true,
+    } as unknown as BadgeParams);
+
+    expect(svg).toContain('prefers-reduced-motion: reduce');
+    expect(svg).toContain('animation: none !important');
+    expect(svg).toContain('transition: none !important');
   });
 });
 

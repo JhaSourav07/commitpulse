@@ -39,6 +39,8 @@ export async function GET(request: Request) {
       radius,
       font,
       year,
+      from: customFrom,
+      to: customTo,
       refresh,
       hide_title,
       hide_background,
@@ -57,8 +59,16 @@ export async function GET(request: Request) {
     } = parseResult.data;
 
     const themeName = theme || 'dark';
-    const from = year ? `${year}-01-01T00:00:00Z` : undefined;
-    const to = year ? `${year}-12-31T23:59:59Z` : undefined;
+    const from = customFrom
+      ? new Date(customFrom).toISOString()
+      : year
+        ? `${year}-01-01T00:00:00Z`
+        : undefined;
+    const to = customTo
+      ? new Date(customTo).toISOString()
+      : year
+        ? `${year}-12-31T23:59:59Z`
+        : undefined;
 
     const tzParam = searchParams.get('tz');
     let timezone = 'UTC';
@@ -77,8 +87,9 @@ export async function GET(request: Request) {
       if (isAutoTheme) return themes.light;
       if (isRandomTheme) {
         const keys = Object.keys(themes);
-        const randomKey = keys[Math.floor(Math.random() * keys.length)];
-        return themes[randomKey] || themes.dark;
+        const hash = user.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
+        const stableKey = keys[hash % keys.length];
+        return themes[stableKey] || themes.dark;
       }
       return themes[theme] || themes.dark;
     })();
@@ -143,10 +154,9 @@ export async function GET(request: Request) {
     const secondsToMidnight = tzParam
       ? getSecondsUntilMidnightInTimezone(timezone)
       : getSecondsUntilUTCMidnight();
-    const cacheControl =
-      refresh || isRandomTheme
-        ? 'no-cache, no-store, must-revalidate'
-        : `public, s-maxage=${secondsToMidnight}, stale-while-revalidate=86400`;
+    const cacheControl = refresh
+      ? 'no-cache, no-store, must-revalidate'
+      : `public, s-maxage=${secondsToMidnight}, stale-while-revalidate=86400`;
 
     return new NextResponse(svg, {
       headers: {

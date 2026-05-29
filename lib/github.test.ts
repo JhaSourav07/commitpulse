@@ -1,10 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   fetchGitHubContributions,
+  fetchWithRetry,
   fetchUserProfile,
   fetchUserRepos,
   getFullDashboardData,
   generateAchievements,
+  buildCommitClock,
   clearGitHubApiCacheForTests,
   GITHUB_CACHE_TTL_MS,
   validateGitHubUsername,
@@ -59,6 +61,54 @@ afterEach(() => {
   } else {
     process.env.GITHUB_TOKEN = originalGitHubToken;
   }
+});
+
+describe('fetchWithRetry', () => {
+  beforeEach(() => {
+    vi.spyOn(global, 'fetch');
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('removes caller abort listeners after a successful request', async () => {
+    const controller = new AbortController();
+    const addListenerSpy = vi.spyOn(controller.signal, 'addEventListener');
+    const removeListenerSpy = vi.spyOn(controller.signal, 'removeEventListener');
+
+    vi.mocked(fetch).mockResolvedValue(mockResponse({ ok: true }));
+
+    await fetchWithRetry('https://api.github.com/test', { signal: controller.signal }, 0, 1000);
+
+    const abortListener = addListenerSpy.mock.calls.find(([event]) => event === 'abort')?.[1];
+
+    expect(abortListener).toEqual(expect.any(Function));
+    expect(addListenerSpy).toHaveBeenCalledWith('abort', abortListener, { once: true });
+    expect(removeListenerSpy).toHaveBeenCalledWith('abort', abortListener);
+  });
+
+  it('still aborts the in-flight request when the caller signal is aborted', async () => {
+    const controller = new AbortController();
+
+    vi.mocked(fetch).mockImplementation(
+      (_url: RequestInfo | URL, options?: RequestInit) =>
+        new Promise<Response>((_resolve, reject) => {
+          options?.signal?.addEventListener(
+            'abort',
+            () => reject(new DOMException('Aborted', 'AbortError')),
+            { once: true }
+          );
+        })
+    );
+
+    const request = fetchWithRetry('https://api.github.com/test', { signal: controller.signal });
+
+    controller.abort();
+
+    await expect(request).rejects.toThrow('Aborted');
+    expect(fetch).toHaveBeenCalledOnce();
+  });
 });
 
 describe('fetchGitHubContributions', () => {
@@ -752,17 +802,48 @@ describe('GitHub API cache behavior', () => {
 
 describe('generateAchievements', () => {
   it('marks contribution milestones correctly', () => {
-    const achievements = generateAchievements(600, 10);
+    // 600 contributions satisfies the '500 Contributions' achievement but not '1000 Contributions'
+    const achievements = generateAchievements(600, 10, 0, 0);
+
     const unlocked = achievements.filter((a) => a.isUnlocked);
 
     expect(unlocked.some((a) => a.title === '500 Contributions')).toBe(true);
+    expect(unlocked.some((a) => a.title === 'Consistency King')).toBe(true);
     expect(unlocked.some((a) => a.title === '1000 Contributions')).toBe(false);
   });
 
   it('unlocks all achievements for max contribution and streak values', () => {
-    const achievements = generateAchievements(1001, 101);
+    const achievements = generateAchievements(2001, 101, 11, 6);
 
     expect(achievements.every((achievement) => achievement.isUnlocked === true)).toBe(true);
+  });
+
+  it('marks streak milestones correctly', () => {
+    const achievements = generateAchievements(50, 35, 0, 0);
+
+    const unlocked = achievements.filter((a) => a.isUnlocked);
+
+    expect(unlocked.some((a) => a.title === '30 Day Streak')).toBe(true);
+    expect(unlocked.some((a) => a.title === '100 Day Streak')).toBe(false);
+  });
+
+  it('marks behavior milestones correctly', () => {
+    const achievements = generateAchievements(10, 1, 15, 6);
+
+    const unlocked = achievements.filter((a) => a.isUnlocked);
+
+    expect(unlocked.some((a) => a.title === 'Weekend Warrior')).toBe(true);
+    expect(unlocked.some((a) => a.title === 'Polyglot')).toBe(true);
+  });
+
+  it('caps progress between 0 and 100 for extreme values', () => {
+    const achievements = generateAchievements(999999, 999999, 999999, 999999);
+
+    for (const item of achievements) {
+      expect(Number.isFinite(item.progress)).toBe(true);
+      expect(item.progress).toBeGreaterThanOrEqual(0);
+      expect(item.progress).toBeLessThanOrEqual(100);
+    }
   });
 });
 
@@ -857,6 +938,46 @@ describe('buildInsights', () => {
     );
 
     expect(result[1].text).toContain('Unknown');
+  });
+});
+
+describe('buildCommitClock', () => {
+  it('counts commits only on Sunday when all days are Sunday', () => {
+    const result = buildCommitClock([
+      { date: '2024-01-07', contributionCount: 3 },
+      { date: '2024-01-14', contributionCount: 2 },
+    ]);
+
+    expect(result).toHaveLength(7);
+    expect(result[0].commits).toBeGreaterThan(0);
+    expect(result.slice(1).every((item) => item.commits === 0)).toBe(true);
+  });
+
+  it('returns 7 days with zero commits for empty input', () => {
+    const result = buildCommitClock([]);
+
+    expect(result).toHaveLength(7);
+    expect(result.every((item) => item.commits === 0)).toBe(true);
+  });
+
+  it('always returns exactly 7 items', () => {
+    const result = buildCommitClock([{ date: '2024-01-07', contributionCount: 1 }]);
+
+    expect(result).toHaveLength(7);
+  });
+
+  it('uses weekday labels from Sunday to Saturday', () => {
+    const result = buildCommitClock([]);
+
+    expect(result.map((item) => item.day)).toEqual([
+      'Sun',
+      'Mon',
+      'Tue',
+      'Wed',
+      'Thu',
+      'Fri',
+      'Sat',
+    ]);
   });
 });
 
