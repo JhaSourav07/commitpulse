@@ -51,6 +51,7 @@ export function useRecentSearches() {
   useEffect(() => {
     // Single setState call — reads external system (localStorage) and syncs
     // React state in one update, which is exactly what effects are for.
+
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setState({ searches: loadFromStorage(), mounted: true });
   }, []);
@@ -100,6 +101,11 @@ export function useRecentSearches() {
     }));
   };
 
+  /**
+   * Removes a specific search query from the recent searches list.
+   *
+   * @param query - The search query to remove.
+   */
   const removeSearch = (query: string): void => {
     setState((prev) => {
       const filtered = prev.searches.filter((s) => s !== query);
@@ -111,7 +117,7 @@ export function useRecentSearches() {
   return {
     searches: state.mounted ? state.searches : [],
     addSearch,
-    clearSearches,
     removeSearch,
+    clearSearches,
   };
 }
