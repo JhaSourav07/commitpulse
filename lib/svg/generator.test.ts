@@ -713,6 +713,13 @@ describe('generateMonthlySVG', () => {
     expect(svg).toContain('animation: none !important');
     expect(svg).toContain('transition: none !important');
   });
+  it('renders English label for commits this month by default', () => {
+    const svg = generateMonthlySVG(mockMonthlyStats, {
+      user: 'octocat',
+    } as unknown as BadgeParams);
+
+    expect(svg).toContain('COMMITS THIS MONTH');
+  });
 });
 describe('escapeXML', () => {
   it('escapes ampersands (&)', () => {
