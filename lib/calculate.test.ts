@@ -614,7 +614,22 @@ describe('calculateWrappedStats', () => {
     expect(result.busiestMonth).toBe('2024-01');
     expect(result.weekendRatio).toBe(100);
   });
-  // =========================================================================
+
+  // ISSUE OBJECTIVE #1056: Verify empty calendar returns safe zero values
+  it('verify empty calendar returns safe zero values', () => {
+    // 1. Call calculateWrappedStats with empty data
+    expect(() => calculateWrappedStats({ totalContributions: 0, weeks: [] })).not.toThrow();
+
+    // 2. Actually get the result to test its properties
+    const result = calculateWrappedStats({ totalContributions: 0, weeks: [] });
+
+    // 3. Assert weekendRatio === 0 (and specifically not NaN)
+    expect(result.weekendRatio).toBe(0);
+
+    // 4. Assert highestDailyCount === 0
+    expect(result.highestDailyCount).toBe(0);
+  });
+
   // ISSUE OBJECTIVE: Verify weekendRatio is 100 when all commits are on weekends
   // =========================================================================
   it('returns weekendRatio === 100 when all contributions are on weekends', () => {
