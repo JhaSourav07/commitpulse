@@ -59,6 +59,15 @@ describe('ContributorsSearch', () => {
   it('ignores leading and trailing whitespace when filtering', async () => {
     const user = userEvent.setup();
     render(<ContributorsSearch contributors={mockContributors} />);
+    const input = screen.getByPlaceholderText(/search contributors by name/i);
+    await user.type(input, ' alice ');
+    screen.getByText('alice');
+    expect(screen.queryByText('bob')).toBeNull();
+  });
+
+  it('shows "No contributors found" when search has no matches', async () => {
+    const user = userEvent.setup();
+    render(<ContributorsSearch contributors={mockContributors} />);
     const input = screen.getByPlaceholderText(/Search the collective.../i);
     await user.type(input, ' alice ');
     screen.getByText('alice');
