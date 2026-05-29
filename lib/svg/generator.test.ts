@@ -658,6 +658,24 @@ describe('generateMonthlySVG', () => {
     expect(svg).toContain('42');
     expect(svg).toContain('+12 commits');
   });
+
+  it('renders monthly stats correctly with negative absolute delta', () => {
+    const negativeStats: MonthlyStats = {
+      currentMonthTotal: 18,
+      previousMonthTotal: 30,
+      deltaPercentage: -40,
+      deltaAbsolute: -12,
+      currentMonthName: 'June',
+    };
+
+    const svg = generateMonthlySVG(negativeStats, {
+      user: 'octocat',
+      delta_format: 'absolute',
+    } as unknown as BadgeParams);
+
+    expect(svg).toContain('-12 commits');
+  });
+
   it('renders monthly stats correctly with percentage delta', () => {
     const svg = generateMonthlySVG(mockMonthlyStats, {
       user: 'octocat',
