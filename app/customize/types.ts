@@ -2,7 +2,7 @@ import { themes } from '../../lib/svg/themes';
 
 export type Scale = 'linear' | 'log';
 
-export type ExportFormat = 'markdown' | 'html';
+export type ExportFormat = 'markdown' | 'html' | 'action';
 
 export type ThemeKey = Extract<keyof typeof themes, string>;
 
