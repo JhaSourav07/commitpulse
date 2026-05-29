@@ -48,13 +48,15 @@ export class RateLimiter {
    * }
    */
   check(ip: string): boolean {
-    if (this.allowlist.has(ip)) return true; // for check()
-    if (this.blocklist.has(ip)) return false; // for check()
-    const current = this.cache.get(ip) || 0;
-    if (current >= this.limit) {
-      return false;
+    if (this.allowlist.has(ip)) return true;
+    if (this.blocklist.has(ip)) return false;
+    const current = this.cache.get(ip) ?? 0;
+    if (current >= this.limit) return false;
+    if (current === 0) {
+      this.cache.set(ip, 1, this.windowMs);
+    } else {
+      this.cache.set(ip, current + 1, this.windowMs);
     }
-    this.cache.set(ip, current + 1, this.windowMs);
     return true;
   }
   checkWithResult(ip: string): RateLimitResult {
@@ -79,7 +81,11 @@ export class RateLimiter {
       };
     }
 
-    this.cache.set(ip, current + 1, this.windowMs);
+    if (current === 0) {
+      this.cache.set(ip, 1, this.windowMs);
+    } else {
+      this.cache.set(ip, current + 1, this.windowMs);
+    }
     return {
       success: true,
       limit: this.limit,
