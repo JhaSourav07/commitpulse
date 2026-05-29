@@ -118,6 +118,49 @@ describe('generateSVG', () => {
     const svg = generateSVG(mockStats, { user: 'avi' } as unknown as BadgeParams, mockCalendar);
     expect(svg).toContain('class="heat-particles"');
   });
+
+  it('scales particle floating height according to badge size', () => {
+    const svgMedium = generateSVG(
+      mockStats,
+      { user: 'avi', size: 'medium' } as unknown as BadgeParams,
+      mockCalendar
+    );
+    const svgSmall = generateSVG(
+      mockStats,
+      { user: 'avi', size: 'small' } as unknown as BadgeParams,
+      mockCalendar
+    );
+    const svgLarge = generateSVG(
+      mockStats,
+      { user: 'avi', size: 'large' } as unknown as BadgeParams,
+      mockCalendar
+    );
+
+    const mediumMatch = svgMedium.match(
+      /<animate attributeName="cy" from="([\d.-]+)" to="([\d.-]+)"/
+    );
+    expect(mediumMatch).not.toBeNull();
+    const fromMedium = parseFloat(mediumMatch![1]);
+    const toMedium = parseFloat(mediumMatch![2]);
+    expect(Math.round(fromMedium - toMedium)).toBe(20);
+
+    const smallMatch = svgSmall.match(
+      /<animate attributeName="cy" from="([\d.-]+)" to="([\d.-]+)"/
+    );
+    expect(smallMatch).not.toBeNull();
+    const fromSmall = parseFloat(smallMatch![1]);
+    const toSmall = parseFloat(smallMatch![2]);
+    expect(Math.round(fromSmall - toSmall)).toBe(13);
+
+    const largeMatch = svgLarge.match(
+      /<animate attributeName="cy" from="([\d.-]+)" to="([\d.-]+)"/
+    );
+    expect(largeMatch).not.toBeNull();
+    const fromLarge = parseFloat(largeMatch![1]);
+    const toLarge = parseFloat(largeMatch![2]);
+    expect(Math.round(fromLarge - toLarge)).toBe(27);
+  });
+
   it('supports dynamic Google Fonts for non-predefined fonts', () => {
     const svg = generateSVG(
       mockStats,
