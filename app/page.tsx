@@ -9,6 +9,7 @@ import { X } from 'lucide-react';
 import { CommitPulseLogo } from '@/components/commitpulse-logo';
 import { CustomizeCTA } from './components/CustomizeCTA';
 import { useRecentSearches } from '@/hooks/useRecentSearches';
+import { Footer } from '@/app/components/Footer';
 
 const Icons = {
   Github: () => (
@@ -69,11 +70,17 @@ export default function LandingPage() {
   const [username, setUsername] = useState('');
   const [copied, setCopied] = useState(false);
   const [svgContent, setSvgContent] = useState<string | null>(null);
-  const [svgState, setSvgState] = useState<'idle' | 'loading' | 'loaded'>('idle');
+  const [svgState, setSvgState] = useState<'idle' | 'loading' | 'loaded' | 'error'>('idle');
   const guideRef = useRef<HTMLDivElement>(null);
-  const { searches, addSearch, clearSearches } = useRecentSearches();
+  const { searches, addSearch, clearSearches, removeSearch } = useRecentSearches();
   const trimmedUsername = username.trim();
   const hasUsername = trimmedUsername.length > 0;
+
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMounted(true);
+  }, []);
 
   const badgeUrl = `/api/streak?user=${trimmedUsername}`;
   const markdown = `![CommitPulse](https://commitpulse.vercel.app/api/streak?user=${trimmedUsername})`;
@@ -95,16 +102,22 @@ export default function LandingPage() {
     const controller = new AbortController();
 
     fetch(badgeUrl, { signal: controller.signal })
-      .then((res) => res.text())
+      .then((res) => {
+        if (res.status === 404) {
+          setSvgState('error');
+          return;
+        }
+        return res.text();
+      })
       .then((text) => {
+        if (!text) return;
         setSvgContent(text);
         setSvgState('loaded');
       })
       .catch((err) => {
         if (err.name === 'AbortError') return;
-        setSvgState('loaded'); // show nothing rather than hang on loading
+        setSvgState('error');
       });
-
     return () => controller.abort();
   }, [badgeUrl, hasUsername]);
 
@@ -129,7 +142,7 @@ export default function LandingPage() {
         <div className="absolute -right-[10%] top-[20%] h-[30%] w-[30%] rounded-full bg-white/2 blur-[120px]" />
       </div>
 
-      <main className="relative z-10 mx-auto max-w-6xl px-6 pb-32">
+      <main className="relative z-10 mx-auto max-w-6xl px-6 mt-32">
         <div className="mb-16 text-center">
           <motion.a
             href="https://discord.gg/Cb73bS79j"
@@ -201,31 +214,38 @@ export default function LandingPage() {
               }}
               className="flex flex-col sm:flex-row gap-4 w-full"
             >
-              <div className="relative flex-1 flex items-center">
-                <input
-                  type="text"
-                  placeholder="Enter GitHub Username"
-                  className="flex-1 rounded-xl border border-black/10 bg-gray-100 px-5 py-3.5 text-sm text-black outline-none transition-all duration-200 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#00ffaa] focus:border-transparent dark:border-[rgba(255,255,255,0.08)] dark:bg-[#111] dark:text-white dark:placeholder:text-[#A1A1AA]"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                />
-                {username.length > 0 ? (
-                  <button
-                    onClick={() => setUsername('')}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 transition-colors hover:text-black dark:text-[#A1A1AA] dark:hover:text-white"
-                    aria-label="Clear input"
-                    type="button"
-                  >
-                    <X size={18} />
-                  </button>
-                ) : null}
+              <div className="relative flex-1 flex items-center flex-col">
+                <div className="relative flex-1 flex items-center w-full">
+                  <input
+                    type="text"
+                    placeholder="Enter GitHub Username"
+                    className="flex-1 rounded-xl border border-black/10 bg-gray-100 px-5 py-3.5 text-sm text-black outline-none transition-all duration-200 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#00ffaa] focus:border-transparent dark:border-[rgba(255,255,255,0.08)] dark:bg-[#111] dark:text-white dark:placeholder:text-[#A1A1AA]"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    maxLength={39}
+                  />
+                  {username.length > 0 ? (
+                    <button
+                      onClick={() => setUsername('')}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 transition-colors hover:text-black dark:text-[#A1A1AA] dark:hover:text-white"
+                      aria-label="Clear input"
+                      type="button"
+                    >
+                      <X size={18} />
+                    </button>
+                  ) : null}
+                </div>
+                {username.length === 39 && (
+                  <p className="text-red-500 text-xs mt-1 self-start pl-1">
+                    GitHub username limit reached (39 characters maximum)
+                  </p>
+                )}
               </div>
-
               <div className="flex flex-col sm:flex-row gap-4">
                 <button
                   type="submit"
-                  disabled={!hasUsername}
-                  className={`relative flex min-w-[160px] items-center justify-center gap-2 overflow-hidden rounded-xl px-6 py-3.5 text-sm font-semibold transition-all duration-200 active:scale-[0.98] ${
+                  disabled={!mounted || !hasUsername}
+                  className={`relative flex min-w-[160px] items-center justify-center gap-2 overflow-hidden rounded-xl px-6 py-3.5 text-sm font-semibold transition-all duration-200 transform cursor-pointer hover:scale-105 hover:brightness-125 active:scale-[0.98] disabled:cursor-not-allowed ${
                     hasUsername
                       ? 'bg-black text-white hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-zinc-100'
                       : 'bg-gray-200 text-gray-500 dark:bg-white/10 dark:text-white/35'
@@ -255,7 +275,7 @@ export default function LandingPage() {
                 </button>
                 <Link
                   href={hasUsername ? `/dashboard/${trimmedUsername}` : '/'}
-                  aria-disabled={!hasUsername}
+                  aria-disabled={!mounted || !hasUsername}
                   onClick={(e) => {
                     if (!hasUsername) {
                       e.preventDefault();
@@ -280,13 +300,26 @@ export default function LandingPage() {
             <div className="flex flex-wrap items-center gap-2 mb-6 mt-3">
               <span className="text-xs text-[#A1A1AA]">Recent:</span>
               {searches.map((s) => (
-                <button
+                <span
                   key={s}
-                  onClick={() => setUsername(s)}
-                  className="rounded-full border border-[rgba(255,255,255,0.08)] bg-[#111] px-3 py-1 text-xs text-white/70 transition-all hover:border-[rgba(255,255,255,0.2)] hover:text-white"
+                  className="inline-flex items-center gap-1.5 rounded-full border border-[rgba(255,255,255,0.08)] bg-[#111] pl-3 pr-2 py-1 text-xs text-white/70 transition-all hover:border-[rgba(255,255,255,0.2)] hover:text-white group/pill"
                 >
-                  {s}
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => setUsername(s)}
+                    className="transition-colors hover:text-white"
+                  >
+                    {s}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => removeSearch(s)}
+                    className="rounded-full p-0.5 text-white/40 hover:bg-white/10 hover:text-white transition-all flex items-center justify-center"
+                    aria-label={`Remove ${s} from recent searches`}
+                  >
+                    <X size={10} />
+                  </button>
+                </span>
               ))}
               <button
                 onClick={clearSearches}
@@ -305,9 +338,20 @@ export default function LandingPage() {
                   {svgState === 'loading' && (
                     <div className="h-[200px] w-full max-w-[600px] rounded-xl bg-white/5 animate-pulse" />
                   )}
+                  {svgState === 'error' && (
+                    <div className="flex flex-col items-center justify-center gap-3 py-10 text-center">
+                      <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-red-500/20 bg-red-500/10">
+                        <X size={28} className="text-red-400" />
+                      </div>
+                      <p className="text-base font-semibold text-white">GitHub user not found</p>
+                      <p className="text-sm text-[#A1A1AA]">
+                        Please check the username and try again.
+                      </p>
+                    </div>
+                  )}
                   {svgState === 'loaded' && svgContent && (
                     <div
-                      className="w-full max-w-[600px] drop-shadow-[0_20px_50px_rgba(0,0,0,0.5)] [&>svg]:w-full [&>svg]:h-auto"
+                      className="cp-svg-container w-full max-w-[600px] drop-shadow-[0_20px_50px_rgba(0,0,0,0.5)] [&>svg]:w-full [&>svg]:h-auto"
                       // Safe: SVG is generated server-side by our own trusted generator
                       dangerouslySetInnerHTML={{ __html: svgContent }}
                     />
@@ -364,36 +408,7 @@ export default function LandingPage() {
             desc="Sophisticated 3D projection formulas turn 2D data into digital architecture."
           />
         </div>
-
-        <footer className="mt-32 flex flex-col items-center justify-between gap-6 border-t border-black/10 pt-8 text-sm text-gray-600 dark:border-white/5 dark:text-white/30 md:flex-row">
-          <p>&copy; 2026 CommitPulse. Designed for the elite builder community.</p>
-          <div className="flex gap-8">
-            <Link
-              href="/contributors"
-              className="transition-colors hover:text-black dark:hover:text-white"
-            >
-              Contributors
-            </Link>
-
-            <a
-              href="https://github.com/JhaSourav07/commitpulse/blob/main/README.md"
-              target="_blank"
-              rel="noreferrer"
-              className="transition-colors hover:text-white"
-            >
-              Documentation
-            </a>
-
-            <a
-              href="https://github.com/jhasourav07"
-              target="_blank"
-              rel="noreferrer"
-              className="transition-colors hover:text-black dark:hover:text-white"
-            >
-              Creator
-            </a>
-          </div>
-        </footer>
+        <Footer />
       </main>
     </div>
   );
