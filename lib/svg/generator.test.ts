@@ -226,6 +226,25 @@ describe('generateSVG', () => {
     expect(svg).toMatch(/style="animation-delay: \d+\.\d+s;"/);
   });
 
+  it('escapes XML-reserved characters in tower tooltip titles', () => {
+    const calendarWithUnsafeDate = {
+      weeks: [
+        {
+          contributionDays: [{ contributionCount: 3, date: '2024-06-12 & <bad>' }],
+        },
+      ],
+    } as ContributionCalendar;
+
+    const svg = generateSVG(
+      mockStats,
+      { user: 'avi' } as unknown as BadgeParams,
+      calendarWithUnsafeDate
+    );
+
+    expect(svg).toContain('<title>TODAY: 2024-06-12 &amp; &lt;bad&gt;: 3 contributions</title>');
+    expect(svg).not.toContain('<title>TODAY: 2024-06-12 & <bad>: 3 contributions</title>');
+  });
+
   it('includes reduced-motion CSS for the scan line in the main SVG output', () => {
     const svg = generateSVG(mockStats, { user: 'avi' } as unknown as BadgeParams, mockCalendar);
 
@@ -373,6 +392,21 @@ describe('generateSVG', () => {
       expect(svg).toContain('.cp-tower');
       expect(svg).toContain('@keyframes grow-up');
       expect(svg).toMatch(/style="animation-delay: \d+\.\d+s;"/);
+    });
+
+    it('escapes XML-reserved characters in auto-theme tower tooltip titles', () => {
+      const calendarWithUnsafeDate = {
+        weeks: [
+          {
+            contributionDays: [{ contributionCount: 3, date: '2024-06-12 & <bad>' }],
+          },
+        ],
+      } as ContributionCalendar;
+
+      const svg = generateSVG(mockStats, autoParams, calendarWithUnsafeDate);
+
+      expect(svg).toContain('<title>TODAY: 2024-06-12 &amp; &lt;bad&gt;: 3 contributions</title>');
+      expect(svg).not.toContain('<title>TODAY: 2024-06-12 & <bad>: 3 contributions</title>');
     });
   });
 
