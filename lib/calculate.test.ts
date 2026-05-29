@@ -520,6 +520,27 @@ describe('aggregateCalendars', () => {
 });
 
 describe('calculateWrappedStats', () => {
+  it('returns weekendRatio as 0 when all contributions occur on weekdays', () => {
+    const calendar = {
+      totalContributions: 25,
+      weeks: [
+        {
+          contributionDays: [
+            { date: '2024-01-01', contributionCount: 5 }, // Mon
+            { date: '2024-01-02', contributionCount: 5 }, // Tue
+            { date: '2024-01-03', contributionCount: 5 }, // Wed
+            { date: '2024-01-04', contributionCount: 5 }, // Thu
+            { date: '2024-01-05', contributionCount: 5 }, // Fri
+          ],
+        },
+      ],
+    };
+
+    const result = calculateWrappedStats(calendar);
+
+    expect(result.weekendRatio).toBe(0);
+  });
+
   it('calculates GitHub Wrapped stats accurately', () => {
     // 2024-01-01 was a Monday. Indices 5 (Sat) and 6 (Sun) are the weekend.
     const cal = buildCalendar([0, 0, 0, 0, 0, 5, 15]);
