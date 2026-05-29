@@ -243,7 +243,6 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
   const isNotFound =
     message.toLowerCase().includes('not found') ||
     message.toLowerCase().includes('could not resolve');
-  const isRateLimit = message.toLowerCase().includes('rate limit');
 
   // 2. Safely detect if the error was a validation/client error
   const isValidationError =
@@ -251,6 +250,11 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
     message.toLowerCase().includes('invalid') ||
     message.toLowerCase().includes('validation') ||
     message.toLowerCase().includes('strictly for organizations');
+
+  const isRateLimit =
+    message.toLowerCase().includes('rate limit') ||
+    message.toLowerCase().includes('api rate limit exceeded') ||
+    message.toLowerCase().includes('403');
 
   const errBg = `#${(parseResult.success && parseResult.data.bg) || '0d1117'}`;
   const errAccent = `#${
@@ -299,6 +303,7 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
     });
   }
 
+<<<<<<< HEAD
   // 3. Return a 400 Bad Request for Validation Errors
   if (isValidationError) {
     const validationSvg = `
@@ -315,12 +320,28 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
       headers: {
         'Content-Type': 'image/svg+xml',
         'Cache-Control': 'no-store',
+=======
+  if (isRateLimit) {
+    // Extract retry-after time from error message if available
+    const retryMatch = message.match(/retry after (\d{1,2}:\d{2})/i);
+    const retryAfter = retryMatch ? `${retryMatch[1]} UTC` : undefined;
+
+    const svg = generateRateLimitSVG(errBg, errAccent, errText, errRadius, errSpeed, retryAfter);
+    return new NextResponse(svg, {
+      status: 429,
+      headers: {
+        'Content-Type': 'image/svg+xml',
+        'Cache-Control': 'public, s-maxage=60',
+>>>>>>> 29ad0ab (fix: render branded SVG for rate limit errors instead of plain fallback)
         'Content-Security-Policy': SVG_CSP_HEADER,
       },
     });
   }
 
+<<<<<<< HEAD
   // 4. Return a 500 Internal Server Error for real crashes
+=======
+>>>>>>> 29ad0ab (fix: render branded SVG for rate limit errors instead of plain fallback)
   console.error('[streak] Unhandled error:', message);
 
   const errorSvg = `
