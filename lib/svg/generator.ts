@@ -941,8 +941,8 @@ export function generateVersusSVG(
     sf
   );
 
-  const towers1 = renderTowers(towerData1, accent, text, sf);
-  const towers2 = renderTowers(towerData2, accent, text, sf);
+  const towers1 = renderTowers(towerData1, accent, text, sf, params);
+  const towers2 = renderTowers(towerData2, accent, text, sf, params);
 
   const s = createScaler(sf);
   const unit = params.mode === 'loc' ? 'lines of code' : 'total contributions';

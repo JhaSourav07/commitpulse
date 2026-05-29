@@ -31,6 +31,7 @@ export default function CustomizePage(): ReactElement {
   const [year, setYear] = useState('');
   const [radius, setRadius] = useState(8);
   const [size, setSize] = useState<BadgeSize>('medium');
+  const [disableParticles, setDisableParticles] = useState(false);
   const [hideTitle, setHideTitle] = useState(false);
   const [hideBackground, setHideBackground] = useState(false);
   const [hideStats, setHideStats] = useState(false);
@@ -113,6 +114,7 @@ export default function CustomizePage(): ReactElement {
     if (year) params.set('year', year);
     if (radius !== 8) params.set('radius', radius.toString());
     if (size !== 'medium') params.set('size', size);
+    if (disableParticles) params.set('disable_particles', 'true');
 
     if (hideTitle) params.set('hide_title', 'true');
     if (hideBackground) params.set('hide_background', 'true');
@@ -139,6 +141,7 @@ export default function CustomizePage(): ReactElement {
     year,
     radius,
     size,
+    disableParticles,
     hideTitle,
     hideBackground,
     hideStats,
@@ -306,6 +309,7 @@ export default function CustomizePage(): ReactElement {
               year={year}
               radius={radius}
               size={size}
+              disableParticles={disableParticles}
               onUsernameChange={setUsername}
               onThemeChange={handleThemeChange}
               onBgHexChange={setBgHex}
@@ -317,6 +321,7 @@ export default function CustomizePage(): ReactElement {
               onYearChange={setYear}
               onRadiusChange={setRadius}
               onSizeChange={setSize}
+              onDisableParticlesChange={setDisableParticles}
               onClearOverrides={() => {
                 setBgHex('');
                 setAccentHex('');

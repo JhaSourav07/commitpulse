@@ -102,6 +102,7 @@ export function ControlsPanel({
   year,
   radius,
   size,
+  disableParticles,
   onUsernameChange,
   onThemeChange,
   onBgHexChange,
@@ -114,6 +115,7 @@ export function ControlsPanel({
   onSizeChange,
   onClearOverrides,
   onRadiusChange,
+  onDisableParticlesChange,
   hideTitle,
   hideBackground,
   hideStats,
@@ -144,6 +146,7 @@ export function ControlsPanel({
   year: string;
   radius: number;
   size: BadgeSize;
+  disableParticles: boolean;
   onUsernameChange: (value: string) => void;
   onThemeChange: (value: string) => void;
   onBgHexChange: (value: string) => void;
@@ -156,6 +159,7 @@ export function ControlsPanel({
   onSizeChange: (value: BadgeSize) => void;
   onClearOverrides: () => void;
   onRadiusChange: (value: number) => void;
+  onDisableParticlesChange: (value: boolean) => void;
   hideTitle: boolean;
   hideBackground: boolean;
   hideStats: boolean;
@@ -322,6 +326,23 @@ export function ControlsPanel({
               ))}
             </StyledSelect>
           </div>
+        </ControlRow>
+
+        <ControlRow label="Animated Particles">
+          <button
+            id="disable-particles-toggle"
+            onClick={() => onDisableParticlesChange(!disableParticles)}
+            className={`w-full py-2.5 rounded-xl text-sm font-bold transition-all ${
+              !disableParticles
+                ? 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-700 dark:text-emerald-400'
+                : 'bg-gray-100/80 backdrop-blur-md border border-black/10 text-gray-700 dark:bg-white/[0.03] dark:border-white/8 dark:text-white/30 hover:bg-gray-200/70 hover:text-black hover:border-black/20 dark:hover:text-white/60 dark:hover:border-white/20'
+            }`}
+          >
+            {!disableParticles ? 'Enabled' : 'Disabled'}
+          </button>
+          <p className="text-[11px] text-gray-600 dark:text-white/25 mt-1.5 leading-relaxed">
+            Floating SVG particles appear on days with 10+ commits.
+          </p>
         </ControlRow>
 
         <ControlRow label="Font">
