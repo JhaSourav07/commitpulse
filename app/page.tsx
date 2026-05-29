@@ -190,7 +190,7 @@ export default function LandingPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.15 }}
           >
-            <h1 className="mb-8 bg-gradient-to-b from-black to-black/40 dark:from-white dark:to-white/30 bg-clip-text text-transparent sm:text-5xl font-extrabold tracking-tight md:text-8xl">
+            <h1 className="mb-8 bg-gradient-to-b from-black via-zinc-800 to-zinc-600 dark:from-white dark:via-zinc-200 dark:to-zinc-400 bg-clip-text text-transparent sm:text-5xl font-extrabold tracking-tight md:text-8xl">
               Elevate Your <br /> Contribution Story.
             </h1>
           </motion.div>
@@ -207,7 +207,7 @@ export default function LandingPage() {
         </div>
 
         <section className="mx-auto mb-32 max-w-4xl">
-          <div className="rounded-2xl border border-black/10 bg-white p-4 dark:border-[rgba(255,255,255,0.08)] dark:bg-[#0a0a0a] md:p-8">
+          <div className="rounded-2xl border border-gray-300 bg-white shadow-sm dark:border-[rgba(255,255,255,0.08)] dark:bg-[#0a0a0a] md:p-8">
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -220,7 +220,7 @@ export default function LandingPage() {
                   <input
                     type="text"
                     placeholder="Enter GitHub Username"
-                    className="flex-1 rounded-xl border border-black/10 bg-gray-100 px-5 py-3.5 text-sm text-black outline-none transition-all duration-200 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#00ffaa] focus:border-transparent dark:border-[rgba(255,255,255,0.08)] dark:bg-[#111] dark:text-white dark:placeholder:text-[#A1A1AA]"
+                    className="flex-1 rounded-xl border border-gray-300 bg-white px-5 py-3.5 text-sm text-black outline-none transition-all duration-200 placeholder:text-gray-500 focus:ring-2 focus:ring-[#0969da] focus:border-[#0969da] dark:border-[rgba(255,255,255,0.08)] dark:bg-[#111] dark:text-white dark:placeholder:text-[#A1A1AA]"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     maxLength={39}
@@ -287,7 +287,7 @@ export default function LandingPage() {
                   }}
                   className={`relative flex min-w-[160px] items-center justify-center gap-2 overflow-hidden rounded-xl border px-6 py-3.5 text-sm font-semibold transition-all duration-200 active:scale-[0.98] ${
                     hasUsername
-                      ? 'border-black/10 bg-gray-100 text-black hover:bg-gray-200 dark:border-[rgba(255,255,255,0.15)] dark:bg-white/[0.04] dark:text-white dark:hover:bg-white/10'
+                      ? 'border-gray-300 bg-white text-black shadow-sm hover:bg-gray-50 hover:border-gray-400'
                       : 'border-black/10 bg-gray-100 text-gray-500 dark:border-[rgba(255,255,255,0.08)] dark:bg-white/[0.02] dark:text-white/35'
                   }`}
                 >
@@ -333,7 +333,7 @@ export default function LandingPage() {
 
           <div className="group relative">
             <div className="absolute -inset-1 rounded-[2rem] bg-white/5 opacity-50 blur-xl transition duration-1000 group-hover:opacity-100" />
-            <InteractiveViewer className="relative flex min-h-[320px] items-center justify-center overflow-hidden rounded-xl border border-black/10 bg-white p-6 dark:border-[rgba(255,255,255,0.06)] dark:bg-black">
+            <InteractiveViewer className="relative flex min-h-[320px] items-center justify-center overflow-hidden rounded-xl border border-gray-300 bg-white p-6 shadow-sm dark:border-[rgba(255,255,255,0.06)] dark:bg-black">
               {hasUsername ? (
                 <div className="w-full flex items-center justify-center">
                   {svgState === 'loading' && (
@@ -359,8 +359,8 @@ export default function LandingPage() {
                   )}
                 </div>
               ) : (
-                <div className="flex w-full max-w-2xl flex-col items-center justify-center rounded-[1.5rem] border border-dashed border-black/10 bg-gray-100 px-6 py-12 text-center dark:border-white/10 dark:bg-white/[0.02]">
-                  <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-black/10 bg-white text-gray-600 dark:border-white/10 dark:bg-white/[0.04] dark:text-white/60">
+                <div className="flex w-full max-w-2xl flex-col items-center justify-center rounded-[1.5rem] border border-dashed border-gray-300 bg-white">
+                  <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-gray-300 bg-gray-50 text-gray-700">
                     <Icons.Github />
                   </div>
                   <p className="md:text-lg text-md font-semibold tracking-tight text-black dark:text-white">
@@ -430,7 +430,7 @@ function FeatureCard({
     <motion.div
       whileHover={{ y: -3 }}
       transition={{ duration: 0.2 }}
-      className="group rounded-xl border border-black/10 bg-white p-8 hover:border-black/20 hover:bg-gray-50 dark:border-[rgba(255,255,255,0.08)] dark:bg-[#0a0a0a] dark:hover:border-[rgba(255,255,255,0.14)] dark:hover:bg-[#0d0d0d] transition-all duration-200"
+      className="group rounded-xl border border-gray-300 bg-white p-8 shadow-sm hover:shadow-md hover:border-black/20 hover:bg-gray-50 dark:border-[rgba(255,255,255,0.08)] dark:bg-[#0a0a0a] dark:hover:border-[rgba(255,255,255,0.14)] dark:hover:bg-[#0d0d0d] transition-all duration-200"
     >
       <div
         className={`mb-5 w-fit rounded-lg bg-gray-100 p-2.5 text-black dark:bg-[#111] dark:text-white ${accent}`}
@@ -440,7 +440,7 @@ function FeatureCard({
       <h3 className="mb-2 text-sm font-semibold text-black dark:text-white tracking-tight">
         {title}
       </h3>
-      <p className="text-sm leading-relaxed text-gray-600 dark:text-[#A1A1AA]">{desc}</p>
+      <p className="text-sm leading-relaxed text-gray-700 dark:text-[#A1A1AA]">{desc}</p>
     </motion.div>
   );
 }
