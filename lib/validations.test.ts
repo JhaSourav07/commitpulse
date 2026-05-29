@@ -208,6 +208,69 @@ describe('streakParamsSchema', () => {
       expect(result.error.issues[0]?.message).toBe('Invalid GitHub username');
     }
   });
+  it('should accept delta_format percent', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      delta_format: 'percent',
+    });
+
+    expect(result.success).toBe(true);
+
+    if (result.success) {
+      expect(result.data.delta_format).toBe('percent');
+    }
+  });
+
+  it('should accept delta_format absolute', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      delta_format: 'absolute',
+    });
+
+    expect(result.success).toBe(true);
+
+    if (result.success) {
+      expect(result.data.delta_format).toBe('absolute');
+    }
+  });
+
+  it('should accept delta_format both', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      delta_format: 'both',
+    });
+
+    expect(result.success).toBe(true);
+
+    if (result.success) {
+      expect(result.data.delta_format).toBe('both');
+    }
+  });
+
+  it('should fallback to percent for invalid delta_format', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      delta_format: 'unknown',
+    });
+
+    expect(result.success).toBe(true);
+
+    if (result.success) {
+      expect(result.data.delta_format).toBe('percent');
+    }
+  });
+
+  it('should default delta_format to percent when omitted', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+    });
+
+    expect(result.success).toBe(true);
+
+    if (result.success) {
+      expect(result.data.delta_format).toBe('percent');
+    }
+  });
 });
 
 it('should succeed when username contains hyphens', () => {
