@@ -86,7 +86,7 @@ export default function LandingPage() {
   }, []);
 
   const badgeUrl = `/api/streak?user=${debouncedUsername}`;
-  const markdown = `![CommitPulse](https://commitpulse.vercel.app/api/streak?user=${debouncedUsername})`;
+  const markdown = `![CommitPulse](https://commitpulse.vercel.app/api/streak?user=${trimmedUsername})`;
 
   // Fetch SVG content whenever debounced username changes.
   useEffect(() => {
@@ -125,7 +125,7 @@ export default function LandingPage() {
   }, [badgeUrl, hasUsername]);
 
   const copyToClipboard = () => {
-    if (!hasUsername) return;
+    if (trimmedUsername.length === 0) return;
 
     trackUser(trimmedUsername);
     addSearch(trimmedUsername);
