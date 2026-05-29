@@ -181,7 +181,6 @@ export const streakParamsSchema = z.object({
     .string()
     .optional()
     .transform((val) => (val ? sanitizeHexColor(val, '7f8c8d') : undefined)),
-<<<<<<< HEAD
   versus: z
     .string()
     .optional()
@@ -192,7 +191,6 @@ export const streakParamsSchema = z.object({
       },
       { message: 'Invalid versus GitHub username' }
     ),
-=======
   shading: z
     .string()
     .optional()
