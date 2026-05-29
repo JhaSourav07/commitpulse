@@ -734,6 +734,18 @@ describe('GET /api/streak', () => {
       expect(getSecondsUntilUTCMidnight).toHaveBeenCalled();
       expect(getSecondsUntilMidnightInTimezone).not.toHaveBeenCalled();
     });
+
+    it('returns 200 with valid SVG and calls getSecondsUntilMidnightInTimezone for Australia/Sydney', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', tz: 'Australia/Sydney' }));
+
+      expect(response.status).toBe(200);
+
+      const body = await response.text();
+      expect(body).toContain('<svg');
+      expect(body).toContain('</svg>');
+
+      expect(getSecondsUntilMidnightInTimezone).toHaveBeenCalledWith('Australia/Sydney');
+    });
   });
 
   describe('hide_background parameter', () => {
