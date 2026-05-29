@@ -86,6 +86,26 @@ describe('SVG Sanitizer Utilities', () => {
     it('returns fallback for invalid input', () => {
       expect(sanitizeRadius('invalid', 8)).toBe(8);
     });
+
+    it('truncates float strings using parseInt', () => {
+      expect(sanitizeRadius('8.7', 8)).toBe(8);
+    });
+
+    it('clamps extreme negative values to 0', () => {
+      expect(sanitizeRadius('-999', 8)).toBe(0);
+    });
+
+    it('returns 50 when given 50', () => {
+      expect(sanitizeRadius('50', 8)).toBe(50);
+    });
+
+    it('clamps values above 50 to 50', () => {
+      expect(sanitizeRadius('51', 8)).toBe(50);
+    });
+
+    it('handles leading zeros and returns 0 when given 00', () => {
+      expect(sanitizeRadius('00', 8)).toBe(0);
+    });
   });
 
   describe('sanitizeFont', () => {
