@@ -256,12 +256,12 @@ function IconNord({ text, accent }: IC): ReactElement {
         const r = (deg * Math.PI) / 180;
         const sx = Math.sin(r),
           cy = Math.cos(r);
-        const x2 = parseFloat((14 + 10 * sx).toFixed(3));
-        const y2 = parseFloat((14 - 10 * cy).toFixed(3));
-        const mx = parseFloat((14 + 6 * sx).toFixed(3));
-        const my = parseFloat((14 - 6 * cy).toFixed(3));
-        const px = parseFloat(cy.toFixed(3));
-        const py = parseFloat(sx.toFixed(3));
+        const x2 = 14 + 10 * sx,
+          y2 = 14 - 10 * cy;
+        const mx = 14 + 6 * sx,
+          my = 14 - 6 * cy;
+        const px = cy,
+          py = sx;
         return (
           <g key={deg}>
             <line
