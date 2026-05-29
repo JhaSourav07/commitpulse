@@ -101,6 +101,7 @@ describe('computeTowers edge cases', () => {
     expect(towers[0].h).toBe(4); // GHOST_HEIGHT_PX
     expect(towers[0].strokeOpacity).toBe(0.3);
     expect(towers[0].strokeWidth).toBe(0.5);
+    expect(towers[0].faceOpacity.top).toBe(0.08);
   });
 
   it('marks every tower as a ghost with ghost height for an all-zero calendar', () => {
@@ -126,6 +127,7 @@ describe('computeTowers edge cases', () => {
     towers.forEach((tower) => {
       expect(tower.isGhost).toBe(true);
       expect(tower.h).toBe(4); // GHOST_HEIGHT_PX
+      expect(tower.faceOpacity.top).toBe(0.08);
     });
   });
 
@@ -147,8 +149,10 @@ describe('computeTowers edge cases', () => {
     expect(towers[0].h).toBe(0); // 0 count non-ghost = 0 height
     expect(towers[0].strokeOpacity).toBe(0);
     expect(towers[0].strokeWidth).toBe(0);
+    expect(towers[0].faceOpacity.top).toBe(0.08);
     expect(towers[1].isGhost).toBe(false);
     expect(towers[1].h).toBeGreaterThan(0);
+    expect(towers[1].faceOpacity.top).toBe(0.7);
   });
 
   it('uses logarithmic scale heights', () => {

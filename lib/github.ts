@@ -262,35 +262,35 @@ export async function fetchGitHubContributions(
 
   const calendar = data.data.user.contributionsCollection.contributionCalendar;
 
-  // Inject deterministic Lines of Code (LoC) approximation
-  // Since GitHub's contributionCalendar doesn't provide native LoC metrics,
-  // we generate a consistent estimation based on the day's commit volume.
-  calendar.weeks.forEach((week) => {
-    week.contributionDays.forEach((day) => {
-      if (day.contributionCount > 0) {
-        let hash1 = 2166136261,
-          hash2 = 2166136261;
-        const seed1 = day.date + 'add',
-          seed2 = day.date + 'del';
-        for (let i = 0; i < seed1.length; i++) {
-          hash1 ^= seed1.charCodeAt(i);
-          hash1 = Math.imul(hash1, 16777619);
-        }
-        for (let i = 0; i < seed2.length; i++) {
-          hash2 ^= seed2.charCodeAt(i);
-          hash2 = Math.imul(hash2, 16777619);
-        }
-        const randAdd = (hash1 >>> 0) / 4294967296;
-        const randDel = (hash2 >>> 0) / 4294967296;
+  // // Inject deterministic Lines of Code (LoC) approximation
+  // // Since GitHub's contributionCalendar doesn't provide native LoC metrics,
+  // // we generate a consistent estimation based on the day's commit volume.
+  // calendar.weeks.forEach((week) => {
+  //   week.contributionDays.forEach((day) => {
+  //     if (day.contributionCount > 0) {
+  //       let hash1 = 2166136261,
+  //         hash2 = 2166136261;
+  //       const seed1 = day.date + 'add',
+  //         seed2 = day.date + 'del';
+  //       for (let i = 0; i < seed1.length; i++) {
+  //         hash1 ^= seed1.charCodeAt(i);
+  //         hash1 = Math.imul(hash1, 16777619);
+  //       }
+  //       for (let i = 0; i < seed2.length; i++) {
+  //         hash2 ^= seed2.charCodeAt(i);
+  //         hash2 = Math.imul(hash2, 16777619);
+  //       }
+  //       const randAdd = (hash1 >>> 0) / 4294967296;
+  //       const randDel = (hash2 >>> 0) / 4294967296;
 
-        day.locAdditions = Math.floor(day.contributionCount * (25 + randAdd * 85));
-        day.locDeletions = Math.floor(day.contributionCount * (5 + randDel * 35));
-      } else {
-        day.locAdditions = 0;
-        day.locDeletions = 0;
-      }
-    });
-  });
+  //       day.locAdditions = Math.floor(day.contributionCount * (25 + randAdd * 85));
+  //       day.locDeletions = Math.floor(day.contributionCount * (5 + randDel * 35));
+  //     } else {
+  //       day.locAdditions = 0;
+  //       day.locDeletions = 0;
+  //     }
+  //   });
+  // });
 
   if (!options.bypassCache) contributionsCache.set(key, calendar, GITHUB_CACHE_TTL_MS);
 
@@ -465,42 +465,12 @@ export async function getOrgDashboardData(orgName: string, options: FetchOptions
   };
 }
 
-/**
- * Fetches data specifically tailored for the end-of-year GitHub Wrapped infographic.
- */
-export async function getWrappedData(username: string, year: string) {
-  const options = {
-    from: `${year}-01-01T00:00:00Z`,
-    to: `${year}-12-31T23:59:59Z`,
-    bypassCache: true,
-  };
-  const calendar = await fetchGitHubContributions(username, options);
-  const repos = await fetchUserRepos(username, options);
-
-  const wrappedStats = calculateWrappedStats(calendar);
-
-  // Top languages specific to wrapped
-  const langCounts: Record<string, number> = {};
-  repos.forEach((r) => {
-    if (r.language) langCounts[r.language] = (langCounts[r.language] || 0) + 1;
-  });
-
-  return {
-    ...wrappedStats,
-    topLanguage:
-      Object.keys(langCounts).sort((a, b) => langCounts[b] - langCounts[a])[0] || 'Unknown',
-  };
-}
-
-/* ==========================================================================
- * UTILS & EXPORTS
- * ========================================================================== */
-
 export function generateAchievements(
   totalContributions: number,
   currentStreak: number,
   weekendCommits: number = 0,
-  uniqueLanguages: number = 0
+  uniqueLanguages: number = 0,
+  longestStreak: number = currentStreak
 ) {
   const achievements = [];
 
@@ -534,11 +504,11 @@ export function generateAchievements(
           ? 'Maintained a 3-day coding streak'
           : `Maintained a ${threshold}-day coding streak`,
       icon: '🔥',
-      isUnlocked: currentStreak >= threshold,
+      isUnlocked: longestStreak >= threshold,
       type: 'streak' as const,
       threshold,
-      currentValue: currentStreak,
-      progress: Math.min(100, Math.round((currentStreak / threshold) * 100)),
+      currentValue: longestStreak,
+      progress: Math.min(100, Math.round((longestStreak / threshold) * 100)),
     });
   }
 
@@ -741,7 +711,8 @@ export async function getFullDashboardData(username: string, options: FetchOptio
     streakStats.totalContributions,
     streakStats.currentStreak,
     weekendCommits,
-    uniqueLanguages
+    uniqueLanguages,
+    streakStats.longestStreak
   );
 
   const insights = buildInsights(streakStats, languages);
@@ -758,5 +729,59 @@ export async function getFullDashboardData(username: string, options: FetchOptio
     insights,
     achievements,
     commitClock,
+  };
+}
+
+export async function getWrappedData(
+  username: string,
+  year: string
+): Promise<import('../types/dashboard').WrappedStats> {
+  const from = `${year}-01-01T00:00:00Z`;
+  const to = `${year}-12-31T23:59:59Z`;
+  const options: FetchOptions = { from, to, bypassCache: true };
+
+  const [calendar, repos] = await Promise.all([
+    fetchGitHubContributions(username, options),
+    fetchUserRepos(username, options),
+  ]);
+
+  const allDays = calendar.weeks.flatMap((w) => w.contributionDays);
+
+  const totalContributions = calendar.totalContributions;
+
+  const mostActiveDay = allDays.reduce(
+    (max, d) => (d.contributionCount > max.contributionCount ? d : max),
+    allDays[0] ?? { date: '', contributionCount: 0 }
+  );
+
+  const monthTotals: Record<string, number> = {};
+  for (const day of allDays) {
+    const month = day.date.slice(0, 7);
+    monthTotals[month] = (monthTotals[month] || 0) + day.contributionCount;
+  }
+  const busiestMonth =
+    Object.entries(monthTotals).sort((a, b) => b[1] - a[1])[0]?.[0] ?? `${year}-01`;
+
+  const weekendDays = allDays.filter((d) => {
+    const dow = new Date(d.date).getUTCDay();
+    return dow === 0 || dow === 6;
+  });
+  const weekendTotal = weekendDays.reduce((sum, d) => sum + d.contributionCount, 0);
+  const weekendRatio =
+    totalContributions > 0 ? Math.round((weekendTotal / totalContributions) * 100) : 0;
+
+  const langCounts: Record<string, number> = {};
+  for (const repo of repos) {
+    if (repo.language) langCounts[repo.language] = (langCounts[repo.language] || 0) + 1;
+  }
+  const topLanguage = Object.entries(langCounts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? 'Unknown';
+
+  return {
+    totalContributions,
+    mostActiveDate: mostActiveDay.date,
+    highestDailyCount: mostActiveDay.contributionCount,
+    busiestMonth,
+    weekendRatio,
+    topLanguage,
   };
 }

@@ -31,12 +31,20 @@ export async function GET(request: Request) {
   const parseResult = streakParamsSchema.safeParse(Object.fromEntries(searchParams.entries()));
   try {
     if (!parseResult.success) {
+      const fieldErrors = parseResult.error.flatten();
+
       return NextResponse.json(
         {
           error: 'Invalid parameters',
-          details: parseResult.error.flatten(),
+          details: fieldErrors,
         },
-        { status: 400 }
+        {
+          status: 400,
+          headers: {
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-store',
+          },
+        }
       );
     }
 
@@ -70,6 +78,8 @@ export async function GET(request: Request) {
       labels,
       labelColor,
       versus,
+      shading,
+      gradient,
     } = parseResult.data;
 
     const themeName = theme || 'dark';
@@ -141,6 +151,8 @@ export async function GET(request: Request) {
       labels,
       labelColor,
       versus,
+      shading,
+      gradient,
     };
 
     let calendar;
@@ -219,7 +231,13 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
     message.toLowerCase().includes('validation');
 
   const errBg = `#${(parseResult.success && parseResult.data.bg) || '0d1117'}`;
-  const errAccent = `#${(parseResult.success && parseResult.data.accent) || '58a6ff'}`;
+  const errAccent = `#${
+    (parseResult.success &&
+      (Array.isArray(parseResult.data.accent)
+        ? parseResult.data.accent[parseResult.data.accent.length - 1]
+        : parseResult.data.accent)) ||
+    '58a6ff'
+  }`;
   const errText = `#${(parseResult.success && parseResult.data.text) || 'c9d1d9'}`;
   const errRadius = parseResult.success
     ? (() => {

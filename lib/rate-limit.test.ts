@@ -61,6 +61,21 @@ describe('rateLimit', () => {
     expect(rateLimit(ip2, 60, 60000).success).toBe(true);
   });
 });
+it('allows requests after many expired IP entries', () => {
+  const windowMs = 1000;
+
+  expect(() => {
+    for (let i = 0; i < 2001; i++) {
+      rateLimit(`192.168.1.${i}`, 60, windowMs);
+    }
+  }).not.toThrow();
+
+  vi.advanceTimersByTime(windowMs + 1);
+
+  const result = rateLimit('10.0.0.1', 60, windowMs);
+
+  expect(result.success).toBe(true);
+});
 
 describe('RateLimiter', () => {
   beforeEach(() => {
