@@ -14,6 +14,25 @@
 
 > **Drop this into your GitHub profile README and stop being boring.**
 
+## 📖 Table of Contents
+
+- [Design Philosophy](#the-isometric-monolith--design-philosophy)
+- [Live Demo](#live-demo)
+- [Deep Customization](#deep-customization--url-parameters)
+- [Theme Presets](#theme-presets)
+- [Theme Preview Gallery](#theme-preview-gallery)
+- [Real-Time Accuracy](#real-time-accuracy--the-contribution-count-problem)
+- [Architecture & Tech Stack](#architecture--tech-stack)
+- [Self-Hosting](#self-hosting-in-4-steps)
+- [Automated Contributor Workflow](#automated-contributor-workflow)
+- [FAQ](#faq)
+- [Contributing](#contributing)
+- [License](#license)
+- [Themes](#themes)
+- [Contributors](#contributors)
+
+---
+
 ![CommitPulse Live Demo](https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=neon)
 
 [![Join CommitPulse Discord](https://img.shields.io/badge/Join-CommitPulse%20Discord-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/Cb73bS79j)
@@ -155,7 +174,7 @@ URL Parameter > Theme Default > System Fallback
 | `hide_background` | `boolean` | No         | `false`                        | Remove the background rect, letting the monolith float on the page                                                                                                        |
 | `hide_stats`      | `boolean` | No         | `false`                        | Hides the bottom row displaying Current Streak, Annual Sync Total, and Peak Streak stats when set to `true` or `1`.                                                       |
 | `tz`              | `string`  | No         | Omitted = UTC                  | IANA timezone (e.g. `Asia/Kolkata`, `America/New_York`) — aligns "today" with the user local midnight. Note: `?tz=UTC` is valid but cached separately from omitting `tz`. |
-| `lang`            | `string`  | No         | `en`                           | Language code for labels (`en`, `es`, `hi`, `fr`, `pt`, `ko`, `ja`)                                                                                                       |
+| `lang`            | `string`  | No         | `en`                           | Language code for labels (`en`, `es`, `hi`, `fr`, `pt`, `ko`, `ja`, `de`)                                                                                                 |
 | `view`            | `string`  | No         | `default`                      | Rendering mode: `default` (3D Monolith) or `monthly` (Compact monthly stats)                                                                                              |
 | `delta_format`    | `string`  | No         | `percent`                      | Format for month-over-month delta in monthly view: `percent` (e.g. +12%), `absolute` (e.g. +15 commits), or `both`                                                        |
 | `width`           | `number`  | No         | `300`                          | Custom width for the SVG canvas (currently only applies to `view=monthly`)                                                                                                |
@@ -401,7 +420,7 @@ We built an anti-hoarding, self-service automation layer right into the reposito
 - **Structured Issue Templates:** We use specific templates for Bug Reports and Feature Requests to maintain high quality and clarity.
 - **Self-Claiming:** Issue authors can grab their issues instantly by commenting `/claim` (only the author of the issue can claim it, unless it was authored by `jhasourav07`, in which case anyone can claim it).
 - **Fair Play:** A strict one-active-issue-per-contributor rule prevents issue hoarding.
-- **Stale Expiry:** A scheduled chron job automatically unassigns inactive contributors after 3 days.
+- **Stale Expiry:** A scheduled chron job automatically unassigns inactive contributors after 2 days.
 - **Self-Service Labels:** Anyone can tag issues using `/addlabel <tag>`.
 - **Semantic Duplicate Detection:** An AI-powered duplicate detector automatically scans open issues using the Google Gemini API (`gemini-embedding-001`) to generate vector embeddings. It calculates cosine similarity and flags potential duplicate issues with a comment and a `possible-duplicate` label.
 
@@ -432,7 +451,14 @@ Yes — if private contributions visibility is enabled in your GitHub settings.
 
 ### Are there GitHub API rate limits?
 
-Yes, but CommitPulse minimizes API usage using caching and optimized GraphQL queries.
+Yes. CommitPulse minimizes API usage via caching and optimized GraphQL queries, but if you hit the GitHub API rate limit (typically 5,000 requests per hour for authenticated users), you might see errors or missing data.
+
+#### Troubleshooting Rate Limit Errors
+
+1. **Wait it out:** Rate limits automatically reset every hour.
+2. **Provide your own PAT:** If self-hosting, ensure you've provided a valid `GITHUB_TOKEN` in `.env.local` to get the authenticated rate limit.
+3. **Avoid aggressive bypassing:** Avoid repeatedly using the `&refresh=true` parameter, which bypasses the cache and consumes API quota on every load.
+4. **Check GitHub API Status:** Occasionally, GitHub's GraphQL API itself experiences degradation. Check [githubstatus.com](https://www.githubstatus.com/).
 
 ---
 

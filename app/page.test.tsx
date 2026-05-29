@@ -151,6 +151,25 @@ describe('LandingPage', () => {
     });
   });
 
+  it('disables the Watch Dashboard link when the username is empty', () => {
+    render(<LandingPage />);
+    const dashboardLink = screen.getByRole('link', { name: 'Watch Dashboard' });
+
+    expect(dashboardLink.getAttribute('aria-disabled')).toBe('true');
+    expect(dashboardLink.getAttribute('href')).toBe('/');
+  });
+
+  it('enables the Watch Dashboard link after a username is entered', () => {
+    render(<LandingPage />);
+    const input = screen.getByPlaceholderText('Enter GitHub Username') as HTMLInputElement;
+
+    fireEvent.change(input, { target: { value: 'octocat' } });
+
+    const dashboardLink = screen.getByRole('link', { name: 'Watch Dashboard' });
+    expect(dashboardLink.getAttribute('aria-disabled')).not.toBe('true');
+    expect(dashboardLink.getAttribute('href')).toBe('/dashboard/octocat');
+  });
+
   it('handles copying to clipboard and showing the SuccessGuide', async () => {
     render(<LandingPage />);
     const input = screen.getByPlaceholderText('Enter GitHub Username') as HTMLInputElement;
@@ -191,11 +210,15 @@ describe('LandingPage', () => {
     expect(navigator.clipboard.writeText).not.toHaveBeenCalled();
   });
 
-  it('renders the FeatureCards', () => {
+  it('renders exactly 3 FeatureCards with correct titles', () => {
     render(<LandingPage />);
-    expect(screen.getByText('Real-time Sync')).toBeDefined();
-    expect(screen.getByText('Theme Engine')).toBeDefined();
-    expect(screen.getByText('Isometric Math')).toBeDefined();
+
+    const featureHeadings = screen.getAllByRole('heading', { level: 3 });
+
+    expect(featureHeadings).toHaveLength(3);
+
+    const titles = featureHeadings.map((h) => h.textContent);
+    expect(titles).toEqual(['Real-time Sync', 'Theme Engine', 'Isometric Math']);
   });
 
   it('renders the CustomizeCTA', () => {
