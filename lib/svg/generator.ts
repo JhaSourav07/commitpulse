@@ -16,8 +16,8 @@ export function getSizeScale(size?: 'small' | 'medium' | 'large') {
   return 1;
 }
 
-function truncateUsername(username: string): string {
-  return username.length > 12 ? `${username.slice(0, 12)}...` : username;
+export function truncateUsername(name: string, max = 20): string {
+  return name.length > max ? name.slice(0, max) + '…' : name;
 }
 
 function deterministicRandom(seed: string): number {
