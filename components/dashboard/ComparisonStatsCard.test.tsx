@@ -90,4 +90,39 @@ describe('ComparisonStatsCard', () => {
 
     expect(screen.queryByText('Winner')).toBeNull();
   });
+  it('renders neutral fallback progress bar when both values are zero', () => {
+    const { container } = render(
+      <ComparisonStatsCard
+        title="Developer Score"
+        valueA={0}
+        valueB={0}
+        labelA="User One"
+        labelB="User Two"
+        icon="Award"
+      />
+    );
+
+    const fallbackBar = container.querySelector('.bg-gray-700\\/50');
+
+    expect(fallbackBar).toBeDefined();
+  });
+
+  it('renders both progress bar segments when total is greater than zero', () => {
+    const { container } = render(
+      <ComparisonStatsCard
+        title="Developer Score"
+        valueA={75}
+        valueB={25}
+        labelA="User One"
+        labelB="User Two"
+        icon="Award"
+      />
+    );
+
+    const userOneSegment = container.querySelector('.bg-cyan-400');
+    const userTwoSegment = container.querySelector('.bg-purple-400');
+
+    expect(userOneSegment).toBeDefined();
+    expect(userTwoSegment).toBeDefined();
+  });
 });

@@ -62,4 +62,31 @@ describe('trackUser', () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
+  it('does not run in SSR context when window is undefined', () => {
+    const originalWindow = globalThis.window;
+    const sendBeaconMock = vi.fn();
+    const fetchMock = vi.fn();
+
+    Object.defineProperty(globalThis, 'window', {
+      value: undefined,
+      configurable: true,
+    });
+
+    Object.defineProperty(navigator, 'sendBeacon', {
+      value: sendBeaconMock,
+      configurable: true,
+    });
+
+    vi.stubGlobal('fetch', fetchMock);
+
+    trackUser('octocat');
+
+    expect(sendBeaconMock).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    Object.defineProperty(globalThis, 'window', {
+      value: originalWindow,
+      configurable: true,
+    });
+  });
 });
