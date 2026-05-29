@@ -41,6 +41,7 @@ export default function CustomizePage(): ReactElement {
   const [copied, setCopied] = useState(false);
   const [copyStatusMessage, setCopyStatusMessage] = useState('');
   const copyResetTimeoutRef = useRef<number | null>(null);
+
   const trimmedUsername = username.trim();
   const hasUsername = trimmedUsername.length > 0;
   const isAutoTheme = theme === 'auto';
@@ -49,18 +50,16 @@ export default function CustomizePage(): ReactElement {
 
   useEffect(() => {
     return () => {
-      if (copyResetTimeoutRef.current !== null) {
-        window.clearTimeout(copyResetTimeoutRef.current);
-      }
+      if (copyResetTimeoutRef.current !== null) window.clearTimeout(copyResetTimeoutRef.current);
     };
   }, []);
 
   useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
         const input = document.querySelector<HTMLInputElement>('#username-input');
         if (!input || document.activeElement === input) return;
-        event.preventDefault();
+        e.preventDefault();
         input.focus();
       }
     };
@@ -79,9 +78,7 @@ export default function CustomizePage(): ReactElement {
 
   const buildQueryParams = useCallback((): string => {
     const params = new URLSearchParams();
-
     if (hasUsername) params.set('user', trimmedUsername);
-
     if (skipsCustomColors) {
       params.set('theme', theme);
     } else {
@@ -91,7 +88,6 @@ export default function CustomizePage(): ReactElement {
       if (accentHex) params.set('accent', stripHash(accentHex));
       if (textHex) params.set('text', stripHash(textHex));
     }
-
     if (scale !== 'linear') params.set('scale', scale);
     if (speed !== '8s') params.set('speed', speed);
     if (font) params.set('font', font);
@@ -107,7 +103,6 @@ export default function CustomizePage(): ReactElement {
     if (badgeHeight !== '') params.set('height', badgeHeight.toString());
     if (grace !== 1) params.set('grace', grace.toString());
     if (language !== 'en') params.set('lang', language);
-
     return params.toString();
   }, [
     hasUsername,
@@ -138,27 +133,25 @@ export default function CustomizePage(): ReactElement {
   const previewSrc = `/api/streak?${queryString}`;
   const exportSnippet = getExportSnippet(exportFormat, queryString);
 
-  const fallbackCopyToClipboard = (text: string): boolean => {
+  const fallbackCopy = (text: string): boolean => {
     try {
-      const textArea = document.createElement('textarea');
-      textArea.value = text;
-      textArea.style.position = 'fixed';
-      textArea.style.opacity = '0';
-      textArea.style.pointerEvents = 'none';
-      document.body.appendChild(textArea);
-      textArea.focus();
-      textArea.select();
-      const successful = document.execCommand('copy');
-      document.body.removeChild(textArea);
-      return successful;
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.cssText = 'position:fixed;opacity:0;pointer-events:none';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      const ok = document.execCommand('copy');
+      document.body.removeChild(ta);
+      return ok;
     } catch {
       return false;
     }
   };
 
-  const announceCopyStatus = useCallback((message: string): void => {
+  const announceCopyStatus = useCallback((msg: string): void => {
     setCopyStatusMessage('');
-    window.setTimeout(() => setCopyStatusMessage(message), 0);
+    window.setTimeout(() => setCopyStatusMessage(msg), 0);
   }, []);
 
   const copyExportSnippet = async (): Promise<void> => {
@@ -167,13 +160,10 @@ export default function CustomizePage(): ReactElement {
       if (navigator.clipboard && window.isSecureContext) {
         await navigator.clipboard.writeText(exportSnippet);
       } else {
-        const ok = fallbackCopyToClipboard(exportSnippet);
-        if (!ok) throw new Error('Fallback clipboard copy failed.');
+        if (!fallbackCopy(exportSnippet)) throw new Error('Fallback copy failed.');
       }
       setCopied(true);
-      announceCopyStatus(
-        `${exportFormat === 'markdown' ? 'Markdown' : 'HTML'} snippet copied to clipboard.`
-      );
+      announceCopyStatus(`${exportFormat === 'markdown' ? 'Markdown' : 'HTML'} snippet copied.`);
       if (copyResetTimeoutRef.current !== null) window.clearTimeout(copyResetTimeoutRef.current);
       copyResetTimeoutRef.current = window.setTimeout(() => {
         setCopied(false);
@@ -189,38 +179,55 @@ export default function CustomizePage(): ReactElement {
 
   return (
     <div className="min-h-screen text-white font-sans overflow-x-hidden">
-      {/* ── Ambient background orbs ─────────────────────────────────────── */}
+      {/* ── Ambient background ──────────────────────────────────────────── */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
-        <div className="absolute -top-[15%] -left-[5%] w-[40%] h-[40%] bg-emerald-500/[0.06] blur-[140px] rounded-full" />
-        <div className="absolute top-[25%] -right-[8%] w-[30%] h-[30%] bg-violet-500/[0.05] blur-[130px] rounded-full" />
-        <div className="absolute bottom-[5%] left-[35%] w-[28%] h-[28%] bg-blue-500/[0.04] blur-[120px] rounded-full" />
-        {/* Subtle grid overlay */}
         <div
-          className="absolute inset-0 opacity-[0.015]"
+          className="absolute -top-[20%] -left-[8%] w-[45%] h-[45%] rounded-full blur-[160px]"
           style={{
-            backgroundImage:
-              'linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)',
-            backgroundSize: '60px 60px',
+            background: 'radial-gradient(circle, rgba(16,185,129,0.07) 0%, transparent 70%)',
+          }}
+        />
+        <div
+          className="absolute top-[30%] -right-[10%] w-[35%] h-[35%] rounded-full blur-[140px]"
+          style={{
+            background: 'radial-gradient(circle, rgba(139,92,246,0.06) 0%, transparent 70%)',
+          }}
+        />
+        <div
+          className="absolute bottom-[10%] left-[30%] w-[30%] h-[30%] rounded-full blur-[120px]"
+          style={{
+            background: 'radial-gradient(circle, rgba(59,130,246,0.05) 0%, transparent 70%)',
+          }}
+        />
+        {/* Dot grid */}
+        <div
+          className="absolute inset-0"
+          style={{
+            backgroundImage: 'radial-gradient(rgba(255,255,255,0.06) 1px, transparent 1px)',
+            backgroundSize: '32px 32px',
+            maskImage: 'radial-gradient(ellipse 80% 80% at 50% 50%, black 40%, transparent 100%)',
+            WebkitMaskImage:
+              'radial-gradient(ellipse 80% 80% at 50% 50%, black 40%, transparent 100%)',
           }}
         />
       </div>
 
-      <div className="relative z-10 max-w-7xl mx-auto px-5 sm:px-6 py-8">
-        {/* ── Top Bar ─────────────────────────────────────────────────────── */}
-        <motion.div
-          initial={{ opacity: 0, y: -8 }}
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-16">
+        {/* ── Breadcrumb ──────────────────────────────────────────────────── */}
+        <motion.nav
+          initial={{ opacity: 0, y: -6 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.35 }}
-          className="flex items-center gap-3 mb-10"
+          transition={{ duration: 0.3 }}
+          className="flex items-center gap-2 mb-10"
+          aria-label="Breadcrumb"
         >
           <Link
             href="/"
             id="back-to-home-link"
-            className="inline-flex items-center gap-1.5 text-xs text-white/30 hover:text-white/70 transition-colors duration-200 group"
+            className="group inline-flex items-center gap-1.5 text-[12px] text-white/35 hover:text-white/65 transition-colors duration-150"
           >
             <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform duration-200"
+              className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform duration-150"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -233,53 +240,71 @@ export default function CustomizePage(): ReactElement {
             </svg>
             Home
           </Link>
+          <span className="text-white/15 text-[12px]">/</span>
+          <span className="text-[12px] text-white/50 font-medium">Customization Studio</span>
 
-          <span className="text-white/10">/</span>
-
-          <span className="text-xs font-semibold text-white/50">Customization Studio</span>
-
-          {/* Live indicator */}
-          <div className="ml-auto flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-emerald-500/20 bg-emerald-500/[0.06]">
+          {/* Live pill */}
+          <div
+            className="ml-auto inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-medium text-emerald-400/85"
+            style={{
+              background: 'rgba(16,185,129,0.08)',
+              border: '1px solid rgba(16,185,129,0.2)',
+            }}
+          >
             <span className="relative flex h-1.5 w-1.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60" />
               <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-400" />
             </span>
-            <span className="text-[10px] font-medium text-emerald-400/80 tracking-wide">Live</span>
+            Live
           </div>
-        </motion.div>
+        </motion.nav>
 
-        {/* ── Page Heading ─────────────────────────────────────────────────── */}
+        {/* ── Page heading ────────────────────────────────────────────────── */}
         <motion.div
-          initial={{ opacity: 0, y: 12 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.45, delay: 0.05 }}
+          transition={{ duration: 0.4, delay: 0.05 }}
           className="mb-10"
         >
-          <h1 className="text-3xl md:text-[2.5rem] font-extrabold tracking-tight text-white leading-[1.15] mb-3">
+          <h1 className="text-[2rem] sm:text-[2.4rem] font-extrabold tracking-tight leading-[1.12] mb-3">
             Fine-tune your{' '}
-            <span className="bg-gradient-to-r from-emerald-400 to-teal-300 bg-clip-text text-transparent">
+            <span
+              className="bg-clip-text text-transparent"
+              style={{
+                backgroundImage: 'linear-gradient(90deg, #34d399 0%, #6ee7b7 50%, #a7f3d0 100%)',
+              }}
+            >
               monolith.
             </span>
           </h1>
-          <p className="text-white/40 text-sm max-w-lg leading-relaxed">
+          <p className="text-[13px] text-white/40 max-w-md leading-relaxed">
             Every change updates the preview in real-time. Copy the export snippet when you&apos;re
             done — no extra steps required.
           </p>
         </motion.div>
 
-        {/* ── Split Layout ─────────────────────────────────────────────────── */}
-        <div className="grid lg:grid-cols-[360px_1fr] xl:grid-cols-[380px_1fr] gap-5 items-start">
-          {/* ════ LEFT: Controls ════════════════════════════════════════════ */}
+        {/* ── Two-column layout ───────────────────────────────────────────── */}
+        <div className="grid lg:grid-cols-[360px_1fr] xl:grid-cols-[376px_1fr] gap-5 items-start">
+          {/* ════ LEFT: Controls sidebar ════════════════════════════════════ */}
           <motion.aside
-            initial={{ opacity: 0, x: -16 }}
+            initial={{ opacity: 0, x: -14 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.45, delay: 0.1 }}
+            transition={{ duration: 0.4, delay: 0.1 }}
             className="sticky top-6"
           >
-            <div className="rounded-[1.5rem] border border-white/[0.07] bg-[#0d1117]/90 backdrop-blur-2xl shadow-[0_8px_40px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.04)] overflow-hidden">
-              {/* Top accent line */}
-              <div className="h-px bg-gradient-to-r from-transparent via-emerald-500/30 to-transparent" />
-              <div className="p-5 overflow-y-auto max-h-[calc(100vh-8rem)]">
+            <div className="cp-card overflow-hidden" style={{ maxHeight: 'calc(100vh - 3rem)' }}>
+              {/* Emerald top accent */}
+              <div
+                className="h-px w-full"
+                style={{
+                  background:
+                    'linear-gradient(90deg, transparent 5%, rgba(16,185,129,0.5) 50%, transparent 95%)',
+                }}
+              />
+              <div
+                className="p-5 overflow-y-auto"
+                style={{ maxHeight: 'calc(100vh - 3rem - 1px)' }}
+              >
                 <ControlsPanel
                   username={username}
                   theme={theme}
@@ -331,26 +356,38 @@ export default function CustomizePage(): ReactElement {
             </div>
           </motion.aside>
 
-          {/* ════ RIGHT: Preview + Export ════════════════════════════════════ */}
+          {/* ════ RIGHT: Preview + Export + Params ══════════════════════════ */}
           <motion.div
-            initial={{ opacity: 0, x: 16 }}
+            initial={{ opacity: 0, x: 14 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.45, delay: 0.15 }}
+            transition={{ duration: 0.4, delay: 0.15 }}
             className="flex flex-col gap-5"
           >
-            {/* Live Preview */}
-            <div className="rounded-[1.5rem] border border-white/[0.07] bg-[#0d1117]/80 backdrop-blur-xl shadow-[0_8px_40px_rgba(0,0,0,0.4)] overflow-hidden">
-              <div className="h-px bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
+            {/* ── Live Preview ──────────────────────────────────────────── */}
+            <div className="cp-card overflow-hidden">
+              <div
+                className="h-px w-full"
+                style={{
+                  background:
+                    'linear-gradient(90deg, transparent 5%, rgba(255,255,255,0.08) 50%, transparent 95%)',
+                }}
+              />
 
               {/* Preview header */}
-              <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.05]">
+              <div
+                className="flex items-center justify-between px-5 py-3.5"
+                style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+              >
                 <div className="flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]" />
-                  <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-emerald-400/80">
+                  <span
+                    className="w-1.5 h-1.5 rounded-full"
+                    style={{ background: '#34d399', boxShadow: '0 0 6px rgba(52,211,153,0.7)' }}
+                  />
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-emerald-400/80">
                     Live Preview
                   </span>
                 </div>
-                <span className="text-[10px] text-white/20">
+                <span className="text-[11px] text-white/28">
                   {hasUsername
                     ? isRandomTheme
                       ? 'Random — no cache'
@@ -359,28 +396,48 @@ export default function CustomizePage(): ReactElement {
                 </span>
               </div>
 
-              {/* Preview area */}
-              <div className="p-6">
-                <div className="group relative rounded-2xl border border-white/[0.06] bg-white/[0.02] overflow-hidden min-h-[260px] flex items-center justify-center transition-all duration-500 hover:border-white/[0.1]">
-                  {/* Subtle inner glow on hover */}
-                  <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/[0.03] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
+              {/* Preview canvas */}
+              <div className="p-5">
+                <div
+                  className="group relative rounded-[12px] overflow-hidden flex items-center justify-center transition-all duration-300"
+                  style={{
+                    minHeight: '260px',
+                    background: 'rgba(0,0,0,0.2)',
+                    border: '1px solid rgba(255,255,255,0.06)',
+                  }}
+                >
+                  {/* Hover glow */}
+                  <div
+                    className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
+                    style={{
+                      background:
+                        'radial-gradient(ellipse at 50% 100%, rgba(16,185,129,0.05) 0%, transparent 70%)',
+                    }}
+                  />
 
                   {hasUsername ? (
-                    /* eslint-disable-next-line @next/next/no-img-element */
+                    // eslint-disable-next-line @next/next/no-img-element
                     <img
                       key={previewSrc}
                       src={previewSrc}
                       alt="CommitPulse live preview"
                       width={600}
                       height={420}
-                      className="relative z-10 max-w-full h-auto drop-shadow-[0_16px_48px_rgba(0,0,0,0.7)] transition-opacity duration-300"
+                      className="relative z-10 max-w-full h-auto"
+                      style={{ filter: 'drop-shadow(0 16px 40px rgba(0,0,0,0.7))' }}
                     />
                   ) : (
                     <div className="relative z-10 flex flex-col items-center justify-center px-8 py-14 text-center">
-                      <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl border border-white/[0.08] bg-white/[0.03] text-white/20">
+                      {/* Icon */}
+                      <div
+                        className="mb-5 w-14 h-14 rounded-2xl flex items-center justify-center"
+                        style={{
+                          background: 'rgba(255,255,255,0.03)',
+                          border: '1px solid rgba(255,255,255,0.08)',
+                        }}
+                      >
                         <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="h-6 w-6"
+                          className="w-6 h-6 text-white/20"
                           viewBox="0 0 24 24"
                           fill="none"
                           stroke="currentColor"
@@ -389,20 +446,25 @@ export default function CustomizePage(): ReactElement {
                           strokeLinejoin="round"
                           aria-hidden="true"
                         >
-                          <rect x="3" y="3" width="18" height="18" rx="3" />
-                          <path d="M3 9h18M9 21V9" />
+                          <path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4" />
+                          <path d="M9 18c-4.51 2-5-2-7-2" />
                         </svg>
                       </div>
-                      <p className="text-base font-semibold tracking-tight text-white/60 mb-2">
+                      <p className="text-[15px] font-semibold tracking-tight text-white/55 mb-2">
                         Enter a GitHub username
                       </p>
-                      <p className="text-sm text-white/25 max-w-xs leading-relaxed">
-                        Your live badge preview will appear here once a username is added in the
-                        controls panel.
+                      <p className="text-[12px] text-white/28 max-w-[240px] leading-relaxed">
+                        Your live badge preview will appear here once a username is added.
                       </p>
-                      <div className="mt-5 flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/[0.06] bg-white/[0.02]">
-                        <kbd className="text-[10px] text-white/25 font-mono">⌘K</kbd>
-                        <span className="text-[10px] text-white/20">to focus username field</span>
+                      <div
+                        className="mt-5 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg"
+                        style={{
+                          background: 'rgba(255,255,255,0.03)',
+                          border: '1px solid rgba(255,255,255,0.07)',
+                        }}
+                      >
+                        <kbd className="text-[10px] font-mono text-white/30">⌘K</kbd>
+                        <span className="text-[10px] text-white/22">to focus username field</span>
                       </div>
                     </div>
                   )}
@@ -410,7 +472,7 @@ export default function CustomizePage(): ReactElement {
               </div>
             </div>
 
-            {/* Export Panel */}
+            {/* ── Export Panel ──────────────────────────────────────────── */}
             <ExportPanel
               format={exportFormat}
               snippet={exportSnippet}
@@ -421,28 +483,41 @@ export default function CustomizePage(): ReactElement {
               onCopy={copyExportSnippet}
             />
 
-            {/* Active Parameters */}
-            <div className="rounded-[1.5rem] border border-white/[0.07] bg-[#0d1117]/80 backdrop-blur-xl shadow-[0_8px_40px_rgba(0,0,0,0.3)] overflow-hidden">
-              <div className="h-px bg-gradient-to-r from-transparent via-white/[0.05] to-transparent" />
-              <div className="px-6 py-5">
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="w-1.5 h-1.5 rounded-full bg-white/20" />
-                  <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/25">
-                    Active Parameters
-                  </span>
-                </div>
-                <div className="flex flex-wrap gap-2">
+            {/* ── Active Parameters ─────────────────────────────────────── */}
+            <div className="cp-card overflow-hidden">
+              <div
+                className="h-px w-full"
+                style={{
+                  background:
+                    'linear-gradient(90deg, transparent 5%, rgba(255,255,255,0.06) 50%, transparent 95%)',
+                }}
+              />
+              <div className="px-5 py-4">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/30 mb-3 leading-none">
+                  Active Parameters
+                </p>
+                <div className="flex flex-wrap gap-1.5">
                   {(hasUsername ? queryString.split('&') : ['user=your-github-username']).map(
                     (pair) => {
-                      const [k, v] = pair.split('=');
+                      const eqIdx = pair.indexOf('=');
+                      const k = pair.slice(0, eqIdx);
+                      const v = pair.slice(eqIdx + 1);
                       return (
                         <span
                           key={k}
-                          className="inline-flex items-center gap-1 bg-white/[0.03] border border-white/[0.07] rounded-lg px-2.5 py-1.5 text-[11px] font-mono hover:border-white/[0.12] transition-colors duration-200"
+                          className="inline-flex items-center gap-1 rounded-[8px] px-2.5 py-1 text-[11px] font-mono transition-colors duration-150"
+                          style={{
+                            background: 'rgba(255,255,255,0.03)',
+                            border: '1px solid rgba(255,255,255,0.07)',
+                          }}
                         >
-                          <span className="text-violet-400/80">{decodeURIComponent(k)}</span>
-                          <span className="text-white/15">=</span>
-                          <span className="text-emerald-400/80">{decodeURIComponent(v)}</span>
+                          <span style={{ color: 'rgba(167,139,250,0.8)' }}>
+                            {decodeURIComponent(k)}
+                          </span>
+                          <span style={{ color: 'rgba(255,255,255,0.18)' }}>=</span>
+                          <span style={{ color: 'rgba(52,211,153,0.75)' }}>
+                            {decodeURIComponent(v)}
+                          </span>
                         </span>
                       );
                     }

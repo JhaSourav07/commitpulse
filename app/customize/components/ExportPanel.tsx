@@ -189,7 +189,11 @@ export function ExportPanel({
             id="copy-markdown-btn"
             onClick={onCopy}
             disabled={!hasUsername}
-            aria-label={hasUsername ? `Copy ${formatLabel} snippet` : 'Add a username to copy'}
+            aria-label={
+              hasUsername
+                ? `Copy ${formatLabel} export snippet to clipboard`
+                : 'Add a username to copy'
+            }
             aria-describedby="export-copy-status"
             className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-[10px] text-[11px] font-semibold transition-all duration-150"
             style={
