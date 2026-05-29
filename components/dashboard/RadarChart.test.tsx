@@ -66,4 +66,16 @@ describe('RadarChart', () => {
     expect(screen.getAllByText('JavaScript')).toBeDefined();
     expect(screen.getAllByText('Python')).toBeDefined();
   });
+
+  it('verify at least 3 axes are always shown via padding when fewer are provided', () => {
+    const singleLang = [{ name: 'TypeScript', percentage: 100, color: '#3178c6' }];
+
+    render(
+      <RadarChart languagesA={singleLang} languagesB={singleLang} labelA="User A" labelB="User B" />
+    );
+
+    expect(screen.getAllByText('TypeScript')).toBeDefined();
+    expect(screen.getAllByText('JavaScript')).toBeDefined();
+    expect(screen.getAllByText('Python')).toBeDefined();
+  });
 });

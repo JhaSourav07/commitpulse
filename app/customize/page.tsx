@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { ControlsPanel } from './components/ControlsPanel';
 import { ExportPanel } from './components/ExportPanel';
+import InteractiveViewer from '@/components/InteractiveViewer';
 import type {
   ExportFormat,
   Font,
@@ -398,22 +399,9 @@ export default function CustomizePage(): ReactElement {
 
               {/* Preview canvas */}
               <div className="p-5">
-                <div
-                  className="group relative rounded-[12px] overflow-hidden flex items-center justify-center transition-all duration-300"
-                  style={{
-                    minHeight: '260px',
-                    background: 'rgba(0,0,0,0.2)',
-                    border: '1px solid rgba(255,255,255,0.06)',
-                  }}
-                >
-                  {/* Hover glow */}
-                  <div
-                    className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
-                    style={{
-                      background:
-                        'radial-gradient(ellipse at 50% 100%, rgba(16,185,129,0.05) 0%, transparent 70%)',
-                    }}
-                  />
+                <InteractiveViewer className="relative bg-white/60 backdrop-blur-md border border-black/10 dark:bg-black/40 dark:border-white/10 rounded-[1.25rem] flex items-center justify-center p-6 min-h-[280px]">
+                  {/* Scanning line effect behind image */}
+                  <div className="absolute inset-0 bg-gradient-to-b from-transparent via-emerald-500/3 to-transparent animate-[pulse_3s_ease-in-out_infinite] pointer-events-none" />
 
                   {hasUsername ? (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -468,7 +456,7 @@ export default function CustomizePage(): ReactElement {
                       </div>
                     </div>
                   )}
-                </div>
+                </InteractiveViewer>
               </div>
             </div>
 

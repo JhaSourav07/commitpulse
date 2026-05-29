@@ -101,6 +101,9 @@ export interface BadgeParams {
   /** GitHub username whose contribution data will be fetched and rendered. Required. */
   user: string;
 
+  /** GitHub username of the opponent to compare against. */
+  versus?: string;
+
   /** Number of grace days before a streak resets (handles timezone edge cases). Defaults to 1. */
   grace?: number;
 
@@ -124,6 +127,9 @@ export interface BadgeParams {
 
   /** Border corner radius in pixels. Defaults to 8. */
   radius?: number;
+
+  /** Custom stroke color for the main SVG container. Hex string WITHOUT the leading '#'. */
+  border?: string;
 
   /** When true, automatically selects a theme based on the viewer's system color scheme. */
   autoTheme?: boolean;
@@ -155,10 +161,6 @@ export interface BadgeParams {
   /** Preset size of the badge. 'small', 'medium', or 'large'. Overrides width and height. */
   size?: BadgeSize;
 
-  /* ==========================================================================
-   * NEW EPIC FEATURE PARAMS
-   * ========================================================================== */
-
   /** Rendering mode. 'commits' is the default. 'loc' switches to Lines of Code landscape. */
   mode?: 'commits' | 'loc';
 
@@ -167,4 +169,10 @@ export interface BadgeParams {
 
   /** Organization name to generate a Mega-City for. */
   org?: string;
+
+  /** When true, renders optional 3D isometric month headers and weekday labels. */
+  labels?: boolean;
+
+  /** Custom text color for the labels. Overrides text parameter. */
+  labelColor?: HexColor;
 }

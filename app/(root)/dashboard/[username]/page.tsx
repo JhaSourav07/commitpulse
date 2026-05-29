@@ -13,11 +13,24 @@ const BASE_URL =
 
 export async function generateMetadata({
   params,
+  searchParams,
 }: {
   params: Promise<{ username: string }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }): Promise<Metadata> {
   const { username } = await params;
-  const ogImage = `${BASE_URL}/api/og?user=${username}`;
+  const resolvedSearchParams = await searchParams;
+
+  const queryParams = new URLSearchParams({ user: username });
+  if (typeof resolvedSearchParams?.theme === 'string')
+    queryParams.set('theme', resolvedSearchParams.theme);
+  if (typeof resolvedSearchParams?.bg === 'string') queryParams.set('bg', resolvedSearchParams.bg);
+  if (typeof resolvedSearchParams?.text === 'string')
+    queryParams.set('text', resolvedSearchParams.text);
+  if (typeof resolvedSearchParams?.accent === 'string')
+    queryParams.set('accent', resolvedSearchParams.accent);
+
+  const ogImage = `${BASE_URL}/api/og?${queryParams.toString()}`;
   const title = `${username}'s Commit Pulse`;
   const description = `Check out ${username}'s GitHub contribution pulse — streaks, insights, and more on CommitPulse.`;
 

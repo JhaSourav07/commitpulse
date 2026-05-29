@@ -141,7 +141,7 @@ describe('generateSVG', () => {
     );
 
     expect(svg).toContain(
-      "@import url('https://fonts.googleapis.com/css2?family=Inter&amp;display=swap');"
+      "@import url('https://fonts.googleapis.com/css2?family=Inter&display=swap');"
     );
     expect(svg).toContain('font-family: "Inter", sans-serif;');
   });
@@ -182,7 +182,7 @@ describe('generateSVG', () => {
       mockCalendar
     );
     // Should NOT contain a dynamic google fonts import for an empty/invalid family
-    expect(svg).not.toContain('family=&amp;display=swap');
+    expect(svg).not.toContain('family=&display=swap');
     // Should use default body font
     expect(svg).toContain('font-family: "Space Grotesk", sans-serif');
   });
@@ -194,7 +194,7 @@ describe('generateSVG', () => {
       mockCalendar
     );
     expect(svg).toContain('Space Grotesk');
-    expect(svg).not.toContain('family=&amp;display=swap');
+    expect(svg).not.toContain('family=&display=swap');
   });
 
   it('uses default font when font param is whitespace only', () => {
@@ -204,7 +204,7 @@ describe('generateSVG', () => {
       mockCalendar
     );
     expect(svg).toContain('Space Grotesk');
-    expect(svg).not.toContain('family=+&amp;display=swap');
+    expect(svg).not.toContain('family=+&display=swap');
   });
 
   it('allows apostrophes in font names like Times New Roman', () => {
@@ -215,6 +215,7 @@ describe('generateSVG', () => {
     );
     expect(svg).toContain('Gill Sans');
   });
+
   it('emits tower-raising CSS animations and staggered delays', () => {
     const svg = generateSVG(mockStats, { user: 'avi' } as unknown as BadgeParams, mockCalendar);
 
@@ -226,9 +227,37 @@ describe('generateSVG', () => {
     expect(svg).toMatch(/style="animation-delay: \d+\.\d+s;"/);
   });
 
-  it('includes reduced-motion CSS for the scan line in the main SVG output', () => {
-    const svg = generateSVG(mockStats, { user: 'avi' } as unknown as BadgeParams, mockCalendar);
+  it('escapes XML-reserved characters in tower tooltip titles', () => {
+    const calendarWithUnsafeDate = {
+      weeks: [
+        {
+          contributionDays: [{ contributionCount: 3, date: '2024-06-12 & <bad>' }],
+        },
+      ],
+    } as ContributionCalendar;
 
+    const svg = generateSVG(
+      mockStats,
+      { user: 'avi' } as unknown as BadgeParams,
+      calendarWithUnsafeDate
+    );
+
+    expect(svg).toContain('<title>TODAY: 2024-06-12 &amp; &lt;bad&gt;: 3 contributions</title>');
+    expect(svg).not.toContain('<title>TODAY: 2024-06-12 & <bad>: 3 contributions</title>');
+  });
+
+  // =========================================================================
+  // ISSUE #1084 FIX: Verify reduced-motion CSS disables scan-line in static mode
+  // =========================================================================
+  it('verifies reduced-motion CSS disables scan-line in static mode', () => {
+    // 1. Call static generateSVG (no autoTheme)
+    const svg = generateSVG(
+      mockStats,
+      { user: 'avi', autoTheme: false } as unknown as BadgeParams,
+      mockCalendar
+    );
+
+    // 2. 3 exact assertions as per the Definition of Done
     expect(svg).toContain('prefers-reduced-motion: reduce');
     expect(svg).toContain('.scan-line');
     expect(svg).toContain('animation: none !important');
@@ -366,12 +395,42 @@ describe('generateSVG', () => {
       expect(svg).toContain('prefers-reduced-motion');
     });
 
+    it('includes the scan-line class on the radar rect in the static renderer output', () => {
+      const staticParams = {
+        user: 'avi',
+        autoTheme: false,
+      } as unknown as BadgeParams;
+
+      const svg = generateSVG(mockStats, staticParams, mockCalendar);
+      expect(svg).toContain('class="cp-accent-fill scan-line"');
+    });
+
+    it('includes the scan-line class on the radar rect in the auto-theme renderer output', () => {
+      const svg = generateSVG(mockStats, autoParams, mockCalendar);
+      expect(svg).toContain('class="cp-accent-fill scan-line"');
+    });
+
     it('emits tower-raising CSS animations and staggered delays in auto mode', () => {
       const svg = generateSVG(mockStats, autoParams, mockCalendar);
 
       expect(svg).toContain('.cp-tower');
       expect(svg).toContain('@keyframes grow-up');
       expect(svg).toMatch(/style="animation-delay: \d+\.\d+s;"/);
+    });
+
+    it('escapes XML-reserved characters in auto-theme tower tooltip titles', () => {
+      const calendarWithUnsafeDate = {
+        weeks: [
+          {
+            contributionDays: [{ contributionCount: 3, date: '2024-06-12 & <bad>' }],
+          },
+        ],
+      } as ContributionCalendar;
+
+      const svg = generateSVG(mockStats, autoParams, calendarWithUnsafeDate);
+
+      expect(svg).toContain('<title>TODAY: 2024-06-12 &amp; &lt;bad&gt;: 3 contributions</title>');
+      expect(svg).not.toContain('<title>TODAY: 2024-06-12 & <bad>: 3 contributions</title>');
     });
   });
 
@@ -437,6 +496,7 @@ describe('generateSVG', () => {
       expect(svg).toContain('prefers-reduced-motion: reduce');
       expect(svg).toContain('.scan-line');
       expect(svg).toContain('animation: none !important');
+      expect(svg).toContain('transition: none !important');
       expect(svg).toContain('class="scan-line"');
     });
   });
@@ -600,6 +660,54 @@ describe('generateSVG', () => {
       expect(svg).toContain('height="560"');
     });
   });
+
+  describe('isometric labels', () => {
+    it('does not render labels when labels parameter is absent', () => {
+      const svg = generateSVG(mockStats, { user: 'avi' } as unknown as BadgeParams, mockCalendar);
+      expect(svg).not.toContain('class="isometric-labels"');
+    });
+
+    it('does not render labels when labels parameter is false', () => {
+      const svg = generateSVG(
+        mockStats,
+        { user: 'avi', labels: false } as unknown as BadgeParams,
+        mockCalendar
+      );
+      expect(svg).not.toContain('class="isometric-labels"');
+    });
+
+    it('renders month and weekday labels when labels=true', () => {
+      const svg = generateSVG(
+        mockStats,
+        { user: 'avi', labels: true } as unknown as BadgeParams,
+        mockCalendar
+      );
+      expect(svg).toContain('class="isometric-labels"');
+      expect(svg).toContain('Jun'); // June is first date in calendar '2024-06-10'
+      expect(svg).toContain('Mon');
+      expect(svg).toContain('Wed');
+      expect(svg).toContain('Fri');
+    });
+
+    it('applies custom labelColor when provided', () => {
+      const svg = generateSVG(
+        mockStats,
+        { user: 'avi', labels: true, labelColor: 'ff00aa' } as unknown as BadgeParams,
+        mockCalendar
+      );
+      expect(svg).toContain('fill="#ff00aa"');
+    });
+
+    it('renders labels in auto-theme mode', () => {
+      const svg = generateSVG(
+        mockStats,
+        { user: 'avi', labels: true, autoTheme: true } as unknown as BadgeParams,
+        mockCalendar
+      );
+      expect(svg).toContain('class="isometric-labels"');
+      expect(svg).toContain('fill="var(--cp-text)"');
+    });
+  });
 });
 
 describe('generateMonthlySVG', () => {
@@ -621,6 +729,23 @@ describe('generateMonthlySVG', () => {
     expect(svg).toContain('+12 commits');
   });
 
+  it('renders monthly stats correctly with negative absolute delta', () => {
+    const negativeStats: MonthlyStats = {
+      currentMonthTotal: 18,
+      previousMonthTotal: 30,
+      deltaPercentage: -40,
+      deltaAbsolute: -12,
+      currentMonthName: 'June',
+    };
+
+    const svg = generateMonthlySVG(negativeStats, {
+      user: 'octocat',
+      delta_format: 'absolute',
+    } as unknown as BadgeParams);
+
+    expect(svg).toContain('-12 commits');
+  });
+
   it('renders monthly stats correctly with percentage delta', () => {
     const svg = generateMonthlySVG(mockMonthlyStats, {
       user: 'octocat',
@@ -637,6 +762,16 @@ describe('generateMonthlySVG', () => {
     expect(svg).toContain('+40% (+12)');
   });
 
+  it('includes custom dimensions in viewBox', () => {
+    const svg = generateMonthlySVG(mockMonthlyStats, {
+      user: 'octocat',
+      width: 400,
+      height: 200,
+    } as unknown as BadgeParams);
+
+    expect(svg).toContain('viewBox="0 0 400 200"');
+  });
+
   it('respects custom width and height parameters', () => {
     const svg = generateMonthlySVG(mockMonthlyStats, {
       user: 'octocat',
@@ -645,6 +780,34 @@ describe('generateMonthlySVG', () => {
     } as unknown as BadgeParams);
     expect(svg).toContain('width="400"');
     expect(svg).toContain('height="200"');
+  });
+
+  it('includes prefers-reduced-motion media query in static monthly SVG output', () => {
+    const svg = generateMonthlySVG(mockMonthlyStats, {
+      user: 'octocat',
+    } as unknown as BadgeParams);
+
+    expect(svg).toContain('prefers-reduced-motion: reduce');
+    expect(svg).toContain('animation: none !important');
+    expect(svg).toContain('transition: none !important');
+  });
+
+  it('includes prefers-reduced-motion media query in auto-theme monthly SVG output', () => {
+    const svg = generateMonthlySVG(mockMonthlyStats, {
+      user: 'octocat',
+      autoTheme: true,
+    } as unknown as BadgeParams);
+
+    expect(svg).toContain('prefers-reduced-motion: reduce');
+    expect(svg).toContain('animation: none !important');
+    expect(svg).toContain('transition: none !important');
+  });
+  it('renders English label for commits this month by default', () => {
+    const svg = generateMonthlySVG(mockMonthlyStats, {
+      user: 'octocat',
+    } as unknown as BadgeParams);
+
+    expect(svg).toContain('COMMITS THIS MONTH');
   });
 });
 

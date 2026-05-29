@@ -3,7 +3,12 @@
 import { NextResponse } from 'next/server';
 import { fetchGitHubContributions, getOrgDashboardData } from '@/lib/github';
 import { calculateStreak, calculateMonthlyStats } from '@/lib/calculate';
-import { generateNotFoundSVG, generateSVG, generateMonthlySVG } from '@/lib/svg/generator';
+import {
+  generateNotFoundSVG,
+  generateSVG,
+  generateMonthlySVG,
+  generateVersusSVG,
+} from '@/lib/svg/generator';
 import { getSecondsUntilUTCMidnight, getSecondsUntilMidnightInTimezone } from '@/utils/time';
 import type { BadgeParams } from '@/types';
 import { themes } from '@/lib/svg/themes';
@@ -39,6 +44,8 @@ export async function GET(request: Request) {
       radius,
       font,
       year,
+      from: customFrom,
+      to: customTo,
       refresh,
       hide_title,
       hide_background,
@@ -52,11 +59,22 @@ export async function GET(request: Request) {
       mode,
       repo,
       org,
+      labels,
+      labelColor,
+      versus,
     } = parseResult.data;
 
     const themeName = theme || 'dark';
-    const from = year ? `${year}-01-01T00:00:00Z` : undefined;
-    const to = year ? `${year}-12-31T23:59:59Z` : undefined;
+    const from = customFrom
+      ? new Date(customFrom).toISOString()
+      : year
+        ? `${year}-01-01T00:00:00Z`
+        : undefined;
+    const to = customTo
+      ? new Date(customTo).toISOString()
+      : year
+        ? `${year}-12-31T23:59:59Z`
+        : undefined;
 
     const tzParam = searchParams.get('tz');
     let timezone = 'UTC';
@@ -75,20 +93,25 @@ export async function GET(request: Request) {
       if (isAutoTheme) return themes.light;
       if (isRandomTheme) {
         const keys = Object.keys(themes);
-        const randomKey = keys[Math.floor(Math.random() * keys.length)];
-        return themes[randomKey] || themes.dark;
+        const hash = user.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
+        const stableKey = keys[hash % keys.length];
+        return themes[stableKey] || themes.dark;
       }
       return themes[theme] || themes.dark;
     })();
 
     // If 'org' is provided, we use it as the display user
     const targetEntity = org || user;
+    // NEW LOGIC: Extract and sanitize the border query parameter
+    const borderParam = searchParams.get('border');
+    const sanitizedBorder = borderParam ? borderParam.replace(/[^a-fA-F0-9]/g, '') : undefined;
 
     const params: BadgeParams = {
       user: targetEntity,
       bg: isAutoTheme ? selectedTheme.bg : bg || selectedTheme.bg,
       text: isAutoTheme ? selectedTheme.text : text || selectedTheme.text,
       accent: isAutoTheme ? selectedTheme.accent : accent || selectedTheme.accent,
+      border: sanitizedBorder, // <--- Passed down to the generator here
       radius,
       speed: speed && /^(?:[2-9]|1\d|20)s$/.test(speed) ? speed : '8s',
       scale,
@@ -107,9 +130,13 @@ export async function GET(request: Request) {
       mode,
       repo,
       org,
+      labels,
+      labelColor,
+      versus,
     };
 
     let calendar;
+    let versusCalendar;
 
     // Fetch Organization Mega-City Data OR Single User Data
     if (org) {
@@ -125,12 +152,24 @@ export async function GET(request: Request) {
         from,
         to,
       });
+
+      if (versus) {
+        versusCalendar = await fetchGitHubContributions(versus, {
+          bypassCache: refresh,
+          from,
+          to,
+        });
+      }
     }
 
     let svg = '';
     if (view === 'monthly') {
       const stats = calculateMonthlyStats(calendar, timezone);
       svg = generateMonthlySVG(stats, params);
+    } else if (versus && versusCalendar) {
+      const stats1 = calculateStreak(calendar, timezone, undefined, grace);
+      const stats2 = calculateStreak(versusCalendar, timezone, undefined, grace);
+      svg = generateVersusSVG(stats1, stats2, params, calendar, versusCalendar);
     } else {
       const stats = calculateStreak(calendar, timezone, undefined, grace);
       svg = generateSVG(stats, params, calendar);
@@ -139,10 +178,9 @@ export async function GET(request: Request) {
     const secondsToMidnight = tzParam
       ? getSecondsUntilMidnightInTimezone(timezone)
       : getSecondsUntilUTCMidnight();
-    const cacheControl =
-      refresh || isRandomTheme
-        ? 'no-cache, no-store, must-revalidate'
-        : `public, s-maxage=${secondsToMidnight}, stale-while-revalidate=86400`;
+    const cacheControl = refresh
+      ? 'no-cache, no-store, must-revalidate'
+      : `public, s-maxage=${secondsToMidnight}, stale-while-revalidate=86400`;
 
     return new NextResponse(svg, {
       headers: {

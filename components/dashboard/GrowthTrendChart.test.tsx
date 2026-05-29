@@ -72,4 +72,26 @@ describe('GrowthTrendChart', () => {
     // May 2026 should show +5 for User B winner (Total A = 15, Total B = 20)
     expect(screen.getByText('+5')).toBeDefined();
   });
+
+  // =========================================================================
+  // ISSUE OBJECTIVE: Verify SVG and Path Rendering
+  // =========================================================================
+  it('renders SVG chart with area and stroke paths', () => {
+    const { container } = render(
+      <GrowthTrendChart
+        activityA={activityA}
+        activityB={activityB}
+        labelA="User A"
+        labelB="User B"
+      />
+    );
+
+    // 1. Assert an <svg> element is in the DOM
+    const svgElement = container.querySelector('svg');
+    expect(svgElement).not.toBeNull();
+
+    // 2. Assert at least 2 <path> elements are present (one per user)
+    const pathElements = container.querySelectorAll('path');
+    expect(pathElements.length).toBeGreaterThanOrEqual(2);
+  });
 });
