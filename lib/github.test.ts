@@ -1044,6 +1044,26 @@ describe('getWrappedData', () => {
     expect(result.totalContributions).toBe(mockCalendar.totalContributions);
   });
 
+  it('falls back to Unknown when repos have no language data', async () => {
+    vi.mocked(fetch).mockImplementation(async (url) => {
+      const urlStr = typeof url === 'string' ? url : (url?.toString() ?? '');
+      if (urlStr.includes('/repos')) {
+        return mockResponse([{ language: null }, { language: null }]);
+      }
+      return mockResponse({
+        data: {
+          user: {
+            contributionsCollection: {
+              contributionCalendar: mockCalendar,
+            },
+          },
+        },
+      });
+    });
+    const result = await getWrappedData('octocat', '2024');
+    expect(result.topLanguage).toBe('Unknown');
+  });
+
   it('passes the correct from and to date range to GitHub contributions fetch', async () => {
     vi.mocked(fetch).mockImplementation(async (url) => {
       const urlStr = typeof url === 'string' ? url : (url?.toString() ?? '');
