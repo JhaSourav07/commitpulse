@@ -409,12 +409,12 @@ export async function getOrgDashboardData(orgName: string, options: FetchOptions
   }
 
   // Fetch calendars for all members concurrently (Capped by member limit to avoid 429)
-  const memberCalendarsPromises = members.map((member) =>
+  const memberCalendarsPromises = members.map((member: string) =>
     fetchGitHubContributions(member, options).catch(() => null)
   );
 
   const calendars = (await Promise.all(memberCalendarsPromises)).filter(
-    (c) => c !== null
+    (c: ContributionCalendar | null) => c !== null
   ) as ContributionCalendar[];
 
   // Create the Mega-City
@@ -438,7 +438,7 @@ export async function getOrgDashboardData(orgName: string, options: FetchOptions
       repositories: profileData.public_repos,
       followers: profileData.followers,
       following: members.length, // Display members count here
-      stars: reposData.reduce((acc, r) => acc + r.stargazers_count, 0),
+      stars: reposData.reduce((acc: number, r: GitHubRepo) => acc + r.stargazers_count, 0),
     },
   };
 
@@ -659,10 +659,10 @@ export async function getFullDashboardData(username: string, options: FetchOptio
   const developerScore = Math.min(
     Math.round(
       Math.min(profileData.public_repos * 0.5, 25) +
-      Math.min(profileData.followers * 0.5, 25) +
-      Math.min(totalStars * 0.2, 20) +
-      Math.min(streakStats.totalContributions / 20, 20) +
-      Math.min(streakStats.longestStreak * 0.2, 10)
+        Math.min(profileData.followers * 0.5, 25) +
+        Math.min(totalStars * 0.2, 20) +
+        Math.min(streakStats.totalContributions / 20, 20) +
+        Math.min(streakStats.longestStreak * 0.2, 10)
     ),
     100
   );
@@ -748,4 +748,3 @@ export async function getFullDashboardData(username: string, options: FetchOptio
     commitClock,
   };
 }
-
