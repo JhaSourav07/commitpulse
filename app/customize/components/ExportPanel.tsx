@@ -14,6 +14,7 @@ export function ExportPanel({
   copied,
   copyStatusMessage,
   hasUsername,
+  username,
   onFormatChange,
   onCopy,
 }: {
@@ -22,6 +23,7 @@ export function ExportPanel({
   copied: boolean;
   copyStatusMessage: string;
   hasUsername: boolean;
+  username: string;
   onFormatChange: (format: ExportFormat) => void;
   onCopy: () => void | Promise<void>;
 }): ReactElement {
@@ -105,7 +107,7 @@ export function ExportPanel({
       const downloadUrl = URL.createObjectURL(blob);
       const downloadLink = document.createElement('a');
       downloadLink.href = downloadUrl;
-      downloadLink.download = `perfect-centered-monolith-${Date.now()}.svg`;
+      downloadLink.download = `commitpulse-${username || 'badge'}.svg`;
       document.body.appendChild(downloadLink);
       downloadLink.click();
 
