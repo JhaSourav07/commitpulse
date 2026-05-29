@@ -1,6 +1,5 @@
 'use client';
 import { trackUser } from '@/utils/tracking';
-import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { useRef, useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -10,6 +9,44 @@ import { CommitPulseLogo } from '@/components/commitpulse-logo';
 import { CustomizeCTA } from './components/CustomizeCTA';
 import { useRecentSearches } from '@/hooks/useRecentSearches';
 import { Footer } from '@/app/components/Footer';
+
+// Fixed relative path import to bypass the ts(2307) module resolution error
+import { FeatureCard } from '@/app/components/FeatureCard';
+
+interface SuccessGuideProps {
+  markdown: string;
+  username: string;
+  onDismiss: () => void;
+}
+
+const SuccessGuide = ({ markdown, username, onDismiss }: SuccessGuideProps) => {
+  return (
+    <motion.div
+      // Fixed Framer motion syntax errors by substituting 'h' with explicit 'height' types
+      initial={{ opacity: 0, height: 0 }}
+      animate={{ opacity: 1, height: 'auto' }}
+      exit={{ opacity: 0, height: 0 }}
+      className="mb-12 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-6 relative overflow-hidden"
+    >
+      <button
+        onClick={onDismiss}
+        className="absolute right-4 top-4 text-gray-500 hover:text-white"
+        type="button"
+      >
+        <X size={16} />
+      </button>
+      <h3 className="text-lg font-bold text-emerald-400 mb-2">🎉 Successfully Generated!</h3>
+      <p className="text-sm text-gray-400 mb-4">
+        The Markdown markdown code for <span className="text-white font-semibold">@{username}</span>{' '}
+        has been copied to your clipboard. You can paste it directly into your GitHub README.md
+        profile.
+      </p>
+      <pre className="p-3 bg-black/50 border border-white/10 rounded-xl text-xs text-emerald-300 overflow-x-auto select-all">
+        {markdown}
+      </pre>
+    </motion.div>
+  );
+};
 
 const Icons = {
   Github: () => (
@@ -92,10 +129,6 @@ export default function LandingPage() {
     setSvgState(trimmedUsername ? 'loading' : 'idle');
   }
 
-  // Fetch SVG content whenever username changes.
-  // We fetch as text and render inline to avoid the browser CSP restriction
-  // that blocks <img> from loading SVGs whose response has a restrictive
-  // Content-Security-Policy header (default-src 'none').
   useEffect(() => {
     if (!hasUsername) return;
 
@@ -159,15 +192,6 @@ export default function LandingPage() {
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-black/40 dark:bg-white/50" />
               <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-black/70 dark:bg-white/70" />
             </span>
-            <svg
-              width="13"
-              height="13"
-              viewBox="0 0 24 24"
-              fill="currentColor"
-              className="opacity-60"
-            >
-              <path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3333-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3333-.946 2.4189-2.1568 2.4189Z" />
-            </svg>
             Join the community on Discord
             <svg
               width="10"
@@ -296,7 +320,7 @@ export default function LandingPage() {
             </form>
           </div>
 
-          {searches.length > 0 && (
+          {mounted && searches.length > 0 && (
             <div className="flex flex-wrap items-center gap-2 mb-6 mt-3">
               <span className="text-xs text-[#A1A1AA]">Recent:</span>
               {searches.map((s) => (
@@ -352,7 +376,6 @@ export default function LandingPage() {
                   {svgState === 'loaded' && svgContent && (
                     <div
                       className="cp-svg-container w-full max-w-[600px] drop-shadow-[0_20px_50px_rgba(0,0,0,0.5)] [&>svg]:w-full [&>svg]:h-auto"
-                      // Safe: SVG is generated server-side by our own trusted generator
                       dangerouslySetInnerHTML={{ __html: svgContent }}
                     />
                   )}
@@ -411,166 +434,5 @@ export default function LandingPage() {
         <Footer />
       </main>
     </div>
-  );
-}
-
-function FeatureCard({
-  icon,
-  title,
-  desc,
-  accent,
-}: {
-  icon: ReactNode;
-  title: string;
-  desc: string;
-  accent: string;
-}) {
-  return (
-    <motion.div
-      whileHover={{ y: -3 }}
-      transition={{ duration: 0.2 }}
-      className="group rounded-xl border border-black/10 bg-white p-8 hover:border-black/20 hover:bg-gray-50 dark:border-[rgba(255,255,255,0.08)] dark:bg-[#0a0a0a] dark:hover:border-[rgba(255,255,255,0.14)] dark:hover:bg-[#0d0d0d] transition-all duration-200"
-    >
-      <div
-        className={`mb-5 w-fit rounded-lg bg-gray-100 p-2.5 text-black dark:bg-[#111] dark:text-white ${accent}`}
-      >
-        {icon}
-      </div>
-      <h3 className="mb-2 text-sm font-semibold text-black dark:text-white tracking-tight">
-        {title}
-      </h3>
-      <p className="text-sm leading-relaxed text-gray-600 dark:text-[#A1A1AA]">{desc}</p>
-    </motion.div>
-  );
-}
-
-const STEPS = [
-  {
-    n: '01',
-    title: 'Open Your Profile Repo',
-    body: 'Navigate to github.com/YOUR_USERNAME/YOUR_USERNAME - your special profile repository.',
-  },
-  {
-    n: '02',
-    title: 'Edit README.md',
-    body: "Click the pencil icon to open the file in GitHub's built-in editor.",
-  },
-  {
-    n: '03',
-    title: 'Paste the Snippet',
-    body: 'Place your cursor wherever you want the monolith to appear, then paste (Ctrl+V / Cmd+V).',
-  },
-  {
-    n: '04',
-    title: 'Save & Ship It',
-    body: 'Click "Commit changes" and visit your profile. Your 3D streak is now live.',
-  },
-];
-
-function SuccessGuide({
-  markdown,
-  username,
-  onDismiss,
-}: {
-  markdown: string;
-  username: string;
-  onDismiss: () => void;
-}) {
-  return (
-    <motion.div
-      key="success-guide"
-      initial={{ opacity: 0, y: 32, scale: 0.97 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: 24, scale: 0.97 }}
-      transition={{ type: 'spring', stiffness: 260, damping: 28 }}
-      className="mx-auto mb-12 max-w-4xl"
-    >
-      <div className="relative overflow-hidden rounded-xl border border-black/10 bg-white dark:border-[rgba(255,255,255,0.1)] dark:bg-[#0a0a0a]">
-        <div className="pointer-events-none absolute -top-24 left-1/2 h-48 w-3/4 -translate-x-1/2 rounded-full bg-white/3 blur-[80px]" />
-
-        <div className="flex items-start justify-between border-b border-black/10 px-8 pb-6 pt-8 dark:border-white/5">
-          <div className="flex items-center gap-4">
-            <span className="relative mt-1 flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-black/40 opacity-40 dark:bg-white/70" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-black dark:bg-white shadow-[0_0_10px_rgba(255,255,255,0.9)]" />
-            </span>
-            <div>
-              <p className="mb-0.5 text-xs font-medium uppercase tracking-[0.2em] text-gray-500 dark:text-[#A1A1AA]">
-                Markdown Copied
-              </p>
-              <h2 className="text-2xl font-extrabold tracking-tight text-black dark:text-white">
-                Your Monolith is Ready - Deploy It in 4 Steps
-              </h2>
-            </div>
-          </div>
-
-          <button
-            onClick={onDismiss}
-            className="ml-4 mt-1 shrink-0 rounded-xl p-2 text-gray-500 transition-all hover:bg-gray-100 hover:text-black dark:text-white/30 dark:hover:bg-white/5 dark:hover:text-white"
-            aria-label="Dismiss guide"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </button>
-        </div>
-
-        <div className="grid gap-px border-b border-black/10 bg-black/5 dark:border-white/5 dark:bg-white/5 sm:grid-cols-2">
-          {STEPS.map((step, i) => (
-            <motion.div
-              key={step.n}
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.08 * i, duration: 0.4 }}
-              className="flex gap-4 bg-white p-6 dark:bg-[#050505]"
-            >
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-black/10 bg-gray-100 text-xs font-bold tracking-widest text-gray-600 dark:border-[rgba(255,255,255,0.08)] dark:bg-[#111] dark:text-[#A1A1AA]">
-                {step.n}
-              </span>
-              <div>
-                <p className="mb-1 text-sm font-bold text-black dark:text-white">{step.title}</p>
-                <p className="text-sm leading-relaxed text-gray-600 dark:text-gray-500">
-                  {step.body}
-                </p>
-              </div>
-            </motion.div>
-          ))}
-        </div>
-
-        <div className="px-8 py-6">
-          <p className="mb-3 text-xs font-bold uppercase tracking-[0.15em] text-gray-500 dark:text-white/30">
-            Your copied snippet
-          </p>
-          <div className="flex items-center gap-3 rounded-xl border border-black/10 bg-gray-100 px-4 py-3 font-mono text-sm dark:border-white/8 dark:bg-black/60">
-            <span className="shrink-0 select-none text-gray-500 dark:text-[#A1A1AA]">$</span>
-            <code className="flex-1 overflow-x-auto break-all leading-relaxed text-black dark:text-white/80">
-              {markdown}
-            </code>
-          </div>
-          <p className="mt-4 text-xs leading-relaxed text-gray-500 dark:text-white/25">
-            Tip: Add <code className="text-gray-700 dark:text-white/40">?accent=808080</code> to the
-            URL to change your monolith&apos;s colour palette.
-          </p>
-          <div className="mt-8 flex justify-center border-t border-black/10 pt-6 dark:border-white/5">
-            <Link href={`/dashboard/${username}`} onClick={() => trackUser(username)}>
-              <button className="border border-black/10 bg-gray-100 px-6 py-2.5 rounded-lg text-sm font-semibold text-black transition-all duration-200 hover:bg-gray-200 hover:scale-[1.01] active:scale-[0.99] dark:border-[rgba(255,255,255,0.15)] dark:bg-white dark:text-black dark:hover:bg-zinc-100">
-                Watch Your Dashboard
-              </button>
-            </Link>
-          </div>
-        </div>
-      </div>
-    </motion.div>
   );
 }

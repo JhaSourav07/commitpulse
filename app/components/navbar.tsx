@@ -62,8 +62,6 @@ export default function Navbar() {
       }
     };
 
-    // Defer the initial check so it doesn't cause a synchronous setState
-    // inside the effect body (which would trigger cascading re-renders).
     const initialCheckTimer = setTimeout(() => {
       if (mediaQuery.matches) {
         setOpen(false);
@@ -129,6 +127,7 @@ export default function Navbar() {
               </span>
             </Link>
 
+            {/* Desktop Navigation Wrapper */}
             <div className="hidden items-center gap-3 md:flex">
               <button
                 type="button"
@@ -161,6 +160,7 @@ export default function Navbar() {
               ))}
             </div>
 
+            {/* Mobile View Responsive Container */}
             <div className="md:hidden inline-flex items-center justify-center gap-2">
               <button
                 type="button"
@@ -168,7 +168,16 @@ export default function Navbar() {
                 className="hidden sm:inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/15 bg-white/5 text-white transition hover:bg-white/10"
                 aria-label="Toggle theme"
               >
-                {isDark ? <Sun size={18} /> : <Moon size={18} />}
+                {/* Fixed Hydration mismatch by matching server layout bounds */}
+                {mounted ? (
+                  isDark ? (
+                    <Sun size={18} />
+                  ) : (
+                    <Moon size={18} />
+                  )
+                ) : (
+                  <span className="w-[18px] h-[18px]" />
+                )}
               </button>
               <button
                 type="button"
@@ -182,6 +191,7 @@ export default function Navbar() {
             </div>
           </nav>
 
+          {/* Collapsible Mobile Menu Drawer */}
           {open ? (
             <div className="border-t border-white/10 px-4 py-3 md:hidden">
               <ul className="space-y-2">
@@ -206,8 +216,18 @@ export default function Navbar() {
                     className="inline-flex w-full items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-white/90 transition hover:border-white/45 hover:bg-white/10"
                     aria-label="Toggle theme"
                   >
-                    {isDark ? <Sun size={18} /> : <Moon size={18} />}
-                    {isDark ? 'Light Mode' : 'Dark Mode'}
+                    {/* Double validation check layer to block layout shifts entirely on runtime mount */}
+                    {mounted ? (
+                      <>
+                        {isDark ? <Sun size={18} /> : <Moon size={18} />}
+                        {isDark ? 'Light Mode' : 'Dark Mode'}
+                      </>
+                    ) : (
+                      <>
+                        <span className="w-[18px] h-[18px]" />
+                        <span>Loading Theme...</span>
+                      </>
+                    )}
                   </button>
                 </li>
               </ul>

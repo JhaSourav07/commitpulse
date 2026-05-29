@@ -191,3 +191,17 @@ body {
     transform: scaleY(1) !important;
   }
 }
+
+/* Safely hide default browser cursor globally on desktop screens */
+@media (min-width: 768px) {
+  html,
+  body,
+  a,
+  button,
+  input,
+  select,
+  textarea,
+  [role='button'] {
+    cursor: none !important;
+  }
+}
