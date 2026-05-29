@@ -136,6 +136,55 @@ export function useShareActions(
     }
   };
 
+  const handleCopyImage = async () => {
+    setOptionState('copyImage', 'loading');
+
+    try {
+      if (!navigator.clipboard || typeof ClipboardItem === 'undefined') {
+        throw new Error('Clipboard image API not supported');
+      }
+
+      const node =
+        document.getElementById('dashboard-root') ??
+        document.querySelector<HTMLElement>('[data-dashboard]') ??
+        document.body;
+
+      const isDark =
+        typeof document !== 'undefined' && document.documentElement.classList.contains('dark');
+
+      const canvas = await toCanvas(node, {
+        quality: 0.95,
+        pixelRatio: 2,
+        backgroundColor: isDark ? '#050505' : '#ffffff',
+        filter: (el) => {
+          if (el instanceof HTMLElement) {
+            if (el.id === 'share-sheet-overlay') return false;
+            if (el.id === 'generate-dashboard-btn') return false;
+          }
+          return true;
+        },
+      });
+
+      const blob = await new Promise<Blob>((resolve, reject) => {
+        canvas.toBlob((blob) => {
+          if (blob) resolve(blob);
+          else reject(new Error('Failed to create image blob'));
+        }, 'image/png');
+      });
+
+      await navigator.clipboard.write([
+        new ClipboardItem({
+          'image/png': blob,
+        }),
+      ]);
+
+      setOptionState('copyImage', 'success');
+      setTimeout(() => onClose(), 800);
+    } catch {
+      setOptionState('copyImage', 'error');
+    }
+  };
+
   const handleDownloadSVG = async () => {
     setOptionState('svg', 'loading');
     try {
@@ -286,6 +335,7 @@ export function useShareActions(
     handleReddit,
     handleDownloadPNG,
     handleDownloadWEBP,
+    handleCopyImage,
     handleDownloadSVG,
     handleCopyMarkdown,
     handleDownloadCSV,

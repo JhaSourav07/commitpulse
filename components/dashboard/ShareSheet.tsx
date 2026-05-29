@@ -58,6 +58,7 @@ export default function ShareSheet({ username, isOpen, onClose, exportData }: Sh
     handleReddit,
     handleDownloadPNG,
     handleDownloadWEBP,
+    handleCopyImage,
     handleDownloadSVG,
     handleCopyMarkdown,
     handleDownloadCSV,
@@ -191,6 +192,15 @@ endsolid commitpulse_monolith`;
       gradient: 'bg-zinc-800',
       glow: 'transparent',
       action: handleDownloadWEBP,
+    },
+    {
+      key: 'copyImage',
+      icon: Download,
+      label: 'Copy as Image',
+      description: 'Copy dashboard image to clipboard',
+      gradient: 'bg-zinc-800',
+      glow: 'transparent',
+      action: handleCopyImage,
     },
     {
       key: 'svg',
@@ -333,13 +343,17 @@ endsolid commitpulse_monolith`;
                                   ? 'Downloaded!'
                                   : opt.key === 'csv'
                                     ? 'CSV Downloaded!'
-                                    : opt.key === 'json'
-                                      ? 'JSON Downloaded!'
-                                      : opt.key === 'svg'
-                                        ? 'SVG Downloaded!'
-                                        : opt.key === 'stl'
-                                          ? 'STL Generated!'
-                                          : opt.label
+                                    : opt.key === 'copyImage'
+                                      ? 'Image Copied!'
+                                      : opt.key === 'png'
+                                        ? 'Downloaded!'
+                                        : opt.key === 'json'
+                                          ? 'JSON Downloaded!'
+                                          : opt.key === 'svg'
+                                            ? 'SVG Downloaded!'
+                                            : opt.key === 'stl'
+                                              ? 'STL Generated!'
+                                              : opt.label
                               : state === 'error'
                                 ? 'Failed — try again'
                                 : opt.label}
