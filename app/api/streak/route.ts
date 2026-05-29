@@ -247,14 +247,10 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
     message.toLowerCase().includes('invalid') ||
     message.toLowerCase().includes('validation');
 
-<<<<<<< HEAD
   const isRateLimit =
     message.toLowerCase().includes('rate limit') ||
     message.toLowerCase().includes('api rate limit exceeded') ||
     message.toLowerCase().includes('403');
-
-=======
->>>>>>> ea5cc89 (chore: apply formatting and lint fixes)
   const errBg = `#${(parseResult.success && parseResult.data.bg) || '0d1117'}`;
   const errAccent = `#${
     (parseResult.success &&
