@@ -270,6 +270,48 @@ describe('calculateStreak', () => {
     expect(result.longestStreak).toBe(10);
     expect(result.currentStreak).toBe(5);
   });
+
+  it('correctly calculates current and longest streaks for Monday-through-Friday commits', () => {
+    // 2024-01-01 was a Monday.
+    // Week 1: 1, 1, 1, 1, 1, 0, 0 (Mon-Fri commit, Sat-Sun off)
+    // Week 2: 1, 1, 1, 1, 1, 0, 0 (Mon-Fri commit, Sat-Sun off)
+    const calendar = buildCalendar([
+      1,
+      1,
+      1,
+      1,
+      1,
+      0,
+      0, // Week 1 (Jan 1 - Jan 7)
+      1,
+      1,
+      1,
+      1,
+      1,
+      0,
+      0, // Week 2 (Jan 8 - Jan 14)
+    ]);
+
+    // Scenario A: Evaluated on Friday (Jan 12) -> Streak is active, last commit is today.
+    const fridayNow = new Date('2024-01-12T12:00:00Z');
+    const resultFriday = calculateStreak(calendar, 'UTC', fridayNow);
+    expect(resultFriday.currentStreak).toBe(5);
+    expect(resultFriday.longestStreak).toBe(5);
+
+    // Scenario B: Evaluated on Saturday (Jan 13) -> Today (Sat) has 0, yesterday (Fri) has 1.
+    // Grace period = 1 keeps it alive.
+    const saturdayNow = new Date('2024-01-13T12:00:00Z');
+    const resultSaturday = calculateStreak(calendar, 'UTC', saturdayNow);
+    expect(resultSaturday.currentStreak).toBe(5);
+    expect(resultSaturday.longestStreak).toBe(5);
+
+    // Scenario C: Evaluated on Sunday (Jan 14) -> Today (Sun) and yesterday (Sat) both have 0.
+    // Grace period = 1 cannot save the streak.
+    const sundayNow = new Date('2024-01-14T12:00:00Z');
+    const resultSunday = calculateStreak(calendar, 'UTC', sundayNow);
+    expect(resultSunday.currentStreak).toBe(0);
+    expect(resultSunday.longestStreak).toBe(5);
+  });
 });
 it('handles massive single-day commit spike timeline', () => {
   const calendar = buildCalendar([
