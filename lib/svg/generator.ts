@@ -341,7 +341,7 @@ export function generateSVG(
   const googleFontUrlPart =
     sanitizedFont && !isPredefinedFont ? sanitizeGoogleFontUrl(sanitizedFont) : null;
 
-  // FIXED: Added &amp; to the dynamic display=swap URL query
+  // FIXED: Added & to the dynamic display=swap URL query
   const googleFontsImport = googleFontUrlPart
     ? `@import url('https://fonts.googleapis.com/css2?family=${googleFontUrlPart}&display=swap');`
     : '';
@@ -358,6 +358,25 @@ export function generateSVG(
   );
   const towers = renderTowers(towerData, accent, text, sf);
 
+  // 1️⃣ THE INTELLIGENCE INJECTION: Create the AMOLED Persona SVG Element
+  const personaElement = params.persona
+    ? `
+    <text
+      x="${Math.round(30 * sf)}"
+      y="${Math.round(65 * sf)}"
+      fill="${accent}" 
+      font-family="monospace"
+      font-size="${Math.round(12 * sf)}"
+      font-weight="bold"
+      letter-spacing="1.5"
+      style="text-shadow: 0px 0px ${Math.round(10 * sf)}px ${accent}80;"
+    >
+      ${params.persona.toUpperCase()}
+    </text>
+  `
+    : '';
+
+  // 2️⃣ THE FINAL RENDER: Inject ${personaElement} right before closing the SVG
   return `
 <svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" fill="none" role="img">
   ${renderHeader(safeUser, stats, sf, params)}
@@ -366,6 +385,7 @@ export function generateSVG(
   <g transform="translate(0, ${Math.round(20 * sf)})">${towers}</g>
   ${renderIsometricLabels(calendar, params, text, sf)}
   ${renderFooter(stats, params, labels, safeUser, accent, sf)}
+  ${personaElement}
 </svg>`;
 }
 

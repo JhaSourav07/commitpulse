@@ -1,5 +1,6 @@
 // app/api/streak/route.ts
 
+import { generateDeveloperPersona } from '@/lib/persona';
 import { NextResponse } from 'next/server';
 import { fetchGitHubContributions, getOrgDashboardData } from '@/lib/github';
 import { calculateStreak, calculateMonthlyStats } from '@/lib/calculate';
@@ -172,7 +173,21 @@ export async function GET(request: Request) {
       svg = generateVersusSVG(stats1, stats2, params, calendar, versusCalendar);
     } else {
       const stats = calculateStreak(calendar, timezone, undefined, grace);
-      svg = generateSVG(stats, params, calendar);
+
+      // 1️⃣ Flatten the GitHub GraphQL weeks array into a single array of days
+      const allDays = calendar.weeks.flatMap(
+        (week: { contributionDays: Array<{ date: string; contributionCount: number }> }) =>
+          week.contributionDays
+      );
+
+      // 2️⃣ Generate the persona using your new engine!
+      const developerPersona = generateDeveloperPersona(allDays, stats.longestStreak);
+
+      // 3️⃣ Inject the persona into the params object
+      const updatedParams = { ...params, persona: developerPersona };
+
+      // 4️⃣ Pass the updated params to the generator
+      svg = generateSVG(stats, updatedParams, calendar);
     }
 
     const secondsToMidnight = tzParam

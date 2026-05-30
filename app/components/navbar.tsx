@@ -31,8 +31,9 @@ export default function Navbar() {
   const [mounted, setMounted] = useState(false);
 
   const [isDark, setIsDark] = useState(() => {
-    if (typeof window === 'undefined') return true;
-    return localStorage.getItem('theme') !== 'light';
+    // FIXED: Added window check and window.localStorage explicitly
+    if (typeof window === 'undefined' || !window.localStorage) return true;
+    return window.localStorage.getItem('theme') !== 'light';
   });
 
   const { shellRef, shellVars, handleMouseEnter, handleMouseMove, handleMouseLeave } =
@@ -45,7 +46,10 @@ export default function Navbar() {
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', isDark);
-    localStorage.setItem('theme', isDark ? 'dark' : 'light');
+    // FIXED: Added window check to prevent Vitest crashes during effect updates
+    if (typeof window !== 'undefined' && window.localStorage) {
+      window.localStorage.setItem('theme', isDark ? 'dark' : 'light');
+    }
   }, [isDark]);
 
   const toggleTheme = () => {

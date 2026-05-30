@@ -175,4 +175,6 @@ export interface BadgeParams {
 
   /** Custom text color for the labels. Overrides text parameter. */
   labelColor?: HexColor;
+
+  persona?: string;
 }
