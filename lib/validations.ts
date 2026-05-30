@@ -69,3 +69,18 @@ export const streakParamsSchema = z.object({
       }
     }),
 });
+
+export const githubParamsSchema = z.object({
+  username: z.string().min(1, { message: 'Username is required' }),
+  refresh: z
+    .preprocess((value) => {
+      if (value === 'true' || value === '1') return true;
+      if (value === 'false' || value === '0') return false;
+      return value;
+    }, z.boolean())
+    .optional(),
+});
+
+export const ogParamsSchema = z.object({
+  user: z.string().min(1, { message: 'User is required' }),
+});
