@@ -97,6 +97,7 @@ export async function GET(request: Request) {
       versus,
       shading,
       gradient,
+      disable_particles,
     } = parseResult.data;
 
     const themeName = theme || 'dark';
@@ -170,6 +171,7 @@ export async function GET(request: Request) {
       versus,
       shading,
       gradient,
+      disable_particles,
     };
 
     let calendar;

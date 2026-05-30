@@ -646,3 +646,45 @@ describe('streakParamsSchema — view fallback behavior', () => {
     expect(parse({}).view).toBe('default');
   });
 });
+
+/* ==========================================================================
+ * DATE RANGE BOUNDARY ROBUSTNESS (VARIATION 1)
+ * ========================================================================== */
+
+describe('streakParamsSchema — Date Range Boundary Robustness (Variation 1)', () => {
+  it('should process validation safely and fallback when partial or missing year parameters are passed', () => {
+    // Arrange: Provide a mock payload missing a full YYYY format sequence
+    const partialYearPayload = {
+      user: 'octocat',
+      from: '05-12',
+      to: '05-30',
+    };
+
+    // Act: Pass the object through the validator schema matrix
+    const result = streakParamsSchema.safeParse(partialYearPayload);
+
+    // Assert: The validator handles it safely using implicit date engine fallbacks
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.from).toBeDefined();
+      expect(result.data.to).toBeDefined();
+    }
+  });
+
+  it('should pass cleanly and fallback to default ranges when date bounds are completely omitted', () => {
+    // Arrange: Pass only the bare minimum required parameters
+    const minimalPayload = {
+      user: 'octocat',
+    };
+
+    // Act
+    const result = streakParamsSchema.safeParse(minimalPayload);
+
+    // Assert: Verify that omitted range options return undefined to use downstream defaults smoothly
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.from).toBeUndefined();
+      expect(result.data.to).toBeUndefined();
+    }
+  });
+});

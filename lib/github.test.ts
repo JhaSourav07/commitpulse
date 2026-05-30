@@ -4,6 +4,7 @@ import {
   fetchWithRetry,
   fetchUserProfile,
   fetchUserRepos,
+  fetchContributedRepos,
   getFullDashboardData,
   generateAchievements,
   buildCommitClock,
@@ -456,6 +457,27 @@ describe('fetchUserRepos', () => {
     expect(result[0].stargazers_count).toBe(1);
   });
 
+  it('returns a full three-repo payload with the expected star counts and languages', async () => {
+    const mockedRepos = [
+      { stargazers_count: 7, language: 'TypeScript' },
+      { stargazers_count: 42, language: 'Rust' },
+      { stargazers_count: 128, language: 'JavaScript' },
+    ];
+
+    vi.mocked(fetch).mockResolvedValue(mockResponse(mockedRepos));
+
+    const result = await fetchUserRepos('octocat', { bypassCache: true });
+
+    expect(result).toHaveLength(3);
+    result.forEach((repo, index) => {
+      expect(repo).toHaveProperty('stargazers_count');
+      expect(repo).toHaveProperty('language');
+      expect(repo.stargazers_count).toBe(mockedRepos[index].stargazers_count);
+      expect(repo.language).toBe(mockedRepos[index].language);
+    });
+    expect(result).toEqual(mockedRepos);
+  });
+
   it('encodes the username before using it in the REST repos path', async () => {
     vi.mocked(fetch).mockResolvedValue(
       mockResponse([{ stargazers_count: 1, language: 'TypeScript' }])
@@ -560,6 +582,51 @@ describe('fetchUserRepos', () => {
 
     expect(fetch).toHaveBeenCalledTimes(3);
     expect(result.length).toBe(201);
+  });
+});
+
+describe('fetchContributedRepos', () => {
+  beforeEach(() => vi.spyOn(global, 'fetch'));
+  afterEach(() => vi.restoreAllMocks());
+
+  it('returns contributed repos on success', async () => {
+    const mockNodes = [
+      {
+        name: 'repo1',
+        nameWithOwner: 'owner/repo1',
+        stargazerCount: 10,
+        forkCount: 5,
+        primaryLanguage: { name: 'TypeScript' },
+        updatedAt: '2024-01-01T00:00:00Z',
+      },
+    ];
+
+    vi.mocked(fetch).mockResolvedValue(
+      mockResponse({
+        data: {
+          user: {
+            repositoriesContributedTo: {
+              nodes: mockNodes,
+            },
+          },
+        },
+      })
+    );
+
+    const result = await fetchContributedRepos('octocat');
+    expect(result).toEqual(mockNodes);
+  });
+
+  it('returns empty array when fetch fails', async () => {
+    vi.mocked(fetch).mockResolvedValue(new Response(null, { status: 500 }));
+    const result = await fetchContributedRepos('octocat');
+    expect(result).toEqual([]);
+  });
+
+  it('returns empty array if data structure is missing', async () => {
+    vi.mocked(fetch).mockResolvedValue(mockResponse({ data: null }));
+    const result = await fetchContributedRepos('octocat');
+    expect(result).toEqual([]);
   });
 });
 
@@ -1084,6 +1151,18 @@ describe('cacheKey', () => {
 
   it('creates key with year', () => {
     expect(cacheKey('contributions', 'DeepSikha', '2025')).toBe('contributions:deepsikha:2025');
+  });
+
+  it('creates key with from and to date range', () => {
+    expect(cacheKey('contributions', 'octocat', '2024-01-01', '2024-06-30')).toBe(
+      'contributions:octocat:2024-01-01:2024-06-30'
+    );
+  });
+
+  it('collision test: different to dates produce different keys', () => {
+    const keyA = cacheKey('contributions', 'octocat', '2024-01-01', '2024-06-30');
+    const keyB = cacheKey('contributions', 'octocat', '2024-01-01', '2024-12-31');
+    expect(keyA).not.toBe(keyB);
   });
 });
 describe('buildInsights', () => {

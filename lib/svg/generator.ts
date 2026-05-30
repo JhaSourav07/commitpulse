@@ -5,7 +5,13 @@ import { getLabels, type BadgeLabels } from '../i18n/badgeLabels';
 import { AUTO_THEME_DARK, AUTO_THEME_LIGHT } from './themes';
 import { TOWER_ANIMATION_CSS } from './animations';
 import { computeTowers, type TowerData } from './layout';
-import { sanitizeFont, sanitizeHexColor, sanitizeRadius, sanitizeGoogleFontUrl } from './sanitizer';
+import {
+  sanitizeFont,
+  sanitizeHexColor,
+  sanitizeRadius,
+  sanitizeGoogleFontUrl,
+  getLuminance,
+} from './sanitizer';
 
 import { SVG_WIDTH, SVG_HEIGHT, FONT_MAP } from './generatorConstants';
 
@@ -181,9 +187,14 @@ function renderStyle(
   googleFontsImport: string,
   text: string,
   accent: string,
-  sf: number
+  sf: number,
+  bg: string
 ): string {
   const fs = (n: number) => Math.round(n * sf * 10) / 10;
+  const isLightBg = getLuminance(bg) > 0.5;
+  const labelFill = isLightBg ? text : accent;
+  const labelOpacity = isLightBg ? 0.8 : 0.7;
+
   return `
   <style>
   @import url('https://fonts.googleapis.com/css2?family=Fira+Code&amp;family=JetBrains+Mono&amp;family=Roboto&amp;family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');
@@ -201,7 +212,7 @@ function renderStyle(
   .title { font-family: ${selectedFont || '"Syncopate", sans-serif'}; fill: ${text}; font-size: ${fs(18)}px; letter-spacing: ${fs(6)}px; font-weight: 400; opacity: 0.8; }
   .stats { font-family: ${statsFont}; fill: ${text}; font-size: ${fs(42)}px; font-weight: 500; letter-spacing: 0; }
   .total-val { font-family: ${statsFont}; fill: ${accent}; font-size: ${fs(24)}px; font-weight: 500; }
-  .label { font-family: "Roboto", sans-serif; fill: ${accent}; font-size: ${fs(11)}px; font-weight: 400; letter-spacing: ${fs(2)}px; opacity: 0.7; }
+  .label { font-family: "Roboto", sans-serif; fill: ${labelFill}; font-size: ${fs(11)}px; font-weight: 400; letter-spacing: ${fs(2)}px; opacity: ${labelOpacity}; }
   @media (prefers-reduced-motion: reduce) {
     .heat-particles { display: none; }
     .scan-line {
@@ -319,7 +330,7 @@ function renderTowers(
           </g>
         </g>`;
 
-    if (t.contributionCount >= 10) {
+    if (t.contributionCount >= 10 && !params.disable_particles) {
       const pIdx = Math.min(t.intensityLevel - 1, accent.length - 1);
       const pColorResolved = Array.isArray(accent)
         ? accent[pIdx] || accent[accent.length - 1] || '00ffaa'
@@ -559,7 +570,7 @@ export function generateSVG(
   return `
 <svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" fill="none" role="img">
   ${renderHeader(safeUser, stats, sf, params)}
-  ${renderStyle(selectedFont, statsFont, googleFontsImport, text, finalAccent, sf)}
+  ${renderStyle(selectedFont, statsFont, googleFontsImport, text, finalAccent, sf, bg)}
   <rect width="${W}" height="${H}" rx="${radius}" fill="${params.hideBackground ? 'transparent' : bg}" ${borderAttr} />
   <g transform="translate(0, ${Math.round(20 * sf)})">${towers}</g>
   ${renderIsometricLabels(calendar, params, text, sf)}
@@ -575,6 +586,10 @@ function generateAutoThemeSVG(
 ): string {
   const light = AUTO_THEME_LIGHT;
   const dark = AUTO_THEME_DARK;
+  const lightLabelFill = getLuminance(light.bg) > 0.5 ? 'var(--cp-text)' : 'var(--cp-accent)';
+  const lightLabelOpacity = getLuminance(light.bg) > 0.5 ? '0.8' : '0.7';
+  const darkLabelFill = getLuminance(dark.bg) > 0.5 ? 'var(--cp-text)' : 'var(--cp-accent)';
+  const darkLabelOpacity = getLuminance(dark.bg) > 0.5 ? '0.8' : '0.7';
   const safeUser = escapeXML(params.user || 'GitHub User');
   const sanitizedFont = sanitizeFont(params.font);
   const selectedFont = sanitizedFont
@@ -615,8 +630,8 @@ function generateAutoThemeSVG(
   <style>
   @import url('https://fonts.googleapis.com/css2?family=Fira+Code&amp;family=JetBrains+Mono&amp;family=Roboto&amp;family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');
   ${googleFontsImport}
-  :root { --cp-bg: #${light.bg}; --cp-text: #${light.text}; --cp-accent: #${light.accent}; }
-  @media (prefers-color-scheme: dark) { :root { --cp-bg: #${dark.bg}; --cp-text: #${dark.text}; --cp-accent: #${dark.accent}; } }
+  :root { --cp-bg: #${light.bg}; --cp-text: #${light.text}; --cp-accent: #${light.accent}; --cp-label-fill: ${lightLabelFill}; --cp-label-opacity: ${lightLabelOpacity}; }
+  @media (prefers-color-scheme: dark) { :root { --cp-bg: #${dark.bg}; --cp-text: #${dark.text}; --cp-accent: #${dark.accent}; --cp-label-fill: ${darkLabelFill}; --cp-label-opacity: ${darkLabelOpacity}; } }
   .cp-bg-fill { fill: var(--cp-bg); } .cp-text-fill { fill: var(--cp-text); color: var(--cp-text); } .cp-accent-fill { fill: var(--cp-accent); color: var(--cp-accent); }
   ${TOWER_ANIMATION_CSS}
   .scan-line {
@@ -631,7 +646,7 @@ function generateAutoThemeSVG(
   .title { font-family: ${selectedFont || '"Syncopate", sans-serif'}; fill: var(--cp-text); font-size: ${fs(18)}px; letter-spacing: ${fs(6)}px; font-weight: 400; opacity: 0.8; }
   .stats { font-family: ${statsFont}; fill: var(--cp-text); font-size: ${fs(42)}px; font-weight: 500; letter-spacing: 0; }
   .total-val { font-family: ${statsFont}; fill: var(--cp-accent); font-size: ${fs(24)}px; font-weight: 500; }
-  .label { font-family: "Roboto", sans-serif; fill: var(--cp-accent); font-size: ${fs(11)}px; font-weight: 400; letter-spacing: ${fs(2)}px; opacity: 0.7; }
+  .label { font-family: "Roboto", sans-serif; fill: var(--cp-label-fill); font-size: ${fs(11)}px; font-weight: 400; letter-spacing: ${fs(2)}px; opacity: var(--cp-label-opacity); }
   .isometric-label { font-family: ${selectedFont || '"Roboto", sans-serif'}; font-size: ${fs(10)}px; font-weight: 400; letter-spacing: 1px; fill-opacity: 0.6; }
 
   @media (prefers-reduced-motion: reduce) {
@@ -1398,7 +1413,7 @@ export function generateVersusSVG(
   <title>CommitPulse Versus Stats: ${safeUser1} vs ${safeUser2}</title>
   <desc>${safeUser1} has ${stats1.totalContributions} ${unit}. ${safeUser2} has ${stats2.totalContributions} ${unit}.</desc>
   ${renderDefs(sf, params)}
-  ${renderStyle(selectedFont, statsFont, googleFontsImport, text, accent, sf)}
+  ${renderStyle(selectedFont, statsFont, googleFontsImport, text, accent, sf, bg)}
   <rect width="${W}" height="${H}" rx="${radius}" fill="${params.hideBackground ? 'transparent' : bg}" />
   
   <g transform="translate(0, 0)">
@@ -1431,6 +1446,10 @@ function generateAutoThemeVersusSVG(
 ): string {
   const light = AUTO_THEME_LIGHT;
   const dark = AUTO_THEME_DARK;
+  const lightLabelFill = getLuminance(light.bg) > 0.5 ? 'var(--cp-text)' : 'var(--cp-accent)';
+  const lightLabelOpacity = getLuminance(light.bg) > 0.5 ? '0.8' : '0.7';
+  const darkLabelFill = getLuminance(dark.bg) > 0.5 ? 'var(--cp-text)' : 'var(--cp-accent)';
+  const darkLabelOpacity = getLuminance(dark.bg) > 0.5 ? '0.8' : '0.7';
   const safeUser1 = escapeXML(params.user || 'User 1');
   const safeUser2 = escapeXML(params.versus || 'User 2');
   const sanitizedFont = sanitizeFont(params.font);
@@ -1545,8 +1564,8 @@ function generateAutoThemeVersusSVG(
   <style>
   @import url('https://fonts.googleapis.com/css2?family=Fira+Code&amp;family=JetBrains+Mono&amp;family=Roboto&amp;family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');
   ${googleFontsImport}
-  :root { --cp-bg: #${light.bg}; --cp-text: #${light.text}; --cp-accent: #${light.accent}; }
-  @media (prefers-color-scheme: dark) { :root { --cp-bg: #${dark.bg}; --cp-text: #${dark.text}; --cp-accent: #${dark.accent}; } }
+  :root { --cp-bg: #${light.bg}; --cp-text: #${light.text}; --cp-accent: #${light.accent}; --cp-label-fill: ${lightLabelFill}; --cp-label-opacity: ${lightLabelOpacity}; }
+  @media (prefers-color-scheme: dark) { :root { --cp-bg: #${dark.bg}; --cp-text: #${dark.text}; --cp-accent: #${dark.accent}; --cp-label-fill: ${darkLabelFill}; --cp-label-opacity: ${darkLabelOpacity}; } }
   .cp-bg-fill { fill: var(--cp-bg); } .cp-text-fill { fill: var(--cp-text); color: var(--cp-text); } .cp-accent-fill { fill: var(--cp-accent); color: var(--cp-accent); }
   ${TOWER_ANIMATION_CSS}
   .scan-line {
@@ -1561,7 +1580,7 @@ function generateAutoThemeVersusSVG(
   .title { font-family: ${selectedFont || '"Syncopate", sans-serif'}; fill: var(--cp-text); font-size: ${fs(18)}px; letter-spacing: ${fs(6)}px; font-weight: 400; opacity: 0.8; }
   .stats { font-family: ${statsFont}; fill: var(--cp-text); font-size: ${fs(42)}px; font-weight: 500; letter-spacing: 0; }
   .total-val { font-family: ${statsFont}; fill: var(--cp-accent); font-size: ${fs(24)}px; font-weight: 500; }
-  .label { font-family: "Roboto", sans-serif; fill: var(--cp-accent); font-size: ${fs(11)}px; font-weight: 400; letter-spacing: ${fs(2)}px; opacity: 0.7; }
+  .label { font-family: "Roboto", sans-serif; fill: var(--cp-label-fill); font-size: ${fs(11)}px; font-weight: 400; letter-spacing: ${fs(2)}px; opacity: var(--cp-label-opacity); }
   .isometric-label { font-family: ${selectedFont || '"Roboto", sans-serif'}; font-size: ${fs(10)}px; font-weight: 400; letter-spacing: 1px; fill-opacity: 0.6; }
 
   @media (prefers-reduced-motion: reduce) {

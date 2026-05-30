@@ -15,6 +15,9 @@ function parseCommand(commentBody) {
     const claimMatch = line.match(/^\/claim\s*$/i);
     if (claimMatch) return { command: 'claim' };
 
+    const unclaimMatch = line.match(/^\/unclaim\s*$/i);
+    if (unclaimMatch) return { command: 'unclaim' };
+
     const pingMatch = line.match(/^\/ping\s*$/i);
     if (pingMatch) return { command: 'ping' };
 

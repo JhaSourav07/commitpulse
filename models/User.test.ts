@@ -30,6 +30,23 @@ describe('User Model', () => {
         expect(typeof result).toBe('number');
         expect(Number.isFinite(result)).toBe(true);
       });
+
+      it('has a defined defaultValue that is Date.now or returns a Date', () => {
+        const createdAtPath = User.schema.path('createdAt') as mongoose.SchemaType & {
+          defaultValue?: unknown;
+          options: { default?: unknown };
+        };
+
+        const defaultValue = createdAtPath.defaultValue ?? createdAtPath.options.default;
+
+        expect(defaultValue).toBeDefined();
+
+        if (defaultValue !== Date.now) {
+          expect(typeof defaultValue).toBe('function');
+          const value = (defaultValue as () => unknown)();
+          expect(value instanceof Date).toBe(true);
+        }
+      });
     });
     it('has trim: true on username path', () => {
       const usernamePath = User.schema.path('username') as mongoose.SchemaType & {
