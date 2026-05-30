@@ -353,7 +353,7 @@ describe('fetchGitHubContributions', () => {
       const { calendar: result } = await promise;
 
       expect(fetch).toHaveBeenCalledTimes(2);
-      expect(result.totalContributions).toBe(mockCalendar.totalContributions);
+      expect(result.calendar.totalContributions).toBe(mockCalendar.totalContributions);
     });
 
     it('throws after exhausting all retries on repeated body-level RATE_LIMITED errors', async () => {
