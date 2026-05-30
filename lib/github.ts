@@ -847,15 +847,21 @@ export async function getFullDashboardData(username: string, options: FetchOptio
 
 export async function getWrappedData(
   username: string,
-  year: string
+  year: string,
+  options?: FetchOptions
 ): Promise<import('../types/dashboard').WrappedStats> {
   const from = `${year}-01-01T00:00:00Z`;
   const to = `${year}-12-31T23:59:59Z`;
-  const options: FetchOptions = { from, to, bypassCache: true };
+  const fetchOptions: FetchOptions = {
+    from,
+    to,
+    bypassCache: options?.bypassCache ?? false,
+    signal: options?.signal,
+  };
 
   const [calendar, repos] = await Promise.all([
-    fetchGitHubContributions(username, options),
-    fetchUserRepos(username, options),
+    fetchGitHubContributions(username, fetchOptions),
+    fetchUserRepos(username, fetchOptions),
   ]);
 
   const allDays = calendar.weeks.flatMap((w) => w.contributionDays);
