@@ -46,6 +46,9 @@ export default function CustomizePage(): ReactElement {
   const [copied, setCopied] = useState(false);
   const [copyStatusMessage, setCopyStatusMessage] = useState('');
   const copyResetTimeoutRef = useRef<number | null>(null);
+  const [svgContent, setSvgContent] = useState<string>('');
+  const [svgState, setSvgState] = useState<'idle' | 'loading' | 'loaded' | 'error'>('idle');
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const trimmedUsername = username.trim();
   const hasUsername = trimmedUsername.length > 0;
   const isAutoTheme = theme === 'auto';
@@ -156,6 +159,49 @@ export default function CustomizePage(): ReactElement {
 
   const queryString = buildQueryParams();
   const previewSrc = `/api/streak?${queryString}`;
+
+  useEffect(() => {
+    if (!hasUsername) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setSvgContent('');
+
+      setSvgState('idle');
+      return;
+    }
+
+    setSvgState('loading');
+    const controller = new AbortController();
+
+    fetch(previewSrc, { signal: controller.signal })
+      .then(async (res) => {
+        const text = await res.text();
+        if (!res.ok) {
+          setSvgContent('');
+          setSvgState('error');
+          if (res.status === 404 || res.status === 400 || res.status === 429) {
+            setErrorMessage('GitHub user not found');
+          } else {
+            setErrorMessage('Failed to load badge');
+          }
+          return;
+        }
+        return text;
+      })
+      .then((text) => {
+        if (!text) return;
+        setSvgContent(text);
+        setSvgState('loaded');
+        setErrorMessage(null);
+      })
+      .catch((err) => {
+        if (err.name === 'AbortError') return;
+        setSvgState('error');
+        setErrorMessage('Failed to load badge');
+      });
+
+    return () => controller.abort();
+  }, [previewSrc, hasUsername]);
+
   const exportSnippet = getExportSnippet(exportFormat, queryString);
 
   const fallbackCopyToClipboard = (text: string): boolean => {
@@ -371,17 +417,62 @@ export default function CustomizePage(): ReactElement {
                   <div className="absolute inset-0 bg-gradient-to-b from-transparent via-emerald-500/3 to-transparent animate-[pulse_3s_ease-in-out_infinite] pointer-events-none" />
 
                   {hasUsername ? (
-                    <>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        key={previewSrc}
-                        src={previewSrc}
-                        alt="CommitPulse live preview"
-                        width={600}
-                        height={420}
-                        className="max-w-full h-auto drop-shadow-[0_20px_60px_rgba(0,0,0,0.6)] transition-opacity duration-300"
-                      />
-                    </>
+                    <div className="w-full flex items-center justify-center">
+                      {svgState === 'loading' && (
+                        <div className="h-[240px] w-full max-w-[600px] rounded-2xl bg-black/5 dark:bg-white/5 animate-pulse flex items-center justify-center text-sm text-gray-500 dark:text-white/40">
+                          Loading preview...
+                        </div>
+                      )}
+                      {svgState === 'error' && errorMessage === 'GitHub user not found' && (
+                        <div className="flex flex-col items-center justify-center gap-4 py-12 text-center">
+                          <div className="flex h-16 w-16 items-center justify-center rounded-3xl border border-red-500/20 bg-red-500/10 shadow-inner">
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="h-8 w-8 text-red-500"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2.5"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            >
+                              <line x1="18" y1="6" x2="6" y2="18"></line>
+                              <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                          </div>
+                          <div>
+                            <p className="text-lg font-bold text-gray-900 dark:text-white tracking-tight">
+                              GitHub user not found
+                            </p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                              Please check the username and try again.
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                      {svgState === 'error' && errorMessage !== 'GitHub user not found' && (
+                        <div className="flex flex-col items-center justify-center gap-2 text-center py-8">
+                          <p className="text-sm font-semibold text-red-500 dark:text-red-400">
+                            Failed to load badge
+                          </p>
+                          <p className="text-xs text-gray-500 dark:text-white/45">
+                            The API may be unavailable. Please try again.
+                          </p>
+                        </div>
+                      )}
+                      {svgState === 'loaded' && svgContent && (
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.95 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ duration: 0.5, ease: 'easeOut' }}
+                          className="cp-svg-container w-full max-w-[600px] drop-shadow-[0_30px_60px_rgba(0,0,0,0.15)] dark:drop-shadow-[0_30px_60px_rgba(0,0,0,0.5)] [&>svg]:w-full [&>svg]:h-auto"
+                          dangerouslySetInnerHTML={{ __html: svgContent }}
+                        />
+                      )}
+                      {svgState === 'loaded' && !svgContent && errorMessage && (
+                        <p className="text-red-400 text-sm text-center">{errorMessage}</p>
+                      )}
+                    </div>
                   ) : (
                     <div className="relative z-10 flex w-full max-w-xl flex-col items-center justify-center rounded-[1.25rem] border border-dashed border-black/10 bg-gray-100/80 backdrop-blur-md dark:border-white/10 dark:bg-white/[0.03] px-6 py-12 text-center">
                       <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-black/10 bg-gray-100/80 dark:border-white/10 dark:bg-white/[0.04] text-gray-500 dark:text-emerald-300/70">

@@ -80,13 +80,13 @@ function generateParticles(
     const fillAttr = autoTheme ? 'class="cp-accent-fill"' : `fill="${color}"`;
 
     particles += `
-      <circle ${fillAttr} cx="${x + offsetX}" cy="${y - height}" r="${1.5 * sf}" opacity="1">
+      <circle ${fillAttr} cx="${x + offsetX}" cy="${y - height}" r="${1.5 * sf}" opacity="1" pointer-events="none">
         <animate attributeName="cy" from="${y - height}" to="${y - height - Math.round(20 * sf)}" dur="1.5s" begin="${delay}s" repeatCount="indefinite" />
         <animate attributeName="opacity" from="1" to="0" dur="1.5s" begin="${delay}s" repeatCount="indefinite" />
       </circle>
     `;
   }
-  return `<g class="heat-particles">${particles}</g>`;
+  return `<g class="heat-particles" pointer-events="none">${particles}</g>`;
 }
 
 // ── Section helpers for generateSVG ──────────────────────────────────────
@@ -211,6 +211,8 @@ function renderStyle(
     }
   }
   .isometric-label { font-family: ${selectedFont || '"Roboto", sans-serif'}; font-size: ${fs(10)}px; font-weight: 400; letter-spacing: 1px; fill-opacity: 0.6; }
+  .interactive-tower { transition: transform 0.2s ease, filter 0.2s ease; cursor: pointer; }
+  .interactive-tower:hover { transform: translateY(-4px); filter: brightness(1.2) drop-shadow(0 4px 8px ${accent}66); }
   </style>`;
 }
 
@@ -307,9 +309,12 @@ function renderTowers(
 
     const delay = ((t.row + t.col) * 0.015).toFixed(3);
 
+    const metric =
+      t.contributionCount === 0 ? 'Rest day' : t.intensityLevel === 4 ? 'Peak day' : 'Active day';
+
     towers += `
         <g transform="translate(${t.x}, ${t.y})">
-          <g class="cp-tower" style="animation-delay: ${delay}s;">
+          <g class="cp-tower interactive-tower cursor-pointer" data-date="${t.date}" data-count="${t.contributionCount}" data-metric="${metric}" style="animation-delay: ${delay}s;">
             ${t.isToday ? '<animate attributeName="opacity" values="1;0.4;1" dur="1.5s" repeatCount="indefinite" />' : ''}
             <title>${escapeXML(t.tooltip)}</title>
             <path d="M0 ${10 - t.h} L0 10 L-16 0 L-16 ${-t.h} Z" ${leftFillAttr} fill-opacity="${leftFaceOpacity}" ${leftStrokeAttr} />
@@ -575,6 +580,8 @@ function generateAutoThemeSVG(
   .total-val { font-family: ${statsFont}; fill: var(--cp-accent); font-size: ${fs(24)}px; font-weight: 500; }
   .label { font-family: "Roboto", sans-serif; fill: var(--cp-accent); font-size: ${fs(11)}px; font-weight: 400; letter-spacing: ${fs(2)}px; opacity: 0.7; }
   .isometric-label { font-family: ${selectedFont || '"Roboto", sans-serif'}; font-size: ${fs(10)}px; font-weight: 400; letter-spacing: 1px; fill-opacity: 0.6; }
+  .interactive-tower { transition: transform 0.2s ease, filter 0.2s ease; cursor: pointer; }
+  .interactive-tower:hover { transform: translateY(-4px); filter: brightness(1.2) drop-shadow(0 4px 8px var(--cp-accent)); }
 
   @media (prefers-reduced-motion: reduce) {
     .heat-particles { display: none; }

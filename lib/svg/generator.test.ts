@@ -1079,7 +1079,7 @@ describe('shading', () => {
       shadingCalendar
     );
     // The shaded SVG should still contain the tower paths
-    expect(svgShading).toContain('class="cp-tower"');
+    expect(svgShading).toContain('cp-tower');
     // For level 1 (mult=0.4), base top face opacity 0.7 becomes 0.28
     // Check for that specific derived value to ensure shading actually multiplied it.
     expect(svgShading).toContain('fill-opacity="0.28"');

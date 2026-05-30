@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState, useRef, ReactNode, useMemo, type ReactElement } from 'react';
+import { AnimatePresence } from 'framer-motion';
+import VisualizationTooltip from './dashboard/VisualizationTooltip';
 
 // ── Parallax particle configuration ──────────────────────────────────────────
 // Particles are generated deterministically so SSR and client renders match,
@@ -45,6 +47,28 @@ function buildParticles(): ParallaxParticle[] {
 // container edge. Shallower particles shift proportionally less.
 const PARALLAX_STRENGTH = 80;
 
+interface ActiveTooltipState {
+  date: string;
+  count: number;
+  metric: string;
+  x: number;
+  y: number;
+}
+
+const formatDate = (dateStr: string): string => {
+  try {
+    const [year, month, day] = dateStr.split('-');
+    const date = new Date(parseInt(year, 10), parseInt(month, 10) - 1, parseInt(day, 10));
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+  } catch {
+    return dateStr;
+  }
+};
+
 interface InteractiveViewerProps {
   children: ReactNode;
   className?: string;
@@ -66,6 +90,8 @@ export default function InteractiveViewer({
   const isDragging = useRef(false);
   const [isDraggingState, setIsDraggingState] = useState(false);
   const lastMousePos = useRef({ x: 0, y: 0 });
+  const [activeTooltip, setActiveTooltip] = useState<ActiveTooltipState | null>(null);
+  const startPointerPos = useRef({ x: 0, y: 0 });
 
   // Stable particle list — generated once on mount, never re-shuffled.
   const particles = useMemo((): ParallaxParticle[] => buildParticles(), []);
@@ -131,6 +157,7 @@ export default function InteractiveViewer({
     isDragging.current = true;
     setIsDraggingState(true);
     lastMousePos.current = { x: e.clientX, y: e.clientY };
+    startPointerPos.current = { x: e.clientX, y: e.clientY };
     e.currentTarget.setPointerCapture(e.pointerId);
   };
 
@@ -145,17 +172,69 @@ export default function InteractiveViewer({
     }
 
     // Only apply pan logic when actively dragging
-    if (!isDragging.current) return;
-    const dx = e.clientX - lastMousePos.current.x;
-    const dy = e.clientY - lastMousePos.current.y;
-    setPan((p) => ({ x: p.x + dx, y: p.y + dy }));
-    lastMousePos.current = { x: e.clientX, y: e.clientY };
+    if (isDragging.current) {
+      const dx = e.clientX - lastMousePos.current.x;
+      const dy = e.clientY - lastMousePos.current.y;
+      setPan((p) => ({ x: p.x + dx, y: p.y + dy }));
+      lastMousePos.current = { x: e.clientX, y: e.clientY };
+      // Hide tooltip during active drag/pan
+      setActiveTooltip(null);
+      return;
+    }
+
+    // Detect if we are hovering over an interactive tower
+    const targetElement = e.target as HTMLElement;
+    const tower = targetElement.closest('.interactive-tower');
+    if (tower) {
+      const date = tower.getAttribute('data-date');
+      const countStr = tower.getAttribute('data-count');
+      const metric = tower.getAttribute('data-metric');
+      if (date && countStr && metric) {
+        const count = parseInt(countStr, 10);
+        const towerRect = tower.getBoundingClientRect();
+        setActiveTooltip({
+          date,
+          count,
+          metric,
+          x: towerRect.left + towerRect.width / 2,
+          y: towerRect.top,
+        });
+      }
+    } else {
+      setActiveTooltip(null);
+    }
   };
 
   const handlePointerUp = (e: React.PointerEvent): void => {
     isDragging.current = false;
     setIsDraggingState(false);
     e.currentTarget.releasePointerCapture(e.pointerId);
+
+    // If it was a tap (moved very little), show/toggle the tooltip!
+    const dx = Math.abs(e.clientX - startPointerPos.current.x);
+    const dy = Math.abs(e.clientY - startPointerPos.current.y);
+    if (dx < 5 && dy < 5) {
+      const targetElement = e.target as HTMLElement;
+      const tower = targetElement.closest('.interactive-tower');
+      if (tower) {
+        const date = tower.getAttribute('data-date');
+        const countStr = tower.getAttribute('data-count');
+        const metric = tower.getAttribute('data-metric');
+        if (date && countStr && metric) {
+          const count = parseInt(countStr, 10);
+          const towerRect = tower.getBoundingClientRect();
+          setActiveTooltip({
+            date,
+            count,
+            metric,
+            x: towerRect.left + towerRect.width / 2,
+            y: towerRect.top,
+          });
+          return;
+        }
+      }
+    }
+    setActiveTooltip(null);
   };
 
   const handlePointerEnter = (): void => setIsHovering(true);
@@ -164,6 +243,7 @@ export default function InteractiveViewer({
     setIsHovering(false);
     // Reset cursor position to center so the glow fades out gracefully from center
     setMousePos({ x: 0.5, y: 0.5 });
+    setActiveTooltip(null);
   };
 
   const handleWheel = (e: React.WheelEvent): void => {
@@ -278,6 +358,48 @@ export default function InteractiveViewer({
       >
         {children}
       </div>
+
+      <AnimatePresence>
+        {activeTooltip && (
+          <VisualizationTooltip
+            title={formatDate(activeTooltip.date)}
+            x={activeTooltip.x}
+            y={activeTooltip.y}
+          >
+            <div className="flex flex-col gap-1.5 min-w-[140px] p-0.5">
+              <div className="text-[11px] font-semibold text-gray-900 dark:text-zinc-100 flex justify-between items-center">
+                <span>Contributions</span>
+                <span className="text-emerald-500 dark:text-emerald-400 font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded text-[10px] min-w-[1.5rem] text-center">
+                  {activeTooltip.count}
+                </span>
+              </div>
+              <div className="h-px bg-black/5 dark:bg-white/5 w-full" />
+              <div className="flex items-center gap-1.5">
+                <span
+                  className={`inline-block w-1.5 h-1.5 rounded-full ${
+                    activeTooltip.metric === 'Peak day'
+                      ? 'bg-emerald-500 shadow-[0_0_6px_#10b981]'
+                      : activeTooltip.metric === 'Active day'
+                        ? 'bg-cyan-500 shadow-[0_0_6px_#06b6d4]'
+                        : 'bg-zinc-400 dark:bg-zinc-500'
+                  }`}
+                />
+                <span
+                  className={`text-[9px] font-bold uppercase tracking-wider ${
+                    activeTooltip.metric === 'Peak day'
+                      ? 'text-emerald-500 dark:text-emerald-400'
+                      : activeTooltip.metric === 'Active day'
+                        ? 'text-cyan-500 dark:text-cyan-400'
+                        : 'text-zinc-500 dark:text-zinc-400'
+                  }`}
+                >
+                  {activeTooltip.metric}
+                </span>
+              </div>
+            </div>
+          </VisualizationTooltip>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
