@@ -443,6 +443,27 @@ describe('calculateMonthlyStats', () => {
     expect(result.currentMonthTotal).toBe(5);
     expect(result.currentMonthName).toBe('January');
   });
+
+  it('verify January correctly uses December of previous year with explicit now baseline', () => {
+    const calendar = {
+      totalContributions: 15,
+      weeks: [
+        {
+          contributionDays: [
+            { contributionCount: 10, date: '2023-12-15' },
+            { contributionCount: 5, date: '2024-01-15' },
+          ],
+        },
+      ],
+    };
+    const now = new Date('2024-01-20T12:00:00Z');
+    const result = calculateMonthlyStats(calendar, 'UTC', now);
+
+    // Assertions matching the explicit issue Definition of Done
+    expect(result.currentMonthTotal).toBe(5);
+    expect(result.previousMonthTotal).toBe(10);
+    expect(result.currentMonthName).toBe('January');
+  });
   // =========================================================================
   // ISSUE OBJECTIVE: Empty calendar passed to calculateMonthlyStats
   // =========================================================================
@@ -494,6 +515,78 @@ describe('calculateStreak — empty and sparse year edge cases', () => {
     const result = calculateStreak(calendar);
     expect(result.longestStreak).toBe(1);
     expect(result.totalContributions).toBe(2);
+  });
+});
+
+describe('calculateStreak — todayDate format', () => {
+  const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
+
+  it('todayDate matches YYYY-MM-DD for a normal calendar', () => {
+    // A typical calendar with contributions — todayDate must always be a valid date string
+    // regardless of the contribution data, so the SVG pulse animation targets the right tower.
+    const calendar = buildCalendar([1, 0, 1, 1, 0, 1, 1]);
+    const fixedNow = new Date('2024-01-07T12:00:00Z');
+    const result = calculateStreak(calendar, 'UTC', fixedNow);
+    expect(result.todayDate).toMatch(DATE_REGEX);
+  });
+
+  it('todayDate matches YYYY-MM-DD for an empty calendar', () => {
+    // An empty calendar has no days to fall back on, so todayDate is derived
+    // purely from the current date — it must still be a valid YYYY-MM-DD string.
+    const emptyCalendar = buildCalendar([]);
+    const fixedNow = new Date('2024-03-15T00:00:00Z');
+    const result = calculateStreak(emptyCalendar, 'UTC', fixedNow);
+    expect(result.todayDate).toMatch(DATE_REGEX);
+  });
+
+  it('todayDate matches YYYY-MM-DD when a non-UTC timezone shifts the local date', () => {
+    // When the caller passes a timezone like Asia/Kolkata, the local date can differ
+    // from UTC (e.g. UTC is still Jan 14 but IST is already Jan 15).
+    // The format must remain YYYY-MM-DD regardless of which day the timezone lands on.
+    const calendar = buildCalendar([1, 1, 1, 1, 1, 1, 1]);
+    const fixedNow = new Date('2024-01-07T20:00:00Z'); // 01:30 Jan 8 in IST (UTC+5:30)
+    const result = calculateStreak(calendar, 'Asia/Kolkata', fixedNow);
+    expect(result.todayDate).toMatch(DATE_REGEX);
+  });
+});
+
+describe('calculateStreak — year boundary transition (Dec 31 → Jan 1)', () => {
+  // Streak math relies on the flattened day array being chronologically ordered,
+  // so a run that crosses from December into January must be counted as a single
+  // continuous streak. This guards against off-by-one bugs where the calendar
+  // year rollover (e.g. 2024-12-31 → 2025-01-01) is mistakenly treated as a gap.
+  it('counts a streak that spans the Dec 31 → Jan 1 boundary as one continuous run', () => {
+    const calendar: ContributionCalendar = {
+      totalContributions: 7,
+      weeks: [
+        {
+          contributionDays: [
+            { contributionCount: 0, date: '2024-12-26' }, // gap before the streak begins
+            { contributionCount: 1, date: '2024-12-27' },
+            { contributionCount: 1, date: '2024-12-28' },
+            { contributionCount: 1, date: '2024-12-29' },
+            { contributionCount: 1, date: '2024-12-30' },
+            { contributionCount: 1, date: '2024-12-31' }, // last day of the year
+            { contributionCount: 1, date: '2025-01-01' }, // first day of the new year
+          ],
+        },
+        {
+          contributionDays: [
+            { contributionCount: 1, date: '2025-01-02' }, // "today"
+          ],
+        },
+      ],
+    };
+
+    // Pin "now" to Jan 2 so the final day is treated as today and the streak is live.
+    const now = new Date('2025-01-02T12:00:00Z');
+    const result = calculateStreak(calendar, 'UTC', now);
+
+    // The 7-day run (Dec 27 → Jan 2) must not be split by the year rollover.
+    expect(result.currentStreak).toBe(7);
+    expect(result.longestStreak).toBe(7);
+    expect(result.totalContributions).toBe(7);
+    expect(result.todayDate).toBe('2025-01-02');
   });
 });
 
@@ -582,7 +675,22 @@ describe('calculateWrappedStats', () => {
     expect(result.busiestMonth).toBe('2024-01');
     expect(result.weekendRatio).toBe(100);
   });
-  // =========================================================================
+
+  // ISSUE OBJECTIVE #1056: Verify empty calendar returns safe zero values
+  it('verify empty calendar returns safe zero values', () => {
+    // 1. Call calculateWrappedStats with empty data
+    expect(() => calculateWrappedStats({ totalContributions: 0, weeks: [] })).not.toThrow();
+
+    // 2. Actually get the result to test its properties
+    const result = calculateWrappedStats({ totalContributions: 0, weeks: [] });
+
+    // 3. Assert weekendRatio === 0 (and specifically not NaN)
+    expect(result.weekendRatio).toBe(0);
+
+    // 4. Assert highestDailyCount === 0
+    expect(result.highestDailyCount).toBe(0);
+  });
+
   // ISSUE OBJECTIVE: Verify weekendRatio is 100 when all commits are on weekends
   // =========================================================================
   it('returns weekendRatio === 100 when all contributions are on weekends', () => {
