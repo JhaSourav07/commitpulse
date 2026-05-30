@@ -193,7 +193,7 @@ body {
 }
 
 /* Safely hide default browser cursor globally on desktop screens except form fields */
-@media (min-width: 768px) {
+@media (min-width: 768px) and (hover: hover) and (pointer: fine) {
   html,
   body,
   a,
@@ -201,5 +201,15 @@ body {
   [role='button'],
   .interactive-card {
     cursor: none !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html,
+  body,
+  a,
+  button,
+  [role='button'] {
+    cursor: auto !important;
   }
 }
