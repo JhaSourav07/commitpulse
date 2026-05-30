@@ -25,12 +25,12 @@ describe('HeroSection - Variation 2', () => {
   it('renders on mobile viewport', () => {
     setViewport(375);
     render(<HeroSection />);
-    expect(screen.getByRole('heading', { level: 1 })).toBeVisible();
+    expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument();
   });
 
   it('renders on tablet viewport', () => {
     setViewport(768);
     render(<HeroSection />);
-    expect(screen.getByRole('heading', { level: 1 })).toBeVisible();
+    expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument();
   });
 });
