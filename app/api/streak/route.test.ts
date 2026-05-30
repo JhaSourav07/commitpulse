@@ -264,6 +264,18 @@ describe('GET /api/streak', () => {
       expect(body).toContain('<title>');
       expect(body).toContain('Stats for');
     });
+
+    it('includes accessible root metadata and respects animations=false', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', animations: 'false' }));
+      const body = await response.text();
+
+      expect(body).toContain('role="img"');
+      expect(body).toContain('aria-labelledby="commitpulse-svg-title commitpulse-svg-desc"');
+      expect(body).toContain('aria-describedby="commitpulse-svg-desc"');
+      expect(body).toContain('transform: scaleY(1)');
+      expect(body).not.toContain('@keyframes grow-up');
+      expect(body).not.toContain('<animate attributeName="opacity"');
+    });
   });
 
   describe('cache-control header', () => {
@@ -699,7 +711,8 @@ describe('GET /api/streak', () => {
       expect(response.status).toBe(429);
       expect(response.headers.get('Cache-Control')).toBe('no-cache, no-store, must-revalidate');
       const body = await response.text();
-      expect(body).toContain('API RATE LIMIT');
+      expect(body).toContain('Rate limit exceeded');
+      expect(body).toContain('aria-labelledby="commitpulse-svg-title commitpulse-svg-desc"');
     });
 
     it('returns a valid 500 SVG even when something non-Error is thrown', async () => {

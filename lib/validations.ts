@@ -60,6 +60,16 @@ function dimensionParam(name: string, min: number, max: number) {
 
 const GITHUB_USERNAME_REGEX = /^[a-zA-Z0-9](?:[a-zA-Z0-9]|-(?=[a-zA-Z0-9]))*$/;
 
+function booleanParam(defaultValue: boolean) {
+  return z
+    .string()
+    .optional()
+    .transform((val) => {
+      if (val === undefined) return defaultValue;
+      return !['false', '0', 'off', 'no'].includes(val.trim().toLowerCase());
+    });
+}
+
 export const streakParamsSchema = z.object({
   // Required — missing user surfaces as "Missing" to match existing tests
   user: z
@@ -125,6 +135,8 @@ export const streakParamsSchema = z.object({
     .string()
     .transform((val) => sanitizeSpeed(val, '8s'))
     .default('8s'),
+
+  animations: booleanParam(true),
 
   // Invalid radius values are sanitized and fall back to 8px.
   radius: z
