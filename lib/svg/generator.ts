@@ -1547,11 +1547,54 @@ export function generateRateLimitSVG(
   text: string,
   radius: number,
   speed: string = '8s',
-  retryAfter?: string
+  retryAfter?: string,
+  animations: boolean = true
 ): string {
   const retryMessage = retryAfter
     ? `Rate limited — please retry after ${retryAfter}`
     : 'Rate limited — please try again later';
+
+  const titleId = 'commitpulse-svg-title';
+  const descId = 'commitpulse-svg-desc';
+
+  const styleWithAnim = `<style>
+    @import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600&amp;display=swap');
+    .title  { font-family: "Syncopate", sans-serif; fill: ${text}; font-size: 18px; letter-spacing: 6px; font-weight: 400; opacity: 0.5; }
+    .label  { font-family: "Roboto", sans-serif; fill: ${accent}; font-size: 11px; letter-spacing: 2px; opacity: 0.4; }
+    .stats  { font-family: "Space Grotesk", sans-serif; fill: ${text}; font-size: 42px; font-weight: 500; opacity: 0.2; }
+    .clock-pulse { animation: cp 3s ease-in-out infinite; }
+    .hourglass-sand { animation: hs 4s ease-in-out infinite; }
+    .scan-line { animation: scan-sweep var(--scan-speed, 8s) linear infinite; }
+    @keyframes cp { 0%,100%{opacity:.4} 50%{opacity:1} }
+    @keyframes hs { 0%,100%{transform:translateY(0)} 50%{transform:translateY(8px)} }
+    @keyframes scan-sweep { from { transform: translateY(20px); } to { transform: translateY(260px); } }
+    @media (prefers-reduced-motion: reduce) {
+      .clock-pulse { animation: none !important; transition: none !important; }
+      .hourglass-sand { animation: none !important; transition: none !important; }
+      .scan-line {
+        animation: none !important;
+        transition: none !important;
+        transform: translateY(20px) !important;
+      }
+    }
+  </style>`;
+
+  const styleNoAnim = `<style>
+    @import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600&amp;display=swap');
+    .title  { font-family: "Syncopate", sans-serif; fill: ${text}; font-size: 18px; letter-spacing: 6px; font-weight: 400; opacity: 0.5; }
+    .label  { font-family: "Roboto", sans-serif; fill: ${accent}; font-size: 11px; letter-spacing: 2px; opacity: 0.4; }
+    .stats  { font-family: "Space Grotesk", sans-serif; fill: ${text}; font-size: 42px; font-weight: 500; opacity: 0.2; }
+    .clock-pulse { animation: none !important; }
+    .hourglass-sand { animation: none !important; }
+    .scan-line { animation: none !important; transform: translateY(20px) !important; }
+    @media (prefers-reduced-motion: reduce) {
+      .clock-pulse { animation: none !important; transition: none !important; }
+      .hourglass-sand { animation: none !important; transition: none !important; }
+      .scan-line { animation: none !important; transition: none !important; transform: translateY(20px) !important; }
+    }
+  </style>`;
+
+  const styleBlock = animations ? styleWithAnim : styleNoAnim;
 
   return `<svg
   xmlns="http://www.w3.org/2000/svg"
@@ -1560,8 +1603,11 @@ export function generateRateLimitSVG(
   viewBox="0 0 ${SVG_WIDTH} ${SVG_HEIGHT}"
   fill="none"
   role="img"
+  aria-labelledby="${titleId} ${descId}"
+  aria-describedby="${descId}"
 >
-  <title>Rate limit exceeded</title>
+  <title id="${titleId}">Rate limit exceeded</title>
+  <desc id="${descId}">GitHub API rate limit exceeded. ${retryAfter ? `Please retry after ${escapeXML(retryAfter)}.` : 'Please try again later.'}</desc>
   <defs>
     <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
       <feGaussianBlur stdDeviation="5" result="blur"/>
