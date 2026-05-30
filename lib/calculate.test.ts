@@ -511,6 +511,16 @@ describe('calculateStreak — empty and sparse year edge cases', () => {
     expect(result.todayDate).toBeDefined();
   });
 
+  it('returns zero current and longest streaks for an entire year of zero commits', () => {
+    const calendar = buildCalendar(Array.from({ length: 365 }, () => 0));
+
+    const result = calculateStreak(calendar, 'UTC', new Date('2024-12-31T12:00:00Z'));
+
+    expect(result.currentStreak).toBe(0);
+    expect(result.longestStreak).toBe(0);
+    expect(result.totalContributions).toBe(0);
+  });
+
   it('is deterministic: same empty calendar always returns identical output', () => {
     const calendar = buildCalendar([]);
     const fixedNow = new Date('2024-01-15T12:00:00Z');
