@@ -125,7 +125,7 @@ describe('LandingPage', () => {
   it('renders an empty state before a username is entered', () => {
     render(<LandingPage />);
 
-    expect(screen.getByText(/Contribution Story/i)).toBeInTheDocument();
+    expect(screen.getByText(/Contribution Story/i)).toBeDefined();
     // No SVG badge should be present yet
     expect(screen.queryByTestId('badge-svg')).toBeNull();
   });
