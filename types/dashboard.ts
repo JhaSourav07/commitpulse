@@ -90,3 +90,33 @@ export interface OrgDashboardData {
   stats: UserStats;
   calendar: ContributionCalendar;
 }
+
+/* ==========================================================================
+ * CONTRIBUTION FORECAST TYPES
+ * ========================================================================== */
+
+export interface ForecastDay {
+  /** Calendar date (YYYY-MM-DD) */
+  date: string;
+  /** Short weekday label e.g. "Mon" */
+  dayLabel: string;
+  /** Predicted contribution count (rounded to nearest integer) */
+  predicted: number;
+}
+
+export interface ForecastData {
+  /** Next 7 calendar days with per-day predicted contribution counts */
+  next7Days: ForecastDay[];
+  /** Projected total contributions by end of the current month */
+  endOfMonthProjection: number;
+  /** Projected total contributions by end of the current calendar year */
+  yearEndProjection: number;
+  /** Rolling 30-day daily average used as the trend baseline */
+  dailyAverage: number;
+  /** Current month's contribution count so far */
+  currentMonthActual: number;
+  /** Remaining days in the current month (including today) */
+  daysLeftInMonth: number;
+  /** Total contributions this calendar year so far */
+  yearToDateActual: number;
+}

@@ -60,6 +60,10 @@ vi.mock('@/components/dashboard/AIInsights', () => ({
   default: () => <div data-testid="ai-insights">AIInsights</div>,
 }));
 
+vi.mock('@/components/dashboard/ForecastCard', () => ({
+  default: () => <div data-testid="forecast-card">ForecastCard</div>,
+}));
+
 vi.mock('@/components/dashboard/Achievements', () => ({
   default: () => <div data-testid="achievements">Achievements</div>,
 }));
@@ -91,7 +95,15 @@ describe('DashboardPage', () => {
     insights: [],
     achievements: [],
     commitClock: [],
-    graphData: { nodes: [], links: [] },
+    forecast: {
+      next7Days: [],
+      endOfMonthProjection: 0,
+      yearEndProjection: 0,
+      dailyAverage: 0,
+      currentMonthActual: 0,
+      daysLeftInMonth: 0,
+      yearToDateActual: 0,
+    },
   };
 
   beforeEach(() => {
