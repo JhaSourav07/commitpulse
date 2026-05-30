@@ -1,38 +1,72 @@
+// app/api/og/route.tsx
+
 import { ImageResponse } from 'next/og';
 import { NextRequest } from 'next/server';
-import { ogParamsSchema } from '../../../lib/validations';
+import { ogParamsSchema } from '@/lib/validations';
+import { themes } from '@/lib/svg/themes';
+import { fetchGitHubContributions } from '@/lib/github';
+import { calculateStreak } from '@/lib/calculate';
 
-export const runtime = 'edge';
+const appUrl =
+  process.env.NEXT_PUBLIC_SITE_URL ||
+  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://commitpulse.vercel.app');
+
+const displayDomain = (() => {
+  try {
+    return new URL(appUrl).host;
+  } catch {
+    return 'commitpulse.vercel.app';
+  }
+})();
+
+function getLuminance(hex: string) {
+  let normalizedHex = hex.trim();
+  // Normalize short hex (e.g., #fff or #ffff) to #rrggbb (alpha is ignored for luminance)
+  if (normalizedHex.length === 4 || normalizedHex.length === 5) {
+    normalizedHex = `#${normalizedHex[1]}${normalizedHex[1]}${normalizedHex[2]}${normalizedHex[2]}${normalizedHex[3]}${normalizedHex[3]}`;
+  }
+  const r = parseInt(normalizedHex.slice(1, 3), 16) / 255 || 0;
+  const g = parseInt(normalizedHex.slice(3, 5), 16) / 255 || 0;
+  const b = parseInt(normalizedHex.slice(5, 7), 16) / 255 || 0;
+
+  const [R, G, B] = [r, g, b].map((c) =>
+    c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4)
+  );
+  return 0.2126 * R + 0.7152 * G + 0.0722 * B;
+}
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
 
-  const { user } = ogParamsSchema.parse(Object.fromEntries(searchParams.entries()));
+  const { user, theme, bg, text, accent } = ogParamsSchema.parse(
+    Object.fromEntries(searchParams.entries())
+  );
+
+  const selectedTheme = themes[theme] || themes.dark;
+  const resolvedBg = `#${bg || selectedTheme.bg}`;
+  const resolvedText = `#${text || selectedTheme.text}`;
+  const resolvedAccent = `#${accent || selectedTheme.accent}`;
+
+  const luminance = getLuminance(resolvedBg);
+  const isLight = luminance > 0.5;
+  const cardBg = isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)';
+  const cardBorder = isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.1)';
+  const subText = isLight ? '#666666' : '#8b949e';
 
   let totalCommits = 0;
   let longestStreak = 0;
   let currentStreak = 0;
 
+  // Only the data fetching is wrapped in try/catch — not the JSX rendering.
   try {
-    const baseUrl = req.nextUrl.origin;
-
-    const res = await fetch(`${baseUrl}/api/streak?user=${user}`, {
-      cache: 'no-store',
-    });
-
-    if (res.ok) {
-      const data = (await res.json()) as {
-        totalContributions?: number;
-        longestStreak?: number;
-        currentStreak?: number;
-      };
-
-      totalCommits = data.totalContributions ?? 0;
-      longestStreak = data.longestStreak ?? 0;
-      currentStreak = data.currentStreak ?? 0;
-    }
-  } catch {
-    // fallback
+    const calendar = await fetchGitHubContributions(user, { bypassCache: true });
+    const stats = calculateStreak(calendar);
+    totalCommits = stats.totalContributions;
+    longestStreak = stats.longestStreak;
+    currentStreak = stats.currentStreak;
+  } catch (err) {
+    console.error('[OG] stats fetch failed:', err);
+    // fallback to zeros if GitHub is unreachable
   }
 
   return new ImageResponse(
@@ -40,7 +74,7 @@ export async function GET(req: NextRequest) {
       style={{
         width: '1200px',
         height: '630px',
-        background: '#0d1117',
+        background: resolvedBg,
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
@@ -54,71 +88,101 @@ export async function GET(req: NextRequest) {
           position: 'absolute',
           width: '600px',
           height: '300px',
-          background: 'radial-gradient(ellipse, #58a6ff22 0%, transparent 70%)',
+          background: `radial-gradient(ellipse, ${resolvedAccent}33 0%, transparent 70%)`,
           top: '50px',
           left: '300px',
+          display: 'flex',
         }}
       />
-      <div style={{ fontSize: '48px', color: '#58a6ff', fontWeight: 'bold', marginBottom: '24px' }}>
-        ⚡ CommitPulse
+      <div
+        style={{
+          display: 'flex',
+          fontSize: '48px',
+          color: resolvedAccent,
+          fontWeight: 'bold',
+          marginBottom: '24px',
+        }}
+      >
+        {'⚡ CommitPulse'}
       </div>
-      <div style={{ fontSize: '32px', color: '#c9d1d9', marginBottom: '48px' }}>@{user}</div>
+      <div style={{ display: 'flex', fontSize: '32px', color: resolvedText, marginBottom: '48px' }}>
+        {`@${user}`}
+      </div>
       <div style={{ display: 'flex', gap: '48px' }}>
+        {/* Total Commits */}
         <div
           style={{
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            background: '#161b22',
-            border: '1px solid #30363d',
+            background: cardBg,
+            border: `1px solid ${cardBorder}`,
             borderRadius: '16px',
             padding: '32px 48px',
           }}
         >
-          <div style={{ fontSize: '56px', fontWeight: 'bold', color: '#58a6ff' }}>
-            {totalCommits}
+          <div
+            style={{ display: 'flex', fontSize: '56px', fontWeight: 'bold', color: resolvedAccent }}
+          >
+            {String(totalCommits)}
           </div>
-          <div style={{ fontSize: '18px', color: '#8b949e', marginTop: '8px' }}>Total Commits</div>
-        </div>
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            background: '#161b22',
-            border: '1px solid #30363d',
-            borderRadius: '16px',
-            padding: '32px 48px',
-          }}
-        >
-          <div style={{ fontSize: '56px', fontWeight: 'bold', color: '#f78166' }}>
-            {longestStreak}
-          </div>
-          <div style={{ fontSize: '18px', color: '#8b949e', marginTop: '8px' }}>
-            Longest Streak 🔥
+          <div style={{ display: 'flex', fontSize: '18px', color: subText, marginTop: '8px' }}>
+            Total Commits
           </div>
         </div>
+        {/* Longest Streak */}
         <div
           style={{
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            background: '#161b22',
-            border: '1px solid #30363d',
+            background: cardBg,
+            border: `1px solid ${cardBorder}`,
             borderRadius: '16px',
             padding: '32px 48px',
           }}
         >
-          <div style={{ fontSize: '56px', fontWeight: 'bold', color: '#3fb950' }}>
-            {currentStreak}
+          <div
+            style={{ display: 'flex', fontSize: '56px', fontWeight: 'bold', color: resolvedAccent }}
+          >
+            {String(longestStreak)}
           </div>
-          <div style={{ fontSize: '18px', color: '#8b949e', marginTop: '8px' }}>
-            Current Streak ⚡
+          <div style={{ display: 'flex', fontSize: '18px', color: subText, marginTop: '8px' }}>
+            {'Longest Streak 🔥'}
+          </div>
+        </div>
+        {/* Current Streak */}
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            background: cardBg,
+            border: `1px solid ${cardBorder}`,
+            borderRadius: '16px',
+            padding: '32px 48px',
+          }}
+        >
+          <div
+            style={{ display: 'flex', fontSize: '56px', fontWeight: 'bold', color: resolvedAccent }}
+          >
+            {String(currentStreak)}
+          </div>
+          <div style={{ display: 'flex', fontSize: '18px', color: subText, marginTop: '8px' }}>
+            {'Current Streak ⚡'}
           </div>
         </div>
       </div>
-      <div style={{ position: 'absolute', bottom: '32px', fontSize: '16px', color: '#484f58' }}>
-        commitpulse.vercel.app
+      <div
+        style={{
+          display: 'flex',
+          position: 'absolute',
+          bottom: '32px',
+          fontSize: '16px',
+          color: subText,
+        }}
+      >
+        {displayDomain}
       </div>
     </div>,
     {

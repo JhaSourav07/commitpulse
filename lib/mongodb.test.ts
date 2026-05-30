@@ -58,4 +58,18 @@ describe('dbConnect', () => {
     // The promise should be cleared so it can try again
     expect(global.mongoose.promise).toBeNull();
   });
+
+  it('calls mongoose.connect with the exact URI set in MONGODB_URI', async () => {
+    const specificUri = 'mongodb://specific-host:27017/mydb';
+    process.env.MONGODB_URI = specificUri;
+
+    const mockMongoose = { connection: 'mock' };
+    vi.mocked(mongoose.connect).mockResolvedValue(mockMongoose as unknown as typeof mongoose);
+
+    await dbConnect();
+
+    expect(mongoose.connect).toHaveBeenCalledWith(specificUri, {
+      bufferCommands: false,
+    });
+  });
 });

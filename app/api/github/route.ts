@@ -1,6 +1,25 @@
+// app/api/github/route.ts
+
 import { NextResponse } from 'next/server';
 import { getFullDashboardData } from '@/lib/github';
-import { githubParamsSchema } from '../../../lib/validations';
+import { githubParamsSchema } from '@/lib/validations';
+
+/**
+ * Returns GitHub dashboard data as JSON.
+ *
+ * Query params:
+ * - username: GitHub username to fetch dashboard statistics for
+ * - refresh: Optional boolean to bypass cache and fetch fresh data
+ *
+ * Success (200):
+ * - Returns dashboard profile, repositories, activity and contribution data
+ *
+ * Error codes:
+ * - 400 → Invalid query parameters
+ * - 403 → GitHub API rate limit reached
+ * - 404 → GitHub user not found
+ * - 500 → Internal server error
+ */
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -20,7 +39,7 @@ export async function GET(request: Request) {
     const data = await getFullDashboardData(username, { bypassCache: refresh });
     const cacheControl = refresh
       ? 'no-cache, no-store, must-revalidate'
-      : 's-maxage=3600, stale-while-revalidate';
+      : 's-maxage=3600, stale-while-revalidate=86400';
 
     return NextResponse.json(data, {
       status: 200,
@@ -34,7 +53,11 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    if (errMessage.includes('API limit reached') || errMessage.includes('status 403')) {
+    if (
+      errMessage.toLowerCase().includes('rate limit') ||
+      errMessage.includes('API limit reached') ||
+      errMessage.includes('status 403')
+    ) {
       return NextResponse.json(
         { error: 'GitHub API rate limit reached. Please configure GITHUB_TOKEN.' },
         { status: 403 }
