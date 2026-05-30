@@ -153,7 +153,7 @@ function renderStyle(
   const fs = (n: number) => Math.round(n * sf * 10) / 10;
   return `
   <style>
-  @import url('https://fonts.googleapis.com/css2?family=Fira+Code&family=JetBrains+Mono&family=Roboto&family=Syncopate:wght@400;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Fira+Code&amp;family=JetBrains+Mono&amp;family=Roboto&amp;family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');
   ${googleFontsImport}
   ${TOWER_ANIMATION_CSS}
   .scan-line {
@@ -341,9 +341,9 @@ export function generateSVG(
   const googleFontUrlPart =
     sanitizedFont && !isPredefinedFont ? sanitizeGoogleFontUrl(sanitizedFont) : null;
 
-  // FIXED: Added & to the dynamic display=swap URL query
+  // FIXED: Escaped ampersand for proper XML parsing
   const googleFontsImport = googleFontUrlPart
-    ? `@import url('https://fonts.googleapis.com/css2?family=${googleFontUrlPart}&display=swap');`
+    ? `@import url('https://fonts.googleapis.com/css2?family=${googleFontUrlPart}&amp;display=swap');`
     : '';
 
   const sf = getSizeScale(params.size);
@@ -361,21 +361,57 @@ export function generateSVG(
   // 1️⃣ THE INTELLIGENCE INJECTION: Create the AMOLED Persona SVG Element
   const personaElement = params.persona
     ? `
-    <text
-      x="${Math.round(30 * sf)}"
-      y="${Math.round(65 * sf)}"
-      fill="${accent}" 
-      font-family="monospace"
-      font-size="${Math.round(12 * sf)}"
-      font-weight="bold"
-      letter-spacing="1.5"
-      style="text-shadow: 0px 0px ${Math.round(10 * sf)}px ${accent}80;"
-    >
-      ${params.persona.toUpperCase()}
-    </text>
+    <style>
+      @keyframes float-badge {
+        0%, 100% { transform: translateY(0px); }
+        50% { transform: translateY(-4px); }
+      }
+      @keyframes pulse-glow {
+        0%, 100% { filter: drop-shadow(0px 0px 2px ${accent}40); }
+        50% { filter: drop-shadow(0px 0px 8px ${accent}90); }
+      }
+      .persona-badge {
+        animation: float-badge 3.5s ease-in-out infinite;
+      }
+      .persona-text-svg {
+        fill: ${accent};
+        font-family: "Space Grotesk", monospace, sans-serif;
+        font-size: ${Math.round(11 * sf)}px;
+        font-weight: 600;
+        letter-spacing: 2px;
+        text-anchor: middle;
+        animation: pulse-glow 2.5s ease-in-out infinite;
+      }
+      .persona-bg {
+        fill: ${bg};
+        stroke: ${accent};
+        stroke-width: 1px;
+        stroke-opacity: 0.3;
+      }
+    </style>
+    
+    <!-- Position perfectly centered under the username -->
+    <g transform="translate(${Math.round(300 * sf)}, ${Math.round(80 * sf)})">
+      <g class="persona-badge">
+        <!-- Sleek dark pill background to isolate it from the grid -->
+        <rect 
+          x="${Math.round(-110 * sf)}" 
+          y="${Math.round(-15 * sf)}" 
+          width="${Math.round(220 * sf)}" 
+          height="${Math.round(22 * sf)}" 
+          rx="${Math.round(11 * sf)}" 
+          class="persona-bg"
+        />
+        <!-- The floating, glowing text with aesthetic star accents -->
+        <text class="persona-text-svg" x="0" y="${Math.round(3.5 * sf)}">
+          <tspan fill="${text}" opacity="0.3">✦ </tspan>
+          ${params.persona.toUpperCase()}
+          <tspan fill="${text}" opacity="0.3"> ✦</tspan>
+        </text>
+      </g>
+    </g>
   `
     : '';
-
   // 2️⃣ THE FINAL RENDER: Inject ${personaElement} right before closing the SVG
   return `
 <svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" fill="none" role="img">
@@ -449,7 +485,7 @@ function generateAutoThemeSVG(
   ${renderHeader(safeUser, stats, sf, params)}
 
   <style>
-  @import url('https://fonts.googleapis.com/css2?family=Fira+Code&family=JetBrains+Mono&family=Roboto&family=Syncopate:wght@400;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Fira+Code&amp;family=JetBrains+Mono&amp;family=Roboto&amp;family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');
   :root { --cp-bg: #${light.bg}; --cp-text: #${light.text}; --cp-accent: #${light.accent}; }
   @media (prefers-color-scheme: dark) { :root { --cp-bg: #${dark.bg}; --cp-text: #${dark.text}; --cp-accent: #${dark.accent}; } }
   .cp-bg-fill { fill: var(--cp-bg); } .cp-text-fill { fill: var(--cp-text); color: var(--cp-text); } .cp-accent-fill { fill: var(--cp-accent); color: var(--cp-accent); }
@@ -536,7 +572,7 @@ export function generateMonthlySVG(stats: MonthlyStats, params: BadgeParams): st
   const googleFontUrlPart =
     sanitizedFont && !isPredefinedFont ? sanitizeGoogleFontUrl(sanitizedFont) : null;
   const googleFontsImport = googleFontUrlPart
-    ? `@import url('https://fonts.googleapis.com/css2?family=${googleFontUrlPart}&display=swap');`
+    ? `@import url('https://fonts.googleapis.com/css2?family=${googleFontUrlPart}&amp;display=swap');`
     : '';
 
   const commitsLabel = params.mode === 'loc' ? 'LINES THIS MONTH' : labels.COMMITS_THIS_MONTH;
@@ -582,7 +618,7 @@ export function generateMonthlySVG(stats: MonthlyStats, params: BadgeParams): st
 >
   <title>Monthly Stats for ${safeUser}</title>
   <style>
-  @import url('https://fonts.googleapis.com/css2?family=Fira+Code&family=JetBrains+Mono&family=Roboto&family=Syncopate:wght@400;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Fira+Code&amp;family=JetBrains+Mono&amp;family=Roboto&amp;family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');
   ${googleFontsImport}
 
   .title { font-family: ${selectedFont || '"Syncopate", sans-serif'}; fill: ${text}; font-size: 14px; letter-spacing: 2px; font-weight: 400; opacity: 0.8; }
@@ -672,7 +708,7 @@ function generateAutoThemeMonthlySVG(stats: MonthlyStats, params: BadgeParams): 
 >
   <title>Monthly Stats for ${safeUser}</title>
   <style>
-  @import url('https://fonts.googleapis.com/css2?family=Fira+Code&family=JetBrains+Mono&family=Roboto&family=Syncopate:wght@400;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Fira+Code&amp;family=JetBrains+Mono&amp;family=Roboto&amp;family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');
   :root { --cp-bg: #${light.bg}; --cp-text: #${light.text}; --cp-accent: #${light.accent}; --cp-negative: #ff4444; }
   @media (prefers-color-scheme: dark) { :root { --cp-bg: #${dark.bg}; --cp-text: #${dark.text}; --cp-accent: #${dark.accent}; --cp-negative: #ff6666; } }
   .cp-bg-fill { fill: var(--cp-bg); } 
@@ -731,9 +767,6 @@ function generateAutoThemeMonthlySVG(stats: MonthlyStats, params: BadgeParams): 
  * '8s'
  * );
  */
-// Fixed isometric tower layout for the not-found ghost city.
-// Heights are deterministic so the silhouette always looks like a real city
-// regardless of the username or theme passed to generateNotFoundSVG.
 const GHOST_LAYOUT: { col: number; row: number; h: number }[] = [
   { col: 0, row: 0, h: 8 },
   { col: 1, row: 0, h: 20 },
@@ -838,7 +871,7 @@ export function generateNotFoundSVG(
   </defs>
 
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=Space+Grotesk:wght@400;500;600&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600&amp;display=swap');
     .title  { font-family: "Syncopate", sans-serif; fill: ${text}; font-size: 18px; letter-spacing: 6px; font-weight: 400; opacity: 0.5; }
     .label  { font-family: "Roboto", sans-serif; fill: ${accent}; font-size: 11px; letter-spacing: 2px; opacity: 0.4; }
     .stats  { font-family: "Space Grotesk", sans-serif; fill: ${text}; font-size: 42px; font-weight: 500; opacity: 0.2; }
@@ -864,7 +897,6 @@ export function generateNotFoundSVG(
 
   <rect width="${SVG_WIDTH}" height="${SVG_HEIGHT}" rx="${radius}" fill="url(#ghostFade)"/>
 
-  <!-- Radar scan line -->
   <rect x="100" y="60" width="400" height="1" class="scan-line" fill="${accent}" fill-opacity="0.12" style="--scan-speed: ${speed};"/>
 
   <text x="300" y="50" text-anchor="middle" class="title">${safeName}</text>
@@ -891,7 +923,6 @@ export function generateNotFoundSVG(
     This GitHub user doesn't exist
   </text>
 
-  <!-- Bottom stat placeholders -->
   <g transform="translate(40, 340)">
     <text class="label">CURRENT_STREAK</text>
     <text y="40" class="stats">—</text>
@@ -934,8 +965,9 @@ export function generateVersusSVG(
   const statsFont = selectedFont || '"Space Grotesk", sans-serif';
   const googleFontUrlPart =
     sanitizedFont && !isPredefinedFont ? sanitizeGoogleFontUrl(sanitizedFont) : null;
+
   const googleFontsImport = googleFontUrlPart
-    ? `@import url('https://fonts.googleapis.com/css2?family=${googleFontUrlPart}&display=swap');`
+    ? `@import url('https://fonts.googleapis.com/css2?family=${googleFontUrlPart}&amp;display=swap');`
     : '';
 
   const sf = getSizeScale(params.size);
@@ -969,24 +1001,20 @@ export function generateVersusSVG(
   ${renderStyle(selectedFont, statsFont, googleFontsImport, text, accent, sf)}
   <rect width="${W}" height="${H}" rx="${radius}" fill="${params.hideBackground ? 'transparent' : bg}" />
   
-  <!-- User 1 (Left) -->
   <g transform="translate(0, 0)">
     <g transform="translate(0, ${Math.round(20 * sf)})">${towers1}</g>
     ${renderIsometricLabels(calendar1, params, text, sf)}
     ${renderFooter(stats1, params, labels, safeUser1, accent, sf)}
   </g>
 
-  <!-- User 2 (Right) -->
   <g transform="translate(${singleW}, 0)">
     <g transform="translate(0, ${Math.round(20 * sf)})">${towers2}</g>
     ${renderIsometricLabels(calendar2, params, text, sf)}
     ${renderFooter(stats2, params, labels, safeUser2, accent, sf)}
   </g>
 
-  <!-- Divider Line -->
   <line x1="${singleW}" y1="${s(40)}" x2="${singleW}" y2="${H - s(40)}" stroke="${text}" stroke-opacity="0.2" stroke-width="2" stroke-dasharray="4 4" />
   
-  <!-- VS Badge -->
   <g transform="translate(${singleW}, ${H / 2})">
     <circle cx="0" cy="0" r="${s(24)}" fill="${bg}" stroke="${accent}" stroke-width="2" />
     <text x="0" y="${s(6)}" text-anchor="middle" font-family="${statsFont}" fill="${accent}" font-size="${s(16)}" font-weight="bold">VS</text>
@@ -1078,7 +1106,7 @@ function generateAutoThemeVersusSVG(
   ${renderDefs(sf)}
   
   <style>
-  @import url('https://fonts.googleapis.com/css2?family=Fira+Code&family=JetBrains+Mono&family=Roboto&family=Syncopate:wght@400;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Fira+Code&amp;family=JetBrains+Mono&amp;family=Roboto&amp;family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');
   :root { --cp-bg: #${light.bg}; --cp-text: #${light.text}; --cp-accent: #${light.accent}; }
   @media (prefers-color-scheme: dark) { :root { --cp-bg: #${dark.bg}; --cp-text: #${dark.text}; --cp-accent: #${dark.accent}; } }
   .cp-bg-fill { fill: var(--cp-bg); } .cp-text-fill { fill: var(--cp-text); color: var(--cp-text); } .cp-accent-fill { fill: var(--cp-accent); color: var(--cp-accent); }
@@ -1110,24 +1138,20 @@ function generateAutoThemeVersusSVG(
 
   <rect width="${W}" height="${H}" rx="${radius}" class="${params.hideBackground ? '' : 'cp-bg-fill'}" fill="${params.hideBackground ? 'transparent' : ''}" />
   
-  <!-- User 1 (Left) -->
   <g transform="translate(0, 0)">
     <g transform="translate(0, ${Math.round(20 * sf)})">${towers1}</g>
     ${renderIsometricLabels(calendar1, params, '', sf)}
     ${renderFooter(stats1, params, labels, safeUser1, '', sf)}
   </g>
 
-  <!-- User 2 (Right) -->
   <g transform="translate(${singleW}, 0)">
     <g transform="translate(0, ${Math.round(20 * sf)})">${towers2}</g>
     ${renderIsometricLabels(calendar2, params, '', sf)}
     ${renderFooter(stats2, params, labels, safeUser2, '', sf)}
   </g>
 
-  <!-- Divider Line -->
   <line x1="${singleW}" y1="${s(40)}" x2="${singleW}" y2="${H - s(40)}" stroke="var(--cp-text)" stroke-opacity="0.2" stroke-width="2" stroke-dasharray="4 4" />
   
-  <!-- VS Badge -->
   <g transform="translate(${singleW}, ${H / 2})">
     <circle cx="0" cy="0" r="${s(24)}" class="cp-bg-fill" stroke="var(--cp-accent)" stroke-width="2" />
     <text x="0" y="${s(6)}" text-anchor="middle" font-family="${statsFont}" class="cp-accent-fill" font-size="${s(16)}" font-weight="bold">VS</text>
