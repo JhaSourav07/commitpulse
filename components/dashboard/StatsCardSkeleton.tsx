@@ -5,7 +5,7 @@ export default function StatsCardSkeleton() {
   const heights = [24, 32, 18, 45, 38, 52, 28, 42, 35, 48, 30, 22];
 
   return (
-    <div className="p-6 rounded-xl bg-[#0a0a0a] border border-[rgba(255,255,255,0.08)] overflow-hidden">
+    <div className="p-6 rounded-xl bg-white dark:bg-[#0a0a0a] border border-black/10 dark:border-[rgba(255,255,255,0.08)] overflow-hidden">
       <div className="flex justify-between items-start mb-6">
         <div className="space-y-3">
           <div className="h-3 w-24 shimmer rounded" />

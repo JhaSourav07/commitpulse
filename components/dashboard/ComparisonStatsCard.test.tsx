@@ -138,17 +138,90 @@ describe('ComparisonStatsCard', () => {
       />
     );
 
-    const progressSegments = container.querySelectorAll(
-      '.w-full.bg-gray-700\\/50 div, .relative div'
-    );
-
-    const allDivs = Array.from(container.querySelectorAll('div'));
-
     const emeraldElement =
       container.querySelector('[className*="emerald"]') ||
       container.querySelector('.text-emerald-400');
 
     expect(emeraldElement).toBeNull();
     expect(screen.queryByText('Winner')).toBeNull();
+  });
+});
+
+describe('ComparisonStatsCard responsive rendering and growth trends (Variation 3)', () => {
+  it('renders positive growth trend with winner badge for higher value', () => {
+    render(
+      <ComparisonStatsCard
+        title="Streak"
+        valueA={120}
+        valueB={40}
+        labelA="Alice"
+        labelB="Bob"
+        icon="Flame"
+      />
+    );
+    expect(screen.getByText('Winner')).toBeDefined();
+    expect(screen.getByText('120')).toBeDefined();
+    expect(screen.getByText('40')).toBeDefined();
+  });
+
+  it('renders negative growth indicator — no winner badge for lower value', () => {
+    render(
+      <ComparisonStatsCard
+        title="Streak"
+        valueA={20}
+        valueB={80}
+        labelA="Alice"
+        labelB="Bob"
+        icon="Flame"
+      />
+    );
+    const winners = screen.getAllByText('Winner');
+    expect(winners.length).toBe(1);
+    expect(screen.getByText('20').className).not.toMatch(/emerald/);
+  });
+
+  it('renders title and icon correctly', () => {
+    render(
+      <ComparisonStatsCard
+        title="Pull Requests"
+        valueA={10}
+        valueB={5}
+        labelA="Dev A"
+        labelB="Dev B"
+        icon="GitBranch"
+      />
+    );
+    expect(screen.getByText(/Pull Requests/i)).toBeDefined();
+    expect(screen.getByText('Dev A')).toBeDefined();
+    expect(screen.getByText('Dev B')).toBeDefined();
+  });
+
+  it('renders zero values without crashing', () => {
+    render(
+      <ComparisonStatsCard
+        title="Commits"
+        valueA={0}
+        valueB={0}
+        labelA="Alice"
+        labelB="Bob"
+        icon="GitCommit"
+      />
+    );
+    expect(screen.queryByText('Winner')).toBeNull();
+  });
+
+  it('renders large values correctly', () => {
+    render(
+      <ComparisonStatsCard
+        title="Total Contributions"
+        valueA={9999}
+        valueB={1}
+        labelA="Alice"
+        labelB="Bob"
+        icon="TrendingUp"
+      />
+    );
+    expect(screen.getByText('9999')).toBeDefined();
+    expect(screen.getByText('Winner')).toBeDefined();
   });
 });

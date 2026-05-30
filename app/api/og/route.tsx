@@ -7,6 +7,18 @@ import { themes } from '@/lib/svg/themes';
 import { fetchGitHubContributions } from '@/lib/github';
 import { calculateStreak } from '@/lib/calculate';
 
+const appUrl =
+  process.env.NEXT_PUBLIC_SITE_URL ||
+  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://commitpulse.vercel.app');
+
+const displayDomain = (() => {
+  try {
+    return new URL(appUrl).host;
+  } catch {
+    return 'commitpulse.vercel.app';
+  }
+})();
+
 function getLuminance(hex: string) {
   let normalizedHex = hex.trim();
   // Normalize short hex (e.g., #fff or #ffff) to #rrggbb (alpha is ignored for luminance)
@@ -170,7 +182,7 @@ export async function GET(req: NextRequest) {
           color: subText,
         }}
       >
-        commitpulse.vercel.app
+        {displayDomain}
       </div>
     </div>,
     {

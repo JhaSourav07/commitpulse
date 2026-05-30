@@ -14,6 +14,13 @@ export const labels: Record<string, BadgeLabels> = {
     COMMITS_THIS_MONTH: 'COMMITS THIS MONTH',
     VS_LAST_MONTH: 'vs last month',
   },
+  zh: {
+    CURRENT_STREAK: '当前连续记录',
+    ANNUAL_SYNC_TOTAL: '年度总计',
+    PEAK_STREAK: '最长连续记录',
+    COMMITS_THIS_MONTH: '本月提交次数',
+    VS_LAST_MONTH: '较上个月',
+  },
   es: {
     CURRENT_STREAK: 'RACHA_ACTUAL',
     ANNUAL_SYNC_TOTAL: 'TOTAL_ANUAL',

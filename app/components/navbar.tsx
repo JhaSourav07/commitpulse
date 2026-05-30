@@ -16,7 +16,7 @@ function GithubMark() {
 const NAV_LINKS = [
   {
     label: 'Customization Studio',
-    href: '#customization-studio',
+    href: '/#customization-studio',
     isExternal: false,
   },
   {
@@ -31,7 +31,6 @@ export default function Navbar() {
   const [mounted, setMounted] = useState(false);
 
   const [isDark, setIsDark] = useState(() => {
-    // FIXED: Added window check and window.localStorage explicitly
     if (typeof window === 'undefined' || !window.localStorage) return true;
     return window.localStorage.getItem('theme') !== 'light';
   });
@@ -46,7 +45,6 @@ export default function Navbar() {
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', isDark);
-    // FIXED: Added window check to prevent Vitest crashes during effect updates
     if (typeof window !== 'undefined' && window.localStorage) {
       window.localStorage.setItem('theme', isDark ? 'dark' : 'light');
     }
@@ -139,9 +137,9 @@ export default function Navbar() {
               >
                 {mounted ? (
                   isDark ? (
-                    <Sun size={18} />
-                  ) : (
                     <Moon size={18} />
+                  ) : (
+                    <Sun size={18} />
                   )
                 ) : (
                   <span className="w-[18px] h-[18px]" />
@@ -171,9 +169,9 @@ export default function Navbar() {
               >
                 {mounted ? (
                   isDark ? (
-                    <Sun size={18} />
-                  ) : (
                     <Moon size={18} />
+                  ) : (
+                    <Sun size={18} />
                   )
                 ) : (
                   <span className="w-[18px] h-[18px]" />
@@ -218,9 +216,9 @@ export default function Navbar() {
                   >
                     {mounted ? (
                       isDark ? (
-                        <Sun size={18} />
-                      ) : (
                         <Moon size={18} />
+                      ) : (
+                        <Sun size={18} />
                       )
                     ) : (
                       <span className="w-[18px] h-[18px]" />
