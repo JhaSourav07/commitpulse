@@ -1,6 +1,8 @@
+// app/api/github/route.ts
+
 import { NextResponse } from 'next/server';
 import { getFullDashboardData } from '@/lib/github';
-import { githubParamsSchema } from '../../../lib/validations';
+import { githubParamsSchema } from '@/lib/validations';
 
 /**
  * Returns GitHub dashboard data as JSON.
@@ -37,7 +39,7 @@ export async function GET(request: Request) {
     const data = await getFullDashboardData(username, { bypassCache: refresh });
     const cacheControl = refresh
       ? 'no-cache, no-store, must-revalidate'
-      : 's-maxage=3600, stale-while-revalidate';
+      : 's-maxage=3600, stale-while-revalidate=86400';
 
     return NextResponse.json(data, {
       status: 200,
@@ -51,7 +53,11 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    if (errMessage.includes('API limit reached') || errMessage.includes('status 403')) {
+    if (
+      errMessage.toLowerCase().includes('rate limit') ||
+      errMessage.includes('API limit reached') ||
+      errMessage.includes('status 403')
+    ) {
       return NextResponse.json(
         { error: 'GitHub API rate limit reached. Please configure GITHUB_TOKEN.' },
         { status: 403 }

@@ -1,0 +1,80 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`StatsCardSkeleton > matches snapshot without random variation 1`] = `
+<div
+  class="p-6 rounded-xl bg-white dark:bg-[#0a0a0a] border border-black/10 dark:border-[rgba(255,255,255,0.08)] overflow-hidden"
+>
+  <div
+    class="flex justify-between items-start mb-6"
+  >
+    <div
+      class="space-y-3"
+    >
+      <div
+        class="h-3 w-24 shimmer rounded"
+      />
+      <div
+        class="h-8 w-32 shimmer rounded"
+      />
+      <div
+        class="h-3 w-36 shimmer rounded"
+      />
+    </div>
+    <div
+      class="h-9 w-9 rounded-lg shimmer"
+    />
+  </div>
+  <div
+    class="w-full h-8 flex items-end justify-between gap-px opacity-30"
+  >
+    <div
+      class="flex-1 shimmer rounded-t-[1px]"
+      style="height: 24%;"
+    />
+    <div
+      class="flex-1 shimmer rounded-t-[1px]"
+      style="height: 32%;"
+    />
+    <div
+      class="flex-1 shimmer rounded-t-[1px]"
+      style="height: 18%;"
+    />
+    <div
+      class="flex-1 shimmer rounded-t-[1px]"
+      style="height: 45%;"
+    />
+    <div
+      class="flex-1 shimmer rounded-t-[1px]"
+      style="height: 38%;"
+    />
+    <div
+      class="flex-1 shimmer rounded-t-[1px]"
+      style="height: 52%;"
+    />
+    <div
+      class="flex-1 shimmer rounded-t-[1px]"
+      style="height: 28%;"
+    />
+    <div
+      class="flex-1 shimmer rounded-t-[1px]"
+      style="height: 42%;"
+    />
+    <div
+      class="flex-1 shimmer rounded-t-[1px]"
+      style="height: 35%;"
+    />
+    <div
+      class="flex-1 shimmer rounded-t-[1px]"
+      style="height: 48%;"
+    />
+    <div
+      class="flex-1 shimmer rounded-t-[1px]"
+      style="height: 30%;"
+    />
+    <div
+      class="flex-1 shimmer rounded-t-[1px]"
+      style="height: 22%;"
+    />
+  </div>
+</div>
+`;

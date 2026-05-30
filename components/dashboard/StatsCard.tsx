@@ -20,6 +20,7 @@ interface StatsCardProps {
   icon: string;
   showUTCDisclaimer?: boolean;
   utcDate?: string;
+  chartData?: number[];
 }
 
 export default function StatsCard({
@@ -29,10 +30,16 @@ export default function StatsCard({
   icon,
   showUTCDisclaimer,
   utcDate,
+  chartData,
 }: StatsCardProps) {
   const IconComponent = iconMap[icon] || Flame;
 
-  const miniChartData = buildMiniChart(title.length);
+  const baseSeed = title.length;
+
+  const fallbackData = Array.from({ length: 12 }).map(
+    (_, i) => ((baseSeed * 17 + i * 31) % 100) + (i > 6 ? 40 : 0)
+  );
+  const miniChartData = chartData && chartData.length > 0 ? chartData : fallbackData;
 
   return (
     <motion.div

@@ -65,6 +65,19 @@ describe('getSecondsUntilUTCMidnight', () => {
   });
 });
 
+it('returns positive seconds for every hour of day', () => {
+  for (let hour = 0; hour < 24; hour++) {
+    const fakeDate = new Date(Date.UTC(2025, 0, 1, hour, 0, 0));
+
+    vi.setSystemTime(fakeDate);
+
+    const seconds = getSecondsUntilUTCMidnight();
+
+    expect(seconds).toBeGreaterThan(0);
+    expect(seconds).toBeLessThanOrEqual(86400);
+  }
+});
+
 describe('getSecondsUntilMidnightInTimezone', () => {
   beforeEach(() => {
     vi.useFakeTimers();
@@ -130,5 +143,12 @@ describe('getSecondsUntilMidnightInTimezone', () => {
       expect(result).toBeGreaterThanOrEqual(0);
       expect(Number.isInteger(result)).toBe(true);
     }
+  });
+
+  it('handles extreme timezone Etc/GMT-14 (UTC+14)', () => {
+    // UTC 00:00 → local time 14:00 in UTC+14
+    vi.setSystemTime(new Date('2024-06-15T00:00:00.000Z'));
+
+    expect(getSecondsUntilMidnightInTimezone('Etc/GMT-14')).toBe(10 * 3600);
   });
 });

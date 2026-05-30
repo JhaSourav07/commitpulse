@@ -1,5 +1,6 @@
 import { performance } from 'perf_hooks';
 import { generateSVG } from '../lib/svg/generator';
+import { hexColor, sanitizeSpeed } from '../lib/svg/sanitizer';
 
 const stats = {
   currentStreak: 12,
@@ -14,7 +15,7 @@ const baseParams = {
   accent: '00ffaa',
   text: 'ffffff',
   scale: 'linear' as const,
-  speed: '8s',
+  speed: sanitizeSpeed('8s'),
 };
 
 const calendar = {
@@ -30,21 +31,21 @@ const calendar = {
 const themes = [
   {
     name: 'dark',
-    bg: '0d1117',
-    accent: '00ffaa',
-    text: 'ffffff',
+    bg: hexColor('0d1117'),
+    accent: hexColor('00ffaa'),
+    text: hexColor('ffffff'),
   },
   {
     name: 'light',
-    bg: 'ffffff',
-    accent: 'ff00aa',
-    text: '111111',
+    bg: hexColor('ffffff'),
+    accent: hexColor('ff00aa'),
+    text: hexColor('111111'),
   },
   {
     name: 'purple',
-    bg: '1a1025',
-    accent: '9b5cff',
-    text: 'f5f5f5',
+    bg: hexColor('1a1025'),
+    accent: hexColor('9b5cff'),
+    text: hexColor('f5f5f5'),
   },
 ];
 
