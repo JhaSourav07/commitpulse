@@ -179,7 +179,6 @@ describe('GET /api/streak', () => {
 
       expect(fetchGitHubContributions).not.toHaveBeenCalled();
     });
-
     it('returns 200 for unsupported ?layout query parameter values (route ignores it)', async () => {
       const response = await GET(
         new Request('http://localhost:3000/api/streak?user=octocat&layout=unsupported_layout')
@@ -189,10 +188,8 @@ describe('GET /api/streak', () => {
     });
 
     it('should return 200 OK and valid SVG when the optional repo query parameter is provided', async () => {
-      // 1. Make request with both parameters present
       const response = await GET(makeRequest({ user: 'octocat', repo: 'commitpulse' }));
 
-      // 2. Assert definitions of done
       expect(response.status).toBe(200);
 
       const textOutput = await response.text();
@@ -200,10 +197,8 @@ describe('GET /api/streak', () => {
     });
 
     it('should return 200 OK and valid SVG when the optional org query parameter is provided', async () => {
-      // 1. Make request with both parameters present
       const response = await GET(makeRequest({ user: 'octocat', org: 'vercel' }));
 
-      // 2. Assert definitions of done
       expect(response.status).toBe(200);
 
       const textOutput = await response.text();
