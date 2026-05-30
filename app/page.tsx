@@ -80,6 +80,10 @@ export default function LandingPage() {
   const debouncedUsername = useDebounce(trimmedUsername, 500);
   const hasUsername = debouncedUsername.length > 0;
   const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMounted(true);
+  }, []);
 
   const badgeUrl = `/api/streak?user=${debouncedUsername}`;
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://commitpulse.vercel.app';
