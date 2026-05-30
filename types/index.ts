@@ -172,8 +172,8 @@ export interface BadgeParams {
   /** Language/locale code for stat labels (e.g. 'en', 'fr', 'ja'). Defaults to 'en'. */
   lang?: string;
 
-  /** Badge layout variant. 'default' shows the isometric monolith; 'monthly' shows month-over-month stats; 'heatmap' shows a flat 2D contribution heatmap; 'pulse' shows a heartbeat sparkline. */
-  view?: 'default' | 'monthly' | 'heatmap' | 'pulse';
+  /** Badge layout variant. 'default' shows the isometric monolith; 'monthly' shows month-over-month stats; 'heatmap' shows a flat 2D contribution heatmap; 'pulse' shows a heartbeat sparkline; 'radar' shows the impact score chart. */
+  view?: 'default' | 'monthly' | 'heatmap' | 'pulse' | 'radar';
 
   /** Format for the monthly delta indicator. 'percent' shows %, 'absolute' shows raw count, 'both' shows both. */
   delta_format?: 'percent' | 'absolute' | 'both';
@@ -282,4 +282,34 @@ export interface NotificationResponse {
   success: boolean;
   message: string;
   data?: NotificationPayload;
+}
+
+/**
+ * Advanced activity metrics compiled from the GitHub GraphQL API,
+ * spanning beyond regular commits to include reviews, issues, and discussions.
+ */
+export interface AdvancedActivityMetrics {
+  commits: number;
+  pullRequestReviews: number;
+  issues: number;
+  discussions: number;
+}
+
+/**
+ * Categorized impact profile based on the advanced metrics distribution.
+ */
+export type ImpactCategory =
+  | 'Code Contributor'
+  | 'Code Reviewer'
+  | 'Maintainer'
+  | 'Community Builder'
+  | 'Balanced Developer';
+
+/**
+ * The compiled Impact Score containing the weighted final score and the user's category.
+ */
+export interface ImpactScore {
+  score: number;
+  category: ImpactCategory;
+  metrics: AdvancedActivityMetrics;
 }

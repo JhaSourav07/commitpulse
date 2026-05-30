@@ -274,3 +274,57 @@ export function calculateWrappedStats(calendar: ContributionCalendar) {
     weekendRatio: Math.round((weekendCommits / (weekendCommits + weekdayCommits || 1)) * 100),
   };
 }
+
+/**
+ * Calculates a weighted Impact Score based on diverse GitHub metrics
+ * and classifies the user into a specific Impact Category.
+ */
+export function calculateImpactScore(
+  metrics: import('../types').AdvancedActivityMetrics
+): import('../types').ImpactScore {
+  const { commits, pullRequestReviews, issues, discussions } = metrics;
+
+  // Weights reflect effort and broader community impact
+  const commitWeight = 1.0;
+  const reviewWeight = 2.0; // Reviews require deep understanding of others' code
+  const issueWeight = 1.5; // Quality issues/triage are highly valuable
+  const discussionWeight = 0.5;
+
+  const score = Math.round(
+    commits * commitWeight +
+      pullRequestReviews * reviewWeight +
+      issues * issueWeight +
+      discussions * discussionWeight
+  );
+
+  let category: import('../types').ImpactCategory = 'Code Contributor';
+
+  const totalActivity = commits + pullRequestReviews + issues + discussions;
+
+  if (totalActivity === 0) {
+    category = 'Code Contributor';
+  } else {
+    const reviewRatio = pullRequestReviews / totalActivity;
+    const issueRatio = issues / totalActivity;
+    const discussionRatio = discussions / totalActivity;
+    const commitRatio = commits / totalActivity;
+
+    if (reviewRatio > 0.4) {
+      category = 'Code Reviewer';
+    } else if (reviewRatio > 0.2 && issueRatio > 0.2) {
+      category = 'Maintainer';
+    } else if (discussionRatio > 0.4 || (discussionRatio > 0.2 && issueRatio > 0.3)) {
+      category = 'Community Builder';
+    } else if (commitRatio < 0.6 && reviewRatio > 0.1 && issueRatio > 0.1) {
+      category = 'Balanced Developer';
+    } else {
+      category = 'Code Contributor'; // Default for heavy committers
+    }
+  }
+
+  return {
+    score,
+    category,
+    metrics,
+  };
+}

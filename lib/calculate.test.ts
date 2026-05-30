@@ -5,6 +5,7 @@ import {
   calculateWrappedStats,
   aggregateCalendars,
   isStreakAlive,
+  calculateImpactScore,
 } from './calculate';
 import type { ContributionCalendar } from '../types';
 
@@ -1824,5 +1825,33 @@ describe('calculateWrappedStats', () => {
 
     // Assert the ratio is exactly 100%
     expect(result.weekendRatio).toBe(100);
+
+describe('calculateImpactScore', () => {
+  it('calculates the impact score and assigns the Code Reviewer category', () => {
+    const metrics = {
+      commits: 10,
+      pullRequestReviews: 50,
+      issues: 5,
+      discussions: 2,
+    };
+
+    // Score = 10*1 + 50*2 + 5*1.5 + 2*0.5 = 10 + 100 + 7.5 + 1 = 118.5 -> 119
+    const result = calculateImpactScore(metrics);
+
+    expect(result.score).toBe(119);
+    expect(result.category).toBe('Code Reviewer');
+  });
+
+  it('assigns Code Contributor for mostly commits', () => {
+    const metrics = {
+      commits: 100,
+      pullRequestReviews: 5,
+      issues: 5,
+      discussions: 0,
+    };
+
+    const result = calculateImpactScore(metrics);
+
+    expect(result.category).toBe('Code Contributor');
   });
 });

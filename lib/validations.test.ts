@@ -885,7 +885,7 @@ describe('streakParamsSchema — view fallback behavior', () => {
   });
 
   it('falls back to "default" for unknown view value', () => {
-    expect(parse({ view: 'radar' }).view).toBe('default');
+    expect(parse({ view: 'invalid' }).view).toBe('default');
   });
 
   it('defaults to "default" when view is omitted', () => {
