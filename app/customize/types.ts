@@ -2,7 +2,7 @@ import { themes } from '../../lib/svg/themes';
 
 export type Scale = 'linear' | 'log';
 
-export type ExportFormat = 'markdown' | 'html';
+export type ExportFormat = 'markdown' | 'html' | 'action';
 
 export type ThemeKey = Extract<keyof typeof themes, string>;
 
@@ -26,3 +26,53 @@ export const SIZES = [
   { value: 'medium', label: 'Medium (Default)' },
   { value: 'large', label: 'Large' },
 ] as const;
+
+export const FONTS = [
+  { value: '', label: 'Default' },
+  { value: 'jetbrains', label: 'JetBrains Mono' },
+  { value: 'fira', label: 'Fira Code' },
+  { value: 'roboto', label: 'Roboto' },
+] as const satisfies readonly { value: string; label: string }[];
+
+export type Font = (typeof FONTS)[number]['value'];
+
+export const VIEW_MODES = [
+  { value: 'default', label: 'Default' },
+  { value: 'monthly', label: 'Monthly' },
+] as const satisfies readonly { value: string; label: string }[];
+
+export type ViewMode = (typeof VIEW_MODES)[number]['value'];
+
+export const DELTA_FORMATS = [
+  { value: 'percent', label: 'Percent' },
+  { value: 'absolute', label: 'Absolute' },
+  { value: 'both', label: 'Both' },
+] as const satisfies readonly { value: string; label: string }[];
+
+export type DeltaFormat = (typeof DELTA_FORMATS)[number]['value'];
+
+export const LANGUAGES = [
+  { value: 'en', label: 'English' },
+  { value: 'es', label: 'Spanish' },
+  { value: 'hi', label: 'Hindi' },
+  { value: 'pt', label: 'Portuguese' },
+  { value: 'ko', label: 'Korean' },
+  { value: 'fr', label: 'French' },
+  { value: 'ja', label: 'Japanese' },
+  { value: 'de', label: 'German' },
+] as const satisfies readonly { value: string; label: string }[];
+
+export type Language = (typeof LANGUAGES)[number]['value'];
+
+export const TIMEZONES = [
+  { value: 'UTC', label: 'UTC (Default)' },
+  { value: 'America/New_York', label: 'New York' },
+  { value: 'America/Los_Angeles', label: 'Los Angeles' },
+  { value: 'Europe/London', label: 'London' },
+  { value: 'Europe/Berlin', label: 'Berlin' },
+  { value: 'Asia/Kolkata', label: 'Kolkata' },
+  { value: 'Asia/Tokyo', label: 'Tokyo' },
+  { value: 'Australia/Sydney', label: 'Sydney' },
+] as const satisfies readonly { value: string; label: string }[];
+
+export type Timezone = (typeof TIMEZONES)[number]['value'];

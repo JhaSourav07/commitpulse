@@ -30,7 +30,10 @@ async function handleClaim({ github, context }) {
 
   const issueAuthor = context.payload.issue.user.login;
 
-  if (commenter.toLowerCase() !== issueAuthor.toLowerCase()) {
+  const MAINTAINERS = ['jhasourav07', 'aamod007', 'souravjhahind'];
+  const isOpenedByMaintainer = MAINTAINERS.includes(issueAuthor.toLowerCase());
+
+  if (!isOpenedByMaintainer && commenter.toLowerCase() !== issueAuthor.toLowerCase()) {
     await github.rest.issues.createComment({
       owner,
       repo,
@@ -87,7 +90,7 @@ async function handleClaim({ github, context }) {
     owner,
     repo,
     issue_number: issueNumber,
-    body: `✅ Successfully assigned issue to @${commenter}\n\n> 💡 Please read [CONTRIBUTING.md](../blob/main/CONTRIBUTING.md) if you haven't already. Good luck! 🚀`,
+    body: `🎉 **Assigned!** Welcome to the project, @${commenter}.\n\n⏳ **Reminder:** You have **2 days** to submit a Pull Request. After 2 days of inactivity, you will be automatically unassigned to give others a chance (as per our GSSoC anti-hoarding policy).\n\n> 💡 Please read [CONTRIBUTING.md](../blob/main/CONTRIBUTING.md) if you haven't already.\n\nHappy coding! 🚀`,
   });
 }
 
