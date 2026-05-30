@@ -4,6 +4,7 @@ import { Globe, Sparkles, Users, GitPullRequest, ArrowRight } from 'lucide-react
 import BrandParticles from '@/components/BrandParticles';
 import { Footer } from '@/app/components/Footer';
 import ContributorsSearch from './ContributorsSearch';
+import Leaderboard from '@/components/Leaderboard';
 
 interface Contributor {
   id: number;
@@ -13,14 +14,42 @@ interface Contributor {
   html_url: string;
 }
 
+function getRateLimitResetMessage(res: Response): string {
+  const reset = res.headers.get('x-ratelimit-reset');
+
+  if (!reset) {
+    return '';
+  }
+  const resetTimestamp = parseInt(reset, 10);
+
+  if (!Number.isFinite(resetTimestamp)) {
+    return '';
+  }
+  const resetAt = new Date(resetTimestamp * 1000).toISOString();
+  return ` Please try again after ${resetAt}.`;
+}
+
 async function getContributors(): Promise<Contributor[]> {
   try {
+    const token = process.env.GITHUB_PAT || process.env.GITHUB_TOKEN;
     const res = await fetch('https://api.github.com/repos/JhaSourav07/commitpulse/contributors', {
       next: { revalidate: 3600 },
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        Accept: 'application/vnd.github+json',
+      },
     });
 
     if (!res.ok) {
-      return [];
+      const remaining = res.headers.get('x-ratelimit-remaining');
+
+      if ((res.status === 403 && remaining === '0') || res.status === 429) {
+        throw new Error(
+          `GitHub API rate limit exceeded.${getRateLimitResetMessage(res)} Please try again later.`
+        );
+      }
+
+      throw new Error('Failed to fetch contributors');
     }
 
     return res.json();
@@ -149,38 +178,7 @@ export default async function ContributorsPage() {
             </p>
           </div>
 
-          <div className="rounded-3xl border border-black/10 bg-white/40 dark:border-white/10 dark:bg-white/[0.04] shadow-[0_8px_30px_rgba(0,0,0,0.04)] dark:shadow-none p-8 backdrop-blur-xl">
-            <div className="space-y-6">
-              {topContributors.map((contributor, index) => (
-                <div key={contributor.id}>
-                  <div className="mb-2 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <span className="text-sm font-semibold text-zinc-500">#{index + 1}</span>
-
-                      <span className="font-medium text-black dark:text-white">
-                        {contributor.login}
-                      </span>
-                    </div>
-
-                    <span className="text-sm text-zinc-600 dark:text-zinc-400">
-                      {contributor.contributions} contributions
-                    </span>
-                  </div>
-
-                  <div className="h-3 overflow-hidden rounded-full bg-zinc-200 dark:bg-white/5">
-                    <div
-                      className="h-full rounded-full bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500"
-                      style={{
-                        width: `${
-                          (contributor.contributions / topContributors[0].contributions) * 100
-                        }%`,
-                      }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+          <Leaderboard contributors={topContributors} />
         </section>
 
         {/* CONTRIBUTORS GRID */}

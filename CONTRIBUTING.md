@@ -9,6 +9,7 @@
 
 - [The Standard We Hold](#-the-standard-we-hold)
 - [Local Setup](#-local-setup)
+- [Testing Your Changes](#-testing-your-changes)
 - [What to Contribute](#-what-to-contribute)
 - [Automated Issue Management & Claiming](#-automated-issue-management--claiming)
 - [Branch & Commit Conventions](#-branch--commit-conventions)
@@ -85,6 +86,110 @@ http://localhost:3000/api/streak?user=YOUR_GITHUB_USERNAME
 ```
 
 > **⚠️ Important:** Never commit your `.env.local` file or expose your `GITHUB_TOKEN`. It is already in `.gitignore`.
+
+---
+
+## 🧪 Testing Your Changes
+
+This section covers everything you need to verify your changes work correctly **before opening a PR**. There are two layers of testing: visual browser preview and the automated test suite.
+
+### 1. Visual Browser Preview
+
+With your dev server running (`npm run dev`), open your browser and visit these URLs to preview the SVG output directly:
+
+**Standard badge — valid username:**
+
+```
+http://localhost:3000/api/streak?user=YOUR_GITHUB_USERNAME
+```
+
+**Monthly view:**
+
+```
+http://localhost:3000/api/streak?user=YOUR_GITHUB_USERNAME&view=monthly
+```
+
+**Custom theme — test your color changes:**
+
+```
+http://localhost:3000/api/streak?user=YOUR_GITHUB_USERNAME&theme=YOUR_THEME_NAME
+```
+
+**Invalid username — must render a styled SVG error card, not raw JSON:**
+
+```
+http://localhost:3000/api/streak?user=vivek%20Sangani
+```
+
+**Non-existent username — must render the ghost-city not-found badge:**
+
+```
+http://localhost:3000/api/streak?user=xyzabc999notreallll
+```
+
+> **⚠️ Browser XML error warning:** If your browser shows an `EntityRef: expecting ';'` error instead of rendering the SVG, it means an unescaped `&` character exists somewhere in the SVG output. All `&` characters inside SVG `<style>` blocks (e.g. in Google Fonts `@import` URLs) must be written as `&amp;`. Check `lib/svg/generator.ts` for any raw `&` in template literals.
+
+> **💡 Tip:** For a cleaner SVG preview, open the URL in **Firefox** — it renders SVG directly in the browser with no wrapper page. Chrome wraps it in an XML viewer which can show false parse warnings.
+
+### 2. Running the Vitest Test Suite
+
+CommitPulse uses **Vitest** for unit and integration tests. Run the full test suite with:
+
+```bash
+npm run test
+```
+
+To run tests in watch mode while you develop (reruns on every file save):
+
+```bash
+npm run test -- --watch
+```
+
+To run only a specific test file:
+
+```bash
+npm run test -- lib/calculate.test.ts
+```
+
+**What a passing run looks like:**
+
+```
+✓ lib/calculate.test.ts (12 tests)
+✓ lib/svg/generator.test.ts (8 tests)
+✓ app/api/streak/route.test.ts (6 tests)
+
+Test Files  3 passed (3)
+Tests       26 passed (26)
+```
+
+> **🚨 All tests must pass before you open a PR.** The CI pipeline runs `npm run test` automatically on every pull request and will block merging if any test fails.
+
+### 3. Interpreting SVG Output in the Browser
+
+When you open a badge URL in your browser, here is what each response means:
+
+| What you see                                 | What it means                                              |
+| -------------------------------------------- | ---------------------------------------------------------- |
+| Animated isometric city renders correctly    | ✅ Everything is working                                   |
+| Ghost-city badge with "NOT FOUND" label      | ✅ Working — the username doesn't exist on GitHub          |
+| Styled error card with "Invalid username"    | ✅ Working — the username format was invalid               |
+| Raw JSON `{"error":"Invalid parameters"...}` | ❌ Bug — validation errors must return SVG, not JSON       |
+| Browser XML parse error / blank white page   | ❌ Bug — unescaped `&` or malformed SVG in generator       |
+| `401 Unauthorized` in the terminal           | ❌ Your `GITHUB_PAT` in `.env.local` is missing or invalid |
+
+### 4. Lint and Format
+
+Run these before every commit:
+
+```bash
+# Auto-format all files
+npm run format
+
+# Check for linting errors
+npm run lint
+```
+
+Fix every error before pushing. CI will fail if either check reports issues.
 
 ---
 
@@ -241,7 +346,7 @@ Our automation runs entirely through issue comments. Here is how you interact wi
 
 To keep the project moving, assignments are not permanent.
 
-- **The 3-Day Rule:** If an issue has an assignee but sees **no activity for 3 days**, our automated background job will remove the assignment.
+- **The 2-Day Rule:** If an issue has an assignee but sees **no activity for 2 days**, our automated background job will remove the assignment.
 - **What counts as activity?** Posting a comment, opening a linked PR, or a maintainer adding a label.
 - **Why?** It frees up stale issues so other active contributors can pick them up. If your issue expires, you can always `/claim` it again if it's still available!
 
@@ -250,7 +355,7 @@ To keep the project moving, assignments are not permanent.
 1. Create a new issue describing the bug or feature request you want to work on using our **Structured Issue Templates** (or find an open issue you authored).
 2. Comment `/claim` on the issue to lock it in.
 3. Need labels? Comment `/addlabel good-first-issue` (labels must already exist in the repo).
-4. Work on your code and submit a PR within 3 days to avoid expiry.
+4. Work on your code and submit a PR within 2 days to avoid expiry.
 5. Once your PR is merged and the issue is closed, you can create and `/claim` your next one!
 
 ### 🆘 Troubleshooting & Edge Cases

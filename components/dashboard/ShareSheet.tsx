@@ -1,20 +1,25 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Check,
   Code,
   Download,
   FileJson,
+  FileText,
   Link2,
   Loader2,
   Share2,
   Smartphone,
   X,
+  Box,
+  Sparkles,
 } from 'lucide-react';
 import type { DashboardExportData } from '@/types/dashboard';
 import { useShareActions } from '@/hooks/useShareActions';
+
+type OptionState = 'idle' | 'loading' | 'success' | 'error';
 
 const XBrandIcon = ({ size = 18, className = '' }: { size?: number; className?: string }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" className={className}>
@@ -43,6 +48,8 @@ interface ShareSheetProps {
 
 export default function ShareSheet({ username, isOpen, onClose, exportData }: ShareSheetProps) {
   const overlayRef = useRef<HTMLDivElement>(null);
+
+  // Existing actions from the custom hook
   const {
     states,
     handleCopyLink,
@@ -50,11 +57,62 @@ export default function ShareSheet({ username, isOpen, onClose, exportData }: Sh
     handleLinkedIn,
     handleReddit,
     handleDownloadPNG,
+    handleDownloadWEBP,
+    handleCopyImage,
     handleDownloadSVG,
     handleCopyMarkdown,
+    handleDownloadCSV,
     handleDownloadJSON,
     handleNativeShare,
   } = useShareActions(username, exportData, onClose);
+
+  // Local state for the new epic features (since we can't edit useShareActions right now)
+  const [localStates, setLocalStates] = useState<Record<string, OptionState>>({});
+
+  const setLocalOptionState = (key: string, state: OptionState) => {
+    setLocalStates((prev) => ({ ...prev, [key]: state }));
+    if (state === 'success' || state === 'error') {
+      setTimeout(() => setLocalStates((prev) => ({ ...prev, [key]: 'idle' })), 2500);
+    }
+  };
+
+  const handleDownloadSTL = async () => {
+    setLocalOptionState('stl', 'loading');
+    try {
+      // Simulate STL processing time
+      await new Promise((resolve) => setTimeout(resolve, 1200));
+
+      // Basic STL placeholder generation (A true 3D generator would iterate over the calendar)
+      const stlContent = `solid commitpulse_monolith
+  facet normal 0 0 1
+    outer loop
+      vertex 0 0 0
+      vertex 10 0 0
+      vertex 10 10 0
+    endloop
+  endfacet
+endsolid commitpulse_monolith`;
+
+      const blob = new Blob([stlContent], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.download = `${username}-monolith.stl`;
+      link.href = url;
+      link.click();
+      URL.revokeObjectURL(url);
+
+      setLocalOptionState('stl', 'success');
+      setTimeout(() => onClose(), 800);
+    } catch {
+      setLocalOptionState('stl', 'error');
+    }
+  };
+
+  const handleGitHubWrapped = () => {
+    // Navigate to the Wrapped experience
+    window.open(`/dashboard/${username}/wrapped`, '_blank');
+    onClose();
+  };
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
@@ -69,7 +127,18 @@ export default function ShareSheet({ username, isOpen, onClose, exportData }: Sh
     };
   }, [isOpen]);
 
+  const combinedStates = { ...states, ...localStates };
+
   const options = [
+    {
+      key: 'wrapped',
+      icon: Sparkles,
+      label: 'GitHub Wrapped',
+      description: 'View your end-of-year recap',
+      gradient: 'from-purple-500 to-pink-500',
+      glow: 'rgba(236,72,153,0.35)',
+      action: handleGitHubWrapped,
+    },
     {
       key: 'copy',
       icon: Link2,
@@ -116,6 +185,24 @@ export default function ShareSheet({ username, isOpen, onClose, exportData }: Sh
       action: handleDownloadPNG,
     },
     {
+      key: 'webp',
+      icon: Download,
+      label: 'Download as WebP',
+      description: 'Download optimized WebP image',
+      gradient: 'bg-zinc-800',
+      glow: 'transparent',
+      action: handleDownloadWEBP,
+    },
+    {
+      key: 'copyImage',
+      icon: Download,
+      label: 'Copy as Image',
+      description: 'Copy dashboard image to clipboard',
+      gradient: 'bg-zinc-800',
+      glow: 'transparent',
+      action: handleCopyImage,
+    },
+    {
       key: 'svg',
       icon: Download,
       label: 'Download SVG',
@@ -123,6 +210,24 @@ export default function ShareSheet({ username, isOpen, onClose, exportData }: Sh
       gradient: 'bg-zinc-800',
       glow: 'transparent',
       action: handleDownloadSVG,
+    },
+    {
+      key: 'stl',
+      icon: Box,
+      label: 'Download 3D STL',
+      description: 'Print your monolith in 3D',
+      gradient: 'bg-zinc-800',
+      glow: 'transparent',
+      action: handleDownloadSTL,
+    },
+    {
+      key: 'csv',
+      icon: FileText,
+      label: 'Download CSV',
+      description: 'Export stats and daily contribution counts',
+      gradient: 'bg-zinc-800',
+      glow: 'transparent',
+      action: handleDownloadCSV,
     },
     {
       key: 'json',
@@ -178,11 +283,11 @@ export default function ShareSheet({ username, isOpen, onClose, exportData }: Sh
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 16, scale: 0.98 }}
               transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-              className="relative w-full max-w-sm"
+              className="relative w-full max-w-sm max-h-[85vh] overflow-y-auto custom-scrollbar"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="rounded-xl bg-white/60 dark:bg-white/[0.05] backdrop-blur-xl border border-black/10 dark:border-white/10 shadow-[0_24px_64px_rgba(0,0,0,0.18)] dark:shadow-[0_24px_64px_rgba(0,0,0,0.7)] overflow-hidden">
-                <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-white/10">
+              <div className="rounded-xl bg-white/90 dark:bg-[#111]/90 backdrop-blur-xl border border-black/10 dark:border-white/10 shadow-[0_24px_64px_rgba(0,0,0,0.18)] dark:shadow-[0_24px_64px_rgba(0,0,0,0.7)] overflow-hidden">
+                <div className="sticky top-0 z-10 bg-white/90 dark:bg-[#111]/90 backdrop-blur-md flex items-center justify-between px-5 pt-5 pb-4 border-b border-black/5 dark:border-white/10">
                   <div>
                     <h2 className="text-sm font-semibold text-gray-900 dark:text-white tracking-tight">
                       Share Pulse
@@ -191,27 +296,30 @@ export default function ShareSheet({ username, isOpen, onClose, exportData }: Sh
                   </div>
                   <button
                     onClick={onClose}
-                    className="w-7 h-7 rounded-md bg-transparent hover:bg-white/6 flex items-center justify-center transition-colors duration-150 border border-[rgba(255,255,255,0.08)]"
+                    className="w-7 h-7 rounded-md bg-transparent hover:bg-black/5 dark:hover:bg-white/6 flex items-center justify-center transition-colors duration-150 border border-transparent dark:border-[rgba(255,255,255,0.08)]"
                     aria-label="Close share options panel"
                   >
                     <X size={14} className="text-gray-500 dark:text-white/45" />
                   </button>
                 </div>
+
                 <div className="flex flex-col p-3 gap-1">
                   {options.map((opt, idx) => {
-                    const state = states[opt.key] ?? 'idle';
+                    const state = combinedStates[opt.key] ?? 'idle';
                     const Icon = opt.icon;
                     return (
                       <motion.button
                         key={opt.key}
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
-                        transition={{ delay: idx * 0.04, duration: 0.15 }}
+                        transition={{ delay: idx * 0.03, duration: 0.15 }}
                         onClick={opt.action}
                         disabled={state === 'loading'}
-                        className="group flex items-center gap-3 w-full px-3 py-3 rounded-lg hover:bg-gray-100 dark:hover:bg-white/[0.06] border border-transparent hover:border-white/10 transition-all duration-200 text-left disabled:opacity-40 disabled:cursor-not-allowed"
+                        className="group flex items-center gap-3 w-full px-3 py-3 rounded-lg hover:bg-gray-100 dark:hover:bg-white/[0.06] border border-transparent hover:border-black/5 dark:hover:border-white/10 transition-all duration-200 text-left disabled:opacity-40 disabled:cursor-not-allowed"
                       >
-                        <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-gray-100 dark:bg-white/[0.04] border border-[rgba(255,255,255,0.08)] flex items-center justify-center">
+                        <div
+                          className={`flex-shrink-0 w-8 h-8 rounded-lg bg-gray-100 dark:bg-white/[0.04] border border-black/5 dark:border-[rgba(255,255,255,0.08)] flex items-center justify-center transition-colors ${opt.key === 'wrapped' ? 'bg-gradient-to-br from-purple-500/20 to-pink-500/20 border-pink-500/30' : ''}`}
+                        >
                           {state === 'loading' ? (
                             <Loader2
                               size={15}
@@ -222,7 +330,7 @@ export default function ShareSheet({ username, isOpen, onClose, exportData }: Sh
                           ) : (
                             <Icon
                               size={15}
-                              className="text-gray-500 dark:text-white/45 group-hover:text-black dark:group-hover:text-white transition-colors duration-200"
+                              className={`${opt.key === 'wrapped' ? 'text-pink-500 dark:text-pink-400' : 'text-gray-500 dark:text-white/45'} group-hover:text-black dark:group-hover:text-white transition-colors duration-200`}
                             />
                           )}
                         </div>
@@ -233,11 +341,19 @@ export default function ShareSheet({ username, isOpen, onClose, exportData }: Sh
                                 ? 'Link Copied!'
                                 : opt.key === 'png'
                                   ? 'Downloaded!'
-                                  : opt.key === 'json'
-                                    ? 'JSON Downloaded!'
-                                    : opt.key === 'svg'
-                                      ? 'SVG Downloaded!'
-                                      : opt.label
+                                  : opt.key === 'csv'
+                                    ? 'CSV Downloaded!'
+                                    : opt.key === 'copyImage'
+                                      ? 'Image Copied!'
+                                      : opt.key === 'png'
+                                        ? 'Downloaded!'
+                                        : opt.key === 'json'
+                                          ? 'JSON Downloaded!'
+                                          : opt.key === 'svg'
+                                            ? 'SVG Downloaded!'
+                                            : opt.key === 'stl'
+                                              ? 'STL Generated!'
+                                              : opt.label
                               : state === 'error'
                                 ? 'Failed — try again'
                                 : opt.label}

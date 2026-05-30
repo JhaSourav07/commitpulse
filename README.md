@@ -14,6 +14,25 @@
 
 > **Drop this into your GitHub profile README and stop being boring.**
 
+## 📖 Table of Contents
+
+- [Design Philosophy](#the-isometric-monolith--design-philosophy)
+- [Live Demo](#live-demo)
+- [Deep Customization](#deep-customization--url-parameters)
+- [Theme Presets](#theme-presets)
+- [Theme Preview Gallery](#theme-preview-gallery)
+- [Real-Time Accuracy](#real-time-accuracy--the-contribution-count-problem)
+- [Architecture & Tech Stack](#architecture--tech-stack)
+- [Self-Hosting](#self-hosting-in-4-steps)
+- [Automated Contributor Workflow](#automated-contributor-workflow)
+- [FAQ](#faq)
+- [Contributing](#contributing)
+- [License](#license)
+- [Themes](#themes)
+- [Contributors](#contributors)
+
+---
+
 ![CommitPulse Live Demo](https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=neon)
 
 [![Join CommitPulse Discord](https://img.shields.io/badge/Join-CommitPulse%20Discord-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/Cb73bS79j)
@@ -155,6 +174,30 @@ URL Parameter > Theme Default > System Fallback
 | `hide_background` | `boolean` | No         | `false`                        | Remove the background rect, letting the monolith float on the page                                                                                                        |
 | `hide_stats`      | `boolean` | No         | `false`                        | Hides the bottom row displaying Current Streak, Annual Sync Total, and Peak Streak stats when set to `true` or `1`.                                                       |
 | `tz`              | `string`  | No         | Omitted = UTC                  | IANA timezone (e.g. `Asia/Kolkata`, `America/New_York`) — aligns "today" with the user local midnight. Note: `?tz=UTC` is valid but cached separately from omitting `tz`. |
+| `lang`            | `string`  | No         | `en`                           | Language code for labels (`en`, `es`, `hi`, `fr`, `pt`, `ko`, `ja`, `de`, `zh`)                                                                                           |
+| `view`            | `string`  | No         | `default`                      | Rendering mode: `default` (3D Monolith) or `monthly` (Compact monthly stats)                                                                                              |
+| `delta_format`    | `string`  | No         | `percent`                      | Format for month-over-month delta in monthly view: `percent` (e.g. +12%), `absolute` (e.g. +15 commits), or `both`                                                        |
+| `width`           | `number`  | No         | `300`                          | Custom width for the SVG canvas (currently only applies to `view=monthly`)                                                                                                |
+| `height`          | `number`  | No         | `120`                          | Custom height for the SVG canvas (currently only applies to `view=monthly`)                                                                                               |
+| Parameter         | Type      | Required   | Default                        | Description                                                                                                                                                               |
+| ----------------- | --------- | ---------- | ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------                               |
+| `user`            | `string`  | ✅ **Yes** | —                              | GitHub username to render                                                                                                                                                 |
+| `theme`           | `string`  | No         | `dark`                         | Preset theme name (see below)                                                                                                                                             |
+| `bg`              | `hex`     | No         | Theme default                  | Background color — **without** `#`                                                                                                                                        |
+| `accent`          | `hex`     | No         | Theme default                  | Tower & glow color — **without** `#`                                                                                                                                      |
+| `text`            | `hex`     | No         | Theme default                  | Label & stat text color — **without** `#`                                                                                                                                 |
+| `radius`          | `number`  | No         | `8`                            | Border corner radius in pixels                                                                                                                                            |
+| `border`          | `string`  | No         | —                              | Custom stroke color around the main SVG container — **without** `#`                                                                                                       |
+| `speed`           | `string`  | No         | `8s`                           | Radar scan duration (`2s`–`20s`, default `8s`)                                                                                                                            |
+| `scale`           | `string`  | No         | `linear`                       | Tower height scaling: `linear` or `log` (logarithmic)                                                                                                                     |
+| `size`            | `string`  | No         | `medium`                       | Badge dimensions: `small` (400×280), `medium` (600×420), `large` (800×560)                                                                                                |
+| `font`            | `string`  | No         | CommitPulse default typography | Any **Google Font** name (e.g. `Orbitron`, `Inter`)                                                                                                                       |
+| `refresh`         | `boolean` | No         | `false`                        | Bypass cache for real-time data                                                                                                                                           |
+| `year`            | `string`  | No         | —                              | Calendar year to render (e.g. `2023`, `2024`)                                                                                                                             |
+| `hide_title`      | `boolean` | No         | `false`                        | Hide GitHub username/title from the SVG badge                                                                                                                             |
+| `hide_background` | `boolean` | No         | `false`                        | Remove the background rect, letting the monolith float on the page                                                                                                        |
+| `hide_stats`      | `boolean` | No         | `false`                        | Hides the bottom row displaying Current Streak, Annual Sync Total, and Peak Streak stats when set to `true` or `1`.                                                       |
+| `tz`              | `string`  | No         | Omitted = UTC                  | IANA timezone (e.g. `Asia/Kolkata`) — aligns "today" with the user local midnight. Note: `?tz=UTC` is cached separately from omitting `tz`.                               |
 | `lang`            | `string`  | No         | `en`                           | Language code for labels (`en`, `es`, `hi`, `fr`, `pt`, `ko`, `ja`)                                                                                                       |
 | `view`            | `string`  | No         | `default`                      | Rendering mode: `default` (3D Monolith) or `monthly` (Compact monthly stats)                                                                                              |
 | `delta_format`    | `string`  | No         | `percent`                      | Format for month-over-month delta in monthly view: `percent` (e.g. +12%), `absolute` (e.g. +15 commits), or `both`                                                        |
@@ -169,11 +212,12 @@ URL Parameter > Theme Default > System Fallback
 | `dark` _(default)_ | GitHub dark                 | `0d1117` | `58a6ff` | `c9d1d9` |
 | `neon`             | Cyberpunk                   | `000000` | `ff00ff` | `00ffcc` |
 | `dracula`          | Dracula Pro                 | `282a36` | `bd93f9` | `f8f8f2` |
-| `github`           | GitHub green                | `0d1117` | `238636` | `ffffff` |
+| `github`           | GitHub green                | `0d1117` | `39d353` | `ffffff` |
 | `light`            | Clean & minimal             | `ffffff` | `0969da` | `24292f` |
 | `gruvbox`          | retro warm dark             | `282828` | `fe8019` | `ebdbb2` |
 | `random`           | Surprise theme on reload    | _varies_ | _varies_ | _varies_ |
-| `highcontrast`     | Accessibility high contrast | `0a0a0a` | `ff4500` | `888888` |
+| `highcontrast`     | Accessibility high contrast | `0a0a0a` | `ff4500` | `ffffff` |
+| `cyber-pulse`      | AMOLED true-black & cyan    | `000000` | `00ffee` | `ffffff` |
 
 > **`auto` uses CSS `@media (prefers-color-scheme)`** inside the SVG so the badge switches between the `light` and `dark` palettes based on the viewer's OS setting — no JavaScript required. This is ideal for GitHub profile READMEs where visitors may use either mode.
 
@@ -245,6 +289,10 @@ Explore some of the built-in CommitPulse themes and quickly copy the style you l
 <!-- Render labels in Hindi -->
 
 ![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&lang=hi)
+
+<!-- Render labels in Simplified Chinese -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&lang=zh)
 
 <!-- Large badge size -->
 
@@ -401,7 +449,7 @@ We built an anti-hoarding, self-service automation layer right into the reposito
 - **Structured Issue Templates:** We use specific templates for Bug Reports and Feature Requests to maintain high quality and clarity.
 - **Self-Claiming:** Issue authors can grab their issues instantly by commenting `/claim` (only the author of the issue can claim it, unless it was authored by `jhasourav07`, in which case anyone can claim it).
 - **Fair Play:** A strict one-active-issue-per-contributor rule prevents issue hoarding.
-- **Stale Expiry:** A scheduled chron job automatically unassigns inactive contributors after 3 days.
+- **Stale Expiry:** A scheduled chron job automatically unassigns inactive contributors after 2 days.
 - **Self-Service Labels:** Anyone can tag issues using `/addlabel <tag>`.
 - **Semantic Duplicate Detection:** An AI-powered duplicate detector automatically scans open issues using the Google Gemini API (`gemini-embedding-001`) to generate vector embeddings. It calculates cosine similarity and flags potential duplicate issues with a comment and a `possible-duplicate` label.
 
@@ -432,7 +480,14 @@ Yes — if private contributions visibility is enabled in your GitHub settings.
 
 ### Are there GitHub API rate limits?
 
-Yes, but CommitPulse minimizes API usage using caching and optimized GraphQL queries.
+Yes. CommitPulse minimizes API usage via caching and optimized GraphQL queries, but if you hit the GitHub API rate limit (typically 5,000 requests per hour for authenticated users), you might see errors or missing data.
+
+#### Troubleshooting Rate Limit Errors
+
+1. **Wait it out:** Rate limits automatically reset every hour.
+2. **Provide your own PAT:** If self-hosting, ensure you've provided a valid `GITHUB_TOKEN` in `.env.local` to get the authenticated rate limit.
+3. **Avoid aggressive bypassing:** Avoid repeatedly using the `&refresh=true` parameter, which bypasses the cache and consumes API quota on every load.
+4. **Check GitHub API Status:** Occasionally, GitHub's GraphQL API itself experiences degradation. Check [githubstatus.com](https://www.githubstatus.com/).
 
 ---
 

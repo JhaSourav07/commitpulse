@@ -2,7 +2,7 @@ import { themes } from '../../lib/svg/themes';
 
 export type Scale = 'linear' | 'log';
 
-export type ExportFormat = 'markdown' | 'html';
+export type ExportFormat = 'markdown' | 'html' | 'action';
 
 export type ThemeKey = Extract<keyof typeof themes, string>;
 
@@ -59,6 +59,20 @@ export const LANGUAGES = [
   { value: 'ko', label: 'Korean' },
   { value: 'fr', label: 'French' },
   { value: 'ja', label: 'Japanese' },
+  { value: 'de', label: 'German' },
 ] as const satisfies readonly { value: string; label: string }[];
 
 export type Language = (typeof LANGUAGES)[number]['value'];
+
+export const TIMEZONES = [
+  { value: 'UTC', label: 'UTC (Default)' },
+  { value: 'America/New_York', label: 'New York' },
+  { value: 'America/Los_Angeles', label: 'Los Angeles' },
+  { value: 'Europe/London', label: 'London' },
+  { value: 'Europe/Berlin', label: 'Berlin' },
+  { value: 'Asia/Kolkata', label: 'Kolkata' },
+  { value: 'Asia/Tokyo', label: 'Tokyo' },
+  { value: 'Australia/Sydney', label: 'Sydney' },
+] as const satisfies readonly { value: string; label: string }[];
+
+export type Timezone = (typeof TIMEZONES)[number]['value'];
