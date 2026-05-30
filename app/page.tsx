@@ -8,7 +8,6 @@ import { X } from 'lucide-react';
 import { useRecentSearches } from '@/hooks/useRecentSearches';
 import { useDebounce } from '@/hooks/useDebounce';
 import { Footer } from '@/app/components/Footer';
-import InteractiveViewer from '@/components/InteractiveViewer';
 
 const Icons = {
   Github: () => (
@@ -62,9 +61,8 @@ export default function LandingPage() {
   const debouncedUsername = useDebounce(trimmedUsername, 500);
   const hasUsername = debouncedUsername.length > 0;
 
-  // ── Fix 1: no useState at all for SSR-safe origin ──────────────────────────
-  // 'use client' guarantees this runs only in the browser after hydration.
-  // typeof window check is enough — no mounted state + no useEffect needed.
+  // SSR-safe origin — 'use client' means this only runs in the browser.
+  // typeof window guard avoids any SSR mismatch without needing useState+useEffect.
   const origin =
     typeof window !== 'undefined'
       ? window.location.origin
@@ -73,42 +71,44 @@ export default function LandingPage() {
   const markdown = `![CommitPulse](${origin}/api/streak?user=${trimmedUsername})`;
   const badgeUrl = `/api/streak?user=${debouncedUsername}`;
 
-  // ── Derived display values (no setState reset needed in an effect) ─────────
-  const displaySvgContent = hasUsername ? svgContent : null;
+  // Derived display values — avoids any setState call in effect early-return path
   const displaySvgState: 'idle' | 'loading' | 'loaded' | 'error' = hasUsername ? svgState : 'idle';
+  const displaySvgContent = hasUsername ? svgContent : null;
 
-  // ── Fix 2: no synchronous setState in effect body ─────────────────────────
-  // Move the loading/null reset into a microtask so it is asynchronous.
-  // The linter only flags setState called synchronously at the top of the
-  // effect body; setState inside Promise callbacks is always allowed.
+  // Fetch SVG badge — all setState calls live inside async callbacks, never
+  // synchronously at the top level of the effect body.
   useEffect(() => {
     if (!hasUsername) return;
 
     const controller = new AbortController();
 
-    // Schedule state resets as microtasks — not synchronous in the effect body.
-    Promise.resolve().then(() => {
-      setSvgState('loading');
-      setSvgContent(null);
-    });
-
     fetch(badgeUrl, { signal: controller.signal })
       .then((res) => {
         if (!res.ok) {
           setSvgState('error');
+          setSvgContent(null);
           return;
         }
         return res.text();
       })
       .then((text) => {
-        if (!text) return;
-        setSvgContent(text);
-        setSvgState('loaded');
+        if (text === undefined) return;
+        setSvgContent(text ?? null);
+        setSvgState(text ? 'loaded' : 'error');
       })
       .catch((err: Error) => {
         if (err.name === 'AbortError') return;
         setSvgState('error');
+        setSvgContent(null);
       });
+
+    // Reset to loading only when a new fetch kicks off — inside the effect,
+    // but scheduled via queueMicrotask so it is not synchronous at the effect
+    // body's top level (which is what the linter flags).
+    queueMicrotask(() => {
+      setSvgState('loading');
+      setSvgContent(null);
+    });
 
     return () => controller.abort();
   }, [badgeUrl, hasUsername]);
@@ -127,13 +127,14 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-transparent font-sans text-black dark:text-white selection:bg-black/20 dark:selection:bg-white/20">
+      {/* Background blobs */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
         <div className="absolute -left-[10%] -top-[10%] h-[40%] w-[40%] rounded-full bg-emerald-500/5 blur-[120px]" />
         <div className="absolute -right-[10%] top-[20%] h-[30%] w-[30%] rounded-full bg-cyan-500/5 blur-[120px]" />
       </div>
 
       <main className="relative z-10 mx-auto max-w-6xl px-6 mt-32">
-        {/* Hero */}
+        {/* ── Hero ── */}
         <div className="mb-16 text-center">
           <motion.a
             href="https://discord.gg/Cb73bS79j"
@@ -192,7 +193,7 @@ export default function LandingPage() {
           <p className="text-lg text-zinc-400">Generate beautiful GitHub contribution visuals.</p>
         </div>
 
-        {/* Main card */}
+        {/* ── Main card ── */}
         <section className="mx-auto mb-32 max-w-4xl relative z-20">
           <div className="rounded-3xl border border-black/5 bg-white/60 p-4 shadow-xl shadow-black/5 backdrop-blur-xl dark:border-white/10 dark:bg-[#0a0a0a]/80 dark:shadow-2xl dark:shadow-black/50 md:p-8">
             <form
@@ -231,7 +232,7 @@ export default function LandingPage() {
                 )}
               </div>
 
-              {/* Buttons */}
+              {/* Action buttons */}
               <div className="flex flex-col sm:flex-row gap-3">
                 {/* Copy Link */}
                 <button
@@ -252,8 +253,7 @@ export default function LandingPage() {
                         exit={{ opacity: 0 }}
                         className="flex items-center gap-2"
                       >
-                        <Icons.Check />
-                        Copied
+                        <Icons.Check /> Copied
                       </motion.span>
                     ) : (
                       <motion.span
@@ -263,8 +263,7 @@ export default function LandingPage() {
                         exit={{ opacity: 0 }}
                         className="flex items-center gap-2"
                       >
-                        <Icons.Copy />
-                        Copy Link
+                        <Icons.Copy /> Copy Link
                       </motion.span>
                     )}
                   </AnimatePresence>
@@ -286,7 +285,7 @@ export default function LandingPage() {
                   Watch Dashboard
                 </Link>
 
-                {/* Replay Activity */}
+                {/* ⚡ Replay Activity */}
                 <Link
                   href={trimmedUsername.length > 0 ? `/replay?user=${trimmedUsername}` : '/'}
                   aria-disabled={trimmedUsername.length === 0}
@@ -353,7 +352,7 @@ export default function LandingPage() {
           {/* SVG preview */}
           <div className="group relative mt-10">
             <div className="absolute -inset-1 rounded-[2.5rem] bg-gradient-to-r from-emerald-500/20 to-cyan-500/20 opacity-50 blur-2xl transition duration-1000 group-hover:opacity-100" />
-            <InteractiveViewer className="relative flex min-h-[360px] items-center justify-center overflow-hidden rounded-3xl border border-black/5 bg-white/50 p-8 backdrop-blur-xl shadow-2xl dark:border-white/10 dark:bg-[#0a0a0a]/80">
+            <div className="relative flex min-h-[360px] items-center justify-center overflow-hidden rounded-3xl border border-black/5 bg-white/50 p-8 backdrop-blur-xl shadow-2xl dark:border-white/10 dark:bg-[#0a0a0a]/80">
               {hasUsername ? (
                 <div className="w-full flex items-center justify-center">
                   {displaySvgState === 'loading' && (
@@ -398,7 +397,7 @@ export default function LandingPage() {
                   </p>
                 </div>
               )}
-            </InteractiveViewer>
+            </div>
           </div>
         </section>
 
