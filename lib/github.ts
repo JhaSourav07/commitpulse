@@ -1,6 +1,12 @@
 // lib/github.ts
 
-import type { ContributionCalendar, ContributionDay, ContributionWeek, GraphNode, GraphLink } from '@/types';
+import type {
+  ContributionCalendar,
+  ContributionDay,
+  ContributionWeek,
+  GraphNode,
+  GraphLink,
+} from '@/types';
 import { calculateStreak, aggregateCalendars } from '@/lib/calculate';
 import { DistributedCache } from '@/lib/cache';
 import { LANGUAGE_COLORS } from '@/lib/svg/languageColors';
