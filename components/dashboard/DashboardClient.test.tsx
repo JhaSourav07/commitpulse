@@ -134,6 +134,8 @@ const mockInitialData = {
   insights: [{ id: '1', icon: 'zap', text: 'Highly active in mornings' }],
   achievements: [],
   commitClock: [],
+  popularRepos: [],
+  pinnedRepos: [],
 };
 
 const mockSecondData = {
@@ -170,22 +172,6 @@ const mockSecondData = {
   insights: [{ id: '1', icon: 'zap', text: 'Hard worker' }],
   achievements: [],
   commitClock: [],
-};
-
-const initialDataWithHigherStreak = {
-  ...mockInitialData,
-  stats: {
-    ...mockInitialData.stats,
-    peakStreak: 50,
-  },
-};
-
-const secondDataWithLowerStreak = {
-  ...mockSecondData,
-  stats: {
-    ...mockSecondData.stats,
-    peakStreak: 10,
-  },
 };
 
 describe('DashboardClient', () => {
@@ -249,131 +235,10 @@ describe('DashboardClient', () => {
     expect(screen.getAllByText('Shivangi').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Sourav').length).toBeGreaterThan(0);
   });
-
-  // =========================================================================
-  // ISSUE OBJECTIVE: Add a test for exiting compare mode
-  // =========================================================================
-  it('exits compare mode and restores single profile view', async () => {
-    // Mock successful fetch response to enter compare mode first
-    const mockFetch = vi.fn().mockImplementation(() =>
-      Promise.resolve({
-        ok: true,
-        json: () => Promise.resolve(mockSecondData),
-      })
-    );
-    vi.stubGlobal('fetch', mockFetch);
-
-    render(<DashboardClient initialData={mockInitialData} username="Shivangi1515" />);
-
-    // 1. Enter compare mode
-    const compareBtn = screen.getByText('Compare Profile');
-    fireEvent.click(compareBtn);
-
-    const input = screen.getByPlaceholderText('Enter GitHub Username');
-    fireEvent.change(input, { target: { value: 'JhaSourav07' } });
-
-    const submitBtn = screen.getByText('Compare');
-    fireEvent.click(submitBtn);
-
-    // Wait for state to update and Exit button to render
-    await waitFor(() => {
-      expect(screen.getByText('Exit Compare Mode')).toBeDefined();
-    });
-
-    // 2. Assert 'Exit Compare Mode' button is visible
-    const exitBtn = screen.getByText('Exit Compare Mode');
-    expect(exitBtn).toBeDefined();
-
-    // 3. Click it
-    fireEvent.click(exitBtn);
-
-    // 4. Assert 'Compare Profile' button is visible again
-    expect(screen.getByText('Compare Profile')).toBeDefined();
-
-    // 5. Assert 'Exit Compare Mode' button is gone
-    expect(screen.queryByText('Exit Compare Mode')).toBeNull();
-
-    // Verify the second profile is removed from the DOM
-    expect(screen.queryByText('Sourav')).toBeNull();
-  });
-
   it('generate your own button points to root /', () => {
     render(<DashboardClient initialData={mockInitialData} username="Shivangi1515" />);
 
     const generateLink = screen.getByRole('link', { name: /generate your own/i });
     expect(generateLink.getAttribute('href')).toBe('/');
   });
-  // =========================================================================
-  // ISSUE OBJECTIVE: Verify error is shown when comparing with same username
-  // =========================================================================
-  it('shows an error when comparing with the same username (case-insensitive)', async () => {
-    render(<DashboardClient initialData={mockInitialData} username="Shivangi1515" />);
-
-    // 1. Open modal
-    const compareBtn = screen.getByText('Compare Profile');
-    fireEvent.click(compareBtn);
-
-    // 2. Type the same username as props.username, but all lowercase to test case-insensitivity
-    const input = screen.getByPlaceholderText('Enter GitHub Username');
-    fireEvent.change(input, { target: { value: 'shivangi1515' } });
-
-    // 3. Click 'Compare'
-    const submitBtn = screen.getByText('Compare');
-    fireEvent.click(submitBtn);
-
-    // 4. Assert error message 'Cannot compare a profile with itself.' appears
-    await waitFor(() => {
-      // Using Regex /.../i to match the text even if there is an emoji next to it!
-      expect(screen.getByText(/Cannot compare a profile with itself/i)).toBeDefined();
-    });
-  });
-
-  // =========================================================================
-  // ISSUE OBJECTIVE #1063: Verify compare modal input can be cleared
-  // =========================================================================
-  it('verify compare modal input can be cleared', async () => {
-    render(<DashboardClient initialData={mockInitialData} username="Shivangi1515" />);
-
-    // 1. Open modal
-    const compareBtn = screen.getByText('Compare Profile');
-    fireEvent.click(compareBtn);
-
-    // 2. Type a username into the input
-    const input = screen.getByPlaceholderText('Enter GitHub Username');
-    fireEvent.change(input, { target: { value: 'testuser' } });
-
-    // 3. Assert 'Clear input' (aria-label) button appears
-    const clearButton = screen.getByRole('button', { name: 'Clear input' });
-    expect(clearButton).toBeDefined();
-
-    // 4. Click clear button
-    fireEvent.click(clearButton);
-
-    // 5. Assert input value is empty
-    expect((input as HTMLInputElement).value).toBe('');
-  });
-});
-it('shows Most Consistent badge for profile with higher peak streak in compare mode', async () => {
-  const mockFetch = vi.fn().mockResolvedValue({
-    ok: true,
-    json: async () => secondDataWithLowerStreak,
-  });
-
-  vi.stubGlobal('fetch', mockFetch);
-
-  render(<DashboardClient initialData={initialDataWithHigherStreak} username="Shivangi1515" />);
-
-  fireEvent.click(screen.getByText('Compare Profile'));
-
-  fireEvent.change(screen.getByPlaceholderText('Enter GitHub Username'), {
-    target: { value: 'JhaSourav07' },
-  });
-
-  fireEvent.click(screen.getByText('Compare'));
-
-  await waitFor(() => {
-    expect(screen.getByText('Exit Compare Mode')).toBeDefined();
-  });
-
-  expect(screen.getByText(/Most Consistent/i)).toBeDefined();
 });

@@ -6,7 +6,7 @@ import { X, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import type { Achievement } from '@/types/dashboard';
-
+import { PopularRepos } from './PopularPinnedRepos';
 import RefreshButton from './RefreshButton';
 import ProfileCard from './ProfileCard';
 import Achievements from './Achievements';
@@ -20,7 +20,18 @@ import ComparisonStatsCard from './ComparisonStatsCard';
 import RadarChart from './RadarChart';
 import GrowthTrendChart from './GrowthTrendChart';
 
-// Define the dashboard data structure
+interface Repository {
+  name: string;
+  description: string | null;
+  stargazerCount: number;
+  forkCount: number;
+  url: string;
+  primaryLanguage: {
+    name: string;
+    color: string;
+  } | null;
+}
+
 interface DashboardData {
   profile: {
     username: string;
@@ -63,6 +74,8 @@ interface DashboardData {
     day: string;
     commits: number;
   }>;
+  popularRepos: Repository[];
+  pinnedRepos: Repository[];
 }
 
 interface DashboardClientProps {
@@ -70,13 +83,15 @@ interface DashboardClientProps {
   username: string;
 }
 
-export interface ProfileMetrics {
-  currentStreak: number;
-  commitClock: { day: string; commits: number }[]; // e.g., Sun-Sat daily totals
-  hourlyData?: { hour: number; commits: number }[]; // Optional: 0-23 hour distribution
+function getUsernameHash(username: string): number {
+  let hash = 0;
+  for (let i = 0; i < username.length; i++) {
+    hash = username.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return Math.abs(hash);
 }
 
-export interface CoderProfile {
+interface CoderProfile {
   peakHourStart: number;
   peakHourEnd: number;
   profileName: 'Night Owl 🌙' | 'Early Builder ☀' | 'Weekend Warrior 🚀' | 'Consistent Runner 🏃‍♂️';
@@ -84,81 +99,50 @@ export interface CoderProfile {
   activeWeekdays: string[];
 }
 
-export function generateCoderProfile(metrics: ProfileMetrics): CoderProfile {
-  const { currentStreak, commitClock, hourlyData } = metrics;
+function generateCoderProfile(username: string): CoderProfile {
+  const hash = getUsernameHash(username);
+  const profileType = hash % 4;
 
-  let profileName: CoderProfile['profileName'] = 'Early Builder ☀';
-
-  // 1. Analyze Commit Clock for Weekend Warrior
-  let isWeekendWarrior = false;
-  if (commitClock && commitClock.length === 7) {
-    const weekendCommits = commitClock[0].commits + commitClock[6].commits; // Sunday(0) + Saturday(6)
-    const totalCommits = commitClock.reduce((sum, d) => sum + d.commits, 0);
-    if (totalCommits > 0 && weekendCommits / totalCommits > 0.35) {
-      isWeekendWarrior = true;
-    }
-  }
-
-  // 2. Analyze Hourly Data for Night Owl vs Early Builder
-  let isNightOwl = false;
-  if (hourlyData && hourlyData.length > 0) {
-    const nightCommits = hourlyData
-      .filter((d) => d.hour >= 22 || d.hour <= 3)
-      .reduce((sum, d) => sum + d.commits, 0);
-
-    const morningCommits = hourlyData
-      .filter((d) => d.hour >= 5 && d.hour <= 10)
-      .reduce((sum, d) => sum + d.commits, 0);
-
-    isNightOwl = nightCommits > morningCommits;
-  }
-
-  // 3. Determine Final Profile Type
-  if (currentStreak >= 10) {
-    profileName = 'Consistent Runner 🏃‍♂️';
-  } else if (isWeekendWarrior) {
-    profileName = 'Weekend Warrior 🚀';
-  } else if (isNightOwl) {
-    profileName = 'Night Owl 🌙';
-  }
-
-  // 4. Populate UI properties based on the derived profile.
-  // We use smooth curves here without the random 'hash' jitter for a cleaner UI.
+  let profileName: CoderProfile['profileName'] = 'Consistent Runner 🏃‍♂️';
   let peakHourStart = 9;
   let peakHourEnd = 17;
   let hourlyDistribution = new Array(24).fill(0);
   let activeWeekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
 
-  if (profileName === 'Night Owl 🌙') {
+  if (profileType === 0) {
+    profileName = 'Night Owl 🌙';
     peakHourStart = 22;
     peakHourEnd = 2;
     hourlyDistribution = Array.from({ length: 24 }, (_, h) => {
       const distFromMidnight = Math.min(Math.abs(h - 23), Math.abs(h + 1));
-      return Math.max(8, Math.round(100 - distFromMidnight * 9.5));
+      return Math.max(8, Math.round(100 - distFromMidnight * 9.5 - (hash % 12)));
     });
     activeWeekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
-  } else if (profileName === 'Early Builder ☀') {
+  } else if (profileType === 1) {
+    profileName = 'Early Builder ☀';
     peakHourStart = 6;
     peakHourEnd = 10;
     hourlyDistribution = Array.from({ length: 24 }, (_, h) => {
       const distFromEight = Math.abs(h - 8);
-      return Math.max(6, Math.round(100 - distFromEight * 10));
+      return Math.max(6, Math.round(100 - distFromEight * 10 - (hash % 12)));
     });
     activeWeekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
-  } else if (profileName === 'Weekend Warrior 🚀') {
+  } else if (profileType === 2) {
+    profileName = 'Weekend Warrior 🚀';
     peakHourStart = 10;
     peakHourEnd = 16;
     hourlyDistribution = Array.from({ length: 24 }, (_, h) => {
       const distFromMidday = Math.abs(h - 13);
-      return Math.max(8, Math.round(100 - distFromMidday * 8.5));
+      return Math.max(8, Math.round(100 - distFromMidday * 8.5 - (hash % 12)));
     });
     activeWeekdays = ['Sat', 'Sun'];
-  } else if (profileName === 'Consistent Runner 🏃‍♂️') {
+  } else {
+    profileName = 'Consistent Runner 🏃‍♂️';
     peakHourStart = 13;
     peakHourEnd = 17;
     hourlyDistribution = Array.from({ length: 24 }, (_, h) => {
       const distFromThree = Math.abs(h - 15);
-      return Math.max(12, Math.round(100 - distFromThree * 7));
+      return Math.max(12, Math.round(100 - distFromThree * 7 - (hash % 8)));
     });
     activeWeekdays = ['Mon', 'Wed', 'Fri', 'Sat'];
   }
@@ -307,10 +291,6 @@ function getPersonalityTags(
   return tags.slice(0, 3);
 }
 
-// ------------------------------------------------------------
-// DashboardClient Component
-// ------------------------------------------------------------
-
 export default function DashboardClient({ initialData, username }: DashboardClientProps) {
   const [secondUserData, setSecondUserData] = useState<DashboardData | null>(null);
   const [isCompareMode, setIsCompareMode] = useState(false);
@@ -319,7 +299,6 @@ export default function DashboardClient({ initialData, username }: DashboardClie
   const [isLoadingSecond, setIsLoadingSecond] = useState(false);
   const [compareError, setCompareError] = useState<string | null>(null);
 
-  // Close modal on escape key
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -379,23 +358,11 @@ export default function DashboardClient({ initialData, username }: DashboardClie
     toast.info('Returned to single profile view');
   };
 
-  // ------------------------------------------------------------
-  // Compare Mode Statistics Calculations
-  // ------------------------------------------------------------
-
-  // Profile for User A using their actual dashboard metrics
-  const coderProfileA = generateCoderProfile({
-    currentStreak: initialData.stats.currentStreak,
-    commitClock: initialData.commitClock,
-  });
-
-  // Profile for User B using their comparison data metrics
+  const coderProfileA = generateCoderProfile(username);
   const coderProfileB = secondUserData
-    ? generateCoderProfile({
-        currentStreak: secondUserData.stats.currentStreak,
-        commitClock: secondUserData.commitClock,
-      })
+    ? generateCoderProfile(secondUserData.profile.username)
     : null;
+
   const gapA = calculateInactivityGaps(initialData.activity);
   const gapB = secondUserData ? calculateInactivityGaps(secondUserData.activity) : 0;
 
@@ -425,21 +392,18 @@ export default function DashboardClient({ initialData, username }: DashboardClie
       : [];
 
   if (isCompareMode && secondUserData) {
-    // Most Consistent: Peak Streak
     if (initialData.stats.peakStreak > secondUserData.stats.peakStreak) {
       badgesA.push('Most Consistent');
     } else if (secondUserData.stats.peakStreak > initialData.stats.peakStreak) {
       badgesB.push('Most Consistent');
     }
 
-    // Highest Activity: Total Contributions
     if (initialData.stats.totalContributions > secondUserData.stats.totalContributions) {
       badgesA.push('Highest Activity');
     } else if (secondUserData.stats.totalContributions > initialData.stats.totalContributions) {
       badgesB.push('Highest Activity');
     }
 
-    // Strongest Streak: Current Streak
     if (initialData.stats.currentStreak > secondUserData.stats.currentStreak) {
       badgesA.push('Strongest Streak');
     } else if (secondUserData.stats.currentStreak > initialData.stats.currentStreak) {
@@ -451,12 +415,12 @@ export default function DashboardClient({ initialData, username }: DashboardClie
     <div
       id="dashboard-root"
       data-dashboard
-      className="p-4 md:p-6 lg:p-8 min-h-screen relative bg-transparent"
+      className="p-4 md:p-6 lg:p-8 min-h-screen relative bg-transparent max-w-7xl mx-auto flex flex-col gap-6"
     >
       {/* Top Action Bar */}
       <div
         id="generate-dashboard-btn"
-        className="flex justify-between items-center gap-4 mb-6 flex-wrap"
+        className="flex justify-between items-center gap-4 mb-2 flex-wrap"
       >
         <div>
           {isCompareMode && secondUserData && (
@@ -500,6 +464,14 @@ export default function DashboardClient({ initialData, username }: DashboardClie
         </div>
       </div>
 
+      {/* Repository Grid injection point */}
+      {!isCompareMode && (
+        <PopularRepos
+          popularRepos={initialData.popularRepos}
+          pinnedRepos={initialData.pinnedRepos}
+        />
+      )}
+
       {/* Main Dashboard Layout */}
       {!isCompareMode || !secondUserData || !coderProfileB ? (
         /* Standard Single Profile View */
@@ -511,7 +483,6 @@ export default function DashboardClient({ initialData, username }: DashboardClie
               exportData={{
                 stats: initialData.stats,
                 languages: initialData.languages,
-                activity: initialData.activity,
               }}
             />
             <Achievements achievements={initialData.achievements} />
@@ -574,11 +545,9 @@ export default function DashboardClient({ initialData, username }: DashboardClie
                 exportData={{
                   stats: initialData.stats,
                   languages: initialData.languages,
-                  activity: initialData.activity,
                 }}
                 badges={badgesA}
               />
-              {/* Personality Tags */}
               <div className="flex flex-wrap gap-1.5 mt-3 justify-center">
                 {personalityTagsA.map((t) => (
                   <span
@@ -597,11 +566,9 @@ export default function DashboardClient({ initialData, username }: DashboardClie
                 exportData={{
                   stats: secondUserData.stats,
                   languages: secondUserData.languages,
-                  activity: secondUserData.activity,
                 }}
                 badges={badgesB}
               />
-              {/* Personality Tags */}
               <div className="flex flex-wrap gap-1.5 mt-3 justify-center">
                 {personalityTagsB.map((t) => (
                   <span
@@ -682,7 +649,6 @@ export default function DashboardClient({ initialData, username }: DashboardClie
 
           {/* Peak Coding Time & Inactivity Insights Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Peak Coding Time Analysis */}
             <motion.div
               initial={{ opacity: 0, y: 12 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -693,7 +659,6 @@ export default function DashboardClient({ initialData, username }: DashboardClie
                 ⏰ Peak Coding Time Analysis
               </h3>
               <div className="grid grid-cols-2 gap-6">
-                {/* User A */}
                 <div className="flex flex-col">
                   <p className="text-xs text-[#A1A1AA] truncate font-medium mb-2">
                     {initialData.profile.name}
@@ -715,7 +680,6 @@ export default function DashboardClient({ initialData, username }: DashboardClie
                       </span>
                     </p>
                   </div>
-                  {/* Micro Bar Chart */}
                   <div className="w-full h-12 flex items-end gap-px mt-4">
                     {coderProfileA.hourlyDistribution.map((v, h) => (
                       <div
@@ -728,7 +692,6 @@ export default function DashboardClient({ initialData, username }: DashboardClie
                   </div>
                 </div>
 
-                {/* User B */}
                 <div className="flex flex-col">
                   <p className="text-xs text-[#A1A1AA] truncate font-medium mb-2">
                     {secondUserData.profile.name}
@@ -750,7 +713,6 @@ export default function DashboardClient({ initialData, username }: DashboardClie
                       </span>
                     </p>
                   </div>
-                  {/* Micro Bar Chart */}
                   <div className="w-full h-12 flex items-end gap-px mt-4">
                     {coderProfileB.hourlyDistribution.map((v, h) => (
                       <div
@@ -765,7 +727,6 @@ export default function DashboardClient({ initialData, username }: DashboardClie
               </div>
             </motion.div>
 
-            {/* Inactivity & Consistency Insights */}
             <motion.div
               initial={{ opacity: 0, y: 12 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -776,7 +737,6 @@ export default function DashboardClient({ initialData, username }: DashboardClie
                 💀 Inactivity & Recovery Insights
               </h3>
               <div className="space-y-4">
-                {/* Longest Inactive Gap */}
                 <div className="flex flex-col gap-1.5 border-b border-black/5 dark:border-white/5 pb-3">
                   <div className="flex justify-between items-center text-xs">
                     <span className="text-gray-500 dark:text-zinc-400 font-medium">
@@ -806,7 +766,6 @@ export default function DashboardClient({ initialData, username }: DashboardClie
                   </div>
                 </div>
 
-                {/* Recovery Speed */}
                 <div className="flex flex-col gap-1.5 border-b border-black/5 dark:border-white/5 pb-3">
                   <div className="flex justify-between items-center text-xs">
                     <span className="text-gray-500 dark:text-zinc-400 font-medium">
@@ -837,7 +796,6 @@ export default function DashboardClient({ initialData, username }: DashboardClie
                   </div>
                 </div>
 
-                {/* Comeback Streak */}
                 <div className="flex flex-col gap-1.5">
                   <div className="flex justify-between items-center text-xs">
                     <span className="text-gray-500 dark:text-zinc-400 font-medium">
@@ -952,7 +910,6 @@ export default function DashboardClient({ initialData, username }: DashboardClie
       <AnimatePresence>
         {isModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            {/* Backdrop */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -961,7 +918,6 @@ export default function DashboardClient({ initialData, username }: DashboardClie
               className="absolute inset-0 bg-black/60 backdrop-blur-md"
             />
 
-            {/* Modal Dialog */}
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 16 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -969,7 +925,6 @@ export default function DashboardClient({ initialData, username }: DashboardClie
               transition={{ type: 'spring', stiffness: 300, damping: 30 }}
               className="relative w-full max-w-md overflow-hidden rounded-2xl border border-black/10 bg-white p-6 dark:border-[rgba(255,255,255,0.08)] dark:bg-[#0a0a0a] shadow-xl"
             >
-              {/* Close Button */}
               <button
                 onClick={() => setIsModalOpen(false)}
                 className="absolute right-4 top-4 rounded-xl p-1 text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5 dark:text-white/40 hover:text-black dark:hover:text-white transition-all"
