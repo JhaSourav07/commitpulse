@@ -35,7 +35,7 @@ export interface TowerData {
   intensityLevel: number; // Quartile level (0 for no commits, 1 to 4 based on contribution intensity)
 }
 
-function computeTowerHeight(
+export function computeTowerHeight(
   count: number,
   scale: 'linear' | 'log',
   shouldShowGhostCity: boolean
@@ -47,12 +47,12 @@ function computeTowerHeight(
     : Math.min(count * LINEAR_SCALE_MULTIPLIER, MAX_LINEAR_HEIGHT);
 }
 
-function computeFaceOpacity(count: number, isGhostCityMode: boolean): FaceOpacity {
+export function computeFaceOpacity(count: number, isGhostCityMode: boolean): FaceOpacity {
   if (isGhostCityMode) {
-    return { left: 0, right: 0, top: 0.02 };
+    return { left: 0, right: 0, top: 0.08 };
   }
   if (count === 0) {
-    return { left: 0, right: 0, top: 0.02 };
+    return { left: 0, right: 0, top: 0.08 };
   }
   return { left: 0.35, right: 0.21, top: 0.7 };
 }
@@ -118,7 +118,7 @@ export function computeTowers(
       const isTodayWithCommits = isToday && hasCommits;
 
       const unit = mode === 'loc' ? 'lines of code' : 'contributions';
-      const tooltip = isTodayWithCommits
+      const tooltip = isToday
         ? `TODAY: ${day.date}: ${count} ${unit}`
         : `${day.date}: ${count} ${unit}`;
 
@@ -127,9 +127,9 @@ export function computeTowers(
       let intensityLevel = 0;
       if (hasCommits) {
         if (maxCommits <= 4) {
-          intensityLevel = Math.min(4, day.contributionCount);
+          intensityLevel = Math.min(4, count);
         } else {
-          const ratio = day.contributionCount / maxCommits;
+          const ratio = count / maxCommits;
           if (ratio <= 0.25) intensityLevel = 1;
           else if (ratio <= 0.5) intensityLevel = 2;
           else if (ratio <= 0.75) intensityLevel = 3;

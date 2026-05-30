@@ -29,6 +29,15 @@ describe('GET /api/github', () => {
     expect(body.error).toContain('Invalid parameters');
   });
 
+  it('returns 400 and skips GitHub when username format is invalid', async () => {
+    const response = await GET(makeRequest({ username: 'bad user' }));
+    const body = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(body.error).toContain('Invalid parameters');
+    expect(getFullDashboardData).not.toHaveBeenCalled();
+  });
+
   // Test 2 — valid username → 200
   it('returns 200 with JSON body for a valid username', async () => {
     vi.mocked(getFullDashboardData).mockResolvedValue({ profile: 'octocat' } as never);

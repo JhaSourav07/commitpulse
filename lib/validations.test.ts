@@ -552,16 +552,15 @@ describe('streakParamsSchema — boolean transform fields', () => {
   });
 
   // ── hide_background ────────────────────────────────────────────────────────
-  // Stricter than hide_title/hide_stats — only exact 'true' is accepted,
-  // '1' does NOT enable it.
+  // Same dual-value rule as hide_title/hide_stats: 'true' and '1' are both truthy.
 
   describe('hide_background', () => {
     it('returns true when hide_background="true"', () => {
       expect(parse({ hide_background: 'true' }).hide_background).toBe(true);
     });
 
-    it('returns false when hide_background="1" (only exact "true" accepted)', () => {
-      expect(parse({ hide_background: '1' }).hide_background).toBe(false);
+    it('returns true when hide_background="1" (both "true" and "1" accepted)', () => {
+      expect(parse({ hide_background: '1' }).hide_background).toBe(true);
     });
 
     it('returns false when hide_background="false"', () => {
