@@ -259,7 +259,7 @@ export default function GrowthTrendChart({
                 key={month.key}
                 className="flex-1 min-w-[56px] flex flex-col items-center p-2 rounded-lg bg-gray-100 dark:bg-[#111] border border-black/10 dark:border-[rgba(255,255,255,0.04)] hover:border-black/20 dark:hover:border-[rgba(255,255,255,0.08)] transition-all duration-200"
               >
-                <span className="text-[10px] text-gray-500 dark:text-[#71717a] font-semibold">
+                <span className="text-[10px] text-gray-500 dark:text-white/60 font-semibold">
                   {month.label}
                 </span>
 

@@ -107,6 +107,24 @@ export class RateLimiter {
   async reset(ip: string): Promise<void> {
     await this.cache.delete(ip);
   }
+  /**
+   * Returns the number of remaining requests allowed for a given IP
+   * in the current window.
+   *
+   * Does not consume a request — use `check()` for that.
+   *
+   * @param ip - The IP address to check.
+   * @returns Promise resolving to the number of remaining requests,
+   *          or the full limit if the IP has no recorded requests.
+   *
+   * @example
+   * const left = await rateLimiter.remaining("192.168.1.1");
+   * console.log(`You have ${left} requests left.`);
+   */
+  async remaining(ip: string): Promise<number> {
+    const current = (await this.cache.get(ip)) ?? 0;
+    return Math.max(0, this.limit - current);
+  }
 
   allow(ip: string): void {
     this.allowlist.add(ip);

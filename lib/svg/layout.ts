@@ -25,6 +25,7 @@ export interface TowerData {
   isToday: boolean;
   isTodayWithCommits: boolean;
   tooltip: string;
+  date: string;
   contributionCount: number;
   faceOpacity: FaceOpacity;
   strokeOpacity: number;
@@ -118,7 +119,7 @@ export function computeTowers(
       const isTodayWithCommits = isToday && hasCommits;
 
       const unit = mode === 'loc' ? 'lines of code' : 'contributions';
-      const tooltip = isTodayWithCommits
+      const tooltip = isToday
         ? `TODAY: ${day.date}: ${count} ${unit}`
         : `${day.date}: ${count} ${unit}`;
 
@@ -146,6 +147,7 @@ export function computeTowers(
         isToday,
         isTodayWithCommits,
         tooltip,
+        date: day.date,
         contributionCount: count,
         faceOpacity: computeFaceOpacity(count, shouldShowGhostCity),
         strokeOpacity: isGhost ? 0.3 : 0,

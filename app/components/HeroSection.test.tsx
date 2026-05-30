@@ -48,3 +48,42 @@ describe('HeroSection', () => {
     expect(screen.getByText(/isometric/i).textContent).toMatch(/isometric/i);
   });
 });
+
+describe('HeroSection responsive rendering and typography (Variation 3)', () => {
+  it('renders full typography heading with high contrast gradient', () => {
+    render(<HeroSection />);
+    const heading = screen.getByRole('heading', { level: 1 });
+    expect(heading).toBeDefined();
+    expect(heading.className).toMatch(/text-5xl|text-8xl|font-extrabold/);
+  });
+
+  it('renders all three stat badges', () => {
+    render(<HeroSection />);
+    expect(screen.getByText(/1,247 Contributions/i)).toBeDefined();
+    expect(screen.getByText(/83 Pull Requests/i)).toBeDefined();
+    expect(screen.getByText(/214 Commits/i)).toBeDefined();
+  });
+
+  it('renders GitHub username input field', () => {
+    render(<HeroSection />);
+    const input = screen.getByPlaceholderText(/Enter GitHub Username/i);
+    expect(input).toBeDefined();
+  });
+
+  it('renders Watch Dashboard button', () => {
+    render(<HeroSection />);
+    const button = screen.getByText(/Watch Dashboard/i);
+    expect(button).toBeDefined();
+  });
+
+  it('renders Copy Link button', () => {
+    render(<HeroSection />);
+    const button = screen.getByText(/Copy Link/i);
+    expect(button).toBeDefined();
+  });
+
+  it('renders descriptive paragraph with professional precision text', () => {
+    render(<HeroSection />);
+    expect(screen.getByText(/professional precision/i)).toBeDefined();
+  });
+});

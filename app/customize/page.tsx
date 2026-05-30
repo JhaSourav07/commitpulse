@@ -16,7 +16,7 @@ import type {
   Language,
   Timezone,
 } from './types';
-import { getExportSnippet, stripHash } from './utils';
+import { getExportSnippet, buildQueryParams } from './utils';
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
@@ -46,11 +46,12 @@ export default function CustomizePage(): ReactElement {
   const [copied, setCopied] = useState(false);
   const [copyStatusMessage, setCopyStatusMessage] = useState('');
   const copyResetTimeoutRef = useRef<number | null>(null);
+  const [svgContent, setSvgContent] = useState<string>('');
+  const [svgState, setSvgState] = useState<'idle' | 'loading' | 'loaded' | 'error'>('idle');
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const trimmedUsername = username.trim();
   const hasUsername = trimmedUsername.length > 0;
-  const isAutoTheme = theme === 'auto';
   const isRandomTheme = theme === 'random';
-  const skipsCustomColors = isAutoTheme || isRandomTheme;
 
   useEffect(() => {
     return () => {
@@ -85,54 +86,9 @@ export default function CustomizePage(): ReactElement {
     }
   }, []);
 
-  // ── buildQueryParams ──────────────────────────────────────────────────────
-
-  const buildQueryParams = useCallback((): string => {
-    const params = new URLSearchParams();
-
-    if (hasUsername) {
-      params.set('user', trimmedUsername);
-    }
-
-    if (skipsCustomColors) {
-      // Virtual themes always emit theme=<name> and skip custom color params.
-      params.set('theme', theme);
-    } else {
-      const hasCustomColors = bgHex || accentHex || textHex;
-
-      // Custom hex colors take priority over theme
-      if (!hasCustomColors) {
-        params.set('theme', theme);
-      }
-      if (bgHex) params.set('bg', stripHash(bgHex));
-      if (accentHex) params.set('accent', stripHash(accentHex));
-      if (textHex) params.set('text', stripHash(textHex));
-    }
-
-    if (scale !== 'linear') params.set('scale', scale);
-    if (speed !== '8s') params.set('speed', speed);
-    if (font) params.set('font', font);
-    if (year) params.set('year', year);
-    if (radius !== 8) params.set('radius', radius.toString());
-    if (size !== 'medium') params.set('size', size);
-
-    if (hideTitle) params.set('hide_title', 'true');
-    if (hideBackground) params.set('hide_background', 'true');
-    if (hideStats) params.set('hide_stats', 'true');
-    if (viewMode !== 'default') params.set('view', viewMode);
-    if (deltaFormat !== 'percent') params.set('delta_format', deltaFormat);
-    if (badgeWidth !== '') params.set('width', badgeWidth.toString());
-    if (badgeHeight !== '') params.set('height', badgeHeight.toString());
-    if (grace !== 1) params.set('grace', grace.toString());
-    if (language !== 'en') params.set('lang', language);
-    if (timezone !== 'UTC') params.set('tz', timezone);
-
-    return params.toString();
-  }, [
-    hasUsername,
-    trimmedUsername,
+  const queryString = buildQueryParams({
+    username,
     theme,
-    skipsCustomColors,
     bgHex,
     accentHex,
     textHex,
@@ -152,10 +108,57 @@ export default function CustomizePage(): ReactElement {
     grace,
     language,
     timezone,
-  ]);
-
-  const queryString = buildQueryParams();
+  });
   const previewSrc = `/api/streak?${queryString}`;
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setErrorMessage(null);
+    if (!hasUsername) {
+      setSvgContent('');
+      setSvgState('idle');
+      return;
+    }
+
+    setSvgState('loading');
+    const controller = new AbortController();
+
+    fetch(previewSrc, { signal: controller.signal })
+      .then(async (res) => {
+        const text = await res.text();
+        if (!res.ok) {
+          setSvgContent('');
+          setSvgState('error');
+          if (res.status === 404 || res.status === 400) {
+            setErrorMessage('GitHub user not found');
+          } else if (res.status === 429) {
+            setErrorMessage('Rate limit exceeded. Please try again later.');
+          } else {
+            setErrorMessage('Failed to load badge');
+          }
+          return;
+        }
+        return text;
+      })
+      .then((text) => {
+        if (!text) return;
+        // Basic SVG sanitization to prevent XSS (strip scripts and inline event handlers)
+        const sanitized = text
+          .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, '')
+          .replace(/on\w+\s*=\s*("[^"]*"|'[^']*')/gi, '');
+        setSvgContent(sanitized);
+        setSvgState('loaded');
+        setErrorMessage(null);
+      })
+      .catch((err) => {
+        if (err.name === 'AbortError') return;
+        setSvgState('error');
+        setErrorMessage('Failed to load badge');
+      });
+
+    return () => controller.abort();
+  }, [previewSrc, hasUsername]);
+
   const exportSnippet = getExportSnippet(exportFormat, queryString);
 
   const fallbackCopyToClipboard = (text: string): boolean => {
@@ -246,7 +249,7 @@ export default function CustomizePage(): ReactElement {
           <Link
             href="/"
             id="back-to-home-link"
-            className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-black dark:text-white/40 dark:hover:text-white transition-colors group"
+            className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-black dark:text-white/55 dark:hover:text-white transition-colors group"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -283,7 +286,7 @@ export default function CustomizePage(): ReactElement {
           <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-black dark:text-white leading-tight mb-2">
             Fine-tune your monolith.
           </h1>
-          <p className="text-gray-600 dark:text-white/50 text-sm max-w-xl">
+          <p className="text-gray-600 dark:text-white/65 text-sm max-w-xl">
             Every change below updates the preview in real-time. Copy the export snippet when
             you&apos;re done. No extra steps required.
           </p>
@@ -371,17 +374,62 @@ export default function CustomizePage(): ReactElement {
                   <div className="absolute inset-0 bg-gradient-to-b from-transparent via-emerald-500/3 to-transparent animate-[pulse_3s_ease-in-out_infinite] pointer-events-none" />
 
                   {hasUsername ? (
-                    <>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        key={previewSrc}
-                        src={previewSrc}
-                        alt="CommitPulse live preview"
-                        width={600}
-                        height={420}
-                        className="max-w-full h-auto drop-shadow-[0_20px_60px_rgba(0,0,0,0.6)] transition-opacity duration-300"
-                      />
-                    </>
+                    <div className="w-full flex items-center justify-center">
+                      {svgState === 'loading' && (
+                        <div className="h-[240px] w-full max-w-[600px] rounded-2xl bg-black/5 dark:bg-white/5 animate-pulse flex items-center justify-center text-sm text-gray-500 dark:text-white/40">
+                          Loading preview...
+                        </div>
+                      )}
+                      {svgState === 'error' && errorMessage === 'GitHub user not found' && (
+                        <div className="flex flex-col items-center justify-center gap-4 py-12 text-center">
+                          <div className="flex h-16 w-16 items-center justify-center rounded-3xl border border-red-500/20 bg-red-500/10 shadow-inner">
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="h-8 w-8 text-red-500"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2.5"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            >
+                              <line x1="18" y1="6" x2="6" y2="18"></line>
+                              <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                          </div>
+                          <div>
+                            <p className="text-lg font-bold text-gray-900 dark:text-white tracking-tight">
+                              GitHub user not found
+                            </p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                              Please check the username and try again.
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                      {svgState === 'error' && errorMessage !== 'GitHub user not found' && (
+                        <div className="flex flex-col items-center justify-center gap-2 text-center py-8">
+                          <p className="text-sm font-semibold text-red-500 dark:text-red-400">
+                            Failed to load badge
+                          </p>
+                          <p className="text-xs text-gray-500 dark:text-white/45">
+                            The API may be unavailable. Please try again.
+                          </p>
+                        </div>
+                      )}
+                      {svgState === 'loaded' && svgContent && (
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.95 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ duration: 0.5, ease: 'easeOut' }}
+                          className="cp-svg-container w-full max-w-[600px] drop-shadow-[0_30px_60px_rgba(0,0,0,0.15)] dark:drop-shadow-[0_30px_60px_rgba(0,0,0,0.5)] [&>svg]:w-full [&>svg]:h-auto"
+                          dangerouslySetInnerHTML={{ __html: svgContent }}
+                        />
+                      )}
+                      {svgState === 'loaded' && !svgContent && errorMessage && (
+                        <p className="text-red-400 text-sm text-center">{errorMessage}</p>
+                      )}
+                    </div>
                   ) : (
                     <div className="relative z-10 flex w-full max-w-xl flex-col items-center justify-center rounded-[1.25rem] border border-dashed border-black/10 bg-gray-100/80 backdrop-blur-md dark:border-white/10 dark:bg-white/[0.03] px-6 py-12 text-center">
                       <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-black/10 bg-gray-100/80 dark:border-white/10 dark:bg-white/[0.04] text-gray-500 dark:text-emerald-300/70">
@@ -403,7 +451,7 @@ export default function CustomizePage(): ReactElement {
                       <p className="text-lg font-semibold tracking-tight text-black dark:text-white">
                         Enter a GitHub username to preview
                       </p>
-                      <p className="mt-2 max-w-md text-sm leading-relaxed text-gray-500 dark:text-white/45">
+                      <p className="mt-2 max-w-md text-sm leading-relaxed text-gray-500 dark:text-white/65">
                         The live badge preview will appear here once a username is added.
                       </p>
                     </div>
@@ -411,7 +459,7 @@ export default function CustomizePage(): ReactElement {
                 </InteractiveViewer>
               </div>
 
-              <p className="mt-3 text-[11px] text-gray-500 dark:text-white/30 text-center">
+              <p className="mt-3 text-[11px] text-gray-500 dark:text-white/55 text-center">
                 {hasUsername
                   ? isRandomTheme
                     ? 'Random theme changes on every page load and disables caching'
@@ -433,7 +481,7 @@ export default function CustomizePage(): ReactElement {
 
             {/* URL breakdown */}
             <div className="bg-white/70 backdrop-blur-xl border border-black/10 dark:bg-black/35 dark:border-white/10 rounded-[1.75rem] p-6 shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
-              <p className="text-xs font-bold uppercase tracking-[0.22em] text-gray-500 dark:text-white/30 mb-4">
+              <p className="text-xs font-bold uppercase tracking-[0.22em] text-gray-500 dark:text-white/55 mb-4">
                 Active Parameters
               </p>
               <div className="flex flex-wrap gap-2">
@@ -446,7 +494,7 @@ export default function CustomizePage(): ReactElement {
                         className="inline-flex items-center gap-1.5 bg-gray-100/80 backdrop-blur-md border border-black/10 dark:bg-white/[0.03] dark:border-white/10 rounded-lg px-3 py-1.5 text-xs font-mono"
                       >
                         <span className="text-purple-400">{decodeURIComponent(k)}</span>
-                        <span className="text-gray-400 dark:text-white/20">=</span>
+                        <span className="text-gray-400 dark:text-white/55">=</span>
                         <span className="text-emerald-600 dark:text-emerald-400">
                           {decodeURIComponent(v)}
                         </span>
