@@ -1,3 +1,5 @@
+// types/index.ts
+
 export type HexColor = string & { __brand: 'HexColor' };
 
 export type Scale = 'linear' | 'log';
@@ -46,6 +48,10 @@ export interface ContributionDay {
 
   /** Calendar date of this contribution entry (format: YYYY-MM-DD). */
   date: string;
+
+  // Added for LoC (Lines of Code) Mode
+  locAdditions?: number;
+  locDeletions?: number;
 }
 
 /**
@@ -77,8 +83,8 @@ export interface MonthlyStats {
   /** Total number of contributions in the previous calendar month. */
   previousMonthTotal: number;
 
-  /** Percentage change in contributions compared to the previous month (can be negative). */
-  deltaPercentage: number;
+  /** Percentage change in contributions compared to the previous month (can be negative). Null when previous month has zero contributions (undefined baseline). */
+  deltaPercentage: number | null;
 
   /** Absolute change in contribution count compared to the previous month (can be negative). */
   deltaAbsolute: number;
@@ -94,6 +100,8 @@ export interface MonthlyStats {
 export interface BadgeParams {
   /** GitHub username whose contribution data will be fetched and rendered. Required. */
   user: string;
+  /** GitHub username of the opponent to compare against. */
+  versus?: string;
 
   /** Number of grace days before a streak resets (handles timezone edge cases). Defaults to 1. */
   grace?: number;
@@ -105,7 +113,7 @@ export interface BadgeParams {
   text: HexColor;
 
   /** Tower and glow accent color as a hex string WITHOUT the leading '#'. Overrides theme default. */
-  accent: HexColor;
+  accent: HexColor | HexColor[];
 
   /** Duration of the radar scan line animation (e.g. '4s', '8s', '12s'). Defaults to '8s'. */
   speed: SpeedString;
@@ -118,6 +126,9 @@ export interface BadgeParams {
 
   /** Border corner radius in pixels. Defaults to 8. */
   radius?: number;
+
+  /** Custom stroke color for the main SVG container. Hex string WITHOUT the leading '#'. */
+  border?: string;
 
   /** When true, automatically selects a theme based on the viewer's system color scheme. */
   autoTheme?: boolean;
@@ -148,4 +159,29 @@ export interface BadgeParams {
 
   /** Preset size of the badge. 'small', 'medium', or 'large'. Overrides width and height. */
   size?: BadgeSize;
+
+  /** Rendering mode. 'commits' is the default. 'loc' switches to Lines of Code landscape. */
+  mode?: 'commits' | 'loc';
+
+  /** Render the monolith for a specific repository (e.g. "owner/repo") instead of the whole profile. */
+  repo?: string;
+
+  /** Organization name to generate a Mega-City for. */
+  org?: string;
+
+  /** When true, renders optional 3D isometric month headers and weekday labels. */
+  labels?: boolean;
+
+  /** Custom text color for the labels. Overrides text parameter. */
+  labelColor?: HexColor;
+
+  /**
+   * When true, applies intensity-based opacity shading to tower faces so
+   * lower intensity levels appear slightly translucent/dimmer.
+   * Default is false (opt-in).
+   */
+  shading?: boolean;
+
+  /** Opt-in to show volumetric gradients on the monolith floor. */
+  gradient?: boolean;
 }

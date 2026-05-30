@@ -46,6 +46,10 @@ describe('ShareSheet', () => {
         { name: 'TypeScript', percentage: 72, color: '#3178c6' },
         { name: 'JavaScript', percentage: 28, color: '#f1e05a' },
       ],
+      activity: [
+        { date: '2026-05-01', count: 3, intensity: 2 as const },
+        { date: '2026-05-02', count: 0, intensity: 0 as const },
+      ],
     },
   };
 
@@ -74,6 +78,7 @@ describe('ShareSheet', () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+    document.documentElement.classList.remove('dark');
   });
 
   it('does not render when isOpen is false', () => {
@@ -88,6 +93,7 @@ describe('ShareSheet', () => {
     expect(screen.getByText('Copy Link')).toBeDefined();
     expect(screen.getByText('Share on X')).toBeDefined();
     expect(screen.getByText('Download JSON')).toBeDefined();
+    expect(screen.getByText('Download CSV')).toBeDefined();
   });
   it('renders close button with correct aria-label and calls onClose', () => {
     render(<ShareSheet {...defaultProps} />);
@@ -195,7 +201,10 @@ describe('ShareSheet', () => {
     );
   });
 
-  it('handles Download PNG action', async () => {
+  it('handles Download PNG action in dark mode', async () => {
+    // Add 'dark' class to document.documentElement
+    document.documentElement.classList.add('dark');
+
     render(<ShareSheet {...defaultProps} />);
 
     // Create a mock document element to satisfy the selector
@@ -207,13 +216,72 @@ describe('ShareSheet', () => {
     fireEvent.click(downloadButton!);
 
     const { toPng } = await import('html-to-image');
-    expect(toPng).toHaveBeenCalled();
+    expect(toPng).toHaveBeenLastCalledWith(
+      expect.any(HTMLElement),
+      expect.objectContaining({
+        backgroundColor: '#050505',
+      })
+    );
 
     await waitFor(() => {
       expect(screen.getByText('Downloaded!')).toBeDefined();
     });
 
     document.body.removeChild(mockRoot);
+  });
+
+  it('handles Download PNG action in light mode', async () => {
+    // Ensure 'dark' class is NOT on document.documentElement
+    document.documentElement.classList.remove('dark');
+
+    render(<ShareSheet {...defaultProps} />);
+
+    // Create a mock document element to satisfy the selector
+    const mockRoot = document.createElement('div');
+    mockRoot.id = 'dashboard-root';
+    document.body.appendChild(mockRoot);
+
+    const downloadButton = screen.getByText('Download as PNG').closest('button');
+    fireEvent.click(downloadButton!);
+
+    const { toPng } = await import('html-to-image');
+    expect(toPng).toHaveBeenLastCalledWith(
+      expect.any(HTMLElement),
+      expect.objectContaining({
+        backgroundColor: '#ffffff',
+      })
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Downloaded!')).toBeDefined();
+    });
+
+    document.body.removeChild(mockRoot);
+  });
+
+  it('downloads dashboard data as CSV', async () => {
+    render(<ShareSheet {...defaultProps} />);
+
+    const csvButton = screen.getByText('Download CSV').closest('button');
+    fireEvent.click(csvButton!);
+
+    const blob = vi.mocked(URL.createObjectURL).mock.calls[0][0] as Blob;
+    const csv = await blob.text();
+
+    expect(blob.type).toBe('text/csv;charset=utf-8');
+    expect(csv).toContain('username,octocat');
+    expect(csv).toContain('totalContributions,365');
+    expect(csv).toContain('currentStreak,7');
+    expect(csv).toContain('longestStreak,14');
+    expect(csv).toContain('date,dailyContributionCount,intensity');
+    expect(csv).toContain('2026-05-01,3,2');
+
+    expect(HTMLAnchorElement.prototype.click).toHaveBeenCalled();
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:mock-download');
+
+    await waitFor(() => {
+      expect(screen.getByText('CSV Downloaded!')).toBeDefined();
+    });
   });
 
   it('downloads dashboard data as formatted JSON', async () => {
@@ -233,12 +301,41 @@ describe('ShareSheet', () => {
       topLanguages: defaultProps.exportData.languages,
     });
     expect(json.profileUrl).toContain('/octocat');
+    expect(json.contributionDates).toEqual(['2026-05-01', '2026-05-02']);
+    expect(json.dailyContributions).toEqual([
+      { date: '2026-05-01', count: 3, intensity: 2 },
+      { date: '2026-05-02', count: 0, intensity: 0 },
+    ]);
     expect(HTMLAnchorElement.prototype.click).toHaveBeenCalled();
     expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:mock-download');
 
     await waitFor(() => {
       expect(screen.getByText('JSON Downloaded!')).toBeDefined();
     });
+  });
+
+  it('handles Reddit share URL correctly', async () => {
+    render(<ShareSheet {...defaultProps} />);
+
+    const redditButton = screen.getByText('Reddit').closest('button');
+
+    fireEvent.click(redditButton!);
+
+    await waitFor(() => {
+      expect(window.open).toHaveBeenCalled();
+    });
+
+    expect(window.open).toHaveBeenCalledWith(
+      expect.stringContaining('reddit.com/submit'),
+      '_blank',
+      'noopener,noreferrer'
+    );
+
+    const calledUrl = vi.mocked(window.open).mock.calls[0][0] as string;
+
+    expect(calledUrl).toContain(encodeURIComponent(`/dashboard/${defaultProps.username}`));
+
+    expect(calledUrl).toContain('title=');
   });
 
   it('handles Download SVG action', async () => {

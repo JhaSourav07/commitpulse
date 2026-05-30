@@ -55,6 +55,13 @@ describe('GET /api/stats', () => {
     expect(fetchGitHubContributions).not.toHaveBeenCalled();
   });
 
+  it('returns 400 and skips GitHub when the username format is invalid', async () => {
+    const response = await GET(makeRequest({ user: 'octo/cat' }));
+
+    expect(response.status).toBe(400);
+    expect(fetchGitHubContributions).not.toHaveBeenCalled();
+  });
+
   it('returns 400 for an unknown timezone', async () => {
     const response = await GET(makeRequest({ user: 'testuser', tz: 'Not/ATimezone' }));
     expect(response.status).toBe(400);
