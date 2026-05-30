@@ -5,13 +5,30 @@ import { motion } from 'framer-motion';
 import { MapPin, Calendar, GitBranch, Users, UserPlus, Star, Share2 } from 'lucide-react';
 import type { DashboardExportData, UserProfile } from '@/types/dashboard';
 import ShareSheet from './ShareSheet';
-
+/**
+ * Properties for the ProfileCard component.
+ */
 interface ProfileCardProps {
+  /**
+   * The GitHub user profile data containing avatar details, name, bio,
+   * location metrics, and developer tracking score attributes.
+   */
   user: UserProfile;
+
+  /**
+   * The aggregated dashboard state data compiled for image export engines.
+   * This object is passed down to the `ShareSheet` component to render social share layouts.
+   */
   exportData: DashboardExportData;
+
+  /**
+   * Optional collection of decorative text strings representing earned system awards
+   * or user achievements shown on the profile card header segment.
+   */
+  badges?: string[];
 }
 
-export default function ProfileCard({ user, exportData }: ProfileCardProps) {
+export default function ProfileCard({ user, exportData, badges }: ProfileCardProps) {
   const [shareOpen, setShareOpen] = useState(false);
 
   return (
@@ -47,6 +64,18 @@ export default function ProfileCard({ user, exportData }: ProfileCardProps) {
             {user.name}
           </h2>
           <p className="text-sm text-[#A1A1AA] mb-4">@{user.username}</p>
+          {badges && badges.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 justify-center mb-4">
+              {badges.map((badge) => (
+                <span
+                  key={badge}
+                  className="text-[9px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full uppercase tracking-wider"
+                >
+                  {badge}
+                </span>
+              ))}
+            </div>
+          )}
           <p className=" text-xs xs:text-sm text-[#A1A1AA] leading-relaxed mb-5 max-w-[220px]">
             {user.bio}
           </p>

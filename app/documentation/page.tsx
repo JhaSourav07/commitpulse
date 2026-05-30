@@ -165,6 +165,26 @@ const themeDescriptions: Record<
     name: 'High Contrast',
     vibe: 'Ultra-high contrast dark theme with bold orange-red highlights for maximum visibility.',
   },
+
+  catppuccin_latte: {
+    name: 'Catppuccin Latte',
+    vibe: 'A cozy, warm light theme from the popular Catppuccin palette.',
+  },
+
+  solarized_light: {
+    name: 'Solarized Light',
+    vibe: 'The classic Solarized light palette with excellent contrast and retro aesthetics.',
+  },
+
+  gruvbox_light: {
+    name: 'Gruvbox Light',
+    vibe: 'Earthy, warm retro cream background with high-contrast charcoal text.',
+  },
+
+  nord_light: {
+    name: 'Nord Light',
+    vibe: 'Ice-cold and minimal light gray palette with signature arctic-blue accents.',
+  },
 };
 
 const allthemes = Object.entries(themePalette).map(([slug, palette]) => ({
@@ -196,7 +216,7 @@ export default function DocumentationPage() {
 
       <div className="relative mx-auto flex min-h-screen max-w-[1600px] flex-col px-6 pb-10 pt-6 md:px-8">
         <section className="mb-10 rounded-[2rem] border border-black/10 bg-white px-6 py-10 shadow-[0_20px_60px_rgba(0,0,0,0.06)] backdrop-blur dark:border-white/10 dark:bg-white/[0.03] dark:shadow-[0_30px_100px_rgba(0,0,0,0.45)] md:px-10">
-          <div className="mb-6 inline-flex items-center rounded-full border border-emerald-400/20 bg-emerald-500/10 px-4 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-emerald-300">
+          <div className="mb-6 inline-flex items-center rounded-full border border-emerald-300/30 bg-emerald-50 dark:border-emerald-400/20 dark:bg-emerald-500/10 px-4 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-emerald-700 dark:text-emerald-300">
             Documentation
           </div>
           <div className="grid gap-10 lg:grid-cols-[1.2fr_0.8fr] lg:items-end">
@@ -306,7 +326,7 @@ export default function DocumentationPage() {
                           key={parameter.name}
                           className="border-t border-black/10 align-top dark:border-white/8"
                         >
-                          <td className="px-4 py-4 font-mono text-sm text-emerald-300">
+                          <td className="px-4 py-4 font-mono text-sm text-emerald-700 dark:text-emerald-300">
                             {parameter.name}
                           </td>
                           <td className="px-4 py-4 text-sm text-gray-700 dark:text-white/70">
@@ -401,7 +421,7 @@ export default function DocumentationPage() {
                   key={note}
                   className="flex gap-3 rounded-[1.25rem] border border-black/10 bg-gray-50 px-4 py-4 dark:border-white/8 dark:bg-black/35"
                 >
-                  <span className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-400 shadow-[0_0_18px_rgba(52,211,153,0.9)]" />
+                  <span className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-500 dark:bg-emerald-400 shadow-[0_0_18px_rgba(52,211,153,0.9)]" />
                   <p className="text-sm leading-7 text-gray-600 dark:text-white/60">{note}</p>
                 </div>
               ))}
@@ -439,6 +459,50 @@ export default function DocumentationPage() {
             </div>
           </Panel>
         </section>
+        <section className="mb-8">
+          <Panel
+            eyebrow="FAQ"
+            title="Frequently Asked Questions"
+            description="Quick answers to the most common questions from the CommitPulse community."
+          >
+            <div className="space-y-3">
+              {[
+                {
+                  q: 'How do I change the accent color of my badge?',
+                  a: 'Add &accent=ff6b35 to your URL with any hex color (no # needed). This overrides the theme accent color.',
+                },
+                {
+                  q: 'Can I use a custom font?',
+                  a: 'Yes — use the &font= parameter. Pass any Google Font name (e.g. &font=Fira+Code). If left blank, the theme default is used.',
+                },
+                {
+                  q: 'Why does my badge show NOT FOUND?',
+                  a: 'This means the GitHub username does not exist or has no public contribution data. Double-check your username spelling.',
+                },
+                {
+                  q: 'How do I embed the badge in my README?',
+                  a: 'Copy the markdown snippet from the homepage and paste it into your GitHub profile README. The badge renders automatically.',
+                },
+                {
+                  q: 'Can I preview my badge before adding it to my README?',
+                  a: 'Yes! Enter your GitHub username on the homepage to instantly preview your 3D contribution monolith before copying the link.',
+                },
+                {
+                  q: 'Which themes are available?',
+                  a: 'CommitPulse includes dark, neon, dracula, github, light, ocean, sunset, forest, rose, nord, synthwave, gruvbox and highcontrast. See the Theme Gallery above for previews.',
+                },
+              ].map(({ q, a }) => (
+                <div
+                  key={q}
+                  className="rounded-[1.25rem] border border-black/10 bg-gray-50 px-5 py-4 dark:border-white/8 dark:bg-black/35"
+                >
+                  <p className="text-sm font-semibold text-black dark:text-white">{q}</p>
+                  <p className="mt-2 text-sm leading-7 text-gray-600 dark:text-white/60">{a}</p>
+                </div>
+              ))}
+            </div>
+          </Panel>
+        </section>
       </div>
     </main>
   );
@@ -457,7 +521,7 @@ function Panel({
 }) {
   return (
     <section className="rounded-[2rem] border border-black/10 bg-white p-6 shadow-[0_20px_60px_rgba(0,0,0,0.06)] backdrop-blur dark:border-white/10 dark:bg-white/[0.03] dark:shadow-[0_30px_80px_rgba(0,0,0,0.32)] md:p-8">
-      <p className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-300">
+      <p className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-600 dark:text-emerald-300">
         {eyebrow}
       </p>
       <h2 className="mt-3 text-2xl font-bold tracking-tight text-black dark:text-white md:text-3xl">
