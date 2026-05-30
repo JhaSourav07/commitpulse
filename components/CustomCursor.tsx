@@ -9,7 +9,6 @@ export default function CustomCursor() {
   const [isMobile, setIsMobile] = useState(true);
 
   useEffect(() => {
-    // 1. Strictly respect users who prefer reduced motion (Accessibility Check)
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     const mobileCheck =
@@ -63,7 +62,6 @@ export default function CustomCursor() {
 
   return (
     <>
-      {/* Layered safely at z-[100000] to sit cleanly on top of dashboard tooltips */}
       <div
         className={`fixed top-0 left-0 w-2 h-2 bg-emerald-400 rounded-full pointer-events-none z-[100000] transform -translate-x-1/2 -translate-y-1/2 transition-transform duration-75 ${
           isHovered ? 'scale-75 bg-cyan-400' : ''

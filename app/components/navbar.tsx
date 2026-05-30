@@ -214,26 +214,17 @@ export default function Navbar() {
                   <button
                     type="button"
                     onClick={toggleTheme}
-                    className="inline-flex w-full items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-gray-300 hover:bg-gray-100 dark:border-white/15 dark:bg-white/5 dark:text-white/90 dark:hover:border-white/45 dark:hover:bg-white/10"
-                    aria-label="Toggle theme mobile"
+                    className="hidden sm:inline-flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200 bg-gray-50 text-gray-700 transition hover:bg-gray-100 dark:border-white/15 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
+                    aria-label="Toggle theme"
                   >
                     {mounted ? (
                       isDark ? (
-                        <>
-                          <Moon size={18} />
-                          <span>Light Mode</span>
-                        </>
+                        <Moon size={18} />
                       ) : (
-                        <>
-                          <Sun size={18} />
-                          <span>Dark Mode</span>
-                        </>
+                        <Sun size={18} />
                       )
                     ) : (
-                      <>
-                        <span className="w-[18px] h-[18px]" />
-                        <span>Theme</span>
-                      </>
+                      <span className="w-[18px] h-[18px]" />
                     )}
                   </button>
                 </li>
