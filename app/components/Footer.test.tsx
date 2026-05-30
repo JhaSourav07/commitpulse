@@ -39,3 +39,29 @@ describe('Footer Component', () => {
     expect(contributorsLink).toBeTruthy();
   });
 });
+it('renders CommitPulse heading', () => {
+  render(<Footer />);
+
+  const heading = screen.getByText('CommitPulse');
+
+  expect(heading).toBeTruthy();
+});
+it('renders Creator link', () => {
+  render(<Footer />);
+
+  const creatorLink = screen.getByText(/Creator/i);
+
+  expect(creatorLink).toBeTruthy();
+});
+it('creator link points to GitHub profile', () => {
+  render(<Footer />);
+
+  const creatorLink = screen.getByText(/Creator/i);
+
+  expect(creatorLink.closest('a')?.getAttribute('href')).toBe('https://github.com/jhasourav07');
+});
+it('renders copyright text', () => {
+  render(<Footer />);
+
+  expect(screen.getByText(/© 2026 CommitPulse. All rights reserved./i)).toBeTruthy();
+});
