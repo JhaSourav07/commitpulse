@@ -104,7 +104,7 @@ export default function LandingPage() {
 
     fetch(badgeUrl, { signal: controller.signal })
       .then((res) => {
-        if (res.status === 404) {
+        if (!res.ok) {
           setSvgState('error');
           return;
         }
