@@ -155,7 +155,13 @@ describe('LandingPage', () => {
 
   it('disables the Watch Dashboard link when the username is empty', () => {
     render(<LandingPage />);
-    expect(screen.getByText('something')).toBeDefined();
+
+    const dashboardLink = screen.getByRole('link', {
+      name: 'Watch Dashboard',
+    });
+
+    expect(dashboardLink.getAttribute('aria-disabled')).toBe('true');
+    expect(dashboardLink.getAttribute('href')).toBe('/');
   });
 
   it('enables the Watch Dashboard link after a username is entered', () => {
