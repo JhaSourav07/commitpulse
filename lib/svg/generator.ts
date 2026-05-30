@@ -478,9 +478,8 @@ export function generateSVG(
   const googleFontUrlPart =
     sanitizedFont && !isPredefinedFont ? sanitizeGoogleFontUrl(sanitizedFont) : null;
 
-  // FIXED: Escaped ampersand for proper XML parsing
   const googleFontsImport = googleFontUrlPart
-    ? `@import url('https://fonts.googleapis.com/css2?family=${googleFontUrlPart}&amp;display=swap');`
+    ? `@import url('https://fonts.googleapis.com/css2?family=${googleFontUrlPart}&display=swap');`
     : '';
 
   const sf = getSizeScale(params.size);
@@ -501,7 +500,8 @@ export function generateSVG(
   const mainAccentHex = mainAccent.startsWith('#') ? mainAccent : `#${mainAccent}`;
 
   // 1️⃣ THE INTELLIGENCE INJECTION: Safely extract single string for gradients
-  const safeAccentStr = (Array.isArray(accent) ? accent[0] : accent) as string;
+  const extracted = (Array.isArray(accent) && accent.length > 0 ? accent[0] : accent) || '00ffaa';
+  const safeAccentStr = String(extracted);
   const finalAccent = safeAccentStr.startsWith('#') ? safeAccentStr : `#${safeAccentStr}`;
 
   const personaElement = params.persona
@@ -535,7 +535,6 @@ export function generateSVG(
       }
     </style>
     
-    <!-- Position perfectly centered under the username -->
     <g transform="translate(${Math.round(300 * sf)}, ${Math.round(80 * sf)})">
       <g class="persona-badge">
         <rect 
@@ -615,6 +614,7 @@ function generateAutoThemeSVG(
 
   <style>
   @import url('https://fonts.googleapis.com/css2?family=Fira+Code&amp;family=JetBrains+Mono&amp;family=Roboto&amp;family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');
+  ${googleFontsImport}
   :root { --cp-bg: #${light.bg}; --cp-text: #${light.text}; --cp-accent: #${light.accent}; }
   @media (prefers-color-scheme: dark) { :root { --cp-bg: #${dark.bg}; --cp-text: #${dark.text}; --cp-accent: #${dark.accent}; } }
   .cp-bg-fill { fill: var(--cp-bg); } .cp-text-fill { fill: var(--cp-text); color: var(--cp-text); } .cp-accent-fill { fill: var(--cp-accent); color: var(--cp-accent); }
@@ -706,7 +706,7 @@ export function generateMonthlySVG(stats: MonthlyStats, params: BadgeParams): st
   const googleFontUrlPart =
     sanitizedFont && !isPredefinedFont ? sanitizeGoogleFontUrl(sanitizedFont) : null;
   const googleFontsImport = googleFontUrlPart
-    ? `@import url('https://fonts.googleapis.com/css2?family=${googleFontUrlPart}&amp;display=swap');`
+    ? `@import url('https://fonts.googleapis.com/css2?family=${googleFontUrlPart}&display=swap');`
     : '';
 
   const commitsLabel = params.mode === 'loc' ? 'LINES THIS MONTH' : labels.COMMITS_THIS_MONTH;
@@ -815,7 +815,7 @@ export function generateWrappedSVG(
   const googleFontUrlPart =
     sanitizedFont && !isPredefinedFont ? sanitizeGoogleFontUrl(sanitizedFont) : null;
   const googleFontsImport = googleFontUrlPart
-    ? `@import url('https://fonts.googleapis.com/css2?family=${googleFontUrlPart}&amp;display=swap');`
+    ? `@import url('https://fonts.googleapis.com/css2?family=${googleFontUrlPart}&display=swap');`
     : '';
 
   // Format month name (e.g. "2025-11" -> "NOVEMBER")
@@ -972,12 +972,10 @@ export function generateWrappedSVG(
 
   <rect width="420" height="260" rx="${radius}" ${rectFill} ${borderStroke} />
 
-  <!-- Background holographic mini-monolith -->
   <g opacity="0.8">
     ${bgTowersMarkup}
   </g>
 
-  <!-- Horizontal holographic scan-line -->
   <rect
     x="15"
     y="15"
@@ -989,48 +987,37 @@ export function generateWrappedSVG(
     style="--scan-speed: ${params.speed || '8s'};"
   />
 
-  <!-- Header -->
   <g transform="translate(25, 45)">
     <text x="0" y="0" class="title-user" ${textClass}>${safeUser.toUpperCase()}'S GRIND</text>
     <text x="370" y="0" text-anchor="end" class="title-wrapped" ${accentClass}>${year} WRAPPED</text>
     <line x1="0" y1="12" x2="370" y2="12" stroke="${params.autoTheme ? 'var(--cp-accent)' : accent}" stroke-opacity="0.15" stroke-width="1" />
   </g>
 
-  <!-- Left Stats Block (Total contributions) -->
   <g transform="translate(25, 120)">
     <text x="0" y="15" class="total-commits" ${accentClass} filter="url(#glow)">${stats.totalContributions}</text>
     <text x="2" y="38" class="total-label" ${textClass}>TOTAL CONTRIBUTIONS</text>
   </g>
 
-  <!-- Vertical Divider -->
   <line x1="185" y1="80" x2="185" y2="230" stroke="${params.autoTheme ? 'var(--cp-accent)' : accent}" stroke-opacity="0.12" stroke-width="1" stroke-dasharray="3 3" />
 
-  <!-- Right Section: 2x2 Spaced Grid -->
-  <!-- Row 1: Top Language (Col 1) and Weekend Grind (Col 2) -->
   <g transform="translate(210, 80)">
-    <!-- Top Language -->
     <g transform="translate(0, 20)">
       <text x="0" y="0" class="grid-label" ${textClass}>TOP LANGUAGE</text>
       <text x="0" y="20" class="grid-val" ${accentClass}>${stats.topLanguage || 'Unknown'}</text>
     </g>
 
-    <!-- Weekend Grind Progress Arc -->
     <g transform="translate(130, 20)">
       <text x="0" y="0" class="grid-label" ${textClass}>WEEKEND GRIND</text>
       <g transform="translate(25, 24)">
-        <!-- Background Track -->
         <circle cx="0" cy="0" r="14" stroke="${params.autoTheme ? 'var(--cp-text)' : text}" stroke-opacity="0.1" stroke-width="2.5" fill="none" />
-        <!-- Progress Bar -->
         <circle cx="0" cy="0" r="14" stroke="${params.autoTheme ? 'var(--cp-accent)' : accent}" stroke-width="3" fill="none"
                 stroke-dasharray="${circ.toFixed(2)}" stroke-dashoffset="${strokeDashoffset.toFixed(2)}"
                 stroke-linecap="round" transform="rotate(-90)" />
-        <!-- Text inside progress circle -->
         <text x="0" y="3.5" text-anchor="middle" font-family="${statsFont}" font-size="9" font-weight="700" ${textClass}>${clampedRatio}%</text>
       </g>
     </g>
   </g>
 
-  <!-- Row 2: Peak Day -->
   <g transform="translate(210, 150)">
     <text x="0" y="0" class="grid-label" ${textClass}>PEAK DAY</text>
     <text x="0" y="20" class="grid-val" ${textClass}>
@@ -1039,7 +1026,6 @@ export function generateWrappedSVG(
     </text>
   </g>
 
-  <!-- Row 3: Busiest Month -->
   <g transform="translate(210, 205)">
     <text x="0" y="0" class="grid-label" ${textClass}>BUSIEST MONTH</text>
     <text x="0" y="20" class="grid-val" ${textClass}>
@@ -1116,6 +1102,7 @@ function generateAutoThemeMonthlySVG(stats: MonthlyStats, params: BadgeParams): 
   <title>Monthly Stats for ${safeUser}</title>
   <style>
   @import url('https://fonts.googleapis.com/css2?family=Fira+Code&amp;family=JetBrains+Mono&amp;family=Roboto&amp;family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');
+  ${googleFontsImport}
   :root { --cp-bg: #${light.bg}; --cp-text: #${light.text}; --cp-accent: #${light.accent}; --cp-negative: #ff4444; }
   @media (prefers-color-scheme: dark) { :root { --cp-bg: #${dark.bg}; --cp-text: #${dark.text}; --cp-accent: #${dark.accent}; --cp-negative: #ff6666; } }
   .cp-bg-fill { fill: var(--cp-bg); } 
@@ -1304,7 +1291,7 @@ export function generateNotFoundSVG(
 
   <rect width="${SVG_WIDTH}" height="${SVG_HEIGHT}" rx="${radius}" fill="url(#ghostFade)"/>
 
-  <rect x="100" y="60" width="400" height="1" class="scan-line" fill="${accent}" fill-opacity="0.12" style="--scan-speed: ${speed};"/>
+  <rect x="100" y="80" width="400" height="1" class="scan-line" fill="${accent}" fill-opacity="0.12" style="--scan-speed: ${speed};"/>
 
   <text x="300" y="50" text-anchor="middle" class="title">${safeName}</text>
 
@@ -1380,7 +1367,7 @@ export function generateVersusSVG(
     sanitizedFont && !isPredefinedFont ? sanitizeGoogleFontUrl(sanitizedFont) : null;
 
   const googleFontsImport = googleFontUrlPart
-    ? `@import url('https://fonts.googleapis.com/css2?family=${googleFontUrlPart}&amp;display=swap');`
+    ? `@import url('https://fonts.googleapis.com/css2?family=${googleFontUrlPart}&display=swap');`
     : '';
 
   const sf = getSizeScale(params.size);
@@ -1452,6 +1439,16 @@ function generateAutoThemeVersusSVG(
       `"${sanitizedFont}", sans-serif`
     : null;
   const statsFont = selectedFont || '"Space Grotesk", sans-serif';
+
+  const isPredefinedFont = Boolean(
+    sanitizedFont && FONT_MAP[sanitizedFont.toLowerCase() as keyof typeof FONT_MAP]
+  );
+  const googleFontUrlPart =
+    sanitizedFont && !isPredefinedFont ? sanitizeGoogleFontUrl(sanitizedFont) : null;
+  const googleFontsImport = googleFontUrlPart
+    ? `@import url('https://fonts.googleapis.com/css2?family=${googleFontUrlPart}&display=swap');`
+    : '';
+
   const sf = getSizeScale(params.size);
   const radius = sanitizeRadius(params.radius, 8) * sf;
   const labels = getLabels(params.lang);
@@ -1547,6 +1544,7 @@ function generateAutoThemeVersusSVG(
   
   <style>
   @import url('https://fonts.googleapis.com/css2?family=Fira+Code&amp;family=JetBrains+Mono&amp;family=Roboto&amp;family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');
+  ${googleFontsImport}
   :root { --cp-bg: #${light.bg}; --cp-text: #${light.text}; --cp-accent: #${light.accent}; }
   @media (prefers-color-scheme: dark) { :root { --cp-bg: #${dark.bg}; --cp-text: #${dark.text}; --cp-accent: #${dark.accent}; } }
   .cp-bg-fill { fill: var(--cp-bg); } .cp-text-fill { fill: var(--cp-text); color: var(--cp-text); } .cp-accent-fill { fill: var(--cp-accent); color: var(--cp-accent); }
@@ -1705,7 +1703,6 @@ export function generateRateLimitSVG(
 
   <rect x="180" y="62" width="240" height="1" fill="${accent}" fill-opacity="0.15"/>
 
-  <!-- Warning mark -->
   <circle cx="300" cy="190" r="32" fill="none"
     stroke="${accent}" stroke-width="1.2" stroke-opacity="0.3" filter="url(#softglow)"/>
   <path d="M300 172 V200 M300 210 V210.1"

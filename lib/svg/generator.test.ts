@@ -1,3 +1,4 @@
+// lib/svg/generator.test.ts
 import { describe, it, expect } from 'vitest';
 import {
   generateSVG,
@@ -186,7 +187,7 @@ describe('generateSVG', () => {
     );
 
     expect(svg).toContain(
-      "@import url('https://fonts.googleapis.com/css2?family=Inter&amp;display=swap');"
+      "@import url('https://fonts.googleapis.com/css2?family=Inter&display=swap');"
     );
     expect(svg).toContain('font-family: "Inter", sans-serif;');
   });
@@ -1266,21 +1267,15 @@ describe('Radar Scan Line Animation Alignment', () => {
     expect(svg).toContain('rect x="100" y="80"');
   });
 
-  it('safely truncates usernames longer than 30 chars with trailing dots', () => {
-    // 1. Arrange: Create a username strictly longer than 30 characters
+  it('safely truncates usernames longer than 12 chars with trailing dots', () => {
     const longUsername = 'ThisIsAVeryLongUsernameThatExceedsThirtyCharacters';
-
-    // 2. Act: Pass the string AND the max length of 30
     const result = truncateUsername(longUsername);
 
-    // 3. Assert: Verify it contains the trailing dots
+    // Assert: Verify it contains the trailing dots
     expect(result.endsWith('...')).toBe(true);
 
-    // 4. Assert: Verify the string was actually truncated
-    // If it caps at 30 chars and adds '...', the max length is 33.
-    expect(result.length).toBeLessThanOrEqual(33);
-
-    // 5. Assert: Ensure the original string was actually modified
+    // Assert: Verify the string was properly capped at 12 chars + '...' (15 length)
+    expect(result.length).toBe(15);
     expect(result).not.toEqual(longUsername);
   });
 
