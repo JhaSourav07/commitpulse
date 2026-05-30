@@ -8,8 +8,25 @@ import { CONTRIBUTION_MILESTONES, STREAK_MILESTONES } from './svg/constants';
 
 interface GitHubRepo {
   stargazers_count: number;
+  forks_count: number;
+  fork: boolean;
+  html_url: string;
   language: string | null;
+  description: string | null;
+  name: string;
 }
+
+type StreakStats = {
+  totalContributions: number;
+  currentStreak: number;
+  longestStreak: number;
+};
+
+type Language = {
+  name: string;
+  percentage?: number;
+  color?: string;
+};
 
 const MAX_RETRIES = 3;
 const BASE_DELAY_MS = 500;
@@ -154,6 +171,7 @@ function throwIfRateLimited(res: Response): void {
     throw createRateLimitError(res);
   }
 }
+const MISSING_GITHUB_TOKEN_MESSAGE = 'GitHub token is missing. Set GITHUB_PAT or GITHUB_TOKEN.';
 
 type GitHubContributionResponse = {
   data?: {
@@ -186,10 +204,6 @@ type FetchOptions = {
 };
 
 export const GITHUB_CACHE_TTL_MS = 5 * 60 * 1000;
-
-const contributionsCache = new DistributedCache<ContributionCalendar>(1000);
-const profileCache = new DistributedCache<GitHubUserProfile>(1000);
-const reposCache = new DistributedCache<GitHubRepo[]>(500);
 const pendingContributions = new Map<string, Promise<ContributionCalendar>>();
 const pendingProfiles = new Map<string, Promise<GitHubUserProfile>>();
 const pendingRepos = new Map<string, Promise<GitHubRepo[]>>();
@@ -207,6 +221,14 @@ interface GitHubUserProfile {
   type?: string; // e.g. "User" or "Organization"
   plan?: { name?: string } | null;
 }
+
+const MAX_CONTRIBUTIONS_CACHE_SIZE = 1000;
+const MAX_PROFILE_CACHE_SIZE = 1000;
+const MAX_REPOS_CACHE_SIZE = 500;
+
+const contributionsCache = new TTLCache<ContributionCalendar>(MAX_CONTRIBUTIONS_CACHE_SIZE);
+const profileCache = new TTLCache<GitHubUserProfile>(MAX_PROFILE_CACHE_SIZE);
+const reposCache = new TTLCache<GitHubRepo[]>(MAX_REPOS_CACHE_SIZE);
 
 export function cacheKey(
   kind: 'contributions' | 'profile' | 'repos',
@@ -242,11 +264,9 @@ function dedupeRequest<T>(
 
 function getGitHubToken(): string {
   const token = process.env.GITHUB_PAT || process.env.GITHUB_TOKEN;
-  const MISSING_GITHUB_TOKEN_MESSAGE = 'GitHub token is missing. Set GITHUB_PAT or GITHUB_TOKEN.';
   if (!token || token.trim() === '') {
     throw new Error(MISSING_GITHUB_TOKEN_MESSAGE);
   }
-
   return token;
 }
 
@@ -272,6 +292,10 @@ export async function fetchGitHubContributions(
   username: string,
   options: FetchOptions = {}
 ): Promise<ContributionCalendar> {
+  if (!validateGitHubUsername(username)) {
+    console.warn(`[GitHub API] Username "${username}" does not match format.`);
+  }
+
   const key = cacheKey('contributions', username, options.from?.substring(0, 4));
   if (!options.bypassCache) {
     const cached = await contributionsCache.get(key);
@@ -568,6 +592,89 @@ export async function getOrgDashboardData(orgName: string, options: FetchOptions
   };
 }
 
+/**
+ * Cultivates data specifically tailored for the end-of-year GitHub Wrapped infographic.
+ */
+export async function getWrappedData(username: string, year: string) {
+  const options = {
+    from: `${year}-01-01T00:00:00Z`,
+    to: `${year}-12-31T23:59:59Z`,
+    bypassCache: true,
+  };
+  const calendar = await fetchGitHubContributions(username, options);
+  const repos = await fetchUserRepos(username, options);
+
+  const wrappedStats = calculateWrappedStats(calendar);
+
+  // Top languages specific to wrapped
+  const langCounts: Record<string, number> = {};
+  repos.forEach((r) => {
+    if (r.language) langCounts[r.language] = (langCounts[r.language] || 0) + 1;
+  });
+
+  return {
+    ...wrappedStats,
+    topLanguage:
+      Object.keys(langCounts).sort((a, b) => langCounts[b] - langCounts[a])[0] || 'Unknown',
+  };
+}
+
+async function fetchPinnedRepos(username: string): Promise<
+  {
+    name: string;
+    description: string | null;
+    stargazerCount: number;
+    forkCount: number;
+    url: string;
+    primaryLanguage: { name: string; color: string } | null;
+  }[]
+> {
+  const query = `
+    query($login: String!) {
+      user(login: $login) {
+        pinnedItems(first: 4, types: REPOSITORY) {
+          nodes {
+            ... on Repository {
+              name
+              description
+              stargazerCount: pioneer @deprecated(reason: "use stargazerCount") stargazerCount
+              forkCount
+              url
+              primaryLanguage {
+                name
+                color
+              }
+            }
+          }
+        }
+      }
+    }
+  `;
+
+  const queryCleaned = query.replace(
+    'stargazerCount: pioneer @deprecated(reason: "use stargazerCount") stargazerCount',
+    'stargazerCount: stargazerCount'
+  );
+
+  try {
+    const res = await fetchWithRetry(GITHUB_GRAPHQL_URL, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ query: queryCleaned, variables: { login: username } }),
+      cache: 'no-store',
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data?.data?.user?.pinnedItems?.nodes || [];
+  } catch {
+    return [];
+  }
+}
+
+/* ==========================================================================
+ * UTILS & EXPORTS
+ * ========================================================================== */
+
 export function generateAchievements(
   totalContributions: number,
   currentStreak: number,
@@ -577,7 +684,6 @@ export function generateAchievements(
 ) {
   const achievements = [];
 
-  // ── Contribution milestones ────────────────────────────────────────────────
   for (const threshold of CONTRIBUTION_MILESTONES) {
     achievements.push({
       id: `contrib-${threshold}`,
@@ -638,7 +744,6 @@ export function generateAchievements(
   }
 
   // ── Weekend Warrior ────────────────────────────────────────────────────────
-  // Computed from commitClock: dayTotals[0] (Sun) + dayTotals[6] (Sat).
   achievements.push({
     id: 'weekend-warrior',
     title: 'Weekend Warrior',
@@ -652,7 +757,6 @@ export function generateAchievements(
   });
 
   // ── Polyglot ───────────────────────────────────────────────────────────────
-  // Computed from fetchUserRepos: count of distinct repo.language values.
   achievements.push({
     id: 'polyglot',
     title: 'Polyglot',
@@ -667,15 +771,6 @@ export function generateAchievements(
 
   return achievements;
 }
-type StreakStats = {
-  totalContributions: number;
-  currentStreak: number;
-  longestStreak: number;
-};
-
-type Language = {
-  name: string;
-};
 
 export function buildInsights(streakStats: StreakStats, languages: Language[]) {
   const insights = [
@@ -684,18 +779,14 @@ export function buildInsights(streakStats: StreakStats, languages: Language[]) {
       icon: 'Flame',
       text: `You have a total of ${streakStats.totalContributions} contributions this year.`,
     },
-    {
-      id: '2',
-      icon: 'Code',
-      text: `Your primary language is ${languages[0]?.name || 'Unknown'}.`,
-    },
+    { id: '2', icon: 'Code', text: `Your primary language is ${languages[0]?.name || 'Unknown'}.` },
   ];
 
   if (streakStats.currentStreak > 3) {
     insights.push({
       id: '3',
       icon: 'Zap',
-      text: `You are currently on an active ${streakStats.currentStreak}-day streak! Keep it going!`,
+      text: `You are currently on an active ${streakStats.currentStreak}-day streak!`,
     });
   } else {
     insights.push({
@@ -711,18 +802,28 @@ export function buildInsights(streakStats: StreakStats, languages: Language[]) {
 export function buildCommitClock(allDays: ContributionDay[]) {
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   const dayTotals = new Array(7).fill(0);
+
   for (const day of allDays) {
     const dow = new Date(day.date).getUTCDay();
     dayTotals[dow] += day.contributionCount;
   }
-  return dayNames.map((name, i) => ({ day: name, commits: dayTotals[i] }));
+
+  return dayNames.map((name, i) => ({
+    day: name,
+    commits: dayTotals[i],
+  }));
 }
 
 export async function getFullDashboardData(username: string, options: FetchOptions = {}) {
-  const [profileResult, reposResult, calendarResult] = await Promise.allSettled([
+  if (!validateGitHubUsername(username)) {
+    console.warn(`[GitHub API] Username "${username}" format invalid.`);
+  }
+
+  const [profileResult, reposResult, calendarResult, pinnedResult] = await Promise.allSettled([
     fetchUserProfile(username, options),
     fetchUserRepos(username, options),
     fetchGitHubContributions(username, options),
+    fetchPinnedRepos(username),
   ]);
 
   if (profileResult.status === 'rejected') {
@@ -733,6 +834,8 @@ export async function getFullDashboardData(username: string, options: FetchOptio
 
   const profileData = profileResult.value;
   const reposData = reposResult.status === 'fulfilled' ? reposResult.value : [];
+  const pinnedData = pinnedResult.status === 'fulfilled' ? pinnedResult.value : [];
+
   const calendarData =
     calendarResult.status === 'fulfilled'
       ? calendarResult.value
@@ -820,6 +923,49 @@ export async function getFullDashboardData(username: string, options: FetchOptio
 
   const insights = buildInsights(streakStats, languages);
 
+  // 1. Process Active Repositories
+  const popularRepos = reposData
+    .filter((repo: GitHubRepo) => !repo.fork)
+    .slice(0, 4)
+    .map((repo: GitHubRepo) => ({
+      name: repo.name,
+      description: repo.description,
+      stargazerCount: repo.stargazers_count,
+      forkCount: repo.forks_count,
+      url: repo.html_url,
+      primaryLanguage: repo.language
+        ? {
+            name: repo.language,
+            color: LANGUAGE_COLORS[repo.language] || '#a855f7',
+          }
+        : null,
+    }));
+
+  // 2. Process Pinned Repositories safely
+  const pinnedRepos = pinnedData.map(
+    (repo: {
+      name: string;
+      description: string | null;
+      stargazerCount: number;
+      forkCount: number;
+      url: string;
+      html_url?: string;
+      primaryLanguage: { name: string; color: string } | null;
+    }) => ({
+      name: repo.name,
+      description: repo.description,
+      stargazerCount: repo.stargazerCount || 0,
+      forkCount: repo.forkCount || 0,
+      url: repo.html_url || repo.url,
+      primaryLanguage: repo.primaryLanguage
+        ? {
+            name: repo.primaryLanguage.name,
+            color: repo.primaryLanguage.color || '#a855f7',
+          }
+        : null,
+    })
+  );
+
   return {
     profile,
     stats: {
@@ -832,6 +978,8 @@ export async function getFullDashboardData(username: string, options: FetchOptio
     insights,
     achievements,
     commitClock,
+    popularRepos,
+    pinnedRepos,
   };
 }
 

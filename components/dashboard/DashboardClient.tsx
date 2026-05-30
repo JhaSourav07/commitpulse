@@ -19,8 +19,17 @@ import StatsCard from './StatsCard';
 import ComparisonStatsCard from './ComparisonStatsCard';
 import RadarChart from './RadarChart';
 import GrowthTrendChart from './GrowthTrendChart';
+import { PopularRepos } from './PopularPinnedRepos';
 
-// Define the dashboard data structure
+interface RepoItem {
+  name: string;
+  description: string | null;
+  stargazerCount: number;
+  forkCount: number;
+  url: string;
+  primaryLanguage: { name: string; color: string } | null;
+}
+
 interface DashboardData {
   profile: {
     username: string;
@@ -63,6 +72,8 @@ interface DashboardData {
     day: string;
     commits: number;
   }>;
+  popularRepos: RepoItem[];
+  pinnedRepos: RepoItem[];
 }
 
 interface DashboardClientProps {
@@ -307,10 +318,6 @@ function getPersonalityTags(
   return tags.slice(0, 3);
 }
 
-// ------------------------------------------------------------
-// DashboardClient Component
-// ------------------------------------------------------------
-
 export default function DashboardClient({ initialData, username }: DashboardClientProps) {
   const [secondUserData, setSecondUserData] = useState<DashboardData | null>(null);
   const [isCompareMode, setIsCompareMode] = useState(false);
@@ -319,7 +326,6 @@ export default function DashboardClient({ initialData, username }: DashboardClie
   const [isLoadingSecond, setIsLoadingSecond] = useState(false);
   const [compareError, setCompareError] = useState<string | null>(null);
 
-  // Close modal on escape key
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -425,21 +431,18 @@ export default function DashboardClient({ initialData, username }: DashboardClie
       : [];
 
   if (isCompareMode && secondUserData) {
-    // Most Consistent: Peak Streak
     if (initialData.stats.peakStreak > secondUserData.stats.peakStreak) {
       badgesA.push('Most Consistent');
     } else if (secondUserData.stats.peakStreak > initialData.stats.peakStreak) {
       badgesB.push('Most Consistent');
     }
 
-    // Highest Activity: Total Contributions
     if (initialData.stats.totalContributions > secondUserData.stats.totalContributions) {
       badgesA.push('Highest Activity');
     } else if (secondUserData.stats.totalContributions > initialData.stats.totalContributions) {
       badgesB.push('Highest Activity');
     }
 
-    // Strongest Streak: Current Streak
     if (initialData.stats.currentStreak > secondUserData.stats.currentStreak) {
       badgesA.push('Strongest Streak');
     } else if (secondUserData.stats.currentStreak > initialData.stats.currentStreak) {
@@ -526,6 +529,13 @@ export default function DashboardClient({ initialData, username }: DashboardClie
             <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <LanguageChart languages={initialData.languages} />
               <CommitClock data={initialData.commitClock} />
+            </section>
+
+            <section>
+              <PopularRepos
+                popularRepos={initialData.popularRepos}
+                pinnedRepos={initialData.pinnedRepos}
+              />
             </section>
 
             <section>
