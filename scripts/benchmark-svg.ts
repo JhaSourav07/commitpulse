@@ -23,7 +23,7 @@ const calendar = {
   weeks: Array.from({ length: 14 }, (_, weekIndex) => ({
     contributionDays: Array.from({ length: 7 }, (_, dayIndex) => ({
       contributionCount: Math.floor(Math.random() * 20),
-      date: `2026-05-${String(weekIndex * 7 + dayIndex + 1).padStart(2, '0')}`,
+      date: new Date(2026, 4, weekIndex * 7 + dayIndex + 1).toISOString().slice(0, 10),
     })),
   })),
 };
