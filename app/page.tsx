@@ -76,6 +76,9 @@ export default function LandingPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const guideRef = useRef<HTMLDivElement>(null);
   const { searches, addSearch, clearSearches, removeSearch } = useRecentSearches();
+  const trimmedUsername = username.trim();
+  const debouncedUsername = useDebounce(trimmedUsername, 500);
+  const hasUsername = debouncedUsername.length > 0;
   const [mounted, setMounted] = useState(false);
 
   const badgeUrl = `/api/streak?user=${debouncedUsername}`;
