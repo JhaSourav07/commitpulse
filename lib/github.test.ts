@@ -1101,6 +1101,15 @@ describe('buildCommitClock', () => {
     expect(result.every((item) => item.commits === 0)).toBe(true);
   });
 
+  it('returns defined dashboard analytics rows when user metric logs are empty', () => {
+    const result = buildCommitClock([]);
+
+    expect(result).toHaveLength(7);
+    expect(result.every((item) => typeof item.day === 'string')).toBe(true);
+    expect(result.every((item) => typeof item.commits === 'number')).toBe(true);
+    expect(result.every((item) => item.commits === 0)).toBe(true);
+  });
+
   it('always returns exactly 7 items', () => {
     const result = buildCommitClock([{ date: '2024-01-07', contributionCount: 1 }]);
 
