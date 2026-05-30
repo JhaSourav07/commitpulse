@@ -1264,4 +1264,36 @@ describe('Radar Scan Line Animation Alignment', () => {
     // 5. Assert: Ensure the original string was actually modified
     expect(result).not.toEqual(longUsername);
   });
+
+  it('should cleanly convert exact boundary characters (<script>&") to safe XML entities', () => {
+    // Arrange: The specific boundary string requested in Issue #1568
+    const boundaryInput = '<script>&"';
+
+    // Act
+    const result = escapeXML(boundaryInput);
+
+    // Assert:
+    // <  becomes &lt;
+    // >  becomes &gt;
+    // &  becomes &amp;
+    // "  becomes &quot;
+    expect(result).toBe('&lt;script&gt;&amp;&quot;');
+  });
+
+  it('should handle mixed real-world inputs correctly without double-escaping', () => {
+    // Arrange: A realistic edge case for a GitHub user profile
+    const mixedInput = 'R&D <"Team">';
+
+    // Act
+    const result = escapeXML(mixedInput);
+
+    // Assert
+    expect(result).toBe('R&amp;D &lt;&quot;Team&quot;&gt;');
+  });
+
+  it('should handle empty and safe inputs gracefully', () => {
+    // Assert: Empty inputs and regular strings remain untouched
+    expect(escapeXML('')).toBe('');
+    expect(escapeXML('CommitPulse')).toBe('CommitPulse');
+  });
 });
