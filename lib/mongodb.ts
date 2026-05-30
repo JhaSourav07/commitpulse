@@ -43,5 +43,20 @@ async function dbConnect() {
 
   return cached.conn;
 }
+/**
+ * Disconnects from the MongoDB database and clears the cached connection.
+ *
+ * Useful for graceful shutdown in tests or serverless teardown.
+ *
+ * @example
+ * await dbDisconnect();
+ */
+export async function dbDisconnect(): Promise<void> {
+  if (!cached.conn) return;
+
+  await mongoose.disconnect();
+  cached.conn = null;
+  cached.promise = null;
+}
 
 export default dbConnect;

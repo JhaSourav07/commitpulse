@@ -136,3 +136,66 @@ describe('ThemeSelector - Custom Variations (Variation 4)', () => {
     expect(onThemeChange).toHaveBeenCalledWith('sunset');
   });
 });
+
+describe('ThemeSelector - Custom Variations (Variation 4)', () => {
+  const onThemeChange = vi.fn();
+
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('renders ThemeSelector successfully and layout structure exists', () => {
+    const { container } = render(<ThemeSelector theme="dark" onThemeChange={onThemeChange} />);
+
+    // ThemeSelector renders successfully
+    expect(screen.getByRole('combobox')).toBeTruthy();
+    expect(screen.getByText('Theme Preset')).toBeTruthy();
+
+    // Layout structure exists
+    const mainContainer = container.firstChild as HTMLElement;
+    expect(mainContainer).toBeTruthy();
+    expect(mainContainer.className).toContain('flex');
+    expect(mainContainer.className).toContain('flex-col');
+    expect(mainContainer.className).toContain('gap-1.5');
+  });
+
+  it('verifies that selecting Dracula preset calls onThemeChange("dracula")', async () => {
+    const user = userEvent.setup();
+    render(<ThemeSelector theme="dark" onThemeChange={onThemeChange} />);
+
+    // Select Dracula preset via accessibility query
+    const draculaBtn = screen.getByRole('button', { name: /apply dracula theme/i });
+    expect(draculaBtn).toBeTruthy();
+
+    // Click it
+    await user.click(draculaBtn);
+
+    // Verify onThemeChange was called with 'dracula'
+    expect(onThemeChange).toHaveBeenCalledWith('dracula');
+  });
+
+  it('verifies that selecting Neon preset calls onThemeChange("neon")', async () => {
+    const user = userEvent.setup();
+    render(<ThemeSelector theme="dark" onThemeChange={onThemeChange} />);
+
+    // Select Neon preset via accessibility query
+    const neonBtn = screen.getByRole('button', { name: /apply neon theme/i });
+    expect(neonBtn).toBeTruthy();
+
+    // Click it
+    await user.click(neonBtn);
+
+    // Verify onThemeChange was called with 'neon'
+    expect(onThemeChange).toHaveBeenCalledWith('neon');
+  });
+
+  it('verifies the select dropdown calls onThemeChange with the selected theme', async () => {
+    const user = userEvent.setup();
+    render(<ThemeSelector theme="dark" onThemeChange={onThemeChange} />);
+
+    const select = screen.getByRole('combobox');
+    await user.selectOptions(select, 'sunset');
+
+    expect(onThemeChange).toHaveBeenCalledWith('sunset');
+  });
+});

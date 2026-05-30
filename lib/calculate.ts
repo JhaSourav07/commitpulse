@@ -1,5 +1,5 @@
 // lib/calculate.ts
-import type { ContributionCalendar, StreakStats, MonthlyStats } from '../types';
+import type { ContributionCalendar, ContributionDay, StreakStats, MonthlyStats } from '../types';
 
 /* ==========================================================================
  * STREAK & CALENDAR CALCULATIONS
@@ -10,6 +10,16 @@ export function isStreakAlive(
   yesterday: { contributionCount: number } | null
 ): boolean {
   return today.contributionCount > 0 || (yesterday?.contributionCount ?? 0) > 0;
+}
+
+export function findTodayIndex(days: ContributionDay[], timezone: string, now: Date): number {
+  const localTodayStr = new Intl.DateTimeFormat('en-CA', {
+    timeZone: timezone,
+  }).format(now);
+
+  const localTodayIndex = days.findIndex((d) => d.date === localTodayStr);
+
+  return localTodayIndex !== -1 ? localTodayIndex : days.length - 1;
 }
 
 export function calculateStreak(
@@ -37,8 +47,7 @@ export function calculateStreak(
 
   // 2. Calculate Current Streak (Backwards loop with Grace Period)
   const localTodayStr = new Intl.DateTimeFormat('en-CA', { timeZone: timezone }).format(now);
-  const localTodayIndex = days.findIndex((d) => d.date === localTodayStr);
-  const todayIndex = localTodayIndex !== -1 ? localTodayIndex : days.length - 1;
+  const todayIndex = findTodayIndex(days, timezone, now);
 
   if (todayIndex < 0) {
     return {
@@ -71,8 +80,7 @@ export function calculateStreak(
     currentStreak = 0;
   }
 
-  const todayDate =
-    localTodayIndex !== -1 ? localTodayStr : (days[todayIndex]?.date ?? localTodayStr);
+  const todayDate = days[todayIndex]?.date ?? localTodayStr;
 
   return {
     currentStreak,

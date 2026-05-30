@@ -333,4 +333,32 @@ describe('LandingPage', () => {
 
     expect(screen.queryByText(/Too Many Requests/)).toBeNull();
   });
+
+  it('sanitizes unsafe SVG content before rendering', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        text: () =>
+          Promise.resolve(
+            '<svg data-testid="badge-svg"><script>alert("xss")</script><circle /></svg>'
+          ),
+      })
+    );
+
+    render(<LandingPage />);
+
+    const input = screen.getByPlaceholderText('Enter GitHub Username') as HTMLInputElement;
+
+    await act(async () => {
+      fireEvent.change(input, { target: { value: 'octocat' } });
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('badge-svg')).toBeDefined();
+    });
+
+    expect(document.querySelector('script')).toBeNull();
+  });
 });

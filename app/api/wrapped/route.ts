@@ -10,13 +10,6 @@ import { themes } from '@/lib/svg/themes';
 const SVG_CSP_HEADER =
   "default-src 'none'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://fonts.gstatic.com;";
 
-class ValidationError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = 'ValidationError';
-  }
-}
-
 function escapeSVGText(value: string): string {
   return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
@@ -103,7 +96,7 @@ export async function GET(request: Request) {
     // Fetch calendar contributions for rendering the background mini-monolith
     const from = `${year}-01-01T00:00:00Z`;
     const to = `${year}-12-31T23:59:59Z`;
-    const calendar = await fetchGitHubContributions(user, { from, to, bypassCache: refresh });
+    const { calendar } = await fetchGitHubContributions(user, { from, to, bypassCache: refresh });
 
     const svg = generateWrappedSVG(wrappedStats, params, year, calendar);
 

@@ -181,6 +181,21 @@ export const streakParamsSchema = z.object({
       },
       { message: 'Invalid "to" date format. Use ISO 8601 (e.g. 2023-12-31).' }
     ),
+  tz: z
+    .string()
+    .optional()
+    .refine(
+      (val) => {
+        if (!val) return true;
+        try {
+          new Intl.DateTimeFormat(undefined, { timeZone: val });
+          return true;
+        } catch {
+          return false;
+        }
+      },
+      { message: 'Invalid timezone. Must be a valid IANA timezone (e.g. America/New_York).' }
+    ),
   refresh: z.string().optional().transform(toRefreshFlag),
   hide_title: z.string().optional().transform(toBooleanFlag),
   hide_background: z.string().optional().transform(toBooleanFlag),
@@ -195,7 +210,13 @@ export const streakParamsSchema = z.object({
   grace: z.string().optional().transform(toGraceValue).default(1),
   mode: z.enum(['commits', 'loc']).catch('commits').default('commits'),
   repo: z.string().optional(),
-  org: z.string().optional(),
+  org: z
+    .string()
+    .max(39, { message: 'Organization name cannot exceed 39 characters' })
+    .regex(GITHUB_USERNAME_REGEX, {
+      message: 'Invalid organization name format',
+    })
+    .optional(),
   labels: z.string().optional().transform(toBooleanFlag),
   labelColor: z
     .string()
@@ -227,6 +248,10 @@ export const streakParamsSchema = z.object({
       return val === 'true';
     })
     .default(false),
+  disable_particles: z
+    .string()
+    .optional()
+    .transform((val) => val === 'true' || val === '1'),
 });
 
 export const githubParamsSchema = z.object({
@@ -366,7 +391,7 @@ export const wrappedParamsSchema = z.object({
     .transform((val) => sanitizeFont(val) || undefined),
   refresh: z.string().optional().transform(toRefreshFlag),
   hide_title: z.string().optional().transform(toBooleanFlag),
-  hide_background: z.string().optional().transform(toRefreshFlag),
+  hide_background: z.string().optional().transform(toBooleanFlag), // ✅ Fixed: was toRefreshFlag
   width: dimensionParam('width', 100, 1200),
   height: dimensionParam('height', 80, 800),
 });

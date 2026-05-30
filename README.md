@@ -55,7 +55,7 @@ We render your contribution data as a **3D Isometric City** — a grid of glowin
 
 **Ghost City Architecture:** In this mode, zero-contribution days aren't just empty space. They are rendered as thin, wireframe-style **blueprint foundations** (4px high). This gives your commit landscape a structured, architectural "work-in-progress" look even during rest days, maintaining the premium 3D aesthetic across the entire calendar.
 
-This is not decoration. This is a **live , animated data visualization** that makes your dedication impossible to ignore.
+This is not decoration. This is a **live, animated data visualization** that makes your dedication impossible to ignore.
 
 ### Why Isometric > Flat
 
@@ -164,6 +164,7 @@ URL Parameter > Theme Default > System Fallback
 | `accent`          | `hex`     | No         | Theme default                  | Tower & glow color — **without** `#`                                                                                                                                      |
 | `text`            | `hex`     | No         | Theme default                  | Label & stat text color — **without** `#`                                                                                                                                 |
 | `radius`          | `number`  | No         | `8`                            | Border corner radius in pixels                                                                                                                                            |
+| `border`          | `string`  | No         | —                              | Custom stroke color around the main SVG container — **without** `#`                                                                                                       |
 | `speed`           | `string`  | No         | `8s`                           | Radar scan duration (`2s`–`20s`, default `8s`)                                                                                                                            |
 | `scale`           | `string`  | No         | `linear`                       | Tower height scaling: `linear` or `log` (logarithmic)                                                                                                                     |
 | `size`            | `string`  | No         | `medium`                       | Badge dimensions: `small` (400×280), `medium` (600×420), `large` (800×560)                                                                                                |
@@ -179,30 +180,31 @@ URL Parameter > Theme Default > System Fallback
 | `delta_format`    | `string`  | No         | `percent`                      | Format for month-over-month delta in monthly view: `percent` (e.g. +12%), `absolute` (e.g. +15 commits), or `both`                                                        |
 | `width`           | `number`  | No         | `300`                          | Custom width for the SVG canvas (currently only applies to `view=monthly`)                                                                                                |
 | `height`          | `number`  | No         | `120`                          | Custom height for the SVG canvas (currently only applies to `view=monthly`)                                                                                               |
-| Parameter         | Type      | Required   | Default                        | Description                                                                                                                                                               |
-| ----------------- | --------- | ---------- | ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------                               |
-| `user`            | `string`  | ✅ **Yes** | —                              | GitHub username to render                                                                                                                                                 |
-| `theme`           | `string`  | No         | `dark`                         | Preset theme name (see below)                                                                                                                                             |
-| `bg`              | `hex`     | No         | Theme default                  | Background color — **without** `#`                                                                                                                                        |
-| `accent`          | `hex`     | No         | Theme default                  | Tower & glow color — **without** `#`                                                                                                                                      |
-| `text`            | `hex`     | No         | Theme default                  | Label & stat text color — **without** `#`                                                                                                                                 |
-| `radius`          | `number`  | No         | `8`                            | Border corner radius in pixels                                                                                                                                            |
-| `border`          | `string`  | No         | —                              | Custom stroke color around the main SVG container — **without** `#`                                                                                                       |
-| `speed`           | `string`  | No         | `8s`                           | Radar scan duration (`2s`–`20s`, default `8s`)                                                                                                                            |
-| `scale`           | `string`  | No         | `linear`                       | Tower height scaling: `linear` or `log` (logarithmic)                                                                                                                     |
-| `size`            | `string`  | No         | `medium`                       | Badge dimensions: `small` (400×280), `medium` (600×420), `large` (800×560)                                                                                                |
-| `font`            | `string`  | No         | CommitPulse default typography | Any **Google Font** name (e.g. `Orbitron`, `Inter`)                                                                                                                       |
-| `refresh`         | `boolean` | No         | `false`                        | Bypass cache for real-time data                                                                                                                                           |
-| `year`            | `string`  | No         | —                              | Calendar year to render (e.g. `2023`, `2024`)                                                                                                                             |
-| `hide_title`      | `boolean` | No         | `false`                        | Hide GitHub username/title from the SVG badge                                                                                                                             |
-| `hide_background` | `boolean` | No         | `false`                        | Remove the background rect, letting the monolith float on the page                                                                                                        |
-| `hide_stats`      | `boolean` | No         | `false`                        | Hides the bottom row displaying Current Streak, Annual Sync Total, and Peak Streak stats when set to `true` or `1`.                                                       |
-| `tz`              | `string`  | No         | Omitted = UTC                  | IANA timezone (e.g. `Asia/Kolkata`) — aligns "today" with the user local midnight. Note: `?tz=UTC` is cached separately from omitting `tz`.                               |
-| `lang`            | `string`  | No         | `en`                           | Language code for labels (`en`, `es`, `hi`, `fr`, `pt`, `ko`, `ja`)                                                                                                       |
-| `view`            | `string`  | No         | `default`                      | Rendering mode: `default` (3D Monolith) or `monthly` (Compact monthly stats)                                                                                              |
-| `delta_format`    | `string`  | No         | `percent`                      | Format for month-over-month delta in monthly view: `percent` (e.g. +12%), `absolute` (e.g. +15 commits), or `both`                                                        |
-| `width`           | `number`  | No         | `300`                          | Custom width for the SVG canvas (currently only applies to `view=monthly`)                                                                                                |
-| `height`          | `number`  | No         | `120`                          | Custom height for the SVG canvas (currently only applies to `view=monthly`)                                                                                               |
+| `grace`           | `number`  | No         | `1`                            | Grace period in days before a streak resets (0–7). `grace=0` = strict mode (no missed days), `grace=2` = lenient (forgives up to 2 missed days). Default is `1`.          |
+| `mode`            | `string`  | No         | `commits`                      | Rendering mode: `commits` (default) or `loc` (Lines of Code landscape)                                                                                                    |
+| `repo`            | `string`  | No         | —                              | Render the monolith for a specific repository (e.g. `owner/repo`) instead of the whole profile                                                                            |
+| `org`             | `string`  | No         | —                              | Organization name to generate a Mega-City for                                                                                                                             |
+| `labels`          | `boolean` | No         | `false`                        | Render optional 3D isometric month headers and weekday labels                                                                                                             |
+| `labelColor`      | `hex`     | No         | —                              | Custom text color for the isometric labels — **without** `#`                                                                                                              |
+| `versus`          | `string`  | No         | —                              | GitHub username of an opponent to compare against in side-by-side versus mode                                                                                             |
+| `shading`         | `boolean` | No         | `false`                        | Apply intensity-based opacity shading to tower faces so lower intensity levels appear slightly dimmer                                                                     |
+| `gradient`        | `boolean` | No         | `false`                        | Opt-in to show volumetric gradients on the monolith floor                                                                                                                 |
+
+### Grace Period Examples
+
+```md
+<!-- Strict mode — streak resets on any single missed day -->
+
+![CommitPulse](https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&grace=0)
+
+<!-- Default — one day grace period (current behavior) -->
+
+![CommitPulse](https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&grace=1)
+
+<!-- Lenient — forgives up to 2 consecutive missed days -->
+
+![CommitPulse](https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&grace=2)
+```
 
 ### Theme Presets
 
@@ -214,7 +216,7 @@ URL Parameter > Theme Default > System Fallback
 | `dracula`          | Dracula Pro                 | `282a36` | `bd93f9` | `f8f8f2` |
 | `github`           | GitHub green                | `0d1117` | `39d353` | `ffffff` |
 | `light`            | Clean & minimal             | `ffffff` | `0969da` | `24292f` |
-| `gruvbox`          | retro warm dark             | `282828` | `fe8019` | `ebdbb2` |
+| `gruvbox`          | Retro warm dark             | `282828` | `fe8019` | `ebdbb2` |
 | `random`           | Surprise theme on reload    | _varies_ | _varies_ | _varies_ |
 | `highcontrast`     | Accessibility high contrast | `0a0a0a` | `ff4500` | `ffffff` |
 | `cyber-pulse`      | AMOLED true-black & cyan    | `000000` | `00ffee` | `ffffff` |
@@ -286,6 +288,14 @@ Explore some of the built-in CommitPulse themes and quickly copy the style you l
 
 ![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&tz=Asia/Kolkata)
 
+<!-- Strict streak — resets on any single missed day -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&grace=0)
+
+<!-- Lenient streak — forgives up to 2 missed days -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&grace=2)
+
 <!-- Render labels in Hindi -->
 
 ![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&lang=hi)
@@ -297,6 +307,18 @@ Explore some of the built-in CommitPulse themes and quickly copy the style you l
 <!-- Large badge size -->
 
 ![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&size=large)
+
+<!-- Side-by-side versus comparison -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&versus=octocat)
+
+<!-- Lines of Code landscape mode -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&mode=loc)
+
+<!-- Gradient + shading for extra depth -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&gradient=true&shading=true)
 ```
 
 ---
@@ -371,6 +393,8 @@ types/index.ts                →  TypeScript interfaces (StreakStats, BadgePara
 ---
 
 🏗️ Architecture Diagram
+
+```
 GitHub GraphQL API
 ↓
 Contribution Processing
@@ -384,6 +408,7 @@ Animation Layer
 Edge Cache/CDN
 ↓
 Generated SVG Badge
+```
 
 ---
 
@@ -474,6 +499,16 @@ Yes. Use the `tz` parameter with any valid IANA timezone.
 Example:
 `?tz=Asia/Kolkata`
 
+### Can I configure the grace period?
+
+Yes. Use the `grace` parameter to control how many days of inactivity are forgiven before your streak resets:
+
+- `?grace=0` — strict mode, resets on any missed day
+- `?grace=1` — default behavior (1 day grace)
+- `?grace=2` — lenient, forgives up to 2 consecutive missed days
+
+Valid range is 0–7. Values outside this range are clamped automatically.
+
 ### Do private contributions count?
 
 Yes — if private contributions visibility is enabled in your GitHub settings.
@@ -528,7 +563,7 @@ _Built with obsession, shipped with precision._
 Thanks to all contributors who have helped make CommitPulse better!
 
 <a href="https://github.com/JhaSourav07/commitpulse/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=JhaSourav07/commitpulse&max=100&columns=14" alt="Contributors" />
+  <img src="https://contrib.rocks/image?repo=JhaSourav07/commitpulse&max=300&columns=14" alt="Contributors" />
 </a>
 
 <sub>View the [full contributor list →](https://github.com/JhaSourav07/commitpulse/graphs/contributors)</sub>

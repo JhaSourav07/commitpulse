@@ -16,7 +16,7 @@ vi.mock('../../../utils/time', () => ({
 
 import { fetchGitHubContributions, getOrgDashboardData } from '../../../lib/github';
 import { getSecondsUntilUTCMidnight, getSecondsUntilMidnightInTimezone } from '../../../utils/time';
-import type { ContributionCalendar } from '../../../types';
+import type { ContributionCalendar, ExtendedContributionData } from '../../../types';
 
 // Two weeks of realistic data. The last day has 0 contributions so the streak
 // is in "grace period" territory — a good baseline that exercises most code paths.
@@ -59,7 +59,10 @@ function makeRequest(params: Record<string, string> = {}): Request {
 describe('GET /api/streak', () => {
   beforeEach(() => {
     vi.clearAllMocks(); // reset call counts so per-test call assertions are isolated
-    vi.mocked(fetchGitHubContributions).mockResolvedValue(mockCalendar);
+    vi.mocked(fetchGitHubContributions).mockResolvedValue({
+      calendar: mockCalendar,
+      repoContributions: [],
+    } as unknown as ExtendedContributionData);
     vi.mocked(getOrgDashboardData).mockResolvedValue({
       profile: {
         username: 'octocat',
@@ -100,6 +103,20 @@ describe('GET /api/streak', () => {
   });
 
   describe('parameter validation', () => {
+    it('falls back to default layout when an unsupported layout is provided', async () => {
+      const response = await GET(
+        makeRequest({
+          user: 'octocat',
+          layout: 'unsupported_layout',
+        })
+      );
+
+      expect(response.status).toBe(200);
+
+      const body = await response.text();
+
+      expect(body).toContain('<svg');
+    });
     it('returns 400 when the user parameter is missing', async () => {
       const response = await GET(makeRequest());
 
@@ -161,6 +178,14 @@ describe('GET /api/streak', () => {
       }
 
       expect(fetchGitHubContributions).not.toHaveBeenCalled();
+    });
+
+    it('returns 200 for unsupported ?layout query parameter values (route ignores it)', async () => {
+      const response = await GET(
+        new Request('http://localhost:3000/api/streak?user=octocat&layout=unsupported_layout')
+      );
+
+      expect(response.status).toBe(200);
     });
 
     it('should return 200 OK and valid SVG when the optional repo query parameter is provided', async () => {
@@ -473,6 +498,11 @@ describe('GET /api/streak', () => {
       expect(body.details.fieldErrors.year[0]).toContain('GitHub was founded in 2008');
     });
 
+    it('returns 200 for unknown ?date= parameter (not part of schema)', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', date: '2026-15-40' }));
+      expect(response.status).toBe(200);
+    });
+
     it('returns 400 for malformed numeric year', async () => {
       const response = await GET(makeRequest({ user: 'octocat', year: '100000' }));
       const body = await response.json();
@@ -744,26 +774,27 @@ describe('GET /api/streak', () => {
       const response = await GET(makeRequest({ user: 'octocat', tz: 'Not/ATimezone' }));
 
       expect(response.status).toBe(400);
-      const body = await response.text();
-      expect(body).toContain('Invalid "tz" parameter');
+      const body = await response.json();
+      expect(body.details.fieldErrors.tz[0]).toContain('Invalid timezone');
     });
 
-    it('returns 400 and names the bad value in the error message', async () => {
+    it('returns 400 and names the bad value in the field error', async () => {
       const response = await GET(makeRequest({ user: 'octocat', tz: 'garbage' }));
-      const body = await response.text();
+      const body = await response.json();
 
-      expect(body).toContain('garbage');
+      expect(response.status).toBe(400);
+      expect(body.details.fieldErrors.tz[0]).toContain('Invalid timezone');
     });
 
-    it('escapes invalid timezone values before rendering the error SVG', async () => {
+    it('is not vulnerable to XSS via tz parameter', async () => {
       const response = await GET(
         makeRequest({ user: 'octocat', tz: '</text><script>alert(1)</script>' })
       );
-      const body = await response.text();
+      const body = await response.json();
 
       expect(response.status).toBe(400);
-      expect(body).toContain('&lt;/text&gt;&lt;script&gt;alert(1)&lt;/script&gt;');
-      expect(body).not.toContain('</text><script>');
+      // Zod validates the input and returns a JSON error — no raw user input reflected
+      expect(body.details.fieldErrors.tz[0]).toContain('Invalid timezone');
     });
 
     it('returns 200 with a valid IANA timezone', async () => {
@@ -834,12 +865,15 @@ describe('GET /api/streak', () => {
       vi.setSystemTime(new Date('2026-05-20T12:00:00Z'));
 
       vi.mocked(fetchGitHubContributions).mockResolvedValueOnce({
-        totalContributions: 25,
-        weeks: [
-          { contributionDays: [{ date: '2024-11-15', contributionCount: 10 }] },
-          { contributionDays: [{ date: '2024-12-15', contributionCount: 15 }] },
-        ],
-      } as ContributionCalendar);
+        calendar: {
+          totalContributions: 25,
+          weeks: [
+            { contributionDays: [{ date: '2024-11-15', contributionCount: 10 }] },
+            { contributionDays: [{ date: '2024-12-15', contributionCount: 15 }] },
+          ],
+        } as ContributionCalendar,
+        repoContributions: [],
+      } as unknown as ExtendedContributionData);
 
       try {
         const response = await GET(
@@ -940,12 +974,15 @@ describe('GET /api/streak', () => {
     it('applies delta_format=both to show percent and absolute values in the monthly SVG', async () => {
       // 1. Mock the GitHub fetch with actual weekly data using vi.mocked
       vi.mocked(fetchGitHubContributions).mockResolvedValueOnce({
-        totalContributions: 150,
-        weeks: [
-          { contributionDays: [{ date: '2026-04-15', contributionCount: 10 }] },
-          { contributionDays: [{ date: '2026-05-15', contributionCount: 15 }] },
-        ],
-      } as unknown as ContributionCalendar);
+        calendar: {
+          totalContributions: 150,
+          weeks: [
+            { contributionDays: [{ date: '2026-04-15', contributionCount: 10 }] },
+            { contributionDays: [{ date: '2026-05-15', contributionCount: 15 }] },
+          ],
+        } as ContributionCalendar,
+        repoContributions: [],
+      } as unknown as ExtendedContributionData);
 
       // 2. Lock the system time to May 2026 so the calendar calculation aligns
       vi.useFakeTimers();
@@ -972,12 +1009,15 @@ describe('GET /api/streak', () => {
     it('applies delta_format=absolute to show raw commit counts in the monthly SVG', async () => {
       // 1. Mock the GitHub fetch with actual weekly data using vi.mocked
       vi.mocked(fetchGitHubContributions).mockResolvedValueOnce({
-        totalContributions: 150,
-        weeks: [
-          { contributionDays: [{ date: '2026-04-15', contributionCount: 10 }] },
-          { contributionDays: [{ date: '2026-05-15', contributionCount: 15 }] },
-        ],
-      } as unknown as ContributionCalendar);
+        calendar: {
+          totalContributions: 150,
+          weeks: [
+            { contributionDays: [{ date: '2026-04-15', contributionCount: 10 }] },
+            { contributionDays: [{ date: '2026-05-15', contributionCount: 15 }] },
+          ],
+        } as ContributionCalendar,
+        repoContributions: [],
+      } as unknown as ExtendedContributionData);
       // 2. Lock the system time to May 2026 so the calendar calculation aligns
       vi.useFakeTimers();
       vi.setSystemTime(new Date('2026-05-20T12:00:00Z'));
@@ -1017,7 +1057,10 @@ describe('GET /api/streak', () => {
         ],
       };
 
-      vi.mocked(fetchGitHubContributions).mockResolvedValue(emptyCalendar);
+      vi.mocked(fetchGitHubContributions).mockResolvedValue({
+        calendar: emptyCalendar,
+        repoContributions: [],
+      } as unknown as ExtendedContributionData);
       const response = await GET(makeRequest({ user: 'octocat' }));
       const body = await response.text();
 
@@ -1194,7 +1237,7 @@ describe('GET /api/streak', () => {
       const body = await response.text();
 
       expect(response.status).toBe(200);
-      expect(body).toContain('family=Inter&display=swap');
+      expect(body).toContain('family=Inter&amp;display=swap');
       expect(body).toContain('"Inter", sans-serif');
     });
   });

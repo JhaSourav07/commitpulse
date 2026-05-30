@@ -141,6 +141,7 @@ export class TTLCache<T> {
   }
 
   set(key: string, value: T, ttlMs: number): void {
+    if (key === '') throw new Error('Cache key cannot be empty');
     if (ttlMs <= 0) throw new RangeError(`ttlMs must be positive, got ${ttlMs}`);
 
     const maxSize = this.maxSize;

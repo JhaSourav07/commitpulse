@@ -12,6 +12,7 @@ import { useRecentSearches } from '@/hooks/useRecentSearches';
 import { useDebounce } from '@/hooks/useDebounce';
 import { Footer } from '@/app/components/Footer';
 import InteractiveViewer from '@/components/InteractiveViewer';
+import DOMPurify from 'dompurify';
 
 const Icons = {
   Github: () => (
@@ -166,9 +167,9 @@ export default function LandingPage() {
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            whileHover={{ scale: 1.04, backgroundColor: 'rgba(255,255,255,0.07)' }}
+            whileHover={{ scale: 1.04 }}
             whileTap={{ scale: 0.97 }}
-            className="mb-8 inline-flex items-center gap-2.5 rounded-full border border-black/10 bg-white px-4 py-1.5 text-xs font-medium text-gray-700 shadow-sm backdrop-blur-sm transition-colors duration-200 hover:border-black/20 hover:text-black dark:border-white/10 dark:bg-white/[0.04] dark:text-white/50 dark:hover:border-white/20 dark:hover:text-white/80"
+            className="mb-8 inline-flex items-center gap-2.5 rounded-full border border-black/10 bg-white px-4 py-1.5 text-xs font-medium text-gray-700 shadow-sm backdrop-blur-sm transition-colors duration-200 hover:bg-black/[0.03] hover:border-black/20 hover:text-black dark:border-white/10 dark:bg-white/[0.04] dark:text-white/50 dark:hover:bg-white/[0.07] dark:hover:border-white/20 dark:hover:text-white/80"
           >
             <span className="relative flex h-1.5 w-1.5">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-black/40 dark:bg-white/50" />
@@ -217,7 +218,7 @@ export default function LandingPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.3 }}
-            className="mx-auto max-w-2xl text-sm sm:text-lg leading-relaxed text-gray-600 dark:text-gray-400 md:text-xl "
+            className="mx-auto max-w-2xl text-sm sm:text-lg leading-relaxed text-gray-600 dark:text-white/65 md:text-xl "
           >
             Stop settling for flat grids. Generate high-fidelity, 3D isometric monoliths that
             visualize your coding rhythm with professional precision.
@@ -247,7 +248,7 @@ export default function LandingPage() {
                   {username.length > 0 ? (
                     <button
                       onClick={() => setUsername('')}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 transition-colors hover:text-black dark:text-[#A1A1AA] dark:hover:text-white"
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 transition-colors hover:text-black dark:text-white/65 dark:hover:text-white"
                       aria-label="Clear input"
                       type="button"
                     >
@@ -269,7 +270,7 @@ export default function LandingPage() {
                   className={`relative flex min-w-[160px] items-center justify-center gap-2 overflow-hidden rounded-2xl px-6 py-4 text-sm font-semibold transition-all duration-300 transform cursor-pointer hover:scale-[1.02] hover:shadow-lg active:scale-[0.98] disabled:cursor-not-allowed ${
                     mounted && trimmedUsername.length > 0
                       ? 'bg-black text-white hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-gray-100 shadow-md'
-                      : 'bg-gray-100 text-gray-400 dark:bg-white/5 dark:text-white/20'
+                      : 'bg-gray-100 text-gray-400 dark:bg-white/5 dark:text-white/55'
                   }`}
                 >
                   <AnimatePresence mode="wait">
@@ -311,7 +312,7 @@ export default function LandingPage() {
                   className={`relative flex min-w-[160px] items-center justify-center gap-2 overflow-hidden rounded-2xl border px-6 py-4 text-sm font-semibold transition-all duration-300 hover:scale-[1.02] hover:shadow-lg active:scale-[0.98] ${
                     mounted && trimmedUsername.length > 0
                       ? 'border-black/10 bg-white text-black hover:bg-gray-50 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10 shadow-sm'
-                      : 'border-black/5 bg-gray-50 text-gray-400 dark:border-white/5 dark:bg-transparent dark:text-white/20'
+                      : 'border-black/5 bg-gray-50 text-gray-400 dark:border-white/5 dark:bg-transparent dark:text-white/55'
                   }`}
                 >
                   Watch Dashboard
@@ -371,7 +372,7 @@ export default function LandingPage() {
                         <p className="text-lg font-bold text-gray-900 dark:text-white tracking-tight">
                           GitHub user not found
                         </p>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                        <p className="text-sm text-gray-500 dark:text-white/65 mt-1">
                           Please check the username and try again.
                         </p>
                       </div>
@@ -382,7 +383,7 @@ export default function LandingPage() {
                       <p className="text-sm font-semibold text-red-500 dark:text-red-400">
                         Failed to load badge
                       </p>
-                      <p className="text-xs text-gray-500 dark:text-white/40">
+                      <p className="text-xs text-gray-500 dark:text-white/55">
                         The API may be unavailable. Please try again.
                       </p>
                     </div>
@@ -393,7 +394,11 @@ export default function LandingPage() {
                       animate={{ opacity: 1, scale: 1 }}
                       transition={{ duration: 0.5, ease: 'easeOut' }}
                       className="cp-svg-container w-full max-w-[700px] drop-shadow-[0_30px_60px_rgba(0,0,0,0.15)] dark:drop-shadow-[0_30px_60px_rgba(0,0,0,0.5)] [&>svg]:w-full [&>svg]:h-auto"
-                      dangerouslySetInnerHTML={{ __html: svgContent }}
+                      dangerouslySetInnerHTML={{
+                        __html: DOMPurify.sanitize(svgContent, {
+                          USE_PROFILES: { svg: true, html: true },
+                        }),
+                      }}
                     />
                   )}
                   {svgState === 'loaded' && !svgContent && errorMessage && (
@@ -408,7 +413,7 @@ export default function LandingPage() {
                   <p className="text-xl font-bold tracking-tight text-gray-900 dark:text-white">
                     Ready to visualize your rhythm?
                   </p>
-                  <p className="mt-3 max-w-md text-sm leading-relaxed text-gray-500 dark:text-gray-400">
+                  <p className="mt-3 max-w-md text-sm leading-relaxed text-gray-500 dark:text-white/65">
                     Enter a GitHub username above to instantly generate your 3D contribution
                     monolith preview.
                   </p>
@@ -484,7 +489,7 @@ function FeatureCard({
       <h3 className="mb-3 text-lg font-bold text-gray-900 dark:text-white tracking-tight">
         {title}
       </h3>
-      <p className="text-sm leading-relaxed text-gray-600 dark:text-gray-400">{desc}</p>
+      <p className="text-sm leading-relaxed text-gray-600 dark:text-white/65">{desc}</p>
     </motion.div>
   );
 }
@@ -551,7 +556,7 @@ function SuccessGuide({
 
           <button
             onClick={onDismiss}
-            className="ml-4 mt-1 shrink-0 rounded-xl p-2 text-gray-500 transition-all hover:bg-gray-100 hover:text-black dark:text-white/30 dark:hover:bg-white/5 dark:hover:text-white"
+            className="ml-4 mt-1 shrink-0 rounded-xl p-2 text-gray-500 transition-all hover:bg-gray-100 hover:text-black dark:text-white/55 dark:hover:bg-white/5 dark:hover:text-white"
             aria-label="Dismiss guide"
           >
             <svg
@@ -594,7 +599,7 @@ function SuccessGuide({
         </div>
 
         <div className="px-8 py-6">
-          <p className="mb-3 text-xs font-bold uppercase tracking-[0.15em] text-gray-500 dark:text-white/30">
+          <p className="mb-3 text-xs font-bold uppercase tracking-[0.15em] text-gray-500 dark:text-white/55">
             Your copied snippet
           </p>
           <div className="flex items-center gap-3 rounded-xl border border-black/10 bg-gray-100 px-4 py-3 font-mono text-sm dark:border-white/8 dark:bg-black/60">
@@ -603,8 +608,8 @@ function SuccessGuide({
               {markdown}
             </code>
           </div>
-          <p className="mt-4 text-xs leading-relaxed text-gray-500 dark:text-white/25">
-            Tip: Add <code className="text-gray-700 dark:text-white/40">?accent=808080</code> to the
+          <p className="mt-4 text-xs leading-relaxed text-gray-500 dark:text-white/55">
+            Tip: Add <code className="text-gray-700 dark:text-white/55">?accent=808080</code> to the
             URL to change your monolith&apos;s colour palette.
           </p>
           <div className="mt-8 flex justify-center border-t border-black/10 pt-6 dark:border-white/5">

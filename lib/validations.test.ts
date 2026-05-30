@@ -1,6 +1,31 @@
 import { describe, expect, it } from 'vitest';
 import { githubParamsSchema, ogParamsSchema, streakParamsSchema } from './validations';
 
+describe('streakParamsSchema — grace fallback behavior', () => {
+  it('accepts "0" as a valid grace value', () => {
+    expect(parse({ grace: '0' }).grace).toBe(0);
+  });
+
+  it('accepts "7" as a valid grace value', () => {
+    expect(parse({ grace: '7' }).grace).toBe(7);
+  });
+
+  it('clamps "8" to 7', () => {
+    expect(parse({ grace: '8' }).grace).toBe(7);
+  });
+
+  it('clamps "-1" to 0', () => {
+    expect(parse({ grace: '-1' }).grace).toBe(0);
+  });
+
+  it('falls back to 1 for non-numeric grace value', () => {
+    expect(parse({ grace: 'abc' }).grace).toBe(1);
+  });
+
+  it('defaults to 1 when grace is omitted', () => {
+    expect(parse({}).grace).toBe(1);
+  });
+});
 describe('githubParamsSchema', () => {
   it('should pass when username is valid', () => {
     const result = githubParamsSchema.safeParse({
@@ -224,6 +249,17 @@ describe('streakParamsSchema', () => {
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.user).toBe('octocat');
+    }
+  });
+
+  it('should reject user values longer than 39 characters', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'a'.repeat(40),
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toContain('cannot exceed 39 characters');
     }
   });
 
@@ -644,5 +680,47 @@ describe('streakParamsSchema — view fallback behavior', () => {
 
   it('defaults to "default" when view is omitted', () => {
     expect(parse({}).view).toBe('default');
+  });
+});
+
+/* ==========================================================================
+ * DATE RANGE BOUNDARY ROBUSTNESS (VARIATION 1)
+ * ========================================================================== */
+
+describe('streakParamsSchema — Date Range Boundary Robustness (Variation 1)', () => {
+  it('should process validation safely and fallback when partial or missing year parameters are passed', () => {
+    // Arrange: Provide a mock payload missing a full YYYY format sequence
+    const partialYearPayload = {
+      user: 'octocat',
+      from: '05-12',
+      to: '05-30',
+    };
+
+    // Act: Pass the object through the validator schema matrix
+    const result = streakParamsSchema.safeParse(partialYearPayload);
+
+    // Assert: The validator handles it safely using implicit date engine fallbacks
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.from).toBeDefined();
+      expect(result.data.to).toBeDefined();
+    }
+  });
+
+  it('should pass cleanly and fallback to default ranges when date bounds are completely omitted', () => {
+    // Arrange: Pass only the bare minimum required parameters
+    const minimalPayload = {
+      user: 'octocat',
+    };
+
+    // Act
+    const result = streakParamsSchema.safeParse(minimalPayload);
+
+    // Assert: Verify that omitted range options return undefined to use downstream defaults smoothly
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.from).toBeUndefined();
+      expect(result.data.to).toBeUndefined();
+    }
   });
 });

@@ -44,7 +44,9 @@ describe('GET /api/wrapped', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(getWrappedData).mockResolvedValue(mockWrappedStats);
-    vi.mocked(fetchGitHubContributions).mockResolvedValue(mockCalendar);
+    vi.mocked(fetchGitHubContributions).mockResolvedValue({
+      calendar: mockCalendar,
+    } as unknown as import('../../../types').ExtendedContributionData);
   });
 
   describe('parameter validation', () => {

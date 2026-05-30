@@ -25,6 +25,7 @@ export interface TowerData {
   isToday: boolean;
   isTodayWithCommits: boolean;
   tooltip: string;
+  date: string;
   contributionCount: number;
   faceOpacity: FaceOpacity;
   strokeOpacity: number;
@@ -146,6 +147,7 @@ export function computeTowers(
         isToday,
         isTodayWithCommits,
         tooltip,
+        date: day.date,
         contributionCount: count,
         faceOpacity: computeFaceOpacity(count, shouldShowGhostCity),
         strokeOpacity: isGhost ? 0.3 : 0,

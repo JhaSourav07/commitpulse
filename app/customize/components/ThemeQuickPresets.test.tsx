@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { ThemeQuickPresets } from './ThemeQuickPresets';
 import { THEME_KEYS } from '../types';
-import { themes } from '../../../lib/svg/themes';
 
 const validKeys = THEME_KEYS.filter((k) => k !== 'auto' && k !== 'random');
 
