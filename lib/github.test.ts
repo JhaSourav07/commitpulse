@@ -941,7 +941,7 @@ describe('GitHub API cache behavior', () => {
     expect(fetch).toHaveBeenCalledTimes(2);
   });
 
-  it('cache expiry: expired entry triggers a new fetch', async () => {
+  it('cache expiry: expired entry triggers a delta sync fetch', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-01-01T00:00:00.000Z'));
 
@@ -961,6 +961,14 @@ describe('GitHub API cache behavior', () => {
     await fetchGitHubContributions('octocat');
 
     expect(fetch).toHaveBeenCalledTimes(2);
+
+    const secondCallBody = JSON.parse(vi.mocked(fetch).mock.calls[1][1]!.body as string);
+    expect(secondCallBody.variables.from).toBeDefined();
+
+    // Delta sync subtracts 1 day from the last synced date (which was 2026-01-01)
+    const expectedFrom = new Date('2026-01-01T00:00:00.000Z');
+    expectedFrom.setUTCDate(expectedFrom.getUTCDate() - 1);
+    expect(secondCallBody.variables.from).toBe(expectedFrom.toISOString());
   });
 
   it('cache hit: second profile call uses cached value', async () => {

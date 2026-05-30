@@ -1,6 +1,6 @@
 // lib/github.ts
 
-import type { ContributionCalendar, ContributionDay, GraphNode, GraphLink } from '@/types';
+import type { ContributionCalendar, ContributionDay, ContributionWeek, GraphNode, GraphLink } from '@/types';
 import { calculateStreak, aggregateCalendars } from '@/lib/calculate';
 import { DistributedCache } from '@/lib/cache';
 import { LANGUAGE_COLORS } from '@/lib/svg/languageColors';
@@ -290,17 +290,75 @@ export function displayName(profile: GitHubUserProfile): string {
  * DATA FETCHING
  * ========================================================================== */
 
+function mergeCalendars(
+  oldCal: ContributionCalendar,
+  newCal: ContributionCalendar
+): ContributionCalendar {
+  const dayMap = new Map<string, ContributionDay>();
+
+  for (const week of oldCal.weeks) {
+    for (const day of week.contributionDays) {
+      dayMap.set(day.date, day);
+    }
+  }
+
+  for (const week of newCal.weeks) {
+    for (const day of week.contributionDays) {
+      dayMap.set(day.date, day);
+    }
+  }
+
+  const sortedDays = Array.from(dayMap.values()).sort((a, b) => a.date.localeCompare(b.date));
+
+  const mergedWeeks: ContributionWeek[] = [];
+  let currentWeek: ContributionWeek = { contributionDays: [] };
+
+  for (const day of sortedDays) {
+    const dateObj = new Date(day.date);
+    if (currentWeek.contributionDays.length > 0 && dateObj.getUTCDay() === 0) {
+      mergedWeeks.push(currentWeek);
+      currentWeek = { contributionDays: [] };
+    }
+    currentWeek.contributionDays.push(day);
+  }
+  if (currentWeek.contributionDays.length > 0) {
+    mergedWeeks.push(currentWeek);
+  }
+
+  const total = sortedDays.reduce((sum, d) => sum + d.contributionCount, 0);
+
+  return {
+    totalContributions: total,
+    weeks: mergedWeeks,
+  };
+}
+
 export async function fetchGitHubContributions(
   username: string,
   options: FetchOptions = {}
 ): Promise<ContributionCalendar> {
   const key = cacheKey('contributions', username, options.from, options.to);
-  if (!options.bypassCache) {
-    const cached = await contributionsCache.get(key);
-    if (cached) return cached;
+  const cached = await contributionsCache.get(key);
+
+  const now = Date.now();
+  const isStale = cached?.lastSyncedAt
+    ? now - new Date(cached.lastSyncedAt).getTime() > GITHUB_CACHE_TTL_MS
+    : true;
+
+  if (cached && !isStale && !options.bypassCache) {
+    return cached;
   }
 
   const load = async () => {
+    const isDeltaSync = cached && cached.lastSyncedAt && !options.bypassCache;
+    let queryFrom = options.from;
+
+    if (isDeltaSync) {
+      const lastSyncedDate = new Date(cached.lastSyncedAt!);
+      lastSyncedDate.setUTCDate(lastSyncedDate.getUTCDate() - 1);
+      queryFrom = lastSyncedDate.toISOString();
+    }
+
     const query = `
       query($login: String!, $from: DateTime, $to: DateTime) {
         user(login: $login) {
@@ -325,7 +383,7 @@ export async function fetchGitHubContributions(
       headers: getHeaders(),
       body: JSON.stringify({
         query,
-        variables: { login: username, from: options.from, to: options.to },
+        variables: { login: username, from: queryFrom, to: options.to },
       }),
       cache: 'no-store',
       signal: options.signal,
@@ -359,7 +417,11 @@ export async function fetchGitHubContributions(
       throw new Error(`GitHub user "${username}" not found`);
     }
 
-    const calendar = data.data.user.contributionsCollection.contributionCalendar;
+    let calendar = data.data.user.contributionsCollection.contributionCalendar;
+
+    if (isDeltaSync && cached) {
+      calendar = mergeCalendars(cached, calendar);
+    }
 
     // Inject deterministic Lines of Code (LoC) approximation
     // Since GitHub's contributionCalendar doesn't provide native LoC metrics,
@@ -391,7 +453,11 @@ export async function fetchGitHubContributions(
       });
     });
 
-    if (!options.bypassCache) await contributionsCache.set(key, calendar, GITHUB_CACHE_TTL_MS);
+    calendar.lastSyncedAt = new Date().toISOString();
+
+    // Cache for 7 days to enable delta syncs, staleness is handled logically
+    const LONG_CACHE_TTL = 7 * 24 * 60 * 60 * 1000;
+    if (!options.bypassCache) await contributionsCache.set(key, calendar, LONG_CACHE_TTL);
 
     return calendar;
   };

@@ -71,6 +71,9 @@ export interface ContributionCalendar {
 
   /** Array of weekly contribution data covering the queried date range. */
   weeks: ContributionWeek[];
+
+  /** Timestamp of the last successful GraphQL API sync. Used for delta updates. */
+  lastSyncedAt?: string;
 }
 
 /**
