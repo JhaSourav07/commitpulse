@@ -10,7 +10,7 @@ import { themes } from '@/lib/svg/themes';
 const SVG_CSP_HEADER =
   "default-src 'none'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://fonts.gstatic.com;";
 
-export class ValidationError extends Error {
+class ValidationError extends Error {
   constructor(message: string) {
     super(message);
     this.name = 'ValidationError';
@@ -94,6 +94,7 @@ export async function GET(request: Request) {
       hideBackground: hide_background,
       width,
       height,
+      scale: 'linear',
     };
 
     // Fetch the wrapped stats for the year
