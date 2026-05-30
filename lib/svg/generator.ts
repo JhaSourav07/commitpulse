@@ -358,7 +358,10 @@ export function generateSVG(
   );
   const towers = renderTowers(towerData, accent, text, sf);
 
-  // 1️⃣ THE INTELLIGENCE INJECTION: Create the AMOLED Persona SVG Element
+  // 1️⃣ THE INTELLIGENCE INJECTION: Safely extract single string for gradients
+  const safeAccentStr = (Array.isArray(accent) ? accent[0] : accent) as string;
+  const finalAccent = safeAccentStr.startsWith('#') ? safeAccentStr : `#${safeAccentStr}`;
+
   const personaElement = params.persona
     ? `
     <style>
@@ -367,14 +370,14 @@ export function generateSVG(
         50% { transform: translateY(-4px); }
       }
       @keyframes pulse-glow {
-        0%, 100% { filter: drop-shadow(0px 0px 2px ${accent}40); }
-        50% { filter: drop-shadow(0px 0px 8px ${accent}90); }
+        0%, 100% { filter: drop-shadow(0px 0px 2px ${finalAccent}40); }
+        50% { filter: drop-shadow(0px 0px 8px ${finalAccent}90); }
       }
       .persona-badge {
         animation: float-badge 3.5s ease-in-out infinite;
       }
       .persona-text-svg {
-        fill: ${accent};
+        fill: ${finalAccent};
         font-family: "Space Grotesk", monospace, sans-serif;
         font-size: ${Math.round(11 * sf)}px;
         font-weight: 600;
@@ -384,7 +387,7 @@ export function generateSVG(
       }
       .persona-bg {
         fill: ${bg};
-        stroke: ${accent};
+        stroke: ${finalAccent};
         stroke-width: 1px;
         stroke-opacity: 0.3;
       }
@@ -393,7 +396,6 @@ export function generateSVG(
     <!-- Position perfectly centered under the username -->
     <g transform="translate(${Math.round(300 * sf)}, ${Math.round(80 * sf)})">
       <g class="persona-badge">
-        <!-- Sleek dark pill background to isolate it from the grid -->
         <rect 
           x="${Math.round(-110 * sf)}" 
           y="${Math.round(-15 * sf)}" 
@@ -402,7 +404,6 @@ export function generateSVG(
           rx="${Math.round(11 * sf)}" 
           class="persona-bg"
         />
-        <!-- The floating, glowing text with aesthetic star accents -->
         <text class="persona-text-svg" x="0" y="${Math.round(3.5 * sf)}">
           <tspan fill="${text}" opacity="0.3">✦ </tspan>
           ${params.persona.toUpperCase()}
@@ -412,15 +413,16 @@ export function generateSVG(
     </g>
   `
     : '';
+
   // 2️⃣ THE FINAL RENDER: Inject ${personaElement} right before closing the SVG
   return `
 <svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" fill="none" role="img">
   ${renderHeader(safeUser, stats, sf, params)}
-  ${renderStyle(selectedFont, statsFont, googleFontsImport, text, accent, sf)}
+  ${renderStyle(selectedFont, statsFont, googleFontsImport, text, finalAccent, sf)}
   <rect width="${W}" height="${H}" rx="${radius}" fill="${params.hideBackground ? 'transparent' : bg}" ${borderAttr} />
   <g transform="translate(0, ${Math.round(20 * sf)})">${towers}</g>
   ${renderIsometricLabels(calendar, params, text, sf)}
-  ${renderFooter(stats, params, labels, safeUser, accent, sf)}
+  ${renderFooter(stats, params, labels, safeUser, finalAccent, sf)}
   ${personaElement}
 </svg>`;
 }
