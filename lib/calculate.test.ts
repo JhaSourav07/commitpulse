@@ -270,6 +270,55 @@ describe('calculateStreak', () => {
     expect(result.longestStreak).toBe(10);
     expect(result.currentStreak).toBe(5);
   });
+
+  it('does not extend current streak across multiple full-week gaps of zero contributions', () => {
+    // Scenario:
+    // - First active streak: 5 consecutive contribution days
+    // - Gap: 2 full weeks (14 days) of zero contributions (must fully break the streak)
+    // - Second active streak: 4 consecutive contribution days (ends with the last day being the final element)
+    //
+    // Expected:
+    // - currentStreak should reflect ONLY the second streak (1)
+    // - longestStreak should remain the maximum of both streaks (5)
+    // - totalContributions should be 5 + 4 = 9
+
+    const calendar = buildCalendar([
+      1,
+      1,
+      1,
+      1,
+      1,
+      0,
+      0, // week 1: 5-day streak then 2-day gap
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0, // week 2: all zeros (gap begins)
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0, // week 3: all zeros (gap continues)
+      1,
+      1,
+      1,
+      1,
+      0,
+      0,
+      1, // week 4: 4-day second streak with "today" on the final day
+    ]);
+
+    const result = calculateStreak(calendar);
+
+    expect(result.currentStreak).toBe(1);
+    expect(result.longestStreak).toBe(5);
+    expect(result.totalContributions).toBe(10);
+  });
 });
 it('handles massive single-day commit spike timeline', () => {
   const calendar = buildCalendar([
