@@ -16,6 +16,7 @@ import {
   fetchOrgMembers,
   getOrgDashboardData,
   getWrappedData,
+  computeDeveloperScore,
 } from './github';
 import type { ContributionCalendar } from '../types';
 
@@ -812,6 +813,50 @@ describe('GitHub API cache behavior', () => {
     expect(results.map((result) => result.totalContributions)).toEqual([42, 42, 42]);
   });
 
+  it('dedupes rapid synchronous contribution requests until the delayed fetch resolves once', async () => {
+    vi.useFakeTimers();
+    const resolveFetchSpy = vi.fn();
+
+    vi.mocked(fetch).mockImplementation(
+      () =>
+        new Promise<Response>((resolve) => {
+          setTimeout(() => {
+            resolveFetchSpy();
+            resolve(
+              mockResponse({
+                data: {
+                  user: {
+                    contributionsCollection: { contributionCalendar: mockCalendar },
+                  },
+                },
+              })
+            );
+          }, 250);
+        })
+    );
+
+    const requests = [
+      fetchGitHubContributions('octocat'),
+      fetchGitHubContributions('octocat'),
+      fetchGitHubContributions('octocat'),
+    ];
+
+    await Promise.resolve();
+
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(resolveFetchSpy).not.toHaveBeenCalled();
+
+    await vi.advanceTimersByTimeAsync(249);
+    expect(resolveFetchSpy).not.toHaveBeenCalled();
+
+    await vi.advanceTimersByTimeAsync(1);
+
+    const results = await Promise.all(requests);
+
+    expect(resolveFetchSpy).toHaveBeenCalledTimes(1);
+    expect(results.map((result) => result.totalContributions)).toEqual([42, 42, 42]);
+  });
+
   it('refresh bypass: bypassCache=true forces a fresh fetch', async () => {
     vi.mocked(fetch).mockImplementation(async () =>
       mockResponse({
@@ -1303,5 +1348,98 @@ describe('getWrappedData', () => {
 
     expect(body.variables.from).toBe('2024-01-01T00:00:00Z');
     expect(body.variables.to).toBe('2024-12-31T23:59:59Z');
+  });
+});
+
+describe('computeDeveloperScore', () => {
+  it('handles all-zero inputs', () => {
+    const score = computeDeveloperScore({
+      repos: 0,
+      followers: 0,
+      stars: 0,
+      contributions: 0,
+      longestStreak: 0,
+    });
+    expect(score).toBe(0);
+  });
+
+  it('calculates perfect 100 for exact saturation threshold values', () => {
+    const score = computeDeveloperScore({
+      repos: 50,
+      followers: 50,
+      stars: 100,
+      contributions: 400,
+      longestStreak: 50,
+    });
+    expect(score).toBe(100);
+  });
+
+  it('clamps the developer score to a maximum of 100 under excess inputs', () => {
+    const score = computeDeveloperScore({
+      repos: 1000,
+      followers: 500,
+      stars: 9999,
+      contributions: 10000,
+      longestStreak: 365,
+    });
+    expect(score).toBe(100);
+  });
+
+  it('correctly calculates developer score under realistic normal values with rounding', () => {
+    const score = computeDeveloperScore({
+      repos: 10, // 10 * 0.5 = 5 pts
+      followers: 8, // 8 * 0.5 = 4 pts
+      stars: 15, // 15 * 0.2 = 3 pts
+      contributions: 120, // 120 / 20 = 6 pts
+      longestStreak: 12, // 12 * 0.2 = 2.4 pts
+    }); // Total = 20.4 -> rounded to 20
+    expect(score).toBe(20);
+  });
+
+  it('handles individual factor saturation caps correctly', () => {
+    // repos saturates at 50 (25 pts), followers saturates at 50 (25 pts)
+    const score = computeDeveloperScore({
+      repos: 100, // Caps at 25 pts
+      followers: 60, // Caps at 25 pts
+      stars: 0,
+      contributions: 0,
+      longestStreak: 0,
+    });
+    expect(score).toBe(50);
+  });
+
+  it('handles small fractional values and rounds to nearest integer correctly', () => {
+    // longestStreak of 3 yields 3 * 0.2 = 0.6 -> rounds to 1
+    expect(
+      computeDeveloperScore({
+        repos: 0,
+        followers: 0,
+        stars: 0,
+        contributions: 0,
+        longestStreak: 3,
+      })
+    ).toBe(1);
+
+    // sum of small fractional parts: 1 repos (0.5) + 1 followers (0.5) + 1 stars (0.2) + 1 contributions (0.05) + 1 longestStreak (0.2) = 1.45 -> rounds to 1
+    expect(
+      computeDeveloperScore({
+        repos: 1,
+        followers: 1,
+        stars: 1,
+        contributions: 1,
+        longestStreak: 1,
+      })
+    ).toBe(1);
+
+    // sum: 1 repos (0.5) + 1 followers (0.5) + 1 stars (0.2) + 1 contributions (0.05) + 2 longestStreak (0.4) = 1.65 -> rounds to 2
+    expect(
+      computeDeveloperScore({
+        repos: 1,
+        followers: 1,
+        stars: 1,
+        contributions: 1,
+        longestStreak: 2,
+      })
+    ).toBe(2);
   });
 });

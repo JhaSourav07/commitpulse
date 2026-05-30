@@ -633,8 +633,8 @@ describe('generateSVG', () => {
       expect(svg).toContain('attributeName="opacity" values="1;0.4;1"');
     });
 
-    it('does not pulse when todayDate has no commits even if another day does', () => {
-      // todayDate = '2024-06-13' (0 commits) — no pulse
+    it('pulses even when todayDate has no commits', () => {
+      // todayDate = '2024-06-13' (0 commits) — should pulse under new design requirements
       const stats: StreakStats = {
         currentStreak: 0,
         longestStreak: 2,
@@ -644,7 +644,26 @@ describe('generateSVG', () => {
 
       const svg = generateSVG(stats, { user: 'avi' } as unknown as BadgeParams, calendar);
 
-      expect(svg).not.toContain('attributeName="opacity" values="1;0.4;1"');
+      expect(svg).toContain('attributeName="opacity" values="1;0.4;1"');
+    });
+
+    it("applies a prominent top-face accent stroke highlight to today's zero-commit tile", () => {
+      const stats: StreakStats = {
+        currentStreak: 0,
+        longestStreak: 2,
+        totalContributions: 10,
+        todayDate: '2024-06-13',
+      };
+
+      const svg = generateSVG(
+        stats,
+        { user: 'avi', accent: '00ffaa' } as unknown as BadgeParams,
+        calendar
+      );
+
+      // Verify today's zero-commit tile has the correct top-face stroke highlight
+      // For static theme, todayStrokeColor is resolved to accentColorHex ('#00ffaa')
+      expect(svg).toContain('stroke="#00ffaa" stroke-opacity="0.8" stroke-width="1.2"');
     });
     it('includes accessible title and description metadata', () => {
       const svg = generateSVG(
@@ -1295,5 +1314,25 @@ describe('Radar Scan Line Animation Alignment', () => {
     // Assert: Empty inputs and regular strings remain untouched
     expect(escapeXML('')).toBe('');
     expect(escapeXML('CommitPulse')).toBe('CommitPulse');
+  });
+
+  it('renders long usernames as truncated SVG labels without breaking geometry', () => {
+    const longUsername = 'ThisIsAVeryLongUsernameThatExceedsThirtyCharacters';
+    const svg = generateSVG(
+      {
+        currentStreak: 10,
+        longestStreak: 20,
+        totalContributions: 200,
+        todayDate: '2024-06-12',
+      },
+      { user: longUsername, size: 'medium', autoTheme: false } as unknown as BadgeParams,
+      mockCalendar
+    );
+
+    expect(svg).toContain('...');
+    expect(svg).not.toContain(longUsername.toUpperCase());
+    expect(svg).toContain('text-anchor="middle"');
+    expect(svg).toContain('width="600"');
+    expect(svg).toContain('height="420"');
   });
 });

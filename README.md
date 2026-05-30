@@ -212,7 +212,7 @@ URL Parameter > Theme Default > System Fallback
 | `dark` _(default)_ | GitHub dark                 | `0d1117` | `58a6ff` | `c9d1d9` |
 | `neon`             | Cyberpunk                   | `000000` | `ff00ff` | `00ffcc` |
 | `dracula`          | Dracula Pro                 | `282a36` | `bd93f9` | `f8f8f2` |
-| `github`           | GitHub green                | `0d1117` | `238636` | `ffffff` |
+| `github`           | GitHub green                | `0d1117` | `39d353` | `ffffff` |
 | `light`            | Clean & minimal             | `ffffff` | `0969da` | `24292f` |
 | `gruvbox`          | retro warm dark             | `282828` | `fe8019` | `ebdbb2` |
 | `random`           | Surprise theme on reload    | _varies_ | _varies_ | _varies_ |

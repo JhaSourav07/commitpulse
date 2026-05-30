@@ -20,6 +20,17 @@ describe('computeTowers edge cases', () => {
     expect(towers[0].isTodayWithCommits).toBe(true);
   });
 
+  it('adds TODAY prefix for today tower without commits', () => {
+    const calendar = {
+      totalContributions: 0,
+      weeks: [{ contributionDays: [{ contributionCount: 0, date: '2024-06-12' }] }],
+    } as unknown as ContributionCalendar;
+    const towers = computeTowers(calendar, 'linear', '2024-06-12');
+    expect(towers[0].tooltip).toContain('TODAY:');
+    expect(towers[0].isToday).toBe(true);
+    expect(towers[0].isTodayWithCommits).toBe(false);
+  });
+
   it('does not add TODAY prefix for non-today tower', () => {
     const calendar = {
       totalContributions: 0,

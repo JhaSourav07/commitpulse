@@ -437,6 +437,16 @@ describe('GET /api/streak', () => {
       });
     });
 
+    it('passes correct from/to range when ?year=2008 is provided', async () => {
+      await GET(makeRequest({ user: 'octocat', year: '2008' }));
+
+      expect(fetchGitHubContributions).toHaveBeenCalledWith('octocat', {
+        bypassCache: false,
+        from: '2008-01-01T00:00:00Z',
+        to: '2008-12-31T23:59:59Z',
+      });
+    });
+
     it('functions normally when the year parameter is missing', async () => {
       const response = await GET(makeRequest({ user: 'octocat' }));
 
