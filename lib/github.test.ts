@@ -363,7 +363,7 @@ describe('fetchGitHubContributions', () => {
 
       const promise = fetchGitHubContributions('octocat');
       // Register the rejection handler before advancing timers so the rejection
-      // is never "unhandled" during the timer callbacks.
+      // is never "unhandled" during the timer callbacks
       const assertion = expect(promise).rejects.toThrow('API Rate Limit Exceeded');
       // 500ms + 1000ms + 2000ms covers all 3 retry delays before attempt >= MAX_RETRIES
       await vi.advanceTimersByTimeAsync(3500);
