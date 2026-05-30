@@ -144,4 +144,92 @@ describe('getSecondsUntilMidnightInTimezone', () => {
       expect(Number.isInteger(result)).toBe(true);
     }
   });
+
+  it('handles extreme timezone Etc/GMT-14 (UTC+14)', () => {
+    // UTC 00:00 → local time 14:00 in UTC+14
+    vi.setSystemTime(new Date('2024-06-15T00:00:00.000Z'));
+
+    expect(getSecondsUntilMidnightInTimezone('Etc/GMT-14')).toBe(10 * 3600);
+  });
+
+  it('should calculate seconds until UTC midnight correctly at a calendar boundary', () => {
+    // Arrange: Set time to Dec 31, 2023, 23:59:50 UTC (10 seconds before New Year)
+    const boundaryTime = new Date(Date.UTC(2023, 11, 31, 23, 59, 50));
+    vi.setSystemTime(boundaryTime);
+
+    // Act
+    const seconds = getSecondsUntilUTCMidnight();
+
+    // Assert: Exactly 10 seconds should remain
+    expect(seconds).toBe(10);
+  });
+
+  it('should handle extreme positive timezone offset boundary (+14:00)', () => {
+    // Arrange: Pacific/Kiritimati is UTC+14.
+    // When UTC is Dec 31, 09:59:50, Kiritimati is Dec 31, 23:59:50 (10 seconds to midnight)
+    const boundaryTime = new Date(Date.UTC(2023, 11, 31, 9, 59, 50));
+    vi.setSystemTime(boundaryTime);
+
+    // Act
+    const seconds = getSecondsUntilMidnightInTimezone('Pacific/Kiritimati');
+
+    // Assert
+    expect(seconds).toBe(10);
+  });
+
+  it('should handle extreme negative timezone offset boundary (-11:00)', () => {
+    // Arrange: Pacific/Midway is UTC-11.
+    // When UTC is Jan 1, 10:59:50, Midway is Dec 31, 23:59:50 (10 seconds to midnight)
+    const boundaryTime = new Date(Date.UTC(2024, 0, 1, 10, 59, 50));
+    vi.setSystemTime(boundaryTime);
+
+    // Act
+    const seconds = getSecondsUntilMidnightInTimezone('Pacific/Midway');
+
+    // Assert
+    expect(seconds).toBe(10);
+  });
+
+  it('should handle exact midnight boundary gracefully (0 seconds remaining)', () => {
+    // Arrange: Exactly midnight in UTC
+    const midnightTime = new Date(Date.UTC(2024, 0, 1, 0, 0, 0));
+    vi.setSystemTime(midnightTime);
+
+    // Act
+    const secondsUTC = getSecondsUntilUTCMidnight();
+    const secondsLondon = getSecondsUntilMidnightInTimezone('Europe/London');
+
+    // Assert: Both should recognize it's 24 hours (86400 seconds) until the NEXT midnight
+    // Since the logic does `86400 - (hour * 3600 + ...)`, at 00:00:00 it returns 86400.
+    expect(secondsUTC).toBe(86400);
+    expect(secondsLondon).toBe(86400);
+  });
+});
+
+describe('getSecondsUntilUTCMidnight — sliding window boundary robustness', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('returns correct TTL across a sliding window of times approaching UTC midnight', () => {
+    // Verifies that the utility guarantees keys expire exactly at the window limit.
+    // Each entry is [UTC time string, expected seconds until next midnight].
+    const cases: [string, number][] = [
+      ['2024-06-15T23:00:00.000Z', 3600], // 1 hour before midnight
+      ['2024-06-15T23:30:00.000Z', 1800], // 30 minutes before midnight
+      ['2024-06-15T23:45:00.000Z', 900], // 15 minutes before midnight
+      ['2024-06-15T23:59:00.000Z', 60], // 1 minute before midnight
+      ['2024-06-15T23:59:59.000Z', 1], // 1 second before midnight
+      ['2024-06-16T00:00:00.000Z', 86400], // exactly at midnight, resets to full day
+    ];
+
+    for (const [time, expected] of cases) {
+      vi.setSystemTime(new Date(time));
+      expect(getSecondsUntilUTCMidnight()).toBe(expected);
+    }
+  });
 });

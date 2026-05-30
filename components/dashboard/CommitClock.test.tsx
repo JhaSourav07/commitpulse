@@ -3,9 +3,11 @@ import { describe, it, expect, vi } from 'vitest';
 import type { ReactNode } from 'react';
 import CommitClock from './CommitClock';
 import type { CommitClockData } from '@/types/dashboard';
+import type React from 'react';
 
 // 1. Mock framer-motion to prevent animation errors during DOM testing
 vi.mock('framer-motion', () => ({
+  AnimatePresence: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   motion: {
     div: ({ children, className }: { children: ReactNode; className?: string }) => (
       <div className={className}>{children}</div>

@@ -16,7 +16,7 @@ https://commitpulse.vercel.app/api/badge?username=YOUR_USERNAME&theme=<slug>
 | dark         | `#0d1117`  | `#c9d1d9` | `#58a6ff` |
 | light        | `#ffffff`  | `#24292f` | `#0969da` |
 | neon         | `#000000`  | `#00ffcc` | `#ff00ff` |
-| github       | `#0d1117`  | `#ffffff` | `#238636` |
+| github       | `#0d1117`  | `#ffffff` | `#39d353` |
 | dracula      | `#282a36`  | `#f8f8f2` | `#bd93f9` |
 | ocean        | `#0a192f`  | `#ccd6f6` | `#64ffda` |
 | sunset       | `#1a0a0a`  | `#ffd6c0` | `#ff6b35` |
