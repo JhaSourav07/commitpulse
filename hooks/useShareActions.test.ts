@@ -1,46 +1,90 @@
-import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
+import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { useShareActions } from './useShareActions';
 import type { DashboardExportData } from '@/types/dashboard';
 
 vi.mock('html-to-image', () => ({
+  toPng: vi.fn().mockResolvedValue('data:image/png;base64,mockPng'),
   toCanvas: vi.fn().mockResolvedValue({
     toBlob: (cb: (blob: Blob) => void) => {
       cb(new Blob(['test'], { type: 'image/png' }));
     },
+    toDataURL: vi.fn().mockReturnValue('data:image/webp;base64,mockWebp'),
   }),
 }));
-const mockExportData: DashboardExportData = {
-  stats: { currentStreak: 5, peakStreak: 10, totalContributions: 100 },
-  languages: [],
-};
 
 describe('useShareActions', () => {
+  const mockUsername = 'atharv96k';
+  const mockClose = vi.fn();
+
+  const mockExportData: DashboardExportData = {
+    stats: {
+      currentStreak: 5,
+      peakStreak: 12,
+      totalContributions: 142,
+    },
+    languages: [
+      { name: 'Java', color: '#b07219', percentage: 70 },
+      { name: 'TypeScript', color: '#3178c6', percentage: 30 },
+    ],
+  };
+
+  const originalCreateElement = document.createElement.bind(document);
+  let mockLinkElement: HTMLAnchorElement;
+
   beforeEach(() => {
+    vi.clearAllMocks();
     vi.useFakeTimers();
-    Object.assign(navigator, {
-      clipboard: { writeText: vi.fn().mockResolvedValue(undefined) },
+
+    Object.defineProperty(navigator, 'clipboard', {
+      value: {
+        writeText: vi.fn().mockResolvedValue(undefined),
+      },
+      configurable: true,
     });
+
+    vi.spyOn(window, 'open').mockImplementation(() => null);
+
+    global.URL.createObjectURL = vi.fn().mockReturnValue('blob:mock-url');
+    global.URL.revokeObjectURL = vi.fn();
+
+    mockLinkElement = originalCreateElement('a') as HTMLAnchorElement;
+    vi.spyOn(mockLinkElement, 'click').mockImplementation(() => undefined);
+
+    vi.spyOn(document, 'createElement').mockImplementation((tagName) => {
+      if (tagName === 'a') {
+        return mockLinkElement;
+      }
+      return originalCreateElement(tagName);
+    });
+
+    document.body.innerHTML = '<div id="dashboard-root">Dashboard</div>';
   });
 
   afterEach(() => {
     vi.useRealTimers();
+    vi.restoreAllMocks();
+    document.body.innerHTML = '';
+    Reflect.deleteProperty(globalThis, 'ClipboardItem');
   });
 
-  it('transitions copy state from loading to success after handleCopyLink', async () => {
-    // Verifies the full lifecycle: idle → loading → success on a successful clipboard write
-    const { result } = renderHook(() => useShareActions('testuser', mockExportData, vi.fn()));
+  it('handleCopyLink calls navigator.clipboard.writeText with a profile URL containing the username', async () => {
+    const { result } = renderHook(() => useShareActions(mockUsername, mockExportData, mockClose));
 
+    let success;
     await act(async () => {
-      await result.current.handleCopyLink();
+      success = await result.current.handleCopyLink();
     });
 
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+      expect.stringContaining(`/dashboard/${mockUsername}`)
+    );
+    expect(success).toBe(true);
     expect(result.current.states['copy']).toBe('success');
   });
 
   it('resets copy state to idle after 2500ms', async () => {
-    // Verifies the timeout reset behavior critical for UX — success must not persist forever
-    const { result } = renderHook(() => useShareActions('testuser', mockExportData, vi.fn()));
+    const { result } = renderHook(() => useShareActions(mockUsername, mockExportData, mockClose));
 
     await act(async () => {
       await result.current.handleCopyLink();
@@ -54,6 +98,7 @@ describe('useShareActions', () => {
 
     expect(result.current.states['copy']).toBe('idle');
   });
+
   it('copies dashboard image to clipboard successfully', async () => {
     const writeMock = vi.fn().mockResolvedValue(undefined);
     class MockClipboardItem {
@@ -62,25 +107,95 @@ describe('useShareActions', () => {
 
     Object.defineProperty(globalThis, 'ClipboardItem', {
       value: MockClipboardItem,
+      configurable: true,
       writable: true,
     });
 
-    Object.assign(navigator, {
-      clipboard: {
+    Object.defineProperty(navigator, 'clipboard', {
+      value: {
         write: writeMock,
         writeText: vi.fn().mockResolvedValue(undefined),
       },
+      configurable: true,
     });
 
-    document.body.innerHTML = '<div id="dashboard-root">Dashboard</div>';
-
-    const { result } = renderHook(() => useShareActions('testuser', mockExportData, vi.fn()));
+    const { result } = renderHook(() => useShareActions(mockUsername, mockExportData, mockClose));
 
     await act(async () => {
       await result.current.handleCopyImage();
     });
-    console.log('copyImage state:', result.current.states['copyImage']);
+
     expect(writeMock).toHaveBeenCalled();
     expect(result.current.states['copyImage']).toBe('success');
+  });
+
+  it('handleTwitter opens window to share on twitter/x', () => {
+    const { result } = renderHook(() => useShareActions(mockUsername, mockExportData, mockClose));
+
+    act(() => {
+      result.current.handleTwitter();
+    });
+
+    expect(window.open).toHaveBeenCalledWith(
+      expect.stringContaining('twitter.com/intent/tweet'),
+      '_blank',
+      'noopener'
+    );
+    expect(mockClose).toHaveBeenCalled();
+  });
+
+  it('handleLinkedIn opens window to share on linkedin', () => {
+    const { result } = renderHook(() => useShareActions(mockUsername, mockExportData, mockClose));
+
+    act(() => {
+      result.current.handleLinkedIn();
+    });
+
+    expect(window.open).toHaveBeenCalledWith(
+      expect.stringContaining('linkedin.com/sharing/share-offsite'),
+      '_blank',
+      'noopener'
+    );
+    expect(mockClose).toHaveBeenCalled();
+  });
+
+  it('handleReddit opens window to submit link on reddit', () => {
+    const { result } = renderHook(() => useShareActions(mockUsername, mockExportData, mockClose));
+
+    act(() => {
+      result.current.handleReddit();
+    });
+
+    expect(window.open).toHaveBeenCalledWith(
+      expect.stringContaining('reddit.com/submit'),
+      '_blank',
+      'noopener,noreferrer'
+    );
+    expect(mockClose).toHaveBeenCalled();
+  });
+
+  it('handleCopyMarkdown writes an interactive markdown string to clipboard', async () => {
+    const { result } = renderHook(() => useShareActions(mockUsername, mockExportData, mockClose));
+
+    await act(async () => {
+      await result.current.handleCopyMarkdown();
+    });
+
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+      expect.stringContaining(`/api/streak?user=${mockUsername}`)
+    );
+  });
+
+  it('handleDownloadJSON bundles and formats a structured JSON data blob download', () => {
+    const { result } = renderHook(() => useShareActions(mockUsername, mockExportData, mockClose));
+
+    act(() => {
+      result.current.handleDownloadJSON();
+    });
+
+    expect(mockLinkElement.download).toContain(`commitpulse-${mockUsername}-stats.json`);
+    expect(mockLinkElement.href).toBe('blob:mock-url');
+    expect(mockLinkElement.click).toHaveBeenCalled();
+    expect(global.URL.createObjectURL).toHaveBeenCalled();
   });
 });

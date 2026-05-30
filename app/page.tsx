@@ -69,23 +69,18 @@ const Icons = {
 };
 
 export default function LandingPage() {
-  const [mounted, setMounted] = useState(false);
   const [username, setUsername] = useState('');
   const [copied, setCopied] = useState(false);
   const [svgContent, setSvgContent] = useState<string | null>(null);
   const [svgState, setSvgState] = useState<'idle' | 'loading' | 'loaded' | 'error'>('idle');
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const guideRef = useRef<HTMLDivElement>(null);
   const { searches, addSearch, clearSearches, removeSearch } = useRecentSearches();
-  const trimmedUsername = username.trim();
-  const debouncedUsername = useDebounce(trimmedUsername, 500);
-  const hasUsername = debouncedUsername.length > 0;
+  const [mounted, setMounted] = useState(false);
 
   const badgeUrl = `/api/streak?user=${debouncedUsername}`;
-  const markdown = `![CommitPulse](${
-    mounted
-      ? window.location.origin
-      : (process.env.NEXT_PUBLIC_SITE_URL ?? 'https://commitpulse.vercel.app')
-  }/api/streak?user=${trimmedUsername})`;
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://commitpulse.vercel.app';
+  const markdown = `![CommitPulse](${siteUrl}/api/streak?user=${trimmedUsername})`;
 
   // Fetch SVG content whenever debounced username changes.
   useEffect(() => {
@@ -104,21 +99,30 @@ export default function LandingPage() {
     const controller = new AbortController();
 
     fetch(badgeUrl, { signal: controller.signal })
-      .then((res) => {
+      .then(async (res) => {
+        const text = await res.text();
         if (!res.ok) {
+          setSvgContent(null);
           setSvgState('error');
+          if (res.status === 404 || res.status === 400 || res.status === 429) {
+            setErrorMessage('GitHub user not found');
+          } else {
+            setErrorMessage('Failed to load badge');
+          }
           return;
         }
-        return res.text();
+        return text;
       })
       .then((text) => {
         if (!text) return;
         setSvgContent(text);
         setSvgState('loaded');
+        setErrorMessage(null);
       })
       .catch((err) => {
         if (err.name === 'AbortError') return;
         setSvgState('error');
+        setErrorMessage('Failed to load badge');
       });
     return () => controller.abort();
   }, [badgeUrl, hasUsername]);
@@ -220,6 +224,7 @@ export default function LandingPage() {
                 <div className="relative flex-1 flex items-center w-full">
                   <input
                     type="text"
+                    suppressHydrationWarning
                     placeholder="Enter GitHub Username"
                     className="flex-1 rounded-xl border border-gray-300 bg-white px-5 py-3.5 text-sm text-black outline-none transition-all duration-200 placeholder:text-gray-500 focus:ring-2 focus:ring-[#0969da] focus:border-[#0969da] dark:border-[rgba(255,255,255,0.08)] dark:bg-[#111] dark:text-white dark:placeholder:text-[#A1A1AA]"
                     value={username}
@@ -246,9 +251,10 @@ export default function LandingPage() {
               <div className="flex flex-col sm:flex-row gap-4">
                 <button
                   type="submit"
-                  disabled={trimmedUsername.length === 0}
+                  suppressHydrationWarning
+                  disabled={!mounted || trimmedUsername.length === 0}
                   className={`relative flex min-w-[160px] items-center justify-center gap-2 overflow-hidden rounded-2xl px-6 py-4 text-sm font-semibold transition-all duration-300 transform cursor-pointer hover:scale-[1.02] hover:shadow-lg active:scale-[0.98] disabled:cursor-not-allowed ${
-                    trimmedUsername.length > 0
+                    mounted && trimmedUsername.length > 0
                       ? 'bg-black text-white hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-gray-100 shadow-md'
                       : 'bg-gray-100 text-gray-400 dark:bg-white/5 dark:text-white/20'
                   }`}
@@ -276,10 +282,13 @@ export default function LandingPage() {
                   </AnimatePresence>
                 </button>
                 <Link
-                  href={trimmedUsername.length > 0 ? `/dashboard/${trimmedUsername}` : '/'}
-                  aria-disabled={trimmedUsername.length === 0}
+                  href={
+                    mounted && trimmedUsername.length > 0 ? `/dashboard/${trimmedUsername}` : '/'
+                  }
+                  suppressHydrationWarning
+                  aria-disabled={!mounted || trimmedUsername.length === 0}
                   onClick={(e) => {
-                    if (trimmedUsername.length === 0) {
+                    if (!mounted || trimmedUsername.length === 0) {
                       e.preventDefault();
                     } else {
                       trackUser(trimmedUsername);
@@ -340,7 +349,7 @@ export default function LandingPage() {
                   {svgState === 'loading' && (
                     <div className="h-[240px] w-full max-w-[700px] rounded-2xl bg-black/5 dark:bg-white/5 animate-pulse" />
                   )}
-                  {svgState === 'error' && (
+                  {svgState === 'error' && errorMessage === 'GitHub user not found' && (
                     <div className="flex flex-col items-center justify-center gap-4 py-12 text-center">
                       <div className="flex h-16 w-16 items-center justify-center rounded-3xl border border-red-500/20 bg-red-500/10 shadow-inner">
                         <X size={32} className="text-red-500" />
@@ -355,6 +364,16 @@ export default function LandingPage() {
                       </div>
                     </div>
                   )}
+                  {svgState === 'error' && errorMessage !== 'GitHub user not found' && (
+                    <div className="flex flex-col items-center justify-center gap-2 text-center py-8">
+                      <p className="text-sm font-semibold text-red-500 dark:text-red-400">
+                        Failed to load badge
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-white/40">
+                        The API may be unavailable. Please try again.
+                      </p>
+                    </div>
+                  )}
                   {svgState === 'loaded' && svgContent && (
                     <motion.div
                       initial={{ opacity: 0, scale: 0.95 }}
@@ -363,6 +382,9 @@ export default function LandingPage() {
                       className="cp-svg-container w-full max-w-[700px] drop-shadow-[0_30px_60px_rgba(0,0,0,0.15)] dark:drop-shadow-[0_30px_60px_rgba(0,0,0,0.5)] [&>svg]:w-full [&>svg]:h-auto"
                       dangerouslySetInnerHTML={{ __html: svgContent }}
                     />
+                  )}
+                  {svgState === 'loaded' && !svgContent && errorMessage && (
+                    <p className="text-red-400 text-sm text-center">{errorMessage}</p>
                   )}
                 </div>
               ) : (

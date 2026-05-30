@@ -10,6 +10,37 @@ import {
 } from './svg/sanitizer';
 import { themes } from './svg/themes';
 
+export function toBooleanFlag(val?: string): boolean {
+  return val === 'true' || val === '1';
+}
+
+export function toRefreshFlag(val?: string): boolean {
+  return val === 'true';
+}
+
+export function toEmptyStringAsUndefined(val?: string): string | undefined {
+  return val === '' ? undefined : val;
+}
+
+export function toValidTheme(val?: string): string | undefined {
+  return val && Object.hasOwn(themes, val) ? val : 'dark';
+}
+
+export function toValidHexColor(defaultColor: string) {
+  return (val?: string): string | undefined =>
+    val && isValidHex(val) ? sanitizeHexColor(val, defaultColor) : undefined;
+}
+
+export function toGraceValue(val?: string): number {
+  if (!val) return 1;
+  const parsed = Number(val);
+  return isNaN(parsed) ? 1 : Math.max(0, Math.min(parsed, 7));
+}
+
+export function toDimensionValue(val?: string): number | undefined {
+  return val === undefined ? undefined : Number(val);
+}
+
 function dimensionParam(name: string, min: number, max: number) {
   return z
     .string()
@@ -24,7 +55,7 @@ function dimensionParam(name: string, min: number, max: number) {
       },
       { message: `${name} must be an integer between ${min} and ${max}` }
     )
-    .transform((val) => (val === undefined ? undefined : Number(val)));
+    .transform(toDimensionValue);
 }
 
 export const streakParamsSchema = z.object({
@@ -136,24 +167,10 @@ export const streakParamsSchema = z.object({
       },
       { message: 'Invalid "to" date format. Use ISO 8601 (e.g. 2023-12-31).' }
     ),
-  refresh: z
-    .string()
-    .optional()
-    .transform((val) => val === 'true'),
-  hide_title: z
-    .string()
-    .optional()
-    .transform((val) => val === 'true' || val === '1'),
-
-  hide_background: z
-    .string()
-    .optional()
-    .transform((val) => val === 'true'),
-
-  hide_stats: z
-    .string()
-    .optional()
-    .transform((val) => val === 'true' || val === '1'),
+  refresh: z.string().optional().transform(toRefreshFlag),
+  hide_title: z.string().optional().transform(toBooleanFlag),
+  hide_background: z.string().optional().transform(toRefreshFlag),
+  hide_stats: z.string().optional().transform(toBooleanFlag),
   lang: z.string().optional().default('en'),
   // Unknown view values fall back to the default dashboard view.
   view: z.enum(['default', 'monthly']).catch('default').default('default'),
@@ -161,22 +178,11 @@ export const streakParamsSchema = z.object({
   delta_format: z.enum(['percent', 'absolute', 'both']).catch('percent').default('percent'),
   width: dimensionParam('width', 100, 1200),
   height: dimensionParam('height', 80, 800),
-  grace: z
-    .string()
-    .optional()
-    .transform((val) => {
-      if (!val) return 1;
-      const parsed = Number(val);
-      return isNaN(parsed) ? 1 : Math.max(0, Math.min(parsed, 7));
-    })
-    .default(1),
+  grace: z.string().optional().transform(toGraceValue).default(1),
   mode: z.enum(['commits', 'loc']).catch('commits').default('commits'),
   repo: z.string().optional(),
   org: z.string().optional(),
-  labels: z
-    .string()
-    .optional()
-    .transform((val) => val === 'true' || val === '1'),
+  labels: z.string().optional().transform(toBooleanFlag),
   labelColor: z
     .string()
     .optional()
@@ -212,54 +218,39 @@ export const streakParamsSchema = z.object({
 export const githubParamsSchema = z.object({
   username: z
     .string({ error: 'Missing "username" parameter' })
-    .min(1, { message: 'Username is required' })
-    .max(39, { message: 'GitHub username cannot exceed 39 characters' })
-    .regex(/^[a-zA-Z0-9](?:[a-zA-Z0-9]|-(?=[a-zA-Z0-9]))*$/, {
-      message: 'Invalid GitHub username format',
-    }),
-  refresh: z
-    .string()
-    .optional()
-    .transform((val) => val === 'true'),
+    .min(1, { message: 'Username is required' }),
+  refresh: z.string().optional().transform(toRefreshFlag),
 });
 
 export const ogParamsSchema = z
   .object({
-    user: z
-      .string()
-      .trim()
-      .optional()
-      .transform((val) => (val === '' ? undefined : val)),
-    username: z
-      .string()
-      .trim()
-      .optional()
-      .transform((val) => (val === '' ? undefined : val)),
+    user: z.string().trim().optional().transform(toEmptyStringAsUndefined),
+    username: z.string().trim().optional().transform(toEmptyStringAsUndefined),
     theme: z
       .string()
       .trim()
       .optional()
-      .transform((val) => (val === '' ? undefined : val))
-      .transform((val) => (val && Object.hasOwn(themes, val) ? val : 'dark'))
+      .transform(toEmptyStringAsUndefined)
+      .transform(toValidTheme)
       .default('dark'),
     bg: z
       .string()
       .trim()
       .optional()
-      .transform((val) => (val === '' ? undefined : val))
-      .transform((val) => (val && isValidHex(val) ? sanitizeHexColor(val, '000000') : undefined)),
+      .transform(toEmptyStringAsUndefined)
+      .transform(toValidHexColor('000000')),
     text: z
       .string()
       .trim()
       .optional()
-      .transform((val) => (val === '' ? undefined : val))
-      .transform((val) => (val && isValidHex(val) ? sanitizeHexColor(val, '000000') : undefined)),
+      .transform(toEmptyStringAsUndefined)
+      .transform(toValidHexColor('000000')),
     accent: z
       .string()
       .trim()
       .optional()
-      .transform((val) => (val === '' ? undefined : val))
-      .transform((val) => (val && isValidHex(val) ? sanitizeHexColor(val, '000000') : undefined)),
+      .transform(toEmptyStringAsUndefined)
+      .transform(toValidHexColor('000000')),
   })
   .transform((data) => ({
     ...data,
@@ -268,10 +259,7 @@ export const ogParamsSchema = z
 
 export const statsParamsSchema = z.object({
   user: z.string({ error: 'Missing user parameter' }).min(1, { message: 'Missing user parameter' }),
-  refresh: z
-    .string()
-    .optional()
-    .transform((val) => val === 'true'),
+  refresh: z.string().optional().transform(toRefreshFlag),
   tz: z.string().optional(),
 });
 

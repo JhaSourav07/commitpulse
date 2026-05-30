@@ -5,10 +5,11 @@ import type { DashboardExportData } from '@/types/dashboard';
 
 type OptionState = 'idle' | 'loading' | 'success' | 'error';
 
-const PROFILE_URL = (username: string) =>
-  typeof window !== 'undefined'
-    ? `${window.location.origin}/dashboard/${username}`
-    : `https://commitpulse.vercel.app/dashboard/${username}`;
+const BASE_ORIGIN =
+  (typeof window !== 'undefined' ? window.location.origin : null) ??
+  process.env.NEXT_PUBLIC_SITE_URL ??
+  'https://commitpulse.vercel.app';
+const PROFILE_URL = (username: string) => `${BASE_ORIGIN}/dashboard/${username}`;
 
 export function useShareActions(
   username: string,

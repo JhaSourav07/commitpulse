@@ -66,9 +66,11 @@ afterEach(() => {
 describe('fetchWithRetry', () => {
   beforeEach(() => {
     vi.spyOn(global, 'fetch');
+    vi.useFakeTimers();
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     vi.restoreAllMocks();
   });
 
@@ -112,6 +114,40 @@ describe('fetchWithRetry', () => {
 
     await expect(request).rejects.toThrow('Aborted');
     expect(fetch).toHaveBeenCalledOnce();
+  });
+
+  it('retries on 429 with numeric retry-after', async () => {
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(new Response(null, { status: 429, headers: { 'retry-after': '2' } }))
+      .mockResolvedValueOnce(new Response('ok', { status: 200 }));
+
+    const promise = fetchWithRetry('http://test', {});
+    await vi.advanceTimersByTimeAsync(2000);
+    const res = await promise;
+    expect(res.status).toBe(200);
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it('retries on 403 with x-ratelimit-remaining: 0', async () => {
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(
+        new Response(null, { status: 403, headers: { 'x-ratelimit-remaining': '0' } })
+      )
+      .mockResolvedValueOnce(new Response('ok', { status: 200 }));
+
+    const promise = fetchWithRetry('http://test', {});
+    await vi.advanceTimersByTimeAsync(500); // default backoff for attempt 0
+    const res = await promise;
+    expect(res.status).toBe(200);
+  });
+
+  it('exits early without retrying if delay > 5000', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(
+      new Response(null, { status: 429, headers: { 'retry-after': '6' } }) // 6000ms
+    );
+    const res = await fetchWithRetry('http://test', {});
+    expect(res.status).toBe(429);
+    expect(fetch).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -745,6 +781,37 @@ describe('GitHub API cache behavior', () => {
     expect(fetch).toHaveBeenCalledTimes(1);
   });
 
+  it('dedupes concurrent contribution requests for the same cold cache key', async () => {
+    let resolveFetch!: (response: Response) => void;
+    vi.mocked(fetch).mockImplementation(
+      () =>
+        new Promise<Response>((resolve) => {
+          resolveFetch = resolve;
+        })
+    );
+
+    const requests = Promise.all([
+      fetchGitHubContributions('octocat'),
+      fetchGitHubContributions('octocat'),
+      fetchGitHubContributions('octocat'),
+    ]);
+
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
+
+    resolveFetch(
+      mockResponse({
+        data: {
+          user: {
+            contributionsCollection: { contributionCalendar: mockCalendar },
+          },
+        },
+      })
+    );
+
+    const results = await requests;
+    expect(results.map((result) => result.totalContributions)).toEqual([42, 42, 42]);
+  });
+
   it('refresh bypass: bypassCache=true forces a fresh fetch', async () => {
     vi.mocked(fetch).mockImplementation(async () =>
       mockResponse({
@@ -793,6 +860,29 @@ describe('GitHub API cache behavior', () => {
     expect(fetch).toHaveBeenCalledTimes(1);
   });
 
+  it('dedupes concurrent profile requests for the same cold cache key', async () => {
+    let resolveFetch!: (response: Response) => void;
+    vi.mocked(fetch).mockImplementation(
+      () =>
+        new Promise<Response>((resolve) => {
+          resolveFetch = resolve;
+        })
+    );
+
+    const requests = Promise.all([
+      fetchUserProfile('octocat'),
+      fetchUserProfile('octocat'),
+      fetchUserProfile('octocat'),
+    ]);
+
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
+
+    resolveFetch(mockResponse({ login: 'octocat', name: 'The Octocat' }));
+
+    const results = await requests;
+    expect(results.map((profile) => profile.login)).toEqual(['octocat', 'octocat', 'octocat']);
+  });
+
   it('refresh bypass: bypassCache=true forces fresh profile fetch', async () => {
     vi.mocked(fetch).mockImplementation(async () =>
       mockResponse({ login: 'octocat', name: 'The Octocat' })
@@ -802,6 +892,29 @@ describe('GitHub API cache behavior', () => {
     await fetchUserProfile('octocat', { bypassCache: true });
 
     expect(fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it('dedupes concurrent repo requests for the same cold cache key', async () => {
+    let resolveFetch!: (response: Response) => void;
+    vi.mocked(fetch).mockImplementation(
+      () =>
+        new Promise<Response>((resolve) => {
+          resolveFetch = resolve;
+        })
+    );
+
+    const requests = Promise.all([
+      fetchUserRepos('octocat'),
+      fetchUserRepos('octocat'),
+      fetchUserRepos('octocat'),
+    ]);
+
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
+
+    resolveFetch(mockResponse([{ stargazers_count: 7, language: 'TypeScript' }]));
+
+    const results = await requests;
+    expect(results.map((repos) => repos[0]?.stargazers_count)).toEqual([7, 7, 7]);
   });
 
   it('normalizes username casing for cache keys', async () => {
@@ -1033,6 +1146,17 @@ describe('fetchOrgMembers', () => {
     expect(members.every((member) => typeof member === 'string')).toBe(true);
     expect(members[0]).toBe('alice');
     expect(members[1]).toBe('bob');
+  });
+
+  it('encodes the organization name before using it in the members REST path', async () => {
+    vi.mocked(fetch).mockResolvedValue(mockResponse([]));
+
+    await fetchOrgMembers('octo/org');
+
+    expect(fetch).toHaveBeenCalledWith(
+      'https://api.github.com/orgs/octo%2Forg/members?per_page=50',
+      expect.objectContaining({ cache: 'no-store' })
+    );
   });
 });
 

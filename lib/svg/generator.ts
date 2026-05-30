@@ -195,8 +195,8 @@ function renderStyle(
     transform-origin: center;
   }
   @keyframes scan-sweep {
-    from { transform: translateY(var(--scan-start, ${fs(20)}px)); }
-    to { transform: translateY(var(--scan-end, ${fs(260)}px)); }
+    from { transform: translateY(var(--scan-start, ${fs(0)}px)); }
+    to { transform: translateY(var(--scan-end, ${fs(240)}px)); }
   }
   .title { font-family: ${selectedFont || '"Syncopate", sans-serif'}; fill: ${text}; font-size: ${fs(18)}px; letter-spacing: ${fs(6)}px; font-weight: 400; opacity: 0.8; }
   .stats { font-family: ${statsFont}; fill: ${text}; font-size: ${fs(42)}px; font-weight: 500; letter-spacing: 0; }
@@ -207,7 +207,7 @@ function renderStyle(
     .scan-line {
       animation: none !important;
       transition: none !important;
-      transform: translateY(var(--scan-start, ${fs(20)}px)) !important;
+      transform: translateY(var(--scan-start, ${fs(0)}px)) !important;
     }
   }
   .isometric-label { font-family: ${selectedFont || '"Roboto", sans-serif'}; font-size: ${fs(10)}px; font-weight: 400; letter-spacing: 1px; fill-opacity: 0.6; }
@@ -335,12 +335,12 @@ function renderFooter(
   ${!params.hide_title ? `<text x="${s(300)}" y="${s(50)}" text-anchor="middle" class="title">${truncateUsername(safeUser).toUpperCase()}</text>` : ''}
   <rect
     x="${s(100)}"
-    y="${s(60)}"
+    y="${s(80)}"
     width="${s(400)}"
-    height="${sf}"
+    height="${s(1)}"
     class="cp-accent-fill scan-line"
     fill-opacity="0.3"
-    style="--scan-speed: ${params.speed || '8s'}; --scan-start: ${s(20)}px; --scan-end: ${s(260)}px;"
+    style="--scan-speed: ${params.speed || '8s'}; --scan-start: ${s(0)}px; --scan-end: ${s(240)}px;"
   />`;
 }
 
@@ -553,8 +553,8 @@ function generateAutoThemeSVG(
     transform-origin: center;
   }
   @keyframes scan-sweep {
-    from { transform: translateY(var(--scan-start, ${s(20)}px)); }
-    to { transform: translateY(var(--scan-end, ${s(260)}px)); }
+    from { transform: translateY(var(--scan-start, ${s(0)}px)); }
+    to { transform: translateY(var(--scan-end, ${s(240)}px)); }
   }
   .title { font-family: ${selectedFont || '"Syncopate", sans-serif'}; fill: var(--cp-text); font-size: ${fs(18)}px; letter-spacing: ${fs(6)}px; font-weight: 400; opacity: 0.8; }
   .stats { font-family: ${statsFont}; fill: var(--cp-text); font-size: ${fs(42)}px; font-weight: 500; letter-spacing: 0; }
@@ -567,7 +567,7 @@ function generateAutoThemeSVG(
     .scan-line {
       animation: none !important;
       transition: none !important;
-      transform: translateY(var(--scan-start, ${s(20)}px)) !important;
+      transform: translateY(var(--scan-start, ${s(0)}px)) !important;
     }
   }
   </style>
@@ -586,12 +586,12 @@ ${
 
   <rect
     x="${s(100)}"
-    y="${s(60)}"
+    y="${s(80)}"
     width="${s(400)}"
-    height="${sf}"
+    height="${s(1)}"
     class="cp-accent-fill scan-line"
     fill-opacity="0.3"
-    style="--scan-speed: ${params.speed || '8s'}; --scan-start: ${s(20)}px; --scan-end: ${s(260)}px;"
+    style="--scan-speed: ${params.speed || '8s'}; --scan-start: ${s(0)}px; --scan-end: ${s(240)}px;"
   />
 </svg>
 `;
@@ -913,13 +913,13 @@ export function generateNotFoundSVG(
     .ghost-pulse { animation: gp 2.6s ease-in-out infinite; }
     .scan-line { animation: scan-sweep var(--scan-speed, 8s) linear infinite; }
     @keyframes gp { 0%,100%{opacity:.55} 50%{opacity:1} }
-    @keyframes scan-sweep { from { transform: translateY(20px); } to { transform: translateY(260px); } }
+    @keyframes scan-sweep { from { transform: translateY(0px); } to { transform: translateY(240px); } }
     @media (prefers-reduced-motion: reduce) {
       .ghost-pulse { animation: none !important; transition: none !important; }
       .scan-line {
         animation: none !important;
         transition: none !important;
-        transform: translateY(20px) !important;
+        transform: translateY(0px) !important;
       }
     }
   </style>
@@ -932,7 +932,7 @@ export function generateNotFoundSVG(
 
   <rect width="${SVG_WIDTH}" height="${SVG_HEIGHT}" rx="${radius}" fill="url(#ghostFade)"/>
 
-  <rect x="100" y="60" width="400" height="1" class="scan-line" fill="${accent}" fill-opacity="0.12" style="--scan-speed: ${speed};"/>
+  <rect x="100" y="80" width="400" height="1" class="scan-line" fill="${accent}" fill-opacity="0.12" style="--scan-speed: ${speed};"/>
 
   <text x="300" y="50" text-anchor="middle" class="title">${safeName}</text>
 
@@ -1158,8 +1158,8 @@ function generateAutoThemeVersusSVG(
     transform-origin: center;
   }
   @keyframes scan-sweep {
-    from { transform: translateY(var(--scan-start, ${s(20)}px)); }
-    to { transform: translateY(var(--scan-end, ${s(260)}px)); }
+    from { transform: translateY(var(--scan-start, ${s(0)}px)); }
+    to { transform: translateY(var(--scan-end, ${s(240)}px)); }
   }
   .title { font-family: ${selectedFont || '"Syncopate", sans-serif'}; fill: var(--cp-text); font-size: ${fs(18)}px; letter-spacing: ${fs(6)}px; font-weight: 400; opacity: 0.8; }
   .stats { font-family: ${statsFont}; fill: var(--cp-text); font-size: ${fs(42)}px; font-weight: 500; letter-spacing: 0; }
@@ -1172,7 +1172,7 @@ function generateAutoThemeVersusSVG(
     .scan-line {
       animation: none !important;
       transition: none !important;
-      transform: translateY(var(--scan-start, ${s(20)}px)) !important;
+      transform: translateY(var(--scan-start, ${s(0)}px)) !important;
     }
   }
   </style>
@@ -1196,6 +1196,147 @@ function generateAutoThemeVersusSVG(
   <g transform="translate(${singleW}, ${H / 2})">
     <circle cx="0" cy="0" r="${s(24)}" class="cp-bg-fill" stroke="var(--cp-accent)" stroke-width="2" />
     <text x="0" y="${s(6)}" text-anchor="middle" font-family="${statsFont}" class="cp-accent-fill" font-size="${s(16)}" font-weight="bold">VS</text>
+  </g>
+</svg>`;
+}
+
+export function generateRateLimitSVG(
+  bg: string,
+  accent: string,
+  text: string,
+  radius: number,
+  speed: string = '8s'
+): string {
+  // Same ghost layout as NotFound with different message
+  const ghostLayout: { col: number; row: number; h: number }[] = [
+    { col: 0, row: 0, h: 8 },
+    { col: 1, row: 0, h: 20 },
+    { col: 2, row: 0, h: 12 },
+    { col: 3, row: 0, h: 30 },
+    { col: 4, row: 0, h: 16 },
+    { col: 5, row: 0, h: 10 },
+    { col: 6, row: 0, h: 24 },
+    { col: 7, row: 0, h: 8 },
+
+    { col: 0, row: 1, h: 6 },
+    { col: 1, row: 1, h: 14 },
+    { col: 2, row: 1, h: 36 },
+    { col: 3, row: 1, h: 22 },
+    { col: 4, row: 1, h: 44 },
+    { col: 5, row: 1, h: 18 },
+    { col: 6, row: 1, h: 10 },
+    { col: 7, row: 1, h: 28 },
+
+    { col: 0, row: 2, h: 10 },
+    { col: 1, row: 2, h: 26 },
+    { col: 2, row: 2, h: 16 },
+    { col: 3, row: 2, h: 38 },
+    { col: 4, row: 2, h: 20 },
+    { col: 5, row: 2, h: 32 },
+    { col: 6, row: 2, h: 14 },
+    { col: 7, row: 2, h: 6 },
+  ];
+
+  let ghostTowers = '';
+  for (const { col, row, h } of ghostLayout) {
+    const tx = 300 + (col - row) * 16;
+    const ty = 120 + (col + row) * 9;
+
+    ghostTowers += `
+      <g transform="translate(${tx}, ${ty - h})">
+        <path d="M0 10 L0 ${10 + h} L-16 ${h} L-16 0 Z"
+          fill="${accent}" fill-opacity="0.08"
+          stroke="${accent}" stroke-opacity="0.18" stroke-width="0.5"/>
+        <path d="M0 10 L0 ${10 + h} L16 ${h} L16 0 Z"
+          fill="${accent}" fill-opacity="0.05"
+          stroke="${accent}" stroke-opacity="0.12" stroke-width="0.5"/>
+        <path d="M0 0 L16 10 L0 20 L-16 10 Z"
+          fill="${accent}" fill-opacity="0.14"
+          stroke="${accent}" stroke-opacity="0.22" stroke-width="0.5"/>
+      </g>`;
+  }
+
+  return `<svg
+  xmlns="http://www.w3.org/2000/svg"
+  width="${SVG_WIDTH}"
+  height="${SVG_HEIGHT}"
+  viewBox="0 0 ${SVG_WIDTH} ${SVG_HEIGHT}"
+  fill="none"
+  role="img"
+>
+  <title>Rate Limit Exceeded</title>
+  <defs>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="5" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+    <filter id="softglow" x="-80%" y="-80%" width="360%" height="360%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+    <linearGradient id="ghostFade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="30%" stop-color="${bg}" stop-opacity="0"/>
+      <stop offset="100%" stop-color="${bg}" stop-opacity="1"/>
+    </linearGradient>
+  </defs>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600&amp;display=swap');
+    .title  { font-family: "Syncopate", sans-serif; fill: ${text}; font-size: 18px; letter-spacing: 6px; font-weight: 400; opacity: 0.5; }
+    .label  { font-family: "Roboto", sans-serif; fill: ${accent}; font-size: 11px; letter-spacing: 2px; opacity: 0.4; }
+    .stats  { font-family: "Space Grotesk", sans-serif; fill: ${text}; font-size: 42px; font-weight: 500; opacity: 0.2; }
+    .ghost-pulse { animation: gp 2.6s ease-in-out infinite; }
+    @keyframes gp { 0%,100%{opacity:.55} 50%{opacity:1} }
+    @media (prefers-reduced-motion: reduce) { .ghost-pulse { animation: none; } }
+  </style>
+
+  <rect width="${SVG_WIDTH}" height="${SVG_HEIGHT}" rx="${radius}" fill="${bg}"/>
+
+  <g transform="translate(0, 20)" class="ghost-pulse">
+    ${ghostTowers}
+  </g>
+
+  <rect width="${SVG_WIDTH}" height="${SVG_HEIGHT}" rx="${radius}" fill="url(#ghostFade)"/>
+
+  <rect x="100" y="80" width="400" height="1" fill="${accent}" fill-opacity="0.12">
+    <animate attributeName="y" values="80;320;80" dur="${speed}" repeatCount="indefinite"/>
+  </rect>
+
+  <text x="300" y="50" text-anchor="middle" class="title">API RATE LIMIT</text>
+
+  <rect x="180" y="62" width="240" height="1" fill="${accent}" fill-opacity="0.15"/>
+
+  <!-- Warning mark -->
+  <circle cx="300" cy="190" r="32" fill="none"
+    stroke="${accent}" stroke-width="1.2" stroke-opacity="0.3" filter="url(#softglow)"/>
+  <path d="M300 172 V200 M300 210 V210.1"
+    stroke="${accent}" stroke-width="2.5" stroke-linecap="round" stroke-opacity="0.6"/>
+
+  <rect x="210" y="235" width="180" height="22" rx="4"
+    fill="${accent}" fill-opacity="0.08"
+    stroke="${accent}" stroke-width="0.8" stroke-opacity="0.25"/>
+  <text x="300" y="250" text-anchor="middle"
+    font-family="Syncopate, sans-serif" font-size="9" font-weight="700"
+    fill="${accent}" opacity="0.7" letter-spacing="4">RATE LIMITED</text>
+
+  <text x="300" y="278" text-anchor="middle"
+    font-family="Space Grotesk, sans-serif" font-size="11"
+    fill="${text}" opacity="0.3">
+    Please wait a moment before trying again
+  </text>
+
+  <g transform="translate(40, 340)">
+    <text class="label">CURRENT_STREAK</text>
+    <text y="40" class="stats">—</text>
+  </g>
+  <g transform="translate(300, 340)" text-anchor="middle">
+    <text class="label">ANNUAL_SYNC_TOTAL</text>
+    <text y="40" font-family="Space Grotesk,sans-serif" font-size="24"
+      fill="${accent}" opacity="0.2">—</text>
+  </g>
+  <g transform="translate(560, 340)" text-anchor="end">
+    <text class="label">PEAK_STREAK</text>
+    <text y="40" class="stats">—</text>
   </g>
 </svg>`;
 }

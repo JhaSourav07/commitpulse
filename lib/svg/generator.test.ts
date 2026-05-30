@@ -2,11 +2,12 @@ import { describe, it, expect } from 'vitest';
 import {
   generateSVG,
   generateMonthlySVG,
+  generateNotFoundSVG,
+  generateRateLimitSVG,
   particleCount,
   escapeXML,
-  generateNotFoundSVG,
+  getSizeScale,
 } from './generator';
-import { getSizeScale } from './generator';
 import type { BadgeParams, ContributionCalendar, StreakStats, MonthlyStats } from '../../types';
 import { hexColor } from './sanitizer';
 
@@ -1108,6 +1109,9 @@ describe('escapeXML', () => {
     const safe = 'Hello World 123!@#%^*()_+-=[]{}|;:,./?`~';
     expect(escapeXML(safe)).toBe(safe);
   });
+  it('escapes script injection characters <script>&" together', () => {
+    expect(escapeXML('<script>&"')).toBe('&lt;script&gt;&amp;&quot;');
+  });
 });
 
 describe('particleCount', () => {
@@ -1144,5 +1148,87 @@ describe('getSizeScale', () => {
 
   it('returns ~1.333 for large', () => {
     expect(getSizeScale('large')).toBeCloseTo(1.333, 2);
+  });
+});
+
+describe('generateRateLimitSVG', () => {
+  it('generates a valid SVG with rate limit messaging', () => {
+    const svg = generateRateLimitSVG('#000000', '#ffffff', '#aaaaaa', 8, '8s');
+    expect(svg).toContain('<svg');
+    expect(svg).toContain('API RATE LIMIT');
+    expect(svg).toContain('RATE LIMITED');
+    expect(svg).toContain('Please wait a moment before trying again');
+    expect(svg).toContain('</svg>');
+  });
+});
+
+describe('Radar Scan Line Animation Alignment', () => {
+  const mockStats: StreakStats = {
+    currentStreak: 5,
+    longestStreak: 10,
+    totalContributions: 100,
+    todayDate: '2024-06-12',
+  };
+  const mockCalendar = {
+    weeks: [
+      {
+        contributionDays: [
+          { contributionCount: 0, date: '2024-06-10' },
+          { contributionCount: 5, date: '2024-06-11' },
+          { contributionCount: 15, date: '2024-06-12' },
+        ],
+      },
+    ],
+  } as ContributionCalendar;
+
+  it('aligns the initial y position and translate values in static generateSVG', () => {
+    const svg = generateSVG(
+      mockStats,
+      { user: 'avi', size: 'medium', autoTheme: false } as unknown as BadgeParams,
+      mockCalendar
+    );
+
+    // Initial y on the rect must be 80 scaled (medium size = scale 1 -> 80)
+    expect(svg).toContain('y="80"');
+    // CSS scan-start must be 0px and scan-end must be 240px
+    expect(svg).toContain('--scan-start: 0px');
+    expect(svg).toContain('--scan-end: 240px');
+    // Keyframe translations should start at 0px and end at 240px
+    expect(svg).toContain('from { transform: translateY(var(--scan-start, 0px)); }');
+    expect(svg).toContain('to { transform: translateY(var(--scan-end, 240px)); }');
+  });
+
+  it('aligns the initial y position and translate values in auto-theme generateSVG', () => {
+    const svg = generateSVG(
+      mockStats,
+      { user: 'avi', size: 'medium', autoTheme: true } as unknown as BadgeParams,
+      mockCalendar
+    );
+
+    // Initial y on the rect must be 80 scaled
+    expect(svg).toContain('y="80"');
+    // CSS variables should be 0px and 240px
+    expect(svg).toContain('--scan-start: 0px');
+    expect(svg).toContain('--scan-end: 240px');
+    // Keyframe translations should start at 0px and end at 240px
+    expect(svg).toContain('from { transform: translateY(var(--scan-start, 0px)); }');
+    expect(svg).toContain('to { transform: translateY(var(--scan-end, 240px)); }');
+  });
+
+  it('aligns the initial y position and translate values in generateNotFoundSVG', () => {
+    const svg = generateNotFoundSVG('avi', '#0d1117', '#00ffaa', '#ffffff', 8, '8s');
+
+    // Initial y on the rect must be 80
+    expect(svg).toContain('rect x="100" y="80"');
+    // Keyframe translations should start at 0px and end at 240px
+    expect(svg).toContain('from { transform: translateY(0px); }');
+    expect(svg).toContain('to { transform: translateY(240px); }');
+  });
+
+  it('aligns the initial y position in generateRateLimitSVG', () => {
+    const svg = generateRateLimitSVG('#0d1117', '#00ffaa', '#ffffff', 8, '8s');
+
+    // Initial y on the rect must be 80
+    expect(svg).toContain('rect x="100" y="80"');
   });
 });

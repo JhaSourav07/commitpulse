@@ -670,6 +670,28 @@ describe('GET /api/streak', () => {
       expect(response.headers.get('Cache-Control')).toBe('no-store');
     });
 
+    it('sets the SVG Content-Security-Policy header on generic error responses', async () => {
+      vi.mocked(fetchGitHubContributions).mockRejectedValue(new Error('Network failure'));
+
+      const response = await GET(makeRequest({ user: 'octocat' }));
+      const csp = response.headers.get('Content-Security-Policy');
+
+      expect(response.status).toBe(500);
+      expect(csp).toContain("default-src 'none'");
+      expect(csp).not.toContain('script-src');
+    });
+
+    it('returns 429 with no-cache headers and rate limit SVG when rate limited', async () => {
+      vi.mocked(fetchGitHubContributions).mockRejectedValue(new Error('API Rate Limit Exceeded'));
+
+      const response = await GET(makeRequest({ user: 'octocat' }));
+
+      expect(response.status).toBe(429);
+      expect(response.headers.get('Cache-Control')).toBe('no-cache, no-store, must-revalidate');
+      const body = await response.text();
+      expect(body).toContain('API RATE LIMIT');
+    });
+
     it('returns a valid 500 SVG even when something non-Error is thrown', async () => {
       // JavaScript lets you throw anything — strings, numbers, plain objects.
       // The catch block checks instanceof Error; if that fails it falls back to "Unknown error".
@@ -708,6 +730,17 @@ describe('GET /api/streak', () => {
       const body = await response.text();
 
       expect(body).toContain('garbage');
+    });
+
+    it('escapes invalid timezone values before rendering the error SVG', async () => {
+      const response = await GET(
+        makeRequest({ user: 'octocat', tz: '</text><script>alert(1)</script>' })
+      );
+      const body = await response.text();
+
+      expect(response.status).toBe(400);
+      expect(body).toContain('&lt;/text&gt;&lt;script&gt;alert(1)&lt;/script&gt;');
+      expect(body).not.toContain('</text><script>');
     });
 
     it('returns 200 with a valid IANA timezone', async () => {
@@ -771,6 +804,40 @@ describe('GET /api/streak', () => {
       expect(response.status).toBe(200);
       const body = await response.text();
       expect(body).toContain('COMMITS THIS MONTH');
+    });
+
+    it('uses the selected year when generating archived monthly stats', async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-05-20T12:00:00Z'));
+
+      vi.mocked(fetchGitHubContributions).mockResolvedValueOnce({
+        totalContributions: 25,
+        weeks: [
+          { contributionDays: [{ date: '2024-11-15', contributionCount: 10 }] },
+          { contributionDays: [{ date: '2024-12-15', contributionCount: 15 }] },
+        ],
+      } as ContributionCalendar);
+
+      try {
+        const response = await GET(
+          makeRequest({ user: 'octocat', view: 'monthly', year: '2024', delta_format: 'both' })
+        );
+
+        expect(response.status).toBe(200);
+        expect(fetchGitHubContributions).toHaveBeenCalledWith('octocat', {
+          bypassCache: false,
+          from: '2024-01-01T00:00:00Z',
+          to: '2024-12-31T23:59:59Z',
+        });
+
+        const body = await response.text();
+        expect(body).toContain('DECEMBER');
+        expect(body).toContain('class="stats">15</text>');
+        expect(body).toContain('+50% (+5)');
+        expect(body).not.toContain('MAY');
+      } finally {
+        vi.useRealTimers();
+      }
     });
 
     it('uses valid custom width and height in monthly SVG output', async () => {

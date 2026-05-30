@@ -5,6 +5,7 @@ import { fetchGitHubContributions, getOrgDashboardData } from '@/lib/github';
 import { calculateStreak, calculateMonthlyStats } from '@/lib/calculate';
 import {
   generateNotFoundSVG,
+  generateRateLimitSVG,
   generateSVG,
   generateMonthlySVG,
   generateVersusSVG,
@@ -23,6 +24,21 @@ export class ValidationError extends Error {
     super(message);
     this.name = 'ValidationError';
   }
+}
+
+function escapeSVGText(value: string): string {
+  return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function getMonthlyReferenceDate(year: string | undefined, timezone: string): Date | undefined {
+  if (!year) return undefined;
+
+  const selectedYear = Number(year);
+  const currentYear = Number(
+    new Intl.DateTimeFormat('en-CA', { timeZone: timezone, year: 'numeric' }).format(new Date())
+  );
+
+  return selectedYear < currentYear ? new Date(`${year}-12-15T12:00:00Z`) : undefined;
 }
 
 export async function GET(request: Request) {
@@ -184,7 +200,11 @@ export async function GET(request: Request) {
 
     let svg = '';
     if (view === 'monthly') {
-      const stats = calculateMonthlyStats(calendar, timezone);
+      const stats = calculateMonthlyStats(
+        calendar,
+        timezone,
+        getMonthlyReferenceDate(year, timezone)
+      );
       svg = generateMonthlySVG(stats, params);
     } else if (versus && versusCalendar) {
       const stats1 = calculateStreak(calendar, timezone, undefined, grace);
@@ -223,6 +243,7 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
   const isNotFound =
     message.toLowerCase().includes('not found') ||
     message.toLowerCase().includes('could not resolve');
+  const isRateLimit = message.toLowerCase().includes('rate limit');
 
   // 2. Safely detect if the error was a validation/client error
   const isValidationError =
@@ -246,6 +267,18 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
       })()
     : 8;
   const errSpeed = (parseResult.success && parseResult.data.speed) || '8s';
+
+  if (isRateLimit) {
+    const svg = generateRateLimitSVG(errBg, errAccent, errText, errRadius, errSpeed);
+    return new NextResponse(svg, {
+      status: 429,
+      headers: {
+        'Content-Type': 'image/svg+xml',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Content-Security-Policy': SVG_CSP_HEADER,
+      },
+    });
+  }
 
   if (isNotFound) {
     const match = message.match(/"([^"]+)"|login of '([^']+)'/);
@@ -271,7 +304,7 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
       <svg xmlns="http://www.w3.org/2000/svg" width="400" height="150">
         <rect width="100%" height="100%" fill="#2d0000" rx="8"/>
         <text x="50%" y="50%" text-anchor="middle" fill="#ffcccc" font-family="sans-serif">
-          ${message}
+          ${escapeSVGText(message)}
         </text>
       </svg>
     `;
@@ -303,6 +336,7 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
     headers: {
       'Content-Type': 'image/svg+xml',
       'Cache-Control': 'no-store',
+      'Content-Security-Policy': SVG_CSP_HEADER,
     },
   });
 }

@@ -550,6 +550,46 @@ describe('calculateStreak — todayDate format', () => {
   });
 });
 
+describe('calculateStreak — year boundary transition (Dec 31 → Jan 1)', () => {
+  // Streak math relies on the flattened day array being chronologically ordered,
+  // so a run that crosses from December into January must be counted as a single
+  // continuous streak. This guards against off-by-one bugs where the calendar
+  // year rollover (e.g. 2024-12-31 → 2025-01-01) is mistakenly treated as a gap.
+  it('counts a streak that spans the Dec 31 → Jan 1 boundary as one continuous run', () => {
+    const calendar: ContributionCalendar = {
+      totalContributions: 7,
+      weeks: [
+        {
+          contributionDays: [
+            { contributionCount: 0, date: '2024-12-26' }, // gap before the streak begins
+            { contributionCount: 1, date: '2024-12-27' },
+            { contributionCount: 1, date: '2024-12-28' },
+            { contributionCount: 1, date: '2024-12-29' },
+            { contributionCount: 1, date: '2024-12-30' },
+            { contributionCount: 1, date: '2024-12-31' }, // last day of the year
+            { contributionCount: 1, date: '2025-01-01' }, // first day of the new year
+          ],
+        },
+        {
+          contributionDays: [
+            { contributionCount: 1, date: '2025-01-02' }, // "today"
+          ],
+        },
+      ],
+    };
+
+    // Pin "now" to Jan 2 so the final day is treated as today and the streak is live.
+    const now = new Date('2025-01-02T12:00:00Z');
+    const result = calculateStreak(calendar, 'UTC', now);
+
+    // The 7-day run (Dec 27 → Jan 2) must not be split by the year rollover.
+    expect(result.currentStreak).toBe(7);
+    expect(result.longestStreak).toBe(7);
+    expect(result.totalContributions).toBe(7);
+    expect(result.todayDate).toBe('2025-01-02');
+  });
+});
+
 // ---------- EPIC ENHANCEMENT TESTS ----------
 
 describe('aggregateCalendars', () => {
