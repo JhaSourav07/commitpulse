@@ -5,10 +5,10 @@ import { fetchGitHubContributions, getOrgDashboardData } from '@/lib/github';
 import { calculateStreak, calculateMonthlyStats } from '@/lib/calculate';
 import {
   generateNotFoundSVG,
-  generateRateLimitSVG,
   generateSVG,
   generateMonthlySVG,
   generateVersusSVG,
+  generateRateLimitSVG,
 } from '@/lib/svg/generator';
 import { getSecondsUntilUTCMidnight, getSecondsUntilMidnightInTimezone } from '@/utils/time';
 import type { BadgeParams } from '@/types';
@@ -69,6 +69,7 @@ export async function GET(request: Request) {
       scale,
       size,
       speed,
+      animations,
       radius,
       font,
       year,
@@ -144,6 +145,7 @@ export async function GET(request: Request) {
       border: sanitizedBorder,
       radius,
       speed: speed && /^(?:[2-9]|1\d|20)s$/.test(speed) ? speed : '8s',
+      animations,
       scale,
       font,
       autoTheme: isAutoTheme,
@@ -235,17 +237,22 @@ type ParseResult = ReturnType<typeof streakParamsSchema.safeParse>;
 
 function buildErrorResponse(error: unknown, parseResult: ParseResult): NextResponse {
   const message = error instanceof Error ? error.message : String(error);
+  const animationsEnabled = parseResult.success ? parseResult.data.animations : true;
 
   const isNotFound =
     message.toLowerCase().includes('not found') ||
     message.toLowerCase().includes('could not resolve');
-  const isRateLimit = message.toLowerCase().includes('rate limit');
 
   // 2. Safely detect if the error was a validation/client error
   const isValidationError =
     (error instanceof Error && error.name === 'ValidationError') ||
     message.toLowerCase().includes('invalid') ||
     message.toLowerCase().includes('validation');
+
+  const isRateLimit =
+    message.toLowerCase().includes('rate limit') ||
+    message.toLowerCase().includes('api rate limit exceeded') ||
+    message.toLowerCase().includes('403');
 
   const errBg = `#${(parseResult.success && parseResult.data.bg) || '0d1117'}`;
   const errAccent = `#${
@@ -265,7 +272,19 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
   const errSpeed = (parseResult.success && parseResult.data.speed) || '8s';
 
   if (isRateLimit) {
-    const svg = generateRateLimitSVG(errBg, errAccent, errText, errRadius, errSpeed);
+    // Extract retry-after time from error message if available
+    const retryMatch = message.match(/retry after (\d{1,2}:\d{2})/i);
+    const retryAfter = retryMatch ? `${retryMatch[1]} UTC` : undefined;
+
+    const svg = generateRateLimitSVG(
+      errBg,
+      errAccent,
+      errText,
+      errRadius,
+      errSpeed,
+      retryAfter,
+      animationsEnabled
+    );
     return new NextResponse(svg, {
       status: 429,
       headers: {
@@ -283,7 +302,15 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
       : 'unknown';
     const badUsername = match?.[1] ?? match?.[2] ?? fallbackTarget;
 
-    const svg = generateNotFoundSVG(badUsername, errBg, errAccent, errText, errRadius, errSpeed);
+    const svg = generateNotFoundSVG(
+      badUsername,
+      errBg,
+      errAccent,
+      errText,
+      errRadius,
+      errSpeed,
+      animationsEnabled
+    );
     return new NextResponse(svg, {
       status: 404,
       headers: {

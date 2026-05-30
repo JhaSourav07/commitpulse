@@ -417,7 +417,8 @@ describe('generateSVG', () => {
 
     it('includes desc element in auto-theme SVG output', () => {
       const svg = generateSVG(mockStats, autoParams, mockCalendar);
-      expect(svg).toContain('<desc>');
+      expect(svg).toContain('<desc id="commitpulse-svg-desc">');
+      expect(svg).toContain('aria-describedby="commitpulse-svg-desc"');
       expect(svg).toContain(String(mockStats.totalContributions));
     });
 
@@ -540,6 +541,18 @@ describe('generateSVG', () => {
   });
 
   describe('notFoundSVG', () => {
+    it('includes accessible root metadata', () => {
+      const svg = generateNotFoundSVG('octocat', '#0d1117', '#00ffaa', '#ffffff', 8);
+
+      expect(svg).toContain('role="img"');
+      expect(svg).toContain('aria-labelledby="commitpulse-svg-title commitpulse-svg-desc"');
+      expect(svg).toContain('aria-describedby="commitpulse-svg-desc"');
+      expect(svg).toContain('<title id="commitpulse-svg-title">User not found — OCTOCAT</title>');
+      expect(svg).toContain(
+        '<desc id="commitpulse-svg-desc">No GitHub profile was found for OCTOCAT.</desc>'
+      );
+    });
+
     it('includes reduced-motion CSS for the scan line and ghost pulse', () => {
       const svg = generateNotFoundSVG(
         'avi',
@@ -580,6 +593,15 @@ describe('generateSVG', () => {
       expect(svg).toContain('stroke-opacity="0.18"');
       expect(svg).toContain('stroke-opacity="0.12"');
       expect(svg).toContain('stroke-opacity="0.22"');
+    });
+
+    it('omits motion keyframes when animations are disabled', () => {
+      const svg = generateNotFoundSVG('octocat', '#0d1117', '#00ffaa', '#ffffff', 8, '8s', false);
+
+      expect(svg).not.toContain('@keyframes gp');
+      expect(svg).not.toContain('@keyframes scan-sweep');
+      expect(svg).toContain('.ghost-pulse { animation: none !important; }');
+      expect(svg).toContain('.scan-line { transform: translateY(20px); }');
     });
 
     it('applies custom bg, accent, and text colors to the SVG elements and styles', () => {
@@ -652,8 +674,10 @@ describe('generateSVG', () => {
         mockCalendar
       );
 
-      expect(svg).toContain('<title>CommitPulse User Stats for octocat</title>');
-      expect(svg).toContain('<desc>');
+      expect(svg).toContain(
+        '<title id="commitpulse-svg-title">CommitPulse User Stats for octocat</title>'
+      );
+      expect(svg).toContain('<desc id="commitpulse-svg-desc">');
       expect(svg).toContain('100');
       expect(svg).toContain('10');
     });
@@ -1152,9 +1176,24 @@ describe('generateRateLimitSVG', () => {
   it('generates a valid SVG with rate limit messaging', () => {
     const svg = generateRateLimitSVG('#000000', '#ffffff', '#aaaaaa', 8, '8s');
     expect(svg).toContain('<svg');
-    expect(svg).toContain('API RATE LIMIT');
+    expect(svg).toContain('Rate limit exceeded');
     expect(svg).toContain('RATE LIMITED');
-    expect(svg).toContain('Please wait a moment before trying again');
+    expect(svg).toContain('Please try again later');
     expect(svg).toContain('</svg>');
+  });
+
+  it('includes accessible root metadata and can disable motion', () => {
+    const svg = generateRateLimitSVG('#000000', '#ffffff', '#aaaaaa', 8, '8s', '1 minute', false);
+
+    expect(svg).toContain('role="img"');
+    expect(svg).toContain('aria-labelledby="commitpulse-svg-title commitpulse-svg-desc"');
+    expect(svg).toContain('aria-describedby="commitpulse-svg-desc"');
+    expect(svg).toContain('<title id="commitpulse-svg-title">Rate limit exceeded</title>');
+    expect(svg).toContain(
+      '<desc id="commitpulse-svg-desc">GitHub API rate limit exceeded. Please retry after 1 minute.</desc>'
+    );
+    expect(svg).not.toContain('@keyframes cp');
+    expect(svg).not.toContain('@keyframes hs');
+    expect(svg).not.toContain('@keyframes scan-sweep');
   });
 });

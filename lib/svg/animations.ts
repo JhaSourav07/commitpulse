@@ -18,7 +18,7 @@
 //
 // This value is used as the CSS transform-origin for the grow-up animation so
 // towers scale upward from their ground tile rather than from the SVG origin.
-const TOWER_BASE_Y = 10;
+export const TOWER_BASE_Y = 10;
 
 export const TOWER_ANIMATION_CSS = `
   .cp-tower {

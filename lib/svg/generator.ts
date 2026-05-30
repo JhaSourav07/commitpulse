@@ -4,6 +4,7 @@ import type { BadgeParams, ContributionCalendar, StreakStats, MonthlyStats } fro
 import { getLabels, type BadgeLabels } from '../i18n/badgeLabels';
 import { AUTO_THEME_DARK, AUTO_THEME_LIGHT } from './themes';
 import { TOWER_ANIMATION_CSS } from './animations';
+import { TOWER_BASE_Y } from './animations';
 import { computeTowers, type TowerData } from './layout';
 import { sanitizeFont, sanitizeHexColor, sanitizeRadius, sanitizeGoogleFontUrl } from './sanitizer';
 
@@ -41,8 +42,12 @@ function scaleTowerData(towerData: TowerData[], sf: number): TowerData[] {
 
 type Scaler = (n: number) => number;
 
-function createScaler(sf: number): Scaler {
+function s(sf: number): Scaler {
   return (n: number): number => Math.round(n * sf);
+}
+
+function createScaler(sf: number): Scaler {
+  return s(sf);
 }
 
 export function escapeXML(str: string): string {
@@ -52,6 +57,63 @@ export function escapeXML(str: string): string {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
+}
+
+const SVG_TITLE_ID = 'commitpulse-svg-title';
+const SVG_DESC_ID = 'commitpulse-svg-desc';
+
+function renderSvgRootAttrs(): string {
+  return `role="img" aria-labelledby="${SVG_TITLE_ID} ${SVG_DESC_ID}" aria-describedby="${SVG_DESC_ID}" focusable="false"`;
+}
+
+function renderSvgA11y(title: string, desc: string): string {
+  return `<title id="${SVG_TITLE_ID}">${title}</title>
+  <desc id="${SVG_DESC_ID}">${desc}</desc>`;
+}
+
+function renderMotionCss(sf: number, animationsEnabled: boolean): string {
+  const fs = (n: number) => Math.round(n * sf * 10) / 10;
+
+  if (!animationsEnabled) {
+    return `
+  .cp-tower {
+    transform: scaleY(1);
+    transform-origin: 0 ${TOWER_BASE_Y}px;
+  }
+  .scan-line {
+    transform-box: fill-box;
+    transform-origin: center;
+    transform: translateY(var(--scan-start, ${fs(20)}px));
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .scan-line {
+      transition: none !important;
+      transform: translateY(var(--scan-start, ${fs(20)}px)) !important;
+    }
+  }
+`;
+  }
+
+  return `
+  ${TOWER_ANIMATION_CSS}
+  .scan-line {
+    animation: scan-sweep var(--scan-speed, 8s) linear infinite;
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+  @keyframes scan-sweep {
+    from { transform: translateY(var(--scan-start, ${fs(20)}px)); }
+    to { transform: translateY(var(--scan-end, ${fs(260)}px)); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .heat-particles { display: none; }
+    .scan-line {
+      animation: none !important;
+      transition: none !important;
+      transform: translateY(var(--scan-start, ${fs(20)}px)) !important;
+    }
+  }
+`;
 }
 
 export function particleCount(count: number): number {
@@ -99,12 +161,11 @@ function renderHeader(
 ): string {
   const unit = params.mode === 'loc' ? 'lines of code' : 'total contributions';
   const entity = params.org ? 'Organization' : params.repo ? 'Repository' : 'User';
+  const title = `CommitPulse ${entity} Stats for ${safeUser}`;
+  const desc = `${safeUser} has ${stats.totalContributions} ${unit} and a longest streak of ${stats.longestStreak} days.`;
 
   return `
-  <title>CommitPulse ${entity} Stats for ${safeUser}</title>
-  <desc>
-    ${safeUser} has ${stats.totalContributions} ${unit} and a longest streak of ${stats.longestStreak} days.
-  </desc>
+  ${renderSvgA11y(title, desc)}
   ${renderDefs(sf, params)}`;
 }
 
@@ -181,35 +242,20 @@ function renderStyle(
   googleFontsImport: string,
   text: string,
   accent: string,
-  sf: number
+  sf: number,
+  animationsEnabled: boolean = true
 ): string {
-  const fs = (n: number) => Math.round(n * sf * 10) / 10;
+  const fs = (n: number): number => Math.round(n * sf * 10) / 10;
+
   return `
   <style>
   @import url('https://fonts.googleapis.com/css2?family=Fira+Code&amp;family=JetBrains+Mono&amp;family=Roboto&amp;family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');
   ${googleFontsImport}
-  ${TOWER_ANIMATION_CSS}
-  .scan-line {
-    animation: scan-sweep var(--scan-speed, 8s) linear infinite;
-    transform-box: fill-box;
-    transform-origin: center;
-  }
-  @keyframes scan-sweep {
-    from { transform: translateY(var(--scan-start, ${fs(20)}px)); }
-    to { transform: translateY(var(--scan-end, ${fs(260)}px)); }
-  }
+  ${renderMotionCss(sf, animationsEnabled)}
   .title { font-family: ${selectedFont || '"Syncopate", sans-serif'}; fill: ${text}; font-size: ${fs(18)}px; letter-spacing: ${fs(6)}px; font-weight: 400; opacity: 0.8; }
   .stats { font-family: ${statsFont}; fill: ${text}; font-size: ${fs(42)}px; font-weight: 500; letter-spacing: 0; }
   .total-val { font-family: ${statsFont}; fill: ${accent}; font-size: ${fs(24)}px; font-weight: 500; }
   .label { font-family: "Roboto", sans-serif; fill: ${accent}; font-size: ${fs(11)}px; font-weight: 400; letter-spacing: ${fs(2)}px; opacity: 0.7; }
-  @media (prefers-reduced-motion: reduce) {
-    .heat-particles { display: none; }
-    .scan-line {
-      animation: none !important;
-      transition: none !important;
-      transform: translateY(var(--scan-start, ${fs(20)}px)) !important;
-    }
-  }
   .isometric-label { font-family: ${selectedFont || '"Roboto", sans-serif'}; font-size: ${fs(10)}px; font-weight: 400; letter-spacing: 1px; fill-opacity: 0.6; }
   </style>`;
 }
@@ -220,7 +266,8 @@ function renderTowers(
   accent: string | string[],
   text: string,
   sf: number,
-  isAutoTheme: boolean = false
+  isAutoTheme: boolean = false,
+  animationsEnabled: boolean = true
 ): string {
   let towers = '';
   const opacityMultipliers = [0.4, 0.6, 0.8, 1.0];
@@ -295,8 +342,8 @@ function renderTowers(
 
     towers += `
         <g transform="translate(${t.x}, ${t.y})">
-          <g class="cp-tower" style="animation-delay: ${delay}s;">
-            ${t.isTodayWithCommits ? '<animate attributeName="opacity" values="1;0.4;1" dur="1.5s" repeatCount="indefinite" />' : ''}
+          <g class="cp-tower"${animationsEnabled ? ` style="animation-delay: ${delay}s;"` : ''}>
+            ${animationsEnabled && t.isTodayWithCommits ? '<animate attributeName="opacity" values="1;0.4;1" dur="1.5s" repeatCount="indefinite" />' : ''}
             <title>${escapeXML(t.tooltip)}</title>
             <path d="M0 ${10 - t.h} L0 10 L-16 0 L-16 ${-t.h} Z" ${leftFillAttr} fill-opacity="${leftFaceOpacity}" ${strokeAttr} />
             <path d="M0 ${10 - t.h} L0 10 L16 0 L16 ${-t.h} Z" ${rightFillAttr} fill-opacity="${rightFaceOpacity}" ${strokeAttr} />
@@ -305,7 +352,7 @@ function renderTowers(
           </g>
         </g>`;
 
-    if (t.contributionCount >= 10) {
+    if (animationsEnabled && t.contributionCount >= 10) {
       const pIdx = Math.min(t.intensityLevel - 1, accent.length - 1);
       const pColorResolved = Array.isArray(accent)
         ? accent[pIdx] || accent[accent.length - 1] || '00ffaa'
@@ -473,12 +520,13 @@ export function generateSVG(
   const labels = getLabels(params.lang);
   const W = Math.round(SVG_WIDTH * sf);
   const H = Math.round(SVG_HEIGHT * sf);
+  const animationsEnabled = params.animations !== false;
 
   const towerData = scaleTowerData(
     computeTowers(calendar, params.scale, stats.todayDate, params.mode),
     sf
   );
-  const towers = renderTowers(towerData, params, accent, text, sf, false);
+  const towers = renderTowers(towerData, params, accent, text, sf, false, animationsEnabled);
 
   const mainAccent = Array.isArray(accent)
     ? accent[accent.length - 1] || '00ffaa'
@@ -486,9 +534,9 @@ export function generateSVG(
   const mainAccentHex = mainAccent.startsWith('#') ? mainAccent : `#${mainAccent}`;
 
   return `
-<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" fill="none" role="img">
+<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" fill="none" ${renderSvgRootAttrs()}>
   ${renderHeader(safeUser, stats, sf, params)}
-  ${renderStyle(selectedFont, statsFont, googleFontsImport, text, mainAccentHex, sf)}
+  ${renderStyle(selectedFont, statsFont, googleFontsImport, text, mainAccentHex, sf, animationsEnabled)}
   <rect width="${W}" height="${H}" rx="${radius}" fill="${params.hideBackground ? 'transparent' : bg}" ${borderAttr} />
   <g transform="translate(0, ${Math.round(20 * sf)})">${towers}</g>
   ${renderIsometricLabels(calendar, params, text, sf)}
@@ -520,11 +568,12 @@ function generateAutoThemeSVG(
 
   const W = Math.round(SVG_WIDTH * sf);
   const H = Math.round(SVG_HEIGHT * sf);
+  const animationsEnabled = params.animations !== false;
   const towerData = scaleTowerData(
     computeTowers(calendar, params.scale, stats.todayDate, params.mode),
     sf
   );
-  const towers = renderTowers(towerData, params, '', '', sf, true);
+  const towers = renderTowers(towerData, params, '', '', sf, true, animationsEnabled);
 
   const s = createScaler(sf);
   const fs = (n: number): number => Math.round(n * sf * 10) / 10;
@@ -536,7 +585,7 @@ function generateAutoThemeSVG(
   height="${H}"
   viewBox="0 0 ${W} ${H}"
   fill="none"
-  role="img"
+  ${renderSvgRootAttrs()}
 >
   ${renderHeader(safeUser, stats, sf, params)}
 
@@ -546,30 +595,13 @@ function generateAutoThemeSVG(
   :root { --cp-bg: #${light.bg}; --cp-text: #${light.text}; --cp-accent: #${light.accent}; }
   @media (prefers-color-scheme: dark) { :root { --cp-bg: #${dark.bg}; --cp-text: #${dark.text}; --cp-accent: #${dark.accent}; } }
   .cp-bg-fill { fill: var(--cp-bg); } .cp-text-fill { fill: var(--cp-text); color: var(--cp-text); } .cp-accent-fill { fill: var(--cp-accent); color: var(--cp-accent); }
-  ${TOWER_ANIMATION_CSS}
-  .scan-line {
-    animation: scan-sweep var(--scan-speed, 8s) linear infinite;
-    transform-box: fill-box;
-    transform-origin: center;
-  }
-  @keyframes scan-sweep {
-    from { transform: translateY(var(--scan-start, ${s(20)}px)); }
-    to { transform: translateY(var(--scan-end, ${s(260)}px)); }
-  }
+  ${renderMotionCss(sf, animationsEnabled)}
   .title { font-family: ${selectedFont || '"Syncopate", sans-serif'}; fill: var(--cp-text); font-size: ${fs(18)}px; letter-spacing: ${fs(6)}px; font-weight: 400; opacity: 0.8; }
   .stats { font-family: ${statsFont}; fill: var(--cp-text); font-size: ${fs(42)}px; font-weight: 500; letter-spacing: 0; }
   .total-val { font-family: ${statsFont}; fill: var(--cp-accent); font-size: ${fs(24)}px; font-weight: 500; }
   .label { font-family: "Roboto", sans-serif; fill: var(--cp-accent); font-size: ${fs(11)}px; font-weight: 400; letter-spacing: ${fs(2)}px; opacity: 0.7; }
   .isometric-label { font-family: ${selectedFont || '"Roboto", sans-serif'}; font-size: ${fs(10)}px; font-weight: 400; letter-spacing: 1px; fill-opacity: 0.6; }
 
-  @media (prefers-reduced-motion: reduce) {
-    .heat-particles { display: none; }
-    .scan-line {
-      animation: none !important;
-      transition: none !important;
-      transform: translateY(var(--scan-start, ${s(20)}px)) !important;
-    }
-  }
   </style>
 
   <rect width="${W}" height="${H}" rx="${radius}" ${params.hideBackground ? 'fill="transparent"' : 'class="cp-bg-fill"'} />
@@ -676,9 +708,12 @@ export function generateMonthlySVG(stats: MonthlyStats, params: BadgeParams): st
   height="${height}"
   viewBox="0 0 ${width} ${height}"
   fill="none"
-  role="img"
+  ${renderSvgRootAttrs()}
 >
-  <title>Monthly Stats for ${safeUser}</title>
+  ${renderSvgA11y(
+    `Monthly Stats for ${safeUser}`,
+    `${safeUser} has ${stats.currentMonthTotal} ${commitsLabel.toLowerCase()} this month with ${deltaText} versus last month.`
+  )}
   <style>
   @import url('https://fonts.googleapis.com/css2?family=Fira+Code&amp;family=JetBrains+Mono&amp;family=Roboto&amp;family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');
   ${googleFontsImport}
@@ -766,9 +801,12 @@ function generateAutoThemeMonthlySVG(stats: MonthlyStats, params: BadgeParams): 
   height="${height}"
   viewBox="0 0 ${width} ${height}"
   fill="none"
-  role="img"
+  ${renderSvgRootAttrs()}
 >
-  <title>Monthly Stats for ${safeUser}</title>
+  ${renderSvgA11y(
+    `Monthly Stats for ${safeUser}`,
+    `${safeUser} has ${stats.currentMonthTotal} ${commitsLabel.toLowerCase()} this month with ${deltaText} versus last month.`
+  )}
   <style>
   @import url('https://fonts.googleapis.com/css2?family=Fira+Code&amp;family=JetBrains+Mono&amp;family=Roboto&amp;family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');
   ${googleFontsImport}
@@ -860,7 +898,8 @@ export function generateNotFoundSVG(
   accent: string,
   text: string,
   radius: number,
-  speed: string = '8s'
+  speed: string = '8s',
+  animationsEnabled: boolean = true
 ): string {
   const safeName = escapeXML(username.toUpperCase());
   let ghostTowers = '';
@@ -888,9 +927,9 @@ export function generateNotFoundSVG(
   height="${SVG_HEIGHT}"
   viewBox="0 0 ${SVG_WIDTH} ${SVG_HEIGHT}"
   fill="none"
-  role="img"
+  ${renderSvgRootAttrs()}
 >
-  <title>User not found — ${safeName}</title>
+  ${renderSvgA11y(`User not found — ${safeName}`, `No GitHub profile was found for ${safeName}.`)}
   <defs>
     <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
       <feGaussianBlur stdDeviation="5" result="blur"/>
@@ -910,10 +949,10 @@ export function generateNotFoundSVG(
 @import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');    .title  { font-family: "Syncopate", sans-serif; fill: ${text}; font-size: 18px; letter-spacing: 6px; font-weight: 400; opacity: 0.5; }
     .label  { font-family: "Roboto", sans-serif; fill: ${accent}; font-size: 11px; letter-spacing: 2px; opacity: 0.4; }
     .stats  { font-family: "Space Grotesk", sans-serif; fill: ${text}; font-size: 42px; font-weight: 500; opacity: 0.2; }
-    .ghost-pulse { animation: gp 2.6s ease-in-out infinite; }
-    .scan-line { animation: scan-sweep var(--scan-speed, 8s) linear infinite; }
-    @keyframes gp { 0%,100%{opacity:.55} 50%{opacity:1} }
-    @keyframes scan-sweep { from { transform: translateY(20px); } to { transform: translateY(260px); } }
+    ${animationsEnabled ? '.ghost-pulse { animation: gp 2.6s ease-in-out infinite; }' : '.ghost-pulse { animation: none !important; }'}
+    ${animationsEnabled ? '.scan-line { animation: scan-sweep var(--scan-speed, 8s) linear infinite; }' : '.scan-line { transform: translateY(20px); }'}
+    ${animationsEnabled ? '@keyframes gp { 0%,100%{opacity:.55} 50%{opacity:1} }' : ''}
+    ${animationsEnabled ? '@keyframes scan-sweep { from { transform: translateY(20px); } to { transform: translateY(260px); } }' : ''}
     @media (prefers-reduced-motion: reduce) {
       .ghost-pulse { animation: none !important; transition: none !important; }
       .scan-line {
@@ -1017,6 +1056,7 @@ export function generateVersusSVG(
   const singleW = Math.round(SVG_WIDTH * sf);
   const W = singleW * 2;
   const H = Math.round(SVG_HEIGHT * sf);
+  const animationsEnabled = params.animations !== false;
 
   const towerData1 = scaleTowerData(
     computeTowers(calendar1, params.scale, stats1.todayDate, params.mode),
@@ -1027,18 +1067,20 @@ export function generateVersusSVG(
     sf
   );
 
-  const towers1 = renderTowers(towerData1, params, accent, text, sf, false);
-  const towers2 = renderTowers(towerData2, params, accent, text, sf, false);
+  const towers1 = renderTowers(towerData1, params, accent, text, sf, false, animationsEnabled);
+  const towers2 = renderTowers(towerData2, params, accent, text, sf, false, animationsEnabled);
 
   const s = createScaler(sf);
   const unit = params.mode === 'loc' ? 'lines of code' : 'total contributions';
 
   return `
-<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" fill="none" role="img">
-  <title>CommitPulse Versus Stats: ${safeUser1} vs ${safeUser2}</title>
-  <desc>${safeUser1} has ${stats1.totalContributions} ${unit}. ${safeUser2} has ${stats2.totalContributions} ${unit}.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" fill="none" ${renderSvgRootAttrs()}>
+  ${renderSvgA11y(
+    `CommitPulse Versus Stats: ${safeUser1} vs ${safeUser2}`,
+    `${safeUser1} has ${stats1.totalContributions} ${unit}. ${safeUser2} has ${stats2.totalContributions} ${unit}.`
+  )}
   ${renderDefs(sf, params)}
-  ${renderStyle(selectedFont, statsFont, googleFontsImport, text, accent, sf)}
+  ${renderStyle(selectedFont, statsFont, googleFontsImport, text, accent, sf, animationsEnabled)}
   <rect width="${W}" height="${H}" rx="${radius}" fill="${params.hideBackground ? 'transparent' : bg}" />
   
   <g transform="translate(0, 0)">
@@ -1086,6 +1128,7 @@ function generateAutoThemeVersusSVG(
   const singleW = Math.round(SVG_WIDTH * sf);
   const W = singleW * 2;
   const H = Math.round(SVG_HEIGHT * sf);
+  const animationsEnabled = params.animations !== false;
 
   const towerData1 = scaleTowerData(
     computeTowers(calendar1, params.scale, stats1.todayDate, params.mode),
@@ -1103,8 +1146,8 @@ function generateAutoThemeVersusSVG(
     const delay = ((t.row + t.col) * 0.015).toFixed(3);
     towers1 += `
         <g transform="translate(${t.x}, ${t.y})">
-          <g class="cp-tower" style="animation-delay: ${delay}s;">
-            ${t.isTodayWithCommits ? '<animate attributeName="opacity" values="1;0.4;1" dur="1.5s" repeatCount="indefinite" />' : ''}
+          <g class="cp-tower"${animationsEnabled ? ` style="animation-delay: ${delay}s;"` : ''}>
+            ${animationsEnabled && t.isTodayWithCommits ? '<animate attributeName="opacity" values="1;0.4;1" dur="1.5s" repeatCount="indefinite" />' : ''}
             <title>${escapeXML(t.tooltip)}</title>
             <path d="M0 ${10 - t.h} L0 10 L-16 0 L-16 ${-t.h} Z" class="${fillClass}" fill-opacity="${t.faceOpacity.left}" stroke="${strokeColor}" stroke-opacity="${t.strokeOpacity}" stroke-width="${t.strokeWidth}" />
             <path d="M0 ${10 - t.h} L0 10 L16 0 L16 ${-t.h} Z" class="${fillClass}" fill-opacity="${t.faceOpacity.right}" stroke="${strokeColor}" stroke-opacity="${t.strokeOpacity}" stroke-width="${t.strokeWidth}" />
@@ -1112,7 +1155,7 @@ function generateAutoThemeVersusSVG(
             ${t.contributionCount > 5 ? `<path d="M0 ${-t.h} L16 ${10 - t.h} L0 ${20 - t.h} L-16 ${10 - t.h} Z" fill="white" fill-opacity="0.2" />` : ''}
           </g>
         </g>`;
-    if (t.contributionCount >= 10)
+    if (animationsEnabled && t.contributionCount >= 10)
       towers1 += generateParticles(t.x, t.y, t.h, t.contributionCount, sf, true);
   }
 
@@ -1123,8 +1166,8 @@ function generateAutoThemeVersusSVG(
     const delay = ((t.row + t.col) * 0.015).toFixed(3);
     towers2 += `
         <g transform="translate(${t.x}, ${t.y})">
-          <g class="cp-tower" style="animation-delay: ${delay}s;">
-            ${t.isTodayWithCommits ? '<animate attributeName="opacity" values="1;0.4;1" dur="1.5s" repeatCount="indefinite" />' : ''}
+          <g class="cp-tower"${animationsEnabled ? ` style="animation-delay: ${delay}s;"` : ''}>
+            ${animationsEnabled && t.isTodayWithCommits ? '<animate attributeName="opacity" values="1;0.4;1" dur="1.5s" repeatCount="indefinite" />' : ''}
             <title>${escapeXML(t.tooltip)}</title>
             <path d="M0 ${10 - t.h} L0 10 L-16 0 L-16 ${-t.h} Z" class="${fillClass}" fill-opacity="${t.faceOpacity.left}" stroke="${strokeColor}" stroke-opacity="${t.strokeOpacity}" stroke-width="${t.strokeWidth}" />
             <path d="M0 ${10 - t.h} L0 10 L16 0 L16 ${-t.h} Z" class="${fillClass}" fill-opacity="${t.faceOpacity.right}" stroke="${strokeColor}" stroke-opacity="${t.strokeOpacity}" stroke-width="${t.strokeWidth}" />
@@ -1132,7 +1175,7 @@ function generateAutoThemeVersusSVG(
             ${t.contributionCount > 5 ? `<path d="M0 ${-t.h} L16 ${10 - t.h} L0 ${20 - t.h} L-16 ${10 - t.h} Z" fill="white" fill-opacity="0.2" />` : ''}
           </g>
         </g>`;
-    if (t.contributionCount >= 10)
+    if (animationsEnabled && t.contributionCount >= 10)
       towers2 += generateParticles(t.x, t.y, t.h, t.contributionCount, sf, true);
   }
 
@@ -1141,9 +1184,11 @@ function generateAutoThemeVersusSVG(
   const unit = params.mode === 'loc' ? 'lines of code' : 'total contributions';
 
   return `
-<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" fill="none" role="img">
-  <title>CommitPulse Versus Stats: ${safeUser1} vs ${safeUser2}</title>
-  <desc>${safeUser1} has ${stats1.totalContributions} ${unit}. ${safeUser2} has ${stats2.totalContributions} ${unit}.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" fill="none" ${renderSvgRootAttrs()}>
+  ${renderSvgA11y(
+    `CommitPulse Versus Stats: ${safeUser1} vs ${safeUser2}`,
+    `${safeUser1} has ${stats1.totalContributions} ${unit}. ${safeUser2} has ${stats2.totalContributions} ${unit}.`
+  )}
   ${renderDefs(sf, params)}
   
   <style>
@@ -1151,30 +1196,13 @@ function generateAutoThemeVersusSVG(
   :root { --cp-bg: #${light.bg}; --cp-text: #${light.text}; --cp-accent: #${light.accent}; }
   @media (prefers-color-scheme: dark) { :root { --cp-bg: #${dark.bg}; --cp-text: #${dark.text}; --cp-accent: #${dark.accent}; } }
   .cp-bg-fill { fill: var(--cp-bg); } .cp-text-fill { fill: var(--cp-text); color: var(--cp-text); } .cp-accent-fill { fill: var(--cp-accent); color: var(--cp-accent); }
-  ${TOWER_ANIMATION_CSS}
-  .scan-line {
-    animation: scan-sweep var(--scan-speed, 8s) linear infinite;
-    transform-box: fill-box;
-    transform-origin: center;
-  }
-  @keyframes scan-sweep {
-    from { transform: translateY(var(--scan-start, ${s(20)}px)); }
-    to { transform: translateY(var(--scan-end, ${s(260)}px)); }
-  }
+  ${renderMotionCss(sf, animationsEnabled)}
   .title { font-family: ${selectedFont || '"Syncopate", sans-serif'}; fill: var(--cp-text); font-size: ${fs(18)}px; letter-spacing: ${fs(6)}px; font-weight: 400; opacity: 0.8; }
   .stats { font-family: ${statsFont}; fill: var(--cp-text); font-size: ${fs(42)}px; font-weight: 500; letter-spacing: 0; }
   .total-val { font-family: ${statsFont}; fill: var(--cp-accent); font-size: ${fs(24)}px; font-weight: 500; }
   .label { font-family: "Roboto", sans-serif; fill: var(--cp-accent); font-size: ${fs(11)}px; font-weight: 400; letter-spacing: ${fs(2)}px; opacity: 0.7; }
   .isometric-label { font-family: ${selectedFont || '"Roboto", sans-serif'}; font-size: ${fs(10)}px; font-weight: 400; letter-spacing: 1px; fill-opacity: 0.6; }
 
-  @media (prefers-reduced-motion: reduce) {
-    .heat-particles { display: none; }
-    .scan-line {
-      animation: none !important;
-      transition: none !important;
-      transform: translateY(var(--scan-start, ${s(20)}px)) !important;
-    }
-  }
   </style>
 
   <rect width="${W}" height="${H}" rx="${radius}" class="${params.hideBackground ? '' : 'cp-bg-fill'}" fill="${params.hideBackground ? 'transparent' : ''}" />
@@ -1200,61 +1228,46 @@ function generateAutoThemeVersusSVG(
 </svg>`;
 }
 
+/**
+ * Generates a branded SVG badge for GitHub API rate limit errors.
+ *
+ * The SVG renders a clock-style design with an animated hourglass effect
+ * while preserving the standard badge layout and user theme colors.
+ *
+ * @param bg - Background color used for the SVG container.
+ * @param accent - Accent color used for highlights, outlines,
+ * and animated elements.
+ * @param text - Primary text color used throughout the badge.
+ * @param radius - Border radius applied to the SVG background.
+ * @param speed - Animation speed for the radar scan effect.
+ * Defaults to '8s'.
+ * @param retryAfter - Optional retry-after time in UTC format (e.g., "14:30 UTC").
+ * If not provided, a generic message is shown.
+ *
+ * @returns A generated SVG string representing the rate limit error state.
+ *
+ * @example
+ * const svg = generateRateLimitSVG(
+ *   '#0d1117',
+ *   '#00ffaa',
+ *   '#ffffff',
+ *   8,
+ *   '8s',
+ *   '14:30 UTC'
+ * );
+ */
 export function generateRateLimitSVG(
   bg: string,
   accent: string,
   text: string,
   radius: number,
-  speed: string = '8s'
+  speed: string = '8s',
+  retryAfter?: string,
+  animationsEnabled: boolean = true
 ): string {
-  // Same ghost layout as NotFound with different message
-  const ghostLayout: { col: number; row: number; h: number }[] = [
-    { col: 0, row: 0, h: 8 },
-    { col: 1, row: 0, h: 20 },
-    { col: 2, row: 0, h: 12 },
-    { col: 3, row: 0, h: 30 },
-    { col: 4, row: 0, h: 16 },
-    { col: 5, row: 0, h: 10 },
-    { col: 6, row: 0, h: 24 },
-    { col: 7, row: 0, h: 8 },
-
-    { col: 0, row: 1, h: 6 },
-    { col: 1, row: 1, h: 14 },
-    { col: 2, row: 1, h: 36 },
-    { col: 3, row: 1, h: 22 },
-    { col: 4, row: 1, h: 44 },
-    { col: 5, row: 1, h: 18 },
-    { col: 6, row: 1, h: 10 },
-    { col: 7, row: 1, h: 28 },
-
-    { col: 0, row: 2, h: 10 },
-    { col: 1, row: 2, h: 26 },
-    { col: 2, row: 2, h: 16 },
-    { col: 3, row: 2, h: 38 },
-    { col: 4, row: 2, h: 20 },
-    { col: 5, row: 2, h: 32 },
-    { col: 6, row: 2, h: 14 },
-    { col: 7, row: 2, h: 6 },
-  ];
-
-  let ghostTowers = '';
-  for (const { col, row, h } of ghostLayout) {
-    const tx = 300 + (col - row) * 16;
-    const ty = 120 + (col + row) * 9;
-
-    ghostTowers += `
-      <g transform="translate(${tx}, ${ty - h})">
-        <path d="M0 10 L0 ${10 + h} L-16 ${h} L-16 0 Z"
-          fill="${accent}" fill-opacity="0.08"
-          stroke="${accent}" stroke-opacity="0.18" stroke-width="0.5"/>
-        <path d="M0 10 L0 ${10 + h} L16 ${h} L16 0 Z"
-          fill="${accent}" fill-opacity="0.05"
-          stroke="${accent}" stroke-opacity="0.12" stroke-width="0.5"/>
-        <path d="M0 0 L16 10 L0 20 L-16 10 Z"
-          fill="${accent}" fill-opacity="0.14"
-          stroke="${accent}" stroke-opacity="0.22" stroke-width="0.5"/>
-      </g>`;
-  }
+  const retryMessage = retryAfter
+    ? `Rate limited — please retry after ${retryAfter}`
+    : 'Rate limited — please try again later';
 
   return `<svg
   xmlns="http://www.w3.org/2000/svg"
@@ -1262,9 +1275,14 @@ export function generateRateLimitSVG(
   height="${SVG_HEIGHT}"
   viewBox="0 0 ${SVG_WIDTH} ${SVG_HEIGHT}"
   fill="none"
-  role="img"
+  ${renderSvgRootAttrs()}
 >
-  <title>Rate Limit Exceeded</title>
+  ${renderSvgA11y(
+    'Rate limit exceeded',
+    retryAfter
+      ? `GitHub API rate limit exceeded. Please retry after ${retryAfter}.`
+      : 'GitHub API rate limit exceeded. Please try again later.'
+  )}
   <defs>
     <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
       <feGaussianBlur stdDeviation="5" result="blur"/>
@@ -1274,10 +1292,6 @@ export function generateRateLimitSVG(
       <feGaussianBlur stdDeviation="8" result="blur"/>
       <feComposite in="SourceGraphic" in2="blur" operator="over"/>
     </filter>
-    <linearGradient id="ghostFade" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="30%" stop-color="${bg}" stop-opacity="0"/>
-      <stop offset="100%" stop-color="${bg}" stop-opacity="1"/>
-    </linearGradient>
   </defs>
 
   <style>
@@ -1285,46 +1299,66 @@ export function generateRateLimitSVG(
     .title  { font-family: "Syncopate", sans-serif; fill: ${text}; font-size: 18px; letter-spacing: 6px; font-weight: 400; opacity: 0.5; }
     .label  { font-family: "Roboto", sans-serif; fill: ${accent}; font-size: 11px; letter-spacing: 2px; opacity: 0.4; }
     .stats  { font-family: "Space Grotesk", sans-serif; fill: ${text}; font-size: 42px; font-weight: 500; opacity: 0.2; }
-    .ghost-pulse { animation: gp 2.6s ease-in-out infinite; }
-    @keyframes gp { 0%,100%{opacity:.55} 50%{opacity:1} }
-    @media (prefers-reduced-motion: reduce) { .ghost-pulse { animation: none; } }
+    ${animationsEnabled ? '.clock-pulse { animation: cp 3s ease-in-out infinite; }' : '.clock-pulse { animation: none !important; }'}
+    ${animationsEnabled ? '.hourglass-sand { animation: hs 4s ease-in-out infinite; }' : '.hourglass-sand { animation: none !important; }'}
+    ${animationsEnabled ? '.scan-line { animation: scan-sweep var(--scan-speed, 8s) linear infinite; }' : '.scan-line { transform: translateY(20px); }'}
+    ${animationsEnabled ? '@keyframes cp { 0%,100%{opacity:.4} 50%{opacity:1} }' : ''}
+    ${animationsEnabled ? '@keyframes hs { 0%,100%{transform:translateY(0)} 50%{transform:translateY(8px)} }' : ''}
+    ${animationsEnabled ? '@keyframes scan-sweep { from { transform: translateY(20px); } to { transform: translateY(260px); } }' : ''}
+    @media (prefers-reduced-motion: reduce) {
+      .clock-pulse { animation: none !important; transition: none !important; }
+      .hourglass-sand { animation: none !important; transition: none !important; }
+      .scan-line {
+        animation: none !important;
+        transition: none !important;
+        transform: translateY(20px) !important;
+      }
+    }
   </style>
 
+  <!-- Background -->
   <rect width="${SVG_WIDTH}" height="${SVG_HEIGHT}" rx="${radius}" fill="${bg}"/>
 
-  <g transform="translate(0, 20)" class="ghost-pulse">
-    ${ghostTowers}
-  </g>
+  <!-- Radar scan line -->
+  <rect x="100" y="60" width="400" height="1" class="scan-line" fill="${accent}" fill-opacity="0.12" style="--scan-speed: ${speed};"/>
 
-  <rect width="${SVG_WIDTH}" height="${SVG_HEIGHT}" rx="${radius}" fill="url(#ghostFade)"/>
+  <text x="300" y="50" text-anchor="middle" class="title">GITHUB API</text>
 
-  <rect x="100" y="60" width="400" height="1" fill="${accent}" fill-opacity="0.12">
-    <animate attributeName="y" values="80;320;80" dur="${speed}" repeatCount="indefinite"/>
-  </rect>
-
-  <text x="300" y="50" text-anchor="middle" class="title">API RATE LIMIT</text>
-
+  <!-- Divider below title -->
   <rect x="180" y="62" width="240" height="1" fill="${accent}" fill-opacity="0.15"/>
 
-  <!-- Warning mark -->
-  <circle cx="300" cy="190" r="32" fill="none"
-    stroke="${accent}" stroke-width="1.2" stroke-opacity="0.3" filter="url(#softglow)"/>
-  <path d="M300 172 V200 M300 210 V210.1"
-    stroke="${accent}" stroke-width="2.5" stroke-linecap="round" stroke-opacity="0.6"/>
+  <!-- Clock/Time icon -->
+  <g transform="translate(300, 180)" class="clock-pulse">
+    <!-- Clock circle -->
+    <circle cx="0" cy="0" r="45" fill="none"
+      stroke="${accent}" stroke-width="1.5" stroke-opacity="0.3" filter="url(#softglow)"/>
+    <!-- Hour markers -->
+    <line x1="0" y1="-40" x2="0" y2="-35" stroke="${accent}" stroke-width="2" stroke-opacity="0.4"/>
+    <line x1="40" y1="0" x2="35" y2="0" stroke="${accent}" stroke-width="2" stroke-opacity="0.4"/>
+    <line x1="0" y1="40" x2="0" y2="35" stroke="${accent}" stroke-width="2" stroke-opacity="0.4"/>
+    <line x1="-40" y1="0" x2="-35" y2="0" stroke="${accent}" stroke-width="2" stroke-opacity="0.4"/>
+    <!-- Clock hands -->
+    <line x1="0" y1="0" x2="0" y2="-25" stroke="${accent}" stroke-width="2" stroke-linecap="round" stroke-opacity="0.6"/>
+    <line x1="0" y1="0" x2="18" y2="0" stroke="${accent}" stroke-width="2" stroke-linecap="round" stroke-opacity="0.5"/>
+    <!-- Center dot -->
+    <circle cx="0" cy="0" r="4" fill="${accent}" fill-opacity="0.6"/>
+  </g>
 
-  <rect x="210" y="235" width="180" height="22" rx="4"
+  <!-- "RATE LIMITED" badge -->
+  <rect x="220" y="240" width="160" height="22" rx="4"
     fill="${accent}" fill-opacity="0.08"
     stroke="${accent}" stroke-width="0.8" stroke-opacity="0.25"/>
-  <text x="300" y="250" text-anchor="middle"
+  <text x="300" y="255" text-anchor="middle"
     font-family="Syncopate, sans-serif" font-size="9" font-weight="700"
-    fill="${accent}" opacity="0.7" letter-spacing="4">RATE LIMITED</text>
+    fill="${accent}" opacity="0.7" letter-spacing="3">RATE LIMITED</text>
 
-  <text x="300" y="278" text-anchor="middle"
-    font-family="Space Grotesk, sans-serif" font-size="11"
-    fill="${text}" opacity="0.3">
-    Please wait a moment before trying again
+  <text x="300" y="285" text-anchor="middle"
+    font-family="Space Grotesk, sans-serif" font-size="12"
+    fill="${text}" opacity="0.4">
+    ${escapeXML(retryMessage)}
   </text>
 
+  <!-- Bottom stat placeholders -->
   <g transform="translate(40, 340)">
     <text class="label">CURRENT_STREAK</text>
     <text y="40" class="stats">—</text>

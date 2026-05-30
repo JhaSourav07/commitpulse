@@ -118,6 +118,9 @@ export interface BadgeParams {
   /** Duration of the radar scan line animation (e.g. '4s', '8s', '12s'). Defaults to '8s'. */
   speed: SpeedString;
 
+  /** When false, renders a fully static SVG badge with no motion effects. */
+  animations?: boolean;
+
   /** Tower height scaling algorithm. 'linear' scales proportionally; 'log' uses logarithmic scale for high contributors. Defaults to 'linear'. */
   scale: Scale;
 
