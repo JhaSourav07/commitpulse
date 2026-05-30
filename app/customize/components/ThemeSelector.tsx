@@ -10,17 +10,20 @@ function StyledSelect({
   value,
   onChange,
   children,
+  ariaLabel,
 }: {
   id: string;
   name?: string;
   value: string;
   onChange: (v: string) => void;
   children: ReactNode;
+  ariaLabel?: string;
 }): ReactElement {
   return (
     <select
       id={id}
       name={name ?? id}
+      aria-label={ariaLabel}
       value={value}
       onChange={(e) => onChange(e.target.value)}
       className="w-full bg-white/60 backdrop-blur-md border border-black/10 dark:bg-black/40 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-black dark:text-white outline-none focus:border-emerald-500/50 transition-colors"
