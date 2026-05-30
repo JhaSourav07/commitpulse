@@ -3,11 +3,8 @@ import {
   generateSVG,
   generateMonthlySVG,
   generateNotFoundSVG,
-  generateRateLimitSVG,
   particleCount,
   escapeXML,
-  getSizeScale,
-  truncateUsername,
 } from './generator';
 import type { BadgeParams, ContributionCalendar, StreakStats, MonthlyStats } from '../../types';
 import { hexColor } from './sanitizer';
@@ -136,48 +133,6 @@ describe('generateSVG', () => {
     expect(svg).toContain('class="heat-particles"');
   });
 
-  it('scales particle floating height according to badge size', () => {
-    const svgMedium = generateSVG(
-      mockStats,
-      { user: 'avi', size: 'medium' } as unknown as BadgeParams,
-      mockCalendar
-    );
-    const svgSmall = generateSVG(
-      mockStats,
-      { user: 'avi', size: 'small' } as unknown as BadgeParams,
-      mockCalendar
-    );
-    const svgLarge = generateSVG(
-      mockStats,
-      { user: 'avi', size: 'large' } as unknown as BadgeParams,
-      mockCalendar
-    );
-
-    const mediumMatch = svgMedium.match(
-      /<animate attributeName="cy" from="([\d.-]+)" to="([\d.-]+)"/
-    );
-    expect(mediumMatch).not.toBeNull();
-    const fromMedium = parseFloat(mediumMatch![1]);
-    const toMedium = parseFloat(mediumMatch![2]);
-    expect(Math.round(fromMedium - toMedium)).toBe(20);
-
-    const smallMatch = svgSmall.match(
-      /<animate attributeName="cy" from="([\d.-]+)" to="([\d.-]+)"/
-    );
-    expect(smallMatch).not.toBeNull();
-    const fromSmall = parseFloat(smallMatch![1]);
-    const toSmall = parseFloat(smallMatch![2]);
-    expect(Math.round(fromSmall - toSmall)).toBe(13);
-
-    const largeMatch = svgLarge.match(
-      /<animate attributeName="cy" from="([\d.-]+)" to="([\d.-]+)"/
-    );
-    expect(largeMatch).not.toBeNull();
-    const fromLarge = parseFloat(largeMatch![1]);
-    const toLarge = parseFloat(largeMatch![2]);
-    expect(Math.round(fromLarge - toLarge)).toBe(27);
-  });
-
   it('supports dynamic Google Fonts for non-predefined fonts', () => {
     const svg = generateSVG(
       mockStats,
@@ -227,7 +182,7 @@ describe('generateSVG', () => {
       mockCalendar
     );
     // Should NOT contain a dynamic google fonts import for an empty/invalid family
-    expect(svg).not.toContain('family=&display=swap');
+    expect(svg).not.toContain('family=&amp;display=swap');
     // Should use default body font
     expect(svg).toContain('font-family: "Space Grotesk", sans-serif');
   });
@@ -239,7 +194,7 @@ describe('generateSVG', () => {
       mockCalendar
     );
     expect(svg).toContain('Space Grotesk');
-    expect(svg).not.toContain('family=&display=swap');
+    expect(svg).not.toContain('family=&amp;display=swap');
   });
 
   it('uses default font when font param is whitespace only', () => {
@@ -249,7 +204,7 @@ describe('generateSVG', () => {
       mockCalendar
     );
     expect(svg).toContain('Space Grotesk');
-    expect(svg).not.toContain('family=+&display=swap');
+    expect(svg).not.toContain('family=+&amp;display=swap');
   });
 
   it('allows apostrophes in font names like Times New Roman', () => {
@@ -477,19 +432,6 @@ describe('generateSVG', () => {
       expect(svg).toContain('<title>TODAY: 2024-06-12 &amp; &lt;bad&gt;: 3 contributions</title>');
       expect(svg).not.toContain('<title>TODAY: 2024-06-12 & <bad>: 3 contributions</title>');
     });
-
-    it('supports dynamic Google Fonts for non-predefined fonts in auto-theme mode', () => {
-      const svg = generateSVG(
-        mockStats,
-        { ...autoParams, font: 'Inter' } as unknown as BadgeParams,
-        mockCalendar
-      );
-
-      expect(svg).toContain(
-        "@import url('https://fonts.googleapis.com/css2?family=Inter&display=swap');"
-      );
-      expect(svg).toContain('font-family: "Inter", sans-serif;');
-    });
   });
 
   // Ghost City Placeholder Mode tests
@@ -556,50 +498,6 @@ describe('generateSVG', () => {
       expect(svg).toContain('animation: none !important');
       expect(svg).toContain('transition: none !important');
       expect(svg).toContain('class="scan-line"');
-    });
-
-    it('generates a valid SVG output containing <svg and </svg>', () => {
-      const svg = generateNotFoundSVG('octocat', '#0d1117', '#00ffaa', '#ffffff', 8);
-      expect(svg.trim()).toBeDefined();
-      expect(svg).toContain('<svg');
-      expect(svg).toContain('</svg>');
-    });
-
-    it('renders the username in uppercase and escapes XML-reserved characters', () => {
-      const svg = generateNotFoundSVG('octocat&co', '#0d1117', '#00ffaa', '#ffffff', 8);
-      expect(svg).toContain('OCTOCAT&amp;CO');
-    });
-
-    it('displays the "NOT FOUND" text label', () => {
-      const svg = generateNotFoundSVG('octocat', '#0d1117', '#00ffaa', '#ffffff', 8);
-      expect(svg).toContain('NOT FOUND');
-    });
-
-    it('contains the expected stroke-width and stroke-opacity attributes for ghost towers', () => {
-      const svg = generateNotFoundSVG('octocat', '#0d1117', '#00ffaa', '#ffffff', 8);
-      expect(svg).toContain('stroke-width="0.5"');
-      expect(svg).toContain('stroke-opacity="0.18"');
-      expect(svg).toContain('stroke-opacity="0.12"');
-      expect(svg).toContain('stroke-opacity="0.22"');
-    });
-
-    it('applies custom bg, accent, and text colors to the SVG elements and styles', () => {
-      const bg = '#1a1c23';
-      const accent = '#ff007f';
-      const text = '#e1e2e7';
-      const svg = generateNotFoundSVG('octocat', bg, accent, text, 8);
-
-      // bg verification
-      expect(svg).toContain(`fill="${bg}"`);
-      expect(svg).toContain(`stop-color="${bg}"`);
-
-      // accent verification
-      expect(svg).toContain(`fill="${accent}"`);
-      expect(svg).toContain(`stroke="${accent}"`);
-
-      // text verification
-      expect(svg).toContain(`fill: ${text};`);
-      expect(svg).toContain(`fill="${text}"`);
     });
   });
 
@@ -809,20 +707,6 @@ describe('generateSVG', () => {
       expect(svg).toContain('class="isometric-labels"');
       expect(svg).toContain('fill="var(--cp-text)"');
     });
-
-    it('verify boundary robustness of username length truncator (Variation 4)', () => {
-      const extendedLongUsername = 'abcdefghijklmnopqrstuvwxyz1234567890';
-      const extendedParams = {
-        user: extendedLongUsername,
-        hide_title: false,
-      } as unknown as BadgeParams;
-
-      const svg = generateSVG(mockStats, extendedParams, mockCalendar);
-
-      expect(extendedLongUsername.length).toBeGreaterThan(30);
-      expect(svg).toContain('ABCDEFGHIJKL...');
-      expect(svg).not.toContain('ABCDEFGHIJKLMNOPQRSTUVWXYZ');
-    });
   });
 });
 
@@ -843,23 +727,6 @@ describe('generateMonthlySVG', () => {
     expect(svg).toContain('JUNE');
     expect(svg).toContain('42');
     expect(svg).toContain('+12 commits');
-  });
-
-  it('renders monthly stats correctly with negative absolute delta', () => {
-    const negativeStats: MonthlyStats = {
-      currentMonthTotal: 18,
-      previousMonthTotal: 30,
-      deltaPercentage: -40,
-      deltaAbsolute: -12,
-      currentMonthName: 'June',
-    };
-
-    const svg = generateMonthlySVG(negativeStats, {
-      user: 'octocat',
-      delta_format: 'absolute',
-    } as unknown as BadgeParams);
-
-    expect(svg).toContain('-12 commits');
   });
 
   it('renders monthly stats correctly with percentage delta', () => {
@@ -918,181 +785,8 @@ describe('generateMonthlySVG', () => {
     expect(svg).toContain('animation: none !important');
     expect(svg).toContain('transition: none !important');
   });
-
-  it('supports dynamic Google Fonts for non-predefined fonts in monthly auto-theme mode', () => {
-    const svg = generateMonthlySVG(mockMonthlyStats, {
-      user: 'octocat',
-      autoTheme: true,
-      font: 'Inter',
-    } as unknown as BadgeParams);
-
-    expect(svg).toContain(
-      "@import url('https://fonts.googleapis.com/css2?family=Inter&display=swap');"
-    );
-    expect(svg).toContain('font-family: "Inter", sans-serif;');
-  });
-
-  it('renders English label for commits this month by default', () => {
-    const svg = generateMonthlySVG(mockMonthlyStats, {
-      user: 'octocat',
-    } as unknown as BadgeParams);
-
-    expect(svg).toContain('COMMITS THIS MONTH');
-  });
 });
 
-describe('shading and gradients', () => {
-  const mockStats: StreakStats = {
-    currentStreak: 5,
-    longestStreak: 10,
-    totalContributions: 100,
-    todayDate: '2024-06-12',
-  };
-
-  const mockCalendar = {
-    weeks: [
-      {
-        contributionDays: [
-          { contributionCount: 0, date: '2024-06-10' },
-          { contributionCount: 5, date: '2024-06-11' },
-          { contributionCount: 15, date: '2024-06-12' },
-        ],
-      },
-    ],
-  } as ContributionCalendar;
-
-  it('renders linearGradient definitions when gradient=true', () => {
-    const svg = generateSVG(
-      mockStats,
-      { user: 'avi', gradient: true } as unknown as BadgeParams,
-      mockCalendar
-    );
-    expect(svg).toContain('<linearGradient id="tower-grad-level-1"');
-    expect(svg).toContain('<linearGradient id="tower-grad-level-4"');
-    expect(svg).toContain('fill="url(#tower-grad-level-');
-  });
-
-  it('does not render linearGradient definitions when gradient=false', () => {
-    const svg = generateSVG(
-      mockStats,
-      { user: 'avi', gradient: false } as unknown as BadgeParams,
-      mockCalendar
-    );
-    expect(svg).not.toContain('<linearGradient id="tower-grad-level-1"');
-  });
-
-  it('supports mapping colors in array accent lists to towers', () => {
-    const calendarWithAllQuartiles = {
-      weeks: [
-        {
-          contributionDays: [
-            { contributionCount: 2, date: '2024-06-10' }, // Level 1 (2/15 <= 0.25)
-            { contributionCount: 6, date: '2024-06-11' }, // Level 2 (6/15 <= 0.5)
-            { contributionCount: 10, date: '2024-06-12' }, // Level 3 (10/15 <= 0.75)
-            { contributionCount: 15, date: '2024-06-13' }, // Level 4
-          ],
-        },
-      ],
-    } as ContributionCalendar;
-
-    const svg = generateSVG(
-      mockStats,
-      { user: 'avi', accent: ['111111', '222222', '333333', '444444'] } as unknown as BadgeParams,
-      calendarWithAllQuartiles
-    );
-    expect(svg).toContain('fill="#111111"');
-    expect(svg).toContain('fill="#222222"');
-    expect(svg).toContain('fill="#333333"');
-    expect(svg).toContain('fill="#444444"');
-  });
-
-  it('gracefully handles and clamps accent color arrays with fewer than 4 items without crashing', () => {
-    const calendarWithAllQuartiles = {
-      weeks: [
-        {
-          contributionDays: [
-            { contributionCount: 2, date: '2024-06-10' },
-            { contributionCount: 6, date: '2024-06-11' },
-            { contributionCount: 10, date: '2024-06-12' },
-            { contributionCount: 15, date: '2024-06-13' },
-          ],
-        },
-      ],
-    } as ContributionCalendar;
-
-    const svg = generateSVG(
-      mockStats,
-      { user: 'avi', accent: ['111111'] } as unknown as BadgeParams,
-      calendarWithAllQuartiles
-    );
-    expect(svg).toContain('fill="#111111"');
-  });
-});
-
-describe('shading', () => {
-  // A calendar with a mix of contribution counts to produce towers at different
-  // intensity levels — needed so that shading multipliers actually apply.
-  const shadingCalendar = {
-    weeks: [
-      {
-        contributionDays: [
-          { contributionCount: 2, date: '2024-06-10' }, // low intensity
-          { contributionCount: 10, date: '2024-06-11' }, // mid intensity
-          { contributionCount: 15, date: '2024-06-12' }, // high intensity
-        ],
-      },
-    ],
-  } as ContributionCalendar;
-
-  const shadingStats: StreakStats = {
-    currentStreak: 3,
-    longestStreak: 10,
-    totalContributions: 27,
-    todayDate: '2024-06-12',
-  };
-
-  it('applies reduced face-opacity (shading) when shading is not disabled', () => {
-    // With shading on, low-intensity towers use opacity multiplier 0.4, so their
-    // face-opacity should be lower than the unshaded base value.
-    const svgShading = generateSVG(
-      shadingStats,
-      { user: 'avi', shading: true } as unknown as BadgeParams,
-      shadingCalendar
-    );
-    // The shaded SVG should still contain the tower paths
-    expect(svgShading).toContain('class="cp-tower"');
-    // For level 1 (mult=0.4), base top face opacity 0.7 becomes 0.28
-    // Check for that specific derived value to ensure shading actually multiplied it.
-    expect(svgShading).toContain('fill-opacity="0.28"');
-  });
-
-  it('does not apply shading multipliers when shading=false', () => {
-    const svgShading = generateSVG(
-      shadingStats,
-      { user: 'avi', shading: true } as unknown as BadgeParams,
-      shadingCalendar
-    );
-    const svgNoShading = generateSVG(
-      shadingStats,
-      { user: 'avi', shading: false } as unknown as BadgeParams,
-      shadingCalendar
-    );
-    // The two renders must differ — shading changes face opacities
-    expect(svgShading).not.toBe(svgNoShading);
-  });
-
-  it('falls back to default accent #00ffaa when accent array is empty', () => {
-    const svg = generateSVG(
-      shadingStats,
-      // Simulate what validation returns for accent=,,, (empty array is
-      // now normalised to undefined, but if it somehow reached the renderer
-      // as [] the fallback should still fire without crashing).
-      { user: 'avi', accent: [] } as unknown as BadgeParams,
-      shadingCalendar
-    );
-    expect(svg).toContain('00ffaa');
-  });
-});
 describe('escapeXML', () => {
   it('escapes ampersands (&)', () => {
     expect(escapeXML('foo & bar')).toBe('foo &amp; bar');
@@ -1124,9 +818,6 @@ describe('escapeXML', () => {
     const safe = 'Hello World 123!@#%^*()_+-=[]{}|;:,./?`~';
     expect(escapeXML(safe)).toBe(safe);
   });
-  it('escapes script injection characters <script>&" together', () => {
-    expect(escapeXML('<script>&"')).toBe('&lt;script&gt;&amp;&quot;');
-  });
 });
 
 describe('particleCount', () => {
@@ -1145,123 +836,5 @@ describe('particleCount', () => {
   it('clamps to upper bound of 5 for high counts (e.g., 20 -> 5, 100 -> 5)', () => {
     expect(particleCount(20)).toBe(5);
     expect(particleCount(100)).toBe(5);
-  });
-});
-
-describe('getSizeScale', () => {
-  it('returns 1 for undefined', () => {
-    expect(getSizeScale()).toBe(1);
-  });
-
-  it('returns ~0.667 for small', () => {
-    expect(getSizeScale('small')).toBeCloseTo(0.667, 2);
-  });
-
-  it('returns 1 for medium', () => {
-    expect(getSizeScale('medium')).toBe(1);
-  });
-
-  it('returns ~1.333 for large', () => {
-    expect(getSizeScale('large')).toBeCloseTo(1.333, 2);
-  });
-});
-
-describe('generateRateLimitSVG', () => {
-  it('generates a valid SVG with rate limit messaging', () => {
-    const svg = generateRateLimitSVG('#000000', '#ffffff', '#aaaaaa', 8, '8s');
-    expect(svg).toContain('<svg');
-    expect(svg).toContain('API RATE LIMIT');
-    expect(svg).toContain('RATE LIMITED');
-    expect(svg).toContain('Please wait a moment before trying again');
-    expect(svg).toContain('</svg>');
-  });
-});
-
-describe('Radar Scan Line Animation Alignment', () => {
-  const mockStats: StreakStats = {
-    currentStreak: 5,
-    longestStreak: 10,
-    totalContributions: 100,
-    todayDate: '2024-06-12',
-  };
-  const mockCalendar = {
-    weeks: [
-      {
-        contributionDays: [
-          { contributionCount: 0, date: '2024-06-10' },
-          { contributionCount: 5, date: '2024-06-11' },
-          { contributionCount: 15, date: '2024-06-12' },
-        ],
-      },
-    ],
-  } as ContributionCalendar;
-
-  it('aligns the initial y position and translate values in static generateSVG', () => {
-    const svg = generateSVG(
-      mockStats,
-      { user: 'avi', size: 'medium', autoTheme: false } as unknown as BadgeParams,
-      mockCalendar
-    );
-
-    // Initial y on the rect must be 80 scaled (medium size = scale 1 -> 80)
-    expect(svg).toContain('y="80"');
-    // CSS scan-start must be 0px and scan-end must be 240px
-    expect(svg).toContain('--scan-start: 0px');
-    expect(svg).toContain('--scan-end: 240px');
-    // Keyframe translations should start at 0px and end at 240px
-    expect(svg).toContain('from { transform: translateY(var(--scan-start, 0px)); }');
-    expect(svg).toContain('to { transform: translateY(var(--scan-end, 240px)); }');
-  });
-
-  it('aligns the initial y position and translate values in auto-theme generateSVG', () => {
-    const svg = generateSVG(
-      mockStats,
-      { user: 'avi', size: 'medium', autoTheme: true } as unknown as BadgeParams,
-      mockCalendar
-    );
-
-    // Initial y on the rect must be 80 scaled
-    expect(svg).toContain('y="80"');
-    // CSS variables should be 0px and 240px
-    expect(svg).toContain('--scan-start: 0px');
-    expect(svg).toContain('--scan-end: 240px');
-    // Keyframe translations should start at 0px and end at 240px
-    expect(svg).toContain('from { transform: translateY(var(--scan-start, 0px)); }');
-    expect(svg).toContain('to { transform: translateY(var(--scan-end, 240px)); }');
-  });
-
-  it('aligns the initial y position and translate values in generateNotFoundSVG', () => {
-    const svg = generateNotFoundSVG('avi', '#0d1117', '#00ffaa', '#ffffff', 8, '8s');
-
-    // Initial y on the rect must be 80
-    expect(svg).toContain('rect x="100" y="80"');
-    // Keyframe translations should start at 0px and end at 240px
-    expect(svg).toContain('from { transform: translateY(0px); }');
-    expect(svg).toContain('to { transform: translateY(240px); }');
-  });
-
-  it('aligns the initial y position in generateRateLimitSVG', () => {
-    const svg = generateRateLimitSVG('#0d1117', '#00ffaa', '#ffffff', 8, '8s');
-
-    // Initial y on the rect must be 80
-    expect(svg).toContain('rect x="100" y="80"');
-  });
-
-  it('safely truncates usernames longer than 30 chars with trailing dots', () => {
-    // 1. Arrange: Create a username strictly longer than 30 characters
-    const longUsername = 'ThisIsAVeryLongUsernameThatExceedsThirtyCharacters';
-
-    // 2. Act: Pass the string AND the max length of 30
-    const result = truncateUsername(longUsername);
-
-    // 3. Assert: Verify it contains the trailing dots
-    expect(result.endsWith('...')).toBe(true);
-
-    // 4. Assert: Verify the string was actually truncated
-    // If it caps at 30 chars and adds '...', the max length is 33.
-    expect(result.length).toBeLessThanOrEqual(33);
-
-    // 5. Assert: Ensure the original string was actually modified
-    expect(result).not.toEqual(longUsername);
   });
 });

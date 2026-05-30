@@ -73,14 +73,14 @@ export default async function DashboardPage({
   } catch (error) {
     if (error instanceof Error && error.message.includes('not found')) {
       // Smart Redirect: If the GraphQL "user" query fails, check if it's actually an Organization
-      let fallbackProfile;
       try {
-        fallbackProfile = await fetchUserProfile(username, { bypassCache });
+        const fallbackProfile = await fetchUserProfile(username, { bypassCache });
+        if (fallbackProfile.type === 'Organization') {
+          redirect(`/dashboard/org/${username}`);
+        }
       } catch {
+        // If it's truly neither a user nor an org, show 404
         return notFound();
-      }
-      if (fallbackProfile.type === 'Organization') {
-        redirect(`/dashboard/org/${username}`);
       }
       return notFound();
     }

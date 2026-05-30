@@ -53,11 +53,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    if (
-      errMessage.toLowerCase().includes('rate limit') ||
-      errMessage.includes('API limit reached') ||
-      errMessage.includes('status 403')
-    ) {
+    if (errMessage.includes('API limit reached') || errMessage.includes('status 403')) {
       return NextResponse.json(
         { error: 'GitHub API rate limit reached. Please configure GITHUB_TOKEN.' },
         { status: 403 }

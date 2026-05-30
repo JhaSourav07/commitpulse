@@ -1,6 +1,5 @@
 export function trackUser(username: string) {
   if (typeof navigator === 'undefined' || typeof window === 'undefined') return;
-  if (!username) return;
 
   const payload = JSON.stringify({ username });
 

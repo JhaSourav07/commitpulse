@@ -7,7 +7,6 @@ import {
   Code,
   Download,
   FileJson,
-  FileText,
   Link2,
   Loader2,
   Share2,
@@ -58,10 +57,8 @@ export default function ShareSheet({ username, isOpen, onClose, exportData }: Sh
     handleReddit,
     handleDownloadPNG,
     handleDownloadWEBP,
-    handleCopyImage,
     handleDownloadSVG,
     handleCopyMarkdown,
-    handleDownloadCSV,
     handleDownloadJSON,
     handleNativeShare,
   } = useShareActions(username, exportData, onClose);
@@ -194,15 +191,6 @@ endsolid commitpulse_monolith`;
       action: handleDownloadWEBP,
     },
     {
-      key: 'copyImage',
-      icon: Download,
-      label: 'Copy as Image',
-      description: 'Copy dashboard image to clipboard',
-      gradient: 'bg-zinc-800',
-      glow: 'transparent',
-      action: handleCopyImage,
-    },
-    {
       key: 'svg',
       icon: Download,
       label: 'Download SVG',
@@ -219,15 +207,6 @@ endsolid commitpulse_monolith`;
       gradient: 'bg-zinc-800',
       glow: 'transparent',
       action: handleDownloadSTL,
-    },
-    {
-      key: 'csv',
-      icon: FileText,
-      label: 'Download CSV',
-      description: 'Export stats and daily contribution counts',
-      gradient: 'bg-zinc-800',
-      glow: 'transparent',
-      action: handleDownloadCSV,
     },
     {
       key: 'json',
@@ -341,19 +320,13 @@ endsolid commitpulse_monolith`;
                                 ? 'Link Copied!'
                                 : opt.key === 'png'
                                   ? 'Downloaded!'
-                                  : opt.key === 'csv'
-                                    ? 'CSV Downloaded!'
-                                    : opt.key === 'copyImage'
-                                      ? 'Image Copied!'
-                                      : opt.key === 'png'
-                                        ? 'Downloaded!'
-                                        : opt.key === 'json'
-                                          ? 'JSON Downloaded!'
-                                          : opt.key === 'svg'
-                                            ? 'SVG Downloaded!'
-                                            : opt.key === 'stl'
-                                              ? 'STL Generated!'
-                                              : opt.label
+                                  : opt.key === 'json'
+                                    ? 'JSON Downloaded!'
+                                    : opt.key === 'svg'
+                                      ? 'SVG Downloaded!'
+                                      : opt.key === 'stl'
+                                        ? 'STL Generated!'
+                                        : opt.label
                               : state === 'error'
                                 ? 'Failed — try again'
                                 : opt.label}

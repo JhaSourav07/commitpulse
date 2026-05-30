@@ -1,4 +1,4 @@
-import { DistributedCache } from './cache';
+import { TTLCache } from './cache';
 
 interface RateLimitResult {
   success: boolean;
@@ -15,11 +15,9 @@ interface RateLimitResult {
  * For multi-instance strict syncing, a Redis store (Vercel KV/Upstash) should be used.
  */
 export class RateLimiter {
-  private cache: DistributedCache<number>;
+  private cache: TTLCache<number>;
   private limit: number;
   private windowMs: number;
-  private allowlist = new Set<string>();
-  private blocklist = new Set<string>();
 
   /**
    * Creates a new RateLimiter instance.
@@ -30,7 +28,7 @@ export class RateLimiter {
   constructor(limit = 5, windowMs = 60000) {
     this.limit = limit;
     this.windowMs = windowMs;
-    this.cache = new DistributedCache<number>(10000, windowMs);
+    this.cache = new TTLCache<number>(10000, windowMs);
   }
 
   /**
@@ -47,30 +45,17 @@ export class RateLimiter {
    *   return new Response("Too Many Requests", { status: 429 });
    * }
    */
-  async check(ip: string): Promise<boolean> {
-    if (this.allowlist.has(ip)) return true;
-    if (this.blocklist.has(ip)) return false;
-    const current = (await this.cache.get(ip)) ?? 0;
-    if (current >= this.limit) return false;
-    if (current === 0) {
-      await this.cache.set(ip, 1, this.windowMs);
-    } else {
-      await this.cache.update(ip, current + 1);
+  check(ip: string): boolean {
+    const current = this.cache.get(ip) || 0;
+    if (current >= this.limit) {
+      return false;
     }
+    this.cache.set(ip, current + 1, this.windowMs);
     return true;
   }
-  async checkWithResult(ip: string): Promise<RateLimitResult> {
-    if (this.allowlist.has(ip))
-      return {
-        success: true,
-        limit: this.limit,
-        remaining: this.limit,
-        reset: Date.now() + this.windowMs,
-      };
-    if (this.blocklist.has(ip))
-      return { success: false, limit: this.limit, remaining: 0, reset: Date.now() + this.windowMs };
+  checkWithResult(ip: string): RateLimitResult {
     const now = Date.now();
-    const current = (await this.cache.get(ip)) ?? 0;
+    const current = this.cache.get(ip) ?? 0;
 
     if (current >= this.limit) {
       return {
@@ -81,11 +66,7 @@ export class RateLimiter {
       };
     }
 
-    if (current === 0) {
-      await this.cache.set(ip, 1, this.windowMs);
-    } else {
-      await this.cache.update(ip, current + 1);
-    }
+    this.cache.set(ip, current + 1, this.windowMs);
     return {
       success: true,
       limit: this.limit,
@@ -104,26 +85,8 @@ export class RateLimiter {
    * @example
    * rateLimiter.reset("192.168.1.1");
    */
-  async reset(ip: string): Promise<void> {
-    await this.cache.delete(ip);
-  }
-
-  allow(ip: string): void {
-    this.allowlist.add(ip);
-    this.blocklist.delete(ip);
-  }
-
-  block(ip: string): void {
-    this.blocklist.add(ip);
-    this.allowlist.delete(ip);
-  }
-
-  unallow(ip: string): void {
-    this.allowlist.delete(ip);
-  }
-
-  unblock(ip: string): void {
-    this.blocklist.delete(ip);
+  reset(ip: string): void {
+    this.cache.delete(ip);
   }
 }
 
@@ -137,7 +100,7 @@ export const trackUserRateLimiter = new RateLimiter(5, 60000);
  * For global rate limiting, a distributed store like Redis would be required.
  */
 
-const trackers = new DistributedCache<{ count: number }>(2000, 60000);
+const trackers = new TTLCache<{ count: number }>(2000, 60000);
 
 /**
  * Checks if a request from a given IP should be rate limited.
@@ -153,16 +116,16 @@ const trackers = new DistributedCache<{ count: number }>(2000, 60000);
  *   return new Response("Too Many Requests", { status: 429 });
  * }
  */
-export async function rateLimit(
+export function rateLimit(
   ip: string,
   limit: number = 60,
   windowMs: number = 60000
-): Promise<RateLimitResult> {
+): RateLimitResult {
   const now = Date.now();
-  const tracker = await trackers.get(ip);
+  const tracker = trackers.get(ip);
 
   if (!tracker) {
-    await trackers.set(ip, { count: 1 }, windowMs);
+    trackers.set(ip, { count: 1 }, windowMs);
     return {
       success: true,
       limit,
@@ -172,7 +135,7 @@ export async function rateLimit(
   }
 
   tracker.count++;
-  await trackers.update(ip, tracker);
+  trackers.set(ip, tracker, windowMs);
 
   if (tracker.count > limit) {
     return {

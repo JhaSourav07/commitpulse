@@ -4,7 +4,6 @@ import {
   SIZES,
   SPEEDS,
   LANGUAGES,
-  TIMEZONES,
   VIEW_MODES,
   DELTA_FORMATS,
   type BadgeSize,
@@ -13,7 +12,6 @@ import {
   type ViewMode,
   type DeltaFormat,
   type Language,
-  type Timezone,
 } from '../types';
 import { isValidHex, stripHash } from '../utils';
 import { SectionLabel } from './SectionLabel';
@@ -125,7 +123,6 @@ export function ControlsPanel({
   badgeHeight,
   grace,
   language,
-  timezone,
   onHideTitleChange,
   onHideBackgroundChange,
   onHideStatsChange,
@@ -135,7 +132,6 @@ export function ControlsPanel({
   onBadgeHeightChange,
   onGraceChange,
   onLanguageChange,
-  onTimezoneChange,
 }: {
   username: string;
   theme: string;
@@ -169,7 +165,6 @@ export function ControlsPanel({
   badgeHeight: number | '';
   grace: number;
   language: Language;
-  timezone: Timezone;
   onHideTitleChange: (value: boolean) => void;
   onHideBackgroundChange: (value: boolean) => void;
   onHideStatsChange: (value: boolean) => void;
@@ -179,7 +174,6 @@ export function ControlsPanel({
   onBadgeHeightChange: (value: number | '') => void;
   onGraceChange: (value: number) => void;
   onLanguageChange: (value: Language) => void;
-  onTimezoneChange: (value: Timezone) => void;
 }): ReactElement {
   const hasOverrides = Boolean(bgHex || accentHex || textHex);
   const currentYear = new Date().getFullYear();
@@ -536,23 +530,6 @@ export function ControlsPanel({
                   {LANGUAGES.map((lang) => (
                     <option key={lang.value} value={lang.value}>
                       {lang.label}
-                    </option>
-                  ))}
-                </StyledSelect>
-              </div>
-            </ControlRow>
-
-            <ControlRow label="Timezone">
-              <div className="relative">
-                <StyledSelect
-                  id="timezone-select"
-                  ariaLabel="Timezone"
-                  value={timezone}
-                  onChange={(v) => onTimezoneChange(v as Timezone)}
-                >
-                  {TIMEZONES.map((tz) => (
-                    <option key={tz.value} value={tz.value}>
-                      {tz.label}
                     </option>
                   ))}
                 </StyledSelect>

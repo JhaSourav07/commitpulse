@@ -15,8 +15,7 @@ const generateParticles = (count: number) => {
     duration: Math.random() * 30 + 30, // 30s to 60s duration
     delay: Math.random() * -60, // Negative delay so they start already moving
     rotateDirection: Math.random() > 0.5 ? 1 : -1,
-    // Increased base opacity for light mode visibility
-    opacity: 0.3 + Math.random() * 0.3,
+    opacity: 0.1 + Math.random() * 0.15, // subtle opacity (0.1 to 0.25)
     borderRadius: Math.random() > 0.5 ? '2px' : '50%', // Mix of squares and circles
     xAnimStart: Math.random() * 100 - 50,
     xAnimEnd: Math.random() * -100 + 50,
@@ -50,8 +49,7 @@ export default function BrandParticles() {
   if (!mounted) return null;
 
   return (
-    // The parent div dynamically dims the particles in dark mode using `dark:opacity-40`
-    <div className="fixed inset-0 pointer-events-none z-[-1] overflow-hidden opacity-100 dark:opacity-40 transition-opacity duration-300">
+    <div className="fixed inset-0 pointer-events-none z-[-1] overflow-hidden">
       {particles.map((particle) => (
         <motion.div
           key={particle.id}

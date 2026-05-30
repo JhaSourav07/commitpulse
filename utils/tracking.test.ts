@@ -14,23 +14,6 @@ describe('trackUser', () => {
     });
   });
 
-  it('does not send when username is empty', () => {
-    const sendBeaconMock = vi.fn();
-    const fetchMock = vi.fn();
-
-    Object.defineProperty(navigator, 'sendBeacon', {
-      value: sendBeaconMock,
-      configurable: true,
-    });
-
-    vi.stubGlobal('fetch', fetchMock);
-
-    trackUser('');
-
-    expect(sendBeaconMock).not.toHaveBeenCalled();
-    expect(fetchMock).not.toHaveBeenCalled();
-  });
-
   it('uses sendBeacon when available', () => {
     const sendBeaconMock = vi.fn().mockReturnValue(true);
 
@@ -85,18 +68,6 @@ describe('trackUser', () => {
       body: JSON.stringify({ username: 'testuser' }),
       keepalive: true,
     });
-  });
-
-  it('handles empty username without crashing', () => {
-    const sendBeaconMock = vi.fn().mockReturnValue(true);
-
-    Object.defineProperty(navigator, 'sendBeacon', {
-      value: sendBeaconMock,
-      configurable: true,
-    });
-
-    expect(() => trackUser('')).not.toThrow();
-    expect(sendBeaconMock).not.toHaveBeenCalled();
   });
 
   it('falls back to fetch when sendBeacon returns false', () => {

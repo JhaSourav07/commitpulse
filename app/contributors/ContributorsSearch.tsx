@@ -16,8 +16,7 @@ interface Contributor {
 export default function ContributorsSearch({ contributors }: { contributors: Contributor[] }) {
   const [search, setSearch] = useState('');
 
-  const normalizedSearch = search.trim().toLowerCase();
-  const filtered = contributors.filter((c) => c.login.toLowerCase().includes(normalizedSearch));
+  const filtered = contributors.filter((c) => c.login.toLowerCase().includes(search.toLowerCase()));
 
   return (
     <>

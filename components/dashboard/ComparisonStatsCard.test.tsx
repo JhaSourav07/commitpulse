@@ -138,6 +138,12 @@ describe('ComparisonStatsCard', () => {
       />
     );
 
+    const progressSegments = container.querySelectorAll(
+      '.w-full.bg-gray-700\\/50 div, .relative div'
+    );
+
+    const allDivs = Array.from(container.querySelectorAll('div'));
+
     const emeraldElement =
       container.querySelector('[className*="emerald"]') ||
       container.querySelector('.text-emerald-400');
