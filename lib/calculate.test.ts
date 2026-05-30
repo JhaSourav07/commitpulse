@@ -270,6 +270,35 @@ describe('calculateStreak', () => {
     expect(result.longestStreak).toBe(10);
     expect(result.currentStreak).toBe(5);
   });
+
+  it('handles weekend-only commits correctly across massive 5-day gaps', () => {
+    // 2024-01-01 is a Monday.
+    // We simulate a user who commits ONLY on Saturdays and Sundays.
+    const calendar = buildCalendar([
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      1, // Week 1: Mon-Fri (0), Sat-Sun (1)
+      0,
+      0,
+      0,
+      0,
+      0,
+      1,
+      1, // Week 2: Mon-Fri (0), Sat-Sun (1)
+    ]);
+
+    const result = calculateStreak(calendar);
+
+    // The gap from Monday to Friday is 5 days, which far exceeds the
+    // default grace period of 1. Therefore, the streak must break every week.
+    expect(result.currentStreak).toBe(2);
+    expect(result.longestStreak).toBe(2);
+    expect(result.totalContributions).toBe(4);
+  });
 });
 it('handles massive single-day commit spike timeline', () => {
   const calendar = buildCalendar([
