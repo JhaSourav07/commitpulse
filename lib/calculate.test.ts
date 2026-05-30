@@ -936,20 +936,9 @@ describe('calculateStreak — empty and sparse year edge cases', () => {
     expect(result.longestStreak).toBe(1);
     expect(result.totalContributions).toBe(2);
   });
-
-  // =========================================================================
-  // ISSUE #1503 — Variation 4: Full year (52 weeks × 7 days) of 0 contributions
-  // =========================================================================
-  // Background: streak computation is susceptible to off-by-one errors when
-  // managing calendar offsets and date boundaries. A full year of zero commits
-  // is the most exhaustive boundary stress-test: the loop must traverse all 364
-  // days without incrementing either streak counter, and must not throw or return
-  // NaN/undefined due to boundary arithmetic on the first or last day.
-  it('returns all zeros for an entire year (52 weeks × 7 days) of empty contributions (Variation 4)', () => {
-    // 52 weeks × 7 days = 364 days, every day has 0 commits.
-    // buildCalendar groups them into 52 weeks automatically.
-    const emptyYearCounts = Array(364).fill(0);
-    const calendar = buildCalendar(emptyYearCounts);
+  it('returns all zeros for an entire year of 0 commits (empty contribution calendar timeline)', () => {
+    const yearOfZeros = Array(364).fill(0);
+    const calendar = buildCalendar(yearOfZeros);
 
     const result = calculateStreak(calendar);
 
