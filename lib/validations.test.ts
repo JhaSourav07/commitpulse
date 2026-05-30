@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { githubParamsSchema, ogParamsSchema, streakParamsSchema } from './validations';
+import {
+  githubParamsSchema,
+  ogParamsSchema,
+  streakParamsSchema,
+  wrappedParamsSchema,
+} from './validations';
 
 describe('githubParamsSchema', () => {
   it('should pass when username is valid', () => {
@@ -644,5 +649,36 @@ describe('streakParamsSchema — view fallback behavior', () => {
 
   it('defaults to "default" when view is omitted', () => {
     expect(parse({}).view).toBe('default');
+  });
+});
+
+describe('wrappedParamsSchema', () => {
+  it('should pass when user is valid', () => {
+    const result = wrappedParamsSchema.safeParse({
+      user: 'octocat',
+    });
+    expect(result.success).toBe(true);
+  });
+
+  describe('hide_background', () => {
+    it('returns true when hide_background="true"', () => {
+      const result = wrappedParamsSchema.parse({ user: 'octocat', hide_background: 'true' });
+      expect(result.hide_background).toBe(true);
+    });
+
+    it('returns true when hide_background="1" (both "true" and "1" accepted)', () => {
+      const result = wrappedParamsSchema.parse({ user: 'octocat', hide_background: '1' });
+      expect(result.hide_background).toBe(true);
+    });
+
+    it('returns false when hide_background="false"', () => {
+      const result = wrappedParamsSchema.parse({ user: 'octocat', hide_background: 'false' });
+      expect(result.hide_background).toBe(false);
+    });
+
+    it('returns false when hide_background is omitted', () => {
+      const result = wrappedParamsSchema.parse({ user: 'octocat' });
+      expect(result.hide_background).toBe(false);
+    });
   });
 });
