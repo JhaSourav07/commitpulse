@@ -144,6 +144,10 @@ Transform your GitHub contribution history into a cinematic 3D monolith.
 ![CommitPulse](https://commitpulse.vercel.app/api/streak?user=jhasourav07&bg=0a0a0a&accent=ff6b35&text=ffffff)
 ```
 
+### Custom Width
+
+```text
+/api/streak?user=torvalds&width=1200
 ---
 
 ## 🎨 Deep Customization — URL Parameters
@@ -151,8 +155,10 @@ Transform your GitHub contribution history into a cinematic 3D monolith.
 CommitPulse is designed to be **fully composable**. Every visual attribute is controllable via a URL parameter, following a clear priority chain:
 
 ```
+
 URL Parameter > Theme Default > System Fallback
-```
+
+````
 
 ### Parameter Reference
 
@@ -201,7 +207,7 @@ URL Parameter > Theme Default > System Fallback
 | `lang`            | `string`  | No         | `en`                           | Language code for labels (`en`, `es`, `hi`, `fr`, `pt`, `ko`, `ja`)                                                                                                       |
 | `view`            | `string`  | No         | `default`                      | Rendering mode: `default` (3D Monolith) or `monthly` (Compact monthly stats)                                                                                              |
 | `delta_format`    | `string`  | No         | `percent`                      | Format for month-over-month delta in monthly view: `percent` (e.g. +12%), `absolute` (e.g. +15 commits), or `both`                                                        |
-| `width`           | `number`  | No         | `300`                          | Custom width for the SVG canvas (currently only applies to `view=monthly`)                                                                                                |
+| `width`           | `number`  | No         | `800`                          | Custom width for the SVG canvas. Values are clamped between `300` and `2000`. |
 | `height`          | `number`  | No         | `120`                          | Custom height for the SVG canvas (currently only applies to `view=monthly`)                                                                                               |
 
 ### Theme Presets
@@ -297,7 +303,7 @@ Explore some of the built-in CommitPulse themes and quickly copy the style you l
 <!-- Large badge size -->
 
 ![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&size=large)
-```
+````
 
 ---
 
