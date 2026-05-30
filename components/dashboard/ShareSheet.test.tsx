@@ -46,6 +46,10 @@ describe('ShareSheet', () => {
         { name: 'TypeScript', percentage: 72, color: '#3178c6' },
         { name: 'JavaScript', percentage: 28, color: '#f1e05a' },
       ],
+      activity: [
+        { date: '2026-05-01', count: 3, intensity: 2 as const },
+        { date: '2026-05-02', count: 0, intensity: 0 as const },
+      ],
     },
   };
 
@@ -89,6 +93,7 @@ describe('ShareSheet', () => {
     expect(screen.getByText('Copy Link')).toBeDefined();
     expect(screen.getByText('Share on X')).toBeDefined();
     expect(screen.getByText('Download JSON')).toBeDefined();
+    expect(screen.getByText('Download CSV')).toBeDefined();
   });
   it('renders close button with correct aria-label and calls onClose', () => {
     render(<ShareSheet {...defaultProps} />);
@@ -254,6 +259,31 @@ describe('ShareSheet', () => {
     document.body.removeChild(mockRoot);
   });
 
+  it('downloads dashboard data as CSV', async () => {
+    render(<ShareSheet {...defaultProps} />);
+
+    const csvButton = screen.getByText('Download CSV').closest('button');
+    fireEvent.click(csvButton!);
+
+    const blob = vi.mocked(URL.createObjectURL).mock.calls[0][0] as Blob;
+    const csv = await blob.text();
+
+    expect(blob.type).toBe('text/csv;charset=utf-8');
+    expect(csv).toContain('username,octocat');
+    expect(csv).toContain('totalContributions,365');
+    expect(csv).toContain('currentStreak,7');
+    expect(csv).toContain('longestStreak,14');
+    expect(csv).toContain('date,dailyContributionCount,intensity');
+    expect(csv).toContain('2026-05-01,3,2');
+
+    expect(HTMLAnchorElement.prototype.click).toHaveBeenCalled();
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:mock-download');
+
+    await waitFor(() => {
+      expect(screen.getByText('CSV Downloaded!')).toBeDefined();
+    });
+  });
+
   it('downloads dashboard data as formatted JSON', async () => {
     render(<ShareSheet {...defaultProps} />);
 
@@ -271,6 +301,11 @@ describe('ShareSheet', () => {
       topLanguages: defaultProps.exportData.languages,
     });
     expect(json.profileUrl).toContain('/octocat');
+    expect(json.contributionDates).toEqual(['2026-05-01', '2026-05-02']);
+    expect(json.dailyContributions).toEqual([
+      { date: '2026-05-01', count: 3, intensity: 2 },
+      { date: '2026-05-02', count: 0, intensity: 0 },
+    ]);
     expect(HTMLAnchorElement.prototype.click).toHaveBeenCalled();
     expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:mock-download');
 

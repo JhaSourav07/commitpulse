@@ -670,6 +670,28 @@ describe('GET /api/streak', () => {
       expect(response.headers.get('Cache-Control')).toBe('no-store');
     });
 
+    it('sets the SVG Content-Security-Policy header on generic error responses', async () => {
+      vi.mocked(fetchGitHubContributions).mockRejectedValue(new Error('Network failure'));
+
+      const response = await GET(makeRequest({ user: 'octocat' }));
+      const csp = response.headers.get('Content-Security-Policy');
+
+      expect(response.status).toBe(500);
+      expect(csp).toContain("default-src 'none'");
+      expect(csp).not.toContain('script-src');
+    });
+
+    it('returns 429 with no-cache headers and rate limit SVG when rate limited', async () => {
+      vi.mocked(fetchGitHubContributions).mockRejectedValue(new Error('API Rate Limit Exceeded'));
+
+      const response = await GET(makeRequest({ user: 'octocat' }));
+
+      expect(response.status).toBe(429);
+      expect(response.headers.get('Cache-Control')).toBe('no-cache, no-store, must-revalidate');
+      const body = await response.text();
+      expect(body).toContain('API RATE LIMIT');
+    });
+
     it('returns a valid 500 SVG even when something non-Error is thrown', async () => {
       // JavaScript lets you throw anything — strings, numbers, plain objects.
       // The catch block checks instanceof Error; if that fails it falls back to "Unknown error".
@@ -710,6 +732,17 @@ describe('GET /api/streak', () => {
       expect(body).toContain('garbage');
     });
 
+    it('escapes invalid timezone values before rendering the error SVG', async () => {
+      const response = await GET(
+        makeRequest({ user: 'octocat', tz: '</text><script>alert(1)</script>' })
+      );
+      const body = await response.text();
+
+      expect(response.status).toBe(400);
+      expect(body).toContain('&lt;/text&gt;&lt;script&gt;alert(1)&lt;/script&gt;');
+      expect(body).not.toContain('</text><script>');
+    });
+
     it('returns 200 with a valid IANA timezone', async () => {
       const response = await GET(makeRequest({ user: 'octocat', tz: 'America/New_York' }));
 
@@ -733,6 +766,18 @@ describe('GET /api/streak', () => {
 
       expect(getSecondsUntilUTCMidnight).toHaveBeenCalled();
       expect(getSecondsUntilMidnightInTimezone).not.toHaveBeenCalled();
+    });
+
+    it('returns 200 with valid SVG and calls getSecondsUntilMidnightInTimezone for Australia/Sydney', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', tz: 'Australia/Sydney' }));
+
+      expect(response.status).toBe(200);
+
+      const body = await response.text();
+      expect(body).toContain('<svg');
+      expect(body).toContain('</svg>');
+
+      expect(getSecondsUntilMidnightInTimezone).toHaveBeenCalledWith('Australia/Sydney');
     });
   });
 
@@ -759,6 +804,40 @@ describe('GET /api/streak', () => {
       expect(response.status).toBe(200);
       const body = await response.text();
       expect(body).toContain('COMMITS THIS MONTH');
+    });
+
+    it('uses the selected year when generating archived monthly stats', async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-05-20T12:00:00Z'));
+
+      vi.mocked(fetchGitHubContributions).mockResolvedValueOnce({
+        totalContributions: 25,
+        weeks: [
+          { contributionDays: [{ date: '2024-11-15', contributionCount: 10 }] },
+          { contributionDays: [{ date: '2024-12-15', contributionCount: 15 }] },
+        ],
+      } as ContributionCalendar);
+
+      try {
+        const response = await GET(
+          makeRequest({ user: 'octocat', view: 'monthly', year: '2024', delta_format: 'both' })
+        );
+
+        expect(response.status).toBe(200);
+        expect(fetchGitHubContributions).toHaveBeenCalledWith('octocat', {
+          bypassCache: false,
+          from: '2024-01-01T00:00:00Z',
+          to: '2024-12-31T23:59:59Z',
+        });
+
+        const body = await response.text();
+        expect(body).toContain('DECEMBER');
+        expect(body).toContain('class="stats">15</text>');
+        expect(body).toContain('+50% (+5)');
+        expect(body).not.toContain('MAY');
+      } finally {
+        vi.useRealTimers();
+      }
     });
 
     it('uses valid custom width and height in monthly SVG output', async () => {
@@ -791,6 +870,80 @@ describe('GET /api/streak', () => {
       expect(body).toContain('CURRENT_STREAK');
     });
     // =========================================================================
+    // ISSUE OBJECTIVE: Custom dimensions in monthly view (?width & ?height)
+    // =========================================================================
+    it('applies custom width and height parameters to the monthly SVG', async () => {
+      // 1. Create a fresh mock function and inject it globally just for this test
+      const tempMockFetch = vi.fn().mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          data: {
+            user: {
+              createdAt: '2020-01-01T00:00:00Z',
+              contributionsCollection: {
+                contributionCalendar: {
+                  totalContributions: 100,
+                  weeks: [],
+                },
+              },
+            },
+          },
+        }),
+      });
+      vi.stubGlobal('fetch', tempMockFetch);
+
+      // 2. Make request using the file's built-in makeRequest helper (No 'any' needed!)
+      const req = makeRequest({ user: 'octocat', view: 'monthly', width: '400', height: '150' });
+      const res = await GET(req);
+
+      // Assert status is 200 OK
+      expect(res.status).toBe(200);
+
+      const body = await res.text();
+
+      // 3. Assert body contains width="400"
+      expect(body).toContain('width="400"');
+
+      // 4. Assert body contains height="150"
+      expect(body).toContain('height="150"');
+
+      // Cleanup the stub so it doesn't leak into other tests
+      vi.unstubAllGlobals();
+    });
+
+    // =========================================================================
+    // ISSUE OBJECTIVE: Route test for ?view=monthly&delta_format=both
+    // =========================================================================
+    it('applies delta_format=both to show percent and absolute values in the monthly SVG', async () => {
+      // 1. Mock the GitHub fetch with actual weekly data using vi.mocked
+      vi.mocked(fetchGitHubContributions).mockResolvedValueOnce({
+        totalContributions: 150,
+        weeks: [
+          { contributionDays: [{ date: '2026-04-15', contributionCount: 10 }] },
+          { contributionDays: [{ date: '2026-05-15', contributionCount: 15 }] },
+        ],
+      } as unknown as ContributionCalendar);
+
+      // 2. Lock the system time to May 2026 so the calendar calculation aligns
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-05-20T12:00:00Z'));
+
+      // 3. Make request using the file's built-in makeRequest helper
+      const req = makeRequest({ user: 'octocat', view: 'monthly', delta_format: 'both' });
+      const res = await GET(req);
+
+      expect(res.status).toBe(200);
+
+      const body = await res.text();
+
+      // 4. Assert body contains % (percent part)
+      expect(body).toContain('%');
+
+      // Cleanup
+      vi.useRealTimers();
+    });
+
+    // =========================================================================
     // ISSUE OBJECTIVE: Route test for ?view=monthly&delta_format=absolute
     // =========================================================================
     it('applies delta_format=absolute to show raw commit counts in the monthly SVG', async () => {
@@ -802,7 +955,6 @@ describe('GET /api/streak', () => {
           { contributionDays: [{ date: '2026-05-15', contributionCount: 15 }] },
         ],
       } as unknown as ContributionCalendar);
-
       // 2. Lock the system time to May 2026 so the calendar calculation aligns
       vi.useFakeTimers();
       vi.setSystemTime(new Date('2026-05-20T12:00:00Z'));
@@ -850,7 +1002,6 @@ describe('GET /api/streak', () => {
       expect(body).toContain('stroke-opacity="0.3"');
     });
   });
-
   describe('lang parameter', () => {
     it('returns Spanish translations when ?lang=es is given', async () => {
       const response = await GET(makeRequest({ user: 'octocat', lang: 'es' }));
@@ -1013,6 +1164,15 @@ describe('GET /api/streak', () => {
       expect(response.status).toBe(200);
       expect(body).toContain('<svg');
       expect(body).toContain('</svg>');
+    });
+
+    it('passes custom font name and emits Google Fonts import under theme=auto', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', theme: 'auto', font: 'Inter' }));
+      const body = await response.text();
+
+      expect(response.status).toBe(200);
+      expect(body).toContain('family=Inter&display=swap');
+      expect(body).toContain('"Inter", sans-serif');
     });
   });
 

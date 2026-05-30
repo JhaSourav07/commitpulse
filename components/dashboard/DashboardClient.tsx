@@ -70,19 +70,13 @@ interface DashboardClientProps {
   username: string;
 }
 
-// ------------------------------------------------------------
-// Analytical Helpers for Profile Comparison
-// ------------------------------------------------------------
-
-function getUsernameHash(username: string): number {
-  let hash = 0;
-  for (let i = 0; i < username.length; i++) {
-    hash = username.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return Math.abs(hash);
+export interface ProfileMetrics {
+  currentStreak: number;
+  commitClock: { day: string; commits: number }[]; // e.g., Sun-Sat daily totals
+  hourlyData?: { hour: number; commits: number }[]; // Optional: 0-23 hour distribution
 }
 
-interface CoderProfile {
+export interface CoderProfile {
   peakHourStart: number;
   peakHourEnd: number;
   profileName: 'Night Owl 🌙' | 'Early Builder ☀' | 'Weekend Warrior 🚀' | 'Consistent Runner 🏃‍♂️';
@@ -90,50 +84,81 @@ interface CoderProfile {
   activeWeekdays: string[];
 }
 
-function generateCoderProfile(username: string): CoderProfile {
-  const hash = getUsernameHash(username);
-  const profileType = hash % 4;
+export function generateCoderProfile(metrics: ProfileMetrics): CoderProfile {
+  const { currentStreak, commitClock, hourlyData } = metrics;
 
-  let profileName: CoderProfile['profileName'] = 'Consistent Runner 🏃‍♂️';
+  let profileName: CoderProfile['profileName'] = 'Early Builder ☀';
+
+  // 1. Analyze Commit Clock for Weekend Warrior
+  let isWeekendWarrior = false;
+  if (commitClock && commitClock.length === 7) {
+    const weekendCommits = commitClock[0].commits + commitClock[6].commits; // Sunday(0) + Saturday(6)
+    const totalCommits = commitClock.reduce((sum, d) => sum + d.commits, 0);
+    if (totalCommits > 0 && weekendCommits / totalCommits > 0.35) {
+      isWeekendWarrior = true;
+    }
+  }
+
+  // 2. Analyze Hourly Data for Night Owl vs Early Builder
+  let isNightOwl = false;
+  if (hourlyData && hourlyData.length > 0) {
+    const nightCommits = hourlyData
+      .filter((d) => d.hour >= 22 || d.hour <= 3)
+      .reduce((sum, d) => sum + d.commits, 0);
+
+    const morningCommits = hourlyData
+      .filter((d) => d.hour >= 5 && d.hour <= 10)
+      .reduce((sum, d) => sum + d.commits, 0);
+
+    isNightOwl = nightCommits > morningCommits;
+  }
+
+  // 3. Determine Final Profile Type
+  if (currentStreak >= 10) {
+    profileName = 'Consistent Runner 🏃‍♂️';
+  } else if (isWeekendWarrior) {
+    profileName = 'Weekend Warrior 🚀';
+  } else if (isNightOwl) {
+    profileName = 'Night Owl 🌙';
+  }
+
+  // 4. Populate UI properties based on the derived profile.
+  // We use smooth curves here without the random 'hash' jitter for a cleaner UI.
   let peakHourStart = 9;
   let peakHourEnd = 17;
   let hourlyDistribution = new Array(24).fill(0);
   let activeWeekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
 
-  if (profileType === 0) {
-    profileName = 'Night Owl 🌙';
+  if (profileName === 'Night Owl 🌙') {
     peakHourStart = 22;
     peakHourEnd = 2;
     hourlyDistribution = Array.from({ length: 24 }, (_, h) => {
       const distFromMidnight = Math.min(Math.abs(h - 23), Math.abs(h + 1));
-      return Math.max(8, Math.round(100 - distFromMidnight * 9.5 - (hash % 12)));
+      return Math.max(8, Math.round(100 - distFromMidnight * 9.5));
     });
     activeWeekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
-  } else if (profileType === 1) {
-    profileName = 'Early Builder ☀';
+  } else if (profileName === 'Early Builder ☀') {
     peakHourStart = 6;
     peakHourEnd = 10;
     hourlyDistribution = Array.from({ length: 24 }, (_, h) => {
       const distFromEight = Math.abs(h - 8);
-      return Math.max(6, Math.round(100 - distFromEight * 10 - (hash % 12)));
+      return Math.max(6, Math.round(100 - distFromEight * 10));
     });
     activeWeekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
-  } else if (profileType === 2) {
-    profileName = 'Weekend Warrior 🚀';
+  } else if (profileName === 'Weekend Warrior 🚀') {
     peakHourStart = 10;
     peakHourEnd = 16;
     hourlyDistribution = Array.from({ length: 24 }, (_, h) => {
       const distFromMidday = Math.abs(h - 13);
-      return Math.max(8, Math.round(100 - distFromMidday * 8.5 - (hash % 12)));
+      return Math.max(8, Math.round(100 - distFromMidday * 8.5));
     });
     activeWeekdays = ['Sat', 'Sun'];
-  } else {
-    profileName = 'Consistent Runner 🏃‍♂️';
+  } else if (profileName === 'Consistent Runner 🏃‍♂️') {
     peakHourStart = 13;
     peakHourEnd = 17;
     hourlyDistribution = Array.from({ length: 24 }, (_, h) => {
       const distFromThree = Math.abs(h - 15);
-      return Math.max(12, Math.round(100 - distFromThree * 7 - (hash % 8)));
+      return Math.max(12, Math.round(100 - distFromThree * 7));
     });
     activeWeekdays = ['Mon', 'Wed', 'Fri', 'Sat'];
   }
@@ -358,11 +383,19 @@ export default function DashboardClient({ initialData, username }: DashboardClie
   // Compare Mode Statistics Calculations
   // ------------------------------------------------------------
 
-  const coderProfileA = generateCoderProfile(username);
-  const coderProfileB = secondUserData
-    ? generateCoderProfile(secondUserData.profile.username)
-    : null;
+  // Profile for User A using their actual dashboard metrics
+  const coderProfileA = generateCoderProfile({
+    currentStreak: initialData.stats.currentStreak,
+    commitClock: initialData.commitClock,
+  });
 
+  // Profile for User B using their comparison data metrics
+  const coderProfileB = secondUserData
+    ? generateCoderProfile({
+        currentStreak: secondUserData.stats.currentStreak,
+        commitClock: secondUserData.commitClock,
+      })
+    : null;
   const gapA = calculateInactivityGaps(initialData.activity);
   const gapB = secondUserData ? calculateInactivityGaps(secondUserData.activity) : 0;
 
@@ -478,6 +511,7 @@ export default function DashboardClient({ initialData, username }: DashboardClie
               exportData={{
                 stats: initialData.stats,
                 languages: initialData.languages,
+                activity: initialData.activity,
               }}
             />
             <Achievements achievements={initialData.achievements} />
@@ -540,6 +574,7 @@ export default function DashboardClient({ initialData, username }: DashboardClie
                 exportData={{
                   stats: initialData.stats,
                   languages: initialData.languages,
+                  activity: initialData.activity,
                 }}
                 badges={badgesA}
               />
@@ -562,6 +597,7 @@ export default function DashboardClient({ initialData, username }: DashboardClie
                 exportData={{
                   stats: secondUserData.stats,
                   languages: secondUserData.languages,
+                  activity: secondUserData.activity,
                 }}
                 badges={badgesB}
               />

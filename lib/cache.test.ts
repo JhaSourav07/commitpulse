@@ -1,5 +1,5 @@
 // lib/cache.test.ts
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 import { TTLCache } from './cache';
 
 describe('TTLCache', () => {
@@ -260,6 +260,46 @@ describe('TTLCache', () => {
     });
   });
 
+  describe('update()', () => {
+    it('updates the value without resetting TTL', () => {
+      vi.useFakeTimers();
+      const cache = new TTLCache<number>();
+      cache.set('count', 1, 5_000);
+
+      vi.advanceTimersByTime(3_000);
+      cache.update('count', 2);
+
+      // Another 3s: total 6s from set — would be expired if TTL had been reset
+      vi.advanceTimersByTime(3_000);
+      expect(cache.get('count')).toBeNull();
+
+      cache.destroy();
+    });
+
+    it('returns true when the key exists and is not expired', () => {
+      const cache = new TTLCache<number>();
+      cache.set('count', 1, 60_000);
+      expect(cache.update('count', 2)).toBe(true);
+      expect(cache.get('count')).toBe(2);
+      cache.destroy();
+    });
+
+    it('returns false for a missing key', () => {
+      const cache = new TTLCache<number>();
+      expect(cache.update('missing', 99)).toBe(false);
+      cache.destroy();
+    });
+
+    it('returns false for an expired key', () => {
+      vi.useFakeTimers();
+      const cache = new TTLCache<number>();
+      cache.set('count', 1, 1_000);
+      vi.advanceTimersByTime(2_000);
+      expect(cache.update('count', 2)).toBe(false);
+      cache.destroy();
+    });
+  });
+
   describe('overwriting keys resets TTL', () => {
     it('resets TTL when overwriting an existing key', () => {
       vi.useFakeTimers();
@@ -433,5 +473,103 @@ describe('TTLCache', () => {
 
       cache.destroy();
     });
+
+    it('verify TTLCache behavior for infinite TTL value (Variation 1)', () => {
+      const cache = new TTLCache<string>();
+
+      expect(() => {
+        cache.set('infinite-key', 'boundary-value', Infinity);
+      }).not.toThrow();
+
+      expect(cache.get('infinite-key')).toBe('boundary-value');
+
+      expect(cache.has('infinite-key')).toBe(true);
+
+      cache.destroy();
+    });
+  });
+});
+
+import { DistributedCache } from './cache';
+
+describe('DistributedCache', () => {
+  const originalEnv = { ...process.env };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.stubGlobal('fetch', vi.fn());
+    process.env = { ...originalEnv };
+  });
+
+  afterEach(() => {
+    process.env = originalEnv;
+    vi.restoreAllMocks();
+  });
+
+  it('acts as a local fallback cache when Redis env vars are missing', async () => {
+    delete process.env.KV_REST_API_URL;
+    delete process.env.KV_REST_API_TOKEN;
+    delete process.env.UPSTASH_REDIS_REST_URL;
+    delete process.env.UPSTASH_REDIS_REST_TOKEN;
+
+    const cache = new DistributedCache<string>();
+    await cache.set('mykey', 'myvalue', 60000);
+
+    expect(await cache.get('mykey')).toBe('myvalue');
+    expect(fetch).not.toHaveBeenCalled();
+    cache.destroy();
+  });
+
+  it('queries Redis REST API when env vars are defined', async () => {
+    process.env.KV_REST_API_URL = 'https://mock-redis.upstash.io';
+    process.env.KV_REST_API_TOKEN = 'mock-token';
+
+    vi.mocked(fetch).mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve({ result: JSON.stringify('redis-value') }),
+    } as Response);
+
+    const cache = new DistributedCache<string>();
+    const result = await cache.get('redis-key');
+
+    expect(result).toBe('redis-value');
+    expect(fetch).toHaveBeenCalledWith(
+      'https://mock-redis.upstash.io/',
+      expect.objectContaining({
+        method: 'POST',
+        headers: expect.objectContaining({
+          Authorization: 'Bearer mock-token',
+        }),
+        body: expect.stringContaining('"GET"'),
+      })
+    );
+    cache.destroy();
+  });
+
+  it('updates Redis REST API with calculated TTL in seconds on set', async () => {
+    process.env.KV_REST_API_URL = 'https://mock-redis.upstash.io';
+    process.env.KV_REST_API_TOKEN = 'mock-token';
+
+    vi.mocked(fetch).mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve({ result: 'OK' }),
+    } as Response);
+
+    const cache = new DistributedCache<string>();
+    await cache.set('redis-key', 'redis-val', 60000); // 60000ms = 60s
+
+    expect(fetch).toHaveBeenCalledWith(
+      'https://mock-redis.upstash.io/',
+      expect.objectContaining({
+        method: 'POST',
+        headers: expect.objectContaining({
+          Authorization: 'Bearer mock-token',
+        }),
+        body: expect.stringContaining('"EX"'),
+      })
+    );
+    cache.destroy();
   });
 });
