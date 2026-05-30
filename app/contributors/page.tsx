@@ -31,8 +31,13 @@ function getRateLimitResetMessage(res: Response): string {
 
 async function getContributors(): Promise<Contributor[]> {
   try {
+    const token = process.env.GITHUB_PAT || process.env.GITHUB_TOKEN;
     const res = await fetch('https://api.github.com/repos/JhaSourav07/commitpulse/contributors', {
       next: { revalidate: 3600 },
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        Accept: 'application/vnd.github+json',
+      },
     });
 
     if (!res.ok) {
