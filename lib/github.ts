@@ -127,6 +127,23 @@ type GitHubContributionResponse = {
   errors?: unknown;
 };
 
+type AdvancedMetricsResponse = {
+  data?: {
+    user: {
+      contributionsCollection: {
+        totalCommitContributions: number;
+        totalPullRequestReviewContributions: number;
+        totalIssueContributions: number;
+        totalRepositoryContributions: number;
+      };
+      repositoryDiscussions: {
+        totalCount: number;
+      };
+    } | null;
+  };
+  errors?: unknown;
+};
+
 function getGraphQLErrorMessage(errors: unknown): string {
   if (!Array.isArray(errors)) return 'GitHub GraphQL API returned an unknown error';
   const firstError = errors[0];
@@ -153,6 +170,7 @@ export const GITHUB_CACHE_TTL_MS = 5 * 60 * 1000;
 const contributionsCache = new TTLCache<ContributionCalendar>(1000);
 const profileCache = new TTLCache<GitHubUserProfile>(1000);
 const reposCache = new TTLCache<GitHubRepo[]>(500);
+const advancedMetricsCache = new TTLCache<import('@/types').AdvancedActivityMetrics>(1000);
 
 interface GitHubUserProfile {
   login: string;
@@ -169,7 +187,7 @@ interface GitHubUserProfile {
 }
 
 export function cacheKey(
-  kind: 'contributions' | 'profile' | 'repos',
+  kind: 'contributions' | 'profile' | 'repos' | 'advancedMetrics',
   username: string,
   year?: string
 ): string {
@@ -180,6 +198,7 @@ export function clearGitHubApiCacheForTests(): void {
   contributionsCache.clear();
   profileCache.clear();
   reposCache.clear();
+  advancedMetricsCache.clear();
 }
 
 function getGitHubToken(): string {
@@ -209,6 +228,71 @@ export function displayName(profile: GitHubUserProfile): string {
 /* ==========================================================================
  * DATA FETCHING
  * ========================================================================== */
+
+export async function fetchAdvancedActivityMetrics(
+  username: string,
+  options: FetchOptions = {}
+): Promise<import('@/types').AdvancedActivityMetrics> {
+  const key = cacheKey('advancedMetrics', username, options.from?.substring(0, 4));
+  if (!options.bypassCache) {
+    const cached = advancedMetricsCache.get(key);
+    if (cached) return cached;
+  }
+
+  const query = `
+    query($login: String!, $from: DateTime, $to: DateTime) {
+      user(login: $login) {
+        contributionsCollection(from: $from, to: $to) {
+          totalCommitContributions
+          totalPullRequestReviewContributions
+          totalIssueContributions
+          totalRepositoryContributions
+        }
+        repositoryDiscussions(orderBy: {field: CREATED_AT, direction: DESC}) {
+          totalCount
+        }
+      }
+    }
+  `;
+
+  const res = await fetchWithRetry(GITHUB_GRAPHQL_URL, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify({
+      query,
+      variables: { login: username, from: options.from, to: options.to },
+    }),
+    cache: 'no-store',
+    signal: options.signal,
+  });
+
+  if (!res.ok) {
+    throwIfRateLimited(res);
+    if (res.status === 401) throw new Error('GitHub PAT is invalid or missing');
+    throw new Error(`GitHub GraphQL API returned status ${res.status}`);
+  }
+
+  const data: AdvancedMetricsResponse = await res.json();
+  if (data.errors !== undefined) throw new Error(getGraphQLErrorMessage(data.errors));
+  if (!data.data?.user) throw new Error(`GitHub user "${username}" not found`);
+
+  const collection = data.data.user.contributionsCollection;
+
+  // Note: the discussions totalCount is lifetime unless filtered by date, but GraphQL API
+  // requires complex querying to filter discussions by date directly on the user object.
+  // For simplicity in this advanced metric, we use totalCount.
+  const metrics: import('@/types').AdvancedActivityMetrics = {
+    commits: collection.totalCommitContributions,
+    pullRequestReviews: collection.totalPullRequestReviewContributions,
+    issues: collection.totalIssueContributions,
+    discussions: data.data.user.repositoryDiscussions.totalCount,
+  };
+
+  // Cache for longer duration (e.g. 1 hour) as this is an expensive aggregated query
+  if (!options.bypassCache) advancedMetricsCache.set(key, metrics, GITHUB_CACHE_TTL_MS * 12);
+
+  return metrics;
+}
 
 export async function fetchGitHubContributions(
   username: string,
@@ -646,11 +730,13 @@ export function buildCommitClock(allDays: ContributionDay[]) {
 }
 
 export async function getFullDashboardData(username: string, options: FetchOptions = {}) {
-  const [profileResult, reposResult, calendarResult] = await Promise.allSettled([
-    fetchUserProfile(username, options),
-    fetchUserRepos(username, options),
-    fetchGitHubContributions(username, options),
-  ]);
+  const [profileResult, reposResult, calendarResult, advancedMetricsResult] =
+    await Promise.allSettled([
+      fetchUserProfile(username, options),
+      fetchUserRepos(username, options),
+      fetchGitHubContributions(username, options),
+      fetchAdvancedActivityMetrics(username, options),
+    ]);
 
   if (profileResult.status === 'rejected') {
     throw new Error(`[GitHub API] Failed to fetch profile for user "${username}"`, {
@@ -664,6 +750,11 @@ export async function getFullDashboardData(username: string, options: FetchOptio
     calendarResult.status === 'fulfilled'
       ? calendarResult.value
       : ({ totalContributions: 0, weeks: [] } as ContributionCalendar);
+
+  const advancedMetricsData =
+    advancedMetricsResult.status === 'fulfilled'
+      ? advancedMetricsResult.value
+      : { commits: 0, pullRequestReviews: 0, issues: 0, discussions: 0 };
 
   const streakStats = calculateStreak(calendarData);
   const totalStars = reposData.reduce((acc, repo) => acc + repo.stargazers_count, 0);
@@ -758,5 +849,6 @@ export async function getFullDashboardData(username: string, options: FetchOptio
     insights,
     achievements,
     commitClock,
+    advancedMetrics: advancedMetricsData,
   };
 }

@@ -1234,3 +1234,115 @@ function generateAutoThemeVersusSVG(
   </g>
 </svg>`;
 }
+
+export function generateRadarSVG(
+  impactScore: import('../../types').ImpactScore,
+  params: import('../../types').BadgeParams
+): string {
+  const bg = `#${sanitizeHexColor(params.bg, '0d1117')}`;
+
+  const accentStr = Array.isArray(params.accent) ? params.accent[0] : params.accent;
+  const accent = `#${sanitizeHexColor(accentStr, '00ffaa')}`;
+
+  const text = `#${sanitizeHexColor(params.text, 'ffffff')}`;
+  const borderAttr = params.border ? `stroke="#${params.border}" stroke-width="2"` : '';
+  const sanitizedFont = sanitizeFont(params.font);
+  const predefinedFont = getFontFromMap(sanitizedFont);
+  let googleFontsImport = '';
+  const statsFont =
+    sanitizedFont === 'monospace'
+      ? 'Fira Code, JetBrains Mono, monospace'
+      : 'Space Grotesk, sans-serif';
+  let fontFamilyText = `font-family: ${statsFont};`;
+  if (predefinedFont && sanitizedFont) {
+    const googleFontUrlPart = sanitizeGoogleFontUrl(predefinedFont);
+    googleFontsImport = googleFontUrlPart
+      ? `@import url('https://fonts.googleapis.com/css2?family=${googleFontUrlPart}&display=swap');`
+      : '';
+    fontFamilyText = `font-family: '${sanitizedFont}', ${statsFont};`;
+  }
+  const W = params.width ?? 600;
+  const H = params.height ?? 400;
+
+  // Normalized metrics for the radar chart (values from 0 to 1)
+  const maxMetric = Math.max(
+    impactScore.metrics.commits,
+    impactScore.metrics.pullRequestReviews,
+    impactScore.metrics.issues,
+    impactScore.metrics.discussions,
+    1 // Prevent division by zero
+  );
+
+  const normCommits = impactScore.metrics.commits / maxMetric;
+  const normReviews = impactScore.metrics.pullRequestReviews / maxMetric;
+  const normIssues = impactScore.metrics.issues / maxMetric;
+  const normDiscussions = impactScore.metrics.discussions / maxMetric;
+
+  // Calculate polygon points (4 axes: Top, Right, Bottom, Left)
+  const cx = W / 2;
+  const cy = H / 2;
+  const maxRadius = Math.min(W, H) / 3;
+
+  // Top (Commits), Right (Reviews), Bottom (Issues), Left (Discussions)
+  const points = [
+    [cx, cy - maxRadius * normCommits], // Top
+    [cx + maxRadius * normReviews, cy], // Right
+    [cx, cy + maxRadius * normIssues], // Bottom
+    [cx - maxRadius * normDiscussions, cy], // Left
+  ]
+    .map((p) => p.join(','))
+    .join(' ');
+
+  const bgPoints = [
+    [cx, cy - maxRadius],
+    [cx + maxRadius, cy],
+    [cx, cy + maxRadius],
+    [cx - maxRadius, cy],
+  ]
+    .map((p) => p.join(','))
+    .join(' ');
+
+  return `
+<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" fill="none">
+  <defs>
+    <style>
+      ${googleFontsImport}
+      .cp-text-fill { fill: ${text}; }
+      .cp-bg-fill { fill: ${bg}; }
+      .cp-accent-fill { fill: ${accent}; }
+      .cp-accent-stroke { stroke: ${accent}; }
+      text { ${fontFamilyText} }
+      
+      @keyframes radar-pulse {
+        0% { opacity: 0.2; transform: scale(0.95); transform-origin: center; }
+        50% { opacity: 0.6; transform: scale(1.05); transform-origin: center; }
+        100% { opacity: 0.2; transform: scale(0.95); transform-origin: center; }
+      }
+      .radar-polygon { animation: radar-pulse ${params.speed} infinite ease-in-out; }
+    </style>
+  </defs>
+
+  <rect width="100%" height="100%" class="cp-bg-fill" rx="${params.radius ?? 8}" ${borderAttr} />
+  
+  <!-- Title -->
+  ${!params.hide_title ? `<text x="24" y="32" class="cp-text-fill" font-size="16" font-weight="600">${escapeXML(params.user)}'s Impact Radar</text>` : ''}
+  
+  <!-- Radar Chart Background -->
+  <polygon points="${bgPoints}" fill="none" class="cp-accent-stroke" stroke-width="1" stroke-dasharray="4 4" opacity="0.3" />
+  <line x1="${cx}" y1="${cy - maxRadius}" x2="${cx}" y2="${cy + maxRadius}" class="cp-accent-stroke" stroke-width="1" opacity="0.2" />
+  <line x1="${cx - maxRadius}" y1="${cy}" x2="${cx + maxRadius}" y2="${cy}" class="cp-accent-stroke" stroke-width="1" opacity="0.2" />
+  
+  <!-- Radar Chart Data -->
+  <polygon points="${points}" class="cp-accent-fill radar-polygon" opacity="0.4" />
+  <polygon points="${points}" fill="none" class="cp-accent-stroke" stroke-width="2" />
+  
+  <!-- Axis Labels -->
+  <text x="${cx}" y="${cy - maxRadius - 10}" class="cp-text-fill" font-size="12" text-anchor="middle">Commits (${impactScore.metrics.commits})</text>
+  <text x="${cx + maxRadius + 10}" y="${cy + 4}" class="cp-text-fill" font-size="12" text-anchor="start">Reviews (${impactScore.metrics.pullRequestReviews})</text>
+  <text x="${cx}" y="${cy + maxRadius + 20}" class="cp-text-fill" font-size="12" text-anchor="middle">Issues (${impactScore.metrics.issues})</text>
+  <text x="${cx - maxRadius - 10}" y="${cy + 4}" class="cp-text-fill" font-size="12" text-anchor="end">Discussions (${impactScore.metrics.discussions})</text>
+
+  <!-- Impact Category -->
+  <text x="24" y="${H - 24}" class="cp-text-fill" font-size="14" opacity="0.8">Score: <tspan class="cp-accent-fill" font-weight="bold">${impactScore.score}</tspan> | Category: <tspan class="cp-accent-fill" font-weight="bold">${impactScore.category}</tspan></text>
+</svg>`;
+}

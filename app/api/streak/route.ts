@@ -1,14 +1,20 @@
 // app/api/streak/route.ts
 
 import { NextResponse } from 'next/server';
-import { fetchGitHubContributions, getOrgDashboardData } from '@/lib/github';
+import {
+  fetchGitHubContributions,
+  getOrgDashboardData,
+  fetchAdvancedActivityMetrics,
+} from '@/lib/github';
 import { calculateStreak, calculateMonthlyStats } from '@/lib/calculate';
 import {
   generateNotFoundSVG,
   generateSVG,
   generateMonthlySVG,
   generateVersusSVG,
+  generateRadarSVG,
 } from '@/lib/svg/generator';
+import { calculateImpactScore } from '@/lib/calculate';
 import { getSecondsUntilUTCMidnight, getSecondsUntilMidnightInTimezone } from '@/utils/time';
 import type { BadgeParams } from '@/types';
 import { themes } from '@/lib/svg/themes';
@@ -166,6 +172,15 @@ export async function GET(request: Request) {
       }
     }
 
+    let advancedMetrics;
+    if (view === 'radar') {
+      advancedMetrics = await fetchAdvancedActivityMetrics(user, {
+        bypassCache: refresh,
+        from,
+        to,
+      });
+    }
+
     let svg = '';
     if (view === 'monthly') {
       const stats = calculateMonthlyStats(calendar, timezone);
@@ -174,6 +189,9 @@ export async function GET(request: Request) {
       const stats1 = calculateStreak(calendar, timezone, undefined, grace);
       const stats2 = calculateStreak(versusCalendar, timezone, undefined, grace);
       svg = generateVersusSVG(stats1, stats2, params, calendar, versusCalendar);
+    } else if (view === 'radar' && advancedMetrics) {
+      const impactScore = calculateImpactScore(advancedMetrics);
+      svg = generateRadarSVG(impactScore, params);
     } else {
       const stats = calculateStreak(calendar, timezone, undefined, grace);
       svg = generateSVG(stats, params, calendar);
