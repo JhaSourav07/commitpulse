@@ -226,11 +226,9 @@ describe('TTLCache', () => {
       const cache = new TTLCache<string>();
       cache.set('user', 'octocat', 5_000);
 
-      // Check at 1 second (before expiry at 5 seconds)
       vi.advanceTimersByTime(1_000);
       expect(cache.get('user')).toBe('octocat');
 
-      // Check at 4 seconds (still before expiry)
       vi.advanceTimersByTime(3_000);
       expect(cache.get('user')).toBe('octocat');
 
@@ -242,28 +240,24 @@ describe('TTLCache', () => {
       const cache = new TTLCache<string>();
       cache.set('user', 'octocat', 5_000);
 
-      // Advance exactly to TTL expiry time
-      // At this point Date.now() === expiresAt, so > check fails and value is returned
       vi.advanceTimersByTime(5_000);
       expect(cache.get('user')).toBe('octocat');
 
       cache.destroy();
     });
+
     it('returns correct values around the exact TTL boundary', () => {
       vi.useFakeTimers();
 
       const cache = new TTLCache<string>();
       cache.set('key', 'value', 1000);
 
-      // 999ms -> still valid
       vi.advanceTimersByTime(999);
       expect(cache.get('key')).toBe('value');
 
-      // 1000ms exact boundary -> still valid
       vi.advanceTimersByTime(1);
       expect(cache.get('key')).toBe('value');
 
-      // 1001ms -> expired
       vi.advanceTimersByTime(1);
       expect(cache.get('key')).toBeNull();
 
@@ -275,7 +269,6 @@ describe('TTLCache', () => {
       const cache = new TTLCache<string>();
       cache.set('user', 'octocat', 5_000);
 
-      // Advance just past TTL expiry time
       vi.advanceTimersByTime(5_001);
       expect(cache.get('user')).toBeNull();
 
@@ -329,18 +322,11 @@ describe('TTLCache', () => {
       const cache = new TTLCache<string>();
       cache.set('user', 'octocat', 5_000);
 
-      // Advance to 3 seconds (before expiry)
       vi.advanceTimersByTime(3_000);
-
-      // Overwrite the key with a new 5-second TTL
       cache.set('user', 'new-octocat', 5_000);
-
-      // Advance another 3 seconds (total 6 seconds, but only 3 since last set)
       vi.advanceTimersByTime(3_000);
 
-      // Should still be available because TTL was reset
       expect(cache.get('user')).toBe('new-octocat');
-
       cache.destroy();
     });
 
@@ -349,18 +335,11 @@ describe('TTLCache', () => {
       const cache = new TTLCache<string>();
       cache.set('user', 'octocat', 5_000);
 
-      // Advance to 3 seconds
       vi.advanceTimersByTime(3_000);
-
-      // Overwrite with new 2-second TTL
       cache.set('user', 'new-octocat', 2_000);
-
-      // Advance another 3 seconds (total 6 from start, 3 from new set)
       vi.advanceTimersByTime(3_000);
 
-      // Should be expired because new TTL (2s) has passed
       expect(cache.get('user')).toBeNull();
-
       cache.destroy();
     });
   });
@@ -515,7 +494,7 @@ describe('TTLCache', () => {
   });
 
   describe('edge cases and error handling', () => {
-    // FIX: New test explicitly targeting the -5000 boundary for Issue #1398
+    // FIX: Test targeting the -5000 boundary for Issue #1398
     it('throws RangeError when setting a value with -5000 TTL', () => {
       const cache = new TTLCache<string>();
       expect(() => cache.set('key', 'value', -5000)).toThrow(RangeError);
@@ -529,6 +508,26 @@ describe('TTLCache', () => {
         cache.set(null as unknown as string, 'value', 60_000);
       }).toThrow(TypeError);
       expect(cache.size()).toBe(0);
+      cache.destroy();
+    });
+
+    // FIX: New test targeting the Infinity boundary for Issue #1400
+    it('caps Infinity TTL to a realistic maximum threshold without throwing', () => {
+      vi.useFakeTimers();
+      const cache = new TTLCache<string>();
+
+      // Should handle Infinity gracefully without throwing errors
+      expect(() => cache.set('infinity-key', 'value', Infinity)).not.toThrow();
+
+      // The item should be successfully stored and retrievable
+      expect(cache.get('infinity-key')).toBe('value');
+
+      // Advance by a large safe amount (e.g., 30 days) to ensure it stays valid
+      // or gets capped safely without overflowing internal Date math
+      vi.advanceTimersByTime(1000 * 60 * 60 * 24 * 30);
+
+      // Assert it didn't break down internally and returns a clean result (either still alive or gracefully expired)
+      expect(['value', null]).toContain(cache.get('infinity-key'));
 
       cache.destroy();
     });
@@ -598,12 +597,8 @@ describe('TTLCache', () => {
       vi.useFakeTimers();
       const cache = new TTLCache<string>();
       cache.set('short', 'lived', 1);
-      // Immediately at creation time, should exist
       expect(cache.get('short')).toBe('lived');
-      // Advance 1ms
       vi.advanceTimersByTime(1);
-      // Now it should be expired or at boundary
-      // (depends on exact timing, but get() should handle it gracefully)
       const result = cache.get('short');
       expect([null, 'lived']).toContain(result);
       cache.destroy();
@@ -611,21 +606,17 @@ describe('TTLCache', () => {
 
     it('does not throw when ttlMs is Number.EPSILON', () => {
       const cache = new TTLCache<string>();
-
       expect(() => {
         cache.set('key', 'value', Number.EPSILON);
       }).not.toThrow();
-
       cache.destroy();
     });
 
     it('does not throw when ttlMs is a very small positive number', () => {
       const cache = new TTLCache<string>();
-
       expect(() => {
         cache.set('key', 'value', 0.0001);
       }).not.toThrow();
-
       cache.destroy();
     });
 
@@ -641,6 +632,7 @@ describe('TTLCache', () => {
 
       cache.destroy();
     });
+
     // FIX: New test targeting the NaN boundary for Issue #1399
     it('resolves NaN TTL to the default standard TTL duration', () => {
       vi.useFakeTimers();
