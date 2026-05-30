@@ -15,9 +15,11 @@ import { rateLimit } from './lib/rate-limit';
  * Limit: 60 requests per minute per IP.
  */
 export async function middleware(request: NextRequest) {
-  // Use Vercel's ip property if available, fallback to headers, then localhost
+  // Use Vercel's verified ip property first, then the rightmost proxy-appended
+  // X-Forwarded-For entry (client cannot spoof), then fallback to localhost
   const ip =
-    request.headers.get('x-forwarded-for')?.split(',')[0] ??
+    request.ip ??
+    request.headers.get('x-forwarded-for')?.split(',').at(-1)?.trim() ??
     request.headers.get('x-real-ip') ??
     '127.0.0.1';
 
