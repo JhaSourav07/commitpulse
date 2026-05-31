@@ -58,6 +58,24 @@ function dimensionParam(name: string, min: number, max: number) {
     .transform(toDimensionValue);
 }
 
+function timezoneParam() {
+  return z
+    .string()
+    .optional()
+    .refine(
+      (val) => {
+        if (!val) return true;
+        try {
+          new Intl.DateTimeFormat(undefined, { timeZone: val });
+          return true;
+        } catch {
+          return false;
+        }
+      },
+      { message: 'Invalid timezone. Must be a valid IANA timezone (e.g. America/New_York).' }
+    );
+}
+
 const GITHUB_USERNAME_REGEX = /^[a-zA-Z0-9](?:[a-zA-Z0-9]|-(?=[a-zA-Z0-9]))*$/;
 
 const baseStreakParamsSchema = z.object({
@@ -179,21 +197,7 @@ const baseStreakParamsSchema = z.object({
       },
       { message: 'Invalid "date" format. Use ISO 8601.' }
     ),
-  tz: z
-    .string()
-    .optional()
-    .refine(
-      (val) => {
-        if (!val) return true;
-        try {
-          new Intl.DateTimeFormat(undefined, { timeZone: val });
-          return true;
-        } catch {
-          return false;
-        }
-      },
-      { message: 'Invalid timezone. Must be a valid IANA timezone (e.g. America/New_York).' }
-    ),
+  tz: timezoneParam(),
   refresh: z.string().optional().transform(toRefreshFlag),
   hide_title: z.string().optional().transform(toBooleanFlag),
   hide_background: z.string().optional().transform(toBooleanFlag),
@@ -332,7 +336,7 @@ export const statsParamsSchema = z.object({
       message: 'Invalid GitHub username',
     }),
   refresh: z.string().optional().transform(toRefreshFlag),
-  tz: z.string().optional(),
+  tz: timezoneParam(),
 });
 
 export const wrappedParamsSchema = z.object({
