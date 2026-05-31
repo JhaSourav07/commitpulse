@@ -1,9 +1,10 @@
 import Link from 'next/link';
-import Image from 'next/image';
 import { Globe, Sparkles, Users, GitPullRequest, ArrowRight } from 'lucide-react';
 
 import BrandParticles from '@/components/BrandParticles';
 import { Footer } from '@/app/components/Footer';
+import ContributorsSearch from './ContributorsSearch';
+import Leaderboard from '@/components/Leaderboard';
 
 interface Contributor {
   id: number;
@@ -13,14 +14,42 @@ interface Contributor {
   html_url: string;
 }
 
+function getRateLimitResetMessage(res: Response): string {
+  const reset = res.headers.get('x-ratelimit-reset');
+
+  if (!reset) {
+    return '';
+  }
+  const resetTimestamp = parseInt(reset, 10);
+
+  if (!Number.isFinite(resetTimestamp)) {
+    return '';
+  }
+  const resetAt = new Date(resetTimestamp * 1000).toISOString();
+  return ` Please try again after ${resetAt}.`;
+}
+
 async function getContributors(): Promise<Contributor[]> {
   try {
+    const token = process.env.GITHUB_PAT || process.env.GITHUB_TOKEN;
     const res = await fetch('https://api.github.com/repos/JhaSourav07/commitpulse/contributors', {
       next: { revalidate: 3600 },
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        Accept: 'application/vnd.github+json',
+      },
     });
 
     if (!res.ok) {
-      return [];
+      const remaining = res.headers.get('x-ratelimit-remaining');
+
+      if ((res.status === 403 && remaining === '0') || res.status === 429) {
+        throw new Error(
+          `GitHub API rate limit exceeded.${getRateLimitResetMessage(res)} Please try again later.`
+        );
+      }
+
+      throw new Error('Failed to fetch contributors');
     }
 
     return res.json();
@@ -83,6 +112,12 @@ export default async function ContributorsPage() {
             A collective of open-source contributors shaping the future of GitHub visualization and
             developer storytelling through elegant engineering and collaboration.
           </p>
+          <a
+            href="#contributors"
+            className="mt-8 inline-flex items-center gap-2 rounded-full bg-black px-6 py-3 text-white font-medium hover:scale-105 transition-all duration-300"
+          >
+            Explore Contributors →
+          </a>
         </section>
 
         {/* STATS */}
@@ -143,42 +178,11 @@ export default async function ContributorsPage() {
             </p>
           </div>
 
-          <div className="rounded-3xl border border-black/10 bg-white/40 dark:border-white/10 dark:bg-white/[0.04] shadow-[0_8px_30px_rgba(0,0,0,0.04)] dark:shadow-none dark:border-white/10 dark:bg-white/[0.04] p-8 backdrop-blur-xl">
-            <div className="space-y-6">
-              {topContributors.map((contributor, index) => (
-                <div key={contributor.id}>
-                  <div className="mb-2 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <span className="text-sm font-semibold text-zinc-500">#{index + 1}</span>
-
-                      <span className="font-medium text-black dark:text-white">
-                        {contributor.login}
-                      </span>
-                    </div>
-
-                    <span className="text-sm text-zinc-600 dark:text-zinc-400">
-                      {contributor.contributions} contributions
-                    </span>
-                  </div>
-
-                  <div className="h-3 overflow-hidden rounded-full bg-zinc-200 dark:bg-white/5">
-                    <div
-                      className="h-full rounded-full bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500"
-                      style={{
-                        width: `${
-                          (contributor.contributions / topContributors[0].contributions) * 100
-                        }%`,
-                      }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+          <Leaderboard contributors={topContributors} />
         </section>
 
         {/* CONTRIBUTORS GRID */}
-        <section className="mx-auto mt-32 max-w-7xl px-6">
+        <section className="mx-auto mt-32 max-w-7xl px-6" id="contributors">
           <div className="mb-16 text-center">
             <h2 className="text-4xl font-black text-black dark:text-white md:text-5xl">
               Community Contributors
@@ -189,49 +193,7 @@ export default async function ContributorsPage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {contributors.map((contributor) => (
-              <Link
-                key={contributor.id}
-                href={contributor.html_url}
-                target="_blank"
-                className="group relative overflow-hidden rounded-3xl border border-black/10 bg-white/40 dark:border-white/10 dark:bg-white/[0.04] p-7 backdrop-blur-xl shadow-[0_8px_30px_rgba(0,0,0,0.04)] dark:shadow-none transition-all duration-500 hover:-translate-y-3 hover:border-cyan-400/30 hover:bg-white/60 dark:hover:bg-white/80 dark:hover:bg-white/[0.06]"
-              >
-                {/* GLOW */}
-                <div className="absolute inset-0 opacity-0 transition-opacity duration-500 group-hover:opacity-100">
-                  <div className="absolute -top-24 right-0 h-48 w-48 rounded-full bg-cyan-500/20 blur-3xl" />
-                </div>
-
-                <div className="relative z-10 flex flex-col items-center text-center">
-                  {/* AVATAR */}
-                  <div className="relative">
-                    <div className="absolute inset-0 rounded-full bg-cyan-400/20 blur-2xl opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
-
-                    <Image
-                      src={contributor.avatar_url}
-                      alt={contributor.login}
-                      width={110}
-                      height={110}
-                      className="relative rounded-full border-4 border-white/10 transition-all duration-500 group-hover:border-cyan-400/40"
-                    />
-                  </div>
-
-                  <h3 className="mt-6 text-2xl font-bold text-black dark:text-white">
-                    {contributor.login}
-                  </h3>
-
-                  <p className="mt-2 text-zinc-600 dark:text-zinc-400">
-                    {contributor.contributions} contributions
-                  </p>
-
-                  <div className="mt-6 inline-flex items-center gap-2 rounded-xl border border-black/10 bg-black/[0.03] dark:border-white/10 dark:bg-white/5 px-5 py-3 text-sm font-medium text-zinc-700 dark:text-zinc-300 transition-all duration-300 group-hover:border-cyan-400/30 group-hover:bg-cyan-400/10 group-hover:text-white">
-                    <Globe className="h-4 w-4" />
-                    View Profile
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
+          <ContributorsSearch contributors={contributors} />
         </section>
 
         {/* CTA */}
@@ -263,7 +225,7 @@ export default async function ContributorsPage() {
                 <Link
                   href="https://github.com/JhaSourav07/commitpulse"
                   target="_blank"
-                  className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-500 px-8 py-4 font-semibold text-white transition-all duration-300 hover:scale-105"
+                  className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-500 px-8 py-4 font-semibold text-white transition-all duration-300 hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-zinc-900"
                 >
                   <Globe className="h-5 w-5" />
                   View Repository
@@ -272,7 +234,7 @@ export default async function ContributorsPage() {
                 <Link
                   href="https://github.com/JhaSourav07/commitpulse/issues"
                   target="_blank"
-                  className="inline-flex items-center gap-2 rounded-2xl border border-black/10 bg-white/60 dark:border-white/10 dark:bg-white/5 px-8 py-4 font-semibold text-zinc-700 dark:text-zinc-300 transition-all duration-300 hover:border-cyan-400/30 hover:bg-cyan-400/10 hover:text-white"
+                  className="inline-flex items-center gap-2 rounded-2xl border border-black/15 bg-white/90 dark:border-white/15 dark:bg-white/10 px-8 py-4 font-semibold text-zinc-700 dark:text-zinc-300 transition-all duration-300 hover:border-cyan-500 hover:bg-cyan-50 dark:hover:border-cyan-400 dark:hover:bg-cyan-950/30 hover:text-zinc-900 dark:hover:text-cyan-100 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-zinc-900"
                 >
                   Start Contributing
                   <ArrowRight className="h-5 w-5" />

@@ -29,11 +29,9 @@ export class TTLCache<T> {
     this.maxSize = maxSize === undefined ? undefined : Math.max(1, maxSize);
     const interval = Math.max(1000, cleanupIntervalMs);
 
-    // Only run cleanup if we are in an environment that supports setInterval
     if (typeof setInterval !== 'undefined') {
       const timer = setInterval(() => this.sweep(), interval);
 
-      // Unref the timer so it doesn't prevent Node.js from exiting during tests or teardown
       const nodeTimer = timer as unknown as { unref?: () => void };
       if (nodeTimer && typeof nodeTimer.unref === 'function') {
         nodeTimer.unref();
@@ -76,6 +74,45 @@ export class TTLCache<T> {
   }
 
   /**
+   * Checks whether a key exists in the cache and has not expired.
+   *
+   * Unlike `get()`, this does not return the value.
+   *
+   * @param key - Cache key.
+   * @returns `true` if the key exists and is still valid, `false` otherwise.
+   *
+   * @example
+   * if (cache.has("user:1")) {
+   *   // safe to call get()
+   * }
+   */
+  has(key: string): boolean {
+    const hit = this.store.get(key);
+    if (!hit) return false;
+
+    if (Date.now() > hit.expiresAt) {
+      this.store.delete(key);
+      return false;
+    }
+
+    return true;
+  }
+  /**
+   * Removes a single entry from the cache.
+   *
+   * Does nothing if the key does not exist.
+   *
+   * @param key - Cache key to remove.
+   * @returns `true` if the key existed and was deleted, `false` otherwise.
+   *
+   * @example
+   * cache.delete("user:1");
+   */
+  delete(key: string): boolean {
+    return this.store.delete(key);
+  }
+
+  /**
    * Stores a value in the cache with a TTL.
    *
    * If the cache reaches its maximum capacity, the oldest item
@@ -87,9 +124,24 @@ export class TTLCache<T> {
    * @returns void
    *
    * @example
-   * cache.set("user:1",userData,5000);
+   * cache.set("user:1", userData, 5000);
    */
+  /**
+   * Updates the value of an existing, non-expired cache entry without resetting its TTL.
+   *
+   * @param key - Cache key.
+   * @param value - New value to store.
+   * @returns `true` if the entry existed and was updated, `false` if missing or expired.
+   */
+  update(key: string, value: T): boolean {
+    const hit = this.store.get(key);
+    if (!hit || Date.now() > hit.expiresAt) return false;
+    hit.value = value;
+    return true;
+  }
+
   set(key: string, value: T, ttlMs: number): void {
+    if (key === '') throw new Error('Cache key cannot be empty');
     if (ttlMs <= 0) throw new RangeError(`ttlMs must be positive, got ${ttlMs}`);
 
     const maxSize = this.maxSize;
@@ -103,7 +155,6 @@ export class TTLCache<T> {
       }
     }
 
-    // Fix: delete first so updated keys move to end (newest position)
     this.store.delete(key);
     this.store.set(key, { value, expiresAt: Date.now() + ttlMs });
   }
@@ -120,16 +171,187 @@ export class TTLCache<T> {
     this.store.clear();
   }
 
-  /**
-   * Stops the cleanup interval and clears the cache.
-   *
-   * @returns void
-   */
+  size(): number {
+    this.sweep();
+    return this.store.size;
+  }
+
   destroy(): void {
     if (this.cleanupInterval) {
       clearInterval(this.cleanupInterval);
       this.cleanupInterval = null;
     }
     this.clear();
+  }
+}
+
+/**
+ * A hybrid distributed cache client that uses Upstash Redis / Vercel KV REST API if configured,
+ * and falls back to the in-memory TTLCache otherwise.
+ *
+ * This enables shared caching across serverless instances and Edge regions.
+ */
+export class DistributedCache<T> {
+  private localCache: TTLCache<T>;
+  private useRedis: boolean;
+  private redisUrl: string = '';
+  private redisToken: string = '';
+
+  constructor(maxSize?: number, cleanupIntervalMs?: number) {
+    this.localCache = new TTLCache<T>(maxSize, cleanupIntervalMs);
+    const url = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
+    const token = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
+    this.useRedis = Boolean(url && token);
+    if (this.useRedis) {
+      this.redisUrl = url!.replace(/\/$/, ''); // Remove trailing slash
+      this.redisToken = token!;
+    }
+  }
+
+  async get(key: string): Promise<T | null> {
+    if (!this.useRedis) {
+      return this.localCache.get(key);
+    }
+
+    // Check local L1 cache first for fast in-instance lookups
+    const localHit = this.localCache.get(key);
+    if (localHit !== null) {
+      return localHit;
+    }
+
+    try {
+      const res = await fetch(`${this.redisUrl}/`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${this.redisToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(['GET', key]),
+      });
+
+      if (!res.ok) {
+        throw new Error(`Redis HTTP error: ${res.status}`);
+      }
+
+      const data = await res.json();
+      if (!data || data.result === undefined || data.result === null) {
+        return null;
+      }
+
+      const parsed = JSON.parse(data.result) as T;
+      // Backfill local cache so subsequent requests in this instance are instant
+      this.localCache.set(key, parsed, 5 * 60 * 1000);
+      return parsed;
+    } catch (err) {
+      console.error(`[DistributedCache] GET failed for key "${key}":`, err);
+      return this.localCache.get(key);
+    }
+  }
+
+  async set(key: string, value: T, ttlMs: number): Promise<void> {
+    // Always update local cache
+    this.localCache.set(key, value, ttlMs);
+
+    if (!this.useRedis) {
+      return;
+    }
+
+    try {
+      const ttlSec = Math.max(1, Math.ceil(ttlMs / 1000));
+      const res = await fetch(`${this.redisUrl}/`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${this.redisToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(['SET', key, JSON.stringify(value), 'EX', ttlSec]),
+      });
+
+      if (!res.ok) {
+        throw new Error(`Redis HTTP error: ${res.status}`);
+      }
+    } catch (err) {
+      console.error(`[DistributedCache] SET failed for key "${key}":`, err);
+    }
+  }
+
+  async delete(key: string): Promise<boolean> {
+    const localDeleted = this.localCache.delete(key);
+    if (!this.useRedis) {
+      return localDeleted;
+    }
+
+    try {
+      const res = await fetch(`${this.redisUrl}/`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${this.redisToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(['DEL', key]),
+      });
+
+      if (!res.ok) {
+        throw new Error(`Redis HTTP error: ${res.status}`);
+      }
+
+      const data = await res.json();
+      return Boolean(data.result);
+    } catch (err) {
+      console.error(`[DistributedCache] DELETE failed for key "${key}":`, err);
+      return localDeleted;
+    }
+  }
+
+  async has(key: string): Promise<boolean> {
+    if (this.localCache.has(key)) {
+      return true;
+    }
+    if (!this.useRedis) {
+      return false;
+    }
+
+    try {
+      const value = await this.get(key);
+      return value !== null;
+    } catch {
+      return false;
+    }
+  }
+
+  async update(key: string, value: T): Promise<boolean> {
+    const updated = this.localCache.update(key, value);
+    if (!updated) return false;
+
+    if (!this.useRedis) {
+      return true;
+    }
+
+    try {
+      const res = await fetch(`${this.redisUrl}/`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${this.redisToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(['SET', key, JSON.stringify(value), 'KEEPTTL']),
+      });
+
+      if (!res.ok) {
+        throw new Error(`Redis HTTP error: ${res.status}`);
+      }
+      return true;
+    } catch (err) {
+      console.error(`[DistributedCache] UPDATE failed for key "${key}":`, err);
+      return true;
+    }
+  }
+
+  clear(): void {
+    this.localCache.clear();
+  }
+
+  destroy(): void {
+    this.localCache.destroy();
   }
 }

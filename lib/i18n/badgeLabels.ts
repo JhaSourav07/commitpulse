@@ -14,6 +14,13 @@ export const labels: Record<string, BadgeLabels> = {
     COMMITS_THIS_MONTH: 'COMMITS THIS MONTH',
     VS_LAST_MONTH: 'vs last month',
   },
+  zh: {
+    CURRENT_STREAK: '当前连续记录',
+    ANNUAL_SYNC_TOTAL: '年度总计',
+    PEAK_STREAK: '最长连续记录',
+    COMMITS_THIS_MONTH: '本月提交次数',
+    VS_LAST_MONTH: '较上个月',
+  },
   es: {
     CURRENT_STREAK: 'RACHA_ACTUAL',
     ANNUAL_SYNC_TOTAL: 'TOTAL_ANUAL',
@@ -49,7 +56,26 @@ export const labels: Record<string, BadgeLabels> = {
     COMMITS_THIS_MONTH: 'COMMITS CE MOIS',
     VS_LAST_MONTH: 'vs mois dernier',
   },
+  ja: {
+    CURRENT_STREAK: '現在_ストリーク',
+    ANNUAL_SYNC_TOTAL: '年間_合計',
+    PEAK_STREAK: '最高_ストリーク',
+    COMMITS_THIS_MONTH: '今月のコミット数',
+    VS_LAST_MONTH: '先月比',
+  },
+  de: {
+    CURRENT_STREAK: 'AKTUELLE_SERIE',
+    ANNUAL_SYNC_TOTAL: 'JAHRES_GESAMT',
+    PEAK_STREAK: 'SPITZEN_SERIE',
+    COMMITS_THIS_MONTH: 'COMMITS DIESEN MONAT',
+    VS_LAST_MONTH: 'im Vgl. zum Vormonat',
+  },
 };
+
+export const supportedLanguages = Object.keys(labels) as [
+  keyof typeof labels,
+  ...(keyof typeof labels)[],
+];
 
 export function getLabels(lang: string = 'en'): BadgeLabels {
   return labels[lang.toLowerCase()] || labels['en'];
