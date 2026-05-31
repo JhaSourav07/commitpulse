@@ -679,6 +679,20 @@ describe('calculateStreak', () => {
     expect(resultTuesday.longestStreak).toBe(2);
   });
 
+  it('verify streak formulas for single day contribution timeline (Variation 1)', () => {
+    // 1 commit on day 11 (middle of week 2), surrounded by fully empty weeks on both sides
+    const calendar = buildCalendar([
+      0, 0, 0, 0, 0, 0, 0, // Week 1: empty
+      0, 0, 0, 1, 0, 0, 0, // Week 2: single commit on day 4
+      0, 0, 0, 0, 0, 0, 0, // Week 3: empty
+    ]);
+    const result = calculateStreak(calendar);
+
+    expect(result.currentStreak).toBe(0);
+    expect(result.longestStreak).toBe(1);
+    expect(result.totalContributions).toBe(1);
+  });
+
   it('verify streak formulas for different starting days of the week timeline (Variation 2)', () => {
     // Week 1: 0, 0, 1, 1, 1, 1, 1 (Starts on Wednesday, 5 days)
     // Week 2: 1, 1, 1, 1, 1, 1, 1 (7 days)
