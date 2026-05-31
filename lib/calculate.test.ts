@@ -682,9 +682,27 @@ describe('calculateStreak', () => {
   it('verify streak formulas for single day contribution timeline (Variation 1)', () => {
     // 1 commit on day 11 (middle of week 2), surrounded by fully empty weeks on both sides
     const calendar = buildCalendar([
-      0, 0, 0, 0, 0, 0, 0, // Week 1: empty
-      0, 0, 0, 1, 0, 0, 0, // Week 2: single commit on day 4
-      0, 0, 0, 0, 0, 0, 0, // Week 3: empty
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0, // Week 1: empty
+      0,
+      0,
+      0,
+      1,
+      0,
+      0,
+      0, // Week 2: single commit on day 4
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0, // Week 3: empty
     ]);
     const result = calculateStreak(calendar);
 
