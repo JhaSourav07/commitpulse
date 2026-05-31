@@ -350,7 +350,7 @@ describe('fetchGitHubContributions', () => {
 
       const promise = fetchGitHubContributions('octocat');
       await vi.advanceTimersByTimeAsync(500);
-      const result = await promise;
+      const { calendar: result } = await promise;
 
       expect(fetch).toHaveBeenCalledTimes(2);
       expect(result.totalContributions).toBe(mockCalendar.totalContributions);

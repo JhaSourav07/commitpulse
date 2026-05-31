@@ -9,6 +9,7 @@ import {
   generateSVG,
   generateMonthlySVG,
   generateVersusSVG,
+  generateHeatmapSVG,
 } from '@/lib/svg/generator';
 import { getSecondsUntilUTCMidnight, getSecondsUntilMidnightInTimezone } from '@/utils/time';
 import type { BadgeParams } from '@/types';
@@ -17,14 +18,6 @@ import { streakParamsSchema } from '@/lib/validations';
 
 const SVG_CSP_HEADER =
   "default-src 'none'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://fonts.gstatic.com;";
-
-// 1. Define a custom Error class for Validation
-class ValidationError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = 'ValidationError';
-  }
-}
 
 function escapeSVGText(value: string): string {
   return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -205,6 +198,9 @@ export async function GET(request: Request) {
         getMonthlyReferenceDate(year, timezone)
       );
       svg = generateMonthlySVG(stats, params);
+    } else if (view === 'heatmap') {
+      const stats = calculateStreak(calendar, timezone, undefined, grace);
+      svg = generateHeatmapSVG(stats, params, calendar);
     } else if (versus && versusCalendar) {
       const stats1 = calculateStreak(calendar, timezone, undefined, grace);
       const stats2 = calculateStreak(versusCalendar, timezone, undefined, grace);

@@ -142,6 +142,9 @@ export interface BadgeParams {
   /** Duration of the radar scan line animation (e.g. '4s', '8s', '12s'). Defaults to '8s'. */
   speed: SpeedString;
 
+  /** Animation style for the isometric towers on load: 'rise' (default), 'fade', 'slide', or 'none'. */
+  entrance?: 'rise' | 'fade' | 'slide' | 'none';
+
   /** Tower height scaling algorithm. 'linear' scales proportionally; 'log' uses logarithmic scale for high contributors. Defaults to 'linear'. */
   scale: Scale;
 
@@ -169,8 +172,8 @@ export interface BadgeParams {
   /** Language/locale code for stat labels (e.g. 'en', 'fr', 'ja'). Defaults to 'en'. */
   lang?: string;
 
-  /** Badge layout variant. 'default' shows the isometric monolith; 'monthly' shows month-over-month stats. */
-  view?: 'default' | 'monthly';
+  /** Badge layout variant. 'default' shows the isometric monolith; 'monthly' shows month-over-month stats; 'heatmap' shows a flat 2D contribution heatmap. */
+  view?: 'default' | 'monthly' | 'heatmap';
 
   /** Format for the monthly delta indicator. 'percent' shows %, 'absolute' shows raw count, 'both' shows both. */
   delta_format?: 'percent' | 'absolute' | 'both';

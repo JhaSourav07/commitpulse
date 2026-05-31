@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import InteractiveViewer from './InteractiveViewer';
+import InteractiveViewer, { formatDate } from './InteractiveViewer';
 
 // getBoundingClientRect is not implemented in jsdom — mock it so mouse-position
 // tests can assert normalized values without relying on a real layout engine.
@@ -21,6 +21,23 @@ beforeEach(() => {
   vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue(mockContainerRect);
   Element.prototype.setPointerCapture = vi.fn();
   Element.prototype.releasePointerCapture = vi.fn();
+});
+
+describe('formatDate', () => {
+  it('formats valid UTC date strings correctly', () => {
+    expect(formatDate('2025-06-15')).toBe('Jun 15, 2025');
+    expect(formatDate('2025-01-01')).toBe('Jan 1, 2025');
+    expect(formatDate('2025-12-31')).toBe('Dec 31, 2025');
+  });
+
+  it('returns empty string for empty input', () => {
+    expect(formatDate('')).toBe('');
+  });
+
+  it('returns original string for malformed input', () => {
+    expect(formatDate('2025-06')).toBe('2025-06');
+    expect(formatDate('invalid-date-string')).toBe('invalid-date-string');
+  });
 });
 
 describe('InteractiveViewer', () => {

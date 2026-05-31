@@ -150,7 +150,7 @@ describe('CustomizeCTA', () => {
     });
 
     it('renders responsive text sizing from mobile to desktop', () => {
-      const { container } = render(<CustomizeCTA />);
+      render(<CustomizeCTA />);
 
       const heading = screen.getByRole('heading', { level: 2 });
 

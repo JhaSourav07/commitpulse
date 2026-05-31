@@ -160,6 +160,31 @@ describe('calculateStreak', () => {
     expect(result.totalContributions).toBe(13);
   });
 
+  it('counts weekday-only commits from Monday through Friday without spanning weekend gaps', () => {
+    // 2024-01-01 is a Monday. Commits happen only on weekdays across two work weeks.
+    const calendar = buildCalendar([
+      1,
+      1,
+      1,
+      1,
+      1,
+      0,
+      0, // Mon-Fri active, Sat-Sun inactive
+      1,
+      1,
+      1,
+      1,
+      1, // Mon-Fri active again, ending on Friday
+    ]);
+
+    const result = calculateStreak(calendar, 'UTC', new Date('2024-01-12T12:00:00Z'));
+
+    expect(result.currentStreak).toBe(5);
+    expect(result.longestStreak).toBe(5);
+    expect(result.totalContributions).toBe(10);
+    expect(result.todayDate).toBe('2024-01-12');
+  });
+
   it('keeps the streak alive via the grace period when only yesterday has contributions', () => {
     // Today is 0, but yesterday is 1 — the grace period treats the streak as still active.
     const calendar = buildCalendar([
@@ -487,6 +512,129 @@ describe('calculateStreak', () => {
     );
     expect(resultTuesday.currentStreak).toBe(0);
     expect(resultTuesday.longestStreak).toBe(2);
+  });
+
+  it('verify streak formulas for different starting days of the week timeline (Variation 2)', () => {
+    // Week 1: 0, 0, 1, 1, 1, 1, 1 (Starts on Wednesday, 5 days)
+    // Week 2: 1, 1, 1, 1, 1, 1, 1 (7 days)
+    // Week 3: 1, 1, 1              // Ends on Wednesday (3 days)
+    // Total continuous streak = 15 days, ending on the last day.
+    const calendar = buildCalendar([
+      0,
+      0,
+      1,
+      1,
+      1,
+      1,
+      1, // Week 1 (Starts Wed)
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1, // Week 2
+      1,
+      1,
+      1, // Week 3 (Ends Wed)
+    ]);
+    const result = calculateStreak(calendar);
+    expect(result.currentStreak).toBe(15);
+    expect(result.longestStreak).toBe(15);
+  });
+
+  it('verify streak formulas for multiple weeks gaps timeline (Variation 3)', () => {
+    // Streak 1: 5 days
+    // Gap 1: 14 days (2 weeks of zeros)
+    // Streak 2: 10 days (longest)
+    // Gap 2: 21 days (3 weeks of zeros)
+    // Streak 3: 3 days (current) ending on the last day
+    const calendar = buildCalendar([
+      1,
+      1,
+      1,
+      1,
+      1, // Streak 1 (5 days)
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0, // Gap 1 (14 days)
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1, // Streak 2 (10 days)
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0, // Gap 2 (21 days)
+      1,
+      1,
+      1, // Streak 3 (3 days - ending on last day)
+    ]);
+    const result = calculateStreak(calendar);
+    expect(result.longestStreak).toBe(10);
+    expect(result.currentStreak).toBe(3);
+  });
+
+  it('verify streak formulas for single day contribution timeline (Variation 3)', () => {
+    // Simulating 1 day of commits, preceded and followed by empty weeks.
+    // 7 empty days (1 week), 1 day of commits (1 contribution), 7 empty days (1 week)
+    const calendar = buildCalendar([
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0, // Week 1: Empty week
+      1, // 1 day of commits
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0, // Week 2: Empty week
+    ]);
+
+    const result = calculateStreak(calendar);
+
+    expect(result.currentStreak).toBe(0);
+    expect(result.longestStreak).toBe(1);
+    expect(result.totalContributions).toBe(1);
   });
 });
 

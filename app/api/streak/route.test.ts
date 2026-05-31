@@ -209,6 +209,17 @@ describe('GET /api/streak', () => {
       const textOutput = await response.text();
       expect(textOutput).toContain('<svg');
     });
+
+    it('returns 400 when org contains invalid characters', async () => {
+      const response = await GET(
+        makeRequest({ user: 'octocat', org: 'invalid_org_name_with_spaces' })
+      );
+      const body = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(body.details.fieldErrors.org[0]).toBe('Invalid organization name format');
+      expect(getOrgDashboardData).not.toHaveBeenCalled();
+    });
   });
 
   describe('successful response', () => {
@@ -288,6 +299,54 @@ describe('GET /api/streak', () => {
 
       expect(body).toContain('<title>');
       expect(body).toContain('Stats for');
+    });
+  });
+
+  describe('edge cases for empty/private profiles', () => {
+    it('Scenario 1: Normal active GitHub user', async () => {
+      const response = await GET(makeRequest({ user: 'octocat' }));
+      expect(response.status).toBe(200);
+      const body = await response.text();
+      expect(body).toContain('<svg');
+    });
+
+    it('Scenario 2 & 3: User with 0 public repositories or private profile (empty calendar)', async () => {
+      vi.mocked(fetchGitHubContributions).mockResolvedValue({
+        calendar: {
+          totalContributions: 0,
+          weeks: [],
+        },
+        repoContributions: [],
+      } as unknown as ExtendedContributionData);
+
+      const response = await GET(makeRequest({ user: 'private-user' }));
+      expect(response.status).toBe(200);
+      const body = await response.text();
+      expect(body).toContain('<svg');
+      // Should show 0 contributions and streaks
+      expect(body).toContain('>0<');
+    });
+
+    it('Scenario 4: Nonexistent username', async () => {
+      vi.mocked(fetchGitHubContributions).mockRejectedValue(
+        new Error('GitHub user "nonexistent" not found')
+      );
+
+      const response = await GET(makeRequest({ user: 'nonexistent' }));
+      expect(response.status).toBe(404);
+      const body = await response.text();
+      expect(body).toContain('<svg');
+      expect(body).toContain('NOT FOUND');
+    });
+
+    it('Scenario 5: GitHub API failure', async () => {
+      vi.mocked(fetchGitHubContributions).mockRejectedValue(new Error('API Rate Limit Exceeded'));
+
+      const response = await GET(makeRequest({ user: 'octocat' }));
+      expect(response.status).toBe(429);
+      const body = await response.text();
+      expect(body).toContain('<svg');
+      expect(body).toContain('API RATE LIMIT');
     });
   });
 
@@ -472,6 +531,19 @@ describe('GET /api/streak', () => {
       });
     });
 
+    it('returns 400 when custom from date is after custom to date', async () => {
+      const response = await GET(
+        makeRequest({ user: 'octocat', from: '2025-12-31', to: '2025-01-01' })
+      );
+      const body = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(body.details.fieldErrors.to[0]).toContain(
+        '"to" date must be after or equal to "from" date'
+      );
+      expect(fetchGitHubContributions).not.toHaveBeenCalled();
+    });
+
     it('functions normally when the year parameter is missing', async () => {
       const response = await GET(makeRequest({ user: 'octocat' }));
 
@@ -650,6 +722,12 @@ describe('GET /api/streak', () => {
 
       expect(response.status).toBe(400);
     });
+    it('returns 400 when an invalid hex color is passed as accent', async () => {
+      // #ZZZZZZZ contains non-hex characters — schema must reject it with 400
+      const response = await GET(makeRequest({ user: 'octocat', accent: '#ZZZZZZZ' }));
+
+      expect(response.status).toBe(400);
+    });
   });
 
   describe('hide parameters', () => {
@@ -819,6 +897,20 @@ describe('GET /api/streak', () => {
       expect(body).toContain('</svg>');
 
       expect(getSecondsUntilMidnightInTimezone).toHaveBeenCalledWith('Australia/Sydney');
+    });
+
+    // =========================================================================
+    // ISSUE OBJECTIVE: Reject fictitious planetary timezone (Variation 4)
+    // =========================================================================
+    it('returns 400 when a fictitious planetary timezone Mars/Cyonia is supplied', async () => {
+      // Mars/Cyonia is structurally plausible (Region/City format) but does not
+      // exist in the IANA tz database — the schema must reject it before the
+      // request reaches the GitHub API.
+      const response = await GET(makeRequest({ user: 'octocat', tz: 'Mars/Cyonia' }));
+
+      expect(response.status).toBe(400);
+      const body = await response.json();
+      expect(body.details.fieldErrors.tz[0]).toContain('Invalid timezone');
     });
   });
 

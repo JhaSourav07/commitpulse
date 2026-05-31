@@ -469,7 +469,16 @@ export async function fetchGitHubContributions(
       throw new Error(`GitHub user "${username}" not found`);
     }
 
-    let calendar = data.data.user.contributionsCollection.contributionCalendar;
+    let calendar = data.data.user.contributionsCollection?.contributionCalendar;
+    const repoContributions =
+      data.data.user.contributionsCollection?.commitContributionsByRepository || [];
+
+    if (!calendar || !calendar.weeks) {
+      calendar = {
+        totalContributions: 0,
+        weeks: [],
+      };
+    }
 
     if (isDeltaSync && cached) {
       calendar = mergeCalendars(cached.calendar, calendar);
@@ -514,14 +523,14 @@ export async function fetchGitHubContributions(
         key,
         {
           calendar,
-          repoContributions: data.data.user.contributionsCollection.commitContributionsByRepository,
+          repoContributions,
         },
         LONG_CACHE_TTL
       );
     }
     return {
       calendar,
-      repoContributions: data.data.user.contributionsCollection.commitContributionsByRepository,
+      repoContributions,
     };
   };
 

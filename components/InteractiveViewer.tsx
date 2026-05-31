@@ -56,7 +56,7 @@ interface ActiveTooltipState {
   y: number;
 }
 
-const formatDate = (dateStr: string): string => {
+export const formatDate = (dateStr: string): string => {
   if (!dateStr) return '';
   const parts = dateStr.split('-');
   if (parts.length !== 3) return dateStr;
@@ -65,8 +65,10 @@ const formatDate = (dateStr: string): string => {
   const day = parseInt(parts[2], 10);
   if (isNaN(year) || isNaN(month) || isNaN(day)) return dateStr;
   try {
-    const date = new Date(year, month - 1, day);
+    const date = new Date(`${dateStr}T00:00:00Z`);
+    if (isNaN(date.getTime())) return dateStr;
     const formatted = date.toLocaleDateString('en-US', {
+      timeZone: 'UTC',
       month: 'short',
       day: 'numeric',
       year: 'numeric',

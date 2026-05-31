@@ -28,8 +28,8 @@ export function calculateStreak(
   now: Date = new Date(),
   grace: number = 1
 ): StreakStats {
-  const weeks = calendar.weeks;
-  const days = weeks.flatMap((week) => week.contributionDays);
+  const weeks = calendar?.weeks || [];
+  const days = weeks.flatMap((week) => week?.contributionDays || []);
 
   let currentStreak = 0;
   let longestStreak = 0;
@@ -95,7 +95,8 @@ export function calculateMonthlyStats(
   timezone: string = 'UTC',
   now: Date = new Date()
 ): MonthlyStats {
-  const days = calendar.weeks.flatMap((week) => week.contributionDays);
+  const weeks = calendar?.weeks || [];
+  const days = weeks.flatMap((week) => week?.contributionDays || []);
 
   const localTodayStr = new Intl.DateTimeFormat('en-CA', { timeZone: timezone }).format(now);
   const [currentYearStr, currentMonthStr] = localTodayStr.split('-');
@@ -171,13 +172,13 @@ export function aggregateCalendars(calendars: ContributionCalendar[]): Contribut
   // Find the calendar with the most weeks to serve as our structural base
   let baseCalendar = calendars[0];
   for (const cal of calendars) {
-    if (cal.weeks.length > baseCalendar.weeks.length) {
+    if ((cal.weeks?.length || 0) > (baseCalendar.weeks?.length || 0)) {
       baseCalendar = cal;
     }
 
     // Populate the Map with all contributions from all calendars
-    cal.weeks.forEach((week) => {
-      week.contributionDays.forEach((day) => {
+    (cal.weeks || []).forEach((week) => {
+      (week?.contributionDays || []).forEach((day) => {
         const currentCount = dateMap.get(day.date) || 0;
         dateMap.set(day.date, currentCount + day.contributionCount);
       });
@@ -190,8 +191,8 @@ export function aggregateCalendars(calendars: ContributionCalendar[]): Contribut
   aggregatedBase.totalContributions = totalContributions;
 
   // Re-map the structural base using our aggregated date map
-  aggregatedBase.weeks.forEach((week) => {
-    week.contributionDays.forEach((day) => {
+  (aggregatedBase.weeks || []).forEach((week) => {
+    (week?.contributionDays || []).forEach((day) => {
       day.contributionCount = dateMap.get(day.date) || 0;
     });
   });
@@ -202,7 +203,8 @@ export function aggregateCalendars(calendars: ContributionCalendar[]): Contribut
  * Processes a calendar to generate deep insights for "GitHub Wrapped"
  */
 export function calculateWrappedStats(calendar: ContributionCalendar) {
-  const days = calendar.weeks.flatMap((w) => w.contributionDays);
+  const weeks = calendar?.weeks || [];
+  const days = weeks.flatMap((w) => w?.contributionDays || []);
 
   let mostActiveDay = { date: '', count: 0 };
   const monthCounts: Record<string, number> = {};

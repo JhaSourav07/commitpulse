@@ -12,7 +12,8 @@ import { useRecentSearches } from '@/hooks/useRecentSearches';
 import { useDebounce } from '@/hooks/useDebounce';
 import { Footer } from '@/app/components/Footer';
 import InteractiveViewer from '@/components/InteractiveViewer';
-import DOMPurify from 'dompurify';
+import { FeatureCard, FeatureCardsSection } from '@/components/FeatureCards';
+import { DiscordButton } from '@/components/DiscordButton';
 
 const Icons = {
   Github: () => (
@@ -72,7 +73,6 @@ const Icons = {
 export default function LandingPage() {
   const [username, setUsername] = useState('');
   const [copied, setCopied] = useState(false);
-  const [svgContent, setSvgContent] = useState<string | null>(null);
   const [svgState, setSvgState] = useState<'idle' | 'loading' | 'loaded' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const guideRef = useRef<HTMLDivElement>(null);
@@ -90,27 +90,21 @@ export default function LandingPage() {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://commitpulse.vercel.app';
   const markdown = `![CommitPulse](${siteUrl}/api/streak?user=${trimmedUsername})`;
 
-  // Fetch SVG content whenever debounced username changes.
+  // Probe badge URL for errors; actual rendering uses a native <img> tag.
   useEffect(() => {
     if (!hasUsername) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setSvgContent(null);
-
       setSvgState('idle');
       return;
     }
 
     setSvgState('loading');
 
-    setSvgContent(null);
-
     const controller = new AbortController();
 
     fetch(badgeUrl, { signal: controller.signal })
       .then(async (res) => {
-        const text = await res.text();
         if (!res.ok) {
-          setSvgContent(null);
           setSvgState('error');
           if (res.status === 404 || res.status === 400 || res.status === 429) {
             setErrorMessage('GitHub user not found');
@@ -119,11 +113,6 @@ export default function LandingPage() {
           }
           return;
         }
-        return text;
-      })
-      .then((text) => {
-        if (!text) return;
-        setSvgContent(text);
         setSvgState('loaded');
         setErrorMessage(null);
       })
@@ -158,45 +147,7 @@ export default function LandingPage() {
 
       <main className="relative z-10 mx-auto max-w-6xl px-6 mt-32">
         <div className="mb-16 text-center">
-          <motion.a
-            href="https://discord.gg/Cb73bS79j"
-            target="_blank"
-            rel="noopener noreferrer"
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            whileHover={{ scale: 1.04 }}
-            whileTap={{ scale: 0.97 }}
-            className="mb-8 inline-flex items-center gap-2.5 rounded-full border border-black/10 bg-white px-4 py-1.5 text-xs font-medium text-gray-700 shadow-sm backdrop-blur-sm transition-colors duration-200 hover:bg-black/[0.03] hover:border-black/20 hover:text-black dark:border-white/10 dark:bg-white/[0.04] dark:text-white/50 dark:hover:bg-white/[0.07] dark:hover:border-white/20 dark:hover:text-white/80"
-          >
-            <span className="relative flex h-1.5 w-1.5">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-black/40 dark:bg-white/50" />
-              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-black/70 dark:bg-white/70" />
-            </span>
-            <svg
-              width="13"
-              height="13"
-              viewBox="0 0 24 24"
-              fill="currentColor"
-              className="opacity-60"
-            >
-              <path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3333-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3333-.946 2.4189-2.1568 2.4189Z" />
-            </svg>
-            Join the community on Discord
-            <svg
-              width="10"
-              height="10"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="opacity-40"
-            >
-              <path d="M7 17L17 7M17 7H7M17 7v10" />
-            </svg>
-          </motion.a>
+          <DiscordButton />
 
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -382,21 +333,21 @@ export default function LandingPage() {
                       </p>
                     </div>
                   )}
-                  {svgState === 'loaded' && svgContent && (
+                  {svgState === 'loaded' && (
                     <motion.div
                       initial={{ opacity: 0, scale: 0.95 }}
                       animate={{ opacity: 1, scale: 1 }}
                       transition={{ duration: 0.5, ease: 'easeOut' }}
-                      className="cp-svg-container w-full max-w-[700px] drop-shadow-[0_30px_60px_rgba(0,0,0,0.15)] dark:drop-shadow-[0_30px_60px_rgba(0,0,0,0.5)] [&>svg]:w-full [&>svg]:h-auto"
-                      dangerouslySetInnerHTML={{
-                        __html: DOMPurify.sanitize(svgContent, {
-                          USE_PROFILES: { svg: true, html: true },
-                        }),
-                      }}
-                    />
-                  )}
-                  {svgState === 'loaded' && !svgContent && errorMessage && (
-                    <p className="text-red-400 text-sm text-center">{errorMessage}</p>
+                      className="w-full max-w-[700px] drop-shadow-[0_30px_60px_rgba(0,0,0,0.15)] dark:drop-shadow-[0_30px_60px_rgba(0,0,0,0.5)]"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        data-testid="badge-img"
+                        src={badgeUrl}
+                        alt={`CommitPulse badge for ${debouncedUsername}`}
+                        className="w-full h-auto"
+                      />
+                    </motion.div>
                   )}
                 </div>
               ) : (
@@ -413,7 +364,7 @@ export default function LandingPage() {
                   </p>
                 </div>
               )}
-            </InteractiveViewer>
+            </div>
           </div>
         </section>
 
@@ -431,26 +382,32 @@ export default function LandingPage() {
 
         <CustomizeCTA />
 
-        <div className="grid gap-6 md:grid-cols-3">
+        <FeatureCardsSection>
           <FeatureCard
             icon={<Icons.Zap />}
-            accent="text-black dark:text-white"
+            accent="text-white"
+            accentColor="#10b981"
+            index={0}
             title="Real-time Sync"
             desc="Pulled directly from GitHub GraphQL API. Your streak updates as fast as your code pushes."
           />
           <FeatureCard
             icon={<Icons.Copy />}
-            accent="text-black dark:text-white"
+            accent="text-white"
+            accentColor="#8b5cf6"
+            index={1}
             title="Theme Engine"
             desc="Switch between Neon, Dracula, or custom HEX modes via simple URL management."
           />
           <FeatureCard
             icon={<Icons.Box />}
-            accent="text-black dark:text-white"
+            accent="text-white"
+            accentColor="#06b6d4"
+            index={2}
             title="Isometric Math"
             desc="Sophisticated 3D projection formulas turn 2D data into digital architecture."
           />
-        </div>
+        </FeatureCardsSection>
         <Footer />
       </main>
     </div>

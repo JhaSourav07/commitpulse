@@ -487,7 +487,7 @@ export default function DashboardClient({ initialData, username }: DashboardClie
           <button
             onClick={() => {
               navigator.clipboard.writeText(window.location.href);
-              alert('Link copied to clipboard!');
+              toast.success('Link copied to clipboard!');
             }}
             className="flex items-center gap-2 rounded-xl border border-black/10 px-4 py-2 text-sm font-semibold hover:bg-gray-100 dark:hover:bg-zinc-800 transition"
           >

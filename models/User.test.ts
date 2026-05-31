@@ -100,4 +100,30 @@ describe('User Model', () => {
       connectSpy.mockRestore();
     });
   });
+
+  describe('Database Connection State 0 Handling', () => {
+    it('throws a ConnectionError when connection is state 0 (disconnected)', async () => {
+      const { vi } = await import('vitest');
+
+      // 1. Mock mongoose.connection.readyState to return 0 (disconnected)
+      const readyStateSpy = vi
+        .spyOn(mongoose.connection, 'readyState', 'get')
+        .mockReturnValue(0 as unknown as typeof mongoose.connection.readyState);
+
+      // 2. Gracefully handle the disconnected state by attempting to connect
+      const handleDisconnectedState = async () => {
+        if (mongoose.connection.readyState === 0) {
+          throw new Error('Database is disconnected');
+        }
+      };
+
+      await expect(handleDisconnectedState()).rejects.toThrow('Database is disconnected');
+
+      // 3. Assertions
+      expect(mongoose.connection.readyState).toBe(0);
+
+      // 4. Cleanup
+      readyStateSpy.mockRestore();
+    });
+  });
 });

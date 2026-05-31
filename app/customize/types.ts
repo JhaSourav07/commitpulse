@@ -28,7 +28,7 @@ export const SIZES = [
 ] as const;
 
 export const FONTS = [
-  { value: '', label: 'Default' },
+  { value: 'Inter', label: 'Default' },
   { value: 'jetbrains', label: 'JetBrains Mono' },
   { value: 'fira', label: 'Fira Code' },
   { value: 'roboto', label: 'Roboto' },

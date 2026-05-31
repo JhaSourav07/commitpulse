@@ -965,7 +965,6 @@ describe('generateMonthlySVG', () => {
     expect(svg).toContain('width="400"');
     expect(svg).toContain('height="200"');
   });
-
   it('includes prefers-reduced-motion media query in static monthly SVG output', () => {
     const svg = generateMonthlySVG(mockMonthlyStats, {
       user: 'octocat',
@@ -985,6 +984,17 @@ describe('generateMonthlySVG', () => {
     expect(svg).toContain('prefers-reduced-motion: reduce');
     expect(svg).toContain('animation: none !important');
     expect(svg).toContain('transition: none !important');
+  });
+
+  it('includes CSS variables in auto-theme monthly SVG', () => {
+    const svg = generateMonthlySVG(mockMonthlyStats, {
+      user: 'octocat',
+      autoTheme: true,
+    } as unknown as BadgeParams);
+
+    expect(svg).toContain('--cp-bg');
+    expect(svg).toContain('--cp-accent');
+    expect(svg).toContain('prefers-color-scheme: dark');
   });
 
   it('supports dynamic Google Fonts for non-predefined fonts in monthly auto-theme mode', () => {

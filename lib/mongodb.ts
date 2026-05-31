@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 
 declare global {
+  // Cached across hot reloads and repeated serverless invocations in the same process.
   var mongoose: {
     conn: typeof import('mongoose') | null;
     promise: Promise<typeof import('mongoose')> | null;
@@ -14,8 +15,17 @@ if (!cached) {
 }
 
 async function dbConnect() {
-  if (cached.conn) {
+  if (process.env.NEXT_RUNTIME === 'edge') {
+    throw new Error('MongoDB is not supported in the Edge runtime. Use the Node.js runtime.');
+  }
+
+  if (cached.conn && mongoose.connection.readyState === 1) {
     return cached.conn;
+  }
+
+  if (cached.conn && mongoose.connection.readyState !== 1) {
+    cached.conn = null;
+    cached.promise = null;
   }
 
   if (!cached.promise) {
@@ -27,6 +37,10 @@ async function dbConnect() {
 
     const opts = {
       bufferCommands: false,
+      maxPoolSize: 10,
+      minPoolSize: 0,
+      maxIdleTimeMS: 30000,
+      serverSelectionTimeoutMS: 5000,
     };
 
     cached.promise = mongoose.connect(MONGODB_URI, opts).then((mongoose) => {

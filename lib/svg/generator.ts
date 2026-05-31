@@ -3,7 +3,7 @@
 import type { BadgeParams, ContributionCalendar, StreakStats, MonthlyStats } from '../../types';
 import { getLabels, type BadgeLabels } from '../i18n/badgeLabels';
 import { AUTO_THEME_DARK, AUTO_THEME_LIGHT, themes } from './themes';
-import { TOWER_ANIMATION_CSS } from './animations';
+import { getTowerAnimationCSS } from './animations';
 import { computeTowers, type TowerData } from './layout';
 import {
   sanitizeFont,
@@ -195,7 +195,8 @@ function renderStyle(
   text: string,
   accent: string,
   sf: number,
-  bg: string
+  bg: string,
+  entrance: 'rise' | 'fade' | 'slide' | 'none' = 'rise'
 ): string {
   const fs = (n: number) => Math.round(n * sf * 10) / 10;
   const isLightBg = getLuminance(bg) > 0.5;
@@ -206,7 +207,7 @@ function renderStyle(
   <style>
   @import url('https://fonts.googleapis.com/css2?family=Fira+Code&amp;family=JetBrains+Mono&amp;family=Roboto&amp;family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');
   ${googleFontsImport}
-  ${TOWER_ANIMATION_CSS}
+  ${getTowerAnimationCSS(entrance)}
   .scan-line {
     animation: scan-sweep var(--scan-speed, 8s) linear infinite;
     transform-box: fill-box;
@@ -524,7 +525,7 @@ export function generateSVG(
   return `
 <svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 ${W} ${H}" fill="none" role="img">
   ${renderHeader(safeUser, stats, sf, params)}
-  ${renderStyle(selectedFont, statsFont, googleFontsImport, text, mainAccentHex, sf, bg)}
+  ${renderStyle(selectedFont, statsFont, googleFontsImport, text, mainAccentHex, sf, bg, params.entrance || 'rise')}
   <rect width="${W}" height="${H}" rx="${radius}" fill="${params.hideBackground ? 'transparent' : bg}" ${borderAttr} />
   <g transform="translate(0, ${Math.round(20 * sf)})">${towers}</g>
   ${renderIsometricLabels(calendar, params, text, sf)}
@@ -585,7 +586,7 @@ function generateAutoThemeSVG(
   :root { --cp-bg: #${light.bg}; --cp-text: #${light.text}; --cp-accent: #${light.accent}; --cp-label-fill: ${lightLabelFill}; --cp-label-opacity: ${lightLabelOpacity}; }
   @media (prefers-color-scheme: dark) { :root { --cp-bg: #${dark.bg}; --cp-text: #${dark.text}; --cp-accent: #${dark.accent}; --cp-label-fill: ${darkLabelFill}; --cp-label-opacity: ${darkLabelOpacity}; } }
   .cp-bg-fill { fill: var(--cp-bg); } .cp-text-fill { fill: var(--cp-text); color: var(--cp-text); } .cp-accent-fill { fill: var(--cp-accent); color: var(--cp-accent); }
-  ${TOWER_ANIMATION_CSS}
+  ${getTowerAnimationCSS(params.entrance || 'rise')}
   .scan-line {
     animation: scan-sweep var(--scan-speed, 8s) linear infinite;
     transform-box: fill-box;
@@ -1113,6 +1114,432 @@ function generateAutoThemeMonthlySVG(stats: MonthlyStats, params: BadgeParams): 
 `;
 }
 
+// ── Heatmap View ──────────────────────────────────────────────────────────
+
+const HEATMAP_CELL_SIZE = 16;
+const HEATMAP_CELL_GAP = 3;
+const HEATMAP_CELL_RADIUS = 2;
+const HEATMAP_GRID_ORIGIN_X = 60;
+const HEATMAP_GRID_ORIGIN_Y = 55;
+const HEATMAP_WEEKDAY_LABELS = ['', 'Mon', '', 'Wed', '', 'Fri', ''];
+const HEATMAP_OPACITIES = [0.06, 0.3, 0.55, 0.8, 1.0];
+const HEATMAP_MONTH_NAMES_SHORT = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+];
+
+function computeHeatmapIntensity(count: number, maxCount: number): number {
+  if (count === 0) return 0;
+  if (maxCount <= 4) return Math.min(4, count);
+  const ratio = count / maxCount;
+  if (ratio <= 0.25) return 1;
+  if (ratio <= 0.5) return 2;
+  if (ratio <= 0.75) return 3;
+  return 4;
+}
+
+function renderHeatmapGrid(
+  calendar: ContributionCalendar,
+  accent: string,
+  text: string,
+  sf: number,
+  todayDate: string,
+  mode: 'commits' | 'loc' = 'commits',
+  isAutoTheme: boolean = false
+): string {
+  const weeks = calendar.weeks.slice(-14);
+  const cellSize = Math.round(HEATMAP_CELL_SIZE * sf);
+  const cellGap = Math.round(HEATMAP_CELL_GAP * sf);
+  const cellRadius = Math.round(HEATMAP_CELL_RADIUS * sf);
+  const originX = Math.round(HEATMAP_GRID_ORIGIN_X * sf);
+  const originY = Math.round(HEATMAP_GRID_ORIGIN_Y * sf);
+  const step = cellSize + cellGap;
+
+  // Find max contribution count for intensity calculation
+  let maxCount = 0;
+  weeks.forEach((week) => {
+    week.contributionDays.forEach((day) => {
+      const count =
+        mode === 'loc' ? (day.locAdditions || 0) + (day.locDeletions || 0) : day.contributionCount;
+      if (count > maxCount) maxCount = count;
+    });
+  });
+
+  // Check if todayDate is in visible window
+  const todayInWindow = weeks.some((w) => w.contributionDays.some((d) => d.date === todayDate));
+
+  let cells = '';
+  let monthHeaders = '';
+  let prevMonth = '';
+
+  // Render grid cells
+  weeks.forEach((week, col) => {
+    week.contributionDays.forEach((day, row) => {
+      const count =
+        mode === 'loc' ? (day.locAdditions || 0) + (day.locDeletions || 0) : day.contributionCount;
+      const intensity = computeHeatmapIntensity(count, maxCount);
+      const opacity = HEATMAP_OPACITIES[intensity];
+      const x = originX + col * step;
+      const y = originY + row * step;
+
+      const isToday =
+        day.date === todayDate ||
+        (!todayInWindow && col === weeks.length - 1 && row === week.contributionDays.length - 1);
+
+      const unit = mode === 'loc' ? 'lines of code' : 'contributions';
+      const tooltipPrefix = isToday ? 'TODAY: ' : '';
+      const tooltip = `${tooltipPrefix}${day.date}: ${count} ${unit}`;
+
+      const fillAttr = isAutoTheme ? 'fill="var(--cp-accent)"' : `fill="${accent}"`;
+
+      // Glow on high-intensity cells
+      const filterAttr = intensity === 4 ? ' filter="url(#hm-glow)"' : '';
+
+      cells += `
+      <rect
+        x="${x}" y="${y}" width="${cellSize}" height="${cellSize}" rx="${cellRadius}"
+        ${fillAttr} fill-opacity="${opacity}"${filterAttr}
+        class="hm-cell${isToday ? ' hm-today' : ''}"
+        data-date="${escapeXML(day.date)}" data-count="${count}"
+      >
+        <title>${escapeXML(tooltip)}</title>
+      </rect>`;
+    });
+
+    // Month header: detect month change from first day of each week
+    if (week.contributionDays.length > 0) {
+      const firstDay = week.contributionDays[0];
+      const monthNum = parseInt(firstDay.date.substring(5, 7), 10);
+      const monthStr = HEATMAP_MONTH_NAMES_SHORT[monthNum - 1];
+      if (monthStr !== prevMonth) {
+        const mx = originX + col * step;
+        const my = originY - Math.round(8 * sf);
+        const labelFill = isAutoTheme ? 'var(--cp-text)' : text;
+        monthHeaders += `
+      <text x="${mx}" y="${my}" fill="${labelFill}" font-size="${Math.round(9 * sf)}px" font-family="'Roboto', sans-serif" opacity="0.6">${monthStr}</text>`;
+        prevMonth = monthStr;
+      }
+    }
+  });
+
+  // Weekday labels
+  let weekdayLabels = '';
+  HEATMAP_WEEKDAY_LABELS.forEach((label, row) => {
+    if (!label) return;
+    const ly = originY + row * step + Math.round(cellSize * 0.75);
+    const lx = originX - Math.round(8 * sf);
+    const labelFill = isAutoTheme ? 'var(--cp-text)' : text;
+    weekdayLabels += `
+    <text x="${lx}" y="${ly}" text-anchor="end" fill="${labelFill}" font-size="${Math.round(9 * sf)}px" font-family="'Roboto', sans-serif" opacity="0.6">${label}</text>`;
+  });
+
+  return `<g class="hm-grid">
+    ${monthHeaders}
+    ${weekdayLabels}
+    ${cells}
+  </g>`;
+}
+
+function renderHeatmapLegend(
+  accent: string,
+  text: string,
+  sf: number,
+  x: number,
+  y: number,
+  isAutoTheme: boolean = false
+): string {
+  const cellSize = Math.round(10 * sf);
+  const gap = Math.round(3 * sf);
+  const step = cellSize + gap;
+  const fontSize = Math.round(9 * sf);
+  const labelFill = isAutoTheme ? 'var(--cp-text)' : text;
+  const fillAttr = isAutoTheme ? 'var(--cp-accent)' : accent;
+
+  let legend = `<g transform="translate(${x}, ${y})">
+    <text x="0" y="${Math.round(cellSize * 0.75)}" fill="${labelFill}" font-size="${fontSize}px" font-family="'Roboto', sans-serif" opacity="0.5">Less</text>`;
+
+  const lessTextWidth = Math.round(28 * sf);
+  HEATMAP_OPACITIES.forEach((opacity, i) => {
+    const cx = lessTextWidth + i * step;
+    legend += `
+    <rect x="${cx}" y="0" width="${cellSize}" height="${cellSize}" rx="${Math.round(2 * sf)}" fill="${fillAttr}" fill-opacity="${opacity}" />`;
+  });
+
+  const moreX = lessTextWidth + HEATMAP_OPACITIES.length * step + Math.round(4 * sf);
+  legend += `
+    <text x="${moreX}" y="${Math.round(cellSize * 0.75)}" fill="${labelFill}" font-size="${fontSize}px" font-family="'Roboto', sans-serif" opacity="0.5">More</text>
+  </g>`;
+
+  return legend;
+}
+
+export function generateHeatmapSVG(
+  stats: StreakStats,
+  params: BadgeParams,
+  calendar: ContributionCalendar
+): string {
+  if (params.autoTheme) return generateAutoThemeHeatmapSVG(stats, params, calendar);
+
+  const safeUser = escapeXML(params.user || 'GitHub User');
+  const bg = `#${sanitizeHexColor(params.bg, '0d1117')}`;
+
+  const rawAccent = Array.isArray(params.accent)
+    ? params.accent[params.accent.length - 1]
+    : params.accent;
+  const accent = `#${sanitizeHexColor(rawAccent, '00ffaa')}`;
+  const text = `#${sanitizeHexColor(params.text, 'ffffff')}`;
+
+  const borderAttr = params.border ? `stroke="#${params.border}" stroke-width="2"` : '';
+
+  const sanitizedFont = sanitizeFont(params.font);
+  const predefinedFont = sanitizedFont
+    ? (FONT_MAP[sanitizedFont.toLowerCase() as keyof typeof FONT_MAP] ?? null)
+    : null;
+  const isPredefinedFont = Boolean(predefinedFont);
+  const selectedFont = isPredefinedFont
+    ? predefinedFont
+    : sanitizedFont
+      ? `"${sanitizedFont}", sans-serif`
+      : null;
+  const statsFont = selectedFont || '"Space Grotesk", sans-serif';
+  const googleFontUrlPart =
+    sanitizedFont && !isPredefinedFont ? sanitizeGoogleFontUrl(sanitizedFont) : null;
+  const googleFontsImport = googleFontUrlPart
+    ? `@import url('https://fonts.googleapis.com/css2?family=${googleFontUrlPart}&amp;display=swap');`
+    : '';
+
+  const sf = getSizeScale(params.size);
+  const radius = sanitizeRadius(params.radius, 8) * sf;
+  const labels = getLabels(params.lang);
+  const W = Math.round(600 * sf);
+  const H = Math.round(300 * sf);
+  const s = createScaler(sf);
+
+  const isLightBg = getLuminance(bg) > 0.5;
+  const labelFill = isLightBg ? text : accent;
+  const labelOpacity = isLightBg ? 0.8 : 0.7;
+
+  const grid = renderHeatmapGrid(calendar, accent, text, sf, stats.todayDate, params.mode, false);
+  const legend = renderHeatmapLegend(accent, text, sf, s(60), s(270), false);
+
+  const unit = params.mode === 'loc' ? 'lines of code' : 'total contributions';
+
+  return `
+<svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 ${W} ${H}" fill="none" role="img">
+  <title>CommitPulse Heatmap for ${safeUser}</title>
+  <desc>${safeUser} has ${stats.totalContributions} ${unit} and a longest streak of ${stats.longestStreak} days.</desc>
+
+  <defs>
+    <filter id="hm-glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="${Math.round(3 * sf)}" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <style>
+  @import url('https://fonts.googleapis.com/css2?family=Fira+Code&amp;family=JetBrains+Mono&amp;family=Roboto&amp;family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');
+  ${googleFontsImport}
+
+  .hm-title { font-family: ${selectedFont || '"Syncopate", sans-serif'}; fill: ${text}; font-size: ${s(14)}px; letter-spacing: ${s(4)}px; font-weight: 400; opacity: 0.8; }
+  .hm-stats-val { font-family: ${statsFont}; fill: ${text}; font-size: ${s(28)}px; font-weight: 500; }
+  .hm-total-val { font-family: ${statsFont}; fill: ${accent}; font-size: ${s(18)}px; font-weight: 500; }
+  .hm-label { font-family: "Roboto", sans-serif; fill: ${labelFill}; font-size: ${s(9)}px; font-weight: 400; letter-spacing: ${s(1.5)}px; opacity: ${labelOpacity}; }
+  .hm-cell { transition: filter 0.2s ease; }
+  .hm-cell:hover { filter: brightness(1.3) drop-shadow(0 0 4px ${accent}66); }
+  .hm-today {
+    stroke: ${accent};
+    stroke-width: ${Math.round(1.5 * sf)};
+    stroke-opacity: 0.9;
+    animation: hm-pulse 1.5s ease-in-out infinite;
+  }
+  @keyframes hm-pulse {
+    0%, 100% { stroke-opacity: 0.9; }
+    50% { stroke-opacity: 0.3; }
+  }
+  .hm-scan {
+    animation: hm-scan-sweep var(--scan-speed, 8s) linear infinite;
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+  @keyframes hm-scan-sweep {
+    from { transform: translateX(0px); }
+    to { transform: translateX(${s(266)}px); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .hm-today { animation: none !important; }
+    .hm-scan { animation: none !important; display: none; }
+  }
+  </style>
+
+  <rect width="${W}" height="${H}" rx="${radius}" fill="${params.hideBackground ? 'transparent' : bg}" ${borderAttr} />
+
+  ${!params.hide_title ? `<text x="${s(60)}" y="${s(30)}" class="hm-title">${truncateUsername(safeUser).toUpperCase()}</text>` : ''}
+
+  ${grid}
+
+  <rect
+    x="${s(60)}" y="${s(55)}" width="${s(2)}" height="${s(133)}"
+    fill="${accent}" fill-opacity="0.2"
+    class="hm-scan"
+    style="--scan-speed: ${params.speed || '8s'};"
+  />
+
+  ${
+    !params.hide_stats
+      ? `
+  <g transform="translate(${s(60)}, ${s(220)})" text-anchor="start">
+    <g>
+      <text class="hm-label">${labels.CURRENT_STREAK}</text>
+      <text y="${s(22)}" class="hm-stats-val">${stats.currentStreak}</text>
+    </g>
+    <g transform="translate(${s(160)}, 0)">
+      <text class="hm-label">${params.mode === 'loc' ? 'TOTAL LINES OF CODE' : labels.ANNUAL_SYNC_TOTAL}</text>
+      <text y="${s(22)}" class="hm-total-val">${stats.totalContributions}</text>
+    </g>
+    <g transform="translate(${s(360)}, 0)">
+      <text class="hm-label">${labels.PEAK_STREAK}</text>
+      <text y="${s(22)}" class="hm-stats-val">${stats.longestStreak}</text>
+    </g>
+  </g>`
+      : ''
+  }
+
+  ${legend}
+</svg>`;
+}
+
+function generateAutoThemeHeatmapSVG(
+  stats: StreakStats,
+  params: BadgeParams,
+  calendar: ContributionCalendar
+): string {
+  const light = AUTO_THEME_LIGHT;
+  const dark = AUTO_THEME_DARK;
+  const safeUser = escapeXML(params.user || 'GitHub User');
+
+  const sanitizedFont = sanitizeFont(params.font);
+  const selectedFont = sanitizedFont
+    ? (FONT_MAP[sanitizedFont.toLowerCase() as keyof typeof FONT_MAP] ?? null) ||
+      `"${sanitizedFont}", sans-serif`
+    : null;
+  const statsFont = selectedFont || '"Space Grotesk", sans-serif';
+  const googleFontUrlPart = sanitizedFont ? sanitizeGoogleFontUrl(sanitizedFont) : null;
+  const googleFontsImport = googleFontUrlPart
+    ? `@import url('https://fonts.googleapis.com/css2?family=${googleFontUrlPart}&amp;display=swap');`
+    : '';
+
+  const sf = getSizeScale(params.size);
+  const radius = sanitizeRadius(params.radius, 8) * sf;
+  const labels = getLabels(params.lang);
+  const W = Math.round(600 * sf);
+  const H = Math.round(300 * sf);
+  const s = createScaler(sf);
+
+  const grid = renderHeatmapGrid(calendar, '', '', sf, stats.todayDate, params.mode, true);
+  const legend = renderHeatmapLegend('', '', sf, s(60), s(270), true);
+
+  const unit = params.mode === 'loc' ? 'lines of code' : 'total contributions';
+
+  return `
+<svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 ${W} ${H}" fill="none" role="img">
+  <title>CommitPulse Heatmap for ${safeUser}</title>
+  <desc>${safeUser} has ${stats.totalContributions} ${unit} and a longest streak of ${stats.longestStreak} days.</desc>
+
+  <defs>
+    <filter id="hm-glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="${Math.round(3 * sf)}" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <style>
+  @import url('https://fonts.googleapis.com/css2?family=Fira+Code&amp;family=JetBrains+Mono&amp;family=Roboto&amp;family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');
+  ${googleFontsImport}
+
+  :root { --cp-bg: #${light.bg}; --cp-text: #${light.text}; --cp-accent: #${light.accent}; }
+  @media (prefers-color-scheme: dark) { :root { --cp-bg: #${dark.bg}; --cp-text: #${dark.text}; --cp-accent: #${dark.accent}; } }
+  .cp-bg-fill { fill: var(--cp-bg); }
+  .cp-text-fill { fill: var(--cp-text); color: var(--cp-text); }
+  .cp-accent-fill { fill: var(--cp-accent); color: var(--cp-accent); }
+
+  .hm-title { font-family: ${selectedFont || '"Syncopate", sans-serif'}; fill: var(--cp-text); font-size: ${s(14)}px; letter-spacing: ${s(4)}px; font-weight: 400; opacity: 0.8; }
+  .hm-stats-val { font-family: ${statsFont}; fill: var(--cp-text); font-size: ${s(28)}px; font-weight: 500; }
+  .hm-total-val { font-family: ${statsFont}; fill: var(--cp-accent); font-size: ${s(18)}px; font-weight: 500; }
+  .hm-label { font-family: "Roboto", sans-serif; fill: var(--cp-accent); font-size: ${s(9)}px; font-weight: 400; letter-spacing: ${s(1.5)}px; opacity: 0.7; }
+  .hm-cell { transition: filter 0.2s ease; }
+  .hm-cell:hover { filter: brightness(1.3) drop-shadow(0 0 4px var(--cp-accent)); }
+  .hm-today {
+    stroke: var(--cp-accent);
+    stroke-width: ${Math.round(1.5 * sf)};
+    stroke-opacity: 0.9;
+    animation: hm-pulse 1.5s ease-in-out infinite;
+  }
+  @keyframes hm-pulse {
+    0%, 100% { stroke-opacity: 0.9; }
+    50% { stroke-opacity: 0.3; }
+  }
+  .hm-scan {
+    animation: hm-scan-sweep var(--scan-speed, 8s) linear infinite;
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+  @keyframes hm-scan-sweep {
+    from { transform: translateX(0px); }
+    to { transform: translateX(${s(266)}px); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .hm-today { animation: none !important; }
+    .hm-scan { animation: none !important; display: none; }
+  }
+  </style>
+
+  <rect width="${W}" height="${H}" rx="${radius}" ${params.hideBackground ? 'fill="transparent"' : 'class="cp-bg-fill"'} />
+
+  ${!params.hide_title ? `<text x="${s(60)}" y="${s(30)}" class="hm-title">${truncateUsername(safeUser).toUpperCase()}</text>` : ''}
+
+  ${grid}
+
+  <rect
+    x="${s(60)}" y="${s(55)}" width="${s(2)}" height="${s(133)}"
+    class="cp-accent-fill hm-scan"
+    fill-opacity="0.2"
+    style="--scan-speed: ${params.speed || '8s'};"
+  />
+
+  ${
+    !params.hide_stats
+      ? `
+  <g transform="translate(${s(60)}, ${s(220)})" text-anchor="start">
+    <g>
+      <text class="hm-label">${labels.CURRENT_STREAK}</text>
+      <text y="${s(22)}" class="hm-stats-val">${stats.currentStreak}</text>
+    </g>
+    <g transform="translate(${s(160)}, 0)">
+      <text class="hm-label">${params.mode === 'loc' ? 'TOTAL LINES OF CODE' : labels.ANNUAL_SYNC_TOTAL}</text>
+      <text y="${s(22)}" class="hm-total-val">${stats.totalContributions}</text>
+    </g>
+    <g transform="translate(${s(360)}, 0)">
+      <text class="hm-label">${labels.PEAK_STREAK}</text>
+      <text y="${s(22)}" class="hm-stats-val">${stats.longestStreak}</text>
+    </g>
+  </g>`
+      : ''
+  }
+
+  ${legend}
+</svg>`;
+}
+
 // Fixed isometric tower layout for the not-found ghost city.
 const GHOST_LAYOUT: { col: number; row: number; h: number }[] = [
   { col: 0, row: 0, h: 8 },
@@ -1177,7 +1604,7 @@ export function generateNotFoundSVG(
   let ghostTowers = '';
   for (const { col, row, h } of GHOST_LAYOUT) {
     const tx = 300 + (col - row) * 16;
-    const ty = 120 + (col + row) * 9;
+    const ty = 120 + (col + row) * 10;
 
     ghostTowers += `
       <g transform="translate(${tx}, ${ty - h})">
@@ -1491,7 +1918,7 @@ function generateAutoThemeVersusSVG(
   :root { --cp-bg: #${light.bg}; --cp-text: #${light.text}; --cp-accent: #${light.accent}; --cp-label-fill: ${lightLabelFill}; --cp-label-opacity: ${lightLabelOpacity}; }
   @media (prefers-color-scheme: dark) { :root { --cp-bg: #${dark.bg}; --cp-text: #${dark.text}; --cp-accent: #${dark.accent}; --cp-label-fill: ${darkLabelFill}; --cp-label-opacity: ${darkLabelOpacity}; } }
   .cp-bg-fill { fill: var(--cp-bg); } .cp-text-fill { fill: var(--cp-text); color: var(--cp-text); } .cp-accent-fill { fill: var(--cp-accent); color: var(--cp-accent); }
-  ${TOWER_ANIMATION_CSS}
+  ${getTowerAnimationCSS(params.entrance || 'rise')}
   .scan-line {
     animation: scan-sweep var(--scan-speed, 8s) linear infinite;
     transform-box: fill-box;
@@ -1580,7 +2007,7 @@ export function generateRateLimitSVG(
   let ghostTowers = '';
   for (const { col, row, h } of ghostLayout) {
     const tx = 300 + (col - row) * 16;
-    const ty = 120 + (col + row) * 9;
+    const ty = 120 + (col + row) * 10;
 
     ghostTowers += `
       <g transform="translate(${tx}, ${ty - h})">

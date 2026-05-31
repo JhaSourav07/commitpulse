@@ -176,7 +176,8 @@ URL Parameter > Theme Default > System Fallback
 | `hide_stats`      | `boolean` | No         | `false`                        | Hides the bottom row displaying Current Streak, Annual Sync Total, and Peak Streak stats when set to `true` or `1`.                                                       |
 | `tz`              | `string`  | No         | Omitted = UTC                  | IANA timezone (e.g. `Asia/Kolkata`, `America/New_York`) — aligns "today" with the user local midnight. Note: `?tz=UTC` is valid but cached separately from omitting `tz`. |
 | `lang`            | `string`  | No         | `en`                           | Language code for labels (`en`, `es`, `hi`, `fr`, `pt`, `ko`, `ja`, `de`, `zh`)                                                                                           |
-| `view`            | `string`  | No         | `default`                      | Rendering mode: `default` (3D Monolith) or `monthly` (Compact monthly stats)                                                                                              |
+| `view`            | `string`  | No         | `default`                      | Rendering mode: `default` (3D Monolith), `monthly` (Compact monthly stats), or `heatmap` (flat 2D contribution heatmap)                                                   |
+| `entrance`        | `string`  | No         | `rise`                         | Entrance animation for towers: `rise` (default), `fade`, `slide`, or `none`.                                                                                              |
 | `delta_format`    | `string`  | No         | `percent`                      | Format for month-over-month delta in monthly view: `percent` (e.g. +12%), `absolute` (e.g. +15 commits), or `both`                                                        |
 | `width`           | `number`  | No         | `300`                          | Custom width for the SVG canvas (currently only applies to `view=monthly`)                                                                                                |
 | `height`          | `number`  | No         | `120`                          | Custom height for the SVG canvas (currently only applies to `view=monthly`)                                                                                               |
@@ -220,6 +221,7 @@ URL Parameter > Theme Default > System Fallback
 | `random`           | Surprise theme on reload    | _varies_ | _varies_ | _varies_ |
 | `highcontrast`     | Accessibility high contrast | `0a0a0a` | `ff4500` | `ffffff` |
 | `cyber-pulse`      | AMOLED true-black & cyan    | `000000` | `00ffee` | `ffffff` |
+| `obsidian`         | Deep charcoal & amber gold  | `1a1a2e` | `f59e0b` | `e2e8f0` |
 
 > **`auto` uses CSS `@media (prefers-color-scheme)`** inside the SVG so the badge switches between the `light` and `dark` palettes based on the viewer's OS setting — no JavaScript required. This is ideal for GitHub profile READMEs where visitors may use either mode.
 
@@ -319,6 +321,14 @@ Explore some of the built-in CommitPulse themes and quickly copy the style you l
 <!-- Gradient + shading for extra depth -->
 
 ![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&gradient=true&shading=true)
+
+<!-- GitHub-style Heatmap View -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&view=heatmap)
+
+<!-- Heatmap with Neon theme -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&view=heatmap&theme=neon)
 ```
 
 ---
@@ -563,7 +573,7 @@ _Built with obsession, shipped with precision._
 Thanks to all contributors who have helped make CommitPulse better!
 
 <a href="https://github.com/JhaSourav07/commitpulse/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=JhaSourav07/commitpulse&max=100&columns=14" alt="Contributors" />
+  <img src="https://contrib.rocks/image?repo=JhaSourav07/commitpulse&max=300&columns=14" alt="Contributors" />
 </a>
 
 <sub>View the [full contributor list →](https://github.com/JhaSourav07/commitpulse/graphs/contributors)</sub>

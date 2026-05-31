@@ -402,6 +402,20 @@ describe('TTLCache', () => {
       expect(cache.get('tags')).toEqual(tags);
       cache.destroy();
     });
+    it('preserves Date instance values in TTLCache', () => {
+      const cache = new TTLCache<Date>();
+
+      const date = new Date('2026-05-31T00:00:00.000Z');
+
+      cache.set('created-at', date, 60_000);
+
+      const cached = cache.get('created-at');
+
+      expect(cached).toBeInstanceOf(Date);
+      expect(cached?.toISOString()).toBe(date.toISOString());
+
+      cache.destroy();
+    });
 
     it('stores and retrieves nested object values', () => {
       const cache = new TTLCache<{
@@ -524,6 +538,20 @@ describe('TTLCache', () => {
       expect(cache.get('infinite-key')).toBe('boundary-value');
 
       expect(cache.has('infinite-key')).toBe(true);
+
+      cache.destroy();
+    });
+
+    it('handles oversized cache keys safely', () => {
+      const cache = new TTLCache<string>();
+
+      const oversizedKey = 'a'.repeat(20000);
+
+      expect(() => {
+        cache.set(oversizedKey, 'large-key-value', 60_000);
+      }).not.toThrow();
+
+      expect(cache.get(oversizedKey)).toBe('large-key-value');
 
       cache.destroy();
     });
