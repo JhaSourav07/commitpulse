@@ -227,7 +227,11 @@ export default function LandingPage() {
                   </button>
                 ) : null}
               </div>
-
+              {mounted && username.length === 0 && (
+                  <p className="text-amber-500 text-xs mt-1 self-start pl-1">
+                    Please enter a GitHub username to copy your badge link.
+                  </p>
+                )}
               <div className="flex flex-col sm:flex-row gap-4">
                 <button
                   type="submit"
