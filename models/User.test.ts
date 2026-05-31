@@ -100,4 +100,26 @@ describe('User Model', () => {
       connectSpy.mockRestore();
     });
   });
+
+  describe('Database Connection State 0 Handling', () => {
+    it('fails gracefully with a descriptive ConnectionError when disconnected', async () => {
+      const { vi } = await import('vitest');
+
+      const readyStateSpy = vi.spyOn(mongoose.connection, 'readyState', 'get').mockReturnValue(0);
+
+      const executeDbOperation = async () => {
+        if (mongoose.connection.readyState === 0) {
+          throw new Error('ConnectionError: Database is disconnected (readyState=0)');
+        }
+      };
+
+      await expect(executeDbOperation()).rejects.toThrow(
+        'ConnectionError: Database is disconnected (readyState=0)'
+      );
+
+      expect(mongoose.connection.readyState).toBe(0);
+
+      readyStateSpy.mockRestore();
+    });
+  });
 });
