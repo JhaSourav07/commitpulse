@@ -38,7 +38,10 @@ function makeRequest(params: Record<string, string> = {}): Request {
 describe('GET /api/stats', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(fetchGitHubContributions).mockResolvedValue(mockCalendar);
+    vi.mocked(fetchGitHubContributions).mockResolvedValue({
+      calendar: mockCalendar,
+      repoContributions: [],
+    });
   });
 
   // ─── Parameter validation ──────────────────────────────────────────────────
@@ -52,6 +55,13 @@ describe('GET /api/stats', () => {
 
   it('does not call the GitHub API when user is missing', async () => {
     await GET(makeRequest());
+    expect(fetchGitHubContributions).not.toHaveBeenCalled();
+  });
+
+  it('returns 400 and skips GitHub when the username format is invalid', async () => {
+    const response = await GET(makeRequest({ user: 'octo/cat' }));
+
+    expect(response.status).toBe(400);
     expect(fetchGitHubContributions).not.toHaveBeenCalled();
   });
 

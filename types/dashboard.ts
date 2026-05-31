@@ -1,3 +1,7 @@
+// types/dashboard.ts
+
+import type { ContributionCalendar } from './index';
+
 export interface UserProfile {
   username: string;
   name: string;
@@ -7,10 +11,11 @@ export interface UserProfile {
   location: string;
   joinedDate: string;
   developerScore: number;
+  type?: 'User' | 'Organization'; // Added to distinguish orgs from standard users
   stats: {
     repositories: number;
     followers: number;
-    following: number;
+    following: number; // For Organizations, this acts as the "members" count
     stars: number;
   };
 }
@@ -19,6 +24,10 @@ export interface ActivityData {
   date: string;
   count: number;
   intensity: 0 | 1 | 2 | 3 | 4; // 0 = no activity, 4 = highest
+
+  // Added for LoC (Lines of Code) Mode tracking
+  locAdditions?: number;
+  locDeletions?: number;
 }
 
 export interface UserStats {
@@ -46,10 +55,10 @@ export interface Achievement {
   icon: string;
   isUnlocked: boolean;
 
-  type?: 'contributions' | 'streak';
-  threshold?: number;
-  currentValue?: number;
-  progress?: number;
+  type: 'contributions' | 'streak' | 'behavior';
+  threshold: number;
+  currentValue: number;
+  progress: number; // 0–100
 }
 
 export interface CommitClockData {
@@ -60,4 +69,24 @@ export interface CommitClockData {
 export interface DashboardExportData {
   stats: UserStats;
   languages: LanguageData[];
+  activity?: ActivityData[];
+}
+
+/* ==========================================================================
+ * NEW EPIC FEATURE TYPES (Wrapped & Org Data)
+ * ========================================================================== */
+
+export interface WrappedStats {
+  totalContributions: number;
+  mostActiveDate: string;
+  highestDailyCount: number;
+  busiestMonth: string;
+  weekendRatio: number;
+  topLanguage: string;
+}
+
+export interface OrgDashboardData {
+  profile: UserProfile;
+  stats: UserStats;
+  calendar: ContributionCalendar;
 }
