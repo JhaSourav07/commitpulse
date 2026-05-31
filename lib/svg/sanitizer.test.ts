@@ -51,6 +51,11 @@ describe('SVG Sanitizer Utilities', () => {
       expect(sanitizeHexColor(null, '000000')).toBe('000000');
       expect(sanitizeHexColor(undefined, '000000')).toBe('000000');
     });
+
+    it('applies standard glow with standard gray fallback values', () => {
+      expect(sanitizeHexColor('invalid-hex-glow', '888888')).toBe('888888');
+      expect(sanitizeHexColor('invalid-hex-glow', '#888888')).toBe('888888');
+    });
   });
 
   describe('sanitizeSpeed', () => {
