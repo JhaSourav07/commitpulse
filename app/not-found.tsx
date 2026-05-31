@@ -71,6 +71,8 @@ export default function NotFound() {
         <div className="flex flex-col sm:flex-row gap-3 w-full">
           <Link
             href="https://github.com/JhaSourav07/commitpulse"
+            target="_blank"
+            rel="noopener noreferrer"
             className="flex-1 py-3 rounded-xl font-semibold text-sm text-white text-center transition-all hover:scale-[1.02] active:scale-[0.98]"
             style={{
               background: 'linear-gradient(135deg, #7c3aed, #0ea5e9)',

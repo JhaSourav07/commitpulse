@@ -14,6 +14,25 @@
 
 > **Drop this into your GitHub profile README and stop being boring.**
 
+## 📖 Table of Contents
+
+- [Design Philosophy](#the-isometric-monolith--design-philosophy)
+- [Live Demo](#live-demo)
+- [Deep Customization](#deep-customization--url-parameters)
+- [Theme Presets](#theme-presets)
+- [Theme Preview Gallery](#theme-preview-gallery)
+- [Real-Time Accuracy](#real-time-accuracy--the-contribution-count-problem)
+- [Architecture & Tech Stack](#architecture--tech-stack)
+- [Self-Hosting](#self-hosting-in-4-steps)
+- [Automated Contributor Workflow](#automated-contributor-workflow)
+- [FAQ](#faq)
+- [Contributing](#contributing)
+- [License](#license)
+- [Themes](#themes)
+- [Contributors](#contributors)
+
+---
+
 ![CommitPulse Live Demo](https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=neon)
 
 [![Join CommitPulse Discord](https://img.shields.io/badge/Join-CommitPulse%20Discord-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/Cb73bS79j)
@@ -36,7 +55,7 @@ We render your contribution data as a **3D Isometric City** — a grid of glowin
 
 **Ghost City Architecture:** In this mode, zero-contribution days aren't just empty space. They are rendered as thin, wireframe-style **blueprint foundations** (4px high). This gives your commit landscape a structured, architectural "work-in-progress" look even during rest days, maintaining the premium 3D aesthetic across the entire calendar.
 
-This is not decoration. This is a **live , animated data visualization** that makes your dedication impossible to ignore.
+This is not decoration. This is a **live, animated data visualization** that makes your dedication impossible to ignore.
 
 ### Why Isometric > Flat
 
@@ -145,6 +164,7 @@ URL Parameter > Theme Default > System Fallback
 | `accent`          | `hex`     | No         | Theme default                  | Tower & glow color — **without** `#`                                                                                                                                      |
 | `text`            | `hex`     | No         | Theme default                  | Label & stat text color — **without** `#`                                                                                                                                 |
 | `radius`          | `number`  | No         | `8`                            | Border corner radius in pixels                                                                                                                                            |
+| `border`          | `string`  | No         | —                              | Custom stroke color around the main SVG container — **without** `#`                                                                                                       |
 | `speed`           | `string`  | No         | `8s`                           | Radar scan duration (`2s`–`20s`, default `8s`)                                                                                                                            |
 | `scale`           | `string`  | No         | `linear`                       | Tower height scaling: `linear` or `log` (logarithmic)                                                                                                                     |
 | `size`            | `string`  | No         | `medium`                       | Badge dimensions: `small` (400×280), `medium` (600×420), `large` (800×560)                                                                                                |
@@ -155,11 +175,37 @@ URL Parameter > Theme Default > System Fallback
 | `hide_background` | `boolean` | No         | `false`                        | Remove the background rect, letting the monolith float on the page                                                                                                        |
 | `hide_stats`      | `boolean` | No         | `false`                        | Hides the bottom row displaying Current Streak, Annual Sync Total, and Peak Streak stats when set to `true` or `1`.                                                       |
 | `tz`              | `string`  | No         | Omitted = UTC                  | IANA timezone (e.g. `Asia/Kolkata`, `America/New_York`) — aligns "today" with the user local midnight. Note: `?tz=UTC` is valid but cached separately from omitting `tz`. |
-| `lang`            | `string`  | No         | `en`                           | Language code for labels (`en`, `es`, `hi`, `fr`, `pt`, `ko`, `ja`)                                                                                                       |
-| `view`            | `string`  | No         | `default`                      | Rendering mode: `default` (3D Monolith) or `monthly` (Compact monthly stats)                                                                                              |
+| `lang`            | `string`  | No         | `en`                           | Language code for labels (`en`, `es`, `hi`, `fr`, `pt`, `ko`, `ja`, `de`, `zh`)                                                                                           |
+| `view`            | `string`  | No         | `default`                      | Rendering mode: `default` (3D Monolith), `monthly` (Compact monthly stats), or `heatmap` (flat 2D contribution heatmap)                                                   |
+| `entrance`        | `string`  | No         | `rise`                         | Entrance animation for towers: `rise` (default), `fade`, `slide`, or `none`.                                                                                              |
 | `delta_format`    | `string`  | No         | `percent`                      | Format for month-over-month delta in monthly view: `percent` (e.g. +12%), `absolute` (e.g. +15 commits), or `both`                                                        |
 | `width`           | `number`  | No         | `300`                          | Custom width for the SVG canvas (currently only applies to `view=monthly`)                                                                                                |
 | `height`          | `number`  | No         | `120`                          | Custom height for the SVG canvas (currently only applies to `view=monthly`)                                                                                               |
+| `grace`           | `number`  | No         | `1`                            | Grace period in days before a streak resets (0–7). `grace=0` = strict mode (no missed days), `grace=2` = lenient (forgives up to 2 missed days). Default is `1`.          |
+| `mode`            | `string`  | No         | `commits`                      | Rendering mode: `commits` (default) or `loc` (Lines of Code landscape)                                                                                                    |
+| `repo`            | `string`  | No         | —                              | Render the monolith for a specific repository (e.g. `owner/repo`) instead of the whole profile                                                                            |
+| `org`             | `string`  | No         | —                              | Organization name to generate a Mega-City for                                                                                                                             |
+| `labels`          | `boolean` | No         | `false`                        | Render optional 3D isometric month headers and weekday labels                                                                                                             |
+| `labelColor`      | `hex`     | No         | —                              | Custom text color for the isometric labels — **without** `#`                                                                                                              |
+| `versus`          | `string`  | No         | —                              | GitHub username of an opponent to compare against in side-by-side versus mode                                                                                             |
+| `shading`         | `boolean` | No         | `false`                        | Apply intensity-based opacity shading to tower faces so lower intensity levels appear slightly dimmer                                                                     |
+| `gradient`        | `boolean` | No         | `false`                        | Opt-in to show volumetric gradients on the monolith floor                                                                                                                 |
+
+### Grace Period Examples
+
+```md
+<!-- Strict mode — streak resets on any single missed day -->
+
+![CommitPulse](https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&grace=0)
+
+<!-- Default — one day grace period (current behavior) -->
+
+![CommitPulse](https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&grace=1)
+
+<!-- Lenient — forgives up to 2 consecutive missed days -->
+
+![CommitPulse](https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&grace=2)
+```
 
 ### Theme Presets
 
@@ -169,11 +215,13 @@ URL Parameter > Theme Default > System Fallback
 | `dark` _(default)_ | GitHub dark                 | `0d1117` | `58a6ff` | `c9d1d9` |
 | `neon`             | Cyberpunk                   | `000000` | `ff00ff` | `00ffcc` |
 | `dracula`          | Dracula Pro                 | `282a36` | `bd93f9` | `f8f8f2` |
-| `github`           | GitHub green                | `0d1117` | `238636` | `ffffff` |
+| `github`           | GitHub green                | `0d1117` | `39d353` | `ffffff` |
 | `light`            | Clean & minimal             | `ffffff` | `0969da` | `24292f` |
-| `gruvbox`          | retro warm dark             | `282828` | `fe8019` | `ebdbb2` |
+| `gruvbox`          | Retro warm dark             | `282828` | `fe8019` | `ebdbb2` |
 | `random`           | Surprise theme on reload    | _varies_ | _varies_ | _varies_ |
-| `highcontrast`     | Accessibility high contrast | `0a0a0a` | `ff4500` | `888888` |
+| `highcontrast`     | Accessibility high contrast | `0a0a0a` | `ff4500` | `ffffff` |
+| `cyber-pulse`      | AMOLED true-black & cyan    | `000000` | `00ffee` | `ffffff` |
+| `obsidian`         | Deep charcoal & amber gold  | `1a1a2e` | `f59e0b` | `e2e8f0` |
 
 > **`auto` uses CSS `@media (prefers-color-scheme)`** inside the SVG so the badge switches between the `light` and `dark` palettes based on the viewer's OS setting — no JavaScript required. This is ideal for GitHub profile READMEs where visitors may use either mode.
 
@@ -242,13 +290,45 @@ Explore some of the built-in CommitPulse themes and quickly copy the style you l
 
 ![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&tz=Asia/Kolkata)
 
+<!-- Strict streak — resets on any single missed day -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&grace=0)
+
+<!-- Lenient streak — forgives up to 2 missed days -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&grace=2)
+
 <!-- Render labels in Hindi -->
 
 ![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&lang=hi)
 
+<!-- Render labels in Simplified Chinese -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&lang=zh)
+
 <!-- Large badge size -->
 
 ![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&size=large)
+
+<!-- Side-by-side versus comparison -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&versus=octocat)
+
+<!-- Lines of Code landscape mode -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&mode=loc)
+
+<!-- Gradient + shading for extra depth -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&gradient=true&shading=true)
+
+<!-- GitHub-style Heatmap View -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&view=heatmap)
+
+<!-- Heatmap with Neon theme -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&view=heatmap&theme=neon)
 ```
 
 ---
@@ -323,6 +403,8 @@ types/index.ts                →  TypeScript interfaces (StreakStats, BadgePara
 ---
 
 🏗️ Architecture Diagram
+
+```
 GitHub GraphQL API
 ↓
 Contribution Processing
@@ -336,6 +418,7 @@ Animation Layer
 Edge Cache/CDN
 ↓
 Generated SVG Badge
+```
 
 ---
 
@@ -401,7 +484,7 @@ We built an anti-hoarding, self-service automation layer right into the reposito
 - **Structured Issue Templates:** We use specific templates for Bug Reports and Feature Requests to maintain high quality and clarity.
 - **Self-Claiming:** Issue authors can grab their issues instantly by commenting `/claim` (only the author of the issue can claim it, unless it was authored by `jhasourav07`, in which case anyone can claim it).
 - **Fair Play:** A strict one-active-issue-per-contributor rule prevents issue hoarding.
-- **Stale Expiry:** A scheduled chron job automatically unassigns inactive contributors after 3 days.
+- **Stale Expiry:** A scheduled chron job automatically unassigns inactive contributors after 2 days.
 - **Self-Service Labels:** Anyone can tag issues using `/addlabel <tag>`.
 - **Semantic Duplicate Detection:** An AI-powered duplicate detector automatically scans open issues using the Google Gemini API (`gemini-embedding-001`) to generate vector embeddings. It calculates cosine similarity and flags potential duplicate issues with a comment and a `possible-duplicate` label.
 
@@ -426,13 +509,30 @@ Yes. Use the `tz` parameter with any valid IANA timezone.
 Example:
 `?tz=Asia/Kolkata`
 
+### Can I configure the grace period?
+
+Yes. Use the `grace` parameter to control how many days of inactivity are forgiven before your streak resets:
+
+- `?grace=0` — strict mode, resets on any missed day
+- `?grace=1` — default behavior (1 day grace)
+- `?grace=2` — lenient, forgives up to 2 consecutive missed days
+
+Valid range is 0–7. Values outside this range are clamped automatically.
+
 ### Do private contributions count?
 
 Yes — if private contributions visibility is enabled in your GitHub settings.
 
 ### Are there GitHub API rate limits?
 
-Yes, but CommitPulse minimizes API usage using caching and optimized GraphQL queries.
+Yes. CommitPulse minimizes API usage via caching and optimized GraphQL queries, but if you hit the GitHub API rate limit (typically 5,000 requests per hour for authenticated users), you might see errors or missing data.
+
+#### Troubleshooting Rate Limit Errors
+
+1. **Wait it out:** Rate limits automatically reset every hour.
+2. **Provide your own PAT:** If self-hosting, ensure you've provided a valid `GITHUB_TOKEN` in `.env.local` to get the authenticated rate limit.
+3. **Avoid aggressive bypassing:** Avoid repeatedly using the `&refresh=true` parameter, which bypasses the cache and consumes API quota on every load.
+4. **Check GitHub API Status:** Occasionally, GitHub's GraphQL API itself experiences degradation. Check [githubstatus.com](https://www.githubstatus.com/).
 
 ---
 
@@ -473,7 +573,7 @@ _Built with obsession, shipped with precision._
 Thanks to all contributors who have helped make CommitPulse better!
 
 <a href="https://github.com/JhaSourav07/commitpulse/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=JhaSourav07/commitpulse&max=100&columns=14" alt="Contributors" />
+  <img src="https://contrib.rocks/image?repo=JhaSourav07/commitpulse&max=300&columns=14" alt="Contributors" />
 </a>
 
 <sub>View the [full contributor list →](https://github.com/JhaSourav07/commitpulse/graphs/contributors)</sub>

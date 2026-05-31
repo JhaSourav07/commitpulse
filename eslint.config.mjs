@@ -14,7 +14,11 @@ const eslintConfig = defineConfig([
     },
   },
   {
-    files: ['**/*.test.{js,jsx,ts,tsx}', '**/__tests__/**/*.{js,jsx,ts,tsx}', 'scripts/**/*.{js,jsx,ts,tsx}'],
+    files: [
+      '**/*.test.{js,jsx,ts,tsx}',
+      '**/__tests__/**/*.{js,jsx,ts,tsx}',
+      'scripts/**/*.{js,jsx,ts,tsx}',
+    ],
     rules: {
       'no-console': 'off',
     },
