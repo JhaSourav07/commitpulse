@@ -210,6 +210,58 @@ describe('calculateStreak', () => {
     expect(result.currentStreak).toBe(0);
     expect(result.longestStreak).toBe(0);
   });
+
+  it('verifies streak formulas for single day contribution timeline preceded and followed by empty weeks', () => {
+    // 3 weeks of data:
+    // Week 1 (empty): 7 days of 0
+    // Week 2 (1 day of commits): 0, 0, 0, 1, 0, 0, 0
+    // Week 3 (empty): 7 days of 0
+    const calendar = buildCalendar([
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0, // Week 1
+      0,
+      0,
+      0,
+      1,
+      0,
+      0,
+      0, // Week 2
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0, // Week 3
+    ]);
+
+    // When evaluated at the end of the calendar (default fallback to the last day),
+    // the current streak is broken (0), but the longest streak is 1.
+    const resultDefault = calculateStreak(calendar);
+    expect(resultDefault.currentStreak).toBe(0);
+    expect(resultDefault.longestStreak).toBe(1);
+    expect(resultDefault.totalContributions).toBe(1);
+
+    // When evaluated on the exact day of the commit (2024-01-11)
+    const resultActive = calculateStreak(calendar, 'UTC', new Date('2024-01-11T12:00:00Z'));
+    expect(resultActive.currentStreak).toBe(1);
+    expect(resultActive.longestStreak).toBe(1);
+
+    // When evaluated the day after the commit (2024-01-12), it should be kept alive by the grace period
+    const resultGrace = calculateStreak(calendar, 'UTC', new Date('2024-01-12T12:00:00Z'));
+    expect(resultGrace.currentStreak).toBe(1);
+    expect(resultGrace.longestStreak).toBe(1);
+
+    // When evaluated two days after the commit (2024-01-13), the streak is broken
+    const resultBroken = calculateStreak(calendar, 'UTC', new Date('2024-01-13T12:00:00Z'));
+    expect(resultBroken.currentStreak).toBe(0);
+    expect(resultBroken.longestStreak).toBe(1);
+  });
 });
 
 describe('calculateStreak — timezone awareness', () => {
