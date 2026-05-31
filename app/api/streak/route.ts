@@ -10,6 +10,7 @@ import {
   generateMonthlySVG,
   generateVersusSVG,
   generateHeatmapSVG,
+  generatePulseSVG,
 } from '@/lib/svg/generator';
 import { getSecondsUntilUTCMidnight, getSecondsUntilMidnightInTimezone } from '@/utils/time';
 import type { BadgeParams } from '@/types';
@@ -91,6 +92,7 @@ export async function GET(request: Request) {
       gradient,
       tz: tzParam,
       disable_particles,
+      glow,
     } = parseResult.data;
 
     const themeName = theme || 'dark';
@@ -159,6 +161,7 @@ export async function GET(request: Request) {
       shading,
       gradient,
       disable_particles,
+      glow,
     };
 
     let calendar;
@@ -201,6 +204,11 @@ export async function GET(request: Request) {
     } else if (view === 'heatmap') {
       const stats = calculateStreak(calendar, timezone, undefined, grace);
       svg = generateHeatmapSVG(stats, params, calendar);
+    } else if (view === 'pulse') {
+      // We still use calculateStreak here to efficiently parse totalContributions for the stat display,
+      // even though the sparkline generator will extract its own daily 30-day timeline below.
+      const stats = calculateStreak(calendar, timezone, undefined, grace);
+      svg = generatePulseSVG(stats, params, calendar);
     } else if (versus && versusCalendar) {
       const stats1 = calculateStreak(calendar, timezone, undefined, grace);
       const stats2 = calculateStreak(versusCalendar, timezone, undefined, grace);

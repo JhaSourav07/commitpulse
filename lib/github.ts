@@ -28,6 +28,15 @@ const MAX_RETRY_DELAY_MS = 5000;
 const GRAPHQL_TIMEOUT_MS = 8000; // 8s for GraphQL endpoint
 const REST_TIMEOUT_MS = 5000; // 5s for REST endpoints
 
+function isAbortError(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'name' in error &&
+    (error as { name?: unknown }).name === 'AbortError'
+  );
+}
+
 export async function fetchWithRetry(
   url: string | URL,
   options: RequestInit,
@@ -63,10 +72,13 @@ export async function fetchWithRetry(
 
   if (didThrow) {
     if (options.signal?.aborted) throw fetchError;
-    if (fetchError instanceof Error && fetchError.name === 'AbortError') {
-      throw new Error(`GitHub API request timed out after ${resolvedTimeout / 1000}s`);
+    const isTimeoutAbort = isAbortError(fetchError);
+    if (attempt >= MAX_RETRIES) {
+      if (isTimeoutAbort) {
+        throw new Error(`GitHub API request timed out after ${resolvedTimeout / 1000}s`);
+      }
+      throw fetchError;
     }
-    if (attempt >= MAX_RETRIES) throw fetchError;
     const delay = BASE_DELAY_MS * Math.pow(2, attempt);
     await new Promise((resolve) => setTimeout(resolve, delay));
     return fetchWithRetry(url, options, attempt + 1, timeoutMs);

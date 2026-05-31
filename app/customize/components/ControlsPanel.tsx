@@ -1,20 +1,5 @@
 import type { ReactElement, ReactNode } from 'react';
-import {
-  FONTS,
-  SIZES,
-  SPEEDS,
-  LANGUAGES,
-  TIMEZONES,
-  VIEW_MODES,
-  DELTA_FORMATS,
-  type BadgeSize,
-  type Font,
-  type Scale,
-  type ViewMode,
-  type DeltaFormat,
-  type Language,
-  type Timezone,
-} from '../types';
+import { FONTS, SIZES, SPEEDS, type BadgeSize, type Font, type Scale } from '../types';
 import { isValidHex, stripHash } from '../utils';
 import { SectionLabel } from './SectionLabel';
 import { StyledSelect, ThemeSelector } from './ThemeSelector';
@@ -247,26 +232,6 @@ export function ControlsPanel({
   onSizeChange,
   onClearOverrides,
   onRadiusChange,
-  hideTitle,
-  hideBackground,
-  hideStats,
-  viewMode,
-  deltaFormat,
-  badgeWidth,
-  badgeHeight,
-  grace,
-  language,
-  timezone,
-  onHideTitleChange,
-  onHideBackgroundChange,
-  onHideStatsChange,
-  onViewModeChange,
-  onDeltaFormatChange,
-  onBadgeWidthChange,
-  onBadgeHeightChange,
-  onGraceChange,
-  onLanguageChange,
-  onTimezoneChange,
 }: {
   username: string;
   theme: string;
