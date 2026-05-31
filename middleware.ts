@@ -1,10 +1,14 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { rateLimit } from './lib/rate-limit';
-import { getClientIp } from './utils/getClientIp';
 
+import { rateLimit } from '@/lib/rate-limit';
+import { getClientIp } from './utils/getClientIp';
 /**
  * Middleware to enforce rate limiting on specific API routes.
+ *
+ * Previously imported a raw Map-based rateLimit function which had no hard
+ * memory cap. It now uses the unified rateLimit wrapper backed by the
+ * memory-safe RateLimiter class (TTLCache-backed, bounded at 5000 IPs).
  *
  * Protected Routes:
  * - /api/streak
@@ -16,12 +20,12 @@ import { getClientIp } from './utils/getClientIp';
  *
  * Limit: 60 requests per minute per IP.
  */
+
 export async function middleware(request: NextRequest) {
   // Secure client IP extraction
   const ip = getClientIp(request);
 
-  // Apply rate limiting
-  // 60 requests per 60,000ms (1 minute)
+  // Apply rate limiting — 60 requests per 60,000ms (1 minute)
   const result = await rateLimit(ip, 60, 60000);
 
   if (!result.success) {

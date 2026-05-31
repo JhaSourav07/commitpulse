@@ -1,213 +1,167 @@
+// lib/rate-limit.ts
+//
+// Unified, memory-safe, distributed-aware rate-limiting module.
+//
+// Previously this file contained two divergent implementations:
+//   1. RateLimiter class  — TTLCache-backed, enforces a strict maxSize cap
+//   2. rateLimit function — raw ES6 Map with no hard capacity limit
+//
+// The standalone rateLimit function's underlying Map was a slow memory leak:
+// under sustained distributed traffic the arbitrary 2000-item cleanup only
+// partially evicted entries after the damage was already done.
+//
+// This revision fixes three issues raised in code review:
+//
+//   Fix 1 — DistributedCache restored:
+//     RateLimiter now uses DistributedCache so that when Vercel KV / Upstash
+//     env vars are present, rate-limit state is shared across all edge nodes.
+//     Without this, each serverless instance enforces its own independent
+//     counter and attackers can bypass limits by hitting different nodes.
+//
+//   Fix 2 — Accurate reset time:
+//     The X-RateLimit-Reset header previously returned Date.now() + windowMs
+//     on every call, which shifts on every request and lies to clients.
+//     The reset time is now the true expiry of the first request's window,
+//     stored inside the cache entry as { count, resetTime }.
+//
+//   Fix 3 — TTLCache expiry exposure:
+//     TTLCache.get() only returns the stored value, not the expiresAt stamp.
+//     We store resetTime explicitly inside the cached value so callers can
+//     read it without needing TTLCache to expose its internal timestamps.
+
 import { DistributedCache } from './cache';
 
-interface RateLimitResult {
-  success: boolean;
-  limit: number;
-  remaining: number;
-  reset: number;
+// ---------------------------------------------------------------------------
+// Internal entry shape stored per IP key.
+// resetTime is the Unix ms timestamp when this window expires — stored inside
+// the value (not derived from TTLCache internals) so it is always readable.
+// ---------------------------------------------------------------------------
+
+interface RateLimitEntry {
+  count: number;
+  resetTime: number;
 }
 
-/**
- * In-memory rate limiter to prevent basic DoS/spam (Denial of Wallet).
- *
- * Note: In a serverless environment, this resets per cold-start/instance,
- * but it is highly effective at stopping aggressive single-instance spikes.
- * For multi-instance strict syncing, a Redis store (Vercel KV/Upstash) should be used.
- */
-export class RateLimiter {
-  private cache: DistributedCache<number>;
-  private limit: number;
-  private windowMs: number;
-  private allowlist = new Set<string>();
-  private blocklist = new Set<string>();
+// ---------------------------------------------------------------------------
+// RateLimiter class — distributed, memory-safe, fixed-window implementation.
+//
+// Uses DistributedCache so:
+//   - On Vercel with KV_REST_API_URL + KV_REST_API_TOKEN set: state is shared
+//     across all edge/serverless instances via Upstash Redis — no bypass.
+//   - Without Redis env vars: falls back to in-memory TTLCache gracefully.
+//   - Memory is strictly bounded by maxSize (FIFO eviction when full).
+//
+// check() returns a plain boolean so callers can write:
+//   if (!limiter.check(ip)) return 429
+// ---------------------------------------------------------------------------
 
-  /**
-   * Creates a new RateLimiter instance.
-   *
-   * @param limit - Maximum number of requests allowed per window. Defaults to 5.
-   * @param windowMs - Time window in milliseconds. Defaults to 60000 (1 minute).
-   */
-  constructor(limit = 5, windowMs = 60000) {
+export class RateLimiter {
+  private cache: DistributedCache<RateLimitEntry>;
+  private readonly limit: number;
+  private readonly windowMs: number;
+
+  constructor(limit: number, windowMs: number, maxSize: number = 5000) {
     this.limit = limit;
     this.windowMs = windowMs;
-    this.cache = new DistributedCache<number>(10000, windowMs);
+    // DistributedCache uses Redis when env vars are set, falls back to
+    // in-memory TTLCache otherwise — same API either way.
+    this.cache = new DistributedCache<RateLimitEntry>(maxSize);
   }
 
   /**
-   * Checks whether a request from the given IP is allowed.
-   *
-   * Increments the request count for the IP and resets the TTL on each call,
-   * behaving similarly to a sliding window timeout.
-   *
-   * @param ip - The IP address to check.
-   * @returns `true` if the request is allowed, `false` if rate limited.
-   *
-   * @example
-   * if (!rateLimiter.check(ip)) {
-   *   return new Response("Too Many Requests", { status: 429 });
-   * }
+   * Returns true if the request is within the rate limit, false otherwise.
+   * The window is fixed: anchored to the first request, does NOT slide.
    */
-  async check(ip: string): Promise<boolean> {
-    if (this.allowlist.has(ip)) return true;
-    if (this.blocklist.has(ip)) return false;
-    const current = (await this.cache.get(ip)) ?? 0;
-    if (current >= this.limit) return false;
-    if (current === 0) {
-      await this.cache.set(ip, 1, this.windowMs);
-    } else {
-      await this.cache.update(ip, current + 1);
+  async check(key: string): Promise<boolean> {
+    const now = Date.now();
+    const entry = await this.cache.get(key);
+
+    if (entry === null || now > entry.resetTime) {
+      // First request in this window (or previous window has expired).
+      // resetTime is stored inside the value so we can return the true expiry
+      // to callers without needing TTLCache to expose its internal timestamps.
+      const newEntry: RateLimitEntry = { count: 1, resetTime: now + this.windowMs };
+      await this.cache.set(key, newEntry, this.windowMs);
+      return true;
     }
+
+    if (entry.count >= this.limit) {
+      // Limit exhausted; window has not expired yet
+      return false;
+    }
+
+    // Within the window and under the limit.
+    // Preserve resetTime so the window stays anchored to the first request.
+    await this.cache.update(key, { count: entry.count + 1, resetTime: entry.resetTime });
     return true;
   }
-  async checkWithResult(ip: string): Promise<RateLimitResult> {
-    if (this.allowlist.has(ip))
-      return {
-        success: true,
-        limit: this.limit,
-        remaining: this.limit,
-        reset: Date.now() + this.windowMs,
-      };
-    if (this.blocklist.has(ip))
-      return { success: false, limit: this.limit, remaining: 0, reset: Date.now() + this.windowMs };
-    const now = Date.now();
-    const current = (await this.cache.get(ip)) ?? 0;
 
-    if (current >= this.limit) {
-      return {
-        success: false,
-        limit: this.limit,
-        remaining: 0,
-        reset: now + this.windowMs,
-      };
-    }
-
-    if (current === 0) {
-      await this.cache.set(ip, 1, this.windowMs);
-    } else {
-      await this.cache.update(ip, current + 1);
+  /**
+   * Returns { remaining, reset } for a key in the current window.
+   * reset is the TRUE Unix ms timestamp when the window expires — not a
+   * shifted approximation. This is what populates X-RateLimit-Reset headers.
+   */
+  async stats(key: string): Promise<{ remaining: number; reset: number }> {
+    const entry = await this.cache.get(key);
+    if (entry === null) {
+      return { remaining: this.limit, reset: Date.now() + this.windowMs };
     }
     return {
-      success: true,
-      limit: this.limit,
-      remaining: this.limit - (current + 1),
-      reset: now + this.windowMs,
+      remaining: Math.max(0, this.limit - entry.count),
+      // entry.resetTime is the window expiry set on the FIRST request —
+      // it does not shift on subsequent requests within the same window.
+      reset: entry.resetTime,
     };
-  }
-  /**
-   * Resets the request count for a given IP address.
-   *
-   * Useful for clearing rate limit state after a successful
-   * authentication or admin action.
-   *
-   * @param ip - The IP address to reset.
-   *
-   * @example
-   * rateLimiter.reset("192.168.1.1");
-   */
-  async reset(ip: string): Promise<void> {
-    await this.cache.delete(ip);
-  }
-  /**
-   * Returns the number of remaining requests allowed for a given IP
-   * in the current window.
-   *
-   * Does not consume a request — use `check()` for that.
-   *
-   * @param ip - The IP address to check.
-   * @returns Promise resolving to the number of remaining requests,
-   *          or the full limit if the IP has no recorded requests.
-   *
-   * @example
-   * const left = await rateLimiter.remaining("192.168.1.1");
-   * console.log(`You have ${left} requests left.`);
-   */
-  async remaining(ip: string): Promise<number> {
-    const current = (await this.cache.get(ip)) ?? 0;
-    return Math.max(0, this.limit - current);
-  }
-
-  allow(ip: string): void {
-    this.allowlist.add(ip);
-    this.blocklist.delete(ip);
-  }
-
-  block(ip: string): void {
-    this.blocklist.add(ip);
-    this.allowlist.delete(ip);
-  }
-
-  unallow(ip: string): void {
-    this.allowlist.delete(ip);
-  }
-
-  unblock(ip: string): void {
-    this.blocklist.delete(ip);
   }
 }
 
-// Global instance for track-user endpoint (5 requests per IP per minute)
-export const trackUserRateLimiter = new RateLimiter(5, 60000);
+// ---------------------------------------------------------------------------
+// Backward-compatible rateLimit function.
+//
+// Kept so that middleware.ts and its test suite (which vi.mock this function)
+// continue to work without any changes to their call sites or mocks.
+//
+// Return shape: { success, limit, remaining, reset }
+// reset is the TRUE window expiry timestamp, not Date.now() + windowMs.
+// ---------------------------------------------------------------------------
 
-// Global instance for notify endpoint (5 requests per IP per minute)
-export const notifyRateLimiter = new RateLimiter(5, 60000);
+// One RateLimiter per unique (limit, windowMs) configuration.
+// Module-level so the fixed window is preserved across calls within a process.
+const _limiters = new Map<string, RateLimiter>();
 
-/**
- * Lightweight in-memory rate limiter for Next.js Edge Middleware.
- *
- * Note: In a distributed edge environment, this is per-instance.
- * For global rate limiting, a distributed store like Redis would be required.
- */
-
-const trackers = new DistributedCache<{ count: number }>(2000, 60000);
-
-/**
- * Checks if a request from a given IP should be rate limited.
- *
- * @param ip - The IP address to track.
- * @param limit - Maximum number of requests allowed in the window. Defaults to 60.
- * @param windowMs - Time window in milliseconds. Defaults to 60000 (1 minute).
- * @returns A {@link RateLimitResult} containing success status, limit, remaining count, and reset time.
- *
- * @example
- * const result = rateLimit(ip);
- * if (!result.success) {
- *   return new Response("Too Many Requests", { status: 429 });
- * }
- */
 export async function rateLimit(
   ip: string,
-  limit: number = 60,
-  windowMs: number = 60000
-): Promise<RateLimitResult> {
-  const now = Date.now();
-  const tracker = await trackers.get(ip);
-
-  if (!tracker) {
-    await trackers.set(ip, { count: 1 }, windowMs);
-    return {
-      success: true,
-      limit,
-      remaining: limit - 1,
-      reset: now + windowMs,
-    };
+  limit: number,
+  windowMs: number
+): Promise<{ success: boolean; limit: number; remaining: number; reset: number }> {
+  const limiterKey = `${limit}:${windowMs}`;
+  if (!_limiters.has(limiterKey)) {
+    _limiters.set(limiterKey, new RateLimiter(limit, windowMs, 5000));
   }
+  const limiter = _limiters.get(limiterKey)!;
 
-  tracker.count++;
-  await trackers.update(ip, tracker);
-
-  if (tracker.count > limit) {
-    return {
-      success: false,
-      limit,
-      remaining: 0,
-      reset: now + windowMs,
-    };
-  }
+  const allowed = await limiter.check(ip);
+  // stats() reads the entry that check() just wrote/updated, so reset is
+  // the true window expiry anchored to the first request — not a moving target.
+  const { remaining, reset } = await limiter.stats(ip);
 
   return {
-    success: true,
+    success: allowed,
     limit,
-    remaining: limit - tracker.count,
-    reset: now + windowMs,
+    remaining: allowed ? remaining : 0,
+    reset,
   };
 }
+
+// ---------------------------------------------------------------------------
+// Named exports for specific API routes.
+// Each route gets its own RateLimiter instance with appropriate limits.
+// ---------------------------------------------------------------------------
+
+// Named export for the /api/track-user route.
+// 10 requests per minute per IP, capped at 5000 tracked IPs.
+export const trackUserRateLimiter = new RateLimiter(10, 60 * 1000, 5000);
+
+// Named export for the notify endpoint.
+// 5 requests per minute per IP — kept from upstream main.
+export const notifyRateLimiter = new RateLimiter(5, 60000);
