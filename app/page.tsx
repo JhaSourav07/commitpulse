@@ -14,6 +14,7 @@ import { Footer } from '@/app/components/Footer';
 import InteractiveViewer from '@/components/InteractiveViewer';
 import { FeatureCard, FeatureCardsSection } from '@/components/FeatureCards';
 import { DiscordButton } from '@/components/DiscordButton';
+import { WallOfLove } from '@/components/WallOfLove';
 
 const Icons = {
   Github: () => (
@@ -414,6 +415,9 @@ export default function LandingPage() {
             desc="Sophisticated 3D projection formulas turn 2D data into digital architecture."
           />
         </FeatureCardsSection>
+
+        <WallOfLove />
+
         <Footer />
       </main>
     </div>
