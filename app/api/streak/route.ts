@@ -119,9 +119,8 @@ export async function GET(request: Request) {
       if (isAutoTheme) return themes.light;
       if (isRandomTheme) {
         const keys = Object.keys(themes);
-        const hash = user.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
-        const stableKey = keys[hash % keys.length];
-        return themes[stableKey] || themes.dark;
+        const randomKey = keys[Math.floor(Math.random() * keys.length)];
+        return themes[randomKey] || themes.dark;
       }
       return themes[theme] || themes.dark;
     })();
