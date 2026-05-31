@@ -1,4 +1,7 @@
 export function trackUser(username: string) {
+  if (!username || username.trim() === '') {
+    return;
+  }
   if (typeof navigator === 'undefined' || typeof window === 'undefined') return;
   if (!username) return;
 

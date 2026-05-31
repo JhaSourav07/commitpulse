@@ -242,8 +242,8 @@ export default function CommitClock({ data }: { data: CommitClockData[] }) {
 
           {/* Center label */}
           <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-            <span className="text-lg font-semibold text-gray-700 dark:text-white/60">7d</span>
-            <span className="text-[8px] text-gray-400 dark:text-white/20 mt-0.5">CYCLE</span>
+            <span className="text-[8px] text-gray-400 dark:text-white/60 mt-0.5">CYCLE</span>
+            <span className="text-lg font-semibold text-gray-700 dark:text-white/65">7d</span>
           </div>
         </div>
       </motion.div>

@@ -18,67 +18,111 @@ function makeRequest(params: Record<string, string> = {}): Request {
 describe('GET /api/github', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(getFullDashboardData).mockResolvedValue({} as never);
   });
 
-  // Test 1 — missing username → 400
-  it('returns 400 when username is missing', async () => {
-    const response = await GET(makeRequest());
-    const body = await response.json();
+  describe('cache bypass via ?refresh=true', () => {
+    it('calls getFullDashboardData with { bypassCache: true } when ?refresh=true', async () => {
+      await GET(makeRequest({ username: 'octocat', refresh: 'true' }));
 
-    expect(response.status).toBe(400);
-    expect(body.error).toContain('Invalid parameters');
-  });
+      expect(getFullDashboardData).toHaveBeenCalledWith('octocat', { bypassCache: true });
+    });
 
-  it('returns 400 and skips GitHub when username format is invalid', async () => {
-    const response = await GET(makeRequest({ username: 'bad user' }));
-    const body = await response.json();
+    it('calls getFullDashboardData with { bypassCache: false } when refresh is omitted', async () => {
+      await GET(makeRequest({ username: 'octocat' }));
+      expect(getFullDashboardData).toHaveBeenCalledWith('octocat', {
+        bypassCache: false,
+      });
+    });
+    it('returns 400 when username contains invalid characters', async () => {
+      const response = await GET(makeRequest({ username: '@@@@@' }));
+      const body = await response.json();
 
-    expect(response.status).toBe(400);
-    expect(body.error).toContain('Invalid parameters');
-    expect(getFullDashboardData).not.toHaveBeenCalled();
-  });
+      expect(response.status).toBe(400);
+      expect(body.error).toContain('Invalid parameters');
+    });
 
-  // Test 2 — valid username → 200
-  it('returns 200 with JSON body for a valid username', async () => {
-    vi.mocked(getFullDashboardData).mockResolvedValue({ profile: 'octocat' } as never);
+    it('returns 400 when username contains only whitespace', async () => {
+      const response = await GET(makeRequest({ username: '   ' }));
+      const body = await response.json();
 
-    const response = await GET(makeRequest({ username: 'octocat' }));
-    const body = await response.json();
+      expect(response.status).toBe(400);
+      expect(body.error).toContain('Invalid parameters');
+    });
 
-    expect(response.status).toBe(200);
-    expect(body).toEqual({ profile: 'octocat' });
-  });
+    it('returns 400 when username exceeds GitHub maximum length', async () => {
+      const response = await GET(
+        makeRequest({
+          username: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+        })
+      );
 
-  // Test 3 — throws 'User not found' → 404
-  it('returns 404 when getFullDashboardData throws User not found', async () => {
-    vi.mocked(getFullDashboardData).mockRejectedValue(new Error('User not found'));
+      const body = await response.json();
 
-    const response = await GET(makeRequest({ username: 'octocat' }));
-    const body = await response.json();
+      expect(response.status).toBe(400);
+      expect(body.error).toContain('Invalid parameters');
+    });
 
-    expect(response.status).toBe(404);
-    expect(body.error).toContain('User not found');
-  });
+    // Test 1 — missing username → 400
+    it('returns 400 when username is missing', async () => {
+      const response = await GET(makeRequest());
+      const body = await response.json();
 
-  // Test 4 — throws 'API limit reached' → 403
-  it('returns 403 when getFullDashboardData throws API limit reached', async () => {
-    vi.mocked(getFullDashboardData).mockRejectedValue(new Error('API limit reached'));
+      expect(response.status).toBe(400);
+      expect(body.error).toContain('Invalid parameters');
+    });
 
-    const response = await GET(makeRequest({ username: 'octocat' }));
-    const body = await response.json();
+    it('returns 400 and skips GitHub when username format is invalid', async () => {
+      const response = await GET(makeRequest({ username: 'bad user' }));
+      const body = await response.json();
 
-    expect(response.status).toBe(403);
-    expect(body.error).toContain('rate limit');
-  });
+      expect(response.status).toBe(400);
+      expect(body.error).toContain('Invalid parameters');
+      expect(getFullDashboardData).not.toHaveBeenCalled();
+    });
 
-  // Test 5 — throws generic error → 500
-  it('returns 500 for a generic unexpected error', async () => {
-    vi.mocked(getFullDashboardData).mockRejectedValue(new Error('Something went wrong'));
+    // Test 2 — valid username → 200
+    it('returns 200 with JSON body for a valid username', async () => {
+      vi.mocked(getFullDashboardData).mockResolvedValue({ profile: 'octocat' } as never);
 
-    const response = await GET(makeRequest({ username: 'octocat' }));
-    const body = await response.json();
+      const response = await GET(makeRequest({ username: 'octocat' }));
+      const body = await response.json();
 
-    expect(response.status).toBe(500);
-    expect(body.error).toContain('Something went wrong');
+      expect(response.status).toBe(200);
+      expect(body).toEqual({ profile: 'octocat' });
+    });
+
+    // Test 3 — throws 'User not found' → 404
+    it('returns 404 when getFullDashboardData throws User not found', async () => {
+      vi.mocked(getFullDashboardData).mockRejectedValue(new Error('User not found'));
+
+      const response = await GET(makeRequest({ username: 'octocat' }));
+      const body = await response.json();
+
+      expect(response.status).toBe(404);
+      expect(body.error).toContain('User not found');
+    });
+
+    // Test 4 — throws 'API limit reached' → 403
+    it('returns 403 when getFullDashboardData throws API limit reached', async () => {
+      vi.mocked(getFullDashboardData).mockRejectedValue(new Error('API limit reached'));
+
+      const response = await GET(makeRequest({ username: 'octocat' }));
+      const body = await response.json();
+
+      expect(response.status).toBe(403);
+      expect(body.error).toContain('rate limit');
+    });
+
+    // Test 5 — throws generic error → 500
+    it('returns 500 for a generic unexpected error', async () => {
+      vi.mocked(getFullDashboardData).mockRejectedValue(new Error('Something went wrong'));
+
+      const response = await GET(makeRequest({ username: 'octocat' }));
+      const body = await response.json();
+
+      expect(response.status).toBe(500);
+      expect(body.error).toContain('Something went wrong');
+    });
   });
 });

@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import AIInsights from './AIInsights';
@@ -7,7 +8,19 @@ import type { AIInsight } from '@/types/dashboard';
 // Mock framer-motion
 vi.mock('framer-motion', () => ({
   motion: {
-    div: ({ children, ...props }: any) => (
+    div: ({
+      children,
+      whileHover,
+      whileTap,
+      whileInView,
+      initial,
+      animate,
+      exit,
+      transition,
+      viewport,
+      layoutId,
+      ...props
+    }: any) => (
       <div {...props} data-testid="motion-div">
         {children}
       </div>

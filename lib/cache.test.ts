@@ -29,6 +29,29 @@ describe('TTLCache', () => {
       expect(cache.get('user')).toBeNull();
       cache.destroy();
     });
+
+    it('handles deeply nested object values without crashing', () => {
+      const cache = new TTLCache<{
+        level1: {
+          level2: {
+            level3: string;
+          };
+        };
+      }>();
+
+      const nested = {
+        level1: {
+          level2: {
+            level3: 'value',
+          },
+        },
+      };
+
+      expect(() => cache.set('nested', nested, 60_000)).not.toThrow();
+      expect(cache.get('nested')).toEqual(nested);
+
+      cache.destroy();
+    });
   });
 
   describe('clear()', () => {
@@ -403,10 +426,26 @@ describe('TTLCache', () => {
   });
 
   describe('edge cases and error handling', () => {
+    // FIX: New test explicitly targeting the -5000 boundary for Issue #1398
+    it('throws RangeError when setting a value with -5000 TTL', () => {
+      const cache = new TTLCache<string>();
+      expect(() => cache.set('key', 'value', -5000)).toThrow(RangeError);
+      cache.destroy();
+    });
+
     it('throws RangeError when ttlMs is 0 or negative', () => {
       const cache = new TTLCache<string>();
       expect(() => cache.set('key', 'value', 0)).toThrow(RangeError);
       expect(() => cache.set('key', 'value', -1)).toThrow(RangeError);
+      cache.destroy();
+    });
+
+    it('rejects an empty string cache key', () => {
+      const cache = new TTLCache<string>();
+
+      expect(() => cache.set('', 'value', 60_000)).toThrow('Cache key cannot be empty');
+      expect(cache.has('')).toBe(false);
+
       cache.destroy();
     });
 
@@ -441,6 +480,7 @@ describe('TTLCache', () => {
       expect([null, 'lived']).toContain(result);
       cache.destroy();
     });
+
     it('does not throw when ttlMs is Number.EPSILON', () => {
       const cache = new TTLCache<string>();
 

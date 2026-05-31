@@ -338,6 +338,7 @@ Our automation runs entirely through issue comments. Here is how you interact wi
 | Command                       | Who Can Use It?                                         | What It Does                                              |
 | ----------------------------- | ------------------------------------------------------- | --------------------------------------------------------- |
 | `/claim`                      | **Issue Author (or Anyone if authored by jhasourav07)** | Self-assigns the issue to you.                            |
+| `/unclaim`                    | **Assigned Contributor**                                | Removes the assignment from yourself (opens it back up).  |
 | `/addlabel <label1> <label2>` | **Anyone**                                              | Adds labels to the issue (e.g. `/addlabel frontend bug`). |
 | `/unassign @username`         | **Maintainers Only**                                    | Removes the assignee from an issue.                       |
 | `/assign @username`           | **Maintainers Only**                                    | Manually assigns someone to an issue.                     |
@@ -363,7 +364,7 @@ To keep the project moving, assignments are not permanent.
 If the bot rejects your command, check these common scenarios:
 
 - **"Commands cannot be used on closed issues"**: You cannot claim, assign, or unassign on closed issues. Find an open one!
-- **"You already have X/3 active assigned issues"**: You have reached the maximum of 3 concurrent assignments. Finish one of your current tasks before claiming a new issue. If you're stuck, ask a maintainer to `/unassign` you from one.
+- **"You already have X/3 active assigned issues"**: You have reached the maximum of 3 concurrent assignments. Finish one of your current tasks before claiming a new issue. If you're stuck, use the `/unclaim` command to unassign yourself from an issue, or ask a maintainer to `/unassign` you.
 - **"This issue is already assigned to @username"**: Be faster next time! Look for issues without assignees.
 - **"Only the author of this issue can claim it"**: You tried to `/claim` an issue you did not create. You can only claim issues that you authored (unless the issue was authored by `jhasourav07`, which anyone can claim).
 - **"The following label(s) do not exist"**: You can only add existing repo labels. The bot will reply with a list of valid labels you can use.

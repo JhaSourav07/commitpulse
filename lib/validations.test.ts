@@ -6,6 +6,31 @@ import {
   wrappedParamsSchema,
 } from './validations';
 
+describe('streakParamsSchema — grace fallback behavior', () => {
+  it('accepts "0" as a valid grace value', () => {
+    expect(parse({ grace: '0' }).grace).toBe(0);
+  });
+
+  it('accepts "7" as a valid grace value', () => {
+    expect(parse({ grace: '7' }).grace).toBe(7);
+  });
+
+  it('clamps "8" to 7', () => {
+    expect(parse({ grace: '8' }).grace).toBe(7);
+  });
+
+  it('clamps "-1" to 0', () => {
+    expect(parse({ grace: '-1' }).grace).toBe(0);
+  });
+
+  it('falls back to 1 for non-numeric grace value', () => {
+    expect(parse({ grace: 'abc' }).grace).toBe(1);
+  });
+
+  it('defaults to 1 when grace is omitted', () => {
+    expect(parse({}).grace).toBe(1);
+  });
+});
 describe('githubParamsSchema', () => {
   it('should pass when username is valid', () => {
     const result = githubParamsSchema.safeParse({
@@ -232,6 +257,17 @@ describe('streakParamsSchema', () => {
     }
   });
 
+  it('should reject user values longer than 39 characters', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'a'.repeat(40),
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toContain('cannot exceed 39 characters');
+    }
+  });
+
   it('should fail when user is whitespace-only input', () => {
     const result = streakParamsSchema.safeParse({
       user: '   ',
@@ -432,6 +468,18 @@ describe('streakParamsSchema — size fallback behavior', () => {
     }
   });
 
+  it('should fail when org contains invalid characters', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      org: 'invalid_org_name_with_spaces',
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.flatten().fieldErrors.org?.[0]).toBe('Invalid organization name format');
+    }
+  });
+
   it('should keep org undefined when omitted', () => {
     const result = streakParamsSchema.safeParse({
       user: 'octocat',
@@ -441,6 +489,18 @@ describe('streakParamsSchema — size fallback behavior', () => {
 
     if (result.success) {
       expect(result.data.org).toBeUndefined();
+    }
+  });
+
+  it('should fail when org contains invalid characters or spaces', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      org: 'invalid_org_name_with_spaces',
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toBe('Invalid organization name format');
     }
   });
 
@@ -631,6 +691,15 @@ describe('ogParamsSchema', () => {
   it('should fall back to "unknown" when neither are provided', () => {
     const result = ogParamsSchema.parse({});
     expect(result.user).toBe('unknown');
+  });
+
+  it('should fallback to "dark" when an invalid theme is provided', () => {
+    const result = ogParamsSchema.safeParse({ theme: 'nonexistent_theme_name' });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.theme).toBe('dark');
+    }
   });
 });
 

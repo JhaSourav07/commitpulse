@@ -62,7 +62,11 @@ export async function POST(req: Request) {
       // Upsert the user: create if doesn't exist, do nothing if exists
       await User.updateOne(
         { username: trimmedUsername },
-        { $setOnInsert: { username: trimmedUsername } },
+        {
+          $setOnInsert: { username: trimmedUsername },
+          $set: { lastSeen: new Date() },
+          $inc: { visitCount: 1 },
+        },
         { upsert: true }
       );
     } catch (upsertError) {

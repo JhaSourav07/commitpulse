@@ -91,6 +91,7 @@ describe('DashboardPage', () => {
     insights: [],
     achievements: [],
     commitClock: [],
+    graphData: { nodes: [], links: [] },
   };
 
   beforeEach(() => {
