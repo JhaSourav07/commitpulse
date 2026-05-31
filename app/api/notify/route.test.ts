@@ -95,4 +95,43 @@ describe('GET /api/notify', () => {
     const res = await GET(makeRequest('GET', undefined, 'user=testuser'));
     expect(res.status).toBe(200);
   });
+
+  it('masks the email address in GET responses to prevent PII exposure', async () => {
+    vi.mocked(Notification.findOne).mockResolvedValue({
+      username: 'testuser',
+      email: 'john.doe@gmail.com',
+      frequency: 'weekly',
+      notifyOnCommit: true,
+      notifyOnStreak: false,
+      notifyOnMilestone: true,
+    } as never);
+
+    const res = await GET(makeRequest('GET', undefined, 'user=testuser'));
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    // Assert the exact masked output for a known input
+    expect(body.data.email).toBe('jo***@gm***.com');
+    // The full email must never be returned
+    expect(body.data.email).not.toBe('john.doe@gmail.com');
+  });
+
+  it('masks emails without a TLD dot correctly (no trailing dot)', async () => {
+    vi.mocked(Notification.findOne).mockResolvedValue({
+      username: 'localuser',
+      email: 'admin@localhost',
+      frequency: 'daily',
+      notifyOnCommit: true,
+      notifyOnStreak: true,
+      notifyOnMilestone: true,
+    } as never);
+
+    const res = await GET(makeRequest('GET', undefined, 'user=localuser'));
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(body.data.email).toBe('ad***@lo***');
+    // Must not have a trailing dot
+    expect(body.data.email.endsWith('.')).toBe(false);
+  });
 });
