@@ -789,3 +789,46 @@ describe('streakParamsSchema — tz IANA timezone validation (Variation 4)', () 
     }
   });
 });
+describe('streakParamsSchema — layout query parameter validation (Variation 1)', () => {
+  it('accepts "default" as a valid layout value', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      layout: 'default',
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('accepts "monthly" as a valid layout value', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      layout: 'monthly',
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('accepts "heatmap" as a valid layout value', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      layout: 'heatmap',
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('falls back to "default" for unsupported layout value', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      layout: 'unsupported_layout',
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.layout).toBe('default');
+    }
+  });
+
+  it('accepts when layout is omitted (optional field)', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+    });
+    expect(result.success).toBe(true);
+  });
+});

@@ -241,6 +241,7 @@ const baseStreakParamsSchema = z.object({
     .optional()
     .transform((val) => val === 'true' || val === '1'),
   entrance: z.enum(['rise', 'fade', 'slide', 'none']).catch('rise').default('rise'),
+  layout: z.enum(['default', 'monthly', 'heatmap']).catch('default').default('default'),
 });
 
 export const streakParamsSchema = baseStreakParamsSchema.refine(

@@ -1349,3 +1349,29 @@ describe('GET /api/streak', () => {
     });
   });
 });
+describe('layout parameter validation', () => {
+  it('returns 200 for layout=default', async () => {
+    const response = await GET(makeRequest({ user: 'octocat', layout: 'default' }));
+    expect(response.status).toBe(200);
+  });
+
+  it('returns 200 for layout=monthly', async () => {
+    const response = await GET(makeRequest({ user: 'octocat', layout: 'monthly' }));
+    expect(response.status).toBe(200);
+  });
+
+  it('returns 200 for layout=heatmap', async () => {
+    const response = await GET(makeRequest({ user: 'octocat', layout: 'heatmap' }));
+    expect(response.status).toBe(200);
+  });
+
+  it('returns 200 for unsupported layout (falls back to default)', async () => {
+    const response = await GET(makeRequest({ user: 'octocat', layout: 'unsupported_layout' }));
+    expect(response.status).toBe(200);
+  });
+
+  it('returns 200 when layout is omitted', async () => {
+    const response = await GET(makeRequest({ user: 'octocat' }));
+    expect(response.status).toBe(200);
+  });
+});
