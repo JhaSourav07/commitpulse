@@ -28,7 +28,7 @@ export function CustomizeCTA() {
             <h2 className="text-2xl md:text-3xl font-extrabold text-black dark:text-white tracking-tight mb-3 leading-snug">
               Want to fine-tune your monolith?
             </h2>
-            <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed max-w-lg">
+            <p className="text-gray-600 dark:text-white/65 text-sm leading-relaxed max-w-lg">
               Dial in every pixel — swap accent colors, try a dark or neon theme, toggle logarithmic
               height scaling, and preview changes live before you paste a single line.
             </p>

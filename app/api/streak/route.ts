@@ -18,14 +18,6 @@ import { streakParamsSchema } from '@/lib/validations';
 const SVG_CSP_HEADER =
   "default-src 'none'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://fonts.gstatic.com;";
 
-// 1. Define a custom Error class for Validation
-class ValidationError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = 'ValidationError';
-  }
-}
-
 function escapeSVGText(value: string): string {
   return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
@@ -96,6 +88,8 @@ export async function GET(request: Request) {
       versus,
       shading,
       gradient,
+      tz: tzParam,
+      disable_particles,
     } = parseResult.data;
 
     const themeName = theme || 'dark';
@@ -110,16 +104,10 @@ export async function GET(request: Request) {
         ? `${year}-12-31T23:59:59Z`
         : undefined;
 
-    const tzParam = searchParams.get('tz');
     let timezone = 'UTC';
     if (tzParam) {
-      try {
-        timezone = new Intl.DateTimeFormat(undefined, { timeZone: tzParam }).resolvedOptions()
-          .timeZone;
-      } catch {
-        // We throw our new ValidationError here instead of returning directly
-        throw new ValidationError(`Invalid "tz" parameter: "${tzParam}"`);
-      }
+      timezone = new Intl.DateTimeFormat(undefined, { timeZone: tzParam }).resolvedOptions()
+        .timeZone;
     }
 
     const isAutoTheme = themeName === 'auto';
@@ -169,6 +157,7 @@ export async function GET(request: Request) {
       versus,
       shading,
       gradient,
+      disable_particles,
     };
 
     let calendar;
@@ -183,18 +172,20 @@ export async function GET(request: Request) {
       });
       calendar = orgData.calendar;
     } else {
-      calendar = await fetchGitHubContributions(user, {
+      const userData = await fetchGitHubContributions(user, {
         bypassCache: refresh,
         from,
         to,
       });
+      calendar = userData.calendar;
 
       if (versus) {
-        versusCalendar = await fetchGitHubContributions(versus, {
+        const versusData = await fetchGitHubContributions(versus, {
           bypassCache: refresh,
           from,
           to,
         });
+        versusCalendar = versusData.calendar;
       }
     }
 

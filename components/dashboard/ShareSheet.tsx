@@ -292,14 +292,14 @@ endsolid commitpulse_monolith`;
                     <h2 className="text-sm font-semibold text-gray-900 dark:text-white tracking-tight">
                       Share Pulse
                     </h2>
-                    <p className="text-xs text-gray-500 dark:text-white/45 mt-0.5">@{username}</p>
+                    <p className="text-xs text-gray-500 dark:text-white/65 mt-0.5">@{username}</p>
                   </div>
                   <button
                     onClick={onClose}
                     className="w-7 h-7 rounded-md bg-transparent hover:bg-black/5 dark:hover:bg-white/6 flex items-center justify-center transition-colors duration-150 border border-transparent dark:border-[rgba(255,255,255,0.08)]"
                     aria-label="Close share options panel"
                   >
-                    <X size={14} className="text-gray-500 dark:text-white/45" />
+                    <X size={14} className="text-gray-500 dark:text-white/65" />
                   </button>
                 </div>
 
@@ -323,14 +323,14 @@ endsolid commitpulse_monolith`;
                           {state === 'loading' ? (
                             <Loader2
                               size={15}
-                              className="text-gray-500 dark:text-white/45 animate-spin"
+                              className="text-gray-500 dark:text-white/65 animate-spin"
                             />
                           ) : state === 'success' ? (
                             <Check size={15} className="text-emerald-600 dark:text-white" />
                           ) : (
                             <Icon
                               size={15}
-                              className={`${opt.key === 'wrapped' ? 'text-pink-500 dark:text-pink-400' : 'text-gray-500 dark:text-white/45'} group-hover:text-black dark:group-hover:text-white transition-colors duration-200`}
+                              className={`${opt.key === 'wrapped' ? 'text-pink-500 dark:text-pink-400' : 'text-gray-500 dark:text-white/65'} group-hover:text-black dark:group-hover:text-white transition-colors duration-200`}
                             />
                           )}
                         </div>
@@ -358,7 +358,7 @@ endsolid commitpulse_monolith`;
                                 ? 'Failed — try again'
                                 : opt.label}
                           </span>
-                          <span className="text-xs text-gray-500 dark:text-white/45 mt-0.5 truncate">
+                          <span className="text-xs text-gray-500 dark:text-white/65 mt-0.5 truncate">
                             {opt.description}
                           </span>
                         </div>

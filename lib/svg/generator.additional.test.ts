@@ -285,10 +285,32 @@ describe('[Issue] generateVersusSVG — zero existing test coverage', () => {
     expect(svg).toContain('stroke-dasharray="4 4"');
   });
 
-  it('total width is double the single card width for medium size', () => {
+  it('total width viewBox is double the single card width for medium size', () => {
     const svg = generateVersusSVG(stats1, stats2, versusParams, calendar1, calendar2);
-    // Medium size: SVG_WIDTH=600, versus = 600*2=1200
-    expect(svg).toContain('width="1200"');
+    expect(svg).toContain('viewBox="0 0 1200 420"');
+    expect(svg).toContain('width="100%"');
+  });
+
+  it('renders correct viewBox for small size in versus SVG', () => {
+    const svg = generateVersusSVG(
+      stats1,
+      stats2,
+      { ...versusParams, size: 'small' },
+      calendar1,
+      calendar2
+    );
+    expect(svg).toContain('viewBox="0 0 800 280"');
+  });
+
+  it('renders correct viewBox for large size in versus SVG', () => {
+    const svg = generateVersusSVG(
+      stats1,
+      stats2,
+      { ...versusParams, size: 'large' },
+      calendar1,
+      calendar2
+    );
+    expect(svg).toContain('viewBox="0 0 1600 560"');
   });
 
   it('includes total contribution counts from both users in <desc>', () => {

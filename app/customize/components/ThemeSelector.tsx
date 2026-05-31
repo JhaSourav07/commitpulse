@@ -88,7 +88,7 @@ export function ThemeSelector({
                 <span className="w-1/2 h-full" style={{ backgroundColor: `#${themes.light.bg}` }} />
                 <span className="w-1/2 h-full" style={{ backgroundColor: `#${themes.dark.bg}` }} />
               </span>
-              <span className="text-[11px] text-gray-500 dark:text-white/25 ml-1 self-center">
+              <span className="text-[11px] text-gray-500 dark:text-white/60 ml-1 self-center">
                 switches with OS theme
               </span>
             </>
@@ -102,7 +102,7 @@ export function ThemeSelector({
                   style={{ backgroundColor: `#${color}` }}
                 />
               ))}
-              <span className="text-[11px] text-gray-500 dark:text-white/25 ml-1 self-center">
+              <span className="text-[11px] text-gray-500 dark:text-white/60 ml-1 self-center">
                 changes on each load
               </span>
             </>
@@ -119,7 +119,7 @@ export function ThemeSelector({
                   />
                 ) : null;
               })}
-              <span className="text-[11px] text-gray-500 dark:text-white/25 ml-1 self-center">
+              <span className="text-[11px] text-gray-500 dark:text-white/60 ml-1 self-center">
                 bg · accent · text
               </span>{' '}
             </>

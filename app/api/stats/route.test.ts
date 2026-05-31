@@ -38,7 +38,10 @@ function makeRequest(params: Record<string, string> = {}): Request {
 describe('GET /api/stats', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(fetchGitHubContributions).mockResolvedValue(mockCalendar);
+    vi.mocked(fetchGitHubContributions).mockResolvedValue({
+      calendar: mockCalendar,
+      repoContributions: [],
+    });
   });
 
   // ─── Parameter validation ──────────────────────────────────────────────────

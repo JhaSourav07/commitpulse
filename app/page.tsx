@@ -12,6 +12,8 @@ import { useRecentSearches } from '@/hooks/useRecentSearches';
 import { useDebounce } from '@/hooks/useDebounce';
 import { Footer } from '@/app/components/Footer';
 import InteractiveViewer from '@/components/InteractiveViewer';
+import { FeatureCard, FeatureCardsSection } from '@/components/FeatureCards';
+import { DiscordButton } from '@/components/DiscordButton';
 
 const Icons = {
   Github: () => (
@@ -71,7 +73,6 @@ const Icons = {
 export default function LandingPage() {
   const [username, setUsername] = useState('');
   const [copied, setCopied] = useState(false);
-  const [svgContent, setSvgContent] = useState<string | null>(null);
   const [svgState, setSvgState] = useState<'idle' | 'loading' | 'loaded' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const guideRef = useRef<HTMLDivElement>(null);
@@ -91,27 +92,21 @@ export default function LandingPage() {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://commitpulse.vercel.app';
   const markdown = `![CommitPulse](${siteUrl}/api/streak?user=${trimmedUsername})`;
 
-  // Fetch SVG content whenever debounced username changes.
+  // Probe badge URL for errors; actual rendering uses a native <img> tag.
   useEffect(() => {
     if (!hasUsername) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setSvgContent(null);
-
       setSvgState('idle');
       return;
     }
 
     setSvgState('loading');
 
-    setSvgContent(null);
-
     const controller = new AbortController();
 
     fetch(badgeUrl, { signal: controller.signal })
       .then(async (res) => {
-        const text = await res.text();
         if (!res.ok) {
-          setSvgContent(null);
           setSvgState('error');
           if (res.status === 404 || res.status === 400 || res.status === 429) {
             setErrorMessage('GitHub user not found');
@@ -120,11 +115,6 @@ export default function LandingPage() {
           }
           return;
         }
-        return text;
-      })
-      .then((text) => {
-        if (!text) return;
-        setSvgContent(text);
         setSvgState('loaded');
         setErrorMessage(null);
       })
@@ -159,45 +149,7 @@ export default function LandingPage() {
 
       <main className="relative z-10 mx-auto max-w-6xl px-6 mt-32">
         <div className="mb-16 text-center">
-          <motion.a
-            href="https://discord.gg/Cb73bS79j"
-            target="_blank"
-            rel="noopener noreferrer"
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            whileHover={{ scale: 1.04, backgroundColor: 'rgba(255,255,255,0.07)' }}
-            whileTap={{ scale: 0.97 }}
-            className="mb-8 inline-flex items-center gap-2.5 rounded-full border border-black/10 bg-white px-4 py-1.5 text-xs font-medium text-gray-700 shadow-sm backdrop-blur-sm transition-colors duration-200 hover:border-black/20 hover:text-black dark:border-white/10 dark:bg-white/[0.04] dark:text-white/50 dark:hover:border-white/20 dark:hover:text-white/80"
-          >
-            <span className="relative flex h-1.5 w-1.5">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-black/40 dark:bg-white/50" />
-              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-black/70 dark:bg-white/70" />
-            </span>
-            <svg
-              width="13"
-              height="13"
-              viewBox="0 0 24 24"
-              fill="currentColor"
-              className="opacity-60"
-            >
-              <path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3333-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3333-.946 2.4189-2.1568 2.4189Z" />
-            </svg>
-            Join the community on Discord
-            <svg
-              width="10"
-              height="10"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="opacity-40"
-            >
-              <path d="M7 17L17 7M17 7H7M17 7v10" />
-            </svg>
-          </motion.a>
+          <DiscordButton />
 
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -217,7 +169,7 @@ export default function LandingPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.3 }}
-            className="mx-auto max-w-2xl text-sm sm:text-lg leading-relaxed text-gray-600 dark:text-gray-400 md:text-xl "
+            className="mx-auto max-w-2xl text-sm sm:text-lg leading-relaxed text-gray-600 dark:text-white/65 md:text-xl "
           >
             Stop settling for flat grids. Generate high-fidelity, 3D isometric monoliths that
             visualize your coding rhythm with professional precision.
@@ -247,7 +199,7 @@ export default function LandingPage() {
                   {username.length > 0 ? (
                     <button
                       onClick={() => setUsername('')}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 transition-colors hover:text-black dark:text-[#A1A1AA] dark:hover:text-white"
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 transition-colors hover:text-black dark:text-white/65 dark:hover:text-white"
                       aria-label="Clear input"
                       type="button"
                     >
@@ -269,7 +221,7 @@ export default function LandingPage() {
                   className={`relative flex min-w-[160px] items-center justify-center gap-2 overflow-hidden rounded-2xl px-6 py-4 text-sm font-semibold transition-all duration-300 transform cursor-pointer hover:scale-[1.02] hover:shadow-lg active:scale-[0.98] disabled:cursor-not-allowed ${
                     mounted && trimmedUsername.length > 0
                       ? 'bg-black text-white hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-gray-100 shadow-md'
-                      : 'bg-gray-100 text-gray-400 dark:bg-white/5 dark:text-white/20'
+                      : 'bg-gray-100 text-gray-400 dark:bg-white/5 dark:text-white/55'
                   }`}
                 >
                   <AnimatePresence mode="wait">
@@ -311,7 +263,7 @@ export default function LandingPage() {
                   className={`relative flex min-w-[160px] items-center justify-center gap-2 overflow-hidden rounded-2xl border px-6 py-4 text-sm font-semibold transition-all duration-300 hover:scale-[1.02] hover:shadow-lg active:scale-[0.98] ${
                     mounted && trimmedUsername.length > 0
                       ? 'border-black/10 bg-white text-black hover:bg-gray-50 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10 shadow-sm'
-                      : 'border-black/5 bg-gray-50 text-gray-400 dark:border-white/5 dark:bg-transparent dark:text-white/20'
+                      : 'border-black/5 bg-gray-50 text-gray-400 dark:border-white/5 dark:bg-transparent dark:text-white/55'
                   }`}
                 >
                   Watch Dashboard
@@ -356,7 +308,7 @@ export default function LandingPage() {
 
           <div className="group relative mt-10">
             <div className="absolute -inset-1 rounded-[2.5rem] bg-gradient-to-r from-emerald-500/20 to-cyan-500/20 opacity-50 blur-2xl transition duration-1000 group-hover:opacity-100" />
-            <InteractiveViewer className="relative flex min-h-[360px] items-center justify-center overflow-hidden rounded-3xl border border-black/5 bg-white/50 p-8 backdrop-blur-xl shadow-2xl dark:border-white/10 dark:bg-[#0a0a0a]/80">
+            <div className="relative flex min-h-[480px] md:min-h-[520px] items-center justify-center overflow-visible rounded-3xl border border-black/5 bg-white/50 p-8 backdrop-blur-xl shadow-2xl dark:border-white/10 dark:bg-[#0a0a0a]/80">
               {hasUsername ? (
                 <div className="w-full flex items-center justify-center">
                   {svgState === 'loading' && (
@@ -371,7 +323,7 @@ export default function LandingPage() {
                         <p className="text-lg font-bold text-gray-900 dark:text-white tracking-tight">
                           GitHub user not found
                         </p>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                        <p className="text-sm text-gray-500 dark:text-white/65 mt-1">
                           Please check the username and try again.
                         </p>
                       </div>
@@ -382,22 +334,26 @@ export default function LandingPage() {
                       <p className="text-sm font-semibold text-red-500 dark:text-red-400">
                         Failed to load badge
                       </p>
-                      <p className="text-xs text-gray-500 dark:text-white/40">
+                      <p className="text-xs text-gray-500 dark:text-white/55">
                         The API may be unavailable. Please try again.
                       </p>
                     </div>
                   )}
-                  {svgState === 'loaded' && svgContent && (
+                  {svgState === 'loaded' && (
                     <motion.div
                       initial={{ opacity: 0, scale: 0.95 }}
                       animate={{ opacity: 1, scale: 1 }}
                       transition={{ duration: 0.5, ease: 'easeOut' }}
-                      className="cp-svg-container w-full max-w-[700px] drop-shadow-[0_30px_60px_rgba(0,0,0,0.15)] dark:drop-shadow-[0_30px_60px_rgba(0,0,0,0.5)] [&>svg]:w-full [&>svg]:h-auto"
-                      dangerouslySetInnerHTML={{ __html: svgContent }}
-                    />
-                  )}
-                  {svgState === 'loaded' && !svgContent && errorMessage && (
-                    <p className="text-red-400 text-sm text-center">{errorMessage}</p>
+                      className="w-full max-w-[700px] drop-shadow-[0_30px_60px_rgba(0,0,0,0.15)] dark:drop-shadow-[0_30px_60px_rgba(0,0,0,0.5)]"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        data-testid="badge-img"
+                        src={badgeUrl}
+                        alt={`CommitPulse badge for ${debouncedUsername}`}
+                        className="w-full h-auto"
+                      />
+                    </motion.div>
                   )}
                 </div>
               ) : (
@@ -408,13 +364,13 @@ export default function LandingPage() {
                   <p className="text-xl font-bold tracking-tight text-gray-900 dark:text-white">
                     Ready to visualize your rhythm?
                   </p>
-                  <p className="mt-3 max-w-md text-sm leading-relaxed text-gray-500 dark:text-gray-400">
+                  <p className="mt-3 max-w-md text-sm leading-relaxed text-gray-500 dark:text-white/65">
                     Enter a GitHub username above to instantly generate your 3D contribution
                     monolith preview.
                   </p>
                 </div>
               )}
-            </InteractiveViewer>
+            </div>
           </div>
         </section>
 
@@ -432,60 +388,35 @@ export default function LandingPage() {
 
         <CustomizeCTA />
 
-        <div className="grid gap-6 md:grid-cols-3">
+        <FeatureCardsSection>
           <FeatureCard
             icon={<Icons.Zap />}
-            accent="text-black dark:text-white"
+            accent="text-white"
+            accentColor="#10b981"
+            index={0}
             title="Real-time Sync"
             desc="Pulled directly from GitHub GraphQL API. Your streak updates as fast as your code pushes."
           />
           <FeatureCard
             icon={<Icons.Copy />}
-            accent="text-black dark:text-white"
+            accent="text-white"
+            accentColor="#8b5cf6"
+            index={1}
             title="Theme Engine"
             desc="Switch between Neon, Dracula, or custom HEX modes via simple URL management."
           />
           <FeatureCard
             icon={<Icons.Box />}
-            accent="text-black dark:text-white"
+            accent="text-white"
+            accentColor="#06b6d4"
+            index={2}
             title="Isometric Math"
             desc="Sophisticated 3D projection formulas turn 2D data into digital architecture."
           />
-        </div>
+        </FeatureCardsSection>
         <Footer />
       </main>
     </div>
-  );
-}
-
-function FeatureCard({
-  icon,
-  title,
-  desc,
-  accent,
-}: {
-  icon: ReactNode;
-  title: string;
-  desc: string;
-  accent: string;
-}) {
-  return (
-    <motion.div
-      whileHover={{ y: -5, scale: 1.02 }}
-      transition={{ type: 'spring', stiffness: 300 }}
-      className="group relative overflow-hidden rounded-3xl border border-black/5 bg-white/60 p-8 shadow-xl shadow-black/5 hover:border-emerald-500/30 dark:border-white/10 dark:bg-[#0a0a0a]/80 dark:shadow-2xl dark:shadow-black/50 dark:hover:border-emerald-500/40 dark:hover:bg-[#111] transition-all duration-300 backdrop-blur-xl"
-    >
-      <div className="absolute -right-20 -top-20 h-40 w-40 rounded-full bg-emerald-500/10 blur-3xl transition-all duration-500 group-hover:bg-emerald-500/20" />
-      <div
-        className={`mb-6 w-fit rounded-2xl bg-gradient-to-br from-gray-100 to-gray-50 p-3.5 text-black shadow-sm ring-1 ring-black/5 dark:from-white/10 dark:to-white/5 dark:text-white dark:ring-white/10 ${accent}`}
-      >
-        {icon}
-      </div>
-      <h3 className="mb-3 text-lg font-bold text-gray-900 dark:text-white tracking-tight">
-        {title}
-      </h3>
-      <p className="text-sm leading-relaxed text-gray-600 dark:text-gray-400">{desc}</p>
-    </motion.div>
   );
 }
 
@@ -551,7 +482,7 @@ function SuccessGuide({
 
           <button
             onClick={onDismiss}
-            className="ml-4 mt-1 shrink-0 rounded-xl p-2 text-gray-500 transition-all hover:bg-gray-100 hover:text-black dark:text-white/30 dark:hover:bg-white/5 dark:hover:text-white"
+            className="ml-4 mt-1 shrink-0 rounded-xl p-2 text-gray-500 transition-all hover:bg-gray-100 hover:text-black dark:text-white/55 dark:hover:bg-white/5 dark:hover:text-white"
             aria-label="Dismiss guide"
           >
             <svg
@@ -594,7 +525,7 @@ function SuccessGuide({
         </div>
 
         <div className="px-8 py-6">
-          <p className="mb-3 text-xs font-bold uppercase tracking-[0.15em] text-gray-500 dark:text-white/30">
+          <p className="mb-3 text-xs font-bold uppercase tracking-[0.15em] text-gray-500 dark:text-white/55">
             Your copied snippet
           </p>
           <div className="flex items-center gap-3 rounded-xl border border-black/10 bg-gray-100 px-4 py-3 font-mono text-sm dark:border-white/8 dark:bg-black/60">
@@ -603,8 +534,8 @@ function SuccessGuide({
               {markdown}
             </code>
           </div>
-          <p className="mt-4 text-xs leading-relaxed text-gray-500 dark:text-white/25">
-            Tip: Add <code className="text-gray-700 dark:text-white/40">?accent=808080</code> to the
+          <p className="mt-4 text-xs leading-relaxed text-gray-500 dark:text-white/55">
+            Tip: Add <code className="text-gray-700 dark:text-white/55">?accent=808080</code> to the
             URL to change your monolith&apos;s colour palette.
           </p>
           <div className="mt-8 flex justify-center border-t border-black/10 pt-6 dark:border-white/5">
