@@ -6,6 +6,8 @@ import { TTLCache } from '@/lib/cache';
 import { LANGUAGE_COLORS } from '@/lib/svg/languageColors';
 import { CONTRIBUTION_MILESTONES, STREAK_MILESTONES } from './svg/constants';
 
+import 'server-only';
+
 interface GitHubRepo {
   stargazers_count: number;
   language: string | null;
