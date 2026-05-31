@@ -250,7 +250,14 @@ const baseStreakParamsSchema = z.object({
     .string()
     .optional()
     .transform((val) => val === 'true' || val === '1'),
-  entrance: z.enum(['rise', 'fade', 'slide', 'none']).catch('rise').default('rise'),
+  glow: z
+    .string()
+    .optional()
+    .transform((val) => {
+      if (val === undefined) return true;
+      return val === 'true' || val === '1';
+    })
+    .default(true),
 });
 
 export const streakParamsSchema = baseStreakParamsSchema.refine(

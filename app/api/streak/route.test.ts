@@ -122,11 +122,20 @@ describe('GET /api/streak', () => {
 
       expect(response.status).toBe(400);
       const body = await response.json();
-      expect(response.status).toBe(400);
       expect(body.error).toBe('Invalid parameters');
       expect(body.details).not.toBeNull();
       expect(typeof body.details).toBe('object');
       expect(Array.isArray(body.details)).toBe(false);
+    });
+    it('returns 400 when org parameter contains spaces and invalid characters', async () => {
+      const response = await GET(
+        makeRequest({ user: 'octocat', org: 'invalid_org_name_with_spaces' })
+      );
+
+      expect(response.status).toBe(400);
+      const body = await response.json();
+      expect(body.details.fieldErrors.org[0]).toBe('Invalid organization name format');
+      expect(getOrgDashboardData).not.toHaveBeenCalled();
     });
 
     it('does not hit the GitHub API at all when user is missing', async () => {

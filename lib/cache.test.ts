@@ -458,6 +458,17 @@ describe('TTLCache', () => {
       cache.destroy();
     });
 
+    it('throws TypeError when setting a null key', () => {
+      const cache = new TTLCache<string>();
+
+      expect(() => {
+        cache.set(null as unknown as string, 'value', 60_000);
+      }).toThrow(TypeError);
+      expect(cache.size()).toBe(0);
+
+      cache.destroy();
+    });
+
     it('throws RangeError when ttlMs is 0 or negative', () => {
       const cache = new TTLCache<string>();
       expect(() => cache.set('key', 'value', 0)).toThrow(RangeError);
@@ -538,6 +549,23 @@ describe('TTLCache', () => {
 
       cache.destroy();
     });
+    // FIX: New test targeting the NaN boundary for Issue #1399
+    it('resolves NaN TTL to the default standard TTL duration', () => {
+      vi.useFakeTimers();
+      const cache = new TTLCache<string>();
+
+      // Setting with NaN should not throw; it should fallback to the default TTL
+      expect(() => cache.set('nan-key', 'value', NaN)).not.toThrow();
+
+      // The item should be successfully stored
+      expect(cache.get('nan-key')).toBe('value');
+
+      // Advance by a small amount to ensure it didn't instantly expire
+      vi.advanceTimersByTime(1000);
+      expect(cache.get('nan-key')).toBe('value');
+
+      cache.destroy();
+    });
 
     it('verify TTLCache behavior for infinite TTL value (Variation 1)', () => {
       const cache = new TTLCache<string>();
@@ -566,6 +594,28 @@ describe('TTLCache', () => {
 
       cache.destroy();
     });
+  });
+
+  it('stores and retrieves values with unicode and emoji cache keys', () => {
+    const cache = new TTLCache<string>();
+
+    const unicodeKey = 'cache_🔥_key';
+    const emojiKey = '🚀_rocket_🚀';
+    const mixedKey = 'user_👤_data_🔐';
+
+    cache.set(unicodeKey, 'fire-value', 60_000);
+    cache.set(emojiKey, 'rocket-value', 60_000);
+    cache.set(mixedKey, 'secure-data', 60_000);
+
+    expect(cache.get(unicodeKey)).toBe('fire-value');
+    expect(cache.get(emojiKey)).toBe('rocket-value');
+    expect(cache.get(mixedKey)).toBe('secure-data');
+
+    expect(cache.has(unicodeKey)).toBe(true);
+    expect(cache.has(emojiKey)).toBe(true);
+    expect(cache.has(mixedKey)).toBe(true);
+
+    cache.destroy();
   });
 });
 

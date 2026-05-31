@@ -22,10 +22,8 @@ describe('User Model', () => {
           options: { default?: unknown };
         };
 
-        // Assertion 1: the default is a function
         expect(typeof createdAtPath.options.default).toBe('function');
 
-        // Assertion 2: calling the default returns a numeric timestamp
         const result = (createdAtPath.options.default as () => number)();
         expect(typeof result).toBe('number');
         expect(Number.isFinite(result)).toBe(true);
@@ -126,7 +124,6 @@ describe('User Model', () => {
   describe('Database Connection State 2 Handling', () => {
     it('buffers operations when connection is in state 2 (connecting)', async () => {
       const { vi } = await import('vitest');
-
       const readyStateSpy = vi
         .spyOn(mongoose.connection, 'readyState', 'get')
         .mockReturnValue(2 as unknown as typeof mongoose.connection.readyState);
@@ -150,6 +147,7 @@ describe('User Model', () => {
 
       // 5. Cleanup
       readyStateSpy.mockRestore();
+      startSessionSpy.mockRestore();
     });
   });
 });

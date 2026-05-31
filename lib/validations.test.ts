@@ -18,6 +18,18 @@ describe('streakParamsSchema — grace fallback behavior', () => {
     expect(parse({ grace: '-1' }).grace).toBe(0);
   });
 
+  it('falls back or clamps a negative non-integer grace input safely', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      grace: '-1.5',
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.grace).toBe(0);
+    }
+  });
+
   it('falls back to 1 for non-numeric grace value', () => {
     expect(parse({ grace: 'abc' }).grace).toBe(1);
   });
@@ -635,6 +647,40 @@ describe('streakParamsSchema — boolean transform fields', () => {
       expect(parse({}).hide_background).toBe(false);
     });
   });
+
+  // ── glow ──────────────────────────────────────────────────────────────────
+  describe('glow', () => {
+    it('returns true when glow="true"', () => {
+      expect(parse({ glow: 'true' }).glow).toBe(true);
+    });
+
+    it('returns true when glow="1"', () => {
+      expect(parse({ glow: '1' }).glow).toBe(true);
+    });
+
+    it('returns false when glow="false"', () => {
+      expect(parse({ glow: 'false' }).glow).toBe(false);
+    });
+
+    it('returns true when glow is omitted', () => {
+      expect(parse({}).glow).toBe(true);
+    });
+  });
+});
+
+describe('streakParamsSchema — org parameter validation', () => {
+  it('should reject org parameter with spaces and special characters', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      org: 'invalid_org_name_with_spaces',
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const fieldError = result.error.flatten().fieldErrors.org?.[0];
+      expect(fieldError).toBe('Invalid organization name format');
+    }
+  });
 });
 
 describe('ogParamsSchema', () => {
@@ -700,6 +746,15 @@ describe('ogParamsSchema', () => {
       expect(result.data.theme).toBe('dark');
     }
   });
+
+  it('falls back to dark theme when theme parameter is an empty string', () => {
+    const result = ogParamsSchema.safeParse({ theme: '' });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.theme).toBe('dark');
+    }
+  });
 });
 
 describe('streakParamsSchema — view fallback behavior', () => {
@@ -738,6 +793,20 @@ describe('streakParamsSchema — accent parameter HEX color validation', () => {
     });
 
     expect(result.success).toBe(false);
+  });
+
+  it('rejects the invalid boundary hex color "#ZZZZZZ" for accent', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      accent: '#ZZZZZZ',
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toContain(
+        'accent must be a valid 3 or 6 character hex color without #'
+      );
+    }
   });
 
   it('accepts a valid 6-character hex color for accent', () => {
