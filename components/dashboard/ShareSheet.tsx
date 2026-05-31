@@ -1,26 +1,22 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Check,
   Code,
   Download,
   FileJson,
-  FileText,
   Link2,
   Loader2,
   Share2,
   Smartphone,
   X,
-  Box,
-  Sparkles,
 } from 'lucide-react';
 import { toPng } from 'html-to-image';
 import type { DashboardExportData } from '@/types/dashboard';
 
-type OptionState = 'idle' | 'loading' | 'success' | 'error';
-
+// Inline branded icons (Twitter/X brand, LinkedIn brand)
 const XBrandIcon = ({ size = 18, className = '' }: { size?: number; className?: string }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" className={className}>
     <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.73-8.835L1.254 2.25H8.08l4.259 5.63L18.244 2.25Zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
@@ -40,8 +36,8 @@ const RedditIcon = ({ size = 18, className = '' }: { size?: number; className?: 
 );
 
 const WhatsAppIcon = ({ size = 18, className = '' }: { size?: number; className?: string }) => (
-  <svg width={size} height={size} viewBox="0 0 32 32" fill="currentColor" className={className}>
-    <path d="M19.11 17.2c-.3-.15-1.77-.87-2.04-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.95 1.17-.17.2-.35.22-.65.07-.3-.15-1.28-.47-2.43-1.5-.9-.8-1.5-1.8-1.67-2.1-.17-.3-.02-.47.13-.62.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.07-.15-.67-1.62-.92-2.22-.24-.58-.48-.5-.67-.51h-.57c-.2 0-.52.07-.8.37-.27.3-1.05 1.02-1.05 2.5s1.07 2.9 1.22 3.1c.15.2 2.1 3.2 5.1 4.48.7.3 1.25.47 1.67.6.7.22 1.35.2 1.85.12.57-.08 1.77-.72 2.02-1.42.25-.7.25-1.3.17-1.42-.07-.12-.27-.2-.57-.35ZM16.02 3C8.84 3 3 8.74 3 15.82c0 2.27.6 4.48 1.74 6.42L3 29l6.96-1.82a13.1 13.1 0 0 0 6.06 1.54h.01c7.18 0 13.02-5.74 13.02-12.82C29.04 8.74 23.2 3 16.02 3Zm0 23.5h-.01a10.8 10.8 0 0 1-5.5-1.5l-.4-.24-4.13 1.08 1.1-4.02-.26-.42a10.58 10.58 0 0 1-1.64-5.58c0-5.9 4.86-10.7 10.84-10.7 2.9 0 5.63 1.12 7.67 3.14a10.56 10.56 0 0 1 3.18 7.56c0 5.9-4.86 10.7-10.85 10.7Z" />
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" className={className}>
+    <path d="M20.52 3.48A11.86 11.86 0 0 0 12.04 0C5.45 0 .09 5.36.09 11.95c0 2.1.55 4.15 1.6 5.96L0 24l6.28-1.65a11.9 11.9 0 0 0 5.76 1.47h.01c6.58 0 11.95-5.36 11.95-11.95 0-3.19-1.24-6.18-3.48-8.39ZM12.05 21.8h-.01a9.9 9.9 0 0 1-5.04-1.38l-.36-.21-3.73.98 1-3.63-.23-.37a9.88 9.88 0 1 1 8.37 4.61Zm5.44-7.42c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.66.15-.19.3-.76.97-.93 1.16-.17.2-.34.22-.64.08-.3-.15-1.25-.46-2.38-1.47-.88-.78-1.48-1.74-1.66-2.03-.17-.3-.02-.46.13-.61.13-.13.3-.34.44-.51.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.08-.15-.67-1.62-.92-2.22-.24-.58-.48-.5-.66-.5h-.56c-.2 0-.52.08-.79.37-.27.3-1.03 1.01-1.03 2.47s1.06 2.87 1.2 3.07c.15.2 2.09 3.2 5.07 4.48.71.31 1.27.5 1.7.64.71.23 1.36.2 1.87.12.57-.08 1.76-.72 2.01-1.42.25-.7.25-1.3.17-1.42-.07-.12-.27-.2-.57-.35Z" />
   </svg>
 );
 
@@ -63,71 +59,7 @@ export default function ShareSheet({ username, isOpen, onClose, exportData }: Sh
   const [states, setStates] = useState<Record<string, OptionState>>({});
   const overlayRef = useRef<HTMLDivElement>(null);
 
-  // Existing actions from the custom hook
-  const {
-    states,
-    handleCopyLink,
-    handleTwitter,
-    handleLinkedIn,
-    handleReddit,
-    handleDownloadPNG,
-    handleDownloadWEBP,
-    handleCopyImage,
-    handleDownloadSVG,
-    handleCopyMarkdown,
-    handleDownloadCSV,
-    handleDownloadJSON,
-    handleNativeShare,
-  } = useShareActions(username, exportData, onClose);
-
-  // Local state for the new epic features (since we can't edit useShareActions right now)
-  const [localStates, setLocalStates] = useState<Record<string, OptionState>>({});
-
-  const setLocalOptionState = (key: string, state: OptionState) => {
-    setLocalStates((prev) => ({ ...prev, [key]: state }));
-    if (state === 'success' || state === 'error') {
-      setTimeout(() => setLocalStates((prev) => ({ ...prev, [key]: 'idle' })), 2500);
-    }
-  };
-
-  const handleDownloadSTL = async () => {
-    setLocalOptionState('stl', 'loading');
-    try {
-      // Simulate STL processing time
-      await new Promise((resolve) => setTimeout(resolve, 1200));
-
-      // Basic STL placeholder generation (A true 3D generator would iterate over the calendar)
-      const stlContent = `solid commitpulse_monolith
-  facet normal 0 0 1
-    outer loop
-      vertex 0 0 0
-      vertex 10 0 0
-      vertex 10 10 0
-    endloop
-  endfacet
-endsolid commitpulse_monolith`;
-
-      const blob = new Blob([stlContent], { type: 'text/plain' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.download = `${username}-monolith.stl`;
-      link.href = url;
-      link.click();
-      URL.revokeObjectURL(url);
-
-      setLocalOptionState('stl', 'success');
-      setTimeout(() => onClose(), 800);
-    } catch {
-      setLocalOptionState('stl', 'error');
-    }
-  };
-
-  const handleGitHubWrapped = () => {
-    // Navigate to the Wrapped experience
-    window.open(`/dashboard/${username}/wrapped`, '_blank');
-    onClose();
-  };
-
+  // Close on Escape
   useEffect(() => {
     const handler = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
     window.addEventListener('keydown', handler);
@@ -142,18 +74,175 @@ endsolid commitpulse_monolith`;
     };
   }, [isOpen]);
 
-  const combinedStates = { ...states, ...localStates };
+  const setOptionState = (key: string, state: OptionState) => {
+    setStates((prev) => ({ ...prev, [key]: state }));
+    if (state === 'success' || state === 'error') {
+      setTimeout(() => setStates((prev) => ({ ...prev, [key]: 'idle' })), 2500);
+    }
+  };
+
+  /* ── Option handlers ─────────────────────────── */
+
+  const handleCopyLink = async () => {
+    setOptionState('copy', 'loading');
+    try {
+      await navigator.clipboard.writeText(PROFILE_URL(username));
+      setOptionState('copy', 'success');
+      setTimeout(() => onClose(), 800);
+    } catch {
+      setOptionState('copy', 'error');
+    }
+  };
+
+  const handleTwitter = () => {
+    const url = PROFILE_URL(username);
+    const text = encodeURIComponent(`Check out my GitHub commit pulse on CommitPulse 🚀\n${url}`);
+    window.open(`https://twitter.com/intent/tweet?text=${text}`, '_blank', 'noopener');
+    onClose();
+  };
+
+  const handleLinkedIn = () => {
+    const url = encodeURIComponent(PROFILE_URL(username));
+    window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${url}`, '_blank', 'noopener');
+    onClose();
+  };
+
+  const handleReddit = () => {
+    const url = encodeURIComponent(PROFILE_URL(username));
+    const title = encodeURIComponent('Check out my CommitPulse dashboard 🚀');
+
+    window.open(`https://www.reddit.com/submit?url=${url}&title=${title}`, '_blank');
+
+    onClose();
+  };
+
+  const handleWhatsApp = () => {
+    const url = PROFILE_URL(username);
+    const text = encodeURIComponent(`Check out my GitHub commit pulse on CommitPulse 🚀\n${url}`);
+
+    window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank', 'noopener');
+
+    onClose();
+  };
+
+  const handleDownloadPNG = async () => {
+    setOptionState('png', 'loading');
+    try {
+      // Target the whole dashboard wrapper; fall back to body
+      const node =
+        document.getElementById('dashboard-root') ??
+        document.querySelector<HTMLElement>('[data-dashboard]') ??
+        document.body;
+
+      const dataUrl = await toPng(node, {
+        quality: 0.95,
+        pixelRatio: 2,
+        backgroundColor: '#050505',
+        filter: (el) => {
+          // Exclude the share sheet itself and the generate button from the capture
+          if (el instanceof HTMLElement) {
+            if (el.id === 'share-sheet-overlay') return false;
+            if (el.id === 'generate-dashboard-btn') return false;
+          }
+          return true;
+        },
+      });
+
+      const link = document.createElement('a');
+      link.download = `${username}-commitpulse.png`;
+      link.href = dataUrl;
+      link.click();
+      setOptionState('png', 'success');
+    } catch {
+      setOptionState('png', 'error');
+    }
+  };
+  const handleDownloadSVG = async () => {
+    setOptionState('svg', 'loading');
+    try {
+      const response = await fetch(`/api/streak?user=${encodeURIComponent(username)}`);
+      if (!response.ok) throw new Error('Failed to fetch SVG');
+      const svgText = await response.text();
+      const blob = new Blob([svgText], { type: 'image/svg+xml' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.download = `${username}-commitpulse.svg`;
+      link.href = url;
+      link.click();
+      URL.revokeObjectURL(url);
+      setOptionState('svg', 'success');
+    } catch {
+      setOptionState('svg', 'error');
+    }
+  };
+
+  const handleCopyMarkdown = async () => {
+    setOptionState('markdown', 'loading');
+    try {
+      const markdown = `![CommitPulse](${window.location.origin}/api/streak?user=${encodeURIComponent(username)})`;
+      await navigator.clipboard.writeText(markdown);
+      setOptionState('markdown', 'success');
+      setTimeout(() => onClose(), 800);
+    } catch {
+      setOptionState('markdown', 'error');
+    }
+  };
+
+  const handleDownloadJSON = () => {
+    setOptionState('json', 'loading');
+    try {
+      const payload = {
+        username,
+        profileUrl: PROFILE_URL(username),
+        exportedAt: new Date().toISOString(),
+        currentStreak: exportData.stats.currentStreak,
+        longestStreak: exportData.stats.peakStreak,
+        totalContributions: exportData.stats.totalContributions,
+        topLanguages: exportData.languages,
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], {
+        type: 'application/json',
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.download = `commitpulse-${username}.json`;
+      link.href = url;
+      link.click();
+      URL.revokeObjectURL(url);
+      setOptionState('json', 'success');
+    } catch {
+      setOptionState('json', 'error');
+    }
+  };
+
+  const handleNativeShare = async () => {
+    if (!('share' in navigator)) {
+      // Graceful fallback: just copy the link
+      await handleCopyLink();
+      return;
+    }
+    setOptionState('native', 'loading');
+    try {
+      await navigator.share({
+        title: `${username}'s Commit Pulse`,
+        text: `Check out my GitHub contribution pulse — streaks, insights, and more.`,
+        url: PROFILE_URL(username),
+      });
+      setOptionState('native', 'success');
+      setTimeout(() => onClose(), 600);
+    } catch (err) {
+      // User cancelled — not an error worth showing
+      if (err instanceof Error && err.name !== 'AbortError') {
+        setOptionState('native', 'error');
+      } else {
+        setOptionState('native', 'idle');
+      }
+    }
+  };
+
+  /* ── Option config ───────────────────────────── */
 
   const options = [
-    {
-      key: 'wrapped',
-      icon: Sparkles,
-      label: 'GitHub Wrapped',
-      description: 'View your end-of-year recap',
-      gradient: 'from-purple-500 to-pink-500',
-      glow: 'rgba(236,72,153,0.35)',
-      action: handleGitHubWrapped,
-    },
     {
       key: 'copy',
       icon: Link2,
@@ -183,6 +272,16 @@ endsolid commitpulse_monolith`;
     },
 
     {
+      key: 'whatsapp',
+      icon: WhatsAppIcon,
+      label: 'Share on WhatsApp',
+      description: 'Share your pulse in chats and groups',
+      gradient: 'from-green-500 to-green-700',
+      glow: 'rgba(34,197,94,0.35)',
+      action: handleWhatsApp,
+    },
+
+    {
       key: 'markdown',
       icon: Code,
       label: 'Copy Markdown',
@@ -201,24 +300,6 @@ endsolid commitpulse_monolith`;
       action: handleDownloadPNG,
     },
     {
-      key: 'webp',
-      icon: Download,
-      label: 'Download as WebP',
-      description: 'Download optimized WebP image',
-      gradient: 'bg-zinc-800',
-      glow: 'transparent',
-      action: handleDownloadWEBP,
-    },
-    {
-      key: 'copyImage',
-      icon: Download,
-      label: 'Copy as Image',
-      description: 'Copy dashboard image to clipboard',
-      gradient: 'bg-zinc-800',
-      glow: 'transparent',
-      action: handleCopyImage,
-    },
-    {
       key: 'svg',
       icon: Download,
       label: 'Download SVG',
@@ -226,24 +307,6 @@ endsolid commitpulse_monolith`;
       gradient: 'bg-zinc-800',
       glow: 'transparent',
       action: handleDownloadSVG,
-    },
-    {
-      key: 'stl',
-      icon: Box,
-      label: 'Download 3D STL',
-      description: 'Print your monolith in 3D',
-      gradient: 'bg-zinc-800',
-      glow: 'transparent',
-      action: handleDownloadSTL,
-    },
-    {
-      key: 'csv',
-      icon: FileText,
-      label: 'Download CSV',
-      description: 'Export stats and daily contribution counts',
-      gradient: 'bg-zinc-800',
-      glow: 'transparent',
-      action: handleDownloadCSV,
     },
     {
       key: 'json',
@@ -278,15 +341,6 @@ endsolid commitpulse_monolith`;
       gradient: 'from-orange-500 to-orange-700',
       glow: 'rgba(249,115,22,0.35)',
     },
-    {
-      key: 'whatsapp',
-      label: 'Share on WhatsApp',
-      description: 'Share your pulse in chats and groups',
-      icon: WhatsAppIcon,
-      action: handleWhatsApp,
-      gradient: 'from-green-500 to-green-700',
-      glow: 'rgba(34,197,94,0.35)',
-    },
   ];
 
   return (
@@ -310,30 +364,31 @@ endsolid commitpulse_monolith`;
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 16, scale: 0.98 }}
               transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-              className="relative w-full max-w-sm max-h-[85vh] overflow-y-auto custom-scrollbar"
+              className="relative w-full max-w-sm"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="rounded-xl bg-white/90 dark:bg-[#111]/90 backdrop-blur-xl border border-black/10 dark:border-white/10 shadow-[0_24px_64px_rgba(0,0,0,0.18)] dark:shadow-[0_24px_64px_rgba(0,0,0,0.7)] overflow-hidden">
-                <div className="sticky top-0 z-10 bg-white/90 dark:bg-[#111]/90 backdrop-blur-md flex items-center justify-between px-5 pt-5 pb-4 border-b border-black/5 dark:border-white/10">
+              <div className="rounded-xl bg-white/60 dark:bg-white/[0.05] dark:bg-white/[0.05] backdrop-blur-xl  border border-black/10 dark:border-white/10 shadow-[0_24px_64px_rgba(0,0,0,0.18)] dark:shadow-[0_24px_64px_rgba(0,0,0,0.7)] overflow-hidden">
+                {/* Header */}
+                <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-white/10">
                   <div>
                     <h2 className="text-sm font-semibold text-gray-900 dark:text-white tracking-tight">
                       Share Pulse
                     </h2>
-                    <p className="text-xs text-gray-500 dark:text-white/65 mt-0.5">@{username}</p>
+                    <p className="text-xs text-gray-500 dark:text-white/45 mt-0.5">@{username}</p>
                   </div>
                   <button
                     onClick={onClose}
-                    className="w-7 h-7 rounded-md bg-transparent hover:bg-black/5 dark:hover:bg-white/6 flex items-center justify-center transition-colors duration-150 border border-transparent dark:border-[rgba(255,255,255,0.08)]"
+                    className="w-7 h-7 rounded-md bg-transparent hover:bg-white/6 flex items-center justify-center transition-colors duration-150 border border-[rgba(255,255,255,0.08)]"
                     aria-label="Close share options panel"
                   >
-                    <X size={14} className="text-gray-500 dark:text-white/65" />
+                    <X size={14} className="text-gray-500 dark:text-white/45" />
                   </button>
                 </div>
 
                 {/* Options */}
                 <div className="flex flex-col p-3 gap-1">
                   {options.map((opt, idx) => {
-                    const state = combinedStates[opt.key] ?? 'idle';
+                    const state = states[opt.key] ?? 'idle';
                     const Icon = opt.icon;
 
                     return (
@@ -341,25 +396,24 @@ endsolid commitpulse_monolith`;
                         key={opt.key}
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
-                        transition={{ delay: idx * 0.03, duration: 0.15 }}
+                        transition={{ delay: idx * 0.04, duration: 0.15 }}
                         onClick={opt.action}
                         disabled={state === 'loading'}
-                        className="group flex items-center gap-3 w-full px-3 py-3 rounded-lg hover:bg-gray-100 dark:hover:bg-white/[0.06] border border-transparent hover:border-black/5 dark:hover:border-white/10 transition-all duration-200 text-left disabled:opacity-40 disabled:cursor-not-allowed"
+                        className="group flex items-center gap-3 w-full px-3 py-3 rounded-lg hover:bg-gray-100 dark:hover:bg-white/[0.06] border border-transparent hover:border-white/10 transition-all duration-200 text-left disabled:opacity-40 disabled:cursor-not-allowed"
                       >
-                        <div
-                          className={`flex-shrink-0 w-8 h-8 rounded-lg bg-gray-100 dark:bg-white/[0.04] border border-black/5 dark:border-[rgba(255,255,255,0.08)] flex items-center justify-center transition-colors ${opt.key === 'wrapped' ? 'bg-gradient-to-br from-purple-500/20 to-pink-500/20 border-pink-500/30' : ''}`}
-                        >
+                        {/* Icon box */}
+                        <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-gray-100 dark:bg-white/[0.04] border border-[rgba(255,255,255,0.08)] flex items-center justify-center">
                           {state === 'loading' ? (
                             <Loader2
                               size={15}
-                              className="text-gray-500 dark:text-white/65 animate-spin"
+                              className="text-gray-500 dark:text-white/45 animate-spin"
                             />
                           ) : state === 'success' ? (
                             <Check size={15} className="text-emerald-600 dark:text-white" />
                           ) : (
                             <Icon
                               size={15}
-                              className={`${opt.key === 'wrapped' ? 'text-pink-500 dark:text-pink-400' : 'text-gray-500 dark:text-white/65'} group-hover:text-black dark:group-hover:text-white transition-colors duration-200`}
+                              className="text-gray-500 dark:text-white/45 group-hover:text-black dark:group-hover:text-white transition-colors duration-200"
                             />
                           )}
                         </div>
@@ -372,24 +426,16 @@ endsolid commitpulse_monolith`;
                                 ? 'Link Copied!'
                                 : opt.key === 'png'
                                   ? 'Downloaded!'
-                                  : opt.key === 'csv'
-                                    ? 'CSV Downloaded!'
-                                    : opt.key === 'copyImage'
-                                      ? 'Image Copied!'
-                                      : opt.key === 'png'
-                                        ? 'Downloaded!'
-                                        : opt.key === 'json'
-                                          ? 'JSON Downloaded!'
-                                          : opt.key === 'svg'
-                                            ? 'SVG Downloaded!'
-                                            : opt.key === 'stl'
-                                              ? 'STL Generated!'
-                                              : opt.label
+                                  : opt.key === 'json'
+                                    ? 'JSON Downloaded!'
+                                    : opt.key === 'svg'
+                                      ? 'SVG Downloaded!'
+                                      : opt.label
                               : state === 'error'
                                 ? 'Failed — try again'
                                 : opt.label}
                           </span>
-                          <span className="text-xs text-gray-500 dark:text-white/65 mt-0.5 truncate">
+                          <span className="text-xs text-gray-500 dark:text-white/45 mt-0.5 truncate">
                             {opt.description}
                           </span>
                         </div>
