@@ -206,23 +206,23 @@ const baseStreakParamsSchema = z.object({
   width: dimensionParam('width', 100, 1200),
   height: dimensionParam('height', 80, 800),
   grace: z
-  .string()
-  .optional()
-  .refine(
-    (val) => {
-      if (val === undefined) return true;
-      if (!/^\d+$/.test(val)) return false;
+    .string()
+    .optional()
+    .refine(
+      (val) => {
+        if (val === undefined) return true;
+        if (!/^\d+$/.test(val)) return false;
 
-      const parsed = Number(val);
-      return parsed >= 0 && parsed <= 7;
-    },
-    { message: 'grace must be an integer between 0 and 7' }
-  )
-  .transform((val) => {
-    if (!val) return 1;
-    return Number(val);
-  })
-  .default(1),
+        const parsed = Number(val);
+        return parsed >= 0 && parsed <= 7;
+      },
+      { message: 'grace must be an integer between 0 and 7' }
+    )
+    .transform((val) => {
+      if (!val) return 1;
+      return Number(val);
+    })
+    .default(1),
   mode: z.enum(['commits', 'loc']).catch('commits').default('commits'),
   repo: z.string().optional(),
   org: z
