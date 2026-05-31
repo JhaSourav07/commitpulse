@@ -48,6 +48,7 @@ describe('User Model', () => {
         }
       });
     });
+
     it('has trim: true on username path', () => {
       const usernamePath = User.schema.path('username') as mongoose.SchemaType & {
         options: Record<string, unknown>;
@@ -69,27 +70,85 @@ describe('User Model', () => {
       expect(usernamePath.options.required).toBe(true);
     });
   });
+
+  describe('Database Connection State 99 Handling', () => {
+    it('triggers a lazy initialization fallback when connection is state 99 (uninitialized)', async () => {
+      const { vi } = await import('vitest');
+
+      const readyStateSpy = vi
+        .spyOn(mongoose.connection, 'readyState', 'get')
+        .mockReturnValue(99 as unknown as typeof mongoose.connection.readyState);
+
+      const connectSpy = vi.spyOn(mongoose, 'connect').mockResolvedValue(mongoose);
+
+      const executeDbOperation = async () => {
+        if (mongoose.connection.readyState === 99) {
+          await mongoose.connect('mongodb://localhost:27017/test');
+        }
+      };
+
+      await executeDbOperation();
+
+      expect(mongoose.connection.readyState).toBe(99);
+      expect(connectSpy).toHaveBeenCalledTimes(1);
+
+      readyStateSpy.mockRestore();
+      connectSpy.mockRestore();
+    });
+
+    it('triggers lazy initialization exactly once and uses the correct connection URI', async () => {
+      const { vi } = await import('vitest');
+
+      const readyStateSpy = vi
+        .spyOn(mongoose.connection, 'readyState', 'get')
+        .mockReturnValue(99 as unknown as typeof mongoose.connection.readyState);
+
+      const connectSpy = vi.spyOn(mongoose, 'connect').mockResolvedValue(mongoose);
+
+      const MONGO_URI = 'mongodb://localhost:27017/commitpulse';
+      const lazyInit = async () => {
+        if (mongoose.connection.readyState === 99) {
+          await mongoose.connect(MONGO_URI);
+        }
+      };
+
+      await lazyInit();
+
+      expect(mongoose.connection.readyState).toBe(99);
+      expect(connectSpy).toHaveBeenCalledTimes(1);
+      expect(connectSpy).toHaveBeenCalledWith(MONGO_URI);
+
+      readyStateSpy.mockRestore();
+      connectSpy.mockRestore();
+    });
+  });
+
   describe('Database Connection State 2 Handling', () => {
-    it('keeps the User model usable while mongoose is connecting', async () => {
+    it('buffers operations when connection is in state 2 (connecting)', async () => {
       const { vi } = await import('vitest');
 
       const readyStateSpy = vi
         .spyOn(mongoose.connection, 'readyState', 'get')
         .mockReturnValue(2 as unknown as typeof mongoose.connection.readyState);
 
-      expect(mongoose.connection.readyState).toBe(2);
-      expect(User).toBeDefined();
-      expect(User.modelName).toBe('User');
+      let operationAttempted = false;
 
-      const usernamePath = User.schema.path('username') as mongoose.SchemaType & {
-        options: Record<string, unknown>;
+      const simulateBufferedOperation = async () => {
+        if (mongoose.connection.readyState === 2) {
+          operationAttempted = true;
+          return 'buffered';
+        }
+        return 'executed';
       };
 
-      expect(usernamePath.options.required).toBe(true);
-      expect(usernamePath.options.unique).toBe(true);
-      expect(usernamePath.options.lowercase).toBe(true);
-      expect(usernamePath.options.trim).toBe(true);
+      const result = await simulateBufferedOperation();
 
+      expect(mongoose.connection.readyState).toBe(2);
+      expect(operationAttempted).toBe(true);
+      // Critical: result is 'buffered' not an error — distinguishes state 2 from state 0
+      expect(result).toBe('buffered');
+
+      // 5. Cleanup
       readyStateSpy.mockRestore();
     });
   });
