@@ -685,59 +685,41 @@ export async function fetchOrgMembers(orgName: string): Promise<string[]> {
  * Generates an aggregated Organization Mega-Dashboard.
  */
 export async function getOrgDashboardData(orgName: string, options: FetchOptions = {}) {
-  const profilePromise = fetchUserProfile(orgName, options);
-  const reposPromise = fetchUserRepos(orgName, options);
-  const membersPromise = fetchOrgMembers(orgName).catch((err) => err as Error);
-
   const [profileData, reposData, membersOrError] = await Promise.all([
-    profilePromise,
-    reposPromise,
-    membersPromise,
+    fetchUserProfile(orgName, options),
+    fetchUserRepos(orgName, options),
+    fetchOrgMembers(orgName).catch((err) => err as Error),
   ]);
 
-  if (profileData.type !== 'Organization') {
+  if (profileData.type !== 'Organization')
     throw new Error('This endpoint is strictly for organizations.');
-  }
+  if (membersOrError instanceof Error) throw membersOrError;
 
-  if (membersOrError instanceof Error) {
-    throw membersOrError;
-  }
+  const members: string[] = membersOrError;
+  const calendars = (
+    await Promise.all(
+      members.map((m) =>
+        fetchGitHubContributions(m, options)
+          .then((d) => d.calendar)
+          .catch(() => null)
+      )
+    )
+  ).filter((c): c is ContributionCalendar => c !== null);
 
-  const members = membersOrError;
-
-  // Fetch calendars for all members concurrently (Capped by member limit to avoid 429)
-  const memberCalendarsPromises = members.map((member: string) =>
-    fetchGitHubContributions(member, options)
-      .then((data) => data.calendar)
-      .catch(() => null)
-  );
-
-  const calendars = (await Promise.all(memberCalendarsPromises)).filter(
-    (c: ContributionCalendar | null) => c !== null
-  ) as ContributionCalendar[];
-
-  // Create the Mega-City
   const aggregatedCalendar = aggregateCalendars(calendars);
   const streakStats = calculateStreak(aggregatedCalendar);
+  const totalStars = reposData.reduce((acc, r) => acc + r.stargazers_count, 0);
 
-  // Mapping logic similar to user dashboards
   const profile = {
-    username: profileData.login,
-    name: displayName(profileData),
-    avatarUrl: profileData.avatar_url,
-    isPro: false,
+    ...buildProfileData(profileData, totalStars, 100),
     bio: profileData.bio || 'Open Source Organization',
     location: profileData.location || 'Global',
-    joinedDate: new Date(profileData.created_at).toLocaleDateString('en-US', {
-      month: 'short',
-      year: 'numeric',
-    }),
-    developerScore: 100, // Orgs get a fixed score or a different formula
+    isPro: false,
     stats: {
       repositories: profileData.public_repos,
       followers: profileData.followers,
-      following: members.length, // Display members count here
-      stars: reposData.reduce((acc: number, r: GitHubRepo) => acc + r.stargazers_count, 0),
+      following: members.length,
+      stars: totalStars,
     },
   };
 
@@ -748,10 +730,9 @@ export async function getOrgDashboardData(orgName: string, options: FetchOptions
       peakStreak: streakStats.longestStreak,
       totalContributions: streakStats.totalContributions,
     },
-    calendar: aggregatedCalendar, // Can be passed to standard SVG renderer!
+    calendar: aggregatedCalendar,
   };
 }
-
 export function generateAchievements(
   totalContributions: number,
   currentStreak: number,
@@ -967,55 +948,17 @@ export function computeDeveloperScore({
   );
 }
 
-export async function getFullDashboardData(username: string, options: FetchOptions = {}) {
-  const [profileResult, reposResult, calendarResult, contributedReposResult] =
-    await Promise.allSettled([
-      fetchUserProfile(username, options),
-      fetchUserRepos(username, options),
-      fetchGitHubContributions(username, options),
-      fetchContributedRepos(username, options),
-    ]);
-
-  if (profileResult.status === 'rejected') {
-    throw new Error(`[GitHub API] Failed to fetch profile for user "${username}"`, {
-      cause: profileResult.reason,
-    });
-  }
-
-  const profileData = profileResult.value;
-  const reposData = reposResult.status === 'fulfilled' ? reposResult.value : [];
-  const calendarData =
-    calendarResult.status === 'fulfilled'
-      ? calendarResult.value.calendar
-      : ({ totalContributions: 0, weeks: [] } as ContributionCalendar);
-  const repoContributions =
-    calendarResult.status === 'fulfilled' ? calendarResult.value.repoContributions || [] : [];
-  const contributedReposData =
-    contributedReposResult.status === 'fulfilled' ? contributedReposResult.value : [];
-
-  const streakStats = calculateStreak(calendarData);
-  const totalStars = reposData.reduce((acc, repo) => acc + repo.stargazers_count, 0);
-
-  // Developer Score — 5-factor weighted formula (max 100 pts)
-  // Repos:         up to 25 pts  (saturates at 50 public repos)
-  // Followers:     up to 25 pts  (saturates at 50 followers)
-  // Stars:         up to 20 pts  (saturates at 100 total stars)
-  // Contributions: up to 20 pts  (saturates at 400 yearly contributions)
-  // Streak:        up to 10 pts  (saturates at a 50-day longest streak)
-  const developerScore = computeDeveloperScore({
-    repos: profileData.public_repos,
-    followers: profileData.followers,
-    stars: totalStars,
-    contributions: streakStats.totalContributions,
-    longestStreak: streakStats.longestStreak,
-  });
-
-  const profile = {
+export function buildProfileData(
+  profileData: GitHubUserProfile,
+  totalStars: number,
+  developerScore: number
+) {
+  return {
     username: profileData.login,
     name: displayName(profileData),
     avatarUrl: profileData.avatar_url,
     isPro: profileData.plan?.name === 'pro',
-    bio: profileData.bio || 'No bio available',
+    bio: profileData.bio?.trim() || 'No bio available',
     location: profileData.location || 'Earth',
     joinedDate: new Date(profileData.created_at).toLocaleDateString('en-US', {
       month: 'short',
@@ -1029,141 +972,168 @@ export async function getFullDashboardData(username: string, options: FetchOptio
       stars: totalStars,
     },
   };
+}
 
-  // Flatten contribution days once and reuse across dashboard-derived
-  // computations such as activity and commit clock generation.
-  const allDays = calendarData.weeks.flatMap((w) => w.contributionDays);
+export function aggregateLanguages(repos: { language: string | null }[]) {
+  const counts: Record<string, number> = {};
+  for (const repo of repos) {
+    if (repo.language) counts[repo.language] = (counts[repo.language] || 0) + 1;
+  }
+  const total = Object.values(counts).reduce((a, b) => a + b, 0);
+  if (total === 0) return [];
+  return Object.entries(counts)
+    .map(([name, count]) => ({
+      name,
+      percentage: Math.round((count / total) * 100),
+      color: LANGUAGE_COLORS[name] ?? '#a855f7',
+    }))
+    .sort((a, b) => b.percentage - a.percentage)
+    .slice(0, 5);
+}
 
-  const activity = allDays.map((day) => {
-    let intensity: 0 | 1 | 2 | 3 | 4 = 0;
-    if (day.contributionCount > 0) intensity = 1;
-    if (day.contributionCount > 3) intensity = 2;
-    if (day.contributionCount > 6) intensity = 3;
-    if (day.contributionCount > 10) intensity = 4;
+export function buildActivityMap(
+  allDays: (ContributionDay & { locAdditions?: number; locDeletions?: number })[]
+) {
+  return allDays.map((day) => {
+    const c = day.contributionCount;
+    const intensity: 0 | 1 | 2 | 3 | 4 = c === 0 ? 0 : c <= 3 ? 1 : c <= 6 ? 2 : c <= 10 ? 3 : 4;
     return {
       date: day.date,
-      count: day.contributionCount,
+      count: c,
       intensity,
       locAdditions: day.locAdditions,
       locDeletions: day.locDeletions,
     };
   });
+}
 
-  const langCounts: Record<string, number> = {};
-  repoContributions.forEach((contrib) => {
-    const lang = contrib.repository.primaryLanguage?.name;
-    if (lang) {
-      langCounts[lang] = (langCounts[lang] || 0) + contrib.contributions.totalCount;
-    }
+export async function getFullDashboardData(username: string, options: FetchOptions = {}) {
+  const [profileResult, reposResult, calendarResult, contributedReposResult] =
+    await Promise.allSettled([
+      fetchUserProfile(username, options),
+      fetchUserRepos(username, options),
+      fetchGitHubContributions(username, options),
+      fetchContributedRepos(username, options),
+    ]);
+
+  if (profileResult.status === 'rejected')
+    throw new Error(`[GitHub API] Failed to fetch profile for user "${username}"`, {
+      cause: profileResult.reason,
+    });
+
+  const profileData = profileResult.value;
+  const reposData = reposResult.status === 'fulfilled' ? reposResult.value : [];
+  const calendarData =
+    calendarResult.status === 'fulfilled'
+      ? calendarResult.value.calendar
+      : ({ totalContributions: 0, weeks: [] } as ContributionCalendar);
+  const repoContributions =
+    calendarResult.status === 'fulfilled' ? (calendarResult.value.repoContributions ?? []) : [];
+  const contributedRepos =
+    contributedReposResult.status === 'fulfilled' ? contributedReposResult.value : [];
+
+  const streakStats = calculateStreak(calendarData);
+  const totalStars = reposData.reduce((acc, r) => acc + r.stargazers_count, 0);
+  const score = computeDeveloperScore({
+    repos: profileData.public_repos,
+    followers: profileData.followers,
+    stars: totalStars,
+    contributions: streakStats.totalContributions,
+    longestStreak: streakStats.longestStreak,
   });
-
-  const totalLangs = Object.values(langCounts).reduce((a, b) => a + b, 0);
-  const languages = Object.entries(langCounts)
-    .map(([name, count]) => ({
-      name,
-      percentage: Math.round((count / totalLangs) * 100),
-      color: LANGUAGE_COLORS[name] || '#a855f7',
-    }))
-    .sort((a, b) => b.percentage - a.percentage)
-    .slice(0, 5);
-
+  const allDays = calendarData.weeks.flatMap((w) => w.contributionDays);
   const commitClock = buildCommitClock(allDays);
   const weekendCommits =
     (commitClock.find((d) => d.day === 'Sun')?.commits ?? 0) +
     (commitClock.find((d) => d.day === 'Sat')?.commits ?? 0);
 
-  const uniqueLanguages = Object.keys(langCounts).length;
-
-  const achievements = generateAchievements(
-    streakStats.totalContributions,
-    streakStats.currentStreak,
-    weekendCommits,
-    uniqueLanguages,
-    streakStats.longestStreak
-  );
-
-  const insights = buildInsights(streakStats, languages);
-
-  // Building Graph Data
-  const nodes: GraphNode[] = [];
-  const links: GraphLink[] = [];
-
-  // Central User Node
-  nodes.push({
-    id: profileData.login,
-    name: displayName(profileData),
-    type: 'User',
-    val: 30,
-    color: '#E2E8F0', // slate-200
+  // Language breakdown from repoContributions (weighted by commit count)
+  const langCounts: Record<string, number> = {};
+  repoContributions.forEach((c) => {
+    const l = c.repository.primaryLanguage?.name;
+    if (l) langCounts[l] = (langCounts[l] || 0) + c.contributions.totalCount;
   });
+  const total = Object.values(langCounts).reduce((a, b) => a + b, 0);
+  const languages = Object.entries(langCounts)
+    .map(([name, count]) => ({
+      name,
+      percentage: Math.round((count / total) * 100),
+      color: LANGUAGE_COLORS[name] ?? '#a855f7',
+    }))
+    .sort((a, b) => b.percentage - a.percentage)
+    .slice(0, 5);
 
-  // Personal Repositories & Forks
-  reposData.forEach((repo) => {
-    const isFork = repo.fork;
+  // Graph nodes/links
+  const nodes: GraphNode[] = [
+    {
+      id: profileData.login,
+      name: displayName(profileData),
+      type: 'User',
+      val: 30,
+      color: '#E2E8F0',
+    },
+  ];
+  const links: GraphLink[] = [];
+  reposData.forEach((r) => {
     nodes.push({
-      id: repo.name,
-      name: repo.name,
-      type: isFork ? 'Fork' : 'Repo',
-      val: Math.max(5, Math.min(20, (repo.stargazers_count || 0) + 5)),
-      color: isFork ? '#F97316' : '#3B82F6', // Orange : Blue
+      id: r.name,
+      name: r.name,
+      type: r.fork ? 'Fork' : 'Repo',
+      val: Math.max(5, Math.min(20, r.stargazers_count + 5)),
+      color: r.fork ? '#F97316' : '#3B82F6',
       stats: {
-        stars: repo.stargazers_count,
-        forks: repo.forks_count,
-        language: repo.language,
-        updatedAt: repo.updated_at,
+        stars: r.stargazers_count,
+        forks: r.forks_count,
+        language: r.language,
+        updatedAt: r.updated_at,
       },
     });
-    links.push({
-      source: profileData.login,
-      target: repo.name,
-    });
+    links.push({ source: profileData.login, target: r.name });
   });
-
-  // Open Source Contributions
-  contributedReposData.forEach((repoItem) => {
-    const repo = repoItem as {
+  contributedRepos.forEach((item) => {
+    const r = item as {
       name: string;
       nameWithOwner: string;
-      owner?: { login: string };
       stargazerCount?: number;
       forkCount?: number;
       primaryLanguage?: { name: string } | null;
       updatedAt?: string;
     };
     nodes.push({
-      id: repo.nameWithOwner,
-      name: repo.name,
+      id: r.nameWithOwner,
+      name: r.name,
       type: 'Contribution',
-      val: Math.max(5, Math.min(20, (repo.stargazerCount || 0) / 10 + 5)),
-      color: '#22C55E', // Green
+      val: Math.max(5, Math.min(20, (r.stargazerCount ?? 0) / 10 + 5)),
+      color: '#22C55E',
       stats: {
-        stars: repo.stargazerCount,
-        forks: repo.forkCount,
-        language: repo.primaryLanguage?.name,
-        updatedAt: repo.updatedAt,
+        stars: r.stargazerCount,
+        forks: r.forkCount,
+        language: r.primaryLanguage?.name,
+        updatedAt: r.updatedAt,
       },
     });
-    links.push({
-      source: profileData.login,
-      target: repo.nameWithOwner,
-    });
+    links.push({ source: profileData.login, target: r.nameWithOwner });
   });
 
-  const graphData = { nodes, links };
-
   return {
-    profile,
+    profile: buildProfileData(profileData, totalStars, score),
     stats: {
       currentStreak: streakStats.currentStreak,
       peakStreak: streakStats.longestStreak,
       totalContributions: streakStats.totalContributions,
     },
     languages,
-    activity,
-    insights,
-    achievements,
+    activity: buildActivityMap(allDays),
+    insights: buildInsights(streakStats, languages),
+    achievements: generateAchievements(
+      streakStats.totalContributions,
+      streakStats.currentStreak,
+      weekendCommits,
+      Object.keys(langCounts).length,
+      streakStats.longestStreak
+    ),
     commitClock,
-    graphData,
+    graphData: { nodes, links },
   };
 }
 
