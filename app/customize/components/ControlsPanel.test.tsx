@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom';
-import type { Scale, BadgeSize, Font } from '../types';
+import type { Scale, BadgeSize, Font, ViewMode, DeltaFormat, Language, Timezone } from '../types';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { ControlsPanel } from './ControlsPanel';
@@ -29,6 +29,36 @@ const defaultProps = {
   onSizeChange: vi.fn(),
   onClearOverrides: vi.fn(),
   onRadiusChange: vi.fn(),
+
+  hideTitle: false,
+  hideBackground: false,
+  hideStats: false,
+
+  viewMode: 'default' as ViewMode,
+  deltaFormat: 'percent' as DeltaFormat,
+
+  badgeWidth: 0,
+  badgeHeight: 0,
+
+  grace: 1,
+
+  language: 'en' as Language,
+  timezone: 'UTC' as Timezone,
+
+  onHideTitleChange: vi.fn(),
+  onHideBackgroundChange: vi.fn(),
+  onHideStatsChange: vi.fn(),
+
+  onViewModeChange: vi.fn(),
+  onDeltaFormatChange: vi.fn(),
+
+  onBadgeWidthChange: vi.fn(),
+  onBadgeHeightChange: vi.fn(),
+
+  onGraceChange: vi.fn(),
+
+  onLanguageChange: vi.fn(),
+  onTimezoneChange: vi.fn(),
 };
 describe('ControlsPanel Component', () => {
   beforeEach(() => {
