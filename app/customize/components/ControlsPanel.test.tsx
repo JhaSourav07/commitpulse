@@ -1,21 +1,22 @@
-import { fireEvent, render, screen } from '@testing-library/react';
-import type { ComponentProps } from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import '@testing-library/jest-dom';
+import type { Scale, BadgeSize, Font, ViewMode, DeltaFormat, Language, Timezone } from '../types';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { ControlsPanel } from './ControlsPanel';
-import type { BadgeSize, DeltaFormat, Font, Language, Scale, Timezone, ViewMode } from '../types';
 
 const defaultProps = {
-  username: 'octocat',
-  theme: 'dark',
+  username: '',
+  theme: 'github-dark',
   bgHex: '',
   accentHex: '',
   textHex: '',
   scale: 'linear' as Scale,
   speed: '8s',
   font: '' as Font,
-  year: '',
+  year: '2025',
   radius: 8,
   size: 'medium' as BadgeSize,
+
   onUsernameChange: vi.fn(),
   onThemeChange: vi.fn(),
   onBgHexChange: vi.fn(),
@@ -28,43 +29,94 @@ const defaultProps = {
   onSizeChange: vi.fn(),
   onClearOverrides: vi.fn(),
   onRadiusChange: vi.fn(),
+
   hideTitle: false,
   hideBackground: false,
   hideStats: false,
+
   viewMode: 'default' as ViewMode,
   deltaFormat: 'percent' as DeltaFormat,
-  badgeWidth: '' as const,
-  badgeHeight: '' as const,
+
+  badgeWidth: 0,
+  badgeHeight: 0,
+
   grace: 1,
+
   language: 'en' as Language,
   timezone: 'UTC' as Timezone,
+
   onHideTitleChange: vi.fn(),
   onHideBackgroundChange: vi.fn(),
   onHideStatsChange: vi.fn(),
+
   onViewModeChange: vi.fn(),
   onDeltaFormatChange: vi.fn(),
+
   onBadgeWidthChange: vi.fn(),
   onBadgeHeightChange: vi.fn(),
+
   onGraceChange: vi.fn(),
+
   onLanguageChange: vi.fn(),
   onTimezoneChange: vi.fn(),
-} satisfies ComponentProps<typeof ControlsPanel>;
-
-describe('ControlsPanel timezone control', () => {
-  it('renders UTC as the default timezone option', () => {
-    render(<ControlsPanel {...defaultProps} />);
-
-    expect((screen.getByLabelText('Timezone') as HTMLSelectElement).value).toBe('UTC');
+};
+describe('ControlsPanel Component', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
   });
 
-  it('calls onTimezoneChange with the selected IANA timezone', () => {
-    const onTimezoneChange = vi.fn();
-    render(<ControlsPanel {...defaultProps} onTimezoneChange={onTimezoneChange} />);
+  it('renders the GitHub Username label', () => {
+    render(<ControlsPanel {...defaultProps} />);
 
-    fireEvent.change(screen.getByLabelText('Timezone'), {
-      target: { value: 'Asia/Kolkata' },
+    expect(screen.getByText(/GitHub Username/i)).toBeTruthy();
+  });
+
+  it('renders username input with correct id', () => {
+    render(<ControlsPanel {...defaultProps} />);
+    const input = document.getElementById('username-input');
+
+    expect(input).toHaveAttribute('id', 'username-input');
+  });
+
+  it('calls onUsernameChange when typing', () => {
+    render(<ControlsPanel {...defaultProps} />);
+
+    const input = document.getElementById('username-input');
+
+    fireEvent.change(input!, {
+      target: { value: 'shikhar' },
     });
 
-    expect(onTimezoneChange).toHaveBeenCalledWith('Asia/Kolkata');
+    expect(defaultProps.onUsernameChange).toHaveBeenCalled();
+  });
+
+  it('renders Linear and Logarithmic buttons', () => {
+    render(<ControlsPanel {...defaultProps} />);
+
+    expect(screen.getByRole('button', { name: /Linear/i })).toBeTruthy();
+
+    expect(screen.getByRole('button', { name: /Logarithmic/i })).toBeTruthy();
+  });
+
+  it('calls onScaleChange with log', () => {
+    render(<ControlsPanel {...defaultProps} />);
+
+    const logButton = screen.getByText(/Logarithmic/i);
+
+    fireEvent.click(logButton);
+
+    expect(defaultProps.onScaleChange).toHaveBeenCalledWith('log');
+  });
+
+  it('hides Clear overrides button initially', () => {
+    render(<ControlsPanel {...defaultProps} />);
+
+    expect(screen.queryByText(/Clear overrides/i)).toBeNull();
+  });
+
+  it('shows Clear overrides button when bgHex is provided', () => {
+    render(<ControlsPanel {...defaultProps} bgHex="#000000" />);
+
+    expect(screen.getByText(/Clear overrides/i)).toBeTruthy();
   });
 });

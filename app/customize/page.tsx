@@ -4,8 +4,10 @@ import { useCallback, useEffect, useRef, useState, type ReactElement } from 'rea
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { ControlsPanel } from './components/ControlsPanel';
+import { AdvancedSettingsPanel } from './components/AdvancedSettingsPanel';
 import { ExportPanel } from './components/ExportPanel';
 import InteractiveViewer from '@/components/InteractiveViewer';
+import DOMPurify from 'dompurify';
 import type {
   ExportFormat,
   Font,
@@ -16,7 +18,7 @@ import type {
   Language,
   Timezone,
 } from './types';
-import { getExportSnippet, stripHash } from './utils';
+import { getExportSnippet, buildQueryParams } from './utils';
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
@@ -28,7 +30,7 @@ export default function CustomizePage(): ReactElement {
   const [textHex, setTextHex] = useState('');
   const [scale, setScale] = useState<Scale>('linear');
   const [speed, setSpeed] = useState('8s');
-  const [font, setFont] = useState<Font>('');
+  const [font, setFont] = useState<Font>('Inter');
   const [year, setYear] = useState('');
   const [radius, setRadius] = useState(8);
   const [size, setSize] = useState<BadgeSize>('medium');
@@ -51,9 +53,7 @@ export default function CustomizePage(): ReactElement {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const trimmedUsername = username.trim();
   const hasUsername = trimmedUsername.length > 0;
-  const isAutoTheme = theme === 'auto';
   const isRandomTheme = theme === 'random';
-  const skipsCustomColors = isAutoTheme || isRandomTheme;
 
   useEffect(() => {
     return () => {
@@ -88,54 +88,9 @@ export default function CustomizePage(): ReactElement {
     }
   }, []);
 
-  // ── buildQueryParams ──────────────────────────────────────────────────────
-
-  const buildQueryParams = useCallback((): string => {
-    const params = new URLSearchParams();
-
-    if (hasUsername) {
-      params.set('user', trimmedUsername);
-    }
-
-    if (skipsCustomColors) {
-      // Virtual themes always emit theme=<name> and skip custom color params.
-      params.set('theme', theme);
-    } else {
-      const hasCustomColors = bgHex || accentHex || textHex;
-
-      // Custom hex colors take priority over theme
-      if (!hasCustomColors) {
-        params.set('theme', theme);
-      }
-      if (bgHex) params.set('bg', stripHash(bgHex));
-      if (accentHex) params.set('accent', stripHash(accentHex));
-      if (textHex) params.set('text', stripHash(textHex));
-    }
-
-    if (scale !== 'linear') params.set('scale', scale);
-    if (speed !== '8s') params.set('speed', speed);
-    if (font) params.set('font', font);
-    if (year) params.set('year', year);
-    if (radius !== 8) params.set('radius', radius.toString());
-    if (size !== 'medium') params.set('size', size);
-
-    if (hideTitle) params.set('hide_title', 'true');
-    if (hideBackground) params.set('hide_background', 'true');
-    if (hideStats) params.set('hide_stats', 'true');
-    if (viewMode !== 'default') params.set('view', viewMode);
-    if (deltaFormat !== 'percent') params.set('delta_format', deltaFormat);
-    if (badgeWidth !== '') params.set('width', badgeWidth.toString());
-    if (badgeHeight !== '') params.set('height', badgeHeight.toString());
-    if (grace !== 1) params.set('grace', grace.toString());
-    if (language !== 'en') params.set('lang', language);
-    if (timezone !== 'UTC') params.set('tz', timezone);
-
-    return params.toString();
-  }, [
-    hasUsername,
-    trimmedUsername,
+  const queryString = buildQueryParams({
+    username,
     theme,
-    skipsCustomColors,
     bgHex,
     accentHex,
     textHex,
@@ -155,9 +110,7 @@ export default function CustomizePage(): ReactElement {
     grace,
     language,
     timezone,
-  ]);
-
-  const queryString = buildQueryParams();
+  });
   const previewSrc = `/api/streak?${queryString}`;
 
   useEffect(() => {
@@ -191,11 +144,18 @@ export default function CustomizePage(): ReactElement {
       })
       .then((text) => {
         if (!text) return;
-        // Basic SVG sanitization to prevent XSS (strip scripts and inline event handlers)
-        const sanitized = text
-          .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, '')
-          .replace(/on\w+\s*=\s*("[^"]*"|'[^']*')/gi, '');
-        setSvgContent(sanitized);
+        // Sanitize SVG using DOMPurify with the SVG profile.
+        // - Forbid risky tags like foreignObject and embedded content
+        // - Forbid xlink:href to avoid external references
+        // - Use a conservative URI whitelist to prevent javascript: URIs
+        const sanitized = DOMPurify.sanitize(text, {
+          USE_PROFILES: { svg: true },
+          FORBID_TAGS: ['foreignObject', 'iframe', 'object', 'embed', 'script'],
+          FORBID_ATTR: ['xlink:href'],
+          ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto|data):|#)/i,
+        });
+
+        setSvgContent(sanitized as string);
         setSvgState('loaded');
         setErrorMessage(null);
       })
@@ -342,7 +302,7 @@ export default function CustomizePage(): ReactElement {
         </motion.div>
 
         {/* ── Split layout ─────────────────────────────────────────────────── */}
-        <div className="grid lg:grid-cols-[380px_1fr] gap-6 items-start">
+        <div className="grid lg:grid-cols-[380px_1fr] xl:grid-cols-[340px_1fr_340px] gap-6 items-start">
           {/* ════ LEFT: Control Panel ════════════════════════════════════════ */}
           <motion.aside
             initial={{ opacity: 0, x: -20 }}
@@ -378,26 +338,6 @@ export default function CustomizePage(): ReactElement {
                 setAccentHex('');
                 setTextHex('');
               }}
-              hideTitle={hideTitle}
-              hideBackground={hideBackground}
-              hideStats={hideStats}
-              viewMode={viewMode}
-              deltaFormat={deltaFormat}
-              badgeWidth={badgeWidth}
-              badgeHeight={badgeHeight}
-              grace={grace}
-              language={language}
-              timezone={timezone}
-              onHideTitleChange={setHideTitle}
-              onHideBackgroundChange={setHideBackground}
-              onHideStatsChange={setHideStats}
-              onViewModeChange={setViewMode}
-              onDeltaFormatChange={setDeltaFormat}
-              onBadgeWidthChange={setBadgeWidth}
-              onBadgeHeightChange={setBadgeHeight}
-              onGraceChange={setGrace}
-              onLanguageChange={setLanguage}
-              onTimezoneChange={setTimezone}
             />
           </motion.aside>
 
@@ -554,6 +494,37 @@ export default function CustomizePage(): ReactElement {
               </div>
             </div>
           </motion.div>
+
+          {/* ════ RIGHT: Advanced Settings ═══════════════════════════════════ */}
+          <motion.aside
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="bg-white/70 backdrop-blur-xl border border-black/10 dark:bg-black/35 dark:border-white/10 rounded-[1.75rem] p-6 flex flex-col gap-6 sticky top-6 shadow-[0_20px_60px_rgba(0,0,0,0.35)] xl:col-start-3"
+          >
+            <AdvancedSettingsPanel
+              hideTitle={hideTitle}
+              hideBackground={hideBackground}
+              hideStats={hideStats}
+              viewMode={viewMode}
+              deltaFormat={deltaFormat}
+              badgeWidth={badgeWidth}
+              badgeHeight={badgeHeight}
+              grace={grace}
+              language={language}
+              timezone={timezone}
+              onHideTitleChange={setHideTitle}
+              onHideBackgroundChange={setHideBackground}
+              onHideStatsChange={setHideStats}
+              onViewModeChange={setViewMode}
+              onDeltaFormatChange={setDeltaFormat}
+              onBadgeWidthChange={setBadgeWidth}
+              onBadgeHeightChange={setBadgeHeight}
+              onGraceChange={setGrace}
+              onLanguageChange={setLanguage}
+              onTimezoneChange={setTimezone}
+            />
+          </motion.aside>
         </div>
       </div>
     </div>

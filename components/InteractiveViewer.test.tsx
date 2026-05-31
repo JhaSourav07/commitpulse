@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import InteractiveViewer from './InteractiveViewer';
+import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
+import InteractiveViewer, { formatDate } from './InteractiveViewer';
 
 // getBoundingClientRect is not implemented in jsdom — mock it so mouse-position
 // tests can assert normalized values without relying on a real layout engine.
@@ -21,6 +21,23 @@ beforeEach(() => {
   vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue(mockContainerRect);
   Element.prototype.setPointerCapture = vi.fn();
   Element.prototype.releasePointerCapture = vi.fn();
+});
+
+describe('formatDate', () => {
+  it('formats valid UTC date strings correctly', () => {
+    expect(formatDate('2025-06-15')).toBe('Jun 15, 2025');
+    expect(formatDate('2025-01-01')).toBe('Jan 1, 2025');
+    expect(formatDate('2025-12-31')).toBe('Dec 31, 2025');
+  });
+
+  it('returns empty string for empty input', () => {
+    expect(formatDate('')).toBe('');
+  });
+
+  it('returns original string for malformed input', () => {
+    expect(formatDate('2025-06')).toBe('2025-06');
+    expect(formatDate('invalid-date-string')).toBe('invalid-date-string');
+  });
 });
 
 describe('InteractiveViewer', () => {
@@ -535,5 +552,52 @@ describe('InteractiveViewer', () => {
     // Normalized coordinates: x = 900/1200 = 75% (0.75), y = 200/800 = 25% (0.25)
     expect(glow.style.left).toBe('75%');
     expect(glow.style.top).toBe('25%');
+  });
+
+  describe('InteractiveViewer responsive rendering', () => {
+    afterEach(() => {
+      window.innerWidth = 1024;
+      window.innerHeight = 768;
+    });
+
+    const resizeWindow = (width: number, height: number) => {
+      window.innerWidth = width;
+      window.innerHeight = height;
+
+      window.dispatchEvent(new Event('resize'));
+    };
+
+    it('renders correctly on mobile viewport', () => {
+      resizeWindow(375, 667);
+
+      render(
+        <InteractiveViewer>
+          <div data-testid="mobile-content">Mobile Content</div>
+        </InteractiveViewer>
+      );
+
+      expect(screen.getByTestId('mobile-content')).toBeTruthy();
+      expect(screen.getByTestId('parallax-bg-layer')).toBeTruthy();
+    });
+
+    it('renders correctly on desktop viewport with pointer interactions', () => {
+      resizeWindow(1440, 900);
+
+      render(
+        <InteractiveViewer>
+          <div data-testid="desktop-content">Desktop Content</div>
+        </InteractiveViewer>
+      );
+
+      const glowLayer = screen.getByTestId('parallax-cursor-glow');
+
+      fireEvent.pointerMove(glowLayer, {
+        clientX: 100,
+        clientY: 100,
+      });
+
+      expect(screen.getByTestId('desktop-content')).toBeTruthy();
+      expect(glowLayer).toBeTruthy();
+    });
   });
 });

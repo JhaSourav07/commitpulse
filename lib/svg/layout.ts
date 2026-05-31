@@ -68,7 +68,7 @@ export function computeFaceOpacity(count: number, isGhostCityMode: boolean): Fac
 export function projectIsometric(weekIndex: number, dayIndex: number): { x: number; y: number } {
   return {
     x: 300 + (weekIndex - dayIndex) * 16,
-    y: 120 + (weekIndex + dayIndex) * 9,
+    y: 120 + (weekIndex + dayIndex) * 10,
   };
 }
 

@@ -40,8 +40,8 @@ export function Footer() {
       </div>
 
       {/* BOTTOM */}
-      <div className="mt-6 border-t border-black/5 pt-3 text-center text-xs text-zinc-400 dark:border-white/5 dark:text-white/60">
-        © 2026 CommitPulse. All rights reserved.
+      <div className="mt-6 border-t border-black/5 pt-3 text-center text-xs text-zinc-500 dark:border-white/5 dark:text-zinc-500">
+        © {new Date().getFullYear()} CommitPulse. All rights reserved.
       </div>
     </footer>
   );

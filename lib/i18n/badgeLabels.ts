@@ -44,10 +44,17 @@ export const labels: Record<string, BadgeLabels> = {
   },
   ko: {
     CURRENT_STREAK: '현재_연속',
-    ANNUAL_SYNC_TOTAL: '연간_총합',
+    ANNUAL_SYNC_TOTAL: '연간_총계',
     PEAK_STREAK: '최고_연속',
     COMMITS_THIS_MONTH: '이번 달 커밋',
     VS_LAST_MONTH: '지난달 대비',
+  },
+  ja: {
+    CURRENT_STREAK: '現在のストリーク',
+    ANNUAL_SYNC_TOTAL: '年間合計',
+    PEAK_STREAK: '最高ストリーク',
+    COMMITS_THIS_MONTH: '今月のコミット数',
+    VS_LAST_MONTH: '先月比',
   },
   fr: {
     CURRENT_STREAK: 'SÉRIE_ACTUELLE',
@@ -56,12 +63,12 @@ export const labels: Record<string, BadgeLabels> = {
     COMMITS_THIS_MONTH: 'COMMITS CE MOIS',
     VS_LAST_MONTH: 'vs mois dernier',
   },
-  ja: {
-    CURRENT_STREAK: '現在_ストリーク',
-    ANNUAL_SYNC_TOTAL: '年間_合計',
-    PEAK_STREAK: '最高_ストリーク',
-    COMMITS_THIS_MONTH: '今月のコミット数',
-    VS_LAST_MONTH: '先月比',
+  ta: {
+    CURRENT_STREAK: 'தற்போதைய_தொடர்',
+    ANNUAL_SYNC_TOTAL: 'ஆண்டு_மொத்தம்',
+    PEAK_STREAK: 'உச்ச_தொடர்',
+    COMMITS_THIS_MONTH: 'இம்மாத கமிட்கள்',
+    VS_LAST_MONTH: 'கடந்த மாதத்துடன்',
   },
   de: {
     CURRENT_STREAK: 'AKTUELLE_SERIE',

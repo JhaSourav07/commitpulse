@@ -63,6 +63,14 @@ describe('getSecondsUntilUTCMidnight', () => {
 
     expect(getSecondsUntilUTCMidnight()).toBe(64800); // 18 hours = 64800 s
   });
+
+  it('always returns an integer with sub-second precision input', () => {
+    vi.setSystemTime(new Date('2024-06-15T23:59:59.999Z'));
+
+    const result = getSecondsUntilUTCMidnight();
+    expect(Number.isInteger(result)).toBe(true);
+    expect(result).toBe(0);
+  });
 });
 
 it('returns positive seconds for every hour of day', () => {
@@ -145,6 +153,15 @@ describe('getSecondsUntilMidnightInTimezone', () => {
     }
   });
 
+  it('always returns an integer with sub-second precision input', () => {
+    // 2024-06-16T03:59:59.999Z is 23:59:59.999 in Etc/GMT+4 (UTC-4)
+    vi.setSystemTime(new Date('2024-06-16T03:59:59.999Z'));
+
+    const result = getSecondsUntilMidnightInTimezone('Etc/GMT+4');
+    expect(Number.isInteger(result)).toBe(true);
+    expect(result).toBe(1);
+  });
+
   it('handles extreme timezone Etc/GMT-14 (UTC+14)', () => {
     // UTC 00:00 → local time 14:00 in UTC+14
     vi.setSystemTime(new Date('2024-06-15T00:00:00.000Z'));
@@ -203,6 +220,38 @@ describe('getSecondsUntilMidnightInTimezone', () => {
     // Since the logic does `86400 - (hour * 3600 + ...)`, at 00:00:00 it returns 86400.
     expect(secondsUTC).toBe(86400);
     expect(secondsLondon).toBe(86400);
+  });
+
+  it('should handle extreme negative timezone offset boundary (-12:00)', () => {
+    // Arrange: Etc/GMT+12 is UTC-12 (Baker Island / Howland Island).
+    // When UTC is Jan 1, 11:59:50, Baker Island is Dec 31, 23:59:50 (10 seconds to midnight)
+    const boundaryTime = new Date(Date.UTC(2024, 0, 1, 11, 59, 50));
+    vi.setSystemTime(boundaryTime);
+
+    // Act
+    const seconds = getSecondsUntilMidnightInTimezone('Etc/GMT+12');
+
+    // Assert: Should correctly calculate 10 seconds without calendar shifting
+    expect(seconds).toBe(10);
+  });
+
+  it('should handle extreme timezone offsets without calendar date shifting', () => {
+    // Arrange: Test the most extreme offsets to ensure no calendar date shifting occurs
+    const extremeOffsets = [
+      { tz: 'Etc/GMT+12', offset: -12, utcHour: 12, expectedLocalHour: 0 }, // UTC-12
+      { tz: 'Etc/GMT-14', offset: 14, utcHour: 10, expectedLocalHour: 0 }, // UTC+14
+    ];
+
+    for (const { tz, utcHour } of extremeOffsets) {
+      // Set UTC time such that local time is exactly midnight
+      vi.setSystemTime(new Date(Date.UTC(2024, 6, 15, utcHour, 0, 0)));
+
+      // Act: Get seconds until midnight in this timezone
+      const seconds = getSecondsUntilMidnightInTimezone(tz);
+
+      // Assert: At local midnight, should return exactly 86400 seconds (full day)
+      expect(seconds).toBe(86400);
+    }
   });
 });
 

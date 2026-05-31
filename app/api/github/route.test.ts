@@ -30,8 +30,37 @@ describe('GET /api/github', () => {
 
     it('calls getFullDashboardData with { bypassCache: false } when refresh is omitted', async () => {
       await GET(makeRequest({ username: 'octocat' }));
+      expect(getFullDashboardData).toHaveBeenCalledWith('octocat', {
+        bypassCache: false,
+      });
+    });
+    it('returns 400 when username contains invalid characters', async () => {
+      const response = await GET(makeRequest({ username: '@@@@@' }));
+      const body = await response.json();
 
-      expect(getFullDashboardData).toHaveBeenCalledWith('octocat', { bypassCache: false });
+      expect(response.status).toBe(400);
+      expect(body.error).toContain('Invalid parameters');
+    });
+
+    it('returns 400 when username contains only whitespace', async () => {
+      const response = await GET(makeRequest({ username: '   ' }));
+      const body = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(body.error).toContain('Invalid parameters');
+    });
+
+    it('returns 400 when username exceeds GitHub maximum length', async () => {
+      const response = await GET(
+        makeRequest({
+          username: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+        })
+      );
+
+      const body = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(body.error).toContain('Invalid parameters');
     });
 
     // Test 1 — missing username → 400

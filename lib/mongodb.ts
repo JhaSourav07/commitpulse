@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 
 declare global {
+  // Cached across hot reloads and repeated serverless invocations in the same process.
   var mongoose: {
     conn: typeof import('mongoose') | null;
     promise: Promise<typeof import('mongoose')> | null;
@@ -12,10 +13,31 @@ let cached = global.mongoose;
 if (!cached) {
   cached = global.mongoose = { conn: null, promise: null };
 }
-
+/**
+ * Connects to the MongoDB database and returns the cached connection.
+ *
+ * Reuses an existing connection if one is already established.
+ * Automatically resets the cache if the connection drops.
+ *
+ * @throws {Error} If called from the Edge runtime.
+ * @throws {Error} If `MONGODB_URI` environment variable is not defined.
+ * @returns The active Mongoose connection instance.
+ *
+ * @example
+ * const db = await dbConnect();
+ */
 async function dbConnect() {
-  if (cached.conn) {
+  if (process.env.NEXT_RUNTIME === 'edge') {
+    throw new Error('MongoDB is not supported in the Edge runtime. Use the Node.js runtime.');
+  }
+
+  if (cached.conn && mongoose.connection.readyState === 1) {
     return cached.conn;
+  }
+
+  if (cached.conn && mongoose.connection.readyState !== 1) {
+    cached.conn = null;
+    cached.promise = null;
   }
 
   if (!cached.promise) {
@@ -27,6 +49,10 @@ async function dbConnect() {
 
     const opts = {
       bufferCommands: false,
+      maxPoolSize: 10,
+      minPoolSize: 0,
+      maxIdleTimeMS: 30000,
+      serverSelectionTimeoutMS: 5000,
     };
 
     cached.promise = mongoose.connect(MONGODB_URI, opts).then((mongoose) => {

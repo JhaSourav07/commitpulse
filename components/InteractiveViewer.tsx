@@ -56,7 +56,7 @@ interface ActiveTooltipState {
   y: number;
 }
 
-const formatDate = (dateStr: string): string => {
+export const formatDate = (dateStr: string): string => {
   if (!dateStr) return '';
   const parts = dateStr.split('-');
   if (parts.length !== 3) return dateStr;
@@ -65,8 +65,10 @@ const formatDate = (dateStr: string): string => {
   const day = parseInt(parts[2], 10);
   if (isNaN(year) || isNaN(month) || isNaN(day)) return dateStr;
   try {
-    const date = new Date(year, month - 1, day);
+    const date = new Date(`${dateStr}T00:00:00Z`);
+    if (isNaN(date.getTime())) return dateStr;
     const formatted = date.toLocaleDateString('en-US', {
+      timeZone: 'UTC',
       month: 'short',
       day: 'numeric',
       year: 'numeric',
@@ -80,11 +82,17 @@ const formatDate = (dateStr: string): string => {
 interface InteractiveViewerProps {
   children: ReactNode;
   className?: string;
+  is3DMode?: boolean;
+  onRotate3D?: (dx: number, dy: number) => void;
+  onReset3D?: () => void;
 }
 
 export default function InteractiveViewer({
   children,
   className = '',
+  is3DMode = false,
+  onRotate3D,
+  onReset3D,
 }: InteractiveViewerProps): ReactElement {
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
@@ -189,7 +197,13 @@ export default function InteractiveViewer({
     if (isDragging.current) {
       const dx = e.clientX - lastMousePos.current.x;
       const dy = e.clientY - lastMousePos.current.y;
-      setPan((p) => ({ x: p.x + dx, y: p.y + dy }));
+
+      if (is3DMode && onRotate3D) {
+        onRotate3D(dx, dy);
+      } else {
+        setPan((p) => ({ x: p.x + dx, y: p.y + dy }));
+      }
+
       lastMousePos.current = { x: e.clientX, y: e.clientY };
       // Hide tooltip during active drag/pan
       activeTooltipRef.current = null;
@@ -283,6 +297,14 @@ export default function InteractiveViewer({
     }
   };
 
+  const handleDoubleClick = (): void => {
+    if (is3DMode && onReset3D) {
+      onReset3D();
+    }
+    setPan({ x: 0, y: 0 });
+    setZoom(1);
+  };
+
   return (
     <div
       ref={containerRef}
@@ -296,6 +318,7 @@ export default function InteractiveViewer({
       onPointerLeave={handlePointerLeave}
       onWheel={handleWheel}
       onKeyDown={handleKeyDown}
+      onDoubleClick={handleDoubleClick}
       style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
     >
       {/* ── Parallax background layer ──────────────────────────────────────────

@@ -16,6 +16,11 @@ describe('themes', () => {
       expect(`#${theme.bg}`, `Theme "${name}" bg is invalid`).toMatch(hexRegex);
       expect(`#${theme.text}`, `Theme "${name}" text is invalid`).toMatch(hexRegex);
       expect(`#${theme.accent}`, `Theme "${name}" accent is invalid`).toMatch(hexRegex);
+
+      // negative is optional, but if present, must be valid hex
+      if (theme.negative) {
+        expect(`#${theme.negative}`, `Theme "${name}" negative is invalid`).toMatch(hexRegex);
+      }
     });
   });
 
@@ -37,5 +42,77 @@ describe('themes', () => {
     // Assert strictly equal (===)
     expect(AUTO_THEME_LIGHT).toBe(themes.light);
     expect(AUTO_THEME_DARK).toBe(themes.dark);
+  });
+
+  describe('new light theme variants', () => {
+    it('asserts aurora_cyberpunk theme exists', () => {
+      expect(themes).toHaveProperty('aurora_cyberpunk');
+      expect(themes.aurora_cyberpunk).toBeDefined();
+    });
+
+    it('asserts aurora_cyberpunk has valid bg, text, accent hex values', () => {
+      const hexRegex = /^#[0-9a-f]{6}$/i;
+      const theme = themes.aurora_cyberpunk;
+
+      expect(`#${theme.bg}`).toMatch(hexRegex);
+      expect(`#${theme.text}`).toMatch(hexRegex);
+      expect(`#${theme.accent}`).toMatch(hexRegex);
+    });
+
+    it('asserts catppuccin_latte theme exists', () => {
+      expect(themes).toHaveProperty('catppuccin_latte');
+      expect(themes.catppuccin_latte).toBeDefined();
+    });
+
+    it('asserts catppuccin_latte has valid bg, text, accent hex values', () => {
+      const hexRegex = /^#[0-9a-f]{6}$/i;
+      const theme = themes.catppuccin_latte;
+
+      expect(`#${theme.bg}`).toMatch(hexRegex);
+      expect(`#${theme.text}`).toMatch(hexRegex);
+      expect(`#${theme.accent}`).toMatch(hexRegex);
+    });
+
+    it('asserts solarized_light theme exists', () => {
+      expect(themes).toHaveProperty('solarized_light');
+      expect(themes.solarized_light).toBeDefined();
+    });
+
+    it('asserts solarized_light has valid bg, text, accent hex values', () => {
+      const hexRegex = /^#[0-9a-f]{6}$/i;
+      const theme = themes.solarized_light;
+
+      expect(`#${theme.bg}`).toMatch(hexRegex);
+      expect(`#${theme.text}`).toMatch(hexRegex);
+      expect(`#${theme.accent}`).toMatch(hexRegex);
+    });
+
+    it('asserts gruvbox_light theme exists', () => {
+      expect(themes).toHaveProperty('gruvbox_light');
+      expect(themes.gruvbox_light).toBeDefined();
+    });
+
+    it('asserts gruvbox_light has valid bg, text, accent hex values', () => {
+      const hexRegex = /^#[0-9a-f]{6}$/i;
+      const theme = themes.gruvbox_light;
+
+      expect(`#${theme.bg}`).toMatch(hexRegex);
+      expect(`#${theme.text}`).toMatch(hexRegex);
+      expect(`#${theme.accent}`).toMatch(hexRegex);
+    });
+
+    it('asserts nord_light theme exists', () => {
+      expect(themes).toHaveProperty('nord_light');
+      expect(themes.nord_light).toBeDefined();
+    });
+
+    it('asserts nord_light has valid bg, text, accent hex values', () => {
+      const hexRegex = /^#[0-9a-f]{6}$/i;
+      const theme = themes.nord_light;
+
+      expect(`#${theme.bg}`).toMatch(hexRegex);
+      expect(`#${theme.text}`).toMatch(hexRegex);
+      expect(`#${theme.accent}`).toMatch(hexRegex);
+    });
   });
 });

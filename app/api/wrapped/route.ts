@@ -96,7 +96,7 @@ export async function GET(request: Request) {
     // Fetch calendar contributions for rendering the background mini-monolith
     const from = `${year}-01-01T00:00:00Z`;
     const to = `${year}-12-31T23:59:59Z`;
-    const calendar = await fetchGitHubContributions(user, { from, to, bypassCache: refresh });
+    const { calendar } = await fetchGitHubContributions(user, { from, to, bypassCache: refresh });
 
     const svg = generateWrappedSVG(wrappedStats, params, year, calendar);
 
