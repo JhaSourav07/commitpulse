@@ -443,6 +443,22 @@ describe('TTLCache', () => {
       cache.destroy();
     });
 
+    it('preserves Date parameters nested inside cached object values', () => {
+      const cache = new TTLCache<{ name: string; updatedAt: Date }>();
+
+      const obj = { name: 'repo', updatedAt: new Date('2026-05-31T12:00:00.000Z') };
+
+      cache.set('item', obj, 60_000);
+
+      const cached = cache.get('item');
+
+      expect(cached).toEqual(obj);
+      expect(cached?.updatedAt).toBeInstanceOf(Date);
+      expect(cached?.updatedAt.toISOString()).toBe(obj.updatedAt.toISOString());
+
+      cache.destroy();
+    });
+
     it('stores and retrieves nested object values', () => {
       const cache = new TTLCache<{
         user: { id: number; name: string };
