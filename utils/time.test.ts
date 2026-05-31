@@ -242,7 +242,7 @@ describe('getSecondsUntilMidnightInTimezone', () => {
       { tz: 'Etc/GMT-14', offset: 14, utcHour: 10, expectedLocalHour: 0 }, // UTC+14
     ];
 
-    for (const { tz, utcHour, expectedLocalHour } of extremeOffsets) {
+    for (const { tz, utcHour } of extremeOffsets) {
       // Set UTC time such that local time is exactly midnight
       vi.setSystemTime(new Date(Date.UTC(2024, 6, 15, utcHour, 0, 0)));
 

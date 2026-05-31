@@ -250,14 +250,22 @@ const baseStreakParamsSchema = z.object({
     .string()
     .optional()
     .transform((val) => val === 'true' || val === '1'),
-  glow: z
+  // Glow effect — on by default. Accepts 'true'/'1' (true) or 'false' (false).
+  glow: z.string().optional().transform(toBooleanFlag).default(true),
+  entrance: z.enum(['rise', 'fade', 'slide', 'none']).catch('rise').default('rise'),
+
+  // layout parameter: strictly validated — unsupported values return a 400 Bad Request.
+  layout: z
     .string()
     .optional()
-    .transform((val) => {
-      if (val === undefined) return true;
-      return val === 'true' || val === '1';
-    })
-    .default(true),
+    .refine(
+      (val) => {
+        if (val === undefined || val === '') return true;
+        return ['default', 'compact', 'full'].includes(val);
+      },
+      { message: 'Invalid layout format. Supported values: default, compact, full.' }
+    )
+    .transform((val) => (!val ? undefined : val)),
 });
 
 export const streakParamsSchema = baseStreakParamsSchema.refine(

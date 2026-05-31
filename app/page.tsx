@@ -1,6 +1,6 @@
 'use client';
 import { trackUser } from '@/utils/tracking';
-
+import InteractiveViewer from '@/components/InteractiveViewer';
 import Link from 'next/link';
 import { useRef, useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';

@@ -72,7 +72,8 @@ function generateParticles(
   count: number,
   sf: number,
   autoTheme: boolean = false,
-  color: string = ''
+  color: string = '',
+  animate: boolean = true
 ): string {
   let particles = '';
   const numParticles = particleCount(count);
@@ -87,8 +88,14 @@ function generateParticles(
 
     particles += `
       <circle ${fillAttr} cx="${x + offsetX}" cy="${y - height}" r="${1.5 * sf}" opacity="1" pointer-events="none">
+      ${
+        animate
+          ? `
         <animate attributeName="cy" from="${y - height}" to="${y - height - Math.round(20 * sf)}" dur="1.5s" begin="${delay}s" repeatCount="indefinite" />
         <animate attributeName="opacity" from="1" to="0" dur="1.5s" begin="${delay}s" repeatCount="indefinite" />
+      `
+          : ''
+      }
       </circle>
     `;
   }
@@ -247,7 +254,8 @@ function renderTowers(
   accent: string | string[],
   text: string,
   sf: number,
-  isAutoTheme: boolean = false
+  isAutoTheme: boolean = false,
+  animate: boolean = true
 ): string {
   let towers = '';
   const opacityMultipliers = [0.4, 0.6, 0.8, 1.0];
@@ -340,7 +348,7 @@ function renderTowers(
     towers += `
         <g transform="translate(${t.x}, ${t.y})">
           <g class="cp-tower interactive-tower" data-date="${escapeXML(t.date)}" data-count="${t.contributionCount}" data-metric="${escapeXML(metric)}" style="animation-delay: ${delay}s;">
-            ${t.isToday ? '<animate attributeName="opacity" values="1;0.4;1" dur="1.5s" repeatCount="indefinite" />' : ''}
+            ${animate && t.isToday ? '<animate attributeName="opacity" values="1;0.4;1" dur="1.5s" repeatCount="indefinite" />' : ''}
             <title>${escapeXML(t.tooltip)}</title>
             <path d="M0 ${10 - t.h} L0 10 L-16 0 L-16 ${-t.h} Z" ${leftFillAttr} fill-opacity="${leftFaceOpacity}" ${leftStrokeAttr} />
             <path d="M0 ${10 - t.h} L0 10 L16 0 L16 ${-t.h} Z" ${rightFillAttr} fill-opacity="${rightFaceOpacity}" ${rightStrokeAttr} />
@@ -359,7 +367,16 @@ function renderTowers(
         : pColorResolved.startsWith('#')
           ? pColorResolved
           : `#${pColorResolved}`;
-      towers += generateParticles(t.x, t.y, t.h, t.contributionCount, sf, isAutoTheme, pColor);
+      towers += generateParticles(
+        t.x,
+        t.y,
+        t.h,
+        t.contributionCount,
+        sf,
+        isAutoTheme,
+        pColor,
+        animate
+      );
     }
   }
   return towers;
@@ -483,6 +500,7 @@ export function generateSVG(
 ): string {
   if (params.autoTheme) return generateAutoThemeSVG(stats, params, calendar);
 
+  const animate = params.animate ?? true;
   const safeUser = escapeXML(params.user || 'GitHub User');
   const bg = `#${sanitizeHexColor(params.bg, '0d1117')}`;
 
@@ -522,7 +540,7 @@ export function generateSVG(
     computeTowers(calendar, params.scale, stats.todayDate, params.mode),
     sf
   );
-  const towers = renderTowers(towerData, params, accent, text, sf, false);
+  const towers = renderTowers(towerData, params, accent, text, sf, false, animate);
 
   const mainAccent = Array.isArray(accent)
     ? accent[accent.length - 1] || '00ffaa'
@@ -567,7 +585,7 @@ function generateAutoThemeSVG(
   const sf = getSizeScale(params.size);
   const radius = sanitizeRadius(params.radius, 8) * sf;
   const labels = getLabels(params.lang);
-
+  const animate = params.animate ?? true;
   const W = Math.round(SVG_WIDTH * sf);
   const H = Math.round(SVG_HEIGHT * sf);
   const towerData = scaleTowerData(
@@ -638,15 +656,21 @@ ${
     : ''
 }
 
-  <rect
-    x="${s(100)}"
-    y="${s(80)}"
-    width="${s(400)}"
-    height="${s(1)}"
-    class="cp-accent-fill scan-line"
-    fill-opacity="0.3"
-    style="--scan-speed: ${params.speed || '8s'}; --scan-start: ${s(0)}px; --scan-end: ${s(240)}px;"
-  />
+  ${
+    animate
+      ? `
+    <rect
+      x="${s(100)}"
+      y="${s(80)}"
+      width="${s(400)}"
+      height="${s(1)}"
+      class="cp-accent-fill scan-line"
+      fill-opacity="0.3"
+      style="--scan-speed: ${params.speed || '8s'}; --scan-start: ${s(0)}px; --scan-end: ${s(240)}px;"
+    />
+    `
+      : ''
+  }
 </svg>
 `;
 }

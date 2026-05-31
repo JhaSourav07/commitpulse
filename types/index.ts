@@ -213,6 +213,7 @@ export interface BadgeParams {
   gradient?: boolean;
 
   disable_particles?: boolean;
+  animate?: boolean;
   glow?: boolean;
 }
 

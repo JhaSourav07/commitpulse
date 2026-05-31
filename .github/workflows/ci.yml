@@ -5,6 +5,7 @@ on:
     branches: [main, dev]
   pull_request:
     branches: [main, dev]
+  merge_group: # Run CI on the merged commit before it lands on main
 
 jobs:
   quality:
