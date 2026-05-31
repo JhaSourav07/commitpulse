@@ -75,6 +75,19 @@ describe('streakParamsSchema', () => {
     }
   });
 
+  it('rejects grace values below the minimum range', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      grace: '-1',
+    });
+
+    expect(result.success).toBe(false);
+
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toBe('grace must be an integer between 0 and 7');
+    }
+  });
+
   it('rejects width below minimum', () => {
     const result = streakParamsSchema.safeParse({
       user: 'octocat',

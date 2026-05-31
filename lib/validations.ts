@@ -143,10 +143,19 @@ export const streakParamsSchema = z.object({
   grace: z
     .string()
     .optional()
+    .refine(
+      (val) => {
+        if (val === undefined) return true;
+        if (!/^\d+$/.test(val)) return false;
+
+        const parsed = Number(val);
+        return parsed >= 0 && parsed <= 7;
+      },
+      { message: 'grace must be an integer between 0 and 7' }
+    )
     .transform((val) => {
       if (!val) return 1;
-      const parsed = Number(val);
-      return isNaN(parsed) ? 1 : Math.max(0, Math.min(parsed, 7));
+      return Number(val);
     })
     .default(1),
   mode: z.enum(['commits', 'loc']).catch('commits').default('commits'),
