@@ -267,6 +267,41 @@ interface GitHubUserProfile {
   plan?: { name?: string } | null;
 }
 
+/**
+ * Sanitizes a GitHub user profile to only include required fields.
+ * This reduces the memory footprint of cached data.
+ */
+function sanitizeUserProfile(profile: GitHubUserProfile): GitHubUserProfile {
+  return {
+    login: profile.login,
+    name: profile.name,
+    avatar_url: profile.avatar_url,
+    public_repos: profile.public_repos,
+    followers: profile.followers,
+    following: profile.following,
+    created_at: profile.created_at,
+    bio: profile.bio,
+    location: profile.location,
+    type: profile.type,
+    plan: profile.plan ? { name: profile.plan.name } : null,
+  };
+}
+
+/**
+ * Sanitizes a GitHub repository object to only include required fields.
+ * This reduces the memory footprint of cached data.
+ */
+function sanitizeRepo(repo: GitHubRepo): GitHubRepo {
+  return {
+    name: repo.name,
+    stargazers_count: repo.stargazers_count,
+    language: repo.language,
+    fork: repo.fork,
+    forks_count: repo.forks_count,
+    updated_at: repo.updated_at,
+  };
+}
+
 export function cacheKey(
   kind: 'contributions' | 'profile' | 'repos',
   username: string,
@@ -581,8 +616,9 @@ export async function fetchUserProfile(
     }
 
     const profile = (await res.json()) as GitHubUserProfile;
-    if (!options.bypassCache) await profileCache.set(key, profile, GITHUB_CACHE_TTL_MS);
-    return profile;
+    const sanitizedProfile = sanitizeUserProfile(profile);
+    if (!options.bypassCache) await profileCache.set(key, sanitizedProfile, GITHUB_CACHE_TTL_MS);
+    return sanitizedProfile;
   };
 
   if (options.bypassCache) return load();
@@ -616,7 +652,7 @@ export async function fetchUserRepos(
     }
 
     const firstPageRepos = (await firstPageRes.json()) as GitHubRepo[];
-    const allRepos: GitHubRepo[] = [...firstPageRepos];
+    const allRepos: GitHubRepo[] = firstPageRepos.map(sanitizeRepo);
 
     const MAX_PAGES = 3;
 
@@ -643,7 +679,8 @@ export async function fetchUserRepos(
             throw new Error(`GitHub REST API error: ${response.status}`);
           }
 
-          return (await response.json()) as GitHubRepo[];
+          const repos = (await response.json()) as GitHubRepo[];
+          return repos.map(sanitizeRepo);
         })
       );
 
