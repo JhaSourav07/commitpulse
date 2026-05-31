@@ -1,6 +1,6 @@
 'use client';
 import { trackUser } from '@/utils/tracking';
-import type { ReactNode } from 'react';
+
 import Link from 'next/link';
 import { useRef, useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -11,7 +11,7 @@ import { CustomizeCTA } from './components/CustomizeCTA';
 import { useRecentSearches } from '@/hooks/useRecentSearches';
 import { useDebounce } from '@/hooks/useDebounce';
 import { Footer } from '@/app/components/Footer';
-import InteractiveViewer from '@/components/InteractiveViewer';
+
 import { FeatureCard, FeatureCardsSection } from '@/components/FeatureCards';
 import { DiscordButton } from '@/components/DiscordButton';
 
@@ -138,6 +138,39 @@ export default function LandingPage() {
       guideRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 80);
     setTimeout(() => setCopied(false), 50000);
+  };
+
+  const handleRotate3D = (dx: number, dy: number) => {
+    const towersGroup = document.getElementById('cp-towers');
+    if (!towersGroup) return;
+
+    // Remove any transition so dragging feels instant and responsive
+    towersGroup.style.transition = 'none';
+
+    let currentX = 0;
+    let currentY = 0;
+
+    const transformStr = towersGroup.style.transform;
+    if (transformStr) {
+      const matchX = transformStr.match(/rotateX\(([-0-9.]+)deg\)/);
+      const matchY = transformStr.match(/rotateY\(([-0-9.]+)deg\)/);
+      if (matchX) currentX = parseFloat(matchX[1]);
+      if (matchY) currentY = parseFloat(matchY[1]);
+    }
+
+    const newX = currentX - dy * 0.5;
+    const newY = currentY + dx * 0.5;
+
+    towersGroup.style.transform = `translate(0px, 20px) rotateX(${newX}deg) rotateY(${newY}deg)`;
+  };
+
+  const handleReset3D = () => {
+    const towersGroup = document.getElementById('cp-towers');
+    if (towersGroup) {
+      // Apply a smooth transition for the reset
+      towersGroup.style.transition = 'transform 1.2s cubic-bezier(0.16, 1, 0.3, 1)';
+      towersGroup.style.transform = '';
+    }
   };
 
   return (
@@ -308,7 +341,12 @@ export default function LandingPage() {
 
           <div className="group relative mt-10">
             <div className="absolute -inset-1 rounded-[2.5rem] bg-gradient-to-r from-emerald-500/20 to-cyan-500/20 opacity-50 blur-2xl transition duration-1000 group-hover:opacity-100" />
-            <div className="relative flex min-h-[480px] md:min-h-[520px] items-center justify-center overflow-visible rounded-3xl border border-black/5 bg-white/50 p-8 backdrop-blur-xl shadow-2xl dark:border-white/10 dark:bg-[#0a0a0a]/80">
+            <InteractiveViewer
+              className="relative flex min-h-[480px] md:min-h-[520px] items-center justify-center overflow-visible rounded-3xl border border-black/5 bg-white/50 p-8 backdrop-blur-xl shadow-2xl dark:border-white/10 dark:bg-[#0a0a0a]/80"
+              is3DMode={true}
+              onRotate3D={handleRotate3D}
+              onReset3D={handleReset3D}
+            >
               {hasUsername ? (
                 <div className="w-full flex items-center justify-center">
                   {svgState === 'loading' && (
@@ -370,7 +408,7 @@ export default function LandingPage() {
                   </p>
                 </div>
               )}
-            </div>
+            </InteractiveViewer>
           </div>
         </section>
 

@@ -169,6 +169,16 @@ const baseStreakParamsSchema = z.object({
       },
       { message: 'Invalid "to" date format. Use ISO 8601 (e.g. 2023-12-31).' }
     ),
+  date: z
+    .string()
+    .optional()
+    .refine(
+      (val) => {
+        if (!val) return true;
+        return !isNaN(Date.parse(val));
+      },
+      { message: 'Invalid "date" format. Use ISO 8601.' }
+    ),
   tz: z
     .string()
     .optional()

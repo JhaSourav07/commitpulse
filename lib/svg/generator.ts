@@ -26,7 +26,7 @@ export function truncateUsername(username: string): string {
   return username.length > 12 ? `${username.slice(0, 12)}...` : username;
 }
 
-function deterministicRandom(seed: string): number {
+export function deterministicRandom(seed: string): number {
   let hash = 2166136261;
   for (let i = 0; i < seed.length; i++) {
     hash ^= seed.charCodeAt(i);
@@ -108,14 +108,15 @@ function renderHeader(
   safeUser: string,
   stats: StreakStats,
   sf: number,
-  params: BadgeParams
+  params: BadgeParams,
+  safeId: string
 ): string {
   const unit = params.mode === 'loc' ? 'lines of code' : 'total contributions';
   const entity = params.org ? 'Organization' : params.repo ? 'Repository' : 'User';
 
   return `
-  <title>CommitPulse ${entity} Stats for ${safeUser}</title>
-  <desc>
+  <title id="cp-title-${safeId}">CommitPulse ${entity} Stats for ${safeUser}</title>
+  <desc id="cp-desc-${safeId}">
     ${safeUser} has ${stats.totalContributions} ${unit} and a longest streak of ${stats.longestStreak} days.
   </desc>
   ${renderDefs(sf, params)}`;
@@ -159,8 +160,13 @@ function renderDefs(sf: number, params: BadgeParams): string {
     }
   }
 
+  const filterGlow =
+    params.glow !== false
+      ? `<filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="${fs(5)}" result="blur" /><feComposite in="SourceGraphic" in2="blur" operator="over" /></filter>`
+      : '';
+
   return `<defs>
-    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="${fs(5)}" result="blur" /><feComposite in="SourceGraphic" in2="blur" operator="over" /></filter>
+    ${filterGlow}
     ${gradients}
   </defs>`;
 }
@@ -172,15 +178,16 @@ function renderStatsSection(
   params: BadgeParams
 ): string {
   const totalLabel = params.mode === 'loc' ? 'TOTAL LINES OF CODE' : labels.ANNUAL_SYNC_TOTAL;
+  const glowAttr = params.glow !== false ? ' filter="url(#glow)"' : '';
 
   return `
   <g transform="translate(${s(100)}, ${s(340)})" text-anchor="middle">
     <text class="label">${labels.CURRENT_STREAK}</text>
-    <text y="${s(40)}" class="stats" filter="url(#glow)">${stats.currentStreak}</text>
+    <text y="${s(40)}" class="stats"${glowAttr}>${stats.currentStreak}</text>
   </g>
   <g transform="translate(${s(300)}, ${s(340)})" text-anchor="middle">
     <text class="label">${totalLabel}</text>
-    <text y="${s(40)}" class="total-val" filter="url(#glow)">${stats.totalContributions}</text>
+    <text y="${s(40)}" class="total-val"${glowAttr}>${stats.totalContributions}</text>
   </g>
   <g transform="translate(${s(500)}, ${s(340)})" text-anchor="middle">
     <text class="label">${labels.PEAK_STREAK}</text>
@@ -522,12 +529,18 @@ export function generateSVG(
     : accent || '00ffaa';
   const mainAccentHex = mainAccent.startsWith('#') ? mainAccent : `#${mainAccent}`;
 
+  const safeId = safeUser.replace(/[^a-zA-Z0-9-]/g, '_').toLowerCase();
+
   return `
+<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" fill="none" role="img" aria-labelledby="cp-title-${safeId}" aria-describedby="cp-desc-${safeId}">
+  ${renderHeader(safeUser, stats, sf, params, safeId)}
 <svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 ${W} ${H}" fill="none" role="img">
-  ${renderHeader(safeUser, stats, sf, params)}
+  ${renderHeader(safeUser, stats, sf, params, safeId)}
+  ${renderStyle(selectedFont, statsFont, googleFontsImport, text, mainAccentHex, sf, bg)}
+  ${renderHeader(safeUser, stats, sf, params, safeId)}
   ${renderStyle(selectedFont, statsFont, googleFontsImport, text, mainAccentHex, sf, bg, params.entrance || 'rise')}
   <rect width="${W}" height="${H}" rx="${radius}" fill="${params.hideBackground ? 'transparent' : bg}" ${borderAttr} />
-  <g transform="translate(0, ${Math.round(20 * sf)})">${towers}</g>
+  <g id="cp-towers" style="transform-origin: center; transform-box: fill-box;" transform="translate(0, ${Math.round(20 * sf)})">${towers}</g>
   ${renderIsometricLabels(calendar, params, text, sf)}
   ${renderFooter(stats, params, labels, safeUser, mainAccentHex, sf)}
 </svg>`;
@@ -570,6 +583,8 @@ function generateAutoThemeSVG(
   const s = createScaler(sf);
   const fs = (n: number): number => Math.round(n * sf * 10) / 10;
 
+  const safeId = safeUser.replace(/[^a-zA-Z0-9-]/g, '_').toLowerCase();
+
   return `
 <svg
   xmlns="http://www.w3.org/2000/svg"
@@ -577,8 +592,10 @@ function generateAutoThemeSVG(
   viewBox="0 0 ${W} ${H}"
   fill="none"
   role="img"
+  aria-labelledby="cp-title-${safeId}"
+  aria-describedby="cp-desc-${safeId}"
 >
-  ${renderHeader(safeUser, stats, sf, params)}
+  ${renderHeader(safeUser, stats, sf, params, safeId)}
 
   <style>
 @import url('https://fonts.googleapis.com/css2?family=Fira+Code&amp;family=JetBrains+Mono&amp;family=Roboto&amp;family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');
@@ -614,7 +631,7 @@ function generateAutoThemeSVG(
   </style>
 
   <rect width="${W}" height="${H}" rx="${radius}" ${params.hideBackground ? 'fill="transparent"' : 'class="cp-bg-fill"'} />
-  <g transform="translate(0, ${s(20)})">
+  <g id="cp-towers" style="transform-origin: center; transform-box: fill-box;" transform="translate(0, ${s(20)})">
     ${towers}
   </g>
   ${renderIsometricLabels(calendar, params, 'var(--cp-text)', sf)}
@@ -724,6 +741,8 @@ export function generateMonthlySVG(stats: MonthlyStats, params: BadgeParams): st
 
   const deltaColor = stats.deltaAbsolute >= 0 ? accent : negativeColor;
 
+  const safeId = safeUser.replace(/[^a-zA-Z0-9-]/g, '_').toLowerCase();
+
   return `
 <svg
   xmlns="http://www.w3.org/2000/svg"
@@ -732,8 +751,11 @@ export function generateMonthlySVG(stats: MonthlyStats, params: BadgeParams): st
   viewBox="0 0 ${width} ${height}"
   fill="none"
   role="img"
+  aria-labelledby="cp-title-${safeId}"
+  aria-describedby="cp-desc-${safeId}"
 >
-  <title>Monthly Stats for ${safeUser}</title>
+  <title id="cp-title-${safeId}">Monthly Stats for ${safeUser}</title>
+  <desc id="cp-desc-${safeId}">Monthly stats for ${safeUser}: ${stats.currentMonthTotal} ${commitsLabel} vs previous month delta of ${deltaText}.</desc>
   <style>
   @import url('https://fonts.googleapis.com/css2?family=Fira+Code&amp;family=JetBrains+Mono&amp;family=Roboto&amp;family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');
   ${googleFontsImport}
@@ -907,6 +929,17 @@ export function generateWrappedSVG(
     ? 'class="cp-accent-stroke" stroke-opacity="0.15" stroke-width="1.5"'
     : borderAttr;
 
+  const safeId = safeUser.replace(/[^a-zA-Z0-9-]/g, '_').toLowerCase();
+  const filterGlow =
+    params.glow !== false
+      ? `<filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3.5" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>`
+      : '';
+
+  const glowAttr = params.glow !== false ? ' filter="url(#glow)"' : '';
+
   return `
 <svg
   xmlns="http://www.w3.org/2000/svg"
@@ -915,13 +948,13 @@ export function generateWrappedSVG(
   viewBox="0 0 420 260"
   fill="none"
   role="img"
+  aria-labelledby="cp-title-${safeId}"
+  aria-describedby="cp-desc-${safeId}"
 >
-  <title>${safeUser}'s GitHub Wrapped ${year}</title>
+  <title id="cp-title-${safeId}">${safeUser}'s GitHub Wrapped ${year}</title>
+  <desc id="cp-desc-${safeId}">GitHub Wrapped stats for ${safeUser} in ${year}: ${stats.totalContributions} total contributions, top language is ${stats.topLanguage || 'Unknown'}, busiest month is ${stats.busiestMonth || 'Unknown'}.</desc>
   <defs>
-    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-      <feGaussianBlur stdDeviation="3.5" result="blur"/>
-      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
-    </filter>
+    ${filterGlow}
   </defs>
 
   <style>
@@ -931,13 +964,13 @@ export function generateWrappedSVG(
 
   .title-user { font-family: ${selectedFont || '"Syncopate", sans-serif'}; font-weight: 700; font-size: 13px; letter-spacing: 2.5px; opacity: 0.85; }
   .title-wrapped { font-family: ${selectedFont || '"Syncopate", sans-serif'}; font-weight: 700; font-size: 13px; letter-spacing: 2.5px; }
- 
+
   .total-commits { font-family: ${statsFont}; font-size: 46px; font-weight: 700; }
   .total-label { font-family: "Roboto", sans-serif; font-size: 9.5px; font-weight: 700; letter-spacing: 1.5px; opacity: 0.5; }
- 
+
   .grid-label { font-family: "Roboto", sans-serif; font-size: 9px; font-weight: 700; letter-spacing: 1.5px; opacity: 0.5; }
   .grid-val { font-family: ${statsFont}; font-size: 14.5px; font-weight: 600; }
- 
+
   .scan-line {
     animation: scan-sweep var(--scan-speed, 8s) linear infinite;
     transform-box: fill-box;
@@ -976,7 +1009,7 @@ export function generateWrappedSVG(
   </g>
 
   <g transform="translate(25, 120)">
-    <text x="0" y="15" class="total-commits" ${accentClass} filter="url(#glow)">${stats.totalContributions}</text>
+    <text x="0" y="15" class="total-commits" ${accentClass}${glowAttr}>${stats.totalContributions}</text>
     <text x="2" y="38" class="total-label" ${textClass}>TOTAL CONTRIBUTIONS</text>
   </g>
 
@@ -1071,6 +1104,8 @@ function generateAutoThemeMonthlySVG(stats: MonthlyStats, params: BadgeParams): 
             : `0%`;
   }
 
+  const safeId = safeUser.replace(/[^a-zA-Z0-9-]/g, '_').toLowerCase();
+
   return `
 <svg
   xmlns="http://www.w3.org/2000/svg"
@@ -1079,18 +1114,21 @@ function generateAutoThemeMonthlySVG(stats: MonthlyStats, params: BadgeParams): 
   viewBox="0 0 ${width} ${height}"
   fill="none"
   role="img"
+  aria-labelledby="cp-title-${safeId}"
+  aria-describedby="cp-desc-${safeId}"
 >
-  <title>Monthly Stats for ${safeUser}</title>
+  <title id="cp-title-${safeId}">Monthly Stats for ${safeUser}</title>
+  <desc id="cp-desc-${safeId}">Monthly stats for ${safeUser}: ${stats.currentMonthTotal} ${commitsLabel} vs previous month delta of ${deltaText}.</desc>
   <style>
   @import url('https://fonts.googleapis.com/css2?family=Fira+Code&amp;family=JetBrains+Mono&amp;family=Roboto&amp;family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');
   ${googleFontsImport}
   :root { --cp-bg: #${light.bg}; --cp-text: #${light.text}; --cp-accent: #${light.accent}; --cp-negative: #${light.negative || 'cf222e'}; }
   @media (prefers-color-scheme: dark) { :root { --cp-bg: #${dark.bg}; --cp-text: #${dark.text}; --cp-accent: #${dark.accent}; --cp-negative: #${dark.negative || 'f85149'}; } }
-  .cp-bg-fill { fill: var(--cp-bg); } 
-  .cp-text-fill { fill: var(--cp-text); color: var(--cp-text); } 
+  .cp-bg-fill { fill: var(--cp-bg); }
+  .cp-text-fill { fill: var(--cp-text); color: var(--cp-text); }
   .cp-accent-fill { fill: var(--cp-accent); color: var(--cp-accent); }
   .cp-delta-fill { fill: ${stats.deltaAbsolute >= 0 ? 'var(--cp-accent)' : 'var(--cp-negative)'}; }
- 
+
   .title { font-family: ${selectedFont || '"Syncopate", sans-serif'}; fill: var(--cp-text); font-size: 14px; letter-spacing: 2px; font-weight: 400; opacity: 0.8; }
   .stats { font-family: ${statsFont}; fill: var(--cp-accent); font-size: 36px; font-weight: 600; letter-spacing: 0; }
   .label { font-family: "Roboto", sans-serif; fill: var(--cp-text); font-size: 10px; font-weight: 400; letter-spacing: 1px; opacity: 0.7; }
@@ -1155,7 +1193,8 @@ function renderHeatmapGrid(
   sf: number,
   todayDate: string,
   mode: 'commits' | 'loc' = 'commits',
-  isAutoTheme: boolean = false
+  isAutoTheme: boolean = false,
+  glow: boolean = true
 ): string {
   const weeks = calendar.weeks.slice(-14);
   const cellSize = Math.round(HEATMAP_CELL_SIZE * sf);
@@ -1203,7 +1242,7 @@ function renderHeatmapGrid(
       const fillAttr = isAutoTheme ? 'fill="var(--cp-accent)"' : `fill="${accent}"`;
 
       // Glow on high-intensity cells
-      const filterAttr = intensity === 4 ? ' filter="url(#hm-glow)"' : '';
+      const filterAttr = intensity === 4 && glow !== false ? ' filter="url(#hm-glow)"' : '';
 
       cells += `
       <rect
@@ -1329,10 +1368,27 @@ export function generateHeatmapSVG(
   const labelFill = isLightBg ? text : accent;
   const labelOpacity = isLightBg ? 0.8 : 0.7;
 
-  const grid = renderHeatmapGrid(calendar, accent, text, sf, stats.todayDate, params.mode, false);
+  const grid = renderHeatmapGrid(
+    calendar,
+    accent,
+    text,
+    sf,
+    stats.todayDate,
+    params.mode,
+    false,
+    params.glow !== false
+  );
   const legend = renderHeatmapLegend(accent, text, sf, s(60), s(270), false);
 
   const unit = params.mode === 'loc' ? 'lines of code' : 'total contributions';
+
+  const filterGlow =
+    params.glow !== false
+      ? `<filter id="hm-glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="${Math.round(3 * sf)}" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>`
+      : '';
 
   return `
 <svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 ${W} ${H}" fill="none" role="img">
@@ -1340,10 +1396,7 @@ export function generateHeatmapSVG(
   <desc>${safeUser} has ${stats.totalContributions} ${unit} and a longest streak of ${stats.longestStreak} days.</desc>
 
   <defs>
-    <filter id="hm-glow" x="-50%" y="-50%" width="200%" height="200%">
-      <feGaussianBlur stdDeviation="${Math.round(3 * sf)}" result="blur" />
-      <feComposite in="SourceGraphic" in2="blur" operator="over" />
-    </filter>
+    ${filterGlow}
   </defs>
 
   <style>
@@ -1445,10 +1498,27 @@ function generateAutoThemeHeatmapSVG(
   const H = Math.round(300 * sf);
   const s = createScaler(sf);
 
-  const grid = renderHeatmapGrid(calendar, '', '', sf, stats.todayDate, params.mode, true);
+  const grid = renderHeatmapGrid(
+    calendar,
+    '',
+    '',
+    sf,
+    stats.todayDate,
+    params.mode,
+    true,
+    params.glow !== false
+  );
   const legend = renderHeatmapLegend('', '', sf, s(60), s(270), true);
 
   const unit = params.mode === 'loc' ? 'lines of code' : 'total contributions';
+
+  const filterGlow =
+    params.glow !== false
+      ? `<filter id="hm-glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="${Math.round(3 * sf)}" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>`
+      : '';
 
   return `
 <svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 ${W} ${H}" fill="none" role="img">
@@ -1456,10 +1526,7 @@ function generateAutoThemeHeatmapSVG(
   <desc>${safeUser} has ${stats.totalContributions} ${unit} and a longest streak of ${stats.longestStreak} days.</desc>
 
   <defs>
-    <filter id="hm-glow" x="-50%" y="-50%" width="200%" height="200%">
-      <feGaussianBlur stdDeviation="${Math.round(3 * sf)}" result="blur" />
-      <feComposite in="SourceGraphic" in2="blur" operator="over" />
-    </filter>
+    ${filterGlow}
   </defs>
 
   <style>
@@ -1620,14 +1687,19 @@ export function generateNotFoundSVG(
       </g>`;
   }
 
+  const safeId = safeName.replace(/[^a-zA-Z0-9-]/g, '_').toLowerCase();
+
   return `<svg
   xmlns="http://www.w3.org/2000/svg"
   width="100%"
   viewBox="0 0 ${SVG_WIDTH} ${SVG_HEIGHT}"
   fill="none"
   role="img"
+  aria-labelledby="cp-title-${safeId}"
+  aria-describedby="cp-desc-${safeId}"
 >
-  <title>User not found — ${safeName}</title>
+  <title id="cp-title-${safeId}">User not found — ${safeName}</title>
+  <desc id="cp-desc-${safeId}">The GitHub user ${safeName} was not found or has no contribution data.</desc>
   <defs>
     <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
       <feGaussianBlur stdDeviation="5" result="blur"/>
@@ -1770,14 +1842,19 @@ export function generateVersusSVG(
   const s = createScaler(sf);
   const unit = params.mode === 'loc' ? 'lines of code' : 'total contributions';
 
+  const safeId = `${safeUser1}_vs_${safeUser2}`.replace(/[^a-zA-Z0-9-]/g, '_').toLowerCase();
+
   return `
+<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" fill="none" role="img" aria-labelledby="cp-title-${safeId}" aria-describedby="cp-desc-${safeId}">
+  <title id="cp-title-${safeId}">CommitPulse Versus Stats: ${safeUser1} vs ${safeUser2}</title>
+  <desc id="cp-desc-${safeId}">${safeUser1} has ${stats1.totalContributions} ${unit}. ${safeUser2} has ${stats2.totalContributions} ${unit}.</desc>
 <svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 ${W} ${H}" fill="none" role="img">
   <title>CommitPulse Versus Stats: ${safeUser1} vs ${safeUser2}</title>
   <desc>${safeUser1} has ${stats1.totalContributions} ${unit}. ${safeUser2} has ${stats2.totalContributions} ${unit}.</desc>
   ${renderDefs(sf, params)}
   ${renderStyle(selectedFont, statsFont, googleFontsImport, text, accent, sf, bg)}
   <rect width="${W}" height="${H}" rx="${radius}" fill="${params.hideBackground ? 'transparent' : bg}" />
- 
+
   <g transform="translate(0, 0)">
     <g transform="translate(0, ${Math.round(20 * sf)})">${towers1}</g>
     ${renderIsometricLabels(calendar1, params, text, sf)}
@@ -1791,7 +1868,7 @@ export function generateVersusSVG(
   </g>
 
   <line x1="${singleW}" y1="${s(40)}" x2="${singleW}" y2="${H - s(40)}" stroke="${text}" stroke-opacity="0.2" stroke-width="2" stroke-dasharray="4 4" />
- 
+
   <g transform="translate(${singleW}, ${H / 2})">
     <circle cx="0" cy="0" r="${s(24)}" fill="${bg}" stroke="${accent}" stroke-width="2" />
     <text x="0" y="${s(6)}" text-anchor="middle" font-family="${statsFont}" fill="${accent}" font-size="${s(16)}" font-weight="bold">VS</text>
@@ -1907,12 +1984,17 @@ function generateAutoThemeVersusSVG(
   const fs = (n: number): number => Math.round(n * sf * 10) / 10;
   const unit = params.mode === 'loc' ? 'lines of code' : 'total contributions';
 
+  const safeId = `${safeUser1}_vs_${safeUser2}`.replace(/[^a-zA-Z0-9-]/g, '_').toLowerCase();
+
   return `
+<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" fill="none" role="img" aria-labelledby="cp-title-${safeId}" aria-describedby="cp-desc-${safeId}">
+  <title id="cp-title-${safeId}">CommitPulse Versus Stats: ${safeUser1} vs ${safeUser2}</title>
+  <desc id="cp-desc-${safeId}">${safeUser1} has ${stats1.totalContributions} ${unit}. ${safeUser2} has ${stats2.totalContributions} ${unit}.</desc>
 <svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 ${W} ${H}" fill="none" role="img">
   <title>CommitPulse Versus Stats: ${safeUser1} vs ${safeUser2}</title>
   <desc>${safeUser1} has ${stats1.totalContributions} ${unit}. ${safeUser2} has ${stats2.totalContributions} ${unit}.</desc>
   ${renderDefs(sf, params)}
- 
+
   <style>
   @import url('https://fonts.googleapis.com/css2?family=Fira+Code&amp;family=JetBrains+Mono&amp;family=Roboto&amp;family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');
   :root { --cp-bg: #${light.bg}; --cp-text: #${light.text}; --cp-accent: #${light.accent}; --cp-label-fill: ${lightLabelFill}; --cp-label-opacity: ${lightLabelOpacity}; }
@@ -1945,7 +2027,7 @@ function generateAutoThemeVersusSVG(
   </style>
 
   <rect width="${W}" height="${H}" rx="${radius}" class="${params.hideBackground ? '' : 'cp-bg-fill'}" fill="${params.hideBackground ? 'transparent' : ''}" />
- 
+
   <g transform="translate(0, 0)">
     <g transform="translate(0, ${Math.round(20 * sf)})">${towers1}</g>
     ${renderIsometricLabels(calendar1, params, '', sf)}
@@ -1959,7 +2041,7 @@ function generateAutoThemeVersusSVG(
   </g>
 
   <line x1="${singleW}" y1="${s(40)}" x2="${singleW}" y2="${H - s(40)}" stroke="var(--cp-text)" stroke-opacity="0.2" stroke-width="2" stroke-dasharray="4 4" />
- 
+
   <g transform="translate(${singleW}, ${H / 2})">
     <circle cx="0" cy="0" r="${s(24)}" class="cp-bg-fill" stroke="var(--cp-accent)" stroke-width="2" />
     <text x="0" y="${s(6)}" text-anchor="middle" font-family="${statsFont}" class="cp-accent-fill" font-size="${s(16)}" font-weight="bold">VS</text>
@@ -2416,14 +2498,19 @@ export function generateRateLimitSVG(
       </g>`;
   }
 
+  const safeId = 'rate_limit';
+
   return `<svg
   xmlns="http://www.w3.org/2000/svg"
   width="100%"
   viewBox="0 0 ${SVG_WIDTH} ${SVG_HEIGHT}"
   fill="none"
   role="img"
+  aria-labelledby="cp-title-${safeId}"
+  aria-describedby="cp-desc-${safeId}"
 >
-  <title>Rate Limit Exceeded</title>
+  <title id="cp-title-${safeId}">Rate Limit Exceeded</title>
+  <desc id="cp-desc-${safeId}">GitHub API rate limit exceeded. Please try again later.</desc>
   <defs>
     <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
       <feGaussianBlur stdDeviation="5" result="blur"/>
