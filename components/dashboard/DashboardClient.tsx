@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { X, RefreshCw, Share2 } from 'lucide-react';
+import { X, RefreshCw, Share2, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import type { Achievement } from '@/types/dashboard';
@@ -22,6 +22,7 @@ import ComparisonStatsCard from './ComparisonStatsCard';
 import RadarChart from './RadarChart';
 import GrowthTrendChart from './GrowthTrendChart';
 import ProfileOptimizerModal from './ProfileOptimizerModal';
+import AIGrowthDashboard from './AIGrowthDashboard';
 
 // Define the dashboard data structure
 interface DashboardData {
@@ -326,6 +327,7 @@ export default function DashboardClient({ initialData, username }: DashboardClie
   const [secondUsernameInput, setSecondUsernameInput] = useState('');
   const [isLoadingSecond, setIsLoadingSecond] = useState(false);
   const [compareError, setCompareError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'overview' | 'ai-growth'>('overview');
 
   // Close modal on escape key
   useEffect(() => {
@@ -540,74 +542,121 @@ export default function DashboardClient({ initialData, username }: DashboardClie
         </div>
       </div>
 
+      {/* Tabs Control */}
+      {!isCompareMode && (
+        <div className="flex border-b border-black/10 dark:border-white/10 mb-6 gap-6">
+          <button
+            onClick={() => setActiveTab('overview')}
+            className={`pb-2.5 text-sm font-semibold border-b-2 transition-all cursor-pointer ${
+              activeTab === 'overview'
+                ? 'border-cyan-500 text-cyan-600 dark:text-cyan-400'
+                : 'border-transparent text-gray-500 hover:text-gray-900 dark:hover:text-white'
+            }`}
+          >
+            Overview
+          </button>
+          <button
+            onClick={() => setActiveTab('ai-growth')}
+            className={`pb-2.5 text-sm font-semibold border-b-2 transition-all flex items-center gap-1.5 cursor-pointer ${
+              activeTab === 'ai-growth'
+                ? 'border-purple-500 text-purple-600 dark:text-purple-400'
+                : 'border-transparent text-gray-500 hover:text-gray-900 dark:hover:text-white'
+            }`}
+          >
+            <Sparkles size={14} className="animate-pulse text-purple-500" />
+            AI Contributor Growth & Roadmap
+          </button>
+        </div>
+      )}
+
       {/* Main Dashboard Layout */}
       {!isCompareMode || !secondUserData || !coderProfileB ? (
         /* Standard Single Profile View */
-        <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr_320px] gap-6 lg:gap-8">
-          {/* Left Sidebar */}
-          <aside className="flex flex-col gap-6 lg:row-span-2">
-            <ProfileCard
-              user={initialData.profile}
-              exportData={{
-                stats: initialData.stats,
-                languages: initialData.languages,
-                activity: initialData.activity,
-              }}
-            />
-            <Achievements achievements={initialData.achievements} />
-          </aside>
-
-          {/* Main Content */}
-          <div className="flex flex-col gap-6 lg:gap-8 min-w-0">
-            <section>
-              <ActivityLandscape data={initialData.activity} />
-            </section>
-
-            <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <LanguageChart languages={initialData.languages} />
-              <CommitClock data={initialData.commitClock} />
-            </section>
-
-            <section>
-              <Heatmap data={initialData.activity} />
-            </section>
-          </div>
-
-          {/* Right Sidebar */}
-          <aside className="flex flex-col gap-6">
-            <div className="flex flex-col gap-4">
-              <StatsCard
-                title="Current Streak"
-                value={initialData.stats.currentStreak.toString()}
-                description="Days"
-                icon="Flame"
-                showUTCDisclaimer={true}
-                utcDate={new Date().toISOString().split('T')[0]}
+        activeTab === 'overview' ? (
+          <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr_320px] gap-6 lg:gap-8">
+            {/* Left Sidebar */}
+            <aside className="flex flex-col gap-6 lg:row-span-2">
+              <ProfileCard
+                user={initialData.profile}
+                exportData={{
+                  stats: initialData.stats,
+                  languages: initialData.languages,
+                  activity: initialData.activity,
+                }}
               />
+              <Achievements achievements={initialData.achievements} />
+            </aside>
 
-              <StatsCard
-                title="Peak Streak"
-                value={initialData.stats.peakStreak.toString()}
-                description="Days"
-                icon="TrendingUp"
-              />
+            {/* Main Content */}
+            <div className="flex flex-col gap-6 lg:gap-8 min-w-0">
+              <section>
+                <ActivityLandscape data={initialData.activity} />
+              </section>
 
-              <StatsCard
-                title="Contributions"
-                value={initialData.stats.totalContributions.toString()}
-                description="Last Year"
-                icon="GitCommit"
-              />
+              <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <LanguageChart languages={initialData.languages} />
+                <CommitClock data={initialData.commitClock} />
+              </section>
+
+              <section>
+                <Heatmap data={initialData.activity} />
+              </section>
             </div>
 
-            <AIInsights insights={initialData.insights} />
-          </aside>
+            {/* Right Sidebar */}
+            <aside className="flex flex-col gap-6">
+              <div className="flex flex-col gap-4">
+                <StatsCard
+                  title="Current Streak"
+                  value={initialData.stats.currentStreak.toString()}
+                  description="Days"
+                  icon="Flame"
+                  showUTCDisclaimer={true}
+                  utcDate={new Date().toISOString().split('T')[0]}
+                />
 
-          {/* Repository Graph Section */}
-          <div className="col-span-1 lg:col-span-2 lg:col-start-2">
-            <RepositoryGraph data={initialData.graphData} />
+                <StatsCard
+                  title="Peak Streak"
+                  value={initialData.stats.peakStreak.toString()}
+                  description="Days"
+                  icon="TrendingUp"
+                />
+
+                <StatsCard
+                  title="Contributions"
+                  value={initialData.stats.totalContributions.toString()}
+                  description="Last Year"
+                  icon="GitCommit"
+                />
+              </div>
+
+              <AIInsights insights={initialData.insights} />
+            </aside>
+
+            {/* Repository Graph Section */}
+            <div className="col-span-1 lg:col-span-2 lg:col-start-2">
+              <RepositoryGraph data={initialData.graphData} />
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-6 lg:gap-8">
+            {/* Left Sidebar */}
+            <aside className="flex flex-col gap-6">
+              <ProfileCard
+                user={initialData.profile}
+                exportData={{
+                  stats: initialData.stats,
+                  languages: initialData.languages,
+                  activity: initialData.activity,
+                }}
+              />
+              <Achievements achievements={initialData.achievements} />
+            </aside>
+
+            {/* AI Growth Dashboard Section */}
+            <AIGrowthDashboard data={initialData} />
+          </div>
+        )
       ) : (
         /* Compare Mode Split-Dashboard View */
         <div className="flex flex-col gap-8">
