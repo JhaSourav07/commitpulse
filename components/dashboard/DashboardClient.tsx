@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { X, RefreshCw } from 'lucide-react';
+import { X, RefreshCw, Share2 } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import type { Achievement } from '@/types/dashboard';
+import type { GraphNode, GraphLink } from '@/types';
 
 import RefreshButton from './RefreshButton';
 import ProfileCard from './ProfileCard';
@@ -16,9 +17,11 @@ import CommitClock from './CommitClock';
 import Heatmap from './Heatmap';
 import AIInsights from './AIInsights';
 import StatsCard from './StatsCard';
+import RepositoryGraph from './RepositoryGraph';
 import ComparisonStatsCard from './ComparisonStatsCard';
 import RadarChart from './RadarChart';
 import GrowthTrendChart from './GrowthTrendChart';
+import ProfileOptimizerModal from './ProfileOptimizerModal';
 
 // Define the dashboard data structure
 interface DashboardData {
@@ -63,6 +66,10 @@ interface DashboardData {
     day: string;
     commits: number;
   }>;
+  graphData: {
+    nodes: GraphNode[];
+    links: GraphLink[];
+  };
 }
 
 interface DashboardClientProps {
@@ -70,19 +77,13 @@ interface DashboardClientProps {
   username: string;
 }
 
-// ------------------------------------------------------------
-// Analytical Helpers for Profile Comparison
-// ------------------------------------------------------------
-
-function getUsernameHash(username: string): number {
-  let hash = 0;
-  for (let i = 0; i < username.length; i++) {
-    hash = username.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return Math.abs(hash);
+export interface ProfileMetrics {
+  currentStreak: number;
+  commitClock: { day: string; commits: number }[]; // e.g., Sun-Sat daily totals
+  hourlyData?: { hour: number; commits: number }[]; // Optional: 0-23 hour distribution
 }
 
-interface CoderProfile {
+export interface CoderProfile {
   peakHourStart: number;
   peakHourEnd: number;
   profileName: 'Night Owl 🌙' | 'Early Builder ☀' | 'Weekend Warrior 🚀' | 'Consistent Runner 🏃‍♂️';
@@ -90,50 +91,81 @@ interface CoderProfile {
   activeWeekdays: string[];
 }
 
-function generateCoderProfile(username: string): CoderProfile {
-  const hash = getUsernameHash(username);
-  const profileType = hash % 4;
+export function generateCoderProfile(metrics: ProfileMetrics): CoderProfile {
+  const { currentStreak, commitClock, hourlyData } = metrics;
 
-  let profileName: CoderProfile['profileName'] = 'Consistent Runner 🏃‍♂️';
+  let profileName: CoderProfile['profileName'] = 'Early Builder ☀';
+
+  // 1. Analyze Commit Clock for Weekend Warrior
+  let isWeekendWarrior = false;
+  if (commitClock && commitClock.length === 7) {
+    const weekendCommits = commitClock[0].commits + commitClock[6].commits; // Sunday(0) + Saturday(6)
+    const totalCommits = commitClock.reduce((sum, d) => sum + d.commits, 0);
+    if (totalCommits > 0 && weekendCommits / totalCommits > 0.35) {
+      isWeekendWarrior = true;
+    }
+  }
+
+  // 2. Analyze Hourly Data for Night Owl vs Early Builder
+  let isNightOwl = false;
+  if (hourlyData && hourlyData.length > 0) {
+    const nightCommits = hourlyData
+      .filter((d) => d.hour >= 22 || d.hour <= 3)
+      .reduce((sum, d) => sum + d.commits, 0);
+
+    const morningCommits = hourlyData
+      .filter((d) => d.hour >= 5 && d.hour <= 10)
+      .reduce((sum, d) => sum + d.commits, 0);
+
+    isNightOwl = nightCommits > morningCommits;
+  }
+
+  // 3. Determine Final Profile Type
+  if (currentStreak >= 10) {
+    profileName = 'Consistent Runner 🏃‍♂️';
+  } else if (isWeekendWarrior) {
+    profileName = 'Weekend Warrior 🚀';
+  } else if (isNightOwl) {
+    profileName = 'Night Owl 🌙';
+  }
+
+  // 4. Populate UI properties based on the derived profile.
+  // We use smooth curves here without the random 'hash' jitter for a cleaner UI.
   let peakHourStart = 9;
   let peakHourEnd = 17;
   let hourlyDistribution = new Array(24).fill(0);
   let activeWeekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
 
-  if (profileType === 0) {
-    profileName = 'Night Owl 🌙';
+  if (profileName === 'Night Owl 🌙') {
     peakHourStart = 22;
     peakHourEnd = 2;
     hourlyDistribution = Array.from({ length: 24 }, (_, h) => {
       const distFromMidnight = Math.min(Math.abs(h - 23), Math.abs(h + 1));
-      return Math.max(8, Math.round(100 - distFromMidnight * 9.5 - (hash % 12)));
+      return Math.max(8, Math.round(100 - distFromMidnight * 9.5));
     });
     activeWeekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
-  } else if (profileType === 1) {
-    profileName = 'Early Builder ☀';
+  } else if (profileName === 'Early Builder ☀') {
     peakHourStart = 6;
     peakHourEnd = 10;
     hourlyDistribution = Array.from({ length: 24 }, (_, h) => {
       const distFromEight = Math.abs(h - 8);
-      return Math.max(6, Math.round(100 - distFromEight * 10 - (hash % 12)));
+      return Math.max(6, Math.round(100 - distFromEight * 10));
     });
     activeWeekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
-  } else if (profileType === 2) {
-    profileName = 'Weekend Warrior 🚀';
+  } else if (profileName === 'Weekend Warrior 🚀') {
     peakHourStart = 10;
     peakHourEnd = 16;
     hourlyDistribution = Array.from({ length: 24 }, (_, h) => {
       const distFromMidday = Math.abs(h - 13);
-      return Math.max(8, Math.round(100 - distFromMidday * 8.5 - (hash % 12)));
+      return Math.max(8, Math.round(100 - distFromMidday * 8.5));
     });
     activeWeekdays = ['Sat', 'Sun'];
-  } else {
-    profileName = 'Consistent Runner 🏃‍♂️';
+  } else if (profileName === 'Consistent Runner 🏃‍♂️') {
     peakHourStart = 13;
     peakHourEnd = 17;
     hourlyDistribution = Array.from({ length: 24 }, (_, h) => {
       const distFromThree = Math.abs(h - 15);
-      return Math.max(12, Math.round(100 - distFromThree * 7 - (hash % 8)));
+      return Math.max(12, Math.round(100 - distFromThree * 7));
     });
     activeWeekdays = ['Mon', 'Wed', 'Fri', 'Sat'];
   }
@@ -290,6 +322,7 @@ export default function DashboardClient({ initialData, username }: DashboardClie
   const [secondUserData, setSecondUserData] = useState<DashboardData | null>(null);
   const [isCompareMode, setIsCompareMode] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isOptimizerOpen, setIsOptimizerOpen] = useState(false);
   const [secondUsernameInput, setSecondUsernameInput] = useState('');
   const [isLoadingSecond, setIsLoadingSecond] = useState(false);
   const [compareError, setCompareError] = useState<string | null>(null);
@@ -358,11 +391,19 @@ export default function DashboardClient({ initialData, username }: DashboardClie
   // Compare Mode Statistics Calculations
   // ------------------------------------------------------------
 
-  const coderProfileA = generateCoderProfile(username);
-  const coderProfileB = secondUserData
-    ? generateCoderProfile(secondUserData.profile.username)
-    : null;
+  // Profile for User A using their actual dashboard metrics
+  const coderProfileA = generateCoderProfile({
+    currentStreak: initialData.stats.currentStreak,
+    commitClock: initialData.commitClock,
+  });
 
+  // Profile for User B using their comparison data metrics
+  const coderProfileB = secondUserData
+    ? generateCoderProfile({
+        currentStreak: secondUserData.stats.currentStreak,
+        commitClock: secondUserData.commitClock,
+      })
+    : null;
   const gapA = calculateInactivityGaps(initialData.activity);
   const gapB = secondUserData ? calculateInactivityGaps(secondUserData.activity) : 0;
 
@@ -437,14 +478,46 @@ export default function DashboardClient({ initialData, username }: DashboardClie
         </div>
         <div className="flex gap-4 flex-wrap">
           {!isCompareMode && (
-            <button
-              onClick={handleOpenModal}
-              className="flex items-center gap-2 rounded-xl border border-black/10 dark:border-[rgba(255,255,255,0.15)] bg-black dark:bg-[#111] hover:bg-zinc-800 dark:hover:bg-zinc-900 px-4 py-2 text-sm font-semibold text-white dark:text-white transition-all duration-200 active:scale-[0.98]"
-            >
-              Compare Profile
-            </button>
+            <>
+              <button
+                onClick={() => setIsOptimizerOpen(true)}
+                className="flex items-center gap-2 rounded-xl border border-black/10 dark:border-[rgba(255,255,255,0.15)] bg-black dark:bg-[#111] hover:bg-zinc-800 dark:hover:bg-zinc-900 px-4 py-2 text-sm font-semibold text-white dark:text-white transition-all duration-200 active:scale-[0.98]"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline>
+                  <polyline points="16 7 22 7 22 13"></polyline>
+                </svg>
+                Profile Optimizer
+              </button>
+              <button
+                onClick={handleOpenModal}
+                className="flex items-center gap-2 rounded-xl border border-black/10 dark:border-[rgba(255,255,255,0.15)] bg-black dark:bg-[#111] hover:bg-zinc-800 dark:hover:bg-zinc-900 px-4 py-2 text-sm font-semibold text-white dark:text-white transition-all duration-200 active:scale-[0.98]"
+              >
+                Compare Profile
+              </button>
+            </>
           )}
           <RefreshButton username={username} />
+          <button
+            onClick={() => {
+              navigator.clipboard.writeText(window.location.href);
+              toast.success('Link copied to clipboard!');
+            }}
+            className="flex items-center gap-2 rounded-xl border border-black/10 px-4 py-2 text-sm font-semibold hover:bg-gray-100 dark:hover:bg-zinc-800 transition"
+          >
+            <Share2 size={16} />
+            Share
+          </button>
           <Link
             href="/"
             className="flex items-center gap-2 rounded-xl border border-black/10 dark:border-[rgba(255,255,255,0.15)] bg-black dark:bg-black px-4 py-2 text-sm font-semibold text-white dark:text-white transition-all duration-200 hover:bg-gray-200 dark:hover:bg-white/10 active:scale-[0.98]"
@@ -472,12 +545,13 @@ export default function DashboardClient({ initialData, username }: DashboardClie
         /* Standard Single Profile View */
         <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr_320px] gap-6 lg:gap-8">
           {/* Left Sidebar */}
-          <aside className="flex flex-col gap-6">
+          <aside className="flex flex-col gap-6 lg:row-span-2">
             <ProfileCard
               user={initialData.profile}
               exportData={{
                 stats: initialData.stats,
                 languages: initialData.languages,
+                activity: initialData.activity,
               }}
             />
             <Achievements achievements={initialData.achievements} />
@@ -528,6 +602,11 @@ export default function DashboardClient({ initialData, username }: DashboardClie
 
             <AIInsights insights={initialData.insights} />
           </aside>
+
+          {/* Repository Graph Section */}
+          <div className="col-span-1 lg:col-span-2 lg:col-start-2">
+            <RepositoryGraph data={initialData.graphData} />
+          </div>
         </div>
       ) : (
         /* Compare Mode Split-Dashboard View */
@@ -540,6 +619,7 @@ export default function DashboardClient({ initialData, username }: DashboardClie
                 exportData={{
                   stats: initialData.stats,
                   languages: initialData.languages,
+                  activity: initialData.activity,
                 }}
                 badges={badgesA}
               />
@@ -562,6 +642,7 @@ export default function DashboardClient({ initialData, username }: DashboardClie
                 exportData={{
                   stats: secondUserData.stats,
                   languages: secondUserData.languages,
+                  activity: secondUserData.activity,
                 }}
                 badges={badgesB}
               />
@@ -666,13 +747,13 @@ export default function DashboardClient({ initialData, username }: DashboardClie
                     {coderProfileA.profileName}
                   </span>
                   <div className="space-y-1 text-xs">
-                    <p className="text-gray-500 dark:text-zinc-500">
+                    <p className="text-gray-500 dark:text-white/65">
                       Peak Hours:{' '}
                       <span className="font-semibold text-gray-900 dark:text-white">
                         {coderProfileA.peakHourStart}:00 - {coderProfileA.peakHourEnd}:00
                       </span>
                     </p>
-                    <p className="text-gray-500 dark:text-zinc-500">
+                    <p className="text-gray-500 dark:text-white/65">
                       Active Days:{' '}
                       <span className="font-semibold text-gray-900 dark:text-white">
                         {coderProfileA.activeWeekdays.join(', ')}
@@ -694,20 +775,20 @@ export default function DashboardClient({ initialData, username }: DashboardClie
 
                 {/* User B */}
                 <div className="flex flex-col">
-                  <p className="text-xs text-[#A1A1AA] truncate font-medium mb-2">
+                  <p className="text-xs text-white/65 truncate font-medium mb-2">
                     {secondUserData.profile.name}
                   </p>
                   <span className="text-xs font-bold text-purple-600 dark:text-purple-400 bg-purple-500/10 px-2 py-1 rounded w-fit mb-3">
                     {coderProfileB.profileName}
                   </span>
                   <div className="space-y-1 text-xs">
-                    <p className="text-gray-500 dark:text-zinc-500">
+                    <p className="text-gray-500 dark:text-white/65">
                       Peak Hours:{' '}
                       <span className="font-semibold text-gray-900 dark:text-white">
                         {coderProfileB.peakHourStart}:00 - {coderProfileB.peakHourEnd}:00
                       </span>
                     </p>
-                    <p className="text-gray-500 dark:text-zinc-500">
+                    <p className="text-gray-500 dark:text-white/65">
                       Active Days:{' '}
                       <span className="font-semibold text-gray-900 dark:text-white">
                         {coderProfileB.activeWeekdays.join(', ')}
@@ -936,7 +1017,7 @@ export default function DashboardClient({ initialData, username }: DashboardClie
               {/* Close Button */}
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="absolute right-4 top-4 rounded-xl p-1 text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5 dark:text-white/40 hover:text-black dark:hover:text-white transition-all"
+                className="absolute right-4 top-4 rounded-xl p-1 text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5 dark:text-white/65 hover:text-black dark:hover:text-white transition-all"
                 aria-label="Close modal"
               >
                 <X size={18} />
@@ -961,12 +1042,12 @@ export default function DashboardClient({ initialData, username }: DashboardClie
                     placeholder="Enter GitHub Username"
                     value={secondUsernameInput}
                     onChange={(e) => setSecondUsernameInput(e.target.value)}
-                    className="w-full rounded-xl border border-black/10 bg-gray-100 px-4 py-3 text-sm text-black outline-none transition-all duration-200 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent dark:border-[rgba(255,255,255,0.08)] dark:bg-[#111] dark:text-white dark:placeholder:text-[#A1A1AA]"
+                    className="w-full rounded-xl border border-black/10 bg-gray-100 px-4 py-3 text-sm text-black outline-none transition-all duration-200 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent dark:border-[rgba(255,255,255,0.08)] dark:bg-[#111] dark:text-white dark:placeholder:text-white/65"
                   />
                   {secondUsernameInput.length > 0 && !isLoadingSecond && (
                     <button
                       onClick={() => setSecondUsernameInput('')}
-                      className="absolute right-3 text-gray-500 hover:text-black dark:text-[#A1A1AA] dark:hover:text-white"
+                      className="absolute right-3 text-gray-500 hover:text-black dark:text-white/65 dark:hover:text-white"
                       aria-label="Clear input"
                       type="button"
                     >
@@ -1000,6 +1081,12 @@ export default function DashboardClient({ initialData, username }: DashboardClie
           </div>
         )}
       </AnimatePresence>
+
+      <ProfileOptimizerModal
+        isOpen={isOptimizerOpen}
+        onClose={() => setIsOptimizerOpen(false)}
+        userData={initialData}
+      />
     </div>
   );
 }

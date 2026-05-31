@@ -14,6 +14,23 @@ describe('trackUser', () => {
     });
   });
 
+  it('does not send when username is empty', () => {
+    const sendBeaconMock = vi.fn();
+    const fetchMock = vi.fn();
+
+    Object.defineProperty(navigator, 'sendBeacon', {
+      value: sendBeaconMock,
+      configurable: true,
+    });
+
+    vi.stubGlobal('fetch', fetchMock);
+
+    trackUser('');
+
+    expect(sendBeaconMock).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it('uses sendBeacon when available', () => {
     const sendBeaconMock = vi.fn().mockReturnValue(true);
 
@@ -70,6 +87,22 @@ describe('trackUser', () => {
     });
   });
 
+  it('handles empty username without crashing', () => {
+    const sendBeaconMock = vi.fn().mockReturnValue(true);
+    const fetchMock = vi.fn();
+
+    Object.defineProperty(navigator, 'sendBeacon', {
+      value: sendBeaconMock,
+      configurable: true,
+    });
+
+    vi.stubGlobal('fetch', fetchMock);
+
+    expect(() => trackUser('')).not.toThrow();
+    expect(sendBeaconMock).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it('falls back to fetch when sendBeacon returns false', () => {
     const sendBeaconMock = vi.fn().mockReturnValue(false);
 
@@ -85,6 +118,24 @@ describe('trackUser', () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
+
+  it('handles non-serializable input gracefully without throwing', () => {
+    // A circular reference cannot be serialized by JSON.stringify and will throw
+    // a TypeError. This test verifies that the utility does not propagate the
+    // exception to the caller.
+    const circular: Record<string, unknown> = {};
+    circular['self'] = circular;
+
+    const originalStringify = JSON.stringify;
+    vi.spyOn(JSON, 'stringify').mockImplementationOnce(() => {
+      throw new TypeError('Converting circular structure to JSON');
+    });
+
+    expect(() => trackUser('testuser')).not.toThrow();
+
+    JSON.stringify = originalStringify;
+  });
+
   it('does not run in SSR context when window is undefined', () => {
     const originalWindow = globalThis.window;
     const sendBeaconMock = vi.fn();
@@ -99,17 +150,29 @@ describe('trackUser', () => {
       value: sendBeaconMock,
       configurable: true,
     });
-
     vi.stubGlobal('fetch', fetchMock);
-
     trackUser('octocat');
-
     expect(sendBeaconMock).not.toHaveBeenCalled();
     expect(fetchMock).not.toHaveBeenCalled();
-
     Object.defineProperty(globalThis, 'window', {
       value: originalWindow,
       configurable: true,
     });
+  });
+
+  it('gracefully bypasses tracking when user metric logs are empty or falsy', () => {
+    const fetchMock = vi.fn().mockResolvedValue({});
+    vi.stubGlobal('fetch', fetchMock);
+
+    const sendBeaconMock = vi.fn().mockReturnValue(true);
+    Object.defineProperty(navigator, 'sendBeacon', {
+      value: sendBeaconMock,
+      configurable: true,
+    });
+
+    trackUser('');
+
+    expect(sendBeaconMock).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });
