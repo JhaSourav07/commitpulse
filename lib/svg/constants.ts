@@ -12,3 +12,6 @@ export const FONT_MAP: Record<string, string> = {
   fira: '"Fira Code", monospace',
   roboto: '"Roboto", sans-serif',
 };
+
+export const CONTRIBUTION_MILESTONES = [1, 10, 100, 250, 500, 1000];
+export const STREAK_MILESTONES = [3, 7, 30, 100];

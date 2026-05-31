@@ -38,7 +38,10 @@ function makeRequest(params: Record<string, string> = {}): Request {
 describe('GET /api/stats', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(fetchGitHubContributions).mockResolvedValue(mockCalendar);
+    vi.mocked(fetchGitHubContributions).mockResolvedValue({
+      calendar: mockCalendar,
+      repoContributions: [],
+    });
   });
 
   // ─── Parameter validation ──────────────────────────────────────────────────
@@ -52,6 +55,13 @@ describe('GET /api/stats', () => {
 
   it('does not call the GitHub API when user is missing', async () => {
     await GET(makeRequest());
+    expect(fetchGitHubContributions).not.toHaveBeenCalled();
+  });
+
+  it('returns 400 and skips GitHub when the username format is invalid', async () => {
+    const response = await GET(makeRequest({ user: 'octo/cat' }));
+
+    expect(response.status).toBe(400);
     expect(fetchGitHubContributions).not.toHaveBeenCalled();
   });
 
@@ -91,6 +101,36 @@ describe('GET /api/stats', () => {
     expect(typeof body.totalContributions).toBe('number');
     expect(typeof body.longestStreak).toBe('number');
     expect(typeof body.currentStreak).toBe('number');
+  });
+
+  it('returns non-cacheable headers when refresh=true', async () => {
+    const response = await GET(makeRequest({ user: 'testuser', refresh: 'true' }));
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('Cache-Control')).toBe('no-store, no-cache, must-revalidate');
+    expect(response.headers.get('Pragma')).toBe('no-cache');
+    expect(response.headers.get('Expires')).toBe('0');
+  });
+
+  it('still returns valid stats data when refresh=true', async () => {
+    const response = await GET(makeRequest({ user: 'testuser', refresh: 'true' }));
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.totalContributions).toBe(10);
+    expect(typeof body.longestStreak).toBe('number');
+    expect(typeof body.currentStreak).toBe('number');
+  });
+
+  it('keeps the existing cache headers for normal requests', async () => {
+    const response = await GET(makeRequest({ user: 'testuser' }));
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('Cache-Control')).toBe(
+      'public, s-maxage=3600, stale-while-revalidate=86400'
+    );
+    expect(response.headers.get('Pragma')).toBeNull();
+    expect(response.headers.get('Expires')).toBeNull();
   });
 
   it('passes bypassCache=true to GitHub when refresh=true', async () => {
