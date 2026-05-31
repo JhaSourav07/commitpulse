@@ -16,6 +16,11 @@ function GithubMark() {
 
 const NAV_LINKS = [
   {
+    label: 'Compare',
+    href: '/compare',
+    isExternal: false,
+  },
+  {
     label: 'Customization Studio',
     href: '/#customization-studio',
     isExternal: false,

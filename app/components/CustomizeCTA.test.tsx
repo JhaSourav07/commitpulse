@@ -101,6 +101,24 @@ describe('CustomizeCTA', () => {
     });
   });
 
+  describe('responsive navigation', () => {
+    it.each([
+      ['mobile', 375],
+      ['desktop', 1280],
+    ])('keeps the customization link visible at the %s breakpoint', (_breakpoint, width) => {
+      window.innerWidth = width;
+
+      const { container } = render(<CustomizeCTA />);
+
+      const layout = container.querySelector('.flex.flex-col.md\\:flex-row');
+      const link = screen.getByRole('link', { name: /open customization studio/i });
+
+      expect(layout).toBeTruthy();
+      expect(link).toBeTruthy();
+      expect(link.getAttribute('href')).toBe('/customize');
+    });
+  });
+
   describe('accessibility', () => {
     it('gives the CTA link a stable id for analytics and E2E selectors', () => {
       render(<CustomizeCTA />);

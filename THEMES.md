@@ -1,6 +1,6 @@
 # 🎨 CommitPulse Themes
 
-All 19 available themes for your CommitPulse badge. Use the `?theme=<slug>` query parameter to apply a theme.
+All 20 available themes for your CommitPulse badge. Use the `?theme=<slug>` query parameter to apply a theme.
 
 ```
 https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&theme=<slug>
@@ -30,6 +30,7 @@ https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&theme=<slug>
 | solarized_light  | `#fdf6e3`  | `#586e75` | `#268bd2` |
 | gruvbox_light    | `#fbf1c7`  | `#3c3836` | `#d65d0e` |
 | nord_light       | `#eceff4`  | `#2e3440` | `#5e81ac` |
+| obsidian         | `#1a1a2e`  | `#e2e8f0` | `#f59e0b` |
 | cyber-pulse      | `#000000`  | `#ffffff` | `#00ffee` |
 
 ---
@@ -261,6 +262,18 @@ https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&theme=<slug>
 | `bg`      | 000000 |
 | `text`    | ffffff |
 | `accent`  | 00ffee |
+
+---
+
+### 🪨 Obsidian
+
+![obsidian](https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=obsidian)
+
+| Parameter | Value  |
+| --------- | ------ |
+| `bg`      | 1a1a2e |
+| `text`    | e2e8f0 |
+| `accent`  | f59e0b |
 
 ---
 

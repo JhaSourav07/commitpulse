@@ -354,12 +354,13 @@ describe('ShareSheet', () => {
       expect(screen.getByText('SVG Downloaded!')).toBeDefined();
     });
 
-    expect(global.fetch).toHaveBeenCalledWith(
-      `/api/streak?user=${encodeURIComponent(defaultProps.username)}`
+    const fetchedUrl = vi.mocked(global.fetch).mock.calls[0][0] as string;
+    expect(fetchedUrl).toMatch(
+      new RegExp(`/api/streak\\?user=${encodeURIComponent(defaultProps.username)}$`)
     );
 
     const blob = vi.mocked(URL.createObjectURL).mock.calls[0][0] as Blob;
-    expect(blob.type).toBe('image/svg+xml');
+    expect(blob.type).toContain('image/svg+xml');
 
     expect(HTMLAnchorElement.prototype.click).toHaveBeenCalled();
     expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:mock-download');

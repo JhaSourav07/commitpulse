@@ -30,7 +30,10 @@ export const themes: Record<string, BadgeTheme> = {
   solarized_light: makeTheme('fdf6e3', '586e75', '268bd2', 'dc322f'),
   gruvbox_light: makeTheme('fbf1c7', '3c3836', 'd65d0e', '9d0006'),
   nord_light: makeTheme('eceff4', '2e3440', '5e81ac', 'bf616a'),
+  obsidian: makeTheme('1a1a2e', 'e2e8f0', 'f59e0b'),
   'cyber-pulse': makeTheme('000000', 'ffffff', '00ffee', 'ff0055'),
+  glacier: makeTheme('e0f2fe', '0369a1', '06b6d4', 'ef4444'),
+  lumos: makeTheme('0a0a0a', 'a7f3d0', 'fbbf24', 'ef4444'),
 };
 
 // Auto-theme pairs: the SVG switches between these two palettes

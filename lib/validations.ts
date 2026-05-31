@@ -60,7 +60,7 @@ function dimensionParam(name: string, min: number, max: number) {
 
 const GITHUB_USERNAME_REGEX = /^[a-zA-Z0-9](?:[a-zA-Z0-9]|-(?=[a-zA-Z0-9]))*$/;
 
-export const streakParamsSchema = z.object({
+const baseStreakParamsSchema = z.object({
   // Required — missing user surfaces as "Missing" to match existing tests
   user: z
     .string({ error: 'Missing user parameter' })
@@ -169,6 +169,16 @@ export const streakParamsSchema = z.object({
       },
       { message: 'Invalid "to" date format. Use ISO 8601 (e.g. 2023-12-31).' }
     ),
+  date: z
+    .string()
+    .optional()
+    .refine(
+      (val) => {
+        if (!val) return true;
+        return !isNaN(Date.parse(val));
+      },
+      { message: 'Invalid "date" format. Use ISO 8601.' }
+    ),
   tz: z
     .string()
     .optional()
@@ -190,7 +200,7 @@ export const streakParamsSchema = z.object({
   hide_stats: z.string().optional().transform(toBooleanFlag),
   lang: z.enum(supportedLanguages).catch('en').default('en'),
   // Unknown view values fall back to the default dashboard view.
-  view: z.enum(['default', 'monthly', 'heatmap']).catch('default').default('default'),
+  view: z.enum(['default', 'monthly', 'heatmap', 'pulse']).catch('default').default('default'),
   // Invalid delta formats fall back to percentage mode.
   delta_format: z.enum(['percent', 'absolute', 'both']).catch('percent').default('percent'),
   width: dimensionParam('width', 100, 1200),
@@ -240,7 +250,31 @@ export const streakParamsSchema = z.object({
     .string()
     .optional()
     .transform((val) => val === 'true' || val === '1'),
+  // Glow effect — on by default. Accepts 'true'/'1' (true) or 'false' (false).
+  glow: z.string().optional().transform(toBooleanFlag).default(true),
+  entrance: z.enum(['rise', 'fade', 'slide', 'none']).catch('rise').default('rise'),
+
+  // layout parameter: strictly validated — unsupported values return a 400 Bad Request.
+  layout: z
+    .string()
+    .optional()
+    .refine(
+      (val) => {
+        if (val === undefined || val === '') return true;
+        return ['default', 'compact', 'full'].includes(val);
+      },
+      { message: 'Invalid layout format. Supported values: default, compact, full.' }
+    )
+    .transform((val) => (!val ? undefined : val)),
 });
+
+export const streakParamsSchema = baseStreakParamsSchema.refine(
+  (data) => !data.from || !data.to || Date.parse(data.from) <= Date.parse(data.to),
+  {
+    message: '"to" date must be after or equal to "from" date',
+    path: ['to'],
+  }
+);
 
 export const githubParamsSchema = z.object({
   username: z

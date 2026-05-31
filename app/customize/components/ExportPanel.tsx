@@ -165,15 +165,17 @@ export function ExportPanel({
           <button
             type="button"
             onClick={handleDownloadBadge}
-            disabled={!hasUsername || isDownloading}
+            disabled={!hasUsername || isDownloading || format === 'action'}
             aria-label={
-              hasUsername
-                ? 'Download custom monolith layout as an image'
-                : 'Add a GitHub username to enable image downloads'
+              !hasUsername
+                ? 'Add a GitHub username to enable image downloads'
+                : format === 'action'
+                  ? 'Download is not available in GitHub Action mode'
+                  : 'Download custom monolith layout as an image'
             }
             className={`relative inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 ${
-              !hasUsername || isDownloading
-                ? 'bg-gray-200/90 border border-black/10 text-gray-500 cursor-not-allowed dark:bg-white/10 dark:border-white/10 dark:text-white/60'
+              !hasUsername || isDownloading || format === 'action'
+                ? 'bg-gray-200/90 border border-black/10 text-gray-500 cursor-not-allowed dark:bg-white/10 dark:border-white/10 dark:text-white/35'
                 : 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-500 hover:bg-emerald-500/20 hover:scale-[1.03] active:scale-[0.97]'
             }`}
           >
@@ -198,7 +200,11 @@ export function ExportPanel({
                 </>
               )}
             </svg>
-            {isDownloading ? 'Downloading...' : 'Download Badge'}
+            {format === 'action'
+              ? 'Download Not Available'
+              : isDownloading
+                ? 'Downloading...'
+                : 'Download Badge'}
           </button>
 
           {/* Clipboard Copy Button */}

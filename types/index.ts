@@ -142,6 +142,9 @@ export interface BadgeParams {
   /** Duration of the radar scan line animation (e.g. '4s', '8s', '12s'). Defaults to '8s'. */
   speed: SpeedString;
 
+  /** Animation style for the isometric towers on load: 'rise' (default), 'fade', 'slide', or 'none'. */
+  entrance?: 'rise' | 'fade' | 'slide' | 'none';
+
   /** Tower height scaling algorithm. 'linear' scales proportionally; 'log' uses logarithmic scale for high contributors. Defaults to 'linear'. */
   scale: Scale;
 
@@ -169,8 +172,8 @@ export interface BadgeParams {
   /** Language/locale code for stat labels (e.g. 'en', 'fr', 'ja'). Defaults to 'en'. */
   lang?: string;
 
-  /** Badge layout variant. 'default' shows the isometric monolith; 'monthly' shows month-over-month stats; 'heatmap' shows a flat 2D contribution heatmap. */
-  view?: 'default' | 'monthly' | 'heatmap';
+  /** Badge layout variant. 'default' shows the isometric monolith; 'monthly' shows month-over-month stats; 'heatmap' shows a flat 2D contribution heatmap; 'pulse' shows a heartbeat sparkline. */
+  view?: 'default' | 'monthly' | 'heatmap' | 'pulse';
 
   /** Format for the monthly delta indicator. 'percent' shows %, 'absolute' shows raw count, 'both' shows both. */
   delta_format?: 'percent' | 'absolute' | 'both';
@@ -210,6 +213,8 @@ export interface BadgeParams {
   gradient?: boolean;
 
   disable_particles?: boolean;
+  animate?: boolean;
+  glow?: boolean;
 }
 
 export interface GraphNode {
@@ -232,4 +237,33 @@ export interface GraphNode {
 export interface GraphLink {
   source: string | GraphNode;
   target: string | GraphNode;
+}
+// ─── Email Notification Types ───────────────────────────────────────────────
+
+export type NotificationFrequency = 'realtime' | 'daily' | 'weekly';
+
+export interface NotificationPreferences {
+  enabled: boolean;
+  frequency: NotificationFrequency;
+  email: string;
+  notifyOnCommit: boolean;
+  notifyOnStreak: boolean;
+  notifyOnMilestone: boolean;
+}
+
+export interface NotificationPayload {
+  username: string;
+  email: string;
+  frequency: NotificationFrequency;
+  preferences: {
+    notifyOnCommit: boolean;
+    notifyOnStreak: boolean;
+    notifyOnMilestone: boolean;
+  };
+}
+
+export interface NotificationResponse {
+  success: boolean;
+  message: string;
+  data?: NotificationPayload;
 }

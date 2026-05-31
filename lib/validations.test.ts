@@ -23,6 +23,18 @@ describe('streakParamsSchema — grace fallback behavior', () => {
     expect(parse({ grace: '-1' }).grace).toBe(0);
   });
 
+  it('falls back or clamps a negative non-integer grace input safely', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      grace: '-1.5',
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.grace).toBe(0);
+    }
+  });
+
   it('falls back to 1 for non-numeric grace value', () => {
     expect(parse({ grace: 'abc' }).grace).toBe(1);
   });
@@ -31,6 +43,7 @@ describe('streakParamsSchema — grace fallback behavior', () => {
     expect(parse({}).grace).toBe(1);
   });
 });
+
 describe('githubParamsSchema', () => {
   it('should pass when username is valid', () => {
     const result = githubParamsSchema.safeParse({
@@ -81,6 +94,7 @@ describe('githubParamsSchema', () => {
     }
   });
 });
+
 describe('streakParamsSchema user validation', () => {
   it('should pass when user is valid', () => {
     const result = streakParamsSchema.safeParse({
@@ -300,6 +314,7 @@ describe('streakParamsSchema', () => {
       expect(result.error.issues[0]?.message).toBe('Invalid GitHub username');
     }
   });
+
   it('should accept delta_format percent', () => {
     const result = streakParamsSchema.safeParse({
       user: 'octocat',
@@ -455,6 +470,7 @@ describe('streakParamsSchema — size fallback behavior', () => {
   it('falls back to "medium" for empty string', () => {
     expect(parse({ size: '' }).size).toBe('medium');
   });
+
   it('should accept org parameter when provided', () => {
     const result = streakParamsSchema.safeParse({
       user: 'octocat',
@@ -636,6 +652,40 @@ describe('streakParamsSchema — boolean transform fields', () => {
       expect(parse({}).hide_background).toBe(false);
     });
   });
+
+  // ── glow ──────────────────────────────────────────────────────────────────
+  describe('glow', () => {
+    it('returns true when glow="true"', () => {
+      expect(parse({ glow: 'true' }).glow).toBe(true);
+    });
+
+    it('returns true when glow="1"', () => {
+      expect(parse({ glow: '1' }).glow).toBe(true);
+    });
+
+    it('returns false when glow="false"', () => {
+      expect(parse({ glow: 'false' }).glow).toBe(false);
+    });
+
+    it('returns true when glow is omitted', () => {
+      expect(parse({}).glow).toBe(true);
+    });
+  });
+});
+
+describe('streakParamsSchema — org parameter validation', () => {
+  it('should reject org parameter with spaces and special characters', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      org: 'invalid_org_name_with_spaces',
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const fieldError = result.error.flatten().fieldErrors.org?.[0];
+      expect(fieldError).toBe('Invalid organization name format');
+    }
+  });
 });
 
 describe('ogParamsSchema', () => {
@@ -701,6 +751,15 @@ describe('ogParamsSchema', () => {
       expect(result.data.theme).toBe('dark');
     }
   });
+
+  it('falls back to dark theme when theme parameter is an empty string', () => {
+    const result = ogParamsSchema.safeParse({ theme: '' });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.theme).toBe('dark');
+    }
+  });
 });
 
 describe('streakParamsSchema — view fallback behavior', () => {
@@ -749,5 +808,137 @@ describe('wrappedParamsSchema', () => {
       const result = wrappedParamsSchema.parse({ user: 'octocat' });
       expect(result.hide_background).toBe(false);
     });
+  });
+});
+
+/* ==========================================================================
+ * LAYOUT PARAMETER — QUERY VALIDATION BOUNDARIES (VARIATION 2)
+ * ========================================================================== */
+
+describe('streakParamsSchema — layout query validation boundaries (Variation 2)', () => {
+  it('rejects unsupported_layout and marks the parse as failed', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      layout: 'unsupported_layout',
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it('surfaces a meaningful error message for unsupported_layout', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      layout: 'unsupported_layout',
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const messages = result.error.issues.map((i) => i.message).join(' ');
+      expect(messages).toContain('Invalid layout format');
+    }
+  });
+
+  it('accepts "default" as a valid layout value', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      layout: 'default',
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it('accepts "compact" as a valid layout value', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      layout: 'compact',
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it('accepts "full" as a valid layout value', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      layout: 'full',
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it('treats omitted layout as undefined (no validation error)', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.layout).toBeUndefined();
+    }
+  });
+});
+
+/* ==========================================================================
+ * LAYOUT PARAMETER — QUERY VALIDATION BOUNDARIES (VARIATION 2)
+ * ========================================================================== */
+
+describe('streakParamsSchema — layout query validation boundaries (Variation 2)', () => {
+  it('rejects unsupported_layout and marks the parse as failed', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      layout: 'unsupported_layout',
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it('surfaces a meaningful error message for unsupported_layout', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      layout: 'unsupported_layout',
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const messages = result.error.issues.map((i) => i.message).join(' ');
+      expect(messages).toContain('Invalid layout format');
+    }
+  });
+
+  it('accepts "default" as a valid layout value', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      layout: 'default',
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it('accepts "compact" as a valid layout value', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      layout: 'compact',
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it('accepts "full" as a valid layout value', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      layout: 'full',
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it('treats omitted layout as undefined (no validation error)', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.layout).toBeUndefined();
+    }
   });
 });
