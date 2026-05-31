@@ -13,7 +13,19 @@ let cached = global.mongoose;
 if (!cached) {
   cached = global.mongoose = { conn: null, promise: null };
 }
-
+/**
+ * Connects to the MongoDB database and returns the cached connection.
+ *
+ * Reuses an existing connection if one is already established.
+ * Automatically resets the cache if the connection drops.
+ *
+ * @throws {Error} If called from the Edge runtime.
+ * @throws {Error} If `MONGODB_URI` environment variable is not defined.
+ * @returns The active Mongoose connection instance.
+ *
+ * @example
+ * const db = await dbConnect();
+ */
 async function dbConnect() {
   if (process.env.NEXT_RUNTIME === 'edge') {
     throw new Error('MongoDB is not supported in the Edge runtime. Use the Node.js runtime.');

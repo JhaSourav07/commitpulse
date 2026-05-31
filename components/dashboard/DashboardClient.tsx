@@ -21,6 +21,7 @@ import RepositoryGraph from './RepositoryGraph';
 import ComparisonStatsCard from './ComparisonStatsCard';
 import RadarChart from './RadarChart';
 import GrowthTrendChart from './GrowthTrendChart';
+import ProfileOptimizerModal from './ProfileOptimizerModal';
 
 // Define the dashboard data structure
 interface DashboardData {
@@ -321,6 +322,7 @@ export default function DashboardClient({ initialData, username }: DashboardClie
   const [secondUserData, setSecondUserData] = useState<DashboardData | null>(null);
   const [isCompareMode, setIsCompareMode] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isOptimizerOpen, setIsOptimizerOpen] = useState(false);
   const [secondUsernameInput, setSecondUsernameInput] = useState('');
   const [isLoadingSecond, setIsLoadingSecond] = useState(false);
   const [compareError, setCompareError] = useState<string | null>(null);
@@ -476,12 +478,34 @@ export default function DashboardClient({ initialData, username }: DashboardClie
         </div>
         <div className="flex gap-4 flex-wrap">
           {!isCompareMode && (
-            <button
-              onClick={handleOpenModal}
-              className="flex items-center gap-2 rounded-xl border border-black/10 dark:border-[rgba(255,255,255,0.15)] bg-black dark:bg-[#111] hover:bg-zinc-800 dark:hover:bg-zinc-900 px-4 py-2 text-sm font-semibold text-white dark:text-white transition-all duration-200 active:scale-[0.98]"
-            >
-              Compare Profile
-            </button>
+            <>
+              <button
+                onClick={() => setIsOptimizerOpen(true)}
+                className="flex items-center gap-2 rounded-xl border border-black/10 dark:border-[rgba(255,255,255,0.15)] bg-black dark:bg-[#111] hover:bg-zinc-800 dark:hover:bg-zinc-900 px-4 py-2 text-sm font-semibold text-white dark:text-white transition-all duration-200 active:scale-[0.98]"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline>
+                  <polyline points="16 7 22 7 22 13"></polyline>
+                </svg>
+                Profile Optimizer
+              </button>
+              <button
+                onClick={handleOpenModal}
+                className="flex items-center gap-2 rounded-xl border border-black/10 dark:border-[rgba(255,255,255,0.15)] bg-black dark:bg-[#111] hover:bg-zinc-800 dark:hover:bg-zinc-900 px-4 py-2 text-sm font-semibold text-white dark:text-white transition-all duration-200 active:scale-[0.98]"
+              >
+                Compare Profile
+              </button>
+            </>
           )}
           <RefreshButton username={username} />
           <button
@@ -1057,6 +1081,12 @@ export default function DashboardClient({ initialData, username }: DashboardClie
           </div>
         )}
       </AnimatePresence>
+
+      <ProfileOptimizerModal
+        isOpen={isOptimizerOpen}
+        onClose={() => setIsOptimizerOpen(false)}
+        userData={initialData}
+      />
     </div>
   );
 }

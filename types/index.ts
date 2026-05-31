@@ -213,8 +213,8 @@ export interface BadgeParams {
   gradient?: boolean;
 
   disable_particles?: boolean;
-
   animate?: boolean;
+  glow?: boolean;
 }
 
 export interface GraphNode {
@@ -237,4 +237,33 @@ export interface GraphNode {
 export interface GraphLink {
   source: string | GraphNode;
   target: string | GraphNode;
+}
+// ─── Email Notification Types ───────────────────────────────────────────────
+
+export type NotificationFrequency = 'realtime' | 'daily' | 'weekly';
+
+export interface NotificationPreferences {
+  enabled: boolean;
+  frequency: NotificationFrequency;
+  email: string;
+  notifyOnCommit: boolean;
+  notifyOnStreak: boolean;
+  notifyOnMilestone: boolean;
+}
+
+export interface NotificationPayload {
+  username: string;
+  email: string;
+  frequency: NotificationFrequency;
+  preferences: {
+    notifyOnCommit: boolean;
+    notifyOnStreak: boolean;
+    notifyOnMilestone: boolean;
+  };
+}
+
+export interface NotificationResponse {
+  success: boolean;
+  message: string;
+  data?: NotificationPayload;
 }

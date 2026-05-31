@@ -4,10 +4,12 @@ import {
   generateMonthlySVG,
   generateNotFoundSVG,
   generateRateLimitSVG,
+  generateHeatmapSVG,
   particleCount,
   escapeXML,
   getSizeScale,
   truncateUsername,
+  deterministicRandom,
 } from './generator';
 import type { BadgeParams, ContributionCalendar, StreakStats, MonthlyStats } from '../../types';
 import { hexColor } from './sanitizer';
@@ -438,7 +440,7 @@ describe('generateSVG', () => {
 
     it('includes desc element in auto-theme SVG output', () => {
       const svg = generateSVG(mockStats, autoParams, mockCalendar);
-      expect(svg).toContain('<desc>');
+      expect(svg).toContain('<desc id="cp-desc-avi">');
       expect(svg).toContain(String(mockStats.totalContributions));
     });
 
@@ -692,8 +694,12 @@ describe('generateSVG', () => {
         mockCalendar
       );
 
-      expect(svg).toContain('<title>CommitPulse User Stats for octocat</title>');
-      expect(svg).toContain('<desc>');
+      expect(svg).toContain(
+        '<title id="cp-title-octocat">CommitPulse User Stats for octocat</title>'
+      );
+      expect(svg).toContain('<desc id="cp-desc-octocat">');
+      expect(svg).toContain('aria-labelledby="cp-title-octocat"');
+      expect(svg).toContain('aria-describedby="cp-desc-octocat"');
       expect(svg).toContain('100');
       expect(svg).toContain('10');
     });
@@ -1442,5 +1448,80 @@ describe('Radar Scan Line Animation Alignment', () => {
     const geometryBaseline = extractGeometry(svgBaseline);
     const geometryLong = extractGeometry(svgLong);
     expect(geometryLong).toEqual(geometryBaseline);
+  });
+
+  describe('glow parameter', () => {
+    const mockStats: StreakStats = {
+      currentStreak: 5,
+      longestStreak: 10,
+      totalContributions: 100,
+      todayDate: '2024-06-12',
+    };
+    const mockCalendar = {
+      weeks: [
+        {
+          contributionDays: [
+            { contributionCount: 0, date: '2024-06-10' },
+            { contributionCount: 5, date: '2024-06-11' },
+            { contributionCount: 15, date: '2024-06-12' },
+          ],
+        },
+      ],
+    } as ContributionCalendar;
+
+    it('renders glow filter and attributes by default', () => {
+      const svg = generateSVG(mockStats, { user: 'avi' } as unknown as BadgeParams, mockCalendar);
+      expect(svg).toContain('<filter id="glow"');
+      expect(svg).toContain('filter="url(#glow)"');
+    });
+
+    it('omits glow filter and attributes when glow=false is requested', () => {
+      const svg = generateSVG(
+        mockStats,
+        { user: 'avi', glow: false } as unknown as BadgeParams,
+        mockCalendar
+      );
+      expect(svg).not.toContain('<filter id="glow"');
+      expect(svg).not.toContain('filter="url(#glow)"');
+    });
+
+    it('omits heatmap glow filter and cell filter attributes when glow=false is requested in heatmap', () => {
+      const svgWithGlow = generateHeatmapSVG(
+        mockStats,
+        { user: 'avi', view: 'heatmap' } as unknown as BadgeParams,
+        mockCalendar
+      );
+      expect(svgWithGlow).toContain('<filter id="hm-glow"');
+      expect(svgWithGlow).toContain('filter="url(#hm-glow)"');
+
+      const svgNoGlow = generateHeatmapSVG(
+        mockStats,
+        { user: 'avi', view: 'heatmap', glow: false } as unknown as BadgeParams,
+        mockCalendar
+      );
+      expect(svgNoGlow).not.toContain('<filter id="hm-glow"');
+      expect(svgNoGlow).not.toContain('filter="url(#hm-glow)"');
+    });
+  });
+});
+describe('deterministicRandom', () => {
+  it('returns the same value for the same seed (determinism)', () => {
+    const seed = 'test-seed-42';
+    expect(deterministicRandom(seed)).toBe(deterministicRandom(seed));
+  });
+
+  it('result is always in the range [0, 1)', () => {
+    const seeds = ['hello', 'world', '', 'abc:def:0:offsetX', '12345'];
+    for (const seed of seeds) {
+      const result = deterministicRandom(seed);
+      expect(result).toBeGreaterThanOrEqual(0);
+      expect(result).toBeLessThan(1);
+    }
+  });
+
+  it('returns different values for different seeds', () => {
+    const a = deterministicRandom('seed-alpha');
+    const b = deterministicRandom('seed-beta');
+    expect(a).not.toBe(b);
   });
 });
