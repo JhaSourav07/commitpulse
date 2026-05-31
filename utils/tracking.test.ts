@@ -176,3 +176,35 @@ describe('trackUser', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 });
+
+//JSON RESPONSE SERIALIZER BOUNDARY ROBUSTNESS
+
+describe('trackUser — JSON response serializer boundary robustness (Variation 2)', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+
+    Object.defineProperty(navigator, 'sendBeacon', {
+      value: originalSendBeacon,
+      configurable: true,
+    });
+  });
+
+  it('does not throw or send a beacon when JSON.stringify fails', () => {
+    vi.spyOn(JSON, 'stringify').mockImplementationOnce(() => {
+      throw new TypeError('Converting circular structure to JSON');
+    });
+
+    const sendBeaconMock = vi.fn();
+    Object.defineProperty(navigator, 'sendBeacon', {
+      value: sendBeaconMock,
+      configurable: true,
+    });
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+
+    expect(() => trackUser('testuser')).not.toThrow();
+    expect(sendBeaconMock).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
