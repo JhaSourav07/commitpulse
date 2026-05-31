@@ -1,6 +1,6 @@
 'use client';
 import { trackUser } from '@/utils/tracking';
-import type { ReactNode } from 'react';
+
 import Link from 'next/link';
 import { useRef, useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -9,8 +9,11 @@ import { X } from 'lucide-react';
 import { CommitPulseLogo } from '@/components/commitpulse-logo';
 import { CustomizeCTA } from './components/CustomizeCTA';
 import { useRecentSearches } from '@/hooks/useRecentSearches';
+import { useDebounce } from '@/hooks/useDebounce';
 import { Footer } from '@/app/components/Footer';
-import InteractiveViewer from '@/components/InteractiveViewer';
+
+import { FeatureCard, FeatureCardsSection } from '@/components/FeatureCards';
+import { DiscordButton } from '@/components/DiscordButton';
 
 const Icons = {
   Github: () => (
@@ -70,60 +73,36 @@ const Icons = {
 export default function LandingPage() {
   const [username, setUsername] = useState('');
   const [copied, setCopied] = useState(false);
-  const [svgContent, setSvgContent] = useState<string | null>(null);
-  const [svgState, setSvgState] = useState<'idle' | 'loading' | 'loaded' | 'error'>('idle');
+  // Track which username's badge result we have. Derived booleans auto-reset
+  // when debouncedUsername changes — no useEffect needed.
+  const [badgeResult, setBadgeResult] = useState<{
+    username: string;
+    status: 'loaded' | 'error';
+  } | null>(null);
   const guideRef = useRef<HTMLDivElement>(null);
   const { searches, addSearch, clearSearches, removeSearch } = useRecentSearches();
-  const trimmedUsername = username.trim();
-  const hasUsername = trimmedUsername.length > 0;
-
   const [mounted, setMounted] = useState(false);
+
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
   }, []);
 
-  const badgeUrl = `/api/streak?user=${trimmedUsername}`;
-  const markdown = `![CommitPulse](https://commitpulse.vercel.app/api/streak?user=${trimmedUsername})`;
+  const trimmedUsername = username.trim();
+  const debouncedUsername = useDebounce(trimmedUsername, 500);
+  const hasUsername = debouncedUsername.length > 0;
 
-  const [prevUsername, setPrevUsername] = useState('');
-  if (trimmedUsername !== prevUsername) {
-    setPrevUsername(trimmedUsername);
-    setSvgContent(null);
-    setSvgState(trimmedUsername ? 'loading' : 'idle');
-  }
+  const badgeUrl = `/api/streak?user=${debouncedUsername}`;
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://commitpulse.vercel.app';
+  const markdown = `![CommitPulse](${siteUrl}/api/streak?user=${trimmedUsername})`;
 
-  // Fetch SVG content whenever username changes.
-  // We fetch as text and render inline to avoid the browser CSP restriction
-  // that blocks <img> from loading SVGs whose response has a restrictive
-  // Content-Security-Policy header (default-src 'none').
-  useEffect(() => {
-    if (!hasUsername) return;
-
-    const controller = new AbortController();
-
-    fetch(badgeUrl, { signal: controller.signal })
-      .then((res) => {
-        if (res.status === 404) {
-          setSvgState('error');
-          return;
-        }
-        return res.text();
-      })
-      .then((text) => {
-        if (!text) return;
-        setSvgContent(text);
-        setSvgState('loaded');
-      })
-      .catch((err) => {
-        if (err.name === 'AbortError') return;
-        setSvgState('error');
-      });
-    return () => controller.abort();
-  }, [badgeUrl, hasUsername]);
+  // Derived — automatically false when debouncedUsername changes
+  const badgeLoaded =
+    badgeResult?.username === debouncedUsername && badgeResult?.status === 'loaded';
+  const badgeError = badgeResult?.username === debouncedUsername && badgeResult?.status === 'error';
 
   const copyToClipboard = () => {
-    if (!hasUsername) return;
+    if (trimmedUsername.length === 0) return;
 
     trackUser(trimmedUsername);
     addSearch(trimmedUsername);
@@ -139,59 +118,25 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen overflow-x-hidden bg-transparent font-sans text-black dark:text-white selection:bg-black/20 dark:selection:bg-white/20">
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute -left-[10%] -top-[10%] h-[40%] w-[40%] rounded-full bg-white/3 blur-[120px]" />
-        <div className="absolute -right-[10%] top-[20%] h-[30%] w-[30%] rounded-full bg-white/2 blur-[120px]" />
+        <div className="absolute -left-[10%] -top-[10%] h-[40%] w-[40%] rounded-full bg-emerald-500/5 blur-[120px]" />
+        <div className="absolute -right-[10%] top-[20%] h-[30%] w-[30%] rounded-full bg-cyan-500/5 blur-[120px]" />
       </div>
 
       <main className="relative z-10 mx-auto max-w-6xl px-6 mt-32">
         <div className="mb-16 text-center">
-          <motion.a
-            href="https://discord.gg/Cb73bS79j"
-            target="_blank"
-            rel="noopener noreferrer"
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            whileHover={{ scale: 1.04, backgroundColor: 'rgba(255,255,255,0.07)' }}
-            whileTap={{ scale: 0.97 }}
-            className="mb-8 inline-flex items-center gap-2.5 rounded-full border border-black/10 bg-white px-4 py-1.5 text-xs font-medium text-gray-700 shadow-sm backdrop-blur-sm transition-colors duration-200 hover:border-black/20 hover:text-black dark:border-white/10 dark:bg-white/[0.04] dark:text-white/50 dark:hover:border-white/20 dark:hover:text-white/80"
-          >
-            <span className="relative flex h-1.5 w-1.5">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-black/40 dark:bg-white/50" />
-              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-black/70 dark:bg-white/70" />
-            </span>
-            <svg
-              width="13"
-              height="13"
-              viewBox="0 0 24 24"
-              fill="currentColor"
-              className="opacity-60"
-            >
-              <path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3333-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3333-.946 2.4189-2.1568 2.4189Z" />
-            </svg>
-            Join the community on Discord
-            <svg
-              width="10"
-              height="10"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="opacity-40"
-            >
-              <path d="M7 17L17 7M17 7H7M17 7v10" />
-            </svg>
-          </motion.a>
+          <DiscordButton />
 
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.15 }}
           >
-            <h1 className="mb-8 bg-gradient-to-b from-black to-black/40 dark:from-white dark:to-white/30 bg-clip-text text-transparent sm:text-5xl font-extrabold tracking-tight md:text-8xl">
-              Elevate Your <br /> Contribution Story.
+            <h1 className="mb-8 bg-gradient-to-br from-gray-900 via-black to-gray-600 dark:from-white dark:via-gray-100 dark:to-gray-500 bg-clip-text text-transparent text-5xl font-extrabold tracking-tight md:text-8xl pb-2">
+              Elevate Your <br />{' '}
+              <span className="bg-gradient-to-r from-emerald-400 to-cyan-500 bg-clip-text text-transparent">
+                Contribution
+              </span>{' '}
+              Story.
             </h1>
           </motion.div>
 
@@ -199,15 +144,15 @@ export default function LandingPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.3 }}
-            className="mx-auto max-w-2xl text-sm sm:text-lg leading-relaxed text-gray-600 dark:text-gray-400 md:text-xl "
+            className="mx-auto max-w-2xl text-sm sm:text-lg leading-relaxed text-gray-600 dark:text-white/65 md:text-xl "
           >
-            Stop settling for flat grids. Generate high-fidelity, 3D isometric monoliths that
-            visualize your coding rhythm with professional precision.
+            CommitPulse converts your GitHub commit history into a live, 3D animated badge. The more
+            you commit, the taller your city grows! Embed it in your profile README with one line.
           </motion.p>
         </div>
 
-        <section className="mx-auto mb-32 max-w-4xl">
-          <div className="rounded-2xl border border-black/10 bg-white p-4 dark:border-[rgba(255,255,255,0.08)] dark:bg-[#0a0a0a] md:p-8">
+        <section className="mx-auto mb-32 max-w-4xl relative z-20">
+          <div className="rounded-3xl border border-black/5 bg-white/60 p-4 shadow-xl shadow-black/5 backdrop-blur-xl dark:border-white/10 dark:bg-[#0a0a0a]/80 dark:shadow-2xl dark:shadow-black/50 md:p-8">
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -219,8 +164,9 @@ export default function LandingPage() {
                 <div className="relative flex-1 flex items-center w-full">
                   <input
                     type="text"
+                    suppressHydrationWarning
                     placeholder="Enter GitHub Username"
-                    className="flex-1 rounded-xl border border-black/10 bg-gray-100 px-5 py-3.5 text-sm text-black outline-none transition-all duration-200 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#00ffaa] focus:border-transparent dark:border-[rgba(255,255,255,0.08)] dark:bg-[#111] dark:text-white dark:placeholder:text-[#A1A1AA]"
+                    className="flex-1 rounded-2xl border border-black/10 bg-white px-5 py-4 text-sm text-black outline-none transition-all duration-300 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent dark:border-white/10 dark:bg-black/60 dark:text-white dark:placeholder:text-gray-500 shadow-inner"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     maxLength={39}
@@ -228,7 +174,7 @@ export default function LandingPage() {
                   {username.length > 0 ? (
                     <button
                       onClick={() => setUsername('')}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 transition-colors hover:text-black dark:text-[#A1A1AA] dark:hover:text-white"
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 transition-colors hover:text-black dark:text-white/65 dark:hover:text-white"
                       aria-label="Clear input"
                       type="button"
                     >
@@ -245,11 +191,12 @@ export default function LandingPage() {
               <div className="flex flex-col sm:flex-row gap-4">
                 <button
                   type="submit"
-                  disabled={!mounted || !hasUsername}
-                  className={`relative flex min-w-[160px] items-center justify-center gap-2 overflow-hidden rounded-xl px-6 py-3.5 text-sm font-semibold transition-all duration-200 transform cursor-pointer hover:scale-105 hover:brightness-125 active:scale-[0.98] disabled:cursor-not-allowed ${
-                    hasUsername
-                      ? 'bg-black text-white hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-zinc-100'
-                      : 'bg-gray-200 text-gray-500 dark:bg-white/10 dark:text-white/35'
+                  suppressHydrationWarning
+                  disabled={!mounted || trimmedUsername.length === 0}
+                  className={`relative flex min-w-[160px] items-center justify-center gap-2 overflow-hidden rounded-2xl px-6 py-4 text-sm font-semibold transition-all duration-300 transform cursor-pointer hover:scale-[1.02] hover:shadow-lg active:scale-[0.98] disabled:cursor-not-allowed ${
+                    mounted && trimmedUsername.length > 0
+                      ? 'bg-black text-white hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-gray-100 shadow-md'
+                      : 'bg-gray-100 text-gray-400 dark:bg-white/5 dark:text-white/55'
                   }`}
                 >
                   <AnimatePresence mode="wait">
@@ -275,20 +222,23 @@ export default function LandingPage() {
                   </AnimatePresence>
                 </button>
                 <Link
-                  href={hasUsername ? `/dashboard/${trimmedUsername}` : '/'}
-                  aria-disabled={!mounted || !hasUsername}
+                  href={
+                    mounted && trimmedUsername.length > 0 ? `/dashboard/${trimmedUsername}` : '/'
+                  }
+                  suppressHydrationWarning
+                  aria-disabled={!mounted || trimmedUsername.length === 0}
                   onClick={(e) => {
-                    if (!hasUsername) {
+                    if (!mounted || trimmedUsername.length === 0) {
                       e.preventDefault();
                     } else {
                       trackUser(trimmedUsername);
                       addSearch(trimmedUsername);
                     }
                   }}
-                  className={`relative flex min-w-[160px] items-center justify-center gap-2 overflow-hidden rounded-xl border px-6 py-3.5 text-sm font-semibold transition-all duration-200 active:scale-[0.98] ${
-                    hasUsername
-                      ? 'border-black/10 bg-gray-100 text-black hover:bg-gray-200 dark:border-[rgba(255,255,255,0.15)] dark:bg-white/[0.04] dark:text-white dark:hover:bg-white/10'
-                      : 'border-black/10 bg-gray-100 text-gray-500 dark:border-[rgba(255,255,255,0.08)] dark:bg-white/[0.02] dark:text-white/35'
+                  className={`relative flex min-w-[160px] items-center justify-center gap-2 overflow-hidden rounded-2xl border px-6 py-4 text-sm font-semibold transition-all duration-300 hover:scale-[1.02] hover:shadow-lg active:scale-[0.98] ${
+                    mounted && trimmedUsername.length > 0
+                      ? 'border-black/10 bg-white text-black hover:bg-gray-50 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10 shadow-sm'
+                      : 'border-black/5 bg-gray-50 text-gray-400 dark:border-white/5 dark:bg-transparent dark:text-white/55'
                   }`}
                 >
                   Watch Dashboard
@@ -331,47 +281,56 @@ export default function LandingPage() {
             </div>
           )}
 
-          <div className="group relative">
-            <div className="absolute -inset-1 rounded-[2rem] bg-white/5 opacity-50 blur-xl transition duration-1000 group-hover:opacity-100" />
-            <InteractiveViewer className="relative flex min-h-[320px] items-center justify-center overflow-hidden rounded-xl border border-black/10 bg-white p-6 dark:border-[rgba(255,255,255,0.06)] dark:bg-black">
+          <div className="group relative mt-10">
+            <div className="absolute -inset-1 rounded-[2.5rem] bg-gradient-to-r from-emerald-500/20 to-cyan-500/20 opacity-50 blur-2xl transition duration-1000 group-hover:opacity-100" />
+            <div className="relative flex min-h-[480px] md:min-h-[520px] items-center justify-center overflow-hidden rounded-3xl border border-black/5 bg-white/50 p-8 backdrop-blur-xl shadow-2xl dark:border-white/10 dark:bg-[#0a0a0a]/80">
               {hasUsername ? (
-                <div className="w-full flex items-center justify-center">
-                  {svgState === 'loading' && (
-                    <div className="h-[200px] w-full max-w-[600px] rounded-xl bg-white/5 animate-pulse" />
+                <div className="w-full flex flex-col items-center justify-center gap-4">
+                  {!badgeLoaded && !badgeError && (
+                    <div className="h-[240px] w-full max-w-[700px] rounded-2xl bg-black/5 dark:bg-white/5 animate-pulse" />
                   )}
-                  {svgState === 'error' && (
-                    <div className="flex flex-col items-center justify-center gap-3 py-10 text-center">
-                      <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-red-500/20 bg-red-500/10">
-                        <X size={28} className="text-red-400" />
+                  {badgeError && (
+                    <div className="flex flex-col items-center justify-center gap-4 py-12 text-center">
+                      <div className="flex h-16 w-16 items-center justify-center rounded-3xl border border-red-500/20 bg-red-500/10 shadow-inner">
+                        <X size={32} className="text-red-500" />
                       </div>
-                      <p className="text-base font-semibold text-white">GitHub user not found</p>
-                      <p className="text-sm text-[#A1A1AA]">
-                        Please check the username and try again.
-                      </p>
+                      <div>
+                        <p className="text-lg font-bold text-gray-900 dark:text-white tracking-tight">
+                          GitHub user not found
+                        </p>
+                        <p className="text-sm text-gray-500 dark:text-white/65 mt-1">
+                          Please check the username and try again.
+                        </p>
+                      </div>
                     </div>
                   )}
-                  {svgState === 'loaded' && svgContent && (
-                    <div
-                      className="cp-svg-container w-full max-w-[600px] drop-shadow-[0_20px_50px_rgba(0,0,0,0.5)] [&>svg]:w-full [&>svg]:h-auto"
-                      // Safe: SVG is generated server-side by our own trusted generator
-                      dangerouslySetInnerHTML={{ __html: svgContent }}
-                    />
-                  )}
+                  <motion.img
+                    key={badgeUrl}
+                    data-testid="badge-img"
+                    src={badgeUrl}
+                    alt={`CommitPulse badge for ${debouncedUsername}`}
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: badgeLoaded ? 1 : 0, scale: badgeLoaded ? 1 : 0.95 }}
+                    transition={{ duration: 0.5, ease: 'easeOut' }}
+                    className="w-full max-w-[700px] h-auto drop-shadow-[0_30px_60px_rgba(0,0,0,0.15)] dark:drop-shadow-[0_30px_60px_rgba(0,0,0,0.5)]"
+                    onLoad={() => setBadgeResult({ username: debouncedUsername, status: 'loaded' })}
+                    onError={() => setBadgeResult({ username: debouncedUsername, status: 'error' })}
+                  />
                 </div>
               ) : (
-                <div className="flex w-full max-w-2xl flex-col items-center justify-center rounded-[1.5rem] border border-dashed border-black/10 bg-gray-100 px-6 py-12 text-center dark:border-white/10 dark:bg-white/[0.02]">
-                  <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-black/10 bg-white text-gray-600 dark:border-white/10 dark:bg-white/[0.04] dark:text-white/60">
+                <div className="flex w-full max-w-2xl flex-col items-center justify-center rounded-3xl border border-dashed border-black/10 bg-black/[0.02] px-6 py-16 text-center dark:border-white/10 dark:bg-white/[0.02]">
+                  <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-3xl border border-black/10 bg-white text-gray-600 shadow-sm dark:border-white/10 dark:bg-white/5 dark:text-white/80">
                     <Icons.Github />
                   </div>
-                  <p className="md:text-lg text-md font-semibold tracking-tight text-black dark:text-white">
-                    Enter a GitHub username to preview
+                  <p className="text-xl font-bold tracking-tight text-gray-900 dark:text-white">
+                    Ready to visualize your rhythm?
                   </p>
-                  <p className="mt-2 max-w-md text-xs xs:text-sm leading-relaxed text-gray-600 dark:text-[#A1A1AA]">
-                    Your 3D contribution monolith will appear here as soon as you add a username.
+                  <p className="mt-3 max-w-md text-sm leading-relaxed text-gray-500 dark:text-white/65">
+                    Enter a GitHub username above to instantly generate your streak badge.
                   </p>
                 </div>
               )}
-            </InteractiveViewer>
+            </div>
           </div>
         </section>
 
@@ -389,59 +348,35 @@ export default function LandingPage() {
 
         <CustomizeCTA />
 
-        <div className="grid gap-6 md:grid-cols-3">
+        <FeatureCardsSection>
           <FeatureCard
             icon={<Icons.Zap />}
-            accent="text-black dark:text-white"
+            accent="text-white"
+            accentColor="#10b981"
+            index={0}
             title="Real-time Sync"
             desc="Pulled directly from GitHub GraphQL API. Your streak updates as fast as your code pushes."
           />
           <FeatureCard
             icon={<Icons.Copy />}
-            accent="text-black dark:text-white"
+            accent="text-white"
+            accentColor="#8b5cf6"
+            index={1}
             title="Theme Engine"
             desc="Switch between Neon, Dracula, or custom HEX modes via simple URL management."
           />
           <FeatureCard
             icon={<Icons.Box />}
-            accent="text-black dark:text-white"
+            accent="text-white"
+            accentColor="#06b6d4"
+            index={2}
             title="Isometric Math"
             desc="Sophisticated 3D projection formulas turn 2D data into digital architecture."
           />
-        </div>
+        </FeatureCardsSection>
         <Footer />
       </main>
     </div>
-  );
-}
-
-function FeatureCard({
-  icon,
-  title,
-  desc,
-  accent,
-}: {
-  icon: ReactNode;
-  title: string;
-  desc: string;
-  accent: string;
-}) {
-  return (
-    <motion.div
-      whileHover={{ y: -3 }}
-      transition={{ duration: 0.2 }}
-      className="group rounded-xl border border-black/10 bg-white p-8 hover:border-black/20 hover:bg-gray-50 dark:border-[rgba(255,255,255,0.08)] dark:bg-[#0a0a0a] dark:hover:border-[rgba(255,255,255,0.14)] dark:hover:bg-[#0d0d0d] transition-all duration-200"
-    >
-      <div
-        className={`mb-5 w-fit rounded-lg bg-gray-100 p-2.5 text-black dark:bg-[#111] dark:text-white ${accent}`}
-      >
-        {icon}
-      </div>
-      <h3 className="mb-2 text-sm font-semibold text-black dark:text-white tracking-tight">
-        {title}
-      </h3>
-      <p className="text-sm leading-relaxed text-gray-600 dark:text-[#A1A1AA]">{desc}</p>
-    </motion.div>
   );
 }
 
@@ -507,7 +442,7 @@ function SuccessGuide({
 
           <button
             onClick={onDismiss}
-            className="ml-4 mt-1 shrink-0 rounded-xl p-2 text-gray-500 transition-all hover:bg-gray-100 hover:text-black dark:text-white/30 dark:hover:bg-white/5 dark:hover:text-white"
+            className="ml-4 mt-1 shrink-0 rounded-xl p-2 text-gray-500 transition-all hover:bg-gray-100 hover:text-black dark:text-white/55 dark:hover:bg-white/5 dark:hover:text-white"
             aria-label="Dismiss guide"
           >
             <svg
@@ -550,7 +485,7 @@ function SuccessGuide({
         </div>
 
         <div className="px-8 py-6">
-          <p className="mb-3 text-xs font-bold uppercase tracking-[0.15em] text-gray-500 dark:text-white/30">
+          <p className="mb-3 text-xs font-bold uppercase tracking-[0.15em] text-gray-500 dark:text-white/55">
             Your copied snippet
           </p>
           <div className="flex items-center gap-3 rounded-xl border border-black/10 bg-gray-100 px-4 py-3 font-mono text-sm dark:border-white/8 dark:bg-black/60">
@@ -559,15 +494,15 @@ function SuccessGuide({
               {markdown}
             </code>
           </div>
-          <p className="mt-4 text-xs leading-relaxed text-gray-500 dark:text-white/25">
-            Tip: Add <code className="text-gray-700 dark:text-white/40">?accent=808080</code> to the
+          <p className="mt-4 text-xs leading-relaxed text-gray-500 dark:text-white/55">
+            Tip: Add <code className="text-gray-700 dark:text-white/55">?accent=808080</code> to the
             URL to change your monolith&apos;s colour palette.
           </p>
           <div className="mt-8 flex justify-center border-t border-black/10 pt-6 dark:border-white/5">
             <Link href={`/dashboard/${username}`} onClick={() => trackUser(username)}>
-              <button className="border border-black/10 bg-gray-100 px-6 py-2.5 rounded-lg text-sm font-semibold text-black transition-all duration-200 hover:bg-gray-200 hover:scale-[1.01] active:scale-[0.99] dark:border-[rgba(255,255,255,0.15)] dark:bg-white dark:text-black dark:hover:bg-zinc-100">
+              <span className="border border-black/10 bg-gray-100 px-6 py-2.5 rounded-lg text-sm font-semibold text-black transition-all duration-200 hover:bg-gray-200 hover:scale-[1.01] active:scale-[0.99] dark:border-[rgba(255,255,255,0.15)] dark:bg-white dark:text-black dark:hover:bg-zinc-100">
                 Watch Your Dashboard
-              </button>
+              </span>
             </Link>
           </div>
         </div>

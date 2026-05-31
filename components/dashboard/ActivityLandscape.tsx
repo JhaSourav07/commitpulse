@@ -1,8 +1,10 @@
 'use client';
 
-import { useState } from 'react';
-import { motion } from 'framer-motion';
-import { ActivityData } from '@/types/dashboard';
+import { useState, type SyntheticEvent } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
+import type { ActivityData } from '@/types/dashboard';
+import VisualizationTooltip from './VisualizationTooltip';
+import { formatTooltipDate, getActivityInsight, getContributionLabel } from './tooltipUtils';
 
 const tabs = ['1W', '1M', '3M', '1Y'];
 
@@ -19,12 +21,22 @@ export const getFilteredData = (data: ActivityData[], activeTab: string): Activi
     const step = Math.ceil(recent.length / 60);
     return recent.filter((_, i) => i % step === 0).slice(-60);
   }
+
   return recent;
 };
+
+interface TooltipState {
+  title: string;
+  metric: string;
+  insight: string;
+  x: number;
+  y: number;
+}
 
 export default function ActivityLandscape({ data }: { data: ActivityData[] }) {
   const [activeTab, setActiveTab] = useState('3M');
   const [mode, setMode] = useState<'commits' | 'loc'>('commits');
+  const [tooltip, setTooltip] = useState<TooltipState | null>(null);
 
   const displayData = getFilteredData(data, activeTab);
 
@@ -34,120 +46,153 @@ export default function ActivityLandscape({ data }: { data: ActivityData[] }) {
 
   const maxCount = Math.max(...displayData.map(getValue), 1);
 
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
-      className="p-6 rounded-xl bg-white dark:bg-[#0a0a0a] border border-black/10 dark:border-[rgba(255,255,255,0.08)] overflow-hidden"
-    >
-      {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-        <div>
-          <h2 className="text-base font-semibold text-gray-900 dark:text-white tracking-tight flex items-center gap-2">
-            Activity Landscape
-          </h2>
-          <p className="text-xs text-[#A1A1AA] mt-1">
-            {mode === 'loc' ? 'Lines of code modified over time' : 'Commit frequency over time'}
-          </p>
-        </div>
+  const showTooltip = (e: SyntheticEvent<HTMLDivElement>, day: ActivityData, value: number) => {
+    const rect = e.currentTarget.getBoundingClientRect();
 
-        <div className="flex flex-wrap items-center gap-3">
-          {/* Mode Toggle (Commits vs LoC) */}
-          <div className="flex items-center p-0.5 bg-gray-100 dark:bg-[#111] border border-black/5 dark:border-[rgba(255,255,255,0.08)] rounded-lg">
-            <button
-              onClick={() => setMode('commits')}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
-                mode === 'commits'
-                  ? 'bg-white dark:bg-[#222] text-black dark:text-white shadow-sm border border-black/5 dark:border-white/5'
-                  : 'text-gray-500 hover:text-black dark:hover:text-white'
-              }`}
-            >
-              Commits
-            </button>
-            <button
-              onClick={() => setMode('loc')}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
-                mode === 'loc'
-                  ? 'bg-white dark:bg-[#222] text-black dark:text-white shadow-sm border border-black/5 dark:border-white/5'
-                  : 'text-gray-500 hover:text-black dark:hover:text-white'
-              }`}
-            >
-              Lines of Code
-            </button>
+    setTooltip({
+      title: formatTooltipDate(day.date),
+      metric: mode === 'loc' ? `${value} lines modified` : getContributionLabel(day.count),
+      insight:
+        mode === 'loc'
+          ? value > 0
+            ? 'Code activity recorded'
+            : 'No code changes recorded'
+          : getActivityInsight(day.count, day.intensity),
+      x: rect.left + rect.width / 2,
+      y: rect.top - 10,
+    });
+  };
+
+  const hideTooltip = () => setTooltip(null);
+
+  return (
+    <>
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        className="overflow-hidden rounded-xl border border-black/10 bg-white p-6 dark:border-[rgba(255,255,255,0.08)] dark:bg-[#0a0a0a]"
+      >
+        {/* Header */}
+        <div className="mb-8 flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
+          <div>
+            <h2 className="flex items-center gap-2 text-base font-semibold tracking-tight text-gray-900 dark:text-white">
+              Activity Landscape
+            </h2>
+            <p className="mt-1 text-xs text-[#A1A1AA]">
+              {mode === 'loc' ? 'Lines of code modified over time' : 'Commit frequency over time'}
+            </p>
           </div>
 
-          {/* Time Range Tabs */}
-          <div className="flex rounded-lg border border-black/10 dark:border-[rgba(255,255,255,0.08)] overflow-hidden">
-            {tabs.map((tab) => (
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Mode Toggle (Commits vs LoC) */}
+            <div className="flex items-center rounded-lg border border-black/5 bg-gray-100 p-0.5 dark:border-[rgba(255,255,255,0.08)] dark:bg-[#111]">
               <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`px-3.5 py-1.5 text-xs font-medium transition-all duration-200 border-r border-black/10 dark:border-[rgba(255,255,255,0.08)] last:border-r-0 ${
-                  activeTab === tab
-                    ? 'bg-black dark:bg-white text-white dark:text-black'
-                    : 'bg-gray-100 dark:bg-transparent text-gray-600 dark:text-[#A1A1AA] hover:bg-gray-200 dark:hover:bg-[rgba(255,255,255,0.05)] hover:text-black dark:hover:text-white'
+                onClick={() => setMode('commits')}
+                className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-all ${
+                  mode === 'commits'
+                    ? 'border border-black/5 bg-white text-black shadow-sm dark:border-white/5 dark:bg-[#222] dark:text-white'
+                    : 'text-gray-500 hover:text-black dark:hover:text-white'
                 }`}
               >
-                {tab}
+                Commits
               </button>
-            ))}
+              <button
+                onClick={() => setMode('loc')}
+                className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-all ${
+                  mode === 'loc'
+                    ? 'border border-black/5 bg-white text-black shadow-sm dark:border-white/5 dark:bg-[#222] dark:text-white'
+                    : 'text-gray-500 hover:text-black dark:hover:text-white'
+                }`}
+              >
+                Lines of Code
+              </button>
+            </div>
+
+            {/* Time Range Tabs */}
+            <div className="flex overflow-hidden rounded-lg border border-black/10 dark:border-[rgba(255,255,255,0.08)]">
+              {tabs.map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`border-r border-black/10 px-3.5 py-1.5 text-xs font-medium transition-all duration-200 last:border-r-0 dark:border-[rgba(255,255,255,0.08)] ${
+                    activeTab === tab
+                      ? 'bg-black text-white dark:bg-white dark:text-black'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-black dark:bg-transparent dark:text-white/65 dark:hover:bg-[rgba(255,255,255,0.05)] dark:hover:text-white'
+                  }`}
+                >
+                  {tab}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Graph */}
-      <div
-        className="h-[200px] w-full flex items-end justify-between gap-[2px] relative"
-        role="img"
-        aria-label="Activity chart showing contribution frequency over time"
-      >
-        {displayData.map((day, i) => {
-          const val = getValue(day);
-          const heightPercent = Math.max((val / maxCount) * 100, 3);
+        {/* Graph */}
+        <div
+          className="relative flex h-[200px] w-full items-end justify-between gap-[2px]"
+          role="img"
+          aria-label="Activity chart showing contribution frequency over time"
+        >
+          {displayData.map((day, i) => {
+            const val = getValue(day);
+            const heightPercent = Math.max((val / maxCount) * 100, 3);
 
-          // Recalculate intensity for LoC mode visually
-          const isHigh = mode === 'loc' ? val > maxCount * 0.7 : day.intensity >= 3;
-          const isMedium = mode === 'loc' ? val > 0 : day.intensity > 0;
+            // Recalculate intensity for LoC mode visually
+            const isHigh = mode === 'loc' ? val > maxCount * 0.7 : day.intensity >= 3;
+            const isMedium = mode === 'loc' ? val > 0 : day.intensity > 0;
 
-          return (
-            <div
-              key={i}
-              className="relative flex-1 flex items-end group/bar h-full"
-              aria-label={`${day.date}: ${val} ${mode === 'loc' ? 'lines' : 'commits'}`}
-            >
-              {/* Tooltip */}
-              <div className="absolute -top-11 left-1/2 -translate-x-1/2 bg-white dark:bg-[#111] border border-black/10 dark:border-[rgba(255,255,255,0.1)] px-2.5 py-1.5 rounded-md opacity-0 group-hover/bar:opacity-100 transition-opacity duration-150 pointer-events-none z-20 flex flex-col items-center whitespace-nowrap shadow-[0_4px_12px_rgba(0,0,0,0.1)] dark:shadow-xl">
-                <span className="text-[10px] text-[#A1A1AA]">{day.date}</span>
-                <span className="text-xs font-semibold text-gray-900 dark:text-white">
-                  {val} {mode === 'loc' ? 'lines' : 'commits'}
-                </span>
-              </div>
-
-              {/* Bar */}
-              <motion.div
-                initial={{ height: 0 }}
-                animate={{ height: `${heightPercent}%` }}
-                transition={{ duration: 0.6, delay: i * 0.008, ease: [0.16, 1, 0.3, 1] }}
-                className={`w-full rounded-t-[2px] transition-all duration-200 ${
-                  isHigh
-                    ? mode === 'loc'
-                      ? 'bg-indigo-500 dark:bg-indigo-400'
-                      : 'bg-black dark:bg-white'
-                    : isMedium
+            return (
+              <div
+                key={`${day.date}-${i}`}
+                className="group/bar relative flex h-full flex-1 cursor-pointer items-end outline-none"
+                aria-label={`${
+                  mode === 'loc' ? `${val} lines modified` : getContributionLabel(day.count)
+                } on ${formatTooltipDate(day.date)}`}
+                tabIndex={0}
+                onMouseEnter={(e) => showTooltip(e, day, val)}
+                onFocus={(e) => showTooltip(e, day, val)}
+                onMouseLeave={hideTooltip}
+                onBlur={hideTooltip}
+              >
+                {/* Bar */}
+                <motion.div
+                  initial={{ height: 0 }}
+                  animate={{ height: `${heightPercent}%` }}
+                  transition={{
+                    duration: 0.6,
+                    delay: i * 0.008,
+                    ease: [0.16, 1, 0.3, 1],
+                  }}
+                  className={`w-full rounded-t-[2px] transition-all duration-200 ${
+                    isHigh
                       ? mode === 'loc'
-                        ? 'bg-indigo-300 dark:bg-indigo-500/50 hover:bg-indigo-400'
-                        : 'bg-zinc-500 dark:bg-zinc-600 hover:bg-zinc-700 dark:hover:bg-zinc-400'
-                      : 'bg-gray-200 dark:bg-zinc-800 hover:bg-gray-300 dark:hover:bg-zinc-700'
-                }`}
-              />
-            </div>
-          );
-        })}
-      </div>
+                        ? 'bg-indigo-500 dark:bg-indigo-400'
+                        : 'bg-black dark:bg-white'
+                      : isMedium
+                        ? mode === 'loc'
+                          ? 'bg-indigo-300 hover:bg-indigo-400 dark:bg-indigo-500/50'
+                          : 'bg-zinc-500 hover:bg-zinc-700 dark:bg-zinc-600 dark:hover:bg-zinc-400'
+                        : 'bg-gray-200 hover:bg-gray-300 dark:bg-zinc-800 dark:hover:bg-zinc-700'
+                  }`}
+                />
+              </div>
+            );
+          })}
+        </div>
 
-      {/* X axis */}
-      <div className="w-full h-px bg-black/10 dark:bg-[rgba(255,255,255,0.06)] mt-3" />
-    </motion.div>
+        {/* X axis */}
+        <div className="mt-3 h-px w-full bg-black/10 dark:bg-[rgba(255,255,255,0.06)]" />
+      </motion.div>
+
+      <AnimatePresence>
+        {tooltip && (
+          <VisualizationTooltip title={tooltip.title} x={tooltip.x} y={tooltip.y}>
+            <div>{tooltip.metric}</div>
+            <div>{tooltip.insight}</div>
+          </VisualizationTooltip>
+        )}
+      </AnimatePresence>
+    </>
   );
 }

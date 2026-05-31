@@ -37,6 +37,9 @@ export interface BadgeTheme {
 
   /** Tower and glow accent color as a hex string WITHOUT the leading '#' (e.g. '58a6ff'). */
   accent: HexColor;
+
+  /** Negative/error state color as a hex string WITHOUT the leading '#' (e.g. 'ff4444'). Optional. */
+  negative?: HexColor;
 }
 
 /**
@@ -71,6 +74,27 @@ export interface ContributionCalendar {
 
   /** Array of weekly contribution data covering the queried date range. */
   weeks: ContributionWeek[];
+
+  /** Timestamp of the last successful GraphQL API sync. Used for delta updates. */
+  lastSyncedAt?: string;
+}
+
+/**
+ * Represents a user's contributions to a specific repository.
+ */
+export interface RepoContribution {
+  repository: {
+    primaryLanguage: { name: string } | null;
+  };
+  contributions: { totalCount: number };
+}
+
+/**
+ * Extended contribution data including both the calendar and repository-specific contributions.
+ */
+export interface ExtendedContributionData {
+  calendar: ContributionCalendar;
+  repoContributions: RepoContribution[];
 }
 
 /**
@@ -100,7 +124,6 @@ export interface MonthlyStats {
 export interface BadgeParams {
   /** GitHub username whose contribution data will be fetched and rendered. Required. */
   user: string;
-
   /** GitHub username of the opponent to compare against. */
   versus?: string;
 
@@ -114,10 +137,13 @@ export interface BadgeParams {
   text: HexColor;
 
   /** Tower and glow accent color as a hex string WITHOUT the leading '#'. Overrides theme default. */
-  accent: HexColor;
+  accent: HexColor | HexColor[];
 
   /** Duration of the radar scan line animation (e.g. '4s', '8s', '12s'). Defaults to '8s'. */
   speed: SpeedString;
+
+  /** Animation style for the isometric towers on load: 'rise' (default), 'fade', 'slide', or 'none'. */
+  entrance?: 'rise' | 'fade' | 'slide' | 'none';
 
   /** Tower height scaling algorithm. 'linear' scales proportionally; 'log' uses logarithmic scale for high contributors. Defaults to 'linear'. */
   scale: Scale;
@@ -146,8 +172,8 @@ export interface BadgeParams {
   /** Language/locale code for stat labels (e.g. 'en', 'fr', 'ja'). Defaults to 'en'. */
   lang?: string;
 
-  /** Badge layout variant. 'default' shows the isometric monolith; 'monthly' shows month-over-month stats. */
-  view?: 'default' | 'monthly';
+  /** Badge layout variant. 'default' shows the isometric monolith; 'monthly' shows month-over-month stats; 'heatmap' shows a flat 2D contribution heatmap; 'pulse' shows a heartbeat sparkline. */
+  view?: 'default' | 'monthly' | 'heatmap' | 'pulse';
 
   /** Format for the monthly delta indicator. 'percent' shows %, 'absolute' shows raw count, 'both' shows both. */
   delta_format?: 'percent' | 'absolute' | 'both';
@@ -175,4 +201,68 @@ export interface BadgeParams {
 
   /** Custom text color for the labels. Overrides text parameter. */
   labelColor?: HexColor;
+
+  /**
+   * When true, applies intensity-based opacity shading to tower faces so
+   * lower intensity levels appear slightly translucent/dimmer.
+   * Default is false (opt-in).
+   */
+  shading?: boolean;
+
+  /** Opt-in to show volumetric gradients on the monolith floor. */
+  gradient?: boolean;
+
+  disable_particles?: boolean;
+  glow?: boolean;
+}
+
+export interface GraphNode {
+  id: string;
+  name: string;
+  type: 'User' | 'Repo' | 'Contribution' | 'Fork';
+  val: number;
+  color: string;
+  stats?: {
+    stars?: number;
+    forks?: number;
+    language?: string | null;
+    updatedAt?: string;
+    description?: string | null;
+  };
+  x?: number;
+  y?: number;
+}
+
+export interface GraphLink {
+  source: string | GraphNode;
+  target: string | GraphNode;
+}
+// ─── Email Notification Types ───────────────────────────────────────────────
+
+export type NotificationFrequency = 'realtime' | 'daily' | 'weekly';
+
+export interface NotificationPreferences {
+  enabled: boolean;
+  frequency: NotificationFrequency;
+  email: string;
+  notifyOnCommit: boolean;
+  notifyOnStreak: boolean;
+  notifyOnMilestone: boolean;
+}
+
+export interface NotificationPayload {
+  username: string;
+  email: string;
+  frequency: NotificationFrequency;
+  preferences: {
+    notifyOnCommit: boolean;
+    notifyOnStreak: boolean;
+    notifyOnMilestone: boolean;
+  };
+}
+
+export interface NotificationResponse {
+  success: boolean;
+  message: string;
+  data?: NotificationPayload;
 }

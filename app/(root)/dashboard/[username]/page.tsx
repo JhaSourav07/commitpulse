@@ -8,8 +8,8 @@ import { notFound, redirect } from 'next/navigation';
 export const revalidate = 3600; // Cache for 1 hour
 
 const BASE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL ??
-  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
+  process.env.NEXT_PUBLIC_SITE_URL ||
+  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://commitpulse.vercel.app');
 
 export async function generateMetadata({
   params,
@@ -73,14 +73,14 @@ export default async function DashboardPage({
   } catch (error) {
     if (error instanceof Error && error.message.includes('not found')) {
       // Smart Redirect: If the GraphQL "user" query fails, check if it's actually an Organization
+      let fallbackProfile;
       try {
-        const fallbackProfile = await fetchUserProfile(username, { bypassCache });
-        if (fallbackProfile.type === 'Organization') {
-          redirect(`/dashboard/org/${username}`);
-        }
+        fallbackProfile = await fetchUserProfile(username, { bypassCache });
       } catch {
-        // If it's truly neither a user nor an org, show 404
         return notFound();
+      }
+      if (fallbackProfile.type === 'Organization') {
+        redirect(`/dashboard/org/${username}`);
       }
       return notFound();
     }

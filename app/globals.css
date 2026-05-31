@@ -10,6 +10,42 @@ html {
   scroll-behavior: smooth;
 }
 @layer utilities {
+  /* Typography enhancement utilities */
+  .text-readable-sm {
+    font-size: 0.9375rem;
+    line-height: 1.7;
+    letter-spacing: 0.2px;
+  }
+
+  .text-readable-base {
+    font-size: 1.0625rem;
+    line-height: 1.75;
+    letter-spacing: 0.3px;
+  }
+
+  .text-readable-lg {
+    font-size: 1.1875rem;
+    line-height: 1.8;
+    letter-spacing: 0.4px;
+  }
+
+  /* Increase small text sizes for better readability */
+  .text-xs {
+    font-size: 0.8125rem;
+    line-height: 1.5;
+  }
+
+  .text-sm {
+    font-size: 0.9375rem;
+    line-height: 1.65;
+  }
+
+  /* Enhance descriptive/helper text across the app */
+  .prose p {
+    font-size: 1.0625rem;
+    line-height: 1.8;
+  }
+
   .slider::-webkit-slider-thumb {
     appearance: none;
     width: 20px;
@@ -41,6 +77,44 @@ html {
 
   .slider::-moz-range-track {
     background: transparent;
+  }
+
+  /* Improve dark mode secondary text for better readability while preserving hierarchy */
+  .dark .text-gray-500,
+  .dark .text-zinc-500,
+  .dark .text-gray-400 {
+    color: #d4d4d8;
+  }
+
+  .dark .text-white\/20 {
+    color: rgba(255, 255, 255, 0.56);
+  }
+
+  .dark .text-white\/25 {
+    color: rgba(255, 255, 255, 0.62);
+  }
+
+  .dark .text-white\/30 {
+    color: rgba(255, 255, 255, 0.68);
+  }
+
+  .dark .text-white\/35 {
+    color: rgba(255, 255, 255, 0.72);
+  }
+
+  .dark .text-white\/40 {
+    color: rgba(255, 255, 255, 0.78);
+  }
+
+  .dark .text-white\/45 {
+    color: rgba(255, 255, 255, 0.82);
+  }
+
+  .dark input::placeholder,
+  .dark textarea::placeholder,
+  .dark select::placeholder {
+    color: rgba(255, 255, 255, 0.66);
+    opacity: 1;
   }
 }
 
@@ -97,6 +171,78 @@ body {
   *:focus-visible {
     outline: 2px solid rgba(99, 102, 241, 0.6);
     outline-offset: 2px;
+  }
+
+  /* Enhanced typography for better readability */
+  p {
+    font-size: 1.0625rem;
+    line-height: 1.75;
+    letter-spacing: 0.3px;
+  }
+
+  p.text-sm {
+    font-size: 0.9375rem;
+    line-height: 1.7;
+  }
+
+  p.text-base {
+    font-size: 1.0625rem;
+    line-height: 1.75;
+  }
+
+  p.text-lg {
+    font-size: 1.1875rem;
+    line-height: 1.8;
+  }
+
+  p.text-xl {
+    font-size: 1.375rem;
+    line-height: 1.85;
+  }
+
+  p.text-2xl {
+    font-size: 1.6875rem;
+    line-height: 1.9;
+  }
+
+  /* Increase default body text size */
+  body {
+    font-size: 1.0625rem;
+    line-height: 1.75;
+  }
+
+  /* Improve span and inline text readability */
+  span {
+    line-height: inherit;
+  }
+
+  /* Button and interactive text */
+  button,
+  a {
+    font-size: inherit;
+  }
+
+  /* Label and form text */
+  label {
+    font-size: 1rem;
+    line-height: 1.5;
+  }
+
+  h1 {
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+  }
+
+  h2 {
+    line-height: 1.3;
+    letter-spacing: -0.01em;
+  }
+
+  h3,
+  h4,
+  h5,
+  h6 {
+    line-height: 1.4;
   }
 }
 

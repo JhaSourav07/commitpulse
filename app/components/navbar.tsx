@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Menu, X, Activity, Moon, Sun } from 'lucide-react';
 import { useGlowEffect } from '@/hooks/useGlowEffect';
+import { useThemeToggle } from './theme-switch';
 
 function GithubMark() {
   return (
@@ -15,8 +16,13 @@ function GithubMark() {
 
 const NAV_LINKS = [
   {
+    label: 'Compare',
+    href: '/compare',
+    isExternal: false,
+  },
+  {
     label: 'Customization Studio',
-    href: '#customization-studio',
+    href: '/#customization-studio',
     isExternal: false,
   },
   {
@@ -28,29 +34,13 @@ const NAV_LINKS = [
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
-
-  const [isDark, setIsDark] = useState(() => {
-    if (typeof window === 'undefined') return true;
-    return localStorage.getItem('theme') !== 'light';
-  });
 
   const { shellRef, shellVars, handleMouseEnter, handleMouseMove, handleMouseLeave } =
     useGlowEffect();
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setMounted(true);
-  }, []);
-
-  useEffect(() => {
-    document.documentElement.classList.toggle('dark', isDark);
-    localStorage.setItem('theme', isDark ? 'dark' : 'light');
-  }, [isDark]);
-
-  const toggleTheme = () => {
-    setIsDark((prev) => !prev);
-  };
+  const { isDark, mounted, toggleTheme } = useThemeToggle({
+    variant: 'circle',
+    start: 'top-right',
+  });
 
   useEffect(() => {
     const mediaQuery = window.matchMedia('(min-width: 768px)');
@@ -135,9 +125,9 @@ export default function Navbar() {
               >
                 {mounted ? (
                   isDark ? (
-                    <Sun size={18} />
-                  ) : (
                     <Moon size={18} />
+                  ) : (
+                    <Sun size={18} />
                   )
                 ) : (
                   <span className="w-[18px] h-[18px]" />
@@ -167,9 +157,9 @@ export default function Navbar() {
               >
                 {mounted ? (
                   isDark ? (
-                    <Sun size={18} />
-                  ) : (
                     <Moon size={18} />
+                  ) : (
+                    <Sun size={18} />
                   )
                 ) : (
                   <span className="w-[18px] h-[18px]" />
@@ -214,9 +204,9 @@ export default function Navbar() {
                   >
                     {mounted ? (
                       isDark ? (
-                        <Sun size={18} />
-                      ) : (
                         <Moon size={18} />
+                      ) : (
+                        <Sun size={18} />
                       )
                     ) : (
                       <span className="w-[18px] h-[18px]" />

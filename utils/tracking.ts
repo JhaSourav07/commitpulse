@@ -1,7 +1,16 @@
 export function trackUser(username: string) {
+  if (!username || username.trim() === '') {
+    return;
+  }
   if (typeof navigator === 'undefined' || typeof window === 'undefined') return;
+  if (!username) return;
 
-  const payload = JSON.stringify({ username });
+  let payload: string;
+  try {
+    payload = JSON.stringify({ username });
+  } catch {
+    return;
+  }
 
   const beaconQueued = navigator.sendBeacon
     ? navigator.sendBeacon('/api/track-user', new Blob([payload], { type: 'application/json' }))
