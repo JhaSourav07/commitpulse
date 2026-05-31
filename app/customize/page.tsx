@@ -29,7 +29,7 @@ export default function CustomizePage(): ReactElement {
   const [textHex, setTextHex] = useState('');
   const [scale, setScale] = useState<Scale>('linear');
   const [speed, setSpeed] = useState('8s');
-  const [font, setFont] = useState<Font>('');
+  const [font, setFont] = useState<Font>('Inter');
   const [year, setYear] = useState('');
   const [radius, setRadius] = useState(8);
   const [size, setSize] = useState<BadgeSize>('medium');
