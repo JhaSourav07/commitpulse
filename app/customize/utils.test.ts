@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest';
-import { getExportSnippet, getPlaceholderSnippet } from './utils';
+import { describe, it, expect } from 'vitest';
+import { buildQueryParams, getExportSnippet, getPlaceholderSnippet } from './utils';
+import type { CustomizeOptions } from './types';
 
 describe('Export Snippet utilities', () => {
   const EXPECTED_BASE_URL = 'https://commitpulse.vercel.app/api/streak';
@@ -47,6 +48,13 @@ describe('Export Snippet utilities', () => {
       expect(htmlResult).toContain(EXPECTED_BASE_URL);
     });
 
+    it('handles undefined query string', () => {
+      // @ts-expect-error Testing undefined query string at runtime
+      const result = getExportSnippet('markdown', undefined);
+
+      expect(result).toBe(`![CommitPulse](${EXPECTED_BASE_URL}?undefined)`);
+    });
+
     it('handles complex query strings', () => {
       const complexQuery = 'user=complex%20name&ring=ff0000%2C00ff00&fire=true';
       const result = getExportSnippet('markdown', complexQuery);
@@ -84,6 +92,112 @@ describe('Export Snippet utilities', () => {
       expect(result.startsWith('name: CommitPulse Streak Badge')).toBe(true);
       expect(result).toContain('your-github-username');
       expect(result).toContain(EXPECTED_BASE_URL);
+    });
+
+    it('throws for unsupported placeholder format', () => {
+      // @ts-expect-error Testing invalid placeholder format at runtime
+      expect(() => getPlaceholderSnippet('unsupported')).toThrow(
+        'Unsupported export format: unsupported'
+      );
+    });
+  });
+
+  describe('buildQueryParams', () => {
+    const defaultOptions: CustomizeOptions = {
+      username: 'testuser',
+      theme: 'dark',
+      bgHex: '',
+      accentHex: '',
+      textHex: '',
+      scale: 'linear',
+      speed: '8s',
+      font: 'Inter',
+      year: '',
+      radius: 8,
+      size: 'medium',
+      hideTitle: false,
+      hideBackground: false,
+      hideStats: false,
+      viewMode: 'default',
+      deltaFormat: 'percent',
+      badgeWidth: '',
+      badgeHeight: '',
+      grace: 1,
+      language: 'en',
+      timezone: 'UTC',
+    };
+
+    it('returns minimal params with default values', () => {
+      const result = buildQueryParams(defaultOptions);
+      expect(result).toBe('user=testuser&theme=dark&font=Inter');
+    });
+
+    it('applies custom theme values', () => {
+      const options = { ...defaultOptions, theme: 'light' };
+      const result = buildQueryParams(options);
+      expect(result).toBe('user=testuser&theme=light&font=Inter');
+    });
+
+    it('applies custom color overrides and omits theme', () => {
+      const options = {
+        ...defaultOptions,
+        theme: 'dark',
+        bgHex: '#ffffff',
+        accentHex: 'ff0000',
+        textHex: '#000000',
+      };
+      const result = buildQueryParams(options);
+      expect(result).toBe('user=testuser&bg=ffffff&accent=ff0000&text=000000&font=Inter');
+    });
+
+    it('forces theme parameter and ignores custom colors for virtual themes (auto/random)', () => {
+      const optionsAuto = {
+        ...defaultOptions,
+        theme: 'auto',
+        bgHex: 'ffffff',
+      };
+      const resultAuto = buildQueryParams(optionsAuto);
+      expect(resultAuto).toBe('user=testuser&theme=auto&font=Inter');
+
+      const optionsRandom = {
+        ...defaultOptions,
+        theme: 'random',
+        accentHex: 'ff0000',
+      };
+      const resultRandom = buildQueryParams(optionsRandom);
+      expect(resultRandom).toBe('user=testuser&theme=random&font=Inter');
+    });
+
+    it('handles empty username gracefully', () => {
+      const options = { ...defaultOptions, username: '   ' };
+      const result = buildQueryParams(options);
+      expect(result).toBe('theme=dark&font=Inter');
+    });
+
+    it('includes all customized options', () => {
+      const options = {
+        ...defaultOptions,
+        scale: 'log' as const,
+        speed: '4s',
+        font: 'fira' as const,
+        year: '2023',
+        radius: 12,
+        size: 'large' as const,
+        hideTitle: true,
+        hideBackground: true,
+        hideStats: true,
+        viewMode: 'monthly' as const,
+        deltaFormat: 'absolute' as const,
+        badgeWidth: 600,
+        badgeHeight: 400,
+        grace: 2,
+        language: 'es' as const,
+        timezone: 'America/New_York' as const,
+      };
+      const result = buildQueryParams(options);
+      expect(result).toBe(
+        'user=testuser&theme=dark&scale=log&speed=4s&font=fira&year=2023&radius=12&size=large&hide_title=true&hide_background=true&hide_stats=true&view=monthly&delta_format=absolute&width=600&height=400&grace=2&lang=es&tz=America%2FNew_York'
+      );
     });
   });
 });

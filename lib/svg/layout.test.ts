@@ -1,6 +1,13 @@
 import { describe, it, expect } from 'vitest';
-import { computeTowers } from './layout';
+import { computeTowers, computeFaceOpacity, computeTowerHeight } from './layout';
 import type { ContributionCalendar } from '../../types';
+import {
+  GHOST_HEIGHT_PX,
+  LOG_SCALE_MULTIPLIER,
+  LINEAR_SCALE_MULTIPLIER,
+  MAX_LOG_HEIGHT,
+  MAX_LINEAR_HEIGHT,
+} from './layoutConstants';
 
 describe('computeTowers edge cases', () => {
   it('adds TODAY prefix for today tower with commits', () => {
@@ -11,6 +18,17 @@ describe('computeTowers edge cases', () => {
     const towers = computeTowers(calendar, 'linear', '2024-06-12');
     expect(towers[0].tooltip).toContain('TODAY:');
     expect(towers[0].isTodayWithCommits).toBe(true);
+  });
+
+  it('adds TODAY prefix for today tower without commits', () => {
+    const calendar = {
+      totalContributions: 0,
+      weeks: [{ contributionDays: [{ contributionCount: 0, date: '2024-06-12' }] }],
+    } as unknown as ContributionCalendar;
+    const towers = computeTowers(calendar, 'linear', '2024-06-12');
+    expect(towers[0].tooltip).toContain('TODAY:');
+    expect(towers[0].isToday).toBe(true);
+    expect(towers[0].isTodayWithCommits).toBe(false);
   });
 
   it('does not add TODAY prefix for non-today tower', () => {
@@ -98,7 +116,7 @@ describe('computeTowers edge cases', () => {
     } as unknown as ContributionCalendar;
     const towers = computeTowers(calendar, 'linear', '2024-06-10');
     expect(towers[0].isGhost).toBe(true);
-    expect(towers[0].h).toBe(4); // GHOST_HEIGHT_PX
+    expect(towers[0].h).toBe(GHOST_HEIGHT_PX); // GHOST_HEIGHT_PX
     expect(towers[0].strokeOpacity).toBe(0.3);
     expect(towers[0].strokeWidth).toBe(0.5);
     expect(towers[0].faceOpacity.top).toBe(0.08);
@@ -126,7 +144,7 @@ describe('computeTowers edge cases', () => {
 
     towers.forEach((tower) => {
       expect(tower.isGhost).toBe(true);
-      expect(tower.h).toBe(4); // GHOST_HEIGHT_PX
+      expect(tower.h).toBe(GHOST_HEIGHT_PX); // GHOST_HEIGHT_PX
       expect(tower.faceOpacity.top).toBe(0.08);
     });
   });
@@ -194,6 +212,8 @@ describe('computeTowers edge cases', () => {
     expect(testTower.contributionCount).toBe(60);
     // Assert h > 0 (not ghost despite 0 normal contributions)
     expect(testTower.h).toBeGreaterThan(0);
+    // Assert intensityLevel is calculated correctly based on lines of code (60/60 = 100%, so intensity 4)
+    expect(testTower.intensityLevel).toBe(4);
   });
 });
 
@@ -228,4 +248,68 @@ it('assigns correct row and col values based on week/day position', () => {
 
   expect(towers[3].row).toBe(1);
   expect(towers[3].col).toBe(0);
+});
+
+describe('computeFaceOpacity', () => {
+  it('returns ghost opacity in ghost city mode', () => {
+    expect(computeFaceOpacity(10, true)).toEqual({
+      left: 0,
+      right: 0,
+      top: 0.08,
+    });
+  });
+
+  it('returns ghost opacity for zero contributions', () => {
+    expect(computeFaceOpacity(0, false)).toEqual({
+      left: 0,
+      right: 0,
+      top: 0.08,
+    });
+  });
+
+  it('returns active opacity for low contribution count', () => {
+    expect(computeFaceOpacity(1, false)).toEqual({
+      left: 0.35,
+      right: 0.21,
+      top: 0.7,
+    });
+  });
+
+  it('returns active opacity for high contribution count', () => {
+    expect(computeFaceOpacity(999, false)).toEqual({
+      left: 0.35,
+      right: 0.21,
+      top: 0.7,
+    });
+  });
+});
+
+describe('computeTowerHeight', () => {
+  it('returns ghost height when ghost city mode is enabled', () => {
+    expect(computeTowerHeight(0, 'linear', true)).toBe(GHOST_HEIGHT_PX);
+  });
+
+  it('returns zero height when count is zero and ghost city mode is disabled', () => {
+    expect(computeTowerHeight(0, 'linear', false)).toBe(0);
+  });
+
+  it('computes linear scale height correctly', () => {
+    const expected = Math.min(5 * LINEAR_SCALE_MULTIPLIER, MAX_LINEAR_HEIGHT);
+
+    expect(computeTowerHeight(5, 'linear', false)).toBe(expected);
+  });
+
+  it('caps linear scale height at maximum', () => {
+    expect(computeTowerHeight(9999, 'linear', false)).toBe(MAX_LINEAR_HEIGHT);
+  });
+
+  it('computes logarithmic scale height correctly', () => {
+    const expected = Math.min(Math.log2(8 + 1) * LOG_SCALE_MULTIPLIER, MAX_LOG_HEIGHT);
+
+    expect(computeTowerHeight(8, 'log', false)).toBeCloseTo(expected);
+  });
+
+  it('caps logarithmic scale height at maximum', () => {
+    expect(computeTowerHeight(999999, 'log', false)).toBe(MAX_LOG_HEIGHT);
+  });
 });

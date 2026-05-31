@@ -25,6 +25,7 @@ export interface TowerData {
   isToday: boolean;
   isTodayWithCommits: boolean;
   tooltip: string;
+  date: string;
   contributionCount: number;
   faceOpacity: FaceOpacity;
   strokeOpacity: number;
@@ -35,7 +36,7 @@ export interface TowerData {
   intensityLevel: number; // Quartile level (0 for no commits, 1 to 4 based on contribution intensity)
 }
 
-function computeTowerHeight(
+export function computeTowerHeight(
   count: number,
   scale: 'linear' | 'log',
   shouldShowGhostCity: boolean
@@ -47,7 +48,7 @@ function computeTowerHeight(
     : Math.min(count * LINEAR_SCALE_MULTIPLIER, MAX_LINEAR_HEIGHT);
 }
 
-function computeFaceOpacity(count: number, isGhostCityMode: boolean): FaceOpacity {
+export function computeFaceOpacity(count: number, isGhostCityMode: boolean): FaceOpacity {
   if (isGhostCityMode) {
     return { left: 0, right: 0, top: 0.08 };
   }
@@ -67,7 +68,7 @@ function computeFaceOpacity(count: number, isGhostCityMode: boolean): FaceOpacit
 export function projectIsometric(weekIndex: number, dayIndex: number): { x: number; y: number } {
   return {
     x: 300 + (weekIndex - dayIndex) * 16,
-    y: 120 + (weekIndex + dayIndex) * 9,
+    y: 120 + (weekIndex + dayIndex) * 10,
   };
 }
 
@@ -118,7 +119,7 @@ export function computeTowers(
       const isTodayWithCommits = isToday && hasCommits;
 
       const unit = mode === 'loc' ? 'lines of code' : 'contributions';
-      const tooltip = isTodayWithCommits
+      const tooltip = isToday
         ? `TODAY: ${day.date}: ${count} ${unit}`
         : `${day.date}: ${count} ${unit}`;
 
@@ -127,9 +128,9 @@ export function computeTowers(
       let intensityLevel = 0;
       if (hasCommits) {
         if (maxCommits <= 4) {
-          intensityLevel = Math.min(4, day.contributionCount);
+          intensityLevel = Math.min(4, count);
         } else {
-          const ratio = day.contributionCount / maxCommits;
+          const ratio = count / maxCommits;
           if (ratio <= 0.25) intensityLevel = 1;
           else if (ratio <= 0.5) intensityLevel = 2;
           else if (ratio <= 0.75) intensityLevel = 3;
@@ -146,6 +147,7 @@ export function computeTowers(
         isToday,
         isTodayWithCommits,
         tooltip,
+        date: day.date,
         contributionCount: count,
         faceOpacity: computeFaceOpacity(count, shouldShowGhostCity),
         strokeOpacity: isGhost ? 0.3 : 0,

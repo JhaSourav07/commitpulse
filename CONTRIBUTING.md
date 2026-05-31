@@ -9,6 +9,7 @@
 
 - [The Standard We Hold](#-the-standard-we-hold)
 - [Local Setup](#-local-setup)
+- [Testing & Previewing Your Changes](#-testing--previewing-your-changes)
 - [What to Contribute](#-what-to-contribute)
 - [Automated Issue Management & Claiming](#-automated-issue-management--claiming)
 - [Branch & Commit Conventions](#-branch--commit-conventions)
@@ -85,6 +86,200 @@ http://localhost:3000/api/streak?user=YOUR_GITHUB_USERNAME
 ```
 
 > **⚠️ Important:** Never commit your `.env.local` file or expose your `GITHUB_TOKEN`. It is already in `.gitignore`.
+
+---
+
+## 🧪 Testing & Previewing Your Changes
+
+Before opening a PR, every contributor is expected to verify their changes locally across three areas: **visual SVG output**, **unit tests**, and **branch coverage**. This section explains how to do all three.
+
+### 1. Visual Browser Preview
+
+With your dev server running (`npm run dev`), open your browser and visit these URLs to preview the SVG output directly — **open them as raw URLs, not embedded in an `<img>` tag or Markdown preview**:
+
+**Standard badge — valid username:**
+
+```
+http://localhost:3000/api/streak?user=YOUR_GITHUB_USERNAME
+```
+
+**Monthly view:**
+
+```
+http://localhost:3000/api/streak?user=YOUR_GITHUB_USERNAME&view=monthly
+```
+
+**Custom theme — test your color changes:**
+
+```
+http://localhost:3000/api/streak?user=YOUR_GITHUB_USERNAME&theme=YOUR_THEME_NAME
+```
+
+**Invalid username — must render a styled SVG error card, not raw JSON:**
+
+```
+http://localhost:3000/api/streak?user=vivek%20Sangani
+```
+
+**Non-existent username — must render the ghost-city not-found badge:**
+
+```
+http://localhost:3000/api/streak?user=xyzabc999notreallll
+```
+
+**Useful DevTools tricks:**
+
+- **Inspect SVG structure:** Open DevTools (`Cmd+Option+I` / `F12`) → Elements panel → expand the `<svg>` node to inspect every path, rect, and text element
+- **Force a fresh fetch:** Add `&refresh=true` to bypass the cache: `http://localhost:3000/api/streak?user=YOUR_GITHUB_USERNAME&refresh=true`
+- **Test different params live:** `?theme=obsidian`, `?size=large`, `?grace=2`, `?autoTheme=true`
+
+> **⚠️ Browser XML error warning:** If your browser shows an `EntityRef: expecting ';'` error instead of rendering the SVG, it means an unescaped `&` character exists somewhere in the SVG output. All `&` characters inside SVG `<style>` blocks (e.g. in Google Fonts `@import` URLs) must be written as `&amp;`. Check `lib/svg/generator.ts` for any raw `&` in template literals.
+
+> **💡 Tip:** For a cleaner SVG preview, open the URL in **Firefox** — it renders SVG directly in the browser with no wrapper page. Chrome wraps it in an XML viewer which can show false parse warnings.
+
+### 2. Offline SVG Inspection with SVG Viewer
+
+When you cannot run a dev server — or you want to inspect the raw SVG geometry in isolation — use **[SVG Viewer](https://www.svgviewer.dev/)**.
+
+**Step-by-step:**
+
+1. With the dev server running, open the badge URL in your browser
+2. Right-click anywhere on the page → **View Page Source** (`Cmd+U` / `Ctrl+U`)
+3. Select all (`Cmd+A`) → Copy (`Cmd+C`)
+4. Go to [https://www.svgviewer.dev/](https://www.svgviewer.dev/)
+5. Paste the SVG source into the left panel — the right panel renders it instantly
+
+**What to check in SVG Viewer:**
+
+- Tower geometry is correctly positioned on the isometric grid
+- No overlapping paths or misaligned elements
+- Text labels are readable and not clipped by the SVG boundary
+- Glow filter (`<feGaussianBlur>`) renders at the correct intensity
+- The `<title>` accessibility tag is present on every tower group (required by CONTRIBUTING.md a11y rules)
+
+### 3. Running the Vitest Test Suite
+
+CommitPulse uses **Vitest** for unit and integration tests. Run the full test suite with:
+
+```bash
+# Run all tests once (use before committing)
+npm run test
+
+# Re-run automatically on every file save (use during active development)
+npm run test -- --watch
+
+# Run only a specific test file in isolation (fastest way to debug a failure)
+npm run test -- lib/calculate.test.ts
+
+# Run only tests whose name matches a pattern
+npm run test -- --reporter=verbose -t "generateVersusSVG"
+```
+
+**What a passing run looks like:**
+
+```
+✓ lib/calculate.test.ts (43 tests)
+✓ lib/svg/generator.test.ts (19 tests)
+✓ app/api/streak/route.test.ts (112 tests)
+
+Test Files  70 passed (70)
+Tests  819 passed (819)
+```
+
+> **🚨 All tests must pass before you open a PR.** The CI pipeline runs `npm run test` automatically on every pull request and will block merging if any test fails.
+
+### 4. Interpreting Vitest Output
+
+Vitest output can look intimidating at first. Here is how to read it:
+
+```
+FAIL  lib/svg/generator.test.ts
+
+AssertionError: expected '<svg width="600"…' to include 'width="100%"'
+
+- Expected: width="100%"
++ Received: width="600"
+```
+
+| Part of output                       | What it means                                                     |
+| ------------------------------------ | ----------------------------------------------------------------- |
+| `FAIL lib/svg/generator.test.ts`     | The test file that contains the failing test                      |
+| `AssertionError`                     | The `expect()` assertion did not match                            |
+| `- Expected`                         | What the test wanted to see in your output                        |
+| `+ Received`                         | What your code actually produced                                  |
+| `stderr \| …`                        | Expected console output from error-handling tests — **not a bug** |
+| `✓ lib/calculate.test.ts (43 tests)` | This file passed — all good                                       |
+
+**Interpreting SVG URL responses in the browser:**
+
+| What you see                                 | What it means                                              |
+| -------------------------------------------- | ---------------------------------------------------------- |
+| Animated isometric city renders correctly    | ✅ Everything is working                                   |
+| Ghost-city badge with "NOT FOUND" label      | ✅ Working — the username doesn't exist on GitHub          |
+| Styled error card with "Invalid username"    | ✅ Working — the username format was invalid               |
+| Raw JSON `{"error":"Invalid parameters"...}` | ❌ Bug — validation errors must return SVG, not JSON       |
+| Browser XML parse error / blank white page   | ❌ Bug — unescaped `&` or malformed SVG in generator       |
+| `401 Unauthorized` in the terminal           | ❌ Your `GITHUB_PAT` in `.env.local` is missing or invalid |
+
+### 5. Checking Branch Coverage Before Pushing
+
+The CI pipeline enforces a **minimum 70% branch coverage** across all `lib/` files. If your PR drops coverage below this threshold, it will be **blocked from merging automatically** — no exceptions.
+
+Always run the coverage report locally before pushing:
+
+```bash
+npm run test:coverage
+```
+
+The output shows a table like this:
+
+```
+File               | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s
+-------------------|---------|----------|---------|---------|------------------
+lib/svg/generator  |   72.22 |   49.73  |  72.22  |  72.72  | 823-885,1116,1136
+lib/calculate      |   99.00 |   93.54  | 100.00  |  98.92  | 167
+```
+
+**What each column means:**
+
+| Column              | CI Gate   | What it measures                                                           |
+| ------------------- | --------- | -------------------------------------------------------------------------- |
+| `% Branch`          | **≥ 70%** | Every `if/else`, ternary, `??`, and `&&` path covered by at least one test |
+| `% Funcs`           | ≥ 70%     | Every exported function called at least once in tests                      |
+| `% Stmts`           | ≥ 70%     | Every statement executed at least once                                     |
+| `Uncovered Line #s` | —         | Exact lines with no test coverage — start here when fixing gaps            |
+
+**The most important file:** `lib/svg/generator.ts` has the most complex branch logic (auto-theme vs static, size scaling, particle generation, ghost city mode, versus mode). If you add any new `if/else` or ternary logic here, you **must** add tests that exercise both branches — otherwise coverage will drop and block your PR.
+
+**If coverage drops below 70%:**
+
+1. Look at the `Uncovered Line #s` column for the failing file
+2. Open the file and find those exact lines
+3. Identify which branch condition is untested (the `if` path? the `else`? a ternary fallback?)
+4. Add a test that reaches that code path
+5. Re-run `npm run test:coverage` and confirm the percentage recovered
+
+> **Tip:** The coverage report is also generated as an HTML file. Open it in your browser for a visual, line-by-line view of exactly which branches are hit (green) and which are missed (red):
+
+```bash
+open coverage/index.html      # macOS
+xdg-open coverage/index.html  # Linux
+start coverage/index.html     # Windows
+```
+
+### 6. Lint and Format
+
+Run these before every commit:
+
+```bash
+# Auto-format all files to match the project's Prettier config
+npm run format
+
+# Check for any remaining linting errors
+npm run lint
+```
+
+Fix every error before pushing. CI will fail if either check reports issues.
 
 ---
 
@@ -233,6 +428,7 @@ Our automation runs entirely through issue comments. Here is how you interact wi
 | Command                       | Who Can Use It?                                         | What It Does                                              |
 | ----------------------------- | ------------------------------------------------------- | --------------------------------------------------------- |
 | `/claim`                      | **Issue Author (or Anyone if authored by jhasourav07)** | Self-assigns the issue to you.                            |
+| `/unclaim`                    | **Assigned Contributor**                                | Removes the assignment from yourself (opens it back up).  |
 | `/addlabel <label1> <label2>` | **Anyone**                                              | Adds labels to the issue (e.g. `/addlabel frontend bug`). |
 | `/unassign @username`         | **Maintainers Only**                                    | Removes the assignee from an issue.                       |
 | `/assign @username`           | **Maintainers Only**                                    | Manually assigns someone to an issue.                     |
@@ -258,7 +454,7 @@ To keep the project moving, assignments are not permanent.
 If the bot rejects your command, check these common scenarios:
 
 - **"Commands cannot be used on closed issues"**: You cannot claim, assign, or unassign on closed issues. Find an open one!
-- **"You already have X/3 active assigned issues"**: You have reached the maximum of 3 concurrent assignments. Finish one of your current tasks before claiming a new issue. If you're stuck, ask a maintainer to `/unassign` you from one.
+- **"You already have X/3 active assigned issues"**: You have reached the maximum of 3 concurrent assignments. Finish one of your current tasks before claiming a new issue. If you're stuck, use the `/unclaim` command to unassign yourself from an issue, or ask a maintainer to `/unassign` you.
 - **"This issue is already assigned to @username"**: Be faster next time! Look for issues without assignees.
 - **"Only the author of this issue can claim it"**: You tried to `/claim` an issue you did not create. You can only claim issues that you authored (unless the issue was authored by `jhasourav07`, which anyone can claim).
 - **"The following label(s) do not exist"**: You can only add existing repo labels. The bot will reply with a list of valid labels you can use.
@@ -280,6 +476,7 @@ Use the following format: `type/short-description`
 | Timezone work   | `fix/utc-midnight-edge-case` |
 | Documentation   | `docs/readme-update`         |
 | Refactor        | `refactor/generator-cleanup` |
+| Testing         | `test/generator-coverage`    |
 
 ### Commit Messages
 
@@ -293,6 +490,7 @@ feat(themes): add aurora preset with teal-pink palette
 fix(calculate): handle grace period when today has zero contributions
 docs(readme): add aurora theme to parameter table
 refactor(generator): extract tower path builder into helper function
+test(generator): add Vitest coverage for generateVersusSVG
 ```
 
 **Types:** `feat`, `fix`, `docs`, `refactor`, `chore`, `test`
@@ -327,6 +525,8 @@ Fixes # (issue number)
 - [ ] I have read the `CONTRIBUTING.md` file.
 - [ ] I have tested these changes locally (`localhost:3000/api/streak?user=YOUR_USERNAME`).
 - [ ] I have run `npm run format` and `npm run lint` locally and resolved all errors (CI will fail otherwise).
+- [ ] I have run `npm run test` and all tests pass locally.
+- [ ] I have run `npm run test:coverage` and branch coverage is at or above 70%.
 - [ ] My commits follow the Conventional Commits format (e.g., `feat(themes): ...`, `fix(calculate): ...`).
 - [ ] I have updated `README.md` if I added a new theme or URL parameter.
 - [ ] I have started the repo.
@@ -358,9 +558,28 @@ npm run lint
 
 # 3. Ensure all tests pass
 npm run test
+
+# 4. Verify branch coverage stays at or above 70%
+npm run test:coverage
 ```
 
 Fix every error before pushing. If you add new logic or features, you are expected to write tests for them.
+
+### Coverage Threshold
+
+The CI pipeline enforces a **minimum 70% branch coverage** across all measured files. This is not optional — PRs that drop coverage below this threshold are automatically blocked from merging.
+
+The threshold exists because branch coverage (covering every `if/else`, ternary, and `??` path) is the most reliable indicator that edge cases are tested. Statement coverage alone is not enough.
+
+**Files most likely to affect the gate:**
+
+| File                      | Why it matters                                                             |
+| ------------------------- | -------------------------------------------------------------------------- |
+| `lib/svg/generator.ts`    | Most complex branching — auto-theme, size scaling, ghost city, versus mode |
+| `lib/calculate.ts`        | Streak logic — grace period, timezone edge cases, empty calendars          |
+| `app/api/streak/route.ts` | Request handling — validation, rate limit, not-found, error paths          |
+
+If you add a new `if/else`, ternary, or optional-chain (`?.`) anywhere in `lib/`, you must add a test covering both the truthy and falsy paths before pushing.
 
 ### Testing Guidelines
 
@@ -373,7 +592,7 @@ We use **Vitest** alongside **React Testing Library** for our test suite.
 - **Humanic Comments:** Comments in test files should explain _why_ a test exists or what specific edge-case it covers, rather than just repeating what the code does line-by-line.
 
 > **🚨 GitHub Actions CI Gate**
-> Our CI pipeline runs `npm run lint`, `npm run format --check`, and `npm run test` automatically on **every pull request**. If your code fails any check, **the PR will be blocked from merging** until the issues are resolved. There is no way to bypass this gate — so run the commands locally first and save yourself the round-trip.
+> Our CI pipeline runs `npm run lint`, `npm run format --check`, `npm run test`, and `npm run test:coverage` automatically on **every pull request**. If your code fails any check, **the PR will be blocked from merging** until the issues are resolved. There is no way to bypass this gate — so run the commands locally first and save yourself the round-trip.
 
 **Key style rules:**
 

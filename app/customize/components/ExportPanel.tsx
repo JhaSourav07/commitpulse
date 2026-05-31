@@ -108,6 +108,8 @@ export function ExportPanel({
           </p>
           <p className="text-[11px] leading-relaxed text-white/30">
             Switch formats without changing the badge configuration.
+          <p className="mt-1 text-[11px] text-gray-500 dark:text-white/60">
+            Switch formats without changing the live badge configuration.
           </p>
         </div>
 
@@ -137,6 +139,13 @@ export function ExportPanel({
                       }
                     : { color: 'rgba(255,255,255,0.38)', border: '1px solid transparent' }
                 }
+                onClick={() => onFormatChange(option.value)}
+                aria-pressed={format === option.value}
+                className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
+                  format === option.value
+                    ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 shadow-[0_0_24px_rgba(16,185,129,0.16)]'
+                    : 'text-gray-600 hover:text-black bg-gray-100/70 dark:bg-transparent dark:text-white/60 dark:hover:text-white'
+                }`}
               >
                 {opt.label}
               </button>
@@ -175,6 +184,19 @@ export function ExportPanel({
                 b.style.color = 'rgba(255,255,255,0.55)';
               }
             }}
+            disabled={!hasUsername || isDownloading || format === 'action'}
+            aria-label={
+              !hasUsername
+                ? 'Add a GitHub username to enable image downloads'
+                : format === 'action'
+                  ? 'Download is not available in GitHub Action mode'
+                  : 'Download custom monolith layout as an image'
+            }
+            className={`relative inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 ${
+              !hasUsername || isDownloading || format === 'action'
+                ? 'bg-gray-200/90 border border-black/10 text-gray-500 cursor-not-allowed dark:bg-white/10 dark:border-white/10 dark:text-white/35'
+                : 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-500 hover:bg-emerald-500/20 hover:scale-[1.03] active:scale-[0.97]'
+            }`}
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -198,6 +220,11 @@ export function ExportPanel({
               )}
             </svg>
             {isDownloading ? 'Downloading…' : 'Download SVG'}
+            {format === 'action'
+              ? 'Download Not Available'
+              : isDownloading
+                ? 'Downloading...'
+                : 'Download Badge'}
           </button>
 
           {/* Copy — primary CTA */}
@@ -211,6 +238,7 @@ export function ExportPanel({
             style={
               !hasUsername
                 ? disabledStyle
+                ? 'bg-gray-200/90 border border-black/10 text-gray-500 cursor-not-allowed dark:bg-white/10 dark:border-white/10 dark:text-white/60'
                 : copied
                   ? {
                       background: 'rgba(16,185,129,0.2)',
@@ -320,18 +348,19 @@ export function ExportPanel({
 
       {/* ── Footer ──────────────────────────────────────────────────────── */}
       <div className="mt-4 text-[11px] text-gray-500 dark:text-white/20 leading-relaxed space-y-3 px-5 py-3">
+      <div className="mt-4 text-[11px] text-gray-500 dark:text-white/60 leading-relaxed space-y-3">
         {format === 'action' ? (
           <>
             <p>
               <strong>Step 1:</strong> Save the workflow snippet above as{' '}
-              <code className="text-gray-700 dark:text-white/35">
+              <code className="text-gray-700 dark:text-white/75">
                 .github/workflows/commitpulse.yml
               </code>{' '}
               to automatically fetch and commit your customized badge.
             </p>
             <p>
               <strong>Step 2:</strong> Embed the generated SVG into your{' '}
-              <code className="text-gray-700 dark:text-white/35">README.md</code> using the markdown
+              <code className="text-gray-700 dark:text-white/75">README.md</code> using the markdown
               below:
             </p>
             <div className="mt-2 bg-gray-100/80 dark:bg-white/[0.03] border border-black/10 dark:border-white/10 rounded-lg px-3 py-2 flex items-center justify-between group">
@@ -366,7 +395,7 @@ export function ExportPanel({
         ) : (
           <p>
             Paste this into your GitHub profile&apos;s{' '}
-            <code className="text-gray-700 dark:text-white/35">README.md</code>. The badge renders
+            <code className="text-gray-700 dark:text-white/75">README.md</code>. The badge renders
             server-side, no script required.
           </p>
         )}

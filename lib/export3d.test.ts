@@ -15,6 +15,7 @@ describe('generateMonolithSTL', () => {
         isToday: false,
         isTodayWithCommits: false,
         tooltip: '',
+        date: '',
         contributionCount: 5,
         faceOpacity: { left: 1, right: 1, top: 1 },
         strokeOpacity: 1,
@@ -32,6 +33,7 @@ describe('generateMonolithSTL', () => {
         isToday: false,
         isTodayWithCommits: false,
         tooltip: '',
+        date: '',
         contributionCount: 0,
         faceOpacity: { left: 1, right: 1, top: 1 },
         strokeOpacity: 1,
@@ -63,6 +65,7 @@ it('generates structurally valid ASCII STL facets', () => {
       isToday: false,
       isTodayWithCommits: false,
       tooltip: '',
+      date: '',
       contributionCount: 5,
       faceOpacity: { left: 1, right: 1, top: 1 },
       strokeOpacity: 1,
@@ -99,4 +102,36 @@ it('always includes a base plate even with no tower data', () => {
   expect(stl).toContain('solid commitpulse_monolith');
   expect(stl).toContain('endsolid commitpulse_monolith');
   expect(stl).toContain('facet normal');
+});
+it('skips ghost towers (h=0) while still generating the base plate', () => {
+  const ghostTowers: TowerData[] = [
+    {
+      x: 0,
+      y: 0,
+      h: 0,
+      hasCommits: false,
+      isGhost: true,
+      isToday: false,
+      isTodayWithCommits: false,
+      tooltip: '',
+      date: '',
+      contributionCount: 0,
+      faceOpacity: { left: 1, right: 1, top: 1 },
+      strokeOpacity: 1,
+      strokeWidth: 1,
+      row: 0,
+      col: 0,
+      intensityLevel: 0,
+    },
+  ];
+
+  const stl = generateMonolithSTL(ghostTowers);
+
+  expect(stl).toContain('solid commitpulse_monolith');
+  expect(stl).toContain('endsolid commitpulse_monolith');
+
+  const facetCount = (stl.match(/facet normal/g) ?? []).length;
+
+  // Base plate only = 12 facets
+  expect(facetCount).toBe(12);
 });

@@ -90,6 +90,7 @@ describe('ComparisonStatsCard', () => {
 
     expect(screen.queryByText('Winner')).toBeNull();
   });
+
   it('renders neutral fallback progress bar when both values are zero', () => {
     const { container } = render(
       <ComparisonStatsCard
@@ -103,7 +104,6 @@ describe('ComparisonStatsCard', () => {
     );
 
     const fallbackBar = container.querySelector('.bg-gray-700\\/50');
-
     expect(fallbackBar).toBeDefined();
   });
 
@@ -143,6 +143,164 @@ describe('ComparisonStatsCard', () => {
       container.querySelector('.text-emerald-400');
 
     expect(emeraldElement).toBeNull();
+    expect(screen.queryByText('Winner')).toBeNull();
+  });
+});
+
+describe('ComparisonStatsCard responsive rendering and growth trends (Variation 3)', () => {
+  it('renders positive growth trend with winner badge for higher value', () => {
+    render(
+      <ComparisonStatsCard
+        title="Streak"
+        valueA={120}
+        valueB={40}
+        labelA="Alice"
+        labelB="Bob"
+        icon="Flame"
+      />
+    );
+    expect(screen.getByText('Winner')).toBeDefined();
+    expect(screen.getByText('120')).toBeDefined();
+    expect(screen.getByText('40')).toBeDefined();
+  });
+
+  it('renders negative growth indicator — no winner badge for lower value', () => {
+    render(
+      <ComparisonStatsCard
+        title="Streak"
+        valueA={20}
+        valueB={80}
+        labelA="Alice"
+        labelB="Bob"
+        icon="Flame"
+      />
+    );
+    const winners = screen.getAllByText('Winner');
+    expect(winners.length).toBe(1);
+    expect(screen.getByText('20').className).not.toMatch(/emerald/);
+  });
+
+  it('renders title and icon correctly', () => {
+    render(
+      <ComparisonStatsCard
+        title="Pull Requests"
+        valueA={10}
+        valueB={5}
+        labelA="Dev A"
+        labelB="Dev B"
+        icon="GitBranch"
+      />
+    );
+    expect(screen.getByText(/Pull Requests/i)).toBeDefined();
+    expect(screen.getByText('Dev A')).toBeDefined();
+    expect(screen.getByText('Dev B')).toBeDefined();
+  });
+
+  it('renders zero values without crashing', () => {
+    render(
+      <ComparisonStatsCard
+        title="Commits"
+        valueA={0}
+        valueB={0}
+        labelA="Alice"
+        labelB="Bob"
+        icon="GitCommit"
+      />
+    );
+    expect(screen.queryByText('Winner')).toBeNull();
+  });
+
+  it('renders large values correctly', () => {
+    render(
+      <ComparisonStatsCard
+        title="Total Contributions"
+        valueA={9999}
+        valueB={1}
+        labelA="Alice"
+        labelB="Bob"
+        icon="TrendingUp"
+      />
+    );
+    expect(screen.getByText('9999')).toBeDefined();
+    expect(screen.getByText('Winner')).toBeDefined();
+  });
+});
+
+describe('ComparisonStatsCard responsive breakpoints', () => {
+  it('renders expected card structure with correct HTML nodes', () => {
+    const { container } = render(
+      <ComparisonStatsCard
+        title="Developer Score"
+        valueA={85}
+        valueB={72}
+        labelA="User One"
+        labelB="User Two"
+        icon="Award"
+      />
+    );
+
+    const card = container.firstElementChild;
+    const header = container.querySelector('.flex.justify-between.items-center.mb-6');
+    const comparisonGrid = container.querySelector(
+      '.grid.grid-cols-2.gap-4.items-center.mb-6.relative'
+    );
+    const progressBar = container.querySelector('.w-full.h-2.bg-gray-100');
+    const divider = container.querySelector('.hidden.md\\:block');
+
+    expect(card?.tagName).toBe('DIV');
+    expect(header?.tagName).toBe('DIV');
+    expect(comparisonGrid?.tagName).toBe('DIV');
+    expect(progressBar?.tagName).toBe('DIV');
+    expect(divider?.tagName).toBe('DIV');
+
+    expect(screen.getByText('Winner')).toBeDefined();
+    expect(screen.getByText('85')).toBeDefined();
+    expect(screen.getByText('72')).toBeDefined();
+  });
+
+  it('renders responsive divider and preserves winner badge for higher value', () => {
+    const { container } = render(
+      <ComparisonStatsCard
+        title="Streak"
+        valueA={20}
+        valueB={80}
+        labelA="Alice"
+        labelB="Bob"
+        icon="Flame"
+      />
+    );
+
+    const divider = container.querySelector('.hidden.md\\:block');
+    expect(divider?.tagName).toBe('DIV');
+
+    const winnerBadges = screen.getAllByText('Winner');
+    expect(winnerBadges.length).toBe(1);
+    expect(screen.getByText('80').parentElement?.textContent).toContain('Winner');
+
+    expect(screen.getByText('20').className).not.toMatch(/emerald/);
+
+    expect(screen.getByTitle('Alice')).toBeDefined();
+    expect(screen.getByTitle('Bob')).toBeDefined();
+  });
+
+  it('renders neutral fallback progress bar and no winner badge when both values are zero', () => {
+    const { container } = render(
+      <ComparisonStatsCard
+        title="Commits"
+        valueA={0}
+        valueB={0}
+        labelA="Alice"
+        labelB="Bob"
+        icon="GitCommit"
+      />
+    );
+
+    const progressBar = container.querySelector('.w-full.h-2.bg-gray-100');
+    expect(progressBar?.tagName).toBe('DIV');
+
+    const fallbackBar = container.querySelector('.bg-gray-700\\/50');
+    expect(fallbackBar).toBeDefined();
+
     expect(screen.queryByText('Winner')).toBeNull();
   });
 });

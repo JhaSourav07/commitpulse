@@ -7,7 +7,7 @@ export async function POST(req: Request) {
   // Get IP for rate limiting
   const ip = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown';
 
-  if (ip !== 'unknown' && !trackUserRateLimiter.check(ip)) {
+  if (ip !== 'unknown' && !(await trackUserRateLimiter.check(ip))) {
     return NextResponse.json(
       { success: false, error: 'Too many requests, please try again later.' },
       { status: 429 }
@@ -62,7 +62,11 @@ export async function POST(req: Request) {
       // Upsert the user: create if doesn't exist, do nothing if exists
       await User.updateOne(
         { username: trimmedUsername },
-        { $setOnInsert: { username: trimmedUsername } },
+        {
+          $setOnInsert: { username: trimmedUsername },
+          $set: { lastSeen: new Date() },
+          $inc: { visitCount: 1 },
+        },
         { upsert: true }
       );
     } catch (upsertError) {

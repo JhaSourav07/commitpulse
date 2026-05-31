@@ -28,7 +28,7 @@ export const SIZES = [
 ] as const;
 
 export const FONTS = [
-  { value: '', label: 'Default' },
+  { value: 'Inter', label: 'Default' },
   { value: 'jetbrains', label: 'JetBrains Mono' },
   { value: 'fira', label: 'Fira Code' },
   { value: 'roboto', label: 'Roboto' },
@@ -64,6 +64,29 @@ export const LANGUAGES = [
 
 export type Language = (typeof LANGUAGES)[number]['value'];
 
+export interface CustomizeOptions {
+  username: string;
+  theme: string;
+  bgHex: string;
+  accentHex: string;
+  textHex: string;
+  scale: Scale;
+  speed: string;
+  font: Font;
+  year: string;
+  radius: number;
+  size: BadgeSize;
+  hideTitle: boolean;
+  hideBackground: boolean;
+  hideStats: boolean;
+  viewMode: ViewMode;
+  deltaFormat: DeltaFormat;
+  badgeWidth: number | '';
+  badgeHeight: number | '';
+  grace: number;
+  language: Language;
+  timezone: Timezone;
+}
 export const TIMEZONES = [
   { value: 'UTC', label: 'UTC (Default)' },
   { value: 'America/New_York', label: 'New York' },

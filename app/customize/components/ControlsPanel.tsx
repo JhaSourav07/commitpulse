@@ -138,6 +138,9 @@ function HexInput({
         </label>
         <div className="relative flex-1">
           <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/20 text-sm font-mono select-none pointer-events-none">
+
+        <div className="relative flex-1 flex items-center">
+          <span className="absolute left-3 text-gray-400 dark:text-white/55 text-sm select-none pointer-events-none">
             #
           </span>
           <input
@@ -148,6 +151,7 @@ function HexInput({
             placeholder={placeholder.replace(/^#/, '')}
             maxLength={6}
             className="cp-input pl-8 font-mono !text-emerald-300/80"
+            className="w-full bg-gray-100/80 backdrop-blur-md border border-black/10 dark:bg-white/[0.03] dark:border-white/10 rounded-xl pl-7 pr-4 py-2.5 text-sm font-mono text-black dark:text-emerald-300 placeholder:text-gray-400 dark:placeholder:text-white/60 outline-none focus:border-emerald-500/50 transition-colors"
           />
         </div>
       </div>
@@ -319,6 +323,20 @@ export function ControlsPanel({
       {/* ── Identity ─────────────────────────────────────────────────────── */}
       <FieldGroup>
         <ControlRow label="GitHub Username">
+          <input
+            id="username-input"
+            type="text"
+            value={username}
+            onChange={(e) => onUsernameChange(e.target.value)}
+            placeholder="jhasourav07"
+            className="w-full bg-white/60 backdrop-blur-md border border-black/10 dark:bg-black/40 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm font-mono text-black dark:text-emerald-300 placeholder:text-gray-400 dark:placeholder:text-white/60 outline-none focus:border-emerald-500/50 transition-colors"
+          />
+        </ControlRow>
+
+        <ThemeSelector theme={theme} onThemeChange={onThemeChange} />
+
+        <div className="h-px bg-black/5 dark:bg-white/5" />
+        <ControlRow label="Year">
           <div className="relative">
             <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/20 pointer-events-none">
               <svg
@@ -380,6 +398,8 @@ export function ControlsPanel({
               }}
             >
               <p className="text-[11px] text-white/35 leading-relaxed">
+            <div className="mt-2 flex flex-col gap-2">
+              <p className="text-[11px] text-gray-500 dark:text-white/60 leading-relaxed">
                 Custom colors are disabled for the{' '}
                 <span className="text-white/60 font-semibold">
                   {isAutoTheme ? 'Auto' : 'Random'}
@@ -406,6 +426,10 @@ export function ControlsPanel({
               <p className="text-[11px] text-white/25 leading-relaxed">
                 Override the theme preset with custom HEX values (without{' '}
                 <code className="text-white/40 font-mono">#</code>).
+            <>
+              <p className="text-[11px] text-gray-500 dark:text-white/60 mb-3 leading-relaxed">
+                These override the theme preset above. Enter HEX values without&nbsp;
+                <code className="text-gray-700 dark:text-white/65">#</code>.
               </p>
               <HexInput
                 id="bg-hex-input"
@@ -494,12 +518,21 @@ export function ControlsPanel({
                     (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.35)';
                   }
                 }}
+                key={currentScale}
+                id={`scale-${currentScale}-btn`}
+                onClick={() => onScaleChange(currentScale)}
+                className={`py-2.5 rounded-xl text-sm font-bold transition-all ${
+                  scale === currentScale
+                    ? 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-700 dark:text-emerald-400'
+                    : 'bg-gray-100/80 backdrop-blur-md border border-black/10 text-gray-700 dark:bg-white/[0.03] dark:border-white/8 dark:text-white/60 hover:bg-gray-200/70 hover:text-black hover:border-black/20 dark:hover:text-white/70 dark:hover:border-white/20'
+                }`}
               >
                 {s === 'linear' ? 'Linear' : 'Logarithmic'}
               </button>
             ))}
           </div>
           <p className="text-[11px] text-white/25 leading-relaxed">
+          <p className="text-[11px] text-gray-600 dark:text-white/60 mt-1.5 leading-relaxed">
             {scale === 'log'
               ? 'Compresses extreme outliers — great for power committers.'
               : 'Shows raw commit counts as tower heights.'}
@@ -524,6 +557,37 @@ export function ControlsPanel({
               </option>
             ))}
           </StyledSelect>
+          <div className="relative">
+            <StyledSelect id="font-select" value={font} onChange={(v) => onFontChange(v as Font)}>
+              {FONTS.map((fontOption) => (
+                <option key={fontOption.value} value={fontOption.value}>
+                  {fontOption.label}
+                </option>
+              ))}
+            </StyledSelect>
+          </div>
+        </ControlRow>
+
+        <ControlRow label="Border Radius">
+          <div className="relative flex items-center">
+            <div className="absolute inset-x-0 h-1 rounded-full bg-gray-300 dark:bg-white/6" />
+            <input
+              type="range"
+              min="0"
+              max="50"
+              step="1"
+              value={radius}
+              onChange={(e) => onRadiusChange(Number(e.target.value))}
+              className="w-full relative bg-transparent appearance-none outline-none slider"
+            />
+          </div>
+          <div className="flex justify-between text-sm text-gray-500 dark:text-white/55 ">
+            <span>0</span>
+            <span className="text-emerald-600 dark:text-emerald-300/60 font-mono text-[11px]">
+              {radius}
+            </span>
+            <span>50</span>
+          </div>
         </ControlRow>
 
         <ControlRow label="Badge Size">
@@ -582,6 +646,8 @@ export function ControlsPanel({
             </span>
             <svg
               className="w-3.5 h-3.5 text-white/25 transition-transform duration-200 group-open:rotate-180"
+              xmlns="http://www.w3.org/2000/svg"
+              className="w-4 h-4 text-gray-500 dark:text-white/65 transition-transform group-open:rotate-180"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -675,6 +741,37 @@ export function ControlsPanel({
               ))}
             </StyledSelect>
           </ControlRow>
+            {/* Dimensions */}
+            <div className="grid grid-cols-2 gap-4">
+              <ControlRow label="Width">
+                <input
+                  type="number"
+                  min="100"
+                  max="1200"
+                  placeholder="Auto"
+                  value={badgeWidth}
+                  onChange={(e) => {
+                    const val = e.currentTarget.valueAsNumber;
+                    onBadgeWidthChange(Number.isNaN(val) ? '' : val);
+                  }}
+                  className="w-full bg-white/60 backdrop-blur-md border border-black/10 dark:bg-black/40 dark:border-white/10 rounded-xl px-3 py-2 text-sm font-mono text-black dark:text-emerald-300 placeholder:text-gray-400 dark:placeholder:text-white/60 outline-none focus:border-emerald-500/50 transition-colors"
+                />
+              </ControlRow>
+              <ControlRow label="Height">
+                <input
+                  type="number"
+                  min="80"
+                  max="800"
+                  placeholder="Auto"
+                  value={badgeHeight}
+                  onChange={(e) => {
+                    const val = e.currentTarget.valueAsNumber;
+                    onBadgeHeightChange(Number.isNaN(val) ? '' : val);
+                  }}
+                  className="w-full bg-white/60 backdrop-blur-md border border-black/10 dark:bg-black/40 dark:border-white/10 rounded-xl px-3 py-2 text-sm font-mono text-black dark:text-emerald-300 placeholder:text-gray-400 dark:placeholder:text-white/60 outline-none focus:border-emerald-500/50 transition-colors"
+                />
+              </ControlRow>
+            </div>
 
           <SectionDivider />
 
@@ -692,6 +789,27 @@ export function ControlsPanel({
                 }}
                 className="cp-input font-mono"
               />
+            {/* Grace and Localization */}
+            <ControlRow label="Grace Days">
+              <div className="relative flex items-center">
+                <div className="absolute inset-x-0 h-1 rounded-full bg-gray-300 dark:bg-white/6" />
+                <input
+                  type="range"
+                  min="0"
+                  max="7"
+                  step="1"
+                  value={grace}
+                  onChange={(e) => onGraceChange(Number(e.target.value))}
+                  className="w-full relative bg-transparent appearance-none outline-none slider"
+                />
+              </div>
+              <div className="flex justify-between text-sm text-gray-500 dark:text-white/55">
+                <span>0</span>
+                <span className="text-emerald-600 dark:text-emerald-300/60 font-mono text-[11px]">
+                  {grace}
+                </span>
+                <span>7</span>
+              </div>
             </ControlRow>
             <ControlRow label="Height (px)">
               <input
