@@ -1,20 +1,5 @@
 import type { ReactElement, ReactNode } from 'react';
-import {
-  FONTS,
-  SIZES,
-  SPEEDS,
-  LANGUAGES,
-  TIMEZONES,
-  VIEW_MODES,
-  DELTA_FORMATS,
-  type BadgeSize,
-  type Font,
-  type Scale,
-  type ViewMode,
-  type DeltaFormat,
-  type Language,
-  type Timezone,
-} from '../types';
+import { FONTS, SIZES, SPEEDS, type BadgeSize, type Font, type Scale } from '../types';
 import { isValidHex, stripHash } from '../utils';
 import { SectionLabel } from './SectionLabel';
 import { StyledSelect, ThemeSelector } from './ThemeSelector';
@@ -74,7 +59,7 @@ function HexInput({
         </label>
 
         <div className="relative flex-1 flex items-center">
-          <span className="absolute left-3 text-gray-400 dark:text-white/30 text-sm select-none pointer-events-none">
+          <span className="absolute left-3 text-gray-400 dark:text-white/55 text-sm select-none pointer-events-none">
             #
           </span>
           <input
@@ -84,7 +69,7 @@ function HexInput({
             onChange={(e) => onChange(e.target.value.replace(/^#/, ''))}
             placeholder={placeholder.replace(/^#/, '')}
             maxLength={6}
-            className="w-full bg-gray-100/80 backdrop-blur-md border border-black/10 dark:bg-white/[0.03] dark:border-white/10 rounded-xl pl-7 pr-4 py-2.5 text-sm font-mono text-black dark:text-emerald-300 placeholder:text-gray-400 dark:placeholder:text-white/20 outline-none focus:border-emerald-500/50 transition-colors"
+            className="w-full bg-gray-100/80 backdrop-blur-md border border-black/10 dark:bg-white/[0.03] dark:border-white/10 rounded-xl pl-7 pr-4 py-2.5 text-sm font-mono text-black dark:text-emerald-300 placeholder:text-gray-400 dark:placeholder:text-white/60 outline-none focus:border-emerald-500/50 transition-colors"
           />
         </div>
       </div>
@@ -116,26 +101,6 @@ export function ControlsPanel({
   onSizeChange,
   onClearOverrides,
   onRadiusChange,
-  hideTitle,
-  hideBackground,
-  hideStats,
-  viewMode,
-  deltaFormat,
-  badgeWidth,
-  badgeHeight,
-  grace,
-  language,
-  timezone,
-  onHideTitleChange,
-  onHideBackgroundChange,
-  onHideStatsChange,
-  onViewModeChange,
-  onDeltaFormatChange,
-  onBadgeWidthChange,
-  onBadgeHeightChange,
-  onGraceChange,
-  onLanguageChange,
-  onTimezoneChange,
 }: {
   username: string;
   theme: string;
@@ -160,26 +125,6 @@ export function ControlsPanel({
   onSizeChange: (value: BadgeSize) => void;
   onClearOverrides: () => void;
   onRadiusChange: (value: number) => void;
-  hideTitle: boolean;
-  hideBackground: boolean;
-  hideStats: boolean;
-  viewMode: ViewMode;
-  deltaFormat: DeltaFormat;
-  badgeWidth: number | '';
-  badgeHeight: number | '';
-  grace: number;
-  language: Language;
-  timezone: Timezone;
-  onHideTitleChange: (value: boolean) => void;
-  onHideBackgroundChange: (value: boolean) => void;
-  onHideStatsChange: (value: boolean) => void;
-  onViewModeChange: (value: ViewMode) => void;
-  onDeltaFormatChange: (value: DeltaFormat) => void;
-  onBadgeWidthChange: (value: number | '') => void;
-  onBadgeHeightChange: (value: number | '') => void;
-  onGraceChange: (value: number) => void;
-  onLanguageChange: (value: Language) => void;
-  onTimezoneChange: (value: Timezone) => void;
 }): ReactElement {
   const hasOverrides = Boolean(bgHex || accentHex || textHex);
   const currentYear = new Date().getFullYear();
@@ -201,7 +146,7 @@ export function ControlsPanel({
             value={username}
             onChange={(e) => onUsernameChange(e.target.value)}
             placeholder="jhasourav07"
-            className="w-full bg-white/60 backdrop-blur-md border border-black/10 dark:bg-black/40 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm font-mono text-black dark:text-emerald-300 placeholder:text-gray-400 dark:placeholder:text-white/20 outline-none focus:border-emerald-500/50 transition-colors"
+            className="w-full bg-white/60 backdrop-blur-md border border-black/10 dark:bg-black/40 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm font-mono text-black dark:text-emerald-300 placeholder:text-gray-400 dark:placeholder:text-white/60 outline-none focus:border-emerald-500/50 transition-colors"
           />
         </ControlRow>
 
@@ -234,7 +179,7 @@ export function ControlsPanel({
           <SectionLabel>Custom Color Overrides</SectionLabel>
           {disablesCustomColors ? (
             <div className="mt-2 flex flex-col gap-2">
-              <p className="text-[11px] text-gray-500 dark:text-white/30 leading-relaxed">
+              <p className="text-[11px] text-gray-500 dark:text-white/60 leading-relaxed">
                 Custom colors are disabled for the{' '}
                 <strong className="text-gray-700 dark:text-white/50">
                   {isAutoTheme ? 'Auto' : 'Random'}
@@ -252,9 +197,9 @@ export function ControlsPanel({
             </div>
           ) : (
             <>
-              <p className="text-[11px] text-gray-500 dark:text-white/25 mb-3 leading-relaxed">
+              <p className="text-[11px] text-gray-500 dark:text-white/60 mb-3 leading-relaxed">
                 These override the theme preset above. Enter HEX values without&nbsp;
-                <code className="text-gray-700 dark:text-white/40">#</code>.
+                <code className="text-gray-700 dark:text-white/65">#</code>.
               </p>
               <div className="flex flex-col gap-3">
                 <HexInput
@@ -304,14 +249,14 @@ export function ControlsPanel({
                 className={`py-2.5 rounded-xl text-sm font-bold transition-all ${
                   scale === currentScale
                     ? 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-700 dark:text-emerald-400'
-                    : 'bg-gray-100/80 backdrop-blur-md border border-black/10 text-gray-700 dark:bg-white/[0.03] dark:border-white/8 dark:text-white/30 hover:bg-gray-200/70 hover:text-black hover:border-black/20 dark:hover:text-white/60 dark:hover:border-white/20'
+                    : 'bg-gray-100/80 backdrop-blur-md border border-black/10 text-gray-700 dark:bg-white/[0.03] dark:border-white/8 dark:text-white/60 hover:bg-gray-200/70 hover:text-black hover:border-black/20 dark:hover:text-white/70 dark:hover:border-white/20'
                 }`}
               >
                 {currentScale === 'linear' ? 'Linear' : 'Logarithmic'}
               </button>
             ))}
           </div>
-          <p className="text-[11px] text-gray-600 dark:text-white/25 mt-1.5 leading-relaxed">
+          <p className="text-[11px] text-gray-600 dark:text-white/60 mt-1.5 leading-relaxed">
             {scale === 'log'
               ? 'Log mode compresses extreme outliers. Great for power committers.'
               : 'Linear mode shows raw commit counts as tower heights.'}
@@ -355,7 +300,7 @@ export function ControlsPanel({
               className="w-full relative bg-transparent appearance-none outline-none slider"
             />
           </div>
-          <div className="flex justify-between text-sm text-gray-500 dark:text-white/20 ">
+          <div className="flex justify-between text-sm text-gray-500 dark:text-white/55 ">
             <span>0</span>
             <span className="text-emerald-600 dark:text-emerald-300/60 font-mono text-[11px]">
               {radius}
@@ -379,187 +324,6 @@ export function ControlsPanel({
             </StyledSelect>
           </div>
         </ControlRow>
-
-        <div className="h-px bg-black/5 dark:bg-white/5" />
-
-        <details className="group rounded-xl border border-black/10 dark:border-white/10 bg-white/40 dark:bg-black/20 overflow-hidden">
-          <summary className="cursor-pointer select-none px-4 py-3 text-sm font-semibold text-gray-700 dark:text-emerald-300 flex items-center justify-between hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
-            Advanced Settings
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="w-4 h-4 text-gray-500 dark:text-white/40 transition-transform group-open:rotate-180"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="m6 9 6 6 6-6" />
-            </svg>
-          </summary>
-          <div className="px-4 py-4 flex flex-col gap-5 border-t border-black/5 dark:border-white/5 bg-gray-50/50 dark:bg-black/10">
-            {/* Visibility Toggles */}
-            <ControlRow label="Visibility Options">
-              <div className="flex flex-col gap-2">
-                <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-700 dark:text-white/70">
-                  <input
-                    type="checkbox"
-                    checked={hideTitle}
-                    onChange={(e) => onHideTitleChange(e.target.checked)}
-                    className="rounded border-black/20 dark:border-white/20 bg-transparent text-emerald-500 focus:ring-emerald-500/50"
-                  />
-                  Hide Title
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-700 dark:text-white/70">
-                  <input
-                    type="checkbox"
-                    checked={hideBackground}
-                    onChange={(e) => onHideBackgroundChange(e.target.checked)}
-                    className="rounded border-black/20 dark:border-white/20 bg-transparent text-emerald-500 focus:ring-emerald-500/50"
-                  />
-                  Hide Background
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-700 dark:text-white/70">
-                  <input
-                    type="checkbox"
-                    checked={hideStats}
-                    onChange={(e) => onHideStatsChange(e.target.checked)}
-                    className="rounded border-black/20 dark:border-white/20 bg-transparent text-emerald-500 focus:ring-emerald-500/50"
-                  />
-                  Hide Stats
-                </label>
-              </div>
-            </ControlRow>
-
-            <div className="h-px bg-black/5 dark:bg-white/5" />
-
-            {/* Layout Options */}
-            <ControlRow label="View Layout">
-              <div className="relative">
-                <StyledSelect
-                  id="view-select"
-                  value={viewMode}
-                  onChange={(v) => onViewModeChange(v as ViewMode)}
-                >
-                  {VIEW_MODES.map((mode) => (
-                    <option key={mode.value} value={mode.value}>
-                      {mode.label}
-                    </option>
-                  ))}
-                </StyledSelect>
-              </div>
-            </ControlRow>
-
-            <ControlRow label="Delta Format">
-              <div className="relative">
-                <StyledSelect
-                  id="delta-select"
-                  value={deltaFormat}
-                  onChange={(v) => onDeltaFormatChange(v as DeltaFormat)}
-                >
-                  {DELTA_FORMATS.map((format) => (
-                    <option key={format.value} value={format.value}>
-                      {format.label}
-                    </option>
-                  ))}
-                </StyledSelect>
-              </div>
-            </ControlRow>
-
-            <div className="h-px bg-black/5 dark:bg-white/5" />
-
-            {/* Dimensions */}
-            <div className="grid grid-cols-2 gap-4">
-              <ControlRow label="Width">
-                <input
-                  type="number"
-                  min="100"
-                  max="1200"
-                  placeholder="Auto"
-                  value={badgeWidth}
-                  onChange={(e) => {
-                    const val = e.currentTarget.valueAsNumber;
-                    onBadgeWidthChange(Number.isNaN(val) ? '' : val);
-                  }}
-                  className="w-full bg-white/60 backdrop-blur-md border border-black/10 dark:bg-black/40 dark:border-white/10 rounded-xl px-3 py-2 text-sm font-mono text-black dark:text-emerald-300 placeholder:text-gray-400 dark:placeholder:text-white/20 outline-none focus:border-emerald-500/50 transition-colors"
-                />
-              </ControlRow>
-              <ControlRow label="Height">
-                <input
-                  type="number"
-                  min="80"
-                  max="800"
-                  placeholder="Auto"
-                  value={badgeHeight}
-                  onChange={(e) => {
-                    const val = e.currentTarget.valueAsNumber;
-                    onBadgeHeightChange(Number.isNaN(val) ? '' : val);
-                  }}
-                  className="w-full bg-white/60 backdrop-blur-md border border-black/10 dark:bg-black/40 dark:border-white/10 rounded-xl px-3 py-2 text-sm font-mono text-black dark:text-emerald-300 placeholder:text-gray-400 dark:placeholder:text-white/20 outline-none focus:border-emerald-500/50 transition-colors"
-                />
-              </ControlRow>
-            </div>
-
-            <div className="h-px bg-black/5 dark:bg-white/5" />
-
-            {/* Grace and Localization */}
-            <ControlRow label="Grace Days">
-              <div className="relative flex items-center">
-                <div className="absolute inset-x-0 h-1 rounded-full bg-gray-300 dark:bg-white/6" />
-                <input
-                  type="range"
-                  min="0"
-                  max="7"
-                  step="1"
-                  value={grace}
-                  onChange={(e) => onGraceChange(Number(e.target.value))}
-                  className="w-full relative bg-transparent appearance-none outline-none slider"
-                />
-              </div>
-              <div className="flex justify-between text-sm text-gray-500 dark:text-white/20">
-                <span>0</span>
-                <span className="text-emerald-600 dark:text-emerald-300/60 font-mono text-[11px]">
-                  {grace}
-                </span>
-                <span>7</span>
-              </div>
-            </ControlRow>
-
-            <ControlRow label="Language">
-              <div className="relative">
-                <StyledSelect
-                  id="lang-select"
-                  value={language}
-                  onChange={(v) => onLanguageChange(v as Language)}
-                >
-                  {LANGUAGES.map((lang) => (
-                    <option key={lang.value} value={lang.value}>
-                      {lang.label}
-                    </option>
-                  ))}
-                </StyledSelect>
-              </div>
-            </ControlRow>
-
-            <ControlRow label="Timezone">
-              <div className="relative">
-                <StyledSelect
-                  id="timezone-select"
-                  ariaLabel="Timezone"
-                  value={timezone}
-                  onChange={(v) => onTimezoneChange(v as Timezone)}
-                >
-                  {TIMEZONES.map((tz) => (
-                    <option key={tz.value} value={tz.value}>
-                      {tz.label}
-                    </option>
-                  ))}
-                </StyledSelect>
-              </div>
-            </ControlRow>
-          </div>
-        </details>
       </div>
     </div>
   );

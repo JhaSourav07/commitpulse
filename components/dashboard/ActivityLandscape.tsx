@@ -118,7 +118,7 @@ export default function ActivityLandscape({ data }: { data: ActivityData[] }) {
                   className={`border-r border-black/10 px-3.5 py-1.5 text-xs font-medium transition-all duration-200 last:border-r-0 dark:border-[rgba(255,255,255,0.08)] ${
                     activeTab === tab
                       ? 'bg-black text-white dark:bg-white dark:text-black'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-black dark:bg-transparent dark:text-[#A1A1AA] dark:hover:bg-[rgba(255,255,255,0.05)] dark:hover:text-white'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-black dark:bg-transparent dark:text-white/65 dark:hover:bg-[rgba(255,255,255,0.05)] dark:hover:text-white'
                   }`}
                 >
                   {tab}

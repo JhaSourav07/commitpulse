@@ -134,6 +134,7 @@ const mockInitialData = {
   insights: [{ id: '1', icon: 'zap', text: 'Highly active in mornings' }],
   achievements: [],
   commitClock: [],
+  graphData: { nodes: [], links: [] },
 };
 
 const mockSecondData = {
@@ -170,6 +171,7 @@ const mockSecondData = {
   insights: [{ id: '1', icon: 'zap', text: 'Hard worker' }],
   achievements: [],
   commitClock: [],
+  graphData: { nodes: [], links: [] },
 };
 
 const initialDataWithHigherStreak = {
@@ -351,6 +353,37 @@ describe('DashboardClient', () => {
 
     // 5. Assert input value is empty
     expect((input as HTMLInputElement).value).toBe('');
+  });
+
+  // =========================================================================
+  // ISSUE OBJECTIVE: Verify personality tags render in compare mode
+  // =========================================================================
+  it('renders personality tags for both profiles in compare mode', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => mockSecondData,
+    });
+
+    vi.stubGlobal('fetch', mockFetch);
+
+    render(<DashboardClient initialData={mockInitialData} username="Shivangi1515" />);
+
+    fireEvent.click(screen.getByText('Compare Profile'));
+
+    fireEvent.change(screen.getByPlaceholderText('Enter GitHub Username'), {
+      target: { value: 'JhaSourav07' },
+    });
+
+    fireEvent.click(screen.getByText('Compare'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Exit Compare Mode')).toBeDefined();
+    });
+
+    // Both profiles have stats that generate the "Consistency Beast 🔥" tag
+    // Using Regex /.../i to match the text even if there is an emoji next to it!
+    const tags = screen.getAllByText(/Consistency Beast/i);
+    expect(tags).toHaveLength(2);
   });
 });
 it('shows Most Consistent badge for profile with higher peak streak in compare mode', async () => {

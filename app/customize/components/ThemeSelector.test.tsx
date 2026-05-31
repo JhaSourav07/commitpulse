@@ -136,3 +136,58 @@ describe('ThemeSelector - Custom Variations (Variation 4)', () => {
     expect(onThemeChange).toHaveBeenCalledWith('sunset');
   });
 });
+
+describe('ThemeSelector responsive rendering', () => {
+  const onThemeChange = vi.fn();
+
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('check if the root container holds its flex-col layout when switch from Dracula -> Neon', () => {
+    const { container, rerender } = render(
+      <ThemeSelector theme="dracula" onThemeChange={onThemeChange} />
+    );
+    const root = container.firstChild as HTMLElement;
+    expect(root.className).toContain('flex-col');
+
+    rerender(<ThemeSelector theme="neon" onThemeChange={onThemeChange} />);
+    expect(root.className).toContain('flex-col');
+  });
+
+  it('check if active preset button updates when switching from Dracula to Neon', () => {
+    const { rerender } = render(<ThemeSelector theme="dracula" onThemeChange={onThemeChange} />);
+
+    expect(
+      screen.getByRole('button', { name: /apply dracula theme/i }).getAttribute('aria-pressed')
+    ).toBe('true');
+
+    rerender(<ThemeSelector theme="neon" onThemeChange={onThemeChange} />);
+
+    expect(
+      screen.getByRole('button', { name: /apply neon theme/i }).getAttribute('aria-pressed')
+    ).toBe('true');
+    expect(
+      screen.getByRole('button', { name: /apply dracula theme/i }).getAttribute('aria-pressed')
+    ).toBe('false');
+  });
+
+  it('check if select value reflects the active theme after switch Dracula -> Neon', () => {
+    const { rerender } = render(<ThemeSelector theme="dracula" onThemeChange={onThemeChange} />);
+    const select = screen.getByRole('combobox') as HTMLSelectElement;
+    expect(select.value).toBe('dracula');
+
+    rerender(<ThemeSelector theme="neon" onThemeChange={onThemeChange} />);
+    expect(select.value).toBe('neon');
+  });
+
+  it('colour swatches update to the new theme after switching', () => {
+    const { rerender } = render(<ThemeSelector theme="dracula" onThemeChange={onThemeChange} />);
+    const draculaSwatches = screen.getAllByTitle(/^(bg|accent|text):/i);
+    expect(draculaSwatches.length).toBe(3);
+
+    rerender(<ThemeSelector theme="neon" onThemeChange={onThemeChange} />);
+    // swatches should still be 3, now reflecting neon's palette
+    expect(screen.getAllByTitle(/^(bg|accent|text):/i).length).toBe(3);
+  });
+});

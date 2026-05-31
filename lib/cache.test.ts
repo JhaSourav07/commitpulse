@@ -29,6 +29,29 @@ describe('TTLCache', () => {
       expect(cache.get('user')).toBeNull();
       cache.destroy();
     });
+
+    it('handles deeply nested object values without crashing', () => {
+      const cache = new TTLCache<{
+        level1: {
+          level2: {
+            level3: string;
+          };
+        };
+      }>();
+
+      const nested = {
+        level1: {
+          level2: {
+            level3: 'value',
+          },
+        },
+      };
+
+      expect(() => cache.set('nested', nested, 60_000)).not.toThrow();
+      expect(cache.get('nested')).toEqual(nested);
+
+      cache.destroy();
+    });
   });
 
   describe('clear()', () => {
@@ -380,6 +403,46 @@ describe('TTLCache', () => {
       cache.destroy();
     });
 
+    it('stores and retrieves multidimensional array values', () => {
+      const cache = new TTLCache<number[][]>();
+
+      const matrix = [
+        [1, 2],
+        [3, 4],
+      ];
+
+      cache.set('matrix', matrix, 60_000);
+
+      expect(cache.get('matrix')).toEqual(matrix);
+
+      cache.destroy();
+    });
+
+    it('stores and retrieves values using unicode cache keys', () => {
+      const cache = new TTLCache<string>();
+
+      cache.set('cache_🔥_key', 'octocat', 60_000);
+
+      expect(cache.get('cache_🔥_key')).toBe('octocat');
+
+      cache.destroy();
+    });
+
+    it('preserves Date instance values in TTLCache', () => {
+      const cache = new TTLCache<Date>();
+
+      const date = new Date('2026-05-31T00:00:00.000Z');
+
+      cache.set('created-at', date, 60_000);
+
+      const cached = cache.get('created-at');
+
+      expect(cached).toBeInstanceOf(Date);
+      expect(cached?.toISOString()).toBe(date.toISOString());
+
+      cache.destroy();
+    });
+
     it('stores and retrieves nested object values', () => {
       const cache = new TTLCache<{
         user: { id: number; name: string };
@@ -403,10 +466,37 @@ describe('TTLCache', () => {
   });
 
   describe('edge cases and error handling', () => {
+    // FIX: New test explicitly targeting the -5000 boundary for Issue #1398
+    it('throws RangeError when setting a value with -5000 TTL', () => {
+      const cache = new TTLCache<string>();
+      expect(() => cache.set('key', 'value', -5000)).toThrow(RangeError);
+      cache.destroy();
+    });
+
+    it('throws TypeError when setting a null key', () => {
+      const cache = new TTLCache<string>();
+
+      expect(() => {
+        cache.set(null as unknown as string, 'value', 60_000);
+      }).toThrow(TypeError);
+      expect(cache.size()).toBe(0);
+
+      cache.destroy();
+    });
+
     it('throws RangeError when ttlMs is 0 or negative', () => {
       const cache = new TTLCache<string>();
       expect(() => cache.set('key', 'value', 0)).toThrow(RangeError);
       expect(() => cache.set('key', 'value', -1)).toThrow(RangeError);
+      cache.destroy();
+    });
+
+    it('rejects an empty string cache key', () => {
+      const cache = new TTLCache<string>();
+
+      expect(() => cache.set('', 'value', 60_000)).toThrow('Cache key cannot be empty');
+      expect(cache.has('')).toBe(false);
+
       cache.destroy();
     });
 
@@ -441,6 +531,7 @@ describe('TTLCache', () => {
       expect([null, 'lived']).toContain(result);
       cache.destroy();
     });
+
     it('does not throw when ttlMs is Number.EPSILON', () => {
       const cache = new TTLCache<string>();
 
@@ -473,6 +564,23 @@ describe('TTLCache', () => {
 
       cache.destroy();
     });
+    // FIX: New test targeting the NaN boundary for Issue #1399
+    it('resolves NaN TTL to the default standard TTL duration', () => {
+      vi.useFakeTimers();
+      const cache = new TTLCache<string>();
+
+      // Setting with NaN should not throw; it should fallback to the default TTL
+      expect(() => cache.set('nan-key', 'value', NaN)).not.toThrow();
+
+      // The item should be successfully stored
+      expect(cache.get('nan-key')).toBe('value');
+
+      // Advance by a small amount to ensure it didn't instantly expire
+      vi.advanceTimersByTime(1000);
+      expect(cache.get('nan-key')).toBe('value');
+
+      cache.destroy();
+    });
 
     it('verify TTLCache behavior for infinite TTL value (Variation 1)', () => {
       const cache = new TTLCache<string>();
@@ -487,6 +595,42 @@ describe('TTLCache', () => {
 
       cache.destroy();
     });
+
+    it('handles oversized cache keys safely', () => {
+      const cache = new TTLCache<string>();
+
+      const oversizedKey = 'a'.repeat(20000);
+
+      expect(() => {
+        cache.set(oversizedKey, 'large-key-value', 60_000);
+      }).not.toThrow();
+
+      expect(cache.get(oversizedKey)).toBe('large-key-value');
+
+      cache.destroy();
+    });
+  });
+
+  it('stores and retrieves values with unicode and emoji cache keys', () => {
+    const cache = new TTLCache<string>();
+
+    const unicodeKey = 'cache_🔥_key';
+    const emojiKey = '🚀_rocket_🚀';
+    const mixedKey = 'user_👤_data_🔐';
+
+    cache.set(unicodeKey, 'fire-value', 60_000);
+    cache.set(emojiKey, 'rocket-value', 60_000);
+    cache.set(mixedKey, 'secure-data', 60_000);
+
+    expect(cache.get(unicodeKey)).toBe('fire-value');
+    expect(cache.get(emojiKey)).toBe('rocket-value');
+    expect(cache.get(mixedKey)).toBe('secure-data');
+
+    expect(cache.has(unicodeKey)).toBe(true);
+    expect(cache.has(emojiKey)).toBe(true);
+    expect(cache.has(mixedKey)).toBe(true);
+
+    cache.destroy();
   });
 });
 

@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @next/next/no-img-element, jsx-a11y/alt-text */
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -28,23 +29,103 @@ vi.mock('next/link', () => ({
   ),
 }));
 
+// Mock GSAP so FeatureCards don't break in JSDOM
+vi.mock('gsap', () => {
+  const tween = { kill: vi.fn() };
+  const timeline = {
+    to: vi.fn().mockReturnThis(),
+    fromTo: vi.fn().mockReturnThis(),
+    set: vi.fn().mockReturnThis(),
+    kill: vi.fn(),
+  };
+  return {
+    default: {
+      registerPlugin: vi.fn(),
+      set: vi.fn(),
+      to: vi.fn().mockReturnValue(tween),
+      fromTo: vi.fn().mockReturnValue(tween),
+      timeline: vi.fn().mockReturnValue(timeline),
+      context: vi.fn((_fn: any) => ({ revert: vi.fn() })),
+    },
+  };
+});
+
+vi.mock('gsap/ScrollTrigger', () => ({
+  ScrollTrigger: {},
+}));
+
 // Mock framer-motion
 vi.mock('framer-motion', () => ({
   motion: {
-    div: ({ children, className, ...props }: any) => (
+    div: ({
+      children,
+      className,
+      whileHover,
+      whileTap,
+      whileInView,
+      initial,
+      animate,
+      exit,
+      transition,
+      viewport,
+      layoutId,
+      ...props
+    }: any) => (
       <div className={className} data-testid="motion-div" {...props}>
         {children}
       </div>
     ),
-    p: ({ children, className, ...props }: any) => (
+    p: ({
+      children,
+      className,
+      whileHover,
+      whileTap,
+      whileInView,
+      initial,
+      animate,
+      exit,
+      transition,
+      viewport,
+      layoutId,
+      ...props
+    }: any) => (
       <p className={className} data-testid="motion-p" {...props}>
         {children}
       </p>
     ),
-    a: ({ children, className, href, ...props }: any) => (
+    a: ({
+      children,
+      className,
+      href,
+      whileHover,
+      whileTap,
+      whileInView,
+      initial,
+      animate,
+      exit,
+      transition,
+      viewport,
+      layoutId,
+      ...props
+    }: any) => (
       <a href={href} className={className} data-testid="motion-a" {...props}>
         {children}
       </a>
+    ),
+    img: ({
+      children,
+      className,
+      src,
+      alt,
+      onLoad,
+      onError,
+      initial,
+      animate,
+      exit,
+      transition,
+      ...props
+    }: any) => (
+      <img className={className} src={src} alt={alt} onLoad={onLoad} onError={onError} {...props} />
     ),
   },
   AnimatePresence: ({ children }: any) => <>{children}</>,
@@ -69,18 +150,6 @@ describe('LandingPage', () => {
     mockRecentSearches.clearSearches = vi.fn();
     mockRecentSearches.removeSearch = vi.fn();
 
-    // Mock fetch so the SVG preview useEffect resolves without a real network call.
-    // Returns a minimal valid SVG so dangerouslySetInnerHTML has something to render.
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue({
-        ok: true,
-        status: 200,
-        text: () =>
-          Promise.resolve('<svg data-testid="badge-svg" xmlns="http://www.w3.org/2000/svg"></svg>'),
-      })
-    );
-
     // Mock navigator.clipboard
     Object.assign(navigator, {
       clipboard: {
@@ -98,9 +167,9 @@ describe('LandingPage', () => {
 
   it('renders the main heading', () => {
     render(<LandingPage />);
-    expect(screen.getByText(/Elevate Your/i)).toBeDefined();
-    expect(screen.getByText('Contribution')).toBeDefined();
-    expect(screen.getByText(/Story/i)).toBeDefined();
+    const heading = screen.getByRole('heading', { level: 1 });
+    expect(heading.textContent).toMatch(/Elevate Your/i);
+    expect(heading.textContent).toMatch(/Contribution Story/i);
   });
 
   it('renders the input field empty by default', () => {
@@ -127,11 +196,11 @@ describe('LandingPage', () => {
     render(<LandingPage />);
 
     expect(screen.getByText(/Enter a GitHub username above to instantly generate/i)).toBeDefined();
-    // No SVG badge should be present yet
-    expect(screen.queryByTestId('badge-svg')).toBeNull();
+    // No badge img should be present yet
+    expect(screen.queryByTestId('badge-img')).toBeNull();
   });
 
-  it('updates the username when input changes and fetches the badge', async () => {
+  it('updates the username when input changes and shows the badge img', async () => {
     render(<LandingPage />);
     const input = screen.getByPlaceholderText('Enter GitHub Username') as HTMLInputElement;
 
@@ -140,17 +209,17 @@ describe('LandingPage', () => {
     });
     expect(input.value).toBe('octocat');
 
-    // The component fetches the badge SVG from the API with the correct URL
+    // The badge img element should appear in the DOM with the correct URL
     await waitFor(() => {
-      expect(vi.mocked(fetch)).toHaveBeenCalledWith(
-        expect.stringContaining('user=octocat'),
-        expect.objectContaining({ signal: expect.any(AbortSignal) })
-      );
+      const img = screen.getByTestId('badge-img') as HTMLImageElement;
+      expect(img).toBeDefined();
+      expect(img.src).toContain('user=octocat');
     });
 
-    // After the fetch resolves the inline SVG should be in the DOM
-    await waitFor(() => {
-      expect(screen.getByTestId('badge-svg')).toBeDefined();
+    // Simulate the browser successfully loading the badge image
+    await act(async () => {
+      const img = screen.getByTestId('badge-img') as HTMLImageElement;
+      fireEvent.load(img);
     });
   });
 
@@ -283,23 +352,17 @@ describe('LandingPage', () => {
   });
 
   it('shows the friendly error UI instead of raw JSON when the API returns a 400', async () => {
-    // Username with an underscore passes the UI 39-char limit but fails the API regex,
-    // which returns JSON {error: 'Invalid parameters'} with status 400. Without the fix
-    // that JSON string would be rendered via dangerouslySetInnerHTML.
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue({
-        ok: false,
-        status: 400,
-        text: () => Promise.resolve(JSON.stringify({ error: 'Invalid parameters' })),
-      })
-    );
-
     render(<LandingPage />);
     const input = screen.getByPlaceholderText('Enter GitHub Username') as HTMLInputElement;
 
     await act(async () => {
       fireEvent.change(input, { target: { value: 'invalid_user' } });
+    });
+
+    // Badge img renders; simulate the browser failing to load it (e.g. API returned 400)
+    await waitFor(() => screen.getByTestId('badge-img'));
+    await act(async () => {
+      fireEvent.error(screen.getByTestId('badge-img'));
     });
 
     await waitFor(() => {
@@ -311,15 +374,6 @@ describe('LandingPage', () => {
   });
 
   it('shows the friendly error UI for any non-ok API response (e.g. 429 rate limit)', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue({
-        ok: false,
-        status: 429,
-        text: () => Promise.resolve(JSON.stringify({ error: 'Too Many Requests' })),
-      })
-    );
-
     render(<LandingPage />);
     const input = screen.getByPlaceholderText('Enter GitHub Username') as HTMLInputElement;
 
@@ -327,10 +381,38 @@ describe('LandingPage', () => {
       fireEvent.change(input, { target: { value: 'octocat' } });
     });
 
+    // Simulate the browser failing to load the badge image
+    await waitFor(() => screen.getByTestId('badge-img'));
+    await act(async () => {
+      fireEvent.error(screen.getByTestId('badge-img'));
+    });
+
     await waitFor(() => {
       expect(screen.getByText('GitHub user not found')).toBeDefined();
     });
 
     expect(screen.queryByText(/Too Many Requests/)).toBeNull();
+  });
+
+  it('renders a badge img (not inline SVG) so XSS via SVG content is structurally impossible', async () => {
+    // The new implementation uses <img src=URL> which the browser renders opaquely.
+    // No SVG text is ever injected into the DOM, so no <script> tag can exist.
+    render(<LandingPage />);
+
+    const input = screen.getByPlaceholderText('Enter GitHub Username') as HTMLInputElement;
+
+    await act(async () => {
+      fireEvent.change(input, { target: { value: 'octocat' } });
+    });
+
+    // An <img> element with the API URL should appear (not inline SVG)
+    await waitFor(() => {
+      const img = screen.getByTestId('badge-img') as HTMLImageElement;
+      expect(img).toBeDefined();
+      expect(img.src).toContain('user=octocat');
+    });
+
+    // The SVG text is never injected into the DOM, so no <script> tag can exist
+    expect(document.querySelector('script')).toBeNull();
   });
 });
