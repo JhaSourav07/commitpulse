@@ -399,3 +399,35 @@ export type GithubParams = z.infer<typeof githubParamsSchema>;
 export type OgParams = z.infer<typeof ogParamsSchema>;
 export type StatsParams = z.infer<typeof statsParamsSchema>;
 export type WrappedParams = z.infer<typeof wrappedParamsSchema>;
+
+const COMPANY_NAME_REGEX = /^[a-zA-Z0-9\s&.'-]{2,100}$/;
+
+export const registerCompanySchema = z.object({
+  companyName: z
+    .string()
+    .min(2, 'Company name must be at least 2 characters')
+    .max(100, 'Company name must not exceed 100 characters')
+    .regex(COMPANY_NAME_REGEX, 'Invalid company name format'),
+  email: z.string().email('Invalid email address'),
+  password: z
+    .string()
+    .min(8, 'Password must be at least 8 characters')
+    .max(128, 'Password must not exceed 128 characters'),
+});
+
+export const verifyOtpSchema = z.object({
+  email: z.string().email('Invalid email address'),
+  otp: z
+    .string()
+    .length(6, 'OTP must be exactly 6 digits')
+    .regex(/^\d{6}$/, 'OTP must be numeric'),
+});
+
+export const signinCompanySchema = z.object({
+  email: z.string().email('Invalid email address'),
+  password: z.string().min(1, 'Password is required'),
+});
+
+export type RegisterCompanyInput = z.infer<typeof registerCompanySchema>;
+export type VerifyOtpInput = z.infer<typeof verifyOtpSchema>;
+export type SigninCompanyInput = z.infer<typeof signinCompanySchema>;
