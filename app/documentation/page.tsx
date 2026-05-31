@@ -230,7 +230,7 @@ export default function DocumentationPage() {
               </p>
             </div>
             <div className="rounded-[1.75rem] border border-black/10 bg-gray-100 p-5 dark:border-white/10 dark:bg-black/40">
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-gray-500 dark:text-white/40">
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-gray-500 dark:text-white/60">
                 Priority chain
               </p>
               <div className="mt-4 space-y-3 text-sm text-white/80">
@@ -279,7 +279,7 @@ export default function DocumentationPage() {
                     <h3 className="text-base font-semibold text-black dark:text-white">
                       {snippet.title}
                     </h3>
-                    <span className="rounded-full border border-black/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-gray-500 dark:border-white/10 dark:text-white/45">
+                    <span className="rounded-full border border-black/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-gray-500 dark:border-white/10 dark:text-white/60">
                       snippet
                     </span>
                   </div>
@@ -300,9 +300,9 @@ export default function DocumentationPage() {
             description="All color parameters expect hex values without a leading #. When both a theme and manual colors are provided, the manual colors win."
           >
             <div className="overflow-hidden rounded-[1.5rem] border border-black/10 dark:border-white/8">
-              <div className="flex items-center justify-between gap-3 border-b border-black/10 bg-gray-50 px-4 py-3 text-xs uppercase tracking-[0.18em] text-gray-500 dark:border-white/8 dark:bg-white/[0.03] dark:text-white/40">
+              <div className="flex items-center justify-between gap-3 border-b border-black/10 bg-gray-50 px-4 py-3 text-xs uppercase tracking-[0.18em] text-gray-500 dark:border-white/8 dark:bg-white/[0.03] dark:text-white/60">
                 <span>Swipe to view all columns on smaller screens</span>
-                <span className="hidden rounded-full border border-black/10 px-2 py-1 text-[10px] text-gray-500 dark:border-white/10 dark:text-white/35 sm:inline-flex">
+                <span className="hidden rounded-full border border-black/10 px-2 py-1 text-[10px] text-gray-500 dark:border-white/10 dark:text-white/50 sm:inline-flex">
                   scroll
                 </span>
               </div>
@@ -311,7 +311,7 @@ export default function DocumentationPage() {
                 <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-12 bg-gradient-to-l from-white via-white/90 to-transparent dark:from-[#050505] dark:via-[#050505]/90 sm:hidden" />
                 <div className="overflow-x-auto">
                   <table className="min-w-[760px] border-collapse text-left sm:min-w-full">
-                    <thead className="bg-gray-50 text-xs uppercase tracking-[0.2em] text-gray-500 dark:bg-white/[0.05] dark:text-white/45">
+                    <thead className="bg-gray-50 text-xs uppercase tracking-[0.2em] text-gray-500 dark:bg-white/[0.05] dark:text-white/60">
                       <tr>
                         <th className="px-4 py-4 font-semibold">Parameter</th>
                         <th className="px-4 py-4 font-semibold">Type</th>
@@ -329,16 +329,16 @@ export default function DocumentationPage() {
                           <td className="px-4 py-4 font-mono text-sm text-emerald-700 dark:text-emerald-300">
                             {parameter.name}
                           </td>
-                          <td className="px-4 py-4 text-sm text-gray-700 dark:text-white/70">
+                          <td className="px-4 py-4 text-sm text-gray-700 dark:text-white/75">
                             {parameter.type}
                           </td>
-                          <td className="px-4 py-4 text-sm text-gray-700 dark:text-white/70">
+                          <td className="px-4 py-4 text-sm text-gray-700 dark:text-white/75">
                             {parameter.required}
                           </td>
-                          <td className="px-4 py-4 text-sm text-gray-700 dark:text-white/70">
+                          <td className="px-4 py-4 text-sm text-gray-700 dark:text-white/75">
                             {parameter.defaultValue}
                           </td>
-                          <td className="px-4 py-4 text-sm leading-6 text-gray-600 dark:text-white/60">
+                          <td className="px-4 py-4 text-sm leading-6 text-gray-600 dark:text-white/70">
                             {parameter.description}
                           </td>
                         </tr>
@@ -391,16 +391,16 @@ export default function DocumentationPage() {
                   <p className="mt-2 min-h-[72px] text-sm leading-7 text-gray-600 dark:text-white/55">
                     {theme.vibe}
                   </p>
-                  <div className="mt-4 space-y-2 text-xs text-gray-500 dark:text-white/45">
+                  <div className="mt-4 space-y-2 text-xs text-gray-500 dark:text-white/60">
                     <div>
-                      <span className="text-gray-700 dark:text-white/65">bg</span> #{theme.bg}
+                      <span className="text-gray-700 dark:text-white/75">bg</span> #{theme.bg}
                     </div>
                     <div>
-                      <span className="text-gray-700 dark:text-white/65">accent</span> #
+                      <span className="text-gray-700 dark:text-white/75">accent</span> #
                       {theme.accent}
                     </div>
                     <div>
-                      <span className="text-gray-700 dark:text-white/65">text</span> #{theme.text}
+                      <span className="text-gray-700 dark:text-white/75">text</span> #{theme.text}
                     </div>
                   </div>
                 </div>
@@ -422,7 +422,7 @@ export default function DocumentationPage() {
                   className="flex gap-3 rounded-[1.25rem] border border-black/10 bg-gray-50 px-4 py-4 dark:border-white/8 dark:bg-black/35"
                 >
                   <span className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-500 dark:bg-emerald-400 shadow-[0_0_18px_rgba(52,211,153,0.9)]" />
-                  <p className="text-sm leading-7 text-gray-600 dark:text-white/60">{note}</p>
+                  <p className="text-sm leading-7 text-gray-600 dark:text-white/70">{note}</p>
                 </div>
               ))}
             </div>

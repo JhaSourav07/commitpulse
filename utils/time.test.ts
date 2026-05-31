@@ -63,6 +63,14 @@ describe('getSecondsUntilUTCMidnight', () => {
 
     expect(getSecondsUntilUTCMidnight()).toBe(64800); // 18 hours = 64800 s
   });
+
+  it('always returns an integer with sub-second precision input', () => {
+    vi.setSystemTime(new Date('2024-06-15T23:59:59.999Z'));
+
+    const result = getSecondsUntilUTCMidnight();
+    expect(Number.isInteger(result)).toBe(true);
+    expect(result).toBe(0);
+  });
 });
 
 it('returns positive seconds for every hour of day', () => {
@@ -145,10 +153,182 @@ describe('getSecondsUntilMidnightInTimezone', () => {
     }
   });
 
+  it('always returns an integer with sub-second precision input', () => {
+    // 2024-06-16T03:59:59.999Z is 23:59:59.999 in Etc/GMT+4 (UTC-4)
+    vi.setSystemTime(new Date('2024-06-16T03:59:59.999Z'));
+
+    const result = getSecondsUntilMidnightInTimezone('Etc/GMT+4');
+    expect(Number.isInteger(result)).toBe(true);
+    expect(result).toBe(1);
+  });
+
   it('handles extreme timezone Etc/GMT-14 (UTC+14)', () => {
     // UTC 00:00 → local time 14:00 in UTC+14
     vi.setSystemTime(new Date('2024-06-15T00:00:00.000Z'));
 
     expect(getSecondsUntilMidnightInTimezone('Etc/GMT-14')).toBe(10 * 3600);
+  });
+
+  it('should calculate seconds until UTC midnight correctly at a calendar boundary', () => {
+    // Arrange: Set time to Dec 31, 2023, 23:59:50 UTC (10 seconds before New Year)
+    const boundaryTime = new Date(Date.UTC(2023, 11, 31, 23, 59, 50));
+    vi.setSystemTime(boundaryTime);
+
+    // Act
+    const seconds = getSecondsUntilUTCMidnight();
+
+    // Assert: Exactly 10 seconds should remain
+    expect(seconds).toBe(10);
+  });
+
+  it('should handle extreme positive timezone offset boundary (+14:00)', () => {
+    // Arrange: Pacific/Kiritimati is UTC+14.
+    // When UTC is Dec 31, 09:59:50, Kiritimati is Dec 31, 23:59:50 (10 seconds to midnight)
+    const boundaryTime = new Date(Date.UTC(2023, 11, 31, 9, 59, 50));
+    vi.setSystemTime(boundaryTime);
+
+    // Act
+    const seconds = getSecondsUntilMidnightInTimezone('Pacific/Kiritimati');
+
+    // Assert
+    expect(seconds).toBe(10);
+  });
+
+  it('should handle extreme negative timezone offset boundary (-11:00)', () => {
+    // Arrange: Pacific/Midway is UTC-11.
+    // When UTC is Jan 1, 10:59:50, Midway is Dec 31, 23:59:50 (10 seconds to midnight)
+    const boundaryTime = new Date(Date.UTC(2024, 0, 1, 10, 59, 50));
+    vi.setSystemTime(boundaryTime);
+
+    // Act
+    const seconds = getSecondsUntilMidnightInTimezone('Pacific/Midway');
+
+    // Assert
+    expect(seconds).toBe(10);
+  });
+
+  it('should handle exact midnight boundary gracefully (0 seconds remaining)', () => {
+    // Arrange: Exactly midnight in UTC
+    const midnightTime = new Date(Date.UTC(2024, 0, 1, 0, 0, 0));
+    vi.setSystemTime(midnightTime);
+
+    // Act
+    const secondsUTC = getSecondsUntilUTCMidnight();
+    const secondsLondon = getSecondsUntilMidnightInTimezone('Europe/London');
+
+    // Assert: Both should recognize it's 24 hours (86400 seconds) until the NEXT midnight
+    // Since the logic does `86400 - (hour * 3600 + ...)`, at 00:00:00 it returns 86400.
+    expect(secondsUTC).toBe(86400);
+    expect(secondsLondon).toBe(86400);
+  });
+
+  it('should handle extreme negative timezone offset boundary (-12:00)', () => {
+    // Arrange: Etc/GMT+12 is UTC-12 (Baker Island / Howland Island).
+    // When UTC is Jan 1, 11:59:50, Baker Island is Dec 31, 23:59:50 (10 seconds to midnight)
+    const boundaryTime = new Date(Date.UTC(2024, 0, 1, 11, 59, 50));
+    vi.setSystemTime(boundaryTime);
+
+    // Act
+    const seconds = getSecondsUntilMidnightInTimezone('Etc/GMT+12');
+
+    // Assert: Should correctly calculate 10 seconds without calendar shifting
+    expect(seconds).toBe(10);
+  });
+
+  it('should handle extreme timezone offsets without calendar date shifting', () => {
+    // Arrange: Test the most extreme offsets to ensure no calendar date shifting occurs
+    const extremeOffsets = [
+      { tz: 'Etc/GMT+12', offset: -12, utcHour: 12, expectedLocalHour: 0 }, // UTC-12
+      { tz: 'Etc/GMT-14', offset: 14, utcHour: 10, expectedLocalHour: 0 }, // UTC+14
+    ];
+
+    for (const { tz, utcHour } of extremeOffsets) {
+      // Set UTC time such that local time is exactly midnight
+      vi.setSystemTime(new Date(Date.UTC(2024, 6, 15, utcHour, 0, 0)));
+
+      // Act: Get seconds until midnight in this timezone
+      const seconds = getSecondsUntilMidnightInTimezone(tz);
+
+      // Assert: At local midnight, should return exactly 86400 seconds (full day)
+      expect(seconds).toBe(86400);
+    }
+  });
+});
+
+describe('getSecondsUntilUTCMidnight — sliding window boundary robustness', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('returns correct TTL across a sliding window of times approaching UTC midnight', () => {
+    // Verifies that the utility guarantees keys expire exactly at the window limit.
+    // Each entry is [UTC time string, expected seconds until next midnight].
+    const cases: [string, number][] = [
+      ['2024-06-15T23:00:00.000Z', 3600], // 1 hour before midnight
+      ['2024-06-15T23:30:00.000Z', 1800], // 30 minutes before midnight
+      ['2024-06-15T23:45:00.000Z', 900], // 15 minutes before midnight
+      ['2024-06-15T23:59:00.000Z', 60], // 1 minute before midnight
+      ['2024-06-15T23:59:59.000Z', 1], // 1 second before midnight
+      ['2024-06-16T00:00:00.000Z', 86400], // exactly at midnight, resets to full day
+    ];
+
+    for (const [time, expected] of cases) {
+      vi.setSystemTime(new Date(time));
+      expect(getSecondsUntilUTCMidnight()).toBe(expected);
+    }
+  });
+});
+
+describe('getSecondsUntilMidnightInTimezone — extreme timezone offset boundary robustness', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('converts timestamp cleanly to target offset without calendar shifting (UTC+5:30)', () => {
+    // UTC 2024-06-15T18:30:00Z = 2024-06-16T00:00:00 in Asia/Kolkata (UTC+5:30)
+    // So exactly at local midnight → 86400 seconds remaining
+    vi.setSystemTime(new Date('2024-06-15T18:30:00.000Z'));
+
+    expect(getSecondsUntilMidnightInTimezone('Asia/Kolkata')).toBe(86400);
+  });
+
+  it('converts timestamp cleanly to target offset without calendar shifting (UTC+14)', () => {
+    // UTC 2024-06-14T10:00:00Z = 2024-06-15T00:00:00 in Pacific/Kiritimati (UTC+14)
+    // Exactly local midnight → 86400 seconds remaining, no date shift
+    vi.setSystemTime(new Date('2024-06-14T10:00:00.000Z'));
+
+    expect(getSecondsUntilMidnightInTimezone('Pacific/Kiritimati')).toBe(86400);
+  });
+
+  it('converts timestamp cleanly to target offset without calendar shifting (UTC-12)', () => {
+    // UTC 2024-06-15T12:00:00Z = 2024-06-15T00:00:00 in Etc/GMT+12 (UTC-12)
+    // Exactly local midnight → 86400 seconds remaining, no date shift
+    vi.setSystemTime(new Date('2024-06-15T12:00:00.000Z'));
+
+    expect(getSecondsUntilMidnightInTimezone('Etc/GMT+12')).toBe(86400);
+  });
+
+  it('handles a timestamp near year-end boundary without calendar shifting (UTC+14)', () => {
+    // UTC 2023-12-31T10:00:00Z = 2024-01-01T00:00:00 in Pacific/Kiritimati
+    // Crosses year boundary cleanly → 86400 seconds remaining
+    vi.setSystemTime(new Date('2023-12-31T10:00:00.000Z'));
+
+    expect(getSecondsUntilMidnightInTimezone('Pacific/Kiritimati')).toBe(86400);
+  });
+
+  it('handles a timestamp near year-end boundary without calendar shifting (UTC-11)', () => {
+    // UTC 2024-01-01T11:00:00Z = 2024-01-01T00:00:00 in Pacific/Midway (UTC-11)
+    // Crosses year boundary cleanly → 86400 seconds remaining
+    vi.setSystemTime(new Date('2024-01-01T11:00:00.000Z'));
+
+    expect(getSecondsUntilMidnightInTimezone('Pacific/Midway')).toBe(86400);
   });
 });

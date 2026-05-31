@@ -1,5 +1,5 @@
 // lib/calculate.ts
-import type { ContributionCalendar, StreakStats, MonthlyStats } from '../types';
+import type { ContributionCalendar, ContributionDay, StreakStats, MonthlyStats } from '../types';
 
 /* ==========================================================================
  * STREAK & CALENDAR CALCULATIONS
@@ -12,14 +12,24 @@ export function isStreakAlive(
   return today.contributionCount > 0 || (yesterday?.contributionCount ?? 0) > 0;
 }
 
+export function findTodayIndex(days: ContributionDay[], timezone: string, now: Date): number {
+  const localTodayStr = new Intl.DateTimeFormat('en-CA', {
+    timeZone: timezone,
+  }).format(now);
+
+  const localTodayIndex = days.findIndex((d) => d.date === localTodayStr);
+
+  return localTodayIndex !== -1 ? localTodayIndex : days.length - 1;
+}
+
 export function calculateStreak(
   calendar: ContributionCalendar,
   timezone: string = 'UTC',
   now: Date = new Date(),
   grace: number = 1
 ): StreakStats {
-  const weeks = calendar.weeks;
-  const days = weeks.flatMap((week) => week.contributionDays);
+  const weeks = calendar?.weeks || [];
+  const days = weeks.flatMap((week) => week?.contributionDays || []);
 
   let currentStreak = 0;
   let longestStreak = 0;
@@ -37,8 +47,7 @@ export function calculateStreak(
 
   // 2. Calculate Current Streak (Backwards loop with Grace Period)
   const localTodayStr = new Intl.DateTimeFormat('en-CA', { timeZone: timezone }).format(now);
-  const localTodayIndex = days.findIndex((d) => d.date === localTodayStr);
-  const todayIndex = localTodayIndex !== -1 ? localTodayIndex : days.length - 1;
+  const todayIndex = findTodayIndex(days, timezone, now);
 
   if (todayIndex < 0) {
     return {
@@ -71,8 +80,7 @@ export function calculateStreak(
     currentStreak = 0;
   }
 
-  const todayDate =
-    localTodayIndex !== -1 ? localTodayStr : (days[todayIndex]?.date ?? localTodayStr);
+  const todayDate = days[todayIndex]?.date ?? localTodayStr;
 
   return {
     currentStreak,
@@ -87,7 +95,8 @@ export function calculateMonthlyStats(
   timezone: string = 'UTC',
   now: Date = new Date()
 ): MonthlyStats {
-  const days = calendar.weeks.flatMap((week) => week.contributionDays);
+  const weeks = calendar?.weeks || [];
+  const days = weeks.flatMap((week) => week?.contributionDays || []);
 
   const localTodayStr = new Intl.DateTimeFormat('en-CA', { timeZone: timezone }).format(now);
   const [currentYearStr, currentMonthStr] = localTodayStr.split('-');
@@ -150,37 +159,52 @@ export function calculateMonthlyStats(
  * Used for Organization and Team dashboards.
  */
 export function aggregateCalendars(calendars: ContributionCalendar[]): ContributionCalendar {
-  if (calendars.length === 0) return { totalContributions: 0, weeks: [] };
+  if (calendars.length === 0) {
+    return { totalContributions: 0, weeks: [] };
+  }
 
-  // Clone the structure of the first valid calendar to act as our base accumulator
-  const baseCalendar = JSON.parse(JSON.stringify(calendars[0])) as ContributionCalendar;
+  // Calculate total contributions across all calendars
+  const totalContributions = calendars.reduce((sum, cal) => sum + cal.totalContributions, 0);
 
-  let totalOrgContributions = baseCalendar.totalContributions;
+  // Use a Map keyed by the date string 'YYYY-MM-DD' to safely aggregate daily counts
+  const dateMap = new Map<string, number>();
 
-  // Add all subsequent calendars onto the base
-  for (let i = 1; i < calendars.length; i++) {
-    const cal = calendars[i];
-    totalOrgContributions += cal.totalContributions;
+  // Find the calendar with the most weeks to serve as our structural base
+  let baseCalendar = calendars[0];
+  for (const cal of calendars) {
+    if ((cal.weeks?.length || 0) > (baseCalendar.weeks?.length || 0)) {
+      baseCalendar = cal;
+    }
 
-    cal.weeks.forEach((week, weekIdx) => {
-      week.contributionDays.forEach((day, dayIdx) => {
-        if (baseCalendar.weeks[weekIdx] && baseCalendar.weeks[weekIdx].contributionDays[dayIdx]) {
-          baseCalendar.weeks[weekIdx].contributionDays[dayIdx].contributionCount +=
-            day.contributionCount;
-        }
+    // Populate the Map with all contributions from all calendars
+    (cal.weeks || []).forEach((week) => {
+      (week?.contributionDays || []).forEach((day) => {
+        const currentCount = dateMap.get(day.date) || 0;
+        dateMap.set(day.date, currentCount + day.contributionCount);
       });
     });
   }
 
-  baseCalendar.totalContributions = totalOrgContributions;
-  return baseCalendar;
-}
+  // Deep clone the base calendar so we don't mutate the original object
+  const aggregatedBase = JSON.parse(JSON.stringify(baseCalendar)) as ContributionCalendar;
 
+  aggregatedBase.totalContributions = totalContributions;
+
+  // Re-map the structural base using our aggregated date map
+  (aggregatedBase.weeks || []).forEach((week) => {
+    (week?.contributionDays || []).forEach((day) => {
+      day.contributionCount = dateMap.get(day.date) || 0;
+    });
+  });
+
+  return aggregatedBase;
+}
 /**
  * Processes a calendar to generate deep insights for "GitHub Wrapped"
  */
 export function calculateWrappedStats(calendar: ContributionCalendar) {
-  const days = calendar.weeks.flatMap((w) => w.contributionDays);
+  const weeks = calendar?.weeks || [];
+  const days = weeks.flatMap((w) => w?.contributionDays || []);
 
   let mostActiveDay = { date: '', count: 0 };
   const monthCounts: Record<string, number> = {};
