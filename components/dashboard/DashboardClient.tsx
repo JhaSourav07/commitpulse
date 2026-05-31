@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { X, RefreshCw } from 'lucide-react';
+import { X, RefreshCw, Share2 } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import type { Achievement } from '@/types/dashboard';
+import type { GraphNode, GraphLink } from '@/types';
 
 import RefreshButton from './RefreshButton';
 import ProfileCard from './ProfileCard';
@@ -16,6 +17,7 @@ import CommitClock from './CommitClock';
 import Heatmap from './Heatmap';
 import AIInsights from './AIInsights';
 import StatsCard from './StatsCard';
+import RepositoryGraph from './RepositoryGraph';
 import ComparisonStatsCard from './ComparisonStatsCard';
 import RadarChart from './RadarChart';
 import GrowthTrendChart from './GrowthTrendChart';
@@ -63,6 +65,10 @@ interface DashboardData {
     day: string;
     commits: number;
   }>;
+  graphData: {
+    nodes: GraphNode[];
+    links: GraphLink[];
+  };
 }
 
 interface DashboardClientProps {
@@ -478,6 +484,16 @@ export default function DashboardClient({ initialData, username }: DashboardClie
             </button>
           )}
           <RefreshButton username={username} />
+          <button
+            onClick={() => {
+              navigator.clipboard.writeText(window.location.href);
+              alert('Link copied to clipboard!');
+            }}
+            className="flex items-center gap-2 rounded-xl border border-black/10 px-4 py-2 text-sm font-semibold hover:bg-gray-100 dark:hover:bg-zinc-800 transition"
+          >
+            <Share2 size={16} />
+            Share
+          </button>
           <Link
             href="/"
             className="flex items-center gap-2 rounded-xl border border-black/10 dark:border-[rgba(255,255,255,0.15)] bg-black dark:bg-black px-4 py-2 text-sm font-semibold text-white dark:text-white transition-all duration-200 hover:bg-gray-200 dark:hover:bg-white/10 active:scale-[0.98]"
@@ -505,7 +521,7 @@ export default function DashboardClient({ initialData, username }: DashboardClie
         /* Standard Single Profile View */
         <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr_320px] gap-6 lg:gap-8">
           {/* Left Sidebar */}
-          <aside className="flex flex-col gap-6">
+          <aside className="flex flex-col gap-6 lg:row-span-2">
             <ProfileCard
               user={initialData.profile}
               exportData={{
@@ -562,6 +578,11 @@ export default function DashboardClient({ initialData, username }: DashboardClie
 
             <AIInsights insights={initialData.insights} />
           </aside>
+
+          {/* Repository Graph Section */}
+          <div className="col-span-1 lg:col-span-2 lg:col-start-2">
+            <RepositoryGraph data={initialData.graphData} />
+          </div>
         </div>
       ) : (
         /* Compare Mode Split-Dashboard View */
@@ -702,13 +723,13 @@ export default function DashboardClient({ initialData, username }: DashboardClie
                     {coderProfileA.profileName}
                   </span>
                   <div className="space-y-1 text-xs">
-                    <p className="text-gray-500 dark:text-zinc-500">
+                    <p className="text-gray-500 dark:text-white/65">
                       Peak Hours:{' '}
                       <span className="font-semibold text-gray-900 dark:text-white">
                         {coderProfileA.peakHourStart}:00 - {coderProfileA.peakHourEnd}:00
                       </span>
                     </p>
-                    <p className="text-gray-500 dark:text-zinc-500">
+                    <p className="text-gray-500 dark:text-white/65">
                       Active Days:{' '}
                       <span className="font-semibold text-gray-900 dark:text-white">
                         {coderProfileA.activeWeekdays.join(', ')}
@@ -730,20 +751,20 @@ export default function DashboardClient({ initialData, username }: DashboardClie
 
                 {/* User B */}
                 <div className="flex flex-col">
-                  <p className="text-xs text-[#A1A1AA] truncate font-medium mb-2">
+                  <p className="text-xs text-white/65 truncate font-medium mb-2">
                     {secondUserData.profile.name}
                   </p>
                   <span className="text-xs font-bold text-purple-600 dark:text-purple-400 bg-purple-500/10 px-2 py-1 rounded w-fit mb-3">
                     {coderProfileB.profileName}
                   </span>
                   <div className="space-y-1 text-xs">
-                    <p className="text-gray-500 dark:text-zinc-500">
+                    <p className="text-gray-500 dark:text-white/65">
                       Peak Hours:{' '}
                       <span className="font-semibold text-gray-900 dark:text-white">
                         {coderProfileB.peakHourStart}:00 - {coderProfileB.peakHourEnd}:00
                       </span>
                     </p>
-                    <p className="text-gray-500 dark:text-zinc-500">
+                    <p className="text-gray-500 dark:text-white/65">
                       Active Days:{' '}
                       <span className="font-semibold text-gray-900 dark:text-white">
                         {coderProfileB.activeWeekdays.join(', ')}
@@ -972,7 +993,7 @@ export default function DashboardClient({ initialData, username }: DashboardClie
               {/* Close Button */}
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="absolute right-4 top-4 rounded-xl p-1 text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5 dark:text-white/40 hover:text-black dark:hover:text-white transition-all"
+                className="absolute right-4 top-4 rounded-xl p-1 text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5 dark:text-white/65 hover:text-black dark:hover:text-white transition-all"
                 aria-label="Close modal"
               >
                 <X size={18} />
@@ -997,12 +1018,12 @@ export default function DashboardClient({ initialData, username }: DashboardClie
                     placeholder="Enter GitHub Username"
                     value={secondUsernameInput}
                     onChange={(e) => setSecondUsernameInput(e.target.value)}
-                    className="w-full rounded-xl border border-black/10 bg-gray-100 px-4 py-3 text-sm text-black outline-none transition-all duration-200 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent dark:border-[rgba(255,255,255,0.08)] dark:bg-[#111] dark:text-white dark:placeholder:text-[#A1A1AA]"
+                    className="w-full rounded-xl border border-black/10 bg-gray-100 px-4 py-3 text-sm text-black outline-none transition-all duration-200 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent dark:border-[rgba(255,255,255,0.08)] dark:bg-[#111] dark:text-white dark:placeholder:text-white/65"
                   />
                   {secondUsernameInput.length > 0 && !isLoadingSecond && (
                     <button
                       onClick={() => setSecondUsernameInput('')}
-                      className="absolute right-3 text-gray-500 hover:text-black dark:text-[#A1A1AA] dark:hover:text-white"
+                      className="absolute right-3 text-gray-500 hover:text-black dark:text-white/65 dark:hover:text-white"
                       aria-label="Clear input"
                       type="button"
                     >

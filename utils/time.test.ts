@@ -63,6 +63,14 @@ describe('getSecondsUntilUTCMidnight', () => {
 
     expect(getSecondsUntilUTCMidnight()).toBe(64800); // 18 hours = 64800 s
   });
+
+  it('always returns an integer with sub-second precision input', () => {
+    vi.setSystemTime(new Date('2024-06-15T23:59:59.999Z'));
+
+    const result = getSecondsUntilUTCMidnight();
+    expect(Number.isInteger(result)).toBe(true);
+    expect(result).toBe(0);
+  });
 });
 
 it('returns positive seconds for every hour of day', () => {
@@ -143,6 +151,15 @@ describe('getSecondsUntilMidnightInTimezone', () => {
       expect(result).toBeGreaterThanOrEqual(0);
       expect(Number.isInteger(result)).toBe(true);
     }
+  });
+
+  it('always returns an integer with sub-second precision input', () => {
+    // 2024-06-16T03:59:59.999Z is 23:59:59.999 in Etc/GMT+4 (UTC-4)
+    vi.setSystemTime(new Date('2024-06-16T03:59:59.999Z'));
+
+    const result = getSecondsUntilMidnightInTimezone('Etc/GMT+4');
+    expect(Number.isInteger(result)).toBe(true);
+    expect(result).toBe(1);
   });
 
   it('handles extreme timezone Etc/GMT-14 (UTC+14)', () => {
@@ -231,5 +248,55 @@ describe('getSecondsUntilUTCMidnight — sliding window boundary robustness', ()
       vi.setSystemTime(new Date(time));
       expect(getSecondsUntilUTCMidnight()).toBe(expected);
     }
+  });
+});
+
+describe('getSecondsUntilMidnightInTimezone — extreme timezone offset boundary robustness', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('converts timestamp cleanly to target offset without calendar shifting (UTC+5:30)', () => {
+    // UTC 2024-06-15T18:30:00Z = 2024-06-16T00:00:00 in Asia/Kolkata (UTC+5:30)
+    // So exactly at local midnight → 86400 seconds remaining
+    vi.setSystemTime(new Date('2024-06-15T18:30:00.000Z'));
+
+    expect(getSecondsUntilMidnightInTimezone('Asia/Kolkata')).toBe(86400);
+  });
+
+  it('converts timestamp cleanly to target offset without calendar shifting (UTC+14)', () => {
+    // UTC 2024-06-14T10:00:00Z = 2024-06-15T00:00:00 in Pacific/Kiritimati (UTC+14)
+    // Exactly local midnight → 86400 seconds remaining, no date shift
+    vi.setSystemTime(new Date('2024-06-14T10:00:00.000Z'));
+
+    expect(getSecondsUntilMidnightInTimezone('Pacific/Kiritimati')).toBe(86400);
+  });
+
+  it('converts timestamp cleanly to target offset without calendar shifting (UTC-12)', () => {
+    // UTC 2024-06-15T12:00:00Z = 2024-06-15T00:00:00 in Etc/GMT+12 (UTC-12)
+    // Exactly local midnight → 86400 seconds remaining, no date shift
+    vi.setSystemTime(new Date('2024-06-15T12:00:00.000Z'));
+
+    expect(getSecondsUntilMidnightInTimezone('Etc/GMT+12')).toBe(86400);
+  });
+
+  it('handles a timestamp near year-end boundary without calendar shifting (UTC+14)', () => {
+    // UTC 2023-12-31T10:00:00Z = 2024-01-01T00:00:00 in Pacific/Kiritimati
+    // Crosses year boundary cleanly → 86400 seconds remaining
+    vi.setSystemTime(new Date('2023-12-31T10:00:00.000Z'));
+
+    expect(getSecondsUntilMidnightInTimezone('Pacific/Kiritimati')).toBe(86400);
+  });
+
+  it('handles a timestamp near year-end boundary without calendar shifting (UTC-11)', () => {
+    // UTC 2024-01-01T11:00:00Z = 2024-01-01T00:00:00 in Pacific/Midway (UTC-11)
+    // Crosses year boundary cleanly → 86400 seconds remaining
+    vi.setSystemTime(new Date('2024-01-01T11:00:00.000Z'));
+
+    expect(getSecondsUntilMidnightInTimezone('Pacific/Midway')).toBe(86400);
   });
 });

@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @next/next/no-img-element, jsx-a11y/alt-text */
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -28,20 +29,85 @@ vi.mock('next/link', () => ({
   ),
 }));
 
+// Mock GSAP so FeatureCards don't break in JSDOM
+vi.mock('gsap', () => {
+  const tween = { kill: vi.fn() };
+  const timeline = {
+    to: vi.fn().mockReturnThis(),
+    fromTo: vi.fn().mockReturnThis(),
+    set: vi.fn().mockReturnThis(),
+    kill: vi.fn(),
+  };
+  return {
+    default: {
+      registerPlugin: vi.fn(),
+      set: vi.fn(),
+      to: vi.fn().mockReturnValue(tween),
+      fromTo: vi.fn().mockReturnValue(tween),
+      timeline: vi.fn().mockReturnValue(timeline),
+      context: vi.fn((_fn: any) => ({ revert: vi.fn() })),
+    },
+  };
+});
+
+vi.mock('gsap/ScrollTrigger', () => ({
+  ScrollTrigger: {},
+}));
+
 // Mock framer-motion
 vi.mock('framer-motion', () => ({
   motion: {
-    div: ({ children, className, ...props }: any) => (
+    div: ({
+      children,
+      className,
+      whileHover,
+      whileTap,
+      whileInView,
+      initial,
+      animate,
+      exit,
+      transition,
+      viewport,
+      layoutId,
+      ...props
+    }: any) => (
       <div className={className} data-testid="motion-div" {...props}>
         {children}
       </div>
     ),
-    p: ({ children, className, ...props }: any) => (
+    p: ({
+      children,
+      className,
+      whileHover,
+      whileTap,
+      whileInView,
+      initial,
+      animate,
+      exit,
+      transition,
+      viewport,
+      layoutId,
+      ...props
+    }: any) => (
       <p className={className} data-testid="motion-p" {...props}>
         {children}
       </p>
     ),
-    a: ({ children, className, href, ...props }: any) => (
+    a: ({
+      children,
+      className,
+      href,
+      whileHover,
+      whileTap,
+      whileInView,
+      initial,
+      animate,
+      exit,
+      transition,
+      viewport,
+      layoutId,
+      ...props
+    }: any) => (
       <a href={href} className={className} data-testid="motion-a" {...props}>
         {children}
       </a>
@@ -127,8 +193,8 @@ describe('LandingPage', () => {
     render(<LandingPage />);
 
     expect(screen.getByText(/Enter a GitHub username above to instantly generate/i)).toBeDefined();
-    // No SVG badge should be present yet
-    expect(screen.queryByTestId('badge-svg')).toBeNull();
+    // No badge img should be present yet
+    expect(screen.queryByTestId('badge-img')).toBeNull();
   });
 
   it('updates the username when input changes and fetches the badge', async () => {
@@ -148,9 +214,9 @@ describe('LandingPage', () => {
       );
     });
 
-    // After the fetch resolves the inline SVG should be in the DOM
+    // After the fetch resolves the badge img element should be in the DOM
     await waitFor(() => {
-      expect(screen.getByTestId('badge-svg')).toBeDefined();
+      expect(screen.getByTestId('badge-img')).toBeDefined();
     });
   });
 
@@ -332,5 +398,40 @@ describe('LandingPage', () => {
     });
 
     expect(screen.queryByText(/Too Many Requests/)).toBeNull();
+  });
+
+  it('renders a badge img (not inline SVG) so XSS via SVG content is structurally impossible', async () => {
+    // The fetch mock returns an SVG with a <script> tag, but the new implementation
+    // never injects SVG text into the DOM — it uses <img src=URL> which the browser
+    // renders opaquely. No script tag should ever appear in the document.
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        text: () =>
+          Promise.resolve(
+            '<svg data-testid="badge-svg"><script>alert("xss")</script><circle /></svg>'
+          ),
+      })
+    );
+
+    render(<LandingPage />);
+
+    const input = screen.getByPlaceholderText('Enter GitHub Username') as HTMLInputElement;
+
+    await act(async () => {
+      fireEvent.change(input, { target: { value: 'octocat' } });
+    });
+
+    // An <img> element with the API URL should appear (not inline SVG)
+    await waitFor(() => {
+      const img = screen.getByTestId('badge-img') as HTMLImageElement;
+      expect(img).toBeDefined();
+      expect(img.src).toContain('user=octocat');
+    });
+
+    // The SVG text is never injected into the DOM, so no <script> tag can exist
+    expect(document.querySelector('script')).toBeNull();
   });
 });

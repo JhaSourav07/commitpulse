@@ -59,7 +59,8 @@ export async function GET(req: NextRequest) {
 
   // Only the data fetching is wrapped in try/catch — not the JSX rendering.
   try {
-    const calendar = await fetchGitHubContributions(user, { bypassCache: true });
+    const userData = await fetchGitHubContributions(user, { bypassCache: true });
+    const calendar = userData.calendar;
     const stats = calculateStreak(calendar);
     totalCommits = stats.totalContributions;
     longestStreak = stats.longestStreak;

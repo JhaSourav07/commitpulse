@@ -1,6 +1,31 @@
 import { describe, expect, it } from 'vitest';
 import { githubParamsSchema, ogParamsSchema, streakParamsSchema } from './validations';
 
+describe('streakParamsSchema — grace fallback behavior', () => {
+  it('accepts "0" as a valid grace value', () => {
+    expect(parse({ grace: '0' }).grace).toBe(0);
+  });
+
+  it('accepts "7" as a valid grace value', () => {
+    expect(parse({ grace: '7' }).grace).toBe(7);
+  });
+
+  it('clamps "8" to 7', () => {
+    expect(parse({ grace: '8' }).grace).toBe(7);
+  });
+
+  it('clamps "-1" to 0', () => {
+    expect(parse({ grace: '-1' }).grace).toBe(0);
+  });
+
+  it('falls back to 1 for non-numeric grace value', () => {
+    expect(parse({ grace: 'abc' }).grace).toBe(1);
+  });
+
+  it('defaults to 1 when grace is omitted', () => {
+    expect(parse({}).grace).toBe(1);
+  });
+});
 describe('githubParamsSchema', () => {
   it('should pass when username is valid', () => {
     const result = githubParamsSchema.safeParse({
@@ -227,6 +252,17 @@ describe('streakParamsSchema', () => {
     }
   });
 
+  it('should reject user values longer than 39 characters', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'a'.repeat(40),
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toContain('cannot exceed 39 characters');
+    }
+  });
+
   it('should fail when user is whitespace-only input', () => {
     const result = streakParamsSchema.safeParse({
       user: '   ',
@@ -427,6 +463,18 @@ describe('streakParamsSchema — size fallback behavior', () => {
     }
   });
 
+  it('should fail when org contains invalid characters', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      org: 'invalid_org_name_with_spaces',
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.flatten().fieldErrors.org?.[0]).toBe('Invalid organization name format');
+    }
+  });
+
   it('should keep org undefined when omitted', () => {
     const result = streakParamsSchema.safeParse({
       user: 'octocat',
@@ -436,6 +484,18 @@ describe('streakParamsSchema — size fallback behavior', () => {
 
     if (result.success) {
       expect(result.data.org).toBeUndefined();
+    }
+  });
+
+  it('should fail when org contains invalid characters or spaces', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      org: 'invalid_org_name_with_spaces',
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toBe('Invalid organization name format');
     }
   });
 
@@ -627,6 +687,15 @@ describe('ogParamsSchema', () => {
     const result = ogParamsSchema.parse({});
     expect(result.user).toBe('unknown');
   });
+
+  it('should fallback to "dark" when an invalid theme is provided', () => {
+    const result = ogParamsSchema.safeParse({ theme: 'nonexistent_theme_name' });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.theme).toBe('dark');
+    }
+  });
 });
 
 describe('streakParamsSchema — view fallback behavior', () => {
@@ -644,5 +713,79 @@ describe('streakParamsSchema — view fallback behavior', () => {
 
   it('defaults to "default" when view is omitted', () => {
     expect(parse({}).view).toBe('default');
+  });
+});
+
+describe('streakParamsSchema — accent parameter HEX color validation', () => {
+  it('rejects an invalid hex color like "#ZZZZZZZ" for accent', () => {
+    // #ZZZZZZZ contains non-hex characters — must fail schema validation
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      accent: '#ZZZZZZZ',
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it('accepts a valid 6-character hex color for accent', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      accent: 'ff0000',
+    });
+
+    expect(result.success).toBe(true);
+  });
+});
+
+describe('streakParamsSchema — Date Range Boundary Robustness (Variation 1)', () => {
+  it('should process validation safely and fallback when partial or missing year parameters are passed', () => {
+    const partialYearPayload = {
+      user: 'octocat',
+      from: '05-12',
+      to: '05-30',
+    };
+
+    const result = streakParamsSchema.safeParse(partialYearPayload);
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.from).toBeDefined();
+      expect(result.data.to).toBeDefined();
+    }
+  });
+
+  it('should pass cleanly and fallback to default ranges when date bounds are completely omitted', () => {
+    const minimalPayload = {
+      user: 'octocat',
+    };
+
+    const result = streakParamsSchema.safeParse(minimalPayload);
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.from).toBeUndefined();
+      expect(result.data.to).toBeUndefined();
+    }
+  });
+});
+
+/* ==========================================================================
+ * TZ PARAMETER — IANA TIMEZONE VALIDATION (VARIATION 4)
+ * ========================================================================== */
+
+describe('streakParamsSchema — tz IANA timezone validation (Variation 4)', () => {
+  it('rejects a fictitious planetary timezone that is not a valid IANA zone', () => {
+    // Mars/Cyonia looks structurally plausible (Region/City format) but does not
+    // exist in the IANA tz database, so Intl.DateTimeFormat must throw and the
+    // schema must surface a field-level validation error.
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      tz: 'Mars/Cyonia',
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toContain('Invalid timezone');
+    }
   });
 });

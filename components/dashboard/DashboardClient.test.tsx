@@ -134,6 +134,7 @@ const mockInitialData = {
   insights: [{ id: '1', icon: 'zap', text: 'Highly active in mornings' }],
   achievements: [],
   commitClock: [],
+  graphData: { nodes: [], links: [] },
 };
 
 const mockSecondData = {
@@ -170,6 +171,7 @@ const mockSecondData = {
   insights: [{ id: '1', icon: 'zap', text: 'Hard worker' }],
   achievements: [],
   commitClock: [],
+  graphData: { nodes: [], links: [] },
 };
 
 const initialDataWithHigherStreak = {

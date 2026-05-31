@@ -2,20 +2,22 @@ import { describe, expect, it } from 'vitest';
 import { themes, AUTO_THEME_LIGHT, AUTO_THEME_DARK } from './themes';
 
 describe('themes', () => {
-  it('validates every theme has bg, text, and accent as valid 6-character hex strings', () => {
+  it('validates every theme has bg, text, accent, and negative as valid 6-character hex strings', () => {
     const hexRegex = /^#[0-9a-f]{6}$/i;
 
     Object.entries(themes).forEach(([name, theme]) => {
-      // Validate every theme has bg, text, and accent
+      // Validate every theme has bg, text, accent, and negative
       expect(theme).toHaveProperty('bg');
       expect(theme).toHaveProperty('text');
       expect(theme).toHaveProperty('accent');
+      expect(theme).toHaveProperty('negative');
 
       // Assert they are valid 6-character hex strings using the requested regex.
       // We prepend '#' because the sanitizer strips it from the final object.
       expect(`#${theme.bg}`, `Theme "${name}" bg is invalid`).toMatch(hexRegex);
       expect(`#${theme.text}`, `Theme "${name}" text is invalid`).toMatch(hexRegex);
       expect(`#${theme.accent}`, `Theme "${name}" accent is invalid`).toMatch(hexRegex);
+      expect(`#${theme.negative}`, `Theme "${name}" negative is invalid`).toMatch(hexRegex);
     });
   });
 

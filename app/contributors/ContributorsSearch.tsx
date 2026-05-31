@@ -38,9 +38,7 @@ export default function ContributorsSearch({ contributors }: { contributors: Con
           <p className="text-xl font-semibold text-zinc-600 dark:text-zinc-400">
             No contributors found
           </p>
-          <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-500">
-            Try searching with a different name.
-          </p>
+          <p className="mt-2 text-sm text-white/65">Try searching with a different name.</p>
         </div>
       )}
 
