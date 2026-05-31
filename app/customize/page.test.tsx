@@ -39,27 +39,33 @@ vi.mock('@/components/InteractiveViewer', () => ({
 }));
 
 vi.mock('./components/ControlsPanel', () => ({
-  ControlsPanel: ({
-    username,
-    timezone,
-    onUsernameChange,
-    onTimezoneChange,
-  }: MockControlsPanelProps) => (
+  ControlsPanel: ({ username, onUsernameChange }: MockControlsPanelProps) => (
     <div>
       <input
         aria-label="Mock username"
         value={username}
         onChange={(event) => onUsernameChange(event.currentTarget.value)}
       />
-      <select
-        aria-label="Mock timezone"
-        value={timezone}
-        onChange={(event) => onTimezoneChange(event.currentTarget.value)}
-      >
-        <option value="UTC">UTC</option>
-        <option value="Asia/Kolkata">Asia/Kolkata</option>
-      </select>
     </div>
+  ),
+}));
+
+vi.mock('./components/AdvancedSettingsPanel', () => ({
+  AdvancedSettingsPanel: ({
+    timezone,
+    onTimezoneChange,
+  }: {
+    timezone: string;
+    onTimezoneChange: (value: string) => void;
+  }) => (
+    <select
+      aria-label="Mock timezone"
+      value={timezone}
+      onChange={(event) => onTimezoneChange(event.currentTarget.value)}
+    >
+      <option value="UTC">UTC</option>
+      <option value="Asia/Kolkata">Asia/Kolkata</option>
+    </select>
   ),
 }));
 

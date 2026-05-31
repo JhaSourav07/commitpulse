@@ -118,6 +118,57 @@ describe('fetchWithRetry', () => {
     expect(fetch).toHaveBeenCalledOnce();
   });
 
+  it('retries when the internal request timeout aborts fetch', async () => {
+    vi.mocked(fetch)
+      .mockImplementationOnce(
+        (_url: RequestInfo | URL, options?: RequestInit) =>
+          new Promise<Response>((_resolve, reject) => {
+            options?.signal?.addEventListener(
+              'abort',
+              () => reject(new DOMException('Timed out', 'AbortError')),
+              { once: true }
+            );
+          })
+      )
+      .mockResolvedValueOnce(new Response('ok', { status: 200 }));
+
+    const promise = fetchWithRetry('https://api.github.com/test', {}, 0, 100);
+
+    await vi.advanceTimersByTimeAsync(100);
+    await vi.advanceTimersByTimeAsync(500);
+
+    const res = await promise;
+    expect(res.status).toBe(200);
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it('throws a timeout error after internal timeout retries are exhausted', async () => {
+    vi.mocked(fetch).mockImplementation(
+      (_url: RequestInfo | URL, options?: RequestInit) =>
+        new Promise<Response>((_resolve, reject) => {
+          options?.signal?.addEventListener(
+            'abort',
+            () => reject(new DOMException('Timed out', 'AbortError')),
+            { once: true }
+          );
+        })
+    );
+
+    const promise = fetchWithRetry('https://api.github.com/test', {}, 0, 100);
+    const expectation = expect(promise).rejects.toThrow('GitHub API request timed out after 0.1s');
+
+    await vi.advanceTimersByTimeAsync(100);
+    await vi.advanceTimersByTimeAsync(500);
+    await vi.advanceTimersByTimeAsync(100);
+    await vi.advanceTimersByTimeAsync(1000);
+    await vi.advanceTimersByTimeAsync(100);
+    await vi.advanceTimersByTimeAsync(2000);
+    await vi.advanceTimersByTimeAsync(100);
+
+    await expectation;
+    expect(fetch).toHaveBeenCalledTimes(4);
+  });
+
   it('retries on 429 with numeric retry-after', async () => {
     vi.mocked(fetch)
       .mockResolvedValueOnce(new Response(null, { status: 429, headers: { 'retry-after': '2' } }))

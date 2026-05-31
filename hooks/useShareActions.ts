@@ -11,6 +11,113 @@ const BASE_ORIGIN =
   'https://commitpulse.vercel.app';
 const PROFILE_URL = (username: string) => `${BASE_ORIGIN}/dashboard/${username}`;
 
+const SVG_NAMESPACE = 'http://www.w3.org/2000/svg';
+const XLINK_NAMESPACE = 'http://www.w3.org/1999/xlink';
+const UNSAFE_SVG_ELEMENTS = new Set([
+  'script',
+  'foreignobject',
+  'iframe',
+  'object',
+  'embed',
+  'audio',
+  'video',
+  'canvas',
+  'meta',
+  'base',
+]);
+
+const CONTROL_CHARS_REGEX = /[\u0000-\u001F\u007F]+/g;
+
+function normalizeLineEndings(value: string): string {
+  return value.replace(/\r\n?/g, '\n');
+}
+
+function sanitizeUsernameForUrl(username: string): string {
+  return username.trim().replace(CONTROL_CHARS_REGEX, '');
+}
+
+function sanitizeFilenameSegment(value: string): string {
+  const cleaned = value
+    .trim()
+    .replace(CONTROL_CHARS_REGEX, '')
+    .replace(/[^a-zA-Z0-9._-]/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+
+  return cleaned || 'commitpulse-export';
+}
+
+function buildStreakSvgUrl(username: string): string {
+  const url = new URL('/api/streak', BASE_ORIGIN);
+  url.searchParams.set('user', sanitizeUsernameForUrl(username));
+  return url.toString();
+}
+
+function removeUnsafeSvgAttributes(element: Element) {
+  const attributes = Array.from(element.attributes);
+  for (const attr of attributes) {
+    const attrName = attr.name.toLowerCase();
+    const attrValue = attr.value.trim();
+
+    if (attrName.startsWith('on')) {
+      element.removeAttribute(attr.name);
+      continue;
+    }
+
+    if (attrName === 'href' || attrName === 'xlink:href') {
+      const normalized = attrValue.toLowerCase();
+      if (
+        normalized.startsWith('javascript:') ||
+        normalized.startsWith('vbscript:') ||
+        normalized.startsWith('data:')
+      ) {
+        element.removeAttribute(attr.name);
+      }
+    }
+  }
+}
+
+function sanitizeAndCanonicalizeSvg(svgText: string): string {
+  const normalizedText = normalizeLineEndings(svgText).trim();
+  const parser = new DOMParser();
+  const parsed = parser.parseFromString(normalizedText, 'image/svg+xml');
+  const parseError = parsed.querySelector('parsererror');
+
+  if (parseError) {
+    throw new Error('Invalid SVG payload');
+  }
+
+  const root = parsed.documentElement;
+  if (!root || root.tagName.toLowerCase() !== 'svg') {
+    throw new Error('SVG root element is required');
+  }
+
+  if (!root.getAttribute('xmlns')) {
+    root.setAttribute('xmlns', SVG_NAMESPACE);
+  }
+
+  if (!root.getAttribute('xmlns:xlink')) {
+    root.setAttribute('xmlns:xlink', XLINK_NAMESPACE);
+  }
+
+  const elements = Array.from(parsed.querySelectorAll('*'));
+  for (const element of elements) {
+    if (UNSAFE_SVG_ELEMENTS.has(element.tagName.toLowerCase())) {
+      element.remove();
+      continue;
+    }
+
+    removeUnsafeSvgAttributes(element);
+  }
+
+  removeUnsafeSvgAttributes(root);
+  return `${new XMLSerializer().serializeToString(root)}\n`;
+}
+
+function buildMarkdownExport(username: string): string {
+  return `![CommitPulse](${buildStreakSvgUrl(username)})`;
+}
+
 export function useShareActions(
   username: string,
   exportData: DashboardExportData,
@@ -189,13 +296,13 @@ export function useShareActions(
   const handleDownloadSVG = async () => {
     setOptionState('svg', 'loading');
     try {
-      const response = await fetch(`/api/streak?user=${encodeURIComponent(username)}`);
+      const response = await fetch(buildStreakSvgUrl(username));
       if (!response.ok) throw new Error('Failed to fetch SVG');
-      const svgText = await response.text();
-      const blob = new Blob([svgText], { type: 'image/svg+xml' });
+      const svgText = sanitizeAndCanonicalizeSvg(await response.text());
+      const blob = new Blob([svgText], { type: 'image/svg+xml;charset=utf-8' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
-      link.download = `${username}-commitpulse.svg`;
+      link.download = `${sanitizeFilenameSegment(username)}-commitpulse.svg`;
       link.href = url;
       link.click();
       URL.revokeObjectURL(url);
@@ -208,7 +315,7 @@ export function useShareActions(
   const handleCopyMarkdown = async () => {
     setOptionState('markdown', 'loading');
     try {
-      const markdown = `![CommitPulse](${window.location.origin}/api/streak?user=${encodeURIComponent(username)})`;
+      const markdown = buildMarkdownExport(username);
       await navigator.clipboard.writeText(markdown);
       setOptionState('markdown', 'success');
       setTimeout(() => onClose(), 800);

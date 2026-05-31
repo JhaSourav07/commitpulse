@@ -235,6 +235,8 @@ describe('GET /api/streak', () => {
       const body = await response.text();
 
       expect(body).toContain('<svg');
+      expect(body).toContain('viewBox');
+      expect(body).toContain('xmlns="http://www.w3.org/2000/svg"');
       expect(body).toContain('</svg>');
     });
 
@@ -558,10 +560,10 @@ describe('GET /api/streak', () => {
       expect(body.details.fieldErrors.year[0]).toContain('GitHub was founded in 2008');
     });
 
-    it('returns 200 for unknown ?date= parameter (not part of schema)', async () => {
-      const response = await GET(makeRequest({ user: 'octocat', date: '2026-15-40' }));
-      expect(response.status).toBe(200);
-    });
+    // it('returns 200 for unknown ?date= parameter (not part of schema)', async () => {
+    //   const response = await GET(makeRequest({ user: 'octocat', date: '2026-15-40' }));
+    //   expect(response.status).toBe(200);
+    // });
 
     it('returns 400 for malformed numeric year', async () => {
       const response = await GET(makeRequest({ user: 'octocat', year: '100000' }));
@@ -610,6 +612,16 @@ describe('GET /api/streak', () => {
       const response = await GET(makeRequest({ user: 'octocat', year: currentYear }));
 
       expect(response.status).toBe(200);
+    });
+
+    describe('date parameter', () => {
+      it('returns 400 when an invalid ISO8601 calendar date format like "2026-15-40" is supplied', async () => {
+        const response = await GET(makeRequest({ user: 'octocat', date: '2026-15-40' }));
+        const body = await response.json();
+
+        expect(response.status).toBe(400);
+        expect(body.details.fieldErrors.date[0]).toContain('Invalid "date" format');
+      });
     });
   });
 
@@ -722,9 +734,15 @@ describe('GET /api/streak', () => {
 
       expect(response.status).toBe(400);
     });
+
     it('returns 400 when an invalid hex color is passed as accent', async () => {
-      // #ZZZZZZZ contains non-hex characters — schema must reject it with 400
-      const response = await GET(makeRequest({ user: 'octocat', accent: '#ZZZZZZZ' }));
+      // #ZZZZZZ contains non-hex characters — schema must reject it with 400
+      const response = await GET(makeRequest({ user: 'octocat', accent: '#ZZZZZZ' }));
+
+      expect(response.status).toBe(400);
+    });
+    it('returns 400 when another invalid hex color is passed as accent (Variation 4)', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', accent: '#ZZZZZZ' }));
 
       expect(response.status).toBe(400);
     });

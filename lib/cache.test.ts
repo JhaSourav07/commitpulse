@@ -402,6 +402,17 @@ describe('TTLCache', () => {
       expect(cache.get('tags')).toEqual(tags);
       cache.destroy();
     });
+
+    it('stores and retrieves values using unicode cache keys', () => {
+      const cache = new TTLCache<string>();
+
+      cache.set('cache_🔥_key', 'octocat', 60_000);
+
+      expect(cache.get('cache_🔥_key')).toBe('octocat');
+
+      cache.destroy();
+    });
+
     it('preserves Date instance values in TTLCache', () => {
       const cache = new TTLCache<Date>();
 
@@ -444,6 +455,17 @@ describe('TTLCache', () => {
     it('throws RangeError when setting a value with -5000 TTL', () => {
       const cache = new TTLCache<string>();
       expect(() => cache.set('key', 'value', -5000)).toThrow(RangeError);
+      cache.destroy();
+    });
+
+    it('throws TypeError when setting a null key', () => {
+      const cache = new TTLCache<string>();
+
+      expect(() => {
+        cache.set(null as unknown as string, 'value', 60_000);
+      }).toThrow(TypeError);
+      expect(cache.size()).toBe(0);
+
       cache.destroy();
     });
 
@@ -555,6 +577,28 @@ describe('TTLCache', () => {
 
       cache.destroy();
     });
+  });
+
+  it('stores and retrieves values with unicode and emoji cache keys', () => {
+    const cache = new TTLCache<string>();
+
+    const unicodeKey = 'cache_🔥_key';
+    const emojiKey = '🚀_rocket_🚀';
+    const mixedKey = 'user_👤_data_🔐';
+
+    cache.set(unicodeKey, 'fire-value', 60_000);
+    cache.set(emojiKey, 'rocket-value', 60_000);
+    cache.set(mixedKey, 'secure-data', 60_000);
+
+    expect(cache.get(unicodeKey)).toBe('fire-value');
+    expect(cache.get(emojiKey)).toBe('rocket-value');
+    expect(cache.get(mixedKey)).toBe('secure-data');
+
+    expect(cache.has(unicodeKey)).toBe(true);
+    expect(cache.has(emojiKey)).toBe(true);
+    expect(cache.has(mixedKey)).toBe(true);
+
+    cache.destroy();
   });
 });
 

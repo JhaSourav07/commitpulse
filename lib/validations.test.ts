@@ -26,6 +26,7 @@ describe('streakParamsSchema — grace fallback behavior', () => {
     expect(parse({}).grace).toBe(1);
   });
 });
+
 describe('githubParamsSchema', () => {
   it('should pass when username is valid', () => {
     const result = githubParamsSchema.safeParse({
@@ -76,6 +77,7 @@ describe('githubParamsSchema', () => {
     }
   });
 });
+
 describe('streakParamsSchema user validation', () => {
   it('should pass when user is valid', () => {
     const result = streakParamsSchema.safeParse({
@@ -295,6 +297,7 @@ describe('streakParamsSchema', () => {
       expect(result.error.issues[0]?.message).toBe('Invalid GitHub username');
     }
   });
+
   it('should accept delta_format percent', () => {
     const result = streakParamsSchema.safeParse({
       user: 'octocat',
@@ -450,6 +453,7 @@ describe('streakParamsSchema — size fallback behavior', () => {
   it('falls back to "medium" for empty string', () => {
     expect(parse({ size: '' }).size).toBe('medium');
   });
+
   it('should accept org parameter when provided', () => {
     const result = streakParamsSchema.safeParse({
       user: 'octocat',
@@ -631,6 +635,25 @@ describe('streakParamsSchema — boolean transform fields', () => {
       expect(parse({}).hide_background).toBe(false);
     });
   });
+
+  // ── glow ──────────────────────────────────────────────────────────────────
+  describe('glow', () => {
+    it('returns true when glow="true"', () => {
+      expect(parse({ glow: 'true' }).glow).toBe(true);
+    });
+
+    it('returns true when glow="1"', () => {
+      expect(parse({ glow: '1' }).glow).toBe(true);
+    });
+
+    it('returns false when glow="false"', () => {
+      expect(parse({ glow: 'false' }).glow).toBe(false);
+    });
+
+    it('returns true when glow is omitted', () => {
+      expect(parse({}).glow).toBe(true);
+    });
+  });
 });
 
 describe('ogParamsSchema', () => {
@@ -717,14 +740,37 @@ describe('streakParamsSchema — view fallback behavior', () => {
 });
 
 describe('streakParamsSchema — accent parameter HEX color validation', () => {
-  it('rejects an invalid hex color like "#ZZZZZZZ" for accent', () => {
-    // #ZZZZZZZ contains non-hex characters — must fail schema validation
+  it('rejects an invalid hex color like "#ZZZZZZ" for accent', () => {
+    // #ZZZZZZ contains non-hex characters — must fail schema validation
     const result = streakParamsSchema.safeParse({
       user: 'octocat',
-      accent: '#ZZZZZZZ',
+      accent: '#ZZZZZZ',
     });
 
     expect(result.success).toBe(false);
+  });
+
+  it('rejects an invalid hex color like "#ZZZZZZ" for accent (Variation 4)', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      accent: '#ZZZZZZ',
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects the invalid boundary hex color "#ZZZZZZ" for accent', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      accent: '#ZZZZZZ',
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toContain(
+        'accent must be a valid 3 or 6 character hex color without #'
+      );
+    }
   });
 
   it('accepts a valid 6-character hex color for accent', () => {
@@ -737,16 +783,23 @@ describe('streakParamsSchema — accent parameter HEX color validation', () => {
   });
 });
 
+/* ==========================================================================
+ * DATE RANGE BOUNDARY ROBUSTNESS (VARIATION 1)
+ * ========================================================================== */
+
 describe('streakParamsSchema — Date Range Boundary Robustness (Variation 1)', () => {
   it('should process validation safely and fallback when partial or missing year parameters are passed', () => {
+    // Arrange: Provide a mock payload missing a full YYYY format sequence
     const partialYearPayload = {
       user: 'octocat',
       from: '05-12',
       to: '05-30',
     };
 
+    // Act: Pass the object through the validator schema matrix
     const result = streakParamsSchema.safeParse(partialYearPayload);
 
+    // Assert: The validator handles it safely using implicit date engine fallbacks
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.from).toBeDefined();
@@ -755,12 +808,15 @@ describe('streakParamsSchema — Date Range Boundary Robustness (Variation 1)', 
   });
 
   it('should pass cleanly and fallback to default ranges when date bounds are completely omitted', () => {
+    // Arrange: Pass only the bare minimum required parameters
     const minimalPayload = {
       user: 'octocat',
     };
 
+    // Act
     const result = streakParamsSchema.safeParse(minimalPayload);
 
+    // Assert: Verify that omitted range options return undefined to use downstream defaults smoothly
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.from).toBeUndefined();
@@ -830,5 +886,14 @@ describe('streakParamsSchema — layout query parameter validation (Variation 1)
       user: 'octocat',
     });
     expect(result.success).toBe(true);
+
+describe('streakParamsSchema — date parameter validation', () => {
+  it('rejects an invalid ISO8601 calendar date format like "2026-15-40"', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      date: '2026-15-40',
+    });
+
+    expect(result.success).toBe(false);
   });
 });
