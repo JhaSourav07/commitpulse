@@ -384,6 +384,7 @@ export default function CustomizePage(): ReactElement {
               copied={copied}
               copyStatusMessage={copyStatusMessage}
               hasUsername={hasUsername}
+              username={trimmedUsername}
               onFormatChange={setExportFormat}
               onCopy={copyExportSnippet}
             />
