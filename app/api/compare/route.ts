@@ -1,23 +1,23 @@
 import { NextResponse } from 'next/server';
 import { getFullDashboardData } from '@/lib/github';
+import { compareParamsSchema } from '@/lib/validations';
 
 export const revalidate = 3600;
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const user1 = searchParams.get('user1');
-  const user2 = searchParams.get('user2');
 
-  if (!user1 || !user2) {
+  const parseResult = compareParamsSchema.safeParse(Object.fromEntries(searchParams.entries()));
+
+  if (!parseResult.success) {
+    const fieldErrors = parseResult.error.flatten();
     return NextResponse.json(
-      { error: 'Both user1 and user2 query parameters are required.' },
+      { error: 'Invalid parameters', details: fieldErrors },
       { status: 400 }
     );
   }
 
-  if (user1.toLowerCase() === user2.toLowerCase()) {
-    return NextResponse.json({ error: 'Cannot compare a user with themselves.' }, { status: 400 });
-  }
+  const { user1, user2 } = parseResult.data;
 
   try {
     const [result1, result2] = await Promise.allSettled([

@@ -115,4 +115,34 @@ describe('themes', () => {
       expect(`#${theme.accent}`).toMatch(hexRegex);
     });
   });
+
+  describe('makeTheme produces HexColor branded types', () => {
+    const hexRegex = /^[0-9a-f]{6}$/i;
+
+    it('every theme bg matches hex regex', () => {
+      Object.entries(themes).forEach(([name, theme]) => {
+        expect(theme.bg, `theme "${name}" bg`).toMatch(hexRegex);
+      });
+    });
+
+    it('every theme text matches hex regex', () => {
+      Object.entries(themes).forEach(([name, theme]) => {
+        expect(theme.text, `theme "${name}" text`).toMatch(hexRegex);
+      });
+    });
+
+    it('every theme accent matches hex regex', () => {
+      Object.entries(themes).forEach(([name, theme]) => {
+        expect(theme.accent, `theme "${name}" accent`).toMatch(hexRegex);
+      });
+    });
+
+    it('no theme value starts with #', () => {
+      Object.entries(themes).forEach(([name, theme]) => {
+        expect(theme.bg.startsWith('#'), `theme "${name}" bg starts with #`).toBe(false);
+        expect(theme.text.startsWith('#'), `theme "${name}" text starts with #`).toBe(false);
+        expect(theme.accent.startsWith('#'), `theme "${name}" accent starts with #`).toBe(false);
+      });
+    });
+  });
 });

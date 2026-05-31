@@ -223,22 +223,22 @@ it('assigns correct row and col values based on week/day position', () => {
     weeks: [
       {
         contributionDays: [
+          { contributionCount: 1, date: '2024-06-09' },
           { contributionCount: 1, date: '2024-06-10' },
           { contributionCount: 1, date: '2024-06-11' },
-          { contributionCount: 1, date: '2024-06-12' },
         ],
       },
       {
         contributionDays: [
-          { contributionCount: 1, date: '2024-06-13' },
-          { contributionCount: 1, date: '2024-06-14' },
-          { contributionCount: 1, date: '2024-06-15' },
+          { contributionCount: 1, date: '2024-06-16' },
+          { contributionCount: 1, date: '2024-06-17' },
+          { contributionCount: 1, date: '2024-06-18' },
         ],
       },
     ],
   } as unknown as ContributionCalendar;
 
-  const towers = computeTowers(calendar, 'linear', '2024-06-15');
+  const towers = computeTowers(calendar, 'linear', '2024-06-18');
 
   expect(towers[0].row).toBe(0);
   expect(towers[0].col).toBe(0);

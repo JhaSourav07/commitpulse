@@ -30,6 +30,22 @@ describe('getTowerAnimationCSS', () => {
     expect(css).not.toContain('@keyframes');
   });
 
+  it('scales transform-origin for rise animation when scale factor is provided', () => {
+    const cssScale045 = getTowerAnimationCSS('rise', 0.45);
+    expect(cssScale045).toContain('transform-origin: 0 4.5px');
+
+    const cssScale08 = getTowerAnimationCSS('rise', 0.8);
+    expect(cssScale08).toContain('transform-origin: 0 8px');
+  });
+
+  it('scales translateY translation for slide animation when scale factor is provided', () => {
+    const cssScale045 = getTowerAnimationCSS('slide', 0.45);
+    expect(cssScale045).toContain('transform: translateY(-9px)');
+
+    const cssScale08 = getTowerAnimationCSS('slide', 0.8);
+    expect(cssScale08).toContain('transform: translateY(-16px)');
+  });
+
   it('includes accessibility support for prefers-reduced-motion', () => {
     const css = getTowerAnimationCSS('rise');
     expect(css).toContain('prefers-reduced-motion');

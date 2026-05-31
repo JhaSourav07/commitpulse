@@ -123,7 +123,8 @@ export function computeTowers(
         ? `TODAY: ${day.date}: ${count} ${unit}`
         : `${day.date}: ${count} ${unit}`;
 
-      const coords = projectIsometric(i, j);
+      const dayOfWeekIndex = new Date(day.date).getUTCDay();
+      const coords = projectIsometric(i, dayOfWeekIndex);
 
       let intensityLevel = 0;
       if (hasCommits) {
@@ -153,7 +154,7 @@ export function computeTowers(
         strokeOpacity: isGhost ? 0.3 : 0,
         strokeWidth: isGhost ? 0.5 : 0,
         row: i,
-        col: j,
+        col: dayOfWeekIndex,
         intensityLevel,
       });
     });

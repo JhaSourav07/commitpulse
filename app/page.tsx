@@ -1,6 +1,5 @@
 'use client';
 import { trackUser } from '@/utils/tracking';
-import InteractiveViewer from '@/components/InteractiveViewer';
 import Link from 'next/link';
 import { useRef, useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -14,6 +13,7 @@ import { Footer } from '@/app/components/Footer';
 
 import { FeatureCard, FeatureCardsSection } from '@/components/FeatureCards';
 import { DiscordButton } from '@/components/DiscordButton';
+import { WallOfLove } from '@/components/WallOfLove';
 
 const Icons = {
   Github: () => (
@@ -182,6 +182,11 @@ export default function LandingPage() {
                     </button>
                   ) : null}
                 </div>
+                {mounted && username.length === 0 && (
+                  <p className="text-amber-500 text-xs mt-1 self-start pl-1">
+                    Please enter a GitHub username to copy your badge link.
+                  </p>
+                )}
                 {username.length === 39 && (
                   <p className="text-red-500 text-xs mt-1 self-start pl-1">
                     GitHub username limit reached (39 characters maximum)
@@ -374,6 +379,9 @@ export default function LandingPage() {
             desc="Sophisticated 3D projection formulas turn 2D data into digital architecture."
           />
         </FeatureCardsSection>
+
+        <WallOfLove />
+
         <Footer />
       </main>
     </div>
