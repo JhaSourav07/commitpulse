@@ -271,15 +271,18 @@ describe('calculateStreak', () => {
     expect(result.currentStreak).toBe(5);
   });
 });
-it('handles massive single-day commit spike timeline', () => {
-  const calendar = buildCalendar([
-    0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 120, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1,
-  ]);
 
-  const result = calculateStreak(calendar);
+describe('calculateStreak — additional edge cases', () => {
+  it('handles massive single-day commit spike timeline', () => {
+    const calendar = buildCalendar([
+      0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 120, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1,
+    ]);
 
-  expect(result.currentStreak).toBe(7);
-  expect(result.longestStreak).toBe(7);
+    const result = calculateStreak(calendar);
+
+    expect(result.currentStreak).toBe(7);
+    expect(result.longestStreak).toBe(7);
+  });
 });
 
 describe('calculateStreak — timezone awareness', () => {
