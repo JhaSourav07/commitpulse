@@ -3,6 +3,31 @@ import dbConnect from '@/lib/mongodb';
 import { Notification } from '@/models/Notification';
 import { NotificationPayload, NotificationResponse } from '@/types/index';
 
+/**
+ * Masks an email address to prevent PII exposure in unauthenticated responses.
+ * Example: "john.doe@gmail.com" → "jo***@gm***.com"
+ */
+function maskEmail(email: string): string {
+  const [local, domain] = email.split('@');
+  if (!local || !domain) return '***@***.***';
+
+  const maskedLocal = local.slice(0, Math.min(2, local.length)) + '***';
+
+  const dotIndex = domain.lastIndexOf('.');
+  if (dotIndex === -1) {
+    // Domain without a TLD (e.g., "localhost") — mask without trailing dot
+    const maskedDomain = domain.slice(0, Math.min(2, domain.length)) + '***';
+    return `${maskedLocal}@${maskedDomain}`;
+  }
+
+  const domainName = domain.slice(0, dotIndex);
+  const tld = domain.slice(dotIndex + 1);
+
+  const maskedDomain = domainName.slice(0, Math.min(2, domainName.length)) + '***';
+
+  return `${maskedLocal}@${maskedDomain}.${tld}`;
+}
+
 // ─── POST /api/notify ────────────────────────────────────────────────────────
 // Register or update email notification preferences for a user
 export async function POST(req: NextRequest): Promise<NextResponse<NotificationResponse>> {
@@ -106,13 +131,15 @@ export async function GET(req: NextRequest): Promise<NextResponse<NotificationRe
       );
     }
 
+    // Mask the email to prevent PII exposure in unauthenticated GET responses.
+    // The full email is only accepted on POST (write) — never returned on GET (read).
     return NextResponse.json(
       {
         success: true,
         message: 'Notification preferences fetched successfully.',
         data: {
           username: notification.username,
-          email: notification.email,
+          email: maskEmail(notification.email),
           frequency: notification.frequency,
           preferences: {
             notifyOnCommit: notification.notifyOnCommit,

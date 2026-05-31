@@ -221,7 +221,7 @@ function renderStyle(
   <style>
   @import url('https://fonts.googleapis.com/css2?family=Fira+Code&amp;family=JetBrains+Mono&amp;family=Roboto&amp;family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');
   ${googleFontsImport}
-  ${getTowerAnimationCSS(entrance)}
+  ${getTowerAnimationCSS(entrance, sf)}
   .scan-line {
     animation: scan-sweep var(--scan-speed, 8s) linear infinite;
     transform-box: fill-box;
@@ -617,7 +617,7 @@ function generateAutoThemeSVG(
   :root { --cp-bg: #${light.bg}; --cp-text: #${light.text}; --cp-accent: #${light.accent}; --cp-label-fill: ${lightLabelFill}; --cp-label-opacity: ${lightLabelOpacity}; }
   @media (prefers-color-scheme: dark) { :root { --cp-bg: #${dark.bg}; --cp-text: #${dark.text}; --cp-accent: #${dark.accent}; --cp-label-fill: ${darkLabelFill}; --cp-label-opacity: ${darkLabelOpacity}; } }
   .cp-bg-fill { fill: var(--cp-bg); } .cp-text-fill { fill: var(--cp-text); color: var(--cp-text); } .cp-accent-fill { fill: var(--cp-accent); color: var(--cp-accent); }
-  ${getTowerAnimationCSS(params.entrance || 'rise')}
+  ${getTowerAnimationCSS(params.entrance || 'rise', sf)}
   .scan-line {
     animation: scan-sweep var(--scan-speed, 8s) linear infinite;
     transform-box: fill-box;
@@ -2014,7 +2014,7 @@ function generateAutoThemeVersusSVG(
   :root { --cp-bg: #${light.bg}; --cp-text: #${light.text}; --cp-accent: #${light.accent}; --cp-label-fill: ${lightLabelFill}; --cp-label-opacity: ${lightLabelOpacity}; }
   @media (prefers-color-scheme: dark) { :root { --cp-bg: #${dark.bg}; --cp-text: #${dark.text}; --cp-accent: #${dark.accent}; --cp-label-fill: ${darkLabelFill}; --cp-label-opacity: ${darkLabelOpacity}; } }
   .cp-bg-fill { fill: var(--cp-bg); } .cp-text-fill { fill: var(--cp-text); color: var(--cp-text); } .cp-accent-fill { fill: var(--cp-accent); color: var(--cp-accent); }
-  ${getTowerAnimationCSS(params.entrance || 'rise')}
+  ${getTowerAnimationCSS(params.entrance || 'rise', sf)}
   .scan-line {
     animation: scan-sweep var(--scan-speed, 8s) linear infinite;
     transform-box: fill-box;
