@@ -356,3 +356,244 @@ describe('[Issue] generateVersusSVG — zero existing test coverage', () => {
     expect(svg).not.toContain('prefers-color-scheme: dark');
   });
 });
+
+// ─── Custom gradient_stops and gradient_dir parameters ───────────────────────
+
+describe('[Feature] custom gradient_stops and gradient_dir', () => {
+  it('existing gradient=true renders default gradient without custom stops', () => {
+    const svg = generateSVG(
+      baseStats,
+      {
+        user: 'chetan',
+        bg: hexColor('0d1117'),
+        text: hexColor('ffffff'),
+        accent: hexColor('ff00ff'),
+        speed: '8s',
+        scale: 'linear',
+        gradient: true,
+      } satisfies BadgeParams,
+      baseCalendar
+    );
+
+    // Should use default tower-grad-level-* IDs
+    expect(svg).toContain('tower-grad-level-1');
+    expect(svg).toContain('tower-grad-level-2');
+  });
+
+  it('gradient=true with valid gradient_stops renders custom gradient', () => {
+    const svg = generateSVG(
+      baseStats,
+      {
+        user: 'chetan',
+        bg: hexColor('0d1117'),
+        text: hexColor('ffffff'),
+        accent: hexColor('ff00ff'),
+        speed: '8s',
+        scale: 'linear',
+        gradient: true,
+        gradient_stops: 'ff6b35,ff007f,7000ff',
+      } satisfies BadgeParams,
+      baseCalendar
+    );
+
+    // Should contain custom gradient colors
+    expect(svg).toContain('#ff6b35');
+    expect(svg).toContain('#ff007f');
+    expect(svg).toContain('#7000ff');
+    // Should have custom gradient IDs, not default tower-grad-level-*
+    expect(svg).toContain('custom-grad-');
+  });
+
+  it('gradient_stops with # prefix works correctly', () => {
+    const svg = generateSVG(
+      baseStats,
+      {
+        user: 'chetan',
+        bg: hexColor('0d1117'),
+        text: hexColor('ffffff'),
+        accent: hexColor('ff00ff'),
+        speed: '8s',
+        scale: 'linear',
+        gradient: true,
+        gradient_stops: '#ff6b35,#ff007f,#7000ff',
+      } satisfies BadgeParams,
+      baseCalendar
+    );
+
+    // Should normalize and use the colors
+    expect(svg).toContain('#ff6b35');
+    expect(svg).toContain('#ff007f');
+    expect(svg).toContain('#7000ff');
+  });
+
+  it('invalid gradient_stops falls back to default gradient', () => {
+    const svg = generateSVG(
+      baseStats,
+      {
+        user: 'chetan',
+        bg: hexColor('0d1117'),
+        text: hexColor('ffffff'),
+        accent: hexColor('ff00ff'),
+        speed: '8s',
+        scale: 'linear',
+        gradient: true,
+        gradient_stops: 'invalid,colors,here',
+      } satisfies BadgeParams,
+      baseCalendar
+    );
+
+    // Should fallback to default gradient (tower-grad-level-*)
+    expect(svg).toContain('tower-grad-level-1');
+    expect(svg).not.toContain('custom-grad-');
+  });
+
+  it('fewer than 2 valid colors in gradient_stops falls back to default', () => {
+    const svg = generateSVG(
+      baseStats,
+      {
+        user: 'chetan',
+        bg: hexColor('0d1117'),
+        text: hexColor('ffffff'),
+        accent: hexColor('ff00ff'),
+        speed: '8s',
+        scale: 'linear',
+        gradient: true,
+        gradient_stops: 'ff6b35',
+      } satisfies BadgeParams,
+      baseCalendar
+    );
+
+    // Should fallback to default gradient
+    expect(svg).toContain('tower-grad-level-1');
+    expect(svg).not.toContain('custom-grad-');
+  });
+
+  it('gradient_dir=vertical produces correct SVG coordinates', () => {
+    const svg = generateSVG(
+      baseStats,
+      {
+        user: 'chetan',
+        bg: hexColor('0d1117'),
+        text: hexColor('ffffff'),
+        accent: hexColor('ff00ff'),
+        speed: '8s',
+        scale: 'linear',
+        gradient: true,
+        gradient_stops: 'ff6b35,7000ff',
+        gradient_dir: 'vertical',
+      } satisfies BadgeParams,
+      baseCalendar
+    );
+
+    // Vertical gradient should have y1 and y2 different (0% to 100%)
+    expect(svg).toMatch(/x1="0%"\s+y1="0%"\s+x2="0%"\s+y2="100%"/);
+  });
+
+  it('gradient_dir=horizontal produces correct SVG coordinates', () => {
+    const svg = generateSVG(
+      baseStats,
+      {
+        user: 'chetan',
+        bg: hexColor('0d1117'),
+        text: hexColor('ffffff'),
+        accent: hexColor('ff00ff'),
+        speed: '8s',
+        scale: 'linear',
+        gradient: true,
+        gradient_stops: 'ff6b35,7000ff',
+        gradient_dir: 'horizontal',
+      } satisfies BadgeParams,
+      baseCalendar
+    );
+
+    // Horizontal gradient should have x1 and x2 different (0% to 100%)
+    expect(svg).toMatch(/x1="0%"\s+y1="0%"\s+x2="100%"\s+y2="0%"/);
+  });
+
+  it('gradient_dir=diagonal produces correct SVG coordinates', () => {
+    const svg = generateSVG(
+      baseStats,
+      {
+        user: 'chetan',
+        bg: hexColor('0d1117'),
+        text: hexColor('ffffff'),
+        accent: hexColor('ff00ff'),
+        speed: '8s',
+        scale: 'linear',
+        gradient: true,
+        gradient_stops: 'ff6b35,7000ff',
+        gradient_dir: 'diagonal',
+      } satisfies BadgeParams,
+      baseCalendar
+    );
+
+    // Diagonal gradient should have both x and y varying
+    expect(svg).toMatch(/x1="0%"\s+y1="0%"\s+x2="100%"\s+y2="100%"/);
+  });
+
+  it('invalid gradient_dir falls back to vertical', () => {
+    const svg = generateSVG(
+      baseStats,
+      {
+        user: 'chetan',
+        bg: hexColor('0d1117'),
+        text: hexColor('ffffff'),
+        accent: hexColor('ff00ff'),
+        speed: '8s',
+        scale: 'linear',
+        gradient: true,
+        gradient_stops: 'ff6b35,7000ff',
+        gradient_dir: 'invalid',
+      } satisfies BadgeParams,
+      baseCalendar
+    );
+
+    // Should fallback to vertical
+    expect(svg).toMatch(/x1="0%"\s+y1="0%"\s+x2="0%"\s+y2="100%"/);
+  });
+
+  it('gradient_stops with mixed valid and invalid colors ignores invalid ones', () => {
+    const svg = generateSVG(
+      baseStats,
+      {
+        user: 'chetan',
+        bg: hexColor('0d1117'),
+        text: hexColor('ffffff'),
+        accent: hexColor('ff00ff'),
+        speed: '8s',
+        scale: 'linear',
+        gradient: true,
+        gradient_stops: 'ff6b35,invalid,7000ff',
+      } satisfies BadgeParams,
+      baseCalendar
+    );
+
+    // Should use the 2 valid colors and ignore invalid
+    expect(svg).toContain('#ff6b35');
+    expect(svg).toContain('#7000ff');
+    expect(svg).toContain('custom-grad-');
+  });
+
+  it('gradient=false ignores gradient_stops and gradient_dir', () => {
+    const svg = generateSVG(
+      baseStats,
+      {
+        user: 'chetan',
+        bg: hexColor('0d1117'),
+        text: hexColor('ffffff'),
+        accent: hexColor('ff00ff'),
+        speed: '8s',
+        scale: 'linear',
+        gradient: false,
+        gradient_stops: 'ff6b35,7000ff',
+        gradient_dir: 'horizontal',
+      } satisfies BadgeParams,
+      baseCalendar
+    );
+
+    // Should not contain any gradient definitions
+    expect(svg).not.toContain('linearGradient');
+    expect(svg).not.toContain('custom-grad-');
+    expect(svg).not.toContain('tower-grad-level-');
+  });
+});

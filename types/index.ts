@@ -212,6 +212,12 @@ export interface BadgeParams {
   /** Opt-in to show volumetric gradients on the monolith floor. */
   gradient?: boolean;
 
+  /** Custom gradient color stops as comma-separated hex colors (e.g. 'ff6b35,ff007f,7000ff'). Requires at least 2 valid colors. */
+  gradient_stops?: string;
+
+  /** Custom gradient direction: 'vertical', 'horizontal', or 'diagonal'. Only used when gradient=true. */
+  gradient_dir?: 'vertical' | 'horizontal' | 'diagonal';
+
   disable_particles?: boolean;
   animate?: boolean;
   glow?: boolean;
