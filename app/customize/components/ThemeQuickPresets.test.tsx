@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { ThemeQuickPresets } from './ThemeQuickPresets';
 import { THEME_KEYS } from '../types';
 
@@ -39,12 +40,13 @@ describe('ThemeQuickPresets', () => {
   });
 
   it('clicking a button calls onThemeChange with correct theme key', async () => {
+    const user = userEvent.setup();
     render(<ThemeQuickPresets theme="dark" onThemeChange={onThemeChange} />);
     const inactiveKey = validKeys.find((k) => k !== 'dark')!;
     const inactiveBtn = screen.getByRole('button', {
       name: new RegExp(`apply ${inactiveKey} theme`, 'i'),
     });
-    fireEvent.click(inactiveBtn);
+    await user.click(inactiveBtn);
     expect(onThemeChange).toHaveBeenCalledWith(inactiveKey);
   });
 

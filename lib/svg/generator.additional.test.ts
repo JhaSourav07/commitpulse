@@ -179,7 +179,7 @@ describe('[Issue] org and repo params change entity type in SVG <title>', () => 
   it('renders "User Stats" in title when neither org nor repo is set', () => {
     const svg = generateSVG(baseStats, { user: 'chetan' } as unknown as BadgeParams, baseCalendar);
 
-    expect(svg).toContain('<title>CommitPulse User Stats for chetan</title>');
+    expect(svg).toContain('<title id="cp-title-chetan">CommitPulse User Stats for chetan</title>');
   });
 
   it('renders "Organization Stats" in title when org param is set', () => {
@@ -189,7 +189,9 @@ describe('[Issue] org and repo params change entity type in SVG <title>', () => 
       baseCalendar
     );
 
-    expect(svg).toContain('<title>CommitPulse Organization Stats for chetan</title>');
+    expect(svg).toContain(
+      '<title id="cp-title-chetan">CommitPulse Organization Stats for chetan</title>'
+    );
   });
 
   it('renders "Repository Stats" in title when repo param is set', () => {
@@ -199,7 +201,9 @@ describe('[Issue] org and repo params change entity type in SVG <title>', () => 
       baseCalendar
     );
 
-    expect(svg).toContain('<title>CommitPulse Repository Stats for chetan</title>');
+    expect(svg).toContain(
+      '<title id="cp-title-chetan">CommitPulse Repository Stats for chetan</title>'
+    );
   });
 });
 
