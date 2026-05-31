@@ -21,6 +21,8 @@ import {
 } from './github';
 import type { ContributionCalendar } from '../types';
 
+vi.mock('server-only', () => ({}));
+
 const mockCalendar: ContributionCalendar = {
   totalContributions: 42,
   weeks: [
