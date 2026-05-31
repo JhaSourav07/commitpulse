@@ -35,13 +35,21 @@ export function calculateStreak(
   let longestStreak = 0;
   let tempStreak = 0;
 
-  // 1. Calculate Longest Streak (Standard loop)
+  // 1. Calculate Longest Streak (with grace period)
+  // Allow up to `grace` consecutive zero-contribution days without breaking
+  // the streak, but only count actual contribution days toward the total.
+  let gapDays = 0;
   for (const day of days) {
     if (day.contributionCount > 0) {
       tempStreak++;
+      gapDays = 0;
       if (tempStreak > longestStreak) longestStreak = tempStreak;
     } else {
-      tempStreak = 0;
+      gapDays++;
+      if (gapDays > grace) {
+        tempStreak = 0;
+        gapDays = 0;
+      }
     }
   }
 

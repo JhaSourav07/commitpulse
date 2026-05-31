@@ -169,7 +169,9 @@ describe('calculateStreak', () => {
 
     const result = calculateStreak(calendar);
 
-    expect(result.longestStreak).toBe(7);
+    // With grace=1 (default), the single zero-day gap between the 7-day and
+    // 6-day runs is within tolerance, so they merge into a single 13-day streak.
+    expect(result.longestStreak).toBe(13);
     expect(result.currentStreak).toBe(6);
     expect(result.totalContributions).toBe(13);
   });
@@ -498,7 +500,9 @@ describe('calculateStreak', () => {
       new Date('2024-03-01T12:00:00Z')
     );
     expect(resultLeapGap.currentStreak).toBe(1);
-    expect(resultLeapGap.longestStreak).toBe(1);
+    // With grace=1 (default), the single-day gap on Feb 29 is within tolerance,
+    // so longest streak merges Feb 28 + Mar 1 = 2 contribution days.
+    expect(resultLeapGap.longestStreak).toBe(2);
   });
 
   it('handles leap years vs non-leap years Feb 28 to Mar 1 timeline and asserts correct current/longest streaks', () => {
@@ -544,10 +548,11 @@ describe('calculateStreak', () => {
       'UTC',
       new Date('2020-03-01T12:00:00Z')
     );
-    // Since Feb 29 has 0 commits, the streak of consecutive active days is broken.
-    // However, grace period = 1 keeps current streak alive but only for the continuous active days ending today (Mar 1).
+    // Since Feb 29 has 0 commits, current streak only counts Mar 1 = 1.
+    // With grace=1, the single-day gap is within tolerance for longest streak,
+    // merging Feb 28 + Mar 1 = 2 contribution days.
     expect(resultLeapGap.currentStreak).toBe(1);
-    expect(resultLeapGap.longestStreak).toBe(1);
+    expect(resultLeapGap.longestStreak).toBe(2);
 
     // 3. Leap Year (2020) with active leap day (Feb 29 has 1 commit)
     const leapCalendarContinuous = buildCustomCalendar([
@@ -873,6 +878,19 @@ describe('calculateStreak', () => {
     const resultMonday = calculateStreak(extendedCalendar, 'UTC', new Date('2024-01-22T12:00:00Z'));
     expect(resultMonday.currentStreak).toBe(2);
     expect(resultMonday.longestStreak).toBe(2);
+  });
+
+  it('applies grace period to longest streak calculation consistently with current streak', () => {
+    // Three active days, 2-day gap, three more active days.
+    // With grace=2, the gap is tolerated and the two runs merge into one streak of 6.
+    // With grace=1 (default), the 2-day gap exceeds tolerance → longest=3.
+    const calendar = buildCalendar([1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0]);
+
+    const resultGrace1 = calculateStreak(calendar, 'UTC', undefined, 1);
+    expect(resultGrace1.longestStreak).toBe(3);
+
+    const resultGrace2 = calculateStreak(calendar, 'UTC', undefined, 2);
+    expect(resultGrace2.longestStreak).toBe(6);
   });
 });
 it('calculates streaks identically when weeks start on Sunday vs Monday formats', () => {
