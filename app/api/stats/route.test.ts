@@ -69,7 +69,8 @@ describe('GET /api/stats', () => {
     const response = await GET(makeRequest({ user: 'testuser', tz: 'Not/ATimezone' }));
     expect(response.status).toBe(400);
     const body = await response.json();
-    expect(body.error).toMatch(/Invalid "tz" parameter/);
+    expect(body.error).toBe('Invalid parameters');
+    expect(body.details.fieldErrors.tz[0]).toContain('Invalid timezone');
   });
 
   // ─── Successful responses ──────────────────────────────────────────────────
