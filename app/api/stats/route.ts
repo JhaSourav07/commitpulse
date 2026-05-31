@@ -34,17 +34,9 @@ export async function GET(request: Request) {
   }
 
   const { user, refresh, tz } = parseResult.data;
-
-  // Validate the optional IANA timezone early so callers get a clear 400
-  // rather than a silent fallback or a 500.
-  let timezone = 'UTC';
-  if (tz) {
-    try {
-      timezone = new Intl.DateTimeFormat(undefined, { timeZone: tz }).resolvedOptions().timeZone;
-    } catch {
-      return NextResponse.json({ error: `Invalid "tz" parameter: "${tz}"` }, { status: 400 });
-    }
-  }
+  const timezone = tz
+    ? new Intl.DateTimeFormat(undefined, { timeZone: tz }).resolvedOptions().timeZone
+    : 'UTC';
 
   try {
     const userData = await fetchGitHubContributions(user, { bypassCache: refresh });
