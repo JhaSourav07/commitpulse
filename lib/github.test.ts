@@ -12,12 +12,15 @@ import {
   GITHUB_CACHE_TTL_MS,
   validateGitHubUsername,
   cacheKey,
-  buildInsights,
   displayName,
   fetchOrgMembers,
   getOrgDashboardData,
   getWrappedData,
   computeDeveloperScore,
+  buildProfileData,
+  aggregateLanguages,
+  buildInsights,
+  buildActivityMap,
 } from './github';
 import type { ContributionCalendar } from '../types';
 
@@ -733,6 +736,283 @@ describe('fetchContributedRepos', () => {
     vi.mocked(fetch).mockResolvedValue(mockResponse({ data: null }));
     const result = await fetchContributedRepos('octocat');
     expect(result).toEqual([]);
+  });
+});
+
+describe('computeDeveloperScore', () => {
+  it('returns 0 for a brand new account with no activity', () => {
+    expect(
+      computeDeveloperScore({
+        repos: 0,
+        followers: 0,
+        stars: 0,
+        contributions: 0,
+        longestStreak: 0,
+      })
+    ).toBe(0);
+  });
+
+  it('caps the score at 100 for an extremely active account', () => {
+    expect(
+      computeDeveloperScore({
+        repos: 999,
+        followers: 999,
+        stars: 999,
+        contributions: 99999,
+        longestStreak: 999,
+      })
+    ).toBe(100);
+  });
+
+  it('saturates each factor independently at its ceiling', () => {
+    expect(
+      computeDeveloperScore({
+        repos: 50,
+        followers: 50,
+        stars: 100,
+        contributions: 400,
+        longestStreak: 50,
+      })
+    ).toBe(100);
+  });
+
+  it('computes a partial score correctly when only repos and followers are non-zero', () => {
+    expect(
+      computeDeveloperScore({
+        repos: 10,
+        followers: 20,
+        stars: 0,
+        contributions: 0,
+        longestStreak: 0,
+      })
+    ).toBe(15);
+  });
+
+  it('rounds fractional scores to the nearest integer', () => {
+    expect(
+      computeDeveloperScore({
+        repos: 1,
+        followers: 0,
+        stars: 0,
+        contributions: 0,
+        longestStreak: 0,
+      })
+    ).toBe(1);
+  });
+});
+
+describe('buildProfileData', () => {
+  const baseProfile = {
+    login: 'octocat',
+    name: 'The Octocat',
+    avatar_url: 'https://example.com/avatar.png',
+    public_repos: 10,
+    followers: 20,
+    following: 5,
+    created_at: '2020-06-01T00:00:00Z',
+    bio: 'Hello world',
+    location: 'San Francisco',
+    plan: { name: 'pro' },
+  };
+
+  it('maps all fields from the raw profile correctly', () => {
+    const result = buildProfileData(baseProfile, 42, 75);
+
+    expect(result.username).toBe('octocat');
+    expect(result.name).toBe('The Octocat');
+    expect(result.avatarUrl).toBe('https://example.com/avatar.png');
+    expect(result.isPro).toBe(true);
+    expect(result.bio).toBe('Hello world');
+    expect(result.location).toBe('San Francisco');
+    expect(result.developerScore).toBe(75);
+    expect(result.stats.stars).toBe(42);
+    expect(result.stats.repositories).toBe(10);
+    expect(result.stats.followers).toBe(20);
+    expect(result.stats.following).toBe(5);
+  });
+
+  it('falls back to login when name is null', () => {
+    const result = buildProfileData({ ...baseProfile, name: null }, 0, 0);
+    expect(result.name).toBe('octocat');
+  });
+
+  it('falls back to login when name is an empty string', () => {
+    const result = buildProfileData({ ...baseProfile, name: '   ' }, 0, 0);
+    expect(result.name).toBe('octocat');
+  });
+
+  it('uses default bio when bio is null', () => {
+    const result = buildProfileData({ ...baseProfile, bio: null }, 0, 0);
+    expect(result.bio).toBe('No bio available');
+  });
+
+  it('uses default location when location is null', () => {
+    const result = buildProfileData({ ...baseProfile, location: null }, 0, 0);
+    expect(result.location).toBe('Earth');
+  });
+
+  it('sets isPro to false when plan is absent', () => {
+    const result = buildProfileData({ ...baseProfile, plan: null }, 0, 0);
+    expect(result.isPro).toBe(false);
+  });
+
+  it('sets isPro to false when plan name is not "pro"', () => {
+    const result = buildProfileData({ ...baseProfile, plan: { name: 'free' } }, 0, 0);
+    expect(result.isPro).toBe(false);
+  });
+
+  it('formats joinedDate as "MMM YYYY" from an ISO created_at string', () => {
+    const result = buildProfileData({ ...baseProfile, created_at: '2020-01-15T00:00:00Z' }, 0, 0);
+    expect(result.joinedDate).toMatch(/^[A-Za-z]+ \d{4}$/);
+  });
+});
+
+describe('aggregateLanguages', () => {
+  it('returns an empty array when no repos have a language set', () => {
+    expect(aggregateLanguages([{ language: null }, { language: null }])).toEqual([]);
+  });
+
+  it('returns an empty array for an empty repo list', () => {
+    expect(aggregateLanguages([])).toEqual([]);
+  });
+
+  it('computes percentages and sorts by frequency descending', () => {
+    const repos = [{ language: 'TypeScript' }, { language: 'TypeScript' }, { language: 'Rust' }];
+    const result = aggregateLanguages(repos);
+
+    expect(result[0].name).toBe('TypeScript');
+    expect(result[0].percentage).toBe(67);
+    expect(result[1].name).toBe('Rust');
+    expect(result[1].percentage).toBe(33);
+  });
+
+  it('caps results at the top 5 languages', () => {
+    const repos = ['TypeScript', 'Rust', 'Go', 'Python', 'Java', 'C++'].map((language) => ({
+      language,
+    }));
+    expect(aggregateLanguages(repos)).toHaveLength(5);
+  });
+
+  it('assigns a fallback color for languages not in LANGUAGE_COLORS', () => {
+    const result = aggregateLanguages([{ language: 'BrainfuckLang9000' }]);
+    expect(result[0].color).toBe('#a855f7');
+  });
+
+  it('skips repos with null language without crashing', () => {
+    const repos = [{ language: 'TypeScript' }, { language: null }, { language: 'TypeScript' }];
+    const result = aggregateLanguages(repos);
+    expect(result).toHaveLength(1);
+    expect(result[0].name).toBe('TypeScript');
+  });
+});
+
+describe('buildInsights', () => {
+  const baseStreak = { totalContributions: 120, currentStreak: 0, longestStreak: 14 };
+
+  it('always returns exactly 3 insight cards', () => {
+    const result = buildInsights(baseStreak, [{ name: 'TypeScript' }]);
+    expect(result).toHaveLength(3);
+  });
+
+  it('card 1 includes the total contribution count', () => {
+    const result = buildInsights({ ...baseStreak, totalContributions: 42 }, []);
+    expect(result[0].text).toContain('42');
+  });
+
+  it('card 2 shows the top language name', () => {
+    const result = buildInsights(baseStreak, [{ name: 'Rust' }, { name: 'Go' }]);
+    expect(result[1].text).toContain('Rust');
+  });
+
+  it('card 2 falls back to "Unknown" when languages array is empty', () => {
+    const result = buildInsights(baseStreak, []);
+    expect(result[1].text).toContain('Unknown');
+  });
+
+  it('card 3 shows active streak copy when currentStreak is above 3', () => {
+    const result = buildInsights({ ...baseStreak, currentStreak: 10 }, []);
+    expect(result[2].icon).toBe('Zap');
+    expect(result[2].text).toContain('10');
+  });
+
+  it('card 3 shows longest streak copy when currentStreak is 3 or below', () => {
+    const result = buildInsights({ ...baseStreak, currentStreak: 3, longestStreak: 30 }, []);
+    expect(result[2].icon).toBe('Star');
+    expect(result[2].text).toContain('30');
+  });
+
+  it('card 3 boundary: currentStreak of exactly 3 uses longest-streak copy', () => {
+    const result = buildInsights({ ...baseStreak, currentStreak: 3 }, []);
+    expect(result[2].icon).toBe('Star');
+  });
+
+  it('card 3 boundary: currentStreak of exactly 4 uses active-streak copy', () => {
+    const result = buildInsights({ ...baseStreak, currentStreak: 4 }, []);
+    expect(result[2].icon).toBe('Zap');
+  });
+});
+
+describe('buildActivityMap', () => {
+  it('returns an empty array for no days', () => {
+    expect(buildActivityMap([])).toEqual([]);
+  });
+
+  it('maps intensity 0 for zero contributions', () => {
+    const result = buildActivityMap([{ date: '2024-01-01', contributionCount: 0 }]);
+    expect(result[0].intensity).toBe(0);
+  });
+
+  it('maps intensity 1 for counts 1-3', () => {
+    const results = buildActivityMap([
+      { date: '2024-01-01', contributionCount: 1 },
+      { date: '2024-01-02', contributionCount: 3 },
+    ]);
+    expect(results[0].intensity).toBe(1);
+    expect(results[1].intensity).toBe(1);
+  });
+
+  it('maps intensity 2 for counts 4-6', () => {
+    const results = buildActivityMap([
+      { date: '2024-01-01', contributionCount: 4 },
+      { date: '2024-01-02', contributionCount: 6 },
+    ]);
+    expect(results[0].intensity).toBe(2);
+    expect(results[1].intensity).toBe(2);
+  });
+
+  it('maps intensity 3 for counts 7-10', () => {
+    const results = buildActivityMap([
+      { date: '2024-01-01', contributionCount: 7 },
+      { date: '2024-01-02', contributionCount: 10 },
+    ]);
+    expect(results[0].intensity).toBe(3);
+    expect(results[1].intensity).toBe(3);
+  });
+
+  it('maps intensity 4 for counts above 10', () => {
+    const result = buildActivityMap([{ date: '2024-01-01', contributionCount: 11 }]);
+    expect(result[0].intensity).toBe(4);
+  });
+
+  it('preserves the date and count fields unchanged', () => {
+    const result = buildActivityMap([{ date: '2024-06-15', contributionCount: 5 }]);
+    expect(result[0].date).toBe('2024-06-15');
+    expect(result[0].count).toBe(5);
+  });
+
+  it('covers all five intensity buckets across threshold boundaries', () => {
+    const days = [0, 1, 4, 7, 11].map((n, i) => ({
+      date: `2024-01-0${i + 1}`,
+      contributionCount: n,
+    }));
+    const intensities = buildActivityMap(days).map((d) => d.intensity);
+    expect(intensities).toEqual([0, 1, 2, 3, 4]);
+  });
+  it('passes through locAdditions and locDeletions from the LoC injection step', () => {
+    const day = { date: '2024-01-01', contributionCount: 5, locAdditions: 120, locDeletions: 30 };
+    const result = buildActivityMap([day]);
+    expect(result[0].locAdditions).toBe(120);
+    expect(result[0].locDeletions).toBe(30);
   });
 });
 
