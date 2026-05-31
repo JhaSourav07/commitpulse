@@ -185,6 +185,64 @@ describe('calculateStreak', () => {
     expect(result.todayDate).toBe('2024-01-12');
   });
 
+  it('correctly calculates current and longest streaks when commits are made exclusively from Monday through Friday', () => {
+    // 2024-01-01 is a Monday.
+    // Commits only on Mon, Tue, Wed, Thu, Fri. Sat and Sun are 0.
+    // Week 1: 1, 1, 1, 1, 1, 0, 0 (Mon Jan 1 to Sun Jan 7)
+    // Week 2: 1, 1, 1, 1, 1, 0, 0 (Mon Jan 8 to Sun Jan 14)
+    // Week 3: 1, 1, 1, 1, 1, 0, 0 (Mon Jan 15 to Sun Jan 21)
+    const calendar = buildCalendar([
+      1,
+      1,
+      1,
+      1,
+      1,
+      0,
+      0, // Week 1 (Jan 1 to Jan 7)
+      1,
+      1,
+      1,
+      1,
+      1,
+      0,
+      0, // Week 2 (Jan 8 to Jan 14)
+      1,
+      1,
+      1,
+      1,
+      1,
+      0,
+      0, // Week 3 (Jan 15 to Jan 21)
+    ]);
+
+    // 1. Evaluate on Friday, Jan 19, 2024 (which is index 18, Friday of Week 3)
+    // The current streak should be 5 (Mon Jan 15 through Fri Jan 19).
+    // The longest streak should be 5 (since weekend gaps break the streak into segments of 5).
+    const resultFriday = calculateStreak(calendar, 'UTC', new Date('2024-01-19T12:00:00Z'));
+    expect(resultFriday.currentStreak).toBe(5);
+    expect(resultFriday.longestStreak).toBe(5);
+    expect(resultFriday.totalContributions).toBe(15);
+
+    // 2. Evaluate on Saturday, Jan 20, 2024 (index 19, Saturday of Week 3)
+    // Today has 0, but yesterday (Friday) has 1. With grace period = 1, streak is active.
+    // So current streak should still be 5.
+    const resultSaturday = calculateStreak(calendar, 'UTC', new Date('2024-01-20T12:00:00Z'));
+    expect(resultSaturday.currentStreak).toBe(5);
+    expect(resultSaturday.longestStreak).toBe(5);
+
+    // 3. Evaluate on Sunday, Jan 21, 2024 (index 20, Sunday of Week 3)
+    // Today has 0, yesterday (Saturday) has 0. Streak is broken (currentStreak = 0).
+    const resultSunday = calculateStreak(calendar, 'UTC', new Date('2024-01-21T12:00:00Z'));
+    expect(resultSunday.currentStreak).toBe(0);
+    expect(resultSunday.longestStreak).toBe(5);
+
+    // 4. Evaluate on Wednesday, Jan 17, 2024 (index 16, Wednesday of Week 3)
+    // Current streak should be 3 (Mon-Wed). Longest streak is still 5 (from Week 1 or Week 2).
+    const resultWednesday = calculateStreak(calendar, 'UTC', new Date('2024-01-17T12:00:00Z'));
+    expect(resultWednesday.currentStreak).toBe(3);
+    expect(resultWednesday.longestStreak).toBe(5);
+  });
+
   it('keeps the streak alive via the grace period when only yesterday has contributions', () => {
     // Today is 0, but yesterday is 1 — the grace period treats the streak as still active.
     const calendar = buildCalendar([
