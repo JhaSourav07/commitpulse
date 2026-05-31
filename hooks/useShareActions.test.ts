@@ -36,6 +36,8 @@ describe('useShareActions', () => {
     vi.clearAllMocks();
     vi.useFakeTimers();
 
+    global.fetch = vi.fn();
+
     Object.defineProperty(navigator, 'clipboard', {
       value: {
         writeText: vi.fn().mockResolvedValue(undefined),
@@ -65,6 +67,7 @@ describe('useShareActions', () => {
     vi.useRealTimers();
     vi.restoreAllMocks();
     document.body.innerHTML = '';
+    Reflect.deleteProperty(globalThis, 'fetch');
     Reflect.deleteProperty(globalThis, 'ClipboardItem');
   });
 
@@ -184,6 +187,39 @@ describe('useShareActions', () => {
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
       expect.stringContaining(`/api/streak?user=${mockUsername}`)
     );
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+      expect.stringMatching(/^!\[CommitPulse\]\(https?:\/\/[^)]+\/api\/streak\?user=atharv96k\)$/)
+    );
+  });
+
+  it('handleDownloadSVG sanitizes unsafe attributes before creating the download blob', async () => {
+    const maliciousSvg =
+      '<svg><script>alert(1)</script><rect width="10" height="10" onload="evil()" /><a href="javascript:alert(1)"><text>x</text></a></svg>';
+
+    vi.mocked(global.fetch).mockResolvedValue({
+      ok: true,
+      text: vi.fn().mockResolvedValue(maliciousSvg),
+    } as unknown as Response);
+
+    const { result } = renderHook(() => useShareActions(mockUsername, mockExportData, mockClose));
+
+    await act(async () => {
+      await result.current.handleDownloadSVG();
+    });
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringMatching(/\/api\/streak\?user=atharv96k$/)
+    );
+    expect(global.URL.createObjectURL).toHaveBeenCalledTimes(1);
+
+    const blob = vi.mocked(global.URL.createObjectURL).mock.calls[0][0] as Blob;
+    const sanitizedSvg = await blob.text();
+
+    expect(sanitizedSvg).toContain('<svg');
+    expect(sanitizedSvg).not.toContain('<script');
+    expect(sanitizedSvg).not.toContain('onload=');
+    expect(sanitizedSvg).not.toContain('javascript:');
+    expect(result.current.states['svg']).toBe('success');
   });
 
   it('handleDownloadJSON bundles and formats a structured JSON data blob download', () => {

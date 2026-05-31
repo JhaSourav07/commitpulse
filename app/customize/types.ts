@@ -28,7 +28,7 @@ export const SIZES = [
 ] as const;
 
 export const FONTS = [
-  { value: '', label: 'Default' },
+  { value: 'Inter', label: 'Default' },
   { value: 'jetbrains', label: 'JetBrains Mono' },
   { value: 'fira', label: 'Fira Code' },
   { value: 'roboto', label: 'Roboto' },
@@ -39,6 +39,7 @@ export type Font = (typeof FONTS)[number]['value'];
 export const VIEW_MODES = [
   { value: 'default', label: 'Default' },
   { value: 'monthly', label: 'Monthly' },
+  { value: 'pulse', label: 'Heartbeat Pulse' },
 ] as const satisfies readonly { value: string; label: string }[];
 
 export type ViewMode = (typeof VIEW_MODES)[number]['value'];

@@ -150,6 +150,14 @@ describe('GET /api/wrapped', () => {
       expect(response.status).toBe(200);
       expect(body).toContain('rx="15"');
     });
+
+    it('hides the wrapped badge background when hide_background=1 is passed', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', hide_background: '1' }));
+      const body = await response.text();
+
+      expect(response.status).toBe(200);
+      expect(body).toContain('fill="transparent"');
+    });
   });
 
   describe('cache-control header', () => {

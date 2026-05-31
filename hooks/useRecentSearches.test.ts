@@ -34,6 +34,35 @@ describe('useRecentSearches', () => {
     });
     expect(result.current.searches[0]).toBe('torvalds');
   });
+  it('ignores empty string input', () => {
+    const { result } = renderHook(() => useRecentSearches());
+
+    act(() => {
+      result.current.addSearch('');
+    });
+
+    expect(result.current.searches).toEqual([]);
+  });
+
+  it('ignores whitespace-only input', () => {
+    const { result } = renderHook(() => useRecentSearches());
+
+    act(() => {
+      result.current.addSearch('   ');
+    });
+
+    expect(result.current.searches).toEqual([]);
+  });
+
+  it('ignores newline-only input', () => {
+    const { result } = renderHook(() => useRecentSearches());
+
+    act(() => {
+      result.current.addSearch('\n');
+    });
+
+    expect(result.current.searches).toEqual([]);
+  });
 
   it('deduplicates — moves existing to front', () => {
     const { result } = renderHook(() => useRecentSearches());
