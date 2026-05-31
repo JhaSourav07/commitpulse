@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { githubParamsSchema, ogParamsSchema, streakParamsSchema } from './validations';
+import {
+  githubParamsSchema,
+  ogParamsSchema,
+  statsParamsSchema,
+  streakParamsSchema,
+} from './validations';
 
 describe('streakParamsSchema — grace fallback behavior', () => {
   it('accepts "0" as a valid grace value', () => {
@@ -878,6 +883,32 @@ describe('streakParamsSchema — tz IANA timezone validation (Variation 4)', () 
     expect(result.success).toBe(false);
     if (!result.success) {
       expect(result.error.issues[0]?.message).toContain('Invalid timezone');
+    }
+  });
+});
+
+describe('statsParamsSchema — tz IANA timezone validation', () => {
+  it('rejects an invalid timezone before route handlers calculate stats', () => {
+    const result = statsParamsSchema.safeParse({
+      user: 'octocat',
+      tz: 'Mars/Cyonia',
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toContain('Invalid timezone');
+    }
+  });
+
+  it('accepts a valid IANA timezone', () => {
+    const result = statsParamsSchema.safeParse({
+      user: 'octocat',
+      tz: 'America/New_York',
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.tz).toBe('America/New_York');
     }
   });
 });
