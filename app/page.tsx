@@ -1,6 +1,6 @@
 'use client';
 import { trackUser } from '@/utils/tracking';
-
+import InteractiveViewer from '@/components/InteractiveViewer';
 import Link from 'next/link';
 import { useRef, useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -73,8 +73,12 @@ const Icons = {
 export default function LandingPage() {
   const [username, setUsername] = useState('');
   const [copied, setCopied] = useState(false);
-  const [svgState, setSvgState] = useState<'idle' | 'loading' | 'loaded' | 'error'>('idle');
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  // Track which username's badge result we have. Derived booleans auto-reset
+  // when debouncedUsername changes — no useEffect needed.
+  const [badgeResult, setBadgeResult] = useState<{
+    username: string;
+    status: 'loaded' | 'error';
+  } | null>(null);
   const guideRef = useRef<HTMLDivElement>(null);
   const { searches, addSearch, clearSearches, removeSearch } = useRecentSearches();
   const [mounted, setMounted] = useState(false);
@@ -92,39 +96,10 @@ export default function LandingPage() {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://commitpulse.vercel.app';
   const markdown = `![CommitPulse](${siteUrl}/api/streak?user=${trimmedUsername})`;
 
-  // Probe badge URL for errors; actual rendering uses a native <img> tag.
-  useEffect(() => {
-    if (!hasUsername) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setSvgState('idle');
-      return;
-    }
-
-    setSvgState('loading');
-
-    const controller = new AbortController();
-
-    fetch(badgeUrl, { signal: controller.signal })
-      .then(async (res) => {
-        if (!res.ok) {
-          setSvgState('error');
-          if (res.status === 404 || res.status === 400 || res.status === 429) {
-            setErrorMessage('GitHub user not found');
-          } else {
-            setErrorMessage('Failed to load badge');
-          }
-          return;
-        }
-        setSvgState('loaded');
-        setErrorMessage(null);
-      })
-      .catch((err) => {
-        if (err.name === 'AbortError') return;
-        setSvgState('error');
-        setErrorMessage('Failed to load badge');
-      });
-    return () => controller.abort();
-  }, [badgeUrl, hasUsername]);
+  // Derived — automatically false when debouncedUsername changes
+  const badgeLoaded =
+    badgeResult?.username === debouncedUsername && badgeResult?.status === 'loaded';
+  const badgeError = badgeResult?.username === debouncedUsername && badgeResult?.status === 'error';
 
   const copyToClipboard = () => {
     if (trimmedUsername.length === 0) return;
@@ -138,39 +113,6 @@ export default function LandingPage() {
       guideRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 80);
     setTimeout(() => setCopied(false), 50000);
-  };
-
-  const handleRotate3D = (dx: number, dy: number) => {
-    const towersGroup = document.getElementById('cp-towers');
-    if (!towersGroup) return;
-
-    // Remove any transition so dragging feels instant and responsive
-    towersGroup.style.transition = 'none';
-
-    let currentX = 0;
-    let currentY = 0;
-
-    const transformStr = towersGroup.style.transform;
-    if (transformStr) {
-      const matchX = transformStr.match(/rotateX\(([-0-9.]+)deg\)/);
-      const matchY = transformStr.match(/rotateY\(([-0-9.]+)deg\)/);
-      if (matchX) currentX = parseFloat(matchX[1]);
-      if (matchY) currentY = parseFloat(matchY[1]);
-    }
-
-    const newX = currentX - dy * 0.5;
-    const newY = currentY + dx * 0.5;
-
-    towersGroup.style.transform = `translate(0px, 20px) rotateX(${newX}deg) rotateY(${newY}deg)`;
-  };
-
-  const handleReset3D = () => {
-    const towersGroup = document.getElementById('cp-towers');
-    if (towersGroup) {
-      // Apply a smooth transition for the reset
-      towersGroup.style.transition = 'transform 1.2s cubic-bezier(0.16, 1, 0.3, 1)';
-      towersGroup.style.transform = '';
-    }
   };
 
   return (
@@ -341,18 +283,13 @@ export default function LandingPage() {
 
           <div className="group relative mt-10">
             <div className="absolute -inset-1 rounded-[2.5rem] bg-gradient-to-r from-emerald-500/20 to-cyan-500/20 opacity-50 blur-2xl transition duration-1000 group-hover:opacity-100" />
-            <InteractiveViewer
-              className="relative flex min-h-[480px] md:min-h-[520px] items-center justify-center overflow-visible rounded-3xl border border-black/5 bg-white/50 p-8 backdrop-blur-xl shadow-2xl dark:border-white/10 dark:bg-[#0a0a0a]/80"
-              is3DMode={true}
-              onRotate3D={handleRotate3D}
-              onReset3D={handleReset3D}
-            >
+            <div className="relative flex min-h-[480px] md:min-h-[520px] items-center justify-center overflow-hidden rounded-3xl border border-black/5 bg-white/50 p-8 backdrop-blur-xl shadow-2xl dark:border-white/10 dark:bg-[#0a0a0a]/80">
               {hasUsername ? (
-                <div className="w-full flex items-center justify-center">
-                  {svgState === 'loading' && (
+                <div className="w-full flex flex-col items-center justify-center gap-4">
+                  {!badgeLoaded && !badgeError && (
                     <div className="h-[240px] w-full max-w-[700px] rounded-2xl bg-black/5 dark:bg-white/5 animate-pulse" />
                   )}
-                  {svgState === 'error' && errorMessage === 'GitHub user not found' && (
+                  {badgeError && (
                     <div className="flex flex-col items-center justify-center gap-4 py-12 text-center">
                       <div className="flex h-16 w-16 items-center justify-center rounded-3xl border border-red-500/20 bg-red-500/10 shadow-inner">
                         <X size={32} className="text-red-500" />
@@ -367,32 +304,18 @@ export default function LandingPage() {
                       </div>
                     </div>
                   )}
-                  {svgState === 'error' && errorMessage !== 'GitHub user not found' && (
-                    <div className="flex flex-col items-center justify-center gap-2 text-center py-8">
-                      <p className="text-sm font-semibold text-red-500 dark:text-red-400">
-                        Failed to load badge
-                      </p>
-                      <p className="text-xs text-gray-500 dark:text-white/55">
-                        The API may be unavailable. Please try again.
-                      </p>
-                    </div>
-                  )}
-                  {svgState === 'loaded' && (
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ duration: 0.5, ease: 'easeOut' }}
-                      className="w-full max-w-[700px] drop-shadow-[0_30px_60px_rgba(0,0,0,0.15)] dark:drop-shadow-[0_30px_60px_rgba(0,0,0,0.5)]"
-                    >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        data-testid="badge-img"
-                        src={badgeUrl}
-                        alt={`CommitPulse badge for ${debouncedUsername}`}
-                        className="w-full h-auto"
-                      />
-                    </motion.div>
-                  )}
+                  <motion.img
+                    key={badgeUrl}
+                    data-testid="badge-img"
+                    src={badgeUrl}
+                    alt={`CommitPulse badge for ${debouncedUsername}`}
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: badgeLoaded ? 1 : 0, scale: badgeLoaded ? 1 : 0.95 }}
+                    transition={{ duration: 0.5, ease: 'easeOut' }}
+                    className="w-full max-w-[700px] h-auto drop-shadow-[0_30px_60px_rgba(0,0,0,0.15)] dark:drop-shadow-[0_30px_60px_rgba(0,0,0,0.5)]"
+                    onLoad={() => setBadgeResult({ username: debouncedUsername, status: 'loaded' })}
+                    onError={() => setBadgeResult({ username: debouncedUsername, status: 'error' })}
+                  />
                 </div>
               ) : (
                 <div className="flex w-full max-w-2xl flex-col items-center justify-center rounded-3xl border border-dashed border-black/10 bg-black/[0.02] px-6 py-16 text-center dark:border-white/10 dark:bg-white/[0.02]">
@@ -403,12 +326,11 @@ export default function LandingPage() {
                     Ready to visualize your rhythm?
                   </p>
                   <p className="mt-3 max-w-md text-sm leading-relaxed text-gray-500 dark:text-white/65">
-                    Enter a GitHub username above to instantly generate your 3D contribution
-                    monolith preview.
+                    Enter a GitHub username above to instantly generate your streak badge.
                   </p>
                 </div>
               )}
-            </InteractiveViewer>
+            </div>
           </div>
         </section>
 

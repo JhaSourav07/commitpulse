@@ -112,6 +112,21 @@ vi.mock('framer-motion', () => ({
         {children}
       </a>
     ),
+    img: ({
+      children,
+      className,
+      src,
+      alt,
+      onLoad,
+      onError,
+      initial,
+      animate,
+      exit,
+      transition,
+      ...props
+    }: any) => (
+      <img className={className} src={src} alt={alt} onLoad={onLoad} onError={onError} {...props} />
+    ),
   },
   AnimatePresence: ({ children }: any) => <>{children}</>,
 }));
@@ -134,18 +149,6 @@ describe('LandingPage', () => {
     mockRecentSearches.addSearch = vi.fn();
     mockRecentSearches.clearSearches = vi.fn();
     mockRecentSearches.removeSearch = vi.fn();
-
-    // Mock fetch so the SVG preview useEffect resolves without a real network call.
-    // Returns a minimal valid SVG so dangerouslySetInnerHTML has something to render.
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue({
-        ok: true,
-        status: 200,
-        text: () =>
-          Promise.resolve('<svg data-testid="badge-svg" xmlns="http://www.w3.org/2000/svg"></svg>'),
-      })
-    );
 
     // Mock navigator.clipboard
     Object.assign(navigator, {
@@ -197,7 +200,7 @@ describe('LandingPage', () => {
     expect(screen.queryByTestId('badge-img')).toBeNull();
   });
 
-  it('updates the username when input changes and fetches the badge', async () => {
+  it('updates the username when input changes and shows the badge img', async () => {
     render(<LandingPage />);
     const input = screen.getByPlaceholderText('Enter GitHub Username') as HTMLInputElement;
 
@@ -206,17 +209,17 @@ describe('LandingPage', () => {
     });
     expect(input.value).toBe('octocat');
 
-    // The component fetches the badge SVG from the API with the correct URL
+    // The badge img element should appear in the DOM with the correct URL
     await waitFor(() => {
-      expect(vi.mocked(fetch)).toHaveBeenCalledWith(
-        expect.stringContaining('user=octocat'),
-        expect.objectContaining({ signal: expect.any(AbortSignal) })
-      );
+      const img = screen.getByTestId('badge-img') as HTMLImageElement;
+      expect(img).toBeDefined();
+      expect(img.src).toContain('user=octocat');
     });
 
-    // After the fetch resolves the badge img element should be in the DOM
-    await waitFor(() => {
-      expect(screen.getByTestId('badge-img')).toBeDefined();
+    // Simulate the browser successfully loading the badge image
+    await act(async () => {
+      const img = screen.getByTestId('badge-img') as HTMLImageElement;
+      fireEvent.load(img);
     });
   });
 
@@ -349,23 +352,17 @@ describe('LandingPage', () => {
   });
 
   it('shows the friendly error UI instead of raw JSON when the API returns a 400', async () => {
-    // Username with an underscore passes the UI 39-char limit but fails the API regex,
-    // which returns JSON {error: 'Invalid parameters'} with status 400. Without the fix
-    // that JSON string would be rendered via dangerouslySetInnerHTML.
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue({
-        ok: false,
-        status: 400,
-        text: () => Promise.resolve(JSON.stringify({ error: 'Invalid parameters' })),
-      })
-    );
-
     render(<LandingPage />);
     const input = screen.getByPlaceholderText('Enter GitHub Username') as HTMLInputElement;
 
     await act(async () => {
       fireEvent.change(input, { target: { value: 'invalid_user' } });
+    });
+
+    // Badge img renders; simulate the browser failing to load it (e.g. API returned 400)
+    await waitFor(() => screen.getByTestId('badge-img'));
+    await act(async () => {
+      fireEvent.error(screen.getByTestId('badge-img'));
     });
 
     await waitFor(() => {
@@ -377,20 +374,17 @@ describe('LandingPage', () => {
   });
 
   it('shows the friendly error UI for any non-ok API response (e.g. 429 rate limit)', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue({
-        ok: false,
-        status: 429,
-        text: () => Promise.resolve(JSON.stringify({ error: 'Too Many Requests' })),
-      })
-    );
-
     render(<LandingPage />);
     const input = screen.getByPlaceholderText('Enter GitHub Username') as HTMLInputElement;
 
     await act(async () => {
       fireEvent.change(input, { target: { value: 'octocat' } });
+    });
+
+    // Simulate the browser failing to load the badge image
+    await waitFor(() => screen.getByTestId('badge-img'));
+    await act(async () => {
+      fireEvent.error(screen.getByTestId('badge-img'));
     });
 
     await waitFor(() => {
@@ -401,21 +395,8 @@ describe('LandingPage', () => {
   });
 
   it('renders a badge img (not inline SVG) so XSS via SVG content is structurally impossible', async () => {
-    // The fetch mock returns an SVG with a <script> tag, but the new implementation
-    // never injects SVG text into the DOM — it uses <img src=URL> which the browser
-    // renders opaquely. No script tag should ever appear in the document.
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue({
-        ok: true,
-        status: 200,
-        text: () =>
-          Promise.resolve(
-            '<svg data-testid="badge-svg"><script>alert("xss")</script><circle /></svg>'
-          ),
-      })
-    );
-
+    // The new implementation uses <img src=URL> which the browser renders opaquely.
+    // No SVG text is ever injected into the DOM, so no <script> tag can exist.
     render(<LandingPage />);
 
     const input = screen.getByPlaceholderText('Enter GitHub Username') as HTMLInputElement;

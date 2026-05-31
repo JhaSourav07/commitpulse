@@ -90,34 +90,27 @@ describe('User Model', () => {
 
       expect(mongoose.connection.readyState).toBe(2);
       expect(operationAttempted).toBe(true);
-      // Critical: result is 'buffered' not an error — distinguishes state 2 from state 0
       expect(result).toBe('buffered');
 
-      // 5. Cleanup
       readyStateSpy.mockRestore();
     });
   });
 
   describe('Database Connection State 0 Handling', () => {
     it('fails queries gracefully with a ConnectionError when disconnected', async () => {
-      // Import vi locally to match the pattern used in the State 2 test
       const { vi } = await import('vitest');
 
-      // 1. Force the mongoose connection state to 0 (Disconnected)
       const readyStateSpy = vi
         .spyOn(mongoose.connection, 'readyState', 'get')
         .mockReturnValue(0 as unknown as typeof mongoose.connection.readyState);
 
       expect(mongoose.connection.readyState).toBe(0);
 
-      // 2. Mock a database operation to simulate a connection failure
-      // Mongoose throws specific errors when bufferCommands is false and state is 0
       const mockConnectionError = new Error('Database connection lost');
       mockConnectionError.name = 'ConnectionError';
 
       const findOneSpy = vi.spyOn(User, 'findOne').mockRejectedValue(mockConnectionError);
 
-      // 3. Verify that attempting to query throws the expected ConnectionError
       await expect(User.findOne({ username: 'testuser' })).rejects.toThrow(
         'Database connection lost'
       );
@@ -125,7 +118,6 @@ describe('User Model', () => {
         name: 'ConnectionError',
       });
 
-      // 4. Clean up mocks to prevent side effects in other tests
       readyStateSpy.mockRestore();
       findOneSpy.mockRestore();
     });
@@ -135,12 +127,10 @@ describe('User Model', () => {
     it('aborts/rolls back active transactions cleanly when connection is in state 3 (disconnecting)', async () => {
       const { vi } = await import('vitest');
 
-      // 1. Mock mongoose.connection.readyState to return 3 (disconnecting)
       const readyStateSpy = vi
         .spyOn(mongoose.connection, 'readyState', 'get')
         .mockReturnValue(3 as unknown as typeof mongoose.connection.readyState);
 
-      // 2. Mock a mongoose session with transaction support
       const mockSession = {
         startTransaction: vi.fn(),
         commitTransaction: vi.fn(),
@@ -150,7 +140,6 @@ describe('User Model', () => {
 
       const startSessionSpy = vi.spyOn(mongoose, 'startSession').mockResolvedValue(mockSession);
 
-      // 3. Simulate a database transaction workflow that checks connection state
       const runTransactionWithCheck = async (session: mongoose.ClientSession) => {
         session.startTransaction();
         try {
@@ -171,15 +160,47 @@ describe('User Model', () => {
       const session = await mongoose.startSession();
       const result = await runTransactionWithCheck(session);
 
-      // 4. Assertions
       expect(result.status).toBe('aborted');
       expect(mockSession.abortTransaction).toHaveBeenCalledTimes(1);
       expect(mockSession.endSession).toHaveBeenCalledTimes(1);
       expect(mockSession.commitTransaction).not.toHaveBeenCalled();
 
-      // Cleanup
       readyStateSpy.mockRestore();
       startSessionSpy.mockRestore();
+    });
+  });
+
+  describe('Database Connection State 99 Handling', () => {
+    it('triggers lazy initialization exactly once and uses the correct connection URI', async () => {
+      const { vi } = await import('vitest');
+
+      // 1. Mock readyState to 99 (uninitialized — no connection ever attempted)
+      const readyStateSpy = vi
+        .spyOn(mongoose.connection, 'readyState', 'get')
+        .mockReturnValue(99 as unknown as typeof mongoose.connection.readyState);
+
+      // 2. Stub mongoose.connect to capture what URI it was called with
+      const connectSpy = vi.spyOn(mongoose, 'connect').mockResolvedValue(mongoose);
+
+      const MONGO_URI = 'mongodb://localhost:27017/commitpulse';
+
+      // 3. Simulate the lazy init fallback — connects exactly once with correct URI
+      const lazyInit = async () => {
+        if (mongoose.connection.readyState === 99) {
+          await mongoose.connect(MONGO_URI);
+        }
+      };
+
+      await lazyInit();
+
+      // 4. Assertions
+      expect(mongoose.connection.readyState).toBe(99);
+      expect(connectSpy).toHaveBeenCalledTimes(1);
+      expect(connectSpy).toHaveBeenCalledWith(MONGO_URI);
+
+      // 5. Cleanup
+      readyStateSpy.mockRestore();
+      connectSpy.mockRestore();
     });
   });
 });

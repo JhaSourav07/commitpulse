@@ -875,6 +875,84 @@ describe('calculateStreak', () => {
     expect(resultMonday.longestStreak).toBe(2);
   });
 });
+it('calculates streaks identically when weeks start on Sunday vs Monday formats', () => {
+  const datePattern = [
+    { date: '2026-05-24', count: 1 },
+    { date: '2026-05-25', count: 1 },
+    { date: '2026-05-26', count: 1 },
+    { date: '2026-05-27', count: 1 },
+    { date: '2026-05-28', count: 1 },
+    { date: '2026-05-29', count: 1 },
+    { date: '2026-05-30', count: 1 },
+    { date: '2026-05-31', count: 1 },
+    { date: '2026-06-01', count: 1 },
+    { date: '2026-06-02', count: 1 },
+  ];
+
+  const sundayStartCalendar = {
+    totalContributions: 10,
+    weeks: [
+      {
+        contributionDays: datePattern.slice(0, 7).map((d) => ({
+          contributionCount: d.count,
+          date: d.date,
+        })),
+      },
+      {
+        contributionDays: datePattern.slice(7).map((d) => ({
+          contributionCount: d.count,
+          date: d.date,
+        })),
+      },
+    ],
+  };
+
+  const mondayStartCalendar = {
+    totalContributions: 10,
+    weeks: [
+      {
+        contributionDays: [
+          {
+            contributionCount: datePattern[0].count,
+            date: datePattern[0].date,
+          },
+        ],
+      },
+      {
+        contributionDays: datePattern.slice(1, 8).map((d) => ({
+          contributionCount: d.count,
+          date: d.date,
+        })),
+      },
+      {
+        contributionDays: datePattern.slice(8).map((d) => ({
+          contributionCount: d.count,
+          date: d.date,
+        })),
+      },
+    ],
+  };
+
+  const evalDate = new Date('2026-06-02T12:00:00Z');
+
+  const resultSunday = calculateStreak(
+    sundayStartCalendar as ContributionCalendar,
+    'UTC',
+    evalDate
+  );
+
+  const resultMonday = calculateStreak(
+    mondayStartCalendar as ContributionCalendar,
+    'UTC',
+    evalDate
+  );
+
+  expect(resultSunday.currentStreak).toBe(10);
+  expect(resultSunday.longestStreak).toBe(10);
+
+  expect(resultMonday.currentStreak).toBe(10);
+  expect(resultMonday.longestStreak).toBe(10);
+});
 
 describe('calculateStreak — timezone awareness', () => {
   const tzCalendar = {

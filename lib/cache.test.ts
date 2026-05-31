@@ -403,6 +403,21 @@ describe('TTLCache', () => {
       cache.destroy();
     });
 
+    it('stores and retrieves multidimensional array values', () => {
+      const cache = new TTLCache<number[][]>();
+
+      const matrix = [
+        [1, 2],
+        [3, 4],
+      ];
+
+      cache.set('matrix', matrix, 60_000);
+
+      expect(cache.get('matrix')).toEqual(matrix);
+
+      cache.destroy();
+    });
+
     it('stores and retrieves values using unicode cache keys', () => {
       const cache = new TTLCache<string>();
 
