@@ -37,6 +37,13 @@ export function resolveFont(sanitizedFont?: string | null): string | null {
   );
 }
 
+function isBundledFont(sanitizedFont?: string | null): boolean {
+  if (!sanitizedFont) return false;
+
+  const fontKey = sanitizedFont.toLowerCase() as keyof typeof FONT_MAP;
+  return fontKey in FONT_MAP && fontKey !== 'inter';
+}
+
 // helpers
 export function getSizeScale(size?: 'small' | 'medium' | 'large') {
   if (size === 'small') return 400 / SVG_WIDTH;
@@ -649,9 +656,7 @@ export function generateSVG(
 
   const sanitizedFont = sanitizeFont(params.font);
   const selectedFont = resolveFont(sanitizedFont);
-  const isPredefinedFont = sanitizedFont
-    ? Boolean(FONT_MAP[sanitizedFont.toLowerCase() as keyof typeof FONT_MAP])
-    : false;
+  const isPredefinedFont = isBundledFont(sanitizedFont);
   const statsFont = selectedFont || '"Space Grotesk", sans-serif';
   const googleFontUrlPart =
     sanitizedFont && !isPredefinedFont ? sanitizeGoogleFontUrl(sanitizedFont) : null;
@@ -816,9 +821,7 @@ export function generateMonthlySVG(stats: MonthlyStats, params: BadgeParams): st
 
   const sanitizedFont = sanitizeFont(params.font);
   const selectedFont = resolveFont(sanitizedFont);
-  const isPredefinedFont = sanitizedFont
-    ? Boolean(FONT_MAP[sanitizedFont.toLowerCase() as keyof typeof FONT_MAP])
-    : false;
+  const isPredefinedFont = isBundledFont(sanitizedFont);
   const statsFont = selectedFont || '"Space Grotesk", sans-serif';
   const radius = sanitizeRadius(params.radius, 8);
   const labels = getLabels(params.lang);
@@ -939,9 +942,7 @@ export function generateWrappedSVG(
 
   const sanitizedFont = sanitizeFont(params.font);
   const selectedFont = resolveFont(sanitizedFont);
-  const isPredefinedFont = sanitizedFont
-    ? Boolean(FONT_MAP[sanitizedFont.toLowerCase() as keyof typeof FONT_MAP])
-    : false;
+  const isPredefinedFont = isBundledFont(sanitizedFont);
   const statsFont = selectedFont || '"Space Grotesk", sans-serif';
   const radius = sanitizeRadius(params.radius, 8);
 
@@ -1472,13 +1473,8 @@ export function generateHeatmapSVG(
   const borderAttr = params.border ? `stroke="#${params.border}" stroke-width="2"` : '';
 
   const sanitizedFont = sanitizeFont(params.font);
-  const predefinedFont = sanitizedFont
-    ? (FONT_MAP[sanitizedFont.toLowerCase() as keyof typeof FONT_MAP] ?? null)
-    : null;
   const selectedFont = resolveFont(sanitizedFont);
-  const isPredefinedFont = sanitizedFont
-    ? Boolean(FONT_MAP[sanitizedFont.toLowerCase() as keyof typeof FONT_MAP])
-    : false;
+  const isPredefinedFont = isBundledFont(sanitizedFont);
   const statsFont = selectedFont || '"Space Grotesk", sans-serif';
   const googleFontUrlPart =
     sanitizedFont && !isPredefinedFont ? sanitizeGoogleFontUrl(sanitizedFont) : null;
@@ -1930,9 +1926,7 @@ export function generateVersusSVG(
 
   const sanitizedFont = sanitizeFont(params.font);
   const selectedFont = resolveFont(sanitizedFont);
-  const isPredefinedFont = sanitizedFont
-    ? Boolean(FONT_MAP[sanitizedFont.toLowerCase() as keyof typeof FONT_MAP])
-    : false;
+  const isPredefinedFont = isBundledFont(sanitizedFont);
   const statsFont = selectedFont || '"Space Grotesk", sans-serif';
   const googleFontUrlPart =
     sanitizedFont && !isPredefinedFont ? sanitizeGoogleFontUrl(sanitizedFont) : null;
@@ -2184,15 +2178,8 @@ export function generatePulseSVG(
   const text = `#${sanitizeHexColor(params.text, 'ffffff')}`;
 
   const sanitizedFont = sanitizeFont(params.font);
-  const predefinedFont = sanitizedFont
-    ? (FONT_MAP[sanitizedFont.toLowerCase() as keyof typeof FONT_MAP] ?? null)
-    : null;
-  const isPredefinedFont = Boolean(predefinedFont);
-  const selectedFont = isPredefinedFont
-    ? predefinedFont
-    : sanitizedFont
-      ? `"${sanitizedFont}", sans-serif`
-      : null;
+  const selectedFont = resolveFont(sanitizedFont);
+  const isPredefinedFont = isBundledFont(sanitizedFont);
 
   const statsFont = selectedFont || '"Space Grotesk", sans-serif';
   const parsedRadius = Number(params.radius);
@@ -2201,7 +2188,7 @@ export function generatePulseSVG(
   const googleFontUrlPart =
     sanitizedFont && !isPredefinedFont ? sanitizeGoogleFontUrl(sanitizedFont) : null;
   const googleFontsImport = googleFontUrlPart
-    ? `@import url('https://fonts.googleapis.com/css2?family=${googleFontUrlPart}&display=swap');`
+    ? `@import url('https://fonts.googleapis.com/css2?family=${googleFontUrlPart}&amp;display=swap');`
     : '';
 
   const width = params.width || 800;
@@ -2374,15 +2361,8 @@ function generateAutoThemePulseSVG(
   const safeUser = escapeXML(params.user || 'GitHub User');
 
   const sanitizedFont = sanitizeFont(params.font);
-  const predefinedFont = sanitizedFont
-    ? (FONT_MAP[sanitizedFont.toLowerCase() as keyof typeof FONT_MAP] ?? null)
-    : null;
-  const isPredefinedFont = Boolean(predefinedFont);
-  const selectedFont = isPredefinedFont
-    ? predefinedFont
-    : sanitizedFont
-      ? `"${sanitizedFont}", sans-serif`
-      : null;
+  const selectedFont = resolveFont(sanitizedFont);
+  const isPredefinedFont = isBundledFont(sanitizedFont);
 
   const statsFont = selectedFont || '"Space Grotesk", sans-serif';
   const parsedRadius = Number(params.radius);
