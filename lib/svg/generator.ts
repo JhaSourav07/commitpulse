@@ -17,9 +17,16 @@ import {
 
 import { GRID_ORIGIN_X, GRID_ORIGIN_Y, TILE_HEIGHT_HALF, TILE_WIDTH_HALF } from './layoutConstants';
 
-import { SVG_WIDTH, SVG_HEIGHT, FONT_MAP } from './generatorConstants';
+import { SVG_WIDTH, SVG_HEIGHT } from './generatorConstants';
 
-export { FONT_MAP };
+const FONT_MAP = {
+  inter: '"Inter", sans-serif',
+  roboto: '"Roboto", sans-serif',
+  jetbrains: '"JetBrains Mono", monospace',
+  fira: '"Fira Code", monospace',
+  syncopate: '"Syncopate", sans-serif',
+  space: '"Space Grotesk", sans-serif',
+} as const;
 
 export function resolveFont(sanitizedFont?: string | null): string | null {
   if (!sanitizedFont) return null;
