@@ -14,7 +14,7 @@ const HEX_COLOR_REGEX = /^([0-9A-Fa-f]{3}|[0-9A-Fa-f]{4}|[0-9A-Fa-f]{6}|[0-9A-Fa
  */
 export function isValidHex(color?: string): boolean {
   if (!color) return false;
-  const cleanColor = color.replace('#', '');
+  const cleanColor = color.replace(/^#+/, '');
   return HEX_COLOR_REGEX.test(cleanColor);
 }
 
@@ -27,11 +27,11 @@ export function isValidHex(color?: string): boolean {
  * For user-supplied input, use `sanitizeHexColor` instead.
  */
 export function hexColor(value: string, fallback = '000000'): HexColor {
-  const cleaned = value.replace('#', '');
+  const cleaned = value.replace(/^#+/, '');
   if (HEX_COLOR_REGEX.test(cleaned)) {
     return cleaned as HexColor;
   }
-  return fallback.replace('#', '') as HexColor;
+  return fallback.replace(/^#+/, '') as HexColor;
 }
 
 /**
@@ -39,15 +39,15 @@ export function hexColor(value: string, fallback = '000000'): HexColor {
  * Always returns a hex string WITHOUT the leading #.
  */
 export function sanitizeHexColor(input: string | undefined | null, fallback: string): HexColor {
-  if (!input) return fallback.replace('#', '') as HexColor;
+  if (!input) return fallback.replace(/^#+/, '') as HexColor;
 
-  const cleanInput = input.trim().replace('#', '');
+  const cleanInput = input.trim().replace(/^#+/, '');
 
   if (HEX_COLOR_REGEX.test(cleanInput)) {
     return cleanInput as HexColor;
   }
 
-  return fallback.replace('#', '') as HexColor;
+  return fallback.replace(/^#+/, '') as HexColor;
 }
 
 /**
@@ -113,4 +113,75 @@ export function sanitizeGoogleFontUrl(fontName: string | undefined | null): stri
 
   // Return the encoded font name suitable for Google Fonts API URL (spaces replaced with '+')
   return encodeURIComponent(cleaned).replace(/%20/g, '+');
+}
+
+export function getLuminance(hex: string): number {
+  let normalized = hex.trim().replace(/^#/, '');
+  if (normalized.length === 3 || normalized.length === 4) {
+    normalized = `${normalized[0]}${normalized[0]}${normalized[1]}${normalized[1]}${normalized[2]}${normalized[2]}`;
+  }
+  const r = parseInt(normalized.slice(0, 2), 16) / 255 || 0;
+  const g = parseInt(normalized.slice(2, 4), 16) / 255 || 0;
+  const b = parseInt(normalized.slice(4, 6), 16) / 255 || 0;
+
+  const [R, G, B] = [r, g, b].map((c) =>
+    c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4)
+  );
+  return 0.2126 * R + 0.7152 * G + 0.0722 * B;
+}
+
+/**
+ * Normalizes a single hex color string by removing leading '#' and validating it.
+ * Returns the clean hex string (without '#') or null if invalid.
+ */
+export function normalizeHexColor(color: string): string | null {
+  if (!color) return null;
+  const trimmed = color.trim();
+  const cleaned = trimmed.replace(/^#+/, '');
+  if (HEX_COLOR_REGEX.test(cleaned)) {
+    return cleaned;
+  }
+  return null;
+}
+
+/**
+ * Parses comma-separated hex colors from a gradient_stops URL parameter.
+ * Accepts colors with or without leading '#'.
+ * Returns an array of normalized hex colors (without '#'), or empty array if no valid colors found.
+ */
+export function parseGradientStops(input?: string): string[] {
+  if (!input || typeof input !== 'string') {
+    return [];
+  }
+
+  const colors = input
+    .split(',')
+    .map((color) => normalizeHexColor(color))
+    .filter((color) => color !== null) as string[];
+
+  return colors;
+}
+
+/**
+ * Converts a gradient direction ('vertical', 'horizontal', 'diagonal') into SVG linearGradient coordinates.
+ * Returns {x1, y1, x2, y2} as percentage strings suitable for SVG linearGradient attributes.
+ * Defaults to 'vertical' if direction is invalid.
+ */
+export function getGradientCoordinates(dir?: string): {
+  x1: string;
+  y1: string;
+  x2: string;
+  y2: string;
+} {
+  const direction = (dir || 'vertical').toLowerCase().trim();
+
+  switch (direction) {
+    case 'horizontal':
+      return { x1: '0%', y1: '0%', x2: '100%', y2: '0%' };
+    case 'diagonal':
+      return { x1: '0%', y1: '0%', x2: '100%', y2: '100%' };
+    case 'vertical':
+    default:
+      return { x1: '0%', y1: '0%', x2: '0%', y2: '100%' };
+  }
 }

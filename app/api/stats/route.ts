@@ -1,8 +1,8 @@
 // app/api/stats/route.ts
 import { NextResponse } from 'next/server';
-import { fetchGitHubContributions } from '../../../lib/github';
-import { calculateStreak } from '../../../lib/calculate';
-import { statsParamsSchema } from '../../../lib/validations';
+import { fetchGitHubContributions } from '@/lib/github';
+import { calculateStreak } from '@/lib/calculate';
+import { statsParamsSchema } from '@/lib/validations';
 
 /**
  * GET /api/stats?user=<username>[&refresh=true][&tz=<IANA timezone>]
@@ -47,8 +47,19 @@ export async function GET(request: Request) {
   }
 
   try {
-    const calendar = await fetchGitHubContributions(user, { bypassCache: refresh });
+    const userData = await fetchGitHubContributions(user, { bypassCache: refresh });
+    const calendar = userData.calendar;
     const stats = calculateStreak(calendar, timezone);
+    const headers = new Headers({
+      // Cache until next UTC midnight; clients can bust with ?refresh=true
+      'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
+    });
+
+    if (refresh) {
+      headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+      headers.set('Pragma', 'no-cache');
+      headers.set('Expires', '0');
+    }
 
     return NextResponse.json(
       {
@@ -56,15 +67,29 @@ export async function GET(request: Request) {
         longestStreak: stats.longestStreak,
         currentStreak: stats.currentStreak,
       },
-      {
-        headers: {
-          // Cache until next UTC midnight; clients can bust with ?refresh=true
-          'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
-        },
-      }
+      { headers }
     );
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';
+
+    if (
+      message.toLowerCase().includes('not found') ||
+      message.toLowerCase().includes('could not resolve')
+    ) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    if (
+      message.toLowerCase().includes('rate limit') ||
+      message.includes('API limit reached') ||
+      message.includes('status 403')
+    ) {
+      return NextResponse.json(
+        { error: 'GitHub API rate limit reached. Please configure GITHUB_TOKEN.' },
+        { status: 403 }
+      );
+    }
+
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
