@@ -4,8 +4,12 @@ import { User } from '@/models/User';
 import { trackUserRateLimiter } from '@/lib/rate-limit';
 
 export async function POST(req: Request) {
-  // Get IP for rate limiting
-  const ip = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown';
+  // Get IP for rate limiting.
+  // x-real-ip is provided by Vercel/Nginx as the true client IP.
+  // We fall back to the LAST IP in the x-forwarded-for chain, which is appended by the Vercel proxy.
+  const forwardedFor = req.headers.get('x-forwarded-for');
+  const fallbackIp = forwardedFor ? forwardedFor.split(',').pop()?.trim() : 'unknown';
+  const ip = req.headers.get('x-real-ip') || fallbackIp || 'unknown';
 
   if (ip !== 'unknown' && !(await trackUserRateLimiter.check(ip))) {
     return NextResponse.json(

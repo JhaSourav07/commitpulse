@@ -11,6 +11,7 @@ import { rateLimit } from './lib/rate-limit';
  * - /api/track-user
  * - /api/stats
  * - /api/og
+ * - /api/notify
  *
  * Limit: 60 requests per minute per IP.
  */
@@ -60,5 +61,6 @@ export const config = {
     '/api/track-user/:path*',
     '/api/stats/:path*',
     '/api/og/:path*',
+    '/api/notify/:path*',
   ],
 };

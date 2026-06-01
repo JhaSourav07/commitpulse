@@ -11,6 +11,8 @@ import {
   sanitizeRadius,
   sanitizeGoogleFontUrl,
   getLuminance,
+  parseGradientStops,
+  getGradientCoordinates,
 } from './sanitizer';
 
 import { SVG_WIDTH, SVG_HEIGHT, FONT_MAP } from './generatorConstants';
@@ -63,6 +65,30 @@ export function escapeXML(str: string): string {
 export function particleCount(count: number): number {
   if (count === 0) return 0;
   return Math.min(5, Math.max(3, Math.floor(count / 4)));
+}
+
+export interface TowerPaths {
+  left: string;
+  right: string;
+  top: string;
+}
+
+/**
+ * Builds the SVG path strings for the three faces of an isometric 3D tower.
+ *
+ * @param h - The height of the tower.
+ * @param scale - Optional scale factor (defaults to 1, which represents the standard 16x10 grid).
+ */
+export function buildTowerPaths(h: number, scale: number = 1): TowerPaths {
+  const tileHalfWidth = 16 * scale;
+  const tileHalfHeight = 10 * scale;
+  const tileFullHeight = 20 * scale;
+
+  return {
+    left: `M0 ${tileHalfHeight - h} L0 ${tileHalfHeight} L-${tileHalfWidth} 0 L-${tileHalfWidth} ${-h} Z`,
+    right: `M0 ${tileHalfHeight - h} L0 ${tileHalfHeight} L${tileHalfWidth} 0 L${tileHalfWidth} ${-h} Z`,
+    top: `M0 ${-h} L${tileHalfWidth} ${tileHalfHeight - h} L0 ${tileFullHeight - h} L-${tileHalfWidth} ${tileHalfHeight - h} Z`,
+  };
 }
 
 function generateParticles(
@@ -129,47 +155,117 @@ function renderHeader(
   ${renderDefs(sf, params)}`;
 }
 
+/**
+ * Generates custom SVG gradient definitions from gradient_stops and gradient_dir parameters.
+ * Returns an object with gradient SVG elements and the gradient ID (or empty string if invalid).
+ * If custom stops are invalid or insufficient, returns { gradients: '', gradientId: '' }.
+ * Also stores the gradient ID on the params object for tower rendering to use.
+ */
+function generateCustomGradients(params: BadgeParams): { gradients: string; gradientId: string } {
+  const stops = parseGradientStops(params.gradient_stops);
+
+  // Require at least 2 valid colors for custom gradient
+  if (stops.length < 2) {
+    return { gradients: '', gradientId: '' };
+  }
+
+  const coords = getGradientCoordinates(params.gradient_dir);
+
+  // Create a deterministic gradient ID based on the color stops and direction
+  // This ensures consistent output and avoids random/duplicate IDs
+  const gradientSignature = `${stops.join('-')}-${params.gradient_dir || 'vertical'}`;
+  const gradientId = `custom-grad-${deterministicRandom(gradientSignature)
+    .toString()
+    .slice(2, 10)}`;
+
+  let gradients = '';
+
+  // Generate 4 gradient definitions (one for each intensity level)
+  // Each uses the same color stops but with different opacity progression
+  for (let i = 0; i < 4; i++) {
+    const level = i + 1;
+    const levelId = `${gradientId}-level-${level}`;
+
+    // Build the stop elements
+    let stopElements = '';
+    const stopCount = stops.length;
+
+    stops.forEach((color, stopIdx) => {
+      const offset = (stopIdx / (stopCount - 1)) * 100;
+      // Increase opacity with intensity level (0.4 to 0.8)
+      const baseOpacity = 0.4 + i * 0.2;
+      const stopOpacity = Math.min(1, baseOpacity + stopIdx * 0.1);
+
+      const colorHex = color.startsWith('#') ? color : `#${color}`;
+      stopElements += `
+        <stop offset="${offset}%" stop-color="${colorHex}" stop-opacity="${stopOpacity}" />`;
+    });
+
+    gradients += `
+      <linearGradient id="${levelId}" x1="${coords.x1}" y1="${coords.y1}" x2="${coords.x2}" y2="${coords.y2}">
+${stopElements}
+      </linearGradient>`;
+  }
+
+  // Store the gradient ID on params for tower rendering to use
+  params.__customGradientId = gradientId;
+
+  return { gradients, gradientId };
+}
+
 function renderDefs(sf: number, params: BadgeParams): string {
   const fs = (n: number): number => Math.round(n * sf * 10) / 10;
 
   let gradients = '';
   if (params.gradient) {
-    if (params.autoTheme) {
-      for (let i = 0; i < 4; i++) {
-        const level = i + 1;
-        gradients += `
+    // Try to use custom gradient if gradient_stops is provided
+    const result = generateCustomGradients(params);
+    if (result.gradientId) {
+      // Custom gradient stops were valid and used
+      gradients = result.gradients;
+    } else {
+      // Fallback to default gradient behavior
+      const bgStr = params.bg || '0d1117';
+      const bgHex = bgStr.startsWith('#') ? bgStr : `#${bgStr}`;
+
+      if (params.autoTheme) {
+        for (let i = 0; i < 4; i++) {
+          const level = i + 1;
+          gradients += `
       <linearGradient id="tower-grad-level-${level}" x1="0" y1="1" x2="0" y2="0">
         <stop offset="0%" stop-color="var(--cp-bg)" stop-opacity="0.1" />
         <stop offset="100%" stop-color="var(--cp-accent)" stop-opacity="${0.4 + i * 0.2}" />
       </linearGradient>`;
-      }
-    } else {
-      const accent = params.accent;
-      const colors = Array.isArray(accent)
-        ? [0, 1, 2, 3].map((i) => {
-            const idx = Math.min(i, accent.length - 1);
-            const c = accent[idx] || accent[accent.length - 1] || '00ffaa';
-            return c.startsWith('#') ? c : `#${c}`;
-          })
-        : [0, 1, 2, 3].map(() => (String(accent).startsWith('#') ? String(accent) : `#${accent}`));
+        }
+      } else {
+        const accent = params.accent;
+        const colors = Array.isArray(accent)
+          ? [0, 1, 2, 3].map((i) => {
+              const idx = Math.min(i, accent.length - 1);
+              const c = accent[idx] || accent[accent.length - 1] || '00ffaa';
+              return c.startsWith('#') ? c : `#${c}`;
+            })
+          : [0, 1, 2, 3].map(() =>
+              String(accent).startsWith('#') ? String(accent) : `#${accent}`
+            );
 
-      const bgStr = params.bg || '0d1117';
-      const bgHex = bgStr.startsWith('#') ? bgStr : `#${bgStr}`;
-
-      colors.forEach((c, idx) => {
-        const level = idx + 1;
-        gradients += `
+        colors.forEach((c, idx) => {
+          const level = idx + 1;
+          gradients += `
       <linearGradient id="tower-grad-level-${level}" x1="0" y1="1" x2="0" y2="0">
         <stop offset="0%" stop-color="${bgHex}" stop-opacity="0.1" />
         <stop offset="100%" stop-color="${c}" stop-opacity="${0.4 + idx * 0.2}" />
       </linearGradient>`;
-      });
+        });
+      }
     }
   }
 
   const filterGlow =
     params.glow !== false
-      ? `<filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="${fs(5)}" result="blur" /><feComposite in="SourceGraphic" in2="blur" operator="over" /></filter>`
+      ? `<filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="${fs(
+          5
+        )}" result="blur" /><feComposite in="SourceGraphic" in2="blur" operator="over" /></filter>`
       : '';
 
   return `<defs>
@@ -221,7 +317,7 @@ function renderStyle(
   <style>
   @import url('https://fonts.googleapis.com/css2?family=Fira+Code&amp;family=JetBrains+Mono&amp;family=Roboto&amp;family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');
   ${googleFontsImport}
-  ${getTowerAnimationCSS(entrance)}
+  ${getTowerAnimationCSS(entrance, sf)}
   .scan-line {
     animation: scan-sweep var(--scan-speed, 8s) linear infinite;
     transform-box: fill-box;
@@ -255,6 +351,7 @@ function renderTowers(
   text: string,
   sf: number,
   isAutoTheme: boolean = false,
+  opacity: number = 1.0,
   animate: boolean = true
 ): string {
   let towers = '';
@@ -292,9 +389,10 @@ function renderTowers(
       topFillAttr = leftRightFillAttr;
     }
 
-    let leftFaceOpacity = t.faceOpacity.left;
-    let rightFaceOpacity = t.faceOpacity.right;
-    let topFaceOpacity = t.faceOpacity.top;
+    // opacity scalar: clamp 0.1–1.0, applied globally to all tower faces
+    let leftFaceOpacity = Math.round(t.faceOpacity.left * opacity * 100) / 100;
+    let rightFaceOpacity = Math.round(t.faceOpacity.right * opacity * 100) / 100;
+    let topFaceOpacity = Math.round(t.faceOpacity.top * opacity * 100) / 100;
 
     if (!isGhost && t.intensityLevel > 0 && params.shading === true) {
       const mult = opacityMultipliers[t.intensityLevel - 1];
@@ -308,8 +406,14 @@ function renderTowers(
     let finalTopFillAttr = topFillAttr;
 
     if (!isGhost && t.intensityLevel > 0 && params.gradient === true) {
-      leftFillAttr = `fill="url(#tower-grad-level-${t.intensityLevel})"`;
-      rightFillAttr = `fill="url(#tower-grad-level-${t.intensityLevel})"`;
+      // Use custom gradient ID if available, otherwise use default gradient ID
+      const customGradId = params.__customGradientId;
+      const gradId = customGradId
+        ? `${customGradId}-level-${t.intensityLevel}`
+        : `tower-grad-level-${t.intensityLevel}`;
+
+      leftFillAttr = `fill="url(#${gradId})"`;
+      rightFillAttr = `fill="url(#${gradId})"`;
 
       if (isAutoTheme) {
         finalTopFillAttr = 'class="cp-accent-fill"';
@@ -345,15 +449,17 @@ function renderTowers(
     const metric =
       t.contributionCount === 0 ? 'Rest day' : t.intensityLevel === 4 ? 'Peak day' : 'Active day';
 
+    const paths = buildTowerPaths(t.h, 1);
+
     towers += `
         <g transform="translate(${t.x}, ${t.y})">
           <g class="cp-tower interactive-tower" data-date="${escapeXML(t.date)}" data-count="${t.contributionCount}" data-metric="${escapeXML(metric)}" style="animation-delay: ${delay}s;">
             ${animate && t.isToday ? '<animate attributeName="opacity" values="1;0.4;1" dur="1.5s" repeatCount="indefinite" />' : ''}
             <title>${escapeXML(t.tooltip)}</title>
-            <path d="M0 ${10 - t.h} L0 10 L-16 0 L-16 ${-t.h} Z" ${leftFillAttr} fill-opacity="${leftFaceOpacity}" ${leftStrokeAttr} />
-            <path d="M0 ${10 - t.h} L0 10 L16 0 L16 ${-t.h} Z" ${rightFillAttr} fill-opacity="${rightFaceOpacity}" ${rightStrokeAttr} />
-            <path d="M0 ${-t.h} L16 ${10 - t.h} L0 ${20 - t.h} L-16 ${10 - t.h} Z" ${finalTopFillAttr} fill-opacity="${topFaceOpacity}" ${topStrokeAttr} />
-            ${t.contributionCount > 5 ? `<path d="M0 ${-t.h} L16 ${10 - t.h} L0 ${20 - t.h} L-16 ${10 - t.h} Z" fill="white" fill-opacity="0.2" />` : ''}
+            <path d="${paths.left}" ${leftFillAttr} fill-opacity="${leftFaceOpacity}" ${leftStrokeAttr} />
+            <path d="${paths.right}" ${rightFillAttr} fill-opacity="${rightFaceOpacity}" ${rightStrokeAttr} />
+            <path d="${paths.top}" ${finalTopFillAttr} fill-opacity="${topFaceOpacity}" ${topStrokeAttr} />
+            ${t.contributionCount > 5 ? `<path d="${paths.top}" fill="white" fill-opacity="0.2" />` : ''}
           </g>
         </g>`;
 
@@ -540,7 +646,16 @@ export function generateSVG(
     computeTowers(calendar, params.scale, stats.todayDate, params.mode),
     sf
   );
-  const towers = renderTowers(towerData, params, accent, text, sf, false, animate);
+  const towers = renderTowers(
+    towerData,
+    params,
+    accent,
+    text,
+    sf,
+    false,
+    params.opacity ?? 1.0,
+    animate
+  );
 
   const mainAccent = Array.isArray(accent)
     ? accent[accent.length - 1] || '00ffaa'
@@ -592,7 +707,7 @@ function generateAutoThemeSVG(
     computeTowers(calendar, params.scale, stats.todayDate, params.mode),
     sf
   );
-  const towers = renderTowers(towerData, params, '', '', sf, true);
+  const towers = renderTowers(towerData, params, '', '', sf, true, params.opacity ?? 1.0);
 
   const s = createScaler(sf);
   const fs = (n: number): number => Math.round(n * sf * 10) / 10;
@@ -617,7 +732,7 @@ function generateAutoThemeSVG(
   :root { --cp-bg: #${light.bg}; --cp-text: #${light.text}; --cp-accent: #${light.accent}; --cp-label-fill: ${lightLabelFill}; --cp-label-opacity: ${lightLabelOpacity}; }
   @media (prefers-color-scheme: dark) { :root { --cp-bg: #${dark.bg}; --cp-text: #${dark.text}; --cp-accent: #${dark.accent}; --cp-label-fill: ${darkLabelFill}; --cp-label-opacity: ${darkLabelOpacity}; } }
   .cp-bg-fill { fill: var(--cp-bg); } .cp-text-fill { fill: var(--cp-text); color: var(--cp-text); } .cp-accent-fill { fill: var(--cp-accent); color: var(--cp-accent); }
-  ${getTowerAnimationCSS(params.entrance || 'rise')}
+  ${getTowerAnimationCSS(params.entrance || 'rise', sf)}
   .scan-line {
     animation: scan-sweep var(--scan-speed, 8s) linear infinite;
     transform-box: fill-box;
@@ -916,11 +1031,13 @@ export function generateWrappedSVG(
     const topFaceOpacity = t.isGhost ? 0.02 : 0.035;
     const strokeOpacity = t.isGhost ? 0.03 : 0.02;
 
+    const paths = buildTowerPaths(scaleHeight, 0.45);
+
     bgTowersMarkup += `
         <g transform="translate(${scaleX}, ${scaleY})">
-          <path d="M0 ${4.5 - scaleHeight} L0 4.5 L-7.2 0 L-7.2 ${-scaleHeight} Z" fill="${resolvedSolidColor}" fill-opacity="${leftFaceOpacity}" stroke="${resolvedSolidColor}" stroke-opacity="${strokeOpacity}" stroke-width="0.22" />
-          <path d="M0 ${4.5 - scaleHeight} L0 4.5 L7.2 0 L7.2 ${-scaleHeight} Z" fill="${resolvedSolidColor}" fill-opacity="${rightFaceOpacity}" stroke="${resolvedSolidColor}" stroke-opacity="${strokeOpacity}" stroke-width="0.22" />
-          <path d="M0 ${-scaleHeight} L7.2 ${4.5 - scaleHeight} L0 ${9 - scaleHeight} L-7.2 ${4.5 - scaleHeight} Z" fill="${resolvedSolidColor}" fill-opacity="${topFaceOpacity}" stroke="${resolvedSolidColor}" stroke-opacity="${strokeOpacity}" stroke-width="0.22" />
+          <path d="${paths.left}" fill="${resolvedSolidColor}" fill-opacity="${leftFaceOpacity}" stroke="${resolvedSolidColor}" stroke-opacity="${strokeOpacity}" stroke-width="0.22" />
+          <path d="${paths.right}" fill="${resolvedSolidColor}" fill-opacity="${rightFaceOpacity}" stroke="${resolvedSolidColor}" stroke-opacity="${strokeOpacity}" stroke-width="0.22" />
+          <path d="${paths.top}" fill="${resolvedSolidColor}" fill-opacity="${topFaceOpacity}" stroke="${resolvedSolidColor}" stroke-opacity="${strokeOpacity}" stroke-width="0.22" />
         </g>`;
   }
 
@@ -1856,8 +1973,8 @@ export function generateVersusSVG(
     sf
   );
 
-  const towers1 = renderTowers(towerData1, params, accent, text, sf, false);
-  const towers2 = renderTowers(towerData2, params, accent, text, sf, false);
+  const towers1 = renderTowers(towerData1, params, accent, text, sf, false, params.opacity ?? 1.0);
+  const towers2 = renderTowers(towerData2, params, accent, text, sf, false, params.opacity ?? 1.0);
 
   const s = createScaler(sf);
   const unit = params.mode === 'loc' ? 'lines of code' : 'total contributions';
@@ -1949,15 +2066,17 @@ function generateAutoThemeVersusSVG(
       topStrokeAttr = `stroke="var(--cp-accent)" stroke-opacity="0.8" stroke-width="${1.2 * sf}"`;
     }
 
+    const paths = buildTowerPaths(t.h, 1);
+
     towers1 += `
         <g transform="translate(${t.x}, ${t.y})">
           <g class="cp-tower" style="animation-delay: ${delay}s;">
             ${t.isToday ? '<animate attributeName="opacity" values="1;0.4;1" dur="1.5s" repeatCount="indefinite" />' : ''}
             <title>${escapeXML(t.tooltip)}</title>
-            <path d="M0 ${10 - t.h} L0 10 L-16 0 L-16 ${-t.h} Z" class="${fillClass}" fill-opacity="${t.faceOpacity.left}" ${leftStrokeAttr} />
-            <path d="M0 ${10 - t.h} L0 10 L16 0 L16 ${-t.h} Z" class="${fillClass}" fill-opacity="${t.faceOpacity.right}" ${rightStrokeAttr} />
-            <path d="M0 ${-t.h} L16 ${10 - t.h} L0 ${20 - t.h} L-16 ${10 - t.h} Z" class="${fillClass}" fill-opacity="${t.faceOpacity.top}" ${topStrokeAttr} />
-            ${t.contributionCount > 5 ? `<path d="M0 ${-t.h} L16 ${10 - t.h} L0 ${20 - t.h} L-16 ${10 - t.h} Z" fill="white" fill-opacity="0.2" />` : ''}
+            <path d="${paths.left}" class="${fillClass}" fill-opacity="${t.faceOpacity.left}" ${leftStrokeAttr} />
+            <path d="${paths.right}" class="${fillClass}" fill-opacity="${t.faceOpacity.right}" ${rightStrokeAttr} />
+            <path d="${paths.top}" class="${fillClass}" fill-opacity="${t.faceOpacity.top}" ${topStrokeAttr} />
+            ${t.contributionCount > 5 ? `<path d="${paths.top}" fill="white" fill-opacity="0.2" />` : ''}
           </g>
         </g>`;
     if (t.contributionCount >= 10)
@@ -1982,15 +2101,17 @@ function generateAutoThemeVersusSVG(
       topStrokeAttr = `stroke="var(--cp-accent)" stroke-opacity="0.8" stroke-width="${1.2 * sf}"`;
     }
 
+    const paths = buildTowerPaths(t.h, 1);
+
     towers2 += `
         <g transform="translate(${t.x}, ${t.y})">
           <g class="cp-tower" style="animation-delay: ${delay}s;">
             ${t.isToday ? '<animate attributeName="opacity" values="1;0.4;1" dur="1.5s" repeatCount="indefinite" />' : ''}
             <title>${escapeXML(t.tooltip)}</title>
-            <path d="M0 ${10 - t.h} L0 10 L-16 0 L-16 ${-t.h} Z" class="${fillClass}" fill-opacity="${t.faceOpacity.left}" ${leftStrokeAttr} />
-            <path d="M0 ${10 - t.h} L0 10 L16 0 L16 ${-t.h} Z" class="${fillClass}" fill-opacity="${t.faceOpacity.right}" ${rightStrokeAttr} />
-            <path d="M0 ${-t.h} L16 ${10 - t.h} L0 ${20 - t.h} L-16 ${10 - t.h} Z" class="${fillClass}" fill-opacity="${t.faceOpacity.top}" ${topStrokeAttr} />
-            ${t.contributionCount > 5 ? `<path d="M0 ${-t.h} L16 ${10 - t.h} L0 ${20 - t.h} L-16 ${10 - t.h} Z" fill="white" fill-opacity="0.2" />` : ''}
+            <path d="${paths.left}" class="${fillClass}" fill-opacity="${t.faceOpacity.left}" ${leftStrokeAttr} />
+            <path d="${paths.right}" class="${fillClass}" fill-opacity="${t.faceOpacity.right}" ${rightStrokeAttr} />
+            <path d="${paths.top}" class="${fillClass}" fill-opacity="${t.faceOpacity.top}" ${topStrokeAttr} />
+            ${t.contributionCount > 5 ? `<path d="${paths.top}" fill="white" fill-opacity="0.2" />` : ''}
           </g>
         </g>`;
     if (t.contributionCount >= 10)
@@ -2014,7 +2135,7 @@ function generateAutoThemeVersusSVG(
   :root { --cp-bg: #${light.bg}; --cp-text: #${light.text}; --cp-accent: #${light.accent}; --cp-label-fill: ${lightLabelFill}; --cp-label-opacity: ${lightLabelOpacity}; }
   @media (prefers-color-scheme: dark) { :root { --cp-bg: #${dark.bg}; --cp-text: #${dark.text}; --cp-accent: #${dark.accent}; --cp-label-fill: ${darkLabelFill}; --cp-label-opacity: ${darkLabelOpacity}; } }
   .cp-bg-fill { fill: var(--cp-bg); } .cp-text-fill { fill: var(--cp-text); color: var(--cp-text); } .cp-accent-fill { fill: var(--cp-accent); color: var(--cp-accent); }
-  ${getTowerAnimationCSS(params.entrance || 'rise')}
+  ${getTowerAnimationCSS(params.entrance || 'rise', sf)}
   .scan-line {
     animation: scan-sweep var(--scan-speed, 8s) linear infinite;
     transform-box: fill-box;

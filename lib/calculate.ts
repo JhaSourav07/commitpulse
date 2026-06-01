@@ -19,7 +19,11 @@ export function findTodayIndex(days: ContributionDay[], timezone: string, now: D
 
   const localTodayIndex = days.findIndex((d) => d.date === localTodayStr);
 
-  return localTodayIndex !== -1 ? localTodayIndex : days.length - 1;
+  // If today's date isn't present in the calendar, return -1 so callers can
+  // decide whether falling back to the last available day is appropriate.
+  // Previously we always returned the last index which could cause an
+  // overstated current streak when the calendar is partial or stale.
+  return localTodayIndex !== -1 ? localTodayIndex : -1;
 }
 
 export function calculateStreak(
@@ -47,15 +51,40 @@ export function calculateStreak(
 
   // 2. Calculate Current Streak (Backwards loop with Grace Period)
   const localTodayStr = new Intl.DateTimeFormat('en-CA', { timeZone: timezone }).format(now);
-  const todayIndex = findTodayIndex(days, timezone, now);
+  let todayIndex = findTodayIndex(days, timezone, now);
 
+  // If the calendar doesn't contain today's date, only fall back to the
+  // last available day when the local date is after the calendar's last
+  // reported date (i.e. the calendar is stale). Otherwise, avoid guessing
+  // and treat today's data as missing to prevent overstating the streak.
   if (todayIndex < 0) {
-    return {
-      currentStreak: 0,
-      longestStreak: 0,
-      totalContributions: calendar.totalContributions,
-      todayDate: localTodayStr,
-    };
+    const lastIndex = days.length - 1;
+    if (lastIndex < 0) {
+      return {
+        currentStreak: 0,
+        longestStreak: 0,
+        totalContributions: calendar.totalContributions,
+        todayDate: localTodayStr,
+      };
+    }
+
+    const lastDateStr = days[lastIndex].date;
+
+    // Compare YYYY-MM-DD strings lexicographically — this works for ISO dates.
+    if (localTodayStr > lastDateStr) {
+      // Local date is after the last reported date → calendar is stale.
+      todayIndex = lastIndex;
+    } else {
+      // Calendar contains dates after (or unrelated to) local today, or
+      // today is simply missing from a partial range — don't assume the
+      // streak is alive based on the last day.
+      return {
+        currentStreak: 0,
+        longestStreak,
+        totalContributions: calendar.totalContributions,
+        todayDate: localTodayStr,
+      };
+    }
   }
 
   let isStreakAlive = false;

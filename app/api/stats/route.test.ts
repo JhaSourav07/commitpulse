@@ -158,6 +158,28 @@ describe('GET /api/stats', () => {
     expect(body.error).toBe('GitHub API error');
   });
 
+  it('returns 404 when GitHub reports that the user does not exist', async () => {
+    vi.mocked(fetchGitHubContributions).mockRejectedValue(
+      new Error('GitHub user "missing-user" not found')
+    );
+
+    const response = await GET(makeRequest({ user: 'missing-user' }));
+
+    expect(response.status).toBe(404);
+    const body = await response.json();
+    expect(body.error).toBe('User not found');
+  });
+
+  it('returns 403 when GitHub rate limiting bubbles up from the client', async () => {
+    vi.mocked(fetchGitHubContributions).mockRejectedValue(new Error('API Rate Limit Exceeded'));
+
+    const response = await GET(makeRequest({ user: 'testuser' }));
+
+    expect(response.status).toBe(403);
+    const body = await response.json();
+    expect(body.error).toBe('GitHub API rate limit reached. Please configure GITHUB_TOKEN.');
+  });
+
   it('returns 500 with a generic message for non-Error throws', async () => {
     vi.mocked(fetchGitHubContributions).mockRejectedValue('something went wrong');
     const response = await GET(makeRequest({ user: 'testuser' }));

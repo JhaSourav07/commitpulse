@@ -322,6 +322,33 @@ describe('calculateStreak', () => {
     expect(result.totalContributions).toBe(1);
     expect(result.longestStreak).toBe(1);
   });
+  it.fails('simulates a streak containing ONLY Monday through Friday commits (Issue #1475)', () => {
+    // buildCalendar assumes index 0 is a Monday.
+    // Days in a week: Mon(1), Tue(1), Wed(1), Thu(1), Fri(1), Sat(0), Sun(0)
+    // We will simulate 3 full weeks of this pattern.
+    const calendar = buildCalendar([
+      // Week 1
+      1, 1, 1, 1, 1, 0, 0,
+      // Week 2
+      1, 1, 1, 1, 1, 0, 0,
+      // Week 3
+      1, 1, 1, 1, 1, 0, 0,
+    ]);
+
+    // Evaluate the streak on the final Sunday of the calendar (index 20).
+    // Because the logic currently has an off-by-one bug when handling weekends,
+    // the test asserts what the math *should* output if weekend bridging is working correctly.
+    const result = calculateStreak(
+      calendar,
+      'UTC',
+      new Date('2024-01-21T12:00:00Z') // The date of the 3rd Sunday
+    );
+
+    // If weekend gaps are bridged properly, all 15 weekdays form a continuous streak.
+    expect(result.currentStreak).toBe(15);
+    expect(result.longestStreak).toBe(15);
+    expect(result.totalContributions).toBe(15);
+  });
 
   it('does not walk past the start of a 1-day calendar when grace is larger than the available days', () => {
     const calendar = buildCalendar([1]);
@@ -702,6 +729,37 @@ describe('calculateStreak', () => {
       1,
       1,
       1, // Week 3 (Ends Wed)
+    ]);
+    const result = calculateStreak(calendar);
+    expect(result.currentStreak).toBe(15);
+    expect(result.longestStreak).toBe(15);
+  });
+
+  it('verify streak formulas for different starting days of the week timeline (Variation 3)', () => {
+    // Week 1: 0, 0, 0, 0, 1, 1, 1 (Starts on Friday, 3 days)
+    // Week 2: 1, 1, 1, 1, 1, 1, 1 (7 days)
+    // Week 3: 1, 1, 1, 1, 1        // Ends on Friday (5 days)
+    // Total continuous streak = 15 days, ending on the last day.
+    const calendar = buildCalendar([
+      0,
+      0,
+      0,
+      0,
+      1,
+      1,
+      1, // Week 1 (Starts Fri)
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1, // Week 2
+      1,
+      1,
+      1,
+      1,
+      1, // Week 3 (Ends Fri)
     ]);
     const result = calculateStreak(calendar);
     expect(result.currentStreak).toBe(15);

@@ -46,6 +46,7 @@ beforeEach(() => {
 
   vi.mocked(useSearchParams).mockReturnValue({
     get: vi.fn().mockReturnValue(null),
+    toString: vi.fn().mockReturnValue(''),
   } as any);
 });
 
@@ -69,6 +70,7 @@ describe('RefreshButton', () => {
     // Simulate the URL being: /dashboard/testuser?refresh=true
     vi.mocked(useSearchParams).mockReturnValue({
       get: (key: string) => (key === 'refresh' ? 'true' : null),
+      toString: () => 'refresh=true',
     } as any);
 
     render(<RefreshButton username="testuser" />);

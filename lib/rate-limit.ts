@@ -148,6 +148,9 @@ export class RateLimiter {
 // Global instance for track-user endpoint (5 requests per IP per minute)
 export const trackUserRateLimiter = new RateLimiter(5, 60000);
 
+// Global instance for notify endpoint (5 requests per IP per minute)
+export const notifyRateLimiter = new RateLimiter(5, 60000);
+
 /**
  * Lightweight in-memory rate limiter for Next.js Edge Middleware.
  *

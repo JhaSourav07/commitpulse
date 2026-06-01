@@ -16,6 +16,7 @@ import { getSecondsUntilUTCMidnight, getSecondsUntilMidnightInTimezone } from '@
 import type { BadgeParams } from '@/types';
 import { themes } from '@/lib/svg/themes';
 import { streakParamsSchema } from '@/lib/validations';
+import { sanitizeHexColor } from '@/lib/svg/sanitizer';
 
 const SVG_CSP_HEADER =
   "default-src 'none'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://fonts.gstatic.com;";
@@ -90,9 +91,11 @@ export async function GET(request: Request) {
       versus,
       shading,
       gradient,
+      opacity,
       tz: tzParam,
       disable_particles,
       glow,
+      format,
     } = parseResult.data;
 
     const themeName = theme || 'dark';
@@ -106,6 +109,8 @@ export async function GET(request: Request) {
       : year
         ? `${year}-12-31T23:59:59Z`
         : undefined;
+    const currentYear = new Date().getUTCFullYear();
+    const isHistoricalYear = !!year && Number(year) < currentYear;
 
     let timezone = 'UTC';
     if (tzParam) {
@@ -160,6 +165,7 @@ export async function GET(request: Request) {
       versus,
       shading,
       gradient,
+      opacity,
       disable_particles,
       glow,
       animate,
@@ -194,6 +200,42 @@ export async function GET(request: Request) {
       }
     }
 
+    // ─── JSON output mode ──────────────────────────────────────────────────
+    if (format === 'json') {
+      const stats = calculateStreak(calendar, timezone, undefined, grace);
+      const monthlyStats = calculateMonthlyStats(
+        calendar,
+        timezone,
+        getMonthlyReferenceDate(year, timezone)
+      );
+
+      const secondsToMidnight = tzParam
+        ? getSecondsUntilMidnightInTimezone(timezone)
+        : getSecondsUntilUTCMidnight();
+      const cacheControl = refresh
+        ? 'no-cache, no-store, must-revalidate'
+        : `public, s-maxage=${secondsToMidnight}, stale-while-revalidate=86400`;
+
+      return NextResponse.json(
+        {
+          user: targetEntity,
+          stats,
+          monthlyStats,
+          calendar: {
+            totalContributions: calendar.totalContributions,
+            weeks: calendar.weeks,
+          },
+        },
+        {
+          headers: {
+            'Cache-Control': cacheControl,
+            'X-Cache-Status': refresh ? `BYPASS, fetched=${new Date().toISOString()}` : 'HIT',
+          },
+        }
+      );
+    }
+
+    // ─── SVG output mode (default) ──────────────────────────────────────────
     let svg = '';
     if (view === 'monthly') {
       const stats = calculateMonthlyStats(
@@ -224,7 +266,9 @@ export async function GET(request: Request) {
       : getSecondsUntilUTCMidnight();
     const cacheControl = refresh
       ? 'no-cache, no-store, must-revalidate'
-      : `public, s-maxage=${secondsToMidnight}, stale-while-revalidate=86400`;
+      : isHistoricalYear
+        ? 'public, s-maxage=31536000, immutable'
+        : `public, s-maxage=${secondsToMidnight}, stale-while-revalidate=86400`;
 
     return new NextResponse(svg, {
       headers: {
@@ -256,15 +300,15 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
     message.toLowerCase().includes('validation') ||
     message.toLowerCase().includes('strictly for organizations');
 
-  const errBg = `#${(parseResult.success && parseResult.data.bg) || '0d1117'}`;
-  const errAccent = `#${
+  const errBg = `#${sanitizeHexColor(parseResult.success ? parseResult.data.bg : undefined, '0d1117')}`;
+  const errAccentRaw =
     (parseResult.success &&
       (Array.isArray(parseResult.data.accent)
         ? parseResult.data.accent[parseResult.data.accent.length - 1]
         : parseResult.data.accent)) ||
-    '58a6ff'
-  }`;
-  const errText = `#${(parseResult.success && parseResult.data.text) || 'c9d1d9'}`;
+    undefined;
+  const errAccent = `#${sanitizeHexColor(errAccentRaw, '58a6ff')}`;
+  const errText = `#${sanitizeHexColor(parseResult.success ? parseResult.data.text : undefined, 'c9d1d9')}`;
   const errRadius = parseResult.success
     ? (() => {
         const r = Number(parseResult.data.radius);
