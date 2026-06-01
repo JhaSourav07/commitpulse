@@ -1,6 +1,6 @@
 import { performance } from 'perf_hooks';
 import { generateSVG } from '../lib/svg/generator';
-import { hexColor } from '../lib/svg/sanitizer';
+import { hexColor, sanitizeSpeed } from '../lib/svg/sanitizer';
 
 const stats = {
   currentStreak: 12,
@@ -15,14 +15,18 @@ const baseParams = {
   accent: '00ffaa',
   text: 'ffffff',
   scale: 'linear' as const,
-  speed: '8s',
+  speed: sanitizeSpeed('8s'),
+};
+
+const deterministicContributionCount = (weekIndex: number, dayIndex: number): number => {
+  return ((weekIndex * 7 + dayIndex) * 13) % 20;
 };
 
 const calendar = {
   totalContributions: 1240,
   weeks: Array.from({ length: 14 }, (_, weekIndex) => ({
     contributionDays: Array.from({ length: 7 }, (_, dayIndex) => ({
-      contributionCount: Math.floor(Math.random() * 20),
+      contributionCount: deterministicContributionCount(weekIndex, dayIndex),
       date: `2026-05-${String(weekIndex * 7 + dayIndex + 1).padStart(2, '0')}`,
     })),
   })),
