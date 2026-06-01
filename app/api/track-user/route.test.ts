@@ -4,13 +4,18 @@ import { User } from '@/models/User';
 import dbConnect from '@/lib/mongodb';
 
 // Mock dependencies
+vi.mock('@/lib/rate-limit', () => ({
+  trackUserRateLimiter: {
+    check: vi.fn().mockResolvedValue(true),
+  },
+}));
 vi.mock('@/lib/mongodb', () => ({
   default: vi.fn(),
 }));
 
 vi.mock('@/models/User', () => ({
   User: {
-    findOneAndUpdate: vi.fn(),
+    updateOne: vi.fn(),
   },
 }));
 
@@ -33,6 +38,22 @@ describe('POST /api/track-user', () => {
   });
 
   describe('Validation', () => {
+    it('returns 400 for malformed JSON request bodies', async () => {
+      const malformedRequest = {
+        json: vi.fn().mockRejectedValue(new SyntaxError('Unexpected token')),
+        headers: new Headers(),
+      } as unknown as Request;
+
+      const response = await POST(malformedRequest);
+
+      expect(response.status).toBe(400);
+
+      const data = await response.json();
+
+      expect(data.success).toBe(false);
+      expect(data.error).toBe('Malformed JSON request body');
+    });
+
     it('returns 400 when username is missing', async () => {
       const response = await POST(makeRequest({}));
       expect(response.status).toBe(400);
@@ -83,10 +104,14 @@ describe('POST /api/track-user', () => {
       expect(dbConnect).toHaveBeenCalled();
 
       // Trims and lowercases
-      expect(User.findOneAndUpdate).toHaveBeenCalledWith(
+      expect(User.updateOne).toHaveBeenCalledWith(
         { username: 'octocat' },
-        { $setOnInsert: { username: 'octocat' } },
-        { upsert: true, new: true }
+        {
+          $setOnInsert: { username: 'octocat' },
+          $set: { lastSeen: expect.any(Date) },
+          $inc: { visitCount: 1 },
+        },
+        { upsert: true }
       );
 
       expect(response.status).toBe(200);
