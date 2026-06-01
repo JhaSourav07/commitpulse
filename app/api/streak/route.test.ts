@@ -15,8 +15,41 @@ vi.mock('../../../utils/time', () => ({
   getSecondsUntilMidnightInTimezone: vi.fn(),
 }));
 
+// Shared cache store for mock DistributedCache — cleared per-test
+const mockCacheStore = new Map<string, { value: unknown; expiresAt: number }>();
+
+vi.mock('../../../lib/cache', () => {
+  class MockDistributedCache {
+    get = vi.fn(async (key: string) => {
+      const item = mockCacheStore.get(key);
+      if (!item) return null;
+      if (Date.now() > item.expiresAt) {
+        mockCacheStore.delete(key);
+        return null;
+      }
+      return item.value;
+    });
+    set = vi.fn(async (key: string, value: unknown, ttlMs: number) => {
+      mockCacheStore.set(key, { value, expiresAt: Date.now() + ttlMs });
+    });
+    update = vi.fn(async (key: string, value: unknown) => {
+      const item = mockCacheStore.get(key);
+      if (!item || Date.now() > item.expiresAt) return false;
+      item.value = value;
+      return true;
+    });
+    delete = vi.fn(async (key: string) => mockCacheStore.delete(key));
+    has = vi.fn(async (key: string) => mockCacheStore.has(key));
+    clear = vi.fn(() => mockCacheStore.clear());
+    getOrSet = vi.fn();
+    destroy = vi.fn();
+  }
+  return { DistributedCache: MockDistributedCache };
+});
+
 import { fetchGitHubContributions, getOrgDashboardData } from '../../../lib/github';
 import { getSecondsUntilUTCMidnight, getSecondsUntilMidnightInTimezone } from '../../../utils/time';
+import { rateLimit } from '../../../lib/rate-limit';
 import type { ContributionCalendar, ExtendedContributionData } from '../../../types';
 
 // Two weeks of realistic data. The last day has 0 contributions so the streak
@@ -89,6 +122,7 @@ describe('GET /api/streak', () => {
     // Fixed values so Cache-Control assertions don't depend on the real clock.
     vi.mocked(getSecondsUntilUTCMidnight).mockReturnValue(3600);
     vi.mocked(getSecondsUntilMidnightInTimezone).mockReturnValue(7200);
+    mockCacheStore.clear();
   });
 
   it('falls back to the default isometric view when an invalid view is provided', async () => {
@@ -1453,6 +1487,73 @@ describe('GET /api/streak', () => {
       const response = await GET(makeRequest({ user: 'octocat', refresh: 'true' }));
 
       expect(response.headers.get('Cache-Control')).not.toContain('stale-while-revalidate=86400');
+    });
+  });
+
+  describe('refresh abuse prevention (rate limiting)', () => {
+    it('allows the first refresh request to pass through', async () => {
+      const response = await GET(makeRequest({ user: 'alice', refresh: 'true' }));
+      expect(response.status).toBe(200);
+    });
+
+    it('allows up to 3 refresh requests from the same IP', async () => {
+      await GET(makeRequest({ user: 'alice', refresh: 'true' }));
+      await GET(makeRequest({ user: 'bob', refresh: 'true' }));
+      const response = await GET(makeRequest({ user: 'charlie', refresh: 'true' }));
+      expect(response.status).toBe(200);
+    });
+
+    it('blocks the 4th refresh request from the same IP with 429', async () => {
+      await GET(makeRequest({ user: 'alice', refresh: 'true' }));
+      await GET(makeRequest({ user: 'bob', refresh: 'true' }));
+      await GET(makeRequest({ user: 'charlie', refresh: 'true' }));
+      const response = await GET(makeRequest({ user: 'dave', refresh: 'true' }));
+      expect(response.status).toBe(429);
+    });
+
+    it('returns an SVG response for rate-limited requests', async () => {
+      await GET(makeRequest({ user: 'alice', refresh: 'true' }));
+      await GET(makeRequest({ user: 'bob', refresh: 'true' }));
+      await GET(makeRequest({ user: 'charlie', refresh: 'true' }));
+      const response = await GET(makeRequest({ user: 'dave', refresh: 'true' }));
+      expect(response.headers.get('Content-Type')).toBe('image/svg+xml');
+    });
+
+    it('includes X-RateLimit-* headers on 429 responses', async () => {
+      await GET(makeRequest({ user: 'alice', refresh: 'true' }));
+      await GET(makeRequest({ user: 'bob', refresh: 'true' }));
+      await GET(makeRequest({ user: 'charlie', refresh: 'true' }));
+      const response = await GET(makeRequest({ user: 'dave', refresh: 'true' }));
+      expect(response.headers.get('X-RateLimit-Limit')).toBe('3');
+      expect(response.headers.get('X-RateLimit-Remaining')).toBe('0');
+    });
+
+    it('blocks repeated refresh for the same user within cooldown period', async () => {
+      // First refresh for alice — allowed
+      const first = await GET(makeRequest({ user: 'alice', refresh: 'true' }));
+      expect(first.status).toBe(200);
+
+      // Second refresh for alice — blocked by cooldown
+      const second = await GET(makeRequest({ user: 'alice', refresh: 'true' }));
+      expect(second.status).toBe(429);
+    });
+
+    it('allows refresh for a different user when one user is in cooldown', async () => {
+      await GET(makeRequest({ user: 'alice', refresh: 'true' }));
+      // Different user should still be allowed
+      const response = await GET(makeRequest({ user: 'bob', refresh: 'true' }));
+      expect(response.status).toBe(200);
+    });
+
+    it('does not affect normal (non-refresh) requests after refresh rate limiting', async () => {
+      await GET(makeRequest({ user: 'alice', refresh: 'true' }));
+      await GET(makeRequest({ user: 'bob', refresh: 'true' }));
+      await GET(makeRequest({ user: 'charlie', refresh: 'true' }));
+      // 4th refresh is blocked
+      await GET(makeRequest({ user: 'dave', refresh: 'true' }));
+      // Normal request without refresh should still work
+      const normal = await GET(makeRequest({ user: 'normal' }));
+      expect(normal.status).toBe(200);
     });
   });
 

@@ -17,6 +17,11 @@ import type { BadgeParams, ContributionCalendar } from '@/types';
 import { themes } from '@/lib/svg/themes';
 import { streakParamsSchema } from '@/lib/validations';
 import { sanitizeHexColor } from '@/lib/svg/sanitizer';
+import { rateLimit } from '@/lib/rate-limit';
+import { DistributedCache } from '@/lib/cache';
+import { getClientIp } from '@/utils/getClientIp';
+
+const refreshCooldownCache = new DistributedCache<number>(10000, 60000);
 
 const SVG_CSP_HEADER =
   "default-src 'none'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://fonts.gstatic.com;";
@@ -182,6 +187,59 @@ export async function GET(request: Request) {
       glow,
       animate,
     };
+
+    // ─── Refresh abuse prevention (Option D: per-IP + per-user cooldown) ───
+    if (refresh) {
+      const ip = getClientIp(request);
+      const errAccentColor = Array.isArray(accent) ? accent[accent.length - 1] : accent;
+
+      const refreshResult = await rateLimit('refresh:' + ip, 3, 60000);
+      if (!refreshResult.success) {
+        return new NextResponse(
+          generateRateLimitSVG(
+            `#${sanitizeHexColor(bg, '0d1117')}`,
+            `#${sanitizeHexColor(errAccentColor, '58a6ff')}`,
+            `#${sanitizeHexColor(text, 'c9d1d9')}`,
+            radius,
+            speed
+          ),
+          {
+            status: 429,
+            headers: {
+              'Content-Type': 'image/svg+xml',
+              'Cache-Control': 'no-cache, no-store, must-revalidate',
+              'Content-Security-Policy': SVG_CSP_HEADER,
+              'X-RateLimit-Limit': refreshResult.limit.toString(),
+              'X-RateLimit-Remaining': refreshResult.remaining.toString(),
+              'X-RateLimit-Reset': refreshResult.reset.toString(),
+            },
+          }
+        );
+      }
+
+      const cooldownKey = 'refresh:user:' + user;
+      const lastRefresh = await refreshCooldownCache.get(cooldownKey);
+      if (lastRefresh !== null) {
+        return new NextResponse(
+          generateRateLimitSVG(
+            `#${sanitizeHexColor(bg, '0d1117')}`,
+            `#${sanitizeHexColor(errAccentColor, '58a6ff')}`,
+            `#${sanitizeHexColor(text, 'c9d1d9')}`,
+            radius,
+            speed
+          ),
+          {
+            status: 429,
+            headers: {
+              'Content-Type': 'image/svg+xml',
+              'Cache-Control': 'no-cache, no-store, must-revalidate',
+              'Content-Security-Policy': SVG_CSP_HEADER,
+            },
+          }
+        );
+      }
+      await refreshCooldownCache.set(cooldownKey, Date.now(), 60000);
+    }
 
     let calendar;
     let versusCalendar;
