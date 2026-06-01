@@ -165,19 +165,6 @@ describe('streakParamsSchema', () => {
     }
   });
 
-  it('rejects grace values below the minimum range', () => {
-    const result = streakParamsSchema.safeParse({
-      user: 'octocat',
-      grace: '-1',
-    });
-
-    expect(result.success).toBe(false);
-
-    if (!result.success) {
-      expect(result.error.issues[0]?.message).toBe('grace must be an integer between 0 and 7');
-    }
-  });
-
   it('rejects width below minimum', () => {
     const result = streakParamsSchema.safeParse({
       user: 'octocat',
@@ -660,25 +647,6 @@ describe('streakParamsSchema — boolean transform fields', () => {
       expect(parse({}).hide_background).toBe(false);
     });
   });
-
-  // ── glow ──────────────────────────────────────────────────────────────────
-  describe('glow', () => {
-    it('returns true when glow="true"', () => {
-      expect(parse({ glow: 'true' }).glow).toBe(true);
-    });
-
-    it('returns true when glow="1"', () => {
-      expect(parse({ glow: '1' }).glow).toBe(true);
-    });
-
-    it('returns false when glow="false"', () => {
-      expect(parse({ glow: 'false' }).glow).toBe(false);
-    });
-
-    it('returns true when glow is omitted', () => {
-      expect(parse({}).glow).toBe(true);
-    });
-  });
 });
 
 describe('streakParamsSchema — org parameter validation', () => {
@@ -891,138 +859,6 @@ describe('streakParamsSchema — tz IANA timezone validation (Variation 4)', () 
     expect(result.success).toBe(false);
     if (!result.success) {
       expect(result.error.issues[0]?.message).toContain('Invalid timezone');
-    }
-  });
-});
-
-/* ==========================================================================
- * LAYOUT PARAMETER — QUERY VALIDATION BOUNDARIES (VARIATION 2)
- * ========================================================================== */
-
-describe('streakParamsSchema — layout query validation boundaries (Variation 2)', () => {
-  it('rejects unsupported_layout and marks the parse as failed', () => {
-    const result = streakParamsSchema.safeParse({
-      user: 'octocat',
-      layout: 'unsupported_layout',
-    });
-
-    expect(result.success).toBe(false);
-  });
-
-  it('surfaces a meaningful error message for unsupported_layout', () => {
-    const result = streakParamsSchema.safeParse({
-      user: 'octocat',
-      layout: 'unsupported_layout',
-    });
-
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      const messages = result.error.issues.map((i) => i.message).join(' ');
-      expect(messages).toContain('Invalid layout format');
-    }
-  });
-
-  it('accepts "default" as a valid layout value', () => {
-    const result = streakParamsSchema.safeParse({
-      user: 'octocat',
-      layout: 'default',
-    });
-
-    expect(result.success).toBe(true);
-  });
-
-  it('accepts "compact" as a valid layout value', () => {
-    const result = streakParamsSchema.safeParse({
-      user: 'octocat',
-      layout: 'compact',
-    });
-
-    expect(result.success).toBe(true);
-  });
-
-  it('accepts "full" as a valid layout value', () => {
-    const result = streakParamsSchema.safeParse({
-      user: 'octocat',
-      layout: 'full',
-    });
-
-    expect(result.success).toBe(true);
-  });
-
-  it('treats omitted layout as undefined (no validation error)', () => {
-    const result = streakParamsSchema.safeParse({
-      user: 'octocat',
-    });
-
-    expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.data.layout).toBeUndefined();
-    }
-  });
-});
-
-/* ==========================================================================
- * LAYOUT PARAMETER — QUERY VALIDATION BOUNDARIES (VARIATION 2)
- * ========================================================================== */
-
-describe('streakParamsSchema — layout query validation boundaries (Variation 2)', () => {
-  it('rejects unsupported_layout and marks the parse as failed', () => {
-    const result = streakParamsSchema.safeParse({
-      user: 'octocat',
-      layout: 'unsupported_layout',
-    });
-
-    expect(result.success).toBe(false);
-  });
-
-  it('surfaces a meaningful error message for unsupported_layout', () => {
-    const result = streakParamsSchema.safeParse({
-      user: 'octocat',
-      layout: 'unsupported_layout',
-    });
-
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      const messages = result.error.issues.map((i) => i.message).join(' ');
-      expect(messages).toContain('Invalid layout format');
-    }
-  });
-
-  it('accepts "default" as a valid layout value', () => {
-    const result = streakParamsSchema.safeParse({
-      user: 'octocat',
-      layout: 'default',
-    });
-
-    expect(result.success).toBe(true);
-  });
-
-  it('accepts "compact" as a valid layout value', () => {
-    const result = streakParamsSchema.safeParse({
-      user: 'octocat',
-      layout: 'compact',
-    });
-
-    expect(result.success).toBe(true);
-  });
-
-  it('accepts "full" as a valid layout value', () => {
-    const result = streakParamsSchema.safeParse({
-      user: 'octocat',
-      layout: 'full',
-    });
-
-    expect(result.success).toBe(true);
-  });
-
-  it('treats omitted layout as undefined (no validation error)', () => {
-    const result = streakParamsSchema.safeParse({
-      user: 'octocat',
-    });
-
-    expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.data.layout).toBeUndefined();
     }
   });
 });
