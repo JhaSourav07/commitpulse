@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+﻿import { describe, expect, it } from 'vitest';
 import { githubParamsSchema, ogParamsSchema, streakParamsSchema } from './validations';
 
 describe('githubParamsSchema', () => {
@@ -370,7 +370,7 @@ function parse(params: Record<string, string>) {
   return streakParamsSchema.parse({ user: 'octocat', ...params });
 }
 
-describe('streakParamsSchema — scale fallback behavior', () => {
+describe('streakParamsSchema ΓÇö scale fallback behavior', () => {
   it('accepts "log" as a valid scale value', () => {
     expect(parse({ scale: 'log' }).scale).toBe('log');
   });
@@ -392,7 +392,7 @@ describe('streakParamsSchema — scale fallback behavior', () => {
   });
 });
 
-describe('streakParamsSchema — size fallback behavior', () => {
+describe('streakParamsSchema ΓÇö size fallback behavior', () => {
   it('accepts "small" as a valid size value', () => {
     expect(parse({ size: 'small' }).size).toBe('small');
   });
@@ -468,7 +468,7 @@ describe('streakParamsSchema — size fallback behavior', () => {
   });
 });
 
-describe('streakParamsSchema — boolean transform fields', () => {
+describe('streakParamsSchema ΓÇö boolean transform fields', () => {
   describe('refresh', () => {
     it('returns true when refresh="true"', () => {
       const data = streakParamsSchema.parse({ user: 'octocat', refresh: 'true' });
@@ -619,7 +619,7 @@ describe('ogParamsSchema', () => {
   });
 });
 
-describe('streakParamsSchema — view fallback behavior', () => {
+describe('streakParamsSchema ΓÇö view fallback behavior', () => {
   it('accepts "default" as a valid view value', () => {
     expect(parse({ view: 'default' }).view).toBe('default');
   });
@@ -637,7 +637,7 @@ describe('streakParamsSchema — view fallback behavior', () => {
   });
 });
 
-describe('streakParamsSchema — grace parameter validation', () => {
+describe('streakParamsSchema ΓÇö grace parameter validation', () => {
   it('clamps negative grace value -1 to 0', () => {
     const result = streakParamsSchema.safeParse({
       user: 'octocat',
