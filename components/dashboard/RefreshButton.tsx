@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useTransition } from 'react';
+import { useEffect, useRef, useTransition } from 'react';
 import { RefreshCw } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
@@ -16,10 +16,20 @@ export default function RefreshButton({ username }: RefreshButtonProps) {
 
   const [isPending, startTransition] = useTransition();
 
-  useEffect(() => {
-    if (searchParams.get('refresh') === 'true') {
-      toast.success('Dashboard refreshed successfully');
+  // Track previous pending state to detect transition completion
+  const wasPendingRef = useRef(false);
 
+  useEffect(() => {
+    // Show success toast only when the transition finishes (isPending: true → false)
+    if (wasPendingRef.current && !isPending) {
+      toast.success('Dashboard refreshed successfully');
+    }
+    wasPendingRef.current = isPending;
+  }, [isPending]);
+
+  useEffect(() => {
+    // Clean up the ?refresh=true param from the URL without triggering a toast
+    if (searchParams.get('refresh') === 'true') {
       router.replace(`/dashboard/${username}`);
     }
   }, [searchParams, router, username]);

@@ -65,7 +65,23 @@ describe('RefreshButton', () => {
     expect(mockPush).toHaveBeenCalledWith('/dashboard/testuser?refresh=true');
   });
 
-  it("calls toast.success when refresh searchParam is 'true'", () => {
+  it('shows toast.success when transition completes (isPending: true → false)', () => {
+    // First render: isPending = true (transition in progress)
+    vi.mocked(useTransition).mockReturnValue([true, (cb) => cb()]);
+
+    const { rerender } = render(<RefreshButton username="testuser" />);
+
+    // Toast should NOT fire while still pending
+    expect(toast.success).not.toHaveBeenCalled();
+
+    // Second render: isPending = false (transition completed)
+    vi.mocked(useTransition).mockReturnValue([false, (cb) => cb()]);
+    rerender(<RefreshButton username="testuser" />);
+
+    expect(toast.success).toHaveBeenCalledWith('Dashboard refreshed successfully');
+  });
+
+  it('cleans up ?refresh=true from URL without showing toast', () => {
     // Simulate the URL being: /dashboard/testuser?refresh=true
     vi.mocked(useSearchParams).mockReturnValue({
       get: (key: string) => (key === 'refresh' ? 'true' : null),
@@ -73,7 +89,10 @@ describe('RefreshButton', () => {
 
     render(<RefreshButton username="testuser" />);
 
-    expect(toast.success).toHaveBeenCalledWith('Dashboard refreshed successfully');
+    // Should clean up the URL
+    expect(mockReplace).toHaveBeenCalledWith('/dashboard/testuser');
+    // Should NOT show toast just because the param is present
+    expect(toast.success).not.toHaveBeenCalled();
   });
 
   it('button is disabled when isPending is true', () => {
