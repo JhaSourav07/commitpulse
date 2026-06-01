@@ -1,10 +1,10 @@
 import Link from 'next/link';
 import { Globe, Sparkles, Users, GitPullRequest, ArrowRight } from 'lucide-react';
-
 import BrandParticles from '@/components/BrandParticles';
 import { Footer } from '@/app/components/Footer';
 import ContributorsSearch from './ContributorsSearch';
 import Leaderboard from '@/components/Leaderboard';
+import CopyRepoButton from '@/app/components/CopyRepoButton';
 
 interface Contributor {
   id: number;
@@ -230,6 +230,8 @@ export default async function ContributorsPage() {
                   <Globe className="h-5 w-5" />
                   View Repository
                 </Link>
+
+                <CopyRepoButton />
 
                 <Link
                   href="https://github.com/JhaSourav07/commitpulse/issues"

@@ -277,14 +277,35 @@ export function ControlsPanel({
 
         <ControlRow label="Font">
           <div className="relative">
-            <StyledSelect id="font-select" value={font} onChange={(v) => onFontChange(v as Font)}>
+            <StyledSelect
+              id="font-select"
+              value={FONTS.some((f) => f.value === font) ? font : 'custom'}
+              onChange={(v) => {
+                if (v === 'custom') {
+                  onFontChange('' as Font);
+                } else {
+                  onFontChange(v as Font);
+                }
+              }}
+            >
               {FONTS.map((fontOption) => (
                 <option key={fontOption.value} value={fontOption.value}>
                   {fontOption.label}
                 </option>
               ))}
+              <option value="custom">Custom Google Font...</option>
             </StyledSelect>
           </div>
+          {!FONTS.some((f) => f.value === font) && (
+            <input
+              id="font-custom-input"
+              type="text"
+              value={font}
+              onChange={(e) => onFontChange(e.target.value as Font)}
+              placeholder="e.g. Orbitron, Space Mono, Inter"
+              className="w-full bg-gray-100/80 backdrop-blur-md border border-black/10 dark:bg-white/[0.03] dark:border-white/10 rounded-xl px-4 py-2.5 text-sm font-mono text-black dark:text-emerald-300 placeholder:text-gray-400 dark:placeholder:text-white/60 outline-none focus:border-emerald-500/50 transition-colors mt-2"
+            />
+          )}
         </ControlRow>
 
         <ControlRow label="Border Radius">

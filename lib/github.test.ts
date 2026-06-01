@@ -24,6 +24,8 @@ import {
 } from './github';
 import type { ContributionCalendar } from '../types';
 
+vi.mock('server-only', () => ({}));
+
 const mockCalendar: ContributionCalendar = {
   totalContributions: 42,
   weeks: [
@@ -1074,6 +1076,62 @@ describe('getFullDashboardData', () => {
     expect(result.insights).toBeDefined();
   });
 
+  it('caps developerScore at 100 for extreme profile metrics', async () => {
+    const saturatedCalendar: ContributionCalendar = {
+      totalContributions: 500,
+      weeks: [
+        {
+          contributionDays: Array.from({ length: 60 }, (_, i) => {
+            const date = new Date('2025-01-01');
+            date.setDate(date.getDate() + i);
+
+            return {
+              contributionCount: 10,
+              date: date.toISOString().split('T')[0],
+            };
+          }),
+        },
+      ],
+    };
+
+    vi.mocked(fetch).mockImplementation(async (url: RequestInfo | URL) => {
+      if (typeof url === 'string' && url.includes('/users/octocat/repos')) {
+        return mockResponse([
+          { stargazers_count: 500000, language: 'TypeScript' },
+          { stargazers_count: 499999, language: 'Rust' },
+        ]);
+      }
+
+      if (typeof url === 'string' && url.includes('/users/octocat')) {
+        return mockResponse({
+          login: 'octocat',
+          name: 'The Octocat',
+          avatar_url: 'avatar.png',
+          public_repos: 9999,
+          followers: 9999,
+          following: 5,
+          created_at: '2020-01-01T00:00:00Z',
+        });
+      }
+
+      return mockResponse({
+        data: {
+          user: {
+            contributionsCollection: {
+              contributionCalendar: saturatedCalendar,
+              commitContributionsByRepository: [],
+            },
+          },
+        },
+      });
+    });
+
+    const result = await getFullDashboardData('octocat');
+
+    expect(result.profile.developerScore).toBeLessThanOrEqual(100);
+    expect(result.profile.developerScore).toBe(100);
+  });
+
   it('maps contribution counts to correct intensity levels', async () => {
     const intensityCalendar: ContributionCalendar = {
       totalContributions: 30,
@@ -1471,6 +1529,83 @@ describe('GitHub API cache behavior', () => {
 
     expect(fetch).toHaveBeenCalledTimes(1);
   });
+
+  it('cache hit: second fetchContributedRepos call uses cached value', async () => {
+    const mockNodes = [{ name: 'cached-repo' }];
+    vi.mocked(fetch).mockResolvedValue(
+      mockResponse({
+        data: {
+          user: {
+            repositoriesContributedTo: {
+              nodes: mockNodes,
+            },
+          },
+        },
+      })
+    );
+
+    await fetchContributedRepos('octocat');
+    await fetchContributedRepos('octocat');
+
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('dedupes concurrent fetchContributedRepos requests for the same cold cache key', async () => {
+    let resolveFetch!: (response: Response) => void;
+    vi.mocked(fetch).mockImplementation(
+      () =>
+        new Promise<Response>((resolve) => {
+          resolveFetch = resolve;
+        })
+    );
+
+    const requests = Promise.all([
+      fetchContributedRepos('octocat'),
+      fetchContributedRepos('octocat'),
+      fetchContributedRepos('octocat'),
+    ]);
+
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
+
+    resolveFetch(
+      mockResponse({
+        data: {
+          user: {
+            repositoriesContributedTo: {
+              nodes: [{ name: 'deduped-repo' }],
+            },
+          },
+        },
+      })
+    );
+
+    const results = await requests;
+    expect(results.map((repos) => repos[0]?.name)).toEqual([
+      'deduped-repo',
+      'deduped-repo',
+      'deduped-repo',
+    ]);
+  });
+
+  it('refresh bypass: bypassCache=true forces fresh fetchContributedRepos fetch', async () => {
+    const mockNodes = [{ name: 'repo' }];
+    vi.mocked(fetch).mockImplementation(async () =>
+      mockResponse({
+        data: {
+          user: {
+            repositoriesContributedTo: {
+              nodes: mockNodes,
+            },
+          },
+        },
+      })
+    );
+
+    await fetchContributedRepos('octocat');
+    await fetchContributedRepos('octocat', { bypassCache: true });
+
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
 });
 
 describe('generateAchievements', () => {
@@ -1705,15 +1840,42 @@ describe('fetchOrgMembers', () => {
     expect(members[1]).toBe('bob');
   });
 
-  it('encodes the organization name before using it in the members REST path', async () => {
+  it('encodes the organization name before using it in the members REST path and includes page parameter', async () => {
     vi.mocked(fetch).mockResolvedValue(mockResponse([]));
 
     await fetchOrgMembers('octo/org');
 
     expect(fetch).toHaveBeenCalledWith(
-      'https://api.github.com/orgs/octo%2Forg/members?per_page=50',
+      'https://api.github.com/orgs/octo%2Forg/members?per_page=50&page=1',
       expect.objectContaining({ cache: 'no-store' })
     );
+  });
+
+  it('paginates correctly up to less than perPage returning end', async () => {
+    const page1 = Array.from({ length: 50 }, (_, i) => ({ login: `user${i}` }));
+    const page2 = Array.from({ length: 20 }, (_, i) => ({ login: `user${50 + i}` }));
+
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(mockResponse(page1))
+      .mockResolvedValueOnce(mockResponse(page2));
+
+    const members = await fetchOrgMembers('vercel');
+
+    expect(members).toHaveLength(70);
+    expect(members[0]).toBe('user0');
+    expect(members[69]).toBe('user69');
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it('stops paginating at max limit of 4 pages even if pages return 50 members', async () => {
+    const pageData = Array.from({ length: 50 }, (_, i) => ({ login: `user${i}` }));
+
+    vi.mocked(fetch).mockImplementation(async () => mockResponse(pageData));
+
+    const members = await fetchOrgMembers('vercel');
+
+    expect(members).toHaveLength(200);
+    expect(fetch).toHaveBeenCalledTimes(4);
   });
 });
 

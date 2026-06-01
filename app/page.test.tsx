@@ -29,6 +29,10 @@ vi.mock('next/link', () => ({
   ),
 }));
 
+vi.mock('@/utils/tracking', () => ({
+  trackUser: vi.fn(),
+}));
+
 // Mock GSAP so FeatureCards don't break in JSDOM
 vi.mock('gsap', () => {
   const tween = { kill: vi.fn() };

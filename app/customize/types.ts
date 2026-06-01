@@ -34,7 +34,7 @@ export const FONTS = [
   { value: 'roboto', label: 'Roboto' },
 ] as const satisfies readonly { value: string; label: string }[];
 
-export type Font = (typeof FONTS)[number]['value'];
+export type Font = (typeof FONTS)[number]['value'] | string;
 
 export const VIEW_MODES = [
   { value: 'default', label: 'Default' },
