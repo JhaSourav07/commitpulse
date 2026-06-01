@@ -1,6 +1,6 @@
 # 🎨 CommitPulse Themes
 
-All 20 available themes for your CommitPulse badge. Use the `?theme=<slug>` query parameter to apply a theme.
+All 22 available themes for your CommitPulse badge. Use the `?theme=<slug>` query parameter to apply a theme.
 
 ```
 https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&theme=<slug>
@@ -32,6 +32,8 @@ https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&theme=<slug>
 | nord_light       | `#eceff4`  | `#2e3440` | `#5e81ac` |
 | obsidian         | `#1a1a2e`  | `#e2e8f0` | `#f59e0b` |
 | cyber-pulse      | `#000000`  | `#ffffff` | `#00ffee` |
+| glacier          | `#e0f2fe`  | `#0369a1` | `#06b6d4` |
+| lumos            | `#0a0a0a`  | `#a7f3d0` | `#fbbf24` |
 
 ---
 
@@ -274,6 +276,30 @@ https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&theme=<slug>
 | `bg`      | 1a1a2e |
 | `text`    | e2e8f0 |
 | `accent`  | f59e0b |
+
+---
+
+### 🏔️ Glacier
+
+![glacier](https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=glacier)
+
+| Parameter | Value  |
+| --------- | ------ |
+| `bg`      | e0f2fe |
+| `text`    | 0369a1 |
+| `accent`  | 06b6d4 |
+
+---
+
+### ✨ Lumos
+
+![lumos](https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=lumos)
+
+| Parameter | Value  |
+| --------- | ------ |
+| `bg`      | 0a0a0a |
+| `text`    | a7f3d0 |
+| `accent`  | fbbf24 |
 
 ---
 
