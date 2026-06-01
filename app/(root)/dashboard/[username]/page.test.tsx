@@ -100,6 +100,7 @@ describe('DashboardPage', () => {
     achievements: [],
     commitClock: [],
     graphData: { nodes: [], links: [] },
+    lastSyncedAt: undefined,
   };
 
   beforeEach(() => {

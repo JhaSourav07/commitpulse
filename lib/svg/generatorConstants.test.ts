@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { SVG_WIDTH, SVG_HEIGHT, FONT_MAP, isFontKey } from './generatorConstants';
+import { SVG_WIDTH, SVG_HEIGHT, isFontKey } from './generatorConstants';
+import { FONT_MAP } from './fonts';
 
 describe('generatorConstants', () => {
   it('SVG_WIDTH equals 600', () => {

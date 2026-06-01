@@ -14,6 +14,14 @@ vi.mock('@/components/commitpulse-logo', () => ({
   CommitPulseLogo: () => <svg data-testid="commitpulse-logo"></svg>,
 }));
 
+vi.mock('@/components/WallOfLove', () => ({
+  WallOfLove: () => <div data-testid="wall-of-love">Wall of Love</div>,
+}));
+
+vi.mock('@/components/DiscordButton', () => ({
+  DiscordButton: () => <button data-testid="discord-button">Discord Button</button>,
+}));
+
 // next/image is no longer used — SVG preview is fetched via useEffect and
 // rendered inline. The mock below keeps the import from erroring if any
 // other test file still imports it.
