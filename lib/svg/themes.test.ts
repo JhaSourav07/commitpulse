@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { themes, AUTO_THEME_LIGHT, AUTO_THEME_DARK } from './themes';
 
@@ -143,6 +145,22 @@ describe('themes', () => {
         expect(theme.text.startsWith('#'), `theme "${name}" text starts with #`).toBe(false);
         expect(theme.accent.startsWith('#'), `theme "${name}" accent starts with #`).toBe(false);
       });
+    });
+  });
+
+  describe('THEMES.md sync guard', () => {
+    it('documents every theme slug defined in lib/svg/themes.ts', () => {
+      const docsPath = path.resolve(process.cwd(), 'THEMES.md');
+      const docs = fs.readFileSync(docsPath, 'utf8');
+
+      for (const themeSlug of Object.keys(themes)) {
+        expect(docs.includes(`theme=${themeSlug}`), `Missing preview for theme "${themeSlug}"`).toBe(
+          true
+        );
+        expect(docs.includes(`| ${themeSlug}`), `Missing table row for theme "${themeSlug}"`).toBe(
+          true
+        );
+      }
     });
   });
 });
