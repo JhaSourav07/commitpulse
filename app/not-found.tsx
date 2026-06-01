@@ -1,8 +1,25 @@
+'use client';
 import Link from 'next/link';
 
+import { toast } from 'sonner';
 export default function NotFound() {
+  const terminalContent = `git checkout this-page
+
+ The page you're looking for has been rebased out of existence. No stash. No reflog. Just vibes.
+
+ hint: Did you mean some other username?`;
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(terminalContent);
+      toast.success('Terminal output copied!');
+    } catch {
+      toast.error('Failed to copy terminal output');
+    }
+  };
+
   return (
-    <main className="relative min-h-screen  text-white overflow-hidden flex flex-col items-center font-sans ">
+    <main className="relative min-h-screen text-white overflow-hidden flex flex-col items-center font-sans">
       <div
         aria-hidden="true"
         className="pointer-events-none fixed inset-0"
@@ -14,8 +31,8 @@ export default function NotFound() {
       />
 
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute top-[-10%] left-[20%] h-screen w-screen rounded-full  blur-[140px]" />
-        <div className="absolute bottom-[-10%] right-[15%] h-screen w-screen rounded-full  blur-[120px]" />
+        <div className="absolute top-[-10%] left-[20%] h-screen w-screen rounded-full blur-[140px]" />
+        <div className="absolute bottom-[-10%] right-[15%] h-screen w-screen rounded-full blur-[120px]" />
       </div>
 
       <div className="relative z-10 flex flex-col items-center justify-start gap-8 max-w-lg w-full text-center">
@@ -38,12 +55,16 @@ export default function NotFound() {
           </h1>
         </div>
 
-        <div className="w-full rounded-2xl border border-white/10 bg-white/3 backdrop-blur-md overflow-hidden ">
+        <div
+          onClick={handleCopy}
+          className="w-full rounded-2xl border border-white/10 bg-white/3 backdrop-blur-md overflow-hidden cursor-pointer hover:bg-white/5 transition-all duration-200"
+        >
           <div className="flex items-center gap-2 border-b border-white/10 bg-white/4 px-4 py-3">
             <span className="h-3 w-3 rounded-full bg-red-500/70" />
             <span className="h-3 w-3 rounded-full bg-yellow-500/70" />
             <span className="h-3 w-3 rounded-full bg-green-500/70" />
             <span className="ml-3 text-xs font-mono text-white/30">commitpulse — bash</span>
+            <span className="ml-auto text-xs text-white/40">Click to copy</span>
           </div>
 
           <div className="px-6 py-5 font-mono text-sm text-left space-y-2">
@@ -54,12 +75,14 @@ export default function NotFound() {
                 git checkout <span className="text-cyan-400">this-page</span>
               </span>
             </p>
-            <p className="text-red-400/80 ">
-              {' '}
+
+            <p className="text-red-400/80">
               The page you&apos;re looking for has been rebased out of existence. No stash. No
               reflog. Just vibes.
             </p>
+
             <p className="text-white/30 text-xs mt-1">hint: Did you mean some other username?</p>
+
             <p className="flex items-center gap-1 pt-1">
               <span className="text-violet-400">~</span>
               <span className="text-white/40"> $ </span>
@@ -81,6 +104,7 @@ export default function NotFound() {
           >
             git checkout main
           </Link>
+
           <Link
             href="/"
             className="flex-1 py-3 rounded-xl font-semibold text-sm text-white/60 text-center border border-white/10 hover:bg-white/5 hover:text-white transition-all"
@@ -88,8 +112,6 @@ export default function NotFound() {
             Go back home
           </Link>
         </div>
-
-        {/* <p className="text-white/20 text-xs font-mono">exit code 404 · no such file or directory</p> */}
       </div>
     </main>
   );

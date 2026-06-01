@@ -90,4 +90,38 @@ describe('GET /api/compare', () => {
     const res = await GET(makeRequest('user1=octocat&user2=ghost123'));
     expect(res.status).toBe(404);
   });
+
+  it('returns 403 when the user1 fetch hits a GitHub rate limit', async () => {
+    vi.mocked(getFullDashboardData).mockRejectedValueOnce(new Error('API Rate Limit Exceeded'));
+
+    const res = await GET(makeRequest('user1=octocat&user2=torvalds'));
+
+    expect(res.status).toBe(403);
+    const data = await res.json();
+    expect(data.error).toBe('GitHub API rate limit reached. Please configure GITHUB_TOKEN.');
+  });
+
+  it('returns 403 when the user2 fetch hits a GitHub rate limit', async () => {
+    vi.mocked(getFullDashboardData)
+      .mockResolvedValueOnce({ calendar: { totalContributions: 0, weeks: [] } } as never)
+      .mockRejectedValueOnce(new Error('GitHub GraphQL API returned status 403'));
+
+    const res = await GET(makeRequest('user1=octocat&user2=torvalds'));
+
+    expect(res.status).toBe(403);
+    const data = await res.json();
+    expect(data.error).toBe('GitHub API rate limit reached. Please configure GITHUB_TOKEN.');
+  });
+
+  it('returns 500 for non-rate-limit upstream failures instead of reporting not found', async () => {
+    vi.mocked(getFullDashboardData).mockRejectedValueOnce(
+      new Error('GitHub GraphQL API returned status 500')
+    );
+
+    const res = await GET(makeRequest('user1=octocat&user2=torvalds'));
+
+    expect(res.status).toBe(500);
+    const data = await res.json();
+    expect(data.error).toContain('GitHub GraphQL API returned status 500');
+  });
 });
