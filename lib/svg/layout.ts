@@ -29,6 +29,7 @@ export interface TowerData {
   isToday: boolean;
   isTodayWithCommits: boolean;
   tooltip: string;
+  date: string;
   contributionCount: number;
   faceOpacity: FaceOpacity;
   strokeOpacity: number;
@@ -36,9 +37,35 @@ export interface TowerData {
   /** Grid position used to compute the staggered animation-delay (row + col) * offset */
   row: number;
   col: number;
+  intensityLevel: number; // Quartile level (0 for no commits, 1 to 4 based on contribution intensity)
 }
 
-function computeTowerHeight(
+interface MinimalDay {
+  contributionCount?: number;
+  locAdditions?: number;
+  locDeletions?: number;
+}
+
+interface MinimalWeek {
+  contributionDays: MinimalDay[];
+}
+
+/**
+ * Determines if the entire visible calendar monolith is empty (a "ghost city").
+ * It returns true only if there are absolutely zero contributions (commits or LoC)
+ * across all visible weeks.
+ */
+export function isGhostCity(weeks: MinimalWeek[]): boolean {
+  return !weeks.some((week) =>
+    week.contributionDays.some((day) => {
+      const commits = day.contributionCount || 0;
+      const loc = (day.locAdditions || 0) + (day.locDeletions || 0);
+      return commits > 0 || loc > 0;
+    })
+  );
+}
+
+export function computeTowerHeight(
   count: number,
   scale: 'linear' | 'log',
   shouldShowGhostCity: boolean
@@ -50,12 +77,12 @@ function computeTowerHeight(
     : Math.min(count * LINEAR_SCALE_MULTIPLIER, MAX_LINEAR_HEIGHT);
 }
 
-function computeFaceOpacity(count: number, isGhostCityMode: boolean): FaceOpacity {
+export function computeFaceOpacity(count: number, isGhostCityMode: boolean): FaceOpacity {
   if (isGhostCityMode) {
-    return { left: 0, right: 0, top: 0.02 };
+    return { left: 0, right: 0, top: 0.08 };
   }
   if (count === 0) {
-    return { left: 0, right: 0, top: 0.02 };
+    return { left: 0, right: 0, top: 0.08 };
   }
   return { left: 0.35, right: 0.21, top: 0.7 };
 }
@@ -88,17 +115,21 @@ export function computeTowers(
   const weeks = calendar.weeks.slice(-14);
   const towers: TowerData[] = [];
 
-  // Calculate if the entire monolith is empty based on the selected mode metric
-  let totalVisibleContributions = 0;
+  const shouldShowGhostCity = isGhostCity(weeks);
+
+  // Calculate if the entire monolith is empty and retrieve the maximum count (commits or LoC)
+
+  let maxCommits = 0;
   weeks.forEach((week) => {
     week.contributionDays.forEach((day) => {
       const count =
         mode === 'loc' ? (day.locAdditions || 0) + (day.locDeletions || 0) : day.contributionCount;
-      totalVisibleContributions += count;
+
+      if (count > maxCommits) {
+        maxCommits = count;
+      }
     });
   });
-
-  const shouldShowGhostCity = totalVisibleContributions === 0;
 
   // Pre-check: is todayDate present in the visible 14-week window?
   const todayInWindow = weeks.some((w) => w.contributionDays.some((d) => d.date === todayDate));
@@ -117,11 +148,25 @@ export function computeTowers(
       const isTodayWithCommits = isToday && hasCommits;
 
       const unit = mode === 'loc' ? 'lines of code' : 'contributions';
-      const tooltip = isTodayWithCommits
+      const tooltip = isToday
         ? `TODAY: ${day.date}: ${count} ${unit}`
         : `${day.date}: ${count} ${unit}`;
 
-      const coords = projectIsometric(i, j);
+      const dayOfWeekIndex = new Date(day.date).getUTCDay();
+      const coords = projectIsometric(i, dayOfWeekIndex);
+
+      let intensityLevel = 0;
+      if (hasCommits) {
+        if (maxCommits <= 4) {
+          intensityLevel = Math.min(4, count);
+        } else {
+          const ratio = count / maxCommits;
+          if (ratio <= 0.25) intensityLevel = 1;
+          else if (ratio <= 0.5) intensityLevel = 2;
+          else if (ratio <= 0.75) intensityLevel = 3;
+          else intensityLevel = 4;
+        }
+      }
 
       towers.push({
         x: coords.x,
@@ -132,12 +177,14 @@ export function computeTowers(
         isToday,
         isTodayWithCommits,
         tooltip,
+        date: day.date,
         contributionCount: count,
         faceOpacity: computeFaceOpacity(count, shouldShowGhostCity),
         strokeOpacity: isGhost ? 0.3 : 0,
         strokeWidth: isGhost ? 0.5 : 0,
         row: i,
-        col: j,
+        col: dayOfWeekIndex,
+        intensityLevel,
       });
     });
   });

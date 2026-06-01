@@ -2,7 +2,7 @@ import { themes } from '../../lib/svg/themes';
 
 export type Scale = 'linear' | 'log';
 
-export type ExportFormat = 'markdown' | 'html';
+export type ExportFormat = 'markdown' | 'html' | 'action';
 
 export type ThemeKey = Extract<keyof typeof themes, string>;
 
@@ -28,17 +28,18 @@ export const SIZES = [
 ] as const;
 
 export const FONTS = [
-  { value: '', label: 'Default' },
+  { value: 'Inter', label: 'Default' },
   { value: 'jetbrains', label: 'JetBrains Mono' },
   { value: 'fira', label: 'Fira Code' },
   { value: 'roboto', label: 'Roboto' },
 ] as const satisfies readonly { value: string; label: string }[];
 
-export type Font = (typeof FONTS)[number]['value'];
+export type Font = (typeof FONTS)[number]['value'] | string;
 
 export const VIEW_MODES = [
   { value: 'default', label: 'Default' },
   { value: 'monthly', label: 'Monthly' },
+  { value: 'pulse', label: 'Heartbeat Pulse' },
 ] as const satisfies readonly { value: string; label: string }[];
 
 export type ViewMode = (typeof VIEW_MODES)[number]['value'];
@@ -63,3 +64,39 @@ export const LANGUAGES = [
 ] as const satisfies readonly { value: string; label: string }[];
 
 export type Language = (typeof LANGUAGES)[number]['value'];
+
+export interface CustomizeOptions {
+  username: string;
+  theme: string;
+  bgHex: string;
+  accentHex: string;
+  textHex: string;
+  scale: Scale;
+  speed: string;
+  font: Font;
+  year: string;
+  radius: number;
+  size: BadgeSize;
+  hideTitle: boolean;
+  hideBackground: boolean;
+  hideStats: boolean;
+  viewMode: ViewMode;
+  deltaFormat: DeltaFormat;
+  badgeWidth: number | '';
+  badgeHeight: number | '';
+  grace: number;
+  language: Language;
+  timezone: Timezone;
+}
+export const TIMEZONES = [
+  { value: 'UTC', label: 'UTC (Default)' },
+  { value: 'America/New_York', label: 'New York' },
+  { value: 'America/Los_Angeles', label: 'Los Angeles' },
+  { value: 'Europe/London', label: 'London' },
+  { value: 'Europe/Berlin', label: 'Berlin' },
+  { value: 'Asia/Kolkata', label: 'Kolkata' },
+  { value: 'Asia/Tokyo', label: 'Tokyo' },
+  { value: 'Australia/Sydney', label: 'Sydney' },
+] as const satisfies readonly { value: string; label: string }[];
+
+export type Timezone = (typeof TIMEZONES)[number]['value'];

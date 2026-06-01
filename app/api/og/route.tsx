@@ -7,6 +7,18 @@ import { themes } from '@/lib/svg/themes';
 import { fetchGitHubContributions } from '@/lib/github';
 import { calculateStreak } from '@/lib/calculate';
 
+const appUrl =
+  process.env.NEXT_PUBLIC_SITE_URL ||
+  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://commitpulse.vercel.app');
+
+const displayDomain = (() => {
+  try {
+    return new URL(appUrl).host;
+  } catch {
+    return 'commitpulse.vercel.app';
+  }
+})();
+
 function getLuminance(hex: string) {
   let normalizedHex = hex.trim();
   // Normalize short hex (e.g., #fff or #ffff) to #rrggbb (alpha is ignored for luminance)
@@ -25,10 +37,12 @@ function getLuminance(hex: string) {
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
+  const parsed = ogParamsSchema.parse(Object.fromEntries(searchParams.entries()));
+  let { user } = parsed;
+  const { theme, bg, text, accent } = parsed;
 
-  const { user, theme, bg, text, accent } = ogParamsSchema.parse(
-    Object.fromEntries(searchParams.entries())
-  );
+  // Sanitize user: limit to 39 chars (GitHub max length) and strip invalid chars
+  user = user.slice(0, 39).replace(/[^a-zA-Z0-9-]/g, '');
 
   const selectedTheme = themes[theme] || themes.dark;
   const resolvedBg = `#${bg || selectedTheme.bg}`;
@@ -47,7 +61,8 @@ export async function GET(req: NextRequest) {
 
   // Only the data fetching is wrapped in try/catch — not the JSX rendering.
   try {
-    const calendar = await fetchGitHubContributions(user, { bypassCache: true });
+    const userData = await fetchGitHubContributions(user, { bypassCache: true });
+    const calendar = userData.calendar;
     const stats = calculateStreak(calendar);
     totalCommits = stats.totalContributions;
     longestStreak = stats.longestStreak;
@@ -170,7 +185,7 @@ export async function GET(req: NextRequest) {
           color: subText,
         }}
       >
-        commitpulse.vercel.app
+        {displayDomain}
       </div>
     </div>,
     {
