@@ -77,6 +77,17 @@ describe('RadarChart', () => {
     expect(screen.getAllByText('Python')).toBeDefined();
   });
 
+  it('deduplicates shared languages so TypeScript appears as a single axis label', () => {
+    const langsA = [{ name: 'TypeScript', percentage: 70, color: '#3178c6' }];
+    const langsB = [{ name: 'TypeScript', percentage: 50, color: '#3178c6' }];
+
+    render(<RadarChart languagesA={langsA} languagesB={langsB} labelA="User A" labelB="User B" />);
+
+    // TypeScript should appear exactly once as an axis label (SVG <text>) and once
+    // in the bottom stats table — 2 total, not 4 (which would indicate two separate axes)
+    expect(screen.getAllByText('TypeScript')).toHaveLength(2);
+  });
+
   it('scales axis points dynamically based on max score in data', () => {
     const highScoreLangs = [
       { name: 'TypeScript', percentage: 100, color: '#3178c6' },

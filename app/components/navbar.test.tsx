@@ -152,4 +152,27 @@ describe('Navbar responsive breakpoints', () => {
     expect(screen.getAllByRole('link', { name: /customization studio/i })).toHaveLength(1);
     expect(screen.getAllByRole('link', { name: /github repo/i })).toHaveLength(1);
   });
+
+  it('should verify responsive rendering and elements of Navbar (Variation 1) by toggling hamburger menu state smoothly', () => {
+    window.innerWidth = 375;
+    mockMatchMedia(false);
+
+    render(<Navbar />);
+
+    const toggleButton = screen.getByRole('button', { name: /open menu/i });
+    expect(toggleButton).toBeTruthy();
+    expect(toggleButton.getAttribute('aria-expanded')).toBe('false');
+
+    fireEvent.click(toggleButton);
+
+    expect(screen.getByRole('button', { name: /close menu/i }).getAttribute('aria-expanded')).toBe(
+      'true'
+    );
+    expect(screen.getByText(/closeicon/i)).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: /close menu/i }));
+    expect(screen.getByRole('button', { name: /open menu/i }).getAttribute('aria-expanded')).toBe(
+      'false'
+    );
+  });
 });

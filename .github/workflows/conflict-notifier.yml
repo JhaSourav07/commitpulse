@@ -81,7 +81,7 @@ jobs:
                   });
                 }
 
-                // Check existing comments to enforce a 2-hour notification gap
+                // Check existing comments to enforce a 24-hour notification gap
                 const { data: comments } = await github.rest.issues.listComments({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
@@ -101,8 +101,8 @@ jobs:
                   const lastComment = conflictComments[conflictComments.length - 1];
                   const lastCommentTime = new Date(lastComment.created_at).getTime();
                   const nowTime = new Date().getTime();
-                  const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
-                  if (nowTime - lastCommentTime >= TWO_HOURS_MS) {
+                  const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
+                  if (nowTime - lastCommentTime >= TWENTY_FOUR_HOURS_MS) {
                     shouldComment = true;
                   }
                 }

@@ -111,8 +111,8 @@ describe('GrowthTrendChart', () => {
     const defs = container.querySelector('defs');
     expect(defs).not.toBeNull();
 
-    const gradientA = container.querySelector('#gradient-area-a');
-    const gradientB = container.querySelector('#gradient-area-b');
+    const gradientA = container.querySelector('linearGradient[id$="-gradient-area-a"]');
+    const gradientB = container.querySelector('linearGradient[id$="-gradient-area-b"]');
     expect(gradientA).not.toBeNull();
     expect(gradientB).not.toBeNull();
     expect(gradientA?.tagName).toBe('linearGradient');
@@ -129,8 +129,8 @@ describe('GrowthTrendChart', () => {
       />
     );
 
-    const glowA = container.querySelector('#glow-line-a');
-    const glowB = container.querySelector('#glow-line-b');
+    const glowA = container.querySelector('filter[id$="-glow-line-a"]');
+    const glowB = container.querySelector('filter[id$="-glow-line-b"]');
     expect(glowA).not.toBeNull();
     expect(glowB).not.toBeNull();
     expect(glowA?.tagName).toBe('filter');

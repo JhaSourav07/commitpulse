@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { NextRequest } from 'next/server';
 import { GET } from './route';
 
 // We only mock the two things that reach outside this process:
@@ -103,6 +104,18 @@ describe('GET /api/streak', () => {
   });
 
   describe('parameter validation', () => {
+    it('returns 400 when grace=-1 is provided', async () => {
+      const response = await GET(
+        makeRequest({
+          user: 'octocat',
+          grace: '-1',
+        })
+      );
+      expect(response.status).toBe(400);
+      const body = await response.json();
+      expect(body.details.fieldErrors.grace[0]).toBe('grace must be an integer between 0 and 7');
+    });
+
     it('returns 400 Bad Request when ?layout= is set to an unsupported format', async () => {
       const response = await GET(
         makeRequest({
@@ -191,6 +204,18 @@ describe('GET /api/streak', () => {
       expect(response.status).toBe(400);
       const body = await response.json();
       expect(JSON.stringify(body)).toContain('cannot exceed 39 characters');
+    });
+
+    it('returns 400 Bad Request and details indicating the username cannot exceed 39 characters when using NextRequest', async () => {
+      const url = `http://localhost/api/streak?user=${'a'.repeat(40)}`;
+      const request = new NextRequest(url);
+
+      const response = await GET(request);
+
+      expect(response.status).toBe(400);
+      const body = await response.json();
+      expect(body.error).toBe('Invalid parameters');
+      expect(body.details.fieldErrors.user[0]).toMatch(/cannot exceed 39 characters/);
     });
 
     it('returns 400 for invalid monthly badge dimensions', async () => {
@@ -305,7 +330,7 @@ describe('GET /api/streak', () => {
       expect(fetchGitHubContributions).toHaveBeenCalled();
     });
 
-    it('returns valid SVG when grace exceeds max value', async () => {
+    it('returns 400 when grace exceeds max value', async () => {
       const response = await GET(
         makeRequest({
           user: 'octocat',
@@ -313,10 +338,7 @@ describe('GET /api/streak', () => {
         })
       );
 
-      expect(response.status).toBe(200);
-
-      const body = await response.text();
-      expect(body).toContain('<svg');
+      expect(response.status).toBe(400);
     });
 
     it('embeds the username (uppercased) in the SVG title', async () => {
@@ -724,12 +746,17 @@ describe('GET /api/streak', () => {
       expect(body).toContain('--cp-bg');
     });
 
-    it('falls back to the dark theme without crashing when an unknown theme is given', async () => {
-      const response = await GET(makeRequest({ user: 'octocat', theme: 'does-not-exist' }));
-      const body = await response.text();
+    it('returns 400 Bad Request listing allowed themes when an invalid theme is provided', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', theme: 'nonexistent_theme_name' }));
+      expect(response.status).toBe(400);
 
-      expect(response.status).toBe(200);
-      expect(body).toContain('58a6ff');
+      const body = await response.json();
+      expect(body.error).toBe('Invalid parameters');
+      const fieldError = body.details.fieldErrors.theme[0];
+      expect(fieldError).toContain('Invalid theme. Supported themes:');
+      expect(fieldError).toContain('dark');
+      expect(fieldError).toContain('light');
+      expect(fieldError).toContain('neon');
     });
   });
 
@@ -765,6 +792,16 @@ describe('GET /api/streak', () => {
       const response = await GET(makeRequest({ user: 'octocat', accent: '#ZZZZZZZ' }));
 
       expect(response.status).toBe(400);
+    });
+
+    it('returns 400 Bad Request for invalid color hex syntax targeting the ?accent= parameter', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', accent: '#ZZZZZZ' }));
+
+      expect(response.status).toBe(400);
+
+      const body = await response.json();
+      expect(body.error).toBe('Invalid parameters');
+      expect(body.details).not.toBeNull();
     });
   });
 
@@ -1324,6 +1361,14 @@ describe('GET /api/streak', () => {
     });
   });
 
+  it('falls back to commits mode when ?mode=unknown is given', async () => {
+    const response = await GET(makeRequest({ user: 'octocat', mode: 'invalid' }));
+
+    expect(response.status).toBe(200);
+    const body = await response.text();
+    expect(body).toContain('<svg');
+  });
+
   describe('org parameter validation', () => {
     it('returns 400 when org parameter is a User instead of an Organization', async () => {
       vi.mocked(getOrgDashboardData).mockRejectedValueOnce(
@@ -1335,6 +1380,56 @@ describe('GET /api/streak', () => {
 
       const body = await response.text();
       expect(body).toContain('strictly for organizations');
+    });
+  });
+
+  describe('JSON output mode (format=json)', () => {
+    it('returns JSON with correct Content-Type when format=json is set', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', format: 'json' }));
+      expect(response.status).toBe(200);
+      expect(response.headers.get('Content-Type')).toContain('application/json');
+    });
+
+    it('returns stats, monthlyStats, and calendar in JSON response', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', format: 'json' }));
+      const data = await response.json();
+
+      expect(data.user).toBe('octocat');
+      expect(data.stats).toBeDefined();
+      expect(data.stats.currentStreak).toBeDefined();
+      expect(data.stats.longestStreak).toBeDefined();
+      expect(data.stats.totalContributions).toBeDefined();
+      expect(data.monthlyStats).toBeDefined();
+      expect(data.monthlyStats.currentMonthTotal).toBeDefined();
+      expect(data.calendar).toBeDefined();
+      expect(data.calendar.totalContributions).toBe(10);
+      expect(data.calendar.weeks).toHaveLength(2);
+    });
+
+    it('includes Cache-Control header in JSON response', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', format: 'json' }));
+      expect(response.headers.get('Cache-Control')).toContain('s-maxage=');
+    });
+
+    it('includes X-Cache-Status header in JSON response', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', format: 'json' }));
+      expect(response.headers.get('X-Cache-Status')).toBe('HIT');
+    });
+
+    it('returns SVG when format is not set (default)', async () => {
+      const response = await GET(makeRequest({ user: 'octocat' }));
+      expect(response.headers.get('Content-Type')).toBe('image/svg+xml');
+    });
+
+    it('falls back to SVG for invalid format values', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', format: 'xml' }));
+      expect(response.headers.get('Content-Type')).toBe('image/svg+xml');
+    });
+
+    it('uses org name as user field when org parameter is provided', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', org: 'github', format: 'json' }));
+      const data = await response.json();
+      expect(data.user).toBe('github');
     });
   });
 });
