@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest, NextResponse } from 'next/server';
 import { middleware } from './middleware';
 import { rateLimit } from '@/lib/rate-limit';
@@ -8,8 +8,17 @@ vi.mock('@/lib/rate-limit', () => ({
 }));
 
 describe('middleware', () => {
+  let originalEnv: string | undefined;
+
   beforeEach(() => {
     vi.clearAllMocks();
+    originalEnv = process.env.TRUSTED_PROXIES;
+    // Set trusted proxies to make standard multi-hop tests pass as trusted proxy chains
+    process.env.TRUSTED_PROXIES = '5.6.7.8, 9.10.11.12';
+  });
+
+  afterEach(() => {
+    process.env.TRUSTED_PROXIES = originalEnv;
   });
 
   it('calls NextResponse.next when rate limit succeeds', async () => {
@@ -86,7 +95,7 @@ describe('middleware', () => {
     expect(response.headers.get('X-RateLimit-Remaining')).toBe('59');
   });
 
-  it('uses first IP from x-forwarded-for', async () => {
+  it('uses first IP from x-forwarded-for when subsequent hops are trusted', async () => {
     vi.mocked(rateLimit).mockResolvedValue({
       success: true,
       limit: 60,
@@ -103,6 +112,29 @@ describe('middleware', () => {
     await middleware(request);
 
     expect(rateLimit).toHaveBeenCalledWith('1.2.3.4', 60, 60000);
+  });
+
+  it('ignores spoofed x-forwarded-for when subsequent hops are untrusted', async () => {
+    vi.mocked(rateLimit).mockResolvedValue({
+      success: true,
+      limit: 60,
+      remaining: 59,
+      reset: 123456789,
+    });
+
+    // Clear trusted proxies so 5.6.7.8 is untrusted
+    process.env.TRUSTED_PROXIES = '';
+
+    const request = new NextRequest('http://localhost:3000/api/streak?user=octocat', {
+      headers: {
+        'x-forwarded-for': '1.2.3.4, 5.6.7.8',
+      },
+    });
+
+    await middleware(request);
+
+    // Should resolve to the untrusted proxy IP (5.6.7.8) instead of the spoofed client IP (1.2.3.4)
+    expect(rateLimit).toHaveBeenCalledWith('5.6.7.8', 60, 60000);
   });
 
   it('uses x-real-ip if x-forwarded-for is missing', async () => {

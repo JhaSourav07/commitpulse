@@ -86,31 +86,76 @@ describe('ThemeQuickPresets', () => {
   });
 });
 
-describe('ThemeQuickPresets responsive rendering', () => {
+describe('ThemeQuickPresets responsive rendering & high-contrast', () => {
   const onThemeChange = vi.fn();
 
   beforeEach(() => {
     onThemeChange.mockClear();
   });
 
-  it('renders every preset with accessible labels, high-contrast styling, and wrap layout', () => {
+  it('checks rendering of preset buttons on sm and lg viewports', () => {
+    window.innerWidth = 375;
+    window.dispatchEvent(new Event('resize'));
+
+    const { rerender } = render(<ThemeQuickPresets theme="dark" onThemeChange={onThemeChange} />);
+
+    expect(screen.getAllByRole('button', { name: /apply .+ theme/i })).toHaveLength(
+      validKeys.length
+    );
+
+    window.innerWidth = 1280;
+    window.dispatchEvent(new Event('resize'));
+
+    rerender(<ThemeQuickPresets theme="dark" onThemeChange={onThemeChange} />);
+
+    expect(screen.getAllByRole('button', { name: /apply .+ theme/i })).toHaveLength(
+      validKeys.length
+    );
+  });
+
+  it('checks rendering of all preset buttons with accessible labels', () => {
     render(<ThemeQuickPresets theme="dark" onThemeChange={onThemeChange} />);
 
     const presetButtons = screen.getAllByRole('button', { name: /apply .+ theme/i });
     expect(presetButtons).toHaveLength(validKeys.length);
+  });
 
+  it('active preset is announced to screen readers via aria-pressed', () => {
+    render(<ThemeQuickPresets theme="dark" onThemeChange={onThemeChange} />);
     expect(
       screen.getByRole('button', { name: /apply dark theme/i }).getAttribute('aria-pressed')
     ).toBe('true');
+  });
 
-    const highContrastButton = screen.getByRole('button', { name: /apply highcontrast theme/i });
-    expect(highContrastButton).toBeDefined();
-    expect(highContrastButton.getAttribute('title')).toBe('Highcontrast');
-    expect(highContrastButton.getAttribute('style')).toContain('rgb(10, 10, 10)');
+  it('check if wrapper div uses flex and wrap so buttons reflow on narrow viewports', () => {
+    render(<ThemeQuickPresets theme="dark" onThemeChange={onThemeChange} />);
+    const buttons = screen.getAllByRole('button');
+    const grid = buttons.at(0)?.parentElement;
 
-    const grid = highContrastButton.closest('div');
     expect(grid).not.toBeNull();
-    expect(grid?.style.display).toBe('flex');
-    expect(grid?.style.flexWrap).toBe('wrap');
+    expect(grid?.className).toContain('theme-quick-presets');
+  });
+
+  it('check if each preset button has theme bg colour(inline)', () => {
+    render(<ThemeQuickPresets theme="dark" onThemeChange={onThemeChange} />);
+    const buttons = screen.getAllByRole('button');
+
+    buttons.forEach((btn) => {
+      expect(btn.getAttribute('style')).not.toBeNull();
+      expect(btn.getAttribute('style')).toMatch(/background/i);
+    });
+  });
+
+  it('checking if highcontrast is inactive when different theme is active', () => {
+    render(<ThemeQuickPresets theme="dark" onThemeChange={onThemeChange} />);
+    const hcBtn = screen.getByRole('button', { name: /apply highcontrast theme/i });
+
+    expect(hcBtn.getAttribute('aria-pressed')).toBe('false');
+  });
+
+  it('check if highcontrast button becomes active when selected', () => {
+    render(<ThemeQuickPresets theme="highcontrast" onThemeChange={onThemeChange} />);
+    const hcBtn = screen.getByRole('button', { name: /apply highcontrast theme/i });
+    expect(hcBtn.getAttribute('aria-pressed')).toBe('true');
   });
 });

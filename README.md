@@ -189,6 +189,7 @@ URL Parameter > Theme Default > System Fallback
 | `labelColor`      | `hex`     | No         | —                              | Custom text color for the isometric labels — **without** `#`                                                                                                              |
 | `versus`          | `string`  | No         | —                              | GitHub username of an opponent to compare against in side-by-side versus mode                                                                                             |
 | `shading`         | `boolean` | No         | `false`                        | Apply intensity-based opacity shading to tower faces so lower intensity levels appear slightly dimmer                                                                     |
+| `opacity`         | `number`  | No         | `1.0`                          | Global opacity scalar for all tower fill-opacity values (0.1–1.0). `opacity=0.5` = semi-transparent ghost look. `opacity=0.8` = faded, great on light backgrounds.        |
 | `gradient`        | `boolean` | No         | `false`                        | Opt-in to show volumetric gradients on the monolith floor                                                                                                                 |
 
 ### Grace Period Examples
@@ -321,6 +322,14 @@ Explore some of the built-in CommitPulse themes and quickly copy the style you l
 <!-- Gradient + shading for extra depth -->
 
 ![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&gradient=true&shading=true)
+
+<!-- Semi-transparent ghost city look -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&opacity=0.5)
+
+<!-- Slightly faded — perfect for light background embeds -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&opacity=0.8)
 
 <!-- GitHub-style Heatmap View -->
 

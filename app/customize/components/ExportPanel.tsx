@@ -171,7 +171,7 @@ export function ExportPanel({
                 ? 'Add a GitHub username to enable image downloads'
                 : format === 'action'
                   ? 'Download is not available in GitHub Action mode'
-                  : 'Download custom monolith layout as an image'
+                  : `Download badge as commitpulse-${username}.svg`
             }
             className={`relative inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 ${
               !hasUsername || isDownloading || format === 'action'

@@ -20,13 +20,18 @@ export default function RefreshButton({ username }: RefreshButtonProps) {
     if (searchParams.get('refresh') === 'true') {
       toast.success('Dashboard refreshed successfully');
 
-      router.replace(`/dashboard/${username}`);
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete('refresh');
+      const query = params.toString();
+      router.replace(`/dashboard/${username}${query ? `?${query}` : ''}`);
     }
   }, [searchParams, router, username]);
 
   const handleRefresh = () => {
     startTransition(() => {
-      router.push(`/dashboard/${username}?refresh=true`);
+      const params = new URLSearchParams(searchParams.toString());
+      params.set('refresh', 'true');
+      router.push(`/dashboard/${username}?${params.toString()}`);
 
       router.refresh();
     });

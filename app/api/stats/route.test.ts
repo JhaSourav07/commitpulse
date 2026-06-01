@@ -103,6 +103,36 @@ describe('GET /api/stats', () => {
     expect(typeof body.currentStreak).toBe('number');
   });
 
+  it('returns non-cacheable headers when refresh=true', async () => {
+    const response = await GET(makeRequest({ user: 'testuser', refresh: 'true' }));
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('Cache-Control')).toBe('no-store, no-cache, must-revalidate');
+    expect(response.headers.get('Pragma')).toBe('no-cache');
+    expect(response.headers.get('Expires')).toBe('0');
+  });
+
+  it('still returns valid stats data when refresh=true', async () => {
+    const response = await GET(makeRequest({ user: 'testuser', refresh: 'true' }));
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.totalContributions).toBe(10);
+    expect(typeof body.longestStreak).toBe('number');
+    expect(typeof body.currentStreak).toBe('number');
+  });
+
+  it('keeps the existing cache headers for normal requests', async () => {
+    const response = await GET(makeRequest({ user: 'testuser' }));
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('Cache-Control')).toBe(
+      'public, s-maxage=3600, stale-while-revalidate=86400'
+    );
+    expect(response.headers.get('Pragma')).toBeNull();
+    expect(response.headers.get('Expires')).toBeNull();
+  });
+
   it('passes bypassCache=true to GitHub when refresh=true', async () => {
     await GET(makeRequest({ user: 'testuser', refresh: 'true' }));
     expect(fetchGitHubContributions).toHaveBeenCalledWith('testuser', { bypassCache: true });
@@ -126,6 +156,28 @@ describe('GET /api/stats', () => {
     expect(response.status).toBe(500);
     const body = await response.json();
     expect(body.error).toBe('GitHub API error');
+  });
+
+  it('returns 404 when GitHub reports that the user does not exist', async () => {
+    vi.mocked(fetchGitHubContributions).mockRejectedValue(
+      new Error('GitHub user "missing-user" not found')
+    );
+
+    const response = await GET(makeRequest({ user: 'missing-user' }));
+
+    expect(response.status).toBe(404);
+    const body = await response.json();
+    expect(body.error).toBe('User not found');
+  });
+
+  it('returns 403 when GitHub rate limiting bubbles up from the client', async () => {
+    vi.mocked(fetchGitHubContributions).mockRejectedValue(new Error('API Rate Limit Exceeded'));
+
+    const response = await GET(makeRequest({ user: 'testuser' }));
+
+    expect(response.status).toBe(403);
+    const body = await response.json();
+    expect(body.error).toBe('GitHub API rate limit reached. Please configure GITHUB_TOKEN.');
   });
 
   it('returns 500 with a generic message for non-Error throws', async () => {
