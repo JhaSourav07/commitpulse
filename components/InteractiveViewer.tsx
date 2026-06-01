@@ -82,11 +82,17 @@ export const formatDate = (dateStr: string): string => {
 interface InteractiveViewerProps {
   children: ReactNode;
   className?: string;
+  is3DMode?: boolean;
+  onRotate3D?: (dx: number, dy: number) => void;
+  onReset3D?: () => void;
 }
 
 export default function InteractiveViewer({
   children,
   className = '',
+  is3DMode = false,
+  onRotate3D,
+  onReset3D,
 }: InteractiveViewerProps): ReactElement {
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
@@ -104,6 +110,7 @@ export default function InteractiveViewer({
   const activeTooltipRef = useRef<ActiveTooltipState | null>(null);
   const startPointerPos = useRef({ x: 0, y: 0 });
   const [mounted, setMounted] = useState(false);
+  const [isDarkBg, setIsDarkBg] = useState(true);
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
@@ -191,7 +198,13 @@ export default function InteractiveViewer({
     if (isDragging.current) {
       const dx = e.clientX - lastMousePos.current.x;
       const dy = e.clientY - lastMousePos.current.y;
-      setPan((p) => ({ x: p.x + dx, y: p.y + dy }));
+
+      if (is3DMode && onRotate3D) {
+        onRotate3D(dx, dy);
+      } else {
+        setPan((p) => ({ x: p.x + dx, y: p.y + dy }));
+      }
+
       lastMousePos.current = { x: e.clientX, y: e.clientY };
       // Hide tooltip during active drag/pan
       activeTooltipRef.current = null;
@@ -285,11 +298,19 @@ export default function InteractiveViewer({
     }
   };
 
+  const handleDoubleClick = (): void => {
+    if (is3DMode && onReset3D) {
+      onReset3D();
+    }
+    setPan({ x: 0, y: 0 });
+    setZoom(1);
+  };
+
   return (
     <div
       ref={containerRef}
       tabIndex={0}
-      className={`relative overflow-hidden touch-none cursor-grab active:cursor-grabbing select-none focus:outline-none ${className}`}
+      className={`relative overflow-hidden touch-none cursor-grab active:cursor-grabbing select-none focus:outline-none ${className} ${isDarkBg ? 'bg-zinc-950' : 'bg-white'}`}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
@@ -298,8 +319,22 @@ export default function InteractiveViewer({
       onPointerLeave={handlePointerLeave}
       onWheel={handleWheel}
       onKeyDown={handleKeyDown}
+      onDoubleClick={handleDoubleClick}
       style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
     >
+      {/* ── Dark/Light background toggle ── */}
+      <button
+        data-testid="bg-toggle"
+        onClick={(e) => {
+          e.stopPropagation();
+          setIsDarkBg((v) => !v);
+        }}
+        style={{ position: 'absolute', top: 12, right: 12, zIndex: 10 }}
+        className="pointer-events-auto flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors duration-200 cursor-pointer bg-zinc-800/80 border-zinc-700 text-zinc-200 hover:bg-zinc-700"
+        aria-label="Toggle background"
+      >
+        {isDarkBg ? '☀️ Light' : '🌙 Dark'}
+      </button>
       {/* ── Parallax background layer ──────────────────────────────────────────
            This layer renders behind the card content (DOM order + z-index).
            It reacts to the cursor without touching the badge SVG or its animations. */}
