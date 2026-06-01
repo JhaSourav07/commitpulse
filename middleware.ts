@@ -11,10 +11,11 @@ import { rateLimit } from './lib/rate-limit';
  * - /api/track-user
  * - /api/stats
  * - /api/og
+ * - /api/notify
  *
  * Limit: 60 requests per minute per IP.
  */
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   // Use Vercel's ip property if available, fallback to headers, then localhost
   const ip =
     request.headers.get('x-forwarded-for')?.split(',')[0] ??
@@ -23,7 +24,7 @@ export function middleware(request: NextRequest) {
 
   // Apply rate limiting
   // 60 requests per 60,000ms (1 minute)
-  const result = rateLimit(ip, 60, 60000);
+  const result = await rateLimit(ip, 60, 60000);
 
   if (!result.success) {
     return NextResponse.json(
@@ -60,5 +61,6 @@ export const config = {
     '/api/track-user/:path*',
     '/api/stats/:path*',
     '/api/og/:path*',
+    '/api/notify/:path*',
   ],
 };

@@ -66,4 +66,22 @@ describe('ThemeSelector (ThemeQuickPresets)', () => {
     expect(screen.getByLabelText(/apply dracula theme/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/apply neon theme/i)).toBeInTheDocument();
   });
+  it('renders accessible theme controls consistently after rerender', () => {
+    const { rerender } = render(
+      <ThemeQuickPresets theme="dracula" onThemeChange={mockOnThemeChange} />
+    );
+
+    rerender(<ThemeQuickPresets theme="neon" onThemeChange={mockOnThemeChange} />);
+
+    const buttons = screen.getAllByRole('button');
+
+    expect(buttons.length).toBeGreaterThanOrEqual(2);
+
+    buttons.forEach((button) => {
+      expect(button).toBeVisible();
+      expect(button).toHaveAccessibleName();
+    });
+
+    expect(screen.getByLabelText(/apply neon theme/i)).toBeInTheDocument();
+  });
 });

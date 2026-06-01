@@ -52,7 +52,6 @@ describe('RadarChart', () => {
     expect(screen.getByText('User A')).toBeDefined();
     expect(screen.getByText('User B')).toBeDefined();
 
-    // Check that top languages are rendered as axes
     expect(screen.getAllByText('TypeScript')).toBeDefined();
     expect(screen.getAllByText('Python')).toBeDefined();
     expect(screen.getAllByText('JavaScript')).toBeDefined();
@@ -61,7 +60,6 @@ describe('RadarChart', () => {
   it('handles empty input arrays cleanly using pad languages', () => {
     render(<RadarChart languagesA={[]} languagesB={[]} labelA="User A" labelB="User B" />);
 
-    // Padding should supply common ones
     expect(screen.getAllByText('TypeScript')).toBeDefined();
     expect(screen.getAllByText('JavaScript')).toBeDefined();
     expect(screen.getAllByText('Python')).toBeDefined();
@@ -77,5 +75,52 @@ describe('RadarChart', () => {
     expect(screen.getAllByText('TypeScript')).toBeDefined();
     expect(screen.getAllByText('JavaScript')).toBeDefined();
     expect(screen.getAllByText('Python')).toBeDefined();
+  });
+
+  it('deduplicates shared languages so TypeScript appears as a single axis label', () => {
+    const langsA = [{ name: 'TypeScript', percentage: 70, color: '#3178c6' }];
+    const langsB = [{ name: 'TypeScript', percentage: 50, color: '#3178c6' }];
+
+    render(<RadarChart languagesA={langsA} languagesB={langsB} labelA="User A" labelB="User B" />);
+
+    // TypeScript should appear exactly once as an axis label (SVG <text>) and once
+    // in the bottom stats table — 2 total, not 4 (which would indicate two separate axes)
+    expect(screen.getAllByText('TypeScript')).toHaveLength(2);
+  });
+
+  it('scales axis points dynamically based on max score in data', () => {
+    const highScoreLangs = [
+      { name: 'TypeScript', percentage: 100, color: '#3178c6' },
+      { name: 'Python', percentage: 80, color: '#3572A5' },
+      { name: 'JavaScript', percentage: 60, color: '#f1e05a' },
+    ];
+
+    const lowScoreLangs = [
+      { name: 'TypeScript', percentage: 10, color: '#3178c6' },
+      { name: 'Python', percentage: 5, color: '#3572A5' },
+      { name: 'JavaScript', percentage: 2, color: '#f1e05a' },
+    ];
+
+    const { container } = render(
+      <RadarChart
+        languagesA={highScoreLangs}
+        languagesB={lowScoreLangs}
+        labelA="High Scorer"
+        labelB="Low Scorer"
+      />
+    );
+
+    expect(screen.getAllByText('TypeScript')).toBeDefined();
+    expect(screen.getAllByText('Python')).toBeDefined();
+    expect(screen.getAllByText('JavaScript')).toBeDefined();
+
+    expect(screen.getByText('100%')).toBeDefined();
+    expect(screen.getByText('10%')).toBeDefined();
+
+    const svg = container.querySelector('svg');
+    expect(svg).not.toBeNull();
+
+    const circles = container.querySelectorAll('circle');
+    expect(circles.length).toBeGreaterThan(0);
   });
 });
