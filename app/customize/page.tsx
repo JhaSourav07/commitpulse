@@ -1,6 +1,7 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState, type ReactElement } from 'react';
+import { useCallback, useEffect, useRef, useState, Suspense, type ReactElement } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { validateGitHubUsername } from '@/lib/validations';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
@@ -23,7 +24,7 @@ import { getExportSnippet, buildQueryParams } from './utils';
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
-export default function CustomizePage(): ReactElement {
+function CustomizePageInner(): ReactElement {
   const [username, setUsername] = useState('');
   const [theme, setTheme] = useState('dark');
   const [bgHex, setBgHex] = useState('');
@@ -55,6 +56,39 @@ export default function CustomizePage(): ReactElement {
   const trimmedUsername = username.trim();
   const hasUsername = trimmedUsername.length > 0;
   const isRandomTheme = theme === 'random';
+
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // On mount: initialize state from URL search params
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    const u = searchParams.get('user') ?? '';
+    const t = searchParams.get('theme') ?? 'dark';
+    setUsername(u);
+    setTheme(t);
+    setBgHex(searchParams.get('bg') ?? '');
+    setAccentHex(searchParams.get('accent') ?? '');
+    setTextHex(searchParams.get('text') ?? '');
+    setScale((searchParams.get('scale') as Scale) ?? 'linear');
+    setSpeed(searchParams.get('speed') ?? '8s');
+    setFont((searchParams.get('font') as Font) ?? 'Inter');
+    setYear(searchParams.get('year') ?? '');
+    setRadius(Number(searchParams.get('radius') ?? 8));
+    setSize((searchParams.get('size') as BadgeSize) ?? 'medium');
+    setHideTitle(searchParams.get('hide_title') === 'true');
+    setHideBackground(searchParams.get('hide_background') === 'true');
+    setHideStats(searchParams.get('hide_stats') === 'true');
+    setViewMode((searchParams.get('view') as ViewMode) ?? 'default');
+    setDeltaFormat((searchParams.get('delta_format') as DeltaFormat) ?? 'percent');
+    setBadgeWidth(searchParams.get('width') ? Number(searchParams.get('width')) : '');
+    setBadgeHeight(searchParams.get('height') ? Number(searchParams.get('height')) : '');
+    setGrace(Number(searchParams.get('grace') ?? 1));
+    setLanguage((searchParams.get('lang') as Language) ?? 'en');
+    setTimezone((searchParams.get('tz') as Timezone) ?? 'UTC');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   useEffect(() => {
     return () => {
@@ -113,6 +147,12 @@ export default function CustomizePage(): ReactElement {
     timezone,
   });
   const previewSrc = `/api/streak?${queryString}`;
+
+  // On change sync state to URL
+  useEffect(() => {
+    if (!queryString) return;
+    router.replace(`/customize?${queryString}`, { scroll: false });
+  }, [queryString, router]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -571,5 +611,13 @@ export default function CustomizePage(): ReactElement {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function CustomizePage(): ReactElement {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-transparent" />}>
+      <CustomizePageInner />
+    </Suspense>
   );
 }
