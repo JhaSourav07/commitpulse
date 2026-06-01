@@ -42,7 +42,25 @@ describe('middleware', () => {
     expect(response.status).toBe(429);
   });
 
-  it('returns too many requests error body when rate limit fails', async () => {
+  it('returns too many requests JSON body for non-streak route when rate limit fails', async () => {
+    vi.mocked(rateLimit).mockResolvedValue({
+      success: false,
+      limit: 60,
+      remaining: 0,
+      reset: 123456789,
+    });
+
+    const request = new NextRequest('http://localhost:3000/api/github');
+    const response = await middleware(request);
+
+    await expect(response.json()).resolves.toEqual({
+      error: 'Too many requests',
+    });
+
+    expect(response.headers.get('Content-Type')).toContain('application/json');
+  });
+
+  it('returns SVG body for streak route when rate limit fails', async () => {
     vi.mocked(rateLimit).mockResolvedValue({
       success: false,
       limit: 60,
@@ -53,9 +71,9 @@ describe('middleware', () => {
     const request = new NextRequest('http://localhost:3000/api/streak?user=octocat');
     const response = await middleware(request);
 
-    await expect(response.json()).resolves.toEqual({
-      error: 'Too many requests',
-    });
+    await expect(response.text()).resolves.toContain('<svg');
+    expect(response.status).toBe(429);
+    expect(response.headers.get('Content-Type')).toContain('image/svg+xml');
   });
 
   it('sets X-RateLimit-Limit header when rate limit succeeds', async () => {

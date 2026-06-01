@@ -2,6 +2,19 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { rateLimit } from './lib/rate-limit';
 
+function generateRateLimitSVG() {
+  return `
+<svg xmlns="http://www.w3.org/2000/svg" width="420" height="120" viewBox="0 0 420 120">
+  <rect width="420" height="120" rx="16" fill="#0f172a"/>
+  <text x="210" y="52" text-anchor="middle" fill="#f8fafc" font-family="Arial, sans-serif" font-size="20" font-weight="700">
+    Rate Limit Exceeded
+  </text>
+  <text x="210" y="82" text-anchor="middle" fill="#cbd5e1" font-family="Arial, sans-serif" font-size="14">
+    Please try again later
+  </text>
+</svg>`;
+}
+
 /**
  * Middleware to enforce rate limiting on specific API routes.
  *
@@ -26,16 +39,30 @@ export async function middleware(request: NextRequest) {
   // 60 requests per 60,000ms (1 minute)
   const result = await rateLimit(ip, 60, 60000);
 
+  const rateLimitHeaders = {
+    'X-RateLimit-Limit': result.limit.toString(),
+    'X-RateLimit-Remaining': result.remaining.toString(),
+    'X-RateLimit-Reset': result.reset.toString(),
+  };
+
   if (!result.success) {
+    if (request.nextUrl.pathname.startsWith('/api/streak')) {
+      return new NextResponse(generateRateLimitSVG(), {
+        status: 429,
+        headers: {
+          'Content-Type': 'image/svg+xml',
+          ...rateLimitHeaders,
+        },
+      });
+    }
+
     return NextResponse.json(
       { error: 'Too many requests' },
       {
         status: 429,
         headers: {
           'Content-Type': 'application/json',
-          'X-RateLimit-Limit': result.limit.toString(),
-          'X-RateLimit-Remaining': result.remaining.toString(),
-          'X-RateLimit-Reset': result.reset.toString(),
+          ...rateLimitHeaders,
         },
       }
     );
@@ -43,9 +70,9 @@ export async function middleware(request: NextRequest) {
 
   // Add rate limit headers to the response for successful requests
   const response = NextResponse.next();
-  response.headers.set('X-RateLimit-Limit', result.limit.toString());
-  response.headers.set('X-RateLimit-Remaining', result.remaining.toString());
-  response.headers.set('X-RateLimit-Reset', result.reset.toString());
+  response.headers.set('X-RateLimit-Limit', rateLimitHeaders['X-RateLimit-Limit']);
+  response.headers.set('X-RateLimit-Remaining', rateLimitHeaders['X-RateLimit-Remaining']);
+  response.headers.set('X-RateLimit-Reset', rateLimitHeaders['X-RateLimit-Reset']);
 
   return response;
 }
