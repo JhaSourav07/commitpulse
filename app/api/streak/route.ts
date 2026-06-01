@@ -99,7 +99,7 @@ export async function GET(request: Request) {
       glow,
       format,
     } = parseResult.data;
-    
+
     const normalizedView = view as 'default' | 'monthly' | 'heatmap' | 'pulse';
     const themeName = theme || 'dark';
     const from = customFrom
