@@ -11,6 +11,7 @@ import { calculateStreak, aggregateCalendars } from '@/lib/calculate';
 import { DistributedCache } from '@/lib/cache';
 import { LANGUAGE_COLORS } from '@/lib/svg/languageColors';
 import { CONTRIBUTION_MILESTONES, STREAK_MILESTONES } from './svg/constants';
+import { quotaMonitor } from '@/services/github/quota-monitor';
 
 import 'server-only';
 
@@ -87,6 +88,12 @@ export async function fetchWithRetry(
   }
 
   if (!res) throw new Error('GitHub API request failed without a response');
+
+  try {
+    quotaMonitor.updateQuotaFromHeaders(res.headers);
+  } catch (err) {
+    console.error('Failed to update quota monitor', err);
+  }
 
   // Check for rate limit headers
   const retryAfter = res.headers.get('retry-after');
@@ -268,6 +275,41 @@ interface GitHubUserProfile {
   plan?: { name?: string } | null;
 }
 
+/**
+ * Sanitizes a GitHub user profile to only include required fields.
+ * This reduces the memory footprint of cached data.
+ */
+function sanitizeUserProfile(profile: GitHubUserProfile): GitHubUserProfile {
+  return {
+    login: profile.login,
+    name: profile.name,
+    avatar_url: profile.avatar_url,
+    public_repos: profile.public_repos,
+    followers: profile.followers,
+    following: profile.following,
+    created_at: profile.created_at,
+    bio: profile.bio,
+    location: profile.location,
+    type: profile.type,
+    plan: profile.plan ? { name: profile.plan.name } : null,
+  };
+}
+
+/**
+ * Sanitizes a GitHub repository object to only include required fields.
+ * This reduces the memory footprint of cached data.
+ */
+function sanitizeRepo(repo: GitHubRepo): GitHubRepo {
+  return {
+    name: repo.name,
+    stargazers_count: repo.stargazers_count,
+    language: repo.language,
+    fork: repo.fork,
+    forks_count: repo.forks_count,
+    updated_at: repo.updated_at,
+  };
+}
+
 export function cacheKey(
   kind: 'contributions' | 'profile' | 'repos' | 'repos:contributed',
   username: string,
@@ -314,10 +356,6 @@ const getHeaders = () => ({
   Authorization: `bearer ${getGitHubToken()}`,
   'Content-Type': 'application/json',
 });
-
-export function validateGitHubUsername(username: string): boolean {
-  return /^[a-z\d](?:[a-z\d]|-(?=[a-z\d])){0,38}$/i.test(username);
-}
 
 export function displayName(profile: GitHubUserProfile): string {
   if (typeof profile.name === 'string' && profile.name.trim() !== '') return profile.name;
@@ -580,8 +618,9 @@ async function fetchProfileUncached(
   }
 
   const profile = (await res.json()) as GitHubUserProfile;
-  if (!options.bypassCache) await profileCache.set(key, profile, GITHUB_CACHE_TTL_MS);
-  return profile;
+  const sanitizedProfile = sanitizeUserProfile(profile);
+  if (!options.bypassCache) await profileCache.set(key, sanitizedProfile, GITHUB_CACHE_TTL_MS);
+  return sanitizedProfile;
 }
 
 export async function fetchUserRepos(
@@ -619,7 +658,7 @@ async function fetchReposUncached(
   }
 
   const firstPageRepos = (await firstPageRes.json()) as GitHubRepo[];
-  const allRepos: GitHubRepo[] = [...firstPageRepos];
+  const allRepos: GitHubRepo[] = firstPageRepos.map(sanitizeRepo);
 
   const MAX_PAGES = 3;
 
@@ -646,7 +685,8 @@ async function fetchReposUncached(
           throw new Error(`GitHub REST API error: ${response.status}`);
         }
 
-        return (await response.json()) as GitHubRepo[];
+        const repos = (await response.json()) as GitHubRepo[];
+        return repos.map(sanitizeRepo);
       })
     );
 
@@ -707,17 +747,18 @@ export async function getOrgDashboardData(orgName: string, options: FetchOptions
     throw new Error('This endpoint is strictly for organizations.');
   if (membersOrError instanceof Error) throw membersOrError;
 
-  const members: string[] = membersOrError;
-  const calendars = (
-    await Promise.all(
-      members.map((m) =>
-        fetchGitHubContributions(m, options)
-          .then((d) => d.calendar)
-          .catch(() => null)
-      )
-    )
-  ).filter((c): c is ContributionCalendar => c !== null);
+  const members = membersOrError;
 
+  // Fetch calendars for all members concurrently with capped concurrency to avoid 429s/timeouts
+  const calendars = (
+    await runCappedConcurrency(members, 5, (member) =>
+      fetchGitHubContributions(member, options)
+        .then((data) => data.calendar)
+        .catch(() => null)
+    )
+  ).filter((c: ContributionCalendar | null) => c !== null) as ContributionCalendar[];
+
+  // Create the Mega-City
   const aggregatedCalendar = aggregateCalendars(calendars);
   const streakStats = calculateStreak(aggregatedCalendar);
   const totalStars = reposData.reduce((acc, r) => acc + r.stargazers_count, 0);
@@ -1158,6 +1199,7 @@ export async function getFullDashboardData(username: string, options: FetchOptio
     ),
     commitClock,
     graphData: { nodes, links },
+    lastSyncedAt: calendarData.lastSyncedAt,
   };
 }
 
@@ -1220,4 +1262,36 @@ export async function getWrappedData(
     weekendRatio,
     topLanguage,
   };
+}
+
+/**
+ * Run tasks concurrently with a maximum limit on active promises.
+ */
+export async function runCappedConcurrency<T, R>(
+  items: T[],
+  limit: number,
+  fn: (item: T) => Promise<R>
+): Promise<R[]> {
+  const results: R[] = new Array(items.length);
+  let currentIndex = 0;
+
+  async function worker(): Promise<void> {
+    while (currentIndex < items.length) {
+      const index = currentIndex++;
+      try {
+        results[index] = await fn(items[index]);
+      } catch (err) {
+        results[index] = null as unknown as R;
+      }
+    }
+  }
+
+  const workers: Promise<void>[] = [];
+  const workerCount = Math.min(limit, items.length);
+  for (let i = 0; i < workerCount; i++) {
+    workers.push(worker());
+  }
+
+  await Promise.all(workers);
+  return results;
 }
