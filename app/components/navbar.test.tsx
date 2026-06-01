@@ -1,21 +1,35 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { act, render, screen, fireEvent, waitFor } from '@testing-library/react';
 import Navbar from './navbar';
 import type { ReactNode } from 'react';
 
-Object.defineProperty(window, 'matchMedia', {
-  writable: true,
-  value: vi.fn().mockImplementation((query) => ({
-    matches: false,
-    media: query,
+function createMatchMedia(matches = false) {
+  const listeners: Array<(event: MediaQueryListEvent) => void> = [];
+  const mediaQuery = {
+    matches,
+    media: '(min-width: 768px)',
     onchange: null,
     addListener: vi.fn(),
     removeListener: vi.fn(),
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
+    addEventListener: vi.fn((event: string, listener: (e: MediaQueryListEvent) => void) => {
+      if (event === 'change') listeners.push(listener);
+    }),
+    removeEventListener: vi.fn((event: string, listener: (e: MediaQueryListEvent) => void) => {
+      if (event === 'change') {
+        const index = listeners.indexOf(listener);
+        if (index !== -1) listeners.splice(index, 1);
+      }
+    }),
     dispatchEvent: vi.fn(),
-  })),
-});
+    triggerChange(newMatches: boolean) {
+      mediaQuery.matches = newMatches;
+      const event = { matches: newMatches, media: mediaQuery.media } as MediaQueryListEvent;
+      listeners.forEach((listener) => listener(event));
+    },
+  } as unknown as MediaQueryList & { triggerChange: (matches: boolean) => void };
+
+  return mediaQuery;
+}
 
 vi.mock('framer-motion', () => ({
   motion: {
@@ -34,6 +48,7 @@ vi.mock('lucide-react', () => ({
 describe('Navbar mobile menu', () => {
   beforeEach(() => {
     window.innerWidth = 500;
+    window.matchMedia = vi.fn().mockImplementation(() => createMatchMedia(false));
   });
 
   it('menu is hidden by default', () => {
@@ -63,23 +78,67 @@ describe('Navbar mobile menu', () => {
     expect(screen.queryByText(/closeicon/i)).toBeNull();
   });
 
-  it('closes menu on resize to desktop', () => {
+  it('closes menu on resize to desktop', async () => {
+    const mediaQuery = createMatchMedia(false);
+    window.matchMedia = vi.fn().mockImplementation(() => mediaQuery);
+
     render(<Navbar />);
 
-    const button = screen.getByLabelText(/open menu/i);
+    const toggleButton = screen.getByLabelText(/open menu/i);
+    fireEvent.click(toggleButton);
 
-    fireEvent.click(button);
+    const closeButton = screen.getByLabelText(/close menu/i);
+    expect(closeButton.getAttribute('aria-expanded')).toBe('true');
 
-    window.innerWidth = 1200;
+    act(() => {
+      mediaQuery.triggerChange(true);
+    });
 
-    window.matchMedia = vi.fn().mockImplementation(() => ({
-      matches: true,
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-    }));
+    await waitFor(() => {
+      const reopenedButton = screen.getByLabelText(/open menu/i);
+      expect(reopenedButton.getAttribute('aria-expanded')).toBe('false');
+    });
 
-    window.dispatchEvent(new Event('resize'));
+    expect(screen.queryByText(/closeicon/i)).toBeNull();
+  });
 
-    expect(button.getAttribute('aria-expanded')).toBe('true');
+  describe('responsive breakpoints', () => {
+    it('closes the hamburger menu when viewport becomes desktop width', async () => {
+      const mediaQuery = createMatchMedia(false);
+      window.matchMedia = vi.fn().mockImplementation(() => mediaQuery);
+
+      render(<Navbar />);
+
+      const openMenuButton = screen.getByLabelText(/open menu/i);
+      fireEvent.click(openMenuButton);
+
+      const closeMenuButton = screen.getByLabelText(/close menu/i);
+      expect(closeMenuButton.getAttribute('aria-expanded')).toBe('true');
+
+      act(() => {
+        mediaQuery.triggerChange(true);
+      });
+
+      await waitFor(() => {
+        const reopenedButton = screen.getByLabelText(/open menu/i);
+        expect(reopenedButton.getAttribute('aria-expanded')).toBe('false');
+      });
+
+      expect(screen.queryByText(/closeicon/i)).toBeNull();
+    });
+
+    it('keeps the hamburger menu closed when initially mounted on desktop viewport', async () => {
+      const mediaQuery = createMatchMedia(true);
+      window.matchMedia = vi.fn().mockImplementation(() => mediaQuery);
+
+      render(<Navbar />);
+
+      await waitFor(() => {
+        const openMenuButton = screen.getByLabelText(/open menu/i);
+        expect(openMenuButton.getAttribute('aria-expanded')).toBe('false');
+      });
+
+      expect(screen.queryByText(/closeicon/i)).toBeNull();
+    });
   });
 });
