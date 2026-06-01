@@ -159,6 +159,10 @@ export class TTLCache<T> {
     if (key === '') throw new Error('Cache key cannot be empty');
     if (ttlMs <= 0) throw new RangeError(`ttlMs must be positive, got ${ttlMs}`);
 
+    if (key.length > 10000) {
+      throw new Error('Cache key exceeds maximum allowed length to prevent memory bloat');
+    }
+
     const maxSize = this.maxSize;
     if (maxSize !== undefined && this.store.size >= maxSize && !this.store.has(key)) {
       this.sweep();

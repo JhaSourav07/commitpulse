@@ -14,6 +14,14 @@ vi.mock('@/components/commitpulse-logo', () => ({
   CommitPulseLogo: () => <svg data-testid="commitpulse-logo"></svg>,
 }));
 
+vi.mock('@/components/WallOfLove', () => ({
+  WallOfLove: () => <div data-testid="wall-of-love">Wall of Love</div>,
+}));
+
+vi.mock('@/components/DiscordButton', () => ({
+  DiscordButton: () => <button data-testid="discord-button">Discord Button</button>,
+}));
+
 // next/image is no longer used — SVG preview is fetched via useEffect and
 // rendered inline. The mock below keeps the import from erroring if any
 // other test file still imports it.
@@ -264,6 +272,26 @@ describe('LandingPage', () => {
       // The SuccessGuide should appear
       expect(screen.getByText('Your Monolith is Ready - Deploy It in 4 Steps')).toBeDefined();
     });
+  });
+
+  it('does not show copied state when clipboard write fails', async () => {
+    vi.mocked(navigator.clipboard.writeText).mockRejectedValueOnce(new Error('Permission denied'));
+
+    render(<LandingPage />);
+    const input = screen.getByPlaceholderText('Enter GitHub Username') as HTMLInputElement;
+    fireEvent.change(input, { target: { value: 'jhasourav07' } });
+
+    const copyButton = screen.getByText('Copy Link').closest('button');
+    fireEvent.click(copyButton!);
+
+    await waitFor(() => {
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+        expect.stringContaining('/api/streak?user=jhasourav07')
+      );
+    });
+
+    expect(screen.queryByText('Copied')).toBeNull();
+    expect(screen.queryByText('Your Monolith is Ready - Deploy It in 4 Steps')).toBeNull();
   });
 
   it('disables Copy Link button when username is empty', () => {

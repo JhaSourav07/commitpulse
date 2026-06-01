@@ -10,13 +10,13 @@ import {
   buildCommitClock,
   clearGitHubApiCacheForTests,
   GITHUB_CACHE_TTL_MS,
-  validateGitHubUsername,
   cacheKey,
   displayName,
   fetchOrgMembers,
   getOrgDashboardData,
   getWrappedData,
   computeDeveloperScore,
+  runCappedConcurrency,
   buildProfileData,
   aggregateLanguages,
   buildInsights,
@@ -522,6 +522,32 @@ describe('fetchUserProfile', () => {
     expect(result.avatar_url).toBe(mockProfile.avatar_url);
   });
 
+  it('sanitizes the profile by removing extra fields before returning', async () => {
+    const mockProfile = {
+      login: 'octocat',
+      name: 'The Octocat',
+      avatar_url: 'https://avatar.url',
+      public_repos: 8,
+      followers: 100,
+      following: 5,
+      created_at: '2011-01-25T18:44:36Z',
+      bio: 'GitHub mascot',
+      location: 'San Francisco',
+      extra_field: 'should be removed',
+      another_extra: 123,
+      plan: { name: 'pro', space: 1000 },
+    };
+
+    vi.mocked(fetch).mockResolvedValue(mockResponse(mockProfile));
+
+    const result = (await fetchUserProfile('octocat')) as unknown as Record<string, unknown>;
+
+    expect(result.login).toBe('octocat');
+    expect(result.extra_field).toBeUndefined();
+    expect(result.another_extra).toBeUndefined();
+    expect(result.plan).toEqual({ name: 'pro' });
+  });
+
   it('encodes the username before using it in the REST profile path', async () => {
     vi.mocked(fetch).mockResolvedValue(
       mockResponse({
@@ -566,6 +592,29 @@ describe('fetchUserRepos', () => {
     );
     const result = await fetchUserRepos('octocat');
     expect(result[0].stargazers_count).toBe(1);
+  });
+
+  it('sanitizes repo objects by removing extra fields before returning', async () => {
+    vi.mocked(fetch).mockResolvedValue(
+      mockResponse([
+        {
+          name: 'some-repo',
+          stargazers_count: 10,
+          language: 'TypeScript',
+          id: 12345,
+          private: false,
+          owner: { login: 'octocat' },
+        },
+      ])
+    );
+
+    const result = (await fetchUserRepos('octocat')) as unknown as Record<string, unknown>[];
+
+    expect(result[0].stargazers_count).toBe(10);
+    expect(result[0].language).toBe('TypeScript');
+    expect(result[0].id).toBeUndefined();
+    expect(result[0].private).toBeUndefined();
+    expect(result[0].owner).toBeUndefined();
   });
 
   it('returns a full three-repo payload with the expected star counts and languages', async () => {
@@ -1690,19 +1739,6 @@ describe('displayName', () => {
   });
 });
 
-describe('validateGitHubUsername', () => {
-  it('returns true for a valid username', () => {
-    expect(validateGitHubUsername('valid-username-123')).toBe(true);
-  });
-
-  it('returns false for a too long username', () => {
-    expect(validateGitHubUsername('a'.repeat(40))).toBe(false);
-  });
-
-  it('returns false for a username with underscore', () => {
-    expect(validateGitHubUsername('invalid_username')).toBe(false);
-  });
-});
 describe('cacheKey', () => {
   it('creates key without year', () => {
     expect(cacheKey('profile', 'DeepSikha')).toBe('profile:deepsikha');
@@ -2118,5 +2154,46 @@ describe('computeDeveloperScore', () => {
         longestStreak: 2,
       })
     ).toBe(2);
+  });
+});
+
+describe('runCappedConcurrency', () => {
+  it('should process all items and return their results in order', async () => {
+    const items = [1, 2, 3, 4, 5];
+    const results = await runCappedConcurrency(items, 2, async (x) => {
+      return x * 10;
+    });
+
+    expect(results).toEqual([10, 20, 30, 40, 50]);
+  });
+
+  it('should strictly limit the concurrency to the specified limit', async () => {
+    const items = [1, 2, 3, 4, 5];
+    let activePromises = 0;
+    let maxConcurrentPromises = 0;
+
+    await runCappedConcurrency(items, 2, async (x) => {
+      activePromises++;
+      maxConcurrentPromises = Math.max(maxConcurrentPromises, activePromises);
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      activePromises--;
+      return x;
+    });
+
+    expect(maxConcurrentPromises).toBeLessThanOrEqual(2);
+  });
+
+  it('should handle errors inside tasks gracefully without aborting the entire sequence', async () => {
+    const items = [1, 2, 3, 4, 5];
+    const results = await runCappedConcurrency(items, 2, async (x) => {
+      if (x === 3) throw new Error('Task 3 failed');
+      return x * 10;
+    });
+
+    expect(results[0]).toBe(10);
+    expect(results[1]).toBe(20);
+    expect(results[2]).toBeNull();
+    expect(results[3]).toBe(40);
+    expect(results[4]).toBe(50);
   });
 });

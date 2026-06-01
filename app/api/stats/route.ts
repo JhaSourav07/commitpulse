@@ -24,10 +24,22 @@ export async function GET(request: Request) {
   const parseResult = statsParamsSchema.safeParse(Object.fromEntries(searchParams.entries()));
 
   if (!parseResult.success) {
+    const details = parseResult.error.flatten();
+
+    if (details.fieldErrors.tz?.length) {
+      return NextResponse.json(
+        {
+          error: 'Invalid "tz" parameter',
+          details,
+        },
+        { status: 400 }
+      );
+    }
+
     return NextResponse.json(
       {
         error: 'Invalid parameters',
-        details: parseResult.error.flatten(),
+        details,
       },
       { status: 400 }
     );
