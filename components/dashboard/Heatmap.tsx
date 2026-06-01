@@ -128,15 +128,16 @@ export default function Heatmap({
                 height: (7 * (CELL + GAP) - GAP) * scale,
               }}
             >
-              <div className="flex" style={{ gap: GAP }}>
+              <div className="flex" role="grid" style={{ gap: GAP }}>
                 {weeks.map((week, wIndex) => (
-                  <div key={wIndex} className="flex flex-col" style={{ gap: GAP }}>
+                  <div key={wIndex} className="flex flex-col" role="row" style={{ gap: GAP }}>
                     {week.map((day, dIndex) => {
                       const originalIndex = wIndex * 7 + dIndex;
 
                       return (
                         <div
                           key={day.date}
+                          role="gridcell"
                           aria-label={`${getContributionLabel(
                             day.count
                           )} on ${formatTooltipDate(day.date)}`}

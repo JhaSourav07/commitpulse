@@ -22,7 +22,9 @@ import RepositoryGraph from './RepositoryGraph';
 import ComparisonStatsCard from './ComparisonStatsCard';
 import RadarChart from './RadarChart';
 import GrowthTrendChart from './GrowthTrendChart';
+import { useRouter } from 'next/navigation';
 import ProfileOptimizerModal from './ProfileOptimizerModal';
+import ResumeProfileSection from './ResumeProfileSection';
 import type { DashboardPeriod } from '@/utils/dashboardPeriod';
 
 // Define the dashboard data structure
@@ -77,6 +79,7 @@ interface DashboardData {
 interface DashboardClientProps {
   initialData: DashboardData;
   username: string;
+  compareData?: DashboardData | null;
   period: DashboardPeriod;
 }
 
@@ -321,14 +324,20 @@ function getPersonalityTags(
 // DashboardClient Component
 // ------------------------------------------------------------
 
-export default function DashboardClient({ initialData, username, period }: DashboardClientProps) {
-  const [secondUserData, setSecondUserData] = useState<DashboardData | null>(null);
-  const [isCompareMode, setIsCompareMode] = useState(false);
+export default function DashboardClient({
+  initialData,
+  username,
+  compareData = null,
+  period,
+}: DashboardClientProps) {
+  const [secondUserData, setSecondUserData] = useState<DashboardData | null>(compareData);
+  const [isCompareMode, setIsCompareMode] = useState(Boolean(compareData));
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isOptimizerOpen, setIsOptimizerOpen] = useState(false);
   const [secondUsernameInput, setSecondUsernameInput] = useState('');
   const [isLoadingSecond, setIsLoadingSecond] = useState(false);
   const [compareError, setCompareError] = useState<string | null>(null);
+  const router = useRouter();
 
   const modalRef = useRef<HTMLDivElement>(null);
   const compareInputRef = useRef<HTMLInputElement>(null);
@@ -424,6 +433,9 @@ export default function DashboardClient({ initialData, username, period }: Dashb
       const data = await res.json();
       setSecondUserData(data);
       setIsCompareMode(true);
+
+      router.replace(`/dashboard/${username}?compare=${data.profile.username}`);
+
       setIsModalOpen(false);
       toast.success(`Comparing ${username} vs ${data.profile.username}`);
     } catch (err: unknown) {
@@ -438,7 +450,31 @@ export default function DashboardClient({ initialData, username, period }: Dashb
   const handleExitCompare = () => {
     setIsCompareMode(false);
     setSecondUserData(null);
+
+    router.replace(`/dashboard/${username}`);
+
     toast.info('Returned to single profile view');
+  };
+
+  const handleShareComparison = async () => {
+    if (!secondUserData) return;
+
+    const compareUrl = `${window.location.origin}/dashboard/${username}?compare=${secondUserData.profile.username}`;
+
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: `${username} vs ${secondUserData.profile.username}`,
+          text: 'Check out this GitHub profile comparison',
+          url: compareUrl,
+        });
+      } else {
+        await navigator.clipboard.writeText(compareUrl);
+        toast.success('Comparison link copied!');
+      }
+    } catch {
+      // user cancelled share dialog
+    }
   };
 
   // ------------------------------------------------------------
@@ -562,6 +598,16 @@ export default function DashboardClient({ initialData, username, period }: Dashb
               </button>
             </>
           )}
+          {isCompareMode && secondUserData && (
+            <button
+              onClick={handleShareComparison}
+              className="flex items-center gap-2 rounded-xl border border-black/10 dark:border-[rgba(255,255,255,0.15)] bg-blue-600 hover:bg-blue-700 px-4 py-2 text-sm font-semibold text-white transition-all duration-200 active:scale-[0.98]"
+            >
+              <Share2 size={16} />
+              Share Comparison
+            </button>
+          )}
+
           <RefreshButton username={username} />
           <button
             onClick={() => {
@@ -610,6 +656,7 @@ export default function DashboardClient({ initialData, username, period }: Dashb
               }}
             />
             <Achievements achievements={initialData.achievements} />
+            <ResumeProfileSection githubUsername={username} />
           </aside>
 
           {/* Main Content */}

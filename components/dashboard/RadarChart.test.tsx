@@ -2,6 +2,7 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import RadarChart from './RadarChart';
+import '@testing-library/jest-dom/vitest';
 
 vi.mock('framer-motion', () => ({
   motion: {
@@ -48,9 +49,9 @@ describe('RadarChart', () => {
       <RadarChart languagesA={mockLangsA} languagesB={mockLangsB} labelA="User A" labelB="User B" />
     );
 
-    expect(screen.getByText('Language Dominance')).toBeDefined();
-    expect(screen.getByText('User A')).toBeDefined();
-    expect(screen.getByText('User B')).toBeDefined();
+    expect(screen.getByText('Language Dominance')).toBeInTheDocument();
+    expect(screen.getByText('User A')).toBeInTheDocument();
+    expect(screen.getByText('User B')).toBeInTheDocument();
 
     expect(screen.getAllByText('TypeScript')).toBeDefined();
     expect(screen.getAllByText('Python')).toBeDefined();
@@ -122,5 +123,69 @@ describe('RadarChart', () => {
 
     const circles = container.querySelectorAll('circle');
     expect(circles.length).toBeGreaterThan(0);
+  });
+
+  it('check generation of different polygon coordinates for different score magnitudes', () => {
+    const highScores = [
+      { name: 'TypeScript', percentage: 100, color: '#3178c6' },
+      { name: 'Python', percentage: 100, color: '#3572A5' },
+      { name: 'JavaScript', percentage: 100, color: '#f1e05a' },
+    ];
+    const lowScores = [
+      { name: 'TypeScript', percentage: 10, color: '#3178c6' },
+      { name: 'Python', percentage: 10, color: '#3572A5' },
+      { name: 'JavaScript', percentage: 10, color: '#f1e05a' },
+    ];
+
+    const { container } = render(
+      <RadarChart languagesA={highScores} languagesB={lowScores} labelA="High" labelB="Low" />
+    );
+
+    // 4 grid rings + 2 data polygons
+    const polygons = container.querySelectorAll('polygon');
+    expect(polygons.length).toBeGreaterThanOrEqual(6);
+
+    const CX = 160,
+      CY = 160;
+    const distanceOf = (c: Element) =>
+      Math.hypot(
+        parseFloat(c.getAttribute('cx') ?? '0') - CX,
+        parseFloat(c.getAttribute('cy') ?? '0') - CY
+      );
+
+    const circles = Array.from(container.querySelectorAll('circle'));
+    expect(circles).toHaveLength(6); // all pct > 0, 3 per user
+
+    const avgHigh = circles.slice(0, 3).reduce((s, c) => s + distanceOf(c), 0) / 3;
+    const avgLow = circles.slice(3, 6).reduce((s, c) => s + distanceOf(c), 0) / 3;
+
+    expect(avgHigh).toBeGreaterThan(avgLow);
+  });
+
+  describe('responsive rendering', () => {
+    it.each([320, 768, 1280])(
+      'checks rendering of chart structure at viewport width %i',
+      (width) => {
+        Object.defineProperty(window, 'innerWidth', {
+          writable: true,
+          configurable: true,
+          value: width,
+        });
+
+        const { container, unmount } = render(
+          <RadarChart
+            languagesA={mockLangsA}
+            languagesB={mockLangsB}
+            labelA="User A"
+            labelB="User B"
+          />
+        );
+
+        expect(container.querySelector('svg')).toBeInTheDocument();
+        expect(screen.getByText('Language Dominance')).toBeInTheDocument();
+
+        unmount();
+      }
+    );
   });
 });

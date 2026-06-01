@@ -70,4 +70,16 @@ describe('getLabels', () => {
       }
     });
   });
+
+  describe('monthly view keys', () => {
+    it.each(Object.keys(labels))('locale %s has a non-empty COMMITS_THIS_MONTH', (lang) => {
+      const locale = getLabels(lang);
+      expect(locale.COMMITS_THIS_MONTH).toEqual(expect.stringMatching(/\S/));
+    });
+
+    it.each(Object.keys(labels))('locale %s has a non-empty VS_LAST_MONTH', (lang) => {
+      const locale = getLabels(lang);
+      expect(locale.VS_LAST_MONTH).toEqual(expect.stringMatching(/\S/));
+    });
+  });
 });

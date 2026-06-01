@@ -1,5 +1,6 @@
 'use client';
 import { trackUser } from '@/utils/tracking';
+import InteractiveViewer from '@/components/InteractiveViewer';
 
 import Link from 'next/link';
 import { useRef, useState, useEffect } from 'react';
@@ -14,6 +15,7 @@ import { Footer } from '@/app/components/Footer';
 
 import { FeatureCard, FeatureCardsSection } from '@/components/FeatureCards';
 import { DiscordButton } from '@/components/DiscordButton';
+
 import { WallOfLove } from '@/components/WallOfLove';
 
 const Icons = {
@@ -102,13 +104,18 @@ export default function LandingPage() {
     badgeResult?.username === debouncedUsername && badgeResult?.status === 'loaded';
   const badgeError = badgeResult?.username === debouncedUsername && badgeResult?.status === 'error';
 
-  const copyToClipboard = () => {
+  const copyToClipboard = async () => {
     if (trimmedUsername.length === 0) return;
+
+    try {
+      await navigator.clipboard.writeText(markdown);
+    } catch {
+      setCopied(false);
+      return;
+    }
 
     trackUser(trimmedUsername);
     addSearch(trimmedUsername);
-
-    navigator.clipboard.writeText(markdown);
     setCopied(true);
     setTimeout(() => {
       guideRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });

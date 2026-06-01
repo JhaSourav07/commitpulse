@@ -113,6 +113,34 @@ describe('dbConnect', () => {
     expect(global.mongoose.promise).toBeNull();
   });
 
+  it('handles mongoose Connection State 3 (disconnecting) gracefully', async () => {
+    process.env.MONGODB_URI = 'mongodb://localhost:27017/test';
+    global.mongoose.conn = null;
+    mockMongooseConnection.readyState = 3;
+
+    const mockMongoose = { connection: 'mock' };
+    setConnectedMongoose(mockMongoose as unknown as typeof mongoose);
+
+    const conn = await dbConnect();
+
+    expect(mongoose.connect).toHaveBeenCalledTimes(1);
+    expect(conn).toBe(mockMongoose);
+    expect(global.mongoose.conn).toBe(mockMongoose);
+  });
+
+  it('returns the cached connection immediately when mongoose is already connected', async () => {
+    process.env.MONGODB_URI = 'mongodb://localhost:27017/test';
+
+    const mockMongoose = { connection: 'mock' };
+    global.mongoose.conn = mockMongoose as unknown as typeof mongoose;
+    mockMongooseConnection.readyState = 1;
+
+    const conn = await dbConnect();
+
+    expect(conn).toBe(mockMongoose);
+    expect(mongoose.connect).not.toHaveBeenCalled();
+  });
+
   it('throws when called from the Edge runtime', async () => {
     vi.stubEnv('NEXT_RUNTIME', 'edge');
     process.env.MONGODB_URI = 'mongodb://localhost:27017/test';

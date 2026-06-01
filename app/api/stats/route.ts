@@ -24,25 +24,29 @@ export async function GET(request: Request) {
   const parseResult = statsParamsSchema.safeParse(Object.fromEntries(searchParams.entries()));
 
   if (!parseResult.success) {
-    const fieldErrors = parseResult.error.flatten().fieldErrors;
+    const details = parseResult.error.flatten();
 
-    if (fieldErrors.tz?.length) {
+    if (details.fieldErrors.tz?.length) {
       return NextResponse.json(
-        { error: 'Invalid "tz" parameter', details: parseResult.error.flatten() },
+        {
+          error: 'Invalid "tz" parameter',
+          details,
+        },
         { status: 400 }
       );
     }
 
     return NextResponse.json(
-      { error: 'Invalid parameters', details: parseResult.error.flatten() },
+      {
+        error: 'Invalid parameters',
+        details,
+      },
       { status: 400 }
     );
   }
 
   const { user, refresh, tz } = parseResult.data;
 
-  // Validate the optional IANA timezone early so callers get a clear 400
-  // rather than a silent fallback or a 500.
   let timezone = 'UTC';
   if (tz) {
     try {
@@ -57,7 +61,6 @@ export async function GET(request: Request) {
     const calendar = userData.calendar;
     const stats = calculateStreak(calendar, timezone);
     const headers = new Headers({
-      // Cache until next UTC midnight; clients can bust with ?refresh=true
       'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
     });
 
