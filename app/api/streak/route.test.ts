@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { NextRequest } from 'next/server';
 import { GET } from './route';
 
 // We only mock the two things that reach outside this process:
@@ -203,6 +204,18 @@ describe('GET /api/streak', () => {
       expect(response.status).toBe(400);
       const body = await response.json();
       expect(JSON.stringify(body)).toContain('cannot exceed 39 characters');
+    });
+
+    it('returns 400 Bad Request and details indicating the username cannot exceed 39 characters when using NextRequest', async () => {
+      const url = `http://localhost/api/streak?user=${'a'.repeat(40)}`;
+      const request = new NextRequest(url);
+
+      const response = await GET(request);
+
+      expect(response.status).toBe(400);
+      const body = await response.json();
+      expect(body.error).toBe('Invalid parameters');
+      expect(body.details.fieldErrors.user[0]).toMatch(/cannot exceed 39 characters/);
     });
 
     it('returns 400 for invalid monthly badge dimensions', async () => {
@@ -659,6 +672,14 @@ describe('GET /api/streak', () => {
         expect(response.status).toBe(400);
         expect(body.details.fieldErrors.date[0]).toContain('Invalid "date" format');
       });
+
+      it('returns 400 when an invalid ISO8601 calendar date format like "2026-15-40" is supplied (Variation 4)', async () => {
+        const response = await GET(makeRequest({ user: 'octocat', date: '2026-15-40' }));
+        const body = await response.json();
+
+        expect(response.status).toBe(400);
+        expect(body.details.fieldErrors.date[0]).toContain('Invalid "date" format. Use ISO 8601.');
+      });
     });
   });
 
@@ -779,6 +800,16 @@ describe('GET /api/streak', () => {
       const response = await GET(makeRequest({ user: 'octocat', accent: '#ZZZZZZZ' }));
 
       expect(response.status).toBe(400);
+    });
+
+    it('returns 400 Bad Request for invalid color hex syntax targeting the ?accent= parameter', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', accent: '#ZZZZZZ' }));
+
+      expect(response.status).toBe(400);
+
+      const body = await response.json();
+      expect(body.error).toBe('Invalid parameters');
+      expect(body.details).not.toBeNull();
     });
   });
 
@@ -1336,6 +1367,14 @@ describe('GET /api/streak', () => {
 
       expect(response.headers.get('Cache-Control')).not.toContain('stale-while-revalidate=86400');
     });
+  });
+
+  it('falls back to commits mode when ?mode=unknown is given', async () => {
+    const response = await GET(makeRequest({ user: 'octocat', mode: 'invalid' }));
+
+    expect(response.status).toBe(200);
+    const body = await response.text();
+    expect(body).toContain('<svg');
   });
 
   describe('org parameter validation', () => {

@@ -12,6 +12,8 @@ import { DistributedCache } from '@/lib/cache';
 import { LANGUAGE_COLORS } from '@/lib/svg/languageColors';
 import { CONTRIBUTION_MILESTONES, STREAK_MILESTONES } from './svg/constants';
 
+import 'server-only';
+
 interface GitHubRepo {
   name: string;
   stargazers_count: number;
@@ -251,10 +253,6 @@ const contributionsCache = new DistributedCache<ExtendedContributionData>(1000);
 const profileCache = new DistributedCache<GitHubUserProfile>(1000);
 const reposCache = new DistributedCache<GitHubRepo[]>(500);
 const contributedReposCache = new DistributedCache<Record<string, unknown>[]>(500);
-const pendingContributions = new Map<string, Promise<ExtendedContributionData>>();
-const pendingProfiles = new Map<string, Promise<GitHubUserProfile>>();
-const pendingRepos = new Map<string, Promise<GitHubRepo[]>>();
-const pendingContributedRepos = new Map<string, Promise<Record<string, unknown>[]>>();
 
 interface GitHubUserProfile {
   login: string;
@@ -300,25 +298,6 @@ export function clearGitHubApiCacheForTests(): void {
   profileCache.clear();
   reposCache.clear();
   contributedReposCache.clear();
-  pendingContributions.clear();
-  pendingProfiles.clear();
-  pendingRepos.clear();
-  pendingContributedRepos.clear();
-}
-
-function dedupeRequest<T>(
-  pendingRequests: Map<string, Promise<T>>,
-  key: string,
-  load: () => Promise<T>
-): Promise<T> {
-  const pending = pendingRequests.get(key);
-  if (pending) return pending;
-
-  const request = load().finally(() => {
-    pendingRequests.delete(key);
-  });
-  pendingRequests.set(key, request);
-  return request;
 }
 
 function getGitHubToken(): string {
@@ -397,31 +376,21 @@ export async function fetchGitHubContributions(
   options: FetchOptions = {}
 ): Promise<ExtendedContributionData> {
   const key = cacheKey('contributions', username, options.from, options.to);
+  const LONG_CACHE_TTL = 7 * 24 * 60 * 60 * 1000;
 
-  if (options.bypassCache) {
-    return fetchContributionsUncached(username, key, options, null);
-  }
-
-  // Wrap the entire cache-check + fetch pipeline in dedupeRequest so that
-  // concurrent calls for the same key share a single in-flight promise.
-  // This closes the TOCTOU window where two requests both miss the cache
-  // (during the async DistributedCache.get) and each fires its own API call.
-  const load = async (): Promise<ExtendedContributionData> => {
-    const cached = await contributionsCache.get(key);
-
+  const shouldFetch = (cached: ExtendedContributionData) => {
     const now = Date.now();
-    const isStale = cached?.calendar.lastSyncedAt
+    return cached?.calendar.lastSyncedAt
       ? now - new Date(cached.calendar.lastSyncedAt).getTime() > GITHUB_CACHE_TTL_MS
       : true;
+  };
 
-    if (cached && !isStale) {
-      return cached;
-    }
-
+  const load = async (cached: ExtendedContributionData | null) => {
     return fetchContributionsUncached(username, key, options, cached);
   };
 
-  return dedupeRequest(pendingContributions, key, load);
+  if (options.bypassCache) return load(null);
+  return contributionsCache.getOrSet(key, load, LONG_CACHE_TTL, shouldFetch);
 }
 
 async function fetchContributionsUncached(
@@ -579,17 +548,12 @@ export async function fetchUserProfile(
   const key = cacheKey('profile', username);
   const encodedUsername = encodeURIComponent(username);
 
-  if (options.bypassCache) {
-    return fetchProfileUncached(encodedUsername, key, options);
-  }
-
-  const load = async (): Promise<GitHubUserProfile> => {
-    const cached = await profileCache.get(key);
-    if (cached) return cached;
+  const load = async () => {
     return fetchProfileUncached(encodedUsername, key, options);
   };
 
-  return dedupeRequest(pendingProfiles, key, load);
+  if (options.bypassCache) return load();
+  return profileCache.getOrSet(key, load, GITHUB_CACHE_TTL_MS);
 }
 
 async function fetchProfileUncached(
@@ -627,17 +591,12 @@ export async function fetchUserRepos(
   const key = cacheKey('repos', username);
   const encodedUsername = encodeURIComponent(username);
 
-  if (options.bypassCache) {
-    return fetchReposUncached(encodedUsername, key, options);
-  }
-
-  const load = async (): Promise<GitHubRepo[]> => {
-    const cached = await reposCache.get(key);
-    if (cached) return cached;
+  const load = async () => {
     return fetchReposUncached(encodedUsername, key, options);
   };
 
-  return dedupeRequest(pendingRepos, key, load);
+  if (options.bypassCache) return load();
+  return reposCache.getOrSet(key, load, GITHUB_CACHE_TTL_MS);
 }
 
 async function fetchReposUncached(
@@ -945,10 +904,6 @@ export async function fetchContributedRepos(
   options: FetchOptions = {}
 ): Promise<Record<string, unknown>[]> {
   const key = cacheKey('repos:contributed', username);
-  if (!options.bypassCache) {
-    const cached = await contributedReposCache.get(key);
-    if (cached) return cached;
-  }
 
   const load = async () => {
     const query = `
@@ -983,15 +938,11 @@ export async function fetchContributedRepos(
     if (!res.ok) return [];
     const data = await res.json();
     const result = data?.data?.user?.repositoriesContributedTo?.nodes || [];
-
-    if (!options.bypassCache) {
-      await contributedReposCache.set(key, result, GITHUB_CACHE_TTL_MS);
-    }
     return result;
   };
 
   if (options.bypassCache) return load();
-  return dedupeRequest(pendingContributedRepos, key, load);
+  return contributedReposCache.getOrSet(key, load, GITHUB_CACHE_TTL_MS);
 }
 
 export interface DeveloperScoreInput {

@@ -11,6 +11,8 @@ import {
   sanitizeRadius,
   sanitizeGoogleFontUrl,
   getLuminance,
+  parseGradientStops,
+  getGradientCoordinates,
 } from './sanitizer';
 
 import { SVG_WIDTH, SVG_HEIGHT, FONT_MAP } from './generatorConstants';
@@ -153,47 +155,117 @@ function renderHeader(
   ${renderDefs(sf, params)}`;
 }
 
+/**
+ * Generates custom SVG gradient definitions from gradient_stops and gradient_dir parameters.
+ * Returns an object with gradient SVG elements and the gradient ID (or empty string if invalid).
+ * If custom stops are invalid or insufficient, returns { gradients: '', gradientId: '' }.
+ * Also stores the gradient ID on the params object for tower rendering to use.
+ */
+function generateCustomGradients(params: BadgeParams): { gradients: string; gradientId: string } {
+  const stops = parseGradientStops(params.gradient_stops);
+
+  // Require at least 2 valid colors for custom gradient
+  if (stops.length < 2) {
+    return { gradients: '', gradientId: '' };
+  }
+
+  const coords = getGradientCoordinates(params.gradient_dir);
+
+  // Create a deterministic gradient ID based on the color stops and direction
+  // This ensures consistent output and avoids random/duplicate IDs
+  const gradientSignature = `${stops.join('-')}-${params.gradient_dir || 'vertical'}`;
+  const gradientId = `custom-grad-${deterministicRandom(gradientSignature)
+    .toString()
+    .slice(2, 10)}`;
+
+  let gradients = '';
+
+  // Generate 4 gradient definitions (one for each intensity level)
+  // Each uses the same color stops but with different opacity progression
+  for (let i = 0; i < 4; i++) {
+    const level = i + 1;
+    const levelId = `${gradientId}-level-${level}`;
+
+    // Build the stop elements
+    let stopElements = '';
+    const stopCount = stops.length;
+
+    stops.forEach((color, stopIdx) => {
+      const offset = (stopIdx / (stopCount - 1)) * 100;
+      // Increase opacity with intensity level (0.4 to 0.8)
+      const baseOpacity = 0.4 + i * 0.2;
+      const stopOpacity = Math.min(1, baseOpacity + stopIdx * 0.1);
+
+      const colorHex = color.startsWith('#') ? color : `#${color}`;
+      stopElements += `
+        <stop offset="${offset}%" stop-color="${colorHex}" stop-opacity="${stopOpacity}" />`;
+    });
+
+    gradients += `
+      <linearGradient id="${levelId}" x1="${coords.x1}" y1="${coords.y1}" x2="${coords.x2}" y2="${coords.y2}">
+${stopElements}
+      </linearGradient>`;
+  }
+
+  // Store the gradient ID on params for tower rendering to use
+  params.__customGradientId = gradientId;
+
+  return { gradients, gradientId };
+}
+
 function renderDefs(sf: number, params: BadgeParams): string {
   const fs = (n: number): number => Math.round(n * sf * 10) / 10;
 
   let gradients = '';
   if (params.gradient) {
-    if (params.autoTheme) {
-      for (let i = 0; i < 4; i++) {
-        const level = i + 1;
-        gradients += `
+    // Try to use custom gradient if gradient_stops is provided
+    const result = generateCustomGradients(params);
+    if (result.gradientId) {
+      // Custom gradient stops were valid and used
+      gradients = result.gradients;
+    } else {
+      // Fallback to default gradient behavior
+      const bgStr = params.bg || '0d1117';
+      const bgHex = bgStr.startsWith('#') ? bgStr : `#${bgStr}`;
+
+      if (params.autoTheme) {
+        for (let i = 0; i < 4; i++) {
+          const level = i + 1;
+          gradients += `
       <linearGradient id="tower-grad-level-${level}" x1="0" y1="1" x2="0" y2="0">
         <stop offset="0%" stop-color="var(--cp-bg)" stop-opacity="0.1" />
         <stop offset="100%" stop-color="var(--cp-accent)" stop-opacity="${0.4 + i * 0.2}" />
       </linearGradient>`;
-      }
-    } else {
-      const accent = params.accent;
-      const colors = Array.isArray(accent)
-        ? [0, 1, 2, 3].map((i) => {
-            const idx = Math.min(i, accent.length - 1);
-            const c = accent[idx] || accent[accent.length - 1] || '00ffaa';
-            return c.startsWith('#') ? c : `#${c}`;
-          })
-        : [0, 1, 2, 3].map(() => (String(accent).startsWith('#') ? String(accent) : `#${accent}`));
+        }
+      } else {
+        const accent = params.accent;
+        const colors = Array.isArray(accent)
+          ? [0, 1, 2, 3].map((i) => {
+              const idx = Math.min(i, accent.length - 1);
+              const c = accent[idx] || accent[accent.length - 1] || '00ffaa';
+              return c.startsWith('#') ? c : `#${c}`;
+            })
+          : [0, 1, 2, 3].map(() =>
+              String(accent).startsWith('#') ? String(accent) : `#${accent}`
+            );
 
-      const bgStr = params.bg || '0d1117';
-      const bgHex = bgStr.startsWith('#') ? bgStr : `#${bgStr}`;
-
-      colors.forEach((c, idx) => {
-        const level = idx + 1;
-        gradients += `
+        colors.forEach((c, idx) => {
+          const level = idx + 1;
+          gradients += `
       <linearGradient id="tower-grad-level-${level}" x1="0" y1="1" x2="0" y2="0">
         <stop offset="0%" stop-color="${bgHex}" stop-opacity="0.1" />
         <stop offset="100%" stop-color="${c}" stop-opacity="${0.4 + idx * 0.2}" />
       </linearGradient>`;
-      });
+        });
+      }
     }
   }
 
   const filterGlow =
     params.glow !== false
-      ? `<filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="${fs(5)}" result="blur" /><feComposite in="SourceGraphic" in2="blur" operator="over" /></filter>`
+      ? `<filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="${fs(
+          5
+        )}" result="blur" /><feComposite in="SourceGraphic" in2="blur" operator="over" /></filter>`
       : '';
 
   return `<defs>
@@ -334,8 +406,14 @@ function renderTowers(
     let finalTopFillAttr = topFillAttr;
 
     if (!isGhost && t.intensityLevel > 0 && params.gradient === true) {
-      leftFillAttr = `fill="url(#tower-grad-level-${t.intensityLevel})"`;
-      rightFillAttr = `fill="url(#tower-grad-level-${t.intensityLevel})"`;
+      // Use custom gradient ID if available, otherwise use default gradient ID
+      const customGradId = params.__customGradientId;
+      const gradId = customGradId
+        ? `${customGradId}-level-${t.intensityLevel}`
+        : `tower-grad-level-${t.intensityLevel}`;
+
+      leftFillAttr = `fill="url(#${gradId})"`;
+      rightFillAttr = `fill="url(#${gradId})"`;
 
       if (isAutoTheme) {
         finalTopFillAttr = 'class="cp-accent-fill"';

@@ -71,6 +71,25 @@ export async function GET(request: Request) {
     );
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';
+
+    if (
+      message.toLowerCase().includes('not found') ||
+      message.toLowerCase().includes('could not resolve')
+    ) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    if (
+      message.toLowerCase().includes('rate limit') ||
+      message.includes('API limit reached') ||
+      message.includes('status 403')
+    ) {
+      return NextResponse.json(
+        { error: 'GitHub API rate limit reached. Please configure GITHUB_TOKEN.' },
+        { status: 403 }
+      );
+    }
+
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
