@@ -1,4 +1,5 @@
 import { quotaMonitor } from './quota-monitor';
+import { TTLCache } from '../../lib/cache';
 
 export class RefreshPolicy {
   private static instance: RefreshPolicy;
@@ -6,8 +7,8 @@ export class RefreshPolicy {
   // Cooldown in milliseconds (default 5 minutes)
   private cooldownMs = 5 * 60 * 1000;
 
-  // Map of username -> last successful refresh timestamp
-  private refreshTimes = new Map<string, number>();
+  // Cache of username -> last successful refresh timestamp
+  private refreshTimes = new TTLCache<number>(5000, 60 * 60 * 1000);
 
   private constructor() {}
 
@@ -54,7 +55,7 @@ export class RefreshPolicy {
    */
   public recordRefresh(username: string): void {
     const sanitized = username.trim().toLowerCase();
-    this.refreshTimes.set(sanitized, Date.now());
+    this.refreshTimes.set(sanitized, Date.now(), this.cooldownMs);
     quotaMonitor.incrementRefreshCount();
   }
 

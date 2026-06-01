@@ -107,10 +107,18 @@ export default function GithubWrapped({ profile, wrappedData }: GithubWrappedPro
             <Calendar className="text-purple-400 mb-2" size={24} />
             <p className="text-sm text-white/60">Busiest Month</p>
             <p className="text-2xl font-bold">
-              {new Date(wrappedData.busiestMonth + '-01').toLocaleString('default', {
-                month: 'long',
-                year: 'numeric',
-              })}
+              {(() => {
+                const parts = wrappedData.busiestMonth.split('-');
+                if (parts.length === 2) {
+                  const [year, month] = parts.map(Number);
+                  const date = new Date(year, month - 1, 1);
+                  return date.toLocaleString('default', {
+                    month: 'long',
+                    year: 'numeric',
+                  });
+                }
+                return wrappedData.busiestMonth;
+              })()}
             </p>
           </motion.div>
 
