@@ -5,6 +5,7 @@ import Navbar from './components/navbar';
 import BrandParticles from '@/components/BrandParticles';
 import ReturnToTop from '@/components/ReturnToTop';
 import type { Metadata } from 'next';
+import ScrollRestoration from './components/ScrollRestoration';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -65,8 +66,27 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
-      <body className={`${inter.className} bg-black`}>
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              try {
+                const storedTheme = window.localStorage.getItem('theme');
+                if (storedTheme === 'light') {
+                  document.documentElement.classList.remove('dark');
+                  document.documentElement.style.colorScheme = 'light';
+                } else {
+                  document.documentElement.classList.add('dark');
+                  document.documentElement.style.colorScheme = 'dark';
+                }
+              } catch (_) {}
+            `,
+          }}
+        />
+      </head>
+      <body className={inter.className}>
+        <ScrollRestoration />
         <BrandParticles />
         <Navbar />
         <div className="relative z-10">{children}</div>

@@ -9,6 +9,10 @@ const iconMap: Record<string, LucideIcon> = {
   GitCommit,
 };
 
+export function buildMiniChart(seed: number): number[] {
+  return Array.from({ length: 12 }).map((_, i) => ((seed * 17 + i * 31) % 100) + (i > 6 ? 40 : 0));
+}
+
 interface StatsCardProps {
   title: string;
   value: string;
@@ -16,6 +20,7 @@ interface StatsCardProps {
   icon: string;
   showUTCDisclaimer?: boolean;
   utcDate?: string;
+  chartData?: number[];
 }
 
 export default function StatsCard({
@@ -25,14 +30,16 @@ export default function StatsCard({
   icon,
   showUTCDisclaimer,
   utcDate,
+  chartData,
 }: StatsCardProps) {
   const IconComponent = iconMap[icon] || Flame;
 
   const baseSeed = title.length;
 
-  const miniChartData = Array.from({ length: 12 }).map(
+  const fallbackData = Array.from({ length: 12 }).map(
     (_, i) => ((baseSeed * 17 + i * 31) % 100) + (i > 6 ? 40 : 0)
   );
+  const miniChartData = chartData && chartData.length > 0 ? chartData : fallbackData;
 
   return (
     <motion.div
@@ -58,7 +65,7 @@ export default function StatsCard({
           {showUTCDisclaimer && (
             <div className="mt-3 space-y-1">
               <p className="text-[11px] text-[#71717A] leading-relaxed">
-                ℹ Streaks are calculated in UTC and may differ from your local timezone.
+                â„¹ Streaks are calculated in UTC and may differ from your local timezone.
               </p>
 
               {utcDate && <p className="text-[10px] text-[#52525B]">UTC Date: {utcDate}</p>}
