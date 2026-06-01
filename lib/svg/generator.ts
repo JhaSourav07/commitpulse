@@ -15,19 +15,9 @@ import {
   getGradientCoordinates,
 } from './sanitizer';
 
-import {
-  TILE_WIDTH_HALF,
-  TILE_HEIGHT_HALF,
-  GRID_ORIGIN_X,
-  GRID_ORIGIN_Y,
-} from './layoutConstants';
+import { TILE_WIDTH_HALF, TILE_HEIGHT_HALF, GRID_ORIGIN_X, GRID_ORIGIN_Y } from './layoutConstants';
 
-import {
-  SVG_WIDTH,
-  SVG_HEIGHT,
-  FONT_MAP,
-  isFontKey,
-} from './generatorConstants';
+import { SVG_WIDTH, SVG_HEIGHT, FONT_MAP, isFontKey } from './generatorConstants';
 
 // helpers
 export function getSizeScale(size?: 'small' | 'medium' | 'large') {
