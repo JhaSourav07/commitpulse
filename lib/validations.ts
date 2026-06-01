@@ -23,7 +23,13 @@ export function toEmptyStringAsUndefined(val?: string): string | undefined {
 }
 
 export function toValidTheme(val?: string): string | undefined {
-  return val && Object.hasOwn(themes, val) ? val : 'dark';
+  if (!val) return 'dark';
+  const normalized = val.toLowerCase();
+  if (normalized === 'auto' || normalized === 'random') {
+    return normalized;
+  }
+  const matchedKey = Object.keys(themes).find((key) => key.toLowerCase() === normalized);
+  return matchedKey || 'dark';
 }
 
 export function toValidHexColor(defaultColor: string) {
@@ -112,9 +118,17 @@ const baseStreakParamsSchema = z.object({
   theme: z
     .string()
     .optional()
+    .transform((val) => {
+      if (val === undefined || val === '') return 'dark';
+      const normalized = val.toLowerCase();
+      if (normalized === 'auto' || normalized === 'random') {
+        return normalized;
+      }
+      const matchedKey = Object.keys(themes).find((key) => key.toLowerCase() === normalized);
+      return matchedKey || val;
+    })
     .refine(
       (val) => {
-        if (val === undefined || val === '') return true;
         return val === 'auto' || val === 'random' || Object.hasOwn(themes, val);
       },
       {
@@ -446,7 +460,7 @@ export const wrappedParamsSchema = z.object({
         message: 'GitHub was founded in 2008. Please provide a year of 2008 or later.',
       }
     ),
-  theme: z.string().default('dark'),
+  theme: z.string().optional().transform(toValidTheme).default('dark'),
   bg: z
     .string()
     .optional()

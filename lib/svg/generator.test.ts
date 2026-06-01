@@ -1675,6 +1675,50 @@ describe('deterministicRandom', () => {
   });
 });
 
+describe('SVG Structural Validity and Cleanliness', () => {
+  const mockStats: StreakStats = {
+    currentStreak: 5,
+    longestStreak: 10,
+    totalContributions: 100,
+    todayDate: '2024-06-12',
+  };
+  const mockCalendar = {
+    weeks: [
+      {
+        contributionDays: [
+          { contributionCount: 0, date: '2024-06-10' },
+          { contributionCount: 5, date: '2024-06-11' },
+          { contributionCount: 15, date: '2024-06-12' },
+        ],
+      },
+    ],
+  } as ContributionCalendar;
+
+  it('generateSVG output contains exactly one root <svg> element and exactly one closing </svg> tag', () => {
+    const svg = generateSVG(mockStats, { user: 'avi' } as unknown as BadgeParams, mockCalendar);
+    const openCount = (svg.match(/<svg/gi) || []).length;
+    const closeCount = (svg.match(/<\/svg>/gi) || []).length;
+    expect(openCount).toBe(1);
+    expect(closeCount).toBe(1);
+  });
+
+  it('generateSVG output contains exactly one style block', () => {
+    const svg = generateSVG(mockStats, { user: 'avi' } as unknown as BadgeParams, mockCalendar);
+    const styleOpenCount = (svg.match(/<style>/gi) || []).length;
+    const styleCloseCount = (svg.match(/<\/style>/gi) || []).length;
+    expect(styleOpenCount).toBe(1);
+    expect(styleCloseCount).toBe(1);
+  });
+
+  it('generateSVG does not contain duplicate renderHeader or renderStyle outputs', () => {
+    const svg = generateSVG(mockStats, { user: 'avi' } as unknown as BadgeParams, mockCalendar);
+    const titleCount = (svg.match(/<title id="cp-title-avi">/g) || []).length;
+    expect(titleCount).toBe(1);
+    const styleImportCount = (svg.match(/@import url/g) || []).length;
+    expect(styleImportCount).toBe(1);
+  });
+});
+
 describe('buildTowerPaths', () => {
   it('returns correct paths for scale 1', () => {
     const paths = buildTowerPaths(15, 1);

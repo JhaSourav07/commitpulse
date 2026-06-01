@@ -837,6 +837,22 @@ describe('GET /api/streak', () => {
       expect(fieldError).toContain('light');
       expect(fieldError).toContain('neon');
     });
+
+    it('accepts capitalized or mixed-case theme parameter like "NEON" and maps it correctly', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', theme: 'NEON' }));
+      const body = await response.text();
+
+      expect(response.status).toBe(200);
+      expect(body).toContain('ff00ff'); // Neon theme accent is #ff00ff — confirms the neon theme is applied
+    });
+
+    it('accepts mixed-case "random" or "auto" and resolves correctly', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', theme: 'aUtO' }));
+      const body = await response.text();
+
+      expect(response.status).toBe(200);
+      expect(body).toContain('prefers-color-scheme: dark');
+    });
   });
 
   describe('custom colour overrides', () => {

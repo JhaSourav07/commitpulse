@@ -1082,69 +1082,47 @@ describe('streakParamsSchema — layout query validation boundaries (Variation 2
   });
 });
 
-/* ==========================================================================
- * LAYOUT PARAMETER — QUERY VALIDATION BOUNDARIES (VARIATION 2)
- * ========================================================================== */
-
-describe('streakParamsSchema — layout query validation boundaries (Variation 2)', () => {
-  it('rejects unsupported_layout and marks the parse as failed', () => {
+describe('streakParamsSchema — case-insensitive theme matching', () => {
+  it('accepts lowercase theme parameters', () => {
     const result = streakParamsSchema.safeParse({
       user: 'octocat',
-      layout: 'unsupported_layout',
+      theme: 'neon',
     });
-
-    expect(result.success).toBe(false);
-  });
-
-  it('surfaces a meaningful error message for unsupported_layout', () => {
-    const result = streakParamsSchema.safeParse({
-      user: 'octocat',
-      layout: 'unsupported_layout',
-    });
-
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      const messages = result.error.issues.map((i) => i.message).join(' ');
-      expect(messages).toContain('Invalid layout format');
-    }
-  });
-
-  it('accepts "default" as a valid layout value', () => {
-    const result = streakParamsSchema.safeParse({
-      user: 'octocat',
-      layout: 'default',
-    });
-
-    expect(result.success).toBe(true);
-  });
-
-  it('accepts "compact" as a valid layout value', () => {
-    const result = streakParamsSchema.safeParse({
-      user: 'octocat',
-      layout: 'compact',
-    });
-
-    expect(result.success).toBe(true);
-  });
-
-  it('accepts "full" as a valid layout value', () => {
-    const result = streakParamsSchema.safeParse({
-      user: 'octocat',
-      layout: 'full',
-    });
-
-    expect(result.success).toBe(true);
-  });
-
-  it('treats omitted layout as undefined (no validation error)', () => {
-    const result = streakParamsSchema.safeParse({
-      user: 'octocat',
-    });
-
     expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.layout).toBeUndefined();
+      expect(result.data.theme).toBe('neon');
     }
+  });
+
+  it('accepts uppercase theme parameters and maps correctly', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      theme: 'NEON',
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      // Maps capitalized input back to lowercase registry key
+      expect(result.data.theme).toBe('neon');
+    }
+  });
+
+  it('accepts mixed-case theme parameters and maps correctly', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      theme: 'DrAcUlA',
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.theme).toBe('dracula');
+    }
+  });
+
+  it('rejects completely invalid theme name', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      theme: 'fictionaltheme',
+    });
+    expect(result.success).toBe(false);
   });
 });
 
