@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { sanitizeHexColor, sanitizeSpeed, sanitizeRadius, sanitizeFont } from './svg/sanitizer';
+import { sanitizeFont, sanitizeHexColor, sanitizeRadius, sanitizeSpeed } from './svg/sanitizer';
 
 function dimensionParam(name: string, min: number, max: number) {
   return z
@@ -95,6 +95,10 @@ export const streakParamsSchema = z.object({
     .string()
     .optional()
     .transform((val) => val === 'true' || val === '1'),
+  optimize: z
+    .string()
+    .optional()
+    .transform((val) => val === 'true'),
   lang: z.string().optional().default('en'),
   // Unknown view values fall back to the default dashboard view.
   view: z.enum(['default', 'monthly']).catch('default').default('default'),

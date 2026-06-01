@@ -148,4 +148,6 @@ export interface BadgeParams {
 
   /** Preset size of the badge. 'small', 'medium', or 'large'. Overrides width and height. */
   size?: BadgeSize;
+  /** When true, generates a lightweight optimized SVG. */
+  optimize?: boolean;
 }

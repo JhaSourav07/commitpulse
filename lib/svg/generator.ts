@@ -1,11 +1,11 @@
-import type { BadgeParams, ContributionCalendar, StreakStats, MonthlyStats } from '../../types';
+import type { BadgeParams, ContributionCalendar, MonthlyStats, StreakStats } from '../../types';
 import { getLabels, type BadgeLabels } from '../i18n/badgeLabels';
-import { AUTO_THEME_DARK, AUTO_THEME_LIGHT } from './themes';
 import { TOWER_ANIMATION_CSS } from './animations';
 import { computeTowers, type TowerData } from './layout';
-import { sanitizeFont, sanitizeHexColor, sanitizeRadius, sanitizeGoogleFontUrl } from './sanitizer';
+import { sanitizeFont, sanitizeGoogleFontUrl, sanitizeHexColor, sanitizeRadius } from './sanitizer';
+import { AUTO_THEME_DARK, AUTO_THEME_LIGHT } from './themes';
 
-import { SVG_WIDTH, SVG_HEIGHT, FONT_MAP } from './constants';
+import { FONT_MAP, SVG_HEIGHT, SVG_WIDTH } from './constants';
 
 // helpers
 function truncateUsername(name: string, max = 20): string {
@@ -245,7 +245,7 @@ generate the tower layout.
  */
 export function generateSVG(
   stats: StreakStats,
-  params: BadgeParams,
+  params: BadgeParams & { optimize?: boolean },
   calendar: ContributionCalendar
 ): string {
   if (params.autoTheme) return generateAutoThemeSVG(stats, params, calendar);
@@ -279,16 +279,25 @@ export function generateSVG(
   const towerData = scaleTowerData(computeTowers(calendar, params.scale, stats.todayDate), sf);
   const towers = renderTowers(towerData, accent, text, sf);
 
-  return `
+  const svgRaw = `
 <svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" fill="none" role="img">
-  ${renderHeader(safeUser, stats, sf)}
-  ${renderStyle(selectedFont, statsFont, googleFontsImport, text, accent, sf)}
-  <rect width="${W}" height="${H}" rx="${radius}" fill="${params.hideBackground ? 'transparent' : bg}" />
-  <g transform="translate(0, ${Math.round(20 * sf)})">${towers}</g>
-  ${renderFooter(stats, params, labels, safeUser, accent, sf)}
+    ${renderHeader(safeUser, stats, sf)}
+    ${renderStyle(selectedFont, statsFont, googleFontsImport, text, accent, sf)}
+    <rect width="${W}" height="${H}" rx="${radius}" fill="${params.hideBackground ? 'transparent' : bg}" />
+    <g transform="translate(0, ${Math.round(20 * sf)})">${towers}</g>
+    ${renderFooter(stats, params, labels, safeUser, accent, sf)}
 </svg>`;
-}
 
+  if (params.optimize) {
+    return svgRaw
+      .replace(/\n/g, '')
+      .replace(/\s{2,}/g, ' ')
+      .replace(/>\s+</g, '><')
+      .trim();
+  }
+
+  return svgRaw;
+}
 //generates an svg for the non existent users
 function generateAutoThemeSVG(
   stats: StreakStats,

@@ -1,17 +1,12 @@
 // app/api/streak/route.ts
 import { NextResponse } from 'next/server';
+import { calculateMonthlyStats, calculateStreak } from '../../../lib/calculate';
 import { fetchGitHubContributions } from '../../../lib/github';
-import { calculateStreak, calculateMonthlyStats } from '../../../lib/calculate';
-import {
-  generateNotFoundSVG,
-  generateSVG,
-  generateMonthlySVG,
-  escapeXML,
-} from '../../../lib/svg/generator';
-import { getSecondsUntilUTCMidnight, getSecondsUntilMidnightInTimezone } from '../../../utils/time';
-import type { BadgeParams } from '../../../types';
+import { generateMonthlySVG, generateNotFoundSVG, generateSVG } from '../../../lib/svg/generator';
 import { themes } from '../../../lib/svg/themes';
 import { streakParamsSchema } from '../../../lib/validations';
+import type { BadgeParams } from '../../../types';
+import { getSecondsUntilMidnightInTimezone, getSecondsUntilUTCMidnight } from '../../../utils/time';
 const SVG_CSP_HEADER =
   "default-src 'none'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://fonts.gstatic.com;";
 
@@ -78,6 +73,7 @@ export async function GET(request: Request) {
       hide_title,
       hide_background,
       hide_stats,
+      optimize = false,
       lang,
       view,
       delta_format,
