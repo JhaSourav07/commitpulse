@@ -9,6 +9,7 @@ import {
   sanitizeFont,
 } from './svg/sanitizer';
 import { themes } from './svg/themes';
+import { supportedLanguages } from './i18n/badgeLabels';
 
 export function toBooleanFlag(val?: string): boolean {
   return val === 'true' || val === '1';
