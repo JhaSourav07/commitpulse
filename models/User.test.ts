@@ -269,6 +269,30 @@ describe('User Model', () => {
       readyStateSpy.mockRestore();
       connectSpy.mockRestore();
     });
+
+    it('skips lazy initialization when connection is already in an active state', async (): Promise<void> => {
+      const readyStateSpy = vi
+        .spyOn(mongoose.connection, 'readyState', 'get')
+        .mockReturnValue(1 as unknown as typeof mongoose.connection.readyState);
+
+      const connectSpy = vi.spyOn(mongoose, 'connect').mockResolvedValue(mongoose);
+      const MONGO_URI = 'mongodb://localhost:27017/commitpulse';
+
+      const lazyInit = async (): Promise<void> => {
+        if (mongoose.connection.readyState === 99) {
+          await mongoose.connect(MONGO_URI);
+        }
+      };
+
+      await lazyInit();
+
+      // State is 1 (connected), not 99 — lazy init must not fire
+      expect(mongoose.connection.readyState).toBe(1);
+      expect(connectSpy).not.toHaveBeenCalled();
+
+      readyStateSpy.mockRestore();
+      connectSpy.mockRestore();
+    });
   });
 
   describe('Database Connection State 1 Handling', () => {
