@@ -259,6 +259,7 @@ const baseStreakParamsSchema = z.object({
     .optional()
  feat/svg-optimization
     .transform((val) => val === 'true' || val === '1'),
+
   optimize: z
     .string()
     .optional()
