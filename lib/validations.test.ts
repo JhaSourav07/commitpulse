@@ -850,6 +850,29 @@ describe('streakParamsSchema — theme validation', () => {
       expect(fieldError).toContain('neon');
     }
   });
+
+  it('should reject nonexistent_theme_name and verify allowed themes are listed in error', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      theme: 'nonexistent_theme_name',
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const fieldErrors = result.error.flatten().fieldErrors;
+      expect(fieldErrors.theme).toBeDefined();
+      const errorMessage = fieldErrors.theme?.[0];
+      expect(errorMessage).toContain('Invalid theme');
+      expect(errorMessage).toContain('Supported themes:');
+      expect(errorMessage).toContain('auto');
+      expect(errorMessage).toContain('random');
+      expect(errorMessage).toContain('dark');
+      expect(errorMessage).toContain('light');
+      expect(errorMessage).toContain('neon');
+      expect(errorMessage).toContain('github');
+      expect(errorMessage).toContain('dracula');
+    }
+  });
 });
 
 describe('streakParamsSchema — view fallback behavior', () => {

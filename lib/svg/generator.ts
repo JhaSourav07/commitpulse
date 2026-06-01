@@ -15,7 +15,13 @@ import {
   getGradientCoordinates,
 } from './sanitizer';
 
-import { GRID_ORIGIN_X, GRID_ORIGIN_Y, TILE_HEIGHT_HALF, TILE_WIDTH_HALF } from './layoutConstants';
+import {
+  GRID_ORIGIN_X,
+  GRID_ORIGIN_Y,
+  TILE_HEIGHT_HALF,
+  TILE_WIDTH_HALF,
+} from './layoutConstants';
+
 import { SVG_WIDTH, SVG_HEIGHT, FONT_MAP } from './generatorConstants';
 
 export { FONT_MAP };

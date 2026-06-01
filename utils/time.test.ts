@@ -264,6 +264,25 @@ describe('getSecondsUntilUTCMidnight — sliding window boundary robustness', ()
     vi.useRealTimers();
   });
 
+  it('verifies utility guarantees keys expire exactly at window limit across a sliding range', () => {
+    // Target inputs: Sliding time range approaching midnight in Asia/Kolkata (UTC+5:30)
+    // Local midnight happens at UTC 18:30:00
+    const slidingCases: [string, number][] = [
+      ['2024-06-15T17:30:00.000Z', 3600], // 1 hour before local midnight
+      ['2024-06-15T18:00:00.000Z', 1800], // 30 mins before local midnight
+      ['2024-06-15T18:29:59.000Z', 1], // 1 second before local midnight
+      ['2024-06-15T18:30:00.000Z', 86400], // Exactly local midnight (resets to full day)
+    ];
+
+    for (const [utcTime, expectedTTL] of slidingCases) {
+      vi.setSystemTime(new Date(utcTime));
+      const seconds = getSecondsUntilMidnightInTimezone('Asia/Kolkata');
+
+      // Assert that outputs match guarantees keys expire exactly at window limit
+      expect(seconds).toBe(expectedTTL);
+    }
+  });
+
   it('returns correct TTL across a sliding window of times approaching UTC midnight', () => {
     // Verifies that the utility guarantees keys expire exactly at the window limit.
     // Each entry is [UTC time string, expected seconds until next midnight].
