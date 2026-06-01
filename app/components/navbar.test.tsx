@@ -3,10 +3,14 @@ import { act, render, screen, fireEvent, waitFor } from '@testing-library/react'
 import Navbar from './navbar';
 import type { ReactNode } from 'react';
 
-function createMatchMedia(matches = false) {
+function mockMatchMedia(initialMatches = false) {
+  let matches = initialMatches;
   const listeners: Array<(event: MediaQueryListEvent) => void> = [];
-  const mediaQuery = {
-    matches,
+
+  const mediaQueryList = {
+    get matches() {
+      return matches;
+    },
     media: '(min-width: 768px)',
     onchange: null,
     addListener: vi.fn(),
@@ -21,14 +25,17 @@ function createMatchMedia(matches = false) {
       }
     }),
     dispatchEvent: vi.fn(),
-    triggerChange(newMatches: boolean) {
-      mediaQuery.matches = newMatches;
-      const event = { matches: newMatches, media: mediaQuery.media } as MediaQueryListEvent;
+  } as unknown as MediaQueryList;
+
+  window.matchMedia = vi.fn().mockImplementation(() => mediaQueryList);
+
+  return {
+    setMatches(newMatches: boolean) {
+      matches = newMatches;
+      const event = { matches: newMatches, media: '(min-width: 768px)' } as MediaQueryListEvent;
       listeners.forEach((listener) => listener(event));
     },
-  } as unknown as MediaQueryList & { triggerChange: (matches: boolean) => void };
-
-  return mediaQuery;
+  };
 }
 
 vi.mock('framer-motion', () => ({
@@ -56,7 +63,7 @@ describe('Navbar mobile menu', () => {
       writable: true,
     });
     window.innerWidth = 500;
-    window.matchMedia = vi.fn().mockImplementation(() => createMatchMedia(false));
+    mockMatchMedia(false);
   });
 
   it('menu is hidden by default', () => {
@@ -87,8 +94,7 @@ describe('Navbar mobile menu', () => {
   });
 
   it('closes menu on resize to desktop', async () => {
-    const mediaQuery = createMatchMedia(false);
-    window.matchMedia = vi.fn().mockImplementation(() => mediaQuery);
+    const mediaQuery = mockMatchMedia(false);
 
     render(<Navbar />);
 
@@ -99,7 +105,7 @@ describe('Navbar mobile menu', () => {
     expect(closeButton.getAttribute('aria-expanded')).toBe('true');
 
     act(() => {
-      mediaQuery.triggerChange(true);
+      mediaQuery.setMatches(true);
     });
 
     await waitFor(() => {
@@ -112,8 +118,7 @@ describe('Navbar mobile menu', () => {
 
   describe('responsive breakpoints', () => {
     it('closes the hamburger menu when viewport becomes desktop width', async () => {
-      const mediaQuery = createMatchMedia(false);
-      window.matchMedia = vi.fn().mockImplementation(() => mediaQuery);
+      const mediaQuery = mockMatchMedia(false);
 
       render(<Navbar />);
 
@@ -124,7 +129,7 @@ describe('Navbar mobile menu', () => {
       expect(closeMenuButton.getAttribute('aria-expanded')).toBe('true');
 
       act(() => {
-        mediaQuery.triggerChange(true);
+        mediaQuery.setMatches(true);
       });
 
       await waitFor(() => {
@@ -136,8 +141,7 @@ describe('Navbar mobile menu', () => {
     });
 
     it('keeps the hamburger menu closed when initially mounted on desktop viewport', async () => {
-      const mediaQuery = createMatchMedia(true);
-      window.matchMedia = vi.fn().mockImplementation(() => mediaQuery);
+      const mediaQuery = mockMatchMedia(true);
 
       render(<Navbar />);
 
@@ -187,7 +191,7 @@ describe('Navbar responsive breakpoints', () => {
   });
 
   it('closes the open hamburger menu when crossing into the desktop breakpoint', () => {
-    const matchMedia = mockMatchMedia(false);
+    const mediaQuery = mockMatchMedia(false);
 
     render(<Navbar />);
 
@@ -198,7 +202,7 @@ describe('Navbar responsive breakpoints', () => {
     );
 
     act(() => {
-      matchMedia.setMatches(true);
+      mediaQuery.setMatches(true);
     });
 
     expect(screen.getByRole('button', { name: /open menu/i }).getAttribute('aria-expanded')).toBe(
