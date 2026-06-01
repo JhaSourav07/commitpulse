@@ -209,12 +209,28 @@ export interface BadgeParams {
    */
   shading?: boolean;
 
+  /**
+   * Global opacity scalar applied to all tower face fill-opacity values (0.1–1.0).
+   * Default is 1.0 (fully opaque, current behavior). Values below 0.1 are clamped
+   * to 0.1; values above 1.0 are clamped to 1.0.
+   */
+  opacity?: number;
+
   /** Opt-in to show volumetric gradients on the monolith floor. */
   gradient?: boolean;
+
+  /** Custom gradient color stops as comma-separated hex colors (e.g. 'ff6b35,ff007f,7000ff'). Requires at least 2 valid colors. */
+  gradient_stops?: string;
+
+  /** Custom gradient direction: 'vertical', 'horizontal', or 'diagonal'. Only used when gradient=true. */
+  gradient_dir?: 'vertical' | 'horizontal' | 'diagonal';
 
   disable_particles?: boolean;
   animate?: boolean;
   glow?: boolean;
+
+  /** @internal Temporary property to track custom gradient ID during SVG generation. */
+  __customGradientId?: string;
 }
 
 export interface GraphNode {

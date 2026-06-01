@@ -25,7 +25,19 @@ interface TooltipState {
   y: number;
 }
 
-export default function Heatmap({ data }: { data: ActivityData[] }) {
+interface HeatmapProps {
+  data: ActivityData[];
+  title?: string;
+  subtitle?: string;
+  emptyMessage?: string;
+}
+
+export default function Heatmap({
+  data,
+  title = 'Contribution Heatmap',
+  subtitle = 'Last 365 days',
+  emptyMessage = 'No recent activity to display',
+}: HeatmapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
@@ -83,12 +95,12 @@ export default function Heatmap({ data }: { data: ActivityData[] }) {
       >
         {/* Header */}
         <h3 className="my-1 text-sm font-semibold tracking-tight text-gray-900 dark:text-white">
-          Contribution Heatmap
+          {title}
         </h3>
 
         <div className="mb-4 flex items-end justify-between">
           <div>
-            <p className="mt-0.5 text-xs text-[#A1A1AA]">Last 365 days</p>
+            <p className="mt-0.5 text-xs text-[#A1A1AA]">{subtitle}</p>
           </div>
 
           <div className="flex items-center gap-2 text-xs text-[#A1A1AA]">
@@ -147,7 +159,7 @@ export default function Heatmap({ data }: { data: ActivityData[] }) {
           </div>
         ) : (
           <div className="flex h-[120px] items-center justify-center rounded-lg border border-dashed border-black/10 text-sm text-[#A1A1AA] dark:border-[rgba(255,255,255,0.08)]">
-            No recent activity to display
+            {emptyMessage}
           </div>
         )}
       </motion.div>

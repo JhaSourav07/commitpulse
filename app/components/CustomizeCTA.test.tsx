@@ -141,6 +141,46 @@ describe('CustomizeCTA', () => {
       expect(decorativeIcon).toBeTruthy();
     });
   });
+  describe('responsive rendering', () => {
+    it('uses responsive flex layout classes', () => {
+      const { container } = render(<CustomizeCTA />);
+
+      const layoutContainer = container.querySelector('.flex.flex-col.md\\:flex-row');
+
+      expect(layoutContainer).toBeTruthy();
+    });
+
+    it('uses responsive text alignment classes', () => {
+      const { container } = render(<CustomizeCTA />);
+
+      const contentContainer = container.querySelector('.text-center.md\\:text-left');
+
+      expect(contentContainer).toBeTruthy();
+    });
+
+    it('uses responsive heading sizing classes', () => {
+      render(<CustomizeCTA />);
+
+      const heading = screen.getByRole('heading', {
+        level: 2,
+        name: 'Want to fine-tune your monolith?',
+      });
+
+      expect(heading.className).toContain('text-2xl');
+      expect(heading.className).toContain('md:text-3xl');
+    });
+
+    it('uses responsive button padding classes', () => {
+      render(<CustomizeCTA />);
+
+      const link = screen.getByRole('link');
+
+      const button = link.querySelector('span');
+
+      expect(button?.className).toContain('px-4');
+      expect(button?.className).toContain('md:px-7');
+    });
+  });
 
   describe('responsive breakpoints', () => {
     it('renders all layout structure elements across viewports', () => {

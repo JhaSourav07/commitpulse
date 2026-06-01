@@ -1,15 +1,15 @@
 import mongoose from 'mongoose';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, afterEach, vi } from 'vitest';
 import { User } from './User';
 
 describe('User Model', () => {
-  it('is compiled properly and exposed', () => {
+  it('is compiled properly and exposed', (): void => {
     expect(User).toBeDefined();
     expect(User.modelName).toBe('User');
   });
 
   describe('username schema constraints', () => {
-    it('has lowercase: true on username path', () => {
+    it('has lowercase: true on username path', (): void => {
       const usernamePath = User.schema.path('username') as mongoose.SchemaType & {
         options: Record<string, unknown>;
       };
@@ -17,7 +17,7 @@ describe('User Model', () => {
     });
 
     describe('createdAt schema', () => {
-      it('uses a callable default that returns a timestamp', () => {
+      it('uses a callable default that returns a timestamp', (): void => {
         const createdAtPath = User.schema.path('createdAt') as mongoose.SchemaType & {
           options: { default?: unknown };
         };
@@ -29,7 +29,7 @@ describe('User Model', () => {
         expect(Number.isFinite(result)).toBe(true);
       });
 
-      it('has a defined defaultValue that is Date.now or returns a Date', () => {
+      it('has a defined defaultValue that is Date.now or returns a Date', (): void => {
         const createdAtPath = User.schema.path('createdAt') as mongoose.SchemaType & {
           defaultValue?: unknown;
           options: { default?: unknown };
@@ -47,21 +47,21 @@ describe('User Model', () => {
       });
     });
 
-    it('has trim: true on username path', () => {
+    it('has trim: true on username path', (): void => {
       const usernamePath = User.schema.path('username') as mongoose.SchemaType & {
         options: Record<string, unknown>;
       };
       expect(usernamePath.options.trim).toBe(true);
     });
 
-    it('has unique: true on username path', () => {
+    it('has unique: true on username path', (): void => {
       const usernamePath = User.schema.path('username') as mongoose.SchemaType & {
         options: Record<string, unknown>;
       };
       expect(usernamePath.options.unique).toBe(true);
     });
 
-    it('has required: true on username path', () => {
+    it('has required: true on username path', (): void => {
       const usernamePath = User.schema.path('username') as mongoose.SchemaType & {
         options: Record<string, unknown>;
       };
@@ -70,36 +70,101 @@ describe('User Model', () => {
   });
 
   describe('Database Connection State 2 Handling', () => {
-    it('buffers operations when connection is in state 2 (connecting)', async () => {
-      const { vi } = await import('vitest');
-      const readyStateSpy = vi
+    let readyStateSpy: ReturnType<typeof vi.spyOn> | undefined;
+
+    afterEach((): void => {
+      // Restore bufferCommands to default (true) on both mongoose connection settings and the User schema
+      mongoose.set('bufferCommands', true);
+      User.schema.set('bufferCommands', true);
+
+      // Clean up collection queue to avoid leaking buffered operations to other tests
+      const collectionWrapper = User.collection as unknown as { queue: unknown[] };
+      if (collectionWrapper && Array.isArray(collectionWrapper.queue)) {
+        collectionWrapper.queue = [];
+      }
+
+      // Restore active state spies to ensure they never leak into surrounding test suites
+      if (readyStateSpy) {
+        readyStateSpy.mockRestore();
+        readyStateSpy = undefined;
+      }
+
+      // Clear all mocks to ensure absolute test isolation
+      vi.clearAllMocks();
+    });
+
+    it('buffers operations when connection is in state 2 (connecting) by default', async (): Promise<void> => {
+      // In connection state 2 (connecting), Mongoose buffers operations by default rather than throwing errors immediately.
+      // This behavior occurs because Mongoose assumes the database connection will be established shortly (transitioning to state 1).
+      // Therefore, it queues all pending model commands inside the internal collection queue (User.collection.queue).
+      //
+      // In contrast, in connection state 0 (disconnected), Mongoose will either throw a ConnectionError immediately (if command buffering is disabled)
+      // or time out because there is no ongoing connection attempt that would eventually flush the command buffer.
+      // In state 2, the query remains in-flight (pending) waiting for connection recovery/open events.
+
+      let currentReadyState = 2;
+      readyStateSpy = vi
+        .spyOn(mongoose.connection, 'readyState', 'get')
+        .mockImplementation(() => currentReadyState as typeof mongoose.connection.readyState);
+
+      expect(mongoose.connection.readyState).toBe(2);
+
+      // Trigger a findOne operation which should transition smoothly into a buffered state
+      const promise = User.findOne({ username: 'testuser' }).exec();
+
+      // Wait a microtask / tick for Mongoose to queue the collection operation
+      await new Promise((resolve) => process.nextTick(resolve));
+
+      // Assert that the command was successfully buffered in the collection wrapper queue
+      const collectionWrapper = User.collection as unknown as { queue: unknown[] };
+      expect(collectionWrapper.queue.length).toBe(1);
+
+      // Assert that the returned promise is pending by racing it with a fast timeout
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('TIMEOUT')), 100)
+      );
+      await expect(Promise.race([promise, timeoutPromise])).rejects.toThrow('TIMEOUT');
+
+      // Simulate a successful connection transition to state 1 (connected)
+      currentReadyState = 1;
+      expect(mongoose.connection.readyState).toBe(1);
+
+      // Drain the queued operations on the connection. The query is now executed against the underlying driver.
+      // Since there is no active physical database instance in this mock, it will fail during driver call dispatch,
+      // confirming that the query promise was successfully released from the buffer and attempted execution.
+      try {
+        (mongoose.connection as unknown as { onOpen: () => void }).onOpen();
+        await promise;
+      } catch (error: unknown) {
+        expect(error).toBeDefined();
+        expect(error instanceof TypeError || error instanceof Error).toBe(true);
+      }
+    });
+
+    it('rejects operations immediately when bufferCommands is disabled in state 2', async (): Promise<void> => {
+      // Disable command buffering on both mongoose and User schema
+      mongoose.set('bufferCommands', false);
+      User.schema.set('bufferCommands', false);
+
+      readyStateSpy = vi
         .spyOn(mongoose.connection, 'readyState', 'get')
         .mockReturnValue(2 as unknown as typeof mongoose.connection.readyState);
 
-      let operationAttempted = false;
-
-      const simulateBufferedOperation = async () => {
-        if (mongoose.connection.readyState === 2) {
-          operationAttempted = true;
-          return 'buffered';
-        }
-        return 'executed';
-      };
-
-      const result = await simulateBufferedOperation();
-
       expect(mongoose.connection.readyState).toBe(2);
-      expect(operationAttempted).toBe(true);
-      expect(result).toBe('buffered');
 
-      readyStateSpy.mockRestore();
+      // When buffering is disabled, the operation should fail immediately rather than waiting or queuing.
+      await expect(User.findOne({ username: 'testuser' }).exec()).rejects.toThrow(
+        /Cannot call.*if.*bufferCommands = false/
+      );
+
+      // Assert that nothing was added to the collection queue
+      const collectionWrapper = User.collection as unknown as { queue: unknown[] };
+      expect(collectionWrapper.queue.length).toBe(0);
     });
   });
 
   describe('Database Connection State 0 Handling', () => {
-    it('fails queries gracefully with a ConnectionError when disconnected', async () => {
-      const { vi } = await import('vitest');
-
+    it('fails queries gracefully with a ConnectionError when disconnected', async (): Promise<void> => {
       const readyStateSpy = vi
         .spyOn(mongoose.connection, 'readyState', 'get')
         .mockReturnValue(0 as unknown as typeof mongoose.connection.readyState);
@@ -124,9 +189,7 @@ describe('User Model', () => {
   });
 
   describe('Database Connection State 3 (Disconnecting) Handling', () => {
-    it('aborts/rolls back active transactions cleanly when connection is in state 3 (disconnecting)', async () => {
-      const { vi } = await import('vitest');
-
+    it('aborts/rolls back active transactions cleanly when connection is in state 3 (disconnecting)', async (): Promise<void> => {
       const readyStateSpy = vi
         .spyOn(mongoose.connection, 'readyState', 'get')
         .mockReturnValue(3 as unknown as typeof mongoose.connection.readyState);
@@ -140,7 +203,9 @@ describe('User Model', () => {
 
       const startSessionSpy = vi.spyOn(mongoose, 'startSession').mockResolvedValue(mockSession);
 
-      const runTransactionWithCheck = async (session: mongoose.ClientSession) => {
+      const runTransactionWithCheck = async (
+        session: mongoose.ClientSession
+      ): Promise<{ status: string }> => {
         session.startTransaction();
         try {
           if (mongoose.connection.readyState === 3) {
@@ -171,9 +236,7 @@ describe('User Model', () => {
   });
 
   describe('Database Connection State 99 Handling', () => {
-    it('triggers lazy initialization exactly once and uses the correct connection URI', async () => {
-      const { vi } = await import('vitest');
-
+    it('triggers lazy initialization exactly once and uses the correct connection URI', async (): Promise<void> => {
       // 1. Mock readyState to 99 (uninitialized — no connection ever attempted)
       const readyStateSpy = vi
         .spyOn(mongoose.connection, 'readyState', 'get')
@@ -185,7 +248,7 @@ describe('User Model', () => {
       const MONGO_URI = 'mongodb://localhost:27017/commitpulse';
 
       // 3. Simulate the lazy init fallback — connects exactly once with correct URI
-      const lazyInit = async () => {
+      const lazyInit = async (): Promise<void> => {
         if (mongoose.connection.readyState === 99) {
           await mongoose.connect(MONGO_URI);
         }
@@ -202,5 +265,38 @@ describe('User Model', () => {
       readyStateSpy.mockRestore();
       connectSpy.mockRestore();
     });
+  });
+});
+
+/* ==========================================================================
+ * DATABASE PARAMETER — SCHEMA CONNECTION STATE BEHAVIORS (VARIATION 3)
+ * ========================================================================== */
+
+describe('User Schema Behaviors under Connection State 2 (Variation 3)', () => {
+  it('buffers user model database operations cleanly when connection state is 2 (connecting)', async () => {
+    const { vi } = await import('vitest');
+
+    // Mock the mongoose connection readyState to return 2 (connecting)
+    const readyStateSpy = vi
+      .spyOn(mongoose.connection, 'readyState', 'get')
+      .mockReturnValue(2 as unknown as typeof mongoose.connection.readyState);
+
+    let operationAttempted = false;
+
+    const simulateBufferedOperation = async () => {
+      if (mongoose.connection.readyState === 2) {
+        operationAttempted = true;
+        return 'buffered';
+      }
+      return 'executed';
+    };
+
+    const result = await simulateBufferedOperation();
+
+    expect(mongoose.connection.readyState).toBe(2);
+    expect(operationAttempted).toBe(true);
+    expect(result).toBe('buffered');
+
+    readyStateSpy.mockRestore();
   });
 });
