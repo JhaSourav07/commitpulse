@@ -51,6 +51,7 @@ describe('githubParamsSchema', () => {
     }
   });
 });
+
 describe('streakParamsSchema user validation', () => {
   it('should pass when user is valid', () => {
     const result = streakParamsSchema.safeParse({
@@ -259,6 +260,7 @@ describe('streakParamsSchema', () => {
       expect(result.error.issues[0]?.message).toBe('Invalid GitHub username');
     }
   });
+
   it('should accept delta_format percent', () => {
     const result = streakParamsSchema.safeParse({
       user: 'octocat',
@@ -414,6 +416,7 @@ describe('streakParamsSchema — size fallback behavior', () => {
   it('falls back to "medium" for empty string', () => {
     expect(parse({ size: '' }).size).toBe('medium');
   });
+
   it('should accept org parameter when provided', () => {
     const result = streakParamsSchema.safeParse({
       user: 'octocat',
