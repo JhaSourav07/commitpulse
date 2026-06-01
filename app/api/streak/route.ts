@@ -98,6 +98,7 @@ export async function GET(request: Request) {
       disable_particles,
       glow,
       format,
+      days,
     } = parseResult.data;
 
     const normalizedView = view as 'default' | 'monthly' | 'heatmap' | 'pulse';
@@ -201,6 +202,7 @@ export async function GET(request: Request) {
         .map((u) => u.trim())
         .filter(Boolean);
       let lastError: unknown = null;
+      let hasOfflineFallback = false;
       const fetchedCalendars = await Promise.all(
         users.map(async (u) => {
           try {
@@ -209,6 +211,9 @@ export async function GET(request: Request) {
               from,
               to,
             });
+            if (userData.isOfflineFallback) {
+              hasOfflineFallback = true;
+            }
             return userData.calendar;
           } catch (err) {
             lastError = err;
@@ -223,6 +228,9 @@ export async function GET(request: Request) {
         throw lastError || new Error('No successful calendars fetched');
       }
       calendar = aggregateCalendars(successfulCalendars);
+      if (hasOfflineFallback) {
+        params.isOfflineFallback = true;
+      }
     } else {
       const userData = await fetchGitHubContributions(user, {
         bypassCache: refresh,
@@ -230,16 +238,36 @@ export async function GET(request: Request) {
         to,
       });
       calendar = userData.calendar;
+      if (userData.isOfflineFallback) {
+        params.isOfflineFallback = true;
+      }
+
+      if (versus) {
+        const versusData = await fetchGitHubContributions(versus, {
+          bypassCache: refresh,
+          from,
+          to,
+        });
+        versusCalendar = versusData.calendar;
+        if (versusData.isOfflineFallback) {
+          params.isOfflineFallback = true;
+        }
+      }
     }
 
-    // Fetch versus calendar independently — works with both user and org modes
-    if (versus) {
-      const versusData = await fetchGitHubContributions(versus, {
-        bypassCache: refresh,
-        from,
-        to,
-      });
-      versusCalendar = versusData.calendar;
+    if (days) {
+      const allDays = calendar.weeks.flatMap((w) => w.contributionDays);
+
+      const filteredDays = allDays.slice(-days);
+
+      calendar = {
+        totalContributions: filteredDays.reduce((sum, d) => sum + d.contributionCount, 0),
+        weeks: [
+          {
+            contributionDays: filteredDays,
+          },
+        ],
+      };
     }
 
     // ─── JSON output mode ──────────────────────────────────────────────────

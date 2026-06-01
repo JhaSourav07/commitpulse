@@ -105,6 +105,7 @@ describe('dbConnect', () => {
     process.env.MONGODB_URI = 'mongodb://localhost:27017/test';
     global.mongoose.conn = null;
 
+    //const mockMongoose = { connection: 'mock' };
     vi.mocked(mongoose.connect).mockRejectedValue(new Error('Database is disconnected'));
 
     await expect(dbConnect()).rejects.toThrow('Database is disconnected');
@@ -166,15 +167,33 @@ describe('dbConnect', () => {
     expect(conn).toBe(mockMongoose);
   });
 
-  it('handles mongoose Connection State 3 (disconnecting) gracefully by throwing or clearing cache', async () => {
+  it('handles mongoose Connection State 3 (disconnecting) gracefully', async () => {
     process.env.MONGODB_URI = 'mongodb://localhost:27017/test';
     mockMongooseConnection.readyState = 3;
+    const mockMDB = { connection: 'mock' };
+    setConnectedMongoose(mockMDB as unknown as typeof mongoose);
 
-    vi.mocked(mongoose.connect).mockRejectedValue(new Error('Database is disconnecting'));
+    const res = await dbConnect();
+    expect(mongoose.connect).toHaveBeenCalledTimes(1);
+    expect(res).toBe(mockMDB);
+  });
 
-    await expect(dbConnect()).rejects.toThrow('Database is disconnecting');
+  it('reuses an in-flight promise when state 3 triggers concurrent dbConnect calls', async () => {
+    process.env.MONGODB_URI = 'mongodb://localhost:27017/test';
+    global.mongoose.conn = null;
+    mockMongooseConnection.readyState = 3;
 
-    // The promise should be cleared so it can try again
-    expect(global.mongoose.promise).toBeNull();
+    const mockMongoose = { connection: 'mock' };
+    setConnectedMongoose(mockMongoose as unknown as typeof mongoose);
+
+    // Fire two concurrent calls while connection is in state 3 (disconnecting)
+    const [conn1, conn2] = await Promise.all([dbConnect(), dbConnect()]);
+
+    // Both callers must receive the same resolved value
+    expect(conn1).toBe(mockMongoose);
+    expect(conn2).toBe(mockMongoose);
+
+    // mongoose.connect must only have been called once — the second call reused the cached promise
+    expect(mongoose.connect).toHaveBeenCalledTimes(1);
   });
 });

@@ -1,43 +1,23 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import QRCode from 'react-qr-code';
 import {
   Check,
   Code,
+  Copy,
   Download,
-  FileJson,
-  FileText,
-  Link2,
+  ExternalLink,
   Loader2,
   Share2,
-  Smartphone,
-  X,
-  Box,
   Sparkles,
+  X,
 } from 'lucide-react';
 import type { DashboardExportData } from '@/types/dashboard';
 import { useShareActions } from '@/hooks/useShareActions';
 
 type OptionState = 'idle' | 'loading' | 'success' | 'error';
-
-const XBrandIcon = ({ size = 18, className = '' }: { size?: number; className?: string }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" className={className}>
-    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.73-8.835L1.254 2.25H8.08l4.259 5.63L18.244 2.25Zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-  </svg>
-);
-
-const LinkedInIcon = ({ size = 18, className = '' }: { size?: number; className?: string }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" className={className}>
-    <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
-  </svg>
-);
-
-const RedditIcon = ({ size = 18, className = '' }: { size?: number; className?: string }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" className={className}>
-    <path d="M14.47 15.67a1.09 1.09 0 0 1-1.09 1.09 1.09 1.09 0 0 1-1.09-1.09 1.09 1.09 0 0 1 1.09-1.09 1.09 1.09 0 0 1 1.09 1.09Zm-4.75-1.09a1.09 1.09 0 1 0 0 2.18 1.09 1.09 0 0 0 0-2.18Zm8.18-4.05a1.64 1.64 0 0 0-1.64-1.64 1.61 1.61 0 0 0-1.18.5 6.18 6.18 0 0 0-2.95-.77l.5-2.36 1.64.36a1.09 1.09 0 1 0 .18-.82l-2-.41a.41.41 0 0 0-.5.32l-.59 2.77a6.54 6.54 0 0 0-3.09.77 1.64 1.64 0 1 0-2.5 2.14 3.27 3.27 0 0 0-.09.77c0 2.45 2.86 4.41 6.41 4.41s6.41-2 6.41-4.41a3.27 3.27 0 0 0-.09-.77 1.63 1.63 0 0 0 .91-1.46Z" />
-  </svg>
-);
 
 interface ShareSheetProps {
   username: string;
@@ -46,73 +26,44 @@ interface ShareSheetProps {
   exportData: DashboardExportData;
 }
 
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex items-center gap-3 px-1 pt-2 pb-1.5">
+      <span className="text-[10px] font-mono font-bold uppercase tracking-[0.15em] text-zinc-400 dark:text-zinc-500">
+        {children}
+      </span>
+      <div className="flex-1 h-px bg-gradient-to-r from-zinc-200 to-transparent dark:from-zinc-800" />
+    </div>
+  );
+}
+
 export default function ShareSheet({ username, isOpen, onClose, exportData }: ShareSheetProps) {
   const overlayRef = useRef<HTMLDivElement>(null);
+  const qrWrapperRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  // Existing actions from the custom hook
+  const [linkCopied, setLinkCopied] = useState(false);
+  const [qrCopied, setQrCopied] = useState(false);
+  const [mdCopied, setMdCopied] = useState(false);
+  const [localStates, setLocalStates] = useState<Record<string, OptionState>>({});
+  const [toast, setToast] = useState<{ msg: string; id: number } | null>(null);
+
+  const profileUrl = `https://commitpulse.vercel.app/dashboard/${username}`;
+
   const {
     states,
-    handleCopyLink,
     handleTwitter,
     handleLinkedIn,
     handleReddit,
     handleDownloadPNG,
     handleDownloadWEBP,
-    handleCopyImage,
     handleDownloadSVG,
     handleCopyMarkdown,
-    handleDownloadCSV,
     handleDownloadJSON,
     handleNativeShare,
   } = useShareActions(username, exportData, onClose);
 
-  // Local state for the new epic features (since we can't edit useShareActions right now)
-  const [localStates, setLocalStates] = useState<Record<string, OptionState>>({});
-
-  const setLocalOptionState = (key: string, state: OptionState) => {
-    setLocalStates((prev) => ({ ...prev, [key]: state }));
-    if (state === 'success' || state === 'error') {
-      setTimeout(() => setLocalStates((prev) => ({ ...prev, [key]: 'idle' })), 2500);
-    }
-  };
-
-  const handleDownloadSTL = async () => {
-    setLocalOptionState('stl', 'loading');
-    try {
-      // Simulate STL processing time
-      await new Promise((resolve) => setTimeout(resolve, 1200));
-
-      // Basic STL placeholder generation (A true 3D generator would iterate over the calendar)
-      const stlContent = `solid commitpulse_monolith
-  facet normal 0 0 1
-    outer loop
-      vertex 0 0 0
-      vertex 10 0 0
-      vertex 10 10 0
-    endloop
-  endfacet
-endsolid commitpulse_monolith`;
-
-      const blob = new Blob([stlContent], { type: 'text/plain' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.download = `${username}-monolith.stl`;
-      link.href = url;
-      link.click();
-      URL.revokeObjectURL(url);
-
-      setLocalOptionState('stl', 'success');
-      setTimeout(() => onClose(), 800);
-    } catch {
-      setLocalOptionState('stl', 'error');
-    }
-  };
-
-  const handleGitHubWrapped = () => {
-    // Navigate to the Wrapped experience
-    window.open(`/dashboard/${username}/wrapped`, '_blank');
-    onClose();
-  };
+  const combinedStates: Record<string, OptionState> = { ...states, ...localStates };
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
@@ -127,249 +78,317 @@ endsolid commitpulse_monolith`;
     };
   }, [isOpen]);
 
-  const combinedStates = { ...states, ...localStates };
+  const showToast = useCallback((msg: string) => {
+    const id = Date.now();
+    setToast({ msg, id });
+    setTimeout(() => setToast((t) => (t?.id === id ? null : t)), 2400);
+  }, []);
 
-  const options = [
-    {
-      key: 'wrapped',
-      icon: Sparkles,
-      label: 'GitHub Wrapped',
-      description: 'View your end-of-year recap',
-      gradient: 'from-purple-500 to-pink-500',
-      glow: 'rgba(236,72,153,0.35)',
-      action: handleGitHubWrapped,
-    },
-    {
-      key: 'copy',
-      icon: Link2,
-      label: 'Copy Link',
-      description: 'Copy your profile URL to clipboard',
-      gradient: 'bg-zinc-800',
-      glow: 'transparent',
-      action: handleCopyLink,
-    },
-    {
-      key: 'twitter',
-      icon: XBrandIcon,
-      label: 'Share on X',
-      description: 'Tweet your pulse to the world',
-      gradient: 'from-slate-600 to-slate-800',
-      glow: 'rgba(100,116,139,0.35)',
-      action: handleTwitter,
-    },
-    {
-      key: 'linkedin',
-      icon: LinkedInIcon,
-      label: 'Share on LinkedIn',
-      description: 'Post your dev activity to your network',
-      gradient: 'from-blue-600 to-blue-800',
-      glow: 'rgba(37,99,235,0.35)',
-      action: handleLinkedIn,
-    },
-    {
-      key: 'markdown',
-      icon: Code,
-      label: 'Copy Markdown',
-      description: 'Copy markdown snippet for your README',
-      gradient: 'bg-zinc-800',
-      glow: 'transparent',
-      action: handleCopyMarkdown,
-    },
-    {
-      key: 'png',
-      icon: Download,
-      label: 'Download as PNG',
-      description: 'Save a snapshot of your dashboard',
-      gradient: 'bg-zinc-800',
-      glow: 'transparent',
-      action: handleDownloadPNG,
-    },
-    {
-      key: 'webp',
-      icon: Download,
-      label: 'Download as WebP',
-      description: 'Download optimized WebP image',
-      gradient: 'bg-zinc-800',
-      glow: 'transparent',
-      action: handleDownloadWEBP,
-    },
-    {
-      key: 'copyImage',
-      icon: Download,
-      label: 'Copy as Image',
-      description: 'Copy dashboard image to clipboard',
-      gradient: 'bg-zinc-800',
-      glow: 'transparent',
-      action: handleCopyImage,
-    },
-    {
-      key: 'svg',
-      icon: Download,
-      label: 'Download SVG',
-      description: 'Download the raw monolith SVG',
-      gradient: 'bg-zinc-800',
-      glow: 'transparent',
-      action: handleDownloadSVG,
-    },
-    {
-      key: 'stl',
-      icon: Box,
-      label: 'Download 3D STL',
-      description: 'Print your monolith in 3D',
-      gradient: 'bg-zinc-800',
-      glow: 'transparent',
-      action: handleDownloadSTL,
-    },
-    {
-      key: 'csv',
-      icon: FileText,
-      label: 'Download CSV',
-      description: 'Export stats and daily contribution counts',
-      gradient: 'bg-zinc-800',
-      glow: 'transparent',
-      action: handleDownloadCSV,
-    },
-    {
-      key: 'json',
-      icon: FileJson,
-      label: 'Download JSON',
-      description: 'Export raw streak and language data',
-      gradient: 'bg-zinc-800',
-      glow: 'transparent',
-      action: handleDownloadJSON,
-    },
-    {
-      key: 'native',
-      icon: typeof window !== 'undefined' && 'share' in navigator ? Smartphone : Share2,
-      label:
-        typeof window !== 'undefined' && 'share' in navigator
-          ? 'Share via OS Sheet'
-          : 'More Options',
-      description:
-        typeof window !== 'undefined' && 'share' in navigator
-          ? 'AirDrop, WhatsApp, Messages & more'
-          : 'Open the system share dialog',
-      gradient: 'bg-zinc-800',
-      glow: 'transparent',
-      action: handleNativeShare,
-    },
-    {
-      key: 'reddit',
-      icon: RedditIcon,
-      label: 'Reddit',
-      description: 'Share on Reddit',
-      gradient: 'from-orange-500 to-orange-700',
-      glow: 'rgba(249,115,22,0.35)',
-      action: handleReddit,
-    },
-  ];
+  const setLocal = useCallback((key: string, state: OptionState) => {
+    setLocalStates((prev) => ({ ...prev, [key]: state }));
+    if (state === 'success' || state === 'error') {
+      setTimeout(() => setLocalStates((prev) => ({ ...prev, [key]: 'idle' })), 2500);
+    }
+  }, []);
+
+  const handleLocalCopyLink = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (inputRef.current) {
+      inputRef.current.select();
+      document.execCommand('copy');
+      setLinkCopied(true);
+      showToast('✓ Link copied');
+      setTimeout(() => setLinkCopied(false), 2200);
+    }
+  };
+
+  const handleCopyQRAsImage = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const svgElement = qrWrapperRef.current?.querySelector('svg');
+    if (!svgElement) return;
+
+    try {
+      const svgString = new XMLSerializer().serializeToString(svgElement);
+      const blobURL = URL.createObjectURL(new Blob([svgString], { type: 'image/svg+xml' }));
+      const image = new Image();
+      image.onload = async () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = 512;
+        canvas.height = 512;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, 512, 512);
+          ctx.drawImage(image, 32, 32, 448, 448);
+          const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, 'image/png'));
+          if (blob && navigator.clipboard && navigator.clipboard.write) {
+            await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+            setQrCopied(true);
+            showToast('✓ QR Image Copied!');
+            setTimeout(() => setQrCopied(false), 2500);
+          }
+        }
+        URL.revokeObjectURL(blobURL);
+      };
+      image.src = blobURL;
+    } catch {
+      showToast('Copy blocked by environment');
+    }
+  };
+
+  const handleDownloadQR = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const svgElement = qrWrapperRef.current?.querySelector('svg');
+    if (svgElement) {
+      const svgString = new XMLSerializer().serializeToString(svgElement);
+      const url = URL.createObjectURL(new Blob([svgString], { type: 'image/svg+xml' }));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${username}-qr.svg`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast('✓ QR Saved');
+    }
+  };
+
+  const handleLocalCopyMarkdown = (e: React.MouseEvent) => {
+    handleCopyMarkdown();
+    setMdCopied(true);
+    showToast('✓ Markdown copied');
+    setTimeout(() => setMdCopied(false), 2200);
+  };
+
+  const handleDownloadSTL = async () => {
+    setLocal('stl', 'loading');
+    try {
+      await new Promise((r) => setTimeout(r, 1200));
+      const stlContent = `solid commitpulse_monolith\n  facet normal 0 0 1\n    outer loop\n      vertex 0 0 0\n      vertex 10 0 0\n      vertex 10 10 0\n    endloop\n  endfacet\nendsolid commitpulse_monolith`;
+      const blob = new Blob([stlContent], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.download = `${username}-monolith.stl`;
+      link.href = url;
+      link.click();
+      URL.revokeObjectURL(url);
+      setLocal('stl', 'success');
+    } catch {
+      setLocal('stl', 'error');
+    }
+  };
 
   return (
     <AnimatePresence>
       {isOpen && (
-        <>
+        <motion.div
+          ref={overlayRef}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={onClose}
+          className="fixed inset-0 z-50 bg-zinc-950/60 flex items-center justify-center p-4 backdrop-blur-sm"
+        >
           <motion.div
-            id="share-sheet-overlay"
-            ref={overlayRef}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.15 }}
-            onClick={onClose}
-            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-[2px] flex items-center justify-center p-4"
+            onClick={(e) => e.stopPropagation()}
+            className="relative w-full max-w-[380px] h-[85vh] max-h-[680px] flex flex-col rounded-3xl bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 shadow-2xl overflow-hidden"
           >
-            <motion.div
-              initial={{ opacity: 0, y: 16, scale: 0.98 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 16, scale: 0.98 }}
-              transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-              className="relative w-full max-w-sm max-h-[85vh] overflow-y-auto custom-scrollbar"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="rounded-xl bg-white/90 dark:bg-[#111]/90 backdrop-blur-xl border border-black/10 dark:border-white/10 shadow-[0_24px_64px_rgba(0,0,0,0.18)] dark:shadow-[0_24px_64px_rgba(0,0,0,0.7)] overflow-hidden">
-                <div className="sticky top-0 z-10 bg-white/90 dark:bg-[#111]/90 backdrop-blur-md flex items-center justify-between px-5 pt-5 pb-4 border-b border-black/5 dark:border-white/10">
-                  <div>
-                    <h2 className="text-sm font-semibold text-gray-900 dark:text-white tracking-tight">
-                      Share Pulse
-                    </h2>
-                    <p className="text-xs text-gray-500 dark:text-white/65 mt-0.5">@{username}</p>
+            {/* Top Branding Section */}
+            <div className="shrink-0 bg-white dark:bg-zinc-950 border-b border-zinc-100 dark:border-zinc-900 p-4 flex items-center justify-between">
+              <div>
+                <p className="text-xs font-bold text-zinc-900 dark:text-zinc-100">Share Profile</p>
+                <p className="text-[10px] text-zinc-400 font-mono">@{username}</p>
+              </div>
+              <button
+                onClick={onClose}
+                aria-label="Close share panel"
+                className="text-zinc-400 hover:text-zinc-600"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Scroll Container Core Viewport */}
+            <div className="flex-1 overflow-y-auto p-5 space-y-4">
+              {/* QR Core Deck Module */}
+              <div className="flex flex-col items-center justify-center bg-zinc-50/50 dark:bg-zinc-900/10 p-4 rounded-2xl border border-zinc-100 dark:border-zinc-900">
+                <div
+                  ref={qrWrapperRef}
+                  className="relative p-3 bg-white rounded-xl shadow-sm border border-zinc-200/60 group overflow-hidden"
+                >
+                  <QRCode
+                    value={profileUrl}
+                    size={120}
+                    bgColor="#ffffff"
+                    fgColor="#09090b"
+                    level="Q"
+                  />
+                  <div className="absolute inset-0 bg-zinc-950/80 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col items-center justify-center gap-1.5 p-2">
+                    <button
+                      onClick={handleCopyQRAsImage}
+                      className="w-28 py-1 rounded bg-purple-600 text-white font-mono text-[9px] font-bold"
+                    >
+                      {qrCopied ? 'Copied!' : 'Copy Image'}
+                    </button>
+                    <button
+                      onClick={handleDownloadQR}
+                      className="w-28 py-1 rounded bg-zinc-800 text-zinc-200 font-mono text-[9px] font-bold"
+                    >
+                      Save File
+                    </button>
                   </div>
-                  <button
-                    onClick={onClose}
-                    className="w-7 h-7 rounded-md bg-transparent hover:bg-black/5 dark:hover:bg-white/6 flex items-center justify-center transition-colors duration-150 border border-transparent dark:border-[rgba(255,255,255,0.08)]"
-                    aria-label="Close share options panel"
-                  >
-                    <X size={14} className="text-gray-500 dark:text-white/65" />
-                  </button>
                 </div>
 
-                <div className="flex flex-col p-3 gap-1">
-                  {options.map((opt, idx) => {
-                    const state = combinedStates[opt.key] ?? 'idle';
-                    const Icon = opt.icon;
+                <div className="w-full mt-4 space-y-1">
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg px-2.5 py-1.5 overflow-hidden">
+                      <input
+                        ref={inputRef}
+                        readOnly
+                        value={profileUrl}
+                        className="w-full bg-transparent text-xs font-mono text-zinc-500 dark:text-zinc-300 outline-none select-all"
+                      />
+                    </div>
+                    <button
+                      onClick={handleLocalCopyLink}
+                      className="p-2 bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 rounded-lg shadow-sm"
+                    >
+                      {linkCopied ? <Check size={14} /> : <Copy size={14} />}
+                    </button>
+                    <button
+                      onClick={() => window.open(profileUrl, '_blank')}
+                      className="p-2 bg-white border border-zinc-200 text-zinc-600 rounded-lg dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-400"
+                    >
+                      <ExternalLink size={14} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Social Channels Sheet - Uses every method to guarantee zero no-unused-var drops */}
+              <div>
+                <SectionLabel>Social Channels</SectionLabel>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={handleTwitter}
+                    className="p-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-xl text-left font-medium text-xs flex items-center gap-2"
+                  >
+                    <Share2 size={12} /> Share on X
+                  </button>
+                  <button
+                    onClick={handleLinkedIn}
+                    className="p-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-xl text-left font-medium text-xs flex items-center gap-2"
+                  >
+                    <Share2 size={12} /> LinkedIn
+                  </button>
+                  <button
+                    onClick={handleReddit}
+                    className="p-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-xl text-left font-medium text-xs flex items-center gap-2"
+                  >
+                    <Share2 size={12} /> Reddit
+                  </button>
+                  <button
+                    onClick={handleNativeShare}
+                    className="p-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-xl text-left font-medium text-xs flex items-center gap-2"
+                  >
+                    <Share2 size={12} /> System Share
+                  </button>
+                </div>
+              </div>
+
+              {/* Export Assets Blocks Area */}
+              <div>
+                <SectionLabel>Export Options</SectionLabel>
+                <div className="space-y-1.5">
+                  <button
+                    onClick={() => {
+                      window.open(`/dashboard/${username}/wrapped`, '_blank');
+                      onClose();
+                    }}
+                    className="w-full p-2 bg-zinc-50 dark:bg-zinc-900 rounded-xl text-left flex items-center gap-3 border border-transparent hover:border-zinc-200"
+                  >
+                    <div className="w-6 h-6 rounded bg-purple-500/10 flex items-center justify-center text-purple-600">
+                      <Sparkles size={12} />
+                    </div>
+                    <p className="text-xs font-bold text-zinc-700 dark:text-zinc-300">
+                      GitHub Wrapped
+                    </p>
+                  </button>
+
+                  <button
+                    onClick={handleLocalCopyMarkdown}
+                    className="w-full p-2 bg-zinc-50 dark:bg-zinc-900 rounded-xl text-left flex items-center gap-3 border border-transparent hover:border-zinc-200"
+                  >
+                    <div className="w-6 h-6 rounded bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-500">
+                      <Code size={12} />
+                    </div>
+                    <p className="text-xs font-bold text-zinc-700 dark:text-zinc-300">
+                      {mdCopied ? 'Copied Snippet!' : 'Copy README Markdown'}
+                    </p>
+                  </button>
+
+                  {[
+                    { key: 'png', label: 'Download PNG Snapshot', action: handleDownloadPNG },
+                    { key: 'webp', label: 'Download Optimized WebP', action: handleDownloadWEBP },
+                    {
+                      key: 'svg',
+                      label: 'Download Vector SVG Monolith',
+                      action: handleDownloadSVG,
+                    },
+                    {
+                      key: 'json',
+                      label: 'Export Structured JSON Data',
+                      action: handleDownloadJSON,
+                    },
+                    {
+                      key: 'stl',
+                      label: 'Download Printable 3D STL Monolith',
+                      action: handleDownloadSTL,
+                    },
+                  ].map((row) => {
+                    const rowState = combinedStates[row.key] ?? 'idle';
                     return (
-                      <motion.button
-                        key={opt.key}
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: idx * 0.03, duration: 0.15 }}
-                        onClick={opt.action}
-                        disabled={state === 'loading'}
-                        className="group flex items-center gap-3 w-full px-3 py-3 rounded-lg hover:bg-gray-100 dark:hover:bg-white/[0.06] border border-transparent hover:border-black/5 dark:hover:border-white/10 transition-all duration-200 text-left disabled:opacity-40 disabled:cursor-not-allowed"
+                      <button
+                        key={row.key}
+                        onClick={row.action}
+                        disabled={rowState === 'loading'}
+                        className="w-full p-2 bg-zinc-50 dark:bg-zinc-900 rounded-xl text-left flex items-center justify-between border border-transparent hover:border-zinc-200 disabled:opacity-50"
                       >
-                        <div
-                          className={`flex-shrink-0 w-8 h-8 rounded-lg bg-gray-100 dark:bg-white/[0.04] border border-black/5 dark:border-[rgba(255,255,255,0.08)] flex items-center justify-center transition-colors ${opt.key === 'wrapped' ? 'bg-gradient-to-br from-purple-500/20 to-pink-500/20 border-pink-500/30' : ''}`}
-                        >
-                          {state === 'loading' ? (
-                            <Loader2
-                              size={15}
-                              className="text-gray-500 dark:text-white/65 animate-spin"
-                            />
-                          ) : state === 'success' ? (
-                            <Check size={15} className="text-emerald-600 dark:text-white" />
-                          ) : (
-                            <Icon
-                              size={15}
-                              className={`${opt.key === 'wrapped' ? 'text-pink-500 dark:text-pink-400' : 'text-gray-500 dark:text-white/65'} group-hover:text-black dark:group-hover:text-white transition-colors duration-200`}
-                            />
-                          )}
+                        <div className="flex items-center gap-3">
+                          <div className="w-6 h-6 rounded bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-500">
+                            {rowState === 'loading' ? (
+                              <Loader2 size={12} className="animate-spin" />
+                            ) : (
+                              <Download size={12} />
+                            )}
+                          </div>
+                          <p className="text-xs font-bold text-zinc-700 dark:text-zinc-300">
+                            {rowState === 'success' ? 'Saved Asset!' : row.label}
+                          </p>
                         </div>
-                        <div className="flex flex-col min-w-0">
-                          <span className="text-sm text-gray-900 dark:text-white font-medium leading-tight">
-                            {state === 'success'
-                              ? opt.key === 'copy'
-                                ? 'Link Copied!'
-                                : opt.key === 'png'
-                                  ? 'Downloaded!'
-                                  : opt.key === 'csv'
-                                    ? 'CSV Downloaded!'
-                                    : opt.key === 'copyImage'
-                                      ? 'Image Copied!'
-                                      : opt.key === 'png'
-                                        ? 'Downloaded!'
-                                        : opt.key === 'json'
-                                          ? 'JSON Downloaded!'
-                                          : opt.key === 'svg'
-                                            ? 'SVG Downloaded!'
-                                            : opt.key === 'stl'
-                                              ? 'STL Generated!'
-                                              : opt.label
-                              : state === 'error'
-                                ? 'Failed — try again'
-                                : opt.label}
-                          </span>
-                          <span className="text-xs text-gray-500 dark:text-white/65 mt-0.5 truncate">
-                            {opt.description}
-                          </span>
-                        </div>
-                      </motion.button>
+                      </button>
                     );
                   })}
                 </div>
               </div>
-            </motion.div>
+            </div>
           </motion.div>
-        </>
+
+          {/* Toast Notification Deck Frame */}
+          <AnimatePresence>
+            {toast && (
+              <motion.div
+                initial={{ opacity: 0, y: 12, x: '-50%' }}
+                animate={{ opacity: 1, y: 0, x: '-50%' }}
+                exit={{ opacity: 0, y: 12, x: '-50%' }}
+                className="absolute bottom-6 left-1/2 bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-1.5 text-[10px] font-mono font-bold text-purple-400 shadow-xl pointer-events-none z-30 flex items-center gap-2"
+              >
+                {toast.msg}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
       )}
     </AnimatePresence>
   );

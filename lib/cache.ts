@@ -371,6 +371,67 @@ export class DistributedCache<T> {
     this.localCache.clear();
   }
 
+  /**
+   * Atomically increments a numeric counter stored under `key` and returns the new value.
+   *
+   * When Redis is available, uses EVAL + Lua script for true atomicity.
+   * Falls back to the local TTLCache for non-Redis deployments (dev/test).
+   *
+   * @param key - Cache key holding a numeric counter.
+   * @param ttlMs - Time-to-live in milliseconds. Only applied when the key is first created (count == 1).
+   * @returns The incremented counter value.
+   */
+  async incr(key: string, ttlMs: number): Promise<number> {
+    if (!this.useRedis) {
+      const current = (this.localCache.get(key) as unknown as number) || 0;
+      const next = current + 1;
+      if (current === 0) {
+        this.localCache.set(key, next as unknown as T, ttlMs);
+      } else {
+        this.localCache.update(key, next as unknown as T);
+      }
+      return next;
+    }
+
+    try {
+      const ttlSec = Math.max(1, Math.ceil(ttlMs / 1000));
+      const luaScript = `local c = redis.call('INCR', KEYS[1])
+if c == 1 then
+  redis.call('EXPIRE', KEYS[1], ARGV[1])
+end
+return c`;
+
+      const res = await fetch(`${this.redisUrl}/`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${this.redisToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(['EVAL', luaScript, '1', key, ttlSec.toString()]),
+      });
+
+      if (!res.ok) {
+        throw new Error(`Redis HTTP error: ${res.status}`);
+      }
+
+      const data = await res.json();
+      const count = Number(data.result);
+
+      this.localCache.set(key, count as unknown as T, ttlMs);
+      return count;
+    } catch (err) {
+      console.error(`[DistributedCache] INCR failed for key "${key}":`, err);
+      const current = (this.localCache.get(key) as unknown as number) || 0;
+      const next = current + 1;
+      if (current === 0) {
+        this.localCache.set(key, next as unknown as T, ttlMs);
+      } else {
+        this.localCache.update(key, next as unknown as T);
+      }
+      return next;
+    }
+  }
+
   destroy(): void {
     this.localCache.destroy();
   }

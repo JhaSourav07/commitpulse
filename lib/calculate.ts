@@ -261,10 +261,10 @@ export function calculateWrappedStats(calendar: ContributionCalendar) {
   });
 
   // Find busiest month string
-  const busiestMonthStr = Object.keys(monthCounts).reduce(
-    (a, b) => (monthCounts[a] > monthCounts[b] ? a : b),
-    ''
-  );
+  const busiestMonthStr =
+    Object.keys(monthCounts).length === 0
+      ? 'N/A'
+      : Object.keys(monthCounts).reduce((a, b) => (monthCounts[a] > monthCounts[b] ? a : b));
 
   return {
     totalContributions: calendar.totalContributions,

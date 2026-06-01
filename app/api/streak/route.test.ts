@@ -116,6 +116,32 @@ describe('GET /api/streak', () => {
       expect(body.details.fieldErrors.grace[0]).toBe('grace must be an integer between 0 and 7');
     });
 
+    it('returns 400 when days=0 is provided', async () => {
+      const response = await GET(
+        makeRequest({
+          user: 'octocat',
+          days: '0',
+        })
+      );
+
+      expect(response.status).toBe(400);
+
+      const body = await response.json();
+
+      expect(body.error).toBe('Invalid parameters');
+    });
+
+    it('returns 400 when days is negative', async () => {
+      const response = await GET(
+        makeRequest({
+          user: 'octocat',
+          days: '-5',
+        })
+      );
+
+      expect(response.status).toBe(400);
+    });
+
     it('returns 400 Bad Request when ?layout= is set to an unsupported format', async () => {
       const response = await GET(
         makeRequest({
