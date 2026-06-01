@@ -1352,6 +1352,20 @@ describe('calculateStreak — empty and sparse year edge cases', () => {
     expect(result.todayDate).toBeDefined();
   });
 
+  it('returns all zeros for an entire year (52 weeks × 7 days) of empty contributions (Variation 5)', () => {
+    // 52 weeks × 7 days = 364 days, every day has 0 commits.
+    const emptyYearCounts = Array(364).fill(0);
+    const calendar = buildCalendar(emptyYearCounts);
+
+    const fixedNow = new Date('2024-01-15T12:00:00Z');
+    const result = calculateStreak(calendar, 'UTC', fixedNow);
+
+    expect(result.currentStreak).toBe(0);
+    expect(result.longestStreak).toBe(0);
+    expect(result.totalContributions).toBe(0);
+    expect(result.todayDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+
   it('is deterministic: same empty calendar always returns identical output', () => {
     const calendar = buildCalendar([]);
     const fixedNow = new Date('2024-01-15T12:00:00Z');

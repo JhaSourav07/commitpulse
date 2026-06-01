@@ -238,8 +238,8 @@ describe('getSecondsUntilMidnightInTimezone', () => {
   it('should handle extreme timezone offsets without calendar date shifting', () => {
     // Arrange: Test the most extreme offsets to ensure no calendar date shifting occurs
     const extremeOffsets = [
-      { tz: 'Etc/GMT+12', offset: -12, utcHour: 12, expectedLocalHour: 0 }, // UTC-12
-      { tz: 'Etc/GMT-14', offset: 14, utcHour: 10, expectedLocalHour: 0 }, // UTC+14
+      { tz: 'Etc/GMT+12', utcHour: 12 }, // UTC-12
+      { tz: 'Etc/GMT-14', utcHour: 10 }, // UTC+14
     ];
 
     for (const { tz, utcHour } of extremeOffsets) {

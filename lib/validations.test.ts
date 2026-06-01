@@ -450,6 +450,19 @@ describe('streakParamsSchema', () => {
       expect(result.data.delta_format).toBe('percent');
     }
   });
+
+  it('rejects invalid IANA timezone names', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      tz: 'Mars/Cyonia',
+    });
+
+    expect(result.success).toBe(false);
+
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toBe('Invalid timezone');
+    }
+  });
 });
 
 it('should succeed when username contains hyphens', () => {

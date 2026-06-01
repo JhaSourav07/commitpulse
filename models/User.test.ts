@@ -270,6 +270,20 @@ describe('User Model', () => {
       connectSpy.mockRestore();
     });
   });
+
+  describe('Database Connection State 1 Handling', () => {
+    it('keeps the User model usable while mongoose is connected', async (): Promise<void> => {
+      const readyStateSpy = vi
+        .spyOn(mongoose.connection, 'readyState', 'get')
+        .mockReturnValue(1 as unknown as typeof mongoose.connection.readyState);
+
+      expect(mongoose.connection.readyState).toBe(1);
+      expect(User).toBeDefined();
+      expect(User.modelName).toBe('User');
+
+      readyStateSpy.mockRestore();
+    });
+  });
 });
 
 /* ==========================================================================
