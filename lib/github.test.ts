@@ -78,7 +78,6 @@ describe('fetchGitHubContributions', () => {
     expect(url).toBe('https://api.github.com/graphql');
     expect(options?.method).toBe('POST');
 
-    // Make sure the username is wired into the GraphQL variables, not hardcoded.
     const body = JSON.parse(options?.body as string);
     expect(body.variables).toEqual({ login: 'octocat' });
     expect(body.query).toContain('contributionCalendar');
@@ -109,7 +108,6 @@ describe('fetchGitHubContributions', () => {
   });
 
   it('throws with the status code when the server returns 401 (expired or missing token)', async () => {
-    // A 401 is the most common real-world failure — bad or missing GITHUB_PAT.
     vi.mocked(fetch).mockResolvedValue(mockResponse({ message: 'Unauthorized' }, 401));
 
     await expect(fetchGitHubContributions('octocat')).rejects.toThrow(
@@ -131,7 +129,6 @@ describe('fetchGitHubContributions', () => {
       })
     );
 
-    // Only the first error surfaces — the source always reads errors[0].
     await expect(fetchGitHubContributions('octocat')).rejects.toThrow('Bad credentials');
   });
 
@@ -141,6 +138,41 @@ describe('fetchGitHubContributions', () => {
     await expect(fetchGitHubContributions('ghost-user-xyz')).rejects.toThrow(
       'GitHub user "ghost-user-xyz" not found'
     );
+  });
+
+  // NEW TEST — GITHUB_TOKEN fallback header assertion
+  it('uses GITHUB_TOKEN value in Authorization header when GITHUB_PAT is not set', async () => {
+    const originalPat = process.env.GITHUB_PAT;
+    const originalToken = process.env.GITHUB_TOKEN;
+
+    delete process.env.GITHUB_PAT;
+    process.env.GITHUB_TOKEN = 'my-actions-token';
+
+    vi.mocked(fetch).mockResolvedValue(
+      mockResponse({
+        data: {
+          user: {
+            contributionsCollection: {
+              contributionCalendar: mockCalendar,
+            },
+          },
+        },
+      })
+    );
+
+    await fetchGitHubContributions('octocat');
+
+    const [, options] = vi.mocked(fetch).mock.calls[0];
+    expect(options?.headers).toMatchObject({
+      Authorization: 'bearer my-actions-token',
+    });
+
+    // Restore env
+    if (originalPat === undefined) delete process.env.GITHUB_PAT;
+    else process.env.GITHUB_PAT = originalPat;
+
+    if (originalToken === undefined) delete process.env.GITHUB_TOKEN;
+    else process.env.GITHUB_TOKEN = originalToken;
   });
 });
 
@@ -209,7 +241,6 @@ describe('getFullDashboardData', () => {
           location: 'Earth',
         });
       }
-      // GraphQL
       return mockResponse({
         data: {
           user: { contributionsCollection: { contributionCalendar: mockCalendar } },
