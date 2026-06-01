@@ -246,7 +246,7 @@ function PodiumItem({ contributor, height, variant, delay, isFirst }: PodiumItem
         >
           {contributor.login}
         </div>
-        <div className="text-zinc-500 dark:text-gray-400 text-xs sm:text-sm font-medium mt-1 flex items-center gap-1">
+        <div className="text-zinc-500 dark:text-white/65 text-xs sm:text-sm font-medium mt-1 flex items-center gap-1">
           {contributor.contributions} <span className="hidden sm:inline">contributions</span>
         </div>
       </div>

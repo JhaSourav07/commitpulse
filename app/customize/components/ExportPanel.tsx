@@ -134,7 +134,7 @@ export function ExportPanel({
           <p className="text-xs font-bold uppercase tracking-[0.22em] text-emerald-600 dark:text-emerald-400">
             {formatLabel} Export Snippet
           </p>
-          <p className="mt-1 text-[11px] text-gray-500 dark:text-white/25">
+          <p className="mt-1 text-[11px] text-gray-500 dark:text-white/60">
             Switch formats without changing the live badge configuration.
           </p>
         </div>
@@ -153,7 +153,7 @@ export function ExportPanel({
                 className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
                   format === option.value
                     ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 shadow-[0_0_24px_rgba(16,185,129,0.16)]'
-                    : 'text-gray-600 hover:text-black bg-gray-100/70 dark:bg-transparent dark:text-white/35 dark:hover:text-white'
+                    : 'text-gray-600 hover:text-black bg-gray-100/70 dark:bg-transparent dark:text-white/60 dark:hover:text-white'
                 }`}
               >
                 {option.label}
@@ -165,14 +165,16 @@ export function ExportPanel({
           <button
             type="button"
             onClick={handleDownloadBadge}
-            disabled={!hasUsername || isDownloading}
+            disabled={!hasUsername || isDownloading || format === 'action'}
             aria-label={
-              hasUsername
-                ? 'Download custom monolith layout as an image'
-                : 'Add a GitHub username to enable image downloads'
+              !hasUsername
+                ? 'Add a GitHub username to enable image downloads'
+                : format === 'action'
+                  ? 'Download is not available in GitHub Action mode'
+                  : `Download badge as commitpulse-${username}.svg`
             }
             className={`relative inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 ${
-              !hasUsername || isDownloading
+              !hasUsername || isDownloading || format === 'action'
                 ? 'bg-gray-200/90 border border-black/10 text-gray-500 cursor-not-allowed dark:bg-white/10 dark:border-white/10 dark:text-white/35'
                 : 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-500 hover:bg-emerald-500/20 hover:scale-[1.03] active:scale-[0.97]'
             }`}
@@ -198,7 +200,11 @@ export function ExportPanel({
                 </>
               )}
             </svg>
-            {isDownloading ? 'Downloading...' : 'Download Badge'}
+            {format === 'action'
+              ? 'Download Not Available'
+              : isDownloading
+                ? 'Downloading...'
+                : 'Download Badge'}
           </button>
 
           {/* Clipboard Copy Button */}
@@ -210,7 +216,7 @@ export function ExportPanel({
             aria-describedby="export-copy-status"
             className={`relative inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 ${
               !hasUsername
-                ? 'bg-gray-200/90 border border-black/10 text-gray-500 cursor-not-allowed dark:bg-white/10 dark:border-white/10 dark:text-white/35'
+                ? 'bg-gray-200/90 border border-black/10 text-gray-500 cursor-not-allowed dark:bg-white/10 dark:border-white/10 dark:text-white/60'
                 : copied
                   ? 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-700 dark:text-emerald-400'
                   : 'bg-gray-200/90 border border-black/10 text-gray-800 hover:bg-gray-300/80 hover:scale-[1.03] active:scale-[0.97] dark:bg-white dark:text-black'
@@ -272,19 +278,19 @@ export function ExportPanel({
         </code>
       </div>
 
-      <div className="mt-4 text-[11px] text-gray-500 dark:text-white/20 leading-relaxed space-y-3">
+      <div className="mt-4 text-[11px] text-gray-500 dark:text-white/60 leading-relaxed space-y-3">
         {format === 'action' ? (
           <>
             <p>
               <strong>Step 1:</strong> Save the workflow snippet above as{' '}
-              <code className="text-gray-700 dark:text-white/35">
+              <code className="text-gray-700 dark:text-white/75">
                 .github/workflows/commitpulse.yml
               </code>{' '}
               to automatically fetch and commit your customized badge.
             </p>
             <p>
               <strong>Step 2:</strong> Embed the generated SVG into your{' '}
-              <code className="text-gray-700 dark:text-white/35">README.md</code> using the markdown
+              <code className="text-gray-700 dark:text-white/75">README.md</code> using the markdown
               below:
             </p>
             <div className="mt-2 bg-gray-100/80 dark:bg-white/[0.03] border border-black/10 dark:border-white/10 rounded-lg px-3 py-2 flex items-center justify-between group">
@@ -319,7 +325,7 @@ export function ExportPanel({
         ) : (
           <p>
             Paste this into your GitHub profile&apos;s{' '}
-            <code className="text-gray-700 dark:text-white/35">README.md</code>. The badge renders
+            <code className="text-gray-700 dark:text-white/75">README.md</code>. The badge renders
             server-side, no script required.
           </p>
         )}

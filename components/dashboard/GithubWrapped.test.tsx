@@ -1,8 +1,13 @@
 import { render, screen } from '@testing-library/react';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import '@testing-library/jest-dom';
 
 import GithubWrapped from './GithubWrapped';
+vi.mock('framer-motion', () => ({
+  motion: {
+    div: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  },
+}));
 
 import type { WrappedStats, UserProfile } from '@/types/dashboard';
 
@@ -34,22 +39,57 @@ const mockWrappedData: WrappedStats = {
   weekendRatio: 30,
 };
 
-describe('GithubWrapped Footer', () => {
-  it('renders Developer Score label', () => {
+describe('GithubWrapped', () => {
+  it('renders user name', () => {
     render(<GithubWrapped profile={mockProfile} wrappedData={mockWrappedData} />);
 
-    expect(screen.getByText(/Developer Score:/i)).toBeInTheDocument();
+    expect(screen.getByText('Test User')).toBeInTheDocument();
   });
 
-  it('renders the numeric developer score value', () => {
+  it('renders total contributions', () => {
     render(<GithubWrapped profile={mockProfile} wrappedData={mockWrappedData} />);
 
-    expect(screen.getByText(/92\/100/i)).toBeInTheDocument();
+    expect(screen.getByText('1,200')).toBeInTheDocument();
   });
 
-  it('renders COMMITPULSE branding text', () => {
+  it('renders top language', () => {
     render(<GithubWrapped profile={mockProfile} wrappedData={mockWrappedData} />);
 
-    expect(screen.getByText('COMMITPULSE')).toBeInTheDocument();
+    expect(screen.getByText('TypeScript')).toBeInTheDocument();
+  });
+
+  it('renders highest daily count', () => {
+    render(<GithubWrapped profile={mockProfile} wrappedData={mockWrappedData} />);
+
+    expect(screen.getByText('25 Commits')).toBeInTheDocument();
+  });
+
+  it('renders busiest month formatted correctly', () => {
+    render(<GithubWrapped profile={mockProfile} wrappedData={mockWrappedData} />);
+
+    expect(screen.getByText('April 2026')).toBeInTheDocument();
+  });
+
+  it('renders weekend ratio percentage', () => {
+    render(<GithubWrapped profile={mockProfile} wrappedData={mockWrappedData} />);
+
+    expect(screen.getByText('30%')).toBeInTheDocument();
+  });
+
+  it('renders Take a break when weekend ratio is greater than 25', () => {
+    render(<GithubWrapped profile={mockProfile} wrappedData={mockWrappedData} />);
+
+    expect(screen.getByText(/Take a break!/i)).toBeInTheDocument();
+  });
+
+  it('renders Good work/life balance when weekend ratio is 25 or less', () => {
+    const balancedData = {
+      ...mockWrappedData,
+      weekendRatio: 20,
+    };
+
+    render(<GithubWrapped profile={mockProfile} wrappedData={balancedData} />);
+
+    expect(screen.getByText(/Good work\/life balance!/i)).toBeInTheDocument();
   });
 });

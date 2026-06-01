@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getLabels } from './badgeLabels';
+import { getLabels, labels } from './badgeLabels';
 
 describe('getLabels', () => {
   describe('supported locales', () => {
@@ -60,6 +60,26 @@ describe('getLabels', () => {
       expect(typeof labels.CURRENT_STREAK).toBe('string');
       expect(typeof labels.ANNUAL_SYNC_TOTAL).toBe('string');
       expect(typeof labels.PEAK_STREAK).toBe('string');
+    });
+    it('ensures all locale labels are non-empty strings', () => {
+      for (const locale of Object.values(labels)) {
+        for (const value of Object.values(locale)) {
+          expect(typeof value).toBe('string');
+          expect(value.length).toBeGreaterThan(0);
+        }
+      }
+    });
+  });
+
+  describe('monthly view keys', () => {
+    it.each(Object.keys(labels))('locale %s has a non-empty COMMITS_THIS_MONTH', (lang) => {
+      const locale = getLabels(lang);
+      expect(locale.COMMITS_THIS_MONTH).toEqual(expect.stringMatching(/\S/));
+    });
+
+    it.each(Object.keys(labels))('locale %s has a non-empty VS_LAST_MONTH', (lang) => {
+      const locale = getLabels(lang);
+      expect(locale.VS_LAST_MONTH).toEqual(expect.stringMatching(/\S/));
     });
   });
 });

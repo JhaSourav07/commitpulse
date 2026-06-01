@@ -33,7 +33,7 @@ export default function DashboardError({
               : 'Something went wrong'}
         </h1>
 
-        <p className="text-gray-600 dark:text-gray-400 mb-8 leading-relaxed">
+        <p className="text-gray-600 dark:text-white/70 mb-8 leading-relaxed">
           {isNotFound
             ? "We couldn't find a GitHub user with that username. Please check the spelling and try again."
             : isRateLimit

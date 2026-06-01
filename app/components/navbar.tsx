@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Menu, X, Activity, Moon, Sun } from 'lucide-react';
 import { useGlowEffect } from '@/hooks/useGlowEffect';
+import { useThemeToggle } from './theme-switch';
 
 function GithubMark() {
   return (
@@ -15,44 +16,34 @@ function GithubMark() {
 
 const NAV_LINKS = [
   {
+    label: 'Compare',
+    href: '/compare',
+    isExternal: false,
+    isPrimary: false,
+  },
+  {
     label: 'Customization Studio',
     href: '/#customization-studio',
     isExternal: false,
+    isPrimary: false,
   },
   {
     label: 'GitHub Repo',
     href: 'https://github.com/JhaSourav07/commitpulse',
     isExternal: true,
+    isPrimary: true,
   },
 ];
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
-
-  const [isDark, setIsDark] = useState(() => {
-    if (typeof window === 'undefined' || !window.localStorage) return true;
-    return window.localStorage.getItem('theme') !== 'light';
-  });
 
   const { shellRef, shellVars, handleMouseEnter, handleMouseMove, handleMouseLeave } =
     useGlowEffect();
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setMounted(true);
-  }, []);
-
-  useEffect(() => {
-    document.documentElement.classList.toggle('dark', isDark);
-    if (typeof window !== 'undefined' && window.localStorage) {
-      window.localStorage.setItem('theme', isDark ? 'dark' : 'light');
-    }
-  }, [isDark]);
-
-  const toggleTheme = () => {
-    setIsDark((prev) => !prev);
-  };
+  const { isDark, mounted, toggleTheme } = useThemeToggle({
+    variant: 'circle',
+    start: 'top-right',
+  });
 
   useEffect(() => {
     const mediaQuery = window.matchMedia('(min-width: 768px)');
@@ -87,91 +78,117 @@ export default function Navbar() {
       <div className="mx-auto max-w-6xl">
         <div
           ref={shellRef}
-          className="relative overflow-hidden rounded-2xl border border-gray-200 bg-white/70 dark:border-white/25 dark:bg-black/45 backdrop-blur-xl shadow-[0_8px_30px_rgba(0,0,0,0.08)] dark:shadow-[0_14px_40px_rgba(0,0,0,0.45)] transition-colors duration-300"
+          className="relative overflow-hidden rounded-2xl border border-gray-200/80 bg-white/80 dark:border-white/20 dark:bg-[#0a0a0a]/60 backdrop-blur-xl shadow-sm dark:shadow-[0_8px_30px_rgba(0,0,0,0.8)] transition-all duration-300"
           style={shellVars}
           onMouseEnter={handleMouseEnter}
           onMouseMove={handleMouseMove}
           onMouseLeave={handleMouseLeave}
         >
+          {/* Glow effects remain untouched */}
           <div
             className="pointer-events-none absolute inset-0 transition-opacity duration-300 ease-out hidden dark:block"
             style={{
               opacity: 'var(--glow-opacity)',
               background:
-                'radial-gradient(180px 105px at var(--mx) var(--my), rgba(255,255,255,0.26), rgba(191,219,254,0.18) 30%, rgba(244,114,182,0.1) 48%, rgba(0,0,0,0) 68%)',
+                'radial-gradient(180px 105px at var(--mx) var(--my), rgba(255,255,255,0.20), rgba(191,219,254,0.12) 30%, rgba(244,114,182,0.08) 48%, rgba(0,0,0,0) 68%)',
             }}
           />
-          <div className="pointer-events-none absolute inset-0 rounded-2xl border border-black/5 dark:border-white/20" />
+          <div className="pointer-events-none absolute inset-0 rounded-2xl border border-black/5 dark:border-white/10" />
           <div
             className="pointer-events-none absolute inset-0 rounded-2xl p-px transition-opacity duration-300 ease-out hidden dark:block"
             style={{
               opacity: 'var(--border-opacity)',
               background:
-                'radial-gradient(150px 90px at var(--mx) var(--my), rgba(255,255,255,0.98), rgba(186,230,253,0.64) 32%, rgba(196,181,253,0.34) 50%, rgba(0,0,0,0) 68%)',
+                'radial-gradient(150px 90px at var(--mx) var(--my), rgba(255,255,255,0.8), rgba(186,230,253,0.5) 32%, rgba(196,181,253,0.2) 50%, rgba(0,0,0,0) 68%)',
               WebkitMask: 'linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)',
               WebkitMaskComposite: 'xor',
               maskComposite: 'exclude',
             }}
           />
+
           <nav className="relative flex items-center justify-between px-4 py-3 sm:px-6">
             <Link
               href="/"
               aria-label="Go to home"
-              className="group inline-flex items-center gap-3"
+              className="group inline-flex items-center gap-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2 rounded-xl dark:focus-visible:ring-gray-300 dark:focus-visible:ring-offset-[#0a0a0a]"
               onClick={handleLogoClick}
             >
-              <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200 bg-gray-50 text-gray-800 shadow-sm dark:border-white/35 dark:bg-white/10 dark:text-white dark:shadow-[0_0_25px_rgba(255,255,255,0.22)] transition-transform duration-300 group-hover:scale-105">
-                <Activity size={19} />
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-gray-100 to-gray-200 border border-gray-300 text-gray-800 shadow-sm dark:border-white/20 dark:from-white/10 dark:to-white/5 dark:text-white transition-transform duration-300 group-hover:scale-105 group-hover:shadow-md">
+                <Activity
+                  size={19}
+                  className="transition-transform duration-300 group-hover:rotate-6"
+                />
               </span>
-              <span className="text-base font-semibold tracking-[0.08em] text-gray-900 dark:text-white sm:text-lg">
+              {/* Added Text Gradient here */}
+              <span className="text-base font-bold tracking-wide bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-400 sm:text-lg">
                 CommitPulse
               </span>
             </Link>
 
-            <div className="hidden items-center gap-3 md:flex">
-              <button
-                type="button"
-                onClick={toggleTheme}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200 bg-gray-50 text-gray-700 transition hover:bg-gray-100 dark:border-white/15 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
-                aria-label="Toggle theme"
-              >
-                {mounted ? (
-                  isDark ? (
-                    <Moon size={18} />
-                  ) : (
-                    <Sun size={18} />
-                  )
-                ) : (
-                  <span className="w-[18px] h-[18px]" />
-                )}
-              </button>
-
+            <div className="hidden items-center gap-2 md:flex">
               {NAV_LINKS.map((link) => (
                 <a
                   key={link.href}
                   href={link.href}
                   target={link.isExternal ? '_blank' : undefined}
                   rel={link.isExternal ? 'noopener noreferrer' : undefined}
-                  className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-gray-300 hover:bg-gray-100 dark:border-white/15 dark:bg-white/5 dark:text-white/90 dark:hover:border-white/45 dark:hover:bg-white/10"
+                  className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#0a0a0a] ${
+                    link.isPrimary
+                      ? 'rounded-xl bg-gray-900 text-white shadow-md hover:bg-gray-800 hover:-translate-y-0.5 hover:shadow-lg dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200 dark:hover:shadow-[0_4px_20px_rgba(255,255,255,0.2)] focus-visible:ring-gray-900 dark:focus-visible:ring-white ml-2'
+                      : 'rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100/80 dark:text-gray-300 dark:hover:text-white dark:hover:bg-white/10 focus-visible:ring-gray-400 dark:focus-visible:ring-gray-500'
+                  }`}
                 >
                   {link.isExternal && <GithubMark />}
                   {link.label}
                 </a>
               ))}
-            </div>
 
-            <div className="md:hidden inline-flex items-center justify-center gap-2">
+              {/* Separator line between links and theme toggle */}
+              <div className="mx-2 h-6 w-px bg-gray-200 dark:bg-white/15" />
+
               <button
                 type="button"
                 onClick={toggleTheme}
-                className="hidden sm:inline-flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200 bg-gray-50 text-gray-700 transition hover:bg-gray-100 dark:border-white/15 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
+                className="group inline-flex h-10 w-10 items-center justify-center rounded-xl text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2 dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-white dark:focus-visible:ring-gray-400 dark:focus-visible:ring-offset-[#0a0a0a]"
                 aria-label="Toggle theme"
               >
                 {mounted ? (
                   isDark ? (
-                    <Moon size={18} />
+                    <Moon
+                      size={18}
+                      className="transition-transform duration-300 group-hover:-rotate-12"
+                    />
                   ) : (
-                    <Sun size={18} />
+                    <Sun
+                      size={18}
+                      className="transition-transform duration-300 group-hover:rotate-45"
+                    />
+                  )
+                ) : (
+                  <span className="w-[18px] h-[18px]" />
+                )}
+              </button>
+            </div>
+
+            {/* Mobile Menu Buttons */}
+            <div className="md:hidden inline-flex items-center justify-center gap-1">
+              <button
+                type="button"
+                onClick={toggleTheme}
+                className="group hidden sm:inline-flex h-10 w-10 items-center justify-center rounded-xl text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-white"
+                aria-label="Toggle theme"
+              >
+                {mounted ? (
+                  isDark ? (
+                    <Moon
+                      size={18}
+                      className="transition-transform duration-300 group-hover:-rotate-12"
+                    />
+                  ) : (
+                    <Sun
+                      size={18}
+                      className="transition-transform duration-300 group-hover:rotate-45"
+                    />
                   )
                 ) : (
                   <span className="w-[18px] h-[18px]" />
@@ -179,19 +196,24 @@ export default function Navbar() {
               </button>
               <button
                 type="button"
-                className="md:hidden inline-flex items-center justify-center rounded-xl border border-gray-200 bg-gray-50 p-2 text-gray-700 transition hover:bg-gray-100 dark:border-white/15 dark:bg-white/5 dark:text-white/90 dark:hover:bg-white/10"
+                className="md:hidden inline-flex items-center justify-center rounded-xl p-2 text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-white"
                 aria-label={open ? 'Close menu' : 'Open menu'}
                 aria-expanded={open}
                 onClick={() => setOpen((prev) => !prev)}
               >
-                {open ? <X size={20} /> : <Menu size={20} />}
+                {open ? (
+                  <X size={20} className="transition-transform duration-300 rotate-90 scale-110" />
+                ) : (
+                  <Menu size={20} className="transition-transform duration-300 hover:scale-110" />
+                )}
               </button>
             </div>
           </nav>
 
+          {/* Mobile Dropdown Menu */}
           {open ? (
-            <div className="border-t border-gray-200 dark:border-white/10 px-4 py-3 md:hidden">
-              <ul className="space-y-2">
+            <div className="border-t border-gray-100 dark:border-white/10 px-4 py-4 md:hidden">
+              <ul className="space-y-1">
                 {NAV_LINKS.map((link) => (
                   <li key={link.href}>
                     <a
@@ -199,7 +221,11 @@ export default function Navbar() {
                       target={link.isExternal ? '_blank' : undefined}
                       rel={link.isExternal ? 'noopener noreferrer' : undefined}
                       onClick={() => setOpen(false)}
-                      className="inline-flex w-full items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-gray-300 hover:bg-gray-100 dark:border-white/15 dark:bg-white/5 dark:text-white/90 dark:hover:border-white/45 dark:hover:bg-white/10"
+                      className={`inline-flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 dark:focus-visible:ring-offset-[#0a0a0a] ${
+                        link.isPrimary
+                          ? 'mt-2 bg-gray-900 text-white shadow-md hover:bg-gray-800 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200 focus-visible:ring-gray-900 dark:focus-visible:ring-white justify-center'
+                          : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100/80 dark:text-gray-300 dark:hover:text-white dark:hover:bg-white/10 focus-visible:ring-gray-400 dark:focus-visible:ring-gray-500'
+                      }`}
                     >
                       {link.isExternal && <GithubMark />}
                       {link.label}
@@ -207,11 +233,11 @@ export default function Navbar() {
                   </li>
                 ))}
 
-                <li className="sm:hidden pt-2 mt-2 border-t border-gray-200 dark:border-white/10">
+                <li className="sm:hidden pt-3 mt-3 border-t border-gray-100 dark:border-white/10">
                   <button
                     type="button"
                     onClick={toggleTheme}
-                    className="inline-flex w-full items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-4 py-2 text-sm font-medium text-gray-700 transition hover:border-gray-300 hover:bg-gray-100 dark:border-white/15 dark:bg-white/5 dark:text-white/90 dark:hover:border-white/45 dark:hover:bg-white/10"
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-white dark:focus-visible:ring-gray-500"
                     aria-label="Toggle theme"
                   >
                     {mounted ? (
@@ -223,7 +249,7 @@ export default function Navbar() {
                     ) : (
                       <span className="w-[18px] h-[18px]" />
                     )}
-                    {mounted ? (isDark ? 'Light Mode' : 'Dark Mode') : 'Theme'}
+                    {mounted ? (isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode') : 'Theme'}
                   </button>
                 </li>
               </ul>

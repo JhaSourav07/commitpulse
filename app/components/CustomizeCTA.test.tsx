@@ -101,6 +101,24 @@ describe('CustomizeCTA', () => {
     });
   });
 
+  describe('responsive navigation', () => {
+    it.each([
+      ['mobile', 375],
+      ['desktop', 1280],
+    ])('keeps the customization link visible at the %s breakpoint', (_breakpoint, width) => {
+      window.innerWidth = width;
+
+      const { container } = render(<CustomizeCTA />);
+
+      const layout = container.querySelector('.flex.flex-col.md\\:flex-row');
+      const link = screen.getByRole('link', { name: /open customization studio/i });
+
+      expect(layout).toBeTruthy();
+      expect(link).toBeTruthy();
+      expect(link.getAttribute('href')).toBe('/customize');
+    });
+  });
+
   describe('accessibility', () => {
     it('gives the CTA link a stable id for analytics and E2E selectors', () => {
       render(<CustomizeCTA />);
@@ -121,6 +139,46 @@ describe('CustomizeCTA', () => {
 
       const decorativeIcon = container.querySelector('svg[aria-hidden="true"]');
       expect(decorativeIcon).toBeTruthy();
+    });
+  });
+  describe('responsive rendering', () => {
+    it('uses responsive flex layout classes', () => {
+      const { container } = render(<CustomizeCTA />);
+
+      const layoutContainer = container.querySelector('.flex.flex-col.md\\:flex-row');
+
+      expect(layoutContainer).toBeTruthy();
+    });
+
+    it('uses responsive text alignment classes', () => {
+      const { container } = render(<CustomizeCTA />);
+
+      const contentContainer = container.querySelector('.text-center.md\\:text-left');
+
+      expect(contentContainer).toBeTruthy();
+    });
+
+    it('uses responsive heading sizing classes', () => {
+      render(<CustomizeCTA />);
+
+      const heading = screen.getByRole('heading', {
+        level: 2,
+        name: 'Want to fine-tune your monolith?',
+      });
+
+      expect(heading.className).toContain('text-2xl');
+      expect(heading.className).toContain('md:text-3xl');
+    });
+
+    it('uses responsive button padding classes', () => {
+      render(<CustomizeCTA />);
+
+      const link = screen.getByRole('link');
+
+      const button = link.querySelector('span');
+
+      expect(button?.className).toContain('px-4');
+      expect(button?.className).toContain('md:px-7');
     });
   });
 

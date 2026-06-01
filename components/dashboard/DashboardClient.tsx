@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { X, RefreshCw } from 'lucide-react';
+import { X, RefreshCw, Share2 } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import type { Achievement } from '@/types/dashboard';
+import type { GraphNode, GraphLink } from '@/types';
 
 import RefreshButton from './RefreshButton';
 import ProfileCard from './ProfileCard';
@@ -14,11 +15,17 @@ import ActivityLandscape from './ActivityLandscape';
 import LanguageChart from './LanguageChart';
 import CommitClock from './CommitClock';
 import Heatmap from './Heatmap';
+import HistoricalTrendView from './HistoricalTrendView';
 import AIInsights from './AIInsights';
 import StatsCard from './StatsCard';
+import RepositoryGraph from './RepositoryGraph';
 import ComparisonStatsCard from './ComparisonStatsCard';
 import RadarChart from './RadarChart';
 import GrowthTrendChart from './GrowthTrendChart';
+import { useRouter } from 'next/navigation';
+import ProfileOptimizerModal from './ProfileOptimizerModal';
+import ResumeProfileSection from './ResumeProfileSection';
+import type { DashboardPeriod } from '@/utils/dashboardPeriod';
 
 // Define the dashboard data structure
 interface DashboardData {
@@ -63,11 +70,17 @@ interface DashboardData {
     day: string;
     commits: number;
   }>;
+  graphData: {
+    nodes: GraphNode[];
+    links: GraphLink[];
+  };
 }
 
 interface DashboardClientProps {
   initialData: DashboardData;
   username: string;
+  compareData?: DashboardData | null;
+  period: DashboardPeriod;
 }
 
 export interface ProfileMetrics {
@@ -311,13 +324,24 @@ function getPersonalityTags(
 // DashboardClient Component
 // ------------------------------------------------------------
 
-export default function DashboardClient({ initialData, username }: DashboardClientProps) {
-  const [secondUserData, setSecondUserData] = useState<DashboardData | null>(null);
-  const [isCompareMode, setIsCompareMode] = useState(false);
+export default function DashboardClient({
+  initialData,
+  username,
+  compareData = null,
+  period,
+}: DashboardClientProps) {
+  const [secondUserData, setSecondUserData] = useState<DashboardData | null>(compareData);
+  const [isCompareMode, setIsCompareMode] = useState(Boolean(compareData));
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isOptimizerOpen, setIsOptimizerOpen] = useState(false);
   const [secondUsernameInput, setSecondUsernameInput] = useState('');
   const [isLoadingSecond, setIsLoadingSecond] = useState(false);
   const [compareError, setCompareError] = useState<string | null>(null);
+  const router = useRouter();
+
+  const modalRef = useRef<HTMLDivElement>(null);
+  const compareInputRef = useRef<HTMLInputElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
 
   // Close modal on escape key
   useEffect(() => {
@@ -328,6 +352,53 @@ export default function DashboardClient({ initialData, username }: DashboardClie
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // Focus trap: constrain Tab navigation within the modal when open
+  const handleModalKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key !== 'Tab' || !modalRef.current) return;
+
+    const focusableElements = modalRef.current.querySelectorAll<HTMLElement>(
+      'a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"]), [contenteditable="true"]'
+    );
+    if (focusableElements.length === 0) return;
+
+    const firstElement = focusableElements[0];
+    const lastElement = focusableElements[focusableElements.length - 1];
+
+    // If focus is not within the modal, force it back inside
+    const activeEl = document.activeElement;
+    const isFocusInModal = modalRef.current.contains(activeEl);
+
+    if (!isFocusInModal) {
+      e.preventDefault();
+      firstElement.focus();
+      return;
+    }
+
+    if (e.shiftKey) {
+      if (activeEl === firstElement) {
+        e.preventDefault();
+        lastElement.focus();
+      }
+    } else {
+      if (activeEl === lastElement) {
+        e.preventDefault();
+        firstElement.focus();
+      }
+    }
+  }, []);
+
+  // Restore focus to trigger button when modal closes
+  useEffect(() => {
+    if (!isModalOpen) {
+      triggerRef.current?.focus();
+    }
+  }, [isModalOpen]);
+
+  // Auto-focus callback for the modal animation completion
+  const handleModalAnimationComplete = useCallback(() => {
+    compareInputRef.current?.focus();
   }, []);
 
   const handleOpenModal = () => {
@@ -362,6 +433,9 @@ export default function DashboardClient({ initialData, username }: DashboardClie
       const data = await res.json();
       setSecondUserData(data);
       setIsCompareMode(true);
+
+      router.replace(`/dashboard/${username}?compare=${data.profile.username}`);
+
       setIsModalOpen(false);
       toast.success(`Comparing ${username} vs ${data.profile.username}`);
     } catch (err: unknown) {
@@ -376,7 +450,31 @@ export default function DashboardClient({ initialData, username }: DashboardClie
   const handleExitCompare = () => {
     setIsCompareMode(false);
     setSecondUserData(null);
+
+    router.replace(`/dashboard/${username}`);
+
     toast.info('Returned to single profile view');
+  };
+
+  const handleShareComparison = async () => {
+    if (!secondUserData) return;
+
+    const compareUrl = `${window.location.origin}/dashboard/${username}?compare=${secondUserData.profile.username}`;
+
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: `${username} vs ${secondUserData.profile.username}`,
+          text: 'Check out this GitHub profile comparison',
+          url: compareUrl,
+        });
+      } else {
+        await navigator.clipboard.writeText(compareUrl);
+        toast.success('Comparison link copied!');
+      }
+    } catch {
+      // user cancelled share dialog
+    }
   };
 
   // ------------------------------------------------------------
@@ -470,14 +568,57 @@ export default function DashboardClient({ initialData, username }: DashboardClie
         </div>
         <div className="flex gap-4 flex-wrap">
           {!isCompareMode && (
+            <>
+              <button
+                onClick={() => setIsOptimizerOpen(true)}
+                className="flex items-center gap-2 rounded-xl border border-black/10 dark:border-[rgba(255,255,255,0.15)] bg-black dark:bg-[#111] hover:bg-zinc-800 dark:hover:bg-zinc-900 px-4 py-2 text-sm font-semibold text-white dark:text-white transition-all duration-200 active:scale-[0.98]"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline>
+                  <polyline points="16 7 22 7 22 13"></polyline>
+                </svg>
+                Profile Optimizer
+              </button>
+              <button
+                ref={triggerRef}
+                onClick={handleOpenModal}
+                className="flex items-center gap-2 rounded-xl border border-black/10 dark:border-[rgba(255,255,255,0.15)] bg-black dark:bg-[#111] hover:bg-zinc-800 dark:hover:bg-zinc-900 px-4 py-2 text-sm font-semibold text-white dark:text-white transition-all duration-200 active:scale-[0.98]"
+              >
+                Compare Profile
+              </button>
+            </>
+          )}
+          {isCompareMode && secondUserData && (
             <button
-              onClick={handleOpenModal}
-              className="flex items-center gap-2 rounded-xl border border-black/10 dark:border-[rgba(255,255,255,0.15)] bg-black dark:bg-[#111] hover:bg-zinc-800 dark:hover:bg-zinc-900 px-4 py-2 text-sm font-semibold text-white dark:text-white transition-all duration-200 active:scale-[0.98]"
+              onClick={handleShareComparison}
+              className="flex items-center gap-2 rounded-xl border border-black/10 dark:border-[rgba(255,255,255,0.15)] bg-blue-600 hover:bg-blue-700 px-4 py-2 text-sm font-semibold text-white transition-all duration-200 active:scale-[0.98]"
             >
-              Compare Profile
+              <Share2 size={16} />
+              Share Comparison
             </button>
           )}
+
           <RefreshButton username={username} />
+          <button
+            onClick={() => {
+              navigator.clipboard.writeText(window.location.href);
+              toast.success('Link copied to clipboard!');
+            }}
+            className="flex items-center gap-2 rounded-xl border border-black/10 px-4 py-2 text-sm font-semibold hover:bg-gray-100 dark:hover:bg-zinc-800 transition"
+          >
+            <Share2 size={16} />
+            Share
+          </button>
           <Link
             href="/"
             className="flex items-center gap-2 rounded-xl border border-black/10 dark:border-[rgba(255,255,255,0.15)] bg-black dark:bg-black px-4 py-2 text-sm font-semibold text-white dark:text-white transition-all duration-200 hover:bg-gray-200 dark:hover:bg-white/10 active:scale-[0.98]"
@@ -505,7 +646,7 @@ export default function DashboardClient({ initialData, username }: DashboardClie
         /* Standard Single Profile View */
         <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr_320px] gap-6 lg:gap-8">
           {/* Left Sidebar */}
-          <aside className="flex flex-col gap-6">
+          <aside className="flex flex-col gap-6 lg:row-span-2">
             <ProfileCard
               user={initialData.profile}
               exportData={{
@@ -515,6 +656,7 @@ export default function DashboardClient({ initialData, username }: DashboardClie
               }}
             />
             <Achievements achievements={initialData.achievements} />
+            <ResumeProfileSection githubUsername={username} />
           </aside>
 
           {/* Main Content */}
@@ -529,7 +671,11 @@ export default function DashboardClient({ initialData, username }: DashboardClie
             </section>
 
             <section>
-              <Heatmap data={initialData.activity} />
+              <HistoricalTrendView
+                activity={initialData.activity}
+                username={username}
+                period={period}
+              />
             </section>
           </div>
 
@@ -555,13 +701,18 @@ export default function DashboardClient({ initialData, username }: DashboardClie
               <StatsCard
                 title="Contributions"
                 value={initialData.stats.totalContributions.toString()}
-                description="Last Year"
+                description={period.label}
                 icon="GitCommit"
               />
             </div>
 
             <AIInsights insights={initialData.insights} />
           </aside>
+
+          {/* Repository Graph Section */}
+          <div className="col-span-1 lg:col-span-2 lg:col-start-2">
+            <RepositoryGraph data={initialData.graphData} />
+          </div>
         </div>
       ) : (
         /* Compare Mode Split-Dashboard View */
@@ -702,13 +853,13 @@ export default function DashboardClient({ initialData, username }: DashboardClie
                     {coderProfileA.profileName}
                   </span>
                   <div className="space-y-1 text-xs">
-                    <p className="text-gray-500 dark:text-zinc-500">
+                    <p className="text-gray-500 dark:text-white/65">
                       Peak Hours:{' '}
                       <span className="font-semibold text-gray-900 dark:text-white">
                         {coderProfileA.peakHourStart}:00 - {coderProfileA.peakHourEnd}:00
                       </span>
                     </p>
-                    <p className="text-gray-500 dark:text-zinc-500">
+                    <p className="text-gray-500 dark:text-white/65">
                       Active Days:{' '}
                       <span className="font-semibold text-gray-900 dark:text-white">
                         {coderProfileA.activeWeekdays.join(', ')}
@@ -730,20 +881,20 @@ export default function DashboardClient({ initialData, username }: DashboardClie
 
                 {/* User B */}
                 <div className="flex flex-col">
-                  <p className="text-xs text-[#A1A1AA] truncate font-medium mb-2">
+                  <p className="text-xs text-white/65 truncate font-medium mb-2">
                     {secondUserData.profile.name}
                   </p>
                   <span className="text-xs font-bold text-purple-600 dark:text-purple-400 bg-purple-500/10 px-2 py-1 rounded w-fit mb-3">
                     {coderProfileB.profileName}
                   </span>
                   <div className="space-y-1 text-xs">
-                    <p className="text-gray-500 dark:text-zinc-500">
+                    <p className="text-gray-500 dark:text-white/65">
                       Peak Hours:{' '}
                       <span className="font-semibold text-gray-900 dark:text-white">
                         {coderProfileB.peakHourStart}:00 - {coderProfileB.peakHourEnd}:00
                       </span>
                     </p>
-                    <p className="text-gray-500 dark:text-zinc-500">
+                    <p className="text-gray-500 dark:text-white/65">
                       Active Days:{' '}
                       <span className="font-semibold text-gray-900 dark:text-white">
                         {coderProfileB.activeWeekdays.join(', ')}
@@ -951,7 +1102,10 @@ export default function DashboardClient({ initialData, username }: DashboardClie
       {/* Compare Modal */}
       <AnimatePresence>
         {isModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            onKeyDown={handleModalKeyDown}
+          >
             {/* Backdrop */}
             <motion.div
               initial={{ opacity: 0 }}
@@ -959,27 +1113,36 @@ export default function DashboardClient({ initialData, username }: DashboardClie
               exit={{ opacity: 0 }}
               onClick={() => setIsModalOpen(false)}
               className="absolute inset-0 bg-black/60 backdrop-blur-md"
+              aria-hidden="true"
             />
 
             {/* Modal Dialog */}
             <motion.div
+              ref={modalRef}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="compare-modal-title"
               initial={{ opacity: 0, scale: 0.95, y: 16 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 16 }}
               transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+              onAnimationComplete={handleModalAnimationComplete}
               className="relative w-full max-w-md overflow-hidden rounded-2xl border border-black/10 bg-white p-6 dark:border-[rgba(255,255,255,0.08)] dark:bg-[#0a0a0a] shadow-xl"
             >
               {/* Close Button */}
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="absolute right-4 top-4 rounded-xl p-1 text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5 dark:text-white/40 hover:text-black dark:hover:text-white transition-all"
+                className="absolute right-4 top-4 rounded-xl p-1 text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5 dark:text-white/65 hover:text-black dark:hover:text-white transition-all"
                 aria-label="Close modal"
               >
                 <X size={18} />
               </button>
 
               <div className="mb-6">
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">
+                <h3
+                  id="compare-modal-title"
+                  className="text-lg font-bold text-gray-900 dark:text-white mb-1"
+                >
                   Compare Profile
                 </h3>
                 <p className="text-xs text-[#A1A1AA] leading-relaxed">
@@ -991,18 +1154,19 @@ export default function DashboardClient({ initialData, username }: DashboardClie
               <form onSubmit={handleFetchComparison} className="space-y-4">
                 <div className="relative flex items-center">
                   <input
+                    ref={compareInputRef}
                     type="text"
                     required
                     disabled={isLoadingSecond}
                     placeholder="Enter GitHub Username"
                     value={secondUsernameInput}
                     onChange={(e) => setSecondUsernameInput(e.target.value)}
-                    className="w-full rounded-xl border border-black/10 bg-gray-100 px-4 py-3 text-sm text-black outline-none transition-all duration-200 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent dark:border-[rgba(255,255,255,0.08)] dark:bg-[#111] dark:text-white dark:placeholder:text-[#A1A1AA]"
+                    className="w-full rounded-xl border border-black/10 bg-gray-100 px-4 py-3 text-sm text-black outline-none transition-all duration-200 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent dark:border-[rgba(255,255,255,0.08)] dark:bg-[#111] dark:text-white dark:placeholder:text-white/65"
                   />
                   {secondUsernameInput.length > 0 && !isLoadingSecond && (
                     <button
                       onClick={() => setSecondUsernameInput('')}
-                      className="absolute right-3 text-gray-500 hover:text-black dark:text-[#A1A1AA] dark:hover:text-white"
+                      className="absolute right-3 text-gray-500 hover:text-black dark:text-white/65 dark:hover:text-white"
                       aria-label="Clear input"
                       type="button"
                     >
@@ -1036,6 +1200,12 @@ export default function DashboardClient({ initialData, username }: DashboardClie
           </div>
         )}
       </AnimatePresence>
+
+      <ProfileOptimizerModal
+        isOpen={isOptimizerOpen}
+        onClose={() => setIsOptimizerOpen(false)}
+        userData={initialData}
+      />
     </div>
   );
 }

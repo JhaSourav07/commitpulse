@@ -70,6 +70,30 @@ describe('rateLimit', () => {
     expect(result.remaining).toBe(limit - 1);
   });
 
+  it('expires at the window boundary after sliding requests', async () => {
+    const ip = '7.7.7.7';
+    const windowMs = 60000;
+    const limit = 3;
+
+    vi.setSystemTime(0);
+    await rateLimit(ip, limit, windowMs);
+    vi.advanceTimersByTime(20000);
+    await rateLimit(ip, limit, windowMs);
+    vi.advanceTimersByTime(20000);
+    await rateLimit(ip, limit, windowMs);
+
+    // Still within the same fixed window, before the boundary
+    vi.advanceTimersByTime(19999);
+    expect((await rateLimit(ip, limit, windowMs)).success).toBe(false);
+
+    // Move just past the window limit. The old entry should have expired.
+    vi.advanceTimersByTime(2);
+
+    const result = await rateLimit(ip, limit, windowMs);
+    expect(result.success).toBe(true);
+    expect(result.remaining).toBe(limit - 1);
+  });
+
   it('tracks different IPs separately', async () => {
     const ip1 = '11.11.11.11';
     const ip2 = '22.22.22.22';
