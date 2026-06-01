@@ -98,6 +98,18 @@ describe('streakParamsSchema user validation', () => {
 
     expect(result.success).toBe(true);
   });
+
+  it('should enforce a maximum length constraint of 39 characters for the user parameter', () => {
+    const invalidUser = 'a'.repeat(40);
+    const result = streakParamsSchema.safeParse({
+      user: invalidUser,
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toMatch(/cannot exceed 39 characters/);
+    }
+  });
 });
 
 describe('streakParamsSchema', () => {
@@ -776,6 +788,22 @@ describe('streakParamsSchema — accent parameter HEX color validation', () => {
     expect(result.success).toBe(false);
   });
 
+  it('rejects an invalid hex color like "#ZZZZZZ" for accent (Variation 5)', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      accent: '#ZZZZZZ',
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      // This extra check ensures Variation 5 isn't just a duplicate,
+      // but a stricter validation check!
+      expect(result.error.issues[0]?.message).toContain(
+        'accent must be a valid 3 or 6 character hex color without #'
+      );
+    }
+  });
+
   it('rejects the invalid boundary hex color "#ZZZZZZ" for accent', () => {
     const result = streakParamsSchema.safeParse({
       user: 'octocat',
@@ -860,5 +888,129 @@ describe('streakParamsSchema — tz IANA timezone validation (Variation 4)', () 
     if (!result.success) {
       expect(result.error.issues[0]?.message).toContain('Invalid timezone');
     }
+  });
+});
+
+/* ==========================================================================
+ * LAYOUT PARAMETER — QUERY VALIDATION BOUNDARIES (VARIATION 2)
+ * ========================================================================== */
+
+describe('streakParamsSchema — layout query validation boundaries (Variation 2)', () => {
+  it('rejects unsupported_layout and marks the parse as failed', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      layout: 'unsupported_layout',
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it('surfaces a meaningful error message for unsupported_layout', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      layout: 'unsupported_layout',
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const messages = result.error.issues.map((i) => i.message).join(' ');
+      expect(messages).toContain('Invalid layout format');
+    }
+  });
+
+  it('accepts "default" as a valid layout value', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      layout: 'default',
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it('accepts "compact" as a valid layout value', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      layout: 'compact',
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it('accepts "full" as a valid layout value', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      layout: 'full',
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it('treats omitted layout as undefined (no validation error)', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.layout).toBeUndefined();
+    }
+  });
+});
+
+/* ==========================================================================
+ * USER PARAMETER — QUERY VALIDATION BOUNDARIES (VARIATION 3)
+ * ========================================================================== */
+
+describe('streakParamsSchema user maxLength validation boundaries (Variation 3)', () => {
+  it('rejects a GitHub username that exceeds the 39 character length threshold', () => {
+    const invalidPayload = {
+      user: 'a'.repeat(40),
+    };
+
+    const parseResult = streakParamsSchema.safeParse(invalidPayload);
+
+    expect(parseResult.success).toBe(false);
+    if (!parseResult.success) {
+      const fieldErrors = parseResult.error.flatten().fieldErrors;
+      expect(fieldErrors.user).toBeDefined();
+      expect(fieldErrors.user?.[0]).toContain('cannot exceed 39 characters');
+    }
+  });
+
+  it('accepts a username exactly at the upper limit of 39 characters', () => {
+    const validPayload = {
+      user: 'a'.repeat(39),
+    };
+
+    const parseResult = streakParamsSchema.safeParse(validPayload);
+    expect(parseResult.success).toBe(true);
+  });
+});
+
+/* ==========================================================================
+ * DATE PARAMETER — QUERY VALIDATION BOUNDARIES (VARIATION 4)
+ * ========================================================================== */
+
+describe('streakParamsSchema — date query validation boundaries (Variation 4)', () => {
+  it('rejects an invalid date format like "2026-15-40"', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      date: '2026-15-40',
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const messages = result.error.issues.map((i) => i.message).join(' ');
+      expect(messages).toContain('Invalid "date" format. Use ISO 8601.');
+    }
+  });
+
+  it('accepts a valid ISO8601 date', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      date: '2026-05-30',
+    });
+
+    expect(result.success).toBe(true);
   });
 });
