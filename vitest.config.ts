@@ -5,7 +5,7 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     globals: true,
-    include: ['**/*.test.ts', '**/*.test.tsx'],
+    include: ['**/*.test.ts', '**/*.test.tsx', '**/*.test-d.ts'],
     exclude: ['node_modules', '.next'],
     coverage: {
       provider: 'v8',
