@@ -6,7 +6,7 @@ import { AUTO_THEME_DARK, AUTO_THEME_LIGHT } from './themes';
 import { TOWER_ANIMATION_CSS } from './animations';
 import { computeTowers, type TowerData } from './layout';
 import { sanitizeFont, sanitizeHexColor, sanitizeRadius, sanitizeGoogleFontUrl } from './sanitizer';
-
+import { TILE_WIDTH_HALF, TILE_HEIGHT_HALF } from './layoutConstants';
 import { SVG_WIDTH, SVG_HEIGHT, FONT_MAP, isFontKey } from './generatorConstants';
 
 // helpers
@@ -244,8 +244,6 @@ const MONTH_NAMES = [
 // Layout constants for 3D isometric grid positioning to avoid magic numbers
 const GRID_ORIGIN_X = 300;
 const GRID_ORIGIN_Y = 120;
-const TILE_WIDTH_HALF = 16;
-const TILE_HEIGHT_HALF = 9;
 const ISOMETRIC_VERTICAL_OFFSET = 20;
 
 const MONTH_LABEL_ROW_OFFSET = 7.2;
