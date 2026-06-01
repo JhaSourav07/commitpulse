@@ -78,7 +78,7 @@ export async function GET(request: Request) {
       hide_background,
       hide_stats,
       lang,
-      view: normalizedView,
+      view,
       delta_format,
       width,
       height,
@@ -98,6 +98,7 @@ export async function GET(request: Request) {
       format,
     } = parseResult.data;
 
+    const normalizedView = view as 'default' | 'monthly' | 'heatmap' | 'pulse';
     const themeName = theme || 'dark';
     const from = customFrom
       ? new Date(customFrom).toISOString()

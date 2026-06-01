@@ -95,10 +95,15 @@ const baseStreakParamsSchema = z.object({
   theme: z
     .string()
     .optional()
-    .transform((val) => {
-      if (!val) return 'dark';
-      return val === 'auto' || val === 'random' || Object.hasOwn(themes, val) ? val : 'dark';
-    })
+    .refine(
+      (val) => {
+        if (val === undefined || val === '') return true;
+        return val === 'auto' || val === 'random' || Object.hasOwn(themes, val);
+      },
+      {
+        message: `Invalid theme. Supported themes: ${['auto', 'random', ...Object.keys(themes)].join(', ')}`,
+      }
+    )
     .default('dark'),
   bg: z
     .string()
@@ -215,12 +220,23 @@ const baseStreakParamsSchema = z.object({
   lang: z.string().optional().default('en'),
   tz: timeZoneParam,
   // Unknown view values fall back to the default dashboard view.
-  view: z.enum(['default', 'monthly', 'heatmap', 'pulse']).catch('default').default('default'),
+  view: z.enum(['default', 'monthly']).catch('default').default('default'),
   // Invalid delta formats fall back to percentage mode.
   delta_format: z.enum(['percent', 'absolute', 'both']).catch('percent').default('percent'),
   width: dimensionParam('width', 100, 1200),
   height: dimensionParam('height', 80, 800),
-  grace: z.string().optional().transform(toGraceValue).default(1),
+  grace: z
+    .string()
+    .optional()
+    .refine(
+      (val) => {
+        if (val === undefined) return true;
+        const parsed = Number(val);
+        return !isNaN(parsed) && Number.isInteger(parsed) && parsed >= 0 && parsed <= 7;
+      },
+      { message: 'grace must be an integer between 0 and 7' }
+    )
+    .transform((val) => (val === undefined ? 1 : Number(val))),
   mode: z.enum(['commits', 'loc']).catch('commits').default('commits'),
   repo: z.string().optional(),
   org: z
