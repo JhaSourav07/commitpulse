@@ -771,6 +771,18 @@ describe('streakParamsSchema — org parameter validation', () => {
       expect(fieldError).toBe('Invalid organization name format');
     }
   });
+
+  it('should reject org parameter with invalid alphanumeric format', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      org: 'invalid_org_name_with_spaces',
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.flatten().fieldErrors.org?.[0]).toBe('Invalid organization name format');
+    }
+  });
 });
 
 describe('ogParamsSchema', () => {

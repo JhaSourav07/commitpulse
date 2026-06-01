@@ -104,13 +104,18 @@ export default function LandingPage() {
     badgeResult?.username === debouncedUsername && badgeResult?.status === 'loaded';
   const badgeError = badgeResult?.username === debouncedUsername && badgeResult?.status === 'error';
 
-  const copyToClipboard = () => {
+  const copyToClipboard = async () => {
     if (trimmedUsername.length === 0) return;
+
+    try {
+      await navigator.clipboard.writeText(markdown);
+    } catch {
+      setCopied(false);
+      return;
+    }
 
     trackUser(trimmedUsername);
     addSearch(trimmedUsername);
-
-    navigator.clipboard.writeText(markdown);
     setCopied(true);
     setTimeout(() => {
       guideRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
