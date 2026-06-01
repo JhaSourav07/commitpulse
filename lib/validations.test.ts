@@ -466,10 +466,6 @@ describe('streakParamsSchema — size fallback behavior', () => {
 });
 
 describe('streakParamsSchema — boolean transform fields', () => {
-  // ── refresh ────────────────────────────────────────────────────────────────
-  // Only the exact string 'true' should enable cache bypass.
-  // Any other value (including '1', 'TRUE', 'false', omitted) must stay false.
-
   describe('refresh', () => {
     it('returns true when refresh="true"', () => {
       const data = streakParamsSchema.parse({ user: 'octocat', refresh: 'true' });
@@ -494,9 +490,6 @@ describe('streakParamsSchema — boolean transform fields', () => {
       expect(parse({}).refresh).toBe(false);
     });
   });
-
-  // ── hide_title ─────────────────────────────────────────────────────────────
-  // Accepts both 'true' and '1' as truthy values.
 
   describe('hide_title', () => {
     it('returns true when hide_title="true"', () => {
@@ -523,9 +516,6 @@ describe('streakParamsSchema — boolean transform fields', () => {
     });
   });
 
-  // ── hide_stats ─────────────────────────────────────────────────────────────
-  // Same dual-value rule as hide_title: 'true' and '1' are both truthy.
-
   describe('hide_stats', () => {
     it('returns false when hide_stats="0"', () => {
       const data = streakParamsSchema.parse({ user: 'octocat', hide_stats: '0' });
@@ -550,10 +540,6 @@ describe('streakParamsSchema — boolean transform fields', () => {
       expect(parse({ hide_stats: 'false' }).hide_stats).toBe(false);
     });
   });
-
-  // ── hide_background ────────────────────────────────────────────────────────
-  // Stricter than hide_title/hide_stats — only exact 'true' is accepted,
-  // '1' does NOT enable it.
 
   describe('hide_background', () => {
     it('returns true when hide_background="true"', () => {
@@ -645,5 +631,66 @@ describe('streakParamsSchema — view fallback behavior', () => {
 
   it('defaults to "default" when view is omitted', () => {
     expect(parse({}).view).toBe('default');
+  });
+});
+
+describe('streakParamsSchema — grace parameter validation', () => {
+  it('clamps negative grace value -1 to 0', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      grace: '-1',
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.grace).toBe(0);
+    }
+  });
+
+  it('accepts grace value 0', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      grace: '0',
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.grace).toBe(0);
+    }
+  });
+
+  it('accepts grace value 7', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      grace: '7',
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.grace).toBe(7);
+    }
+  });
+
+  it('clamps grace value above 7 to 7', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      grace: '10',
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.grace).toBe(7);
+    }
+  });
+
+  it('defaults grace to 1 when omitted', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.grace).toBe(1);
+    }
   });
 });
