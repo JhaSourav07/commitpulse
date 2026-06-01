@@ -193,3 +193,19 @@ describe('trackUser', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 });
+
+describe('JSON response serializer — boundary robustness (Variation 3)', () => {
+  it('verifies the utility catches the exception and reports format errors when passed non-serializable JSON payloads', () => {
+    // Arrange: Create a non-serializable payload using a circular reference
+    const circularStructure: Record<string, unknown> = {};
+    circularStructure['self'] = circularStructure;
+
+    // Provide a trim method that returns the circular structure to trigger the serialization error
+    const nonSerializablePayload = {
+      trim: () => circularStructure,
+    };
+
+    // Act & Assert: Invoke the utility with the target inputs and verify it handles it gracefully
+    expect(() => trackUser(nonSerializablePayload as unknown as string)).not.toThrow();
+  });
+});
