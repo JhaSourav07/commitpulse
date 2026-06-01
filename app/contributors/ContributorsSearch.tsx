@@ -16,7 +16,8 @@ interface Contributor {
 export default function ContributorsSearch({ contributors }: { contributors: Contributor[] }) {
   const [search, setSearch] = useState('');
 
-  const filtered = contributors.filter((c) => c.login.toLowerCase().includes(search.toLowerCase()));
+  const normalizedSearch = search.trim().toLowerCase();
+  const filtered = contributors.filter((c) => c.login.toLowerCase().includes(normalizedSearch));
 
   return (
     <>
@@ -37,9 +38,7 @@ export default function ContributorsSearch({ contributors }: { contributors: Con
           <p className="text-xl font-semibold text-zinc-600 dark:text-zinc-400">
             No contributors found
           </p>
-          <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-500">
-            Try searching with a different name.
-          </p>
+          <p className="mt-2 text-sm text-white/65">Try searching with a different name.</p>
         </div>
       )}
 

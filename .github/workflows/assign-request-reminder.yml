@@ -42,7 +42,7 @@ jobs:
         contains(github.event.comment.body, 'can i be assigned') ||
         contains(github.event.comment.body, 'assign me to this') ||
         contains(github.event.comment.body, 'assign me this') ||
-        contains(github.event.comment.body, 'i will work on this') ||
+        contains(github.event.comment.body, 'work on this') ||
         contains(github.event.comment.body, 'i''ll work on this') ||
         contains(github.event.comment.body, 'ill work on this') ||
         contains(github.event.comment.body, 'i can work on this') ||
