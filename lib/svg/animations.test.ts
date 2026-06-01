@@ -1,24 +1,54 @@
 import { describe, it, expect } from 'vitest';
-import { TOWER_ANIMATION_CSS } from './animations';
+import { getTowerAnimationCSS } from './animations';
 
-describe('TOWER_ANIMATION_CSS', () => {
-  it('contains required CSS classes and keyframes', () => {
-    expect(TOWER_ANIMATION_CSS).toContain('.cp-tower');
-    expect(TOWER_ANIMATION_CSS).toContain('@keyframes grow-up');
+describe('getTowerAnimationCSS', () => {
+  it('returns rise animation by default', () => {
+    const css = getTowerAnimationCSS();
+    expect(css).toContain('.cp-tower');
+    expect(css).toContain('@keyframes grow-up');
+    expect(css).toContain('transform: scaleY(0)');
+    expect(css).toContain('transform: scaleY(1)');
+    expect(css).toContain('transform-origin: 0 10px');
   });
 
-  it('defines correct transform states for the grow-up animation', () => {
-    expect(TOWER_ANIMATION_CSS).toContain('transform: scaleY(0)');
-    expect(TOWER_ANIMATION_CSS).toContain('transform: scaleY(1)');
+  it('returns fade animation when requested', () => {
+    const css = getTowerAnimationCSS('fade');
+    expect(css).toContain('@keyframes fade-in');
+    expect(css).toContain('opacity: 0');
+    expect(css).toContain('opacity: 1');
   });
 
-  it('sets the correct transform-origin for towers to grow from the ground', () => {
-    expect(TOWER_ANIMATION_CSS).toContain('transform-origin: 0 10px');
+  it('returns slide animation when requested', () => {
+    const css = getTowerAnimationCSS('slide');
+    expect(css).toContain('@keyframes slide-down');
+    expect(css).toContain('transform: translateY(-20px)');
+  });
+
+  it('returns static render when entrance is none', () => {
+    const css = getTowerAnimationCSS('none');
+    expect(css).toContain('transform: scaleY(1)');
+    expect(css).not.toContain('@keyframes');
+  });
+
+  it('scales transform-origin for rise animation when scale factor is provided', () => {
+    const cssScale045 = getTowerAnimationCSS('rise', 0.45);
+    expect(cssScale045).toContain('transform-origin: 0 4.5px');
+
+    const cssScale08 = getTowerAnimationCSS('rise', 0.8);
+    expect(cssScale08).toContain('transform-origin: 0 8px');
+  });
+
+  it('scales translateY translation for slide animation when scale factor is provided', () => {
+    const cssScale045 = getTowerAnimationCSS('slide', 0.45);
+    expect(cssScale045).toContain('transform: translateY(-9px)');
+
+    const cssScale08 = getTowerAnimationCSS('slide', 0.8);
+    expect(cssScale08).toContain('transform: translateY(-16px)');
   });
 
   it('includes accessibility support for prefers-reduced-motion', () => {
-    expect(TOWER_ANIMATION_CSS).toContain('prefers-reduced-motion');
-    // Ensure that the animation is disabled for reduced motion
-    expect(TOWER_ANIMATION_CSS).toContain('animation: none !important');
+    const css = getTowerAnimationCSS('rise');
+    expect(css).toContain('prefers-reduced-motion');
+    expect(css).toContain('animation: none !important');
   });
 });

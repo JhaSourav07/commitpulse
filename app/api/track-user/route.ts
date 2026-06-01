@@ -4,10 +4,14 @@ import { User } from '@/models/User';
 import { trackUserRateLimiter } from '@/lib/rate-limit';
 
 export async function POST(req: Request) {
-  // Get IP for rate limiting
-  const ip = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown';
+  // Get IP for rate limiting.
+  // x-real-ip is provided by Vercel/Nginx as the true client IP.
+  // We fall back to the LAST IP in the x-forwarded-for chain, which is appended by the Vercel proxy.
+  const forwardedFor = req.headers.get('x-forwarded-for');
+  const fallbackIp = forwardedFor ? forwardedFor.split(',').pop()?.trim() : 'unknown';
+  const ip = req.headers.get('x-real-ip') || fallbackIp || 'unknown';
 
-  if (ip !== 'unknown' && !trackUserRateLimiter.check(ip)) {
+  if (ip !== 'unknown' && !(await trackUserRateLimiter.check(ip))) {
     return NextResponse.json(
       { success: false, error: 'Too many requests, please try again later.' },
       { status: 429 }
@@ -37,8 +41,20 @@ export async function POST(req: Request) {
 
     const trimmedUsername = username.trim().toLowerCase();
 
-    // If MONGODB_URI is not set, skip tracking to allow local development without a DB
+    // If MONGODB_URI is not set, handle based on environment
     if (!process.env.MONGODB_URI) {
+      // In production, this is a critical configuration failure
+      if (process.env.NODE_ENV === 'production') {
+        console.error(
+          'CRITICAL: MONGODB_URI is not set in production environment. User tracking is disabled.'
+        );
+        return NextResponse.json(
+          { success: false, error: 'Database configuration error' },
+          { status: 500 }
+        );
+      }
+
+      // For development/non-production environments, bypass gracefully
       console.warn('MONGODB_URI is not set. Bypassing user tracking for local development.');
       return NextResponse.json({ success: true, bypassed: true });
     }
@@ -50,7 +66,11 @@ export async function POST(req: Request) {
       // Upsert the user: create if doesn't exist, do nothing if exists
       await User.updateOne(
         { username: trimmedUsername },
-        { $setOnInsert: { username: trimmedUsername } },
+        {
+          $setOnInsert: { username: trimmedUsername },
+          $set: { lastSeen: new Date() },
+          $inc: { visitCount: 1 },
+        },
         { upsert: true }
       );
     } catch (upsertError) {
