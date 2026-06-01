@@ -1048,6 +1048,48 @@ describe('GET /api/streak', () => {
       }
     });
 
+    it('ignores custom from/to when fetching data for monthly comparison stats', async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-05-20T12:00:00Z'));
+
+      vi.mocked(fetchGitHubContributions).mockResolvedValueOnce({
+        calendar: {
+          totalContributions: 25,
+          weeks: [
+            { contributionDays: [{ date: '2026-04-15', contributionCount: 10 }] },
+            { contributionDays: [{ date: '2026-05-15', contributionCount: 15 }] },
+          ],
+        } as ContributionCalendar,
+        repoContributions: [],
+      } as unknown as ExtendedContributionData);
+
+      try {
+        const response = await GET(
+          makeRequest({
+            user: 'octocat',
+            view: 'monthly',
+            from: '2026-05-15',
+            to: '2026-05-20',
+            delta_format: 'both',
+          })
+        );
+
+        expect(response.status).toBe(200);
+        expect(fetchGitHubContributions).toHaveBeenCalledWith('octocat', {
+          bypassCache: false,
+          from: '2026-04-01T00:00:00.000Z',
+          to: '2026-05-31T23:59:59.000Z',
+        });
+
+        const body = await response.text();
+        expect(body).toContain('MAY');
+        expect(body).toContain('class="stats">15</text>');
+        expect(body).toContain('+50% (+5)');
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
     it('uses valid custom width and height in monthly SVG output', async () => {
       const response = await GET(
         makeRequest({ user: 'octocat', view: 'monthly', width: '400', height: '200' })

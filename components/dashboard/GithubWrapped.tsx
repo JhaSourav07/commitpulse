@@ -11,6 +11,16 @@ interface GithubWrappedProps {
   wrappedData: WrappedStats;
 }
 
+function formatBusiestMonth(month: string): string {
+  const [year, monthNumber] = month.split('-').map(Number);
+
+  return new Intl.DateTimeFormat(undefined, {
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(new Date(Date.UTC(year, monthNumber - 1, 1)));
+}
+
 export default function GithubWrapped({ profile, wrappedData }: GithubWrappedProps) {
   const isWeekendGrinder = wrappedData.weekendRatio > 25;
 
@@ -106,12 +116,7 @@ export default function GithubWrapped({ profile, wrappedData }: GithubWrappedPro
           >
             <Calendar className="text-purple-400 mb-2" size={24} />
             <p className="text-sm text-white/60">Busiest Month</p>
-            <p className="text-2xl font-bold">
-              {new Date(wrappedData.busiestMonth + '-01').toLocaleString('default', {
-                month: 'long',
-                year: 'numeric',
-              })}
-            </p>
+            <p className="text-2xl font-bold">{formatBusiestMonth(wrappedData.busiestMonth)}</p>
           </motion.div>
 
           <motion.div

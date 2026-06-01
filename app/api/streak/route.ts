@@ -36,6 +36,21 @@ function getMonthlyReferenceDate(year: string | undefined, timezone: string): Da
   return selectedYear < currentYear ? new Date(`${year}-12-15T12:00:00Z`) : undefined;
 }
 
+function getMonthlyComparisonRange(referenceDate: Date, timezone: string) {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: timezone,
+    year: 'numeric',
+    month: '2-digit',
+  }).formatToParts(referenceDate);
+  const year = Number(parts.find((part) => part.type === 'year')?.value);
+  const month = Number(parts.find((part) => part.type === 'month')?.value);
+
+  const from = new Date(Date.UTC(year, month - 2, 1, 0, 0, 0)).toISOString();
+  const to = new Date(Date.UTC(year, month, 0, 23, 59, 59)).toISOString();
+
+  return { from, to };
+}
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
 
@@ -99,16 +114,6 @@ export async function GET(request: Request) {
     } = parseResult.data;
 
     const themeName = theme || 'dark';
-    const from = customFrom
-      ? new Date(customFrom).toISOString()
-      : year
-        ? `${year}-01-01T00:00:00Z`
-        : undefined;
-    const to = customTo
-      ? new Date(customTo).toISOString()
-      : year
-        ? `${year}-12-31T23:59:59Z`
-        : undefined;
     const currentYear = new Date().getUTCFullYear();
     const isHistoricalYear = !!year && Number(year) < currentYear;
 
@@ -117,6 +122,22 @@ export async function GET(request: Request) {
       timezone = new Intl.DateTimeFormat(undefined, { timeZone: tzParam }).resolvedOptions()
         .timeZone;
     }
+
+    const monthlyReferenceDate = getMonthlyReferenceDate(year, timezone) ?? new Date();
+    const customMonthlyRange =
+      view === 'monthly' && (customFrom || customTo)
+        ? getMonthlyComparisonRange(monthlyReferenceDate, timezone)
+        : undefined;
+    const from =
+      customMonthlyRange?.from ??
+      (customFrom
+        ? new Date(customFrom).toISOString()
+        : year
+          ? `${year}-01-01T00:00:00Z`
+          : undefined);
+    const to =
+      customMonthlyRange?.to ??
+      (customTo ? new Date(customTo).toISOString() : year ? `${year}-12-31T23:59:59Z` : undefined);
 
     const isAutoTheme = themeName === 'auto';
     const isRandomTheme = themeName === 'random';
@@ -203,11 +224,7 @@ export async function GET(request: Request) {
     // ─── JSON output mode ──────────────────────────────────────────────────
     if (format === 'json') {
       const stats = calculateStreak(calendar, timezone, undefined, grace);
-      const monthlyStats = calculateMonthlyStats(
-        calendar,
-        timezone,
-        getMonthlyReferenceDate(year, timezone)
-      );
+      const monthlyStats = calculateMonthlyStats(calendar, timezone, monthlyReferenceDate);
 
       const secondsToMidnight = tzParam
         ? getSecondsUntilMidnightInTimezone(timezone)
@@ -238,11 +255,7 @@ export async function GET(request: Request) {
     // ─── SVG output mode (default) ──────────────────────────────────────────
     let svg = '';
     if (view === 'monthly') {
-      const stats = calculateMonthlyStats(
-        calendar,
-        timezone,
-        getMonthlyReferenceDate(year, timezone)
-      );
+      const stats = calculateMonthlyStats(calendar, timezone, monthlyReferenceDate);
       svg = generateMonthlySVG(stats, params);
     } else if (view === 'heatmap') {
       const stats = calculateStreak(calendar, timezone, undefined, grace);
