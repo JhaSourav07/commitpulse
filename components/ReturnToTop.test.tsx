@@ -1,5 +1,5 @@
 import { render } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import ReturnToTop from './ReturnToTop';
 import type React from 'react';
 import { screen, fireEvent } from '@testing-library/react';
@@ -7,8 +7,11 @@ import { screen, fireEvent } from '@testing-library/react';
 vi.mock('framer-motion', () => ({
   AnimatePresence: ({ children }: { children: React.ReactNode }) => children,
   motion: {
-    button: ({ children, ...props }: React.ComponentProps<'button'>) => (
+    button: ({ children, ...props }: { children: React.ReactNode; [key: string]: unknown }) => (
       <button {...props}>{children}</button>
+    ),
+    div: ({ children, ...props }: { children: React.ReactNode; [key: string]: unknown }) => (
+      <div {...props}>{children}</div>
     ),
   },
 }));
@@ -100,7 +103,9 @@ describe('ReturnToTop', () => {
 
     render(<ReturnToTop />);
 
-    expect(addEventListenerSpy).toHaveBeenCalledWith('scroll', expect.any(Function));
+    expect(addEventListenerSpy).toHaveBeenCalledWith('scroll', expect.any(Function), {
+      passive: true,
+    });
   });
 
   it('removes scroll event listener on unmount', () => {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { computeTowers, computeFaceOpacity, computeTowerHeight } from './layout';
+import { isGhostCity, computeTowers, computeFaceOpacity, computeTowerHeight } from './layout';
 import type { ContributionCalendar } from '../../types';
 import {
   GHOST_HEIGHT_PX,
@@ -18,6 +18,17 @@ describe('computeTowers edge cases', () => {
     const towers = computeTowers(calendar, 'linear', '2024-06-12');
     expect(towers[0].tooltip).toContain('TODAY:');
     expect(towers[0].isTodayWithCommits).toBe(true);
+  });
+
+  it('adds TODAY prefix for today tower without commits', () => {
+    const calendar = {
+      totalContributions: 0,
+      weeks: [{ contributionDays: [{ contributionCount: 0, date: '2024-06-12' }] }],
+    } as unknown as ContributionCalendar;
+    const towers = computeTowers(calendar, 'linear', '2024-06-12');
+    expect(towers[0].tooltip).toContain('TODAY:');
+    expect(towers[0].isToday).toBe(true);
+    expect(towers[0].isTodayWithCommits).toBe(false);
   });
 
   it('does not add TODAY prefix for non-today tower', () => {
@@ -212,22 +223,22 @@ it('assigns correct row and col values based on week/day position', () => {
     weeks: [
       {
         contributionDays: [
+          { contributionCount: 1, date: '2024-06-09' },
           { contributionCount: 1, date: '2024-06-10' },
           { contributionCount: 1, date: '2024-06-11' },
-          { contributionCount: 1, date: '2024-06-12' },
         ],
       },
       {
         contributionDays: [
-          { contributionCount: 1, date: '2024-06-13' },
-          { contributionCount: 1, date: '2024-06-14' },
-          { contributionCount: 1, date: '2024-06-15' },
+          { contributionCount: 1, date: '2024-06-16' },
+          { contributionCount: 1, date: '2024-06-17' },
+          { contributionCount: 1, date: '2024-06-18' },
         ],
       },
     ],
   } as unknown as ContributionCalendar;
 
-  const towers = computeTowers(calendar, 'linear', '2024-06-15');
+  const towers = computeTowers(calendar, 'linear', '2024-06-18');
 
   expect(towers[0].row).toBe(0);
   expect(towers[0].col).toBe(0);
@@ -300,5 +311,43 @@ describe('computeTowerHeight', () => {
 
   it('caps logarithmic scale height at maximum', () => {
     expect(computeTowerHeight(999999, 'log', false)).toBe(MAX_LOG_HEIGHT);
+  });
+});
+
+describe('isGhostCity', () => {
+  it('should return true if there are zero contributions across all weeks', () => {
+    const emptyCalendarWeeks = [
+      {
+        contributionDays: [
+          { contributionCount: 0, locAdditions: 0, locDeletions: 0 },
+          { contributionCount: 0, locAdditions: 0, locDeletions: 0 },
+        ],
+      },
+    ];
+    expect(isGhostCity(emptyCalendarWeeks)).toBe(true);
+  });
+
+  it('should return false if at least one day has standard contributions', () => {
+    const activeCalendarWeeks = [
+      {
+        contributionDays: [
+          { contributionCount: 0, locAdditions: 0, locDeletions: 0 },
+          { contributionCount: 5, locAdditions: 0, locDeletions: 0 },
+        ],
+      },
+    ];
+    expect(isGhostCity(activeCalendarWeeks)).toBe(false);
+  });
+
+  it('should return false if at least one day has lines of code (LoC) modifications', () => {
+    const locOnlyCalendarWeeks = [
+      {
+        contributionDays: [
+          { contributionCount: 0, locAdditions: 120, locDeletions: 0 },
+          { contributionCount: 0, locAdditions: 0, locDeletions: 0 },
+        ],
+      },
+    ];
+    expect(isGhostCity(locOnlyCalendarWeeks)).toBe(false);
   });
 });

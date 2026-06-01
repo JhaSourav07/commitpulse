@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Menu, X, Activity, Moon, Sun } from 'lucide-react';
 import { useGlowEffect } from '@/hooks/useGlowEffect';
+import { useThemeToggle } from './theme-switch';
 
 function GithubMark() {
   return (
@@ -14,6 +15,11 @@ function GithubMark() {
 }
 
 const NAV_LINKS = [
+  {
+    label: 'Compare',
+    href: '/compare',
+    isExternal: false,
+  },
   {
     label: 'Customization Studio',
     href: '/#customization-studio',
@@ -28,31 +34,13 @@ const NAV_LINKS = [
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
-
-  const [isDark, setIsDark] = useState(() => {
-    if (typeof window === 'undefined' || !window.localStorage) return true;
-    return window.localStorage.getItem('theme') !== 'light';
-  });
 
   const { shellRef, shellVars, handleMouseEnter, handleMouseMove, handleMouseLeave } =
     useGlowEffect();
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setMounted(true);
-  }, []);
-
-  useEffect(() => {
-    document.documentElement.classList.toggle('dark', isDark);
-    if (typeof window !== 'undefined' && window.localStorage) {
-      window.localStorage.setItem('theme', isDark ? 'dark' : 'light');
-    }
-  }, [isDark]);
-
-  const toggleTheme = () => {
-    setIsDark((prev) => !prev);
-  };
+  const { isDark, mounted, toggleTheme } = useThemeToggle({
+    variant: 'circle',
+    start: 'top-right',
+  });
 
   useEffect(() => {
     const mediaQuery = window.matchMedia('(min-width: 768px)');

@@ -88,6 +88,10 @@ vi.mock('./Heatmap', () => ({
   default: () => <div data-testid="heatmap" />,
 }));
 
+vi.mock('./HistoricalTrendView', () => ({
+  default: () => <div data-testid="historical-trend-view" />,
+}));
+
 vi.mock('./AIInsights', () => ({
   default: () => <div data-testid="ai-insights" />,
 }));
@@ -134,6 +138,7 @@ const mockInitialData = {
   insights: [{ id: '1', icon: 'zap', text: 'Highly active in mornings' }],
   achievements: [],
   commitClock: [],
+  graphData: { nodes: [], links: [] },
 };
 
 const mockSecondData = {
@@ -170,6 +175,7 @@ const mockSecondData = {
   insights: [{ id: '1', icon: 'zap', text: 'Hard worker' }],
   achievements: [],
   commitClock: [],
+  graphData: { nodes: [], links: [] },
 };
 
 const initialDataWithHigherStreak = {
@@ -188,24 +194,36 @@ const secondDataWithLowerStreak = {
   },
 };
 
+const mockPeriod = {
+  kind: 'year' as const,
+  label: '2026',
+  from: '2026-01-01T00:00:00.000Z',
+  to: '2026-12-31T23:59:59.999Z',
+  year: '2026',
+};
+
 describe('DashboardClient', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
   });
 
   it('renders standard single profile view by default', () => {
-    render(<DashboardClient initialData={mockInitialData} username="Shivangi1515" />);
+    render(
+      <DashboardClient initialData={mockInitialData} username="Shivangi1515" period={mockPeriod} />
+    );
 
     expect(screen.getByText('Shivangi')).toBeDefined();
     expect(screen.getByTestId('profile-card')).toBeDefined();
     expect(screen.getByTestId('achievements')).toBeDefined();
     expect(screen.getByTestId('activity-landscape')).toBeDefined();
     expect(screen.getByTestId('language-chart')).toBeDefined();
-    expect(screen.getByTestId('heatmap')).toBeDefined();
+    expect(screen.getByTestId('historical-trend-view')).toBeDefined();
   });
 
   it('opens and closes the compare profile modal', async () => {
-    render(<DashboardClient initialData={mockInitialData} username="Shivangi1515" />);
+    render(
+      <DashboardClient initialData={mockInitialData} username="Shivangi1515" period={mockPeriod} />
+    );
 
     const compareBtn = screen.getByText('Compare Profile');
     expect(compareBtn).toBeDefined();
@@ -230,7 +248,9 @@ describe('DashboardClient', () => {
     );
     vi.stubGlobal('fetch', mockFetch);
 
-    render(<DashboardClient initialData={mockInitialData} username="Shivangi1515" />);
+    render(
+      <DashboardClient initialData={mockInitialData} username="Shivangi1515" period={mockPeriod} />
+    );
 
     const compareBtn = screen.getByText('Compare Profile');
     fireEvent.click(compareBtn);
@@ -263,7 +283,9 @@ describe('DashboardClient', () => {
     );
     vi.stubGlobal('fetch', mockFetch);
 
-    render(<DashboardClient initialData={mockInitialData} username="Shivangi1515" />);
+    render(
+      <DashboardClient initialData={mockInitialData} username="Shivangi1515" period={mockPeriod} />
+    );
 
     // 1. Enter compare mode
     const compareBtn = screen.getByText('Compare Profile');
@@ -298,7 +320,9 @@ describe('DashboardClient', () => {
   });
 
   it('generate your own button points to root /', () => {
-    render(<DashboardClient initialData={mockInitialData} username="Shivangi1515" />);
+    render(
+      <DashboardClient initialData={mockInitialData} username="Shivangi1515" period={mockPeriod} />
+    );
 
     const generateLink = screen.getByRole('link', { name: /generate your own/i });
     expect(generateLink.getAttribute('href')).toBe('/');
@@ -307,7 +331,9 @@ describe('DashboardClient', () => {
   // ISSUE OBJECTIVE: Verify error is shown when comparing with same username
   // =========================================================================
   it('shows an error when comparing with the same username (case-insensitive)', async () => {
-    render(<DashboardClient initialData={mockInitialData} username="Shivangi1515" />);
+    render(
+      <DashboardClient initialData={mockInitialData} username="Shivangi1515" period={mockPeriod} />
+    );
 
     // 1. Open modal
     const compareBtn = screen.getByText('Compare Profile');
@@ -332,7 +358,9 @@ describe('DashboardClient', () => {
   // ISSUE OBJECTIVE #1063: Verify compare modal input can be cleared
   // =========================================================================
   it('verify compare modal input can be cleared', async () => {
-    render(<DashboardClient initialData={mockInitialData} username="Shivangi1515" />);
+    render(
+      <DashboardClient initialData={mockInitialData} username="Shivangi1515" period={mockPeriod} />
+    );
 
     // 1. Open modal
     const compareBtn = screen.getByText('Compare Profile');
@@ -352,6 +380,39 @@ describe('DashboardClient', () => {
     // 5. Assert input value is empty
     expect((input as HTMLInputElement).value).toBe('');
   });
+
+  // =========================================================================
+  // ISSUE OBJECTIVE: Verify personality tags render in compare mode
+  // =========================================================================
+  it('renders personality tags for both profiles in compare mode', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => mockSecondData,
+    });
+
+    vi.stubGlobal('fetch', mockFetch);
+
+    render(
+      <DashboardClient initialData={mockInitialData} username="Shivangi1515" period={mockPeriod} />
+    );
+
+    fireEvent.click(screen.getByText('Compare Profile'));
+
+    fireEvent.change(screen.getByPlaceholderText('Enter GitHub Username'), {
+      target: { value: 'JhaSourav07' },
+    });
+
+    fireEvent.click(screen.getByText('Compare'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Exit Compare Mode')).toBeDefined();
+    });
+
+    // Both profiles have stats that generate the "Consistency Beast 🔥" tag
+    // Using Regex /.../i to match the text even if there is an emoji next to it!
+    const tags = screen.getAllByText(/Consistency Beast/i);
+    expect(tags).toHaveLength(2);
+  });
 });
 it('shows Most Consistent badge for profile with higher peak streak in compare mode', async () => {
   const mockFetch = vi.fn().mockResolvedValue({
@@ -361,7 +422,13 @@ it('shows Most Consistent badge for profile with higher peak streak in compare m
 
   vi.stubGlobal('fetch', mockFetch);
 
-  render(<DashboardClient initialData={initialDataWithHigherStreak} username="Shivangi1515" />);
+  render(
+    <DashboardClient
+      initialData={initialDataWithHigherStreak}
+      username="Shivangi1515"
+      period={mockPeriod}
+    />
+  );
 
   fireEvent.click(screen.getByText('Compare Profile'));
 

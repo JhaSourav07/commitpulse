@@ -236,4 +236,36 @@ describe('SVG Sanitizer Utilities', () => {
       expect(sanitizeGoogleFontUrl('https://example.com')).toBe(null);
     });
   });
+
+  describe('theme color parsing fallbacks', () => {
+    it('resolves invalid hex names to default dark theme background color', () => {
+      expect(hexColor('not-a-background-color', '0d1117')).toBe('0d1117');
+      expect(hexColor('background', '0d1117')).toBe('0d1117');
+      expect(hexColor('', '0d1117')).toBe('0d1117');
+    });
+
+    it('resolves invalid hex names to default dark theme text color', () => {
+      expect(hexColor('not-a-text-color', 'c9d1d9')).toBe('c9d1d9');
+      expect(hexColor('text', 'c9d1d9')).toBe('c9d1d9');
+      expect(hexColor('invalid-text', 'c9d1d9')).toBe('c9d1d9');
+    });
+
+    it('resolves invalid hex names to default dark theme accent color', () => {
+      expect(hexColor('not-an-accent-color', '58a6ff')).toBe('58a6ff');
+      expect(hexColor('accent', '58a6ff')).toBe('58a6ff');
+      expect(hexColor('highlight', '58a6ff')).toBe('58a6ff');
+    });
+
+    it('resolves invalid hex names to light theme colors', () => {
+      expect(hexColor('not-a-color', 'ffffff')).toBe('ffffff');
+      expect(hexColor('not-a-color', '24292f')).toBe('24292f');
+      expect(hexColor('not-a-color', '0969da')).toBe('0969da');
+    });
+
+    it('still resolves valid hex correctly even with theme-like fallbacks', () => {
+      expect(hexColor('0d1117', '000000')).toBe('0d1117');
+      expect(hexColor('c9d1d9', '000000')).toBe('c9d1d9');
+      expect(hexColor('58a6ff', '000000')).toBe('58a6ff');
+    });
+  });
 });
