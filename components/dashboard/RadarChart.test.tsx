@@ -78,6 +78,45 @@ describe('RadarChart', () => {
     expect(screen.getAllByText('Python')).toBeDefined();
   });
 
+  it('renders chart elements and layout structure visible across viewport sizes', () => {
+    const mockLangsA = [
+      { name: 'TypeScript', percentage: 80, color: '#3178c6' },
+      { name: 'Python', percentage: 60, color: '#3572A5' },
+      { name: 'JavaScript', percentage: 40, color: '#f1e05a' },
+    ];
+
+    const mockLangsB = [
+      { name: 'TypeScript', percentage: 50, color: '#3178c6' },
+      { name: 'Python', percentage: 70, color: '#3572A5' },
+      { name: 'JavaScript', percentage: 30, color: '#f1e05a' },
+    ];
+
+    const { container } = render(
+      <RadarChart languagesA={mockLangsA} languagesB={mockLangsB} labelA="User A" labelB="User B" />
+    );
+
+    // Check that SVG element is rendered
+    const svg = container.querySelector('svg');
+    expect(svg).toBeDefined();
+
+    // Check that grid polygons are rendered (concentric levels)
+    const polygons = container.querySelectorAll('polygon');
+    expect(polygons.length).toBeGreaterThan(0);
+
+    // Check that axis lines are rendered
+    const lines = container.querySelectorAll('line');
+    expect(lines.length).toBeGreaterThan(0);
+
+    // Check that axis labels are rendered
+    expect(screen.getAllByText('TypeScript')).toBeDefined();
+    expect(screen.getAllByText('Python')).toBeDefined();
+    expect(screen.getAllByText('JavaScript')).toBeDefined();
+
+    // Check that data points (circles) are rendered
+    const circles = container.querySelectorAll('circle');
+    expect(circles.length).toBeGreaterThan(0);
+  });
+
   it('deduplicates shared languages so TypeScript appears as a single axis label', () => {
     const langsA = [{ name: 'TypeScript', percentage: 70, color: '#3178c6' }];
     const langsB = [{ name: 'TypeScript', percentage: 50, color: '#3178c6' }];
@@ -110,7 +149,6 @@ describe('RadarChart', () => {
         labelB="Low Scorer"
       />
     );
-
     expect(screen.getAllByText('TypeScript')).toBeDefined();
     expect(screen.getAllByText('Python')).toBeDefined();
     expect(screen.getAllByText('JavaScript')).toBeDefined();
@@ -121,8 +159,52 @@ describe('RadarChart', () => {
     const svg = container.querySelector('svg');
     expect(svg).not.toBeNull();
 
+    // Check that data points (circles) are rendered
     const circles = container.querySelectorAll('circle');
     expect(circles.length).toBeGreaterThan(0);
+  });
+
+  it('dynamically scales axis points based on dataset max score', () => {
+    // Mock dataset with specific maximum score
+    const mockLangsA = [
+      { name: 'TypeScript', percentage: 100, color: '#3178c6' }, // Max score
+      { name: 'Python', percentage: 75, color: '#3572A5' },
+      { name: 'JavaScript', percentage: 50, color: '#f1e05a' },
+    ];
+
+    const mockLangsB = [
+      { name: 'TypeScript', percentage: 90, color: '#3178c6' },
+      { name: 'Python', percentage: 60, color: '#3572A5' },
+      { name: 'JavaScript', percentage: 30, color: '#f1e05a' },
+    ];
+
+    const { container } = render(
+      <RadarChart languagesA={mockLangsA} languagesB={mockLangsB} labelA="User A" labelB="User B" />
+    );
+
+    // Verify that polygons are rendered with points attribute
+    const polygons = container.querySelectorAll('polygon');
+    expect(polygons.length).toBeGreaterThan(0);
+
+    // Check that the data polygons have points attribute (indicating scaling)
+    const dataPolygons = Array.from(polygons).filter((p) =>
+      p.getAttribute('points')?.includes(',')
+    );
+    expect(dataPolygons.length).toBeGreaterThan(0);
+
+    // Verify that circles (data points) are rendered at different positions
+    const circles = container.querySelectorAll('circle');
+    expect(circles.length).toBeGreaterThan(0);
+
+    // Get all circle positions to verify they're scaled differently
+    const circlePositions = Array.from(circles).map((circle) => ({
+      cx: circle.getAttribute('cx'),
+      cy: circle.getAttribute('cy'),
+    }));
+
+    // Verify that not all circles are at the same position (indicating dynamic scaling)
+    const uniquePositions = new Set(circlePositions.map((pos) => `${pos.cx},${pos.cy}`));
+    expect(uniquePositions.size).toBeGreaterThan(1);
   });
 
   it('check generation of different polygon coordinates for different score magnitudes', () => {

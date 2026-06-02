@@ -20,12 +20,25 @@ import { GRID_ORIGIN_X, GRID_ORIGIN_Y, TILE_HEIGHT_HALF, TILE_WIDTH_HALF } from 
 import { SVG_WIDTH, SVG_HEIGHT } from './generatorConstants';
 
 const FONT_MAP = {
-  inter: '"Inter", sans-serif',
-  roboto: '"Roboto", sans-serif',
+  // ── Pre-existing entries ────────────────────────────────────────────────
   jetbrains: '"JetBrains Mono", monospace',
   fira: '"Fira Code", monospace',
+  roboto: '"Roboto", sans-serif',
+
+  // ── Previously missing — both fonts are in the unconditional @import ───
+  // Without these entries, passing ?font=syncopate or ?font=spacegrotesk
+  // incorrectly triggers a duplicate dynamic Google Fonts fetch.
   syncopate: '"Syncopate", sans-serif',
-  space: '"Space Grotesk", sans-serif',
+  spacegrotesk: '"Space Grotesk", sans-serif',
+  'space grotesk': '"Space Grotesk", sans-serif', // handles spaced user input
+
+  // ── Aliases for common variations ───────────────────────────────────────
+  firacode: '"Fira Code", monospace', // alias: fira is the canonical key
+  'jetbrains mono': '"JetBrains Mono", monospace', // handles spaced user input
+
+  // ── Legacy keys for backward compatibility ──────────────────────────────
+  inter: '"Inter", sans-serif',
+  space: '"Space Grotesk", sans-serif', // old key for spacegrotesk
 } as const;
 
 export function resolveFont(sanitizedFont?: string | null): string | null {

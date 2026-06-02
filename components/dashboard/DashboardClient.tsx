@@ -86,19 +86,33 @@ interface DashboardClientProps {
 export interface ProfileMetrics {
   currentStreak: number;
   commitClock: { day: string; commits: number }[]; // e.g., Sun-Sat daily totals
-  hourlyData?: { hour: number; commits: number }[]; // Optional: 0-23 hour distribution
 }
 
 export interface CoderProfile {
   peakHourStart: number;
   peakHourEnd: number;
-  profileName: 'Night Owl 🌙' | 'Early Builder ☀' | 'Weekend Warrior 🚀' | 'Consistent Runner 🏃‍♂️';
+  profileName: 'Early Builder ☀' | 'Weekend Warrior 🚀' | 'Consistent Runner 🏃‍♂️';
   hourlyDistribution: number[];
   activeWeekdays: string[];
 }
 
+/**
+ * Generates a coder profile based on available metrics.
+ *
+ * NOTE: Night Owl classification via hourlyData is NOT IMPLEMENTED.
+ * GitHub's REST API only provides daily contribution granularity. Fetching hourly data
+ * would require querying individual commits across all repositories, which is:
+ * - Prohibitively expensive in latency (100s-1000s of requests per user)
+ * - Infeasible within serverless function timeout constraints (~10 seconds)
+ * - Not required for daily activity visualization use cases
+ *
+ * Instead, we classify developers into 3 profile types:
+ * - Consistent Runner: High daily commit frequency (streak >= 10)
+ * - Weekend Warrior: Most commits occur on weekends (>35% of commits)
+ * - Early Builder: Default for other patterns
+ */
 export function generateCoderProfile(metrics: ProfileMetrics): CoderProfile {
-  const { currentStreak, commitClock, hourlyData } = metrics;
+  const { currentStreak, commitClock } = metrics;
 
   let profileName: CoderProfile['profileName'] = 'Early Builder ☀';
 
@@ -112,45 +126,21 @@ export function generateCoderProfile(metrics: ProfileMetrics): CoderProfile {
     }
   }
 
-  // 2. Analyze Hourly Data for Night Owl vs Early Builder
-  let isNightOwl = false;
-  if (hourlyData && hourlyData.length > 0) {
-    const nightCommits = hourlyData
-      .filter((d) => d.hour >= 22 || d.hour <= 3)
-      .reduce((sum, d) => sum + d.commits, 0);
-
-    const morningCommits = hourlyData
-      .filter((d) => d.hour >= 5 && d.hour <= 10)
-      .reduce((sum, d) => sum + d.commits, 0);
-
-    isNightOwl = nightCommits > morningCommits;
-  }
-
-  // 3. Determine Final Profile Type
+  // 2. Determine Final Profile Type
   if (currentStreak >= 10) {
     profileName = 'Consistent Runner 🏃‍♂️';
   } else if (isWeekendWarrior) {
     profileName = 'Weekend Warrior 🚀';
-  } else if (isNightOwl) {
-    profileName = 'Night Owl 🌙';
   }
 
-  // 4. Populate UI properties based on the derived profile.
+  // 3. Populate UI properties based on the derived profile.
   // We use smooth curves here without the random 'hash' jitter for a cleaner UI.
   let peakHourStart = 9;
   let peakHourEnd = 17;
   let hourlyDistribution = new Array(24).fill(0);
   let activeWeekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
 
-  if (profileName === 'Night Owl 🌙') {
-    peakHourStart = 22;
-    peakHourEnd = 2;
-    hourlyDistribution = Array.from({ length: 24 }, (_, h) => {
-      const distFromMidnight = Math.min(Math.abs(h - 23), Math.abs(h + 1));
-      return Math.max(8, Math.round(100 - distFromMidnight * 9.5));
-    });
-    activeWeekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
-  } else if (profileName === 'Early Builder ☀') {
+  if (profileName === 'Early Builder ☀') {
     peakHourStart = 6;
     peakHourEnd = 10;
     hourlyDistribution = Array.from({ length: 24 }, (_, h) => {
@@ -309,12 +299,12 @@ function getPersonalityTags(
     tags.push('Backend Architect ⚙️');
   }
 
-  if (coderProfile.profileName === 'Night Owl 🌙') {
-    tags.push('Night Coder 🌙');
-  } else if (coderProfile.profileName === 'Early Builder ☀') {
+  if (coderProfile.profileName === 'Early Builder ☀') {
     tags.push('Early Builder ☀');
   } else if (coderProfile.profileName === 'Weekend Warrior 🚀') {
     tags.push('Weekend Warrior 🚀');
+  } else if (coderProfile.profileName === 'Consistent Runner 🏃‍♂️') {
+    tags.push('Consistent Runner 🏃‍♂️');
   }
 
   return tags.slice(0, 3);
