@@ -70,6 +70,22 @@ describe('SVG Sanitizer Utilities', () => {
       expect(sanitizeSpeed('8', '8s')).toBe('8s');
       expect(sanitizeSpeed('s', '8s')).toBe('8s');
     });
+
+    it('accepts valid decimal value 8.0s', () => {
+      expect(sanitizeSpeed('8.0s', '5s')).toBe('8.0s');
+    });
+
+    it('accepts lower boundary decimal value 2.0s', () => {
+      expect(sanitizeSpeed('2.0s', '5s')).toBe('2.0s');
+    });
+
+    it('accepts upper boundary decimal value 20.0s', () => {
+      expect(sanitizeSpeed('20.0s', '5s')).toBe('20.0s');
+    });
+
+    it('accepts decimal value 2.1s within range', () => {
+      expect(sanitizeSpeed('2.1s', '5s')).toBe('2.1s');
+    });
   });
 
   describe('sanitizeRadius', () => {
