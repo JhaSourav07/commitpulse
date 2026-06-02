@@ -229,6 +229,20 @@ describe('streakParamsSchema', () => {
     }
   });
 
+  it('should fail when grace is below the minimum value of 0', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      grace: '-1',
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.flatten().fieldErrors.grace?.[0]).toBe(
+        'grace must be an integer between 0 and 7'
+      );
+    }
+  });
+
   it('accepts a valid width value', () => {
     const result = streakParamsSchema.safeParse({
       user: 'octocat',

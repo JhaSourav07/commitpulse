@@ -83,6 +83,7 @@ export interface WrappedStats {
   busiestMonth: string;
   weekendRatio: number;
   topLanguage: string;
+  calendar: ContributionCalendar;
 }
 
 export interface OrgDashboardData {

@@ -11,7 +11,12 @@ function loadFromStorage(): string[] {
   let saved: string[] = [];
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) saved = JSON.parse(stored) as string[];
+    if (stored) {
+      const parsed: unknown = JSON.parse(stored);
+      if (Array.isArray(parsed)) {
+        saved = parsed.filter((item): item is string => typeof item === 'string');
+      }
+    }
   } catch {
     // ignore malformed storage
   }

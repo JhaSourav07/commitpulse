@@ -2,6 +2,15 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import {
+  Radar,
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
+  ResponsiveContainer,
+  Tooltip,
+} from 'recharts';
 import { useSearchParams, useRouter } from 'next/navigation';
 import {
   Search,
@@ -16,6 +25,14 @@ import {
   Calendar,
   Trophy,
   Loader2,
+  Moon,
+  Sun,
+  Coffee,
+  Plus,
+  Minus,
+  Code2,
+  GitPullRequest,
+  CircleDot,
 } from 'lucide-react';
 
 /* ── types ────────────────────────────────────────────────────────────── */
@@ -41,6 +58,9 @@ interface UserStats {
   currentStreak: number;
   peakStreak: number;
   totalContributions: number;
+  codingHabit?: string;
+  totalPRs?: number;
+  totalIssues?: number;
 }
 
 interface LanguageData {
@@ -53,6 +73,8 @@ interface ActivityData {
   date: string;
   count: number;
   intensity: 0 | 1 | 2 | 3 | 4;
+  locAdditions?: number;
+  locDeletions?: number;
 }
 
 interface CompareUserData {
@@ -389,6 +411,378 @@ function CompareSkeleton() {
   );
 }
 
+/* ── helper: coding habit showdown ────────────────────────────────────── */
+
+function CodingHabitCard({
+  username,
+  habit,
+  side,
+}: {
+  username: string;
+  habit?: string;
+  side: 'left' | 'right';
+}) {
+  const isNight = habit === 'Night Owl';
+  const isEarly = habit === 'Early Bird';
+
+  const icon = isNight ? (
+    <Moon size={24} className="text-purple-400" />
+  ) : isEarly ? (
+    <Sun size={24} className="text-amber-400" />
+  ) : (
+    <Coffee size={24} className="text-teal-400" />
+  );
+  const bgClass = isNight
+    ? 'bg-gradient-to-br from-indigo-950 to-purple-950 border-purple-500/30'
+    : isEarly
+      ? 'bg-gradient-to-br from-amber-900/40 to-orange-900/40 border-orange-500/30'
+      : 'bg-gradient-to-br from-teal-900/40 to-emerald-900/40 border-teal-500/30';
+
+  const glowClass = isNight
+    ? 'shadow-[0_0_15px_rgba(168,85,247,0.15)]'
+    : isEarly
+      ? 'shadow-[0_0_15px_rgba(245,158,11,0.15)]'
+      : 'shadow-[0_0_15px_rgba(20,184,166,0.15)]';
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: side === 'left' ? -20 : 20 }}
+      whileInView={{ opacity: 1, x: 0 }}
+      viewport={{ once: true }}
+      whileHover={{ scale: 1.02 }}
+      className={`relative overflow-hidden p-6 rounded-2xl border ${bgClass} ${glowClass} transition-all duration-300 flex flex-col items-center justify-center text-center h-full min-h-[140px]`}
+    >
+      <motion.div
+        animate={{ y: [0, -5, 0] }}
+        transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+        className="mb-3 z-10"
+      >
+        {icon}
+      </motion.div>
+      <h4 className="text-xs font-bold uppercase tracking-widest text-white/70 mb-1 z-10">
+        @{username}
+      </h4>
+      <h3 className="text-xl font-black tracking-tight text-white z-10">{habit || 'Unknown'}</h3>
+
+      {/* Decorative background elements */}
+      {isNight && (
+        <motion.div
+          animate={{ opacity: [0.3, 0.7, 0.3] }}
+          transition={{ duration: 3, repeat: Infinity }}
+          className="absolute top-4 right-6 text-purple-300/20 text-xs"
+        >
+          ★
+        </motion.div>
+      )}
+      {isEarly && (
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
+          className="absolute -bottom-6 -right-6 text-amber-500/10"
+        >
+          <Sun size={80} />
+        </motion.div>
+      )}
+    </motion.div>
+  );
+}
+
+function CodingHabitShowdown({ user1, user2 }: { user1: CompareUserData; user2: CompareUserData }) {
+  return (
+    <div>
+      <h2 className="text-xs text-[#A1A1AA] uppercase tracking-widest font-medium mb-4">
+        Coding Habits
+      </h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative">
+        <CodingHabitCard
+          username={user1.profile.username}
+          habit={user1.stats.codingHabit}
+          side="left"
+        />
+
+        <div className="hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10">
+          <div className="w-8 h-8 rounded-full bg-white dark:bg-[#0a0a0a] border-2 border-black/10 dark:border-[rgba(255,255,255,0.08)] flex items-center justify-center shadow-xl">
+            <span className="text-[10px] font-bold text-[#A1A1AA] tracking-wider">VS</span>
+          </div>
+        </div>
+
+        <CodingHabitCard
+          username={user2.profile.username}
+          habit={user2.stats.codingHabit}
+          side="right"
+        />
+      </div>
+    </div>
+  );
+}
+
+/* ── helper: code volume showdown ─────────────────────────────────────── */
+
+function CodeVolumeShowdown({ user1, user2 }: { user1: CompareUserData; user2: CompareUserData }) {
+  const calcLoC = (activity: ActivityData[]) => {
+    let add = 0,
+      del = 0;
+    activity.forEach((d) => {
+      add += d.locAdditions || 0;
+      del += d.locDeletions || 0;
+    });
+    return { add, del, net: add - del };
+  };
+
+  const loc1 = calcLoC(user1.activity);
+  const loc2 = calcLoC(user2.activity);
+
+  const maxAdd = Math.max(loc1.add, loc2.add, 1);
+  const maxDel = Math.max(loc1.del, loc2.del, 1);
+
+  const users = [
+    { username: user1.profile.username, loc: loc1, side: 'left' as const },
+    { username: user2.profile.username, loc: loc2, side: 'right' as const },
+  ];
+
+  return (
+    <div>
+      <h2 className="text-xs text-[#A1A1AA] uppercase tracking-widest font-medium mb-4 flex items-center gap-2">
+        <Code2 size={14} className="text-violet-400" />
+        Code Volume
+      </h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {users.map(({ username, loc, side }) => (
+          <motion.div
+            key={side}
+            initial={{ opacity: 0, x: side === 'left' ? -20 : 20 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            whileHover={{ scale: 1.01 }}
+            className="relative overflow-hidden p-6 rounded-2xl bg-white dark:bg-[#0a0a0a] border border-black/10 dark:border-[rgba(255,255,255,0.08)] transition-all duration-300"
+          >
+            <h4 className="text-xs font-bold uppercase tracking-widest text-[#A1A1AA] mb-5">
+              @{username}
+            </h4>
+
+            {/* Additions Bar */}
+            <div className="mb-4">
+              <div className="flex justify-between items-center mb-2">
+                <span className="flex items-center gap-1.5 text-xs font-medium text-emerald-500">
+                  <Plus size={12} /> Lines Added
+                </span>
+                <motion.span
+                  initial={{ opacity: 0 }}
+                  whileInView={{ opacity: 1 }}
+                  className="text-sm font-bold text-emerald-500"
+                >
+                  +{loc.add.toLocaleString()}
+                </motion.span>
+              </div>
+              <div className="w-full h-3 bg-gray-100 dark:bg-[#111] rounded-full overflow-hidden border border-black/5 dark:border-[rgba(255,255,255,0.04)]">
+                <motion.div
+                  initial={{ width: 0 }}
+                  whileInView={{ width: `${(loc.add / maxAdd) * 100}%` }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
+                  className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.3)]"
+                />
+              </div>
+            </div>
+
+            {/* Deletions Bar */}
+            <div className="mb-5">
+              <div className="flex justify-between items-center mb-2">
+                <span className="flex items-center gap-1.5 text-xs font-medium text-rose-500">
+                  <Minus size={12} /> Lines Deleted
+                </span>
+                <motion.span
+                  initial={{ opacity: 0 }}
+                  whileInView={{ opacity: 1 }}
+                  className="text-sm font-bold text-rose-500"
+                >
+                  -{loc.del.toLocaleString()}
+                </motion.span>
+              </div>
+              <div className="w-full h-3 bg-gray-100 dark:bg-[#111] rounded-full overflow-hidden border border-black/5 dark:border-[rgba(255,255,255,0.04)]">
+                <motion.div
+                  initial={{ width: 0 }}
+                  whileInView={{ width: `${(loc.del / maxDel) * 100}%` }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1], delay: 0.4 }}
+                  className="h-full rounded-full bg-gradient-to-r from-rose-500 to-rose-400 shadow-[0_0_10px_rgba(244,63,94,0.3)]"
+                />
+              </div>
+            </div>
+
+            {/* Net Impact */}
+            <div className="flex items-center justify-between p-3 rounded-xl bg-gray-50 dark:bg-[#111] border border-black/5 dark:border-[rgba(255,255,255,0.06)]">
+              <span className="text-[9px] font-medium text-[#A1A1AA] uppercase tracking-widest">
+                Net Impact
+              </span>
+              <motion.span
+                initial={{ scale: 0 }}
+                whileInView={{ scale: 1 }}
+                viewport={{ once: true }}
+                transition={{ type: 'spring', stiffness: 300, damping: 20, delay: 0.6 }}
+                className={`text-lg font-black tracking-tight ${loc.net >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}
+              >
+                {loc.net >= 0 ? '+' : ''}
+                {loc.net.toLocaleString()}
+              </motion.span>
+            </div>
+          </motion.div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ── helper: developer skills radar chart ──────────────────────────────── */
+
+function normalizeSkill(value: number, max: number): number {
+  if (max <= 0) return 0;
+  return Math.min(Math.round((value / max) * 100), 100);
+}
+
+function DeveloperSkillsRadar({
+  user1,
+  user2,
+}: {
+  user1: CompareUserData;
+  user2: CompareUserData;
+}) {
+  // Compute raw values for each skill dimension
+  const calcLoC = (activity: ActivityData[]) => {
+    let add = 0;
+    activity.forEach((d) => {
+      add += d.locAdditions || 0;
+    });
+    return add;
+  };
+
+  const raw1 = {
+    volume: user1.stats.totalContributions + calcLoC(user1.activity),
+    consistency: user1.stats.currentStreak * 2 + user1.stats.peakStreak,
+    impact: user1.profile.stats.stars * 3 + user1.profile.stats.followers,
+    collaboration: (user1.stats.totalPRs || 0) * 2 + (user1.stats.totalIssues || 0),
+    versatility: user1.languages.length * 20,
+  };
+
+  const raw2 = {
+    volume: user2.stats.totalContributions + calcLoC(user2.activity),
+    consistency: user2.stats.currentStreak * 2 + user2.stats.peakStreak,
+    impact: user2.profile.stats.stars * 3 + user2.profile.stats.followers,
+    collaboration: (user2.stats.totalPRs || 0) * 2 + (user2.stats.totalIssues || 0),
+    versatility: user2.languages.length * 20,
+  };
+
+  // Normalize against combined max for fair comparison
+  const maxVolume = Math.max(raw1.volume, raw2.volume, 1);
+  const maxConsistency = Math.max(raw1.consistency, raw2.consistency, 1);
+  const maxImpact = Math.max(raw1.impact, raw2.impact, 1);
+  const maxCollaboration = Math.max(raw1.collaboration, raw2.collaboration, 1);
+  const maxVersatility = Math.max(raw1.versatility, raw2.versatility, 1);
+
+  const radarData = [
+    {
+      skill: 'Volume',
+      user1: normalizeSkill(raw1.volume, maxVolume),
+      user2: normalizeSkill(raw2.volume, maxVolume),
+    },
+    {
+      skill: 'Consistency',
+      user1: normalizeSkill(raw1.consistency, maxConsistency),
+      user2: normalizeSkill(raw2.consistency, maxConsistency),
+    },
+    {
+      skill: 'Impact',
+      user1: normalizeSkill(raw1.impact, maxImpact),
+      user2: normalizeSkill(raw2.impact, maxImpact),
+    },
+    {
+      skill: 'Collaboration',
+      user1: normalizeSkill(raw1.collaboration, maxCollaboration),
+      user2: normalizeSkill(raw2.collaboration, maxCollaboration),
+    },
+    {
+      skill: 'Versatility',
+      user1: normalizeSkill(raw1.versatility, maxVersatility),
+      user2: normalizeSkill(raw2.versatility, maxVersatility),
+    },
+  ];
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ duration: 0.6 }}
+    >
+      <h2 className="text-xs text-[#A1A1AA] uppercase tracking-widest font-medium mb-4 flex items-center gap-2">
+        <Trophy size={14} className="text-amber-400" />
+        Developer Skills Radar
+      </h2>
+      <div className="p-6 rounded-xl bg-white dark:bg-[#0a0a0a] border border-black/10 dark:border-[rgba(255,255,255,0.08)]">
+        {/* Legend */}
+        <div className="flex justify-center gap-6 mb-4">
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#8B5CF6' }} />
+            <span className="text-xs text-[#A1A1AA] font-medium">@{user1.profile.username}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#06B6D4' }} />
+            <span className="text-xs text-[#A1A1AA] font-medium">@{user2.profile.username}</span>
+          </div>
+        </div>
+
+        <ResponsiveContainer width="100%" height={380}>
+          <RadarChart cx="50%" cy="50%" outerRadius="75%" data={radarData}>
+            <PolarGrid stroke="rgba(161,161,170,0.15)" strokeDasharray="3 3" />
+            <PolarAngleAxis
+              dataKey="skill"
+              tick={{
+                fill: '#A1A1AA',
+                fontSize: 11,
+                fontWeight: 600,
+              }}
+            />
+            <PolarRadiusAxis angle={90} domain={[0, 100]} tick={false} axisLine={false} />
+            <Radar
+              name={user1.profile.username}
+              dataKey="user1"
+              stroke="#8B5CF6"
+              fill="#8B5CF6"
+              fillOpacity={0.25}
+              strokeWidth={2}
+              dot={{ r: 4, fill: '#8B5CF6', strokeWidth: 0 }}
+              animationDuration={1200}
+              animationEasing="ease-out"
+            />
+            <Radar
+              name={user2.profile.username}
+              dataKey="user2"
+              stroke="#06B6D4"
+              fill="#06B6D4"
+              fillOpacity={0.25}
+              strokeWidth={2}
+              dot={{ r: 4, fill: '#06B6D4', strokeWidth: 0 }}
+              animationDuration={1200}
+              animationEasing="ease-out"
+            />
+            <Tooltip
+              contentStyle={{
+                backgroundColor: '#0a0a0a',
+                border: '1px solid rgba(255,255,255,0.1)',
+                borderRadius: '10px',
+                padding: '10px 14px',
+                fontSize: '12px',
+                color: '#fff',
+              }}
+              itemStyle={{ color: '#e4e4e7', fontSize: '11px' }}
+            />
+          </RadarChart>
+        </ResponsiveContainer>
+      </div>
+    </motion.div>
+  );
+}
+
 /* ── main component ───────────────────────────────────────────────────── */
 
 export default function CompareClient() {
@@ -659,8 +1053,29 @@ export default function CompareClient() {
                     valueA={d1.profile.stats.followers}
                     valueB={d2.profile.stats.followers}
                   />
+                  <StatBattle
+                    label="Pull Requests"
+                    icon={GitPullRequest}
+                    valueA={d1.stats.totalPRs || 0}
+                    valueB={d2.stats.totalPRs || 0}
+                  />
+                  <StatBattle
+                    label="Issues"
+                    icon={CircleDot}
+                    valueA={d1.stats.totalIssues || 0}
+                    valueB={d2.stats.totalIssues || 0}
+                  />
                 </div>
               </div>
+
+              {/* Coding Habits Showdown */}
+              <CodingHabitShowdown user1={d1} user2={d2} />
+
+              {/* Code Volume Showdown */}
+              <CodeVolumeShowdown user1={d1} user2={d2} />
+
+              {/* Developer Skills Radar */}
+              <DeveloperSkillsRadar user1={d1} user2={d2} />
 
               {/* Language Comparison */}
               <LanguageComparison
