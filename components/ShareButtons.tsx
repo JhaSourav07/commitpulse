@@ -11,11 +11,17 @@ export default function ShareButtons({ url, title = '' }: ShareButtonsProps) {
 
   return (
     <div className="flex gap-3">
-      <a href={linkedinUrl} target="_blank" rel="noopener noreferrer">
-        <FaLinkedin size={24} />
+      <a
+        href={linkedinUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="Share on LinkedIn"
+      >
+        <FaLinkedin size={24} aria-hidden="true" />
       </a>
-      <a href={twitterUrl} target="_blank" rel="noopener noreferrer">
-        <FaXTwitter size={24} />
+
+      <a href={twitterUrl} target="_blank" rel="noopener noreferrer" aria-label="Share on X">
+        <FaXTwitter size={24} aria-hidden="true" />
       </a>
     </div>
   );

@@ -28,7 +28,7 @@ describe('ContributorsSearch', () => {
 
   it('renders a search input', () => {
     render(<ContributorsSearch contributors={mockContributors} />);
-    const input = screen.getByPlaceholderText(/search contributors by name/i);
+    const input = screen.getByPlaceholderText(/Search the collective.../i);
     expect(input).toBeTruthy();
   });
 
@@ -41,13 +41,16 @@ describe('ContributorsSearch', () => {
   it('renders contributor login name and contributions count', () => {
     render(<ContributorsSearch contributors={mockContributors} />);
     screen.getByText('alice');
-    screen.getByText('42 contributions');
+    screen.getByText('42');
+    // Using getAllByText since multiple cards will have the text "commits"
+    const commitsText = screen.getAllByText('commits');
+    expect(commitsText.length).toBeGreaterThan(0);
   });
 
   it('filters contributors based on search input', async () => {
     const user = userEvent.setup();
     render(<ContributorsSearch contributors={mockContributors} />);
-    const input = screen.getByPlaceholderText(/search contributors by name/i);
+    const input = screen.getByPlaceholderText(/Search the collective.../i);
     await user.type(input, 'alice');
     screen.getByText('alice');
     expect(screen.queryByText('bob')).toBeNull();
@@ -56,17 +59,17 @@ describe('ContributorsSearch', () => {
   it('ignores leading and trailing whitespace when filtering', async () => {
     const user = userEvent.setup();
     render(<ContributorsSearch contributors={mockContributors} />);
-    const input = screen.getByPlaceholderText(/search contributors by name/i);
+    const input = screen.getByPlaceholderText(/Search the collective.../i);
     await user.type(input, ' alice ');
     screen.getByText('alice');
     expect(screen.queryByText('bob')).toBeNull();
   });
 
-  it('shows "No contributors found" when search has no matches', async () => {
+  it('shows "No architects found" when search has no matches', async () => {
     const user = userEvent.setup();
     render(<ContributorsSearch contributors={mockContributors} />);
-    const input = screen.getByPlaceholderText(/search contributors by name/i);
+    const input = screen.getByPlaceholderText(/Search the collective.../i);
     await user.type(input, 'xyz123');
-    screen.getByText(/no contributors found/i);
+    screen.getByText(/No architects found/i);
   });
 });

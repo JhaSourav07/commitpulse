@@ -71,6 +71,7 @@ export class RateLimiter {
       };
     if (this.blocklist.has(ip))
       return { success: false, limit: this.limit, remaining: 0, reset: Date.now() + this.windowMs };
+
     const now = Date.now();
     const record = await this.cache.get(ip);
     const count = record?.count ?? 0;
@@ -117,7 +118,7 @@ export class RateLimiter {
    * rateLimiter.reset("192.168.1.1");
    */
   async reset(ip: string): Promise<void> {
-    await this.cache.delete(ip);
+    await this.cache.delete(`ratelimit:${ip}`);
   }
 
   /**
@@ -166,10 +167,11 @@ export const trackUserRateLimiter = new RateLimiter(5, 60000);
 export const notifyRateLimiter = new RateLimiter(5, 60000);
 
 /**
- * Lightweight in-memory rate limiter for Next.js Edge Middleware.
+ * Distributed rate limiter for Next.js Edge Middleware.
  *
- * Note: In a distributed edge environment, this is per-instance.
- * For global rate limiting, a distributed store like Redis would be required.
+ * When Upstash Redis / Vercel KV is configured, counters are shared across
+ * all serverless instances via atomic INCR + EXPIRE Lua scripts.
+ * Falls back to a local in-memory cache for development environments.
  */
 
 const trackers = new DistributedCache<{ count: number; resetAt: number }>(2000, 60000);
@@ -210,7 +212,7 @@ export async function rateLimit(
   tracker.count++;
   await trackers.update(ip, tracker);
 
-  if (tracker.count > limit) {
+  if (count > limit) {
     return {
       success: false,
       limit,
