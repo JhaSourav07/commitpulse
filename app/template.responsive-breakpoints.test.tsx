@@ -1,32 +1,75 @@
-import React from 'react';
-import { cleanup, render, screen, fireEvent } from '@testing-library/react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import React, { forwardRef } from 'react';
+import { cleanup, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { afterAll, beforeAll, afterEach, describe, expect, it, vi } from 'vitest';
 import Template from './template';
 
-// Mock framer-motion to avoid animation delays in tests
+// Copilot Fix: Use forwardRef to ensure we don't break components that rely on refs
 type MotionDivProps = React.HTMLAttributes<HTMLDivElement> & {
   children?: React.ReactNode;
 };
 
-vi.mock('framer-motion', () => ({
-  motion: {
-    div: ({ children, ...props }: MotionDivProps) => <div {...props}>{children}</div>,
-  },
-}));
+vi.mock('framer-motion', () => {
+  const MockDiv = forwardRef<HTMLDivElement, MotionDivProps>(({ children, ...props }, ref) => (
+    <div ref={ref} {...props}>
+      {children}
+    </div>
+  ));
+  MockDiv.displayName = 'MotionDiv';
+  return {
+    motion: {
+      div: MockDiv,
+    },
+  };
+});
 
-// Mock matchMedia for responsive testing environments
-Object.defineProperty(window, 'matchMedia', {
-  writable: true,
-  value: vi.fn().mockImplementation((query) => ({
-    matches: query.includes('max-width: 768px'),
-    media: query,
-    onchange: null,
-    addListener: vi.fn(),
-    removeListener: vi.fn(),
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
-    dispatchEvent: vi.fn(),
-  })),
+// Copilot Fix: Make matchMedia configurable, tie it to innerWidth, and clean it up properly
+const originalMatchMedia = window.matchMedia;
+const originalInnerWidth = window.innerWidth;
+
+beforeAll(() => {
+  Object.defineProperty(window, 'matchMedia', {
+    writable: true,
+    configurable: true,
+    value: vi.fn().mockImplementation((query) => {
+      // Dynamic match based on innerWidth
+      const match = query.match(/max-width:\s*(\d+)px/);
+      let matches = false;
+      if (match) {
+        matches = window.innerWidth <= parseInt(match[1], 10);
+      }
+      return {
+        matches,
+        media: query,
+        onchange: null,
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      };
+    }),
+  });
+});
+
+afterAll(() => {
+  // Restore original global to prevent leaking into other tests
+  Object.defineProperty(window, 'matchMedia', {
+    writable: true,
+    configurable: true,
+    value: originalMatchMedia,
+  });
+});
+
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+  // Reset window width to standard desktop
+  Object.defineProperty(window, 'innerWidth', {
+    writable: true,
+    configurable: true,
+    value: originalInnerWidth,
+  });
 });
 
 // A standard responsive fixture layout wrapped inside the Template
@@ -73,22 +116,16 @@ function ResponsiveFixture() {
   );
 }
 
-afterEach(() => {
-  cleanup();
-  vi.restoreAllMocks();
-  // Reset window width to standard desktop
-  Object.defineProperty(window, 'innerWidth', { writable: true, configurable: true, value: 1024 });
-});
-
 describe('AppTemplate Responsive Breakpoints (Variation 7)', () => {
-  it('Case 1: Mocks mobile-width viewports and reflows columns to vertical flex lists', () => {
-    Object.defineProperty(window, 'innerWidth', { writable: true, configurable: true, value: 375 });
-
+  // Copilot Fix: We drop innerWidth manipulation because JSDOM CSS does not reflow.
+  // Instead, we verify the "Responsive Class Contract".
+  it('Case 1: Verifies the presence of responsive flex-col and md:flex-row classes for column reflow', () => {
     render(<ResponsiveFixture />);
     const columnsContainer = screen.getByTestId('content-columns');
 
-    expect(window.innerWidth).toBe(375);
+    // Validates the component applies the correct responsive variants
     expect(columnsContainer.className).toContain('flex-col');
+    expect(columnsContainer.className).toContain('md:flex-row');
   });
 
   it('Case 2: Prevents absolute widths that cause horizontal scrollbars', () => {
@@ -109,7 +146,9 @@ describe('AppTemplate Responsive Breakpoints (Variation 7)', () => {
     expect(nav.className).toContain('justify-between');
   });
 
-  it('Case 4: Asserts mobile-specific toggle states respond cleanly', () => {
+  // Copilot Fix: Upgrade fireEvent to userEvent for more realistic interaction simulation
+  it('Case 4: Asserts mobile-specific toggle states respond cleanly', async () => {
+    const user = userEvent.setup();
     render(<ResponsiveFixture />);
     const toggle = screen.getByTestId('mobile-toggle');
     const navLinks = screen.getByTestId('nav-links');
@@ -119,23 +158,18 @@ describe('AppTemplate Responsive Breakpoints (Variation 7)', () => {
     expect(navLinks.className).toContain('hidden');
 
     // Toggle mobile menu (open)
-    fireEvent.click(toggle);
+    await user.click(toggle);
     expect(toggle.getAttribute('aria-expanded')).toBe('true');
     expect(navLinks.className).toContain('flex');
     expect(navLinks.className).not.toContain('hidden');
   });
 
-  it('Case 5: Restores standard row layout on desktop viewports', () => {
-    Object.defineProperty(window, 'innerWidth', {
-      writable: true,
-      configurable: true,
-      value: 1024,
-    });
-
+  // Copilot Fix: Verify the class contract instead of pseudo-reflow
+  it('Case 5: Verifies the desktop layout responsive variant is present', () => {
     render(<ResponsiveFixture />);
     const columnsContainer = screen.getByTestId('content-columns');
 
-    expect(window.innerWidth).toBe(1024);
+    // Asserts that the desktop override class is available to the browser engine
     expect(columnsContainer.className).toContain('md:flex-row');
   });
 });
