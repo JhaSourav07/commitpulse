@@ -5,7 +5,7 @@ import Leaderboard, { Contributor } from './Leaderboard';
 
 // Mock Next.js Image
 vi.mock('next/image', () => ({
-  default: (props: unknown) => <img alt="mock" {...(props as any)} />,
+  default: (props: React.ImgHTMLAttributes<HTMLImageElement>) => <img alt="mock" {...props} />,
 }));
 
 // Mock Framer Motion
@@ -22,7 +22,7 @@ vi.mock('framer-motion', async () => {
       }: {
         children?: React.ReactNode;
         className?: string;
-        onClick?: () => void;
+        onClick?: React.MouseEventHandler<HTMLDivElement>;
         style?: React.CSSProperties;
       }) => (
         <div className={className} onClick={onClick} style={style} data-testid="motion-div">
@@ -41,7 +41,8 @@ beforeEach(() => {
     unobserve: () => null,
     disconnect: () => null,
   });
-  window.IntersectionObserver = mockIntersectionObserver as any;
+  window.IntersectionObserver =
+    mockIntersectionObserver as unknown as typeof window.IntersectionObserver;
 });
 
 describe('Leaderboard - Massive Scaling & High Bounds (Issue #2754 Equivalent)', () => {
