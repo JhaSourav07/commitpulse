@@ -118,12 +118,30 @@ function extractTextFromBuffer(buffer: Buffer, _mimeType: string): string {
   return printable;
 }
 
+/**
+ * Extracts a phone number from raw resume text.
+ *
+ * Matches common formats including international prefixes,
+ * dashes, dots, spaces, and parentheses.
+ *
+ * @param text - Raw resume text.
+ * @returns The first phone number found, or an empty string.
+ *
+ * @example
+ * const phone = extractPhone(rawText);
+ */
+function extractPhone(text: string): string {
+  const match = text.match(/(\+?\d{1,3}[\s.-]?)?(\(?\d{3}\)?[\s.-]?)(\d{3}[\s.-]?\d{4})/);
+  return match ? match[0].trim() : '';
+}
+
 export async function parseResume(buffer: Buffer, mimeType: string): Promise<ParsedResume> {
   const rawText = extractTextFromBuffer(buffer, mimeType);
 
   return {
     name: extractName(rawText),
     email: extractEmail(rawText),
+    phone: extractPhone(rawText),
     skills: extractSkills(rawText),
     education: extractEducation(rawText),
     experience: extractExperience(rawText),
