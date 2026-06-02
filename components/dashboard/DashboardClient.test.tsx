@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { toast } from 'sonner';
 import DashboardClient from './DashboardClient';
 
 vi.mock('next/navigation', () => ({
@@ -13,6 +14,14 @@ vi.mock('next/navigation', () => ({
   useSearchParams: () => ({
     get: vi.fn(),
   }),
+}));
+
+vi.mock('sonner', () => ({
+  toast: {
+    success: vi.fn(),
+    error: vi.fn(),
+    info: vi.fn(),
+  },
 }));
 
 // Mock framer-motion to avoid animation issues in tests
@@ -205,6 +214,7 @@ const mockPeriod = {
 describe('DashboardClient', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    vi.clearAllMocks();
   });
 
   it('renders standard single profile view by default', () => {
@@ -327,6 +337,46 @@ describe('DashboardClient', () => {
     const generateLink = screen.getByRole('link', { name: /generate your own/i });
     expect(generateLink.getAttribute('href')).toBe('/');
   });
+
+  it('shows a success toast after the dashboard link is copied', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText },
+      configurable: true,
+    });
+
+    render(
+      <DashboardClient initialData={mockInitialData} username="Shivangi1515" period={mockPeriod} />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /^share$/i }));
+
+    await waitFor(() => {
+      expect(writeText).toHaveBeenCalledWith(window.location.href);
+      expect(toast.success).toHaveBeenCalledWith('Link copied to clipboard!');
+    });
+  });
+
+  it('shows an error toast when the dashboard link copy fails', async () => {
+    const writeText = vi.fn().mockRejectedValue(new Error('Permission denied'));
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText },
+      configurable: true,
+    });
+
+    render(
+      <DashboardClient initialData={mockInitialData} username="Shivangi1515" period={mockPeriod} />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /^share$/i }));
+
+    await waitFor(() => {
+      expect(writeText).toHaveBeenCalledWith(window.location.href);
+      expect(toast.error).toHaveBeenCalledWith('Failed to copy dashboard link');
+    });
+    expect(toast.success).not.toHaveBeenCalledWith('Link copied to clipboard!');
+  });
+
   // =========================================================================
   // ISSUE OBJECTIVE: Verify error is shown when comparing with same username
   // =========================================================================

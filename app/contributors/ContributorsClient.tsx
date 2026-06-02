@@ -158,7 +158,7 @@ export default function ContributorsClient({
   return (
     <div
       ref={containerRef}
-      className="relative min-h-screen bg-[#050505] text-white selection:bg-cyan-500/30 overflow-hidden font-sans"
+      className="relative min-h-screen bg-white dark:bg-[#050505] text-black dark:text-white selection:bg-cyan-500/30 overflow-hidden font-sans"
     >
       {/* ── Custom Cursor ── */}
       <div
@@ -173,7 +173,7 @@ export default function ContributorsClient({
         <div className="absolute inset-0 opacity-[0.03] bg-[url('https://upload.wikimedia.org/wikipedia/commons/7/76/1k_Dissolve_Noise_Texture.png')] bg-repeat" />
 
         {/* Animated Grid */}
-        <div className="bg-grid absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]" />
+        <div className="bg-grid absolute inset-0 bg-[linear-gradient(rgba(0,0,0,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.05)_1px,transparent_1px)] dark:bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]" />
 
         {/* Ambient Glows */}
         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-cyan-600/20 blur-[150px]" />
@@ -191,10 +191,10 @@ export default function ContributorsClient({
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1, delay: 0.2, ease: 'easeOut' }}
-            className="mb-8 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 backdrop-blur-md"
+            className="mb-8 inline-flex items-center gap-2 rounded-full border border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/5 px-4 py-2 backdrop-blur-md"
           >
-            <Sparkles className="h-4 w-4 text-cyan-400" />
-            <span className="text-xs uppercase tracking-widest text-zinc-400 font-semibold">
+            <Sparkles className="h-4 w-4 text-cyan-500 dark:text-cyan-400" />
+            <span className="text-xs uppercase tracking-widest text-zinc-600 dark:text-zinc-400 font-semibold">
               The Architect Collective
             </span>
           </motion.div>
@@ -206,7 +206,7 @@ export default function ContributorsClient({
               transition={{ duration: 1.2, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
               className="max-w-6xl text-6xl font-black leading-[0.9] tracking-tighter sm:text-7xl md:text-8xl lg:text-[10rem]"
             >
-              <span className="block text-transparent bg-clip-text bg-gradient-to-b from-white to-white/40">
+              <span className="block text-transparent bg-clip-text bg-gradient-to-b from-black to-black/60 dark:from-white dark:to-white/40">
                 BUILDING
               </span>
               <span className="block text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 pb-4">
@@ -219,7 +219,7 @@ export default function ContributorsClient({
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1, delay: 0.6, ease: 'easeOut' }}
-            className="mt-8 max-w-2xl text-lg md:text-xl text-zinc-400 font-light"
+            className="mt-8 max-w-2xl text-lg md:text-xl text-zinc-600 dark:text-zinc-400 font-light"
           >
             Meet the elite developers shaping the future of GitHub visualization through open-source
             mastery and relentless innovation.
@@ -228,7 +228,7 @@ export default function ContributorsClient({
           <MagneticButton className="mt-12">
             <a
               href="#explore"
-              className="group relative inline-flex items-center justify-center gap-3 rounded-full bg-white px-8 py-4 text-black font-semibold transition-transform hover:scale-105 active:scale-95 overflow-hidden"
+              className="group relative inline-flex items-center justify-center gap-3 rounded-full bg-black dark:bg-white px-8 py-4 text-white dark:text-black font-semibold transition-transform hover:scale-105 active:scale-95 overflow-hidden"
             >
               <span className="relative z-10 flex items-center gap-2">
                 Explore The Elite{' '}
@@ -244,35 +244,35 @@ export default function ContributorsClient({
         {/* ── Stats Section ── */}
         <section ref={statsRef} className="mx-auto max-w-7xl px-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="stat-item group relative overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.02] p-10 backdrop-blur-3xl hover:bg-white/[0.04] transition-colors duration-500">
+            <div className="stat-item group relative overflow-hidden rounded-[2rem] border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02] p-10 backdrop-blur-3xl hover:bg-black/[0.04] dark:hover:bg-white/[0.04] transition-colors duration-500">
               <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-              <Users className="h-10 w-10 text-cyan-400 mb-6" />
+              <Users className="h-10 w-10 text-cyan-500 dark:text-cyan-400 mb-6" />
               <div className="text-6xl font-black tracking-tighter mb-2">
                 <AnimatedCounter value={contributors.length} />+
               </div>
-              <div className="text-zinc-500 uppercase tracking-widest text-sm font-semibold">
+              <div className="text-zinc-600 dark:text-zinc-500 uppercase tracking-widest text-sm font-semibold">
                 Global Architects
               </div>
             </div>
 
-            <div className="stat-item group relative overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.02] p-10 backdrop-blur-3xl hover:bg-white/[0.04] transition-colors duration-500">
+            <div className="stat-item group relative overflow-hidden rounded-[2rem] border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02] p-10 backdrop-blur-3xl hover:bg-black/[0.04] dark:hover:bg-white/[0.04] transition-colors duration-500">
               <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-              <GitPullRequest className="h-10 w-10 text-purple-400 mb-6" />
+              <GitPullRequest className="h-10 w-10 text-purple-500 dark:text-purple-400 mb-6" />
               <div className="text-6xl font-black tracking-tighter mb-2">
                 <AnimatedCounter value={totalContributions} />+
               </div>
-              <div className="text-zinc-500 uppercase tracking-widest text-sm font-semibold">
+              <div className="text-zinc-600 dark:text-zinc-500 uppercase tracking-widest text-sm font-semibold">
                 Total Commits
               </div>
             </div>
 
-            <div className="stat-item group relative overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.02] p-10 backdrop-blur-3xl hover:bg-white/[0.04] transition-colors duration-500">
+            <div className="stat-item group relative overflow-hidden rounded-[2rem] border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02] p-10 backdrop-blur-3xl hover:bg-black/[0.04] dark:hover:bg-white/[0.04] transition-colors duration-500">
               <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-              <Globe className="h-10 w-10 text-blue-400 mb-6" />
-              <div className="text-6xl font-black tracking-tighter mb-2 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-400">
+              <Globe className="h-10 w-10 text-blue-500 dark:text-blue-400 mb-6" />
+              <div className="text-6xl font-black tracking-tighter mb-2 text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-cyan-500 dark:from-blue-400 dark:to-cyan-400">
                 OSS
               </div>
-              <div className="text-zinc-500 uppercase tracking-widest text-sm font-semibold">
+              <div className="text-zinc-600 dark:text-zinc-500 uppercase tracking-widest text-sm font-semibold">
                 Community Driven
               </div>
             </div>
@@ -283,7 +283,7 @@ export default function ContributorsClient({
         <section className="mx-auto mt-40 max-w-7xl px-6">
           <div className="mb-20">
             <h2 className="text-5xl md:text-7xl font-black tracking-tighter">THE VANGUARD</h2>
-            <p className="mt-4 text-xl text-zinc-500 max-w-2xl font-light">
+            <p className="mt-4 text-xl text-zinc-600 dark:text-zinc-500 max-w-2xl font-light">
               The highest impact contributors pushing the boundaries of what is possible.
             </p>
           </div>
@@ -294,7 +294,7 @@ export default function ContributorsClient({
         <section className="mx-auto mt-40 max-w-7xl px-6">
           <div className="mb-20">
             <h2 className="text-5xl md:text-7xl font-black tracking-tighter">THE COLLECTIVE</h2>
-            <p className="mt-4 text-xl text-zinc-500 max-w-2xl font-light">
+            <p className="mt-4 text-xl text-zinc-600 dark:text-zinc-500 max-w-2xl font-light">
               Every single mind that has contributed code, ideas, and passion to the project.
             </p>
           </div>
@@ -303,7 +303,7 @@ export default function ContributorsClient({
 
         {/* ── CTA Section ── */}
         <section className="mx-auto mt-40 mb-20 max-w-5xl px-6">
-          <div className="relative overflow-hidden rounded-[3rem] border border-white/10 bg-white/[0.02] p-16 text-center backdrop-blur-3xl shadow-2xl">
+          <div className="relative overflow-hidden rounded-[3rem] border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02] p-16 text-center backdrop-blur-3xl shadow-2xl">
             {/* Inner Glows */}
             <div className="absolute -top-32 -left-32 w-64 h-64 bg-cyan-500/30 blur-[100px] rounded-full pointer-events-none" />
             <div className="absolute -bottom-32 -right-32 w-64 h-64 bg-purple-500/30 blur-[100px] rounded-full pointer-events-none" />
@@ -311,7 +311,7 @@ export default function ContributorsClient({
             <h2 className="text-5xl md:text-7xl font-black tracking-tighter mb-6">
               READY TO BUILD?
             </h2>
-            <p className="text-xl text-zinc-400 mb-12 max-w-2xl mx-auto font-light">
+            <p className="text-xl text-zinc-600 dark:text-zinc-400 mb-12 max-w-2xl mx-auto font-light">
               Join the elite collective of developers. Your next great contribution starts here.
             </p>
 
@@ -320,7 +320,7 @@ export default function ContributorsClient({
                 <Link
                   href="https://github.com/JhaSourav07/commitpulse"
                   target="_blank"
-                  className="group relative inline-flex items-center gap-3 rounded-full bg-white px-10 py-5 font-bold text-black transition-transform hover:scale-105 active:scale-95"
+                  className="group relative inline-flex items-center gap-3 rounded-full bg-black dark:bg-white px-10 py-5 font-bold text-white dark:text-black transition-transform hover:scale-105 active:scale-95"
                 >
                   <GitFork className="h-6 w-6" />
                   View Repository
@@ -331,7 +331,7 @@ export default function ContributorsClient({
                 <Link
                   href="https://github.com/JhaSourav07/commitpulse/issues"
                   target="_blank"
-                  className="group relative inline-flex items-center gap-3 rounded-full border border-white/20 bg-white/5 px-10 py-5 font-bold text-white transition-colors hover:bg-white/10 hover:border-white/40 backdrop-blur-md"
+                  className="group relative inline-flex items-center gap-3 rounded-full border border-black/20 dark:border-white/20 bg-black/5 dark:bg-white/5 px-10 py-5 font-bold text-black dark:text-white transition-colors hover:bg-black/10 dark:hover:bg-white/10 hover:border-black/40 dark:hover:border-white/40 backdrop-blur-md"
                 >
                   Start Contributing{' '}
                   <ArrowRight className="h-5 w-5 group-hover:translate-x-2 transition-transform" />
