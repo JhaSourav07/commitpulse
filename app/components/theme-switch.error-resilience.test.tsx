@@ -3,10 +3,10 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { ThemeToggleButton, createAnimation } from './theme-switch';
 
-interface ErrorBoundaryProps {
+type ErrorBoundaryProps = React.PropsWithChildren<{
   onError?: (error: Error, info: ErrorInfo) => void;
   onReset?: () => void;
-}
+}>;
 
 interface ErrorBoundaryState {
   hasError: boolean;
