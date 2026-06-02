@@ -103,3 +103,19 @@ Usage: `/api/streak?user=yourusername&theme=synthwave`
 Near-black background with vivid red-orange accent and medium-grey text — maximum legibility on both solid and transparent backgrounds for low-vision accessibility.
 
 Usage: `/api/streak?user=yourusername&theme=highcontrast`
+
+---
+
+## 🏙️ Tokyo Night
+
+![Tokyo Night](assets/themes/tokyonight.png)
+
+Usage: `/api/streak?user=yourusername&theme=tokyonight`
+
+---
+
+## 🤖 Cyberpunk
+
+![Cyberpunk](assets/themes/cyberpunk.png)
+
+Usage: `/api/streak?user=yourusername&theme=cyberpunk`

@@ -67,6 +67,16 @@ export const themes: Record<string, BadgeTheme> = {
     text: '888888',
     accent: 'ff4500',
   },
+  tokyonight: {
+    bg: '1a1b26',
+    text: 'c0caf5',
+    accent: 'f7768e',
+  },
+  cyberpunk: {
+    bg: 'fce22a',
+    text: '111111',
+    accent: 'ff003c',
+  },
 };
 
 // Auto-theme pairs: the SVG switches between these two palettes
