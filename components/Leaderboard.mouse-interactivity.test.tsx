@@ -37,25 +37,29 @@ describe('Leaderboard - Mouse Interactivity & Touch Events (Issue #2757 Equivale
 
   it('Interactive Pointer Detection (Cursor Hovers Equivalent): applies explicit cursor-pointer classes on interactive elements', () => {
     const { container } = render(<Leaderboard contributors={mockData} />);
-    
+
     // Check podiums
     const podiums = container.querySelectorAll('.w-28.sm\\:w-36.cursor-pointer');
     expect(podiums.length).toBeGreaterThan(0);
-    
+
     // Check list entries
-    const listEntries = container.querySelectorAll('.flex.items-center.justify-between.p-4.cursor-pointer');
+    const listEntries = container.querySelectorAll(
+      '.flex.items-center.justify-between.p-4.cursor-pointer'
+    );
     expect(listEntries.length).toBe(1); // user4
   });
 
   it('Event Propagation to DOM Targets (Touch Propagation Equivalent): fires document scroll bounds safely on click', () => {
     const scrollIntoViewMock = vi.fn();
     document.getElementById = vi.fn().mockReturnValue({
-      scrollIntoView: scrollIntoViewMock
+      scrollIntoView: scrollIntoViewMock,
     });
 
     const { container } = render(<Leaderboard contributors={mockData} />);
-    
-    const listItem = container.querySelector('.flex.items-center.justify-between.p-4.cursor-pointer') as HTMLElement;
+
+    const listItem = container.querySelector(
+      '.flex.items-center.justify-between.p-4.cursor-pointer'
+    ) as HTMLElement;
     fireEvent.click(listItem);
 
     // Verifies the target scroll view was intercepted and fired
@@ -65,8 +69,10 @@ describe('Leaderboard - Mouse Interactivity & Touch Events (Issue #2757 Equivale
 
   it('Hover State Visibility (Tooltips Equivalent): transitions text and background colors via group-hover structurally', () => {
     const { container } = render(<Leaderboard contributors={mockData} />);
-    
-    const listItem = container.querySelector('.flex.items-center.justify-between.p-4.cursor-pointer');
+
+    const listItem = container.querySelector(
+      '.flex.items-center.justify-between.p-4.cursor-pointer'
+    );
     // Ensure the Tailwind structural classes that handle the state change are natively present
     expect(listItem?.className).toContain('hover:bg-black/[0.06]');
     expect(listItem?.className).toContain('group');
@@ -74,7 +80,7 @@ describe('Leaderboard - Mouse Interactivity & Touch Events (Issue #2757 Equivale
 
   it('Mouse Leave Recovery (Hiding Overlay visuals Equivalent): ensures transition duration limits are bounded safely', () => {
     const { container } = render(<Leaderboard contributors={mockData} />);
-    
+
     const listItems = container.querySelectorAll('.transition-all.duration-300');
     // Validates the recovery speeds don't trap the user in floating states
     expect(listItems.length).toBeGreaterThan(0);
@@ -82,7 +88,7 @@ describe('Leaderboard - Mouse Interactivity & Touch Events (Issue #2757 Equivale
 
   it('Nested Interactive Scopes: validates avatar glow triggers specifically isolate under parental group hover boundaries', () => {
     const { container } = render(<Leaderboard contributors={mockData} />);
-    
+
     // Verify the avatar borders only activate under group-hover targeting
     const listAvatar = container.querySelector('.group-hover\\:border-cyan-400\\/40');
     expect(listAvatar).toBeTruthy();
