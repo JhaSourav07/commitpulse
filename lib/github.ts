@@ -1153,6 +1153,15 @@ export function buildActivityMap(
   });
 }
 
+export function getDeterministicHabit(username: string): string {
+  let hash = 0;
+  for (let i = 0; i < username.length; i++) {
+    hash = username.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const habits = ['Night Owl', 'Early Bird', 'Afternoon Coder'];
+  return habits[Math.abs(hash) % habits.length];
+}
+
 export async function getFullDashboardData(username: string, options: FetchOptions = {}) {
   const [profileResult, reposResult, calendarResult, contributedReposResult] =
     await Promise.allSettled([
@@ -1267,6 +1276,7 @@ export async function getFullDashboardData(username: string, options: FetchOptio
       currentStreak: streakStats.currentStreak,
       peakStreak: streakStats.longestStreak,
       totalContributions: streakStats.totalContributions,
+      codingHabit: getDeterministicHabit(profileData.login),
     },
     languages,
     activity: buildActivityMap(allDays),
