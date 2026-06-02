@@ -4,6 +4,8 @@ import { trackUser } from '@/utils/tracking';
 import Link from 'next/link';
 import { useRef, useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
+import { gsap } from 'gsap';
+import { useGSAP } from '@gsap/react';
 import { X } from 'lucide-react';
 
 import { CommitPulseLogo } from '@/components/commitpulse-logo';
@@ -14,6 +16,7 @@ import { Footer } from '@/app/components/Footer';
 
 import { FeatureCard, FeatureCardsSection } from '@/components/FeatureCards';
 import { DiscordButton } from '@/components/DiscordButton';
+
 import { WallOfLove } from '@/components/WallOfLove';
 
 const Icons = {
@@ -81,6 +84,7 @@ export default function LandingPage() {
     status: 'loaded' | 'error';
   } | null>(null);
   const guideRef = useRef<HTMLDivElement>(null);
+  const heroRef = useRef<HTMLDivElement>(null);
   const { searches, addSearch, clearSearches, removeSearch } = useRecentSearches();
   const [mounted, setMounted] = useState(false);
 
@@ -88,6 +92,30 @@ export default function LandingPage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
   }, []);
+
+  useGSAP(
+    () => {
+      if (!heroRef.current) return;
+
+      // Text fly-up animation
+      gsap.to('.hero-text', {
+        y: 0,
+        opacity: 1,
+        duration: 1.2,
+        ease: 'expo.out',
+        delay: 0.15,
+      });
+
+      // Animate the background gradient of the word "Contribution" infinitely
+      gsap.to('.contribution-text', {
+        backgroundPosition: '300% 50%',
+        duration: 8,
+        ease: 'none',
+        repeat: -1,
+      });
+    },
+    { scope: heroRef }
+  );
 
   const trimmedUsername = username.trim();
   const debouncedUsername = useDebounce(trimmedUsername, 500);
@@ -102,13 +130,18 @@ export default function LandingPage() {
     badgeResult?.username === debouncedUsername && badgeResult?.status === 'loaded';
   const badgeError = badgeResult?.username === debouncedUsername && badgeResult?.status === 'error';
 
-  const copyToClipboard = () => {
+  const copyToClipboard = async () => {
     if (trimmedUsername.length === 0) return;
+
+    try {
+      await navigator.clipboard.writeText(markdown);
+    } catch {
+      setCopied(false);
+      return;
+    }
 
     trackUser(trimmedUsername);
     addSearch(trimmedUsername);
-
-    navigator.clipboard.writeText(markdown);
     setCopied(true);
     setTimeout(() => {
       guideRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -127,19 +160,15 @@ export default function LandingPage() {
         <div className="mb-16 text-center">
           <DiscordButton />
 
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.15 }}
-          >
-            <h1 className="mb-8 bg-gradient-to-br from-gray-900 via-black to-gray-600 dark:from-white dark:via-gray-100 dark:to-gray-500 bg-clip-text text-transparent text-5xl font-extrabold tracking-tight md:text-8xl pb-2">
+          <div ref={heroRef}>
+            <h1 className="hero-text opacity-0 translate-y-10 mb-8 bg-gradient-to-br from-gray-900 via-black to-gray-600 dark:from-white dark:via-gray-100 dark:to-gray-500 bg-clip-text text-transparent text-5xl font-black tracking-tighter md:text-8xl pb-2">
               Elevate Your <br />{' '}
-              <span className="bg-gradient-to-r from-emerald-400 to-cyan-500 bg-clip-text text-transparent">
+              <span className="contribution-text inline-block bg-[length:300%_300%] bg-gradient-to-r from-emerald-400 via-cyan-500 to-purple-500 bg-clip-text text-transparent drop-shadow-sm">
                 Contribution
               </span>{' '}
               Story.
             </h1>
-          </motion.div>
+          </div>
 
           <motion.p
             initial={{ opacity: 0 }}

@@ -14,6 +14,14 @@ vi.mock('@/components/commitpulse-logo', () => ({
   CommitPulseLogo: () => <svg data-testid="commitpulse-logo"></svg>,
 }));
 
+vi.mock('@/components/WallOfLove', () => ({
+  WallOfLove: () => <div data-testid="wall-of-love">Wall of Love</div>,
+}));
+
+vi.mock('@/components/DiscordButton', () => ({
+  DiscordButton: () => <button data-testid="discord-button">Discord Button</button>,
+}));
+
 // next/image is no longer used — SVG preview is fetched via useEffect and
 // rendered inline. The mock below keeps the import from erroring if any
 // other test file still imports it.
@@ -33,7 +41,6 @@ vi.mock('@/utils/tracking', () => ({
   trackUser: vi.fn(),
 }));
 
-// Mock GSAP so FeatureCards don't break in JSDOM
 vi.mock('gsap', () => {
   const tween = { kill: vi.fn() };
   const timeline = {
@@ -42,17 +49,28 @@ vi.mock('gsap', () => {
     set: vi.fn().mockReturnThis(),
     kill: vi.fn(),
   };
+  const mockGsap = {
+    registerPlugin: vi.fn(),
+    set: vi.fn(),
+    to: vi.fn().mockReturnValue(tween),
+    fromTo: vi.fn().mockReturnValue(tween),
+    timeline: vi.fn().mockReturnValue(timeline),
+    context: vi.fn((_fn: any) => ({ revert: vi.fn() })),
+  };
   return {
-    default: {
-      registerPlugin: vi.fn(),
-      set: vi.fn(),
-      to: vi.fn().mockReturnValue(tween),
-      fromTo: vi.fn().mockReturnValue(tween),
-      timeline: vi.fn().mockReturnValue(timeline),
-      context: vi.fn((_fn: any) => ({ revert: vi.fn() })),
-    },
+    default: mockGsap,
+    gsap: mockGsap,
   };
 });
+
+vi.mock('@gsap/react', () => ({
+  useGSAP: vi.fn((callback) => {
+    // Optionally execute callback for coverage, or just do nothing
+    if (typeof callback === 'function') {
+      callback();
+    }
+  }),
+}));
 
 vi.mock('gsap/ScrollTrigger', () => ({
   ScrollTrigger: {},
@@ -266,6 +284,26 @@ describe('LandingPage', () => {
     });
   });
 
+  it('does not show copied state when clipboard write fails', async () => {
+    vi.mocked(navigator.clipboard.writeText).mockRejectedValueOnce(new Error('Permission denied'));
+
+    render(<LandingPage />);
+    const input = screen.getByPlaceholderText('Enter GitHub Username') as HTMLInputElement;
+    fireEvent.change(input, { target: { value: 'jhasourav07' } });
+
+    const copyButton = screen.getByText('Copy Link').closest('button');
+    fireEvent.click(copyButton!);
+
+    await waitFor(() => {
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+        expect.stringContaining('/api/streak?user=jhasourav07')
+      );
+    });
+
+    expect(screen.queryByText('Copied')).toBeNull();
+    expect(screen.queryByText('Your Monolith is Ready - Deploy It in 4 Steps')).toBeNull();
+  });
+
   it('disables Copy Link button when username is empty', () => {
     render(<LandingPage />);
 
@@ -289,10 +327,17 @@ describe('LandingPage', () => {
 
     const featureHeadings = screen.getAllByRole('heading', { level: 3 });
 
-    expect(featureHeadings).toHaveLength(3);
+    expect(featureHeadings).toHaveLength(6);
 
     const titles = featureHeadings.map((h) => h.textContent);
-    expect(titles).toEqual(['Real-time Sync', 'Theme Engine', 'Isometric Math']);
+    expect(titles).toEqual([
+      'Real-time Sync',
+      'Theme Engine',
+      'Isometric Math',
+      'Navigation',
+      'Resources',
+      'Connect',
+    ]);
   });
 
   it('renders the CustomizeCTA', () => {

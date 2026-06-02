@@ -169,7 +169,7 @@ export function shiftDashboardPeriod(
     const to = new Date(period.to);
     const spanDays = Math.max(
       1,
-      Math.round((to.getTime() - from.getTime()) / (24 * 60 * 60 * 1000)) + 1
+      Math.round((to.getTime() - from.getTime()) / (24 * 60 * 60 * 1000))
     );
     const shiftedFrom = addDaysUtc(from, offset * spanDays);
     const shiftedTo = addDaysUtc(to, offset * spanDays);

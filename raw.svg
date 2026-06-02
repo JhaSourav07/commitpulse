@@ -1,0 +1,1403 @@
+
+<svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 600 420" fill="none" role="img" aria-labelledby="cp-title-animesh-86" aria-describedby="cp-desc-animesh-86">
+  
+  <title id="cp-title-animesh-86">CommitPulse User Stats for Animesh-86</title>
+  <desc id="cp-desc-animesh-86">
+    Animesh-86 has 656 total contributions and a longest streak of 19 days.
+  </desc>
+  <defs>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="5" result="blur" /><feComposite in="SourceGraphic" in2="blur" operator="over" /></filter>
+    
+  </defs>
+  
+  <style>
+  @import url('https://fonts.googleapis.com/css2?family=Fira+Code&amp;family=JetBrains+Mono&amp;family=Roboto&amp;family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');
+  
+  
+    .cp-tower {
+      
+      transform: scaleY(0);
+      transform-origin: 0 10px;
+      animation: grow-up 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    
+    }
+    
+      @keyframes grow-up {
+        from { transform: scaleY(0); }
+        to   { transform: scaleY(1); }
+      }
+    
+    @media (prefers-reduced-motion: reduce) {
+      .cp-tower { animation: none !important; transform: scaleY(1) translateY(0) !important; opacity: 1 !important; }
+    }
+  
+  .scan-line {
+    animation: scan-sweep var(--scan-speed, 8s) linear infinite;
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+  @keyframes scan-sweep {
+    from { transform: translateY(var(--scan-start, 0px)); }
+    to { transform: translateY(var(--scan-end, 240px)); }
+  }
+  .title { font-family: "Syncopate", sans-serif; fill: #c9d1d9; font-size: 18px; letter-spacing: 6px; font-weight: 400; opacity: 0.8; }
+  .stats { font-family: "Space Grotesk", sans-serif; fill: #c9d1d9; font-size: 42px; font-weight: 500; letter-spacing: 0; }
+  .total-val { font-family: "Space Grotesk", sans-serif; fill: #58a6ff; font-size: 24px; font-weight: 500; }
+  .label { font-family: "Roboto", sans-serif; fill: #58a6ff; font-size: 11px; font-weight: 400; letter-spacing: 2px; opacity: 0.7; }
+  @media (prefers-reduced-motion: reduce) {
+    .heat-particles { display: none; }
+    .scan-line {
+      animation: none !important;
+      transition: none !important;
+      transform: translateY(var(--scan-start, 0px)) !important;
+    }
+  }
+  .isometric-label { font-family: "Roboto", sans-serif; font-size: 10px; font-weight: 400; letter-spacing: 1px; fill-opacity: 0.6; }
+  
+  .interactive-tower { transition: transform 0.2s ease, filter 0.2s ease; cursor: pointer; }
+  .interactive-tower:hover { transform: translateY(-4px); filter: brightness(1.2) drop-shadow(0 4px 8px #58a6ff66); }
+  
+  </style>
+  <rect width="600" height="420" rx="8" fill="#0d1117"  />
+  <g id="cp-towers" style="transform-origin: center; transform-box: fill-box;" transform="translate(0, 20)">
+        <g transform="translate(300, 120)">
+          <g class="cp-tower interactive-tower" data-date="2026-03-01" data-count="1" data-metric="Active day" style="animation-delay: 0.000s;">
+            
+            <title>2026-03-01: 1 contributions</title>
+            <path d="M0 5 L0 10 L-16 0 L-16 -5 Z" fill="#58a6ff" fill-opacity="0.35"  />
+            <path d="M0 5 L0 10 L16 0 L16 -5 Z" fill="#58a6ff" fill-opacity="0.21"  />
+            <path d="M0 -5 L16 5 L0 15 L-16 5 Z" fill="#58a6ff" fill-opacity="0.7"  />
+            
+          </g>
+        </g>
+        <g transform="translate(284, 130)">
+          <g class="cp-tower interactive-tower" data-date="2026-03-02" data-count="0" data-metric="Rest day" style="animation-delay: 0.015s;">
+            
+            <title>2026-03-02: 0 contributions</title>
+            <path d="M0 10 L0 10 L-16 0 L-16 0 Z" fill="#58a6ff" fill-opacity="0"  />
+            <path d="M0 10 L0 10 L16 0 L16 0 Z" fill="#58a6ff" fill-opacity="0"  />
+            <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.08"  />
+            
+          </g>
+        </g>
+        <g transform="translate(268, 140)">
+          <g class="cp-tower interactive-tower" data-date="2026-03-03" data-count="0" data-metric="Rest day" style="animation-delay: 0.030s;">
+            
+            <title>2026-03-03: 0 contributions</title>
+            <path d="M0 10 L0 10 L-16 0 L-16 0 Z" fill="#58a6ff" fill-opacity="0"  />
+            <path d="M0 10 L0 10 L16 0 L16 0 Z" fill="#58a6ff" fill-opacity="0"  />
+            <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.08"  />
+            
+          </g>
+        </g>
+        <g transform="translate(252, 150)">
+          <g class="cp-tower interactive-tower" data-date="2026-03-04" data-count="1" data-metric="Active day" style="animation-delay: 0.045s;">
+            
+            <title>2026-03-04: 1 contributions</title>
+            <path d="M0 5 L0 10 L-16 0 L-16 -5 Z" fill="#58a6ff" fill-opacity="0.35"  />
+            <path d="M0 5 L0 10 L16 0 L16 -5 Z" fill="#58a6ff" fill-opacity="0.21"  />
+            <path d="M0 -5 L16 5 L0 15 L-16 5 Z" fill="#58a6ff" fill-opacity="0.7"  />
+            
+          </g>
+        </g>
+        <g transform="translate(236, 160)">
+          <g class="cp-tower interactive-tower" data-date="2026-03-05" data-count="5" data-metric="Active day" style="animation-delay: 0.060s;">
+            
+            <title>2026-03-05: 5 contributions</title>
+            <path d="M0 -15 L0 10 L-16 0 L-16 -25 Z" fill="#58a6ff" fill-opacity="0.35"  />
+            <path d="M0 -15 L0 10 L16 0 L16 -25 Z" fill="#58a6ff" fill-opacity="0.21"  />
+            <path d="M0 -25 L16 -15 L0 -5 L-16 -15 Z" fill="#58a6ff" fill-opacity="0.7"  />
+            
+          </g>
+        </g>
+        <g transform="translate(220, 170)">
+          <g class="cp-tower interactive-tower" data-date="2026-03-06" data-count="8" data-metric="Active day" style="animation-delay: 0.075s;">
+            
+            <title>2026-03-06: 8 contributions</title>
+            <path d="M0 -30 L0 10 L-16 0 L-16 -40 Z" fill="#58a6ff" fill-opacity="0.35"  />
+            <path d="M0 -30 L0 10 L16 0 L16 -40 Z" fill="#58a6ff" fill-opacity="0.21"  />
+            <path d="M0 -40 L16 -30 L0 -20 L-16 -30 Z" fill="#58a6ff" fill-opacity="0.7"  />
+            <path d="M0 -40 L16 -30 L0 -20 L-16 -30 Z" fill="white" fill-opacity="0.2" />
+          </g>
+        </g>
+        <g transform="translate(204, 180)">
+          <g class="cp-tower interactive-tower" data-date="2026-03-07" data-count="11" data-metric="Active day" style="animation-delay: 0.090s;">
+            
+            <title>2026-03-07: 11 contributions</title>
+            <path d="M0 -40 L0 10 L-16 0 L-16 -50 Z" fill="#58a6ff" fill-opacity="0.35"  />
+            <path d="M0 -40 L0 10 L16 0 L16 -50 Z" fill="#58a6ff" fill-opacity="0.21"  />
+            <path d="M0 -50 L16 -40 L0 -30 L-16 -40 Z" fill="#58a6ff" fill-opacity="0.7"  />
+            <path d="M0 -50 L16 -40 L0 -30 L-16 -40 Z" fill="white" fill-opacity="0.2" />
+          </g>
+        </g><g class="heat-particles" pointer-events="none">
+      <circle fill="#58a6ff" cx="206.67037341976538" cy="130" r="1.5" opacity="1" pointer-events="none">
+      
+        <animate attributeName="cy" from="130" to="110" dur="1.5s" begin="1.4307151063112542s" repeatCount="indefinite" />
+        <animate attributeName="opacity" from="1" to="0" dur="1.5s" begin="1.4307151063112542s" repeatCount="indefinite" />
+      
+      </circle>
+    
+      <circle fill="#58a6ff" cx="202.79748995415866" cy="130" r="1.5" opacity="1" pointer-events="none">
+      
+        <animate attributeName="cy" from="130" to="110" dur="1.5s" begin="0.161495077656582s" repeatCount="indefinite" />
+        <animate attributeName="opacity" from="1" to="0" dur="1.5s" begin="0.161495077656582s" repeatCount="indefinite" />
+      
+      </circle>
+    
+      <circle fill="#58a6ff" cx="202.40320056444034" cy="130" r="1.5" opacity="1" pointer-events="none">
+      
+        <animate attributeName="cy" from="130" to="110" dur="1.5s" begin="0.43202049715910107s" repeatCount="indefinite" />
+        <animate attributeName="opacity" from="1" to="0" dur="1.5s" begin="0.43202049715910107s" repeatCount="indefinite" />
+      
+      </circle>
+    </g>
+        <g transform="translate(316, 130)">
+          <g class="cp-tower interactive-tower" data-date="2026-03-08" data-count="2" data-metric="Active day" style="animation-delay: 0.015s;">
+            
+            <title>2026-03-08: 2 contributions</title>
+            <path d="M0 0 L0 10 L-16 0 L-16 -10 Z" fill="#58a6ff" fill-opacity="0.35"  />
+            <path d="M0 0 L0 10 L16 0 L16 -10 Z" fill="#58a6ff" fill-opacity="0.21"  />
+            <path d="M0 -10 L16 0 L0 10 L-16 0 Z" fill="#58a6ff" fill-opacity="0.7"  />
+            
+          </g>
+        </g>
+        <g transform="translate(300, 140)">
+          <g class="cp-tower interactive-tower" data-date="2026-03-09" data-count="2" data-metric="Active day" style="animation-delay: 0.030s;">
+            
+            <title>2026-03-09: 2 contributions</title>
+            <path d="M0 0 L0 10 L-16 0 L-16 -10 Z" fill="#58a6ff" fill-opacity="0.35"  />
+            <path d="M0 0 L0 10 L16 0 L16 -10 Z" fill="#58a6ff" fill-opacity="0.21"  />
+            <path d="M0 -10 L16 0 L0 10 L-16 0 Z" fill="#58a6ff" fill-opacity="0.7"  />
+            
+          </g>
+        </g>
+        <g transform="translate(284, 150)">
+          <g class="cp-tower interactive-tower" data-date="2026-03-10" data-count="1" data-metric="Active day" style="animation-delay: 0.045s;">
+            
+            <title>2026-03-10: 1 contributions</title>
+            <path d="M0 5 L0 10 L-16 0 L-16 -5 Z" fill="#58a6ff" fill-opacity="0.35"  />
+            <path d="M0 5 L0 10 L16 0 L16 -5 Z" fill="#58a6ff" fill-opacity="0.21"  />
+            <path d="M0 -5 L16 5 L0 15 L-16 5 Z" fill="#58a6ff" fill-opacity="0.7"  />
+            
+          </g>
+        </g>
+        <g transform="translate(268, 160)">
+          <g class="cp-tower interactive-tower" data-date="2026-03-11" data-count="3" data-metric="Active day" style="animation-delay: 0.060s;">
+            
+            <title>2026-03-11: 3 contributions</title>
+            <path d="M0 -5 L0 10 L-16 0 L-16 -15 Z" fill="#58a6ff" fill-opacity="0.35"  />
+            <path d="M0 -5 L0 10 L16 0 L16 -15 Z" fill="#58a6ff" fill-opacity="0.21"  />
+            <path d="M0 -15 L16 -5 L0 5 L-16 -5 Z" fill="#58a6ff" fill-opacity="0.7"  />
+            
+          </g>
+        </g>
+        <g transform="translate(252, 170)">
+          <g class="cp-tower interactive-tower" data-date="2026-03-12" data-count="2" data-metric="Active day" style="animation-delay: 0.075s;">
+            
+            <title>2026-03-12: 2 contributions</title>
+            <path d="M0 0 L0 10 L-16 0 L-16 -10 Z" fill="#58a6ff" fill-opacity="0.35"  />
+            <path d="M0 0 L0 10 L16 0 L16 -10 Z" fill="#58a6ff" fill-opacity="0.21"  />
+            <path d="M0 -10 L16 0 L0 10 L-16 0 Z" fill="#58a6ff" fill-opacity="0.7"  />
+            
+          </g>
+        </g>
+        <g transform="translate(236, 180)">
+          <g class="cp-tower interactive-tower" data-date="2026-03-13" data-count="0" data-metric="Rest day" style="animation-delay: 0.090s;">
+            
+            <title>2026-03-13: 0 contributions</title>
+            <path d="M0 10 L0 10 L-16 0 L-16 0 Z" fill="#58a6ff" fill-opacity="0"  />
+            <path d="M0 10 L0 10 L16 0 L16 0 Z" fill="#58a6ff" fill-opacity="0"  />
+            <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.08"  />
+            
+          </g>
+        </g>
+        <g transform="translate(220, 190)">
+          <g class="cp-tower interactive-tower" data-date="2026-03-14" data-count="0" data-metric="Rest day" style="animation-delay: 0.105s;">
+            
+            <title>2026-03-14: 0 contributions</title>
+            <path d="M0 10 L0 10 L-16 0 L-16 0 Z" fill="#58a6ff" fill-opacity="0"  />
+            <path d="M0 10 L0 10 L16 0 L16 0 Z" fill="#58a6ff" fill-opacity="0"  />
+            <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.08"  />
+            
+          </g>
+        </g>
+        <g transform="translate(332, 140)">
+          <g class="cp-tower interactive-tower" data-date="2026-03-15" data-count="1" data-metric="Active day" style="animation-delay: 0.030s;">
+            
+            <title>2026-03-15: 1 contributions</title>
+            <path d="M0 5 L0 10 L-16 0 L-16 -5 Z" fill="#58a6ff" fill-opacity="0.35"  />
+            <path d="M0 5 L0 10 L16 0 L16 -5 Z" fill="#58a6ff" fill-opacity="0.21"  />
+            <path d="M0 -5 L16 5 L0 15 L-16 5 Z" fill="#58a6ff" fill-opacity="0.7"  />
+            
+          </g>
+        </g>
+        <g transform="translate(316, 150)">
+          <g class="cp-tower interactive-tower" data-date="2026-03-16" data-count="0" data-metric="Rest day" style="animation-delay: 0.045s;">
+            
+            <title>2026-03-16: 0 contributions</title>
+            <path d="M0 10 L0 10 L-16 0 L-16 0 Z" fill="#58a6ff" fill-opacity="0"  />
+            <path d="M0 10 L0 10 L16 0 L16 0 Z" fill="#58a6ff" fill-opacity="0"  />
+            <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.08"  />
+            
+          </g>
+        </g>
+        <g transform="translate(300, 160)">
+          <g class="cp-tower interactive-tower" data-date="2026-03-17" data-count="0" data-metric="Rest day" style="animation-delay: 0.060s;">
+            
+            <title>2026-03-17: 0 contributions</title>
+            <path d="M0 10 L0 10 L-16 0 L-16 0 Z" fill="#58a6ff" fill-opacity="0"  />
+            <path d="M0 10 L0 10 L16 0 L16 0 Z" fill="#58a6ff" fill-opacity="0"  />
+            <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.08"  />
+            
+          </g>
+        </g>
+        <g transform="translate(284, 170)">
+          <g class="cp-tower interactive-tower" data-date="2026-03-18" data-count="2" data-metric="Active day" style="animation-delay: 0.075s;">
+            
+            <title>2026-03-18: 2 contributions</title>
+            <path d="M0 0 L0 10 L-16 0 L-16 -10 Z" fill="#58a6ff" fill-opacity="0.35"  />
+            <path d="M0 0 L0 10 L16 0 L16 -10 Z" fill="#58a6ff" fill-opacity="0.21"  />
+            <path d="M0 -10 L16 0 L0 10 L-16 0 Z" fill="#58a6ff" fill-opacity="0.7"  />
+            
+          </g>
+        </g>
+        <g transform="translate(268, 180)">
+          <g class="cp-tower interactive-tower" data-date="2026-03-19" data-count="0" data-metric="Rest day" style="animation-delay: 0.090s;">
+            
+            <title>2026-03-19: 0 contributions</title>
+            <path d="M0 10 L0 10 L-16 0 L-16 0 Z" fill="#58a6ff" fill-opacity="0"  />
+            <path d="M0 10 L0 10 L16 0 L16 0 Z" fill="#58a6ff" fill-opacity="0"  />
+            <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.08"  />
+            
+          </g>
+        </g>
+        <g transform="translate(252, 190)">
+          <g class="cp-tower interactive-tower" data-date="2026-03-20" data-count="0" data-metric="Rest day" style="animation-delay: 0.105s;">
+            
+            <title>2026-03-20: 0 contributions</title>
+            <path d="M0 10 L0 10 L-16 0 L-16 0 Z" fill="#58a6ff" fill-opacity="0"  />
+            <path d="M0 10 L0 10 L16 0 L16 0 Z" fill="#58a6ff" fill-opacity="0"  />
+            <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.08"  />
+            
+          </g>
+        </g>
+        <g transform="translate(236, 200)">
+          <g class="cp-tower interactive-tower" data-date="2026-03-21" data-count="3" data-metric="Active day" style="animation-delay: 0.120s;">
+            
+            <title>2026-03-21: 3 contributions</title>
+            <path d="M0 -5 L0 10 L-16 0 L-16 -15 Z" fill="#58a6ff" fill-opacity="0.35"  />
+            <path d="M0 -5 L0 10 L16 0 L16 -15 Z" fill="#58a6ff" fill-opacity="0.21"  />
+            <path d="M0 -15 L16 -5 L0 5 L-16 -5 Z" fill="#58a6ff" fill-opacity="0.7"  />
+            
+          </g>
+        </g>
+        <g transform="translate(348, 150)">
+          <g class="cp-tower interactive-tower" data-date="2026-03-22" data-count="3" data-metric="Active day" style="animation-delay: 0.045s;">
+            
+            <title>2026-03-22: 3 contributions</title>
+            <path d="M0 -5 L0 10 L-16 0 L-16 -15 Z" fill="#58a6ff" fill-opacity="0.35"  />
+            <path d="M0 -5 L0 10 L16 0 L16 -15 Z" fill="#58a6ff" fill-opacity="0.21"  />
+            <path d="M0 -15 L16 -5 L0 5 L-16 -5 Z" fill="#58a6ff" fill-opacity="0.7"  />
+            
+          </g>
+        </g>
+        <g transform="translate(332, 160)">
+          <g class="cp-tower interactive-tower" data-date="2026-03-23" data-count="0" data-metric="Rest day" style="animation-delay: 0.060s;">
+            
+            <title>2026-03-23: 0 contributions</title>
+            <path d="M0 10 L0 10 L-16 0 L-16 0 Z" fill="#58a6ff" fill-opacity="0"  />
+            <path d="M0 10 L0 10 L16 0 L16 0 Z" fill="#58a6ff" fill-opacity="0"  />
+            <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.08"  />
+            
+          </g>
+        </g>
+        <g transform="translate(316, 170)">
+          <g class="cp-tower interactive-tower" data-date="2026-03-24" data-count="0" data-metric="Rest day" style="animation-delay: 0.075s;">
+            
+            <title>2026-03-24: 0 contributions</title>
+            <path d="M0 10 L0 10 L-16 0 L-16 0 Z" fill="#58a6ff" fill-opacity="0"  />
+            <path d="M0 10 L0 10 L16 0 L16 0 Z" fill="#58a6ff" fill-opacity="0"  />
+            <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.08"  />
+            
+          </g>
+        </g>
+        <g transform="translate(300, 180)">
+          <g class="cp-tower interactive-tower" data-date="2026-03-25" data-count="0" data-metric="Rest day" style="animation-delay: 0.090s;">
+            
+            <title>2026-03-25: 0 contributions</title>
+            <path d="M0 10 L0 10 L-16 0 L-16 0 Z" fill="#58a6ff" fill-opacity="0"  />
+            <path d="M0 10 L0 10 L16 0 L16 0 Z" fill="#58a6ff" fill-opacity="0"  />
+            <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.08"  />
+            
+          </g>
+        </g>
+        <g transform="translate(284, 190)">
+          <g class="cp-tower interactive-tower" data-date="2026-03-26" data-count="0" data-metric="Rest day" style="animation-delay: 0.105s;">
+            
+            <title>2026-03-26: 0 contributions</title>
+            <path d="M0 10 L0 10 L-16 0 L-16 0 Z" fill="#58a6ff" fill-opacity="0"  />
+            <path d="M0 10 L0 10 L16 0 L16 0 Z" fill="#58a6ff" fill-opacity="0"  />
+            <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.08"  />
+            
+          </g>
+        </g>
+        <g transform="translate(268, 200)">
+          <g class="cp-tower interactive-tower" data-date="2026-03-27" data-count="0" data-metric="Rest day" style="animation-delay: 0.120s;">
+            
+            <title>2026-03-27: 0 contributions</title>
+            <path d="M0 10 L0 10 L-16 0 L-16 0 Z" fill="#58a6ff" fill-opacity="0"  />
+            <path d="M0 10 L0 10 L16 0 L16 0 Z" fill="#58a6ff" fill-opacity="0"  />
+            <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.08"  />
+            
+          </g>
+        </g>
+        <g transform="translate(252, 210)">
+          <g class="cp-tower interactive-tower" data-date="2026-03-28" data-count="0" data-metric="Rest day" style="animation-delay: 0.135s;">
+            
+            <title>2026-03-28: 0 contributions</title>
+            <path d="M0 10 L0 10 L-16 0 L-16 0 Z" fill="#58a6ff" fill-opacity="0"  />
+            <path d="M0 10 L0 10 L16 0 L16 0 Z" fill="#58a6ff" fill-opacity="0"  />
+            <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.08"  />
+            
+          </g>
+        </g>
+        <g transform="translate(364, 160)">
+          <g class="cp-tower interactive-tower" data-date="2026-03-29" data-count="0" data-metric="Rest day" style="animation-delay: 0.060s;">
+            
+            <title>2026-03-29: 0 contributions</title>
+            <path d="M0 10 L0 10 L-16 0 L-16 0 Z" fill="#58a6ff" fill-opacity="0"  />
+            <path d="M0 10 L0 10 L16 0 L16 0 Z" fill="#58a6ff" fill-opacity="0"  />
+            <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.08"  />
+            
+          </g>
+        </g>
+        <g transform="translate(348, 170)">
+          <g class="cp-tower interactive-tower" data-date="2026-03-30" data-count="1" data-metric="Active day" style="animation-delay: 0.075s;">
+            
+            <title>2026-03-30: 1 contributions</title>
+            <path d="M0 5 L0 10 L-16 0 L-16 -5 Z" fill="#58a6ff" fill-opacity="0.35"  />
+            <path d="M0 5 L0 10 L16 0 L16 -5 Z" fill="#58a6ff" fill-opacity="0.21"  />
+            <path d="M0 -5 L16 5 L0 15 L-16 5 Z" fill="#58a6ff" fill-opacity="0.7"  />
+            
+          </g>
+        </g>
+        <g transform="translate(332, 180)">
+          <g class="cp-tower interactive-tower" data-date="2026-03-31" data-count="2" data-metric="Active day" style="animation-delay: 0.090s;">
+            
+            <title>2026-03-31: 2 contributions</title>
+            <path d="M0 0 L0 10 L-16 0 L-16 -10 Z" fill="#58a6ff" fill-opacity="0.35"  />
+            <path d="M0 0 L0 10 L16 0 L16 -10 Z" fill="#58a6ff" fill-opacity="0.21"  />
+            <path d="M0 -10 L16 0 L0 10 L-16 0 Z" fill="#58a6ff" fill-opacity="0.7"  />
+            
+          </g>
+        </g>
+        <g transform="translate(316, 190)">
+          <g class="cp-tower interactive-tower" data-date="2026-04-01" data-count="0" data-metric="Rest day" style="animation-delay: 0.105s;">
+            
+            <title>2026-04-01: 0 contributions</title>
+            <path d="M0 10 L0 10 L-16 0 L-16 0 Z" fill="#58a6ff" fill-opacity="0"  />
+            <path d="M0 10 L0 10 L16 0 L16 0 Z" fill="#58a6ff" fill-opacity="0"  />
+            <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.08"  />
+            
+          </g>
+        </g>
+        <g transform="translate(300, 200)">
+          <g class="cp-tower interactive-tower" data-date="2026-04-02" data-count="0" data-metric="Rest day" style="animation-delay: 0.120s;">
+            
+            <title>2026-04-02: 0 contributions</title>
+            <path d="M0 10 L0 10 L-16 0 L-16 0 Z" fill="#58a6ff" fill-opacity="0"  />
+            <path d="M0 10 L0 10 L16 0 L16 0 Z" fill="#58a6ff" fill-opacity="0"  />
+            <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.08"  />
+            
+          </g>
+        </g>
+        <g transform="translate(284, 210)">
+          <g class="cp-tower interactive-tower" data-date="2026-04-03" data-count="0" data-metric="Rest day" style="animation-delay: 0.135s;">
+            
+            <title>2026-04-03: 0 contributions</title>
+            <path d="M0 10 L0 10 L-16 0 L-16 0 Z" fill="#58a6ff" fill-opacity="0"  />
+            <path d="M0 10 L0 10 L16 0 L16 0 Z" fill="#58a6ff" fill-opacity="0"  />
+            <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.08"  />
+            
+          </g>
+        </g>
+        <g transform="translate(268, 220)">
+          <g class="cp-tower interactive-tower" data-date="2026-04-04" data-count="0" data-metric="Rest day" style="animation-delay: 0.150s;">
+            
+            <title>2026-04-04: 0 contributions</title>
+            <path d="M0 10 L0 10 L-16 0 L-16 0 Z" fill="#58a6ff" fill-opacity="0"  />
+            <path d="M0 10 L0 10 L16 0 L16 0 Z" fill="#58a6ff" fill-opacity="0"  />
+            <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.08"  />
+            
+          </g>
+        </g>
+        <g transform="translate(380, 170)">
+          <g class="cp-tower interactive-tower" data-date="2026-04-05" data-count="0" data-metric="Rest day" style="animation-delay: 0.075s;">
+            
+            <title>2026-04-05: 0 contributions</title>
+            <path d="M0 10 L0 10 L-16 0 L-16 0 Z" fill="#58a6ff" fill-opacity="0"  />
+            <path d="M0 10 L0 10 L16 0 L16 0 Z" fill="#58a6ff" fill-opacity="0"  />
+            <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.08"  />
+            
+          </g>
+        </g>
+        <g transform="translate(364, 180)">
+          <g class="cp-tower interactive-tower" data-date="2026-04-06" data-count="10" data-metric="Active day" style="animation-delay: 0.090s;">
+            
+            <title>2026-04-06: 10 contributions</title>
+            <path d="M0 -40 L0 10 L-16 0 L-16 -50 Z" fill="#58a6ff" fill-opacity="0.35"  />
+            <path d="M0 -40 L0 10 L16 0 L16 -50 Z" fill="#58a6ff" fill-opacity="0.21"  />
+            <path d="M0 -50 L16 -40 L0 -30 L-16 -40 Z" fill="#58a6ff" fill-opacity="0.7"  />
+            <path d="M0 -50 L16 -40 L0 -30 L-16 -40 Z" fill="white" fill-opacity="0.2" />
+          </g>
+        </g><g class="heat-particles" pointer-events="none">
+      <circle fill="#58a6ff" cx="364.71441509528086" cy="130" r="1.5" opacity="1" pointer-events="none">
+      
+        <animate attributeName="cy" from="130" to="110" dur="1.5s" begin="0.6495868406491354s" repeatCount="indefinite" />
+        <animate attributeName="opacity" from="1" to="0" dur="1.5s" begin="0.6495868406491354s" repeatCount="indefinite" />
+      
+      </circle>
+    
+      <circle fill="#58a6ff" cx="366.11204604711384" cy="130" r="1.5" opacity="1" pointer-events="none">
+      
+        <animate attributeName="cy" from="130" to="110" dur="1.5s" begin="1.35080597223714s" repeatCount="indefinite" />
+        <animate attributeName="opacity" from="1" to="0" dur="1.5s" begin="1.35080597223714s" repeatCount="indefinite" />
+      
+      </circle>
+    
+      <circle fill="#58a6ff" cx="361.37859680177644" cy="130" r="1.5" opacity="1" pointer-events="none">
+      
+        <animate attributeName="cy" from="130" to="110" dur="1.5s" begin="0.6283134691184387s" repeatCount="indefinite" />
+        <animate attributeName="opacity" from="1" to="0" dur="1.5s" begin="0.6283134691184387s" repeatCount="indefinite" />
+      
+      </circle>
+    </g>
+        <g transform="translate(348, 190)">
+          <g class="cp-tower interactive-tower" data-date="2026-04-07" data-count="2" data-metric="Active day" style="animation-delay: 0.105s;">
+            
+            <title>2026-04-07: 2 contributions</title>
+            <path d="M0 0 L0 10 L-16 0 L-16 -10 Z" fill="#58a6ff" fill-opacity="0.35"  />
+            <path d="M0 0 L0 10 L16 0 L16 -10 Z" fill="#58a6ff" fill-opacity="0.21"  />
+            <path d="M0 -10 L16 0 L0 10 L-16 0 Z" fill="#58a6ff" fill-opacity="0.7"  />
+            
+          </g>
+        </g>
+        <g transform="translate(332, 200)">
+          <g class="cp-tower interactive-tower" data-date="2026-04-08" data-count="2" data-metric="Active day" style="animation-delay: 0.120s;">
+            
+            <title>2026-04-08: 2 contributions</title>
+            <path d="M0 0 L0 10 L-16 0 L-16 -10 Z" fill="#58a6ff" fill-opacity="0.35"  />
+            <path d="M0 0 L0 10 L16 0 L16 -10 Z" fill="#58a6ff" fill-opacity="0.21"  />
+            <path d="M0 -10 L16 0 L0 10 L-16 0 Z" fill="#58a6ff" fill-opacity="0.7"  />
+            
+          </g>
+        </g>
+        <g transform="translate(316, 210)">
+          <g class="cp-tower interactive-tower" data-date="2026-04-09" data-count="5" data-metric="Active day" style="animation-delay: 0.135s;">
+            
+            <title>2026-04-09: 5 contributions</title>
+            <path d="M0 -15 L0 10 L-16 0 L-16 -25 Z" fill="#58a6ff" fill-opacity="0.35"  />
+            <path d="M0 -15 L0 10 L16 0 L16 -25 Z" fill="#58a6ff" fill-opacity="0.21"  />
+            <path d="M0 -25 L16 -15 L0 -5 L-16 -15 Z" fill="#58a6ff" fill-opacity="0.7"  />
+            
+          </g>
+        </g>
+        <g transform="translate(300, 220)">
+          <g class="cp-tower interactive-tower" data-date="2026-04-10" data-count="12" data-metric="Active day" style="animation-delay: 0.150s;">
+            
+            <title>2026-04-10: 12 contributions</title>
+            <path d="M0 -40 L0 10 L-16 0 L-16 -50 Z" fill="#58a6ff" fill-opacity="0.35"  />
+            <path d="M0 -40 L0 10 L16 0 L16 -50 Z" fill="#58a6ff" fill-opacity="0.21"  />
+            <path d="M0 -50 L16 -40 L0 -30 L-16 -40 Z" fill="#58a6ff" fill-opacity="0.7"  />
+            <path d="M0 -50 L16 -40 L0 -30 L-16 -40 Z" fill="white" fill-opacity="0.2" />
+          </g>
+        </g><g class="heat-particles" pointer-events="none">
+      <circle fill="#58a6ff" cx="299.64393479470164" cy="170" r="1.5" opacity="1" pointer-events="none">
+      
+        <animate attributeName="cy" from="170" to="150" dur="1.5s" begin="0.6451603649184108s" repeatCount="indefinite" />
+        <animate attributeName="opacity" from="1" to="0" dur="1.5s" begin="0.6451603649184108s" repeatCount="indefinite" />
+      
+      </circle>
+    
+      <circle fill="#58a6ff" cx="300.25081479689106" cy="170" r="1.5" opacity="1" pointer-events="none">
+      
+        <animate attributeName="cy" from="170" to="150" dur="1.5s" begin="0.7900308460230008s" repeatCount="indefinite" />
+        <animate attributeName="opacity" from="1" to="0" dur="1.5s" begin="0.7900308460230008s" repeatCount="indefinite" />
+      
+      </circle>
+    
+      <circle fill="#58a6ff" cx="299.0584908295423" cy="170" r="1.5" opacity="1" pointer-events="none">
+      
+        <animate attributeName="cy" from="170" to="150" dur="1.5s" begin="0.19552411534823477s" repeatCount="indefinite" />
+        <animate attributeName="opacity" from="1" to="0" dur="1.5s" begin="0.19552411534823477s" repeatCount="indefinite" />
+      
+      </circle>
+    </g>
+        <g transform="translate(284, 230)">
+          <g class="cp-tower interactive-tower" data-date="2026-04-11" data-count="0" data-metric="Rest day" style="animation-delay: 0.165s;">
+            
+            <title>2026-04-11: 0 contributions</title>
+            <path d="M0 10 L0 10 L-16 0 L-16 0 Z" fill="#58a6ff" fill-opacity="0"  />
+            <path d="M0 10 L0 10 L16 0 L16 0 Z" fill="#58a6ff" fill-opacity="0"  />
+            <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.08"  />
+            
+          </g>
+        </g>
+        <g transform="translate(396, 180)">
+          <g class="cp-tower interactive-tower" data-date="2026-04-12" data-count="0" data-metric="Rest day" style="animation-delay: 0.090s;">
+            
+            <title>2026-04-12: 0 contributions</title>
+            <path d="M0 10 L0 10 L-16 0 L-16 0 Z" fill="#58a6ff" fill-opacity="0"  />
+            <path d="M0 10 L0 10 L16 0 L16 0 Z" fill="#58a6ff" fill-opacity="0"  />
+            <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.08"  />
+            
+          </g>
+        </g>
+        <g transform="translate(380, 190)">
+          <g class="cp-tower interactive-tower" data-date="2026-04-13" data-count="0" data-metric="Rest day" style="animation-delay: 0.105s;">
+            
+            <title>2026-04-13: 0 contributions</title>
+            <path d="M0 10 L0 10 L-16 0 L-16 0 Z" fill="#58a6ff" fill-opacity="0"  />
+            <path d="M0 10 L0 10 L16 0 L16 0 Z" fill="#58a6ff" fill-opacity="0"  />
+            <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.08"  />
+            
+          </g>
+        </g>
+        <g transform="translate(364, 200)">
+          <g class="cp-tower interactive-tower" data-date="2026-04-14" data-count="0" data-metric="Rest day" style="animation-delay: 0.120s;">
+            
+            <title>2026-04-14: 0 contributions</title>
+            <path d="M0 10 L0 10 L-16 0 L-16 0 Z" fill="#58a6ff" fill-opacity="0"  />
+            <path d="M0 10 L0 10 L16 0 L16 0 Z" fill="#58a6ff" fill-opacity="0"  />
+            <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.08"  />
+            
+          </g>
+        </g>
+        <g transform="translate(348, 210)">
+          <g class="cp-tower interactive-tower" data-date="2026-04-15" data-count="1" data-metric="Active day" style="animation-delay: 0.135s;">
+            
+            <title>2026-04-15: 1 contributions</title>
+            <path d="M0 5 L0 10 L-16 0 L-16 -5 Z" fill="#58a6ff" fill-opacity="0.35"  />
+            <path d="M0 5 L0 10 L16 0 L16 -5 Z" fill="#58a6ff" fill-opacity="0.21"  />
+            <path d="M0 -5 L16 5 L0 15 L-16 5 Z" fill="#58a6ff" fill-opacity="0.7"  />
+            
+          </g>
+        </g>
+        <g transform="translate(332, 220)">
+          <g class="cp-tower interactive-tower" data-date="2026-04-16" data-count="7" data-metric="Active day" style="animation-delay: 0.150s;">
+            
+            <title>2026-04-16: 7 contributions</title>
+            <path d="M0 -25 L0 10 L-16 0 L-16 -35 Z" fill="#58a6ff" fill-opacity="0.35"  />
+            <path d="M0 -25 L0 10 L16 0 L16 -35 Z" fill="#58a6ff" fill-opacity="0.21"  />
+            <path d="M0 -35 L16 -25 L0 -15 L-16 -25 Z" fill="#58a6ff" fill-opacity="0.7"  />
+            <path d="M0 -35 L16 -25 L0 -15 L-16 -25 Z" fill="white" fill-opacity="0.2" />
+          </g>
+        </g>
+        <g transform="translate(316, 230)">
+          <g class="cp-tower interactive-tower" data-date="2026-04-17" data-count="0" data-metric="Rest day" style="animation-delay: 0.165s;">
+            
+            <title>2026-04-17: 0 contributions</title>
+            <path d="M0 10 L0 10 L-16 0 L-16 0 Z" fill="#58a6ff" fill-opacity="0"  />
+            <path d="M0 10 L0 10 L16 0 L16 0 Z" fill="#58a6ff" fill-opacity="0"  />
+            <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.08"  />
+            
+          </g>
+        </g>
+        <g transform="translate(300, 240)">
+          <g class="cp-tower interactive-tower" data-date="2026-04-18" data-count="0" data-metric="Rest day" style="animation-delay: 0.180s;">
+            
+            <title>2026-04-18: 0 contributions</title>
+            <path d="M0 10 L0 10 L-16 0 L-16 0 Z" fill="#58a6ff" fill-opacity="0"  />
+            <path d="M0 10 L0 10 L16 0 L16 0 Z" fill="#58a6ff" fill-opacity="0"  />
+            <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.08"  />
+            
+          </g>
+        </g>
+        <g transform="translate(412, 190)">
+          <g class="cp-tower interactive-tower" data-date="2026-04-19" data-count="0" data-metric="Rest day" style="animation-delay: 0.105s;">
+            
+            <title>2026-04-19: 0 contributions</title>
+            <path d="M0 10 L0 10 L-16 0 L-16 0 Z" fill="#58a6ff" fill-opacity="0"  />
+            <path d="M0 10 L0 10 L16 0 L16 0 Z" fill="#58a6ff" fill-opacity="0"  />
+            <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.08"  />
+            
+          </g>
+        </g>
+        <g transform="translate(396, 200)">
+          <g class="cp-tower interactive-tower" data-date="2026-04-20" data-count="1" data-metric="Active day" style="animation-delay: 0.120s;">
+            
+            <title>2026-04-20: 1 contributions</title>
+            <path d="M0 5 L0 10 L-16 0 L-16 -5 Z" fill="#58a6ff" fill-opacity="0.35"  />
+            <path d="M0 5 L0 10 L16 0 L16 -5 Z" fill="#58a6ff" fill-opacity="0.21"  />
+            <path d="M0 -5 L16 5 L0 15 L-16 5 Z" fill="#58a6ff" fill-opacity="0.7"  />
+            
+          </g>
+        </g>
+        <g transform="translate(380, 210)">
+          <g class="cp-tower interactive-tower" data-date="2026-04-21" data-count="0" data-metric="Rest day" style="animation-delay: 0.135s;">
+            
+            <title>2026-04-21: 0 contributions</title>
+            <path d="M0 10 L0 10 L-16 0 L-16 0 Z" fill="#58a6ff" fill-opacity="0"  />
+            <path d="M0 10 L0 10 L16 0 L16 0 Z" fill="#58a6ff" fill-opacity="0"  />
+            <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.08"  />
+            
+          </g>
+        </g>
+        <g transform="translate(364, 220)">
+          <g class="cp-tower interactive-tower" data-date="2026-04-22" data-count="0" data-metric="Rest day" style="animation-delay: 0.150s;">
+            
+            <title>2026-04-22: 0 contributions</title>
+            <path d="M0 10 L0 10 L-16 0 L-16 0 Z" fill="#58a6ff" fill-opacity="0"  />
+            <path d="M0 10 L0 10 L16 0 L16 0 Z" fill="#58a6ff" fill-opacity="0"  />
+            <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.08"  />
+            
+          </g>
+        </g>
+        <g transform="translate(348, 230)">
+          <g class="cp-tower interactive-tower" data-date="2026-04-23" data-count="0" data-metric="Rest day" style="animation-delay: 0.165s;">
+            
+            <title>2026-04-23: 0 contributions</title>
+            <path d="M0 10 L0 10 L-16 0 L-16 0 Z" fill="#58a6ff" fill-opacity="0"  />
+            <path d="M0 10 L0 10 L16 0 L16 0 Z" fill="#58a6ff" fill-opacity="0"  />
+            <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.08"  />
+            
+          </g>
+        </g>
+        <g transform="translate(332, 240)">
+          <g class="cp-tower interactive-tower" data-date="2026-04-24" data-count="0" data-metric="Rest day" style="animation-delay: 0.180s;">
+            
+            <title>2026-04-24: 0 contributions</title>
+            <path d="M0 10 L0 10 L-16 0 L-16 0 Z" fill="#58a6ff" fill-opacity="0"  />
+            <path d="M0 10 L0 10 L16 0 L16 0 Z" fill="#58a6ff" fill-opacity="0"  />
+            <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.08"  />
+            
+          </g>
+        </g>
+        <g transform="translate(316, 250)">
+          <g class="cp-tower interactive-tower" data-date="2026-04-25" data-count="7" data-metric="Active day" style="animation-delay: 0.195s;">
+            
+            <title>2026-04-25: 7 contributions</title>
+            <path d="M0 -25 L0 10 L-16 0 L-16 -35 Z" fill="#58a6ff" fill-opacity="0.35"  />
+            <path d="M0 -25 L0 10 L16 0 L16 -35 Z" fill="#58a6ff" fill-opacity="0.21"  />
+            <path d="M0 -35 L16 -25 L0 -15 L-16 -25 Z" fill="#58a6ff" fill-opacity="0.7"  />
+            <path d="M0 -35 L16 -25 L0 -15 L-16 -25 Z" fill="white" fill-opacity="0.2" />
+          </g>
+        </g>
+        <g transform="translate(428, 200)">
+          <g class="cp-tower interactive-tower" data-date="2026-04-26" data-count="7" data-metric="Active day" style="animation-delay: 0.120s;">
+            
+            <title>2026-04-26: 7 contributions</title>
+            <path d="M0 -25 L0 10 L-16 0 L-16 -35 Z" fill="#58a6ff" fill-opacity="0.35"  />
+            <path d="M0 -25 L0 10 L16 0 L16 -35 Z" fill="#58a6ff" fill-opacity="0.21"  />
+            <path d="M0 -35 L16 -25 L0 -15 L-16 -25 Z" fill="#58a6ff" fill-opacity="0.7"  />
+            <path d="M0 -35 L16 -25 L0 -15 L-16 -25 Z" fill="white" fill-opacity="0.2" />
+          </g>
+        </g>
+        <g transform="translate(412, 210)">
+          <g class="cp-tower interactive-tower" data-date="2026-04-27" data-count="0" data-metric="Rest day" style="animation-delay: 0.135s;">
+            
+            <title>2026-04-27: 0 contributions</title>
+            <path d="M0 10 L0 10 L-16 0 L-16 0 Z" fill="#58a6ff" fill-opacity="0"  />
+            <path d="M0 10 L0 10 L16 0 L16 0 Z" fill="#58a6ff" fill-opacity="0"  />
+            <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.08"  />
+            
+          </g>
+        </g>
+        <g transform="translate(396, 220)">
+          <g class="cp-tower interactive-tower" data-date="2026-04-28" data-count="1" data-metric="Active day" style="animation-delay: 0.150s;">
+            
+            <title>2026-04-28: 1 contributions</title>
+            <path d="M0 5 L0 10 L-16 0 L-16 -5 Z" fill="#58a6ff" fill-opacity="0.35"  />
+            <path d="M0 5 L0 10 L16 0 L16 -5 Z" fill="#58a6ff" fill-opacity="0.21"  />
+            <path d="M0 -5 L16 5 L0 15 L-16 5 Z" fill="#58a6ff" fill-opacity="0.7"  />
+            
+          </g>
+        </g>
+        <g transform="translate(380, 230)">
+          <g class="cp-tower interactive-tower" data-date="2026-04-29" data-count="0" data-metric="Rest day" style="animation-delay: 0.165s;">
+            
+            <title>2026-04-29: 0 contributions</title>
+            <path d="M0 10 L0 10 L-16 0 L-16 0 Z" fill="#58a6ff" fill-opacity="0"  />
+            <path d="M0 10 L0 10 L16 0 L16 0 Z" fill="#58a6ff" fill-opacity="0"  />
+            <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.08"  />
+            
+          </g>
+        </g>
+        <g transform="translate(364, 240)">
+          <g class="cp-tower interactive-tower" data-date="2026-04-30" data-count="8" data-metric="Active day" style="animation-delay: 0.180s;">
+            
+            <title>2026-04-30: 8 contributions</title>
+            <path d="M0 -30 L0 10 L-16 0 L-16 -40 Z" fill="#58a6ff" fill-opacity="0.35"  />
+            <path d="M0 -30 L0 10 L16 0 L16 -40 Z" fill="#58a6ff" fill-opacity="0.21"  />
+            <path d="M0 -40 L16 -30 L0 -20 L-16 -30 Z" fill="#58a6ff" fill-opacity="0.7"  />
+            <path d="M0 -40 L16 -30 L0 -20 L-16 -30 Z" fill="white" fill-opacity="0.2" />
+          </g>
+        </g>
+        <g transform="translate(348, 250)">
+          <g class="cp-tower interactive-tower" data-date="2026-05-01" data-count="0" data-metric="Rest day" style="animation-delay: 0.195s;">
+            
+            <title>2026-05-01: 0 contributions</title>
+            <path d="M0 10 L0 10 L-16 0 L-16 0 Z" fill="#58a6ff" fill-opacity="0"  />
+            <path d="M0 10 L0 10 L16 0 L16 0 Z" fill="#58a6ff" fill-opacity="0"  />
+            <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.08"  />
+            
+          </g>
+        </g>
+        <g transform="translate(332, 260)">
+          <g class="cp-tower interactive-tower" data-date="2026-05-02" data-count="8" data-metric="Active day" style="animation-delay: 0.210s;">
+            
+            <title>2026-05-02: 8 contributions</title>
+            <path d="M0 -30 L0 10 L-16 0 L-16 -40 Z" fill="#58a6ff" fill-opacity="0.35"  />
+            <path d="M0 -30 L0 10 L16 0 L16 -40 Z" fill="#58a6ff" fill-opacity="0.21"  />
+            <path d="M0 -40 L16 -30 L0 -20 L-16 -30 Z" fill="#58a6ff" fill-opacity="0.7"  />
+            <path d="M0 -40 L16 -30 L0 -20 L-16 -30 Z" fill="white" fill-opacity="0.2" />
+          </g>
+        </g>
+        <g transform="translate(444, 210)">
+          <g class="cp-tower interactive-tower" data-date="2026-05-03" data-count="12" data-metric="Active day" style="animation-delay: 0.135s;">
+            
+            <title>2026-05-03: 12 contributions</title>
+            <path d="M0 -40 L0 10 L-16 0 L-16 -50 Z" fill="#58a6ff" fill-opacity="0.35"  />
+            <path d="M0 -40 L0 10 L16 0 L16 -50 Z" fill="#58a6ff" fill-opacity="0.21"  />
+            <path d="M0 -50 L16 -40 L0 -30 L-16 -40 Z" fill="#58a6ff" fill-opacity="0.7"  />
+            <path d="M0 -50 L16 -40 L0 -30 L-16 -40 Z" fill="white" fill-opacity="0.2" />
+          </g>
+        </g><g class="heat-particles" pointer-events="none">
+      <circle fill="#58a6ff" cx="443.9287682119757" cy="160" r="1.5" opacity="1" pointer-events="none">
+      
+        <animate attributeName="cy" from="160" to="140" dur="1.5s" begin="1.416310532251373s" repeatCount="indefinite" />
+        <animate attributeName="opacity" from="1" to="0" dur="1.5s" begin="1.416310532251373s" repeatCount="indefinite" />
+      
+      </circle>
+    
+      <circle fill="#58a6ff" cx="441.7055124551989" cy="160" r="1.5" opacity="1" pointer-events="none">
+      
+        <animate attributeName="cy" from="160" to="140" dur="1.5s" begin="1.0433586080325767s" repeatCount="indefinite" />
+        <animate attributeName="opacity" from="1" to="0" dur="1.5s" begin="1.0433586080325767s" repeatCount="indefinite" />
+      
+      </circle>
+    
+      <circle fill="#58a6ff" cx="444.3032744983211" cy="160" r="1.5" opacity="1" pointer-events="none">
+      
+        <animate attributeName="cy" from="160" to="140" dur="1.5s" begin="0.6455164449289441s" repeatCount="indefinite" />
+        <animate attributeName="opacity" from="1" to="0" dur="1.5s" begin="0.6455164449289441s" repeatCount="indefinite" />
+      
+      </circle>
+    </g>
+        <g transform="translate(428, 220)">
+          <g class="cp-tower interactive-tower" data-date="2026-05-04" data-count="8" data-metric="Active day" style="animation-delay: 0.150s;">
+            
+            <title>2026-05-04: 8 contributions</title>
+            <path d="M0 -30 L0 10 L-16 0 L-16 -40 Z" fill="#58a6ff" fill-opacity="0.35"  />
+            <path d="M0 -30 L0 10 L16 0 L16 -40 Z" fill="#58a6ff" fill-opacity="0.21"  />
+            <path d="M0 -40 L16 -30 L0 -20 L-16 -30 Z" fill="#58a6ff" fill-opacity="0.7"  />
+            <path d="M0 -40 L16 -30 L0 -20 L-16 -30 Z" fill="white" fill-opacity="0.2" />
+          </g>
+        </g>
+        <g transform="translate(412, 230)">
+          <g class="cp-tower interactive-tower" data-date="2026-05-05" data-count="2" data-metric="Active day" style="animation-delay: 0.165s;">
+            
+            <title>2026-05-05: 2 contributions</title>
+            <path d="M0 0 L0 10 L-16 0 L-16 -10 Z" fill="#58a6ff" fill-opacity="0.35"  />
+            <path d="M0 0 L0 10 L16 0 L16 -10 Z" fill="#58a6ff" fill-opacity="0.21"  />
+            <path d="M0 -10 L16 0 L0 10 L-16 0 Z" fill="#58a6ff" fill-opacity="0.7"  />
+            
+          </g>
+        </g>
+        <g transform="translate(396, 240)">
+          <g class="cp-tower interactive-tower" data-date="2026-05-06" data-count="23" data-metric="Active day" style="animation-delay: 0.180s;">
+            
+            <title>2026-05-06: 23 contributions</title>
+            <path d="M0 -40 L0 10 L-16 0 L-16 -50 Z" fill="#58a6ff" fill-opacity="0.35"  />
+            <path d="M0 -40 L0 10 L16 0 L16 -50 Z" fill="#58a6ff" fill-opacity="0.21"  />
+            <path d="M0 -50 L16 -40 L0 -30 L-16 -40 Z" fill="#58a6ff" fill-opacity="0.7"  />
+            <path d="M0 -50 L16 -40 L0 -30 L-16 -40 Z" fill="white" fill-opacity="0.2" />
+          </g>
+        </g><g class="heat-particles" pointer-events="none">
+      <circle fill="#58a6ff" cx="395.13569493452087" cy="190" r="1.5" opacity="1" pointer-events="none">
+      
+        <animate attributeName="cy" from="190" to="170" dur="1.5s" begin="0.6429843351943418s" repeatCount="indefinite" />
+        <animate attributeName="opacity" from="1" to="0" dur="1.5s" begin="0.6429843351943418s" repeatCount="indefinite" />
+      
+      </circle>
+    
+      <circle fill="#58a6ff" cx="397.2151012290269" cy="190" r="1.5" opacity="1" pointer-events="none">
+      
+        <animate attributeName="cy" from="190" to="170" dur="1.5s" begin="0.8796474302653223s" repeatCount="indefinite" />
+        <animate attributeName="opacity" from="1" to="0" dur="1.5s" begin="0.8796474302653223s" repeatCount="indefinite" />
+      
+      </circle>
+    
+      <circle fill="#58a6ff" cx="393.3485597684048" cy="190" r="1.5" opacity="1" pointer-events="none">
+      
+        <animate attributeName="cy" from="190" to="170" dur="1.5s" begin="0.3602764770621434s" repeatCount="indefinite" />
+        <animate attributeName="opacity" from="1" to="0" dur="1.5s" begin="0.3602764770621434s" repeatCount="indefinite" />
+      
+      </circle>
+    
+      <circle fill="#58a6ff" cx="398.39364955667406" cy="190" r="1.5" opacity="1" pointer-events="none">
+      
+        <animate attributeName="cy" from="190" to="170" dur="1.5s" begin="1.4402635646983981s" repeatCount="indefinite" />
+        <animate attributeName="opacity" from="1" to="0" dur="1.5s" begin="1.4402635646983981s" repeatCount="indefinite" />
+      
+      </circle>
+    
+      <circle fill="#58a6ff" cx="393.767757311929" cy="190" r="1.5" opacity="1" pointer-events="none">
+      
+        <animate attributeName="cy" from="190" to="170" dur="1.5s" begin="0.09772517660167068s" repeatCount="indefinite" />
+        <animate attributeName="opacity" from="1" to="0" dur="1.5s" begin="0.09772517660167068s" repeatCount="indefinite" />
+      
+      </circle>
+    </g>
+        <g transform="translate(380, 250)">
+          <g class="cp-tower interactive-tower" data-date="2026-05-07" data-count="8" data-metric="Active day" style="animation-delay: 0.195s;">
+            
+            <title>2026-05-07: 8 contributions</title>
+            <path d="M0 -30 L0 10 L-16 0 L-16 -40 Z" fill="#58a6ff" fill-opacity="0.35"  />
+            <path d="M0 -30 L0 10 L16 0 L16 -40 Z" fill="#58a6ff" fill-opacity="0.21"  />
+            <path d="M0 -40 L16 -30 L0 -20 L-16 -30 Z" fill="#58a6ff" fill-opacity="0.7"  />
+            <path d="M0 -40 L16 -30 L0 -20 L-16 -30 Z" fill="white" fill-opacity="0.2" />
+          </g>
+        </g>
+        <g transform="translate(364, 260)">
+          <g class="cp-tower interactive-tower" data-date="2026-05-08" data-count="0" data-metric="Rest day" style="animation-delay: 0.210s;">
+            
+            <title>2026-05-08: 0 contributions</title>
+            <path d="M0 10 L0 10 L-16 0 L-16 0 Z" fill="#58a6ff" fill-opacity="0"  />
+            <path d="M0 10 L0 10 L16 0 L16 0 Z" fill="#58a6ff" fill-opacity="0"  />
+            <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.08"  />
+            
+          </g>
+        </g>
+        <g transform="translate(348, 270)">
+          <g class="cp-tower interactive-tower" data-date="2026-05-09" data-count="0" data-metric="Rest day" style="animation-delay: 0.225s;">
+            
+            <title>2026-05-09: 0 contributions</title>
+            <path d="M0 10 L0 10 L-16 0 L-16 0 Z" fill="#58a6ff" fill-opacity="0"  />
+            <path d="M0 10 L0 10 L16 0 L16 0 Z" fill="#58a6ff" fill-opacity="0"  />
+            <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.08"  />
+            
+          </g>
+        </g>
+        <g transform="translate(460, 220)">
+          <g class="cp-tower interactive-tower" data-date="2026-05-10" data-count="32" data-metric="Active day" style="animation-delay: 0.150s;">
+            
+            <title>2026-05-10: 32 contributions</title>
+            <path d="M0 -40 L0 10 L-16 0 L-16 -50 Z" fill="#58a6ff" fill-opacity="0.35"  />
+            <path d="M0 -40 L0 10 L16 0 L16 -50 Z" fill="#58a6ff" fill-opacity="0.21"  />
+            <path d="M0 -50 L16 -40 L0 -30 L-16 -40 Z" fill="#58a6ff" fill-opacity="0.7"  />
+            <path d="M0 -50 L16 -40 L0 -30 L-16 -40 Z" fill="white" fill-opacity="0.2" />
+          </g>
+        </g><g class="heat-particles" pointer-events="none">
+      <circle fill="#58a6ff" cx="461.3934800908901" cy="170" r="1.5" opacity="1" pointer-events="none">
+      
+        <animate attributeName="cy" from="170" to="150" dur="1.5s" begin="0.4955014743609354s" repeatCount="indefinite" />
+        <animate attributeName="opacity" from="1" to="0" dur="1.5s" begin="0.4955014743609354s" repeatCount="indefinite" />
+      
+      </circle>
+    
+      <circle fill="#58a6ff" cx="457.2524454612285" cy="170" r="1.5" opacity="1" pointer-events="none">
+      
+        <animate attributeName="cy" from="170" to="150" dur="1.5s" begin="0.058286778861656785s" repeatCount="indefinite" />
+        <animate attributeName="opacity" from="1" to="0" dur="1.5s" begin="0.058286778861656785s" repeatCount="indefinite" />
+      
+      </circle>
+    
+      <circle fill="#58a6ff" cx="457.4659716351889" cy="170" r="1.5" opacity="1" pointer-events="none">
+      
+        <animate attributeName="cy" from="170" to="150" dur="1.5s" begin="0.6673140056664124s" repeatCount="indefinite" />
+        <animate attributeName="opacity" from="1" to="0" dur="1.5s" begin="0.6673140056664124s" repeatCount="indefinite" />
+      
+      </circle>
+    
+      <circle fill="#58a6ff" cx="461.7094446355477" cy="170" r="1.5" opacity="1" pointer-events="none">
+      
+        <animate attributeName="cy" from="170" to="150" dur="1.5s" begin="1.0190402632579207s" repeatCount="indefinite" />
+        <animate attributeName="opacity" from="1" to="0" dur="1.5s" begin="1.0190402632579207s" repeatCount="indefinite" />
+      
+      </circle>
+    
+      <circle fill="#58a6ff" cx="460.9462470118888" cy="170" r="1.5" opacity="1" pointer-events="none">
+      
+        <animate attributeName="cy" from="170" to="150" dur="1.5s" begin="1.1764658441534266s" repeatCount="indefinite" />
+        <animate attributeName="opacity" from="1" to="0" dur="1.5s" begin="1.1764658441534266s" repeatCount="indefinite" />
+      
+      </circle>
+    </g>
+        <g transform="translate(444, 230)">
+          <g class="cp-tower interactive-tower" data-date="2026-05-11" data-count="0" data-metric="Rest day" style="animation-delay: 0.165s;">
+            
+            <title>2026-05-11: 0 contributions</title>
+            <path d="M0 10 L0 10 L-16 0 L-16 0 Z" fill="#58a6ff" fill-opacity="0"  />
+            <path d="M0 10 L0 10 L16 0 L16 0 Z" fill="#58a6ff" fill-opacity="0"  />
+            <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.08"  />
+            
+          </g>
+        </g>
+        <g transform="translate(428, 240)">
+          <g class="cp-tower interactive-tower" data-date="2026-05-12" data-count="0" data-metric="Rest day" style="animation-delay: 0.180s;">
+            
+            <title>2026-05-12: 0 contributions</title>
+            <path d="M0 10 L0 10 L-16 0 L-16 0 Z" fill="#58a6ff" fill-opacity="0"  />
+            <path d="M0 10 L0 10 L16 0 L16 0 Z" fill="#58a6ff" fill-opacity="0"  />
+            <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.08"  />
+            
+          </g>
+        </g>
+        <g transform="translate(412, 250)">
+          <g class="cp-tower interactive-tower" data-date="2026-05-13" data-count="0" data-metric="Rest day" style="animation-delay: 0.195s;">
+            
+            <title>2026-05-13: 0 contributions</title>
+            <path d="M0 10 L0 10 L-16 0 L-16 0 Z" fill="#58a6ff" fill-opacity="0"  />
+            <path d="M0 10 L0 10 L16 0 L16 0 Z" fill="#58a6ff" fill-opacity="0"  />
+            <path d="M0 0 L16 10 L0 20 L-16 10 Z" fill="#58a6ff" fill-opacity="0.08"  />
+            
+          </g>
+        </g>
+        <g transform="translate(396, 260)">
+          <g class="cp-tower interactive-tower" data-date="2026-05-14" data-count="15" data-metric="Active day" style="animation-delay: 0.210s;">
+            
+            <title>2026-05-14: 15 contributions</title>
+            <path d="M0 -40 L0 10 L-16 0 L-16 -50 Z" fill="#58a6ff" fill-opacity="0.35"  />
+            <path d="M0 -40 L0 10 L16 0 L16 -50 Z" fill="#58a6ff" fill-opacity="0.21"  />
+            <path d="M0 -50 L16 -40 L0 -30 L-16 -40 Z" fill="#58a6ff" fill-opacity="0.7"  />
+            <path d="M0 -50 L16 -40 L0 -30 L-16 -40 Z" fill="white" fill-opacity="0.2" />
+          </g>
+        </g><g class="heat-particles" pointer-events="none">
+      <circle fill="#58a6ff" cx="393.637414092198" cy="210" r="1.5" opacity="1" pointer-events="none">
+      
+        <animate attributeName="cy" from="210" to="190" dur="1.5s" begin="0.9177416546735913s" repeatCount="indefinite" />
+        <animate attributeName="opacity" from="1" to="0" dur="1.5s" begin="0.9177416546735913s" repeatCount="indefinite" />
+      
+      </circle>
+    
+      <circle fill="#58a6ff" cx="397.41415833542123" cy="210" r="1.5" opacity="1" pointer-events="none">
+      
+        <animate attributeName="cy" from="210" to="190" dur="1.5s" begin="0.5447897304547951s" repeatCount="indefinite" />
+        <animate attributeName="opacity" from="1" to="0" dur="1.5s" begin="0.5447897304547951s" repeatCount="indefinite" />
+      
+      </circle>
+    
+      <circle fill="#58a6ff" cx="394.01192037854344" cy="210" r="1.5" opacity="1" pointer-events="none">
+      
+        <animate attributeName="cy" from="210" to="190" dur="1.5s" begin="0.14694756735116243s" repeatCount="indefinite" />
+        <animate attributeName="opacity" from="1" to="0" dur="1.5s" begin="0.14694756735116243s" repeatCount="indefinite" />
+      
+      </circle>
+    </g>
+        <g transform="translate(380, 270)">
+          <g class="cp-tower interactive-tower" data-date="2026-05-15" data-count="14" data-metric="Active day" style="animation-delay: 0.225s;">
+            
+            <title>2026-05-15: 14 contributions</title>
+            <path d="M0 -40 L0 10 L-16 0 L-16 -50 Z" fill="#58a6ff" fill-opacity="0.35"  />
+            <path d="M0 -40 L0 10 L16 0 L16 -50 Z" fill="#58a6ff" fill-opacity="0.21"  />
+            <path d="M0 -50 L16 -40 L0 -30 L-16 -40 Z" fill="#58a6ff" fill-opacity="0.7"  />
+            <path d="M0 -50 L16 -40 L0 -30 L-16 -40 Z" fill="white" fill-opacity="0.2" />
+          </g>
+        </g><g class="heat-particles" pointer-events="none">
+      <circle fill="#58a6ff" cx="381.34581573633477" cy="220" r="1.5" opacity="1" pointer-events="none">
+      
+        <animate attributeName="cy" from="220" to="200" dur="1.5s" begin="0.8776068744482473s" repeatCount="indefinite" />
+        <animate attributeName="opacity" from="1" to="0" dur="1.5s" begin="0.8776068744482473s" repeatCount="indefinite" />
+      
+      </circle>
+    
+      <circle fill="#58a6ff" cx="379.21638255845755" cy="220" r="1.5" opacity="1" pointer-events="none">
+      
+        <animate attributeName="cy" from="220" to="200" dur="1.5s" begin="1.364808916579932s" repeatCount="indefinite" />
+        <animate attributeName="opacity" from="1" to="0" dur="1.5s" begin="1.364808916579932s" repeatCount="indefinite" />
+      
+      </circle>
+    
+      <circle fill="#58a6ff" cx="382.80242595123127" cy="220" r="1.5" opacity="1" pointer-events="none">
+      
+        <animate attributeName="cy" from="220" to="200" dur="1.5s" begin="0.6459285219898447s" repeatCount="indefinite" />
+        <animate attributeName="opacity" from="1" to="0" dur="1.5s" begin="0.6459285219898447s" repeatCount="indefinite" />
+      
+      </circle>
+    </g>
+        <g transform="translate(364, 280)">
+          <g class="cp-tower interactive-tower" data-date="2026-05-16" data-count="23" data-metric="Active day" style="animation-delay: 0.240s;">
+            
+            <title>2026-05-16: 23 contributions</title>
+            <path d="M0 -40 L0 10 L-16 0 L-16 -50 Z" fill="#58a6ff" fill-opacity="0.35"  />
+            <path d="M0 -40 L0 10 L16 0 L16 -50 Z" fill="#58a6ff" fill-opacity="0.21"  />
+            <path d="M0 -50 L16 -40 L0 -30 L-16 -40 Z" fill="#58a6ff" fill-opacity="0.7"  />
+            <path d="M0 -50 L16 -40 L0 -30 L-16 -40 Z" fill="white" fill-opacity="0.2" />
+          </g>
+        </g><g class="heat-particles" pointer-events="none">
+      <circle fill="#58a6ff" cx="366.719975146465" cy="230" r="1.5" opacity="1" pointer-events="none">
+      
+        <animate attributeName="cy" from="230" to="210" dur="1.5s" begin="1.2112707062624395s" repeatCount="indefinite" />
+        <animate attributeName="opacity" from="1" to="0" dur="1.5s" begin="1.2112707062624395s" repeatCount="indefinite" />
+      
+      </circle>
+    
+      <circle fill="#58a6ff" cx="361.51686113653705" cy="230" r="1.5" opacity="1" pointer-events="none">
+      
+        <animate attributeName="cy" from="230" to="210" dur="1.5s" begin="0.10522052657324821s" repeatCount="indefinite" />
+        <animate attributeName="opacity" from="1" to="0" dur="1.5s" begin="0.10522052657324821s" repeatCount="indefinite" />
+      
+      </circle>
+    
+      <circle fill="#58a6ff" cx="363.96161806955934" cy="230" r="1.5" opacity="1" pointer-events="none">
+      
+        <animate attributeName="cy" from="230" to="210" dur="1.5s" begin="0.22721145185641944s" repeatCount="indefinite" />
+        <animate attributeName="opacity" from="1" to="0" dur="1.5s" begin="0.22721145185641944s" repeatCount="indefinite" />
+      
+      </circle>
+    
+      <circle fill="#58a6ff" cx="364.30942190485075" cy="230" r="1.5" opacity="1" pointer-events="none">
+      
+        <animate attributeName="cy" from="230" to="210" dur="1.5s" begin="0.7972328880568966s" repeatCount="indefinite" />
+        <animate attributeName="opacity" from="1" to="0" dur="1.5s" begin="0.7972328880568966s" repeatCount="indefinite" />
+      
+      </circle>
+    
+      <circle fill="#58a6ff" cx="361.41919478867203" cy="230" r="1.5" opacity="1" pointer-events="none">
+      
+        <animate attributeName="cy" from="230" to="210" dur="1.5s" begin="0.4552858108654618s" repeatCount="indefinite" />
+        <animate attributeName="opacity" from="1" to="0" dur="1.5s" begin="0.4552858108654618s" repeatCount="indefinite" />
+      
+      </circle>
+    </g>
+        <g transform="translate(476, 230)">
+          <g class="cp-tower interactive-tower" data-date="2026-05-17" data-count="6" data-metric="Active day" style="animation-delay: 0.165s;">
+            
+            <title>2026-05-17: 6 contributions</title>
+            <path d="M0 -20 L0 10 L-16 0 L-16 -30 Z" fill="#58a6ff" fill-opacity="0.35"  />
+            <path d="M0 -20 L0 10 L16 0 L16 -30 Z" fill="#58a6ff" fill-opacity="0.21"  />
+            <path d="M0 -30 L16 -20 L0 -10 L-16 -20 Z" fill="#58a6ff" fill-opacity="0.7"  />
+            <path d="M0 -30 L16 -20 L0 -10 L-16 -20 Z" fill="white" fill-opacity="0.2" />
+          </g>
+        </g>
+        <g transform="translate(460, 240)">
+          <g class="cp-tower interactive-tower" data-date="2026-05-18" data-count="13" data-metric="Active day" style="animation-delay: 0.180s;">
+            
+            <title>2026-05-18: 13 contributions</title>
+            <path d="M0 -40 L0 10 L-16 0 L-16 -50 Z" fill="#58a6ff" fill-opacity="0.35"  />
+            <path d="M0 -40 L0 10 L16 0 L16 -50 Z" fill="#58a6ff" fill-opacity="0.21"  />
+            <path d="M0 -50 L16 -40 L0 -30 L-16 -40 Z" fill="#58a6ff" fill-opacity="0.7"  />
+            <path d="M0 -50 L16 -40 L0 -30 L-16 -40 Z" fill="white" fill-opacity="0.2" />
+          </g>
+        </g><g class="heat-particles" pointer-events="none">
+      <circle fill="#58a6ff" cx="458.8115242496133" cy="190" r="1.5" opacity="1" pointer-events="none">
+      
+        <animate attributeName="cy" from="190" to="170" dur="1.5s" begin="1.3855528382118791s" repeatCount="indefinite" />
+        <animate attributeName="opacity" from="1" to="0" dur="1.5s" begin="1.3855528382118791s" repeatCount="indefinite" />
+      
+      </circle>
+    
+      <circle fill="#58a6ff" cx="460.98187869461253" cy="190" r="1.5" opacity="1" pointer-events="none">
+      
+        <animate attributeName="cy" from="190" to="170" dur="1.5s" begin="0.5639602955197915s" repeatCount="indefinite" />
+        <animate attributeName="opacity" from="1" to="0" dur="1.5s" begin="0.5639602955197915s" repeatCount="indefinite" />
+      
+      </circle>
+    
+      <circle fill="#58a6ff" cx="459.6793579077348" cy="190" r="1.5" opacity="1" pointer-events="none">
+      
+        <animate attributeName="cy" from="190" to="170" dur="1.5s" begin="0.8462702916003764s" repeatCount="indefinite" />
+        <animate attributeName="opacity" from="1" to="0" dur="1.5s" begin="0.8462702916003764s" repeatCount="indefinite" />
+      
+      </circle>
+    </g>
+        <g transform="translate(444, 250)">
+          <g class="cp-tower interactive-tower" data-date="2026-05-19" data-count="10" data-metric="Active day" style="animation-delay: 0.195s;">
+            
+            <title>2026-05-19: 10 contributions</title>
+            <path d="M0 -40 L0 10 L-16 0 L-16 -50 Z" fill="#58a6ff" fill-opacity="0.35"  />
+            <path d="M0 -40 L0 10 L16 0 L16 -50 Z" fill="#58a6ff" fill-opacity="0.21"  />
+            <path d="M0 -50 L16 -40 L0 -30 L-16 -40 Z" fill="#58a6ff" fill-opacity="0.7"  />
+            <path d="M0 -50 L16 -40 L0 -30 L-16 -40 Z" fill="white" fill-opacity="0.2" />
+          </g>
+        </g><g class="heat-particles" pointer-events="none">
+      <circle fill="#58a6ff" cx="443.28534238692373" cy="200" r="1.5" opacity="1" pointer-events="none">
+      
+        <animate attributeName="cy" from="200" to="180" dur="1.5s" begin="0.89067522296682s" repeatCount="indefinite" />
+        <animate attributeName="opacity" from="1" to="0" dur="1.5s" begin="0.89067522296682s" repeatCount="indefinite" />
+      
+      </circle>
+    
+      <circle fill="#58a6ff" cx="441.90190139366314" cy="200" r="1.5" opacity="1" pointer-events="none">
+      
+        <animate attributeName="cy" from="200" to="180" dur="1.5s" begin="0.8554742272244766s" repeatCount="indefinite" />
+        <animate attributeName="opacity" from="1" to="0" dur="1.5s" begin="0.8554742272244766s" repeatCount="indefinite" />
+      
+      </circle>
+    
+      <circle fill="#58a6ff" cx="445.8237042501569" cy="200" r="1.5" opacity="1" pointer-events="none">
+      
+        <animate attributeName="cy" from="200" to="180" dur="1.5s" begin="0.8572596532758325s" repeatCount="indefinite" />
+        <animate attributeName="opacity" from="1" to="0" dur="1.5s" begin="0.8572596532758325s" repeatCount="indefinite" />
+      
+      </circle>
+    </g>
+        <g transform="translate(428, 260)">
+          <g class="cp-tower interactive-tower" data-date="2026-05-20" data-count="9" data-metric="Active day" style="animation-delay: 0.210s;">
+            
+            <title>2026-05-20: 9 contributions</title>
+            <path d="M0 -35 L0 10 L-16 0 L-16 -45 Z" fill="#58a6ff" fill-opacity="0.35"  />
+            <path d="M0 -35 L0 10 L16 0 L16 -45 Z" fill="#58a6ff" fill-opacity="0.21"  />
+            <path d="M0 -45 L16 -35 L0 -25 L-16 -35 Z" fill="#58a6ff" fill-opacity="0.7"  />
+            <path d="M0 -45 L16 -35 L0 -25 L-16 -35 Z" fill="white" fill-opacity="0.2" />
+          </g>
+        </g>
+        <g transform="translate(412, 270)">
+          <g class="cp-tower interactive-tower" data-date="2026-05-21" data-count="9" data-metric="Active day" style="animation-delay: 0.225s;">
+            
+            <title>2026-05-21: 9 contributions</title>
+            <path d="M0 -35 L0 10 L-16 0 L-16 -45 Z" fill="#58a6ff" fill-opacity="0.35"  />
+            <path d="M0 -35 L0 10 L16 0 L16 -45 Z" fill="#58a6ff" fill-opacity="0.21"  />
+            <path d="M0 -45 L16 -35 L0 -25 L-16 -35 Z" fill="#58a6ff" fill-opacity="0.7"  />
+            <path d="M0 -45 L16 -35 L0 -25 L-16 -35 Z" fill="white" fill-opacity="0.2" />
+          </g>
+        </g>
+        <g transform="translate(396, 280)">
+          <g class="cp-tower interactive-tower" data-date="2026-05-22" data-count="1" data-metric="Active day" style="animation-delay: 0.240s;">
+            
+            <title>2026-05-22: 1 contributions</title>
+            <path d="M0 5 L0 10 L-16 0 L-16 -5 Z" fill="#58a6ff" fill-opacity="0.35"  />
+            <path d="M0 5 L0 10 L16 0 L16 -5 Z" fill="#58a6ff" fill-opacity="0.21"  />
+            <path d="M0 -5 L16 5 L0 15 L-16 5 Z" fill="#58a6ff" fill-opacity="0.7"  />
+            
+          </g>
+        </g>
+        <g transform="translate(380, 290)">
+          <g class="cp-tower interactive-tower" data-date="2026-05-23" data-count="2" data-metric="Active day" style="animation-delay: 0.255s;">
+            
+            <title>2026-05-23: 2 contributions</title>
+            <path d="M0 0 L0 10 L-16 0 L-16 -10 Z" fill="#58a6ff" fill-opacity="0.35"  />
+            <path d="M0 0 L0 10 L16 0 L16 -10 Z" fill="#58a6ff" fill-opacity="0.21"  />
+            <path d="M0 -10 L16 0 L0 10 L-16 0 Z" fill="#58a6ff" fill-opacity="0.7"  />
+            
+          </g>
+        </g>
+        <g transform="translate(492, 240)">
+          <g class="cp-tower interactive-tower" data-date="2026-05-24" data-count="8" data-metric="Active day" style="animation-delay: 0.180s;">
+            
+            <title>2026-05-24: 8 contributions</title>
+            <path d="M0 -30 L0 10 L-16 0 L-16 -40 Z" fill="#58a6ff" fill-opacity="0.35"  />
+            <path d="M0 -30 L0 10 L16 0 L16 -40 Z" fill="#58a6ff" fill-opacity="0.21"  />
+            <path d="M0 -40 L16 -30 L0 -20 L-16 -30 Z" fill="#58a6ff" fill-opacity="0.7"  />
+            <path d="M0 -40 L16 -30 L0 -20 L-16 -30 Z" fill="white" fill-opacity="0.2" />
+          </g>
+        </g>
+        <g transform="translate(476, 250)">
+          <g class="cp-tower interactive-tower" data-date="2026-05-25" data-count="27" data-metric="Active day" style="animation-delay: 0.195s;">
+            
+            <title>2026-05-25: 27 contributions</title>
+            <path d="M0 -40 L0 10 L-16 0 L-16 -50 Z" fill="#58a6ff" fill-opacity="0.35"  />
+            <path d="M0 -40 L0 10 L16 0 L16 -50 Z" fill="#58a6ff" fill-opacity="0.21"  />
+            <path d="M0 -50 L16 -40 L0 -30 L-16 -40 Z" fill="#58a6ff" fill-opacity="0.7"  />
+            <path d="M0 -50 L16 -40 L0 -30 L-16 -40 Z" fill="white" fill-opacity="0.2" />
+          </g>
+        </g><g class="heat-particles" pointer-events="none">
+      <circle fill="#58a6ff" cx="477.0111517678015" cy="200" r="1.5" opacity="1" pointer-events="none">
+      
+        <animate attributeName="cy" from="200" to="180" dur="1.5s" begin="1.030144254793413s" repeatCount="indefinite" />
+        <animate attributeName="opacity" from="1" to="0" dur="1.5s" begin="1.030144254793413s" repeatCount="indefinite" />
+      
+      </circle>
+    
+      <circle fill="#58a6ff" cx="476.94193375017494" cy="200" r="1.5" opacity="1" pointer-events="none">
+      
+        <animate attributeName="cy" from="200" to="180" dur="1.5s" begin="0.48322464572265744s" repeatCount="indefinite" />
+        <animate attributeName="opacity" from="1" to="0" dur="1.5s" begin="0.48322464572265744s" repeatCount="indefinite" />
+      
+      </circle>
+    
+      <circle fill="#58a6ff" cx="473.129044924397" cy="200" r="1.5" opacity="1" pointer-events="none">
+      
+        <animate attributeName="cy" from="200" to="180" dur="1.5s" begin="1.2607321426039562s" repeatCount="indefinite" />
+        <animate attributeName="opacity" from="1" to="0" dur="1.5s" begin="1.2607321426039562s" repeatCount="indefinite" />
+      
+      </circle>
+    
+      <circle fill="#58a6ff" cx="476.9426071494818" cy="200" r="1.5" opacity="1" pointer-events="none">
+      
+        <animate attributeName="cy" from="200" to="180" dur="1.5s" begin="0.5859728248324245s" repeatCount="indefinite" />
+        <animate attributeName="opacity" from="1" to="0" dur="1.5s" begin="0.5859728248324245s" repeatCount="indefinite" />
+      
+      </circle>
+    
+      <circle fill="#58a6ff" cx="473.42642325675115" cy="200" r="1.5" opacity="1" pointer-events="none">
+      
+        <animate attributeName="cy" from="200" to="180" dur="1.5s" begin="0.02689555159304291s" repeatCount="indefinite" />
+        <animate attributeName="opacity" from="1" to="0" dur="1.5s" begin="0.02689555159304291s" repeatCount="indefinite" />
+      
+      </circle>
+    </g>
+        <g transform="translate(460, 260)">
+          <g class="cp-tower interactive-tower" data-date="2026-05-26" data-count="14" data-metric="Active day" style="animation-delay: 0.210s;">
+            
+            <title>2026-05-26: 14 contributions</title>
+            <path d="M0 -40 L0 10 L-16 0 L-16 -50 Z" fill="#58a6ff" fill-opacity="0.35"  />
+            <path d="M0 -40 L0 10 L16 0 L16 -50 Z" fill="#58a6ff" fill-opacity="0.21"  />
+            <path d="M0 -50 L16 -40 L0 -30 L-16 -40 Z" fill="#58a6ff" fill-opacity="0.7"  />
+            <path d="M0 -50 L16 -40 L0 -30 L-16 -40 Z" fill="white" fill-opacity="0.2" />
+          </g>
+        </g><g class="heat-particles" pointer-events="none">
+      <circle fill="#58a6ff" cx="462.5306313750334" cy="210" r="1.5" opacity="1" pointer-events="none">
+      
+        <animate attributeName="cy" from="210" to="190" dur="1.5s" begin="0.6626078862464055s" repeatCount="indefinite" />
+        <animate attributeName="opacity" from="1" to="0" dur="1.5s" begin="0.6626078862464055s" repeatCount="indefinite" />
+      
+      </circle>
+    
+      <circle fill="#58a6ff" cx="457.32255291193724" cy="210" r="1.5" opacity="1" pointer-events="none">
+      
+        <animate attributeName="cy" from="210" to="190" dur="1.5s" begin="0.5040423085447401s" repeatCount="indefinite" />
+        <animate attributeName="opacity" from="1" to="0" dur="1.5s" begin="0.5040423085447401s" repeatCount="indefinite" />
+      
+      </circle>
+    
+      <circle fill="#58a6ff" cx="459.5723867560737" cy="210" r="1.5" opacity="1" pointer-events="none">
+      
+        <animate attributeName="cy" from="210" to="190" dur="1.5s" begin="0.49513110250700265s" repeatCount="indefinite" />
+        <animate attributeName="opacity" from="1" to="0" dur="1.5s" begin="0.49513110250700265s" repeatCount="indefinite" />
+      
+      </circle>
+    </g>
+        <g transform="translate(444, 270)">
+          <g class="cp-tower interactive-tower" data-date="2026-05-27" data-count="3" data-metric="Active day" style="animation-delay: 0.225s;">
+            
+            <title>2026-05-27: 3 contributions</title>
+            <path d="M0 -5 L0 10 L-16 0 L-16 -15 Z" fill="#58a6ff" fill-opacity="0.35"  />
+            <path d="M0 -5 L0 10 L16 0 L16 -15 Z" fill="#58a6ff" fill-opacity="0.21"  />
+            <path d="M0 -15 L16 -5 L0 5 L-16 -5 Z" fill="#58a6ff" fill-opacity="0.7"  />
+            
+          </g>
+        </g>
+        <g transform="translate(428, 280)">
+          <g class="cp-tower interactive-tower" data-date="2026-05-28" data-count="4" data-metric="Active day" style="animation-delay: 0.240s;">
+            
+            <title>2026-05-28: 4 contributions</title>
+            <path d="M0 -10 L0 10 L-16 0 L-16 -20 Z" fill="#58a6ff" fill-opacity="0.35"  />
+            <path d="M0 -10 L0 10 L16 0 L16 -20 Z" fill="#58a6ff" fill-opacity="0.21"  />
+            <path d="M0 -20 L16 -10 L0 0 L-16 -10 Z" fill="#58a6ff" fill-opacity="0.7"  />
+            
+          </g>
+        </g>
+        <g transform="translate(412, 290)">
+          <g class="cp-tower interactive-tower" data-date="2026-05-29" data-count="49" data-metric="Peak day" style="animation-delay: 0.255s;">
+            
+            <title>2026-05-29: 49 contributions</title>
+            <path d="M0 -40 L0 10 L-16 0 L-16 -50 Z" fill="#58a6ff" fill-opacity="0.35"  />
+            <path d="M0 -40 L0 10 L16 0 L16 -50 Z" fill="#58a6ff" fill-opacity="0.21"  />
+            <path d="M0 -50 L16 -40 L0 -30 L-16 -40 Z" fill="#58a6ff" fill-opacity="0.7"  />
+            <path d="M0 -50 L16 -40 L0 -30 L-16 -40 Z" fill="white" fill-opacity="0.2" />
+          </g>
+        </g><g class="heat-particles" pointer-events="none">
+      <circle fill="#58a6ff" cx="413.8603993882425" cy="240" r="1.5" opacity="1" pointer-events="none">
+      
+        <animate attributeName="cy" from="240" to="220" dur="1.5s" begin="0.33820899145212024s" repeatCount="indefinite" />
+        <animate attributeName="opacity" from="1" to="0" dur="1.5s" begin="0.33820899145212024s" repeatCount="indefinite" />
+      
+      </circle>
+    
+      <circle fill="#58a6ff" cx="413.451589781791" cy="240" r="1.5" opacity="1" pointer-events="none">
+      
+        <animate attributeName="cy" from="240" to="220" dur="1.5s" begin="0.23719240981154144s" repeatCount="indefinite" />
+        <animate attributeName="opacity" from="1" to="0" dur="1.5s" begin="0.23719240981154144s" repeatCount="indefinite" />
+      
+      </circle>
+    
+      <circle fill="#58a6ff" cx="413.08712072251365" cy="240" r="1.5" opacity="1" pointer-events="none">
+      
+        <animate attributeName="cy" from="240" to="220" dur="1.5s" begin="0.11523751553613693s" repeatCount="indefinite" />
+        <animate attributeName="opacity" from="1" to="0" dur="1.5s" begin="0.11523751553613693s" repeatCount="indefinite" />
+      
+      </circle>
+    
+      <circle fill="#58a6ff" cx="411.2559904931113" cy="240" r="1.5" opacity="1" pointer-events="none">
+      
+        <animate attributeName="cy" from="240" to="220" dur="1.5s" begin="0.34471474355086684s" repeatCount="indefinite" />
+        <animate attributeName="opacity" from="1" to="0" dur="1.5s" begin="0.34471474355086684s" repeatCount="indefinite" />
+      
+      </circle>
+    
+      <circle fill="#58a6ff" cx="414.4949696571566" cy="240" r="1.5" opacity="1" pointer-events="none">
+      
+        <animate attributeName="cy" from="240" to="220" dur="1.5s" begin="1.4866080422652885s" repeatCount="indefinite" />
+        <animate attributeName="opacity" from="1" to="0" dur="1.5s" begin="1.4866080422652885s" repeatCount="indefinite" />
+      
+      </circle>
+    </g>
+        <g transform="translate(396, 300)">
+          <g class="cp-tower interactive-tower" data-date="2026-05-30" data-count="3" data-metric="Active day" style="animation-delay: 0.270s;">
+            
+            <title>2026-05-30: 3 contributions</title>
+            <path d="M0 -5 L0 10 L-16 0 L-16 -15 Z" fill="#58a6ff" fill-opacity="0.35"  />
+            <path d="M0 -5 L0 10 L16 0 L16 -15 Z" fill="#58a6ff" fill-opacity="0.21"  />
+            <path d="M0 -15 L16 -5 L0 5 L-16 -5 Z" fill="#58a6ff" fill-opacity="0.7"  />
+            
+          </g>
+        </g>
+        <g transform="translate(508, 250)">
+          <g class="cp-tower interactive-tower" data-date="2026-05-31" data-count="10" data-metric="Active day" style="animation-delay: 0.195s;">
+            
+            <title>2026-05-31: 10 contributions</title>
+            <path d="M0 -40 L0 10 L-16 0 L-16 -50 Z" fill="#58a6ff" fill-opacity="0.35"  />
+            <path d="M0 -40 L0 10 L16 0 L16 -50 Z" fill="#58a6ff" fill-opacity="0.21"  />
+            <path d="M0 -50 L16 -40 L0 -30 L-16 -40 Z" fill="#58a6ff" fill-opacity="0.7"  />
+            <path d="M0 -50 L16 -40 L0 -30 L-16 -40 Z" fill="white" fill-opacity="0.2" />
+          </g>
+        </g><g class="heat-particles" pointer-events="none">
+      <circle fill="#58a6ff" cx="506.2478243871592" cy="200" r="1.5" opacity="1" pointer-events="none">
+      
+        <animate attributeName="cy" from="200" to="180" dur="1.5s" begin="0.5915498040849343s" repeatCount="indefinite" />
+        <animate attributeName="opacity" from="1" to="0" dur="1.5s" begin="0.5915498040849343s" repeatCount="indefinite" />
+      
+      </circle>
+    
+      <circle fill="#58a6ff" cx="506.81896557752043" cy="200" r="1.5" opacity="1" pointer-events="none">
+      
+        <animate attributeName="cy" from="200" to="180" dur="1.5s" begin="0.16417820658534765s" repeatCount="indefinite" />
+        <animate attributeName="opacity" from="1" to="0" dur="1.5s" begin="0.16417820658534765s" repeatCount="indefinite" />
+      
+      </circle>
+    
+      <circle fill="#58a6ff" cx="509.67747443774715" cy="200" r="1.5" opacity="1" pointer-events="none">
+      
+        <animate attributeName="cy" from="200" to="180" dur="1.5s" begin="1.1261549525661394s" repeatCount="indefinite" />
+        <animate attributeName="opacity" from="1" to="0" dur="1.5s" begin="1.1261549525661394s" repeatCount="indefinite" />
+      
+      </circle>
+    </g>
+        <g transform="translate(492, 260)">
+          <g class="cp-tower interactive-tower" data-date="2026-06-01" data-count="2" data-metric="Active day" style="animation-delay: 0.210s;">
+            <animate attributeName="opacity" values="1;0.4;1" dur="1.5s" repeatCount="indefinite" />
+            <title>TODAY: 2026-06-01: 2 contributions</title>
+            <path d="M0 0 L0 10 L-16 0 L-16 -10 Z" fill="#58a6ff" fill-opacity="0.35"  />
+            <path d="M0 0 L0 10 L16 0 L16 -10 Z" fill="#58a6ff" fill-opacity="0.21"  />
+            <path d="M0 -10 L16 0 L0 10 L-16 0 Z" fill="#58a6ff" fill-opacity="0.7"  />
+            
+          </g>
+        </g></g>
+  
+  
+  
+  <g transform="translate(100, 340)" text-anchor="middle">
+    <text class="label">CURRENT_STREAK</text>
+    <text y="40" class="stats" filter="url(#glow)">19</text>
+  </g>
+  <g transform="translate(300, 340)" text-anchor="middle">
+    <text class="label">ANNUAL_SYNC_TOTAL</text>
+    <text y="40" class="total-val" filter="url(#glow)">656</text>
+  </g>
+  <g transform="translate(500, 340)" text-anchor="middle">
+    <text class="label">PEAK_STREAK</text>
+    <text y="40" class="stats">19</text>
+  </g>
+  <text x="300" y="50" text-anchor="middle" class="title">ANIMESH-86</text>
+  <rect
+    x="100"
+    y="80"
+    width="400"
+    height="1"
+    fill="#58a6ff" class="cp-accent-fill scan-line"
+    fill-opacity="0.3"
+    style="--scan-speed: 8s; --scan-start: 0px; --scan-end: 240px;"
+  />
+</svg>

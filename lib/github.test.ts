@@ -10,17 +10,18 @@ import {
   buildCommitClock,
   clearGitHubApiCacheForTests,
   GITHUB_CACHE_TTL_MS,
-  validateGitHubUsername,
   cacheKey,
   displayName,
   fetchOrgMembers,
   getOrgDashboardData,
   getWrappedData,
   computeDeveloperScore,
+  runCappedConcurrency,
   buildProfileData,
   aggregateLanguages,
   buildInsights,
   buildActivityMap,
+  contributionsCache,
 } from './github';
 import type { ContributionCalendar } from '../types';
 
@@ -488,6 +489,58 @@ describe('fetchGitHubContributions', () => {
     expect(r1.calendar.totalContributions).toBe(r2.calendar.totalContributions);
     expect(r1.calendar.weeks).toEqual(r2.calendar.weeks);
   });
+
+  it('falls back to stale cache with isOfflineFallback: true when fetch fails and cache has data', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(
+      mockResponse({
+        data: {
+          user: {
+            contributionsCollection: {
+              contributionCalendar: mockCalendar,
+              commitContributionsByRepository: [],
+            },
+          },
+        },
+      })
+    );
+    await fetchGitHubContributions('fallback-user');
+
+    // Expire the cache entry manually by changing lastSyncedAt to be 10 minutes in the past
+    const key = cacheKey('contributions', 'fallback-user');
+    const cachedData = await contributionsCache.get(key);
+    if (cachedData) {
+      cachedData.calendar.lastSyncedAt = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+      await contributionsCache.set(key, cachedData, 7 * 24 * 60 * 60 * 1000);
+    }
+
+    vi.mocked(fetch).mockRejectedValue(new Error('API rate limit exceeded'));
+
+    const result = await fetchGitHubContributions('fallback-user');
+    expect(result.calendar.totalContributions).toBe(mockCalendar.totalContributions);
+    expect(result.isOfflineFallback).toBe(true);
+  });
+
+  it('falls back to stale cache when bypassCache is true but fetch fails and cache has data', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(
+      mockResponse({
+        data: {
+          user: {
+            contributionsCollection: {
+              contributionCalendar: mockCalendar,
+              commitContributionsByRepository: [],
+            },
+          },
+        },
+      })
+    );
+    await fetchGitHubContributions('bypass-fallback-user');
+
+    vi.mocked(fetch).mockRejectedValue(new Error('Failed to fetch'));
+
+    const result = await fetchGitHubContributions('bypass-fallback-user', { bypassCache: true });
+    expect(result.calendar.totalContributions).toBe(mockCalendar.totalContributions);
+    expect(result.isOfflineFallback).toBe(true);
+  });
 });
 
 describe('fetchUserProfile', () => {
@@ -520,6 +573,32 @@ describe('fetchUserProfile', () => {
     expect(result.followers).toBe(mockProfile.followers);
     expect(result.following).toBe(mockProfile.following);
     expect(result.avatar_url).toBe(mockProfile.avatar_url);
+  });
+
+  it('sanitizes the profile by removing extra fields before returning', async () => {
+    const mockProfile = {
+      login: 'octocat',
+      name: 'The Octocat',
+      avatar_url: 'https://avatar.url',
+      public_repos: 8,
+      followers: 100,
+      following: 5,
+      created_at: '2011-01-25T18:44:36Z',
+      bio: 'GitHub mascot',
+      location: 'San Francisco',
+      extra_field: 'should be removed',
+      another_extra: 123,
+      plan: { name: 'pro', space: 1000 },
+    };
+
+    vi.mocked(fetch).mockResolvedValue(mockResponse(mockProfile));
+
+    const result = (await fetchUserProfile('octocat')) as unknown as Record<string, unknown>;
+
+    expect(result.login).toBe('octocat');
+    expect(result.extra_field).toBeUndefined();
+    expect(result.another_extra).toBeUndefined();
+    expect(result.plan).toEqual({ name: 'pro' });
   });
 
   it('encodes the username before using it in the REST profile path', async () => {
@@ -566,6 +645,29 @@ describe('fetchUserRepos', () => {
     );
     const result = await fetchUserRepos('octocat');
     expect(result[0].stargazers_count).toBe(1);
+  });
+
+  it('sanitizes repo objects by removing extra fields before returning', async () => {
+    vi.mocked(fetch).mockResolvedValue(
+      mockResponse([
+        {
+          name: 'some-repo',
+          stargazers_count: 10,
+          language: 'TypeScript',
+          id: 12345,
+          private: false,
+          owner: { login: 'octocat' },
+        },
+      ])
+    );
+
+    const result = (await fetchUserRepos('octocat')) as unknown as Record<string, unknown>[];
+
+    expect(result[0].stargazers_count).toBe(10);
+    expect(result[0].language).toBe('TypeScript');
+    expect(result[0].id).toBeUndefined();
+    expect(result[0].private).toBeUndefined();
+    expect(result[0].owner).toBeUndefined();
   });
 
   it('returns a full three-repo payload with the expected star counts and languages', async () => {
@@ -1690,19 +1792,6 @@ describe('displayName', () => {
   });
 });
 
-describe('validateGitHubUsername', () => {
-  it('returns true for a valid username', () => {
-    expect(validateGitHubUsername('valid-username-123')).toBe(true);
-  });
-
-  it('returns false for a too long username', () => {
-    expect(validateGitHubUsername('a'.repeat(40))).toBe(false);
-  });
-
-  it('returns false for a username with underscore', () => {
-    expect(validateGitHubUsername('invalid_username')).toBe(false);
-  });
-});
 describe('cacheKey', () => {
   it('creates key without year', () => {
     expect(cacheKey('profile', 'DeepSikha')).toBe('profile:deepsikha');
@@ -1846,14 +1935,14 @@ describe('fetchOrgMembers', () => {
     await fetchOrgMembers('octo/org');
 
     expect(fetch).toHaveBeenCalledWith(
-      'https://api.github.com/orgs/octo%2Forg/members?per_page=50&page=1',
+      'https://api.github.com/orgs/octo%2Forg/members?per_page=100&page=1',
       expect.objectContaining({ cache: 'no-store' })
     );
   });
 
   it('paginates correctly up to less than perPage returning end', async () => {
-    const page1 = Array.from({ length: 50 }, (_, i) => ({ login: `user${i}` }));
-    const page2 = Array.from({ length: 20 }, (_, i) => ({ login: `user${50 + i}` }));
+    const page1 = Array.from({ length: 100 }, (_, i) => ({ login: `user${i}` }));
+    const page2 = Array.from({ length: 20 }, (_, i) => ({ login: `user${100 + i}` }));
 
     vi.mocked(fetch)
       .mockResolvedValueOnce(mockResponse(page1))
@@ -1861,21 +1950,21 @@ describe('fetchOrgMembers', () => {
 
     const members = await fetchOrgMembers('vercel');
 
-    expect(members).toHaveLength(70);
+    expect(members).toHaveLength(120);
     expect(members[0]).toBe('user0');
-    expect(members[69]).toBe('user69');
+    expect(members[119]).toBe('user119');
     expect(fetch).toHaveBeenCalledTimes(2);
   });
 
-  it('stops paginating at max limit of 4 pages even if pages return 50 members', async () => {
-    const pageData = Array.from({ length: 50 }, (_, i) => ({ login: `user${i}` }));
+  it('stops paginating at max limit of 1000 members even if pages return 100 members', async () => {
+    const pageData = Array.from({ length: 100 }, (_, i) => ({ login: `user${i}` }));
 
     vi.mocked(fetch).mockImplementation(async () => mockResponse(pageData));
 
     const members = await fetchOrgMembers('vercel');
 
-    expect(members).toHaveLength(200);
-    expect(fetch).toHaveBeenCalledTimes(4);
+    expect(members).toHaveLength(1000);
+    expect(fetch).toHaveBeenCalledTimes(10);
   });
 });
 
@@ -2118,5 +2207,46 @@ describe('computeDeveloperScore', () => {
         longestStreak: 2,
       })
     ).toBe(2);
+  });
+});
+
+describe('runCappedConcurrency', () => {
+  it('should process all items and return their results in order', async () => {
+    const items = [1, 2, 3, 4, 5];
+    const results = await runCappedConcurrency(items, 2, async (x) => {
+      return x * 10;
+    });
+
+    expect(results).toEqual([10, 20, 30, 40, 50]);
+  });
+
+  it('should strictly limit the concurrency to the specified limit', async () => {
+    const items = [1, 2, 3, 4, 5];
+    let activePromises = 0;
+    let maxConcurrentPromises = 0;
+
+    await runCappedConcurrency(items, 2, async (x) => {
+      activePromises++;
+      maxConcurrentPromises = Math.max(maxConcurrentPromises, activePromises);
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      activePromises--;
+      return x;
+    });
+
+    expect(maxConcurrentPromises).toBeLessThanOrEqual(2);
+  });
+
+  it('should handle errors inside tasks gracefully without aborting the entire sequence', async () => {
+    const items = [1, 2, 3, 4, 5];
+    const results = await runCappedConcurrency(items, 2, async (x) => {
+      if (x === 3) throw new Error('Task 3 failed');
+      return x * 10;
+    });
+
+    expect(results[0]).toBe(10);
+    expect(results[1]).toBe(20);
+    expect(results[2]).toBeNull();
+    expect(results[3]).toBe(40);
+    expect(results[4]).toBe(50);
   });
 });

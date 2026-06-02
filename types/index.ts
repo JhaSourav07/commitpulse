@@ -95,6 +95,7 @@ export interface RepoContribution {
 export interface ExtendedContributionData {
   calendar: ContributionCalendar;
   repoContributions: RepoContribution[];
+  isOfflineFallback?: boolean;
 }
 
 /**
@@ -228,6 +229,7 @@ export interface BadgeParams {
   disable_particles?: boolean;
   animate?: boolean;
   glow?: boolean;
+  isOfflineFallback?: boolean;
 
   /** @internal Temporary property to track custom gradient ID during SVG generation. */
   __customGradientId?: string;

@@ -24,10 +24,22 @@ export async function GET(request: Request) {
   const parseResult = statsParamsSchema.safeParse(Object.fromEntries(searchParams.entries()));
 
   if (!parseResult.success) {
+    const details = parseResult.error.flatten();
+
+    if (details.fieldErrors.tz?.length) {
+      return NextResponse.json(
+        {
+          error: 'Invalid "tz" parameter',
+          details,
+        },
+        { status: 400 }
+      );
+    }
+
     return NextResponse.json(
       {
         error: 'Invalid parameters',
-        details: parseResult.error.flatten(),
+        details,
       },
       { status: 400 }
     );
@@ -85,8 +97,8 @@ export async function GET(request: Request) {
       message.includes('status 403')
     ) {
       return NextResponse.json(
-        { error: 'GitHub API rate limit reached. Please configure GITHUB_TOKEN.' },
-        { status: 403 }
+        { error: 'GitHub API rate limit reached. Please try again later.' },
+        { status: 429 }
       );
     }
 

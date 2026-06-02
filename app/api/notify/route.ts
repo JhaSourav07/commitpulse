@@ -4,6 +4,7 @@ import { Notification } from '@/models/Notification';
 import { NotificationResponse } from '@/types/index';
 import { notifyPostSchema, notifyGetSchema } from '@/lib/validations';
 import { notifyRateLimiter } from '@/lib/rate-limit';
+import { getClientIp } from '@/utils/getClientIp';
 
 /**
  * Masks an email address to prevent PII exposure in unauthenticated responses.
@@ -34,8 +35,7 @@ function maskEmail(email: string): string {
 // Register or update email notification preferences for a user
 export async function POST(req: NextRequest): Promise<NextResponse<NotificationResponse>> {
   // Rate limiting
-  const ip =
-    req.headers.get('x-forwarded-for')?.split(',')[0] ?? req.headers.get('x-real-ip') ?? 'unknown';
+  const ip = getClientIp(req);
 
   if (ip !== 'unknown' && !(await notifyRateLimiter.check(ip))) {
     return NextResponse.json(
@@ -137,8 +137,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<NotificationR
 // Fetch notification preferences for a user
 export async function GET(req: NextRequest): Promise<NextResponse<NotificationResponse>> {
   // Rate limiting
-  const ip =
-    req.headers.get('x-forwarded-for')?.split(',')[0] ?? req.headers.get('x-real-ip') ?? 'unknown';
+  const ip = getClientIp(req);
 
   if (ip !== 'unknown' && !(await notifyRateLimiter.check(ip))) {
     return NextResponse.json(

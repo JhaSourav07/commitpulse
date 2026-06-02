@@ -458,3 +458,39 @@ describe('ComparisonStatsCard icon rendering', () => {
     expect(icon).toBeDefined();
   });
 });
+
+describe('ComparisonStatsCard responsive rendering and elements (Variation 2)', () => {
+  it('renders visual center divider with responsive hidden md:block classes', () => {
+    const { container } = render(
+      <ComparisonStatsCard
+        title="Streak"
+        valueA={20}
+        valueB={80}
+        labelA="Alice"
+        labelB="Bob"
+        icon="Flame"
+      />
+    );
+    const divider = container.querySelector('.hidden.md\\:block');
+    expect(divider).toBeDefined();
+    expect(divider?.tagName).toBe('DIV');
+    expect(divider?.className).toContain('hidden');
+    expect(divider?.className).toContain('md:block');
+  });
+
+  it('renders side-by-side grid layout for values', () => {
+    const { container } = render(
+      <ComparisonStatsCard
+        title="Streak"
+        valueA={20}
+        valueB={80}
+        labelA="Alice"
+        labelB="Bob"
+        icon="Flame"
+      />
+    );
+    const grid = container.querySelector('.grid.grid-cols-2');
+    expect(grid).toBeDefined();
+    expect(grid?.tagName).toBe('DIV');
+  });
+});
