@@ -20,6 +20,7 @@ import type {
   Language,
   Timezone,
 } from './types';
+import { useDebounce } from '@/hooks/useDebounce';
 import { getExportSnippet, buildQueryParams } from './utils';
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
@@ -54,6 +55,7 @@ function CustomizePageInner(): ReactElement {
   const [svgState, setSvgState] = useState<'idle' | 'loading' | 'loaded' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const trimmedUsername = username.trim();
+  const debouncedUsername = useDebounce(trimmedUsername, 400);
   const hasUsername = trimmedUsername.length > 0;
   const isRandomTheme = theme === 'random';
 
@@ -146,7 +148,32 @@ function CustomizePageInner(): ReactElement {
     language,
     timezone,
   });
-  const previewSrc = `/api/streak?${queryString}`;
+
+  const previewQueryString = buildQueryParams({
+    username: debouncedUsername,
+    theme,
+    bgHex,
+    accentHex,
+    textHex,
+    scale,
+    speed,
+    font,
+    year,
+    radius,
+    size,
+    hideTitle,
+    hideBackground,
+    hideStats,
+    viewMode,
+    deltaFormat,
+    badgeWidth,
+    badgeHeight,
+    grace,
+    language,
+    timezone,
+  });
+
+  const previewSrc = `/api/streak?${previewQueryString}`;
 
   // On change sync state to URL
   useEffect(() => {
@@ -163,6 +190,13 @@ function CustomizePageInner(): ReactElement {
       return;
     }
     if (!validateGitHubUsername(trimmedUsername)) {
+      setSvgContent('');
+      setSvgState('error');
+      setErrorMessage("That doesn't look like a valid GitHub username");
+      return;
+    }
+
+    if (!validateGitHubUsername(debouncedUsername)) {
       setSvgContent('');
       setSvgState('error');
       setErrorMessage("That doesn't look like a valid GitHub username");
@@ -191,10 +225,6 @@ function CustomizePageInner(): ReactElement {
       })
       .then((text) => {
         if (!text) return;
-        // Sanitize SVG using DOMPurify with the SVG profile.
-        // - Forbid risky tags like foreignObject and embedded content
-        // - Forbid xlink:href to avoid external references
-        // - Use a conservative URI whitelist to prevent javascript: URIs
         const sanitized = DOMPurify.sanitize(text, {
           USE_PROFILES: { svg: true },
           ADD_TAGS: ['animate', 'style'],
@@ -239,7 +269,7 @@ function CustomizePageInner(): ReactElement {
       });
 
     return () => controller.abort();
-  }, [previewSrc, hasUsername, trimmedUsername]);
+  }, [previewSrc, hasUsername, debouncedUsername]);
 
   const exportSnippet = getExportSnippet(exportFormat, queryString);
 
@@ -427,7 +457,29 @@ function CustomizePageInner(): ReactElement {
                 Live Preview
               </p>
 
-              <div className="group relative">
+              {/* ─── MOVING THE INTERACTION LISTENER DIRECTLY TO THE OUTER WRAPPER CONTAINER ROW ─── */}
+              <div
+                className="group relative"
+                onClick={(e) => {
+                  // Only trigger the focus highlight workflow if the placeholder box is actively rendering
+                  if (!hasUsername) {
+                    e.stopPropagation();
+                    const input = document.getElementById('username-input') as HTMLInputElement;
+                    if (input) {
+                      input.focus();
+                      input.style.outline = '4px solid #10b981';
+                      input.style.outlineOffset = '2px';
+                      input.style.transform = 'scale(1.02)';
+                      input.style.transition = 'all 0.3s ease';
+
+                      setTimeout(() => {
+                        input.style.outline = 'none';
+                        input.style.transform = 'scale(1)';
+                      }, 1000);
+                    }
+                  }
+                }}
+              >
                 {/* Glow ring */}
                 <div className="absolute -inset-px bg-gradient-to-br from-emerald-500/20 to-purple-500/20 rounded-[1.5rem] opacity-0 group-hover:opacity-100 transition-opacity duration-700 blur-lg pointer-events-none" />
 
@@ -503,7 +555,7 @@ function CustomizePageInner(): ReactElement {
                       )}
                     </div>
                   ) : (
-                    <div className="relative z-10 flex w-full max-w-xl flex-col items-center justify-center rounded-[1.25rem] border border-dashed border-black/10 bg-gray-100/80 backdrop-blur-md dark:border-white/10 dark:bg-white/3 px-6 py-12 text-center">
+                    <div className="relative z-10 flex w-full max-w-xl flex-col items-center justify-center rounded-[1.25rem] border border-dashed border-black/10 bg-gray-100/80 backdrop-blur-md dark:border-white/10 dark:bg-white/3 hover:border-black/30 dark:hover:border-white/30 transition-colors cursor-pointer px-6 py-12 text-center">
                       <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-black/10 bg-gray-100/80 dark:border-white/10 dark:bg-white/4 text-gray-500 dark:text-emerald-300/70">
                         <svg
                           xmlns="http://www.w3.org/2000/svg"

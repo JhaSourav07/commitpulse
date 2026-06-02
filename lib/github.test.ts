@@ -21,6 +21,7 @@ import {
   aggregateLanguages,
   buildInsights,
   buildActivityMap,
+  contributionsCache,
 } from './github';
 import type { ContributionCalendar } from '../types';
 
@@ -487,6 +488,58 @@ describe('fetchGitHubContributions', () => {
     });
     expect(r1.calendar.totalContributions).toBe(r2.calendar.totalContributions);
     expect(r1.calendar.weeks).toEqual(r2.calendar.weeks);
+  });
+
+  it('falls back to stale cache with isOfflineFallback: true when fetch fails and cache has data', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(
+      mockResponse({
+        data: {
+          user: {
+            contributionsCollection: {
+              contributionCalendar: mockCalendar,
+              commitContributionsByRepository: [],
+            },
+          },
+        },
+      })
+    );
+    await fetchGitHubContributions('fallback-user');
+
+    // Expire the cache entry manually by changing lastSyncedAt to be 10 minutes in the past
+    const key = cacheKey('contributions', 'fallback-user');
+    const cachedData = await contributionsCache.get(key);
+    if (cachedData) {
+      cachedData.calendar.lastSyncedAt = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+      await contributionsCache.set(key, cachedData, 7 * 24 * 60 * 60 * 1000);
+    }
+
+    vi.mocked(fetch).mockRejectedValue(new Error('API rate limit exceeded'));
+
+    const result = await fetchGitHubContributions('fallback-user');
+    expect(result.calendar.totalContributions).toBe(mockCalendar.totalContributions);
+    expect(result.isOfflineFallback).toBe(true);
+  });
+
+  it('falls back to stale cache when bypassCache is true but fetch fails and cache has data', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(
+      mockResponse({
+        data: {
+          user: {
+            contributionsCollection: {
+              contributionCalendar: mockCalendar,
+              commitContributionsByRepository: [],
+            },
+          },
+        },
+      })
+    );
+    await fetchGitHubContributions('bypass-fallback-user');
+
+    vi.mocked(fetch).mockRejectedValue(new Error('Failed to fetch'));
+
+    const result = await fetchGitHubContributions('bypass-fallback-user', { bypassCache: true });
+    expect(result.calendar.totalContributions).toBe(mockCalendar.totalContributions);
+    expect(result.isOfflineFallback).toBe(true);
   });
 });
 
@@ -1882,14 +1935,14 @@ describe('fetchOrgMembers', () => {
     await fetchOrgMembers('octo/org');
 
     expect(fetch).toHaveBeenCalledWith(
-      'https://api.github.com/orgs/octo%2Forg/members?per_page=50&page=1',
+      'https://api.github.com/orgs/octo%2Forg/members?per_page=100&page=1',
       expect.objectContaining({ cache: 'no-store' })
     );
   });
 
   it('paginates correctly up to less than perPage returning end', async () => {
-    const page1 = Array.from({ length: 50 }, (_, i) => ({ login: `user${i}` }));
-    const page2 = Array.from({ length: 20 }, (_, i) => ({ login: `user${50 + i}` }));
+    const page1 = Array.from({ length: 100 }, (_, i) => ({ login: `user${i}` }));
+    const page2 = Array.from({ length: 20 }, (_, i) => ({ login: `user${100 + i}` }));
 
     vi.mocked(fetch)
       .mockResolvedValueOnce(mockResponse(page1))
@@ -1897,21 +1950,21 @@ describe('fetchOrgMembers', () => {
 
     const members = await fetchOrgMembers('vercel');
 
-    expect(members).toHaveLength(70);
+    expect(members).toHaveLength(120);
     expect(members[0]).toBe('user0');
-    expect(members[69]).toBe('user69');
+    expect(members[119]).toBe('user119');
     expect(fetch).toHaveBeenCalledTimes(2);
   });
 
-  it('stops paginating at max limit of 4 pages even if pages return 50 members', async () => {
-    const pageData = Array.from({ length: 50 }, (_, i) => ({ login: `user${i}` }));
+  it('stops paginating at max limit of 1000 members even if pages return 100 members', async () => {
+    const pageData = Array.from({ length: 100 }, (_, i) => ({ login: `user${i}` }));
 
     vi.mocked(fetch).mockImplementation(async () => mockResponse(pageData));
 
     const members = await fetchOrgMembers('vercel');
 
-    expect(members).toHaveLength(200);
-    expect(fetch).toHaveBeenCalledTimes(4);
+    expect(members).toHaveLength(1000);
+    expect(fetch).toHaveBeenCalledTimes(10);
   });
 });
 

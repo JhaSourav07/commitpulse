@@ -10,7 +10,7 @@ async function findExistingAssignments(github, owner, repo, username, currentIss
   return issues.filter((issue) => !issue.pull_request && issue.number !== currentIssueNumber);
 }
 
-const MAX_ASSIGNED_ISSUES = 3;
+const MAX_ASSIGNED_ISSUES = 5;
 
 async function handleAssign({ github, context, username, hasWriteAccess }) {
   const { owner, repo } = context.repo;

@@ -3,7 +3,7 @@
 import { useRef, useState, useEffect } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 
 if (typeof window !== 'undefined') {
   gsap.registerPlugin(ScrollTrigger);
@@ -353,8 +353,11 @@ function MarqueeRow({
 }) {
   const trackRef = useRef<HTMLDivElement>(null);
   const tweenRef = useRef<gsap.core.Tween | null>(null);
+  const shouldReduceMotion = useReducedMotion();
 
   useEffect(() => {
+    if (shouldReduceMotion) return;
+
     const track = trackRef.current;
     if (!track) return;
 
@@ -376,7 +379,7 @@ function MarqueeRow({
       clearTimeout(timeoutId);
       tweenRef.current?.kill();
     };
-  }, [direction, speed]);
+  }, [direction, speed, shouldReduceMotion]);
 
   /* Pause on hover for readability */
   const handleMouseEnter = () => {
