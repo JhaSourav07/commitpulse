@@ -304,3 +304,193 @@ describe('ComparisonStatsCard responsive breakpoints', () => {
     expect(screen.queryByText('Winner')).toBeNull();
   });
 });
+
+describe('ComparisonStatsCard icon rendering', () => {
+  it('renders correctly with Flame icon', () => {
+    const { container } = render(
+      <ComparisonStatsCard
+        title="Test Title"
+        valueA={50}
+        valueB={50}
+        labelA="Label A"
+        labelB="Label B"
+        icon="Flame"
+      />
+    );
+
+    expect(screen.getByText('Test Title')).toBeDefined();
+    const iconContainer = container.querySelector('.rounded-lg.bg-gray-100');
+    expect(iconContainer).toBeDefined();
+    const icon = iconContainer?.querySelector('svg');
+    expect(icon).toBeDefined();
+  });
+
+  it('renders correctly with TrendingUp icon', () => {
+    const { container } = render(
+      <ComparisonStatsCard
+        title="Test Title"
+        valueA={50}
+        valueB={50}
+        labelA="Label A"
+        labelB="Label B"
+        icon="TrendingUp"
+      />
+    );
+
+    expect(screen.getByText('Test Title')).toBeDefined();
+    const iconContainer = container.querySelector('.rounded-lg.bg-gray-100');
+    expect(iconContainer).toBeDefined();
+    const icon = iconContainer?.querySelector('svg');
+    expect(icon).toBeDefined();
+  });
+
+  it('renders correctly with GitCommit icon', () => {
+    const { container } = render(
+      <ComparisonStatsCard
+        title="Test Title"
+        valueA={50}
+        valueB={50}
+        labelA="Label A"
+        labelB="Label B"
+        icon="GitCommit"
+      />
+    );
+
+    expect(screen.getByText('Test Title')).toBeDefined();
+    const iconContainer = container.querySelector('.rounded-lg.bg-gray-100');
+    expect(iconContainer).toBeDefined();
+    const icon = iconContainer?.querySelector('svg');
+    expect(icon).toBeDefined();
+  });
+
+  it('renders correctly with GitBranch icon', () => {
+    const { container } = render(
+      <ComparisonStatsCard
+        title="Test Title"
+        valueA={50}
+        valueB={50}
+        labelA="Label A"
+        labelB="Label B"
+        icon="GitBranch"
+      />
+    );
+
+    expect(screen.getByText('Test Title')).toBeDefined();
+    const iconContainer = container.querySelector('.rounded-lg.bg-gray-100');
+    expect(iconContainer).toBeDefined();
+    const icon = iconContainer?.querySelector('svg');
+    expect(icon).toBeDefined();
+  });
+
+  it('renders correctly with Users icon', () => {
+    const { container } = render(
+      <ComparisonStatsCard
+        title="Test Title"
+        valueA={50}
+        valueB={50}
+        labelA="Label A"
+        labelB="Label B"
+        icon="Users"
+      />
+    );
+
+    expect(screen.getByText('Test Title')).toBeDefined();
+    const iconContainer = container.querySelector('.rounded-lg.bg-gray-100');
+    expect(iconContainer).toBeDefined();
+    const icon = iconContainer?.querySelector('svg');
+    expect(icon).toBeDefined();
+  });
+
+  it('renders correctly with UserPlus icon', () => {
+    const { container } = render(
+      <ComparisonStatsCard
+        title="Test Title"
+        valueA={50}
+        valueB={50}
+        labelA="Label A"
+        labelB="Label B"
+        icon="UserPlus"
+      />
+    );
+
+    expect(screen.getByText('Test Title')).toBeDefined();
+    const iconContainer = container.querySelector('.rounded-lg.bg-gray-100');
+    expect(iconContainer).toBeDefined();
+    const icon = iconContainer?.querySelector('svg');
+    expect(icon).toBeDefined();
+  });
+
+  it('renders correctly with Award icon', () => {
+    const { container } = render(
+      <ComparisonStatsCard
+        title="Test Title"
+        valueA={50}
+        valueB={50}
+        labelA="Label A"
+        labelB="Label B"
+        icon="Award"
+      />
+    );
+
+    expect(screen.getByText('Test Title')).toBeDefined();
+    const iconContainer = container.querySelector('.rounded-lg.bg-gray-100');
+    expect(iconContainer).toBeDefined();
+    const icon = iconContainer?.querySelector('svg');
+    expect(icon).toBeDefined();
+  });
+
+  it('falls back to Award icon and renders correctly with unknown icon name', () => {
+    const { container } = render(
+      <ComparisonStatsCard
+        title="Test Title"
+        valueA={50}
+        valueB={50}
+        labelA="Label A"
+        labelB="Label B"
+        icon="UnknownIcon"
+      />
+    );
+
+    expect(screen.getByText('Test Title')).toBeDefined();
+    const iconContainer = container.querySelector('.rounded-lg.bg-gray-100');
+    expect(iconContainer).toBeDefined();
+    const icon = iconContainer?.querySelector('svg');
+    expect(icon).toBeDefined();
+  });
+});
+
+describe('ComparisonStatsCard responsive rendering and elements (Variation 2)', () => {
+  it('renders visual center divider with responsive hidden md:block classes', () => {
+    const { container } = render(
+      <ComparisonStatsCard
+        title="Streak"
+        valueA={20}
+        valueB={80}
+        labelA="Alice"
+        labelB="Bob"
+        icon="Flame"
+      />
+    );
+    const divider = container.querySelector('.hidden.md\\:block');
+    expect(divider).toBeDefined();
+    expect(divider?.tagName).toBe('DIV');
+    expect(divider?.className).toContain('hidden');
+    expect(divider?.className).toContain('md:block');
+  });
+
+  it('renders side-by-side grid layout for values', () => {
+    const { container } = render(
+      <ComparisonStatsCard
+        title="Streak"
+        valueA={20}
+        valueB={80}
+        labelA="Alice"
+        labelB="Bob"
+        icon="Flame"
+      />
+    );
+    const grid = container.querySelector('.grid.grid-cols-2');
+    expect(grid).toBeDefined();
+    expect(grid?.tagName).toBe('DIV');
+  });
+});

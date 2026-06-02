@@ -1,9 +1,11 @@
 'use client';
 import { trackUser } from '@/utils/tracking';
-import type { ReactNode } from 'react';
+
 import Link from 'next/link';
 import { useRef, useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
+import { gsap } from 'gsap';
+import { useGSAP } from '@gsap/react';
 import { X } from 'lucide-react';
 
 import { CommitPulseLogo } from '@/components/commitpulse-logo';
@@ -11,9 +13,11 @@ import { CustomizeCTA } from './components/CustomizeCTA';
 import { useRecentSearches } from '@/hooks/useRecentSearches';
 import { useDebounce } from '@/hooks/useDebounce';
 import { Footer } from '@/app/components/Footer';
-import InteractiveViewer from '@/components/InteractiveViewer';
+
 import { FeatureCard, FeatureCardsSection } from '@/components/FeatureCards';
 import { DiscordButton } from '@/components/DiscordButton';
+
+import { WallOfLove } from '@/components/WallOfLove';
 
 const Icons = {
   Github: () => (
@@ -73,15 +77,44 @@ const Icons = {
 export default function LandingPage() {
   const [username, setUsername] = useState('');
   const [copied, setCopied] = useState(false);
-  const [svgState, setSvgState] = useState<'idle' | 'loading' | 'loaded' | 'error'>('idle');
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  // Track which username's badge result we have. Derived booleans auto-reset
+  // when debouncedUsername changes — no useEffect needed.
+  const [badgeResult, setBadgeResult] = useState<{
+    username: string;
+    status: 'loaded' | 'error';
+  } | null>(null);
   const guideRef = useRef<HTMLDivElement>(null);
+  const heroRef = useRef<HTMLDivElement>(null);
   const { searches, addSearch, clearSearches, removeSearch } = useRecentSearches();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useGSAP(
+    () => {
+      if (!heroRef.current) return;
+
+      // Text fly-up animation
+      gsap.to('.hero-text', {
+        y: 0,
+        opacity: 1,
+        duration: 1.2,
+        ease: 'expo.out',
+        delay: 0.15,
+      });
+
+      // Animate the background gradient of the word "Contribution" infinitely
+      gsap.to('.contribution-text', {
+        backgroundPosition: '300% 50%',
+        duration: 8,
+        ease: 'none',
+        repeat: -1,
+      });
+    },
+    { scope: heroRef }
+  );
 
   const trimmedUsername = username.trim();
   const debouncedUsername = useDebounce(trimmedUsername, 500);
@@ -91,45 +124,29 @@ export default function LandingPage() {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://commitpulse.vercel.app';
   const markdown = `![CommitPulse](${siteUrl}/api/streak?user=${trimmedUsername})`;
 
+<<<<<<< HEAD
   useEffect(() => {
     if (!hasUsername) {
       setSvgState('idle');
+=======
+  // Derived — automatically false when debouncedUsername changes
+  const badgeLoaded =
+    badgeResult?.username === debouncedUsername && badgeResult?.status === 'loaded';
+  const badgeError = badgeResult?.username === debouncedUsername && badgeResult?.status === 'error';
+
+  const copyToClipboard = async () => {
+    if (trimmedUsername.length === 0) return;
+
+    try {
+      await navigator.clipboard.writeText(markdown);
+    } catch {
+      setCopied(false);
+>>>>>>> 7c2e0b605d7dbc53d7746bd38840fcd36aa9530f
       return;
     }
 
-    setSvgState('loading');
-
-    const controller = new AbortController();
-
-    fetch(badgeUrl, { signal: controller.signal })
-      .then(async (res) => {
-        if (!res.ok) {
-          setSvgState('error');
-          if (res.status === 404 || res.status === 400 || res.status === 429) {
-            setErrorMessage('GitHub user not found');
-          } else {
-            setErrorMessage('Failed to load badge');
-          }
-          return;
-        }
-        setSvgState('loaded');
-        setErrorMessage(null);
-      })
-      .catch((err) => {
-        if (err.name === 'AbortError') return;
-        setSvgState('error');
-        setErrorMessage('Failed to load badge');
-      });
-    return () => controller.abort();
-  }, [badgeUrl, hasUsername]);
-
-  const copyToClipboard = () => {
-    if (trimmedUsername.length === 0) return;
-
     trackUser(trimmedUsername);
     addSearch(trimmedUsername);
-
-    navigator.clipboard.writeText(markdown);
     setCopied(true);
     setTimeout(() => {
       guideRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -148,19 +165,15 @@ export default function LandingPage() {
         <div className="mb-16 text-center">
           <DiscordButton />
 
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.15 }}
-          >
-            <h1 className="mb-8 bg-gradient-to-br from-gray-900 via-black to-gray-600 dark:from-white dark:via-gray-100 dark:to-gray-500 bg-clip-text text-transparent text-5xl font-extrabold tracking-tight md:text-8xl pb-2">
+          <div ref={heroRef}>
+            <h1 className="hero-text opacity-0 translate-y-10 mb-8 bg-gradient-to-br from-gray-900 via-black to-gray-600 dark:from-white dark:via-gray-100 dark:to-gray-500 bg-clip-text text-transparent text-5xl font-black tracking-tighter md:text-8xl pb-2">
               Elevate Your <br />{' '}
-              <span className="bg-gradient-to-r from-emerald-400 to-cyan-500 bg-clip-text text-transparent">
+              <span className="contribution-text inline-block bg-[length:300%_300%] bg-gradient-to-r from-emerald-400 via-cyan-500 to-purple-500 bg-clip-text text-transparent drop-shadow-sm">
                 Contribution
               </span>{' '}
               Story.
             </h1>
-          </motion.div>
+          </div>
 
           <motion.p
             initial={{ opacity: 0 }}
@@ -168,11 +181,12 @@ export default function LandingPage() {
             transition={{ delay: 0.3 }}
             className="mx-auto max-w-2xl text-sm sm:text-lg leading-relaxed text-gray-600 dark:text-white/65 md:text-xl "
           >
-            Stop settling for flat grids. Generate high-fidelity, 3D isometric monoliths that
-            visualize your coding rhythm with professional precision.
+            CommitPulse converts your GitHub commit history into a live, 3D animated badge. The more
+            you commit, the taller your city grows! Embed it in your profile README with one line.
           </motion.p>
         </div>
 
+<<<<<<< HEAD
         {/* Updated Centralized Responsive Container Section */}
         <section className="mx-auto mb-32 max-w-5xl relative z-20">
           <div className="flex flex-col items-center justify-center gap-8 md:flex-row md:items-stretch">
@@ -183,9 +197,100 @@ export default function LandingPage() {
                   onSubmit={(e) => {
                     e.preventDefault();
                     copyToClipboard();
+=======
+        <section className="mx-auto mb-32 max-w-4xl relative z-20">
+          <div className="rounded-3xl border border-black/5 bg-white/60 p-4 shadow-xl shadow-black/5 backdrop-blur-xl dark:border-white/10 dark:bg-[#0a0a0a]/80 dark:shadow-2xl dark:shadow-black/50 md:p-8">
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                copyToClipboard();
+              }}
+              className="flex flex-col sm:flex-row gap-4 w-full"
+            >
+              <div className="relative flex-1 flex items-center flex-col">
+                <div className="relative flex-1 flex items-center w-full">
+                  <input
+                    type="text"
+                    suppressHydrationWarning
+                    placeholder="Enter GitHub Username"
+                    className="flex-1 rounded-2xl border border-black/10 bg-white px-5 py-4 text-sm text-black outline-none transition-all duration-300 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent dark:border-white/10 dark:bg-black/60 dark:text-white dark:placeholder:text-gray-500 shadow-inner"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    maxLength={39}
+                  />
+                  {username.length > 0 ? (
+                    <button
+                      onClick={() => setUsername('')}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 transition-colors hover:text-black dark:text-white/65 dark:hover:text-white"
+                      aria-label="Clear input"
+                      type="button"
+                    >
+                      <X size={18} />
+                    </button>
+                  ) : null}
+                </div>
+                {mounted && username.length === 0 && (
+                  <p className="text-amber-500 text-xs mt-1 self-start pl-1">
+                    Please enter a GitHub username to copy your badge link.
+                  </p>
+                )}
+                {username.length === 39 && (
+                  <p className="text-red-500 text-xs mt-1 self-start pl-1">
+                    GitHub username limit reached (39 characters maximum)
+                  </p>
+                )}
+              </div>
+              <div className="flex flex-col sm:flex-row gap-4">
+                <button
+                  type="submit"
+                  suppressHydrationWarning
+                  disabled={!mounted || trimmedUsername.length === 0}
+                  className={`relative flex min-w-[160px] items-center justify-center gap-2 overflow-hidden rounded-2xl px-6 py-4 text-sm font-semibold transition-all duration-300 transform cursor-pointer hover:scale-[1.02] hover:shadow-lg active:scale-[0.98] disabled:cursor-not-allowed ${
+                    mounted && trimmedUsername.length > 0
+                      ? 'bg-black text-white hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-gray-100 shadow-md'
+                      : 'bg-gray-100 text-gray-400 dark:bg-white/5 dark:text-white/55'
+                  }`}
+                >
+                  <AnimatePresence mode="wait">
+                    {copied ? (
+                      <motion.div
+                        key="check"
+                        initial={{ y: 10 }}
+                        animate={{ y: 0 }}
+                        className="flex items-center gap-2"
+                      >
+                        <Icons.Check /> Copied
+                      </motion.div>
+                    ) : (
+                      <motion.div
+                        key="copy"
+                        initial={{ y: -10 }}
+                        animate={{ y: 0 }}
+                        className="flex items-center gap-2"
+                      >
+                        <Icons.Copy /> Copy Link
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </button>
+                <Link
+                  href={
+                    mounted && trimmedUsername.length > 0 ? `/dashboard/${trimmedUsername}` : '/'
+                  }
+                  suppressHydrationWarning
+                  aria-disabled={!mounted || trimmedUsername.length === 0}
+                  onClick={(e) => {
+                    if (!mounted || trimmedUsername.length === 0) {
+                      e.preventDefault();
+                    } else {
+                      trackUser(trimmedUsername);
+                      addSearch(trimmedUsername);
+                    }
+>>>>>>> 7c2e0b605d7dbc53d7746bd38840fcd36aa9530f
                   }}
                   className="flex flex-col gap-4 w-full"
                 >
+<<<<<<< HEAD
                   <div className="relative w-full flex flex-col items-center">
                     <div className="relative w-full flex items-center">
                       <input
@@ -308,6 +413,95 @@ export default function LandingPage() {
                   >
                     Clear
                   </button>
+=======
+                  Watch Dashboard
+                </Link>
+              </div>
+            </form>
+          </div>
+
+          {searches.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2 mb-6 mt-3">
+              <span className="text-xs text-[#A1A1AA]">Recent:</span>
+              {searches.map((s) => (
+                <span
+                  key={s}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-[rgba(255,255,255,0.08)] bg-[#111] pl-3 pr-2 py-1 text-xs text-white/70 transition-all hover:border-[rgba(255,255,255,0.2)] hover:text-white group/pill"
+                >
+                  <button
+                    type="button"
+                    onClick={() => setUsername(s)}
+                    className="transition-colors hover:text-white"
+                  >
+                    {s}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => removeSearch(s)}
+                    className="rounded-full p-0.5 text-white/40 hover:bg-white/10 hover:text-white transition-all flex items-center justify-center"
+                    aria-label={`Remove ${s} from recent searches`}
+                  >
+                    <X size={10} />
+                  </button>
+                </span>
+              ))}
+              <button
+                onClick={clearSearches}
+                className="text-xs text-[#A1A1AA] underline hover:text-white transition-colors"
+              >
+                Clear
+              </button>
+            </div>
+          )}
+
+          <div className="group relative mt-10">
+            <div className="absolute -inset-1 rounded-[2.5rem] bg-gradient-to-r from-emerald-500/20 to-cyan-500/20 opacity-50 blur-2xl transition duration-1000 group-hover:opacity-100" />
+            <div className="relative flex min-h-[480px] md:min-h-[520px] items-center justify-center overflow-hidden rounded-3xl border border-black/5 bg-white/50 p-8 backdrop-blur-xl shadow-2xl dark:border-white/10 dark:bg-[#0a0a0a]/80">
+              {hasUsername ? (
+                <div className="w-full flex flex-col items-center justify-center gap-4">
+                  {!badgeLoaded && !badgeError && (
+                    <div className="h-[240px] w-full max-w-[700px] rounded-2xl bg-black/5 dark:bg-white/5 animate-pulse" />
+                  )}
+                  {badgeError && (
+                    <div className="flex flex-col items-center justify-center gap-4 py-12 text-center">
+                      <div className="flex h-16 w-16 items-center justify-center rounded-3xl border border-red-500/20 bg-red-500/10 shadow-inner">
+                        <X size={32} className="text-red-500" />
+                      </div>
+                      <div>
+                        <p className="text-lg font-bold text-gray-900 dark:text-white tracking-tight">
+                          GitHub user not found
+                        </p>
+                        <p className="text-sm text-gray-500 dark:text-white/65 mt-1">
+                          Please check the username and try again.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  <motion.img
+                    key={badgeUrl}
+                    data-testid="badge-img"
+                    src={badgeUrl}
+                    alt={`CommitPulse badge for ${debouncedUsername}`}
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: badgeLoaded ? 1 : 0, scale: badgeLoaded ? 1 : 0.95 }}
+                    transition={{ duration: 0.5, ease: 'easeOut' }}
+                    className="w-full max-w-[700px] h-auto drop-shadow-[0_30px_60px_rgba(0,0,0,0.15)] dark:drop-shadow-[0_30px_60px_rgba(0,0,0,0.5)]"
+                    onLoad={() => setBadgeResult({ username: debouncedUsername, status: 'loaded' })}
+                    onError={() => setBadgeResult({ username: debouncedUsername, status: 'error' })}
+                  />
+                </div>
+              ) : (
+                <div className="flex w-full max-w-2xl flex-col items-center justify-center rounded-3xl border border-dashed border-black/10 bg-black/[0.02] px-6 py-16 text-center dark:border-white/10 dark:bg-white/[0.02]">
+                  <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-3xl border border-black/10 bg-white text-gray-600 shadow-sm dark:border-white/10 dark:bg-white/5 dark:text-white/80">
+                    <Icons.Github />
+                  </div>
+                  <p className="text-xl font-bold tracking-tight text-gray-900 dark:text-white">
+                    Ready to visualize your rhythm?
+                  </p>
+                  <p className="mt-3 max-w-md text-sm leading-relaxed text-gray-500 dark:text-white/65">
+                    Enter a GitHub username above to instantly generate your streak badge.
+                  </p>
+>>>>>>> 7c2e0b605d7dbc53d7746bd38840fcd36aa9530f
                 </div>
               )}
             </div>
@@ -422,6 +616,9 @@ export default function LandingPage() {
             desc="Sophisticated 3D projection formulas turn 2D data into digital architecture."
           />
         </FeatureCardsSection>
+
+        <WallOfLove />
+
         <Footer />
       </main>
     </div>

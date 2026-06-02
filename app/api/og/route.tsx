@@ -37,10 +37,12 @@ function getLuminance(hex: string) {
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
+  const parsed = ogParamsSchema.parse(Object.fromEntries(searchParams.entries()));
+  let { user } = parsed;
+  const { theme, bg, text, accent } = parsed;
 
-  const { user, theme, bg, text, accent } = ogParamsSchema.parse(
-    Object.fromEntries(searchParams.entries())
-  );
+  // Sanitize user: limit to 39 chars (GitHub max length) and strip invalid chars
+  user = user.slice(0, 39).replace(/[^a-zA-Z0-9-]/g, '');
 
   const selectedTheme = themes[theme] || themes.dark;
   const resolvedBg = `#${bg || selectedTheme.bg}`;

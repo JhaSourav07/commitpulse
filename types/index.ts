@@ -95,6 +95,9 @@ export interface RepoContribution {
 export interface ExtendedContributionData {
   calendar: ContributionCalendar;
   repoContributions: RepoContribution[];
+  totalPRs?: number;
+  totalIssues?: number;
+  isOfflineFallback?: boolean;
 }
 
 /**
@@ -209,11 +212,33 @@ export interface BadgeParams {
    */
   shading?: boolean;
 
+  /**
+   * Global opacity scalar applied to all tower face fill-opacity values (0.1–1.0).
+   * Default is 1.0 (fully opaque, current behavior). Values below 0.1 are clamped
+   * to 0.1; values above 1.0 are clamped to 1.0.
+   */
+  opacity?: number;
+
   /** Opt-in to show volumetric gradients on the monolith floor. */
   gradient?: boolean;
 
+  /** Custom gradient color stops as comma-separated hex colors (e.g. 'ff6b35,ff007f,7000ff'). Requires at least 2 valid colors. */
+  gradient_stops?: string;
+
+  /** Custom gradient direction: 'vertical', 'horizontal', or 'diagonal'. Only used when gradient=true. */
+  gradient_dir?: 'vertical' | 'horizontal' | 'diagonal';
+
   disable_particles?: boolean;
+<<<<<<< HEAD
   highlight?: string;
+=======
+  animate?: boolean;
+  glow?: boolean;
+  isOfflineFallback?: boolean;
+
+  /** @internal Temporary property to track custom gradient ID during SVG generation. */
+  __customGradientId?: string;
+>>>>>>> 7c2e0b605d7dbc53d7746bd38840fcd36aa9530f
 }
 
 export interface GraphNode {
@@ -236,4 +261,33 @@ export interface GraphNode {
 export interface GraphLink {
   source: string | GraphNode;
   target: string | GraphNode;
+}
+// ─── Email Notification Types ───────────────────────────────────────────────
+
+export type NotificationFrequency = 'realtime' | 'daily' | 'weekly';
+
+export interface NotificationPreferences {
+  enabled: boolean;
+  frequency: NotificationFrequency;
+  email: string;
+  notifyOnCommit: boolean;
+  notifyOnStreak: boolean;
+  notifyOnMilestone: boolean;
+}
+
+export interface NotificationPayload {
+  username: string;
+  email: string;
+  frequency: NotificationFrequency;
+  preferences: {
+    notifyOnCommit: boolean;
+    notifyOnStreak: boolean;
+    notifyOnMilestone: boolean;
+  };
+}
+
+export interface NotificationResponse {
+  success: boolean;
+  message: string;
+  data?: NotificationPayload;
 }

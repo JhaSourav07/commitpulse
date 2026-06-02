@@ -402,6 +402,36 @@ describe('TTLCache', () => {
       expect(cache.get('tags')).toEqual(tags);
       cache.destroy();
     });
+
+    it('stores and retrieves multidimensional array values', () => {
+      const cache = new TTLCache<number[][]>();
+
+      const matrix = [
+        [1, 2],
+        [3, 4],
+        [5, 6],
+      ];
+
+      cache.set('matrix', matrix, 60_000);
+
+      const cached = cache.get('matrix');
+
+      expect(cached).toEqual(matrix);
+      expect(cached?.[2]?.[1]).toBe(6);
+
+      cache.destroy();
+    });
+
+    it('stores and retrieves values using unicode cache keys', () => {
+      const cache = new TTLCache<string>();
+
+      cache.set('cache_🔥_key', 'octocat', 60_000);
+
+      expect(cache.get('cache_🔥_key')).toBe('octocat');
+
+      cache.destroy();
+    });
+
     it('preserves Date instance values in TTLCache', () => {
       const cache = new TTLCache<Date>();
 
@@ -413,6 +443,51 @@ describe('TTLCache', () => {
 
       expect(cached).toBeInstanceOf(Date);
       expect(cached?.toISOString()).toBe(date.toISOString());
+
+      cache.destroy();
+    });
+
+    it('preserves Date instance with current timestamp (new Date())', () => {
+      const cache = new TTLCache<Date>();
+
+      const now = new Date();
+
+      cache.set('current-date', now, 60_000);
+
+      const cached = cache.get('current-date');
+
+      expect(cached).toBeInstanceOf(Date);
+      expect(cached?.getTime()).toBe(now.getTime());
+      expect(cached?.toISOString()).toBe(now.toISOString());
+
+      cache.destroy();
+    });
+
+    it('preserves Date instance nested in object with mixed types', () => {
+      const cache = new TTLCache<{
+        id: number;
+        name: string;
+        created: Date;
+        isActive: boolean;
+      }>();
+
+      const created = new Date('2024-03-15T10:30:45.123Z');
+      const data = {
+        id: 42,
+        name: 'Test Event',
+        created: created,
+        isActive: true,
+      };
+
+      cache.set('event', data, 60_000);
+
+      const cached = cache.get('event');
+
+      expect(cached?.id).toBe(42);
+      expect(cached?.name).toBe('Test Event');
+      expect(cached?.isActive).toBe(true);
+      expect(cached?.created).toBeInstanceOf(Date);
+      expect(cached?.created.toISOString()).toBe(created.toISOString());
 
       cache.destroy();
     });
@@ -447,6 +522,17 @@ describe('TTLCache', () => {
       cache.destroy();
     });
 
+    it('throws TypeError when setting a null key', () => {
+      const cache = new TTLCache<string>();
+
+      expect(() => {
+        cache.set(null as unknown as string, 'value', 60_000);
+      }).toThrow(TypeError);
+      expect(cache.size()).toBe(0);
+
+      cache.destroy();
+    });
+
     it('throws RangeError when ttlMs is 0 or negative', () => {
       const cache = new TTLCache<string>();
       expect(() => cache.set('key', 'value', 0)).toThrow(RangeError);
@@ -459,6 +545,34 @@ describe('TTLCache', () => {
 
       expect(() => cache.set('', 'value', 60_000)).toThrow('Cache key cannot be empty');
       expect(cache.has('')).toBe(false);
+
+      cache.destroy();
+    });
+
+    it('verify TTLCache behavior for empty string keys (Variation 2)', () => {
+      const cache = new TTLCache<string>();
+
+      // Assert that setting a value with empty string key throws error
+      expect(() => {
+        cache.set('', 'test-value', 60_000);
+      }).toThrow(Error);
+
+      // Verify the error message is correct
+      expect(() => {
+        cache.set('', 'test-value', 60_000);
+      }).toThrow('Cache key cannot be empty');
+
+      // Verify that cache remains empty (no entry for empty key)
+      expect(cache.has('')).toBe(false);
+      expect(cache.get('')).toBeNull();
+
+      // Verify cache size is still 0
+      expect(cache.size()).toBe(0);
+
+      // Verify that normal operations still work after failed attempt
+      cache.set('valid-key', 'value', 60_000);
+      expect(cache.get('valid-key')).toBe('value');
+      expect(cache.size()).toBe(1);
 
       cache.destroy();
     });
@@ -527,6 +641,23 @@ describe('TTLCache', () => {
 
       cache.destroy();
     });
+    // FIX: New test targeting the NaN boundary for Issue #1399
+    it('resolves NaN TTL to the default standard TTL duration', () => {
+      vi.useFakeTimers();
+      const cache = new TTLCache<string>();
+
+      // Setting with NaN should not throw; it should fallback to the default TTL
+      expect(() => cache.set('nan-key', 'value', NaN)).not.toThrow();
+
+      // The item should be successfully stored
+      expect(cache.get('nan-key')).toBe('value');
+
+      // Advance by a small amount to ensure it didn't instantly expire
+      vi.advanceTimersByTime(1000);
+      expect(cache.get('nan-key')).toBe('value');
+
+      cache.destroy();
+    });
 
     it('verify TTLCache behavior for infinite TTL value (Variation 1)', () => {
       const cache = new TTLCache<string>();
@@ -542,19 +673,43 @@ describe('TTLCache', () => {
       cache.destroy();
     });
 
-    it('handles oversized cache keys safely', () => {
+    // FIX: New test targeting oversized cache keys for Issue #1403
+    it('rejects oversized cache keys to prevent memory bloat (Variation 2)', () => {
       const cache = new TTLCache<string>();
-
       const oversizedKey = 'a'.repeat(20000);
 
+      // Assert that setting a massive key throws an error to prevent memory bloat
       expect(() => {
         cache.set(oversizedKey, 'large-key-value', 60_000);
-      }).not.toThrow();
+      }).toThrow();
 
-      expect(cache.get(oversizedKey)).toBe('large-key-value');
+      // Verify the key was not saved
+      expect(cache.has(oversizedKey)).toBe(false);
 
       cache.destroy();
     });
+  });
+
+  it('stores and retrieves values with unicode and emoji cache keys', () => {
+    const cache = new TTLCache<string>();
+
+    const unicodeKey = 'cache_🔥_key';
+    const emojiKey = '🚀_rocket_🚀';
+    const mixedKey = 'user_👤_data_🔐';
+
+    cache.set(unicodeKey, 'fire-value', 60_000);
+    cache.set(emojiKey, 'rocket-value', 60_000);
+    cache.set(mixedKey, 'secure-data', 60_000);
+
+    expect(cache.get(unicodeKey)).toBe('fire-value');
+    expect(cache.get(emojiKey)).toBe('rocket-value');
+    expect(cache.get(mixedKey)).toBe('secure-data');
+
+    expect(cache.has(unicodeKey)).toBe(true);
+    expect(cache.has(emojiKey)).toBe(true);
+    expect(cache.has(mixedKey)).toBe(true);
+
+    cache.destroy();
   });
 });
 

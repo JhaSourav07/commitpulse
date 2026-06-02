@@ -2,14 +2,116 @@
 import { useState, useRef, useEffect } from 'react';
 import { toPng, toCanvas } from 'html-to-image';
 import type { DashboardExportData } from '@/types/dashboard';
+import { getDashboardUrl, getOrigin } from '@/utils/urls';
 
 type OptionState = 'idle' | 'loading' | 'success' | 'error';
 
-const BASE_ORIGIN =
-  (typeof window !== 'undefined' ? window.location.origin : null) ??
-  process.env.NEXT_PUBLIC_SITE_URL ??
-  'https://commitpulse.vercel.app';
-const PROFILE_URL = (username: string) => `${BASE_ORIGIN}/dashboard/${username}`;
+const SVG_NAMESPACE = 'http://www.w3.org/2000/svg';
+const XLINK_NAMESPACE = 'http://www.w3.org/1999/xlink';
+const UNSAFE_SVG_ELEMENTS = new Set([
+  'script',
+  'foreignobject',
+  'iframe',
+  'object',
+  'embed',
+  'audio',
+  'video',
+  'canvas',
+  'meta',
+  'base',
+]);
+
+const CONTROL_CHARS_REGEX = /[\u0000-\u001F\u007F]+/g;
+
+function normalizeLineEndings(value: string): string {
+  return value.replace(/\r\n?/g, '\n');
+}
+
+function sanitizeUsernameForUrl(username: string): string {
+  return username.trim().replace(CONTROL_CHARS_REGEX, '');
+}
+
+function sanitizeFilenameSegment(value: string): string {
+  const cleaned = value
+    .trim()
+    .replace(CONTROL_CHARS_REGEX, '')
+    .replace(/[^a-zA-Z0-9._-]/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+
+  return cleaned || 'commitpulse-export';
+}
+
+function buildStreakSvgUrl(username: string): string {
+  const url = new URL('/api/streak', getOrigin());
+  url.searchParams.set('user', sanitizeUsernameForUrl(username));
+  return url.toString();
+}
+
+function removeUnsafeSvgAttributes(element: Element) {
+  const attributes = Array.from(element.attributes);
+  for (const attr of attributes) {
+    const attrName = attr.name.toLowerCase();
+    const attrValue = attr.value.trim();
+
+    if (attrName.startsWith('on')) {
+      element.removeAttribute(attr.name);
+      continue;
+    }
+
+    if (attrName === 'href' || attrName === 'xlink:href') {
+      const normalized = attrValue.toLowerCase();
+      if (
+        normalized.startsWith('javascript:') ||
+        normalized.startsWith('vbscript:') ||
+        normalized.startsWith('data:')
+      ) {
+        element.removeAttribute(attr.name);
+      }
+    }
+  }
+}
+
+function sanitizeAndCanonicalizeSvg(svgText: string): string {
+  const normalizedText = normalizeLineEndings(svgText).trim();
+  const parser = new DOMParser();
+  const parsed = parser.parseFromString(normalizedText, 'image/svg+xml');
+  const parseError = parsed.querySelector('parsererror');
+
+  if (parseError) {
+    throw new Error('Invalid SVG payload');
+  }
+
+  const root = parsed.documentElement;
+  if (!root || root.tagName.toLowerCase() !== 'svg') {
+    throw new Error('SVG root element is required');
+  }
+
+  if (!root.getAttribute('xmlns')) {
+    root.setAttribute('xmlns', SVG_NAMESPACE);
+  }
+
+  if (!root.getAttribute('xmlns:xlink')) {
+    root.setAttribute('xmlns:xlink', XLINK_NAMESPACE);
+  }
+
+  const elements = Array.from(parsed.querySelectorAll('*'));
+  for (const element of elements) {
+    if (UNSAFE_SVG_ELEMENTS.has(element.tagName.toLowerCase())) {
+      element.remove();
+      continue;
+    }
+
+    removeUnsafeSvgAttributes(element);
+  }
+
+  removeUnsafeSvgAttributes(root);
+  return `${new XMLSerializer().serializeToString(root)}\n`;
+}
+
+function buildMarkdownExport(username: string): string {
+  return `![CommitPulse](${buildStreakSvgUrl(username)})`;
+}
 
 export function useShareActions(
   username: string,
@@ -40,7 +142,7 @@ export function useShareActions(
   const handleCopyLink = async (): Promise<boolean> => {
     setOptionState('copy', 'loading');
     try {
-      await navigator.clipboard.writeText(PROFILE_URL(username));
+      await navigator.clipboard.writeText(getDashboardUrl(username));
       setOptionState('copy', 'success');
       setTimeout(() => onClose(), 800);
       return true;
@@ -51,20 +153,20 @@ export function useShareActions(
   };
 
   const handleTwitter = () => {
-    const url = PROFILE_URL(username);
+    const url = getDashboardUrl(username);
     const text = encodeURIComponent(`Check out my GitHub commit pulse on CommitPulse 🚀\n${url}`);
     window.open(`https://twitter.com/intent/tweet?text=${text}`, '_blank', 'noopener');
     onClose();
   };
 
   const handleLinkedIn = () => {
-    const url = encodeURIComponent(PROFILE_URL(username));
+    const url = encodeURIComponent(getDashboardUrl(username));
     window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${url}`, '_blank', 'noopener');
     onClose();
   };
 
   const handleReddit = () => {
-    const url = encodeURIComponent(PROFILE_URL(username));
+    const url = encodeURIComponent(getDashboardUrl(username));
     const title = encodeURIComponent('Check out my CommitPulse dashboard 🚀');
     window.open(
       `https://www.reddit.com/submit?url=${url}&title=${title}`,
@@ -189,13 +291,13 @@ export function useShareActions(
   const handleDownloadSVG = async () => {
     setOptionState('svg', 'loading');
     try {
-      const response = await fetch(`/api/streak?user=${encodeURIComponent(username)}`);
+      const response = await fetch(buildStreakSvgUrl(username));
       if (!response.ok) throw new Error('Failed to fetch SVG');
-      const svgText = await response.text();
-      const blob = new Blob([svgText], { type: 'image/svg+xml' });
+      const svgText = sanitizeAndCanonicalizeSvg(await response.text());
+      const blob = new Blob([svgText], { type: 'image/svg+xml;charset=utf-8' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
-      link.download = `${username}-commitpulse.svg`;
+      link.download = `${sanitizeFilenameSegment(username)}-commitpulse.svg`;
       link.href = url;
       link.click();
       URL.revokeObjectURL(url);
@@ -208,7 +310,7 @@ export function useShareActions(
   const handleCopyMarkdown = async () => {
     setOptionState('markdown', 'loading');
     try {
-      const markdown = `![CommitPulse](${window.location.origin}/api/streak?user=${encodeURIComponent(username)})`;
+      const markdown = buildMarkdownExport(username);
       await navigator.clipboard.writeText(markdown);
       setOptionState('markdown', 'success');
       setTimeout(() => onClose(), 800);
@@ -249,7 +351,7 @@ export function useShareActions(
       const rows: Array<Array<string | number>> = [
         ['field', 'value'],
         ['username', username],
-        ['profileUrl', PROFILE_URL(username)],
+        ['profileUrl', getDashboardUrl(username)],
         ['exportedAt', exportedAt],
         ['totalContributions', exportData.stats.totalContributions],
         ['currentStreak', exportData.stats.currentStreak],
@@ -281,7 +383,7 @@ export function useShareActions(
 
       const payload = {
         username,
-        profileUrl: PROFILE_URL(username),
+        profileUrl: getDashboardUrl(username),
         exportedAt: new Date().toISOString(),
         totalContributions: exportData.stats.totalContributions,
         currentStreak: exportData.stats.currentStreak,
@@ -315,7 +417,7 @@ export function useShareActions(
       await navigator.share({
         title: `${username}'s Commit Pulse`,
         text: `Check out my GitHub commit pulse on CommitPulse 🚀`,
-        url: PROFILE_URL(username),
+        url: getDashboardUrl(username),
       });
       setOptionState('native', 'success');
       setTimeout(() => onClose(), 800);

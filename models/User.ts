@@ -3,9 +3,11 @@ import mongoose, { Document, Model, Schema } from 'mongoose';
 export interface IUser extends Document {
   username: string;
   createdAt: Date;
+  lastSeen?: Date;
+  visitCount: number;
 }
 
-const UserSchema: Schema = new Schema({
+const UserSchema: Schema<IUser> = new Schema<IUser>({
   username: {
     type: String,
     required: true,
@@ -16,6 +18,13 @@ const UserSchema: Schema = new Schema({
   createdAt: {
     type: Date,
     default: Date.now,
+  },
+  lastSeen: {
+    type: Date,
+  },
+  visitCount: {
+    type: Number,
+    default: 0,
   },
 });
 

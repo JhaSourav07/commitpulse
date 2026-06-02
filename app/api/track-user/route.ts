@@ -2,12 +2,14 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import { User } from '@/models/User';
 import { trackUserRateLimiter } from '@/lib/rate-limit';
+import { getClientIp } from '@/utils/getClientIp';
+import { trackUserProtection } from '@/services/security/track-user-protection';
 
 export async function POST(req: Request) {
-  // Get IP for rate limiting
-  const ip = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown';
+  // Get IP for rate limiting securely
+  const ip = getClientIp(req);
 
-  if (ip !== 'unknown' && !(await trackUserRateLimiter.check(ip))) {
+  if (ip !== '127.0.0.1' && ip !== 'unknown' && !(await trackUserRateLimiter.check(ip))) {
     return NextResponse.json(
       { success: false, error: 'Too many requests, please try again later.' },
       { status: 429 }
@@ -37,6 +39,23 @@ export async function POST(req: Request) {
 
     const trimmedUsername = username.trim().toLowerCase();
 
+    // Coordinate security validations and deduplication checks
+    const validation = await trackUserProtection.verifyAndDeduplicate(trimmedUsername);
+    if (!validation.allowed) {
+      if (validation.reason === 'COOLDOWN_ACTIVE') {
+        // Return 200 OK with duplicate track indicator to bypass write and keep response fast
+        return NextResponse.json(
+          { success: true, message: 'User already tracked recently' },
+          { status: 200 }
+        );
+      }
+
+      return NextResponse.json(
+        { success: false, error: 'Invalid GitHub username' },
+        { status: 400 }
+      );
+    }
+
     // If MONGODB_URI is not set, handle based on environment
     if (!process.env.MONGODB_URI) {
       // In production, this is a critical configuration failure
@@ -52,6 +71,7 @@ export async function POST(req: Request) {
 
       // For development/non-production environments, bypass gracefully
       console.warn('MONGODB_URI is not set. Bypassing user tracking for local development.');
+      trackUserProtection.recordWrite(trimmedUsername);
       return NextResponse.json({ success: true, bypassed: true });
     }
 
@@ -69,11 +89,11 @@ export async function POST(req: Request) {
         },
         { upsert: true }
       );
+
+      // Record successful database write
+      trackUserProtection.recordWrite(trimmedUsername);
     } catch (upsertError) {
       // Gracefully handle MongoDB E11000 duplicate key race conditions under high concurrency.
-      // Concurrent upserts for the same username can race on the unique index, causing
-      // MongoDB to throw a duplicate key error (code 11000) for one of the requests.
-      // We can safely treat this as a successful no-op because another request already created it.
       if (
         upsertError &&
         typeof upsertError === 'object' &&
@@ -87,6 +107,7 @@ export async function POST(req: Request) {
           (typeof err.message === 'string' && err.message.includes('username'));
 
         if (isUsernameConflict) {
+          trackUserProtection.recordWrite(trimmedUsername);
           return NextResponse.json({ success: true });
         }
       }

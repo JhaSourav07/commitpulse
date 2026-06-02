@@ -182,7 +182,7 @@ jobs:
             2. **Wait for confirmation** — The bot will confirm your assignment with a ✅ reply.
             3. **Then open your PR** — Link the issue with \`Fixes #${issueNumber}\` in your description.
 
-            > 💡 You can be assigned to up to **3** open issues at a time. Check your current assignments before claiming a new one.
+            > 💡 You can be assigned to up to **5** open issues at a time. Check your current assignments before claiming a new one.
 
             We look forward to your contribution once you're assigned! 🚀`,
                     });

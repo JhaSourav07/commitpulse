@@ -221,6 +221,38 @@ describe('getSecondsUntilMidnightInTimezone', () => {
     expect(secondsUTC).toBe(86400);
     expect(secondsLondon).toBe(86400);
   });
+
+  it('should handle extreme negative timezone offset boundary (-12:00)', () => {
+    // Arrange: Etc/GMT+12 is UTC-12 (Baker Island / Howland Island).
+    // When UTC is Jan 1, 11:59:50, Baker Island is Dec 31, 23:59:50 (10 seconds to midnight)
+    const boundaryTime = new Date(Date.UTC(2024, 0, 1, 11, 59, 50));
+    vi.setSystemTime(boundaryTime);
+
+    // Act
+    const seconds = getSecondsUntilMidnightInTimezone('Etc/GMT+12');
+
+    // Assert: Should correctly calculate 10 seconds without calendar shifting
+    expect(seconds).toBe(10);
+  });
+
+  it('should handle extreme timezone offsets without calendar date shifting', () => {
+    // Arrange: Test the most extreme offsets to ensure no calendar date shifting occurs
+    const extremeOffsets = [
+      { tz: 'Etc/GMT+12', utcHour: 12 }, // UTC-12
+      { tz: 'Etc/GMT-14', utcHour: 10 }, // UTC+14
+    ];
+
+    for (const { tz, utcHour } of extremeOffsets) {
+      // Set UTC time such that local time is exactly midnight
+      vi.setSystemTime(new Date(Date.UTC(2024, 6, 15, utcHour, 0, 0)));
+
+      // Act: Get seconds until midnight in this timezone
+      const seconds = getSecondsUntilMidnightInTimezone(tz);
+
+      // Assert: At local midnight, should return exactly 86400 seconds (full day)
+      expect(seconds).toBe(86400);
+    }
+  });
 });
 
 describe('getSecondsUntilUTCMidnight — sliding window boundary robustness', () => {
@@ -230,6 +262,25 @@ describe('getSecondsUntilUTCMidnight — sliding window boundary robustness', ()
 
   afterEach(() => {
     vi.useRealTimers();
+  });
+
+  it('verifies utility guarantees keys expire exactly at window limit across a sliding range', () => {
+    // Target inputs: Sliding time range approaching midnight in Asia/Kolkata (UTC+5:30)
+    // Local midnight happens at UTC 18:30:00
+    const slidingCases: [string, number][] = [
+      ['2024-06-15T17:30:00.000Z', 3600], // 1 hour before local midnight
+      ['2024-06-15T18:00:00.000Z', 1800], // 30 mins before local midnight
+      ['2024-06-15T18:29:59.000Z', 1], // 1 second before local midnight
+      ['2024-06-15T18:30:00.000Z', 86400], // Exactly local midnight (resets to full day)
+    ];
+
+    for (const [utcTime, expectedTTL] of slidingCases) {
+      vi.setSystemTime(new Date(utcTime));
+      const seconds = getSecondsUntilMidnightInTimezone('Asia/Kolkata');
+
+      // Assert that outputs match guarantees keys expire exactly at window limit
+      expect(seconds).toBe(expectedTTL);
+    }
   });
 
   it('returns correct TTL across a sliding window of times approaching UTC midnight', () => {
@@ -298,5 +349,11 @@ describe('getSecondsUntilMidnightInTimezone — extreme timezone offset boundary
     vi.setSystemTime(new Date('2024-01-01T11:00:00.000Z'));
 
     expect(getSecondsUntilMidnightInTimezone('Pacific/Midway')).toBe(86400);
+  });
+
+  it('throws a RangeError for invalid timezone identifiers', () => {
+    vi.setSystemTime(new Date('2024-06-15T12:00:00.000Z'));
+
+    expect(() => getSecondsUntilMidnightInTimezone('Invalid/Timezone')).toThrow(RangeError);
   });
 });

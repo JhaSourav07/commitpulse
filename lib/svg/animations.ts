@@ -21,7 +21,8 @@
 const TOWER_BASE_Y = 10;
 
 export function getTowerAnimationCSS(
-  entrance: 'rise' | 'fade' | 'slide' | 'none' = 'rise'
+  entrance: 'rise' | 'fade' | 'slide' | 'none' = 'rise',
+  scale = 1.0
 ): string {
   if (entrance === 'none') {
     return `
@@ -33,9 +34,10 @@ export function getTowerAnimationCSS(
   let keyframes = '';
 
   if (entrance === 'rise') {
+    const baseY = Math.round(TOWER_BASE_Y * scale * 100) / 100;
     baseStyles = `
       transform: scaleY(0);
-      transform-origin: 0 ${TOWER_BASE_Y}px;
+      transform-origin: 0 ${baseY}px;
       animation: grow-up 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     `;
     keyframes = `
@@ -56,14 +58,15 @@ export function getTowerAnimationCSS(
       }
     `;
   } else if (entrance === 'slide') {
+    const slideOffset = Math.round(-20 * scale * 100) / 100;
     baseStyles = `
       opacity: 0;
-      transform: translateY(-20px);
+      transform: translateY(${slideOffset}px);
       animation: slide-down 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     `;
     keyframes = `
       @keyframes slide-down {
-        from { opacity: 0; transform: translateY(-20px); }
+        from { opacity: 0; transform: translateY(${slideOffset}px); }
         to   { opacity: 1; transform: translateY(0); }
       }
     `;

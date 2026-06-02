@@ -137,65 +137,57 @@ describe('ThemeSelector - Custom Variations (Variation 4)', () => {
   });
 });
 
-describe('ThemeSelector - Custom Variations (Variation 4)', () => {
+describe('ThemeSelector responsive rendering', () => {
   const onThemeChange = vi.fn();
 
   afterEach(() => {
     vi.clearAllMocks();
   });
 
-  it('renders ThemeSelector successfully and layout structure exists', () => {
-    const { container } = render(<ThemeSelector theme="dark" onThemeChange={onThemeChange} />);
+  it('check if the root container holds its flex-col layout when switch from Dracula -> Neon', () => {
+    const { container, rerender } = render(
+      <ThemeSelector theme="dracula" onThemeChange={onThemeChange} />
+    );
+    const root = container.firstChild as HTMLElement;
+    expect(root.className).toContain('flex-col');
 
-    // ThemeSelector renders successfully
-    expect(screen.getByRole('combobox')).toBeTruthy();
-    expect(screen.getByText('Theme Preset')).toBeTruthy();
-
-    // Layout structure exists
-    const mainContainer = container.firstChild as HTMLElement;
-    expect(mainContainer).toBeTruthy();
-    expect(mainContainer.className).toContain('flex');
-    expect(mainContainer.className).toContain('flex-col');
-    expect(mainContainer.className).toContain('gap-1.5');
+    rerender(<ThemeSelector theme="neon" onThemeChange={onThemeChange} />);
+    expect(root.className).toContain('flex-col');
   });
 
-  it('verifies that selecting Dracula preset calls onThemeChange("dracula")', async () => {
-    const user = userEvent.setup();
-    render(<ThemeSelector theme="dark" onThemeChange={onThemeChange} />);
+  it('check if active preset button updates when switching from Dracula to Neon', () => {
+    const { rerender } = render(<ThemeSelector theme="dracula" onThemeChange={onThemeChange} />);
 
-    // Select Dracula preset via accessibility query
-    const draculaBtn = screen.getByRole('button', { name: /apply dracula theme/i });
-    expect(draculaBtn).toBeTruthy();
+    expect(
+      screen.getByRole('button', { name: /apply dracula theme/i }).getAttribute('aria-pressed')
+    ).toBe('true');
 
-    // Click it
-    await user.click(draculaBtn);
+    rerender(<ThemeSelector theme="neon" onThemeChange={onThemeChange} />);
 
-    // Verify onThemeChange was called with 'dracula'
-    expect(onThemeChange).toHaveBeenCalledWith('dracula');
+    expect(
+      screen.getByRole('button', { name: /apply neon theme/i }).getAttribute('aria-pressed')
+    ).toBe('true');
+    expect(
+      screen.getByRole('button', { name: /apply dracula theme/i }).getAttribute('aria-pressed')
+    ).toBe('false');
   });
 
-  it('verifies that selecting Neon preset calls onThemeChange("neon")', async () => {
-    const user = userEvent.setup();
-    render(<ThemeSelector theme="dark" onThemeChange={onThemeChange} />);
+  it('check if select value reflects the active theme after switch Dracula -> Neon', () => {
+    const { rerender } = render(<ThemeSelector theme="dracula" onThemeChange={onThemeChange} />);
+    const select = screen.getByRole('combobox') as HTMLSelectElement;
+    expect(select.value).toBe('dracula');
 
-    // Select Neon preset via accessibility query
-    const neonBtn = screen.getByRole('button', { name: /apply neon theme/i });
-    expect(neonBtn).toBeTruthy();
-
-    // Click it
-    await user.click(neonBtn);
-
-    // Verify onThemeChange was called with 'neon'
-    expect(onThemeChange).toHaveBeenCalledWith('neon');
+    rerender(<ThemeSelector theme="neon" onThemeChange={onThemeChange} />);
+    expect(select.value).toBe('neon');
   });
 
-  it('verifies the select dropdown calls onThemeChange with the selected theme', async () => {
-    const user = userEvent.setup();
-    render(<ThemeSelector theme="dark" onThemeChange={onThemeChange} />);
+  it('colour swatches update to the new theme after switching', () => {
+    const { rerender } = render(<ThemeSelector theme="dracula" onThemeChange={onThemeChange} />);
+    const draculaSwatches = screen.getAllByTitle(/^(bg|accent|text):/i);
+    expect(draculaSwatches.length).toBe(3);
 
-    const select = screen.getByRole('combobox');
-    await user.selectOptions(select, 'sunset');
-
-    expect(onThemeChange).toHaveBeenCalledWith('sunset');
+    rerender(<ThemeSelector theme="neon" onThemeChange={onThemeChange} />);
+    // swatches should still be 3, now reflecting neon's palette
+    expect(screen.getAllByTitle(/^(bg|accent|text):/i).length).toBe(3);
   });
 });
