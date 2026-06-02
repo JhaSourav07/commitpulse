@@ -13,10 +13,7 @@ export function OnboardingEmptyState({ onTryDemo }: OnboardingEmptyStateProps) {
   const sampleBadgeUrl = `/api/streak?user=${SAMPLE_PREVIEW_USERNAME}`;
 
   return (
-    <div
-      className="flex w-full flex-col items-center gap-8"
-      data-testid="onboarding-empty-state"
-    >
+    <div className="flex w-full flex-col items-center gap-8" data-testid="onboarding-empty-state">
       <div className="relative w-full max-w-[700px]">
         <span className="absolute left-3 top-3 z-10 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-emerald-700 dark:text-emerald-300">
           Sample preview

@@ -18,10 +18,7 @@ export function GitHubAvatar({ username, size = 'md', className = '' }: GitHubAv
   const [src, setSrc] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!username) {
-      setSrc(null);
-      return;
-    }
+    if (!username) return;
 
     const avatarUrl = `https://avatars.githubusercontent.com/${username}?size=64`;
     const img = new Image();
@@ -31,6 +28,17 @@ export function GitHubAvatar({ username, size = 'md', className = '' }: GitHubAv
   }, [username]);
 
   const dim = sizeClasses[size];
+
+  if (!username) {
+    return (
+      <span
+        className={`${dim} flex shrink-0 items-center justify-center rounded-full border border-black/10 bg-gray-100 text-gray-500 dark:border-white/10 dark:bg-white/5 dark:text-white/55 ${className}`}
+        aria-hidden
+      >
+        <Icons.Github className={size === 'sm' ? 'h-3 w-3' : 'h-4 w-4'} />
+      </span>
+    );
+  }
 
   if (src) {
     return (

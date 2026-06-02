@@ -125,8 +125,7 @@ export default function LandingPage() {
   const trimmedUsername = username.trim();
   const debouncedUsername = useDebounce(trimmedUsername, 500);
   const hasUsername = debouncedUsername.length > 0;
-  const isValidUsername =
-    trimmedUsername.length > 0 && GITHUB_USERNAME_REGEX.test(trimmedUsername);
+  const isValidUsername = trimmedUsername.length > 0 && GITHUB_USERNAME_REGEX.test(trimmedUsername);
   const showInvalidUsername =
     mounted && trimmedUsername.length > 0 && !GITHUB_USERNAME_REGEX.test(trimmedUsername);
 

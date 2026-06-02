@@ -330,8 +330,8 @@ describe('LandingPage', () => {
     const copyButton = screen.getByText('Copy Link').closest('button');
     const generateButton = screen.getByTestId('generate-badge-btn');
 
-    expect(copyButton?.disabled).toBe(true);
-    expect(generateButton?.disabled).toBe(true);
+    expect((copyButton as HTMLButtonElement).disabled).toBe(true);
+    expect((generateButton as HTMLButtonElement).disabled).toBe(true);
   });
 
   it('disables actions when username format is invalid', () => {
@@ -340,8 +340,10 @@ describe('LandingPage', () => {
 
     fireEvent.change(input, { target: { value: 'bad_user' } });
 
-    expect(screen.getByTestId('generate-badge-btn').disabled).toBe(true);
-    expect(screen.getByText('Copy Link').closest('button')?.disabled).toBe(true);
+    expect((screen.getByTestId('generate-badge-btn') as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByText('Copy Link').closest('button') as HTMLButtonElement).disabled).toBe(
+      true
+    );
   });
 
   it('does not copy link when username is empty', () => {
