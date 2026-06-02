@@ -156,14 +156,14 @@ const baseStreakParamsSchema = z.object({
     .string()
     .optional()
     .refine((val) => !val || /^[0-9a-fA-F]{3,4}$|^[0-9a-fA-F]{6,8}$/.test(val.replace('#', '')), {
-      message: 'bg must be a valid 3 or 6 character hex color without #',
+      message: 'bg must be a valid hex color (with or without #)',
     })
     .transform((val) => (val ? sanitizeHexColor(val, '0d1117') : undefined)),
   text: z
     .string()
     .optional()
     .refine((val) => !val || /^[0-9a-fA-F]{3,4}$|^[0-9a-fA-F]{6,8}$/.test(val.replace('#', '')), {
-      message: 'text must be a valid 3 or 6 character hex color without #',
+      message: 'text must be a valid hex color (with or without #)',
     })
     .transform((val) => (val ? sanitizeHexColor(val, 'ffffff') : undefined)),
   accent: z
@@ -179,7 +179,7 @@ const baseStreakParamsSchema = z.object({
       },
       {
         message:
-          'accent must be a valid 3 or 6 character hex color without #, or a comma-separated list of them',
+          'accent must be a valid hex color (with or without #), or a comma-separated list of them',
       }
     )
     .transform((val) => {
@@ -475,14 +475,14 @@ export const wrappedParamsSchema = z.object({
     .string()
     .optional()
     .refine((val) => !val || /^[0-9a-fA-F]{3,4}$|^[0-9a-fA-F]{6,8}$/.test(val.replace('#', '')), {
-      message: 'bg must be a valid 3 or 6 character hex color without #',
+      message: 'bg must be a valid hex color (with or without #)',
     })
     .transform((val) => (val ? sanitizeHexColor(val, '0d1117') : undefined)),
   text: z
     .string()
     .optional()
     .refine((val) => !val || /^[0-9a-fA-F]{3,4}$|^[0-9a-fA-F]{6,8}$/.test(val.replace('#', '')), {
-      message: 'text must be a valid 3 or 6 character hex color without #',
+      message: 'text must be a valid hex color (with or without #)',
     })
     .transform((val) => (val ? sanitizeHexColor(val, 'ffffff') : undefined)),
   accent: z
@@ -498,7 +498,7 @@ export const wrappedParamsSchema = z.object({
       },
       {
         message:
-          'accent must be a valid 3 or 6 character hex color without #, or a comma-separated list of them',
+          'accent must be a valid hex color (with or without #), or a comma-separated list of them',
       }
     )
     .transform((val) => {

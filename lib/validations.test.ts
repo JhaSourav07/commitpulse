@@ -963,7 +963,7 @@ describe('streakParamsSchema — accent parameter HEX color validation', () => {
       // This extra check ensures Variation 5 isn't just a duplicate,
       // but a stricter validation check!
       expect(result.error.issues[0]?.message).toContain(
-        'accent must be a valid 3 or 6 character hex color without #'
+        'accent must be a valid hex color (with or without #)'
       );
     }
   });
@@ -977,7 +977,7 @@ describe('streakParamsSchema — accent parameter HEX color validation', () => {
     expect(result.success).toBe(false);
     if (!result.success) {
       expect(result.error.issues[0]?.message).toContain(
-        'accent must be a valid 3 or 6 character hex color without #'
+        'accent must be a valid hex color (with or without #)'
       );
     }
   });
