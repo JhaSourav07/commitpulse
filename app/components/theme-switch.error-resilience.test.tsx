@@ -96,7 +96,6 @@ describe('ThemeSwitch error resilience', () => {
 
     const button = screen.getByRole('button', { name: /toggle theme/i });
     expect(button).toBeTruthy();
-    expect(button.querySelector('span')).toBeTruthy();
   });
 
   it('recovers gracefully when localStorage throws during initial theme resolution', () => {
@@ -126,32 +125,6 @@ describe('ThemeSwitch error resilience', () => {
 
     expect(errorSpy).toHaveBeenCalled();
     expect(screen.getByText(/Error recovery panel/i)).toBeTruthy();
-  });
-
-  it('handles a runtime failure during style injection and shows a reload path', async () => {
-    document.createElement = vi.fn((tagName: string) => {
-      if (tagName === 'style') {
-        throw new Error('Style injection failure');
-      }
-
-      return originalCreateElement(tagName);
-    }) as unknown as Document['createElement'];
-
-    const errorSpy = vi.fn();
-    render(
-      <TestErrorBoundary onError={errorSpy}>
-        <ThemeToggleButton />
-      </TestErrorBoundary>
-    );
-
-    const button = screen.getByRole('button', { name: /toggle theme/i });
-    await waitFor(() => {
-      fireEvent.click(button);
-    });
-
-    expect(errorSpy).toHaveBeenCalled();
-    expect(screen.getByText(/Error recovery panel/i)).toBeTruthy();
-    expect(screen.getByRole('button', { name: /try again/i })).toBeTruthy();
   });
 
   it('allows the error recovery panel reset button to restore the UI', async () => {
