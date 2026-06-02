@@ -29,6 +29,7 @@ describe('types/student', () => {
     const parsedResume: ParsedResume = {
       name: 'Sonal Mittal',
       email: 'sonal@example.com',
+      phone: '',
       skills: ['TypeScript', 'React'],
       education: [education],
       experience: [experience],
@@ -77,6 +78,7 @@ describe('types/student', () => {
       data: {
         name: 'Sonal Mittal',
         email: 'sonal@example.com',
+        phone: '',
         skills: ['React'],
         education: [education],
         experience: [experience],
