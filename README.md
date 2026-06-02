@@ -586,5 +586,3 @@ Thanks to all contributors who have helped make CommitPulse better!
 </a>
 
 <sub>View the [full contributor list →](https://github.com/JhaSourav07/commitpulse/graphs/contributors)</sub>
-
-test commit for PR creation
