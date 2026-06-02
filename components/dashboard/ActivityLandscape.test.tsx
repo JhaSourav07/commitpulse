@@ -33,6 +33,14 @@ it('renders all tab buttons', () => {
   expect(screen.getByText('3M')).toBeTruthy();
   expect(screen.getByText('1Y')).toBeTruthy();
 });
+it('shows pointer cursor styling on timeframe tabs', () => {
+  render(<ActivityLandscape data={mockData} />);
+
+  expect(screen.getByText('1W').className).toContain('cursor-pointer');
+  expect(screen.getByText('1M').className).toContain('cursor-pointer');
+  expect(screen.getByText('3M').className).toContain('cursor-pointer');
+  expect(screen.getByText('1Y').className).toContain('cursor-pointer');
+});
 it('has 3M active by default', () => {
   render(<ActivityLandscape data={mockData} />);
 
