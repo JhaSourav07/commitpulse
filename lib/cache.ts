@@ -340,11 +340,10 @@ export class DistributedCache<T> {
   }
 
   async update(key: string, value: T): Promise<boolean> {
-    const updated = this.localCache.update(key, value);
-    if (!updated) return false;
+    this.localCache.update(key, value);
 
     if (!this.useRedis) {
-      return true;
+      return this.localCache.has(key);
     }
 
     try {
@@ -354,16 +353,17 @@ export class DistributedCache<T> {
           Authorization: `Bearer ${this.redisToken}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(['SET', key, JSON.stringify(value), 'KEEPTTL']),
+        body: JSON.stringify(['SET', key, JSON.stringify(value), 'KEEPTTL', 'XX']),
       });
 
       if (!res.ok) {
         throw new Error(`Redis HTTP error: ${res.status}`);
       }
-      return true;
+      const data = await res.json();
+      return data.result === 'OK';
     } catch (err) {
       console.error(`[DistributedCache] UPDATE failed for key "${key}":`, err);
-      return true;
+      return false;
     }
   }
 

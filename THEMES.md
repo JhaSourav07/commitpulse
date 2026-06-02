@@ -32,6 +32,8 @@ https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&theme=<slug>
 | nord_light       | `#eceff4`  | `#2e3440` | `#5e81ac` |
 | obsidian         | `#1a1a2e`  | `#e2e8f0` | `#f59e0b` |
 | cyber-pulse      | `#000000`  | `#ffffff` | `#00ffee` |
+| tokyonight       | `#1a1b26`  | `#c0caf5` | `#f7768e` |
+| cyberpunk        | `#fce22a`  | `#111111` | `#ff003c` |
 
 ---
 
@@ -274,6 +276,30 @@ https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&theme=<slug>
 | `bg`      | 1a1a2e |
 | `text`    | e2e8f0 |
 | `accent`  | f59e0b |
+
+---
+
+### Tokyo Night
+
+![tokyonight](https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=tokyonight)
+
+| Parameter | Value  |
+| --------- | ------ |
+| `bg`      | 1a1b26 |
+| `text`    | c0caf5 |
+| `accent`  | f7768e |
+
+---
+
+### Cyberpunk
+
+![cyberpunk](https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=cyberpunk)
+
+| Parameter | Value  |
+| --------- | ------ |
+| `bg`      | fce22a |
+| `text`    | 111111 |
+| `accent`  | ff003c |
 
 ---
 
