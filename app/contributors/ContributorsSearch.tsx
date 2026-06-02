@@ -88,19 +88,19 @@ export default function ContributorsSearch({ contributors }: { contributors: Con
         <div className="relative group">
           {/* Animated gradient border */}
           <div className="absolute -inset-[1px] rounded-2xl bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-500 opacity-30 blur-sm group-focus-within:opacity-70 transition-opacity duration-500" />
-          <div className="relative flex items-center rounded-2xl bg-[#0a0a0a] border border-white/10">
+          <div className="relative flex items-center rounded-2xl bg-white dark:bg-[#0a0a0a] border border-black/10 dark:border-white/10">
             <Search className="ml-5 h-5 w-5 text-zinc-500" />
             <input
               type="text"
               placeholder="Search the collective..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-transparent px-4 py-5 text-lg text-white placeholder:text-zinc-600 outline-none font-light"
+              className="w-full bg-transparent px-4 py-5 text-lg text-black dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-600 outline-none font-light"
             />
             {search && (
               <button
                 onClick={() => setSearch('')}
-                className="mr-4 text-zinc-500 hover:text-white transition-colors text-sm"
+                className="mr-4 text-zinc-500 hover:text-black dark:hover:text-white transition-colors text-sm"
               >
                 Clear
               </button>
@@ -122,7 +122,7 @@ export default function ContributorsSearch({ contributors }: { contributors: Con
             className="flex flex-col items-center justify-center py-24 text-center"
           >
             <div className="text-6xl mb-6">🔍</div>
-            <p className="text-2xl font-bold text-white">No architects found</p>
+            <p className="text-2xl font-bold text-black dark:text-white">No architects found</p>
             <p className="mt-3 text-zinc-500 text-lg">Try a different search query</p>
           </motion.div>
         )}
@@ -151,7 +151,7 @@ export default function ContributorsSearch({ contributors }: { contributors: Con
                 <Link
                   href={contributor.html_url}
                   target="_blank"
-                  className="block h-full relative overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.02] p-6 backdrop-blur-sm transition-all duration-500 hover:border-white/20 hover:bg-white/[0.05]"
+                  className="block h-full relative overflow-hidden rounded-2xl border border-black/10 dark:border-white/[0.08] bg-black/[0.02] dark:bg-white/[0.02] p-6 backdrop-blur-sm transition-all duration-500 hover:border-black/20 dark:hover:border-white/20 hover:bg-black/[0.05] dark:hover:bg-white/[0.05]"
                 >
                   {/* Mouse-following radial glow */}
                   <div
@@ -174,13 +174,13 @@ export default function ContributorsSearch({ contributors }: { contributors: Con
                         alt={contributor.login}
                         width={90}
                         height={90}
-                        className="relative rounded-full border-2 border-white/10 transition-all duration-500 group-hover:border-cyan-400/50 group-hover:scale-105"
+                        className="relative rounded-full border-2 border-black/10 dark:border-white/10 transition-all duration-500 group-hover:border-cyan-500/50 dark:group-hover:border-cyan-400/50 group-hover:scale-105"
                       />
                       {/* Online indicator */}
                       <div className="absolute bottom-1 right-1 w-4 h-4 rounded-full bg-emerald-500 border-2 border-[#0a0a0a] opacity-0 group-hover:opacity-100 transition-opacity" />
                     </div>
 
-                    <h3 className="text-lg font-bold text-white group-hover:text-cyan-300 transition-colors duration-300 truncate w-full">
+                    <h3 className="text-lg font-bold text-black dark:text-white group-hover:text-cyan-600 dark:group-hover:text-cyan-300 transition-colors duration-300 truncate w-full">
                       {contributor.login}
                     </h3>
 
@@ -193,7 +193,7 @@ export default function ContributorsSearch({ contributors }: { contributors: Con
 
                     <div className="flex-grow" />
 
-                    <div className="mt-5 w-full inline-flex items-center justify-center gap-2 rounded-xl border border-white/[0.06] bg-white/[0.03] px-4 py-2.5 text-sm font-medium text-zinc-400 transition-all duration-300 group-hover:border-cyan-500/30 group-hover:bg-cyan-500/10 group-hover:text-cyan-300">
+                    <div className="mt-5 w-full inline-flex items-center justify-center gap-2 rounded-xl border border-black/10 dark:border-white/[0.06] bg-black/[0.04] dark:bg-white/[0.03] px-4 py-2.5 text-sm font-medium text-zinc-600 dark:text-zinc-400 transition-all duration-300 group-hover:border-cyan-500/30 group-hover:bg-cyan-500/10 group-hover:text-cyan-600 dark:group-hover:text-cyan-300">
                       <GitFork className="h-4 w-4" />
                       View Profile
                     </div>
