@@ -1,5 +1,11 @@
 // lib/calculate.ts
-import type { ContributionCalendar, ContributionDay, StreakStats, MonthlyStats } from '../types';
+import type {
+  ContributionCalendar,
+  ContributionDay,
+  ContributionWeek,
+  StreakStats,
+  MonthlyStats,
+} from '../types';
 
 /* ==========================================================================
  * STREAK & CALENDAR CALCULATIONS
@@ -215,6 +221,7 @@ export function aggregateCalendars(calendars: ContributionCalendar[]): Contribut
   }
 
   // Deep clone the base calendar so we don't mutate the original object
+  // Deep clone the base calendar so we don't mutate the original object
   const aggregatedBase = JSON.parse(JSON.stringify(baseCalendar)) as ContributionCalendar;
 
   aggregatedBase.totalContributions = totalContributions;
@@ -226,6 +233,31 @@ export function aggregateCalendars(calendars: ContributionCalendar[]): Contribut
     });
   });
 
+  const existingDates = new Set<string>();
+
+  (aggregatedBase.weeks || []).forEach((week) => {
+    (week.contributionDays || []).forEach((day) => {
+      existingDates.add(day.date);
+    });
+  });
+
+  const missingDays: ContributionDay[] = [];
+
+  for (const [date, contributionCount] of dateMap.entries()) {
+    if (!existingDates.has(date)) {
+      missingDays.push({
+        date,
+        contributionCount,
+      });
+    }
+  }
+
+  missingDays.sort((a, b) => a.date.localeCompare(b.date));
+  for (const day of missingDays) {
+    aggregatedBase.weeks.unshift({
+      contributionDays: [day],
+    });
+  }
   return aggregatedBase;
 }
 /**

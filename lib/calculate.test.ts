@@ -1682,6 +1682,51 @@ describe('aggregateCalendars', () => {
     expect(result.weeks[0].contributionDays[1].contributionCount).toBe(3); // 0 + 3
     expect(result.weeks[0].contributionDays[2].contributionCount).toBe(3); // 2 + 1
   });
+
+  it('preserves dates that exist only in non-base calendars', () => {
+    const cal1 = {
+      totalContributions: 1,
+      weeks: [
+        {
+          contributionDays: [
+            {
+              date: '2024-03-01',
+              contributionCount: 1,
+            },
+          ],
+        },
+        {
+          contributionDays: [
+            {
+              date: '2024-03-08',
+              contributionCount: 0,
+            },
+          ],
+        },
+      ],
+    };
+
+    const cal2 = {
+      totalContributions: 5,
+      weeks: [
+        {
+          contributionDays: [
+            {
+              date: '2024-01-01',
+              contributionCount: 5,
+            },
+          ],
+        },
+      ],
+    };
+
+    const result = aggregateCalendars([cal1, cal2]);
+
+    const dates = result.weeks.flatMap((week) => week.contributionDays.map((day) => day.date));
+
+    expect(dates).toContain('2024-01-01');
+    expect(dates).toContain('2024-03-01');
+  });
 });
 
 describe('calculateWrappedStats', () => {
