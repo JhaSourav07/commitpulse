@@ -825,6 +825,29 @@ describe('generateSVG', () => {
     });
   });
 
+  describe('isOfflineFallback parameter', () => {
+    it('appends [STALE CACHE] to the username when isOfflineFallback is true', () => {
+      const svg = generateSVG(
+        mockStats,
+        { user: 'octocat', isOfflineFallback: true } as unknown as BadgeParams,
+        mockCalendar
+      );
+
+      expect(svg).toContain('[STALE CACHE]');
+      expect(svg).toContain('fill="#ff9f43"');
+    });
+
+    it('does not append [STALE CACHE] when isOfflineFallback is false or omitted', () => {
+      const svg = generateSVG(
+        mockStats,
+        { user: 'octocat' } as unknown as BadgeParams,
+        mockCalendar
+      );
+
+      expect(svg).not.toContain('[STALE CACHE]');
+    });
+  });
+
   describe('SVG dimensions per size', () => {
     it('renders responsive width="100%" for medium size (default)', () => {
       const svg = generateSVG(

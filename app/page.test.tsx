@@ -41,7 +41,6 @@ vi.mock('@/utils/tracking', () => ({
   trackUser: vi.fn(),
 }));
 
-// Mock GSAP so FeatureCards don't break in JSDOM
 vi.mock('gsap', () => {
   const tween = { kill: vi.fn() };
   const timeline = {
@@ -50,17 +49,28 @@ vi.mock('gsap', () => {
     set: vi.fn().mockReturnThis(),
     kill: vi.fn(),
   };
+  const mockGsap = {
+    registerPlugin: vi.fn(),
+    set: vi.fn(),
+    to: vi.fn().mockReturnValue(tween),
+    fromTo: vi.fn().mockReturnValue(tween),
+    timeline: vi.fn().mockReturnValue(timeline),
+    context: vi.fn((_fn: any) => ({ revert: vi.fn() })),
+  };
   return {
-    default: {
-      registerPlugin: vi.fn(),
-      set: vi.fn(),
-      to: vi.fn().mockReturnValue(tween),
-      fromTo: vi.fn().mockReturnValue(tween),
-      timeline: vi.fn().mockReturnValue(timeline),
-      context: vi.fn((_fn: any) => ({ revert: vi.fn() })),
-    },
+    default: mockGsap,
+    gsap: mockGsap,
   };
 });
+
+vi.mock('@gsap/react', () => ({
+  useGSAP: vi.fn((callback) => {
+    // Optionally execute callback for coverage, or just do nothing
+    if (typeof callback === 'function') {
+      callback();
+    }
+  }),
+}));
 
 vi.mock('gsap/ScrollTrigger', () => ({
   ScrollTrigger: {},
@@ -317,10 +327,17 @@ describe('LandingPage', () => {
 
     const featureHeadings = screen.getAllByRole('heading', { level: 3 });
 
-    expect(featureHeadings).toHaveLength(3);
+    expect(featureHeadings).toHaveLength(6);
 
     const titles = featureHeadings.map((h) => h.textContent);
-    expect(titles).toEqual(['Real-time Sync', 'Theme Engine', 'Isometric Math']);
+    expect(titles).toEqual([
+      'Real-time Sync',
+      'Theme Engine',
+      'Isometric Math',
+      'Navigation',
+      'Resources',
+      'Connect',
+    ]);
   });
 
   it('renders the CustomizeCTA', () => {

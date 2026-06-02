@@ -97,8 +97,8 @@ export async function GET(request: Request) {
       message.includes('status 403')
     ) {
       return NextResponse.json(
-        { error: 'GitHub API rate limit reached. Please configure GITHUB_TOKEN.' },
-        { status: 403 }
+        { error: 'GitHub API rate limit reached. Please try again later.' },
+        { status: 429 }
       );
     }
 
