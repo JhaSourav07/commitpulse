@@ -10,9 +10,19 @@ import {
   getSizeScale,
   truncateUsername,
   deterministicRandom,
+  buildTowerPaths,
 } from './generator';
 import type { BadgeParams, ContributionCalendar, StreakStats, MonthlyStats } from '../../types';
 import { hexColor } from './sanitizer';
+import { themes } from './themes';
+
+function assertValidSVG(svgString: string): void {
+  const doc = new DOMParser().parseFromString(svgString, 'image/svg+xml');
+
+  const parserError = doc.querySelector('parsererror');
+
+  expect(parserError).toBeNull();
+}
 
 describe('generateSVG', () => {
   const mockStats: StreakStats = {
@@ -48,6 +58,8 @@ describe('generateSVG', () => {
       mockCalendar
     );
 
+    assertValidSVG(svg);
+
     expect(svg).not.toContain('CURRENT_STREAK');
     expect(svg).not.toContain('ANNUAL_SYNC_TOTAL');
     expect(svg).not.toContain('PEAK_STREAK');
@@ -68,6 +80,8 @@ describe('generateSVG', () => {
       mockCalendar
     );
 
+    assertValidSVG(svg);
+
     expect(svg).toContain('CURRENT_STREAK');
     expect(svg).toContain('ANNUAL_SYNC_TOTAL');
     expect(svg).toContain('PEAK_STREAK');
@@ -75,6 +89,8 @@ describe('generateSVG', () => {
 
   it('uses default typography when no font is passed', () => {
     const svg = generateSVG(mockStats, { user: 'avi' } as unknown as BadgeParams, mockCalendar);
+
+    assertValidSVG(svg);
 
     expect(svg).toContain('Syncopate');
     expect(svg).toContain('Space Grotesk');
@@ -87,6 +103,8 @@ describe('generateSVG', () => {
       mockCalendar
     );
 
+    assertValidSVG(svg);
+
     expect(svg).toContain('JetBrains Mono');
   });
 
@@ -96,6 +114,8 @@ describe('generateSVG', () => {
       { user: 'avi', radius: 0 } as unknown as BadgeParams,
       mockCalendar
     );
+
+    assertValidSVG(svg);
 
     expect(svg).toContain('rx="0"');
   });
@@ -351,6 +371,38 @@ describe('generateSVG', () => {
       mockCalendar
     );
     expect(svg).toContain('CURRENT_STREAK');
+  });
+
+  describe('LoC Mode', () => {
+    it('renders towers when LoC data exists (not ghost city)', () => {
+      const locCalendar: ContributionCalendar = {
+        totalContributions: 0,
+        weeks: [
+          {
+            contributionDays: [
+              {
+                contributionCount: 0,
+                locAdditions: 50,
+                locDeletions: 10,
+                date: '2024-06-10',
+              },
+            ],
+          },
+        ],
+      } as ContributionCalendar;
+
+      const svg = generateSVG(
+        mockStats,
+        { user: 'avi', mode: 'loc' } as unknown as BadgeParams,
+        locCalendar
+      );
+
+      // Should contain towers (LoC data exists, so it should not render the ghost city)
+      expect(svg).toContain('class="cp-tower');
+
+      // Should NOT contain stroke-width="0.5" (the ghost city marker)
+      expect(svg).not.toContain('stroke-width="0.5"');
+    });
   });
 
   // ── Auto-theme (prefers-color-scheme) tests ──────────────────────────────
@@ -773,6 +825,29 @@ describe('generateSVG', () => {
     });
   });
 
+  describe('isOfflineFallback parameter', () => {
+    it('appends [STALE CACHE] to the username when isOfflineFallback is true', () => {
+      const svg = generateSVG(
+        mockStats,
+        { user: 'octocat', isOfflineFallback: true } as unknown as BadgeParams,
+        mockCalendar
+      );
+
+      expect(svg).toContain('[STALE CACHE]');
+      expect(svg).toContain('fill="#ff9f43"');
+    });
+
+    it('does not append [STALE CACHE] when isOfflineFallback is false or omitted', () => {
+      const svg = generateSVG(
+        mockStats,
+        { user: 'octocat' } as unknown as BadgeParams,
+        mockCalendar
+      );
+
+      expect(svg).not.toContain('[STALE CACHE]');
+    });
+  });
+
   describe('SVG dimensions per size', () => {
     it('renders responsive width="100%" for medium size (default)', () => {
       const svg = generateSVG(
@@ -865,6 +940,29 @@ describe('generateSVG', () => {
       expect(extendedLongUsername.length).toBeGreaterThan(30);
       expect(svg).toContain('ABCDEFGHIJKL...');
       expect(svg).not.toContain('ABCDEFGHIJKLMNOPQRSTUVWXYZ');
+    });
+  });
+
+  describe('verify all supported themes produce valid SVG output', () => {
+    it('generates a valid SVG and contains the theme accent color for each supported theme', () => {
+      for (const theme of Object.values(themes)) {
+        const svg = generateSVG(
+          mockStats,
+          {
+            user: 'octocat',
+            bg: theme.bg,
+            text: theme.text,
+            accent: theme.accent,
+            speed: '8s',
+            scale: 'linear',
+          } as unknown as BadgeParams,
+          mockCalendar
+        );
+
+        expect(svg).toContain('<svg');
+        expect(svg).toContain('</svg>');
+        expect(svg.toLowerCase()).toContain(theme.accent.toLowerCase());
+      }
     });
   });
 });
@@ -1022,6 +1120,41 @@ describe('generateMonthlySVG', () => {
     } as unknown as BadgeParams);
 
     expect(svg).toContain('COMMITS THIS MONTH');
+  });
+
+  it('renders monthly stats correctly with null deltaPercentage for delta_format percent', () => {
+    const nullDeltaStats: MonthlyStats = {
+      currentMonthTotal: 15,
+      previousMonthTotal: 0,
+      deltaPercentage: null,
+      deltaAbsolute: 15,
+      currentMonthName: 'June',
+    };
+
+    const svg = generateMonthlySVG(nullDeltaStats, {
+      user: 'octocat',
+      delta_format: 'percent',
+    } as unknown as BadgeParams);
+
+    expect(svg).toContain('N/A');
+    expect(svg).not.toContain('%');
+  });
+
+  it('renders monthly stats correctly with null deltaPercentage for delta_format both', () => {
+    const nullDeltaStats: MonthlyStats = {
+      currentMonthTotal: 15,
+      previousMonthTotal: 0,
+      deltaPercentage: null,
+      deltaAbsolute: 15,
+      currentMonthName: 'June',
+    };
+
+    const svg = generateMonthlySVG(nullDeltaStats, {
+      user: 'octocat',
+      delta_format: 'both',
+    } as unknown as BadgeParams);
+
+    expect(svg).toContain('N/A (+15)');
   });
 });
 
@@ -1210,6 +1343,10 @@ describe('escapeXML', () => {
   });
   it('escapes script injection characters <script>&" together', () => {
     expect(escapeXML('<script>&"')).toBe('&lt;script&gt;&amp;&quot;');
+  });
+
+  it('should handle boundary input with only special XML characters', () => {
+    expect(escapeXML('<>&"\'')).toBe('&lt;&gt;&amp;&quot;&#39;');
   });
 });
 
@@ -1450,6 +1587,41 @@ describe('Radar Scan Line Animation Alignment', () => {
     expect(geometryLong).toEqual(geometryBaseline);
   });
 
+  it('truncates usernames longer than 12 characters and adds an ellipsis in generateSVG', () => {
+    const longUsername = 'averylongusernamethatexceeds20chars'; // 36 characters
+    const expectedTruncated = 'AVERYLONGUSE...'; // 12 characters + '...' (in uppercase)
+
+    const svg = generateSVG(
+      mockStats,
+      { user: longUsername, size: 'medium', autoTheme: false } as unknown as BadgeParams,
+      mockCalendar
+    );
+
+    const titleMatch = svg.match(/<text[^>]*class="title"[^>]*>([^<]*)<\/text>/);
+    expect(titleMatch).not.toBeNull();
+    const renderedTitle = titleMatch?.[1];
+
+    expect(renderedTitle).toBe(expectedTruncated);
+    expect(renderedTitle).not.toContain(longUsername.toUpperCase());
+  });
+
+  it('does not truncate short usernames and leaves them without ellipsis in generateSVG', () => {
+    const shortUsername = 'abc'; // 3 characters
+
+    const svg = generateSVG(
+      mockStats,
+      { user: shortUsername, size: 'medium', autoTheme: false } as unknown as BadgeParams,
+      mockCalendar
+    );
+
+    const titleMatch = svg.match(/<text[^>]*class="title"[^>]*>([^<]*)<\/text>/);
+    expect(titleMatch).not.toBeNull();
+    const renderedTitle = titleMatch?.[1];
+
+    expect(renderedTitle).toBe(shortUsername.toUpperCase());
+    expect(renderedTitle).not.toContain('...');
+  });
+
   describe('glow parameter', () => {
     const mockStats: StreakStats = {
       currentStreak: 5,
@@ -1523,5 +1695,65 @@ describe('deterministicRandom', () => {
     const a = deterministicRandom('seed-alpha');
     const b = deterministicRandom('seed-beta');
     expect(a).not.toBe(b);
+  });
+});
+
+describe('SVG Structural Validity and Cleanliness', () => {
+  const mockStats: StreakStats = {
+    currentStreak: 5,
+    longestStreak: 10,
+    totalContributions: 100,
+    todayDate: '2024-06-12',
+  };
+  const mockCalendar = {
+    weeks: [
+      {
+        contributionDays: [
+          { contributionCount: 0, date: '2024-06-10' },
+          { contributionCount: 5, date: '2024-06-11' },
+          { contributionCount: 15, date: '2024-06-12' },
+        ],
+      },
+    ],
+  } as ContributionCalendar;
+
+  it('generateSVG output contains exactly one root <svg> element and exactly one closing </svg> tag', () => {
+    const svg = generateSVG(mockStats, { user: 'avi' } as unknown as BadgeParams, mockCalendar);
+    const openCount = (svg.match(/<svg/gi) || []).length;
+    const closeCount = (svg.match(/<\/svg>/gi) || []).length;
+    expect(openCount).toBe(1);
+    expect(closeCount).toBe(1);
+  });
+
+  it('generateSVG output contains exactly one style block', () => {
+    const svg = generateSVG(mockStats, { user: 'avi' } as unknown as BadgeParams, mockCalendar);
+    const styleOpenCount = (svg.match(/<style>/gi) || []).length;
+    const styleCloseCount = (svg.match(/<\/style>/gi) || []).length;
+    expect(styleOpenCount).toBe(1);
+    expect(styleCloseCount).toBe(1);
+  });
+
+  it('generateSVG does not contain duplicate renderHeader or renderStyle outputs', () => {
+    const svg = generateSVG(mockStats, { user: 'avi' } as unknown as BadgeParams, mockCalendar);
+    const titleCount = (svg.match(/<title id="cp-title-avi">/g) || []).length;
+    expect(titleCount).toBe(1);
+    const styleImportCount = (svg.match(/@import url/g) || []).length;
+    expect(styleImportCount).toBe(1);
+  });
+});
+
+describe('buildTowerPaths', () => {
+  it('returns correct paths for scale 1', () => {
+    const paths = buildTowerPaths(15, 1);
+    expect(paths.left).toBe('M0 -5 L0 10 L-16 0 L-16 -15 Z');
+    expect(paths.right).toBe('M0 -5 L0 10 L16 0 L16 -15 Z');
+    expect(paths.top).toBe('M0 -15 L16 -5 L0 5 L-16 -5 Z');
+  });
+
+  it('returns correct paths for scale 0.45', () => {
+    const paths = buildTowerPaths(9, 0.45);
+    expect(paths.left).toBe('M0 -4.5 L0 4.5 L-7.2 0 L-7.2 -9 Z');
+    expect(paths.right).toBe('M0 -4.5 L0 4.5 L7.2 0 L7.2 -9 Z');
+    expect(paths.top).toBe('M0 -9 L7.2 -4.5 L0 0 L-7.2 -4.5 Z');
   });
 });

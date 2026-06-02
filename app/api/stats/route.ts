@@ -24,10 +24,22 @@ export async function GET(request: Request) {
   const parseResult = statsParamsSchema.safeParse(Object.fromEntries(searchParams.entries()));
 
   if (!parseResult.success) {
+    const details = parseResult.error.flatten();
+
+    if (details.fieldErrors.tz?.length) {
+      return NextResponse.json(
+        {
+          error: 'Invalid "tz" parameter',
+          details,
+        },
+        { status: 400 }
+      );
+    }
+
     return NextResponse.json(
       {
         error: 'Invalid parameters',
-        details: parseResult.error.flatten(),
+        details,
       },
       { status: 400 }
     );
@@ -71,6 +83,25 @@ export async function GET(request: Request) {
     );
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';
+
+    if (
+      message.toLowerCase().includes('not found') ||
+      message.toLowerCase().includes('could not resolve')
+    ) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    if (
+      message.toLowerCase().includes('rate limit') ||
+      message.includes('API limit reached') ||
+      message.includes('status 403')
+    ) {
+      return NextResponse.json(
+        { error: 'GitHub API rate limit reached. Please try again later.' },
+        { status: 429 }
+      );
+    }
+
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

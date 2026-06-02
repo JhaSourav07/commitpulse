@@ -34,6 +34,15 @@ vi.mock('framer-motion', () => ({
   },
 }));
 
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({
+    replace: vi.fn(),
+  }),
+  useSearchParams: () => ({
+    get: () => null,
+  }),
+}));
+
 vi.mock('@/components/InteractiveViewer', () => ({
   default: ({ children, ...props }: MockContainerProps) => <div {...props}>{children}</div>,
 }));
