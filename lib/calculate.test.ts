@@ -989,18 +989,19 @@ describe('calculateStreak', () => {
       0,
       0,
       0, // Week 1: Empty week
-      1, // 1 day of commits
+      1, // Day 8: 1 isolated day of commits
       0,
       0,
       0,
       0,
       0,
       0,
-      0, // Week 2: Empty week
+      0, // Following 7 days: Empty week gap
     ]);
 
     const result = calculateStreak(calendar);
 
+    // Assertions ensuring calculations handle index transitions gracefully
     expect(result.currentStreak).toBe(0);
     expect(result.longestStreak).toBe(1);
     expect(result.totalContributions).toBe(1);
