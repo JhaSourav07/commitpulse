@@ -943,7 +943,11 @@ describe('GET /api/streak', () => {
       expect(body.details).not.toBeNull();
     });
   });
+  it('returns 400 when an invalid hex color is passed as bg', async () => {
+    const response = await GET(makeRequest({ user: 'octocat', bg: '#ZZZZZZ' }));
 
+    expect(response.status).toBe(400);
+  });
   describe('hide parameters', () => {
     it('removes the username title when hide_title=true', async () => {
       const response = await GET(makeRequest({ user: 'octocat', hide_title: 'true' }));
