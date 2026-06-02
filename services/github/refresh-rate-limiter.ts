@@ -12,7 +12,7 @@ export class RefreshRateLimiter {
   private limit = 3;
   private windowMs = 60 * 60 * 1000; // 1 hour
 
-  private tracker = new TTLCache<RefreshLimitRecord>(5000, 60 * 60 * 1000);
+  private tracker = new TTLCache<RefreshLimitRecord>(100000, 60 * 60 * 1000);
 
   private constructor() {
     this.loadLimitFromEnv();
@@ -54,7 +54,7 @@ export class RefreshRateLimiter {
   } {
     this.loadLimitFromEnv(); // Ensure latest env config is applied
     const now = Date.now();
-    const clientKey = ip.trim();
+    const clientKey = ip.trim() || '__unknown__';
 
     let record = this.tracker.get(clientKey);
 
