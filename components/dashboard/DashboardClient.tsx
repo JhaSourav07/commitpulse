@@ -477,6 +477,15 @@ export default function DashboardClient({
     }
   };
 
+  const handleShareDashboard = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      toast.success('Link copied to clipboard!');
+    } catch {
+      toast.error('Failed to copy dashboard link');
+    }
+  };
+
   // ------------------------------------------------------------
   // Compare Mode Statistics Calculations
   // ------------------------------------------------------------
@@ -610,10 +619,7 @@ export default function DashboardClient({
 
           <RefreshButton username={username} />
           <button
-            onClick={() => {
-              navigator.clipboard.writeText(window.location.href);
-              toast.success('Link copied to clipboard!');
-            }}
+            onClick={handleShareDashboard}
             className="flex items-center gap-2 rounded-xl border border-black/10 px-4 py-2 text-sm font-semibold hover:bg-gray-100 dark:hover:bg-zinc-800 transition"
           >
             <Share2 size={16} />

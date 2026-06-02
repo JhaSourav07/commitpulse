@@ -41,11 +41,11 @@ function extractSection(text: string, headers: RegExp): string[] {
     }
     if (inSection) {
       if (
-        SKILL_SECTION_HEADERS.test(line) ||
-        EDUCATION_SECTION_HEADERS.test(line) ||
-        EXPERIENCE_SECTION_HEADERS.test(line)
+        (SKILL_SECTION_HEADERS.test(line) && !headers.test(line)) ||
+        (EDUCATION_SECTION_HEADERS.test(line) && !headers.test(line)) ||
+        (EXPERIENCE_SECTION_HEADERS.test(line) && !headers.test(line))
       ) {
-        if (line !== lines[lines.indexOf(line)]) break;
+        break;
       }
       sectionLines.push(line);
     }
@@ -113,7 +113,8 @@ function extractTextFromBuffer(buffer: Buffer, _mimeType: string): string {
   const text = buffer.toString('utf-8');
   const printable = text
     .replace(/[^\x20-\x7E\n\r]/g, ' ')
-    .replace(/\s+/g, ' ')
+    .replace(/[ \t]+/g, ' ')
+    .replace(/\r/g, '')
     .trim();
   return printable;
 }

@@ -26,7 +26,7 @@ export default function Leaderboard({ contributors }: LeaderboardProps) {
   const rank3 = top3[2];
 
   return (
-    <div className="w-full mx-auto font-sans relative overflow-hidden bg-white/[0.02] border border-white/[0.08] backdrop-blur-xl p-8 sm:p-12 rounded-[2rem] text-white">
+    <div className="w-full mx-auto font-sans relative overflow-hidden bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/[0.08] backdrop-blur-xl p-8 sm:p-12 rounded-[2rem] text-black dark:text-white">
       {/* ── Ambient Background Glows ── */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-[2rem]">
         <div className="absolute top-[5%] left-1/2 -translate-x-1/2 h-[400px] w-[400px] rounded-full bg-[#eab308]/10 blur-[120px]" />
@@ -38,7 +38,7 @@ export default function Leaderboard({ contributors }: LeaderboardProps) {
       {/* ── Podium Section ── */}
       <div className="flex items-end justify-center h-[300px] sm:h-[360px] mb-16 gap-3 sm:gap-6 relative mt-8">
         {/* Subtle grid bg */}
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.015)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.015)_1px,transparent_1px)] bg-[size:2rem_2rem] pointer-events-none [mask-image:radial-gradient(ellipse_at_center,#000_30%,transparent_70%)]" />
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.05)_1px,transparent_1px)] dark:bg-[linear-gradient(rgba(255,255,255,0.015)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.015)_1px,transparent_1px)] bg-[size:2rem_2rem] pointer-events-none [mask-image:radial-gradient(ellipse_at_center,#000_30%,transparent_70%)]" />
 
         {/* Rank 2 (Left) */}
         {rank2 && (
@@ -87,7 +87,7 @@ export default function Leaderboard({ contributors }: LeaderboardProps) {
             viewport={{ once: true }}
             transition={{ delay: 0.1 + i * 0.1, duration: 0.6, type: 'spring', stiffness: 80 }}
             whileHover={{ x: 6, scale: 1.01 }}
-            className="flex items-center justify-between p-4 rounded-xl bg-white/[0.03] border border-white/[0.05] hover:bg-white/[0.06] hover:border-white/10 transition-all duration-300 cursor-pointer group"
+            className="flex items-center justify-between p-4 rounded-xl bg-black/[0.03] dark:bg-white/[0.03] border border-black/5 dark:border-white/[0.05] hover:bg-black/[0.06] dark:hover:bg-white/[0.06] hover:border-black/10 dark:hover:border-white/10 transition-all duration-300 cursor-pointer group"
             onClick={() => {
               const el = document.getElementById('contributors');
               el?.scrollIntoView({ behavior: 'smooth' });
@@ -95,12 +95,12 @@ export default function Leaderboard({ contributors }: LeaderboardProps) {
           >
             <div className="flex items-center gap-4">
               {/* Rank */}
-              <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-white/[0.05] text-sm font-bold text-zinc-500 group-hover:text-cyan-400 group-hover:bg-cyan-400/10 transition-colors font-mono">
+              <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-black/5 dark:bg-white/[0.05] text-sm font-bold text-zinc-500 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 group-hover:bg-cyan-400/10 transition-colors font-mono">
                 #{i + 4}
               </div>
 
               {/* Avatar */}
-              <div className="relative w-10 h-10 rounded-full overflow-hidden border border-white/10 group-hover:border-cyan-400/40 transition-colors">
+              <div className="relative w-10 h-10 rounded-full overflow-hidden border border-black/10 dark:border-white/10 group-hover:border-cyan-400/40 transition-colors">
                 <Image
                   src={contributor.avatar_url}
                   alt={contributor.login}
@@ -110,16 +110,18 @@ export default function Leaderboard({ contributors }: LeaderboardProps) {
               </div>
 
               {/* Name */}
-              <span className="font-semibold text-white group-hover:text-cyan-300 transition-colors">
+              <span className="font-semibold text-black dark:text-white group-hover:text-cyan-600 dark:group-hover:text-cyan-300 transition-colors">
                 {contributor.login}
               </span>
             </div>
 
             {/* Metrics */}
             <div className="flex items-center gap-3 text-sm">
-              <TrendingUp className="h-4 w-4 text-zinc-600 group-hover:text-cyan-400 transition-colors" />
-              <span className="font-mono font-bold text-white">{contributor.contributions}</span>
-              <span className="text-zinc-600 hidden sm:inline">commits</span>
+              <TrendingUp className="h-4 w-4 text-zinc-500 dark:text-zinc-600 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors" />
+              <span className="font-mono font-bold text-black dark:text-white">
+                {contributor.contributions}
+              </span>
+              <span className="text-zinc-500 dark:text-zinc-600 hidden sm:inline">commits</span>
             </div>
           </motion.div>
         ))}
@@ -220,7 +222,7 @@ function PodiumItem({ contributor, height, variant, delay, isFirst }: PodiumItem
         </div>
 
         {/* Info Box */}
-        <div className="relative z-20 flex flex-col items-center w-full px-3 py-3 rounded-xl bg-white/[0.06] border border-white/[0.08] backdrop-blur-md transition-all duration-300 group-hover:bg-white/[0.1] group-hover:border-white/15">
+        <div className="relative z-20 flex flex-col items-center w-full px-3 py-3 rounded-xl bg-black/[0.04] dark:bg-white/[0.06] border border-black/10 dark:border-white/[0.08] backdrop-blur-md transition-all duration-300 group-hover:bg-black/[0.08] dark:group-hover:bg-white/[0.1] group-hover:border-black/15 dark:group-hover:border-white/15">
           <div className={`font-bold truncate w-full text-center ${theme.name} text-sm`}>
             {contributor.login}
           </div>
@@ -236,7 +238,7 @@ function PodiumItem({ contributor, height, variant, delay, isFirst }: PodiumItem
         whileInView={{ height, opacity: 1 }}
         viewport={{ once: true }}
         transition={{ delay: delay + 0.3, duration: 1, type: 'spring', bounce: 0.15 }}
-        className={`w-24 sm:w-32 rounded-t-xl bg-gradient-to-b ${theme.pillarGradient} border-t border-x border-white/[0.06] -mt-5 relative z-10 overflow-hidden`}
+        className={`w-24 sm:w-32 rounded-t-xl bg-gradient-to-b ${theme.pillarGradient} border-t border-x border-black/10 dark:border-white/[0.06] -mt-5 relative z-10 overflow-hidden`}
       >
         {/* Pillar inner glow */}
         <div className={`absolute inset-x-0 top-0 h-12 ${theme.glowBg} blur-lg rounded-t-xl`} />
