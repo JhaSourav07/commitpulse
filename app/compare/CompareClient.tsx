@@ -16,6 +16,9 @@ import {
   Calendar,
   Trophy,
   Loader2,
+  Moon,
+  Sun,
+  Coffee,
 } from 'lucide-react';
 
 /* ── types ────────────────────────────────────────────────────────────── */
@@ -41,6 +44,7 @@ interface UserStats {
   currentStreak: number;
   peakStreak: number;
   totalContributions: number;
+  codingHabit?: string;
 }
 
 interface LanguageData {
@@ -389,6 +393,111 @@ function CompareSkeleton() {
   );
 }
 
+/* ── helper: coding habit showdown ────────────────────────────────────── */
+
+function CodingHabitCard({
+  username,
+  habit,
+  side,
+}: {
+  username: string;
+  habit?: string;
+  side: 'left' | 'right';
+}) {
+  const isNight = habit === 'Night Owl';
+  const isEarly = habit === 'Early Bird';
+
+  const icon = isNight ? (
+    <Moon size={24} className="text-purple-400" />
+  ) : isEarly ? (
+    <Sun size={24} className="text-amber-400" />
+  ) : (
+    <Coffee size={24} className="text-teal-400" />
+  );
+  const bgClass = isNight
+    ? 'bg-gradient-to-br from-indigo-950 to-purple-950 border-purple-500/30'
+    : isEarly
+      ? 'bg-gradient-to-br from-amber-900/40 to-orange-900/40 border-orange-500/30'
+      : 'bg-gradient-to-br from-teal-900/40 to-emerald-900/40 border-teal-500/30';
+
+  const glowClass = isNight
+    ? 'shadow-[0_0_15px_rgba(168,85,247,0.15)]'
+    : isEarly
+      ? 'shadow-[0_0_15px_rgba(245,158,11,0.15)]'
+      : 'shadow-[0_0_15px_rgba(20,184,166,0.15)]';
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: side === 'left' ? -20 : 20 }}
+      whileInView={{ opacity: 1, x: 0 }}
+      viewport={{ once: true }}
+      whileHover={{ scale: 1.02 }}
+      className={`relative overflow-hidden p-6 rounded-2xl border ${bgClass} ${glowClass} transition-all duration-300 flex flex-col items-center justify-center text-center h-full min-h-[140px]`}
+    >
+      <motion.div
+        animate={{ y: [0, -5, 0] }}
+        transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+        className="mb-3 z-10"
+      >
+        {icon}
+      </motion.div>
+      <h4 className="text-xs font-bold uppercase tracking-widest text-white/70 mb-1 z-10">
+        @{username}
+      </h4>
+      <h3 className="text-xl font-black tracking-tight text-white z-10">{habit || 'Unknown'}</h3>
+
+      {/* Decorative background elements */}
+      {isNight && (
+        <motion.div
+          animate={{ opacity: [0.3, 0.7, 0.3] }}
+          transition={{ duration: 3, repeat: Infinity }}
+          className="absolute top-4 right-6 text-purple-300/20 text-xs"
+        >
+          ★
+        </motion.div>
+      )}
+      {isEarly && (
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
+          className="absolute -bottom-6 -right-6 text-amber-500/10"
+        >
+          <Sun size={80} />
+        </motion.div>
+      )}
+    </motion.div>
+  );
+}
+
+function CodingHabitShowdown({ user1, user2 }: { user1: CompareUserData; user2: CompareUserData }) {
+  return (
+    <div>
+      <h2 className="text-xs text-[#A1A1AA] uppercase tracking-widest font-medium mb-4">
+        Coding Habits
+      </h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative">
+        <CodingHabitCard
+          username={user1.profile.username}
+          habit={user1.stats.codingHabit}
+          side="left"
+        />
+
+        <div className="hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10">
+          <div className="w-8 h-8 rounded-full bg-white dark:bg-[#0a0a0a] border-2 border-black/10 dark:border-[rgba(255,255,255,0.08)] flex items-center justify-center shadow-xl">
+            <span className="text-[10px] font-bold text-[#A1A1AA] tracking-wider">VS</span>
+          </div>
+        </div>
+
+        <CodingHabitCard
+          username={user2.profile.username}
+          habit={user2.stats.codingHabit}
+          side="right"
+        />
+      </div>
+    </div>
+  );
+}
+
 /* ── main component ───────────────────────────────────────────────────── */
 
 export default function CompareClient() {
@@ -661,6 +770,9 @@ export default function CompareClient() {
                   />
                 </div>
               </div>
+
+              {/* Coding Habits Showdown */}
+              <CodingHabitShowdown user1={d1} user2={d2} />
 
               {/* Language Comparison */}
               <LanguageComparison
