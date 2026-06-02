@@ -58,13 +58,31 @@ describe('ThemeSwitch error resilience', () => {
     Object.defineProperty(window, 'matchMedia', {
       configurable: true,
       writable: true,
-      value: vi.fn().mockReturnValue({ matches: false, addListener: vi.fn(), removeListener: vi.fn(), addEventListener: vi.fn(), removeEventListener: vi.fn(), dispatchEvent: vi.fn(), onchange: null }),
+      value: vi.fn().mockReturnValue({
+        matches: false,
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+        onchange: null,
+      }),
     });
   });
 
   afterEach(() => {
-    Object.defineProperty(window, 'localStorage', { configurable: true, writable: true, value: originalLocalStorage });
-    Object.defineProperty(window, 'matchMedia', { configurable: true, writable: true, value: originalMatchMedia });
+    Object.defineProperty(window, 'localStorage', {
+      configurable: true,
+      writable: true,
+      value: originalLocalStorage,
+    });
+
+    Object.defineProperty(window, 'matchMedia', {
+      configurable: true,
+      writable: true,
+      value: originalMatchMedia,
+    });
+
     document.createElement = originalCreateElement;
     vi.restoreAllMocks();
   });
@@ -115,6 +133,7 @@ describe('ThemeSwitch error resilience', () => {
       if (tagName === 'style') {
         throw new Error('Style injection failure');
       }
+
       return originalCreateElement(tagName);
     }) as unknown as Document['createElement'];
 
