@@ -14,7 +14,17 @@ vi.mock('framer-motion', async () => {
   return {
     ...actual,
     motion: {
-      div: ({ children, className, onClick, style }: { children?: React.ReactNode, className?: string, onClick?: () => void, style?: React.CSSProperties }) => (
+      div: ({
+        children,
+        className,
+        onClick,
+        style,
+      }: {
+        children?: React.ReactNode;
+        className?: string;
+        onClick?: () => void;
+        style?: React.CSSProperties;
+      }) => (
         <div className={className} onClick={onClick} style={style} data-testid="motion-div">
           {children}
         </div>
@@ -65,12 +75,12 @@ describe('Leaderboard - Massive Scaling & High Bounds (Issue #2754 Equivalent)',
     ];
 
     const { getByText } = render(<Leaderboard contributors={highMetricData} />);
-    
+
     // Podium text
     expect(getByText('999999999')).toBeTruthy();
     expect(getByText('888888888')).toBeTruthy();
     expect(getByText('777777777')).toBeTruthy();
-    
+
     // List text
     expect(getByText('666666666')).toBeTruthy();
   });
@@ -86,7 +96,7 @@ describe('Leaderboard - Massive Scaling & High Bounds (Issue #2754 Equivalent)',
     }));
 
     const { getByText } = render(<Leaderboard contributors={highRankData} />);
-    
+
     // Verify #1000 renders cleanly inside the bounding flex box
     const highRankItem = getByText('#1000');
     expect(highRankItem).toBeTruthy();
@@ -103,7 +113,7 @@ describe('Leaderboard - Massive Scaling & High Bounds (Issue #2754 Equivalent)',
     }));
 
     const { container } = render(<Leaderboard contributors={massiveData} />);
-    
+
     // Check that we only rendered 3 PodiumItems (Rank 1, 2, 3)
     const crowns = container.querySelectorAll('.absolute.-top-8.z-30'); // Crown icons exist in podiums only
     expect(crowns.length).toBe(3);
@@ -117,7 +127,7 @@ describe('Leaderboard - Massive Scaling & High Bounds (Issue #2754 Equivalent)',
     ];
 
     const { getByText } = render(<Leaderboard contributors={extremeNameData} />);
-    
+
     const longNameUser = getByText('a'.repeat(500));
     // Verify it uses truncate to stop boundary breakages
     expect(longNameUser.className).toContain('truncate');
