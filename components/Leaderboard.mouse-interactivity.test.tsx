@@ -5,7 +5,7 @@ import Leaderboard, { Contributor } from './Leaderboard';
 
 // Mock Next.js Image
 vi.mock('next/image', () => ({
-  default: (props: any) => <img {...props} />,
+  default: (props: React.ImgHTMLAttributes<HTMLImageElement>) => <img alt="mock" {...props} />,
 }));
 
 // Mock framer-motion to render children with classes and event handlers
@@ -14,7 +14,17 @@ vi.mock('framer-motion', async () => {
   return {
     ...actual,
     motion: {
-      div: ({ children, className, onClick, style }: any) => (
+      div: ({
+        children,
+        className,
+        onClick,
+        style,
+      }: {
+        children?: React.ReactNode;
+        className?: string;
+        onClick?: React.MouseEventHandler<HTMLDivElement>;
+        style?: React.CSSProperties;
+      }) => (
         <div className={className} onClick={onClick} style={style} data-testid="motion-div">
           {children}
         </div>
