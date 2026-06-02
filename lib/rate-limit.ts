@@ -212,7 +212,7 @@ export async function rateLimit(
   tracker.count++;
   await trackers.update(ip, tracker);
 
-  if (count > limit) {
+  if (tracker.count > limit) {
     return {
       success: false,
       limit,
