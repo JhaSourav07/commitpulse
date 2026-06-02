@@ -79,35 +79,8 @@ jobs:
                     issue_number: pr.number,
                     labels: [label],
                   });
-                }
 
-                // Check existing comments to enforce a 24-hour notification gap
-                const { data: comments } = await github.rest.issues.listComments({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  issue_number: pr.number,
-                  per_page: 100,
-                });
-
-                const conflictComments = comments.filter(c =>
-                  c.user?.login === 'github-actions[bot]' &&
-                  c.body?.includes('merge conflicts with the main branch')
-                );
-
-                let shouldComment = false;
-                if (conflictComments.length === 0) {
-                  shouldComment = true;
-                } else {
-                  const lastComment = conflictComments[conflictComments.length - 1];
-                  const lastCommentTime = new Date(lastComment.created_at).getTime();
-                  const nowTime = new Date().getTime();
-                  const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
-                  if (nowTime - lastCommentTime >= TWENTY_FOUR_HOURS_MS) {
-                    shouldComment = true;
-                  }
-                }
-
-                if (shouldComment) {
+                  // Post notification comment ONLY ONCE (when the label is first applied)
                   await github.rest.issues.createComment({
                     owner: context.repo.owner,
                     repo: context.repo.repo,
