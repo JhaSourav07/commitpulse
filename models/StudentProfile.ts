@@ -22,6 +22,8 @@ export interface IStudentProfile extends Document {
   email: string;
   phone?: string;
   skills: string[];
+  careerInterests?: string[];
+  graduationYear?: number;
   education: IEducation[];
   experience: IExperience[];
   resumeUrl?: string;
@@ -54,10 +56,20 @@ const StudentProfileSchema: Schema = new Schema({
     lowercase: true,
     trim: true,
   },
-  name: { type: String, default: '' },
-  email: { type: String, default: '' },
+  name: { type: String, required: true },
+  email: { type: String, required: true },
   phone: { type: String, default: '' },
   skills: [{ type: String }],
+  careerInterests: [{ type: String }],
+  graduationYear: {
+    type: Number,
+    validate: {
+      validator: function (val: number) {
+        return val >= 2000 && val <= 2100;
+      },
+      message: 'Invalid graduation year',
+    },
+  },
   education: [EducationSchema],
   experience: [ExperienceSchema],
   resumeUrl: { type: String },

@@ -201,6 +201,9 @@ const baseStreakParamsSchema = z.object({
   // Invalid size values fall back to 'medium' to preserve badge rendering.
   size: z.enum(['small', 'medium', 'large']).catch('medium').default('medium'),
 
+  // to fetch N days contributions
+  days: z.coerce.number().int().positive().max(365).optional(),
+
   // Silently fall back to '8s' for invalid format (matches old behavior)
   speed: z
     .string()
@@ -388,10 +391,13 @@ export const compareParamsSchema = z
       .max(39, { message: 'GitHub username cannot exceed 39 characters' })
       .regex(GITHUB_USERNAME_REGEX, { message: 'Invalid GitHub username for user2' }),
   })
-  .refine((data) => data.user1.toLowerCase() !== data.user2.toLowerCase(), {
-    message: 'Cannot compare a user with themselves.',
-    path: ['user2'],
-  });
+  .refine(
+    (data) => data.user1.localeCompare(data.user2, undefined, { sensitivity: 'base' }) !== 0,
+    {
+      message: 'Cannot compare a user with themselves.',
+      path: ['user2'],
+    }
+  );
 
 export const ogParamsSchema = z
   .object({

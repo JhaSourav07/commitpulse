@@ -170,14 +170,14 @@ describe('GET /api/stats', () => {
     expect(body.error).toBe('User not found');
   });
 
-  it('returns 403 when GitHub rate limiting bubbles up from the client', async () => {
+  it('returns 429 when GitHub rate limiting bubbles up from the client', async () => {
     vi.mocked(fetchGitHubContributions).mockRejectedValue(new Error('API Rate Limit Exceeded'));
 
     const response = await GET(makeRequest({ user: 'testuser' }));
 
-    expect(response.status).toBe(403);
+    expect(response.status).toBe(429);
     const body = await response.json();
-    expect(body.error).toBe('GitHub API rate limit reached. Please configure GITHUB_TOKEN.');
+    expect(body.error).toBe('GitHub API rate limit reached. Please try again later.');
   });
 
   it('returns 500 with a generic message for non-Error throws', async () => {
