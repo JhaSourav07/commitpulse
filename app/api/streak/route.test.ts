@@ -277,6 +277,24 @@ describe('GET /api/streak', () => {
       expect(fetchGitHubContributions).not.toHaveBeenCalled();
     });
 
+    it('returns 400 when grace is below the minimum value', async () => {
+      const response = await GET(
+        makeRequest({
+          user: 'octocat',
+          grace: '-1',
+        })
+      );
+
+      expect(response.status).toBe(400);
+
+      const body = await response.json();
+
+      expect(body.error).toBe('Invalid parameters');
+      expect(body.details.fieldErrors.grace[0]).toBe('grace must be an integer between 0 and 7');
+
+      expect(fetchGitHubContributions).not.toHaveBeenCalled();
+    });
+
     it('returns 400 for unsupported ?layout query parameter values (strict schema validation)', async () => {
       const response = await GET(
         new Request('http://localhost:3000/api/streak?user=octocat&layout=unsupported_layout')

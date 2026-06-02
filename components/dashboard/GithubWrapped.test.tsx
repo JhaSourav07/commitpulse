@@ -31,6 +31,7 @@ const mockProfile: UserProfile = {
 };
 
 const mockWrappedData: WrappedStats = {
+  calendar: { totalContributions: 1200, weeks: [] },
   totalContributions: 1200,
   topLanguage: 'TypeScript',
   highestDailyCount: 25,

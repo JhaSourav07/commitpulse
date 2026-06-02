@@ -2,6 +2,15 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import {
+  Radar,
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
+  ResponsiveContainer,
+  Tooltip,
+} from 'recharts';
 import { useSearchParams, useRouter } from 'next/navigation';
 import {
   Search,
@@ -624,6 +633,156 @@ function CodeVolumeShowdown({ user1, user2 }: { user1: CompareUserData; user2: C
   );
 }
 
+/* ── helper: developer skills radar chart ──────────────────────────────── */
+
+function normalizeSkill(value: number, max: number): number {
+  if (max <= 0) return 0;
+  return Math.min(Math.round((value / max) * 100), 100);
+}
+
+function DeveloperSkillsRadar({
+  user1,
+  user2,
+}: {
+  user1: CompareUserData;
+  user2: CompareUserData;
+}) {
+  // Compute raw values for each skill dimension
+  const calcLoC = (activity: ActivityData[]) => {
+    let add = 0;
+    activity.forEach((d) => {
+      add += d.locAdditions || 0;
+    });
+    return add;
+  };
+
+  const raw1 = {
+    volume: user1.stats.totalContributions + calcLoC(user1.activity),
+    consistency: user1.stats.currentStreak * 2 + user1.stats.peakStreak,
+    impact: user1.profile.stats.stars * 3 + user1.profile.stats.followers,
+    collaboration: (user1.stats.totalPRs || 0) * 2 + (user1.stats.totalIssues || 0),
+    versatility: user1.languages.length * 20,
+  };
+
+  const raw2 = {
+    volume: user2.stats.totalContributions + calcLoC(user2.activity),
+    consistency: user2.stats.currentStreak * 2 + user2.stats.peakStreak,
+    impact: user2.profile.stats.stars * 3 + user2.profile.stats.followers,
+    collaboration: (user2.stats.totalPRs || 0) * 2 + (user2.stats.totalIssues || 0),
+    versatility: user2.languages.length * 20,
+  };
+
+  // Normalize against combined max for fair comparison
+  const maxVolume = Math.max(raw1.volume, raw2.volume, 1);
+  const maxConsistency = Math.max(raw1.consistency, raw2.consistency, 1);
+  const maxImpact = Math.max(raw1.impact, raw2.impact, 1);
+  const maxCollaboration = Math.max(raw1.collaboration, raw2.collaboration, 1);
+  const maxVersatility = Math.max(raw1.versatility, raw2.versatility, 1);
+
+  const radarData = [
+    {
+      skill: 'Volume',
+      user1: normalizeSkill(raw1.volume, maxVolume),
+      user2: normalizeSkill(raw2.volume, maxVolume),
+    },
+    {
+      skill: 'Consistency',
+      user1: normalizeSkill(raw1.consistency, maxConsistency),
+      user2: normalizeSkill(raw2.consistency, maxConsistency),
+    },
+    {
+      skill: 'Impact',
+      user1: normalizeSkill(raw1.impact, maxImpact),
+      user2: normalizeSkill(raw2.impact, maxImpact),
+    },
+    {
+      skill: 'Collaboration',
+      user1: normalizeSkill(raw1.collaboration, maxCollaboration),
+      user2: normalizeSkill(raw2.collaboration, maxCollaboration),
+    },
+    {
+      skill: 'Versatility',
+      user1: normalizeSkill(raw1.versatility, maxVersatility),
+      user2: normalizeSkill(raw2.versatility, maxVersatility),
+    },
+  ];
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ duration: 0.6 }}
+    >
+      <h2 className="text-xs text-[#A1A1AA] uppercase tracking-widest font-medium mb-4 flex items-center gap-2">
+        <Trophy size={14} className="text-amber-400" />
+        Developer Skills Radar
+      </h2>
+      <div className="p-6 rounded-xl bg-white dark:bg-[#0a0a0a] border border-black/10 dark:border-[rgba(255,255,255,0.08)]">
+        {/* Legend */}
+        <div className="flex justify-center gap-6 mb-4">
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#8B5CF6' }} />
+            <span className="text-xs text-[#A1A1AA] font-medium">@{user1.profile.username}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#06B6D4' }} />
+            <span className="text-xs text-[#A1A1AA] font-medium">@{user2.profile.username}</span>
+          </div>
+        </div>
+
+        <ResponsiveContainer width="100%" height={380}>
+          <RadarChart cx="50%" cy="50%" outerRadius="75%" data={radarData}>
+            <PolarGrid stroke="rgba(161,161,170,0.15)" strokeDasharray="3 3" />
+            <PolarAngleAxis
+              dataKey="skill"
+              tick={{
+                fill: '#A1A1AA',
+                fontSize: 11,
+                fontWeight: 600,
+              }}
+            />
+            <PolarRadiusAxis angle={90} domain={[0, 100]} tick={false} axisLine={false} />
+            <Radar
+              name={user1.profile.username}
+              dataKey="user1"
+              stroke="#8B5CF6"
+              fill="#8B5CF6"
+              fillOpacity={0.25}
+              strokeWidth={2}
+              dot={{ r: 4, fill: '#8B5CF6', strokeWidth: 0 }}
+              animationDuration={1200}
+              animationEasing="ease-out"
+            />
+            <Radar
+              name={user2.profile.username}
+              dataKey="user2"
+              stroke="#06B6D4"
+              fill="#06B6D4"
+              fillOpacity={0.25}
+              strokeWidth={2}
+              dot={{ r: 4, fill: '#06B6D4', strokeWidth: 0 }}
+              animationDuration={1200}
+              animationEasing="ease-out"
+            />
+            <Tooltip
+              contentStyle={{
+                backgroundColor: '#0a0a0a',
+                border: '1px solid rgba(255,255,255,0.1)',
+                borderRadius: '10px',
+                padding: '10px 14px',
+                fontSize: '12px',
+                color: '#fff',
+              }}
+              itemStyle={{ color: '#e4e4e7', fontSize: '11px' }}
+            />
+          </RadarChart>
+        </ResponsiveContainer>
+      </div>
+    </motion.div>
+  );
+}
+
 /* ── main component ───────────────────────────────────────────────────── */
 
 export default function CompareClient() {
@@ -914,6 +1073,9 @@ export default function CompareClient() {
 
               {/* Code Volume Showdown */}
               <CodeVolumeShowdown user1={d1} user2={d2} />
+
+              {/* Developer Skills Radar */}
+              <DeveloperSkillsRadar user1={d1} user2={d2} />
 
               {/* Language Comparison */}
               <LanguageComparison

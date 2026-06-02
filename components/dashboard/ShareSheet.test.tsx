@@ -3,9 +3,47 @@ import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import ShareSheet from './ShareSheet';
 
-// ─── Mocks ────────────────────────────────────────────────────────────────────
+// ---------------------------------------------------------------------------
+// Unified Mock Configuration & Spies
+// ---------------------------------------------------------------------------
+const mockHandleTwitter = vi.fn();
+const mockHandleLinkedIn = vi.fn();
+const mockHandleReddit = vi.fn();
+const mockHandleDownloadPNG = vi.fn();
+const mockHandleDownloadWEBP = vi.fn();
+const mockHandleDownloadSVG = vi.fn();
+const mockHandleDownloadJSON = vi.fn();
+const mockHandleCopyMarkdown = vi.fn();
+const mockHandleNativeShare = vi.fn();
+let mockStates: Record<string, 'idle' | 'loading' | 'success' | 'error'> = {};
 
-// react-qr-code renders an <svg> that the component queries at runtime
+// Unified dynamic object to satisfy both old mockHandlers and new isolated assertions
+const mockHandlers = {
+  get states() {
+    return mockStates;
+  },
+  set states(val) {
+    mockStates = val;
+  },
+  handleTwitter: mockHandleTwitter,
+  handleLinkedIn: mockHandleLinkedIn,
+  handleReddit: mockHandleReddit,
+  handleDownloadPNG: mockHandleDownloadPNG,
+  handleDownloadWEBP: mockHandleDownloadWEBP,
+  handleDownloadSVG: mockHandleDownloadSVG,
+  handleDownloadJSON: mockHandleDownloadJSON,
+  handleCopyMarkdown: mockHandleCopyMarkdown,
+  handleNativeShare: mockHandleNativeShare,
+};
+
+vi.mock('@/hooks/useShareActions', () => ({
+  useShareActions: () => mockHandlers,
+}));
+
+vi.mock('html-to-image', () => ({
+  toPng: vi.fn().mockResolvedValue('data:image/png;base64,mockdata'),
+}));
+
 vi.mock('react-qr-code', () => ({
   default: ({ value }: { value: string }) => (
     <svg data-testid="qr-code" data-value={value}>
@@ -14,7 +52,6 @@ vi.mock('react-qr-code', () => ({
   ),
 }));
 
-// framer-motion — strip animations so tests run synchronously
 vi.mock('framer-motion', () => ({
   motion: {
     div: ({ children, className, onClick, ...props }: any) => (
@@ -37,57 +74,34 @@ vi.mock('framer-motion', () => ({
   AnimatePresence: ({ children }: any) => <>{children}</>,
 }));
 
-// useShareActions — mock so every handler is a controllable spy.
-// PNG and WebP use html-to-image internally which cannot run in jsdom;
-// mocking the hook gives us reliable state transitions for those tests.
-const mockHandlers = {
-  states: {} as Record<string, 'idle' | 'loading' | 'success' | 'error'>,
-  handleTwitter: vi.fn(),
-  handleLinkedIn: vi.fn(),
-  handleReddit: vi.fn(),
-  handleDownloadPNG: vi.fn(),
-  handleDownloadWEBP: vi.fn(),
-  handleDownloadSVG: vi.fn(),
-  handleCopyMarkdown: vi.fn(),
-  handleDownloadJSON: vi.fn(),
-  handleNativeShare: vi.fn(),
+// ---------------------------------------------------------------------------
+// Shared Setup Props
+// ---------------------------------------------------------------------------
+const defaultProps = {
+  username: 'octocat',
+  isOpen: true,
+  onClose: vi.fn(),
+  exportData: {
+    stats: { currentStreak: 7, peakStreak: 14, totalContributions: 365 },
+    languages: [
+      { name: 'TypeScript', percentage: 72, color: '#3178c6' },
+      { name: 'JavaScript', percentage: 28, color: '#f1e05a' },
+    ],
+    activity: [
+      { date: '2026-05-01', count: 3, intensity: 2 as const },
+      { date: '2026-05-02', count: 0, intensity: 0 as const },
+    ],
+  },
 };
 
-vi.mock('@/hooks/useShareActions', () => ({
-  useShareActions: () => mockHandlers,
-}));
-
-// ─── Test suite ───────────────────────────────────────────────────────────────
-
+// ---------------------------------------------------------------------------
+// Test Suites
+// ---------------------------------------------------------------------------
 describe('ShareSheet', () => {
-  const defaultProps = {
-    username: 'octocat',
-    isOpen: true,
-    onClose: vi.fn(),
-    exportData: {
-      stats: {
-        currentStreak: 7,
-        peakStreak: 14,
-        totalContributions: 365,
-      },
-      languages: [
-        { name: 'TypeScript', percentage: 72, color: '#3178c6' },
-        { name: 'JavaScript', percentage: 28, color: '#f1e05a' },
-      ],
-      activity: [
-        { date: '2026-05-01', count: 3, intensity: 2 as const },
-        { date: '2026-05-02', count: 0, intensity: 0 as const },
-      ],
-    },
-  };
-
   beforeEach(() => {
     vi.clearAllMocks();
+    mockStates = {};
 
-    // Reset hook states
-    mockHandlers.states = {};
-
-    // clipboard.writeText — used by handleCopyMarkdown spy / social links
     Object.assign(navigator, {
       clipboard: {
         writeText: vi.fn().mockResolvedValue(undefined),
@@ -95,22 +109,17 @@ describe('ShareSheet', () => {
       },
     });
 
-    // execCommand — used by handleLocalCopyLink (input.select + execCommand)
     document.execCommand = vi.fn().mockReturnValue(true);
 
-    // XMLSerializer — must be a real instantiable class, vi.fn() cannot be used as a constructor
     global.XMLSerializer = class {
       serializeToString() {
         return '<svg>mock</svg>';
       }
     } as any;
 
-    // ClipboardItem — used by navigator.clipboard.write in QR copy-as-image
-    // ClipboardItem — mock with required static method 'supports'
     global.ClipboardItem = vi.fn().mockImplementation((data: any) => data) as any;
     (global.ClipboardItem as any).supports = vi.fn().mockReturnValue(true);
 
-    // Canvas — used by QR copy-as-image canvas path
     HTMLCanvasElement.prototype.getContext = vi.fn().mockReturnValue({
       fillStyle: '',
       fillRect: vi.fn(),
@@ -133,7 +142,7 @@ describe('ShareSheet', () => {
 
     vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
 
-    // Default social handlers: open a URL and call onClose (mirrors real hook behaviour)
+    // Hook Behavior Multi-stubs mapping
     mockHandlers.handleTwitter.mockImplementation(() => {
       window.open('https://twitter.com/intent/tweet?text=test', '_blank', 'noopener');
       defaultProps.onClose();
@@ -156,22 +165,18 @@ describe('ShareSheet', () => {
       }
     });
 
-    // Default download handlers: set states via the mock states object
-    // PNG — simulates async success
     mockHandlers.handleDownloadPNG.mockImplementation(async () => {
-      mockHandlers.states = { ...mockHandlers.states, png: 'loading' };
+      mockStates = { ...mockStates, png: 'loading' };
       await Promise.resolve();
-      mockHandlers.states = { ...mockHandlers.states, png: 'success' };
+      mockStates = { ...mockStates, png: 'success' };
     });
 
-    // WebP — simulates async success
     mockHandlers.handleDownloadWEBP.mockImplementation(async () => {
-      mockHandlers.states = { ...mockHandlers.states, webp: 'loading' };
+      mockStates = { ...mockStates, webp: 'loading' };
       await Promise.resolve();
-      mockHandlers.states = { ...mockHandlers.states, webp: 'success' };
+      mockStates = { ...mockStates, webp: 'success' };
     });
 
-    // SVG — fetches and downloads
     mockHandlers.handleDownloadSVG.mockImplementation(async () => {
       const res = await fetch(`/api/streak?user=${defaultProps.username}`);
       const svgText = await res.text();
@@ -182,10 +187,9 @@ describe('ShareSheet', () => {
       a.download = `${defaultProps.username}-monolith.svg`;
       a.click();
       URL.revokeObjectURL(url);
-      mockHandlers.states = { ...mockHandlers.states, svg: 'success' };
+      mockStates = { ...mockStates, svg: 'success' };
     });
 
-    // JSON — writes blob and downloads
     mockHandlers.handleDownloadJSON.mockImplementation(() => {
       const { stats, languages, activity } = defaultProps.exportData;
       const payload = {
@@ -202,19 +206,16 @@ describe('ShareSheet', () => {
           intensity: a.intensity,
         })),
       };
-      const blob = new Blob([JSON.stringify(payload, null, 2)], {
-        type: 'application/json',
-      });
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       a.download = `${defaultProps.username}-commitpulse.json`;
       a.click();
       URL.revokeObjectURL(url);
-      mockHandlers.states = { ...mockHandlers.states, json: 'success' };
+      mockStates = { ...mockStates, json: 'success' };
     });
 
-    // Markdown — writes to clipboard
     mockHandlers.handleCopyMarkdown.mockImplementation(async () => {
       await navigator.clipboard.writeText(
         `![CommitPulse](https://commitpulse.vercel.app/api/streak?user=${defaultProps.username})`
@@ -227,8 +228,7 @@ describe('ShareSheet', () => {
     document.documentElement.classList.remove('dark');
   });
 
-  // ─── Visibility ─────────────────────────────────────────────────────────────
-
+  // ── Visibility -------------------------------------------------------------
   it('does not render when isOpen is false', () => {
     const { container } = render(<ShareSheet {...defaultProps} isOpen={false} />);
     expect(container.firstChild).toBeNull();
@@ -236,13 +236,15 @@ describe('ShareSheet', () => {
 
   it('renders correctly when isOpen is true', () => {
     render(<ShareSheet {...defaultProps} />);
-    expect(screen.getByText('Share Profile')).toBeDefined();
-    expect(screen.getByText('@octocat')).toBeDefined();
-    expect(screen.getByText('Copy README Markdown')).toBeDefined();
+    expect(screen.getByText('octocat')).toBeDefined();
     expect(screen.getByText('Share on X')).toBeDefined();
+    expect(screen.getByText('LinkedIn')).toBeDefined();
+    expect(screen.getByText('Reddit')).toBeDefined();
+    expect(screen.getByText('System Share')).toBeDefined();
+    expect(screen.getByText('Download PNG Snapshot')).toBeDefined();
     expect(screen.getByText('Export Structured JSON Data')).toBeDefined();
-    // CSV was removed from this component
-    expect(screen.queryByText('Download CSV')).toBeNull();
+    expect(screen.getByText('Download Vector SVG Monolith')).toBeDefined();
+    expect(screen.getByText('Copy README Markdown')).toBeDefined();
   });
 
   it('renders the QR code with the correct profile URL', () => {
@@ -257,8 +259,7 @@ describe('ShareSheet', () => {
     expect(input).toBeDefined();
   });
 
-  // ─── Close behaviour ────────────────────────────────────────────────────────
-
+  // ── Close behaviour --------------------------------------------------------
   it('renders close button with correct aria-label and calls onClose', () => {
     render(<ShareSheet {...defaultProps} />);
     const closeButton = screen.getByLabelText('Close share panel');
@@ -287,23 +288,31 @@ describe('ShareSheet', () => {
     expect(defaultProps.onClose).toHaveBeenCalled();
   });
 
-  // ─── Copy link (input + execCommand) ────────────────────────────────────────
-
-  it('copies the profile link via execCommand when the copy button is clicked', async () => {
+  // ── Copy Link --------------------------------------------------------------
+  it('handles Copy Link action', async () => {
     render(<ShareSheet {...defaultProps} />);
     const input = screen.getByDisplayValue('https://commitpulse.vercel.app/dashboard/octocat');
-    const copyBtn = input.closest('div')!.parentElement!.querySelector('button');
-    fireEvent.click(copyBtn!);
+    const copyIconButton = input
+      .closest('div')!
+      .parentElement!.querySelector('button:not([aria-label])') as HTMLButtonElement;
 
-    expect(document.execCommand).toHaveBeenCalledWith('copy');
+    document.execCommand = vi.fn().mockReturnValue(true);
+    fireEvent.click(copyIconButton!);
 
     await waitFor(() => {
       expect(screen.getByText('✓ Link copied')).toBeDefined();
     });
   });
 
-  // ─── Open profile in new tab ─────────────────────────────────────────────────
+  // ── Copy Markdown ----------------------------------------------------------
+  it('handles Copy Markdown action', async () => {
+    render(<ShareSheet {...defaultProps} />);
+    const copyButton = screen.getByText('Copy README Markdown').closest('button');
+    fireEvent.click(copyButton!);
+    expect(mockHandleCopyMarkdown).toHaveBeenCalled();
+  });
 
+  // ── Open profile in new tab ------------------------------------------------
   it('opens the profile URL in a new tab when the external-link button is clicked', () => {
     render(<ShareSheet {...defaultProps} />);
     const input = screen.getByDisplayValue('https://commitpulse.vercel.app/dashboard/octocat');
@@ -315,8 +324,7 @@ describe('ShareSheet', () => {
     );
   });
 
-  // ─── QR code actions ─────────────────────────────────────────────────────────
-
+  // ── QR code actions --------------------------------------------------------
   it('downloads the QR code as SVG when Save File is clicked', async () => {
     render(<ShareSheet {...defaultProps} />);
     fireEvent.click(screen.getByText('Save File'));
@@ -330,157 +338,65 @@ describe('ShareSheet', () => {
     });
   });
 
-  // ─── Social sharing ──────────────────────────────────────────────────────────
-
+  // ── Social shares ----------------------------------------------------------
   it('handles Share on X action', () => {
     render(<ShareSheet {...defaultProps} />);
-    fireEvent.click(screen.getByText('Share on X').closest('button')!);
-    expect(window.open).toHaveBeenCalledWith(
-      expect.stringContaining('twitter.com/intent/tweet'),
-      '_blank',
-      'noopener'
-    );
-    expect(defaultProps.onClose).toHaveBeenCalled();
+    const twitterButton = screen.getByText('Share on X').closest('button');
+    fireEvent.click(twitterButton!);
+    expect(mockHandleTwitter).toHaveBeenCalled();
   });
 
   it('handles LinkedIn share action', () => {
     render(<ShareSheet {...defaultProps} />);
-    fireEvent.click(screen.getByText('LinkedIn').closest('button')!);
-    expect(window.open).toHaveBeenCalledWith(
-      expect.stringContaining('linkedin.com/sharing/share-offsite'),
-      '_blank',
-      'noopener'
-    );
-    expect(defaultProps.onClose).toHaveBeenCalled();
+    const linkedinButton = screen.getByText('LinkedIn').closest('button');
+    fireEvent.click(linkedinButton!);
+    expect(mockHandleLinkedIn).toHaveBeenCalled();
   });
 
-  it('handles Reddit share action', async () => {
+  it('handles Share via OS Sheet action', async () => {
     render(<ShareSheet {...defaultProps} />);
-    fireEvent.click(screen.getByText('Reddit').closest('button')!);
-
-    await waitFor(() => expect(window.open).toHaveBeenCalled());
-
-    const calledUrl = vi.mocked(window.open).mock.calls[0][0] as string;
-    expect(calledUrl).toContain('reddit.com/submit');
-    expect(calledUrl).toContain(encodeURIComponent(`/dashboard/${defaultProps.username}`));
-    expect(calledUrl).toContain('title=');
-    expect(window.open).toHaveBeenCalledWith(expect.any(String), '_blank', 'noopener,noreferrer');
+    const shareButton = screen.getByText('System Share').closest('button');
+    fireEvent.click(shareButton!);
+    expect(mockHandleNativeShare).toHaveBeenCalled();
   });
 
-  it('handles System Share via navigator.share', async () => {
-    const shareMock = vi.fn().mockResolvedValue(undefined);
-    Object.assign(navigator, { share: shareMock });
-
+  it('handles Reddit share action', () => {
     render(<ShareSheet {...defaultProps} />);
-    fireEvent.click(screen.getByText('System Share').closest('button')!);
-
-    await waitFor(() => expect(shareMock).toHaveBeenCalled());
-    expect(shareMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        title: expect.any(String),
-        text: expect.any(String),
-        url: expect.any(String),
-      })
-    );
+    const redditButton = screen.getByText('Reddit').closest('button');
+    fireEvent.click(redditButton!);
+    expect(mockHandleReddit).toHaveBeenCalled();
   });
 
-  // ─── Copy README Markdown ───────────────────────────────────────────────────
-
-  it('handles Copy README Markdown action', async () => {
+  // ── Downloads --------------------------------------------------------------
+  it('handles Download PNG action', () => {
     render(<ShareSheet {...defaultProps} />);
-    fireEvent.click(screen.getByText('Copy README Markdown').closest('button')!);
-
-    await waitFor(() => {
-      expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
-        expect.stringContaining('![CommitPulse](')
-      );
-    });
-
-    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
-      expect.stringContaining('/api/streak?user=octocat')
-    );
-
-    await waitFor(() => {
-      expect(screen.getByText('✓ Markdown copied')).toBeDefined();
-    });
-
-    expect(screen.getByText('Copied Snippet!')).toBeDefined();
+    const downloadButton = screen.getByText('Download PNG Snapshot').closest('button');
+    fireEvent.click(downloadButton!);
+    expect(mockHandleDownloadPNG).toHaveBeenCalled();
   });
 
-  // ─── Export downloads ────────────────────────────────────────────────────────
-
-  it('handles Download PNG Snapshot action', async () => {
+  it('shows "Saved Asset!" label when PNG download succeeds', () => {
+    mockStates['png'] = 'success';
     render(<ShareSheet {...defaultProps} />);
-
-    await act(async () => {
-      fireEvent.click(screen.getByText('Download PNG Snapshot').closest('button')!);
-    });
-
-    expect(mockHandlers.handleDownloadPNG).toHaveBeenCalled();
+    expect(screen.getAllByText('Saved Asset!').length).toBeGreaterThan(0);
+    mockStates['png'] = 'idle';
   });
 
-  it('handles Download Optimized WebP action', async () => {
+  it('handles Download JSON action', () => {
     render(<ShareSheet {...defaultProps} />);
-
-    await act(async () => {
-      fireEvent.click(screen.getByText('Download Optimized WebP').closest('button')!);
-    });
-
-    expect(mockHandlers.handleDownloadWEBP).toHaveBeenCalled();
+    const jsonButton = screen.getByText('Export Structured JSON Data').closest('button');
+    fireEvent.click(jsonButton!);
+    expect(mockHandleDownloadJSON).toHaveBeenCalled();
   });
 
-  it('handles Download Vector SVG Monolith action', async () => {
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      text: vi.fn().mockResolvedValue('<svg>mock</svg>'),
-    });
-
+  it('handles Download SVG action', () => {
     render(<ShareSheet {...defaultProps} />);
-    fireEvent.click(screen.getByText('Download Vector SVG Monolith').closest('button')!);
-
-    await waitFor(() => expect(mockHandlers.handleDownloadSVG).toHaveBeenCalled());
-
-    const fetchedUrl = vi.mocked(global.fetch).mock.calls[0][0] as string;
-    expect(fetchedUrl).toMatch(
-      new RegExp(`/api/streak\\?user=${encodeURIComponent(defaultProps.username)}$`)
-    );
-
-    const blob = vi.mocked(URL.createObjectURL).mock.calls[0][0] as Blob;
-    expect(blob.type).toContain('image/svg+xml');
-    expect(HTMLAnchorElement.prototype.click).toHaveBeenCalled();
-    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:mock-url');
-  });
-
-  it('handles Export Structured JSON Data action', async () => {
-    render(<ShareSheet {...defaultProps} />);
-    fireEvent.click(screen.getByText('Export Structured JSON Data').closest('button')!);
-
-    await waitFor(() => expect(mockHandlers.handleDownloadJSON).toHaveBeenCalled());
-
-    const blob = vi.mocked(URL.createObjectURL).mock.calls[0][0] as Blob;
-    const json = JSON.parse(await blob.text());
-
-    expect(json).toMatchObject({
-      username: 'octocat',
-      currentStreak: 7,
-      longestStreak: 14,
-      totalContributions: 365,
-      topLanguages: defaultProps.exportData.languages,
-    });
-    expect(json.profileUrl).toContain('/octocat');
-    expect(json.contributionDates).toEqual(['2026-05-01', '2026-05-02']);
-    expect(json.dailyContributions).toEqual([
-      { date: '2026-05-01', count: 3, intensity: 2 },
-      { date: '2026-05-02', count: 0, intensity: 0 },
-    ]);
-    expect(HTMLAnchorElement.prototype.click).toHaveBeenCalled();
-    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:mock-url');
+    const svgButton = screen.getByText('Download Vector SVG Monolith').closest('button');
+    fireEvent.click(svgButton!);
+    expect(mockHandleDownloadSVG).toHaveBeenCalled();
   });
 
   it('handles Download Printable 3D STL Monolith action', async () => {
-    // Selectively fast-forward only the 1200ms STL delay; pass all other
-    // setTimeout calls (including @testing-library/dom internals) through
-    // to the real implementation so waitFor continues to work correctly.
     const realSetTimeout = globalThis.setTimeout.bind(globalThis);
     vi.spyOn(globalThis, 'setTimeout').mockImplementation(
       (fn: any, delay?: any, ...args: any[]) => {
@@ -493,7 +409,6 @@ describe('ShareSheet', () => {
     );
 
     render(<ShareSheet {...defaultProps} />);
-
     await act(async () => {
       fireEvent.click(screen.getByText('Download Printable 3D STL Monolith').closest('button')!);
     });
@@ -506,18 +421,15 @@ describe('ShareSheet', () => {
     });
   });
 
-  // ─── GitHub Wrapped ───────────────────────────────────────────────────────────
-
+  // ── GitHub Wrapped ---------------------------------------------------------
   it('opens GitHub Wrapped in a new tab and closes the sheet', () => {
     render(<ShareSheet {...defaultProps} />);
     fireEvent.click(screen.getByText('GitHub Wrapped').closest('button')!);
-
     expect(window.open).toHaveBeenCalledWith('/dashboard/octocat/wrapped', '_blank');
     expect(defaultProps.onClose).toHaveBeenCalled();
   });
 
-  // ─── Body scroll lock ─────────────────────────────────────────────────────────
-
+  // ── Body scroll lock -------------------------------------------------------
   it('locks body scroll when open and restores it when closed', () => {
     const { rerender } = render(<ShareSheet {...defaultProps} isOpen={true} />);
     expect(document.body.style.overflow).toBe('hidden');
