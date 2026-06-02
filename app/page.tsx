@@ -80,7 +80,6 @@ export default function LandingPage() {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
   }, []);
 
@@ -92,10 +91,8 @@ export default function LandingPage() {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://commitpulse.vercel.app';
   const markdown = `![CommitPulse](${siteUrl}/api/streak?user=${trimmedUsername})`;
 
-  // Probe badge URL for errors; actual rendering uses a native <img> tag.
   useEffect(() => {
     if (!hasUsername) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSvgState('idle');
       return;
     }
@@ -176,200 +173,211 @@ export default function LandingPage() {
           </motion.p>
         </div>
 
-        <section className="mx-auto mb-32 max-w-4xl relative z-20">
-          <div className="rounded-3xl border border-black/5 bg-white/60 p-4 shadow-xl shadow-black/5 backdrop-blur-xl dark:border-white/10 dark:bg-[#0a0a0a]/80 dark:shadow-2xl dark:shadow-black/50 md:p-8">
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                copyToClipboard();
-              }}
-              className="flex flex-col sm:flex-row gap-4 w-full"
-            >
-              <div className="relative flex-1 flex items-center flex-col">
-                <div className="relative flex-1 flex items-center w-full">
-                  <input
-                    type="text"
-                    suppressHydrationWarning
-                    placeholder="Enter GitHub Username"
-                    className="flex-1 rounded-2xl border border-black/10 bg-white px-5 py-4 text-sm text-black outline-none transition-all duration-300 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent dark:border-white/10 dark:bg-black/60 dark:text-white dark:placeholder:text-gray-500 shadow-inner"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    maxLength={39}
-                  />
-                  {username.length > 0 ? (
-                    <button
-                      onClick={() => setUsername('')}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 transition-colors hover:text-black dark:text-white/65 dark:hover:text-white"
-                      aria-label="Clear input"
-                      type="button"
-                    >
-                      <X size={18} />
-                    </button>
-                  ) : null}
-                </div>
-                {username.length === 39 && (
-                  <p className="text-red-500 text-xs mt-1 self-start pl-1">
-                    GitHub username limit reached (39 characters maximum)
-                  </p>
-                )}
-              </div>
-              <div className="flex flex-col sm:flex-row gap-4">
-                <button
-                  type="submit"
-                  suppressHydrationWarning
-                  disabled={!mounted || trimmedUsername.length === 0}
-                  className={`relative flex min-w-[160px] items-center justify-center gap-2 overflow-hidden rounded-2xl px-6 py-4 text-sm font-semibold transition-all duration-300 transform cursor-pointer hover:scale-[1.02] hover:shadow-lg active:scale-[0.98] disabled:cursor-not-allowed ${
-                    mounted && trimmedUsername.length > 0
-                      ? 'bg-black text-white hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-gray-100 shadow-md'
-                      : 'bg-gray-100 text-gray-400 dark:bg-white/5 dark:text-white/55'
-                  }`}
-                >
-                  <AnimatePresence mode="wait">
-                    {copied ? (
-                      <motion.div
-                        key="check"
-                        initial={{ y: 10 }}
-                        animate={{ y: 0 }}
-                        className="flex items-center gap-2"
-                      >
-                        <Icons.Check /> Copied
-                      </motion.div>
-                    ) : (
-                      <motion.div
-                        key="copy"
-                        initial={{ y: -10 }}
-                        animate={{ y: 0 }}
-                        className="flex items-center gap-2"
-                      >
-                        <Icons.Copy /> Copy Link
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </button>
-                <Link
-                  href={
-                    mounted && trimmedUsername.length > 0 ? `/dashboard/${trimmedUsername}` : '/'
-                  }
-                  suppressHydrationWarning
-                  aria-disabled={!mounted || trimmedUsername.length === 0}
-                  onClick={(e) => {
-                    if (!mounted || trimmedUsername.length === 0) {
-                      e.preventDefault();
-                    } else {
-                      trackUser(trimmedUsername);
-                      addSearch(trimmedUsername);
-                    }
+        {/* Updated Centralized Responsive Container Section */}
+        <section className="mx-auto mb-32 max-w-5xl relative z-20">
+          <div className="flex flex-col items-center justify-center gap-8 md:flex-row md:items-stretch">
+            {/* Input & Form Panel Card */}
+            <div className="w-full md:w-1/2 flex flex-col justify-between rounded-3xl border border-black/5 bg-white/60 p-6 shadow-xl shadow-black/5 backdrop-blur-xl dark:border-white/10 dark:bg-[#0a0a0a]/80 dark:shadow-2xl dark:shadow-black/50 md:p-8">
+              <div className="w-full flex-1 flex flex-col justify-center">
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    copyToClipboard();
                   }}
-                  className={`relative flex min-w-[160px] items-center justify-center gap-2 overflow-hidden rounded-2xl border px-6 py-4 text-sm font-semibold transition-all duration-300 hover:scale-[1.02] hover:shadow-lg active:scale-[0.98] ${
-                    mounted && trimmedUsername.length > 0
-                      ? 'border-black/10 bg-white text-black hover:bg-gray-50 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10 shadow-sm'
-                      : 'border-black/5 bg-gray-50 text-gray-400 dark:border-white/5 dark:bg-transparent dark:text-white/55'
-                  }`}
+                  className="flex flex-col gap-4 w-full"
                 >
-                  Watch Dashboard
-                </Link>
-              </div>
-            </form>
-          </div>
-
-          {searches.length > 0 && (
-            <div className="flex flex-wrap items-center gap-2 mb-6 mt-3">
-              <span className="text-xs text-[#A1A1AA]">Recent:</span>
-              {searches.map((s) => (
-                <span
-                  key={s}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-[rgba(255,255,255,0.08)] bg-[#111] pl-3 pr-2 py-1 text-xs text-white/70 transition-all hover:border-[rgba(255,255,255,0.2)] hover:text-white group/pill"
-                >
-                  <button
-                    type="button"
-                    onClick={() => setUsername(s)}
-                    className="transition-colors hover:text-white"
-                  >
-                    {s}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => removeSearch(s)}
-                    className="rounded-full p-0.5 text-white/40 hover:bg-white/10 hover:text-white transition-all flex items-center justify-center"
-                    aria-label={`Remove ${s} from recent searches`}
-                  >
-                    <X size={10} />
-                  </button>
-                </span>
-              ))}
-              <button
-                onClick={clearSearches}
-                className="text-xs text-[#A1A1AA] underline hover:text-white transition-colors"
-              >
-                Clear
-              </button>
-            </div>
-          )}
-
-          <div className="group relative mt-10">
-            <div className="absolute -inset-1 rounded-[2.5rem] bg-gradient-to-r from-emerald-500/20 to-cyan-500/20 opacity-50 blur-2xl transition duration-1000 group-hover:opacity-100" />
-            <div className="relative flex min-h-[480px] md:min-h-[520px] items-center justify-center overflow-visible rounded-3xl border border-black/5 bg-white/50 p-8 backdrop-blur-xl shadow-2xl dark:border-white/10 dark:bg-[#0a0a0a]/80">
-              {hasUsername ? (
-                <div className="w-full flex items-center justify-center">
-                  {svgState === 'loading' && (
-                    <div className="h-[240px] w-full max-w-[700px] rounded-2xl bg-black/5 dark:bg-white/5 animate-pulse" />
-                  )}
-                  {svgState === 'error' && errorMessage === 'GitHub user not found' && (
-                    <div className="flex flex-col items-center justify-center gap-4 py-12 text-center">
-                      <div className="flex h-16 w-16 items-center justify-center rounded-3xl border border-red-500/20 bg-red-500/10 shadow-inner">
-                        <X size={32} className="text-red-500" />
-                      </div>
-                      <div>
-                        <p className="text-lg font-bold text-gray-900 dark:text-white tracking-tight">
-                          GitHub user not found
-                        </p>
-                        <p className="text-sm text-gray-500 dark:text-white/65 mt-1">
-                          Please check the username and try again.
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                  {svgState === 'error' && errorMessage !== 'GitHub user not found' && (
-                    <div className="flex flex-col items-center justify-center gap-2 text-center py-8">
-                      <p className="text-sm font-semibold text-red-500 dark:text-red-400">
-                        Failed to load badge
-                      </p>
-                      <p className="text-xs text-gray-500 dark:text-white/55">
-                        The API may be unavailable. Please try again.
-                      </p>
-                    </div>
-                  )}
-                  {svgState === 'loaded' && (
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ duration: 0.5, ease: 'easeOut' }}
-                      className="w-full max-w-[700px] drop-shadow-[0_30px_60px_rgba(0,0,0,0.15)] dark:drop-shadow-[0_30px_60px_rgba(0,0,0,0.5)]"
-                    >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        data-testid="badge-img"
-                        src={badgeUrl}
-                        alt={`CommitPulse badge for ${debouncedUsername}`}
-                        className="w-full h-auto"
+                  <div className="relative w-full flex flex-col items-center">
+                    <div className="relative w-full flex items-center">
+                      <input
+                        type="text"
+                        suppressHydrationWarning
+                        placeholder="Enter GitHub Username"
+                        className="w-full rounded-2xl border border-black/10 bg-white px-5 py-4 text-sm text-black outline-none transition-all duration-300 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent dark:border-white/10 dark:bg-black/60 dark:text-white dark:placeholder:text-gray-500 shadow-inner"
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                        maxLength={39}
                       />
-                    </motion.div>
-                  )}
-                </div>
-              ) : (
-                <div className="flex w-full max-w-2xl flex-col items-center justify-center rounded-3xl border border-dashed border-black/10 bg-black/[0.02] px-6 py-16 text-center dark:border-white/10 dark:bg-white/[0.02]">
-                  <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-3xl border border-black/10 bg-white text-gray-600 shadow-sm dark:border-white/10 dark:bg-white/5 dark:text-white/80">
-                    <Icons.Github />
+                      {username.length > 0 ? (
+                        <button
+                          onClick={() => setUsername('')}
+                          className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 transition-colors hover:text-black dark:text-white/65 dark:hover:text-white"
+                          aria-label="Clear input"
+                          type="button"
+                        >
+                          <X size={18} />
+                        </button>
+                      ) : null}
+                    </div>
+                    {username.length === 39 && (
+                      <p className="text-red-500 text-xs mt-1 self-start pl-1">
+                        GitHub username limit reached (39 characters maximum)
+                      </p>
+                    )}
                   </div>
-                  <p className="text-xl font-bold tracking-tight text-gray-900 dark:text-white">
-                    Ready to visualize your rhythm?
-                  </p>
-                  <p className="mt-3 max-w-md text-sm leading-relaxed text-gray-500 dark:text-white/65">
-                    Enter a GitHub username above to instantly generate your 3D contribution
-                    monolith preview.
-                  </p>
+
+                  <div className="flex flex-col gap-3 w-full mt-2">
+                    <button
+                      type="submit"
+                      suppressHydrationWarning
+                      disabled={!mounted || trimmedUsername.length === 0}
+                      className={`relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-2xl px-6 py-4 text-sm font-semibold transition-all duration-300 transform cursor-pointer hover:scale-[1.01] hover:shadow-lg active:scale-[0.99] disabled:cursor-not-allowed ${
+                        mounted && trimmedUsername.length > 0
+                          ? 'bg-black text-white hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-gray-100 shadow-md'
+                          : 'bg-gray-100 text-gray-400 dark:bg-white/5 dark:text-white/55'
+                      }`}
+                    >
+                      <AnimatePresence mode="wait">
+                        {copied ? (
+                          <motion.div
+                            key="check"
+                            initial={{ y: 10 }}
+                            animate={{ y: 0 }}
+                            className="flex items-center gap-2"
+                          >
+                            <Icons.Check /> Copied
+                          </motion.div>
+                        ) : (
+                          <motion.div
+                            key="copy"
+                            initial={{ y: -10 }}
+                            animate={{ y: 0 }}
+                            className="flex items-center gap-2"
+                          >
+                            <Icons.Copy /> Copy Link
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </button>
+
+                    <Link
+                      href={
+                        mounted && trimmedUsername.length > 0
+                          ? `/dashboard/${trimmedUsername}`
+                          : '/'
+                      }
+                      suppressHydrationWarning
+                      aria-disabled={!mounted || trimmedUsername.length === 0}
+                      onClick={(e) => {
+                        if (!mounted || trimmedUsername.length === 0) {
+                          e.preventDefault();
+                        } else {
+                          trackUser(trimmedUsername);
+                          addSearch(trimmedUsername);
+                        }
+                      }}
+                      className={`relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-2xl border px-6 py-4 text-sm font-semibold transition-all duration-300 hover:scale-[1.01] hover:shadow-lg active:scale-[0.99] ${
+                        mounted && trimmedUsername.length > 0
+                          ? 'border-black/10 bg-white text-black hover:bg-gray-50 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10 shadow-sm'
+                          : 'border-black/5 bg-gray-50 text-gray-400 dark:border-white/5 dark:bg-transparent dark:text-white/55'
+                      }`}
+                    >
+                      Watch Dashboard
+                    </Link>
+                  </div>
+                </form>
+              </div>
+
+              {searches.length > 0 && (
+                <div className="flex flex-wrap items-center gap-2 mt-6 pt-4 border-t border-black/5 dark:border-white/5">
+                  <span className="text-xs text-[#A1A1AA]">Recent:</span>
+                  {searches.map((s) => (
+                    <span
+                      key={s}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-[rgba(255,255,255,0.08)] bg-[#111] pl-3 pr-2 py-1 text-xs text-white/70 transition-all hover:border-[rgba(255,255,255,0.2)] hover:text-white group/pill"
+                    >
+                      <button
+                        type="button"
+                        onClick={() => setUsername(s)}
+                        className="transition-colors hover:text-white"
+                      >
+                        {s}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => removeSearch(s)}
+                        className="rounded-full p-0.5 text-white/40 hover:bg-white/10 hover:text-white transition-all flex items-center justify-center"
+                        aria-label={`Remove ${s} from recent searches`}
+                      >
+                        <X size={10} />
+                      </button>
+                    </span>
+                  ))}
+                  <button
+                    onClick={clearSearches}
+                    className="text-xs text-[#A1A1AA] underline hover:text-white transition-colors ml-auto"
+                  >
+                    Clear
+                  </button>
                 </div>
               )}
+            </div>
+
+            {/* Visualizer Monolith Display Preview Panel */}
+            <div className="w-full md:w-1/2 group relative">
+              <div className="absolute -inset-1 rounded-[2.5rem] bg-gradient-to-r from-emerald-500/20 to-cyan-500/20 opacity-50 blur-2xl transition duration-1000 group-hover:opacity-100" />
+              <div className="relative flex h-full min-h-[340px] items-center justify-center overflow-visible rounded-3xl border border-black/5 bg-white/50 p-6 backdrop-blur-xl shadow-2xl dark:border-white/10 dark:bg-[#0a0a0a]/80">
+                {hasUsername ? (
+                  <div className="w-full flex items-center justify-center">
+                    {svgState === 'loading' && (
+                      <div className="h-[200px] w-full rounded-2xl bg-black/5 dark:bg-white/5 animate-pulse" />
+                    )}
+                    {svgState === 'error' && errorMessage === 'GitHub user not found' && (
+                      <div className="flex flex-col items-center justify-center gap-4 text-center">
+                        <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-red-500/20 bg-red-500/10 shadow-inner">
+                          <X size={28} className="text-red-500" />
+                        </div>
+                        <div>
+                          <p className="text-base font-bold text-gray-900 dark:text-white tracking-tight">
+                            GitHub user not found
+                          </p>
+                          <p className="text-xs text-gray-500 dark:text-white/65 mt-1">
+                            Please check the username and try again.
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    {svgState === 'error' && errorMessage !== 'GitHub user not found' && (
+                      <div className="flex flex-col items-center justify-center gap-2 text-center">
+                        <p className="text-sm font-semibold text-red-500 dark:text-red-400">
+                          Failed to load badge
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-white/55">
+                          The API may be unavailable. Please try again.
+                        </p>
+                      </div>
+                    )}
+                    {svgState === 'loaded' && (
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.5, ease: 'easeOut' }}
+                        className="w-full drop-shadow-[0_20px_40px_rgba(0,0,0,0.15)] dark:drop-shadow-[0_20px_40px_rgba(0,0,0,0.5)]"
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          data-testid="badge-img"
+                          src={badgeUrl}
+                          alt={`CommitPulse badge for ${debouncedUsername}`}
+                          className="w-full h-auto object-contain max-h-[280px]"
+                        />
+                      </motion.div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex w-full flex-col items-center justify-center rounded-2xl border border-dashed border-black/10 bg-black/[0.01] px-4 py-12 text-center dark:border-white/10 dark:bg-white/[0.01]">
+                    <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-black/10 bg-white text-gray-600 shadow-sm dark:border-white/10 dark:bg-white/5 dark:text-white/80">
+                      <Icons.Github />
+                    </div>
+                    <p className="text-lg font-bold tracking-tight text-gray-900 dark:text-white">
+                      Ready to visualize your rhythm?
+                    </p>
+                    <p className="mt-2 max-w-xs text-xs leading-relaxed text-gray-500 dark:text-white/65">
+                      Enter a GitHub username to the left to instantly generate your 3D contribution
+                      monolith preview layout.
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </section>
@@ -484,6 +492,7 @@ function SuccessGuide({
             onClick={onDismiss}
             className="ml-4 mt-1 shrink-0 rounded-xl p-2 text-gray-500 transition-all hover:bg-gray-100 hover:text-black dark:text-white/55 dark:hover:bg-white/5 dark:hover:text-white"
             aria-label="Dismiss guide"
+            type="button"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"

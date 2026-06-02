@@ -159,15 +159,20 @@ const baseStreakParamsSchema = z.object({
       },
       { message: 'Invalid "from" date format. Use ISO 8601 (e.g. 2023-01-01).' }
     ),
-  to: z
+ highlight: z
     .string()
     .optional()
     .refine(
       (val) => {
         if (!val) return true;
-        return !isNaN(Date.parse(val));
+        // Confirms the format is exactly YYYY-MM-DD:YYYY-MM-DD
+        const regex = /^\d{4}-\d{2}-\d{2}:\d{4}-\d{2}-\d{2}$/;
+        if (!regex.test(val)) return false;
+
+        const [start, end] = val.split(':');
+        return !isNaN(Date.parse(start)) && !isNaN(Date.parse(end));
       },
-      { message: 'Invalid "to" date format. Use ISO 8601 (e.g. 2023-12-31).' }
+      { message: 'Invalid "highlight" format. Use YYYY-MM-DD:YYYY-MM-DD' }
     ),
   tz: z
     .string()
@@ -308,6 +313,22 @@ export const statsParamsSchema = z.object({
     }),
   refresh: z.string().optional().transform(toRefreshFlag),
   tz: z.string().optional(),
+  // 🌟 Add highlight validation support here so it parses the query string safely!
+  highlight: z
+    .string()
+    .optional()
+    .refine(
+      (val) => {
+        if (!val) return true;
+        // Confirms the format is exactly YYYY-MM-DD:YYYY-MM-DD
+        const regex = /^\d{4}-\d{2}-\d{2}:\d{4}-\d{2}-\d{2}$/;
+        if (!regex.test(val)) return false;
+
+        const [start, end] = val.split(':');
+        return !isNaN(Date.parse(start)) && !isNaN(Date.parse(end));
+      },
+      { message: 'Invalid "highlight" format. Use YYYY-MM-DD:YYYY-MM-DD' }
+    ),
 });
 
 export const wrappedParamsSchema = z.object({
