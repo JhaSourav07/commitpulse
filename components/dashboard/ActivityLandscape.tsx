@@ -130,7 +130,7 @@ export default function ActivityLandscape({ data }: { data: ActivityData[] }) {
 
         {/* Graph */}
         <div
-          className="relative flex h-50 w-full items-end justify-between gap-0.5"
+          className="relative flex h-[200px] w-full items-end justify-between gap-0.5"
           role="img"
           aria-label="Activity chart showing contribution frequency over time"
         >
@@ -164,7 +164,7 @@ export default function ActivityLandscape({ data }: { data: ActivityData[] }) {
                     delay: i * 0.008,
                     ease: [0.16, 1, 0.3, 1],
                   }}
-                  className={`w-full rounded-t-xs transition-all duration-200 ${
+                  className={`w-full rounded-t-[2px] transition-all duration-200 ${
                     isHigh
                       ? mode === 'loc'
                         ? 'bg-indigo-500 dark:bg-indigo-400'
