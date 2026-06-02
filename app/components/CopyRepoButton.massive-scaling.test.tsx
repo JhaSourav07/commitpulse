@@ -1,10 +1,19 @@
-import { render, screen } from '@testing-library/react';
-import { describe, it, expect, vi } from 'vitest';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { beforeEach, describe, it, expect, vi } from 'vitest';
 import CopyRepoButton from './CopyRepoButton';
 
 vi.mock('lucide-react', () => ({
   Copy: () => <svg data-testid="copy-icon" />,
 }));
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  Object.assign(navigator, {
+    clipboard: {
+      writeText: vi.fn().mockResolvedValue(undefined),
+    },
+  });
+});
 
 describe('CopyRepoButton Massive Scaling', () => {
   it('renders 100 buttons without crashing', () => {
@@ -62,5 +71,36 @@ describe('CopyRepoButton Massive Scaling', () => {
         render(<CopyRepoButton />);
       }
     }).not.toThrow();
+  });
+
+  it('shows copied state after a successful clipboard write', async () => {
+    render(<CopyRepoButton />);
+
+    fireEvent.click(screen.getByRole('button', { name: /copy url/i }));
+
+    await waitFor(() => {
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+        'https://github.com/JhaSourav07/commitpulse'
+      );
+    });
+
+    expect(screen.getByText('Copied!')).toBeDefined();
+  });
+
+  it('shows an error state when clipboard write fails', async () => {
+    vi.mocked(navigator.clipboard.writeText).mockRejectedValueOnce(new Error('Permission denied'));
+
+    render(<CopyRepoButton />);
+
+    fireEvent.click(screen.getByRole('button', { name: /copy url/i }));
+
+    await waitFor(() => {
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+        'https://github.com/JhaSourav07/commitpulse'
+      );
+    });
+
+    expect(screen.queryByText('Copied!')).toBeNull();
+    expect(screen.getByText('Copy failed')).toBeDefined();
   });
 });
