@@ -18,6 +18,10 @@ import { FeatureCard, FeatureCardsSection } from '@/components/FeatureCards';
 import { DiscordButton } from '@/components/DiscordButton';
 
 import { WallOfLove } from '@/components/WallOfLove';
+import { OnboardingEmptyState } from '@/app/components/onboarding/OnboardingEmptyState';
+import { GitHubAvatar } from '@/app/components/onboarding/GitHubAvatar';
+import { DEMO_USERNAMES } from '@/app/components/onboarding/constants';
+import { GITHUB_USERNAME_REGEX } from '@/lib/validations';
 
 const Icons = {
   Github: () => (
@@ -85,6 +89,7 @@ export default function LandingPage() {
   } | null>(null);
   const guideRef = useRef<HTMLDivElement>(null);
   const heroRef = useRef<HTMLDivElement>(null);
+  const previewRef = useRef<HTMLDivElement>(null);
   const { searches, addSearch, clearSearches, removeSearch } = useRecentSearches();
   const [mounted, setMounted] = useState(false);
 
@@ -120,6 +125,10 @@ export default function LandingPage() {
   const trimmedUsername = username.trim();
   const debouncedUsername = useDebounce(trimmedUsername, 500);
   const hasUsername = debouncedUsername.length > 0;
+  const isValidUsername =
+    trimmedUsername.length > 0 && GITHUB_USERNAME_REGEX.test(trimmedUsername);
+  const showInvalidUsername =
+    mounted && trimmedUsername.length > 0 && !GITHUB_USERNAME_REGEX.test(trimmedUsername);
 
   const badgeUrl = `/api/streak?user=${debouncedUsername}`;
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://commitpulse.vercel.app';
@@ -130,8 +139,18 @@ export default function LandingPage() {
     badgeResult?.username === debouncedUsername && badgeResult?.status === 'loaded';
   const badgeError = badgeResult?.username === debouncedUsername && badgeResult?.status === 'error';
 
+  const applyUsername = (value: string) => {
+    setUsername(value);
+    setBadgeResult(null);
+  };
+
+  const generateBadge = () => {
+    if (!isValidUsername) return;
+    previewRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
   const copyToClipboard = async () => {
-    if (trimmedUsername.length === 0) return;
+    if (!isValidUsername) return;
 
     try {
       await navigator.clipboard.writeText(markdown);
@@ -186,98 +205,154 @@ export default function LandingPage() {
             <form
               onSubmit={(e) => {
                 e.preventDefault();
-                copyToClipboard();
+                generateBadge();
               }}
-              className="flex flex-col sm:flex-row gap-4 w-full"
+              className="flex w-full flex-col gap-4"
             >
-              <div className="relative flex-1 flex items-center flex-col">
-                <div className="relative flex-1 flex items-center w-full">
-                  <input
-                    type="text"
-                    suppressHydrationWarning
-                    placeholder="Enter GitHub Username"
-                    className="flex-1 rounded-2xl border border-black/10 bg-white px-5 py-4 text-sm text-black outline-none transition-all duration-300 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent dark:border-white/10 dark:bg-black/60 dark:text-white dark:placeholder:text-gray-500 shadow-inner"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    maxLength={39}
-                  />
-                  {username.length > 0 ? (
-                    <button
-                      onClick={() => setUsername('')}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 transition-colors hover:text-black dark:text-white/65 dark:hover:text-white"
-                      aria-label="Clear input"
-                      type="button"
-                    >
-                      <X size={18} />
-                    </button>
-                  ) : null}
+              <div className="flex flex-col gap-4 sm:flex-row">
+                <div className="relative flex flex-1 flex-col">
+                  <div className="relative flex w-full items-center">
+                    {mounted && trimmedUsername.length > 0 ? (
+                      <div className="pointer-events-none absolute left-3 z-10">
+                        <GitHubAvatar username={debouncedUsername || trimmedUsername} size="md" />
+                      </div>
+                    ) : null}
+                    <input
+                      type="text"
+                      suppressHydrationWarning
+                      placeholder="Enter GitHub Username"
+                      aria-invalid={showInvalidUsername}
+                      className={`flex-1 rounded-2xl border bg-white py-4 text-sm text-black outline-none transition-all duration-300 placeholder:text-gray-400 focus:outline-none focus:ring-2 dark:bg-black/60 dark:text-white dark:placeholder:text-gray-500 shadow-inner ${
+                        mounted && trimmedUsername.length > 0 ? 'pl-14 pr-12' : 'px-5'
+                      } ${
+                        showInvalidUsername
+                          ? 'border-red-400/60 focus:ring-red-400/50'
+                          : isValidUsername
+                            ? 'border-emerald-400/50 focus:ring-emerald-400'
+                            : 'border-black/10 focus:ring-emerald-400 focus:border-transparent dark:border-white/10'
+                      }`}
+                      value={username}
+                      onChange={(e) => {
+                        setUsername(e.target.value);
+                        setBadgeResult(null);
+                      }}
+                      maxLength={39}
+                    />
+                    {username.length > 0 ? (
+                      <button
+                        onClick={() => applyUsername('')}
+                        className="absolute right-4 top-1/2 z-10 -translate-y-1/2 text-gray-500 transition-colors hover:text-black dark:text-white/65 dark:hover:text-white"
+                        aria-label="Clear input"
+                        type="button"
+                      >
+                        <X size={18} />
+                      </button>
+                    ) : null}
+                  </div>
+                  {mounted && username.length === 0 && (
+                    <p className="mt-1 self-start pl-1 text-xs text-gray-500 dark:text-white/45">
+                      Try a demo profile below or enter your GitHub username.
+                    </p>
+                  )}
+                  {showInvalidUsername && (
+                    <p className="mt-1 self-start pl-1 text-xs text-red-500">
+                      Use only letters, numbers, and single hyphens (GitHub username rules).
+                    </p>
+                  )}
+                  {isValidUsername && (
+                    <p className="mt-1 self-start pl-1 text-xs text-emerald-600 dark:text-emerald-400">
+                      Looks good — generate your badge or copy the README snippet.
+                    </p>
+                  )}
+                  {username.length === 39 && (
+                    <p className="mt-1 self-start pl-1 text-xs text-red-500">
+                      GitHub username limit reached (39 characters maximum)
+                    </p>
+                  )}
                 </div>
-                {mounted && username.length === 0 && (
-                  <p className="text-amber-500 text-xs mt-1 self-start pl-1">
-                    Please enter a GitHub username to copy your badge link.
-                  </p>
-                )}
-                {username.length === 39 && (
-                  <p className="text-red-500 text-xs mt-1 self-start pl-1">
-                    GitHub username limit reached (39 characters maximum)
-                  </p>
-                )}
+                <div className="flex flex-col gap-3 sm:flex-row">
+                  <button
+                    type="submit"
+                    suppressHydrationWarning
+                    disabled={!mounted || !isValidUsername}
+                    data-testid="generate-badge-btn"
+                    className={`relative flex min-w-[160px] items-center justify-center gap-2 overflow-hidden rounded-2xl px-6 py-4 text-sm font-semibold transition-all duration-300 hover:scale-[1.02] hover:shadow-lg active:scale-[0.98] disabled:cursor-not-allowed ${
+                      mounted && isValidUsername
+                        ? 'bg-gradient-to-r from-emerald-500 to-cyan-500 text-white shadow-lg shadow-emerald-500/25 hover:from-emerald-400 hover:to-cyan-400'
+                        : 'bg-gray-100 text-gray-400 dark:bg-white/5 dark:text-white/55'
+                    }`}
+                  >
+                    Generate Badge
+                  </button>
+                  <button
+                    type="button"
+                    suppressHydrationWarning
+                    disabled={!mounted || !isValidUsername}
+                    onClick={() => void copyToClipboard()}
+                    className={`relative flex min-w-[140px] items-center justify-center gap-2 overflow-hidden rounded-2xl px-6 py-4 text-sm font-semibold transition-all duration-300 hover:scale-[1.02] hover:shadow-lg active:scale-[0.98] disabled:cursor-not-allowed ${
+                      mounted && isValidUsername
+                        ? 'border border-black/10 bg-white text-black hover:bg-gray-50 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10 shadow-sm'
+                        : 'border border-black/5 bg-gray-50 text-gray-400 dark:border-white/5 dark:bg-transparent dark:text-white/55'
+                    }`}
+                  >
+                    <AnimatePresence mode="wait">
+                      {copied ? (
+                        <motion.div
+                          key="check"
+                          initial={{ y: 10 }}
+                          animate={{ y: 0 }}
+                          className="flex items-center gap-2"
+                        >
+                          <Icons.Check /> Copied
+                        </motion.div>
+                      ) : (
+                        <motion.div
+                          key="copy"
+                          initial={{ y: -10 }}
+                          animate={{ y: 0 }}
+                          className="flex items-center gap-2"
+                        >
+                          <Icons.Copy /> Copy Link
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </button>
+                  <Link
+                    href={mounted && isValidUsername ? `/dashboard/${trimmedUsername}` : '/'}
+                    suppressHydrationWarning
+                    aria-disabled={!mounted || !isValidUsername}
+                    onClick={(e) => {
+                      if (!mounted || !isValidUsername) {
+                        e.preventDefault();
+                      } else {
+                        trackUser(trimmedUsername);
+                        addSearch(trimmedUsername);
+                      }
+                    }}
+                    className={`relative flex min-w-[140px] items-center justify-center gap-2 overflow-hidden rounded-2xl border px-6 py-4 text-sm font-semibold transition-all duration-300 hover:scale-[1.02] hover:shadow-lg active:scale-[0.98] ${
+                      mounted && isValidUsername
+                        ? 'border-black/10 bg-white text-black hover:bg-gray-50 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10 shadow-sm'
+                        : 'border-black/5 bg-gray-50 text-gray-400 dark:border-white/5 dark:bg-transparent dark:text-white/55'
+                    }`}
+                  >
+                    Watch Dashboard
+                  </Link>
+                </div>
               </div>
-              <div className="flex flex-col sm:flex-row gap-4">
-                <button
-                  type="submit"
-                  suppressHydrationWarning
-                  disabled={!mounted || trimmedUsername.length === 0}
-                  className={`relative flex min-w-[160px] items-center justify-center gap-2 overflow-hidden rounded-2xl px-6 py-4 text-sm font-semibold transition-all duration-300 transform cursor-pointer hover:scale-[1.02] hover:shadow-lg active:scale-[0.98] disabled:cursor-not-allowed ${
-                    mounted && trimmedUsername.length > 0
-                      ? 'bg-black text-white hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-gray-100 shadow-md'
-                      : 'bg-gray-100 text-gray-400 dark:bg-white/5 dark:text-white/55'
-                  }`}
-                >
-                  <AnimatePresence mode="wait">
-                    {copied ? (
-                      <motion.div
-                        key="check"
-                        initial={{ y: 10 }}
-                        animate={{ y: 0 }}
-                        className="flex items-center gap-2"
-                      >
-                        <Icons.Check /> Copied
-                      </motion.div>
-                    ) : (
-                      <motion.div
-                        key="copy"
-                        initial={{ y: -10 }}
-                        animate={{ y: 0 }}
-                        className="flex items-center gap-2"
-                      >
-                        <Icons.Copy /> Copy Link
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </button>
-                <Link
-                  href={
-                    mounted && trimmedUsername.length > 0 ? `/dashboard/${trimmedUsername}` : '/'
-                  }
-                  suppressHydrationWarning
-                  aria-disabled={!mounted || trimmedUsername.length === 0}
-                  onClick={(e) => {
-                    if (!mounted || trimmedUsername.length === 0) {
-                      e.preventDefault();
-                    } else {
-                      trackUser(trimmedUsername);
-                      addSearch(trimmedUsername);
-                    }
-                  }}
-                  className={`relative flex min-w-[160px] items-center justify-center gap-2 overflow-hidden rounded-2xl border px-6 py-4 text-sm font-semibold transition-all duration-300 hover:scale-[1.02] hover:shadow-lg active:scale-[0.98] ${
-                    mounted && trimmedUsername.length > 0
-                      ? 'border-black/10 bg-white text-black hover:bg-gray-50 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10 shadow-sm'
-                      : 'border-black/5 bg-gray-50 text-gray-400 dark:border-white/5 dark:bg-transparent dark:text-white/55'
-                  }`}
-                >
-                  Watch Dashboard
-                </Link>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs text-gray-500 dark:text-white/45">Try demo:</span>
+                {DEMO_USERNAMES.map((demo) => (
+                  <button
+                    key={demo}
+                    type="button"
+                    onClick={() => applyUsername(demo)}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-black/10 bg-white/80 px-3 py-1 text-xs font-medium text-gray-700 transition hover:border-emerald-500/40 hover:text-emerald-700 dark:border-white/10 dark:bg-white/5 dark:text-white/70 dark:hover:text-emerald-300"
+                  >
+                    <GitHubAvatar username={demo} size="sm" />
+                    {demo}
+                  </button>
+                ))}
               </div>
             </form>
           </div>
@@ -288,11 +363,12 @@ export default function LandingPage() {
               {searches.map((s) => (
                 <span
                   key={s}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-[rgba(255,255,255,0.08)] bg-[#111] pl-3 pr-2 py-1 text-xs text-white/70 transition-all hover:border-[rgba(255,255,255,0.2)] hover:text-white group/pill"
+                  className="inline-flex items-center gap-1.5 rounded-full border border-[rgba(255,255,255,0.08)] bg-[#111] pl-1.5 pr-2 py-1 text-xs text-white/70 transition-all hover:border-[rgba(255,255,255,0.2)] hover:text-white group/pill"
                 >
+                  <GitHubAvatar username={s} size="sm" />
                   <button
                     type="button"
-                    onClick={() => setUsername(s)}
+                    onClick={() => applyUsername(s)}
                     className="transition-colors hover:text-white"
                   >
                     {s}
@@ -316,7 +392,7 @@ export default function LandingPage() {
             </div>
           )}
 
-          <div className="group relative mt-10">
+          <div ref={previewRef} className="group relative mt-10 scroll-mt-28">
             <div className="absolute -inset-1 rounded-[2.5rem] bg-gradient-to-r from-emerald-500/20 to-cyan-500/20 opacity-50 blur-2xl transition duration-1000 group-hover:opacity-100" />
             <div className="relative flex min-h-[480px] md:min-h-[520px] items-center justify-center overflow-hidden rounded-3xl border border-black/5 bg-white/50 p-8 backdrop-blur-xl shadow-2xl dark:border-white/10 dark:bg-[#0a0a0a]/80">
               {hasUsername ? (
@@ -353,17 +429,7 @@ export default function LandingPage() {
                   />
                 </div>
               ) : (
-                <div className="flex w-full max-w-2xl flex-col items-center justify-center rounded-3xl border border-dashed border-black/10 bg-black/[0.02] px-6 py-16 text-center dark:border-white/10 dark:bg-white/[0.02]">
-                  <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-3xl border border-black/10 bg-white text-gray-600 shadow-sm dark:border-white/10 dark:bg-white/5 dark:text-white/80">
-                    <Icons.Github />
-                  </div>
-                  <p className="text-xl font-bold tracking-tight text-gray-900 dark:text-white">
-                    Ready to visualize your rhythm?
-                  </p>
-                  <p className="mt-3 max-w-md text-sm leading-relaxed text-gray-500 dark:text-white/65">
-                    Enter a GitHub username above to instantly generate your streak badge.
-                  </p>
-                </div>
+                <OnboardingEmptyState onTryDemo={applyUsername} />
               )}
             </div>
           </div>

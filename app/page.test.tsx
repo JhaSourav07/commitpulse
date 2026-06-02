@@ -217,11 +217,14 @@ describe('LandingPage', () => {
     expect(input.value).toBe('octocat');
   });
 
-  it('renders an empty state before a username is entered', () => {
+  it('renders an interactive empty state before a username is entered', () => {
     render(<LandingPage />);
 
-    expect(screen.getByText(/Enter a GitHub username above to instantly generate/i)).toBeDefined();
-    // No badge img should be present yet
+    expect(screen.getByTestId('onboarding-empty-state')).toBeDefined();
+    expect(screen.getByTestId('sample-badge-img')).toBeDefined();
+    expect(screen.getByTestId('how-it-works')).toBeDefined();
+    expect(screen.getByTestId('demo-stat-cards')).toBeDefined();
+    // User badge should not load until a username is entered
     expect(screen.queryByTestId('badge-img')).toBeNull();
   });
 
@@ -267,6 +270,20 @@ describe('LandingPage', () => {
     expect(dashboardLink.getAttribute('href')).toBe('/dashboard/octocat');
   });
 
+  it('applies a demo username when a demo chip is clicked', () => {
+    render(<LandingPage />);
+    const input = screen.getByPlaceholderText('Enter GitHub Username') as HTMLInputElement;
+
+    fireEvent.click(screen.getByRole('button', { name: 'gaearon' }));
+
+    expect(input.value).toBe('gaearon');
+  });
+
+  it('renders the Generate Badge primary action', () => {
+    render(<LandingPage />);
+    expect(screen.getByTestId('generate-badge-btn')).toBeDefined();
+  });
+
   it('handles copying to clipboard and showing the SuccessGuide', async () => {
     render(<LandingPage />);
     const input = screen.getByPlaceholderText('Enter GitHub Username') as HTMLInputElement;
@@ -307,12 +324,24 @@ describe('LandingPage', () => {
     expect(screen.queryByText('Your Monolith is Ready - Deploy It in 4 Steps')).toBeNull();
   });
 
-  it('disables Copy Link button when username is empty', () => {
+  it('disables Copy Link and Generate Badge when username is empty', () => {
     render(<LandingPage />);
 
     const copyButton = screen.getByText('Copy Link').closest('button');
+    const generateButton = screen.getByTestId('generate-badge-btn');
 
     expect(copyButton?.disabled).toBe(true);
+    expect(generateButton?.disabled).toBe(true);
+  });
+
+  it('disables actions when username format is invalid', () => {
+    render(<LandingPage />);
+    const input = screen.getByPlaceholderText('Enter GitHub Username') as HTMLInputElement;
+
+    fireEvent.change(input, { target: { value: 'bad_user' } });
+
+    expect(screen.getByTestId('generate-badge-btn').disabled).toBe(true);
+    expect(screen.getByText('Copy Link').closest('button')?.disabled).toBe(true);
   });
 
   it('does not copy link when username is empty', () => {
