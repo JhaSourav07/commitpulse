@@ -222,6 +222,8 @@ interface GitHubGraphQLResponse {
   data?: {
     user: {
       contributionsCollection: {
+        totalPullRequestContributions: number;
+        totalIssueContributions: number;
         contributionCalendar: ContributionCalendar;
         commitContributionsByRepository: RepoContribution[];
       };
@@ -482,6 +484,8 @@ async function fetchContributionsUncached(
       query($login: String!, $from: DateTime, $to: DateTime) {
         user(login: $login) {
           contributionsCollection(from: $from, to: $to) {
+            totalPullRequestContributions
+            totalIssueContributions
             contributionCalendar {
               totalContributions
               weeks {
@@ -557,12 +561,17 @@ async function fetchContributionsUncached(
     };
   }
 
+  let totalPRs = data.data.user.contributionsCollection?.totalPullRequestContributions || 0;
+  let totalIssues = data.data.user.contributionsCollection?.totalIssueContributions || 0;
+
   if (isDeltaSync && cached) {
     calendar = mergeCalendars(
       cached.calendar,
       calendar,
       data.data.user.contributionsCollection.contributionCalendar.totalContributions
     );
+    totalPRs += cached.totalPRs || 0;
+    totalIssues += cached.totalIssues || 0;
   }
   // Inject deterministic Lines of Code (LoC) approximation
   // Since GitHub's contributionCalendar doesn't provide native LoC metrics,
@@ -604,6 +613,8 @@ async function fetchContributionsUncached(
       {
         calendar,
         repoContributions,
+        totalPRs,
+        totalIssues,
       },
       LONG_CACHE_TTL
     );
@@ -611,6 +622,8 @@ async function fetchContributionsUncached(
   return {
     calendar,
     repoContributions,
+    totalPRs,
+    totalIssues,
   };
 }
 
@@ -1153,6 +1166,15 @@ export function buildActivityMap(
   });
 }
 
+export function getDeterministicHabit(username: string): string {
+  let hash = 0;
+  for (let i = 0; i < username.length; i++) {
+    hash = username.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const habits = ['Night Owl', 'Early Bird', 'Afternoon Coder'];
+  return habits[Math.abs(hash) % habits.length];
+}
+
 export async function getFullDashboardData(username: string, options: FetchOptions = {}) {
   const [profileResult, reposResult, calendarResult, contributedReposResult] =
     await Promise.allSettled([
@@ -1267,6 +1289,10 @@ export async function getFullDashboardData(username: string, options: FetchOptio
       currentStreak: streakStats.currentStreak,
       peakStreak: streakStats.longestStreak,
       totalContributions: streakStats.totalContributions,
+      codingHabit: getDeterministicHabit(profileData.login),
+      totalPRs: calendarResult.status === 'fulfilled' ? (calendarResult.value.totalPRs ?? 0) : 0,
+      totalIssues:
+        calendarResult.status === 'fulfilled' ? (calendarResult.value.totalIssues ?? 0) : 0,
     },
     languages,
     activity: buildActivityMap(allDays),

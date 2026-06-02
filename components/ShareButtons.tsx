@@ -6,8 +6,12 @@ interface ShareButtonsProps {
 }
 
 export default function ShareButtons({ url, title = '' }: ShareButtonsProps) {
-  const linkedinUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`;
-  const twitterUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}&text=${encodeURIComponent(title)}`;
+  const linkedinUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(
+    url
+  )}`;
+  const twitterUrl =
+    `https://x.com/intent/tweet?url=${encodeURIComponent(url)}` +
+    (title ? `&text=${encodeURIComponent(title)}` : '');
 
   return (
     <div className="flex gap-3">

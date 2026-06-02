@@ -95,6 +95,8 @@ export interface RepoContribution {
 export interface ExtendedContributionData {
   calendar: ContributionCalendar;
   repoContributions: RepoContribution[];
+  totalPRs?: number;
+  totalIssues?: number;
   isOfflineFallback?: boolean;
 }
 
