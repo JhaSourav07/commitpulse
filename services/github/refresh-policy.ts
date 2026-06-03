@@ -1,4 +1,5 @@
 import { quotaMonitor } from './quota-monitor';
+import { TTLCache } from '../../lib/cache';
 
 export class RefreshPolicy {
   private static instance: RefreshPolicy;
@@ -6,8 +7,8 @@ export class RefreshPolicy {
   // Cooldown in milliseconds (default 5 minutes)
   private cooldownMs = 5 * 60 * 1000;
 
-  // Map of username -> last successful refresh timestamp
-  private refreshTimes = new Map<string, number>();
+  // Cache of username -> last successful refresh timestamp
+  private refreshTimes = new TTLCache<number>(5000, 60 * 60 * 1000);
 
   private constructor() {}
 
@@ -40,8 +41,14 @@ export class RefreshPolicy {
       return false;
     }
 
-    // 2. Check per-username cooldown
-    const lastRefresh = this.refreshTimes.get(sanitized);
+    // 2. When cooldown is 0, always allow immediately
+    if (this.cooldownMs === 0) {
+      return true;
+    }
+
+    // 3. Check per-username cooldown (use fallback key for empty usernames)
+    const cacheKey = sanitized === '' ? '__anonymous__' : sanitized;
+    const lastRefresh = this.refreshTimes.get(cacheKey);
     if (!lastRefresh) {
       return true;
     }
@@ -54,7 +61,12 @@ export class RefreshPolicy {
    */
   public recordRefresh(username: string): void {
     const sanitized = username.trim().toLowerCase();
-    this.refreshTimes.set(sanitized, Date.now());
+    // When cooldownMs is 0 there is nothing to enforce, skip the write
+    // (TTLCache rejects ttlMs <= 0). Use a fallback key for empty usernames.
+    if (this.cooldownMs > 0) {
+      const cacheKey = sanitized === '' ? '__anonymous__' : sanitized;
+      this.refreshTimes.set(cacheKey, Date.now(), this.cooldownMs);
+    }
     quotaMonitor.incrementRefreshCount();
   }
 
@@ -64,7 +76,8 @@ export class RefreshPolicy {
    */
   public getRemainingCooldown(username: string): number {
     const sanitized = username.trim().toLowerCase();
-    const lastRefresh = this.refreshTimes.get(sanitized);
+    const cacheKey = sanitized === '' ? '__anonymous__' : sanitized;
+    const lastRefresh = this.refreshTimes.get(cacheKey);
     if (!lastRefresh) {
       return 0;
     }

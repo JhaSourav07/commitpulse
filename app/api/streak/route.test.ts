@@ -1146,6 +1146,46 @@ describe('GET /api/streak', () => {
       expect(body).toContain('COMMITS THIS MONTH');
     });
 
+    it('automatically overrides or widens the query bounds to encompass the start of the previous month when view=monthly is requested with custom from/to params', async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-06-02T12:00:00Z'));
+
+      vi.mocked(fetchGitHubContributions).mockResolvedValueOnce({
+        calendar: {
+          totalContributions: 25,
+          weeks: [
+            {
+              contributionDays: [
+                { date: '2026-05-01', contributionCount: 0 },
+                { date: '2026-05-15', contributionCount: 10 },
+                { date: '2026-06-01', contributionCount: 15 },
+                { date: '2026-06-02', contributionCount: 0 },
+              ],
+            },
+          ],
+        } as ContributionCalendar,
+        repoContributions: [],
+      } as unknown as ExtendedContributionData);
+
+      try {
+        const response = await GET(
+          makeRequest({ user: 'octocat', view: 'monthly', from: '2026-06-01', to: '2026-06-02' })
+        );
+
+        expect(response.status).toBe(200);
+        // The expected prev month (May 2026) start is 2026-05-01.
+        // So 'from' should be widened to 2026-05-01T00:00:00Z.
+        // 'to' should be today's date in ISO: 2026-06-02T12:00:00.000Z.
+        expect(fetchGitHubContributions).toHaveBeenCalledWith('octocat', {
+          bypassCache: false,
+          from: '2026-05-01T00:00:00Z',
+          to: '2026-06-02T12:00:00.000Z',
+        });
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
     it('uses the selected year when generating archived monthly stats', async () => {
       vi.useFakeTimers();
       vi.setSystemTime(new Date('2026-05-20T12:00:00Z'));
@@ -1154,8 +1194,14 @@ describe('GET /api/streak', () => {
         calendar: {
           totalContributions: 25,
           weeks: [
-            { contributionDays: [{ date: '2024-11-15', contributionCount: 10 }] },
-            { contributionDays: [{ date: '2024-12-15', contributionCount: 15 }] },
+            {
+              contributionDays: [
+                { date: '2024-11-01', contributionCount: 0 },
+                { date: '2024-11-15', contributionCount: 10 },
+                { date: '2024-12-15', contributionCount: 15 },
+                { date: '2024-12-31', contributionCount: 0 },
+              ],
+            },
           ],
         } as ContributionCalendar,
         repoContributions: [],
@@ -1248,8 +1294,14 @@ describe('GET /api/streak', () => {
         calendar: {
           totalContributions: 150,
           weeks: [
-            { contributionDays: [{ date: '2026-04-15', contributionCount: 10 }] },
-            { contributionDays: [{ date: '2026-05-15', contributionCount: 15 }] },
+            {
+              contributionDays: [
+                { date: '2026-04-01', contributionCount: 0 },
+                { date: '2026-04-15', contributionCount: 10 },
+                { date: '2026-05-15', contributionCount: 15 },
+                { date: '2026-05-20', contributionCount: 0 },
+              ],
+            },
           ],
         } as ContributionCalendar,
         repoContributions: [],
@@ -1275,8 +1327,14 @@ describe('GET /api/streak', () => {
         calendar: {
           totalContributions: 150,
           weeks: [
-            { contributionDays: [{ date: '2026-04-15', contributionCount: 10 }] },
-            { contributionDays: [{ date: '2026-05-15', contributionCount: 15 }] },
+            {
+              contributionDays: [
+                { date: '2026-04-01', contributionCount: 0 },
+                { date: '2026-04-15', contributionCount: 10 },
+                { date: '2026-05-15', contributionCount: 15 },
+                { date: '2026-05-20', contributionCount: 0 },
+              ],
+            },
           ],
         } as ContributionCalendar,
         repoContributions: [],

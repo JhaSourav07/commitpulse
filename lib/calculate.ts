@@ -159,17 +159,38 @@ export function calculateMonthlyStats(
     }
   }
 
+  const expectedPrevMonthStart = `${prevMonthPrefix}-01`;
+  const expectedCurrentMonthEnd = localTodayStr;
+
+  let firstDate = '';
+  let lastDate = '';
+  if (days.length > 0) {
+    let minDate = days[0].date;
+    let maxDate = days[0].date;
+    for (const d of days) {
+      if (d.date < minDate) minDate = d.date;
+      if (d.date > maxDate) maxDate = d.date;
+    }
+    firstDate = minDate;
+    lastDate = maxDate;
+  }
+
+  const hasDays = days.length > 0;
+  const isPrevMonthComplete = hasDays && firstDate <= expectedPrevMonthStart;
+  const isCurrentMonthComplete = hasDays && lastDate >= expectedCurrentMonthEnd;
+  const isCalendarComplete = isPrevMonthComplete && isCurrentMonthComplete;
+
   const currentMonthName = new Intl.DateTimeFormat('en-US', {
     timeZone: timezone,
     month: 'long',
   }).format(now);
 
   const deltaAbsolute = currentMonthTotal - previousMonthTotal;
-  // When there is no baseline (previous month = 0), the percentage change is
-  // mathematically undefined. Return null so the renderer can display 'N/A'
-  // instead of the misleading hardcoded +100%.
+  // When there is no baseline (previous month = 0), or the calendar is incomplete,
+  // the percentage change is mathematically undefined or untrustworthy.
+  // Return null so the renderer can display 'N/A' instead of misleading metrics.
   const deltaPercentage: number | null =
-    previousMonthTotal === 0
+    !isCalendarComplete || previousMonthTotal === 0
       ? null
       : (() => {
           const pct = Math.round((deltaAbsolute / previousMonthTotal) * 100);

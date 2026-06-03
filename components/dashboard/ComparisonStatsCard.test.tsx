@@ -1,20 +1,32 @@
+/**
+ * components/dashboard/ComparisonStatsCard.test.tsx
+ *
+ * Test suite for ComparisonStatsCard.
+ *
+ * Coverage goals:
+ *  ✓ Positive growth trend indicator (Winner badge + emerald highlight)
+ *  ✓ Negative growth trend indicator (no Winner badge + neutral styling)
+ *  ✓ Neutral / equal values (no Winner badge)
+ *  ✓ Layout structure and correct HTML nodes
+ *  ✓ Responsive breakpoints (375 / 768 / 1280 / 1920 px)
+ *  ✓ Edge cases (zero values, large values)
+ */
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { render, screen, act } from '@testing-library/react';
+import { describe, expect, it, vi, afterEach } from 'vitest';
 import ComparisonStatsCard from './ComparisonStatsCard';
 
+// ─── Mock framer-motion ───────────────────────────────────────────────────────
+// Strips motion-specific props so they don't leak into the DOM.
 vi.mock('framer-motion', () => ({
   motion: {
     div: ({ children, className, style, ...props }: any) => {
-      delete props.initial;
-      delete props.animate;
-      delete props.whileInView;
-      delete props.viewport;
-      delete props.transition;
-      delete props.whileHover;
+      // Remove motion-specific props before spreading onto <div>
+      const { initial, animate, whileInView, viewport, transition, whileHover, ...rest } = props;
 
       return (
-        <div className={className} style={style} {...props}>
+        <div className={className} style={style} {...rest}>
           {children}
         </div>
       );
@@ -22,6 +34,33 @@ vi.mock('framer-motion', () => ({
   },
 }));
 
+// ─── Viewport helper ──────────────────────────────────────────────────────────
+/**
+ * Simulate a browser resize to the given width.
+ *
+ * jsdom does not apply CSS, so we cannot test visual layout shifts.
+ * What we CAN verify:
+ *   1. The component renders error-free at each canonical breakpoint.
+ *   2. All expected nodes are mounted regardless of viewport size.
+ *   3. The correct Tailwind responsive classes are present on key elements.
+ */
+function setViewport(width: number, height = 900) {
+  act(() => {
+    Object.defineProperty(window, 'innerWidth', {
+      writable: true,
+      configurable: true,
+      value: width,
+    });
+    Object.defineProperty(window, 'innerHeight', {
+      writable: true,
+      configurable: true,
+      value: height,
+    });
+    window.dispatchEvent(new Event('resize'));
+  });
+}
+
+// ─── Core functionality ──────────────────────────────────────────────────────
 describe('ComparisonStatsCard', () => {
   it('renders correctly with title, labels and values', () => {
     render(
@@ -35,194 +74,464 @@ describe('ComparisonStatsCard', () => {
       />
     );
 
-    expect(screen.getByText(/Developer Score/i)).toBeDefined();
-    expect(screen.getByText('User One')).toBeDefined();
-    expect(screen.getByText('User Two')).toBeDefined();
-    expect(screen.getByText('85')).toBeDefined();
-    expect(screen.getByText('72')).toBeDefined();
+    expect(screen.getByText(/Developer Score/i)).toBeInTheDocument();
+    expect(screen.getByText('User One')).toBeInTheDocument();
+    expect(screen.getByText('User Two')).toBeInTheDocument();
+    expect(screen.getByText('85')).toBeInTheDocument();
+    expect(screen.getByText('72')).toBeInTheDocument();
   });
 
-  it('renders a Winner badge on User One when valueA is greater', () => {
-    render(
-      <ComparisonStatsCard
-        title="Developer Score"
-        valueA={100}
-        valueB={50}
-        labelA="User One"
-        labelB="User Two"
-        icon="Award"
-      />
-    );
+  // ── Positive growth trend ─────────────────────────────────────────────────
+  describe('positive growth trend', () => {
+    it('renders a Winner badge on the side with the higher value (A > B)', () => {
+      render(
+        <ComparisonStatsCard
+          title="Developer Score"
+          valueA={100}
+          valueB={50}
+          labelA="User One"
+          labelB="User Two"
+          icon="Award"
+        />
+      );
 
-    const winnerBadges = screen.getAllByText('Winner');
-    expect(winnerBadges.length).toBe(1);
-    expect(screen.getByText('100').parentElement?.innerHTML).toContain('Winner');
+      const winnerBadges = screen.getAllByText('Winner');
+      expect(winnerBadges).toHaveLength(1);
+      // Winner badge should be inside User One's value container
+      expect(screen.getByText('100').parentElement?.innerHTML).toContain('Winner');
+    });
+
+    it('applies emerald highlight class to the winning value', () => {
+      render(
+        <ComparisonStatsCard
+          title="Streak"
+          valueA={120}
+          valueB={40}
+          labelA="Alice"
+          labelB="Bob"
+          icon="Flame"
+        />
+      );
+
+      const winnerValue = screen.getByText('120');
+      expect(winnerValue.className).toMatch(/emerald/);
+    });
+
+    it('does NOT apply emerald highlight to the losing value', () => {
+      render(
+        <ComparisonStatsCard
+          title="Streak"
+          valueA={120}
+          valueB={40}
+          labelA="Alice"
+          labelB="Bob"
+          icon="Flame"
+        />
+      );
+
+      const loserValue = screen.getByText('40');
+      expect(loserValue.className).not.toMatch(/emerald/);
+    });
+
+    it('applies emerald glow to the winning progress bar segment', () => {
+      const { container } = render(
+        <ComparisonStatsCard
+          title="Commits"
+          valueA={75}
+          valueB={25}
+          labelA="User One"
+          labelB="User Two"
+          icon="GitCommit"
+        />
+      );
+
+      // Winner segment gets bg-emerald-500, loser gets bg-zinc-400
+      const emeraldSegment = container.querySelector('.bg-emerald-500');
+      const zincSegment = container.querySelector('.bg-zinc-400');
+      expect(emeraldSegment).toBeInTheDocument();
+      expect(zincSegment).toBeInTheDocument();
+    });
   });
 
-  it('renders a Winner badge on User Two when valueB is greater', () => {
-    render(
-      <ComparisonStatsCard
-        title="Developer Score"
-        valueA={30}
-        valueB={90}
-        labelA="User One"
-        labelB="User Two"
-        icon="Award"
-      />
-    );
+  // ── Negative growth trend (B > A) ─────────────────────────────────────────
+  describe('negative growth trend (B wins)', () => {
+    it('renders a Winner badge on User B when valueB is greater', () => {
+      render(
+        <ComparisonStatsCard
+          title="Developer Score"
+          valueA={30}
+          valueB={90}
+          labelA="User One"
+          labelB="User Two"
+          icon="Award"
+        />
+      );
 
-    const winnerBadges = screen.getAllByText('Winner');
-    expect(winnerBadges.length).toBe(1);
-    expect(screen.getByText('90').parentElement?.innerHTML).toContain('Winner');
+      const winnerBadges = screen.getAllByText('Winner');
+      expect(winnerBadges).toHaveLength(1);
+      // Winner badge should be inside User Two's value container
+      expect(screen.getByText('90').parentElement?.innerHTML).toContain('Winner');
+    });
+
+    it('does NOT show emerald highlight on the lower value side', () => {
+      render(
+        <ComparisonStatsCard
+          title="Streak"
+          valueA={20}
+          valueB={80}
+          labelA="Alice"
+          labelB="Bob"
+          icon="Flame"
+        />
+      );
+
+      const loserValue = screen.getByText('20');
+      expect(loserValue.className).not.toMatch(/emerald/);
+    });
+
+    it('applies emerald highlight to valueB when it is the winner', () => {
+      render(
+        <ComparisonStatsCard
+          title="Streak"
+          valueA={20}
+          valueB={80}
+          labelA="Alice"
+          labelB="Bob"
+          icon="Flame"
+        />
+      );
+
+      const winnerValue = screen.getByText('80');
+      expect(winnerValue.className).toMatch(/emerald/);
+    });
   });
 
-  it('does not render any Winner badge if values are equal', () => {
-    render(
-      <ComparisonStatsCard
-        title="Developer Score"
-        valueA={50}
-        valueB={50}
-        labelA="User One"
-        labelB="User Two"
-        icon="Award"
-      />
-    );
+  // ── Neutral / equal values ────────────────────────────────────────────────
+  describe('neutral — equal values', () => {
+    it('does not render any Winner badge if values are equal', () => {
+      render(
+        <ComparisonStatsCard
+          title="Developer Score"
+          valueA={50}
+          valueB={50}
+          labelA="User One"
+          labelB="User Two"
+          icon="Award"
+        />
+      );
 
-    expect(screen.queryByText('Winner')).toBeNull();
+      expect(screen.queryByText('Winner')).not.toBeInTheDocument();
+    });
+
+    it('does not apply emerald highlight to either value when equal', () => {
+      const { container } = render(
+        <ComparisonStatsCard
+          title="Developer Score"
+          valueA={50}
+          valueB={50}
+          labelA="User One"
+          labelB="User Two"
+          icon="Award"
+        />
+      );
+
+      // Neither value should be emerald-highlighted
+      const emeraldElement = container.querySelector('.text-emerald-400');
+      expect(emeraldElement).not.toBeInTheDocument();
+      expect(screen.queryByText('Winner')).not.toBeInTheDocument();
+    });
+
+    it('renders both progress bar segments with neutral zinc styling', () => {
+      const { container } = render(
+        <ComparisonStatsCard
+          title="Developer Score"
+          valueA={50}
+          valueB={50}
+          labelA="User One"
+          labelB="User Two"
+          icon="Award"
+        />
+      );
+
+      // When no winner, both segments get bg-zinc-400 (light) / bg-zinc-600 (dark)
+      const zincSegments = container.querySelectorAll('.bg-zinc-400');
+      expect(zincSegments.length).toBe(2);
+    });
   });
 
-  it('renders neutral fallback progress bar when both values are zero', () => {
-    const { container } = render(
-      <ComparisonStatsCard
-        title="Developer Score"
-        valueA={0}
-        valueB={0}
-        labelA="User One"
-        labelB="User Two"
-        icon="Award"
-      />
-    );
+  // ── Edge cases ────────────────────────────────────────────────────────────
+  describe('edge cases', () => {
+    it('renders zero values without crashing and shows no Winner badge', () => {
+      render(
+        <ComparisonStatsCard
+          title="Commits"
+          valueA={0}
+          valueB={0}
+          labelA="Alice"
+          labelB="Bob"
+          icon="GitCommit"
+        />
+      );
 
-    const fallbackBar = container.querySelector('.bg-gray-700\\/50');
-    expect(fallbackBar).toBeDefined();
+      const zeros = screen.getAllByText('0');
+      expect(zeros).toHaveLength(2);
+      expect(screen.queryByText('Winner')).not.toBeInTheDocument();
+    });
+
+    it('renders the neutral fallback bar when both values are zero', () => {
+      const { container } = render(
+        <ComparisonStatsCard
+          title="Developer Score"
+          valueA={0}
+          valueB={0}
+          labelA="User One"
+          labelB="User Two"
+          icon="Award"
+        />
+      );
+
+      // When total is 0, the component renders a single bg-zinc-300 fallback bar
+      const fallbackBar = container.querySelector('.bg-zinc-300');
+      expect(fallbackBar).toBeInTheDocument();
+    });
+
+    it('renders large values correctly', () => {
+      render(
+        <ComparisonStatsCard
+          title="Total Contributions"
+          valueA={9999}
+          valueB={1}
+          labelA="Alice"
+          labelB="Bob"
+          icon="TrendingUp"
+        />
+      );
+
+      expect(screen.getByText('9999')).toBeInTheDocument();
+      expect(screen.getByText('1')).toBeInTheDocument();
+      expect(screen.getByText('Winner')).toBeInTheDocument();
+    });
   });
 
-  it('renders both progress bar segments when total is greater than zero', () => {
-    const { container } = render(
-      <ComparisonStatsCard
-        title="Developer Score"
-        valueA={75}
-        valueB={25}
-        labelA="User One"
-        labelB="User Two"
-        icon="Award"
-      />
-    );
+  // ── HTML node structure ───────────────────────────────────────────────────
+  describe('HTML node structure', () => {
+    it('renders the title text in an uppercase tracking element', () => {
+      render(
+        <ComparisonStatsCard
+          title="Pull Requests"
+          valueA={10}
+          valueB={5}
+          labelA="Dev A"
+          labelB="Dev B"
+          icon="GitBranch"
+        />
+      );
 
-    const userOneSegment = container.querySelector('.bg-cyan-400');
-    const userTwoSegment = container.querySelector('.bg-purple-400');
+      const titleEl = screen.getByText('Pull Requests');
+      expect(titleEl).toBeInTheDocument();
+      expect(titleEl.className).toContain('uppercase');
+      expect(titleEl.className).toContain('tracking-widest');
+    });
 
-    expect(userOneSegment).toBeDefined();
-    expect(userTwoSegment).toBeDefined();
-  });
+    it('renders both label elements with the correct text', () => {
+      render(
+        <ComparisonStatsCard
+          title="Score"
+          valueA={10}
+          valueB={5}
+          labelA="Dev A"
+          labelB="Dev B"
+          icon="Award"
+        />
+      );
 
-  it('renders a balanced 50/50 split progress bar without any emerald color highlight when values are equal', () => {
-    const { container } = render(
-      <ComparisonStatsCard
-        title="Developer Score"
-        valueA={50}
-        valueB={50}
-        labelA="User One"
-        labelB="User Two"
-        icon="Award"
-      />
-    );
+      expect(screen.getByText('Dev A')).toBeInTheDocument();
+      expect(screen.getByText('Dev B')).toBeInTheDocument();
+    });
 
-    const emeraldElement =
-      container.querySelector('[className*="emerald"]') ||
-      container.querySelector('.text-emerald-400');
+    it('renders a grid layout with two columns for side-by-side values', () => {
+      const { container } = render(
+        <ComparisonStatsCard
+          title="Score"
+          valueA={10}
+          valueB={5}
+          labelA="Dev A"
+          labelB="Dev B"
+          icon="Award"
+        />
+      );
 
-    expect(emeraldElement).toBeNull();
-    expect(screen.queryByText('Winner')).toBeNull();
+      const gridEl = container.querySelector('.grid.grid-cols-2');
+      expect(gridEl).toBeInTheDocument();
+    });
+
+    it('renders a progress bar container with overflow-hidden and flex', () => {
+      const { container } = render(
+        <ComparisonStatsCard
+          title="Score"
+          valueA={60}
+          valueB={40}
+          labelA="Dev A"
+          labelB="Dev B"
+          icon="Award"
+        />
+      );
+
+      const progressBar = container.querySelector('.overflow-hidden.flex');
+      expect(progressBar).toBeInTheDocument();
+    });
+
+    it('renders a center divider that is hidden on mobile (hidden md:block)', () => {
+      const { container } = render(
+        <ComparisonStatsCard
+          title="Score"
+          valueA={10}
+          valueB={5}
+          labelA="Dev A"
+          labelB="Dev B"
+          icon="Award"
+        />
+      );
+
+      const divider = container.querySelector('.hidden.md\\:block');
+      expect(divider).toBeInTheDocument();
+    });
   });
 });
 
-describe('ComparisonStatsCard responsive rendering and growth trends (Variation 3)', () => {
-  it('renders positive growth trend with winner badge for higher value', () => {
-    render(
-      <ComparisonStatsCard
-        title="Streak"
-        valueA={120}
-        valueB={40}
-        labelA="Alice"
-        labelB="Bob"
-        icon="Flame"
-      />
-    );
-    expect(screen.getByText('Winner')).toBeDefined();
-    expect(screen.getByText('120')).toBeDefined();
-    expect(screen.getByText('40')).toBeDefined();
+// ─── Responsive breakpoints ─────────────────────────────────────────────────
+/**
+ * jsdom does not apply CSS, so we cannot test visual layout shifts.
+ * What we CAN verify:
+ *   1. The component renders error-free at each canonical breakpoint.
+ *   2. All expected nodes are mounted regardless of viewport size.
+ *   3. Responsive-aware classes (e.g. md:block) are present.
+ */
+describe('ComparisonStatsCard — responsive breakpoints', () => {
+  const VIEWPORTS = [
+    { name: 'mobile (375px)', width: 375 },
+    { name: 'tablet (768px)', width: 768 },
+    { name: 'desktop (1280px)', width: 1280 },
+    { name: 'wide (1920px)', width: 1920 },
+  ] as const;
+
+  // Reset viewport after each test so tests don't bleed into each other
+  afterEach(() => {
+    setViewport(1280);
   });
 
-  it('renders negative growth indicator — no winner badge for lower value', () => {
-    render(
+  VIEWPORTS.forEach(({ name, width }) => {
+    describe(`at ${name}`, () => {
+      it('renders all key nodes without error', () => {
+        setViewport(width);
+
+        render(
+          <ComparisonStatsCard
+            title="Commits"
+            valueA={80}
+            valueB={60}
+            labelA="Alice"
+            labelB="Bob"
+            icon="GitCommit"
+          />
+        );
+
+        // Title, labels, and values must be present at every breakpoint
+        expect(screen.getByText('Commits')).toBeInTheDocument();
+        expect(screen.getByText('Alice')).toBeInTheDocument();
+        expect(screen.getByText('Bob')).toBeInTheDocument();
+        expect(screen.getByText('80')).toBeInTheDocument();
+        expect(screen.getByText('60')).toBeInTheDocument();
+      });
+
+      it('renders the Winner badge for the higher value', () => {
+        setViewport(width);
+
+        render(
+          <ComparisonStatsCard
+            title="Streak"
+            valueA={100}
+            valueB={30}
+            labelA="Alice"
+            labelB="Bob"
+            icon="Flame"
+          />
+        );
+
+        expect(screen.getByText('Winner')).toBeInTheDocument();
+      });
+
+      it('renders the progress bar', () => {
+        setViewport(width);
+
+        const { container } = render(
+          <ComparisonStatsCard
+            title="PRs"
+            valueA={15}
+            valueB={10}
+            labelA="Alice"
+            labelB="Bob"
+            icon="GitBranch"
+          />
+        );
+
+        const bar = container.querySelector('.rounded-full.overflow-hidden');
+        expect(bar).toBeInTheDocument();
+      });
+
+      it('renders the grid layout for side-by-side values', () => {
+        setViewport(width);
+
+        const { container } = render(
+          <ComparisonStatsCard
+            title="Score"
+            valueA={45}
+            valueB={55}
+            labelA="Alice"
+            labelB="Bob"
+            icon="Award"
+          />
+        );
+
+        const gridEl = container.querySelector('.grid.grid-cols-2');
+        expect(gridEl).toBeInTheDocument();
+      });
+    });
+  });
+
+  it('contains the md:block class on the center divider for desktop visibility', () => {
+    const { container } = render(
+      <ComparisonStatsCard
+        title="Score"
+        valueA={20}
+        valueB={10}
+        labelA="Alice"
+        labelB="Bob"
+        icon="Award"
+      />
+    );
+
+    const divider = container.querySelector('.hidden.md\\:block');
+    expect(divider).toBeInTheDocument();
+  });
+
+  it('outer wrapper carries the p-6 and rounded-xl classes for consistent spacing', () => {
+    setViewport(375);
+
+    const { container } = render(
       <ComparisonStatsCard
         title="Streak"
         valueA={20}
-        valueB={80}
+        valueB={10}
         labelA="Alice"
         labelB="Bob"
         icon="Flame"
       />
     );
-    const winners = screen.getAllByText('Winner');
-    expect(winners.length).toBe(1);
-    expect(screen.getByText('20').className).not.toMatch(/emerald/);
-  });
 
-  it('renders title and icon correctly', () => {
-    render(
-      <ComparisonStatsCard
-        title="Pull Requests"
-        valueA={10}
-        valueB={5}
-        labelA="Dev A"
-        labelB="Dev B"
-        icon="GitBranch"
-      />
-    );
-    expect(screen.getByText(/Pull Requests/i)).toBeDefined();
-    expect(screen.getByText('Dev A')).toBeDefined();
-    expect(screen.getByText('Dev B')).toBeDefined();
-  });
-
-  it('renders zero values without crashing', () => {
-    render(
-      <ComparisonStatsCard
-        title="Commits"
-        valueA={0}
-        valueB={0}
-        labelA="Alice"
-        labelB="Bob"
-        icon="GitCommit"
-      />
-    );
-    expect(screen.queryByText('Winner')).toBeNull();
-  });
-
-  it('renders large values correctly', () => {
-    render(
-      <ComparisonStatsCard
-        title="Total Contributions"
-        valueA={9999}
-        valueB={1}
-        labelA="Alice"
-        labelB="Bob"
-        icon="TrendingUp"
-      />
-    );
-    expect(screen.getByText('9999')).toBeDefined();
-    expect(screen.getByText('Winner')).toBeDefined();
+    const card = container.firstElementChild;
+    expect(card?.className).toContain('p-6');
+    expect(card?.className).toContain('rounded-xl');
   });
 });
 

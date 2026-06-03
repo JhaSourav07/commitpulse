@@ -2,7 +2,6 @@ import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
 import ShareButtons from './ShareButtons';
-
 describe('ShareButtons accessibility behavior', () => {
   const url = 'https://example.com';
   const title = 'Test Title';
