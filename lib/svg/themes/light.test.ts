@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { themes } from '../themes';
 import { generateSVG } from '../generator';
 import type { BadgeParams, ContributionCalendar, StreakStats } from '../../../types';
+import { contrastRatio } from './test-utils';
 
 describe('light theme', () => {
   it('exists as a key in the themes object', () => {
@@ -57,29 +58,7 @@ describe('light theme', () => {
   });
 
   it('provides sufficient WCAG AA contrast between background and text', () => {
-    const hexToRgb = (hex: string) => {
-      const r = parseInt(hex.slice(0, 2), 16);
-      const g = parseInt(hex.slice(2, 4), 16);
-      const b = parseInt(hex.slice(4, 6), 16);
-      return { r, g, b };
-    };
-
-    const relativeLuminance = (hex: string) => {
-      const { r, g, b } = hexToRgb(hex);
-      const [rl, gl, bl] = [r, g, b].map((c) => {
-        const s = c / 255;
-        return s <= 0.04045 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
-      });
-      return 0.2126 * rl + 0.7152 * gl + 0.0722 * bl;
-    };
-
-    const { bg, text } = themes.light;
-    const lBg = relativeLuminance(bg);
-    const lText = relativeLuminance(text);
-    const lighter = Math.max(lBg, lText);
-    const darker = Math.min(lBg, lText);
-    const contrast = (lighter + 0.05) / (darker + 0.05);
-
-    expect(contrast).toBeGreaterThanOrEqual(4.5);
+    const ratio = contrastRatio(themes.light.bg, themes.light.text);
+    expect(ratio).toBeGreaterThanOrEqual(4.5);
   });
 });
