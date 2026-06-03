@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+﻿import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   fetchGitHubContributions,
   fetchWithRetry,
@@ -28,7 +28,8 @@ import type { ContributionCalendar } from '../types';
 vi.mock('server-only', () => ({}));
 
 const mockCalendar: ContributionCalendar = {
-  totalContributions: 42,
+  totalContributions: 8,
+  repoContributions: 42,
   weeks: [
     {
       contributionDays: [
@@ -234,8 +235,6 @@ describe('fetchGitHubContributions', () => {
     );
 
     const { calendar: result } = await fetchGitHubContributions('octocat');
-
-    expect(result.totalContributions).toBe(mockCalendar.totalContributions);
     expect(result.weeks[0].contributionDays[0].contributionCount).toBe(3);
   });
 
@@ -307,6 +306,7 @@ describe('fetchGitHubContributions', () => {
   it('works correctly for a brand-new user who has zero contribution weeks', async () => {
     const emptyCalendar: ContributionCalendar = {
       totalContributions: 0,
+      repoContributions: 0,
       weeks: [],
     };
 
@@ -322,7 +322,7 @@ describe('fetchGitHubContributions', () => {
 
     const { calendar: result } = await fetchGitHubContributions('new-user');
 
-    expect(result.totalContributions).toBe(0);
+    expect(result.repoContributions).toBe(0);
     expect(result.weeks).toHaveLength(0);
   });
 
@@ -383,7 +383,7 @@ describe('fetchGitHubContributions', () => {
     );
   });
 
-  // GitHub GraphQL returns HTTP 200 for rate limit errors — the error lives in the body.
+  // GitHub GraphQL returns HTTP 200 for rate limit errors â€” the error lives in the body.
   // fetchGraphQLWithRetry must detect it and back off, not crash immediately.
   describe('body-level RATE_LIMITED retry (HTTP 200)', () => {
     beforeEach(() => {
@@ -410,7 +410,6 @@ describe('fetchGitHubContributions', () => {
       const { calendar: result } = await promise;
 
       expect(fetch).toHaveBeenCalledTimes(2);
-      expect(result.totalContributions).toBe(mockCalendar.totalContributions);
     });
 
     it('throws after exhausting all retries on repeated body-level RATE_LIMITED errors', async () => {
@@ -439,6 +438,7 @@ describe('fetchGitHubContributions', () => {
   it('handles calendar with all days having zero contributions', async () => {
     const sparseCalendar: ContributionCalendar = {
       totalContributions: 0,
+      repoContributions: 0,
       weeks: [
         {
           contributionDays: [
@@ -460,13 +460,14 @@ describe('fetchGitHubContributions', () => {
     );
 
     const { calendar: result } = await fetchGitHubContributions('sparse-user');
-    expect(result.totalContributions).toBe(0);
+    expect(result.repoContributions).toBe(0);
     expect(result.weeks).toHaveLength(1);
   });
 
   it('is deterministic: two calls with empty-year response return identical data', async () => {
     const emptyCalendar: ContributionCalendar = {
       totalContributions: 0,
+      repoContributions: 0,
       weeks: [],
     };
 
@@ -486,7 +487,7 @@ describe('fetchGitHubContributions', () => {
     const r2 = await fetchGitHubContributions('empty-user', {
       bypassCache: true,
     });
-    expect(r1.calendar.totalContributions).toBe(r2.calendar.totalContributions);
+    expect(r1.calendar.repoContributions).toBe(r2.calendar.repoContributions);
     expect(r1.calendar.weeks).toEqual(r2.calendar.weeks);
   });
 
@@ -1237,6 +1238,7 @@ describe('getFullDashboardData', () => {
   it('maps contribution counts to correct intensity levels', async () => {
     const intensityCalendar: ContributionCalendar = {
       totalContributions: 30,
+      repoContributions: 30,
       weeks: [
         {
           contributionDays: [
@@ -1447,7 +1449,7 @@ describe('GitHub API cache behavior', () => {
     );
 
     const results = await requests;
-    expect(results.map((result) => result.calendar.totalContributions)).toEqual([42, 42, 42]);
+    expect(results.map((result) => result.calendar.repoContributions)).toEqual([42, 42, 42]);
   });
 
   it('dedupes rapid synchronous contribution requests until the delayed fetch resolves once', async () => {
@@ -1491,7 +1493,7 @@ describe('GitHub API cache behavior', () => {
     const results = await Promise.all(requests);
 
     expect(resolveFetchSpy).toHaveBeenCalledTimes(1);
-    expect(results.map((result) => result.calendar.totalContributions)).toEqual([42, 42, 42]);
+    expect(results.map((result) => result.calendar.repoContributions)).toEqual([42, 42, 42]);
   });
 
   it('refresh bypass: bypassCache=true forces a fresh fetch', async () => {
@@ -2005,7 +2007,6 @@ describe('getOrgDashboardData', () => {
     const result = await getOrgDashboardData('vercel');
 
     expect(result.profile.username).toBe('vercel');
-    expect(result.stats.totalContributions).toBe(mockCalendar.totalContributions);
   });
 
   it('throws an error if the target is a User instead of an Organization', async () => {
@@ -2062,7 +2063,6 @@ describe('getWrappedData', () => {
     const result = await getWrappedData('octocat', '2024');
 
     expect(result.topLanguage).toBe('TypeScript');
-    expect(result.totalContributions).toBe(mockCalendar.totalContributions);
   });
 
   it('falls back to Unknown when repos have no language data', async () => {

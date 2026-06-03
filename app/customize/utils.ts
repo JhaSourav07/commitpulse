@@ -1,6 +1,6 @@
 import type { CustomizeOptions, ExportFormat } from './types';
 
-const BADGE_BASE_URL = `${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://commitpulse.vercel.app'}/api/streak`;
+const BADGE_BASE_URL = 'https://commitpulse.vercel.app/api/streak';
 
 /**
  * Removes the leading # from a hex color string.
@@ -26,9 +26,15 @@ export function getBadgeUrl(queryString: string): string {
 export function getExportSnippet(format: ExportFormat, queryString: string): string {
   const badgeUrl = getBadgeUrl(queryString);
 
-  if (format === 'html') {
-    return `<img src="${badgeUrl}" alt="CommitPulse" />`;
-  }
+  // Extract username from query string for descriptive alt text
+  const usernameMatch = queryString?.match(/(?:^|&)user=([^&]+)/);
+  const username = usernameMatch ? usernameMatch[1] : null;
+  const altText =
+    queryString === undefined
+      ? 'CommitPulse'
+      : username
+        ? `CommitPulse Contribution Graph for ${username}`
+        : 'CommitPulse Contribution Graph';
 
   if (format === 'action') {
     return [
@@ -54,11 +60,14 @@ export function getExportSnippet(format: ExportFormat, queryString: string): str
     ].join('\n');
   }
 
-  if (format === 'markdown') {
-    return `![CommitPulse](${badgeUrl})`;
+  if (format === 'html') {
+    return `<img src="${badgeUrl}" alt="${altText}" />`;
   }
 
-  // Defensive fallback for any unexpected formats (though TS should catch this)
+  if (format === 'markdown') {
+    return `![${altText}](${badgeUrl})`;
+  }
+
   throw new Error(`Unsupported export format: ${format}`);
 }
 
