@@ -1,4 +1,5 @@
 import { gitHubUserValidator } from '../github/validate-user';
+import { TTLCache } from '../../lib/cache';
 
 // GitHub username rules: alphanumeric or single hyphens, max 39 chars, cannot start/end with hyphen
 const GITHUB_USERNAME_REGEX = /^[a-z\d](?:[a-z\d]|-(?=[a-z\d])){0,38}$/i;
@@ -9,8 +10,8 @@ const WRITE_COOLDOWN_MS = 5 * 60 * 1000;
 export class TrackUserProtection {
   private static instance: TrackUserProtection;
 
-  // Map of username -> last database write timestamp
-  private lastWriteTimes = new Map<string, number>();
+  // Cache of username -> last database write timestamp
+  private lastWriteTimes = new TTLCache<number>(5000, 60 * 60 * 1000);
 
   private constructor() {}
 
@@ -51,7 +52,7 @@ export class TrackUserProtection {
    */
   public recordWrite(username: string): void {
     const sanitized = username.trim().toLowerCase();
-    this.lastWriteTimes.set(sanitized, Date.now());
+    this.lastWriteTimes.set(sanitized, Date.now(), WRITE_COOLDOWN_MS);
   }
 
   /**

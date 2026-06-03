@@ -75,6 +75,9 @@ export interface ContributionCalendar {
   /** Array of weekly contribution data covering the queried date range. */
   weeks: ContributionWeek[];
 
+  /** Optional aggregate repository contribution count preserved from mocked or extended calendar payloads. */
+  repoContributions?: number;
+
   /** Timestamp of the last successful GraphQL API sync. Used for delta updates. */
   lastSyncedAt?: string;
 }
@@ -232,6 +235,7 @@ export interface BadgeParams {
   animate?: boolean;
   glow?: boolean;
   isOfflineFallback?: boolean;
+  badges?: boolean;
 
   /** @internal Temporary property to track custom gradient ID during SVG generation. */
   __customGradientId?: string;

@@ -3,6 +3,21 @@ import { NextResponse } from 'next/server';
 import { fetchGitHubContributions } from '@/lib/github';
 import { calculateStreak } from '@/lib/calculate';
 import { statsParamsSchema } from '@/lib/validations';
+import { getClientIp } from '@/utils/getClientIp';
+import { quotaMonitor } from '@/services/github/quota-monitor';
+import { refreshPolicy } from '@/services/github/refresh-policy';
+import { refreshRateLimiter } from '@/services/github/refresh-rate-limiter';
+
+function logSecurityEvent(event: string, details: Record<string, unknown>) {
+  console.warn(
+    JSON.stringify({
+      timestamp: new Date().toISOString(),
+      type: 'SECURITY_EVENT',
+      event,
+      ...details,
+    })
+  );
+}
 
 /**
  * GET /api/stats?user=<username>[&refresh=true][&tz=<IANA timezone>]
@@ -20,6 +35,7 @@ import { statsParamsSchema } from '@/lib/validations';
  */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
+  const ip = getClientIp(request);
 
   const parseResult = statsParamsSchema.safeParse(Object.fromEntries(searchParams.entries()));
 
@@ -47,6 +63,54 @@ export async function GET(request: Request) {
 
   const { user, refresh, tz } = parseResult.data;
 
+  if (refresh && quotaMonitor.isQuotaLow()) {
+    logSecurityEvent('LOW_QUOTA_STATS_REFRESH_BLOCKED', {
+      user,
+      ip,
+      remainingQuota: quotaMonitor.getQuota().remaining,
+    });
+    return NextResponse.json(
+      { error: 'GitHub API quota is low. Stats refresh temporarily disabled.' },
+      { status: 429 }
+    );
+  }
+
+  if (refresh) {
+    const rateLimitCheck = refreshRateLimiter.checkLimit(ip);
+    if (!rateLimitCheck.success) {
+      logSecurityEvent('STATS_REFRESH_RATE_LIMIT_EXCEEDED', {
+        user,
+        ip,
+        limit: rateLimitCheck.limit,
+      });
+      return NextResponse.json(
+        { error: 'Refresh rate limit exceeded. Please try again later.' },
+        {
+          status: 429,
+          headers: {
+            'X-RateLimit-Limit': rateLimitCheck.limit.toString(),
+            'X-RateLimit-Remaining': rateLimitCheck.remaining.toString(),
+            'X-RateLimit-Reset': rateLimitCheck.reset.toString(),
+          },
+        }
+      );
+    }
+  }
+
+  let shouldBypassCache = refresh;
+  if (refresh) {
+    if (!refreshPolicy.isRefreshAllowed(user)) {
+      logSecurityEvent('STATS_REFRESH_COOLDOWN_VIOLATION', {
+        user,
+        ip,
+        remainingMs: refreshPolicy.getRemainingCooldown(user),
+      });
+      shouldBypassCache = false;
+    } else {
+      refreshPolicy.recordRefresh(user);
+    }
+  }
+
   // Validate the optional IANA timezone early so callers get a clear 400
   // rather than a silent fallback or a 500.
   let timezone = 'UTC';
@@ -59,7 +123,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    const userData = await fetchGitHubContributions(user, { bypassCache: refresh });
+    const userData = await fetchGitHubContributions(user, { bypassCache: shouldBypassCache });
     const calendar = userData.calendar;
     const stats = calculateStreak(calendar, timezone);
     const headers = new Headers({
@@ -67,11 +131,15 @@ export async function GET(request: Request) {
       'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
     });
 
-    if (refresh) {
+    if (shouldBypassCache) {
       headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
       headers.set('Pragma', 'no-cache');
       headers.set('Expires', '0');
     }
+    headers.set(
+      'X-Refresh-Status',
+      shouldBypassCache ? 'Fresh' : refresh ? 'Cooldown-Served-Cached' : 'Cached'
+    );
 
     return NextResponse.json(
       {

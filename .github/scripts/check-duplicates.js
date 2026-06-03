@@ -18,13 +18,13 @@ function cosineSimilarity(vecA, vecB) {
 
 async function run() {
   const geminiApiKey = process.env.GEMINI_API_KEY;
-  const githubToken = process.env.GITHUB_TOKEN;
+  const githubToken = process.env.GITHUB_PAT || process.env.GITHUB_TOKEN;
 
   if (!geminiApiKey) {
     throw new Error('❌ Missing GEMINI_API_KEY environment variable.');
   }
   if (!githubToken) {
-    throw new Error('❌ Missing GITHUB_TOKEN environment variable.');
+    throw new Error('❌ Missing GITHUB_PAT or GITHUB_TOKEN environment variable.');
   }
 
   const octokit = github.getOctokit(githubToken);

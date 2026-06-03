@@ -148,6 +148,8 @@ const mockInitialData = {
   achievements: [],
   commitClock: [],
   graphData: { nodes: [], links: [] },
+  popularRepos: [],
+  pinnedRepos: [],
 };
 
 const mockSecondData = {
@@ -185,6 +187,8 @@ const mockSecondData = {
   achievements: [],
   commitClock: [],
   graphData: { nodes: [], links: [] },
+  popularRepos: [],
+  pinnedRepos: [],
 };
 
 const initialDataWithHigherStreak = {

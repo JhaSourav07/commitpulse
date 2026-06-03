@@ -5,6 +5,7 @@ import {
   generateNotFoundSVG,
   generateRateLimitSVG,
   generateHeatmapSVG,
+  generatePulseSVG,
   particleCount,
   escapeXML,
   getSizeScale,
@@ -1776,5 +1777,113 @@ describe('buildTowerPaths', () => {
     expect(paths.left).toBe('M0 -4.5 L0 4.5 L-7.2 0 L-7.2 -9 Z');
     expect(paths.right).toBe('M0 -4.5 L0 4.5 L7.2 0 L7.2 -9 Z');
     expect(paths.top).toBe('M0 -9 L7.2 -4.5 L0 0 L-7.2 -4.5 Z');
+  });
+});
+
+// ── generatePulseSVG accessibility ─────────────────────────────────────────
+
+describe('generatePulseSVG accessibility', () => {
+  const mockStats: StreakStats = {
+    currentStreak: 3,
+    longestStreak: 7,
+    totalContributions: 50,
+    todayDate: '2024-06-12',
+  };
+
+  // Build 5 weeks × 6 days = 30 days of deterministic contribution data
+  const weeks: ContributionCalendar['weeks'] = [];
+  for (let w = 0; w < 5; w++) {
+    const contributionDays = [];
+    for (let d = 0; d < 6; d++) {
+      const idx = w * 6 + d;
+      contributionDays.push({
+        contributionCount: idx % 5,
+        date: `2024-05-${String(idx + 1).padStart(2, '0')}`,
+      });
+    }
+    weeks.push({ contributionDays } as ContributionCalendar['weeks'][number]);
+  }
+  const mockCalendar = { weeks } as ContributionCalendar;
+
+  const baseParams: BadgeParams = {
+    user: 'octocat',
+  } as unknown as BadgeParams;
+
+  it('includes role="img" on the root svg', () => {
+    const svg = generatePulseSVG(mockStats, baseParams, mockCalendar);
+    expect(svg).toContain('role="img"');
+  });
+
+  it('includes aria-labelledby referencing cp-title-<safeId>', () => {
+    const svg = generatePulseSVG(mockStats, baseParams, mockCalendar);
+    expect(svg).toContain('aria-labelledby="cp-title-octocat"');
+  });
+
+  it('includes aria-describedby referencing cp-desc-<safeId>', () => {
+    const svg = generatePulseSVG(mockStats, baseParams, mockCalendar);
+    expect(svg).toContain('aria-describedby="cp-desc-octocat"');
+  });
+
+  it('includes <title> with the correct id attribute', () => {
+    const svg = generatePulseSVG(mockStats, baseParams, mockCalendar);
+    expect(svg).toContain('<title id="cp-title-octocat">Heartbeat Sparkline for octocat</title>');
+  });
+
+  it('includes <desc> with the correct id attribute and pulseTotal in its text', () => {
+    const svg = generatePulseSVG(mockStats, baseParams, mockCalendar);
+    expect(svg).toContain('<desc id="cp-desc-octocat">');
+    expect(svg).toContain('showing commit activity over the last 30 days');
+    expect(svg).toMatch(/total commits: \d+/);
+  });
+
+  it('sanitizes special characters in username for the safeId', () => {
+    const svg = generatePulseSVG(
+      mockStats,
+      { ...baseParams, user: 'user.name+test' } as unknown as BadgeParams,
+      mockCalendar
+    );
+    expect(svg).toContain('aria-labelledby="cp-title-user_name_test"');
+    expect(svg).toContain('aria-describedby="cp-desc-user_name_test"');
+    expect(svg).toContain('id="cp-title-user_name_test"');
+    expect(svg).toContain('id="cp-desc-user_name_test"');
+  });
+
+  it('produces valid SVG markup (no parsererror)', () => {
+    const svg = generatePulseSVG(mockStats, baseParams, mockCalendar);
+    assertValidSVG(svg);
+  });
+
+  describe('auto-theme variant', () => {
+    const autoParams: BadgeParams = {
+      user: 'octocat',
+      autoTheme: true,
+    } as unknown as BadgeParams;
+
+    it('includes aria-labelledby in auto-theme output', () => {
+      const svg = generatePulseSVG(mockStats, autoParams, mockCalendar);
+      expect(svg).toContain('aria-labelledby="cp-title-octocat"');
+    });
+
+    it('includes aria-describedby in auto-theme output', () => {
+      const svg = generatePulseSVG(mockStats, autoParams, mockCalendar);
+      expect(svg).toContain('aria-describedby="cp-desc-octocat"');
+    });
+
+    it('includes id-bearing <title> in auto-theme output', () => {
+      const svg = generatePulseSVG(mockStats, autoParams, mockCalendar);
+      expect(svg).toContain('<title id="cp-title-octocat">Heartbeat Sparkline for octocat</title>');
+    });
+
+    it('includes id-bearing <desc> with pulseTotal in auto-theme output', () => {
+      const svg = generatePulseSVG(mockStats, autoParams, mockCalendar);
+      expect(svg).toContain('<desc id="cp-desc-octocat">');
+      expect(svg).toContain('showing commit activity over the last 30 days');
+      expect(svg).toMatch(/total commits: \d+/);
+    });
+
+    it('produces valid SVG markup in auto-theme mode (no parsererror)', () => {
+      const svg = generatePulseSVG(mockStats, autoParams, mockCalendar);
+      assertValidSVG(svg);
+    });
   });
 });

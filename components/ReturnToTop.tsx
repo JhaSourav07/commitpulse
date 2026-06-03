@@ -18,7 +18,9 @@ export default function ReturnToTop() {
       setIsVisible(scrollHeight - (scrollTop + clientHeight) < 300);
 
       // Scroll progress calculation
-      const progress = (scrollTop / (scrollHeight - clientHeight)) * 100;
+      const maxScrollableHeight = scrollHeight - clientHeight;
+
+      const progress = maxScrollableHeight > 0 ? (scrollTop / maxScrollableHeight) * 100 : 0;
 
       setScrollProgress(Math.min(Math.max(progress, 0), 100));
     };

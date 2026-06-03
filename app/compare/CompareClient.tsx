@@ -37,7 +37,7 @@ import {
 
 /* ── types ────────────────────────────────────────────────────────────── */
 
-interface UserProfile {
+export interface UserProfile {
   username: string;
   name: string;
   avatarUrl: string;
@@ -54,7 +54,7 @@ interface UserProfile {
   };
 }
 
-interface UserStats {
+export interface UserStats {
   currentStreak: number;
   peakStreak: number;
   totalContributions: number;
@@ -63,13 +63,13 @@ interface UserStats {
   totalIssues?: number;
 }
 
-interface LanguageData {
+export interface LanguageData {
   name: string;
   color: string;
   percentage: number;
 }
 
-interface ActivityData {
+export interface ActivityData {
   date: string;
   count: number;
   intensity: 0 | 1 | 2 | 3 | 4;
@@ -77,14 +77,14 @@ interface ActivityData {
   locDeletions?: number;
 }
 
-interface CompareUserData {
+export interface CompareUserData {
   profile: UserProfile;
   stats: UserStats;
   languages: LanguageData[];
   activity: ActivityData[];
 }
 
-interface CompareResponse {
+export interface CompareResponse {
   user1: CompareUserData;
   user2: CompareUserData;
   error?: string;

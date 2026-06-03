@@ -15,7 +15,7 @@ interface RateLimitResult {
  * For multi-instance strict syncing, a Redis store (Vercel KV/Upstash) should be used.
  */
 export class RateLimiter {
-  private cache: DistributedCache<number>;
+  private cache: DistributedCache<{ count: number; resetAt: number }>;
   private limit: number;
   private windowMs: number;
   private allowlist = new Set<string>();
@@ -30,7 +30,7 @@ export class RateLimiter {
   constructor(limit = 5, windowMs = 60000) {
     this.limit = limit;
     this.windowMs = windowMs;
-    this.cache = new DistributedCache<number>(10000, windowMs);
+    this.cache = new DistributedCache<{ count: number; resetAt: number }>(10000, windowMs);
   }
 
   /**
@@ -50,9 +50,17 @@ export class RateLimiter {
   async check(ip: string): Promise<boolean> {
     if (this.allowlist.has(ip)) return true;
     if (this.blocklist.has(ip)) return false;
-    const count = await this.cache.incr(`ratelimit:${ip}`, this.windowMs);
-    return count <= this.limit;
+    const record = await this.cache.get(ip);
+    const count = record?.count ?? 0;
+    if (count >= this.limit) return false;
+    if (!record) {
+      await this.cache.set(ip, { count: 1, resetAt: Date.now() + this.windowMs }, this.windowMs);
+    } else {
+      await this.cache.update(ip, { count: count + 1, resetAt: record.resetAt });
+    }
+    return true;
   }
+
   async checkWithResult(ip: string): Promise<RateLimitResult> {
     if (this.allowlist.has(ip))
       return {
@@ -65,24 +73,39 @@ export class RateLimiter {
       return { success: false, limit: this.limit, remaining: 0, reset: Date.now() + this.windowMs };
 
     const now = Date.now();
-    const count = await this.cache.incr(`ratelimit:${ip}`, this.windowMs);
+    const record = await this.cache.get(ip);
+    const count = record?.count ?? 0;
 
-    if (count > this.limit) {
+    if (count >= this.limit) {
       return {
         success: false,
         limit: this.limit,
         remaining: 0,
-        reset: now + this.windowMs,
+        reset: record?.resetAt ?? now + this.windowMs,
       };
     }
 
-    return {
-      success: true,
-      limit: this.limit,
-      remaining: this.limit - count,
-      reset: now + this.windowMs,
-    };
+    if (!record) {
+      const resetAt = now + this.windowMs;
+      await this.cache.set(ip, { count: 1, resetAt }, this.windowMs);
+      return {
+        success: true,
+        limit: this.limit,
+        remaining: this.limit - 1,
+        reset: resetAt,
+      };
+    } else {
+      const resetAt = record.resetAt;
+      await this.cache.update(ip, { count: count + 1, resetAt });
+      return {
+        success: true,
+        limit: this.limit,
+        remaining: this.limit - (count + 1),
+        reset: resetAt,
+      };
+    }
   }
+
   /**
    * Resets the request count for a given IP address.
    *
@@ -97,6 +120,7 @@ export class RateLimiter {
   async reset(ip: string): Promise<void> {
     await this.cache.delete(`ratelimit:${ip}`);
   }
+
   /**
    * Returns the number of remaining requests allowed for a given IP
    * in the current window.
@@ -112,8 +136,9 @@ export class RateLimiter {
    * console.log(`You have ${left} requests left.`);
    */
   async remaining(ip: string): Promise<number> {
-    const current = ((await this.cache.get(`ratelimit:${ip}`)) as unknown as number) ?? 0;
-    return Math.max(0, this.limit - current);
+    const record = await this.cache.get(ip);
+    const count = record?.count ?? 0;
+    return Math.max(0, this.limit - count);
   }
 
   allow(ip: string): void {
@@ -149,7 +174,7 @@ export const notifyRateLimiter = new RateLimiter(5, 60000);
  * Falls back to a local in-memory cache for development environments.
  */
 
-const trackers = new DistributedCache<number>(2000, 60000);
+const trackers = new DistributedCache<{ count: number; resetAt: number }>(2000, 60000);
 
 /**
  * Checks if a request from a given IP should be rate limited.
@@ -171,21 +196,35 @@ export async function rateLimit(
   windowMs: number = 60000
 ): Promise<RateLimitResult> {
   const now = Date.now();
-  const count = await trackers.incr(ip, windowMs);
+  const tracker = await trackers.get(ip);
 
-  if (count > limit) {
+  if (!tracker) {
+    const resetAt = now + windowMs;
+    await trackers.set(ip, { count: 1, resetAt }, windowMs);
+    return {
+      success: true,
+      limit,
+      remaining: limit - 1,
+      reset: resetAt,
+    };
+  }
+
+  tracker.count++;
+  await trackers.update(ip, tracker);
+
+  if (tracker.count > limit) {
     return {
       success: false,
       limit,
       remaining: 0,
-      reset: now + windowMs,
+      reset: tracker.resetAt,
     };
   }
 
   return {
     success: true,
     limit,
-    remaining: limit - count,
-    reset: now + windowMs,
+    remaining: limit - tracker.count,
+    reset: tracker.resetAt,
   };
 }

@@ -89,7 +89,7 @@ export default function ActivityLandscape({ data }: { data: ActivityData[] }) {
             <div className="flex items-center rounded-lg border border-black/5 bg-gray-100 p-0.5 dark:border-[rgba(255,255,255,0.08)] dark:bg-[#111]">
               <button
                 onClick={() => setMode('commits')}
-                className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-all ${
+                className={`cursor-pointer rounded-md px-3 py-1.5 text-xs font-semibold transition-all ${
                   mode === 'commits'
                     ? 'border border-black/5 bg-white text-black shadow-sm dark:border-white/5 dark:bg-[#222] dark:text-white'
                     : 'text-gray-500 hover:text-black dark:hover:text-white'
@@ -99,7 +99,7 @@ export default function ActivityLandscape({ data }: { data: ActivityData[] }) {
               </button>
               <button
                 onClick={() => setMode('loc')}
-                className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-all ${
+                className={`cursor-pointer rounded-md px-3 py-1.5 text-xs font-semibold transition-all ${
                   mode === 'loc'
                     ? 'border border-black/5 bg-white text-black shadow-sm dark:border-white/5 dark:bg-[#222] dark:text-white'
                     : 'text-gray-500 hover:text-black dark:hover:text-white'
@@ -115,7 +115,7 @@ export default function ActivityLandscape({ data }: { data: ActivityData[] }) {
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`border-r border-black/10 px-3.5 py-1.5 text-xs font-medium transition-all duration-200 last:border-r-0 dark:border-[rgba(255,255,255,0.08)] ${
+                  className={`cursor-pointer border-r border-black/10 px-3.5 py-1.5 text-xs font-medium transition-all duration-200 last:border-r-0 dark:border-[rgba(255,255,255,0.08)] ${
                     activeTab === tab
                       ? 'bg-black text-white dark:bg-white dark:text-black'
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-black dark:bg-transparent dark:text-white/65 dark:hover:bg-[rgba(255,255,255,0.05)] dark:hover:text-white'
@@ -130,7 +130,7 @@ export default function ActivityLandscape({ data }: { data: ActivityData[] }) {
 
         {/* Graph */}
         <div
-          className="relative flex h-[200px] w-full items-end justify-between gap-[2px]"
+          className="relative flex h-[200px] w-full items-end justify-between gap-0.5"
           role="img"
           aria-label="Activity chart showing contribution frequency over time"
         >
