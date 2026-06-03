@@ -10,11 +10,12 @@ describe('neon theme', () => {
 
   it('has valid hexadecimal color strings for bg, text, and accent', () => {
     const hexRegex = /^[0-9a-fA-F]{6}$/;
-    const { bg, text, accent } = themes.neon;
+    const neon = themes.neon;
+    expect(neon).toBeDefined();
 
-    expect(bg).toMatch(hexRegex);
-    expect(text).toMatch(hexRegex);
-    expect(accent).toMatch(hexRegex);
+    expect(neon.bg).toMatch(hexRegex);
+    expect(neon.text).toMatch(hexRegex);
+    expect(neon.accent).toMatch(hexRegex);
   });
 
   it('contains the specific neon hex colors in generated SVG output', () => {
@@ -45,9 +46,9 @@ describe('neon theme', () => {
 
     const svg = generateSVG(mockStats, neonParams, mockCalendar);
 
-    expect(svg).toContain(themes.neon.bg);
-    expect(svg).toContain(themes.neon.text);
-    expect(svg).toContain(themes.neon.accent);
+    expect(svg).toContain(`#${themes.neon.bg}`);
+    expect(svg).toContain(`#${themes.neon.text}`);
+    expect(svg).toContain(`#${themes.neon.accent}`);
   });
 
   it('matches the defined neon color values for the design spec', () => {
