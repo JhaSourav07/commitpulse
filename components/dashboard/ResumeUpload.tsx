@@ -5,7 +5,7 @@ import { Upload, FileText, X, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { ParsedResume, ResumeUploadResponse } from '@/types/student';
 
-interface ResumeUploadProps {
+export interface ResumeUploadProps {
   onParsed: (data: ParsedResume, fileName: string) => void;
   onError: (error: string) => void;
 }
