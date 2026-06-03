@@ -286,9 +286,9 @@ describe('RadarChart', () => {
       const axisLines = container.querySelectorAll('line[stroke-dasharray="2,2"]');
       expect(axisLines.length).toBeGreaterThan(0);
 
-      // Verify data polygons for both users
-      const dataPolygons = container.querySelectorAll('polygon[fill]');
-      expect(dataPolygons.length).toBe(2);
+      // Verify all polygons (4 background grid layers + 2 user data layers)
+      const polygons = container.querySelectorAll('polygon');
+      expect(polygons.length).toBe(6);
     });
 
     it('renders correctly on tablet viewports (768px)', () => {
@@ -347,8 +347,9 @@ describe('RadarChart', () => {
       expect(screen.getByText('Radar Comparison')).toBeInTheDocument();
 
       // Verify glow filters are defined for visual effects
-      const glowFilters = container.querySelectorAll('filter');
-      expect(glowFilters.length).toBe(2);
+      // Verify glow filters are defined for visual effects
+const glowFilters = container.querySelectorAll('filter');
+expect(glowFilters.length).toBe(2);
 
       // Verify vertex dots are rendered for non-zero percentages
       const circles = container.querySelectorAll('circle');
