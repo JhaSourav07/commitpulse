@@ -168,7 +168,7 @@ export async function GET(request: Request) {
     let calendar;
     let versusCalendar;
 
-    // Fetch Organization Mega-City Data OR Single User Data
+    // Fetch Organization Data OR Single User Data
     if (org) {
       const orgData = await getOrgDashboardData(org, {
         bypassCache: refresh,
@@ -206,8 +206,6 @@ export async function GET(request: Request) {
       const stats = calculateStreak(calendar, timezone, undefined, grace);
       svg = generateHeatmapSVG(stats, params, calendar);
     } else if (view === 'pulse') {
-      // We still use calculateStreak here to efficiently parse totalContributions for the stat display,
-      // even though the sparkline generator will extract its own daily 30-day timeline below.
       const stats = calculateStreak(calendar, timezone, undefined, grace);
       svg = generatePulseSVG(stats, params, calendar);
     } else if (versus && versusCalendar) {
@@ -249,7 +247,6 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
     message.toLowerCase().includes('could not resolve');
   const isRateLimit = message.toLowerCase().includes('rate limit');
 
-  // 2. Safely detect if the error was a validation/client error
   const isValidationError =
     (error instanceof Error && error.name === 'ValidationError') ||
     message.toLowerCase().includes('invalid') ||
@@ -303,7 +300,6 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
     });
   }
 
-  // 3. Return a 400 Bad Request for Validation Errors
   if (isValidationError) {
     const validationSvg = `
       <svg xmlns="http://www.w3.org/2000/svg" width="400" height="150">
@@ -324,7 +320,6 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
     });
   }
 
-  // 4. Return a 500 Internal Server Error for real crashes
   console.error('[streak] Unhandled error:', message);
 
   const errorSvg = `
