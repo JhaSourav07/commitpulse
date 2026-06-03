@@ -10,12 +10,10 @@ describe('light theme', () => {
 
   it('has valid 6-digit hex color strings (without #) for bg, text, and accent', () => {
     const hexRegex = /^[0-9a-fA-F]{6}$/;
-    const light = themes.light;
-    expect(light).toBeDefined();
 
-    expect(light.bg).toMatch(hexRegex);
-    expect(light.text).toMatch(hexRegex);
-    expect(light.accent).toMatch(hexRegex);
+    expect(themes.light.bg).toMatch(hexRegex);
+    expect(themes.light.text).toMatch(hexRegex);
+    expect(themes.light.accent).toMatch(hexRegex);
   });
 
   it('matches the defined light color values for the design spec', () => {
