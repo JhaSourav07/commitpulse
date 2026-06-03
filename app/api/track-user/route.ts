@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import dbConnect from '@/lib/mongodb';
+import dbConnect, { isMongoDBAvailable } from '@/lib/mongodb';
 import { User } from '@/models/User';
 import { trackUserRateLimiter } from '@/lib/rate-limit';
 import { getClientIp } from '@/utils/getClientIp';
@@ -59,7 +59,7 @@ export async function POST(req: Request) {
     }
 
     // If MONGODB_URI is not set, handle based on environment
-    if (!process.env.MONGODB_URI) {
+    if (!isMongoDBAvailable()) {
       // In production, this is a critical configuration failure
       if (process.env.NODE_ENV === 'production') {
         console.error(

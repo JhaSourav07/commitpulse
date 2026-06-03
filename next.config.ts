@@ -15,6 +15,7 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  // Note: instrumentation.ts is automatically loaded by Next.js 15+ for startup validation
 };
 
 export default nextConfig;
