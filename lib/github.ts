@@ -524,9 +524,15 @@ async function fetchContributionsUncached(
 
   if (!res.ok) {
     throwIfRateLimited(res);
-    if (res.status === 401) throw new Error('GitHub PAT is invalid or missing');
+
+    const bodyText = await res.text().catch(() => '');
+
+    if (res.status === 401) {
+      throw new Error(`GitHub PAT is invalid or missing. Response: ${bodyText || '<empty>'}`);
+    }
+
     throw new Error(
-      `GitHub GraphQL API returned status ${res.status} after ${MAX_RETRIES} retries`
+      `GitHub GraphQL API returned status ${res.status} after ${MAX_RETRIES} retries. Response: ${bodyText || '<empty>'}`
     );
   }
 
