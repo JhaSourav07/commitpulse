@@ -8,7 +8,7 @@ describe('neon theme', () => {
     expect(themes).toHaveProperty('neon');
   });
 
-  it('has valid hexadecimal color strings for bg, text, and accent', () => {
+  it('has valid 6-digit hex color strings (without #) for bg, text, and accent', () => {
     const hexRegex = /^[0-9a-fA-F]{6}$/;
     const neon = themes.neon;
     expect(neon).toBeDefined();
@@ -25,7 +25,8 @@ describe('neon theme', () => {
       totalContributions: 100,
       todayDate: '2024-06-12',
     };
-    const mockCalendar = {
+    const mockCalendar: ContributionCalendar = {
+      totalContributions: 10,
       weeks: [
         {
           contributionDays: [
@@ -34,7 +35,7 @@ describe('neon theme', () => {
           ],
         },
       ],
-    } as ContributionCalendar;
+    };
     const neonParams: BadgeParams = {
       user: 'testuser',
       bg: themes.neon.bg,
