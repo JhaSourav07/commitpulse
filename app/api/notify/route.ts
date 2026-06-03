@@ -37,7 +37,11 @@ export async function POST(req: NextRequest): Promise<NextResponse<NotificationR
   // Rate limiting
   const ip = getClientIp(req);
 
-  if (ip !== 'unknown' && !(await notifyRateLimiter.check(ip))) {
+  // fallback ensures rate limit is ALWAYS applied
+  const rateLimitKey =
+    ip && ip !== 'unknown' ? ip : `unknown:${req.headers.get('user-agent') ?? 'no-agent'}`;
+
+  if (!(await notifyRateLimiter.check(rateLimitKey))) {
     return NextResponse.json(
       { success: false, message: 'Too many requests, please try again later.' },
       { status: 429 }
