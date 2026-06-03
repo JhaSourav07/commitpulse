@@ -23,47 +23,70 @@ jobs:
         with:
           script: |
             const label = 'needs-rebase';
+            const RATE_LIMIT_DELAY = 500; // ms between API calls
+
+            const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+            // Helper function for retry with exponential backoff
+            async function makeRequest(fn, maxAttempts = 3) {
+              for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+                try {
+                  return await fn();
+                } catch (error) {
+                  const isRateLimit = error.status === 403 && (error.message.includes('API rate limit') || error.message.includes('secondary rate limit'));
+                  if (isRateLimit && attempt < maxAttempts) {
+                    const waitTime = Math.pow(2, attempt) * 1000;
+                    core.warning(`Rate limit hit. Retrying in ${waitTime}ms (attempt ${attempt}/${maxAttempts})...`);
+                    await delay(waitTime);
+                    continue;
+                  }
+                  throw error;
+                }
+              }
+            }
 
             // Ensure the label exists in the repo
             try {
-              await github.rest.issues.getLabel({
+              await makeRequest(() => github.rest.issues.getLabel({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 name: label,
-              });
+              }));
             } catch {
-              await github.rest.issues.createLabel({
+              await makeRequest(() => github.rest.issues.createLabel({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 name: label,
                 color: 'e11d48',
                 description: 'This PR has merge conflicts and needs a rebase.',
-              });
+              }));
             }
 
-            // Fetch all open PRs
-            const { data: openPRs } = await github.rest.pulls.list({
+            // Fetch open PRs (reduced per_page to 30 to lower API hits)
+            const { data: openPRs } = await makeRequest(() => github.rest.pulls.list({
               owner: context.repo.owner,
               repo: context.repo.repo,
               state: 'open',
-              per_page: 100,
-            });
+              per_page: 30,
+            }));
 
             for (const pr of openPRs) {
+              await delay(RATE_LIMIT_DELAY);
+
               // GitHub computes `mergeable` lazily — fetch each PR individually with retries to trigger and wait for computation
               let fullPR = null;
               for (let attempt = 1; attempt <= 3; attempt++) {
-                const { data } = await github.rest.pulls.get({
+                const { data } = await makeRequest(() => github.rest.pulls.get({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
                   pull_number: pr.number,
-                });
+                }));
                 fullPR = data;
                 if (fullPR.mergeable !== null) {
                   break;
                 }
                 core.info(`PR #${pr.number}: mergeable is null, waiting 5 seconds (attempt ${attempt}/3)...`);
-                await new Promise(resolve => setTimeout(resolve, 5000));
+                await delay(5000);
               }
 
               const isConflicting = fullPR.mergeable === false;
@@ -73,39 +96,31 @@ jobs:
               if (isConflicting) {
                 // Apply label if not already applied
                 if (!alreadyLabeled) {
-                  await github.rest.issues.addLabels({
+                  await delay(RATE_LIMIT_DELAY);
+                  await makeRequest(() => github.rest.issues.addLabels({
                     owner: context.repo.owner,
                     repo: context.repo.repo,
                     issue_number: pr.number,
                     labels: [label],
-                  });
+                  }));
 
                   // Post notification comment ONLY ONCE (when the label is first applied)
-                  await github.rest.issues.createComment({
+                  await delay(RATE_LIMIT_DELAY);
+                  await makeRequest(() => github.rest.issues.createComment({
                     owner: context.repo.owner,
                     repo: context.repo.repo,
                     issue_number: pr.number,
-                    body: `⚠️ Hey @${fullPR.user.login}, this PR has merge conflicts with the \`main\` branch.
-
-            Please pull the latest changes and resolve the conflicts so we can review it!
-
-            \`\`\`bash
-            git fetch origin
-            git rebase origin/main
-            # resolve any conflicts, then:
-            git push --force-with-lease
-            \`\`\`
-
-            Once resolved, the \`needs-rebase\` label will be removed automatically on the next check. 🙌`,
-                  });
+                    body: `⚠️ Hey @${fullPR.user.login}, this PR has merge conflicts with the \`main\` branch.\n\nPlease pull the latest changes and resolve the conflicts so we can review it!\n\n\`\`\`bash\ngit fetch origin\ngit rebase origin/main\n# resolve any conflicts, then:\ngit push --force-with-lease\n\`\`\`\n\nOnce resolved, the \`needs-rebase\` label will be removed automatically on the next check. 🙌`,
+                  }));
                 }
               } else if (!isConflicting && alreadyLabeled) {
                 // PR is no longer conflicting — remove the stale label
-                await github.rest.issues.removeLabel({
+                await delay(RATE_LIMIT_DELAY);
+                await makeRequest(() => github.rest.issues.removeLabel({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
                   issue_number: pr.number,
                   name: label,
-                });
+                }));
               }
             }
