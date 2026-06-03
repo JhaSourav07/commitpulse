@@ -10,12 +10,10 @@ describe('neon theme', () => {
 
   it('has valid 6-digit hex color strings (without #) for bg, text, and accent', () => {
     const hexRegex = /^[0-9a-fA-F]{6}$/;
-    const neon = themes.neon;
-    expect(neon).toBeDefined();
 
-    expect(neon.bg).toMatch(hexRegex);
-    expect(neon.text).toMatch(hexRegex);
-    expect(neon.accent).toMatch(hexRegex);
+    expect(themes.neon.bg).toMatch(hexRegex);
+    expect(themes.neon.text).toMatch(hexRegex);
+    expect(themes.neon.accent).toMatch(hexRegex);
   });
 
   it('contains the specific neon hex colors in generated SVG output', () => {
