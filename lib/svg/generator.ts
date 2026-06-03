@@ -2331,6 +2331,8 @@ export function generatePulseSVG(
   const lastNormalized = (lastCount - minCount) / range;
   const lastY = paddingYTop + graphHeight - lastNormalized * graphHeight;
 
+  const safeId = safeUser.replace(/[^a-zA-Z0-9-]/g, '_').toLowerCase();
+
   return `
 <svg
   xmlns="http://www.w3.org/2000/svg"
@@ -2339,8 +2341,11 @@ export function generatePulseSVG(
   viewBox="0 0 ${width} ${height}"
   fill="none"
   role="img"
+  aria-labelledby="cp-title-${safeId}"
+  aria-describedby="cp-desc-${safeId}"
 >
-  <title>Heartbeat Sparkline for ${safeUser}</title>
+  <title id="cp-title-${safeId}">Heartbeat Sparkline for ${safeUser}</title>
+  <desc id="cp-desc-${safeId}">Heartbeat sparkline for ${safeUser} showing commit activity over the last 30 days (total commits: ${pulseTotal}).</desc>
   <style>
   @import url('https://fonts.googleapis.com/css2?family=Fira+Code&amp;family=JetBrains+Mono&amp;family=Roboto&amp;family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');
   ${googleFontsImport}
@@ -2510,6 +2515,8 @@ function generateAutoThemePulseSVG(
   const lastNormalized = (lastCount - minCount) / range;
   const lastY = paddingYTop + graphHeight - lastNormalized * graphHeight;
 
+  const safeId = safeUser.replace(/[^a-zA-Z0-9-]/g, '_').toLowerCase();
+
   return `
 <svg
   xmlns="http://www.w3.org/2000/svg"
@@ -2518,8 +2525,11 @@ function generateAutoThemePulseSVG(
   viewBox="0 0 ${width} ${height}"
   fill="none"
   role="img"
+  aria-labelledby="cp-title-${safeId}"
+  aria-describedby="cp-desc-${safeId}"
 >
-  <title>Heartbeat Sparkline for ${safeUser}</title>
+  <title id="cp-title-${safeId}">Heartbeat Sparkline for ${safeUser}</title>
+  <desc id="cp-desc-${safeId}">Heartbeat sparkline for ${safeUser} showing commit activity over the last 30 days (total commits: ${pulseTotal}).</desc>
   <style>
   @import url('https://fonts.googleapis.com/css2?family=Fira+Code&amp;family=JetBrains+Mono&amp;family=Roboto&amp;family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');
   ${googleFontsImport}
