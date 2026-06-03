@@ -411,6 +411,7 @@ export default function InteractiveViewer({
            Rendered above the parallax layer via DOM order; position:relative +
            zIndex ensures the badge always sits in front of the background. */}
       <div
+        data-testid="viewer-content"
         style={{
           position: 'relative',
           zIndex: 1,

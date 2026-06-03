@@ -229,16 +229,12 @@ export interface BadgeParams {
   gradient_dir?: 'vertical' | 'horizontal' | 'diagonal';
 
   disable_particles?: boolean;
-<<<<<<< HEAD
-  highlight?: string;
-=======
   animate?: boolean;
   glow?: boolean;
   isOfflineFallback?: boolean;
 
   /** @internal Temporary property to track custom gradient ID during SVG generation. */
   __customGradientId?: string;
->>>>>>> 7c2e0b605d7dbc53d7746bd38840fcd36aa9530f
 }
 
 export interface GraphNode {

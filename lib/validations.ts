@@ -449,27 +449,7 @@ export const statsParamsSchema = z.object({
       message: 'Invalid GitHub username',
     }),
   refresh: z.string().optional().transform(toRefreshFlag),
-<<<<<<< HEAD
-  tz: z.string().optional(),
-  // 🌟 Add highlight validation support here so it parses the query string safely!
-  highlight: z
-    .string()
-    .optional()
-    .refine(
-      (val) => {
-        if (!val) return true;
-        // Confirms the format is exactly YYYY-MM-DD:YYYY-MM-DD
-        const regex = /^\d{4}-\d{2}-\d{2}:\d{4}-\d{2}-\d{2}$/;
-        if (!regex.test(val)) return false;
-
-        const [start, end] = val.split(':');
-        return !isNaN(Date.parse(start)) && !isNaN(Date.parse(end));
-      },
-      { message: 'Invalid "highlight" format. Use YYYY-MM-DD:YYYY-MM-DD' }
-    ),
-=======
   tz: timeZoneParam,
->>>>>>> 7c2e0b605d7dbc53d7746bd38840fcd36aa9530f
 });
 
 export const wrappedParamsSchema = z.object({

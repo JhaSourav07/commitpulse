@@ -475,11 +475,6 @@ function renderTowers(
     let rightFillAttr = leftRightFillAttr;
     let finalTopFillAttr = topFillAttr;
 
-<<<<<<< HEAD
-    if (!isGhost && t.intensityLevel > 0 && params.gradient === true && !isHighlighted) {
-      leftFillAttr = `fill="url(#tower-grad-level-${t.intensityLevel})"`;
-      rightFillAttr = `fill="url(#tower-grad-level-${t.intensityLevel})"`;
-=======
     if (!isGhost && t.intensityLevel > 0 && params.gradient === true) {
       // Use custom gradient ID if available, otherwise use default gradient ID
       const customGradId = params.__customGradientId;
@@ -489,7 +484,6 @@ function renderTowers(
 
       leftFillAttr = `fill="url(#${gradId})"`;
       rightFillAttr = `fill="url(#${gradId})"`;
->>>>>>> 7c2e0b605d7dbc53d7746bd38840fcd36aa9530f
 
       if (isAutoTheme) {
         finalTopFillAttr = 'class="cp-accent-fill"';
@@ -613,15 +607,7 @@ const MONTH_NAMES = [
   'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
 ];
 
-<<<<<<< HEAD
-// Layout constants for 3D isometric grid positioning
-const GRID_ORIGIN_X = 300;
-const GRID_ORIGIN_Y = 120;
-const TILE_WIDTH_HALF = 16;
-const TILE_HEIGHT_HALF = 9;
-=======
 // Layout constants for 3D isometric label positioning
->>>>>>> 7c2e0b605d7dbc53d7746bd38840fcd36aa9530f
 const ISOMETRIC_VERTICAL_OFFSET = 20;
 
 const MONTH_LABEL_ROW_OFFSET = 7.2;
@@ -798,10 +784,6 @@ function generateAutoThemeSVG(
   const safeId = safeUser.replace(/[^a-zA-Z0-9-]/g, '_').toLowerCase();
 
   return `
-<<<<<<< HEAD
-<svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 ${W} ${H}" fill="none" role="img">
-  ${renderHeader(safeUser, stats, sf, params)}
-=======
 <svg
   xmlns="http://www.w3.org/2000/svg"
   width="100%"
@@ -813,7 +795,6 @@ function generateAutoThemeSVG(
 >
   ${renderHeader(safeUser, stats, sf, params, safeId)}
 
->>>>>>> 7c2e0b605d7dbc53d7746bd38840fcd36aa9530f
   <style>
 @import url('https://fonts.googleapis.com/css2?family=Fira+Code&amp;family=JetBrains+Mono&amp;family=Roboto&amp;family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');
   ${googleFontsImport}
@@ -846,21 +827,6 @@ function generateAutoThemeSVG(
   }
   </style>
   <rect width="${W}" height="${H}" rx="${radius}" ${params.hideBackground ? 'fill="transparent"' : 'class="cp-bg-fill"'} />
-<<<<<<< HEAD
-  <g transform="translate(0, ${s(20)})">${towers}</g>
-  ${renderIsometricLabels(calendar, params, 'var(--cp-text)', sf)}
-  ${!params.hide_stats ? renderStatsSection(stats, labels, s, params) : ''}
-  ${!params.hide_title ? `<text x="${s(300)}" y="${s(50)}" text-anchor="middle" class="title">${truncateUsername(safeUser).toUpperCase()}</text>` : ''}
-  <rect
-    x="${s(100)}"
-    y="${s(80)}"
-    width="${s(400)}"
-    height="${s(1)}"
-    class="cp-accent-fill scan-line"
-    fill-opacity="0.3"
-    style="--scan-speed: ${params.speed || '8s'}; --scan-start: ${s(0)}px; --scan-end: ${s(240)}px;"
-  />
-=======
   <g id="cp-towers" style="transform-origin: center; transform-box: fill-box;" transform="translate(0, ${s(20)})">
     ${towers}
   </g>
@@ -872,7 +838,6 @@ ${
     : ''
 }
 ${renderRadarScan(params.speed || '8s', sf, '', true)}
->>>>>>> 7c2e0b605d7dbc53d7746bd38840fcd36aa9530f
 </svg>
 `;
 }
@@ -887,14 +852,8 @@ export function generateMonthlySVG(stats: MonthlyStats, params: BadgeParams): st
   const text = `#${sanitizeHexColor(params.text, 'ffffff')}`;
 
   const sanitizedFont = sanitizeFont(params.font);
-<<<<<<< HEAD
-  const predefinedFont = sanitizedFont ? (FONT_MAP[sanitizedFont.toLowerCase() as keyof typeof FONT_MAP] ?? null) : null;
-  const selectedFont = predefinedFont ? predefinedFont : sanitizedFont ? `"${sanitizedFont}", sans-serif` : null;
-
-=======
   const selectedFont = resolveFont(sanitizedFont);
   const isPredefinedFont = isBundledFont(sanitizedFont);
->>>>>>> 7c2e0b605d7dbc53d7746bd38840fcd36aa9530f
   const statsFont = selectedFont || '"Space Grotesk", sans-serif';
   const radius = sanitizeRadius(params.radius, 8);
   const labels = getLabels(params.lang);
@@ -930,10 +889,6 @@ export function generateMonthlySVG(stats: MonthlyStats, params: BadgeParams): st
   const safeId = safeUser.replace(/[^a-zA-Z0-9-]/g, '_').toLowerCase();
 
   return `
-<<<<<<< HEAD
-<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" fill="none" role="img">
-  <title>Monthly Stats for ${safeUser}</title>
-=======
 <svg
   xmlns="http://www.w3.org/2000/svg"
   width="${width}"
@@ -946,7 +901,6 @@ export function generateMonthlySVG(stats: MonthlyStats, params: BadgeParams): st
 >
   <title id="cp-title-${safeId}">Monthly Stats for ${safeUser}</title>
   <desc id="cp-desc-${safeId}">Monthly stats for ${safeUser}: ${stats.currentMonthTotal} ${commitsLabel} vs previous month delta of ${deltaText}.</desc>
->>>>>>> 7c2e0b605d7dbc53d7746bd38840fcd36aa9530f
   <style>
   @import url('https://fonts.googleapis.com/css2?family=Fira+Code&amp;family=JetBrains+Mono&amp;family=Roboto&amp;family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');
   ${googleFontsImport}
@@ -963,9 +917,6 @@ export function generateMonthlySVG(stats: MonthlyStats, params: BadgeParams): st
     <text class="delta">${deltaText}</text>
     <text y="20" class="label">${labels.VS_LAST_MONTH}</text>
   </g>
-<<<<<<< HEAD
-</svg>`;
-=======
 </svg>
 `;
 }
@@ -1231,7 +1182,6 @@ export function generateWrappedSVG(
   </g>
 </svg>
 `;
->>>>>>> 7c2e0b605d7dbc53d7746bd38840fcd36aa9530f
 }
 
 function generateAutoThemeMonthlySVG(stats: MonthlyStats, params: BadgeParams): string {
@@ -1239,12 +1189,8 @@ function generateAutoThemeMonthlySVG(stats: MonthlyStats, params: BadgeParams): 
   const dark = AUTO_THEME_DARK;
   const safeUser = escapeXML(params.user || 'GitHub User');
   const sanitizedFont = sanitizeFont(params.font);
-<<<<<<< HEAD
-  const selectedFont = sanitizedFont ? (FONT_MAP[sanitizedFont.toLowerCase() as keyof typeof FONT_MAP] ?? null) || `"${sanitizedFont}", sans-serif` : null;
-=======
   const selectedFont = resolveFont(sanitizedFont);
 
->>>>>>> 7c2e0b605d7dbc53d7746bd38840fcd36aa9530f
   const statsFont = selectedFont || '"Space Grotesk", sans-serif';
   const radius = sanitizeRadius(params.radius, 8);
   const labels = getLabels(params.lang);
@@ -1264,16 +1210,6 @@ function generateAutoThemeMonthlySVG(stats: MonthlyStats, params: BadgeParams): 
   const safeId = safeUser.replace(/[^a-zA-Z0-9-]/g, '_').toLowerCase();
 
   return `
-<<<<<<< HEAD
-<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" fill="none" role="img">
-  <style>
-  :root { --cp-bg: #${light.bg}; --cp-text: #${light.text}; --cp-accent: #${light.accent}; --cp-delta: ${stats.deltaAbsolute >= 0 ? `#${light.accent}` : '#cf222e'}; }
-  @media (prefers-color-scheme: dark) { :root { --cp-bg: #${dark.bg}; --cp-text: #${dark.text}; --cp-accent: #${dark.accent}; --cp-delta: ${stats.deltaAbsolute >= 0 ? `#${dark.accent}` : '#f85149'}; } }
-  .title { font-family: ${selectedFont || '"Syncopate", sans-serif'}; fill: var(--cp-text); font-size: 14px; letter-spacing: 2px; opacity: 0.8; }
-  .stats { font-family: ${statsFont}; fill: var(--cp-accent); font-size: 36px; font-weight: 600; }
-  .label { font-family: "Roboto", sans-serif; fill: var(--cp-text); font-size: 10px; opacity: 0.7; }
-  .delta { font-family: "Roboto", sans-serif; fill: var(--cp-delta); font-size: 12px; font-weight: 500; }
-=======
 <svg
   xmlns="http://www.w3.org/2000/svg"
   width="${width}"
@@ -1303,7 +1239,6 @@ function generateAutoThemeMonthlySVG(stats: MonthlyStats, params: BadgeParams): 
   @media (prefers-reduced-motion: reduce) {
     * { animation: none !important; transition: none !important; }
   }
->>>>>>> 7c2e0b605d7dbc53d7746bd38840fcd36aa9530f
   </style>
   <rect width="${width}" height="${height}" rx="${radius}" fill="${params.hideBackground ? 'transparent' : 'var(--cp-bg)'}" />
   <text x="20" y="40" class="title">${stats.currentMonthName.toUpperCase()}</text>
@@ -1313,8 +1248,6 @@ function generateAutoThemeMonthlySVG(stats: MonthlyStats, params: BadgeParams): 
     <text class="delta">${deltaText}</text>
     <text y="20" class="label">${labels.VS_LAST_MONTH}</text>
   </g>
-<<<<<<< HEAD
-=======
 </svg>
 `;
 }
@@ -1628,7 +1561,6 @@ export function generateHeatmapSVG(
   }
 
   ${legend}
->>>>>>> 7c2e0b605d7dbc53d7746bd38840fcd36aa9530f
 </svg>`;
 }
 
@@ -1637,18 +1569,6 @@ export function generateWrappedSVG(stats: any, params: any, calendar: any) {
     let highlightStart: number | null = null;
     let highlightEnd: number | null = null;
 
-<<<<<<< HEAD
-    if (highlight && highlight.includes(':')) {
-        const [startStr, endStr] = highlight.split(':');
-        highlightStart = new Date(startStr).getTime();
-        highlightEnd = new Date(endStr).getTime();
-    }
-
-    // Safeguard the views so neither default nor heatmap throws a 500 error
-    const accent = params.accent || '#22c55e';
-    const text = params.text || '#ffffff';
-    const sf = params.sf || 1;
-=======
   const sanitizedFont = sanitizeFont(params.font);
   const selectedFont = resolveFont(sanitizedFont);
   const statsFont = selectedFont || '"Space Grotesk", sans-serif';
@@ -2118,7 +2038,6 @@ function generateAutoThemeVersusSVG(
     if (t.contributionCount >= 10)
       towers1 += generateParticles(t.x, t.y, t.h, t.contributionCount, sf, true);
   }
->>>>>>> 7c2e0b605d7dbc53d7746bd38840fcd36aa9530f
 
     // If it's a heatmap view, inject the tracking directly into the grid renderer
     if (params.view === 'heatmap') {
@@ -2130,25 +2049,6 @@ function generateAutoThemeVersusSVG(
         }
     }
 
-<<<<<<< HEAD
-    // Default 3D Isometric View handling
-    return `
-    <svg xmlns="http://www.w3.org/2000/svg" width="${params.width || 800}" height="${params.height || 400}" viewBox="0 0 ${params.width || 800} ${params.height || 400}">
-        <style>
-            .title { font-family: ${params.selectedFont || "Syncopate"}, sans-serif; fill: ${text}; font-size: 16px; }
-            .stat-val { font-family: ${params.statsFont || "Roboto"}, sans-serif; fill: ${accent}; font-size: 22px; font-weight: 700; }
-            .label { font-family: "Roboto", sans-serif; fill: ${text}; font-size: 11px; opacity: 0.6; letter-spacing: 1px; }
-        </style>
-        <rect width="100%" height="100%" rx="${params.radius || 0}" fill="${params.hideBackground ? 'transparent' : '#0d1117'}" />
-        <text x="25" y="45" class="title">${stats.year || 2026} WRAPPED</text>
-        <text x="25" y="90" class="stat-val">${stats.totalContributions}</text>
-        <text x="25" y="110" class="label">TOTAL CONTRIBUTIONS</text>
-        <text x="240" y="90" class="stat-val">${stats.longestStreak} DAYS</text>
-        <text x="240" y="110" class="label">LONGEST STREAK</text>
-    </svg>
-    `;
-}
-=======
     const paths = buildTowerPaths(t.h, 1);
 
     towers2 += `
@@ -2701,4 +2601,3 @@ export function generateRateLimitSVG(
   </g>
 </svg>`;
 }
->>>>>>> 7c2e0b605d7dbc53d7746bd38840fcd36aa9530f

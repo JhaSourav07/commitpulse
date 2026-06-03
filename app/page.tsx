@@ -89,6 +89,7 @@ export default function LandingPage() {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
   }, []);
 
@@ -124,11 +125,6 @@ export default function LandingPage() {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://commitpulse.vercel.app';
   const markdown = `![CommitPulse](${siteUrl}/api/streak?user=${trimmedUsername})`;
 
-<<<<<<< HEAD
-  useEffect(() => {
-    if (!hasUsername) {
-      setSvgState('idle');
-=======
   // Derived — automatically false when debouncedUsername changes
   const badgeLoaded =
     badgeResult?.username === debouncedUsername && badgeResult?.status === 'loaded';
@@ -141,7 +137,6 @@ export default function LandingPage() {
       await navigator.clipboard.writeText(markdown);
     } catch {
       setCopied(false);
->>>>>>> 7c2e0b605d7dbc53d7746bd38840fcd36aa9530f
       return;
     }
 
@@ -186,18 +181,6 @@ export default function LandingPage() {
           </motion.p>
         </div>
 
-<<<<<<< HEAD
-        {/* Updated Centralized Responsive Container Section */}
-        <section className="mx-auto mb-32 max-w-5xl relative z-20">
-          <div className="flex flex-col items-center justify-center gap-8 md:flex-row md:items-stretch">
-            {/* Input & Form Panel Card */}
-            <div className="w-full md:w-1/2 flex flex-col justify-between rounded-3xl border border-black/5 bg-white/60 p-6 shadow-xl shadow-black/5 backdrop-blur-xl dark:border-white/10 dark:bg-[#0a0a0a]/80 dark:shadow-2xl dark:shadow-black/50 md:p-8">
-              <div className="w-full flex-1 flex flex-col justify-center">
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    copyToClipboard();
-=======
         <section className="mx-auto mb-32 max-w-4xl relative z-20">
           <div className="rounded-3xl border border-black/5 bg-white/60 p-4 shadow-xl shadow-black/5 backdrop-blur-xl dark:border-white/10 dark:bg-[#0a0a0a]/80 dark:shadow-2xl dark:shadow-black/50 md:p-8">
             <form
@@ -286,134 +269,9 @@ export default function LandingPage() {
                       trackUser(trimmedUsername);
                       addSearch(trimmedUsername);
                     }
->>>>>>> 7c2e0b605d7dbc53d7746bd38840fcd36aa9530f
                   }}
                   className="flex flex-col gap-4 w-full"
                 >
-<<<<<<< HEAD
-                  <div className="relative w-full flex flex-col items-center">
-                    <div className="relative w-full flex items-center">
-                      <input
-                        type="text"
-                        suppressHydrationWarning
-                        placeholder="Enter GitHub Username"
-                        className="w-full rounded-2xl border border-black/10 bg-white px-5 py-4 text-sm text-black outline-none transition-all duration-300 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent dark:border-white/10 dark:bg-black/60 dark:text-white dark:placeholder:text-gray-500 shadow-inner"
-                        value={username}
-                        onChange={(e) => setUsername(e.target.value)}
-                        maxLength={39}
-                      />
-                      {username.length > 0 ? (
-                        <button
-                          onClick={() => setUsername('')}
-                          className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 transition-colors hover:text-black dark:text-white/65 dark:hover:text-white"
-                          aria-label="Clear input"
-                          type="button"
-                        >
-                          <X size={18} />
-                        </button>
-                      ) : null}
-                    </div>
-                    {username.length === 39 && (
-                      <p className="text-red-500 text-xs mt-1 self-start pl-1">
-                        GitHub username limit reached (39 characters maximum)
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="flex flex-col gap-3 w-full mt-2">
-                    <button
-                      type="submit"
-                      suppressHydrationWarning
-                      disabled={!mounted || trimmedUsername.length === 0}
-                      className={`relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-2xl px-6 py-4 text-sm font-semibold transition-all duration-300 transform cursor-pointer hover:scale-[1.01] hover:shadow-lg active:scale-[0.99] disabled:cursor-not-allowed ${
-                        mounted && trimmedUsername.length > 0
-                          ? 'bg-black text-white hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-gray-100 shadow-md'
-                          : 'bg-gray-100 text-gray-400 dark:bg-white/5 dark:text-white/55'
-                      }`}
-                    >
-                      <AnimatePresence mode="wait">
-                        {copied ? (
-                          <motion.div
-                            key="check"
-                            initial={{ y: 10 }}
-                            animate={{ y: 0 }}
-                            className="flex items-center gap-2"
-                          >
-                            <Icons.Check /> Copied
-                          </motion.div>
-                        ) : (
-                          <motion.div
-                            key="copy"
-                            initial={{ y: -10 }}
-                            animate={{ y: 0 }}
-                            className="flex items-center gap-2"
-                          >
-                            <Icons.Copy /> Copy Link
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </button>
-
-                    <Link
-                      href={
-                        mounted && trimmedUsername.length > 0
-                          ? `/dashboard/${trimmedUsername}`
-                          : '/'
-                      }
-                      suppressHydrationWarning
-                      aria-disabled={!mounted || trimmedUsername.length === 0}
-                      onClick={(e) => {
-                        if (!mounted || trimmedUsername.length === 0) {
-                          e.preventDefault();
-                        } else {
-                          trackUser(trimmedUsername);
-                          addSearch(trimmedUsername);
-                        }
-                      }}
-                      className={`relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-2xl border px-6 py-4 text-sm font-semibold transition-all duration-300 hover:scale-[1.01] hover:shadow-lg active:scale-[0.99] ${
-                        mounted && trimmedUsername.length > 0
-                          ? 'border-black/10 bg-white text-black hover:bg-gray-50 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10 shadow-sm'
-                          : 'border-black/5 bg-gray-50 text-gray-400 dark:border-white/5 dark:bg-transparent dark:text-white/55'
-                      }`}
-                    >
-                      Watch Dashboard
-                    </Link>
-                  </div>
-                </form>
-              </div>
-
-              {searches.length > 0 && (
-                <div className="flex flex-wrap items-center gap-2 mt-6 pt-4 border-t border-black/5 dark:border-white/5">
-                  <span className="text-xs text-[#A1A1AA]">Recent:</span>
-                  {searches.map((s) => (
-                    <span
-                      key={s}
-                      className="inline-flex items-center gap-1.5 rounded-full border border-[rgba(255,255,255,0.08)] bg-[#111] pl-3 pr-2 py-1 text-xs text-white/70 transition-all hover:border-[rgba(255,255,255,0.2)] hover:text-white group/pill"
-                    >
-                      <button
-                        type="button"
-                        onClick={() => setUsername(s)}
-                        className="transition-colors hover:text-white"
-                      >
-                        {s}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => removeSearch(s)}
-                        className="rounded-full p-0.5 text-white/40 hover:bg-white/10 hover:text-white transition-all flex items-center justify-center"
-                        aria-label={`Remove ${s} from recent searches`}
-                      >
-                        <X size={10} />
-                      </button>
-                    </span>
-                  ))}
-                  <button
-                    onClick={clearSearches}
-                    className="text-xs text-[#A1A1AA] underline hover:text-white transition-colors ml-auto"
-                  >
-                    Clear
-                  </button>
-=======
                   Watch Dashboard
                 </Link>
               </div>
@@ -501,7 +359,6 @@ export default function LandingPage() {
                   <p className="mt-3 max-w-md text-sm leading-relaxed text-gray-500 dark:text-white/65">
                     Enter a GitHub username above to instantly generate your streak badge.
                   </p>
->>>>>>> 7c2e0b605d7dbc53d7746bd38840fcd36aa9530f
                 </div>
               )}
             </div>

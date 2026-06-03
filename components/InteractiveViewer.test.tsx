@@ -41,7 +41,7 @@ describe('formatDate', () => {
 });
 
 describe('InteractiveViewer', () => {
-  // ── Existing behaviour ────────────────────────────────────────────────────
+  // ── Existing behaviour ────────────────────────────────────────────────────────
 
   it('renders children correctly', () => {
     render(
@@ -60,11 +60,9 @@ describe('InteractiveViewer', () => {
     );
     const viewerContainer = container.firstChild as HTMLElement;
 
-    // Focus and press 'w' to pan up
     fireEvent.keyDown(viewerContainer, { key: 'w' });
 
-    // The content div is the second child (after the parallax layer)
-    const contentDiv = viewerContainer.children[1] as HTMLElement;
+    const contentDiv = container.querySelector('[data-testid="viewer-content"]') as HTMLElement;
     expect(contentDiv.style.transform).toContain('translate(0px, 30px) scale(1)');
   });
 
@@ -76,10 +74,9 @@ describe('InteractiveViewer', () => {
     );
     const viewerContainer = container.firstChild as HTMLElement;
 
-    // Focus and press '+' to zoom in
     fireEvent.keyDown(viewerContainer, { key: '+' });
 
-    const contentDiv = viewerContainer.children[1] as HTMLElement;
+    const contentDiv = container.querySelector('[data-testid="viewer-content"]') as HTMLElement;
     expect(contentDiv.style.transform).toContain('scale(1.1)');
   });
 
@@ -93,16 +90,14 @@ describe('InteractiveViewer', () => {
     const input = screen.getByTestId('input');
     input.focus();
 
-    // The viewer container is grandparent: input → content div → viewer
     const viewerContainer = input.parentElement?.parentElement as HTMLElement;
     fireEvent.keyDown(viewerContainer, { key: 'w' });
 
-    const contentDiv = viewerContainer.children[1] as HTMLElement;
-    // Should not have panned since an input had focus
+    const contentDiv = viewerContainer.querySelector('[data-testid="viewer-content"]') as HTMLElement;
     expect(contentDiv.style.transform).toContain('translate(0px, 0px) scale(1)');
   });
 
-  // ── Parallax background layer ─────────────────────────────────────────────
+  // ── Parallax background layer ─────────────────────────────────────────────────
 
   it('renders the parallax background layer behind the card content', () => {
     render(
@@ -110,7 +105,6 @@ describe('InteractiveViewer', () => {
         <div>Content</div>
       </InteractiveViewer>
     );
-    // The parallax layer is always present in the DOM (opacity transitions handle visibility)
     expect(screen.getByTestId('parallax-bg-layer')).toBeDefined();
   });
 
@@ -133,13 +127,10 @@ describe('InteractiveViewer', () => {
     const viewerContainer = container.firstChild as HTMLElement;
     const glow = screen.getByTestId('parallax-cursor-glow');
 
-    // Before hover: glow opacity should be 0 (faded out)
     expect(glow.style.opacity).toBe('0');
 
-    // Simulate pointer entering the container
     fireEvent.pointerEnter(viewerContainer);
 
-    // After hover: glow should become visible (opacity 1)
     expect(glow.style.opacity).toBe('1');
   });
 
@@ -156,7 +147,6 @@ describe('InteractiveViewer', () => {
     expect(glow.style.opacity).toBe('1');
 
     fireEvent.pointerLeave(viewerContainer);
-    // Glow should fade back out on leave
     expect(glow.style.opacity).toBe('0');
   });
 
@@ -169,11 +159,8 @@ describe('InteractiveViewer', () => {
     const viewerContainer = container.firstChild as HTMLElement;
     const glow = screen.getByTestId('parallax-cursor-glow');
 
-    // Move pointer to top-left quadrant of the mocked 600×400 container
     fireEvent.pointerMove(viewerContainer, { clientX: 150, clientY: 100 });
 
-    // Normalized: x = 150/600 = 0.25, y = 100/400 = 0.25
-    // Glow `left` should be "25%" and `top` should be "25%"
     expect(glow.style.left).toBe('25%');
     expect(glow.style.top).toBe('25%');
   });
@@ -187,17 +174,16 @@ describe('InteractiveViewer', () => {
     const viewerContainer = container.firstChild as HTMLElement;
     const glow = screen.getByTestId('parallax-cursor-glow');
 
-    // Move pointer to an off-center position
     fireEvent.pointerMove(viewerContainer, { clientX: 60, clientY: 80 });
     expect(glow.style.left).not.toBe('50%');
 
-    // Leave the container — position resets to center so it fades from center
     fireEvent.pointerLeave(viewerContainer);
     expect(glow.style.left).toBe('50%');
     expect(glow.style.top).toBe('50%');
   });
 
-  // ── Parallax Particles Tests ──────────────────────────────────────────────
+  // ── Parallax Particles Tests ──────────────────────────────────────────────────
+
   it('renders exactly 20 parallax particles with correct shapes, colors, and shadows', () => {
     render(
       <InteractiveViewer>
@@ -209,14 +195,12 @@ describe('InteractiveViewer', () => {
     const particles = Array.from(parallaxBg.children).slice(2) as HTMLElement[];
     expect(particles).toHaveLength(20);
 
-    // Verify some are circles and some are rounded squares
     const circles = particles.filter((p) => p.style.borderRadius === '50%');
     const squares = particles.filter((p) => p.style.borderRadius === '2px');
     expect(circles.length).toBeGreaterThan(0);
     expect(squares.length).toBeGreaterThan(0);
     expect(circles.length + squares.length).toBe(20);
 
-    // Verify that every particle has a background color, size, and shadow with color
     particles.forEach((p) => {
       expect(p.style.backgroundColor).toBeTruthy();
       expect(p.style.width).toBeTruthy();
@@ -235,22 +219,19 @@ describe('InteractiveViewer', () => {
     const parallaxBg = screen.getByTestId('parallax-bg-layer');
     const particles = Array.from(parallaxBg.children).slice(2) as HTMLElement[];
 
-    // Get initial opacities
     const initialOpacities = particles.map((p) => parseFloat(p.style.opacity));
 
-    // Simulate pointer hover
     fireEvent.pointerEnter(viewerContainer);
 
-    // Get hovering opacities
     const hoveringOpacities = particles.map((p) => parseFloat(p.style.opacity));
 
-    // Every particle opacity should have increased (isHovering ? particle.opacity * 1.8 : particle.opacity)
     hoveringOpacities.forEach((op, index) => {
       expect(op).toBeCloseTo(initialOpacities[index] * 1.8, 5);
     });
   });
 
-  // ── Pointer Drag-to-Pan Tests ──────────────────────────────────────────────
+  // ── Pointer Drag-to-Pan Tests ─────────────────────────────────────────────────
+
   it('updates pan offset when dragging with pointer movements', () => {
     const { container } = render(
       <InteractiveViewer>
@@ -258,30 +239,24 @@ describe('InteractiveViewer', () => {
       </InteractiveViewer>
     );
     const viewerContainer = container.firstChild as HTMLElement;
-    const contentDiv = viewerContainer.children[1] as HTMLElement;
+    const contentDiv = container.querySelector('[data-testid="viewer-content"]') as HTMLElement;
 
-    // Initially transform should be translate(0px, 0px) scale(1)
     expect(contentDiv.style.transform).toContain('translate(0px, 0px) scale(1)');
 
-    // pointerDown sets pointer capture
     const setPointerCaptureSpy = vi.spyOn(viewerContainer, 'setPointerCapture');
     fireEvent.pointerDown(viewerContainer, { pointerId: 42, clientX: 100, clientY: 100 });
     expect(setPointerCaptureSpy).toHaveBeenCalledWith(42);
 
-    // pointerMove by dx=50, dy=30
     fireEvent.pointerMove(viewerContainer, { pointerId: 42, clientX: 150, clientY: 130 });
     expect(contentDiv.style.transform).toContain('translate(50px, 30px) scale(1)');
 
-    // pointerMove by dx=-20, dy=-10
     fireEvent.pointerMove(viewerContainer, { pointerId: 42, clientX: 130, clientY: 120 });
     expect(contentDiv.style.transform).toContain('translate(30px, 20px) scale(1)');
 
-    // pointerUp releases capture
     const releasePointerCaptureSpy = vi.spyOn(viewerContainer, 'releasePointerCapture');
     fireEvent.pointerUp(viewerContainer, { pointerId: 42 });
     expect(releasePointerCaptureSpy).toHaveBeenCalledWith(42);
 
-    // Moving pointer after pointerUp should NOT change pan offset
     fireEvent.pointerMove(viewerContainer, { pointerId: 42, clientX: 200, clientY: 200 });
     expect(contentDiv.style.transform).toContain('translate(30px, 20px) scale(1)');
   });
@@ -293,18 +268,14 @@ describe('InteractiveViewer', () => {
       </InteractiveViewer>
     );
     const viewerContainer = container.firstChild as HTMLElement;
-    const contentDiv = viewerContainer.children[1] as HTMLElement;
+    const contentDiv = container.querySelector('[data-testid="viewer-content"]') as HTMLElement;
 
-    // Down
     fireEvent.pointerDown(viewerContainer, { pointerId: 1, clientX: 100, clientY: 100 });
-    // Move
     fireEvent.pointerMove(viewerContainer, { pointerId: 1, clientX: 120, clientY: 120 });
     expect(contentDiv.style.transform).toContain('translate(20px, 20px) scale(1)');
 
-    // Cancel
     fireEvent.pointerCancel(viewerContainer, { pointerId: 1 });
 
-    // Move again
     fireEvent.pointerMove(viewerContainer, { pointerId: 1, clientX: 150, clientY: 150 });
     expect(contentDiv.style.transform).toContain('translate(20px, 20px) scale(1)');
   });
@@ -316,24 +287,22 @@ describe('InteractiveViewer', () => {
       </InteractiveViewer>
     );
     const viewerContainer = container.firstChild as HTMLElement;
-    const contentDiv = viewerContainer.children[1] as HTMLElement;
+    const contentDiv = container.querySelector('[data-testid="viewer-content"]') as HTMLElement;
     const glow = screen.getByTestId('parallax-cursor-glow');
 
-    // Drag-free pointer move to (300, 200) -> normalized x=0.5, y=0.5
     fireEvent.pointerMove(viewerContainer, { clientX: 300, clientY: 200 });
     expect(glow.style.left).toBe('50%');
     expect(glow.style.top).toBe('50%');
     expect(contentDiv.style.transform).toContain('translate(0px, 0px) scale(1)');
 
-    // Move to (150, 300) -> x=0.25, y=0.75
     fireEvent.pointerMove(viewerContainer, { clientX: 150, clientY: 300 });
     expect(glow.style.left).toBe('25%');
     expect(glow.style.top).toBe('75%');
-    // Content div translation should remain unaffected (since not dragging)
     expect(contentDiv.style.transform).toContain('translate(0px, 0px) scale(1)');
   });
 
-  // ── Wheel Event Zooming Tests ──────────────────────────────────────────────
+  // ── Wheel Event Zooming Tests ─────────────────────────────────────────────────
+
   it('zooms in/out via wheel event when ctrlKey or metaKey is active', () => {
     const { container } = render(
       <InteractiveViewer>
@@ -341,13 +310,11 @@ describe('InteractiveViewer', () => {
       </InteractiveViewer>
     );
     const viewerContainer = container.firstChild as HTMLElement;
-    const contentDiv = viewerContainer.children[1] as HTMLElement;
+    const contentDiv = container.querySelector('[data-testid="viewer-content"]') as HTMLElement;
 
-    // Zoom in with ctrlKey
     fireEvent.wheel(viewerContainer, { deltaY: -50, ctrlKey: true });
     expect(contentDiv.style.transform).toContain('scale(1.1)');
 
-    // Zoom out with metaKey
     fireEvent.wheel(viewerContainer, { deltaY: 50, metaKey: true });
     expect(contentDiv.style.transform).toContain('scale(1)');
   });
@@ -359,7 +326,7 @@ describe('InteractiveViewer', () => {
       </InteractiveViewer>
     );
     const viewerContainer = container.firstChild as HTMLElement;
-    const contentDiv = viewerContainer.children[1] as HTMLElement;
+    const contentDiv = container.querySelector('[data-testid="viewer-content"]') as HTMLElement;
 
     fireEvent.wheel(viewerContainer, { deltaY: -50 });
     expect(contentDiv.style.transform).toContain('scale(1)');
@@ -372,24 +339,21 @@ describe('InteractiveViewer', () => {
       </InteractiveViewer>
     );
     const viewerContainer = container.firstChild as HTMLElement;
-    const contentDiv = viewerContainer.children[1] as HTMLElement;
+    const contentDiv = container.querySelector('[data-testid="viewer-content"]') as HTMLElement;
 
-    // Zoom in repeatedly past 3.0
     for (let i = 0; i < 30; i++) {
       fireEvent.wheel(viewerContainer, { deltaY: -10, ctrlKey: true });
     }
-    // Limit is 3
     expect(contentDiv.style.transform).toContain('scale(3)');
 
-    // Zoom out repeatedly past 0.5
     for (let i = 0; i < 40; i++) {
       fireEvent.wheel(viewerContainer, { deltaY: 10, ctrlKey: true });
     }
-    // Limit is 0.5
     expect(contentDiv.style.transform).toContain('scale(0.5)');
   });
 
-  // ── Keyboard Interaction Tests ─────────────────────────────────────────────
+  // ── Keyboard Interaction Tests ────────────────────────────────────────────────
+
   it('handles all panning keyboard directions', () => {
     const { container } = render(
       <InteractiveViewer>
@@ -397,20 +361,18 @@ describe('InteractiveViewer', () => {
       </InteractiveViewer>
     );
     const viewerContainer = container.firstChild as HTMLElement;
-    const contentDiv = viewerContainer.children[1] as HTMLElement;
+    const contentDiv = container.querySelector('[data-testid="viewer-content"]') as HTMLElement;
 
-    // Arrow keys
-    fireEvent.keyDown(viewerContainer, { key: 'ArrowUp' }); // pan.y = 30
-    fireEvent.keyDown(viewerContainer, { key: 'ArrowDown' }); // pan.y = 0
-    fireEvent.keyDown(viewerContainer, { key: 'ArrowLeft' }); // pan.x = 30
-    fireEvent.keyDown(viewerContainer, { key: 'ArrowRight' }); // pan.x = 0
+    fireEvent.keyDown(viewerContainer, { key: 'ArrowUp' });
+    fireEvent.keyDown(viewerContainer, { key: 'ArrowDown' });
+    fireEvent.keyDown(viewerContainer, { key: 'ArrowLeft' });
+    fireEvent.keyDown(viewerContainer, { key: 'ArrowRight' });
     expect(contentDiv.style.transform).toContain('translate(0px, 0px) scale(1)');
 
-    // WASD uppercase & lowercase
-    fireEvent.keyDown(viewerContainer, { key: 'W' }); // pan.y = 30
-    fireEvent.keyDown(viewerContainer, { key: 'A' }); // pan.x = 30
-    fireEvent.keyDown(viewerContainer, { key: 's' }); // pan.y = 0
-    fireEvent.keyDown(viewerContainer, { key: 'd' }); // pan.x = 0
+    fireEvent.keyDown(viewerContainer, { key: 'W' });
+    fireEvent.keyDown(viewerContainer, { key: 'A' });
+    fireEvent.keyDown(viewerContainer, { key: 's' });
+    fireEvent.keyDown(viewerContainer, { key: 'd' });
     expect(contentDiv.style.transform).toContain('translate(0px, 0px) scale(1)');
   });
 
@@ -421,23 +383,19 @@ describe('InteractiveViewer', () => {
       </InteractiveViewer>
     );
     const viewerContainer = container.firstChild as HTMLElement;
-    const contentDiv = viewerContainer.children[1] as HTMLElement;
+    const contentDiv = container.querySelector('[data-testid="viewer-content"]') as HTMLElement;
 
-    // Zoom in with '='
     fireEvent.keyDown(viewerContainer, { key: '=' });
     expect(contentDiv.style.transform).toContain('scale(1.1)');
 
-    // Zoom out with '_'
     fireEvent.keyDown(viewerContainer, { key: '_' });
     expect(contentDiv.style.transform).toContain('scale(1)');
 
-    // Zoom out with '-' below limit
     for (let i = 0; i < 10; i++) {
       fireEvent.keyDown(viewerContainer, { key: '-' });
     }
     expect(contentDiv.style.transform).toContain('scale(0.5)');
 
-    // Zoom in with '+' above limit
     for (let i = 0; i < 30; i++) {
       fireEvent.keyDown(viewerContainer, { key: '+' });
     }
@@ -451,25 +409,21 @@ describe('InteractiveViewer', () => {
       </InteractiveViewer>
     );
     const viewerContainer = container.firstChild as HTMLElement;
-    const contentDiv = viewerContainer.children[1] as HTMLElement;
+    const contentDiv = container.querySelector('[data-testid="viewer-content"]') as HTMLElement;
 
-    // Pan and zoom away from center
-    fireEvent.keyDown(viewerContainer, { key: 'w' }); // pan.y = 30
-    fireEvent.keyDown(viewerContainer, { key: 'a' }); // pan.x = 30
-    fireEvent.keyDown(viewerContainer, { key: '+' }); // zoom = 1.1
+    fireEvent.keyDown(viewerContainer, { key: 'w' });
+    fireEvent.keyDown(viewerContainer, { key: 'a' });
+    fireEvent.keyDown(viewerContainer, { key: '+' });
     expect(contentDiv.style.transform).toContain('translate(30px, 30px) scale(1.1)');
 
-    // Reset with 'r'
     fireEvent.keyDown(viewerContainer, { key: 'r' });
     expect(contentDiv.style.transform).toContain('translate(0px, 0px) scale(1)');
 
-    // Pan and zoom away again
-    fireEvent.keyDown(viewerContainer, { key: 's' }); // pan.y = -30
-    fireEvent.keyDown(viewerContainer, { key: 'd' }); // pan.x = -30
-    fireEvent.keyDown(viewerContainer, { key: '-' }); // zoom = 0.9
+    fireEvent.keyDown(viewerContainer, { key: 's' });
+    fireEvent.keyDown(viewerContainer, { key: 'd' });
+    fireEvent.keyDown(viewerContainer, { key: '-' });
     expect(contentDiv.style.transform).toContain('translate(-30px, -30px) scale(0.9)');
 
-    // Reset with 'R'
     fireEvent.keyDown(viewerContainer, { key: 'R' });
     expect(contentDiv.style.transform).toContain('translate(0px, 0px) scale(1)');
   });
@@ -481,7 +435,7 @@ describe('InteractiveViewer', () => {
       </InteractiveViewer>
     );
     const viewerContainer = container.firstChild as HTMLElement;
-    const contentDiv = viewerContainer.children[1] as HTMLElement;
+    const contentDiv = container.querySelector('[data-testid="viewer-content"]') as HTMLElement;
 
     const unmappedEvent = { key: 'x', preventDefault: vi.fn() };
     fireEvent.keyDown(viewerContainer, unmappedEvent);
@@ -499,13 +453,14 @@ describe('InteractiveViewer', () => {
     textarea.focus();
 
     const viewerContainer = textarea.parentElement?.parentElement as HTMLElement;
-    const contentDiv = viewerContainer.children[1] as HTMLElement;
+    const contentDiv = viewerContainer.querySelector('[data-testid="viewer-content"]') as HTMLElement;
 
     fireEvent.keyDown(viewerContainer, { key: 'w' });
     expect(contentDiv.style.transform).toContain('translate(0px, 0px) scale(1)');
   });
 
-  // ── Responsive / Bounding Rect Tests ──────────────────────────────────────
+  // ── Responsive / Bounding Rect Tests ─────────────────────────────────────────
+
   it('correctly normalizes mouse positions and scales parallax on varying container dimensions', () => {
     const { container } = render(
       <InteractiveViewer>
@@ -515,7 +470,6 @@ describe('InteractiveViewer', () => {
     const viewerContainer = container.firstChild as HTMLElement;
     const glow = screen.getByTestId('parallax-cursor-glow');
 
-    // Scenario A: Mobile size container (300 x 200)
     vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({
       left: 0,
       top: 0,
@@ -528,13 +482,10 @@ describe('InteractiveViewer', () => {
       toJSON: () => ({}),
     } as DOMRect);
 
-    // Hover at screen coordinates (75, 50)
     fireEvent.pointerMove(viewerContainer, { clientX: 75, clientY: 50 });
-    // Normalized coordinates: x = 75/300 = 25% (0.25), y = 50/200 = 25% (0.25)
     expect(glow.style.left).toBe('25%');
     expect(glow.style.top).toBe('25%');
 
-    // Scenario B: Large screen desktop container (1200 x 800)
     vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({
       left: 0,
       top: 0,
@@ -547,9 +498,7 @@ describe('InteractiveViewer', () => {
       toJSON: () => ({}),
     } as DOMRect);
 
-    // Hover at screen coordinates (900, 200)
     fireEvent.pointerMove(viewerContainer, { clientX: 900, clientY: 200 });
-    // Normalized coordinates: x = 900/1200 = 75% (0.75), y = 200/800 = 25% (0.25)
     expect(glow.style.left).toBe('75%');
     expect(glow.style.top).toBe('25%');
   });
@@ -563,7 +512,6 @@ describe('InteractiveViewer', () => {
     const resizeWindow = (width: number, height: number) => {
       window.innerWidth = width;
       window.innerHeight = height;
-
       window.dispatchEvent(new Event('resize'));
     };
 

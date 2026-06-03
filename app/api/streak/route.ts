@@ -96,13 +96,9 @@ export async function GET(request: Request) {
       opacity,
       tz: tzParam,
       disable_particles,
-<<<<<<< HEAD
-      highlight, // <--- Add this here
-=======
       glow,
       format,
       days,
->>>>>>> 7c2e0b605d7dbc53d7746bd38840fcd36aa9530f
     } = parseResult.data;
     const normalizedView = view as 'default' | 'monthly' | 'heatmap' | 'pulse';
     const themeName = theme || 'dark';
@@ -184,12 +180,8 @@ export async function GET(request: Request) {
       gradient_dir,
       opacity,
       disable_particles,
-<<<<<<< HEAD
-      highlight, // <--- Add this here
-=======
       glow,
       animate,
->>>>>>> 7c2e0b605d7dbc53d7746bd38840fcd36aa9530f
     };
 
     let calendar;
