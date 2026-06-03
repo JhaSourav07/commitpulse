@@ -32,9 +32,7 @@ vi.mock('recharts', () => ({
   PolarGrid: () => <div />,
   PolarAngleAxis: () => <div />,
   PolarRadiusAxis: () => <div />,
-  ResponsiveContainer: ({ children }: { children?: React.ReactNode }) => (
-    <div>{children}</div>
-  ),
+  ResponsiveContainer: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
   Tooltip: () => <div />,
 }));
 
@@ -42,61 +40,61 @@ import CompareClient from './CompareClient';
 
 describe('CompareClient Theme Contrast', () => {
   it('applies theme contrast classes to heading', () => {
-  render(<CompareClient />);
+    render(<CompareClient />);
 
-  const heading = screen.getByRole('heading', {
-    name: /compare developers/i,
+    const heading = screen.getByRole('heading', {
+      name: /compare developers/i,
+    });
+
+    expect(heading).toBeInTheDocument();
+    expect(heading.className).toContain('text-gray-900');
+    expect(heading.className).toContain('dark:text-white');
+  });
+  it('applies light and dark theme classes to first username input', () => {
+    render(<CompareClient />);
+
+    const input = screen.getByPlaceholderText(/github username #1/i);
+
+    expect(input.className).toContain('bg-white');
+    expect(input.className).toContain('dark:bg-[#0a0a0a]');
+    expect(input.className).toContain('text-gray-900');
+    expect(input.className).toContain('dark:text-white');
   });
 
-  expect(heading).toBeInTheDocument();
-  expect(heading.className).toContain('text-gray-900');
-  expect(heading.className).toContain('dark:text-white');
-});
-  it('applies light and dark theme classes to first username input', () => {
-  render(<CompareClient />);
-
-  const input = screen.getByPlaceholderText(/github username #1/i);
-
-  expect(input.className).toContain('bg-white');
-  expect(input.className).toContain('dark:bg-[#0a0a0a]');
-  expect(input.className).toContain('text-gray-900');
-  expect(input.className).toContain('dark:text-white');
-});
- 
   it('applies light and dark theme classes to second username input', () => {
-  render(<CompareClient />);
+    render(<CompareClient />);
 
-  const input = screen.getByPlaceholderText(/github username #2/i);
+    const input = screen.getByPlaceholderText(/github username #2/i);
 
-  expect(input.className).toContain('bg-white');
-  expect(input.className).toContain('dark:bg-[#0a0a0a]');
-  expect(input.className).toContain('text-gray-900');
-  expect(input.className).toContain('dark:text-white');
-});
+    expect(input.className).toContain('bg-white');
+    expect(input.className).toContain('dark:bg-[#0a0a0a]');
+    expect(input.className).toContain('text-gray-900');
+    expect(input.className).toContain('dark:text-white');
+  });
 
   it('applies contrast classes to compare button', () => {
-  render(<CompareClient />);
+    render(<CompareClient />);
 
-  const button = screen.getByRole('button', {
-    name: /compare/i,
+    const button = screen.getByRole('button', {
+      name: /compare/i,
+    });
+
+    expect(button).toBeInTheDocument();
+    expect(button.className).toContain('bg-black');
+    expect(button.className).toContain('dark:bg-white');
+    expect(button.className).toContain('text-white');
+    expect(button.className).toContain('dark:text-black');
   });
 
-  expect(button).toBeInTheDocument();
-  expect(button.className).toContain('bg-black');
-  expect(button.className).toContain('dark:bg-white');
-  expect(button.className).toContain('text-white');
-  expect(button.className).toContain('dark:text-black');
-});
-
   it('renders developer showdown badge with theme-aware styling', () => {
-  render(<CompareClient />);
+    render(<CompareClient />);
 
-  const badge = screen.getByText(/developer showdown/i);
+    const badge = screen.getByText(/developer showdown/i);
 
-  expect(badge).toBeInTheDocument();
+    expect(badge).toBeInTheDocument();
 
-  const parent = badge.parentElement;
-  expect(parent?.className).toContain('bg-gray-100');
-  expect(parent?.className).toContain('dark:bg-[#111]');
-});
+    const parent = badge.parentElement;
+    expect(parent?.className).toContain('bg-gray-100');
+    expect(parent?.className).toContain('dark:bg-[#111]');
+  });
 });
