@@ -1,11 +1,5 @@
 // lib/calculate.ts
-import type {
-  ContributionCalendar,
-  ContributionDay,
-  ContributionWeek,
-  StreakStats,
-  MonthlyStats,
-} from '../types';
+import type { ContributionCalendar, ContributionDay, StreakStats, MonthlyStats } from '../types';
 
 /* ==========================================================================
  * STREAK & CALENDAR CALCULATIONS
@@ -94,19 +88,46 @@ export function calculateStreak(
   }
 
   let isStreakAlive = false;
-  for (let i = 0; i <= grace; i++) {
-    const checkIndex = todayIndex - i;
-    if (checkIndex >= 0 && days[checkIndex].contributionCount > 0) {
+  let graceRemaining = grace;
+  let j = todayIndex;
+
+  while (j >= 0) {
+    if (days[j].contributionCount > 0) {
       isStreakAlive = true;
       break;
     }
+
+    // Check if the current day is a weekend (0 = Sunday, 6 = Saturday)
+    // We parse the date string directly to avoid timezone shift issues with new Date()
+    const [y, m, d] = days[j].date.split('-').map(Number);
+    const dateObj = new Date(Date.UTC(y, m - 1, d));
+    const isWeekend = dateObj.getUTCDay() === 0 || dateObj.getUTCDay() === 6;
+
+    if (!isWeekend) {
+      if (graceRemaining <= 0) break;
+      graceRemaining--;
+    }
+    j--;
   }
 
   if (isStreakAlive) {
     let i = todayIndex;
-    while (i >= todayIndex - grace && i >= 0 && days[i].contributionCount === 0) {
-      i--;
+    // Skip empty days within the grace period (including weekends) to find the streak start
+    let k = todayIndex;
+    let countGrace = grace;
+    while (k >= 0 && days[k].contributionCount === 0) {
+      const [y, m, d] = days[k].date.split('-').map(Number);
+      const dateObj = new Date(Date.UTC(y, m - 1, d));
+      const isWeekend = dateObj.getUTCDay() === 0 || dateObj.getUTCDay() === 6;
+
+      if (!isWeekend) {
+        if (countGrace <= 0) break;
+        countGrace--;
+      }
+      k--;
     }
+    i = k;
+
     while (i >= 0 && days[i].contributionCount > 0) {
       currentStreak++;
       i--;

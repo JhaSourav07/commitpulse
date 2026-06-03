@@ -19,8 +19,8 @@ vi.mock('framer-motion', () => ({
       children,
       whileHover,
       whileInView,
-      initial,
-      viewport,
+      initial: _initial,
+      viewport: _viewport,
       ...props
     }: {
       children?: ReactNode;

@@ -142,7 +142,7 @@ describe('calculateStreak', () => {
 
     const result = calculateStreak(calendar);
 
-    expect(result.currentStreak).toBe(0);
+    expect(result.currentStreak).toBe(5);
     expect(result.longestStreak).toBe(5);
     expect(result.totalContributions).toBe(5);
   });
@@ -245,9 +245,9 @@ describe('calculateStreak', () => {
     expect(resultSaturday.longestStreak).toBe(5);
 
     // 3. Evaluate on Sunday, Jan 21, 2024 (index 20, Sunday of Week 3)
-    // Today has 0, yesterday (Saturday) has 0. Streak is broken (currentStreak = 0).
+    // Today has 0, yesterday (Saturday) has 0. With Weekend-Aware Grace, streak is maintained.
     const resultSunday = calculateStreak(calendar, 'UTC', new Date('2024-01-21T12:00:00Z'));
-    expect(resultSunday.currentStreak).toBe(0);
+    expect(resultSunday.currentStreak).toBe(5);
     expect(resultSunday.longestStreak).toBe(5);
 
     // 4. Evaluate on Wednesday, Jan 17, 2024 (index 16, Wednesday of Week 3)
@@ -315,10 +315,9 @@ describe('calculateStreak', () => {
     expect(resultSaturdayWeek4.longestStreak).toBe(5);
 
     // Test 3: Evaluate on Sunday after the last Friday (Jan 28, index 27)
-    // Today (Sunday) has 0, yesterday (Saturday) has 0 → grace period expires
-    // Current streak should be 0 (weekend break), longest streak still 5
+    // Today (Sunday) has 0, yesterday (Saturday) has 0. With Weekend-Aware Grace, streak is maintained.
     const resultSundayWeek4 = calculateStreak(calendar, 'UTC', new Date('2024-01-28T12:00:00Z'));
-    expect(resultSundayWeek4.currentStreak).toBe(0);
+    expect(resultSundayWeek4.currentStreak).toBe(5);
     expect(resultSundayWeek4.longestStreak).toBe(5);
 
     // Test 4: Evaluate on Wednesday of week 4 (Jan 24, index 23)
@@ -389,8 +388,9 @@ describe('calculateStreak', () => {
     ]);
 
     // Using default grace (1)
+    // With Weekend-Aware Grace, Saturday/Sunday 0s are skipped, so the Friday commit keeps it alive.
     const resultGrace1 = calculateStreak(calendar, 'UTC', undefined, 1);
-    expect(resultGrace1.currentStreak).toBe(0);
+    expect(resultGrace1.currentStreak).toBe(1);
 
     // Using grace = 2
     const resultGrace2 = calculateStreak(calendar, 'UTC', undefined, 2);
@@ -1212,9 +1212,9 @@ describe('calculateStreak — timezone awareness', () => {
 
   const nowUTC = new Date('2024-06-16T07:00:00.000Z');
 
-  it('breaks the streak when evaluated in UTC because today and yesterday both have 0 commits', () => {
+  it('maintains the streak when evaluated in UTC despite Saturday/Sunday 0s (Weekend-Aware)', () => {
     const result = calculateStreak(tzCalendar, 'UTC', nowUTC);
-    expect(result.currentStreak).toBe(0);
+    expect(result.currentStreak).toBe(3);
   });
 
   it('handles commits around midnight correctly across timezone offsets', () => {
@@ -1301,7 +1301,7 @@ describe('calculateStreak — timezone awareness', () => {
   it('falls back to the last available day when the local date is ahead of the calendar data', () => {
     const futureNow = new Date('2024-06-16T12:00:00.000Z');
     const result = calculateStreak(tzCalendar, 'Etc/GMT-14', futureNow);
-    expect(result.currentStreak).toBe(0);
+    expect(result.currentStreak).toBe(3);
     expect(result.longestStreak).toBe(3);
   });
 

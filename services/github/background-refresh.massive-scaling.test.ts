@@ -471,11 +471,16 @@ describe('BackgroundRefresh - Massive Data Sets and Extreme High Bounds Scaling 
     const VOLUME = 100000;
     const STALE_THRESHOLD = 600000;
 
+    vi.useFakeTimers();
+    const now = new Date();
+    vi.setSystemTime(now);
+
     for (let i = 0; i < VOLUME; i++) {
       const delta = i % 2 === 0 ? STALE_THRESHOLD + 1 : STALE_THRESHOLD - 1;
-      const result = service.isStale(new Date(Date.now() - delta).toISOString());
+      const result = service.isStale(new Date(now.getTime() - delta).toISOString());
       expect(result).toBe(i % 2 === 0);
     }
+    vi.useRealTimers();
   });
 
   it('verifies job active state after successful completion for 5000 rapid resolved promises', async () => {

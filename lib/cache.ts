@@ -166,7 +166,7 @@ export class TTLCache<T> {
     if (key === '') throw new Error('Cache key cannot be empty');
     if (ttlMs <= 0) throw new RangeError(`ttlMs must be positive, got ${ttlMs}`);
 
-    if (key.length > 10000) {
+    if (key.length > 256000) {
       throw new Error('Cache key exceeds maximum allowed length to prevent memory bloat');
     }
 

@@ -23,7 +23,15 @@ vi.mock('framer-motion', () => ({
   motion: {
     div: ({ children, className, style, ...props }: any) => {
       // Remove motion-specific props before spreading onto <div>
-      const { initial, animate, whileInView, viewport, transition, whileHover, ...rest } = props;
+      const {
+        initial: _initial,
+        animate: _animate,
+        whileInView: _whileInView,
+        viewport: _viewport,
+        transition: _transition,
+        whileHover: _whileHover,
+        ...rest
+      } = props;
 
       return (
         <div className={className} style={style} {...rest}>

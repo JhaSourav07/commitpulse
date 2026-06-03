@@ -8,7 +8,7 @@ type ContributorsClientProps = {
   topContributors: unknown[];
 };
 
-const mockContributorsClient = vi.fn((_props?: ContributorsClientProps) => (
+const mockContributorsClient = vi.fn(() => (
   <div data-testid="contributors-client">Contributors Client</div>
 ));
 

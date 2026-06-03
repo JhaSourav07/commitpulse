@@ -4,6 +4,7 @@ import type { ImgHTMLAttributes } from 'react';
 import Leaderboard from './Leaderboard';
 
 vi.mock('next/image', () => ({
+  // eslint-disable-next-line @next/next/no-img-element
   default: (props: ImgHTMLAttributes<HTMLImageElement>) => <img alt="" {...props} />,
 }));
 

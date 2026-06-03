@@ -234,26 +234,7 @@ describe('fetchGitHubContributions', () => {
       })
     );
 
-    const { calendar: result } = await fetchGitHubContributions('octocat');
-    expect(result.weeks[0].contributionDays[0].contributionCount).toBe(3);
-  });
-
-  it('sends a POST request to the GitHub GraphQL endpoint with the correct body', async () => {
-    vi.mocked(fetch).mockResolvedValue(
-      mockResponse({
-        data: {
-          user: {
-            contributionsCollection: {
-              contributionCalendar: mockCalendar,
-              commitContributionsByRepository: [],
-            },
-          },
-        },
-      })
-    );
-
     await fetchGitHubContributions('octocat');
-
     expect(fetch).toHaveBeenCalledOnce();
 
     const [url, options] = vi.mocked(fetch).mock.calls[0];

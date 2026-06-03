@@ -108,6 +108,29 @@ export default async function OrgDashboardPage({
 
   return (
     <div id="dashboard-root" data-dashboard className="p-4 md:p-6 lg:p-8 min-h-screen relative">
+      {/* Partial Data Warning */}
+      {data.isPartial && (
+        <div className="mb-6 flex items-center gap-3 rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4 text-amber-500">
+          <svg
+            className="h-5 w-5 shrink-0"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+            />
+          </svg>
+          <div className="text-sm font-medium">
+            This dashboard is currently showing partial data due to organization size or fetch
+            timeouts. The stats reflect a subset of active members.
+          </div>
+        </div>
+      )}
+
       {/* Top Action Bar */}
       <div id="generate-dashboard-btn" className="flex justify-between items-center mb-6">
         <div className="inline-flex items-center gap-2 rounded-full border border-indigo-400/20 bg-indigo-500/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-indigo-400">

@@ -69,7 +69,7 @@ describe('resume-parser mock integrations', () => {
   });
 
   it('should load parsed resume from async service when cache misses', async () => {
-    const result = await fakeDbFetch('resume.pdf');
+    const result = await fakeDbFetch();
 
     expect(result).toBeDefined();
     expect(result.name).toBe('Alex Developer');
@@ -87,7 +87,7 @@ describe('resume-parser mock integrations', () => {
     };
 
     const result = await Promise.race([
-      fakeDbFetch('resume.pdf'),
+      fakeDbFetch(),
       new Promise<MockResumeData>((resolve) => setTimeout(() => resolve(timeoutFallback), 1)),
     ]);
 
@@ -95,7 +95,7 @@ describe('resume-parser mock integrations', () => {
   });
 
   it('should write to cache after successful service response', async () => {
-    const result = await fakeDbFetch('resume.pdf');
+    const result = await fakeDbFetch();
 
     setCached('resume:123', result);
 

@@ -919,6 +919,7 @@ export async function getOrgDashboardData(
   if (membersOrError instanceof Error) throw membersOrError;
 
   const members = membersOrError;
+  const totalMemberCount = members.length;
 
   // Limit active members to first 30 to protect shared token rate limit and improve response times
   const activeMembers = members.slice(0, 30);
@@ -943,7 +944,7 @@ export async function getOrgDashboardData(
     clearTimeout(timeoutId);
   }
 
-  const isPartial = calendars.length < activeMembers.length;
+  const isPartial = calendars.length < totalMemberCount;
 
   // Create the Mega-City
   const aggregatedCalendar = aggregateCalendars(calendars);

@@ -2,6 +2,7 @@
 import { trackUser } from '@/utils/tracking';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRef, useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { gsap } from 'gsap';
@@ -626,10 +627,13 @@ export default function LandingPage() {
                         exit={{ opacity: 0 }}
                         className="flex items-center gap-3 bg-emerald-500/5 border border-emerald-500/10 rounded-xl px-3 py-2"
                       >
-                        <img
+                        <Image
                           src={userDetails.avatar_url}
                           alt={userDetails.login}
-                          className="w-6 h-6 rounded-full border border-emerald-500/20"
+                          width={24}
+                          height={24}
+                          className="rounded-full border border-emerald-500/20"
+                          unoptimized
                           onError={(e) => {
                             (e.target as HTMLImageElement).src = 'https://github.com/github.png';
                           }}
@@ -683,10 +687,13 @@ export default function LandingPage() {
                             key={s}
                             className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200/10 bg-zinc-200/5 dark:border-white/5 dark:bg-[#111] pl-2 pr-1.5 py-1 text-xs text-zinc-700 dark:text-white/70 transition-all duration-300 hover:border-emerald-500/30 hover:bg-zinc-200/10 dark:hover:bg-white/10 dark:hover:text-white select-none group/pill"
                           >
-                            <img
+                            <Image
                               src={`https://github.com/${displayName}.png?size=40`}
                               alt={displayName}
-                              className="w-4 h-4 rounded-full border border-zinc-200/20 dark:border-white/20"
+                              width={16}
+                              height={16}
+                              className="rounded-full border border-zinc-200/20 dark:border-white/20"
+                              unoptimized
                               onError={(e) => {
                                 (e.target as HTMLImageElement).src =
                                   'https://github.com/github.png';

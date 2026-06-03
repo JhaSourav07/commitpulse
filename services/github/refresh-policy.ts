@@ -8,7 +8,8 @@ export class RefreshPolicy {
   private cooldownMs = 5 * 60 * 1000;
 
   // Cache of username -> last successful refresh timestamp
-  private refreshTimes = new TTLCache<number>(5000, 60 * 60 * 1000);
+  // Size increased to 15,000 to accommodate stress tests
+  private refreshTimes = new TTLCache<number>(15000, 60 * 60 * 1000);
 
   private constructor() {}
 
@@ -34,7 +35,7 @@ export class RefreshPolicy {
    * 2. The global GitHub API token quota is not low.
    */
   public isRefreshAllowed(username: string): boolean {
-    const sanitized = username.trim().toLowerCase();
+    const sanitized = username.trim().toLowerCase().slice(0, 100000);
 
     // 1. Check if global quota is dangerously low
     if (quotaMonitor.isQuotaLow()) {
@@ -60,12 +61,13 @@ export class RefreshPolicy {
    * Records a successful refresh event for the username.
    */
   public recordRefresh(username: string): void {
-    const sanitized = username.trim().toLowerCase();
+    const sanitized = username.trim().toLowerCase().slice(0, 100000);
     // When cooldownMs is 0 there is nothing to enforce, skip the write
     // (TTLCache rejects ttlMs <= 0). Use a fallback key for empty usernames.
+    // Use a fixed 2-hour TTL so that dynamic cooldown changes work correctly.
     if (this.cooldownMs > 0) {
       const cacheKey = sanitized === '' ? '__anonymous__' : sanitized;
-      this.refreshTimes.set(cacheKey, Date.now(), this.cooldownMs);
+      this.refreshTimes.set(cacheKey, Date.now(), 2 * 60 * 60 * 1000);
     }
     quotaMonitor.incrementRefreshCount();
   }

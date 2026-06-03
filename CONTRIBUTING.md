@@ -384,6 +384,7 @@ The accuracy engine lives in `utils/time.ts` and `lib/calculate.ts`.
 
 **Problems worth solving:**
 
+- **Weekend-Aware Grace:** Streak calculation now skips Saturdays and Sundays when consuming the grace period. This prevents streaks from resetting for users who only contribute on weekdays.
 - User-configurable timezone offsets (e.g., `?tz=Asia/Kolkata`) so the "today" boundary reflects the user's local day, not UTC
 - Edge case: contributors who span the UTC midnight window and see their streak reset prematurely
 - The grace period logic in `calculate.ts` could be extended to be configurable (e.g., `?grace=2` for 2-day grace)

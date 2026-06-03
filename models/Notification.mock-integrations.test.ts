@@ -92,7 +92,7 @@ describe('Notification.ts - Asynchronous Service Layer Mocking & Local Cache Stu
     const requestWithSafetyNet = async () => {
       try {
         await unstableEndpoint.fetch();
-      } catch (e: unknown) {
+      } catch {
         caughtTimeoutError = true;
         fallbackRendered = true; // procedure trigger
       }

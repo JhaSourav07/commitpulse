@@ -84,15 +84,6 @@ function isLeapYear(year: number): boolean {
 }
 
 /**
- * Gets the date at a specific offset from a reference date
- */
-function getOffsetDate(baseDate: Date, offsetDays: number): Date {
-  const result = new Date(baseDate);
-  result.setUTCDate(result.getUTCDate() + offsetDays);
-  return result;
-}
-
-/**
  * Creates a date at midnight UTC for consistency
  */
 function createUTCDate(year: number, month: number, day: number): Date {

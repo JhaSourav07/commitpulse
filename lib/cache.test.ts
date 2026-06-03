@@ -676,7 +676,7 @@ describe('TTLCache', () => {
     // FIX: New test targeting oversized cache keys for Issue #1403
     it('rejects oversized cache keys to prevent memory bloat (Variation 2)', () => {
       const cache = new TTLCache<string>();
-      const oversizedKey = 'a'.repeat(20000);
+      const oversizedKey = 'a'.repeat(300000);
 
       // Assert that setting a massive key throws an error to prevent memory bloat
       expect(() => {
