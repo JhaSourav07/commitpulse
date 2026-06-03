@@ -75,14 +75,14 @@ export const streakParamsSchema = z.object({
     .string()
     .optional()
     .refine((val) => !val || /^[0-9a-fA-F]{3,4}$|^[0-9a-fA-F]{6,8}$/.test(val.replace('#', '')), {
-      message: 'bg must be a valid 3 or 6 character hex color without #',
+      message: 'bg must be a valid hex color (with or without #)',
     })
     .transform((val) => (val ? sanitizeHexColor(val, '0d1117') : undefined)),
   text: z
     .string()
     .optional()
     .refine((val) => !val || /^[0-9a-fA-F]{3,4}$|^[0-9a-fA-F]{6,8}$/.test(val.replace('#', '')), {
-      message: 'text must be a valid 3 or 6 character hex color without #',
+      message: 'text must be a valid hex color (with or without #)',
     })
     .transform((val) => (val ? sanitizeHexColor(val, 'ffffff') : undefined)),
   accent: z
@@ -98,7 +98,7 @@ export const streakParamsSchema = z.object({
       },
       {
         message:
-          'accent must be a valid 3 or 6 character hex color without #, or a comma-separated list of them',
+          'accent must be a valid hex color (with or without #), or a comma-separated list of them',
       }
     )
     .transform((val) => {
@@ -226,6 +226,37 @@ export const streakParamsSchema = z.object({
       return val === 'true';
     })
     .default(false),
+
+
+  gradient_stops: z.string().optional(),
+  gradient_dir: z.enum(['vertical', 'horizontal', 'diagonal']).catch('vertical').optional(),
+  disable_particles: z
+    .string()
+    .optional()
+    .transform((val) => val === 'true' || val === '1'),
+  // Glow effect — on by default. Accepts 'true'/'1' (true) or 'false' (false).
+  glow: z.string().optional().transform(toBooleanFlag).default(true),
+  opacity: z.string().optional().transform(toOpacityValue),
+  entrance: z.enum(['rise', 'fade', 'slide', 'none']).catch('rise').default('rise'),
+  badges: z.string().optional().transform(toBooleanFlag).default(false),
+
+  // Output format: 'svg' (default) or 'json' for programmatic access.
+  // Invalid values silently fall back to 'svg'.
+  format: z.enum(['svg', 'json']).catch('svg').default('svg'),
+
+  // layout parameter: strictly validated — unsupported values return a 400 Bad Request.
+  layout: z
+    .string()
+    .optional()
+    .refine(
+      (val) => {
+        if (val === undefined || val === '') return true;
+        return ['default', 'compact', 'full'].includes(val);
+      },
+      { message: 'Invalid layout format. Supported values: default, compact, full.' }
+    )
+    .transform((val) => (!val ? undefined : val)),
+
 });
 
 export const githubParamsSchema = z.object({
@@ -283,10 +314,148 @@ export const statsParamsSchema = z.object({
       message: 'Invalid GitHub username',
     }),
   refresh: z.string().optional().transform(toRefreshFlag),
+
   tz: z.string().optional(),
+
+  tz: timeZoneParam,
+});
+
+export const wrappedParamsSchema = z.object({
+  user: z
+    .string({ error: 'Missing user parameter' })
+    .min(1, { message: 'Missing user parameter' })
+    .max(39, { message: 'GitHub username cannot exceed 39 characters' })
+    .regex(GITHUB_USERNAME_REGEX, {
+      message: 'Invalid GitHub username',
+    }),
+  year: z
+    .string()
+    .optional()
+    .refine(
+      (val) => {
+        if (!val) return true;
+        const yearNum = parseInt(val, 10);
+        const currentYear = new Date().getFullYear();
+        return /^\d{4}$/.test(val) && yearNum >= 2008 && yearNum <= currentYear;
+      },
+      {
+        message: 'GitHub was founded in 2008. Please provide a year of 2008 or later.',
+      }
+    ),
+  theme: z.string().optional().transform(toValidTheme).default('dark'),
+  bg: z
+    .string()
+    .optional()
+    .refine((val) => !val || /^[0-9a-fA-F]{3,4}$|^[0-9a-fA-F]{6,8}$/.test(val.replace('#', '')), {
+      message: 'bg must be a valid hex color (with or without #)',
+    })
+    .transform((val) => (val ? sanitizeHexColor(val, '0d1117') : undefined)),
+  text: z
+    .string()
+    .optional()
+    .refine((val) => !val || /^[0-9a-fA-F]{3,4}$|^[0-9a-fA-F]{6,8}$/.test(val.replace('#', '')), {
+      message: 'text must be a valid hex color (with or without #)',
+    })
+    .transform((val) => (val ? sanitizeHexColor(val, 'ffffff') : undefined)),
+  accent: z
+    .string()
+    .optional()
+    .refine(
+      (val) => {
+        if (!val) return true;
+        const parts = val.includes(',') ? val.split(',') : [val];
+        return parts.every((p) =>
+          /^[0-9a-fA-F]{3,4}$|^[0-9a-fA-F]{6,8}$/.test(p.trim().replace('#', ''))
+        );
+      },
+      {
+        message:
+          'accent must be a valid hex color (with or without #), or a comma-separated list of them',
+      }
+    )
+    .transform((val) => {
+      if (!val) return undefined;
+      if (val.includes(',')) {
+        return val
+          .split(',')
+          .map((c) => c.trim())
+          .filter((c) => c.length > 0)
+          .slice(0, 4)
+          .map((c) => sanitizeHexColor(c, '00ffaa'));
+      }
+      return sanitizeHexColor(val, '00ffaa');
+    }),
+  speed: z
+    .string()
+    .transform((val) => sanitizeSpeed(val, '8s'))
+    .default('8s'),
+  radius: z
+    .string()
+    .transform((val) => sanitizeRadius(val, 8))
+    .default(8),
+  font: z
+    .string()
+    .optional()
+    .transform((val) => sanitizeFont(val) || undefined),
+  refresh: z.string().optional().transform(toRefreshFlag),
+  hide_title: z.string().optional().transform(toBooleanFlag),
+  hide_background: z.string().optional().transform(toBooleanFlag), // ✅ Fixed: was toRefreshFlag
+  width: dimensionParam('width', 100, 1200),
+  height: dimensionParam('height', 80, 800),
+});
+
+export const notifyPostSchema = z.object({
+  username: z
+    .string({ error: 'Username is required.' })
+    .trim()
+    .min(1, { message: 'Username is required.' })
+    .max(39, { message: 'GitHub username cannot exceed 39 characters.' })
+    .regex(GITHUB_USERNAME_REGEX, {
+      message: 'Invalid GitHub username format.',
+    }),
+  email: z
+    .string({ error: 'Email is required.' })
+    .trim()
+    .min(1, { message: 'Email is required.' })
+    .email({ message: 'Invalid email address.' }),
+  frequency: z
+    .enum(['realtime', 'daily', 'weekly'], {
+      message: 'Invalid frequency. Use realtime, daily, or weekly.',
+    })
+    .default('daily'),
+  preferences: z
+    .object({
+      notifyOnCommit: z.boolean().default(true),
+      notifyOnStreak: z.boolean().default(true),
+      notifyOnMilestone: z.boolean().default(true),
+    })
+    .default({
+      notifyOnCommit: true,
+      notifyOnStreak: true,
+      notifyOnMilestone: true,
+    }),
+});
+
+export const notifyGetSchema = z.object({
+  user: z
+    .string({ error: 'Username is required.' })
+    .trim()
+    .min(1, { message: 'Username is required.' })
+    .max(39, { message: 'GitHub username cannot exceed 39 characters.' })
+    .regex(GITHUB_USERNAME_REGEX, {
+      message: 'Invalid GitHub username format.',
+    }),
+
 });
 
 export type StreakParams = z.infer<typeof streakParamsSchema>;
 export type GithubParams = z.infer<typeof githubParamsSchema>;
+export type CompareParams = z.infer<typeof compareParamsSchema>;
 export type OgParams = z.infer<typeof ogParamsSchema>;
 export type StatsParams = z.infer<typeof statsParamsSchema>;
+
+
+export type WrappedParams = z.infer<typeof wrappedParamsSchema>;
+export type NotifyPostParams = z.infer<typeof notifyPostSchema>;
+export type NotifyGetParams = z.infer<typeof notifyGetSchema>;
+

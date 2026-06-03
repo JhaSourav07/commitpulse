@@ -13,6 +13,7 @@ import { getClientIp } from './utils/getClientIp';
  * - /api/stats
  * - /api/og
  * - /api/notify
+ * - /api/compare
  *
  * Limit: 60 requests per minute per IP.
  */
