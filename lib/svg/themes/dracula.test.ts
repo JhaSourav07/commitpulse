@@ -10,12 +10,10 @@ describe('dracula theme', () => {
 
   it('has valid 6-digit hex color strings (without #) for bg, text, and accent', () => {
     const hexRegex = /^[0-9a-fA-F]{6}$/;
-    const dracula = themes.dracula;
-    expect(dracula).toBeDefined();
 
-    expect(dracula.bg).toMatch(hexRegex);
-    expect(dracula.text).toMatch(hexRegex);
-    expect(dracula.accent).toMatch(hexRegex);
+    expect(themes.dracula.bg).toMatch(hexRegex);
+    expect(themes.dracula.text).toMatch(hexRegex);
+    expect(themes.dracula.accent).toMatch(hexRegex);
   });
 
   it('matches the defined dracula color values for the design spec', () => {
