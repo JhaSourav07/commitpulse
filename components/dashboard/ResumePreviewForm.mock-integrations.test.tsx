@@ -102,8 +102,12 @@ describe('ResumePreviewForm - Mock Integrations & Cache Stubs', () => {
       fetchMock as unknown as typeof fetch;
 
     const cache = new DistributedCache<string>();
-    // populate local cache
-    await cache.set('user:1', 'alice', 1000);
+
+    (
+      cache as unknown as {
+        localCache: { set: (key: string, value: unknown, ttl: number) => void };
+      }
+    ).localCache.set('user:1', 'alice', 1000);
 
     const value = await cache.get('user:1');
     expect(value).toBe('alice');
