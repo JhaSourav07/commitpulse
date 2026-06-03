@@ -18,6 +18,7 @@ import { FeatureCard, FeatureCardsSection } from '@/components/FeatureCards';
 import { DiscordButton } from '@/components/DiscordButton';
 
 import { WallOfLove } from '@/components/WallOfLove';
+import CommitHeatmap from './components/CommitHeatmap';
 
 const Icons = {
   Github: () => (
@@ -382,6 +383,10 @@ export default function LandingPage() {
         </div>
 
         <CustomizeCTA />
+
+        <section className="mx-auto mb-16 max-w-4xl">
+  <CommitHeatmap username={trimmedUsername || 'octocat'} />
+</section>
 
         <FeatureCardsSection>
           <FeatureCard
