@@ -348,8 +348,8 @@ describe('RadarChart', () => {
 
       // Verify glow filters are defined for visual effects
       // Verify glow filters are defined for visual effects
-const glowFilters = container.querySelectorAll('filter');
-expect(glowFilters.length).toBe(2);
+      const glowFilters = container.querySelectorAll('filter');
+      expect(glowFilters.length).toBe(2);
 
       // Verify vertex dots are rendered for non-zero percentages
       const circles = container.querySelectorAll('circle');
