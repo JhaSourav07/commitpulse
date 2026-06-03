@@ -654,6 +654,45 @@ function renderIsometricLabels(
   return `<g class="isometric-labels">${elements}</g>`;
 }
 
+function renderMilestoneBadges(stats: StreakStats, params: BadgeParams, sf: number): string {
+  if (!params.badges) return '';
+
+  const badges = [];
+  if (stats.longestStreak >= 365) badges.push({ text: '🔥 Unstoppable', color: '#FFD700' });
+  else if (stats.longestStreak >= 100) badges.push({ text: '💯 Century Club', color: '#C0C0C0' });
+
+  if (stats.totalContributions >= 5000) badges.push({ text: '🌟 Elite', color: '#b9f2ff' });
+  else if (stats.totalContributions >= 1000) badges.push({ text: '🚀 1K Club', color: '#cd7f32' });
+  else if (stats.totalContributions >= 500)
+    badges.push({ text: '⭐ 500+ Commits', color: '#cd7f32' });
+
+  if (badges.length === 0) return '';
+
+  const fs = (n: number) => Math.round(n * sf * 10) / 10;
+  const s = createScaler(sf);
+
+  let elements = '';
+  const badgeWidth = 110;
+  const spacing = 10;
+  const totalWidth = badges.length * badgeWidth + (badges.length - 1) * spacing;
+  const startX = 300 - totalWidth / 2 + badgeWidth / 2;
+
+  badges.forEach((b, i) => {
+    const cx = s(startX + i * (badgeWidth + spacing));
+    const cy = s(400);
+    const glowAttr = params.glow !== false ? ' filter="url(#glow)"' : '';
+
+    elements += `
+      <g transform="translate(${cx}, ${cy})" class="badge-group">
+        <rect x="${s(-badgeWidth / 2)}" y="${s(-12)}" width="${s(badgeWidth)}" height="${s(24)}" rx="${s(12)}" fill="${b.color}" fill-opacity="0.1" stroke="${b.color}" stroke-opacity="0.5" stroke-width="1" />
+        <text y="${s(4)}" text-anchor="middle" font-family='"Roboto", sans-serif' font-size="${fs(11)}px" font-weight="bold" fill="${b.color}" ${glowAttr}>${b.text}</text>
+      </g>
+    `;
+  });
+
+  return `<g class="milestone-badges">${elements}</g>`;
+}
+
 // ── Main static-theme renderer ────────────────────────────────────────────
 
 export function generateSVG(
@@ -725,6 +764,7 @@ export function generateSVG(
   <g id="cp-towers" style="transform-origin: center; transform-box: fill-box;" transform="translate(0, ${Math.round(20 * sf)})">${towers}</g>
   ${renderIsometricLabels(calendar, params, text, sf)}
   ${renderFooter(stats, params, labels, safeUser, mainAccentHex, sf)}
+  ${renderMilestoneBadges(stats, params, sf)}
 </svg>`;
 }
 
@@ -820,6 +860,7 @@ ${
     : ''
 }
 ${renderRadarScan(params.speed || '8s', sf, '', true)}
+${renderMilestoneBadges(stats, params, sf)}
 </svg>
 `;
 }

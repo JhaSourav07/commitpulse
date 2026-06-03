@@ -338,6 +338,7 @@ const baseStreakParamsSchema = z.object({
   glow: z.string().optional().transform(toBooleanFlag).default(true),
   opacity: z.string().optional().transform(toOpacityValue),
   entrance: z.enum(['rise', 'fade', 'slide', 'none']).catch('rise').default('rise'),
+  badges: z.string().optional().transform(toBooleanFlag).default(false),
 
   // Output format: 'svg' (default) or 'json' for programmatic access.
   // Invalid values silently fall back to 'svg'.

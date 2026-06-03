@@ -232,6 +232,7 @@ export interface BadgeParams {
   animate?: boolean;
   glow?: boolean;
   isOfflineFallback?: boolean;
+  badges?: boolean;
 
   /** @internal Temporary property to track custom gradient ID during SVG generation. */
   __customGradientId?: string;
