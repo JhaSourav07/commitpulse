@@ -1,5 +1,48 @@
 import { describe, it, expect } from 'vitest';
-import { getLabels, labels } from './badgeLabels';
+import { getLabels, labels, detectLanguage } from './badgeLabels';
+
+describe('detectLanguage', () => {
+  it('returns en when acceptLanguage is null', () => {
+    expect(detectLanguage(null)).toBe('en');
+  });
+
+  it('returns en when acceptLanguage is empty string', () => {
+    expect(detectLanguage('')).toBe('en');
+  });
+
+  it('detects French from a simple fr code', () => {
+    expect(detectLanguage('fr')).toBe('fr');
+  });
+
+  it('detects French from fr-CH', () => {
+    expect(detectLanguage('fr-CH')).toBe('fr');
+  });
+
+  it('respects q-factor and picks the highest priority supported language', () => {
+    // fr is 0.9, en is 0.8 -> should pick fr
+    expect(detectLanguage('fr;q=0.9, en;q=0.8')).toBe('fr');
+    // en is 0.9, fr is 0.8 -> should pick en
+    expect(detectLanguage('en;q=0.9, fr;q=0.8')).toBe('en');
+  });
+
+  it('skips unsupported languages and picks the first supported one', () => {
+    // xx is not supported, fr is supported
+    expect(detectLanguage('xx, fr;q=0.9')).toBe('fr');
+  });
+
+  it('falls back to en if no supported language is found', () => {
+    expect(detectLanguage('xx, yy;q=0.5')).toBe('en');
+  });
+
+  it('handles complex headers from real browsers', () => {
+    const header = 'fr-CH, fr;q=0.9, en;q=0.8, *;q=0.5';
+    expect(detectLanguage(header)).toBe('fr');
+  });
+
+  it('handles malformed headers gracefully by falling back to en', () => {
+    expect(detectLanguage('!!!;;;,,,')).toBe('en');
+  });
+});
 
 describe('getLabels', () => {
   describe('supported locales', () => {

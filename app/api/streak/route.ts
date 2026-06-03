@@ -17,6 +17,7 @@ import type { BadgeParams, ContributionCalendar } from '@/types';
 import { themes } from '@/lib/svg/themes';
 import { streakParamsSchema } from '@/lib/validations';
 import { sanitizeHexColor } from '@/lib/svg/sanitizer';
+import { detectLanguage } from '@/lib/i18n/badgeLabels';
 
 const SVG_CSP_HEADER =
   "default-src 'none'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://fonts.gstatic.com;";
@@ -77,7 +78,7 @@ export async function GET(request: Request) {
       hide_title,
       hide_background,
       hide_stats,
-      lang,
+      lang: langParam,
       view,
       delta_format,
       width,
@@ -103,6 +104,11 @@ export async function GET(request: Request) {
     } = parseResult.data;
     const normalizedView = view as 'default' | 'monthly' | 'heatmap' | 'pulse';
     const themeName = theme || 'dark';
+
+    // Automated localization: detect language from headers if not explicitly provided in query params
+    const lang = searchParams.has('lang')
+      ? langParam
+      : detectLanguage(request.headers.get('accept-language'));
 
     let timezone = 'UTC';
     if (tzParam) {

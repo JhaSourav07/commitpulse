@@ -87,3 +87,36 @@ export const supportedLanguages = Object.keys(labels) as [
 export function getLabels(lang: string = 'en'): BadgeLabels {
   return labels[lang.toLowerCase()] || labels['en'];
 }
+
+/**
+ * Detects the preferred language from the Accept-Language header.
+ * Falls back to 'en' if no supported language is found.
+ */
+export function detectLanguage(acceptLanguage: string | null): string {
+  if (!acceptLanguage) return 'en';
+
+  try {
+    const languages = acceptLanguage
+      .split(',')
+      .map((lang) => {
+        const [code, q] = lang.split(';q=');
+        return {
+          code: code.trim().split('-')[0].toLowerCase(),
+          q: q ? parseFloat(q) : 1.0,
+        };
+      })
+      .filter((l) => !isNaN(l.q))
+      .sort((a, b) => b.q - a.q);
+
+    for (const lang of languages) {
+      if (labels[lang.code]) {
+        return lang.code;
+      }
+    }
+  } catch (e) {
+    // Fallback on parsing error
+    return 'en';
+  }
+
+  return 'en';
+}
