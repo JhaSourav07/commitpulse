@@ -26,7 +26,10 @@ vi.mock('@/components/DiscordButton', () => ({
 // rendered inline. The mock below keeps the import from erroring if any
 // other test file still imports it.
 vi.mock('next/image', () => ({
-  default: (props: any) => <img {...props} />,
+  default: (props: any) => {
+    const { fill, ...rest } = props || {};
+    return <img {...rest} />;
+  },
 }));
 
 vi.mock('next/link', () => ({

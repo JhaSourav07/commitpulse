@@ -15,7 +15,7 @@ export const themes: Record<string, BadgeTheme> = {
   dark: makeTheme('0d1117', 'c9d1d9', '58a6ff', 'f85149'),
   light: makeTheme('ffffff', '24292f', '0969da', 'cf222e'),
   neon: makeTheme('000000', '00ffcc', 'ff00ff', 'ff0055'),
-  github: makeTheme('0d1117', 'ffffff', '39d353', 'f85149'),
+  github: makeTheme('0d1117', 'ffffff', '238636', 'f85149'),
   dracula: makeTheme('282a36', 'f8f8f2', 'bd93f9', 'ff5555'),
   ocean: makeTheme('0a192f', 'ccd6f6', '64ffda', 'ff6b6b'),
   sunset: makeTheme('1a0a0a', 'ffd6c0', 'ff6b35', 'ff4d4d'),
