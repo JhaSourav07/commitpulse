@@ -10,8 +10,8 @@ const mockTelemetryLogger = vi.fn();
 // Localized Error Boundary for testing exception safety and fallbacks
 interface ErrorBoundaryProps {
   children: ReactNode;
-  onReset: () => void;
-  telemetryLogger?: (error: Error, errorInfo: ErrorInfo) => void;
+  onReset: ReturnType<typeof vi.fn>;
+  telemetryLogger?: ReturnType<typeof vi.fn>;
 }
 
 interface ErrorBoundaryState {
