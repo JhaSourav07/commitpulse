@@ -116,6 +116,20 @@ describe('themes', () => {
     });
   });
 
+  describe('github theme', () => {
+    it('asserts github theme exists', () => {
+      expect(themes).toHaveProperty('github');
+      expect(themes.github).toBeDefined();
+    });
+
+    it('asserts github theme has correct color configuration matching the theme specification', () => {
+      expect(themes.github.bg).toBe('0d1117');
+      expect(themes.github.text).toBe('ffffff');
+      expect(themes.github.accent).toBe('238636');
+      expect(themes.github.negative).toBe('f85149');
+    });
+  });
+
   describe('makeTheme produces HexColor branded types', () => {
     const hexRegex = /^[0-9a-f]{6}$/i;
 

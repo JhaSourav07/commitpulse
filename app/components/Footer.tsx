@@ -79,7 +79,7 @@ function LinkComponent({
   className?: string;
   ariaLabel?: string;
 }) {
-  const baseClasses = `transition-colors duration-200 hover:text-black dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-zinc-950 rounded px-1 ${className}`;
+  const baseClasses = `group inline-block px-1 rounded transition-all duration-300 hover:-translate-y-[2px] hover:font-medium hover:text-teal-800 dark:hover:text-violet-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-zinc-950 ${className}`;
 
   if (isExternal) {
     return (
@@ -90,14 +90,20 @@ function LinkComponent({
         className={baseClasses}
         aria-label={ariaLabel}
       >
-        {children}
+        <span className="relative inline-block">
+          {children}
+          <span className="absolute left-0 -bottom-px h-px w-0 bg-slate-500 dark:bg-slate-400 transition-all duration-500 ease-out group-hover:w-full" />
+        </span>
       </a>
     );
   }
 
   return (
     <Link href={href} className={baseClasses} aria-label={ariaLabel}>
-      {children}
+      <span className="relative inline-block">
+        {children}
+        <span className="absolute left-0 -bottom-px h-px w-0 bg-slate-500 dark:bg-slate-400 transition-all duration-500 ease-out group-hover:w-full" />
+      </span>
     </Link>
   );
 }

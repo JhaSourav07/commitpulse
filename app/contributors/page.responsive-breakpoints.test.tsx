@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @next/next/no-img-element */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import ContributorsPage from './page';
@@ -6,9 +9,10 @@ import '@testing-library/jest-dom';
 
 vi.mock('next/image', () => ({
   __esModule: true,
-  default: (props: React.ImgHTMLAttributes<HTMLImageElement>) => (
-    <img {...props} alt={props.alt || ''} />
-  ),
+  default: (props: React.ImgHTMLAttributes<HTMLImageElement>) => {
+    const { fill, ...rest } = props as any;
+    return <img {...rest} alt={props.alt || ''} />;
+  },
 }));
 
 vi.mock('next/link', () => ({
