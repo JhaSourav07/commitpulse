@@ -675,8 +675,6 @@ async function fetchContributionsUncached(
     totalIssues += cached.totalIssues || 0;
   }
   // Inject deterministic Lines of Code (LoC) approximation
-  // Since GitHub's contributionCalendar doesn't provide native LoC metrics,
-  // we generate a consistent estimation based on the day's commit volume.
   calendar.weeks.forEach((week) => {
     week.contributionDays.forEach((day) => {
       if (day.contributionCount > 0) {
@@ -900,11 +898,6 @@ export type OrgDashboardData = {
     totalContributions: number;
   };
   calendar: ContributionCalendar;
-  /**
-   * Indicates if the dashboard aggregation was aborted early due to serverless timeouts
-   * or per-member fetch failures. If true, the caller should gracefully handle that
-   * some organization members are missing from the aggregate calendar.
-   */
   isPartial: boolean;
 };
 
@@ -1028,7 +1021,7 @@ export function generateAchievements(
     });
   }
 
-  // ── Consistency King (tiered total-contribution milestones) ────────────────
+  // ── Consistency King ───────────────────────────────────────────────────────
   const CONSISTENCY_MILESTONES = [500, 1000, 2000] as const;
   const CONSISTENCY_LABELS = [
     'Consistency King',
@@ -1051,7 +1044,6 @@ export function generateAchievements(
   }
 
   // ── Weekend Warrior ────────────────────────────────────────────────────────
-  // Computed from commitClock: dayTotals[0] (Sun) + dayTotals[6] (Sat).
   achievements.push({
     id: 'weekend-warrior',
     title: 'Weekend Warrior',
@@ -1065,7 +1057,6 @@ export function generateAchievements(
   });
 
   // ── Polyglot ───────────────────────────────────────────────────────────────
-  // Computed from fetchUserRepos: count of distinct repo.language values.
   achievements.push({
     id: 'polyglot',
     title: 'Polyglot',
@@ -1276,14 +1267,103 @@ export function getDeterministicHabit(username: string): string {
   return habits[Math.abs(hash) % habits.length];
 }
 
+export interface PopularRepo {
+  name: string;
+  description: string | null;
+  stargazerCount: number;
+  forkCount: number;
+  url: string;
+  primaryLanguage: { name: string; color: string } | null;
+}
+
+export async function fetchPinnedRepos(username: string): Promise<PopularRepo[]> {
+  const query = `
+    query($login: String!) {
+      user(login: $login) {
+        pinnedItems(first: 6, types: REPOSITORY) {
+          nodes {
+            ... on Repository {
+              name
+              description
+              stargazerCount
+              forkCount
+              url
+              primaryLanguage {
+                name
+                color
+              }
+            }
+          }
+        }
+      }
+    }
+  `;
+  try {
+    const res = await fetchWithRetry(GITHUB_GRAPHQL_URL, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ query, variables: { login: username } }),
+      cache: 'no-store',
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return (data?.data?.user?.pinnedItems?.nodes ?? []) as PopularRepo[];
+  } catch {
+    return [];
+  }
+}
+
+async function fetchPopularRepos(username: string): Promise<PopularRepo[]> {
+  const query = `
+    query($login: String!) {
+      user(login: $login) {
+        repositories(first: 6, orderBy: { field: STARGAZERS, direction: DESC }, ownerAffiliations: OWNER, isFork: false) {
+          nodes {
+            name
+            description
+            stargazerCount
+            forkCount
+            url
+            primaryLanguage {
+              name
+              color
+            }
+          }
+        }
+      }
+    }
+  `;
+  try {
+    const res = await fetchWithRetry(GITHUB_GRAPHQL_URL, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ query, variables: { login: username } }),
+      cache: 'no-store',
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return (data?.data?.user?.repositories?.nodes ?? []) as PopularRepo[];
+  } catch {
+    return [];
+  }
+}
+
 export async function getFullDashboardData(username: string, options: FetchOptions = {}) {
-  const [profileResult, reposResult, calendarResult, contributedReposResult] =
-    await Promise.allSettled([
-      fetchUserProfile(username, options),
-      fetchUserRepos(username, options),
-      fetchGitHubContributions(username, options),
-      fetchContributedRepos(username, options),
-    ]);
+  const [
+    profileResult,
+    reposResult,
+    calendarResult,
+    contributedReposResult,
+    popularReposResult,
+    pinnedReposResult,
+  ] = await Promise.allSettled([
+    fetchUserProfile(username, options),
+    fetchUserRepos(username, options),
+    fetchGitHubContributions(username, options),
+    fetchContributedRepos(username, options),
+    fetchPopularRepos(username),
+    fetchPinnedRepos(username),
+  ]);
 
   if (profileResult.status === 'rejected')
     throw new Error(`[GitHub API] Failed to fetch profile for user "${username}"`, {
@@ -1300,6 +1380,8 @@ export async function getFullDashboardData(username: string, options: FetchOptio
     calendarResult.status === 'fulfilled' ? (calendarResult.value.repoContributions ?? []) : [];
   const contributedRepos =
     contributedReposResult.status === 'fulfilled' ? contributedReposResult.value : [];
+  const popularRepos = popularReposResult.status === 'fulfilled' ? popularReposResult.value : [];
+  const pinnedRepos = pinnedReposResult.status === 'fulfilled' ? pinnedReposResult.value : [];
 
   const streakStats = calculateStreak(calendarData);
   const totalStars = reposData.reduce((acc, r) => acc + r.stargazers_count, 0);
@@ -1406,6 +1488,8 @@ export async function getFullDashboardData(username: string, options: FetchOptio
       streakStats.longestStreak
     ),
     commitClock,
+    popularRepos,
+    pinnedRepos,
     graphData: { nodes, links },
     lastSyncedAt: calendarData.lastSyncedAt,
   };
@@ -1473,9 +1557,6 @@ export async function getWrappedData(
   };
 }
 
-/**
- * Run tasks concurrently with a maximum limit on active promises.
- */
 export async function runCappedConcurrency<T, R>(
   items: T[],
   limit: number,
