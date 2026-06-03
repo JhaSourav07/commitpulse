@@ -8,7 +8,7 @@ describe('light theme', () => {
     expect(themes).toHaveProperty('light');
   });
 
-  it('has valid hexadecimal color strings for bg, text, and accent', () => {
+  it('has valid 6-digit hex color strings (without #) for bg, text, and accent', () => {
     const hexRegex = /^[0-9a-fA-F]{6}$/;
     const light = themes.light;
     expect(light).toBeDefined();
@@ -31,7 +31,8 @@ describe('light theme', () => {
       totalContributions: 100,
       todayDate: '2024-06-12',
     };
-    const mockCalendar = {
+    const mockCalendar: ContributionCalendar = {
+      totalContributions: 10,
       weeks: [
         {
           contributionDays: [
@@ -40,7 +41,7 @@ describe('light theme', () => {
           ],
         },
       ],
-    } as ContributionCalendar;
+    };
     const lightParams: BadgeParams = {
       user: 'testuser',
       bg: themes.light.bg,
