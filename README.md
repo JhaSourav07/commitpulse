@@ -191,6 +191,7 @@ URL Parameter > Theme Default > System Fallback
 | `shading`         | `boolean` | No         | `false`                        | Apply intensity-based opacity shading to tower faces so lower intensity levels appear slightly dimmer                                                                     |
 | `opacity`         | `number`  | No         | `1.0`                          | Global opacity scalar for all tower fill-opacity values (0.1–1.0). `opacity=0.5` = semi-transparent ghost look. `opacity=0.8` = faded, great on light backgrounds.        |
 | `gradient`        | `boolean` | No         | `false`                        | Opt-in to show volumetric gradients on the monolith floor                                                                                                                 |
+| `badges`          | `boolean` | No         | `false`                        | Render dynamic glowing milestone badges (e.g., 365-day streak, 1K+ commits) on the SVG                                                                                    |
 
 ### Grace Period Examples
 

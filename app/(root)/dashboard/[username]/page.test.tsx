@@ -104,6 +104,8 @@ describe('DashboardPage', () => {
     commitClock: [],
     graphData: { nodes: [], links: [] },
     lastSyncedAt: undefined,
+    popularRepos: [],
+    pinnedRepos: [],
   };
 
   beforeEach(() => {

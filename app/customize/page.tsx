@@ -290,7 +290,7 @@ function CustomizePageInner(): ReactElement {
       });
 
     return () => controller.abort();
-  }, [previewSrc, hasUsername, debouncedUsername]);
+  }, [previewSrc, hasUsername, debouncedUsername, trimmedUsername]);
 
   const exportSnippet = getExportSnippet(exportFormat, queryString);
 
