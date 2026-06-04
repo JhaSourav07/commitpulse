@@ -755,7 +755,7 @@ export default function LandingPage() {
                       </div>
                     </div>
                   )}
-                  <img
+                  <motion.img
                     key={badgeUrl}
                     data-testid="badge-img"
                     src={badgeUrl}
