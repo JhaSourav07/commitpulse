@@ -13,9 +13,7 @@ import type { StackAnalytics } from '@/types';
  * Future: could use date-based stack tracking for dynamic coloring
  */
 export function getStackTowerColor(
-  analytics: StackAnalytics,
-  _date?: string,
-  _contributionCount?: number
+  analytics: StackAnalytics
 ): string {
   // For MVP, all towers use the dominant stack's color
   return analytics.dominantStackColor;
