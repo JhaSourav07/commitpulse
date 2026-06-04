@@ -154,7 +154,7 @@ export default function ProfileOptimizerModal({
   if (!isOpen) return null;
 
   // Mocked Dynamic Data derived from userData
-  const overallScore = userData ? Math.min(100, 40 + (userData.profile.developerScore || 30)) : 72;
+  const overallScore = userData ? Math.min(100, 40 + (userData.profile?.developerScore || 30)) : 72;
   const grade =
     overallScore >= 90
       ? 'A+'

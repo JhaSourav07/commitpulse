@@ -1148,7 +1148,7 @@ export function generateWrappedSVG(
   aria-describedby="cp-desc-${safeId}"
 >
   <title id="cp-title-${safeId}">${safeUser}'s GitHub Wrapped ${year}</title>
-  <desc id="cp-desc-${safeId}">GitHub Wrapped stats for ${safeUser} in ${year}: ${stats.totalContributions} total contributions, top language is ${stats.topLanguage || 'Unknown'}, busiest month is ${stats.busiestMonth || 'Unknown'}.</desc>
+  <desc id="cp-desc-${safeId}">GitHub Wrapped stats for ${safeUser} in ${year}: ${stats.totalContributions} total contributions, top language is ${escapeXML(stats.topLanguage || 'Unknown')}, busiest month is ${escapeXML(stats.busiestMonth || 'Unknown')}.</desc>
   <defs>
     ${filterGlow}
   </defs>
@@ -1214,7 +1214,7 @@ export function generateWrappedSVG(
   <g transform="translate(210, 80)">
     <g transform="translate(0, 20)">
       <text x="0" y="0" class="grid-label" ${textClass}>TOP LANGUAGE</text>
-      <text x="0" y="20" class="grid-val" ${accentClass}>${stats.topLanguage || 'Unknown'}</text>
+      <text x="0" y="20" class="grid-val" ${accentClass}>${escapeXML(stats.topLanguage || 'Unknown')}</text>
     </g>
 
     <g transform="translate(130, 20)">
@@ -1233,14 +1233,14 @@ export function generateWrappedSVG(
     <text x="0" y="0" class="grid-label" ${textClass}>PEAK DAY</text>
     <text x="0" y="20" class="grid-val" ${textClass}>
       ${stats.highestDailyCount} COMMITS
-      <tspan font-size="10.5" font-weight="500" ${accentClass} opacity="0.8">ON ${formattedPeakDate.toUpperCase()}</tspan>
+      <tspan font-size="10.5" font-weight="500" ${accentClass} opacity="0.8">ON ${escapeXML(formattedPeakDate.toUpperCase())}</tspan>
     </text>
   </g>
 
   <g transform="translate(210, 205)">
     <text x="0" y="0" class="grid-label" ${textClass}>BUSIEST MONTH</text>
     <text x="0" y="20" class="grid-val" ${textClass}>
-      ${monthName}
+      ${escapeXML(monthName)}
       <tspan font-size="11" font-weight="500" ${accentClass}>🔥</tspan>
     </text>
   </g>

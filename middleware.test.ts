@@ -232,4 +232,9 @@ describe('middleware', () => {
   it('includes compare API matcher in middleware config', () => {
     expect(config.matcher).toContain('/api/compare/:path*');
   });
+
+  it('includes wrapped and student API matchers in middleware config', () => {
+    expect(config.matcher).toContain('/api/wrapped/:path*');
+    expect(config.matcher).toContain('/api/student/:path*');
+  });
 });

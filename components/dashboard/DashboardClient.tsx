@@ -26,7 +26,7 @@ import { useRouter } from 'next/navigation';
 import ProfileOptimizerModal from './ProfileOptimizerModal';
 import ResumeProfileSection from './ResumeProfileSection';
 import type { DashboardPeriod } from '@/utils/dashboardPeriod';
-import { PopularRepos } from './PopularRepos';
+import { PopularRepos } from './PopularPinnnedRepos';
 
 // Define the dashboard data structure
 interface DashboardData {

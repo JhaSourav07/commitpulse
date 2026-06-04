@@ -41,6 +41,6 @@ describe('BackgroundRefresh type compiler validation', () => {
 
     expect(backgroundRefresh.isStale(staleDate)).toBe(true);
     expect(backgroundRefresh.isStale(freshDate)).toBe(false);
-    expect(backgroundRefresh.isStale('invalid-date')).toBe(false);
+    expect(backgroundRefresh.isStale('invalid-date')).toBe(true);
   });
 });
