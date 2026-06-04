@@ -1,14 +1,23 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Copy } from 'lucide-react';
 
 export const REPO_URL = 'https://github.com/JhaSourav07/commitpulse';
 
 export default function CopyRepoButton() {
   const [copyState, setCopyState] = useState<'idle' | 'copied' | 'error'>('idle');
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, []);
 
   const handleCopy = async () => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+
     try {
       await navigator.clipboard.writeText(REPO_URL);
       setCopyState('copied');
@@ -16,7 +25,7 @@ export default function CopyRepoButton() {
       setCopyState('error');
     }
 
-    setTimeout(() => setCopyState('idle'), 2000);
+    timeoutRef.current = setTimeout(() => setCopyState('idle'), 2000);
   };
 
   return (
