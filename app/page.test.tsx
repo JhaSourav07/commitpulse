@@ -1,6 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable @next/next/no-img-element, jsx-a11y/alt-text */
+import React from 'react';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import LandingPage from './page';
@@ -26,14 +24,18 @@ vi.mock('@/components/DiscordButton', () => ({
 // rendered inline. The mock below keeps the import from erroring if any
 // other test file still imports it.
 vi.mock('next/image', () => ({
-  default: (props: any) => {
-    const { fill, ...rest } = props || {};
-    return <img {...rest} />;
+  default: (props: React.ImgHTMLAttributes<HTMLImageElement>) => {
+    const { fill: _fill, ...rest } = props;
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img {...rest} />
+    );
   },
 }));
 
 vi.mock('next/link', () => ({
-  default: ({ children, href, ...props }: any) => (
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  default: ({ children, href, ...props }: React.PropsWithChildren<{ href: string }> & React.AnchorHTMLAttributes<HTMLAnchorElement>) => (
     <a href={href} {...props} data-testid="next-link">
       {children}
     </a>
@@ -58,7 +60,7 @@ vi.mock('gsap', () => {
     to: vi.fn().mockReturnValue(tween),
     fromTo: vi.fn().mockReturnValue(tween),
     timeline: vi.fn().mockReturnValue(timeline),
-    context: vi.fn((_fn: any) => ({ revert: vi.fn() })),
+    context: vi.fn((_fn: () => void) => ({ revert: vi.fn() })),
   };
   return {
     default: mockGsap,
@@ -67,7 +69,7 @@ vi.mock('gsap', () => {
 });
 
 vi.mock('@gsap/react', () => ({
-  useGSAP: vi.fn((callback) => {
+  useGSAP: vi.fn((callback: () => void) => {
     // Optionally execute callback for coverage, or just do nothing
     if (typeof callback === 'function') {
       callback();
@@ -79,23 +81,26 @@ vi.mock('gsap/ScrollTrigger', () => ({
   ScrollTrigger: {},
 }));
 
+type MotionProps = Record<string, unknown>;
+
 // Mock framer-motion
 vi.mock('framer-motion', () => ({
+  /* eslint-disable @next/next/no-img-element, jsx-a11y/alt-text */
   motion: {
     div: ({
       children,
       className,
-      whileHover,
-      whileTap,
-      whileInView,
-      initial,
-      animate,
-      exit,
-      transition,
-      viewport,
-      layoutId,
+      whileHover: _whileHover,
+      whileTap: _whileTap,
+      whileInView: _whileInView,
+      initial: _initial,
+      animate: _animate,
+      exit: _exit,
+      transition: _transition,
+      viewport: _viewport,
+      layoutId: _layoutId,
       ...props
-    }: any) => (
+    }: { children?: React.ReactNode; className?: string } & MotionProps) => (
       <div className={className} data-testid="motion-div" {...props}>
         {children}
       </div>
@@ -103,17 +108,17 @@ vi.mock('framer-motion', () => ({
     p: ({
       children,
       className,
-      whileHover,
-      whileTap,
-      whileInView,
-      initial,
-      animate,
-      exit,
-      transition,
-      viewport,
-      layoutId,
+      whileHover: _whileHover,
+      whileTap: _whileTap,
+      whileInView: _whileInView,
+      initial: _initial,
+      animate: _animate,
+      exit: _exit,
+      transition: _transition,
+      viewport: _viewport,
+      layoutId: _layoutId,
       ...props
-    }: any) => (
+    }: { children?: React.ReactNode; className?: string } & MotionProps) => (
       <p className={className} data-testid="motion-p" {...props}>
         {children}
       </p>
@@ -122,38 +127,39 @@ vi.mock('framer-motion', () => ({
       children,
       className,
       href,
-      whileHover,
-      whileTap,
-      whileInView,
-      initial,
-      animate,
-      exit,
-      transition,
-      viewport,
-      layoutId,
+      whileHover: _whileHover,
+      whileTap: _whileTap,
+      whileInView: _whileInView,
+      initial: _initial,
+      animate: _animate,
+      exit: _exit,
+      transition: _transition,
+      viewport: _viewport,
+      layoutId: _layoutId,
       ...props
-    }: any) => (
+    }: { children?: React.ReactNode; className?: string; href?: string } & MotionProps) => (
       <a href={href} className={className} data-testid="motion-a" {...props}>
         {children}
       </a>
     ),
     img: ({
-      children,
+      children: _children,
       className,
       src,
       alt,
       onLoad,
       onError,
-      initial,
-      animate,
-      exit,
-      transition,
+      initial: _initial,
+      animate: _animate,
+      exit: _exit,
+      transition: _transition,
       ...props
-    }: any) => (
+    }: { className?: string; src?: string; alt?: string; onLoad?: React.ReactEventHandler<HTMLImageElement>; onError?: React.ReactEventHandler<HTMLImageElement> } & MotionProps) => (
       <img className={className} src={src} alt={alt} onLoad={onLoad} onError={onError} {...props} />
     ),
   },
-  AnimatePresence: ({ children }: any) => <>{children}</>,
+  /* eslint-enable @next/next/no-img-element, jsx-a11y/alt-text */
+  AnimatePresence: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
 }));
 
 const mockRecentSearches = {
