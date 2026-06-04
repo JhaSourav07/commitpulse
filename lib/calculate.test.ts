@@ -93,6 +93,50 @@ describe('calculateStreak', () => {
     expect(result.longestStreak).toBe(7);
     expect(result.totalContributions).toBe(14);
   });
+  it('verify streak formulas for multiple weeks gaps timeline (Variation 2)', () => {
+    // Streak 1: 5 days
+    // Gap: 14 days (2 full weeks)
+    // Streak 2: 9 days (current + longest)
+
+    const calendar = buildCalendar([
+      1,
+      1,
+      1,
+      1,
+      1, // Streak 1
+
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0, // Gap week 1
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0, // Gap week 2
+
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1, // Streak 2
+    ]);
+
+    const result = calculateStreak(calendar);
+
+    expect(result.currentStreak).toBe(9);
+    expect(result.longestStreak).toBe(9);
+    expect(result.totalContributions).toBe(14);
+  });
 
   it('counts an active streak when the last day has contributions', () => {
     // The last element represents "today" — committing today keeps the streak alive.
