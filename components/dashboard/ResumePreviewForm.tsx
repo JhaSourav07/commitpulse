@@ -99,6 +99,45 @@ export default function ResumePreviewForm({
     }));
   }
 
+  function updateProject(index: number, field: keyof Project, value: string | string[]) {
+    setData((prev) => {
+      const projects = prev.projects.map((project, i) =>
+        i === index ? { ...project, [field]: value } : project
+      );
+      return { ...prev, projects };
+    });
+  }
+
+  function updateProjectTechnologies(index: number, value: string) {
+    updateProject(
+      index,
+      'technologies',
+      value
+        .split(',')
+        .map((tech) => tech.trim())
+        .filter(Boolean)
+    );
+  }
+
+  function addCertification() {
+    setData((prev) => ({ ...prev, certifications: [...prev.certifications, ''] }));
+  }
+
+  function updateCertification(index: number, value: string) {
+    setData((prev) => {
+      const certifications = [...prev.certifications];
+      certifications[index] = value;
+      return { ...prev, certifications };
+    });
+  }
+
+  function removeCertification(index: number) {
+    setData((prev) => ({
+      ...prev,
+      certifications: prev.certifications.filter((_, i) => i !== index),
+    }));
+  }
+
   async function handleConfirm() {
     if (!data.name.trim() || !data.email.trim()) {
       toast.error('Name and email are required');
@@ -136,7 +175,7 @@ export default function ResumePreviewForm({
       animate={{ opacity: 1, y: 0 }}
       className="rounded-xl bg-white dark:bg-[#0a0a0a] border border-black/10 dark:border-[rgba(255,255,255,0.08)] p-6"
     >
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex items-start justify-between gap-4">
         <div>
           <h3 className="text-lg font-bold text-gray-900 dark:text-white">Review Parsed Data</h3>
           <p className="mt-1 text-xs text-gray-500 dark:text-white/50">
@@ -155,7 +194,7 @@ export default function ResumePreviewForm({
               type="text"
               value={data.name}
               onChange={(e) => updateField('name', e.target.value)}
-              className="w-full rounded-lg border border-black/10 bg-gray-50 px-3 py-2 text-sm text-gray-900 outline-none focus:ring-2 focus:ring-emerald-500 dark:border-[rgba(255,255,255,0.1)] dark:bg-[#111] dark:text-white"
+              className="w-full rounded-xl border border-black/10 bg-gray-50 px-4 py-3 text-sm text-gray-900 outline-none transition focus:ring-2 focus:ring-emerald-500 dark:border-[rgba(255,255,255,0.1)] dark:bg-[#111] dark:text-white"
             />
           </div>
           <div>
@@ -166,7 +205,18 @@ export default function ResumePreviewForm({
               type="email"
               value={data.email}
               onChange={(e) => updateField('email', e.target.value)}
-              className="w-full rounded-lg border border-black/10 bg-gray-50 px-3 py-2 text-sm text-gray-900 outline-none focus:ring-2 focus:ring-emerald-500 dark:border-[rgba(255,255,255,0.1)] dark:bg-[#111] dark:text-white"
+              className="w-full rounded-xl border border-black/10 bg-gray-50 px-4 py-3 text-sm text-gray-900 outline-none transition focus:ring-2 focus:ring-emerald-500 dark:border-[rgba(255,255,255,0.1)] dark:bg-[#111] dark:text-white"
+            />
+          </div>
+          <div className="sm:col-span-2">
+            <label className="mb-1.5 block text-xs font-semibold text-gray-600 dark:text-white/70">
+              Phone
+            </label>
+            <input
+              type="text"
+              value={data.phone}
+              onChange={(e) => updateField('phone', e.target.value)}
+              className="w-full rounded-xl border border-black/10 bg-gray-50 px-4 py-3 text-sm text-gray-900 outline-none transition focus:ring-2 focus:ring-emerald-500 dark:border-[rgba(255,255,255,0.1)] dark:bg-[#111] dark:text-white"
             />
           </div>
         </div>
@@ -176,24 +226,96 @@ export default function ResumePreviewForm({
             <label className="text-xs font-semibold text-gray-600 dark:text-white/70">Skills</label>
             <button
               onClick={addSkill}
-              className="flex items-center gap-1 text-xs font-medium text-emerald-600 hover:text-emerald-500 dark:text-emerald-400"
+              className="flex cursor-pointer items-center gap-1 text-xs font-medium text-emerald-600 hover:text-emerald-500 dark:text-emerald-400"
             >
               <Plus size={14} /> Add
             </button>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             {data.skills.map((skill, i) => (
               <div
                 key={i}
-                className="flex items-center gap-1 rounded-lg border border-black/10 bg-gray-50 px-2.5 py-1.5 dark:border-[rgba(255,255,255,0.1)] dark:bg-[#111]"
+                className="flex items-center gap-2 rounded-xl border border-black/10 bg-gray-50 px-3 py-2 dark:border-[rgba(255,255,255,0.1)] dark:bg-[#111]"
               >
                 <input
                   type="text"
                   value={skill}
                   onChange={(e) => updateSkill(i, e.target.value)}
-                  className="w-24 bg-transparent text-sm text-gray-900 outline-none dark:text-white"
+                  className="min-w-0 flex-1 bg-transparent text-sm text-gray-900 outline-none dark:text-white"
                 />
                 <button onClick={() => removeSkill(i)} className="text-red-400 hover:text-red-500">
+                  <X size={12} />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <label className="mb-2 block text-xs font-semibold text-gray-600 dark:text-white/70">
+            Projects
+          </label>
+          <div className="space-y-3">
+            {data.projects.map((project, i) => (
+              <div
+                key={i}
+                className="rounded-xl border border-black/10 bg-gray-50 p-4 dark:border-[rgba(255,255,255,0.1)] dark:bg-[#111]"
+              >
+                <input
+                  type="text"
+                  value={project.title}
+                  onChange={(e) => updateProject(i, 'title', e.target.value)}
+                  placeholder="Project title"
+                  className="mb-3 w-full rounded-xl border border-black/10 bg-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-emerald-500 dark:border-[rgba(255,255,255,0.1)] dark:bg-[#1a1a1a] dark:text-white"
+                />
+                <textarea
+                  value={project.description}
+                  onChange={(e) => updateProject(i, 'description', e.target.value)}
+                  rows={4}
+                  placeholder="Project description"
+                  className="mb-3 w-full rounded-xl border border-black/10 bg-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-emerald-500 dark:border-[rgba(255,255,255,0.1)] dark:bg-[#1a1a1a] dark:text-white"
+                />
+                <textarea
+                  value={project.technologies.join(', ')}
+                  onChange={(e) => updateProjectTechnologies(i, e.target.value)}
+                  rows={2}
+                  placeholder="Technologies, separated by commas"
+                  className="w-full rounded-xl border border-black/10 bg-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-emerald-500 dark:border-[rgba(255,255,255,0.1)] dark:bg-[#1a1a1a] dark:text-white"
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <div className="mb-2 flex items-center justify-between">
+            <label className="text-xs font-semibold text-gray-600 dark:text-white/70">
+              Certifications
+            </label>
+            <button
+              onClick={addCertification}
+              className="flex cursor-pointer items-center gap-1 text-xs font-medium text-emerald-600 hover:text-emerald-500 dark:text-emerald-400"
+            >
+              <Plus size={14} /> Add
+            </button>
+          </div>
+          <div className="grid grid-cols-1 gap-2">
+            {data.certifications.map((cert, i) => (
+              <div
+                key={i}
+                className="flex items-center gap-2 rounded-xl border border-black/10 bg-gray-50 px-3 py-2 dark:border-[rgba(255,255,255,0.1)] dark:bg-[#111]"
+              >
+                <input
+                  type="text"
+                  value={cert}
+                  onChange={(e) => updateCertification(i, e.target.value)}
+                  placeholder="Certification name"
+                  className="min-w-0 flex-1 bg-transparent text-sm text-gray-900 outline-none dark:text-white"
+                />
+                <button
+                  onClick={() => removeCertification(i)}
+                  className="text-red-400 hover:text-red-500"
+                >
                   <X size={12} />
                 </button>
               </div>
@@ -208,7 +330,7 @@ export default function ResumePreviewForm({
             </label>
             <button
               onClick={addEducation}
-              className="flex items-center gap-1 text-xs font-medium text-emerald-600 hover:text-emerald-500 dark:text-emerald-400"
+              className="flex cursor-pointer items-center gap-1 text-xs font-medium text-emerald-600 hover:text-emerald-500 dark:text-emerald-400"
             >
               <Plus size={14} /> Add
             </button>
@@ -217,7 +339,7 @@ export default function ResumePreviewForm({
             {data.education.map((edu, i) => (
               <div
                 key={i}
-                className="rounded-lg border border-black/10 bg-gray-50 p-3 dark:border-[rgba(255,255,255,0.1)] dark:bg-[#111]"
+                className="rounded-xl border border-black/10 bg-gray-50 p-4 dark:border-[rgba(255,255,255,0.1)] dark:bg-[#111]"
               >
                 <div className="mb-2 flex justify-end">
                   <button
@@ -233,21 +355,21 @@ export default function ResumePreviewForm({
                     placeholder="Institution"
                     value={edu.institution}
                     onChange={(e) => updateEducation(i, 'institution', e.target.value)}
-                    className="rounded-lg border border-black/10 bg-white px-2.5 py-1.5 text-sm outline-none focus:ring-2 focus:ring-emerald-500 dark:border-[rgba(255,255,255,0.1)] dark:bg-[#1a1a1a] dark:text-white"
+                    className="rounded-xl border border-black/10 bg-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-emerald-500 dark:border-[rgba(255,255,255,0.1)] dark:bg-[#1a1a1a] dark:text-white"
                   />
                   <input
                     type="text"
                     placeholder="Degree"
                     value={edu.degree}
                     onChange={(e) => updateEducation(i, 'degree', e.target.value)}
-                    className="rounded-lg border border-black/10 bg-white px-2.5 py-1.5 text-sm outline-none focus:ring-2 focus:ring-emerald-500 dark:border-[rgba(255,255,255,0.1)] dark:bg-[#1a1a1a] dark:text-white"
+                    className="rounded-xl border border-black/10 bg-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-emerald-500 dark:border-[rgba(255,255,255,0.1)] dark:bg-[#1a1a1a] dark:text-white"
                   />
                   <input
                     type="text"
                     placeholder="Field of Study"
                     value={edu.field}
                     onChange={(e) => updateEducation(i, 'field', e.target.value)}
-                    className="rounded-lg border border-black/10 bg-white px-2.5 py-1.5 text-sm outline-none focus:ring-2 focus:ring-emerald-500 dark:border-[rgba(255,255,255,0.1)] dark:bg-[#1a1a1a] dark:text-white"
+                    className="rounded-xl border border-black/10 bg-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-emerald-500 dark:border-[rgba(255,255,255,0.1)] dark:bg-[#1a1a1a] dark:text-white"
                   />
                   <div className="grid grid-cols-2 gap-2">
                     <input
@@ -255,14 +377,14 @@ export default function ResumePreviewForm({
                       placeholder="Start Year"
                       value={edu.startDate}
                       onChange={(e) => updateEducation(i, 'startDate', e.target.value)}
-                      className="rounded-lg border border-black/10 bg-white px-2.5 py-1.5 text-sm outline-none focus:ring-2 focus:ring-emerald-500 dark:border-[rgba(255,255,255,0.1)] dark:bg-[#1a1a1a] dark:text-white"
+                      className="rounded-xl border border-black/10 bg-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-emerald-500 dark:border-[rgba(255,255,255,0.1)] dark:bg-[#1a1a1a] dark:text-white"
                     />
                     <input
                       type="text"
                       placeholder="End Year"
                       value={edu.endDate}
                       onChange={(e) => updateEducation(i, 'endDate', e.target.value)}
-                      className="rounded-lg border border-black/10 bg-white px-2.5 py-1.5 text-sm outline-none focus:ring-2 focus:ring-emerald-500 dark:border-[rgba(255,255,255,0.1)] dark:bg-[#1a1a1a] dark:text-white"
+                      className="rounded-xl border border-black/10 bg-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-emerald-500 dark:border-[rgba(255,255,255,0.1)] dark:bg-[#1a1a1a] dark:text-white"
                     />
                   </div>
                 </div>
@@ -278,7 +400,7 @@ export default function ResumePreviewForm({
             </label>
             <button
               onClick={addExperience}
-              className="flex items-center gap-1 text-xs font-medium text-emerald-600 hover:text-emerald-500 dark:text-emerald-400"
+              className="flex cursor-pointer items-center gap-1 text-xs font-medium text-emerald-600 hover:text-emerald-500 dark:text-emerald-400"
             >
               <Plus size={14} /> Add
             </button>
@@ -287,7 +409,7 @@ export default function ResumePreviewForm({
             {data.experience.map((exp, i) => (
               <div
                 key={i}
-                className="rounded-lg border border-black/10 bg-gray-50 p-3 dark:border-[rgba(255,255,255,0.1)] dark:bg-[#111]"
+                className="rounded-xl border border-black/10 bg-gray-50 p-4 dark:border-[rgba(255,255,255,0.1)] dark:bg-[#111]"
               >
                 <div className="mb-2 flex justify-end">
                   <button
@@ -303,14 +425,14 @@ export default function ResumePreviewForm({
                     placeholder="Company"
                     value={exp.company}
                     onChange={(e) => updateExperience(i, 'company', e.target.value)}
-                    className="rounded-lg border border-black/10 bg-white px-2.5 py-1.5 text-sm outline-none focus:ring-2 focus:ring-emerald-500 dark:border-[rgba(255,255,255,0.1)] dark:bg-[#1a1a1a] dark:text-white"
+                    className="rounded-xl border border-black/10 bg-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-emerald-500 dark:border-[rgba(255,255,255,0.1)] dark:bg-[#1a1a1a] dark:text-white"
                   />
                   <input
                     type="text"
                     placeholder="Role"
                     value={exp.role}
                     onChange={(e) => updateExperience(i, 'role', e.target.value)}
-                    className="rounded-lg border border-black/10 bg-white px-2.5 py-1.5 text-sm outline-none focus:ring-2 focus:ring-emerald-500 dark:border-[rgba(255,255,255,0.1)] dark:bg-[#1a1a1a] dark:text-white"
+                    className="rounded-xl border border-black/10 bg-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-emerald-500 dark:border-[rgba(255,255,255,0.1)] dark:bg-[#1a1a1a] dark:text-white"
                   />
                   <div className="grid grid-cols-2 gap-2">
                     <input
@@ -318,14 +440,14 @@ export default function ResumePreviewForm({
                       placeholder="Start Year"
                       value={exp.startDate}
                       onChange={(e) => updateExperience(i, 'startDate', e.target.value)}
-                      className="rounded-lg border border-black/10 bg-white px-2.5 py-1.5 text-sm outline-none focus:ring-2 focus:ring-emerald-500 dark:border-[rgba(255,255,255,0.1)] dark:bg-[#1a1a1a] dark:text-white"
+                      className="rounded-xl border border-black/10 bg-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-emerald-500 dark:border-[rgba(255,255,255,0.1)] dark:bg-[#1a1a1a] dark:text-white"
                     />
                     <input
                       type="text"
                       placeholder="End Year"
                       value={exp.endDate}
                       onChange={(e) => updateExperience(i, 'endDate', e.target.value)}
-                      className="rounded-lg border border-black/10 bg-white px-2.5 py-1.5 text-sm outline-none focus:ring-2 focus:ring-emerald-500 dark:border-[rgba(255,255,255,0.1)] dark:bg-[#1a1a1a] dark:text-white"
+                      className="rounded-xl border border-black/10 bg-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-emerald-500 dark:border-[rgba(255,255,255,0.1)] dark:bg-[#1a1a1a] dark:text-white"
                     />
                   </div>
                   <div className="sm:col-span-2">
@@ -333,8 +455,8 @@ export default function ResumePreviewForm({
                       placeholder="Description"
                       value={exp.description}
                       onChange={(e) => updateExperience(i, 'description', e.target.value)}
-                      rows={2}
-                      className="w-full rounded-lg border border-black/10 bg-white px-2.5 py-1.5 text-sm outline-none focus:ring-2 focus:ring-emerald-500 dark:border-[rgba(255,255,255,0.1)] dark:bg-[#1a1a1a] dark:text-white"
+                      rows={4}
+                      className="w-full rounded-xl border border-black/10 bg-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-emerald-500 dark:border-[rgba(255,255,255,0.1)] dark:bg-[#1a1a1a] dark:text-white"
                     />
                   </div>
                 </div>
@@ -344,7 +466,7 @@ export default function ResumePreviewForm({
         </div>
       </div>
 
-      <div className="mt-6 flex items-center justify-between border-t border-black/10 pt-4 dark:border-[rgba(255,255,255,0.08)]">
+      <div className="mt-6 flex items-center justify-between gap-3 border-t border-black/10 pt-4 dark:border-[rgba(255,255,255,0.08)]">
         <button
           onClick={onBack}
           className="rounded-lg border border-black/10 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 dark:border-[rgba(255,255,255,0.15)] dark:text-white/70 dark:hover:bg-white/5"
@@ -354,7 +476,7 @@ export default function ResumePreviewForm({
         <button
           onClick={handleConfirm}
           disabled={isSaving}
-          className="flex items-center gap-2 rounded-lg bg-emerald-600 px-5 py-2 text-sm font-semibold text-white hover:bg-emerald-500 transition-colors disabled:opacity-50"
+          className="flex items-center gap-2 rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-emerald-500 disabled:opacity-50"
         >
           {isSaving ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
           {isSaving ? 'Saving...' : 'Save Profile'}

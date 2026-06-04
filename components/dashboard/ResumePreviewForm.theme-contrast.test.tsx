@@ -19,6 +19,8 @@ const parsed = {
   skills: ['React'],
   education: [],
   experience: [],
+  projects: [],
+  certifications: [],
 };
 
 describe('ResumePreviewForm - Theme Contrast & Visual Cohesion', () => {

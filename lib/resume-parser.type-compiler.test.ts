@@ -15,14 +15,16 @@ describe('Resume Parser Type Compiler Validation', () => {
   });
 
   it('validates ParsedResume structure', () => {
-    expectTypeOf<ParsedResume>().toMatchTypeOf({
+    expectTypeOf({
       name: '',
       email: '',
       phone: '',
       skills: [] as string[],
       education: [] as Education[],
       experience: [] as Experience[],
-    });
+      projects: [],
+      certifications: [],
+    }).toMatchTypeOf<ParsedResume>();
   });
 
   it('enforces allowed mime types array typing', () => {

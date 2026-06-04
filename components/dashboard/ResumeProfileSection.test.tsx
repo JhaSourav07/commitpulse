@@ -35,6 +35,8 @@ const parsedResume = {
   skills: ['React'],
   education: [],
   experience: [],
+  projects: [],
+  certifications: [],
 };
 
 vi.mock('./ResumeUpload', () => ({
