@@ -42,7 +42,7 @@ export async function GET(
     }
 
     // Step 4: Generate base SVG
-    const { stats, params: badgeParams, calendar } = githubData as any;
+    const { stats, params: badgeParams, calendar } = githubData as any; // eslint-disable-line @typescript-eslint/no-explicit-any
     const svgBody: string = generateSVG(stats, badgeParams, calendar);
 
     // Step 5: Inject legend if ?stack=true
@@ -60,8 +60,7 @@ export async function GET(
         "Cache-Control": "public, max-age=21600",
       },
     });
-
-  } catch (err: any) {
+  } catch (err: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
     console.error(`[/api/profile/${username}]`, err?.message ?? err);
     if (err?.message?.includes("Could not resolve to a User")) {
       return NextResponse.json({ error: `GitHub user "${username}" not found.` }, { status: 404 });
