@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
-import Link from 'next/link';
 
 import { CodeBlock } from './code-block';
 import { themes as themePalette } from '@/lib/svg/themes';
