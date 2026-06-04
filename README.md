@@ -448,7 +448,7 @@ npm install
 
 # 3. Create your environment file
 cat > .env.local << 'EOF'
-GITHUB_TOKEN=your_github_pat_here
+GITHUB_PAT=your_github_pat_here
 
 # Optional — enables user tracking (see below)
 # MONGODB_URI=mongodb+srv://...
@@ -545,7 +545,7 @@ Yes. CommitPulse minimizes API usage via caching and optimized GraphQL queries, 
 #### Troubleshooting Rate Limit Errors
 
 1. **Wait it out:** Rate limits automatically reset every hour.
-2. **Provide your own PAT:** If self-hosting, ensure you've provided a valid `GITHUB_TOKEN` in `.env.local` to get the authenticated rate limit.
+2. **Provide your own PAT:** If self-hosting, ensure you've provided a valid `GITHUB_PAT` in `.env.local` to get the authenticated rate limit (`GITHUB_TOKEN` is also accepted as a fallback).
 3. **Avoid aggressive bypassing:** Avoid repeatedly using the `&refresh=true` parameter, which bypasses the cache and consumes API quota on every load.
 4. **Check GitHub API Status:** Occasionally, GitHub's GraphQL API itself experiences degradation. Check [githubstatus.com](https://www.githubstatus.com/).
 
