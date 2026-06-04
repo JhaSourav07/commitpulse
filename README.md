@@ -16,22 +16,22 @@
 
 ## 📖 Table of Contents
 
-- [Design Philosophy](#the-isometric-monolith--design-philosophy)
-- [Live Demo](#live-demo)
-- [Deep Customization](#deep-customization--url-parameters)
+- [Design Philosophy](#️-the-isometric-monolith--design-philosophy)
+- [Live Demo](#-live-demo)
+- [Deep Customization](#-deep-customization--url-parameters)
   - [Parameter Reference](#parameter-reference)
   - [Grace Period Examples](#grace-period-examples)
   - [Theme Presets](#theme-presets)
-- [Theme Preview Gallery](#theme-preview-gallery)
-- [Real-Time Accuracy](#real-time-accuracy--the-contribution-count-problem)
-- [Architecture & Tech Stack](#architecture--tech-stack)
-- [Self-Hosting](#self-hosting-in-4-steps)
-- [Automated Contributor Workflow](#automated-contributor-workflow)
-- [FAQ](#faq)
-- [Contributing](#contributing)
-- [License](#license)
-- [Themes](#themes)
-- [Contributors](#contributors)
+- [Theme Preview Gallery](#-theme-preview-gallery)
+- [Real-Time Accuracy](#-real-time-accuracy--the-contribution-count-problem)
+- [Architecture & Tech Stack](#️-architecture--tech-stack)
+- [Self-Hosting](#-self-hosting-in-4-steps)
+- [Automated Contributor Workflow](#-automated-contributor-workflow)
+- [FAQ](#-faq)
+- [Contributing](#-contributing)
+- [License](#-license)
+- [Themes](#-themes)
+- [Contributors](#-contributors)
 
 ---
 
