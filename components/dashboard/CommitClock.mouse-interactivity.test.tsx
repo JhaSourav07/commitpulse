@@ -3,8 +3,15 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import '@testing-library/jest-dom';
 
+type TooltipProps = {
+  title: string;
+  x: number;
+  y: number;
+  children?: React.ReactNode;
+};
+
 vi.mock('./VisualizationTooltip', () => ({
-  default: ({ title, x, y, children }: any) => (
+  default: ({ title, x, y, children }: TooltipProps) => (
     <div data-testid="tooltip" data-x={x} data-y={y}>
       <div>{title}</div>
       {children}
@@ -16,17 +23,20 @@ vi.mock('./tooltipUtils', () => ({
   getContributionLabel: (commits: number) => `${commits} commits`,
 }));
 
-vi.mock('framer-motion', () => ({
-  motion: {
-    div: ({ children, ...props }: any) => (
-      <div {...props}>{children}</div>
-    ),
-    g: ({ children, ...props }: any) => (
-      <g {...props}>{children}</g>
-    ),
-  },
-  AnimatePresence: ({ children }: any) => <>{children}</>,
-}));
+vi.mock('./framer-motion', () => {
+  type MotionProps = {
+    children?: React.ReactNode;
+    [key: string]: unknown;
+  };
+
+  return {
+    motion: {
+      div: ({ children, ...props }: MotionProps) => <div {...props}>{children}</div>,
+      g: ({ children, ...props }: MotionProps) => <g {...props}>{children}</g>,
+    },
+    AnimatePresence: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  };
+});
 
 import CommitClock from './CommitClock';
 
@@ -142,4 +152,3 @@ describe('CommitClock mouse interactivity', () => {
     expect(screen.queryByTestId('tooltip')).not.toBeInTheDocument();
   });
 });
-
