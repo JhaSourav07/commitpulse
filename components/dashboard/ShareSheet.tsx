@@ -233,16 +233,22 @@ export default function ShareSheet({ username, isOpen, onClose, exportData }: Sh
     setTimeout(() => setToast((t) => (t?.id === id ? null : t)), 2400);
   }, []);
 
-  const handleLocalCopyLink = (e: React.MouseEvent) => {
+  const handleLocalCopyLink = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (inputRef.current) {
-      inputRef.current.select();
-      document.execCommand('copy');
-      setLinkCopied(true);
-      showToast('✓ Link copied');
-      setTimeout(() => setLinkCopied(false), 2200);
+
+    try {
+      await navigator.clipboard.writeText(profileUrl);
+    } catch {
+      if (inputRef.current) {
+        inputRef.current.select();
+        document.execCommand('copy');
+      }
     }
+
+    setLinkCopied(true);
+    showToast('✓ Link copied');
+    setTimeout(() => setLinkCopied(false), 2200);
   };
 
   const handleCopyQRAsImage = async (e: React.MouseEvent) => {
