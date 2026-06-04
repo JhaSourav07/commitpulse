@@ -874,16 +874,16 @@ export default function LandingPage() {
         {/* How It Works Section */}
         <section className="mx-auto mb-32 max-w-4xl py-12 border-t border-white/5 relative z-20">
           <div className="text-center mb-16">
-            <p className="text-xs font-bold uppercase tracking-[0.25em] bg-gradient-to-r from-emerald-400 to-cyan-500 bg-clip-text text-transparent mb-3">
+            <p className="text-xs font-bold uppercase tracking-[1.50rem] bg-gradient-to-r from-emerald-400 to-cyan-500 bg-clip-text text-transparent mb-3">
               Workflow
             </p>
             <h2
-              className="text-3xl md:text-5xl font-black tracking-tight text-white"
+              className="text-3xl md:text-5xl font-black tracking-tight text-black dark:text-white"
               style={{ fontFamily: '"Syncopate", sans-serif' }}
             >
               How it works
             </h2>
-            <p className="text-sm text-zinc-400 max-w-md mx-auto mt-4 leading-relaxed">
+            <p className="text-sm text-zinc-600 max-w-md mx-auto mt-4 leading-relaxed">
               Elevating your GitHub profile is a simple 3-step process. Here is how you construct
               your code monument.
             </p>
@@ -932,7 +932,7 @@ export default function LandingPage() {
                 >
                   {item.title}
                 </h4>
-                <p className="text-xs text-zinc-400 leading-relaxed">{item.desc}</p>
+                <p className="text-xs text-zinc-250 leading-relaxed">{item.desc}</p>
               </motion.div>
             ))}
           </div>

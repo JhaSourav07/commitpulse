@@ -27,7 +27,7 @@ const resourceLinks: FooterLink[] = [
     isExternal: true,
   },
   {
-    label: 'GitHub Repository',
+    label: 'Repository',
     href: 'https://github.com/JhaSourav07/commitpulse',
     isExternal: true,
   },
@@ -117,7 +117,7 @@ export function Footer() {
         {/* Main Footer Content */}
         <div className="grid grid-cols-2 gap-6 md:grid-cols-2 lg:grid-cols-4 mb-6">
           {/* Brand Section */}
-          <div className="flex flex-col items-center sm:items-start lg:col-span-1">
+          <div className="flex flex-col items-start lg:col-span-1">
             <h2 className="font-bold text-lg text-black dark:text-white">CommitPulse</h2>
             <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
               Designed for the elite builder community.
@@ -125,9 +125,9 @@ export function Footer() {
           </div>
 
           {/* Navigation Section */}
-          <div className="flex flex-col items-center sm:items-start">
+          <div className="flex flex-col items-start">
             <h3 className="font-semibold text-sm text-black dark:text-white mb-3">Navigation</h3>
-            <nav className="flex flex-col gap-2 text-center sm:text-left">
+            <nav className="flex flex-col gap-2">
               {navigationLinks.map((link) => (
                 <LinkComponent
                   key={link.href}
@@ -142,9 +142,9 @@ export function Footer() {
           </div>
 
           {/* Resources Section */}
-          <div className="flex flex-col items-center sm:items-start">
+          <div className="flex flex-col items-start">
             <h3 className="font-semibold text-sm text-black dark:text-white mb-3">Resources</h3>
-            <nav className="flex flex-col gap-2 text-center sm:text-left">
+            <nav className="flex flex-col gap-2">
               {resourceLinks.map((link) => (
                 <LinkComponent
                   key={link.href}
@@ -159,7 +159,7 @@ export function Footer() {
           </div>
 
           {/* Connect Section */}
-          <div className="flex flex-col items-center sm:items-start">
+          <div className="flex flex-col items-start">
             <h3 className="font-semibold text-sm text-black dark:text-white mb-3">Connect</h3>
             <div className="flex flex-col gap-2">
               {socialLinks.map((link) => (
