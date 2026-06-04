@@ -147,7 +147,7 @@ export function computeTowers(
       const isGhost = !hasCommits && shouldShowGhostCity;
       const isTodayWithCommits = isToday && hasCommits;
 
-      const unit = mode === 'loc' ? 'lines of code' : 'contributions';
+      const unit = mode === 'loc' ? 'est. lines of code' : 'contributions';
       const tooltip = isToday
         ? `TODAY: ${day.date}: ${count} ${unit}`
         : `${day.date}: ${count} ${unit}`;

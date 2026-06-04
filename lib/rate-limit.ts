@@ -48,17 +48,8 @@ export class RateLimiter {
    * }
    */
   async check(ip: string): Promise<boolean> {
-    if (this.allowlist.has(ip)) return true;
-    if (this.blocklist.has(ip)) return false;
-    const record = await this.cache.get(ip);
-    const count = record?.count ?? 0;
-    if (count >= this.limit) return false;
-    if (!record) {
-      await this.cache.set(ip, { count: 1, resetAt: Date.now() + this.windowMs }, this.windowMs);
-    } else {
-      await this.cache.update(ip, { count: count + 1, resetAt: record.resetAt });
-    }
-    return true;
+    const result = await this.checkWithResult(ip);
+    return result.success;
   }
 
   async checkWithResult(ip: string): Promise<RateLimitResult> {
@@ -73,6 +64,38 @@ export class RateLimiter {
       return { success: false, limit: this.limit, remaining: 0, reset: Date.now() + this.windowMs };
 
     const now = Date.now();
+    const url = process.env.KV_REST_API_URL;
+    const token = process.env.KV_REST_API_TOKEN;
+
+    if (url && token) {
+      try {
+        const res = await fetch(`${url}/pipeline`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify([
+            ['INCR', `ratelimit_class:${ip}`],
+            ['EXPIRE', `ratelimit_class:${ip}`, Math.floor(this.windowMs / 1000), 'NX'],
+          ]),
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          const count = data[0].result as number;
+          return {
+            success: count <= this.limit,
+            limit: this.limit,
+            remaining: Math.max(0, this.limit - count),
+            reset: now + this.windowMs,
+          };
+        }
+      } catch (error) {
+        console.error('RateLimiter KV error, falling back to memory:', error);
+      }
+    }
+
     const record = await this.cache.get(ip);
     const count = record?.count ?? 0;
 
@@ -196,6 +219,40 @@ export async function rateLimit(
   windowMs: number = 60000
 ): Promise<RateLimitResult> {
   const now = Date.now();
+  const url = process.env.KV_REST_API_URL;
+  const token = process.env.KV_REST_API_TOKEN;
+
+  // Use Upstash Redis if configured
+  if (url && token) {
+    try {
+      const res = await fetch(`${url}/pipeline`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify([
+          ['INCR', `ratelimit:${ip}`],
+          ['EXPIRE', `ratelimit:${ip}`, Math.floor(windowMs / 1000), 'NX'],
+        ]),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        const count = data[0].result as number;
+        return {
+          success: count <= limit,
+          limit,
+          remaining: Math.max(0, limit - count),
+          reset: now + windowMs, // Approximated for simplicity
+        };
+      }
+    } catch (error) {
+      console.error('Rate limit KV error, falling back to memory:', error);
+    }
+  }
+
+  // Fallback to local in-memory cache
   const tracker = await trackers.get(ip);
 
   if (!tracker) {

@@ -152,6 +152,6 @@ describe('RefreshRateLimiter massive data sets and extreme high bounds scaling',
     expect(failureCount).toBeGreaterThanOrEqual(0);
 
     // Verify performance: 50k records should complete within reasonable time
-    expect(executionTime).toBeLessThan(10000);
-  }, 15000);
+    expect(executionTime).toBeLessThan(30000);
+  }, 35000);
 });

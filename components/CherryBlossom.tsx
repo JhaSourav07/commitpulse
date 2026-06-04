@@ -17,7 +17,7 @@ const generatePetals = (count: number) => {
   }));
 };
 
-interface Petal {
+export interface Petal {
   id: number;
   x: number;
   y: number;

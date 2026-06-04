@@ -22,3 +22,25 @@ describe('fonts.resolveFont', () => {
     expect(resolveFont(';;;')).toBeNull();
   });
 });
+
+import { isPredefinedFontKey } from './fonts';
+
+describe('fonts.isPredefinedFontKey', () => {
+  it('returns true for known FONT_MAP keys (case-insensitive)', () => {
+    expect(isPredefinedFontKey('jetbrains')).toBe(true);
+    expect(isPredefinedFontKey('JetBrains')).toBe(true);
+    expect(isPredefinedFontKey('fira')).toBe(true);
+    expect(isPredefinedFontKey('ROBOTO')).toBe(true);
+  });
+
+  it('returns false for custom or unknown fonts', () => {
+    expect(isPredefinedFontKey('Inter')).toBe(false);
+    expect(isPredefinedFontKey('Space Mono')).toBe(false);
+  });
+
+  it('returns false for null/undefined/empty', () => {
+    expect(isPredefinedFontKey(undefined)).toBe(false);
+    expect(isPredefinedFontKey(null)).toBe(false);
+    expect(isPredefinedFontKey('')).toBe(false);
+  });
+});

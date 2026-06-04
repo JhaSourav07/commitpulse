@@ -397,6 +397,25 @@ type ParseResult = ReturnType<typeof streakParamsSchema.safeParse>;
 
 function buildErrorResponse(error: unknown, parseResult: ParseResult): NextResponse {
   const message = error instanceof Error ? error.message : String(error);
+  function buildInlineErrorSVG(text: string): string {
+    const MAX_LINE = 48;
+    const truncated = text.length > MAX_LINE * 2 ? text.slice(0, MAX_LINE * 2 - 1) + '…' : text;
+
+    const line1 = escapeSVGText(truncated.slice(0, MAX_LINE));
+    const line2 = truncated.length > MAX_LINE ? escapeSVGText(truncated.slice(MAX_LINE)) : null;
+
+    const textY = line2 ? '62' : '75';
+
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="150" viewBox="0 0 400 150">
+      <rect width="400" height="150" fill="#2d0000" rx="8"/>
+      <text x="200" y="${textY}" text-anchor="middle" dominant-baseline="central" fill="#ffcccc" font-family="sans-serif" font-size="13">${line1}</text>${
+        line2
+          ? `
+      <text x="200" y="91" text-anchor="middle" dominant-baseline="central" fill="#ffcccc" font-family="sans-serif" font-size="13">${line2}</text>`
+          : ''
+      }
+    </svg>`;
+  }
 
   const isNotFound =
     message.toLowerCase().includes('not found') ||
@@ -459,14 +478,7 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
 
   // 3. Return a 400 Bad Request for Validation Errors
   if (isValidationError) {
-    const validationSvg = `
-      <svg xmlns="http://www.w3.org/2000/svg" width="400" height="150">
-        <rect width="100%" height="100%" fill="#2d0000" rx="8"/>
-        <text x="50%" y="50%" text-anchor="middle" fill="#ffcccc" font-family="sans-serif">
-          ${escapeSVGText(message)}
-        </text>
-      </svg>
-    `;
+    const validationSvg = buildInlineErrorSVG(message);
 
     return new NextResponse(validationSvg, {
       status: 400,
@@ -481,14 +493,7 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
   // 4. Return a 500 Internal Server Error for real crashes
   console.error('[streak] Unhandled error:', message);
 
-  const errorSvg = `
-      <svg xmlns="http://www.w3.org/2000/svg" width="400" height="150">
-        <rect width="100%" height="100%" fill="#2d0000" rx="8"/>
-        <text x="50%" y="50%" text-anchor="middle" fill="#ffcccc" font-family="sans-serif">
-          Something went wrong. Please try again later.
-        </text>
-      </svg>
-    `;
+  const errorSvg = buildInlineErrorSVG('Something went wrong. Please try again later.');
 
   return new NextResponse(errorSvg, {
     status: 500,
