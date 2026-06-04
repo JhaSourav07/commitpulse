@@ -1,60 +1,46 @@
-import { describe, it, expect } from 'vitest';
-import { TrackUserProtection } from './track-user-protection';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { trackUserProtection } from './track-user-protection';
+import { gitHubUserValidator } from '../github/validate-user';
 
-describe('TrackUserProtection Responsive Breakpoints', () => {
-  it('reflows multi-column layouts into a vertical stack on mobile widths', () => {
-    const tracker = TrackUserProtection.getInstance();
-    const layout = {
-      viewportWidth: 375,
-      flexDirection: 'column',
-    };
+vi.mock('../github/validate-user', () => ({
+  gitHubUserValidator: {
+    validateUser: vi.fn(),
+  },
+}));
 
-    expect(tracker).toBeDefined();
-    expect(layout.viewportWidth).toBeLessThan(768);
-    expect(layout.flexDirection).toBe('column');
+describe('TrackUserProtection Service Logic', () => {
+  beforeEach(() => {
+    trackUserProtection.reset();
+    vi.clearAllMocks();
   });
 
-  it('avoids fixed widths that could create horizontal scrolling', () => {
-    const container = {
-      width: '100%',
-      maxWidth: '100%',
-      overflowX: 'hidden',
-    };
-
-    expect(container.width).toBe('100%');
-    expect(container.maxWidth).toBe('100%');
-    expect(container.overflowX).toBe('hidden');
+  it('accepts valid GitHub usernames', () => {
+    expect(trackUserProtection.validateFormat('octocat')).toBe(true);
+    expect(trackUserProtection.validateFormat('test-user')).toBe(true);
   });
 
-  it('scales navigation controls appropriately for smaller viewports', () => {
-    const navigation = {
-      mobile: true,
-      iconSize: 20,
-    };
-
-    expect(navigation.mobile).toBe(true);
-    expect(navigation.iconSize).toBeLessThanOrEqual(24);
+  it('rejects invalid GitHub usernames', () => {
+    expect(trackUserProtection.validateFormat('-octocat')).toBe(false);
+    expect(trackUserProtection.validateFormat('octocat-')).toBe(false);
   });
 
-  it('handles mobile toggle state transitions correctly', () => {
-    const toggle = { expanded: false };
-
-    toggle.expanded = true;
-    expect(toggle.expanded).toBe(true);
-
-    toggle.expanded = false;
-    expect(toggle.expanded).toBe(false);
+  it('blocks writes during cooldown period', () => {
+    trackUserProtection.recordWrite('octocat');
+    expect(trackUserProtection.isWriteAllowed('octocat')).toBe(false);
   });
 
-  it('maintains readable responsive column configuration across devices', () => {
-    const columns = {
-      desktop: 3,
-      tablet: 2,
-      mobile: 1,
-    };
+  it('reset clears cooldown state', () => {
+    trackUserProtection.recordWrite('octocat');
+    trackUserProtection.reset();
 
-    expect(columns.desktop).toBeGreaterThan(columns.tablet);
-    expect(columns.tablet).toBeGreaterThan(columns.mobile);
-    expect(columns.mobile).toBe(1);
+    expect(trackUserProtection.isWriteAllowed('octocat')).toBe(true);
+  });
+
+  it('returns allowed true for valid existing user', async () => {
+    vi.mocked(gitHubUserValidator.validateUser).mockResolvedValue(true);
+
+    const result = await trackUserProtection.verifyAndDeduplicate('octocat');
+
+    expect(result).toEqual({ allowed: true });
   });
 });
