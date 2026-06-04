@@ -652,6 +652,13 @@ export default function LandingPage() {
                           <span className="w-1 h-1 rounded-full bg-emerald-400 animate-ping" />
                           Verified Profile
                         </span>
+                        <Link
+                          href={`/wrapped/${userDetails.login}`}
+                          className="text-[10px] bg-white/10 hover:bg-white/20 text-white font-bold py-1 px-3 rounded-lg transition-colors flex items-center gap-1.5 ml-2"
+                        >
+                          <Flame size={12} className="text-orange-500" />
+                          View Wrapped
+                        </Link>
                       </motion.div>
                     ) : null}
                   </AnimatePresence>
