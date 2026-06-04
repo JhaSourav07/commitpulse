@@ -21,7 +21,10 @@ export default function ResumePreviewForm({
   onBack,
   onComplete,
 }: ResumePreviewFormProps) {
-  const [data, setData] = useState<ParsedResume>(initialParsed);
+  const [data, setData] = useState<ParsedResume>({
+    ...initialParsed,
+    name: '',
+  });
   const [isSaving, setIsSaving] = useState(false);
 
   function updateField<K extends keyof ParsedResume>(key: K, value: ParsedResume[K]) {
