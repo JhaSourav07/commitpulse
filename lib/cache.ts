@@ -146,10 +146,17 @@ export class TTLCache<T> {
    * @returns `true` if the entry existed and was updated, `false` if missing or expired.
    */
   update(key: string, value: T): boolean {
-    TTLCache.assertValidKey(key);
-
     const hit = this.store.get(key);
-    if (!hit || Date.now() > hit.expiresAt) return false;
+
+    if (!hit) {
+      return false;
+    }
+
+    if (Date.now() > hit.expiresAt) {
+      this.store.delete(key);
+      return false;
+    }
+
     hit.value = value;
     return true;
   }
@@ -340,11 +347,10 @@ export class DistributedCache<T> {
   }
 
   async update(key: string, value: T): Promise<boolean> {
-    const updated = this.localCache.update(key, value);
-    if (!updated) return false;
+    this.localCache.update(key, value);
 
     if (!this.useRedis) {
-      return true;
+      return this.localCache.has(key);
     }
 
     try {
@@ -354,16 +360,17 @@ export class DistributedCache<T> {
           Authorization: `Bearer ${this.redisToken}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(['SET', key, JSON.stringify(value), 'KEEPTTL']),
+        body: JSON.stringify(['SET', key, JSON.stringify(value), 'KEEPTTL', 'XX']),
       });
 
       if (!res.ok) {
         throw new Error(`Redis HTTP error: ${res.status}`);
       }
-      return true;
+      const data = await res.json();
+      return data.result === 'OK';
     } catch (err) {
       console.error(`[DistributedCache] UPDATE failed for key "${key}":`, err);
-      return true;
+      return false;
     }
   }
 
@@ -437,13 +444,19 @@ return c`;
   }
 
   /**
-   * Gets a value from the cache, or executes the load function if missing or stale.
-   * Employs both an in-memory Promise lock (L1) and a Redis Mutex (L2) to prevent Cache Stampedes.
+   * Returns cached data when available, otherwise loads and stores fresh data.
+   *
+   * Uses a two-layer coordination strategy to reduce cache stampedes:
+   * 1. Local Promise deduplication (L1) prevents duplicate fetches within the same instance.
+   * 2. Redis mutex locking (L2) prevents duplicate fetches across distributed instances.
+   *
+   * `loadFn` receives the current cached value (or null) so callers can implement
+   * stale refresh logic when needed.
    *
    * @param key - Cache key.
-   * @param loadFn - Async function to fetch the data. Receives the stale cached value if one exists.
-   * @param ttlMs - Time to live in milliseconds.
-   * @param shouldFetch - Optional predicate to force fetching even if a cache value exists (e.g. for stale delta sync).
+   * @param loadFn - Async function used to load fresh data.
+   * @param ttlMs - Cache expiration time in milliseconds.
+   * @param shouldFetch - Optional predicate that forces refresh even on cache hits.
    */
   async getOrSet(
     key: string,
@@ -451,15 +464,15 @@ return c`;
     ttlMs: number,
     shouldFetch?: (cached: T) => boolean
   ): Promise<T> {
-    // 1. L1 & L2 Cache Check
+    // Attempt to retrieve an existing value before triggering a refresh.
     const cached = await this.get(key);
 
-    // If we have a cache hit and we don't need to force a refresh, return it early.
     if (cached !== null && (!shouldFetch || !shouldFetch(cached))) {
       return cached;
     }
 
-    // 2. L1 Promise Deduping (Local Lock)
+    // Join an existing in-flight request instead of creating duplicate fetches
+    // within the same runtime instance.
     const pendingLocal = this.localLocks.get(key);
     if (pendingLocal) return pendingLocal;
 
@@ -478,7 +491,8 @@ return c`;
 
       while (Date.now() - start < maxPollTime) {
         try {
-          // Attempt to acquire Redis Mutex
+          // NX: acquire only if lock doesn't already exist.
+          // PX 10000: auto-expire lock after 10 seconds to avoid deadlocks.
           const lockRes = await fetch(`${this.redisUrl}/`, {
             method: 'POST',
             headers: {
@@ -491,12 +505,12 @@ return c`;
           if (lockRes.ok) {
             const lockData = await lockRes.json();
             if (lockData.result === 'OK') {
-              // Lock acquired! Execute loadFn.
               try {
                 const freshData = await loadFn(cached);
                 await this.set(key, freshData, ttlMs);
 
-                // Release lock early
+                // Release immediately after caching data instead of waiting
+                // for lock expiration so other instances can continue sooner.
                 await fetch(`${this.redisUrl}/`, {
                   method: 'POST',
                   headers: {
@@ -508,7 +522,8 @@ return c`;
 
                 return freshData;
               } catch (err) {
-                // Release lock on error so others can retry
+                // Remove lock even on failure so other instances don't wait
+                // for the full lock timeout period.
                 await fetch(`${this.redisUrl}/`, {
                   method: 'POST',
                   headers: {
@@ -529,10 +544,11 @@ return c`;
           return fallbackData;
         }
 
-        // Lock not acquired. Wait and poll L2 cache.
+        // Wait briefly before checking whether another instance populated the cache.
         await new Promise((resolve) => setTimeout(resolve, pollInterval));
         const doubleCheck = await this.get(key);
-        // If doubleCheck satisfies the condition, return it
+
+        // Another instance may have already populated the cache while waiting.
         if (doubleCheck !== null && (!shouldFetch || !shouldFetch(doubleCheck))) {
           return doubleCheck;
         }
@@ -544,10 +560,11 @@ return c`;
       return finalFallback;
     };
 
-    // Execute with local Promise lock
+    // Ensure local lock cleanup even if request execution fails.
     const promise = executeAndLock().finally(() => {
       this.localLocks.delete(key);
     });
+
     this.localLocks.set(key, promise);
 
     return promise;

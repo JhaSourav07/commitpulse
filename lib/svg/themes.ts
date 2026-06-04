@@ -15,7 +15,7 @@ export const themes: Record<string, BadgeTheme> = {
   dark: makeTheme('0d1117', 'c9d1d9', '58a6ff', 'f85149'),
   light: makeTheme('ffffff', '24292f', '0969da', 'cf222e'),
   neon: makeTheme('000000', '00ffcc', 'ff00ff', 'ff0055'),
-  github: makeTheme('0d1117', 'ffffff', '39d353', 'f85149'),
+  github: makeTheme('0d1117', 'ffffff', '238636', 'f85149'),
   dracula: makeTheme('282a36', 'f8f8f2', 'bd93f9', 'ff5555'),
   ocean: makeTheme('0a192f', 'ccd6f6', '64ffda', 'ff6b6b'),
   sunset: makeTheme('1a0a0a', 'ffd6c0', 'ff6b35', 'ff4d4d'),
@@ -34,6 +34,8 @@ export const themes: Record<string, BadgeTheme> = {
   'cyber-pulse': makeTheme('000000', 'ffffff', '00ffee', 'ff0055'),
   glacier: makeTheme('e0f2fe', '0369a1', '06b6d4', 'ef4444'),
   lumos: makeTheme('0a0a0a', 'a7f3d0', 'fbbf24', 'ef4444'),
+  tokyonight: makeTheme('1a1b26', 'c0caf5', 'f7768e'),
+  cyberpunk: makeTheme('fce22a', '111111', 'ff003c'),
 };
 
 // Auto-theme pairs: the SVG switches between these two palettes

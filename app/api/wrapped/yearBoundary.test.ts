@@ -24,6 +24,7 @@ const mockCalendar: ContributionCalendar = {
 };
 
 const mockWrappedStats: WrappedStats = {
+  calendar: mockCalendar,
   totalContributions: 1420,
   mostActiveDate: '2023-11-20',
   highestDailyCount: 42,
@@ -72,11 +73,6 @@ describe('yearBoundary constraints', () => {
     expect(response.status).toBe(200);
 
     expect(getWrappedData).toHaveBeenCalledWith('octocat', '2023', { bypassCache: false });
-    expect(fetchGitHubContributions).toHaveBeenCalledWith('octocat', {
-      from: '2023-01-01T00:00:00Z',
-      to: '2023-12-31T23:59:59Z',
-      bypassCache: false,
-    });
   });
 
   it('Computed Stats Metrics: Verifies peak commits and weekend ratio render in the SVG output', async () => {

@@ -99,27 +99,57 @@ export async function GET(request: Request) {
       glow,
       format,
       days,
+      badges,
     } = parseResult.data;
     const normalizedView = view as 'default' | 'monthly' | 'heatmap' | 'pulse';
     const themeName = theme || 'dark';
-    const from = customFrom
-      ? new Date(customFrom).toISOString()
-      : year
-        ? `${year}-01-01T00:00:00Z`
-        : undefined;
-    const to = customTo
-      ? new Date(customTo).toISOString()
-      : year
-        ? `${year}-12-31T23:59:59Z`
-        : undefined;
-    const currentYear = new Date().getUTCFullYear();
-    const isHistoricalYear = !!year && Number(year) < currentYear;
 
     let timezone = 'UTC';
     if (tzParam) {
       timezone = new Intl.DateTimeFormat(undefined, { timeZone: tzParam }).resolvedOptions()
         .timeZone;
     }
+
+    let from = customFrom
+      ? new Date(customFrom).toISOString()
+      : year
+        ? `${year}-01-01T00:00:00Z`
+        : undefined;
+    let to = customTo
+      ? new Date(customTo).toISOString()
+      : year
+        ? `${year}-12-31T23:59:59Z`
+        : undefined;
+
+    if (normalizedView === 'monthly') {
+      const referenceDate = getMonthlyReferenceDate(year, timezone) || new Date();
+      const localTodayStr = new Intl.DateTimeFormat('en-CA', { timeZone: timezone }).format(
+        referenceDate
+      );
+      const [currentYearStr, currentMonthStr] = localTodayStr.split('-');
+      const currentYearNum = parseInt(currentYearStr, 10);
+      const currentMonthNum = parseInt(currentMonthStr, 10);
+
+      let prevMonth = currentMonthNum - 1;
+      let prevYear = currentYearNum;
+      if (prevMonth === 0) {
+        prevMonth = 12;
+        prevYear -= 1;
+      }
+
+      const calculatedFromStr = `${prevYear}-${prevMonth.toString().padStart(2, '0')}-01T00:00:00Z`;
+      if (!from || new Date(from) > new Date(calculatedFromStr)) {
+        from = calculatedFromStr;
+      }
+
+      const referenceISO = referenceDate.toISOString();
+      if (!to || new Date(to) < new Date(referenceISO)) {
+        to = referenceISO;
+      }
+    }
+
+    const currentYear = new Date().getUTCFullYear();
+    const isHistoricalYear = !!year && Number(year) < currentYear;
 
     const isAutoTheme = themeName === 'auto';
     const isRandomTheme = themeName === 'random';
@@ -167,7 +197,12 @@ export async function GET(request: Request) {
       width,
       height,
       size,
-      grace,
+
+      grace: Math.max(
+        0,
+        Math.min(7, typeof grace === 'number' ? grace : parseInt(String(grace || 1), 10))
+      ),
+
       mode,
       repo,
       org,
@@ -178,10 +213,16 @@ export async function GET(request: Request) {
       gradient,
       gradient_stops,
       gradient_dir,
-      opacity,
+
+      opacity: Math.max(
+        0.1,
+        Math.min(1.0, typeof opacity === 'number' ? opacity : parseFloat(String(opacity || 1.0)))
+      ),
+
       disable_particles,
       glow,
       animate,
+      badges,
     };
 
     let calendar;
@@ -254,7 +295,7 @@ export async function GET(request: Request) {
       }
     }
 
-    if (days) {
+    if (days && normalizedView !== 'monthly') {
       const allDays = calendar.weeks.flatMap((w) => w.contributionDays);
 
       const filteredDays = allDays.slice(-days);

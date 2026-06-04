@@ -1,6 +1,6 @@
 # CommitPulse Themes
 
-All 20 available themes for your CommitPulse badge. Use the `?theme=<slug>` query parameter to apply a theme.
+All 26 available themes for your CommitPulse badge. Use the `?theme=<slug>` query parameter to apply a theme.
 
 ```
 https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&theme=<slug>
@@ -32,6 +32,10 @@ https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&theme=<slug>
 | nord_light       | `#eceff4`  | `#2e3440` | `#5e81ac` |
 | obsidian         | `#1a1a2e`  | `#e2e8f0` | `#f59e0b` |
 | cyber-pulse      | `#000000`  | `#ffffff` | `#00ffee` |
+| tokyonight       | `#1a1b26`  | `#c0caf5` | `#f7768e` |
+| cyberpunk        | `#fce22a`  | `#111111` | `#ff003c` |
+| glacier          | `#e0f2fe`  | `#0369a1` | `#06b6d4` |
+| lumos            | `#0a0a0a`  | `#a7f3d0` | `#fbbf24` |
 
 ---
 
@@ -274,6 +278,54 @@ https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&theme=<slug>
 | `bg`      | 1a1a2e |
 | `text`    | e2e8f0 |
 | `accent`  | f59e0b |
+
+---
+
+### Tokyo Night
+
+![tokyonight](https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=tokyonight)
+
+| Parameter | Value  |
+| --------- | ------ |
+| `bg`      | 1a1b26 |
+| `text`    | c0caf5 |
+| `accent`  | f7768e |
+
+---
+
+### Cyberpunk
+
+![cyberpunk](https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=cyberpunk)
+
+| Parameter | Value  |
+| --------- | ------ |
+| `bg`      | fce22a |
+| `text`    | 111111 |
+| `accent`  | ff003c |
+
+---
+
+### Glacier
+
+![glacier](https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=glacier)
+
+| Parameter | Value  |
+| --------- | ------ |
+| `bg`      | e0f2fe |
+| `text`    | 0369a1 |
+| `accent`  | 06b6d4 |
+
+---
+
+### Lumos
+
+![lumos](https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=lumos)
+
+| Parameter | Value  |
+| --------- | ------ |
+| `bg`      | 0a0a0a |
+| `text`    | a7f3d0 |
+| `accent`  | fbbf24 |
 
 ---
 

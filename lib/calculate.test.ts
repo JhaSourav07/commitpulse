@@ -93,6 +93,50 @@ describe('calculateStreak', () => {
     expect(result.longestStreak).toBe(7);
     expect(result.totalContributions).toBe(14);
   });
+  it('verify streak formulas for multiple weeks gaps timeline (Variation 2)', () => {
+    // Streak 1: 5 days
+    // Gap: 14 days (2 full weeks)
+    // Streak 2: 9 days (current + longest)
+
+    const calendar = buildCalendar([
+      1,
+      1,
+      1,
+      1,
+      1, // Streak 1
+
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0, // Gap week 1
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0, // Gap week 2
+
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1, // Streak 2
+    ]);
+
+    const result = calculateStreak(calendar);
+
+    expect(result.currentStreak).toBe(9);
+    expect(result.longestStreak).toBe(9);
+    expect(result.totalContributions).toBe(14);
+  });
 
   it('counts an active streak when the last day has contributions', () => {
     // The last element represents "today" — committing today keeps the streak alive.
@@ -989,18 +1033,19 @@ describe('calculateStreak', () => {
       0,
       0,
       0, // Week 1: Empty week
-      1, // 1 day of commits
+      1, // Day 8: 1 isolated day of commits
       0,
       0,
       0,
       0,
       0,
       0,
-      0, // Week 2: Empty week
+      0, // Following 7 days: Empty week gap
     ]);
 
     const result = calculateStreak(calendar);
 
+    // Assertions ensuring calculations handle index transitions gracefully
     expect(result.currentStreak).toBe(0);
     expect(result.longestStreak).toBe(1);
     expect(result.totalContributions).toBe(1);
@@ -1319,6 +1364,30 @@ describe('calculateStreak — timezone awareness', () => {
     const result = calculateStreak(tzCalendar, 'UTC', nowUTC);
     expect(result.todayDate).toBe('2024-06-16');
   });
+
+  it('handles timezone boundary alignment between UTC, IST and JST', () => {
+    const calendar = {
+      totalContributions: 2,
+      weeks: [
+        {
+          contributionDays: [
+            { contributionCount: 1, date: '2024-06-14' },
+            { contributionCount: 1, date: '2024-06-15' },
+          ],
+        },
+      ],
+    };
+
+    const now = new Date('2024-06-14T20:00:00Z');
+
+    const utcResult = calculateStreak(calendar, 'UTC', now);
+    const istResult = calculateStreak(calendar, 'Asia/Kolkata', now);
+    const jstResult = calculateStreak(calendar, 'Asia/Tokyo', now);
+
+    expect(utcResult.todayDate).toBe('2024-06-14');
+    expect(istResult.todayDate).toBe('2024-06-15');
+    expect(jstResult.todayDate).toBe('2024-06-15');
+  });
 });
 
 describe('isStreakAlive', () => {
@@ -1350,8 +1419,10 @@ describe('calculateMonthlyStats', () => {
       weeks: [
         {
           contributionDays: [
+            { contributionCount: 0, date: '2024-05-01' },
             { contributionCount: 5, date: '2024-05-15' },
             { contributionCount: 10, date: '2024-06-10' },
+            { contributionCount: 0, date: '2024-06-15' },
           ],
         },
       ],
@@ -1371,7 +1442,11 @@ describe('calculateMonthlyStats', () => {
       totalContributions: 10,
       weeks: [
         {
-          contributionDays: [{ contributionCount: 10, date: '2024-06-10' }],
+          contributionDays: [
+            { contributionCount: 0, date: '2024-05-01' },
+            { contributionCount: 10, date: '2024-06-10' },
+            { contributionCount: 0, date: '2024-06-15' },
+          ],
         },
       ],
     };
@@ -1388,7 +1463,11 @@ describe('calculateMonthlyStats', () => {
       totalContributions: 5,
       weeks: [
         {
-          contributionDays: [{ contributionCount: 5, date: '2024-05-10' }],
+          contributionDays: [
+            { contributionCount: 0, date: '2024-05-01' },
+            { contributionCount: 5, date: '2024-05-10' },
+            { contributionCount: 0, date: '2024-06-15' },
+          ],
         },
       ],
     };
@@ -1406,8 +1485,10 @@ describe('calculateMonthlyStats', () => {
       weeks: [
         {
           contributionDays: [
+            { contributionCount: 0, date: '2024-05-01' },
             { contributionCount: 10, date: '2024-05-10' },
             { contributionCount: 5, date: '2024-06-10' },
+            { contributionCount: 0, date: '2024-06-15' },
           ],
         },
       ],
@@ -1427,6 +1508,7 @@ describe('calculateMonthlyStats', () => {
       weeks: [
         {
           contributionDays: [
+            { contributionCount: 0, date: '2023-12-01' },
             { contributionCount: 10, date: '2023-12-15' },
             { contributionCount: 5, date: '2024-01-15' },
           ],
@@ -1447,8 +1529,10 @@ describe('calculateMonthlyStats', () => {
       weeks: [
         {
           contributionDays: [
+            { contributionCount: 0, date: '2023-12-01' },
             { contributionCount: 10, date: '2023-12-15' },
             { contributionCount: 5, date: '2024-01-15' },
+            { contributionCount: 0, date: '2024-01-20' },
           ],
         },
       ],
@@ -1461,9 +1545,7 @@ describe('calculateMonthlyStats', () => {
     expect(result.previousMonthTotal).toBe(10);
     expect(result.currentMonthName).toBe('January');
   });
-  // ==================================================================
-  // ISSUE OBJECTIVE: Empty calendar passed to calculateMonthlyStats
-  // ==================================================================
+
   it('returns zeros and does not crash when given an empty calendar', () => {
     const emptyCalendar = {
       totalContributions: 0,
@@ -1483,6 +1565,48 @@ describe('calculateMonthlyStats', () => {
 
     // 3. Assert previousMonthTotal === 0
     expect(result!.previousMonthTotal).toBe(0);
+  });
+
+  it('returns null for deltaPercentage if the previous month data is incomplete', () => {
+    const calendar = {
+      totalContributions: 15,
+      weeks: [
+        {
+          contributionDays: [
+            { contributionCount: 5, date: '2024-05-15' }, // starts after 2024-05-01
+            { contributionCount: 10, date: '2024-06-10' },
+            { contributionCount: 0, date: '2024-06-15' },
+          ],
+        },
+      ],
+    };
+    const now = new Date('2024-06-15T12:00:00Z');
+    const result = calculateMonthlyStats(calendar, 'UTC', now);
+
+    expect(result.previousMonthTotal).toBe(5);
+    expect(result.currentMonthTotal).toBe(10);
+    expect(result.deltaPercentage).toBeNull();
+  });
+
+  it('returns null for deltaPercentage if the current month data is incomplete', () => {
+    const calendar = {
+      totalContributions: 15,
+      weeks: [
+        {
+          contributionDays: [
+            { contributionCount: 0, date: '2024-05-01' },
+            { contributionCount: 5, date: '2024-05-15' },
+            { contributionCount: 10, date: '2024-06-10' }, // ends before 2024-06-15
+          ],
+        },
+      ],
+    };
+    const now = new Date('2024-06-15T12:00:00Z');
+    const result = calculateMonthlyStats(calendar, 'UTC', now);
+
+    expect(result.previousMonthTotal).toBe(5);
+    expect(result.currentMonthTotal).toBe(10);
+    expect(result.deltaPercentage).toBeNull();
   });
 });
 
@@ -1680,6 +1804,51 @@ describe('aggregateCalendars', () => {
     expect(result.weeks[0].contributionDays[0].contributionCount).toBe(1); // 1 + 0
     expect(result.weeks[0].contributionDays[1].contributionCount).toBe(3); // 0 + 3
     expect(result.weeks[0].contributionDays[2].contributionCount).toBe(3); // 2 + 1
+  });
+
+  it('preserves dates that exist only in non-base calendars', () => {
+    const cal1 = {
+      totalContributions: 1,
+      weeks: [
+        {
+          contributionDays: [
+            {
+              date: '2024-03-01',
+              contributionCount: 1,
+            },
+          ],
+        },
+        {
+          contributionDays: [
+            {
+              date: '2024-03-08',
+              contributionCount: 0,
+            },
+          ],
+        },
+      ],
+    };
+
+    const cal2 = {
+      totalContributions: 5,
+      weeks: [
+        {
+          contributionDays: [
+            {
+              date: '2024-01-01',
+              contributionCount: 5,
+            },
+          ],
+        },
+      ],
+    };
+
+    const result = aggregateCalendars([cal1, cal2]);
+
+    const dates = result.weeks.flatMap((week) => week.contributionDays.map((day) => day.date));
+
+    expect(dates).toContain('2024-01-01');
+    expect(dates).toContain('2024-03-01');
   });
 });
 

@@ -79,7 +79,7 @@ function LinkComponent({
   className?: string;
   ariaLabel?: string;
 }) {
-  const baseClasses = `transition-colors duration-200 hover:text-black dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-zinc-950 rounded px-1 ${className}`;
+  const baseClasses = `group inline-block px-1 rounded transition-all duration-300 hover:-translate-y-[2px] hover:font-medium hover:text-teal-800 dark:hover:text-violet-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-zinc-950 ${className}`;
 
   if (isExternal) {
     return (
@@ -90,14 +90,20 @@ function LinkComponent({
         className={baseClasses}
         aria-label={ariaLabel}
       >
-        {children}
+        <span className="relative inline-block">
+          {children}
+          <span className="absolute left-0 -bottom-px h-px w-0 bg-slate-500 dark:bg-slate-400 transition-all duration-500 ease-out group-hover:w-full" />
+        </span>
       </a>
     );
   }
 
   return (
     <Link href={href} className={baseClasses} aria-label={ariaLabel}>
-      {children}
+      <span className="relative inline-block">
+        {children}
+        <span className="absolute left-0 -bottom-px h-px w-0 bg-slate-500 dark:bg-slate-400 transition-all duration-500 ease-out group-hover:w-full" />
+      </span>
     </Link>
   );
 }
@@ -106,12 +112,12 @@ export function Footer() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="mt-auto border-t border-black/5 bg-white/50 px-4 py-12 backdrop-blur dark:border-white/5 dark:bg-zinc-950/50 sm:px-6">
+    <footer className="mt-auto border-t border-black/5 bg-white/50 px-4 py-8 backdrop-blur dark:border-white/5 dark:bg-zinc-950/50 sm:px-6 md:py-12">
       <div className="mx-auto max-w-6xl">
         {/* Main Footer Content */}
-        <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-4 mb-8">
+        <div className="grid grid-cols-2 gap-6 md:grid-cols-2 lg:grid-cols-4 mb-6">
           {/* Brand Section */}
-          <div className="flex flex-col items-start lg:col-span-1">
+          <div className="flex flex-col items-center sm:items-start lg:col-span-1">
             <h2 className="font-bold text-lg text-black dark:text-white">CommitPulse</h2>
             <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
               Designed for the elite builder community.
@@ -119,9 +125,9 @@ export function Footer() {
           </div>
 
           {/* Navigation Section */}
-          <div className="flex flex-col items-start">
+          <div className="flex flex-col items-center sm:items-start">
             <h3 className="font-semibold text-sm text-black dark:text-white mb-3">Navigation</h3>
-            <nav className="flex flex-col gap-2">
+            <nav className="flex flex-col gap-2 text-center sm:text-left">
               {navigationLinks.map((link) => (
                 <LinkComponent
                   key={link.href}
@@ -136,9 +142,9 @@ export function Footer() {
           </div>
 
           {/* Resources Section */}
-          <div className="flex flex-col items-start">
+          <div className="flex flex-col items-center sm:items-start">
             <h3 className="font-semibold text-sm text-black dark:text-white mb-3">Resources</h3>
-            <nav className="flex flex-col gap-2">
+            <nav className="flex flex-col gap-2 text-center sm:text-left">
               {resourceLinks.map((link) => (
                 <LinkComponent
                   key={link.href}
@@ -153,7 +159,7 @@ export function Footer() {
           </div>
 
           {/* Connect Section */}
-          <div className="flex flex-col items-start">
+          <div className="flex flex-col items-center sm:items-start">
             <h3 className="font-semibold text-sm text-black dark:text-white mb-3">Connect</h3>
             <div className="flex flex-col gap-2">
               {socialLinks.map((link) => (
