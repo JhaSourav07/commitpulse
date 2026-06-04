@@ -87,6 +87,8 @@ export default function Leaderboard({ contributors }: LeaderboardProps) {
             viewport={{ once: true }}
             transition={{ delay: 0.1 + i * 0.1, duration: 0.6, type: 'spring', stiffness: 80 }}
             whileHover={{ x: 6, scale: 1.01 }}
+            role="button"
+            tabIndex={0}
             className="flex items-center justify-between p-4 rounded-xl bg-black/[0.03] dark:bg-white/[0.03] border border-black/5 dark:border-white/[0.05] hover:bg-black/[0.06] dark:hover:bg-white/[0.06] hover:border-black/10 dark:hover:border-white/10 transition-all duration-300 cursor-pointer group"
             onClick={() => {
               const el = document.getElementById('contributors');

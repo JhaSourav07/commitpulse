@@ -49,3 +49,12 @@ export function resolveFont(font?: string | null): string | null {
 export type FontKey = keyof typeof FONT_MAP;
 
 export default FONT_MAP;
+
+/**
+ * Returns true if the given font name matches a predefined key in FONT_MAP.
+ * Used to avoid redundant Google Fonts fetches for already-bundled fonts.
+ */
+export function isPredefinedFontKey(font?: string | null): boolean {
+  if (!font) return false;
+  return Object.prototype.hasOwnProperty.call(FONT_MAP, font.toLowerCase().trim());
+}

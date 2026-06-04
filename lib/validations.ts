@@ -156,14 +156,14 @@ const baseStreakParamsSchema = z.object({
     .string()
     .optional()
     .refine((val) => !val || /^[0-9a-fA-F]{3,4}$|^[0-9a-fA-F]{6,8}$/.test(val.replace('#', '')), {
-      message: 'bg must be a valid 3 or 6 character hex color without #',
+      message: 'bg must be a valid hex color (with or without #)',
     })
     .transform((val) => (val ? sanitizeHexColor(val, '0d1117') : undefined)),
   text: z
     .string()
     .optional()
     .refine((val) => !val || /^[0-9a-fA-F]{3,4}$|^[0-9a-fA-F]{6,8}$/.test(val.replace('#', '')), {
-      message: 'text must be a valid 3 or 6 character hex color without #',
+      message: 'text must be a valid hex color (with or without #)',
     })
     .transform((val) => (val ? sanitizeHexColor(val, 'ffffff') : undefined)),
   accent: z
@@ -179,7 +179,7 @@ const baseStreakParamsSchema = z.object({
       },
       {
         message:
-          'accent must be a valid 3 or 6 character hex color without #, or a comma-separated list of them',
+          'accent must be a valid hex color (with or without #), or a comma-separated list of them',
       }
     )
     .transform((val) => {
@@ -280,14 +280,14 @@ const baseStreakParamsSchema = z.object({
     .optional()
     .refine(
       (val) => {
-        if (!val) return true;
-        const parsed = Number(val);
-        return !isNaN(parsed) && Number.isInteger(parsed) && parsed >= 0 && parsed <= 7;
+        if (val === undefined || val === '') return true;
+        return /^\d+$/.test(val) && Number(val) >= 0 && Number(val) <= 7;
       },
       { message: 'grace must be an integer between 0 and 7' }
     )
-    .transform(toGraceValue)
+    .transform((val) => (val === undefined || val === '' ? 1 : Number(val)))
     .default(1),
+
   mode: z.enum(['commits', 'loc']).catch('commits').default('commits'),
   repo: z.string().optional(),
   org: z
@@ -338,6 +338,7 @@ const baseStreakParamsSchema = z.object({
   glow: z.string().optional().transform(toBooleanFlag).default(true),
   opacity: z.string().optional().transform(toOpacityValue),
   entrance: z.enum(['rise', 'fade', 'slide', 'none']).catch('rise').default('rise'),
+  badges: z.string().optional().transform(toBooleanFlag).default(false),
 
   // Output format: 'svg' (default) or 'json' for programmatic access.
   // Invalid values silently fall back to 'svg'.
@@ -429,6 +430,7 @@ export const ogParamsSchema = z
       .optional()
       .transform(toEmptyStringAsUndefined)
       .transform(toValidHexColor('000000')),
+    refresh: z.string().optional().transform(toRefreshFlag),
   })
   .transform((data) => ({
     ...data,
@@ -474,14 +476,14 @@ export const wrappedParamsSchema = z.object({
     .string()
     .optional()
     .refine((val) => !val || /^[0-9a-fA-F]{3,4}$|^[0-9a-fA-F]{6,8}$/.test(val.replace('#', '')), {
-      message: 'bg must be a valid 3 or 6 character hex color without #',
+      message: 'bg must be a valid hex color (with or without #)',
     })
     .transform((val) => (val ? sanitizeHexColor(val, '0d1117') : undefined)),
   text: z
     .string()
     .optional()
     .refine((val) => !val || /^[0-9a-fA-F]{3,4}$|^[0-9a-fA-F]{6,8}$/.test(val.replace('#', '')), {
-      message: 'text must be a valid 3 or 6 character hex color without #',
+      message: 'text must be a valid hex color (with or without #)',
     })
     .transform((val) => (val ? sanitizeHexColor(val, 'ffffff') : undefined)),
   accent: z
@@ -497,7 +499,7 @@ export const wrappedParamsSchema = z.object({
       },
       {
         message:
-          'accent must be a valid 3 or 6 character hex color without #, or a comma-separated list of them',
+          'accent must be a valid hex color (with or without #), or a comma-separated list of them',
       }
     )
     .transform((val) => {
@@ -574,11 +576,64 @@ export const notifyGetSchema = z.object({
     }),
 });
 
+const resumeTextField = (max: number) => z.string().trim().max(max).default('');
+
+export const resumeConfirmDataSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(1, { message: 'Name and email are required' })
+    .max(100, { message: 'Name must be at most 100 characters' }),
+  email: z
+    .string()
+    .trim()
+    .min(1, { message: 'Name and email are required' })
+    .max(254, { message: 'Email must be at most 254 characters' })
+    .email({ message: 'Invalid email address' }),
+  phone: z.string().trim().max(40, { message: 'Phone must be at most 40 characters' }).default(''),
+  skills: z
+    .array(z.string().trim().max(80, { message: 'Each skill must be at most 80 characters' }))
+    .max(100, { message: 'Too many skills (max 100)' })
+    .default([])
+    .transform((items) => items.filter((s) => s.length > 0)),
+  education: z
+    .array(
+      z.object({
+        institution: resumeTextField(200),
+        degree: resumeTextField(200),
+        field: resumeTextField(200),
+        startDate: resumeTextField(50),
+        endDate: resumeTextField(50),
+      })
+    )
+    .max(50, { message: 'Too many education entries (max 50)' })
+    .default([])
+    .transform((items) =>
+      items.filter((e) => e.institution || e.degree || e.field || e.startDate || e.endDate)
+    ),
+  experience: z
+    .array(
+      z.object({
+        company: resumeTextField(200),
+        role: resumeTextField(200),
+        startDate: resumeTextField(50),
+        endDate: resumeTextField(50),
+        description: resumeTextField(2000),
+      })
+    )
+    .max(50, { message: 'Too many experience entries (max 50)' })
+    .default([])
+    .transform((items) =>
+      items.filter((x) => x.company || x.role || x.startDate || x.endDate || x.description)
+    ),
+});
+
 export type StreakParams = z.infer<typeof streakParamsSchema>;
 export type GithubParams = z.infer<typeof githubParamsSchema>;
+export type CompareParams = z.infer<typeof compareParamsSchema>;
 export type OgParams = z.infer<typeof ogParamsSchema>;
 export type StatsParams = z.infer<typeof statsParamsSchema>;
 export type WrappedParams = z.infer<typeof wrappedParamsSchema>;
-export type CompareParams = z.infer<typeof compareParamsSchema>;
 export type NotifyPostParams = z.infer<typeof notifyPostSchema>;
 export type NotifyGetParams = z.infer<typeof notifyGetSchema>;
+export type ResumeConfirmData = z.infer<typeof resumeConfirmDataSchema>;

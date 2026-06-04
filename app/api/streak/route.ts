@@ -99,27 +99,57 @@ export async function GET(request: Request) {
       glow,
       format,
       days,
+      badges,
     } = parseResult.data;
     const normalizedView = view as 'default' | 'monthly' | 'heatmap' | 'pulse';
     const themeName = theme || 'dark';
-    const from = customFrom
-      ? new Date(customFrom).toISOString()
-      : year
-        ? `${year}-01-01T00:00:00Z`
-        : undefined;
-    const to = customTo
-      ? new Date(customTo).toISOString()
-      : year
-        ? `${year}-12-31T23:59:59Z`
-        : undefined;
-    const currentYear = new Date().getUTCFullYear();
-    const isHistoricalYear = !!year && Number(year) < currentYear;
 
     let timezone = 'UTC';
     if (tzParam) {
       timezone = new Intl.DateTimeFormat(undefined, { timeZone: tzParam }).resolvedOptions()
         .timeZone;
     }
+
+    let from = customFrom
+      ? new Date(customFrom).toISOString()
+      : year
+        ? `${year}-01-01T00:00:00Z`
+        : undefined;
+    let to = customTo
+      ? new Date(customTo).toISOString()
+      : year
+        ? `${year}-12-31T23:59:59Z`
+        : undefined;
+
+    if (normalizedView === 'monthly') {
+      const referenceDate = getMonthlyReferenceDate(year, timezone) || new Date();
+      const localTodayStr = new Intl.DateTimeFormat('en-CA', { timeZone: timezone }).format(
+        referenceDate
+      );
+      const [currentYearStr, currentMonthStr] = localTodayStr.split('-');
+      const currentYearNum = parseInt(currentYearStr, 10);
+      const currentMonthNum = parseInt(currentMonthStr, 10);
+
+      let prevMonth = currentMonthNum - 1;
+      let prevYear = currentYearNum;
+      if (prevMonth === 0) {
+        prevMonth = 12;
+        prevYear -= 1;
+      }
+
+      const calculatedFromStr = `${prevYear}-${prevMonth.toString().padStart(2, '0')}-01T00:00:00Z`;
+      if (!from || new Date(from) > new Date(calculatedFromStr)) {
+        from = calculatedFromStr;
+      }
+
+      const referenceISO = referenceDate.toISOString();
+      if (!to || new Date(to) < new Date(referenceISO)) {
+        to = referenceISO;
+      }
+    }
+
+    const currentYear = new Date().getUTCFullYear();
+    const isHistoricalYear = !!year && Number(year) < currentYear;
 
     const isAutoTheme = themeName === 'auto';
     const isRandomTheme = themeName === 'random';
@@ -167,7 +197,12 @@ export async function GET(request: Request) {
       width,
       height,
       size,
-      grace,
+
+      grace: Math.max(
+        0,
+        Math.min(7, typeof grace === 'number' ? grace : parseInt(String(grace || 1), 10))
+      ),
+
       mode,
       repo,
       org,
@@ -178,10 +213,16 @@ export async function GET(request: Request) {
       gradient,
       gradient_stops,
       gradient_dir,
-      opacity,
+
+      opacity: Math.max(
+        0.1,
+        Math.min(1.0, typeof opacity === 'number' ? opacity : parseFloat(String(opacity || 1.0)))
+      ),
+
       disable_particles,
       glow,
       animate,
+      badges,
     };
 
     let calendar;
@@ -254,7 +295,7 @@ export async function GET(request: Request) {
       }
     }
 
-    if (days) {
+    if (days && normalizedView !== 'monthly') {
       const allDays = calendar.weeks.flatMap((w) => w.contributionDays);
 
       const filteredDays = allDays.slice(-days);
@@ -356,6 +397,25 @@ type ParseResult = ReturnType<typeof streakParamsSchema.safeParse>;
 
 function buildErrorResponse(error: unknown, parseResult: ParseResult): NextResponse {
   const message = error instanceof Error ? error.message : String(error);
+  function buildInlineErrorSVG(text: string): string {
+    const MAX_LINE = 48;
+    const truncated = text.length > MAX_LINE * 2 ? text.slice(0, MAX_LINE * 2 - 1) + '…' : text;
+
+    const line1 = escapeSVGText(truncated.slice(0, MAX_LINE));
+    const line2 = truncated.length > MAX_LINE ? escapeSVGText(truncated.slice(MAX_LINE)) : null;
+
+    const textY = line2 ? '62' : '75';
+
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="150" viewBox="0 0 400 150">
+      <rect width="400" height="150" fill="#2d0000" rx="8"/>
+      <text x="200" y="${textY}" text-anchor="middle" dominant-baseline="central" fill="#ffcccc" font-family="sans-serif" font-size="13">${line1}</text>${
+        line2
+          ? `
+      <text x="200" y="91" text-anchor="middle" dominant-baseline="central" fill="#ffcccc" font-family="sans-serif" font-size="13">${line2}</text>`
+          : ''
+      }
+    </svg>`;
+  }
 
   const isNotFound =
     message.toLowerCase().includes('not found') ||
@@ -418,14 +478,7 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
 
   // 3. Return a 400 Bad Request for Validation Errors
   if (isValidationError) {
-    const validationSvg = `
-      <svg xmlns="http://www.w3.org/2000/svg" width="400" height="150">
-        <rect width="100%" height="100%" fill="#2d0000" rx="8"/>
-        <text x="50%" y="50%" text-anchor="middle" fill="#ffcccc" font-family="sans-serif">
-          ${escapeSVGText(message)}
-        </text>
-      </svg>
-    `;
+    const validationSvg = buildInlineErrorSVG(message);
 
     return new NextResponse(validationSvg, {
       status: 400,
@@ -440,14 +493,7 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
   // 4. Return a 500 Internal Server Error for real crashes
   console.error('[streak] Unhandled error:', message);
 
-  const errorSvg = `
-      <svg xmlns="http://www.w3.org/2000/svg" width="400" height="150">
-        <rect width="100%" height="100%" fill="#2d0000" rx="8"/>
-        <text x="50%" y="50%" text-anchor="middle" fill="#ffcccc" font-family="sans-serif">
-          Something went wrong. Please try again later.
-        </text>
-      </svg>
-    `;
+  const errorSvg = buildInlineErrorSVG('Something went wrong. Please try again later.');
 
   return new NextResponse(errorSvg, {
     status: 500,

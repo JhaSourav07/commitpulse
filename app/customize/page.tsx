@@ -290,7 +290,7 @@ function CustomizePageInner(): ReactElement {
       });
 
     return () => controller.abort();
-  }, [previewSrc, hasUsername, debouncedUsername]);
+  }, [previewSrc, hasUsername, debouncedUsername, trimmedUsername]);
 
   const exportSnippet = getExportSnippet(exportFormat, queryString);
 
@@ -360,6 +360,9 @@ function CustomizePageInner(): ReactElement {
         `Unable to copy the ${exportFormat === 'markdown' ? 'Markdown' : 'HTML'} snippet.`
       );
     }
+  };
+  const handleDownloadimage = () => {
+    alert('Download image functionality coming soon!');
   };
 
   return (

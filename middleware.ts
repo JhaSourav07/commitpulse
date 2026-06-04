@@ -13,6 +13,9 @@ import { getClientIp } from './utils/getClientIp';
  * - /api/stats
  * - /api/og
  * - /api/notify
+ * - /api/compare
+ * - /api/wrapped
+ * - /api/student
  *
  * Limit: 60 requests per minute per IP.
  */
@@ -61,5 +64,7 @@ export const config = {
     '/api/og/:path*',
     '/api/notify/:path*',
     '/api/compare/:path*',
+    '/api/wrapped/:path*',
+    '/api/student/:path*',
   ],
 };
