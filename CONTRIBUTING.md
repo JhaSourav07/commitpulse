@@ -352,6 +352,8 @@ Themes live in `lib/svg/themes.ts`. A theme is three properties: `bg`, `text`, a
 | `accent` | This is the tower and glow color. It defines the entire personality of the card. Use saturated, vivid hues.       |
 | `text`   | Must be readable against `bg` at small sizes. Test at `11px` (the label size).                                    |
 
+For a detailed walkthrough of color harmony, contrast ratios, and the submission process, see the **[Theme Development Guide](THEME_DEVELOPMENT.md)**.
+
 **Theme checklist before submitting:**
 
 - [ ] Tested against all 5 label/stat text sizes in the SVG
