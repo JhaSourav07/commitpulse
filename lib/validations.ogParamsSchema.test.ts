@@ -46,13 +46,14 @@ describe('ogParamsSchema', () => {
     }
   });
 
-  it('falls back to unknown when both user and username are missing', () => {
+  it('fails validation when both user and username are missing', () => {
     const result = ogParamsSchema.safeParse({});
 
-    expect(result.success).toBe(true);
+    expect(result.success).toBe(false);
 
-    if (result.success) {
-      expect(result.data.user).toBe('unknown');
+    if (!result.success) {
+      expect(result.error.issues[0].message).toBe('Missing user parameter');
+      expect(result.error.issues[0].path).toEqual(['user']);
     }
   });
 

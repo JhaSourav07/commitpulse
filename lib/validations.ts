@@ -434,8 +434,12 @@ export const ogParamsSchema = z
   })
   .transform((data) => ({
     ...data,
-    user: data.user || data.username || 'unknown',
-  }));
+    user: data.user || data.username,
+  }))
+  .refine((data) => !!data.user, {
+    message: 'Missing user parameter',
+    path: ['user'],
+  });
 
 export const statsParamsSchema = z.object({
   user: z

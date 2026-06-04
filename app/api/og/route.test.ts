@@ -45,12 +45,12 @@ describe('OG Route', () => {
     expect(res.status).toBe(200);
   });
 
-  it('handles missing user query param', async () => {
+  it('returns 400 when user query param is missing', async () => {
     const req = new NextRequest('http://localhost:3000/api/og');
 
     const res = await GET(req as never);
 
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(400);
   });
 
   it('handles custom themes and valid custom colors without crashing', async () => {
