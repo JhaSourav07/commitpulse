@@ -10,9 +10,9 @@
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,md,css,json,yml,yaml}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,md,css,json,yml,yaml}\"",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
+    "test": "vitest run --maxWorkers=1",
     "test:ui": "vitest --ui",
-    "test:coverage": "vitest --coverage",
+    "test:coverage": "vitest --coverage --maxWorkers=1",
     "bench:svg": "tsx scripts/benchmark-svg.ts",
     "prepare": "husky"
   },
