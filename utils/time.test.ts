@@ -356,4 +356,10 @@ describe('getSecondsUntilMidnightInTimezone — extreme timezone offset boundary
 
     expect(() => getSecondsUntilMidnightInTimezone('Invalid/Timezone')).toThrow(RangeError);
   });
+  it('asserts extreme offset converts timestamps cleanly', () => {
+    vi.setSystemTime(new Date('2024-06-15T02:00:00.000Z'));
+    const seconds = getSecondsUntilMidnightInTimezone('Etc/GMT-14');
+    expect(seconds).toBe(28800);
+  });
+
 });
