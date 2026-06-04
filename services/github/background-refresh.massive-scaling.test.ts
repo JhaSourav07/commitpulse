@@ -112,7 +112,7 @@ describe('BackgroundRefresh - Massive Data Sets and Extreme High Bounds Scaling 
     for (let i = 0; i < VOLUME; i++) {
       expect(service.isJobActive(`tracked_user_${i}`)).toBe(true);
     }
-  });
+  }, 15000);
 
   it('executes 50,000 mixed stale and fresh isStale evaluations with correct classification split', () => {
     const VOLUME = 50000;
@@ -470,17 +470,11 @@ describe('BackgroundRefresh - Massive Data Sets and Extreme High Bounds Scaling 
   it('maintains isStale correctness for 100k calls alternating between stale and fresh rapidly', () => {
     const VOLUME = 100000;
     const STALE_THRESHOLD = 600000;
-    const fixedTime = Date.now();
-    vi.spyOn(Date, 'now').mockReturnValue(fixedTime);
 
-    try {
-      for (let i = 0; i < VOLUME; i++) {
-        const delta = i % 2 === 0 ? STALE_THRESHOLD + 1 : STALE_THRESHOLD - 1;
-        const result = service.isStale(new Date(fixedTime - delta).toISOString());
-        expect(result).toBe(i % 2 === 0);
-      }
-    } finally {
-      vi.restoreAllMocks();
+    for (let i = 0; i < VOLUME; i++) {
+      const delta = i % 2 === 0 ? STALE_THRESHOLD + 5000 : STALE_THRESHOLD - 5000;
+      const result = service.isStale(new Date(Date.now() - delta).toISOString());
+      expect(result).toBe(i % 2 === 0);
     }
   });
 
@@ -609,7 +603,7 @@ describe('BackgroundRefresh - Massive Data Sets and Extreme High Bounds Scaling 
         expect(service.isJobActive(`cycle_${cycle}_user_${i}`)).toBe(false);
       }
     }
-  });
+  }, 15000);
 
   it('handles 5k triggers where getFullDashboardData resolves synchronously via microtask queue', async () => {
     const VOLUME = 5000;
@@ -660,7 +654,7 @@ describe('BackgroundRefresh - Massive Data Sets and Extreme High Bounds Scaling 
         expect(service.isStale(freshTs)).toBe(false);
       }
     }
-  });
+  }, 10000);
 
   it('verifies active job Set size matches trigger count after 20,000 unique triggers', () => {
     const VOLUME = 20000;

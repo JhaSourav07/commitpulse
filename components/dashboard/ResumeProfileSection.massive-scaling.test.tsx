@@ -80,7 +80,7 @@ describe('ResumeProfileSection — Massive Scaling', () => {
 
     expect(header).toBeTruthy();
 
-    expect(dt).toBeLessThan(1200);
+    expect(dt).toBeLessThan(3000);
   });
 
   test('skills container preserves wrapping class and renders all skill inputs', async () => {

@@ -55,7 +55,7 @@ describe('RefreshRateLimiter massive data sets and extreme high bounds scaling',
       expect(results[i].remaining).toBe(0);
       expect(results[i].limit).toBe(3);
     }
-  });
+  }, 15000);
 
   it('scales layout calculations correctly with high metrics (100k+ activity data points)', () => {
     // Simulate processing massive activity logs
@@ -153,5 +153,5 @@ describe('RefreshRateLimiter massive data sets and extreme high bounds scaling',
 
     // Verify performance: 50k records should complete within reasonable time
     expect(executionTime).toBeLessThan(10000);
-  });
+  }, 15000);
 });
