@@ -1,0 +1,13 @@
+node_modules
+.next
+out
+build
+dist
+*.config.js
+*.config.ts
+.github/scripts/*.js
+commitpulse/.github/scripts/*.js
+
+# Ignore GitHub scripts (CommonJS modules)
+.github/scripts/*.js
+commitpulse/.github/scripts/*.js
