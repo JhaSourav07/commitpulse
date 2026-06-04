@@ -32,6 +32,8 @@ const emptyParsed = {
   skills: [],
   education: [],
   experience: [],
+  projects: [],
+  certifications: [],
 };
 
 describe('ResumePreviewForm empty fallback behavior', () => {

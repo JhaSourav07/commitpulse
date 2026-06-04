@@ -44,6 +44,8 @@ const largeParsed = {
     endDate: 'Present',
     description: `Description ${index}`,
   })),
+  projects: [],
+  certifications: [],
 };
 
 describe('ResumePreviewForm massive scaling behavior', () => {

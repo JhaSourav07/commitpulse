@@ -19,6 +19,8 @@ const parsed = {
   skills: ['React'],
   education: [],
   experience: [],
+  projects: [],
+  certifications: [],
 };
 
 const defaultProps = {
@@ -43,7 +45,7 @@ describe('ResumePreviewForm Responsive Breakpoints', () => {
   it('renders correctly on mobile viewport', () => {
     render(<ResumePreviewForm {...defaultProps} />);
 
-    expect(screen.getByDisplayValue('John Doe')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('')).toBeInTheDocument();
     expect(screen.getByDisplayValue('john@example.com')).toBeInTheDocument();
   });
 

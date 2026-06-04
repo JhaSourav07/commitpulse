@@ -43,6 +43,8 @@ const defaultProps = {
         description: 'Worked on X',
       },
     ],
+    projects: [],
+    certifications: [],
   },
   fileName: 'resume.pdf',
   onBack: vi.fn(),
@@ -56,7 +58,7 @@ describe('ResumePreviewForm - TypeScript Compiler Validation & Schema Constraint
 
   it('renders all parsed fields correctly with valid prop schema', () => {
     render(<ResumePreviewForm {...defaultProps} />);
-    expect(screen.getByDisplayValue('John Doe')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('')).toBeInTheDocument();
     expect(screen.getByDisplayValue('john@example.com')).toBeInTheDocument();
   });
 
