@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Check, Loader2, Plus } from 'lucide-react';
 import { toast } from 'sonner';
-import type { ParsedResume, Education, Experience } from '@/types/student';
+import type { ParsedResume, Education, Experience, Project } from '@/types/student';
 
 interface ResumePreviewFormProps {
   githubUsername: string;
@@ -21,6 +21,7 @@ export default function ResumePreviewForm({
   onBack,
   onComplete,
 }: ResumePreviewFormProps) {
+  const parsedName = initialParsed.name;
   const [data, setData] = useState<ParsedResume>({
     ...initialParsed,
     name: '',
@@ -142,7 +143,9 @@ export default function ResumePreviewForm({
   }
 
   async function handleConfirm() {
-    if (!data.name.trim() || !data.email.trim()) {
+    const nameToSave = data.name.trim() || parsedName.trim();
+
+    if (!nameToSave || !data.email.trim()) {
       toast.error('Name and email are required');
       return;
     }
@@ -153,7 +156,13 @@ export default function ResumePreviewForm({
       const res = await fetch('/api/student/resume/confirm', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ githubUsername, data }),
+        body: JSON.stringify({
+          githubUsername,
+          data: {
+            ...data,
+            name: nameToSave,
+          },
+        }),
       });
 
       const result = await res.json();

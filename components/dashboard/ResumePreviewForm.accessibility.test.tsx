@@ -57,7 +57,7 @@ describe('ResumePreviewForm - Accessibility compliance', () => {
       />
     );
 
-    const nameInput = screen.getByDisplayValue('John Doe');
+    const nameInput = screen.getByDisplayValue('');
     expect(nameInput).toHaveClass('focus:ring-2');
     expect(nameInput).toHaveClass('focus:ring-emerald-500');
     expect(nameInput).toHaveClass('outline-none');

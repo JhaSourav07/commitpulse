@@ -54,7 +54,7 @@ describe('ResumePreviewForm', () => {
       />
     );
 
-    expect(screen.getByDisplayValue('John Doe')).toBeTruthy();
+    expect(screen.getByDisplayValue('')).toBeTruthy();
     expect(screen.getByDisplayValue('john@example.com')).toBeTruthy();
     expect(screen.getByDisplayValue('React')).toBeTruthy();
   });
@@ -70,7 +70,7 @@ describe('ResumePreviewForm', () => {
       />
     );
 
-    const nameInput = screen.getByDisplayValue('John Doe');
+    const nameInput = screen.getByDisplayValue('');
     const emailInput = screen.getByDisplayValue('john@example.com');
     fireEvent.change(nameInput, {
       target: { value: 'Jane Doe' },

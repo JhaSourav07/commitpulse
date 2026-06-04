@@ -80,7 +80,7 @@ describe('ResumePreviewForm - Theme Contrast & Visual Cohesion', () => {
       />
     );
 
-    const nameInput = getByDisplayValue('John Doe');
+    const nameInput = getByDisplayValue('');
     expect(nameInput).toHaveClass('bg-gray-50');
     expect(nameInput).toHaveClass('dark:bg-[#111]');
     expect(nameInput).toHaveClass('text-gray-900');
