@@ -470,11 +470,17 @@ describe('BackgroundRefresh - Massive Data Sets and Extreme High Bounds Scaling 
   it('maintains isStale correctness for 100k calls alternating between stale and fresh rapidly', () => {
     const VOLUME = 100000;
     const STALE_THRESHOLD = 600000;
+    const fixedTime = Date.now();
+    vi.spyOn(Date, 'now').mockReturnValue(fixedTime);
 
-    for (let i = 0; i < VOLUME; i++) {
-      const delta = i % 2 === 0 ? STALE_THRESHOLD + 1 : STALE_THRESHOLD - 1;
-      const result = service.isStale(new Date(Date.now() - delta).toISOString());
-      expect(result).toBe(i % 2 === 0);
+    try {
+      for (let i = 0; i < VOLUME; i++) {
+        const delta = i % 2 === 0 ? STALE_THRESHOLD + 1 : STALE_THRESHOLD - 1;
+        const result = service.isStale(new Date(fixedTime - delta).toISOString());
+        expect(result).toBe(i % 2 === 0);
+      }
+    } finally {
+      vi.restoreAllMocks();
     }
   });
 

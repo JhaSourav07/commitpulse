@@ -7,8 +7,8 @@ export class RefreshPolicy {
   // Cooldown in milliseconds (default 5 minutes)
   private cooldownMs = 5 * 60 * 1000;
 
-  // Cache of username -> last successful refresh timestamp
-  private refreshTimes = new TTLCache<number>(5000, 60 * 60 * 1000);
+  // Cache of username -> last successful refresh timestamp (15,000 capacity)
+  private refreshTimes = new TTLCache<number>(15000, 60 * 60 * 1000);
 
   private constructor() {}
 
@@ -27,6 +27,23 @@ export class RefreshPolicy {
   }
 
   /**
+   * Maps username to a safe cache key, hashing extremely long usernames
+   * to avoid length limits in TTLCache.
+   */
+  private getCacheKey(username: string): string {
+    const sanitized = username.trim().toLowerCase();
+    const key = sanitized === '' ? '__anonymous__' : sanitized;
+    if (key.length > 10000) {
+      let hash = 5381;
+      for (let i = 0; i < key.length; i++) {
+        hash = (hash * 33) ^ key.charCodeAt(i);
+      }
+      return `${key.slice(0, 1000)}_${(hash >>> 0).toString(16)}`;
+    }
+    return key;
+  }
+
+  /**
    * Returns whether a refresh is permitted for the given username.
    *
    * A refresh is allowed if:
@@ -34,8 +51,6 @@ export class RefreshPolicy {
    * 2. The global GitHub API token quota is not low.
    */
   public isRefreshAllowed(username: string): boolean {
-    const sanitized = username.trim().toLowerCase();
-
     // 1. Check if global quota is dangerously low
     if (quotaMonitor.isQuotaLow()) {
       return false;
@@ -46,8 +61,8 @@ export class RefreshPolicy {
       return true;
     }
 
-    // 3. Check per-username cooldown (use fallback key for empty usernames)
-    const cacheKey = sanitized === '' ? '__anonymous__' : sanitized;
+    // 3. Check per-username cooldown
+    const cacheKey = this.getCacheKey(username);
     const lastRefresh = this.refreshTimes.get(cacheKey);
     if (!lastRefresh) {
       return true;
@@ -60,12 +75,14 @@ export class RefreshPolicy {
    * Records a successful refresh event for the username.
    */
   public recordRefresh(username: string): void {
-    const sanitized = username.trim().toLowerCase();
     // When cooldownMs is 0 there is nothing to enforce, skip the write
-    // (TTLCache rejects ttlMs <= 0). Use a fallback key for empty usernames.
+    // (TTLCache rejects ttlMs <= 0).
     if (this.cooldownMs > 0) {
-      const cacheKey = sanitized === '' ? '__anonymous__' : sanitized;
-      this.refreshTimes.set(cacheKey, Date.now(), this.cooldownMs);
+      const cacheKey = this.getCacheKey(username);
+      // Use a long cache TTL to prevent premature cache expiration during mode changes.
+      // Cooldown checks are still computed dynamically using this.cooldownMs.
+      const ttl = Math.max(this.cooldownMs, 24 * 60 * 60 * 1000);
+      this.refreshTimes.set(cacheKey, Date.now(), ttl);
     }
     quotaMonitor.incrementRefreshCount();
   }
@@ -75,8 +92,7 @@ export class RefreshPolicy {
    * Returns 0 if no cooldown is active.
    */
   public getRemainingCooldown(username: string): number {
-    const sanitized = username.trim().toLowerCase();
-    const cacheKey = sanitized === '' ? '__anonymous__' : sanitized;
+    const cacheKey = this.getCacheKey(username);
     const lastRefresh = this.refreshTimes.get(cacheKey);
     if (!lastRefresh) {
       return 0;

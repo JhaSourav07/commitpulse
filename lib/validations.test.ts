@@ -6,6 +6,10 @@ import {
   validateGitHubUsername,
 } from './validations';
 
+function parse(params: Record<string, string>) {
+  return streakParamsSchema.parse({ user: 'octocat', ...params });
+}
+
 describe('streakParamsSchema — grace fallback behavior', () => {
   it('accepts "0" as a valid grace value', () => {
     expect(parse({ grace: '0' }).grace).toBe(0);
@@ -42,6 +46,10 @@ describe('streakParamsSchema — grace fallback behavior', () => {
 
   it('defaults to 1 when grace is omitted', () => {
     expect(parse({}).grace).toBe(1);
+  });
+
+  it('defaults to 1 when grace is empty string', () => {
+    expect(parse({ grace: '' }).grace).toBe(1);
   });
 });
 
@@ -479,49 +487,144 @@ describe('streakParamsSchema', () => {
   });
 });
 
-it('should succeed when username contains hyphens', () => {
-  const result = streakParamsSchema.safeParse({
-    user: 'valid-user',
+describe('streakParamsSchema — user hyphen validation', () => {
+  it('should succeed when username contains hyphens', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'valid-user',
+    });
+
+    expect(result.success).toBe(true);
   });
 
-  expect(result.success).toBe(true);
-});
+  it('should succeed when username contains multiple hyphens', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'valid-user-name-123',
+    });
 
-it('should succeed when username contains multiple hyphens', () => {
-  const result = streakParamsSchema.safeParse({
-    user: 'valid-user-name-123',
+    expect(result.success).toBe(true);
   });
 
-  expect(result.success).toBe(true);
-});
+  it('should fail when username ends with hyphen', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'user-',
+    });
 
-it('should fail when username ends with hyphen', () => {
-  const result = streakParamsSchema.safeParse({
-    user: 'user-',
+    expect(result.success).toBe(false);
   });
 
-  expect(result.success).toBe(false);
-});
+  it('should fail when username starts with hyphen', () => {
+    const result = streakParamsSchema.safeParse({
+      user: '-user',
+    });
 
-it('should fail when username starts with hyphen', () => {
-  const result = streakParamsSchema.safeParse({
-    user: '-user',
+    expect(result.success).toBe(false);
   });
 
-  expect(result.success).toBe(false);
+  it('should fail when username contains consecutive hyphens', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'user--name',
+    });
+
+    expect(result.success).toBe(false);
+  });
 });
 
-it('should fail when username contains consecutive hyphens', () => {
-  const result = streakParamsSchema.safeParse({
-    user: 'user--name',
+describe('streakParamsSchema — grace validation', () => {
+  it('accepts grace=0', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      grace: '0',
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.grace).toBe(0);
+    }
   });
 
-  expect(result.success).toBe(false);
-});
+  it('accepts grace=7', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      grace: '7',
+    });
 
-function parse(params: Record<string, string>) {
-  return streakParamsSchema.parse({ user: 'octocat', ...params });
-}
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.grace).toBe(7);
+    }
+  });
+
+  it('accepts grace=3', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      grace: '3',
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.grace).toBe(3);
+    }
+  });
+
+  it('defaults to 1 when grace is omitted', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.grace).toBe(1);
+    }
+  });
+
+  it('rejects grace=-1', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      grace: '-1',
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toBe('grace must be an integer between 0 and 7');
+    }
+  });
+
+  it('rejects grace=8 (exceeds max)', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      grace: '8',
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toBe('grace must be an integer between 0 and 7');
+    }
+  });
+
+  it('rejects non-numeric grace value', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      grace: 'abc',
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toBe('grace must be an integer between 0 and 7');
+    }
+  });
+
+  it('rejects float grace value', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      grace: '5.5',
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toBe('grace must be an integer between 0 and 7');
+    }
+  });
+});
 
 describe('streakParamsSchema — scale fallback behavior', () => {
   it('accepts "log" as a valid scale value', () => {

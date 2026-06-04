@@ -197,7 +197,12 @@ export async function GET(request: Request) {
       width,
       height,
       size,
-      grace,
+
+      grace: Math.max(
+        0,
+        Math.min(7, typeof grace === 'number' ? grace : parseInt(String(grace || 1), 10))
+      ),
+
       mode,
       repo,
       org,
@@ -208,7 +213,12 @@ export async function GET(request: Request) {
       gradient,
       gradient_stops,
       gradient_dir,
-      opacity,
+
+      opacity: Math.max(
+        0.1,
+        Math.min(1.0, typeof opacity === 'number' ? opacity : parseFloat(String(opacity || 1.0)))
+      ),
+
       disable_particles,
       glow,
       animate,
