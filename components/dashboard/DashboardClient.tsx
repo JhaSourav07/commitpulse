@@ -11,14 +11,14 @@ import type { GraphNode, GraphLink } from '@/types';
 import RefreshButton from './RefreshButton';
 import ProfileCard from './ProfileCard';
 import Achievements from './Achievements';
-import ActivityLandscape from './ActivityLandscape';
-import LanguageChart from './LanguageChart';
-import CommitClock from './CommitClock';
+import SuspendedActivityLandscape from './SuspendedActivityLandscape';
+import SuspendedLanguageChart from './SuspendedLanguageChart';
+import SuspendedCommitClock from './SuspendedCommitClock';
 import Heatmap from './Heatmap';
-import HistoricalTrendView from './HistoricalTrendView';
-import AIInsights from './AIInsights';
+import SuspendedHistoricalTrendView from './SuspendedHistoricalTrendView';
+import SuspendedAIInsights from './SuspendedAIInsights';
 import StatsCard from './StatsCard';
-import RepositoryGraph from './RepositoryGraph';
+import SuspendedRepositoryGraph from './SuspendedRepositoryGraph';
 import ComparisonStatsCard from './ComparisonStatsCard';
 import RadarChart from './RadarChart';
 import GrowthTrendChart from './GrowthTrendChart';
@@ -26,7 +26,7 @@ import { useRouter } from 'next/navigation';
 import ProfileOptimizerModal from './ProfileOptimizerModal';
 import ResumeProfileSection from './ResumeProfileSection';
 import type { DashboardPeriod } from '@/utils/dashboardPeriod';
-import { PopularRepos } from './PopularPinnnedRepos';
+import SuspendedPopularRepos from './SuspendedPopularRepos';
 
 // Define the dashboard data structure
 interface DashboardData {
@@ -75,7 +75,7 @@ interface DashboardData {
     nodes: GraphNode[];
     links: GraphLink[];
   };
-  popularRepos?: Repository[];
+  SuspendedPopularRepos?: Repository[];
   pinnedRepos?: Repository[];
 }
 
@@ -642,16 +642,16 @@ export default function DashboardClient({
 
           <div className="flex flex-col gap-6 lg:gap-8 min-w-0">
             <section>
-              <ActivityLandscape data={initialData.activity} />
+              <SuspendedActivityLandscape data={initialData.activity} />
             </section>
 
             <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <LanguageChart languages={initialData.languages} />
-              <CommitClock data={initialData.commitClock} />
+              <SuspendedLanguageChart languages={initialData.languages} />
+              <SuspendedCommitClock data={initialData.commitClock} />
             </section>
 
             <section>
-              <HistoricalTrendView
+              <SuspendedHistoricalTrendView
                 activity={initialData.activity}
                 username={username}
                 period={period}
@@ -685,16 +685,16 @@ export default function DashboardClient({
               />
             </div>
 
-            <AIInsights insights={initialData.insights} />
+            <SuspendedAIInsights insights={initialData.insights} />
 
-            <PopularRepos
+            <SuspendedPopularRepos
               popularRepos={initialData.popularRepos || []}
               pinnedRepos={initialData.pinnedRepos || []}
             />
           </aside>
 
           <div className="col-span-1 lg:col-span-2 lg:col-start-2">
-            <RepositoryGraph data={initialData.graphData} />
+            <SuspendedRepositoryGraph data={initialData.graphData} />
           </div>
         </div>
       ) : (
@@ -1015,13 +1015,13 @@ export default function DashboardClient({
               <h4 className="text-xs text-[#A1A1AA] uppercase tracking-wider font-semibold text-center lg:text-left">
                 {initialData.profile.name}&apos;s Top Languages
               </h4>
-              <LanguageChart languages={initialData.languages} />
+              <SuspendedLanguageChart languages={initialData.languages} />
             </div>
             <div className="flex flex-col gap-2">
               <h4 className="text-xs text-[#A1A1AA] uppercase tracking-wider font-semibold text-center lg:text-right">
                 {secondUserData.profile.name}&apos;s Top Languages
               </h4>
-              <LanguageChart languages={secondUserData.languages} />
+              <SuspendedLanguageChart languages={secondUserData.languages} />
             </div>
           </div>
 
@@ -1030,13 +1030,13 @@ export default function DashboardClient({
               <h4 className="text-xs text-[#A1A1AA] uppercase tracking-wider font-semibold text-center lg:text-left">
                 {initialData.profile.name}&apos;s Commit Clock
               </h4>
-              <CommitClock data={initialData.commitClock} />
+              <SuspendedCommitClock data={initialData.commitClock} />
             </div>
             <div className="flex flex-col gap-2">
               <h4 className="text-xs text-[#A1A1AA] uppercase tracking-wider font-semibold text-center lg:text-right">
                 {secondUserData.profile.name}&apos;s Commit Clock
               </h4>
-              <CommitClock data={secondUserData.commitClock} />
+              <SuspendedCommitClock data={secondUserData.commitClock} />
             </div>
           </div>
 
