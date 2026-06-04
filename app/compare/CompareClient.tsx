@@ -950,6 +950,37 @@ export default function CompareClient() {
         scroll: false,
       });
 
+      const cacheKey = `compare:${u1}:${u2}`;
+      // Try to read from localStorage first, then Cache API. If found, use it and skip network.
+      if (typeof window !== 'undefined') {
+        try {
+          const stored = localStorage.getItem(cacheKey);
+          if (stored) {
+            setData(JSON.parse(stored));
+            setLoading(false);
+            return;
+          }
+        } catch (err) {
+          // ignore storage errors
+        }
+
+        try {
+          if ('caches' in window) {
+            const cache = await caches.open('commitpulse-compare');
+            const req = `/api/compare?user1=${encodeURIComponent(u1)}&user2=${encodeURIComponent(u2)}`;
+            const cached = await cache.match(req);
+            if (cached) {
+              const json = await cached.json();
+              setData(json);
+              setLoading(false);
+              return;
+            }
+          }
+        } catch (err) {
+          // ignore cache errors
+        }
+      }
+
       try {
         const res = await fetch(
           `/api/compare?user1=${encodeURIComponent(u1)}&user2=${encodeURIComponent(u2)}`
@@ -962,6 +993,30 @@ export default function CompareClient() {
         }
 
         setData(json);
+
+        // Persist to caches/localStorage for faster subsequent reads
+        if (typeof window !== 'undefined') {
+          try {
+            localStorage.setItem(cacheKey, JSON.stringify(json));
+          } catch (err) {
+            // ignore localStorage write errors
+          }
+
+          try {
+            if ('caches' in window) {
+              const cache = await caches.open('commitpulse-compare');
+              const req = new Request(
+                `/api/compare?user1=${encodeURIComponent(u1)}&user2=${encodeURIComponent(u2)}`
+              );
+              const resp = new Response(JSON.stringify(json), {
+                headers: { 'Content-Type': 'application/json' },
+              });
+              await cache.put(req, resp);
+            }
+          } catch (err) {
+            // ignore cache write errors
+          }
+        }
       } catch {
         setError('Network error. Please try again.');
       } finally {
