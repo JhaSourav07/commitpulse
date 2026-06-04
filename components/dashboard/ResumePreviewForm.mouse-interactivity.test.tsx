@@ -79,7 +79,9 @@ describe('ResumePreviewForm - Mouse Interactivity & Touch Propagation', () => {
     fireEvent.click(addButtons[1]);
     fireEvent.click(addButtons[2]);
 
-    const removeSkillButton = screen.getByRole('button', { name: /Remove skill 1/i });
+    const removeSkillButton = screen.getByRole('button', {
+      name: /^Remove skill \d+$/i,
+    });
     const removeEducationButton = screen.getByRole('button', {
       name: /Remove education entry 1/i,
     });
