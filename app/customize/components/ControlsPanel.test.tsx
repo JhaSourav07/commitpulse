@@ -78,6 +78,13 @@ describe('ControlsPanel Component', () => {
     expect(input).toHaveAttribute('id', 'username-input');
   });
 
+  it('renders a generic username placeholder', () => {
+    render(<ControlsPanel {...defaultProps} />);
+
+    expect(screen.getByPlaceholderText('your-github-username')).toBeInTheDocument();
+    expect(screen.queryByPlaceholderText('jhasourav07')).not.toBeInTheDocument();
+  });
+
   it('calls onUsernameChange when typing', () => {
     render(<ControlsPanel {...defaultProps} />);
 

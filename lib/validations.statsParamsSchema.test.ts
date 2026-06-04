@@ -14,18 +14,33 @@ describe('statsParamsSchema', () => {
     }
   });
 
-  it('parses a valid input with custom timezone and refresh flag', () => {
+  it('parses a full valid input with optional params', () => {
     const result = statsParamsSchema.safeParse({
       user: 'octocat',
-      tz: 'America/New_York',
       refresh: 'true',
+      tz: 'Asia/Kolkata',
     });
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.user).toBe('octocat');
       expect(result.data.refresh).toBe(true);
-      expect(result.data.tz).toBe('America/New_York');
+      expect(result.data.tz).toBe('Asia/Kolkata');
     }
+  });
+
+  it('transforms refresh parameter correctly', () => {
+    expect(statsParamsSchema.safeParse({ user: 'octocat', refresh: 'true' }).data?.refresh).toBe(
+      true
+    );
+    expect(statsParamsSchema.safeParse({ user: 'octocat', refresh: 'false' }).data?.refresh).toBe(
+      false
+    );
+    expect(statsParamsSchema.safeParse({ user: 'octocat', refresh: '1' }).data?.refresh).toBe(
+      false
+    );
+    expect(statsParamsSchema.safeParse({ user: 'octocat', refresh: 'TRUE' }).data?.refresh).toBe(
+      false
+    );
   });
 
   // ── Invalid inputs ────────────────────────────────────────────────────────

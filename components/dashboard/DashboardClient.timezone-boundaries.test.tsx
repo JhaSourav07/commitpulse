@@ -25,7 +25,7 @@ vi.mock('./LanguageChart', () => ({ default: () => <div /> }));
 vi.mock('./CommitClock', () => ({ default: () => <div /> }));
 vi.mock('./HistoricalTrendView', () => ({ default: () => <div /> }));
 vi.mock('./AIInsights', () => ({ default: () => <div /> }));
-vi.mock('./PopularRepos', () => ({ PopularRepos: () => <div /> }));
+vi.mock('./PopularPinnnedRepos', () => ({ PopularRepos: () => <div /> }));
 vi.mock('./RepositoryGraph', () => ({ default: () => <div /> }));
 vi.mock('./Heatmap', () => ({ default: () => <div /> }));
 vi.mock('./RefreshButton', () => ({ default: () => <div /> }));
