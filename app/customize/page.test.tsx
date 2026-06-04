@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { AnchorHTMLAttributes, HTMLAttributes, ReactNode } from 'react';
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import CustomizePage from './page';
@@ -42,6 +42,7 @@ vi.mock('framer-motion', () => ({
   motion: {
     aside: ({ children, ...props }: MockContainerProps) => <aside {...props}>{children}</aside>,
     div: ({ children, ...props }: MockContainerProps) => <div {...props}>{children}</div>,
+    img: ({ ...props }: MockContainerProps) => <img {...props} />,
   },
 }));
 

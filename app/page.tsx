@@ -24,6 +24,7 @@ import { CustomizeCTA } from './components/CustomizeCTA';
 import { useRecentSearches } from '@/hooks/useRecentSearches';
 import { useDebounce } from '@/hooks/useDebounce';
 import { Footer } from '@/app/components/Footer';
+import { useThemeToggle } from '@/app/components/theme-switch';
 
 import { FeatureCard, FeatureCardsSection } from '@/components/FeatureCards';
 import { DiscordButton } from '@/components/DiscordButton';
@@ -345,12 +346,14 @@ export default function LandingPage() {
 
   const trimmedUsername = username.trim();
   const debouncedUsername = useDebounce(trimmedUsername, 500);
+  const { isDark } = useThemeToggle();
 
   // Active username used to load the badge
   const previewUsername = instantUsername || debouncedUsername;
   const hasUsername = previewUsername.length > 0;
 
-  const badgeUrl = `/api/streak?user=${previewUsername}`;
+  const badgeTheme = isDark ? 'github' : 'light';
+  const badgeUrl = `/api/streak?user=${previewUsername}&theme=${badgeTheme}&refresh=true`;
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://commitpulse.vercel.app';
   const markdown = `![CommitPulse](${siteUrl}/api/streak?user=${trimmedUsername})`;
 
@@ -752,7 +755,7 @@ export default function LandingPage() {
                       </div>
                     </div>
                   )}
-                  <motion.img
+                  <img
                     key={badgeUrl}
                     data-testid="badge-img"
                     src={badgeUrl}
@@ -763,6 +766,15 @@ export default function LandingPage() {
                     className="w-full max-w-[700px] h-auto drop-shadow-[0_30px_60px_rgba(0,0,0,0.15)] dark:drop-shadow-[0_30px_60px_rgba(0,0,0,0.5)]"
                     onLoad={() => setBadgeResult({ username: previewUsername, status: 'loaded' })}
                     onError={() => setBadgeResult({ username: previewUsername, status: 'error' })}
+                  />
+                  <iframe
+                    key={`${badgeUrl}-frame`}
+                    src={badgeUrl}
+                    title={`CommitPulse badge for ${debouncedUsername}`}
+                    aria-hidden="true"
+                    className="w-full max-w-[700px] h-[420px] rounded-2xl border-0 bg-transparent drop-shadow-[0_30px_60px_rgba(0,0,0,0.15)] dark:drop-shadow-[0_30px_60px_rgba(0,0,0,0.5)]"
+                    loading="eager"
+                    scrolling="no"
                   />
                 </div>
               ) : (

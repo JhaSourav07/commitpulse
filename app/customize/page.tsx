@@ -9,7 +9,6 @@ import { ControlsPanel } from './components/ControlsPanel';
 import { AdvancedSettingsPanel } from './components/AdvancedSettingsPanel';
 import { ExportPanel } from './components/ExportPanel';
 import InteractiveViewer from '@/components/InteractiveViewer';
-import DOMPurify from 'dompurify';
 import type {
   ExportFormat,
   Font,
@@ -20,7 +19,6 @@ import type {
   Language,
   Timezone,
 } from './types';
-import { useDebounce } from '@/hooks/useDebounce';
 import { getExportSnippet, buildQueryParams } from './utils';
 
 function readNumericSearchParam(
@@ -72,11 +70,9 @@ function CustomizePageInner(): ReactElement {
   const [copied, setCopied] = useState(false);
   const [copyStatusMessage, setCopyStatusMessage] = useState('');
   const copyResetTimeoutRef = useRef<number | null>(null);
-  const [svgContent, setSvgContent] = useState<string>('');
   const [svgState, setSvgState] = useState<'idle' | 'loading' | 'loaded' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const trimmedUsername = username.trim();
-  const debouncedUsername = useDebounce(trimmedUsername, 400);
   const hasUsername = trimmedUsername.length > 0;
   const isRandomTheme = theme === 'random';
 
@@ -171,7 +167,7 @@ function CustomizePageInner(): ReactElement {
   });
 
   const previewQueryString = buildQueryParams({
-    username: debouncedUsername,
+    username: trimmedUsername,
     theme,
     bgHex,
     accentHex,
@@ -206,19 +202,10 @@ function CustomizePageInner(): ReactElement {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setErrorMessage(null);
     if (!hasUsername) {
-      setSvgContent('');
       setSvgState('idle');
       return;
     }
     if (!validateGitHubUsername(trimmedUsername)) {
-      setSvgContent('');
-      setSvgState('error');
-      setErrorMessage("That doesn't look like a valid GitHub username");
-      return;
-    }
-
-    if (!validateGitHubUsername(debouncedUsername)) {
-      setSvgContent('');
       setSvgState('error');
       setErrorMessage("That doesn't look like a valid GitHub username");
       return;
@@ -231,7 +218,6 @@ function CustomizePageInner(): ReactElement {
       .then(async (res) => {
         const text = await res.text();
         if (!res.ok) {
-          setSvgContent('');
           setSvgState('error');
           if (res.status === 404 || res.status === 400) {
             setErrorMessage('GitHub user not found');
@@ -246,40 +232,6 @@ function CustomizePageInner(): ReactElement {
       })
       .then((text) => {
         if (!text) return;
-        const sanitized = DOMPurify.sanitize(text, {
-          USE_PROFILES: { svg: true },
-          ADD_TAGS: ['animate', 'style'],
-          ADD_ATTR: [
-            'fill',
-            'fill-opacity',
-            'stroke',
-            'stroke-width',
-            'stroke-opacity',
-            'x1',
-            'y1',
-            'x2',
-            'y2',
-            'stop-color',
-            'stop-opacity',
-            'offset',
-            'transform-origin',
-            'transform-box',
-            'transform',
-            'attributeName',
-            'from',
-            'to',
-            'dur',
-            'repeatCount',
-            'id',
-            'class',
-            'href',
-          ],
-          FORBID_TAGS: ['foreignObject', 'iframe', 'object', 'embed', 'script'],
-          FORBID_ATTR: ['xlink:href'],
-          ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto|data):|#)/i,
-        });
-
-        setSvgContent(sanitized as string);
         setSvgState('loaded');
         setErrorMessage(null);
       })
@@ -290,7 +242,7 @@ function CustomizePageInner(): ReactElement {
       });
 
     return () => controller.abort();
-  }, [previewSrc, hasUsername, debouncedUsername, trimmedUsername]);
+  }, [previewSrc, hasUsername, trimmedUsername]);
 
   const exportSnippet = getExportSnippet(exportFormat, queryString);
 
@@ -562,17 +514,17 @@ function CustomizePageInner(): ReactElement {
                             </p>
                           </div>
                         )}
-                      {svgState === 'loaded' && svgContent && (
-                        <motion.div
-                          initial={{ opacity: 0, scale: 0.95 }}
+                      {svgState === 'loaded' && (
+                        <motion.img
+                          key={previewSrc}
+                          src={previewSrc}
+                          alt="CommitPulse"
+                          className="w-full max-w-[600px] h-auto"
+                          initial={{ opacity: 0, scale: 0.98 }}
                           animate={{ opacity: 1, scale: 1 }}
-                          transition={{ duration: 0.5, ease: 'easeOut' }}
-                          className="cp-svg-container w-full max-w-[600px] drop-shadow-[0_30px_60px_rgba(0,0,0,0.15)] dark:drop-shadow-[0_30px_60px_rgba(0,0,0,0.5)] [&>svg]:w-full [&>svg]:h-auto"
-                          dangerouslySetInnerHTML={{ __html: svgContent }}
+                          transition={{ duration: 0.35, ease: 'easeOut' }}
+                          draggable={false}
                         />
-                      )}
-                      {svgState === 'loaded' && !svgContent && errorMessage && (
-                        <p className="text-red-400 text-sm text-center">{errorMessage}</p>
                       )}
                     </div>
                   ) : (

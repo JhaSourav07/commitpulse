@@ -167,6 +167,20 @@ vi.mock('@/hooks/useRecentSearches', () => ({
   useRecentSearches: () => mockRecentSearches,
 }));
 
+vi.mock('@/hooks/useDebounce', () => ({
+  useDebounce: (value: string) => value,
+}));
+
+vi.mock('@/app/components/theme-switch', () => ({
+  useThemeToggle: () => ({
+    isDark: true,
+    mounted: true,
+    toggleTheme: vi.fn(),
+    setIsDark: vi.fn(),
+    animationName: 'circle',
+  }),
+}));
+
 describe('LandingPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -239,6 +253,8 @@ describe('LandingPage', () => {
       const img = screen.getByTestId('badge-img') as HTMLImageElement;
       expect(img).toBeDefined();
       expect(img.src).toContain('user=octocat');
+      expect(img.src).toContain('theme=github');
+      expect(img.src).toContain('refresh=true');
     });
 
     // Simulate the browser successfully loading the badge image
