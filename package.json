@@ -28,6 +28,7 @@
     "@resvg/resvg-js": "^2.6.2",
     "@tailwindcss/postcss": "^4.2.2",
     "@vercel/analytics": "^1.6.1",
+    "@vercel/kv": "^3.0.0",
     "dompurify": "^3.4.7",
     "framer-motion": "^12.38.0",
     "gsap": "^3.15.0",

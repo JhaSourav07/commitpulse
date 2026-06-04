@@ -1,6 +1,6 @@
-import { DistributedCache } from './cache';
+import { kv } from '@vercel/kv';
 
-interface RateLimitResult {
+export interface RateLimitResult {
   success: boolean;
   limit: number;
   remaining: number;
@@ -8,18 +8,28 @@ interface RateLimitResult {
 }
 
 /**
- * In-memory rate limiter to prevent basic DoS/spam (Denial of Wallet).
- *
- * Note: In a serverless environment, this resets per cold-start/instance,
- * but it is highly effective at stopping aggressive single-instance spikes.
- * For multi-instance strict syncing, a Redis store (Vercel KV/Upstash) should be used.
+ * Normalizes and hashes the IP address to prevent keyspace pollution
+ * and bounded key lengths in Redis.
+ */
+async function getIpHash(ip: string): Promise<string> {
+  if (typeof crypto !== 'undefined' && crypto.subtle) {
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(ip));
+    return Array.from(new Uint8Array(buf))
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('');
+  }
+  // Fallback for environments where crypto.subtle is unavailable
+  return encodeURIComponent(ip);
+}
+
+/**
+ * Global rate limiter using Vercel KV (Redis) to prevent DoS attacks.
+ * In serverless environments, this ensures rate limits and blocklists
+ * are globally synchronized across all instances.
  */
 export class RateLimiter {
-  private cache: DistributedCache<{ count: number; resetAt: number }>;
   private limit: number;
   private windowMs: number;
-  private allowlist = new Set<string>();
-  private blocklist = new Set<string>();
 
   /**
    * Creates a new RateLimiter instance.
@@ -30,133 +40,165 @@ export class RateLimiter {
   constructor(limit = 5, windowMs = 60000) {
     this.limit = limit;
     this.windowMs = windowMs;
-    this.cache = new DistributedCache<{ count: number; resetAt: number }>(10000, windowMs);
   }
 
-  /**
-   * Checks whether a request from the given IP is allowed.
-   *
-   * Increments the request count for the IP and resets the TTL on each call,
-   * behaving similarly to a sliding window timeout.
-   *
-   * @param ip - The IP address to check.
-   * @returns `true` if the request is allowed, `false` if rate limited.
-   *
-   * @example
-   * if (!rateLimiter.check(ip)) {
-   *   return new Response("Too Many Requests", { status: 429 });
-   * }
-   */
   async check(ip: string): Promise<boolean> {
-    if (this.allowlist.has(ip)) return true;
-    if (this.blocklist.has(ip)) return false;
-    const record = await this.cache.get(ip);
-    const count = record?.count ?? 0;
-    if (count >= this.limit) return false;
-    if (!record) {
-      await this.cache.set(ip, { count: 1, resetAt: Date.now() + this.windowMs }, this.windowMs);
-    } else {
-      await this.cache.update(ip, { count: count + 1, resetAt: record.resetAt });
-    }
-    return true;
+    const result = await this.checkWithResult(ip);
+    return result.success;
   }
 
   async checkWithResult(ip: string): Promise<RateLimitResult> {
-    if (this.allowlist.has(ip))
+    const windowSeconds = Math.ceil(this.windowMs / 1000);
+    let resetMs = this.windowMs;
+
+    try {
+      const hashedIp = await getIpHash(ip);
+
+      const key = `ratelimit:ip:${hashedIp}`;
+
+      // Execute all KV operations in a single pipeline round-trip
+      const p = kv.pipeline();
+      p.sismember('ratelimit:allowlist', hashedIp);
+      p.sismember('ratelimit:blocklist', hashedIp);
+      p.incr(key);
+      p.pttl(key);
+
+      const [isAllowed, isBlocked, current, pttl] = (await p.exec()) as [
+        number,
+        number,
+        number,
+        number,
+      ];
+
+      if (isAllowed) {
+        return {
+          success: true,
+          limit: this.limit,
+          remaining: this.limit,
+          reset: Date.now() + resetMs,
+        };
+      }
+
+      if (isBlocked) {
+        return {
+          success: false,
+          limit: this.limit,
+          remaining: 0,
+          reset: Date.now() + resetMs,
+        };
+      }
+
+      if (current === 1 || pttl === -1) {
+        // Set expiry (fire and forget to not block the hot path)
+        kv.expire(key, windowSeconds).catch((e: unknown) => console.warn('KV Expire Error:', e));
+      } else if (pttl > 0) {
+        resetMs = pttl;
+      }
+
+      const reset = Date.now() + resetMs;
+
+      if (current > this.limit) {
+        return {
+          success: false,
+          limit: this.limit,
+          remaining: 0,
+          reset,
+        };
+      }
+
       return {
         success: true,
         limit: this.limit,
-        remaining: this.limit,
-        reset: Date.now() + this.windowMs,
+        remaining: this.limit - current,
+        reset,
       };
-    if (this.blocklist.has(ip))
-      return { success: false, limit: this.limit, remaining: 0, reset: Date.now() + this.windowMs };
-
-    const now = Date.now();
-    const record = await this.cache.get(ip);
-    const count = record?.count ?? 0;
-
-    if (count >= this.limit) {
-      return {
-        success: false,
-        limit: this.limit,
-        remaining: 0,
-        reset: record?.resetAt ?? now + this.windowMs,
-      };
-    }
-
-    if (!record) {
-      const resetAt = now + this.windowMs;
-      await this.cache.set(ip, { count: 1, resetAt }, this.windowMs);
-      return {
-        success: true,
-        limit: this.limit,
-        remaining: this.limit - 1,
-        reset: resetAt,
-      };
-    } else {
-      const resetAt = record.resetAt;
-      await this.cache.update(ip, { count: count + 1, resetAt });
-      return {
-        success: true,
-        limit: this.limit,
-        remaining: this.limit - (count + 1),
-        reset: resetAt,
-      };
+    } catch (error) {
+      // Fail open mechanism
+      console.warn(`[RateLimiter] KV Error, bypassing rate limit for IP: ${ip}. Error:`, error);
+      return { success: true, limit: this.limit, remaining: 1, reset: Date.now() + resetMs };
     }
   }
 
-  /**
-   * Resets the request count for a given IP address.
-   *
-   * Useful for clearing rate limit state after a successful
-   * authentication or admin action.
-   *
-   * @param ip - The IP address to reset.
-   *
-   * @example
-   * rateLimiter.reset("192.168.1.1");
-   */
   async reset(ip: string): Promise<void> {
-    await this.cache.delete(`ratelimit:${ip}`);
+    try {
+      const hashedIp = await getIpHash(ip);
+      await kv.del(`ratelimit:ip:${hashedIp}`);
+    } catch (error) {
+      console.warn(`[RateLimiter] KV Error resetting IP: ${ip}`, error);
+    }
   }
 
-  /**
-   * Returns the number of remaining requests allowed for a given IP
-   * in the current window.
-   *
-   * Does not consume a request — use `check()` for that.
-   *
-   * @param ip - The IP address to check.
-   * @returns Promise resolving to the number of remaining requests,
-   *          or the full limit if the IP has no recorded requests.
-   *
-   * @example
-   * const left = await rateLimiter.remaining("192.168.1.1");
-   * console.log(`You have ${left} requests left.`);
-   */
   async remaining(ip: string): Promise<number> {
-    const record = await this.cache.get(ip);
-    const count = record?.count ?? 0;
-    return Math.max(0, this.limit - count);
+    try {
+      const hashedIp = await getIpHash(ip);
+      const current = await kv.get<number>(`ratelimit:ip:${hashedIp}`);
+      return Math.max(0, this.limit - (current ?? 0));
+    } catch (error) {
+      console.warn(`[RateLimiter] KV Error getting remaining for IP: ${ip}`, error);
+      return this.limit;
+    }
   }
+
+  // ---------------------------------------------------------------------------
+  // Synchronous wrappers for API backward compatibility (fire and forget)
+  // ---------------------------------------------------------------------------
 
   allow(ip: string): void {
-    this.allowlist.add(ip);
-    this.blocklist.delete(ip);
+    this.allowAsync(ip).catch((e: unknown) => console.error(e));
   }
 
   block(ip: string): void {
-    this.blocklist.add(ip);
-    this.allowlist.delete(ip);
+    this.blockAsync(ip).catch((e: unknown) => console.error(e));
   }
 
   unallow(ip: string): void {
-    this.allowlist.delete(ip);
+    this.unallowAsync(ip).catch((e: unknown) => console.error(e));
   }
 
   unblock(ip: string): void {
-    this.blocklist.delete(ip);
+    this.unblockAsync(ip).catch((e: unknown) => console.error(e));
+  }
+
+  // ---------------------------------------------------------------------------
+  // Internal async implementations
+  // ---------------------------------------------------------------------------
+
+  private async allowAsync(ip: string): Promise<void> {
+    try {
+      const hashedIp = await getIpHash(ip);
+      await kv.sadd('ratelimit:allowlist', hashedIp);
+      await kv.srem('ratelimit:blocklist', hashedIp);
+    } catch (error) {
+      console.warn(`[RateLimiter] KV Error allowing IP: ${ip}`, error);
+    }
+  }
+
+  private async blockAsync(ip: string): Promise<void> {
+    try {
+      const hashedIp = await getIpHash(ip);
+      await kv.sadd('ratelimit:blocklist', hashedIp);
+      await kv.srem('ratelimit:allowlist', hashedIp);
+    } catch (error) {
+      console.warn(`[RateLimiter] KV Error blocking IP: ${ip}`, error);
+    }
+  }
+
+  private async unallowAsync(ip: string): Promise<void> {
+    try {
+      const hashedIp = await getIpHash(ip);
+      await kv.srem('ratelimit:allowlist', hashedIp);
+    } catch (error) {
+      console.warn(`[RateLimiter] KV Error unallowing IP: ${ip}`, error);
+    }
+  }
+
+  private async unblockAsync(ip: string): Promise<void> {
+    try {
+      const hashedIp = await getIpHash(ip);
+      await kv.srem('ratelimit:blocklist', hashedIp);
+    } catch (error) {
+      console.warn(`[RateLimiter] KV Error unblocking IP: ${ip}`, error);
+    }
   }
 }
 
@@ -167,64 +209,57 @@ export const trackUserRateLimiter = new RateLimiter(5, 60000);
 export const notifyRateLimiter = new RateLimiter(5, 60000);
 
 /**
- * Distributed rate limiter for Next.js Edge Middleware.
- *
- * When Upstash Redis / Vercel KV is configured, counters are shared across
- * all serverless instances via atomic INCR + EXPIRE Lua scripts.
- * Falls back to a local in-memory cache for development environments.
- */
-
-const trackers = new DistributedCache<{ count: number; resetAt: number }>(2000, 60000);
-
-/**
- * Checks if a request from a given IP should be rate limited.
- *
- * @param ip - The IP address to track.
- * @param limit - Maximum number of requests allowed in the window. Defaults to 60.
- * @param windowMs - Time window in milliseconds. Defaults to 60000 (1 minute).
- * @returns A {@link RateLimitResult} containing success status, limit, remaining count, and reset time.
- *
- * @example
- * const result = rateLimit(ip);
- * if (!result.success) {
- *   return new Response("Too Many Requests", { status: 429 });
- * }
+ * Global rate limiter for Next.js Edge Middleware using Vercel KV.
  */
 export async function rateLimit(
   ip: string,
   limit: number = 60,
   windowMs: number = 60000
 ): Promise<RateLimitResult> {
-  const now = Date.now();
-  const tracker = await trackers.get(ip);
+  const windowSeconds = Math.ceil(windowMs / 1000);
+  let resetMs = windowMs;
 
-  if (!tracker) {
-    const resetAt = now + windowMs;
-    await trackers.set(ip, { count: 1, resetAt }, windowMs);
+  try {
+    const hashedIp = await getIpHash(ip);
+    const key = `ratelimit:edge:${hashedIp}`;
+
+    // Use pipeline to reduce round-trips
+    const p = kv.pipeline();
+    p.incr(key);
+    p.pttl(key);
+    const [current, pttl] = (await p.exec()) as [number, number];
+
+    if (current === 1 || pttl === -1) {
+      // Fire and forget expiry
+      kv.expire(key, windowSeconds).catch((e: unknown) => console.warn('KV Expire Error:', e));
+    } else if (pttl > 0) {
+      resetMs = pttl;
+    }
+
+    const reset = Date.now() + resetMs;
+
+    if (current > limit) {
+      return {
+        success: false,
+        limit,
+        remaining: 0,
+        reset,
+      };
+    }
+
     return {
       success: true,
       limit,
-      remaining: limit - 1,
-      reset: resetAt,
+      remaining: limit - current,
+      reset,
     };
-  }
-
-  tracker.count++;
-  await trackers.update(ip, tracker);
-
-  if (tracker.count > limit) {
+  } catch (error) {
+    console.warn(`[rateLimit Middleware] KV Error, bypassing rate limit for IP: ${ip}`, error);
     return {
-      success: false,
+      success: true,
       limit,
-      remaining: 0,
-      reset: tracker.resetAt,
+      remaining: 1,
+      reset: Date.now() + resetMs,
     };
   }
-
-  return {
-    success: true,
-    limit,
-    remaining: limit - tracker.count,
-    reset: tracker.resetAt,
-  };
 }
