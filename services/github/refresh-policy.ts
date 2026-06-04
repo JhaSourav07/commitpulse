@@ -79,10 +79,8 @@ export class RefreshPolicy {
     // (TTLCache rejects ttlMs <= 0).
     if (this.cooldownMs > 0) {
       const cacheKey = this.getCacheKey(username);
-      // Use a long cache TTL to prevent premature cache expiration during mode changes.
-      // Cooldown checks are still computed dynamically using this.cooldownMs.
-      const ttl = Math.max(this.cooldownMs, 24 * 60 * 60 * 1000);
-      this.refreshTimes.set(cacheKey, Date.now(), ttl);
+      // Store with a long TTL (1 hour) to allow dynamic cooldown increases later.
+      this.refreshTimes.set(cacheKey, Date.now(), 60 * 60 * 1000);
     }
     quotaMonitor.incrementRefreshCount();
   }
