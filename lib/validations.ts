@@ -502,11 +502,15 @@ const baseStreakParamsSchema = z.object({
     .default('rise'),
   badges: z.string().optional().transform(toBooleanFlag).default(false),
 
+// Tech stack visualization parameters
+  stackColor: z.string().optional().transform(toBooleanFlag).default(false),
+  stackLegend: z.string().optional().transform(toBooleanFlag).default(false),
+
   // Output format: 'svg' (default), 'json', or 'png' for image export.
   // Invalid values silently fall back to 'svg'.
   format: z.enum(['svg', 'json', 'png']).catch('svg').default('svg'),
 
-  theta: z
+  theta: 
     .string()
     .optional()
     .refine(

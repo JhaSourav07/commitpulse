@@ -195,6 +195,40 @@ export interface MonthlyStats {
 }
 
 /**
+ * Technology/language-specific contribution statistics.
+ */
+export interface TechStackStat {
+  /** Name of the technology/programming language */
+  language: string;
+  /** Hex color code for visualization */
+  color: string;
+  /** Total contributions to repositories using this tech */
+  contributionCount: number;
+  /** Percentage of total contributions */
+  percentage: number;
+  /** Rank by contribution volume (1-based) */
+  dominanceRank: number;
+}
+
+/**
+ * Aggregated technology stack analytics for a developer profile.
+ */
+export interface StackAnalytics {
+  /** Total contributions across all repositories */
+  totalContributions: number;
+  /** Most used technology/language */
+  dominantStack: string;
+  /** Color code for the dominant stack */
+  dominantStackColor: string;
+  /** Top 10 technologies by contribution count */
+  topStacks: TechStackStat[];
+  /** Map for O(1) lookups of specific language stats */
+  stackBreakdown: Map<string, TechStackStat>;
+  /** Timestamp when analytics were generated */
+  lastUpdated: string;
+}
+
+/**
  * Parameters accepted by the /api/streak endpoint.
  * All fields except `user` are optional; URL parameters override theme defaults.
  */
@@ -354,7 +388,7 @@ export interface BadgeParams {
   isOfflineFallback?: boolean;
   badges?: boolean;
 
-  /** Projection rotation angle around the Z-axis in degrees (0-360). */
+/** Projection rotation angle around the Z-axis in degrees (0-360). */
   theta?: number;
 
   /** Projection tilt angle around the X-axis in degrees (0-90). */
@@ -362,6 +396,12 @@ export interface BadgeParams {
 
   /** When true, renders a compact single-row card (~100px tall) with only username, avatar, and streak count. Skips the full isometric grid. */
   compact?: boolean;
+
+  /** When true, renders towers with colors based on the dominant technology stack detected from repositories. */
+  stackColor?: boolean;
+
+  /** When true, includes a legend showing top technologies and their contribution percentages. Only used when stackColor=true. */
+  stackLegend?: boolean;
 
   /** @internal Temporary property to track custom gradient ID during SVG generation. */
   __customGradientId?: string;
