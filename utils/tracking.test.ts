@@ -118,6 +118,23 @@ describe('trackUser', () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
+  it('reports format error for non-serializable JSON payload', () => {
+    const consoleErrorMock = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+
+    const payload: Record<string, unknown> = {};
+    payload.self = payload;
+
+    trackUser(payload as unknown as string);
+
+    expect(consoleErrorMock).toHaveBeenCalledWith(
+      'Failed to format tracking payload',
+      expect.any(TypeError)
+    );
+
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
 
   it('handles non-serializable input gracefully without throwing', () => {
     // A circular reference cannot be serialized by JSON.stringify and will throw
@@ -174,5 +191,21 @@ describe('trackUser', () => {
 
     expect(sendBeaconMock).not.toHaveBeenCalled();
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('JSON response serializer — boundary robustness (Variation 3)', () => {
+  it('verifies the utility catches the exception and reports format errors when passed non-serializable JSON payloads', () => {
+    // Arrange: Create a non-serializable payload using a circular reference
+    const circularStructure: Record<string, unknown> = {};
+    circularStructure['self'] = circularStructure;
+
+    // Provide a trim method that returns the circular structure to trigger the serialization error
+    const nonSerializablePayload = {
+      trim: () => circularStructure,
+    };
+
+    // Act & Assert: Invoke the utility with the target inputs and verify it handles it gracefully
+    expect(() => trackUser(nonSerializablePayload as unknown as string)).not.toThrow();
   });
 });

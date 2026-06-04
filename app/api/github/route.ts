@@ -3,6 +3,22 @@
 import { NextResponse } from 'next/server';
 import { getFullDashboardData } from '@/lib/github';
 import { githubParamsSchema } from '@/lib/validations';
+import { getClientIp } from '@/utils/getClientIp';
+import { quotaMonitor } from '@/services/github/quota-monitor';
+import { refreshPolicy } from '@/services/github/refresh-policy';
+import { refreshRateLimiter } from '@/services/github/refresh-rate-limiter';
+import { backgroundRefresh } from '@/services/github/background-refresh';
+
+function logSecurityEvent(event: string, details: Record<string, unknown>) {
+  console.warn(
+    JSON.stringify({
+      timestamp: new Date().toISOString(),
+      type: 'SECURITY_EVENT',
+      event,
+      ...details,
+    })
+  );
+}
 
 /**
  * Returns GitHub dashboard data as JSON.
@@ -18,11 +34,12 @@ import { githubParamsSchema } from '@/lib/validations';
  * - 400 → Invalid query parameters
  * - 403 → GitHub API rate limit reached
  * - 404 → GitHub user not found
+ * - 429 → Too many requests (Refresh rate limit or low quota)
  * - 500 → Internal server error
  */
-
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
+  const ip = getClientIp(request);
 
   const parseResult = githubParamsSchema.safeParse(Object.fromEntries(searchParams.entries()));
 
@@ -35,9 +52,70 @@ export async function GET(request: Request) {
 
   const { username, refresh } = parseResult.data;
 
+  // 1. Quota awareness check - if remaining quota is low, disable manual refresh
+  if (refresh && quotaMonitor.isQuotaLow()) {
+    logSecurityEvent('LOW_QUOTA_REFRESH_BLOCKED', {
+      username,
+      ip,
+      remainingQuota: quotaMonitor.getQuota().remaining,
+    });
+    return NextResponse.json(
+      { error: 'GitHub API quota is low. Cache refresh temporarily disabled.' },
+      { status: 429 }
+    );
+  }
+
+  // 2. Separate Refresh Rate Limiter
+  if (refresh) {
+    const rateLimitCheck = refreshRateLimiter.checkLimit(ip);
+    if (!rateLimitCheck.success) {
+      logSecurityEvent('REFRESH_RATE_LIMIT_EXCEEDED', {
+        username,
+        ip,
+        limit: rateLimitCheck.limit,
+      });
+      return NextResponse.json(
+        { error: 'Refresh rate limit exceeded. Please try again later.' },
+        {
+          status: 429,
+          headers: {
+            'X-RateLimit-Limit': rateLimitCheck.limit.toString(),
+            'X-RateLimit-Remaining': rateLimitCheck.remaining.toString(),
+            'X-RateLimit-Reset': rateLimitCheck.reset.toString(),
+          },
+        }
+      );
+    }
+  }
+
+  // 3. Per-Username Refresh Cooldown
+  let shouldBypassCache = refresh;
+  if (refresh) {
+    if (!refreshPolicy.isRefreshAllowed(username)) {
+      logSecurityEvent('REFRESH_COOLDOWN_VIOLATION', {
+        username,
+        ip,
+        remainingMs: refreshPolicy.getRemainingCooldown(username),
+      });
+      // Fallback: serve cached data instead of bypassing cache
+      shouldBypassCache = false;
+    } else {
+      refreshPolicy.recordRefresh(username);
+    }
+  }
+
   try {
-    const data = await getFullDashboardData(username, { bypassCache: refresh });
-    const cacheControl = refresh
+    const data = await getFullDashboardData(username, { bypassCache: shouldBypassCache });
+
+    // 4. Stale-While-Revalidate background refresh for normal cached requests
+    if (!shouldBypassCache) {
+      const lastSynced = data.lastSyncedAt;
+      if (backgroundRefresh.isStale(lastSynced)) {
+        backgroundRefresh.triggerRefresh(username);
+      }
+    }
+
+    const cacheControl = shouldBypassCache
       ? 'no-cache, no-store, must-revalidate'
       : 's-maxage=3600, stale-while-revalidate=86400';
 
@@ -45,6 +123,11 @@ export async function GET(request: Request) {
       status: 200,
       headers: {
         'Cache-Control': cacheControl,
+        'X-Refresh-Status': shouldBypassCache
+          ? 'Fresh'
+          : refresh
+            ? 'Cooldown-Served-Cached'
+            : 'Cached',
       },
     });
   } catch (error: unknown) {

@@ -1,9 +1,9 @@
 'use client';
 
-import { useRef, useState, useEffect, type ReactNode } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 
 if (typeof window !== 'undefined') {
   gsap.registerPlugin(ScrollTrigger);
@@ -353,8 +353,11 @@ function MarqueeRow({
 }) {
   const trackRef = useRef<HTMLDivElement>(null);
   const tweenRef = useRef<gsap.core.Tween | null>(null);
+  const shouldReduceMotion = useReducedMotion();
 
   useEffect(() => {
+    if (shouldReduceMotion) return;
+
     const track = trackRef.current;
     if (!track) return;
 
@@ -376,7 +379,7 @@ function MarqueeRow({
       clearTimeout(timeoutId);
       tweenRef.current?.kill();
     };
-  }, [direction, speed]);
+  }, [direction, speed, shouldReduceMotion]);
 
   /* Pause on hover for readability */
   const handleMouseEnter = () => {
@@ -441,7 +444,11 @@ function FloatingOrb({
       ease: 'sine.inOut',
     });
     return () => {
-      tl.kill();
+      try {
+        tl?.kill?.();
+      } catch {
+        // ignore cleanup errors in test environment
+      }
     };
   }, [delay]);
 
@@ -639,15 +646,12 @@ function StatItem({ value, label, color }: { value: string; label: string; color
       return;
     }
 
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setIsVisible(true);
-          observer.disconnect();
-        }
-      },
-      { threshold: 0.5 }
-    );
+    const observer = new IntersectionObserver((entries, obs) => {
+      if (entries[0].isIntersecting) {
+        setIsVisible(true);
+        obs.disconnect();
+      }
+    });
 
     observer.observe(valueRef.current);
     return () => observer.disconnect();

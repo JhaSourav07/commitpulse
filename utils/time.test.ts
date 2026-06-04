@@ -238,8 +238,8 @@ describe('getSecondsUntilMidnightInTimezone', () => {
   it('should handle extreme timezone offsets without calendar date shifting', () => {
     // Arrange: Test the most extreme offsets to ensure no calendar date shifting occurs
     const extremeOffsets = [
-      { tz: 'Etc/GMT+12', offset: -12, utcHour: 12, expectedLocalHour: 0 }, // UTC-12
-      { tz: 'Etc/GMT-14', offset: 14, utcHour: 10, expectedLocalHour: 0 }, // UTC+14
+      { tz: 'Etc/GMT+12', utcHour: 12 }, // UTC-12
+      { tz: 'Etc/GMT-14', utcHour: 10 }, // UTC+14
     ];
 
     for (const { tz, utcHour } of extremeOffsets) {
@@ -262,6 +262,25 @@ describe('getSecondsUntilUTCMidnight — sliding window boundary robustness', ()
 
   afterEach(() => {
     vi.useRealTimers();
+  });
+
+  it('verifies utility guarantees keys expire exactly at window limit across a sliding range', () => {
+    // Target inputs: Sliding time range approaching midnight in Asia/Kolkata (UTC+5:30)
+    // Local midnight happens at UTC 18:30:00
+    const slidingCases: [string, number][] = [
+      ['2024-06-15T17:30:00.000Z', 3600], // 1 hour before local midnight
+      ['2024-06-15T18:00:00.000Z', 1800], // 30 mins before local midnight
+      ['2024-06-15T18:29:59.000Z', 1], // 1 second before local midnight
+      ['2024-06-15T18:30:00.000Z', 86400], // Exactly local midnight (resets to full day)
+    ];
+
+    for (const [utcTime, expectedTTL] of slidingCases) {
+      vi.setSystemTime(new Date(utcTime));
+      const seconds = getSecondsUntilMidnightInTimezone('Asia/Kolkata');
+
+      // Assert that outputs match guarantees keys expire exactly at window limit
+      expect(seconds).toBe(expectedTTL);
+    }
   });
 
   it('returns correct TTL across a sliding window of times approaching UTC midnight', () => {
@@ -330,5 +349,11 @@ describe('getSecondsUntilMidnightInTimezone — extreme timezone offset boundary
     vi.setSystemTime(new Date('2024-01-01T11:00:00.000Z'));
 
     expect(getSecondsUntilMidnightInTimezone('Pacific/Midway')).toBe(86400);
+  });
+
+  it('throws a RangeError for invalid timezone identifiers', () => {
+    vi.setSystemTime(new Date('2024-06-15T12:00:00.000Z'));
+
+    expect(() => getSecondsUntilMidnightInTimezone('Invalid/Timezone')).toThrow(RangeError);
   });
 });

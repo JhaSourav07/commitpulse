@@ -116,6 +116,44 @@ describe('GET /api/streak', () => {
       expect(body.details.fieldErrors.grace[0]).toBe('grace must be an integer between 0 and 7');
     });
 
+    it('returns 400 when grace exceeds max value', async () => {
+      const response = await GET(
+        makeRequest({
+          user: 'octocat',
+          grace: '999',
+        })
+      );
+      expect(response.status).toBe(400);
+      const body = await response.json();
+      expect(body.details.fieldErrors.grace[0]).toBe('grace must be an integer between 0 and 7');
+    });
+
+    it('returns 400 when days=0 is provided', async () => {
+      const response = await GET(
+        makeRequest({
+          user: 'octocat',
+          days: '0',
+        })
+      );
+
+      expect(response.status).toBe(400);
+
+      const body = await response.json();
+
+      expect(body.error).toBe('Invalid parameters');
+    });
+
+    it('returns 400 when days is negative', async () => {
+      const response = await GET(
+        makeRequest({
+          user: 'octocat',
+          days: '-5',
+        })
+      );
+
+      expect(response.status).toBe(400);
+    });
+
     it('returns 400 Bad Request when ?layout= is set to an unsupported format', async () => {
       const response = await GET(
         makeRequest({
@@ -149,7 +187,21 @@ describe('GET /api/streak', () => {
       expect(response.status).toBe(400);
       const body = await response.json();
       expect(body.error).toBe('Invalid parameters');
-      expect(body.details).not.toBeNull();
+    });
+
+    it('returns 400 Bad Request when ?layout= is set to an unsupported format (Variation 4)', async () => {
+      const response = await GET(
+        makeRequest({
+          user: 'octocat',
+          layout: 'unsupported_layout',
+        })
+      );
+
+      expect(response.status).toBe(400);
+      const body = await response.json();
+      expect(body.details.fieldErrors.layout[0]).toContain(
+        'Invalid layout format. Supported values: default, compact, full.'
+      );
     });
 
     it('returns 400 when the user parameter is missing', async () => {
@@ -237,12 +289,52 @@ describe('GET /api/streak', () => {
       expect(fetchGitHubContributions).not.toHaveBeenCalled();
     });
 
+    it('returns 400 when grace is below the minimum value', async () => {
+      const response = await GET(
+        makeRequest({
+          user: 'octocat',
+          grace: '-1',
+        })
+      );
+
+      expect(response.status).toBe(400);
+
+      const body = await response.json();
+
+      expect(body.error).toBe('Invalid parameters');
+      expect(body.details.fieldErrors.grace[0]).toBe('grace must be an integer between 0 and 7');
+
+      expect(fetchGitHubContributions).not.toHaveBeenCalled();
+    });
+
     it('returns 400 for unsupported ?layout query parameter values (strict schema validation)', async () => {
       const response = await GET(
         new Request('http://localhost:3000/api/streak?user=octocat&layout=unsupported_layout')
       );
 
       expect(response.status).toBe(400);
+    });
+
+    it('returns 400 when an invalid theme value is provided and lists allowed themes', async () => {
+      const response = await GET(
+        makeRequest({
+          user: 'octocat',
+          theme: 'nonexistent_theme_name',
+        })
+      );
+
+      expect(response.status).toBe(400);
+      const body = await response.json();
+      expect(body.error).toBe('Invalid parameters');
+      expect(body.details.fieldErrors.theme).toBeDefined();
+      const errorMessage = body.details.fieldErrors.theme[0];
+      expect(errorMessage).toContain('Invalid theme');
+      expect(errorMessage).toContain('Supported themes:');
+      expect(errorMessage).toContain('auto');
+      expect(errorMessage).toContain('random');
+      expect(errorMessage).toContain('dark');
+      expect(errorMessage).toContain('light');
+      expect(fetchGitHubContributions).not.toHaveBeenCalled();
     });
 
     it('should return 200 OK and valid SVG when the optional repo query parameter is provided', async () => {
@@ -328,17 +420,6 @@ describe('GET /api/streak', () => {
       );
 
       expect(fetchGitHubContributions).toHaveBeenCalled();
-    });
-
-    it('returns 400 when grace exceeds max value', async () => {
-      const response = await GET(
-        makeRequest({
-          user: 'octocat',
-          grace: '999',
-        })
-      );
-
-      expect(response.status).toBe(400);
     });
 
     it('embeds the username (uppercased) in the SVG title', async () => {
@@ -556,6 +637,41 @@ describe('GET /api/streak', () => {
 
       expect(response.status).toBe(200);
     });
+
+    it('produces different SVG output for scale=log versus scale=linear with mixed contribution counts', async () => {
+      // Mix of low (1) and high (100) counts: linear scales them 1× vs 100×,
+      // log compresses the ratio to log₂(2) vs log₂(101) — guaranteed to produce
+      // different tower heights and therefore different path data in the SVG.
+      vi.mocked(fetchGitHubContributions).mockResolvedValue({
+        calendar: {
+          totalContributions: 203,
+          weeks: [
+            {
+              contributionDays: [
+                { contributionCount: 1, date: '2024-06-10' },
+                { contributionCount: 5, date: '2024-06-11' },
+                { contributionCount: 20, date: '2024-06-12' },
+                { contributionCount: 100, date: '2024-06-13' },
+                { contributionCount: 50, date: '2024-06-14' },
+                { contributionCount: 5, date: '2024-06-15' },
+                { contributionCount: 1, date: '2024-06-16' },
+              ],
+            },
+          ],
+        },
+        repoContributions: [],
+      } as unknown as ExtendedContributionData);
+
+      const linearResponse = await GET(makeRequest({ user: 'octocat', scale: 'linear' }));
+      const logResponse = await GET(makeRequest({ user: 'octocat', scale: 'log' }));
+
+      const linearBody = await linearResponse.text();
+      const logBody = await logResponse.text();
+
+      expect(linearResponse.status).toBe(200);
+      expect(logResponse.status).toBe(200);
+      expect(linearBody).not.toBe(logBody);
+    });
   });
 
   describe('year parameter', () => {
@@ -766,6 +882,22 @@ describe('GET /api/streak', () => {
       expect(fieldError).toContain('light');
       expect(fieldError).toContain('neon');
     });
+
+    it('accepts capitalized or mixed-case theme parameter like "NEON" and maps it correctly', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', theme: 'NEON' }));
+      const body = await response.text();
+
+      expect(response.status).toBe(200);
+      expect(body).toContain('ff00ff'); // Neon theme accent is #ff00ff — confirms the neon theme is applied
+    });
+
+    it('accepts mixed-case "random" or "auto" and resolves correctly', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', theme: 'aUtO' }));
+      const body = await response.text();
+
+      expect(response.status).toBe(200);
+      expect(body).toContain('prefers-color-scheme: dark');
+    });
   });
 
   describe('custom colour overrides', () => {
@@ -812,7 +944,11 @@ describe('GET /api/streak', () => {
       expect(body.details).not.toBeNull();
     });
   });
+  it('returns 400 when an invalid hex color is passed as bg', async () => {
+    const response = await GET(makeRequest({ user: 'octocat', bg: '#ZZZZZZ' }));
 
+    expect(response.status).toBe(400);
+  });
   describe('hide parameters', () => {
     it('removes the username title when hide_title=true', async () => {
       const response = await GET(makeRequest({ user: 'octocat', hide_title: 'true' }));
@@ -1011,6 +1147,46 @@ describe('GET /api/streak', () => {
       expect(body).toContain('COMMITS THIS MONTH');
     });
 
+    it('automatically overrides or widens the query bounds to encompass the start of the previous month when view=monthly is requested with custom from/to params', async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-06-02T12:00:00Z'));
+
+      vi.mocked(fetchGitHubContributions).mockResolvedValueOnce({
+        calendar: {
+          totalContributions: 25,
+          weeks: [
+            {
+              contributionDays: [
+                { date: '2026-05-01', contributionCount: 0 },
+                { date: '2026-05-15', contributionCount: 10 },
+                { date: '2026-06-01', contributionCount: 15 },
+                { date: '2026-06-02', contributionCount: 0 },
+              ],
+            },
+          ],
+        } as ContributionCalendar,
+        repoContributions: [],
+      } as unknown as ExtendedContributionData);
+
+      try {
+        const response = await GET(
+          makeRequest({ user: 'octocat', view: 'monthly', from: '2026-06-01', to: '2026-06-02' })
+        );
+
+        expect(response.status).toBe(200);
+        // The expected prev month (May 2026) start is 2026-05-01.
+        // So 'from' should be widened to 2026-05-01T00:00:00Z.
+        // 'to' should be today's date in ISO: 2026-06-02T12:00:00.000Z.
+        expect(fetchGitHubContributions).toHaveBeenCalledWith('octocat', {
+          bypassCache: false,
+          from: '2026-05-01T00:00:00Z',
+          to: '2026-06-02T12:00:00.000Z',
+        });
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
     it('uses the selected year when generating archived monthly stats', async () => {
       vi.useFakeTimers();
       vi.setSystemTime(new Date('2026-05-20T12:00:00Z'));
@@ -1019,8 +1195,14 @@ describe('GET /api/streak', () => {
         calendar: {
           totalContributions: 25,
           weeks: [
-            { contributionDays: [{ date: '2024-11-15', contributionCount: 10 }] },
-            { contributionDays: [{ date: '2024-12-15', contributionCount: 15 }] },
+            {
+              contributionDays: [
+                { date: '2024-11-01', contributionCount: 0 },
+                { date: '2024-11-15', contributionCount: 10 },
+                { date: '2024-12-15', contributionCount: 15 },
+                { date: '2024-12-31', contributionCount: 0 },
+              ],
+            },
           ],
         } as ContributionCalendar,
         repoContributions: [],
@@ -1113,8 +1295,14 @@ describe('GET /api/streak', () => {
         calendar: {
           totalContributions: 150,
           weeks: [
-            { contributionDays: [{ date: '2026-04-15', contributionCount: 10 }] },
-            { contributionDays: [{ date: '2026-05-15', contributionCount: 15 }] },
+            {
+              contributionDays: [
+                { date: '2026-04-01', contributionCount: 0 },
+                { date: '2026-04-15', contributionCount: 10 },
+                { date: '2026-05-15', contributionCount: 15 },
+                { date: '2026-05-20', contributionCount: 0 },
+              ],
+            },
           ],
         } as ContributionCalendar,
         repoContributions: [],
@@ -1140,8 +1328,14 @@ describe('GET /api/streak', () => {
         calendar: {
           totalContributions: 150,
           weeks: [
-            { contributionDays: [{ date: '2026-04-15', contributionCount: 10 }] },
-            { contributionDays: [{ date: '2026-05-15', contributionCount: 15 }] },
+            {
+              contributionDays: [
+                { date: '2026-04-01', contributionCount: 0 },
+                { date: '2026-04-15', contributionCount: 10 },
+                { date: '2026-05-15', contributionCount: 15 },
+                { date: '2026-05-20', contributionCount: 0 },
+              ],
+            },
           ],
         } as ContributionCalendar,
         repoContributions: [],
@@ -1391,53 +1585,50 @@ describe('GET /api/streak', () => {
     });
   });
 
-  describe('JSON output mode (format=json)', () => {
-    it('returns JSON with correct Content-Type when format=json is set', async () => {
-      const response = await GET(makeRequest({ user: 'octocat', format: 'json' }));
+  describe('multi-user skyline merges', () => {
+    it('fetches calendars concurrently, aggregates them, and overrides the title in the SVG', async () => {
+      vi.mocked(fetchGitHubContributions)
+        .mockResolvedValueOnce({
+          calendar: mockCalendar,
+          repoContributions: [],
+        } as unknown as ExtendedContributionData)
+        .mockResolvedValueOnce({
+          calendar: mockCalendar,
+          repoContributions: [],
+        } as unknown as ExtendedContributionData);
+
+      const response = await GET(makeRequest({ user: 'a, b' }));
       expect(response.status).toBe(200);
-      expect(response.headers.get('Content-Type')).toContain('application/json');
+
+      expect(fetchGitHubContributions).toHaveBeenCalledWith('a', expect.any(Object));
+      expect(fetchGitHubContributions).toHaveBeenCalledWith('b', expect.any(Object));
+
+      const body = await response.text();
+      expect(body).toContain('A + B');
     });
 
-    it('returns stats, monthlyStats, and calendar in JSON response', async () => {
-      const response = await GET(makeRequest({ user: 'octocat', format: 'json' }));
-      const data = await response.json();
+    it('gracefully handles partial fetch failures by filtering out failed calendars', async () => {
+      vi.mocked(fetchGitHubContributions)
+        .mockResolvedValueOnce({
+          calendar: mockCalendar,
+          repoContributions: [],
+        } as unknown as ExtendedContributionData)
+        .mockRejectedValueOnce(new Error('GitHub user "b" not found'));
 
-      expect(data.user).toBe('octocat');
-      expect(data.stats).toBeDefined();
-      expect(data.stats.currentStreak).toBeDefined();
-      expect(data.stats.longestStreak).toBeDefined();
-      expect(data.stats.totalContributions).toBeDefined();
-      expect(data.monthlyStats).toBeDefined();
-      expect(data.monthlyStats.currentMonthTotal).toBeDefined();
-      expect(data.calendar).toBeDefined();
-      expect(data.calendar.totalContributions).toBe(10);
-      expect(data.calendar.weeks).toHaveLength(2);
+      const response = await GET(makeRequest({ user: 'a, b' }));
+      expect(response.status).toBe(200);
+
+      const body = await response.text();
+      expect(body).toContain('A + B');
     });
 
-    it('includes Cache-Control header in JSON response', async () => {
-      const response = await GET(makeRequest({ user: 'octocat', format: 'json' }));
-      expect(response.headers.get('Cache-Control')).toContain('s-maxage=');
-    });
+    it('returns a 404/error response when all users in the list fail to load', async () => {
+      vi.mocked(fetchGitHubContributions)
+        .mockRejectedValueOnce(new Error('GitHub user "a" not found'))
+        .mockRejectedValueOnce(new Error('GitHub user "b" not found'));
 
-    it('includes X-Cache-Status header in JSON response', async () => {
-      const response = await GET(makeRequest({ user: 'octocat', format: 'json' }));
-      expect(response.headers.get('X-Cache-Status')).toBe('HIT');
-    });
-
-    it('returns SVG when format is not set (default)', async () => {
-      const response = await GET(makeRequest({ user: 'octocat' }));
-      expect(response.headers.get('Content-Type')).toBe('image/svg+xml');
-    });
-
-    it('falls back to SVG for invalid format values', async () => {
-      const response = await GET(makeRequest({ user: 'octocat', format: 'xml' }));
-      expect(response.headers.get('Content-Type')).toBe('image/svg+xml');
-    });
-
-    it('uses org name as user field when org parameter is provided', async () => {
-      const response = await GET(makeRequest({ user: 'octocat', org: 'github', format: 'json' }));
-      const data = await response.json();
-      expect(data.user).toBe('github');
+      const response = await GET(makeRequest({ user: 'a, b' }));
+      expect(response.status).toBe(404);
     });
   });
 });

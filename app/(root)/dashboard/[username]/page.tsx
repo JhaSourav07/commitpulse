@@ -63,6 +63,7 @@ export default async function DashboardPage({
   params: Promise<{ username: string }>;
   searchParams: Promise<{
     refresh?: string;
+    compare?: string;
     year?: string;
     month?: string;
     from?: string;
@@ -72,6 +73,7 @@ export default async function DashboardPage({
   const { username } = await params;
   const resolvedSearchParams = await searchParams;
   const bypassCache = resolvedSearchParams?.refresh === 'true';
+  const compareUsername = resolvedSearchParams?.compare;
   const period = resolveDashboardPeriod({
     year: resolvedSearchParams?.year,
     month: resolvedSearchParams?.month,
@@ -90,10 +92,11 @@ export default async function DashboardPage({
     });
   } catch (error) {
     if (error instanceof Error && error.message.includes('not found')) {
-      // Smart Redirect: If the GraphQL "user" query fails, check if it's actually an Organization
       let fallbackProfile;
       try {
-        fallbackProfile = await fetchUserProfile(username, { bypassCache });
+        fallbackProfile = await fetchUserProfile(username, {
+          bypassCache,
+        });
       } catch {
         return notFound();
       }
@@ -105,5 +108,24 @@ export default async function DashboardPage({
     throw error;
   }
 
-  return <DashboardClient initialData={data} username={username} period={period} />;
+  let compareData = null;
+
+  if (compareUsername && compareUsername.toLowerCase() !== username.toLowerCase()) {
+    try {
+      compareData = await getFullDashboardData(compareUsername, {
+        bypassCache,
+      });
+    } catch {
+      compareData = null;
+    }
+  }
+
+  return (
+    <DashboardClient
+      initialData={data}
+      username={username}
+      compareData={compareData}
+      period={period}
+    />
+  );
 }

@@ -401,7 +401,7 @@ The accuracy engine lives in `utils/time.ts` and `lib/calculate.ts`.
 CommitPulse uses a custom, lightweight **GitHub Actions** automation system to manage issues fairly. This ensures that everyone (especially during events like **GSSoC**) gets a chance to contribute and prevents "issue hoarding".
 
 > [!IMPORTANT]
-> **The Golden Rule:** You can be assigned to a maximum of **3** open issues at a time. Complete or unassign yourself from one before claiming more.
+> **The Golden Rule:** You can be assigned to a maximum of **5** open issues at a time. Complete or unassign yourself from one before claiming more.
 
 ### 📋 Structured Issue Templates
 
@@ -454,7 +454,7 @@ To keep the project moving, assignments are not permanent.
 If the bot rejects your command, check these common scenarios:
 
 - **"Commands cannot be used on closed issues"**: You cannot claim, assign, or unassign on closed issues. Find an open one!
-- **"You already have X/3 active assigned issues"**: You have reached the maximum of 3 concurrent assignments. Finish one of your current tasks before claiming a new issue. If you're stuck, use the `/unclaim` command to unassign yourself from an issue, or ask a maintainer to `/unassign` you.
+- **"You already have X/5 active assigned issues"**: You have reached the maximum of 5 concurrent assignments. Finish one of your current tasks before claiming a new issue. If you're stuck, use the `/unclaim` command to unassign yourself from an issue, or ask a maintainer to `/unassign` you.
 - **"This issue is already assigned to @username"**: Be faster next time! Look for issues without assignees.
 - **"Only the author of this issue can claim it"**: You tried to `/claim` an issue you did not create. You can only claim issues that you authored (unless the issue was authored by `jhasourav07`, which anyone can claim).
 - **"The following label(s) do not exist"**: You can only add existing repo labels. The bot will reply with a list of valid labels you can use.

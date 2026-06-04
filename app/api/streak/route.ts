@@ -2,7 +2,7 @@
 
 import { NextResponse } from 'next/server';
 import { fetchGitHubContributions, getOrgDashboardData } from '@/lib/github';
-import { calculateStreak, calculateMonthlyStats } from '@/lib/calculate';
+import { calculateStreak, calculateMonthlyStats, aggregateCalendars } from '@/lib/calculate';
 import {
   generateNotFoundSVG,
   generateRateLimitSVG,
@@ -13,7 +13,7 @@ import {
   generatePulseSVG,
 } from '@/lib/svg/generator';
 import { getSecondsUntilUTCMidnight, getSecondsUntilMidnightInTimezone } from '@/utils/time';
-import type { BadgeParams } from '@/types';
+import type { BadgeParams, ContributionCalendar } from '@/types';
 import { themes } from '@/lib/svg/themes';
 import { streakParamsSchema } from '@/lib/validations';
 import { sanitizeHexColor } from '@/lib/svg/sanitizer';
@@ -91,32 +91,65 @@ export async function GET(request: Request) {
       versus,
       shading,
       gradient,
+      gradient_stops,
+      gradient_dir,
       opacity,
       tz: tzParam,
       disable_particles,
       glow,
       format,
+      days,
+      badges,
     } = parseResult.data;
-
+    const normalizedView = view as 'default' | 'monthly' | 'heatmap' | 'pulse';
     const themeName = theme || 'dark';
-    const from = customFrom
-      ? new Date(customFrom).toISOString()
-      : year
-        ? `${year}-01-01T00:00:00Z`
-        : undefined;
-    const to = customTo
-      ? new Date(customTo).toISOString()
-      : year
-        ? `${year}-12-31T23:59:59Z`
-        : undefined;
-    const currentYear = new Date().getUTCFullYear();
-    const isHistoricalYear = !!year && Number(year) < currentYear;
 
     let timezone = 'UTC';
     if (tzParam) {
       timezone = new Intl.DateTimeFormat(undefined, { timeZone: tzParam }).resolvedOptions()
         .timeZone;
     }
+
+    let from = customFrom
+      ? new Date(customFrom).toISOString()
+      : year
+        ? `${year}-01-01T00:00:00Z`
+        : undefined;
+    let to = customTo
+      ? new Date(customTo).toISOString()
+      : year
+        ? `${year}-12-31T23:59:59Z`
+        : undefined;
+
+    if (normalizedView === 'monthly') {
+      const referenceDate = getMonthlyReferenceDate(year, timezone) || new Date();
+      const localTodayStr = new Intl.DateTimeFormat('en-CA', { timeZone: timezone }).format(
+        referenceDate
+      );
+      const [currentYearStr, currentMonthStr] = localTodayStr.split('-');
+      const currentYearNum = parseInt(currentYearStr, 10);
+      const currentMonthNum = parseInt(currentMonthStr, 10);
+
+      let prevMonth = currentMonthNum - 1;
+      let prevYear = currentYearNum;
+      if (prevMonth === 0) {
+        prevMonth = 12;
+        prevYear -= 1;
+      }
+
+      const calculatedFromStr = `${prevYear}-${prevMonth.toString().padStart(2, '0')}-01T00:00:00Z`;
+      if (!from || new Date(from) > new Date(calculatedFromStr)) {
+        from = calculatedFromStr;
+      }
+
+      const referenceISO = referenceDate.toISOString();
+      if (!to || new Date(to) < new Date(referenceISO)) {
+        to = referenceISO;
+      }
+    }
+
+    const currentYear = new Date().getUTCFullYear();
+    const isHistoricalYear = !!year && Number(year) < currentYear;
 
     const isAutoTheme = themeName === 'auto';
     const isRandomTheme = themeName === 'random';
@@ -132,7 +165,15 @@ export async function GET(request: Request) {
     })();
 
     // If 'org' is provided, we use it as the display user
-    const targetEntity = org || user;
+    const targetEntity =
+      org ||
+      (user.includes(',')
+        ? user
+            .split(',')
+            .map((u) => u.trim())
+            .slice(0, 2)
+            .join(' + ')
+        : user);
     const borderParam = searchParams.get('border');
     const sanitizedBorder = borderParam ? borderParam.replace(/[^a-fA-F0-9]/g, '') : undefined;
     const animate = searchParams.get('animate') !== 'false';
@@ -151,12 +192,17 @@ export async function GET(request: Request) {
       hideBackground: hide_background,
       hide_stats,
       lang,
-      view,
+      view: normalizedView,
       delta_format,
       width,
       height,
       size,
-      grace,
+
+      grace: Math.max(
+        0,
+        Math.min(7, typeof grace === 'number' ? grace : parseInt(String(grace || 1), 10))
+      ),
+
       mode,
       repo,
       org,
@@ -165,10 +211,18 @@ export async function GET(request: Request) {
       versus,
       shading,
       gradient,
-      opacity,
+      gradient_stops,
+      gradient_dir,
+
+      opacity: Math.max(
+        0.1,
+        Math.min(1.0, typeof opacity === 'number' ? opacity : parseFloat(String(opacity || 1.0)))
+      ),
+
       disable_particles,
       glow,
       animate,
+      badges,
     };
 
     let calendar;
@@ -182,6 +236,41 @@ export async function GET(request: Request) {
         to,
       });
       calendar = orgData.calendar;
+    } else if (user.includes(',')) {
+      const users = user
+        .split(',')
+        .map((u) => u.trim())
+        .filter(Boolean);
+      let lastError: unknown = null;
+      let hasOfflineFallback = false;
+      const fetchedCalendars = await Promise.all(
+        users.map(async (u) => {
+          try {
+            const userData = await fetchGitHubContributions(u, {
+              bypassCache: refresh,
+              from,
+              to,
+            });
+            if (userData.isOfflineFallback) {
+              hasOfflineFallback = true;
+            }
+            return userData.calendar;
+          } catch (err) {
+            lastError = err;
+            return null;
+          }
+        })
+      );
+      const successfulCalendars = fetchedCalendars.filter(
+        (c): c is ContributionCalendar => c !== null
+      );
+      if (successfulCalendars.length === 0) {
+        throw lastError || new Error('No successful calendars fetched');
+      }
+      calendar = aggregateCalendars(successfulCalendars);
+      if (hasOfflineFallback) {
+        params.isOfflineFallback = true;
+      }
     } else {
       const userData = await fetchGitHubContributions(user, {
         bypassCache: refresh,
@@ -189,6 +278,9 @@ export async function GET(request: Request) {
         to,
       });
       calendar = userData.calendar;
+      if (userData.isOfflineFallback) {
+        params.isOfflineFallback = true;
+      }
 
       if (versus) {
         const versusData = await fetchGitHubContributions(versus, {
@@ -197,7 +289,25 @@ export async function GET(request: Request) {
           to,
         });
         versusCalendar = versusData.calendar;
+        if (versusData.isOfflineFallback) {
+          params.isOfflineFallback = true;
+        }
       }
+    }
+
+    if (days && normalizedView !== 'monthly') {
+      const allDays = calendar.weeks.flatMap((w) => w.contributionDays);
+
+      const filteredDays = allDays.slice(-days);
+
+      calendar = {
+        totalContributions: filteredDays.reduce((sum, d) => sum + d.contributionCount, 0),
+        weeks: [
+          {
+            contributionDays: filteredDays,
+          },
+        ],
+      };
     }
 
     // ─── JSON output mode ──────────────────────────────────────────────────
@@ -237,17 +347,17 @@ export async function GET(request: Request) {
 
     // ─── SVG output mode (default) ──────────────────────────────────────────
     let svg = '';
-    if (view === 'monthly') {
+    if (normalizedView === 'monthly') {
       const stats = calculateMonthlyStats(
         calendar,
         timezone,
         getMonthlyReferenceDate(year, timezone)
       );
       svg = generateMonthlySVG(stats, params);
-    } else if (view === 'heatmap') {
+    } else if (normalizedView === 'heatmap') {
       const stats = calculateStreak(calendar, timezone, undefined, grace);
       svg = generateHeatmapSVG(stats, params, calendar);
-    } else if (view === 'pulse') {
+    } else if (normalizedView === 'pulse') {
       // We still use calculateStreak here to efficiently parse totalContributions for the stat display,
       // even though the sparkline generator will extract its own daily 30-day timeline below.
       const stats = calculateStreak(calendar, timezone, undefined, grace);

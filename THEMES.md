@@ -1,6 +1,6 @@
-# 🎨 CommitPulse Themes
+# CommitPulse Themes
 
-All 20 available themes for your CommitPulse badge. Use the `?theme=<slug>` query parameter to apply a theme.
+All 26 available themes for your CommitPulse badge. Use the `?theme=<slug>` query parameter to apply a theme.
 
 ```
 https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&theme=<slug>
@@ -32,12 +32,16 @@ https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&theme=<slug>
 | nord_light       | `#eceff4`  | `#2e3440` | `#5e81ac` |
 | obsidian         | `#1a1a2e`  | `#e2e8f0` | `#f59e0b` |
 | cyber-pulse      | `#000000`  | `#ffffff` | `#00ffee` |
+| tokyonight       | `#1a1b26`  | `#c0caf5` | `#f7768e` |
+| cyberpunk        | `#fce22a`  | `#111111` | `#ff003c` |
+| glacier          | `#e0f2fe`  | `#0369a1` | `#06b6d4` |
+| lumos            | `#0a0a0a`  | `#a7f3d0` | `#fbbf24` |
 
 ---
 
 ## Preview Gallery
 
-### 🌑 Dark (default)
+### Dark (default)
 
 ![dark](https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=dark)
 
@@ -49,7 +53,7 @@ https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&theme=<slug>
 
 ---
 
-### ☀️ Light
+### Light
 
 ![light](https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=light)
 
@@ -61,7 +65,7 @@ https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&theme=<slug>
 
 ---
 
-### ⚡ Neon
+### Neon
 
 ![neon](https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=neon)
 
@@ -73,7 +77,7 @@ https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&theme=<slug>
 
 ---
 
-### 🐙 GitHub
+### GitHub
 
 ![github](https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=github)
 
@@ -85,7 +89,7 @@ https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&theme=<slug>
 
 ---
 
-### 🧛 Dracula
+### Dracula
 
 ![dracula](https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=dracula)
 
@@ -97,7 +101,7 @@ https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&theme=<slug>
 
 ---
 
-### 🌊 Ocean
+### Ocean
 
 ![ocean](https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=ocean)
 
@@ -109,7 +113,7 @@ https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&theme=<slug>
 
 ---
 
-### 🌅 Sunset
+### Sunset
 
 ![sunset](https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=sunset)
 
@@ -121,7 +125,7 @@ https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&theme=<slug>
 
 ---
 
-### 🌲 Forest
+### Forest
 
 ![forest](https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=forest)
 
@@ -133,7 +137,7 @@ https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&theme=<slug>
 
 ---
 
-### 🌸 Rose
+### Rose
 
 ![rose](https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=rose)
 
@@ -145,7 +149,7 @@ https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&theme=<slug>
 
 ---
 
-### ❄️ Nord
+### Nord
 
 ![nord](https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=nord)
 
@@ -157,7 +161,7 @@ https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&theme=<slug>
 
 ---
 
-### 🎵 Synthwave
+### Synthwave
 
 ![synthwave](https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=synthwave)
 
@@ -169,7 +173,7 @@ https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&theme=<slug>
 
 ---
 
-### 🪵 Gruvbox
+### Gruvbox
 
 ![gruvbox](https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=gruvbox)
 
@@ -181,7 +185,7 @@ https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&theme=<slug>
 
 ---
 
-### 🔮 Aurora Cyberpunk
+### Aurora Cyberpunk
 
 ![aurora_cyberpunk](https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=aurora_cyberpunk)
 
@@ -193,7 +197,7 @@ https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&theme=<slug>
 
 ---
 
-### 🔦 High Contrast
+### High Contrast
 
 ![highcontrast](https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=highcontrast)
 
@@ -205,7 +209,7 @@ https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&theme=<slug>
 
 ---
 
-### 🐱 Catppuccin Latte
+### Catppuccin Latte
 
 ![catppuccin_latte](https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=catppuccin_latte)
 
@@ -217,7 +221,7 @@ https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&theme=<slug>
 
 ---
 
-### 🌞 Solarized Light
+### Solarized Light
 
 ![solarized_light](https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=solarized_light)
 
@@ -229,7 +233,7 @@ https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&theme=<slug>
 
 ---
 
-### 🌻 Gruvbox Light
+### Gruvbox Light
 
 ![gruvbox_light](https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=gruvbox_light)
 
@@ -241,7 +245,7 @@ https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&theme=<slug>
 
 ---
 
-### 🏔️ Nord Light
+### Nord Light
 
 ![nord_light](https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=nord_light)
 
@@ -253,7 +257,7 @@ https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&theme=<slug>
 
 ---
 
-### 💠 Cyber Pulse
+### Cyber Pulse
 
 ![cyber-pulse](https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=cyber-pulse)
 
@@ -265,7 +269,7 @@ https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&theme=<slug>
 
 ---
 
-### 🪨 Obsidian
+### Obsidian
 
 ![obsidian](https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=obsidian)
 
@@ -277,9 +281,57 @@ https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&theme=<slug>
 
 ---
 
-## 🎛️ Custom Theme
+### Tokyo Night
 
-Not finding what you want? Build your own using raw color parameters — all values are hex codes **without** the `#` prefix:
+![tokyonight](https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=tokyonight)
+
+| Parameter | Value  |
+| --------- | ------ |
+| `bg`      | 1a1b26 |
+| `text`    | c0caf5 |
+| `accent`  | f7768e |
+
+---
+
+### Cyberpunk
+
+![cyberpunk](https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=cyberpunk)
+
+| Parameter | Value  |
+| --------- | ------ |
+| `bg`      | fce22a |
+| `text`    | 111111 |
+| `accent`  | ff003c |
+
+---
+
+### Glacier
+
+![glacier](https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=glacier)
+
+| Parameter | Value  |
+| --------- | ------ |
+| `bg`      | e0f2fe |
+| `text`    | 0369a1 |
+| `accent`  | 06b6d4 |
+
+---
+
+### Lumos
+
+![lumos](https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=lumos)
+
+| Parameter | Value  |
+| --------- | ------ |
+| `bg`      | 0a0a0a |
+| `text`    | a7f3d0 |
+| `accent`  | fbbf24 |
+
+---
+
+## Custom Theme
+
+Not finding what you want? Build your own using raw color parameters - all values are hex codes **without** the `#` prefix:
 
 ```
 https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&bg=1a1b27&text=a9b1d6&accent=7aa2f7
@@ -287,12 +339,12 @@ https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&bg=1a1b27&text=a9b1
 
 ---
 
-## 🔄 Auto Theme
+## Auto Theme
 
-Automatically switches between light and dark based on the viewer's OS setting — no hex values needed:
+Automatically switches between light and dark based on the viewer's OS setting - no hex values needed:
 
 ```
 https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&theme=auto
 ```
 
-> 💡 **Tip:** You can combine `theme=` with individual overrides. For example, `theme=dracula&accent=ff79c6` applies the Dracula theme but swaps only the accent color.
+> **Tip:** You can combine `theme=` with individual overrides. For example, `theme=dracula&accent=ff79c6` applies the Dracula theme but swaps only the accent color.

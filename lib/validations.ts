@@ -23,7 +23,13 @@ export function toEmptyStringAsUndefined(val?: string): string | undefined {
 }
 
 export function toValidTheme(val?: string): string | undefined {
-  return val && Object.hasOwn(themes, val) ? val : 'dark';
+  if (!val) return 'dark';
+  const normalized = val.toLowerCase();
+  if (normalized === 'auto' || normalized === 'random') {
+    return normalized;
+  }
+  const matchedKey = Object.keys(themes).find((key) => key.toLowerCase() === normalized);
+  return matchedKey || 'dark';
 }
 
 export function toValidHexColor(defaultColor: string) {
@@ -47,6 +53,10 @@ export function toDimensionValue(val?: string): number | undefined {
   return val === undefined ? undefined : Number(val);
 }
 
+export function validateGitHubUsername(username: string): boolean {
+  return /^[a-z\d](?:[a-z\d]|-(?=[a-z\d])){0,38}$/i.test(username);
+}
+
 function dimensionParam(name: string, min: number, max: number) {
   return z
     .string()
@@ -64,6 +74,22 @@ function dimensionParam(name: string, min: number, max: number) {
     .transform(toDimensionValue);
 }
 
+function isValidTimeZone(tz?: string): boolean {
+  if (!tz) return true;
+
+  try {
+    Intl.DateTimeFormat(undefined, { timeZone: tz });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+const timeZoneParam = z
+  .string()
+  .optional()
+  .refine(isValidTimeZone, { message: 'Invalid timezone' });
+
 export const GITHUB_USERNAME_REGEX = /^[a-zA-Z0-9](?:[a-zA-Z0-9]|-(?=[a-zA-Z0-9]))*$/;
 
 const baseStreakParamsSchema = z.object({
@@ -71,17 +97,54 @@ const baseStreakParamsSchema = z.object({
   user: z
     .string({ error: 'Missing user parameter' })
     .min(1, { message: 'Missing user parameter' })
-    .max(39, { message: 'GitHub username cannot exceed 39 characters' })
-    .regex(GITHUB_USERNAME_REGEX, {
-      message: 'Invalid GitHub username',
+    .superRefine((val, ctx) => {
+      const users = val.split(',').map((u) => u.trim());
+      if (users.length === 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Missing user parameter',
+        });
+        return;
+      }
+      for (const u of users) {
+        if (u.length === 0) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'Invalid GitHub username',
+          });
+          return;
+        }
+        if (u.length > 39) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'GitHub username cannot exceed 39 characters',
+          });
+          return;
+        }
+        if (!GITHUB_USERNAME_REGEX.test(u)) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'Invalid GitHub username',
+          });
+          return;
+        }
+      }
     }),
 
   theme: z
     .string()
     .optional()
+    .transform((val) => {
+      if (val === undefined || val === '') return 'dark';
+      const normalized = val.toLowerCase();
+      if (normalized === 'auto' || normalized === 'random') {
+        return normalized;
+      }
+      const matchedKey = Object.keys(themes).find((key) => key.toLowerCase() === normalized);
+      return matchedKey || val;
+    })
     .refine(
       (val) => {
-        if (val === undefined || val === '') return true;
         return val === 'auto' || val === 'random' || Object.hasOwn(themes, val);
       },
       {
@@ -93,14 +156,14 @@ const baseStreakParamsSchema = z.object({
     .string()
     .optional()
     .refine((val) => !val || /^[0-9a-fA-F]{3,4}$|^[0-9a-fA-F]{6,8}$/.test(val.replace('#', '')), {
-      message: 'bg must be a valid 3 or 6 character hex color without #',
+      message: 'bg must be a valid hex color (with or without #)',
     })
     .transform((val) => (val ? sanitizeHexColor(val, '0d1117') : undefined)),
   text: z
     .string()
     .optional()
     .refine((val) => !val || /^[0-9a-fA-F]{3,4}$|^[0-9a-fA-F]{6,8}$/.test(val.replace('#', '')), {
-      message: 'text must be a valid 3 or 6 character hex color without #',
+      message: 'text must be a valid hex color (with or without #)',
     })
     .transform((val) => (val ? sanitizeHexColor(val, 'ffffff') : undefined)),
   accent: z
@@ -116,7 +179,7 @@ const baseStreakParamsSchema = z.object({
       },
       {
         message:
-          'accent must be a valid 3 or 6 character hex color without #, or a comma-separated list of them',
+          'accent must be a valid hex color (with or without #), or a comma-separated list of them',
       }
     )
     .transform((val) => {
@@ -137,6 +200,9 @@ const baseStreakParamsSchema = z.object({
 
   // Invalid size values fall back to 'medium' to preserve badge rendering.
   size: z.enum(['small', 'medium', 'large']).catch('medium').default('medium'),
+
+  // to fetch N days contributions
+  days: z.coerce.number().int().positive().max(365).optional(),
 
   // Silently fall back to '8s' for invalid format (matches old behavior)
   speed: z
@@ -197,26 +263,12 @@ const baseStreakParamsSchema = z.object({
       },
       { message: 'Invalid "date" format. Use ISO 8601.' }
     ),
-  tz: z
-    .string()
-    .optional()
-    .refine(
-      (val) => {
-        if (!val) return true;
-        try {
-          new Intl.DateTimeFormat(undefined, { timeZone: val });
-          return true;
-        } catch {
-          return false;
-        }
-      },
-      { message: 'Invalid timezone. Must be a valid IANA timezone (e.g. America/New_York).' }
-    ),
   refresh: z.string().optional().transform(toRefreshFlag),
   hide_title: z.string().optional().transform(toBooleanFlag),
   hide_background: z.string().optional().transform(toBooleanFlag),
   hide_stats: z.string().optional().transform(toBooleanFlag),
   lang: z.enum(supportedLanguages).catch('en').default('en'),
+  tz: timeZoneParam,
   // Unknown view values fall back to the default dashboard view.
   view: z.enum(['default', 'monthly', 'heatmap', 'pulse']).catch('default').default('default'),
   // Invalid delta formats fall back to percentage mode.
@@ -228,13 +280,14 @@ const baseStreakParamsSchema = z.object({
     .optional()
     .refine(
       (val) => {
-        if (val === undefined) return true;
-        const parsed = Number(val);
-        return !isNaN(parsed) && Number.isInteger(parsed) && parsed >= 0 && parsed <= 7;
+        if (val === undefined || val === '') return true;
+        return /^\d+$/.test(val) && Number(val) >= 0 && Number(val) <= 7;
       },
       { message: 'grace must be an integer between 0 and 7' }
     )
-    .transform((val) => (val === undefined ? 1 : Number(val))),
+    .transform((val) => (val === undefined || val === '' ? 1 : Number(val)))
+    .default(1),
+
   mode: z.enum(['commits', 'loc']).catch('commits').default('commits'),
   repo: z.string().optional(),
   org: z
@@ -275,6 +328,8 @@ const baseStreakParamsSchema = z.object({
       return val === 'true';
     })
     .default(false),
+  gradient_stops: z.string().optional(),
+  gradient_dir: z.enum(['vertical', 'horizontal', 'diagonal']).catch('vertical').optional(),
   disable_particles: z
     .string()
     .optional()
@@ -283,6 +338,7 @@ const baseStreakParamsSchema = z.object({
   glow: z.string().optional().transform(toBooleanFlag).default(true),
   opacity: z.string().optional().transform(toOpacityValue),
   entrance: z.enum(['rise', 'fade', 'slide', 'none']).catch('rise').default('rise'),
+  badges: z.string().optional().transform(toBooleanFlag).default(false),
 
   // Output format: 'svg' (default) or 'json' for programmatic access.
   // Invalid values silently fall back to 'svg'.
@@ -322,6 +378,29 @@ export const githubParamsSchema = z.object({
   refresh: z.string().optional().transform(toRefreshFlag),
 });
 
+export const compareParamsSchema = z
+  .object({
+    user1: z
+      .string({ error: 'Missing "user1" parameter' })
+      .trim()
+      .min(1, { message: 'user1 is required' })
+      .max(39, { message: 'GitHub username cannot exceed 39 characters' })
+      .regex(GITHUB_USERNAME_REGEX, { message: 'Invalid GitHub username for user1' }),
+    user2: z
+      .string({ error: 'Missing "user2" parameter' })
+      .trim()
+      .min(1, { message: 'user2 is required' })
+      .max(39, { message: 'GitHub username cannot exceed 39 characters' })
+      .regex(GITHUB_USERNAME_REGEX, { message: 'Invalid GitHub username for user2' }),
+  })
+  .refine(
+    (data) => data.user1.localeCompare(data.user2, undefined, { sensitivity: 'base' }) !== 0,
+    {
+      message: 'Cannot compare a user with themselves.',
+      path: ['user2'],
+    }
+  );
+
 export const ogParamsSchema = z
   .object({
     user: z.string().trim().optional().transform(toEmptyStringAsUndefined),
@@ -351,6 +430,7 @@ export const ogParamsSchema = z
       .optional()
       .transform(toEmptyStringAsUndefined)
       .transform(toValidHexColor('000000')),
+    refresh: z.string().optional().transform(toRefreshFlag),
   })
   .transform((data) => ({
     ...data,
@@ -366,7 +446,7 @@ export const statsParamsSchema = z.object({
       message: 'Invalid GitHub username',
     }),
   refresh: z.string().optional().transform(toRefreshFlag),
-  tz: z.string().optional(),
+  tz: timeZoneParam,
 });
 
 export const wrappedParamsSchema = z.object({
@@ -391,19 +471,19 @@ export const wrappedParamsSchema = z.object({
         message: 'GitHub was founded in 2008. Please provide a year of 2008 or later.',
       }
     ),
-  theme: z.string().default('dark'),
+  theme: z.string().optional().transform(toValidTheme).default('dark'),
   bg: z
     .string()
     .optional()
     .refine((val) => !val || /^[0-9a-fA-F]{3,4}$|^[0-9a-fA-F]{6,8}$/.test(val.replace('#', '')), {
-      message: 'bg must be a valid 3 or 6 character hex color without #',
+      message: 'bg must be a valid hex color (with or without #)',
     })
     .transform((val) => (val ? sanitizeHexColor(val, '0d1117') : undefined)),
   text: z
     .string()
     .optional()
     .refine((val) => !val || /^[0-9a-fA-F]{3,4}$|^[0-9a-fA-F]{6,8}$/.test(val.replace('#', '')), {
-      message: 'text must be a valid 3 or 6 character hex color without #',
+      message: 'text must be a valid hex color (with or without #)',
     })
     .transform((val) => (val ? sanitizeHexColor(val, 'ffffff') : undefined)),
   accent: z
@@ -419,7 +499,7 @@ export const wrappedParamsSchema = z.object({
       },
       {
         message:
-          'accent must be a valid 3 or 6 character hex color without #, or a comma-separated list of them',
+          'accent must be a valid hex color (with or without #), or a comma-separated list of them',
       }
     )
     .transform((val) => {
@@ -452,26 +532,6 @@ export const wrappedParamsSchema = z.object({
   width: dimensionParam('width', 100, 1200),
   height: dimensionParam('height', 80, 800),
 });
-
-export const compareParamsSchema = z
-  .object({
-    user1: z
-      .string({ error: 'Missing user1 parameter' })
-      .trim()
-      .min(1, { message: 'user1 is required' })
-      .max(39, { message: 'GitHub username cannot exceed 39 characters' })
-      .regex(GITHUB_USERNAME_REGEX, { message: 'Invalid GitHub username for user1' }),
-    user2: z
-      .string({ error: 'Missing user2 parameter' })
-      .trim()
-      .min(1, { message: 'user2 is required' })
-      .max(39, { message: 'GitHub username cannot exceed 39 characters' })
-      .regex(GITHUB_USERNAME_REGEX, { message: 'Invalid GitHub username for user2' }),
-  })
-  .refine((data) => data.user1.toLowerCase() !== data.user2.toLowerCase(), {
-    message: 'Cannot compare a user with themselves.',
-    path: ['user2'],
-  });
 
 export const notifyPostSchema = z.object({
   username: z
@@ -518,9 +578,9 @@ export const notifyGetSchema = z.object({
 
 export type StreakParams = z.infer<typeof streakParamsSchema>;
 export type GithubParams = z.infer<typeof githubParamsSchema>;
+export type CompareParams = z.infer<typeof compareParamsSchema>;
 export type OgParams = z.infer<typeof ogParamsSchema>;
 export type StatsParams = z.infer<typeof statsParamsSchema>;
 export type WrappedParams = z.infer<typeof wrappedParamsSchema>;
-export type CompareParams = z.infer<typeof compareParamsSchema>;
 export type NotifyPostParams = z.infer<typeof notifyPostSchema>;
 export type NotifyGetParams = z.infer<typeof notifyGetSchema>;

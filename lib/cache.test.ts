@@ -673,16 +673,18 @@ describe('TTLCache', () => {
       cache.destroy();
     });
 
-    it('handles oversized cache keys safely', () => {
+    // FIX: New test targeting oversized cache keys for Issue #1403
+    it('rejects oversized cache keys to prevent memory bloat (Variation 2)', () => {
       const cache = new TTLCache<string>();
-
       const oversizedKey = 'a'.repeat(20000);
 
+      // Assert that setting a massive key throws an error to prevent memory bloat
       expect(() => {
         cache.set(oversizedKey, 'large-key-value', 60_000);
-      }).not.toThrow();
+      }).toThrow();
 
-      expect(cache.get(oversizedKey)).toBe('large-key-value');
+      // Verify the key was not saved
+      expect(cache.has(oversizedKey)).toBe(false);
 
       cache.destroy();
     });

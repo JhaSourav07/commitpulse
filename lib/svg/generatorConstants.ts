@@ -1,11 +1,7 @@
 export const SVG_WIDTH = 600;
 export const SVG_HEIGHT = 420;
 
-export const FONT_MAP = {
-  jetbrains: '"JetBrains Mono", monospace',
-  fira: '"Fira Code", monospace',
-  roboto: '"Roboto", sans-serif',
-} as const;
+import { FONT_MAP } from './fonts';
 
 export type FontKey = keyof typeof FONT_MAP;
 
