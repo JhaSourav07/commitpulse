@@ -430,6 +430,7 @@ export const ogParamsSchema = z
       .optional()
       .transform(toEmptyStringAsUndefined)
       .transform(toValidHexColor('000000')),
+    refresh: z.string().optional().transform(toRefreshFlag),
   })
   .transform((data) => ({
     ...data,
@@ -575,6 +576,58 @@ export const notifyGetSchema = z.object({
     }),
 });
 
+const resumeTextField = (max: number) => z.string().trim().max(max).default('');
+
+export const resumeConfirmDataSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(1, { message: 'Name and email are required' })
+    .max(100, { message: 'Name must be at most 100 characters' }),
+  email: z
+    .string()
+    .trim()
+    .min(1, { message: 'Name and email are required' })
+    .max(254, { message: 'Email must be at most 254 characters' })
+    .email({ message: 'Invalid email address' }),
+  phone: z.string().trim().max(40, { message: 'Phone must be at most 40 characters' }).default(''),
+  skills: z
+    .array(z.string().trim().max(80, { message: 'Each skill must be at most 80 characters' }))
+    .max(100, { message: 'Too many skills (max 100)' })
+    .default([])
+    .transform((items) => items.filter((s) => s.length > 0)),
+  education: z
+    .array(
+      z.object({
+        institution: resumeTextField(200),
+        degree: resumeTextField(200),
+        field: resumeTextField(200),
+        startDate: resumeTextField(50),
+        endDate: resumeTextField(50),
+      })
+    )
+    .max(50, { message: 'Too many education entries (max 50)' })
+    .default([])
+    .transform((items) =>
+      items.filter((e) => e.institution || e.degree || e.field || e.startDate || e.endDate)
+    ),
+  experience: z
+    .array(
+      z.object({
+        company: resumeTextField(200),
+        role: resumeTextField(200),
+        startDate: resumeTextField(50),
+        endDate: resumeTextField(50),
+        description: resumeTextField(2000),
+      })
+    )
+    .max(50, { message: 'Too many experience entries (max 50)' })
+    .default([])
+    .transform((items) =>
+      items.filter((x) => x.company || x.role || x.startDate || x.endDate || x.description)
+    ),
+});
+
 export type StreakParams = z.infer<typeof streakParamsSchema>;
 export type GithubParams = z.infer<typeof githubParamsSchema>;
 export type CompareParams = z.infer<typeof compareParamsSchema>;
@@ -583,3 +636,4 @@ export type StatsParams = z.infer<typeof statsParamsSchema>;
 export type WrappedParams = z.infer<typeof wrappedParamsSchema>;
 export type NotifyPostParams = z.infer<typeof notifyPostSchema>;
 export type NotifyGetParams = z.infer<typeof notifyGetSchema>;
+export type ResumeConfirmData = z.infer<typeof resumeConfirmDataSchema>;
