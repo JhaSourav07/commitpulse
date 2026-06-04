@@ -145,7 +145,7 @@ export function ControlsPanel({
             type="text"
             value={username}
             onChange={(e) => onUsernameChange(e.target.value)}
-            placeholder="jhasourav07"
+            placeholder="your-github-username"
             className="w-full bg-white/60 backdrop-blur-md border border-black/10 dark:bg-black/40 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm font-mono text-black dark:text-emerald-300 placeholder:text-gray-400 dark:placeholder:text-white/60 outline-none focus:border-emerald-500/50 transition-all duration-300"
           />
         </ControlRow>
