@@ -40,3 +40,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Generated agent artifacts
+github_issues_proposals.md
+pr_details.md
