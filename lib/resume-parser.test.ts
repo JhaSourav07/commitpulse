@@ -81,6 +81,8 @@ Frontend Developer at XYZ 2022-2024
       skills: [],
       education: [],
       experience: [],
+      projects: [],
+      certifications: [],
     });
   });
 
@@ -99,6 +101,44 @@ Random text without any section headers.
     expect(result.skills).toEqual([]);
     expect(result.education).toEqual([]);
     expect(result.experience).toEqual([]);
+  });
+
+  it('filters PDF structure noise from skill extraction and preserves real name lines', async () => {
+    const resume = `
+John Doe
+john.doe@example.com
+
+Skills
+StructElem, K [3] >> endc, Pg 7 O R, T (ZaikaHub), E (ZaikaHub), TypeScript, React, Node.js
+`;
+
+    const result = await parseResume(Buffer.from(resume), 'application/pdf');
+
+    expect(result.name).toBe('John Doe');
+    expect(result.skills).toEqual(expect.arrayContaining(['TypeScript', 'React', 'Node.js']));
+    expect(result.skills).not.toEqual(expect.arrayContaining(['StructElem', 'Pg 7 O R', 'T', 'E']));
+    expect(result.skills.some((skill) => skill.includes('ZaikaHub'))).toBe(false);
+  });
+
+  it('does not treat PDF object markers as resume content when sections are noisy', async () => {
+    const resume = `
+StructElem
+K [3] >> endc
+Pg 7 O R
+T (ZaikaHub)
+E (ZaikaHub)
+
+Alex Johnson
+alex@example.com
+
+Skills
+JavaScript, TypeScript
+`;
+
+    const result = await parseResume(Buffer.from(resume), 'application/pdf');
+
+    expect(result.name).toBe('Alex Johnson');
+    expect(result.skills).toEqual(['JavaScript', 'TypeScript']);
   });
 });
 

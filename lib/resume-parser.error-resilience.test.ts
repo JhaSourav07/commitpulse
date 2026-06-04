@@ -34,6 +34,8 @@ describe('resume-parser-error-resilience', () => {
       skills: [],
       education: [],
       experience: [],
+      projects: [],
+      certifications: [],
     });
   });
 

@@ -31,6 +31,8 @@ const parsed = {
   skills: ['React'],
   education: [],
   experience: [],
+  projects: [],
+  certifications: [],
 };
 
 describe('ResumePreviewForm', () => {

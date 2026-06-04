@@ -5,6 +5,8 @@ export interface ParsedResume {
   skills: string[];
   education: Education[];
   experience: Experience[];
+  projects: Project[];
+  certifications: string[];
 }
 
 export interface Education {
@@ -21,6 +23,12 @@ export interface Experience {
   startDate: string;
   endDate: string;
   description: string;
+}
+
+export interface Project {
+  title: string;
+  description: string;
+  technologies: string[];
 }
 
 export interface StudentProfile {

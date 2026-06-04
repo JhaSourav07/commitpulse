@@ -33,6 +33,8 @@ describe('types/student', () => {
       skills: ['TypeScript', 'React'],
       education: [education],
       experience: [experience],
+      projects: [],
+      certifications: [],
     };
 
     expect(parsedResume.skills).toContain('TypeScript');
@@ -82,6 +84,8 @@ describe('types/student', () => {
         skills: ['React'],
         education: [education],
         experience: [experience],
+        projects: [],
+        certifications: [],
       },
       fileName: 'resume.pdf',
     };
