@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Check, Loader2, Plus } from 'lucide-react';
+import { Check, Loader2, Plus, X } from 'lucide-react';
 import { toast } from 'sonner';
 import type { ParsedResume, Education, Experience, Project } from '@/types/student';
 
