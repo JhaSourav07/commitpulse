@@ -49,7 +49,15 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  const { user, theme, bg, text, accent, refresh } = parseResult.data;
+  const { user, username, theme, bg, text, accent, refresh } = parseResult.data;
+  const effectiveUser = user || username;
+
+  if (!effectiveUser) {
+    return new Response(JSON.stringify({ error: 'Missing user parameter' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+    });
+  }
 
   const selectedTheme = themes[theme] || themes.dark;
   const resolvedBg = `#${bg || selectedTheme.bg}`;
@@ -70,7 +78,7 @@ export async function GET(req: NextRequest) {
     // bypassCache mirrors the ?refresh=true pattern used by /api/stats and /api/streak.
     // Without this, every link-preview bot crawl fires a fresh GitHub GraphQL request,
     // burning API quota on an endpoint that is embedded in every page's <meta> tag.
-    const data = await fetchGitHubContributions(user, { bypassCache: refresh });
+    const data = await fetchGitHubContributions(effectiveUser, { bypassCache: refresh });
     const stats = calculateStreak(data.calendar ?? data);
     totalCommits = stats.totalContributions;
     longestStreak = stats.longestStreak;
@@ -120,7 +128,7 @@ export async function GET(req: NextRequest) {
         {'⚡ CommitPulse'}
       </div>
       <div style={{ display: 'flex', fontSize: '32px', color: resolvedText, marginBottom: '48px' }}>
-        {`@${user}`}
+        {`@${effectiveUser}`}
       </div>
       <div style={{ display: 'flex', gap: '48px' }}>
         <div
