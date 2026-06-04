@@ -326,11 +326,18 @@ export default function DashboardClient({
   const [secondUsernameInput, setSecondUsernameInput] = useState('');
   const [isLoadingSecond, setIsLoadingSecond] = useState(false);
   const [compareError, setCompareError] = useState<string | null>(null);
+
+  // Replay states
+  const [isReplayMode, setIsReplayMode] = useState(false);
+  const [currentIndex, setCurrentIndex] = useState(0);
+
   const router = useRouter();
 
   const modalRef = useRef<HTMLDivElement>(null);
   const compareInputRef = useRef<HTMLInputElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
+
+  const replayData = initialData.activity.slice(0, currentIndex);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -380,6 +387,22 @@ export default function DashboardClient({
       triggerRef.current?.focus();
     }
   }, [isModalOpen]);
+  useEffect(() => {
+    if (!isReplayMode) return;
+
+    const timer = setInterval(() => {
+      setCurrentIndex((prev) => {
+        if (prev >= initialData.activity.length) {
+          setIsReplayMode(false);
+          return prev;
+        }
+
+        return prev + 1;
+      });
+    }, 50);
+
+    return () => clearInterval(timer);
+  }, [isReplayMode, initialData.activity.length]);
 
   const handleModalAnimationComplete = useCallback(() => {
     compareInputRef.current?.focus();
@@ -554,6 +577,15 @@ export default function DashboardClient({
           )}
         </div>
         <div className="flex gap-4 flex-wrap">
+          <button
+            onClick={() => {
+              setCurrentIndex(0);
+              setIsReplayMode(true);
+            }}
+            className="flex items-center gap-2 rounded-xl border border-black/10 dark:border-[rgba(255,255,255,0.15)] bg-emerald-600 hover:bg-emerald-700 px-4 py-2 text-sm font-semibold text-white transition-all duration-200"
+          >
+            ▶ Replay My Year
+          </button>
           {!isCompareMode && (
             <>
               <button
@@ -642,7 +674,17 @@ export default function DashboardClient({
 
           <div className="flex flex-col gap-6 lg:gap-8 min-w-0">
             <section>
-              <ActivityLandscape data={initialData.activity} />
+              <>
+                {isReplayMode && (
+                  <p className="mb-2 text-sm text-gray-500">
+                    {replayData.length > 0
+                      ? replayData[replayData.length - 1].date
+                      : 'Starting replay...'}
+                  </p>
+                )}
+
+                <ActivityLandscape data={isReplayMode ? replayData : initialData.activity} />
+              </>
             </section>
 
             <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
