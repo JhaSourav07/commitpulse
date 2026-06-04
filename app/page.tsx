@@ -301,6 +301,8 @@ export default function LandingPage() {
   const [username, setUsername] = useState('');
   const [instantUsername, setInstantUsername] = useState('');
   const [copied, setCopied] = useState(false);
+  const copiedTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [badgeResult, setBadgeResult] = useState<{
     username: string;
@@ -319,6 +321,10 @@ export default function LandingPage() {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
+    return () => {
+      if (copiedTimeoutRef.current) clearTimeout(copiedTimeoutRef.current);
+      if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+    };
   }, []);
 
   useGSAP(
@@ -424,10 +430,14 @@ export default function LandingPage() {
     trackUser(trimmedUsername);
     addSearch(trimmedUsername);
     setCopied(true);
-    setTimeout(() => {
+
+    if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+    scrollTimeoutRef.current = setTimeout(() => {
       guideRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 80);
-    setTimeout(() => setCopied(false), 50000);
+
+    if (copiedTimeoutRef.current) clearTimeout(copiedTimeoutRef.current);
+    copiedTimeoutRef.current = setTimeout(() => setCopied(false), 50000);
   };
 
   const selectDemoUser = (name: string) => {
@@ -696,8 +706,9 @@ export default function LandingPage() {
                               alt={displayName}
                               className="w-4 h-4 rounded-full border border-zinc-200/20 dark:border-white/20"
                               onError={(e) => {
-                                (e.target as HTMLImageElement).src =
-                                  'https://github.com/github.png';
+                                const img = e.target as HTMLImageElement;
+                                if (img.src === 'https://github.com/github.png') return;
+                                img.src = 'https://github.com/github.png';
                               }}
                             />
                             <button
