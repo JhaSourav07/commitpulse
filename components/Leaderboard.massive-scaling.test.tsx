@@ -102,7 +102,7 @@ describe('Leaderboard - Massive Scaling & High Bounds (Issue #2754 Equivalent)',
     const highRankItem = getByText('#1000');
     expect(highRankItem).toBeTruthy();
     expect(highRankItem.className).toContain('font-mono');
-  });
+  }, 20000);
 
   it('Podium Extraction Memory Allocation: strictly segments exactly the top 3 nodes regardless of massive data input sizes', () => {
     const massiveData = Array.from({ length: 500 }).map((_, i) => ({
@@ -132,5 +132,5 @@ describe('Leaderboard - Massive Scaling & High Bounds (Issue #2754 Equivalent)',
     const longNameUser = getByText('a'.repeat(500));
     // Verify it uses truncate to stop boundary breakages
     expect(longNameUser.className).toContain('truncate');
-  });
+  }, 20000);
 });

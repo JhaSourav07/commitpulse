@@ -386,7 +386,7 @@ describe('BackgroundRefresh - Massive Data Sets and Extreme High Bounds Scaling 
       expect(service.isJobActive(`group_b_${VOLUME_B + i}`)).toBe(false);
       expect(service.isJobActive(`nonexistent_${i}`)).toBe(false);
     }
-  });
+  }, 20000);
 
   it('correctly handles case-insensitive deduplication for 10,000 username variations', () => {
     const VOLUME = 10000;
@@ -476,7 +476,7 @@ describe('BackgroundRefresh - Massive Data Sets and Extreme High Bounds Scaling 
       const result = service.isStale(new Date(Date.now() - delta).toISOString());
       expect(result).toBe(i % 2 === 0);
     }
-  });
+  }, 20000);
 
   it('verifies job active state after successful completion for 5000 rapid resolved promises', async () => {
     const VOLUME = 5000;

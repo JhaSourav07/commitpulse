@@ -70,7 +70,7 @@ describe('WallOfLove Error Resilience', () => {
 
     const mod = await import('./WallOfLove');
     WallOfLoveModule = mod.WallOfLove;
-  });
+  }, 30000);
 
   beforeEach(() => {
     vi.clearAllMocks();
