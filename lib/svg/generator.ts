@@ -102,8 +102,8 @@ export function escapeXML(str: string): string {
     .replace(/'/g, '&#39;');
 }
 
-export function particleCount(count: number): number {
-  if (count === 0) return 0;
+export function particleCount(count?: number | null): number {
+  if (typeof count !== 'number' || count <= 0 || Number.isNaN(count)) return 0;
   return Math.min(5, Math.max(3, Math.floor(count / 4)));
 }
 

@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import DashboardClient, { DashboardData } from './DashboardClient';
 import '@testing-library/jest-dom';
-import type { ReactNode } from 'react';
 import type { DashboardPeriod } from '@/utils/dashboardPeriod';
 
 /* ---------------- MOCK next/navigation ---------------- */

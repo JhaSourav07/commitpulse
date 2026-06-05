@@ -153,7 +153,6 @@ export default function ShareSheet({ username, isOpen, onClose, exportData }: Sh
   const [linkCopied, setLinkCopied] = useState(false);
   const [qrCopied, setQrCopied] = useState(false);
   const [mdCopied, setMdCopied] = useState(false);
-  const [localStates, setLocalStates] = useState<Record<string, OptionState>>({});
   const [toast, setToast] = useState<{ msg: string; id: number } | null>(null);
 
   const profileUrl = `https://commitpulse.vercel.app/dashboard/${username}`;
@@ -171,7 +170,7 @@ export default function ShareSheet({ username, isOpen, onClose, exportData }: Sh
     handleNativeShare,
   } = useShareActions(username, exportData, onClose);
 
-  const combinedStates: Record<string, OptionState> = { ...states, ...localStates };
+  const combinedStates: Record<string, OptionState> = states;
 
   const panelRef = useRef<HTMLDivElement>(null);
   const handlePanelKeyDown = useCallback((e: ReactKeyboardEvent) => {
@@ -297,7 +296,7 @@ export default function ShareSheet({ username, isOpen, onClose, exportData }: Sh
     }
   };
 
-  const handleLocalCopyMarkdown = (e: React.MouseEvent) => {
+  const handleLocalCopyMarkdown = () => {
     handleCopyMarkdown();
     setMdCopied(true);
     showToast('✓ Markdown copied');

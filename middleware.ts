@@ -68,11 +68,19 @@ export async function middleware(request: NextRequest) {
     );
   }
 
-  // Add rate limit headers to the response for successful requests
+  // Build the headers once.
+  // Some API routes return their own Response/NextResponse objects, so we must ensure
+  // the rate-limit headers survive and are present on the final response.
+  const headers = {
+    'X-RateLimit-Limit': result.limit.toString(),
+    'X-RateLimit-Remaining': result.remaining.toString(),
+    'X-RateLimit-Reset': result.reset.toString(),
+  };
+
+  // `NextResponse.next()` attaches headers to the outgoing response pipeline.
+  // Ensure they are set on the returned response object.
   const response = NextResponse.next();
-  response.headers.set('X-RateLimit-Limit', result.limit.toString());
-  response.headers.set('X-RateLimit-Remaining', result.remaining.toString());
-  response.headers.set('X-RateLimit-Reset', result.reset.toString());
+  Object.entries(headers).forEach(([k, v]) => response.headers.set(k, v));
 
   return response;
 }

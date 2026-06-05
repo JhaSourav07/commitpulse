@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import refreshRateLimiter from './refresh-rate-limiter';
 
 describe('RefreshRateLimiter responsive breakpoints', () => {

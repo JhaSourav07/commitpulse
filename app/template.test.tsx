@@ -12,13 +12,11 @@ type MotionDivProps = React.HTMLAttributes<HTMLDivElement> & {
 };
 
 const mockMotionDiv = vi.hoisted(() =>
-  vi.fn(
-    ({ children, initial: _i, animate: _a, exit: _e, transition: _t, ...rest }: MotionDivProps) => (
-      <div data-testid="motion-wrapper" {...(rest as React.HTMLAttributes<HTMLDivElement>)}>
-        {children}
-      </div>
-    )
-  )
+  vi.fn(({ children, ...rest }: MotionDivProps) => (
+    <div data-testid="motion-wrapper" {...(rest as React.HTMLAttributes<HTMLDivElement>)}>
+      {children}
+    </div>
+  ))
 );
 
 vi.mock('framer-motion', () => ({

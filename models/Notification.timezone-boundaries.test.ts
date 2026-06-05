@@ -23,15 +23,6 @@ function buildCalendar(days: readonly ContributionDay[]): ContributionCalendar {
   };
 }
 
-function formatCalendarDate(instant: Date, locale: string, timeZone: string): string {
-  return new Intl.DateTimeFormat(locale, {
-    timeZone,
-    year: 'numeric',
-    month: 'long',
-    day: '2-digit',
-  }).format(instant);
-}
-
 function getDatePartOrder(instant: Date, locale: string, timeZone: string): string[] {
   return new Intl.DateTimeFormat(locale, {
     timeZone,

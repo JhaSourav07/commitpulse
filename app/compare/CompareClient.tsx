@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import TopRivalriesTicker from '@/components/TopRivalriesTicker';
@@ -41,7 +42,6 @@ import {
   CalendarDays,
   Tent,
   Camera,
-  Share2,
 } from 'lucide-react';
 import html2canvas from 'html2canvas';
 
@@ -303,9 +303,12 @@ function CompareProfileCard({ user, side }: { user: CompareUserData; side: 'left
         {/* Avatar */}
         <div className="relative mb-4">
           <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-black/10 dark:border-[rgba(255,255,255,0.12)]">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={`${profile.avatarUrl}${profile.avatarUrl.includes('?') ? '&' : '?'}s=120`}
+            <Image
+              src={
+                profile.avatarUrl.startsWith('http')
+                  ? `${profile.avatarUrl}${profile.avatarUrl.includes('?') ? '&' : '?'}s=120`
+                  : profile.avatarUrl
+              }
               alt={profile.name}
               width={80}
               height={80}
@@ -1281,7 +1284,6 @@ export default function CompareClient() {
                               @{user.profile.username}
                             </span>
                           </div>
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
                             src={`${BASE_URL}/api/streak?user=${encodeURIComponent(user.profile.username)}&theme=neon`}
                             alt={`${user.profile.username}'s CommitPulse monolith`}

@@ -781,6 +781,16 @@ describe('GET /api/streak', () => {
     });
 
     describe('date parameter', () => {
+      it('returns 400 for malformed ?date= query parameter values (Variation 3)', async () => {
+        const response = await GET(makeRequest({ user: 'octocat', date: '2026-15-40' }));
+        const body = await response.json();
+
+        expect(response.status).toBe(400);
+        expect(body.error).toBe('Invalid parameters');
+        expect(body.details.fieldErrors.date[0]).toContain('Invalid "date" format');
+        expect(fetchGitHubContributions).not.toHaveBeenCalled();
+      });
+
       it('returns 400 when an invalid ISO8601 calendar date format like "2026-15-40" is supplied', async () => {
         const response = await GET(makeRequest({ user: 'octocat', date: '2026-15-40' }));
         const body = await response.json();

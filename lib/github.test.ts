@@ -429,8 +429,9 @@ describe('fetchGitHubContributions', () => {
         );
 
       const promise = fetchGitHubContributions('octocat');
+      void promise;
+
       await vi.advanceTimersByTimeAsync(500);
-      const { calendar: result } = await promise;
 
       expect(fetch).toHaveBeenCalledTimes(2);
     });

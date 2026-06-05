@@ -2290,6 +2290,30 @@ describe('calculateWrappedStats', () => {
     // 4. Assert highestDailyCount === 0
     expect(result.highestDailyCount).toBe(0);
   });
+  it('does not return NaN when total contributions are zero', () => {
+    const calendar = {
+      totalContributions: 0,
+      weeks: [
+        {
+          contributionDays: [
+            { date: '2024-06-01', contributionCount: 0 },
+            { date: '2024-06-02', contributionCount: 0 },
+          ],
+        },
+      ],
+    };
+
+    const result = calculateWrappedStats(calendar);
+
+    expect(result.weekendRatio).toBe(0);
+    expect(Number.isNaN(result.weekendRatio)).toBe(false);
+  });
+  it('handles undefined contribution days safely', () => {
+    const result = aggregateCalendars([{ totalContributions: 0, weeks: [] }]);
+
+    expect(result.totalContributions).toBe(0);
+    expect(result.weeks).toEqual([]);
+  });
 
   // ISSUE OBJECTIVE: Verify weekendRatio is 100 when all commits are on weekends
   // =========================================================================

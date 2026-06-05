@@ -19,15 +19,11 @@ vi.mock('framer-motion', () => ({
       children,
       whileHover,
       whileInView,
-      initial,
-      viewport,
       ...props
     }: {
       children?: ReactNode;
       whileHover?: unknown;
       whileInView?: unknown;
-      initial?: unknown;
-      viewport?: unknown;
       [key: string]: unknown;
     }) => (
       <div
@@ -40,7 +36,6 @@ vi.mock('framer-motion', () => ({
     ),
   },
 }));
-
 const mockContributors: Contributor[] = [
   {
     id: 1,

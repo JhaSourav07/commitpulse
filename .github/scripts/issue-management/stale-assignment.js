@@ -28,12 +28,24 @@ async function handleStaleAssignments({ github, context, core }) {
       const timeSinceUpdate = now.getTime() - updatedAt.getTime();
 
       if (timeSinceUpdate > TWO_DAYS_MS) {
+        const currentAssignees = issue.assignees.map((a) => a.login);
+
+        // Check if any open PRs reference this issue before unassigning
+        const { data: searchResult } = await github.rest.search.issuesAndPullRequests({
+          q: `"#${issue.number}" is:pr is:open repo:${owner}/${repo}`,
+        });
+
+        if (searchResult.total_count > 0) {
+          console.log(
+            `Issue #${issue.number} has open PR(s) referencing it. Skipping stale unassignment.`
+          );
+          continue;
+        }
+
         console.log(
           `Issue #${issue.number} has been inactive since ${issue.updated_at}. Removing assignees.`
         );
 
-        // 1. Remove all assignees
-        const currentAssignees = issue.assignees.map((a) => a.login);
         if (currentAssignees.length > 0) {
           await github.rest.issues.removeAssignees({
             owner,

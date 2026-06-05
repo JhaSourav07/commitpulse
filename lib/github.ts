@@ -32,6 +32,20 @@ const REST_TIMEOUT_MS = 5000; // 5s for REST endpoints
 let currentTokenIndex = 0;
 const rateLimitedTokens = new Map<string, number>();
 
+//Explicit, strongly-typed Error subclass
+export class RateLimitError extends Error {
+  constructor(
+    message: string,
+    public readonly retryAfterMs: number
+  ) {
+    super(message);
+    this.name = 'RateLimitError';
+  }
+}
+
+// Global circuit state tracking
+let globalCircuitBreakerOpenUntil = 0;
+
 export function getGitHubTokens(): string[] {
   const envToken = process.env.GITHUB_PAT || process.env.GITHUB_TOKEN || '';
   return envToken
@@ -55,12 +69,21 @@ export async function fetchWithRetry(
   attempt = 0,
   timeoutMs?: number
 ): Promise<Response> {
+  const now = Date.now();
+
+  // Problem 1 & 5 Fix: Global Short-Circuit Guard at the absolute front door
+  if (now < globalCircuitBreakerOpenUntil) {
+    throw new RateLimitError(
+      'Circuit Breaker Open: Request blocked due to total token exhaustion.',
+      globalCircuitBreakerOpenUntil - now
+    );
+  }
+
   const resolvedTimeout =
     timeoutMs ?? (url.toString().includes('graphql') ? GRAPHQL_TIMEOUT_MS : REST_TIMEOUT_MS);
 
   if (options.signal?.aborted) throw new Error('AbortError');
 
-  // Dynamically resolve and inject the next active Authorization header
   const urlStr = url.toString();
   const isGitHubRequest = urlStr.includes('api.github.com');
   let currentToken = '';
@@ -68,11 +91,16 @@ export async function fetchWithRetry(
   if (isGitHubRequest) {
     try {
       currentToken = getGitHubToken();
+      // Ensure your headers instantiation copies existing layout keys safely
       options.headers = {
         ...options.headers,
         Authorization: `bearer ${currentToken}`,
       };
     } catch (e) {
+      // Problem 3 Fix: Never swallow or compromise a structural RateLimitError instance
+      if (e instanceof RateLimitError) {
+        throw e;
+      }
       if (attempt === 0) throw e;
     }
   }
@@ -227,13 +255,6 @@ async function fetchGraphQLWithRetry(
   if (authHeader && authHeader.startsWith('bearer ')) {
     usedToken = authHeader.substring(7);
   }
-  if (usedToken) {
-    rateLimitedTokens.set(usedToken, Date.now() + 60 * 1000); // 1 min cooldown
-    const tokens = getGitHubTokens();
-    if (tokens.length > 1) {
-      currentTokenIndex = (currentTokenIndex + 1) % tokens.length;
-    }
-  }
 
   const delay = BASE_DELAY_MS * Math.pow(2, attempt);
   if (delay > MAX_RETRY_DELAY_MS) return res;
@@ -271,12 +292,26 @@ function getGitHubRateLimitInfo(res: Response): GitHubRateLimitInfo {
   };
 }
 
-function createRateLimitError(res: Response): Error {
-  const rateLimit = getGitHubRateLimitInfo(res);
-  const resetMessage = rateLimit.resetAt ? ` Please try again after ${rateLimit.resetAt}.` : '';
+function createRateLimitError(res: Response): RateLimitError {
+  // Extract rate limit telemetry headers if available
+  const limitHeader = res.headers.get('x-ratelimit-limit');
+  const remainingHeader = res.headers.get('x-ratelimit-remaining');
+  const resetHeader = res.headers.get('x-ratelimit-reset');
 
-  return new Error(
-    `GitHub API rate limit exceeded.${resetMessage} Configure GITHUB_TOKEN to increase the request limit.`
+  const now = Date.now();
+  let retryAfterMs = 60000; // Default 1-minute safety window
+
+  if (resetHeader) {
+    const resetUnixTimeSeconds = parseInt(resetHeader, 10);
+    if (!isNaN(resetUnixTimeSeconds)) {
+      // Calculate delta remaining between target epoch boundary and active clock runtime
+      retryAfterMs = Math.max(0, resetUnixTimeSeconds * 1000 - now);
+    }
+  }
+
+  return new RateLimitError(
+    `GitHub API rate limit exceeded. Limit: ${limitHeader || 'unknown'}, Remaining: ${remainingHeader || '0'}.`,
+    retryAfterMs
   );
 }
 
@@ -352,6 +387,33 @@ interface GitHubUserProfile {
 }
 
 /**
+ * Proactively evaluates total token matrix state pool availability.
+ * If all tokens are exhausted, it immediately trips the global circuit barrier.
+ */
+function checkAndTripCircuitBreaker(): void {
+  const tokens = getGitHubTokens();
+  if (tokens.length === 0) return;
+
+  const now = Date.now();
+  const expiries: number[] = [];
+  let unblockedTokenExists = false;
+
+  for (const token of tokens) {
+    const expiry = rateLimitedTokens.get(token);
+    if (expiry && now < expiry) {
+      expiries.push(expiry);
+    } else {
+      unblockedTokenExists = true;
+    }
+  }
+
+  // If no token is clear of the boundary tracking markers, trip circuit immediately
+  if (!unblockedTokenExists && expiries.length > 0) {
+    globalCircuitBreakerOpenUntil = Math.min(...expiries);
+  }
+}
+
+/**
  * Sanitizes a GitHub user profile to only include required fields.
  * This reduces the memory footprint of cached data.
  */
@@ -418,6 +480,8 @@ export function clearGitHubApiCacheForTests(): void {
   contributedReposCache.clear();
   rateLimitedTokens.clear();
   currentTokenIndex = 0;
+  // CRITICAL FIX: Reset circuit breaker state to prevent cross-test contamination
+  globalCircuitBreakerOpenUntil = 0;
 }
 
 function getGitHubToken(): string {
@@ -428,9 +492,11 @@ function getGitHubToken(): string {
   }
 
   const now = Date.now();
-  // Clear expired rate-limited tokens
+  const tokenSet = new Set(tokens);
+
+  // Condition 2 Fix: Clear expired and missing env tokens from map
   for (const [t, expiry] of rateLimitedTokens.entries()) {
-    if (now >= expiry) {
+    if (now >= expiry || !tokenSet.has(t)) {
       rateLimitedTokens.delete(t);
     }
   }
@@ -445,8 +511,16 @@ function getGitHubToken(): string {
     }
   }
 
-  // Fallback to the current token if all are rate-limited
-  return tokens[currentTokenIndex % tokens.length];
+  //Calculate the optimal, absolute earliest reset timestamp
+  const expiries = Array.from(rateLimitedTokens.values());
+  const earliestResetTime = expiries.length > 0 ? Math.min(...expiries) : now + 60 * 1000;
+  const backoffMs = Math.max(0, earliestResetTime - now);
+
+  // Fix: Trip the global circuit breaker state immediately
+  globalCircuitBreakerOpenUntil = earliestResetTime;
+
+  // Throw authentic instance passing down telemetry data
+  throw new RateLimitError('API Rate Limit Exceeded', backoffMs);
 }
 
 const getHeaders = () => ({

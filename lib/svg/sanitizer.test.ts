@@ -41,6 +41,22 @@ describe('SVG Sanitizer Utilities', () => {
       expect(isValidHex(null as unknown as string)).toBe(false);
       expect(isValidHex('')).toBe(false);
     });
+
+    it('returns false for an empty string', () => {
+      expect(isValidHex('')).toBe(false);
+    });
+
+    it('returns false for just a hash symbol', () => {
+      expect(isValidHex('#')).toBe(false);
+    });
+
+    it('returns false for undefined input', () => {
+      expect(isValidHex(undefined)).toBe(false);
+    });
+
+    it('returns false for invalid length (7 characters)', () => {
+      expect(isValidHex('fffffff')).toBe(false);
+    });
   });
 
   describe('hexColor', () => {
@@ -125,6 +141,12 @@ describe('SVG Sanitizer Utilities', () => {
     it('returns fallback for null/undefined', () => {
       expect(sanitizeHexColor(null, '000000')).toBe('000000');
       expect(sanitizeHexColor(undefined, '000000')).toBe('000000');
+    });
+
+    it('uses drop-shadow glow color fallback for unrecognized hex strings in SVG filters', () => {
+      expect(sanitizeHexColor('invalid-accent', '00ffaa')).toBe('00ffaa');
+      expect(sanitizeHexColor('not-a-glow', '00ffaa')).toBe('00ffaa');
+      expect(sanitizeHexColor('xyz123abc', '00ffaa')).toBe('00ffaa');
     });
   });
 

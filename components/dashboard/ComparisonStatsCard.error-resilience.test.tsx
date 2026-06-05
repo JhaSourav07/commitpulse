@@ -1,18 +1,14 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import React, { Component, type HTMLAttributes, type ReactNode, type ErrorInfo } from 'react';
 import ComparisonStatsCard from './ComparisonStatsCard';
 import '@testing-library/jest-dom/vitest';
 
-// Mock framer-motion to simplify rendering
 vi.mock('framer-motion', () => ({
   motion: {
-    div: ({ children, ...props }: HTMLAttributes<HTMLDivElement> & { children?: ReactNode }) => {
-      const { initial, animate, whileInView, viewport, whileHover, transition, ...rest } =
-        props as any;
-      return <div {...rest}>{children}</div>;
-    },
+    div: ({ children, ...rest }: HTMLAttributes<HTMLDivElement> & { children?: ReactNode }) => (
+      <div {...rest}>{children}</div>
+    ),
   },
 }));
 

@@ -140,17 +140,26 @@ export async function GET(request: Request) {
 
     const status = err.status || err.response?.status || undefined;
 
-    const message = err.message?.toLowerCase?.() || '';
+    const message = err.message || '';
 
-    // 404 - User not found
-    if (status === 404 || message.includes('not found')) {
+    // 404 - User not found (status-first; exact message match as fallback for GraphQL paths
+    // that throw without an HTTP status, e.g. `new Error('User not found')` in lib/github.ts)
+    if (status === 404 || message === 'User not found') {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // 401/403 - Auth or rate limit
-    if (status === 401 || status === 403) {
+    // 401 - Invalid or missing token
+    if (status === 401) {
       return NextResponse.json(
-        { error: 'GitHub API rate limit reached or unauthorized. Please configure GITHUB_TOKEN.' },
+        { error: 'GitHub token is invalid or missing. Please configure GITHUB_TOKEN.' },
+        { status: 401 }
+      );
+    }
+
+    // 403 - Forbidden / rate limit exhausted (x-ratelimit-remaining: 0)
+    if (status === 403) {
+      return NextResponse.json(
+        { error: 'GitHub API rate limit reached. Please configure GITHUB_TOKEN.' },
         { status: 403 }
       );
     }
@@ -163,11 +172,9 @@ export async function GET(request: Request) {
       );
     }
 
-    // Fallback safety check for known GitHub rate-limit signals (only if no status exists)
-    const looksLikeRateLimit =
-      message.includes('rate limit') || message.includes('api limit reached');
-
-    if (!status && looksLikeRateLimit) {
+    // Fallback for GraphQL-level rate limit errors that arrive with HTTP 200
+    // (lib/github.ts throws `new Error('API Rate Limit Exceeded')` in this case).
+    if (!status && message === 'API Rate Limit Exceeded') {
       return NextResponse.json(
         { error: 'GitHub API rate limit reached. Please configure GITHUB_TOKEN.' },
         { status: 403 }

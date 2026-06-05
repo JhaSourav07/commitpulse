@@ -111,6 +111,22 @@ describe('middleware', () => {
     expect(response.headers.get('X-RateLimit-Reset')).toBe('123456789');
   });
 
+  it('keeps headers present on the returned response object (regression)', async () => {
+    vi.mocked(rateLimit).mockResolvedValue({
+      success: true,
+      limit: 60,
+      remaining: 58,
+      reset: 111,
+    });
+
+    const request = new NextRequest('http://localhost:3000/api/streak?user=octocat');
+    const response = await middleware(request);
+
+    expect(response.headers.get('X-RateLimit-Limit')).toBe('60');
+    expect(response.headers.get('X-RateLimit-Remaining')).toBe('58');
+    expect(response.headers.get('X-RateLimit-Reset')).toBe('111');
+  });
+
   it('sets JSON and rate headers on throttled responses', async () => {
     vi.mocked(rateLimit).mockResolvedValue({
       success: false,
