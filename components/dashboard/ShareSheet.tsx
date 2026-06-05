@@ -1,6 +1,12 @@
 'use client';
 
-import { useEffect, useRef, useState, useCallback } from 'react';
+import {
+  useEffect,
+  useRef,
+  useState,
+  useCallback,
+  type KeyboardEvent as ReactKeyboardEvent,
+} from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import QRCode from 'react-qr-code';
 import { Check, Code, Copy, Download, ExternalLink, Loader2, Sparkles, X } from 'lucide-react';
@@ -167,6 +173,48 @@ export default function ShareSheet({ username, isOpen, onClose, exportData }: Sh
 
   const combinedStates: Record<string, OptionState> = { ...states, ...localStates };
 
+  const panelRef = useRef<HTMLDivElement>(null);
+  const handlePanelKeyDown = useCallback((e: ReactKeyboardEvent) => {
+    if (e.key !== 'Tab' || !panelRef.current) return;
+
+    const focusableElements = panelRef.current.querySelectorAll<HTMLElement>(
+      'a[href], button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])'
+    );
+    if (focusableElements.length === 0) return;
+
+    const firstElement = focusableElements[0];
+    const lastElement = focusableElements[focusableElements.length - 1];
+    const activeEl = document.activeElement;
+    const isFocusInPanel = panelRef.current.contains(activeEl);
+
+    if (!isFocusInPanel) {
+      e.preventDefault();
+      firstElement.focus();
+      return;
+    }
+
+    if (e.shiftKey) {
+      if (activeEl === firstElement) {
+        e.preventDefault();
+        lastElement.focus();
+      }
+    } else {
+      if (activeEl === lastElement) {
+        e.preventDefault();
+        firstElement.focus();
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isOpen && panelRef.current) {
+      const firstFocusable = panelRef.current.querySelector<HTMLElement>(
+        'button:not([disabled]), a[href], input:not([disabled])'
+      );
+      firstFocusable?.focus();
+    }
+  }, [isOpen]);
+
   useEffect(() => {
     const handler = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
     window.addEventListener('keydown', handler);
@@ -284,16 +332,28 @@ export default function ShareSheet({ username, isOpen, onClose, exportData }: Sh
   return (
     <AnimatePresence>
       {isOpen && (
-        <motion.div
-          ref={overlayRef}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          onClick={onClose}
-          className="fixed inset-0 z-50 bg-zinc-950/60 flex items-center justify-center p-4 backdrop-blur-sm"
-        >
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
+          {/* Backdrop — hidden from assistive tech */}
           <motion.div
+            ref={overlayRef}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-zinc-950/60 backdrop-blur-sm"
+            aria-hidden="true"
+          />
+
+          {/* Dialog panel */}
+          <motion.div
+            ref={panelRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="share-sheet-title"
+            onKeyDown={handlePanelKeyDown}
             onClick={(e) => e.stopPropagation()}
+            initial={{ opacity: 0, scale: 0.96 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.96 }}
             className="relative w-full max-w-[380px] h-[85vh] max-h-[680px] flex flex-col rounded-3xl bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 shadow-2xl overflow-hidden"
           >
             {/* Top Branding Section */}
@@ -308,7 +368,10 @@ export default function ShareSheet({ username, isOpen, onClose, exportData }: Sh
                 {/* Text block */}
                 <div className="min-w-0">
                   <div className="flex items-center gap-1.5">
-                    <p className="text-[13px] font-semibold text-zinc-900 dark:text-zinc-50 leading-tight truncate">
+                    <p
+                      id="share-sheet-title"
+                      className="text-[13px] font-semibold text-zinc-900 dark:text-zinc-50 leading-tight truncate"
+                    >
                       {username}
                     </p>
                     {/* GitHub mark */}
@@ -513,7 +576,7 @@ export default function ShareSheet({ username, isOpen, onClose, exportData }: Sh
               </motion.div>
             )}
           </AnimatePresence>
-        </motion.div>
+        </div>
       )}
     </AnimatePresence>
   );
