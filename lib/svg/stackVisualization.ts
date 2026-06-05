@@ -1,6 +1,6 @@
 /**
  * SVG Rendering utilities for tech stack-aware visualization
- * 
+ *
  * Provides functions to integrate stack analytics into the isometric SVG rendering.
  */
 
@@ -8,13 +8,11 @@ import type { StackAnalytics } from '@/types';
 
 /**
  * Determines the tower color based on stack analytics
- * 
+ *
  * For MVP: uses dominant stack color for all towers
  * Future: could use date-based stack tracking for dynamic coloring
  */
-export function getStackTowerColor(
-  analytics: StackAnalytics
-): string {
+export function getStackTowerColor(analytics: StackAnalytics): string {
   // For MVP, all towers use the dominant stack's color
   return analytics.dominantStackColor;
 }

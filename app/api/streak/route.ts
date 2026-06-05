@@ -314,7 +314,7 @@ export async function GET(request: Request) {
 
     let calendar;
     let versusCalendar;
-   let repoContributions: any[] = []; // eslint-disable-line @typescript-eslint/no-explicit-any
+    let repoContributions: any[] = []; // eslint-disable-line @typescript-eslint/no-explicit-any
     let stackAnalytics: StackAnalytics | null = null;
 
     // Fetch Organization Mega-City Data OR Single User Data

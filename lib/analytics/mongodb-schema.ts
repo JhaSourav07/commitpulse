@@ -1,6 +1,6 @@
 /**
  * MongoDB Schema & Models for Stack Analytics Caching
- * 
+ *
  * Stores cached technology stack analytics to reduce repeated API computation
  * and enable historical trend analysis.
  */
@@ -143,9 +143,7 @@ export async function cacheStackAnalytics(
 /**
  * Retrieves cached stack analytics for a user from MongoDB
  */
-export async function getCachedStackAnalytics(
-  username: string
-): Promise<StackAnalytics | null> {
+export async function getCachedStackAnalytics(username: string): Promise<StackAnalytics | null> {
   try {
     const model = StackAnalyticsModel;
     const cached = await model.findOne({

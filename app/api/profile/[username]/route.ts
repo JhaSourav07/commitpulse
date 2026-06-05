@@ -1,23 +1,20 @@
 // app/api/profile/[username]/route.ts
 
-import { NextRequest, NextResponse }        from "next/server";
-import { fetchGitHubContributions }         from "@/lib/github";
-import { generateSVG }                      from "@/lib/svg/generator";
-import { renderStackLegend, shouldRenderStackVisualization } from "@/lib/svg/stackVisualization";
-import { generateStackAnalytics }           from "@/lib/analytics/stackAggregator";
-import { getCachedStackAnalytics, cacheStackAnalytics } from "@/lib/analytics/mongodb-schema";
+import { NextRequest, NextResponse } from 'next/server';
+import { fetchGitHubContributions } from '@/lib/github';
+import { generateSVG } from '@/lib/svg/generator';
+import { renderStackLegend, shouldRenderStackVisualization } from '@/lib/svg/stackVisualization';
+import { generateStackAnalytics } from '@/lib/analytics/stackAggregator';
+import { getCachedStackAnalytics, cacheStackAnalytics } from '@/lib/analytics/mongodb-schema';
 
-export async function GET(
-  req: NextRequest,
-  { params }: { params: Promise<{ username: string }> }
-) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ username: string }> }) {
   const { username } = await params;
   const { searchParams } = req.nextUrl;
-  const stackEnabled = searchParams.get("stack")  === "true";
-  const returnJson   = searchParams.get("format") === "json";
+  const stackEnabled = searchParams.get('stack') === 'true';
+  const returnJson = searchParams.get('format') === 'json';
 
   if (!username) {
-    return NextResponse.json({ error: "Invalid username." }, { status: 400 });
+    return NextResponse.json({ error: 'Invalid username.' }, { status: 400 });
   }
 
   try {
@@ -49,25 +46,26 @@ export async function GET(
     let finalSVG = svgBody;
     if (stackEnabled && stackAnalytics && shouldRenderStackVisualization(stackAnalytics)) {
       const legend = renderStackLegend(stackAnalytics, 20, 20, 5);
-      finalSVG = svgBody.replace("</svg>", `${legend}\n</svg>`);
+      finalSVG = svgBody.replace('</svg>', `${legend}\n</svg>`);
     }
 
     // Step 6: Return SVG
     return new NextResponse(finalSVG, {
       status: 200,
       headers: {
-        "Content-Type":  "image/svg+xml",
-        "Cache-Control": "public, max-age=21600",
+        'Content-Type': 'image/svg+xml',
+        'Cache-Control': 'public, max-age=21600',
       },
     });
-  } catch (err: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
+  } catch (err: any) {
+    // eslint-disable-line @typescript-eslint/no-explicit-any
     console.error(`[/api/profile/${username}]`, err?.message ?? err);
-    if (err?.message?.includes("Could not resolve to a User")) {
+    if (err?.message?.includes('Could not resolve to a User')) {
       return NextResponse.json({ error: `GitHub user "${username}" not found.` }, { status: 404 });
     }
-    if (err?.message?.includes("rate limit")) {
-      return NextResponse.json({ error: "GitHub API rate limit reached." }, { status: 429 });
+    if (err?.message?.includes('rate limit')) {
+      return NextResponse.json({ error: 'GitHub API rate limit reached.' }, { status: 429 });
     }
-    return NextResponse.json({ error: "Internal server error." }, { status: 500 });
+    return NextResponse.json({ error: 'Internal server error.' }, { status: 500 });
   }
 }

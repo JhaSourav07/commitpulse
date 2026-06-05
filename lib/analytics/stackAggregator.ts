@@ -1,6 +1,6 @@
 /**
  * Stack Analytics Aggregator
- * 
+ *
  * Aggregates developer contributions by technology stack (languages/frameworks)
  * and generates stack-wise statistics for visualization.
  */
