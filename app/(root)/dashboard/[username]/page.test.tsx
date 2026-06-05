@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+import type { Metadata } from 'next';
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import DashboardPage, { generateMetadata } from './page';
@@ -32,8 +32,13 @@ vi.mock('@/components/dashboard/ActivityLandscape', () => ({
   default: () => <div data-testid="activity-landscape">ActivityLandscape</div>,
 }));
 
+type StatsCardProps = {
+  title: string;
+  value: string | number;
+};
+
 vi.mock('@/components/dashboard/StatsCard', () => ({
-  default: ({ title, value }: any) => (
+  default: ({ title, value }: StatsCardProps) => (
     <div data-testid="stats-card">
       {title}: {value}
     </div>
@@ -132,7 +137,13 @@ describe('DashboardPage', () => {
         }),
       });
 
-      const openGraphImage = (metadata.openGraph?.images as any[])?.[0];
+      const openGraphImages = metadata.openGraph?.images as Array<{
+        url: string;
+        width: number;
+        height: number;
+        alt: string;
+      }>;
+      const openGraphImage = openGraphImages?.[0];
 
       expect(metadata.title).toBe("octocat's Commit Pulse");
       expect(metadata.description).toContain("octocat's GitHub contribution pulse");
@@ -148,7 +159,9 @@ describe('DashboardPage', () => {
       expect(openGraphImage.width).toBe(1200);
       expect(openGraphImage.height).toBe(630);
       expect(openGraphImage.alt).toContain(username);
-      expect((metadata.twitter as any)?.card).toBe('summary_large_image');
+      expect((metadata.twitter as Metadata['twitter'] & { card?: string })?.card).toBe(
+        'summary_large_image'
+      );
     });
   });
 

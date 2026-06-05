@@ -1,6 +1,6 @@
 // lib/svg/generator.themeLookup.test.ts
 
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { resolveFont } from './generator';
 
 describe('themeLookup / font resolving behavior', () => {

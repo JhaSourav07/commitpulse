@@ -140,6 +140,10 @@ export function FeatureCard({ icon, title, desc, accent, index, accentColor }: F
     { size: number; delay: number; duration: number; startX: string; startY: string }[]
   >([]);
 
+  // Client-only particle generation: Math.random() must not run on the server
+  // because it would produce different values than the client, causing a React
+  // hydration mismatch. Generating them in a mount effect ensures SSR outputs
+  // an empty array and the randomised particles only appear after hydration.
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setParticles(

@@ -2,17 +2,6 @@ import { getTechById } from '../data/technologies';
 import { getSocialById } from '../data/socials';
 import type { GeneratorState } from '../types';
 
-function siPicture(siSlug: string, name: string, size = 40): string {
-  const dark = `https://cdn.simpleicons.org/${siSlug}/ffffff`;
-  const light = `https://cdn.simpleicons.org/${siSlug}/000000`;
-  return [
-    `<picture>`,
-    `  <source media="(prefers-color-scheme: dark)" srcset="${dark}" />`,
-    `  <img src="${light}" alt="${name}" width="${size}" height="${size}" title="${name}" />`,
-    `</picture>`,
-  ].join('\n');
-}
-
 function diImg(iconUrl: string, name: string, size = 40): string {
   return `<img src="${iconUrl}" alt="${name}" width="${size}" height="${size}" title="${name}" />`;
 }

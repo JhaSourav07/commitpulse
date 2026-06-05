@@ -40,6 +40,17 @@ describe('Export Snippet utilities', () => {
       expect(result).toContain(`curl -o commitpulse.svg "${EXPECTED_BASE_URL}?${queryString}"`);
     });
 
+    it('generates tsx snippet', () => {
+      const queryString = 'user=testuser&theme=dark';
+      const result = getExportSnippet('tsx', queryString);
+
+      expect(typeof result).toBe('string');
+      expect(result).toContain("'use client';");
+      expect(result).toContain('export function CommitPulse(');
+      expect(result).toContain(EXPECTED_BASE_URL);
+      expect(result).toContain('user=testuser&theme=dark');
+    });
+
     it('handles empty query string', () => {
       const emptyQuery = '';
       const markdownResult = getExportSnippet('markdown', emptyQuery);
@@ -98,6 +109,14 @@ describe('Export Snippet utilities', () => {
       const result = getPlaceholderSnippet('action');
 
       expect(result.startsWith('name: CommitPulse Streak Badge')).toBe(true);
+      expect(result).toContain('your-github-username');
+      expect(result).toContain(EXPECTED_BASE_URL);
+    });
+
+    it('includes placeholder username in tsx', () => {
+      const result = getPlaceholderSnippet('tsx');
+
+      expect(result).toContain("'use client';");
       expect(result).toContain('your-github-username');
       expect(result).toContain(EXPECTED_BASE_URL);
     });

@@ -1,7 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import { WallOfLove } from './WallOfLove';
-import type { ReactNode } from 'react';
 
 vi.mock('gsap', () => {
   const mockGsap = {

@@ -33,7 +33,7 @@ const mockResponse = {
     profile: {
       username: 'userA',
       name: 'User A',
-      avatarUrl: 'avatar-a.png',
+      avatarUrl: '/avatar-a.png',
       isPro: true,
       bio: 'Frontend Developer',
       location: 'India',
@@ -75,7 +75,7 @@ const mockResponse = {
     profile: {
       username: 'userB',
       name: 'User B',
-      avatarUrl: 'avatar-b.png',
+      avatarUrl: '/avatar-b.png',
       isPro: false,
       bio: 'Backend Developer',
       location: 'USA',

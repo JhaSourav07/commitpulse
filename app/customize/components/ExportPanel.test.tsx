@@ -39,6 +39,12 @@ describe('ExportPanel', () => {
     expect(screen.getByRole('button', { name: 'HTML' })).toBeDefined();
   });
 
+  it("renders 'React TSX' button", () => {
+    renderPanel();
+
+    expect(screen.getByRole('button', { name: 'React TSX' })).toBeDefined();
+  });
+
   it("calls onFormatChange with 'html' when HTML button is clicked", () => {
     const { onFormatChange } = renderPanel();
 
@@ -46,6 +52,15 @@ describe('ExportPanel', () => {
 
     expect(onFormatChange).toHaveBeenCalledTimes(1);
     expect(onFormatChange).toHaveBeenCalledWith('html');
+  });
+
+  it("calls onFormatChange with 'tsx' when React TSX button is clicked", () => {
+    const { onFormatChange } = renderPanel();
+
+    fireEvent.click(screen.getByRole('button', { name: 'React TSX' }));
+
+    expect(onFormatChange).toHaveBeenCalledTimes(1);
+    expect(onFormatChange).toHaveBeenCalledWith('tsx');
   });
 
   it('disables the copy button when hasUsername is false', () => {

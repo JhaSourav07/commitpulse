@@ -781,6 +781,16 @@ describe('GET /api/streak', () => {
     });
 
     describe('date parameter', () => {
+      it('returns 400 for malformed ?date= query parameter values (Variation 3)', async () => {
+        const response = await GET(makeRequest({ user: 'octocat', date: '2026-15-40' }));
+        const body = await response.json();
+
+        expect(response.status).toBe(400);
+        expect(body.error).toBe('Invalid parameters');
+        expect(body.details.fieldErrors.date[0]).toContain('Invalid "date" format');
+        expect(fetchGitHubContributions).not.toHaveBeenCalled();
+      });
+
       it('returns 400 when an invalid ISO8601 calendar date format like "2026-15-40" is supplied', async () => {
         const response = await GET(makeRequest({ user: 'octocat', date: '2026-15-40' }));
         const body = await response.json();
@@ -1119,6 +1129,55 @@ describe('GET /api/streak', () => {
       expect(response.status).toBe(400);
       const body = await response.json();
       expect(body.details.fieldErrors.tz[0]).toContain('Invalid timezone');
+    });
+
+    it('returns 400 (not 500) when Intl.DateTimeFormat throws RangeError at runtime', async () => {
+      // Test that a RangeError from Intl.DateTimeFormat is caught and returned as 400.
+      // We save/restore the original to avoid cross-test pollution.
+      const OriginalDateTimeFormat = Intl.DateTimeFormat;
+      let callCount = 0;
+
+      // Must use a regular function (not arrow) so it can act as a constructor.
+      function MockDateTimeFormat(
+        this: Intl.DateTimeFormat,
+        ...args: ConstructorParameters<typeof Intl.DateTimeFormat>
+      ): Intl.DateTimeFormat {
+        callCount++;
+        if (callCount === 1) {
+          // First call (Zod validation) — delegate to the real implementation.
+          return Reflect.construct(
+            OriginalDateTimeFormat,
+            args,
+            OriginalDateTimeFormat
+          ) as Intl.DateTimeFormat;
+        }
+        // Subsequent calls (route handler) — simulate an unsupported timezone.
+        throw new RangeError(`Invalid time zone specified: 'edge-case-tz'`);
+      }
+
+      // Copy static members so the shape matches Intl.DateTimeFormat exactly.
+      MockDateTimeFormat.prototype = OriginalDateTimeFormat.prototype;
+      MockDateTimeFormat.supportedLocalesOf = OriginalDateTimeFormat.supportedLocalesOf;
+
+      Object.defineProperty(Intl, 'DateTimeFormat', {
+        value: MockDateTimeFormat as unknown as typeof Intl.DateTimeFormat,
+        configurable: true,
+        writable: true,
+      });
+
+      try {
+        const response = await GET(makeRequest({ user: 'octocat', tz: 'edge-case-tz' }));
+        // Should return 400, not 500
+        expect(response.status).toBe(400);
+        const body = await response.text();
+        expect(body).toContain('Invalid timezone');
+      } finally {
+        Object.defineProperty(Intl, 'DateTimeFormat', {
+          value: OriginalDateTimeFormat,
+          configurable: true,
+          writable: true,
+        });
+      }
     });
   });
 
@@ -1629,6 +1688,229 @@ describe('GET /api/streak', () => {
 
       const response = await GET(makeRequest({ user: 'a, b' }));
       expect(response.status).toBe(404);
+    });
+  });
+
+  describe('grace parameter boundary validation', () => {
+    it('returns 200 and accepts grace=0 (minimum boundary)', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', grace: '0' }));
+      expect(response.status).toBe(200);
+      expect(fetchGitHubContributions).toHaveBeenCalledWith('octocat', { bypassCache: false });
+    });
+
+    it('returns 200 and accepts grace=7 (maximum boundary)', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', grace: '7' }));
+      expect(response.status).toBe(200);
+      expect(fetchGitHubContributions).toHaveBeenCalledWith('octocat', { bypassCache: false });
+    });
+
+    it('returns 400 when grace exceeds max (8)', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', grace: '8' }));
+      expect(response.status).toBe(400);
+      const body = await response.json();
+      expect(body.details.fieldErrors.grace).toBeDefined();
+      expect(body.details.fieldErrors.grace[0]).toContain(
+        'grace must be an integer between 0 and 7'
+      );
+    });
+
+    it('returns 400 when grace far exceeds max (999)', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', grace: '999' }));
+      expect(response.status).toBe(400);
+      const body = await response.json();
+      expect(body.details.fieldErrors.grace).toBeDefined();
+      expect(body.details.fieldErrors.grace[0]).toContain(
+        'grace must be an integer between 0 and 7'
+      );
+    });
+
+    it('returns 400 when grace is negative', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', grace: '-1' }));
+      expect(response.status).toBe(400);
+      const body = await response.json();
+      expect(body.details.fieldErrors.grace).toBeDefined();
+    });
+
+    it('returns 400 when grace is negative double-digit (-99)', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', grace: '-99' }));
+      expect(response.status).toBe(400);
+      const body = await response.json();
+      expect(body.details.fieldErrors.grace).toBeDefined();
+    });
+
+    it('returns 400 when grace is non-numeric', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', grace: 'abc' }));
+      expect(response.status).toBe(400);
+      const body = await response.json();
+      expect(body.details.fieldErrors.grace).toBeDefined();
+    });
+
+    it('returns 400 when grace is a float (decimal)', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', grace: '3.5' }));
+      expect(response.status).toBe(400);
+      const body = await response.json();
+      expect(body.details.fieldErrors.grace).toBeDefined();
+    });
+
+    it('returns 400 when grace contains special characters', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', grace: '5!' }));
+      expect(response.status).toBe(400);
+      const body = await response.json();
+      expect(body.details.fieldErrors.grace).toBeDefined();
+    });
+  });
+
+  describe('opacity parameter boundary validation', () => {
+    it('returns 200 and accepts opacity=0.1 (minimum boundary)', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', opacity: '0.1' }));
+      expect(response.status).toBe(200);
+      const body = await response.text();
+      expect(body).toContain('<svg');
+    });
+
+    it('returns 200 and accepts opacity=1.0 (maximum boundary)', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', opacity: '1.0' }));
+      expect(response.status).toBe(200);
+      const body = await response.text();
+      expect(body).toContain('<svg');
+    });
+
+    it('returns 200 with clamped opacity when opacity is 0.0 (below minimum)', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', opacity: '0.0' }));
+      expect(response.status).toBe(200);
+      // opacity=0.0 should be clamped to 0.1
+      const body = await response.text();
+      expect(body).toContain('<svg');
+    });
+
+    it('returns 200 with clamped opacity when opacity is negative (-0.5)', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', opacity: '-0.5' }));
+      expect(response.status).toBe(200);
+      // opacity=-0.5 should be clamped to 0.1
+      const body = await response.text();
+      expect(body).toContain('<svg');
+    });
+
+    it('returns 200 with clamped opacity when opacity exceeds max (1.5)', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', opacity: '1.5' }));
+      expect(response.status).toBe(200);
+      // opacity=1.5 should be clamped to 1.0
+      const body = await response.text();
+      expect(body).toContain('<svg');
+    });
+
+    it('returns 200 with clamped opacity when opacity far exceeds max (99.0)', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', opacity: '99.0' }));
+      expect(response.status).toBe(200);
+      // opacity=99.0 should be clamped to 1.0
+      const body = await response.text();
+      expect(body).toContain('<svg');
+    });
+
+    it('returns 200 and defaults to opacity=1.0 when opacity is empty string', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', opacity: '' }));
+      expect(response.status).toBe(200);
+      const body = await response.text();
+      expect(body).toContain('<svg');
+    });
+
+    it('returns 200 and defaults to opacity=1.0 when opacity is non-numeric', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', opacity: 'abc' }));
+      expect(response.status).toBe(200);
+      // Non-numeric opacity should default to 1.0
+      const body = await response.text();
+      expect(body).toContain('<svg');
+    });
+
+    it('returns 200 when opacity contains only whitespace', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', opacity: '   ' }));
+      expect(response.status).toBe(200);
+      const body = await response.text();
+      expect(body).toContain('<svg');
+    });
+
+    it('returns 200 with clamped opacity for very small positive value (0.01)', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', opacity: '0.01' }));
+      expect(response.status).toBe(200);
+      // opacity=0.01 should be clamped to 0.1
+      const body = await response.text();
+      expect(body).toContain('<svg');
+    });
+
+    it('returns 200 with clamped opacity for edge case between min and just below (0.09)', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', opacity: '0.09' }));
+      expect(response.status).toBe(200);
+      // opacity=0.09 should be clamped to 0.1
+      const body = await response.text();
+      expect(body).toContain('<svg');
+    });
+
+    it('returns 200 for various valid opacity values in acceptable range', async () => {
+      const validOpacities = ['0.1', '0.25', '0.5', '0.75', '0.99', '1.0'];
+
+      for (const opacity of validOpacities) {
+        const response = await GET(makeRequest({ user: 'octocat', opacity }));
+        expect(response.status).toBe(200);
+        const body = await response.text();
+        expect(body).toContain('<svg');
+      }
+    });
+
+    it('returns 200 when opacity is scientific notation string (ignored)', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', opacity: '1e2' }));
+      expect(response.status).toBe(200);
+      // parseFloat('1e2') = 100, should be clamped to 1.0
+      const body = await response.text();
+      expect(body).toContain('<svg');
+    });
+
+    it('returns 200 when opacity contains special characters mixed with numbers', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', opacity: '0.5@' }));
+      expect(response.status).toBe(200);
+      // parseFloat('0.5@') = 0.5, valid within range
+      const body = await response.text();
+      expect(body).toContain('<svg');
+    });
+  });
+
+  describe('combined grace and opacity boundary validation', () => {
+    it('returns 200 with both grace and opacity at minimum boundaries', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', grace: '0', opacity: '0.1' }));
+      expect(response.status).toBe(200);
+      const body = await response.text();
+      expect(body).toContain('<svg');
+    });
+
+    it('returns 200 with both grace and opacity at maximum boundaries', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', grace: '7', opacity: '1.0' }));
+      expect(response.status).toBe(200);
+      const body = await response.text();
+      expect(body).toContain('<svg');
+    });
+
+    it('returns 400 when both grace exceeds max and opacity exceeds max', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', grace: '999', opacity: '99.0' }));
+      expect(response.status).toBe(400);
+      // grace=999 should be rejected at schema validation
+      const body = await response.json();
+      expect(body.details.fieldErrors.grace).toBeDefined();
+    });
+
+    it('returns 400 when grace is invalid but opacity is valid', async () => {
+      const response = await GET(
+        makeRequest({ user: 'octocat', grace: 'invalid', opacity: '0.5' })
+      );
+      expect(response.status).toBe(400);
+      const body = await response.json();
+      expect(body.details.fieldErrors.grace).toBeDefined();
+    });
+
+    it('returns 200 when grace is valid but opacity is invalid (defaults)', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', grace: '3', opacity: 'invalid' }));
+      expect(response.status).toBe(200);
+      // opacity='invalid' should default to 1.0
+      const body = await response.text();
+      expect(body).toContain('<svg');
     });
   });
 });

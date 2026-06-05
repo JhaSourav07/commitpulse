@@ -1,16 +1,18 @@
+import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import type { ImgHTMLAttributes } from 'react';
 import Leaderboard from './Leaderboard';
+import '@testing-library/jest-dom';
 
 vi.mock('next/image', () => ({
   default: (props: ImgHTMLAttributes<HTMLImageElement>) => <img alt="" {...props} />,
 }));
 
 class MockIntersectionObserver {
-  observe() {}
-  unobserve() {}
-  disconnect() {}
+  observe = vi.fn();
+  unobserve = vi.fn();
+  disconnect = vi.fn();
 }
 
 Object.defineProperty(window, 'IntersectionObserver', {
@@ -65,8 +67,8 @@ describe('Leaderboard accessibility behavior', () => {
   it('provides accessible avatar alt text', () => {
     renderLeaderboard();
 
-    expect(screen.getByAltText('alice')).toBeTruthy();
-    expect(screen.getByAltText('bob')).toBeTruthy();
+    expect(screen.getByAltText('alice')).toBeInTheDocument();
+    expect(screen.getByAltText('bob')).toBeInTheDocument();
   });
 
   it('exposes interactive leaderboard entries as buttons', () => {
@@ -90,6 +92,6 @@ describe('Leaderboard accessibility behavior', () => {
   it('displays contribution counts in accessible text content', () => {
     renderLeaderboard();
 
-    expect(screen.getByText('70')).toBeTruthy();
+    expect(screen.getByText('70')).toBeInTheDocument();
   });
 });

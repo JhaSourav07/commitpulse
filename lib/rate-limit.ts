@@ -23,14 +23,14 @@ export class RateLimiter {
 
   /**
    * Creates a new RateLimiter instance.
-   *
+   *clean
    * @param limit - Maximum number of requests allowed per window. Defaults to 5.
    * @param windowMs - Time window in milliseconds. Defaults to 60000 (1 minute).
    */
-  constructor(limit = 5, windowMs = 60000) {
+  constructor(limit = 5, windowMs = 60000, maxSize = 10000) {
     this.limit = limit;
     this.windowMs = windowMs;
-    this.cache = new DistributedCache<{ count: number; resetAt: number }>(10000, windowMs);
+    this.cache = new DistributedCache<{ count: number; resetAt: number }>(maxSize, windowMs);
   }
 
   /**
@@ -141,7 +141,7 @@ export class RateLimiter {
    * rateLimiter.reset("192.168.1.1");
    */
   async reset(ip: string): Promise<void> {
-    await this.cache.delete(`ratelimit:${ip}`);
+    await this.cache.delete(ip);
   }
 
   /**

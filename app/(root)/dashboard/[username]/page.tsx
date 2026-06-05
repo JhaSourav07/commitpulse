@@ -1,5 +1,3 @@
-// app/(root)/dashboard/[username]/page.tsx
-
 import type { Metadata } from 'next';
 import DashboardClient from '@/components/dashboard/DashboardClient';
 import { getFullDashboardData, fetchUserProfile } from '@/lib/github';
@@ -32,8 +30,18 @@ export async function generateMetadata({
     queryParams.set('accent', resolvedSearchParams.accent);
 
   const ogImage = `${BASE_URL}/api/og?${queryParams.toString()}`;
-  const title = `${username}'s Commit Pulse`;
-  const description = `Check out ${username}'s GitHub contribution pulse — streaks, insights, and more on CommitPulse.`;
+
+  // Dynamic title based on whether a user is comparing stats
+  const compareUsername = resolvedSearchParams?.compare;
+  const title =
+    typeof compareUsername === 'string' && compareUsername
+      ? `Compare: ${username} vs ${compareUsername} | CommitPulse`
+      : `${username}'s Commit Pulse`;
+
+  const description =
+    typeof compareUsername === 'string' && compareUsername
+      ? `Comparing ${username} and ${compareUsername}'s GitHub contribution pulse on CommitPulse.`
+      : `Check out ${username}'s GitHub contribution pulse — streaks, insights, and more on CommitPulse.`;
 
   return {
     title,
