@@ -7,6 +7,8 @@ import {
   useCallback,
   type KeyboardEvent as ReactKeyboardEvent,
 } from 'react';
+import NextImage from 'next/image';
+
 import { motion, AnimatePresence } from 'framer-motion';
 import QRCode from 'react-qr-code';
 import { Check, Code, Copy, Download, ExternalLink, Loader2, Sparkles, X } from 'lucide-react';
@@ -126,7 +128,7 @@ function GitHubAvatar({ username }: { username: string }) {
 
   if (src) {
     return (
-      <img
+      <NextImage
         src={src}
         alt={username}
         width={36}

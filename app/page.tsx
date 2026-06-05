@@ -1,7 +1,7 @@
 'use client';
 import Image from 'next/image';
 import { trackUser } from '@/utils/tracking';
-
+import Image from 'next/image';
 import Link from 'next/link';
 import { useRef, useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -97,7 +97,7 @@ function CountUp({ value, duration = 1000 }: { value: number; duration?: number 
       // Safe: early-exit guard when the value hasn't changed — avoids scheduling
       // a setInterval just to immediately clear it. No stale-dependency risk
       // because `value` is the only dep and this path reads it synchronously.
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+
       setCount(end);
       return;
     }
@@ -325,7 +325,6 @@ export default function LandingPage() {
   // setting mounted=true so client-only UI (form button, validation hints)
   // becomes interactive without a flash of mismatched content.
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
   }, []);
 
@@ -380,7 +379,7 @@ export default function LandingPage() {
       // Safe: synchronous reset of derived UI state when the input is cleared.
       // These three setters always run together so there is no intermediate
       // render with inconsistent state, and no async work is in flight.
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+
       setUserDetails(null);
       setUserDetailsError(null);
       setUserDetailsLoading(false);
@@ -654,6 +653,7 @@ export default function LandingPage() {
                           height={24}
                           className="w-6 h-6 rounded-full border border-emerald-500/20"
                         />
+
                         <div className="flex flex-col">
                           <span className="text-xs font-bold text-zinc-200">
                             {userDetails.name || userDetails.login}
