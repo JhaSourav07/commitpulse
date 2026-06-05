@@ -18,6 +18,8 @@ import {
 } from 'lucide-react';
 import type { DashboardExportData } from '@/types/dashboard';
 import { useShareActions } from '@/hooks/useShareActions';
+import { activityToTowers } from '@/lib/export3d';
+import { generateMonolithSTL } from '@/lib/export3d';
 
 type OptionState = 'idle' | 'loading' | 'success' | 'error';
 
@@ -79,19 +81,13 @@ export default function ShareSheet({ username, isOpen, onClose, exportData }: Sh
   const handleDownloadSTL = async () => {
     setLocalOptionState('stl', 'loading');
     try {
-      // Simulate STL processing time
-      await new Promise((resolve) => setTimeout(resolve, 1200));
+      // Yield to the browser so the loading spinner renders before the
+      // (potentially CPU-intensive) mesh generation blocks the main thread.
+      await new Promise((resolve) => setTimeout(resolve, 0));
 
-      // Basic STL placeholder generation (A true 3D generator would iterate over the calendar)
-      const stlContent = `solid commitpulse_monolith
-  facet normal 0 0 1
-    outer loop
-      vertex 0 0 0
-      vertex 10 0 0
-      vertex 10 10 0
-    endloop
-  endfacet
-endsolid commitpulse_monolith`;
+      const activity = exportData.activity ?? [];
+      const towers = activityToTowers(activity);
+      const stlContent = generateMonolithSTL(towers);
 
       const blob = new Blob([stlContent], { type: 'text/plain' });
       const url = URL.createObjectURL(blob);
@@ -214,8 +210,8 @@ endsolid commitpulse_monolith`;
     {
       key: 'stl',
       icon: Box,
-      label: 'Download 3D STL',
-      description: 'Print your monolith in 3D',
+      label: 'Download Printable 3D STL',
+      description: 'Export a 3D heightmap of your contributions',
       gradient: 'bg-zinc-800',
       glow: 'transparent',
       action: handleDownloadSTL,
