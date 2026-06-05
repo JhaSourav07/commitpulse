@@ -534,6 +534,7 @@ export default function LandingPage() {
                     type="text"
                     suppressHydrationWarning
                     placeholder="Enter GitHub Username"
+                    aria-label="Enter GitHub username to generate badge"
                     className="flex-1 rounded-2xl border border-black/10 bg-white pl-12 pr-10 py-4 text-sm text-black outline-none transition-all duration-300 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent dark:border-white/10 dark:bg-black/60 dark:text-white dark:placeholder:text-gray-500 shadow-inner"
                     value={username}
                     onChange={(e) => {
@@ -573,6 +574,7 @@ export default function LandingPage() {
                   type="submit"
                   suppressHydrationWarning
                   disabled={!mounted || trimmedUsername.length === 0}
+                  aria-label="Generate CommitPulse badge"
                   className={`relative flex min-w-[180px] items-center justify-center gap-2 overflow-hidden rounded-2xl px-6 py-4 text-sm font-bold transition-all duration-300 transform cursor-pointer hover:scale-[1.02] hover:shadow-lg active:scale-[0.98] disabled:cursor-not-allowed ${
                     mounted && trimmedUsername.length > 0
                       ? 'bg-gradient-to-r from-emerald-500 to-cyan-500 text-black shadow-[0_0_20px_rgba(16,185,129,0.25)] hover:opacity-95'

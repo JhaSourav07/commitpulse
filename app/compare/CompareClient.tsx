@@ -1055,6 +1055,7 @@ export default function CompareClient() {
                   id="compare-user1-input"
                   type="text"
                   placeholder="GitHub username #1"
+                  aria-label="Enter first GitHub username to compare"
                   value={user1}
                   onChange={(e) => setUser1(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleCompare(user1, user2)}
@@ -1075,6 +1076,7 @@ export default function CompareClient() {
                   id="compare-user2-input"
                   type="text"
                   placeholder="GitHub username #2"
+                  aria-label="Enter second GitHub username to compare"
                   value={user2}
                   onChange={(e) => setUser2(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleCompare(user1, user2)}
@@ -1088,6 +1090,7 @@ export default function CompareClient() {
                 whileTap={{ scale: 0.98 }}
                 onClick={() => handleCompare(user1, user2)}
                 disabled={loading}
+                aria-label="Compare two GitHub profiles"
                 className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-black dark:bg-white text-white dark:text-black text-sm font-semibold hover:bg-zinc-800 dark:hover:bg-zinc-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? <Loader2 size={16} className="animate-spin" /> : <Swords size={16} />}
