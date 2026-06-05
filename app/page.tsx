@@ -427,7 +427,7 @@ export default function LandingPage() {
     setTimeout(() => {
       guideRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 80);
-    setTimeout(() => setCopied(false), 50000);
+    setTimeout(() => setCopied(false), 3000);
   };
 
   const selectDemoUser = (name: string) => {
@@ -740,12 +740,7 @@ export default function LandingPage() {
             <div className="relative flex flex-col min-h-[480px] md:min-h-[520px] items-center justify-center overflow-hidden rounded-3xl border border-black/5 bg-white/50 p-8 backdrop-blur-xl shadow-2xl dark:border-white/10 dark:bg-[#0a0a0a]/80">
               {hasUsername ? (
                 <div className="w-full flex flex-col items-center justify-center gap-4">
-                  {!badgeLoaded && !badgeError && (
-                    <div className="h-[240px] w-full max-w-[700px] rounded-2xl bg-black/5 dark:bg-white/5 animate-pulse flex items-center justify-center">
-                      <Loader2 className="animate-spin text-zinc-500" size={32} />
-                    </div>
-                  )}
-                  {badgeError && (
+                  {userDetailsError === 'User not found' ? (
                     <div className="flex flex-col items-center justify-center gap-4 py-12 text-center">
                       <div className="flex h-16 w-16 items-center justify-center rounded-3xl border border-red-500/20 bg-red-500/10 shadow-inner">
                         <X size={32} className="text-red-500" />
@@ -759,27 +754,53 @@ export default function LandingPage() {
                         </p>
                       </div>
                     </div>
-                  )}
-                  <motion.img
-                    key={badgeUrl}
-                    data-testid="badge-img"
-                    src={badgeUrl}
-                    alt={`CommitPulse badge for ${previewUsername}`}
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: badgeLoaded ? 1 : 0, scale: badgeLoaded ? 1 : 0.95 }}
-                    transition={{ duration: 0.5, ease: 'easeOut' }}
-                    className="w-full max-w-[700px] h-auto drop-shadow-[0_30px_60px_rgba(0,0,0,0.15)] dark:drop-shadow-[0_30px_60px_rgba(0,0,0,0.5)]"
-                    onLoad={() => setBadgeResult({ username: previewUsername, status: 'loaded' })}
-                    onError={() => setBadgeResult({ username: previewUsername, status: 'error' })}
-                  />
-
-                  {badgeLoaded && (
-                    <button
-                      onClick={DownloadSVG}
-                      className="mt-6 px-4 py-2 rounded-lg bg-sky-600 text-sm font-medium text-white hover:bg-sky-800 transition-colors"
-                    >
-                      Download SVG
-                    </button>
+                  ) : (
+                    <>
+                      {!badgeLoaded && !badgeError && (
+                        <div className="h-[240px] w-full max-w-[700px] rounded-2xl bg-black/5 dark:bg-white/5 animate-pulse flex items-center justify-center">
+                          <Loader2 className="animate-spin text-zinc-500" size={32} />
+                        </div>
+                      )}
+                      {badgeError && (
+                        <div className="flex flex-col items-center justify-center gap-4 py-12 text-center">
+                          <div className="flex h-16 w-16 items-center justify-center rounded-3xl border border-red-500/20 bg-red-500/10 shadow-inner">
+                            <X size={32} className="text-red-500" />
+                          </div>
+                          <div>
+                            <p className="text-lg font-bold text-gray-900 dark:text-white tracking-tight">
+                              GitHub user not found
+                            </p>
+                            <p className="text-sm text-gray-500 dark:text-white/65 mt-1">
+                              Please check the username and try again.
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                      <motion.img
+                        key={badgeUrl}
+                        data-testid="badge-img"
+                        src={badgeUrl}
+                        alt={`CommitPulse badge for ${previewUsername}`}
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: badgeLoaded ? 1 : 0, scale: badgeLoaded ? 1 : 0.95 }}
+                        transition={{ duration: 0.5, ease: 'easeOut' }}
+                        className="w-full max-w-[700px] h-auto drop-shadow-[0_30px_60px_rgba(0,0,0,0.15)] dark:drop-shadow-[0_30px_60px_rgba(0,0,0,0.5)]"
+                        onLoad={() =>
+                          setBadgeResult({ username: previewUsername, status: 'loaded' })
+                        }
+                        onError={() =>
+                          setBadgeResult({ username: previewUsername, status: 'error' })
+                        }
+                      />
+                      {badgeLoaded && (
+                        <button
+                          onClick={DownloadSVG}
+                          className="mt-6 px-4 py-2 rounded-lg bg-sky-600 text-sm font-medium text-white hover:bg-sky-800 transition-colors"
+                        >
+                          Download SVG
+                        </button>
+                      )}
+                    </>
                   )}
                 </div>
               ) : (

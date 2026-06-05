@@ -53,9 +53,9 @@ const socialLinks: SocialLink[] = [
     icon: 'discord',
   },
   {
-    label: 'Twitter',
-    href: 'https://twitter.com/JhaSourav07',
-    ariaLabel: 'Creator on Twitter/X',
+    label: 'X',
+    href: 'https://x.com/JhaSourav07',
+    ariaLabel: 'Creator on X',
     icon: 'twitter',
   },
   {
