@@ -11,6 +11,12 @@ interface VisualizationTooltipProps {
 }
 
 export default function VisualizationTooltip({ title, children, x, y }: VisualizationTooltipProps) {
+  // Defensive bounding window check
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
+
+  // Enforce a safe left center boundary pivot for tight screens
+  const safeX = isMobile ? Math.min(Math.max(x, 100), window.innerWidth - 100) : x;
+
   return (
     <motion.div
       role="tooltip"
@@ -18,9 +24,9 @@ export default function VisualizationTooltip({ title, children, x, y }: Visualiz
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.96 }}
       transition={{ duration: 0.15, ease: 'easeOut' }}
-      className="pointer-events-none fixed z-[9999] min-w-max max-w-xs -translate-x-1/2 -translate-y-full rounded-xl border border-black/10 bg-white/95 px-3 py-2 text-xs text-gray-800 shadow-2xl shadow-black/20 backdrop-blur-md dark:border-white/10 dark:bg-[#111]/95 dark:text-white"
+      className="pointer-events-none fixed z-[9999] min-w-[160px] max-w-[calc(100vw-32px)] sm:max-w-xs -translate-x-1/2 -translate-y-full rounded-xl border border-black/10 bg-white/95 px-3 py-2 text-xs text-gray-800 shadow-2xl shadow-black/20 backdrop-blur-md dark:border-white/10 dark:bg-[#111]/95 dark:text-white"
       style={{
-        left: x,
+        left: safeX,
         top: y,
       }}
     >

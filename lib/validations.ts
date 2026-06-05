@@ -243,7 +243,7 @@ const baseStreakParamsSchema = z.object({
       },
       { message: 'Invalid "from" date format. Use ISO 8601 (e.g. 2023-01-01).' }
     ),
- highlight: z
+  highlight: z
     .string()
     .optional()
     .refine(

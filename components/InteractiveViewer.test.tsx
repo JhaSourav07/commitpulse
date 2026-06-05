@@ -93,7 +93,9 @@ describe('InteractiveViewer', () => {
     const viewerContainer = input.parentElement?.parentElement as HTMLElement;
     fireEvent.keyDown(viewerContainer, { key: 'w' });
 
-    const contentDiv = viewerContainer.querySelector('[data-testid="viewer-content"]') as HTMLElement;
+    const contentDiv = viewerContainer.querySelector(
+      '[data-testid="viewer-content"]'
+    ) as HTMLElement;
     expect(contentDiv.style.transform).toContain('translate(0px, 0px) scale(1)');
   });
 
@@ -453,7 +455,9 @@ describe('InteractiveViewer', () => {
     textarea.focus();
 
     const viewerContainer = textarea.parentElement?.parentElement as HTMLElement;
-    const contentDiv = viewerContainer.querySelector('[data-testid="viewer-content"]') as HTMLElement;
+    const contentDiv = viewerContainer.querySelector(
+      '[data-testid="viewer-content"]'
+    ) as HTMLElement;
 
     fireEvent.keyDown(viewerContainer, { key: 'w' });
     expect(contentDiv.style.transform).toContain('translate(0px, 0px) scale(1)');
