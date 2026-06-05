@@ -895,12 +895,12 @@ export default function LandingPage() {
               Workflow
             </p>
             <h2
-              className="text-3xl md:text-5xl font-black tracking-tight text-white"
+              className="text-3xl md:text-5xl font-black tracking-tight text-black dark:text-white"
               style={{ fontFamily: '"Syncopate", sans-serif' }}
             >
               How it works
             </h2>
-            <p className="text-sm text-zinc-400 max-w-md mx-auto mt-4 leading-relaxed">
+            <p className="text-sm text-zinc-600 dark:text-zinc-400 max-w-md mx-auto mt-4 leading-relaxed">
               Elevating your GitHub profile is a simple 3-step process. Here is how you construct
               your code monument.
             </p>
@@ -932,11 +932,11 @@ export default function LandingPage() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: '-100px' }}
                 transition={{ delay: idx * 0.15, duration: 0.6 }}
-                className="relative z-10 flex flex-col items-center text-center p-6 rounded-3xl border border-white/5 bg-black/40 backdrop-blur-xl hover:border-emerald-500/20 hover:bg-white/[0.02] transition-all duration-500 group"
+                className="relative z-10 flex flex-col items-center text-center p-6 rounded-3xl border border-black/5 dark:border-white/5 bg-black/[0.03] dark:bg-black/40 backdrop-blur-xl hover:border-emerald-500/30 dark:hover:border-emerald-500/30 hover:bg-white/40 dark:hover:bg-white/[0.02] hover:shadow-[0_20px_40px_rgba(16,185,129,0.08)] dark:hover:shadow-[0_20px_40px_rgba(16,185,129,0.15)] hover:scale-[1.03] transition-all duration-500 group"
               >
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center w-12 h-12 rounded-2xl border border-white/10 bg-zinc-950 font-bold text-sm tracking-wider text-white shadow-xl group-hover:border-emerald-500/30 transition-all duration-300">
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center w-12 h-12 rounded-2xl border border-black/10 dark:border-white/10 bg-white dark:bg-zinc-950 font-bold text-sm tracking-wider text-black dark:text-white shadow-xl group-hover:border-emerald-500/30 group-hover:scale-110 transition-all duration-300">
                   <span
-                    className="bg-gradient-to-br from-white to-zinc-400 bg-clip-text text-transparent font-black"
+                    className="bg-gradient-to-br from-black to-zinc-600 dark:from-white dark:to-zinc-400 bg-clip-text text-transparent font-black"
                     style={{ fontFamily: '"Space Grotesk", sans-serif' }}
                   >
                     {item.step}
@@ -944,12 +944,14 @@ export default function LandingPage() {
                 </div>
 
                 <h4
-                  className="text-md font-bold uppercase tracking-wider text-zinc-100 mt-6 mb-3 group-hover:text-emerald-400 transition-colors"
+                  className="text-md font-bold uppercase tracking-wider text-zinc-800 dark:text-zinc-100 mt-6 mb-3 group-hover:text-emerald-500 dark:group-hover:text-emerald-400 transition-colors"
                   style={{ fontFamily: '"Syncopate", sans-serif', fontSize: '12px' }}
                 >
                   {item.title}
                 </h4>
-                <p className="text-xs text-zinc-400 leading-relaxed">{item.desc}</p>
+                <p className="text-xs text-zinc-650 dark:text-zinc-400 leading-relaxed">
+                  {item.desc}
+                </p>
               </motion.div>
             ))}
           </div>
