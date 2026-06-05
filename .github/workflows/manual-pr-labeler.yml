@@ -1,0 +1,281 @@
+name: Manual PR Labeler
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'Specific PR number to label (leave blank to scan all PRs)'
+        required: false
+        type: string
+      dry_run:
+        description: 'Dry run (only print proposed labels without applying them)'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  pull-requests: write
+  issues: write
+  contents: read
+
+jobs:
+  label-pr:
+    name: Categorize and Label PRs
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Process Labeling
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+
+            const prNumberInput = '${{ github.event.inputs.pr_number }}'.trim();
+            const dryRun = ${{ github.event.inputs.dry_run || 'false' }};
+
+            // Define the 10 label types, colors, and descriptions
+            const labelSpecs = {
+              'type:bug': { color: 'ef4444', description: 'Something isn\'t working as expected' },
+              'type:feature': { color: '10b981', description: 'New features, additions, or enhancements' },
+              'type:docs': { color: '3b82f6', description: 'Documentation changes, wikis, or README updates' },
+              'type:testing': { color: '8b5cf6', description: 'Adding, updating, or fixing tests' },
+              'type:security': { color: 'f59e0b', description: 'Security fixes, dependency updates, or hardening' },
+              'type:performance': { color: '6366f1', description: 'Code changes that improve performance/speed' },
+              'type:design': { color: 'ec4899', description: 'UI designs, styling, SVG icons, and themes' },
+              'type:refactor': { color: '14b8a6', description: 'Code changes that neither fix a bug nor add a feature' },
+              'type:devops': { color: '64748b', description: 'CI/CD pipelines, workflows, dev scripts, and config' },
+              'type:accessibility': { color: 'f97316', description: 'Accessibility (a11y) improvements and screen reader fixes' }
+            };
+
+            // 1. Pre-create or verify all label specifications exist in the repo
+            console.log('🔄 Verifying label definitions exist in repository...');
+            for (const [name, spec] of Object.entries(labelSpecs)) {
+              try {
+                await github.rest.issues.getLabel({ owner, repo, name });
+                console.log(`  ✅ Label "${name}" already exists.`);
+              } catch (err) {
+                if (err.status === 404) {
+                  if (dryRun) {
+                    console.log(`  [DRY RUN] Would create label "${name}" with color #${spec.color}`);
+                  } else {
+                    console.log(`  ➕ Creating label "${name}"...`);
+                    await github.rest.issues.createLabel({
+                      owner,
+                      repo,
+                      name,
+                      color: spec.color,
+                      description: spec.description
+                    });
+                    console.log(`  ✨ Created label "${name}" successfully!`);
+                  }
+                } else {
+                  console.error(`  ❌ Error checking/creating label "${name}":`, err.message);
+                }
+              }
+            }
+
+            // 2. Determine which PRs to process
+            let prs = [];
+            if (prNumberInput) {
+              const num = parseInt(prNumberInput, 10);
+              if (isNaN(num)) {
+                core.setFailed(`Invalid PR number specified: "${prNumberInput}"`);
+                return;
+              }
+              console.log(`🔍 Fetching details for specific PR #${num}...`);
+              try {
+                const { data } = await github.rest.pulls.get({ owner, repo, pull_number: num });
+                prs.push(data);
+              } catch (err) {
+                core.setFailed(`Failed to fetch PR #${num}: ${err.message}`);
+                return;
+              }
+            } else {
+              console.log('🔍 Fetching all pull requests (open & closed/merged) in repository...');
+              try {
+                prs = await github.paginate(github.rest.pulls.list, {
+                  owner,
+                  repo,
+                  state: 'all',
+                  per_page: 100
+                });
+                console.log(`  Found ${prs.length} total PR(s) to analyze.`);
+              } catch (err) {
+                core.setFailed(`Failed to fetch PRs: ${err.message}`);
+                return;
+              }
+            }
+
+            if (prs.length === 0) {
+              console.log('ℹ️ No PRs to process.');
+              return;
+            }
+
+            // Define mapping from prefixes to the PR label keys
+            const prefixMapping = {
+              'fix': 'type:bug',
+              'bug': 'type:bug',
+              'bugfix': 'type:bug',
+              'hotfix': 'type:bug',
+              'feat': 'type:feature',
+              'feature': 'type:feature',
+              'docs': 'type:docs',
+              'doc': 'type:docs',
+              'test': 'type:testing',
+              'testing': 'type:testing',
+              'spec': 'type:testing',
+              'security': 'type:security',
+              'sec': 'type:security',
+              'perf': 'type:performance',
+              'performance': 'type:performance',
+              'style': 'type:design',
+              'design': 'type:design',
+              'theme': 'type:design',
+              'css': 'type:design',
+              'ui': 'type:design',
+              'refactor': 'type:refactor',
+              'cleanup': 'type:refactor',
+              'ci': 'type:devops',
+              'build': 'type:devops',
+              'chore': 'type:devops',
+              'devops': 'type:devops',
+              'workflow': 'type:devops',
+              'a11y': 'type:accessibility',
+              'accessibility': 'type:accessibility'
+            };
+
+            // Helper to get type from text using conventional commit/prefix matching
+            function determineTypeFromText(text) {
+              if (!text) return null;
+              
+              // 1. Try matching conventional commit prefix like "feat(scope):" or "fix:"
+              const conventionalRegex = /^\s*([a-zA-Z0-9_-]+)(?:\(.*\))?!?\s*:/i;
+              const match = text.match(conventionalRegex);
+              if (match) {
+                const prefix = match[1].toLowerCase();
+                if (prefixMapping[prefix]) {
+                  return prefixMapping[prefix];
+                }
+              }
+
+              // 2. Fallback to generic keyword matching at start of text or branch parts
+              const cleanText = text.toLowerCase().trim();
+              for (const [key, label] of Object.entries(prefixMapping)) {
+                if (cleanText.startsWith(key + '/') || cleanText.startsWith(key + '-') || cleanText === key) {
+                  return label;
+                }
+              }
+
+              return null;
+            }
+
+            // Loop through each PR and perform categorization
+            for (const pr of prs) {
+              const prNum = pr.number;
+              const prTitle = pr.title;
+              const branchName = pr.head.ref;
+              const currentLabels = pr.labels.map(l => l.name);
+              
+              console.log(`\n--------------------------------------------------`);
+              console.log(`📂 Analyzing PR #${prNum}: "${prTitle}"`);
+              console.log(`   Branch: ${branchName}`);
+              console.log(`   Current Labels: ${currentLabels.join(', ') || 'None'}`);
+
+              let matchedLabel = null;
+              let source = '';
+
+              // Step 1: Check title
+              matchedLabel = determineTypeFromText(prTitle);
+              if (matchedLabel) {
+                source = 'PR Title (Conventional Commits)';
+              }
+
+              // Step 2: Check branch name
+              if (!matchedLabel) {
+                matchedLabel = determineTypeFromText(branchName);
+                if (matchedLabel) {
+                  source = `PR Branch Name ("${branchName}")`;
+                }
+              }
+
+              // Step 3: Check commits if still not determined
+              if (!matchedLabel) {
+                console.log(`   🔍 No direct match from Title or Branch. Fetching commits for PR #${prNum}...`);
+                try {
+                  const { data: commits } = await github.rest.pulls.listCommits({
+                    owner,
+                    repo,
+                    pull_number: prNum,
+                    per_page: 50
+                  });
+                  
+                  // Check commits from newest to oldest
+                  for (let i = commits.length - 1; i >= 0; i--) {
+                    const commitMsg = commits[i].commit.message;
+                    const commitLabel = determineTypeFromText(commitMsg);
+                    if (commitLabel) {
+                      matchedLabel = commitLabel;
+                      source = `Commit Message ("${commitMsg.split('\n')[0]}")`;
+                      break;
+                    }
+                  }
+                } catch (err) {
+                  console.error(`   ⚠️ Failed to fetch commits:`, err.message);
+                }
+              }
+
+              // Output finding
+              if (matchedLabel) {
+                console.log(`   🎯 Categorized as **${matchedLabel}** (Detected via: ${source})`);
+                
+                // If it already has the exact label, skip
+                if (currentLabels.includes(matchedLabel)) {
+                  console.log(`   ⏭️ PR already has the correct label applied. Skipping.`);
+                  continue;
+                }
+
+                // Check if it already has ANY type:* label
+                const existingTypeLabels = currentLabels.filter(l => l.startsWith('type:'));
+                if (existingTypeLabels.length > 0) {
+                  console.log(`   ⚠️ PR already has other type label(s) applied: ${existingTypeLabels.join(', ')}`);
+                  // Remove other type:* labels
+                  for (const labelToRemove of existingTypeLabels) {
+                    if (dryRun) {
+                      console.log(`   [DRY RUN] Would remove label "${labelToRemove}"`);
+                    } else {
+                      console.log(`   ➖ Removing old label "${labelToRemove}"...`);
+                      try {
+                        await github.rest.issues.removeLabel({
+                          owner,
+                          repo,
+                          issue_number: prNum,
+                          name: labelToRemove
+                        });
+                      } catch (err) {
+                        console.error(`   ⚠️ Failed to remove label:`, err.message);
+                      }
+                    }
+                  }
+                }
+
+                // Apply the new label
+                if (dryRun) {
+                  console.log(`   [DRY RUN] Would add label "${matchedLabel}" to PR #${prNum}`);
+                } else {
+                  console.log(`   ➕ Adding label "${matchedLabel}" to PR #${prNum}...`);
+                  await github.rest.issues.addLabels({
+                    owner,
+                    repo,
+                    issue_number: prNum,
+                    labels: [matchedLabel]
+                  });
+                  console.log(`   🎉 Label "${matchedLabel}" successfully applied!`);
+                }
+              } else {
+                console.log(`   ❓ Could not automatically determine the type for PR #${prNum}.`);
+                console.log(`   💡 Tip: Format the PR Title using Conventional Commits (e.g., "feat: login page") or name your branch appropriately (e.g., "bugfix/button-color").`);
+              }
+            }
+            console.log(`\n🏁 Finished processing PR labeling.`);

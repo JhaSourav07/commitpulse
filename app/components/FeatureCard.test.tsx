@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { FeatureCard } from './FeatureCard';
@@ -6,9 +8,18 @@ import { FeatureCard } from './FeatureCard';
 // don't mean anything to jsdom, so we stub motion.div with a plain div.
 vi.mock('framer-motion', () => ({
   motion: {
-    div: ({ children, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-      <div {...props}>{children}</div>
-    ),
+    div: ({
+      children,
+      whileHover,
+      whileTap,
+      whileInView,
+      initial,
+      animate,
+      exit,
+      transition,
+      viewport,
+      ...props
+    }: any) => <div {...props}>{children}</div>,
   },
 }));
 
@@ -107,6 +118,14 @@ describe('FeatureCard', () => {
       // The icon wrapper always has bg-white/5 for the subtle background tint.
       const iconWrapper = container.querySelector('.bg-white\\/5');
       expect(iconWrapper).toBeTruthy();
+    });
+
+    it('applies group-hover:text-emerald-400 to the heading', () => {
+      render(<FeatureCard {...defaultProps} />);
+
+      const heading = screen.getByRole('heading', { level: 3 });
+
+      expect(heading.className).toContain('group-hover:text-emerald-400');
     });
   });
 

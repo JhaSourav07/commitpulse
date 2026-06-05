@@ -4,6 +4,7 @@ const { handleAssign } = require('./assign-handler');
 const { handleUnassign } = require('./unassign-handler');
 const { handleAddLabel } = require('./addlabel-handler');
 const { handleClaim } = require('./claim-handler');
+const { handleUnclaim } = require('./unclaim-handler');
 
 module.exports = async ({ github, context, core }) => {
   const commentBody = context.payload.comment?.body;
@@ -47,6 +48,9 @@ module.exports = async ({ github, context, core }) => {
         break;
       case 'claim':
         await handleClaim({ github, context });
+        break;
+      case 'unclaim':
+        await handleUnclaim({ github, context });
         break;
       case 'ping':
         await github.rest.issues.createComment({

@@ -1,4 +1,4 @@
-async function findExistingAssignment(github, owner, repo, username, currentIssueNumber) {
+async function findExistingAssignments(github, owner, repo, username, currentIssueNumber) {
   const { data: issues } = await github.rest.issues.listForRepo({
     owner,
     repo,
@@ -7,12 +7,10 @@ async function findExistingAssignment(github, owner, repo, username, currentIssu
     per_page: 100,
   });
 
-  const assignedIssues = issues.filter(
-    (issue) => !issue.pull_request && issue.number !== currentIssueNumber
-  );
-
-  return assignedIssues.length > 0 ? assignedIssues[0] : null;
+  return issues.filter((issue) => !issue.pull_request && issue.number !== currentIssueNumber);
 }
+
+const MAX_ASSIGNED_ISSUES = 5;
 
 async function handleClaim({ github, context }) {
   const { owner, repo } = context.repo;
@@ -26,6 +24,21 @@ async function handleClaim({ github, context }) {
       repo,
       issue_number: issueNumber,
       body: `❌ Commands cannot be used on closed issues.`,
+    });
+    return;
+  }
+
+  const issueAuthor = context.payload.issue.user.login;
+
+  const MAINTAINERS = ['jhasourav07', 'aamod007', 'souravjhahind'];
+  const isOpenedByMaintainer = MAINTAINERS.includes(issueAuthor.toLowerCase());
+
+  if (!isOpenedByMaintainer && commenter.toLowerCase() !== issueAuthor.toLowerCase()) {
+    await github.rest.issues.createComment({
+      owner,
+      repo,
+      issue_number: issueNumber,
+      body: `❌ Only the author of this issue (@${issueAuthor}) can claim it.`,
     });
     return;
   }
@@ -52,13 +65,16 @@ async function handleClaim({ github, context }) {
     return;
   }
 
-  const existingIssue = await findExistingAssignment(github, owner, repo, commenter, issueNumber);
-  if (existingIssue) {
+  const existingIssues = await findExistingAssignments(github, owner, repo, commenter, issueNumber);
+  if (existingIssues.length >= MAX_ASSIGNED_ISSUES) {
+    const issueList = existingIssues
+      .map((i) => `> 📋 [#${i.number} — ${i.title}](${i.html_url})`)
+      .join('\n');
     await github.rest.issues.createComment({
       owner,
       repo,
       issue_number: issueNumber,
-      body: `❌ You already have an active assigned issue.\nPlease complete or unassign your current issue first.\n\n> 📋 Active issue: [#${existingIssue.number} — ${existingIssue.title}](${existingIssue.html_url})`,
+      body: `❌ You already have **${existingIssues.length}/${MAX_ASSIGNED_ISSUES}** active assigned issues (the maximum allowed).\nPlease complete or \`/unclaim\` one of your current issues before claiming another.\n\n${issueList}`,
     });
     return;
   }
@@ -74,7 +90,7 @@ async function handleClaim({ github, context }) {
     owner,
     repo,
     issue_number: issueNumber,
-    body: `✅ Successfully assigned issue to @${commenter}\n\n> 💡 Please read [CONTRIBUTING.md](../blob/main/CONTRIBUTING.md) if you haven't already. Good luck! 🚀`,
+    body: `🎉 **Assigned!** Welcome to the project, @${commenter}.\n\n⏳ **Reminder:** You have **2 days** to submit a Pull Request. After 2 days of inactivity, you will be automatically unassigned to give others a chance (as per our GSSoC anti-hoarding policy).\n\n> 💡 Please read [CONTRIBUTING.md](../blob/main/CONTRIBUTING.md) if you haven't already.\n\nHappy coding! 🚀`,
   });
 }
 

@@ -1,0 +1,11 @@
+{
+  "name": "commitpulse-issue-duplicate-detector",
+  "version": "1.0.0",
+  "description": "Semantic search script for duplicate issues using Google Gemini API",
+  "main": "check-duplicates.js",
+  "private": true,
+  "dependencies": {
+    "@actions/github": "^6.0.0",
+    "@google/generative-ai": "^0.11.0"
+  }
+}

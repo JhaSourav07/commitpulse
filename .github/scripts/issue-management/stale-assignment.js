@@ -1,6 +1,6 @@
 async function handleStaleAssignments({ github, context, core }) {
   const { owner, repo } = context.repo;
-  const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
+  const TWO_DAYS_MS = 2 * 24 * 60 * 60 * 1000;
   const now = new Date();
 
   console.log(`Starting stale assignment check for ${owner}/${repo}`);
@@ -27,7 +27,7 @@ async function handleStaleAssignments({ github, context, core }) {
       const updatedAt = new Date(issue.updated_at);
       const timeSinceUpdate = now.getTime() - updatedAt.getTime();
 
-      if (timeSinceUpdate > THREE_DAYS_MS) {
+      if (timeSinceUpdate > TWO_DAYS_MS) {
         console.log(
           `Issue #${issue.number} has been inactive since ${issue.updated_at}. Removing assignees.`
         );

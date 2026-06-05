@@ -1,0 +1,204 @@
+name: PR Issue Link & Assignment Check
+
+on:
+  pull_request_target:
+    types: [opened, edited, reopened, synchronize]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'PR Number to check (optional. If empty, checks all open PRs)'
+        required: false
+        type: string
+
+permissions:
+  issues: write
+  pull-requests: write
+
+jobs:
+  check-issue-link:
+    name: Verify PR is Linked to an Assigned Issue
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check linked issue and assignment
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { owner, repo } = context.repo;
+            let pullRequests = [];
+
+            const prInput = context.payload.inputs?.pr_number;
+            if (prInput) {
+              try {
+                const { data: pr } = await github.rest.pulls.get({
+                  owner, repo, pull_number: parseInt(prInput, 10),
+                });
+                pullRequests.push(pr);
+              } catch (err) {
+                core.setFailed(`Failed to fetch PR #${prInput}: ${err.message}`);
+                return;
+              }
+            } else if (context.eventName === 'workflow_dispatch') {
+              const { data: prs } = await github.rest.pulls.list({
+                owner, repo, state: 'open', per_page: 100,
+              });
+              pullRequests = prs;
+              core.info(`Fetched ${prs.length} open PR(s) to verify.`);
+            } else {
+              pullRequests.push(context.payload.pull_request);
+            }
+
+            const SENTINEL_NO_LINK  = '<!-- pr-issue-check: no-link -->';
+            const SENTINEL_NOT_ASSIGNED = '<!-- pr-issue-check: not-assigned -->';
+
+            // Helper: fetch existing bot comments on this PR
+            async function getBotComments(number) {
+              const { data: comments } = await github.rest.issues.listComments({
+                owner, repo, issue_number: number, per_page: 100,
+              });
+              return comments.filter(c => c.user?.login === 'github-actions[bot]');
+            }
+
+            // Helper: check whether we already posted a specific sentinel
+            async function alreadyPosted(number, sentinel) {
+              const comments = await getBotComments(number);
+              return comments.some(c => c.body?.includes(sentinel));
+            }
+
+            for (const pr of pullRequests) {
+              const prNumber = pr.number;
+              const prAuthor = pr.user.login;
+              const prBody = pr.body ?? '';
+
+              core.info(`Checking PR #${prNumber} by @${prAuthor}...`);
+
+              // ----------------------------------------------------------------
+              // 1. Parse a linked issue number from the PR body.
+              //    Matches: closes/fixes/resolves #123  (case-insensitive)
+              // ----------------------------------------------------------------
+              const LINK_REGEX =
+                /(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s+#(\d+)/gi;
+
+              const issueNumbers = [];
+              let match;
+              while ((match = LINK_REGEX.exec(prBody)) !== null) {
+                issueNumbers.push(parseInt(match[1], 10));
+              }
+
+              // ----------------------------------------------------------------
+              // 2. NO linked issue found → warn, close the PR, and stop
+              // ----------------------------------------------------------------
+              if (issueNumbers.length === 0) {
+                const already = await alreadyPosted(prNumber, SENTINEL_NO_LINK);
+                if (!already) {
+                  await github.rest.issues.createComment({
+                    owner, repo, issue_number: prNumber,
+                    body: `👋 Hey @${prAuthor}! Thanks for your contribution! 🎉
+
+            ${SENTINEL_NO_LINK}
+            Unfortunately, this PR has been **automatically closed** because it is not linked to any open issue.
+
+            To resolve this, please do the following:
+            1. **Link a valid open issue** by editing your PR description to include a closing keyword (e.g., \`Fixes #<issue-number>\`).
+            2. **Reopen this PR** once the link is added.
+
+            > 💡 You can link multiple issues if needed (e.g. \`Fixes #12, Closes #34\`).
+            > If you're working on something that doesn't have an issue yet, please [open one first](https://github.com/${owner}/${repo}/issues/new/choose) and then link it here.
+
+            We look forward to reviewing your PR once an issue is linked! 🚀`,
+                  });
+                }
+
+                // Close the PR
+                await github.rest.pulls.update({
+                  owner, repo, pull_number: prNumber, state: 'closed',
+                });
+
+                continue; // check next PR
+              }
+
+              // ----------------------------------------------------------------
+              // 3. Linked issue(s) found — check assignment for each one.
+              //    We validate all linked issues and act on the first violation.
+              // ----------------------------------------------------------------
+              let prViolation = false;
+              for (const issueNumber of issueNumbers) {
+                let issue;
+                try {
+                  const { data } = await github.rest.issues.get({
+                    owner, repo, issue_number: issueNumber,
+                  });
+                  issue = data;
+                } catch (err) {
+                  if (err.status === 404) {
+                    // Linked issue doesn't exist — treat same as no-link
+                    const already = await alreadyPosted(prNumber, SENTINEL_NO_LINK);
+                    if (!already) {
+                      await github.rest.issues.createComment({
+                        owner, repo, issue_number: prNumber,
+                        body: `👋 Hey @${prAuthor}!
+
+            ${SENTINEL_NO_LINK}
+            Unfortunately, this PR has been **automatically closed** because the referenced issue **#${issueNumber}** does not exist (or was deleted).
+
+            To resolve this, please do the following:
+            1. **Link a valid open issue** by editing your PR description to include a closing keyword (e.g., \`Fixes #<issue-number>\`).
+            2. **Reopen this PR** once the link is added.
+
+            Please link a valid open issue before this PR can be reviewed. 🙏`,
+                      });
+                    }
+
+                    // Close the PR
+                    await github.rest.pulls.update({
+                      owner, repo, pull_number: prNumber, state: 'closed',
+                    });
+
+                    prViolation = true;
+                    break;
+                  }
+                  throw err;
+                }
+
+                // Is the PR author assigned to this issue?
+                const assignees = issue.assignees.map(a => a.login.toLowerCase());
+                const isAssigned = assignees.includes(prAuthor.toLowerCase());
+
+                if (!isAssigned) {
+                  // Close the PR with a polite explanation
+                  const already = await alreadyPosted(prNumber, SENTINEL_NOT_ASSIGNED);
+                  if (!already) {
+                    await github.rest.issues.createComment({
+                      owner, repo, issue_number: prNumber,
+                      body: `👋 Hey @${prAuthor}! Thanks for your interest in contributing to CommitPulse! 🙏
+
+            ${SENTINEL_NOT_ASSIGNED}
+            Unfortunately, this PR has been **automatically closed** because you are not assigned to the linked issue **[#${issueNumber} — ${issue.title}](${issue.html_url})**.
+
+            To avoid this in the future, please follow these steps:
+
+            1. **Claim the issue** — Comment \`/claim\` on [#${issueNumber}](${issue.html_url}) if you are the issue author, or ask a maintainer to \`/assign\` you.
+            2. **Wait for confirmation** — The bot will confirm your assignment with a ✅ reply.
+            3. **Then open your PR** — Link the issue with \`Fixes #${issueNumber}\` in your description.
+
+            > 💡 You can be assigned to up to **5** open issues at a time. Check your current assignments before claiming a new one.
+
+            We look forward to your contribution once you're assigned! 🚀`,
+                    });
+                  }
+
+                  // Close the PR
+                  await github.rest.pulls.update({
+                    owner, repo, pull_number: prNumber, state: 'closed',
+                  });
+
+                  prViolation = true;
+                  break; // stop after first violation
+                }
+              }
+
+              if (!prViolation) {
+                core.info(`✅ PR #${prNumber} by @${prAuthor} is properly linked and assigned.`);
+              }
+            }

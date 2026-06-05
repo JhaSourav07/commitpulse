@@ -33,10 +33,14 @@ yarn-error.log*
 # env files — ignore all local secrets but commit the example template
 .env*
 !.env.local.example
-
+.env.local
 # vercel
 .vercel
 
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Generated agent artifacts
+github_issues_proposals.md
+pr_details.md
