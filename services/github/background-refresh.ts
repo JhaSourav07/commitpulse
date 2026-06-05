@@ -25,6 +25,7 @@ export class BackgroundRefresh {
 
     try {
       const lastSyncTime = new Date(lastSyncedAt).getTime();
+      if (isNaN(lastSyncTime)) return true;
       return Date.now() - lastSyncTime > STALE_THRESHOLD_MS;
     } catch {
       return true;

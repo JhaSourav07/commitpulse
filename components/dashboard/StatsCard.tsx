@@ -9,11 +9,7 @@ const iconMap: Record<string, LucideIcon> = {
   GitCommit,
 };
 
-export function buildMiniChart(seed: number): number[] {
-  return Array.from({ length: 12 }).map((_, i) => ((seed * 17 + i * 31) % 100) + (i > 6 ? 40 : 0));
-}
-
-interface StatsCardProps {
+export interface StatsCardProps {
   title: string;
   value: string;
   description: string;

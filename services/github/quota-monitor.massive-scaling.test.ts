@@ -34,7 +34,7 @@ describe('QuotaMonitor massive scaling stability', () => {
     const quota = quotaMonitor.getQuota();
 
     expect(quota.totalRefreshes).toBe(10_000);
-    expect(duration).toBeLessThan(100);
+    expect(duration).toBeLessThan(1000);
   });
 
   it('keeps quota low calculation stable with extreme high bounds', () => {

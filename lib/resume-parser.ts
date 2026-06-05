@@ -156,3 +156,22 @@ export const ALLOWED_MIME_TYPES = [
 ];
 
 export const MAX_FILE_SIZE = 5 * 1024 * 1024;
+
+// Leading-byte signatures used to reject content that does not match its declared MIME type.
+const FILE_SIGNATURES: Record<string, number[][]> = {
+  'application/pdf': [[0x25, 0x50, 0x44, 0x46, 0x2d]],
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': [
+    [0x50, 0x4b, 0x03, 0x04],
+    [0x50, 0x4b, 0x05, 0x06],
+    [0x50, 0x4b, 0x07, 0x08],
+  ],
+  'application/msword': [[0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1]],
+};
+
+export function hasValidFileSignature(buffer: Buffer, mimeType: string): boolean {
+  const signatures = FILE_SIGNATURES[mimeType];
+  if (!signatures) return false;
+  return signatures.some(
+    (sig) => buffer.length >= sig.length && sig.every((byte, index) => buffer[index] === byte)
+  );
+}

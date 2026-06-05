@@ -1,47 +1,48 @@
+import '@testing-library/jest-dom/vitest';
 import { describe, it, expect } from 'vitest';
 import { render } from '@testing-library/react';
+import React from 'react';
 import { CommitPulseLogo } from './commitpulse-logo';
 
 describe('CommitPulseLogo Component', () => {
-  it('renders an <svg> element with proper viewport dimensions', () => {
+  it('renders SVG element correctly', () => {
     const { container } = render(<CommitPulseLogo />);
-    const svg = container.querySelector('svg');
+    const svgElement = container.querySelector('svg');
 
-    expect(svg).not.toBeNull();
-    expect(svg?.getAttribute('viewBox')).toBe('0 0 24 24');
+    expect(svgElement).toBeInTheDocument();
+    expect(svgElement).toHaveAttribute('viewBox', '0 0 24 24');
+    expect(svgElement).toHaveAttribute('fill', 'none');
+    expect(svgElement).toHaveAttribute('stroke', 'currentColor');
   });
 
-  it('asserts that path elements are drawn representing the pulse shape', () => {
+  it('applies default className if none is provided', () => {
+    const { container } = render(<CommitPulseLogo />);
+    const svgElement = container.querySelector('svg');
+    expect(svgElement).toHaveClass('h-5', 'w-5');
+  });
+
+  it('applies custom className passed via props', () => {
+    const { container } = render(<CommitPulseLogo className="h-10 w-10 text-red-500" />);
+    const svgElement = container.querySelector('svg');
+    expect(svgElement).toHaveClass('h-10', 'w-10', 'text-red-500');
+    expect(svgElement).not.toHaveClass('h-5', 'w-5');
+  });
+
+  it('sets aria-hidden to true for accessibility', () => {
+    const { container } = render(<CommitPulseLogo />);
+    const svgElement = container.querySelector('svg');
+    expect(svgElement).toHaveAttribute('aria-hidden', 'true');
+  });
+
+  it('renders required path elements for the logo geometry', () => {
     const { container } = render(<CommitPulseLogo />);
     const paths = container.querySelectorAll('path');
-
-    // The component specifically draws 4 geometric paths
     expect(paths.length).toBe(4);
-  });
 
-  it('verifies support for custom className properties', () => {
-    const testClass = 'custom-pulse-class';
-    const { container } = render(<CommitPulseLogo className={testClass} />);
-    const svg = container.querySelector('svg');
-
-    expect(svg?.classList.contains(testClass)).toBe(true);
-  });
-
-  it('verifies support for custom width and height properties via Tailwind classes', () => {
-    const { container } = render(<CommitPulseLogo className="w-12 h-12" />);
-    const svg = container.querySelector('svg');
-
-    // The default h-5 w-5 should be replaced or overridden by the provided class
-    expect(svg?.classList.contains('w-12')).toBe(true);
-    expect(svg?.classList.contains('h-12')).toBe(true);
-  });
-
-  it('verifies theme colors map correctly to the SVG via currentColor', () => {
-    const { container } = render(<CommitPulseLogo />);
-    const svg = container.querySelector('svg');
-
-    // For Tailwind text-* classes to color the SVG, stroke must be currentColor and fill must be none
-    expect(svg?.getAttribute('stroke')).toBe('currentColor');
-    expect(svg?.getAttribute('fill')).toBe('none');
+    // Check that one of the path d-attributes matches the 3D box frame
+    const pathDAttributes = Array.from(paths).map((p) => p.getAttribute('d'));
+    expect(pathDAttributes).toContain(
+      'M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z'
+    );
   });
 });

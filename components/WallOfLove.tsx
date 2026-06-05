@@ -10,7 +10,7 @@ if (typeof window !== 'undefined') {
 }
 
 /* ─── Testimonial Data ─── */
-interface Testimonial {
+export interface Testimonial {
   name: string;
   handle: string;
   avatar: string;

@@ -7,6 +7,7 @@ import ReturnToTop from '@/components/ReturnToTop';
 import type { Metadata } from 'next';
 import ScrollRestoration from './components/ScrollRestoration';
 import AnimatedCursor from '@/components/AnimatedCursor';
+import KonamiEasterEgg from '@/components/KonamiEasterEgg';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -93,6 +94,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Navbar />
         <div className="relative z-10">{children}</div>
         <ReturnToTop />
+        <KonamiEasterEgg />
         <Analytics />
       </body>
     </html>

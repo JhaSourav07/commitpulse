@@ -150,4 +150,45 @@ describe('Leaderboard Component', () => {
     // Restore original getElementById
     document.getElementById = originalGetElementById;
   });
+
+  //since sorted array is passes to leaderboard
+  //would test that render order matches input order
+  it('renders contributors preserving the input order', () => {
+    render(<Leaderboard contributors={mockContributors} />);
+
+    // rank1
+    expect(screen.getByText('gold_dev')).toBeInTheDocument();
+    expect(screen.getByText('150')).toBeInTheDocument();
+
+    // rank2
+    expect(screen.getByText('silver_dev')).toBeInTheDocument();
+    expect(screen.getByText('120')).toBeInTheDocument();
+
+    // list entries preserve order
+    const rank4 = screen.getByText('#4');
+    const rank5 = screen.getByText('#5');
+    expect(rank4).toBeInTheDocument();
+    expect(rank5).toBeInTheDocument();
+
+    // #4 appears before #5 in the DOM
+    expect(rank4.compareDocumentPosition(rank5) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('renders nothing in podium and list when contributors array is empty', () => {
+    render(<Leaderboard contributors={[]} />);
+
+    expect(screen.queryByText('gold_dev')).not.toBeInTheDocument();
+    expect(screen.queryByText('silver_dev')).not.toBeInTheDocument();
+    expect(screen.queryByText('bronze_dev')).not.toBeInTheDocument();
+    expect(screen.queryByText('#4')).not.toBeInTheDocument();
+    expect(screen.queryByText('#5')).not.toBeInTheDocument();
+  });
+
+  it('renders crown icons for top 3 podium positions', () => {
+    const { container } = render(<Leaderboard contributors={mockContributors} />);
+
+    const crowns = container.querySelectorAll('svg');
+    // there should be crown SVGs present for rank 1, 2, 3
+    expect(crowns.length).toBeGreaterThanOrEqual(3);
+  });
 });
