@@ -61,6 +61,12 @@ describe('getDashboardUrl', () => {
     expect(getDashboardUrl('octocat')).toBe('https://commitpulse.vercel.app/dashboard/octocat');
   });
 
+  it('encodes special characters in the username path segment', () => {
+    vi.stubGlobal('window', { location: { origin: 'https://example.com' } });
+
+    expect(getDashboardUrl('john doe')).toBe('https://example.com/dashboard/john%20doe');
+  });
+
   it('includes the username in the path', () => {
     vi.stubGlobal('window', { location: { origin: 'https://example.com' } });
 

@@ -37,7 +37,11 @@ export async function POST(req: NextRequest): Promise<NextResponse<NotificationR
   // Rate limiting
   const ip = getClientIp(req);
 
-  if (ip !== 'unknown' && !(await notifyRateLimiter.check(ip))) {
+  // fallback ensures rate limit is ALWAYS applied
+  const rateLimitKey =
+    ip && ip !== 'unknown' ? ip : `unknown:${req.headers.get('user-agent') ?? 'no-agent'}`;
+
+  if (!(await notifyRateLimiter.check(rateLimitKey))) {
     return NextResponse.json(
       { success: false, message: 'Too many requests, please try again later.' },
       { status: 429 }
@@ -177,10 +181,13 @@ export async function GET(req: NextRequest): Promise<NextResponse<NotificationRe
       }
 
       console.warn('MONGODB_URI is not set. Bypassing notification lookup for local development.');
-      return NextResponse.json({
-        success: false,
-        message: 'No notification preferences found (no database configured).',
-      });
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'No notification preferences found (no database configured).',
+        },
+        { status: 503 }
+      );
     }
 
     await dbConnect();

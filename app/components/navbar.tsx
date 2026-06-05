@@ -16,6 +16,12 @@ function GithubMark() {
 
 const NAV_LINKS = [
   {
+    label: 'Generator',
+    href: '/generator',
+    isExternal: false,
+    isPrimary: false,
+  },
+  {
     label: 'Compare',
     href: '/compare',
     isExternal: false,
@@ -74,7 +80,7 @@ export default function Navbar() {
   };
 
   return (
-    <header className="relative z-50 px-4 pt-4 sm:px-6 w-full">
+    <header className="relative px-4 pt-4 sm:px-6 w-full">
       <div className="mx-auto max-w-6xl">
         <div
           ref={shellRef}
@@ -139,7 +145,11 @@ export default function Navbar() {
                   }`}
                 >
                   {link.isExternal && <GithubMark />}
-                  {link.label}
+                  {link.label === 'GitHub Repo' ? (
+                    <span className="hidden lg:inline">{link.label}</span>
+                  ) : (
+                    <span>{link.label}</span>
+                  )}
                 </a>
               ))}
 

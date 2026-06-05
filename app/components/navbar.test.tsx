@@ -1,7 +1,17 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterAll } from 'vitest';
 import { act, render, screen, fireEvent } from '@testing-library/react';
 import Navbar from './navbar';
 import type { ReactNode } from 'react';
+
+const originalLocalStorage = window.localStorage;
+
+afterAll(() => {
+  Object.defineProperty(window, 'localStorage', {
+    value: originalLocalStorage,
+    writable: true,
+    configurable: true,
+  });
+});
 
 type MatchMediaChangeListener = (event: MediaQueryListEvent) => void;
 

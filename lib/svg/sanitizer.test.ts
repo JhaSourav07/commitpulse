@@ -72,6 +72,13 @@ describe('SVG Sanitizer Utilities', () => {
       expect(hexColor('xyz999', '808080')).toBe('808080');
       expect(hexColor('------', '808080')).toBe('808080');
     });
+
+    it('applies standard gray fallback for mixed invalid hex patterns', () => {
+      expect(hexColor('12ZZ34', '808080')).toBe('808080');
+      expect(hexColor('#XXYYZZ', '808080')).toBe('808080');
+      expect(hexColor('abc!23', '808080')).toBe('808080');
+      expect(hexColor('12345?', '808080')).toBe('808080');
+    });
   });
 
   describe('sanitizeHexColor', () => {

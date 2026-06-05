@@ -1,6 +1,6 @@
 // app/api/github/route.ts
 
-import { NextResponse } from 'next/server';
+import { NextResponse, after } from 'next/server';
 import { getFullDashboardData } from '@/lib/github';
 import { githubParamsSchema } from '@/lib/validations';
 import { getClientIp } from '@/utils/getClientIp';
@@ -111,7 +111,8 @@ export async function GET(request: Request) {
     if (!shouldBypassCache) {
       const lastSynced = data.lastSyncedAt;
       if (backgroundRefresh.isStale(lastSynced)) {
-        backgroundRefresh.triggerRefresh(username);
+        // Run after the response is sent so Vercel does not freeze the function mid-refresh.
+        after(() => backgroundRefresh.triggerRefresh(username));
       }
     }
 
@@ -131,22 +132,51 @@ export async function GET(request: Request) {
       },
     });
   } catch (error: unknown) {
-    const errMessage = error instanceof Error ? error.message : 'Unknown error';
-    if (errMessage.includes('not found')) {
+    const err = error as {
+      status?: number;
+      response?: { status?: number };
+      message?: string;
+    };
+
+    const status = err.status || err.response?.status || undefined;
+
+    const message = err.message?.toLowerCase?.() || '';
+
+    // 404 - User not found
+    if (status === 404 || message.includes('not found')) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    if (
-      errMessage.toLowerCase().includes('rate limit') ||
-      errMessage.includes('API limit reached') ||
-      errMessage.includes('status 403')
-    ) {
+    // 401/403 - Auth or rate limit
+    if (status === 401 || status === 403) {
+      return NextResponse.json(
+        { error: 'GitHub API rate limit reached or unauthorized. Please configure GITHUB_TOKEN.' },
+        { status: 403 }
+      );
+    }
+
+    // 429 - Too many requests
+    if (status === 429) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please try again later.' },
+        { status: 429 }
+      );
+    }
+
+    // Fallback safety check for known GitHub rate-limit signals (only if no status exists)
+    const looksLikeRateLimit =
+      message.includes('rate limit') || message.includes('api limit reached');
+
+    if (!status && looksLikeRateLimit) {
       return NextResponse.json(
         { error: 'GitHub API rate limit reached. Please configure GITHUB_TOKEN.' },
         { status: 403 }
       );
     }
 
-    return NextResponse.json({ error: errMessage || 'Internal Server Error' }, { status: 500 });
+    // Default fallback
+    const errMessage = error instanceof Error ? error.message : 'Internal Server Error';
+
+    return NextResponse.json({ error: errMessage }, { status: 500 });
   }
 }
