@@ -30,7 +30,7 @@ vi.mock('framer-motion', () => ({
       animate,
       exit,
       ...props
-    }: Record<string, unknown>) => <div {...props}>{children}</div>,
+    }: { children?: ReactNode } & Record<string, unknown>) => <div {...props}>{children}</div>,
   },
   AnimatePresence: ({ children }: { children?: ReactNode }) => <>{children}</>,
 }));
@@ -90,7 +90,7 @@ describe('Heatmap Mouse Interactivity', () => {
   it('verifies that tooltip content correctly details streak labels', async () => {
     const user = userEvent.setup();
     // Generate streak: Day 1 (count: 3), Day 2 (count: 5)
-    const streakData = [
+    const streakData: ActivityData[] = [
       { date: '2024-01-01', count: 3, intensity: 2 },
       { date: '2024-01-02', count: 5, intensity: 3 },
     ];
