@@ -12,8 +12,7 @@ import QRCode from 'react-qr-code';
 import { Check, Code, Copy, Download, ExternalLink, Loader2, Sparkles, X } from 'lucide-react';
 import type { DashboardExportData } from '@/types/dashboard';
 import { useShareActions } from '@/hooks/useShareActions';
-import { activityToTowers } from '@/lib/export3d';
-import { generateMonolithSTL } from '@/lib/export3d';
+import { activityToTowers, generateMonolithSTL } from '@/lib/export3d';
 
 type OptionState = 'idle' | 'loading' | 'success' | 'error';
 
