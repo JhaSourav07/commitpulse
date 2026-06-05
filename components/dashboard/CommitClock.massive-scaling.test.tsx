@@ -1,12 +1,22 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import CommitClock from './CommitClock';
 
 vi.mock('framer-motion', () => ({
   motion: {
-    div: ({ children, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-      <div {...props}>{children}</div>
-    ),
+    div: ({
+      children,
+      ...props
+    }: React.HTMLAttributes<HTMLDivElement> & Record<string, unknown>) => {
+      const domProps = Object.fromEntries(
+        Object.entries(props).filter(
+          ([key]) =>
+            !['initial', 'animate', 'whileInView', 'viewport', 'transition', 'exit'].includes(key)
+        )
+      ) as React.HTMLAttributes<HTMLDivElement>;
+
+      return <div {...domProps}>{children}</div>;
+    },
     g: ({ children, ...props }: React.SVGProps<SVGGElement>) => <g {...props}>{children}</g>,
   },
   AnimatePresence: ({ children }: { children: React.ReactNode }) => <>{children}</>,
@@ -59,13 +69,23 @@ describe('CommitClock - Massive Scaling', () => {
     expect(screen.getByText('Sun')).toBeInTheDocument();
   });
 
-  it('renders SVG spokes for large datasets without crashing', () => {
+  it('bounds rendered weekday spokes for large datasets without crashing', () => {
     const { container } = render(<CommitClock data={hugeDataset} />);
 
     const svg = container.querySelector('svg');
 
     expect(svg).toBeInTheDocument();
-    expect(container.querySelectorAll('line').length).toBeGreaterThan(0);
+    expect(container.querySelectorAll('g[role="img"]')).toHaveLength(7);
+    expect(container.querySelectorAll('line')).toHaveLength(42);
+  });
+
+  it('shows tooltip data from the bounded weekday cycle', () => {
+    render(<CommitClock data={hugeDataset} />);
+
+    fireEvent.focus(screen.getByRole('img', { name: 'Day-0: 1 contribution' }));
+
+    expect(screen.getByRole('tooltip')).toHaveTextContent('Day-0 activity');
+    expect(screen.getByRole('tooltip')).toHaveTextContent('1 contribution');
   });
 
   it('renders within acceptable execution time for large input', () => {

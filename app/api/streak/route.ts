@@ -14,9 +14,11 @@ import {
   generatePulseSVG,
 } from '@/lib/svg/generator';
 import { getSecondsUntilUTCMidnight, getSecondsUntilMidnightInTimezone } from '@/utils/time';
+import { getClientIp } from '@/utils/getClientIp';
 import type { BadgeParams, ContributionCalendar } from '@/types';
 import { themes } from '@/lib/svg/themes';
 import { streakParamsSchema } from '@/lib/validations';
+import { refreshRateLimiter } from '@/services/github/refresh-rate-limiter';
 import { sanitizeHexColor, sanitizeRadius } from '@/lib/svg/sanitizer';
 
 const SVG_CSP_HEADER =
@@ -234,6 +236,48 @@ export async function GET(request: Request) {
       animate,
       badges,
     };
+
+    if (refresh) {
+      const rateLimitCheck = refreshRateLimiter.checkLimit(getClientIp(request));
+      if (!rateLimitCheck.success) {
+        const rateLimitHeaders = {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'X-RateLimit-Limit': rateLimitCheck.limit.toString(),
+          'X-RateLimit-Remaining': rateLimitCheck.remaining.toString(),
+          'X-RateLimit-Reset': rateLimitCheck.reset.toString(),
+        };
+
+        if (format === 'json') {
+          return NextResponse.json(
+            { error: 'Refresh rate limit exceeded. Please try again later.' },
+            {
+              status: 429,
+              headers: rateLimitHeaders,
+            }
+          );
+        }
+
+        const svg = generateRateLimitSVG(
+          `#${sanitizeHexColor(params.bg, '0d1117')}`,
+          `#${sanitizeHexColor(
+            Array.isArray(params.accent) ? params.accent[params.accent.length - 1] : params.accent,
+            '58a6ff'
+          )}`,
+          `#${sanitizeHexColor(params.text, 'c9d1d9')}`,
+          sanitizeRadius(params.radius, 8),
+          params.speed || '8s'
+        );
+
+        return new NextResponse(svg, {
+          status: 429,
+          headers: {
+            ...rateLimitHeaders,
+            'Content-Type': 'image/svg+xml',
+            'Content-Security-Policy': SVG_CSP_HEADER,
+          },
+        });
+      }
+    }
 
     let calendar;
     let versusCalendar;

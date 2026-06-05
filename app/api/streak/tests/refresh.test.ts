@@ -13,6 +13,7 @@ vi.mock('../../../../utils/time', () => ({
 }));
 
 import { fetchGitHubContributions } from '../../../../lib/github';
+import { refreshRateLimiter } from '../../../../services/github/refresh-rate-limiter';
 import { getSecondsUntilUTCMidnight } from '../../../../utils/time';
 import type { ExtendedContributionData } from '../../../../types';
 
@@ -24,6 +25,7 @@ const mockCalendar = {
 describe('GET /api/streak - refresh parameter group', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    refreshRateLimiter.reset();
     vi.mocked(fetchGitHubContributions).mockResolvedValue({
       calendar: mockCalendar,
       repoContributions: [],
@@ -96,5 +98,107 @@ describe('GET /api/streak - refresh parameter group', () => {
       'public, s-maxage=3600, stale-while-revalidate=86400'
     );
     expect(response.headers.get('X-Cache-Status')).toBe('HIT');
+  });
+
+  it('allows a manual refresh within the client refresh limit', async () => {
+    refreshRateLimiter.setLimit(1);
+    const req = createRequest({
+      method: 'GET',
+      url: 'http://localhost/api/streak?user=octocat&refresh=true',
+      headers: { 'x-real-ip': '203.0.113.7' },
+    });
+
+    const response = await GET(req as unknown as Request);
+
+    expect(response.status).toBe(200);
+    expect(fetchGitHubContributions).toHaveBeenCalledWith(
+      'octocat',
+      expect.objectContaining({ bypassCache: true })
+    );
+    expect(response.headers.get('X-Cache-Status')).toMatch(/^BYPASS/);
+  });
+
+  it('returns a rate-limit SVG and skips GitHub fetching when manual refresh exceeds the client limit', async () => {
+    refreshRateLimiter.setLimit(1);
+
+    await GET(
+      createRequest({
+        method: 'GET',
+        url: 'http://localhost/api/streak?user=octocat&refresh=true',
+        headers: { 'x-real-ip': '203.0.113.8' },
+      }) as unknown as Request
+    );
+    vi.mocked(fetchGitHubContributions).mockClear();
+
+    const response = await GET(
+      createRequest({
+        method: 'GET',
+        url: 'http://localhost/api/streak?user=octocat&refresh=true',
+        headers: { 'x-real-ip': '203.0.113.8' },
+      }) as unknown as Request
+    );
+
+    expect(response.status).toBe(429);
+    expect(response.headers.get('Content-Type')).toContain('image/svg+xml');
+    expect(response.headers.get('Cache-Control')).toBe('no-cache, no-store, must-revalidate');
+    expect(await response.text()).toContain('<svg');
+    expect(fetchGitHubContributions).not.toHaveBeenCalled();
+  });
+
+  it('returns a JSON 429 and skips GitHub fetching when JSON manual refresh exceeds the client limit', async () => {
+    refreshRateLimiter.setLimit(1);
+
+    await GET(
+      createRequest({
+        method: 'GET',
+        url: 'http://localhost/api/streak?user=octocat&refresh=true&format=json',
+        headers: { 'x-real-ip': '203.0.113.9' },
+      }) as unknown as Request
+    );
+    vi.mocked(fetchGitHubContributions).mockClear();
+
+    const response = await GET(
+      createRequest({
+        method: 'GET',
+        url: 'http://localhost/api/streak?user=octocat&refresh=true&format=json',
+        headers: { 'x-real-ip': '203.0.113.9' },
+      }) as unknown as Request
+    );
+
+    expect(response.status).toBe(429);
+    expect(response.headers.get('Content-Type')).toContain('application/json');
+    expect(response.headers.get('X-RateLimit-Limit')).toBe('1');
+    expect(response.headers.get('X-RateLimit-Remaining')).toBe('0');
+    await expect(response.json()).resolves.toEqual({
+      error: 'Refresh rate limit exceeded. Please try again later.',
+    });
+    expect(fetchGitHubContributions).not.toHaveBeenCalled();
+  });
+
+  it('does not consume the manual refresh limit for non-refresh requests', async () => {
+    refreshRateLimiter.setLimit(1);
+
+    const first = await GET(
+      createRequest({
+        method: 'GET',
+        url: 'http://localhost/api/streak?user=octocat',
+        headers: { 'x-real-ip': '203.0.113.10' },
+      }) as unknown as Request
+    );
+    const second = await GET(
+      createRequest({
+        method: 'GET',
+        url: 'http://localhost/api/streak?user=octocat',
+        headers: { 'x-real-ip': '203.0.113.10' },
+      }) as unknown as Request
+    );
+
+    expect(first.status).toBe(200);
+    expect(second.status).toBe(200);
+    expect(fetchGitHubContributions).toHaveBeenCalledTimes(2);
+    expect(fetchGitHubContributions).toHaveBeenLastCalledWith(
+      'octocat',
+      expect.objectContaining({ bypassCache: false })
+    );
   });
 });

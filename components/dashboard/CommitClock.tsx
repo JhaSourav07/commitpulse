@@ -12,8 +12,11 @@ export function findPeakIndex(data: CommitClockData[]): number {
   return data.reduce((peak, d, i) => (d.commits > data[peak].commits ? i : peak), 0);
 }
 
+const WEEKDAY_DISPLAY_LIMIT = 7;
+
 export default function CommitClock({ data }: { data: CommitClockData[] }) {
-  const maxCommits = Math.max(...data.map((d) => d.commits), 1);
+  const displayData = data.slice(0, WEEKDAY_DISPLAY_LIMIT);
+  const maxCommits = Math.max(...displayData.map((d) => d.commits), 1);
   const radius = 80;
   const cx = 140;
   const cy = 140;
@@ -28,9 +31,9 @@ export default function CommitClock({ data }: { data: CommitClockData[] }) {
     y: number;
   } | null>(null);
 
-  const peakIndex = findPeakIndex(data);
+  const peakIndex = findPeakIndex(displayData);
 
-  const hasData = data.length > 0 && data.some((d) => d.commits > 0);
+  const hasData = displayData.length > 0 && displayData.some((d) => d.commits > 0);
 
   const showTooltip = (
     e: React.SyntheticEvent<SVGGElement>,
@@ -138,7 +141,7 @@ export default function CommitClock({ data }: { data: CommitClockData[] }) {
                 );
               })}
 
-              {data.map((d, i) => {
+              {displayData.map((d, i) => {
                 const angle = (i * 360) / 7;
                 const length = Math.max((d.commits / maxCommits) * maxSpokeLength, 4);
                 const isHigh = d.commits > maxCommits * 0.7;
