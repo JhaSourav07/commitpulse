@@ -396,29 +396,11 @@ describe('ShareSheet', () => {
     expect(mockHandleDownloadSVG).toHaveBeenCalled();
   });
 
-  it('handles Download Printable 3D STL Monolith action', async () => {
-    const realSetTimeout = globalThis.setTimeout.bind(globalThis);
-    vi.spyOn(globalThis, 'setTimeout').mockImplementation(
-      (fn: any, delay?: any, ...args: any[]) => {
-        if (delay === 1200) {
-          fn(...args);
-          return 0 as any;
-        }
-        return realSetTimeout(fn, delay, ...args);
-      }
-    );
-
+  it('renders Download Printable 3D STL as disabled', () => {
     render(<ShareSheet {...defaultProps} />);
-    await act(async () => {
-      fireEvent.click(screen.getByText('Download Printable 3D STL Monolith').closest('button')!);
-    });
-
-    expect(HTMLAnchorElement.prototype.click).toHaveBeenCalled();
-    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:mock-url');
-
-    await waitFor(() => {
-      expect(screen.getByText('Saved Asset!')).toBeDefined();
-    });
+    const stlButton = screen.getByText('Download Printable 3D STL (Coming Soon)').closest('button');
+    expect(stlButton).toBeDefined();
+    expect(stlButton?.disabled).toBe(true);
   });
 
   // ── GitHub Wrapped ---------------------------------------------------------

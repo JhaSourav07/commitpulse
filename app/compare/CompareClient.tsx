@@ -976,6 +976,9 @@ export default function CompareClient() {
     const u1 = searchParams.get('user1');
     const u2 = searchParams.get('user2');
     if (u1 && u2) {
+      // Intentional: this is a one-time mount-only fetch trigger, not a
+      // setState call. The disable is misidentified by the rule — handleCompare
+      // is an async function that internally calls setLoading/setData/setError.
       // eslint-disable-next-line react-hooks/set-state-in-effect
       handleCompare(u1, u2);
     }

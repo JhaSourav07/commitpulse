@@ -322,6 +322,8 @@ function getGraphQLErrorMessage(errors: unknown): string {
 
 type FetchOptions = {
   bypassCache?: boolean;
+  // Skip the cache read but still write the fresh result back (used by background refresh).
+  forceRefresh?: boolean;
   from?: string;
   to?: string;
   rangeLabel?: string;
@@ -523,7 +525,7 @@ export async function fetchGitHubContributions(
     return fetchContributionsUncached(username, key, options, cached);
   };
 
-  if (options.bypassCache) {
+  if (options.bypassCache || options.forceRefresh) {
     try {
       return await load(null);
     } catch (err: unknown) {
@@ -737,7 +739,7 @@ export async function fetchUserProfile(
     return fetchProfileUncached(encodedUsername, key, options);
   };
 
-  if (options.bypassCache) return load();
+  if (options.bypassCache || options.forceRefresh) return load();
   return profileCache.getOrSet(key, load, GITHUB_CACHE_TTL_MS);
 }
 
@@ -781,7 +783,7 @@ export async function fetchUserRepos(
     return fetchReposUncached(encodedUsername, key, options);
   };
 
-  if (options.bypassCache) return load();
+  if (options.bypassCache || options.forceRefresh) return load();
   return reposCache.getOrSet(key, load, GITHUB_CACHE_TTL_MS);
 }
 
@@ -1151,7 +1153,7 @@ export async function fetchContributedRepos(
       }
     `;
 
-    const res = await fetchWithRetry(GITHUB_GRAPHQL_URL, {
+    const res = await fetchGraphQLWithRetry(GITHUB_GRAPHQL_URL, {
       method: 'POST',
       headers: getHeaders(),
       body: JSON.stringify({
@@ -1162,13 +1164,37 @@ export async function fetchContributedRepos(
       signal: options.signal,
     });
 
-    if (!res.ok) return [];
+    if (!res.ok) {
+      throwIfRateLimited(res);
+      throw new Error(
+        `GitHub GraphQL API returned status ${res.status} after ${MAX_RETRIES} retries`
+      );
+    }
+
     const data = await res.json();
-    const result = data?.data?.user?.repositoriesContributedTo?.nodes || [];
-    return result;
+
+    if (data?.errors !== undefined) {
+      if (Array.isArray(data.errors)) {
+        const isRateLimit = data.errors.some((e: unknown) => {
+          const err = e as { message?: string; type?: string };
+          return err?.message?.toLowerCase().includes('rate limit') || err?.type === 'RATE_LIMITED';
+        });
+        if (isRateLimit) {
+          throw new Error('API Rate Limit Exceeded');
+        }
+      }
+      throw new Error(getGraphQLErrorMessage(data.errors));
+    }
+
+    return data?.data?.user?.repositoriesContributedTo?.nodes || [];
   };
 
   if (options.bypassCache) return load();
+  if (options.forceRefresh) {
+    const fresh = await load();
+    await contributedReposCache.set(key, fresh, GITHUB_CACHE_TTL_MS);
+    return fresh;
+  }
   return contributedReposCache.getOrSet(key, load, GITHUB_CACHE_TTL_MS);
 }
 

@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { themes } from './themes';
-import { generateSVG } from './generator';
-import { getLuminance, hexColor } from './sanitizer';
-import type { StreakStats, ContributionCalendar, BadgeParams } from '../../types';
+import { themes } from '../themes';
+import { generateSVG } from '../generator';
+import { getLuminance, hexColor } from '../sanitizer';
+import type { StreakStats, ContributionCalendar, BadgeParams } from '../../../types';
 
 describe('lumos theme', () => {
   // Test 1: Verify lumos theme exists with all required color properties

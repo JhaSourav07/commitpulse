@@ -29,9 +29,8 @@ function endOfMonthUtc(year: number, monthIndex: number): Date {
 }
 
 function addMonthsUtc(date: Date, offset: number): Date {
-  return new Date(
-    Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + offset, date.getUTCDate(), 0, 0, 0, 0)
-  );
+  // Anchor on the first of the month so shifting never overflows (e.g. Jan 31 + 1mo -> Mar 3).
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + offset, 1, 0, 0, 0, 0));
 }
 
 function addDaysUtc(date: Date, offset: number): Date {
@@ -205,11 +204,16 @@ export function shiftDashboardPeriod(
     return resolveDashboardPeriod({ from: shiftedFrom.toISOString(), to: shiftedTo.toISOString() });
   }
 
-  const from = new Date(period.from);
-  const to = new Date(period.to);
-  const shiftedFrom = addMonthsUtc(from, offset);
-  const shiftedTo = addMonthsUtc(to, offset);
-  return resolveDashboardPeriod({ from: shiftedFrom.toISOString(), to: shiftedTo.toISOString() });
+  // Rolling window: shift by whole months and re-derive month boundaries so the end stays a
+  // valid month-end (avoids day-of-month overflow that would produce a misaligned >1-year range).
+  const fromBase = new Date(period.from);
+  const toBase = new Date(period.to);
+  const shiftedStart = startOfMonthUtc(fromBase.getUTCFullYear(), fromBase.getUTCMonth() + offset);
+  const shiftedEnd = endOfMonthUtc(toBase.getUTCFullYear(), toBase.getUTCMonth() + offset);
+  return resolveDashboardPeriod({
+    from: shiftedStart.toISOString(),
+    to: shiftedEnd.toISOString(),
+  });
 }
 
 /**

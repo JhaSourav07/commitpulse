@@ -76,7 +76,6 @@ function CustomizePageInner(): ReactElement {
   const [svgState, setSvgState] = useState<'idle' | 'loading' | 'loaded' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const trimmedUsername = username.trim();
-  const debouncedUsername = useDebounce(trimmedUsername, 400);
   const hasUsername = trimmedUsername.length > 0;
   const isRandomTheme = theme === 'random';
 
@@ -84,6 +83,11 @@ function CustomizePageInner(): ReactElement {
   const searchParams = useSearchParams();
 
   // On mount: initialize state from URL search params
+  // Multiple setState calls are intentional here — we sync every customization
+  // control from the URL once on mount so that shared/bookmarked links restore
+  // the full editor state. Each setter corresponds to a single URL param and
+  // they all run synchronously in a single effect pass, so React batches them
+  // into one re-render. No stale-dependency risk: deps are intentionally [].
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     const u = searchParams.get('user') ?? '';
@@ -170,31 +174,12 @@ function CustomizePageInner(): ReactElement {
     timezone,
   });
 
-  const previewQueryString = buildQueryParams({
-    username: debouncedUsername,
-    theme,
-    bgHex,
-    accentHex,
-    textHex,
-    scale,
-    speed,
-    font,
-    year,
-    radius,
-    size,
-    hideTitle,
-    hideBackground,
-    hideStats,
-    viewMode,
-    deltaFormat,
-    badgeWidth,
-    badgeHeight,
-    grace,
-    language,
-    timezone,
-  });
+  // ─── DEBOUNCE ALL PAGE PARAMETERS AT ONCE ──────────────────────────────────
+  // Instead of debouncing a single string, we pass the built query string
+  // through the hook to hold off any API fetch request during rapid changes!
+  const debouncedQueryString = useDebounce(queryString, 400);
 
-  const previewSrc = `/api/streak?${previewQueryString}`;
+  const previewSrc = `/api/streak?${debouncedQueryString}`;
 
   // On change sync state to URL
   useEffect(() => {
@@ -203,6 +188,9 @@ function CustomizePageInner(): ReactElement {
   }, [queryString, router]);
 
   useEffect(() => {
+    // Safe: resets error state as the first synchronous step when any preview
+    // dependency changes. The reset always precedes any async fetch or early
+    // return so there is no intermediate render with stale error text.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setErrorMessage(null);
     if (!hasUsername) {
@@ -210,14 +198,8 @@ function CustomizePageInner(): ReactElement {
       setSvgState('idle');
       return;
     }
-    if (!validateGitHubUsername(trimmedUsername)) {
-      setSvgContent('');
-      setSvgState('error');
-      setErrorMessage("That doesn't look like a valid GitHub username");
-      return;
-    }
 
-    if (!validateGitHubUsername(debouncedUsername)) {
+    if (!validateGitHubUsername(trimmedUsername)) {
       setSvgContent('');
       setSvgState('error');
       setErrorMessage("That doesn't look like a valid GitHub username");
@@ -290,7 +272,8 @@ function CustomizePageInner(): ReactElement {
       });
 
     return () => controller.abort();
-  }, [previewSrc, hasUsername, debouncedUsername, trimmedUsername]);
+    // By changing this list, useEffect only runs when previewSrc finishes debouncing
+  }, [previewSrc, hasUsername, trimmedUsername]);
 
   const exportSnippet = getExportSnippet(exportFormat, queryString);
 
@@ -361,6 +344,7 @@ function CustomizePageInner(): ReactElement {
       );
     }
   };
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleDownloadimage = () => {
     alert('Download image functionality coming soon!');
   };

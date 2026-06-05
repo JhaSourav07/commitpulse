@@ -79,11 +79,18 @@ export function computeTowerHeight(
 
 export function computeFaceOpacity(count: number, isGhostCityMode: boolean): FaceOpacity {
   if (isGhostCityMode) {
+    // Full ghost city mode — the entire monolith is empty. All towers
+    // render as semi-transparent wireframe blueprints (top face tinted at
+    // 0.08 opacity, side faces fully transparent).
     return { left: 0, right: 0, top: 0.08 };
   }
   if (count === 0) {
+    // Empty day in an active calendar — intentionally uses the same opacity
+    // as ghost city mode. Zero-contribution days should be visually quiet
+    // and not compete with the active towers surrounding them.
     return { left: 0, right: 0, top: 0.08 };
   }
+  // Active day — full isometric opacity with left/right depth shading
   return { left: 0.35, right: 0.21, top: 0.7 };
 }
 
