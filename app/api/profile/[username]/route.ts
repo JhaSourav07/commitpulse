@@ -57,15 +57,15 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ user
         'Cache-Control': 'public, max-age=21600',
       },
     });
-  } catch (err: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
-    console.error(`[/api/profile/${username}]`, err?.message ?? err);
-    if (err?.message?.includes('Could not resolve to a User')) {
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error(`[/api/profile/${username}]`, message);
+    if (message.includes('Could not resolve to a User')) {
       return NextResponse.json({ error: `GitHub user "${username}" not found.` }, { status: 404 });
     }
-    if (err?.message?.includes('rate limit')) {
+    if (message.includes('rate limit')) {
       return NextResponse.json({ error: 'GitHub API rate limit reached.' }, { status: 429 });
     }
     return NextResponse.json({ error: 'Internal server error.' }, { status: 500 });
   }
 }
-
