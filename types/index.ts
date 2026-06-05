@@ -192,10 +192,9 @@ export interface BadgeParams {
 
   /** Preset size of the badge. 'small', 'medium', or 'large'. Overrides width and height. */
   size?: BadgeSize;
- feat/svg-optimization
+
   /** When true, generates a lightweight optimized SVG. */
   optimize?: boolean;
-
 
   /** Rendering mode. 'commits' is the default. 'loc' switches to Lines of Code landscape. */
   mode?: 'commits' | 'loc';
@@ -294,5 +293,4 @@ export interface NotificationResponse {
   success: boolean;
   message: string;
   data?: NotificationPayload;
-main
 }

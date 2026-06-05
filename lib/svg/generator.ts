@@ -1,69 +1,25 @@
-feat/svg-optimization
-import type { BadgeParams, ContributionCalendar, MonthlyStats, StreakStats } from '../../types';
-import { getLabels, type BadgeLabels } from '../i18n/badgeLabels';
-import { TOWER_ANIMATION_CSS } from './animations';
-import { computeTowers, type TowerData } from './layout';
-import { sanitizeFont, sanitizeGoogleFontUrl, sanitizeHexColor, sanitizeRadius } from './sanitizer';
-import { AUTO_THEME_DARK, AUTO_THEME_LIGHT } from './themes';
-
-import { FONT_MAP, SVG_HEIGHT, SVG_WIDTH } from './constants';
-
 // lib/svg/generator.ts
 
-import type { BadgeParams, ContributionCalendar, StreakStats, MonthlyStats } from '../../types';
+import type { BadgeParams, ContributionCalendar, MonthlyStats, StreakStats } from '../../types';
 import { getLabels, type BadgeLabels } from '../i18n/badgeLabels';
-import { AUTO_THEME_DARK, AUTO_THEME_LIGHT, themes } from './themes';
 import { getTowerAnimationCSS } from './animations';
 import { computeTowers, type TowerData } from './layout';
 import {
-  sanitizeFont,
-  sanitizeHexColor,
-  sanitizeRadius,
-  sanitizeGoogleFontUrl,
+  getGradientCoordinates,
   getLuminance,
   parseGradientStops,
-  getGradientCoordinates,
+  sanitizeFont,
+  sanitizeGoogleFontUrl,
+  sanitizeHexColor,
+  sanitizeRadius,
 } from './sanitizer';
+import { AUTO_THEME_DARK, AUTO_THEME_LIGHT, themes } from './themes';
 
 import { GRID_ORIGIN_X, GRID_ORIGIN_Y, TILE_HEIGHT_HALF, TILE_WIDTH_HALF } from './layoutConstants';
 
-import { SVG_WIDTH, SVG_HEIGHT } from './generatorConstants';
- feat/svg-optimization
+import { SVG_HEIGHT, SVG_WIDTH } from './generatorConstants';
+
 import { FONT_MAP, resolveFont } from './fonts';
-main
-
- main
-
-const FONT_MAP = {
-  // ── Pre-existing entries ────────────────────────────────────────────────
-  jetbrains: '"JetBrains Mono", monospace',
-  fira: '"Fira Code", monospace',
-  roboto: '"Roboto", sans-serif',
-
-  // ── Previously missing — both fonts are in the unconditional @import ───
-  // Without these entries, passing ?font=syncopate or ?font=spacegrotesk
-  // incorrectly triggers a duplicate dynamic Google Fonts fetch.
-  syncopate: '"Syncopate", sans-serif',
-  spacegrotesk: '"Space Grotesk", sans-serif',
-  'space grotesk': '"Space Grotesk", sans-serif', // handles spaced user input
-
-  // ── Aliases for common variations ───────────────────────────────────────
-  firacode: '"Fira Code", monospace', // alias: fira is the canonical key
-  'jetbrains mono': '"JetBrains Mono", monospace', // handles spaced user input
-
-  // ── Legacy keys for backward compatibility ──────────────────────────────
-  inter: '"Inter", sans-serif',
-  space: '"Space Grotesk", sans-serif', // old key for spacegrotesk
-} as const;
-
-export function resolveFont(sanitizedFont?: string | null): string | null {
-  if (!sanitizedFont) return null;
-
-  return (
-    FONT_MAP[sanitizedFont.toLowerCase() as keyof typeof FONT_MAP] ??
-    `"${sanitizedFont}", sans-serif`
-  );
-}
 
 function isBundledFont(sanitizedFont?: string | null): boolean {
   if (!sanitizedFont) return false;
@@ -771,8 +727,6 @@ export function generateSVG(
   const mainAccentHex = mainAccent.startsWith('#') ? mainAccent : `#${mainAccent}`;
 
   const safeId = safeUser.replace(/[^a-zA-Z0-9-]/g, '_').toLowerCase();
-
-feat/svg-optimization
   const svgRaw = `
 <svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" fill="none" role="img">
     ${renderHeader(safeUser, stats, sf)}
@@ -781,6 +735,8 @@ feat/svg-optimization
     <g transform="translate(0, ${Math.round(20 * sf)})">${towers}</g>
     ${renderFooter(stats, params, labels, safeUser, accent, sf)}
 
+</svg>`;
+
   return `
 <svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 ${W} ${H}" fill="none" role="img" aria-labelledby="cp-title-${safeId}" aria-describedby="cp-desc-${safeId}">
   ${renderHeader(safeUser, stats, sf, params, safeId)}
@@ -788,15 +744,11 @@ feat/svg-optimization
   <rect width="${W}" height="${H}" rx="${radius}" fill="${params.hideBackground ? 'transparent' : bg}" ${borderAttr} />
   <g id="cp-towers" style="transform-origin: center; transform-box: fill-box;" transform="translate(0, ${Math.round(20 * sf)})">${towers}</g>
   ${renderIsometricLabels(calendar, params, text, sf)}
-feat/svg-optimization
-main
-
   ${renderFooter(stats, params, labels, safeUser, mainAccentHex, sf)}
   ${renderMilestoneBadges(stats, params, sf)}
-main
+
 </svg>`;
 
-feat/svg-optimization
   if (params.optimize) {
     return svgRaw
       .replace(/\n/g, '')
@@ -809,7 +761,6 @@ feat/svg-optimization
 }
 //generates an svg for the non existent users
 
-main
 function generateAutoThemeSVG(
   stats: StreakStats,
   params: BadgeParams,

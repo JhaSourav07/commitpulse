@@ -1,15 +1,12 @@
 // lib/validations.ts
-import { supportedLanguages } from './i18n/badgeLabels';
 import { z } from 'zod';
- feat/svg-optimization
-import { sanitizeFont, sanitizeHexColor, sanitizeRadius, sanitizeSpeed } from './svg/sanitizer';
-
+import { supportedLanguages } from './i18n/badgeLabels';
 import {
   isValidHex,
-  sanitizeHexColor,
-  sanitizeSpeed,
-  sanitizeRadius,
   sanitizeFont,
+  sanitizeHexColor,
+  sanitizeRadius,
+  sanitizeSpeed,
 } from './svg/sanitizer';
 import { themes } from './svg/themes';
 
@@ -59,7 +56,6 @@ export function toDimensionValue(val?: string): number | undefined {
 export function validateGitHubUsername(username: string): boolean {
   return /^[a-z\d](?:[a-z\d]|-(?=[a-z\d])){0,38}$/i.test(username);
 }
-main
 
 function dimensionParam(name: string, min: number, max: number) {
   return z
@@ -260,7 +256,6 @@ const baseStreakParamsSchema = z.object({
   date: z
     .string()
     .optional()
- feat/svg-optimization
     .transform((val) => val === 'true' || val === '1'),
 
   optimize: z
@@ -268,21 +263,13 @@ const baseStreakParamsSchema = z.object({
     .optional()
     .transform((val) => val === 'true'),
   lang: z.string().optional().default('en'),
-
-    .refine(
-      (val) => {
-        if (!val) return true;
-        return !isNaN(Date.parse(val));
-      },
-      { message: 'Invalid "date" format. Use ISO 8601.' }
-    ),
   refresh: z.string().optional().transform(toRefreshFlag),
   hide_title: z.string().optional().transform(toBooleanFlag),
   hide_background: z.string().optional().transform(toBooleanFlag),
   hide_stats: z.string().optional().transform(toBooleanFlag),
   lang: z.enum(supportedLanguages).catch('en').default('en'),
   tz: timeZoneParam,
-main
+
   // Unknown view values fall back to the default dashboard view.
   view: z.enum(['default', 'monthly', 'heatmap', 'pulse']).catch('default').default('default'),
   // Invalid delta formats fall back to percentage mode.
