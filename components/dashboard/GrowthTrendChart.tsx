@@ -1,5 +1,6 @@
 'use client';
 
+import { useId } from 'react';
 import { motion } from 'framer-motion';
 
 interface GrowthTrendChartProps {
@@ -15,6 +16,9 @@ export default function GrowthTrendChart({
   labelA,
   labelB,
 }: GrowthTrendChartProps) {
+  // Generate unique IDs to prevent SVG <defs> collisions when multiple instances render
+  const instanceId = useId();
+
   // 1. Generate chronological list of the last 12 months
   const months: Array<{
     key: string;
@@ -124,19 +128,19 @@ export default function GrowthTrendChart({
       <div className="relative w-full h-[180px] overflow-hidden">
         <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-full overflow-visible">
           <defs>
-            <linearGradient id="gradient-area-a" x1="0" y1="0" x2="0" y2="1">
+            <linearGradient id={`${instanceId}-gradient-area-a`} x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="#06b6d4" stopOpacity="0.16" />
               <stop offset="100%" stopColor="#06b6d4" stopOpacity="0" />
             </linearGradient>
-            <linearGradient id="gradient-area-b" x1="0" y1="0" x2="0" y2="1">
+            <linearGradient id={`${instanceId}-gradient-area-b`} x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="#a855f7" stopOpacity="0.16" />
               <stop offset="100%" stopColor="#a855f7" stopOpacity="0" />
             </linearGradient>
-            <filter id="glow-line-a" x="-10%" y="-10%" width="120%" height="120%">
+            <filter id={`${instanceId}-glow-line-a`} x="-10%" y="-10%" width="120%" height="120%">
               <feGaussianBlur stdDeviation="2.5" result="blur" />
               <feComposite in="SourceGraphic" in2="blur" operator="over" />
             </filter>
-            <filter id="glow-line-b" x="-10%" y="-10%" width="120%" height="120%">
+            <filter id={`${instanceId}-glow-line-b`} x="-10%" y="-10%" width="120%" height="120%">
               <feGaussianBlur stdDeviation="2.5" result="blur" />
               <feComposite in="SourceGraphic" in2="blur" operator="over" />
             </filter>
@@ -161,14 +165,14 @@ export default function GrowthTrendChart({
           {/* Paths (Area) */}
           <motion.path
             d={areaStrA}
-            fill="url(#gradient-area-a)"
+            fill={`url(#${instanceId}-gradient-area-a)`}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.8 }}
           />
           <motion.path
             d={areaStrB}
-            fill="url(#gradient-area-b)"
+            fill={`url(#${instanceId}-gradient-area-b)`}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.8, delay: 0.15 }}
@@ -182,7 +186,7 @@ export default function GrowthTrendChart({
             strokeWidth="2.5"
             strokeLinecap="round"
             strokeLinejoin="round"
-            filter="url(#glow-line-a)"
+            filter={`url(#${instanceId}-glow-line-a)`}
             initial={{ pathLength: 0 }}
             animate={{ pathLength: 1 }}
             transition={{ duration: 1.2, ease: 'easeOut' }}
@@ -194,7 +198,7 @@ export default function GrowthTrendChart({
             strokeWidth="2.5"
             strokeLinecap="round"
             strokeLinejoin="round"
-            filter="url(#glow-line-b)"
+            filter={`url(#${instanceId}-glow-line-b)`}
             initial={{ pathLength: 0 }}
             animate={{ pathLength: 1 }}
             transition={{ duration: 1.2, ease: 'easeOut', delay: 0.15 }}
@@ -259,7 +263,7 @@ export default function GrowthTrendChart({
                 key={month.key}
                 className="flex-1 min-w-[56px] flex flex-col items-center p-2 rounded-lg bg-gray-100 dark:bg-[#111] border border-black/10 dark:border-[rgba(255,255,255,0.04)] hover:border-black/20 dark:hover:border-[rgba(255,255,255,0.08)] transition-all duration-200"
               >
-                <span className="text-[10px] text-gray-500 dark:text-[#71717a] font-semibold">
+                <span className="text-[10px] text-gray-500 dark:text-white/60 font-semibold">
                   {month.label}
                 </span>
 

@@ -1,7 +1,17 @@
 import React from 'react';
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi, afterAll } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useRecentSearches, MAX_SEARCHES, STORAGE_KEY } from './useRecentSearches';
+
+const originalLocalStorage = window.localStorage;
+
+afterAll(() => {
+  Object.defineProperty(window, 'localStorage', {
+    value: originalLocalStorage,
+    writable: true,
+    configurable: true,
+  });
+});
 
 const store: Record<string, string> = {};
 
@@ -33,6 +43,35 @@ describe('useRecentSearches', () => {
       result.current.addSearch('torvalds');
     });
     expect(result.current.searches[0]).toBe('torvalds');
+  });
+  it('ignores empty string input', () => {
+    const { result } = renderHook(() => useRecentSearches());
+
+    act(() => {
+      result.current.addSearch('');
+    });
+
+    expect(result.current.searches).toEqual([]);
+  });
+
+  it('ignores whitespace-only input', () => {
+    const { result } = renderHook(() => useRecentSearches());
+
+    act(() => {
+      result.current.addSearch('   ');
+    });
+
+    expect(result.current.searches).toEqual([]);
+  });
+
+  it('ignores newline-only input', () => {
+    const { result } = renderHook(() => useRecentSearches());
+
+    act(() => {
+      result.current.addSearch('\n');
+    });
+
+    expect(result.current.searches).toEqual([]);
   });
 
   it('deduplicates — moves existing to front', () => {
@@ -103,6 +142,28 @@ describe('useRecentSearches', () => {
     unmount();
     const { result: result2 } = renderHook(() => useRecentSearches());
     expect(result2.current.searches[0]).toBe('octocat');
+  });
+
+  it('ignores valid JSON from localStorage when it is not an array', () => {
+    store[STORAGE_KEY] = JSON.stringify({ value: 'octocat' });
+
+    const { result } = renderHook(() => useRecentSearches());
+
+    expect(result.current.searches).toEqual([]);
+
+    act(() => {
+      result.current.addSearch('torvalds');
+    });
+
+    expect(result.current.searches).toEqual(['torvalds']);
+  });
+
+  it('filters non-string entries loaded from localStorage', () => {
+    store[STORAGE_KEY] = JSON.stringify(['octocat', null, 42, 'torvalds']);
+
+    const { result } = renderHook(() => useRecentSearches());
+
+    expect(result.current.searches).toEqual(['octocat', 'torvalds']);
   });
 
   it('is safe under Strict Mode double invocation', () => {

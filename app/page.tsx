@@ -1,17 +1,35 @@
 'use client';
 import { trackUser } from '@/utils/tracking';
-import type { ReactNode } from 'react';
+
 import Link from 'next/link';
 import { useRef, useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { X } from 'lucide-react';
+import { gsap } from 'gsap';
+import { useGSAP } from '@gsap/react';
+import {
+  X,
+  Flame,
+  Trophy,
+  GitCommit,
+  Folder,
+  Search,
+  Loader2,
+  Sparkles,
+  Copy,
+  ExternalLink,
+} from 'lucide-react';
 
 import { CommitPulseLogo } from '@/components/commitpulse-logo';
 import { CustomizeCTA } from './components/CustomizeCTA';
 import { useRecentSearches } from '@/hooks/useRecentSearches';
 import { useDebounce } from '@/hooks/useDebounce';
 import { Footer } from '@/app/components/Footer';
-import InteractiveViewer from '@/components/InteractiveViewer';
+
+import { FeatureCard, FeatureCardsSection } from '@/components/FeatureCards';
+import { DiscordButton } from '@/components/DiscordButton';
+
+import { WallOfLove } from '@/components/WallOfLove';
+import { validateGitHubUsername } from '@/lib/validations';
 
 const Icons = {
   Github: () => (
@@ -68,87 +86,409 @@ const Icons = {
   ),
 };
 
+function CountUp({ value, duration = 1000 }: { value: number; duration?: number }) {
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    const start = 0;
+    const end = value;
+    if (start === end) {
+      // Safe: early-exit guard when the value hasn't changed — avoids scheduling
+      // a setInterval just to immediately clear it. No stale-dependency risk
+      // because `value` is the only dep and this path reads it synchronously.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setCount(end);
+      return;
+    }
+
+    const totalMilliseconds = duration;
+    const startTime = Date.now();
+    const timer = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(elapsed / totalMilliseconds, 1);
+      const easedProgress = progress * (2 - progress);
+      const current = Math.floor(easedProgress * end);
+
+      setCount(current);
+
+      if (progress >= 1) {
+        clearInterval(timer);
+        setCount(end);
+      }
+    }, 16);
+
+    return () => clearInterval(timer);
+  }, [value, duration]);
+
+  return <span>{count.toLocaleString()}</span>;
+}
+
+function SampleBadgePreview() {
+  const cols = 14;
+  const rows = 7;
+  const towers: { col: number; row: number; height: number; isActive: boolean }[] = [];
+
+  for (let c = 0; c < cols; c++) {
+    for (let r = 0; r < rows; r++) {
+      const hash = (c * 7 + r * 13) % 19;
+      const isActive = hash % 3 === 0 && (c + r) % 2 === 0;
+      const height = isActive ? Math.round(15 + hash * 3.5) : 4;
+      towers.push({ col: c, row: r, height, isActive });
+    }
+  }
+
+  const originX = 300;
+  const originY = 110;
+  const tileHalfWidth = 16;
+  const tileHalfHeight = 10;
+
+  return (
+    <div className="w-full flex flex-col items-center justify-center gap-6 py-6 relative">
+      <div className="absolute -inset-1 rounded-3xl bg-gradient-to-r from-emerald-500/10 to-cyan-500/10 opacity-30 blur-xl" />
+
+      <svg
+        viewBox="0 0 600 320"
+        className="w-full max-w-[700px] h-auto drop-shadow-[0_20px_40px_rgba(0,0,0,0.15)] dark:drop-shadow-[0_20px_40px_rgba(0,0,0,0.4)] cp-svg-container relative z-10"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <defs>
+          <linearGradient id="sample-tower-grad" x1="0" y1="1" x2="0" y2="0">
+            <stop offset="0%" stopColor="#0d1117" stopOpacity="0.1" />
+            <stop offset="100%" stopColor="#10b981" stopOpacity="0.8" />
+          </linearGradient>
+          <linearGradient id="sample-tower-grad-alt" x1="0" y1="1" x2="0" y2="0">
+            <stop offset="0%" stopColor="#0d1117" stopOpacity="0.1" />
+            <stop offset="100%" stopColor="#06b6d4" stopOpacity="0.8" />
+          </linearGradient>
+          <filter id="sample-glow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="4" result="blur" />
+            <feComposite in="SourceGraphic" in2="blur" operator="over" />
+          </filter>
+        </defs>
+
+        <rect
+          width="600"
+          height="320"
+          rx="16"
+          fill="#0d1117"
+          stroke="rgba(255,255,255,0.05)"
+          strokeWidth="1"
+        />
+
+        <text
+          x="300"
+          y="45"
+          textAnchor="middle"
+          fill="#c9d1d9"
+          style={{
+            fontFamily: '"Syncopate", sans-serif',
+            fontSize: '12px',
+            letterSpacing: '6px',
+            fontWeight: 400,
+            opacity: 0.6,
+          }}
+        >
+          PREVIEW MONOLITH
+        </text>
+
+        <line
+          x1="100"
+          y1="65"
+          x2="500"
+          y2="65"
+          stroke="rgba(16,185,129,0.2)"
+          strokeWidth="2"
+          filter="url(#sample-glow)"
+        >
+          <animate attributeName="y1" values="65;240;65" dur="6s" repeatCount="indefinite" />
+          <animate attributeName="y2" values="65;240;65" dur="6s" repeatCount="indefinite" />
+        </line>
+        <line x1="100" y1="65" x2="500" y2="65" stroke="rgba(16,185,129,0.4)" strokeWidth="1">
+          <animate attributeName="y1" values="65;240;65" dur="6s" repeatCount="indefinite" />
+          <animate attributeName="y2" values="65;240;65" dur="6s" repeatCount="indefinite" />
+        </line>
+
+        <g transform="translate(0, 20)">
+          {towers.map((t, idx) => {
+            const x = originX + (t.col - t.row) * tileHalfWidth;
+            const y = originY + (t.col + t.row) * tileHalfHeight;
+            const h = t.height;
+
+            const leftPath = `M 0 ${10 - h} L 0 10 L -16 0 L -16 ${-h} Z`;
+            const rightPath = `M 0 ${10 - h} L 0 10 L 16 0 L 16 ${-h} Z`;
+            const topPath = `M 0 ${-h} L 16 ${10 - h} L 0 ${20 - h} L -16 ${10 - h} Z`;
+
+            const grad =
+              (t.col + t.row) % 3 === 0 ? 'url(#sample-tower-grad-alt)' : 'url(#sample-tower-grad)';
+            const topColor = (t.col + t.row) % 3 === 0 ? '#06b6d4' : '#10b981';
+
+            if (!t.isActive) {
+              return (
+                <g key={idx} transform={`translate(${x}, ${y})`}>
+                  <path
+                    d={leftPath}
+                    fill="none"
+                    stroke="rgba(255,255,255,0.08)"
+                    strokeWidth="0.5"
+                  />
+                  <path
+                    d={rightPath}
+                    fill="none"
+                    stroke="rgba(255,255,255,0.08)"
+                    strokeWidth="0.5"
+                  />
+                  <path d={topPath} fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="0.8" />
+                </g>
+              );
+            }
+
+            return (
+              <g key={idx} transform={`translate(${x}, ${y})`}>
+                <path d={leftPath} fill={grad} fillOpacity="0.6" />
+                <path d={rightPath} fill={grad} fillOpacity="0.75" />
+                <path d={topPath} fill={topColor} fillOpacity="0.85" />
+              </g>
+            );
+          })}
+        </g>
+
+        <path
+          d={`M ${originX - 14 * 16} ${originY + 14 * 10 + 20} L ${originX} ${originY + 20} L ${originX + 14 * 16} ${originY + 14 * 10 + 20}`}
+          fill="none"
+          stroke="rgba(255,255,255,0.05)"
+          strokeWidth="1"
+        />
+      </svg>
+
+      <div className="text-center max-w-md relative z-10 px-4">
+        <h4 className="text-sm font-bold text-zinc-200 uppercase tracking-wider mb-2">
+          Interactive Monolith Preview
+        </h4>
+        <p className="text-xs text-zinc-400 leading-relaxed">
+          CommitPulse compiles your public GitHub contribution history into a customizable 3D city.
+          The taller the towers, the more you committed that day. Enter a GitHub username above to
+          instantly generate your streak badge.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+interface UserDetails {
+  exists: boolean;
+  login: string;
+  name: string | null;
+  avatar_url: string;
+  public_repos: number;
+  stats: {
+    currentStreak: number;
+    longestStreak: number;
+    totalContributions: number;
+  };
+}
+
 export default function LandingPage() {
+  const getDisplayUsername = (name: string) => {
+    if (name.includes('github.com/')) {
+      const parts = name.split('github.com/');
+      if (parts[1]) {
+        const pathParts = parts[1].split('?')[0].split('/');
+        const userPart = pathParts.find((p) => p.trim().length > 0);
+        if (userPart) return userPart;
+      }
+    }
+    return name;
+  };
+
   const [username, setUsername] = useState('');
+  const [instantUsername, setInstantUsername] = useState('');
   const [copied, setCopied] = useState(false);
-  const [svgContent, setSvgContent] = useState<string | null>(null);
-  const [svgState, setSvgState] = useState<'idle' | 'loading' | 'loaded' | 'error'>('idle');
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const [badgeResult, setBadgeResult] = useState<{
+    username: string;
+    status: 'loaded' | 'error';
+  } | null>(null);
   const guideRef = useRef<HTMLDivElement>(null);
+  const heroRef = useRef<HTMLDivElement>(null);
   const { searches, addSearch, clearSearches, removeSearch } = useRecentSearches();
   const [mounted, setMounted] = useState(false);
 
+  // States for user profile details loading
+  const [userDetails, setUserDetails] = useState<UserDetails | null>(null);
+  const [userDetailsLoading, setUserDetailsLoading] = useState(false);
+  const [userDetailsError, setUserDetailsError] = useState<string | null>(null);
+
+  // SSR hydration guard: server and client both render with mounted=false so
+  // their initial output matches. After hydration this effect runs once,
+  // setting mounted=true so client-only UI (form button, validation hints)
+  // becomes interactive without a flash of mismatched content.
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
   }, []);
 
+  useGSAP(
+    () => {
+      if (!heroRef.current) return;
+
+      gsap.to('.hero-text', {
+        y: 0,
+        opacity: 1,
+        duration: 1.2,
+        ease: 'expo.out',
+        delay: 0.15,
+      });
+
+      gsap.to('.contribution-text', {
+        backgroundPosition: '300% 50%',
+        duration: 8,
+        ease: 'none',
+        repeat: -1,
+      });
+    },
+    { scope: heroRef }
+  );
+
   const trimmedUsername = username.trim();
   const debouncedUsername = useDebounce(trimmedUsername, 500);
-  const hasUsername = debouncedUsername.length > 0;
 
-  const badgeUrl = `/api/streak?user=${debouncedUsername}`;
+  // Active username used to load the badge
+  const previewUsername = instantUsername || debouncedUsername;
+  const hasUsername = previewUsername.length > 0;
+
+  const badgeUrl = `/api/streak?user=${previewUsername}`;
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://commitpulse.vercel.app';
   const markdown = `![CommitPulse](${siteUrl}/api/streak?user=${trimmedUsername})`;
+  const DownloadSVG = () => {
+    const link = document.createElement('a');
+    link.href = badgeUrl;
+    link.download = `${debouncedUsername}-commitpulse-badge.svg`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
-  // Fetch SVG content whenever debounced username changes.
+  const badgeLoaded = badgeResult?.username === previewUsername && badgeResult?.status === 'loaded';
+  const badgeError = badgeResult?.username === previewUsername && badgeResult?.status === 'error';
+
+  // Fetch lightweight user profile details and stats on debounced input change
   useEffect(() => {
-    if (!hasUsername) {
+    if (!mounted) return;
+    if (debouncedUsername.length === 0) {
+      // Safe: synchronous reset of derived UI state when the input is cleared.
+      // These three setters always run together so there is no intermediate
+      // render with inconsistent state, and no async work is in flight.
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setSvgContent(null);
-
-      setSvgState('idle');
+      setUserDetails(null);
+      setUserDetailsError(null);
+      setUserDetailsLoading(false);
       return;
     }
 
-    setSvgState('loading');
+    if (!validateGitHubUsername(debouncedUsername)) {
+      setUserDetails(null);
+      setUserDetailsError('Invalid username format');
+      setUserDetailsLoading(false);
+      return;
+    }
 
-    setSvgContent(null);
-
-    const controller = new AbortController();
-
-    fetch(badgeUrl, { signal: controller.signal })
-      .then(async (res) => {
-        const text = await res.text();
-        if (!res.ok) {
-          setSvgContent(null);
-          setSvgState('error');
-          if (res.status === 404 || res.status === 400 || res.status === 429) {
-            setErrorMessage('GitHub user not found');
-          } else {
-            setErrorMessage('Failed to load badge');
+    const fetchDetails = async () => {
+      setUserDetailsLoading(true);
+      setUserDetailsError(null);
+      try {
+        const response = await fetch(
+          `/api/user-details?username=${encodeURIComponent(debouncedUsername)}`
+        );
+        if (!response.ok) {
+          if (response.status === 404) {
+            throw new Error('User not found');
           }
-          return;
+          const errData = await response.json();
+          throw new Error(errData.error || 'Failed to fetch user');
         }
-        return text;
-      })
-      .then((text) => {
-        if (!text) return;
-        setSvgContent(text);
-        setSvgState('loaded');
-        setErrorMessage(null);
-      })
-      .catch((err) => {
-        if (err.name === 'AbortError') return;
-        setSvgState('error');
-        setErrorMessage('Failed to load badge');
-      });
-    return () => controller.abort();
-  }, [badgeUrl, hasUsername]);
+        const data = await response.json();
+        setUserDetails(data);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Failed to fetch user';
+        setUserDetails(null);
+        setUserDetailsError(message);
+      } finally {
+        setUserDetailsLoading(false);
+      }
+    };
 
-  const copyToClipboard = () => {
+    fetchDetails();
+  }, [debouncedUsername, mounted]);
+
+  const copyToClipboard = async () => {
     if (trimmedUsername.length === 0) return;
+
+    try {
+      await navigator.clipboard.writeText(markdown);
+    } catch {
+      setCopied(false);
+      return;
+    }
 
     trackUser(trimmedUsername);
     addSearch(trimmedUsername);
-
-    navigator.clipboard.writeText(markdown);
     setCopied(true);
     setTimeout(() => {
       guideRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 80);
-    setTimeout(() => setCopied(false), 50000);
+    setTimeout(() => setCopied(false), 3000);
   };
+
+  const selectDemoUser = (name: string) => {
+    setUsername(name);
+    setInstantUsername(name);
+  };
+
+  const handleGenerate = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (trimmedUsername.length > 0) {
+      setInstantUsername(trimmedUsername);
+      trackUser(trimmedUsername);
+      addSearch(trimmedUsername);
+    }
+  };
+
+  // 4 Premium statistics cards schema
+  const statsData = [
+    {
+      label: 'Current Streak',
+      value: userDetails?.stats?.currentStreak ?? (previewUsername ? 0 : 12),
+      icon: Flame,
+      color: 'from-orange-500/20 to-red-500/20 text-orange-400 border-orange-500/20',
+      glow: 'shadow-orange-500/10',
+      unit: 'days',
+    },
+    {
+      label: 'Longest Streak',
+      value: userDetails?.stats?.longestStreak ?? (previewUsername ? 0 : 34),
+      icon: Trophy,
+      color: 'from-amber-500/20 to-yellow-500/20 text-amber-400 border-yellow-500/20',
+      glow: 'shadow-yellow-500/10',
+      unit: 'days',
+    },
+    {
+      label: 'Contributions',
+      value: userDetails?.stats?.totalContributions ?? (previewUsername ? 0 : 420),
+      icon: GitCommit,
+      color: 'from-emerald-500/20 to-teal-500/20 text-emerald-400 border-emerald-500/20',
+      glow: 'shadow-emerald-500/10',
+      unit: 'commits',
+    },
+    {
+      label: 'Repositories',
+      value: userDetails?.public_repos ?? (previewUsername ? 0 : 24),
+      icon: Folder,
+      color: 'from-cyan-500/20 to-blue-500/20 text-cyan-400 border-cyan-500/20',
+      glow: 'shadow-cyan-500/10',
+      unit: 'repos',
+    },
+  ];
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-transparent font-sans text-black dark:text-white selection:bg-black/20 dark:selection:bg-white/20">
@@ -159,95 +499,67 @@ export default function LandingPage() {
 
       <main className="relative z-10 mx-auto max-w-6xl px-6 mt-32">
         <div className="mb-16 text-center">
-          <motion.a
-            href="https://discord.gg/Cb73bS79j"
-            target="_blank"
-            rel="noopener noreferrer"
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            whileHover={{ scale: 1.04, backgroundColor: 'rgba(255,255,255,0.07)' }}
-            whileTap={{ scale: 0.97 }}
-            className="mb-8 inline-flex items-center gap-2.5 rounded-full border border-black/10 bg-white px-4 py-1.5 text-xs font-medium text-gray-700 shadow-sm backdrop-blur-sm transition-colors duration-200 hover:border-black/20 hover:text-black dark:border-white/10 dark:bg-white/[0.04] dark:text-white/50 dark:hover:border-white/20 dark:hover:text-white/80"
-          >
-            <span className="relative flex h-1.5 w-1.5">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-black/40 dark:bg-white/50" />
-              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-black/70 dark:bg-white/70" />
-            </span>
-            <svg
-              width="13"
-              height="13"
-              viewBox="0 0 24 24"
-              fill="currentColor"
-              className="opacity-60"
-            >
-              <path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3333-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3333-.946 2.4189-2.1568 2.4189Z" />
-            </svg>
-            Join the community on Discord
-            <svg
-              width="10"
-              height="10"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="opacity-40"
-            >
-              <path d="M7 17L17 7M17 7H7M17 7v10" />
-            </svg>
-          </motion.a>
+          <DiscordButton />
 
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.15 }}
-          >
-            <h1 className="mb-8 bg-gradient-to-br from-gray-900 via-black to-gray-600 dark:from-white dark:via-gray-100 dark:to-gray-500 bg-clip-text text-transparent text-5xl font-extrabold tracking-tight md:text-8xl pb-2">
+          <div ref={heroRef}>
+            <h1 className="hero-text opacity-0 translate-y-10 mb-8 bg-gradient-to-br from-gray-900 via-black to-gray-600 dark:from-white dark:via-gray-100 dark:to-gray-500 bg-clip-text text-transparent text-5xl font-black tracking-tighter md:text-8xl pb-2">
               Elevate Your <br />{' '}
-              <span className="bg-gradient-to-r from-emerald-400 to-cyan-500 bg-clip-text text-transparent">
+              <span className="contribution-text inline-block bg-[length:300%_300%] bg-gradient-to-r from-emerald-400 via-cyan-500 to-purple-500 bg-clip-text text-transparent drop-shadow-sm">
                 Contribution
               </span>{' '}
               Story.
             </h1>
-          </motion.div>
+          </div>
 
           <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.3 }}
-            className="mx-auto max-w-2xl text-sm sm:text-lg leading-relaxed text-gray-600 dark:text-gray-400 md:text-xl "
+            className="mx-auto max-w-2xl text-sm sm:text-lg leading-relaxed text-gray-600 dark:text-white/65 md:text-xl "
           >
-            Stop settling for flat grids. Generate high-fidelity, 3D isometric monoliths that
-            visualize your coding rhythm with professional precision.
+            CommitPulse converts your GitHub commit history into a live, 3D animated badge. The more
+            you commit, the taller your city grows! Embed it in your profile README with one line.
           </motion.p>
         </div>
 
-        <section className="mx-auto mb-32 max-w-4xl relative z-20">
+        <section className="mx-auto mb-16 max-w-4xl relative z-20">
           <div className="rounded-3xl border border-black/5 bg-white/60 p-4 shadow-xl shadow-black/5 backdrop-blur-xl dark:border-white/10 dark:bg-[#0a0a0a]/80 dark:shadow-2xl dark:shadow-black/50 md:p-8">
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                copyToClipboard();
-              }}
-              className="flex flex-col sm:flex-row gap-4 w-full"
-            >
-              <div className="relative flex-1 flex items-center flex-col">
-                <div className="relative flex-1 flex items-center w-full">
+            <form onSubmit={handleGenerate} className="flex flex-col gap-4 w-full">
+              <div className="flex flex-col sm:flex-row gap-4 w-full">
+                <div className="relative flex-1 flex items-center">
+                  <span className="absolute left-4 text-zinc-400 dark:text-zinc-500">
+                    <Search size={18} />
+                  </span>
                   <input
                     type="text"
                     suppressHydrationWarning
                     placeholder="Enter GitHub Username"
-                    className="flex-1 rounded-2xl border border-black/10 bg-white px-5 py-4 text-sm text-black outline-none transition-all duration-300 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent dark:border-white/10 dark:bg-black/60 dark:text-white dark:placeholder:text-gray-500 shadow-inner"
+                    className="flex-1 rounded-2xl border border-black/10 bg-white pl-12 pr-10 py-4 text-sm text-black outline-none transition-all duration-300 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent dark:border-white/10 dark:bg-black/60 dark:text-white dark:placeholder:text-gray-500 shadow-inner"
                     value={username}
-                    onChange={(e) => setUsername(e.target.value)}
+                    onChange={(e) => {
+                      let val = e.target.value;
+                      if (val.includes('github.com/')) {
+                        const parts = val.split('github.com/');
+                        if (parts[1]) {
+                          const pathParts = parts[1].split('?')[0].split('/');
+                          const userPart = pathParts.find((p) => p.trim().length > 0);
+                          if (userPart) {
+                            val = userPart;
+                          }
+                        }
+                      }
+                      setUsername(val);
+                      setInstantUsername('');
+                    }}
                     maxLength={39}
                   />
                   {username.length > 0 ? (
                     <button
-                      onClick={() => setUsername('')}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 transition-colors hover:text-black dark:text-[#A1A1AA] dark:hover:text-white"
+                      onClick={() => {
+                        setUsername('');
+                        setInstantUsername('');
+                      }}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 transition-colors hover:text-black dark:text-white/65 dark:hover:text-white"
                       aria-label="Clear input"
                       type="button"
                     >
@@ -255,29 +567,313 @@ export default function LandingPage() {
                     </button>
                   ) : null}
                 </div>
-                {username.length === 39 && (
-                  <p className="text-red-500 text-xs mt-1 self-start pl-1">
-                    GitHub username limit reached (39 characters maximum)
-                  </p>
-                )}
-              </div>
-              <div className="flex flex-col sm:flex-row gap-4">
+
+                {/* Primary CTA: Generate Badge */}
                 <button
                   type="submit"
                   suppressHydrationWarning
                   disabled={!mounted || trimmedUsername.length === 0}
-                  className={`relative flex min-w-[160px] items-center justify-center gap-2 overflow-hidden rounded-2xl px-6 py-4 text-sm font-semibold transition-all duration-300 transform cursor-pointer hover:scale-[1.02] hover:shadow-lg active:scale-[0.98] disabled:cursor-not-allowed ${
+                  className={`relative flex min-w-[180px] items-center justify-center gap-2 overflow-hidden rounded-2xl px-6 py-4 text-sm font-bold transition-all duration-300 transform cursor-pointer hover:scale-[1.02] hover:shadow-lg active:scale-[0.98] disabled:cursor-not-allowed ${
                     mounted && trimmedUsername.length > 0
-                      ? 'bg-black text-white hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-gray-100 shadow-md'
-                      : 'bg-gray-100 text-gray-400 dark:bg-white/5 dark:text-white/20'
+                      ? 'bg-gradient-to-r from-emerald-500 to-cyan-500 text-black shadow-[0_0_20px_rgba(16,185,129,0.25)] hover:opacity-95'
+                      : 'bg-gray-100 text-gray-400 dark:bg-white/5 dark:text-white/55'
+                  }`}
+                >
+                  <Sparkles size={16} />
+                  Generate Badge
+                </button>
+              </div>
+
+              {/* Inline Validation & Avatar Preview Box */}
+              {mounted && (
+                <div className="w-full transition-all duration-300">
+                  <AnimatePresence mode="wait">
+                    {username.length === 0 ? (
+                      <motion.p
+                        key="empty-msg"
+                        initial={{ opacity: 0, y: -4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0 }}
+                        className="text-zinc-500 text-xs pl-1 flex items-center gap-1.5"
+                      >
+                        <span className="inline-block w-1.5 h-1.5 rounded-full bg-zinc-600 animate-pulse" />
+                        Enter a GitHub username above to copy your badge link.
+                      </motion.p>
+                    ) : !validateGitHubUsername(username.trim()) ? (
+                      <motion.p
+                        key="invalid-format-msg"
+                        initial={{ opacity: 0, y: -4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0 }}
+                        className="text-amber-500 text-xs pl-1 flex items-center gap-1.5"
+                      >
+                        <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-500" />
+                        Invalid username format. Usernames can only contain alphanumeric characters
+                        and hyphens, and cannot start/end with a hyphen.
+                      </motion.p>
+                    ) : userDetailsLoading ? (
+                      <motion.div
+                        key="loading-skeleton"
+                        initial={{ opacity: 0, y: -4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0 }}
+                        className="flex items-center gap-3 bg-white/5 border border-white/5 rounded-xl px-3 py-2 animate-pulse"
+                      >
+                        <div className="w-6 h-6 rounded-full bg-white/10" />
+                        <div className="h-3 w-24 bg-white/10 rounded" />
+                        <span className="text-[10px] text-zinc-500 ml-auto">Verifying...</span>
+                      </motion.div>
+                    ) : userDetailsError ? (
+                      <motion.p
+                        key="error-msg"
+                        initial={{ opacity: 0, y: -4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0 }}
+                        className="text-red-500 text-xs pl-1 flex items-center gap-1.5"
+                      >
+                        <span className="inline-block w-1.5 h-1.5 rounded-full bg-red-500" />
+                        {userDetailsError === 'User not found'
+                          ? 'User not found. Check the spelling or confirm if this account exists on GitHub.'
+                          : `Verification failed: ${userDetailsError}`}
+                      </motion.p>
+                    ) : userDetails ? (
+                      <motion.div
+                        key="valid-user"
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="flex items-center gap-3 bg-emerald-500/5 border border-emerald-500/10 rounded-xl px-3 py-2"
+                      >
+                        <img
+                          src={userDetails.avatar_url}
+                          alt={userDetails.login}
+                          className="w-6 h-6 rounded-full border border-emerald-500/20"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = 'https://github.com/github.png';
+                          }}
+                        />
+                        <div className="flex flex-col">
+                          <span className="text-xs font-bold text-zinc-200">
+                            {userDetails.name || userDetails.login}
+                          </span>
+                          <span className="text-[10px] text-zinc-500">@{userDetails.login}</span>
+                        </div>
+                        <span className="text-[10px] text-emerald-400 font-semibold bg-emerald-500/10 px-2 py-0.5 rounded-full ml-auto flex items-center gap-1">
+                          <span className="w-1 h-1 rounded-full bg-emerald-400 animate-ping" />
+                          Verified Profile
+                        </span>
+                      </motion.div>
+                    ) : null}
+                  </AnimatePresence>
+                </div>
+              )}
+
+              {/* Footer Section: Demo & Recents */}
+              <div className="flex flex-col gap-3 mt-4 border-t border-zinc-200/5 dark:border-white/5 pt-4">
+                <div className="flex flex-wrap items-center gap-2.5 text-xs">
+                  <span className="text-zinc-500 font-semibold uppercase tracking-wider text-[9px]">
+                    Demo:
+                  </span>
+                  <div className="flex flex-wrap gap-2">
+                    {['torvalds', 'gaearon', 'vercel', 'sindresorhus'].map((demo) => (
+                      <button
+                        key={demo}
+                        type="button"
+                        onClick={() => selectDemoUser(demo)}
+                        className="rounded-full border border-zinc-200/10 bg-zinc-200/5 hover:bg-emerald-500/10 hover:border-emerald-500/30 text-[11px] text-zinc-600 dark:text-zinc-300 font-semibold px-3 py-1 transition-all duration-300 cursor-pointer"
+                      >
+                        @{demo}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {searches.length > 0 && (
+                  <div className="flex flex-wrap items-center gap-2.5 text-xs mt-1">
+                    <span className="text-zinc-500 font-semibold uppercase tracking-wider text-[9px]">
+                      Recent:
+                    </span>
+                    <div className="flex flex-wrap gap-2 items-center">
+                      {searches.map((s) => {
+                        const displayName = getDisplayUsername(s);
+                        return (
+                          <span
+                            key={s}
+                            className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200/10 bg-zinc-200/5 dark:border-white/5 dark:bg-[#111] pl-2 pr-1.5 py-1 text-xs text-zinc-700 dark:text-white/70 transition-all duration-300 hover:border-emerald-500/30 hover:bg-zinc-200/10 dark:hover:bg-white/10 dark:hover:text-white select-none group/pill"
+                          >
+                            <img
+                              src={`https://github.com/${displayName}.png?size=40`}
+                              alt={displayName}
+                              className="w-4 h-4 rounded-full border border-zinc-200/20 dark:border-white/20"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src =
+                                  'https://github.com/github.png';
+                              }}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => selectDemoUser(displayName)}
+                              className="font-medium cursor-pointer transition-colors hover:text-zinc-950 dark:hover:text-white"
+                            >
+                              {displayName}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                removeSearch(s);
+                              }}
+                              className="rounded-full p-0.5 text-zinc-400 dark:text-white/40 hover:bg-zinc-200/25 dark:hover:bg-white/10 hover:text-zinc-900 dark:hover:text-white transition-all flex items-center justify-center ml-0.5 cursor-pointer"
+                              aria-label={`Remove ${displayName} from recent searches`}
+                            >
+                              <X size={10} />
+                            </button>
+                          </span>
+                        );
+                      })}
+                      <button
+                        type="button"
+                        onClick={clearSearches}
+                        className="text-[10px] text-zinc-500 underline hover:text-zinc-800 dark:hover:text-white transition-colors cursor-pointer ml-1"
+                      >
+                        Clear
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </form>
+          </div>
+
+          <div className="group relative mt-10">
+            <div className="absolute -inset-1 rounded-[2.5rem] bg-gradient-to-r from-emerald-500/20 to-cyan-500/20 opacity-50 blur-2xl transition duration-1000 group-hover:opacity-100" />
+            <div className="relative flex flex-col min-h-[480px] md:min-h-[520px] items-center justify-center overflow-hidden rounded-3xl border border-black/5 bg-white/50 p-8 backdrop-blur-xl shadow-2xl dark:border-white/10 dark:bg-[#0a0a0a]/80">
+              {hasUsername ? (
+                <div className="w-full flex flex-col items-center justify-center gap-4">
+                  {userDetailsError === 'User not found' ? (
+                    <div className="flex flex-col items-center justify-center gap-4 py-12 text-center">
+                      <div className="flex h-16 w-16 items-center justify-center rounded-3xl border border-red-500/20 bg-red-500/10 shadow-inner">
+                        <X size={32} className="text-red-500" />
+                      </div>
+                      <div>
+                        <p className="text-lg font-bold text-gray-900 dark:text-white tracking-tight">
+                          GitHub user not found
+                        </p>
+                        <p className="text-sm text-gray-500 dark:text-white/65 mt-1">
+                          Please check the username and try again.
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      {!badgeLoaded && !badgeError && (
+                        <div className="h-[240px] w-full max-w-[700px] rounded-2xl bg-black/5 dark:bg-white/5 animate-pulse flex items-center justify-center">
+                          <Loader2 className="animate-spin text-zinc-500" size={32} />
+                        </div>
+                      )}
+                      {badgeError && (
+                        <div className="flex flex-col items-center justify-center gap-4 py-12 text-center">
+                          <div className="flex h-16 w-16 items-center justify-center rounded-3xl border border-red-500/20 bg-red-500/10 shadow-inner">
+                            <X size={32} className="text-red-500" />
+                          </div>
+                          <div>
+                            <p className="text-lg font-bold text-gray-900 dark:text-white tracking-tight">
+                              GitHub user not found
+                            </p>
+                            <p className="text-sm text-gray-500 dark:text-white/65 mt-1">
+                              Please check the username and try again.
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                      <motion.img
+                        key={badgeUrl}
+                        data-testid="badge-img"
+                        src={badgeUrl}
+                        alt={`CommitPulse badge for ${previewUsername}`}
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: badgeLoaded ? 1 : 0, scale: badgeLoaded ? 1 : 0.95 }}
+                        transition={{ duration: 0.5, ease: 'easeOut' }}
+                        className="w-full max-w-[700px] h-auto drop-shadow-[0_30px_60px_rgba(0,0,0,0.15)] dark:drop-shadow-[0_30px_60px_rgba(0,0,0,0.5)]"
+                        onLoad={() =>
+                          setBadgeResult({ username: previewUsername, status: 'loaded' })
+                        }
+                        onError={() =>
+                          setBadgeResult({ username: previewUsername, status: 'error' })
+                        }
+                      />
+                      {badgeLoaded && (
+                        <button
+                          onClick={DownloadSVG}
+                          className="mt-6 px-4 py-2 rounded-lg bg-sky-600 text-sm font-medium text-white hover:bg-sky-800 transition-colors"
+                        >
+                          Download SVG
+                        </button>
+                      )}
+                    </>
+                  )}
+                </div>
+              ) : (
+                /* Interactive Empty State */
+                <SampleBadgePreview />
+              )}
+
+              {/* Animated Stats Cards Section */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8 w-full max-w-[700px] mx-auto z-10">
+                {statsData.map((item) => {
+                  const IconComponent = item.icon;
+                  return (
+                    <div
+                      key={item.label}
+                      className={`relative overflow-hidden rounded-2xl border border-white/5 bg-white/[0.02] p-4 backdrop-blur-md transition-all duration-500 hover:border-white/10 group ${item.glow} hover:shadow-lg`}
+                    >
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-[10px] uppercase tracking-wider text-zinc-500 font-bold">
+                          {item.label}
+                        </span>
+                        <div className={`p-1.5 rounded-lg border bg-gradient-to-br ${item.color}`}>
+                          <IconComponent size={14} />
+                        </div>
+                      </div>
+                      {userDetailsLoading ? (
+                        <div className="h-8 w-20 bg-white/5 animate-pulse rounded-lg mt-1" />
+                      ) : (
+                        <div className="text-2xl font-bold bg-gradient-to-br from-white to-zinc-400 bg-clip-text text-transparent flex items-baseline gap-1 mt-1 font-mono">
+                          <CountUp value={item.value} />
+                          <span className="text-[10px] text-zinc-500 font-normal lowercase">
+                            {item.unit}
+                          </span>
+                        </div>
+                      )}
+                      {!previewUsername && (
+                        <div className="absolute top-1 right-2 text-[8px] uppercase tracking-widest text-emerald-500 font-semibold bg-emerald-500/5 border border-emerald-500/10 px-1 rounded-full">
+                          Demo
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Secondary CTA Options (Copy Link / Watch Dashboard) */}
+              <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8 w-full max-w-[700px] mx-auto z-10">
+                <button
+                  type="button"
+                  onClick={copyToClipboard}
+                  disabled={!mounted || trimmedUsername.length === 0}
+                  className={`relative flex flex-1 items-center justify-center gap-2 overflow-hidden rounded-2xl border px-6 py-3.5 text-sm font-bold transition-all duration-300 active:scale-[0.98] disabled:cursor-not-allowed ${
+                    mounted && trimmedUsername.length > 0
+                      ? 'border-emerald-500/20 bg-emerald-500/5 text-emerald-400 hover:scale-[1.02] hover:bg-emerald-500/10 hover:border-emerald-500/40 hover:shadow-[0_0_20px_rgba(16,185,129,0.15)] cursor-pointer'
+                      : 'border-black/5 bg-gray-50 text-gray-400 dark:border-white/5 dark:bg-transparent dark:text-white/55'
                   }`}
                 >
                   <AnimatePresence mode="wait">
                     {copied ? (
                       <motion.div
                         key="check"
-                        initial={{ y: 10 }}
-                        animate={{ y: 0 }}
+                        initial={{ y: 10, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        exit={{ y: -10, opacity: 0 }}
                         className="flex items-center gap-2"
                       >
                         <Icons.Check /> Copied
@@ -285,11 +881,12 @@ export default function LandingPage() {
                     ) : (
                       <motion.div
                         key="copy"
-                        initial={{ y: -10 }}
-                        animate={{ y: 0 }}
+                        initial={{ y: -10, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        exit={{ y: 10, opacity: 0 }}
                         className="flex items-center gap-2"
                       >
-                        <Icons.Copy /> Copy Link
+                        <Copy size={16} /> Copy Link
                       </motion.div>
                     )}
                   </AnimatePresence>
@@ -308,113 +905,86 @@ export default function LandingPage() {
                       addSearch(trimmedUsername);
                     }
                   }}
-                  className={`relative flex min-w-[160px] items-center justify-center gap-2 overflow-hidden rounded-2xl border px-6 py-4 text-sm font-semibold transition-all duration-300 hover:scale-[1.02] hover:shadow-lg active:scale-[0.98] ${
+                  className={`relative flex flex-1 items-center justify-center gap-2 overflow-hidden rounded-2xl border px-6 py-3.5 text-sm font-bold transition-all duration-300 active:scale-[0.98] ${
                     mounted && trimmedUsername.length > 0
-                      ? 'border-black/10 bg-white text-black hover:bg-gray-50 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10 shadow-sm'
-                      : 'border-black/5 bg-gray-50 text-gray-400 dark:border-white/5 dark:bg-transparent dark:text-white/20'
+                      ? 'border-cyan-500/20 bg-cyan-500/5 text-cyan-400 hover:scale-[1.02] hover:bg-cyan-500/10 hover:border-cyan-500/40 hover:shadow-[0_0_20px_rgba(6,182,212,0.15)] cursor-pointer'
+                      : 'border-black/5 bg-gray-50 text-gray-400 dark:border-white/5 dark:bg-transparent dark:text-white/55 cursor-not-allowed'
                   }`}
                 >
+                  <ExternalLink size={16} />
                   Watch Dashboard
                 </Link>
               </div>
-            </form>
+            </div>
+          </div>
+        </section>
+
+        {/* How It Works Section */}
+        <section className="mx-auto mb-32 max-w-4xl py-12 border-t border-white/5 relative z-20">
+          <div className="text-center mb-16">
+            <p className="text-xs font-bold uppercase tracking-[0.25em] bg-gradient-to-r from-emerald-400 to-cyan-500 bg-clip-text text-transparent mb-3">
+              Workflow
+            </p>
+            <h2
+              className="text-3xl md:text-5xl font-black tracking-tight text-white"
+              style={{ fontFamily: '"Syncopate", sans-serif' }}
+            >
+              How it works
+            </h2>
+            <p className="text-sm text-zinc-400 max-w-md mx-auto mt-4 leading-relaxed">
+              Elevating your GitHub profile is a simple 3-step process. Here is how you construct
+              your code monument.
+            </p>
           </div>
 
-          {searches.length > 0 && (
-            <div className="flex flex-wrap items-center gap-2 mb-6 mt-3">
-              <span className="text-xs text-[#A1A1AA]">Recent:</span>
-              {searches.map((s) => (
-                <span
-                  key={s}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-[rgba(255,255,255,0.08)] bg-[#111] pl-3 pr-2 py-1 text-xs text-white/70 transition-all hover:border-[rgba(255,255,255,0.2)] hover:text-white group/pill"
-                >
-                  <button
-                    type="button"
-                    onClick={() => setUsername(s)}
-                    className="transition-colors hover:text-white"
-                  >
-                    {s}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => removeSearch(s)}
-                    className="rounded-full p-0.5 text-white/40 hover:bg-white/10 hover:text-white transition-all flex items-center justify-center"
-                    aria-label={`Remove ${s} from recent searches`}
-                  >
-                    <X size={10} />
-                  </button>
-                </span>
-              ))}
-              <button
-                onClick={clearSearches}
-                className="text-xs text-[#A1A1AA] underline hover:text-white transition-colors"
-              >
-                Clear
-              </button>
-            </div>
-          )}
+          <div className="grid gap-8 md:grid-cols-3 relative">
+            <div className="hidden md:block absolute top-1/2 left-[15%] right-[15%] h-[1px] bg-gradient-to-r from-emerald-500/10 via-cyan-500/10 to-purple-500/10 -translate-y-1/2 z-0" />
 
-          <div className="group relative mt-10">
-            <div className="absolute -inset-1 rounded-[2.5rem] bg-gradient-to-r from-emerald-500/20 to-cyan-500/20 opacity-50 blur-2xl transition duration-1000 group-hover:opacity-100" />
-            <InteractiveViewer className="relative flex min-h-[360px] items-center justify-center overflow-hidden rounded-3xl border border-black/5 bg-white/50 p-8 backdrop-blur-xl shadow-2xl dark:border-white/10 dark:bg-[#0a0a0a]/80">
-              {hasUsername ? (
-                <div className="w-full flex items-center justify-center">
-                  {svgState === 'loading' && (
-                    <div className="h-[240px] w-full max-w-[700px] rounded-2xl bg-black/5 dark:bg-white/5 animate-pulse" />
-                  )}
-                  {svgState === 'error' && errorMessage === 'GitHub user not found' && (
-                    <div className="flex flex-col items-center justify-center gap-4 py-12 text-center">
-                      <div className="flex h-16 w-16 items-center justify-center rounded-3xl border border-red-500/20 bg-red-500/10 shadow-inner">
-                        <X size={32} className="text-red-500" />
-                      </div>
-                      <div>
-                        <p className="text-lg font-bold text-gray-900 dark:text-white tracking-tight">
-                          GitHub user not found
-                        </p>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                          Please check the username and try again.
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                  {svgState === 'error' && errorMessage !== 'GitHub user not found' && (
-                    <div className="flex flex-col items-center justify-center gap-2 text-center py-8">
-                      <p className="text-sm font-semibold text-red-500 dark:text-red-400">
-                        Failed to load badge
-                      </p>
-                      <p className="text-xs text-gray-500 dark:text-white/40">
-                        The API may be unavailable. Please try again.
-                      </p>
-                    </div>
-                  )}
-                  {svgState === 'loaded' && svgContent && (
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ duration: 0.5, ease: 'easeOut' }}
-                      className="cp-svg-container w-full max-w-[700px] drop-shadow-[0_30px_60px_rgba(0,0,0,0.15)] dark:drop-shadow-[0_30px_60px_rgba(0,0,0,0.5)] [&>svg]:w-full [&>svg]:h-auto"
-                      dangerouslySetInnerHTML={{ __html: svgContent }}
-                    />
-                  )}
-                  {svgState === 'loaded' && !svgContent && errorMessage && (
-                    <p className="text-red-400 text-sm text-center">{errorMessage}</p>
-                  )}
+            {[
+              {
+                step: '01',
+                title: 'Enter Username',
+                desc: 'Input your GitHub username above. We validate format and fetch your profile statistics in real-time.',
+              },
+              {
+                step: '02',
+                title: 'Generate Badge',
+                desc: 'Instantly build your 3D isometric monolith from your commit logs and configure styles to match your README.',
+              },
+              {
+                step: '03',
+                title: 'Add to README',
+                desc: 'Copy the generated Markdown snippet and embed it into your profile. Your monolith updates as you code.',
+              },
+            ].map((item, idx) => (
+              <motion.div
+                key={item.step}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: '-100px' }}
+                transition={{ delay: idx * 0.15, duration: 0.6 }}
+                className="relative z-10 flex flex-col items-center text-center p-6 rounded-3xl border border-zinc-300 dark:border-white/5 bg-white dark:bg-black/40 backdrop-blur-xl hover:border-emerald-500/20 hover:bg-white/[0.02] transition-all duration-500 group"
+              >
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center w-12 h-12 rounded-2xl border border-white/10 bg-zinc-950 font-bold text-sm tracking-wider text-white shadow-xl group-hover:border-emerald-500/30 transition-all duration-300">
+                  <span
+                    className="bg-gradient-to-br from-white to-zinc-400 bg-clip-text text-transparent font-black"
+                    style={{ fontFamily: '"Space Grotesk", sans-serif' }}
+                  >
+                    {item.step}
+                  </span>
                 </div>
-              ) : (
-                <div className="flex w-full max-w-2xl flex-col items-center justify-center rounded-3xl border border-dashed border-black/10 bg-black/[0.02] px-6 py-16 text-center dark:border-white/10 dark:bg-white/[0.02]">
-                  <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-3xl border border-black/10 bg-white text-gray-600 shadow-sm dark:border-white/10 dark:bg-white/5 dark:text-white/80">
-                    <Icons.Github />
-                  </div>
-                  <p className="text-xl font-bold tracking-tight text-gray-900 dark:text-white">
-                    Ready to visualize your rhythm?
-                  </p>
-                  <p className="mt-3 max-w-md text-sm leading-relaxed text-gray-500 dark:text-gray-400">
-                    Enter a GitHub username above to instantly generate your 3D contribution
-                    monolith preview.
-                  </p>
-                </div>
-              )}
-            </InteractiveViewer>
+
+                <h4
+                  className="text-md font-bold uppercase tracking-wider text-zinc-900 dark:text-zinc-100 mt-6 mb-3 group-hover:text-emerald-400 transition-colors"
+                  style={{ fontFamily: '"Syncopate", sans-serif', fontSize: '12px' }}
+                >
+                  {item.title}
+                </h4>
+                <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">
+                  {item.desc}
+                </p>
+              </motion.div>
+            ))}
           </div>
         </section>
 
@@ -432,60 +1002,38 @@ export default function LandingPage() {
 
         <CustomizeCTA />
 
-        <div className="grid gap-6 md:grid-cols-3">
+        <FeatureCardsSection>
           <FeatureCard
             icon={<Icons.Zap />}
-            accent="text-black dark:text-white"
+            accent="text-white"
+            accentColor="#10b981"
+            index={0}
             title="Real-time Sync"
             desc="Pulled directly from GitHub GraphQL API. Your streak updates as fast as your code pushes."
           />
           <FeatureCard
             icon={<Icons.Copy />}
-            accent="text-black dark:text-white"
+            accent="text-white"
+            accentColor="#8b5cf6"
+            index={1}
             title="Theme Engine"
             desc="Switch between Neon, Dracula, or custom HEX modes via simple URL management."
           />
           <FeatureCard
             icon={<Icons.Box />}
-            accent="text-black dark:text-white"
+            accent="text-white"
+            accentColor="#06b6d4"
+            index={2}
             title="Isometric Math"
             desc="Sophisticated 3D projection formulas turn 2D data into digital architecture."
           />
-        </div>
+        </FeatureCardsSection>
+
+        <WallOfLove />
+
         <Footer />
       </main>
     </div>
-  );
-}
-
-function FeatureCard({
-  icon,
-  title,
-  desc,
-  accent,
-}: {
-  icon: ReactNode;
-  title: string;
-  desc: string;
-  accent: string;
-}) {
-  return (
-    <motion.div
-      whileHover={{ y: -5, scale: 1.02 }}
-      transition={{ type: 'spring', stiffness: 300 }}
-      className="group relative overflow-hidden rounded-3xl border border-black/5 bg-white/60 p-8 shadow-xl shadow-black/5 hover:border-emerald-500/30 dark:border-white/10 dark:bg-[#0a0a0a]/80 dark:shadow-2xl dark:shadow-black/50 dark:hover:border-emerald-500/40 dark:hover:bg-[#111] transition-all duration-300 backdrop-blur-xl"
-    >
-      <div className="absolute -right-20 -top-20 h-40 w-40 rounded-full bg-emerald-500/10 blur-3xl transition-all duration-500 group-hover:bg-emerald-500/20" />
-      <div
-        className={`mb-6 w-fit rounded-2xl bg-gradient-to-br from-gray-100 to-gray-50 p-3.5 text-black shadow-sm ring-1 ring-black/5 dark:from-white/10 dark:to-white/5 dark:text-white dark:ring-white/10 ${accent}`}
-      >
-        {icon}
-      </div>
-      <h3 className="mb-3 text-lg font-bold text-gray-900 dark:text-white tracking-tight">
-        {title}
-      </h3>
-      <p className="text-sm leading-relaxed text-gray-600 dark:text-gray-400">{desc}</p>
-    </motion.div>
   );
 }
 
@@ -551,7 +1099,7 @@ function SuccessGuide({
 
           <button
             onClick={onDismiss}
-            className="ml-4 mt-1 shrink-0 rounded-xl p-2 text-gray-500 transition-all hover:bg-gray-100 hover:text-black dark:text-white/30 dark:hover:bg-white/5 dark:hover:text-white"
+            className="ml-4 mt-1 shrink-0 rounded-xl p-2 text-gray-500 transition-all hover:bg-gray-100 hover:text-black dark:text-white/55 dark:hover:bg-white/5 dark:hover:text-white"
             aria-label="Dismiss guide"
           >
             <svg
@@ -594,7 +1142,7 @@ function SuccessGuide({
         </div>
 
         <div className="px-8 py-6">
-          <p className="mb-3 text-xs font-bold uppercase tracking-[0.15em] text-gray-500 dark:text-white/30">
+          <p className="mb-3 text-xs font-bold uppercase tracking-[0.15em] text-gray-500 dark:text-white/55">
             Your copied snippet
           </p>
           <div className="flex items-center gap-3 rounded-xl border border-black/10 bg-gray-100 px-4 py-3 font-mono text-sm dark:border-white/8 dark:bg-black/60">
@@ -603,8 +1151,8 @@ function SuccessGuide({
               {markdown}
             </code>
           </div>
-          <p className="mt-4 text-xs leading-relaxed text-gray-500 dark:text-white/25">
-            Tip: Add <code className="text-gray-700 dark:text-white/40">?accent=808080</code> to the
+          <p className="mt-4 text-xs leading-relaxed text-gray-500 dark:text-white/55">
+            Tip: Add <code className="text-gray-700 dark:text-white/55">?accent=808080</code> to the
             URL to change your monolith&apos;s colour palette.
           </p>
           <div className="mt-8 flex justify-center border-t border-black/10 pt-6 dark:border-white/5">

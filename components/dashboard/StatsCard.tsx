@@ -9,11 +9,7 @@ const iconMap: Record<string, LucideIcon> = {
   GitCommit,
 };
 
-export function buildMiniChart(seed: number): number[] {
-  return Array.from({ length: 12 }).map((_, i) => ((seed * 17 + i * 31) % 100) + (i > 6 ? 40 : 0));
-}
-
-interface StatsCardProps {
+export interface StatsCardProps {
   title: string;
   value: string;
   description: string;
@@ -65,7 +61,7 @@ export default function StatsCard({
           {showUTCDisclaimer && (
             <div className="mt-3 space-y-1">
               <p className="text-[11px] text-[#71717A] leading-relaxed">
-                ℹ Streaks are calculated in UTC and may differ from your local timezone.
+                â„¹ Streaks are calculated in UTC and may differ from your local timezone.
               </p>
 
               {utcDate && <p className="text-[10px] text-[#52525B]">UTC Date: {utcDate}</p>}

@@ -10,7 +10,7 @@ async function findExistingAssignments(github, owner, repo, username, currentIss
   return issues.filter((issue) => !issue.pull_request && issue.number !== currentIssueNumber);
 }
 
-const MAX_ASSIGNED_ISSUES = 3;
+const MAX_ASSIGNED_ISSUES = 5;
 
 async function handleClaim({ github, context }) {
   const { owner, repo } = context.repo;
@@ -74,7 +74,7 @@ async function handleClaim({ github, context }) {
       owner,
       repo,
       issue_number: issueNumber,
-      body: `❌ You already have **${existingIssues.length}/${MAX_ASSIGNED_ISSUES}** active assigned issues (the maximum allowed).\nPlease complete or unassign one of your current issues before claiming another.\n\n${issueList}`,
+      body: `❌ You already have **${existingIssues.length}/${MAX_ASSIGNED_ISSUES}** active assigned issues (the maximum allowed).\nPlease complete or \`/unclaim\` one of your current issues before claiming another.\n\n${issueList}`,
     });
     return;
   }

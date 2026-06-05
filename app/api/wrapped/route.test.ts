@@ -30,6 +30,7 @@ const mockWrappedStats: WrappedStats = {
   busiestMonth: '2025-11',
   weekendRatio: 24,
   topLanguage: 'TypeScript',
+  calendar: mockCalendar,
 };
 
 function makeRequest(params: Record<string, string> = {}): Request {
@@ -44,7 +45,9 @@ describe('GET /api/wrapped', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(getWrappedData).mockResolvedValue(mockWrappedStats);
-    vi.mocked(fetchGitHubContributions).mockResolvedValue(mockCalendar);
+    vi.mocked(fetchGitHubContributions).mockResolvedValue({
+      calendar: mockCalendar,
+    } as unknown as import('../../../types').ExtendedContributionData);
   });
 
   describe('parameter validation', () => {
@@ -147,6 +150,14 @@ describe('GET /api/wrapped', () => {
       const body = await response.text();
       expect(response.status).toBe(200);
       expect(body).toContain('rx="15"');
+    });
+
+    it('hides the wrapped badge background when hide_background=1 is passed', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', hide_background: '1' }));
+      const body = await response.text();
+
+      expect(response.status).toBe(200);
+      expect(body).toContain('fill="transparent"');
     });
   });
 

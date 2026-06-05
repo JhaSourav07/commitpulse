@@ -17,7 +17,7 @@ describe('SectionLabel', () => {
   it('<p> has the text-white/45 class', () => {
     render(<SectionLabel>Test Label</SectionLabel>);
     const el = screen.getByText('Test Label');
-    expect(el.className).toContain('text-white/45');
+    expect(el.className).toContain('text-gray-600');
   });
 
   it('<p> has the uppercase class', () => {

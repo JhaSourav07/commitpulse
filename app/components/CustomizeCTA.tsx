@@ -28,14 +28,18 @@ export function CustomizeCTA() {
             <h2 className="text-2xl md:text-3xl font-extrabold text-black dark:text-white tracking-tight mb-3 leading-snug">
               Want to fine-tune your monolith?
             </h2>
-            <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed max-w-lg">
+            <p className="text-gray-600 dark:text-white/65 text-sm leading-relaxed max-w-lg">
               Dial in every pixel — swap accent colors, try a dark or neon theme, toggle logarithmic
               height scaling, and preview changes live before you paste a single line.
             </p>
           </div>
 
           <div className="shrink-0">
-            <Link href="/customize" id="open-customization-studio-cta">
+            <Link
+              href="/customize"
+              id="open-customization-studio-cta"
+              className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2 rounded-2xl"
+            >
               <span className="relative inline-flex items-center gap-2 px-4 md:px-7 py-4 rounded-2xl border border-black/10 dark:border-white/10 font-bold text-sm text-black dark:text-black bg-gray-100 dark:bg-white hover:bg-gray-200 dark:hover:bg-zinc-100 hover:scale-[1.03] active:scale-[0.97] transition-all duration-200 shadow-[0_0_30px_-4px_rgba(255,255,255,0.12)] cursor-pointer select-none">
                 {/* Button shimmer */}
                 <span

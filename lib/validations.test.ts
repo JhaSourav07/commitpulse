@@ -1,5 +1,87 @@
 import { describe, expect, it } from 'vitest';
-import { githubParamsSchema, ogParamsSchema, streakParamsSchema } from './validations';
+import {
+  githubParamsSchema,
+  ogParamsSchema,
+  streakParamsSchema,
+  validateGitHubUsername,
+} from './validations';
+
+function parse(params: Record<string, string>) {
+  return streakParamsSchema.parse({ user: 'octocat', ...params });
+}
+
+describe('streakParamsSchema — grace fallback behavior', () => {
+  it('accepts "0" as a valid grace value', () => {
+    expect(parse({ grace: '0' }).grace).toBe(0);
+  });
+
+  it('accepts "7" as a valid grace value', () => {
+    expect(parse({ grace: '7' }).grace).toBe(7);
+  });
+
+  it('rejects "8" as out-of-range', () => {
+    const result = streakParamsSchema.safeParse({ user: 'octocat', grace: '8' });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects "-1" and returns correct error message', () => {
+    const result = streakParamsSchema.safeParse({ user: 'octocat', grace: '-1' });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.flatten().fieldErrors.grace?.[0]).toBe(
+        'grace must be an integer between 0 and 7'
+      );
+    }
+  });
+
+  it('rejects a negative non-integer grace input', () => {
+    const result = streakParamsSchema.safeParse({ user: 'octocat', grace: '-1.5' });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects non-numeric grace value', () => {
+    const result = streakParamsSchema.safeParse({ user: 'octocat', grace: 'abc' });
+    expect(result.success).toBe(false);
+  });
+
+  it('defaults to 1 when grace is omitted', () => {
+    expect(parse({}).grace).toBe(1);
+  });
+
+  it('defaults to 1 when grace is empty string', () => {
+    expect(parse({ grace: '' }).grace).toBe(1);
+  });
+});
+
+describe('validateGitHubUsername', () => {
+  it('returns true for a valid username', () => {
+    expect(validateGitHubUsername('valid-username-123')).toBe(true);
+  });
+
+  it('returns false for a too long username', () => {
+    expect(validateGitHubUsername('a'.repeat(40))).toBe(false);
+  });
+
+  it('returns false for a username with underscore', () => {
+    expect(validateGitHubUsername('invalid_username')).toBe(false);
+  });
+
+  it('returns false for empty string', () => {
+    expect(validateGitHubUsername('')).toBe(false);
+  });
+
+  it('returns false for leading hyphen', () => {
+    expect(validateGitHubUsername('-octocat')).toBe(false);
+  });
+
+  it('returns false for trailing hyphen', () => {
+    expect(validateGitHubUsername('octocat-')).toBe(false);
+  });
+
+  it('returns false for consecutive hyphens', () => {
+    expect(validateGitHubUsername('octo--cat')).toBe(false);
+  });
+});
 
 describe('githubParamsSchema', () => {
   it('should pass when username is valid', () => {
@@ -51,6 +133,7 @@ describe('githubParamsSchema', () => {
     }
   });
 });
+
 describe('streakParamsSchema user validation', () => {
   it('should pass when user is valid', () => {
     const result = streakParamsSchema.safeParse({
@@ -58,6 +141,47 @@ describe('streakParamsSchema user validation', () => {
     });
 
     expect(result.success).toBe(true);
+  });
+
+  it('should pass when user is a comma-separated list of valid usernames', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat, JhaSourav07, nishtha-agarwal-211',
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it('should fail when one of the usernames in the list is invalid', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat, invalid_name_with_spaces',
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toBe('Invalid GitHub username');
+    }
+  });
+
+  it('should fail when one of the usernames in the list exceeds 39 characters', () => {
+    const result = streakParamsSchema.safeParse({
+      user: `octocat, ${'a'.repeat(40)}`,
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toBe('GitHub username cannot exceed 39 characters');
+    }
+  });
+
+  it('should fail when list has empty usernames due to consecutive or trailing commas', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat, , JhaSourav07',
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toBe('Invalid GitHub username');
+    }
   });
 });
 
@@ -110,6 +234,20 @@ describe('streakParamsSchema', () => {
 
     if (result.success) {
       expect(result.data.mode).toBe('commits');
+    }
+  });
+
+  it('should fail when grace is below the minimum value of 0', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      grace: '-1',
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.flatten().fieldErrors.grace?.[0]).toBe(
+        'grace must be an integer between 0 and 7'
+      );
     }
   });
 
@@ -227,6 +365,17 @@ describe('streakParamsSchema', () => {
     }
   });
 
+  it('should reject user values longer than 39 characters', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'a'.repeat(40),
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toContain('cannot exceed 39 characters');
+    }
+  });
+
   it('should fail when user is whitespace-only input', () => {
     const result = streakParamsSchema.safeParse({
       user: '   ',
@@ -259,6 +408,7 @@ describe('streakParamsSchema', () => {
       expect(result.error.issues[0]?.message).toBe('Invalid GitHub username');
     }
   });
+
   it('should accept delta_format percent', () => {
     const result = streakParamsSchema.safeParse({
       user: 'octocat',
@@ -322,51 +472,159 @@ describe('streakParamsSchema', () => {
       expect(result.data.delta_format).toBe('percent');
     }
   });
+
+  it('rejects invalid IANA timezone names', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      tz: 'Mars/Cyonia',
+    });
+
+    expect(result.success).toBe(false);
+
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toBe('Invalid timezone');
+    }
+  });
 });
 
-it('should succeed when username contains hyphens', () => {
-  const result = streakParamsSchema.safeParse({
-    user: 'valid-user',
+describe('streakParamsSchema — user hyphen validation', () => {
+  it('should succeed when username contains hyphens', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'valid-user',
+    });
+
+    expect(result.success).toBe(true);
   });
 
-  expect(result.success).toBe(true);
-});
+  it('should succeed when username contains multiple hyphens', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'valid-user-name-123',
+    });
 
-it('should succeed when username contains multiple hyphens', () => {
-  const result = streakParamsSchema.safeParse({
-    user: 'valid-user-name-123',
+    expect(result.success).toBe(true);
   });
 
-  expect(result.success).toBe(true);
-});
+  it('should fail when username ends with hyphen', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'user-',
+    });
 
-it('should fail when username ends with hyphen', () => {
-  const result = streakParamsSchema.safeParse({
-    user: 'user-',
+    expect(result.success).toBe(false);
   });
 
-  expect(result.success).toBe(false);
-});
+  it('should fail when username starts with hyphen', () => {
+    const result = streakParamsSchema.safeParse({
+      user: '-user',
+    });
 
-it('should fail when username starts with hyphen', () => {
-  const result = streakParamsSchema.safeParse({
-    user: '-user',
+    expect(result.success).toBe(false);
   });
 
-  expect(result.success).toBe(false);
+  it('should fail when username contains consecutive hyphens', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'user--name',
+    });
+
+    expect(result.success).toBe(false);
+  });
 });
 
-it('should fail when username contains consecutive hyphens', () => {
-  const result = streakParamsSchema.safeParse({
-    user: 'user--name',
+describe('streakParamsSchema — grace validation', () => {
+  it('accepts grace=0', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      grace: '0',
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.grace).toBe(0);
+    }
   });
 
-  expect(result.success).toBe(false);
-});
+  it('accepts grace=7', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      grace: '7',
+    });
 
-function parse(params: Record<string, string>) {
-  return streakParamsSchema.parse({ user: 'octocat', ...params });
-}
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.grace).toBe(7);
+    }
+  });
+
+  it('accepts grace=3', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      grace: '3',
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.grace).toBe(3);
+    }
+  });
+
+  it('defaults to 1 when grace is omitted', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.grace).toBe(1);
+    }
+  });
+
+  it('rejects grace=-1', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      grace: '-1',
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toBe('grace must be an integer between 0 and 7');
+    }
+  });
+
+  it('rejects grace=8 (exceeds max)', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      grace: '8',
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toBe('grace must be an integer between 0 and 7');
+    }
+  });
+
+  it('rejects non-numeric grace value', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      grace: 'abc',
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toBe('grace must be an integer between 0 and 7');
+    }
+  });
+
+  it('rejects float grace value', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      grace: '5.5',
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toBe('grace must be an integer between 0 and 7');
+    }
+  });
+});
 
 describe('streakParamsSchema — scale fallback behavior', () => {
   it('accepts "log" as a valid scale value', () => {
@@ -414,6 +672,7 @@ describe('streakParamsSchema — size fallback behavior', () => {
   it('falls back to "medium" for empty string', () => {
     expect(parse({ size: '' }).size).toBe('medium');
   });
+
   it('should accept org parameter when provided', () => {
     const result = streakParamsSchema.safeParse({
       user: 'octocat',
@@ -427,6 +686,18 @@ describe('streakParamsSchema — size fallback behavior', () => {
     }
   });
 
+  it('should fail when org contains invalid characters', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      org: 'invalid_org_name_with_spaces',
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.flatten().fieldErrors.org?.[0]).toBe('Invalid organization name format');
+    }
+  });
+
   it('should keep org undefined when omitted', () => {
     const result = streakParamsSchema.safeParse({
       user: 'octocat',
@@ -436,6 +707,18 @@ describe('streakParamsSchema — size fallback behavior', () => {
 
     if (result.success) {
       expect(result.data.org).toBeUndefined();
+    }
+  });
+
+  it('should fail when org contains invalid characters or spaces', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      org: 'invalid_org_name_with_spaces',
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toBe('Invalid organization name format');
     }
   });
 
@@ -571,6 +854,52 @@ describe('streakParamsSchema — boolean transform fields', () => {
       expect(parse({}).hide_background).toBe(false);
     });
   });
+
+  // ── glow ──────────────────────────────────────────────────────────────────
+  describe('glow', () => {
+    it('returns true when glow="true"', () => {
+      expect(parse({ glow: 'true' }).glow).toBe(true);
+    });
+
+    it('returns true when glow="1"', () => {
+      expect(parse({ glow: '1' }).glow).toBe(true);
+    });
+
+    it('returns false when glow="false"', () => {
+      expect(parse({ glow: 'false' }).glow).toBe(false);
+    });
+
+    it('returns true when glow is omitted', () => {
+      expect(parse({}).glow).toBe(true);
+    });
+  });
+});
+
+describe('streakParamsSchema — org parameter validation', () => {
+  it('should reject org parameter with spaces and special characters', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      org: 'invalid_org_name_with_spaces',
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const fieldError = result.error.flatten().fieldErrors.org?.[0];
+      expect(fieldError).toBe('Invalid organization name format');
+    }
+  });
+
+  it('should reject org parameter with invalid alphanumeric format', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      org: 'invalid_org_name_with_spaces',
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.flatten().fieldErrors.org?.[0]).toBe('Invalid organization name format');
+    }
+  });
 });
 
 describe('ogParamsSchema', () => {
@@ -627,6 +956,65 @@ describe('ogParamsSchema', () => {
     const result = ogParamsSchema.parse({});
     expect(result.user).toBe('unknown');
   });
+
+  it('should fallback to "dark" when an invalid theme is provided', () => {
+    const result = ogParamsSchema.safeParse({ theme: 'nonexistent_theme_name' });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.theme).toBe('dark');
+    }
+  });
+
+  it('falls back to dark theme when theme parameter is an empty string', () => {
+    const result = ogParamsSchema.safeParse({ theme: '' });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.theme).toBe('dark');
+    }
+  });
+});
+
+describe('streakParamsSchema — theme validation', () => {
+  it('rejects an invalid theme value with 400 validation error listing allowed themes', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      theme: 'nonexistent_theme_name',
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const fieldError = result.error.flatten().fieldErrors.theme?.[0];
+      expect(fieldError).toContain('Invalid theme. Supported themes:');
+      expect(fieldError).toContain('dark');
+      expect(fieldError).toContain('light');
+      expect(fieldError).toContain('neon');
+    }
+  });
+
+  it('should reject nonexistent_theme_name and verify allowed themes are listed in error', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      theme: 'nonexistent_theme_name',
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const fieldErrors = result.error.flatten().fieldErrors;
+      expect(fieldErrors.theme).toBeDefined();
+      const errorMessage = fieldErrors.theme?.[0];
+      expect(errorMessage).toContain('Invalid theme');
+      expect(errorMessage).toContain('Supported themes:');
+      expect(errorMessage).toContain('auto');
+      expect(errorMessage).toContain('random');
+      expect(errorMessage).toContain('dark');
+      expect(errorMessage).toContain('light');
+      expect(errorMessage).toContain('neon');
+      expect(errorMessage).toContain('github');
+      expect(errorMessage).toContain('dracula');
+    }
+  });
 });
 
 describe('streakParamsSchema — view fallback behavior', () => {
@@ -644,5 +1032,364 @@ describe('streakParamsSchema — view fallback behavior', () => {
 
   it('defaults to "default" when view is omitted', () => {
     expect(parse({}).view).toBe('default');
+  });
+});
+
+describe('streakParamsSchema — accent parameter HEX color validation', () => {
+  it('rejects an invalid hex color like "#ZZZZZZ" for accent', () => {
+    // #ZZZZZZ contains non-hex characters — must fail schema validation
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      accent: '#ZZZZZZ',
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects an invalid hex color like "#ZZZZZZ" for accent (Variation 4)', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      accent: '#ZZZZZZ',
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects an invalid hex color like "#ZZZZZZ" for accent (Variation 5)', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      accent: '#ZZZZZZ',
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      // This extra check ensures Variation 5 isn't just a duplicate,
+      // but a stricter validation check!
+      expect(result.error.issues[0]?.message).toContain(
+        'accent must be a valid hex color (with or without #)'
+      );
+    }
+  });
+
+  it('rejects the invalid boundary hex color "#ZZZZZZ" for accent', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      accent: '#ZZZZZZ',
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toContain(
+        'accent must be a valid hex color (with or without #)'
+      );
+    }
+  });
+
+  it('accepts a valid 6-character hex color for accent', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      accent: 'ff0000',
+    });
+
+    expect(result.success).toBe(true);
+  });
+});
+
+/* ==========================================================================
+ * DATE RANGE BOUNDARY ROBUSTNESS (VARIATION 1)
+ * ========================================================================== */
+
+describe('streakParamsSchema — Date Range Boundary Robustness (Variation 1)', () => {
+  it('should process validation safely and fallback when partial or missing year parameters are passed', () => {
+    // Arrange: Provide a mock payload missing a full YYYY format sequence
+    const partialYearPayload = {
+      user: 'octocat',
+      from: '05-12',
+      to: '05-30',
+    };
+
+    // Act: Pass the object through the validator schema matrix
+    const result = streakParamsSchema.safeParse(partialYearPayload);
+
+    // Assert: The validator handles it safely using implicit date engine fallbacks
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.from).toBeDefined();
+      expect(result.data.to).toBeDefined();
+    }
+  });
+
+  it('should pass cleanly and fallback to default ranges when date bounds are completely omitted', () => {
+    // Arrange: Pass only the bare minimum required parameters
+    const minimalPayload = {
+      user: 'octocat',
+    };
+
+    // Act
+    const result = streakParamsSchema.safeParse(minimalPayload);
+
+    // Assert: Verify that omitted range options return undefined to use downstream defaults smoothly
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.from).toBeUndefined();
+      expect(result.data.to).toBeUndefined();
+    }
+  });
+});
+
+/* ==========================================================================
+ * TZ PARAMETER — IANA TIMEZONE VALIDATION (VARIATION 4)
+ * ========================================================================== */
+
+describe('streakParamsSchema — tz IANA timezone validation (Variation 4)', () => {
+  it('rejects a fictitious planetary timezone that is not a valid IANA zone', () => {
+    // Mars/Cyonia looks structurally plausible (Region/City format) but does not
+    // exist in the IANA tz database, so Intl.DateTimeFormat must throw and the
+    // schema must surface a field-level validation error.
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      tz: 'Mars/Cyonia',
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toContain('Invalid timezone');
+    }
+  });
+});
+
+/* ==========================================================================
+ * LAYOUT PARAMETER — QUERY VALIDATION BOUNDARIES (VARIATION 2)
+ * ========================================================================== */
+
+describe('streakParamsSchema — layout query validation boundaries (Variation 2)', () => {
+  it('rejects unsupported_layout and marks the parse as failed', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      layout: 'unsupported_layout',
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it('surfaces a meaningful error message for unsupported_layout', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      layout: 'unsupported_layout',
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const messages = result.error.issues.map((i) => i.message).join(' ');
+      expect(messages).toContain('Invalid layout format');
+    }
+  });
+
+  it('accepts "default" as a valid layout value', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      layout: 'default',
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it('accepts "compact" as a valid layout value', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      layout: 'compact',
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it('accepts "full" as a valid layout value', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      layout: 'full',
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it('treats omitted layout as undefined (no validation error)', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.layout).toBeUndefined();
+    }
+  });
+});
+
+describe('streakParamsSchema — case-insensitive theme matching', () => {
+  it('accepts lowercase theme parameters', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      theme: 'neon',
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.theme).toBe('neon');
+    }
+  });
+
+  it('accepts uppercase theme parameters and maps correctly', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      theme: 'NEON',
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      // Maps capitalized input back to lowercase registry key
+      expect(result.data.theme).toBe('neon');
+    }
+  });
+
+  it('accepts mixed-case theme parameters and maps correctly', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      theme: 'DrAcUlA',
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.theme).toBe('dracula');
+    }
+  });
+
+  it('rejects completely invalid theme name', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      theme: 'fictionaltheme',
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
+/* ==========================================================================
+ * USER PARAMETER — QUERY VALIDATION BOUNDARIES (VARIATION 3)
+ * ========================================================================== */
+
+describe('streakParamsSchema user maxLength validation boundaries (Variation 3)', () => {
+  it('rejects a GitHub username that exceeds the 39 character length threshold', () => {
+    const invalidPayload = {
+      user: 'a'.repeat(40),
+    };
+
+    const parseResult = streakParamsSchema.safeParse(invalidPayload);
+
+    expect(parseResult.success).toBe(false);
+    if (!parseResult.success) {
+      const fieldErrors = parseResult.error.flatten().fieldErrors;
+      expect(fieldErrors.user).toBeDefined();
+      expect(fieldErrors.user?.[0]).toContain('cannot exceed 39 characters');
+    }
+  });
+
+  it('accepts a username exactly at the upper limit of 39 characters', () => {
+    const validPayload = {
+      user: 'a'.repeat(39),
+    };
+
+    const parseResult = streakParamsSchema.safeParse(validPayload);
+    expect(parseResult.success).toBe(true);
+  });
+});
+
+/* ==========================================================================
+ * DATE PARAMETER — QUERY VALIDATION BOUNDARIES (VARIATION 4)
+ * ========================================================================== */
+
+describe('streakParamsSchema — date query validation boundaries (Variation 4)', () => {
+  it('rejects an invalid date format like "2026-15-40"', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      date: '2026-15-40',
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const messages = result.error.issues.map((i) => i.message).join(' ');
+      expect(messages).toContain('Invalid "date" format. Use ISO 8601.');
+    }
+  });
+
+  it('accepts a valid ISO8601 date', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      date: '2026-05-30',
+    });
+
+    expect(result.success).toBe(true);
+  });
+});
+
+/* ==========================================================================
+ * LAYOUT PARAMETER — QUERY VALIDATION BOUNDARIES (VARIATION 4)
+ * ========================================================================== */
+
+describe('streakParamsSchema — layout query validation boundaries (Variation 4)', () => {
+  it('rejects unsupported_layout and marks the parse as failed', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      layout: 'unsupported_layout',
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it('surfaces a meaningful error message for unsupported_layout', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      layout: 'unsupported_layout',
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const messages = result.error.issues.map((i) => i.message).join(' ');
+      expect(messages).toContain(
+        'Invalid layout format. Supported values: default, compact, full.'
+      );
+    }
+  });
+
+  it('accepts "default" as a valid layout value', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      layout: 'default',
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it('accepts "compact" as a valid layout value', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      layout: 'compact',
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it('accepts "full" as a valid layout value', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      layout: 'full',
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it('treats omitted layout as undefined (no validation error)', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.layout).toBeUndefined();
+    }
   });
 });

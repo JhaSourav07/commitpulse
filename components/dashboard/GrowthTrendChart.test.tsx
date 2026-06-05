@@ -94,4 +94,127 @@ describe('GrowthTrendChart', () => {
     const pathElements = container.querySelectorAll('path');
     expect(pathElements.length).toBeGreaterThanOrEqual(2);
   });
+
+  // =========================================================================
+  // ISSUE #1528: Verify responsive rendering and gradient elements
+  // =========================================================================
+  it('renders gradient definitions for area fills', () => {
+    const { container } = render(
+      <GrowthTrendChart
+        activityA={activityA}
+        activityB={activityB}
+        labelA="User A"
+        labelB="User B"
+      />
+    );
+
+    const defs = container.querySelector('defs');
+    expect(defs).not.toBeNull();
+
+    const gradientA = container.querySelector('linearGradient[id$="-gradient-area-a"]');
+    const gradientB = container.querySelector('linearGradient[id$="-gradient-area-b"]');
+    expect(gradientA).not.toBeNull();
+    expect(gradientB).not.toBeNull();
+    expect(gradientA?.tagName).toBe('linearGradient');
+    expect(gradientB?.tagName).toBe('linearGradient');
+  });
+
+  it('renders glow filter definitions for line strokes', () => {
+    const { container } = render(
+      <GrowthTrendChart
+        activityA={activityA}
+        activityB={activityB}
+        labelA="User A"
+        labelB="User B"
+      />
+    );
+
+    const glowA = container.querySelector('filter[id$="-glow-line-a"]');
+    const glowB = container.querySelector('filter[id$="-glow-line-b"]');
+    expect(glowA).not.toBeNull();
+    expect(glowB).not.toBeNull();
+    expect(glowA?.tagName).toBe('filter');
+    expect(glowB?.tagName).toBe('filter');
+  });
+
+  it('renders grid lines for chart orientation', () => {
+    const { container } = render(
+      <GrowthTrendChart
+        activityA={activityA}
+        activityB={activityB}
+        labelA="User A"
+        labelB="User B"
+      />
+    );
+
+    const gridLines = container.querySelectorAll('line');
+    expect(gridLines.length).toBeGreaterThanOrEqual(4);
+  });
+
+  it('renders Y-axis labels for value reference', () => {
+    const { container } = render(
+      <GrowthTrendChart
+        activityA={activityA}
+        activityB={activityB}
+        labelA="User A"
+        labelB="User B"
+      />
+    );
+
+    const yLabels = container.querySelectorAll('text[text-anchor="end"]');
+    expect(yLabels.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('renders X-axis month labels at regular intervals', () => {
+    const { container } = render(
+      <GrowthTrendChart
+        activityA={activityA}
+        activityB={activityB}
+        labelA="User A"
+        labelB="User B"
+      />
+    );
+
+    const xLabels = container.querySelectorAll('text[text-anchor="middle"]');
+    expect(xLabels.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('uses viewBox for responsive scaling', () => {
+    const { container } = render(
+      <GrowthTrendChart
+        activityA={activityA}
+        activityB={activityB}
+        labelA="User A"
+        labelB="User B"
+      />
+    );
+
+    const svgElement = container.querySelector('svg');
+    expect(svgElement).not.toBeNull();
+    expect(svgElement?.getAttribute('viewBox')).toBe('0 0 500 180');
+    expect(svgElement?.getAttribute('class')).toContain('w-full');
+  });
+
+  it('handles empty activity data gracefully without crashing', () => {
+    const { container } = render(
+      <GrowthTrendChart activityA={[]} activityB={[]} labelA="User A" labelB="User B" />
+    );
+
+    const svgElement = container.querySelector('svg');
+    expect(svgElement).not.toBeNull();
+  });
+
+  it('handles single data point without crashing', () => {
+    const { container } = render(
+      <GrowthTrendChart
+        activityA={[{ date: '2026-05-01', count: 5 }]}
+        activityB={[{ date: '2026-05-02', count: 3 }]}
+        labelA="User A"
+        labelB="User B"
+      />
+    );
+
+    const svgElement = container.querySelector('svg');
+    expect(svgElement).not.toBeNull();
+  });
 });

@@ -37,7 +37,7 @@ export function HeroSection() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.3 }}
-        className="relative text-gray-600 dark:text-gray-300 text-lg md:text-xl max-w-2xl mx-auto leading-relaxed"
+        className="relative text-gray-600 dark:text-white/65 text-lg md:text-xl max-w-2xl mx-auto leading-relaxed"
       >
         Stop settling for flat grids. Generate high-fidelity, 3D isometric monoliths that visualize
         your coding rhythm with professional precision.
@@ -72,7 +72,7 @@ export function HeroSection() {
         <input
           type="text"
           placeholder="Enter GitHub Username"
-          className="flex-1 w-full bg-transparent border-none px-4 py-3 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-0 dark:text-white dark:placeholder-gray-500"
+          className="flex-1 w-full bg-transparent border-none px-4 py-3 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-0 dark:text-white dark:placeholder-white/60"
         />
         <button className="flex items-center gap-2 px-6 py-3 rounded-xl border border-gray-200 bg-gray-50 text-gray-700 font-medium transition hover:bg-gray-100 dark:border-white/20 dark:bg-white/10 dark:text-white dark:hover:bg-white/20">
           <Copy size={18} />

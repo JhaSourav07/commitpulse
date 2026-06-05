@@ -17,13 +17,16 @@ const baseParams = {
   scale: 'linear' as const,
   speed: sanitizeSpeed('8s'),
 };
+const startDate = new Date('2026-05-01');
 
 const calendar = {
   totalContributions: 1240,
   weeks: Array.from({ length: 14 }, (_, weekIndex) => ({
     contributionDays: Array.from({ length: 7 }, (_, dayIndex) => ({
       contributionCount: Math.floor(Math.random() * 20),
-      date: `2026-05-${String(weekIndex * 7 + dayIndex + 1).padStart(2, '0')}`,
+      date: new Date(startDate.getTime() + (weekIndex * 7 + dayIndex) * 24 * 60 * 60 * 1000)
+        .toISOString()
+        .split('T')[0],
     })),
   })),
 };

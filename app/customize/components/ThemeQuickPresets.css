@@ -92,3 +92,28 @@
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.85);
 }
+.theme-quick-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  width: 100%;
+  max-width: 100%;
+}
+
+@media (max-width: 640px) {
+  .theme-quick-presets {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    width: 100%;
+    max-width: calc(100vw - 96px);
+    padding-bottom: 8px;
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .theme-quick-presets .tqp-btn {
+    flex: 0 0 auto;
+    scroll-snap-align: start;
+  }
+}

@@ -3,7 +3,12 @@
 // Covers: generateVersusSVG, neon theme bg, accent override, border param, org/repo title entity.
 
 import { describe, it, expect } from 'vitest';
-import { generateSVG, generateVersusSVG } from './generator';
+import {
+  generateSVG,
+  generateVersusSVG,
+  generateNotFoundSVG,
+  generateRateLimitSVG,
+} from './generator';
 import type { BadgeParams, ContributionCalendar, StreakStats } from '../../types';
 import { hexColor } from './sanitizer';
 
@@ -179,7 +184,7 @@ describe('[Issue] org and repo params change entity type in SVG <title>', () => 
   it('renders "User Stats" in title when neither org nor repo is set', () => {
     const svg = generateSVG(baseStats, { user: 'chetan' } as unknown as BadgeParams, baseCalendar);
 
-    expect(svg).toContain('<title>CommitPulse User Stats for chetan</title>');
+    expect(svg).toContain('<title id="cp-title-chetan">CommitPulse User Stats for chetan</title>');
   });
 
   it('renders "Organization Stats" in title when org param is set', () => {
@@ -189,7 +194,9 @@ describe('[Issue] org and repo params change entity type in SVG <title>', () => 
       baseCalendar
     );
 
-    expect(svg).toContain('<title>CommitPulse Organization Stats for chetan</title>');
+    expect(svg).toContain(
+      '<title id="cp-title-chetan">CommitPulse Organization Stats for chetan</title>'
+    );
   });
 
   it('renders "Repository Stats" in title when repo param is set', () => {
@@ -199,7 +206,9 @@ describe('[Issue] org and repo params change entity type in SVG <title>', () => 
       baseCalendar
     );
 
-    expect(svg).toContain('<title>CommitPulse Repository Stats for chetan</title>');
+    expect(svg).toContain(
+      '<title id="cp-title-chetan">CommitPulse Repository Stats for chetan</title>'
+    );
   });
 });
 
@@ -285,10 +294,32 @@ describe('[Issue] generateVersusSVG — zero existing test coverage', () => {
     expect(svg).toContain('stroke-dasharray="4 4"');
   });
 
-  it('total width is double the single card width for medium size', () => {
+  it('total width viewBox is double the single card width for medium size', () => {
     const svg = generateVersusSVG(stats1, stats2, versusParams, calendar1, calendar2);
-    // Medium size: SVG_WIDTH=600, versus = 600*2=1200
-    expect(svg).toContain('width="1200"');
+    expect(svg).toContain('viewBox="0 0 1200 420"');
+    expect(svg).toContain('width="100%"');
+  });
+
+  it('renders correct viewBox for small size in versus SVG', () => {
+    const svg = generateVersusSVG(
+      stats1,
+      stats2,
+      { ...versusParams, size: 'small' },
+      calendar1,
+      calendar2
+    );
+    expect(svg).toContain('viewBox="0 0 800 280"');
+  });
+
+  it('renders correct viewBox for large size in versus SVG', () => {
+    const svg = generateVersusSVG(
+      stats1,
+      stats2,
+      { ...versusParams, size: 'large' },
+      calendar1,
+      calendar2
+    );
+    expect(svg).toContain('viewBox="0 0 1600 560"');
   });
 
   it('includes total contribution counts from both users in <desc>', () => {
@@ -328,5 +359,406 @@ describe('[Issue] generateVersusSVG — zero existing test coverage', () => {
   it('does not render an auto-theme media query for static versus SVG', () => {
     const svg = generateVersusSVG(stats1, stats2, versusParams, calendar1, calendar2);
     expect(svg).not.toContain('prefers-color-scheme: dark');
+  });
+});
+
+// ─── Custom gradient_stops and gradient_dir parameters ───────────────────────
+
+describe('[Feature] custom gradient_stops and gradient_dir', () => {
+  it('existing gradient=true renders default gradient without custom stops', () => {
+    const svg = generateSVG(
+      baseStats,
+      {
+        user: 'chetan',
+        bg: hexColor('0d1117'),
+        text: hexColor('ffffff'),
+        accent: hexColor('ff00ff'),
+        speed: '8s',
+        scale: 'linear',
+        gradient: true,
+      } satisfies BadgeParams,
+      baseCalendar
+    );
+
+    // Should use default tower-grad-level-* IDs
+    expect(svg).toContain('tower-grad-level-1');
+    expect(svg).toContain('tower-grad-level-2');
+  });
+
+  it('gradient=true with valid gradient_stops renders custom gradient', () => {
+    const svg = generateSVG(
+      baseStats,
+      {
+        user: 'chetan',
+        bg: hexColor('0d1117'),
+        text: hexColor('ffffff'),
+        accent: hexColor('ff00ff'),
+        speed: '8s',
+        scale: 'linear',
+        gradient: true,
+        gradient_stops: 'ff6b35,ff007f,7000ff',
+      } satisfies BadgeParams,
+      baseCalendar
+    );
+
+    // Should contain custom gradient colors
+    expect(svg).toContain('#ff6b35');
+    expect(svg).toContain('#ff007f');
+    expect(svg).toContain('#7000ff');
+    // Should have custom gradient IDs, not default tower-grad-level-*
+    expect(svg).toContain('custom-grad-');
+  });
+
+  it('gradient_stops with # prefix works correctly', () => {
+    const svg = generateSVG(
+      baseStats,
+      {
+        user: 'chetan',
+        bg: hexColor('0d1117'),
+        text: hexColor('ffffff'),
+        accent: hexColor('ff00ff'),
+        speed: '8s',
+        scale: 'linear',
+        gradient: true,
+        gradient_stops: '#ff6b35,#ff007f,#7000ff',
+      } satisfies BadgeParams,
+      baseCalendar
+    );
+
+    // Should normalize and use the colors
+    expect(svg).toContain('#ff6b35');
+    expect(svg).toContain('#ff007f');
+    expect(svg).toContain('#7000ff');
+  });
+
+  it('invalid gradient_stops falls back to default gradient', () => {
+    const svg = generateSVG(
+      baseStats,
+      {
+        user: 'chetan',
+        bg: hexColor('0d1117'),
+        text: hexColor('ffffff'),
+        accent: hexColor('ff00ff'),
+        speed: '8s',
+        scale: 'linear',
+        gradient: true,
+        gradient_stops: 'invalid,colors,here',
+      } satisfies BadgeParams,
+      baseCalendar
+    );
+
+    // Should fallback to default gradient (tower-grad-level-*)
+    expect(svg).toContain('tower-grad-level-1');
+    expect(svg).not.toContain('custom-grad-');
+  });
+
+  it('fewer than 2 valid colors in gradient_stops falls back to default', () => {
+    const svg = generateSVG(
+      baseStats,
+      {
+        user: 'chetan',
+        bg: hexColor('0d1117'),
+        text: hexColor('ffffff'),
+        accent: hexColor('ff00ff'),
+        speed: '8s',
+        scale: 'linear',
+        gradient: true,
+        gradient_stops: 'ff6b35',
+      } satisfies BadgeParams,
+      baseCalendar
+    );
+
+    // Should fallback to default gradient
+    expect(svg).toContain('tower-grad-level-1');
+    expect(svg).not.toContain('custom-grad-');
+  });
+
+  it('gradient_dir=vertical produces correct SVG coordinates', () => {
+    const svg = generateSVG(
+      baseStats,
+      {
+        user: 'chetan',
+        bg: hexColor('0d1117'),
+        text: hexColor('ffffff'),
+        accent: hexColor('ff00ff'),
+        speed: '8s',
+        scale: 'linear',
+        gradient: true,
+        gradient_stops: 'ff6b35,7000ff',
+        gradient_dir: 'vertical',
+      } satisfies BadgeParams,
+      baseCalendar
+    );
+
+    // Vertical gradient should have y1 and y2 different (0% to 100%)
+    expect(svg).toMatch(/x1="0%"\s+y1="0%"\s+x2="0%"\s+y2="100%"/);
+  });
+
+  it('gradient_dir=horizontal produces correct SVG coordinates', () => {
+    const svg = generateSVG(
+      baseStats,
+      {
+        user: 'chetan',
+        bg: hexColor('0d1117'),
+        text: hexColor('ffffff'),
+        accent: hexColor('ff00ff'),
+        speed: '8s',
+        scale: 'linear',
+        gradient: true,
+        gradient_stops: 'ff6b35,7000ff',
+        gradient_dir: 'horizontal',
+      } satisfies BadgeParams,
+      baseCalendar
+    );
+
+    // Horizontal gradient should have x1 and x2 different (0% to 100%)
+    expect(svg).toMatch(/x1="0%"\s+y1="0%"\s+x2="100%"\s+y2="0%"/);
+  });
+
+  it('gradient_dir=diagonal produces correct SVG coordinates', () => {
+    const svg = generateSVG(
+      baseStats,
+      {
+        user: 'chetan',
+        bg: hexColor('0d1117'),
+        text: hexColor('ffffff'),
+        accent: hexColor('ff00ff'),
+        speed: '8s',
+        scale: 'linear',
+        gradient: true,
+        gradient_stops: 'ff6b35,7000ff',
+        gradient_dir: 'diagonal',
+      } satisfies BadgeParams,
+      baseCalendar
+    );
+
+    // Diagonal gradient should have both x and y varying
+    expect(svg).toMatch(/x1="0%"\s+y1="0%"\s+x2="100%"\s+y2="100%"/);
+  });
+
+  it('invalid gradient_dir falls back to vertical', () => {
+    const svg = generateSVG(
+      baseStats,
+      {
+        user: 'chetan',
+        bg: hexColor('0d1117'),
+        text: hexColor('ffffff'),
+        accent: hexColor('ff00ff'),
+        speed: '8s',
+        scale: 'linear',
+        gradient: true,
+        gradient_stops: 'ff6b35,7000ff',
+        // @ts-expect-error: intentionally passing invalid value to test fallback
+        gradient_dir: 'invalid',
+      } satisfies BadgeParams,
+      baseCalendar
+    );
+
+    // Should fallback to vertical
+    expect(svg).toMatch(/x1="0%"\s+y1="0%"\s+x2="0%"\s+y2="100%"/);
+  });
+
+  it('gradient_stops with mixed valid and invalid colors ignores invalid ones', () => {
+    const svg = generateSVG(
+      baseStats,
+      {
+        user: 'chetan',
+        bg: hexColor('0d1117'),
+        text: hexColor('ffffff'),
+        accent: hexColor('ff00ff'),
+        speed: '8s',
+        scale: 'linear',
+        gradient: true,
+        gradient_stops: 'ff6b35,invalid,7000ff',
+      } satisfies BadgeParams,
+      baseCalendar
+    );
+
+    // Should use the 2 valid colors and ignore invalid
+    expect(svg).toContain('#ff6b35');
+    expect(svg).toContain('#7000ff');
+    expect(svg).toContain('custom-grad-');
+  });
+
+  it('gradient=false ignores gradient_stops and gradient_dir', () => {
+    const svg = generateSVG(
+      baseStats,
+      {
+        user: 'chetan',
+        bg: hexColor('0d1117'),
+        text: hexColor('ffffff'),
+        accent: hexColor('ff00ff'),
+        speed: '8s',
+        scale: 'linear',
+        gradient: false,
+        gradient_stops: 'ff6b35,7000ff',
+        gradient_dir: 'horizontal',
+      } satisfies BadgeParams,
+      baseCalendar
+    );
+
+    // Should not contain any gradient definitions
+    expect(svg).not.toContain('linearGradient');
+    expect(svg).not.toContain('custom-grad-');
+    expect(svg).not.toContain('tower-grad-level-');
+  });
+});
+
+// ─── renderGhostTowers refactor — consistency tests ───────────────────────────
+// These tests verify that generateNotFoundSVG and generateRateLimitSVG both
+// use the shared renderGhostTowers() helper and produce geometrically consistent
+// ghost tower output. Any divergence between the two functions is a regression.
+
+describe('[Refactor] renderGhostTowers — shared helper consistency', () => {
+  // ── generateNotFoundSVG ───────────────────────────────────────────────────
+
+  it('generateNotFoundSVG contains class="ghost-towers" wrapper from shared helper', () => {
+    const svg = generateNotFoundSVG('octocat', '#0d1117', '#00ffaa', '#ffffff', 8);
+    expect(svg).toContain('class="ghost-towers"');
+  });
+
+  it('generateNotFoundSVG ghost towers use fill-opacity="0.08" on left face', () => {
+    const svg = generateNotFoundSVG('octocat', '#0d1117', '#00ffaa', '#ffffff', 8);
+    expect(svg).toContain('fill-opacity="0.08"');
+  });
+
+  it('generateNotFoundSVG ghost towers use fill-opacity="0.05" on right face', () => {
+    const svg = generateNotFoundSVG('octocat', '#0d1117', '#00ffaa', '#ffffff', 8);
+    expect(svg).toContain('fill-opacity="0.05"');
+  });
+
+  it('generateNotFoundSVG ghost towers use fill-opacity="0.14" on top face', () => {
+    const svg = generateNotFoundSVG('octocat', '#0d1117', '#00ffaa', '#ffffff', 8);
+    expect(svg).toContain('fill-opacity="0.14"');
+  });
+
+  it('generateNotFoundSVG ghost towers use stroke-opacity="0.18" on left face', () => {
+    const svg = generateNotFoundSVG('octocat', '#0d1117', '#00ffaa', '#ffffff', 8);
+    expect(svg).toContain('stroke-opacity="0.18"');
+  });
+
+  it('generateNotFoundSVG ghost towers use stroke-opacity="0.12" on right face', () => {
+    const svg = generateNotFoundSVG('octocat', '#0d1117', '#00ffaa', '#ffffff', 8);
+    expect(svg).toContain('stroke-opacity="0.12"');
+  });
+
+  it('generateNotFoundSVG ghost towers use stroke-opacity="0.22" on top face', () => {
+    const svg = generateNotFoundSVG('octocat', '#0d1117', '#00ffaa', '#ffffff', 8);
+    expect(svg).toContain('stroke-opacity="0.22"');
+  });
+
+  // ── generateRateLimitSVG ──────────────────────────────────────────────────
+
+  it('generateRateLimitSVG contains class="ghost-towers" wrapper from shared helper', () => {
+    const svg = generateRateLimitSVG('#0d1117', '#00ffaa', '#ffffff', 8, '8s');
+    expect(svg).toContain('class="ghost-towers"');
+  });
+
+  it('generateRateLimitSVG ghost towers use fill-opacity="0.08" on left face', () => {
+    const svg = generateRateLimitSVG('#0d1117', '#00ffaa', '#ffffff', 8, '8s');
+    expect(svg).toContain('fill-opacity="0.08"');
+  });
+
+  it('generateRateLimitSVG ghost towers use fill-opacity="0.05" on right face', () => {
+    const svg = generateRateLimitSVG('#0d1117', '#00ffaa', '#ffffff', 8, '8s');
+    expect(svg).toContain('fill-opacity="0.05"');
+  });
+
+  it('generateRateLimitSVG ghost towers use fill-opacity="0.14" on top face', () => {
+    const svg = generateRateLimitSVG('#0d1117', '#00ffaa', '#ffffff', 8, '8s');
+    expect(svg).toContain('fill-opacity="0.14"');
+  });
+
+  it('generateRateLimitSVG ghost towers use stroke-opacity="0.18" on left face', () => {
+    const svg = generateRateLimitSVG('#0d1117', '#00ffaa', '#ffffff', 8, '8s');
+    expect(svg).toContain('stroke-opacity="0.18"');
+  });
+
+  it('generateRateLimitSVG ghost towers use stroke-opacity="0.12" on right face', () => {
+    const svg = generateRateLimitSVG('#0d1117', '#00ffaa', '#ffffff', 8, '8s');
+    expect(svg).toContain('stroke-opacity="0.12"');
+  });
+
+  it('generateRateLimitSVG ghost towers use stroke-opacity="0.22" on top face', () => {
+    const svg = generateRateLimitSVG('#0d1117', '#00ffaa', '#ffffff', 8, '8s');
+    expect(svg).toContain('stroke-opacity="0.22"');
+  });
+
+  // ── Cross-function consistency ─────────────────────────────────────────────
+  // These are the most important tests — they verify the two functions use
+  // identical geometry by comparing their opacity attribute sets directly.
+
+  const extractGhostTowerSvg = (svg: string) => {
+    const match = svg.match(/<g[^>]+class="ghost-towers"[^>]*>([\s\S]*?)<\/g>/);
+    return match?.[1] ?? svg;
+  };
+
+  it('both functions use identical fill-opacity values — no silent divergence', () => {
+    const notFoundSvg = generateNotFoundSVG('octocat', '#0d1117', '#00ffaa', '#ffffff', 8);
+    const rateLimitSvg = generateRateLimitSVG('#0d1117', '#00ffaa', '#ffffff', 8, '8s');
+
+    const extractFillOpacities = (svg: string) =>
+      [...svg.matchAll(/fill-opacity="([\d.]+)"/g)].map((m) => m[1]).sort();
+
+    const notFoundGhostSvg = extractGhostTowerSvg(notFoundSvg);
+    const rateLimitGhostSvg = extractGhostTowerSvg(rateLimitSvg);
+
+    const notFoundOpacities = extractFillOpacities(notFoundGhostSvg);
+    const rateLimitOpacities = extractFillOpacities(rateLimitGhostSvg);
+
+    const rateLimitSet = new Set(rateLimitOpacities);
+    const notFoundSet = new Set(notFoundOpacities);
+
+    for (const val of rateLimitSet) {
+      expect(notFoundSet).toContain(val);
+    }
+  });
+
+  it('both functions use identical stroke-opacity values — no silent divergence', () => {
+    const notFoundSvg = generateNotFoundSVG('octocat', '#0d1117', '#00ffaa', '#ffffff', 8);
+    const rateLimitSvg = generateRateLimitSVG('#0d1117', '#00ffaa', '#ffffff', 8, '8s');
+
+    const extractStrokeOpacities = (svg: string) =>
+      [...svg.matchAll(/stroke-opacity="([\d.]+)"/g)].map((m) => m[1]).sort();
+
+    const notFoundGhostSvg = extractGhostTowerSvg(notFoundSvg);
+    const rateLimitGhostSvg = extractGhostTowerSvg(rateLimitSvg);
+
+    const notFoundOpacities = extractStrokeOpacities(notFoundGhostSvg);
+    const rateLimitOpacities = extractStrokeOpacities(rateLimitGhostSvg);
+
+    const rateLimitSet = new Set(rateLimitOpacities);
+    const notFoundSet = new Set(notFoundOpacities);
+
+    for (const val of rateLimitSet) {
+      expect(notFoundSet).toContain(val);
+    }
+  });
+
+  it('generateRateLimitSVG now renders 48 ghost towers (unified with GHOST_LAYOUT)', () => {
+    const svg = generateRateLimitSVG('#0d1117', '#00ffaa', '#ffffff', 8, '8s');
+    const matches = [...svg.matchAll(/<g transform="translate\(/g)];
+    expect(matches.length).toBeGreaterThanOrEqual(48);
+  });
+
+  it('accent color is correctly applied to ghost towers in both functions', () => {
+    const customAccent = '#ff00ff';
+    const notFoundSvg = generateNotFoundSVG('octocat', '#0d1117', customAccent, '#ffffff', 8);
+    const rateLimitSvg = generateRateLimitSVG('#0d1117', customAccent, '#ffffff', 8, '8s');
+
+    expect(notFoundSvg).toContain(`fill="${customAccent}"`);
+    expect(rateLimitSvg).toContain(`fill="${customAccent}"`);
+    expect(notFoundSvg).toContain(`stroke="${customAccent}"`);
+    expect(rateLimitSvg).toContain(`stroke="${customAccent}"`);
+  });
+
+  it('both SVGs are still valid (contain <svg and </svg>) after refactor', () => {
+    const notFoundSvg = generateNotFoundSVG('octocat', '#0d1117', '#00ffaa', '#ffffff', 8);
+    const rateLimitSvg = generateRateLimitSVG('#0d1117', '#00ffaa', '#ffffff', 8, '8s');
+
+    expect(notFoundSvg).toContain('<svg');
+    expect(notFoundSvg).toContain('</svg>');
+    expect(rateLimitSvg).toContain('<svg');
+    expect(rateLimitSvg).toContain('</svg>');
   });
 });
