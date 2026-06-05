@@ -42,21 +42,6 @@ const GENERIC_SKILL_BLACKLIST = new Set([
   'email',
   'address',
 ]);
-const SECTION_HEADERS = [
-  'summary',
-  'profile',
-  'about',
-  'objective',
-  'skills',
-  'technical skills',
-  'experience',
-  'work experience',
-  'employment',
-  'projects',
-  'certifications',
-  'education',
-  'contact',
-];
 const SINGLE_WORD_SKILL_ALLOWLIST = new Set([
   'react',
   'redux',
@@ -192,7 +177,11 @@ function extractSection(text: string, headers: RegExp): string[] {
 
 function extractSkills(text: string): string[] {
   const section = extractSection(text, SKILL_SECTION_HEADERS);
-  const sourceText = section.length > 0 ? section.join(' ') : text;
+  if (section.length === 0) {
+    return [];
+  }
+
+  const sourceText = section.join(' ');
   const rawSkills = sourceText
     .split(/[,•·;|/\n]+/)
     .map((s) => s.trim())

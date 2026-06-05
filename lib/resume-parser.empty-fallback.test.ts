@@ -13,6 +13,8 @@ describe('resume-parser-empty-fallback', () => {
       skills: [],
       education: [],
       experience: [],
+      projects: [],
+      certifications: [],
     });
   });
 
@@ -27,6 +29,8 @@ describe('resume-parser-empty-fallback', () => {
       skills: [],
       education: [],
       experience: [],
+      projects: [],
+      certifications: [],
     });
   });
 

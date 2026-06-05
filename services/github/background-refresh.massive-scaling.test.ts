@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { BackgroundRefresh } from './background-refresh';
 import { getFullDashboardData } from '../../lib/github';
 
@@ -13,6 +13,12 @@ describe('BackgroundRefresh - Massive Data Sets and Extreme High Bounds Scaling 
     service = BackgroundRefresh.getInstance();
     service.reset();
     vi.clearAllMocks();
+    vi.spyOn(console, 'info').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   it('processes 100,000 isStale calls with diverse timestamps and measures sub-2000ms execution', () => {

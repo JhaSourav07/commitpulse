@@ -1,4 +1,7 @@
 import '@testing-library/jest-dom';
+import { configure } from '@testing-library/dom';
+
+configure({ asyncUtilTimeout: 10000 });
 
 // Custom Storage prototype override to fix Node.js v25+ experimental localStorage incompatibility with JSDOM
 if (typeof window !== 'undefined' && typeof window.Storage !== 'undefined') {

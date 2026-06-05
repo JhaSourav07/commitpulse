@@ -25,6 +25,11 @@ export default function ResumePreviewForm({
   const [data, setData] = useState<ParsedResume>({
     ...initialParsed,
     name: '',
+    skills: initialParsed.skills ?? [],
+    education: initialParsed.education ?? [],
+    experience: initialParsed.experience ?? [],
+    projects: initialParsed.projects ?? [],
+    certifications: initialParsed.certifications ?? [],
   });
   const [isSaving, setIsSaving] = useState(false);
 
@@ -243,11 +248,11 @@ export default function ResumePreviewForm({
               <Plus size={14} /> Add
             </button>
           </div>
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          <div className="flex flex-wrap gap-2">
             {data.skills.map((skill, i) => (
               <div
                 key={i}
-                className="flex items-center gap-2 rounded-xl border border-black/10 bg-gray-50 px-3 py-2 dark:border-[rgba(255,255,255,0.1)] dark:bg-[#111]"
+                className="flex min-w-0 flex-1 basis-full items-center gap-2 rounded-xl border border-black/10 bg-gray-50 px-3 py-2 dark:border-[rgba(255,255,255,0.1)] dark:bg-[#111] sm:basis-[calc(50%-0.25rem)]"
               >
                 <input
                   type="text"

@@ -2,6 +2,13 @@ import { getFullDashboardData } from '../../lib/github';
 
 // Cache is considered stale and candidate for background refresh after 10 minutes
 const STALE_THRESHOLD_MS = 10 * 60 * 1000;
+const isVitest = process.env.VITEST === 'true';
+
+function logInfo(message: string) {
+  if (!isVitest) {
+    console.info(message);
+  }
+}
 
 export class BackgroundRefresh {
   private static instance: BackgroundRefresh;
@@ -45,14 +52,12 @@ export class BackgroundRefresh {
 
     this.activeJobs.add(sanitized);
 
-    console.info(`[BackgroundRefresh] Starting background refresh for: ${sanitized}`);
+    logInfo(`[BackgroundRefresh] Starting background refresh for: ${sanitized}`);
 
     // Trigger update asynchronously (non-blocking Promise execution)
     getFullDashboardData(username, { bypassCache: true })
       .then(() => {
-        console.info(
-          `[BackgroundRefresh] Successfully completed background refresh for: ${sanitized}`
-        );
+        logInfo(`[BackgroundRefresh] Successfully completed background refresh for: ${sanitized}`);
       })
       .catch((err) => {
         console.error(`[BackgroundRefresh] Background refresh failed for: ${sanitized}`, err);

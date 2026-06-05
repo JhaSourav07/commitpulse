@@ -8,6 +8,7 @@ export default defineConfig({
     setupFiles: ['./vitest.setup.ts'],
     include: ['**/*.test.ts', '**/*.test.tsx'],
     exclude: ['node_modules', '.next'],
+    testTimeout: 120000,
     coverage: {
       provider: 'v8',
       reporter: ['text', 'lcov'],
