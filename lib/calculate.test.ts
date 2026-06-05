@@ -781,6 +781,42 @@ describe('calculateStreak', () => {
     expect(resultLeapGap.currentStreak).toBe(1);
     expect(resultLeapGap.longestStreak).toBe(2);
   });
+  it('verify streak formulas for leap year transition timeline (Variation 2)', () => {
+    const buildCustomCalendar = (
+      daysData: { date: string; count: number }[]
+    ): ContributionCalendar => {
+      const weeks = [];
+
+      for (let i = 0; i < daysData.length; i += 7) {
+        const slice = daysData.slice(i, i + 7);
+
+        weeks.push({
+          contributionDays: slice.map((day) => ({
+            contributionCount: day.count,
+            date: day.date,
+          })),
+        });
+      }
+
+      return {
+        totalContributions: daysData.reduce((sum, d) => sum + d.count, 0),
+        weeks,
+      };
+    };
+
+    const calendar = buildCustomCalendar([
+      { date: '2024-02-27', count: 1 },
+      { date: '2024-02-28', count: 1 },
+      { date: '2024-02-29', count: 1 },
+      { date: '2024-03-01', count: 1 },
+    ]);
+
+    const result = calculateStreak(calendar, 'UTC', new Date('2024-03-01T12:00:00Z'));
+
+    expect(result.currentStreak).toBe(4);
+    expect(result.longestStreak).toBe(4);
+    expect(result.totalContributions).toBe(4);
+  });
 
   it('correctly calculates current and longest streaks when commits are made exclusively on Saturdays and Sundays', () => {
     // 2024-01-01 is a Monday.
@@ -1020,6 +1056,36 @@ describe('calculateStreak', () => {
     const result = calculateStreak(calendar);
     expect(result.longestStreak).toBe(10);
     expect(result.currentStreak).toBe(3);
+  });
+
+  it('verify streak formulas for single day contribution timeline (Variation 2)', () => {
+    // Simulating 1 day of commits followed by empty weeks.
+
+    const calendar = buildCalendar([
+      1, // Single contribution day
+
+      // Empty days afterwards
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+    ]);
+
+    const result = calculateStreak(calendar);
+
+    expect(result.longestStreak).toBe(1);
+    expect(result.currentStreak).toBe(0);
+    expect(result.totalContributions).toBe(1);
   });
 
   it('verify streak formulas for single day contribution timeline (Variation 3)', () => {
@@ -1889,20 +1955,69 @@ describe('calculateWrappedStats', () => {
 
   // ISSUE OBJECTIVE #1056: Verify empty calendar returns safe zero values
   it('verify empty calendar returns safe zero values', () => {
-    // 1. Call calculateWrappedStats with empty data
     expect(() => calculateWrappedStats({ totalContributions: 0, weeks: [] })).not.toThrow();
-
-    // 2. Actually get the result to test its properties
     const result = calculateWrappedStats({ totalContributions: 0, weeks: [] });
 
-    // 3. Assert weekendRatio === 0 (and specifically not NaN)
+    // weekendRatio must be 0 and not NaN
     expect(result.weekendRatio).toBe(0);
 
-    // 4. Assert highestDailyCount === 0
+    // highestDailyCount must be 0
     expect(result.highestDailyCount).toBe(0);
 
+    // busiestMonth must be 'N/A' — not '' (fixed in PR #2264)
     expect(result.busiestMonth).toBe('N/A');
     expect(result.busiestMonth).not.toBe('');
+
+    // mostActiveDate must be 'N/A' — not '' (this fix)
+    // Regression guard: initialising to { date: '' } silently returns ''
+    // for empty calendars. 'N/A' is the correct explicit fallback.
+    expect(result.mostActiveDate).toBe('N/A');
+    expect(result.mostActiveDate).not.toBe('');
+  });
+
+  it('mostActiveDate is never an empty string regardless of calendar input', () => {
+    // Empty calendar
+    const emptyResult = calculateWrappedStats({ totalContributions: 0, weeks: [] });
+    expect(emptyResult.mostActiveDate).not.toBe('');
+
+    // Active calendar — mostActiveDate should be a real YYYY-MM-DD date
+    const activeResult = calculateWrappedStats({
+      totalContributions: 15,
+      weeks: [
+        {
+          contributionDays: [
+            { contributionCount: 5, date: '2024-06-10' },
+            { contributionCount: 15, date: '2024-06-11' },
+            { contributionCount: 3, date: '2024-06-12' },
+          ],
+        },
+      ],
+    });
+    expect(activeResult.mostActiveDate).toBe('2024-06-11');
+    expect(activeResult.mostActiveDate).not.toBe('');
+    expect(activeResult.mostActiveDate).not.toBe('N/A');
+  });
+
+  it('mostActiveDate returns N/A for empty weeks but real date for active calendar', () => {
+    const emptyResult = calculateWrappedStats({ totalContributions: 0, weeks: [] });
+    expect(emptyResult.mostActiveDate).toBe('N/A');
+
+    // A calendar with all-zero contribution days — loop runs but never
+    // overwrites the initial value since 0 > 0 is false.
+    // mostActiveDate should still be 'N/A' (the initial fallback)
+    const allZeroResult = calculateWrappedStats({
+      totalContributions: 0,
+      weeks: [
+        {
+          contributionDays: [
+            { contributionCount: 0, date: '2024-06-10' },
+            { contributionCount: 0, date: '2024-06-11' },
+          ],
+        },
+      ],
+    });
+    expect(allZeroResult.mostActiveDate).toBe('N/A');
+    expect(allZeroResult.mostActiveDate).not.toBe('');
   });
 
   it('returns busiestMonth as "N/A" for a calendar with all-zero contribution days', () => {

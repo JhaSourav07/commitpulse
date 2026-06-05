@@ -181,10 +181,13 @@ export async function GET(req: NextRequest): Promise<NextResponse<NotificationRe
       }
 
       console.warn('MONGODB_URI is not set. Bypassing notification lookup for local development.');
-      return NextResponse.json({
-        success: false,
-        message: 'No notification preferences found (no database configured).',
-      });
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'No notification preferences found (no database configured).',
+        },
+        { status: 503 }
+      );
     }
 
     await dbConnect();

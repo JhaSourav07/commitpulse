@@ -1,6 +1,6 @@
 // app/api/github/route.ts
 
-import { NextResponse } from 'next/server';
+import { NextResponse, after } from 'next/server';
 import { getFullDashboardData } from '@/lib/github';
 import { githubParamsSchema } from '@/lib/validations';
 import { getClientIp } from '@/utils/getClientIp';
@@ -111,7 +111,8 @@ export async function GET(request: Request) {
     if (!shouldBypassCache) {
       const lastSynced = data.lastSyncedAt;
       if (backgroundRefresh.isStale(lastSynced)) {
-        backgroundRefresh.triggerRefresh(username);
+        // Run after the response is sent so Vercel does not freeze the function mid-refresh.
+        after(() => backgroundRefresh.triggerRefresh(username));
       }
     }
 

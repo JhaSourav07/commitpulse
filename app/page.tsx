@@ -93,6 +93,9 @@ function CountUp({ value, duration = 1000 }: { value: number; duration?: number 
     const start = 0;
     const end = value;
     if (start === end) {
+      // Safe: early-exit guard when the value hasn't changed — avoids scheduling
+      // a setInterval just to immediately clear it. No stale-dependency risk
+      // because `value` is the only dep and this path reads it synchronously.
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setCount(end);
       return;
@@ -316,6 +319,10 @@ export default function LandingPage() {
   const [userDetailsLoading, setUserDetailsLoading] = useState(false);
   const [userDetailsError, setUserDetailsError] = useState<string | null>(null);
 
+  // SSR hydration guard: server and client both render with mounted=false so
+  // their initial output matches. After hydration this effect runs once,
+  // setting mounted=true so client-only UI (form button, validation hints)
+  // becomes interactive without a flash of mismatched content.
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
@@ -369,6 +376,9 @@ export default function LandingPage() {
   useEffect(() => {
     if (!mounted) return;
     if (debouncedUsername.length === 0) {
+      // Safe: synchronous reset of derived UI state when the input is cleared.
+      // These three setters always run together so there is no intermediate
+      // render with inconsistent state, and no async work is in flight.
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setUserDetails(null);
       setUserDetailsError(null);
@@ -427,7 +437,7 @@ export default function LandingPage() {
     setTimeout(() => {
       guideRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 80);
-    setTimeout(() => setCopied(false), 50000);
+    setTimeout(() => setCopied(false), 3000);
   };
 
   const selectDemoUser = (name: string) => {
@@ -524,6 +534,7 @@ export default function LandingPage() {
                     type="text"
                     suppressHydrationWarning
                     placeholder="Enter GitHub Username"
+                    aria-label="Enter GitHub username to generate badge"
                     className="flex-1 rounded-2xl border border-black/10 bg-white pl-12 pr-10 py-4 text-sm text-black outline-none transition-all duration-300 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent dark:border-white/10 dark:bg-black/60 dark:text-white dark:placeholder:text-gray-500 shadow-inner"
                     value={username}
                     onChange={(e) => {
@@ -563,6 +574,7 @@ export default function LandingPage() {
                   type="submit"
                   suppressHydrationWarning
                   disabled={!mounted || trimmedUsername.length === 0}
+                  aria-label="Generate CommitPulse badge"
                   className={`relative flex min-w-[180px] items-center justify-center gap-2 overflow-hidden rounded-2xl px-6 py-4 text-sm font-bold transition-all duration-300 transform cursor-pointer hover:scale-[1.02] hover:shadow-lg active:scale-[0.98] disabled:cursor-not-allowed ${
                     mounted && trimmedUsername.length > 0
                       ? 'bg-gradient-to-r from-emerald-500 to-cyan-500 text-black shadow-[0_0_20px_rgba(16,185,129,0.25)] hover:opacity-95'
@@ -740,12 +752,7 @@ export default function LandingPage() {
             <div className="relative flex flex-col min-h-[480px] md:min-h-[520px] items-center justify-center overflow-hidden rounded-3xl border border-black/5 bg-white/50 p-8 backdrop-blur-xl shadow-2xl dark:border-white/10 dark:bg-[#0a0a0a]/80">
               {hasUsername ? (
                 <div className="w-full flex flex-col items-center justify-center gap-4">
-                  {!badgeLoaded && !badgeError && (
-                    <div className="h-[240px] w-full max-w-[700px] rounded-2xl bg-black/5 dark:bg-white/5 animate-pulse flex items-center justify-center">
-                      <Loader2 className="animate-spin text-zinc-500" size={32} />
-                    </div>
-                  )}
-                  {badgeError && (
+                  {userDetailsError === 'User not found' ? (
                     <div className="flex flex-col items-center justify-center gap-4 py-12 text-center">
                       <div className="flex h-16 w-16 items-center justify-center rounded-3xl border border-red-500/20 bg-red-500/10 shadow-inner">
                         <X size={32} className="text-red-500" />
@@ -759,27 +766,53 @@ export default function LandingPage() {
                         </p>
                       </div>
                     </div>
-                  )}
-                  <motion.img
-                    key={badgeUrl}
-                    data-testid="badge-img"
-                    src={badgeUrl}
-                    alt={`CommitPulse badge for ${previewUsername}`}
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: badgeLoaded ? 1 : 0, scale: badgeLoaded ? 1 : 0.95 }}
-                    transition={{ duration: 0.5, ease: 'easeOut' }}
-                    className="w-full max-w-[700px] h-auto drop-shadow-[0_30px_60px_rgba(0,0,0,0.15)] dark:drop-shadow-[0_30px_60px_rgba(0,0,0,0.5)]"
-                    onLoad={() => setBadgeResult({ username: previewUsername, status: 'loaded' })}
-                    onError={() => setBadgeResult({ username: previewUsername, status: 'error' })}
-                  />
-
-                  {badgeLoaded && (
-                    <button
-                      onClick={DownloadSVG}
-                      className="mt-6 px-4 py-2 rounded-lg bg-sky-600 text-sm font-medium text-white hover:bg-sky-800 transition-colors"
-                    >
-                      Download SVG
-                    </button>
+                  ) : (
+                    <>
+                      {!badgeLoaded && !badgeError && (
+                        <div className="h-[240px] w-full max-w-[700px] rounded-2xl bg-black/5 dark:bg-white/5 animate-pulse flex items-center justify-center">
+                          <Loader2 className="animate-spin text-zinc-500" size={32} />
+                        </div>
+                      )}
+                      {badgeError && (
+                        <div className="flex flex-col items-center justify-center gap-4 py-12 text-center">
+                          <div className="flex h-16 w-16 items-center justify-center rounded-3xl border border-red-500/20 bg-red-500/10 shadow-inner">
+                            <X size={32} className="text-red-500" />
+                          </div>
+                          <div>
+                            <p className="text-lg font-bold text-gray-900 dark:text-white tracking-tight">
+                              GitHub user not found
+                            </p>
+                            <p className="text-sm text-gray-500 dark:text-white/65 mt-1">
+                              Please check the username and try again.
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                      <motion.img
+                        key={badgeUrl}
+                        data-testid="badge-img"
+                        src={badgeUrl}
+                        alt={`CommitPulse badge for ${previewUsername}`}
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: badgeLoaded ? 1 : 0, scale: badgeLoaded ? 1 : 0.95 }}
+                        transition={{ duration: 0.5, ease: 'easeOut' }}
+                        className="w-full max-w-[700px] h-auto drop-shadow-[0_30px_60px_rgba(0,0,0,0.15)] dark:drop-shadow-[0_30px_60px_rgba(0,0,0,0.5)]"
+                        onLoad={() =>
+                          setBadgeResult({ username: previewUsername, status: 'loaded' })
+                        }
+                        onError={() =>
+                          setBadgeResult({ username: previewUsername, status: 'error' })
+                        }
+                      />
+                      {badgeLoaded && (
+                        <button
+                          onClick={DownloadSVG}
+                          className="mt-6 px-4 py-2 rounded-lg bg-sky-600 text-sm font-medium text-white hover:bg-sky-800 transition-colors"
+                        >
+                          Download SVG
+                        </button>
+                      )}
+                    </>
                   )}
                 </div>
               ) : (
@@ -932,7 +965,7 @@ export default function LandingPage() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: '-100px' }}
                 transition={{ delay: idx * 0.15, duration: 0.6 }}
-                className="relative z-10 flex flex-col items-center text-center p-6 rounded-3xl border border-white/5 bg-black/40 backdrop-blur-xl hover:border-emerald-500/20 hover:bg-white/[0.02] transition-all duration-500 group"
+                className="relative z-10 flex flex-col items-center text-center p-6 rounded-3xl border border-zinc-300 dark:border-white/5 bg-white dark:bg-black/40 backdrop-blur-xl hover:border-emerald-500/20 hover:bg-white/[0.02] transition-all duration-500 group"
               >
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center w-12 h-12 rounded-2xl border border-white/10 bg-zinc-950 font-bold text-sm tracking-wider text-white shadow-xl group-hover:border-emerald-500/30 transition-all duration-300">
                   <span
@@ -944,12 +977,14 @@ export default function LandingPage() {
                 </div>
 
                 <h4
-                  className="text-md font-bold uppercase tracking-wider text-zinc-100 mt-6 mb-3 group-hover:text-emerald-400 transition-colors"
+                  className="text-md font-bold uppercase tracking-wider text-zinc-900 dark:text-zinc-100 mt-6 mb-3 group-hover:text-emerald-400 transition-colors"
                   style={{ fontFamily: '"Syncopate", sans-serif', fontSize: '12px' }}
                 >
                   {item.title}
                 </h4>
-                <p className="text-xs text-zinc-400 leading-relaxed">{item.desc}</p>
+                <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">
+                  {item.desc}
+                </p>
               </motion.div>
             ))}
           </div>

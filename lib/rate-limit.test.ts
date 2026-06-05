@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { rateLimit } from './rate-limit';
-import { RateLimiter } from './rate-limit';
+import { rateLimit, RateLimiter } from './rate-limit';
 
 describe('rateLimit', () => {
   beforeEach(() => {
@@ -215,5 +214,28 @@ describe('RateLimiter', () => {
 
     // Window should have expired — count resets, request is allowed
     expect(await limiter.check(ip)).toBe(true);
+  });
+
+  it('reset() clears the counter and restores the full request allowance', async () => {
+    // Verifies that reset() uses the correct cache key (raw IP) so the
+    // rate limit state is actually deleted and subsequent requests succeed.
+    const limiter = new RateLimiter(3, 60000);
+    const ip = '7.7.7.7';
+
+    // Exhaust the limit
+    await limiter.check(ip);
+    await limiter.check(ip);
+    await limiter.check(ip);
+    expect(await limiter.check(ip)).toBe(false);
+
+    // Reset should clear the counter
+    await limiter.reset(ip);
+
+    // After reset, remaining should be back to the full limit
+    expect(await limiter.remaining(ip)).toBe(3);
+
+    // And requests should be allowed again
+    expect(await limiter.check(ip)).toBe(true);
+    expect(await limiter.remaining(ip)).toBe(2);
   });
 });

@@ -304,6 +304,7 @@ const baseStreakParamsSchema = z.object({
     .transform((val) => (val ? sanitizeHexColor(val, '7f8c8d') : undefined)),
   versus: z
     .string()
+    .max(39, { message: 'GitHub username cannot exceed 39 characters' })
     .optional()
     .refine(
       (val) => {

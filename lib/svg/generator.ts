@@ -556,12 +556,14 @@ function renderFooter(
   labels: ReturnType<typeof getLabels>,
   safeUser: string,
   accent: string,
-  sf: number
+  sf: number,
+  isWinner?: boolean
 ): string {
   const s = createScaler(sf);
+  const titleText = `${truncateUsername(safeUser).toUpperCase()}${isWinner ? ' 👑' : ''}${params.isOfflineFallback ? '<tspan fill="#ff9f43" font-size="10px" font-weight="bold"> [STALE CACHE]</tspan>' : ''}`;
   return `
   ${!params.hide_stats ? renderStatsSection(stats, labels, s, params) : ''}
-  ${!params.hide_title ? `<text x="${s(300)}" y="${s(50)}" text-anchor="middle" class="title">${truncateUsername(safeUser).toUpperCase()}${params.isOfflineFallback ? '<tspan fill="#ff9f43" font-size="10px" font-weight="bold"> [STALE CACHE]</tspan>' : ''}</text>` : ''}
+  ${!params.hide_title ? `<text x="${s(300)}" y="${s(50)}" text-anchor="middle" class="title">${titleText}</text>` : ''}
   <rect
     x="${s(100)}"
     y="${s(80)}"
@@ -2038,6 +2040,9 @@ export function generateVersusSVG(
 
   const safeId = `${safeUser1}_vs_${safeUser2}`.replace(/[^a-zA-Z0-9-]/g, '_').toLowerCase();
 
+  const isWinner1 = stats1.totalContributions > stats2.totalContributions;
+  const isWinner2 = stats2.totalContributions > stats1.totalContributions;
+
   return `
 <svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 ${W} ${H}" fill="none" role="img" aria-labelledby="cp-title-${safeId}" aria-describedby="cp-desc-${safeId}">
   <title id="cp-title-${safeId}">CommitPulse Versus Stats: ${safeUser1} vs ${safeUser2}</title>
@@ -2049,13 +2054,13 @@ export function generateVersusSVG(
   <g transform="translate(0, 0)">
     <g transform="translate(0, ${Math.round(20 * sf)})">${towers1}</g>
     ${renderIsometricLabels(calendar1, params, text, sf)}
-    ${renderFooter(stats1, params, labels, safeUser1, accent, sf)}
+    ${renderFooter(stats1, params, labels, safeUser1, accent, sf, isWinner1)}
   </g>
 
   <g transform="translate(${singleW}, 0)">
     <g transform="translate(0, ${Math.round(20 * sf)})">${towers2}</g>
     ${renderIsometricLabels(calendar2, params, text, sf)}
-    ${renderFooter(stats2, params, labels, safeUser2, accent, sf)}
+    ${renderFooter(stats2, params, labels, safeUser2, accent, sf, isWinner2)}
   </g>
 
   <line x1="${singleW}" y1="${s(40)}" x2="${singleW}" y2="${H - s(40)}" stroke="${text}" stroke-opacity="0.2" stroke-width="2" stroke-dasharray="4 4" />
@@ -2178,6 +2183,9 @@ function generateAutoThemeVersusSVG(
 
   const safeId = `${safeUser1}_vs_${safeUser2}`.replace(/[^a-zA-Z0-9-]/g, '_').toLowerCase();
 
+  const isWinner1 = stats1.totalContributions > stats2.totalContributions;
+  const isWinner2 = stats2.totalContributions > stats1.totalContributions;
+
   return `
 <svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 ${W} ${H}" fill="none" role="img" aria-labelledby="cp-title-${safeId}" aria-describedby="cp-desc-${safeId}">
   <title id="cp-title-${safeId}">CommitPulse Versus Stats: ${safeUser1} vs ${safeUser2}</title>
@@ -2220,13 +2228,13 @@ function generateAutoThemeVersusSVG(
   <g transform="translate(0, 0)">
     <g transform="translate(0, ${Math.round(20 * sf)})">${towers1}</g>
     ${renderIsometricLabels(calendar1, params, '', sf)}
-    ${renderFooter(stats1, params, labels, safeUser1, '', sf)}
+    ${renderFooter(stats1, params, labels, safeUser1, '', sf, isWinner1)}
   </g>
 
   <g transform="translate(${singleW}, 0)">
     <g transform="translate(0, ${Math.round(20 * sf)})">${towers2}</g>
     ${renderIsometricLabels(calendar2, params, '', sf)}
-    ${renderFooter(stats2, params, labels, safeUser2, '', sf)}
+    ${renderFooter(stats2, params, labels, safeUser2, '', sf, isWinner2)}
   </g>
 
   <line x1="${singleW}" y1="${s(40)}" x2="${singleW}" y2="${H - s(40)}" stroke="var(--cp-text)" stroke-opacity="0.2" stroke-width="2" stroke-dasharray="4 4" />

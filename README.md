@@ -30,6 +30,7 @@
 - [FAQ](#faq)
 - [Contributing](#contributing)
 - [License](#license)
+- [Maintainers](#-maintainers)
 - [Themes](#themes)
 - [Contributors](#contributors)
 
@@ -157,6 +158,49 @@ URL Parameter > Theme Default > System Fallback
 ```
 
 ### Parameter Reference
+
+| Parameter           | Type      | Required   | Default                        | Description                                                                                                                                                               |
+| ------------------- | --------- | ---------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `user`              | `string`  | ✅ **Yes** | —                              | GitHub username to render                                                                                                                                                 |
+| `theme`             | `string`  | No         | `dark`                         | Preset theme name (see below)                                                                                                                                             |
+| `bg`                | `hex`     | No         | Theme default                  | Background color — **without** `#`                                                                                                                                        |
+| `accent`            | `hex`     | No         | Theme default                  | Tower & glow color — **without** `#`                                                                                                                                      |
+| `text`              | `hex`     | No         | Theme default                  | Label & stat text color — **without** `#`                                                                                                                                 |
+| `radius`            | `number`  | No         | `8`                            | Border corner radius in pixels                                                                                                                                            |
+| `border`            | `string`  | No         | —                              | Custom stroke color around the main SVG container — **without** `#`                                                                                                       |
+| `speed`             | `string`  | No         | `8s`                           | Radar scan duration (`2s`–`20s`, default `8s`)                                                                                                                            |
+| `scale`             | `string`  | No         | `linear`                       | Tower height scaling: `linear` or `log` (logarithmic)                                                                                                                     |
+| `size`              | `string`  | No         | `medium`                       | Badge dimensions: `small` (400×280), `medium` (600×420), `large` (800×560)                                                                                                |
+| `font`              | `string`  | No         | CommitPulse default typography | Any **Google Font** name (e.g. `Orbitron`, `Inter`)                                                                                                                       |
+| `refresh`           | `boolean` | No         | `false`                        | Bypass cache for real-time data                                                                                                                                           |
+| `year`              | `string`  | No         | —                              | Calendar year to render (e.g. `2023`, `2024`)                                                                                                                             |
+| `days`              | `number`  | No         | —                              | Number of days of contribution history to fetch and render. Accepts a positive integer up to `365` (e.g. `days=90`).                                                      |
+| `from`              | `string`  | No         | —                              | Start date for the contribution query in ISO 8601 format (e.g. `2023-01-01`). Must be less than or equal to `to` date.                                                    |
+| `to`                | `string`  | No         | —                              | End date for the contribution query in ISO 8601 format (e.g. `2023-12-31`). Must be greater than or equal to `from` date.                                                 |
+| `hide_title`        | `boolean` | No         | `false`                        | Hide GitHub username/title from the SVG badge                                                                                                                             |
+| `hide_background`   | `boolean` | No         | `false`                        | Remove the background rect, letting the monolith float on the page                                                                                                        |
+| `hide_stats`        | `boolean` | No         | `false`                        | Hides the bottom row displaying Current Streak, Annual Sync Total, and Peak Streak stats when set to `true` or `1`.                                                       |
+| `tz`                | `string`  | No         | Omitted = UTC                  | IANA timezone (e.g. `Asia/Kolkata`, `America/New_York`) — aligns "today" with the user local midnight. Note: `?tz=UTC` is valid but cached separately from omitting `tz`. |
+| `lang`              | `string`  | No         | `en`                           | Language code for labels (`en`, `es`, `hi`, `fr`, `pt`, `ko`, `ja`, `de`, `zh`)                                                                                           |
+| `view`              | `string`  | No         | `default`                      | Rendering mode: `default` (3D Monolith), `monthly` (Compact monthly stats), or `heatmap` (flat 2D contribution heatmap)                                                   |
+| `entrance`          | `string`  | No         | `rise`                         | Entrance animation for towers: `rise` (default), `fade`, `slide`, or `none`.                                                                                              |
+| `disable_particles` | `boolean` | No         | `false`                        | Disable floating heat particle animations on the monolith towers when set to `true` or `1`.                                                                               |
+| `glow`              | `boolean` | No         | `true`                         | Enable neon-style glow/blur effects for the towers. Accepts `true`/`1` (enable) or `false`/`0` (disable).                                                                 |
+| `delta_format`      | `string`  | No         | `percent`                      | Format for month-over-month delta in monthly view: `percent` (e.g. +12%), `absolute` (e.g. +15 commits), or `both`                                                        |
+| `width`             | `number`  | No         | `300`                          | Custom width for the SVG canvas (currently only applies to `view=monthly`)                                                                                                |
+| `height`            | `number`  | No         | `120`                          | Custom height for the SVG canvas (currently only applies to `view=monthly`)                                                                                               |
+| `grace`             | `number`  | No         | `1`                            | Grace period in days before a streak resets (0–7). `grace=0` = strict mode (no missed days), `grace=2` = lenient (forgives up to 2 missed days). Default is `1`.          |
+| `mode`              | `string`  | No         | `commits`                      | Rendering mode: `commits` (default) or `loc` (Lines of Code landscape)                                                                                                    |
+| `repo`              | `string`  | No         | —                              | Render the monolith for a specific repository (e.g. `owner/repo`) instead of the whole profile                                                                            |
+| `org`               | `string`  | No         | —                              | Organization name to generate a Mega-City for                                                                                                                             |
+| `labels`            | `boolean` | No         | `false`                        | Render optional 3D isometric month headers and weekday labels                                                                                                             |
+| `labelColor`        | `hex`     | No         | —                              | Custom text color for the isometric labels — **without** `#`                                                                                                              |
+| `versus`            | `string`  | No         | —                              | GitHub username of an opponent to compare against in side-by-side versus mode                                                                                             |
+| `shading`           | `boolean` | No         | `false`                        | Apply intensity-based opacity shading to tower faces so lower intensity levels appear slightly dimmer                                                                     |
+| `opacity`           | `number`  | No         | `1.0`                          | Global opacity scalar for all tower fill-opacity values (0.1–1.0). `opacity=0.5` = semi-transparent ghost look. `opacity=0.8` = faded, great on light backgrounds.        |
+| `gradient`          | `boolean` | No         | `false`                        | Opt-in to show volumetric gradients on the monolith floor                                                                                                                 |
+| `gradient_stops`    | `string`  | No         | —                              | Comma-separated list of hex colors (e.g. `ff6b35,ff007f`) for custom floor gradient. Requires `gradient=true` and at least two valid colors. Hex prefix `#` is optional.  |
+| `gradient_dir`      | `string`  | No         | `vertical`                     | Direction of the volumetric floor gradient: `vertical` (default), `horizontal`, or `diagonal`.                                                                            |
 
 > All parameters below are optional except `user`. Append them to the base URL as query string key-value pairs (e.g. `?user=YOUR_USERNAME&theme=neon&size=large`). Boolean parameters accept `true` or `false`. Hex color values are provided **without** the `#` prefix.
 
@@ -562,6 +606,15 @@ Read the full guide: **[CONTRIBUTING.md](CONTRIBUTING.md)**
 ## 📄 License
 
 MIT © [Sourav Jha](https://github.com/JhaSourav07)
+
+---
+
+## 👥 Maintainers
+
+- **Sourav Jha** ([@jhasourav07](https://github.com/jhasourav07)) - [LinkedIn](https://linkedin.com/in/souravjhahind)
+- **Aamod Kumar** ([@Aamod007](https://github.com/Aamod007)) - [LinkedIn](https://linkedin.com/in/aamod-kumar/)
+
+For details on the project leads and roles, please see [MAINTAINER.md](MAINTAINER.md).
 
 ---
 
