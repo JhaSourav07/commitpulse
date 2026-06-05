@@ -42,4 +42,63 @@ describe('useDebounce', () => {
       vi.useRealTimers();
     }
   });
+
+  it('updates only after the delay', () => {
+    vi.useFakeTimers();
+    try {
+      const { result, rerender } = renderHook(({ value }) => useDebounce(value, 400), {
+        initialProps: { value: 'a' },
+      });
+
+      expect(result.current).toBe('a');
+
+      rerender({ value: 'ab' });
+      rerender({ value: 'abc' });
+
+      act(() => {
+        vi.advanceTimersByTime(399);
+      });
+
+      expect(result.current).toBe('a');
+
+      act(() => {
+        vi.advanceTimersByTime(1);
+      });
+
+      expect(result.current).toBe('abc');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('resets the timer when value changes repeatedly', () => {
+    vi.useFakeTimers();
+    try {
+      const { result, rerender } = renderHook(({ value }) => useDebounce(value, 400), {
+        initialProps: { value: 'a' },
+      });
+
+      rerender({ value: 'ab' });
+
+      act(() => {
+        vi.advanceTimersByTime(200);
+      });
+
+      rerender({ value: 'abc' });
+
+      act(() => {
+        vi.advanceTimersByTime(200);
+      });
+
+      expect(result.current).toBe('a');
+
+      act(() => {
+        vi.advanceTimersByTime(200);
+      });
+
+      expect(result.current).toBe('abc');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });

@@ -156,14 +156,14 @@ const baseStreakParamsSchema = z.object({
     .string()
     .optional()
     .refine((val) => !val || /^[0-9a-fA-F]{3,4}$|^[0-9a-fA-F]{6,8}$/.test(val.replace('#', '')), {
-      message: 'bg must be a valid 3 or 6 character hex color without #',
+      message: 'bg must be a valid hex color (with or without #)',
     })
     .transform((val) => (val ? sanitizeHexColor(val, '0d1117') : undefined)),
   text: z
     .string()
     .optional()
     .refine((val) => !val || /^[0-9a-fA-F]{3,4}$|^[0-9a-fA-F]{6,8}$/.test(val.replace('#', '')), {
-      message: 'text must be a valid 3 or 6 character hex color without #',
+      message: 'text must be a valid hex color (with or without #)',
     })
     .transform((val) => (val ? sanitizeHexColor(val, 'ffffff') : undefined)),
   accent: z
@@ -179,7 +179,7 @@ const baseStreakParamsSchema = z.object({
       },
       {
         message:
-          'accent must be a valid 3 or 6 character hex color without #, or a comma-separated list of them',
+          'accent must be a valid hex color (with or without #), or a comma-separated list of them',
       }
     )
     .transform((val) => {
@@ -200,6 +200,9 @@ const baseStreakParamsSchema = z.object({
 
   // Invalid size values fall back to 'medium' to preserve badge rendering.
   size: z.enum(['small', 'medium', 'large']).catch('medium').default('medium'),
+
+  // to fetch N days contributions
+  days: z.coerce.number().int().positive().max(365).optional(),
 
   // Silently fall back to '8s' for invalid format (matches old behavior)
   speed: z
@@ -277,13 +280,14 @@ const baseStreakParamsSchema = z.object({
     .optional()
     .refine(
       (val) => {
-        if (val === undefined) return true;
-        const parsed = Number(val);
-        return !isNaN(parsed) && Number.isInteger(parsed) && parsed >= 0 && parsed <= 7;
+        if (val === undefined || val === '') return true;
+        return /^\d+$/.test(val) && Number(val) >= 0 && Number(val) <= 7;
       },
       { message: 'grace must be an integer between 0 and 7' }
     )
-    .transform((val) => (val === undefined ? 1 : Number(val))),
+    .transform((val) => (val === undefined || val === '' ? 1 : Number(val)))
+    .default(1),
+
   mode: z.enum(['commits', 'loc']).catch('commits').default('commits'),
   repo: z.string().optional(),
   org: z
@@ -334,6 +338,7 @@ const baseStreakParamsSchema = z.object({
   glow: z.string().optional().transform(toBooleanFlag).default(true),
   opacity: z.string().optional().transform(toOpacityValue),
   entrance: z.enum(['rise', 'fade', 'slide', 'none']).catch('rise').default('rise'),
+  badges: z.string().optional().transform(toBooleanFlag).default(false),
 
   // Output format: 'svg' (default) or 'json' for programmatic access.
   // Invalid values silently fall back to 'svg'.
@@ -388,10 +393,13 @@ export const compareParamsSchema = z
       .max(39, { message: 'GitHub username cannot exceed 39 characters' })
       .regex(GITHUB_USERNAME_REGEX, { message: 'Invalid GitHub username for user2' }),
   })
-  .refine((data) => data.user1.toLowerCase() !== data.user2.toLowerCase(), {
-    message: 'Cannot compare a user with themselves.',
-    path: ['user2'],
-  });
+  .refine(
+    (data) => data.user1.localeCompare(data.user2, undefined, { sensitivity: 'base' }) !== 0,
+    {
+      message: 'Cannot compare a user with themselves.',
+      path: ['user2'],
+    }
+  );
 
 export const ogParamsSchema = z
   .object({
@@ -467,14 +475,14 @@ export const wrappedParamsSchema = z.object({
     .string()
     .optional()
     .refine((val) => !val || /^[0-9a-fA-F]{3,4}$|^[0-9a-fA-F]{6,8}$/.test(val.replace('#', '')), {
-      message: 'bg must be a valid 3 or 6 character hex color without #',
+      message: 'bg must be a valid hex color (with or without #)',
     })
     .transform((val) => (val ? sanitizeHexColor(val, '0d1117') : undefined)),
   text: z
     .string()
     .optional()
     .refine((val) => !val || /^[0-9a-fA-F]{3,4}$|^[0-9a-fA-F]{6,8}$/.test(val.replace('#', '')), {
-      message: 'text must be a valid 3 or 6 character hex color without #',
+      message: 'text must be a valid hex color (with or without #)',
     })
     .transform((val) => (val ? sanitizeHexColor(val, 'ffffff') : undefined)),
   accent: z
@@ -490,7 +498,7 @@ export const wrappedParamsSchema = z.object({
       },
       {
         message:
-          'accent must be a valid 3 or 6 character hex color without #, or a comma-separated list of them',
+          'accent must be a valid hex color (with or without #), or a comma-separated list of them',
       }
     )
     .transform((val) => {
@@ -569,9 +577,9 @@ export const notifyGetSchema = z.object({
 
 export type StreakParams = z.infer<typeof streakParamsSchema>;
 export type GithubParams = z.infer<typeof githubParamsSchema>;
+export type CompareParams = z.infer<typeof compareParamsSchema>;
 export type OgParams = z.infer<typeof ogParamsSchema>;
 export type StatsParams = z.infer<typeof statsParamsSchema>;
 export type WrappedParams = z.infer<typeof wrappedParamsSchema>;
-export type CompareParams = z.infer<typeof compareParamsSchema>;
 export type NotifyPostParams = z.infer<typeof notifyPostSchema>;
 export type NotifyGetParams = z.infer<typeof notifyGetSchema>;

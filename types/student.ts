@@ -1,6 +1,7 @@
 export interface ParsedResume {
   name: string;
   email: string;
+  phone: string;
   skills: string[];
   education: Education[];
   experience: Experience[];
@@ -28,6 +29,8 @@ export interface StudentProfile {
   email: string;
   phone?: string;
   skills: string[];
+  careerInterests?: string[];
+  graduationYear?: number;
   education: Education[];
   experience: Experience[];
   resumeUrl?: string;

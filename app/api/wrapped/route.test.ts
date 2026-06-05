@@ -30,6 +30,7 @@ const mockWrappedStats: WrappedStats = {
   busiestMonth: '2025-11',
   weekendRatio: 24,
   topLanguage: 'TypeScript',
+  calendar: mockCalendar,
 };
 
 function makeRequest(params: Record<string, string> = {}): Request {

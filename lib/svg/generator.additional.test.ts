@@ -3,7 +3,12 @@
 // Covers: generateVersusSVG, neon theme bg, accent override, border param, org/repo title entity.
 
 import { describe, it, expect } from 'vitest';
-import { generateSVG, generateVersusSVG } from './generator';
+import {
+  generateSVG,
+  generateVersusSVG,
+  generateNotFoundSVG,
+  generateRateLimitSVG,
+} from './generator';
 import type { BadgeParams, ContributionCalendar, StreakStats } from '../../types';
 import { hexColor } from './sanitizer';
 
@@ -596,5 +601,164 @@ describe('[Feature] custom gradient_stops and gradient_dir', () => {
     expect(svg).not.toContain('linearGradient');
     expect(svg).not.toContain('custom-grad-');
     expect(svg).not.toContain('tower-grad-level-');
+  });
+});
+
+// ─── renderGhostTowers refactor — consistency tests ───────────────────────────
+// These tests verify that generateNotFoundSVG and generateRateLimitSVG both
+// use the shared renderGhostTowers() helper and produce geometrically consistent
+// ghost tower output. Any divergence between the two functions is a regression.
+
+describe('[Refactor] renderGhostTowers — shared helper consistency', () => {
+  // ── generateNotFoundSVG ───────────────────────────────────────────────────
+
+  it('generateNotFoundSVG contains class="ghost-towers" wrapper from shared helper', () => {
+    const svg = generateNotFoundSVG('octocat', '#0d1117', '#00ffaa', '#ffffff', 8);
+    expect(svg).toContain('class="ghost-towers"');
+  });
+
+  it('generateNotFoundSVG ghost towers use fill-opacity="0.08" on left face', () => {
+    const svg = generateNotFoundSVG('octocat', '#0d1117', '#00ffaa', '#ffffff', 8);
+    expect(svg).toContain('fill-opacity="0.08"');
+  });
+
+  it('generateNotFoundSVG ghost towers use fill-opacity="0.05" on right face', () => {
+    const svg = generateNotFoundSVG('octocat', '#0d1117', '#00ffaa', '#ffffff', 8);
+    expect(svg).toContain('fill-opacity="0.05"');
+  });
+
+  it('generateNotFoundSVG ghost towers use fill-opacity="0.14" on top face', () => {
+    const svg = generateNotFoundSVG('octocat', '#0d1117', '#00ffaa', '#ffffff', 8);
+    expect(svg).toContain('fill-opacity="0.14"');
+  });
+
+  it('generateNotFoundSVG ghost towers use stroke-opacity="0.18" on left face', () => {
+    const svg = generateNotFoundSVG('octocat', '#0d1117', '#00ffaa', '#ffffff', 8);
+    expect(svg).toContain('stroke-opacity="0.18"');
+  });
+
+  it('generateNotFoundSVG ghost towers use stroke-opacity="0.12" on right face', () => {
+    const svg = generateNotFoundSVG('octocat', '#0d1117', '#00ffaa', '#ffffff', 8);
+    expect(svg).toContain('stroke-opacity="0.12"');
+  });
+
+  it('generateNotFoundSVG ghost towers use stroke-opacity="0.22" on top face', () => {
+    const svg = generateNotFoundSVG('octocat', '#0d1117', '#00ffaa', '#ffffff', 8);
+    expect(svg).toContain('stroke-opacity="0.22"');
+  });
+
+  // ── generateRateLimitSVG ──────────────────────────────────────────────────
+
+  it('generateRateLimitSVG contains class="ghost-towers" wrapper from shared helper', () => {
+    const svg = generateRateLimitSVG('#0d1117', '#00ffaa', '#ffffff', 8, '8s');
+    expect(svg).toContain('class="ghost-towers"');
+  });
+
+  it('generateRateLimitSVG ghost towers use fill-opacity="0.08" on left face', () => {
+    const svg = generateRateLimitSVG('#0d1117', '#00ffaa', '#ffffff', 8, '8s');
+    expect(svg).toContain('fill-opacity="0.08"');
+  });
+
+  it('generateRateLimitSVG ghost towers use fill-opacity="0.05" on right face', () => {
+    const svg = generateRateLimitSVG('#0d1117', '#00ffaa', '#ffffff', 8, '8s');
+    expect(svg).toContain('fill-opacity="0.05"');
+  });
+
+  it('generateRateLimitSVG ghost towers use fill-opacity="0.14" on top face', () => {
+    const svg = generateRateLimitSVG('#0d1117', '#00ffaa', '#ffffff', 8, '8s');
+    expect(svg).toContain('fill-opacity="0.14"');
+  });
+
+  it('generateRateLimitSVG ghost towers use stroke-opacity="0.18" on left face', () => {
+    const svg = generateRateLimitSVG('#0d1117', '#00ffaa', '#ffffff', 8, '8s');
+    expect(svg).toContain('stroke-opacity="0.18"');
+  });
+
+  it('generateRateLimitSVG ghost towers use stroke-opacity="0.12" on right face', () => {
+    const svg = generateRateLimitSVG('#0d1117', '#00ffaa', '#ffffff', 8, '8s');
+    expect(svg).toContain('stroke-opacity="0.12"');
+  });
+
+  it('generateRateLimitSVG ghost towers use stroke-opacity="0.22" on top face', () => {
+    const svg = generateRateLimitSVG('#0d1117', '#00ffaa', '#ffffff', 8, '8s');
+    expect(svg).toContain('stroke-opacity="0.22"');
+  });
+
+  // ── Cross-function consistency ─────────────────────────────────────────────
+  // These are the most important tests — they verify the two functions use
+  // identical geometry by comparing their opacity attribute sets directly.
+
+  const extractGhostTowerSvg = (svg: string) => {
+    const match = svg.match(/<g[^>]+class="ghost-towers"[^>]*>([\s\S]*?)<\/g>/);
+    return match?.[1] ?? svg;
+  };
+
+  it('both functions use identical fill-opacity values — no silent divergence', () => {
+    const notFoundSvg = generateNotFoundSVG('octocat', '#0d1117', '#00ffaa', '#ffffff', 8);
+    const rateLimitSvg = generateRateLimitSVG('#0d1117', '#00ffaa', '#ffffff', 8, '8s');
+
+    const extractFillOpacities = (svg: string) =>
+      [...svg.matchAll(/fill-opacity="([\d.]+)"/g)].map((m) => m[1]).sort();
+
+    const notFoundGhostSvg = extractGhostTowerSvg(notFoundSvg);
+    const rateLimitGhostSvg = extractGhostTowerSvg(rateLimitSvg);
+
+    const notFoundOpacities = extractFillOpacities(notFoundGhostSvg);
+    const rateLimitOpacities = extractFillOpacities(rateLimitGhostSvg);
+
+    const rateLimitSet = new Set(rateLimitOpacities);
+    const notFoundSet = new Set(notFoundOpacities);
+
+    for (const val of rateLimitSet) {
+      expect(notFoundSet).toContain(val);
+    }
+  });
+
+  it('both functions use identical stroke-opacity values — no silent divergence', () => {
+    const notFoundSvg = generateNotFoundSVG('octocat', '#0d1117', '#00ffaa', '#ffffff', 8);
+    const rateLimitSvg = generateRateLimitSVG('#0d1117', '#00ffaa', '#ffffff', 8, '8s');
+
+    const extractStrokeOpacities = (svg: string) =>
+      [...svg.matchAll(/stroke-opacity="([\d.]+)"/g)].map((m) => m[1]).sort();
+
+    const notFoundGhostSvg = extractGhostTowerSvg(notFoundSvg);
+    const rateLimitGhostSvg = extractGhostTowerSvg(rateLimitSvg);
+
+    const notFoundOpacities = extractStrokeOpacities(notFoundGhostSvg);
+    const rateLimitOpacities = extractStrokeOpacities(rateLimitGhostSvg);
+
+    const rateLimitSet = new Set(rateLimitOpacities);
+    const notFoundSet = new Set(notFoundOpacities);
+
+    for (const val of rateLimitSet) {
+      expect(notFoundSet).toContain(val);
+    }
+  });
+
+  it('generateRateLimitSVG now renders 48 ghost towers (unified with GHOST_LAYOUT)', () => {
+    const svg = generateRateLimitSVG('#0d1117', '#00ffaa', '#ffffff', 8, '8s');
+    const matches = [...svg.matchAll(/<g transform="translate\(/g)];
+    expect(matches.length).toBeGreaterThanOrEqual(48);
+  });
+
+  it('accent color is correctly applied to ghost towers in both functions', () => {
+    const customAccent = '#ff00ff';
+    const notFoundSvg = generateNotFoundSVG('octocat', '#0d1117', customAccent, '#ffffff', 8);
+    const rateLimitSvg = generateRateLimitSVG('#0d1117', customAccent, '#ffffff', 8, '8s');
+
+    expect(notFoundSvg).toContain(`fill="${customAccent}"`);
+    expect(rateLimitSvg).toContain(`fill="${customAccent}"`);
+    expect(notFoundSvg).toContain(`stroke="${customAccent}"`);
+    expect(rateLimitSvg).toContain(`stroke="${customAccent}"`);
+  });
+
+  it('both SVGs are still valid (contain <svg and </svg>) after refactor', () => {
+    const notFoundSvg = generateNotFoundSVG('octocat', '#0d1117', '#00ffaa', '#ffffff', 8);
+    const rateLimitSvg = generateRateLimitSVG('#0d1117', '#00ffaa', '#ffffff', 8, '8s');
+
+    expect(notFoundSvg).toContain('<svg');
+    expect(notFoundSvg).toContain('</svg>');
+    expect(rateLimitSvg).toContain('<svg');
+    expect(rateLimitSvg).toContain('</svg>');
   });
 });

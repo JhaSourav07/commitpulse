@@ -66,7 +66,8 @@ export default function ProfileOptimizerModal({
   };
 
   const handleDownload = () => {
-    import('jspdf').then(({ jsPDF }) => {
+    import('jspdf').then((module) => {
+      const jsPDF = module.default;
       const doc = new jsPDF();
 
       const margin = 15;

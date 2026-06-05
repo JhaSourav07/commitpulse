@@ -3,11 +3,12 @@ import dbConnect from '@/lib/mongodb';
 import { StudentProfile } from '@/models/StudentProfile';
 import { RateLimiter } from '@/lib/rate-limit';
 import type { ParsedResume } from '@/types/student';
+import { getClientIp } from '@/utils/getClientIp';
 
 const confirmLimiter = new RateLimiter(10, 60000);
 
 export async function POST(req: Request) {
-  const ip = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown';
+  const ip = getClientIp(req);
 
   if (!(await confirmLimiter.check(ip))) {
     return NextResponse.json(

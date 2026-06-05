@@ -98,27 +98,58 @@ export async function GET(request: Request) {
       disable_particles,
       glow,
       format,
+      days,
+      badges,
     } = parseResult.data;
     const normalizedView = view as 'default' | 'monthly' | 'heatmap' | 'pulse';
     const themeName = theme || 'dark';
-    const from = customFrom
-      ? new Date(customFrom).toISOString()
-      : year
-        ? `${year}-01-01T00:00:00Z`
-        : undefined;
-    const to = customTo
-      ? new Date(customTo).toISOString()
-      : year
-        ? `${year}-12-31T23:59:59Z`
-        : undefined;
-    const currentYear = new Date().getUTCFullYear();
-    const isHistoricalYear = !!year && Number(year) < currentYear;
 
     let timezone = 'UTC';
     if (tzParam) {
       timezone = new Intl.DateTimeFormat(undefined, { timeZone: tzParam }).resolvedOptions()
         .timeZone;
     }
+
+    let from = customFrom
+      ? new Date(customFrom).toISOString()
+      : year
+        ? `${year}-01-01T00:00:00Z`
+        : undefined;
+    let to = customTo
+      ? new Date(customTo).toISOString()
+      : year
+        ? `${year}-12-31T23:59:59Z`
+        : undefined;
+
+    if (normalizedView === 'monthly') {
+      const referenceDate = getMonthlyReferenceDate(year, timezone) || new Date();
+      const localTodayStr = new Intl.DateTimeFormat('en-CA', { timeZone: timezone }).format(
+        referenceDate
+      );
+      const [currentYearStr, currentMonthStr] = localTodayStr.split('-');
+      const currentYearNum = parseInt(currentYearStr, 10);
+      const currentMonthNum = parseInt(currentMonthStr, 10);
+
+      let prevMonth = currentMonthNum - 1;
+      let prevYear = currentYearNum;
+      if (prevMonth === 0) {
+        prevMonth = 12;
+        prevYear -= 1;
+      }
+
+      const calculatedFromStr = `${prevYear}-${prevMonth.toString().padStart(2, '0')}-01T00:00:00Z`;
+      if (!from || new Date(from) > new Date(calculatedFromStr)) {
+        from = calculatedFromStr;
+      }
+
+      const referenceISO = referenceDate.toISOString();
+      if (!to || new Date(to) < new Date(referenceISO)) {
+        to = referenceISO;
+      }
+    }
+
+    const currentYear = new Date().getUTCFullYear();
+    const isHistoricalYear = !!year && Number(year) < currentYear;
 
     const isAutoTheme = themeName === 'auto';
     const isRandomTheme = themeName === 'random';
@@ -181,6 +212,7 @@ export async function GET(request: Request) {
       disable_particles,
       glow,
       animate,
+      badges,
     };
 
     let calendar;
@@ -200,6 +232,7 @@ export async function GET(request: Request) {
         .map((u) => u.trim())
         .filter(Boolean);
       let lastError: unknown = null;
+      let hasOfflineFallback = false;
       const fetchedCalendars = await Promise.all(
         users.map(async (u) => {
           try {
@@ -208,6 +241,9 @@ export async function GET(request: Request) {
               from,
               to,
             });
+            if (userData.isOfflineFallback) {
+              hasOfflineFallback = true;
+            }
             return userData.calendar;
           } catch (err) {
             lastError = err;
@@ -222,6 +258,9 @@ export async function GET(request: Request) {
         throw lastError || new Error('No successful calendars fetched');
       }
       calendar = aggregateCalendars(successfulCalendars);
+      if (hasOfflineFallback) {
+        params.isOfflineFallback = true;
+      }
     } else {
       const userData = await fetchGitHubContributions(user, {
         bypassCache: refresh,
@@ -229,16 +268,36 @@ export async function GET(request: Request) {
         to,
       });
       calendar = userData.calendar;
+      if (userData.isOfflineFallback) {
+        params.isOfflineFallback = true;
+      }
+
+      if (versus) {
+        const versusData = await fetchGitHubContributions(versus, {
+          bypassCache: refresh,
+          from,
+          to,
+        });
+        versusCalendar = versusData.calendar;
+        if (versusData.isOfflineFallback) {
+          params.isOfflineFallback = true;
+        }
+      }
     }
 
-    // Fetch versus calendar independently — works with both user and org modes
-    if (versus) {
-      const versusData = await fetchGitHubContributions(versus, {
-        bypassCache: refresh,
-        from,
-        to,
-      });
-      versusCalendar = versusData.calendar;
+    if (days && normalizedView !== 'monthly') {
+      const allDays = calendar.weeks.flatMap((w) => w.contributionDays);
+
+      const filteredDays = allDays.slice(-days);
+
+      calendar = {
+        totalContributions: filteredDays.reduce((sum, d) => sum + d.contributionCount, 0),
+        weeks: [
+          {
+            contributionDays: filteredDays,
+          },
+        ],
+      };
     }
 
     // ─── JSON output mode ──────────────────────────────────────────────────

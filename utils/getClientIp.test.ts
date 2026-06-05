@@ -96,4 +96,31 @@ describe('getClientIp', () => {
     });
     expect(ip).toBe('198.51.100.5');
   });
+
+  it('sanitizes multi-IP lists and traverses untrusted hops from right to left', () => {
+    const req = new Request('http://localhost:3000/api/streak', {
+      headers: {
+        'x-forwarded-for': '203.0.113.195, 198.51.100.10, 192.168.1.1',
+      },
+    });
+    const options = {
+      proxyConfig: {
+        trustedProxies: ['192.168.1.1'],
+        trustPrivateRanges: false,
+      },
+    };
+    expect(getClientIp(req, options)).toBe('198.51.100.10');
+  });
+
+  it('falls back to 127.0.0.1 when headers are missing or malformed', () => {
+    const req = new Request('http://localhost:3000/api/streak');
+    expect(getClientIp(req)).toBe('127.0.0.1');
+
+    const reqMalformed = new Request('http://localhost:3000/api/streak', {
+      headers: {
+        'x-forwarded-for': '   ,   ',
+      },
+    });
+    expect(getClientIp(reqMalformed)).toBe('127.0.0.1');
+  });
 });

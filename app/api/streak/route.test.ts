@@ -116,6 +116,44 @@ describe('GET /api/streak', () => {
       expect(body.details.fieldErrors.grace[0]).toBe('grace must be an integer between 0 and 7');
     });
 
+    it('returns 400 when grace exceeds max value', async () => {
+      const response = await GET(
+        makeRequest({
+          user: 'octocat',
+          grace: '999',
+        })
+      );
+      expect(response.status).toBe(400);
+      const body = await response.json();
+      expect(body.details.fieldErrors.grace[0]).toBe('grace must be an integer between 0 and 7');
+    });
+
+    it('returns 400 when days=0 is provided', async () => {
+      const response = await GET(
+        makeRequest({
+          user: 'octocat',
+          days: '0',
+        })
+      );
+
+      expect(response.status).toBe(400);
+
+      const body = await response.json();
+
+      expect(body.error).toBe('Invalid parameters');
+    });
+
+    it('returns 400 when days is negative', async () => {
+      const response = await GET(
+        makeRequest({
+          user: 'octocat',
+          days: '-5',
+        })
+      );
+
+      expect(response.status).toBe(400);
+    });
+
     it('returns 400 Bad Request when ?layout= is set to an unsupported format', async () => {
       const response = await GET(
         makeRequest({
@@ -251,6 +289,24 @@ describe('GET /api/streak', () => {
       expect(fetchGitHubContributions).not.toHaveBeenCalled();
     });
 
+    it('returns 400 when grace is below the minimum value', async () => {
+      const response = await GET(
+        makeRequest({
+          user: 'octocat',
+          grace: '-1',
+        })
+      );
+
+      expect(response.status).toBe(400);
+
+      const body = await response.json();
+
+      expect(body.error).toBe('Invalid parameters');
+      expect(body.details.fieldErrors.grace[0]).toBe('grace must be an integer between 0 and 7');
+
+      expect(fetchGitHubContributions).not.toHaveBeenCalled();
+    });
+
     it('returns 400 for unsupported ?layout query parameter values (strict schema validation)', async () => {
       const response = await GET(
         new Request('http://localhost:3000/api/streak?user=octocat&layout=unsupported_layout')
@@ -364,17 +420,6 @@ describe('GET /api/streak', () => {
       );
 
       expect(fetchGitHubContributions).toHaveBeenCalled();
-    });
-
-    it('returns 400 when grace exceeds max value', async () => {
-      const response = await GET(
-        makeRequest({
-          user: 'octocat',
-          grace: '999',
-        })
-      );
-
-      expect(response.status).toBe(400);
     });
 
     it('embeds the username (uppercased) in the SVG title', async () => {
@@ -899,7 +944,11 @@ describe('GET /api/streak', () => {
       expect(body.details).not.toBeNull();
     });
   });
+  it('returns 400 when an invalid hex color is passed as bg', async () => {
+    const response = await GET(makeRequest({ user: 'octocat', bg: '#ZZZZZZ' }));
 
+    expect(response.status).toBe(400);
+  });
   describe('hide parameters', () => {
     it('removes the username title when hide_title=true', async () => {
       const response = await GET(makeRequest({ user: 'octocat', hide_title: 'true' }));
@@ -1098,6 +1147,46 @@ describe('GET /api/streak', () => {
       expect(body).toContain('COMMITS THIS MONTH');
     });
 
+    it('automatically overrides or widens the query bounds to encompass the start of the previous month when view=monthly is requested with custom from/to params', async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-06-02T12:00:00Z'));
+
+      vi.mocked(fetchGitHubContributions).mockResolvedValueOnce({
+        calendar: {
+          totalContributions: 25,
+          weeks: [
+            {
+              contributionDays: [
+                { date: '2026-05-01', contributionCount: 0 },
+                { date: '2026-05-15', contributionCount: 10 },
+                { date: '2026-06-01', contributionCount: 15 },
+                { date: '2026-06-02', contributionCount: 0 },
+              ],
+            },
+          ],
+        } as ContributionCalendar,
+        repoContributions: [],
+      } as unknown as ExtendedContributionData);
+
+      try {
+        const response = await GET(
+          makeRequest({ user: 'octocat', view: 'monthly', from: '2026-06-01', to: '2026-06-02' })
+        );
+
+        expect(response.status).toBe(200);
+        // The expected prev month (May 2026) start is 2026-05-01.
+        // So 'from' should be widened to 2026-05-01T00:00:00Z.
+        // 'to' should be today's date in ISO: 2026-06-02T12:00:00.000Z.
+        expect(fetchGitHubContributions).toHaveBeenCalledWith('octocat', {
+          bypassCache: false,
+          from: '2026-05-01T00:00:00Z',
+          to: '2026-06-02T12:00:00.000Z',
+        });
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
     it('uses the selected year when generating archived monthly stats', async () => {
       vi.useFakeTimers();
       vi.setSystemTime(new Date('2026-05-20T12:00:00Z'));
@@ -1106,8 +1195,14 @@ describe('GET /api/streak', () => {
         calendar: {
           totalContributions: 25,
           weeks: [
-            { contributionDays: [{ date: '2024-11-15', contributionCount: 10 }] },
-            { contributionDays: [{ date: '2024-12-15', contributionCount: 15 }] },
+            {
+              contributionDays: [
+                { date: '2024-11-01', contributionCount: 0 },
+                { date: '2024-11-15', contributionCount: 10 },
+                { date: '2024-12-15', contributionCount: 15 },
+                { date: '2024-12-31', contributionCount: 0 },
+              ],
+            },
           ],
         } as ContributionCalendar,
         repoContributions: [],
@@ -1200,8 +1295,14 @@ describe('GET /api/streak', () => {
         calendar: {
           totalContributions: 150,
           weeks: [
-            { contributionDays: [{ date: '2026-04-15', contributionCount: 10 }] },
-            { contributionDays: [{ date: '2026-05-15', contributionCount: 15 }] },
+            {
+              contributionDays: [
+                { date: '2026-04-01', contributionCount: 0 },
+                { date: '2026-04-15', contributionCount: 10 },
+                { date: '2026-05-15', contributionCount: 15 },
+                { date: '2026-05-20', contributionCount: 0 },
+              ],
+            },
           ],
         } as ContributionCalendar,
         repoContributions: [],
@@ -1227,8 +1328,14 @@ describe('GET /api/streak', () => {
         calendar: {
           totalContributions: 150,
           weeks: [
-            { contributionDays: [{ date: '2026-04-15', contributionCount: 10 }] },
-            { contributionDays: [{ date: '2026-05-15', contributionCount: 15 }] },
+            {
+              contributionDays: [
+                { date: '2026-04-01', contributionCount: 0 },
+                { date: '2026-04-15', contributionCount: 10 },
+                { date: '2026-05-15', contributionCount: 15 },
+                { date: '2026-05-20', contributionCount: 0 },
+              ],
+            },
           ],
         } as ContributionCalendar,
         repoContributions: [],

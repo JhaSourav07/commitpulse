@@ -3,10 +3,14 @@
 import type { ContributionCalendar } from '../../types';
 import {
   GHOST_HEIGHT_PX,
+  GRID_ORIGIN_X,
+  GRID_ORIGIN_Y,
   LOG_SCALE_MULTIPLIER,
   LINEAR_SCALE_MULTIPLIER,
   MAX_LOG_HEIGHT,
   MAX_LINEAR_HEIGHT,
+  TILE_HEIGHT_HALF,
+  TILE_WIDTH_HALF,
 } from './layoutConstants';
 
 /** Shared layout data for a single isometric tower. */
@@ -92,8 +96,8 @@ export function computeFaceOpacity(count: number, isGhostCityMode: boolean): Fac
  */
 export function projectIsometric(weekIndex: number, dayIndex: number): { x: number; y: number } {
   return {
-    x: 300 + (weekIndex - dayIndex) * 16,
-    y: 120 + (weekIndex + dayIndex) * 10,
+    x: GRID_ORIGIN_X + (weekIndex - dayIndex) * TILE_WIDTH_HALF,
+    y: GRID_ORIGIN_Y + (weekIndex + dayIndex) * TILE_HEIGHT_HALF,
   };
 }
 

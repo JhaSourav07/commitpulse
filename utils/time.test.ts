@@ -350,4 +350,10 @@ describe('getSecondsUntilMidnightInTimezone — extreme timezone offset boundary
 
     expect(getSecondsUntilMidnightInTimezone('Pacific/Midway')).toBe(86400);
   });
+
+  it('throws a RangeError for invalid timezone identifiers', () => {
+    vi.setSystemTime(new Date('2024-06-15T12:00:00.000Z'));
+
+    expect(() => getSecondsUntilMidnightInTimezone('Invalid/Timezone')).toThrow(RangeError);
+  });
 });

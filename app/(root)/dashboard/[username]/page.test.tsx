@@ -93,6 +93,9 @@ describe('DashboardPage', () => {
       currentStreak: 5,
       peakStreak: 15,
       totalContributions: 500,
+      codingHabit: 'Night Owl',
+      totalPRs: 10,
+      totalIssues: 5,
     },
     languages: [{ name: 'TypeScript', percentage: 100, color: '#3178c6' }],
     activity: [],
@@ -101,6 +104,8 @@ describe('DashboardPage', () => {
     commitClock: [],
     graphData: { nodes: [], links: [] },
     lastSyncedAt: undefined,
+    popularRepos: [],
+    pinnedRepos: [],
   };
 
   beforeEach(() => {

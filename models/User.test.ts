@@ -149,27 +149,55 @@ describe('User Model', () => {
       const collectionWrapper = User.collection as unknown as { queue: unknown[] };
       expect(collectionWrapper.queue.length).toBe(0);
     });
-  });
 
-  describe('Database Connection State 99 Handling', () => {
-    it('triggers a lazy initialization fallback for database operations when uninitialized', async () => {
-      const { vi } = await import('vitest');
+    it('handles connection failure while connecting without leaving operations stuck', async (): Promise<void> => {
+      let currentReadyState = 2;
 
-      const readyStateSpy = vi
+      readyStateSpy = vi
         .spyOn(mongoose.connection, 'readyState', 'get')
-        .mockReturnValue(99 as unknown as typeof mongoose.connection.readyState);
+        .mockImplementation(() => currentReadyState as typeof mongoose.connection.readyState);
 
-      expect(mongoose.connection.readyState).toBe(99);
+      expect(mongoose.connection.readyState).toBe(2);
 
-      const fallbackUser = { username: 'buffered_user' };
-      const findOneSpy = vi.spyOn(User, 'findOne').mockResolvedValue(fallbackUser as never);
+      const connectionError = new Error('Database connection lost');
+      connectionError.name = 'ConnectionError';
 
-      const result = await User.findOne({ username: 'buffered_user' });
-      expect(result).toEqual(fallbackUser);
-      expect(findOneSpy).toHaveBeenCalledTimes(1);
+      const findOneSpy = vi.spyOn(User, 'findOne').mockRejectedValue(connectionError);
 
-      readyStateSpy.mockRestore();
+      // Simulate connection dropping before it becomes connected
+      currentReadyState = 0;
+
+      expect(mongoose.connection.readyState).toBe(0);
+
+      await expect(User.findOne({ username: 'failure-user' })).rejects.toThrow(
+        'Database connection lost'
+      );
+
+      await expect(User.findOne({ username: 'failure-user' })).rejects.toMatchObject({
+        name: 'ConnectionError',
+      });
+
       findOneSpy.mockRestore();
+    });
+
+    it('times out cleanly when the connection remains stuck in state 2 too long', async (): Promise<void> => {
+      readyStateSpy = vi
+        .spyOn(mongoose.connection, 'readyState', 'get')
+        .mockReturnValue(2 as unknown as typeof mongoose.connection.readyState);
+
+      expect(mongoose.connection.readyState).toBe(2);
+
+      const query = User.findOne({ username: 'timeout-user' }).exec();
+
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Connection timeout: state 2 did not resolve')), 50)
+      );
+
+      await expect(Promise.race([query, timeoutPromise])).rejects.toThrow(
+        'Connection timeout: state 2 did not resolve'
+      );
+
+      query.catch(() => undefined);
     });
   });
 
@@ -243,9 +271,30 @@ describe('User Model', () => {
       readyStateSpy.mockRestore();
       startSessionSpy.mockRestore();
     });
+
+    it('rejects new queries immediately when connection transitions to state 3 (disconnecting)', async (): Promise<void> => {
+      const readyStateSpy = vi
+        .spyOn(mongoose.connection, 'readyState', 'get')
+        .mockReturnValue(3 as unknown as typeof mongoose.connection.readyState);
+
+      expect(mongoose.connection.readyState).toBe(3);
+
+      const mockDisconnectingError = new Error('Connection is closing');
+      mockDisconnectingError.name = 'DisconnectingError';
+
+      const findOneSpy = vi.spyOn(User, 'findOne').mockRejectedValue(mockDisconnectingError);
+
+      await expect(User.findOne({ username: 'testuser' })).rejects.toThrow('Connection is closing');
+      await expect(User.findOne({ username: 'testuser' })).rejects.toMatchObject({
+        name: 'DisconnectingError',
+      });
+
+      readyStateSpy.mockRestore();
+      findOneSpy.mockRestore();
+    });
   });
 
-  describe('Database Connection State 99 Handling (Lazy Initialization Tracking)', () => {
+  describe('Database Connection State 99 Handling', () => {
     it('triggers lazy initialization exactly once and uses the correct connection URI', async (): Promise<void> => {
       const readyStateSpy = vi
         .spyOn(mongoose.connection, 'readyState', 'get')
@@ -269,19 +318,60 @@ describe('User Model', () => {
       readyStateSpy.mockRestore();
       connectSpy.mockRestore();
     });
-  });
 
-  describe('Database Connection State 1 Handling', () => {
-    it('keeps the User model usable while mongoose is connected', async (): Promise<void> => {
+    it('skips lazy initialization when connection is already in an active state', async (): Promise<void> => {
       const readyStateSpy = vi
         .spyOn(mongoose.connection, 'readyState', 'get')
         .mockReturnValue(1 as unknown as typeof mongoose.connection.readyState);
 
+      const connectSpy = vi.spyOn(mongoose, 'connect').mockResolvedValue(mongoose);
+      const MONGO_URI = 'mongodb://localhost:27017/commitpulse';
+
+      const lazyInit = async (): Promise<void> => {
+        if (mongoose.connection.readyState === 99) {
+          await mongoose.connect(MONGO_URI);
+        }
+      };
+
+      await lazyInit();
+
+      // State is 1 (connected), not 99 — lazy init must not fire
       expect(mongoose.connection.readyState).toBe(1);
-      expect(User).toBeDefined();
-      expect(User.modelName).toBe('User');
+      expect(connectSpy).not.toHaveBeenCalled();
 
       readyStateSpy.mockRestore();
+      connectSpy.mockRestore();
+    });
+  });
+
+  describe('Database Connection State 3 Handling', () => {
+    it('aborts active transactions when connection is state 3', async () => {
+      const { vi } = await import('vitest');
+      const readySpy = vi
+        .spyOn(mongoose.connection, 'readyState', 'get')
+        .mockReturnValue(3 as never);
+
+      const abortFn = vi.fn();
+      const endFn = vi.fn();
+      const startSpy = vi.spyOn(mongoose, 'startSession').mockResolvedValue({
+        abortTransaction: abortFn,
+        endSession: endFn,
+      } as never);
+
+      const runTx = async () => {
+        const sess = await mongoose.startSession();
+        if (mongoose.connection.readyState === 3) await sess.abortTransaction();
+        await sess.endSession();
+      };
+
+      await runTx();
+
+      expect(mongoose.connection.readyState).toBe(3);
+      expect(abortFn).toHaveBeenCalledTimes(1);
+      expect(endFn).toHaveBeenCalledTimes(1);
+
+      readySpy.mockRestore();
+      startSpy.mockRestore();
     });
   });
 });
@@ -315,5 +405,52 @@ describe('User Schema Behaviors under Connection State 2 (Variation 3)', () => {
     expect(result).toBe('buffered');
 
     readyStateSpy.mockRestore();
+  });
+
+  describe('Database Connection State 3 (Disconnecting) Handling', () => {
+    it('aborts/rolls back active transactions cleanly when connection is in state 3 (disconnecting)', async () => {
+      const { vi } = await import('vitest');
+
+      const readyStateSpy = vi
+        .spyOn(mongoose.connection, 'readyState', 'get')
+        .mockReturnValue(3 as unknown as typeof mongoose.connection.readyState);
+
+      const mockSession = {
+        startTransaction: vi.fn(),
+        commitTransaction: vi.fn(),
+        abortTransaction: vi.fn().mockResolvedValue(undefined),
+        endSession: vi.fn().mockResolvedValue(undefined),
+      } as unknown as mongoose.ClientSession;
+
+      const startSessionSpy = vi.spyOn(mongoose, 'startSession').mockResolvedValue(mockSession);
+
+      const runTransactionWithCheck = async (session: mongoose.ClientSession) => {
+        session.startTransaction();
+        try {
+          if (mongoose.connection.readyState === 3) {
+            await session.abortTransaction();
+            return { status: 'aborted' };
+          }
+          await session.commitTransaction();
+          return { status: 'committed' };
+        } catch (error) {
+          await session.abortTransaction();
+          throw error;
+        } finally {
+          await session.endSession();
+        }
+      };
+
+      const session = await mongoose.startSession();
+      const result = await runTransactionWithCheck(session);
+
+      expect(result.status).toBe('aborted');
+      expect(mockSession.abortTransaction).toHaveBeenCalledTimes(1);
+      expect(mockSession.endSession).toHaveBeenCalledTimes(1);
+      expect(mockSession.commitTransaction).not.toHaveBeenCalled();
+
+      readyStateSpy.mockRestore();
+      startSessionSpy.mockRestore();
+    });
   });
 });

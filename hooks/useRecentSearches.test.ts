@@ -134,6 +134,28 @@ describe('useRecentSearches', () => {
     expect(result2.current.searches[0]).toBe('octocat');
   });
 
+  it('ignores valid JSON from localStorage when it is not an array', () => {
+    store[STORAGE_KEY] = JSON.stringify({ value: 'octocat' });
+
+    const { result } = renderHook(() => useRecentSearches());
+
+    expect(result.current.searches).toEqual([]);
+
+    act(() => {
+      result.current.addSearch('torvalds');
+    });
+
+    expect(result.current.searches).toEqual(['torvalds']);
+  });
+
+  it('filters non-string entries loaded from localStorage', () => {
+    store[STORAGE_KEY] = JSON.stringify(['octocat', null, 42, 'torvalds']);
+
+    const { result } = renderHook(() => useRecentSearches());
+
+    expect(result.current.searches).toEqual(['octocat', 'torvalds']);
+  });
+
   it('is safe under Strict Mode double invocation', () => {
     const setItemSpy = vi.spyOn(window.localStorage, 'setItem');
     const removeItemSpy = vi.spyOn(window.localStorage, 'removeItem');
