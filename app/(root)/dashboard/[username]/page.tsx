@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import DashboardClient from '@/components/dashboard/DashboardClient';
-import { getFullDashboardData, fetchUserProfile } from '@/lib/github';
+import { getFullDashboardData, fetchUserProfile, NotFoundError } from '@/lib/github';
 import { notFound, redirect } from 'next/navigation';
 import { resolveDashboardPeriod } from '@/utils/dashboardPeriod';
 
@@ -99,7 +99,7 @@ export default async function DashboardPage({
       rangeLabel: period.label,
     });
   } catch (error) {
-    if (error instanceof Error && error.message.includes('not found')) {
+    if (error instanceof NotFoundError) {
       let fallbackProfile;
       try {
         fallbackProfile = await fetchUserProfile(username, {

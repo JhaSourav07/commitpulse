@@ -43,6 +43,18 @@ export class RateLimitError extends Error {
   }
 }
 
+/**
+ * Thrown when a requested GitHub user or resource does not exist.
+ * Caught by instanceof check in DashboardPage instead of brittle
+ * error.message.includes('not found') string matching.
+ */
+export class NotFoundError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'NotFoundError';
+  }
+}
+
 // Global circuit state tracking
 let globalCircuitBreakerOpenUntil = 0;
 
@@ -701,7 +713,7 @@ async function fetchContributionsUncached(
   }
 
   if (!data.data?.user) {
-    throw new Error(`GitHub user "${username}" not found`);
+    throw new NotFoundError(`GitHub user "${username}" not found`);
   }
 
   let calendar = data.data.user.contributionsCollection?.contributionCalendar;
@@ -774,7 +786,7 @@ async function fetchProfileUncached(
 
   if (!res.ok) {
     throwIfRateLimited(res);
-    if (res.status === 404) throw new Error('User not found');
+    if (res.status === 404) throw new NotFoundError('User not found');
     if (res.status === 403 && res.headers.get('x-ratelimit-remaining') === '0') {
       throw new Error('API Rate Limit Exceeded');
     }
