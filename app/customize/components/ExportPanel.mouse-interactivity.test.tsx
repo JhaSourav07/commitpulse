@@ -33,16 +33,16 @@ describe('ExportPanel mouse interactivity', () => {
     expect(htmlButton).toBeEnabled();
   });
 
-    it('preserves hover transition styling on format buttons', () => {
-      renderPanel();
+  it('preserves hover transition styling on format buttons', () => {
+    renderPanel();
 
-      const tsxButton = screen.getByRole('button', { name: 'React TSX' });
+    const tsxButton = screen.getByRole('button', { name: 'React TSX' });
 
-      fireEvent.mouseOver(tsxButton);
+    fireEvent.mouseOver(tsxButton);
 
-      expect(tsxButton.className).toContain('transition-all');
-      expect(tsxButton.className).toContain('hover:text-black');
-    });
+    expect(tsxButton.className).toContain('transition-all');
+    expect(tsxButton.className).toContain('hover:text-black');
+  });
 
   it('supports click propagation after hover on format option', () => {
     const { onFormatChange } = renderPanel();
