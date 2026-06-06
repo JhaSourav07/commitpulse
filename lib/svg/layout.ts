@@ -73,7 +73,7 @@ export function computeTowerHeight(
   if (count === 0 && shouldShowGhostCity) return GHOST_HEIGHT_PX;
   if (count === 0) return 0;
   return scale === 'log'
-    ? Math.min(Math.log2(count + 1) * LOG_SCALE_MULTIPLIER, MAX_LOG_HEIGHT)
+    ? Math.min(Math.log10(count + 1) * LOG_SCALE_MULTIPLIER, MAX_LOG_HEIGHT)
     : Math.min(count * LINEAR_SCALE_MULTIPLIER, MAX_LINEAR_HEIGHT);
 }
 
