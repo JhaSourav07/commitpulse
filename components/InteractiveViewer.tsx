@@ -110,6 +110,9 @@ export default function InteractiveViewer({
   const activeTooltipRef = useRef<ActiveTooltipState | null>(null);
   const startPointerPos = useRef({ x: 0, y: 0 });
   const [mounted, setMounted] = useState(false);
+  // SSR hydration guard: both server and client render with mounted=false.
+  // After hydration this effect flips the flag once so the tooltip portal
+  // (which requires document.body) is only rendered client-side.
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);

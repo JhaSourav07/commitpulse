@@ -30,7 +30,10 @@ export default function LanguageChart({ languages }: { languages: LanguageData[]
         transition={{ duration: 0.3 }}
         className="p-6 rounded-xl bg-white dark:bg-[#0a0a0a] border border-black/10 dark:border-[rgba(255,255,255,0.08)] flex flex-col min-h-[300px]"
       >
-        <h3 className="text-sm font-semibold text-gray-900 dark:text-white w-full text-left mb-6 tracking-tight">
+        <h3
+          id="language-chart-title"
+          className="text-sm font-semibold text-gray-900 dark:text-white w-full text-left mb-6 tracking-tight"
+        >
           Top Languages
         </h3>
 
@@ -45,13 +48,18 @@ export default function LanguageChart({ languages }: { languages: LanguageData[]
 
   return (
     <motion.div
+      role="region"
+      aria-labelledby="language-chart-title"
       initial={{ opacity: 0, y: 12 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ duration: 0.3 }}
       className="p-6 rounded-xl bg-white dark:bg-[#0a0a0a] border border-black/10 dark:border-[rgba(255,255,255,0.08)] flex flex-col items-center justify-between min-h-[300px]"
     >
-      <h3 className="text-sm font-semibold text-gray-900 dark:text-white w-full text-left mb-6 tracking-tight">
+      <h3
+        id="language-chart-title"
+        className="text-sm font-semibold text-gray-900 dark:text-white w-full text-left mb-6 tracking-tight"
+      >
         Top Languages
       </h3>
 
@@ -59,10 +67,13 @@ export default function LanguageChart({ languages }: { languages: LanguageData[]
         {/* Donut */}
         <motion.div
           data-testid="donut-chart"
+          role="img"
+          aria-label={`Donut chart showing top languages. Primary is ${languages[0].name} at ${languages[0].percentage}%`}
+          tabIndex={0}
           initial={{ rotate: -90, scale: 0.8, opacity: 0 }}
           animate={{ rotate: 0, scale: 1, opacity: 1 }}
           transition={{ duration: 0.8, type: 'spring', stiffness: 80 }}
-          className="absolute inset-0 rounded-full"
+          className="absolute inset-0 rounded-full focus:outline-hidden focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-blue-500"
           style={{
             background: `conic-gradient(${gradientStops})`,
             maskImage: 'radial-gradient(transparent 56%, black 57%)',
@@ -82,7 +93,13 @@ export default function LanguageChart({ languages }: { languages: LanguageData[]
 
       <div className="w-full mt-8 flex flex-col gap-2.5">
         {languages.map((lang) => (
-          <div key={lang.name} className="flex items-center justify-between text-xs">
+          <div
+            key={lang.name}
+            className="flex items-center justify-between text-xs focus:outline-hidden focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-blue-500 rounded-sm"
+            tabIndex={0}
+            title={`${lang.name} makes up ${lang.percentage} percent of top languages`}
+            aria-label={`${lang.name}: ${lang.percentage}%`}
+          >
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full" style={{ backgroundColor: lang.color }} />
               <span className="text-[#A1A1AA]">{lang.name}</span>

@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { MapPin, Calendar, GitBranch, Users, UserPlus, Star, Share2 } from 'lucide-react';
@@ -43,13 +44,15 @@ export default function ProfileCard({ user, exportData, badges }: ProfileCardPro
         <div className="flex flex-col items-center text-center">
           <div className="relative mb-5">
             <div className="w-24 h-24 rounded-full overflow-hidden border border-black/10 dark:border-[rgba(255,255,255,0.12)]">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={`${user.avatarUrl}${user.avatarUrl.includes('?') ? '&' : '?'}s=120`}
+              <Image
+                src={
+                  user.avatarUrl.startsWith('http')
+                    ? `${user.avatarUrl}${user.avatarUrl.includes('?') ? '&' : '?'}s=120`
+                    : user.avatarUrl
+                }
                 alt={user.name || 'Contributor Avatar'}
                 width={96}
                 height={96}
-                loading="lazy"
                 className="w-full h-full aspect-square object-cover"
               />
             </div>

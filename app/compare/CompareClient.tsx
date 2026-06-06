@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import TopRivalriesTicker from '@/components/TopRivalriesTicker';
@@ -41,7 +42,6 @@ import {
   CalendarDays,
   Tent,
   Camera,
-  Share2,
 } from 'lucide-react';
 import html2canvas from 'html2canvas';
 
@@ -303,9 +303,12 @@ function CompareProfileCard({ user, side }: { user: CompareUserData; side: 'left
         {/* Avatar */}
         <div className="relative mb-4">
           <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-black/10 dark:border-[rgba(255,255,255,0.12)]">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={`${profile.avatarUrl}${profile.avatarUrl.includes('?') ? '&' : '?'}s=120`}
+            <Image
+              src={
+                profile.avatarUrl.startsWith('http')
+                  ? `${profile.avatarUrl}${profile.avatarUrl.includes('?') ? '&' : '?'}s=120`
+                  : profile.avatarUrl
+              }
               alt={profile.name}
               width={80}
               height={80}
@@ -976,6 +979,9 @@ export default function CompareClient() {
     const u1 = searchParams.get('user1');
     const u2 = searchParams.get('user2');
     if (u1 && u2) {
+      // Intentional: this is a one-time mount-only fetch trigger, not a
+      // setState call. The disable is misidentified by the rule — handleCompare
+      // is an async function that internally calls setLoading/setData/setError.
       // eslint-disable-next-line react-hooks/set-state-in-effect
       handleCompare(u1, u2);
     }
@@ -1052,6 +1058,7 @@ export default function CompareClient() {
                   id="compare-user1-input"
                   type="text"
                   placeholder="GitHub username #1"
+                  aria-label="Enter first GitHub username to compare"
                   value={user1}
                   onChange={(e) => setUser1(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleCompare(user1, user2)}
@@ -1072,6 +1079,7 @@ export default function CompareClient() {
                   id="compare-user2-input"
                   type="text"
                   placeholder="GitHub username #2"
+                  aria-label="Enter second GitHub username to compare"
                   value={user2}
                   onChange={(e) => setUser2(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleCompare(user1, user2)}
@@ -1085,6 +1093,7 @@ export default function CompareClient() {
                 whileTap={{ scale: 0.98 }}
                 onClick={() => handleCompare(user1, user2)}
                 disabled={loading}
+                aria-label="Compare two GitHub profiles"
                 className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-black dark:bg-white text-white dark:text-black text-sm font-semibold hover:bg-zinc-800 dark:hover:bg-zinc-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? <Loader2 size={16} className="animate-spin" /> : <Swords size={16} />}
@@ -1275,7 +1284,6 @@ export default function CompareClient() {
                               @{user.profile.username}
                             </span>
                           </div>
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
                             src={`${BASE_URL}/api/streak?user=${encodeURIComponent(user.profile.username)}&theme=neon`}
                             alt={`${user.profile.username}'s CommitPulse monolith`}

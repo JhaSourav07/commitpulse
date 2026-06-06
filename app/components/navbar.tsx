@@ -145,7 +145,11 @@ export default function Navbar() {
                   }`}
                 >
                   {link.isExternal && <GithubMark />}
-                  {link.label}
+                  {link.label === 'GitHub Repo' ? (
+                    <span className="hidden lg:inline">{link.label}</span>
+                  ) : (
+                    <span>{link.label}</span>
+                  )}
                 </a>
               ))}
 

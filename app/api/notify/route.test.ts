@@ -16,9 +16,15 @@ vi.mock('@/lib/rate-limit', () => ({
     check: vi.fn().mockResolvedValue(true),
   },
 }));
+vi.mock('@/services/github/validate-user', () => ({
+  gitHubUserValidator: {
+    validateUser: vi.fn().mockResolvedValue(true),
+  },
+}));
 
 import { Notification } from '@/models/Notification';
 import { notifyRateLimiter } from '@/lib/rate-limit';
+import { gitHubUserValidator } from '@/services/github/validate-user';
 
 const makeRequest = (method: string, body?: object, search?: string) => {
   const url = `http://localhost:3000/api/notify${search ? '?' + search : ''}`;
@@ -36,6 +42,7 @@ describe('POST /api/notify', () => {
     vi.clearAllMocks();
     process.env = { ...originalEnv, MONGODB_URI: 'mongodb://localhost/test' };
     vi.mocked(notifyRateLimiter.check).mockResolvedValue(true);
+    vi.mocked(gitHubUserValidator.validateUser).mockResolvedValue(true);
   });
 
   afterEach(() => {
@@ -100,6 +107,38 @@ describe('POST /api/notify', () => {
     expect(res.status).toBe(429);
   });
 
+  // ── Per-username write cooldown ───────────────────────────────────────────
+
+  it('returns 429 when same username is written within cooldown period', async () => {
+    vi.mocked(Notification.findOneAndUpdate).mockResolvedValue({
+      username: 'cooldownuser',
+      email: 'a@b.com',
+      frequency: 'daily',
+      notifyOnCommit: true,
+      notifyOnStreak: true,
+      notifyOnMilestone: true,
+    } as never);
+
+    const body = { username: 'cooldownuser', email: 'a@b.com' };
+    const first = await POST(makeRequest('POST', body));
+    expect(first.status).toBe(200);
+
+    const second = await POST(makeRequest('POST', body));
+    expect(second.status).toBe(429);
+    const data = await second.json();
+    expect(data.message).toMatch(/Please wait \d+ seconds? before updating/);
+  });
+
+  // ── GitHub user existence check ──────────────────────────────────────────
+
+  it('returns 404 when GitHub username does not exist', async () => {
+    vi.mocked(gitHubUserValidator.validateUser).mockResolvedValue(false);
+    const res = await POST(makeRequest('POST', { username: 'nonexistent', email: 'a@b.com' }));
+    expect(res.status).toBe(404);
+    const data = await res.json();
+    expect(data.message).toContain('GitHub user not found');
+  });
+
   // ── MONGODB_URI handling ──────────────────────────────────────────────────
 
   it('returns 500 when MONGODB_URI is not set in production', async () => {
@@ -149,7 +188,7 @@ describe('POST /api/notify', () => {
 
   it('defaults frequency to daily and preferences to true when omitted', async () => {
     vi.mocked(Notification.findOneAndUpdate).mockResolvedValue({
-      username: 'testuser',
+      username: 'defaultuser',
       email: 'a@b.com',
       frequency: 'daily',
       notifyOnCommit: true,
@@ -157,7 +196,7 @@ describe('POST /api/notify', () => {
       notifyOnMilestone: true,
     } as never);
 
-    const res = await POST(makeRequest('POST', { username: 'testuser', email: 'a@b.com' }));
+    const res = await POST(makeRequest('POST', { username: 'defaultuser', email: 'a@b.com' }));
     expect(res.status).toBe(200);
   });
 });

@@ -93,6 +93,7 @@ export default function ContributorsSearch({ contributors }: { contributors: Con
             <input
               type="text"
               placeholder="Search the collective..."
+              aria-label="Search contributors by name"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full bg-transparent px-4 py-5 text-lg text-black dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-600 outline-none font-light"

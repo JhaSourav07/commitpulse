@@ -1,5 +1,6 @@
 // app/api/streak/route.ts
 
+import crypto from 'crypto';
 import { NextResponse } from 'next/server';
 import { fetchGitHubContributions, getOrgDashboardData } from '@/lib/github';
 import { calculateStreak, calculateMonthlyStats, aggregateCalendars } from '@/lib/calculate';
@@ -16,7 +17,7 @@ import { getSecondsUntilUTCMidnight, getSecondsUntilMidnightInTimezone } from '@
 import type { BadgeParams, ContributionCalendar } from '@/types';
 import { themes } from '@/lib/svg/themes';
 import { streakParamsSchema } from '@/lib/validations';
-import { sanitizeHexColor } from '@/lib/svg/sanitizer';
+import { sanitizeHexColor, sanitizeRadius } from '@/lib/svg/sanitizer';
 
 const SVG_CSP_HEADER =
   "default-src 'none'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://fonts.gstatic.com;";
@@ -106,8 +107,17 @@ export async function GET(request: Request) {
 
     let timezone = 'UTC';
     if (tzParam) {
-      timezone = new Intl.DateTimeFormat(undefined, { timeZone: tzParam }).resolvedOptions()
-        .timeZone;
+      try {
+        timezone = new Intl.DateTimeFormat(undefined, { timeZone: tzParam }).resolvedOptions()
+          .timeZone;
+      } catch (error) {
+        if (error instanceof RangeError) {
+          const validationErr = new Error(`Invalid timezone: ${tzParam}`);
+          validationErr.name = 'ValidationError';
+          throw validationErr;
+        }
+        throw error;
+      }
     }
 
     let from = customFrom
@@ -241,6 +251,13 @@ export async function GET(request: Request) {
         .split(',')
         .map((u) => u.trim())
         .filter(Boolean);
+
+      if (users.length > 2) {
+        throw new Error(
+          'ValidationError: The streak comparison generator strictly accepts a maximum of 2 usernames.'
+        );
+      }
+
       let lastError: unknown = null;
       let hasOfflineFallback = false;
       const fetchedCalendars = await Promise.all(
@@ -326,23 +343,38 @@ export async function GET(request: Request) {
         ? 'no-cache, no-store, must-revalidate'
         : `public, s-maxage=${secondsToMidnight}, stale-while-revalidate=86400`;
 
-      return NextResponse.json(
-        {
-          user: targetEntity,
-          stats,
-          monthlyStats,
-          calendar: {
-            totalContributions: calendar.totalContributions,
-            weeks: calendar.weeks,
-          },
+      const jsonPayload = JSON.stringify({
+        user: targetEntity,
+        stats,
+        monthlyStats,
+        calendar: {
+          totalContributions: calendar.totalContributions,
+          weeks: calendar.weeks,
         },
-        {
+      });
+
+      const etag = crypto.createHash('sha1').update(jsonPayload).digest('hex');
+      const weakEtag = `W/"${etag}"`;
+      const ifNoneMatch = request.headers.get('if-none-match');
+
+      if (ifNoneMatch === weakEtag || ifNoneMatch === `"${etag}"`) {
+        return new NextResponse(null, {
+          status: 304,
           headers: {
             'Cache-Control': cacheControl,
-            'X-Cache-Status': refresh ? `BYPASS, fetched=${new Date().toISOString()}` : 'HIT',
+            ETag: weakEtag,
           },
-        }
-      );
+        });
+      }
+
+      return new NextResponse(jsonPayload, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': cacheControl,
+          ETag: weakEtag,
+          'X-Cache-Status': refresh ? `BYPASS, fetched=${new Date().toISOString()}` : 'HIT',
+        },
+      });
     }
 
     // ─── SVG output mode (default) ──────────────────────────────────────────
@@ -380,11 +412,26 @@ export async function GET(request: Request) {
         ? 'public, s-maxage=31536000, immutable'
         : `public, s-maxage=${secondsToMidnight}, stale-while-revalidate=86400`;
 
+    const etag = crypto.createHash('sha1').update(svg).digest('hex');
+    const weakEtag = `W/"${etag}"`;
+    const ifNoneMatch = request.headers.get('if-none-match');
+
+    if (ifNoneMatch === weakEtag || ifNoneMatch === `"${etag}"`) {
+      return new NextResponse(null, {
+        status: 304,
+        headers: {
+          'Cache-Control': cacheControl,
+          ETag: weakEtag,
+        },
+      });
+    }
+
     return new NextResponse(svg, {
       headers: {
         'Content-Type': 'image/svg+xml',
         'Cache-Control': cacheControl,
         'Content-Security-Policy': SVG_CSP_HEADER,
+        ETag: weakEtag,
         'X-Cache-Status': refresh ? `BYPASS, fetched=${new Date().toISOString()}` : 'HIT',
       },
     });
@@ -438,12 +485,7 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
     undefined;
   const errAccent = `#${sanitizeHexColor(errAccentRaw, '58a6ff')}`;
   const errText = `#${sanitizeHexColor(parseResult.success ? parseResult.data.text : undefined, 'c9d1d9')}`;
-  const errRadius = parseResult.success
-    ? (() => {
-        const r = Number(parseResult.data.radius);
-        return Number.isFinite(r) ? Math.min(32, Math.max(0, r)) : 8;
-      })()
-    : 8;
+  const errRadius = sanitizeRadius(parseResult.success ? parseResult.data.radius : undefined, 8);
   const errSpeed = (parseResult.success && parseResult.data.speed) || '8s';
 
   if (isRateLimit) {

@@ -30,8 +30,11 @@ const setCached = (key: string, value: MockResumeData) => mockCache.set(key, val
 
 // ─── Fake Database/Service Layer ─────────────────────────────────────────
 // Prefixing 'input' with '_' tells ESLint to safely ignore the unused variable
-const fakeDbFetch = async (_input: string): Promise<MockResumeData> => {
+const fakeDbFetch = async (input: string): Promise<MockResumeData> => {
+  void input;
+
   await new Promise((resolve) => setTimeout(resolve, 5));
+
   return {
     name: 'Alex Developer',
     email: 'alex.dev@example.com',
