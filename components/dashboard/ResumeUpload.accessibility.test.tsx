@@ -28,7 +28,7 @@ describe('ResumeUpload - Accessibility compliance', () => {
     const fileInput = screen.getByLabelText('Upload resume');
     expect(fileInput).toBeInTheDocument();
     expect(fileInput).toHaveAttribute('type', 'file');
-    expect(fileInput).toHaveAttribute('accept', '.pdf,.docx,.doc');
+    expect(fileInput).toHaveAttribute('accept', '.pdf,.docx');
   });
 
   it('displays descriptive, screen-reader-visible instruction text in the empty state', () => {

@@ -51,8 +51,15 @@ describe('HeroSection responsive breakpoints', () => {
     expect(heading.tagName).toBe('H1');
     expect(heading.className).toContain('text-5xl');
     expect(heading.className).toContain('md:text-8xl');
+    // ensure strong typography and gradient text rendering
+    expect(heading.className).toContain('font-extrabold');
+    expect(heading.className).toContain('bg-clip-text');
+    expect(heading.className).toContain('text-transparent');
+    // ensure gradient color stops remain present
     expect(heading.className).toContain('from-green-500');
     expect(heading.className).toContain('to-purple-600');
+
+    // paragraph text and expected color utility
     expect(screen.getByText(/generate high-fidelity, 3d isometric monoliths/i).className).toContain(
       'text-gray-600'
     );
@@ -100,3 +107,5 @@ describe('HeroSection responsive rendering and typography (Variation 3)', () => 
     expect(screen.getByText(/professional precision/i)).toBeDefined();
   });
 });
+
+// Variation 2 assertions merged into 'HeroSection responsive breakpoints' above.

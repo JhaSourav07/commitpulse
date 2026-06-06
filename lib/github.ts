@@ -3,7 +3,6 @@ import type {
   ContributionDay,
   ExtendedContributionData,
   RepoContribution,
-  ContributionWeek,
   GraphNode,
   GraphLink,
 } from '@/types';
@@ -32,6 +31,20 @@ const REST_TIMEOUT_MS = 5000; // 5s for REST endpoints
 let currentTokenIndex = 0;
 const rateLimitedTokens = new Map<string, number>();
 
+//Explicit, strongly-typed Error subclass
+export class RateLimitError extends Error {
+  constructor(
+    message: string,
+    public readonly retryAfterMs: number
+  ) {
+    super(message);
+    this.name = 'RateLimitError';
+  }
+}
+
+// Global circuit state tracking
+let globalCircuitBreakerOpenUntil = 0;
+
 export function getGitHubTokens(): string[] {
   const envToken = process.env.GITHUB_PAT || process.env.GITHUB_TOKEN || '';
   return envToken
@@ -55,12 +68,21 @@ export async function fetchWithRetry(
   attempt = 0,
   timeoutMs?: number
 ): Promise<Response> {
+  const now = Date.now();
+
+  // Problem 1 & 5 Fix: Global Short-Circuit Guard at the absolute front door
+  if (now < globalCircuitBreakerOpenUntil) {
+    throw new RateLimitError(
+      'Circuit Breaker Open: Request blocked due to total token exhaustion.',
+      globalCircuitBreakerOpenUntil - now
+    );
+  }
+
   const resolvedTimeout =
     timeoutMs ?? (url.toString().includes('graphql') ? GRAPHQL_TIMEOUT_MS : REST_TIMEOUT_MS);
 
   if (options.signal?.aborted) throw new Error('AbortError');
 
-  // Dynamically resolve and inject the next active Authorization header
   const urlStr = url.toString();
   const isGitHubRequest = urlStr.includes('api.github.com');
   let currentToken = '';
@@ -68,11 +90,16 @@ export async function fetchWithRetry(
   if (isGitHubRequest) {
     try {
       currentToken = getGitHubToken();
+      // Ensure your headers instantiation copies existing layout keys safely
       options.headers = {
         ...options.headers,
         Authorization: `bearer ${currentToken}`,
       };
     } catch (e) {
+      // Problem 3 Fix: Never swallow or compromise a structural RateLimitError instance
+      if (e instanceof RateLimitError) {
+        throw e;
+      }
       if (attempt === 0) throw e;
     }
   }
@@ -227,13 +254,6 @@ async function fetchGraphQLWithRetry(
   if (authHeader && authHeader.startsWith('bearer ')) {
     usedToken = authHeader.substring(7);
   }
-  if (usedToken) {
-    rateLimitedTokens.set(usedToken, Date.now() + 60 * 1000); // 1 min cooldown
-    const tokens = getGitHubTokens();
-    if (tokens.length > 1) {
-      currentTokenIndex = (currentTokenIndex + 1) % tokens.length;
-    }
-  }
 
   const delay = BASE_DELAY_MS * Math.pow(2, attempt);
   if (delay > MAX_RETRY_DELAY_MS) return res;
@@ -271,12 +291,26 @@ function getGitHubRateLimitInfo(res: Response): GitHubRateLimitInfo {
   };
 }
 
-function createRateLimitError(res: Response): Error {
-  const rateLimit = getGitHubRateLimitInfo(res);
-  const resetMessage = rateLimit.resetAt ? ` Please try again after ${rateLimit.resetAt}.` : '';
+function createRateLimitError(res: Response): RateLimitError {
+  // Extract rate limit telemetry headers if available
+  const limitHeader = res.headers.get('x-ratelimit-limit');
+  const remainingHeader = res.headers.get('x-ratelimit-remaining');
+  const resetHeader = res.headers.get('x-ratelimit-reset');
 
-  return new Error(
-    `GitHub API rate limit exceeded.${resetMessage} Configure GITHUB_TOKEN to increase the request limit.`
+  const now = Date.now();
+  let retryAfterMs = 60000; // Default 1-minute safety window
+
+  if (resetHeader) {
+    const resetUnixTimeSeconds = parseInt(resetHeader, 10);
+    if (!isNaN(resetUnixTimeSeconds)) {
+      // Calculate delta remaining between target epoch boundary and active clock runtime
+      retryAfterMs = Math.max(0, resetUnixTimeSeconds * 1000 - now);
+    }
+  }
+
+  return new RateLimitError(
+    `GitHub API rate limit exceeded. Limit: ${limitHeader || 'unknown'}, Remaining: ${remainingHeader || '0'}.`,
+    retryAfterMs
   );
 }
 
@@ -322,6 +356,8 @@ function getGraphQLErrorMessage(errors: unknown): string {
 
 type FetchOptions = {
   bypassCache?: boolean;
+  // Skip the cache read but still write the fresh result back (used by background refresh).
+  forceRefresh?: boolean;
   from?: string;
   to?: string;
   rangeLabel?: string;
@@ -347,6 +383,33 @@ interface GitHubUserProfile {
   location: string | null;
   type?: string; // e.g. "User" or "Organization"
   plan?: { name?: string } | null;
+}
+
+/**
+ * Proactively evaluates total token matrix state pool availability.
+ * If all tokens are exhausted, it immediately trips the global circuit barrier.
+ */
+function checkAndTripCircuitBreaker(): void {
+  const tokens = getGitHubTokens();
+  if (tokens.length === 0) return;
+
+  const now = Date.now();
+  const expiries: number[] = [];
+  let unblockedTokenExists = false;
+
+  for (const token of tokens) {
+    const expiry = rateLimitedTokens.get(token);
+    if (expiry && now < expiry) {
+      expiries.push(expiry);
+    } else {
+      unblockedTokenExists = true;
+    }
+  }
+
+  // If no token is clear of the boundary tracking markers, trip circuit immediately
+  if (!unblockedTokenExists && expiries.length > 0) {
+    globalCircuitBreakerOpenUntil = Math.min(...expiries);
+  }
 }
 
 /**
@@ -416,6 +479,8 @@ export function clearGitHubApiCacheForTests(): void {
   contributedReposCache.clear();
   rateLimitedTokens.clear();
   currentTokenIndex = 0;
+  // CRITICAL FIX: Reset circuit breaker state to prevent cross-test contamination
+  globalCircuitBreakerOpenUntil = 0;
 }
 
 function getGitHubToken(): string {
@@ -426,9 +491,11 @@ function getGitHubToken(): string {
   }
 
   const now = Date.now();
-  // Clear expired rate-limited tokens
+  const tokenSet = new Set(tokens);
+
+  // Condition 2 Fix: Clear expired and missing env tokens from map
   for (const [t, expiry] of rateLimitedTokens.entries()) {
-    if (now >= expiry) {
+    if (now >= expiry || !tokenSet.has(t)) {
       rateLimitedTokens.delete(t);
     }
   }
@@ -443,8 +510,16 @@ function getGitHubToken(): string {
     }
   }
 
-  // Fallback to the current token if all are rate-limited
-  return tokens[currentTokenIndex % tokens.length];
+  //Calculate the optimal, absolute earliest reset timestamp
+  const expiries = Array.from(rateLimitedTokens.values());
+  const earliestResetTime = expiries.length > 0 ? Math.min(...expiries) : now + 60 * 1000;
+  const backoffMs = Math.max(0, earliestResetTime - now);
+
+  // Fix: Trip the global circuit breaker state immediately
+  globalCircuitBreakerOpenUntil = earliestResetTime;
+
+  // Throw authentic instance passing down telemetry data
+  throw new RateLimitError('API Rate Limit Exceeded', backoffMs);
 }
 
 const getHeaders = () => ({
@@ -461,50 +536,6 @@ export function displayName(profile: GitHubUserProfile): string {
  * DATA FETCHING
  * ========================================================================== */
 
-function mergeCalendars(
-  oldCal: ContributionCalendar,
-  newCal: ContributionCalendar,
-  authoritativeTotal?: number
-): ContributionCalendar {
-  const dayMap = new Map<string, ContributionDay>();
-
-  for (const week of oldCal.weeks) {
-    for (const day of week.contributionDays) {
-      dayMap.set(day.date, day);
-    }
-  }
-
-  for (const week of newCal.weeks) {
-    for (const day of week.contributionDays) {
-      dayMap.set(day.date, day);
-    }
-  }
-
-  const sortedDays = Array.from(dayMap.values()).sort((a, b) => a.date.localeCompare(b.date));
-
-  const mergedWeeks: ContributionWeek[] = [];
-  let currentWeek: ContributionWeek = { contributionDays: [] };
-
-  for (const day of sortedDays) {
-    const dateObj = new Date(day.date);
-    if (currentWeek.contributionDays.length > 0 && dateObj.getUTCDay() === 0) {
-      mergedWeeks.push(currentWeek);
-      currentWeek = { contributionDays: [] };
-    }
-    currentWeek.contributionDays.push(day);
-  }
-  if (currentWeek.contributionDays.length > 0) {
-    mergedWeeks.push(currentWeek);
-  }
-
-  const calculatedTotal = sortedDays.reduce((sum, d) => sum + d.contributionCount, 0);
-
-  return {
-    totalContributions: authoritativeTotal ?? calculatedTotal,
-    weeks: mergedWeeks,
-  };
-}
-
 export async function fetchGitHubContributions(
   username: string,
   options: FetchOptions = {}
@@ -519,13 +550,11 @@ export async function fetchGitHubContributions(
       : true;
   };
 
-  const load = async (cached: ExtendedContributionData | null) => {
-    return fetchContributionsUncached(username, key, options, cached);
-  };
+  const load = () => fetchContributionsUncached(username, key, options);
 
-  if (options.bypassCache) {
+  if (options.bypassCache || options.forceRefresh) {
     try {
-      return await load(null);
+      return await load();
     } catch (err: unknown) {
       const staleData = await contributionsCache.get(key);
       if (staleData) {
@@ -563,18 +592,8 @@ export async function fetchGitHubContributions(
 async function fetchContributionsUncached(
   username: string,
   key: string,
-  options: FetchOptions,
-  cached: ExtendedContributionData | null
+  options: FetchOptions
 ): Promise<ExtendedContributionData> {
-  const isDeltaSync = cached && cached.calendar.lastSyncedAt && !options.bypassCache;
-  let queryFrom = options.from;
-
-  if (isDeltaSync) {
-    const lastSyncedDate = new Date(cached.calendar.lastSyncedAt!);
-    lastSyncedDate.setUTCDate(lastSyncedDate.getUTCDate() - 1);
-    queryFrom = lastSyncedDate.toISOString();
-  }
-
   const query = `
       query($login: String!, $from: DateTime, $to: DateTime) {
         user(login: $login) {
@@ -611,7 +630,7 @@ async function fetchContributionsUncached(
     headers: getHeaders(),
     body: JSON.stringify({
       query,
-      variables: { login: username, from: queryFrom, to: options.to },
+      variables: { login: username, from: options.from, to: options.to },
     }),
     cache: 'no-store',
     signal: options.signal,
@@ -662,18 +681,9 @@ async function fetchContributionsUncached(
     };
   }
 
-  let totalPRs = data.data.user.contributionsCollection?.totalPullRequestContributions || 0;
-  let totalIssues = data.data.user.contributionsCollection?.totalIssueContributions || 0;
+  const totalPRs = data.data.user.contributionsCollection?.totalPullRequestContributions || 0;
+  const totalIssues = data.data.user.contributionsCollection?.totalIssueContributions || 0;
 
-  if (isDeltaSync && cached) {
-    calendar = mergeCalendars(
-      cached.calendar,
-      calendar,
-      data.data.user.contributionsCollection.contributionCalendar.totalContributions
-    );
-    totalPRs += cached.totalPRs || 0;
-    totalIssues += cached.totalIssues || 0;
-  }
   // Inject deterministic Lines of Code (LoC) approximation
   calendar.weeks.forEach((week) => {
     week.contributionDays.forEach((day) => {
@@ -704,7 +714,7 @@ async function fetchContributionsUncached(
 
   calendar.lastSyncedAt = new Date().toISOString();
 
-  // Cache for 7 days to enable delta syncs, staleness is handled logically
+  // Cache for 7 days so a failed refresh can fall back to stale data; freshness is enforced via lastSyncedAt
   const LONG_CACHE_TTL = 7 * 24 * 60 * 60 * 1000;
   if (!options.bypassCache) {
     await contributionsCache.set(
@@ -737,7 +747,7 @@ export async function fetchUserProfile(
     return fetchProfileUncached(encodedUsername, key, options);
   };
 
-  if (options.bypassCache) return load();
+  if (options.bypassCache || options.forceRefresh) return load();
   return profileCache.getOrSet(key, load, GITHUB_CACHE_TTL_MS);
 }
 
@@ -781,7 +791,7 @@ export async function fetchUserRepos(
     return fetchReposUncached(encodedUsername, key, options);
   };
 
-  if (options.bypassCache) return load();
+  if (options.bypassCache || options.forceRefresh) return load();
   return reposCache.getOrSet(key, load, GITHUB_CACHE_TTL_MS);
 }
 
@@ -898,6 +908,7 @@ export type OrgDashboardData = {
     totalContributions: number;
   };
   calendar: ContributionCalendar;
+  repoContributions: RepoContribution[];
   isPartial: boolean;
 };
 
@@ -929,13 +940,19 @@ export async function getOrgDashboardData(
   const fetchOptions = { ...options, signal: controller.signal };
 
   let calendars: ContributionCalendar[] = [];
+  const repoContributions: RepoContribution[] = [];
   try {
     // Fetch calendars for all members concurrently with capped concurrency to avoid 429s/timeouts
     calendars = (
       await runCappedConcurrency(activeMembers, 5, (member) => {
         if (controller.signal.aborted) return Promise.resolve(null);
         return fetchGitHubContributions(member, fetchOptions)
-          .then((data) => data.calendar)
+          .then((data) => {
+            if (data.repoContributions) {
+              repoContributions.push(...data.repoContributions);
+            }
+            return data.calendar;
+          })
           .catch(() => null);
       })
     ).filter((c: ContributionCalendar | null) => c !== null) as ContributionCalendar[];
@@ -971,6 +988,7 @@ export async function getOrgDashboardData(
       totalContributions: streakStats.totalContributions,
     },
     calendar: aggregatedCalendar,
+    repoContributions,
     isPartial,
   };
 }
@@ -1151,7 +1169,7 @@ export async function fetchContributedRepos(
       }
     `;
 
-    const res = await fetchWithRetry(GITHUB_GRAPHQL_URL, {
+    const res = await fetchGraphQLWithRetry(GITHUB_GRAPHQL_URL, {
       method: 'POST',
       headers: getHeaders(),
       body: JSON.stringify({
@@ -1162,13 +1180,37 @@ export async function fetchContributedRepos(
       signal: options.signal,
     });
 
-    if (!res.ok) return [];
+    if (!res.ok) {
+      throwIfRateLimited(res);
+      throw new Error(
+        `GitHub GraphQL API returned status ${res.status} after ${MAX_RETRIES} retries`
+      );
+    }
+
     const data = await res.json();
-    const result = data?.data?.user?.repositoriesContributedTo?.nodes || [];
-    return result;
+
+    if (data?.errors !== undefined) {
+      if (Array.isArray(data.errors)) {
+        const isRateLimit = data.errors.some((e: unknown) => {
+          const err = e as { message?: string; type?: string };
+          return err?.message?.toLowerCase().includes('rate limit') || err?.type === 'RATE_LIMITED';
+        });
+        if (isRateLimit) {
+          throw new Error('API Rate Limit Exceeded');
+        }
+      }
+      throw new Error(getGraphQLErrorMessage(data.errors));
+    }
+
+    return data?.data?.user?.repositoriesContributedTo?.nodes || [];
   };
 
   if (options.bypassCache) return load();
+  if (options.forceRefresh) {
+    const fresh = await load();
+    await contributedReposCache.set(key, fresh, GITHUB_CACHE_TTL_MS);
+    return fresh;
+  }
   return contributedReposCache.getOrSet(key, load, GITHUB_CACHE_TTL_MS);
 }
 
@@ -1370,6 +1412,13 @@ export async function getFullDashboardData(username: string, options: FetchOptio
       cause: profileResult.reason,
     });
 
+  // Treat a failed contributions fetch as a first-class error rather than silently
+  // returning zeroed stats, which would otherwise present a false "no activity" result.
+  if (calendarResult.status === 'rejected')
+    throw new Error(`[GitHub API] Failed to fetch contributions for user "${username}"`, {
+      cause: calendarResult.reason,
+    });
+
   const profileData = profileResult.value;
   const reposData = reposResult.status === 'fulfilled' ? reposResult.value : [];
   const calendarData =
@@ -1497,11 +1546,15 @@ export async function getFullDashboardData(username: string, options: FetchOptio
 
 export async function getWrappedData(
   username: string,
-  year: string,
+  year?: string,
   options?: FetchOptions
 ): Promise<import('../types/dashboard').WrappedStats> {
-  const from = `${year}-01-01T00:00:00Z`;
-  const to = `${year}-12-31T23:59:59Z`;
+  const trimmedYear = typeof year === 'string' ? year.trim() : '';
+  const fallbackYear = new Date().getFullYear().toString();
+  const normalizedYear = /^\d{4}$/.test(trimmedYear) ? trimmedYear : fallbackYear;
+
+  const from = `${normalizedYear}-01-01T00:00:00Z`;
+  const to = `${normalizedYear}-12-31T23:59:59Z`;
   const fetchOptions: FetchOptions = {
     from,
     to,
@@ -1530,7 +1583,7 @@ export async function getWrappedData(
     monthTotals[month] = (monthTotals[month] || 0) + day.contributionCount;
   }
   const busiestMonth =
-    Object.entries(monthTotals).sort((a, b) => b[1] - a[1])[0]?.[0] ?? `${year}-01`;
+    Object.entries(monthTotals).sort((a, b) => b[1] - a[1])[0]?.[0] ?? `${normalizedYear}-01`;
 
   const weekendDays = allDays.filter((d) => {
     const dow = new Date(d.date).getUTCDay();

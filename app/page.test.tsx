@@ -1,9 +1,16 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable @next/next/no-img-element, jsx-a11y/alt-text */
+import type { HTMLAttributes, AnchorHTMLAttributes, ReactNode, ImgHTMLAttributes } from 'react';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import LandingPage from './page';
+
+type MockLinkProps = AnchorHTMLAttributes<HTMLAnchorElement> & {
+  children?: ReactNode;
+  href: string;
+};
+
+type MockImageProps = ImgHTMLAttributes<HTMLImageElement> & {
+  fill?: boolean;
+};
 
 // Mock child components to isolate LandingPage testing
 vi.mock('./components/CustomizeCTA', () => ({
@@ -26,14 +33,12 @@ vi.mock('@/components/DiscordButton', () => ({
 // rendered inline. The mock below keeps the import from erroring if any
 // other test file still imports it.
 vi.mock('next/image', () => ({
-  default: (props: any) => {
-    const { fill, ...rest } = props || {};
-    return <img {...rest} />;
-  },
+  // eslint-disable-next-line jsx-a11y/alt-text, @next/next/no-img-element
+  default: ({ fill: _fill, ...rest }: MockImageProps) => <img {...rest} />,
 }));
 
 vi.mock('next/link', () => ({
-  default: ({ children, href, ...props }: any) => (
+  default: ({ children, href, ...props }: MockLinkProps) => (
     <a href={href} {...props} data-testid="next-link">
       {children}
     </a>
@@ -58,7 +63,7 @@ vi.mock('gsap', () => {
     to: vi.fn().mockReturnValue(tween),
     fromTo: vi.fn().mockReturnValue(tween),
     timeline: vi.fn().mockReturnValue(timeline),
-    context: vi.fn((_fn: any) => ({ revert: vi.fn() })),
+    context: vi.fn((_fn: () => void) => ({ revert: vi.fn() })),
   };
   return {
     default: mockGsap,
@@ -79,23 +84,45 @@ vi.mock('gsap/ScrollTrigger', () => ({
   ScrollTrigger: {},
 }));
 
+type MotionBaseProps = HTMLAttributes<HTMLElement> & {
+  children?: ReactNode;
+  whileHover?: unknown;
+  whileTap?: unknown;
+  whileInView?: unknown;
+  initial?: unknown;
+  animate?: unknown;
+  exit?: unknown;
+  transition?: unknown;
+  viewport?: unknown;
+  layoutId?: string;
+};
+
+type MotionAnchorProps = MotionBaseProps & AnchorHTMLAttributes<HTMLAnchorElement>;
+
+type MotionImgProps = ImgHTMLAttributes<HTMLImageElement> & {
+  initial?: unknown;
+  animate?: unknown;
+  exit?: unknown;
+  transition?: unknown;
+};
+
 // Mock framer-motion
 vi.mock('framer-motion', () => ({
   motion: {
     div: ({
       children,
       className,
-      whileHover,
-      whileTap,
-      whileInView,
-      initial,
-      animate,
-      exit,
-      transition,
-      viewport,
-      layoutId,
+      whileHover: _wh,
+      whileTap: _wt,
+      whileInView: _wiv,
+      initial: _i,
+      animate: _a,
+      exit: _e,
+      transition: _tr,
+      viewport: _vp,
+      layoutId: _lid,
       ...props
-    }: any) => (
+    }: MotionBaseProps) => (
       <div className={className} data-testid="motion-div" {...props}>
         {children}
       </div>
@@ -103,17 +130,17 @@ vi.mock('framer-motion', () => ({
     p: ({
       children,
       className,
-      whileHover,
-      whileTap,
-      whileInView,
-      initial,
-      animate,
-      exit,
-      transition,
-      viewport,
-      layoutId,
+      whileHover: _wh,
+      whileTap: _wt,
+      whileInView: _wiv,
+      initial: _i,
+      animate: _a,
+      exit: _e,
+      transition: _tr,
+      viewport: _vp,
+      layoutId: _lid,
       ...props
-    }: any) => (
+    }: MotionBaseProps) => (
       <p className={className} data-testid="motion-p" {...props}>
         {children}
       </p>
@@ -122,38 +149,38 @@ vi.mock('framer-motion', () => ({
       children,
       className,
       href,
-      whileHover,
-      whileTap,
-      whileInView,
-      initial,
-      animate,
-      exit,
-      transition,
-      viewport,
-      layoutId,
+      whileHover: _wh,
+      whileTap: _wt,
+      whileInView: _wiv,
+      initial: _i,
+      animate: _a,
+      exit: _e,
+      transition: _tr,
+      viewport: _vp,
+      layoutId: _lid,
       ...props
-    }: any) => (
+    }: MotionAnchorProps) => (
       <a href={href} className={className} data-testid="motion-a" {...props}>
         {children}
       </a>
     ),
     img: ({
-      children,
       className,
       src,
       alt,
       onLoad,
       onError,
-      initial,
-      animate,
-      exit,
-      transition,
+      initial: _i,
+      animate: _a,
+      exit: _e,
+      transition: _tr,
       ...props
-    }: any) => (
+    }: MotionImgProps) => (
+      // eslint-disable-next-line @next/next/no-img-element
       <img className={className} src={src} alt={alt} onLoad={onLoad} onError={onError} {...props} />
     ),
   },
-  AnimatePresence: ({ children }: any) => <>{children}</>,
+  AnimatePresence: ({ children }: { children?: ReactNode }) => <>{children}</>,
 }));
 
 const mockRecentSearches = {
@@ -170,19 +197,21 @@ vi.mock('@/hooks/useRecentSearches', () => ({
 describe('LandingPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+
+    // Clear persisted username between tests
+    window.localStorage.clear();
+
     mockRecentSearches.searches = ['octocat', 'torvalds'];
     mockRecentSearches.addSearch = vi.fn();
     mockRecentSearches.clearSearches = vi.fn();
     mockRecentSearches.removeSearch = vi.fn();
 
-    // Mock navigator.clipboard
     Object.assign(navigator, {
       clipboard: {
         writeText: vi.fn().mockResolvedValue(undefined),
       },
     });
 
-    // Mock scrollIntoView
     window.HTMLElement.prototype.scrollIntoView = vi.fn();
   });
 

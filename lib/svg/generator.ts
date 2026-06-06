@@ -1,10 +1,17 @@
 // lib/svg/generator.ts
 
-import type { BadgeParams, ContributionCalendar, StreakStats, MonthlyStats } from '../../types';
+import type {
+  BadgeParams,
+  ContributionCalendar,
+  StreakStats,
+  MonthlyStats,
+  RepoContribution,
+} from '../../types';
 import { getLabels, type BadgeLabels } from '../i18n/badgeLabels';
 import { AUTO_THEME_DARK, AUTO_THEME_LIGHT, themes } from './themes';
 import { getTowerAnimationCSS } from './animations';
 import { computeTowers, type TowerData } from './layout';
+import { LANGUAGE_COLORS } from './languageColors';
 import {
   sanitizeFont,
   sanitizeHexColor,
@@ -68,10 +75,11 @@ export function truncateUsername(username: string): string {
   return username.length > 12 ? `${username.slice(0, 12)}...` : username;
 }
 
-export function deterministicRandom(seed: string): number {
+export function deterministicRandom(seed?: string | null): number {
+  const safeSeed = seed || '';
   let hash = 2166136261;
-  for (let i = 0; i < seed.length; i++) {
-    hash ^= seed.charCodeAt(i);
+  for (let i = 0; i < safeSeed.length; i++) {
+    hash ^= safeSeed.charCodeAt(i);
     hash = Math.imul(hash, 16777619);
   }
   return (hash >>> 0) / 4294967296;
@@ -102,8 +110,8 @@ export function escapeXML(str: string): string {
     .replace(/'/g, '&#39;');
 }
 
-export function particleCount(count: number): number {
-  if (count === 0) return 0;
+export function particleCount(count?: number | null): number {
+  if (typeof count !== 'number' || count <= 0 || Number.isNaN(count)) return 0;
   return Math.min(5, Math.max(3, Math.floor(count / 4)));
 }
 
@@ -320,7 +328,8 @@ function renderStatsSection(
   s: Scaler,
   params: BadgeParams
 ): string {
-  const totalLabel = params.mode === 'loc' ? 'TOTAL LINES OF CODE' : labels.ANNUAL_SYNC_TOTAL;
+  const totalLabel =
+    params.mode === 'loc' ? 'TOTAL LINES OF CODE (EST.)' : labels.ANNUAL_SYNC_TOTAL;
   const glowAttr = params.glow !== false ? ' filter="url(#glow)"' : '';
 
   return `
@@ -355,7 +364,7 @@ function renderStyle(
 
   return `
   <style>
-  @import url('https://fonts.googleapis.com/css2?family=Fira+Code&amp;family=JetBrains+Mono&amp;family=Roboto&amp;family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');
   ${googleFontsImport}
   ${getTowerAnimationCSS(entrance, sf)}
   .scan-line {
@@ -555,12 +564,14 @@ function renderFooter(
   labels: ReturnType<typeof getLabels>,
   safeUser: string,
   accent: string,
-  sf: number
+  sf: number,
+  isWinner?: boolean
 ): string {
   const s = createScaler(sf);
+  const titleText = `${truncateUsername(safeUser).toUpperCase()}${isWinner ? ' 👑' : ''}${params.isOfflineFallback ? '<tspan fill="#ff9f43" font-size="10px" font-weight="bold"> [STALE CACHE]</tspan>' : ''}`;
   return `
   ${!params.hide_stats ? renderStatsSection(stats, labels, s, params) : ''}
-  ${!params.hide_title ? `<text x="${s(300)}" y="${s(50)}" text-anchor="middle" class="title">${truncateUsername(safeUser).toUpperCase()}${params.isOfflineFallback ? '<tspan fill="#ff9f43" font-size="10px" font-weight="bold"> [STALE CACHE]</tspan>' : ''}</text>` : ''}
+  ${!params.hide_title ? `<text x="${s(300)}" y="${s(50)}" text-anchor="middle" class="title">${titleText}</text>` : ''}
   <rect
     x="${s(100)}"
     y="${s(80)}"
@@ -816,7 +827,7 @@ function generateAutoThemeSVG(
   ${renderHeader(safeUser, stats, sf, params, safeId)}
 
   <style>
-@import url('https://fonts.googleapis.com/css2?family=Fira+Code&amp;family=JetBrains+Mono&amp;family=Roboto&amp;family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');
   ${googleFontsImport}
   :root { --cp-bg: #${light.bg}; --cp-text: #${light.text}; --cp-accent: #${light.accent}; --cp-label-fill: ${lightLabelFill}; --cp-label-opacity: ${lightLabelOpacity}; }
   @media (prefers-color-scheme: dark) { :root { --cp-bg: #${dark.bg}; --cp-text: #${dark.text}; --cp-accent: #${dark.accent}; --cp-label-fill: ${darkLabelFill}; --cp-label-opacity: ${darkLabelOpacity}; } }
@@ -959,7 +970,7 @@ export function generateMonthlySVG(stats: MonthlyStats, params: BadgeParams): st
   <title id="cp-title-${safeId}">Monthly Stats for ${safeUser}</title>
   <desc id="cp-desc-${safeId}">Monthly stats for ${safeUser}: ${stats.currentMonthTotal} ${commitsLabel} vs previous month delta of ${deltaText}.</desc>
   <style>
-  @import url('https://fonts.googleapis.com/css2?family=Fira+Code&amp;family=JetBrains+Mono&amp;family=Roboto&amp;family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');
   ${googleFontsImport}
 
   .title { font-family: ${selectedFont || '"Syncopate", sans-serif'}; fill: ${text}; font-size: 14px; letter-spacing: 2px; font-weight: 400; opacity: 0.8; }
@@ -1148,13 +1159,13 @@ export function generateWrappedSVG(
   aria-describedby="cp-desc-${safeId}"
 >
   <title id="cp-title-${safeId}">${safeUser}'s GitHub Wrapped ${year}</title>
-  <desc id="cp-desc-${safeId}">GitHub Wrapped stats for ${safeUser} in ${year}: ${stats.totalContributions} total contributions, top language is ${stats.topLanguage || 'Unknown'}, busiest month is ${stats.busiestMonth || 'Unknown'}.</desc>
+  <desc id="cp-desc-${safeId}">GitHub Wrapped stats for ${safeUser} in ${year}: ${stats.totalContributions} total contributions, top language is ${escapeXML(stats.topLanguage || 'Unknown')}, busiest month is ${escapeXML(stats.busiestMonth || 'Unknown')}.</desc>
   <defs>
     ${filterGlow}
   </defs>
 
   <style>
-  @import url('https://fonts.googleapis.com/css2?family=Fira+Code&amp;family=JetBrains+Mono&amp;family=Roboto:wght@400;500;700&amp;family=Syncopate:wght@700&amp;family=Space+Grotesk:wght@500;600;700&amp;display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@700&amp;family=Space+Grotesk:wght@500;600;700&amp;display=swap');
   ${googleFontsImport}
   ${autoThemeVariables}
 
@@ -1214,7 +1225,7 @@ export function generateWrappedSVG(
   <g transform="translate(210, 80)">
     <g transform="translate(0, 20)">
       <text x="0" y="0" class="grid-label" ${textClass}>TOP LANGUAGE</text>
-      <text x="0" y="20" class="grid-val" ${accentClass}>${stats.topLanguage || 'Unknown'}</text>
+      <text x="0" y="20" class="grid-val" ${accentClass}>${escapeXML(stats.topLanguage || 'Unknown')}</text>
     </g>
 
     <g transform="translate(130, 20)">
@@ -1233,14 +1244,14 @@ export function generateWrappedSVG(
     <text x="0" y="0" class="grid-label" ${textClass}>PEAK DAY</text>
     <text x="0" y="20" class="grid-val" ${textClass}>
       ${stats.highestDailyCount} COMMITS
-      <tspan font-size="10.5" font-weight="500" ${accentClass} opacity="0.8">ON ${formattedPeakDate.toUpperCase()}</tspan>
+      <tspan font-size="10.5" font-weight="500" ${accentClass} opacity="0.8">ON ${escapeXML(formattedPeakDate.toUpperCase())}</tspan>
     </text>
   </g>
 
   <g transform="translate(210, 205)">
     <text x="0" y="0" class="grid-label" ${textClass}>BUSIEST MONTH</text>
     <text x="0" y="20" class="grid-val" ${textClass}>
-      ${monthName}
+      ${escapeXML(monthName)}
       <tspan font-size="11" font-weight="500" ${accentClass}>🔥</tspan>
     </text>
   </g>
@@ -1313,7 +1324,7 @@ function generateAutoThemeMonthlySVG(stats: MonthlyStats, params: BadgeParams): 
   <title id="cp-title-${safeId}">Monthly Stats for ${safeUser}</title>
   <desc id="cp-desc-${safeId}">Monthly stats for ${safeUser}: ${stats.currentMonthTotal} ${commitsLabel} vs previous month delta of ${deltaText}.</desc>
   <style>
-  @import url('https://fonts.googleapis.com/css2?family=Fira+Code&amp;family=JetBrains+Mono&amp;family=Roboto&amp;family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');
   ${googleFontsImport}
   :root { --cp-bg: #${light.bg}; --cp-text: #${light.text}; --cp-accent: #${light.accent}; --cp-negative: #${light.negative || 'cf222e'}; }
   @media (prefers-color-scheme: dark) { :root { --cp-bg: #${dark.bg}; --cp-text: #${dark.text}; --cp-accent: #${dark.accent}; --cp-negative: #${dark.negative || 'f85149'}; } }
@@ -1586,7 +1597,7 @@ export function generateHeatmapSVG(
   </defs>
 
   <style>
-  @import url('https://fonts.googleapis.com/css2?family=Fira+Code&amp;family=JetBrains+Mono&amp;family=Roboto&amp;family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');
   ${googleFontsImport}
 
   .hm-title { font-family: ${selectedFont || '"Syncopate", sans-serif'}; fill: ${text}; font-size: ${s(14)}px; letter-spacing: ${s(4)}px; font-weight: 400; opacity: 0.8; }
@@ -1713,7 +1724,7 @@ function generateAutoThemeHeatmapSVG(
   </defs>
 
   <style>
-  @import url('https://fonts.googleapis.com/css2?family=Fira+Code&amp;family=JetBrains+Mono&amp;family=Roboto&amp;family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');
   ${googleFontsImport}
 
   :root { --cp-bg: #${light.bg}; --cp-text: #${light.text}; --cp-accent: #${light.accent}; }
@@ -2037,6 +2048,9 @@ export function generateVersusSVG(
 
   const safeId = `${safeUser1}_vs_${safeUser2}`.replace(/[^a-zA-Z0-9-]/g, '_').toLowerCase();
 
+  const isWinner1 = stats1.totalContributions > stats2.totalContributions;
+  const isWinner2 = stats2.totalContributions > stats1.totalContributions;
+
   return `
 <svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 ${W} ${H}" fill="none" role="img" aria-labelledby="cp-title-${safeId}" aria-describedby="cp-desc-${safeId}">
   <title id="cp-title-${safeId}">CommitPulse Versus Stats: ${safeUser1} vs ${safeUser2}</title>
@@ -2048,13 +2062,13 @@ export function generateVersusSVG(
   <g transform="translate(0, 0)">
     <g transform="translate(0, ${Math.round(20 * sf)})">${towers1}</g>
     ${renderIsometricLabels(calendar1, params, text, sf)}
-    ${renderFooter(stats1, params, labels, safeUser1, accent, sf)}
+    ${renderFooter(stats1, params, labels, safeUser1, accent, sf, isWinner1)}
   </g>
 
   <g transform="translate(${singleW}, 0)">
     <g transform="translate(0, ${Math.round(20 * sf)})">${towers2}</g>
     ${renderIsometricLabels(calendar2, params, text, sf)}
-    ${renderFooter(stats2, params, labels, safeUser2, accent, sf)}
+    ${renderFooter(stats2, params, labels, safeUser2, accent, sf, isWinner2)}
   </g>
 
   <line x1="${singleW}" y1="${s(40)}" x2="${singleW}" y2="${H - s(40)}" stroke="${text}" stroke-opacity="0.2" stroke-width="2" stroke-dasharray="4 4" />
@@ -2177,6 +2191,9 @@ function generateAutoThemeVersusSVG(
 
   const safeId = `${safeUser1}_vs_${safeUser2}`.replace(/[^a-zA-Z0-9-]/g, '_').toLowerCase();
 
+  const isWinner1 = stats1.totalContributions > stats2.totalContributions;
+  const isWinner2 = stats2.totalContributions > stats1.totalContributions;
+
   return `
 <svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 ${W} ${H}" fill="none" role="img" aria-labelledby="cp-title-${safeId}" aria-describedby="cp-desc-${safeId}">
   <title id="cp-title-${safeId}">CommitPulse Versus Stats: ${safeUser1} vs ${safeUser2}</title>
@@ -2184,7 +2201,7 @@ function generateAutoThemeVersusSVG(
   ${renderDefs(sf, params)}
 
   <style>
-  @import url('https://fonts.googleapis.com/css2?family=Fira+Code&amp;family=JetBrains+Mono&amp;family=Roboto&amp;family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');
   :root { --cp-bg: #${light.bg}; --cp-text: #${light.text}; --cp-accent: #${light.accent}; --cp-label-fill: ${lightLabelFill}; --cp-label-opacity: ${lightLabelOpacity}; }
   @media (prefers-color-scheme: dark) { :root { --cp-bg: #${dark.bg}; --cp-text: #${dark.text}; --cp-accent: #${dark.accent}; --cp-label-fill: ${darkLabelFill}; --cp-label-opacity: ${darkLabelOpacity}; } }
   .cp-bg-fill { fill: var(--cp-bg); } .cp-text-fill { fill: var(--cp-text); color: var(--cp-text); } .cp-accent-fill { fill: var(--cp-accent); color: var(--cp-accent); }
@@ -2219,13 +2236,13 @@ function generateAutoThemeVersusSVG(
   <g transform="translate(0, 0)">
     <g transform="translate(0, ${Math.round(20 * sf)})">${towers1}</g>
     ${renderIsometricLabels(calendar1, params, '', sf)}
-    ${renderFooter(stats1, params, labels, safeUser1, '', sf)}
+    ${renderFooter(stats1, params, labels, safeUser1, '', sf, isWinner1)}
   </g>
 
   <g transform="translate(${singleW}, 0)">
     <g transform="translate(0, ${Math.round(20 * sf)})">${towers2}</g>
     ${renderIsometricLabels(calendar2, params, '', sf)}
-    ${renderFooter(stats2, params, labels, safeUser2, '', sf)}
+    ${renderFooter(stats2, params, labels, safeUser2, '', sf, isWinner2)}
   </g>
 
   <line x1="${singleW}" y1="${s(40)}" x2="${singleW}" y2="${H - s(40)}" stroke="var(--cp-text)" stroke-opacity="0.2" stroke-width="2" stroke-dasharray="4 4" />
@@ -2347,7 +2364,7 @@ export function generatePulseSVG(
   <title id="cp-title-${safeId}">Heartbeat Sparkline for ${safeUser}</title>
   <desc id="cp-desc-${safeId}">Heartbeat sparkline for ${safeUser} showing commit activity over the last 30 days (total commits: ${pulseTotal}).</desc>
   <style>
-  @import url('https://fonts.googleapis.com/css2?family=Fira+Code&amp;family=JetBrains+Mono&amp;family=Roboto&amp;family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');
   ${googleFontsImport}
 
   .title { font-family: ${selectedFont || '"Syncopate", sans-serif'}; fill: ${text}; font-size: 16px; letter-spacing: 2px; font-weight: 700; opacity: 0.9; }
@@ -2531,7 +2548,7 @@ function generateAutoThemePulseSVG(
   <title id="cp-title-${safeId}">Heartbeat Sparkline for ${safeUser}</title>
   <desc id="cp-desc-${safeId}">Heartbeat sparkline for ${safeUser} showing commit activity over the last 30 days (total commits: ${pulseTotal}).</desc>
   <style>
-  @import url('https://fonts.googleapis.com/css2?family=Fira+Code&amp;family=JetBrains+Mono&amp;family=Roboto&amp;family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');
   ${googleFontsImport}
 
   :root { --cp-bg: #${light.bg}; --cp-text: #${light.text}; --cp-accent: #${light.accent}; }
@@ -2714,5 +2731,137 @@ export function generateRateLimitSVG(
     <text class="label">PEAK_STREAK</text>
     <text y="40" class="stats">—</text>
   </g>
+</svg>`;
+}
+
+export function generateLanguagesSVG(
+  stats: StreakStats,
+  params: BadgeParams,
+  repoContributions: RepoContribution[]
+): string {
+  const safeUser = escapeXML(params.user || 'GitHub User');
+  const bg = `#${sanitizeHexColor(params.bg, '0d1117')}`;
+
+  const accentRaw = Array.isArray(params.accent)
+    ? params.accent[params.accent.length - 1]
+    : params.accent;
+  const accentStr = accentRaw || '00ffaa';
+  const accent = `#${sanitizeHexColor(accentStr, '00ffaa')}`;
+
+  const text = `#${sanitizeHexColor(params.text, 'ffffff')}`;
+  const borderAttr = params.border ? `stroke="#${params.border}" stroke-width="2"` : '';
+
+  const sanitizedFont = sanitizeFont(params.font);
+  const selectedFont = resolveFont(sanitizedFont);
+  const isPredefinedFont = isBundledFont(sanitizedFont);
+  const statsFont = selectedFont || '"Space Grotesk", sans-serif';
+  const googleFontUrlPart =
+    sanitizedFont && !isPredefinedFont ? sanitizeGoogleFontUrl(sanitizedFont) : null;
+  const googleFontsImport = googleFontUrlPart
+    ? `@import url('https://fonts.googleapis.com/css2?family=${googleFontUrlPart}&amp;display=swap');`
+    : '';
+
+  const sf = getSizeScale(params.size);
+  const radius = sanitizeRadius(params.radius, 8) * sf;
+  const labels = getLabels(params.lang);
+  const W = Math.round(SVG_WIDTH * sf);
+  const H = Math.round(SVG_HEIGHT * sf);
+  const safeId = safeUser.replace(/[^a-zA-Z0-9-]/g, '_').toLowerCase();
+
+  const langCounts: Record<string, number> = {};
+  repoContributions.forEach((c) => {
+    const l = c.repository.primaryLanguage?.name;
+    if (l) langCounts[l] = (langCounts[l] || 0) + c.contributions.totalCount;
+  });
+
+  const total = Object.values(langCounts).reduce((a, b) => a + b, 0);
+
+  if (total === 0) {
+    return `
+<svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 ${W} ${H}" fill="none" role="img" aria-labelledby="cp-title-${safeId}">
+  ${renderHeader(safeUser, stats, sf, params, safeId)}
+  ${renderStyle(selectedFont, statsFont, googleFontsImport, text, accent, sf, bg, params.entrance || 'rise')}
+  <rect width="${W}" height="${H}" rx="${radius}" fill="${params.hideBackground ? 'transparent' : bg}" ${borderAttr} />
+  <text x="${W / 2}" y="${H / 2}" text-anchor="middle" font-family='${statsFont}' font-size="${16 * sf}px" fill="${text}" opacity="0.6">No language data available in the selected period.</text>
+  ${renderFooter(stats, params, labels, safeUser, accent, sf)}
+</svg>`;
+  }
+
+  const languages = Object.entries(langCounts)
+    .map(([name, count]) => ({
+      name,
+      percentage: Math.round((count / total) * 100),
+      color: (LANGUAGE_COLORS as Record<string, string>)[name] ?? '#8B949E',
+    }))
+    .sort((a, b) => b.percentage - a.percentage)
+    .slice(0, 5);
+
+  // We use custom isometric pixel coordinates from a center origin
+  // to spread the 5 towers across the canvas.
+  const TOWER_SCALE = 2.5; // Make the 5 language towers much larger than daily contribution tiles
+  const V_SHAPE_COORDS = [
+    { x: 0, y: 0, zIndex: 3 }, // 1st (Center, Front)
+    { x: -80, y: -45, zIndex: 2 }, // 2nd (Left, Mid)
+    { x: 80, y: -45, zIndex: 2 }, // 3rd (Right, Mid)
+    { x: -160, y: -90, zIndex: 1 }, // 4th (Far Left, Back)
+    { x: 160, y: -90, zIndex: 1 }, // 5th (Far Right, Back)
+  ];
+
+  let towersHtml = '';
+  const maxPercent = languages[0]?.percentage || 100;
+
+  // Sort languages by zIndex so we render back-to-front (painter's algorithm)
+  const sortedLanguages = languages
+    .map((lang, idx) => ({
+      ...lang,
+      coord: V_SHAPE_COORDS[idx],
+    }))
+    .sort((a, b) => a.coord.zIndex - b.coord.zIndex);
+
+  sortedLanguages.forEach((lang, idx) => {
+    // W and H are already scaled by sf, so we only scale the coordinate offsets
+    const scaledX = W / 2 + lang.coord.x * sf;
+    const scaledY = H / 2 + (50 + lang.coord.y) * sf;
+    const h = Math.max(30, (lang.percentage / maxPercent) * 140) * sf;
+
+    // Scale up the tower base size
+    const tw = 16 * TOWER_SCALE * sf; // half-width
+    const th = 10 * TOWER_SCALE * sf; // half-height
+
+    const paths = {
+      left: `M0 ${-h} L0 ${th} L${-tw} 0 L${-tw} ${-h - th} Z`,
+      right: `M0 ${-h} L0 ${th} L${tw} 0 L${tw} ${-h - th} Z`,
+      top: `M0 ${-h - th} L${tw} ${-h} L0 ${-h + th} L${-tw} ${-h} Z`,
+    };
+
+    const hexColor = lang.color.startsWith('#') ? lang.color : `#${lang.color}`;
+    const delay = (idx * 0.15).toFixed(3);
+    const tooltip = `${lang.name}: ${lang.percentage}%`;
+
+    towersHtml += `
+        <g transform="translate(${scaledX}, ${scaledY})">
+          <g class="cp-tower interactive-tower" style="animation-delay: ${delay}s;">
+            <title>${escapeXML(tooltip)}</title>
+            <path d="${paths.left}" fill="${hexColor}" fill-opacity="0.85" />
+            <path d="${paths.right}" fill="${hexColor}" fill-opacity="0.65" />
+            <path d="${paths.top}" fill="${hexColor}" fill-opacity="1.0" />
+            
+            <text x="0" y="${-h - th - 18 * sf}" text-anchor="middle" font-family='${statsFont}' font-size="${14 * sf}px" fill="${text}" font-weight="bold">${lang.name}</text>
+            <text x="0" y="${-h - th - 4 * sf}" text-anchor="middle" font-family='${statsFont}' font-size="${12 * sf}px" fill="${text}" opacity="0.6">${lang.percentage}%</text>
+          </g>
+        </g>`;
+  });
+
+  return `
+<svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 ${W} ${H}" fill="none" role="img" aria-labelledby="cp-title-${safeId}" aria-describedby="cp-desc-${safeId}">
+  ${renderHeader(safeUser, stats, sf, params, safeId)}
+  ${renderStyle(selectedFont, statsFont, googleFontsImport, text, accent, sf, bg, params.entrance || 'rise')}
+  <rect width="${W}" height="${H}" rx="${radius}" fill="${params.hideBackground ? 'transparent' : bg}" ${borderAttr} />
+  
+  <g id="cp-towers" style="transform-origin: center; transform-box: fill-box;">
+    ${towersHtml}
+  </g>
+  
+  ${renderFooter(stats, params, labels, safeUser, accent, sf)}
 </svg>`;
 }

@@ -15,6 +15,7 @@ interface SocialLink {
 
 const navigationLinks: FooterLink[] = [
   { label: 'Home', href: '/', isExternal: false },
+  { label: 'Generator', href: '/generator', isExternal: false },
   { label: 'Compare', href: '/compare', isExternal: false },
   { label: 'Customization', href: '/customize', isExternal: false },
   { label: 'Contributors', href: '/contributors', isExternal: false },
@@ -53,9 +54,9 @@ const socialLinks: SocialLink[] = [
     icon: 'discord',
   },
   {
-    label: 'Twitter',
-    href: 'https://twitter.com/JhaSourav07',
-    ariaLabel: 'Creator on Twitter/X',
+    label: 'X',
+    href: 'https://x.com/JhaSourav07',
+    ariaLabel: 'Creator on X',
     icon: 'twitter',
   },
   {

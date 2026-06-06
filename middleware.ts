@@ -17,14 +17,40 @@ import { getClientIp } from './utils/getClientIp';
  * - /api/wrapped
  * - /api/student
  *
- * Limit: 60 requests per minute per IP.
+ * General limit : 60 requests per minute per IP.
+ * Refresh limit : 5 requests per minute per IP (when ?refresh=true).
+ *
+ * The refresh-specific limit is checked first. If it is exceeded the request
+ * is rejected immediately with a 429 and the general counter is NOT consumed,
+ * which avoids accidentally burning a user's normal quota on blocked refreshes.
  */
 export async function middleware(request: NextRequest) {
   // Secure client IP extraction
   const ip = getClientIp(request);
 
-  // Apply rate limiting
-  // 60 requests per 60,000ms (1 minute)
+  const isRefresh = request.nextUrl.searchParams.get('refresh') === 'true';
+
+  if (isRefresh) {
+    // Stricter limit: 5 cache-bypass requests per minute per IP.
+    // Uses a separate key prefix so it doesn't share counters with the
+    // general rate limiter.
+    const refreshResult = await rateLimit(`refresh:${ip}`, 5, 60000);
+
+    if (!refreshResult.success) {
+      // Return early — do NOT consume the general-limiter quota for a blocked refresh.
+      const resp = NextResponse.json(
+        { error: 'Too many refresh requests. Please wait before bypassing the cache again.' },
+        { status: 429 }
+      );
+      resp.headers.set('X-RateLimit-Limit', refreshResult.limit.toString());
+      resp.headers.set('X-RateLimit-Remaining', '0');
+      resp.headers.set('X-RateLimit-Reset', refreshResult.reset.toString());
+      resp.headers.set('X-RateLimit-Policy', 'refresh');
+      return resp;
+    }
+  }
+
+  // General limit: 60 requests per 60,000 ms (1 minute)
   const result = await rateLimit(ip, 60, 60000);
 
   if (!result.success) {
@@ -42,11 +68,19 @@ export async function middleware(request: NextRequest) {
     );
   }
 
-  // Add rate limit headers to the response for successful requests
+  // Build the headers once.
+  // Some API routes return their own Response/NextResponse objects, so we must ensure
+  // the rate-limit headers survive and are present on the final response.
+  const headers = {
+    'X-RateLimit-Limit': result.limit.toString(),
+    'X-RateLimit-Remaining': result.remaining.toString(),
+    'X-RateLimit-Reset': result.reset.toString(),
+  };
+
+  // `NextResponse.next()` attaches headers to the outgoing response pipeline.
+  // Ensure they are set on the returned response object.
   const response = NextResponse.next();
-  response.headers.set('X-RateLimit-Limit', result.limit.toString());
-  response.headers.set('X-RateLimit-Remaining', result.remaining.toString());
-  response.headers.set('X-RateLimit-Reset', result.reset.toString());
+  Object.entries(headers).forEach(([k, v]) => response.headers.set(k, v));
 
   return response;
 }

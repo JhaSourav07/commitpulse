@@ -16,6 +16,12 @@ function GithubMark() {
 
 const NAV_LINKS = [
   {
+    label: 'Generator',
+    href: '/generator',
+    isExternal: false,
+    isPrimary: false,
+  },
+  {
     label: 'Compare',
     href: '/compare',
     isExternal: false,
@@ -139,7 +145,11 @@ export default function Navbar() {
                   }`}
                 >
                   {link.isExternal && <GithubMark />}
-                  {link.label}
+                  {link.label === 'GitHub Repo' ? (
+                    <span className="hidden lg:inline">{link.label}</span>
+                  ) : (
+                    <span>{link.label}</span>
+                  )}
                 </a>
               ))}
 

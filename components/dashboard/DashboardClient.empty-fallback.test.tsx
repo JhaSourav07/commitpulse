@@ -87,7 +87,7 @@ vi.mock('./RepositoryGraph', () => ({
   default: () => <div data-testid="repository-graph">Repository Graph</div>,
 }));
 
-vi.mock('./PopularRepos', () => ({
+vi.mock('./PopularPinnnedRepos', () => ({
   PopularRepos: () => <div data-testid="popular-repos">Popular Repos</div>,
 }));
 

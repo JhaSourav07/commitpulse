@@ -51,7 +51,20 @@ export async function GET(req: NextRequest) {
 
   const { user, theme, bg, text, accent, refresh } = parseResult.data;
 
-  const selectedTheme = themes[theme] || themes.dark;
+  const themeName = theme || 'dark';
+  const isAutoTheme = themeName === 'auto';
+  const isRandomTheme = themeName === 'random';
+  const selectedTheme = (() => {
+    if (isAutoTheme) return themes.light;
+    if (isRandomTheme) {
+      const keys = Object.keys(themes);
+      const hash = user.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
+      const stableKey = keys[hash % keys.length];
+      return themes[stableKey] || themes.dark;
+    }
+    return themes[themeName] || themes.dark;
+  })();
+
   const resolvedBg = `#${bg || selectedTheme.bg}`;
   const resolvedText = `#${text || selectedTheme.text}`;
   const resolvedAccent = `#${accent || selectedTheme.accent}`;

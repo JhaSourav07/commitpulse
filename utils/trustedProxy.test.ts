@@ -1,7 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getClientIp } from './getClientIp';
 import { isTrustedProxy, ip4ToInt, isIPv4InCidr, isIPv4 } from './trustedProxy';
-import { NextRequest } from 'next/server';
 
 describe('isTrustedProxy and Helpers', () => {
   it('correctly checks if an IP is valid IPv4', () => {

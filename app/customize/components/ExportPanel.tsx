@@ -7,6 +7,7 @@ import { getPlaceholderSnippet } from '../utils';
 const EXPORT_FORMATS: { value: ExportFormat; label: string }[] = [
   { value: 'markdown', label: 'Markdown' },
   { value: 'html', label: 'HTML' },
+  { value: 'tsx', label: 'React TSX' },
   { value: 'action', label: 'GitHub Action' },
 ];
 
@@ -31,11 +32,19 @@ export function ExportPanel({
 }): ReactElement {
   const activeSnippet = hasUsername ? snippet : getPlaceholderSnippet(format);
   const formatLabel =
-    format === 'markdown' ? 'Markdown' : format === 'action' ? 'GitHub Action' : 'HTML';
+    format === 'markdown'
+      ? 'Markdown'
+      : format === 'action'
+        ? 'GitHub Action'
+        : format === 'tsx'
+          ? 'React TSX'
+          : 'HTML';
   const copyButtonLabel = hasUsername
     ? format === 'action'
       ? 'Copy GitHub Action workflow to clipboard'
-      : `Copy ${formatLabel} export snippet to clipboard`
+      : format === 'tsx'
+        ? 'Copy React TSX component to clipboard'
+        : `Copy ${formatLabel} export snippet to clipboard`
     : `Add a GitHub username to enable copying the ${formatLabel} export snippet`;
 
   // Track async server download states
@@ -141,7 +150,7 @@ export function ExportPanel({
 
         <div className="flex flex-wrap items-center gap-3">
           <div
-            className="inline-flex rounded-xl border border-black/10 bg-white/60 backdrop-blur-md dark:border-white/10 dark:bg-white/[0.03] p-1"
+            className="flex flex-wrap sm:flex-nowrap rounded-xl border border-black/10 bg-white/60 backdrop-blur-md dark:border-white/10 dark:bg-white/[0.03] p-1"
             aria-label="Export format"
           >
             {EXPORT_FORMATS.map((option) => (
@@ -305,6 +314,48 @@ export function ExportPanel({
                 className="text-gray-400 hover:text-emerald-500 transition-colors"
                 title="Copy Step 2 markdown"
                 aria-label="Copy Step 2 markdown snippet"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-3.5 w-3.5"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+              </button>
+            </div>
+          </>
+        ) : format === 'tsx' ? (
+          <>
+            <p>
+              <strong>Step 1:</strong> Save the component code above as a file, e.g.{' '}
+              <code className="text-gray-700 dark:text-white/75">CommitPulse.tsx</code> in your
+              React project.
+            </p>
+            <p>
+              <strong>Step 2:</strong> Import and render the component natively in your JSX/TSX
+              layout:
+            </p>
+            <div className="mt-2 bg-gray-100/80 dark:bg-white/[0.03] border border-black/10 dark:border-white/10 rounded-lg px-3 py-2 flex items-center justify-between group">
+              <code className="text-emerald-600 dark:text-emerald-300 font-mono select-all">
+                {`<CommitPulse username="${username || 'your-github-username'}" theme="dark" />`}
+              </code>
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText(
+                    `<CommitPulse username="${username || 'your-github-username'}" theme="dark" />`
+                  );
+                }}
+                className="text-gray-400 hover:text-emerald-500 transition-colors"
+                title="Copy usage snippet"
+                aria-label="Copy component usage snippet"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"

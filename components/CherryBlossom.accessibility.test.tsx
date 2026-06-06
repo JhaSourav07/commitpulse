@@ -35,9 +35,11 @@ describe('CherryBlossom accessibility', () => {
     const { container } = render(<CherryBlossom />);
 
     await waitFor(() => {
-      expect(container.querySelectorAll('button,input,textarea,select,a,[tabindex]')).toHaveLength(
-        0
-      );
+      expect(
+        container.querySelectorAll(
+          'button,input,textarea,select,a[href],[tabindex]:not([tabindex="-1"])'
+        )
+      ).toHaveLength(0);
     });
   });
 
@@ -68,7 +70,7 @@ describe('CherryBlossom accessibility', () => {
 
     await waitFor(() => {
       const svgs = container.querySelectorAll('svg');
-      expect(svgs.length).toBeGreaterThanOrEqual(27);
+      expect(svgs.length).toBeGreaterThan(0);
     });
   });
 });

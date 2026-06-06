@@ -1,5 +1,10 @@
 import { NextResponse } from 'next/server';
-import { parseResume, ALLOWED_MIME_TYPES, MAX_FILE_SIZE } from '@/lib/resume-parser';
+import {
+  parseResume,
+  ALLOWED_MIME_TYPES,
+  MAX_FILE_SIZE,
+  hasValidFileSignature,
+} from '@/lib/resume-parser';
 import { RateLimiter } from '@/lib/rate-limit';
 import { getClientIp } from '@/utils/getClientIp';
 
@@ -51,6 +56,18 @@ export async function POST(req: Request) {
 
   try {
     const buffer = Buffer.from(await file.arrayBuffer());
+
+    if (!hasValidFileSignature(buffer, file.type)) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            'File content does not match its type. Only genuine PDF or DOCX files are accepted.',
+        },
+        { status: 400 }
+      );
+    }
+
     const parsed = await parseResume(buffer, file.type);
 
     return NextResponse.json({
