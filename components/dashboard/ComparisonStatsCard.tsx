@@ -22,7 +22,7 @@ const iconMap: Record<string, LucideIcon> = {
   Award,
 };
 
-interface ComparisonStatsCardProps {
+export interface ComparisonStatsCardProps {
   title: string;
   valueA: number;
   valueB: number;
