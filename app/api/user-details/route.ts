@@ -16,26 +16,21 @@ export async function GET(request: Request) {
   }
 
   try {
+    // Treat a failed contributions fetch as a first-class error rather than
+    // silently returning zeroed stats, which would present a false "no activity"
+    // result and make it impossible for clients to distinguish between a user
+    // with zero contributions and a failed API call.
     const [profile, contributions] = await Promise.all([
       fetchUserProfile(username),
-      fetchGitHubContributions(username).catch((err: unknown) => {
-        const msg = err instanceof Error ? err.message : '';
-        // Propagate "not found" so both endpoints agree on user existence.
-        // Swallow transient failures (rate limits, timeouts) and return partial data.
-        if (msg.toLowerCase().includes('not found')) throw err;
-        return null;
-      }),
+      fetchGitHubContributions(username),
     ]);
 
-    let stats = { currentStreak: 0, longestStreak: 0, totalContributions: 0 };
-    if (contributions) {
-      const calculated = calculateStreak(contributions.calendar);
-      stats = {
-        currentStreak: calculated.currentStreak,
-        longestStreak: calculated.longestStreak,
-        totalContributions: calculated.totalContributions,
-      };
-    }
+    const calculated = calculateStreak(contributions.calendar);
+    const stats = {
+      currentStreak: calculated.currentStreak,
+      longestStreak: calculated.longestStreak,
+      totalContributions: calculated.totalContributions,
+    };
 
     return NextResponse.json({
       exists: true,
@@ -49,6 +44,9 @@ export async function GET(request: Request) {
     const message = error instanceof Error ? error.message : '';
     if (message.includes('not found') || message.includes('404')) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+    if (message.toLowerCase().includes('rate limit')) {
+      return NextResponse.json({ error: 'API Rate Limit Exceeded' }, { status: 429 });
     }
     return NextResponse.json({ error: message || 'Failed to fetch user details' }, { status: 500 });
   }
