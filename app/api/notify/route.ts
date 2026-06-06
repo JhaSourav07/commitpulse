@@ -1,10 +1,14 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import { Notification } from '@/models/Notification';
-import { NotificationResponse } from '@/types/index';
 import { notifyPostSchema, notifyGetSchema } from '@/lib/validations';
 import { notifyRateLimiter } from '@/lib/rate-limit';
 import { getClientIp } from '@/utils/getClientIp';
+import { DistributedCache } from '@/lib/cache';
+import { gitHubUserValidator } from '@/services/github/validate-user';
+
+const notifyWriteCache = new DistributedCache<number>(5000, 60000);
+const NOTIFY_WRITE_COOLDOWN_MS = 5 * 60 * 1000;
 
 /**
  * Masks an email address to prevent PII exposure in unauthenticated responses.
@@ -33,7 +37,7 @@ function maskEmail(email: string): string {
 
 // ─── POST /api/notify ────────────────────────────────────────────────────────
 // Register or update email notification preferences for a user
-export async function POST(req: NextRequest): Promise<NextResponse<NotificationResponse>> {
+export async function POST(req: Request) {
   // Rate limiting
   const ip = getClientIp(req);
 
@@ -71,6 +75,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<NotificationR
   }
 
   const { username, email, frequency, preferences } = parsed.data;
+  const normalizedUsername = username.toLowerCase().trim();
 
   try {
     // Graceful MONGODB_URI handling
@@ -96,9 +101,33 @@ export async function POST(req: NextRequest): Promise<NextResponse<NotificationR
 
     await dbConnect();
 
+    // Per-username write cooldown prevents rapid upserts against the same user
+    const lastWrite = await notifyWriteCache.get(`notify:write:${normalizedUsername}`);
+    if (lastWrite) {
+      const remaining = Math.max(
+        1,
+        Math.ceil((NOTIFY_WRITE_COOLDOWN_MS - (Date.now() - lastWrite)) / 1000)
+      );
+      return NextResponse.json(
+        {
+          success: false,
+          message: `Please wait ${remaining} second${remaining === 1 ? '' : 's'} before updating notification preferences again.`,
+        },
+        { status: 429 }
+      );
+    }
+
+    // Verify the GitHub username exists before accepting notification preferences
+    if (!(await gitHubUserValidator.validateUser(normalizedUsername))) {
+      return NextResponse.json(
+        { success: false, message: 'GitHub user not found.' },
+        { status: 404 }
+      );
+    }
+
     // Upsert notification preferences
     const notification = await Notification.findOneAndUpdate(
-      { username: username.toLowerCase() },
+      { username: normalizedUsername },
       {
         email: email.toLowerCase(),
         frequency,
@@ -109,6 +138,12 @@ export async function POST(req: NextRequest): Promise<NextResponse<NotificationR
         updatedAt: new Date(),
       },
       { upsert: true, new: true }
+    );
+
+    await notifyWriteCache.set(
+      `notify:write:${normalizedUsername}`,
+      Date.now(),
+      NOTIFY_WRITE_COOLDOWN_MS
     );
 
     return NextResponse.json(
@@ -139,7 +174,7 @@ export async function POST(req: NextRequest): Promise<NextResponse<NotificationR
 
 // ─── GET /api/notify ─────────────────────────────────────────────────────────
 // Fetch notification preferences for a user
-export async function GET(req: NextRequest): Promise<NextResponse<NotificationResponse>> {
+export async function GET(req: Request) {
   // Rate limiting
   const ip = getClientIp(req);
 
@@ -181,10 +216,13 @@ export async function GET(req: NextRequest): Promise<NextResponse<NotificationRe
       }
 
       console.warn('MONGODB_URI is not set. Bypassing notification lookup for local development.');
-      return NextResponse.json({
-        success: false,
-        message: 'No notification preferences found (no database configured).',
-      });
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'No notification preferences found (no database configured).',
+        },
+        { status: 503 }
+      );
     }
 
     await dbConnect();

@@ -23,7 +23,7 @@ describe('BackgroundRefresh Mock Integrations', () => {
     service.triggerRefresh('john_doe');
 
     expect(service.isJobActive('john_doe')).toBe(true);
-    expect(getFullDashboardData).toHaveBeenCalledWith('john_doe', { bypassCache: true });
+    expect(getFullDashboardData).toHaveBeenCalledWith('john_doe', { forceRefresh: true });
   });
 
   it('tests service loading paths to ensure pending state overlays render', async () => {

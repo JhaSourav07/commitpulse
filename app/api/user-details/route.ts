@@ -18,7 +18,13 @@ export async function GET(request: Request) {
   try {
     const [profile, contributions] = await Promise.all([
       fetchUserProfile(username),
-      fetchGitHubContributions(username).catch(() => null),
+      fetchGitHubContributions(username).catch((err: unknown) => {
+        const msg = err instanceof Error ? err.message : '';
+        // Propagate "not found" so both endpoints agree on user existence.
+        // Swallow transient failures (rate limits, timeouts) and return partial data.
+        if (msg.toLowerCase().includes('not found')) throw err;
+        return null;
+      }),
     ]);
 
     let stats = { currentStreak: 0, longestStreak: 0, totalContributions: 0 };

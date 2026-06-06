@@ -1,11 +1,5 @@
 // lib/calculate.ts
-import type {
-  ContributionCalendar,
-  ContributionDay,
-  ContributionWeek,
-  StreakStats,
-  MonthlyStats,
-} from '../types';
+import type { ContributionCalendar, ContributionDay, StreakStats, MonthlyStats } from '../types';
 
 /* ==========================================================================
  * STREAK & CALENDAR CALCULATIONS
@@ -288,7 +282,7 @@ export function calculateWrappedStats(calendar: ContributionCalendar) {
   const weeks = calendar?.weeks || [];
   const days = weeks.flatMap((w) => w?.contributionDays || []);
 
-  let mostActiveDay = { date: '', count: 0 };
+  let mostActiveDay = { date: 'N/A', count: 0 };
   const monthCounts: Record<string, number> = {};
   let weekendCommits = 0;
   let weekdayCommits = 0;

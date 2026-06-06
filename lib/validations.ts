@@ -304,6 +304,7 @@ const baseStreakParamsSchema = z.object({
     .transform((val) => (val ? sanitizeHexColor(val, '7f8c8d') : undefined)),
   versus: z
     .string()
+    .max(39, { message: 'Versus username cannot exceed 39 characters' })
     .optional()
     .refine(
       (val) => {
@@ -328,12 +329,18 @@ const baseStreakParamsSchema = z.object({
       return val === 'true';
     })
     .default(false),
-  gradient_stops: z.string().optional(),
+  gradient_stops: z
+    .string()
+    .max(200, {
+      message: 'gradient_stops cannot exceed 200 characters',
+    })
+    .optional(),
   gradient_dir: z.enum(['vertical', 'horizontal', 'diagonal']).catch('vertical').optional(),
   disable_particles: z
     .string()
     .optional()
     .transform((val) => val === 'true' || val === '1'),
+
   // Glow effect — on by default. Accepts 'true'/'1' (true) or 'false' (false).
   glow: z.string().optional().transform(toBooleanFlag).default(true),
   opacity: z.string().optional().transform(toOpacityValue),

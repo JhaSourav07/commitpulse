@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { themes } from './themes';
-import { generateSVG } from './generator';
-import { getLuminance } from './sanitizer';
-import type { BadgeParams, ContributionCalendar, StreakStats } from '../../types';
+import { themes } from '../themes';
+import { generateSVG } from '../generator';
+import { getLuminance } from '../sanitizer';
+import type { BadgeParams, ContributionCalendar, StreakStats } from '../../../types';
 
 describe('Nord Theme', () => {
   const mockStats: StreakStats = {
