@@ -226,6 +226,7 @@ export class DistributedCache<T> {
   private redisUrl: string = '';
   private redisToken: string = '';
   private localLocks = new Map<string, Promise<T>>();
+  private incrMeta = new Map<string, { createdAt: number }>();
 
   constructor(maxSize?: number, cleanupIntervalMs?: number) {
     this.localCache = new TTLCache<T>(maxSize, cleanupIntervalMs);
@@ -306,6 +307,7 @@ export class DistributedCache<T> {
   }
 
   async delete(key: string): Promise<boolean> {
+    this.incrMeta.delete(key);
     const localDeleted = this.localCache.delete(key);
     if (!this.useRedis) {
       return localDeleted;
@@ -379,28 +381,34 @@ export class DistributedCache<T> {
 
   clear(): void {
     this.localCache.clear();
+    this.incrMeta.clear();
   }
 
   /**
-   * Atomically increments a numeric counter stored under `key` and returns the new value.
+   * Atomically increments a numeric counter stored under `key` and returns
+   * both the new value and the remaining TTL so callers can compute a
+   * fixed reset time (rather than sliding the window on every request).
    *
    * When Redis is available, uses EVAL + Lua script for true atomicity.
    * Falls back to the local TTLCache for non-Redis deployments (dev/test).
    *
    * @param key - Cache key holding a numeric counter.
    * @param ttlMs - Time-to-live in milliseconds. Only applied when the key is first created (count == 1).
-   * @returns The incremented counter value.
+   * @returns The incremented counter value and remaining TTL in milliseconds.
    */
-  async incr(key: string, ttlMs: number): Promise<number> {
+  async incr(key: string, ttlMs: number): Promise<{ count: number; ttlRemaining: number }> {
     if (!this.useRedis) {
       const current = (this.localCache.get(key) as unknown as number) || 0;
       const next = current + 1;
       if (current === 0) {
         this.localCache.set(key, next as unknown as T, ttlMs);
+        this.incrMeta.set(key, { createdAt: Date.now() });
       } else {
         this.localCache.update(key, next as unknown as T);
       }
-      return next;
+      const meta = this.incrMeta.get(key);
+      const ttlRemaining = meta ? Math.max(0, meta.createdAt + ttlMs - Date.now()) : ttlMs;
+      return { count: next, ttlRemaining };
     }
 
     try {
@@ -409,7 +417,8 @@ export class DistributedCache<T> {
 if c == 1 then
   redis.call('EXPIRE', KEYS[1], ARGV[1])
 end
-return c`;
+local ttl = redis.call('TTL', KEYS[1])
+return {c, ttl}`;
 
       const res = await fetch(`${this.redisUrl}/`, {
         method: 'POST',
@@ -425,25 +434,32 @@ return c`;
       }
 
       const data = await res.json();
-      const count = Number(data.result);
+      const result = data.result;
+      const count = Number(result[0]);
+      const ttlRemaining = Number(result[1]) * 1000;
 
-      this.localCache.set(key, count as unknown as T, ttlMs);
-      return count;
+      this.incrMeta.set(key, { createdAt: Date.now() - (ttlMs - ttlRemaining) });
+      this.localCache.set(key, count as unknown as T, Math.max(1, ttlRemaining));
+      return { count, ttlRemaining: Math.max(0, ttlRemaining) };
     } catch (err) {
       console.error(`[DistributedCache] INCR failed for key "${key}":`, err);
       const current = (this.localCache.get(key) as unknown as number) || 0;
       const next = current + 1;
       if (current === 0) {
         this.localCache.set(key, next as unknown as T, ttlMs);
+        this.incrMeta.set(key, { createdAt: Date.now() });
       } else {
         this.localCache.update(key, next as unknown as T);
       }
-      return next;
+      const meta = this.incrMeta.get(key);
+      const ttlRemaining = meta ? Math.max(0, meta.createdAt + ttlMs - Date.now()) : ttlMs;
+      return { count: next, ttlRemaining };
     }
   }
 
   destroy(): void {
     this.localCache.destroy();
+    this.incrMeta.clear();
   }
 
   /**

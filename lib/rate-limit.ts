@@ -15,7 +15,7 @@ interface RateLimitResult {
  * For multi-instance strict syncing, a Redis store (Vercel KV/Upstash) should be used.
  */
 export class RateLimiter {
-  private cache: DistributedCache<{ count: number; resetAt: number }>;
+  private cache: DistributedCache<number>;
   private limit: number;
   private windowMs: number;
   private allowlist = new Set<string>();
@@ -23,14 +23,14 @@ export class RateLimiter {
 
   /**
    * Creates a new RateLimiter instance.
-   *clean
+   *
    * @param limit - Maximum number of requests allowed per window. Defaults to 5.
    * @param windowMs - Time window in milliseconds. Defaults to 60000 (1 minute).
    */
   constructor(limit = 5, windowMs = 60000, maxSize = 10000) {
     this.limit = limit;
     this.windowMs = windowMs;
-    this.cache = new DistributedCache<{ count: number; resetAt: number }>(maxSize, windowMs);
+    this.cache = new DistributedCache<number>(maxSize, windowMs);
   }
 
   /**
@@ -69,26 +69,33 @@ export class RateLimiter {
 
     if (url && token) {
       try {
-        const res = await fetch(`${url}/pipeline`, {
+        const ttlSec = Math.floor(this.windowMs / 1000);
+        const luaScript = `local c = redis.call('INCR', KEYS[1])
+if c == 1 then
+  redis.call('EXPIRE', KEYS[1], ARGV[1])
+end
+local ttl = redis.call('TTL', KEYS[1])
+return {c, ttl}`;
+
+        const res = await fetch(`${url}/`, {
           method: 'POST',
           headers: {
             Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify([
-            ['INCR', `ratelimit_class:${ip}`],
-            ['EXPIRE', `ratelimit_class:${ip}`, Math.floor(this.windowMs / 1000), 'NX'],
-          ]),
+          body: JSON.stringify(['EVAL', luaScript, '1', `ratelimit_class:${ip}`, ttlSec.toString()]),
         });
 
         if (res.ok) {
           const data = await res.json();
-          const count = data[0].result as number;
+          const result = data.result;
+          const count = Number(result[0]);
+          const ttlRemaining = Number(result[1]) * 1000;
           return {
             success: count <= this.limit,
             limit: this.limit,
             remaining: Math.max(0, this.limit - count),
-            reset: now + this.windowMs,
+            reset: now + Math.max(0, ttlRemaining),
           };
         }
       } catch (error) {
@@ -96,37 +103,23 @@ export class RateLimiter {
       }
     }
 
-    const record = await this.cache.get(ip);
-    const count = record?.count ?? 0;
+    const result = await this.cache.incr(ip, this.windowMs);
 
-    if (count >= this.limit) {
+    if (result.count > this.limit) {
       return {
         success: false,
         limit: this.limit,
         remaining: 0,
-        reset: record?.resetAt ?? now + this.windowMs,
+        reset: now + result.ttlRemaining,
       };
     }
 
-    if (!record) {
-      const resetAt = now + this.windowMs;
-      await this.cache.set(ip, { count: 1, resetAt }, this.windowMs);
-      return {
-        success: true,
-        limit: this.limit,
-        remaining: this.limit - 1,
-        reset: resetAt,
-      };
-    } else {
-      const resetAt = record.resetAt;
-      await this.cache.update(ip, { count: count + 1, resetAt });
-      return {
-        success: true,
-        limit: this.limit,
-        remaining: this.limit - (count + 1),
-        reset: resetAt,
-      };
-    }
+    return {
+      success: true,
+      limit: this.limit,
+      remaining: Math.max(0, this.limit - result.count),
+      reset: now + result.ttlRemaining,
+    };
   }
 
   /**
@@ -177,8 +170,7 @@ export class RateLimiter {
    * console.log(`You have ${left} requests left.`);
    */
   async remaining(ip: string): Promise<number> {
-    const record = await this.cache.get(ip);
-    const count = record?.count ?? 0;
+    const count = (await this.cache.get(ip)) ?? 0;
     return Math.max(0, this.limit - count);
   }
 
@@ -215,7 +207,7 @@ export const notifyRateLimiter = new RateLimiter(5, 60000);
  * Falls back to a local in-memory cache for development environments.
  */
 
-const trackers = new DistributedCache<{ count: number; resetAt: number }>(2000, 60000);
+const trackers = new DistributedCache<number>(2000, 60000);
 
 /**
  * Checks if a request from a given IP should be rate limited.
@@ -243,26 +235,33 @@ export async function rateLimit(
   // Use Upstash Redis if configured
   if (url && token) {
     try {
-      const res = await fetch(`${url}/pipeline`, {
+      const ttlSec = Math.floor(windowMs / 1000);
+      const luaScript = `local c = redis.call('INCR', KEYS[1])
+if c == 1 then
+  redis.call('EXPIRE', KEYS[1], ARGV[1])
+end
+local ttl = redis.call('TTL', KEYS[1])
+return {c, ttl}`;
+
+      const res = await fetch(`${url}/`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify([
-          ['INCR', `ratelimit:${ip}`],
-          ['EXPIRE', `ratelimit:${ip}`, Math.floor(windowMs / 1000), 'NX'],
-        ]),
+        body: JSON.stringify(['EVAL', luaScript, '1', `ratelimit:${ip}`, ttlSec.toString()]),
       });
 
       if (res.ok) {
         const data = await res.json();
-        const count = data[0].result as number;
+        const result = data.result;
+        const count = Number(result[0]);
+        const ttlRemaining = Number(result[1]) * 1000;
         return {
           success: count <= limit,
           limit,
           remaining: Math.max(0, limit - count),
-          reset: now + windowMs, // Approximated for simplicity
+          reset: now + Math.max(0, ttlRemaining),
         };
       }
     } catch (error) {
@@ -270,37 +269,14 @@ export async function rateLimit(
     }
   }
 
-  // Fallback to local in-memory cache
-  const tracker = await trackers.get(ip);
-
-  if (!tracker) {
-    const resetAt = now + windowMs;
-    await trackers.set(ip, { count: 1, resetAt }, windowMs);
-    return {
-      success: true,
-      limit,
-      remaining: limit - 1,
-      reset: resetAt,
-    };
-  }
-
-  const newCount = tracker.count + 1;
-  await trackers.update(ip, { count: newCount, resetAt: tracker.resetAt });
-
-  if (newCount > limit) {
-    return {
-      success: false,
-      limit,
-      remaining: 0,
-      reset: tracker.resetAt,
-    };
-  }
+  // Fallback to local in-memory cache using atomic increment
+  const result = await trackers.incr(ip, windowMs);
 
   return {
-    success: true,
+    success: result.count <= limit,
     limit,
-    remaining: limit - newCount,
-    reset: tracker.resetAt,
+    remaining: Math.max(0, limit - result.count),
+    reset: now + result.ttlRemaining,
   };
 }
 
