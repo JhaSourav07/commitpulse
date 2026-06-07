@@ -111,6 +111,7 @@ describe('DashboardPage', () => {
     lastSyncedAt: undefined,
     popularRepos: [],
     pinnedRepos: [],
+    hallOfFame: [],
   };
 
   beforeEach(() => {

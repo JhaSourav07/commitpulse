@@ -127,6 +127,78 @@ function MiniHeatmap({ activity }: { activity: ActivityData[] }) {
   );
 }
 
+const CACHE_KEY_PREFIX = 'commitpulse.compare.';
+
+function getCompareCacheKey(u1: string, u2: string) {
+  return `${CACHE_KEY_PREFIX}${u1.toLowerCase()}|${u2.toLowerCase()}`;
+}
+
+async function readCompareCache(u1: string, u2: string): Promise<CompareResponse | null> {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  const key = getCompareCacheKey(u1, u2);
+
+  try {
+    if (window.localStorage?.getItem) {
+      const cached = window.localStorage.getItem(key);
+      if (cached) {
+        return JSON.parse(cached) as CompareResponse;
+      }
+    }
+  } catch {
+    // ignore invalid cache entries
+  }
+
+  try {
+    if (window.caches?.match) {
+      const request = new Request(
+        `/api/compare?user1=${encodeURIComponent(u1)}&user2=${encodeURIComponent(u2)}`
+      );
+      const cachedResponse = await window.caches.match(request);
+      if (cachedResponse?.ok) {
+        return (await cachedResponse.json()) as CompareResponse;
+      }
+    }
+  } catch {
+    // ignore cache API failures
+  }
+
+  return null;
+}
+
+async function writeCompareCache(u1: string, u2: string, data: CompareResponse) {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  const key = getCompareCacheKey(u1, u2);
+
+  try {
+    if (window.localStorage?.setItem) {
+      window.localStorage.setItem(key, JSON.stringify(data));
+    }
+  } catch {
+    // ignore storage failures
+  }
+
+  try {
+    if (window.caches?.open) {
+      const cache = await window.caches.open('commitpulse-compare');
+      const response = new Response(JSON.stringify(data), {
+        headers: { 'Content-Type': 'application/json' },
+      });
+      await cache.put(
+        new Request(`/api/compare?user1=${encodeURIComponent(u1)}&user2=${encodeURIComponent(u2)}`),
+        response
+      );
+    }
+  } catch {
+    // ignore cache API failures
+  }
+}
+
 /* ── helper: stat comparison card ─────────────────────────────────────── */
 
 function StatBattle({
@@ -1008,6 +1080,12 @@ export default function CompareClient() {
       );
 
       try {
+        const cached = await readCompareCache(u1, u2);
+        if (cached) {
+          setData(cached);
+          return;
+        }
+
         const res = await fetch(
           `/api/compare?user1=${encodeURIComponent(trimmedUser1)}&user2=${encodeURIComponent(trimmedUser2)}`
         );
@@ -1020,6 +1098,7 @@ export default function CompareClient() {
         }
 
         setData(json);
+        await writeCompareCache(u1, u2, json);
         setMonolithKey((k) => k + 1);
       } catch {
         setError('Network error. Please try again.');

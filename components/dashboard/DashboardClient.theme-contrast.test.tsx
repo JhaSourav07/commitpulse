@@ -99,6 +99,10 @@ vi.mock('./RepositoryGraph', () => ({
   default: () => <div data-testid="repo-graph" />,
 }));
 
+vi.mock('./HallOfFame', () => ({
+  default: () => <div data-testid="hall-of-fame" />,
+}));
+
 vi.mock('./ComparisonStatsCard', () => ({
   default: () => <div data-testid="compare-card" />,
 }));
