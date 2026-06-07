@@ -14,11 +14,7 @@ import {
   generateLanguagesSVG,
 } from '@/lib/svg/generator';
 import { getSecondsUntilUTCMidnight, getSecondsUntilMidnightInTimezone } from '@/utils/time';
-import type {
-  BadgeParams,
-  RepoContribution,
-  ExtendedContributionData,
-} from '@/types';
+import type { BadgeParams, RepoContribution, ExtendedContributionData } from '@/types';
 import { themes } from '@/lib/svg/themes';
 import { streakParamsSchema } from '@/lib/validations';
 import { sanitizeHexColor, sanitizeRadius } from '@/lib/svg/sanitizer';
@@ -45,7 +41,7 @@ async function generateETag(content: string): Promise<string> {
   const msgUint8 = new TextEncoder().encode(content);
   const hashBuffer = await crypto.subtle.digest('SHA-1', msgUint8);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
 export async function GET(request: Request) {
@@ -118,7 +114,8 @@ export async function GET(request: Request) {
     let timezone = 'UTC';
     if (tzParam) {
       try {
-        timezone = new Intl.DateTimeFormat(undefined, { timeZone: tzParam }).resolvedOptions().timeZone;
+        timezone = new Intl.DateTimeFormat(undefined, { timeZone: tzParam }).resolvedOptions()
+          .timeZone;
       } catch (error) {
         if (error instanceof RangeError) {
           const validationErr = new Error(`Invalid timezone: ${tzParam}`);
@@ -142,7 +139,9 @@ export async function GET(request: Request) {
 
     if (normalizedView === 'monthly') {
       const referenceDate = getMonthlyReferenceDate(year, timezone) || new Date();
-      const localTodayStr = new Intl.DateTimeFormat('en-CA', { timeZone: timezone }).format(referenceDate);
+      const localTodayStr = new Intl.DateTimeFormat('en-CA', { timeZone: timezone }).format(
+        referenceDate
+      );
       const [currentYearStr, currentMonthStr] = localTodayStr.split('-');
       const currentYearNum = parseInt(currentYearStr, 10);
       const currentMonthNum = parseInt(currentMonthStr, 10);
@@ -215,7 +214,10 @@ export async function GET(request: Request) {
       width,
       height,
       size,
-      grace: Math.max(0, Math.min(7, typeof grace === 'number' ? grace : parseInt(String(grace || 1), 10))),
+      grace: Math.max(
+        0,
+        Math.min(7, typeof grace === 'number' ? grace : parseInt(String(grace || 1), 10))
+      ),
       mode,
       repo,
       org,
@@ -226,7 +228,10 @@ export async function GET(request: Request) {
       gradient,
       gradient_stops,
       gradient_dir,
-      opacity: Math.max(0.1, Math.min(1.0, typeof opacity === 'number' ? opacity : parseFloat(String(opacity || 1.0)))),
+      opacity: Math.max(
+        0.1,
+        Math.min(1.0, typeof opacity === 'number' ? opacity : parseFloat(String(opacity || 1.0)))
+      ),
       disable_particles,
       glow,
       animate,
@@ -244,9 +249,14 @@ export async function GET(request: Request) {
       calendar = orgData.calendar;
       repoContributions = normalizedView === 'languages' ? orgData.repoContributions || [] : [];
     } else if (user.includes(',')) {
-      const users = user.split(',').map((u) => u.trim()).filter(Boolean);
+      const users = user
+        .split(',')
+        .map((u) => u.trim())
+        .filter(Boolean);
       if (users.length > 2) {
-        throw new Error('ValidationError: The streak comparison generator strictly accepts a maximum of 2 usernames.');
+        throw new Error(
+          'ValidationError: The streak comparison generator strictly accepts a maximum of 2 usernames.'
+        );
       }
 
       let lastError: unknown = null;
@@ -264,11 +274,16 @@ export async function GET(request: Request) {
         })
       );
 
-      const successfulData = fetchedCalendars.filter((d): d is ExtendedContributionData => d !== null);
+      const successfulData = fetchedCalendars.filter(
+        (d): d is ExtendedContributionData => d !== null
+      );
       if (successfulData.length === 0) throw lastError || new Error('No successful data fetched');
 
       calendar = aggregateCalendars(successfulData.map((d) => d.calendar));
-      repoContributions = normalizedView === 'languages' ? successfulData.flatMap((d) => d.repoContributions || []) : [];
+      repoContributions =
+        normalizedView === 'languages'
+          ? successfulData.flatMap((d) => d.repoContributions || [])
+          : [];
       if (hasOfflineFallback) params.isOfflineFallback = true;
     } else {
       const userData = await fetchGitHubContributions(user, { bypassCache: refresh, from, to });
@@ -277,7 +292,11 @@ export async function GET(request: Request) {
       if (userData.isOfflineFallback) params.isOfflineFallback = true;
 
       if (versus) {
-        const versusData = await fetchGitHubContributions(versus, { bypassCache: refresh, from, to });
+        const versusData = await fetchGitHubContributions(versus, {
+          bypassCache: refresh,
+          from,
+          to,
+        });
         versusCalendar = versusData.calendar;
         if (versusData.isOfflineFallback) params.isOfflineFallback = true;
       }
@@ -292,7 +311,9 @@ export async function GET(request: Request) {
       };
     }
 
-    const secondsToMidnight = tzParam ? getSecondsUntilMidnightInTimezone(timezone) : getSecondsUntilUTCMidnight();
+    const secondsToMidnight = tzParam
+      ? getSecondsUntilMidnightInTimezone(timezone)
+      : getSecondsUntilUTCMidnight();
     const cacheControl = refresh
       ? 'no-store, no-cache, must-revalidate, proxy-revalidate'
       : isHistoricalYear
@@ -302,7 +323,11 @@ export async function GET(request: Request) {
     // ─── JSON output mode ──────────────────────────────────────────────────
     if (format === 'json') {
       const stats = calculateStreak(calendar, timezone, undefined, grace);
-      const monthlyStats = calculateMonthlyStats(calendar, timezone, getMonthlyReferenceDate(year, timezone));
+      const monthlyStats = calculateMonthlyStats(
+        calendar,
+        timezone,
+        getMonthlyReferenceDate(year, timezone)
+      );
 
       const jsonPayload = JSON.stringify({
         user: targetEntity,
@@ -318,7 +343,10 @@ export async function GET(request: Request) {
       if (ifNoneMatch) {
         const etags = ifNoneMatch.split(',').map((e) => e.trim());
         if (etags.includes(weakEtag) || etags.includes(`"${etag}"`)) {
-          return new NextResponse(null, { status: 304, headers: { 'Cache-Control': cacheControl, ETag: weakEtag } });
+          return new NextResponse(null, {
+            status: 304,
+            headers: { 'Cache-Control': cacheControl, ETag: weakEtag },
+          });
         }
       }
 
@@ -335,7 +363,11 @@ export async function GET(request: Request) {
     // ─── SVG output mode (default) ──────────────────────────────────────────
     let svg = '';
     if (normalizedView === 'monthly') {
-      const stats = calculateMonthlyStats(calendar, timezone, getMonthlyReferenceDate(year, timezone));
+      const stats = calculateMonthlyStats(
+        calendar,
+        timezone,
+        getMonthlyReferenceDate(year, timezone)
+      );
       svg = generateMonthlySVG(stats, params);
     } else if (normalizedView === 'languages') {
       const stats = calculateStreak(calendar, timezone, undefined, grace);
@@ -362,7 +394,10 @@ export async function GET(request: Request) {
     if (ifNoneMatch) {
       const etags = ifNoneMatch.split(',').map((e) => e.trim());
       if (etags.includes(weakEtag) || etags.includes(`"${etag}"`)) {
-        return new NextResponse(null, { status: 304, headers: { 'Cache-Control': cacheControl, ETag: weakEtag } });
+        return new NextResponse(null, {
+          status: 304,
+          headers: { 'Cache-Control': cacheControl, ETag: weakEtag },
+        });
       }
     }
 
@@ -384,7 +419,7 @@ type ParseResult = ReturnType<typeof streakParamsSchema.safeParse>;
 
 function buildErrorResponse(error: unknown, parseResult: ParseResult): NextResponse {
   const message = error instanceof Error ? error.message : String(error);
-  
+
   function buildInlineErrorSVG(text: string): string {
     const MAX_LINE = 48;
     const truncated = text.length > MAX_LINE * 2 ? text.slice(0, MAX_LINE * 2 - 1) + '…' : text;
@@ -395,20 +430,30 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
     return `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="150" viewBox="0 0 400 150">
       <rect width="400" height="150" fill="#2d0000" rx="8"/>
       <text x="200" y="${textY}" text-anchor="middle" dominant-baseline="central" fill="#ffcccc" font-family="sans-serif" font-size="13">${line1}</text>${
-        line2 ? `<text x="200" y="91" text-anchor="middle" dominant-baseline="central" fill="#ffcccc" font-family="sans-serif" font-size="13">${line2}</text>` : ''
+        line2
+          ? `<text x="200" y="91" text-anchor="middle" dominant-baseline="central" fill="#ffcccc" font-family="sans-serif" font-size="13">${line2}</text>`
+          : ''
       }
     </svg>`;
   }
 
-  const isNotFound = message.toLowerCase().includes('not found') || message.toLowerCase().includes('could not resolve');
+  const isNotFound =
+    message.toLowerCase().includes('not found') ||
+    message.toLowerCase().includes('could not resolve');
   const isRateLimit = message.toLowerCase().includes('rate limit');
-  const isValidationError = (error instanceof Error && error.name === 'ValidationError') ||
+  const isValidationError =
+    (error instanceof Error && error.name === 'ValidationError') ||
     message.toLowerCase().includes('invalid') ||
     message.toLowerCase().includes('validation') ||
     message.toLowerCase().includes('strictly for organizations');
 
   const errBg = `#${sanitizeHexColor(parseResult.success ? parseResult.data.bg : undefined, '0d1117')}`;
-  const errAccentRaw = (parseResult.success && (Array.isArray(parseResult.data.accent) ? parseResult.data.accent[parseResult.data.accent.length - 1] : parseResult.data.accent)) || undefined;
+  const errAccentRaw =
+    (parseResult.success &&
+      (Array.isArray(parseResult.data.accent)
+        ? parseResult.data.accent[parseResult.data.accent.length - 1]
+        : parseResult.data.accent)) ||
+    undefined;
   const errAccent = `#${sanitizeHexColor(errAccentRaw, '58a6ff')}`;
   const errText = `#${sanitizeHexColor(parseResult.success ? parseResult.data.text : undefined, 'c9d1d9')}`;
   const errRadius = sanitizeRadius(parseResult.success ? parseResult.data.radius : undefined, 8);
@@ -428,7 +473,9 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
 
   if (isNotFound) {
     const match = message.match(/"([^"]+)"|login of '([^']+)'/);
-    const fallbackTarget = parseResult.success ? parseResult.data.org || parseResult.data.user : 'unknown';
+    const fallbackTarget = parseResult.success
+      ? parseResult.data.org || parseResult.data.user
+      : 'unknown';
     const badUsername = match?.[1] ?? match?.[2] ?? fallbackTarget;
 
     const svg = generateNotFoundSVG(badUsername, errBg, errAccent, errText, errRadius, errSpeed);
