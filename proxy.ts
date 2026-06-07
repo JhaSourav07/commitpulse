@@ -6,7 +6,9 @@ import { getClientIp } from './utils/getClientIp';
 export async function proxy(request: NextRequest): Promise<NextResponse> {
   const ip = getClientIp(request);
 
-  const isRefresh = request.nextUrl.searchParams.get('refresh') === 'true';
+  const isRefresh =
+    request.nextUrl.searchParams.get('refresh') === 'true' ||
+    request.nextUrl.searchParams.get('bypassCache') === 'true';
 
   if (isRefresh) {
     const refreshResult = await rateLimit(`refresh:${ip}`, 5, 60000);
