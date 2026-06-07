@@ -66,9 +66,6 @@ export function useRecentSearches() {
   useEffect(() => {
     if (!state.mounted) return;
 
-    // Don't write anything for an empty list.
-    if (state.searches.length === 0) return;
-
     writeStorage(state.searches);
   }, [state.searches, state.mounted]);
 
