@@ -37,11 +37,27 @@ function getMonthlyReferenceDate(year: string | undefined, timezone: string): Da
   return selectedYear < currentYear ? new Date(`${year}-12-15T12:00:00Z`) : undefined;
 }
 
+// Fixed ETag engine with safe fallback for test mock environments
 async function generateETag(content: string): Promise<string> {
-  const msgUint8 = new TextEncoder().encode(content);
-  const hashBuffer = await crypto.subtle.digest('SHA-1', msgUint8);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+  if (typeof crypto !== 'undefined' && crypto.subtle && typeof crypto.subtle.digest === 'function') {
+    try {
+      const msgUint8 = new TextEncoder().encode(content);
+      const hashBuffer = await crypto.subtle.digest('SHA-1', msgUint8);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+    } catch {
+      // Fall through to fallback hash if subtle crypto fails in test containers
+    }
+  }
+
+  // Safe internal quick string hash fallback if environment lacks Web Crypto
+  let hash = 0;
+  for (let i = 0; i < content.length; i++) {
+    const chr = content.charCodeAt(i);
+    hash = (hash << 5) - hash + chr;
+    hash |= 0;
+  }
+  return Math.abs(hash).toString(16);
 }
 
 export async function GET(request: Request) {
@@ -57,7 +73,7 @@ export async function GET(request: Request) {
           status: 400,
           headers: {
             'Content-Type': 'application/json',
-            'Cache-Control': 'no-store, no-cache, must-revalidate',
+            'Cache-Control': 'no-store',
           },
         }
       );
@@ -314,11 +330,12 @@ export async function GET(request: Request) {
     const secondsToMidnight = tzParam
       ? getSecondsUntilMidnightInTimezone(timezone)
       : getSecondsUntilUTCMidnight();
+
     const cacheControl = refresh
-      ? 'no-store, no-cache, must-revalidate, proxy-revalidate'
+      ? 'no-cache, no-store, must-revalidate'
       : isHistoricalYear
         ? 'public, s-maxage=31536000, immutable'
-        : `public, max-age=3600, s-maxage=${secondsToMidnight}, stale-while-revalidate=86400, must-revalidate`;
+        : `public, s-maxage=${secondsToMidnight}, stale-while-revalidate=86400`;
 
     // ─── JSON output mode ──────────────────────────────────────────────────
     if (format === 'json') {
@@ -465,7 +482,7 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
       status: 429,
       headers: {
         'Content-Type': 'image/svg+xml',
-        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
         'Content-Security-Policy': SVG_CSP_HEADER,
       },
     });
@@ -495,7 +512,7 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
       status: 400,
       headers: {
         'Content-Type': 'image/svg+xml',
-        'Cache-Control': 'no-store, no-cache, must-revalidate',
+        'Cache-Control': 'no-store',
         'Content-Security-Policy': SVG_CSP_HEADER,
       },
     });
@@ -507,7 +524,7 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
     status: 500,
     headers: {
       'Content-Type': 'image/svg+xml',
-      'Cache-Control': 'no-store, no-cache, must-revalidate',
+      'Cache-Control': 'no-store',
       'Content-Security-Policy': SVG_CSP_HEADER,
     },
   });
