@@ -87,30 +87,39 @@ export default function Leaderboard({ contributors }: LeaderboardProps) {
             viewport={{ once: true }}
             transition={{ delay: 0.1 + i * 0.1, duration: 0.6, type: 'spring', stiffness: 80 }}
             whileHover={{ x: 6, scale: 1.01 }}
+            role="button"
+            tabIndex={0}
             className="flex items-center justify-between p-4 rounded-xl bg-black/[0.03] dark:bg-white/[0.03] border border-black/5 dark:border-white/[0.05] hover:bg-black/[0.06] dark:hover:bg-white/[0.06] hover:border-black/10 dark:hover:border-white/10 transition-all duration-300 cursor-pointer group"
-            onClick={() => {
-              const el = document.getElementById('contributors');
-              el?.scrollIntoView({ behavior: 'smooth' });
+            onClick={() => window.open(contributor.html_url, '_blank', 'noopener,noreferrer')}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                window.open(contributor.html_url, '_blank', 'noopener,noreferrer');
+              }
             }}
           >
             <div className="flex items-center gap-4">
               {/* Rank */}
-              <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-black/5 dark:bg-white/[0.05] text-sm font-bold text-zinc-500 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 group-hover:bg-cyan-400/10 transition-colors font-mono">
+              <div className="flex items-center justify-center min-w-[3rem] px-2 h-9 rounded-lg bg-black/5 dark:bg-white/[0.05] text-sm font-bold text-zinc-500 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 group-hover:bg-cyan-400/10 transition-colors font-mono whitespace-nowrap">
                 #{i + 4}
               </div>
 
               {/* Avatar */}
               <div className="relative w-10 h-10 rounded-full overflow-hidden border border-black/10 dark:border-white/10 group-hover:border-cyan-400/40 transition-colors">
-                <Image
-                  src={contributor.avatar_url}
-                  alt={contributor.login}
-                  fill
-                  className="object-cover"
-                />
+                {contributor.avatar_url ? (
+                  <Image
+                    src={contributor.avatar_url}
+                    alt={contributor.login}
+                    fill
+                    className="object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-zinc-200 dark:bg-white/10" />
+                )}
               </div>
 
               {/* Name */}
-              <span className="font-semibold text-black dark:text-white group-hover:text-cyan-600 dark:group-hover:text-cyan-300 transition-colors">
+              <span className="min-w-0 max-w-[14rem] truncate font-semibold text-black dark:text-white group-hover:text-cyan-600 dark:group-hover:text-cyan-300 transition-colors">
                 {contributor.login}
               </span>
             </div>
@@ -212,12 +221,16 @@ function PodiumItem({ contributor, height, variant, delay, isFirst }: PodiumItem
             className={`relative z-20 w-18 h-18 sm:w-22 sm:h-22 rounded-full ring-[3px] ${theme.ring} ring-offset-[5px] ring-offset-[#0a0a0a] shadow-2xl transition-all duration-500 group-hover:ring-offset-[8px]`}
             style={{ width: isFirst ? 88 : 72, height: isFirst ? 88 : 72 }}
           >
-            <Image
-              src={contributor.avatar_url}
-              alt={contributor.login}
-              fill
-              className="rounded-full object-cover"
-            />
+            {contributor.avatar_url ? (
+              <Image
+                src={contributor.avatar_url}
+                alt={contributor.login}
+                fill
+                className="rounded-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full rounded-full bg-zinc-200 dark:bg-white/10" />
+            )}
           </div>
         </div>
 

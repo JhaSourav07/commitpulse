@@ -1,9 +1,32 @@
 import { sanitizeFont } from './sanitizer';
 
+/**
+ * Maps lowercase font shorthand keys to their full CSS font-family strings.
+ *
+ * Fonts listed here are treated as "predefined" — the generator resolves them
+ * directly without emitting a second dynamic Google Fonts @import. Only add a
+ * font here if it is ALREADY loaded by the unconditional @import in generator.ts
+ * (Fira Code, JetBrains Mono, Roboto, Syncopate, Space Grotesk).
+ *
+ * Fonts NOT in this map (e.g. "Inter", "Orbitron") correctly fall through to
+ * the dynamic @import path, fetching them from Google Fonts on demand.
+ */
 export const FONT_MAP = {
+  // ── Pre-existing entries ────────────────────────────────────────────────
   jetbrains: '"JetBrains Mono", monospace',
   fira: '"Fira Code", monospace',
   roboto: '"Roboto", sans-serif',
+
+  // ── Previously missing — both fonts are in the unconditional @import ───
+  // Without these entries, passing ?font=syncopate or ?font=spacegrotesk
+  // incorrectly triggers a duplicate dynamic Google Fonts fetch.
+  syncopate: '"Syncopate", sans-serif',
+  spacegrotesk: '"Space Grotesk", sans-serif',
+  'space grotesk': '"Space Grotesk", sans-serif', // handles spaced user input
+
+  // ── Aliases for common variations ───────────────────────────────────────
+  firacode: '"Fira Code", monospace', // alias: fira is the canonical key
+  'jetbrains mono': '"JetBrains Mono", monospace', // handles spaced user input
 } as const;
 
 /**
@@ -26,3 +49,12 @@ export function resolveFont(font?: string | null): string | null {
 export type FontKey = keyof typeof FONT_MAP;
 
 export default FONT_MAP;
+
+/**
+ * Returns true if the given font name matches a predefined key in FONT_MAP.
+ * Used to avoid redundant Google Fonts fetches for already-bundled fonts.
+ */
+export function isPredefinedFontKey(font?: string | null): boolean {
+  if (!font) return false;
+  return Object.prototype.hasOwnProperty.call(FONT_MAP, font.toLowerCase().trim());
+}

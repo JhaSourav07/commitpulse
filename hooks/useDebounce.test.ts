@@ -101,4 +101,36 @@ describe('useDebounce', () => {
       vi.useRealTimers();
     }
   });
+
+  it('resolves exactly once when rapid inputs include boundary empty-string values', () => {
+    vi.useFakeTimers();
+    const onResolved = vi.fn();
+
+    try {
+      const { rerender } = renderHook(
+        ({ value }: { value: string }) => useObservedDebounce(value, onResolved),
+        { initialProps: { value: '' } }
+      );
+
+      onResolved.mockClear();
+
+      rerender({ value: '' });
+      rerender({ value: 'g' });
+      rerender({ value: 'gh' });
+      rerender({ value: 'g' });
+
+      act(() => {
+        vi.advanceTimersByTime(299);
+      });
+      expect(onResolved).not.toHaveBeenCalled();
+
+      act(() => {
+        vi.advanceTimersByTime(1);
+      });
+      expect(onResolved).toHaveBeenCalledTimes(1);
+      expect(onResolved).toHaveBeenCalledWith('g');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });

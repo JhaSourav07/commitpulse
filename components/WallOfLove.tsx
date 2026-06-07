@@ -4,13 +4,14 @@ import { useRef, useState, useEffect } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { motion, useReducedMotion } from 'framer-motion';
+import Link from 'next/link'; // ← Added for CTA
 
 if (typeof window !== 'undefined') {
   gsap.registerPlugin(ScrollTrigger);
 }
 
 /* ─── Testimonial Data ─── */
-interface Testimonial {
+export interface Testimonial {
   name: string;
   handle: string;
   avatar: string;
@@ -159,10 +160,11 @@ function GitHubIcon() {
 /* ─── Star Rating ─── */
 function StarRating() {
   return (
-    <div className="flex gap-0.5">
+    <div className="flex gap-0.5" role="img" aria-label="5 out of 5 stars">
       {[...Array(5)].map((_, i) => (
         <svg
           key={i}
+          aria-hidden="true"
           width="12"
           height="12"
           viewBox="0 0 24 24"
@@ -444,7 +446,11 @@ function FloatingOrb({
       ease: 'sine.inOut',
     });
     return () => {
-      tl.kill();
+      try {
+        tl?.kill?.();
+      } catch {
+        // ignore cleanup errors in test environment
+      }
     };
   }, [delay]);
 
@@ -627,6 +633,18 @@ export function WallOfLove() {
           </div>
         </div>
       </div>
+
+      {/* ── CTA Button for Review Form ── */}
+      <div className="mt-16 flex justify-center px-6">
+        <Link
+          href="/reviewform"
+          className="group relative inline-flex items-center gap-3 rounded-2xl bg-gradient-to-r from-emerald-600 via-purple-600 to-pink-600 px-10 py-4 text-lg font-semibold text-white shadow-xl shadow-purple-500/30 transition-all duration-300 hover:scale-105 hover:shadow-2xl active:scale-95 overflow-hidden"
+        >
+          <span>Share Your Experience</span>
+          <span className="text-2xl transition-transform group-hover:translate-x-1">→</span>
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -skew-x-12 -translate-x-full group-hover:translate-x-[200%] transition-transform duration-700" />
+        </Link>
+      </div>
     </section>
   );
 }
@@ -642,15 +660,12 @@ function StatItem({ value, label, color }: { value: string; label: string; color
       return;
     }
 
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setIsVisible(true);
-          observer.disconnect();
-        }
-      },
-      { threshold: 0.5 }
-    );
+    const observer = new IntersectionObserver((entries, obs) => {
+      if (entries[0].isIntersecting) {
+        setIsVisible(true);
+        obs.disconnect();
+      }
+    });
 
     observer.observe(valueRef.current);
     return () => observer.disconnect();

@@ -25,6 +25,7 @@ export class BackgroundRefresh {
 
     try {
       const lastSyncTime = new Date(lastSyncedAt).getTime();
+      if (isNaN(lastSyncTime)) return true;
       return Date.now() - lastSyncTime > STALE_THRESHOLD_MS;
     } catch {
       return true;
@@ -34,20 +35,21 @@ export class BackgroundRefresh {
   /**
    * Triggers an asynchronous, non-blocking cache backfill for the given username.
    */
-  public triggerRefresh(username: string): void {
+  public triggerRefresh(username: string): Promise<void> {
     const sanitized = username.trim().toLowerCase();
 
     // Avoid duplicate background jobs for the same user concurrently
     if (this.activeJobs.has(sanitized)) {
-      return;
+      return Promise.resolve();
     }
 
     this.activeJobs.add(sanitized);
 
     console.info(`[BackgroundRefresh] Starting background refresh for: ${sanitized}`);
 
-    // Trigger update asynchronously (non-blocking Promise execution)
-    getFullDashboardData(username, { bypassCache: true })
+    // forceRefresh refetches and writes back to the cache; the returned promise lets the
+    // caller keep the function alive (e.g. via after()) until the refresh completes.
+    return getFullDashboardData(username, { forceRefresh: true })
       .then(() => {
         console.info(
           `[BackgroundRefresh] Successfully completed background refresh for: ${sanitized}`

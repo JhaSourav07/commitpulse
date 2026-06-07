@@ -3,9 +3,41 @@ import { GetClientIpOptions } from '../types/network';
 import { isTrustedProxy, loadTrustedProxyConfig } from './trustedProxy';
 
 /**
+ * Tracks recently logged wildcard events to prevent I/O flooding
+ * and event-loop blocking during massive concurrent load.
+ *
+ * Capped at MAX_RECENT_LOGS_CACHE_SIZE entries — under sustained load with
+ * many distinct IPs, unbounded Set growth and unbounded setTimeout callbacks
+ * would accumulate memory proportional to unique IPs seen in a 5s window.
+ * When the cap is reached the oldest half of entries are evicted eagerly
+ * instead of waiting for individual 5s timers to fire.
+ */
+const recentLogsCache = new Set<string>();
+const MAX_RECENT_LOGS_CACHE_SIZE = 1000;
+
+/**
  * Logs security-relevant events such as spoofing attempts in a structured format.
  */
 function logSecurityEvent(event: string, details: Record<string, unknown>) {
+  // Simple deduplication key to stop massive test suites from freezing the runner
+  const cacheKey = `${event}:${details.resolvedIp || ''}`;
+  if (recentLogsCache.has(cacheKey)) return;
+
+  // Evict the oldest half of entries when the cap is reached to prevent
+  // unbounded Set growth and unbounded setTimeout accumulation under load.
+  if (recentLogsCache.size >= MAX_RECENT_LOGS_CACHE_SIZE) {
+    const entries = recentLogsCache.values();
+    const evictCount = Math.floor(MAX_RECENT_LOGS_CACHE_SIZE / 2);
+    for (let i = 0; i < evictCount; i++) {
+      const next = entries.next();
+      if (!next.done) recentLogsCache.delete(next.value);
+    }
+  }
+
+  recentLogsCache.add(cacheKey);
+  // Automatically clear the cache entry after a short window to keep memory footprint minimal
+  setTimeout(() => recentLogsCache.delete(cacheKey), 5000).unref?.();
+
   console.warn(
     JSON.stringify({
       timestamp: new Date().toISOString(),
@@ -68,7 +100,16 @@ export function getClientIp(
 
       // If all proxies are trusted via wildcard
       if (config.trustedProxies.includes('*')) {
-        return ips[0];
+        // When trusting ALL proxies via wildcard, the true client IP is the leftmost entry (ips[0])
+        const clientIp = ips[0];
+
+        logSecurityEvent('WILDCARD_TRUST_USED', {
+          resolvedIp: clientIp,
+          chain: ips,
+          header: 'x-forwarded-for',
+        });
+
+        return clientIp;
       }
 
       // Traverse from right to left (most recent to oldest proxy hop)
@@ -121,5 +162,10 @@ export function getClientIp(
   }
 
   // 4. Ultimate Fallback
-  return '127.0.0.1';
+  // 4. Ultimate Fallback
+  if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
+    return '127.0.0.1';
+  }
+
+  return 'unknown';
 }

@@ -6,13 +6,21 @@ import VisualizationTooltip from './VisualizationTooltip';
 import { getContributionLabel } from './tooltipUtils';
 import { CommitClockData } from '@/types/dashboard';
 
+export function findPeakIndex(data: CommitClockData[]): number {
+  if (data.length === 0) return 0;
+
+  return data.reduce((peak, d, i) => (d.commits > data[peak].commits ? i : peak), 0);
+}
+
 export default function CommitClock({ data }: { data: CommitClockData[] }) {
-  const maxCommits = Math.max(...data.map((d) => d.commits), 1);
+  const displayData = data.slice(0, 7);
+  const maxCommits = Math.max(...displayData.map((d) => d.commits), 1);
   const radius = 80;
   const cx = 140;
   const cy = 140;
   const r4 = (n: number) => Math.round(n * 1e4) / 1e4;
   const maxSpokeLength = 42;
+
   const [tooltip, setTooltip] = useState<{
     day: string;
     commits: number;
@@ -21,9 +29,10 @@ export default function CommitClock({ data }: { data: CommitClockData[] }) {
     y: number;
   } | null>(null);
 
-  // Find the peak day index
-  const peakIndex = data.reduce((peak, d, i) => (d.commits > data[peak].commits ? i : peak), 0);
-  const hasData = data.length > 0 && data.some((d) => d.commits > 0);
+  const peakIndex = findPeakIndex(displayData);
+
+  const hasData = displayData.length > 0 && displayData.some((d) => d.commits > 0);
+
   const showTooltip = (
     e: React.SyntheticEvent<SVGGElement>,
     day: string,
@@ -76,21 +85,20 @@ export default function CommitClock({ data }: { data: CommitClockData[] }) {
 
               <style>
                 {`
-    :root {
-      --peak-spoke: #111111;
-      --peak-dot: rgba(17,17,17,0.7);
-      --peak-label: #111111;
-    }
+                  :root {
+                    --peak-spoke: #111111;
+                    --peak-dot: rgba(17,17,17,0.7);
+                    --peak-label: #111111;
+                  }
 
-    .dark {
-      --peak-spoke: #ffffff;
-      --peak-dot: rgba(255,255,255,0.8);
-      --peak-label: #ffffff;
-    }
-  `}
+                  .dark {
+                    --peak-spoke: #ffffff;
+                    --peak-dot: rgba(255,255,255,0.8);
+                    --peak-label: #ffffff;
+                  }
+                `}
               </style>
 
-              {/* Base ring */}
               <circle
                 cx={cx}
                 cy={cy}
@@ -100,7 +108,6 @@ export default function CommitClock({ data }: { data: CommitClockData[] }) {
                 strokeWidth="18"
               />
 
-              {/* Outer boundary ring */}
               <circle
                 cx={cx}
                 cy={cy}
@@ -110,13 +117,11 @@ export default function CommitClock({ data }: { data: CommitClockData[] }) {
                 strokeWidth="1"
               />
 
-              {/* Subtle background dial (35 ticks = 7 days * 5 sub-intervals) */}
               {Array.from({ length: 35 }).map((_, i) => {
                 const angle = (i * 360) / 35;
                 const rad = (angle * Math.PI) / 180;
                 const isMain = i % 5 === 0;
 
-                // Main spokes get a full-length faint track, interval ticks are short
                 const tickLength = isMain ? maxSpokeLength : 4;
                 const innerOffset = isMain ? 0 : 4;
 
@@ -134,15 +139,13 @@ export default function CommitClock({ data }: { data: CommitClockData[] }) {
                 );
               })}
 
-              {/* Spokes — one per day of week */}
-              {data.map((d, i) => {
+              {displayData.map((d, i) => {
                 const angle = (i * 360) / 7;
                 const length = Math.max((d.commits / maxCommits) * maxSpokeLength, 4);
                 const isHigh = d.commits > maxCommits * 0.7;
                 const isPeak = i === peakIndex && d.commits > 0;
                 const rad = (angle * Math.PI) / 180;
 
-                // Scale stroke width: 3px base, up to 6px for peak
                 const strokeW = isPeak ? 6 : isHigh ? 5 : 4;
 
                 const x1 = r4(cx + radius * Math.cos(rad));
@@ -169,6 +172,7 @@ export default function CommitClock({ data }: { data: CommitClockData[] }) {
                   : isHigh
                     ? 'rgba(180,180,180,0.75)'
                     : 'rgba(120,120,120,0.6)';
+
                 return (
                   <motion.g
                     tabIndex={0}
@@ -196,7 +200,6 @@ export default function CommitClock({ data }: { data: CommitClockData[] }) {
                       filter={isPeak ? 'url(#spoke-glow)' : undefined}
                     />
 
-                    {/* Dot at the end of each spoke */}
                     {d.commits > 0 && (
                       <circle
                         cx={x2}
@@ -207,7 +210,6 @@ export default function CommitClock({ data }: { data: CommitClockData[] }) {
                       />
                     )}
 
-                    {/* Day and Commit Count Label (stacked vertically via tspan to avoid side overlaps) */}
                     <text
                       x={labelX}
                       y={labelY}
@@ -220,6 +222,7 @@ export default function CommitClock({ data }: { data: CommitClockData[] }) {
                       <tspan x={labelX} dy="-2">
                         {d.day}
                       </tspan>
+
                       <tspan
                         x={labelX}
                         dy="10"
@@ -240,7 +243,6 @@ export default function CommitClock({ data }: { data: CommitClockData[] }) {
             </div>
           )}
 
-          {/* Center label */}
           <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
             <span className="text-[8px] text-gray-400 dark:text-white/60 mt-0.5">CYCLE</span>
             <span className="text-lg font-semibold text-gray-700 dark:text-white/65">7d</span>

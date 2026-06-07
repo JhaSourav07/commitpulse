@@ -110,6 +110,9 @@ export default function InteractiveViewer({
   const activeTooltipRef = useRef<ActiveTooltipState | null>(null);
   const startPointerPos = useRef({ x: 0, y: 0 });
   const [mounted, setMounted] = useState(false);
+  // SSR hydration guard: both server and client render with mounted=false.
+  // After hydration this effect flips the flag once so the tooltip portal
+  // (which requires document.body) is only rendered client-side.
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
@@ -136,22 +139,50 @@ export default function InteractiveViewer({
 
     const PAN_STEP = 30;
     const ZOOM_STEP = 0.1;
+    // How many pixels of "virtual mouse movement" each arrow key press simulates
+    // for 3D rotation. This feeds into the same onRotate3D callback that pointer
+    // dragging uses, so a consistent magnitude keeps the experience predictable.
+    const ROTATE_STEP = 10;
 
     switch (e.key.toLowerCase()) {
-      case 'w':
       case 'arrowup':
+        if (is3DMode && onRotate3D) {
+          onRotate3D(0, -ROTATE_STEP);
+        } else {
+          setPan((p) => ({ ...p, y: p.y + PAN_STEP }));
+        }
+        break;
+      case 'arrowdown':
+        if (is3DMode && onRotate3D) {
+          onRotate3D(0, ROTATE_STEP);
+        } else {
+          setPan((p) => ({ ...p, y: p.y - PAN_STEP }));
+        }
+        break;
+      case 'arrowleft':
+        if (is3DMode && onRotate3D) {
+          onRotate3D(-ROTATE_STEP, 0);
+        } else {
+          setPan((p) => ({ ...p, x: p.x + PAN_STEP }));
+        }
+        break;
+      case 'arrowright':
+        if (is3DMode && onRotate3D) {
+          onRotate3D(ROTATE_STEP, 0);
+        } else {
+          setPan((p) => ({ ...p, x: p.x - PAN_STEP }));
+        }
+        break;
+      case 'w':
         setPan((p) => ({ ...p, y: p.y + PAN_STEP }));
         break;
       case 's':
-      case 'arrowdown':
         setPan((p) => ({ ...p, y: p.y - PAN_STEP }));
         break;
       case 'a':
-      case 'arrowleft':
         setPan((p) => ({ ...p, x: p.x + PAN_STEP }));
         break;
       case 'd':
-      case 'arrowright':
         setPan((p) => ({ ...p, x: p.x - PAN_STEP }));
         break;
       case '+':
@@ -309,7 +340,12 @@ export default function InteractiveViewer({
     <div
       ref={containerRef}
       tabIndex={0}
-      className={`relative overflow-hidden touch-none cursor-grab active:cursor-grabbing select-none focus:outline-none ${className}`}
+      aria-label={
+        is3DMode
+          ? 'Interactive 3D viewer. Use Arrow keys to rotate, W A S D to pan, plus and minus to zoom, R to reset.'
+          : 'Interactive viewer. Use Arrow keys or W A S D to pan, plus and minus to zoom, R to reset.'
+      }
+      className={`relative overflow-hidden touch-none cursor-grab active:cursor-grabbing select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${className}`}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}

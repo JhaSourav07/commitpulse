@@ -23,7 +23,7 @@ export default function AIInsights({ insights }: { insights: AIInsight[] }) {
       </div>
 
       <div className="flex flex-col gap-6">
-        {insights.map((insight, i) => {
+        {(insights ?? []).map((insight, i) => {
           const Icon = iconMap[insight.icon] || Sparkles;
 
           return (

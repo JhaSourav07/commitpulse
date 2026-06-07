@@ -1,7 +1,7 @@
 // app/api/wrapped/route.ts
 
 import { NextResponse } from 'next/server';
-import { getWrappedData, fetchGitHubContributions } from '@/lib/github';
+import { getWrappedData } from '@/lib/github';
 import { generateWrappedSVG, generateNotFoundSVG, generateRateLimitSVG } from '@/lib/svg/generator';
 import { wrappedParamsSchema } from '@/lib/validations';
 import type { BadgeParams } from '@/types';
@@ -48,6 +48,7 @@ export async function GET(request: Request) {
       font,
       year: customYear,
       refresh,
+      bypassCache: bypassCacheParam,
       hide_title,
       hide_background,
       width,
@@ -90,19 +91,17 @@ export async function GET(request: Request) {
       scale: 'linear',
     };
 
-    // Fetch the wrapped stats for the year
-    const wrappedStats = await getWrappedData(user, year, { bypassCache: refresh });
+    // Treat either ?refresh=true or ?bypassCache=true as a cache-bypass request
+    const isRefreshRequested = refresh || bypassCacheParam;
 
-    // Fetch calendar contributions for rendering the background mini-monolith
-    const from = `${year}-01-01T00:00:00Z`;
-    const to = `${year}-12-31T23:59:59Z`;
-    const { calendar } = await fetchGitHubContributions(user, { from, to, bypassCache: refresh });
+    // Fetch the wrapped stats for the year (calendar is included to avoid a duplicate API call)
+    const wrappedStats = await getWrappedData(user, year, { bypassCache: isRefreshRequested });
 
-    const svg = generateWrappedSVG(wrappedStats, params, year, calendar);
+    const svg = generateWrappedSVG(wrappedStats, params, year, wrappedStats.calendar);
 
     // Cache-Control: Annual wrapped stats are stable, cache for 24 hours.
-    // Clients can bust with ?refresh=true.
-    const cacheControl = refresh
+    // Clients can bust with ?refresh=true or ?bypassCache=true.
+    const cacheControl = isRefreshRequested
       ? 'no-cache, no-store, must-revalidate'
       : 'public, s-maxage=86400, stale-while-revalidate=86400';
 
@@ -111,7 +110,9 @@ export async function GET(request: Request) {
         'Content-Type': 'image/svg+xml',
         'Cache-Control': cacheControl,
         'Content-Security-Policy': SVG_CSP_HEADER,
-        'X-Cache-Status': refresh ? `BYPASS, fetched=${new Date().toISOString()}` : 'HIT',
+        'X-Cache-Status': isRefreshRequested
+          ? `BYPASS, fetched=${new Date().toISOString()}`
+          : 'HIT',
       },
     });
   } catch (error: unknown) {
