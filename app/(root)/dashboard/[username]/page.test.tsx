@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+import type { Metadata } from 'next';
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import DashboardPage, { generateMetadata } from './page';
@@ -32,8 +32,13 @@ vi.mock('@/components/dashboard/ActivityLandscape', () => ({
   default: () => <div data-testid="activity-landscape">ActivityLandscape</div>,
 }));
 
+type StatsCardProps = {
+  title: string;
+  value: string | number;
+};
+
 vi.mock('@/components/dashboard/StatsCard', () => ({
-  default: ({ title, value }: any) => (
+  default: ({ title, value }: StatsCardProps) => (
     <div data-testid="stats-card">
       {title}: {value}
     </div>
@@ -52,6 +57,14 @@ vi.mock('@/components/dashboard/Heatmap', () => ({
   default: ({ data }: { data: unknown[] }) => (
     <div data-testid="heatmap" data-prop={JSON.stringify(data)}>
       Heatmap
+    </div>
+  ),
+}));
+
+vi.mock('@/components/dashboard/HistoricalTrendView', () => ({
+  default: ({ period, activity }: { period: { label: string }; activity: unknown[] }) => (
+    <div data-testid="historical-trend-view" data-prop={JSON.stringify(activity)}>
+      {period.label}
     </div>
   ),
 }));
@@ -85,12 +98,20 @@ describe('DashboardPage', () => {
       currentStreak: 5,
       peakStreak: 15,
       totalContributions: 500,
+      codingHabit: 'Night Owl',
+      totalPRs: 10,
+      totalIssues: 5,
     },
     languages: [{ name: 'TypeScript', percentage: 100, color: '#3178c6' }],
     activity: [],
     insights: [],
     achievements: [],
     commitClock: [],
+    graphData: { nodes: [], links: [] },
+    lastSyncedAt: undefined,
+    popularRepos: [],
+    pinnedRepos: [],
+    hallOfFame: [],
   };
 
   beforeEach(() => {
@@ -117,7 +138,13 @@ describe('DashboardPage', () => {
         }),
       });
 
-      const openGraphImage = (metadata.openGraph?.images as any[])?.[0];
+      const openGraphImages = metadata.openGraph?.images as Array<{
+        url: string;
+        width: number;
+        height: number;
+        alt: string;
+      }>;
+      const openGraphImage = openGraphImages?.[0];
 
       expect(metadata.title).toBe("octocat's Commit Pulse");
       expect(metadata.description).toContain("octocat's GitHub contribution pulse");
@@ -133,7 +160,9 @@ describe('DashboardPage', () => {
       expect(openGraphImage.width).toBe(1200);
       expect(openGraphImage.height).toBe(630);
       expect(openGraphImage.alt).toContain(username);
-      expect((metadata.twitter as any)?.card).toBe('summary_large_image');
+      expect((metadata.twitter as Metadata['twitter'] & { card?: string })?.card).toBe(
+        'summary_large_image'
+      );
     });
   });
 
@@ -146,9 +175,15 @@ describe('DashboardPage', () => {
 
       render(PageContent);
 
-      expect(getFullDashboardData).toHaveBeenCalledWith('octocat', {
-        bypassCache: false,
-      });
+      expect(getFullDashboardData).toHaveBeenCalledWith(
+        'octocat',
+        expect.objectContaining({
+          bypassCache: false,
+          from: expect.any(String),
+          to: expect.any(String),
+          rangeLabel: 'Last 12 months',
+        })
+      );
 
       const generateLink = screen.getByText('Generate Your Own').closest('a');
       expect(generateLink).toBeDefined();
@@ -157,7 +192,7 @@ describe('DashboardPage', () => {
       expect(screen.getByTestId('activity-landscape')).toBeDefined();
       expect(screen.getByTestId('language-chart')).toBeDefined();
       expect(screen.getByTestId('commit-clock')).toBeDefined();
-      expect(screen.getByTestId('heatmap')).toBeDefined();
+      expect(screen.getByTestId('historical-trend-view')).toBeDefined();
       expect(screen.getByTestId('ai-insights')).toBeDefined();
       expect(screen.getByTestId('achievements')).toBeDefined();
       expect(screen.getAllByTestId('stats-card')).toHaveLength(3);
@@ -174,12 +209,37 @@ describe('DashboardPage', () => {
 
       render(PageContent);
 
-      expect(getFullDashboardData).toHaveBeenCalledWith('octocat', {
-        bypassCache: true,
-      });
+      expect(getFullDashboardData).toHaveBeenCalledWith(
+        'octocat',
+        expect.objectContaining({
+          bypassCache: true,
+          from: expect.any(String),
+          to: expect.any(String),
+          rangeLabel: 'Last 12 months',
+        })
+      );
     });
 
-    it('passes the correct activity data to Heatmap', async () => {
+    it('passes a calendar-year query through to getFullDashboardData', async () => {
+      const PageContent = await DashboardPage({
+        params: Promise.resolve({ username: 'octocat' }),
+        searchParams: Promise.resolve({ year: '2024' }),
+      });
+
+      render(PageContent);
+
+      expect(getFullDashboardData).toHaveBeenCalledWith(
+        'octocat',
+        expect.objectContaining({
+          bypassCache: false,
+          from: '2024-01-01T00:00:00.000Z',
+          to: '2024-12-31T23:59:59.999Z',
+          rangeLabel: '2024',
+        })
+      );
+    });
+
+    it('passes the correct activity data to the historical trend view', async () => {
       const PageContent = await DashboardPage({
         params: Promise.resolve({ username: 'octocat' }),
         searchParams: Promise.resolve({}),
@@ -187,8 +247,8 @@ describe('DashboardPage', () => {
 
       render(PageContent);
 
-      const heatmap = screen.getByTestId('heatmap');
-      expect(JSON.parse(heatmap.getAttribute('data-prop') ?? '[]')).toEqual(mockData.activity);
+      const trendView = screen.getByTestId('historical-trend-view');
+      expect(JSON.parse(trendView.getAttribute('data-prop') ?? '[]')).toEqual(mockData.activity);
     });
 
     it('calls notFound when dashboard data fetch throws an error', async () => {

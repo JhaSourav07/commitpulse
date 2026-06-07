@@ -4,6 +4,7 @@ import { themes } from '../../../lib/svg/themes';
 import { THEME_KEYS, type ThemeKey } from '../types';
 import { SectionLabel } from './SectionLabel';
 import { ThemeQuickPresets } from './ThemeQuickPresets';
+import { useTranslation } from '@/context/TranslationContext';
 
 function StyledSelect({
   id,
@@ -41,6 +42,7 @@ export function ThemeSelector({
   const isAuto = theme === 'auto';
   const isRandom = theme === 'random';
   const randomAccentColors = [themes.neon.accent, themes.ocean.accent, themes.sunset.accent];
+  const { t } = useTranslation();
 
   const handleRandomTheme = () => {
     const selectableThemes = THEME_KEYS.filter((k) => k !== 'auto' && k !== 'random');
@@ -51,7 +53,7 @@ export function ThemeSelector({
   return (
     <div className="flex flex-col gap-1.5">
       <div className="flex items-center justify-between">
-        <SectionLabel>Theme Preset</SectionLabel>
+        <SectionLabel>{t('customize.controls.theme_presets')}</SectionLabel>
         <button
           onClick={handleRandomTheme}
           title="Pick a random theme"
@@ -88,7 +90,7 @@ export function ThemeSelector({
                 <span className="w-1/2 h-full" style={{ backgroundColor: `#${themes.light.bg}` }} />
                 <span className="w-1/2 h-full" style={{ backgroundColor: `#${themes.dark.bg}` }} />
               </span>
-              <span className="text-[11px] text-gray-500 dark:text-white/25 ml-1 self-center">
+              <span className="text-[11px] text-gray-500 dark:text-white/60 ml-1 self-center">
                 switches with OS theme
               </span>
             </>
@@ -102,7 +104,7 @@ export function ThemeSelector({
                   style={{ backgroundColor: `#${color}` }}
                 />
               ))}
-              <span className="text-[11px] text-gray-500 dark:text-white/25 ml-1 self-center">
+              <span className="text-[11px] text-gray-500 dark:text-white/60 ml-1 self-center">
                 changes on each load
               </span>
             </>
@@ -119,7 +121,7 @@ export function ThemeSelector({
                   />
                 ) : null;
               })}
-              <span className="text-[11px] text-gray-500 dark:text-white/25 ml-1 self-center">
+              <span className="text-[11px] text-gray-500 dark:text-white/60 ml-1 self-center">
                 bg · accent · text
               </span>{' '}
             </>

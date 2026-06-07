@@ -1,6 +1,6 @@
 'use client';
 
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import { useEffect, useState } from 'react';
 
 // Generates an array of particles
@@ -41,7 +41,12 @@ interface Particle {
 export default function BrandParticles() {
   const [particles] = useState<Particle[]>(() => generateParticles(40));
   const [mounted, setMounted] = useState(false);
-
+  const shouldReduceMotion = useReducedMotion();
+  // SSR hydration guard: particle positions and colours are derived from
+  // Math.random() at initialisation (via useState initialiser). Rendering on
+  // the server would produce values that differ from the client, causing a
+  // hydration mismatch. The component returns null until this effect confirms
+  // we are running in the browser.
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
@@ -66,17 +71,25 @@ export default function BrandParticles() {
             boxShadow: `0 0 ${particle.size * 2}px ${particle.color}`,
             borderRadius: particle.borderRadius,
           }}
-          animate={{
-            y: [0, -150, 150, 0], // Float up and around
-            x: [0, particle.xAnimStart, particle.xAnimEnd, 0],
-            rotate: [0, 360 * particle.rotateDirection],
-          }}
-          transition={{
-            duration: particle.duration,
-            delay: particle.delay,
-            repeat: Infinity,
-            ease: 'linear',
-          }}
+          animate={
+            shouldReduceMotion
+              ? {}
+              : {
+                  y: [0, -150, 150, 0],
+                  x: [0, particle.xAnimStart, particle.xAnimEnd, 0],
+                  rotate: [0, 360 * particle.rotateDirection],
+                }
+          }
+          transition={
+            shouldReduceMotion
+              ? {}
+              : {
+                  duration: particle.duration,
+                  delay: particle.delay,
+                  repeat: Infinity,
+                  ease: 'linear',
+                }
+          }
         />
       ))}
     </div>

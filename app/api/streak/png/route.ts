@@ -40,9 +40,10 @@ export async function GET(request: Request) {
       headers,
     });
   } catch (err) {
+    console.error('[streak/png] Failed to convert SVG to PNG:', err);
     return NextResponse.json(
-      { error: 'Failed to convert SVG to PNG', details: String(err) },
-      { status: 500 }
+      { error: 'Failed to convert SVG to PNG' },
+      { status: 500, headers: { 'Cache-Control': 'no-store' } }
     );
   }
 }

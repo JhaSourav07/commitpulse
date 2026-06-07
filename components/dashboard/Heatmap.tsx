@@ -5,10 +5,10 @@ import { AnimatePresence, motion } from 'framer-motion';
 import type { ActivityData } from '@/types/dashboard';
 import { getIntensityColor } from './heatmapUtils';
 import VisualizationTooltip from './VisualizationTooltip';
+import { useTranslation } from '@/context/TranslationContext';
 import {
   formatTooltipDate,
   getActivityInsight,
-  getContributionLabel,
   getLocalActiveStreak,
   getStreakLabel,
 } from './tooltipUtils';
@@ -25,19 +25,53 @@ interface TooltipState {
   y: number;
 }
 
-export default function Heatmap({ data }: { data: ActivityData[] }) {
+interface HeatmapProps {
+  data: ActivityData[];
+  title?: string;
+  subtitle?: string;
+  emptyMessage?: string;
+  timeZone?: string;
+}
+
+export default function Heatmap({
+  data,
+  title,
+  subtitle,
+  emptyMessage,
+  timeZone = 'UTC',
+}: HeatmapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
+  const { t } = useTranslation();
 
-  // Group into 7-day columns
+  const effectiveTimeZone = timeZone || 'UTC';
+
+  const getTimeZoneDateLabel = (input: string | Date) => {
+    const date = typeof input === 'string' ? new Date(`${input}T00:00:00Z`) : input;
+
+    return new Intl.DateTimeFormat('en-CA', {
+      timeZone: effectiveTimeZone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(date);
+  };
+
+  // 1. Filter out future dates by comparing the activity day against the current
+  // timezone-specific calendar date.
+  const todayInZone = getTimeZoneDateLabel(new Date());
+
+  const validData = data.filter((day) => day.date <= todayInZone);
+
+  // 2. Group into 7-day columns using validData instead of data
   const weeks: ActivityData[][] = [];
-  for (let i = 0; i < data.length; i += 7) {
-    weeks.push(data.slice(i, i + 7));
+  for (let i = 0; i < validData.length; i += 7) {
+    weeks.push(validData.slice(i, i + 7));
   }
 
   const naturalWidth = weeks.length * (CELL + GAP) - GAP;
-  const hasData = data.length > 0 && data.some((d) => d.count > 0);
+  const hasData = validData.length > 0 && validData.some((d) => d.count > 0);
 
   // Recalculate scale whenever the card resizes
   useEffect(() => {
@@ -58,13 +92,15 @@ export default function Heatmap({ data }: { data: ActivityData[] }) {
     index: number
   ) => {
     const rect = e.currentTarget.getBoundingClientRect();
-    const streak = getLocalActiveStreak(data, index);
+
+    // 3. Ensure streak calculation also uses validData
+    const streak = getLocalActiveStreak(validData, index);
 
     setTooltip({
       count: day.count,
       date: formatTooltipDate(day.date),
-      insight: getActivityInsight(day.count, day.intensity),
-      streak: getStreakLabel(streak),
+      insight: getActivityInsight(day.count, day.intensity, t),
+      streak: getStreakLabel(streak, t),
       x: rect.left + rect.width / 2,
       y: rect.top - 10,
     });
@@ -72,9 +108,14 @@ export default function Heatmap({ data }: { data: ActivityData[] }) {
 
   const handleMouseLeave = () => setTooltip(null);
 
+  const displayTitle = title || t('dashboard.heatmap.title');
+  const displaySubtitle = subtitle || t('dashboard.heatmap.last_365');
+  const displayEmptyMessage = emptyMessage || t('dashboard.heatmap.empty');
+
   return (
     <>
       <motion.div
+        data-testid="heatmap-card"
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
@@ -82,17 +123,22 @@ export default function Heatmap({ data }: { data: ActivityData[] }) {
         className="rounded-xl border border-black/10 bg-white p-6 dark:border-[rgba(255,255,255,0.08)] dark:bg-[#0a0a0a]"
       >
         {/* Header */}
-        <h3 className="my-1 text-sm font-semibold tracking-tight text-gray-900 dark:text-white">
-          Contribution Heatmap
+        <h3
+          data-testid="heatmap-heading"
+          className="my-1 text-sm font-semibold tracking-tight text-gray-900 dark:text-white"
+        >
+          {displayTitle}
         </h3>
 
         <div className="mb-4 flex items-end justify-between">
           <div>
-            <p className="mt-0.5 text-xs text-[#A1A1AA]">Last 365 days</p>
+            <p data-testid="heatmap-subtitle" className="mt-0.5 text-xs text-[#A1A1AA]">
+              {displaySubtitle}
+            </p>
           </div>
 
           <div className="flex items-center gap-2 text-xs text-[#A1A1AA]">
-            <span>Less</span>
+            <span>{t('dashboard.heatmap.less')}</span>
             <div className="flex gap-1">
               {[0, 1, 2, 3, 4].map((level) => (
                 <div
@@ -101,7 +147,7 @@ export default function Heatmap({ data }: { data: ActivityData[] }) {
                 />
               ))}
             </div>
-            <span>More</span>
+            <span>{t('dashboard.heatmap.more')}</span>
           </div>
         </div>
 
@@ -116,18 +162,22 @@ export default function Heatmap({ data }: { data: ActivityData[] }) {
                 height: (7 * (CELL + GAP) - GAP) * scale,
               }}
             >
-              <div className="flex" style={{ gap: GAP }}>
+              <div className="flex" role="grid" style={{ gap: GAP }}>
                 {weeks.map((week, wIndex) => (
-                  <div key={wIndex} className="flex flex-col" style={{ gap: GAP }}>
+                  <div key={wIndex} className="flex flex-col" role="row" style={{ gap: GAP }}>
                     {week.map((day, dIndex) => {
                       const originalIndex = wIndex * 7 + dIndex;
 
                       return (
                         <div
                           key={day.date}
-                          aria-label={`${getContributionLabel(
-                            day.count
-                          )} on ${formatTooltipDate(day.date)}`}
+                          role="gridcell"
+                          aria-label={t(
+                            day.count === 1
+                              ? 'dashboard.heatmap.tooltip_single'
+                              : 'dashboard.heatmap.tooltip_plural',
+                            { count: day.count.toString(), date: formatTooltipDate(day.date) }
+                          )}
                           tabIndex={0}
                           onMouseEnter={(e) => handleMouseEnter(e, day, originalIndex)}
                           onFocus={(e) => handleMouseEnter(e, day, originalIndex)}
@@ -146,17 +196,24 @@ export default function Heatmap({ data }: { data: ActivityData[] }) {
             </div>
           </div>
         ) : (
-          <div className="flex h-[120px] items-center justify-center rounded-lg border border-dashed border-black/10 text-sm text-[#A1A1AA] dark:border-[rgba(255,255,255,0.08)]">
-            No recent activity to display
+          <div
+            data-testid="heatmap-empty-state"
+            className="flex h-[120px] items-center justify-center rounded-lg border border-dashed border-black/10 text-sm text-[#A1A1AA] dark:border-[rgba(255,255,255,0.08)]"
+          >
+            {displayEmptyMessage}
           </div>
         )}
       </motion.div>
-
       {/* Tooltip rendered at viewport level — unaffected by scale/overflow */}
       <AnimatePresence>
         {tooltip && (
           <VisualizationTooltip
-            title={`${getContributionLabel(tooltip.count)} on ${tooltip.date}`}
+            title={t(
+              tooltip.count === 1
+                ? 'dashboard.heatmap.tooltip_single'
+                : 'dashboard.heatmap.tooltip_plural',
+              { count: tooltip.count.toString(), date: tooltip.date }
+            )}
             x={tooltip.x}
             y={tooltip.y}
           >

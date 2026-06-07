@@ -5,7 +5,7 @@ on:
     types: [created]
 
 concurrency:
-  group: issue-management-${{ github.event.issue.number }}
+  group: issue-cmd-${{ github.event.comment.user.login }}
   cancel-in-progress: false
 
 permissions:
@@ -22,7 +22,8 @@ jobs:
         contains(github.event.comment.body, '/assign') ||
         contains(github.event.comment.body, '/unassign') ||
         contains(github.event.comment.body, '/addlabel') ||
-        contains(github.event.comment.body, '/claim')
+        contains(github.event.comment.body, '/claim') ||
+        contains(github.event.comment.body, '/unclaim')
       )
     steps:
       - name: Checkout Repository

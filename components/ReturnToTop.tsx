@@ -1,52 +1,135 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useEffect, useState } from 'react';
+import {
+  AnimatePresence,
+  motion,
+  useReducedMotion,
+  useScroll,
+  useSpring,
+  useTransform,
+} from 'framer-motion';
 import { ChevronUp } from 'lucide-react';
 
 export default function ReturnToTop() {
   const [isVisible, setIsVisible] = useState(false);
+  const shouldReduceMotion = useReducedMotion();
+
+  const { scrollYProgress } = useScroll();
+
+  const smoothScrollProgress = useSpring(scrollYProgress, {
+    stiffness: 120,
+    damping: 24,
+    mass: 0.2,
+  });
+
+  const radius = 22;
+  const circumference = 2 * Math.PI * radius;
+
+  const strokeDashoffset = useTransform(smoothScrollProgress, [0, 1], [circumference, 0]);
 
   useEffect(() => {
-    const toggleVisibility = () => {
-      // Show button when user is near the bottom of the page
-      const scrollHeight = document.documentElement.scrollHeight;
-      const scrollTop = window.scrollY;
-      const clientHeight = window.innerHeight;
-
-      // Show when user is within 300px of the bottom
-      if (scrollHeight - (scrollTop + clientHeight) < 300) {
-        setIsVisible(true);
-      } else {
-        setIsVisible(false);
-      }
+    const updateVisibility = () => {
+      setIsVisible(window.scrollY > 300);
     };
 
-    window.addEventListener('scroll', toggleVisibility);
-    return () => window.removeEventListener('scroll', toggleVisibility);
+    updateVisibility();
+
+    window.addEventListener('scroll', updateVisibility, { passive: true });
+
+    return () => {
+      window.removeEventListener('scroll', updateVisibility);
+    };
   }, []);
 
   const scrollToTop = () => {
     window.scrollTo({
       top: 0,
-      behavior: 'smooth',
+      behavior: shouldReduceMotion ? 'auto' : 'smooth',
     });
   };
 
   return (
     <AnimatePresence>
       {isVisible && (
-        <motion.button
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 20 }}
-          transition={{ duration: 0.3 }}
-          onClick={scrollToTop}
-          className="fixed bottom-8 right-8 p-3 rounded-full border border-emerald-500/20 bg-white text-emerald-600 hover:bg-emerald-500 hover:text-white hover:border-emerald-500 dark:border-emerald-400/20 dark:bg-black dark:text-emerald-400 dark:hover:bg-emerald-400 dark:hover:text-black dark:hover:border-emerald-400 hover:scale-110 active:scale-95 shadow-[0_4px_20px_rgba(16,185,129,0.15)] dark:shadow-[0_4px_30px_rgba(16,185,129,0.3)] transition-all duration-300 z-50 flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00ffaa] focus-visible:ring-offset-2"
-          aria-label="Return to top"
+        <motion.div
+          initial={{ opacity: 0, y: 18, scale: 0.96 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: 18, scale: 0.96 }}
+          transition={{ duration: 0.22, ease: 'easeOut' }}
+          className="fixed bottom-6 right-6 z-50 sm:bottom-8 sm:right-8"
         >
-          <ChevronUp size={24} />
-        </motion.button>
+          <motion.button
+            type="button"
+            onClick={scrollToTop}
+            whileHover={shouldReduceMotion ? undefined : { y: -2 }}
+            whileTap={shouldReduceMotion ? undefined : { scale: 0.96 }}
+            aria-label="Back to top"
+            className="
+              group relative flex h-14 w-14 items-center justify-center rounded-full
+              border border-violet-400/45 bg-zinc-950/80 text-violet-300
+              shadow-[0_0_24px_rgba(167,139,250,0.16)]
+              backdrop-blur-md transition-all duration-200
+              hover:border-violet-300 hover:bg-violet-950/35 hover:text-violet-200
+              hover:shadow-[0_0_28px_rgba(167,139,250,0.28)]
+              active:translate-y-0
+              focus-visible:outline focus-visible:outline-2
+              focus-visible:outline-offset-4 focus-visible:outline-violet-400
+            "
+          >
+            {!shouldReduceMotion && (
+              <span className="absolute inset-0 rounded-full border border-violet-400/35 opacity-70 animate-ping" />
+            )}
+
+            <svg
+              aria-hidden="true"
+              width="58"
+              height="58"
+              viewBox="0 0 58 58"
+              className="absolute -rotate-90"
+            >
+              <circle
+                cx="29"
+                cy="29"
+                r={radius}
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                className="text-violet-400/15"
+              />
+
+              <motion.circle
+                cx="29"
+                cy="29"
+                r={radius}
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeDasharray={circumference}
+                style={{ strokeDashoffset }}
+                className="text-violet-300"
+              />
+            </svg>
+
+            <motion.span
+              aria-hidden="true"
+              animate={shouldReduceMotion ? undefined : { y: [0, -3, 0] }}
+              transition={{
+                duration: 1.6,
+                repeat: Infinity,
+                ease: 'easeInOut',
+              }}
+              className="relative z-10"
+            >
+              <ChevronUp
+                size={23}
+                strokeWidth={2.4}
+                className="transition-transform duration-200 group-hover:-translate-y-0.5"
+              />
+            </motion.span>
+          </motion.button>
+        </motion.div>
       )}
     </AnimatePresence>
   );

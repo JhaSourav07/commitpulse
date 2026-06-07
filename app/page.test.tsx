@@ -1,8 +1,16 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @next/next/no-img-element, jsx-a11y/alt-text */
+import type { HTMLAttributes, AnchorHTMLAttributes, ReactNode, ImgHTMLAttributes } from 'react';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import LandingPage from './page';
+
+type MockLinkProps = AnchorHTMLAttributes<HTMLAnchorElement> & {
+  children?: ReactNode;
+  href: string;
+};
+
+type MockImageProps = ImgHTMLAttributes<HTMLImageElement> & {
+  fill?: boolean;
+};
 
 // Mock child components to isolate LandingPage testing
 vi.mock('./components/CustomizeCTA', () => ({
@@ -13,41 +21,166 @@ vi.mock('@/components/commitpulse-logo', () => ({
   CommitPulseLogo: () => <svg data-testid="commitpulse-logo"></svg>,
 }));
 
+vi.mock('@/components/WallOfLove', () => ({
+  WallOfLove: () => <div data-testid="wall-of-love">Wall of Love</div>,
+}));
+
+vi.mock('@/components/DiscordButton', () => ({
+  DiscordButton: () => <button data-testid="discord-button">Discord Button</button>,
+}));
+
 // next/image is no longer used — SVG preview is fetched via useEffect and
 // rendered inline. The mock below keeps the import from erroring if any
 // other test file still imports it.
 vi.mock('next/image', () => ({
-  default: (props: any) => <img {...props} />,
+  // eslint-disable-next-line jsx-a11y/alt-text, @next/next/no-img-element
+  default: ({ fill: _fill, ...rest }: MockImageProps) => <img {...rest} />,
 }));
 
 vi.mock('next/link', () => ({
-  default: ({ children, href, ...props }: any) => (
+  default: ({ children, href, ...props }: MockLinkProps) => (
     <a href={href} {...props} data-testid="next-link">
       {children}
     </a>
   ),
 }));
 
+vi.mock('@/utils/tracking', () => ({
+  trackUser: vi.fn(),
+}));
+
+vi.mock('gsap', () => {
+  const tween = { kill: vi.fn() };
+  const timeline = {
+    to: vi.fn().mockReturnThis(),
+    fromTo: vi.fn().mockReturnThis(),
+    set: vi.fn().mockReturnThis(),
+    kill: vi.fn(),
+  };
+  const mockGsap = {
+    registerPlugin: vi.fn(),
+    set: vi.fn(),
+    to: vi.fn().mockReturnValue(tween),
+    fromTo: vi.fn().mockReturnValue(tween),
+    timeline: vi.fn().mockReturnValue(timeline),
+    context: vi.fn((_fn: () => void) => ({ revert: vi.fn() })),
+  };
+  return {
+    default: mockGsap,
+    gsap: mockGsap,
+  };
+});
+
+vi.mock('@gsap/react', () => ({
+  useGSAP: vi.fn((callback) => {
+    // Optionally execute callback for coverage, or just do nothing
+    if (typeof callback === 'function') {
+      callback();
+    }
+  }),
+}));
+
+vi.mock('gsap/ScrollTrigger', () => ({
+  ScrollTrigger: {},
+}));
+
+type MotionBaseProps = HTMLAttributes<HTMLElement> & {
+  children?: ReactNode;
+  whileHover?: unknown;
+  whileTap?: unknown;
+  whileInView?: unknown;
+  initial?: unknown;
+  animate?: unknown;
+  exit?: unknown;
+  transition?: unknown;
+  viewport?: unknown;
+  layoutId?: string;
+};
+
+type MotionAnchorProps = MotionBaseProps & AnchorHTMLAttributes<HTMLAnchorElement>;
+
+type MotionImgProps = ImgHTMLAttributes<HTMLImageElement> & {
+  initial?: unknown;
+  animate?: unknown;
+  exit?: unknown;
+  transition?: unknown;
+};
+
 // Mock framer-motion
 vi.mock('framer-motion', () => ({
   motion: {
-    div: ({ children, className, ...props }: any) => (
+    div: ({
+      children,
+      className,
+      whileHover: _wh,
+      whileTap: _wt,
+      whileInView: _wiv,
+      initial: _i,
+      animate: _a,
+      exit: _e,
+      transition: _tr,
+      viewport: _vp,
+      layoutId: _lid,
+      ...props
+    }: MotionBaseProps) => (
       <div className={className} data-testid="motion-div" {...props}>
         {children}
       </div>
     ),
-    p: ({ children, className, ...props }: any) => (
+    p: ({
+      children,
+      className,
+      whileHover: _wh,
+      whileTap: _wt,
+      whileInView: _wiv,
+      initial: _i,
+      animate: _a,
+      exit: _e,
+      transition: _tr,
+      viewport: _vp,
+      layoutId: _lid,
+      ...props
+    }: MotionBaseProps) => (
       <p className={className} data-testid="motion-p" {...props}>
         {children}
       </p>
     ),
-    a: ({ children, className, href, ...props }: any) => (
+    a: ({
+      children,
+      className,
+      href,
+      whileHover: _wh,
+      whileTap: _wt,
+      whileInView: _wiv,
+      initial: _i,
+      animate: _a,
+      exit: _e,
+      transition: _tr,
+      viewport: _vp,
+      layoutId: _lid,
+      ...props
+    }: MotionAnchorProps) => (
       <a href={href} className={className} data-testid="motion-a" {...props}>
         {children}
       </a>
     ),
+    img: ({
+      className,
+      src,
+      alt,
+      onLoad,
+      onError,
+      initial: _i,
+      animate: _a,
+      exit: _e,
+      transition: _tr,
+      ...props
+    }: MotionImgProps) => (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img className={className} src={src} alt={alt} onLoad={onLoad} onError={onError} {...props} />
+    ),
   },
-  AnimatePresence: ({ children }: any) => <>{children}</>,
+  AnimatePresence: ({ children }: { children?: ReactNode }) => <>{children}</>,
 }));
 
 const mockRecentSearches = {
@@ -64,22 +197,19 @@ vi.mock('@/hooks/useRecentSearches', () => ({
 describe('LandingPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+
+    // Clear persisted username between tests
+    window.localStorage.clear();
+
     mockRecentSearches.searches = ['octocat', 'torvalds'];
     mockRecentSearches.addSearch = vi.fn();
     mockRecentSearches.clearSearches = vi.fn();
     mockRecentSearches.removeSearch = vi.fn();
 
-    // Mock fetch so the SVG preview useEffect resolves without a real network call.
-    // Returns a minimal valid SVG so dangerouslySetInnerHTML has something to render.
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue({
-        ok: true,
-        status: 200,
-        text: () =>
-          Promise.resolve('<svg data-testid="badge-svg" xmlns="http://www.w3.org/2000/svg"></svg>'),
-      })
-    );
+    Object.defineProperty(window, 'isSecureContext', {
+      value: true,
+      configurable: true,
+    });
 
     // Mock navigator.clipboard
     Object.assign(navigator, {
@@ -88,7 +218,6 @@ describe('LandingPage', () => {
       },
     });
 
-    // Mock scrollIntoView
     window.HTMLElement.prototype.scrollIntoView = vi.fn();
   });
 
@@ -98,9 +227,9 @@ describe('LandingPage', () => {
 
   it('renders the main heading', () => {
     render(<LandingPage />);
-    expect(screen.getByText(/Elevate Your/i)).toBeDefined();
-    expect(screen.getByText('Contribution')).toBeDefined();
-    expect(screen.getByText(/Story/i)).toBeDefined();
+    const heading = screen.getByRole('heading', { level: 1 });
+    expect(heading.textContent).toMatch(/Elevate Your/i);
+    expect(heading.textContent).toMatch(/Contribution Story/i);
   });
 
   it('renders the input field empty by default', () => {
@@ -127,11 +256,11 @@ describe('LandingPage', () => {
     render(<LandingPage />);
 
     expect(screen.getByText(/Enter a GitHub username above to instantly generate/i)).toBeDefined();
-    // No SVG badge should be present yet
-    expect(screen.queryByTestId('badge-svg')).toBeNull();
+    // No badge img should be present yet
+    expect(screen.queryByTestId('badge-img')).toBeNull();
   });
 
-  it('updates the username when input changes and fetches the badge', async () => {
+  it('updates the username when input changes and shows the badge img', async () => {
     render(<LandingPage />);
     const input = screen.getByPlaceholderText('Enter GitHub Username') as HTMLInputElement;
 
@@ -140,17 +269,17 @@ describe('LandingPage', () => {
     });
     expect(input.value).toBe('octocat');
 
-    // The component fetches the badge SVG from the API with the correct URL
+    // The badge img element should appear in the DOM with the correct URL
     await waitFor(() => {
-      expect(vi.mocked(fetch)).toHaveBeenCalledWith(
-        expect.stringContaining('user=octocat'),
-        expect.objectContaining({ signal: expect.any(AbortSignal) })
-      );
+      const img = screen.getByTestId('badge-img') as HTMLImageElement;
+      expect(img).toBeDefined();
+      expect(img.src).toContain('user=octocat');
     });
 
-    // After the fetch resolves the inline SVG should be in the DOM
-    await waitFor(() => {
-      expect(screen.getByTestId('badge-svg')).toBeDefined();
+    // Simulate the browser successfully loading the badge image
+    await act(async () => {
+      const img = screen.getByTestId('badge-img') as HTMLImageElement;
+      fireEvent.load(img);
     });
   });
 
@@ -193,6 +322,26 @@ describe('LandingPage', () => {
     });
   });
 
+  it('does not show copied state when clipboard write fails', async () => {
+    vi.mocked(navigator.clipboard.writeText).mockRejectedValueOnce(new Error('Permission denied'));
+
+    render(<LandingPage />);
+    const input = screen.getByPlaceholderText('Enter GitHub Username') as HTMLInputElement;
+    fireEvent.change(input, { target: { value: 'jhasourav07' } });
+
+    const copyButton = screen.getByText('Copy Link').closest('button');
+    fireEvent.click(copyButton!);
+
+    await waitFor(() => {
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+        expect.stringContaining('/api/streak?user=jhasourav07')
+      );
+    });
+
+    expect(screen.queryByText('Copied')).toBeNull();
+    expect(screen.queryByText('Your Monolith is Ready - Deploy It in 4 Steps')).toBeNull();
+  });
+
   it('disables Copy Link button when username is empty', () => {
     render(<LandingPage />);
 
@@ -216,10 +365,17 @@ describe('LandingPage', () => {
 
     const featureHeadings = screen.getAllByRole('heading', { level: 3 });
 
-    expect(featureHeadings).toHaveLength(3);
+    expect(featureHeadings).toHaveLength(6);
 
     const titles = featureHeadings.map((h) => h.textContent);
-    expect(titles).toEqual(['Real-time Sync', 'Theme Engine', 'Isometric Math']);
+    expect(titles).toEqual([
+      'Real-time Sync',
+      'Theme Engine',
+      'Isometric Math',
+      'Navigation',
+      'Resources',
+      'Connect',
+    ]);
   });
 
   it('renders the CustomizeCTA', () => {
@@ -283,23 +439,17 @@ describe('LandingPage', () => {
   });
 
   it('shows the friendly error UI instead of raw JSON when the API returns a 400', async () => {
-    // Username with an underscore passes the UI 39-char limit but fails the API regex,
-    // which returns JSON {error: 'Invalid parameters'} with status 400. Without the fix
-    // that JSON string would be rendered via dangerouslySetInnerHTML.
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue({
-        ok: false,
-        status: 400,
-        text: () => Promise.resolve(JSON.stringify({ error: 'Invalid parameters' })),
-      })
-    );
-
     render(<LandingPage />);
     const input = screen.getByPlaceholderText('Enter GitHub Username') as HTMLInputElement;
 
     await act(async () => {
       fireEvent.change(input, { target: { value: 'invalid_user' } });
+    });
+
+    // Badge img renders; simulate the browser failing to load it (e.g. API returned 400)
+    await waitFor(() => screen.getByTestId('badge-img'));
+    await act(async () => {
+      fireEvent.error(screen.getByTestId('badge-img'));
     });
 
     await waitFor(() => {
@@ -311,14 +461,50 @@ describe('LandingPage', () => {
   });
 
   it('shows the friendly error UI for any non-ok API response (e.g. 429 rate limit)', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue({
-        ok: false,
-        status: 429,
-        text: () => Promise.resolve(JSON.stringify({ error: 'Too Many Requests' })),
-      })
-    );
+    render(<LandingPage />);
+    const input = screen.getByPlaceholderText('Enter GitHub Username') as HTMLInputElement;
+
+    await act(async () => {
+      fireEvent.change(input, { target: { value: 'octocat' } });
+    });
+
+    // Simulate the browser failing to load the badge image
+    await waitFor(() => screen.getByTestId('badge-img'));
+    await act(async () => {
+      fireEvent.error(screen.getByTestId('badge-img'));
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('GitHub user not found')).toBeDefined();
+    });
+
+    expect(screen.queryByText(/Too Many Requests/)).toBeNull();
+  });
+
+  it('renders a badge img (not inline SVG) so XSS via SVG content is structurally impossible', async () => {
+    // The new implementation uses <img src=URL> which the browser renders opaquely.
+    // No SVG text is ever injected into the DOM, so no <script> tag can exist.
+    render(<LandingPage />);
+
+    const input = screen.getByPlaceholderText('Enter GitHub Username') as HTMLInputElement;
+
+    await act(async () => {
+      fireEvent.change(input, { target: { value: 'octocat' } });
+    });
+
+    // An <img> element with the API URL should appear (not inline SVG)
+    await waitFor(() => {
+      const img = screen.getByTestId('badge-img') as HTMLImageElement;
+      expect(img).toBeDefined();
+      expect(img.src).toContain('user=octocat');
+    });
+
+    // The SVG text is never injected into the DOM, so no <script> tag can exist
+    expect(document.querySelector('img[data-testid="badge-img"]')).not.toBeNull();
+  });
+
+  it('shows shimmer skeleton on stat cards while user details are loading', async () => {
+    vi.spyOn(global, 'fetch').mockImplementation(() => new Promise(() => {}));
 
     render(<LandingPage />);
     const input = screen.getByPlaceholderText('Enter GitHub Username') as HTMLInputElement;
@@ -328,9 +514,32 @@ describe('LandingPage', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText('GitHub user not found')).toBeDefined();
+      const skeletons = document.querySelectorAll('.shimmer');
+      expect(skeletons.length).toBeGreaterThanOrEqual(4);
     });
 
-    expect(screen.queryByText(/Too Many Requests/)).toBeNull();
+    vi.restoreAllMocks();
+  });
+
+  it('shows "Unable to load stats" error state on stat cards when fetch fails', async () => {
+    vi.spyOn(global, 'fetch').mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      json: async () => ({ error: 'Internal server error' }),
+    } as Response);
+
+    render(<LandingPage />);
+    const input = screen.getByPlaceholderText('Enter GitHub Username') as HTMLInputElement;
+
+    await act(async () => {
+      fireEvent.change(input, { target: { value: 'octocat' } });
+    });
+
+    await waitFor(() => {
+      const errorMessages = screen.getAllByText('Unable to load stats');
+      expect(errorMessages.length).toBe(4);
+    });
+
+    vi.restoreAllMocks();
   });
 });

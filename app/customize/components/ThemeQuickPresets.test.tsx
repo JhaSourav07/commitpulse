@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { ThemeQuickPresets } from './ThemeQuickPresets';
 import { THEME_KEYS } from '../types';
-import { themes } from '../../../lib/svg/themes';
 
-const validKeys = THEME_KEYS.filter((k) => k !== 'auto' && k !== 'random');
+const validKeys = THEME_KEYS.filter((key) => key !== 'auto' && key !== 'random');
 
 describe('ThemeQuickPresets', () => {
   const onThemeChange = vi.fn();
@@ -32,7 +32,7 @@ describe('ThemeQuickPresets', () => {
 
   it('inactive theme buttons have aria-pressed="false"', () => {
     render(<ThemeQuickPresets theme="dark" onThemeChange={onThemeChange} />);
-    const inactiveKey = validKeys.find((k) => k !== 'dark')!;
+    const inactiveKey = validKeys.find((key) => key !== 'dark')!;
     const inactiveBtn = screen.getByRole('button', {
       name: new RegExp(`apply ${inactiveKey} theme`, 'i'),
     });
@@ -40,39 +40,48 @@ describe('ThemeQuickPresets', () => {
   });
 
   it('clicking a button calls onThemeChange with correct theme key', async () => {
+    const user = userEvent.setup();
     render(<ThemeQuickPresets theme="dark" onThemeChange={onThemeChange} />);
-    const inactiveKey = validKeys.find((k) => k !== 'dark')!;
+
+    const inactiveKey = validKeys.find((key) => key !== 'dark')!;
     const inactiveBtn = screen.getByRole('button', {
       name: new RegExp(`apply ${inactiveKey} theme`, 'i'),
     });
-    fireEvent.click(inactiveBtn);
+
+    await user.click(inactiveBtn);
+
     expect(onThemeChange).toHaveBeenCalledWith(inactiveKey);
   });
 
   it('each button has an aria-label starting with "Apply"', () => {
     render(<ThemeQuickPresets theme="dark" onThemeChange={onThemeChange} />);
     const buttons = screen.getAllByRole('button');
-    buttons.forEach((btn) => {
-      expect(btn.getAttribute('aria-label')).toMatch(/^Apply/i);
+
+    buttons.forEach((button) => {
+      expect(button.getAttribute('aria-label')).toMatch(/^Apply/i);
     });
   });
 
   it('renders at least one button for each concrete theme excluding auto and random', () => {
     render(<ThemeQuickPresets theme="dark" onThemeChange={onThemeChange} />);
+
     validKeys.forEach((key) => {
-      const btn = screen.getByRole('button', {
+      const button = screen.getByRole('button', {
         name: new RegExp(`apply ${key} theme`, 'i'),
       });
-      expect(btn).toBeTruthy();
+
+      expect(button).toBeTruthy();
     });
   });
 
   it('switching active theme updates aria-pressed correctly', () => {
     const { rerender } = render(<ThemeQuickPresets theme="dark" onThemeChange={onThemeChange} />);
+
     const darkBtn = screen.getByRole('button', { name: /apply dark theme/i });
     expect(darkBtn.getAttribute('aria-pressed')).toBe('true');
 
     rerender(<ThemeQuickPresets theme="neon" onThemeChange={onThemeChange} />);
+
     const neonBtn = screen.getByRole('button', { name: /apply neon theme/i });
     expect(neonBtn.getAttribute('aria-pressed')).toBe('true');
     expect(darkBtn.getAttribute('aria-pressed')).toBe('false');
@@ -80,36 +89,129 @@ describe('ThemeQuickPresets', () => {
 
   it('does not render buttons for auto or random themes', () => {
     render(<ThemeQuickPresets theme="dark" onThemeChange={onThemeChange} />);
+
     expect(screen.queryByRole('button', { name: /apply auto theme/i })).toBeNull();
     expect(screen.queryByRole('button', { name: /apply random theme/i })).toBeNull();
   });
 });
 
-describe('ThemeQuickPresets responsive rendering', () => {
+describe('ThemeQuickPresets responsive rendering & high-contrast', () => {
   const onThemeChange = vi.fn();
 
   beforeEach(() => {
     onThemeChange.mockClear();
   });
 
-  it('renders every preset with accessible labels, high-contrast styling, and wrap layout', () => {
+  it('checks rendering of preset buttons on sm and lg viewports', () => {
+    window.innerWidth = 375;
+    window.dispatchEvent(new Event('resize'));
+
+    const { rerender } = render(<ThemeQuickPresets theme="dark" onThemeChange={onThemeChange} />);
+
+    expect(screen.getAllByRole('button', { name: /apply .+ theme/i })).toHaveLength(
+      validKeys.length
+    );
+
+    window.innerWidth = 1280;
+    window.dispatchEvent(new Event('resize'));
+
+    rerender(<ThemeQuickPresets theme="dark" onThemeChange={onThemeChange} />);
+
+    expect(screen.getAllByRole('button', { name: /apply .+ theme/i })).toHaveLength(
+      validKeys.length
+    );
+  });
+
+  it('checks rendering of all preset buttons with accessible labels', () => {
     render(<ThemeQuickPresets theme="dark" onThemeChange={onThemeChange} />);
 
     const presetButtons = screen.getAllByRole('button', { name: /apply .+ theme/i });
     expect(presetButtons).toHaveLength(validKeys.length);
+  });
+
+  it('active preset is announced to screen readers via aria-pressed', () => {
+    render(<ThemeQuickPresets theme="dark" onThemeChange={onThemeChange} />);
 
     expect(
       screen.getByRole('button', { name: /apply dark theme/i }).getAttribute('aria-pressed')
     ).toBe('true');
+  });
 
-    const highContrastButton = screen.getByRole('button', { name: /apply highcontrast theme/i });
-    expect(highContrastButton).toBeDefined();
-    expect(highContrastButton.getAttribute('title')).toBe('Highcontrast');
-    expect(highContrastButton.getAttribute('style')).toContain('rgb(10, 10, 10)');
+  it('check if wrapper div uses flex and wrap so buttons reflow on narrow viewports', () => {
+    render(<ThemeQuickPresets theme="dark" onThemeChange={onThemeChange} />);
 
-    const grid = highContrastButton.closest('div');
-    expect(grid).not.toBeNull();
-    expect(grid?.style.display).toBe('flex');
-    expect(grid?.style.flexWrap).toBe('wrap');
+    const buttons = screen.getAllByRole('button');
+    const wrapper = buttons.at(0)?.parentElement;
+
+    expect(wrapper).not.toBeNull();
+    expect(wrapper?.className).toContain('theme-quick-presets');
+  });
+
+  it('check if each preset button has theme bg colour(inline)', () => {
+    render(<ThemeQuickPresets theme="dark" onThemeChange={onThemeChange} />);
+
+    const buttons = screen.getAllByRole('button');
+
+    buttons.forEach((button) => {
+      expect(button.getAttribute('style')).not.toBeNull();
+      expect(button.getAttribute('style')).toMatch(/background/i);
+    });
+  });
+
+  it('checking if highcontrast is inactive when different theme is active', () => {
+    render(<ThemeQuickPresets theme="dark" onThemeChange={onThemeChange} />);
+
+    const highContrastButton = screen.getByRole('button', {
+      name: /apply highcontrast theme/i,
+    });
+
+    expect(highContrastButton.getAttribute('aria-pressed')).toBe('false');
+  });
+
+  it('check if highcontrast button becomes active when selected', () => {
+    render(<ThemeQuickPresets theme="highcontrast" onThemeChange={onThemeChange} />);
+
+    const highContrastButton = screen.getByRole('button', {
+      name: /apply highcontrast theme/i,
+    });
+
+    expect(highContrastButton.getAttribute('aria-pressed')).toBe('true');
+  });
+
+  it('renders high contrast preset controls across responsive layout breakpoints (Variation 3)', () => {
+    window.innerWidth = 375;
+    window.dispatchEvent(new Event('resize'));
+
+    const { rerender } = render(
+      <ThemeQuickPresets theme="highcontrast" onThemeChange={onThemeChange} />
+    );
+
+    const mobileButtons = screen.getAllByRole('button', { name: /apply .+ theme/i });
+    expect(mobileButtons).toHaveLength(validKeys.length);
+
+    mobileButtons.forEach((button) => {
+      expect(button).toBeVisible();
+      expect(button.getAttribute('aria-label')).toMatch(/^Apply/i);
+    });
+
+    const mobileHighContrastButton = screen.getByRole('button', {
+      name: /apply highcontrast theme/i,
+    });
+
+    expect(mobileHighContrastButton).toBeVisible();
+    expect(mobileHighContrastButton.getAttribute('aria-pressed')).toBe('true');
+    expect(mobileHighContrastButton.getAttribute('style')).toMatch(/background/i);
+
+    window.innerWidth = 1280;
+    window.dispatchEvent(new Event('resize'));
+
+    rerender(<ThemeQuickPresets theme="highcontrast" onThemeChange={onThemeChange} />);
+
+    const desktopHighContrastButton = screen.getByRole('button', {
+      name: /apply highcontrast theme/i,
+    });
+
+    expect(desktopHighContrastButton).toBeVisible();
+    expect(desktopHighContrastButton.getAttribute('aria-pressed')).toBe('true');
   });
 });

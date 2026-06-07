@@ -10,7 +10,7 @@ async function findExistingAssignments(github, owner, repo, username, currentIss
   return issues.filter((issue) => !issue.pull_request && issue.number !== currentIssueNumber);
 }
 
-const MAX_ASSIGNED_ISSUES = 3;
+const MAX_ASSIGNED_ISSUES = 5;
 
 async function handleClaim({ github, context }) {
   const { owner, repo } = context.repo;
@@ -43,7 +43,13 @@ async function handleClaim({ github, context }) {
     return;
   }
 
-  const currentAssignees = context.payload.issue.assignees.map((a) => a.login.toLowerCase());
+  // Re-fetch to avoid stale assignee data from the webhook payload
+  const { data: freshIssue } = await github.rest.issues.get({
+    owner,
+    repo,
+    issue_number: issueNumber,
+  });
+  const currentAssignees = freshIssue.assignees.map((a) => a.login.toLowerCase());
 
   if (currentAssignees.length > 0) {
     if (currentAssignees.includes(commenter.toLowerCase())) {
@@ -74,7 +80,7 @@ async function handleClaim({ github, context }) {
       owner,
       repo,
       issue_number: issueNumber,
-      body: `❌ You already have **${existingIssues.length}/${MAX_ASSIGNED_ISSUES}** active assigned issues (the maximum allowed).\nPlease complete or unassign one of your current issues before claiming another.\n\n${issueList}`,
+      body: `❌ You already have **${existingIssues.length}/${MAX_ASSIGNED_ISSUES}** active assigned issues (the maximum allowed).\nPlease complete or \`/unclaim\` one of your current issues before claiming another.\n\n${issueList}`,
     });
     return;
   }

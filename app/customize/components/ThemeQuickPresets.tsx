@@ -519,7 +519,7 @@ const ICON_MAP: Record<string, (c: IC) => ReactElement> = {
 export function ThemeQuickPresets({ theme, onThemeChange }: ThemeQuickPresetsProps): ReactElement {
   return (
     <>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+      <div className="theme-quick-presets">
         {THEME_KEYS.filter((key) => key !== 'auto' && key !== 'random').map((key) => {
           const t = themes[key as ThemeKey];
           if (!t) return null;

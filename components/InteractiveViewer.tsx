@@ -1,6 +1,9 @@
 'use client';
 
-import React, { useState, useRef, ReactNode, useMemo, type ReactElement } from 'react';
+import React, { useState, useRef, ReactNode, useMemo, useEffect, type ReactElement } from 'react';
+import { createPortal } from 'react-dom';
+import { AnimatePresence } from 'framer-motion';
+import VisualizationTooltip from './dashboard/VisualizationTooltip';
 
 // ── Parallax particle configuration ──────────────────────────────────────────
 // Particles are generated deterministically so SSR and client renders match,
@@ -45,14 +48,51 @@ function buildParticles(): ParallaxParticle[] {
 // container edge. Shallower particles shift proportionally less.
 const PARALLAX_STRENGTH = 80;
 
+interface ActiveTooltipState {
+  date: string;
+  count: number;
+  metric: string;
+  x: number;
+  y: number;
+}
+
+export const formatDate = (dateStr: string): string => {
+  if (!dateStr) return '';
+  const parts = dateStr.split('-');
+  if (parts.length !== 3) return dateStr;
+  const year = parseInt(parts[0], 10);
+  const month = parseInt(parts[1], 10);
+  const day = parseInt(parts[2], 10);
+  if (isNaN(year) || isNaN(month) || isNaN(day)) return dateStr;
+  try {
+    const date = new Date(`${dateStr}T00:00:00Z`);
+    if (isNaN(date.getTime())) return dateStr;
+    const formatted = date.toLocaleDateString('en-US', {
+      timeZone: 'UTC',
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+    return formatted === 'Invalid Date' ? dateStr : formatted;
+  } catch {
+    return dateStr;
+  }
+};
+
 interface InteractiveViewerProps {
   children: ReactNode;
   className?: string;
+  is3DMode?: boolean;
+  onRotate3D?: (dx: number, dy: number) => void;
+  onReset3D?: () => void;
 }
 
 export default function InteractiveViewer({
   children,
   className = '',
+  is3DMode = false,
+  onRotate3D,
+  onReset3D,
 }: InteractiveViewerProps): ReactElement {
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
@@ -66,6 +106,17 @@ export default function InteractiveViewer({
   const isDragging = useRef(false);
   const [isDraggingState, setIsDraggingState] = useState(false);
   const lastMousePos = useRef({ x: 0, y: 0 });
+  const [activeTooltip, setActiveTooltip] = useState<ActiveTooltipState | null>(null);
+  const activeTooltipRef = useRef<ActiveTooltipState | null>(null);
+  const startPointerPos = useRef({ x: 0, y: 0 });
+  const [mounted, setMounted] = useState(false);
+  // SSR hydration guard: both server and client render with mounted=false.
+  // After hydration this effect flips the flag once so the tooltip portal
+  // (which requires document.body) is only rendered client-side.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMounted(true);
+  }, []);
 
   // Stable particle list — generated once on mount, never re-shuffled.
   const particles = useMemo((): ParallaxParticle[] => buildParticles(), []);
@@ -88,22 +139,50 @@ export default function InteractiveViewer({
 
     const PAN_STEP = 30;
     const ZOOM_STEP = 0.1;
+    // How many pixels of "virtual mouse movement" each arrow key press simulates
+    // for 3D rotation. This feeds into the same onRotate3D callback that pointer
+    // dragging uses, so a consistent magnitude keeps the experience predictable.
+    const ROTATE_STEP = 10;
 
     switch (e.key.toLowerCase()) {
-      case 'w':
       case 'arrowup':
+        if (is3DMode && onRotate3D) {
+          onRotate3D(0, -ROTATE_STEP);
+        } else {
+          setPan((p) => ({ ...p, y: p.y + PAN_STEP }));
+        }
+        break;
+      case 'arrowdown':
+        if (is3DMode && onRotate3D) {
+          onRotate3D(0, ROTATE_STEP);
+        } else {
+          setPan((p) => ({ ...p, y: p.y - PAN_STEP }));
+        }
+        break;
+      case 'arrowleft':
+        if (is3DMode && onRotate3D) {
+          onRotate3D(-ROTATE_STEP, 0);
+        } else {
+          setPan((p) => ({ ...p, x: p.x + PAN_STEP }));
+        }
+        break;
+      case 'arrowright':
+        if (is3DMode && onRotate3D) {
+          onRotate3D(ROTATE_STEP, 0);
+        } else {
+          setPan((p) => ({ ...p, x: p.x - PAN_STEP }));
+        }
+        break;
+      case 'w':
         setPan((p) => ({ ...p, y: p.y + PAN_STEP }));
         break;
       case 's':
-      case 'arrowdown':
         setPan((p) => ({ ...p, y: p.y - PAN_STEP }));
         break;
       case 'a':
-      case 'arrowleft':
         setPan((p) => ({ ...p, x: p.x + PAN_STEP }));
         break;
       case 'd':
-      case 'arrowright':
         setPan((p) => ({ ...p, x: p.x - PAN_STEP }));
         break;
       case '+':
@@ -131,6 +210,7 @@ export default function InteractiveViewer({
     isDragging.current = true;
     setIsDraggingState(true);
     lastMousePos.current = { x: e.clientX, y: e.clientY };
+    startPointerPos.current = { x: e.clientX, y: e.clientY };
     e.currentTarget.setPointerCapture(e.pointerId);
   };
 
@@ -145,17 +225,86 @@ export default function InteractiveViewer({
     }
 
     // Only apply pan logic when actively dragging
-    if (!isDragging.current) return;
-    const dx = e.clientX - lastMousePos.current.x;
-    const dy = e.clientY - lastMousePos.current.y;
-    setPan((p) => ({ x: p.x + dx, y: p.y + dy }));
-    lastMousePos.current = { x: e.clientX, y: e.clientY };
+    if (isDragging.current) {
+      const dx = e.clientX - lastMousePos.current.x;
+      const dy = e.clientY - lastMousePos.current.y;
+
+      if (is3DMode && onRotate3D) {
+        onRotate3D(dx, dy);
+      } else {
+        setPan((p) => ({ x: p.x + dx, y: p.y + dy }));
+      }
+
+      lastMousePos.current = { x: e.clientX, y: e.clientY };
+      // Hide tooltip during active drag/pan
+      activeTooltipRef.current = null;
+      setActiveTooltip(null);
+      return;
+    }
+
+    // Detect if we are hovering over an interactive tower
+    const targetElement = e.target as HTMLElement;
+    const tower = targetElement.closest('.interactive-tower');
+    if (tower) {
+      const date = tower.getAttribute('data-date');
+      const countStr = tower.getAttribute('data-count');
+      const metric = tower.getAttribute('data-metric');
+      if (date && countStr && metric) {
+        if (!activeTooltipRef.current || activeTooltipRef.current.date !== date) {
+          const count = parseInt(countStr, 10);
+          const towerRect = tower.getBoundingClientRect();
+          const newTooltip = {
+            date,
+            count,
+            metric,
+            x: towerRect.left + towerRect.width / 2,
+            y: towerRect.top,
+          };
+          activeTooltipRef.current = newTooltip;
+          setActiveTooltip(newTooltip);
+        }
+      }
+    } else {
+      if (activeTooltipRef.current) {
+        activeTooltipRef.current = null;
+        setActiveTooltip(null);
+      }
+    }
   };
 
   const handlePointerUp = (e: React.PointerEvent): void => {
     isDragging.current = false;
     setIsDraggingState(false);
     e.currentTarget.releasePointerCapture(e.pointerId);
+
+    // If it was a tap (moved very little), show/toggle the tooltip!
+    const dx = Math.abs(e.clientX - startPointerPos.current.x);
+    const dy = Math.abs(e.clientY - startPointerPos.current.y);
+    if (dx < 5 && dy < 5) {
+      const targetElement = document.elementFromPoint(e.clientX, e.clientY) as HTMLElement;
+      const tower = targetElement?.closest('.interactive-tower');
+      if (tower) {
+        const date = tower.getAttribute('data-date');
+        const countStr = tower.getAttribute('data-count');
+        const metric = tower.getAttribute('data-metric');
+        if (date && countStr && metric) {
+          const count = parseInt(countStr, 10);
+          const towerRect = tower.getBoundingClientRect();
+          const newTooltip = {
+            date,
+            count,
+            metric,
+            x: towerRect.left + towerRect.width / 2,
+            y: towerRect.top,
+          };
+          activeTooltipRef.current = newTooltip;
+          setActiveTooltip(newTooltip);
+          return;
+        }
+      }
+    }
+    activeTooltipRef.current = null;
+    setActiveTooltip(null);
   };
 
   const handlePointerEnter = (): void => setIsHovering(true);
@@ -164,6 +313,8 @@ export default function InteractiveViewer({
     setIsHovering(false);
     // Reset cursor position to center so the glow fades out gracefully from center
     setMousePos({ x: 0.5, y: 0.5 });
+    activeTooltipRef.current = null;
+    setActiveTooltip(null);
   };
 
   const handleWheel = (e: React.WheelEvent): void => {
@@ -177,11 +328,24 @@ export default function InteractiveViewer({
     }
   };
 
+  const handleDoubleClick = (): void => {
+    if (is3DMode && onReset3D) {
+      onReset3D();
+    }
+    setPan({ x: 0, y: 0 });
+    setZoom(1);
+  };
+
   return (
     <div
       ref={containerRef}
       tabIndex={0}
-      className={`relative overflow-hidden touch-none cursor-grab active:cursor-grabbing select-none focus:outline-none ${className}`}
+      aria-label={
+        is3DMode
+          ? 'Interactive 3D viewer. Use Arrow keys to rotate, W A S D to pan, plus and minus to zoom, R to reset.'
+          : 'Interactive viewer. Use Arrow keys or W A S D to pan, plus and minus to zoom, R to reset.'
+      }
+      className={`relative overflow-hidden touch-none cursor-grab active:cursor-grabbing select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${className}`}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
@@ -190,6 +354,7 @@ export default function InteractiveViewer({
       onPointerLeave={handlePointerLeave}
       onWheel={handleWheel}
       onKeyDown={handleKeyDown}
+      onDoubleClick={handleDoubleClick}
       style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
     >
       {/* ── Parallax background layer ──────────────────────────────────────────
@@ -278,6 +443,52 @@ export default function InteractiveViewer({
       >
         {children}
       </div>
+
+      {mounted &&
+        createPortal(
+          <AnimatePresence>
+            {activeTooltip && (
+              <VisualizationTooltip
+                title={formatDate(activeTooltip.date)}
+                x={activeTooltip.x}
+                y={activeTooltip.y}
+              >
+                <div className="flex flex-col gap-1.5 min-w-[140px] p-0.5">
+                  <div className="text-[11px] font-semibold text-gray-900 dark:text-zinc-100 flex justify-between items-center">
+                    <span>Contributions</span>
+                    <span className="text-emerald-500 dark:text-emerald-400 font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded text-[10px] min-w-[1.5rem] text-center">
+                      {activeTooltip.count}
+                    </span>
+                  </div>
+                  <div className="h-px bg-black/5 dark:bg-white/5 w-full" />
+                  <div className="flex items-center gap-1.5">
+                    <span
+                      className={`inline-block w-1.5 h-1.5 rounded-full ${
+                        activeTooltip.metric === 'Peak day'
+                          ? 'bg-emerald-500 shadow-[0_0_6px_#10b981]'
+                          : activeTooltip.metric === 'Active day'
+                            ? 'bg-cyan-500 shadow-[0_0_6px_#06b6d4]'
+                            : 'bg-zinc-400 dark:bg-zinc-500'
+                      }`}
+                    />
+                    <span
+                      className={`text-[9px] font-bold uppercase tracking-wider ${
+                        activeTooltip.metric === 'Peak day'
+                          ? 'text-emerald-500 dark:text-emerald-400'
+                          : activeTooltip.metric === 'Active day'
+                            ? 'text-cyan-500 dark:text-cyan-400'
+                            : 'text-zinc-500 dark:text-zinc-400'
+                      }`}
+                    >
+                      {activeTooltip.metric}
+                    </span>
+                  </div>
+                </div>
+              </VisualizationTooltip>
+            )}
+          </AnimatePresence>,
+          document.body
+        )}
     </div>
   );
 }

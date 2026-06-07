@@ -4,6 +4,7 @@ const { handleAssign } = require('./assign-handler');
 const { handleUnassign } = require('./unassign-handler');
 const { handleAddLabel } = require('./addlabel-handler');
 const { handleClaim } = require('./claim-handler');
+const { handleUnclaim } = require('./unclaim-handler');
 
 module.exports = async ({ github, context, core }) => {
   const commentBody = context.payload.comment?.body;
@@ -48,6 +49,9 @@ module.exports = async ({ github, context, core }) => {
       case 'claim':
         await handleClaim({ github, context });
         break;
+      case 'unclaim':
+        await handleUnclaim({ github, context });
+        break;
       case 'ping':
         await github.rest.issues.createComment({
           owner,
@@ -64,7 +68,7 @@ module.exports = async ({ github, context, core }) => {
         owner,
         repo,
         issue_number: issueNumber,
-        body: `⚠️ An unexpected error occurred while processing your command. Please try again or contact a maintainer.\n\n> \`${error.message}\``,
+        body: `⚠️ An unexpected error occurred while processing your command. Please try again or contact a maintainer.`,
       });
     } catch (_) {}
     core.setFailed(error.message);

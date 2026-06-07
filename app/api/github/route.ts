@@ -1,8 +1,24 @@
 // app/api/github/route.ts
 
-import { NextResponse } from 'next/server';
+import { NextResponse, after } from 'next/server';
 import { getFullDashboardData } from '@/lib/github';
 import { githubParamsSchema } from '@/lib/validations';
+import { getClientIp } from '@/utils/getClientIp';
+import { quotaMonitor } from '@/services/github/quota-monitor';
+import { refreshPolicy } from '@/services/github/refresh-policy';
+import { refreshRateLimiter } from '@/services/github/refresh-rate-limiter';
+import { backgroundRefresh } from '@/services/github/background-refresh';
+
+function logSecurityEvent(event: string, details: Record<string, unknown>) {
+  console.warn(
+    JSON.stringify({
+      timestamp: new Date().toISOString(),
+      type: 'SECURITY_EVENT',
+      event,
+      ...details,
+    })
+  );
+}
 
 /**
  * Returns GitHub dashboard data as JSON.
@@ -18,11 +34,12 @@ import { githubParamsSchema } from '@/lib/validations';
  * - 400 → Invalid query parameters
  * - 403 → GitHub API rate limit reached
  * - 404 → GitHub user not found
+ * - 429 → Too many requests (Refresh rate limit or low quota)
  * - 500 → Internal server error
  */
-
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
+  const ip = getClientIp(request);
 
   const parseResult = githubParamsSchema.safeParse(Object.fromEntries(searchParams.entries()));
 
@@ -33,37 +50,145 @@ export async function GET(request: Request) {
     );
   }
 
-  const { username, refresh } = parseResult.data;
+  const { username, refresh, bypassCache: bypassCacheParam } = parseResult.data;
+  // Treat either ?refresh=true or ?bypassCache=true as a cache-bypass request
+  const isRefreshRequested = refresh || bypassCacheParam;
+
+  // 1. Quota awareness check - if remaining quota is low, disable manual refresh
+  if (isRefreshRequested && quotaMonitor.isQuotaLow()) {
+    logSecurityEvent('LOW_QUOTA_REFRESH_BLOCKED', {
+      username,
+      ip,
+      remainingQuota: quotaMonitor.getQuota().remaining,
+    });
+    return NextResponse.json(
+      { error: 'GitHub API quota is low. Cache refresh temporarily disabled.' },
+      { status: 429 }
+    );
+  }
+
+  // 2. Separate Refresh Rate Limiter
+  if (isRefreshRequested) {
+    const rateLimitCheck = refreshRateLimiter.checkLimit(ip);
+    if (!rateLimitCheck.success) {
+      logSecurityEvent('REFRESH_RATE_LIMIT_EXCEEDED', {
+        username,
+        ip,
+        limit: rateLimitCheck.limit,
+      });
+      return NextResponse.json(
+        { error: 'Refresh rate limit exceeded. Please try again later.' },
+        {
+          status: 429,
+          headers: {
+            'X-RateLimit-Limit': rateLimitCheck.limit.toString(),
+            'X-RateLimit-Remaining': rateLimitCheck.remaining.toString(),
+            'X-RateLimit-Reset': rateLimitCheck.reset.toString(),
+          },
+        }
+      );
+    }
+  }
+
+  // 3. Per-Username Refresh Cooldown
+  let shouldBypassCache = isRefreshRequested;
+  if (isRefreshRequested) {
+    if (!refreshPolicy.isRefreshAllowed(username)) {
+      logSecurityEvent('REFRESH_COOLDOWN_VIOLATION', {
+        username,
+        ip,
+        remainingMs: refreshPolicy.getRemainingCooldown(username),
+      });
+      // Fallback: serve cached data instead of bypassing cache
+      shouldBypassCache = false;
+    } else {
+      refreshPolicy.recordRefresh(username);
+    }
+  }
 
   try {
-    const data = await getFullDashboardData(username, { bypassCache: refresh });
-    const cacheControl = refresh
+    const data = await getFullDashboardData(username, { bypassCache: shouldBypassCache });
+
+    // 4. Stale-While-Revalidate background refresh for normal cached requests
+    if (!shouldBypassCache) {
+      const lastSynced = data.lastSyncedAt;
+      if (backgroundRefresh.isStale(lastSynced)) {
+        // Run after the response is sent so Vercel does not freeze the function mid-refresh.
+        after(() => backgroundRefresh.triggerRefresh(username));
+      }
+    }
+
+    const cacheControl = shouldBypassCache
       ? 'no-cache, no-store, must-revalidate'
       : 's-maxage=3600, stale-while-revalidate=86400';
+
+    const cacheStatus = shouldBypassCache ? 'MISS' : 'HIT';
 
     return NextResponse.json(data, {
       status: 200,
       headers: {
         'Cache-Control': cacheControl,
+        'X-Cache-Status': cacheStatus,
+        'X-Refresh-Status': shouldBypassCache
+          ? 'Fresh'
+          : isRefreshRequested
+            ? 'Cooldown-Served-Cached'
+            : 'Cached',
       },
     });
   } catch (error: unknown) {
-    const errMessage = error instanceof Error ? error.message : 'Unknown error';
-    if (errMessage.includes('not found')) {
+    const err = error as {
+      status?: number;
+      response?: { status?: number };
+      message?: string;
+    };
+
+    const status = err.status || err.response?.status || undefined;
+
+    const message = err.message || '';
+
+    // 404 - User not found (status-first; exact message match as fallback for GraphQL paths
+    // that throw without an HTTP status, e.g. `new Error('User not found')` in lib/github.ts)
+    if (status === 404 || message === 'User not found') {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    if (
-      errMessage.toLowerCase().includes('rate limit') ||
-      errMessage.includes('API limit reached') ||
-      errMessage.includes('status 403')
-    ) {
+    // 401 - Invalid or missing token
+    if (status === 401) {
+      return NextResponse.json(
+        { error: 'GitHub token is invalid or missing. Please configure GITHUB_TOKEN.' },
+        { status: 401 }
+      );
+    }
+
+    // 403 - Forbidden / rate limit exhausted (x-ratelimit-remaining: 0)
+    if (status === 403) {
       return NextResponse.json(
         { error: 'GitHub API rate limit reached. Please configure GITHUB_TOKEN.' },
         { status: 403 }
       );
     }
 
-    return NextResponse.json({ error: errMessage || 'Internal Server Error' }, { status: 500 });
+    // 429 - Too many requests
+    if (status === 429) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please try again later.' },
+        { status: 429 }
+      );
+    }
+
+    // Fallback for GraphQL-level rate limit errors that arrive with HTTP 200
+    // (lib/github.ts throws `new Error('API Rate Limit Exceeded')` in this case).
+    if (!status && message === 'API Rate Limit Exceeded') {
+      return NextResponse.json(
+        { error: 'GitHub API rate limit reached. Please configure GITHUB_TOKEN.' },
+        { status: 403 }
+      );
+    }
+
+    // Default fallback
+    const errMessage = error instanceof Error ? error.message : 'Internal Server Error';
+
+    return NextResponse.json({ error: errMessage }, { status: 500 });
   }
 }
