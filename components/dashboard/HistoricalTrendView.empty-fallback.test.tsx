@@ -63,6 +63,34 @@ describe('HistoricalTrendView - Empty/Missing Inputs Verification', () => {
     ).toBeInTheDocument();
   });
 
+  it('shows no peak day when activity is empty', () => {
+    render(
+      <HistoricalTrendView
+        username="test-user"
+        activity={[]}
+        period={mockPeriod}
+      />
+    );
+
+    expect(
+      screen.getByText(/Peak day/i)
+    ).toBeInTheDocument();
+  });
+
+  it('shows zero average when no activity exists', () => {
+    render(
+      <HistoricalTrendView
+        username="test-user"
+        activity={[]}
+        period={mockPeriod}
+      />
+    );
+
+    expect(
+      screen.getByText(/Avg\/day/i)
+    ).toBeInTheDocument();
+  });
+
   it('renders correct period summary for empty activity', () => {
     render(
       <HistoricalTrendView
@@ -77,7 +105,7 @@ describe('HistoricalTrendView - Empty/Missing Inputs Verification', () => {
     ).toBeInTheDocument();
   });
 
-  it('shows zero average per day when activity is empty', () => {
+  it('renders zero streak metrics when activity is empty', () => {
     render(
       <HistoricalTrendView
         username="test-user"
@@ -86,22 +114,8 @@ describe('HistoricalTrendView - Empty/Missing Inputs Verification', () => {
       />
     );
 
-    expect(
-      screen.getByText(/Avg\/day/i)
-    ).toBeInTheDocument();
-  });
+    const zeros = screen.getAllByText('0');
 
-  it('shows no peak day when activity is empty', () => {
-    render(
-      <HistoricalTrendView
-        username="test-user"
-        activity={[]}
-        period={mockPeriod}
-      />
-    );
-
-    expect(
-      screen.getByText(/Peak day/i)
-    ).toBeInTheDocument();
+    expect(zeros.length).toBeGreaterThan(0);
   });
 });
