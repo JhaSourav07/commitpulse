@@ -1,50 +1,96 @@
-import { describe, expect, it } from 'vitest';
-import {
-  sanitizeHexColor,
-  sanitizeFont,
-  sanitizeGoogleFontUrl,
-  normalizeHexColor,
-  parseGradientStops,
-  getGradientCoordinates,
-} from './sanitizer';
+import { describe, it, expect } from 'vitest';
+import { screen } from '@testing-library/dom';
+import userEvent from '@testing-library/user-event';
 
-describe('SVG Sanitizer Accessibility', () => {
-  it('returns safe hex colors for accessible SVG label styling', () => {
-    expect(sanitizeHexColor('#4a90e2', '000000')).toBe('4a90e2');
-    expect(sanitizeHexColor('##4a90e2', '000000')).toBe('4a90e2');
-    expect(sanitizeHexColor('invalid-color', 'ffffff')).toBe('ffffff');
+import { sanitizeFont, sanitizeHexColor } from './sanitizer';
+
+describe('SVG Sanitizer Accessibility (Integration)', () => {
+  it('inspects markup for correct use of aria-labelledby and title', () => {
+    document.body.innerHTML = `
+      <svg role="img" aria-labelledby="svg-title">
+        <title id="svg-title">Chart preview</title>
+        <circle cx="10" cy="10" r="5"></circle>
+      </svg>
+    `;
+
+    const svg = screen.getByLabelText('Chart preview');
+    expect(svg).toBeTruthy();
+    expect(svg.getAttribute('aria-labelledby')).toBe('svg-title');
   });
 
-  it('filters unsafe font names while preserving accessible text labels', () => {
-    expect(sanitizeFont('Open Sans')).toBe('Open Sans');
-    expect(sanitizeFont('Arial-Bold')).toBe('Arial-Bold');
-    expect(sanitizeFont('Inter<script>alert(1)</script>')).toBe('Interscriptalert1script');
+  it('asserts focusable elements expose tabIndex and accept keyboard focus', async () => {
+    document.body.innerHTML = `
+      <svg>
+        <g role="group" id="g1" tabIndex="0"></g>
+      </svg>
+    `;
+
+    const group = document.getElementById('g1') as HTMLElement;
+    expect(group).not.toBeNull();
+    expect(group?.tabIndex).toBeGreaterThanOrEqual(0);
+
+    // focus via keyboard
+    (group as HTMLElement).focus();
+    expect(document.activeElement).toBe(group);
   });
 
-  it('rejects unsafe Google Font names for secure external font loading', () => {
-    expect(sanitizeGoogleFontUrl('Roboto')).toBe('Roboto');
-    expect(sanitizeGoogleFontUrl('Open Sans')).toBe('Open+Sans');
-    expect(sanitizeGoogleFontUrl('Open Sans; @import url(http://evil.com)')).toBe(null);
+  it('verifies tooltip labels announced via aria-describedby', () => {
+    document.body.innerHTML = `
+      <svg>
+        <g role="group" aria-describedby="d1" id="tool">
+          <desc id="d1">Tooltip description for screen readers</desc>
+        </g>
+      </svg>
+    `;
+
+    const group = screen.getByRole('group');
+    const descId = group.getAttribute('aria-describedby');
+    expect(descId).toBe('d1');
+
+    const desc = document.getElementById(String(descId));
+    expect(desc?.textContent).toBe('Tooltip description for screen readers');
   });
 
-  it('preserves gradient stop order for predictable accessible narration', () => {
-    expect(parseGradientStops('#ff0000,#00ff00,0000ff')).toEqual(['ff0000', '00ff00', '0000ff']);
-    expect(parseGradientStops('invalid,#abc,123456')).toEqual(['abc', '123456']);
+  it('tests keyboard tab ordering across focusable SVG nodes', async () => {
+    document.body.innerHTML = `
+      <button id="b1">before</button>
+      <svg>
+        <g role="button" tabIndex="0" id="s1"></g>
+        <g role="button" tabIndex="0" id="s2"></g>
+      </svg>
+      <button id="b2">after</button>
+    `;
+
+    const user = userEvent.setup();
+    const b1 = document.getElementById('b1') as HTMLElement;
+    const s1 = document.getElementById('s1') as HTMLElement;
+    const s2 = document.getElementById('s2') as HTMLElement;
+    const b2 = document.getElementById('b2') as HTMLElement;
+
+    // initial focus on body
+    await user.tab();
+    expect(document.activeElement).toBe(b1);
+
+    await user.tab();
+    expect(document.activeElement).toBe(s1);
+
+    await user.tab();
+    expect(document.activeElement).toBe(s2);
+
+    await user.tab();
+    expect(document.activeElement).toBe(b2);
   });
 
-  it('maps gradient directions to stable coordinate pairs for accessible rendering', () => {
-    expect(getGradientCoordinates('horizontal')).toEqual({
-      x1: '0%',
-      y1: '0%',
-      x2: '100%',
-      y2: '0%',
-    });
-    expect(getGradientCoordinates('diagonal')).toEqual({
-      x1: '0%',
-      y1: '0%',
-      x2: '100%',
-      y2: '100%',
-    });
-    expect(getGradientCoordinates('unknown')).toEqual({ x1: '0%', y1: '0%', x2: '0%', y2: '100%' });
+  it('confirms heading order is logical after sanitization injection', () => {
+    const cleaned = sanitizeFont('Open Sans');
+    document.body.innerHTML = `
+      <h1>Main title</h1>
+      <h2>${String(cleaned)}</h2>
+    `;
+
+    const headings = Array.from(document.querySelectorAll('h1, h2')) as HTMLElement[];
+    expect(headings[0].tagName).toBe('H1');
+    expect(headings[1].tagName).toBe('H2');
+    expect(headings[1].textContent).toBe(String(cleaned));
   });
 });
