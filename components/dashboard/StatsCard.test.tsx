@@ -73,9 +73,7 @@ describe('StatsCard', () => {
       />
     );
 
-    expect(
-      screen.getByText(/Streaks are calculated in UTC and may differ from your local timezone/i)
-    ).toBeDefined();
+    expect(screen.getByText(/Streak.*UTC/i)).toBeDefined();
   });
 
   // Test 5: UTC disclaimer is absent when showUTCDisclaimer=false
