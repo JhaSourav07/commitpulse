@@ -4,6 +4,7 @@ import { useEffect, useTransition } from 'react';
 import { RefreshCw } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
+import { useTranslation } from '@/context/TranslationContext';
 
 type RefreshButtonProps = {
   username: string;
@@ -11,6 +12,7 @@ type RefreshButtonProps = {
 
 export default function RefreshButton({ username }: RefreshButtonProps) {
   const router = useRouter();
+  const { t } = useTranslation();
 
   const searchParams = useSearchParams();
 
@@ -18,14 +20,14 @@ export default function RefreshButton({ username }: RefreshButtonProps) {
 
   useEffect(() => {
     if (searchParams.get('refresh') === 'true') {
-      toast.success('Dashboard refreshed successfully');
+      toast.success(t('dashboard.refreshed_toast'));
 
       const params = new URLSearchParams(searchParams.toString());
       params.delete('refresh');
       const query = params.toString();
       router.replace(`/dashboard/${username}${query ? `?${query}` : ''}`);
     }
-  }, [searchParams, router, username]);
+  }, [searchParams, router, username, t]);
 
   const handleRefresh = () => {
     startTransition(() => {
@@ -47,7 +49,7 @@ export default function RefreshButton({ username }: RefreshButtonProps) {
     >
       <RefreshCw size={16} className={isPending ? 'animate-spin' : ''} />
 
-      {isPending ? 'Refreshing...' : 'Refresh Data'}
+      {isPending ? t('dashboard.refreshing') : t('dashboard.refresh_btn')}
     </button>
   );
 }

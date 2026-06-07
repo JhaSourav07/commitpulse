@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { MapPin, Calendar, GitBranch, Users, UserPlus, Star, Share2 } from 'lucide-react';
 import type { DashboardExportData, UserProfile } from '@/types/dashboard';
 import ShareSheet from './ShareSheet';
+import { useTranslation } from '@/context/TranslationContext';
 /**
  * Properties for the ProfileCard component.
  */
@@ -31,6 +32,7 @@ interface ProfileCardProps {
 
 export default function ProfileCard({ user, exportData, badges }: ProfileCardProps) {
   const [shareOpen, setShareOpen] = useState(false);
+  const { t } = useTranslation();
 
   return (
     <>
@@ -58,7 +60,7 @@ export default function ProfileCard({ user, exportData, badges }: ProfileCardPro
             </div>
             {user.isPro && (
               <span className="absolute -bottom-1 -right-1 text-[9px] font-bold bg-black text-white dark:bg-white dark:text-black px-1.5 py-0.5 rounded-full tracking-wide">
-                PRO
+                {t('dashboard.profile.pro')}
               </span>
             )}
           </div>
@@ -99,7 +101,7 @@ export default function ProfileCard({ user, exportData, badges }: ProfileCardPro
           <div className="w-full border border-black/10 dark:border-[rgba(255,255,255,0.06)] rounded-lg p-4 mb-5 bg-gray-100 dark:bg-[#111]">
             <div className="flex justify-between items-center mb-2.5">
               <span className="text-[10px] font-medium text-[#A1A1AA] uppercase tracking-widest">
-                Developer Score
+                {t('dashboard.profile.score')}
               </span>
               <span className="text-sm font-semibold text-gray-900 dark:text-white">
                 {user.developerScore}
@@ -118,10 +120,18 @@ export default function ProfileCard({ user, exportData, badges }: ProfileCardPro
           {/* Stats */}
           <div className="grid grid-cols-2 gap-2 w-full mb-5">
             {[
-              { icon: GitBranch, label: 'Repos', value: user.stats.repositories },
-              { icon: Star, label: 'Stars', value: user.stats.stars },
-              { icon: Users, label: 'Followers', value: user.stats.followers },
-              { icon: UserPlus, label: 'Following', value: user.stats.following },
+              {
+                icon: GitBranch,
+                label: t('dashboard.profile.repos'),
+                value: user.stats.repositories,
+              },
+              { icon: Star, label: t('dashboard.profile.stars'), value: user.stats.stars },
+              { icon: Users, label: t('dashboard.profile.followers'), value: user.stats.followers },
+              {
+                icon: UserPlus,
+                label: t('dashboard.profile.following'),
+                value: user.stats.following,
+              },
             ].map(({ icon: Icon, label, value }) => (
               <div
                 key={label}
@@ -144,7 +154,7 @@ export default function ProfileCard({ user, exportData, badges }: ProfileCardPro
             className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-black dark:bg-white text-white dark:text-black text-sm font-semibold hover:bg-zinc-800 dark:hover:bg-zinc-100 transition-colors duration-200"
           >
             <Share2 size={14} />
-            Share Your Pulse
+            {t('dashboard.profile.share')}
           </motion.button>
         </div>
       </motion.div>
