@@ -3,10 +3,20 @@ import type { NextRequest } from 'next/server';
 import { rateLimit } from './lib/rate-limit';
 import { getClientIp } from './utils/getClientIp';
 
-export async function proxy(request: NextRequest): Promise<NextResponse> {
+/**
+ * Next.js middleware — rate-limits all matched API routes.
+ *
+ * Next.js requires this file to be named `middleware.ts` at the project root
+ * and to export a function named `middleware` (and optionally `config`).
+ *
+ * @see https://nextjs.org/docs/app/building-your-application/routing/middleware
+ */
+export async function middleware(request: NextRequest): Promise<NextResponse> {
   const ip = getClientIp(request);
 
-  const isRefresh = request.nextUrl.searchParams.get('refresh') === 'true';
+  const isRefresh =
+    request.nextUrl.searchParams.get('refresh') === 'true' ||
+    request.nextUrl.searchParams.get('bypassCache') === 'true';
 
   if (isRefresh) {
     const refreshResult = await rateLimit(`refresh:${ip}`, 5, 60000);

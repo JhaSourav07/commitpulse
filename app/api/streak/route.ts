@@ -14,13 +14,9 @@ import {
   generatePulseSVG,
   generateLanguagesSVG,
 } from '@/lib/svg/generator';
+import { generateConstellationSVG } from '@/lib/svg/constellation';
 import { getSecondsUntilUTCMidnight, getSecondsUntilMidnightInTimezone } from '@/utils/time';
-import type {
-  BadgeParams,
-  ContributionCalendar,
-  RepoContribution,
-  ExtendedContributionData,
-} from '@/types';
+import type { BadgeParams, RepoContribution, ExtendedContributionData } from '@/types';
 import { themes } from '@/lib/svg/themes';
 import { streakParamsSchema } from '@/lib/validations';
 import { sanitizeHexColor, sanitizeRadius } from '@/lib/svg/sanitizer';
@@ -81,6 +77,7 @@ export async function GET(request: Request) {
       from: customFrom,
       to: customTo,
       refresh,
+      bypassCache: bypassCacheParam,
       hide_title,
       hide_background,
       hide_stats,
@@ -110,8 +107,18 @@ export async function GET(request: Request) {
       badges,
       entrance,
     } = parseResult.data;
-    const normalizedView = view as 'default' | 'monthly' | 'heatmap' | 'pulse' | 'languages';
+    const normalizedView = view as
+      | 'default'
+      | 'monthly'
+      | 'heatmap'
+      | 'pulse'
+      | 'languages'
+      | 'constellation';
     const themeName = theme || 'dark';
+
+    // Treat either ?refresh=true or ?bypassCache=true as a cache-bypass request
+    const isRefreshRequested = refresh || bypassCacheParam;
+    const shouldBypassCache = isRefreshRequested;
 
     let timezone = 'UTC';
     if (tzParam) {
@@ -202,7 +209,7 @@ export async function GET(request: Request) {
       accent: isAutoTheme ? selectedTheme.accent : accent || selectedTheme.accent,
       border: sanitizedBorder,
       radius,
-      speed: speed && /^(?:[2-9]|1\d|20)s$/.test(speed) ? speed : '8s',
+      speed,
       scale,
       font,
       autoTheme: isAutoTheme,
@@ -252,7 +259,7 @@ export async function GET(request: Request) {
     // Fetch Organization Mega-City Data OR Single User Data
     if (org) {
       const orgData = await getOrgDashboardData(org, {
-        bypassCache: refresh,
+        bypassCache: shouldBypassCache,
         from,
         to,
       });
@@ -276,7 +283,7 @@ export async function GET(request: Request) {
         users.map(async (u) => {
           try {
             const userData = await fetchGitHubContributions(u, {
-              bypassCache: refresh,
+              bypassCache: shouldBypassCache,
               from,
               to,
             });
@@ -306,7 +313,7 @@ export async function GET(request: Request) {
       }
     } else {
       const userData = await fetchGitHubContributions(user, {
-        bypassCache: refresh,
+        bypassCache: shouldBypassCache,
         from,
         to,
       });
@@ -318,7 +325,7 @@ export async function GET(request: Request) {
 
       if (versus) {
         const versusData = await fetchGitHubContributions(versus, {
-          bypassCache: refresh,
+          bypassCache: shouldBypassCache,
           from,
           to,
         });
@@ -356,9 +363,13 @@ export async function GET(request: Request) {
       const secondsToMidnight = tzParam
         ? getSecondsUntilMidnightInTimezone(timezone)
         : getSecondsUntilUTCMidnight();
-      const cacheControl = refresh
+      const cacheControl = isRefreshRequested
         ? 'no-cache, no-store, must-revalidate'
         : `public, s-maxage=${secondsToMidnight}, stale-while-revalidate=86400`;
+
+      const cacheStatusHeader = shouldBypassCache
+        ? `BYPASS, fetched=${new Date().toISOString()}`
+        : 'HIT';
 
       const jsonPayload = JSON.stringify({
         user: targetEntity,
@@ -392,7 +403,7 @@ export async function GET(request: Request) {
           'Content-Type': 'application/json',
           'Cache-Control': cacheControl,
           ETag: weakEtag,
-          'X-Cache-Status': refresh ? `BYPASS, fetched=${new Date().toISOString()}` : 'HIT',
+          'X-Cache-Status': cacheStatusHeader,
         },
       });
     }
@@ -417,6 +428,9 @@ export async function GET(request: Request) {
       // even though the sparkline generator will extract its own daily 30-day timeline below.
       const stats = calculateStreak(calendar, timezone, undefined, grace);
       svg = generatePulseSVG(stats, params, calendar);
+    } else if (normalizedView === 'constellation') {
+      const stats = calculateStreak(calendar, timezone, undefined, grace);
+      svg = generateConstellationSVG(stats, params, calendar);
     } else if (versus && versusCalendar) {
       const stats1 = calculateStreak(calendar, timezone, undefined, grace);
       const stats2 = calculateStreak(versusCalendar, timezone, undefined, grace);
@@ -429,7 +443,7 @@ export async function GET(request: Request) {
     const secondsToMidnight = tzParam
       ? getSecondsUntilMidnightInTimezone(timezone)
       : getSecondsUntilUTCMidnight();
-    const cacheControl = refresh
+    const cacheControl = isRefreshRequested
       ? 'no-cache, no-store, must-revalidate'
       : isHistoricalYear
         ? 'public, s-maxage=31536000, immutable'
@@ -458,7 +472,7 @@ export async function GET(request: Request) {
         'Cache-Control': cacheControl,
         'Content-Security-Policy': SVG_CSP_HEADER,
         ETag: weakEtag,
-        'X-Cache-Status': refresh ? `BYPASS, fetched=${new Date().toISOString()}` : 'HIT',
+        'X-Cache-Status': shouldBypassCache ? `BYPASS, fetched=${new Date().toISOString()}` : 'HIT',
       },
     });
   } catch (error: unknown) {

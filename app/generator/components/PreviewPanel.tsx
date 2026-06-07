@@ -1,5 +1,6 @@
 'use client';
 
+import { fallbackCopyToClipboard } from '@/utils/clipboard';
 import { useState, useCallback } from 'react';
 import { Copy, Check, Eye, Code2, Download } from 'lucide-react';
 
@@ -36,18 +37,28 @@ export function PreviewPanel({ markdown }: PreviewPanelProps) {
 
   const handleCopy = useCallback(async () => {
     try {
-      await navigator.clipboard.writeText(markdown);
+      if (navigator.clipboard && window.isSecureContext) {
+        try {
+          await navigator.clipboard.writeText(markdown);
+        } catch {
+          const copiedSuccessfully = fallbackCopyToClipboard(markdown);
+
+          if (!copiedSuccessfully) {
+            throw new Error('Clipboard copy failed');
+          }
+        }
+      } else {
+        const copiedSuccessfully = fallbackCopyToClipboard(markdown);
+
+        if (!copiedSuccessfully) {
+          throw new Error('Clipboard copy failed');
+        }
+      }
+
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      const ta = document.createElement('textarea');
-      ta.value = markdown;
-      document.body.appendChild(ta);
-      ta.select();
-      document.execCommand('copy');
-      document.body.removeChild(ta);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      setCopied(false);
     }
   }, [markdown]);
 

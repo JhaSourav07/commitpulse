@@ -71,3 +71,10 @@ it('renders with empty data without crashing', () => {
 
   expect(screen.getByText('Activity Landscape')).toBeTruthy();
 });
+it('labels aggregated bars with a date range rather than a single day', () => {
+  // 100 days on the default 3M view downsample into 2-day buckets, so bars span a range.
+  render(<ActivityLandscape data={mockData} />);
+
+  const rangeBars = screen.getAllByLabelText(/contributions from .+ to .+/i);
+  expect(rangeBars.length).toBeGreaterThan(0);
+});

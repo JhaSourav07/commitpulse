@@ -50,6 +50,8 @@ export function ExportPanel({
 
   // Track async server download states
   const [isDownloading, setIsDownloading] = useState(false);
+  const [filePathCopied, setFilePathCopied] = useState(false);
+  const [markdownCopied, setMarkdownCopied] = useState(false);
 
   const handleDownloadBadge = async () => {
     if (!hasUsername || !snippet) return;
@@ -137,8 +139,85 @@ export function ExportPanel({
     }
   };
 
-  const [markdownCopied, setMarkdownCopied] = useState(false);
-  const [filePathCopied, setFilePathCopied] = useState(false);
+  const handleDownloadPng = async () => {
+    if (!hasUsername || !snippet) return;
+
+    try {
+      setIsDownloading(true);
+
+      const urlMatch = snippet.match(/\((https?:\/\/[^)]+)\)/) || snippet.match(/src="([^"]+)"/);
+
+      let targetUrl = urlMatch ? urlMatch[1] : '';
+
+      if (!targetUrl) {
+        toast.error('Could not determine badge URL.');
+        return;
+      }
+
+      targetUrl = targetUrl.replace(/&amp;/g, '&');
+
+      if (targetUrl.includes('https://commitpulse.vercel.app')) {
+        targetUrl = targetUrl.replace('https://commitpulse.vercel.app', window.location.origin);
+      }
+
+      const response = await fetch(targetUrl);
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch SVG');
+      }
+
+      const svgText = await response.text();
+
+      const svgBlob = new Blob([svgText], {
+        type: 'image/svg+xml;charset=utf-8',
+      });
+
+      const svgUrl = URL.createObjectURL(svgBlob);
+
+      const img = new Image();
+
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+
+        canvas.width = img.width || 1200;
+        canvas.height = img.height || 630;
+
+        const ctx = canvas.getContext('2d');
+
+        if (!ctx) {
+          URL.revokeObjectURL(svgUrl);
+          return;
+        }
+
+        ctx.drawImage(img, 0, 0);
+
+        canvas.toBlob((blob) => {
+          if (!blob) return;
+
+          const pngUrl = URL.createObjectURL(blob);
+
+          const link = document.createElement('a');
+          link.href = pngUrl;
+          link.download = `commitpulse-${username || 'badge'}.png`;
+
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+
+          URL.revokeObjectURL(pngUrl);
+        }, 'image/png');
+
+        URL.revokeObjectURL(svgUrl);
+      };
+
+      img.src = svgUrl;
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to download PNG badge.');
+    } finally {
+      setIsDownloading(false);
+    }
+  };
 
   return (
     <div className="bg-white/70 backdrop-blur-xl border border-black/10 dark:bg-black/35 dark:border-white/10 rounded-[1.75rem] p-6 shadow-[0_20px_60px_rgba(0,0,0,0.15)]">
@@ -217,7 +296,20 @@ export function ExportPanel({
               ? 'Download Not Available'
               : isDownloading
                 ? 'Downloading...'
-                : 'Download Badge'}
+                : 'Download SVG'}
+          </button>
+
+          <button
+            type="button"
+            onClick={handleDownloadPng}
+            disabled={!hasUsername || isDownloading || format === 'action'}
+            className={`relative inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 ${
+              !hasUsername || isDownloading || format === 'action'
+                ? 'bg-gray-200/90 border border-black/10 text-gray-500 cursor-not-allowed dark:bg-white/10 dark:border-white/10 dark:text-white/35'
+                : 'bg-blue-500/10 border border-blue-500/30 text-blue-500 hover:bg-blue-500/20 hover:scale-[1.03] active:scale-[0.97]'
+            }`}
+          >
+            Download PNG
           </button>
 
           {/* Clipboard Copy Button */}

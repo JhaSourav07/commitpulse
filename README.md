@@ -114,6 +114,241 @@ Transform your GitHub contribution history into a cinematic 3D monolith.
 #### 📅 Monthly Summary
 
 ```md
+<!-- Strict mode — streak resets on any single missed day -->
+
+![CommitPulse](https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&grace=0)
+
+<!-- Default — one day grace period (current behavior) -->
+
+![CommitPulse](https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&grace=1)
+
+<!-- Lenient — forgives up to 2 consecutive missed days -->
+
+![CommitPulse](https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&grace=2)
+```
+
+### Theme Presets
+
+| Theme              | Preview                      | `bg`     | `accent` | `text`   |
+| ------------------ | ---------------------------- | -------- | -------- | -------- |
+| `auto`             | System light / dark          | _adapts_ | _adapts_ | _adapts_ |
+| `dark` _(default)_ | GitHub dark                  | `0d1117` | `58a6ff` | `c9d1d9` |
+| `neon`             | Cyberpunk                    | `000000` | `ff00ff` | `00ffcc` |
+| `dracula`          | Dracula Pro                  | `282a36` | `bd93f9` | `f8f8f2` |
+| `github`           | GitHub green                 | `0d1117` | `39d353` | `ffffff` |
+| `light`            | Clean & minimal              | `ffffff` | `0969da` | `24292f` |
+| `gruvbox`          | Retro warm dark              | `282828` | `fe8019` | `ebdbb2` |
+| `random`           | Surprise theme on reload     | _varies_ | _varies_ | _varies_ |
+| `highcontrast`     | Accessibility high contrast  | `0a0a0a` | `ff4500` | `ffffff` |
+| `cyber-pulse`      | AMOLED true-black & cyan     | `000000` | `00ffee` | `ffffff` |
+| `obsidian`         | Deep charcoal & amber gold   | `1a1a2e` | `f59e0b` | `e2e8f0` |
+| `glacier`          | Icy sky blue & cyan          | `e0f2fe` | `06b6d4` | `0369a1` |
+| `lumos`            | Void black & mint gold       | `0a0a0a` | `fbbf24` | `a7f3d0` |
+| `tokyo_night`      | Deep navy & soft pastel blue | `1a1b26` | `7aa2f7` | `c0caf5` |
+
+> **`auto` uses CSS `@media (prefers-color-scheme)`** inside the SVG so the badge switches between the `light` and `dark` palettes based on the viewer's OS setting — no JavaScript required. This is ideal for GitHub profile READMEs where visitors may use either mode.
+
+## 🎨 Theme Preview Gallery
+
+Explore some of the built-in CommitPulse themes and quickly copy the style you like.
+
+| Theme   | Usage Example    |
+| ------- | ---------------- |
+| Dark    | `?theme=dark`    |
+| Neon    | `?theme=neon`    |
+| Dracula | `?theme=dracula` |
+| Gruvbox | `?theme=gruvbox` |
+| GitHub  | `?theme=github`  |
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=neon)
+
+### Examples
+
+```md
+<!-- Auto theme — adapts to the viewer's light/dark system preference -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=auto)
+
+<!-- The Dracula aesthetic -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=dracula)
+
+<!-- Dynamic Google Fonts — Space-age look with Orbitron -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&font=Orbitron)
+
+<!-- Fully custom — hot orange on void black -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&bg=080808&accent=ff4500&text=eeeeee&radius=16)
+
+<!-- Force bypass cache for latest data -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&refresh=true)
+
+<!-- Fast scan + logarithmic scaling for power users -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&speed=4s&scale=log)
+
+<!-- View contributions for a specific past year -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&year=2023)
+
+<!-- Compact Monthly Stats View -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&view=monthly)
+
+<!-- Monthly View with Absolute Delta and Custom Dimensions -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&view=monthly&delta_format=absolute&width=400&height=150)
+
+<!-- Hide GitHub username/title -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&hide_title=true)
+
+<!-- Hide bottom statistics row -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&hide_stats=true)
+
+<!-- Use local timezone instead of UTC -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&tz=Asia/Kolkata)
+
+<!-- Strict streak — resets on any single missed day -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&grace=0)
+
+<!-- Lenient streak — forgives up to 2 missed days -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&grace=2)
+
+<!-- Render labels in Hindi -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&lang=hi)
+
+<!-- Render labels in Simplified Chinese -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&lang=zh)
+
+<!-- Large badge size -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&size=large)
+
+<!-- Side-by-side versus comparison -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&versus=octocat)
+
+<!-- Lines of Code landscape mode -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&mode=loc)
+
+<!-- Gradient + shading for extra depth -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&gradient=true&shading=true)
+
+<!-- Semi-transparent ghost city look -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&opacity=0.5)
+
+<!-- Slightly faded — perfect for light background embeds -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&opacity=0.8)
+
+<!-- GitHub-style Heatmap View -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&view=heatmap)
+
+<!-- Heatmap with Neon theme -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&view=heatmap&theme=neon)
+```
+
+---
+
+## 🎯 Real-Time Accuracy — The Contribution Count Problem
+
+GitHub's contribution graph can return **different totals** depending on _when_ and _how_ you query it. We solved this at the infrastructure level.
+
+### The Problem: Off-by-N Contributions
+
+The GitHub GraphQL API calculates `totalContributions` and daily contribution windows using **UTC-based ISO 8601 timestamps**. A naive implementation that queries at any arbitrary time — without anchoring to UTC midnight boundaries — will produce counts that are _inconsistent_ between requests. This is the root cause of the classic "my card shows 378 but GitHub shows 385" discrepancy.
+
+### The Solution: UTC Midnight Synchronization
+
+CommitPulse uses a two-part fix:
+
+**1. Cache invalidation anchored to UTC midnight (`utils/time.ts`)**
+
+```typescript
+export function getSecondsUntilUTCMidnight(): number {
+  const now = new Date();
+  const midnight = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1, 0, 0, 0)
+  );
+  return Math.floor((midnight.getTime() - now.getTime()) / 1000);
+}
+```
+
+The CDN cache TTL is set to expire at **exactly the next UTC midnight**, not at some fixed-interval offset. This guarantees that when GitHub's contribution window rolls over, our cache does too — simultaneously.
+
+**2. No internal fetch caching (`lib/github.ts`)**
+
+```typescript
+const res = await fetch(GITHUB_API_URL, {
+  cache: 'no-store', // Bypass Next.js's internal fetch cache
+});
+```
+
+Caching is handled entirely at the HTTP response layer (`Cache-Control: s-maxage`), giving us surgical control over what gets cached and for how long — without stale data poisoning the GraphQL response.
+
+**Result:** CommitPulse's contribution counts are always in sync with GitHub's actual UTC day boundaries.
+
+---
+
+## 🏗️ Architecture & Tech Stack
+
+```
+app/api/streak/route.ts       →  Next.js 16 Edge-compatible API Route
+app/api/track-user/route.ts   →  User tracking API — records GitHub usernames to MongoDB
+lib/github.ts                 →  GitHub GraphQL API client
+lib/calculate.ts              →  Streak algorithm (current + longest + grace period)
+lib/mongodb.ts                →  Cached MongoDB connection utility (serverless-safe)
+lib/svg/generator.ts          →  3D Isometric SVG renderer + CSS animations
+lib/svg/themes.ts             →  Prebuilt theme palette system
+models/User.ts                →  Mongoose User schema
+utils/time.ts                 →  UTC midnight synchronization utilities
+types/index.ts                →  TypeScript interfaces (StreakStats, BadgeParams, BadgeTheme)
+```
+
+| Layer           | Technology                               | Purpose                                                            |
+| --------------- | ---------------------------------------- | ------------------------------------------------------------------ |
+| **Framework**   | Next.js 16 (App Router)                  | API routes, edge deployment                                        |
+| **Language**    | TypeScript 5                             | Type-safe parameters and interfaces                                |
+| **Data Source** | GitHub GraphQL API v4                    | `contributionsCollection` query                                    |
+| **Database**    | MongoDB + Mongoose                       | Tracks GitHub usernames of users who generate a monolith           |
+| **Rendering**   | Pure SVG + SVG Filters                   | `<feGaussianBlur>` for the glow effect                             |
+| **Animation**   | SVG `<animate>`                          | Radar scan line + current-day block pulsing, no external libraries |
+| **Typography**  | Google Fonts (Syncopate + Space Grotesk) | Loaded inline via `@import`                                        |
+| **Deployment**  | Vercel Edge Network                      | Auto-scaling, global CDN                                           |
+| **Caching**     | `Cache-Control: s-maxage`                | UTC-midnight-synced cache invalidation                             |
+
+---
+
+🏗️ Architecture Diagram
+
+```
+GitHub GraphQL API
+↓
+Contribution Processing
+↓
+Streak Calculation Engine
+↓
+SVG Geometry Renderer
+↓
+Animation Layer
+↓
+Edge Cache/CDN
+↓
+Generated SVG Badge
 ![CommitPulse Monthly](https://commitpulse.vercel.app/api/streak?user=octocat&view=monthly)
 ```
 
