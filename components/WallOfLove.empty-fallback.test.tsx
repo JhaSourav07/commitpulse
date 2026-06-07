@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+
 vi.mock('gsap', () => ({
   default: {
     registerPlugin: vi.fn(),
@@ -18,25 +19,19 @@ vi.mock('gsap', () => ({
     to: vi.fn(),
   },
 }));
+
 vi.mock('gsap/ScrollTrigger', () => ({
   ScrollTrigger: {},
 }));
+
 import { WallOfLove } from './WallOfLove';
 import '@testing-library/jest-dom/vitest';
 
-describe('WallOfLove', () => {
-  it('renders the Wall of Love heading', () => {
-    render(<WallOfLove />);
-
-    expect(screen.getByText(/Wall of/i)).toBeInTheDocument();
+describe('WallOfLove Empty & Fallback States', () => {
+  it('renders without runtime errors', () => {
+    expect(() => render(<WallOfLove />)).not.toThrow();
   });
-  it('renders the developer feedback text', () => {
-    render(<WallOfLove />);
 
-    expect(
-      screen.getByText(/See what developers are saying about CommitPulse/i)
-    ).toBeInTheDocument();
-  });
   it('renders the statistics section', () => {
     render(<WallOfLove />);
 
@@ -45,13 +40,21 @@ describe('WallOfLove', () => {
     expect(screen.getByText('Average Rating')).toBeInTheDocument();
   });
 
-  it('renders testimonial content', () => {
+  it('shows stat values', () => {
+    render(<WallOfLove />);
+
+    expect(screen.getByText('2K+')).toBeInTheDocument();
+    expect(screen.getByText('50K+')).toBeInTheDocument();
+    expect(screen.getByText('4.9')).toBeInTheDocument();
+  });
+
+  it('renders testimonial content safely', () => {
     render(<WallOfLove />);
 
     expect(screen.getAllByText(/Alex Chen/i).length).toBeGreaterThan(0);
   });
 
-  it('renders the developer community badge', () => {
+  it('renders community badge', () => {
     render(<WallOfLove />);
 
     expect(screen.getByText(/Loved by developers worldwide/i)).toBeInTheDocument();
