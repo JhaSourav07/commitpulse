@@ -2,8 +2,10 @@
 import { useRef, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import gsap from 'gsap';
+import { useTranslation } from '@/context/TranslationContext';
 
 export function DiscordButton() {
+  const { t } = useTranslation();
   const buttonRef = useRef<HTMLAnchorElement>(null);
   const [isHovered, setIsHovered] = useState(false);
 
@@ -114,7 +116,7 @@ export function DiscordButton() {
           </svg>
 
           <span className="z-10 bg-gradient-to-br from-gray-900 to-gray-500 bg-clip-text text-transparent dark:from-white dark:to-gray-400 group-hover:text-black dark:group-hover:text-white transition-colors duration-300">
-            Join the core community on Discord
+            {t('landing.discord_community')}
           </span>
 
           <svg
