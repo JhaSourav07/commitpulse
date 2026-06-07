@@ -2,29 +2,7 @@
 
 import { motion } from 'framer-motion';
 import { CloseIcon } from './Icons';
-
-const STEPS = [
-  {
-    n: '01',
-    title: 'Open Your Profile Repo',
-    body: 'Navigate to github.com/YOUR_USERNAME/YOUR_USERNAME — your special profile repository.',
-  },
-  {
-    n: '02',
-    title: 'Edit README.md',
-    body: "Click the pencil icon to open the file in GitHub's built-in editor.",
-  },
-  {
-    n: '03',
-    title: 'Paste the Snippet',
-    body: 'Place your cursor wherever you want the monolith to appear, then paste (Ctrl+V / ⌘V).',
-  },
-  {
-    n: '04',
-    title: 'Save & Ship It',
-    body: 'Click "Commit changes" and visit your profile. Your 3D streak is now live.',
-  },
-];
+import { useTranslation } from '@/context/TranslationContext';
 
 type SuccessGuideProps = {
   markdown: string;
@@ -32,6 +10,31 @@ type SuccessGuideProps = {
 };
 
 export function SuccessGuide({ markdown, onDismiss }: SuccessGuideProps) {
+  const { t } = useTranslation();
+
+  const steps = [
+    {
+      n: '01',
+      title: t('success_guide.step_1_title'),
+      body: t('success_guide.step_1_body'),
+    },
+    {
+      n: '02',
+      title: t('success_guide.step_2_title'),
+      body: t('success_guide.step_2_body'),
+    },
+    {
+      n: '03',
+      title: t('success_guide.step_3_title'),
+      body: t('success_guide.step_3_body'),
+    },
+    {
+      n: '04',
+      title: t('success_guide.step_4_title'),
+      body: t('success_guide.step_4_body'),
+    },
+  ];
+
   return (
     <motion.div
       key="success-guide"
@@ -57,10 +60,10 @@ export function SuccessGuide({ markdown, onDismiss }: SuccessGuideProps) {
             </span>
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-400 mb-0.5">
-                Markdown Copied
+                {t('success_guide.markdown_copied')}
               </p>
               <h2 className="text-2xl font-extrabold text-white tracking-tight">
-                Your Monolith is Ready — Deploy It in 4 Steps
+                {t('success_guide.title')}
               </h2>
             </div>
           </div>
@@ -75,7 +78,7 @@ export function SuccessGuide({ markdown, onDismiss }: SuccessGuideProps) {
         </div>
 
         <div className="grid sm:grid-cols-2 gap-px bg-white/5 border-b border-white/5">
-          {STEPS.map((step, i) => (
+          {steps.map((step, i) => (
             <motion.div
               key={step.n}
               initial={{ opacity: 0, y: 12 }}
@@ -96,7 +99,7 @@ export function SuccessGuide({ markdown, onDismiss }: SuccessGuideProps) {
 
         <div className="px-8 py-6">
           <p className="text-xs uppercase tracking-[0.15em] text-white/30 font-bold mb-3">
-            Your copied snippet
+            {t('success_guide.copied_snippet_label')}
           </p>
           <div className="flex items-center gap-3 bg-black/60 border border-white/8 rounded-xl px-4 py-3 font-mono text-sm">
             <span className="text-emerald-400/60 select-none shrink-0">$</span>
@@ -105,9 +108,7 @@ export function SuccessGuide({ markdown, onDismiss }: SuccessGuideProps) {
             </code>
           </div>
           <p className="mt-4 text-xs text-white/25 leading-relaxed">
-            Tip: Add <code className="text-white/40">?theme=neon</code> or{' '}
-            <code className="text-white/40">?accent=ff6b35</code> to the URL to change your
-            monolith&apos;s colour palette.
+            {t('success_guide.color_tip')}
           </p>
         </div>
       </div>

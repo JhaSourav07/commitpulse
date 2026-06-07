@@ -5,10 +5,10 @@ import { AnimatePresence, motion } from 'framer-motion';
 import type { ActivityData } from '@/types/dashboard';
 import { getIntensityColor } from './heatmapUtils';
 import VisualizationTooltip from './VisualizationTooltip';
+import { useTranslation } from '@/context/TranslationContext';
 import {
   formatTooltipDate,
   getActivityInsight,
-  getContributionLabel,
   getLocalActiveStreak,
   getStreakLabel,
 } from './tooltipUtils';
@@ -35,14 +35,15 @@ interface HeatmapProps {
 
 export default function Heatmap({
   data,
-  title = 'Contribution Heatmap',
-  subtitle = 'Last 365 days',
-  emptyMessage = 'No recent activity to display',
+  title,
+  subtitle,
+  emptyMessage,
   timeZone = 'UTC',
 }: HeatmapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
+  const { t } = useTranslation();
 
   const effectiveTimeZone = timeZone || 'UTC';
 
@@ -98,14 +99,18 @@ export default function Heatmap({
     setTooltip({
       count: day.count,
       date: formatTooltipDate(day.date),
-      insight: getActivityInsight(day.count, day.intensity),
-      streak: getStreakLabel(streak),
+      insight: getActivityInsight(day.count, day.intensity, t),
+      streak: getStreakLabel(streak, t),
       x: rect.left + rect.width / 2,
       y: rect.top - 10,
     });
   };
 
   const handleMouseLeave = () => setTooltip(null);
+
+  const displayTitle = title || t('dashboard.heatmap.title');
+  const displaySubtitle = subtitle || t('dashboard.heatmap.last_365');
+  const displayEmptyMessage = emptyMessage || t('dashboard.heatmap.empty');
 
   return (
     <>
@@ -122,18 +127,18 @@ export default function Heatmap({
           data-testid="heatmap-heading"
           className="my-1 text-sm font-semibold tracking-tight text-gray-900 dark:text-white"
         >
-          {title}
+          {displayTitle}
         </h3>
 
         <div className="mb-4 flex items-end justify-between">
           <div>
             <p data-testid="heatmap-subtitle" className="mt-0.5 text-xs text-[#A1A1AA]">
-              {subtitle}
+              {displaySubtitle}
             </p>
           </div>
 
           <div className="flex items-center gap-2 text-xs text-[#A1A1AA]">
-            <span>Less</span>
+            <span>{t('dashboard.heatmap.less')}</span>
             <div className="flex gap-1">
               {[0, 1, 2, 3, 4].map((level) => (
                 <div
@@ -142,7 +147,7 @@ export default function Heatmap({
                 />
               ))}
             </div>
-            <span>More</span>
+            <span>{t('dashboard.heatmap.more')}</span>
           </div>
         </div>
 
@@ -167,9 +172,12 @@ export default function Heatmap({
                         <div
                           key={day.date}
                           role="gridcell"
-                          aria-label={`${getContributionLabel(
-                            day.count
-                          )} on ${formatTooltipDate(day.date)}`}
+                          aria-label={t(
+                            day.count === 1
+                              ? 'dashboard.heatmap.tooltip_single'
+                              : 'dashboard.heatmap.tooltip_plural',
+                            { count: day.count.toString(), date: formatTooltipDate(day.date) }
+                          )}
                           tabIndex={0}
                           onMouseEnter={(e) => handleMouseEnter(e, day, originalIndex)}
                           onFocus={(e) => handleMouseEnter(e, day, originalIndex)}
@@ -192,7 +200,7 @@ export default function Heatmap({
             data-testid="heatmap-empty-state"
             className="flex h-[120px] items-center justify-center rounded-lg border border-dashed border-black/10 text-sm text-[#A1A1AA] dark:border-[rgba(255,255,255,0.08)]"
           >
-            {emptyMessage}
+            {displayEmptyMessage}
           </div>
         )}
       </motion.div>
@@ -200,7 +208,12 @@ export default function Heatmap({
       <AnimatePresence>
         {tooltip && (
           <VisualizationTooltip
-            title={`${getContributionLabel(tooltip.count)} on ${tooltip.date}`}
+            title={t(
+              tooltip.count === 1
+                ? 'dashboard.heatmap.tooltip_single'
+                : 'dashboard.heatmap.tooltip_plural',
+              { count: tooltip.count.toString(), date: tooltip.date }
+            )}
             x={tooltip.x}
             y={tooltip.y}
           >
