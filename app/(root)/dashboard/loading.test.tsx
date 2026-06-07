@@ -20,10 +20,10 @@ describe('DashboardLoading', () => {
     expect(container).toBeTruthy();
   });
 
-  it('renders 2 StatsCardSkeleton components', () => {
+  it('renders 3 StatsCardSkeleton components', () => {
     render(<DashboardLoading />);
     const skeletons = screen.getAllByTestId('stats-card-skeleton');
-    expect(skeletons).toHaveLength(2);
+    expect(skeletons).toHaveLength(3);
   });
 
   it('renders shimmer skeleton elements in the left sidebar', () => {

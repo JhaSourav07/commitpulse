@@ -186,4 +186,22 @@ describe('streakParamsSchema', () => {
       expect(result.data.hide_background).toBe(true);
     }
   });
+
+  it('accepts a valid versus username', () => {
+    const result = streakParamsSchema.safeParse({ user: 'octocat', versus: 'torvalds' });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.versus).toBe('torvalds');
+    }
+  });
+
+  it('rejects a versus username longer than 39 characters', () => {
+    const result = streakParamsSchema.safeParse({ user: 'octocat', versus: 'a'.repeat(40) });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects a versus username with invalid characters', () => {
+    const result = streakParamsSchema.safeParse({ user: 'octocat', versus: 'bad user!' });
+    expect(result.success).toBe(false);
+  });
 });

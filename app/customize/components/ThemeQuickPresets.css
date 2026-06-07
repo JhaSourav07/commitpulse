@@ -106,7 +106,7 @@
     overflow-x: auto;
     overflow-y: hidden;
     width: 100%;
-    max-width: calc(100vw - 96px);
+    max-width: 100%;
     padding-bottom: 8px;
     scroll-snap-type: x proximity;
     -webkit-overflow-scrolling: touch;

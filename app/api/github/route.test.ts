@@ -6,6 +6,17 @@ vi.mock('../../../lib/github', () => ({
   getFullDashboardData: vi.fn(),
 }));
 
+// Run after() callbacks synchronously in tests (outside a request scope it is otherwise a no-op).
+vi.mock('next/server', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('next/server')>();
+  return {
+    ...actual,
+    after: (fn: () => unknown) => {
+      void fn();
+    },
+  };
+});
+
 import { getFullDashboardData } from '../../../lib/github';
 import { quotaMonitor } from '@/services/github/quota-monitor';
 import { refreshPolicy } from '@/services/github/refresh-policy';

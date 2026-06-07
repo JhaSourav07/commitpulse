@@ -61,6 +61,22 @@ export interface Achievement {
   progress: number; // 0–100
 }
 
+export interface HallOfFameAward {
+  category: 'active' | 'growing' | 'collaborative' | 'popular' | 'contributed';
+  title: string;
+  repoName: string;
+  repoAvatar?: string;
+  description: string;
+
+  centerpieceLabel: string;
+  centerpieceValue: string | number;
+  bottomStats: string;
+
+  explanation: string;
+  icon: string;
+  url: string;
+}
+
 export interface CommitClockData {
   day: string; // 'Sun' | 'Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri' | 'Sat'
   commits: number;
@@ -90,4 +106,16 @@ export interface OrgDashboardData {
   profile: UserProfile;
   stats: UserStats;
   calendar: ContributionCalendar;
+}
+
+export interface Repository {
+  name: string;
+  description: string | null;
+  stargazerCount: number;
+  forkCount: number;
+  url: string;
+  primaryLanguage: {
+    name: string;
+    color: string;
+  } | null;
 }

@@ -118,6 +118,7 @@ describe('trackUser', () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
+
   it('reports format error for non-serializable JSON payload', () => {
     const consoleErrorMock = vi.spyOn(console, 'error').mockImplementation(() => {});
     const fetchMock = vi.fn();
@@ -191,6 +192,46 @@ describe('trackUser', () => {
 
     expect(sendBeaconMock).not.toHaveBeenCalled();
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('JSON response serializer — boundary robustness (Variation 2)', () => {
+  it('reports format error for non-serializable JSON payloads like objects, sets, functions, bytes, NaN, Infinity, custom classes', () => {
+    const consoleErrorMock = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    class CustomClass {}
+
+    const circularStructure: Record<string, unknown> = {};
+    circularStructure['self'] = circularStructure;
+
+    const edgeCases = [
+      { key: 'value', ref: circularStructure }, // object with circular ref
+      new Set([1, 2, 3]), // set
+      () => 'test', // function
+      new Uint8Array([10, 20]), // bytes
+      NaN,
+      Infinity,
+      new CustomClass(), // custom class
+      Symbol('test-symbol'), // Symbol (non-serializable) - FIXED: removed 10n BigInt
+    ];
+
+    edgeCases.forEach((payload) => {
+      const originalStringify = JSON.stringify;
+      vi.spyOn(JSON, 'stringify').mockImplementationOnce(() => {
+        throw new TypeError('Simulated JSON serialization format error');
+      });
+
+      expect(() => trackUser(payload as unknown as string)).not.toThrow();
+
+      expect(consoleErrorMock).toHaveBeenCalledWith(
+        'Failed to format tracking payload',
+        expect.any(TypeError)
+      );
+
+      JSON.stringify = originalStringify;
+    });
+
+    consoleErrorMock.mockRestore();
   });
 });
 

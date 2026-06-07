@@ -153,17 +153,38 @@ export function calculateMonthlyStats(
     }
   }
 
+  const expectedPrevMonthStart = `${prevMonthPrefix}-01`;
+  const expectedCurrentMonthEnd = localTodayStr;
+
+  let firstDate = '';
+  let lastDate = '';
+  if (days.length > 0) {
+    let minDate = days[0].date;
+    let maxDate = days[0].date;
+    for (const d of days) {
+      if (d.date < minDate) minDate = d.date;
+      if (d.date > maxDate) maxDate = d.date;
+    }
+    firstDate = minDate;
+    lastDate = maxDate;
+  }
+
+  const hasDays = days.length > 0;
+  const isPrevMonthComplete = hasDays && firstDate <= expectedPrevMonthStart;
+  const isCurrentMonthComplete = hasDays && lastDate >= expectedCurrentMonthEnd;
+  const isCalendarComplete = isPrevMonthComplete && isCurrentMonthComplete;
+
   const currentMonthName = new Intl.DateTimeFormat('en-US', {
     timeZone: timezone,
     month: 'long',
   }).format(now);
 
   const deltaAbsolute = currentMonthTotal - previousMonthTotal;
-  // When there is no baseline (previous month = 0), the percentage change is
-  // mathematically undefined. Return null so the renderer can display 'N/A'
-  // instead of the misleading hardcoded +100%.
+  // When there is no baseline (previous month = 0), or the calendar is incomplete,
+  // the percentage change is mathematically undefined or untrustworthy.
+  // Return null so the renderer can display 'N/A' instead of misleading metrics.
   const deltaPercentage: number | null =
-    previousMonthTotal === 0
+    !isCalendarComplete || previousMonthTotal === 0
       ? null
       : (() => {
           const pct = Math.round((deltaAbsolute / previousMonthTotal) * 100);
@@ -215,6 +236,7 @@ export function aggregateCalendars(calendars: ContributionCalendar[]): Contribut
   }
 
   // Deep clone the base calendar so we don't mutate the original object
+  // Deep clone the base calendar so we don't mutate the original object
   const aggregatedBase = JSON.parse(JSON.stringify(baseCalendar)) as ContributionCalendar;
 
   aggregatedBase.totalContributions = totalContributions;
@@ -226,6 +248,31 @@ export function aggregateCalendars(calendars: ContributionCalendar[]): Contribut
     });
   });
 
+  const existingDates = new Set<string>();
+
+  (aggregatedBase.weeks || []).forEach((week) => {
+    (week.contributionDays || []).forEach((day) => {
+      existingDates.add(day.date);
+    });
+  });
+
+  const missingDays: ContributionDay[] = [];
+
+  for (const [date, contributionCount] of dateMap.entries()) {
+    if (!existingDates.has(date)) {
+      missingDays.push({
+        date,
+        contributionCount,
+      });
+    }
+  }
+
+  missingDays.sort((a, b) => a.date.localeCompare(b.date));
+  for (const day of missingDays) {
+    aggregatedBase.weeks.push({
+      contributionDays: [day],
+    });
+  }
   return aggregatedBase;
 }
 /**
@@ -235,7 +282,7 @@ export function calculateWrappedStats(calendar: ContributionCalendar) {
   const weeks = calendar?.weeks || [];
   const days = weeks.flatMap((w) => w?.contributionDays || []);
 
-  let mostActiveDay = { date: '', count: 0 };
+  let mostActiveDay = { date: 'N/A', count: 0 };
   const monthCounts: Record<string, number> = {};
   let weekendCommits = 0;
   let weekdayCommits = 0;
@@ -271,6 +318,9 @@ export function calculateWrappedStats(calendar: ContributionCalendar) {
     mostActiveDate: mostActiveDay.date,
     highestDailyCount: mostActiveDay.count,
     busiestMonth: busiestMonthStr,
-    weekendRatio: Math.round((weekendCommits / (weekendCommits + weekdayCommits || 1)) * 100),
+    weekendRatio: (() => {
+      const total = weekendCommits + weekdayCommits;
+      return total > 0 ? Math.round((weekendCommits / total) * 100) : 0;
+    })(),
   };
 }

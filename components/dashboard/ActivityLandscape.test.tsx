@@ -33,12 +33,23 @@ it('renders all tab buttons', () => {
   expect(screen.getByText('3M')).toBeTruthy();
   expect(screen.getByText('1Y')).toBeTruthy();
 });
+it('shows pointer cursor styling on timeframe tabs', () => {
+  render(<ActivityLandscape data={mockData} />);
+
+  const tabLabels = ['1W', '1M', '3M', '1Y'];
+
+  tabLabels.forEach((label) => {
+    const tabButton = screen.getByText(label);
+
+    expect(tabButton.classList.contains('cursor-pointer')).toBe(true);
+  });
+});
 it('has 3M active by default', () => {
   render(<ActivityLandscape data={mockData} />);
 
   const tab = screen.getByText('3M');
 
-  expect(tab.className).toContain('bg-black');
+  expect(tab.classList.contains('bg-black')).toBe(true);
 });
 it('activates 1W tab when clicked', () => {
   render(<ActivityLandscape data={mockData} />);
@@ -47,7 +58,7 @@ it('activates 1W tab when clicked', () => {
 
   fireEvent.click(tab);
 
-  expect(tab.className).toContain('bg-black');
+  expect(tab.classList.contains('bg-black')).toBe(true);
 });
 it('renders activity chart', () => {
   render(<ActivityLandscape data={mockData} />);
@@ -59,4 +70,11 @@ it('renders with empty data without crashing', () => {
   render(<ActivityLandscape data={[]} />);
 
   expect(screen.getByText('Activity Landscape')).toBeTruthy();
+});
+it('labels aggregated bars with a date range rather than a single day', () => {
+  // 100 days on the default 3M view downsample into 2-day buckets, so bars span a range.
+  render(<ActivityLandscape data={mockData} />);
+
+  const rangeBars = screen.getAllByLabelText(/contributions from .+ to .+/i);
+  expect(rangeBars.length).toBeGreaterThan(0);
 });

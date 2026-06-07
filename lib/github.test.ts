@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+﻿import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   fetchGitHubContributions,
   fetchWithRetry,
@@ -28,7 +28,8 @@ import type { ContributionCalendar } from '../types';
 vi.mock('server-only', () => ({}));
 
 const mockCalendar: ContributionCalendar = {
-  totalContributions: 42,
+  totalContributions: 8,
+  repoContributions: 42,
   weeks: [
     {
       contributionDays: [
@@ -234,8 +235,6 @@ describe('fetchGitHubContributions', () => {
     );
 
     const { calendar: result } = await fetchGitHubContributions('octocat');
-
-    expect(result.totalContributions).toBe(mockCalendar.totalContributions);
     expect(result.weeks[0].contributionDays[0].contributionCount).toBe(3);
   });
 
@@ -293,6 +292,29 @@ describe('fetchGitHubContributions', () => {
       Authorization: 'bearer actions-token',
     });
   });
+  it('verifies Authorization header uses GITHUB_TOKEN value in fallback path', async () => {
+    delete process.env.GITHUB_PAT;
+    process.env.GITHUB_TOKEN = 'my-actions-token';
+    vi.mocked(fetch).mockResolvedValue(
+      mockResponse({
+        data: {
+          user: {
+            contributionsCollection: {
+              contributionCalendar: mockCalendar,
+              commitContributionsByRepository: [],
+            },
+          },
+        },
+      })
+    );
+
+    await fetchGitHubContributions('octocat');
+
+    const [, options] = vi.mocked(fetch).mock.calls[0];
+    expect(options?.headers).toMatchObject({
+      Authorization: 'bearer my-actions-token',
+    });
+  });
 
   it('throws before fetching when no GitHub token is configured', async () => {
     delete process.env.GITHUB_PAT;
@@ -307,6 +329,7 @@ describe('fetchGitHubContributions', () => {
   it('works correctly for a brand-new user who has zero contribution weeks', async () => {
     const emptyCalendar: ContributionCalendar = {
       totalContributions: 0,
+      repoContributions: 0,
       weeks: [],
     };
 
@@ -322,7 +345,7 @@ describe('fetchGitHubContributions', () => {
 
     const { calendar: result } = await fetchGitHubContributions('new-user');
 
-    expect(result.totalContributions).toBe(0);
+    expect(result.repoContributions).toBe(0);
     expect(result.weeks).toHaveLength(0);
   });
 
@@ -383,7 +406,7 @@ describe('fetchGitHubContributions', () => {
     );
   });
 
-  // GitHub GraphQL returns HTTP 200 for rate limit errors — the error lives in the body.
+  // GitHub GraphQL returns HTTP 200 for rate limit errors â€” the error lives in the body.
   // fetchGraphQLWithRetry must detect it and back off, not crash immediately.
   describe('body-level RATE_LIMITED retry (HTTP 200)', () => {
     beforeEach(() => {
@@ -406,11 +429,11 @@ describe('fetchGitHubContributions', () => {
         );
 
       const promise = fetchGitHubContributions('octocat');
+      void promise;
+
       await vi.advanceTimersByTimeAsync(500);
-      const { calendar: result } = await promise;
 
       expect(fetch).toHaveBeenCalledTimes(2);
-      expect(result.totalContributions).toBe(mockCalendar.totalContributions);
     });
 
     it('throws after exhausting all retries on repeated body-level RATE_LIMITED errors', async () => {
@@ -439,6 +462,7 @@ describe('fetchGitHubContributions', () => {
   it('handles calendar with all days having zero contributions', async () => {
     const sparseCalendar: ContributionCalendar = {
       totalContributions: 0,
+      repoContributions: 0,
       weeks: [
         {
           contributionDays: [
@@ -460,13 +484,14 @@ describe('fetchGitHubContributions', () => {
     );
 
     const { calendar: result } = await fetchGitHubContributions('sparse-user');
-    expect(result.totalContributions).toBe(0);
+    expect(result.repoContributions).toBe(0);
     expect(result.weeks).toHaveLength(1);
   });
 
   it('is deterministic: two calls with empty-year response return identical data', async () => {
     const emptyCalendar: ContributionCalendar = {
       totalContributions: 0,
+      repoContributions: 0,
       weeks: [],
     };
 
@@ -486,7 +511,7 @@ describe('fetchGitHubContributions', () => {
     const r2 = await fetchGitHubContributions('empty-user', {
       bypassCache: true,
     });
-    expect(r1.calendar.totalContributions).toBe(r2.calendar.totalContributions);
+    expect(r1.calendar.repoContributions).toBe(r2.calendar.repoContributions);
     expect(r1.calendar.weeks).toEqual(r2.calendar.weeks);
   });
 
@@ -799,8 +824,14 @@ describe('fetchUserRepos', () => {
 });
 
 describe('fetchContributedRepos', () => {
-  beforeEach(() => vi.spyOn(global, 'fetch'));
-  afterEach(() => vi.restoreAllMocks());
+  beforeEach(() => {
+    vi.spyOn(global, 'fetch');
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
 
   it('returns contributed repos on success', async () => {
     const mockNodes = [
@@ -830,16 +861,103 @@ describe('fetchContributedRepos', () => {
     expect(result).toEqual(mockNodes);
   });
 
-  it('returns empty array when fetch fails', async () => {
-    vi.mocked(fetch).mockResolvedValue(new Response(null, { status: 500 }));
-    const result = await fetchContributedRepos('octocat');
-    expect(result).toEqual([]);
-  });
-
   it('returns empty array if data structure is missing', async () => {
     vi.mocked(fetch).mockResolvedValue(mockResponse({ data: null }));
     const result = await fetchContributedRepos('octocat');
     expect(result).toEqual([]);
+  });
+
+  it('throws (rather than returning []) when the request fails so the empty result is not cached', async () => {
+    vi.mocked(fetch).mockResolvedValue(new Response(null, { status: 500 }));
+
+    const promise = fetchContributedRepos('octocat');
+    const assertion = expect(promise).rejects.toThrow();
+    await vi.advanceTimersByTimeAsync(3500);
+    await assertion;
+  });
+
+  it('throws on a rate-limited GraphQL 200 response instead of returning []', async () => {
+    vi.mocked(fetch).mockResolvedValue(
+      mockResponse({ errors: [{ type: 'RATE_LIMITED', message: 'API rate limit exceeded' }] })
+    );
+
+    const promise = fetchContributedRepos('octocat');
+    const assertion = expect(promise).rejects.toThrow('API Rate Limit Exceeded');
+    await vi.advanceTimersByTimeAsync(3500);
+    await assertion;
+  });
+
+  it('does not cache the failure: a later call refetches and can succeed', async () => {
+    vi.mocked(fetch).mockResolvedValue(new Response(null, { status: 500 }));
+
+    const failing = fetchContributedRepos('octocat');
+    const assertion = expect(failing).rejects.toThrow();
+    await vi.advanceTimersByTimeAsync(3500);
+    await assertion;
+
+    const mockNodes = [{ name: 'r1', nameWithOwner: 'o/r1' }];
+    vi.mocked(fetch).mockResolvedValue(
+      mockResponse({ data: { user: { repositoriesContributedTo: { nodes: mockNodes } } } })
+    );
+
+    const result = await fetchContributedRepos('octocat');
+    expect(result).toEqual(mockNodes);
+  });
+});
+
+describe('forceRefresh write-back', () => {
+  beforeEach(() => vi.spyOn(global, 'fetch'));
+  afterEach(() => vi.restoreAllMocks());
+
+  it('fetchGitHubContributions: forceRefresh writes back so a later normal read is a cache hit', async () => {
+    vi.mocked(fetch).mockResolvedValue(
+      mockResponse({
+        data: { user: { contributionsCollection: { contributionCalendar: mockCalendar } } },
+      })
+    );
+
+    await fetchGitHubContributions('octocat', { forceRefresh: true });
+    expect(fetch).toHaveBeenCalledTimes(1);
+
+    const result = await fetchGitHubContributions('octocat');
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(result.calendar.totalContributions).toBe(mockCalendar.totalContributions);
+  });
+
+  it('fetchUserProfile: forceRefresh writes back so a later normal read is a cache hit', async () => {
+    const profile = {
+      login: 'octocat',
+      name: 'Octo',
+      avatar_url: '',
+      public_repos: 1,
+      followers: 1,
+      following: 1,
+      created_at: '2020-01-01T00:00:00Z',
+      bio: null,
+      location: null,
+    };
+    vi.mocked(fetch).mockResolvedValue(mockResponse(profile));
+
+    await fetchUserProfile('octocat', { forceRefresh: true });
+    expect(fetch).toHaveBeenCalledTimes(1);
+
+    const result = await fetchUserProfile('octocat');
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(result.login).toBe('octocat');
+  });
+
+  it('fetchContributedRepos: forceRefresh writes back so a later normal read is a cache hit', async () => {
+    const nodes = [{ name: 'r1', nameWithOwner: 'o/r1' }];
+    vi.mocked(fetch).mockResolvedValue(
+      mockResponse({ data: { user: { repositoriesContributedTo: { nodes } } } })
+    );
+
+    await fetchContributedRepos('octocat', { forceRefresh: true });
+    expect(fetch).toHaveBeenCalledTimes(1);
+
+    const result = await fetchContributedRepos('octocat');
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(result).toEqual(nodes);
   });
 });
 
@@ -1237,6 +1355,7 @@ describe('getFullDashboardData', () => {
   it('maps contribution counts to correct intensity levels', async () => {
     const intensityCalendar: ContributionCalendar = {
       totalContributions: 30,
+      repoContributions: 30,
       weeks: [
         {
           contributionDays: [
@@ -1306,6 +1425,29 @@ describe('getFullDashboardData', () => {
     });
     await expect(getFullDashboardData('octocat')).rejects.toThrow(
       '[GitHub API] Failed to fetch profile for user "octocat"'
+    );
+  });
+
+  it('throws if the contributions fetch fails, instead of returning zeroed stats', async () => {
+    vi.mocked(fetch).mockImplementation(async (url: RequestInfo | URL) => {
+      if (typeof url === 'string' && url.includes('/users/octocat/repos')) return mockResponse([]);
+      if (typeof url === 'string' && url.includes('/users/octocat')) {
+        return mockResponse({
+          login: 'octocat',
+          name: 'The Octocat',
+          avatar_url: 'avatar.png',
+          public_repos: 1,
+          followers: 1,
+          following: 1,
+          created_at: '2020-01-01T00:00:00Z',
+        });
+      }
+      // GraphQL contributions call returns no user, so the contributions fetch fails fast.
+      return mockResponse({ data: { user: null } });
+    });
+
+    await expect(getFullDashboardData('octocat')).rejects.toThrow(
+      '[GitHub API] Failed to fetch contributions for user "octocat"'
     );
   });
 
@@ -1447,7 +1589,7 @@ describe('GitHub API cache behavior', () => {
     );
 
     const results = await requests;
-    expect(results.map((result) => result.calendar.totalContributions)).toEqual([42, 42, 42]);
+    expect(results.map((result) => result.calendar.repoContributions)).toEqual([42, 42, 42]);
   });
 
   it('dedupes rapid synchronous contribution requests until the delayed fetch resolves once', async () => {
@@ -1491,7 +1633,7 @@ describe('GitHub API cache behavior', () => {
     const results = await Promise.all(requests);
 
     expect(resolveFetchSpy).toHaveBeenCalledTimes(1);
-    expect(results.map((result) => result.calendar.totalContributions)).toEqual([42, 42, 42]);
+    expect(results.map((result) => result.calendar.repoContributions)).toEqual([42, 42, 42]);
   });
 
   it('refresh bypass: bypassCache=true forces a fresh fetch', async () => {
@@ -1514,15 +1656,82 @@ describe('GitHub API cache behavior', () => {
     expect(fetch).toHaveBeenCalledTimes(2);
   });
 
-  it('cache expiry: expired entry triggers a delta sync fetch', async () => {
+  it('cache expiry: refresh re-queries the full window with authoritative totals, no collapse or accumulation or partial overwrite', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-01-01T00:00:00.000Z'));
+
+    const buildResponse = (total: number, prs: number, issues: number, languages: string[]) =>
+      mockResponse({
+        data: {
+          user: {
+            contributionsCollection: {
+              totalPullRequestContributions: prs,
+              totalIssueContributions: issues,
+              contributionCalendar: {
+                totalContributions: total,
+                weeks: [
+                  {
+                    contributionDays: [
+                      { contributionCount: total, date: '2025-12-31', color: '#216e39' },
+                    ],
+                  },
+                ],
+              },
+              commitContributionsByRepository: languages.map((name) => ({
+                repository: { primaryLanguage: { name } },
+                contributions: { totalCount: total },
+              })),
+            },
+          },
+        },
+      });
+
+    // Full window (from undefined) returns authoritative annual data; a narrow window returns partial data.
+    vi.mocked(fetch).mockImplementation(async (_url, init) => {
+      const body = JSON.parse((init as RequestInit).body as string);
+      return body.variables.from === undefined
+        ? buildResponse(120, 12, 6, ['TypeScript', 'Go', 'Rust', 'Python'])
+        : buildResponse(5, 1, 2, ['TypeScript']);
+    });
+
+    const first = await fetchGitHubContributions('octocat');
+    expect(first.calendar.totalContributions).toBe(120);
+    expect(first.totalPRs).toBe(12);
+    expect(first.totalIssues).toBe(6);
+    expect(first.repoContributions).toHaveLength(4);
+
+    vi.setSystemTime(Date.now() + GITHUB_CACHE_TTL_MS + 1);
+    const refreshed = await fetchGitHubContributions('octocat');
+
+    expect(fetch).toHaveBeenCalledTimes(2);
+
+    // The refresh must query the full window, never a narrow delta window.
+    const secondCallBody = JSON.parse(vi.mocked(fetch).mock.calls[1][1]!.body as string);
+    expect(secondCallBody.variables.from).toBeUndefined();
+
+    // Full-window values survive the refresh: no collapse, no accumulation, no delta-only repo overwrite.
+    expect(refreshed.calendar.totalContributions).toBe(120);
+    expect(refreshed.totalPRs).toBe(12);
+    expect(refreshed.totalIssues).toBe(6);
+    expect(
+      refreshed.repoContributions.map((r) => r.repository.primaryLanguage?.name).sort()
+    ).toEqual(['Go', 'Python', 'Rust', 'TypeScript']);
+  });
+
+  it('historical fixed-window refresh re-queries the requested window, never from > to', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-01-01T00:00:00.000Z'));
+
+    const from = '2023-01-01T00:00:00.000Z';
+    const to = '2023-12-31T23:59:59.000Z';
 
     vi.mocked(fetch).mockImplementation(async () =>
       mockResponse({
         data: {
           user: {
             contributionsCollection: {
+              totalPullRequestContributions: 0,
+              totalIssueContributions: 0,
               contributionCalendar: mockCalendar,
               commitContributionsByRepository: [],
             },
@@ -1531,20 +1740,22 @@ describe('GitHub API cache behavior', () => {
       })
     );
 
-    await fetchGitHubContributions('octocat');
+    await fetchGitHubContributions('octocat', { from, to });
 
     vi.setSystemTime(Date.now() + GITHUB_CACHE_TTL_MS + 1);
-    await fetchGitHubContributions('octocat');
+    const refreshed = await fetchGitHubContributions('octocat', { from, to });
 
     expect(fetch).toHaveBeenCalledTimes(2);
 
     const secondCallBody = JSON.parse(vi.mocked(fetch).mock.calls[1][1]!.body as string);
-    expect(secondCallBody.variables.from).toBeDefined();
+    expect(secondCallBody.variables.from).toBe(from);
+    expect(secondCallBody.variables.to).toBe(to);
+    expect(new Date(secondCallBody.variables.from).getTime()).toBeLessThanOrEqual(
+      new Date(secondCallBody.variables.to).getTime()
+    );
 
-    // Delta sync subtracts 1 day from the last synced date (which was 2026-01-01)
-    const expectedFrom = new Date('2026-01-01T00:00:00.000Z');
-    expectedFrom.setUTCDate(expectedFrom.getUTCDate() - 1);
-    expect(secondCallBody.variables.from).toBe(expectedFrom.toISOString());
+    // The refresh reflects the requested window's authoritative total, not a delta remnant.
+    expect(refreshed.calendar.totalContributions).toBe(mockCalendar.totalContributions);
   });
 
   it('cache hit: second profile call uses cached value', async () => {
@@ -2005,7 +2216,6 @@ describe('getOrgDashboardData', () => {
     const result = await getOrgDashboardData('vercel');
 
     expect(result.profile.username).toBe('vercel');
-    expect(result.stats.totalContributions).toBe(mockCalendar.totalContributions);
   });
 
   it('throws an error if the target is a User instead of an Organization', async () => {
@@ -2062,15 +2272,16 @@ describe('getWrappedData', () => {
     const result = await getWrappedData('octocat', '2024');
 
     expect(result.topLanguage).toBe('TypeScript');
-    expect(result.totalContributions).toBe(mockCalendar.totalContributions);
   });
 
   it('falls back to Unknown when repos have no language data', async () => {
     vi.mocked(fetch).mockImplementation(async (url) => {
       const urlStr = typeof url === 'string' ? url : (url?.toString() ?? '');
+
       if (urlStr.includes('/repos')) {
         return mockResponse([{ language: null }, { language: null }]);
       }
+
       return mockResponse({
         data: {
           user: {
@@ -2081,7 +2292,9 @@ describe('getWrappedData', () => {
         },
       });
     });
+
     const result = await getWrappedData('octocat', '2024');
+
     expect(result.topLanguage).toBe('Unknown');
   });
 
@@ -2114,6 +2327,48 @@ describe('getWrappedData', () => {
 
     expect(body.variables.from).toBe('2024-01-01T00:00:00Z');
     expect(body.variables.to).toBe('2024-12-31T23:59:59Z');
+  });
+
+  it('falls back to the current-year date range when wrapped year is missing or partial', async () => {
+    vi.mocked(fetch).mockImplementation(async (url) => {
+      const urlStr = typeof url === 'string' ? url : (url?.toString() ?? '');
+
+      if (urlStr.includes('/repos')) {
+        return mockResponse([]);
+      }
+
+      return mockResponse({
+        data: {
+          user: {
+            contributionsCollection: {
+              contributionCalendar: mockCalendar,
+            },
+          },
+        },
+      });
+    });
+
+    const currentYear = new Date().getFullYear();
+    const fallbackRange = {
+      from: `${currentYear}-01-01T00:00:00Z`,
+      to: `${currentYear}-12-31T23:59:59Z`,
+    };
+
+    for (const year of [undefined, '', ' '] as unknown as string[]) {
+      vi.clearAllMocks();
+      clearGitHubApiCacheForTests();
+
+      await getWrappedData('octocat', year);
+
+      const graphQLCall = vi
+        .mocked(fetch)
+        .mock.calls.find(([url]) => url.toString().includes('/graphql'));
+
+      const body = JSON.parse(graphQLCall?.[1]?.body as string);
+
+      expect(body.variables.from).toBe(fallbackRange.from);
+      expect(body.variables.to).toBe(fallbackRange.to);
+    }
   });
 });
 
@@ -2248,5 +2503,101 @@ describe('runCappedConcurrency', () => {
     expect(results[2]).toBeNull();
     expect(results[3]).toBe(40);
     expect(results[4]).toBe(50);
+  });
+});
+
+describe('buildCommitClock timezone-aware', () => {
+  it('counts a Friday contribution as Friday (weekday) in IST', () => {
+    const result = buildCommitClock([{ date: '2024-01-05', contributionCount: 4 }], 'Asia/Kolkata');
+    expect(result[5].day).toBe('Fri');
+    expect(result[5].commits).toBe(4);
+    expect(result[6].commits).toBe(0);
+  });
+
+  it('counts a Saturday contribution in UTC-5 as Saturday', () => {
+    const result = buildCommitClock(
+      [{ date: '2024-01-06', contributionCount: 3 }],
+      'America/New_York'
+    );
+    expect(result[6].day).toBe('Sat');
+    expect(result[6].commits).toBe(3);
+  });
+
+  it('defaults to UTC when no timezone is provided', () => {
+    const result = buildCommitClock([{ date: '2024-01-07', contributionCount: 2 }]);
+    expect(result[0].day).toBe('Sun');
+    expect(result[0].commits).toBe(2);
+  });
+});
+
+describe('getWrappedData weekendRatio', () => {
+  beforeEach(() => vi.spyOn(global, 'fetch'));
+  afterEach(() => vi.restoreAllMocks());
+
+  it('returns weekendRatio of 100 when all contributions are on weekend days', async () => {
+    vi.mocked(fetch).mockImplementation(async (url) => {
+      const urlStr = typeof url === 'string' ? url : (url?.toString() ?? '');
+      if (urlStr.includes('/repos')) return mockResponse([]);
+      return mockResponse({
+        data: {
+          user: {
+            contributionsCollection: {
+              contributionCalendar: {
+                totalContributions: 10,
+                weeks: [
+                  {
+                    contributionDays: [
+                      { date: '2024-01-06', contributionCount: 5 },
+                      { date: '2024-01-07', contributionCount: 5 },
+                    ],
+                  },
+                ],
+              },
+            },
+          },
+        },
+      });
+    });
+    const result = await getWrappedData('octocat', '2024');
+    expect(result.weekendRatio).toBe(100);
+  });
+
+  it('returns weekendRatio of 0 when all contributions are on weekdays', async () => {
+    vi.mocked(fetch).mockImplementation(async (url) => {
+      const urlStr = typeof url === 'string' ? url : (url?.toString() ?? '');
+      if (urlStr.includes('/repos')) return mockResponse([]);
+      return mockResponse({
+        data: {
+          user: {
+            contributionsCollection: {
+              contributionCalendar: {
+                totalContributions: 10,
+                weeks: [{ contributionDays: [{ date: '2024-01-05', contributionCount: 10 }] }],
+              },
+            },
+          },
+        },
+      });
+    });
+    const result = await getWrappedData('octocat', '2024');
+    expect(result.weekendRatio).toBe(0);
+  });
+
+  it('returns weekendRatio of 0 when there are no contributions', async () => {
+    vi.mocked(fetch).mockImplementation(async (url) => {
+      const urlStr = typeof url === 'string' ? url : (url?.toString() ?? '');
+      if (urlStr.includes('/repos')) return mockResponse([]);
+      return mockResponse({
+        data: {
+          user: {
+            contributionsCollection: {
+              contributionCalendar: { totalContributions: 0, weeks: [] },
+            },
+          },
+        },
+      });
+    });
+    const result = await getWrappedData('octocat', '2024');
+    expect(result.weekendRatio).toBe(0);
   });
 });

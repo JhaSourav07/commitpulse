@@ -36,6 +36,7 @@ export const themes: Record<string, BadgeTheme> = {
   lumos: makeTheme('0a0a0a', 'a7f3d0', 'fbbf24', 'ef4444'),
   tokyonight: makeTheme('1a1b26', 'c0caf5', 'f7768e'),
   cyberpunk: makeTheme('fce22a', '111111', 'ff003c'),
+  tokyo_night: makeTheme('1a1b26', 'c0caf5', '7aa2f7'),
 };
 
 // Auto-theme pairs: the SVG switches between these two palettes

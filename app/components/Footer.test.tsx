@@ -103,7 +103,7 @@ describe('Footer Component', () => {
     expect(connectHeading).toBeInTheDocument();
 
     // Check for social links
-    expect(screen.getByRole('link', { name: /Twitter\/X/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Creator on X/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /LinkedIn/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Discord/i })).toBeInTheDocument();
   });
@@ -112,7 +112,7 @@ describe('Footer Component', () => {
     render(<Footer />);
 
     const footer = screen.getByRole('contentinfo');
-    const mainContent = footer.querySelector('.grid.grid-cols-1.md\\:grid-cols-2.lg\\:grid-cols-4');
+    const mainContent = footer.querySelector('.grid.grid-cols-2.md\\:grid-cols-2.lg\\:grid-cols-4');
     expect(mainContent).toBeInTheDocument();
   });
 
