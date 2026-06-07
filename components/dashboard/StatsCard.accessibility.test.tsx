@@ -40,7 +40,7 @@ describe('StatsCard accessibility', () => {
   it('renders UTC disclaimer as readable assistive text', () => {
     renderStatsCard();
 
-    expect(screen.getByText(/Streaks are calculated in UTC/i)).toBeInTheDocument();
+    expect(screen.getByText(/Streak calculated in UTC/i)).toBeInTheDocument();
 
     expect(screen.getByText('UTC Date: 2026-06-04')).toBeInTheDocument();
   });
