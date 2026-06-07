@@ -16,7 +16,7 @@ const ChildThatThrows = () => {
 };
 
 // 3. Intercept CompareClient to inject our failing child when we want to trigger a crash
-vi.mock('./CompareClient', async (importOriginal) => {
+vi.mock('./CompareClient', async () => {
   return {
     __esModule: true,
     default: ({ forceCrash }: { forceCrash?: boolean }) =>

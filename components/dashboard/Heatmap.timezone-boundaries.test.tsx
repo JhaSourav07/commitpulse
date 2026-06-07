@@ -1,5 +1,5 @@
 import { render, screen, fireEvent } from '@testing-library/react';
-import { describe, it, expect, vi, beforeAll } from 'vitest';
+import { it, expect, vi, beforeAll } from 'vitest';
 import type { ReactNode, HTMLAttributes } from 'react';
 import Heatmap from './Heatmap';
 import type { ActivityData } from '@/types/dashboard';

@@ -1,6 +1,6 @@
 import React, { type ErrorInfo } from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { ThemeToggleButton, createAnimation } from './theme-switch';
 
 type ErrorBoundaryProps = React.PropsWithChildren<{

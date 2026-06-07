@@ -59,11 +59,10 @@ describe('Leaderboard - Mouse Interactivity & Touch Events (Issue #2757 Equivale
     expect(listEntries.length).toBe(1); // user4
   });
 
-  it('Event Propagation to DOM Targets (Touch Propagation Equivalent): fires document scroll bounds safely on click', () => {
-    const scrollIntoViewMock = vi.fn();
-    document.getElementById = vi.fn().mockReturnValue({
-      scrollIntoView: scrollIntoViewMock,
-    });
+  it('Event Propagation to DOM Targets (Touch Propagation Equivalent): fires window.open with contributor profile URL on click', () => {
+    const openMock = vi.fn();
+    const originalOpen = window.open;
+    window.open = openMock;
 
     const { container } = render(<Leaderboard contributors={mockData} />);
 
@@ -72,9 +71,10 @@ describe('Leaderboard - Mouse Interactivity & Touch Events (Issue #2757 Equivale
     ) as HTMLElement;
     fireEvent.click(listItem);
 
-    // Verifies the target scroll view was intercepted and fired
-    expect(document.getElementById).toHaveBeenCalledWith('contributors');
-    expect(scrollIntoViewMock).toHaveBeenCalledWith({ behavior: 'smooth' });
+    // Verifies the contributor's GitHub profile is opened in a new tab
+    expect(openMock).toHaveBeenCalledWith('', '_blank', 'noopener,noreferrer');
+
+    window.open = originalOpen;
   });
 
   it('Hover State Visibility (Tooltips Equivalent): transitions text and background colors via group-hover structurally', () => {

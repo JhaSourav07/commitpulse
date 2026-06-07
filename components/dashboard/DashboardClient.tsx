@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useSyncExternalStore } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
+import DashboardSkeleton from './DashboardSkeleton';
 import { X, RefreshCw, Share2 } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
@@ -27,6 +28,7 @@ import ProfileOptimizerModal from './ProfileOptimizerModal';
 import ResumeProfileSection from './ResumeProfileSection';
 import type { DashboardPeriod } from '@/utils/dashboardPeriod';
 import { PopularRepos } from './PopularPinnnedRepos';
+import PRInsightsClient from './PRInsights/PRInsightsClient';
 
 // Define the dashboard data structure
 export interface DashboardData {
@@ -319,7 +321,13 @@ export default function DashboardClient({
   compareData = null,
   period,
 }: DashboardClientProps) {
+  const isLoading = useSyncExternalStore(
+    () => () => {},
+    () => false,
+    () => true
+  );
   const [secondUserData, setSecondUserData] = useState<DashboardData | null>(compareData);
+  const [activeTab, setActiveTab] = useState<'overview' | 'pr-insights'>('overview');
   const [isCompareMode, setIsCompareMode] = useState(Boolean(compareData));
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isOptimizerOpen, setIsOptimizerOpen] = useState(false);
@@ -533,6 +541,14 @@ export default function DashboardClient({
     }
   }
 
+  if (isLoading) {
+    return (
+      <div className="p-4 md:p-6 lg:p-8 min-h-screen bg-black text-white">
+        <DashboardSkeleton />
+      </div>
+    );
+  }
+
   return (
     <div
       id="dashboard-root"
@@ -625,7 +641,26 @@ export default function DashboardClient({
         </div>
       </div>
 
-      {!isCompareMode || !secondUserData || !coderProfileB ? (
+      <div className="flex justify-center mb-8">
+        <div className="bg-white/50 dark:bg-zinc-900/50 p-1.5 rounded-2xl flex gap-2 w-fit border border-black/10 dark:border-white/10 shadow-sm backdrop-blur-sm">
+          <button
+            onClick={() => setActiveTab('overview')}
+            className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${activeTab === 'overview' ? 'bg-white dark:bg-zinc-800 text-gray-900 dark:text-white shadow-sm ring-1 ring-black/5 dark:ring-white/10' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'}`}
+          >
+            Overview
+          </button>
+          <button
+            onClick={() => setActiveTab('pr-insights')}
+            className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${activeTab === 'pr-insights' ? 'bg-white dark:bg-zinc-800 text-gray-900 dark:text-white shadow-sm ring-1 ring-black/5 dark:ring-white/10' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'}`}
+          >
+            PR Insights
+          </button>
+        </div>
+      </div>
+
+      {activeTab === 'pr-insights' ? (
+        <PRInsightsClient username={username} />
+      ) : !isCompareMode || !secondUserData || !coderProfileB ? (
         <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr_320px] gap-6 lg:gap-8">
           <aside className="flex flex-col gap-6 lg:row-span-2">
             <ProfileCard
@@ -908,7 +943,7 @@ export default function DashboardClient({
                   <div className="grid grid-cols-2 gap-4 text-sm font-semibold mt-1">
                     <div
                       className={
-                        gapA < gapB || gapB === 0
+                        gapA < gapB
                           ? 'text-emerald-500 dark:text-emerald-400'
                           : 'text-gray-900 dark:text-white'
                       }
@@ -917,7 +952,7 @@ export default function DashboardClient({
                     </div>
                     <div
                       className={
-                        gapB < gapA || gapA === 0
+                        gapB < gapA
                           ? 'text-emerald-500 dark:text-emerald-400 text-right'
                           : 'text-gray-900 dark:text-white text-right'
                       }

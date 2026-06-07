@@ -24,10 +24,17 @@ function getRateLimitResetMessage(res: Response): string {
 }
 
 async function getContributors(): Promise<Contributor[]> {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
   try {
     const token = process.env.GITHUB_PAT || process.env.GITHUB_TOKEN;
+    const controller = new AbortController();
+    const timeoutMs = process.env.NODE_ENV === 'test' ? 100 : 10000;
+    timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
     const res = await fetch('https://api.github.com/repos/JhaSourav07/commitpulse/contributors', {
       next: { revalidate: 3600 },
+      signal: controller.signal,
       headers: {
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
         Accept: 'application/vnd.github+json',
@@ -50,6 +57,10 @@ async function getContributors(): Promise<Contributor[]> {
   } catch (error) {
     console.error('Failed to fetch contributors:', error);
     return [];
+  } finally {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
   }
 }
 

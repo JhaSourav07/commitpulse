@@ -12,9 +12,15 @@ import {
   generateVersusSVG,
   generateHeatmapSVG,
   generatePulseSVG,
+  generateLanguagesSVG,
 } from '@/lib/svg/generator';
 import { getSecondsUntilUTCMidnight, getSecondsUntilMidnightInTimezone } from '@/utils/time';
-import type { BadgeParams, ContributionCalendar } from '@/types';
+import type {
+  BadgeParams,
+  ContributionCalendar,
+  RepoContribution,
+  ExtendedContributionData,
+} from '@/types';
 import { themes } from '@/lib/svg/themes';
 import { streakParamsSchema } from '@/lib/validations';
 import { sanitizeHexColor, sanitizeRadius } from '@/lib/svg/sanitizer';
@@ -75,6 +81,7 @@ export async function GET(request: Request) {
       from: customFrom,
       to: customTo,
       refresh,
+      bypassCache: bypassCacheParam,
       hide_title,
       hide_background,
       hide_stats,
@@ -100,10 +107,16 @@ export async function GET(request: Request) {
       glow,
       format,
       days,
+      label,
       badges,
+      entrance,
     } = parseResult.data;
-    const normalizedView = view as 'default' | 'monthly' | 'heatmap' | 'pulse';
+    const normalizedView = view as 'default' | 'monthly' | 'heatmap' | 'pulse' | 'languages';
     const themeName = theme || 'dark';
+
+    // Treat either ?refresh=true or ?bypassCache=true as a cache-bypass request
+    const isRefreshRequested = refresh || bypassCacheParam;
+    const shouldBypassCache = isRefreshRequested;
 
     let timezone = 'UTC';
     if (tzParam) {
@@ -232,20 +245,24 @@ export async function GET(request: Request) {
       disable_particles,
       glow,
       animate,
+      label,
       badges,
+      entrance,
     };
 
     let calendar;
     let versusCalendar;
+    let repoContributions: RepoContribution[] = [];
 
     // Fetch Organization Mega-City Data OR Single User Data
     if (org) {
       const orgData = await getOrgDashboardData(org, {
-        bypassCache: refresh,
+        bypassCache: shouldBypassCache,
         from,
         to,
       });
       calendar = orgData.calendar;
+      repoContributions = normalizedView === 'languages' ? orgData.repoContributions || [] : [];
     } else if (user.includes(',')) {
       const users = user
         .split(',')
@@ -264,44 +281,49 @@ export async function GET(request: Request) {
         users.map(async (u) => {
           try {
             const userData = await fetchGitHubContributions(u, {
-              bypassCache: refresh,
+              bypassCache: shouldBypassCache,
               from,
               to,
             });
             if (userData.isOfflineFallback) {
               hasOfflineFallback = true;
             }
-            return userData.calendar;
+            return userData;
           } catch (err) {
             lastError = err;
             return null;
           }
         })
       );
-      const successfulCalendars = fetchedCalendars.filter(
-        (c): c is ContributionCalendar => c !== null
+      const successfulData = fetchedCalendars.filter(
+        (d): d is ExtendedContributionData => d !== null
       );
-      if (successfulCalendars.length === 0) {
-        throw lastError || new Error('No successful calendars fetched');
+      if (successfulData.length === 0) {
+        throw lastError || new Error('No successful data fetched');
       }
-      calendar = aggregateCalendars(successfulCalendars);
+      calendar = aggregateCalendars(successfulData.map((d) => d.calendar));
+      repoContributions =
+        normalizedView === 'languages'
+          ? successfulData.flatMap((d) => d.repoContributions || [])
+          : [];
       if (hasOfflineFallback) {
         params.isOfflineFallback = true;
       }
     } else {
       const userData = await fetchGitHubContributions(user, {
-        bypassCache: refresh,
+        bypassCache: shouldBypassCache,
         from,
         to,
       });
       calendar = userData.calendar;
+      repoContributions = normalizedView === 'languages' ? userData.repoContributions || [] : [];
       if (userData.isOfflineFallback) {
         params.isOfflineFallback = true;
       }
 
       if (versus) {
         const versusData = await fetchGitHubContributions(versus, {
-          bypassCache: refresh,
+          bypassCache: shouldBypassCache,
           from,
           to,
         });
@@ -339,9 +361,13 @@ export async function GET(request: Request) {
       const secondsToMidnight = tzParam
         ? getSecondsUntilMidnightInTimezone(timezone)
         : getSecondsUntilUTCMidnight();
-      const cacheControl = refresh
+      const cacheControl = isRefreshRequested
         ? 'no-cache, no-store, must-revalidate'
         : `public, s-maxage=${secondsToMidnight}, stale-while-revalidate=86400`;
+
+      const cacheStatusHeader = shouldBypassCache
+        ? `BYPASS, fetched=${new Date().toISOString()}`
+        : 'HIT';
 
       const jsonPayload = JSON.stringify({
         user: targetEntity,
@@ -357,14 +383,17 @@ export async function GET(request: Request) {
       const weakEtag = `W/"${etag}"`;
       const ifNoneMatch = request.headers.get('if-none-match');
 
-      if (ifNoneMatch === weakEtag || ifNoneMatch === `"${etag}"`) {
-        return new NextResponse(null, {
-          status: 304,
-          headers: {
-            'Cache-Control': cacheControl,
-            ETag: weakEtag,
-          },
-        });
+      if (ifNoneMatch) {
+        const etags = ifNoneMatch.split(',').map((e) => e.trim());
+        if (etags.includes(weakEtag) || etags.includes(`"${etag}"`)) {
+          return new NextResponse(null, {
+            status: 304,
+            headers: {
+              'Cache-Control': cacheControl,
+              ETag: weakEtag,
+            },
+          });
+        }
       }
 
       return new NextResponse(jsonPayload, {
@@ -372,7 +401,7 @@ export async function GET(request: Request) {
           'Content-Type': 'application/json',
           'Cache-Control': cacheControl,
           ETag: weakEtag,
-          'X-Cache-Status': refresh ? `BYPASS, fetched=${new Date().toISOString()}` : 'HIT',
+          'X-Cache-Status': cacheStatusHeader,
         },
       });
     }
@@ -386,6 +415,9 @@ export async function GET(request: Request) {
         getMonthlyReferenceDate(year, timezone)
       );
       svg = generateMonthlySVG(stats, params);
+    } else if (normalizedView === 'languages') {
+      const stats = calculateStreak(calendar, timezone, undefined, grace);
+      svg = generateLanguagesSVG(stats, params, repoContributions);
     } else if (normalizedView === 'heatmap') {
       const stats = calculateStreak(calendar, timezone, undefined, grace);
       svg = generateHeatmapSVG(stats, params, calendar);
@@ -406,7 +438,7 @@ export async function GET(request: Request) {
     const secondsToMidnight = tzParam
       ? getSecondsUntilMidnightInTimezone(timezone)
       : getSecondsUntilUTCMidnight();
-    const cacheControl = refresh
+    const cacheControl = isRefreshRequested
       ? 'no-cache, no-store, must-revalidate'
       : isHistoricalYear
         ? 'public, s-maxage=31536000, immutable'
@@ -416,14 +448,17 @@ export async function GET(request: Request) {
     const weakEtag = `W/"${etag}"`;
     const ifNoneMatch = request.headers.get('if-none-match');
 
-    if (ifNoneMatch === weakEtag || ifNoneMatch === `"${etag}"`) {
-      return new NextResponse(null, {
-        status: 304,
-        headers: {
-          'Cache-Control': cacheControl,
-          ETag: weakEtag,
-        },
-      });
+    if (ifNoneMatch) {
+      const etags = ifNoneMatch.split(',').map((e) => e.trim());
+      if (etags.includes(weakEtag) || etags.includes(`"${etag}"`)) {
+        return new NextResponse(null, {
+          status: 304,
+          headers: {
+            'Cache-Control': cacheControl,
+            ETag: weakEtag,
+          },
+        });
+      }
     }
 
     return new NextResponse(svg, {
@@ -432,7 +467,7 @@ export async function GET(request: Request) {
         'Cache-Control': cacheControl,
         'Content-Security-Policy': SVG_CSP_HEADER,
         ETag: weakEtag,
-        'X-Cache-Status': refresh ? `BYPASS, fetched=${new Date().toISOString()}` : 'HIT',
+        'X-Cache-Status': shouldBypassCache ? `BYPASS, fetched=${new Date().toISOString()}` : 'HIT',
       },
     });
   } catch (error: unknown) {

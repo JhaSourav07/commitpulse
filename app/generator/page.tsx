@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
 import { GeneratorClient } from './GeneratorClient';
-import { Code2, Share2 } from 'lucide-react';
+import { Code2, Share2, Sparkles, BarChart3 } from 'lucide-react';
 import { Footer } from '../components/Footer';
 
 export const metadata: Metadata = {
@@ -77,6 +77,18 @@ export default function GeneratorPage() {
                 <Share2 className="size-5" />
               </span>
               50+ social platforms
+            </span>
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/8 text-[11px] font-medium text-gray-600 dark:text-white/55 select-none">
+              <span className="text-sm leading-none">
+                <Sparkles className="size-5" />
+              </span>
+              Badge recommendations
+            </span>
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/8 text-[11px] font-medium text-gray-600 dark:text-white/55 select-none">
+              <span className="text-sm leading-none">
+                <BarChart3 className="size-5" />
+              </span>
+              Live 3D stats
             </span>
           </div>
         </div>

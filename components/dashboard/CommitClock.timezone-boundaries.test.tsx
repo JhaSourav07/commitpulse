@@ -34,43 +34,17 @@ interface MotionGProps extends React.SVGProps<SVGGElement> {
 vi.mock('framer-motion', () => {
   const motion = {
     div: React.forwardRef<HTMLDivElement, MotionDivProps>(
-      (
-        {
-          children,
-          className,
-          style,
-          initial: _initial,
-          animate: _animate,
-          whileInView: _whileInView,
-          viewport: _viewport,
-          transition: _transition,
-          whileHover: _whileHover,
-          ...rest
-        },
-        ref
-      ) => (
+      ({ children, className, style, ...rest }, ref) => (
         <div ref={ref} className={className} style={style} {...rest}>
           {children}
         </div>
       )
     ),
-    g: React.forwardRef<SVGGElement, MotionGProps>(
-      (
-        {
-          children,
-          className,
-          initial: _initial,
-          animate: _animate,
-          transition: _transition,
-          ...rest
-        },
-        ref
-      ) => (
-        <g ref={ref} className={className} {...rest}>
-          {children}
-        </g>
-      )
-    ),
+    g: React.forwardRef<SVGGElement, MotionGProps>(({ children, className, ...rest }, ref) => (
+      <g ref={ref} className={className} {...rest}>
+        {children}
+      </g>
+    )),
   };
 
   motion.div.displayName = 'motion.div';
@@ -108,23 +82,6 @@ vi.mock('./tooltipUtils', () => ({
  */
 function mockTimezone(tzName: string): void {
   process.env.TZ = tzName;
-}
-
-/**
- * Create a Date object in a specific timezone for testing
- */
-function createDateInTimezone(isoString: string, tzOffsetHours: number): Date {
-  const utcDate = new Date(isoString);
-  return new Date(utcDate.getTime() - tzOffsetHours * 60 * 60 * 1000);
-}
-
-/**
- * Get the day name string accounting for timezone offset
- */
-function getDayNameForTimezone(date: Date, tzOffsetHours: number): string {
-  const adjustedDate = new Date(date.getTime() + tzOffsetHours * 60 * 60 * 1000);
-  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  return days[adjustedDate.getUTCDay()];
 }
 
 // =========================================================================

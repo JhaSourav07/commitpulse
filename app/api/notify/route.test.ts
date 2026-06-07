@@ -12,13 +12,30 @@ vi.mock('@/models/Notification', () => ({
   },
 }));
 vi.mock('@/lib/rate-limit', () => ({
+  getRateLimitHeaders: vi.fn((result) => ({
+    'X-RateLimit-Limit': result.limit.toString(),
+    'X-RateLimit-Remaining': result.remaining.toString(),
+    'X-RateLimit-Reset': result.reset.toString(),
+  })),
   notifyRateLimiter: {
     check: vi.fn().mockResolvedValue(true),
+    checkWithResult: vi.fn().mockResolvedValue({
+      success: true,
+      limit: 5,
+      remaining: 4,
+      reset: Date.now() + 60000,
+    }),
+  },
+}));
+vi.mock('@/services/github/validate-user', () => ({
+  gitHubUserValidator: {
+    validateUser: vi.fn().mockResolvedValue(true),
   },
 }));
 
 import { Notification } from '@/models/Notification';
 import { notifyRateLimiter } from '@/lib/rate-limit';
+import { gitHubUserValidator } from '@/services/github/validate-user';
 
 const makeRequest = (method: string, body?: object, search?: string) => {
   const url = `http://localhost:3000/api/notify${search ? '?' + search : ''}`;
@@ -36,6 +53,7 @@ describe('POST /api/notify', () => {
     vi.clearAllMocks();
     process.env = { ...originalEnv, MONGODB_URI: 'mongodb://localhost/test' };
     vi.mocked(notifyRateLimiter.check).mockResolvedValue(true);
+    vi.mocked(gitHubUserValidator.validateUser).mockResolvedValue(true);
   });
 
   afterEach(() => {
@@ -95,9 +113,50 @@ describe('POST /api/notify', () => {
   // ── Rate limiting ────────────────────────────────────────────────────────
 
   it('returns 429 when rate limited', async () => {
-    vi.mocked(notifyRateLimiter.check).mockResolvedValue(false);
+    const reset = Date.now() + 60000;
+    vi.mocked(notifyRateLimiter.checkWithResult).mockResolvedValueOnce({
+      success: false,
+      limit: 5,
+      remaining: 0,
+      reset,
+    });
     const res = await POST(makeRequest('POST', { username: 'testuser', email: 'a@b.com' }));
     expect(res.status).toBe(429);
+    expect(res.headers.get('x-ratelimit-limit')).toBe('5');
+    expect(res.headers.get('x-ratelimit-remaining')).toBe('0');
+    expect(res.headers.get('x-ratelimit-reset')).toBe(reset.toString());
+  });
+
+  // ── Per-username write cooldown ───────────────────────────────────────────
+
+  it('returns 429 when same username is written within cooldown period', async () => {
+    vi.mocked(Notification.findOneAndUpdate).mockResolvedValue({
+      username: 'cooldownuser',
+      email: 'a@b.com',
+      frequency: 'daily',
+      notifyOnCommit: true,
+      notifyOnStreak: true,
+      notifyOnMilestone: true,
+    } as never);
+
+    const body = { username: 'cooldownuser', email: 'a@b.com' };
+    const first = await POST(makeRequest('POST', body));
+    expect(first.status).toBe(200);
+
+    const second = await POST(makeRequest('POST', body));
+    expect(second.status).toBe(429);
+    const data = await second.json();
+    expect(data.message).toMatch(/Please wait \d+ seconds? before updating/);
+  });
+
+  // ── GitHub user existence check ──────────────────────────────────────────
+
+  it('returns 404 when GitHub username does not exist', async () => {
+    vi.mocked(gitHubUserValidator.validateUser).mockResolvedValue(false);
+    const res = await POST(makeRequest('POST', { username: 'nonexistent', email: 'a@b.com' }));
+    expect(res.status).toBe(404);
+    const data = await res.json();
+    expect(data.message).toContain('GitHub user not found');
   });
 
   // ── MONGODB_URI handling ──────────────────────────────────────────────────
@@ -149,7 +208,7 @@ describe('POST /api/notify', () => {
 
   it('defaults frequency to daily and preferences to true when omitted', async () => {
     vi.mocked(Notification.findOneAndUpdate).mockResolvedValue({
-      username: 'testuser',
+      username: 'defaultuser',
       email: 'a@b.com',
       frequency: 'daily',
       notifyOnCommit: true,
@@ -157,7 +216,7 @@ describe('POST /api/notify', () => {
       notifyOnMilestone: true,
     } as never);
 
-    const res = await POST(makeRequest('POST', { username: 'testuser', email: 'a@b.com' }));
+    const res = await POST(makeRequest('POST', { username: 'defaultuser', email: 'a@b.com' }));
     expect(res.status).toBe(200);
   });
 });
@@ -192,9 +251,18 @@ describe('GET /api/notify', () => {
   // ── Rate limiting ────────────────────────────────────────────────────────
 
   it('returns 429 when rate limited', async () => {
-    vi.mocked(notifyRateLimiter.check).mockResolvedValue(false);
+    const reset = Date.now() + 60000;
+    vi.mocked(notifyRateLimiter.checkWithResult).mockResolvedValueOnce({
+      success: false,
+      limit: 5,
+      remaining: 0,
+      reset,
+    });
     const res = await GET(makeRequest('GET', undefined, 'user=testuser'));
     expect(res.status).toBe(429);
+    expect(res.headers.get('x-ratelimit-limit')).toBe('5');
+    expect(res.headers.get('x-ratelimit-remaining')).toBe('0');
+    expect(res.headers.get('x-ratelimit-reset')).toBe(reset.toString());
   });
 
   // ── MONGODB_URI handling ──────────────────────────────────────────────────

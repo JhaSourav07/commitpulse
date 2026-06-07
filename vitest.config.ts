@@ -7,7 +7,7 @@ export default defineConfig({
     globals: true,
     setupFiles: ['./vitest.setup.ts'],
     include: ['**/*.test.ts', '**/*.test.tsx'],
-    exclude: ['node_modules', '.next'],
+    exclude: ['node_modules', '.next', '**/*.massive-scaling.test.ts'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'lcov'],

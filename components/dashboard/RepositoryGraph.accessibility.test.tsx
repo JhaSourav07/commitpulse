@@ -60,19 +60,12 @@ describe('RepositoryGraph - Accessibility Standards & Screen Reader Aria Complia
   });
 
   // 3. Tooltip Announcements
-  it('should announce tooltip labels with correct accessibility descriptions on hover/focus', async () => {
+  it('should render graph guidance text for accessibility', () => {
     render(<RepositoryGraph data={mockGraphData} />);
-    const user = userEvent.setup();
 
-    const chartNodes = screen.queryAllByRole('button');
-
-    if (chartNodes.length > 0) {
-      await user.hover(chartNodes[0]);
-
-      // Fallback description evaluation matching layout instructions text
-      const insightText = screen.getByText(/Hover over any node to view detailed statistics/i);
-      expect(insightText).toBeInTheDocument();
-    }
+    expect(
+      screen.getByText(/Hover over any node to view detailed statistics/i)
+    ).toBeInTheDocument();
   });
 
   // 4. Keyboard Control & Tab Ordering
@@ -107,5 +100,29 @@ describe('RepositoryGraph - Accessibility Standards & Screen Reader Aria Complia
         }
       });
     }
+  });
+
+  it('provides an accessible graph region', () => {
+    render(<RepositoryGraph data={mockGraphData} />);
+
+    expect(
+      screen.getByRole('region', {
+        name: /repository relationship graph/i,
+      })
+    ).toBeInTheDocument();
+  });
+
+  it('renders screen reader descriptions', () => {
+    render(<RepositoryGraph data={mockGraphData} />);
+
+    expect(screen.getByText(/interactive repository relationship graph/i)).toBeInTheDocument();
+  });
+
+  it('graph container is keyboard focusable', () => {
+    render(<RepositoryGraph data={mockGraphData} />);
+
+    const graph = screen.getByTestId('repository-graph-container');
+
+    expect(graph).toHaveAttribute('tabIndex', '0');
   });
 });

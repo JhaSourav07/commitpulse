@@ -1,5 +1,6 @@
 'use client';
 
+import { fallbackCopyToClipboard } from '@/utils/clipboard';
 import {
   useEffect,
   useRef,
@@ -153,7 +154,6 @@ export default function ShareSheet({ username, isOpen, onClose, exportData }: Sh
   const [linkCopied, setLinkCopied] = useState(false);
   const [qrCopied, setQrCopied] = useState(false);
   const [mdCopied, setMdCopied] = useState(false);
-  const [localStates, setLocalStates] = useState<Record<string, OptionState>>({});
   const [toast, setToast] = useState<{ msg: string; id: number } | null>(null);
 
   const profileUrl = `https://commitpulse.vercel.app/dashboard/${username}`;
@@ -171,7 +171,7 @@ export default function ShareSheet({ username, isOpen, onClose, exportData }: Sh
     handleNativeShare,
   } = useShareActions(username, exportData, onClose);
 
-  const combinedStates: Record<string, OptionState> = { ...states, ...localStates };
+  const combinedStates: Record<string, OptionState> = states;
 
   const panelRef = useRef<HTMLDivElement>(null);
   const handlePanelKeyDown = useCallback((e: ReactKeyboardEvent) => {
@@ -234,15 +234,34 @@ export default function ShareSheet({ username, isOpen, onClose, exportData }: Sh
     setTimeout(() => setToast((t) => (t?.id === id ? null : t)), 2400);
   }, []);
 
-  const handleLocalCopyLink = (e: React.MouseEvent) => {
+  const handleLocalCopyLink = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (inputRef.current) {
-      inputRef.current.select();
-      document.execCommand('copy');
+
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        try {
+          await navigator.clipboard.writeText(profileUrl);
+        } catch {
+          const copiedSuccessfully = fallbackCopyToClipboard(profileUrl);
+
+          if (!copiedSuccessfully) {
+            throw new Error('Clipboard copy failed');
+          }
+        }
+      } else {
+        const copiedSuccessfully = fallbackCopyToClipboard(profileUrl);
+
+        if (!copiedSuccessfully) {
+          throw new Error('Clipboard copy failed');
+        }
+      }
+
       setLinkCopied(true);
       showToast('✓ Link copied');
       setTimeout(() => setLinkCopied(false), 2200);
+    } catch {
+      showToast('Unable to copy link');
     }
   };
 
@@ -297,7 +316,7 @@ export default function ShareSheet({ username, isOpen, onClose, exportData }: Sh
     }
   };
 
-  const handleLocalCopyMarkdown = (e: React.MouseEvent) => {
+  const handleLocalCopyMarkdown = () => {
     handleCopyMarkdown();
     setMdCopied(true);
     showToast('✓ Markdown copied');
@@ -307,7 +326,11 @@ export default function ShareSheet({ username, isOpen, onClose, exportData }: Sh
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
+        <div
+          id="share-sheet-overlay"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          onClick={onClose}
+        >
           {/* Backdrop — hidden from assistive tech */}
           <motion.div
             ref={overlayRef}
