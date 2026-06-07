@@ -78,6 +78,12 @@ describe('SVG Sanitizer Utilities', () => {
       expect(hexColor('not-an-accent-color', '58a6ff')).toBe('58a6ff');
     });
 
+    it('strips # from fallback theme colors when invalid hex names are provided', () => {
+      expect(hexColor('not-a-theme-color', '#0d1117')).toBe('0d1117');
+      expect(hexColor('invalid-text-color', '#c9d1d9')).toBe('c9d1d9');
+      expect(hexColor('invalid-accent-color', '#58a6ff')).toBe('58a6ff');
+    });
+
     it('returns default fallback for empty string', () => {
       expect(hexColor('')).toBe('000000');
     });

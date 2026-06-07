@@ -14,13 +14,9 @@ import {
   generatePulseSVG,
   generateLanguagesSVG,
 } from '@/lib/svg/generator';
+import { generateConstellationSVG } from '@/lib/svg/constellation';
 import { getSecondsUntilUTCMidnight, getSecondsUntilMidnightInTimezone } from '@/utils/time';
-import type {
-  BadgeParams,
-  ContributionCalendar,
-  RepoContribution,
-  ExtendedContributionData,
-} from '@/types';
+import type { BadgeParams, RepoContribution, ExtendedContributionData } from '@/types';
 import { themes } from '@/lib/svg/themes';
 import { streakParamsSchema } from '@/lib/validations';
 import { sanitizeHexColor, sanitizeRadius } from '@/lib/svg/sanitizer';
@@ -111,7 +107,13 @@ export async function GET(request: Request) {
       badges,
       entrance,
     } = parseResult.data;
-    const normalizedView = view as 'default' | 'monthly' | 'heatmap' | 'pulse' | 'languages';
+    const normalizedView = view as
+      | 'default'
+      | 'monthly'
+      | 'heatmap'
+      | 'pulse'
+      | 'languages'
+      | 'constellation';
     const themeName = theme || 'dark';
 
     // Treat either ?refresh=true or ?bypassCache=true as a cache-bypass request
@@ -124,25 +126,31 @@ export async function GET(request: Request) {
         timezone = new Intl.DateTimeFormat(undefined, { timeZone: tzParam }).resolvedOptions()
           .timeZone;
       } catch (error) {
-        if (error instanceof RangeError) {
-          const validationErr = new Error(`Invalid timezone: ${tzParam}`);
-          validationErr.name = 'ValidationError';
-          throw validationErr;
+        if (error instanceof Error && error.name === 'ValidationError') {
+          return NextResponse.json({ error: error.message }, { status: 400 });
         }
-        throw error;
       }
     }
 
-    let from = customFrom
-      ? new Date(customFrom).toISOString()
-      : year
-        ? `${year}-01-01T00:00:00Z`
-        : undefined;
-    let to = customTo
-      ? new Date(customTo).toISOString()
-      : year
-        ? `${year}-12-31T23:59:59Z`
-        : undefined;
+    const parseDate = (value?: string) => {
+      if (!value) {
+        return undefined;
+      }
+
+      const date = new Date(value);
+
+      if (Number.isNaN(date.getTime())) {
+        const validationErr = new Error(`Invalid date: ${value}`);
+        validationErr.name = 'ValidationError';
+        throw validationErr;
+      }
+
+      return date.toISOString();
+    };
+
+    let from = parseDate(customFrom) ?? (year ? `${year}-01-01T00:00:00Z` : undefined);
+
+    let to = parseDate(customTo) ?? (year ? `${year}-12-31T23:59:59Z` : undefined);
 
     if (normalizedView === 'monthly') {
       const referenceDate = getMonthlyReferenceDate(year, timezone) || new Date();
@@ -207,7 +215,7 @@ export async function GET(request: Request) {
       accent: isAutoTheme ? selectedTheme.accent : accent || selectedTheme.accent,
       border: sanitizedBorder,
       radius,
-      speed: speed && /^(?:[2-9]|1\d|20)s$/.test(speed) ? speed : '8s',
+      speed,
       scale,
       font,
       autoTheme: isAutoTheme,
@@ -426,6 +434,9 @@ export async function GET(request: Request) {
       // even though the sparkline generator will extract its own daily 30-day timeline below.
       const stats = calculateStreak(calendar, timezone, undefined, grace);
       svg = generatePulseSVG(stats, params, calendar);
+    } else if (normalizedView === 'constellation') {
+      const stats = calculateStreak(calendar, timezone, undefined, grace);
+      svg = generateConstellationSVG(stats, params, calendar);
     } else if (versus && versusCalendar) {
       const stats1 = calculateStreak(calendar, timezone, undefined, grace);
       const stats2 = calculateStreak(versusCalendar, timezone, undefined, grace);
