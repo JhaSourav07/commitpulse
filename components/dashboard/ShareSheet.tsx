@@ -1,6 +1,13 @@
 'use client';
 
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { fallbackCopyToClipboard } from '@/utils/clipboard';
+import {
+  useEffect,
+  useRef,
+  useState,
+  useCallback,
+  type KeyboardEvent as ReactKeyboardEvent,
+} from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import QRCode from 'react-qr-code';
 import { Check, Code, Copy, Download, ExternalLink, Loader2, Sparkles, X } from 'lucide-react';
@@ -147,7 +154,6 @@ export default function ShareSheet({ username, isOpen, onClose, exportData }: Sh
   const [linkCopied, setLinkCopied] = useState(false);
   const [qrCopied, setQrCopied] = useState(false);
   const [mdCopied, setMdCopied] = useState(false);
-  const [localStates, setLocalStates] = useState<Record<string, OptionState>>({});
   const [toast, setToast] = useState<{ msg: string; id: number } | null>(null);
 
   const profileUrl = `https://commitpulse.vercel.app/dashboard/${username}`;
@@ -165,7 +171,49 @@ export default function ShareSheet({ username, isOpen, onClose, exportData }: Sh
     handleNativeShare,
   } = useShareActions(username, exportData, onClose);
 
-  const combinedStates: Record<string, OptionState> = { ...states, ...localStates };
+  const combinedStates: Record<string, OptionState> = states;
+
+  const panelRef = useRef<HTMLDivElement>(null);
+  const handlePanelKeyDown = useCallback((e: ReactKeyboardEvent) => {
+    if (e.key !== 'Tab' || !panelRef.current) return;
+
+    const focusableElements = panelRef.current.querySelectorAll<HTMLElement>(
+      'a[href], button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])'
+    );
+    if (focusableElements.length === 0) return;
+
+    const firstElement = focusableElements[0];
+    const lastElement = focusableElements[focusableElements.length - 1];
+    const activeEl = document.activeElement;
+    const isFocusInPanel = panelRef.current.contains(activeEl);
+
+    if (!isFocusInPanel) {
+      e.preventDefault();
+      firstElement.focus();
+      return;
+    }
+
+    if (e.shiftKey) {
+      if (activeEl === firstElement) {
+        e.preventDefault();
+        lastElement.focus();
+      }
+    } else {
+      if (activeEl === lastElement) {
+        e.preventDefault();
+        firstElement.focus();
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isOpen && panelRef.current) {
+      const firstFocusable = panelRef.current.querySelector<HTMLElement>(
+        'button:not([disabled]), a[href], input:not([disabled])'
+      );
+      firstFocusable?.focus();
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
@@ -186,22 +234,34 @@ export default function ShareSheet({ username, isOpen, onClose, exportData }: Sh
     setTimeout(() => setToast((t) => (t?.id === id ? null : t)), 2400);
   }, []);
 
-  const setLocal = useCallback((key: string, state: OptionState) => {
-    setLocalStates((prev) => ({ ...prev, [key]: state }));
-    if (state === 'success' || state === 'error') {
-      setTimeout(() => setLocalStates((prev) => ({ ...prev, [key]: 'idle' })), 2500);
-    }
-  }, []);
-
-  const handleLocalCopyLink = (e: React.MouseEvent) => {
+  const handleLocalCopyLink = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (inputRef.current) {
-      inputRef.current.select();
-      document.execCommand('copy');
+
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        try {
+          await navigator.clipboard.writeText(profileUrl);
+        } catch {
+          const copiedSuccessfully = fallbackCopyToClipboard(profileUrl);
+
+          if (!copiedSuccessfully) {
+            throw new Error('Clipboard copy failed');
+          }
+        }
+      } else {
+        const copiedSuccessfully = fallbackCopyToClipboard(profileUrl);
+
+        if (!copiedSuccessfully) {
+          throw new Error('Clipboard copy failed');
+        }
+      }
+
       setLinkCopied(true);
       showToast('✓ Link copied');
       setTimeout(() => setLinkCopied(false), 2200);
+    } catch {
+      showToast('Unable to copy link');
     }
   };
 
@@ -256,44 +316,42 @@ export default function ShareSheet({ username, isOpen, onClose, exportData }: Sh
     }
   };
 
-  const handleLocalCopyMarkdown = (e: React.MouseEvent) => {
+  const handleLocalCopyMarkdown = () => {
     handleCopyMarkdown();
     setMdCopied(true);
     showToast('✓ Markdown copied');
     setTimeout(() => setMdCopied(false), 2200);
   };
 
-  const handleDownloadSTL = async () => {
-    setLocal('stl', 'loading');
-    try {
-      await new Promise((r) => setTimeout(r, 1200));
-      const stlContent = `solid commitpulse_monolith\n  facet normal 0 0 1\n    outer loop\n      vertex 0 0 0\n      vertex 10 0 0\n      vertex 10 10 0\n    endloop\n  endfacet\nendsolid commitpulse_monolith`;
-      const blob = new Blob([stlContent], { type: 'text/plain' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.download = `${username}-monolith.stl`;
-      link.href = url;
-      link.click();
-      URL.revokeObjectURL(url);
-      setLocal('stl', 'success');
-    } catch {
-      setLocal('stl', 'error');
-    }
-  };
-
   return (
     <AnimatePresence>
       {isOpen && (
-        <motion.div
-          ref={overlayRef}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
+        <div
+          id="share-sheet-overlay"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
           onClick={onClose}
-          className="fixed inset-0 z-50 bg-zinc-950/60 flex items-center justify-center p-4 backdrop-blur-sm"
         >
+          {/* Backdrop — hidden from assistive tech */}
           <motion.div
+            ref={overlayRef}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-zinc-950/60 backdrop-blur-sm"
+            aria-hidden="true"
+          />
+
+          {/* Dialog panel */}
+          <motion.div
+            ref={panelRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="share-sheet-title"
+            onKeyDown={handlePanelKeyDown}
             onClick={(e) => e.stopPropagation()}
+            initial={{ opacity: 0, scale: 0.96 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.96 }}
             className="relative w-full max-w-[380px] h-[85vh] max-h-[680px] flex flex-col rounded-3xl bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 shadow-2xl overflow-hidden"
           >
             {/* Top Branding Section */}
@@ -308,7 +366,10 @@ export default function ShareSheet({ username, isOpen, onClose, exportData }: Sh
                 {/* Text block */}
                 <div className="min-w-0">
                   <div className="flex items-center gap-1.5">
-                    <p className="text-[13px] font-semibold text-zinc-900 dark:text-zinc-50 leading-tight truncate">
+                    <p
+                      id="share-sheet-title"
+                      className="text-[13px] font-semibold text-zinc-900 dark:text-zinc-50 leading-tight truncate"
+                    >
                       {username}
                     </p>
                     {/* GitHub mark */}
@@ -468,16 +529,19 @@ export default function ShareSheet({ username, isOpen, onClose, exportData }: Sh
                     },
                     {
                       key: 'stl',
-                      label: 'Download Printable 3D STL Monolith',
-                      action: handleDownloadSTL,
+                      label: 'Download Printable 3D STL (Coming Soon)',
+                      action: () => {},
+                      disabled: true,
                     },
                   ].map((row) => {
                     const rowState = combinedStates[row.key] ?? 'idle';
+                    const isDisabled =
+                      'disabled' in row && row.disabled ? true : rowState === 'loading';
                     return (
                       <button
                         key={row.key}
                         onClick={row.action}
-                        disabled={rowState === 'loading'}
+                        disabled={isDisabled}
                         className="w-full p-2 bg-zinc-50 dark:bg-zinc-900 rounded-xl text-left flex items-center justify-between border border-transparent hover:border-zinc-200 disabled:opacity-50"
                       >
                         <div className="flex items-center gap-3">
@@ -513,7 +577,7 @@ export default function ShareSheet({ username, isOpen, onClose, exportData }: Sh
               </motion.div>
             )}
           </AnimatePresence>
-        </motion.div>
+        </div>
       )}
     </AnimatePresence>
   );

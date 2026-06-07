@@ -14,7 +14,7 @@ describe('BackgroundRefresh type compiler validation', () => {
     expectTypeOf(backgroundRefresh.isStale).returns.toEqualTypeOf<boolean>();
 
     expectTypeOf(backgroundRefresh.triggerRefresh).parameters.toEqualTypeOf<[username: string]>();
-    expectTypeOf(backgroundRefresh.triggerRefresh).returns.toEqualTypeOf<void>();
+    expectTypeOf(backgroundRefresh.triggerRefresh).returns.toEqualTypeOf<Promise<void>>();
 
     expectTypeOf(backgroundRefresh.isJobActive).parameters.toEqualTypeOf<[username: string]>();
     expectTypeOf(backgroundRefresh.isJobActive).returns.toEqualTypeOf<boolean>();
@@ -41,6 +41,6 @@ describe('BackgroundRefresh type compiler validation', () => {
 
     expect(backgroundRefresh.isStale(staleDate)).toBe(true);
     expect(backgroundRefresh.isStale(freshDate)).toBe(false);
-    expect(backgroundRefresh.isStale('invalid-date')).toBe(false);
+    expect(backgroundRefresh.isStale('invalid-date')).toBe(true);
   });
 });

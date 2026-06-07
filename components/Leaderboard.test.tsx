@@ -6,7 +6,7 @@ import Leaderboard, { type Contributor } from './Leaderboard';
 
 // Mock next/image
 vi.mock('next/image', () => ({
-  default: ({ alt = '', src = '', ...props }: ComponentProps<'img'>) => (
+  default: ({ alt = '', src = '', fill, ...props }: ComponentProps<'img'> & { fill?: boolean }) => (
     // eslint-disable-next-line @next/next/no-img-element
     <img alt={alt} src={src} {...props} />
   ),
@@ -19,15 +19,11 @@ vi.mock('framer-motion', () => ({
       children,
       whileHover,
       whileInView,
-      initial,
-      viewport,
       ...props
     }: {
       children?: ReactNode;
       whileHover?: unknown;
       whileInView?: unknown;
-      initial?: unknown;
-      viewport?: unknown;
       [key: string]: unknown;
     }) => (
       <div
@@ -40,7 +36,6 @@ vi.mock('framer-motion', () => ({
     ),
   },
 }));
-
 const mockContributors: Contributor[] = [
   {
     id: 1,
@@ -128,14 +123,10 @@ describe('Leaderboard Component', () => {
     expect(screen.getByText('#5')).toBeInTheDocument();
   });
 
-  it('scrolls to contributors container when list entry is clicked', () => {
-    const scrollIntoViewMock = vi.fn();
-
-    // Create elements mock to verify scrollIntoView behavior
-    const originalGetElementById = document.getElementById;
-    document.getElementById = vi.fn().mockReturnValue({
-      scrollIntoView: scrollIntoViewMock,
-    });
+  it('opens contributor GitHub profile in new tab when list entry is clicked', () => {
+    const openMock = vi.fn();
+    const originalOpen = window.open;
+    window.open = openMock;
 
     render(<Leaderboard contributors={mockContributors} />);
 
@@ -144,10 +135,54 @@ describe('Leaderboard Component', () => {
 
     fireEvent.click(entryElement!);
 
-    expect(document.getElementById).toHaveBeenCalledWith('contributors');
-    expect(scrollIntoViewMock).toHaveBeenCalledWith({ behavior: 'smooth' });
+    expect(openMock).toHaveBeenCalledWith(
+      'https://github.com/runner4_dev',
+      '_blank',
+      'noopener,noreferrer'
+    );
 
-    // Restore original getElementById
-    document.getElementById = originalGetElementById;
+    // Restore original window.open
+    window.open = originalOpen;
+  });
+
+  //since sorted array is passes to leaderboard
+  //would test that render order matches input order
+  it('renders contributors preserving the input order', () => {
+    render(<Leaderboard contributors={mockContributors} />);
+
+    // rank1
+    expect(screen.getByText('gold_dev')).toBeInTheDocument();
+    expect(screen.getByText('150')).toBeInTheDocument();
+
+    // rank2
+    expect(screen.getByText('silver_dev')).toBeInTheDocument();
+    expect(screen.getByText('120')).toBeInTheDocument();
+
+    // list entries preserve order
+    const rank4 = screen.getByText('#4');
+    const rank5 = screen.getByText('#5');
+    expect(rank4).toBeInTheDocument();
+    expect(rank5).toBeInTheDocument();
+
+    // #4 appears before #5 in the DOM
+    expect(rank4.compareDocumentPosition(rank5) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('renders nothing in podium and list when contributors array is empty', () => {
+    render(<Leaderboard contributors={[]} />);
+
+    expect(screen.queryByText('gold_dev')).not.toBeInTheDocument();
+    expect(screen.queryByText('silver_dev')).not.toBeInTheDocument();
+    expect(screen.queryByText('bronze_dev')).not.toBeInTheDocument();
+    expect(screen.queryByText('#4')).not.toBeInTheDocument();
+    expect(screen.queryByText('#5')).not.toBeInTheDocument();
+  });
+
+  it('renders crown icons for top 3 podium positions', () => {
+    const { container } = render(<Leaderboard contributors={mockContributors} />);
+
+    const crowns = container.querySelectorAll('svg');
+    // there should be crown SVGs present for rank 1, 2, 3
+    expect(crowns.length).toBeGreaterThanOrEqual(3);
   });
 });

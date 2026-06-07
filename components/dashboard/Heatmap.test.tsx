@@ -34,14 +34,29 @@ describe('Heatmap', () => {
   // Create a strongly typed empty array to fix the `data={[]}` red lines
   const emptyData: ActivityData[] = [];
 
-  // Helper to generate properly typed mock data
+  // Helper to generate properly typed mock data using valid consecutive dates
   const generateMockData = (days: number): ActivityData[] => {
-    return Array.from({ length: days }, (_, i) => ({
-      date: `2024-01-${(i % 28) + 1}`,
-      count: 5,
-      intensity: 2,
-    }));
+    const start = new Date('2024-01-01T00:00:00Z');
+
+    return Array.from({ length: days }, (_, i) => {
+      const date = new Date(start);
+      date.setUTCDate(start.getUTCDate() + i);
+
+      return {
+        date: date.toISOString().slice(0, 10),
+        count: 5,
+        intensity: 2,
+      };
+    });
   };
+
+  it('renders all provided historical entries as grid cells', () => {
+    const mockData = generateMockData(28);
+
+    render(<Heatmap data={mockData} />);
+
+    expect(screen.getAllByRole('gridcell')).toHaveLength(mockData.length);
+  });
 
   it("renders 'Contribution Heatmap' heading", () => {
     render(<Heatmap data={emptyData} />);
@@ -64,6 +79,10 @@ describe('Heatmap', () => {
   });
 
   it('renders without crashing with 365 days of data', () => {
-    expect(() => render(<Heatmap data={generateMockData(365)} />)).not.toThrow();
+    const data = generateMockData(365);
+
+    render(<Heatmap data={data} />);
+
+    expect(screen.getAllByRole('gridcell')).toHaveLength(data.length);
   });
 });

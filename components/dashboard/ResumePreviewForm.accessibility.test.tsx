@@ -12,6 +12,13 @@ vi.mock('framer-motion', () => ({
   },
 }));
 
+vi.mock('sonner', () => ({
+  toast: {
+    error: vi.fn(),
+    success: vi.fn(),
+  },
+}));
+
 const parsed = {
   name: 'John Doe',
   email: 'john@example.com',
@@ -36,7 +43,6 @@ describe('ResumePreviewForm - Accessibility compliance', () => {
       />
     );
 
-    // Form inputs should have associated visible text labels
     expect(screen.getByText('Full Name')).toBeInTheDocument();
     expect(screen.getByText('Email')).toBeInTheDocument();
     expect(screen.getByText('Skills')).toBeInTheDocument();
@@ -72,8 +78,46 @@ describe('ResumePreviewForm - Accessibility compliance', () => {
       />
     );
 
-    // Initially not disabled
     const saveButton = screen.getByRole('button', { name: /Save Profile/i });
     expect(saveButton).not.toBeDisabled();
+  });
+
+  it('renders heading with correct text for screen reader document navigation', () => {
+    render(
+      <ResumePreviewForm
+        githubUsername="john"
+        parsed={parsed}
+        fileName="resume.pdf"
+        onBack={onBack}
+        onComplete={onComplete}
+      />
+    );
+
+    // h3 heading must be present and readable by screen readers
+    const heading = screen.getByRole('heading', { level: 3 });
+    expect(heading).toBeInTheDocument();
+    expect(heading.textContent).toContain('Review Parsed Data');
+  });
+
+  it('has keyboard focusable Back and Save Profile buttons for keyboard navigation', () => {
+    render(
+      <ResumePreviewForm
+        githubUsername="john"
+        parsed={parsed}
+        fileName="resume.pdf"
+        onBack={onBack}
+        onComplete={onComplete}
+      />
+    );
+
+    const backButton = screen.getByRole('button', { name: /back/i });
+    const saveButton = screen.getByRole('button', { name: /save profile/i });
+
+    // Both buttons must be keyboard focusable
+    backButton.focus();
+    expect(document.activeElement).toBe(backButton);
+
+    saveButton.focus();
+    expect(document.activeElement).toBe(saveButton);
   });
 });

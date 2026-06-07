@@ -29,6 +29,9 @@ export default function ProfileOptimizerModal({
 
   useEffect(() => {
     if (isOpen) {
+      // Safe: synchronous reset to initial state each time the modal opens.
+      // setLoadingState(0) and setIsGenerated(false) always run together and
+      // only in response to the isOpen prop changing — no async race possible.
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setLoadingState(0);
 
@@ -154,7 +157,7 @@ export default function ProfileOptimizerModal({
   if (!isOpen) return null;
 
   // Mocked Dynamic Data derived from userData
-  const overallScore = userData ? Math.min(100, 40 + (userData.profile.developerScore || 30)) : 72;
+  const overallScore = userData ? Math.min(100, 40 + (userData.profile?.developerScore || 30)) : 72;
   const grade =
     overallScore >= 90
       ? 'A+'

@@ -17,7 +17,7 @@ const generatePetals = (count: number) => {
   }));
 };
 
-interface Petal {
+export interface Petal {
   id: number;
   x: number;
   y: number;
@@ -33,6 +33,10 @@ export default function CherryBlossom() {
   const [petals] = useState<Petal[]>(() => generatePetals(25));
   const [mounted, setMounted] = useState(false);
 
+  // SSR hydration guard: the petal animations use framer-motion values derived
+  // from Math.random() at component initialisation time (via useState initialiser).
+  // Rendering them during SSR would cause a hydration mismatch, so the entire
+  // component returns null until this mount effect confirms we are on the client.
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);

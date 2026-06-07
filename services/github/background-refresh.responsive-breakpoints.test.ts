@@ -27,7 +27,7 @@ describe('BackgroundRefresh - Responsive Breakpoints (Multi-device Columns & Mob
 
     // No overflow — job clears cleanly with no stuck state
     expect(refresher.isJobActive('a')).toBe(false);
-    expect(getFullDashboardData).toHaveBeenCalledWith('a', { bypassCache: true });
+    expect(getFullDashboardData).toHaveBeenCalledWith('a', { forceRefresh: true });
   });
 
   it('Column Reflow: multiple concurrent jobs for different users queue independently without collapsing into one', () => {

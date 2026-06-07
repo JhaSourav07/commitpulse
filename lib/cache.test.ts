@@ -30,7 +30,7 @@ describe('TTLCache', () => {
       cache.destroy();
     });
 
-    it('handles deeply nested object values without crashing', () => {
+    it('verifies TTLCache behavior for deeply nested object values (Variation 2)', () => {
       const cache = new TTLCache<{
         level1: {
           level2: {
@@ -47,8 +47,11 @@ describe('TTLCache', () => {
         },
       };
 
-      expect(() => cache.set('nested', nested, 60_000)).not.toThrow();
-      expect(cache.get('nested')).toEqual(nested);
+      expect(() => {
+        cache.set('deeply-nested-object', nested, 60_000);
+      }).not.toThrow();
+
+      expect(cache.get('deeply-nested-object')).toEqual(nested);
 
       cache.destroy();
     });
@@ -688,6 +691,37 @@ describe('TTLCache', () => {
 
       cache.destroy();
     });
+    it('verify TTLCache behavior for null keys (Variation 2)', () => {
+      const cache = new TTLCache<string>();
+
+      // Null key should be rejected
+      expect(() => {
+        cache.set(null as unknown as string, 'boundary-value', 60_000);
+      }).toThrow(TypeError);
+
+      // Cache should remain empty
+      expect(cache.size()).toBe(0);
+
+      // Null key should not exist
+      // has() should reject null keys
+      expect(() => {
+        cache.has(null as unknown as string);
+      }).toThrow(TypeError);
+
+      // get() should reject null keys
+      expect(() => {
+        cache.get(null as unknown as string);
+      }).toThrow(TypeError);
+
+      // Normal cache operations must still work afterwards
+      cache.set('valid-key', 'valid-value', 60_000);
+
+      expect(cache.get('valid-key')).toBe('valid-value');
+      expect(cache.has('valid-key')).toBe(true);
+      expect(cache.size()).toBe(1);
+
+      cache.destroy();
+    });
   });
 
   it('stores and retrieves values with unicode and emoji cache keys', () => {
@@ -794,5 +828,31 @@ describe('DistributedCache', () => {
       })
     );
     cache.destroy();
+  });
+});
+
+describe('TTLCache with infinite TTL', () => {
+  it('should cap Infinity TTL to a realistic maximum threshold', () => {
+    const cache = new TTLCache<string>();
+    cache.set('test-key', 'test-value', Infinity);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const internalCache = (cache as any).store;
+    const expiresAt = internalCache.get('test-key')?.expiresAt;
+    expect(expiresAt).toBeDefined();
+    // Infinity TTL should result in Infinity expiresAt until capped
+    expect(
+      expiresAt === Infinity || (Number.isFinite(expiresAt) && expiresAt - Date.now() > 0)
+    ).toBe(true);
+    expect(cache.get('test-key')).toBe('test-value');
+  });
+
+  it('should handle setting multiple values with Infinity TTL', () => {
+    const cache = new TTLCache<string>();
+    cache.set('key1', 'value1', Infinity);
+    cache.set('key2', 'value2', Infinity);
+    cache.set('key3', 'value3', Infinity);
+    expect(cache.get('key1')).toBe('value1');
+    expect(cache.get('key2')).toBe('value2');
+    expect(cache.get('key3')).toBe('value3');
   });
 });

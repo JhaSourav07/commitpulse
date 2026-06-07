@@ -3,10 +3,12 @@ import { toast } from 'sonner';
 import type { ReactElement } from 'react';
 import type { ExportFormat } from '../types';
 import { getPlaceholderSnippet } from '../utils';
+import { Copy, Check } from 'lucide-react';
 
 const EXPORT_FORMATS: { value: ExportFormat; label: string }[] = [
   { value: 'markdown', label: 'Markdown' },
   { value: 'html', label: 'HTML' },
+  { value: 'tsx', label: 'React TSX' },
   { value: 'action', label: 'GitHub Action' },
 ];
 
@@ -31,15 +33,25 @@ export function ExportPanel({
 }): ReactElement {
   const activeSnippet = hasUsername ? snippet : getPlaceholderSnippet(format);
   const formatLabel =
-    format === 'markdown' ? 'Markdown' : format === 'action' ? 'GitHub Action' : 'HTML';
+    format === 'markdown'
+      ? 'Markdown'
+      : format === 'action'
+        ? 'GitHub Action'
+        : format === 'tsx'
+          ? 'React TSX'
+          : 'HTML';
   const copyButtonLabel = hasUsername
     ? format === 'action'
       ? 'Copy GitHub Action workflow to clipboard'
-      : `Copy ${formatLabel} export snippet to clipboard`
+      : format === 'tsx'
+        ? 'Copy React TSX component to clipboard'
+        : `Copy ${formatLabel} export snippet to clipboard`
     : `Add a GitHub username to enable copying the ${formatLabel} export snippet`;
 
   // Track async server download states
   const [isDownloading, setIsDownloading] = useState(false);
+  const [filePathCopied, setFilePathCopied] = useState(false);
+  const [markdownCopied, setMarkdownCopied] = useState(false);
 
   const handleDownloadBadge = async () => {
     if (!hasUsername || !snippet) return;
@@ -127,6 +139,86 @@ export function ExportPanel({
     }
   };
 
+  const handleDownloadPng = async () => {
+    if (!hasUsername || !snippet) return;
+
+    try {
+      setIsDownloading(true);
+
+      const urlMatch = snippet.match(/\((https?:\/\/[^)]+)\)/) || snippet.match(/src="([^"]+)"/);
+
+      let targetUrl = urlMatch ? urlMatch[1] : '';
+
+      if (!targetUrl) {
+        toast.error('Could not determine badge URL.');
+        return;
+      }
+
+      targetUrl = targetUrl.replace(/&amp;/g, '&');
+
+      if (targetUrl.includes('https://commitpulse.vercel.app')) {
+        targetUrl = targetUrl.replace('https://commitpulse.vercel.app', window.location.origin);
+      }
+
+      const response = await fetch(targetUrl);
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch SVG');
+      }
+
+      const svgText = await response.text();
+
+      const svgBlob = new Blob([svgText], {
+        type: 'image/svg+xml;charset=utf-8',
+      });
+
+      const svgUrl = URL.createObjectURL(svgBlob);
+
+      const img = new Image();
+
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+
+        canvas.width = img.width || 1200;
+        canvas.height = img.height || 630;
+
+        const ctx = canvas.getContext('2d');
+
+        if (!ctx) {
+          URL.revokeObjectURL(svgUrl);
+          return;
+        }
+
+        ctx.drawImage(img, 0, 0);
+
+        canvas.toBlob((blob) => {
+          if (!blob) return;
+
+          const pngUrl = URL.createObjectURL(blob);
+
+          const link = document.createElement('a');
+          link.href = pngUrl;
+          link.download = `commitpulse-${username || 'badge'}.png`;
+
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+
+          URL.revokeObjectURL(pngUrl);
+        }, 'image/png');
+
+        URL.revokeObjectURL(svgUrl);
+      };
+
+      img.src = svgUrl;
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to download PNG badge.');
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
   return (
     <div className="bg-white/70 backdrop-blur-xl border border-black/10 dark:bg-black/35 dark:border-white/10 rounded-[1.75rem] p-6 shadow-[0_20px_60px_rgba(0,0,0,0.15)]">
       <div className="flex flex-col gap-4 mb-5 md:flex-row md:items-center md:justify-between">
@@ -141,7 +233,7 @@ export function ExportPanel({
 
         <div className="flex flex-wrap items-center gap-3">
           <div
-            className="inline-flex rounded-xl border border-black/10 bg-white/60 backdrop-blur-md dark:border-white/10 dark:bg-white/[0.03] p-1"
+            className="flex flex-wrap sm:flex-nowrap rounded-xl border border-black/10 bg-white/60 backdrop-blur-md dark:border-white/10 dark:bg-white/[0.03] p-1"
             aria-label="Export format"
           >
             {EXPORT_FORMATS.map((option) => (
@@ -204,7 +296,20 @@ export function ExportPanel({
               ? 'Download Not Available'
               : isDownloading
                 ? 'Downloading...'
-                : 'Download Badge'}
+                : 'Download SVG'}
+          </button>
+
+          <button
+            type="button"
+            onClick={handleDownloadPng}
+            disabled={!hasUsername || isDownloading || format === 'action'}
+            className={`relative inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 ${
+              !hasUsername || isDownloading || format === 'action'
+                ? 'bg-gray-200/90 border border-black/10 text-gray-500 cursor-not-allowed dark:bg-white/10 dark:border-white/10 dark:text-white/35'
+                : 'bg-blue-500/10 border border-blue-500/30 text-blue-500 hover:bg-blue-500/20 hover:scale-[1.03] active:scale-[0.97]'
+            }`}
+          >
+            Download PNG
           </button>
 
           {/* Clipboard Copy Button */}
@@ -283,11 +388,43 @@ export function ExportPanel({
           <>
             <p>
               <strong>Step 1:</strong> Save the workflow snippet above as{' '}
-              <code className="text-gray-700 dark:text-white/75">
-                .github/workflows/commitpulse.yml
-              </code>{' '}
-              to automatically fetch and commit your customized badge.
             </p>
+            <div className="mt-2 bg-gray-100/80 dark:bg-white/[0.03] border border-black/10 dark:border-white/10 rounded-lg px-3 py-2 flex items-center justify-between group">
+              <code className="text-emerald-600 dark:text-emerald-300 font-mono select-all">
+                .github/workflows/commitpulse.yml
+              </code>
+
+              <button
+                type="button"
+                onClick={async () => {
+                  await navigator.clipboard.writeText('.github/workflows/commitpulse.yml');
+
+                  if ('vibrate' in navigator) {
+                    navigator.vibrate(30);
+                  }
+
+                  setFilePathCopied(true);
+
+                  setTimeout(() => {
+                    setFilePathCopied(false);
+                  }, 1000);
+                }}
+                className={`transition-all duration-200 ${
+                  filePathCopied
+                    ? 'text-emerald-500 scale-110'
+                    : 'text-gray-400 hover:text-emerald-500'
+                }`}
+                title="Copy Step 2 markdown"
+                aria-label="Copy Step 2 markdown snippet"
+              >
+                {filePathCopied ? (
+                  <Check className="h-3.5 w-3.5" />
+                ) : (
+                  <Copy className="h-3.5 w-3.5" />
+                )}
+              </button>
+            </div>
+            <p>to automatically fetch and commit your customized badge.</p>
             <p>
               <strong>Step 2:</strong> Embed the generated SVG into your{' '}
               <code className="text-gray-700 dark:text-white/75">README.md</code> using the markdown
@@ -297,14 +434,63 @@ export function ExportPanel({
               <code className="text-emerald-600 dark:text-emerald-300 font-mono select-all">
                 ![CommitPulse](commitpulse.svg)
               </code>
+
+              <button
+                type="button"
+                onClick={async () => {
+                  await navigator.clipboard.writeText('![CommitPulse](commitpulse.svg)');
+
+                  if ('vibrate' in navigator) {
+                    navigator.vibrate(30);
+                  }
+
+                  setMarkdownCopied(true);
+
+                  setTimeout(() => {
+                    setMarkdownCopied(false);
+                  }, 1000);
+                }}
+                className={`transition-all duration-200 ${
+                  markdownCopied
+                    ? 'text-emerald-500 scale-110'
+                    : 'text-gray-400 hover:text-emerald-500'
+                }`}
+                title="Copy Step 2 markdown"
+                aria-label="Copy Step 2 markdown snippet"
+              >
+                {markdownCopied ? (
+                  <Check className="h-3.5 w-3.5" />
+                ) : (
+                  <Copy className="h-3.5 w-3.5" />
+                )}
+              </button>
+            </div>
+          </>
+        ) : format === 'tsx' ? (
+          <>
+            <p>
+              <strong>Step 1:</strong> Save the component code above as a file, e.g.{' '}
+              <code className="text-gray-700 dark:text-white/75">CommitPulse.tsx</code> in your
+              React project.
+            </p>
+            <p>
+              <strong>Step 2:</strong> Import and render the component natively in your JSX/TSX
+              layout:
+            </p>
+            <div className="mt-2 bg-gray-100/80 dark:bg-white/[0.03] border border-black/10 dark:border-white/10 rounded-lg px-3 py-2 flex items-center justify-between group">
+              <code className="text-emerald-600 dark:text-emerald-300 font-mono select-all">
+                {`<CommitPulse username="${username || 'your-github-username'}" theme="dark" />`}
+              </code>
               <button
                 type="button"
                 onClick={() => {
-                  navigator.clipboard.writeText('![CommitPulse](commitpulse.svg)');
+                  navigator.clipboard.writeText(
+                    `<CommitPulse username="${username || 'your-github-username'}" theme="dark" />`
+                  );
                 }}
                 className="text-gray-400 hover:text-emerald-500 transition-colors"
-                title="Copy Step 2 markdown"
-                aria-label="Copy Step 2 markdown snippet"
+                title="Copy usage snippet"
+                aria-label="Copy component usage snippet"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"

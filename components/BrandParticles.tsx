@@ -42,6 +42,11 @@ export default function BrandParticles() {
   const [particles] = useState<Particle[]>(() => generateParticles(40));
   const [mounted, setMounted] = useState(false);
   const shouldReduceMotion = useReducedMotion();
+  // SSR hydration guard: particle positions and colours are derived from
+  // Math.random() at initialisation (via useState initialiser). Rendering on
+  // the server would produce values that differ from the client, causing a
+  // hydration mismatch. The component returns null until this effect confirms
+  // we are running in the browser.
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);

@@ -5,7 +5,7 @@ import { Upload, FileText, X, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { ParsedResume, ResumeUploadResponse } from '@/types/student';
 
-interface ResumeUploadProps {
+export interface ResumeUploadProps {
   onParsed: (data: ParsedResume, fileName: string) => void;
   onError: (error: string) => void;
 }
@@ -13,7 +13,6 @@ interface ResumeUploadProps {
 const ALLOWED_TYPES = [
   'application/pdf',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  'application/msword',
 ];
 
 const MAX_SIZE = 5 * 1024 * 1024;
@@ -115,7 +114,7 @@ export default function ResumeUpload({ onParsed, onError }: ResumeUploadProps) {
         <input
           ref={inputRef}
           type="file"
-          accept=".pdf,.docx,.doc"
+          accept=".pdf,.docx"
           onChange={handleFileSelect}
           className="hidden"
           aria-label="Upload resume"

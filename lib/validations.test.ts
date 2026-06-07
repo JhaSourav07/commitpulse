@@ -3,6 +3,8 @@ import {
   githubParamsSchema,
   ogParamsSchema,
   streakParamsSchema,
+  toGraceValue,
+  toOpacityValue,
   validateGitHubUsername,
 } from './validations';
 
@@ -50,6 +52,58 @@ describe('streakParamsSchema — grace fallback behavior', () => {
 
   it('defaults to 1 when grace is empty string', () => {
     expect(parse({ grace: '' }).grace).toBe(1);
+  });
+});
+
+describe('grace parameter — missed-day forgiveness (not timezone)', () => {
+  it('grace=0 passes schema validation — strict mode', () => {
+    const result = streakParamsSchema.safeParse({ user: 'chetan', grace: '0' });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.grace).toBe(0);
+  });
+
+  it('grace=1 passes schema validation — default lenient mode', () => {
+    const result = streakParamsSchema.safeParse({ user: 'chetan', grace: '1' });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.grace).toBe(1);
+  });
+
+  it('grace=2 passes schema validation — two-day forgiveness mode', () => {
+    const result = streakParamsSchema.safeParse({ user: 'chetan', grace: '2' });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.grace).toBe(2);
+  });
+
+  it('grace defaults to 1 when omitted — one missed day forgiven by default', () => {
+    const result = streakParamsSchema.safeParse({ user: 'chetan' });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.grace).toBe(1);
+  });
+
+  it('grace=7 is the maximum accepted value', () => {
+    const result = streakParamsSchema.safeParse({ user: 'chetan', grace: '7' });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.grace).toBe(7);
+  });
+
+  it('grace=8 is rejected as it exceeds the maximum limit of 7', () => {
+    const result = streakParamsSchema.safeParse({ user: 'chetan', grace: '8' });
+    expect(result.success).toBe(false);
+  });
+
+  it('grace is independent of tz param — both can coexist', () => {
+    // Verifies that grace (missed days) and tz (timezone) are separate concerns
+    // A user can set both independently: ?grace=2&tz=Asia/Kolkata
+    const result = streakParamsSchema.safeParse({
+      user: 'chetan',
+      grace: '2',
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.grace).toBe(2);
+      // tz is parsed separately in route.ts — not in schema
+      // this test documents that grace schema parsing is timezone-unaware
+    }
   });
 });
 
@@ -873,6 +927,25 @@ describe('streakParamsSchema — boolean transform fields', () => {
       expect(parse({}).glow).toBe(true);
     });
   });
+
+  // ── dim_weekends ───────────────────────────────────────────────────────────
+  describe('dim_weekends', () => {
+    it('returns true when dim_weekends="true"', () => {
+      expect(parse({ dim_weekends: 'true' }).dim_weekends).toBe(true);
+    });
+
+    it('returns true when dim_weekends="1"', () => {
+      expect(parse({ dim_weekends: '1' }).dim_weekends).toBe(true);
+    });
+
+    it('returns false when dim_weekends="false"', () => {
+      expect(parse({ dim_weekends: 'false' }).dim_weekends).toBe(false);
+    });
+
+    it('returns false when dim_weekends is omitted', () => {
+      expect(parse({}).dim_weekends).toBe(false);
+    });
+  });
 });
 
 describe('streakParamsSchema — org parameter validation', () => {
@@ -1024,6 +1097,10 @@ describe('streakParamsSchema — view fallback behavior', () => {
 
   it('accepts "monthly" as a valid view value', () => {
     expect(parse({ view: 'monthly' }).view).toBe('monthly');
+  });
+
+  it('accepts "languages" as a valid view value', () => {
+    expect(parse({ view: 'languages' }).view).toBe('languages');
   });
 
   it('falls back to "default" for unknown view value', () => {
@@ -1391,5 +1468,132 @@ describe('streakParamsSchema — layout query validation boundaries (Variation 4
     if (result.success) {
       expect(result.data.layout).toBeUndefined();
     }
+  });
+});
+
+/* ==========================================================================
+ * DATE PARAMETER — QUERY VALIDATION BOUNDARIES (VARIATION 2)
+ * ========================================================================== */
+
+describe('streakParamsSchema — date query validation boundaries (Variation 2)', () => {
+  it('rejects the invalid date "2026-15-40" and returns an error containing \'Invalid "date" format\'', () => {
+    // Arrange: month 15 and day 40 are both out of range — clearly not ISO 8601
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      date: '2026-15-40',
+    });
+
+    // Assert: schema must reject malformed date
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const messages = result.error.issues.map((i) => i.message).join(' ');
+      expect(messages).toContain('Invalid "date" format');
+    }
+  });
+
+  it('accepts a well-formed ISO 8601 date like "2026-05-30"', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      date: '2026-05-30',
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects a date with invalid month (month 13)', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      date: '2026-13-01',
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const messages = result.error.issues.map((i) => i.message).join(' ');
+      expect(messages).toContain('Invalid "date" format');
+    }
+  });
+
+  it('rejects a freeform text string instead of a date', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      date: 'not-a-date',
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const flat = result.error.flatten().fieldErrors;
+      expect(flat.date).toBeDefined();
+    }
+  });
+});
+
+describe('toGraceValue — parseFloat standardization', () => {
+  it('returns default 1 when val is undefined', () => {
+    expect(toGraceValue(undefined)).toBe(1);
+  });
+
+  it('returns default 1 when val is empty string', () => {
+    expect(toGraceValue('')).toBe(1);
+  });
+
+  it('parses integer string correctly', () => {
+    expect(toGraceValue('2')).toBe(2);
+  });
+
+  it('parses float string and truncates to float (grace=1.7 → 1.7, clamped range 0-7)', () => {
+    expect(toGraceValue('1.7')).toBe(1.7);
+  });
+
+  it('clamps value below 0 to 0', () => {
+    expect(toGraceValue('-1')).toBe(0);
+  });
+
+  it('clamps value above 7 to 7', () => {
+    expect(toGraceValue('10')).toBe(7);
+  });
+
+  it('returns default 1 for non-numeric string "abc"', () => {
+    expect(toGraceValue('abc')).toBe(1);
+  });
+
+  it('parseFloat behavior: "2abc" parses as 2 (not NaN like Number would return)', () => {
+    expect(toGraceValue('2abc')).toBe(2);
+  });
+
+  it('returns 0 for grace=0 (strict mode)', () => {
+    expect(toGraceValue('0')).toBe(0);
+  });
+
+  it('returns 7 for grace=7 (maximum)', () => {
+    expect(toGraceValue('7')).toBe(7);
+  });
+});
+
+describe('toGraceValue and toOpacityValue — consistent parseFloat behavior', () => {
+  it('both return their default for undefined input', () => {
+    expect(toGraceValue(undefined)).toBe(1);
+    expect(toOpacityValue(undefined)).toBe(1.0);
+  });
+
+  it('both return their default for empty string input', () => {
+    expect(toGraceValue('')).toBe(1);
+    expect(toOpacityValue('')).toBe(1.0);
+  });
+
+  it('both return their default for non-numeric input', () => {
+    expect(toGraceValue('abc')).toBe(1);
+    expect(toOpacityValue('abc')).toBe(1.0);
+  });
+
+  it('both parse partial numeric strings via parseFloat — not NaN', () => {
+    expect(toGraceValue('2abc')).toBe(2);
+    expect(toOpacityValue('0.5abc')).toBe(0.5);
+  });
+
+  it('both clamp out-of-range values — no raw passthrough', () => {
+    expect(toGraceValue('100')).toBe(7);
+    expect(toOpacityValue('100')).toBe(1.0);
+    expect(toGraceValue('-5')).toBe(0);
+    expect(toOpacityValue('-5')).toBe(0.1);
   });
 });

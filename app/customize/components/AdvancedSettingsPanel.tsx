@@ -160,7 +160,7 @@ export function AdvancedSettingsPanel({
                 const val = e.currentTarget.valueAsNumber;
                 onBadgeWidthChange(Number.isNaN(val) ? '' : val);
               }}
-              className="w-full bg-white/60 backdrop-blur-md border border-black/10 dark:bg-black/40 dark:border-white/10 rounded-xl px-3 py-2 text-sm font-mono text-black dark:text-emerald-300 placeholder:text-gray-400 dark:placeholder:text-white/20 outline-none focus:border-emerald-500/50 transition-colors"
+              className="w-full min-w-0 bg-white/60 backdrop-blur-md border border-black/10 dark:bg-black/40 dark:border-white/10 rounded-xl px-3 py-2 text-sm font-mono text-black dark:text-emerald-300 placeholder:text-gray-400 dark:placeholder:text-white/20 outline-none focus:border-emerald-500/50 transition-colors"
             />
           </ControlRow>
           <ControlRow label="Height">
@@ -174,7 +174,7 @@ export function AdvancedSettingsPanel({
                 const val = e.currentTarget.valueAsNumber;
                 onBadgeHeightChange(Number.isNaN(val) ? '' : val);
               }}
-              className="w-full bg-white/60 backdrop-blur-md border border-black/10 dark:bg-black/40 dark:border-white/10 rounded-xl px-3 py-2 text-sm font-mono text-black dark:text-emerald-300 placeholder:text-gray-400 dark:placeholder:text-white/20 outline-none focus:border-emerald-500/50 transition-colors"
+              className="w-full min-w-0 bg-white/60 backdrop-blur-md border border-black/10 dark:bg-black/40 dark:border-white/10 rounded-xl px-3 py-2 text-sm font-mono text-black dark:text-emerald-300 placeholder:text-gray-400 dark:placeholder:text-white/20 outline-none focus:border-emerald-500/50 transition-colors"
             />
           </ControlRow>
         </div>
