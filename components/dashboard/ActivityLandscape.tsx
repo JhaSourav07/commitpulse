@@ -10,6 +10,7 @@ import {
   getActivityInsight,
   getContributionLabel,
 } from './tooltipUtils';
+import { useTranslation } from '@/context/TranslationContext';
 
 const tabs = ['1W', '1M', '3M', '1Y'];
 
@@ -70,6 +71,7 @@ export default function ActivityLandscape({ data }: { data: ActivityData[] }) {
   const [activeTab, setActiveTab] = useState('3M');
   const [mode, setMode] = useState<'commits' | 'loc'>('commits');
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
+  const { t } = useTranslation();
 
   const displayData = getFilteredData(data, activeTab);
 
@@ -88,17 +90,28 @@ export default function ActivityLandscape({ data }: { data: ActivityData[] }) {
         day.startDate && day.startDate !== day.date
           ? formatTooltipRange(day.startDate, day.date)
           : formatTooltipDate(day.date),
-      metric: mode === 'loc' ? `${value} lines modified` : getContributionLabel(day.count),
+      metric:
+        mode === 'loc'
+          ? t('dashboard.activity.lines_modified', {
+              count: value.toString(),
+              defaultValue: `${value} lines modified`,
+            })
+          : getContributionLabel(day.count, t),
       insight:
         mode === 'loc'
           ? value > 0
-            ? 'Code activity recorded'
-            : 'No code changes recorded'
+            ? t('dashboard.heatmap.code_activity', { defaultValue: 'Code activity recorded' })
+            : t('dashboard.heatmap.no_code_changes', { defaultValue: 'No code changes recorded' })
           : isRange
             ? day.count === 0
-              ? 'No activity in this range'
-              : `Total across ${day.days} days`
-            : getActivityInsight(day.count, day.intensity),
+              ? t('dashboard.activity.no_activity_range', {
+                  defaultValue: 'No activity in this range',
+                })
+              : t('dashboard.activity.range_total', {
+                  days: (day.days || 0).toString(),
+                  defaultValue: `Total across ${day.days || 0} days`,
+                })
+            : getActivityInsight(day.count, day.intensity, t),
       x: rect.left + rect.width / 2,
       y: rect.top - 10,
     });
@@ -118,10 +131,12 @@ export default function ActivityLandscape({ data }: { data: ActivityData[] }) {
         <div className="mb-8 flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
           <div>
             <h2 className="flex items-center gap-2 text-base font-semibold tracking-tight text-gray-900 dark:text-white">
-              Activity Landscape
+              {t('dashboard.activity.title')}
             </h2>
             <p className="mt-1 text-xs text-[#A1A1AA]">
-              {mode === 'loc' ? 'Lines of code modified over time' : 'Commit frequency over time'}
+              {mode === 'loc'
+                ? t('dashboard.activity.loc_desc')
+                : t('dashboard.activity.commits_desc')}
             </p>
           </div>
 
@@ -136,7 +151,7 @@ export default function ActivityLandscape({ data }: { data: ActivityData[] }) {
                     : 'text-gray-500 hover:text-black dark:hover:text-white'
                 }`}
               >
-                Commits
+                {t('dashboard.activity.commits')}
               </button>
               <button
                 onClick={() => setMode('loc')}
@@ -146,7 +161,7 @@ export default function ActivityLandscape({ data }: { data: ActivityData[] }) {
                     : 'text-gray-500 hover:text-black dark:hover:text-white'
                 }`}
               >
-                Lines of Code
+                {t('dashboard.activity.loc')}
               </button>
             </div>
 
@@ -188,11 +203,23 @@ export default function ActivityLandscape({ data }: { data: ActivityData[] }) {
                 key={`${day.date}-${i}`}
                 className="group/bar relative flex h-full flex-1 cursor-pointer items-end outline-none"
                 aria-label={`${
-                  mode === 'loc' ? `${val} lines modified` : getContributionLabel(day.count)
+                  mode === 'loc'
+                    ? t('dashboard.activity.lines_modified', {
+                        count: val.toString(),
+                        defaultValue: `${val} lines modified`,
+                      })
+                    : getContributionLabel(day.count, t)
                 } ${
                   day.startDate && day.startDate !== day.date
-                    ? `from ${formatTooltipDate(day.startDate)} to ${formatTooltipDate(day.date)}`
-                    : `on ${formatTooltipDate(day.date)}`
+                    ? t('dashboard.activity.aria_range', {
+                        start: formatTooltipDate(day.startDate),
+                        end: formatTooltipDate(day.date),
+                        defaultValue: `from ${formatTooltipDate(day.startDate)} to ${formatTooltipDate(day.date)}`,
+                      })
+                    : t('dashboard.activity.aria_single', {
+                        date: formatTooltipDate(day.date),
+                        defaultValue: `on ${formatTooltipDate(day.date)}`,
+                      })
                 }`}
                 tabIndex={0}
                 onMouseEnter={(e) => showTooltip(e, day, val)}
