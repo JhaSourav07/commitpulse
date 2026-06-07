@@ -198,6 +198,7 @@ describe('calculateStreak', () => {
     const result = calculateStreak(calendar);
     expect(result.totalContributions).toBe(1);
     expect(result.longestStreak).toBe(1);
+    expect(result.currentStreak).toBe(1);
   });
 
   it('does not walk past the start of a 1-day calendar when grace is larger than the available days', () => {
