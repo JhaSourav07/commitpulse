@@ -3,6 +3,8 @@ import {
   githubParamsSchema,
   ogParamsSchema,
   streakParamsSchema,
+  toGraceValue,
+  toOpacityValue,
   validateGitHubUsername,
 } from './validations';
 
@@ -1451,5 +1453,76 @@ describe('streakParamsSchema — date query validation boundaries (Variation 2)'
       const flat = result.error.flatten().fieldErrors;
       expect(flat.date).toBeDefined();
     }
+  });
+});
+
+describe('toGraceValue — parseFloat standardization', () => {
+  it('returns default 1 when val is undefined', () => {
+    expect(toGraceValue(undefined)).toBe(1);
+  });
+
+  it('returns default 1 when val is empty string', () => {
+    expect(toGraceValue('')).toBe(1);
+  });
+
+  it('parses integer string correctly', () => {
+    expect(toGraceValue('2')).toBe(2);
+  });
+
+  it('parses float string and truncates to float (grace=1.7 → 1.7, clamped range 0-7)', () => {
+    expect(toGraceValue('1.7')).toBe(1.7);
+  });
+
+  it('clamps value below 0 to 0', () => {
+    expect(toGraceValue('-1')).toBe(0);
+  });
+
+  it('clamps value above 7 to 7', () => {
+    expect(toGraceValue('10')).toBe(7);
+  });
+
+  it('returns default 1 for non-numeric string "abc"', () => {
+    expect(toGraceValue('abc')).toBe(1);
+  });
+
+  it('parseFloat behavior: "2abc" parses as 2 (not NaN like Number would return)', () => {
+    expect(toGraceValue('2abc')).toBe(2);
+  });
+
+  it('returns 0 for grace=0 (strict mode)', () => {
+    expect(toGraceValue('0')).toBe(0);
+  });
+
+  it('returns 7 for grace=7 (maximum)', () => {
+    expect(toGraceValue('7')).toBe(7);
+  });
+});
+
+describe('toGraceValue and toOpacityValue — consistent parseFloat behavior', () => {
+  it('both return their default for undefined input', () => {
+    expect(toGraceValue(undefined)).toBe(1);
+    expect(toOpacityValue(undefined)).toBe(1.0);
+  });
+
+  it('both return their default for empty string input', () => {
+    expect(toGraceValue('')).toBe(1);
+    expect(toOpacityValue('')).toBe(1.0);
+  });
+
+  it('both return their default for non-numeric input', () => {
+    expect(toGraceValue('abc')).toBe(1);
+    expect(toOpacityValue('abc')).toBe(1.0);
+  });
+
+  it('both parse partial numeric strings via parseFloat — not NaN', () => {
+    expect(toGraceValue('2abc')).toBe(2);
+    expect(toOpacityValue('0.5abc')).toBe(0.5);
+  });
+
+  it('both clamp out-of-range values — no raw passthrough', () => {
+    expect(toGraceValue('100')).toBe(7);
+    expect(toOpacityValue('100')).toBe(1.0);
+    expect(toGraceValue('-5')).toBe(0);
+    expect(toOpacityValue('-5')).toBe(0.1);
   });
 });

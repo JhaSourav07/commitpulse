@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Menu, X, Activity, Moon, Sun } from 'lucide-react';
 import { useGlowEffect } from '@/hooks/useGlowEffect';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useThemeToggle } from './theme-switch';
 
 function GithubMark() {
@@ -43,6 +44,8 @@ const NAV_LINKS = [
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
+
+  useKeyboardShortcuts();
 
   const { shellRef, shellVars, handleMouseEnter, handleMouseMove, handleMouseLeave } =
     useGlowEffect();
@@ -161,6 +164,7 @@ export default function Navbar() {
                 onClick={toggleTheme}
                 className="group inline-flex h-10 w-10 items-center justify-center rounded-xl text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2 dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-white dark:focus-visible:ring-gray-400 dark:focus-visible:ring-offset-[#0a0a0a]"
                 aria-label="Toggle theme"
+                suppressHydrationWarning
               >
                 {mounted ? (
                   isDark ? (

@@ -14,13 +14,9 @@ import {
   generatePulseSVG,
   generateLanguagesSVG,
 } from '@/lib/svg/generator';
+import { generateConstellationSVG } from '@/lib/svg/constellation';
 import { getSecondsUntilUTCMidnight, getSecondsUntilMidnightInTimezone } from '@/utils/time';
-import type {
-  BadgeParams,
-  ContributionCalendar,
-  RepoContribution,
-  ExtendedContributionData,
-} from '@/types';
+import type { BadgeParams, RepoContribution, ExtendedContributionData } from '@/types';
 import { themes } from '@/lib/svg/themes';
 import { streakParamsSchema } from '@/lib/validations';
 import { sanitizeHexColor, sanitizeRadius } from '@/lib/svg/sanitizer';
@@ -111,7 +107,13 @@ export async function GET(request: Request) {
       badges,
       entrance,
     } = parseResult.data;
-    const normalizedView = view as 'default' | 'monthly' | 'heatmap' | 'pulse' | 'languages';
+    const normalizedView = view as
+      | 'default'
+      | 'monthly'
+      | 'heatmap'
+      | 'pulse'
+      | 'languages'
+      | 'constellation';
     const themeName = theme || 'dark';
 
     // Treat either ?refresh=true or ?bypassCache=true as a cache-bypass request
@@ -207,7 +209,7 @@ export async function GET(request: Request) {
       accent: isAutoTheme ? selectedTheme.accent : accent || selectedTheme.accent,
       border: sanitizedBorder,
       radius,
-      speed: speed && /^(?:[2-9]|1\d|20)s$/.test(speed) ? speed : '8s',
+      speed,
       scale,
       font,
       autoTheme: isAutoTheme,
@@ -426,6 +428,9 @@ export async function GET(request: Request) {
       // even though the sparkline generator will extract its own daily 30-day timeline below.
       const stats = calculateStreak(calendar, timezone, undefined, grace);
       svg = generatePulseSVG(stats, params, calendar);
+    } else if (normalizedView === 'constellation') {
+      const stats = calculateStreak(calendar, timezone, undefined, grace);
+      svg = generateConstellationSVG(stats, params, calendar);
     } else if (versus && versusCalendar) {
       const stats1 = calculateStreak(calendar, timezone, undefined, grace);
       const stats2 = calculateStreak(versusCalendar, timezone, undefined, grace);

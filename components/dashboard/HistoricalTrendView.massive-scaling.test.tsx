@@ -75,7 +75,7 @@ describe('HistoricalTrendView — Massive Scaling Stability', () => {
 
     expect(screen.getByText(/Contributions/i)).toBeInTheDocument();
     expect(screen.getByText(/Active Days/i)).toBeInTheDocument();
-    expect(screen.getByText(/Current Streak/i)).toBeInTheDocument();
+    expect(screen.getByText(/Based on the selected activity window/i)).toBeInTheDocument();
     expect(screen.getByText(/Longest Streak/i)).toBeInTheDocument();
   });
 

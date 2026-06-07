@@ -1,7 +1,7 @@
 import { describe, it, expectTypeOf } from 'vitest';
 import type React from 'react';
 import type { ActivityData } from '@/types/dashboard';
-import ActivityLandscape, { getFilteredData } from './ActivityLandscape';
+import ActivityLandscape, { getFilteredData, type ActivityBar } from './ActivityLandscape';
 
 type ActivityLandscapeProps = React.ComponentProps<typeof ActivityLandscape>;
 
@@ -23,8 +23,8 @@ describe('ActivityLandscape Type Compiler Validation', () => {
     expectTypeOf<ActivityData['locDeletions']>().toEqualTypeOf<number | undefined>();
   });
 
-  it('getFilteredData returns ActivityData array', () => {
-    expectTypeOf<ReturnType<typeof getFilteredData>>().toEqualTypeOf<ActivityData[]>();
+  it('getFilteredData returns ActivityBar array (a day or an aggregated bucket span)', () => {
+    expectTypeOf<ReturnType<typeof getFilteredData>>().toEqualTypeOf<ActivityBar[]>();
   });
 
   it('exports ActivityLandscape as a React component type', () => {

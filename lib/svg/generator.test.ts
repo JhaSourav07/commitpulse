@@ -1707,59 +1707,182 @@ describe('Radar Scan Line Animation Alignment', () => {
     expect(renderedTitle?.trim()).toBe(shortUsername.toUpperCase());
     expect(renderedTitle).not.toContain('...');
   });
+});
 
-  describe('glow parameter', () => {
-    const mockStats: StreakStats = {
-      currentStreak: 5,
-      longestStreak: 10,
-      totalContributions: 100,
-      todayDate: '2024-06-12',
+describe('[Refactor] computeDeltaText — static vs auto-theme monthly consistency', () => {
+  const baseStats: MonthlyStats = {
+    currentMonthTotal: 42,
+    previousMonthTotal: 30,
+    deltaPercentage: 40,
+    deltaAbsolute: 12,
+    currentMonthName: 'June',
+  };
+
+  const negativeStats: MonthlyStats = {
+    currentMonthTotal: 18,
+    previousMonthTotal: 30,
+    deltaPercentage: -40,
+    deltaAbsolute: -12,
+    currentMonthName: 'June',
+  };
+
+  const nullPercentageStats: MonthlyStats = {
+    currentMonthTotal: 10,
+    previousMonthTotal: 0,
+    deltaPercentage: null,
+    deltaAbsolute: 10,
+    currentMonthName: 'June',
+  };
+
+  it('static and auto-theme produce identical deltaText for delta_format=absolute', () => {
+    const staticSvg = generateMonthlySVG(baseStats, {
+      user: 'chetan',
+      delta_format: 'absolute',
+    } as unknown as BadgeParams);
+    const autoSvg = generateMonthlySVG(baseStats, {
+      user: 'chetan',
+      delta_format: 'absolute',
+      autoTheme: true,
+    } as unknown as BadgeParams);
+
+    expect(staticSvg).toContain('+12 commits');
+    expect(autoSvg).toContain('+12 commits');
+  });
+
+  it('static and auto-theme produce identical deltaText for delta_format=both', () => {
+    const staticSvg = generateMonthlySVG(baseStats, {
+      user: 'chetan',
+      delta_format: 'both',
+    } as unknown as BadgeParams);
+    const autoSvg = generateMonthlySVG(baseStats, {
+      user: 'chetan',
+      delta_format: 'both',
+      autoTheme: true,
+    } as unknown as BadgeParams);
+
+    expect(staticSvg).toContain('+40% (+12)');
+    expect(autoSvg).toContain('+40% (+12)');
+  });
+
+  it('static and auto-theme produce identical deltaText for delta_format=percent', () => {
+    const staticSvg = generateMonthlySVG(baseStats, {
+      user: 'chetan',
+      delta_format: 'percent',
+    } as unknown as BadgeParams);
+    const autoSvg = generateMonthlySVG(baseStats, {
+      user: 'chetan',
+      delta_format: 'percent',
+      autoTheme: true,
+    } as unknown as BadgeParams);
+
+    expect(staticSvg).toContain('+40%');
+    expect(autoSvg).toContain('+40%');
+  });
+
+  it('static and auto-theme both show N/A when deltaPercentage is null', () => {
+    const staticSvg = generateMonthlySVG(nullPercentageStats, {
+      user: 'chetan',
+      delta_format: 'percent',
+    } as unknown as BadgeParams);
+    const autoSvg = generateMonthlySVG(nullPercentageStats, {
+      user: 'chetan',
+      delta_format: 'percent',
+      autoTheme: true,
+    } as unknown as BadgeParams);
+
+    expect(staticSvg).toContain('N/A');
+    expect(autoSvg).toContain('N/A');
+  });
+
+  it('static and auto-theme both show negative delta correctly', () => {
+    const staticSvg = generateMonthlySVG(negativeStats, {
+      user: 'chetan',
+      delta_format: 'absolute',
+    } as unknown as BadgeParams);
+    const autoSvg = generateMonthlySVG(negativeStats, {
+      user: 'chetan',
+      delta_format: 'absolute',
+      autoTheme: true,
+    } as unknown as BadgeParams);
+
+    expect(staticSvg).toContain('-12 commits');
+    expect(autoSvg).toContain('-12 commits');
+  });
+
+  it('zero delta shows 0 commits for absolute format in both variants', () => {
+    const zeroStats: MonthlyStats = {
+      currentMonthTotal: 30,
+      previousMonthTotal: 30,
+      deltaPercentage: 0,
+      deltaAbsolute: 0,
+      currentMonthName: 'June',
     };
-    const mockCalendar = {
-      weeks: [
-        {
-          contributionDays: [
-            { contributionCount: 0, date: '2024-06-10' },
-            { contributionCount: 5, date: '2024-06-11' },
-            { contributionCount: 15, date: '2024-06-12' },
-          ],
-        },
-      ],
-    } as ContributionCalendar;
+    const staticSvg = generateMonthlySVG(zeroStats, {
+      user: 'chetan',
+      delta_format: 'absolute',
+    } as unknown as BadgeParams);
+    const autoSvg = generateMonthlySVG(zeroStats, {
+      user: 'chetan',
+      delta_format: 'absolute',
+      autoTheme: true,
+    } as unknown as BadgeParams);
 
-    it('renders glow filter and attributes by default', () => {
-      const svg = generateSVG(mockStats, { user: 'avi' } as unknown as BadgeParams, mockCalendar);
-      expect(svg).toContain('<filter id="glow"');
-      expect(svg).toContain('filter="url(#glow)"');
-    });
+    expect(staticSvg).toContain('0 commits');
+    expect(autoSvg).toContain('0 commits');
+  });
+});
 
-    it('omits glow filter and attributes when glow=false is requested', () => {
-      const svg = generateSVG(
-        mockStats,
-        { user: 'avi', glow: false } as unknown as BadgeParams,
-        mockCalendar
-      );
-      expect(svg).not.toContain('<filter id="glow"');
-      expect(svg).not.toContain('filter="url(#glow)"');
-    });
+describe('glow parameter', () => {
+  const mockStats: StreakStats = {
+    currentStreak: 5,
+    longestStreak: 10,
+    totalContributions: 100,
+    todayDate: '2024-06-12',
+  };
+  const mockCalendar = {
+    weeks: [
+      {
+        contributionDays: [
+          { contributionCount: 0, date: '2024-06-10' },
+          { contributionCount: 5, date: '2024-06-11' },
+          { contributionCount: 15, date: '2024-06-12' },
+        ],
+      },
+    ],
+  } as ContributionCalendar;
 
-    it('omits heatmap glow filter and cell filter attributes when glow=false is requested in heatmap', () => {
-      const svgWithGlow = generateHeatmapSVG(
-        mockStats,
-        { user: 'avi', view: 'heatmap' } as unknown as BadgeParams,
-        mockCalendar
-      );
-      expect(svgWithGlow).toContain('<filter id="hm-glow"');
-      expect(svgWithGlow).toContain('filter="url(#hm-glow)"');
+  it('renders glow filter and attributes by default', () => {
+    const svg = generateSVG(mockStats, { user: 'avi' } as unknown as BadgeParams, mockCalendar);
+    expect(svg).toContain('<filter id="glow"');
+    expect(svg).toContain('filter="url(#glow)"');
+  });
 
-      const svgNoGlow = generateHeatmapSVG(
-        mockStats,
-        { user: 'avi', view: 'heatmap', glow: false } as unknown as BadgeParams,
-        mockCalendar
-      );
-      expect(svgNoGlow).not.toContain('<filter id="hm-glow"');
-      expect(svgNoGlow).not.toContain('filter="url(#hm-glow)"');
-    });
+  it('omits glow filter and attributes when glow=false is requested', () => {
+    const svg = generateSVG(
+      mockStats,
+      { user: 'avi', glow: false } as unknown as BadgeParams,
+      mockCalendar
+    );
+    expect(svg).not.toContain('<filter id="glow"');
+    expect(svg).not.toContain('filter="url(#glow)"');
+  });
+
+  it('omits heatmap glow filter and cell filter attributes when glow=false is requested in heatmap', () => {
+    const svgWithGlow = generateHeatmapSVG(
+      mockStats,
+      { user: 'avi', view: 'heatmap' } as unknown as BadgeParams,
+      mockCalendar
+    );
+    expect(svgWithGlow).toContain('<filter id="hm-glow"');
+    expect(svgWithGlow).toContain('filter="url(#hm-glow)"');
+
+    const svgNoGlow = generateHeatmapSVG(
+      mockStats,
+      { user: 'avi', view: 'heatmap', glow: false } as unknown as BadgeParams,
+      mockCalendar
+    );
+    expect(svgNoGlow).not.toContain('<filter id="hm-glow"');
+    expect(svgNoGlow).not.toContain('filter="url(#hm-glow)"');
   });
 });
 describe('deterministicRandom', () => {

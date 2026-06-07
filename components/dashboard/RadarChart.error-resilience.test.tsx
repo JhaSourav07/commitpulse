@@ -193,10 +193,8 @@ describe('RadarChart - Error Resilience & Exception Safety', () => {
     expect(screen.getByText('Empty User A')).toBeInTheDocument();
     expect(screen.getByText('Empty User B')).toBeInTheDocument();
 
-    // Verify SVG structure is rendered correctly
-    const svg = container.querySelector('svg');
-    expect(svg).toBeInTheDocument();
-    expect(svg).toHaveAttribute('width', '320');
-    expect(svg).toHaveAttribute('height', '300');
+    // With no language data the empty state is shown instead of an invented radar
+    expect(container.querySelector('svg')).toBeNull();
+    expect(screen.getByText('No language data to compare yet')).toBeInTheDocument();
   });
 });

@@ -269,7 +269,7 @@ export function aggregateCalendars(calendars: ContributionCalendar[]): Contribut
 
   missingDays.sort((a, b) => a.date.localeCompare(b.date));
   for (const day of missingDays) {
-    aggregatedBase.weeks.unshift({
+    aggregatedBase.weeks.push({
       contributionDays: [day],
     });
   }

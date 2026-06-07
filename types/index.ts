@@ -87,6 +87,8 @@ export interface ContributionCalendar {
  */
 export interface RepoContribution {
   repository: {
+    name: string;
+    nameWithOwner?: string;
     primaryLanguage: { name: string } | null;
   };
   contributions: { totalCount: number };
@@ -207,8 +209,8 @@ export interface BadgeParams {
   /** Language/locale code for stat labels (e.g. 'en', 'fr', 'ja'). Defaults to 'en'. */
   lang?: string;
 
-  /** Badge layout variant. 'default' shows the isometric monolith; 'monthly' shows month-over-month stats; 'heatmap' shows a flat 2D contribution heatmap; 'pulse' shows a heartbeat sparkline; 'languages' shows a 3D isometric city of top programming languages. */
-  view?: 'default' | 'monthly' | 'heatmap' | 'pulse' | 'languages';
+  /** Badge layout variant. 'default' shows the isometric monolith; 'monthly' shows month-over-month stats; 'heatmap' shows a flat 2D contribution heatmap; 'pulse' shows a heartbeat sparkline; 'languages' shows a 3D isometric city of top programming languages; 'constellation' shows a celestial star-map SVG visualization. */
+  view?: 'default' | 'monthly' | 'heatmap' | 'pulse' | 'languages' | 'constellation';
 
   /** Format for the monthly delta indicator. 'percent' shows %, 'absolute' shows raw count, 'both' shows both. */
   delta_format?: 'percent' | 'absolute' | 'both';
