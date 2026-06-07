@@ -1,4 +1,4 @@
-﻿/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { CustomizeCTA } from './CustomizeCTA';
@@ -302,6 +302,39 @@ describe('CustomizeCTA', () => {
       const contentClass = contentArea?.getAttribute('class') || '';
       expect(contentClass).toMatch(/text-center/);
       expect(contentClass).toMatch(/md:text-left/);
+    });
+    describe('additional responsive rendering and elements coverage', () => {
+      it('should render the CTA section and verify key elements', () => {
+        render(<CustomizeCTA />);
+
+        // Verify heading text
+        expect(
+          screen.getByRole('heading', { name: /Want to fine-tune your monolith\?/i })
+        ).toBeTruthy();
+
+        // Verify that the link is present and correctly routes to '/customize'
+        const ctaLink = screen.getByRole('link', { name: /Open Customization Studio/i });
+        expect(ctaLink).toBeTruthy();
+        expect(ctaLink.getAttribute('href')).toBe('/customize');
+        expect(ctaLink.getAttribute('id')).toBe('open-customization-studio-cta');
+      });
+
+      it('should render the CTA button with correct screen reader attributes and responsive paddings', () => {
+        const { container } = render(<CustomizeCTA />);
+
+        const ctaSpan = screen.getByText(/Open Customization Studio/i);
+        expect(ctaSpan).toBeTruthy();
+
+        const link = screen.getByRole('link', { name: /Open Customization Studio/i });
+        const button = link.querySelector('span');
+        expect(button?.className).toContain('px-4');
+        expect(button?.className).toContain('md:px-7'); // Responsive padding
+
+        // Verify decorative elements are hidden from screen readers
+        // In our component, the shimmer span and SVG have aria-hidden="true"
+        const hiddenElements = container.querySelectorAll('[aria-hidden="true"]');
+        expect(hiddenElements.length).toBeGreaterThan(0);
+      });
     });
   });
 });

@@ -312,7 +312,7 @@ export default function InteractiveViewer({
     <div
       ref={containerRef}
       tabIndex={0}
-      className={`relative overflow-hidden touch-none cursor-grab active:cursor-grabbing select-none focus:outline-none ${className}`}
+      className={`relative overflow-hidden touch-none cursor-grab active:cursor-grabbing select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${className}`}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}

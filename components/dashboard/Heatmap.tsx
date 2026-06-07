@@ -87,6 +87,7 @@ export default function Heatmap({
   return (
     <>
       <motion.div
+        data-testid="heatmap-card"
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
@@ -94,13 +95,18 @@ export default function Heatmap({
         className="rounded-xl border border-black/10 bg-white p-6 dark:border-[rgba(255,255,255,0.08)] dark:bg-[#0a0a0a]"
       >
         {/* Header */}
-        <h3 className="my-1 text-sm font-semibold tracking-tight text-gray-900 dark:text-white">
+        <h3
+          data-testid="heatmap-heading"
+          className="my-1 text-sm font-semibold tracking-tight text-gray-900 dark:text-white"
+        >
           {title}
         </h3>
 
         <div className="mb-4 flex items-end justify-between">
           <div>
-            <p className="mt-0.5 text-xs text-[#A1A1AA]">{subtitle}</p>
+            <p data-testid="heatmap-subtitle" className="mt-0.5 text-xs text-[#A1A1AA]">
+              {subtitle}
+            </p>
           </div>
 
           <div className="flex items-center gap-2 text-xs text-[#A1A1AA]">
@@ -159,7 +165,10 @@ export default function Heatmap({
             </div>
           </div>
         ) : (
-          <div className="flex h-[120px] items-center justify-center rounded-lg border border-dashed border-black/10 text-sm text-[#A1A1AA] dark:border-[rgba(255,255,255,0.08)]">
+          <div
+            data-testid="heatmap-empty-state"
+            className="flex h-[120px] items-center justify-center rounded-lg border border-dashed border-black/10 text-sm text-[#A1A1AA] dark:border-[rgba(255,255,255,0.08)]"
+          >
             {emptyMessage}
           </div>
         )}

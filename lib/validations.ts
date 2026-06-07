@@ -14,6 +14,11 @@ export function toBooleanFlag(val?: string): boolean {
   return val === 'true' || val === '1';
 }
 
+export function toGlowFlag(val?: string): boolean {
+  if (val === undefined) return true;
+  return val === 'true' || val === '1';
+}
+
 export function toRefreshFlag(val?: string): boolean {
   return val === 'true';
 }
@@ -130,6 +135,11 @@ const baseStreakParamsSchema = z.object({
         }
       }
     }),
+
+  label: z
+    .string()
+    .optional()
+    .transform((v) => v !== 'false'),
 
   theme: z
     .string()
@@ -264,13 +274,17 @@ const baseStreakParamsSchema = z.object({
       { message: 'Invalid "date" format. Use ISO 8601.' }
     ),
   refresh: z.string().optional().transform(toRefreshFlag),
+  bypassCache: z.string().optional().transform(toRefreshFlag),
   hide_title: z.string().optional().transform(toBooleanFlag),
   hide_background: z.string().optional().transform(toBooleanFlag),
   hide_stats: z.string().optional().transform(toBooleanFlag),
   lang: z.enum(supportedLanguages).catch('en').default('en'),
   tz: timeZoneParam,
   // Unknown view values fall back to the default dashboard view.
-  view: z.enum(['default', 'monthly', 'heatmap', 'pulse']).catch('default').default('default'),
+  view: z
+    .enum(['default', 'monthly', 'heatmap', 'pulse', 'languages'])
+    .catch('default')
+    .default('default'),
   // Invalid delta formats fall back to percentage mode.
   delta_format: z.enum(['percent', 'absolute', 'both']).catch('percent').default('percent'),
   width: dimensionParam('width', 100, 1200),
@@ -342,7 +356,7 @@ const baseStreakParamsSchema = z.object({
     .transform((val) => val === 'true' || val === '1'),
 
   // Glow effect — on by default. Accepts 'true'/'1' (true) or 'false' (false).
-  glow: z.string().optional().transform(toBooleanFlag).default(true),
+  glow: z.string().optional().transform(toGlowFlag).default(true),
   opacity: z.string().optional().transform(toOpacityValue),
   entrance: z.enum(['rise', 'fade', 'slide', 'none']).catch('rise').default('rise'),
   badges: z.string().optional().transform(toBooleanFlag).default(false),
@@ -383,6 +397,7 @@ export const githubParamsSchema = z.object({
       message: 'Invalid GitHub username',
     }),
   refresh: z.string().optional().transform(toRefreshFlag),
+  bypassCache: z.string().optional().transform(toRefreshFlag),
 });
 
 export const compareParamsSchema = z
@@ -438,6 +453,7 @@ export const ogParamsSchema = z
       .transform(toEmptyStringAsUndefined)
       .transform(toValidHexColor('000000')),
     refresh: z.string().optional().transform(toRefreshFlag),
+    bypassCache: z.string().optional().transform(toRefreshFlag),
   })
   .transform((data) => ({
     ...data,
@@ -453,6 +469,7 @@ export const statsParamsSchema = z.object({
       message: 'Invalid GitHub username',
     }),
   refresh: z.string().optional().transform(toRefreshFlag),
+  bypassCache: z.string().optional().transform(toRefreshFlag),
   tz: timeZoneParam,
 });
 
@@ -534,6 +551,7 @@ export const wrappedParamsSchema = z.object({
     .optional()
     .transform((val) => sanitizeFont(val) || undefined),
   refresh: z.string().optional().transform(toRefreshFlag),
+  bypassCache: z.string().optional().transform(toRefreshFlag),
   hide_title: z.string().optional().transform(toBooleanFlag),
   hide_background: z.string().optional().transform(toBooleanFlag), // ✅ Fixed: was toRefreshFlag
   width: dimensionParam('width', 100, 1200),

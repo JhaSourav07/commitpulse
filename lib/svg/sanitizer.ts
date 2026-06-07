@@ -112,7 +112,7 @@ export function sanitizeGoogleFontUrl(fontName: string | undefined | null): stri
   if (!cleaned) return null;
 
   // Return the encoded font name suitable for Google Fonts API URL (spaces replaced with '+')
-  return encodeURIComponent(cleaned).replace(/%20/g, '+');
+  return cleaned.replace(/\s+/g, '+');
 }
 
 export function getLuminance(hex: string): number {

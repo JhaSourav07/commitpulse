@@ -1,5 +1,6 @@
 'use client';
 
+import { fallbackCopyToClipboard } from '@/utils/clipboard';
 import { useCallback, useEffect, useRef, useState, Suspense, type ReactElement } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { validateGitHubUsername } from '@/lib/validations';
@@ -9,6 +10,7 @@ import { ControlsPanel } from './components/ControlsPanel';
 import { AdvancedSettingsPanel } from './components/AdvancedSettingsPanel';
 import { ExportPanel } from './components/ExportPanel';
 import InteractiveViewer from '@/components/InteractiveViewer';
+import { Footer } from '@/app/components/Footer';
 import DOMPurify from 'dompurify';
 import type {
   ExportFormat,
@@ -228,40 +230,40 @@ function CustomizePageInner(): ReactElement {
       })
       .then((text) => {
         if (!text) return;
+
+        // Ensure we strictly sanitize the raw SVG markup using DOMPurify,
+        // while preserving the necessary layout and structural attributes our SVG requires.
         const sanitized = DOMPurify.sanitize(text, {
           USE_PROFILES: { svg: true },
-          ADD_TAGS: ['animate', 'style'],
+          ADD_TAGS: ['filter', 'feGaussianBlur', 'feMerge', 'feMergeNode', 'feComposite'],
           ADD_ATTR: [
-            'fill',
-            'fill-opacity',
-            'stroke',
-            'stroke-width',
-            'stroke-opacity',
-            'x1',
-            'y1',
-            'x2',
-            'y2',
-            'stop-color',
-            'stop-opacity',
-            'offset',
+            'viewBox',
+            'd',
+            'width',
+            'height',
+            'rx',
+            'ry',
             'transform-origin',
             'transform-box',
-            'transform',
-            'attributeName',
-            'from',
-            'to',
-            'dur',
-            'repeatCount',
+            'animation-delay',
+            'xmlns',
+            'font-family',
+            'font-size',
+            'font-weight',
+            'fill-opacity',
+            'filter',
+            'stdDeviation',
+            'result',
+            'in',
+            'in2',
+            'operator',
+            'x',
+            'y',
             'id',
-            'class',
-            'href',
           ],
-          FORBID_TAGS: ['foreignObject', 'iframe', 'object', 'embed', 'script'],
-          FORBID_ATTR: ['xlink:href'],
-          ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto|data):|#)/i,
         });
 
-        setSvgContent(sanitized as string);
+        setSvgContent(sanitized);
         setSvgState('loaded');
         setErrorMessage(null);
       })
@@ -277,30 +279,6 @@ function CustomizePageInner(): ReactElement {
 
   const exportSnippet = getExportSnippet(exportFormat, queryString);
 
-  const fallbackCopyToClipboard = (text: string): boolean => {
-    try {
-      const textArea = document.createElement('textarea');
-
-      textArea.value = text;
-      textArea.style.position = 'fixed';
-      textArea.style.opacity = '0';
-      textArea.style.pointerEvents = 'none';
-
-      document.body.appendChild(textArea);
-
-      textArea.focus();
-      textArea.select();
-
-      const successful = document.execCommand('copy');
-
-      document.body.removeChild(textArea);
-
-      return successful;
-    } catch {
-      return false;
-    }
-  };
-
   const announceCopyStatus = useCallback((message: string): void => {
     setCopyStatusMessage('');
     window.setTimeout(() => {
@@ -313,7 +291,15 @@ function CustomizePageInner(): ReactElement {
 
     try {
       if (navigator.clipboard && window.isSecureContext) {
-        await navigator.clipboard.writeText(exportSnippet);
+        try {
+          await navigator.clipboard.writeText(exportSnippet);
+        } catch {
+          const copiedSuccessfully = fallbackCopyToClipboard(exportSnippet);
+
+          if (!copiedSuccessfully) {
+            throw new Error('Fallback clipboard copy failed.');
+          }
+        }
       } else {
         const copiedSuccessfully = fallbackCopyToClipboard(exportSnippet);
 
@@ -419,7 +405,7 @@ function CustomizePageInner(): ReactElement {
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="bg-white/70 backdrop-blur-xl border border-black/10 dark:bg-black/35 dark:border-white/10 rounded-[1.75rem] p-6 flex flex-col gap-6 sticky top-6 shadow-[0_20px_60px_rgba(0,0,0,0.35)]"
+            className="bg-white/70 backdrop-blur-xl border border-black/10 dark:bg-black/35 dark:border-white/10 rounded-[1.75rem] p-6 flex flex-col gap-6 sticky top-6 shadow-[0_20px_60px_rgba(0,0,0,0.35)] min-w-0"
           >
             <ControlsPanel
               username={username}
@@ -457,7 +443,7 @@ function CustomizePageInner(): ReactElement {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5, delay: 0.15 }}
-            className="flex flex-col gap-6"
+            className="flex flex-col gap-6 min-w-0"
           >
             {/* Live Preview */}
             <div className="bg-white/70 backdrop-blur-xl border border-black/10 dark:bg-black/35 dark:border-white/10 rounded-[1.75rem] p-6 shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
@@ -623,11 +609,11 @@ function CustomizePageInner(): ReactElement {
                     return (
                       <span
                         key={k}
-                        className="inline-flex items-center gap-1.5 bg-gray-100/80 backdrop-blur-md border border-black/10 dark:bg-white/[0.03] dark:border-white/10 rounded-lg px-3 py-1.5 text-xs font-mono"
+                        className="inline-flex items-center gap-1.5 bg-gray-100/80 backdrop-blur-md border border-black/10 dark:bg-white/[0.03] dark:border-white/10 rounded-lg px-3 py-1.5 text-xs font-mono break-all"
                       >
-                        <span className="text-purple-400">{decodeURIComponent(k)}</span>
-                        <span className="text-gray-400 dark:text-white/55">=</span>
-                        <span className="text-emerald-600 dark:text-emerald-400">
+                        <span className="text-purple-400 break-all">{decodeURIComponent(k)}</span>
+                        <span className="text-gray-400 dark:text-white/55 shrink-0">=</span>
+                        <span className="text-emerald-600 dark:text-emerald-400 break-all">
                           {decodeURIComponent(v)}
                         </span>
                       </span>
@@ -643,7 +629,7 @@ function CustomizePageInner(): ReactElement {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="bg-white/70 backdrop-blur-xl border border-black/10 dark:bg-black/35 dark:border-white/10 rounded-[1.75rem] p-6 flex flex-col gap-6 sticky top-6 shadow-[0_20px_60px_rgba(0,0,0,0.35)] xl:col-start-3"
+            className="bg-white/70 backdrop-blur-xl border border-black/10 dark:bg-black/35 dark:border-white/10 rounded-[1.75rem] p-6 flex flex-col gap-6 sticky top-6 shadow-[0_20px_60px_rgba(0,0,0,0.35)] xl:col-start-3 min-w-0"
           >
             <AdvancedSettingsPanel
               hideTitle={hideTitle}
@@ -670,6 +656,7 @@ function CustomizePageInner(): ReactElement {
           </motion.aside>
         </div>
       </div>
+      <Footer />
     </div>
   );
 }

@@ -40,6 +40,7 @@ export const VIEW_MODES = [
   { value: 'default', label: 'Default' },
   { value: 'monthly', label: 'Monthly' },
   { value: 'pulse', label: 'Heartbeat Pulse' },
+  { value: 'languages', label: 'Top Languages Skyline' },
 ] as const satisfies readonly { value: string; label: string }[];
 
 export type ViewMode = (typeof VIEW_MODES)[number]['value'];

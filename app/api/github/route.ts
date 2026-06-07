@@ -50,10 +50,12 @@ export async function GET(request: Request) {
     );
   }
 
-  const { username, refresh } = parseResult.data;
+  const { username, refresh, bypassCache: bypassCacheParam } = parseResult.data;
+  // Treat either ?refresh=true or ?bypassCache=true as a cache-bypass request
+  const isRefreshRequested = refresh || bypassCacheParam;
 
   // 1. Quota awareness check - if remaining quota is low, disable manual refresh
-  if (refresh && quotaMonitor.isQuotaLow()) {
+  if (isRefreshRequested && quotaMonitor.isQuotaLow()) {
     logSecurityEvent('LOW_QUOTA_REFRESH_BLOCKED', {
       username,
       ip,
@@ -66,7 +68,7 @@ export async function GET(request: Request) {
   }
 
   // 2. Separate Refresh Rate Limiter
-  if (refresh) {
+  if (isRefreshRequested) {
     const rateLimitCheck = refreshRateLimiter.checkLimit(ip);
     if (!rateLimitCheck.success) {
       logSecurityEvent('REFRESH_RATE_LIMIT_EXCEEDED', {
@@ -89,8 +91,8 @@ export async function GET(request: Request) {
   }
 
   // 3. Per-Username Refresh Cooldown
-  let shouldBypassCache = refresh;
-  if (refresh) {
+  let shouldBypassCache = isRefreshRequested;
+  if (isRefreshRequested) {
     if (!refreshPolicy.isRefreshAllowed(username)) {
       logSecurityEvent('REFRESH_COOLDOWN_VIOLATION', {
         username,
@@ -120,13 +122,16 @@ export async function GET(request: Request) {
       ? 'no-cache, no-store, must-revalidate'
       : 's-maxage=3600, stale-while-revalidate=86400';
 
+    const cacheStatus = shouldBypassCache ? 'MISS' : 'HIT';
+
     return NextResponse.json(data, {
       status: 200,
       headers: {
         'Cache-Control': cacheControl,
+        'X-Cache-Status': cacheStatus,
         'X-Refresh-Status': shouldBypassCache
           ? 'Fresh'
-          : refresh
+          : isRefreshRequested
             ? 'Cooldown-Served-Cached'
             : 'Cached',
       },

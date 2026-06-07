@@ -242,7 +242,7 @@ export default function HistoricalTrendView({
 
           <div className="rounded-xl border border-black/10 bg-gray-50 p-4 dark:border-[rgba(255,255,255,0.06)] dark:bg-[#111]">
             {streakSeries.length > 0 ? (
-              <svg viewBox="0 0 100 100" className="h-40 w-full">
+              <svg data-testid="streak-sparkline" viewBox="0 0 100 100" className="h-40 w-full">
                 <defs>
                   <linearGradient id="streak-gradient" x1="0" y1="0" x2="1" y2="0">
                     <stop offset="0%" stopColor="#10b981" />

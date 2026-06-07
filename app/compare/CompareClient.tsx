@@ -44,6 +44,8 @@ import {
   Camera,
 } from 'lucide-react';
 import html2canvas from 'html2canvas';
+import { validateGitHubUsername } from '@/lib/validations';
+import { toPng } from 'html-to-image';
 
 /* ── types ────────────────────────────────────────────────────────────── */
 
@@ -146,8 +148,7 @@ function StatBattle({
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
+      animate={{ opacity: 1, y: 0 }}
       className="p-5 rounded-xl bg-white dark:bg-[#0a0a0a] border border-black/10 dark:border-[rgba(255,255,255,0.08)] hover:border-black/20 dark:hover:border-[rgba(255,255,255,0.14)] transition-all duration-200"
     >
       <div className="flex items-center gap-2 mb-4">
@@ -326,12 +327,10 @@ function CompareProfileCard({ user, side }: { user: CompareUserData; side: 'left
 
         {/* Animated Developer Persona Badge */}
         <motion.div
-          initial={{ opacity: 0, y: 10, scale: 0.9 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
+          initial={{ opacity: 0, y: 5 }}
+          animate={{ opacity: 1, y: 0 }}
           transition={{
-            type: 'spring',
-            stiffness: 200,
-            damping: 15,
+            duration: 0.4,
             delay: side === 'left' ? 0.3 : 0.4,
           }}
           whileHover={{ scale: 1.05 }}
@@ -429,8 +428,7 @@ function LanguageComparison({
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
+      animate={{ opacity: 1, y: 0 }}
       className="p-6 rounded-xl bg-white dark:bg-[#0a0a0a] border border-black/10 dark:border-[rgba(255,255,255,0.08)]"
     >
       <h3 className="text-xs text-[#A1A1AA] uppercase tracking-widest font-medium mb-5">
@@ -555,8 +553,7 @@ function CodingHabitCard({
   return (
     <motion.div
       initial={{ opacity: 0, x: side === 'left' ? -20 : 20 }}
-      whileInView={{ opacity: 1, x: 0 }}
-      viewport={{ once: true }}
+      animate={{ opacity: 1, x: 0 }}
       whileHover={{ scale: 1.02 }}
       className={`relative overflow-hidden p-6 rounded-2xl border ${bgClass} ${glowClass} transition-all duration-300 flex flex-col items-center justify-center text-center h-full min-h-[140px]`}
     >
@@ -659,8 +656,7 @@ function CodeVolumeShowdown({ user1, user2 }: { user1: CompareUserData; user2: C
           <motion.div
             key={side}
             initial={{ opacity: 0, x: side === 'left' ? -20 : 20 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
+            animate={{ opacity: 1, x: 0 }}
             whileHover={{ scale: 1.01 }}
             className="relative overflow-hidden p-6 rounded-2xl bg-white dark:bg-[#0a0a0a] border border-black/10 dark:border-[rgba(255,255,255,0.08)] transition-all duration-300"
           >
@@ -676,7 +672,7 @@ function CodeVolumeShowdown({ user1, user2 }: { user1: CompareUserData; user2: C
                 </span>
                 <motion.span
                   initial={{ opacity: 0 }}
-                  whileInView={{ opacity: 1 }}
+                  animate={{ opacity: 1 }}
                   className="text-sm font-bold text-emerald-500"
                 >
                   +{loc.add.toLocaleString()}
@@ -685,8 +681,7 @@ function CodeVolumeShowdown({ user1, user2 }: { user1: CompareUserData; user2: C
               <div className="w-full h-3 bg-gray-100 dark:bg-[#111] rounded-full overflow-hidden border border-black/5 dark:border-[rgba(255,255,255,0.04)]">
                 <motion.div
                   initial={{ width: 0 }}
-                  whileInView={{ width: `${(loc.add / maxAdd) * 100}%` }}
-                  viewport={{ once: true }}
+                  animate={{ width: `${(loc.add / maxAdd) * 100}%` }}
                   transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
                   className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.3)]"
                 />
@@ -701,7 +696,7 @@ function CodeVolumeShowdown({ user1, user2 }: { user1: CompareUserData; user2: C
                 </span>
                 <motion.span
                   initial={{ opacity: 0 }}
-                  whileInView={{ opacity: 1 }}
+                  animate={{ opacity: 1 }}
                   className="text-sm font-bold text-rose-500"
                 >
                   -{loc.del.toLocaleString()}
@@ -710,8 +705,7 @@ function CodeVolumeShowdown({ user1, user2 }: { user1: CompareUserData; user2: C
               <div className="w-full h-3 bg-gray-100 dark:bg-[#111] rounded-full overflow-hidden border border-black/5 dark:border-[rgba(255,255,255,0.04)]">
                 <motion.div
                   initial={{ width: 0 }}
-                  whileInView={{ width: `${(loc.del / maxDel) * 100}%` }}
-                  viewport={{ once: true }}
+                  animate={{ width: `${(loc.del / maxDel) * 100}%` }}
                   transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1], delay: 0.4 }}
                   className="h-full rounded-full bg-gradient-to-r from-rose-500 to-rose-400 shadow-[0_0_10px_rgba(244,63,94,0.3)]"
                 />
@@ -725,8 +719,7 @@ function CodeVolumeShowdown({ user1, user2 }: { user1: CompareUserData; user2: C
               </span>
               <motion.span
                 initial={{ scale: 0 }}
-                whileInView={{ scale: 1 }}
-                viewport={{ once: true }}
+                animate={{ scale: 1 }}
                 transition={{ type: 'spring', stiffness: 300, damping: 20, delay: 0.6 }}
                 className={`text-lg font-black tracking-tight ${loc.net >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}
               >
@@ -818,8 +811,7 @@ function DeveloperSkillsRadar({
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
+      animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6 }}
     >
       <h2 className="text-xs text-[#A1A1AA] uppercase tracking-widest font-medium mb-4 flex items-center gap-2">
@@ -900,9 +892,12 @@ export default function CompareClient() {
   const [user1, setUser1] = useState(searchParams.get('user1') || '');
   const [user2, setUser2] = useState(searchParams.get('user2') || '');
   const [error, setError] = useState('');
+  const [user1Error, setUser1Error] = useState('');
+  const [user2Error, setUser2Error] = useState('');
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<CompareResponse | null>(null);
   const [isExporting, setIsExporting] = useState(false);
+  const [monolithKey, setMonolithKey] = useState(0);
 
   const captureRef = useRef<HTMLDivElement>(null);
 
@@ -914,16 +909,52 @@ export default function CompareClient() {
       // Small delay to allow export overlay/scanning UI to render first
       await new Promise((res) => setTimeout(res, 300));
 
-      const canvas = await html2canvas(captureRef.current, {
-        scale: 2, // higher resolution
+      // Pre-fetch every monolith SVG and convert to base64 data: URLs.
+      // This completely bypasses html-to-image's internal URL-keyed image cache
+      // (which persists across toPng() calls in the same browser session and
+      // caused stale images). Data URLs are self-contained strings — no network
+      // request is ever made for them by the library.
+      const monolithImgs = Array.from(
+        captureRef.current.querySelectorAll<HTMLImageElement>('[data-monolith-img]')
+      );
+      const originalSrcs = monolithImgs.map((img) => img.src);
+
+      await Promise.all(
+        monolithImgs.map(async (img) => {
+          try {
+            const freshUrl = img.src.replace(/&refresh=(true|false)/, '') + '&refresh=true';
+            const res = await fetch(freshUrl, { cache: 'no-store' });
+            const svgText = await res.text();
+            // Encode SVG text as a base64 data URL (handles unicode correctly)
+            const b64 = btoa(unescape(encodeURIComponent(svgText)));
+            img.src = `data:image/svg+xml;base64,${b64}`;
+          } catch {
+            // On fetch failure keep original src so export can still proceed
+          }
+        })
+      );
+
+      const image = await toPng(captureRef.current, {
+        pixelRatio: 2,
+        cacheBust: true,
+        fetchRequestInit: { cache: 'no-store' },
         backgroundColor: document.documentElement.classList.contains('dark')
           ? '#000000'
           : '#ffffff',
-        useCORS: true,
-        logging: false,
+        filter: (el) => {
+          if (el instanceof HTMLElement) {
+            if (el.id === 'compare-share-button') return false;
+            if (el.id === 'compare-export-overlay') return false;
+          }
+          return true;
+        },
       });
 
-      const image = canvas.toDataURL('image/png');
+      // Restore original src attributes so the page display is unaffected
+      monolithImgs.forEach((img, i) => {
+        img.src = originalSrcs[i];
+      });
+
       const link = document.createElement('a');
       link.href = image;
       link.download = `commitpulse-battle-${data.user1.profile.username}-vs-${data.user2.profile.username}.png`;
@@ -940,23 +971,47 @@ export default function CompareClient() {
 
   const handleCompare = useCallback(
     async (u1: string, u2: string) => {
-      if (!u1.trim() || !u2.trim()) {
+      const trimmedUser1 = u1.trim();
+      const trimmedUser2 = u2.trim();
+
+      setError('');
+      setUser1Error('');
+      setUser2Error('');
+
+      if (!trimmedUser1 || !trimmedUser2) {
         setError('Please enter both usernames.');
         return;
       }
+
+      let hasValidationError = false;
+
+      if (!validateGitHubUsername(trimmedUser1)) {
+        setUser1Error('Invalid GitHub username.');
+        hasValidationError = true;
+      }
+
+      if (!validateGitHubUsername(trimmedUser2)) {
+        setUser2Error('Invalid GitHub username.');
+        hasValidationError = true;
+      }
+
+      if (hasValidationError) {
+        return;
+      }
+
       setLoading(true);
-      setError('');
       setData(null);
 
-      // Update URL for shareability
-      router.replace(`/compare?user1=${encodeURIComponent(u1)}&user2=${encodeURIComponent(u2)}`, {
-        scroll: false,
-      });
+      router.replace(
+        `/compare?user1=${encodeURIComponent(trimmedUser1)}&user2=${encodeURIComponent(trimmedUser2)}`,
+        { scroll: false }
+      );
 
       try {
         const res = await fetch(
-          `/api/compare?user1=${encodeURIComponent(u1)}&user2=${encodeURIComponent(u2)}`
+          `/api/compare?user1=${encodeURIComponent(trimmedUser1)}&user2=${encodeURIComponent(trimmedUser2)}`
         );
+
         const json = await res.json();
 
         if (!res.ok) {
@@ -965,6 +1020,7 @@ export default function CompareClient() {
         }
 
         setData(json);
+        setMonolithKey((k) => k + 1);
       } catch {
         setError('Network error. Please try again.');
       } finally {
@@ -1060,10 +1116,17 @@ export default function CompareClient() {
                   placeholder="GitHub username #1"
                   aria-label="Enter first GitHub username to compare"
                   value={user1}
-                  onChange={(e) => setUser1(e.target.value)}
+                  onChange={(e) => {
+                    setUser1(e.target.value);
+                    setUser1Error('');
+                  }}
                   onKeyDown={(e) => e.key === 'Enter' && handleCompare(user1, user2)}
                   className="w-full pl-10 pr-4 py-3 rounded-xl border border-black/10 dark:border-[rgba(255,255,255,0.1)] bg-white dark:bg-[#0a0a0a] text-gray-900 dark:text-white text-sm placeholder:text-[#A1A1AA] focus:outline-none focus:border-emerald-500/50 transition-colors"
                 />
+
+                {user1Error && (
+                  <p className="absolute left-0 top-full mt-1 text-xs text-red-500">{user1Error}</p>
+                )}
               </div>
 
               <div className="flex items-center justify-center">
@@ -1081,10 +1144,17 @@ export default function CompareClient() {
                   placeholder="GitHub username #2"
                   aria-label="Enter second GitHub username to compare"
                   value={user2}
-                  onChange={(e) => setUser2(e.target.value)}
+                  onChange={(e) => {
+                    setUser2(e.target.value);
+                    setUser2Error('');
+                  }}
                   onKeyDown={(e) => e.key === 'Enter' && handleCompare(user1, user2)}
                   className="w-full pl-10 pr-4 py-3 rounded-xl border border-black/10 dark:border-[rgba(255,255,255,0.1)] bg-white dark:bg-[#0a0a0a] text-gray-900 dark:text-white text-sm placeholder:text-[#A1A1AA] focus:outline-none focus:border-emerald-500/50 transition-colors"
                 />
+
+                {user2Error && (
+                  <p className="absolute left-0 top-full mt-1 text-xs text-red-500">{user2Error}</p>
+                )}
               </div>
 
               <motion.button
@@ -1253,8 +1323,7 @@ export default function CompareClient() {
                       <motion.div
                         key={side}
                         initial={{ opacity: 0, y: 12 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        viewport={{ once: true }}
+                        animate={{ opacity: 1, y: 0 }}
                         className="p-5 rounded-xl bg-white dark:bg-[#0a0a0a] border border-black/10 dark:border-[rgba(255,255,255,0.08)]"
                       >
                         <h3 className="text-xs text-[#A1A1AA] uppercase tracking-widest font-medium mb-3">
@@ -1271,12 +1340,14 @@ export default function CompareClient() {
                       3D Monolith Comparison
                     </h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {[d1, d2].map((user) => (
+                      {[
+                        { user: d1, side: 'left' as const },
+                        { user: d2, side: 'right' as const },
+                      ].map(({ user, side }) => (
                         <motion.div
-                          key={user.profile.username}
+                          key={side}
                           initial={{ opacity: 0, y: 12 }}
-                          whileInView={{ opacity: 1, y: 0 }}
-                          viewport={{ once: true }}
+                          animate={{ opacity: 1, y: 0 }}
                           className="rounded-xl overflow-hidden border border-black/10 dark:border-[rgba(255,255,255,0.08)] bg-white dark:bg-[#0a0a0a]"
                         >
                           <div className="p-3 border-b border-black/5 dark:border-white/5">
@@ -1285,10 +1356,11 @@ export default function CompareClient() {
                             </span>
                           </div>
                           <img
-                            src={`${BASE_URL}/api/streak?user=${encodeURIComponent(user.profile.username)}&theme=neon`}
+                            data-monolith-img="true"
+                            key={`${user.profile.username}-${monolithKey}`}
+                            src={`${BASE_URL}/api/streak?user=${encodeURIComponent(user.profile.username)}&theme=neon&entrance=none&_k=${monolithKey}`}
                             alt={`${user.profile.username}'s CommitPulse monolith`}
                             className="w-full"
-                            loading="lazy"
                           />
                         </motion.div>
                       ))}
@@ -1298,6 +1370,7 @@ export default function CompareClient() {
 
                 {/* Floating Share Button */}
                 <motion.div
+                  id="compare-share-button"
                   initial={{ opacity: 0, y: 50 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ type: 'spring', bounce: 0.5, delay: 1 }}
@@ -1327,6 +1400,7 @@ export default function CompareClient() {
                 <AnimatePresence>
                   {isExporting && (
                     <motion.div
+                      id="compare-export-overlay"
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}

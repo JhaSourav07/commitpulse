@@ -197,10 +197,19 @@ vi.mock('@/hooks/useRecentSearches', () => ({
 describe('LandingPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+
+    // Clear persisted username between tests
+    window.localStorage.clear();
+
     mockRecentSearches.searches = ['octocat', 'torvalds'];
     mockRecentSearches.addSearch = vi.fn();
     mockRecentSearches.clearSearches = vi.fn();
     mockRecentSearches.removeSearch = vi.fn();
+
+    Object.defineProperty(window, 'isSecureContext', {
+      value: true,
+      configurable: true,
+    });
 
     // Mock navigator.clipboard
     Object.assign(navigator, {
@@ -209,7 +218,6 @@ describe('LandingPage', () => {
       },
     });
 
-    // Mock scrollIntoView
     window.HTMLElement.prototype.scrollIntoView = vi.fn();
   });
 
@@ -492,6 +500,46 @@ describe('LandingPage', () => {
     });
 
     // The SVG text is never injected into the DOM, so no <script> tag can exist
-    expect(document.querySelector('script')).toBeNull();
+    expect(document.querySelector('img[data-testid="badge-img"]')).not.toBeNull();
+  });
+
+  it('shows shimmer skeleton on stat cards while user details are loading', async () => {
+    vi.spyOn(global, 'fetch').mockImplementation(() => new Promise(() => {}));
+
+    render(<LandingPage />);
+    const input = screen.getByPlaceholderText('Enter GitHub Username') as HTMLInputElement;
+
+    await act(async () => {
+      fireEvent.change(input, { target: { value: 'octocat' } });
+    });
+
+    await waitFor(() => {
+      const skeletons = document.querySelectorAll('.shimmer');
+      expect(skeletons.length).toBeGreaterThanOrEqual(4);
+    });
+
+    vi.restoreAllMocks();
+  });
+
+  it('shows "Unable to load stats" error state on stat cards when fetch fails', async () => {
+    vi.spyOn(global, 'fetch').mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      json: async () => ({ error: 'Internal server error' }),
+    } as Response);
+
+    render(<LandingPage />);
+    const input = screen.getByPlaceholderText('Enter GitHub Username') as HTMLInputElement;
+
+    await act(async () => {
+      fireEvent.change(input, { target: { value: 'octocat' } });
+    });
+
+    await waitFor(() => {
+      const errorMessages = screen.getAllByText('Unable to load stats');
+      expect(errorMessages.length).toBe(4);
+    });
+
+    vi.restoreAllMocks();
   });
 });

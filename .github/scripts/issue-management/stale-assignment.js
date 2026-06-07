@@ -29,6 +29,7 @@ async function handleStaleAssignments({ github, context, core }) {
 
       if (timeSinceUpdate > TWO_DAYS_MS) {
         const currentAssignees = issue.assignees.map((a) => a.login);
+        if (currentAssignees.length === 0) continue;
 
         // Check if any open PRs reference this issue before unassigning
         const { data: searchResult } = await github.rest.search.issuesAndPullRequests({
@@ -46,24 +47,22 @@ async function handleStaleAssignments({ github, context, core }) {
           `Issue #${issue.number} has been inactive since ${issue.updated_at}. Removing assignees.`
         );
 
-        if (currentAssignees.length > 0) {
-          await github.rest.issues.removeAssignees({
-            owner,
-            repo,
-            issue_number: issue.number,
-            assignees: currentAssignees,
-          });
+        await github.rest.issues.removeAssignees({
+          owner,
+          repo,
+          issue_number: issue.number,
+          assignees: currentAssignees,
+        });
 
-          // 2. Post a comment
-          await github.rest.issues.createComment({
-            owner,
-            repo,
-            issue_number: issue.number,
-            body: `⚠️ Assignment automatically removed due to inactivity.\nFeel free to reclaim the issue if you want to continue working on it.`,
-          });
+        // 2. Post a comment
+        await github.rest.issues.createComment({
+          owner,
+          repo,
+          issue_number: issue.number,
+          body: `⚠️ Assignment automatically removed due to inactivity.\nFeel free to reclaim the issue if you want to continue working on it.`,
+        });
 
-          staleCount++;
-        }
+        staleCount++;
       }
     }
 

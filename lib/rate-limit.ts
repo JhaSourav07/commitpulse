@@ -141,6 +141,24 @@ export class RateLimiter {
    * rateLimiter.reset("192.168.1.1");
    */
   async reset(ip: string): Promise<void> {
+    const url = process.env.KV_REST_API_URL;
+    const token = process.env.KV_REST_API_TOKEN;
+
+    if (url && token) {
+      try {
+        await fetch(`${url}/pipeline`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify([['DEL', `ratelimit_class:${ip}`]]),
+        });
+      } catch (error) {
+        console.error('RateLimiter KV reset error:', error);
+      }
+    }
+
     await this.cache.delete(ip);
   }
 
@@ -266,10 +284,10 @@ export async function rateLimit(
     };
   }
 
-  tracker.count++;
-  await trackers.update(ip, tracker);
+  const newCount = tracker.count + 1;
+  await trackers.update(ip, { count: newCount, resetAt: tracker.resetAt });
 
-  if (tracker.count > limit) {
+  if (newCount > limit) {
     return {
       success: false,
       limit,
@@ -281,7 +299,15 @@ export async function rateLimit(
   return {
     success: true,
     limit,
-    remaining: limit - tracker.count,
+    remaining: limit - newCount,
     reset: tracker.resetAt,
+  };
+}
+
+export function getRateLimitHeaders(result: RateLimitResult) {
+  return {
+    'X-RateLimit-Limit': result.limit.toString(),
+    'X-RateLimit-Remaining': result.remaining.toString(),
+    'X-RateLimit-Reset': result.reset.toString(),
   };
 }

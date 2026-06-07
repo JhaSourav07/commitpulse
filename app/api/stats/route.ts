@@ -61,7 +61,9 @@ export async function GET(request: Request) {
     );
   }
 
-  const { user, refresh, tz } = parseResult.data;
+  const { user, refresh, bypassCache: bypassCacheParam, tz } = parseResult.data;
+  // Treat either ?refresh=true or ?bypassCache=true as a cache-bypass request
+  const isRefreshRequested = refresh || bypassCacheParam;
 
   let timezone: string;
   try {
@@ -72,7 +74,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: `Invalid "tz" parameter: "${tz}"` }, { status: 400 });
   }
 
-  if (refresh && quotaMonitor.isQuotaLow()) {
+  if (isRefreshRequested && quotaMonitor.isQuotaLow()) {
     logSecurityEvent('LOW_QUOTA_STATS_REFRESH_BLOCKED', {
       user,
       ip,
@@ -84,7 +86,7 @@ export async function GET(request: Request) {
     );
   }
 
-  if (refresh) {
+  if (isRefreshRequested) {
     const rateLimitCheck = refreshRateLimiter.checkLimit(ip);
     if (!rateLimitCheck.success) {
       logSecurityEvent('STATS_REFRESH_RATE_LIMIT_EXCEEDED', {
@@ -106,8 +108,8 @@ export async function GET(request: Request) {
     }
   }
 
-  let shouldBypassCache = refresh;
-  if (refresh) {
+  let shouldBypassCache = isRefreshRequested;
+  if (isRefreshRequested) {
     if (!refreshPolicy.isRefreshAllowed(user)) {
       logSecurityEvent('STATS_REFRESH_COOLDOWN_VIOLATION', {
         user,
@@ -134,9 +136,10 @@ export async function GET(request: Request) {
       headers.set('Pragma', 'no-cache');
       headers.set('Expires', '0');
     }
+    headers.set('X-Cache-Status', shouldBypassCache ? 'MISS' : 'HIT');
     headers.set(
       'X-Refresh-Status',
-      shouldBypassCache ? 'Fresh' : refresh ? 'Cooldown-Served-Cached' : 'Cached'
+      shouldBypassCache ? 'Fresh' : isRefreshRequested ? 'Cooldown-Served-Cached' : 'Cached'
     );
 
     return NextResponse.json(

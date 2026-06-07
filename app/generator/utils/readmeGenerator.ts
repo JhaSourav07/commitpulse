@@ -2,12 +2,25 @@ import { getTechById } from '../data/technologies';
 import { getSocialById } from '../data/socials';
 import type { GeneratorState } from '../types';
 
+const BADGE_BASE = 'https://commitpulse.vercel.app/api/streak';
+const DASHBOARD_BASE = 'https://commitpulse.vercel.app/dashboard';
+
 function diImg(iconUrl: string, name: string, size = 40): string {
   return `<img src="${iconUrl}" alt="${name}" width="${size}" height="${size}" title="${name}" />`;
 }
 
+function buildBadgeUrl(username: string, accentHex: string): string {
+  const params = new URLSearchParams({ user: username });
+  const cleaned = accentHex.replace(/^#/, '');
+  if (/^[0-9a-fA-F]{6}$/.test(cleaned)) {
+    params.set('accent', cleaned);
+  }
+  return `${BADGE_BASE}?${params.toString()}`;
+}
+
 export function generateReadme(state: GeneratorState): string {
   const sections: string[] = [];
+
   if (state.name) {
     const headerLines: string[] = ['<div align="center">', '', `# 👋 Hi, I'm ${state.name}`];
 
@@ -32,8 +45,9 @@ export function generateReadme(state: GeneratorState): string {
         if (!tech) return null;
 
         if (tech.type === 'simpleicon') {
-          const dark = `https://cdn.simpleicons.org/${id}/ffffff`;
-          const light = `https://cdn.simpleicons.org/${id}/000000`;
+          const slug = tech.iconUrl.split('/').pop() || id;
+          const dark = `https://cdn.simpleicons.org/${slug}/ffffff`;
+          const light = `https://cdn.simpleicons.org/${slug}/000000`;
           return [
             '<picture>',
             `  <source media="(prefers-color-scheme: dark)" srcset="${dark}" />`,
@@ -89,6 +103,25 @@ export function generateReadme(state: GeneratorState): string {
     socialLines.push('');
     socialLines.push('</div>');
     sections.push(socialLines.join('\n'));
+  }
+
+  if (state.showCommitPulse && state.githubUsername.trim()) {
+    const username = state.githubUsername.trim();
+    const badgeUrl = buildBadgeUrl(username, state.commitPulseAccent);
+    const dashboardUrl = `${DASHBOARD_BASE}/${username}`;
+    const altText = `CommitPulse Contribution Graph for ${username}`;
+
+    const commitPulseLines = [
+      '## 📊 GitHub Streak',
+      '',
+      '<div align="center">',
+      '',
+      `[![${altText}](${badgeUrl})](${dashboardUrl})`,
+      '',
+      '</div>',
+    ];
+
+    sections.push(commitPulseLines.join('\n'));
   }
 
   return sections.join('\n\n---\n\n');

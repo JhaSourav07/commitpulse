@@ -1,5 +1,35 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { rateLimit, RateLimiter } from './rate-limit';
+
+beforeEach(() => {
+  delete process.env.KV_REST_API_URL;
+  delete process.env.KV_REST_API_TOKEN;
+});
+
+afterEach(() => {
+  delete process.env.KV_REST_API_URL;
+  delete process.env.KV_REST_API_TOKEN;
+  vi.unstubAllGlobals();
+});
+
+function setupMockKV(result: unknown) {
+  process.env.KV_REST_API_URL = 'https://mock-redis.upstash.io';
+  process.env.KV_REST_API_TOKEN = 'mock-token';
+  const mockFetch = vi.fn();
+  if (result instanceof Error) {
+    mockFetch.mockRejectedValue(result);
+  } else if (result && typeof result === 'object' && 'ok' in result) {
+    mockFetch.mockResolvedValue(result as Response);
+  } else {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve(result),
+    } as Response);
+  }
+  vi.stubGlobal('fetch', mockFetch);
+  return mockFetch;
+}
 
 describe('rateLimit', () => {
   beforeEach(() => {
@@ -105,6 +135,46 @@ describe('rateLimit', () => {
     expect((await rateLimit(ip1, 60, 60000)).success).toBe(false);
     expect((await rateLimit(ip2, 60, 60000)).success).toBe(true);
   });
+
+  describe('Redis/KV integration', () => {
+    it('queries Redis/KV and returns success if count is within limit', async () => {
+      const mock = setupMockKV([{ result: 10 }]);
+      const res = await rateLimit('127.0.0.1', 60, 60000);
+      expect(res.success).toBe(true);
+      expect(res.remaining).toBe(50);
+      expect(mock).toHaveBeenCalledWith(
+        'https://mock-redis.upstash.io/pipeline',
+        expect.objectContaining({
+          method: 'POST',
+          headers: expect.objectContaining({ Authorization: 'Bearer mock-token' }),
+          body: expect.stringContaining('"ratelimit:127.0.0.1"'),
+        })
+      );
+    });
+
+    it('queries Redis/KV and returns false if count exceeds limit', async () => {
+      setupMockKV([{ result: 61 }]);
+      const res = await rateLimit('127.0.0.1', 60, 60000);
+      expect(res.success).toBe(false);
+      expect(res.remaining).toBe(0);
+    });
+
+    it('falls back to memory if fetch fails (non-ok response)', async () => {
+      setupMockKV({ ok: false, status: 500 });
+      const limit = 2;
+      expect((await rateLimit('9.9.9.1', limit, 60000)).success).toBe(true);
+      expect((await rateLimit('9.9.9.1', limit, 60000)).success).toBe(true);
+      expect((await rateLimit('9.9.9.1', limit, 60000)).success).toBe(false);
+    });
+
+    it('falls back to memory if fetch throws a network error', async () => {
+      setupMockKV(new Error('Network error'));
+      const limit = 2;
+      expect((await rateLimit('9.9.9.2', limit, 60000)).success).toBe(true);
+      expect((await rateLimit('9.9.9.2', limit, 60000)).success).toBe(true);
+      expect((await rateLimit('9.9.9.2', limit, 60000)).success).toBe(false);
+    });
+  });
 });
 
 it('keys expire exactly at the window limit with sliding time advances', async () => {
@@ -197,6 +267,17 @@ describe('RateLimiter', () => {
     expect(await limiter.check('5.5.5.5')).toBe(true);
   });
 
+  it('reset() clears the rate-limited counter for an IP', async () => {
+    const limiter = new RateLimiter(2, 60000);
+
+    await limiter.check('7.7.7.7');
+    await limiter.check('7.7.7.7');
+    expect(await limiter.check('7.7.7.7')).toBe(false); // blocked
+
+    await limiter.reset('7.7.7.7');
+    expect(await limiter.check('7.7.7.7')).toBe(true); // unblocked after reset
+  });
+
   it('does not reset the window TTL on each request (fixed window)', async () => {
     const windowMs = 60000;
     const limiter = new RateLimiter(5, windowMs);
@@ -237,5 +318,33 @@ describe('RateLimiter', () => {
     // And requests should be allowed again
     expect(await limiter.check(ip)).toBe(true);
     expect(await limiter.remaining(ip)).toBe(2);
+  });
+
+  it('reset() sends DEL via pipeline to KV using ratelimit_class:<ip> key', async () => {
+    // Verifies that when KV env vars are set, reset() uses the pipeline endpoint
+    // with the correct key prefix — matching the key used in checkWithResult().
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => [{ result: 1 }] });
+    vi.stubGlobal('fetch', fetchMock);
+
+    process.env.KV_REST_API_URL = 'https://fake-kv.example.com';
+    process.env.KV_REST_API_TOKEN = 'fake-token';
+
+    const limiter = new RateLimiter(3, 60000);
+    const ip = '8.8.8.8';
+
+    await limiter.reset(ip);
+
+    const resetCall = fetchMock.mock.calls.find(
+      (args: unknown[]) => typeof args[0] === 'string' && (args[0] as string).includes('/pipeline')
+    );
+    expect(resetCall).toBeTruthy();
+
+    const body = JSON.parse((resetCall![1] as { body: string }).body) as unknown[][];
+    expect(body).toEqual([['DEL', `ratelimit_class:${ip}`]]);
+
+    // Cleanup
+    delete process.env.KV_REST_API_URL;
+    delete process.env.KV_REST_API_TOKEN;
+    vi.unstubAllGlobals();
   });
 });

@@ -1428,6 +1428,29 @@ describe('getFullDashboardData', () => {
     );
   });
 
+  it('throws if the contributions fetch fails, instead of returning zeroed stats', async () => {
+    vi.mocked(fetch).mockImplementation(async (url: RequestInfo | URL) => {
+      if (typeof url === 'string' && url.includes('/users/octocat/repos')) return mockResponse([]);
+      if (typeof url === 'string' && url.includes('/users/octocat')) {
+        return mockResponse({
+          login: 'octocat',
+          name: 'The Octocat',
+          avatar_url: 'avatar.png',
+          public_repos: 1,
+          followers: 1,
+          following: 1,
+          created_at: '2020-01-01T00:00:00Z',
+        });
+      }
+      // GraphQL contributions call returns no user, so the contributions fetch fails fast.
+      return mockResponse({ data: { user: null } });
+    });
+
+    await expect(getFullDashboardData('octocat')).rejects.toThrow(
+      '[GitHub API] Failed to fetch contributions for user "octocat"'
+    );
+  });
+
   it('formats joinedDate as MMM YYYY', async () => {
     vi.mocked(fetch).mockImplementation(async (url: RequestInfo | URL) => {
       if (typeof url === 'string' && url.includes('/users/testuser/repos')) return mockResponse([]);
@@ -1633,15 +1656,82 @@ describe('GitHub API cache behavior', () => {
     expect(fetch).toHaveBeenCalledTimes(2);
   });
 
-  it('cache expiry: expired entry triggers a delta sync fetch', async () => {
+  it('cache expiry: refresh re-queries the full window with authoritative totals, no collapse or accumulation or partial overwrite', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-01-01T00:00:00.000Z'));
+
+    const buildResponse = (total: number, prs: number, issues: number, languages: string[]) =>
+      mockResponse({
+        data: {
+          user: {
+            contributionsCollection: {
+              totalPullRequestContributions: prs,
+              totalIssueContributions: issues,
+              contributionCalendar: {
+                totalContributions: total,
+                weeks: [
+                  {
+                    contributionDays: [
+                      { contributionCount: total, date: '2025-12-31', color: '#216e39' },
+                    ],
+                  },
+                ],
+              },
+              commitContributionsByRepository: languages.map((name) => ({
+                repository: { primaryLanguage: { name } },
+                contributions: { totalCount: total },
+              })),
+            },
+          },
+        },
+      });
+
+    // Full window (from undefined) returns authoritative annual data; a narrow window returns partial data.
+    vi.mocked(fetch).mockImplementation(async (_url, init) => {
+      const body = JSON.parse((init as RequestInit).body as string);
+      return body.variables.from === undefined
+        ? buildResponse(120, 12, 6, ['TypeScript', 'Go', 'Rust', 'Python'])
+        : buildResponse(5, 1, 2, ['TypeScript']);
+    });
+
+    const first = await fetchGitHubContributions('octocat');
+    expect(first.calendar.totalContributions).toBe(120);
+    expect(first.totalPRs).toBe(12);
+    expect(first.totalIssues).toBe(6);
+    expect(first.repoContributions).toHaveLength(4);
+
+    vi.setSystemTime(Date.now() + GITHUB_CACHE_TTL_MS + 1);
+    const refreshed = await fetchGitHubContributions('octocat');
+
+    expect(fetch).toHaveBeenCalledTimes(2);
+
+    // The refresh must query the full window, never a narrow delta window.
+    const secondCallBody = JSON.parse(vi.mocked(fetch).mock.calls[1][1]!.body as string);
+    expect(secondCallBody.variables.from).toBeUndefined();
+
+    // Full-window values survive the refresh: no collapse, no accumulation, no delta-only repo overwrite.
+    expect(refreshed.calendar.totalContributions).toBe(120);
+    expect(refreshed.totalPRs).toBe(12);
+    expect(refreshed.totalIssues).toBe(6);
+    expect(
+      refreshed.repoContributions.map((r) => r.repository.primaryLanguage?.name).sort()
+    ).toEqual(['Go', 'Python', 'Rust', 'TypeScript']);
+  });
+
+  it('historical fixed-window refresh re-queries the requested window, never from > to', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-01-01T00:00:00.000Z'));
+
+    const from = '2023-01-01T00:00:00.000Z';
+    const to = '2023-12-31T23:59:59.000Z';
 
     vi.mocked(fetch).mockImplementation(async () =>
       mockResponse({
         data: {
           user: {
             contributionsCollection: {
+              totalPullRequestContributions: 0,
+              totalIssueContributions: 0,
               contributionCalendar: mockCalendar,
               commitContributionsByRepository: [],
             },
@@ -1650,20 +1740,22 @@ describe('GitHub API cache behavior', () => {
       })
     );
 
-    await fetchGitHubContributions('octocat');
+    await fetchGitHubContributions('octocat', { from, to });
 
     vi.setSystemTime(Date.now() + GITHUB_CACHE_TTL_MS + 1);
-    await fetchGitHubContributions('octocat');
+    const refreshed = await fetchGitHubContributions('octocat', { from, to });
 
     expect(fetch).toHaveBeenCalledTimes(2);
 
     const secondCallBody = JSON.parse(vi.mocked(fetch).mock.calls[1][1]!.body as string);
-    expect(secondCallBody.variables.from).toBeDefined();
+    expect(secondCallBody.variables.from).toBe(from);
+    expect(secondCallBody.variables.to).toBe(to);
+    expect(new Date(secondCallBody.variables.from).getTime()).toBeLessThanOrEqual(
+      new Date(secondCallBody.variables.to).getTime()
+    );
 
-    // Delta sync subtracts 1 day from the last synced date (which was 2026-01-01)
-    const expectedFrom = new Date('2026-01-01T00:00:00.000Z');
-    expectedFrom.setUTCDate(expectedFrom.getUTCDate() - 1);
-    expect(secondCallBody.variables.from).toBe(expectedFrom.toISOString());
+    // The refresh reflects the requested window's authoritative total, not a delta remnant.
+    expect(refreshed.calendar.totalContributions).toBe(mockCalendar.totalContributions);
   });
 
   it('cache hit: second profile call uses cached value', async () => {
@@ -2411,5 +2503,101 @@ describe('runCappedConcurrency', () => {
     expect(results[2]).toBeNull();
     expect(results[3]).toBe(40);
     expect(results[4]).toBe(50);
+  });
+});
+
+describe('buildCommitClock timezone-aware', () => {
+  it('counts a Friday contribution as Friday (weekday) in IST', () => {
+    const result = buildCommitClock([{ date: '2024-01-05', contributionCount: 4 }], 'Asia/Kolkata');
+    expect(result[5].day).toBe('Fri');
+    expect(result[5].commits).toBe(4);
+    expect(result[6].commits).toBe(0);
+  });
+
+  it('counts a Saturday contribution in UTC-5 as Saturday', () => {
+    const result = buildCommitClock(
+      [{ date: '2024-01-06', contributionCount: 3 }],
+      'America/New_York'
+    );
+    expect(result[6].day).toBe('Sat');
+    expect(result[6].commits).toBe(3);
+  });
+
+  it('defaults to UTC when no timezone is provided', () => {
+    const result = buildCommitClock([{ date: '2024-01-07', contributionCount: 2 }]);
+    expect(result[0].day).toBe('Sun');
+    expect(result[0].commits).toBe(2);
+  });
+});
+
+describe('getWrappedData weekendRatio', () => {
+  beforeEach(() => vi.spyOn(global, 'fetch'));
+  afterEach(() => vi.restoreAllMocks());
+
+  it('returns weekendRatio of 100 when all contributions are on weekend days', async () => {
+    vi.mocked(fetch).mockImplementation(async (url) => {
+      const urlStr = typeof url === 'string' ? url : (url?.toString() ?? '');
+      if (urlStr.includes('/repos')) return mockResponse([]);
+      return mockResponse({
+        data: {
+          user: {
+            contributionsCollection: {
+              contributionCalendar: {
+                totalContributions: 10,
+                weeks: [
+                  {
+                    contributionDays: [
+                      { date: '2024-01-06', contributionCount: 5 },
+                      { date: '2024-01-07', contributionCount: 5 },
+                    ],
+                  },
+                ],
+              },
+            },
+          },
+        },
+      });
+    });
+    const result = await getWrappedData('octocat', '2024');
+    expect(result.weekendRatio).toBe(100);
+  });
+
+  it('returns weekendRatio of 0 when all contributions are on weekdays', async () => {
+    vi.mocked(fetch).mockImplementation(async (url) => {
+      const urlStr = typeof url === 'string' ? url : (url?.toString() ?? '');
+      if (urlStr.includes('/repos')) return mockResponse([]);
+      return mockResponse({
+        data: {
+          user: {
+            contributionsCollection: {
+              contributionCalendar: {
+                totalContributions: 10,
+                weeks: [{ contributionDays: [{ date: '2024-01-05', contributionCount: 10 }] }],
+              },
+            },
+          },
+        },
+      });
+    });
+    const result = await getWrappedData('octocat', '2024');
+    expect(result.weekendRatio).toBe(0);
+  });
+
+  it('returns weekendRatio of 0 when there are no contributions', async () => {
+    vi.mocked(fetch).mockImplementation(async (url) => {
+      const urlStr = typeof url === 'string' ? url : (url?.toString() ?? '');
+      if (urlStr.includes('/repos')) return mockResponse([]);
+      return mockResponse({
+        data: {
+          user: {
+            contributionsCollection: {
+              contributionCalendar: { totalContributions: 0, weeks: [] },
+            },
+          },
+        },
+      });
+    });
+    const result = await getWrappedData('octocat', '2024');
+    expect(result.weekendRatio).toBe(0);
   });
 });

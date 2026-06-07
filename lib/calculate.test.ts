@@ -76,22 +76,65 @@ describe('calculateStreak', () => {
     expect(result.totalContributions).toBe(141);
   });
 
-  it('handles multiple weeks of zero contributions separating active streaks', () => {
+  it('verify streak formulas for multiple weeks gaps timeline (Variation 1)', () => {
+    // Pattern: Active week, followed by 2 gap weeks, followed by an active week.
+    // 2024-01-01 is a Monday
+    // Week 1: 7 days active
+    // Week 2: 0 days active (Gap)
+    // Week 3: 0 days active (Gap)
+    // Week 4: 7 days active
     const calendar = buildCalendar([
-      1, 1, 1, 1, 1, 1, 1,
-
-      0, 0, 0, 0, 0, 0, 0,
-
-      0, 0, 0, 0, 0, 0, 0,
-
-      1, 1, 1, 1, 1, 1, 1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1, // Week 1 (Jan 1 - Jan 7)
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0, // Week 2 (Jan 8 - Jan 14)
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0, // Week 3 (Jan 15 - Jan 21)
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1, // Week 4 (Jan 22 - Jan 28)
     ]);
 
-    const result = calculateStreak(calendar);
+    // Test 1: Evaluate on the last day of Week 4 (Sunday, Jan 28)
+    // Current streak should be exactly 7 (Week 4)
+    // Longest streak should be 7 (Week 1 or Week 4)
+    const resultEndOfWeek4 = calculateStreak(calendar, 'UTC', new Date('2024-01-28T12:00:00Z'));
+    expect(resultEndOfWeek4.currentStreak).toBe(7);
+    expect(resultEndOfWeek4.longestStreak).toBe(7);
+    expect(resultEndOfWeek4.totalContributions).toBe(14);
 
-    expect(result.currentStreak).toBe(7);
-    expect(result.longestStreak).toBe(7);
-    expect(result.totalContributions).toBe(14);
+    // Test 2: Evaluate on Wednesday of Week 4 (Jan 24)
+    // Current streak should be 3 (Monday-Wednesday of Week 4)
+    // Longest streak should still be 7 (from Week 1)
+    const resultWedWeek4 = calculateStreak(calendar, 'UTC', new Date('2024-01-24T12:00:00Z'));
+    expect(resultWedWeek4.currentStreak).toBe(3);
+    expect(resultWedWeek4.longestStreak).toBe(7);
+
+    // Test 3: Evaluate in the middle of the gap (Wednesday, Jan 10 of Week 2)
+    // Current streak should be 0 because the grace period has expired
+    // Longest streak should still be 7 (from Week 1)
+    const resultGap = calculateStreak(calendar, 'UTC', new Date('2024-01-10T12:00:00Z'));
+    expect(resultGap.currentStreak).toBe(0);
+    expect(resultGap.longestStreak).toBe(7);
   });
   it('verify streak formulas for multiple weeks gaps timeline (Variation 2)', () => {
     // Streak 1: 5 days

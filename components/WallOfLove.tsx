@@ -4,6 +4,7 @@ import { useRef, useState, useEffect } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { motion, useReducedMotion } from 'framer-motion';
+import Link from 'next/link'; // ← Added for CTA
 
 if (typeof window !== 'undefined') {
   gsap.registerPlugin(ScrollTrigger);
@@ -630,6 +631,18 @@ export function WallOfLove() {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* ── CTA Button for Review Form ── */}
+      <div className="mt-16 flex justify-center px-6">
+        <Link
+          href="/reviewform"
+          className="group relative inline-flex items-center gap-3 rounded-2xl bg-gradient-to-r from-emerald-600 via-purple-600 to-pink-600 px-10 py-4 text-lg font-semibold text-white shadow-xl shadow-purple-500/30 transition-all duration-300 hover:scale-105 hover:shadow-2xl active:scale-95 overflow-hidden"
+        >
+          <span>Share Your Experience</span>
+          <span className="text-2xl transition-transform group-hover:translate-x-1">→</span>
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -skew-x-12 -translate-x-full group-hover:translate-x-[200%] transition-transform duration-700" />
+        </Link>
       </div>
     </section>
   );

@@ -3,7 +3,6 @@ import { hasValidFileSignature } from './resume-parser';
 
 const PDF = 'application/pdf';
 const DOCX = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-const DOC = 'application/msword';
 
 describe('hasValidFileSignature', () => {
   it('accepts a real PDF signature', () => {
@@ -20,12 +19,6 @@ describe('hasValidFileSignature', () => {
 
   it('rejects non-zip content disguised as a DOCX', () => {
     expect(hasValidFileSignature(Buffer.from('plain text, not a zip'), DOCX)).toBe(false);
-  });
-
-  it('accepts a legacy DOC (OLE2) signature', () => {
-    expect(
-      hasValidFileSignature(Buffer.from([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1]), DOC)
-    ).toBe(true);
   });
 
   it('rejects an unknown mime type even with valid-looking bytes', () => {

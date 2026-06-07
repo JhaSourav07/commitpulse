@@ -1,11 +1,11 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import { Notification } from '@/models/Notification';
 import { notifyPostSchema, notifyGetSchema } from '@/lib/validations';
-import { notifyRateLimiter } from '@/lib/rate-limit';
 import { getClientIp } from '@/utils/getClientIp';
 import { DistributedCache } from '@/lib/cache';
 import { gitHubUserValidator } from '@/services/github/validate-user';
+import { getRateLimitHeaders, notifyRateLimiter } from '@/lib/rate-limit';
 
 const notifyWriteCache = new DistributedCache<number>(5000, 60000);
 const NOTIFY_WRITE_COOLDOWN_MS = 5 * 60 * 1000;
@@ -44,11 +44,12 @@ export async function POST(req: Request) {
   // fallback ensures rate limit is ALWAYS applied
   const rateLimitKey =
     ip && ip !== 'unknown' ? ip : `unknown:${req.headers.get('user-agent') ?? 'no-agent'}`;
+  const rateLimitResult = await notifyRateLimiter.checkWithResult(rateLimitKey);
 
-  if (!(await notifyRateLimiter.check(rateLimitKey))) {
+  if (!rateLimitResult.success) {
     return NextResponse.json(
       { success: false, message: 'Too many requests, please try again later.' },
-      { status: 429 }
+      { status: 429, headers: getRateLimitHeaders(rateLimitResult) }
     );
   }
 
@@ -172,17 +173,100 @@ export async function POST(req: Request) {
   }
 }
 
+// ─── DELETE /api/notify ──────────────────────────────────────────────────────
+// Remove notification preferences for a user (unsubscribe / right to erasure)
+export async function DELETE(req: NextRequest) {
+  // Rate limiting
+  const ip = getClientIp(req);
+
+  const rateLimitKey =
+    ip && ip !== 'unknown' ? ip : `unknown:${req.headers.get('user-agent') ?? 'no-agent'}`;
+
+  if (!(await notifyRateLimiter.check(rateLimitKey))) {
+    return NextResponse.json(
+      { success: false, message: 'Too many requests, please try again later.' },
+      { status: 429 }
+    );
+  }
+
+  // Validate query params with Zod (reuse notifyGetSchema — expects ?user=)
+  const { searchParams } = new URL(req.url);
+  const parsed = notifyGetSchema.safeParse({
+    user: searchParams.get('user') ?? undefined,
+  });
+
+  if (!parsed.success) {
+    const fieldErrors = parsed.error.flatten();
+    const firstError =
+      Object.values(fieldErrors.fieldErrors).flat()[0] ??
+      fieldErrors.formErrors[0] ??
+      'Invalid request parameters.';
+    return NextResponse.json({ success: false, message: firstError }, { status: 400 });
+  }
+
+  const { user: username } = parsed.data;
+
+  try {
+    // Graceful MONGODB_URI handling
+    if (!process.env.MONGODB_URI) {
+      if (process.env.NODE_ENV === 'production') {
+        console.error(
+          'CRITICAL: MONGODB_URI is not set in production environment. Notification deletion is disabled.'
+        );
+        return NextResponse.json(
+          { success: false, message: 'Database configuration error.' },
+          { status: 500 }
+        );
+      }
+
+      console.warn(
+        'MONGODB_URI is not set. Bypassing notification deletion for local development.'
+      );
+      return NextResponse.json({
+        success: true,
+        message: 'Notification deletion bypassed (no database configured).',
+      });
+    }
+
+    await dbConnect();
+
+    const result = await Notification.deleteOne({ username: username.toLowerCase() });
+
+    if (result.deletedCount === 0) {
+      return NextResponse.json(
+        { success: false, message: 'No notification preferences found for this user.' },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json(
+      { success: true, message: 'Notification preferences deleted successfully.' },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error('[/api/notify] Error deleting notification preferences:', error);
+    return NextResponse.json(
+      { success: false, message: 'Internal server error.' },
+      { status: 500 }
+    );
+  }
+}
+
 // ─── GET /api/notify ─────────────────────────────────────────────────────────
 // Fetch notification preferences for a user
 export async function GET(req: Request) {
   // Rate limiting
   const ip = getClientIp(req);
 
-  if (ip !== 'unknown' && !(await notifyRateLimiter.check(ip))) {
-    return NextResponse.json(
-      { success: false, message: 'Too many requests, please try again later.' },
-      { status: 429 }
-    );
+  if (ip !== 'unknown') {
+    const rateLimitResult = await notifyRateLimiter.checkWithResult(ip);
+
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        { success: false, message: 'Too many requests, please try again later.' },
+        { status: 429, headers: getRateLimitHeaders(rateLimitResult) }
+      );
+    }
   }
 
   // Validate query params with Zod

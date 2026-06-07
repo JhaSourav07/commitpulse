@@ -318,6 +318,9 @@ export function calculateWrappedStats(calendar: ContributionCalendar) {
     mostActiveDate: mostActiveDay.date,
     highestDailyCount: mostActiveDay.count,
     busiestMonth: busiestMonthStr,
-    weekendRatio: Math.round((weekendCommits / (weekendCommits + weekdayCommits || 1)) * 100),
+    weekendRatio: (() => {
+      const total = weekendCommits + weekdayCommits;
+      return total > 0 ? Math.round((weekendCommits / total) * 100) : 0;
+    })(),
   };
 }

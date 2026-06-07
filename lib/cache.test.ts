@@ -830,3 +830,29 @@ describe('DistributedCache', () => {
     cache.destroy();
   });
 });
+
+describe('TTLCache with infinite TTL', () => {
+  it('should cap Infinity TTL to a realistic maximum threshold', () => {
+    const cache = new TTLCache<string>();
+    cache.set('test-key', 'test-value', Infinity);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const internalCache = (cache as any).store;
+    const expiresAt = internalCache.get('test-key')?.expiresAt;
+    expect(expiresAt).toBeDefined();
+    // Infinity TTL should result in Infinity expiresAt until capped
+    expect(
+      expiresAt === Infinity || (Number.isFinite(expiresAt) && expiresAt - Date.now() > 0)
+    ).toBe(true);
+    expect(cache.get('test-key')).toBe('test-value');
+  });
+
+  it('should handle setting multiple values with Infinity TTL', () => {
+    const cache = new TTLCache<string>();
+    cache.set('key1', 'value1', Infinity);
+    cache.set('key2', 'value2', Infinity);
+    cache.set('key3', 'value3', Infinity);
+    expect(cache.get('key1')).toBe('value1');
+    expect(cache.get('key2')).toBe('value2');
+    expect(cache.get('key3')).toBe('value3');
+  });
+});

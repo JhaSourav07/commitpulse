@@ -1026,6 +1026,10 @@ describe('streakParamsSchema — view fallback behavior', () => {
     expect(parse({ view: 'monthly' }).view).toBe('monthly');
   });
 
+  it('accepts "languages" as a valid view value', () => {
+    expect(parse({ view: 'languages' }).view).toBe('languages');
+  });
+
   it('falls back to "default" for unknown view value', () => {
     expect(parse({ view: 'radar' }).view).toBe('default');
   });
@@ -1390,6 +1394,62 @@ describe('streakParamsSchema — layout query validation boundaries (Variation 4
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.layout).toBeUndefined();
+    }
+  });
+});
+
+/* ==========================================================================
+ * DATE PARAMETER — QUERY VALIDATION BOUNDARIES (VARIATION 2)
+ * ========================================================================== */
+
+describe('streakParamsSchema — date query validation boundaries (Variation 2)', () => {
+  it('rejects the invalid date "2026-15-40" and returns an error containing \'Invalid "date" format\'', () => {
+    // Arrange: month 15 and day 40 are both out of range — clearly not ISO 8601
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      date: '2026-15-40',
+    });
+
+    // Assert: schema must reject malformed date
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const messages = result.error.issues.map((i) => i.message).join(' ');
+      expect(messages).toContain('Invalid "date" format');
+    }
+  });
+
+  it('accepts a well-formed ISO 8601 date like "2026-05-30"', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      date: '2026-05-30',
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects a date with invalid month (month 13)', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      date: '2026-13-01',
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const messages = result.error.issues.map((i) => i.message).join(' ');
+      expect(messages).toContain('Invalid "date" format');
+    }
+  });
+
+  it('rejects a freeform text string instead of a date', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      date: 'not-a-date',
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const flat = result.error.flatten().fieldErrors;
+      expect(flat.date).toBeDefined();
     }
   });
 });

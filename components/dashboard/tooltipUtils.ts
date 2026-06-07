@@ -1,5 +1,12 @@
 import type { ActivityData } from '@/types/dashboard';
 
+const tooltipDateFormatter = new Intl.DateTimeFormat('en-US', {
+  month: 'short',
+  day: 'numeric',
+  year: 'numeric',
+  timeZone: 'UTC',
+});
+
 export function formatTooltipDate(date: string) {
   const parsed = new Date(`${date}T00:00:00Z`);
 
@@ -7,12 +14,7 @@ export function formatTooltipDate(date: string) {
     return date;
   }
 
-  return new Intl.DateTimeFormat('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    timeZone: 'UTC',
-  }).format(parsed);
+  return tooltipDateFormatter.format(parsed);
 }
 
 export function getContributionLabel(count: number) {

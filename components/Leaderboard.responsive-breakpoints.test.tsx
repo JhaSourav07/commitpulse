@@ -99,10 +99,9 @@ describe('Leaderboard - Responsive Breakpoints & Mobile Layouts (Issue #2759 Equ
   });
 
   it('Mobile Touch Target Scaling (Navigation Scaling Equivalent): preserves large click zones for touch devices even on mobile', () => {
-    const scrollIntoViewMock = vi.fn();
-    document.getElementById = vi.fn().mockReturnValue({
-      scrollIntoView: scrollIntoViewMock,
-    });
+    const openMock = vi.fn();
+    const originalOpen = window.open;
+    window.open = openMock;
 
     const { container } = render(<Leaderboard contributors={mockData} />);
 
@@ -112,8 +111,9 @@ describe('Leaderboard - Responsive Breakpoints & Mobile Layouts (Issue #2759 Equ
 
     fireEvent.click(listItem as Element);
 
-    // Verify the simulated 'navigation' click still functions
-    expect(document.getElementById).toHaveBeenCalledWith('contributors');
-    expect(scrollIntoViewMock).toHaveBeenCalledWith({ behavior: 'smooth' });
+    // Verify click opens contributor's GitHub profile in a new tab
+    expect(openMock).toHaveBeenCalledWith('', '_blank', 'noopener,noreferrer');
+
+    window.open = originalOpen;
   });
 });

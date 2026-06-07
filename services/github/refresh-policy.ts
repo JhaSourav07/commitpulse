@@ -4,8 +4,8 @@ import { TTLCache } from '../../lib/cache';
 export class RefreshPolicy {
   private static instance: RefreshPolicy;
 
-  // Cooldown in milliseconds (default 5 minutes)
-  private cooldownMs = 5 * 60 * 1000;
+  // Cooldown in milliseconds (default 30 seconds)
+  private cooldownMs = 30 * 1000;
 
   // Cache of username -> last successful refresh timestamp (15,000 capacity)
   private refreshTimes = new TTLCache<number>(15000, 60 * 60 * 1000);
@@ -105,7 +105,7 @@ export class RefreshPolicy {
    */
   public reset(): void {
     this.refreshTimes.clear();
-    this.cooldownMs = 5 * 60 * 1000;
+    this.cooldownMs = 30 * 1000;
   }
 }
 

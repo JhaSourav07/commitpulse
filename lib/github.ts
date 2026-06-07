@@ -1,9 +1,9 @@
 import type {
   ContributionCalendar,
   ContributionDay,
+  ContributedRepo,
   ExtendedContributionData,
   RepoContribution,
-  ContributionWeek,
   GraphNode,
   GraphLink,
 } from '@/types';
@@ -224,6 +224,38 @@ export async function fetchWithRetry(
   return fetchWithRetry(url, options, attempt + 1, timeoutMs);
 }
 
+const GRAPHQL_INJECTION_PATTERNS: RegExp[] = [
+  /;\s*DROP/i,
+  /;\s*DELETE/i,
+  /;\s*TRUNCATE/i,
+  /union\s+select/i,
+  /exec\s*\(/i,
+];
+
+function assertValidGraphQLBody(options: RequestInit): void {
+  if (typeof options.body !== 'string') return;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(options.body);
+  } catch {
+    throw new Error('GraphQL request body is not valid JSON');
+  }
+  const query = (parsed as Record<string, unknown>)?.query;
+  if (typeof query !== 'string' || query.trim() === '') {
+    throw new Error('GraphQL request must include a non-empty query string');
+  }
+  for (const pattern of GRAPHQL_INJECTION_PATTERNS) {
+    if (pattern.test(query)) {
+      throw new Error('GraphQL query contains disallowed patterns');
+    }
+  }
+  const open = (query.match(/{/g) ?? []).length;
+  const close = (query.match(/}/g) ?? []).length;
+  if (open === 0 || open !== close) {
+    throw new Error('GraphQL query has unbalanced braces');
+  }
+}
+
 // Wraps fetchWithRetry to also retry on GraphQL-level RATE_LIMITED errors
 // that GitHub returns with HTTP 200 OK instead of 429.
 async function fetchGraphQLWithRetry(
@@ -232,6 +264,7 @@ async function fetchGraphQLWithRetry(
   attempt = 0,
   timeoutMs?: number
 ): Promise<Response> {
+  if (attempt === 0) assertValidGraphQLBody(options);
   const res = await fetchWithRetry(url, options, attempt, timeoutMs);
   if (!res.ok || attempt >= MAX_RETRIES) return res;
 
@@ -370,7 +403,7 @@ export const GITHUB_CACHE_TTL_MS = 5 * 60 * 1000;
 export const contributionsCache = new DistributedCache<ExtendedContributionData>(1000);
 const profileCache = new DistributedCache<GitHubUserProfile>(1000);
 const reposCache = new DistributedCache<GitHubRepo[]>(500);
-const contributedReposCache = new DistributedCache<Record<string, unknown>[]>(500);
+const contributedReposCache = new DistributedCache<ContributedRepo[]>(500);
 
 interface GitHubUserProfile {
   login: string;
@@ -537,50 +570,6 @@ export function displayName(profile: GitHubUserProfile): string {
  * DATA FETCHING
  * ========================================================================== */
 
-function mergeCalendars(
-  oldCal: ContributionCalendar,
-  newCal: ContributionCalendar,
-  authoritativeTotal?: number
-): ContributionCalendar {
-  const dayMap = new Map<string, ContributionDay>();
-
-  for (const week of oldCal.weeks) {
-    for (const day of week.contributionDays) {
-      dayMap.set(day.date, day);
-    }
-  }
-
-  for (const week of newCal.weeks) {
-    for (const day of week.contributionDays) {
-      dayMap.set(day.date, day);
-    }
-  }
-
-  const sortedDays = Array.from(dayMap.values()).sort((a, b) => a.date.localeCompare(b.date));
-
-  const mergedWeeks: ContributionWeek[] = [];
-  let currentWeek: ContributionWeek = { contributionDays: [] };
-
-  for (const day of sortedDays) {
-    const dateObj = new Date(day.date);
-    if (currentWeek.contributionDays.length > 0 && dateObj.getUTCDay() === 0) {
-      mergedWeeks.push(currentWeek);
-      currentWeek = { contributionDays: [] };
-    }
-    currentWeek.contributionDays.push(day);
-  }
-  if (currentWeek.contributionDays.length > 0) {
-    mergedWeeks.push(currentWeek);
-  }
-
-  const calculatedTotal = sortedDays.reduce((sum, d) => sum + d.contributionCount, 0);
-
-  return {
-    totalContributions: authoritativeTotal ?? calculatedTotal,
-    weeks: mergedWeeks,
-  };
-}
-
 export async function fetchGitHubContributions(
   username: string,
   options: FetchOptions = {}
@@ -595,13 +584,11 @@ export async function fetchGitHubContributions(
       : true;
   };
 
-  const load = async (cached: ExtendedContributionData | null) => {
-    return fetchContributionsUncached(username, key, options, cached);
-  };
+  const load = () => fetchContributionsUncached(username, key, options);
 
   if (options.bypassCache || options.forceRefresh) {
     try {
-      return await load(null);
+      return await load();
     } catch (err: unknown) {
       const staleData = await contributionsCache.get(key);
       if (staleData) {
@@ -639,18 +626,8 @@ export async function fetchGitHubContributions(
 async function fetchContributionsUncached(
   username: string,
   key: string,
-  options: FetchOptions,
-  cached: ExtendedContributionData | null
+  options: FetchOptions
 ): Promise<ExtendedContributionData> {
-  const isDeltaSync = cached && cached.calendar.lastSyncedAt && !options.bypassCache;
-  let queryFrom = options.from;
-
-  if (isDeltaSync) {
-    const lastSyncedDate = new Date(cached.calendar.lastSyncedAt!);
-    lastSyncedDate.setUTCDate(lastSyncedDate.getUTCDate() - 1);
-    queryFrom = lastSyncedDate.toISOString();
-  }
-
   const query = `
       query($login: String!, $from: DateTime, $to: DateTime) {
         user(login: $login) {
@@ -687,7 +664,7 @@ async function fetchContributionsUncached(
     headers: getHeaders(),
     body: JSON.stringify({
       query,
-      variables: { login: username, from: queryFrom, to: options.to },
+      variables: { login: username, from: options.from, to: options.to },
     }),
     cache: 'no-store',
     signal: options.signal,
@@ -738,49 +715,16 @@ async function fetchContributionsUncached(
     };
   }
 
-  let totalPRs = data.data.user.contributionsCollection?.totalPullRequestContributions || 0;
-  let totalIssues = data.data.user.contributionsCollection?.totalIssueContributions || 0;
+  const totalPRs = data.data.user.contributionsCollection?.totalPullRequestContributions || 0;
+  const totalIssues = data.data.user.contributionsCollection?.totalIssueContributions || 0;
 
-  if (isDeltaSync && cached) {
-    calendar = mergeCalendars(
-      cached.calendar,
-      calendar,
-      data.data.user.contributionsCollection.contributionCalendar.totalContributions
-    );
-    totalPRs += cached.totalPRs || 0;
-    totalIssues += cached.totalIssues || 0;
-  }
-  // Inject deterministic Lines of Code (LoC) approximation
-  calendar.weeks.forEach((week) => {
-    week.contributionDays.forEach((day) => {
-      if (day.contributionCount > 0) {
-        let hash1 = 2166136261,
-          hash2 = 2166136261;
-        const seed1 = day.date + 'add',
-          seed2 = day.date + 'del';
-        for (let i = 0; i < seed1.length; i++) {
-          hash1 ^= seed1.charCodeAt(i);
-          hash1 = Math.imul(hash1, 16777619);
-        }
-        for (let i = 0; i < seed2.length; i++) {
-          hash2 ^= seed2.charCodeAt(i);
-          hash2 = Math.imul(hash2, 16777619);
-        }
-        const randAdd = (hash1 >>> 0) / 4294967296;
-        const randDel = (hash2 >>> 0) / 4294967296;
-
-        day.locAdditions = Math.floor(day.contributionCount * (25 + randAdd * 85));
-        day.locDeletions = Math.floor(day.contributionCount * (5 + randDel * 35));
-      } else {
-        day.locAdditions = 0;
-        day.locDeletions = 0;
-      }
-    });
-  });
+  // Do not fabricate Lines of Code metrics.
+  // GitHub's contribution calendar API does not expose per-day additions/deletions here,
+  // so LOC fields are intentionally left undefined instead of showing misleading values.
 
   calendar.lastSyncedAt = new Date().toISOString();
 
-  // Cache for 7 days to enable delta syncs, staleness is handled logically
+  // Cache for 7 days so a failed refresh can fall back to stale data; freshness is enforced via lastSyncedAt
   const LONG_CACHE_TTL = 7 * 24 * 60 * 60 * 1000;
   if (!options.bypassCache) {
     await contributionsCache.set(
@@ -974,6 +918,7 @@ export type OrgDashboardData = {
     totalContributions: number;
   };
   calendar: ContributionCalendar;
+  repoContributions: RepoContribution[];
   isPartial: boolean;
 };
 
@@ -1005,13 +950,19 @@ export async function getOrgDashboardData(
   const fetchOptions = { ...options, signal: controller.signal };
 
   let calendars: ContributionCalendar[] = [];
+  const repoContributions: RepoContribution[] = [];
   try {
     // Fetch calendars for all members concurrently with capped concurrency to avoid 429s/timeouts
     calendars = (
       await runCappedConcurrency(activeMembers, 5, (member) => {
         if (controller.signal.aborted) return Promise.resolve(null);
         return fetchGitHubContributions(member, fetchOptions)
-          .then((data) => data.calendar)
+          .then((data) => {
+            if (data.repoContributions) {
+              repoContributions.push(...data.repoContributions);
+            }
+            return data.calendar;
+          })
           .catch(() => null);
       })
     ).filter((c: ContributionCalendar | null) => c !== null) as ContributionCalendar[];
@@ -1047,6 +998,7 @@ export async function getOrgDashboardData(
       totalContributions: streakStats.totalContributions,
     },
     calendar: aggregatedCalendar,
+    repoContributions,
     isPartial,
   };
 }
@@ -1192,12 +1144,16 @@ export function buildInsights(
   return insights;
 }
 
-export function buildCommitClock(allDays: ContributionDay[]) {
+export function buildCommitClock(allDays: ContributionDay[], timezone: string = 'UTC') {
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   const dayTotals = new Array(7).fill(0);
   for (const day of allDays) {
-    const dow = new Date(day.date).getUTCDay();
-    dayTotals[dow] += day.contributionCount;
+    const dowStr = new Intl.DateTimeFormat('en-US', {
+      timeZone: timezone,
+      weekday: 'short',
+    }).format(new Date(day.date + 'T12:00:00Z'));
+    const dowIndex = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(dowStr);
+    if (dowIndex !== -1) dayTotals[dowIndex] += day.contributionCount;
   }
   return dayNames.map((name, i) => ({ day: name, commits: dayTotals[i] }));
 }
@@ -1205,7 +1161,7 @@ export function buildCommitClock(allDays: ContributionDay[]) {
 export async function fetchContributedRepos(
   username: string,
   options: FetchOptions = {}
-): Promise<Record<string, unknown>[]> {
+): Promise<ContributedRepo[]> {
   const key = cacheKey('repos:contributed', username);
 
   const load = async () => {
@@ -1470,6 +1426,13 @@ export async function getFullDashboardData(username: string, options: FetchOptio
       cause: profileResult.reason,
     });
 
+  // Treat a failed contributions fetch as a first-class error rather than silently
+  // returning zeroed stats, which would otherwise present a false "no activity" result.
+  if (calendarResult.status === 'rejected')
+    throw new Error(`[GitHub API] Failed to fetch contributions for user "${username}"`, {
+      cause: calendarResult.reason,
+    });
+
   const profileData = profileResult.value;
   const reposData = reposResult.status === 'fulfilled' ? reposResult.value : [];
   const calendarData =
@@ -1541,20 +1504,12 @@ export async function getFullDashboardData(username: string, options: FetchOptio
     });
     links.push({ source: profileData.login, target: r.name });
   });
-  contributedRepos.forEach((item) => {
-    const r = item as {
-      name: string;
-      nameWithOwner: string;
-      stargazerCount?: number;
-      forkCount?: number;
-      primaryLanguage?: { name: string } | null;
-      updatedAt?: string;
-    };
+  contributedRepos.forEach((r) => {
     nodes.push({
       id: r.nameWithOwner,
       name: r.name,
       type: 'Contribution',
-      val: Math.max(5, Math.min(20, (r.stargazerCount ?? 0) / 10 + 5)),
+      val: Math.max(5, Math.min(20, r.stargazerCount / 10 + 5)),
       color: '#22C55E',
       stats: {
         stars: r.stargazerCount,
@@ -1598,7 +1553,8 @@ export async function getFullDashboardData(username: string, options: FetchOptio
 export async function getWrappedData(
   username: string,
   year?: string,
-  options?: FetchOptions
+  options?: FetchOptions,
+  timezone: string = 'UTC'
 ): Promise<import('../types/dashboard').WrappedStats> {
   const trimmedYear = typeof year === 'string' ? year.trim() : '';
   const fallbackYear = new Date().getFullYear().toString();
@@ -1637,8 +1593,11 @@ export async function getWrappedData(
     Object.entries(monthTotals).sort((a, b) => b[1] - a[1])[0]?.[0] ?? `${normalizedYear}-01`;
 
   const weekendDays = allDays.filter((d) => {
-    const dow = new Date(d.date).getUTCDay();
-    return dow === 0 || dow === 6;
+    const dowStr = new Intl.DateTimeFormat('en-US', {
+      timeZone: timezone,
+      weekday: 'short',
+    }).format(new Date(d.date + 'T12:00:00Z'));
+    return dowStr === 'Sat' || dowStr === 'Sun';
   });
   const weekendTotal = weekendDays.reduce((sum, d) => sum + d.contributionCount, 0);
   const weekendRatio =
