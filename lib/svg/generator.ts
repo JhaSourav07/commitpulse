@@ -392,6 +392,7 @@ function renderStyle(
     }
   }
   .isometric-label { font-family: ${selectedFont || '"Roboto", sans-serif'}; font-size: ${fs(10)}px; font-weight: 400; letter-spacing: 1px; fill-opacity: 0.6; }
+  .dimmed-tower { opacity: 0.3; }
   ${getInteractiveTowerCSS(`${accent}66`)}
   </style>`;
 }
@@ -501,10 +502,14 @@ function renderTowers(
     const metric =
       t.contributionCount === 0 ? 'Rest day' : t.intensityLevel === 4 ? 'Peak day' : 'Active day';
 
+    const isWeekend = t.col === 0 || t.col === 6;
+    const shouldDim = params.dim_weekends && isWeekend;
+    const dimAttr = shouldDim ? ' class="dimmed-tower" style="opacity: 0.3;"' : '';
+
     const paths = buildTowerPaths(t.h, 1);
 
     towers += `
-        <g transform="translate(${t.x}, ${t.y})">
+        <g transform="translate(${t.x}, ${t.y})"${dimAttr}>
           <g class="cp-tower interactive-tower" data-date="${escapeXML(t.date)}" data-count="${t.contributionCount}" data-metric="${escapeXML(metric)}" style="animation-delay: ${delay}s;">
             ${animate && t.isToday ? '<animate attributeName="opacity" values="1;0.4;1" dur="1.5s" repeatCount="indefinite" />' : ''}
             <title>${escapeXML(t.tooltip)}</title>
@@ -525,7 +530,7 @@ function renderTowers(
         : pColorResolved.startsWith('#')
           ? pColorResolved
           : `#${pColorResolved}`;
-      towers += generateParticles(
+      let particlesMarkup = generateParticles(
         t.x,
         t.y,
         t.h,
@@ -535,6 +540,10 @@ function renderTowers(
         pColor,
         animate
       );
+      if (shouldDim) {
+        particlesMarkup = `<g class="dimmed-tower" style="opacity: 0.3;">${particlesMarkup}</g>`;
+      }
+      towers += particlesMarkup;
     }
   }
   return towers;
@@ -865,6 +874,7 @@ function generateAutoThemeSVG(
   .total-val { font-family: ${statsFont}; fill: var(--cp-accent); font-size: ${fs(24)}px; font-weight: 500; }
   .label { font-family: "Roboto", sans-serif; fill: var(--cp-label-fill); font-size: ${fs(11)}px; font-weight: 400; letter-spacing: ${fs(2)}px; opacity: var(--cp-label-opacity); }
   .isometric-label { font-family: ${selectedFont || '"Roboto", sans-serif'}; font-size: ${fs(10)}px; font-weight: 400; letter-spacing: 1px; fill-opacity: 0.6; }
+  .dimmed-tower { opacity: 0.3; }
   ${getInteractiveTowerCSS('var(--cp-accent)')}
 
   @media (prefers-reduced-motion: reduce) {

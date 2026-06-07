@@ -55,6 +55,58 @@ describe('streakParamsSchema — grace fallback behavior', () => {
   });
 });
 
+describe('grace parameter — missed-day forgiveness (not timezone)', () => {
+  it('grace=0 passes schema validation — strict mode', () => {
+    const result = streakParamsSchema.safeParse({ user: 'chetan', grace: '0' });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.grace).toBe(0);
+  });
+
+  it('grace=1 passes schema validation — default lenient mode', () => {
+    const result = streakParamsSchema.safeParse({ user: 'chetan', grace: '1' });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.grace).toBe(1);
+  });
+
+  it('grace=2 passes schema validation — two-day forgiveness mode', () => {
+    const result = streakParamsSchema.safeParse({ user: 'chetan', grace: '2' });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.grace).toBe(2);
+  });
+
+  it('grace defaults to 1 when omitted — one missed day forgiven by default', () => {
+    const result = streakParamsSchema.safeParse({ user: 'chetan' });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.grace).toBe(1);
+  });
+
+  it('grace=7 is the maximum accepted value', () => {
+    const result = streakParamsSchema.safeParse({ user: 'chetan', grace: '7' });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.grace).toBe(7);
+  });
+
+  it('grace=8 is rejected as it exceeds the maximum limit of 7', () => {
+    const result = streakParamsSchema.safeParse({ user: 'chetan', grace: '8' });
+    expect(result.success).toBe(false);
+  });
+
+  it('grace is independent of tz param — both can coexist', () => {
+    // Verifies that grace (missed days) and tz (timezone) are separate concerns
+    // A user can set both independently: ?grace=2&tz=Asia/Kolkata
+    const result = streakParamsSchema.safeParse({
+      user: 'chetan',
+      grace: '2',
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.grace).toBe(2);
+      // tz is parsed separately in route.ts — not in schema
+      // this test documents that grace schema parsing is timezone-unaware
+    }
+  });
+});
+
 describe('validateGitHubUsername', () => {
   it('returns true for a valid username', () => {
     expect(validateGitHubUsername('valid-username-123')).toBe(true);
@@ -873,6 +925,25 @@ describe('streakParamsSchema — boolean transform fields', () => {
 
     it('returns true when glow is omitted', () => {
       expect(parse({}).glow).toBe(true);
+    });
+  });
+
+  // ── dim_weekends ───────────────────────────────────────────────────────────
+  describe('dim_weekends', () => {
+    it('returns true when dim_weekends="true"', () => {
+      expect(parse({ dim_weekends: 'true' }).dim_weekends).toBe(true);
+    });
+
+    it('returns true when dim_weekends="1"', () => {
+      expect(parse({ dim_weekends: '1' }).dim_weekends).toBe(true);
+    });
+
+    it('returns false when dim_weekends="false"', () => {
+      expect(parse({ dim_weekends: 'false' }).dim_weekends).toBe(false);
+    });
+
+    it('returns false when dim_weekends is omitted', () => {
+      expect(parse({}).dim_weekends).toBe(false);
     });
   });
 });

@@ -342,6 +342,7 @@ const baseStreakParamsSchema = z.object({
       return val === 'true';
     })
     .default(false),
+  dim_weekends: z.string().optional().transform(toBooleanFlag).default(false),
   gradient: z
     .string()
     .optional()

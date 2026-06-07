@@ -22,7 +22,9 @@ import type {
   Language,
   Timezone,
 } from './types';
+
 import { useDebounce } from '@/hooks/useDebounce';
+import useFetchCache from '@/hooks/useFetchCache';
 import { getExportSnippet, buildQueryParams, streakErrorMessage } from './utils';
 
 function readNumericSearchParam(
@@ -75,6 +77,7 @@ function CustomizePageInner(): ReactElement {
   const [copyStatusMessage, setCopyStatusMessage] = useState('');
   const copyResetTimeoutRef = useRef<number | null>(null);
   const [svgContent, setSvgContent] = useState<string>('');
+  const svgCache = useFetchCache<string>();
   const [svgState, setSvgState] = useState<'idle' | 'loading' | 'loaded' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const trimmedUsername = username.trim();
@@ -210,6 +213,13 @@ function CustomizePageInner(): ReactElement {
 
     setSvgState('loading');
     const controller = new AbortController();
+    const cached = svgCache.get(previewSrc);
+
+    if (cached) {
+      setSvgContent(cached);
+      setSvgState('loaded');
+      return;
+    }
 
     fetch(previewSrc, { signal: controller.signal })
       .then(async (res) => {
@@ -257,6 +267,7 @@ function CustomizePageInner(): ReactElement {
           ],
         });
 
+        svgCache.set(previewSrc, sanitized);
         setSvgContent(sanitized);
         setSvgState('loaded');
         setErrorMessage(null);

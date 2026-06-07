@@ -75,10 +75,16 @@ describe('HistoricalTrendView - Empty & Missing Input Fallbacks', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-01-15T12:00:00Z'));
+    consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-01-15T12:00:00Z'));
   });
 
   afterEach(() => {
     consoleError.mockRestore();
+    vi.useRealTimers();
   });
 
   it('renders clear empty-state messaging when activity is an empty array', () => {

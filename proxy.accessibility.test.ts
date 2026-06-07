@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NextRequest, NextResponse } from 'next/server';
 import { proxy } from './proxy';
+import { middleware as proxy } from './middleware';
 import { rateLimit } from './lib/rate-limit';
 
 vi.mock('./lib/rate-limit', () => ({

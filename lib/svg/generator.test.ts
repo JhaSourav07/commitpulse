@@ -1396,6 +1396,90 @@ describe('shading', () => {
     expect(svg).toContain('00ffaa');
   });
 });
+
+describe('dim_weekends', () => {
+  const weekendCalendar = {
+    weeks: [
+      {
+        contributionDays: [
+          { contributionCount: 10, date: '2024-06-08' }, // Saturday (6)
+          { contributionCount: 10, date: '2024-06-09' }, // Sunday (0)
+          { contributionCount: 10, date: '2024-06-10' }, // Monday (1)
+        ],
+      },
+    ],
+  } as ContributionCalendar;
+
+  const mockStats: StreakStats = {
+    currentStreak: 3,
+    longestStreak: 3,
+    totalContributions: 30,
+    todayDate: '2024-06-10',
+  };
+
+  it('applies dimmed-tower class and opacity: 0.3 on weekends when dim_weekends=true', () => {
+    const svg = generateSVG(
+      mockStats,
+      { user: 'avi', dim_weekends: true } as unknown as BadgeParams,
+      weekendCalendar
+    );
+
+    // The stylesheet should define .dimmed-tower rule
+    expect(svg).toContain('.dimmed-tower { opacity: 0.3; }');
+
+    // Saturday and Sunday towers must have dimmed-tower class applied
+    expect(svg).toContain('data-date="2024-06-08"');
+    expect(svg).toContain('data-date="2024-06-09"');
+    expect(svg).toContain('data-date="2024-06-10"');
+
+    // Verify parent group of 2024-06-08 / 2024-06-09 contains class="dimmed-tower" style="opacity: 0.3;"
+    // Check Saturday
+    const satSegment = svg.slice(
+      svg.indexOf('data-date="2024-06-08"') - 300,
+      svg.indexOf('data-date="2024-06-08"') + 100
+    );
+    expect(satSegment).toContain('class="dimmed-tower"');
+    expect(satSegment).toContain('style="opacity: 0.3;"');
+
+    // Check Sunday
+    const sunSegment = svg.slice(
+      svg.indexOf('data-date="2024-06-09"') - 300,
+      svg.indexOf('data-date="2024-06-09"') + 100
+    );
+    expect(sunSegment).toContain('class="dimmed-tower"');
+    expect(sunSegment).toContain('style="opacity: 0.3;"');
+
+    // Monday tower must NOT be dimmed
+    const monSegment = svg.slice(
+      svg.indexOf('data-date="2024-06-10"') - 300,
+      svg.indexOf('data-date="2024-06-10"') + 100
+    );
+    expect(monSegment).not.toContain('class="dimmed-tower"');
+    expect(monSegment).not.toContain('style="opacity: 0.3;"');
+
+    // Particles of weekend towers must also be wrapped in dimmed-tower group
+    // The calendar contribution count is 10, which triggers particle generation.
+    // Verify that the particle group for Saturday/Sunday is wrapped in the dimmed-tower group.
+    const particlesSatIndex = svg.indexOf(
+      'class="heat-particles"',
+      svg.indexOf('data-date="2024-06-08"')
+    );
+    const wrappedParticlesSat = svg.slice(particlesSatIndex - 100, particlesSatIndex);
+    expect(wrappedParticlesSat).toContain('class="dimmed-tower"');
+    expect(wrappedParticlesSat).toContain('style="opacity: 0.3;"');
+  });
+
+  it('does not apply dimmed-tower class when dim_weekends=false', () => {
+    const svg = generateSVG(
+      mockStats,
+      { user: 'avi', dim_weekends: false } as unknown as BadgeParams,
+      weekendCalendar
+    );
+
+    // Verify no group or element has dimmed-tower class
+    expect(svg).not.toContain('class="dimmed-tower"');
+  });
+});
 describe('escapeXML', () => {
   it('escapes ampersands (&)', () => {
     expect(escapeXML('foo & bar')).toBe('foo &amp; bar');
