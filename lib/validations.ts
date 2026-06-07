@@ -42,9 +42,16 @@ export function toValidHexColor(defaultColor: string) {
     val && isValidHex(val) ? sanitizeHexColor(val, defaultColor) : undefined;
 }
 
+/**
+ * Parses the ?grace= URL parameter.
+ * Uses parseFloat() — the standard for all numeric URL param parsers in this
+ * file — so that partial strings like '2abc' parse as 2 rather than NaN,
+ * and empty string correctly returns NaN (triggering the default fallback).
+ * Clamps to [0, 7]. Default: 1.
+ */
 export function toGraceValue(val?: string): number {
   if (!val) return 1;
-  const parsed = Number(val);
+  const parsed = parseFloat(val);
   return isNaN(parsed) ? 1 : Math.max(0, Math.min(parsed, 7));
 }
 
@@ -282,7 +289,7 @@ const baseStreakParamsSchema = z.object({
   tz: timeZoneParam,
   // Unknown view values fall back to the default dashboard view.
   view: z
-    .enum(['default', 'monthly', 'heatmap', 'pulse', 'languages'])
+    .enum(['default', 'monthly', 'heatmap', 'pulse', 'languages', 'constellation'])
     .catch('default')
     .default('default'),
   // Invalid delta formats fall back to percentage mode.
@@ -335,6 +342,7 @@ const baseStreakParamsSchema = z.object({
       return val === 'true';
     })
     .default(false),
+  dim_weekends: z.string().optional().transform(toBooleanFlag).default(false),
   gradient: z
     .string()
     .optional()
@@ -652,6 +660,34 @@ export const resumeConfirmDataSchema = z.object({
       items.filter((x) => x.company || x.role || x.startDate || x.endDate || x.description)
     ),
 });
+
+export const reviewPostSchema = z.object({
+  name: z
+    .string({ error: 'Name is required.' })
+    .trim()
+    .min(1, { message: 'Name is required.' })
+    .max(100, { message: 'Name must be at most 100 characters.' }),
+  handle: z
+    .string({ error: 'Handle is required.' })
+    .trim()
+    .min(1, { message: 'Handle is required.' })
+    .max(50, { message: 'Handle must be at most 50 characters.' })
+    .regex(/^@?[\w.-]+$/, { message: 'Handle must be a valid username.' }),
+  platform: z.enum(['twitter', 'github'], {
+    message: 'Platform must be twitter or github.',
+  }),
+  message: z
+    .string({ error: 'Message is required.' })
+    .trim()
+    .min(10, { message: 'Message must be at least 10 characters.' })
+    .max(1000, { message: 'Message must be at most 1000 characters.' }),
+  accentColor: z
+    .string()
+    .regex(/^#[0-9a-fA-F]{6}$/, { message: 'Accent color must be a valid hex color.' })
+    .default('#10b981'),
+});
+
+export type ReviewPostParams = z.infer<typeof reviewPostSchema>;
 
 export type StreakParams = z.infer<typeof streakParamsSchema>;
 export type GithubParams = z.infer<typeof githubParamsSchema>;

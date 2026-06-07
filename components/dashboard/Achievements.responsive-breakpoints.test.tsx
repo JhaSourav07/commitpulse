@@ -21,6 +21,8 @@ vi.mock('framer-motion', () => ({
       delete safeProps.transition;
       delete safeProps.whileHover;
       delete safeProps.whileTap;
+      delete safeProps.whileHover;
+      delete safeProps.whileInView;
       return (
         <div className={className} {...safeProps}>
           {children}

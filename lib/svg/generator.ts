@@ -392,6 +392,7 @@ function renderStyle(
     }
   }
   .isometric-label { font-family: ${selectedFont || '"Roboto", sans-serif'}; font-size: ${fs(10)}px; font-weight: 400; letter-spacing: 1px; fill-opacity: 0.6; }
+  .dimmed-tower { opacity: 0.3; }
   ${getInteractiveTowerCSS(`${accent}66`)}
   </style>`;
 }
@@ -501,10 +502,14 @@ function renderTowers(
     const metric =
       t.contributionCount === 0 ? 'Rest day' : t.intensityLevel === 4 ? 'Peak day' : 'Active day';
 
+    const isWeekend = t.col === 0 || t.col === 6;
+    const shouldDim = params.dim_weekends && isWeekend;
+    const dimAttr = shouldDim ? ' class="dimmed-tower" style="opacity: 0.3;"' : '';
+
     const paths = buildTowerPaths(t.h, 1);
 
     towers += `
-        <g transform="translate(${t.x}, ${t.y})">
+        <g transform="translate(${t.x}, ${t.y})"${dimAttr}>
           <g class="cp-tower interactive-tower" data-date="${escapeXML(t.date)}" data-count="${t.contributionCount}" data-metric="${escapeXML(metric)}" style="animation-delay: ${delay}s;">
             ${animate && t.isToday ? '<animate attributeName="opacity" values="1;0.4;1" dur="1.5s" repeatCount="indefinite" />' : ''}
             <title>${escapeXML(t.tooltip)}</title>
@@ -525,7 +530,7 @@ function renderTowers(
         : pColorResolved.startsWith('#')
           ? pColorResolved
           : `#${pColorResolved}`;
-      towers += generateParticles(
+      let particlesMarkup = generateParticles(
         t.x,
         t.y,
         t.h,
@@ -535,6 +540,10 @@ function renderTowers(
         pColor,
         animate
       );
+      if (shouldDim) {
+        particlesMarkup = `<g class="dimmed-tower" style="opacity: 0.3;">${particlesMarkup}</g>`;
+      }
+      towers += particlesMarkup;
     }
   }
   return towers;
@@ -865,6 +874,7 @@ function generateAutoThemeSVG(
   .total-val { font-family: ${statsFont}; fill: var(--cp-accent); font-size: ${fs(24)}px; font-weight: 500; }
   .label { font-family: "Roboto", sans-serif; fill: var(--cp-label-fill); font-size: ${fs(11)}px; font-weight: 400; letter-spacing: ${fs(2)}px; opacity: var(--cp-label-opacity); }
   .isometric-label { font-family: ${selectedFont || '"Roboto", sans-serif'}; font-size: ${fs(10)}px; font-weight: 400; letter-spacing: 1px; fill-opacity: 0.6; }
+  .dimmed-tower { opacity: 0.3; }
   ${getInteractiveTowerCSS('var(--cp-accent)')}
 
   @media (prefers-reduced-motion: reduce) {
@@ -892,6 +902,48 @@ ${renderRadarScan(params.speed || '8s', sf, '', true)}
 ${renderMilestoneBadges(stats, params, sf)}
 </svg>
 `;
+}
+
+/**
+ * Computes the formatted delta text string for the monthly stats badge.
+ * Shared between generateMonthlySVG (static theme) and
+ * generateAutoThemeMonthlySVG (auto theme) to prevent divergence.
+ *
+ * @param stats - Monthly contribution statistics
+ * @param deltaUnit - 'commits' or 'lines' depending on mode
+ * @param deltaFormat - 'percent' | 'absolute' | 'both' from URL params
+ */
+function computeDeltaText(
+  stats: MonthlyStats,
+  deltaUnit: string,
+  deltaFormat: BadgeParams['delta_format']
+): string {
+  if (deltaFormat === 'absolute') {
+    return stats.deltaAbsolute > 0
+      ? `+${stats.deltaAbsolute} ${deltaUnit}`
+      : stats.deltaAbsolute === 0
+        ? `0 ${deltaUnit}`
+        : `${stats.deltaAbsolute} ${deltaUnit}`;
+  }
+
+  if (deltaFormat === 'both') {
+    return stats.deltaPercentage === null
+      ? `N/A (${stats.deltaAbsolute > 0 ? '+' : ''}${stats.deltaAbsolute})`
+      : stats.deltaPercentage > 0
+        ? `+${stats.deltaPercentage}% (+${stats.deltaAbsolute})`
+        : stats.deltaPercentage < 0
+          ? `${stats.deltaPercentage}% (${stats.deltaAbsolute})`
+          : `0% (${stats.deltaAbsolute > 0 ? '+' : ''}${stats.deltaAbsolute})`;
+  }
+
+  // percent (default)
+  return stats.deltaPercentage === null
+    ? 'N/A'
+    : stats.deltaPercentage > 0
+      ? `+${stats.deltaPercentage}%`
+      : stats.deltaPercentage < 0
+        ? `${stats.deltaPercentage}%`
+        : `0%`;
 }
 
 export function generateMonthlySVG(stats: MonthlyStats, params: BadgeParams): string {
@@ -929,33 +981,7 @@ export function generateMonthlySVG(stats: MonthlyStats, params: BadgeParams): st
     params.mode === 'loc' ? 'LINES THIS MONTH (EST.)' : labels.COMMITS_THIS_MONTH;
   const deltaUnit = params.mode === 'loc' ? 'LINES (EST.)' : 'commits';
 
-  let deltaText = '';
-  if (params.delta_format === 'absolute') {
-    deltaText =
-      stats.deltaAbsolute > 0
-        ? `+${stats.deltaAbsolute} ${deltaUnit}`
-        : stats.deltaAbsolute === 0
-          ? `0 ${deltaUnit}`
-          : `${stats.deltaAbsolute} ${deltaUnit}`;
-  } else if (params.delta_format === 'both') {
-    deltaText =
-      stats.deltaPercentage === null
-        ? `N/A (${stats.deltaAbsolute > 0 ? '+' : ''}${stats.deltaAbsolute})`
-        : stats.deltaPercentage > 0
-          ? `+${stats.deltaPercentage}% (+${stats.deltaAbsolute})`
-          : stats.deltaPercentage < 0
-            ? `${stats.deltaPercentage}% (${stats.deltaAbsolute})`
-            : `0% (${stats.deltaAbsolute > 0 ? '+' : ''}${stats.deltaAbsolute})`;
-  } else {
-    deltaText =
-      stats.deltaPercentage === null
-        ? 'N/A'
-        : stats.deltaPercentage > 0
-          ? `+${stats.deltaPercentage}%`
-          : stats.deltaPercentage < 0
-            ? `${stats.deltaPercentage}%`
-            : `0%`;
-  }
+  const deltaText = computeDeltaText(stats, deltaUnit, params.delta_format);
   // Resolve negative color
   let negativeColor = '#ff4444';
   const cleanBg = sanitizeHexColor(params.bg, '0d1117');
@@ -1308,33 +1334,7 @@ function generateAutoThemeMonthlySVG(stats: MonthlyStats, params: BadgeParams): 
     params.mode === 'loc' ? 'LINES THIS MONTH (EST.)' : labels.COMMITS_THIS_MONTH;
   const deltaUnit = params.mode === 'loc' ? 'LINES (EST.)' : 'commits';
 
-  let deltaText = '';
-  if (params.delta_format === 'absolute') {
-    deltaText =
-      stats.deltaAbsolute > 0
-        ? `+${stats.deltaAbsolute} ${deltaUnit}`
-        : stats.deltaAbsolute === 0
-          ? `0 ${deltaUnit}`
-          : `${stats.deltaAbsolute} ${deltaUnit}`;
-  } else if (params.delta_format === 'both') {
-    deltaText =
-      stats.deltaPercentage === null
-        ? `N/A (${stats.deltaAbsolute > 0 ? '+' : ''}${stats.deltaAbsolute})`
-        : stats.deltaPercentage > 0
-          ? `+${stats.deltaPercentage}% (+${stats.deltaAbsolute})`
-          : stats.deltaPercentage < 0
-            ? `${stats.deltaPercentage}% (${stats.deltaAbsolute})`
-            : `0% (${stats.deltaAbsolute > 0 ? '+' : ''}${stats.deltaAbsolute})`;
-  } else {
-    deltaText =
-      stats.deltaPercentage === null
-        ? 'N/A'
-        : stats.deltaPercentage > 0
-          ? `+${stats.deltaPercentage}%`
-          : stats.deltaPercentage < 0
-            ? `${stats.deltaPercentage}%`
-            : `0%`;
-  }
+  const deltaText = computeDeltaText(stats, deltaUnit, params.delta_format);
 
   const safeId = safeUser.replace(/[^a-zA-Z0-9-]/g, '_').toLowerCase();
 
@@ -2143,75 +2143,26 @@ function generateAutoThemeVersusSVG(
     sf
   );
 
-  let towers1 = '';
-  for (const t of towerData1) {
-    const fillClass = t.isGhost ? 'cp-text-fill' : 'cp-accent-fill';
-    const strokeColor = t.isGhost ? 'var(--cp-text)' : 'var(--cp-accent)';
-    const delay = ((t.row + t.col) * 0.015).toFixed(3);
-
-    let leftStrokeAttr = `stroke="${strokeColor}" stroke-opacity="${t.strokeOpacity}" stroke-width="${t.strokeWidth}"`;
-    let rightStrokeAttr = leftStrokeAttr;
-    let topStrokeAttr = leftStrokeAttr;
-
-    if (t.isToday && t.contributionCount === 0) {
-      leftStrokeAttr = t.isGhost
-        ? `stroke="${strokeColor}" stroke-opacity="${t.strokeOpacity}" stroke-width="${t.strokeWidth}"`
-        : '';
-      rightStrokeAttr = leftStrokeAttr;
-      topStrokeAttr = `stroke="var(--cp-accent)" stroke-opacity="0.8" stroke-width="${1.2 * sf}"`;
-    }
-
-    const paths = buildTowerPaths(t.h, 1);
-
-    towers1 += `
-        <g transform="translate(${t.x}, ${t.y})">
-          <g class="cp-tower" style="animation-delay: ${delay}s;">
-            ${t.isToday ? '<animate attributeName="opacity" values="1;0.4;1" dur="1.5s" repeatCount="indefinite" />' : ''}
-            <title>${escapeXML(t.tooltip)}</title>
-            <path d="${paths.left}" class="${fillClass}" fill-opacity="${t.faceOpacity.left}" ${leftStrokeAttr} />
-            <path d="${paths.right}" class="${fillClass}" fill-opacity="${t.faceOpacity.right}" ${rightStrokeAttr} />
-            <path d="${paths.top}" class="${fillClass}" fill-opacity="${t.faceOpacity.top}" ${topStrokeAttr} />
-            ${t.contributionCount > 5 ? `<path d="${paths.top}" fill="white" fill-opacity="0.2" />` : ''}
-          </g>
-        </g>`;
-    if (t.contributionCount >= 10)
-      towers1 += generateParticles(t.x, t.y, t.h, t.contributionCount, sf, true);
-  }
-
-  let towers2 = '';
-  for (const t of towerData2) {
-    const fillClass = t.isGhost ? 'cp-text-fill' : 'cp-accent-fill';
-    const strokeColor = t.isGhost ? 'var(--cp-text)' : 'var(--cp-accent)';
-    const delay = ((t.row + t.col) * 0.015).toFixed(3);
-
-    let leftStrokeAttr = `stroke="${strokeColor}" stroke-opacity="${t.strokeOpacity}" stroke-width="${t.strokeWidth}"`;
-    let rightStrokeAttr = leftStrokeAttr;
-    let topStrokeAttr = leftStrokeAttr;
-
-    if (t.isToday && t.contributionCount === 0) {
-      leftStrokeAttr = t.isGhost
-        ? `stroke="${strokeColor}" stroke-opacity="${t.strokeOpacity}" stroke-width="${t.strokeWidth}"`
-        : '';
-      rightStrokeAttr = leftStrokeAttr;
-      topStrokeAttr = `stroke="var(--cp-accent)" stroke-opacity="0.8" stroke-width="${1.2 * sf}"`;
-    }
-
-    const paths = buildTowerPaths(t.h, 1);
-
-    towers2 += `
-        <g transform="translate(${t.x}, ${t.y})">
-          <g class="cp-tower" style="animation-delay: ${delay}s;">
-            ${t.isToday ? '<animate attributeName="opacity" values="1;0.4;1" dur="1.5s" repeatCount="indefinite" />' : ''}
-            <title>${escapeXML(t.tooltip)}</title>
-            <path d="${paths.left}" class="${fillClass}" fill-opacity="${t.faceOpacity.left}" ${leftStrokeAttr} />
-            <path d="${paths.right}" class="${fillClass}" fill-opacity="${t.faceOpacity.right}" ${rightStrokeAttr} />
-            <path d="${paths.top}" class="${fillClass}" fill-opacity="${t.faceOpacity.top}" ${topStrokeAttr} />
-            ${t.contributionCount > 5 ? `<path d="${paths.top}" fill="white" fill-opacity="0.2" />` : ''}
-          </g>
-        </g>`;
-    if (t.contributionCount >= 10)
-      towers2 += generateParticles(t.x, t.y, t.h, t.contributionCount, sf, true);
-  }
+  const towers1 = renderTowers(
+    towerData1,
+    params,
+    '',
+    '',
+    sf,
+    true,
+    params.opacity ?? 1.0,
+    params.animate ?? true
+  );
+  const towers2 = renderTowers(
+    towerData2,
+    params,
+    '',
+    '',
+    sf,
+    true,
+    params.opacity ?? 1.0,
+    params.animate ?? true
+  );
 
   const s = createScaler(sf);
   const fs = (n: number): number => Math.round(n * sf * 10) / 10;

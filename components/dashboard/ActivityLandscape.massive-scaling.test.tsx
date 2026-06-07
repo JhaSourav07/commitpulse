@@ -33,7 +33,12 @@ describe('ActivityLandscape – Massive Data Sets and Extreme High Bounds Scalin
       locDeletions: 999999,
     }));
     const result = getFilteredData(data, '1Y');
-    expect(result.every((d) => d.count === 999999)).toBe(true);
+
+    // Each bar sums a window of identical days, so counts stay finite positive multiples.
+    expect(result.every((d) => Number.isFinite(d.count) && d.count > 0)).toBe(true);
+    expect(result.every((d) => d.count % 999999 === 0)).toBe(true);
+    // No days are dropped: the bucketed total equals the full window total.
+    expect(result.reduce((sum, d) => sum + d.count, 0)).toBe(365 * 999999);
   });
 
   it('returns correct slice for 1W tab with large dataset', () => {
