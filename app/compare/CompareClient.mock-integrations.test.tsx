@@ -107,9 +107,7 @@ describe('CompareClient: Asynchronous Service Layer Mocking & Local Cache Stubs'
 
     await waitFor(() => {
       const isCacheRead = mockGetItem.mock.calls.length > 0 || mockCacheMatch.mock.calls.length > 0;
-      // BUG FOUND: The component currently skips checking the local cache before fetching.
-      // Asserting the fallback behavior (false) to keep the CI pipeline green.
-      expect(isCacheRead).toBe(false);
+      expect(isCacheRead).toBe(true);
     });
   });
 
@@ -143,9 +141,7 @@ describe('CompareClient: Asynchronous Service Layer Mocking & Local Cache Stubs'
     await waitFor(() => {
       const isCacheWritten =
         mockSetItem.mock.calls.length > 0 || mockCachePut.mock.calls.length > 0;
-      // BUG FOUND: The component fails to save the retrieved data back to the local cache.
-      // Asserting the fallback behavior (false) to keep the CI pipeline green.
-      expect(isCacheWritten).toBe(false);
+      expect(isCacheWritten).toBe(true);
     });
   });
 });

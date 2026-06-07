@@ -22,8 +22,10 @@ import type {
   Language,
   Timezone,
 } from './types';
+
 import { useDebounce } from '@/hooks/useDebounce';
-import { getExportSnippet, buildQueryParams } from './utils';
+import useFetchCache from '@/hooks/useFetchCache';
+import { getExportSnippet, buildQueryParams, streakErrorMessage } from './utils';
 
 function readNumericSearchParam(
   searchParams: URLSearchParams,
@@ -75,6 +77,7 @@ function CustomizePageInner(): ReactElement {
   const [copyStatusMessage, setCopyStatusMessage] = useState('');
   const copyResetTimeoutRef = useRef<number | null>(null);
   const [svgContent, setSvgContent] = useState<string>('');
+  const svgCache = useFetchCache<string>();
   const [svgState, setSvgState] = useState<'idle' | 'loading' | 'loaded' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const trimmedUsername = username.trim();
@@ -210,6 +213,13 @@ function CustomizePageInner(): ReactElement {
 
     setSvgState('loading');
     const controller = new AbortController();
+    const cached = svgCache.get(previewSrc);
+
+    if (cached) {
+      setSvgContent(cached);
+      setSvgState('loaded');
+      return;
+    }
 
     fetch(previewSrc, { signal: controller.signal })
       .then(async (res) => {
@@ -217,13 +227,7 @@ function CustomizePageInner(): ReactElement {
         if (!res.ok) {
           setSvgContent('');
           setSvgState('error');
-          if (res.status === 404 || res.status === 400) {
-            setErrorMessage('GitHub user not found');
-          } else if (res.status === 429) {
-            setErrorMessage('Rate limit exceeded. Please try again later.');
-          } else {
-            setErrorMessage('Failed to load badge');
-          }
+          setErrorMessage(streakErrorMessage(res.status));
           return;
         }
         return text;
@@ -263,6 +267,7 @@ function CustomizePageInner(): ReactElement {
           ],
         });
 
+        svgCache.set(previewSrc, sanitized);
         setSvgContent(sanitized);
         setSvgState('loaded');
         setErrorMessage(null);

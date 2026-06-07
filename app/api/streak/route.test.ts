@@ -481,11 +481,10 @@ describe('GET /api/streak', () => {
       expect(body).toContain('20s');
     });
 
-    it('falls back to 8s when speed is a non-integer decimal like "2.0s"', async () => {
-      const response = await GET(makeRequest({ user: 'octocat', speed: '2.0s' }));
+    it('preserves an in-range decimal speed like "8.5s" instead of forcing it to an integer', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', speed: '8.5s' }));
       const body = await response.text();
-      expect(body).toContain('8s');
-      expect(body).not.toContain('2.0s');
+      expect(body).toContain('8.5s');
     });
   });
 

@@ -2381,3 +2381,90 @@ describe('calculateWrappedStats', () => {
     expect(result.weekendRatio).toBe(100);
   });
 });
+
+describe('aggregateCalendars — missing days chronological order', () => {
+  it('appends missing days in ascending date order at the end of weeks', () => {
+    // cal1 covers 2024-01-01 to 2024-01-07 (one week)
+    const cal1: ContributionCalendar = {
+      totalContributions: 3,
+      weeks: [
+        {
+          contributionDays: [
+            { date: '2024-01-01', contributionCount: 1 },
+            { date: '2024-01-02', contributionCount: 1 },
+            { date: '2024-01-03', contributionCount: 1 },
+          ],
+        },
+      ],
+    };
+
+    // cal2 has dates that are NOT in cal1 — these become "missing days"
+    // and should be appended in chronological (ascending) order.
+    const cal2: ContributionCalendar = {
+      totalContributions: 2,
+      weeks: [
+        {
+          contributionDays: [
+            { date: '2024-01-05', contributionCount: 1 },
+            { date: '2024-01-06', contributionCount: 1 },
+          ],
+        },
+      ],
+    };
+
+    const result = aggregateCalendars([cal1, cal2]);
+
+    // Flatten all dates in the order they appear in the weeks array
+    const dates = result.weeks.flatMap((w) => w.contributionDays.map((d) => d.date));
+
+    // The base calendar dates come first (2024-01-01 to 2024-01-03),
+    // followed by the missing days (2024-01-05 and 2024-01-06) in ascending order.
+    // Before the fix, unshift reversed the sort so missing days appeared newest-first.
+    expect(dates).toEqual(['2024-01-01', '2024-01-02', '2024-01-03', '2024-01-05', '2024-01-06']);
+  });
+
+  it('preserves chronological order across the full flattened days array after aggregation', () => {
+    // Three calendars with non-overlapping date ranges to maximise missing-day injection
+    const cal1: ContributionCalendar = {
+      totalContributions: 1,
+      weeks: [{ contributionDays: [{ date: '2024-03-01', contributionCount: 1 }] }],
+    };
+    const cal2: ContributionCalendar = {
+      totalContributions: 1,
+      weeks: [{ contributionDays: [{ date: '2024-03-03', contributionCount: 1 }] }],
+    };
+    const cal3: ContributionCalendar = {
+      totalContributions: 1,
+      weeks: [{ contributionDays: [{ date: '2024-03-02', contributionCount: 1 }] }],
+    };
+
+    const result = aggregateCalendars([cal1, cal2, cal3]);
+    const dates = result.weeks.flatMap((w) => w.contributionDays.map((d) => d.date));
+
+    // All dates must appear in ascending order — no newest-first reversal
+    const sorted = [...dates].sort();
+    expect(dates).toEqual(sorted);
+  });
+
+  it('missing days have correct aggregated contribution counts after fix', () => {
+    const cal1: ContributionCalendar = {
+      totalContributions: 5,
+      weeks: [{ contributionDays: [{ date: '2024-06-01', contributionCount: 5 }] }],
+    };
+    const cal2: ContributionCalendar = {
+      totalContributions: 3,
+      weeks: [{ contributionDays: [{ date: '2024-06-03', contributionCount: 3 }] }],
+    };
+
+    const result = aggregateCalendars([cal1, cal2]);
+    const days = result.weeks.flatMap((w) => w.contributionDays);
+
+    // 2024-06-01 is the base calendar date, 2024-06-03 is a missing day
+    const jun1 = days.find((d) => d.date === '2024-06-01');
+    const jun3 = days.find((d) => d.date === '2024-06-03');
+
+    expect(jun1?.contributionCount).toBe(5);
+    expect(jun3?.contributionCount).toBe(3);
+    expect(result.totalContributions).toBe(8);
+  });
+});

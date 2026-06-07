@@ -1,0 +1,75 @@
+'use client';
+
+import { useEffect, useRef } from 'react';
+
+const SHORTCUT_ROUTES: Record<string, string> = {
+  d: '/',
+  c: '/contributors',
+  p: '/compare',
+  u: '/customize',
+};
+
+function isTypingTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+
+  const tagName = target.tagName.toLowerCase();
+
+  return (
+    tagName === 'input' ||
+    tagName === 'textarea' ||
+    tagName === 'select' ||
+    target.isContentEditable
+  );
+}
+
+export function useKeyboardShortcuts() {
+  const waitingForSecondKey = useRef(false);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    const resetShortcut = () => {
+      waitingForSecondKey.current = false;
+
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (isTypingTarget(event.target)) return;
+      if (event.ctrlKey || event.metaKey || event.altKey) return;
+
+      const key = event.key.toLowerCase();
+
+      if (!waitingForSecondKey.current) {
+        if (key === 'g') {
+          waitingForSecondKey.current = true;
+
+          timeoutRef.current = setTimeout(() => {
+            waitingForSecondKey.current = false;
+            timeoutRef.current = null;
+          }, 1000);
+        }
+
+        return;
+      }
+
+      const route = SHORTCUT_ROUTES[key];
+
+      if (route) {
+        event.preventDefault();
+        window.location.assign(route);
+      }
+
+      resetShortcut();
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      resetShortcut();
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
+}

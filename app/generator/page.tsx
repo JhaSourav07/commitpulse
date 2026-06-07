@@ -1,3 +1,4 @@
+import type React from 'react';
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
 import { GeneratorClient } from './GeneratorClient';
@@ -18,11 +19,11 @@ function GeneratorSkeleton() {
   return (
     <div className="flex flex-col lg:flex-row gap-5 xl:gap-6 items-start w-full animate-pulse">
       <div className="w-full lg:w-[44%] xl:w-[42%] flex-shrink-0 space-y-4">
-        {[140, 120, 280, 180, 200].map((h, i) => (
+        {[140, 120, 280, 180, 200].map((height) => (
           <div
-            key={i}
+            key={height}
             className="rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-[#111111]"
-            style={{ height: h }}
+            style={{ height }}
           />
         ))}
       </div>
