@@ -255,18 +255,19 @@ export async function DELETE(req: NextRequest) {
 // ─── GET /api/notify ─────────────────────────────────────────────────────────
 // Fetch notification preferences for a user
 export async function GET(req: Request) {
-  // Rate limiting
+  // Rate limiting — always applied with user-agent fallback for unknown IPs,
+  // consistent with the POST and DELETE handlers in this file.
   const ip = getClientIp(req);
 
-  if (ip !== 'unknown') {
-    const rateLimitResult = await notifyRateLimiter.checkWithResult(ip);
+  const rateLimitKey =
+    ip && ip !== 'unknown' ? ip : `unknown:${req.headers.get('user-agent') ?? 'no-agent'}`;
+  const rateLimitResult = await notifyRateLimiter.checkWithResult(rateLimitKey);
 
-    if (!rateLimitResult.success) {
-      return NextResponse.json(
-        { success: false, message: 'Too many requests, please try again later.' },
-        { status: 429, headers: getRateLimitHeaders(rateLimitResult) }
-      );
-    }
+  if (!rateLimitResult.success) {
+    return NextResponse.json(
+      { success: false, message: 'Too many requests, please try again later.' },
+      { status: 429, headers: getRateLimitHeaders(rateLimitResult) }
+    );
   }
 
   // Validate query params with Zod

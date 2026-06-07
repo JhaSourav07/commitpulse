@@ -27,12 +27,25 @@ describe('ActivityLandscape Filtering Logic', () => {
     expect(result[result.length - 1].count).toBe(39);
   });
 
-  it('filters 3M correctly (last 90 days, downsampled to <=60)', () => {
+  it('filters 3M correctly (last 90 days, aggregated to <=60)', () => {
     const data = generateData(100);
     const result = getFilteredData(data, '3M');
     expect(result.length).toBeLessThanOrEqual(60);
     expect(result.length).toBe(45);
-    expect(result[0].count).toBe(10);
+    // The last 90 days are counts 10..99 bucketed in pairs (step 2); the first bar sums 10 + 11.
+    expect(result[0].count).toBe(21);
+  });
+
+  it('aggregates buckets by summing days rather than dropping them', () => {
+    const data = generateData(100);
+    const recentTotal = data.slice(-90).reduce((sum, d) => sum + d.count, 0);
+    const result = getFilteredData(data, '3M');
+    const bucketedTotal = result.reduce((sum, d) => sum + d.count, 0);
+
+    // Bucketing preserves the full window total, unlike the old every-Nth-day sampling.
+    expect(bucketedTotal).toBe(recentTotal);
+    // A simple every-Nth-day sample of 45 of 90 days would total far less than the full window.
+    expect(bucketedTotal).toBeGreaterThan(recentTotal / 2);
   });
 
   it('filters 1Y correctly (last 365 days, downsampled to <=60)', () => {
@@ -40,6 +53,32 @@ describe('ActivityLandscape Filtering Logic', () => {
     const result = getFilteredData(data, '1Y');
     expect(result.length).toBeLessThanOrEqual(60);
     expect(result.length).toBe(53);
+  });
+
+  it('places the partial bucket at the oldest edge and keeps recent bars as full windows', () => {
+    const data = generateData(61); // counts 0..60; 3M -> step 2, remainder 1 -> 31 buckets
+    const result = getFilteredData(data, '3M');
+    expect(result.length).toBe(31);
+    // The leftover oldest day stays its own bar instead of being merged into a full window.
+    expect(result[0].count).toBe(0);
+    // The most recent bar sums the last two days (59 + 60).
+    expect(result[result.length - 1].count).toBe(59 + 60);
+  });
+
+  it('records each aggregated bucket span (startDate and days)', () => {
+    const data = generateData(61); // 3M -> step 2, remainder 1
+    const result = getFilteredData(data, '3M');
+    // The partial oldest bucket spans a single day.
+    expect(result[0].startDate).toBe('2024-01-01');
+    expect(result[0].days).toBe(1);
+    // The next bucket aggregates two days.
+    expect(result[1].startDate).toBe('2024-01-02');
+    expect(result[1].date).toBe('2024-01-03');
+    expect(result[1].days).toBe(2);
+
+    // Non-downsampled views keep raw single days without a span.
+    const small = getFilteredData(generateData(10), '1W');
+    expect(small[0].startDate).toBeUndefined();
   });
 
   it('applies downsampling when items exceed 60', () => {
