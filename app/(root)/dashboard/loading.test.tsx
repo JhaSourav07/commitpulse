@@ -1,18 +1,11 @@
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { describe, it, expect } from 'vitest';
+import { render } from '@testing-library/react';
 import DashboardLoading from './loading';
 
-vi.mock('@/components/dashboard/StatsCardSkeleton', () => ({
-  default: () => <div data-testid="stats-card-skeleton" />,
-}));
-
-vi.mock('@/components/dashboard/AchievementsSkeleton', () => ({
-  default: () => <div data-testid="achievements-skeleton" />,
-}));
-
-vi.mock('@/components/dashboard/AIInsightsSkeleton', () => ({
-  default: () => <div data-testid="ai-insights-skeleton" />,
-}));
+// loading.tsx is intentionally a no-op — it returns null because the
+// LoadingScreen overlay is now managed by DashboardPageWrapper (which portals
+// it into document.body), so Next.js can no longer abruptly unmount it when
+// API data arrives. These tests verify that contract.
 
 describe('DashboardLoading', () => {
   it('renders without crashing', () => {
@@ -20,22 +13,13 @@ describe('DashboardLoading', () => {
     expect(container).toBeTruthy();
   });
 
-  it('renders 3 StatsCardSkeleton components', () => {
-    render(<DashboardLoading />);
-    const skeletons = screen.getAllByTestId('stats-card-skeleton');
-    expect(skeletons).toHaveLength(3);
-  });
-
-  it('renders shimmer skeleton elements in the left sidebar', () => {
+  it('renders nothing — returns null so Next.js loading boundary is a no-op', () => {
     const { container } = render(<DashboardLoading />);
-    const leftSidebar = container.querySelector('.grid > div:first-child');
-    const shimmerElements = leftSidebar?.querySelectorAll('.shimmer');
-    expect(shimmerElements?.length).toBeGreaterThan(0);
+    expect(container.firstChild).toBeNull();
   });
 
-  it('renders right sidebar skeleton components', () => {
-    render(<DashboardLoading />);
-    expect(screen.getByTestId('achievements-skeleton')).toBeTruthy();
-    expect(screen.getByTestId('ai-insights-skeleton')).toBeTruthy();
+  it('renders no DOM nodes at all', () => {
+    const { container } = render(<DashboardLoading />);
+    expect(container.childElementCount).toBe(0);
   });
 });

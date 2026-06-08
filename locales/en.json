@@ -65,7 +65,8 @@
     "preview_monolith": "PREVIEW MONOLITH",
     "interactive_preview_title": "Interactive Monolith Preview",
     "interactive_preview_desc": "CommitPulse compiles your public GitHub contribution history into a customizable 3D city. The taller the towers, the more you committed that day. Enter a GitHub username above to instantly generate your streak badge.",
-    "input_aria_label": "Enter GitHub username to generate badge"
+    "input_aria_label": "Enter GitHub username to generate badge",
+    "unable_to_load_stats": "Unable to load stats"
   },
   "success_guide": {
     "title": "Your Monolith is Ready - Deploy It in 4 Steps",
@@ -81,7 +82,8 @@
     "copied_snippet_label": "Your copied snippet",
     "color_tip": "Tip: Add ?accent=808080 to the URL to change your monolith's colour palette.",
     "watch_dashboard_btn": "Watch Your Dashboard",
-    "customize_more_btn": "Want to customize more?"
+    "customize_more_btn": "Want to customize more?",
+    "dismiss_aria": "Dismiss guide"
   },
   "customize_cta": {
     "studio_badge": "Customization Studio",

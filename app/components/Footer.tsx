@@ -122,7 +122,7 @@ export function Footer() {
         {/* Main Footer Content */}
         <div className="grid grid-cols-2 gap-6 md:grid-cols-2 lg:grid-cols-4 mb-6">
           {/* Brand Section */}
-          <div className="flex flex-col items-center sm:items-start lg:col-span-1">
+          <div className="flex flex-col items-start lg:col-span-1">
             <h2 className="font-bold text-lg text-black dark:text-white">CommitPulse</h2>
             <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">{t('footer.tagline')}</p>
           </div>
