@@ -2824,15 +2824,7 @@ export function generateLanguagesSVG(
     const scaledY = H / 2 + (50 + lang.coord.y) * sf;
     const h = Math.max(30, (lang.percentage / maxPercent) * 140) * sf;
 
-    // Scale up the tower base size
-    const tw = 16 * TOWER_SCALE * sf; // half-width
-    const th = 10 * TOWER_SCALE * sf; // half-height
-
-    const paths = {
-      left: `M0 ${-h} L0 ${th} L${-tw} 0 L${-tw} ${-h - th} Z`,
-      right: `M0 ${-h} L0 ${th} L${tw} 0 L${tw} ${-h - th} Z`,
-      top: `M0 ${-h - th} L${tw} ${-h} L0 ${-h + th} L${-tw} ${-h} Z`,
-    };
+    const paths = buildTowerPaths(h, TOWER_SCALE * sf);
 
     const hexColor = lang.color.startsWith('#') ? lang.color : `#${lang.color}`;
     const delay = (idx * 0.15).toFixed(3);
@@ -2846,8 +2838,8 @@ export function generateLanguagesSVG(
             <path d="${paths.right}" fill="${hexColor}" fill-opacity="0.65" />
             <path d="${paths.top}" fill="${hexColor}" fill-opacity="1.0" />
             
-            <text x="0" y="${-h - th - 18 * sf}" text-anchor="middle" font-family='${statsFont}' font-size="${14 * sf}px" fill="${text}" font-weight="bold">${lang.name}</text>
-            <text x="0" y="${-h - th - 4 * sf}" text-anchor="middle" font-family='${statsFont}' font-size="${12 * sf}px" fill="${text}" opacity="0.6">${lang.percentage}%</text>
+            <text x="0" y="${-h - 18 * sf}" text-anchor="middle" font-family='${statsFont}' font-size="${14 * sf}px" fill="${text}" font-weight="bold">${lang.name}</text>
+            <text x="0" y="${-h - 4 * sf}" text-anchor="middle" font-family='${statsFont}' font-size="${12 * sf}px" fill="${text}" opacity="0.6">${lang.percentage}%</text>
           </g>
         </g>`;
   });
