@@ -78,4 +78,14 @@ describe('CodeBlock', () => {
 
     expect(screen.getByRole('button', { name: /copy/i })).toBeTruthy();
   });
+
+  it('announces copy success for screen readers', async () => {
+    render(<CodeBlock code={codeSnippet} />);
+
+    fireEvent.click(screen.getByRole('button', { name: /copy/i }));
+
+    await screen.findByRole('button', { name: /copied/i });
+
+    expect(screen.getByText('Code copied to clipboard')).toBeTruthy();
+  });
 });
