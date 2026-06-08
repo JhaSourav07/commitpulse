@@ -309,6 +309,39 @@ describe('InteractiveViewer', () => {
     expect(contentDiv.style.transform).toContain('translate(20px, 20px) scale(1)');
   });
 
+  it('shows a tooltip with the formatted date when hovering a tower and updates it across towers', () => {
+    render(
+      <InteractiveViewer>
+        <div
+          className="interactive-tower"
+          data-date="2025-06-15"
+          data-count="42"
+          data-metric="commits"
+          data-testid="tower-a"
+        >
+          Tower A
+        </div>
+        <div
+          className="interactive-tower"
+          data-date="2025-01-01"
+          data-count="7"
+          data-metric="commits"
+          data-testid="tower-b"
+        >
+          Tower B
+        </div>
+      </InteractiveViewer>
+    );
+
+    fireEvent.pointerMove(screen.getByTestId('tower-a'), { clientX: 100, clientY: 100 });
+    expect(screen.getByRole('tooltip')).toBeTruthy();
+    expect(screen.getByText('Jun 15, 2025')).toBeTruthy();
+
+    fireEvent.pointerMove(screen.getByTestId('tower-b'), { clientX: 200, clientY: 100 });
+    expect(screen.getByText('Jan 1, 2025')).toBeTruthy();
+    expect(screen.queryByText('Jun 15, 2025')).toBeNull();
+  });
+
   it('updates mousePos and particle shifts on pointerMove when not dragging', () => {
     const { container } = render(
       <InteractiveViewer>
