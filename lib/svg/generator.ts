@@ -1870,7 +1870,7 @@ function renderGhostTowers(
   let ghostTowers = '';
   for (const { col, row, h } of layout) {
     const tx = 300 + (col - row) * 16;
-    const ty = 120 + (col + row) * 9;
+    const ty = 120 + (col + row) * TILE_HEIGHT_HALF;
     ghostTowers += `
       <g transform="translate(${tx}, ${ty - h})">
         <path d="M0 10 L0 ${10 + h} L-16 ${h} L-16 0 Z"
