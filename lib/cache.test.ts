@@ -659,6 +659,10 @@ describe('TTLCache', () => {
       vi.advanceTimersByTime(1000);
       expect(cache.get('nan-key')).toBe('value');
 
+      // Advance past the default TTL (60s) to verify it eventually expires
+      vi.advanceTimersByTime(59_001);
+      expect(cache.get('nan-key')).toBeNull();
+
       cache.destroy();
     });
 
@@ -774,6 +778,41 @@ describe('DistributedCache', () => {
 
     expect(await cache.get('mykey')).toBe('myvalue');
     expect(fetch).not.toHaveBeenCalled();
+    cache.destroy();
+  });
+
+  it('rejects a negative TTL before issuing any Redis write, then stays usable (Issue #1388)', async () => {
+    process.env.KV_REST_API_URL = 'https://mock-redis.upstash.io';
+    process.env.KV_REST_API_TOKEN = 'mock-token';
+
+    const cache = new DistributedCache<string>();
+
+    // A negative TTL reaches set() in production whenever a caller derives it
+    // from `deadline - Date.now()` and the deadline has already elapsed.
+    await expect(cache.set('streak:42', 'value', -5000)).rejects.toThrow(
+      new RangeError('ttlMs must be positive, got -5000')
+    );
+
+    // The guard must short-circuit before the REST call: otherwise an invalid
+    // TTL would leave an orphaned entry in the shared Redis store while the
+    // local L1 cache stayed empty, silently desynchronising the two layers.
+    expect(fetch).not.toHaveBeenCalled();
+
+    // The instance must remain fully usable after the rejected call, and a
+    // subsequent valid set should issue exactly one Redis write.
+    vi.mocked(fetch).mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve({ result: 'OK' }),
+    } as Response);
+
+    await expect(cache.set('streak:42', 'value', 60_000)).resolves.toBeUndefined();
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(fetch).toHaveBeenCalledWith(
+      'https://mock-redis.upstash.io/',
+      expect.objectContaining({ body: expect.stringContaining('"SET"') })
+    );
+
     cache.destroy();
   });
 
