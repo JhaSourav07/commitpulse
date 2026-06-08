@@ -3,31 +3,6 @@ import { describe, expect, it, vi } from 'vitest';
 import { ControlsPanel } from './ControlsPanel';
 import type { BadgeSize, Font, Scale } from '../types';
 
-const mockTranslations: Record<string, string> = {
-  'customize_cta.studio_badge': 'Customization Studio',
-  'customize.controls.username': 'GitHub Username',
-  'customize.controls.username_placeholder': 'Enter username...',
-  'customize.controls.sync_year': 'Sync Year',
-  'customize.controls.color_overrides': 'Color Overrides',
-  'customize.controls.custom_bg': 'Custom Background',
-  'customize.controls.custom_accent': 'Custom Accent',
-  'customize.controls.custom_text': 'Custom Text',
-  'customize.controls.clear_custom': 'Clear Custom Colors',
-  'customize.controls.log_scaling': 'Log Scaling',
-  'customize.controls.speed': 'Speed',
-  'customize.controls.font': 'Font',
-  'customize.controls.custom_font_option': 'Custom Font',
-  'customize.controls.custom_font_placeholder': 'Enter font name',
-  'customize.controls.radius': 'Border Radius',
-  'customize.controls.badge_size': 'Badge Size',
-};
-
-vi.mock('@/context/TranslationContext', () => ({
-  useTranslation: () => ({
-    t: (key: string) => mockTranslations[key] ?? key,
-  }),
-}));
-
 vi.mock('./ThemeSelector', () => ({
   ThemeSelector: () => <div data-testid="theme-selector">Theme Selector</div>,
   StyledSelect: ({
