@@ -22,8 +22,11 @@ import type {
   Language,
   Timezone,
 } from './types';
+
 import { useDebounce } from '@/hooks/useDebounce';
-import { getExportSnippet, buildQueryParams } from './utils';
+import useFetchCache from '@/hooks/useFetchCache';
+import { getExportSnippet, buildQueryParams, streakErrorMessage } from './utils';
+import { useTranslation } from '@/context/TranslationContext';
 
 function readNumericSearchParam(
   searchParams: URLSearchParams,
@@ -49,6 +52,7 @@ function readNumericSearchParam(
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 function CustomizePageInner(): ReactElement {
+  const { t } = useTranslation();
   const [username, setUsername] = useState('');
   const [theme, setTheme] = useState('dark');
   const [bgHex, setBgHex] = useState('');
@@ -75,6 +79,7 @@ function CustomizePageInner(): ReactElement {
   const [copyStatusMessage, setCopyStatusMessage] = useState('');
   const copyResetTimeoutRef = useRef<number | null>(null);
   const [svgContent, setSvgContent] = useState<string>('');
+  const svgCache = useFetchCache<string>();
   const [svgState, setSvgState] = useState<'idle' | 'loading' | 'loaded' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const trimmedUsername = username.trim();
@@ -210,6 +215,13 @@ function CustomizePageInner(): ReactElement {
 
     setSvgState('loading');
     const controller = new AbortController();
+    const cached = svgCache.get(previewSrc);
+
+    if (cached) {
+      setSvgContent(cached);
+      setSvgState('loaded');
+      return;
+    }
 
     fetch(previewSrc, { signal: controller.signal })
       .then(async (res) => {
@@ -217,13 +229,7 @@ function CustomizePageInner(): ReactElement {
         if (!res.ok) {
           setSvgContent('');
           setSvgState('error');
-          if (res.status === 404 || res.status === 400) {
-            setErrorMessage('GitHub user not found');
-          } else if (res.status === 429) {
-            setErrorMessage('Rate limit exceeded. Please try again later.');
-          } else {
-            setErrorMessage('Failed to load badge');
-          }
+          setErrorMessage(streakErrorMessage(res.status));
           return;
         }
         return text;
@@ -263,6 +269,7 @@ function CustomizePageInner(): ReactElement {
           ],
         });
 
+        svgCache.set(previewSrc, sanitized);
         setSvgContent(sanitized);
         setSvgState('loaded');
         setErrorMessage(null);
@@ -311,7 +318,21 @@ function CustomizePageInner(): ReactElement {
       setCopied(true);
 
       announceCopyStatus(
-        `${exportFormat === 'markdown' ? 'Markdown' : 'HTML'} snippet copied to clipboard.`
+        exportFormat === 'markdown'
+          ? t('customize.export.copy_status_markdown_success', {
+              defaultValue: 'Markdown snippet copied to clipboard.',
+            })
+          : exportFormat === 'html'
+            ? t('customize.export.copy_status_html_success', {
+                defaultValue: 'HTML snippet copied to clipboard.',
+              })
+            : exportFormat === 'tsx'
+              ? t('customize.export.copy_status_tsx_success', {
+                  defaultValue: 'React TSX snippet copied to clipboard.',
+                })
+              : t('customize.export.copy_status_action_success', {
+                  defaultValue: 'GitHub Action snippet copied to clipboard.',
+                })
       );
 
       if (copyResetTimeoutRef.current !== null) {
@@ -326,7 +347,9 @@ function CustomizePageInner(): ReactElement {
       setCopied(false);
 
       announceCopyStatus(
-        `Unable to copy the ${exportFormat === 'markdown' ? 'Markdown' : 'HTML'} snippet.`
+        t('customize.export.copy_status_error', {
+          defaultValue: `Unable to copy the ${exportFormat === 'markdown' ? 'Markdown' : 'HTML'} snippet.`,
+        })
       );
     }
   };
@@ -370,14 +393,14 @@ function CustomizePageInner(): ReactElement {
             >
               <path d="M19 12H5M12 5l-7 7 7 7" />
             </svg>
-            Back to Home
+            {t('customize.back_to_home')}
           </Link>
 
           <div className="h-4 w-px bg-white/10" />
 
           <div>
             <span className="text-xs font-bold uppercase tracking-[0.22em] text-emerald-600 dark:text-emerald-400">
-              Customization Studio
+              {t('customize_cta.studio_badge')}
             </span>
           </div>
         </motion.div>
@@ -390,12 +413,9 @@ function CustomizePageInner(): ReactElement {
           className="mb-10"
         >
           <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-black dark:text-white leading-tight mb-2">
-            Fine-tune your monolith.
+            {t('customize.title')}
           </h1>
-          <p className="text-gray-600 dark:text-white/65 text-sm max-w-xl">
-            Every change below updates the preview in real-time. Copy the export snippet when
-            you&apos;re done. No extra steps required.
-          </p>
+          <p className="text-gray-600 dark:text-white/65 text-sm max-w-xl">{t('customize.desc')}</p>
         </motion.div>
 
         {/* ── Split layout ─────────────────────────────────────────────────── */}
@@ -448,7 +468,7 @@ function CustomizePageInner(): ReactElement {
             {/* Live Preview */}
             <div className="bg-white/70 backdrop-blur-xl border border-black/10 dark:bg-black/35 dark:border-white/10 rounded-[1.75rem] p-6 shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
               <p className="text-xs font-bold uppercase tracking-[0.22em] text-emerald-600 dark:text-emerald-400 mb-5">
-                Live Preview
+                {t('customize.live_preview')}
               </p>
 
               {/* ─── MOVING THE INTERACTION LISTENER DIRECTLY TO THE OUTER WRAPPER CONTAINER ROW ─── */}
@@ -567,10 +587,10 @@ function CustomizePageInner(): ReactElement {
                         </svg>
                       </div>
                       <p className="text-lg font-semibold tracking-tight text-black dark:text-white">
-                        Enter a GitHub username to preview
+                        {t('landing.preview_placeholder_title')}
                       </p>
                       <p className="mt-2 max-w-md text-sm leading-relaxed text-gray-500 dark:text-white/65">
-                        The live badge preview will appear here once a username is added.
+                        {t('customize.empty_preview_desc')}
                       </p>
                     </div>
                   )}
@@ -580,9 +600,9 @@ function CustomizePageInner(): ReactElement {
               <p className="mt-3 text-[11px] text-gray-500 dark:text-white/55 text-center">
                 {hasUsername
                   ? isRandomTheme
-                    ? 'Random theme changes on every page load and disables caching'
-                    : 'Preview updates on every change. Hosted badge is cached at UTC midnight'
-                  : 'Add a username to enable live preview and export snippets'}
+                    ? t('landing.preview_auto_theme')
+                    : t('landing.preview_caching_tip')
+                  : t('landing.preview_empty_tip')}
               </p>
             </div>
 
@@ -600,7 +620,7 @@ function CustomizePageInner(): ReactElement {
             {/* URL breakdown */}
             <div className="bg-white/70 backdrop-blur-xl border border-black/10 dark:bg-black/35 dark:border-white/10 rounded-[1.75rem] p-6 shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
               <p className="text-xs font-bold uppercase tracking-[0.22em] text-gray-500 dark:text-white/55 mb-4">
-                Active Parameters
+                {t('customize.active_params')}
               </p>
               <div className="flex flex-wrap gap-2">
                 {(hasUsername ? queryString.split('&') : ['user=your-github-username']).map(

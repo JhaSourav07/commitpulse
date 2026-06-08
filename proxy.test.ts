@@ -1,6 +1,6 @@
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest, NextResponse } from 'next/server';
-import { proxy, config } from './proxy';
+import { middleware as proxy, config } from './middleware';
 import { rateLimit } from '@/lib/rate-limit';
 
 vi.mock('@/lib/rate-limit', () => ({
@@ -383,5 +383,40 @@ describe('proxy', () => {
       const body = await response.json();
       expect(body.error).toBe('Too many requests');
     });
+  });
+});
+
+describe('middleware.ts wiring', () => {
+  it('middleware.ts exports a function named middleware', async () => {
+    const mod = await import('./middleware');
+
+    // Next.js looks for a named export called `middleware`
+    expect(typeof mod.middleware).toBe('function');
+  });
+
+  it('middleware.ts exports config with a non-empty matcher array', async () => {
+    const mod = await import('./middleware');
+
+    expect(mod.config).toBeDefined();
+    expect(Array.isArray(mod.config.matcher)).toBe(true);
+    expect(mod.config.matcher.length).toBeGreaterThan(0);
+  });
+
+  it('middleware covers all expected API routes', async () => {
+    const { config: mwConfig } = await import('./middleware');
+    const expected = [
+      '/api/streak/:path*',
+      '/api/github/:path*',
+      '/api/track-user/:path*',
+      '/api/stats/:path*',
+      '/api/og/:path*',
+      '/api/notify/:path*',
+      '/api/compare/:path*',
+      '/api/wrapped/:path*',
+      '/api/student/:path*',
+    ];
+    for (const route of expected) {
+      expect(mwConfig.matcher).toContain(route);
+    }
   });
 });

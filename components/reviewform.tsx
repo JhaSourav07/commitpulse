@@ -15,28 +15,74 @@ export default function SubmitReviewPage() {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
+
+    // Client-side validation
+    if (formData.name.trim().length === 0) {
+      setError('Please enter your full name.');
+      return;
+    }
+    if (formData.handle.trim().length === 0) {
+      setError('Please enter your handle.');
+      return;
+    }
+    if (!/^@?[\w.-]+$/.test(formData.handle.trim())) {
+      setError('Handle must be a valid username (letters, numbers, _ . -).');
+      return;
+    }
+    if (formData.message.trim().length < 10) {
+      setError('Message must be at least 10 characters.');
+      return;
+    }
+    if (formData.message.trim().length > 1000) {
+      setError('Message must be at most 1000 characters.');
+      return;
+    }
+
     setIsSubmitting(true);
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1200));
-
-    setIsSubmitting(false);
-    setSubmitted(true);
-
-    // Reset form after success
-    setTimeout(() => {
-      setSubmitted(false);
-      setFormData({
-        name: '',
-        handle: '',
-        platform: 'twitter',
-        message: '',
-        accentColor: '#10b981',
+    try {
+      const res = await fetch('/api/reviews', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: formData.name.trim(),
+          handle: formData.handle.trim(),
+          platform: formData.platform,
+          message: formData.message.trim(),
+          accentColor: formData.accentColor,
+        }),
       });
-    }, 3000);
+
+      const data = (await res.json()) as { success: boolean; message: string };
+
+      if (!res.ok || !data.success) {
+        setError(data.message ?? 'Something went wrong. Please try again.');
+        return;
+      }
+
+      setSubmitted(true);
+
+      // Reset form after success message
+      setTimeout(() => {
+        setSubmitted(false);
+        setFormData({
+          name: '',
+          handle: '',
+          platform: 'twitter',
+          message: '',
+          accentColor: '#10b981',
+        });
+      }, 3000);
+    } catch {
+      setError('Network error. Please check your connection and try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const accentColors = [
@@ -92,6 +138,7 @@ export default function SubmitReviewPage() {
                 <input
                   type="text"
                   required
+                  maxLength={100}
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   className="w-full bg-zinc-900 border border-zinc-800 rounded-2xl px-5 py-4 focus:outline-none focus:border-purple-500 transition-colors"
@@ -107,6 +154,7 @@ export default function SubmitReviewPage() {
                 <input
                   type="text"
                   required
+                  maxLength={50}
                   value={formData.handle}
                   onChange={(e) => setFormData({ ...formData, handle: e.target.value })}
                   className="w-full bg-zinc-900 border border-zinc-800 rounded-2xl px-5 py-4 focus:outline-none focus:border-purple-500 transition-colors"
@@ -175,12 +223,27 @@ export default function SubmitReviewPage() {
               <textarea
                 required
                 rows={6}
+                minLength={10}
+                maxLength={1000}
                 value={formData.message}
                 onChange={(e) => setFormData({ ...formData, message: e.target.value })}
                 className="w-full bg-zinc-900 border border-zinc-800 rounded-3xl px-5 py-4 focus:outline-none focus:border-purple-500 transition-colors resize-none"
                 placeholder="CommitPulse completely transformed how my GitHub profile looks. The 3D visualization is stunning..."
               />
+              <p className="text-right text-xs text-zinc-500 mt-1">
+                {formData.message.length}/1000
+              </p>
             </div>
+
+            {/* Error message */}
+            {error && (
+              <p
+                role="alert"
+                className="text-sm text-red-400 bg-red-400/10 border border-red-400/20 rounded-xl px-4 py-3"
+              >
+                {error}
+              </p>
+            )}
 
             {/* Submit Button */}
             <motion.button

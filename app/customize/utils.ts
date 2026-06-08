@@ -23,6 +23,17 @@ export function getBadgeUrl(queryString: string): string {
   return `${BADGE_BASE_URL}?${queryString}`;
 }
 
+/**
+ * Maps a failed /api/streak preview response status to a user-facing message.
+ * A 400 means invalid parameters (for example a bad color), not a missing user.
+ */
+export function streakErrorMessage(status: number): string {
+  if (status === 404) return 'GitHub user not found';
+  if (status === 400) return 'Invalid customization options';
+  if (status === 429) return 'Rate limit exceeded. Please try again later.';
+  return 'Failed to load badge';
+}
+
 export function getExportSnippet(format: ExportFormat, queryString: string): string {
   const badgeUrl = getBadgeUrl(queryString);
 
@@ -224,15 +235,18 @@ export function buildQueryParams(options: CustomizeOptions): string {
     // Virtual themes always emit theme=<name> and skip custom color params.
     params.set('theme', options.theme);
   } else {
-    const hasCustomColors = options.bgHex || options.accentHex || options.textHex;
+    const hasValidBg = isValidHex(options.bgHex);
+    const hasValidAccent = isValidHex(options.accentHex);
+    const hasValidText = isValidHex(options.textHex);
+    const hasCustomColors = hasValidBg || hasValidAccent || hasValidText;
 
-    // Custom hex colors take priority over theme
+    // Only complete, valid hex colors take priority over theme; partial input falls back to theme.
     if (!hasCustomColors) {
       params.set('theme', options.theme);
     }
-    if (options.bgHex) params.set('bg', stripHash(options.bgHex));
-    if (options.accentHex) params.set('accent', stripHash(options.accentHex));
-    if (options.textHex) params.set('text', stripHash(options.textHex));
+    if (hasValidBg) params.set('bg', stripHash(options.bgHex));
+    if (hasValidAccent) params.set('accent', stripHash(options.accentHex));
+    if (hasValidText) params.set('text', stripHash(options.textHex));
   }
 
   if (options.scale !== 'linear') params.set('scale', options.scale);

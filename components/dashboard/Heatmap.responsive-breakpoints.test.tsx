@@ -28,9 +28,15 @@ vi.mock('framer-motion', () => ({
   AnimatePresence: ({ children }: { children?: ReactNode }) => <>{children}</>,
 }));
 
+const createDateString = (base: string, offset: number) => {
+  const date = new Date(`${base}T00:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + offset);
+  return date.toISOString().slice(0, 10);
+};
+
 describe('Heatmap Responsive Breakpoints', () => {
   const mockData: ActivityData[] = Array.from({ length: 35 }, (_, i) => ({
-    date: `2025-01-${String(i + 1).padStart(2, '0')}`,
+    date: createDateString('2025-01-01', i),
     count: i % 5,
     intensity: (i % 5) as 0 | 1 | 2 | 3 | 4,
   }));
