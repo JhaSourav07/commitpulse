@@ -56,8 +56,8 @@ describe('ControlsPanel Theme Contrast', () => {
   it('renders core controls correctly in themed environment', () => {
     render(<ControlsPanel {...createProps()} />);
 
-    expect(screen.getByText('Controls')).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('your-github-username')).toBeInTheDocument();
+    expect(screen.getByText('Customization Studio')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Enter username...')).toBeInTheDocument();
     expect(screen.getByTestId('theme-selector')).toBeInTheDocument();
   });
 
@@ -66,7 +66,7 @@ describe('ControlsPanel Theme Contrast', () => {
 
     render(<ControlsPanel {...props} />);
 
-    fireEvent.change(screen.getByPlaceholderText('your-github-username'), {
+    fireEvent.change(screen.getByPlaceholderText('Enter username...'), {
       target: { value: 'new-user' },
     });
 
