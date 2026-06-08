@@ -3,6 +3,7 @@ import DashboardClient from '@/components/dashboard/DashboardClient';
 import { getFullDashboardData, fetchUserProfile } from '@/lib/github';
 import { notFound, redirect } from 'next/navigation';
 import { resolveDashboardPeriod } from '@/utils/dashboardPeriod';
+import DashboardPageWrapper from '../DashboardPageWrapper';
 
 export const revalidate = 3600; // Cache for 1 hour
 
@@ -129,11 +130,13 @@ export default async function DashboardPage({
   }
 
   return (
-    <DashboardClient
-      initialData={data}
-      username={username}
-      compareData={compareData}
-      period={period}
-    />
+    <DashboardPageWrapper>
+      <DashboardClient
+        initialData={data}
+        username={username}
+        compareData={compareData}
+        period={period}
+      />
+    </DashboardPageWrapper>
   );
 }
