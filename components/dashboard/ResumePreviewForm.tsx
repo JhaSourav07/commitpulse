@@ -193,7 +193,11 @@ export default function ResumePreviewForm({
                   onChange={(e) => updateSkill(i, e.target.value)}
                   className="w-24 bg-transparent text-sm text-gray-900 outline-none dark:text-white"
                 />
-                <button onClick={() => removeSkill(i)} className="text-red-400 hover:text-red-500">
+                <button
+                  aria-label="Remove skill"
+                  onClick={() => removeSkill(i)}
+                  className="text-red-400 hover:text-red-500"
+                >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     width="12"
@@ -235,6 +239,7 @@ export default function ResumePreviewForm({
               >
                 <div className="mb-2 flex justify-end">
                   <button
+                    aria-label="Remove education"
                     onClick={() => removeEducation(i)}
                     className="text-red-400 hover:text-red-500"
                   >
@@ -322,6 +327,7 @@ export default function ResumePreviewForm({
               >
                 <div className="mb-2 flex justify-end">
                   <button
+                    aria-label="Remove experience"
                     onClick={() => removeExperience(i)}
                     className="text-red-400 hover:text-red-500"
                   >

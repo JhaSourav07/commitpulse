@@ -359,6 +359,7 @@ export default function ProfileOptimizerModal({
         <div className="p-6 border-b border-black/10 dark:border-white/10 shrink-0">
           <button
             onClick={onClose}
+            aria-label="Close profile optimizer modal"
             className="absolute right-4 top-4 rounded-xl p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5 dark:text-white/40 hover:text-black dark:hover:text-white transition-all"
           >
             <X size={20} />

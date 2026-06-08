@@ -428,12 +428,14 @@ export default function ShareSheet({ username, isOpen, onClose, exportData }: Sh
                     </div>
                     <button
                       onClick={handleLocalCopyLink}
+                      aria-label="Copy profile link"
                       className="p-2 bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 rounded-lg shadow-sm"
                     >
                       {linkCopied ? <Check size={14} /> : <Copy size={14} />}
                     </button>
                     <button
                       onClick={() => window.open(profileUrl, '_blank')}
+                      aria-label="Open profile in new tab"
                       className="p-2 bg-white border border-zinc-200 text-zinc-600 rounded-lg dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-400"
                     >
                       <ExternalLink size={14} />
