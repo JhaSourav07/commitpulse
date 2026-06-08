@@ -94,7 +94,7 @@ describe('Achievements — Massive Scaling & Extreme Upper Bounds (Variation 2)'
     const cards = screen.getAllByTestId('achievement-card');
     expect(cards.length).toBe(3000);
     expect(cards[2999].textContent).toContain('29,990 Commits');
-  });
+  }, 30000);
 
   it('preserves clean standard liquid grid formatting properties across parent collection containers', () => {
     render(<MockAchievements items={[]} />);

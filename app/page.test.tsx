@@ -214,5 +214,29 @@ describe('LandingPage', () => {
     await waitFor(() => {
       expect(global.fetch).toHaveBeenCalled();
     });
+
+    vi.restoreAllMocks();
+  });
+
+  it('shows "Unable to load stats" error state on stat cards when fetch fails', async () => {
+    vi.spyOn(global, 'fetch').mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      json: async () => ({ error: 'Internal server error' }),
+    } as Response);
+
+    render(<LandingPage />);
+    const input = screen.getByPlaceholderText('Enter GitHub Username') as HTMLInputElement;
+
+    await act(async () => {
+      fireEvent.change(input, { target: { value: 'octocat' } });
+    });
+
+    await waitFor(() => {
+      const errorMessages = screen.getAllByText(/Unable to load stats/i);
+      expect(errorMessages.length).toBe(4);
+    });
+
+    vi.restoreAllMocks();
   });
 });

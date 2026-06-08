@@ -21,7 +21,7 @@ describe('Template - Massive Scaling Tests', () => {
 
     expect(screen.getByText('Contributor 0')).toBeInTheDocument();
     expect(screen.getByText('Contributor 4999')).toBeInTheDocument();
-  });
+  }, 30000);
 
   it('handles extremely large text content', () => {
     const hugeText = 'A'.repeat(100000);

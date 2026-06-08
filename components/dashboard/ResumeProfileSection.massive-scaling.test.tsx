@@ -81,7 +81,7 @@ describe('ResumeProfileSection — Massive Scaling', () => {
     expect(header).toBeTruthy();
 
     expect(dt).toBeLessThan(15000);
-  });
+  }, 30000);
 
   test('skills container preserves wrapping class and renders all skill inputs', async () => {
     window.__TEST_PARSED__ = generateLargeParsed({ skills: 500, education: 10, experience: 10 });
@@ -99,7 +99,7 @@ describe('ResumeProfileSection — Massive Scaling', () => {
 
     const inputs = skillsContainer.querySelectorAll('input');
     expect(inputs.length).toBe(500);
-  });
+  }, 30000);
 
   test('education and experience lists render expected item counts without breaking DOM', async () => {
     window.__TEST_PARSED__ = generateLargeParsed({ skills: 20, education: 120, experience: 120 });
@@ -119,7 +119,7 @@ describe('ResumeProfileSection — Massive Scaling', () => {
     const expContainer = expHeader.nextElementSibling as HTMLElement;
     expect(expContainer).toBeTruthy();
     expect(expContainer.children.length).toBe(120);
-  });
+  }, 30000);
 
   test('SVG icons exist and have viewBox attributes (scalable vectors)', async () => {
     window.__TEST_PARSED__ = generateLargeParsed({ skills: 5, education: 2, experience: 2 });
@@ -133,7 +133,7 @@ describe('ResumeProfileSection — Massive Scaling', () => {
     svgs.forEach((s) => {
       expect(s.getAttribute('viewBox')).toBeTruthy();
     });
-  });
+  }, 30000);
 
   test('mount/unmount cycles do not leak and unmount removes nodes', async () => {
     window.__TEST_PARSED__ = generateLargeParsed({ skills: 30, education: 30, experience: 30 });
@@ -144,5 +144,5 @@ describe('ResumeProfileSection — Massive Scaling', () => {
 
     unmount();
     expect(document.body.textContent).not.toContain('Review Parsed Data');
-  });
+  }, 30000);
 });

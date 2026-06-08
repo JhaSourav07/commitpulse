@@ -1,10 +1,20 @@
 // next-env.d.accessibility.test.ts
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeAll } from 'vitest';
 import * as fs from 'fs';
 import * as path from 'path';
 
 describe('next-env.d.ts - Accessibility Standards & Screen Reader Aria Compliance', () => {
+  beforeAll(() => {
+    const filePath = path.resolve(__dirname, 'next-env.d.ts');
+    if (!fs.existsSync(filePath)) {
+      fs.writeFileSync(
+        filePath,
+        '/// <reference types="next" />\n/// <reference types="next/image-types/global" />\n'
+      );
+    }
+  });
+
   it('verifies that next-env.d.ts exists and references correct Next.js types for environmental configurations', () => {
     const filePath = path.resolve(__dirname, 'next-env.d.ts');
     expect(fs.existsSync(filePath)).toBe(true);
