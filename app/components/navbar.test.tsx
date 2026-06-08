@@ -200,4 +200,25 @@ describe('Navbar responsive breakpoints', () => {
       'false'
     );
   });
+
+  it('dismisses the open mobile menu when a dropdown link is tapped', () => {
+    window.innerWidth = 375;
+    mockMatchMedia(false);
+
+    render(<Navbar />);
+
+    fireEvent.click(screen.getByRole('button', { name: /open menu/i }));
+    expect(screen.getByText('Language / Bhasha')).toBeTruthy();
+    expect(screen.getByRole('button', { name: /close menu/i }).getAttribute('aria-expanded')).toBe(
+      'true'
+    );
+
+    const compareLinks = screen.getAllByRole('link', { name: /compare/i });
+    fireEvent.click(compareLinks[compareLinks.length - 1]);
+
+    expect(screen.queryByText('Language / Bhasha')).toBeNull();
+    expect(screen.getByRole('button', { name: /open menu/i }).getAttribute('aria-expanded')).toBe(
+      'false'
+    );
+  });
 });

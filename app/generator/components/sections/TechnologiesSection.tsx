@@ -33,6 +33,7 @@ function TechIcon({ tech, isDark }: { tech: Technology; isDark: boolean }) {
 }
 
 export function TechnologiesSection({ selected, onChange }: TechnologiesSectionProps) {
+  const safeSelected = Array.isArray(selected) ? selected : [];
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState<string>('All');
   const [recCategory, setRecCategory] = useState<string>('All');
@@ -56,7 +57,7 @@ export function TechnologiesSection({ selected, onChange }: TechnologiesSectionP
     return list;
   }, [search, activeCategory]);
 
-  const recommendations = useMemo(() => getRecommendations(selected), [selected]);
+  const recommendations = useMemo(() => getRecommendations(safeSelected), [safeSelected]);
 
   const filteredRecommendations = useMemo(() => {
     if (recCategory === 'All') return recommendations;
@@ -64,10 +65,10 @@ export function TechnologiesSection({ selected, onChange }: TechnologiesSectionP
   }, [recommendations, recCategory]);
 
   const toggle = (id: string) => {
-    if (selected.includes(id)) {
-      onChange(selected.filter((s) => s !== id));
+    if (safeSelected.includes(id)) {
+      onChange(safeSelected.filter((s) => s !== id));
     } else {
-      onChange([...selected, id]);
+      onChange([...safeSelected, id]);
     }
   };
 
@@ -85,7 +86,7 @@ export function TechnologiesSection({ selected, onChange }: TechnologiesSectionP
     <SectionCard
       title="Technologies"
       description="Select your tech stack"
-      badge={selected.length}
+      badge={safeSelected.length}
       defaultOpen
     >
       <div className="relative mb-3">
@@ -128,10 +129,10 @@ export function TechnologiesSection({ selected, onChange }: TechnologiesSectionP
         ))}
       </div>
 
-      {selected.length > 0 && (
+      {safeSelected.length > 0 && (
         <div className="mb-4">
           <div className="flex items-center justify-between mb-2">
-            <FieldLabel>Selected ({selected.length})</FieldLabel>
+            <FieldLabel>Selected ({safeSelected.length})</FieldLabel>
             <button
               type="button"
               onClick={clearAll}
@@ -141,7 +142,7 @@ export function TechnologiesSection({ selected, onChange }: TechnologiesSectionP
             </button>
           </div>
           <div className="flex flex-wrap gap-1.5">
-            {selected.map((id) => {
+            {safeSelected.map((id) => {
               const tech = TECHNOLOGIES.find((t) => t.id === id);
               if (!tech) return null;
               return (
@@ -174,7 +175,7 @@ export function TechnologiesSection({ selected, onChange }: TechnologiesSectionP
         </div>
       )}
 
-      {selected.length > 0 && (
+      {safeSelected.length > 0 && (
         <div className="mb-6 mt-4 p-4 rounded-2xl border border-gray-200/50 dark:border-white/10 bg-white/40 dark:bg-white/[0.02] backdrop-blur-md shadow-sm">
           <div className="flex items-center justify-between mb-1">
             <h4 className="text-xs font-bold text-gray-900 dark:text-white flex items-center gap-1.5 uppercase tracking-wider">
@@ -340,7 +341,7 @@ export function TechnologiesSection({ selected, onChange }: TechnologiesSectionP
       </FieldLabel>
       <div className="grid grid-cols-1 gap-1 max-h-72 overflow-y-auto pr-1">
         {filtered.map((tech) => {
-          const isSelected = selected.includes(tech.id);
+          const isSelected = safeSelected.includes(tech.id);
           return (
             <button
               key={tech.id}
@@ -385,7 +386,7 @@ export function TechnologiesSection({ selected, onChange }: TechnologiesSectionP
         )}
       </div>
 
-      <TechnologyGraph selected={selected} onToggle={toggle} />
+      <TechnologyGraph selected={safeSelected} onToggle={toggle} />
     </SectionCard>
   );
 }

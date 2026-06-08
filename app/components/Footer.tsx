@@ -128,17 +128,11 @@ export function Footer() {
           </div>
 
           {/* Navigation Section */}
-
-          <div className="flex flex-col items-start">
-            <h3 className="font-semibold text-sm text-black dark:text-white mb-3">Navigation</h3>
-            <nav className="flex flex-col gap-2">
-
           <div className="flex flex-col items-center sm:items-start">
             <h3 className="font-semibold text-sm text-black dark:text-white mb-3">
               {t('footer.navigation')}
             </h3>
             <nav className="flex flex-col gap-2 text-center sm:text-left">
-
               {navigationLinks.map((link) => (
                 <LinkComponent
                   key={link.href}
@@ -153,17 +147,11 @@ export function Footer() {
           </div>
 
           {/* Resources Section */}
-
-          <div className="flex flex-col items-start">
-            <h3 className="font-semibold text-sm text-black dark:text-white mb-3">Resources</h3>
-            <nav className="flex flex-col gap-2">
-
           <div className="flex flex-col items-center sm:items-start">
             <h3 className="font-semibold text-sm text-black dark:text-white mb-3">
               {t('footer.resources')}
             </h3>
             <nav className="flex flex-col gap-2 text-center sm:text-left">
-
               {resourceLinks.map((link) => (
                 <LinkComponent
                   key={link.href}
@@ -178,15 +166,10 @@ export function Footer() {
           </div>
 
           {/* Connect Section */}
-
-          <div className="flex flex-col items-start">
-            <h3 className="font-semibold text-sm text-black dark:text-white mb-3">Connect</h3>
-
           <div className="flex flex-col items-center sm:items-start">
             <h3 className="font-semibold text-sm text-black dark:text-white mb-3">
               {t('footer.connect')}
             </h3>
-
             <div className="flex flex-col gap-2">
               {socialLinks.map((link) => (
                 <LinkComponent
