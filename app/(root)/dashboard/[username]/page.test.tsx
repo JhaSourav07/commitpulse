@@ -112,6 +112,8 @@ describe('DashboardPage', () => {
     popularRepos: [],
     pinnedRepos: [],
     hallOfFame: [],
+    reposTruncated: false,
+    reposTotalFetched: 0,
   };
 
   beforeEach(() => {

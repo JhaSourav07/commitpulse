@@ -403,7 +403,13 @@ export const GITHUB_CACHE_TTL_MS = 5 * 60 * 1000;
 
 export const contributionsCache = new DistributedCache<ExtendedContributionData>(1000);
 const profileCache = new DistributedCache<GitHubUserProfile>(1000);
-const reposCache = new DistributedCache<GitHubRepo[]>(500);
+export interface FetchedRepos {
+  repos: GitHubRepo[];
+  isTruncated: boolean;
+  totalFetched: number;
+}
+
+const reposCache = new DistributedCache<FetchedRepos>(500);
 const contributedReposCache = new DistributedCache<ContributedRepo[]>(500);
 
 interface GitHubUserProfile {
@@ -797,7 +803,7 @@ async function fetchProfileUncached(
 export async function fetchUserRepos(
   username: string,
   options: FetchOptions = {}
-): Promise<GitHubRepo[]> {
+): Promise<FetchedRepos> {
   const key = cacheKey('repos', username);
   const encodedUsername = encodeURIComponent(username);
 
@@ -813,7 +819,7 @@ async function fetchReposUncached(
   encodedUsername: string,
   key: string,
   options: FetchOptions
-): Promise<GitHubRepo[]> {
+): Promise<FetchedRepos> {
   const firstPageRes = await fetchWithRetry(
     `${GITHUB_REST_URL}/users/${encodedUsername}/repos?per_page=100&page=1&sort=pushed`,
     {
@@ -864,10 +870,23 @@ async function fetchReposUncached(
     for (const repos of pagesRepos) {
       allRepos.push(...repos);
     }
+
+    // Detect truncation: if the last fetched page is full (100 items), there may be more
+    // repos beyond the MAX_PAGES cap that we didn't fetch.
+    const lastPage = pagesRepos[pagesRepos.length - 1];
+    const isTruncated = lastPage !== undefined && lastPage.length === 100;
+    const result: FetchedRepos = { repos: allRepos, isTruncated, totalFetched: allRepos.length };
+    if (!options.bypassCache) await reposCache.set(key, result, GITHUB_CACHE_TTL_MS);
+    return result;
   }
 
-  if (!options.bypassCache) await reposCache.set(key, allRepos, GITHUB_CACHE_TTL_MS);
-  return allRepos;
+  const result: FetchedRepos = {
+    repos: allRepos,
+    isTruncated: false,
+    totalFetched: allRepos.length,
+  };
+  if (!options.bypassCache) await reposCache.set(key, result, GITHUB_CACHE_TTL_MS);
+  return result;
 }
 
 /* ==========================================================================
@@ -933,7 +952,7 @@ export async function getOrgDashboardData(
   orgName: string,
   options: FetchOptions = {}
 ): Promise<OrgDashboardData> {
-  const [profileData, reposData, membersOrError] = await Promise.all([
+  const [profileData, reposFetchedOrg, membersOrError] = await Promise.all([
     fetchUserProfile(orgName, options),
     fetchUserRepos(orgName, options),
     fetchOrgMembers(orgName).catch((err) => err as Error),
@@ -979,6 +998,7 @@ export async function getOrgDashboardData(
   // Create the Mega-City
   const aggregatedCalendar = aggregateCalendars(calendars);
   const streakStats = calculateStreak(aggregatedCalendar);
+  const reposData = reposFetchedOrg.repos;
   const totalStars = reposData.reduce((acc, r) => acc + r.stargazers_count, 0);
 
   const profile = {
@@ -1438,7 +1458,11 @@ export async function getFullDashboardData(username: string, options: FetchOptio
     });
 
   const profileData = profileResult.value;
-  const reposData = reposResult.status === 'fulfilled' ? reposResult.value : [];
+  const reposFetched =
+    reposResult.status === 'fulfilled'
+      ? reposResult.value
+      : { repos: [], isTruncated: false, totalFetched: 0 };
+  const reposData = reposFetched.repos;
   const calendarData =
     calendarResult.status === 'fulfilled'
       ? calendarResult.value.calendar
@@ -1789,6 +1813,8 @@ export async function getFullDashboardData(username: string, options: FetchOptio
     hallOfFame: finalHallOfFame,
     graphData: { nodes, links },
     lastSyncedAt: calendarData.lastSyncedAt,
+    reposTruncated: reposFetched.isTruncated,
+    reposTotalFetched: reposFetched.totalFetched,
   };
 }
 
@@ -1811,7 +1837,7 @@ export async function getWrappedData(
     signal: options?.signal,
   };
 
-  const [userData, repos] = await Promise.all([
+  const [userData, reposFetchedWrapped] = await Promise.all([
     fetchGitHubContributions(username, fetchOptions),
     fetchUserRepos(username, fetchOptions),
   ]);
@@ -1846,7 +1872,7 @@ export async function getWrappedData(
     totalContributions > 0 ? Math.round((weekendTotal / totalContributions) * 100) : 0;
 
   const langCounts: Record<string, number> = {};
-  for (const repo of repos) {
+  for (const repo of reposFetchedWrapped.repos) {
     if (repo.language) langCounts[repo.language] = (langCounts[repo.language] || 0) + 1;
   }
   const topLanguage = Object.entries(langCounts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? 'Unknown';

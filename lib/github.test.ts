@@ -669,7 +669,7 @@ describe('fetchUserRepos', () => {
       mockResponse([{ stargazers_count: 1, language: 'TypeScript' }])
     );
     const result = await fetchUserRepos('octocat');
-    expect(result[0].stargazers_count).toBe(1);
+    expect(result.repos[0].stargazers_count).toBe(1);
   });
 
   it('sanitizes repo objects by removing extra fields before returning', async () => {
@@ -686,7 +686,7 @@ describe('fetchUserRepos', () => {
       ])
     );
 
-    const result = (await fetchUserRepos('octocat')) as unknown as Record<string, unknown>[];
+    const result = (await fetchUserRepos('octocat')).repos as unknown as Record<string, unknown>[];
 
     expect(result[0].stargazers_count).toBe(10);
     expect(result[0].language).toBe('TypeScript');
@@ -706,14 +706,14 @@ describe('fetchUserRepos', () => {
 
     const result = await fetchUserRepos('octocat', { bypassCache: true });
 
-    expect(result).toHaveLength(3);
-    result.forEach((repo, index) => {
+    expect(result.repos).toHaveLength(3);
+    result.repos.forEach((repo, index) => {
       expect(repo).toHaveProperty('stargazers_count');
       expect(repo).toHaveProperty('language');
       expect(repo.stargazers_count).toBe(mockedRepos[index].stargazers_count);
       expect(repo.language).toBe(mockedRepos[index].language);
     });
-    expect(result).toEqual(mockedRepos);
+    expect(result.repos).toEqual(mockedRepos);
   });
 
   it('encodes the username before using it in the REST repos path', async () => {
@@ -761,7 +761,7 @@ describe('fetchUserRepos', () => {
     const result = await fetchUserRepos('octocat', { bypassCache: true });
 
     expect(fetch).toHaveBeenCalledTimes(3);
-    expect(result.length).toBe(101);
+    expect(result.repos.length).toBe(101);
   });
 
   it('stops fetching after reaching max pages', async () => {
@@ -819,7 +819,7 @@ describe('fetchUserRepos', () => {
     const result = await fetchUserRepos('octocat', { bypassCache: true });
 
     expect(fetch).toHaveBeenCalledTimes(3);
-    expect(result.length).toBe(201);
+    expect(result.repos.length).toBe(201);
   });
 });
 
@@ -1821,7 +1821,7 @@ describe('GitHub API cache behavior', () => {
     resolveFetch(mockResponse([{ stargazers_count: 7, language: 'TypeScript' }]));
 
     const results = await requests;
-    expect(results.map((repos) => repos[0]?.stargazers_count)).toEqual([7, 7, 7]);
+    expect(results.map((r) => r.repos[0]?.stargazers_count)).toEqual([7, 7, 7]);
   });
 
   it('normalizes username casing for cache keys', async () => {

@@ -81,6 +81,8 @@ export interface DashboardData {
   popularRepos?: Repository[];
   pinnedRepos?: Repository[];
   hallOfFame?: HallOfFameAward[];
+  reposTruncated?: boolean;
+  reposTotalFetched?: number;
 }
 
 interface DashboardClientProps {
@@ -660,6 +662,17 @@ export default function DashboardClient({
           </button>
         </div>
       </div>
+
+      {initialData.reposTruncated && (
+        <div
+          role="alert"
+          aria-live="polite"
+          className="mb-4 rounded-lg border border-yellow-500/30 bg-yellow-500/10 px-4 py-3 text-sm text-yellow-200"
+        >
+          Showing data for {initialData.reposTotalFetched ?? 300} of your repositories. Some stats
+          may be incomplete.
+        </div>
+      )}
 
       {activeTab === 'pr-insights' ? (
         <PRInsightsClient username={username} />
