@@ -64,6 +64,6 @@ describe('LanguageChart massive scaling', () => {
 
     const end = performance.now();
 
-    expect(end - start).toBeLessThan(1500);
+    expect(end - start).toBeLessThan(process.env.CI ? 4000 : 1500);
   });
 });

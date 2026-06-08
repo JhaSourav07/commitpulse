@@ -168,7 +168,9 @@
       "loc": "Lines of Code",
       "loc_desc": "Lines of code modified over time",
       "commits_desc": "Commit frequency over time",
-      "lines_modified": "{{count}} lines modified"
+      "lines_modified": "{{count}} lines modified",
+      "aria_range": "from {{start}} to {{end}}",
+      "aria_single": "on {{date}}"
     },
     "languages": {
       "title": "Top Languages",
