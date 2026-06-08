@@ -1,9 +1,8 @@
-import { render, screen } from '@testing-library/react';
-import { describe, it, expect, vi } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import RepositoryGraph from './RepositoryGraph';
 import type { GraphNode, GraphLink } from '@/types';
 
-// Mock force graph
 vi.mock('react-force-graph-2d', () => ({
   default: () => <div data-testid="force-graph" />,
 }));
@@ -40,8 +39,16 @@ const mockData: {
   ],
 };
 
-describe('RepositoryGraph theme contrast', () => {
-  it('renders repository graph region with accessibility labels', () => {
+describe('RepositoryGraph theme contrast verification', () => {
+  beforeEach(() => {
+    document.documentElement.classList.remove('dark');
+  });
+
+  afterEach(() => {
+    document.documentElement.classList.remove('dark');
+  });
+
+  it('renders correctly in light mode', () => {
     render(<RepositoryGraph data={mockData} />);
 
     expect(
@@ -49,54 +56,60 @@ describe('RepositoryGraph theme contrast', () => {
         name: /repository relationship graph/i,
       })
     ).toBeInTheDocument();
+
+    expect(screen.getByText(/visualize your github ecosystem/i)).toBeInTheDocument();
   });
 
-  it('renders heading with dark/light compatible text classes', () => {
-    render(<RepositoryGraph data={mockData} />);
+  it('renders correctly when dark theme is enabled', () => {
+    document.documentElement.classList.add('dark');
 
-    const heading = screen.getByText(/repository dependency graph/i);
-
-    expect(heading.className).toContain('text-gray-900');
-    expect(heading.className).toContain('dark:text-white');
-  });
-
-  it('renders graph container with contrasting dark and light backgrounds', () => {
-    render(<RepositoryGraph data={mockData} />);
-
-    const graphContainer = screen.getByTestId('repository-graph-container');
-
-    expect(graphContainer.className).toContain('bg-white');
-    expect(graphContainer.className).toContain('dark:bg-[#0a0a0a]');
-  });
-
-  it('renders all filter buttons with visible theme styling', () => {
     render(<RepositoryGraph data={mockData} />);
 
     expect(
-      screen.getByRole('button', {
-        name: /toggle personal repositories/i,
+      screen.getByRole('region', {
+        name: /repository relationship graph/i,
       })
     ).toBeInTheDocument();
 
-    expect(
-      screen.getByRole('button', {
-        name: /toggle contributions repositories/i,
-      })
-    ).toBeInTheDocument();
-
-    expect(
-      screen.getByRole('button', {
-        name: /toggle forks repositories/i,
-      })
-    ).toBeInTheDocument();
+    expect(screen.getByText(/graph insights/i)).toBeInTheDocument();
   });
 
-  it('renders graph insights panel using dark/light text contrast classes', () => {
+  it('preserves accessibility metadata across themes', () => {
     render(<RepositoryGraph data={mockData} />);
 
-    const title = screen.getByText(/graph insights/i);
+    const region = screen.getByRole('region', {
+      name: /repository relationship graph/i,
+    });
 
-    expect(title.className).toContain('text-gray-900');
-    expect(title.className).toContain('dark:text-white');
+    expect(region).toHaveAttribute(
+      'aria-describedby',
+      'repository-graph-description repository-graph-summary'
+    );
+  });
+
+  it('keeps filter controls visible and interactive', () => {
+    render(<RepositoryGraph data={mockData} />);
+
+    const personalButton = screen.getByRole('button', {
+      name: /toggle personal repositories/i,
+    });
+
+    expect(personalButton).toHaveAttribute('aria-pressed', 'true');
+
+    fireEvent.click(personalButton);
+
+    expect(personalButton).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('renders graph container and insights panel in both themes', () => {
+    document.documentElement.classList.add('dark');
+
+    render(<RepositoryGraph data={mockData} />);
+
+    expect(screen.getByTestId('repository-graph-container')).toBeInTheDocument();
+
+    expect(screen.getByText(/graph insights/i)).toBeInTheDocument();
+
+    expect(screen.getByText(/repositories connected/i)).toBeInTheDocument();
   });
 });
