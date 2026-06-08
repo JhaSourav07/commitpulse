@@ -464,6 +464,11 @@ return c`;
     ttlMs: number,
     shouldFetch?: (cached: T) => boolean
   ): Promise<T> {
+    // Join an existing in-flight request before any async operation to avoid
+    // concurrent loadFn execution for the same key.
+    const existing = this.localLocks.get(key);
+    if (existing) return existing;
+
     // Attempt to retrieve an existing value before triggering a refresh.
     const cached = await this.get(key);
 
@@ -471,8 +476,7 @@ return c`;
       return cached;
     }
 
-    // Join an existing in-flight request instead of creating duplicate fetches
-    // within the same runtime instance.
+    // Double-check local locks after the await in case another call interleaved.
     const pendingLocal = this.localLocks.get(key);
     if (pendingLocal) return pendingLocal;
 
