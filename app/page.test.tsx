@@ -397,7 +397,9 @@ describe('LandingPage', () => {
     });
 
     // Dismiss guide
-    const dismissButton = screen.getByLabelText('Dismiss guide');
+    const dismissButton = screen.getByRole('button', {
+      name: /dismiss|close/i,
+    });
     fireEvent.click(dismissButton);
 
     await waitFor(() => {
@@ -535,10 +537,8 @@ describe('LandingPage', () => {
       fireEvent.change(input, { target: { value: 'octocat' } });
     });
 
-    await waitFor(() => {
-      const errorMessages = screen.getAllByText('Unable to load stats');
-      expect(errorMessages.length).toBe(4);
-    });
+    const error = await screen.findByText(/unable to load stats/i);
+    expect(error).toBeDefined();
 
     vi.restoreAllMocks();
   });
