@@ -76,7 +76,9 @@ export function CommitPulseSection({
   onShowCommitPulseChange,
   onCommitPulseAccentChange,
 }: CommitPulseSectionProps) {
-  const trimmed = githubUsername.trim();
+  const safeUsername = githubUsername || '';
+  const safeAccent = commitPulseAccent || '';
+  const trimmed = safeUsername.trim();
   const debouncedUsername = useDebounce(trimmed, 500);
 
   const [userDetails, setUserDetails] = useState<UserDetails | null>(null);
@@ -144,10 +146,9 @@ export function CommitPulseSection({
     };
   }, [debouncedUsername]);
 
-  const badgeUrl =
-    userDetails && !fetchError ? buildBadgeUrl(debouncedUsername, commitPulseAccent) : null;
+  const badgeUrl = userDetails && !fetchError ? buildBadgeUrl(debouncedUsername, safeAccent) : null;
 
-  const accentIsValid = /^[0-9a-fA-F]{6}$/.test(commitPulseAccent.replace(/^#/, ''));
+  const accentIsValid = /^[0-9a-fA-F]{6}$/.test(safeAccent.replace(/^#/, ''));
 
   const badgeCount = showCommitPulse && trimmed ? 1 : 0;
 
@@ -197,7 +198,7 @@ export function CommitPulseSection({
               </span>
               <input
                 type="text"
-                value={githubUsername}
+                value={safeUsername}
                 onChange={(e) => onGithubUsernameChange(e.target.value.trim())}
                 placeholder="e.g. OmkarArdekar12"
                 maxLength={39}
@@ -205,7 +206,7 @@ export function CommitPulseSection({
                 spellCheck={false}
                 className="w-full rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 pl-9 pr-9 py-2.5 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/40 transition-colors"
               />
-              {githubUsername.length > 0 && (
+              {safeUsername.length > 0 && (
                 <button
                   type="button"
                   onClick={() => onGithubUsernameChange('')}
@@ -270,7 +271,7 @@ export function CommitPulseSection({
                 </span>
                 <input
                   type="text"
-                  value={commitPulseAccent.replace(/^#/, '')}
+                  value={safeAccent.replace(/^#/, '')}
                   onChange={(e) => onCommitPulseAccentChange(e.target.value.replace(/^#/, ''))}
                   placeholder="10b981"
                   maxLength={6}
@@ -281,15 +282,13 @@ export function CommitPulseSection({
               <div
                 className="w-8 h-8 rounded-lg border border-gray-200 dark:border-white/10 flex-shrink-0 transition-colors"
                 style={{
-                  background: accentIsValid
-                    ? `#${commitPulseAccent.replace(/^#/, '')}`
-                    : 'transparent',
+                  background: accentIsValid ? `#${safeAccent.replace(/^#/, '')}` : 'transparent',
                 }}
               />
-              {commitPulseAccent && !accentIsValid && (
+              {safeAccent && !accentIsValid && (
                 <p className="text-[11px] text-amber-500">Invalid hex</p>
               )}
-              {commitPulseAccent && accentIsValid && (
+              {safeAccent && accentIsValid && (
                 <button
                   type="button"
                   onClick={() => onCommitPulseAccentChange('')}
@@ -331,7 +330,7 @@ export function CommitPulseSection({
                   </p>
                 )}
                 <img
-                  key={`${badgeKey}-${commitPulseAccent}`}
+                  key={`${badgeKey}-${safeAccent}`}
                   src={badgeUrl}
                   alt={`CommitPulse badge for ${debouncedUsername}`}
                   className={`w-full h-auto max-w-[480px] transition-opacity duration-500 ${
