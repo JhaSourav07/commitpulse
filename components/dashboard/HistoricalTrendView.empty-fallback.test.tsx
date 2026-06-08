@@ -32,87 +32,39 @@ describe('HistoricalTrendView - Empty/Missing Inputs Verification', () => {
   });
 
   it('renders fallback streak message when no activity exists', () => {
-    render(
-      <HistoricalTrendView
-        username="test-user"
-        activity={[]}
-        period={mockPeriod}
-      />
-    );
+    render(<HistoricalTrendView username="test-user" activity={[]} period={mockPeriod} />);
 
-    expect(
-      screen.getByText(/No streak data available for this period/i)
-    ).toBeInTheDocument();
+    expect(screen.getByText(/No streak data available for this period/i)).toBeInTheDocument();
   });
 
   it('renders monthly and yearly fallback messages', () => {
-    render(
-      <HistoricalTrendView
-        username="test-user"
-        activity={[]}
-        period={mockPeriod}
-      />
-    );
+    render(<HistoricalTrendView username="test-user" activity={[]} period={mockPeriod} />);
 
-    expect(
-      screen.getByText(/No monthly breakdown available/i)
-    ).toBeInTheDocument();
+    expect(screen.getByText(/No monthly breakdown available/i)).toBeInTheDocument();
 
-    expect(
-      screen.getByText(/No yearly breakdown available/i)
-    ).toBeInTheDocument();
+    expect(screen.getByText(/No yearly breakdown available/i)).toBeInTheDocument();
   });
 
   it('shows no peak day when activity is empty', () => {
-    render(
-      <HistoricalTrendView
-        username="test-user"
-        activity={[]}
-        period={mockPeriod}
-      />
-    );
+    render(<HistoricalTrendView username="test-user" activity={[]} period={mockPeriod} />);
 
-    expect(
-      screen.getByText(/Peak day/i)
-    ).toBeInTheDocument();
+    expect(screen.getByText(/Peak day/i)).toBeInTheDocument();
   });
 
   it('shows zero average when no activity exists', () => {
-    render(
-      <HistoricalTrendView
-        username="test-user"
-        activity={[]}
-        period={mockPeriod}
-      />
-    );
+    render(<HistoricalTrendView username="test-user" activity={[]} period={mockPeriod} />);
 
-    expect(
-      screen.getByText(/Avg\/day/i)
-    ).toBeInTheDocument();
+    expect(screen.getByText(/Avg\/day/i)).toBeInTheDocument();
   });
 
   it('renders correct period summary for empty activity', () => {
-    render(
-      <HistoricalTrendView
-        username="test-user"
-        activity={[]}
-        period={mockPeriod}
-      />
-    );
+    render(<HistoricalTrendView username="test-user" activity={[]} period={mockPeriod} />);
 
-    expect(
-      screen.getByText(/May 2025/i)
-    ).toBeInTheDocument();
+    expect(screen.getByText(/May 2025/i)).toBeInTheDocument();
   });
 
   it('renders zero streak metrics when activity is empty', () => {
-    render(
-      <HistoricalTrendView
-        username="test-user"
-        activity={[]}
-        period={mockPeriod}
-      />
-    );
+    render(<HistoricalTrendView username="test-user" activity={[]} period={mockPeriod} />);
 
     const zeros = screen.getAllByText('0');
 
