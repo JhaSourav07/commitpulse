@@ -49,18 +49,21 @@ interface TranslationContextType {
 
 const TranslationContext = createContext<TranslationContextType | null>(null);
 
-const getNestedValue = (obj: Record<string, unknown> | null | undefined, path: string): string => {
-  if (!obj) return path;
+const getNestedValue = (
+  obj: Record<string, unknown> | null | undefined,
+  path: string
+): string | undefined => {
+  if (!obj) return undefined;
   const parts = path.split('.');
   let current: unknown = obj;
   for (const part of parts) {
     if (current && typeof current === 'object' && part in (current as Record<string, unknown>)) {
       current = (current as Record<string, unknown>)[part];
     } else {
-      return path;
+      return undefined;
     }
   }
-  return typeof current === 'string' ? current : path;
+  return typeof current === 'string' ? current : undefined;
 };
 
 export function TranslationProvider({ children }: { children: ReactNode }) {
@@ -107,11 +110,11 @@ export function TranslationProvider({ children }: { children: ReactNode }) {
     const translationSet = translations[currentLang] || translations.en;
     let value = getNestedValue(translationSet as Record<string, unknown>, path);
 
-    if (typeof value !== 'string') {
+    if (value === undefined) {
       value = getNestedValue(translations.en as Record<string, unknown>, path);
     }
 
-    if (typeof value !== 'string') {
+    if (value === undefined) {
       if (params && 'defaultValue' in params) {
         return params.defaultValue;
       }
@@ -144,7 +147,7 @@ export function useTranslation() {
       changeLanguage: () => {},
       t: (path: string, params?: Record<string, string>): string => {
         const value = getNestedValue(en, path);
-        if (typeof value !== 'string') {
+        if (value === undefined) {
           if (params && 'defaultValue' in params) {
             return params.defaultValue;
           }
