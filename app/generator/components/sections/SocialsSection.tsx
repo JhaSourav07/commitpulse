@@ -37,6 +37,8 @@ export function SocialsSection({
   onSelectedChange,
   onLinkChange,
 }: SocialsSectionProps) {
+  const safeSelected = Array.isArray(selected) ? selected : [];
+  const safeSocialLinks = socialLinks || {};
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState<string>('All');
   const [activeTab, setActiveTab] = useState<'pick' | 'links'>('pick');
@@ -60,20 +62,20 @@ export function SocialsSection({
   }, [search, activeCategory]);
 
   const toggle = (id: string) => {
-    if (selected.includes(id)) {
-      onSelectedChange(selected.filter((s) => s !== id));
+    if (safeSelected.includes(id)) {
+      onSelectedChange(safeSelected.filter((s) => s !== id));
     } else {
-      onSelectedChange([...selected, id]);
+      onSelectedChange([...safeSelected, id]);
     }
   };
 
-  const filledCount = selected.filter((id) => socialLinks[id]?.trim()).length;
+  const filledCount = safeSelected.filter((id) => safeSocialLinks[id]?.trim()).length;
 
   return (
     <SectionCard
       title="Socials"
       description="Add links to your profiles"
-      badge={selected.length}
+      badge={safeSelected.length}
       defaultOpen
     >
       <div className="flex rounded-xl bg-gray-100 dark:bg-white/5 p-1 mb-4 gap-1">
@@ -137,10 +139,10 @@ export function SocialsSection({
             ))}
           </div>
 
-          {selected.length > 0 && (
+          {safeSelected.length > 0 && (
             <div className="mb-4">
               <div className="flex items-center justify-between mb-2">
-                <FieldLabel>Selected ({selected.length})</FieldLabel>
+                <FieldLabel>Selected ({safeSelected.length})</FieldLabel>
                 <button
                   type="button"
                   onClick={() => onSelectedChange([])}
@@ -150,10 +152,10 @@ export function SocialsSection({
                 </button>
               </div>
               <div className="flex flex-wrap gap-1.5">
-                {selected.map((id) => {
+                {safeSelected.map((id) => {
                   const social = SOCIALS.find((s) => s.id === id);
                   if (!social) return null;
-                  const hasLink = !!socialLinks[id]?.trim();
+                  const hasLink = !!safeSocialLinks[id]?.trim();
                   return (
                     <div
                       key={id}
@@ -199,7 +201,7 @@ export function SocialsSection({
           <FieldLabel>{filtered.length} platforms</FieldLabel>
           <div className="grid grid-cols-1 gap-1 max-h-72 overflow-y-auto pr-1">
             {filtered.map((social) => {
-              const isSelected = selected.includes(social.id);
+              const isSelected = safeSelected.includes(social.id);
               return (
                 <button
                   key={social.id}
@@ -250,7 +252,7 @@ export function SocialsSection({
 
       {activeTab === 'links' && (
         <div className="space-y-3">
-          {selected.length === 0 ? (
+          {safeSelected.length === 0 ? (
             <div className="py-8 text-center">
               <p className="text-sm text-gray-400 dark:text-white/30 mb-3">
                 No platforms selected yet
@@ -268,10 +270,10 @@ export function SocialsSection({
               <p className="text-xs text-gray-500 dark:text-white/40 mb-3">
                 Platforms without a URL will be excluded from the README.
               </p>
-              {selected.map((id) => {
+              {safeSelected.map((id) => {
                 const social = SOCIALS.find((s) => s.id === id);
                 if (!social) return null;
-                const val = socialLinks[id] ?? '';
+                const val = safeSocialLinks[id] ?? '';
                 const hasLink = !!val.trim();
 
                 return (
