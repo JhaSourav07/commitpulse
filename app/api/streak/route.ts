@@ -21,7 +21,12 @@ import {
 } from '@/lib/svg/generator';
 import { generateConstellationSVG } from '@/lib/svg/constellation';
 import { getSecondsUntilUTCMidnight, getSecondsUntilMidnightInTimezone } from '@/utils/time';
-import type { BadgeParams, RepoContribution, ExtendedContributionData, StackAnalytics } from '@/types';
+import type {
+  BadgeParams,
+  RepoContribution,
+  ExtendedContributionData,
+  StackAnalytics,
+} from '@/types';
 import { themes } from '@/lib/svg/themes';
 import { streakParamsSchema } from '@/lib/validations';
 import { sanitizeHexColor, sanitizeRadius, escapeXML } from '@/lib/svg/sanitizer';
@@ -501,7 +506,8 @@ export async function GET(request: Request) {
         ? 'public, max-age=31536000, s-maxage=31536000, immutable'
         : `public, max-age=60, s-maxage=${secondsToMidnight}, stale-while-revalidate=60`;
 
-    const etag = crypto.createHash('sha1').update(svg).digest('hex');
+    const { createHash } = await import('crypto');
+    const etag = createHash('sha256').update(svg).digest('hex');
     const weakEtag = `W/"${etag}"`;
     const ifNoneMatch = request.headers.get('if-none-match');
 
