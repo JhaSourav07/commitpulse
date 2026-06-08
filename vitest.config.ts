@@ -3,13 +3,13 @@ import path from 'path';
 
 export default defineConfig({
   test: {
+    testTimeout: 30000,
     environment: 'jsdom',
     globals: true,
     setupFiles: ['./vitest.setup.ts'],
     include: ['**/*.test.ts', '**/*.test.tsx'],
     exclude: ['node_modules', '.next', '**/*.massive-scaling.test.ts'],
     maxWorkers: process.env.CI ? 2 : 15,
-    testTimeout: 30000,
     coverage: {
       provider: 'v8',
       reporter: ['text', 'lcov'],

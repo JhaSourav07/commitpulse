@@ -38,7 +38,7 @@ describe('CopyRepoButton Massive Scaling', () => {
     );
 
     expect(screen.getAllByRole('button')).toHaveLength(500);
-  });
+  }, 30000);
 
   it('renders icon for every button under heavy load', () => {
     render(

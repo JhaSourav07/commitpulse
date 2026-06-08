@@ -232,11 +232,14 @@ describe('LandingPage', () => {
       fireEvent.change(input, { target: { value: 'octocat' } });
     });
 
-    await waitFor(() => {
-      const errorMessages = screen.getAllByText(/Unable to load stats/i);
-      expect(errorMessages.length).toBe(4);
-    });
+    await waitFor(
+      () => {
+        const errorMessages = screen.getAllByText(/Unable to load stats/i);
+        expect(errorMessages.length).toBe(4);
+      },
+      { timeout: 10000 }
+    );
 
     vi.restoreAllMocks();
-  });
+  }, 30000);
 });

@@ -63,7 +63,7 @@ describe('Achievements — Massive Scaling & Extreme Upper Bounds (Variation 2)'
 
     const renderedCards = screen.getAllByTestId('achievement-card');
     expect(renderedCards.length).toBe(1000);
-  });
+  }, 30000);
 
   it('enforces word-breaking css formatting properties on elements to prevent clipping overlaps', () => {
     const extremeTextItem: AchievementItem[] = [

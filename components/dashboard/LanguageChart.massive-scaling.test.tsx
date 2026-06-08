@@ -28,7 +28,7 @@ describe('LanguageChart massive scaling', () => {
 
     expect(screen.getByText('Top Languages')).toBeInTheDocument();
     expect(screen.getAllByText('Language-0').length).toBeGreaterThan(0);
-  });
+  }, 30000);
 
   it('renders high-volume language labels safely', () => {
     render(<LanguageChart languages={massiveLanguages} />);

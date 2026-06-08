@@ -235,8 +235,8 @@ describe('ContributorsPage - Massive Data Sets & High Bounds Scaling', () => {
       render(element);
     });
     const endTime = performance.now();
-
     const renderTime = endTime - startTime;
+
     expect(renderTime).toBeLessThan(process.env.CI ? 12000 : 3000);
   }, 30000);
 });
