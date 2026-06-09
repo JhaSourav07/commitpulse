@@ -1,6 +1,7 @@
 // lib/svg/layout.ts
 
 import type { ContributionCalendar } from '../../types';
+import { isLocDay } from '../../types';
 import {
   GHOST_HEIGHT_PX,
   GRID_ORIGIN_X,
@@ -129,8 +130,13 @@ export function computeTowers(
   let maxCommits = 0;
   weeks.forEach((week) => {
     week.contributionDays.forEach((day) => {
+      // Use isLocDay() type guard for safe LoC field access instead of || 0 fallbacks.
+      // If a day is unexpectedly missing LoC data, isLocDay returns false and
+      // count falls back to contributionCount rather than silently returning 0.
       const count =
-        mode === 'loc' ? (day.locAdditions || 0) + (day.locDeletions || 0) : day.contributionCount;
+        mode === 'loc' && isLocDay(day)
+          ? day.locAdditions + day.locDeletions
+          : day.contributionCount;
 
       if (count > maxCommits) {
         maxCommits = count;
@@ -147,8 +153,13 @@ export function computeTowers(
         day.date === todayDate ||
         (!todayInWindow && i === weeks.length - 1 && j === week.contributionDays.length - 1);
 
+      // Use isLocDay() type guard for safe LoC field access instead of || 0 fallbacks.
+      // If a day is unexpectedly missing LoC data, isLocDay returns false and
+      // count falls back to contributionCount rather than silently returning 0.
       const count =
-        mode === 'loc' ? (day.locAdditions || 0) + (day.locDeletions || 0) : day.contributionCount;
+        mode === 'loc' && isLocDay(day)
+          ? day.locAdditions + day.locDeletions
+          : day.contributionCount;
 
       const hasCommits = count > 0;
       const isGhost = !hasCommits && shouldShowGhostCity;

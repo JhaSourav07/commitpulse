@@ -79,11 +79,11 @@ describe('RefreshPolicy - Edge Cases & Empty/Missing Inputs', () => {
     expect(policy.isRefreshAllowed('user-a')).toBe(true);
     expect(policy.getRemainingCooldown('user-a')).toBe(0);
 
-    // Verify cooldown is restored to default (5 * 60 * 1000 = 300000ms)
+    // Verify cooldown is restored to default (30 * 1000 = 30000ms)
     policy.recordRefresh('user-a');
-    // It should be around 300000 right after recording (allow minor execution delay)
+    // It should be around 30000 right after recording (allow minor execution delay)
     const remaining = policy.getRemainingCooldown('user-a');
-    expect(remaining).toBeLessThanOrEqual(300000);
-    expect(remaining).toBeGreaterThanOrEqual(299000);
+    expect(remaining).toBeLessThanOrEqual(30000);
+    expect(remaining).toBeGreaterThanOrEqual(29000);
   });
 });

@@ -481,11 +481,10 @@ describe('GET /api/streak', () => {
       expect(body).toContain('20s');
     });
 
-    it('falls back to 8s when speed is a non-integer decimal like "2.0s"', async () => {
-      const response = await GET(makeRequest({ user: 'octocat', speed: '2.0s' }));
+    it('preserves an in-range decimal speed like "8.5s" instead of forcing it to an integer', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', speed: '8.5s' }));
       const body = await response.text();
-      expect(body).toContain('8s');
-      expect(body).not.toContain('2.0s');
+      expect(body).toContain('8.5s');
     });
   });
 
@@ -961,6 +960,17 @@ describe('GET /api/streak', () => {
       expect(response.status).toBe(400);
       const body = await response.json();
       expect(body.details.fieldErrors.tz[0]).toContain('Invalid timezone');
+    });
+
+    it('rejects a path-traversal ?tz= payload before it reaches the GitHub API or TTL logic', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', tz: '../../../../etc/passwd' }));
+
+      expect(response.status).toBe(400);
+      const body = await response.json();
+      expect(body.error).toBe('Invalid parameters');
+      expect(body.details.fieldErrors.tz[0]).toBe('Invalid timezone');
+      expect(fetchGitHubContributions).not.toHaveBeenCalled();
+      expect(getSecondsUntilMidnightInTimezone).not.toHaveBeenCalled();
     });
 
     it('returns 400 (not 500) when Intl.DateTimeFormat throws RangeError at runtime', async () => {
@@ -1788,6 +1798,46 @@ describe('GET /api/streak', () => {
       const response = await GET(makeRequest({ user: 'octocat', date: '2026-05-30' }));
 
       expect(response.status).toBe(200);
+    });
+  });
+
+  describe('user parameter maxLength validation (Variation 2)', () => {
+    it('returns 400 when ?user= is "a".repeat(40) — one character over the GitHub username limit', async () => {
+      const response = await GET(makeRequest({ user: 'a'.repeat(40) }));
+
+      expect(response.status).toBe(400);
+    });
+
+    it('returns error body with "cannot exceed 39 characters" for a 40-char username', async () => {
+      const response = await GET(makeRequest({ user: 'a'.repeat(40) }));
+      const body = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(body.error).toBe('Invalid parameters');
+      expect(JSON.stringify(body)).toContain('cannot exceed 39 characters');
+    });
+
+    it('does not invoke the GitHub API when the username fails maxLength validation', async () => {
+      await GET(makeRequest({ user: 'a'.repeat(40) }));
+
+      expect(fetchGitHubContributions).not.toHaveBeenCalled();
+    });
+
+    it('returns 200 for a valid username exactly at the 39-character boundary', async () => {
+      const response = await GET(makeRequest({ user: 'a'.repeat(39) }));
+
+      expect(response.status).toBe(200);
+    });
+
+    it('surfaces fieldErrors.user containing maxLength message via NextRequest (Variation 2)', async () => {
+      const url = `http://localhost/api/streak?user=${'a'.repeat(40)}`;
+      const request = new NextRequest(url);
+      const response = await GET(request);
+      const body = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(body.error).toBe('Invalid parameters');
+      expect(body.details.fieldErrors.user[0]).toMatch(/cannot exceed 39 characters/);
     });
   });
 });
