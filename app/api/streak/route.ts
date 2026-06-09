@@ -26,6 +26,7 @@ import type { BadgeParams, RepoContribution, ExtendedContributionData } from '@/
 import { themes } from '@/lib/svg/themes';
 import { streakParamsSchema } from '@/lib/validations';
 import { sanitizeHexColor, sanitizeRadius } from '@/lib/svg/sanitizer';
+import { logger } from '@/lib/logger';
 
 const SVG_CSP_HEADER =
   "default-src 'none'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://fonts.gstatic.com;";
@@ -603,7 +604,10 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
   }
 
   // 4. Return a 500 Internal Server Error for real crashes
-  console.error('[streak] Unhandled error:', message);
+  logger.error('Unhandled error', {
+    source: 'streak',
+    message,
+  });
 
   const errorSvg = buildInlineErrorSVG('Something went wrong. Please try again later.');
 
