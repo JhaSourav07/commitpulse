@@ -1,5 +1,4 @@
 import ContributorsClient from './ContributorsClient';
-import logger from '@/lib/logger';
 
 interface Contributor {
   id: number;
@@ -56,9 +55,7 @@ async function getContributors(): Promise<Contributor[]> {
 
     return res.json();
   } catch (error) {
-    logger.error('Failed to fetch contributors', {
-      error,
-    });
+    console.error('Failed to fetch contributors:', error);
     return [];
   } finally {
     if (timeoutId) {
