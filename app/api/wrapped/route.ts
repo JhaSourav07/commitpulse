@@ -6,6 +6,7 @@ import { generateWrappedSVG, generateNotFoundSVG, generateRateLimitSVG } from '@
 import { wrappedParamsSchema } from '@/lib/validations';
 import type { BadgeParams } from '@/types';
 import { themes } from '@/lib/svg/themes';
+import logger from '@/lib/logger';
 
 const SVG_CSP_HEADER =
   "default-src 'none'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://fonts.gstatic.com;";
@@ -200,7 +201,10 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
     });
   }
 
-  console.error('[wrapped] Unhandled error:', message);
+  logger.error('Unhandled error', {
+    source: 'wrapped',
+    message,
+  });
 
   const errorSvg = `
       <svg xmlns="http://www.w3.org/2000/svg" width="400" height="150">
