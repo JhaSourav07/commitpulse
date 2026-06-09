@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { buildQueryParams, getExportSnippet, getPlaceholderSnippet } from './utils';
+import {
+  buildQueryParams,
+  getExportSnippet,
+  getPlaceholderSnippet,
+  streakErrorMessage,
+} from './utils';
 import type { CustomizeOptions } from './types';
 
 describe('Export Snippet utilities', () => {
@@ -38,6 +43,17 @@ describe('Export Snippet utilities', () => {
       expect(result.startsWith('name: CommitPulse Streak Badge')).toBe(true);
       expect(result).toContain(EXPECTED_BASE_URL);
       expect(result).toContain(`curl -o commitpulse.svg "${EXPECTED_BASE_URL}?${queryString}"`);
+    });
+
+    it('generates tsx snippet', () => {
+      const queryString = 'user=testuser&theme=dark';
+      const result = getExportSnippet('tsx', queryString);
+
+      expect(typeof result).toBe('string');
+      expect(result).toContain("'use client';");
+      expect(result).toContain('export function CommitPulse(');
+      expect(result).toContain(EXPECTED_BASE_URL);
+      expect(result).toContain('user=testuser&theme=dark');
     });
 
     it('handles empty query string', () => {
@@ -102,6 +118,14 @@ describe('Export Snippet utilities', () => {
       expect(result).toContain(EXPECTED_BASE_URL);
     });
 
+    it('includes placeholder username in tsx', () => {
+      const result = getPlaceholderSnippet('tsx');
+
+      expect(result).toContain("'use client';");
+      expect(result).toContain('your-github-username');
+      expect(result).toContain(EXPECTED_BASE_URL);
+    });
+
     it('throws for unsupported placeholder format', () => {
       // @ts-expect-error Testing invalid placeholder format at runtime
       expect(() => getPlaceholderSnippet('unsupported')).toThrow(
@@ -158,6 +182,30 @@ describe('Export Snippet utilities', () => {
       expect(result).toBe('user=testuser&bg=ffffff&accent=ff0000&text=000000&font=Inter');
     });
 
+    it('omits partial or invalid hex colors and falls back to theme', () => {
+      // Lengths 1, 2 and 5 are the intermediate states while typing a 6-digit hex.
+      for (const partial of ['f', 'ff', 'ffaab']) {
+        const options = { ...defaultOptions, theme: 'dark', bgHex: partial };
+        const result = buildQueryParams(options);
+        expect(result).toBe('user=testuser&theme=dark&font=Inter');
+        expect(result).not.toContain('bg=');
+      }
+    });
+
+    it('emits only the valid hex colors when some inputs are still partial', () => {
+      const options = {
+        ...defaultOptions,
+        theme: 'dark',
+        bgHex: 'ffffff',
+        accentHex: 'ff',
+        textHex: '',
+      };
+      const result = buildQueryParams(options);
+      expect(result).toBe('user=testuser&bg=ffffff&font=Inter');
+      expect(result).not.toContain('accent=');
+      expect(result).not.toContain('theme=');
+    });
+
     it('forces theme parameter and ignores custom colors for virtual themes (auto/random)', () => {
       const optionsAuto = {
         ...defaultOptions,
@@ -207,5 +255,24 @@ describe('Export Snippet utilities', () => {
         'user=testuser&theme=dark&scale=log&speed=4s&font=fira&year=2023&radius=12&size=large&hide_title=true&hide_background=true&hide_stats=true&view=monthly&delta_format=absolute&width=600&height=400&grace=2&lang=es&tz=America%2FNew_York'
       );
     });
+  });
+});
+
+describe('streakErrorMessage', () => {
+  it('maps 404 to a user-not-found message', () => {
+    expect(streakErrorMessage(404)).toBe('GitHub user not found');
+  });
+
+  it('maps 400 to an invalid-options message rather than user-not-found', () => {
+    expect(streakErrorMessage(400)).toBe('Invalid customization options');
+    expect(streakErrorMessage(400)).not.toContain('not found');
+  });
+
+  it('maps 429 to a rate-limit message', () => {
+    expect(streakErrorMessage(429)).toBe('Rate limit exceeded. Please try again later.');
+  });
+
+  it('falls back to a generic message for other statuses', () => {
+    expect(streakErrorMessage(500)).toBe('Failed to load badge');
   });
 });

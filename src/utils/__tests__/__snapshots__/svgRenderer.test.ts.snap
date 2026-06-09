@@ -1,0 +1,42 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`generateOptimizedSvg > should match the optimized contribution graph SVG structure snapshot 1`] = `
+"<svg xmlns="http://www.w3.org/2000/svg" viewBox="-200 -50 800 600" width="100%" height="100%">
+  
+  <defs>
+    <polygon id="iso-top" points="0,0 8,-4 16,0 8,4" />
+    
+    <polygon id="iso-left-unit" points="0,0 8,4 8,5 0,1" />
+    
+    <polygon id="iso-right-unit" points="8,4 16,0 16,1 8,5" />
+    
+    <linearGradient id="left-shading" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#22c55e" />
+      <stop offset="100%" stop-color="#15803d" />
+    </linearGradient>
+    <linearGradient id="right-shading" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#16a34a" />
+      <stop offset="100%" stop-color="#166534" />
+    </linearGradient>
+  </defs>
+  
+  <g id="monolith-grid">
+    <use href="#iso-top" x="0" y="0" fill="#1e293b" opacity="0.2"/>
+
+    <g transform="translate(-8, 4)">
+      <use href="#iso-left-unit" transform="scale(1, 20)" fill="url(#left-shading)" />
+      <use href="#iso-right-unit" transform="scale(1, 20)" fill="url(#right-shading)" />
+      
+      <use href="#iso-top" transform="translate(0, -20)" fill="#4ade80" />
+    </g>
+
+    <g transform="translate(0, 8)">
+      <use href="#iso-left-unit" transform="scale(1, 48)" fill="url(#left-shading)" />
+      <use href="#iso-right-unit" transform="scale(1, 48)" fill="url(#right-shading)" />
+      
+      <use href="#iso-top" transform="translate(0, -48)" fill="#4ade80" />
+    </g>
+
+  </g>
+</svg>"
+`;

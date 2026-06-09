@@ -46,15 +46,51 @@ export interface BadgeTheme {
  * Represents a single day's contribution data returned from the GitHub GraphQL API.
  */
 export interface ContributionDay {
-  /** Number of contributions made on this day. */
+  /** Number of contributions made on this day (commits mode). */
   contributionCount: number;
 
   /** Calendar date of this contribution entry (format: YYYY-MM-DD). */
   date: string;
 
-  // Added for LoC (Lines of Code) Mode
+  /**
+   * Lines of code added on this day.
+   * Only present when data is fetched in LoC mode (`?mode=loc`).
+   * Always `undefined` in standard commits mode.
+   * Use the `isLocDay()` type guard before accessing this field directly.
+   */
   locAdditions?: number;
+
+  /**
+   * Lines of code deleted on this day.
+   * Only present when data is fetched in LoC mode (`?mode=loc`).
+   * Always `undefined` in standard commits mode.
+   * Use the `isLocDay()` type guard before accessing this field directly.
+   */
   locDeletions?: number;
+}
+
+/**
+ * Type guard that narrows a `ContributionDay` to confirm both `locAdditions`
+ * and `locDeletions` are present — i.e. the day was fetched in LoC mode.
+ *
+ * Use this instead of `|| 0` fallbacks to make LoC field access type-safe:
+ *
+ * @example
+ * // Without type guard (unsafe — silent 0 if data missing):
+ * const count = (day.locAdditions || 0) + (day.locDeletions || 0);
+ *
+ * // With type guard (safe — TypeScript guarantees fields are numbers):
+ * if (isLocDay(day)) {
+ *   const count = day.locAdditions + day.locDeletions;
+ * }
+ *
+ * @param day - Any ContributionDay from commits or LoC mode
+ * @returns true if both locAdditions and locDeletions are numbers
+ */
+export function isLocDay(
+  day: ContributionDay
+): day is ContributionDay & { locAdditions: number; locDeletions: number } {
+  return typeof day.locAdditions === 'number' && typeof day.locDeletions === 'number';
 }
 
 /**
@@ -87,9 +123,38 @@ export interface ContributionCalendar {
  */
 export interface RepoContribution {
   repository: {
+    name: string;
+    nameWithOwner?: string;
     primaryLanguage: { name: string } | null;
   };
   contributions: { totalCount: number };
+}
+
+/**
+ * A repository that the user has contributed to, as returned by the
+ * `repositoriesContributedTo` GraphQL query.
+ */
+export interface ContributedRepo {
+  /** Repository name (without owner prefix). */
+  name: string;
+
+  /** Full repository identifier including owner (e.g. "owner/repo"). */
+  nameWithOwner: string;
+
+  /** Owner of the repository. */
+  owner: { login: string };
+
+  /** Number of stars on the repository. */
+  stargazerCount: number;
+
+  /** Number of forks of the repository. */
+  forkCount: number;
+
+  /** Primary programming language of the repository, if any. */
+  primaryLanguage: { name: string } | null;
+
+  /** ISO 8601 timestamp of the last update. */
+  updatedAt: string;
 }
 
 /**
@@ -130,10 +195,24 @@ export interface MonthlyStats {
 export interface BadgeParams {
   /** GitHub username whose contribution data will be fetched and rendered. Required. */
   user: string;
+
+  label?: boolean;
   /** GitHub username of the opponent to compare against. */
   versus?: string;
 
-  /** Number of grace days before a streak resets (handles timezone edge cases). Defaults to 1. */
+  /**
+   * Number of consecutive missed days forgiven before the streak resets to zero.
+   * Controls how lenient streak tracking is for users who occasionally miss a day:
+   * - `grace=0`: strict mode — any single missed day immediately resets the streak
+   * - `grace=1`: default — one missed day is forgiven before the streak breaks
+   * - `grace=2`: lenient — two consecutive missed days are forgiven
+   *
+   * Accepted range: 0–7. Values outside this range are clamped by `toGraceValue()`.
+   *
+   * Note: this parameter is unrelated to timezone handling. Timezone behavior
+   * (aligning "today" with the user's local midnight) is controlled separately
+   * by the `?tz=` URL parameter via `utils/time.ts`.
+   */
   grace?: number;
 
   /** Background fill color as a hex string WITHOUT the leading '#'. Overrides theme default. */
@@ -178,8 +257,8 @@ export interface BadgeParams {
   /** Language/locale code for stat labels (e.g. 'en', 'fr', 'ja'). Defaults to 'en'. */
   lang?: string;
 
-  /** Badge layout variant. 'default' shows the isometric monolith; 'monthly' shows month-over-month stats; 'heatmap' shows a flat 2D contribution heatmap; 'pulse' shows a heartbeat sparkline. */
-  view?: 'default' | 'monthly' | 'heatmap' | 'pulse';
+  /** Badge layout variant. 'default' shows the isometric monolith; 'monthly' shows month-over-month stats; 'heatmap' shows a flat 2D contribution heatmap; 'pulse' shows a heartbeat sparkline; 'languages' shows a 3D isometric city of top programming languages; 'constellation' shows a celestial star-map SVG visualization. */
+  view?: 'default' | 'monthly' | 'heatmap' | 'pulse' | 'languages' | 'constellation';
 
   /** Format for the monthly delta indicator. 'percent' shows %, 'absolute' shows raw count, 'both' shows both. */
   delta_format?: 'percent' | 'absolute' | 'both';
@@ -214,6 +293,12 @@ export interface BadgeParams {
    * Default is false (opt-in).
    */
   shading?: boolean;
+
+  /**
+   * When true, dims weekend towers (Saturdays and Sundays) to 0.3 opacity.
+   * Default is false.
+   */
+  dim_weekends?: boolean;
 
   /**
    * Global opacity scalar applied to all tower face fill-opacity values (0.1–1.0).

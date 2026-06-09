@@ -5,14 +5,24 @@ import { AnimatePresence, motion } from 'framer-motion';
 import VisualizationTooltip from './VisualizationTooltip';
 import { getContributionLabel } from './tooltipUtils';
 import { CommitClockData } from '@/types/dashboard';
+import { useTranslation } from '@/context/TranslationContext';
+
+export function findPeakIndex(data: CommitClockData[]): number {
+  if (data.length === 0) return 0;
+
+  return data.reduce((peak, d, i) => (d.commits > data[peak].commits ? i : peak), 0);
+}
 
 export default function CommitClock({ data }: { data: CommitClockData[] }) {
-  const maxCommits = Math.max(...data.map((d) => d.commits), 1);
+  const { t } = useTranslation();
+  const displayData = data.slice(0, 7);
+  const maxCommits = Math.max(...displayData.map((d) => d.commits), 1);
   const radius = 80;
   const cx = 140;
   const cy = 140;
   const r4 = (n: number) => Math.round(n * 1e4) / 1e4;
   const maxSpokeLength = 42;
+
   const [tooltip, setTooltip] = useState<{
     day: string;
     commits: number;
@@ -21,9 +31,10 @@ export default function CommitClock({ data }: { data: CommitClockData[] }) {
     y: number;
   } | null>(null);
 
-  // Find the peak day index
-  const peakIndex = data.reduce((peak, d, i) => (d.commits > data[peak].commits ? i : peak), 0);
-  const hasData = data.length > 0 && data.some((d) => d.commits > 0);
+  const peakIndex = findPeakIndex(displayData);
+
+  const hasData = displayData.length > 0 && displayData.some((d) => d.commits > 0);
+
   const showTooltip = (
     e: React.SyntheticEvent<SVGGElement>,
     day: string,
@@ -37,10 +48,10 @@ export default function CommitClock({ data }: { data: CommitClockData[] }) {
       commits,
       insight:
         commits === 0
-          ? 'No commits recorded for this weekday'
+          ? t('dashboard.clock.tooltip_no_commits')
           : isPeak
-            ? 'Peak weekday in this cycle'
-            : 'Weekly activity point',
+            ? t('dashboard.clock.tooltip_peak')
+            : t('dashboard.clock.tooltip_activity'),
       x: rect.left + rect.width / 2,
       y: rect.top - 10,
     });
@@ -55,13 +66,15 @@ export default function CommitClock({ data }: { data: CommitClockData[] }) {
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
         transition={{ duration: 0.3, delay: 0.1 }}
-        className="p-6 rounded-xl bg-white dark:bg-[#0a0a0a] border border-black/10 dark:border-[rgba(255,255,255,0.08)] flex flex-col items-center min-h-[300px]"
+        className="p-6 rounded-xl bg-white dark:bg-[#0a0a0a] border border-black/10 dark:border-white/8 shadow-sm flex flex-col items-center min-h-[300px]"
       >
         <div className="w-full mb-1">
-          <h3 className="text-sm font-semibold text-gray-900 dark:text-white tracking-tight">
-            Commit Clock
+          <h3 className="text-sm font-semibold text-zinc-900 dark:text-white tracking-tight">
+            {t('dashboard.clock.title')}
           </h3>
-          <p className="text-xs text-[#A1A1AA] mt-1">Weekly activity cycle</p>
+          <p className="text-xs text-zinc-500 dark:text-[#A1A1AA] mt-1">
+            {t('dashboard.clock.active_days')}
+          </p>
         </div>
 
         <div className="relative w-[280px] h-[280px] flex items-center justify-center mt-4">
@@ -76,21 +89,20 @@ export default function CommitClock({ data }: { data: CommitClockData[] }) {
 
               <style>
                 {`
-    :root {
-      --peak-spoke: #111111;
-      --peak-dot: rgba(17,17,17,0.7);
-      --peak-label: #111111;
-    }
+                  :root {
+                    --peak-spoke: #111111;
+                    --peak-dot: rgba(17,17,17,0.7);
+                    --peak-label: #111111;
+                  }
 
-    .dark {
-      --peak-spoke: #ffffff;
-      --peak-dot: rgba(255,255,255,0.8);
-      --peak-label: #ffffff;
-    }
-  `}
+                  .dark {
+                    --peak-spoke: #ffffff;
+                    --peak-dot: rgba(255,255,255,0.8);
+                    --peak-label: #ffffff;
+                  }
+                `}
               </style>
 
-              {/* Base ring */}
               <circle
                 cx={cx}
                 cy={cy}
@@ -100,7 +112,6 @@ export default function CommitClock({ data }: { data: CommitClockData[] }) {
                 strokeWidth="18"
               />
 
-              {/* Outer boundary ring */}
               <circle
                 cx={cx}
                 cy={cy}
@@ -110,13 +121,11 @@ export default function CommitClock({ data }: { data: CommitClockData[] }) {
                 strokeWidth="1"
               />
 
-              {/* Subtle background dial (35 ticks = 7 days * 5 sub-intervals) */}
               {Array.from({ length: 35 }).map((_, i) => {
                 const angle = (i * 360) / 35;
                 const rad = (angle * Math.PI) / 180;
                 const isMain = i % 5 === 0;
 
-                // Main spokes get a full-length faint track, interval ticks are short
                 const tickLength = isMain ? maxSpokeLength : 4;
                 const innerOffset = isMain ? 0 : 4;
 
@@ -134,15 +143,13 @@ export default function CommitClock({ data }: { data: CommitClockData[] }) {
                 );
               })}
 
-              {/* Spokes — one per day of week */}
-              {data.map((d, i) => {
+              {displayData.map((d, i) => {
                 const angle = (i * 360) / 7;
                 const length = Math.max((d.commits / maxCommits) * maxSpokeLength, 4);
                 const isHigh = d.commits > maxCommits * 0.7;
                 const isPeak = i === peakIndex && d.commits > 0;
                 const rad = (angle * Math.PI) / 180;
 
-                // Scale stroke width: 3px base, up to 6px for peak
                 const strokeW = isPeak ? 6 : isHigh ? 5 : 4;
 
                 const x1 = r4(cx + radius * Math.cos(rad));
@@ -169,11 +176,12 @@ export default function CommitClock({ data }: { data: CommitClockData[] }) {
                   : isHigh
                     ? 'rgba(180,180,180,0.75)'
                     : 'rgba(120,120,120,0.6)';
+
                 return (
                   <motion.g
                     tabIndex={0}
                     role="img"
-                    aria-label={`${d.day}: ${getContributionLabel(d.commits)}`}
+                    aria-label={`${d.day}: ${getContributionLabel(d.commits, t)}`}
                     onMouseEnter={(e) => showTooltip(e, d.day, d.commits, isPeak)}
                     onMouseMove={(e) => showTooltip(e, d.day, d.commits, isPeak)}
                     onMouseLeave={hideTooltip}
@@ -196,7 +204,6 @@ export default function CommitClock({ data }: { data: CommitClockData[] }) {
                       filter={isPeak ? 'url(#spoke-glow)' : undefined}
                     />
 
-                    {/* Dot at the end of each spoke */}
                     {d.commits > 0 && (
                       <circle
                         cx={x2}
@@ -207,7 +214,6 @@ export default function CommitClock({ data }: { data: CommitClockData[] }) {
                       />
                     )}
 
-                    {/* Day and Commit Count Label (stacked vertically via tspan to avoid side overlaps) */}
                     <text
                       x={labelX}
                       y={labelY}
@@ -220,6 +226,7 @@ export default function CommitClock({ data }: { data: CommitClockData[] }) {
                       <tspan x={labelX} dy="-2">
                         {d.day}
                       </tspan>
+
                       <tspan
                         x={labelX}
                         dy="10"
@@ -236,11 +243,10 @@ export default function CommitClock({ data }: { data: CommitClockData[] }) {
             </svg>
           ) : (
             <div className="h-[280px] flex items-center justify-center w-full rounded-lg border border-dashed border-black/10 dark:border-[rgba(255,255,255,0.08)] text-sm text-[#A1A1AA]">
-              No recent activity to display
+              {t('dashboard.heatmap.empty')}
             </div>
           )}
 
-          {/* Center label */}
           <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
             <span className="text-[8px] text-gray-400 dark:text-white/60 mt-0.5">CYCLE</span>
             <span className="text-lg font-semibold text-gray-700 dark:text-white/65">7d</span>
@@ -251,7 +257,7 @@ export default function CommitClock({ data }: { data: CommitClockData[] }) {
       <AnimatePresence>
         {tooltip && (
           <VisualizationTooltip title={`${tooltip.day} activity`} x={tooltip.x} y={tooltip.y}>
-            <div>{getContributionLabel(tooltip.commits)}</div>
+            <div>{getContributionLabel(tooltip.commits, t)}</div>
             <div>{tooltip.insight}</div>
           </VisualizationTooltip>
         )}

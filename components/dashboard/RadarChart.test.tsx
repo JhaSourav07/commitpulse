@@ -58,24 +58,30 @@ describe('RadarChart', () => {
     expect(screen.getAllByText('JavaScript')).toBeDefined();
   });
 
-  it('handles empty input arrays cleanly using pad languages', () => {
+  it('renders an empty state without inventing languages when both inputs are empty', () => {
     render(<RadarChart languagesA={[]} languagesB={[]} labelA="User A" labelB="User B" />);
 
-    expect(screen.getAllByText('TypeScript')).toBeDefined();
-    expect(screen.getAllByText('JavaScript')).toBeDefined();
-    expect(screen.getAllByText('Python')).toBeDefined();
+    expect(screen.queryByText('TypeScript')).toBeNull();
+    expect(screen.queryByText('JavaScript')).toBeNull();
+    expect(screen.queryByText('Python')).toBeNull();
+    expect(screen.getByText('No language data to compare yet')).toBeInTheDocument();
   });
 
-  it('verify at least 3 axes are always shown via padding when fewer are provided', () => {
+  it('renders only the real languages without padding to three axes', () => {
     const singleLang = [{ name: 'TypeScript', percentage: 100, color: '#3178c6' }];
 
-    render(
+    const { container } = render(
       <RadarChart languagesA={singleLang} languagesB={singleLang} labelA="User A" labelB="User B" />
     );
 
-    expect(screen.getAllByText('TypeScript')).toBeDefined();
-    expect(screen.getAllByText('JavaScript')).toBeDefined();
-    expect(screen.getAllByText('Python')).toBeDefined();
+    // The real language is shown
+    expect(screen.getAllByText('TypeScript').length).toBeGreaterThan(0);
+    // No fabricated JavaScript/Python axes
+    expect(screen.queryByText('JavaScript')).toBeNull();
+    expect(screen.queryByText('Python')).toBeNull();
+    // Exactly one axis line for the single real language
+    const axisLines = container.querySelectorAll('line[stroke-dasharray="2,2"]');
+    expect(axisLines.length).toBe(1);
   });
 
   it('renders chart elements and layout structure visible across viewport sizes', () => {

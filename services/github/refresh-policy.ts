@@ -4,8 +4,8 @@ import { TTLCache } from '../../lib/cache';
 export class RefreshPolicy {
   private static instance: RefreshPolicy;
 
-  // Cooldown in milliseconds (default 5 minutes)
-  private cooldownMs = 5 * 60 * 1000;
+  // Cooldown in milliseconds (default 30 seconds)
+  private cooldownMs = 30 * 1000;
 
   // Cache of username -> last successful refresh timestamp (15,000 capacity)
   private refreshTimes = new TTLCache<number>(15000, 60 * 60 * 1000);
@@ -79,10 +79,8 @@ export class RefreshPolicy {
     // (TTLCache rejects ttlMs <= 0).
     if (this.cooldownMs > 0) {
       const cacheKey = this.getCacheKey(username);
-      // Use a long cache TTL to prevent premature cache expiration during mode changes.
-      // Cooldown checks are still computed dynamically using this.cooldownMs.
-      const ttl = Math.max(this.cooldownMs, 24 * 60 * 60 * 1000);
-      this.refreshTimes.set(cacheKey, Date.now(), ttl);
+      // Store with a long TTL (1 hour) to allow dynamic cooldown increases later.
+      this.refreshTimes.set(cacheKey, Date.now(), 60 * 60 * 1000);
     }
     quotaMonitor.incrementRefreshCount();
   }
@@ -107,7 +105,7 @@ export class RefreshPolicy {
    */
   public reset(): void {
     this.refreshTimes.clear();
-    this.cooldownMs = 5 * 60 * 1000;
+    this.cooldownMs = 30 * 1000;
   }
 }
 

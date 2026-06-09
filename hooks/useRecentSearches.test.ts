@@ -1,9 +1,10 @@
 import React from 'react';
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi, afterAll } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useRecentSearches, MAX_SEARCHES, STORAGE_KEY } from './useRecentSearches';
 
 const store: Record<string, string> = {};
+const originalLocalStorage = window.localStorage;
 
 beforeEach(() => {
   Object.keys(store).forEach((k) => delete store[k]);
@@ -16,8 +17,20 @@ beforeEach(() => {
       removeItem: (k: string) => {
         delete store[k];
       },
+      clear: () => {
+        Object.keys(store).forEach((k) => delete store[k]);
+      },
     },
     writable: true,
+    configurable: true,
+  });
+});
+
+afterAll(() => {
+  Object.defineProperty(window, 'localStorage', {
+    value: originalLocalStorage,
+    writable: true,
+    configurable: true,
   });
 });
 

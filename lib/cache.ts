@@ -1,3 +1,5 @@
+import { randomUUID } from 'crypto';
+
 /**
  * Represents a cached item with its expiration timestamp.
  */
@@ -165,6 +167,7 @@ export class TTLCache<T> {
     TTLCache.assertValidKey(key);
     if (key === '') throw new Error('Cache key cannot be empty');
     if (ttlMs <= 0) throw new RangeError(`ttlMs must be positive, got ${ttlMs}`);
+    if (Number.isNaN(ttlMs)) ttlMs = 60_000;
 
     if (key.length > 10000) {
       throw new Error('Cache key exceeds maximum allowed length to prevent memory bloat');
@@ -485,9 +488,35 @@ return c`;
       }
 
       const lockKey = `lock:${key}`;
-      const maxPollTime = 8000; // Give up polling after 8 seconds to stay within serverless limits
-      const pollInterval = 400;
+      const lockToken = randomUUID();
+      const maxPollTime = 8000;
+      const BASE_POLL_MS = 100;
+      const MAX_POLL_MS = 1600;
       const start = Date.now();
+      let attempt = 0;
+
+      // Only DEL the lock if the stored token still matches ours, preventing
+      // accidental deletion of a lock acquired by another instance after ours expired.
+      const luaRelease = `
+        if redis.call("GET", KEYS[1]) == ARGV[1] then
+          return redis.call("DEL", KEYS[1])
+        else
+          return 0
+        end
+      `;
+
+      const releaseLock = async (): Promise<void> => {
+        await fetch(`${this.redisUrl}/`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${this.redisToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(['EVAL', luaRelease, 1, lockKey, lockToken]),
+        }).catch((e) => {
+          console.error(`[DistributedCache] Lock release failed for "${key}":`, e);
+        });
+      };
 
       while (Date.now() - start < maxPollTime) {
         try {
@@ -499,7 +528,7 @@ return c`;
               Authorization: `Bearer ${this.redisToken}`,
               'Content-Type': 'application/json',
             },
-            body: JSON.stringify(['SET', lockKey, '1', 'NX', 'PX', 10000]),
+            body: JSON.stringify(['SET', lockKey, lockToken, 'NX', 'PX', 10000]),
           });
 
           if (lockRes.ok) {
@@ -509,29 +538,14 @@ return c`;
                 const freshData = await loadFn(cached);
                 await this.set(key, freshData, ttlMs);
 
-                // Release immediately after caching data instead of waiting
-                // for lock expiration so other instances can continue sooner.
-                await fetch(`${this.redisUrl}/`, {
-                  method: 'POST',
-                  headers: {
-                    Authorization: `Bearer ${this.redisToken}`,
-                    'Content-Type': 'application/json',
-                  },
-                  body: JSON.stringify(['DEL', lockKey]),
-                }).catch(() => {});
+                // Release immediately so other instances can continue sooner.
+                await releaseLock();
 
                 return freshData;
               } catch (err) {
                 // Remove lock even on failure so other instances don't wait
                 // for the full lock timeout period.
-                await fetch(`${this.redisUrl}/`, {
-                  method: 'POST',
-                  headers: {
-                    Authorization: `Bearer ${this.redisToken}`,
-                    'Content-Type': 'application/json',
-                  },
-                  body: JSON.stringify(['DEL', lockKey]),
-                }).catch(() => {});
+                await releaseLock();
                 throw err;
               }
             }
@@ -544,8 +558,10 @@ return c`;
           return fallbackData;
         }
 
-        // Wait briefly before checking whether another instance populated the cache.
-        await new Promise((resolve) => setTimeout(resolve, pollInterval));
+        // Exponential backoff reduces Redis round-trips under load compared to a fixed interval.
+        const backoffMs = Math.min(BASE_POLL_MS * 2 ** attempt, MAX_POLL_MS);
+        await new Promise((resolve) => setTimeout(resolve, backoffMs));
+        attempt++;
         const doubleCheck = await this.get(key);
 
         // Another instance may have already populated the cache while waiting.

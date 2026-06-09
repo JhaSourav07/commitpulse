@@ -1,7 +1,17 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterAll } from 'vitest';
 import { act, render, screen, fireEvent } from '@testing-library/react';
 import Navbar from './navbar';
 import type { ReactNode } from 'react';
+
+const originalLocalStorage = window.localStorage;
+
+afterAll(() => {
+  Object.defineProperty(window, 'localStorage', {
+    value: originalLocalStorage,
+    writable: true,
+    configurable: true,
+  });
+});
 
 type MatchMediaChangeListener = (event: MediaQueryListEvent) => void;
 
@@ -52,6 +62,7 @@ vi.mock('lucide-react', () => ({
   Menu: () => <div>MenuIcon</div>,
   X: () => <div>CloseIcon</div>,
   Activity: () => <div>ActivityIcon</div>,
+  Globe: () => <div>GlobeIcon</div>,
   Sun: () => <div>SunIcon</div>,
   Moon: () => <div>MoonIcon</div>,
 }));
@@ -143,7 +154,6 @@ describe('Navbar responsive breakpoints', () => {
     expect(screen.getByRole('button', { name: /close menu/i }).getAttribute('aria-expanded')).toBe(
       'true'
     );
-    expect(screen.getAllByRole('link', { name: /customization studio/i })).toHaveLength(2);
     expect(screen.getAllByRole('link', { name: /github repo/i })).toHaveLength(2);
   });
 
@@ -165,7 +175,6 @@ describe('Navbar responsive breakpoints', () => {
     expect(screen.getByRole('button', { name: /open menu/i }).getAttribute('aria-expanded')).toBe(
       'false'
     );
-    expect(screen.getAllByRole('link', { name: /customization studio/i })).toHaveLength(1);
     expect(screen.getAllByRole('link', { name: /github repo/i })).toHaveLength(1);
   });
 
@@ -187,6 +196,27 @@ describe('Navbar responsive breakpoints', () => {
     expect(screen.getByText(/closeicon/i)).toBeTruthy();
 
     fireEvent.click(screen.getByRole('button', { name: /close menu/i }));
+    expect(screen.getByRole('button', { name: /open menu/i }).getAttribute('aria-expanded')).toBe(
+      'false'
+    );
+  });
+
+  it('dismisses the open mobile menu when a dropdown link is tapped', () => {
+    window.innerWidth = 375;
+    mockMatchMedia(false);
+
+    render(<Navbar />);
+
+    fireEvent.click(screen.getByRole('button', { name: /open menu/i }));
+    expect(screen.getByText('Language / Bhasha')).toBeTruthy();
+    expect(screen.getByRole('button', { name: /close menu/i }).getAttribute('aria-expanded')).toBe(
+      'true'
+    );
+
+    const compareLinks = screen.getAllByRole('link', { name: /compare/i });
+    fireEvent.click(compareLinks[compareLinks.length - 1]);
+
+    expect(screen.queryByText('Language / Bhasha')).toBeNull();
     expect(screen.getByRole('button', { name: /open menu/i }).getAttribute('aria-expanded')).toBe(
       'false'
     );

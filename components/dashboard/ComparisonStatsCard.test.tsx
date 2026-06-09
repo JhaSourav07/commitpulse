@@ -21,16 +21,22 @@ import ComparisonStatsCard from './ComparisonStatsCard';
 // Strips motion-specific props so they don't leak into the DOM.
 vi.mock('framer-motion', () => ({
   motion: {
-    div: ({ children, className, style, ...props }: any) => {
-      // Remove motion-specific props before spreading onto <div>
-      const { initial, animate, whileInView, viewport, transition, whileHover, ...rest } = props;
-
-      return (
-        <div className={className} style={style} {...rest}>
-          {children}
-        </div>
-      );
-    },
+    div: ({
+      children,
+      className,
+      style,
+      whileInView,
+      whileHover,
+      whileTap,
+      initial,
+      animate,
+      transition,
+      ...rest
+    }: any) => (
+      <div className={className} style={style} {...rest}>
+        {children}
+      </div>
+    ),
   },
 }));
 

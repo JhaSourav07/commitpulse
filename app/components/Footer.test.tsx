@@ -103,7 +103,7 @@ describe('Footer Component', () => {
     expect(connectHeading).toBeInTheDocument();
 
     // Check for social links
-    expect(screen.getByRole('link', { name: /Twitter\/X/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Creator on X/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /LinkedIn/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Discord/i })).toBeInTheDocument();
   });

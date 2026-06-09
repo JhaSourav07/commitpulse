@@ -5,7 +5,12 @@ import { compareParamsSchema } from '@/lib/validations';
 export const revalidate = 3600;
 
 function buildCompareFetchErrorResponse(user: string, reason: unknown): NextResponse {
-  const message = reason instanceof Error ? reason.message : 'Unknown error';
+  // Unwrap wrapped errors so the underlying cause (not found, rate limit, timeout) drives the status.
+  let err: unknown = reason;
+  while (err instanceof Error && err.cause instanceof Error) {
+    err = err.cause;
+  }
+  const message = err instanceof Error ? err.message : 'Unknown error';
   const lowerMessage = message.toLowerCase();
 
   if (lowerMessage.includes('not found') || lowerMessage.includes('could not resolve')) {
@@ -28,7 +33,7 @@ function buildCompareFetchErrorResponse(user: string, reason: unknown): NextResp
     );
   }
 
-  if (lowerMessage.includes('timeout')) {
+  if (lowerMessage.includes('timeout') || lowerMessage.includes('timed out')) {
     return NextResponse.json(
       { error: `Connection timeout. Unable to fetch GitHub data for "${user}".` },
       { status: 500 }

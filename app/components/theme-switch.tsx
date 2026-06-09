@@ -502,6 +502,10 @@ export const useThemeToggle = ({
     persistTheme(isDark);
   }, [isDark, persistTheme]);
 
+  // SSR hydration guard: mounted starts false on both server and client so
+  // the initial render matches. After hydration this effect flips it once,
+  // enabling the theme toggle button (which relies on document / window APIs)
+  // and preventing a flash of the wrong icon before the JS bundle runs.
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);

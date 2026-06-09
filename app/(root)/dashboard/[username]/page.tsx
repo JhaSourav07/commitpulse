@@ -1,10 +1,9 @@
-// app/(root)/dashboard/[username]/page.tsx
-
 import type { Metadata } from 'next';
 import DashboardClient from '@/components/dashboard/DashboardClient';
 import { getFullDashboardData, fetchUserProfile } from '@/lib/github';
 import { notFound, redirect } from 'next/navigation';
 import { resolveDashboardPeriod } from '@/utils/dashboardPeriod';
+import DashboardPageWrapper from '../DashboardPageWrapper';
 
 export const revalidate = 3600; // Cache for 1 hour
 
@@ -32,8 +31,18 @@ export async function generateMetadata({
     queryParams.set('accent', resolvedSearchParams.accent);
 
   const ogImage = `${BASE_URL}/api/og?${queryParams.toString()}`;
-  const title = `${username}'s Commit Pulse`;
-  const description = `Check out ${username}'s GitHub contribution pulse — streaks, insights, and more on CommitPulse.`;
+
+  // Dynamic title based on whether a user is comparing stats
+  const compareUsername = resolvedSearchParams?.compare;
+  const title =
+    typeof compareUsername === 'string' && compareUsername
+      ? `Compare: ${username} vs ${compareUsername} | CommitPulse`
+      : `${username}'s Commit Pulse`;
+
+  const description =
+    typeof compareUsername === 'string' && compareUsername
+      ? `Comparing ${username} and ${compareUsername}'s GitHub contribution pulse on CommitPulse.`
+      : `Check out ${username}'s GitHub contribution pulse — streaks, insights, and more on CommitPulse.`;
 
   return {
     title,
@@ -121,11 +130,13 @@ export default async function DashboardPage({
   }
 
   return (
-    <DashboardClient
-      initialData={data}
-      username={username}
-      compareData={compareData}
-      period={period}
-    />
+    <DashboardPageWrapper>
+      <DashboardClient
+        initialData={data}
+        username={username}
+        compareData={compareData}
+        period={period}
+      />
+    </DashboardPageWrapper>
   );
 }

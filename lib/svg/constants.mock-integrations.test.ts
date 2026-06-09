@@ -1,16 +1,13 @@
 import { describe, expect, it } from 'vitest';
+import { SVG_WIDTH, SVG_HEIGHT, CONTRIBUTION_MILESTONES, STREAK_MILESTONES } from './constants';
 import {
-  SVG_WIDTH,
-  SVG_HEIGHT,
   GHOST_HEIGHT_PX,
   LOG_SCALE_MULTIPLIER,
   LINEAR_SCALE_MULTIPLIER,
   MAX_LOG_HEIGHT,
   MAX_LINEAR_HEIGHT,
-  FONT_MAP,
-  CONTRIBUTION_MILESTONES,
-  STREAK_MILESTONES,
-} from './constants';
+} from './layoutConstants';
+import { FONT_MAP } from './fonts';
 
 describe('lib/svg/constants', () => {
   it('should expose expected SVG dimensions', () => {
@@ -31,6 +28,11 @@ describe('lib/svg/constants', () => {
       jetbrains: '"JetBrains Mono", monospace',
       fira: '"Fira Code", monospace',
       roboto: '"Roboto", sans-serif',
+      syncopate: '"Syncopate", sans-serif',
+      spacegrotesk: '"Space Grotesk", sans-serif',
+      'space grotesk': '"Space Grotesk", sans-serif',
+      firacode: '"Fira Code", monospace',
+      'jetbrains mono': '"JetBrains Mono", monospace',
     });
   });
 

@@ -76,21 +76,108 @@ describe('calculateStreak', () => {
     expect(result.totalContributions).toBe(141);
   });
 
-  it('handles multiple weeks of zero contributions separating active streaks', () => {
+  it('verify streak formulas for multiple weeks gaps timeline (Variation 1)', () => {
+    // Pattern: Active week, followed by 2 gap weeks, followed by an active week.
+    // 2024-01-01 is a Monday
+    // Week 1: 7 days active
+    // Week 2: 0 days active (Gap)
+    // Week 3: 0 days active (Gap)
+    // Week 4: 7 days active
     const calendar = buildCalendar([
-      1, 1, 1, 1, 1, 1, 1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1, // Week 1 (Jan 1 - Jan 7)
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0, // Week 2 (Jan 8 - Jan 14)
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0, // Week 3 (Jan 15 - Jan 21)
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1, // Week 4 (Jan 22 - Jan 28)
+    ]);
 
-      0, 0, 0, 0, 0, 0, 0,
+    // Test 1: Evaluate on the last day of Week 4 (Sunday, Jan 28)
+    // Current streak should be exactly 7 (Week 4)
+    // Longest streak should be 7 (Week 1 or Week 4)
+    const resultEndOfWeek4 = calculateStreak(calendar, 'UTC', new Date('2024-01-28T12:00:00Z'));
+    expect(resultEndOfWeek4.currentStreak).toBe(7);
+    expect(resultEndOfWeek4.longestStreak).toBe(7);
+    expect(resultEndOfWeek4.totalContributions).toBe(14);
 
-      0, 0, 0, 0, 0, 0, 0,
+    // Test 2: Evaluate on Wednesday of Week 4 (Jan 24)
+    // Current streak should be 3 (Monday-Wednesday of Week 4)
+    // Longest streak should still be 7 (from Week 1)
+    const resultWedWeek4 = calculateStreak(calendar, 'UTC', new Date('2024-01-24T12:00:00Z'));
+    expect(resultWedWeek4.currentStreak).toBe(3);
+    expect(resultWedWeek4.longestStreak).toBe(7);
 
-      1, 1, 1, 1, 1, 1, 1,
+    // Test 3: Evaluate in the middle of the gap (Wednesday, Jan 10 of Week 2)
+    // Current streak should be 0 because the grace period has expired
+    // Longest streak should still be 7 (from Week 1)
+    const resultGap = calculateStreak(calendar, 'UTC', new Date('2024-01-10T12:00:00Z'));
+    expect(resultGap.currentStreak).toBe(0);
+    expect(resultGap.longestStreak).toBe(7);
+  });
+  it('verify streak formulas for multiple weeks gaps timeline (Variation 2)', () => {
+    // Streak 1: 5 days
+    // Gap: 14 days (2 full weeks)
+    // Streak 2: 9 days (current + longest)
+
+    const calendar = buildCalendar([
+      1,
+      1,
+      1,
+      1,
+      1, // Streak 1
+
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0, // Gap week 1
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0, // Gap week 2
+
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1, // Streak 2
     ]);
 
     const result = calculateStreak(calendar);
 
-    expect(result.currentStreak).toBe(7);
-    expect(result.longestStreak).toBe(7);
+    expect(result.currentStreak).toBe(9);
+    expect(result.longestStreak).toBe(9);
     expect(result.totalContributions).toBe(14);
   });
 
@@ -737,6 +824,42 @@ describe('calculateStreak', () => {
     expect(resultLeapGap.currentStreak).toBe(1);
     expect(resultLeapGap.longestStreak).toBe(2);
   });
+  it('verify streak formulas for leap year transition timeline (Variation 2)', () => {
+    const buildCustomCalendar = (
+      daysData: { date: string; count: number }[]
+    ): ContributionCalendar => {
+      const weeks = [];
+
+      for (let i = 0; i < daysData.length; i += 7) {
+        const slice = daysData.slice(i, i + 7);
+
+        weeks.push({
+          contributionDays: slice.map((day) => ({
+            contributionCount: day.count,
+            date: day.date,
+          })),
+        });
+      }
+
+      return {
+        totalContributions: daysData.reduce((sum, d) => sum + d.count, 0),
+        weeks,
+      };
+    };
+
+    const calendar = buildCustomCalendar([
+      { date: '2024-02-27', count: 1 },
+      { date: '2024-02-28', count: 1 },
+      { date: '2024-02-29', count: 1 },
+      { date: '2024-03-01', count: 1 },
+    ]);
+
+    const result = calculateStreak(calendar, 'UTC', new Date('2024-03-01T12:00:00Z'));
+
+    expect(result.currentStreak).toBe(4);
+    expect(result.longestStreak).toBe(4);
+    expect(result.totalContributions).toBe(4);
+  });
 
   it('correctly calculates current and longest streaks when commits are made exclusively on Saturdays and Sundays', () => {
     // 2024-01-01 is a Monday.
@@ -976,6 +1099,36 @@ describe('calculateStreak', () => {
     const result = calculateStreak(calendar);
     expect(result.longestStreak).toBe(10);
     expect(result.currentStreak).toBe(3);
+  });
+
+  it('verify streak formulas for single day contribution timeline (Variation 2)', () => {
+    // Simulating 1 day of commits followed by empty weeks.
+
+    const calendar = buildCalendar([
+      1, // Single contribution day
+
+      // Empty days afterwards
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+    ]);
+
+    const result = calculateStreak(calendar);
+
+    expect(result.longestStreak).toBe(1);
+    expect(result.currentStreak).toBe(0);
+    expect(result.totalContributions).toBe(1);
   });
 
   it('verify streak formulas for single day contribution timeline (Variation 3)', () => {
@@ -1845,20 +1998,69 @@ describe('calculateWrappedStats', () => {
 
   // ISSUE OBJECTIVE #1056: Verify empty calendar returns safe zero values
   it('verify empty calendar returns safe zero values', () => {
-    // 1. Call calculateWrappedStats with empty data
     expect(() => calculateWrappedStats({ totalContributions: 0, weeks: [] })).not.toThrow();
-
-    // 2. Actually get the result to test its properties
     const result = calculateWrappedStats({ totalContributions: 0, weeks: [] });
 
-    // 3. Assert weekendRatio === 0 (and specifically not NaN)
+    // weekendRatio must be 0 and not NaN
     expect(result.weekendRatio).toBe(0);
 
-    // 4. Assert highestDailyCount === 0
+    // highestDailyCount must be 0
     expect(result.highestDailyCount).toBe(0);
 
+    // busiestMonth must be 'N/A' — not '' (fixed in PR #2264)
     expect(result.busiestMonth).toBe('N/A');
     expect(result.busiestMonth).not.toBe('');
+
+    // mostActiveDate must be 'N/A' — not '' (this fix)
+    // Regression guard: initialising to { date: '' } silently returns ''
+    // for empty calendars. 'N/A' is the correct explicit fallback.
+    expect(result.mostActiveDate).toBe('N/A');
+    expect(result.mostActiveDate).not.toBe('');
+  });
+
+  it('mostActiveDate is never an empty string regardless of calendar input', () => {
+    // Empty calendar
+    const emptyResult = calculateWrappedStats({ totalContributions: 0, weeks: [] });
+    expect(emptyResult.mostActiveDate).not.toBe('');
+
+    // Active calendar — mostActiveDate should be a real YYYY-MM-DD date
+    const activeResult = calculateWrappedStats({
+      totalContributions: 15,
+      weeks: [
+        {
+          contributionDays: [
+            { contributionCount: 5, date: '2024-06-10' },
+            { contributionCount: 15, date: '2024-06-11' },
+            { contributionCount: 3, date: '2024-06-12' },
+          ],
+        },
+      ],
+    });
+    expect(activeResult.mostActiveDate).toBe('2024-06-11');
+    expect(activeResult.mostActiveDate).not.toBe('');
+    expect(activeResult.mostActiveDate).not.toBe('N/A');
+  });
+
+  it('mostActiveDate returns N/A for empty weeks but real date for active calendar', () => {
+    const emptyResult = calculateWrappedStats({ totalContributions: 0, weeks: [] });
+    expect(emptyResult.mostActiveDate).toBe('N/A');
+
+    // A calendar with all-zero contribution days — loop runs but never
+    // overwrites the initial value since 0 > 0 is false.
+    // mostActiveDate should still be 'N/A' (the initial fallback)
+    const allZeroResult = calculateWrappedStats({
+      totalContributions: 0,
+      weeks: [
+        {
+          contributionDays: [
+            { contributionCount: 0, date: '2024-06-10' },
+            { contributionCount: 0, date: '2024-06-11' },
+          ],
+        },
+      ],
+    });
+    expect(allZeroResult.mostActiveDate).toBe('N/A');
+    expect(allZeroResult.mostActiveDate).not.toBe('');
   });
 
   it('returns busiestMonth as "N/A" for a calendar with all-zero contribution days', () => {
@@ -2131,6 +2333,30 @@ describe('calculateWrappedStats', () => {
     // 4. Assert highestDailyCount === 0
     expect(result.highestDailyCount).toBe(0);
   });
+  it('does not return NaN when total contributions are zero', () => {
+    const calendar = {
+      totalContributions: 0,
+      weeks: [
+        {
+          contributionDays: [
+            { date: '2024-06-01', contributionCount: 0 },
+            { date: '2024-06-02', contributionCount: 0 },
+          ],
+        },
+      ],
+    };
+
+    const result = calculateWrappedStats(calendar);
+
+    expect(result.weekendRatio).toBe(0);
+    expect(Number.isNaN(result.weekendRatio)).toBe(false);
+  });
+  it('handles undefined contribution days safely', () => {
+    const result = aggregateCalendars([{ totalContributions: 0, weeks: [] }]);
+
+    expect(result.totalContributions).toBe(0);
+    expect(result.weeks).toEqual([]);
+  });
 
   // ISSUE OBJECTIVE: Verify weekendRatio is 100 when all commits are on weekends
   // =========================================================================
@@ -2153,5 +2379,92 @@ describe('calculateWrappedStats', () => {
 
     // Assert the ratio is exactly 100%
     expect(result.weekendRatio).toBe(100);
+  });
+});
+
+describe('aggregateCalendars — missing days chronological order', () => {
+  it('appends missing days in ascending date order at the end of weeks', () => {
+    // cal1 covers 2024-01-01 to 2024-01-07 (one week)
+    const cal1: ContributionCalendar = {
+      totalContributions: 3,
+      weeks: [
+        {
+          contributionDays: [
+            { date: '2024-01-01', contributionCount: 1 },
+            { date: '2024-01-02', contributionCount: 1 },
+            { date: '2024-01-03', contributionCount: 1 },
+          ],
+        },
+      ],
+    };
+
+    // cal2 has dates that are NOT in cal1 — these become "missing days"
+    // and should be appended in chronological (ascending) order.
+    const cal2: ContributionCalendar = {
+      totalContributions: 2,
+      weeks: [
+        {
+          contributionDays: [
+            { date: '2024-01-05', contributionCount: 1 },
+            { date: '2024-01-06', contributionCount: 1 },
+          ],
+        },
+      ],
+    };
+
+    const result = aggregateCalendars([cal1, cal2]);
+
+    // Flatten all dates in the order they appear in the weeks array
+    const dates = result.weeks.flatMap((w) => w.contributionDays.map((d) => d.date));
+
+    // The base calendar dates come first (2024-01-01 to 2024-01-03),
+    // followed by the missing days (2024-01-05 and 2024-01-06) in ascending order.
+    // Before the fix, unshift reversed the sort so missing days appeared newest-first.
+    expect(dates).toEqual(['2024-01-01', '2024-01-02', '2024-01-03', '2024-01-05', '2024-01-06']);
+  });
+
+  it('preserves chronological order across the full flattened days array after aggregation', () => {
+    // Three calendars with non-overlapping date ranges to maximise missing-day injection
+    const cal1: ContributionCalendar = {
+      totalContributions: 1,
+      weeks: [{ contributionDays: [{ date: '2024-03-01', contributionCount: 1 }] }],
+    };
+    const cal2: ContributionCalendar = {
+      totalContributions: 1,
+      weeks: [{ contributionDays: [{ date: '2024-03-03', contributionCount: 1 }] }],
+    };
+    const cal3: ContributionCalendar = {
+      totalContributions: 1,
+      weeks: [{ contributionDays: [{ date: '2024-03-02', contributionCount: 1 }] }],
+    };
+
+    const result = aggregateCalendars([cal1, cal2, cal3]);
+    const dates = result.weeks.flatMap((w) => w.contributionDays.map((d) => d.date));
+
+    // All dates must appear in ascending order — no newest-first reversal
+    const sorted = [...dates].sort();
+    expect(dates).toEqual(sorted);
+  });
+
+  it('missing days have correct aggregated contribution counts after fix', () => {
+    const cal1: ContributionCalendar = {
+      totalContributions: 5,
+      weeks: [{ contributionDays: [{ date: '2024-06-01', contributionCount: 5 }] }],
+    };
+    const cal2: ContributionCalendar = {
+      totalContributions: 3,
+      weeks: [{ contributionDays: [{ date: '2024-06-03', contributionCount: 3 }] }],
+    };
+
+    const result = aggregateCalendars([cal1, cal2]);
+    const days = result.weeks.flatMap((w) => w.contributionDays);
+
+    // 2024-06-01 is the base calendar date, 2024-06-03 is a missing day
+    const jun1 = days.find((d) => d.date === '2024-06-01');
+    const jun3 = days.find((d) => d.date === '2024-06-03');
+
+    expect(jun1?.contributionCount).toBe(5);
+    expect(jun3?.contributionCount).toBe(3);
+    expect(result.totalContributions).toBe(8);
   });
 });

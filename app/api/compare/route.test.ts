@@ -124,4 +124,40 @@ describe('GET /api/compare', () => {
     const data = await res.json();
     expect(data.error).toContain('Unable to fetch GitHub data');
   });
+
+  it('returns 404 when the not-found error is wrapped in a cause chain', async () => {
+    vi.mocked(getFullDashboardData).mockRejectedValueOnce(
+      new Error('[GitHub API] Failed to fetch profile for user "ghost123"', {
+        cause: new Error('User not found'),
+      })
+    );
+
+    const res = await GET(makeRequest('user1=ghost123&user2=octocat'));
+
+    expect(res.status).toBe(404);
+  });
+
+  it('returns 403 when a rate-limit error is wrapped in a cause chain', async () => {
+    vi.mocked(getFullDashboardData).mockRejectedValueOnce(
+      new Error('[GitHub API] Failed to fetch profile for user "octocat"', {
+        cause: new Error('API Rate Limit Exceeded'),
+      })
+    );
+
+    const res = await GET(makeRequest('user1=octocat&user2=torvalds'));
+
+    expect(res.status).toBe(403);
+  });
+
+  it('returns 500 when a timeout error is wrapped in a cause chain', async () => {
+    vi.mocked(getFullDashboardData).mockRejectedValueOnce(
+      new Error('[GitHub API] Failed to fetch profile for user "octocat"', {
+        cause: new Error('GitHub API request timed out after 8s'),
+      })
+    );
+
+    const res = await GET(makeRequest('user1=octocat&user2=torvalds'));
+
+    expect(res.status).toBe(500);
+  });
 });
