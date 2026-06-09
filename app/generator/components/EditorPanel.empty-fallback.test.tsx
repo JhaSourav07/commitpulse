@@ -45,6 +45,7 @@ const makeHandlers = () => ({
   onGithubUsernameChange: vi.fn(),
   onShowCommitPulseChange: vi.fn(),
   onCommitPulseAccentChange: vi.fn(),
+  onApplyImport: vi.fn(),
 });
 
 // ── 1. Section presence ───────────────────────────────────────────────────────
