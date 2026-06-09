@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { parseResume, ALLOWED_MIME_TYPES, MAX_FILE_SIZE } from '@/lib/resume-parser';
 import { RateLimiter } from '@/lib/rate-limit';
 import { getClientIp } from '@/utils/getClientIp';
+import logger from '@/lib/logger';
 
 const uploadLimiter = new RateLimiter(10, 60000);
 
@@ -59,7 +60,9 @@ export async function POST(req: Request) {
       fileName: file.name,
     });
   } catch (error) {
-    console.error('Error parsing resume:', error);
+    logger.error('Failed to parse resume', {
+      error,
+    });
     return NextResponse.json(
       { success: false, error: 'Failed to parse resume. Please enter your details manually.' },
       { status: 422 }

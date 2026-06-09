@@ -12,6 +12,7 @@ import { DistributedCache } from '@/lib/cache';
 import { LANGUAGE_COLORS } from '@/lib/svg/languageColors';
 import { CONTRIBUTION_MILESTONES, STREAK_MILESTONES } from './svg/constants';
 import { quotaMonitor } from '@/services/github/quota-monitor';
+import logger from '@/lib/logger';
 
 interface GitHubRepo {
   name: string;
@@ -90,7 +91,10 @@ export async function fetchWithRetry(
   try {
     quotaMonitor.updateQuotaFromHeaders(res.headers);
   } catch (err) {
-    console.error('Failed to update quota monitor', err);
+    logger.error('Failed to update quota monitor', {
+      component: 'GitHub',
+      error: err,
+    });
   }
 
   // Check for rate limit headers
@@ -432,10 +436,11 @@ export async function fetchGitHubContributions(
     } catch (err: unknown) {
       const staleData = await contributionsCache.get(key);
       if (staleData) {
-        console.warn(
-          `[GitHub API] Fetch failed for "${username}", falling back to stale cache:`,
-          err
-        );
+        logger.warn('GitHub API fetch failed, falling back to stale cache', {
+          component: 'GitHub API',
+          username,
+          error: err,
+        });
         return {
           ...staleData,
           isOfflineFallback: true,
@@ -450,10 +455,11 @@ export async function fetchGitHubContributions(
   } catch (err: unknown) {
     const staleData = await contributionsCache.get(key);
     if (staleData) {
-      console.warn(
-        `[GitHub API] Fetch failed for "${username}", falling back to stale cache:`,
-        err
-      );
+      logger.warn('GitHub API fetch failed, falling back to stale cache', {
+        component: 'GitHub API',
+        username,
+        error: err,
+      });
       return {
         ...staleData,
         isOfflineFallback: true,

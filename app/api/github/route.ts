@@ -8,16 +8,14 @@ import { quotaMonitor } from '@/services/github/quota-monitor';
 import { refreshPolicy } from '@/services/github/refresh-policy';
 import { refreshRateLimiter } from '@/services/github/refresh-rate-limiter';
 import { backgroundRefresh } from '@/services/github/background-refresh';
+import { logger } from '@/lib/logger';
 
 function logSecurityEvent(event: string, details: Record<string, unknown>) {
-  console.warn(
-    JSON.stringify({
-      timestamp: new Date().toISOString(),
-      type: 'SECURITY_EVENT',
-      event,
-      ...details,
-    })
-  );
+  logger.warn('Security event', {
+    type: 'SECURITY_EVENT',
+    event,
+    ...details,
+  });
 }
 
 /**

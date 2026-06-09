@@ -6,6 +6,7 @@ import { ogParamsSchema } from '@/lib/validations';
 import { themes } from '@/lib/svg/themes';
 import { fetchGitHubContributions } from '@/lib/github';
 import { calculateStreak } from '@/lib/calculate';
+import { logger } from '@/lib/logger';
 
 const appUrl =
   process.env.NEXT_PUBLIC_SITE_URL ||
@@ -68,7 +69,10 @@ export async function GET(req: NextRequest) {
     longestStreak = stats.longestStreak;
     currentStreak = stats.currentStreak;
   } catch (err) {
-    console.error('[OG] stats fetch failed:', err);
+    logger.error('Stats fetch failed', {
+      source: 'OG',
+      error: err,
+    });
     // fallback to zeros if GitHub is unreachable
   }
 

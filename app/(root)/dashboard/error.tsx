@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import Link from 'next/link';
+import logger from '@/lib/logger';
 
 export default function DashboardError({
   error,
@@ -11,7 +12,9 @@ export default function DashboardError({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error(error);
+    logger.error('Dashboard error', {
+      error,
+    });
   }, [error]);
 
   const isRateLimit = error.message.includes('API limit') || error.message.includes('rate limit');
