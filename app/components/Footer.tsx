@@ -128,6 +128,7 @@ export function Footer() {
           </div>
 
           {/* Navigation Section */}
+
           <div className="flex flex-col items-center sm:items-start">
             <h3 className="font-semibold text-sm text-black dark:text-white mb-3">
               {t('footer.navigation')}
@@ -147,6 +148,7 @@ export function Footer() {
           </div>
 
           {/* Resources Section */}
+
           <div className="flex flex-col items-center sm:items-start">
             <h3 className="font-semibold text-sm text-black dark:text-white mb-3">
               {t('footer.resources')}
@@ -166,6 +168,7 @@ export function Footer() {
           </div>
 
           {/* Connect Section */}
+
           <div className="flex flex-col items-center sm:items-start">
             <h3 className="font-semibold text-sm text-black dark:text-white mb-3">
               {t('footer.connect')}
