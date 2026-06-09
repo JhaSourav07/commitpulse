@@ -402,6 +402,11 @@ type FetchOptions = {
 export const GITHUB_CACHE_TTL_MS = 5 * 60 * 1000;
 
 export const contributionsCache = new DistributedCache<ExtendedContributionData>(1000);
+// In-flight request coalescing map.
+// Prevents multiple simultaneous cache misses for the same key from each
+// firing an independent GitHub GraphQL call (thundering herd).
+// Entries are deleted immediately after the promise settles.
+const inFlightContributions = new Map<string, Promise<ExtendedContributionData>>();
 const profileCache = new DistributedCache<GitHubUserProfile>(1000);
 const reposCache = new DistributedCache<GitHubRepo[]>(500);
 const contributedReposCache = new DistributedCache<ContributedRepo[]>(500);
@@ -607,22 +612,34 @@ export async function fetchGitHubContributions(
     }
   }
 
-  try {
-    return await contributionsCache.getOrSet(key, load, LONG_CACHE_TTL, shouldFetch);
-  } catch (err: unknown) {
-    const staleData = await contributionsCache.get(key);
-    if (staleData) {
-      console.warn(
-        `[GitHub API] Fetch failed for "${username}", falling back to stale cache:`,
-        err
-      );
-      return {
-        ...staleData,
-        isOfflineFallback: true,
-      };
-    }
-    throw err;
+  // Coalescing layer: if a fetch for this key is already in-flight,
+  // attach to the existing promise instead of firing a second API call.
+  if (inFlightContributions.has(key)) {
+    return inFlightContributions.get(key)!;
   }
+
+  const promise = contributionsCache
+    .getOrSet(key, load, LONG_CACHE_TTL, shouldFetch)
+    .catch(async (err: unknown) => {
+      const staleData = await contributionsCache.get(key);
+      if (staleData) {
+        console.warn(
+          `[GitHub API] Fetch failed for "${username}", falling back to stale cache:`,
+          err
+        );
+        return {
+          ...staleData,
+          isOfflineFallback: true,
+        };
+      }
+      throw err;
+    })
+    .finally(() => {
+      inFlightContributions.delete(key);
+    });
+
+  inFlightContributions.set(key, promise);
+  return promise;
 }
 
 async function fetchContributionsUncached(
