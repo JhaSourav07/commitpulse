@@ -10,7 +10,8 @@ interface DescriptionSectionProps {
 const CHAR_LIMIT = 280;
 
 export function DescriptionSection({ value, onChange }: DescriptionSectionProps) {
-  const remaining = CHAR_LIMIT - value.length;
+  const safeValue = value || '';
+  const remaining = CHAR_LIMIT - safeValue.length;
   const isNearLimit = remaining < 40;
 
   return (
@@ -21,7 +22,7 @@ export function DescriptionSection({ value, onChange }: DescriptionSectionProps)
     >
       <FieldLabel>Bio / Tagline</FieldLabel>
       <textarea
-        value={value}
+        value={safeValue}
         onChange={(e) => onChange(e.target.value.slice(0, CHAR_LIMIT))}
         placeholder="e.g. Full-stack developer passionate about building great products. Open source enthusiast. Coffee addict."
         rows={3}

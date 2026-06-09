@@ -45,16 +45,21 @@ export function SuccessGuide({ markdown, onDismiss }: SuccessGuideProps) {
       className="max-w-4xl mx-auto mb-12"
     >
       <div
+        role="region"
+        aria-labelledby="success-guide-heading"
         className="relative rounded-[2rem] border border-emerald-500/20 bg-[#050505]/80 backdrop-blur-2xl overflow-hidden"
         style={{
           boxShadow: '0 0 60px -10px rgba(16,185,129,0.15), 0 0 0 1px rgba(16,185,129,0.08) inset',
         }}
       >
-        <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-3/4 h-48 bg-emerald-500/10 blur-[80px] rounded-full pointer-events-none" />
+        <div
+          aria-hidden="true"
+          className="absolute -top-24 left-1/2 -translate-x-1/2 w-3/4 h-48 bg-emerald-500/10 blur-[80px] rounded-full pointer-events-none"
+        />
 
         <div className="flex items-start justify-between px-8 pt-8 pb-6 border-b border-white/5">
           <div className="flex items-center gap-4">
-            <span className="relative flex h-3 w-3 mt-1">
+            <span aria-hidden="true" className="relative flex h-3 w-3 mt-1">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
               <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500" />
             </span>
@@ -62,7 +67,10 @@ export function SuccessGuide({ markdown, onDismiss }: SuccessGuideProps) {
               <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-400 mb-0.5">
                 {t('success_guide.markdown_copied')}
               </p>
-              <h2 className="text-2xl font-extrabold text-white tracking-tight">
+              <h2
+                id="success-guide-heading"
+                className="text-2xl font-extrabold text-white tracking-tight"
+              >
                 {t('success_guide.title')}
               </h2>
             </div>
@@ -77,7 +85,10 @@ export function SuccessGuide({ markdown, onDismiss }: SuccessGuideProps) {
           </button>
         </div>
 
-        <div className="grid sm:grid-cols-2 gap-px bg-white/5 border-b border-white/5">
+        <div
+          aria-label="Steps to embed your badge"
+          className="grid sm:grid-cols-2 gap-px bg-white/5 border-b border-white/5"
+        >
           {steps.map((step, i) => (
             <motion.div
               key={step.n}
@@ -102,8 +113,13 @@ export function SuccessGuide({ markdown, onDismiss }: SuccessGuideProps) {
             {t('success_guide.copied_snippet_label')}
           </p>
           <div className="flex items-center gap-3 bg-black/60 border border-white/8 rounded-xl px-4 py-3 font-mono text-sm">
-            <span className="text-emerald-400/60 select-none shrink-0">$</span>
-            <code className="text-emerald-300 break-all leading-relaxed flex-1 overflow-x-auto">
+            <span aria-hidden="true" className="text-emerald-400/60 select-none shrink-0">
+              $
+            </span>
+            <code
+              aria-label="Your badge markdown snippet"
+              className="text-emerald-300 break-all leading-relaxed flex-1 overflow-x-auto"
+            >
               {markdown}
             </code>
           </div>

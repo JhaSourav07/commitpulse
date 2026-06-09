@@ -5,12 +5,25 @@ import { Copy } from 'lucide-react';
 
 export function HeroSection() {
   return (
-    <div className="relative text-center mb-16 overflow-hidden bg-[radial-gradient(circle_at_center,rgba(34,197,94,0.04),transparent_70%)] dark:bg-[radial-gradient(circle_at_center,rgba(34,197,94,0.08),transparent_70%)] transition-colors duration-300">
-      <div className="absolute inset-0 opacity-20 dark:opacity-10 bg-[linear-gradient(rgba(0,0,0,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.06)_1px,transparent_1px)] dark:bg-[linear-gradient(rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.06)_1px,transparent_1px)] bg-[size:40px_40px]" />
+    <div
+      role="region"
+      aria-label="Hero section"
+      className="relative text-center mb-16 overflow-hidden bg-[radial-gradient(circle_at_center,rgba(34,197,94,0.04),transparent_70%)] dark:bg-[radial-gradient(circle_at_center,rgba(34,197,94,0.08),transparent_70%)] transition-colors duration-300"
+    >
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 opacity-20 dark:opacity-10 bg-[linear-gradient(rgba(0,0,0,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.06)_1px,transparent_1px)] dark:bg-[linear-gradient(rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.06)_1px,transparent_1px)] bg-[size:40px_40px]"
+      />
 
-      <div className="absolute inset-0 blur-3xl opacity-10 dark:opacity-20 bg-gradient-to-r from-green-500 via-cyan-500 to-purple-500 rounded-full" />
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 blur-3xl opacity-10 dark:opacity-20 bg-gradient-to-r from-green-500 via-cyan-500 to-purple-500 rounded-full"
+      />
 
-      <div className="absolute top-16 left-10 grid grid-cols-6 gap-2 opacity-50 dark:opacity-30">
+      <div
+        aria-hidden="true"
+        className="absolute top-16 left-10 grid grid-cols-6 gap-2 opacity-50 dark:opacity-30"
+      >
         {Array.from({ length: 24 }).map((_, i) => (
           <div
             key={i}
@@ -67,11 +80,14 @@ export function HeroSection() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.7 }}
+        role="search"
+        aria-label="Generate your GitHub streak badge"
         className="relative mt-12 max-w-3xl mx-auto flex flex-col sm:flex-row items-center gap-3 p-2 rounded-2xl border border-gray-200 bg-white/70 shadow-sm backdrop-blur-md dark:border-white/10 dark:bg-white/5 dark:shadow-none"
       >
         <input
           type="text"
           placeholder="Enter GitHub Username"
+          aria-label="GitHub username"
           className="flex-1 w-full bg-transparent border-none px-4 py-3 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-0 dark:text-white dark:placeholder-white/60"
         />
         <button className="flex items-center gap-2 px-6 py-3 rounded-xl border border-gray-200 bg-gray-50 text-gray-700 font-medium transition hover:bg-gray-100 dark:border-white/20 dark:bg-white/10 dark:text-white dark:hover:bg-white/20">
