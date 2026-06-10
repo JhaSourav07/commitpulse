@@ -500,7 +500,6 @@ export async function getFullDashboardData(username: string, options: FetchOptio
     CSS: '#563d7c',
     Go: '#00ADD8',
     Rust: '#dea584',
-
     C: '#555555',
     'C#': '#178600',
     PHP: '#4F5D95',
