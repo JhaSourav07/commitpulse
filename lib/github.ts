@@ -10,7 +10,13 @@ import type {
 import { calculateStreak, aggregateCalendars } from '@/lib/calculate';
 import { DistributedCache } from '@/lib/cache';
 import { LANGUAGE_COLORS } from '@/lib/svg/languageColors';
-import { CONTRIBUTION_MILESTONES, STREAK_MILESTONES } from './svg/constants';
+import {
+  CONTRIBUTION_MILESTONES,
+  STREAK_MILESTONES,
+  PR_MILESTONES,
+  ISSUE_MILESTONES,
+  TOP_ACTIVITY_WEEK_THRESHOLD,
+} from './svg/constants';
 import { quotaMonitor } from '@/services/github/quota-monitor';
 
 interface GitHubRepo {
@@ -1006,12 +1012,43 @@ export async function getOrgDashboardData(
     isPartial,
   };
 }
+
+/**
+ * Calculate the highest activity count in a single week from contribution activity.
+ * @param activity Array of daily contribution data
+ * @returns Maximum contributions in any single week
+ */
+function calculateTopActivityWeek(activity: Array<{ date: string; count: number }>): number {
+  if (!activity || activity.length === 0) return 0;
+
+  // Group contributions by week (Sunday-Saturday)
+  const weeklyTotals = new Map<number, number>();
+
+  for (const day of activity) {
+    const date = new Date(day.date);
+    // Get the ISO week number
+    const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
+    const pastDaysOfYear = (date.getTime() - firstDayOfYear.getTime()) / 86400000;
+    const weekNumber =
+      Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7) * 100 + date.getFullYear();
+
+    const current = weeklyTotals.get(weekNumber) || 0;
+    weeklyTotals.set(weekNumber, current + day.count);
+  }
+
+  // Return the maximum weekly total
+  return Math.max(...Array.from(weeklyTotals.values()), 0);
+}
+
 export function generateAchievements(
   totalContributions: number,
   currentStreak: number,
   weekendCommits: number = 0,
   uniqueLanguages: number = 0,
-  longestStreak: number = currentStreak
+  longestStreak: number = currentStreak,
+  totalPRs: number = 0,
+  totalIssues: number = 0,
+  topActivityWeek: number = 0
 ) {
   const achievements = [];
 
@@ -1075,6 +1112,36 @@ export function generateAchievements(
     });
   }
 
+  // ── PR Activity Milestones ─────────────────────────────────────────────────
+  for (const threshold of PR_MILESTONES) {
+    achievements.push({
+      id: `pr-${threshold}`,
+      title: threshold === 1 ? 'First PR' : `${threshold} PRs`,
+      description: `Created ${threshold} ${threshold === 1 ? 'pull request' : 'pull requests'}`,
+      icon: '🔀',
+      isUnlocked: totalPRs >= threshold,
+      type: 'contributions' as const,
+      threshold,
+      currentValue: totalPRs,
+      progress: Math.min(100, Math.round((totalPRs / threshold) * 100)),
+    });
+  }
+
+  // ── Issue Activity Milestones ──────────────────────────────────────────────
+  for (const threshold of ISSUE_MILESTONES) {
+    achievements.push({
+      id: `issue-${threshold}`,
+      title: threshold === 1 ? 'First Issue' : `${threshold} Issues`,
+      description: `Created ${threshold} ${threshold === 1 ? 'issue' : 'issues'}`,
+      icon: '⚠️',
+      isUnlocked: totalIssues >= threshold,
+      type: 'contributions' as const,
+      threshold,
+      currentValue: totalIssues,
+      progress: Math.min(100, Math.round((totalIssues / threshold) * 100)),
+    });
+  }
+
   // ── Weekend Warrior ────────────────────────────────────────────────────────
   achievements.push({
     id: 'weekend-warrior',
@@ -1099,6 +1166,19 @@ export function generateAchievements(
     threshold: 5,
     currentValue: uniqueLanguages,
     progress: Math.min(100, Math.round((uniqueLanguages / 5) * 100)),
+  });
+
+  // ── Top Activity Week ──────────────────────────────────────────────────────
+  achievements.push({
+    id: 'top-activity-week',
+    title: 'Top Activity Week',
+    description: `Achieved ${TOP_ACTIVITY_WEEK_THRESHOLD}+ contributions in a single week`,
+    icon: '🚀',
+    isUnlocked: topActivityWeek >= TOP_ACTIVITY_WEEK_THRESHOLD,
+    type: 'behavior' as const,
+    threshold: TOP_ACTIVITY_WEEK_THRESHOLD,
+    currentValue: topActivityWeek,
+    progress: Math.min(100, Math.round((topActivityWeek / TOP_ACTIVITY_WEEK_THRESHOLD) * 100)),
   });
 
   return achievements;
@@ -1781,7 +1861,10 @@ export async function getFullDashboardData(username: string, options: FetchOptio
       streakStats.currentStreak,
       weekendCommits,
       Object.keys(langCounts).length,
-      streakStats.longestStreak
+      streakStats.longestStreak,
+      calendarResult.status === 'fulfilled' ? (calendarResult.value.totalPRs ?? 0) : 0,
+      calendarResult.status === 'fulfilled' ? (calendarResult.value.totalIssues ?? 0) : 0,
+      calculateTopActivityWeek(buildActivityMap(allDays))
     ),
     commitClock,
     popularRepos,
