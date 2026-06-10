@@ -7,6 +7,9 @@ vi.mock('../../../lib/github', () => ({
 
 import { fetchGitHubContributions } from '../../../lib/github';
 import type { ContributionCalendar } from '../../../types';
+import { quotaMonitor } from '@/services/github/quota-monitor';
+import { refreshPolicy } from '@/services/github/refresh-policy';
+import { refreshRateLimiter } from '@/services/github/refresh-rate-limiter';
 
 // Calendar with a known, predictable streak so assertions are deterministic.
 // Last day (2024-06-16) has commits; "today" in tests is set to that date.
@@ -27,18 +30,29 @@ const mockCalendar: ContributionCalendar = {
   ],
 };
 
-function makeRequest(params: Record<string, string> = {}): Request {
+function makeRequest(
+  params: Record<string, string> = {},
+  headers: Record<string, string> = {}
+): Request {
   const url = new URL('http://localhost/api/stats');
   for (const [key, value] of Object.entries(params)) {
     url.searchParams.set(key, value);
   }
-  return new Request(url.toString());
+  return new Request(url.toString(), {
+    headers: new Headers(headers),
+  });
 }
 
 describe('GET /api/stats', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(fetchGitHubContributions).mockResolvedValue(mockCalendar);
+    quotaMonitor.reset();
+    refreshPolicy.reset();
+    refreshRateLimiter.reset();
+    vi.mocked(fetchGitHubContributions).mockResolvedValue({
+      calendar: mockCalendar,
+      repoContributions: [],
+    });
   });
 
   // ─── Parameter validation ──────────────────────────────────────────────────
@@ -52,6 +66,13 @@ describe('GET /api/stats', () => {
 
   it('does not call the GitHub API when user is missing', async () => {
     await GET(makeRequest());
+    expect(fetchGitHubContributions).not.toHaveBeenCalled();
+  });
+
+  it('returns 400 and skips GitHub when the username format is invalid', async () => {
+    const response = await GET(makeRequest({ user: 'octo/cat' }));
+
+    expect(response.status).toBe(400);
     expect(fetchGitHubContributions).not.toHaveBeenCalled();
   });
 
@@ -93,6 +114,37 @@ describe('GET /api/stats', () => {
     expect(typeof body.currentStreak).toBe('number');
   });
 
+  it('returns non-cacheable headers when refresh=true', async () => {
+    const response = await GET(makeRequest({ user: 'testuser', refresh: 'true' }));
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('Cache-Control')).toBe('no-store, no-cache, must-revalidate');
+    expect(response.headers.get('Pragma')).toBe('no-cache');
+    expect(response.headers.get('Expires')).toBe('0');
+    expect(response.headers.get('X-Refresh-Status')).toBe('Fresh');
+  });
+
+  it('still returns valid stats data when refresh=true', async () => {
+    const response = await GET(makeRequest({ user: 'testuser', refresh: 'true' }));
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.totalContributions).toBe(10);
+    expect(typeof body.longestStreak).toBe('number');
+    expect(typeof body.currentStreak).toBe('number');
+  });
+
+  it('keeps the existing cache headers for normal requests', async () => {
+    const response = await GET(makeRequest({ user: 'testuser' }));
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('Cache-Control')).toBe(
+      'public, s-maxage=3600, stale-while-revalidate=86400'
+    );
+    expect(response.headers.get('Pragma')).toBeNull();
+    expect(response.headers.get('Expires')).toBeNull();
+  });
+
   it('passes bypassCache=true to GitHub when refresh=true', async () => {
     await GET(makeRequest({ user: 'testuser', refresh: 'true' }));
     expect(fetchGitHubContributions).toHaveBeenCalledWith('testuser', { bypassCache: true });
@@ -101,6 +153,47 @@ describe('GET /api/stats', () => {
   it('passes bypassCache=false to GitHub when refresh is omitted', async () => {
     await GET(makeRequest({ user: 'testuser' }));
     expect(fetchGitHubContributions).toHaveBeenCalledWith('testuser', { bypassCache: false });
+  });
+
+  it('serves cached stats instead of bypassing cache during refresh cooldown', async () => {
+    await GET(makeRequest({ user: 'testuser', refresh: 'true' }));
+
+    const response = await GET(makeRequest({ user: 'testuser', refresh: 'true' }));
+
+    expect(response.status).toBe(200);
+    expect(fetchGitHubContributions).toHaveBeenLastCalledWith('testuser', {
+      bypassCache: false,
+    });
+    expect(response.headers.get('X-Refresh-Status')).toBe('Cooldown-Served-Cached');
+    expect(response.headers.get('Cache-Control')).toBe(
+      'public, s-maxage=3600, stale-while-revalidate=86400'
+    );
+  });
+
+  it('returns 429 when stats refresh exceeds the client refresh rate limit', async () => {
+    refreshRateLimiter.setLimit(1);
+
+    await GET(makeRequest({ user: 'testuser', refresh: 'true' }, { 'x-real-ip': '203.0.113.9' }));
+
+    const response = await GET(
+      makeRequest({ user: 'octocat', refresh: 'true' }, { 'x-real-ip': '203.0.113.9' })
+    );
+
+    expect(response.status).toBe(429);
+    const body = await response.json();
+    expect(body.error).toContain('Refresh rate limit exceeded');
+    expect(response.headers.get('X-RateLimit-Limit')).toBe('1');
+  });
+
+  it('blocks stats refresh when the shared GitHub quota is low', async () => {
+    quotaMonitor.setQuota(5000, 400, Date.now() + 60_000);
+
+    const response = await GET(makeRequest({ user: 'testuser', refresh: 'true' }));
+
+    expect(response.status).toBe(429);
+    const body = await response.json();
+    expect(body.error).toContain('quota is low');
+    expect(fetchGitHubContributions).not.toHaveBeenCalled();
   });
 
   it('accepts a valid IANA timezone without error', async () => {
@@ -116,6 +209,28 @@ describe('GET /api/stats', () => {
     expect(response.status).toBe(500);
     const body = await response.json();
     expect(body.error).toBe('GitHub API error');
+  });
+
+  it('returns 404 when GitHub reports that the user does not exist', async () => {
+    vi.mocked(fetchGitHubContributions).mockRejectedValue(
+      new Error('GitHub user "missing-user" not found')
+    );
+
+    const response = await GET(makeRequest({ user: 'missing-user' }));
+
+    expect(response.status).toBe(404);
+    const body = await response.json();
+    expect(body.error).toBe('User not found');
+  });
+
+  it('returns 429 when GitHub rate limiting bubbles up from the client', async () => {
+    vi.mocked(fetchGitHubContributions).mockRejectedValue(new Error('API Rate Limit Exceeded'));
+
+    const response = await GET(makeRequest({ user: 'testuser' }));
+
+    expect(response.status).toBe(429);
+    const body = await response.json();
+    expect(body.error).toBe('GitHub API rate limit reached. Please try again later.');
   });
 
   it('returns 500 with a generic message for non-Error throws', async () => {

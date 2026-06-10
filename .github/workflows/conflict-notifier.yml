@@ -2,7 +2,12 @@ name: Merge Conflict Notifier
 
 on:
   schedule:
-    - cron: '0 * * * *'
+    - cron: '*/30 * * * *' # Hourly/half-hourly fallback
+  push:
+    branches:
+      - main
+  pull_request_target:
+    types: [synchronize, reopened, edited]
   workflow_dispatch:
 
 permissions:
@@ -74,22 +79,8 @@ jobs:
                     issue_number: pr.number,
                     labels: [label],
                   });
-                }
 
-                // Check if we've already posted a conflict comment to avoid spam
-                const { data: comments } = await github.rest.issues.listComments({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  issue_number: pr.number,
-                  per_page: 100,
-                });
-
-                const alreadyCommented = comments.some(c =>
-                  c.user?.login === 'github-actions[bot]' &&
-                  c.body?.includes('merge conflicts with the main branch')
-                );
-
-                if (!alreadyCommented) {
+                  // Post notification comment ONLY ONCE (when the label is first applied)
                   await github.rest.issues.createComment({
                     owner: context.repo.owner,
                     repo: context.repo.repo,
@@ -110,11 +101,19 @@ jobs:
                 }
               } else if (!isConflicting && alreadyLabeled) {
                 // PR is no longer conflicting — remove the stale label
-                await github.rest.issues.removeLabel({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  issue_number: pr.number,
-                  name: label,
-                });
+                try {
+                  await github.rest.issues.removeLabel({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: pr.number,
+                    name: label,
+                  });
+                } catch (error) {
+                  if (error instanceof Error && error.message.includes('Label does not exist')) {
+                    core.info(`Label '${label}' not found on PR #${pr.number}, skipping removal`);
+                  } else {
+                    throw error;
+                  }
+                }
               }
             }

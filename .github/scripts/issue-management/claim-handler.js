@@ -10,7 +10,7 @@ async function findExistingAssignments(github, owner, repo, username, currentIss
   return issues.filter((issue) => !issue.pull_request && issue.number !== currentIssueNumber);
 }
 
-const MAX_ASSIGNED_ISSUES = 3;
+const MAX_ASSIGNED_ISSUES = 5;
 
 async function handleClaim({ github, context }) {
   const { owner, repo } = context.repo;
@@ -30,9 +30,10 @@ async function handleClaim({ github, context }) {
 
   const issueAuthor = context.payload.issue.user.login;
 
-  const isAuthorJhasourav07 = issueAuthor.toLowerCase() === 'jhasourav07';
+  const MAINTAINERS = ['jhasourav07', 'aamod007', 'souravjhahind'];
+  const isOpenedByMaintainer = MAINTAINERS.includes(issueAuthor.toLowerCase());
 
-  if (!isAuthorJhasourav07 && commenter.toLowerCase() !== issueAuthor.toLowerCase()) {
+  if (!isOpenedByMaintainer && commenter.toLowerCase() !== issueAuthor.toLowerCase()) {
     await github.rest.issues.createComment({
       owner,
       repo,
@@ -42,7 +43,13 @@ async function handleClaim({ github, context }) {
     return;
   }
 
-  const currentAssignees = context.payload.issue.assignees.map((a) => a.login.toLowerCase());
+  // Re-fetch to avoid stale assignee data from the webhook payload
+  const { data: freshIssue } = await github.rest.issues.get({
+    owner,
+    repo,
+    issue_number: issueNumber,
+  });
+  const currentAssignees = freshIssue.assignees.map((a) => a.login.toLowerCase());
 
   if (currentAssignees.length > 0) {
     if (currentAssignees.includes(commenter.toLowerCase())) {
@@ -73,7 +80,7 @@ async function handleClaim({ github, context }) {
       owner,
       repo,
       issue_number: issueNumber,
-      body: `❌ You already have **${existingIssues.length}/${MAX_ASSIGNED_ISSUES}** active assigned issues (the maximum allowed).\nPlease complete or unassign one of your current issues before claiming another.\n\n${issueList}`,
+      body: `❌ You already have **${existingIssues.length}/${MAX_ASSIGNED_ISSUES}** active assigned issues (the maximum allowed).\nPlease complete or \`/unclaim\` one of your current issues before claiming another.\n\n${issueList}`,
     });
     return;
   }
@@ -89,7 +96,7 @@ async function handleClaim({ github, context }) {
     owner,
     repo,
     issue_number: issueNumber,
-    body: `✅ Successfully assigned issue to @${commenter}\n\n> 💡 Please read [CONTRIBUTING.md](../blob/main/CONTRIBUTING.md) if you haven't already. Good luck! 🚀`,
+    body: `🎉 **Assigned!** Welcome to the project, @${commenter}.\n\n⏳ **Reminder:** You have **2 days** to submit a Pull Request. After 2 days of inactivity, you will be automatically unassigned to give others a chance (as per our GSSoC anti-hoarding policy).\n\n> 💡 Please read [CONTRIBUTING.md](../blob/main/CONTRIBUTING.md) if you haven't already.\n\nHappy coding! 🚀`,
   });
 }
 

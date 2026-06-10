@@ -1,18 +1,38 @@
 'use client';
 
+import Image from 'next/image';
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { MapPin, Calendar, GitBranch, Users, UserPlus, Star, Share2 } from 'lucide-react';
 import type { DashboardExportData, UserProfile } from '@/types/dashboard';
 import ShareSheet from './ShareSheet';
-
+import { useTranslation } from '@/context/TranslationContext';
+/**
+ * Properties for the ProfileCard component.
+ */
 interface ProfileCardProps {
+  /**
+   * The GitHub user profile data containing avatar details, name, bio,
+   * location metrics, and developer tracking score attributes.
+   */
   user: UserProfile;
+
+  /**
+   * The aggregated dashboard state data compiled for image export engines.
+   * This object is passed down to the `ShareSheet` component to render social share layouts.
+   */
   exportData: DashboardExportData;
+
+  /**
+   * Optional collection of decorative text strings representing earned system awards
+   * or user achievements shown on the profile card header segment.
+   */
+  badges?: string[];
 }
 
-export default function ProfileCard({ user, exportData }: ProfileCardProps) {
+export default function ProfileCard({ user, exportData, badges }: ProfileCardProps) {
   const [shareOpen, setShareOpen] = useState(false);
+  const { t } = useTranslation();
 
   return (
     <>
@@ -26,12 +46,21 @@ export default function ProfileCard({ user, exportData }: ProfileCardProps) {
         <div className="flex flex-col items-center text-center">
           <div className="relative mb-5">
             <div className="w-24 h-24 rounded-full overflow-hidden border border-black/10 dark:border-[rgba(255,255,255,0.12)]">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={user.avatarUrl} alt={user.name} className="w-full h-full object-cover" />
+              <Image
+                src={
+                  user.avatarUrl.startsWith('http')
+                    ? `${user.avatarUrl}${user.avatarUrl.includes('?') ? '&' : '?'}s=120`
+                    : user.avatarUrl
+                }
+                alt={user.name || 'Contributor Avatar'}
+                width={96}
+                height={96}
+                className="w-full h-full aspect-square object-cover"
+              />
             </div>
             {user.isPro && (
               <span className="absolute -bottom-1 -right-1 text-[9px] font-bold bg-black text-white dark:bg-white dark:text-black px-1.5 py-0.5 rounded-full tracking-wide">
-                PRO
+                {t('dashboard.profile.pro')}
               </span>
             )}
           </div>
@@ -40,6 +69,18 @@ export default function ProfileCard({ user, exportData }: ProfileCardProps) {
             {user.name}
           </h2>
           <p className="text-sm text-[#A1A1AA] mb-4">@{user.username}</p>
+          {badges && badges.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 justify-center mb-4">
+              {badges.map((badge) => (
+                <span
+                  key={badge}
+                  className="text-[9px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full uppercase tracking-wider"
+                >
+                  {badge}
+                </span>
+              ))}
+            </div>
+          )}
           <p className=" text-xs xs:text-sm text-[#A1A1AA] leading-relaxed mb-5 max-w-[220px]">
             {user.bio}
           </p>
@@ -60,7 +101,7 @@ export default function ProfileCard({ user, exportData }: ProfileCardProps) {
           <div className="w-full border border-black/10 dark:border-[rgba(255,255,255,0.06)] rounded-lg p-4 mb-5 bg-gray-100 dark:bg-[#111]">
             <div className="flex justify-between items-center mb-2.5">
               <span className="text-[10px] font-medium text-[#A1A1AA] uppercase tracking-widest">
-                Developer Score
+                {t('dashboard.profile.score')}
               </span>
               <span className="text-sm font-semibold text-gray-900 dark:text-white">
                 {user.developerScore}
@@ -79,10 +120,18 @@ export default function ProfileCard({ user, exportData }: ProfileCardProps) {
           {/* Stats */}
           <div className="grid grid-cols-2 gap-2 w-full mb-5">
             {[
-              { icon: GitBranch, label: 'Repos', value: user.stats.repositories },
-              { icon: Star, label: 'Stars', value: user.stats.stars },
-              { icon: Users, label: 'Followers', value: user.stats.followers },
-              { icon: UserPlus, label: 'Following', value: user.stats.following },
+              {
+                icon: GitBranch,
+                label: t('dashboard.profile.repos'),
+                value: user.stats.repositories,
+              },
+              { icon: Star, label: t('dashboard.profile.stars'), value: user.stats.stars },
+              { icon: Users, label: t('dashboard.profile.followers'), value: user.stats.followers },
+              {
+                icon: UserPlus,
+                label: t('dashboard.profile.following'),
+                value: user.stats.following,
+              },
             ].map(({ icon: Icon, label, value }) => (
               <div
                 key={label}
@@ -105,7 +154,7 @@ export default function ProfileCard({ user, exportData }: ProfileCardProps) {
             className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-black dark:bg-white text-white dark:text-black text-sm font-semibold hover:bg-zinc-800 dark:hover:bg-zinc-100 transition-colors duration-200"
           >
             <Share2 size={14} />
-            Share Your Pulse
+            {t('dashboard.profile.share')}
           </motion.button>
         </div>
       </motion.div>
