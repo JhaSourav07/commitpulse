@@ -1,0 +1,10 @@
+{
+  "ignoreCommand": "bash vercel-ignore.sh",
+  "git": {
+    "deploymentEnabled": {
+      "main": true,
+      "fix/issue-*": false,
+      "test/*": false
+    }
+  }
+}

@@ -20,17 +20,65 @@
 // towers scale upward from their ground tile rather than from the SVG origin.
 const TOWER_BASE_Y = 10;
 
-export const TOWER_ANIMATION_CSS = `
-  .cp-tower {
-    transform: scaleY(0);
-    transform-origin: 0 ${TOWER_BASE_Y}px;
-    animation: grow-up 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+export function getTowerAnimationCSS(
+  entrance: 'rise' | 'fade' | 'slide' | 'none' = 'rise',
+  scale = 1.0
+): string {
+  if (entrance === 'none') {
+    return `
+      .cp-tower { transform: scaleY(1); opacity: 1; }
+    `;
   }
-  @keyframes grow-up {
-    from { transform: scaleY(0); }
-    to   { transform: scaleY(1); }
+
+  let baseStyles = '';
+  let keyframes = '';
+
+  if (entrance === 'rise') {
+    const baseY = Math.round(TOWER_BASE_Y * scale * 100) / 100;
+    baseStyles = `
+      transform: scaleY(0);
+      transform-origin: 0 ${baseY}px;
+      animation: grow-up 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    `;
+    keyframes = `
+      @keyframes grow-up {
+        from { transform: scaleY(0); }
+        to   { transform: scaleY(1); }
+      }
+    `;
+  } else if (entrance === 'fade') {
+    baseStyles = `
+      opacity: 0;
+      animation: fade-in 1.2s ease-out forwards;
+    `;
+    keyframes = `
+      @keyframes fade-in {
+        from { opacity: 0; }
+        to   { opacity: 1; }
+      }
+    `;
+  } else if (entrance === 'slide') {
+    const slideOffset = Math.round(-20 * scale * 100) / 100;
+    baseStyles = `
+      opacity: 0;
+      transform: translateY(${slideOffset}px);
+      animation: slide-down 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    `;
+    keyframes = `
+      @keyframes slide-down {
+        from { opacity: 0; transform: translateY(${slideOffset}px); }
+        to   { opacity: 1; transform: translateY(0); }
+      }
+    `;
   }
-  @media (prefers-reduced-motion: reduce) {
-    .cp-tower { animation: none !important; transform: scaleY(1) !important; }
-  }
-`;
+
+  return `
+    .cp-tower {
+      ${baseStyles}
+    }
+    ${keyframes}
+    @media (prefers-reduced-motion: reduce) {
+      .cp-tower { animation: none !important; transform: scaleY(1) translateY(0) !important; opacity: 1 !important; }
+    }
+  `;
+}
