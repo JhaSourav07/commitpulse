@@ -1,5 +1,4 @@
-// lib/github.ts
-
+import CircuitBreaker from 'opossum';
 import type { ContributionCalendar } from '../types';
 import { calculateStreak } from './calculate';
 import { TTLCache } from './cache';
@@ -15,6 +14,28 @@ const CONTRIBUTION_MILESTONES = [1, 10, 100, 250, 500, 1000];
 const STREAK_MILESTONES = [3, 7, 30, 100];
 const GRAPHQL_TIMEOUT_MS = 8000; // 8s for GraphQL endpoint
 const REST_TIMEOUT_MS = 5000; // 5s for REST endpoints
+
+// Define the breaker options
+const breakerOptions = {
+  timeout: 10000, // 10s: Fail if GitHub takes too long
+  errorThresholdPercentage: 50, // Open circuit if 50% of requests fail
+  resetTimeout: 30000, // Wait 30s before trying again
+};
+
+// Create the breaker that wraps your robust fetcher
+const apiBreaker = new CircuitBreaker(
+  async (params: { url: string | URL; options: RequestInit; timeoutMs?: number }) => {
+    return await fetchWithRetry(params.url, params.options, 0, params.timeoutMs);
+  },
+  breakerOptions
+);
+
+// Log state changes for observability
+apiBreaker.on('open', () => console.warn('[CircuitBreaker] Circuit OPENED - Failing fast.'));
+apiBreaker.on('close', () => console.info('[CircuitBreaker] Circuit CLOSED - Normal operation.'));
+apiBreaker.on('halfOpen', () =>
+  console.info('[CircuitBreaker] Circuit HALF-OPEN - Testing recovery.')
+);
 
 export async function fetchWithRetry(
   url: string | URL,
@@ -180,15 +201,19 @@ export async function fetchGitHubContributions(
     }
   `;
 
-  const res = await fetchWithRetry(GITHUB_GRAPHQL_URL, {
-    method: 'POST',
-    headers: getHeaders(),
-    body: JSON.stringify({
-      query,
-      variables: { login: username, from: options.from, to: options.to },
-    }),
-    cache: 'no-store', // Cache handled by our in-memory layer + API route headers
-    signal: options.signal,
+  const res = await apiBreaker.fire({
+    url: GITHUB_GRAPHQL_URL,
+    options: {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({
+        query,
+        variables: { login: username, from: options.from, to: options.to },
+      }),
+      cache: 'no-store',
+      signal: options.signal,
+    },
+    timeoutMs: GRAPHQL_TIMEOUT_MS,
   });
 
   if (!res.ok) {
@@ -232,10 +257,14 @@ export async function fetchUserProfile(
     if (cached) return cached;
   }
 
-  const res = await fetchWithRetry(`${GITHUB_REST_URL}/users/${username}`, {
-    headers: getHeaders(),
-    cache: 'no-store',
-    signal: options.signal,
+  const res = await apiBreaker.fire({
+    url: `${GITHUB_REST_URL}/users/${username}`,
+    options: {
+      headers: getHeaders(),
+      cache: 'no-store',
+      signal: options.signal,
+    },
+    timeoutMs: REST_TIMEOUT_MS,
   });
 
   if (!res.ok) {
@@ -273,14 +302,15 @@ export async function fetchUserRepos(
   let PAGE = 1;
   const MAX_PAGES = 100;
   while (PAGE <= MAX_PAGES) {
-    const res = await fetchWithRetry(
-      `${GITHUB_REST_URL}/users/${username}/repos?per_page=100&page=${PAGE}&sort=pushed`,
-      {
+    const res = await apiBreaker.fire({
+      url: `${GITHUB_REST_URL}/users/${username}/repos?per_page=100&page=${PAGE}&sort=pushed`,
+      options: {
         headers: getHeaders(),
         cache: 'no-store',
         signal: options.signal,
-      }
-    );
+      },
+      timeoutMs: REST_TIMEOUT_MS,
+    });
 
     if (!res.ok) {
       throw new Error(`GitHub REST API error: ${res.status}`);
