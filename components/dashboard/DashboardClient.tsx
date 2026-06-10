@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback, useSyncExternalStore } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import DashboardSkeleton from './DashboardSkeleton';
-import { X, RefreshCw, Share2 } from 'lucide-react';
+import { X, RefreshCw, Share2, Trophy } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import type { Achievement, Repository, HallOfFameAward } from '@/types/dashboard';
@@ -595,6 +595,13 @@ export default function DashboardClient({
                 </svg>
                 Profile Optimizer
               </button>
+              <Link
+                href={`/achievements?username=${username}`}
+                className="flex items-center gap-2 rounded-xl border border-black/10 dark:border-[rgba(255,255,255,0.15)] bg-black dark:bg-[#111] hover:bg-zinc-800 dark:hover:bg-zinc-900 px-4 py-2 text-sm font-semibold text-white dark:text-white transition-all duration-200 active:scale-[0.98]"
+              >
+                <Trophy size={16} />
+                Achievements
+              </Link>
               <button
                 ref={triggerRef}
                 onClick={handleOpenModal}
