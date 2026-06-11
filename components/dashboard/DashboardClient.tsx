@@ -30,6 +30,7 @@ import ResumeProfileSection from './ResumeProfileSection';
 import type { DashboardPeriod } from '@/utils/dashboardPeriod';
 import { PopularRepos } from './PopularPinnnedRepos';
 import PRInsightsClient from './PRInsights/PRInsightsClient';
+import WeeklyProductivityInsights from './WeeklyProductivityInsights';
 
 // Define the dashboard data structure
 export interface DashboardData {
@@ -724,6 +725,12 @@ export default function DashboardClient({
             </div>
 
             <AIInsights insights={initialData.insights} />
+
+            <WeeklyProductivityInsights
+              commitClock={initialData.commitClock}
+              activity={initialData.activity}
+              currentStreak={initialData.stats.currentStreak}
+            />
 
             <PopularRepos
               popularRepos={initialData.popularRepos || []}
