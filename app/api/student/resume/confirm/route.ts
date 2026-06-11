@@ -90,7 +90,7 @@ export async function POST(req: Request) {
           updatedAt: new Date(),
         },
       },
-      { upsert: true, new: true }
+      { upsert: true, new: true, runValidators: true }
     );
 
     return NextResponse.json({ success: true });

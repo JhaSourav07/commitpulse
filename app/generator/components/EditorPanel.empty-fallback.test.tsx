@@ -33,6 +33,9 @@ const makeState = (overrides: Partial<GeneratorState> = {}): GeneratorState => (
   githubUsername: '',
   showCommitPulse: false,
   commitPulseAccent: '',
+  showSnakeGraph: false,
+  showPacmanGraph: false,
+  graphPlacement: 'bottom',
   ...overrides,
 });
 
@@ -45,6 +48,7 @@ const makeHandlers = () => ({
   onGithubUsernameChange: vi.fn(),
   onShowCommitPulseChange: vi.fn(),
   onCommitPulseAccentChange: vi.fn(),
+  onApplyImport: vi.fn(),
 });
 
 // ── 1. Section presence ───────────────────────────────────────────────────────

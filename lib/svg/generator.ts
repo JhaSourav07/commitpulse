@@ -316,9 +316,43 @@ function renderDefs(sf: number, params: BadgeParams): string {
         )}" result="blur" /><feComposite in="SourceGraphic" in2="blur" operator="over" /></filter>`
       : '';
 
+  let canvasGradient = '';
+  if (params.bgType === 'linear' || params.bgType === 'radial') {
+    const bgStart = params.bgStart
+      ? params.bgStart.startsWith('#')
+        ? params.bgStart
+        : `#${params.bgStart}`
+      : '#0d1117';
+    const bgEnd = params.bgEnd
+      ? params.bgEnd.startsWith('#')
+        ? params.bgEnd
+        : `#${params.bgEnd}`
+      : '#000000';
+    if (params.bgType === 'linear') {
+      const angle = params.bgAngle !== undefined ? params.bgAngle : 90;
+      const angleRad = (angle - 90) * (Math.PI / 180);
+      const x1 = Math.round(50 + Math.cos(angleRad + Math.PI) * 50) + '%';
+      const y1 = Math.round(50 + Math.sin(angleRad + Math.PI) * 50) + '%';
+      const x2 = Math.round(50 + Math.cos(angleRad) * 50) + '%';
+      const y2 = Math.round(50 + Math.sin(angleRad) * 50) + '%';
+      canvasGradient = `
+      <linearGradient id="canvas-gradient" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}">
+        <stop offset="0%" stop-color="${bgStart}" />
+        <stop offset="100%" stop-color="${bgEnd}" />
+      </linearGradient>`;
+    } else {
+      canvasGradient = `
+      <radialGradient id="canvas-gradient" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
+        <stop offset="0%" stop-color="${bgStart}" />
+        <stop offset="100%" stop-color="${bgEnd}" />
+      </radialGradient>`;
+    }
+  }
+
   return `<defs>
     ${filterGlow}
     ${gradients}
+    ${canvasGradient}
   </defs>`;
 }
 
@@ -582,6 +616,12 @@ function renderFooter(
   const s = createScaler(sf);
   const statsOffset = params.label === false ? -40 : 0;
 
+  // Static themes do not define the .cp-accent-fill CSS rule, so the scan line needs an
+  // explicit fill or it inherits the SVG default fill="none" and becomes invisible.
+  const scanLineFill = params.autoTheme
+    ? 'class="cp-accent-fill scan-line"'
+    : `fill="${accent}" class="cp-accent-fill scan-line"`;
+
   const titleText = `${truncateUsername(safeUser).toUpperCase()}${isWinner ? ' 👑' : ''}${
     params.isOfflineFallback
       ? '<tspan fill="#ff9f43" font-size="10px" font-weight="bold"> [STALE CACHE]</tspan>'
@@ -601,7 +641,7 @@ function renderFooter(
     y="${s(80 + statsOffset)}"
     width="${s(400)}"
     height="${s(1)}"
-    class="cp-accent-fill scan-line"
+    ${scanLineFill}
     fill-opacity="0.3"
     style="--scan-speed: ${params.speed || '8s'}; --scan-start: ${s(0)}px; --scan-end: ${s(240)}px;"
   />`;
@@ -740,6 +780,8 @@ export function generateSVG(
   const animate = params.animate ?? true;
   const safeUser = escapeXML(params.user || 'GitHub User');
   const bg = `#${sanitizeHexColor(params.bg, '0d1117')}`;
+  const bgFill =
+    params.bgType === 'linear' || params.bgType === 'radial' ? 'url(#canvas-gradient)' : bg;
 
   const accent = Array.isArray(params.accent)
     ? params.accent.map((c) => sanitizeHexColor(c, '00ffaa'))
@@ -796,7 +838,7 @@ export function generateSVG(
 <svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 ${W} ${H}" fill="none" role="img" aria-labelledby="cp-title-${safeId}" aria-describedby="cp-desc-${safeId}">
   ${renderHeader(safeUser, stats, sf, params, safeId)}
   ${renderStyle(selectedFont, statsFont, googleFontsImport, text, mainAccentHex, sf, bg, params.entrance || 'rise')}
-  <rect width="${W}" height="${H}" rx="${radius}" fill="${params.hideBackground ? 'transparent' : bg}" ${borderAttr} />
+  <rect width="${W}" height="${H}" rx="${radius}" fill="${params.hideBackground ? 'transparent' : bgFill}" ${borderAttr} />
   <g id="cp-towers" style="transform-origin: center; transform-box: fill-box;" transform="translate(0, ${Math.round((20 + yOffset) * sf)})">${towers}</g>
   ${renderIsometricLabels(calendar, params, text, sf)}
   ${renderFooter(stats, params, labels, safeUser, mainAccentHex, sf)}
@@ -953,6 +995,8 @@ export function generateMonthlySVG(stats: MonthlyStats, params: BadgeParams): st
 
   const safeUser = escapeXML(params.user || 'GitHub User');
   const bg = `#${sanitizeHexColor(params.bg, '0d1117')}`;
+  const bgFill =
+    params.bgType === 'linear' || params.bgType === 'radial' ? 'url(#canvas-gradient)' : bg;
 
   const rawAccent = Array.isArray(params.accent)
     ? params.accent[params.accent.length - 1]
@@ -1027,7 +1071,7 @@ export function generateMonthlySVG(stats: MonthlyStats, params: BadgeParams): st
   }
   </style>
 
-  <rect width="${width}" height="${height}" rx="${radius}" fill="${params.hideBackground ? 'transparent' : bg}" />
+  <rect width="${width}" height="${height}" rx="${radius}" fill="${params.hideBackground ? 'transparent' : bgFill}" />
 
   <text x="20" y="40" class="title">${stats.currentMonthName.toUpperCase()}</text>
   <text x="20" y="85" class="stats">${stats.currentMonthTotal}</text>
@@ -1057,6 +1101,8 @@ export function generateWrappedSVG(
 ): string {
   const safeUser = escapeXML(params.user || 'GitHub User');
   const bg = `#${sanitizeHexColor(params.bg, '0d1117')}`;
+  const bgFill =
+    params.bgType === 'linear' || params.bgType === 'radial' ? 'url(#canvas-gradient)' : bg;
 
   const rawAccent = Array.isArray(params.accent)
     ? params.accent[params.accent.length - 1]
@@ -1182,7 +1228,7 @@ export function generateWrappedSVG(
 
   const rectFill = params.autoTheme
     ? 'class="cp-bg-fill"'
-    : `fill="${params.hideBackground ? 'transparent' : bg}"`;
+    : `fill="${params.hideBackground ? 'transparent' : bgFill}"`;
   const textClass = params.autoTheme ? 'class="cp-text-fill"' : `fill="${text}"`;
   const accentClass = params.autoTheme ? 'class="cp-accent-fill"' : `fill="${accent}"`;
   const borderStroke = params.autoTheme
@@ -1563,6 +1609,8 @@ export function generateHeatmapSVG(
 
   const safeUser = escapeXML(params.user || 'GitHub User');
   const bg = `#${sanitizeHexColor(params.bg, '0d1117')}`;
+  const bgFill =
+    params.bgType === 'linear' || params.bgType === 'radial' ? 'url(#canvas-gradient)' : bg;
 
   const rawAccent = Array.isArray(params.accent)
     ? params.accent[params.accent.length - 1]
@@ -1659,7 +1707,7 @@ export function generateHeatmapSVG(
   }
   </style>
 
-  <rect width="${W}" height="${H}" rx="${radius}" fill="${params.hideBackground ? 'transparent' : bg}" ${borderAttr} />
+  <rect width="${W}" height="${H}" rx="${radius}" fill="${params.hideBackground ? 'transparent' : bgFill}" ${borderAttr} />
 
   ${!params.hide_title ? `<text x="${s(60)}" y="${s(30)}" class="hm-title">${truncateUsername(safeUser).toUpperCase()}${params.isOfflineFallback ? '<tspan fill="#ff9f43" font-size="10px" font-weight="bold"> [STALE CACHE]</tspan>' : ''}</text>` : ''}
 
@@ -1898,7 +1946,7 @@ function renderGhostTowers(
   let ghostTowers = '';
   for (const { col, row, h } of layout) {
     const tx = 300 + (col - row) * 16;
-    const ty = 120 + (col + row) * 9;
+    const ty = 120 + (col + row) * TILE_HEIGHT_HALF;
     ghostTowers += `
       <g transform="translate(${tx}, ${ty - h})">
         <path d="M0 10 L0 ${10 + h} L-16 ${h} L-16 0 Z"
@@ -2616,6 +2664,392 @@ function generateAutoThemePulseSVG(
 `;
 }
 
+export function generateSkylineSVG(
+  stats: StreakStats,
+  params: BadgeParams,
+  calendar: ContributionCalendar
+): string {
+  if (params.autoTheme) {
+    return generateAutoThemeSkylineSVG(stats, params, calendar);
+  }
+  return renderSkylineSVG(stats, params, calendar, false);
+}
+
+export function generateAutoThemeSkylineSVG(
+  stats: StreakStats,
+  params: BadgeParams,
+  calendar: ContributionCalendar
+): string {
+  return renderSkylineSVG(stats, params, calendar, true);
+}
+
+function renderSkylineSVG(
+  stats: StreakStats,
+  params: BadgeParams,
+  calendar: ContributionCalendar,
+  isAutoTheme: boolean
+): string {
+  const safeUser = escapeXML(params.user || 'GitHub User');
+  const light = AUTO_THEME_LIGHT;
+  const dark = AUTO_THEME_DARK;
+
+  const bg = isAutoTheme ? '' : `#${sanitizeHexColor(params.bg, '0d1117')}`;
+  const rawAccent = Array.isArray(params.accent)
+    ? params.accent[params.accent.length - 1]
+    : params.accent;
+  const accent = isAutoTheme ? '' : `#${sanitizeHexColor(rawAccent, '00ffaa')}`;
+  const text = isAutoTheme ? '' : `#${sanitizeHexColor(params.text, 'ffffff')}`;
+
+  const sanitizedFont = sanitizeFont(params.font);
+  const predefinedFont = sanitizedFont
+    ? (FONT_MAP[sanitizedFont.toLowerCase() as keyof typeof FONT_MAP] ?? null)
+    : null;
+  const isPredefinedFont = Boolean(predefinedFont);
+  const selectedFont = isPredefinedFont
+    ? predefinedFont
+    : sanitizedFont
+      ? `"${sanitizedFont}", sans-serif`
+      : null;
+  const statsFont = selectedFont || '"Space Grotesk", sans-serif';
+
+  const googleFontUrlPart =
+    sanitizedFont && !isPredefinedFont ? sanitizeGoogleFontUrl(sanitizedFont) : null;
+  const googleFontsImport = googleFontUrlPart
+    ? `@import url('https://fonts.googleapis.com/css2?family=${googleFontUrlPart}&amp;display=swap');`
+    : '';
+
+  const parsedRadius = Number(params.radius);
+  const radius = Math.max(0, Math.min(Number.isNaN(parsedRadius) ? 8 : parsedRadius, 50));
+
+  const width = params.width || 800;
+  const height = params.height || 260;
+
+  const weeklyContributions: number[] = [];
+  const weeks = calendar.weeks;
+  weeks.forEach((week) => {
+    let count = 0;
+    week.contributionDays.forEach((day) => {
+      count +=
+        params.mode === 'loc'
+          ? (day.locAdditions || 0) + (day.locDeletions || 0)
+          : day.contributionCount;
+    });
+    weeklyContributions.push(count);
+  });
+
+  const totalContributions = weeklyContributions.reduce((sum, c) => sum + c, 0);
+  const maxWeeklyCount = Math.max(...weeklyContributions, 1);
+
+  const paddingX = 40;
+  const paddingYTop = 80;
+  const paddingYBottom = 40;
+  const graphWidth = width - paddingX * 2;
+  const graphHeight = height - paddingYTop - paddingYBottom;
+  const bottomY = paddingYTop + graphHeight;
+
+  const numWeeks = weeklyContributions.length || 1;
+  const stepX = graphWidth / Math.max(numWeeks - 1, 1);
+  const buildingWidth = Math.max(2, Math.floor(stepX - 3));
+
+  let buildingsSVG = '';
+  const animate = params.animate ?? true;
+
+  const accentList = Array.isArray(params.accent)
+    ? params.accent.map((c) => `#${sanitizeHexColor(c, '00ffaa')}`)
+    : [accent];
+
+  weeklyContributions.forEach((count, i) => {
+    const x = paddingX + i * stepX;
+
+    let normalized = 0;
+    if (count > 0) {
+      if (params.scale === 'log') {
+        const logMax = Math.log2(maxWeeklyCount + 1) || 1;
+        normalized = Math.log2(count + 1) / logMax;
+      } else {
+        normalized = count / maxWeeklyCount;
+      }
+    }
+
+    let h = normalized * graphHeight;
+    if (count > 0 && h < 6) {
+      h = 6;
+    }
+    if (count === 0) {
+      h = 1.5;
+    }
+
+    const y = bottomY - h;
+    const delay = (i * 0.015).toFixed(3);
+
+    let buildingColor = '';
+    let opacity = 0.8;
+    if (isAutoTheme) {
+      buildingColor = 'var(--cp-accent)';
+      opacity = count === 0 ? 0.15 : 0.7;
+    } else {
+      if (count === 0) {
+        buildingColor = accentList[0];
+        opacity = 0.15;
+      } else if (accentList.length > 1) {
+        const ratio = count / maxWeeklyCount;
+        let colorIdx = 0;
+        if (ratio <= 0.25) colorIdx = 0;
+        else if (ratio <= 0.5) colorIdx = 1;
+        else if (ratio <= 0.75) colorIdx = 2;
+        else colorIdx = 3;
+        buildingColor = accentList[Math.min(colorIdx, accentList.length - 1)];
+        opacity = 0.8;
+      } else {
+        buildingColor = accent;
+        opacity = 0.8;
+      }
+    }
+
+    let windowsSVG = '';
+    const canHaveWindows = count > 0 && h >= 22 && buildingWidth >= 5;
+    if (canHaveWindows) {
+      const windowW = 2;
+      const windowH = 3;
+      const topPadding = 6;
+      const bottomPadding = 4;
+      const stepYOffset = 8;
+
+      const numCols = buildingWidth >= 8 ? 2 : 1;
+      const startX =
+        numCols === 2
+          ? [
+              x + (buildingWidth - windowW * 2 - 2) / 2,
+              x + (buildingWidth - windowW * 2 - 2) / 2 + windowW + 2,
+            ]
+          : [x + (buildingWidth - windowW) / 2];
+
+      const numRows = Math.floor((h - topPadding - bottomPadding) / stepYOffset);
+      const windowDelay = (parseFloat(delay) + 0.8).toFixed(3);
+
+      for (let r = 0; r < numRows; r++) {
+        const windowY = y + topPadding + r * stepYOffset;
+        for (let c = 0; c < numCols; c++) {
+          const winSeed = `${i}:${r}:${c}`;
+          const isLit = deterministicRandom(winSeed) < 0.35;
+          if (isLit) {
+            const winFill = isAutoTheme ? 'var(--cp-text)' : '#ffffff';
+            if (animate) {
+              windowsSVG += `
+                <rect class="cp-window cp-window-animated" style="animation-delay: ${windowDelay}s;" x="${startX[c].toFixed(1)}" y="${windowY.toFixed(1)}" width="${windowW}" height="${windowH}" fill="${winFill}" opacity="0" pointer-events="none" />
+              `;
+            } else {
+              windowsSVG += `
+                <rect class="cp-window" x="${startX[c].toFixed(1)}" y="${windowY.toFixed(1)}" width="${windowW}" height="${windowH}" fill="${winFill}" opacity="0.85" pointer-events="none" />
+              `;
+            }
+          }
+        }
+      }
+    }
+
+    const dateStr = weeks[i]?.contributionDays[0]?.date || '';
+    const unit = params.mode === 'loc' ? 'lines' : 'commits';
+    const tooltipText = `${dateStr} week: ${count} ${unit}`;
+
+    let rectSVG = '';
+    const rectClass = `cp-building${animate ? ' cp-building-animated' : ''}`;
+    const rectStyle = animate ? ` style="animation-delay: ${delay}s;"` : '';
+
+    if (isAutoTheme) {
+      rectSVG = `<rect class="${rectClass}"${rectStyle} x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${buildingWidth}" height="${h.toFixed(1)}" fill="var(--cp-accent)" fill-opacity="${opacity}" rx="1" />`;
+    } else {
+      rectSVG = `<rect class="${rectClass}"${rectStyle} x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${buildingWidth}" height="${h.toFixed(1)}" fill="${buildingColor}" fill-opacity="${opacity}" rx="1" />`;
+    }
+
+    buildingsSVG += `
+      <g>
+        <title>${escapeXML(tooltipText)}</title>
+        ${rectSVG}
+        ${windowsSVG}
+      </g>
+    `;
+  });
+
+  let starsSVG = '';
+  const numStars = 25;
+  for (let sIdx = 0; sIdx < numStars; sIdx++) {
+    const seedX = `star:${sIdx}:x`;
+    const seedY = `star:${sIdx}:y`;
+    const seedR = `star:${sIdx}:r`;
+    const starX = paddingX + deterministicRandom(seedX) * graphWidth;
+    const starY = paddingYTop - 30 + deterministicRandom(seedY) * (graphHeight * 0.75);
+    const starR = 0.5 + deterministicRandom(seedR) * 0.8;
+    const seedO = `star:${sIdx}:o`;
+    const starOpacity = 0.2 + deterministicRandom(seedO) * 0.6;
+    const starFill = isAutoTheme ? 'var(--cp-text)' : '#ffffff';
+
+    let starAnim = '';
+    if (animate) {
+      const delay = (deterministicRandom(seedX) * 3).toFixed(2);
+      const dur = (2 + deterministicRandom(seedY) * 3).toFixed(2);
+      starAnim = `style="animation: twinkle ${dur}s ease-in-out infinite; animation-delay: ${delay}s;"`;
+    }
+
+    starsSVG += `<circle class="cp-star" cx="${starX.toFixed(1)}" cy="${starY.toFixed(1)}" r="${starR.toFixed(1)}" fill="${starFill}" opacity="${starOpacity.toFixed(2)}" ${starAnim} pointer-events="none" />`;
+  }
+
+  const styleBg = isAutoTheme ? 'var(--cp-bg)' : bg;
+
+  const labels = getLabels(params.lang);
+  const modeLabel = params.mode === 'loc' ? 'TOTAL LINES OF CODE' : labels.ANNUAL_SYNC_TOTAL;
+
+  let defs = '';
+  if (isAutoTheme) {
+    defs = `
+      <defs>
+        <linearGradient id="skyGradient" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="var(--cp-bg)" stop-opacity="0" />
+          <stop offset="100%" stop-color="var(--cp-accent)" stop-opacity="0.12" />
+        </linearGradient>
+        <filter id="horizonGlow" x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur stdDeviation="6" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+      </defs>
+    `;
+  } else {
+    defs = `
+      <defs>
+        <linearGradient id="skyGradient" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="${bg}" stop-opacity="0" />
+          <stop offset="100%" stop-color="${accent}" stop-opacity="0.12" />
+        </linearGradient>
+        <filter id="horizonGlow" x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur stdDeviation="6" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+      </defs>
+    `;
+  }
+
+  const groundStroke = isAutoTheme ? 'var(--cp-accent)' : accent;
+  const groundLine = `
+    <line x1="${paddingX}" y1="${bottomY}" x2="${width - paddingX}" y2="${bottomY}" stroke="${groundStroke}" stroke-width="1.5" stroke-opacity="0.6" filter="url(#horizonGlow)" />
+  `;
+
+  const upperUser = escapeXML((params.user || 'GitHub User').toUpperCase());
+
+  return `
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  width="${width}"
+  height="${height}"
+  viewBox="0 0 ${width} ${height}"
+  fill="none"
+  role="img"
+  aria-labelledby="skyline-title skyline-desc"
+>
+  <title id="skyline-title">${upperUser}'s CommitPulse Skyline</title>
+  <desc id="skyline-desc">A panoramic city skyline visualization of ${upperUser}'s GitHub contributions</desc>
+  <style>
+  @import url('https://fonts.googleapis.com/css2?family=Fira+Code&amp;family=JetBrains+Mono&amp;family=Roboto&amp;family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');
+  ${googleFontsImport}
+
+  ${
+    isAutoTheme
+      ? `
+  :root { --cp-bg: #${light.bg}; --cp-text: #${light.text}; --cp-accent: #${light.accent}; }
+  @media (prefers-color-scheme: dark) { :root { --cp-bg: #${dark.bg}; --cp-text: #${dark.text}; --cp-accent: #${dark.accent}; } }
+  .cp-bg-fill { fill: var(--cp-bg); }
+  .title { font-family: ${selectedFont || '"Syncopate", sans-serif'}; fill: var(--cp-text); font-size: 16px; letter-spacing: 2px; font-weight: 700; opacity: 0.9; text-transform: uppercase; }
+  .stats { font-family: ${statsFont}; fill: var(--cp-accent); font-size: 26px; font-weight: 600; letter-spacing: 0; }
+  .label { font-family: "Roboto", sans-serif; fill: var(--cp-text); font-size: 10px; font-weight: 500; letter-spacing: 0.5px; opacity: 0.5; }
+  .label-end { text-anchor: end; }
+  .stats-end { text-anchor: end; }
+  `
+      : `
+  .title { font-family: ${selectedFont || '"Syncopate", sans-serif'}; fill: ${text}; font-size: 16px; letter-spacing: 2px; font-weight: 700; opacity: 0.9; text-transform: uppercase; }
+  .stats { font-family: ${statsFont}; fill: ${accent}; font-size: 26px; font-weight: 600; letter-spacing: 0; }
+  .label { font-family: "Roboto", sans-serif; fill: ${text}; font-size: 10px; font-weight: 500; letter-spacing: 0.5px; opacity: 0.5; }
+  .label-end { text-anchor: end; }
+  .stats-end { text-anchor: end; }
+  `
+  }
+
+  @keyframes twinkle {
+    0%, 100% { opacity: 0.2; }
+    50% { opacity: 0.8; }
+  }
+
+  .cp-building {
+    transition: fill-opacity 0.2s ease;
+    transform-origin: 0px ${bottomY}px;
+    transform: scaleY(1);
+  }
+  .cp-building:hover {
+    fill-opacity: 1.0 !important;
+  }
+  .cp-building-animated {
+    transform: scaleY(0);
+    animation: skyline-rise 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+  .cp-window-animated {
+    opacity: 0;
+    animation: window-fade 0.6s ease-out forwards;
+  }
+  @keyframes skyline-rise {
+    to { transform: scaleY(1); }
+  }
+  @keyframes window-fade {
+    to { opacity: 0.85; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .cp-star { animation: none !important; }
+    .cp-building-animated { transform: scaleY(1) !important; animation: none !important; }
+    .cp-window-animated { opacity: 0.85 !important; animation: none !important; }
+  }
+  </style>
+
+  ${defs}
+
+  <rect width="${width}" height="${height}" rx="${radius}" class="${isAutoTheme && !params.hideBackground ? 'cp-bg-fill' : ''}" fill="${params.hideBackground ? 'transparent' : styleBg}" />
+
+  <!-- Sky glow gradient -->
+  <rect x="${paddingX}" y="${paddingYTop - 20}" width="${graphWidth}" height="${graphHeight + 20}" fill="url(#skyGradient)" />
+
+  <!-- Stars Background -->
+  <g class="cp-stars">${starsSVG}</g>
+
+  <!-- Skyline Buildings -->
+  <g class="cp-skyline">${buildingsSVG}</g>
+
+  <!-- Horizon Ground Line -->
+  ${groundLine}
+
+  <!-- Header Info -->
+  ${!params.hide_title ? `<text x="30" y="38" class="title">${safeUser}</text>` : ''}
+  ${
+    !params.hide_stats
+      ? `
+      <g transform="translate(${width - 330}, 24)">
+        <g transform="translate(0, 0)">
+          <text class="label">${modeLabel}</text>
+          <text y="34" class="stats">${totalContributions}</text>
+        </g>
+        <g transform="translate(300, 0)">
+          <text class="label label-end">${labels.CURRENT_STREAK}</text>
+          <text y="34" class="stats stats-end">${stats.currentStreak}d</text>
+        </g>
+      </g>
+      `
+      : ''
+  }
+</svg>
+`;
+}
+
 export function generateRateLimitSVG(
   bg: string,
   accent: string,
@@ -2803,10 +3237,8 @@ export function generateLanguagesSVG(
     const scaledY = H / 2 + (50 + lang.coord.y) * sf;
     const h = Math.max(30, (lang.percentage / maxPercent) * 140) * sf;
 
-    // Use the centralized tower path builder for consistent isometric geometry
     const towerScale = TOWER_SCALE * sf;
     const paths = buildTowerPaths(h, towerScale);
-    const th = 10 * towerScale; // half-height, used for text label positioning
 
     const hexColor = lang.color.startsWith('#') ? lang.color : `#${lang.color}`;
     const delay = (idx * 0.15).toFixed(3);
@@ -2820,8 +3252,8 @@ export function generateLanguagesSVG(
             <path d="${paths.right}" fill="${hexColor}" fill-opacity="0.65" />
             <path d="${paths.top}" fill="${hexColor}" fill-opacity="1.0" />
             
-            <text x="0" y="${-h - th - 18 * sf}" text-anchor="middle" font-family='${statsFont}' font-size="${14 * sf}px" fill="${text}" font-weight="bold">${lang.name}</text>
-            <text x="0" y="${-h - th - 4 * sf}" text-anchor="middle" font-family='${statsFont}' font-size="${12 * sf}px" fill="${text}" opacity="0.6">${lang.percentage}%</text>
+            <text x="0" y="${-h - 18 * sf}" text-anchor="middle" font-family='${statsFont}' font-size="${14 * sf}px" fill="${text}" font-weight="bold">${lang.name}</text>
+            <text x="0" y="${-h - 4 * sf}" text-anchor="middle" font-family='${statsFont}' font-size="${12 * sf}px" fill="${text}" opacity="0.6">${lang.percentage}%</text>
           </g>
         </g>`;
   });

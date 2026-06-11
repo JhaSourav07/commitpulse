@@ -1,6 +1,7 @@
 // lib/validations.ts
 import { supportedLanguages } from './i18n/badgeLabels';
 import { z } from 'zod';
+import type { HexColor } from '../types/index';
 import {
   isValidHex,
   sanitizeHexColor,
@@ -38,7 +39,7 @@ export function toValidTheme(val?: string): string | undefined {
 }
 
 export function toValidHexColor(defaultColor: string) {
-  return (val?: string): string | undefined =>
+  return (val?: string): HexColor | undefined =>
     val && isValidHex(val) ? sanitizeHexColor(val, defaultColor) : undefined;
 }
 
@@ -103,6 +104,15 @@ const timeZoneParam = z
   .refine(isValidTimeZone, { message: 'Invalid timezone' });
 
 export const GITHUB_USERNAME_REGEX = /^[a-zA-Z0-9](?:[a-zA-Z0-9]|-(?=[a-zA-Z0-9]))*$/;
+
+export const githubUsernameSchema = z
+  .string({ error: 'Invalid GitHub username' })
+  .trim()
+  .min(1, { message: 'Invalid GitHub username' })
+  .max(39, { message: 'Invalid GitHub username' })
+  .regex(GITHUB_USERNAME_REGEX, {
+    message: 'Invalid GitHub username',
+  });
 
 const baseStreakParamsSchema = z.object({
   // Required — missing user surfaces as "Missing" to match existing tests
@@ -176,6 +186,33 @@ const baseStreakParamsSchema = z.object({
       message: 'bg must be a valid hex color (with or without #)',
     })
     .transform((val) => (val ? sanitizeHexColor(val, '0d1117') : undefined)),
+  bgType: z.enum(['solid', 'linear', 'radial']).catch('solid').default('solid'),
+  bgStart: z
+    .string()
+    .optional()
+    .refine((val) => !val || /^[0-9a-fA-F]{3,4}$|^[0-9a-fA-F]{6,8}$/.test(val.replace('#', '')), {
+      message: 'bgStart must be a valid hex color',
+    })
+    .transform((val) => (val ? sanitizeHexColor(val, '0d1117') : undefined)),
+  bgEnd: z
+    .string()
+    .optional()
+    .refine((val) => !val || /^[0-9a-fA-F]{3,4}$|^[0-9a-fA-F]{6,8}$/.test(val.replace('#', '')), {
+      message: 'bgEnd must be a valid hex color',
+    })
+    .transform((val) => (val ? sanitizeHexColor(val, '0d1117') : undefined)),
+  bgAngle: z
+    .string()
+    .optional()
+    .refine(
+      (val) => {
+        if (val === undefined || val === '') return true;
+        const num = Number(val);
+        return !isNaN(num) && num >= 0 && num <= 360;
+      },
+      { message: 'bgAngle must be a number between 0 and 360' }
+    )
+    .transform((val) => (val === undefined || val === '' ? undefined : Number(val))),
   text: z
     .string()
     .optional()
@@ -289,7 +326,7 @@ const baseStreakParamsSchema = z.object({
   tz: timeZoneParam,
   // Unknown view values fall back to the default dashboard view.
   view: z
-    .enum(['default', 'monthly', 'heatmap', 'pulse', 'languages', 'constellation'])
+    .enum(['default', 'monthly', 'heatmap', 'pulse', 'skyline', 'languages', 'constellation'])
     .catch('default')
     .default('default'),
   // Invalid delta formats fall back to percentage mode.
@@ -642,7 +679,14 @@ export const resumeConfirmDataSchema = z.object({
     .max(50, { message: 'Too many education entries (max 50)' })
     .default([])
     .transform((items) =>
-      items.filter((e) => e.institution || e.degree || e.field || e.startDate || e.endDate)
+      items.filter(
+        (e) =>
+          e.institution.length > 0 &&
+          e.degree.length > 0 &&
+          e.field.length > 0 &&
+          e.startDate.length > 0 &&
+          e.endDate.length > 0
+      )
     ),
   experience: z
     .array(
@@ -657,7 +701,13 @@ export const resumeConfirmDataSchema = z.object({
     .max(50, { message: 'Too many experience entries (max 50)' })
     .default([])
     .transform((items) =>
-      items.filter((x) => x.company || x.role || x.startDate || x.endDate || x.description)
+      items.filter(
+        (x) =>
+          x.company.length > 0 &&
+          x.role.length > 0 &&
+          x.startDate.length > 0 &&
+          x.endDate.length > 0
+      )
     ),
 });
 

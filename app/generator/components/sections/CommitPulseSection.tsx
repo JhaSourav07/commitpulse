@@ -230,12 +230,36 @@ export function CommitPulseSection({
                   Verifying GitHub profile…
                 </div>
               ) : fetchError ? (
-                <p className="text-xs text-red-500 dark:text-red-400 flex items-center gap-1.5">
-                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-red-500 flex-shrink-0" />
-                  {fetchError === 'User not found'
-                    ? 'GitHub user not found. Check the spelling and try again.'
-                    : `Verification failed: ${fetchError}`}
-                </p>
+                fetchError.includes('token is missing') ||
+                fetchError.includes('token is invalid') ? (
+                  <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-3 text-xs text-amber-600 dark:text-amber-400 leading-normal flex items-start gap-2">
+                    <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-500 mt-1.5 flex-shrink-0 animate-pulse" />
+                    <div>
+                      <strong className="font-semibold">Local Setup Notice:</strong> GITHUB_TOKEN is
+                      not set in your local environment. To verify profiles and display live
+                      statistics previews, copy{' '}
+                      <code className="px-1 py-0.5 rounded bg-amber-500/10 font-mono text-[10px]">
+                        .env.local.example
+                      </code>{' '}
+                      to{' '}
+                      <code className="px-1 py-0.5 rounded bg-amber-500/10 font-mono text-[10px]">
+                        .env.local
+                      </code>{' '}
+                      and add a{' '}
+                      <code className="px-1 py-0.5 rounded bg-amber-500/10 font-mono text-[10px]">
+                        GITHUB_TOKEN
+                      </code>
+                      .
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-xs text-red-500 dark:text-red-400 flex items-center gap-1.5">
+                    <span className="inline-block w-1.5 h-1.5 rounded-full bg-red-500 flex-shrink-0" />
+                    {fetchError === 'User not found'
+                      ? 'GitHub user not found. Check the spelling and try again.'
+                      : `Verification failed: ${fetchError}`}
+                  </p>
+                )
               ) : userDetails ? (
                 <div className="flex items-center gap-2.5 rounded-xl bg-emerald-500/5 border border-emerald-500/15 px-3 py-2">
                   <Image

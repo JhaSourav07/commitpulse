@@ -71,6 +71,7 @@
   "success_guide": {
     "title": "Your Monolith is Ready - Deploy It in 4 Steps",
     "markdown_copied": "Markdown Copied",
+    "dismiss_aria": "Dismiss guide",
     "step_1_title": "Open Your Profile Repo",
     "step_1_body": "Navigate to github.com/YOUR_USERNAME/YOUR_USERNAME - your special profile repository.",
     "step_2_title": "Edit README.md",

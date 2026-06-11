@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { DistributedCache } from './cache';
 import { rateLimit, RateLimiter } from './rate-limit';
 
 beforeEach(() => {
@@ -175,6 +176,34 @@ describe('rateLimit', () => {
       expect((await rateLimit('9.9.9.2', limit, 60000)).success).toBe(false);
     });
   });
+
+  it('starts a fresh window when an update loses an expiry race', async () => {
+    vi.setSystemTime(1000);
+    const getSpy = vi
+      .spyOn(DistributedCache.prototype, 'get')
+      .mockResolvedValueOnce({ count: 2, resetAt: 5000 });
+    const updateSpy = vi.spyOn(DistributedCache.prototype, 'update').mockResolvedValueOnce(false);
+    const setSpy = vi.spyOn(DistributedCache.prototype, 'set').mockResolvedValueOnce();
+
+    const result = await rateLimit('expiry-race-function', 5, 60000);
+
+    expect(result).toEqual({
+      success: true,
+      limit: 5,
+      remaining: 4,
+      reset: 61000,
+    });
+    expect(updateSpy).toHaveBeenCalledWith('expiry-race-function', { count: 3, resetAt: 5000 });
+    expect(setSpy).toHaveBeenCalledWith(
+      'expiry-race-function',
+      { count: 1, resetAt: 61000 },
+      60000
+    );
+
+    getSpy.mockRestore();
+    updateSpy.mockRestore();
+    setSpy.mockRestore();
+  });
 });
 
 it('keys expire exactly at the window limit with sliding time advances', async () => {
@@ -295,6 +324,31 @@ describe('RateLimiter', () => {
 
     // Window should have expired — count resets, request is allowed
     expect(await limiter.check(ip)).toBe(true);
+  });
+
+  it('starts a fresh window when an update loses an expiry race', async () => {
+    vi.setSystemTime(1000);
+    const limiter = new RateLimiter(5, 60000);
+    const cache = (
+      limiter as unknown as {
+        cache: DistributedCache<{ count: number; resetAt: number }>;
+      }
+    ).cache;
+
+    vi.spyOn(cache, 'get').mockResolvedValueOnce({ count: 2, resetAt: 5000 });
+    const updateSpy = vi.spyOn(cache, 'update').mockResolvedValueOnce(false);
+    const setSpy = vi.spyOn(cache, 'set').mockResolvedValueOnce();
+
+    const result = await limiter.checkWithResult('expiry-race-class');
+
+    expect(result).toEqual({
+      success: true,
+      limit: 5,
+      remaining: 4,
+      reset: 61000,
+    });
+    expect(updateSpy).toHaveBeenCalledWith('expiry-race-class', { count: 3, resetAt: 5000 });
+    expect(setSpy).toHaveBeenCalledWith('expiry-race-class', { count: 1, resetAt: 61000 }, 60000);
   });
 
   it('reset() clears the counter and restores the full request allowance', async () => {

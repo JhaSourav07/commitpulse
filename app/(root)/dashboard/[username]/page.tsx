@@ -117,6 +117,18 @@ export default async function DashboardPage({
     throw error;
   }
 
+  let allRepos: RepoActivityInfo[] = [];
+  try {
+    const reposData = await fetchUserRepos(username, { bypassCache });
+    allRepos = reposData.map((r) => ({
+      name: r.name,
+      url: `https://github.com/${username}/${r.name}`,
+      pushedAt: r.pushed_at ?? r.updated_at ?? null,
+    }));
+  } catch {
+    allRepos = [];
+  }
+
   let compareData = null;
 
   if (compareUsername && compareUsername.toLowerCase() !== username.toLowerCase()) {
@@ -133,6 +145,7 @@ export default async function DashboardPage({
     <DashboardPageWrapper>
       <DashboardClient
         initialData={data}
+        allRepoActivity={allRepos}
         username={username}
         compareData={compareData}
         period={period}
