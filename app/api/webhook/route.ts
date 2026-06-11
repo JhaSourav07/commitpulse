@@ -1,33 +1,31 @@
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
+import { RateLimiter } from '@/lib/rate-limit';
 
-const WEBHOOK_SECRET = process.env.GITHUB_WEBHOOK_SECRET || 'development_secret';
 const MAX_PAYLOAD_SIZE = 1024 * 1024; // 1MB
+const webhookRateLimiter = new RateLimiter(60, 60_000, 1);
 
-// In-memory rate limiting map: ip -> { count, resetTime }
-const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
-const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
-const MAX_REQUESTS_PER_WINDOW = 10;
+function verifySignature(body: string, signature: string, secret: string): boolean {
+  if (!/^sha256=[0-9a-f]{64}$/i.test(signature)) return false;
 
-function checkRateLimit(ip: string): boolean {
-  const now = Date.now();
-  let record = rateLimitMap.get(ip);
-  if (!record || now > record.resetTime) {
-    record = { count: 1, resetTime: now + RATE_LIMIT_WINDOW };
-    rateLimitMap.set(ip, record);
-    return true;
-  }
-  record.count++;
-  if (record.count > MAX_REQUESTS_PER_WINDOW) {
-    return false;
-  }
-  return true;
+  const expected = Buffer.from(
+    `sha256=${crypto.createHmac('sha256', secret).update(body).digest('hex')}`,
+    'utf8'
+  );
+  const received = Buffer.from(signature, 'utf8');
+
+  return expected.length === received.length && crypto.timingSafeEqual(expected, received);
 }
 
 export async function POST(req: Request) {
+  const webhookSecret = process.env.GITHUB_WEBHOOK_SECRET?.trim();
+  if (!webhookSecret) {
+    console.error('CRITICAL: GITHUB_WEBHOOK_SECRET is not configured. Webhook endpoint disabled.');
+    return NextResponse.json({ error: 'Webhook is not configured' }, { status: 503 });
+  }
+
   // 1. Rate Limiting
-  const ip = req.headers.get('x-forwarded-for') || 'unknown_ip';
-  if (!checkRateLimit(ip)) {
+  if (!(await webhookRateLimiter.check('github-webhook'))) {
     return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
   }
 
@@ -40,7 +38,7 @@ export async function POST(req: Request) {
   let bodyText: string;
   try {
     bodyText = await req.text();
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });
   }
 
@@ -55,18 +53,14 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Missing signature' }, { status: 401 });
   }
 
-  const hmac = crypto.createHmac('sha256', WEBHOOK_SECRET);
-  const digest = 'sha256=' + hmac.update(bodyText).digest('hex');
-
-  if (signature !== digest) {
+  if (!verifySignature(bodyText, signature, webhookSecret)) {
     return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
   }
 
   // Valid payload, proceed...
-  let payload;
   try {
-    payload = JSON.parse(bodyText);
-  } catch (error) {
+    JSON.parse(bodyText);
+  } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
