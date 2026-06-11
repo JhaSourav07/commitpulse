@@ -299,14 +299,12 @@ const baseStreakParamsSchema = z.object({
   grace: z
     .string()
     .optional()
-    .refine(
-      (val) => {
-        if (val === undefined || val === '') return true;
-        return /^\d+$/.test(val) && Number(val) >= 0 && Number(val) <= 7;
-      },
-      { message: 'grace must be an integer between 0 and 7' }
-    )
-    .transform((val) => (val === undefined || val === '' ? 1 : Number(val)))
+    .transform((val) => {
+      if (val === undefined || val === '') return 1;
+      const n = Number(val);
+      if (isNaN(n) || !Number.isInteger(n)) return 1;
+      return Math.min(7, Math.max(0, n));
+    })
     .default(1),
 
   mode: z.enum(['commits', 'loc']).catch('commits').default('commits'),
