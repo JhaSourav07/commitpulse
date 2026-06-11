@@ -75,7 +75,7 @@ describe('HistoricalTrendView - Empty & Missing Input Fallbacks', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.useFakeTimers();
-    vi.setSystemTime(new Date('2026-01-15T12:00:00Z'));
+    vi.setSystemTime(new Date('2026-01-15T12:00:00.000Z'));
     consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-01-15T12:00:00Z'));
