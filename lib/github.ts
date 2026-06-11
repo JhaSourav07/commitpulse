@@ -1,7 +1,6 @@
 import CircuitBreaker from 'opossum';
 import type { ContributionCalendar } from '../types';
 import { calculateStreak } from './calculate';
-import { TTLCache } from './cache';
 import type {
   ContributionDay,
   ContributedRepo,
@@ -290,7 +289,12 @@ async function fetchGraphQLWithRetry(
   timeoutMs?: number
 ): Promise<Response> {
   if (attempt === 0) assertValidGraphQLBody(options);
-  const res = await fetchWithRetry(url, options, attempt, timeoutMs);
+  // Use apiBreaker.fire() instead of direct fetchWithRetry
+  const res = await apiBreaker.fire({
+    url,
+    options,
+    timeoutMs,
+  });
   if (!res.ok || attempt >= MAX_RETRIES) return res;
 
   const body: unknown = await res
@@ -306,13 +310,6 @@ async function fetchGraphQLWithRetry(
     );
 
   if (!isBodyRateLimited) return res;
-
-  // Rate-limit tracking for GraphQL-level rate limits
-  let usedToken = '';
-  const authHeader = (options.headers as Record<string, string>)?.Authorization;
-  if (authHeader && authHeader.startsWith('bearer ')) {
-    usedToken = authHeader.substring(7);
-  }
 
   const delay = BASE_DELAY_MS * Math.pow(2, attempt);
   if (delay > MAX_RETRY_DELAY_MS) return res;
@@ -351,18 +348,16 @@ function getGitHubRateLimitInfo(res: Response): GitHubRateLimitInfo {
 }
 
 function createRateLimitError(res: Response): RateLimitError {
-  // Extract rate limit telemetry headers if available
   const limitHeader = res.headers.get('x-ratelimit-limit');
   const remainingHeader = res.headers.get('x-ratelimit-remaining');
   const resetHeader = res.headers.get('x-ratelimit-reset');
 
   const now = Date.now();
-  let retryAfterMs = 60000; // Default 1-minute safety window
+  let retryAfterMs = 60000;
 
   if (resetHeader) {
     const resetUnixTimeSeconds = parseInt(resetHeader, 10);
     if (!isNaN(resetUnixTimeSeconds)) {
-      // Calculate delta remaining between target epoch boundary and active clock runtime
       retryAfterMs = Math.max(0, resetUnixTimeSeconds * 1000 - now);
     }
   }
@@ -415,7 +410,6 @@ function getGraphQLErrorMessage(errors: unknown): string {
 
 type FetchOptions = {
   bypassCache?: boolean;
-  // Skip the cache read but still write the fresh result back (used by background refresh).
   forceRefresh?: boolean;
   from?: string;
   to?: string;
@@ -440,41 +434,10 @@ interface GitHubUserProfile {
   created_at: string;
   bio: string | null;
   location: string | null;
-  type?: string; // e.g. "User" or "Organization"
+  type?: string;
   plan?: { name?: string } | null;
 }
 
-/**
- * Proactively evaluates total token matrix state pool availability.
- * If all tokens are exhausted, it immediately trips the global circuit barrier.
- */
-function checkAndTripCircuitBreaker(): void {
-  const tokens = getGitHubTokens();
-  if (tokens.length === 0) return;
-
-  const now = Date.now();
-  const expiries: number[] = [];
-  let unblockedTokenExists = false;
-
-  for (const token of tokens) {
-    const expiry = rateLimitedTokens.get(token);
-    if (expiry && now < expiry) {
-      expiries.push(expiry);
-    } else {
-      unblockedTokenExists = true;
-    }
-  }
-
-  // If no token is clear of the boundary tracking markers, trip circuit immediately
-  if (!unblockedTokenExists && expiries.length > 0) {
-    globalCircuitBreakerOpenUntil = Math.min(...expiries);
-  }
-}
-
-/**
- * Sanitizes a GitHub user profile to only include required fields.
- * This reduces the memory footprint of cached data.
- */
 function sanitizeUserProfile(profile: GitHubUserProfile): GitHubUserProfile {
   return {
     login: profile.login,
@@ -491,10 +454,6 @@ function sanitizeUserProfile(profile: GitHubUserProfile): GitHubUserProfile {
   };
 }
 
-/**
- * Sanitizes a GitHub repository object to only include required fields.
- * This reduces the memory footprint of cached data.
- */
 function sanitizeRepo(repo: GitHubRepo): GitHubRepo {
   return {
     name: repo.name,
@@ -539,7 +498,6 @@ export function clearGitHubApiCacheForTests(): void {
   contributedReposCache.clear();
   rateLimitedTokens.clear();
   currentTokenIndex = 0;
-  // CRITICAL FIX: Reset circuit breaker state to prevent cross-test contamination
   globalCircuitBreakerOpenUntil = 0;
 }
 
@@ -553,14 +511,12 @@ function getGitHubToken(): string {
   const now = Date.now();
   const tokenSet = new Set(tokens);
 
-  // Condition 2 Fix: Clear expired and missing env tokens from map
   for (const [t, expiry] of rateLimitedTokens.entries()) {
     if (now >= expiry || !tokenSet.has(t)) {
       rateLimitedTokens.delete(t);
     }
   }
 
-  // Find the first token that is not currently rate-limited
   for (let i = 0; i < tokens.length; i++) {
     const idx = (currentTokenIndex + i) % tokens.length;
     const token = tokens[idx];
@@ -570,15 +526,12 @@ function getGitHubToken(): string {
     }
   }
 
-  //Calculate the optimal, absolute earliest reset timestamp
   const expiries = Array.from(rateLimitedTokens.values());
   const earliestResetTime = expiries.length > 0 ? Math.min(...expiries) : now + 60 * 1000;
   const backoffMs = Math.max(0, earliestResetTime - now);
 
-  // Fix: Trip the global circuit breaker state immediately
   globalCircuitBreakerOpenUntil = earliestResetTime;
 
-  // Throw authentic instance passing down telemetry data
   throw new RateLimitError('API Rate Limit Exceeded', backoffMs);
 }
 
@@ -593,7 +546,7 @@ export function displayName(profile: GitHubUserProfile): string {
 }
 
 /* ==========================================================================
- * DATA FETCHING
+ * DATA FETCHING - NOW USING APIBREAKER.FIRE()
  * ========================================================================== */
 
 export async function fetchGitHubContributions(
@@ -687,16 +640,20 @@ async function fetchContributionsUncached(
       }
     `;
 
-  // Use fetchGraphQLWithRetry which already includes retry logic and rate limit handling
-  const res = await fetchGraphQLWithRetry(GITHUB_GRAPHQL_URL, {
-    method: 'POST',
-    headers: getHeaders(),
-    body: JSON.stringify({
-      query,
-      variables: { login: username, from: options.from, to: options.to },
-    }),
-    cache: 'no-store',
-    signal: options.signal,
+  // UPDATED: Using apiBreaker.fire() for the GraphQL call
+  const res = await apiBreaker.fire({
+    url: GITHUB_GRAPHQL_URL,
+    options: {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({
+        query,
+        variables: { login: username, from: options.from, to: options.to },
+      }),
+      cache: 'no-store',
+      signal: options.signal,
+    },
+    timeoutMs: GRAPHQL_TIMEOUT_MS,
   });
 
   if (!res.ok) {
@@ -709,7 +666,7 @@ async function fetchContributionsUncached(
     }
 
     throw new Error(
-      `GitHub GraphQL API returned status ${res.status} after ${MAX_RETRIES} retries. Response: ${bodyText || '<empty>'}`
+      `GitHub GraphQL API returned status ${res.status} after retries. Response: ${bodyText || '<empty>'}`
     );
   }
 
@@ -747,13 +704,8 @@ async function fetchContributionsUncached(
   const totalPRs = data.data.user.contributionsCollection?.totalPullRequestContributions || 0;
   const totalIssues = data.data.user.contributionsCollection?.totalIssueContributions || 0;
 
-  // Do not fabricate Lines of Code metrics.
-  // GitHub's contribution calendar API does not expose per-day additions/deletions here,
-  // so LOC fields are intentionally left undefined instead of showing misleading values.
-
   calendar.lastSyncedAt = new Date().toISOString();
 
-  // Cache for 7 days so a failed refresh can fall back to stale data; freshness is enforced via lastSyncedAt
   const LONG_CACHE_TTL = 7 * 24 * 60 * 60 * 1000;
   if (!options.bypassCache) {
     await contributionsCache.set(
@@ -795,10 +747,15 @@ async function fetchProfileUncached(
   key: string,
   options: FetchOptions
 ): Promise<GitHubUserProfile> {
-  const res = await fetchWithRetry(`${GITHUB_REST_URL}/users/${encodedUsername}`, {
-    headers: getHeaders(),
-    cache: 'no-store',
-    signal: options.signal,
+  // UPDATED: Using apiBreaker.fire() for REST API call
+  const res = await apiBreaker.fire({
+    url: `${GITHUB_REST_URL}/users/${encodedUsername}`,
+    options: {
+      headers: getHeaders(),
+      cache: 'no-store',
+      signal: options.signal,
+    },
+    timeoutMs: REST_TIMEOUT_MS,
   });
 
   if (!res.ok) {
@@ -839,14 +796,16 @@ async function fetchReposUncached(
   key: string,
   options: FetchOptions
 ): Promise<GitHubRepo[]> {
-  const firstPageRes = await fetchWithRetry(
-    `${GITHUB_REST_URL}/users/${encodedUsername}/repos?per_page=100&page=1&sort=pushed`,
-    {
+  // UPDATED: Using apiBreaker.fire() for first page
+  const firstPageRes = await apiBreaker.fire({
+    url: `${GITHUB_REST_URL}/users/${encodedUsername}/repos?per_page=100&page=1&sort=pushed`,
+    options: {
       headers: getHeaders(),
       cache: 'no-store',
       signal: options.signal,
-    }
-  );
+    },
+    timeoutMs: REST_TIMEOUT_MS,
+  });
 
   if (!firstPageRes.ok) {
     throwIfRateLimited(firstPageRes);
@@ -863,14 +822,15 @@ async function fetchReposUncached(
 
     const responses = await Promise.all(
       remainingPages.map((page) =>
-        fetchWithRetry(
-          `${GITHUB_REST_URL}/users/${encodedUsername}/repos?per_page=100&page=${page}&sort=pushed`,
-          {
+        apiBreaker.fire({
+          url: `${GITHUB_REST_URL}/users/${encodedUsername}/repos?per_page=100&page=${page}&sort=pushed`,
+          options: {
             headers: getHeaders(),
             cache: 'no-store',
             signal: options.signal,
-          }
-        )
+          },
+          timeoutMs: REST_TIMEOUT_MS,
+        })
       )
     );
 
@@ -899,9 +859,6 @@ async function fetchReposUncached(
  * ORG AGGREGATION & EPIC FEATURES
  * ========================================================================== */
 
-/**
- * Fetches members of an organization. (Used for Org Dashboards).
- */
 export async function fetchOrgMembers(orgName: string): Promise<string[]> {
   const encodedOrgName = encodeURIComponent(orgName);
   const allMembers: string[] = [];
@@ -910,13 +867,15 @@ export async function fetchOrgMembers(orgName: string): Promise<string[]> {
 
   let page = 1;
   while (allMembers.length < maxMembers) {
-    const res = await fetchWithRetry(
-      `${GITHUB_REST_URL}/orgs/${encodedOrgName}/members?per_page=${perPage}&page=${page}`,
-      {
+    // UPDATED: Using apiBreaker.fire()
+    const res = await apiBreaker.fire({
+      url: `${GITHUB_REST_URL}/orgs/${encodedOrgName}/members?per_page=${perPage}&page=${page}`,
+      options: {
         headers: getHeaders(),
         cache: 'no-store',
-      }
-    );
+      },
+      timeoutMs: REST_TIMEOUT_MS,
+    });
     if (!res.ok) throw new Error(`Failed to fetch members for org ${orgName}`);
     const members = (await res.json()) as { login: string }[];
     if (members.length === 0) break;
@@ -929,6 +888,7 @@ export async function fetchOrgMembers(orgName: string): Promise<string[]> {
 
   return allMembers;
 }
+
 export type OrgDashboardData = {
   profile: ReturnType<typeof buildProfileData> & {
     bio: string;
@@ -951,9 +911,6 @@ export type OrgDashboardData = {
   isPartial: boolean;
 };
 
-/**
- * Generates an aggregated Organization Mega-Dashboard.
- */
 export async function getOrgDashboardData(
   orgName: string,
   options: FetchOptions = {}
@@ -969,8 +926,6 @@ export async function getOrgDashboardData(
   if (membersOrError instanceof Error) throw membersOrError;
 
   const members = membersOrError;
-
-  // Limit active members to first 30 to protect shared token rate limit and improve response times
   const activeMembers = members.slice(0, 30);
 
   const controller = new AbortController();
@@ -981,7 +936,6 @@ export async function getOrgDashboardData(
   let calendars: ContributionCalendar[] = [];
   const repoContributions: RepoContribution[] = [];
   try {
-    // Fetch calendars for all members concurrently with capped concurrency to avoid 429s/timeouts
     calendars = (
       await runCappedConcurrency(activeMembers, 5, (member) => {
         if (controller.signal.aborted) return Promise.resolve(null);
@@ -1000,8 +954,6 @@ export async function getOrgDashboardData(
   }
 
   const isPartial = calendars.length < activeMembers.length;
-
-  // Create the Mega-City
   const aggregatedCalendar = aggregateCalendars(calendars);
   const streakStats = calculateStreakUtil(aggregatedCalendar);
   const totalStars = reposData.reduce((acc, r) => acc + r.stargazers_count, 0);
@@ -1031,6 +983,7 @@ export async function getOrgDashboardData(
     isPartial,
   };
 }
+
 export function generateAchievements(
   totalContributions: number,
   currentStreak: number,
@@ -1040,7 +993,6 @@ export function generateAchievements(
 ) {
   const achievements = [];
 
-  // ── Contribution milestones ────────────────────────────────────────────────
   for (const threshold of CONTRIBUTION_MILESTONES) {
     achievements.push({
       id: `contrib-${threshold}`,
@@ -1060,7 +1012,6 @@ export function generateAchievements(
     });
   }
 
-  // ── Streak milestones ──────────────────────────────────────────────────────
   for (const threshold of STREAK_MILESTONES) {
     achievements.push({
       id: `streak-${threshold}`,
@@ -1078,7 +1029,6 @@ export function generateAchievements(
     });
   }
 
-  // ── Consistency King ───────────────────────────────────────────────────────
   const CONSISTENCY_MILESTONES = [500, 1000, 2000] as const;
   const CONSISTENCY_LABELS = [
     'Consistency King',
@@ -1100,7 +1050,6 @@ export function generateAchievements(
     });
   }
 
-  // ── Weekend Warrior ────────────────────────────────────────────────────────
   achievements.push({
     id: 'weekend-warrior',
     title: 'Weekend Warrior',
@@ -1113,7 +1062,6 @@ export function generateAchievements(
     progress: Math.min(100, Math.round((weekendCommits / 10) * 100)),
   });
 
-  // ── Polyglot ───────────────────────────────────────────────────────────────
   achievements.push({
     id: 'polyglot',
     title: 'Polyglot',
@@ -1128,6 +1076,7 @@ export function generateAchievements(
 
   return achievements;
 }
+
 type StreakStats = {
   totalContributions: number;
   currentStreak: number;
@@ -1212,22 +1161,25 @@ export async function fetchContributedRepos(
       }
     `;
 
-    const res = await fetchGraphQLWithRetry(GITHUB_GRAPHQL_URL, {
-      method: 'POST',
-      headers: getHeaders(),
-      body: JSON.stringify({
-        query,
-        variables: { login: username },
-      }),
-      cache: 'no-store',
-      signal: options.signal,
+    // UPDATED: Using apiBreaker.fire()
+    const res = await apiBreaker.fire({
+      url: GITHUB_GRAPHQL_URL,
+      options: {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify({
+          query,
+          variables: { login: username },
+        }),
+        cache: 'no-store',
+        signal: options.signal,
+      },
+      timeoutMs: GRAPHQL_TIMEOUT_MS,
     });
 
     if (!res.ok) {
       throwIfRateLimited(res);
-      throw new Error(
-        `GitHub GraphQL API returned status ${res.status} after ${MAX_RETRIES} retries`
-      );
+      throw new Error(`GitHub GraphQL API returned status ${res.status} after retries`);
     }
 
     const data = await res.json();
@@ -1384,11 +1336,16 @@ export async function fetchPinnedRepos(username: string): Promise<PopularRepo[]>
     }
   `;
   try {
-    const res = await fetchWithRetry(GITHUB_GRAPHQL_URL, {
-      method: 'POST',
-      headers: getHeaders(),
-      body: JSON.stringify({ query, variables: { login: username } }),
-      cache: 'no-store',
+    // UPDATED: Using apiBreaker.fire()
+    const res = await apiBreaker.fire({
+      url: GITHUB_GRAPHQL_URL,
+      options: {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify({ query, variables: { login: username } }),
+        cache: 'no-store',
+      },
+      timeoutMs: GRAPHQL_TIMEOUT_MS,
     });
     if (!res.ok) return [];
     const data = await res.json();
@@ -1419,11 +1376,16 @@ async function fetchPopularRepos(username: string): Promise<PopularRepo[]> {
     }
   `;
   try {
-    const res = await fetchWithRetry(GITHUB_GRAPHQL_URL, {
-      method: 'POST',
-      headers: getHeaders(),
-      body: JSON.stringify({ query, variables: { login: username } }),
-      cache: 'no-store',
+    // UPDATED: Using apiBreaker.fire()
+    const res = await apiBreaker.fire({
+      url: GITHUB_GRAPHQL_URL,
+      options: {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify({ query, variables: { login: username } }),
+        cache: 'no-store',
+      },
+      timeoutMs: GRAPHQL_TIMEOUT_MS,
     });
     if (!res.ok) return [];
     const data = await res.json();
@@ -1455,8 +1417,6 @@ export async function getFullDashboardData(username: string, options: FetchOptio
       cause: profileResult.reason,
     });
 
-  // Treat a failed contributions fetch as a first-class error rather than silently
-  // returning zeroed stats, which would otherwise present a false "no activity" result.
   if (calendarResult.status === 'rejected')
     throw new Error(`[GitHub API] Failed to fetch contributions for user "${username}"`, {
       cause: calendarResult.reason,
@@ -1490,7 +1450,6 @@ export async function getFullDashboardData(username: string, options: FetchOptio
     (commitClock.find((d) => d.day === 'Sun')?.commits ?? 0) +
     (commitClock.find((d) => d.day === 'Sat')?.commits ?? 0);
 
-  // Language breakdown from repoContributions (weighted by commit count)
   const langCounts: Record<string, number> = {};
   repoContributions.forEach((c) => {
     const l = c.repository.primaryLanguage?.name;
@@ -1506,7 +1465,6 @@ export async function getFullDashboardData(username: string, options: FetchOptio
     .sort((a, b) => b.percentage - a.percentage)
     .slice(0, 5);
 
-  // Graph nodes/links
   const nodes: GraphNode[] = [
     {
       id: profileData.login,
@@ -1550,11 +1508,9 @@ export async function getFullDashboardData(username: string, options: FetchOptio
     links.push({ source: profileData.login, target: r.nameWithOwner });
   });
 
-  // Calculate Hall of Fame
   const hallOfFame: import('../types/dashboard').HallOfFameAward[] = [];
 
   if (reposData.length > 0) {
-    // 1. Most Popular (Highest Stars)
     const mostPopular = reposData.reduce(
       (prev, current) => (current.stargazers_count > prev.stargazers_count ? current : prev),
       reposData[0]
@@ -1575,7 +1531,6 @@ export async function getFullDashboardData(username: string, options: FetchOptio
       });
     }
 
-    // 2. Fastest Growing (Stars / Age in days)
     const fastestGrowing = reposData.reduce((prev, current) => {
       const getRate = (r: GitHubRepo) => {
         if (!r.created_at) return 0;
@@ -1613,7 +1568,6 @@ export async function getFullDashboardData(username: string, options: FetchOptio
       });
     }
 
-    // 3. Most Collaborative (Highest Forks)
     const mostCollaborative = reposData.reduce(
       (prev, current) => ((current.forks_count || 0) > (prev.forks_count || 0) ? current : prev),
       reposData[0]
@@ -1634,7 +1588,6 @@ export async function getFullDashboardData(username: string, options: FetchOptio
       });
     }
 
-    // 6. Rising Star (recently created repo with highest stars/activity, created within last 18 months)
     const cutoffDate = new Date();
     cutoffDate.setMonth(cutoffDate.getMonth() - 18);
     const recentRepos = reposData.filter(
@@ -1671,7 +1624,6 @@ export async function getFullDashboardData(username: string, options: FetchOptio
       }
     }
 
-    // 7. Most Consistent (oldest non-fork repo that is still actively updated)
     const ownedRepos = reposData.filter((r) => !r.fork && r.created_at && r.updated_at);
     if (ownedRepos.length > 0) {
       const mostConsistent = ownedRepos.reduce((prev, current) => {
@@ -1706,7 +1658,6 @@ export async function getFullDashboardData(username: string, options: FetchOptio
     }
   }
 
-  // 4. Most Contributed (From recent repoContributions)
   if (repoContributions.length > 0) {
     const mostContributed = repoContributions.reduce(
       (prev, current) =>
@@ -1735,7 +1686,6 @@ export async function getFullDashboardData(username: string, options: FetchOptio
     }
   }
 
-  // 5. Most Active (Combo of recent updates and commits)
   if (repoContributions.length > 0 && reposData.length > 0) {
     const mostActive = reposData.reduce((prev, current) => {
       const getScore = (r: GitHubRepo) => {
@@ -1776,7 +1726,6 @@ export async function getFullDashboardData(username: string, options: FetchOptio
     }
   }
 
-  // Deduplicate by category+title, cap at 6
   const seenTitles = new Set<string>();
   const finalHallOfFame = hallOfFame
     .filter((award) => {
