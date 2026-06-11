@@ -14,7 +14,7 @@ import { rateLimit } from './lib/rate-limit';
  *
  * Limit: 60 requests per minute per IP.
  */
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   // Use Vercel's ip property if available, fallback to headers, then localhost
   const ip =
     request.headers.get('x-forwarded-for')?.split(',')[0] ??
