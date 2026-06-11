@@ -1,13 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NextRequest, NextResponse } from 'next/server';
-import { middleware } from './middleware';
+import { proxy } from './proxy';
 import { rateLimit } from './lib/rate-limit';
 
 vi.mock('./lib/rate-limit', () => ({
   rateLimit: vi.fn(),
 }));
 
-describe('proxy.accessibility - Middleware Responsibilities (JSON responses, rate limits, headers)', () => {
+describe('proxy.accessibility - proxy Responsibilities (JSON responses, rate limits, headers)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -21,7 +21,7 @@ describe('proxy.accessibility - Middleware Responsibilities (JSON responses, rat
     });
 
     const request = new NextRequest('http://localhost:3000/api/streak');
-    const response = await middleware(request);
+    const response = await proxy(request);
 
     expect(response.status).toBe(429);
     const body = await response.json();
@@ -37,7 +37,7 @@ describe('proxy.accessibility - Middleware Responsibilities (JSON responses, rat
     });
 
     const request = new NextRequest('http://localhost:3000/api/streak?refresh=true');
-    const response = await middleware(request);
+    const response = await proxy(request);
 
     expect(response.status).toBe(429);
     const body = await response.json();
@@ -55,7 +55,7 @@ describe('proxy.accessibility - Middleware Responsibilities (JSON responses, rat
     });
 
     const request = new NextRequest('http://localhost:3000/api/streak');
-    const response = await middleware(request);
+    const response = await proxy(request);
 
     expect(response.headers.get('X-RateLimit-Limit')).toBe('60');
     expect(response.headers.get('X-RateLimit-Remaining')).toBe('59');
@@ -71,7 +71,7 @@ describe('proxy.accessibility - Middleware Responsibilities (JSON responses, rat
     });
 
     const request = new NextRequest('http://localhost:3000/api/streak?bypassCache=true');
-    const response = await middleware(request);
+    const response = await proxy(request);
 
     expect(response.headers.get('X-RateLimit-Limit')).toBe('5');
     expect(response.headers.get('X-RateLimit-Remaining')).toBe('0');
@@ -89,7 +89,7 @@ describe('proxy.accessibility - Middleware Responsibilities (JSON responses, rat
     const nextSpy = vi.spyOn(NextResponse, 'next');
 
     const request = new NextRequest('http://localhost:3000/api/streak');
-    await middleware(request);
+    await proxy(request);
 
     expect(nextSpy).toHaveBeenCalled();
   });
