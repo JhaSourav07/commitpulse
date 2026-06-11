@@ -65,11 +65,13 @@
     "preview_monolith": "PREVIEW MONOLITH",
     "interactive_preview_title": "Interactive Monolith Preview",
     "interactive_preview_desc": "CommitPulse compiles your public GitHub contribution history into a customizable 3D city. The taller the towers, the more you committed that day. Enter a GitHub username above to instantly generate your streak badge.",
-    "input_aria_label": "Enter GitHub username to generate badge"
+    "input_aria_label": "Enter GitHub username to generate badge",
+    "unable_to_load_stats": "Unable to load stats"
   },
   "success_guide": {
     "title": "Your Monolith is Ready - Deploy It in 4 Steps",
     "markdown_copied": "Markdown Copied",
+    "dismiss_aria": "Dismiss guide",
     "step_1_title": "Open Your Profile Repo",
     "step_1_body": "Navigate to github.com/YOUR_USERNAME/YOUR_USERNAME - your special profile repository.",
     "step_2_title": "Edit README.md",
@@ -81,7 +83,8 @@
     "copied_snippet_label": "Your copied snippet",
     "color_tip": "Tip: Add ?accent=808080 to the URL to change your monolith's colour palette.",
     "watch_dashboard_btn": "Watch Your Dashboard",
-    "customize_more_btn": "Want to customize more?"
+    "customize_more_btn": "Want to customize more?",
+    "dismiss_aria": "Dismiss guide"
   },
   "customize_cta": {
     "studio_badge": "Customization Studio",
@@ -168,7 +171,9 @@
       "loc": "Lines of Code",
       "loc_desc": "Lines of code modified over time",
       "commits_desc": "Commit frequency over time",
-      "lines_modified": "{{count}} lines modified"
+      "lines_modified": "{{count}} lines modified",
+      "aria_range": "from {{start}} to {{end}}",
+      "aria_single": "on {{date}}"
     },
     "languages": {
       "title": "Top Languages",

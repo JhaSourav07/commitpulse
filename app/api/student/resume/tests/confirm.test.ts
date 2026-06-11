@@ -108,7 +108,7 @@ describe('POST /api/student/resume/confirm', () => {
     expect(StudentProfile.findOneAndUpdate).toHaveBeenCalledWith(
       { githubUsername: 'testuser' },
       expect.any(Object),
-      { upsert: true, new: true }
+      { upsert: true, new: true, runValidators: true }
     );
 
     expect(response.status).toBe(200);

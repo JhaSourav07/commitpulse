@@ -240,4 +240,46 @@ describe('POST /api/track-user', () => {
       consoleErrorSpy.mockRestore();
     });
   });
+
+  describe('GitHub Username Validation Regression Tests (#4895)', () => {
+    beforeEach(() => {
+      process.env.MONGODB_URI = 'mongodb://localhost:27017/test';
+      vi.mocked(fetchUserProfile).mockImplementation((username) => {
+        return Promise.resolve({ login: username } as unknown as Awaited<
+          ReturnType<typeof fetchUserProfile>
+        >);
+      });
+    });
+
+    const validUsernames = ['octocat', 'KRUSHAL2956', 'my-user'];
+    const invalidUsernames = ['!!!!!!!!', '--------', 'abc--', '--abc', '<script>', 'user--name'];
+
+    it('Scenario: valid usernames are allowed and write to database', async () => {
+      for (const username of validUsernames) {
+        vi.clearAllMocks();
+        const response = await POST(makeRequest({ username }));
+        expect(response.status).toBe(200);
+        const data = await response.json();
+        expect(data.success).toBe(true);
+        expect(User.updateOne).toHaveBeenCalledWith(
+          { username: username.trim().toLowerCase() },
+          expect.any(Object),
+          { upsert: true }
+        );
+      }
+    });
+
+    it('Scenario: invalid usernames return 400 and never perform database operations', async () => {
+      for (const username of invalidUsernames) {
+        vi.clearAllMocks();
+        const response = await POST(makeRequest({ username }));
+        expect(response.status).toBe(400);
+        const data = await response.json();
+        expect(data.success).toBe(false);
+        expect(data.error).toBe('Invalid GitHub username');
+        expect(dbConnect).not.toHaveBeenCalled();
+        expect(User.updateOne).not.toHaveBeenCalled();
+      }
+    });
+  });
 });

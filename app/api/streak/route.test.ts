@@ -126,6 +126,19 @@ describe('GET /api/streak', () => {
       expect(response.status).toBe(400);
     });
 
+    it('re-chunks ?days filtered days into real weeks instead of one overflowing week', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', days: '10', format: 'json' }));
+      expect(response.status).toBe(200);
+      const body = await response.json();
+      const weeks = body.calendar.weeks as { contributionDays: unknown[] }[];
+
+      // Before the fix all filtered days were crammed into a single week.
+      expect(weeks.length).toBeGreaterThan(1);
+      // No week exceeds 7 days, so isometric towers do not collapse and heatmap cells
+      // do not overflow the canvas below row 6.
+      expect(weeks.every((w) => w.contributionDays.length <= 7)).toBe(true);
+    });
+
     it('returns 400 Bad Request when ?layout= is set to an unsupported format', async () => {
       const response = await GET(makeRequest({ user: 'octocat', layout: 'unsupported_layout' }));
       expect(response.status).toBe(400);
@@ -962,6 +975,17 @@ describe('GET /api/streak', () => {
       expect(body.details.fieldErrors.tz[0]).toContain('Invalid timezone');
     });
 
+    it('rejects a path-traversal ?tz= payload before it reaches the GitHub API or TTL logic', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', tz: '../../../../etc/passwd' }));
+
+      expect(response.status).toBe(400);
+      const body = await response.json();
+      expect(body.error).toBe('Invalid parameters');
+      expect(body.details.fieldErrors.tz[0]).toBe('Invalid timezone');
+      expect(fetchGitHubContributions).not.toHaveBeenCalled();
+      expect(getSecondsUntilMidnightInTimezone).not.toHaveBeenCalled();
+    });
+
     it('returns 400 (not 500) when Intl.DateTimeFormat throws RangeError at runtime', async () => {
       // Test that a RangeError from Intl.DateTimeFormat is caught and returned as 400.
       // We save/restore the original to avoid cross-test pollution.
@@ -1520,6 +1544,16 @@ describe('GET /api/streak', () => {
       const response = await GET(makeRequest({ user: 'a, b' }));
       expect(response.status).toBe(404);
     });
+
+    it('rejects requests with more than 2 users with a 400 Bad Request', async () => {
+      const response = await GET(makeRequest({ user: 'a, b, c, d' }));
+      expect(response.status).toBe(400);
+
+      expect(fetchGitHubContributions).not.toHaveBeenCalled();
+
+      const body = await response.text();
+      expect(body).toContain('strictly accepts a maximum of 2 usernames');
+    });
   });
 
   describe('grace parameter boundary validation', () => {
@@ -1747,10 +1781,8 @@ describe('GET /api/streak', () => {
 
   describe('date parameter validation (Variation 2)', () => {
     it('returns 400 Bad Request when ?date= is "2026-15-40" (malformed ISO 8601)', async () => {
-      // Arrange: month 15 and day 40 are both impossible calendar values
       const response = await GET(makeRequest({ user: 'octocat', date: '2026-15-40' }));
 
-      // Assert: endpoint must reject before calling GitHub API
       expect(response.status).toBe(400);
     });
 
@@ -1787,6 +1819,47 @@ describe('GET /api/streak', () => {
       const response = await GET(makeRequest({ user: 'octocat', date: '2026-05-30' }));
 
       expect(response.status).toBe(200);
+    });
+  });
+
+  describe('user parameter maxLength validation (Variation 5)', () => {
+    it('returns 400 Bad Request when ?user= is exactly 40 characters long', async () => {
+      const response = await GET(makeRequest({ user: 'a'.repeat(40) }));
+
+      expect(response.status).toBe(400);
+    });
+
+    it('returns an error body containing "cannot exceed 39 characters" for a 40-char username', async () => {
+      const response = await GET(makeRequest({ user: 'a'.repeat(40) }));
+      const body = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(body.error).toBe('Invalid parameters');
+      expect(JSON.stringify(body)).toContain('cannot exceed 39 characters');
+    });
+
+    it('does not call fetchGitHubContributions when the username exceeds 39 characters', async () => {
+      await GET(makeRequest({ user: 'a'.repeat(40) }));
+
+      expect(fetchGitHubContributions).not.toHaveBeenCalled();
+    });
+
+    it('returns 200 OK for a valid username at the 39-character boundary', async () => {
+      const response = await GET(makeRequest({ user: 'a'.repeat(39) }));
+
+      expect(response.status).toBe(200);
+    });
+
+    it('returns 400 and fieldErrors.user with maxLength message when using NextRequest with 40-char username', async () => {
+      const url = `http://localhost/api/streak?user=${'a'.repeat(40)}`;
+      const request = new NextRequest(url);
+
+      const response = await GET(request);
+      const body = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(body.error).toBe('Invalid parameters');
+      expect(body.details.fieldErrors.user[0]).toMatch(/cannot exceed 39 characters/);
     });
   });
 });

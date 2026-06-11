@@ -4,6 +4,7 @@ import { User } from '@/models/User';
 import { getClientIp } from '@/utils/getClientIp';
 import { getRateLimitHeaders, trackUserRateLimiter } from '@/lib/rate-limit';
 import { trackUserProtection } from '@/services/security/track-user-protection';
+import { githubUsernameSchema } from '@/lib/validations';
 
 export async function POST(req: Request) {
   // Get IP for rate limiting securely
@@ -39,6 +40,14 @@ export async function POST(req: Request) {
     if (!username || typeof username !== 'string') {
       return NextResponse.json(
         { success: false, error: 'Invalid or missing username' },
+        { status: 400 }
+      );
+    }
+
+    const validationResult = githubUsernameSchema.safeParse(username);
+    if (!validationResult.success) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid GitHub username' },
         { status: 400 }
       );
     }

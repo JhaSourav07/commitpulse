@@ -69,8 +69,8 @@ async function fetchPRInsightsUncached(username: string): Promise<PRInsightData>
   // This is more efficient than iterating through user.pullRequests.
 
   const query = `
-    query($authorQuery: String!, $reviewerQuery: String!) {
-      authored: search(query: $authorQuery, type: ISSUE, first: 100) {
+    query($authorQuery: String!, $reviewerQuery: String!, $after: String) {
+      authored: search(query: $authorQuery, type: ISSUE, first: 100, after: $after) {
         nodes {
           ... on PullRequest {
             id
@@ -97,6 +97,10 @@ async function fetchPRInsightsUncached(username: string): Promise<PRInsightData>
             }
           }
         }
+        pageInfo {
+          hasNextPage
+          endCursor
+        }
       }
       reviewed: search(query: $reviewerQuery, type: ISSUE, first: 100) {
         issueCount
@@ -114,25 +118,43 @@ async function fetchPRInsightsUncached(username: string): Promise<PRInsightData>
     reviewerQuery: `is:pr reviewed-by:${username} -author:${username} created:>=${dateStr}`,
   };
 
-  const res = await fetchWithRetry(GITHUB_GRAPHQL_URL, {
-    method: 'POST',
-    headers: getHeaders(),
-    body: JSON.stringify({ query, variables }),
-    cache: 'no-store',
-  });
-
-  if (!res.ok) {
-    throw new Error(`Failed to fetch PR insights: ${res.statusText}`);
-  }
-
-  const json = await res.json();
-  if (json.errors) {
-    throw new Error(json.errors[0]?.message || 'GraphQL Error');
-  }
-
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const authoredPRs = (json.data?.authored?.nodes || []).filter((n: any) => n && n.title); // filter out non-PRs or nulls
-  const reviewsGivenCount = json.data?.reviewed?.issueCount || 0;
+  let allAuthoredPRs: any[] = [];
+  let hasNextPage = true;
+  let after: string | null = null;
+  let reviewsGivenCount = 0;
+  const MAX_PAGES = 10; // Cap at 1000 PRs (10 pages x 100)
+
+  for (let page = 0; page < MAX_PAGES && hasNextPage; page++) {
+    const res = await fetchWithRetry(GITHUB_GRAPHQL_URL, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ query, variables: { ...variables, after } }),
+      cache: 'no-store',
+    });
+
+    if (!res.ok) {
+      throw new Error(`Failed to fetch PR insights: ${res.statusText}`);
+    }
+
+    const json = await res.json();
+    if (json.errors) {
+      throw new Error(json.errors[0]?.message || 'GraphQL Error');
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const pageNodes = (json.data?.authored?.nodes || []).filter((n: any) => n && n.title);
+    allAuthoredPRs = allAuthoredPRs.concat(pageNodes);
+
+    hasNextPage = json.data?.authored?.pageInfo?.hasNextPage || false;
+    after = json.data?.authored?.pageInfo?.endCursor || null;
+
+    if (page === 0) {
+      reviewsGivenCount = json.data?.reviewed?.issueCount || 0;
+    }
+  }
+
+  const authoredPRs = allAuthoredPRs;
 
   // Process data
   const totalPRs = authoredPRs.length;

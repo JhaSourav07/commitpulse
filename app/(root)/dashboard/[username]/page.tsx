@@ -1,8 +1,10 @@
 import type { Metadata } from 'next';
 import DashboardClient from '@/components/dashboard/DashboardClient';
-import { getFullDashboardData, fetchUserProfile } from '@/lib/github';
+import { getFullDashboardData, fetchUserProfile, fetchUserRepos } from '@/lib/github';
+import type { RepoActivityInfo } from '@/types/dashboard';
 import { notFound, redirect } from 'next/navigation';
 import { resolveDashboardPeriod } from '@/utils/dashboardPeriod';
+import DashboardPageWrapper from '../DashboardPageWrapper';
 
 export const revalidate = 3600; // Cache for 1 hour
 
@@ -116,6 +118,18 @@ export default async function DashboardPage({
     throw error;
   }
 
+  let allRepos: RepoActivityInfo[] = [];
+  try {
+    const reposData = await fetchUserRepos(username, { bypassCache });
+    allRepos = reposData.map((r) => ({
+      name: r.name,
+      url: `https://github.com/${username}/${r.name}`,
+      pushedAt: r.pushed_at ?? r.updated_at ?? null,
+    }));
+  } catch {
+    allRepos = [];
+  }
+
   let compareData = null;
 
   if (compareUsername && compareUsername.toLowerCase() !== username.toLowerCase()) {
@@ -129,11 +143,14 @@ export default async function DashboardPage({
   }
 
   return (
-    <DashboardClient
-      initialData={data}
-      username={username}
-      compareData={compareData}
-      period={period}
-    />
+    <DashboardPageWrapper>
+      <DashboardClient
+        initialData={data}
+        allRepoActivity={allRepos}
+        username={username}
+        compareData={compareData}
+        period={period}
+      />
+    </DashboardPageWrapper>
   );
 }

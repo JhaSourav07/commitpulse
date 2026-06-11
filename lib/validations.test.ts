@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   githubParamsSchema,
+  githubUsernameSchema,
   ogParamsSchema,
   streakParamsSchema,
   toGraceValue,
@@ -538,6 +539,27 @@ describe('streakParamsSchema', () => {
     if (!result.success) {
       expect(result.error.issues[0]?.message).toBe('Invalid timezone');
     }
+  });
+
+  it('rejects path-traversal and injection ?tz= payloads while accepting a real IANA zone', () => {
+    const maliciousZones = [
+      '../../../../etc/passwd',
+      'America/New_York; rm -rf /',
+      'America/New_York ',
+    ];
+
+    for (const tz of maliciousZones) {
+      const result = streakParamsSchema.safeParse({ user: 'octocat', tz });
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues[0]?.message).toBe('Invalid timezone');
+      }
+    }
+
+    expect(streakParamsSchema.safeParse({ user: 'octocat', tz: 'America/New_York' }).success).toBe(
+      true
+    );
   });
 });
 
@@ -1471,19 +1493,73 @@ describe('streakParamsSchema — layout query validation boundaries (Variation 4
   });
 });
 
+describe('streakParamsSchema — gradient_stops DoS protection', () => {
+  it('accepts a short valid gradient_stops value', () => {
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      gradient_stops: 'ff6b35,7000ff',
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('accepts a gradient_stops value exactly at 200 characters', () => {
+    // Build a 200-char string of valid comma-separated hex codes
+    const stops200 = Array.from({ length: 28 }, () => 'ff6b35').join(','); // 28*6 + 27 commas = 195 chars, pad to 200
+    const padded = stops200 + ',f0f'; // 195 + 4 = 199 chars — just under limit
+    expect(padded.length).toBeLessThanOrEqual(200);
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      gradient_stops: padded,
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects gradient_stops longer than 200 characters', () => {
+    const oversized = 'a'.repeat(201);
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      gradient_stops: oversized,
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const msg = result.error.flatten().fieldErrors.gradient_stops?.[0];
+      expect(msg).toBe('gradient_stops cannot exceed 200 characters');
+    }
+  });
+
+  it('rejects a multi-megabyte gradient_stops string', () => {
+    const huge = 'ff0000,'.repeat(50000); // ~350 KB
+    const result = streakParamsSchema.safeParse({
+      user: 'octocat',
+      gradient_stops: huge,
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const msg = result.error.flatten().fieldErrors.gradient_stops?.[0];
+      expect(msg).toBe('gradient_stops cannot exceed 200 characters');
+    }
+  });
+
+  it('accepts gradient_stops as undefined (optional field)', () => {
+    const result = streakParamsSchema.safeParse({ user: 'octocat' });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.gradient_stops).toBeUndefined();
+    }
+  });
+});
+
 /* ==========================================================================
  * DATE PARAMETER — QUERY VALIDATION BOUNDARIES (VARIATION 2)
  * ========================================================================== */
 
 describe('streakParamsSchema — date query validation boundaries (Variation 2)', () => {
   it('rejects the invalid date "2026-15-40" and returns an error containing \'Invalid "date" format\'', () => {
-    // Arrange: month 15 and day 40 are both out of range — clearly not ISO 8601
     const result = streakParamsSchema.safeParse({
       user: 'octocat',
       date: '2026-15-40',
     });
 
-    // Assert: schema must reject malformed date
     expect(result.success).toBe(false);
     if (!result.success) {
       const messages = result.error.issues.map((i) => i.message).join(' ');
@@ -1595,5 +1671,66 @@ describe('toGraceValue and toOpacityValue — consistent parseFloat behavior', (
     expect(toOpacityValue('100')).toBe(1.0);
     expect(toGraceValue('-5')).toBe(0);
     expect(toOpacityValue('-5')).toBe(0.1);
+  });
+});
+
+describe('streakParamsSchema — user maxLength boundary (Variation 5)', () => {
+  it('rejects a user parameter of exactly 40 characters with a 400-style error containing "cannot exceed 39 characters"', () => {
+    const result = streakParamsSchema.safeParse({ user: 'a'.repeat(40) });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const message = result.error.issues[0]?.message ?? '';
+      expect(message).toContain('cannot exceed 39 characters');
+    }
+  });
+
+  it('accepts a username of exactly 39 characters (boundary value)', () => {
+    const result = streakParamsSchema.safeParse({ user: 'a'.repeat(39) });
+
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects a username longer than 39 characters even when the format is otherwise valid', () => {
+    const result = streakParamsSchema.safeParse({ user: 'b'.repeat(40) });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const message = result.error.issues[0]?.message ?? '';
+      expect(message).toContain('cannot exceed 39 characters');
+    }
+  });
+
+  it('returns a structured Zod error with fieldErrors.user pointing to the maxLength violation', () => {
+    const result = streakParamsSchema.safeParse({ user: 'a'.repeat(40) });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const flatErrors = result.error.flatten().fieldErrors;
+      expect(flatErrors.user).toBeDefined();
+      expect(flatErrors.user?.[0]).toContain('cannot exceed 39 characters');
+    }
+  });
+});
+
+describe('githubUsernameSchema regression tests', () => {
+  const validUsernames = ['octocat', 'KRUSHAL2956', 'my-user', 'user123'];
+  const invalidUsernames = ['!!!!!!!!', '--------', 'abc--', '--abc', '<script>', 'user--name'];
+
+  it('passes validation for valid GitHub usernames', () => {
+    for (const username of validUsernames) {
+      const result = githubUsernameSchema.safeParse(username);
+      expect(result.success, `Expected "${username}" to be valid`).toBe(true);
+    }
+  });
+
+  it('fails validation for invalid GitHub usernames', () => {
+    for (const username of invalidUsernames) {
+      const result = githubUsernameSchema.safeParse(username);
+      expect(result.success, `Expected "${username}" to be invalid`).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues[0]?.message).toBe('Invalid GitHub username');
+      }
+    }
   });
 });

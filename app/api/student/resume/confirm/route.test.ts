@@ -69,7 +69,6 @@ describe('POST /api/student/resume/confirm Extra Scenarios', () => {
   });
 
   it('returns 200 and bypasses database update when MONGODB_URI is not configured', async () => {
-    // Process.env.MONGODB_URI is undefined by default in beforeEach
     const response = await POST(
       makeRequest({
         githubUsername: 'testuser',
@@ -98,8 +97,74 @@ describe('POST /api/student/resume/confirm Extra Scenarios', () => {
     expect(StudentProfile.findOneAndUpdate).toHaveBeenCalledWith(
       { githubUsername: 'testuser' },
       expect.any(Object),
-      { upsert: true, new: true }
+      { upsert: true, new: true, runValidators: true }
     );
     expect(response.status).toBe(200);
+  });
+  it('returns 400 when githubUsername is missing', async () => {
+    const response = await POST(
+      makeRequest({
+        data: { name: 'John Doe', email: 'john@example.com' },
+      })
+    );
+
+    expect(response.status).toBe(400);
+    const body = await response.json();
+    expect(body.error).toBe('Invalid or missing githubUsername');
+  });
+
+  it('returns 400 when githubUsername exceeds 39 characters', async () => {
+    const response = await POST(
+      makeRequest({
+        githubUsername: 'a'.repeat(40),
+        data: { name: 'John Doe', email: 'john@example.com' },
+      })
+    );
+
+    expect(response.status).toBe(400);
+    const body = await response.json();
+    expect(body.error).toBe('Invalid or missing githubUsername');
+  });
+
+  it('returns 400 when profile data is missing', async () => {
+    const response = await POST(
+      makeRequest({
+        githubUsername: 'testuser',
+      })
+    );
+
+    expect(response.status).toBe(400);
+    const body = await response.json();
+    expect(body.error).toBe('Invalid or missing profile data');
+  });
+
+  it('returns 400 when name is missing', async () => {
+    const response = await POST(
+      makeRequest({
+        githubUsername: 'testuser',
+        data: {
+          email: 'john@example.com',
+        },
+      })
+    );
+
+    expect(response.status).toBe(400);
+    const body = await response.json();
+    expect(body.error).toBe('Name and email are required');
+  });
+
+  it('returns 400 when email is missing', async () => {
+    const response = await POST(
+      makeRequest({
+        githubUsername: 'testuser',
+        data: {
+          name: 'John Doe',
+        },
+      })
+    );
+
+    expect(response.status).toBe(400);
+    const body = await response.json();
+    expect(body.error).toBe('Name and email are required');
   });
 });

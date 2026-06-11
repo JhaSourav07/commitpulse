@@ -1,6 +1,6 @@
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest, NextResponse } from 'next/server';
-import { middleware as proxy, config } from './middleware';
+import { middleware, config } from './middleware';
 import { rateLimit } from '@/lib/rate-limit';
 
 vi.mock('@/lib/rate-limit', () => ({
@@ -19,7 +19,7 @@ function mockBothLimiters(
   });
 }
 
-describe('proxy', () => {
+describe('middleware', () => {
   let originalEnv: string | undefined;
 
   beforeEach(() => {
@@ -43,7 +43,7 @@ describe('proxy', () => {
     const nextSpy = vi.spyOn(NextResponse, 'next');
 
     const request = new NextRequest('http://localhost:3000/api/streak?user=octocat');
-    await proxy(request);
+    await middleware(request);
 
     expect(nextSpy).toHaveBeenCalled();
   });
@@ -57,7 +57,7 @@ describe('proxy', () => {
     });
 
     const request = new NextRequest('http://localhost:3000/api/streak?user=octocat');
-    const response = await proxy(request);
+    const response = await middleware(request);
 
     expect(response.status).toBe(429);
   });
@@ -71,7 +71,7 @@ describe('proxy', () => {
     });
 
     const request = new NextRequest('http://localhost:3000/api/streak?user=octocat');
-    const response = await proxy(request);
+    const response = await middleware(request);
 
     await expect(response.json()).resolves.toEqual({
       error: 'Too many requests',
@@ -87,7 +87,7 @@ describe('proxy', () => {
     });
 
     const request = new NextRequest('http://localhost:3000/api/streak?user=octocat');
-    await proxy(request);
+    await middleware(request);
 
     expect(rateLimit).toHaveBeenCalledWith(expect.any(String), 60, 60000);
   });
@@ -101,7 +101,7 @@ describe('proxy', () => {
     });
 
     const request = new NextRequest('http://localhost:3000/api/streak?user=octocat');
-    const response = await proxy(request);
+    const response = await middleware(request);
 
     expect(response.headers.get('X-RateLimit-Limit')).toBe('60');
     expect(response.headers.get('X-RateLimit-Remaining')).toBe('59');
@@ -117,7 +117,7 @@ describe('proxy', () => {
     });
 
     const request = new NextRequest('http://localhost:3000/api/streak?user=octocat');
-    const response = await proxy(request);
+    const response = await middleware(request);
 
     expect(response.headers.get('X-RateLimit-Limit')).toBe('60');
     expect(response.headers.get('X-RateLimit-Remaining')).toBe('58');
@@ -133,7 +133,7 @@ describe('proxy', () => {
     });
 
     const request = new NextRequest('http://localhost:3000/api/streak?user=octocat');
-    const response = await proxy(request);
+    const response = await middleware(request);
 
     expect(response.headers.get('Content-Type')).toBe('application/json');
     expect(response.headers.get('X-RateLimit-Limit')).toBe('60');
@@ -155,7 +155,7 @@ describe('proxy', () => {
       },
     });
 
-    await proxy(request);
+    await middleware(request);
 
     expect(rateLimit).toHaveBeenCalledWith('1.2.3.4', 60, 60000);
   });
@@ -176,7 +176,7 @@ describe('proxy', () => {
       },
     });
 
-    await proxy(request);
+    await middleware(request);
 
     expect(rateLimit).toHaveBeenCalledWith('5.6.7.8', 60, 60000);
   });
@@ -195,7 +195,7 @@ describe('proxy', () => {
       },
     });
 
-    await proxy(request);
+    await middleware(request);
 
     expect(rateLimit).toHaveBeenCalledWith('9.9.9.9', 60, 60000);
   });
@@ -210,12 +210,12 @@ describe('proxy', () => {
 
     const request = new NextRequest('http://localhost:3000/api/streak?user=octocat');
 
-    await proxy(request);
+    await middleware(request);
 
     expect(rateLimit).toHaveBeenCalledWith('127.0.0.1', 60, 60000);
   });
 
-  it('prefers x-forwarded-for over x-real-ip', async () => {
+  it('prefers x-real-ip over x-forwarded-for to prevent spoofing', async () => {
     vi.mocked(rateLimit).mockResolvedValue({
       success: true,
       limit: 60,
@@ -230,9 +230,10 @@ describe('proxy', () => {
       },
     });
 
-    await proxy(request);
+    await middleware(request);
 
-    expect(rateLimit).toHaveBeenCalledWith('1.2.3.4', 60, 60000);
+    // Expect 9.9.9.9 instead of 1.2.3.4 because x-real-ip is more secure
+    expect(rateLimit).toHaveBeenCalledWith('9.9.9.9', 60, 60000);
   });
 
   it('handles multiple IPs with whitespace', async () => {
@@ -249,7 +250,7 @@ describe('proxy', () => {
       },
     });
 
-    await proxy(request);
+    await middleware(request);
 
     expect(rateLimit).toHaveBeenCalledWith('1.2.3.4', 60, 60000);
   });
@@ -268,7 +269,7 @@ describe('proxy', () => {
       mockBothLimiters({ success: true, limit: 5, remaining: 4, reset: 123456789 });
 
       const request = new NextRequest('http://localhost:3000/api/streak?user=octocat&refresh=true');
-      await proxy(request);
+      await middleware(request);
 
       expect(rateLimit).toHaveBeenNthCalledWith(1, 'refresh:127.0.0.1', 5, 60000);
       expect(rateLimit).toHaveBeenNthCalledWith(2, '127.0.0.1', 60, 60000);
@@ -278,7 +279,7 @@ describe('proxy', () => {
       mockBothLimiters({ success: false, limit: 5, remaining: 0, reset: 123456789 });
 
       const request = new NextRequest('http://localhost:3000/api/streak?user=octocat&refresh=true');
-      const response = await proxy(request);
+      const response = await middleware(request);
 
       expect(response.status).toBe(429);
       const body = await response.json();
@@ -294,7 +295,7 @@ describe('proxy', () => {
       });
 
       const request = new NextRequest('http://localhost:3000/api/streak?user=octocat&refresh=true');
-      const response = await proxy(request);
+      const response = await middleware(request);
 
       expect(response.headers.get('X-RateLimit-Limit')).toBe('5');
       expect(response.status).toBe(429);
@@ -309,7 +310,7 @@ describe('proxy', () => {
       });
 
       const request = new NextRequest('http://localhost:3000/api/streak?user=octocat&refresh=true');
-      await proxy(request);
+      await middleware(request);
 
       expect(rateLimit).not.toHaveBeenCalledWith('127.0.0.1', 60, 60000);
     });
@@ -323,7 +324,7 @@ describe('proxy', () => {
       });
 
       const request = new NextRequest('http://localhost:3000/api/streak?user=octocat&refresh=true');
-      const response = await proxy(request);
+      const response = await middleware(request);
 
       expect(response.headers.get('X-RateLimit-Limit')).toBe('5');
       expect(response.headers.get('X-RateLimit-Remaining')).toBe('0');
@@ -338,7 +339,7 @@ describe('proxy', () => {
       });
 
       const request = new NextRequest('http://localhost:3000/api/streak?user=octocat');
-      await proxy(request);
+      await middleware(request);
 
       expect(rateLimit).toHaveBeenCalledTimes(1);
       expect(rateLimit).toHaveBeenCalledWith('127.0.0.1', 60, 60000);
@@ -355,7 +356,7 @@ describe('proxy', () => {
       const request = new NextRequest(
         'http://localhost:3000/api/streak?user=octocat&refresh=false'
       );
-      await proxy(request);
+      await middleware(request);
 
       expect(rateLimit).toHaveBeenCalledTimes(1);
       expect(rateLimit).not.toHaveBeenCalledWith(expect.stringContaining('refresh:'), 5, 60000);
@@ -365,7 +366,7 @@ describe('proxy', () => {
       mockBothLimiters({ success: true, limit: 5, remaining: 3, reset: 123456789 });
 
       const request = new NextRequest('http://localhost:3000/api/streak?user=octocat&refresh=true');
-      const response = await proxy(request);
+      const response = await middleware(request);
 
       expect(rateLimit).toHaveBeenCalledTimes(2);
       expect(response.status).toBe(200);
@@ -377,7 +378,7 @@ describe('proxy', () => {
         .mockResolvedValueOnce({ success: false, limit: 60, remaining: 0, reset: 123456789 });
 
       const request = new NextRequest('http://localhost:3000/api/streak?user=octocat&refresh=true');
-      const response = await proxy(request);
+      const response = await middleware(request);
 
       expect(response.status).toBe(429);
       const body = await response.json();

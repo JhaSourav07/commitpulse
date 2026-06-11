@@ -31,13 +31,13 @@ export default function PRTrendChart({ data }: { data: PRInsightData }) {
         <div className="flex bg-gray-100 dark:bg-zinc-800 p-1 rounded-xl">
           <button
             onClick={() => setView('weekly')}
-            className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${view === 'weekly' ? 'bg-white dark:bg-zinc-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'}`}
+            className={`cursor-pointer px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${view === 'weekly' ? 'bg-white dark:bg-zinc-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'}`}
           >
             Weekly
           </button>
           <button
             onClick={() => setView('monthly')}
-            className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${view === 'monthly' ? 'bg-white dark:bg-zinc-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'}`}
+            className={`cursor-pointer px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${view === 'monthly' ? 'bg-white dark:bg-zinc-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'}`}
           >
             Monthly
           </button>

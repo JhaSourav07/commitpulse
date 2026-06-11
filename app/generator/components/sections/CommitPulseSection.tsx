@@ -76,7 +76,9 @@ export function CommitPulseSection({
   onShowCommitPulseChange,
   onCommitPulseAccentChange,
 }: CommitPulseSectionProps) {
-  const trimmed = githubUsername.trim();
+  const safeUsername = githubUsername || '';
+  const safeAccent = commitPulseAccent || '';
+  const trimmed = safeUsername.trim();
   const debouncedUsername = useDebounce(trimmed, 500);
 
   const [userDetails, setUserDetails] = useState<UserDetails | null>(null);
@@ -144,10 +146,9 @@ export function CommitPulseSection({
     };
   }, [debouncedUsername]);
 
-  const badgeUrl =
-    userDetails && !fetchError ? buildBadgeUrl(debouncedUsername, commitPulseAccent) : null;
+  const badgeUrl = userDetails && !fetchError ? buildBadgeUrl(debouncedUsername, safeAccent) : null;
 
-  const accentIsValid = /^[0-9a-fA-F]{6}$/.test(commitPulseAccent.replace(/^#/, ''));
+  const accentIsValid = /^[0-9a-fA-F]{6}$/.test(safeAccent.replace(/^#/, ''));
 
   const badgeCount = showCommitPulse && trimmed ? 1 : 0;
 
@@ -197,7 +198,7 @@ export function CommitPulseSection({
               </span>
               <input
                 type="text"
-                value={githubUsername}
+                value={safeUsername}
                 onChange={(e) => onGithubUsernameChange(e.target.value.trim())}
                 placeholder="e.g. OmkarArdekar12"
                 maxLength={39}
@@ -205,7 +206,7 @@ export function CommitPulseSection({
                 spellCheck={false}
                 className="w-full rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 pl-9 pr-9 py-2.5 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/40 transition-colors"
               />
-              {githubUsername.length > 0 && (
+              {safeUsername.length > 0 && (
                 <button
                   type="button"
                   onClick={() => onGithubUsernameChange('')}
@@ -229,12 +230,36 @@ export function CommitPulseSection({
                   Verifying GitHub profile…
                 </div>
               ) : fetchError ? (
-                <p className="text-xs text-red-500 dark:text-red-400 flex items-center gap-1.5">
-                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-red-500 flex-shrink-0" />
-                  {fetchError === 'User not found'
-                    ? 'GitHub user not found. Check the spelling and try again.'
-                    : `Verification failed: ${fetchError}`}
-                </p>
+                fetchError.includes('token is missing') ||
+                fetchError.includes('token is invalid') ? (
+                  <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-3 text-xs text-amber-600 dark:text-amber-400 leading-normal flex items-start gap-2">
+                    <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-500 mt-1.5 flex-shrink-0 animate-pulse" />
+                    <div>
+                      <strong className="font-semibold">Local Setup Notice:</strong> GITHUB_TOKEN is
+                      not set in your local environment. To verify profiles and display live
+                      statistics previews, copy{' '}
+                      <code className="px-1 py-0.5 rounded bg-amber-500/10 font-mono text-[10px]">
+                        .env.local.example
+                      </code>{' '}
+                      to{' '}
+                      <code className="px-1 py-0.5 rounded bg-amber-500/10 font-mono text-[10px]">
+                        .env.local
+                      </code>{' '}
+                      and add a{' '}
+                      <code className="px-1 py-0.5 rounded bg-amber-500/10 font-mono text-[10px]">
+                        GITHUB_TOKEN
+                      </code>
+                      .
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-xs text-red-500 dark:text-red-400 flex items-center gap-1.5">
+                    <span className="inline-block w-1.5 h-1.5 rounded-full bg-red-500 flex-shrink-0" />
+                    {fetchError === 'User not found'
+                      ? 'GitHub user not found. Check the spelling and try again.'
+                      : `Verification failed: ${fetchError}`}
+                  </p>
+                )
               ) : userDetails ? (
                 <div className="flex items-center gap-2.5 rounded-xl bg-emerald-500/5 border border-emerald-500/15 px-3 py-2">
                   <Image
@@ -270,7 +295,7 @@ export function CommitPulseSection({
                 </span>
                 <input
                   type="text"
-                  value={commitPulseAccent.replace(/^#/, '')}
+                  value={safeAccent.replace(/^#/, '')}
                   onChange={(e) => onCommitPulseAccentChange(e.target.value.replace(/^#/, ''))}
                   placeholder="10b981"
                   maxLength={6}
@@ -281,15 +306,13 @@ export function CommitPulseSection({
               <div
                 className="w-8 h-8 rounded-lg border border-gray-200 dark:border-white/10 flex-shrink-0 transition-colors"
                 style={{
-                  background: accentIsValid
-                    ? `#${commitPulseAccent.replace(/^#/, '')}`
-                    : 'transparent',
+                  background: accentIsValid ? `#${safeAccent.replace(/^#/, '')}` : 'transparent',
                 }}
               />
-              {commitPulseAccent && !accentIsValid && (
+              {safeAccent && !accentIsValid && (
                 <p className="text-[11px] text-amber-500">Invalid hex</p>
               )}
-              {commitPulseAccent && accentIsValid && (
+              {safeAccent && accentIsValid && (
                 <button
                   type="button"
                   onClick={() => onCommitPulseAccentChange('')}
@@ -331,7 +354,7 @@ export function CommitPulseSection({
                   </p>
                 )}
                 <img
-                  key={`${badgeKey}-${commitPulseAccent}`}
+                  key={`${badgeKey}-${safeAccent}`}
                   src={badgeUrl}
                   alt={`CommitPulse badge for ${debouncedUsername}`}
                   className={`w-full h-auto max-w-[480px] transition-opacity duration-500 ${

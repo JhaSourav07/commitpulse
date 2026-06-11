@@ -146,4 +146,30 @@ describe('GrowthTrendChart - Responsive Multi-device Columns & Mobile Viewport L
     expect(screen.getByText('User A')).toBeDefined();
     expect(screen.getByText('User B')).toBeDefined();
   });
+
+  it('maps contribution counts onto the chart: zero counts sit on the baseline and larger counts rise above it', () => {
+    const now = new Date();
+    const inWindowDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-15`;
+
+    const { container } = render(
+      <GrowthTrendChart
+        activityA={[]}
+        activityB={[{ date: inWindowDate, count: 400 }]}
+        labelA="User A"
+        labelB="User B"
+      />
+    );
+
+    const yCoordsOf = (d: string) =>
+      Array.from(d.matchAll(/[ML]\s[\d.]+\s([\d.]+)/g)).map((m) => parseFloat(m[1]));
+
+    const pathYs = Array.from(container.querySelectorAll('path'))
+      .map((p) => yCoordsOf(p.getAttribute('d') ?? ''))
+      .filter((ys) => ys.length > 0);
+
+    const BASELINE = 155;
+
+    expect(pathYs.some((ys) => ys.every((y) => y === BASELINE))).toBe(true);
+    expect(pathYs.some((ys) => ys.some((y) => y < BASELINE))).toBe(true);
+  });
 });

@@ -275,6 +275,32 @@ export function aggregateCalendars(calendars: ContributionCalendar[]): Contribut
   }
   return aggregatedBase;
 }
+
+/**
+ * Chunks a flat, date-ordered list of contribution days into weekday-aligned weeks,
+ * starting a new week on each Sunday. This mirrors GitHub's calendar layout so the
+ * renderers keep their week (column) and weekday (row) grid instead of collapsing
+ * every day into a single week.
+ */
+export function chunkDaysIntoWeeks(days: ContributionDay[]): ContributionCalendar['weeks'] {
+  const weeks: ContributionCalendar['weeks'] = [];
+  let currentWeek: ContributionDay[] = [];
+
+  for (const day of days) {
+    if (currentWeek.length > 0 && new Date(day.date).getUTCDay() === 0) {
+      weeks.push({ contributionDays: currentWeek });
+      currentWeek = [];
+    }
+    currentWeek.push(day);
+  }
+
+  if (currentWeek.length > 0) {
+    weeks.push({ contributionDays: currentWeek });
+  }
+
+  return weeks;
+}
+
 /**
  * Processes a calendar to generate deep insights for "GitHub Wrapped"
  */

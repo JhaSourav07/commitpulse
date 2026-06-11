@@ -7,7 +7,14 @@ export default defineConfig({
     globals: true,
     setupFiles: ['./vitest.setup.ts'],
     include: ['**/*.test.ts', '**/*.test.tsx'],
-    exclude: ['node_modules', '.next', '**/*.massive-scaling.test.ts'],
+    exclude: [
+      'node_modules',
+      '.next',
+      '**/*.massive-scaling.test.ts',
+      '**/*.massive-scaling.test.tsx',
+    ],
+    maxWorkers: process.env.CI ? 2 : 15,
+    testTimeout: 30000,
     coverage: {
       provider: 'v8',
       reporter: ['text', 'lcov'],

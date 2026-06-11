@@ -1,6 +1,6 @@
 'use client';
 
-import { type ReactNode, useState } from 'react';
+import { type ReactNode, useState, useId } from 'react';
 import { ChevronDown } from 'lucide-react';
 
 interface SectionCardProps {
@@ -21,18 +21,26 @@ export function SectionCard({
   badge,
 }: SectionCardProps) {
   const [open, setOpen] = useState(defaultOpen);
+  const contentId = useId();
+  const titleId = useId();
+  const descriptionId = useId();
 
   return (
     <div className="rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-[#111111] overflow-hidden shadow-sm transition-shadow hover:shadow-md dark:shadow-none">
       <button
         type="button"
         onClick={() => setOpen((p) => !p)}
+        aria-expanded={open}
+        aria-controls={contentId}
+        aria-describedby={description ? descriptionId : undefined}
         className="w-full flex items-center gap-3 px-5 py-4 text-left group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50"
       >
         {icon && <span className="text-lg select-none">{icon}</span>}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold text-gray-900 dark:text-white">{title}</span>
+            <span id={titleId} className="text-sm font-semibold text-gray-900 dark:text-white">
+              {title}
+            </span>
             {badge !== undefined && badge > 0 && (
               <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold">
                 {badge}
@@ -40,7 +48,10 @@ export function SectionCard({
             )}
           </div>
           {description && (
-            <p className="text-xs text-gray-500 dark:text-white/40 mt-0.5 truncate">
+            <p
+              id={descriptionId}
+              className="text-xs text-gray-500 dark:text-white/40 mt-0.5 truncate"
+            >
               {description}
             </p>
           )}
@@ -54,7 +65,7 @@ export function SectionCard({
       </button>
 
       {open && (
-        <div className="px-5 pb-5 pt-1">
+        <div id={contentId} role="region" aria-labelledby={titleId} className="px-5 pb-5 pt-1">
           <div className="h-px bg-gray-100 dark:bg-white/5 mb-4" />
           {children}
         </div>
