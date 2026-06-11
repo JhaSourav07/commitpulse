@@ -7,7 +7,7 @@ vi.mock('@/lib/rate-limit', () => ({
   rateLimit: vi.fn(),
 }));
 
-describe('middleware', () => {
+describe('proxy', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -23,7 +23,7 @@ describe('middleware', () => {
     const nextSpy = vi.spyOn(NextResponse, 'next');
 
     const request = new NextRequest('http://localhost:3000/api/streak?user=octocat');
-    await middleware(request);
+    await proxy(request);
 
     expect(nextSpy).toHaveBeenCalled();
   });
@@ -37,7 +37,7 @@ describe('middleware', () => {
     });
 
     const request = new NextRequest('http://localhost:3000/api/streak?user=octocat');
-    const response = await middleware(request);
+    const response = await proxy(request);
 
     expect(response.status).toBe(429);
   });
@@ -51,7 +51,7 @@ describe('middleware', () => {
     });
 
     const request = new NextRequest('http://localhost:3000/api/streak?user=octocat');
-    const response = await middleware(request);
+    const response = await proxy(request);
 
     await expect(response.json()).resolves.toEqual({
       error: 'Too many requests',
@@ -67,7 +67,7 @@ describe('middleware', () => {
     });
 
     const request = new NextRequest('http://localhost:3000/api/streak?user=octocat');
-    const response = await middleware(request);
+    const response = await proxy(request);
 
     expect(response.headers.get('X-RateLimit-Limit')).toBe('60');
   });
@@ -81,7 +81,7 @@ describe('middleware', () => {
     });
 
     const request = new NextRequest('http://localhost:3000/api/streak?user=octocat');
-    const response = await middleware(request);
+    const response = await proxy(request);
 
     expect(response.headers.get('X-RateLimit-Remaining')).toBe('59');
   });
@@ -100,7 +100,7 @@ describe('middleware', () => {
       },
     });
 
-    await middleware(request);
+    await proxy(request);
 
     expect(rateLimit).toHaveBeenCalledWith('1.2.3.4', 60, 60000);
   });
@@ -119,7 +119,7 @@ describe('middleware', () => {
       },
     });
 
-    await middleware(request);
+    await proxy(request);
 
     expect(rateLimit).toHaveBeenCalledWith('9.9.9.9', 60, 60000);
   });
@@ -134,7 +134,7 @@ describe('middleware', () => {
 
     const request = new NextRequest('http://localhost:3000/api/streak?user=octocat');
 
-    await middleware(request);
+    await proxy(request);
 
     expect(rateLimit).toHaveBeenCalledWith('127.0.0.1', 60, 60000);
   });
@@ -154,7 +154,7 @@ describe('middleware', () => {
       },
     });
 
-    await middleware(request);
+    await proxy(request);
 
     expect(rateLimit).toHaveBeenCalledWith('1.2.3.4', 60, 60000);
   });
@@ -173,7 +173,7 @@ describe('middleware', () => {
       },
     });
 
-    await middleware(request);
+    await proxy(request);
 
     expect(rateLimit).toHaveBeenCalledWith('1.2.3.4', 60, 60000);
   });
