@@ -16,6 +16,10 @@ describe('escapeXML', () => {
     expect(escapeXML('hello world')).toBe('hello world');
   });
 
+  it('should escape backticks to prevent attribute breakout', () => {
+    expect(escapeXML('label=`alert(1)`')).toBe('label=&#96;alert(1)&#96;');
+  });
+
   it('should return an empty string unchanged', () => {
     expect(escapeXML('')).toBe('');
   });

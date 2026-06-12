@@ -1529,8 +1529,11 @@ describe('escapeXML', () => {
   });
 
   it('leaves a safe string unchanged', () => {
-    const safe = 'Hello World 123!@#%^*()_+-=[]{}|;:,./?`~';
+    const safe = 'Hello World 123!@#%^*()_+-=[]{}|;:,./?~';
     expect(escapeXML(safe)).toBe(safe);
+  });
+  it('escapes backticks in XML-sensitive strings', () => {
+    expect(escapeXML('onload=`alert(1)`')).toBe('onload=&#96;alert(1)&#96;');
   });
   it('escapes script injection characters <script>&" together', () => {
     expect(escapeXML('<script>&"')).toBe('&lt;script&gt;&amp;&quot;');
