@@ -3,6 +3,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
+import '@testing-library/jest-dom/vitest';
+import DashboardError from './error';
 
 vi.mock('next/link', () => ({
   default: ({
@@ -12,8 +14,6 @@ vi.mock('next/link', () => ({
     <a {...props}>{children}</a>
   ),
 }));
-
-import DashboardError from './error';
 
 describe('Dashboard Error Page - Empty & Missing Input Fallbacks', () => {
   it('renders successfully when error is null', () => {
@@ -34,6 +34,16 @@ describe('Dashboard Error Page - Empty & Missing Input Fallbacks', () => {
     ).not.toThrow();
 
     expect(screen.getByRole('heading', { name: 'Something went wrong' })).toBeInTheDocument();
+describe('DashboardError - Edge Cases & Empty/Missing Inputs', () => {
+  it('renders the generic emoji when error message is an empty string', () => {
+    render(<DashboardError error={new Error('')} reset={vi.fn()} />);
+
+    expect(screen.getByText('⚠️')).toBeInTheDocument();
+  });
+
+  it('renders the fallback description when error message is an empty string', () => {
+    render(<DashboardError error={new Error('')} reset={vi.fn()} />);
+
     expect(
       screen.getByText('An unexpected error occurred while fetching the dashboard data.')
     ).toBeInTheDocument();
@@ -72,8 +82,25 @@ describe('Dashboard Error Page - Empty & Missing Input Fallbacks', () => {
 
   it('renders interactive elements correctly in fallback state', () => {
     render(<DashboardError error={{} as unknown as Error} reset={vi.fn()} />);
+  it('renders the generic heading when error message is an empty string', () => {
+    render(<DashboardError error={new Error('')} reset={vi.fn()} />);
+
+    expect(screen.getByRole('heading', { name: 'Something went wrong' })).toBeInTheDocument();
+  });
+
+  it('renders without errors when the optional digest field is absent', () => {
+    const error = new Error('Unexpected failure') as Error & { digest?: string };
+
+    expect(() => render(<DashboardError error={error} reset={vi.fn()} />)).not.toThrow();
+
+    expect(screen.getByText('⚠️')).toBeInTheDocument();
+  });
+
+  it('renders both action controls in the default empty-message fallback state', () => {
+    render(<DashboardError error={new Error('')} reset={vi.fn()} />);
 
     expect(screen.getByRole('button', { name: /try again/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /go back home/i })).toBeInTheDocument();
-  });
-});
+  })
+})
+})})})
