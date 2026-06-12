@@ -1,13 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import {
-  GitPullRequest,
-  GitMerge,
-  Clock,
-  Activity,
-  CheckCircle2,
-  GitPullRequestDraft,
-} from 'lucide-react';
+import { GitPullRequest, GitMerge, Clock, Activity } from 'lucide-react';
 import type { PRInsightData } from '@/services/github/pr-insights';
 
 interface MetricCardProps {

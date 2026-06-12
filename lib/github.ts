@@ -7,7 +7,7 @@ import type {
   GraphNode,
   GraphLink,
 } from '@/types';
-import { calculateStreak, aggregateCalendars } from '@/lib/calculate';
+import { calculateStreak, aggregateCalendars, convertLocalToUtc } from '@/lib/calculate';
 import { DistributedCache } from '@/lib/cache';
 import { LANGUAGE_COLORS } from '@/lib/svg/languageColors';
 import { CONTRIBUTION_MILESTONES, STREAK_MILESTONES } from './svg/constants';
@@ -1984,8 +1984,8 @@ export async function getWrappedData(
   const fallbackYear = new Date().getFullYear().toString();
   const normalizedYear = /^\d{4}$/.test(trimmedYear) ? trimmedYear : fallbackYear;
 
-  const from = `${normalizedYear}-01-01T00:00:00Z`;
-  const to = `${normalizedYear}-12-31T23:59:59Z`;
+  const from = convertLocalToUtc(parseInt(normalizedYear, 10), 1, 1, 0, 0, 0, timezone);
+  const to = convertLocalToUtc(parseInt(normalizedYear, 10), 12, 31, 23, 59, 59, timezone);
   const fetchOptions: FetchOptions = {
     from,
     to,

@@ -6,20 +6,6 @@ import { describe, expect, it } from 'vitest';
 import { SectionCard, FieldLabel } from './SectionCard';
 
 describe('SectionCard Accessibility', () => {
-  /**
-   * Test Case 1: ARIA & Accessible Markup Validation
-   *
-   * Verifies that the interactive controls are identified correctly by screen readers,
-   * and validates the presence of expected roles and labels.
-   *
-   * NOTE:
-   * During testing, we found that SectionCard lacks standard dynamic ARIA properties.
-   * TODO: Implement the following improvements in SectionCard.tsx:
-   * - Add `aria-expanded={open}` on the main toggle button.
-   * - Add `aria-controls={contentId}` pointing to the collapsible content region.
-   * - Add `role="region"` or `role="group"` with `aria-labelledby` referencing the button/title to the children wrapper.
-   * - Add `aria-describedby` referencing the description paragraph.
-   */
   it('1. ARIA & Accessible Markup Validation: verifies interactive elements expose correct accessibility attributes', () => {
     // Arrange
     const titleText = 'Profile Details';
@@ -64,9 +50,8 @@ describe('SectionCard Accessibility', () => {
     // Verify the content region exists, carries the correct role, ID, and label
     const contentRegion = screen.getByRole('region', { name: new RegExp(titleText, 'i') });
     expect(contentRegion).toHaveAttribute('id', contentId!);
-
-    const titleElement = screen.getByText(titleText);
-    expect(titleElement).toHaveAttribute('id', contentRegion.getAttribute('aria-labelledby')!);
+    expect(descElement.id).toBe(descriptionId);
+    expect(contentRegion).toHaveAttribute('aria-labelledby', toggleButton.id);
 
     // Verify children containing fields using ARIA attributes map correctly
     const textInput = screen.getByRole('textbox', { name: 'Full Name' });
@@ -77,12 +62,6 @@ describe('SectionCard Accessibility', () => {
     expect(helperText).toBeInTheDocument();
   });
 
-  /**
-   * Test Case 2: Keyboard Focus Visibility
-   *
-   * Verifies focusable controls receive focus via keyboard tab navigation, and that
-   * the custom ring/focus outline styles are properly applied without losing focus.
-   */
   it('2. Keyboard Focus Visibility: verifies focusable controls receive focus and focus indicators are preserved', async () => {
     // Arrange
     const user = userEvent.setup();
@@ -112,16 +91,7 @@ describe('SectionCard Accessibility', () => {
     expect(document.body).toHaveFocus();
   });
 
-  /**
-   * Test Case 3: Tooltip Accessibility
-   *
-   * Verifies tooltip triggers inside SectionCard expose accessible descriptions,
-   * and that screen readers can announce the tooltip contents via correct relations.
-   */
   it('3. Tooltip Accessibility: verifies tooltip trigger associates with content via ARIA attributes', () => {
-    // Arrange & Act
-    // Render a mock tooltip implementation in SectionCard's children to verify
-    // the wrapper component handles accessible tooltip patterns correctly.
     render(
       <SectionCard title="Tooltip Integration Section">
         <div>
@@ -141,18 +111,8 @@ describe('SectionCard Accessibility', () => {
     // Assert
     expect(trigger).toHaveAttribute('aria-describedby', 'info-tooltip');
     expect(tooltip).toHaveTextContent('This explains the section settings in detail.');
-
-    // TODO: Standardize tooltips inside SectionCard by packaging a reusable,
-    // fully compliant tooltip component in the generator components directory.
   });
 
-  /**
-   * Test Case 4: Keyboard Navigation Order
-   *
-   * Verifies the tab sequence flows in a natural order across interactive controls.
-   * Also ensures that when the SectionCard is collapsed, the child inputs
-   * are unmounted and therefore skipped entirely in keyboard navigation.
-   */
   it('4. Keyboard Navigation Order: verifies sequential keyboard navigation and that closed card controls are unreachable', async () => {
     // Arrange
     const user = userEvent.setup();
@@ -206,16 +166,7 @@ describe('SectionCard Accessibility', () => {
     expect(document.body).toHaveFocus();
   });
 
-  /**
-   * Test Case 5: Heading Hierarchy Validation
-   *
-   * Verifies that the SectionCard title uses a semantic heading level (h3)
-   * to align with screen reader expectations and allow landmark navigation.
-   * Also verifies headings inside children follow proper layout nesting rules.
-   */
   it('5. Heading Hierarchy Validation: verifies heading structure logical flow and checks for violations', () => {
-    // Arrange & Act
-    // Render SectionCard alongside correct heading structures in children
     render(
       <SectionCard title="Card Title Content">
         <section>
@@ -239,8 +190,5 @@ describe('SectionCard Accessibility', () => {
 
     expect(h2El).toHaveTextContent('Primary Section Level 2 Heading');
     expect(h3El).toHaveTextContent('Secondary Subsection Level 3 Heading');
-
-    // TODO: Consider introducing a heading-level prop (e.g. `titleAs="h2" | "h3" | "span"`)
-    // to allow callers to align the SectionCard header title semantically with page layout outlines.
   });
 });

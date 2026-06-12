@@ -11,8 +11,12 @@ export default function ErrorBoundary({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error(error);
+    if (error) {
+      console.error(error);
+    }
   }, [error]);
+
+  const errorMessage = error?.message || '';
 
   const terminalContent = `git status
   
@@ -20,7 +24,7 @@ export default function ErrorBoundary({
   and have 1 and 1 different commits each, respectively.
   
   Error details:
-  ${error.message || 'Unknown exception in the render tree.'}`;
+  ${errorMessage || 'Unknown exception in the render tree.'}`;
 
   const handleCopy = async () => {
     try {
@@ -88,7 +92,7 @@ export default function ErrorBoundary({
               fatal: Your branch and &apos;origin/main&apos; have diverged.
               <br />
               <span className="text-white/60 text-xs mt-2 block">
-                {error.message || 'Unknown runtime error occurred.'}
+                {errorMessage || 'Unknown runtime error occurred.'}
               </span>
             </p>
 

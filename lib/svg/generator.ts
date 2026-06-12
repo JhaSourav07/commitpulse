@@ -424,6 +424,8 @@ function renderStyle(
       transition: none !important;
       transform: translateY(var(--scan-start, ${fs(0)}px)) !important;
     }
+    .cp-tower animate { display: none; }
+    .interactive-tower { transition: none !important; }
   }
   .isometric-label { font-family: ${selectedFont || '"Roboto", sans-serif'}; font-size: ${fs(10)}px; font-weight: 400; letter-spacing: 1px; fill-opacity: 0.6; }
   .dimmed-tower { opacity: 0.3; }
@@ -926,6 +928,8 @@ function generateAutoThemeSVG(
       transition: none !important;
       transform: translateY(var(--scan-start, ${s(0)}px)) !important;
     }
+    .cp-tower animate { display: none; }
+    .interactive-tower { transition: none !important; }
   }
   </style>
 
@@ -2426,6 +2430,7 @@ export function generatePulseSVG(
   @media (prefers-reduced-motion: reduce) {
     .pulse-line { animation: none !important; stroke-dashoffset: 0; }
     .pulse-area { animation: none !important; opacity: 1; }
+    .pulse-dot animate { display: none; }
   }
   </style>
 
@@ -2466,7 +2471,7 @@ export function generatePulseSVG(
   <path class="pulse-area" d="${areaPathD}" />
   <path class="pulse-line" d="${pathD}" pathLength="1" />
 
-  <g>
+  <g class="pulse-dot">
     <circle cx="${lastX}" cy="${lastY}" r="7" fill="${accent}" opacity="0.4">
       <animate attributeName="r" values="5;10;5" dur="2s" repeatCount="indefinite" />
       <animate attributeName="opacity" values="0.4;0;0.4" dur="2s" repeatCount="indefinite" />
@@ -2614,6 +2619,7 @@ function generateAutoThemePulseSVG(
   @media (prefers-reduced-motion: reduce) {
     .pulse-line { animation: none !important; stroke-dashoffset: 0; }
     .pulse-area { animation: none !important; opacity: 1; }
+    .pulse-dot animate { display: none; }
   }
   </style>
 
@@ -2654,7 +2660,7 @@ function generateAutoThemePulseSVG(
   <path class="pulse-area" d="${areaPathD}" />
   <path class="pulse-line" d="${pathD}" pathLength="1" />
 
-  <g>
+  <g class="pulse-dot">
     <circle cx="${lastX}" cy="${lastY}" r="7" fill="var(--cp-accent)" opacity="0.4">
       <animate attributeName="r" values="5;10;5" dur="2s" repeatCount="indefinite" />
       <animate attributeName="opacity" values="0.4;0;0.4" dur="2s" repeatCount="indefinite" />
@@ -3095,7 +3101,10 @@ export function generateRateLimitSVG(
     .stats  { font-family: "Space Grotesk", sans-serif; fill: ${text}; font-size: 42px; font-weight: 500; opacity: 0.2; }
     .ghost-pulse { animation: gp 2.6s ease-in-out infinite; }
     @keyframes gp { 0%,100%{opacity:.55} 50%{opacity:1} }
-    @media (prefers-reduced-motion: reduce) { .ghost-pulse { animation: none; } }
+    @media (prefers-reduced-motion: reduce) {
+      .ghost-pulse { animation: none; }
+      .rate-limit-scan animate { display: none; }
+    }
   </style>
 
   <rect width="${SVG_WIDTH}" height="${SVG_HEIGHT}" rx="${radius}" fill="${bg}"/>
@@ -3106,7 +3115,7 @@ export function generateRateLimitSVG(
 
   <rect width="${SVG_WIDTH}" height="${SVG_HEIGHT}" rx="${radius}" fill="url(#ghostFade)"/>
 
-  <rect x="100" y="80" width="400" height="1" fill="${accent}" fill-opacity="0.12">
+  <rect x="100" y="80" width="400" height="1" fill="${accent}" fill-opacity="0.12" class="rate-limit-scan">
     <animate attributeName="y" values="80;320;80" dur="${speed}" repeatCount="indefinite"/>
   </rect>
 
