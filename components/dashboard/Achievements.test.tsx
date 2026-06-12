@@ -2,35 +2,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import Achievements from './Achievements';
 
-// Mock framer-motion to avoid animation issues in tests
-vi.mock('framer-motion', () => ({
-  motion: {
-    div: ({
-      children,
-      className,
-      ...props
-    }: {
-      children: React.ReactNode;
-      className?: string;
-      [key: string]: unknown;
-    }) => {
-      const safeProps = { ...props };
-      delete safeProps.initial;
-      delete safeProps.whileInView;
-      delete safeProps.viewport;
-      delete safeProps.transition;
-      return (
-        <div
-          className={className}
-          data-testid={safeProps['data-testid'] || 'motion-div'}
-          {...safeProps}
-        >
-          {children}
-        </div>
-      );
-    },
-  },
-}));
+vi.mock('framer-motion', () => globalThis.__framerMotionMock);
 
 const mockAchievements = [
   {

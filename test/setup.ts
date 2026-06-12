@@ -1,5 +1,6 @@
-import { afterEach, beforeAll } from 'vitest';
+import { afterEach } from 'vitest';
 import { installTimezoneMock, resetMockTimezone } from './timezone';
+import { createFramerMotionMock } from './framer-motion';
 
 const localStorageMemory = (() => {
   const store: Record<string, string> = {};
@@ -22,15 +23,20 @@ const localStorageMemory = (() => {
   };
 })();
 
-beforeAll(() => {
-  installTimezoneMock();
+installTimezoneMock();
 
-  Object.defineProperty(globalThis, 'localStorage', {
-    configurable: true,
-    enumerable: true,
-    writable: true,
-    value: localStorageMemory,
-  });
+Object.defineProperty(globalThis, '__framerMotionMock', {
+  configurable: true,
+  enumerable: false,
+  writable: false,
+  value: createFramerMotionMock(),
+});
+
+Object.defineProperty(globalThis, 'localStorage', {
+  configurable: true,
+  enumerable: true,
+  writable: true,
+  value: localStorageMemory,
 });
 
 afterEach(() => {

@@ -1,25 +1,8 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import LanguageChart, { buildGradientStops } from './LanguageChart';
 
-vi.mock('framer-motion', () => ({
-  motion: {
-    div: ({ children, className, style, ...props }: any) => {
-      delete props.initial;
-      delete props.animate;
-      delete props.whileInView;
-      delete props.viewport;
-      delete props.transition;
-
-      return (
-        <div className={className} style={style} {...props}>
-          {children}
-        </div>
-      );
-    },
-  },
-}));
+vi.mock('framer-motion', () => globalThis.__framerMotionMock);
 
 describe('LanguageChart', () => {
   it('renders an empty state when no language data is available', () => {

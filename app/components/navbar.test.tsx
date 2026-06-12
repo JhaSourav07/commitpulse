@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import Navbar from './navbar';
-import type { ReactNode } from 'react';
 
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
@@ -17,11 +16,7 @@ Object.defineProperty(window, 'matchMedia', {
   })),
 });
 
-vi.mock('framer-motion', () => ({
-  motion: {
-    div: ({ children }: { children: ReactNode }) => <div>{children}</div>,
-  },
-}));
+vi.mock('framer-motion', () => globalThis.__framerMotionMock);
 
 vi.mock('lucide-react', () => ({
   Menu: () => <div>MenuIcon</div>,

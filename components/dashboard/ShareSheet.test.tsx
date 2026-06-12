@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import ShareSheet from './ShareSheet';
@@ -8,28 +7,7 @@ vi.mock('html-to-image', () => ({
   toPng: vi.fn().mockResolvedValue('data:image/png;base64,mockdata'),
 }));
 
-// Mock framer-motion to avoid animation issues in tests
-vi.mock('framer-motion', () => ({
-  motion: {
-    div: ({ children, className, onClick, ...props }: any) => (
-      <div className={className} onClick={onClick} data-testid="motion-div" {...props}>
-        {children}
-      </div>
-    ),
-    button: ({ children, className, onClick, disabled, ...props }: any) => (
-      <button
-        className={className}
-        onClick={onClick}
-        disabled={disabled}
-        data-testid="motion-button"
-        {...props}
-      >
-        {children}
-      </button>
-    ),
-  },
-  AnimatePresence: ({ children }: any) => <>{children}</>,
-}));
+vi.mock('framer-motion', () => globalThis.__framerMotionMock);
 
 describe('ShareSheet', () => {
   const defaultProps = {
@@ -109,9 +87,11 @@ describe('ShareSheet', () => {
   });
 
   it('calls onClose when overlay is clicked', () => {
-    render(<ShareSheet {...defaultProps} />);
-    const overlay = screen.getAllByTestId('motion-div')[0];
-    fireEvent.click(overlay);
+    const { container } = render(<ShareSheet {...defaultProps} />);
+    const overlay = container.querySelector('#share-sheet-overlay');
+
+    expect(overlay).toBeTruthy();
+    fireEvent.click(overlay as Element);
     expect(defaultProps.onClose).toHaveBeenCalled();
   });
 

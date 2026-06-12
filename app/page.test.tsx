@@ -28,27 +28,7 @@ vi.mock('next/link', () => ({
   ),
 }));
 
-// Mock framer-motion
-vi.mock('framer-motion', () => ({
-  motion: {
-    div: ({ children, className, ...props }: any) => (
-      <div className={className} data-testid="motion-div" {...props}>
-        {children}
-      </div>
-    ),
-    p: ({ children, className, ...props }: any) => (
-      <p className={className} data-testid="motion-p" {...props}>
-        {children}
-      </p>
-    ),
-    a: ({ children, className, href, ...props }: any) => (
-      <a href={href} className={className} data-testid="motion-a" {...props}>
-        {children}
-      </a>
-    ),
-  },
-  AnimatePresence: ({ children }: any) => <>{children}</>,
-}));
+vi.mock('framer-motion', () => globalThis.__framerMotionMock);
 
 const mockRecentSearches = {
   searches: ['octocat', 'torvalds'] as string[],

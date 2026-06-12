@@ -2,15 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { FeatureCard } from './FeatureCard';
 
-// Same deal as the CTA test — framer-motion's whileHover and animation props
-// don't mean anything to jsdom, so we stub motion.div with a plain div.
-vi.mock('framer-motion', () => ({
-  motion: {
-    div: ({ children, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-      <div {...props}>{children}</div>
-    ),
-  },
-}));
+vi.mock('framer-motion', () => globalThis.__framerMotionMock);
 
 const TestIcon = () => <svg data-testid="test-icon" aria-label="feature icon" />;
 

@@ -2,15 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { CustomizeCTA } from './CustomizeCTA';
 
-// framer-motion relies on browser animation APIs that jsdom doesn't implement.
-// Swapping motion.div for a plain div lets us test content without fighting the animation layer.
-vi.mock('framer-motion', () => ({
-  motion: {
-    div: ({ children, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-      <div {...props}>{children}</div>
-    ),
-  },
-}));
+vi.mock('framer-motion', () => globalThis.__framerMotionMock);
 
 // next/link needs a real Next.js router to work. A plain <a> is a faithful enough
 // stand-in for everything these tests care about.
