@@ -20,8 +20,9 @@ export function DescriptionSection({ value, onChange }: DescriptionSectionProps)
       description="A short bio or tagline about yourself"
       defaultOpen
     >
-      <FieldLabel>Bio / Tagline</FieldLabel>
+      <FieldLabel htmlFor="editor-bio">Bio / Tagline</FieldLabel>
       <textarea
+        id="editor-bio"
         value={safeValue}
         onChange={(e) => onChange(e.target.value.slice(0, CHAR_LIMIT))}
         placeholder="e.g. Full-stack developer passionate about building great products. Open source enthusiast. Coffee addict."

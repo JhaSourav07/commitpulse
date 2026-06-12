@@ -25,8 +25,8 @@ describe('PreviewPanel Component Interactivity Tests', () => {
   it('Case 1: applies transition and hover styles structurally on all interactive controls', () => {
     render(<PreviewPanel markdown={mockMarkdown} />);
 
-    const previewTab = screen.getByRole('button', { name: /preview/i });
-    const rawTab = screen.getByRole('button', { name: /markdown/i });
+    const previewTab = screen.getByRole('tab', { name: /preview/i });
+    const rawTab = screen.getByRole('tab', { name: /markdown/i });
     const downloadBtn = screen.getByTitle('Download README.md');
     const copyBtn = screen.getByRole('button', { name: /copy/i });
 
@@ -51,7 +51,7 @@ describe('PreviewPanel Component Interactivity Tests', () => {
     const downloadBtn = screen.getByTitle('Download README.md');
     expect(downloadBtn).toHaveAttribute('title', 'Download README.md');
 
-    const previewTab = screen.getByRole('button', { name: /preview/i });
+    const previewTab = screen.getByRole('tab', { name: /preview/i });
     expect(previewTab.className).toContain('bg-white');
   });
 

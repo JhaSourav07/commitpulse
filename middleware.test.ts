@@ -141,7 +141,7 @@ describe('middleware', () => {
     expect(response.headers.get('X-RateLimit-Reset')).toBe('123456789');
   });
 
-  it('uses first IP from x-forwarded-for when subsequent hops are trusted', async () => {
+  it('ignores x-forwarded-for when no authoritative request.ip is available', async () => {
     vi.mocked(rateLimit).mockResolvedValue({
       success: true,
       limit: 60,
@@ -157,7 +157,7 @@ describe('middleware', () => {
 
     await middleware(request);
 
-    expect(rateLimit).toHaveBeenCalledWith('1.2.3.4', 60, 60000);
+    expect(rateLimit).toHaveBeenCalledWith('127.0.0.1', 60, 60000);
   });
 
   it('ignores spoofed x-forwarded-for when subsequent hops are untrusted', async () => {
@@ -178,10 +178,10 @@ describe('middleware', () => {
 
     await middleware(request);
 
-    expect(rateLimit).toHaveBeenCalledWith('5.6.7.8', 60, 60000);
+    expect(rateLimit).toHaveBeenCalledWith('127.0.0.1', 60, 60000);
   });
 
-  it('uses x-real-ip if x-forwarded-for is missing', async () => {
+  it('ignores x-real-ip if no authoritative request.ip is available', async () => {
     vi.mocked(rateLimit).mockResolvedValue({
       success: true,
       limit: 60,
@@ -197,7 +197,7 @@ describe('middleware', () => {
 
     await middleware(request);
 
-    expect(rateLimit).toHaveBeenCalledWith('9.9.9.9', 60, 60000);
+    expect(rateLimit).toHaveBeenCalledWith('127.0.0.1', 60, 60000);
   });
 
   it('defaults to 127.0.0.1 when no IP headers', async () => {
@@ -215,7 +215,7 @@ describe('middleware', () => {
     expect(rateLimit).toHaveBeenCalledWith('127.0.0.1', 60, 60000);
   });
 
-  it('prefers x-real-ip over x-forwarded-for to prevent spoofing', async () => {
+  it('does not allow x-real-ip to override x-forwarded-for or the fallback bucket', async () => {
     vi.mocked(rateLimit).mockResolvedValue({
       success: true,
       limit: 60,
@@ -232,8 +232,7 @@ describe('middleware', () => {
 
     await middleware(request);
 
-    // Expect 9.9.9.9 instead of 1.2.3.4 because x-real-ip is more secure
-    expect(rateLimit).toHaveBeenCalledWith('9.9.9.9', 60, 60000);
+    expect(rateLimit).toHaveBeenCalledWith('127.0.0.1', 60, 60000);
   });
 
   it('handles multiple IPs with whitespace', async () => {
@@ -252,7 +251,28 @@ describe('middleware', () => {
 
     await middleware(request);
 
-    expect(rateLimit).toHaveBeenCalledWith('1.2.3.4', 60, 60000);
+    expect(rateLimit).toHaveBeenCalledWith('127.0.0.1', 60, 60000);
+  });
+
+  it('uses authoritative request.ip instead of spoofable forwarded headers', async () => {
+    vi.mocked(rateLimit).mockResolvedValue({
+      success: true,
+      limit: 60,
+      remaining: 59,
+      reset: 123456789,
+    });
+
+    const request = new NextRequest('http://localhost:3000/api/streak?user=octocat', {
+      headers: {
+        'x-forwarded-for': '1.2.3.4',
+        'x-real-ip': '9.9.9.9',
+      },
+    });
+    Object.defineProperty(request, 'ip', { value: '203.0.113.20' });
+
+    await middleware(request);
+
+    expect(rateLimit).toHaveBeenCalledWith('203.0.113.20', 60, 60000);
   });
 
   it('includes compare API matcher in proxy config', () => {

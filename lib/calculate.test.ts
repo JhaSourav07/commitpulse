@@ -5,8 +5,9 @@ import {
   calculateWrappedStats,
   aggregateCalendars,
   isStreakAlive,
+  chunkDaysIntoWeeks,
 } from './calculate';
-import type { ContributionCalendar } from '../types';
+import type { ContributionCalendar, ContributionDay } from '../types';
 
 // Turns a flat array of daily counts into the ContributionCalendar shape,
 // grouping every 7 values into a "week" — the same way GitHub's API returns data.
@@ -2466,5 +2467,37 @@ describe('aggregateCalendars — missing days chronological order', () => {
     expect(jun1?.contributionCount).toBe(5);
     expect(jun3?.contributionCount).toBe(3);
     expect(result.totalContributions).toBe(8);
+  });
+});
+
+describe('chunkDaysIntoWeeks', () => {
+  // 30 consecutive days starting Mon 2024-01-01.
+  const days: ContributionDay[] = Array.from({ length: 30 }, (_, i) => ({
+    date: new Date(Date.UTC(2024, 0, 1 + i)).toISOString().slice(0, 10),
+    contributionCount: i,
+  }));
+
+  it('splits consecutive days into multiple weekday-aligned weeks (no single-column collapse)', () => {
+    const weeks = chunkDaysIntoWeeks(days);
+
+    // More than one week, so towers/heatmap are not all crammed into a single column.
+    expect(weeks.length).toBeGreaterThan(1);
+    // No week exceeds 7 days, so heatmap rows never overflow the canvas.
+    expect(weeks.every((w) => w.contributionDays.length <= 7)).toBe(true);
+    // Every day is preserved exactly once, in order.
+    const flattened = weeks.flatMap((w) => w.contributionDays);
+    expect(flattened).toHaveLength(30);
+    expect(flattened.map((d) => d.date)).toEqual(days.map((d) => d.date));
+  });
+
+  it('starts every week after the first on a Sunday', () => {
+    const weeks = chunkDaysIntoWeeks(days);
+    weeks.slice(1).forEach((week) => {
+      expect(new Date(week.contributionDays[0].date).getUTCDay()).toBe(0);
+    });
+  });
+
+  it('returns an empty array when given no days', () => {
+    expect(chunkDaysIntoWeeks([])).toEqual([]);
   });
 });

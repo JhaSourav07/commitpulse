@@ -145,9 +145,17 @@ export function normalizeHexColor(color: string): string | null {
 }
 
 /**
+ * Maximum number of gradient stop colors accepted from a single URL parameter.
+ * Guards against O(n) CPU exhaustion from unbounded comma-separated input even
+ * if the upstream string-length limit were ever relaxed.
+ */
+export const MAX_GRADIENT_STOPS = 10;
+
+/**
  * Parses comma-separated hex colors from a gradient_stops URL parameter.
  * Accepts colors with or without leading '#'.
  * Returns an array of normalized hex colors (without '#'), or empty array if no valid colors found.
+ * At most MAX_GRADIENT_STOPS entries are processed; any extra tokens are silently ignored.
  */
 export function parseGradientStops(input?: string): string[] {
   if (!input || typeof input !== 'string') {
@@ -156,6 +164,7 @@ export function parseGradientStops(input?: string): string[] {
 
   const colors = input
     .split(',')
+    .slice(0, MAX_GRADIENT_STOPS)
     .map((color) => normalizeHexColor(color))
     .filter((color) => color !== null)
     .slice(0, 10) as string[];

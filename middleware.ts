@@ -12,10 +12,7 @@ import { getClientIp } from './utils/getClientIp';
  * @see https://nextjs.org/docs/app/building-your-application/routing/middleware
  */
 export async function middleware(request: NextRequest): Promise<NextResponse> {
-  // 1. Prioritize x-real-ip to prevent spoofing
-  // 2. Fallback to getClientIp which securely parses x-forwarded-for hops
-  // 3. Fallback to localhost
-  const ip = request.headers.get('x-real-ip') ?? getClientIp(request) ?? '127.0.0.1';
+  const ip = getClientIp(request);
 
   const isRefresh =
     request.nextUrl.searchParams.get('refresh') === 'true' ||

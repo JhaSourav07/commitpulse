@@ -81,7 +81,7 @@ export async function GET(request: Request) {
       accent: isAutoTheme ? selectedTheme.accent : accent || selectedTheme.accent,
       border: sanitizedBorder,
       radius,
-      speed: speed && /^(?:[2-9]|1\d|20)s$/.test(speed) ? speed : '8s',
+      speed,
       font,
       autoTheme: isAutoTheme,
       hide_title,

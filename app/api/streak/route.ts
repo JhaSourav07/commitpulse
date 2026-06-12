@@ -2,7 +2,12 @@
 
 import { NextResponse } from 'next/server';
 import { fetchGitHubContributions, getOrgDashboardData } from '@/lib/github';
-import { calculateStreak, calculateMonthlyStats, aggregateCalendars } from '@/lib/calculate';
+import {
+  calculateStreak,
+  calculateMonthlyStats,
+  aggregateCalendars,
+  chunkDaysIntoWeeks,
+} from '@/lib/calculate';
 import {
   generateNotFoundSVG,
   generateRateLimitSVG,
@@ -11,6 +16,7 @@ import {
   generateVersusSVG,
   generateHeatmapSVG,
   generatePulseSVG,
+  generateSkylineSVG,
   generateLanguagesSVG,
 } from '@/lib/svg/generator';
 import { generateConstellationSVG } from '@/lib/svg/constellation';
@@ -91,6 +97,10 @@ export async function GET(request: Request) {
       user,
       theme,
       bg,
+      bgType,
+      bgStart,
+      bgEnd,
+      bgAngle,
       text,
       accent,
       scale,
@@ -139,6 +149,7 @@ export async function GET(request: Request) {
       | 'monthly'
       | 'heatmap'
       | 'pulse'
+      | 'skyline'
       | 'languages'
       | 'constellation';
     const themeName = theme || 'dark';
@@ -154,9 +165,12 @@ export async function GET(request: Request) {
           timeZone: tzParam,
         }).resolvedOptions().timeZone;
       } catch (error) {
-        if (error instanceof Error && error.name === 'ValidationError') {
-          return NextResponse.json({ error: error.message }, { status: 400 });
+        if (error instanceof RangeError) {
+          const validationErr = new Error(`Invalid timezone: ${tzParam}`);
+          validationErr.name = 'ValidationError';
+          throw validationErr;
         }
+        throw error;
       }
     }
 
@@ -237,14 +251,25 @@ export async function GET(request: Request) {
     const sanitizedBorder = borderParam ? borderParam.replace(/[^a-fA-F0-9]/g, '') : undefined;
     const animate = searchParams.get('animate') !== 'false';
 
+    // Validate and clamp the speed param to prevent broken SVG animation
+    const rawSpeedNum = speed ? parseFloat(String(speed)) : NaN;
+    const validatedSpeed = (
+      !isNaN(rawSpeedNum) && isFinite(rawSpeedNum) && rawSpeedNum >= 1 && rawSpeedNum <= 60
+        ? `${rawSpeedNum}s`
+        : '8s'
+    ) as `${number}s`;
     const params: BadgeParams = {
       user: targetEntity,
       bg: isAutoTheme ? selectedTheme.bg : bg || selectedTheme.bg,
+      bgType,
+      bgStart,
+      bgEnd,
+      bgAngle,
       text: isAutoTheme ? selectedTheme.text : text || selectedTheme.text,
       accent: isAutoTheme ? selectedTheme.accent : accent || selectedTheme.accent,
       border: sanitizedBorder,
       radius,
-      speed,
+      speed: validatedSpeed,
       scale,
       font,
       autoTheme: isAutoTheme,
@@ -305,7 +330,6 @@ export async function GET(request: Request) {
           'ValidationError: The streak comparison generator strictly accepts a maximum of 2 usernames.'
         );
       }
-
       let lastError: unknown = null;
       let hasOfflineFallback = false;
       const fetchedCalendars = await Promise.all(
@@ -363,6 +387,7 @@ export async function GET(request: Request) {
       calendar = {
         totalContributions: filteredDays.reduce((sum, d) => sum + d.contributionCount, 0),
         weeks: [{ contributionDays: filteredDays }],
+        weeks: chunkDaysIntoWeeks(filteredDays),
       };
     }
 
@@ -451,6 +476,9 @@ export async function GET(request: Request) {
     } else if (normalizedView === 'pulse') {
       const stats = calculateStreak(calendar, timezone, undefined, grace);
       svg = generatePulseSVG(stats, params, calendar);
+    } else if (normalizedView === 'skyline') {
+      const stats = calculateStreak(calendar, timezone, undefined, grace);
+      svg = generateSkylineSVG(stats, params, calendar);
     } else if (normalizedView === 'constellation') {
       const stats = calculateStreak(calendar, timezone, undefined, grace);
       svg = generateConstellationSVG(stats, params, calendar);
@@ -495,6 +523,7 @@ export async function GET(request: Request) {
         'Content-Type': 'image/svg+xml',
         'Cache-Control': cacheControl,
         'Content-Security-Policy': SVG_CSP_HEADER,
+        'X-CommitPulse-Grace-Applied': String(grace),
         ETag: weakEtag,
         'X-Cache-Status': shouldBypassCache ? `BYPASS, fetched=${new Date().toISOString()}` : 'HIT',
       },
