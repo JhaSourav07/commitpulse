@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import TopRivalriesTicker from '@/components/TopRivalriesTicker';
+import DeveloperArena from '@/components/DeveloperArena';
 import {
   Radar,
   RadarChart,
@@ -43,7 +44,6 @@ import {
   Tent,
   Camera,
 } from 'lucide-react';
-import html2canvas from 'html2canvas';
 import { validateGitHubUsername } from '@/lib/validations';
 import { toPng } from 'html-to-image';
 
@@ -971,6 +971,11 @@ export default function CompareClient() {
   const [isExporting, setIsExporting] = useState(false);
   const [copied, setCopied] = useState(false);
   const [monolithKey, setMonolithKey] = useState(0);
+  const lastComparedRef = useRef({ user1: '', user2: '' });
+  const dataRef = useRef(data);
+  useEffect(() => {
+    dataRef.current = data;
+  }, [data]);
 
   const handleShareBattle = () => {
     const url = window.location.href;
@@ -1062,9 +1067,6 @@ export default function CompareClient() {
     }
   };
 
-  const BASE_URL =
-    typeof window !== 'undefined' ? window.location.origin : 'https://commitpulse.vercel.app';
-
   const handleCompare = useCallback(
     async (u1: string, u2: string) => {
       const trimmedUser1 = u1.trim();
@@ -1095,6 +1097,15 @@ export default function CompareClient() {
         return;
       }
 
+      if (
+        lastComparedRef.current.user1.toLowerCase() === trimmedUser1.toLowerCase() &&
+        lastComparedRef.current.user2.toLowerCase() === trimmedUser2.toLowerCase() &&
+        dataRef.current !== null
+      ) {
+        return;
+      }
+
+      lastComparedRef.current = { user1: trimmedUser1, user2: trimmedUser2 };
       setLoading(true);
       setData(null);
 
@@ -1133,19 +1144,18 @@ export default function CompareClient() {
     [router]
   );
 
-  // Auto-compare if URL has params on mount
+  // Auto-compare if URL has params on mount or param changes
   useEffect(() => {
     const u1 = searchParams.get('user1');
     const u2 = searchParams.get('user2');
     if (u1 && u2) {
-      // Intentional: this is a one-time mount-only fetch trigger, not a
-      // setState call. The disable is misidentified by the rule — handleCompare
-      // is an async function that internally calls setLoading/setData/setError.
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setUser1(u1); // eslint-disable-line react-hooks/set-state-in-effect -- syncing URL params to input state
+      setUser2(u2);
       handleCompare(u1, u2);
+    } else {
+      setData(null);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [searchParams, handleCompare]);
 
   const d1 = data?.user1;
   const d2 = data?.user2;
@@ -1216,6 +1226,7 @@ export default function CompareClient() {
                 <input
                   id="compare-user1-input"
                   type="text"
+                  suppressHydrationWarning
                   placeholder="GitHub username #1"
                   aria-label="Enter first GitHub username to compare"
                   value={user1}
@@ -1244,6 +1255,7 @@ export default function CompareClient() {
                 <input
                   id="compare-user2-input"
                   type="text"
+                  suppressHydrationWarning
                   placeholder="GitHub username #2"
                   aria-label="Enter second GitHub username to compare"
                   value={user2}
@@ -1291,6 +1303,24 @@ export default function CompareClient() {
 
           {/* Loading */}
           {loading && <CompareSkeleton />}
+
+          {/* Pre-comparison Arena */}
+          {!data && !loading && (
+            <motion.div
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.4 }}
+            >
+              <DeveloperArena
+                onSelectBattle={(u1, u2) => {
+                  setUser1(u1);
+                  setUser2(u2);
+                  handleCompare(u1, u2);
+                }}
+              />
+            </motion.div>
+          )}
 
           {/* Results */}
           <AnimatePresence>
@@ -1458,12 +1488,15 @@ export default function CompareClient() {
                               @{user.profile.username}
                             </span>
                           </div>
-                          <img
+                          <Image
                             data-monolith-img="true"
                             key={`${user.profile.username}-${monolithKey}`}
-                            src={`${BASE_URL}/api/streak?user=${encodeURIComponent(user.profile.username)}&theme=neon&entrance=none&_k=${monolithKey}`}
+                            src={`/api/streak?user=${encodeURIComponent(user.profile.username)}&theme=neon&entrance=none&_k=${monolithKey}`}
                             alt={`${user.profile.username}'s CommitPulse monolith`}
-                            className="w-full"
+                            width={300}
+                            height={400}
+                            className="w-full h-auto"
+                            unoptimized
                           />
                         </motion.div>
                       ))}
