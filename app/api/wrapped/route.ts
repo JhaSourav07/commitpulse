@@ -53,6 +53,7 @@ export async function GET(request: Request) {
       hide_background,
       width,
       height,
+      tz,
     } = parseResult.data;
 
     const year = customYear || new Date().getFullYear().toString();
@@ -81,7 +82,7 @@ export async function GET(request: Request) {
       accent: isAutoTheme ? selectedTheme.accent : accent || selectedTheme.accent,
       border: sanitizedBorder,
       radius,
-      speed: speed && /^(?:[2-9]|1\d|20)s$/.test(speed) ? speed : '8s',
+      speed,
       font,
       autoTheme: isAutoTheme,
       hide_title,
@@ -95,7 +96,9 @@ export async function GET(request: Request) {
     const isRefreshRequested = refresh || bypassCacheParam;
 
     // Fetch the wrapped stats for the year (calendar is included to avoid a duplicate API call)
-    const wrappedStats = await getWrappedData(user, year, { bypassCache: isRefreshRequested });
+    const wrappedStats = tz
+      ? await getWrappedData(user, year, { bypassCache: isRefreshRequested }, tz)
+      : await getWrappedData(user, year, { bypassCache: isRefreshRequested });
 
     const svg = generateWrappedSVG(wrappedStats, params, year, wrappedStats.calendar);
 
