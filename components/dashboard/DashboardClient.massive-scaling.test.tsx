@@ -123,7 +123,8 @@ describe('DashboardClient - Massive Data Sets and Extreme High Bounds Scaling', 
       render(<DashboardClient initialData={massiveData} username="testuser" period={mockPeriod} />);
     }).not.toThrow();
 
-    expect(screen.getByTestId('mock-activity-landscape')).toBeInTheDocument();
+    const executionTime = endTime - startTime;
+    expect(executionTime).toBeLessThan(500);
   });
 
   // Test Case 2: Extreme High Bounds Value Handling (No Layout Overflow)

@@ -4,6 +4,7 @@ import { User } from '@/models/User';
 import { getClientIp } from '@/utils/getClientIp';
 import { getRateLimitHeaders, trackUserRateLimiter } from '@/lib/rate-limit';
 import { trackUserProtection } from '@/services/security/track-user-protection';
+import { githubUsernameSchema } from '@/lib/validations';
 
 export async function POST(req: Request) {
   // Get IP for rate limiting securely
@@ -11,15 +12,13 @@ export async function POST(req: Request) {
 
   const rateLimitKey = ip === 'unknown' ? 'unknown-client' : ip;
 
-  if (ip !== '127.0.0.1') {
-    const rateLimitResult = await trackUserRateLimiter.checkWithResult(rateLimitKey);
+  const rateLimitResult = await trackUserRateLimiter.checkWithResult(rateLimitKey);
 
-    if (!rateLimitResult.success) {
-      return NextResponse.json(
-        { success: false, error: 'Too many requests, please try again later.' },
-        { status: 429, headers: getRateLimitHeaders(rateLimitResult) }
-      );
-    }
+  if (!rateLimitResult.success) {
+    return NextResponse.json(
+      { success: false, error: 'Too many requests, please try again later.' },
+      { status: 429, headers: getRateLimitHeaders(rateLimitResult) }
+    );
   }
 
   let body: unknown;
@@ -39,6 +38,14 @@ export async function POST(req: Request) {
     if (!username || typeof username !== 'string') {
       return NextResponse.json(
         { success: false, error: 'Invalid or missing username' },
+        { status: 400 }
+      );
+    }
+
+    const validationResult = githubUsernameSchema.safeParse(username);
+    if (!validationResult.success) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid GitHub username' },
         { status: 400 }
       );
     }

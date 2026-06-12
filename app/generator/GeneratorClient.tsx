@@ -16,6 +16,9 @@ const INITIAL_STATE: GeneratorState = {
   githubUsername: '',
   showCommitPulse: false,
   commitPulseAccent: '',
+  showSnakeGraph: false,
+  showPacmanGraph: false,
+  graphPlacement: 'bottom',
 };
 
 export function GeneratorClient() {
@@ -27,7 +30,9 @@ export function GeneratorClient() {
       state.description.trim() ||
       state.selectedTechs.length > 0 ||
       state.selectedSocials.some((id) => state.socialLinks[id]?.trim()) ||
-      (state.showCommitPulse && state.githubUsername.trim());
+      (state.showCommitPulse && state.githubUsername.trim()) ||
+      (state.showSnakeGraph && state.githubUsername.trim()) ||
+      (state.showPacmanGraph && state.githubUsername.trim());
 
     return hasContent ? generateReadme(state) : getEmptyReadme();
   }, [state]);
@@ -81,6 +86,9 @@ export function GeneratorClient() {
           onGithubUsernameChange={(v) => setState((s) => ({ ...s, githubUsername: v }))}
           onShowCommitPulseChange={(v) => setState((s) => ({ ...s, showCommitPulse: v }))}
           onCommitPulseAccentChange={(v) => setState((s) => ({ ...s, commitPulseAccent: v }))}
+          onShowSnakeGraphChange={(v) => setState((s) => ({ ...s, showSnakeGraph: v }))}
+          onShowPacmanGraphChange={(v) => setState((s) => ({ ...s, showPacmanGraph: v }))}
+          onGraphPlacementChange={(v) => setState((s) => ({ ...s, graphPlacement: v }))}
           onApplyImport={handleApplyImport}
         />
       </div>

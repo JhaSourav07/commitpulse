@@ -28,12 +28,15 @@ export interface DateRange {
  * formatDateRange("") // returns DEFAULT_DATE_RANGE
  * formatDateRange(undefined) // returns DEFAULT_DATE_RANGE
  */
-export function formatDateRange(year?: string): DateRange {
-  if (!year || year.trim() === '') {
+export function formatDateRange(year?: string | number | null): DateRange {
+  if (year === undefined || year === null) {
     return { ...DEFAULT_DATE_RANGE };
   }
 
-  const trimmedYear = year.trim();
+  const trimmedYear = String(year).trim();
+  if (trimmedYear === '') {
+    return { ...DEFAULT_DATE_RANGE };
+  }
 
   // Handle partial years (1 or 2 digits): assume 20xx
   // For 2-digit: '24' -> 2024

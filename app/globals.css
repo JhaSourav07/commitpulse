@@ -149,6 +149,11 @@ html {
   --color-border: rgba(255, 255, 255, 0.08);
   --color-muted: #a1a1aa;
   --color-accent: rgba(99, 102, 241, 0.5);
+  /* Chart / Recharts theme tokens (used by inline chart styles) */
+  --recharts-tooltip-bg: rgba(255, 255, 255, 0.95);
+  --recharts-tooltip-color: #0d1117;
+  --recharts-tooltip-accent: #06b6d4;
+  --chart-axis-color: #6b7280; /* gray-500 */
   /* indigo glow, hover only */
 }
 
@@ -166,11 +171,25 @@ body {
   color: #ffffff;
 }
 
+/* Dark theme overrides for chart tokens */
+.dark {
+  --recharts-tooltip-bg: rgba(24, 24, 27, 0.9);
+  --recharts-tooltip-color: #ffffff;
+  --recharts-tooltip-accent: #06b6d4;
+  --chart-axis-color: #d4d4d8; /* maps to improved contrast in dark mode */
+}
+
 /* Vercel-style focus ring */
+/* Keyboard focus ring — visible only for keyboard nav, not mouse clicks */
 @layer base {
   *:focus-visible {
-    outline: 2px solid rgba(99, 102, 241, 0.6);
-    outline-offset: 2px;
+    outline: 2px solid #34d399;
+    outline-offset: 3px;
+    border-radius: 6px;
+  }
+
+  *:focus:not(:focus-visible) {
+    outline: none;
   }
 
   /* Enhanced typography for better readability */
