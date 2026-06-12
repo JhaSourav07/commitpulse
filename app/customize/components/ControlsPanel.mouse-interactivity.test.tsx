@@ -9,6 +9,10 @@ const defaultProps = {
   username: 'octocat',
   theme: 'dark',
   bgHex: '',
+  bgType: 'solid' as const,
+  bgStart: '',
+  bgEnd: '',
+  bgAngle: 90,
   accentHex: '',
   textHex: '',
   scale: 'linear',
@@ -20,6 +24,10 @@ const defaultProps = {
   onUsernameChange: vi.fn(),
   onThemeChange: vi.fn(),
   onBgHexChange: vi.fn(),
+  onBgTypeChange: vi.fn(),
+  onBgStartChange: vi.fn(),
+  onBgEndChange: vi.fn(),
+  onBgAngleChange: vi.fn(),
   onAccentHexChange: vi.fn(),
   onTextHexChange: vi.fn(),
   onScaleChange: vi.fn(),
@@ -55,8 +63,8 @@ describe('ControlsPanel mouse and touch interactivity', () => {
 
     renderPanel({ onScaleChange, scale: 'linear' });
 
-    const linearButton = screen.getByRole('button', { name: 'Linear' });
-    const logButton = screen.getByRole('button', { name: 'Logarithmic' });
+    const linearButton = screen.getByRole('button', { name: /^Linear$/ });
+    const logButton = screen.getByRole('button', { name: /^Logarithmic$/ });
 
     fireEvent.mouseEnter(logButton);
 

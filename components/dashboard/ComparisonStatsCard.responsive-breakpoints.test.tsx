@@ -53,8 +53,8 @@ describe('ComparisonStatsCard Responsive Multi-device Layouts', () => {
     render(<ComparisonStatsCard {...defaultProps} />);
     expect(window.innerWidth).toBe(375);
     expect(screen.getByText('Total Commits')).toBeDefined();
-    expect(screen.getByText('1500')).toBeDefined();
-    expect(screen.getByText('1200')).toBeDefined();
+    expect(screen.getByText((1500).toLocaleString())).toBeDefined();
+    expect(screen.getByText((1200).toLocaleString())).toBeDefined();
   });
 
   it('asserts that grid columns and flex layouts are responsive', () => {

@@ -4,11 +4,8 @@ interface CacheControlOptions {
   isHistoricalYear?: boolean;
 }
 
-export function buildCacheControlHeader({
-  bypass,
-  secondsToMidnight,
-  isHistoricalYear,
-}: CacheControlOptions): string {
+export function buildCacheControlHeader(options: CacheControlOptions = {}): string {
+  const { bypass, secondsToMidnight, isHistoricalYear } = options || {};
   if (bypass) {
     return 'no-cache, no-store, must-revalidate';
   }
@@ -17,7 +14,7 @@ export function buildCacheControlHeader({
     return 'public, s-maxage=31536000, immutable';
   }
 
-  if (secondsToMidnight !== undefined) {
+  if (secondsToMidnight !== undefined && secondsToMidnight !== null) {
     return `public, s-maxage=${secondsToMidnight}, stale-while-revalidate=86400`;
   }
 
