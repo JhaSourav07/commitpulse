@@ -46,12 +46,20 @@ export function calculateStreak(
   let tempStreak = 0;
 
   // 1. Calculate Longest Streak (Standard loop)
+  let gapCount = 0;
   for (const day of days) {
     if (day.contributionCount > 0) {
       tempStreak++;
+      gapCount = 0; // reset gap count on active day
       if (tempStreak > longestStreak) longestStreak = tempStreak;
     } else {
-      tempStreak = 0;
+      gapCount++;
+      if (gapCount <= grace) {
+        tempStreak++;
+      } else {
+        tempStreak = 0;
+        gapCount = 0;
+      }
     }
   }
 
