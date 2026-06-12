@@ -25,6 +25,7 @@ function assertValidSVG(svgString: string): void {
   const parserError = doc.querySelector('parsererror');
 
   expect(parserError).toBeNull();
+  expect(doc.documentElement.nodeName).toBe('svg');
 }
 
 describe('generateSVG', () => {
@@ -2053,6 +2054,78 @@ describe('SVG Structural Validity and Cleanliness', () => {
     expect(titleCount).toBe(1);
     const styleImportCount = (svg.match(/@import url/g) || []).length;
     expect(styleImportCount).toBe(1);
+  });
+
+  it('generateMonthlySVG output parses as valid XML', () => {
+    const svg = generateMonthlySVG(
+      {
+        currentMonthTotal: 42,
+        previousMonthTotal: 30,
+        deltaPercentage: 40,
+        deltaAbsolute: 12,
+        currentMonthName: 'June',
+      },
+      { user: 'octocat', delta_format: 'both' } as unknown as BadgeParams
+    );
+
+    assertValidSVG(svg);
+  });
+
+  it('generateMonthlyBadge output parses as valid XML', () => {
+    const stats: MonthlyStats = {
+      currentMonthTotal: 42,
+      previousMonthTotal: 30,
+      deltaPercentage: 40,
+      deltaAbsolute: 12,
+      currentMonthName: 'June',
+    };
+
+    const svg = generateMonthlyBadge(stats, {
+      user: 'octocat',
+      delta_format: 'absolute',
+    } as unknown as BadgeParams);
+
+    assertValidSVG(svg);
+  });
+
+  it('generateRateLimitSVG output parses as valid XML', () => {
+    const svg = generateRateLimitSVG('#0d1117', '#00ffaa', '#ffffff', 8, '8s');
+
+    assertValidSVG(svg);
+  });
+
+  it('generateHeatmapSVG output parses as valid XML', () => {
+    const stats: StreakStats = {
+      currentStreak: 5,
+      longestStreak: 10,
+      totalContributions: 100,
+      todayDate: '2024-06-12',
+    };
+    const calendar = {
+      weeks: [
+        {
+          contributionDays: [
+            { contributionCount: 0, date: '2024-06-10' },
+            { contributionCount: 5, date: '2024-06-11' },
+            { contributionCount: 15, date: '2024-06-12' },
+          ],
+        },
+      ],
+    } as ContributionCalendar;
+
+    const svg = generateHeatmapSVG(
+      stats,
+      { user: 'avi', view: 'heatmap' } as BadgeParams,
+      calendar
+    );
+
+    assertValidSVG(svg);
+  });
+
+  it('generateNotFoundSVG output parses as valid XML', () => {
+    const svg = generateNotFoundSVG('avi', '#0d1117', '#00ffaa', '#ffffff', 8, '8s');
+
+    assertValidSVG(svg);
   });
 });
 
