@@ -237,7 +237,7 @@ describe('ContributorsPage - Massive Data Sets & High Bounds Scaling', () => {
     const endTime = performance.now();
 
     const renderTime = endTime - startTime;
-    // Bounded higher to protect execution consistency against noisy neighbor/CPU constraints in the testing runner
-    expect(renderTime).toBeLessThan(process.env.CI ? 20000 : 15000);
+    // Rendering 500 mock cards should take less than 1500ms under virtual DOM + Vitest
+    expect(renderTime).toBeLessThan(process.env.CI ? 12000 : 5000);
   });
 });
