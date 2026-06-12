@@ -185,11 +185,14 @@ describe('ResumeProfileSection – accessibility', () => {
     const uploadButton = screen.getByRole('button', { name: /upload resume file/i });
     await user.click(uploadButton);
 
-    const elementsAfterUpload = container.querySelectorAll('[aria-describedby]');
+    const { container: updatedContainer } = render(
+      <ResumeProfileSection githubUsername="janesmith" />
+    );
+    const elementsAfterUpload = updatedContainer.querySelectorAll('[aria-describedby]');
     elementsAfterUpload.forEach((el) => {
       const ids = el.getAttribute('aria-describedby')!.split(/\s+/).filter(Boolean);
       ids.forEach((id) => {
-        const target = container.querySelector(`#${CSS.escape(id)}`);
+        const target = updatedContainer.querySelector(`#${CSS.escape(id)}`);
         expect(target).not.toBeNull();
       });
     });
@@ -210,6 +213,9 @@ describe('ResumeProfileSection – accessibility', () => {
     // Idle stage: exactly one heading rendered by this component.
     const idleHeadings = screen.getAllByRole('heading');
     expect(idleHeadings.length).toBeGreaterThanOrEqual(1);
+
+    // The visible section label heading must be present.
+    expect(screen.getAllByRole('heading').length).toBeGreaterThan(0);
 
     // Validate that heading levels in the rendered DOM don't skip (e.g. h1→h3).
     const headingLevels = idleHeadings

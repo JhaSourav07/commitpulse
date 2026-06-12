@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { validateGitHubUsername } from '@/lib/validations';
 import { getFullDashboardData } from '@/lib/github';
 import type {
   AchievementDef,
@@ -9,8 +10,6 @@ import type {
   AchievementData,
   AchievementsResponse,
 } from '@/types/achievements';
-
-const GITHUB_USERNAME_REGEX = /^[a-zA-Z0-9](?:[a-zA-Z0-9]|-(?=[a-zA-Z0-9])){0,38}$/;
 
 const ACHIEVEMENT_DEFS: AchievementDef[] = [
   // 🔥 Contribution
@@ -551,7 +550,7 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const username = searchParams.get('username');
 
-  if (!username || !GITHUB_USERNAME_REGEX.test(username)) {
+  if (!username || !validateGitHubUsername(username)) {
     return NextResponse.json({ error: 'Valid username parameter is required' }, { status: 400 });
   }
 

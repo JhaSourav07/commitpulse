@@ -10,8 +10,9 @@ export default defineConfig({
     exclude: [
       'node_modules',
       '.next',
-      '**/*.massive-scaling.test.ts',
-      '**/*.massive-scaling.test.tsx',
+      ...(process.argv.some((arg) => arg.includes('massive-scaling'))
+        ? []
+        : ['**/*.massive-scaling.test.ts']),
     ],
     maxWorkers: process.env.CI ? 2 : 15,
     testTimeout: 30000,

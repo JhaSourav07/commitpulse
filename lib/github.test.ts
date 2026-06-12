@@ -1545,6 +1545,40 @@ describe('GitHub API cache behavior', () => {
     expect(results.map((result) => result.calendar.repoContributions)).toEqual([42, 42, 42]);
   });
 
+  it('does not coalesce requests when options.signal is provided', async () => {
+    const resolvers: ((response: Response) => void)[] = [];
+    vi.mocked(fetch).mockImplementation(
+      () =>
+        new Promise<Response>((resolve) => {
+          resolvers.push(resolve);
+        })
+    );
+
+    const controller = new AbortController();
+    const requests = Promise.all([
+      fetchGitHubContributions('octocat'),
+      fetchGitHubContributions('octocat', { signal: controller.signal }),
+    ]);
+
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
+
+    const responseFn = () =>
+      mockResponse({
+        data: {
+          user: {
+            contributionsCollection: {
+              contributionCalendar: mockCalendar,
+              commitContributionsByRepository: [],
+            },
+          },
+        },
+      });
+    resolvers.forEach((resolve) => resolve(responseFn()));
+
+    const results = await requests;
+    expect(results.map((result) => result.calendar.repoContributions)).toEqual([42, 42]);
+  });
+
   it('refresh bypass: bypassCache=true forces a fresh fetch', async () => {
     vi.mocked(fetch).mockImplementation(async () =>
       mockResponse({
@@ -2314,6 +2348,37 @@ describe('getWrappedData', () => {
 
     expect(body.variables.from).toBe('2024-01-01T00:00:00Z');
     expect(body.variables.to).toBe('2024-12-31T23:59:59Z');
+  });
+
+  it('TestCase: aligns query bounds to user timezone offset (Issue #5259)', async () => {
+    vi.mocked(fetch).mockImplementation(async (url) => {
+      const urlStr = typeof url === 'string' ? url : (url?.toString() ?? '');
+      if (urlStr.includes('/repos')) {
+        return mockResponse([]);
+      }
+      return mockResponse({
+        data: {
+          user: {
+            contributionsCollection: {
+              contributionCalendar: mockCalendar,
+            },
+          },
+        },
+      });
+    });
+
+    // For Pacific/Honolulu (UTC-10), local 2024-01-01T00:00:00 is UTC 2024-01-01T10:00:00Z
+    // and local 2024-12-31T23:59:59 is UTC 2025-01-01T09:59:59Z
+    await getWrappedData('octocat', '2024', undefined, 'Pacific/Honolulu');
+
+    const graphQLCall = vi
+      .mocked(fetch)
+      .mock.calls.find(([url]) => url.toString().includes('/graphql'));
+
+    const body = JSON.parse(graphQLCall?.[1]?.body as string);
+
+    expect(body.variables.from).toBe('2024-01-01T10:00:00Z');
+    expect(body.variables.to).toBe('2025-01-01T09:59:59Z');
   });
 
   it('falls back to the current-year date range when wrapped year is missing or partial', async () => {

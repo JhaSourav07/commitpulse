@@ -2,6 +2,7 @@ import { fetchWithRetry, getGitHubTokens } from '@/lib/github';
 import { DistributedCache } from '@/lib/cache';
 
 const GITHUB_GRAPHQL_URL = 'https://api.github.com/graphql';
+const MAX_PAGES = 3;
 
 export interface PRInsightData {
   totalPRs: number;
@@ -88,12 +89,17 @@ async function fetchPRInsightsUncached(username: string): Promise<PRInsightData>
             comments {
               totalCount
             }
-            reviews(first: 50) {
+            reviews(first: 100) {
               nodes {
                 author { login }
                 createdAt
                 state
               }
+              pageInfo {
+                hasNextPage
+                endCursor
+              }
+              totalCount
             }
           }
         }
@@ -123,8 +129,6 @@ async function fetchPRInsightsUncached(username: string): Promise<PRInsightData>
   let hasNextPage = true;
   let after: string | null = null;
   let reviewsGivenCount = 0;
-  const MAX_PAGES = 10; // Cap at 1000 PRs (10 pages x 100)
-
   for (let page = 0; page < MAX_PAGES && hasNextPage; page++) {
     const res = await fetchWithRetry(GITHUB_GRAPHQL_URL, {
       method: 'POST',
@@ -229,14 +233,18 @@ async function fetchPRInsightsUncached(username: string): Promise<PRInsightData>
       mostDiscussed = { title: pr.title, url: pr.url, comments: pr.comments.totalCount };
     }
 
-    // Reviews
+    // Reviews - use totalCount for accurate count, nodes for timing analysis
     const reviews = pr.reviews?.nodes || [];
+    const totalReviewCount = pr.reviews?.totalCount || reviews.length;
     const prReviewTimes: number[] = [];
 
+    // Use totalCount for accurate reviewsReceived (accounts for reviews beyond first 100)
+    reviewsReceived += totalReviewCount;
+    repoStats.reviewCount += totalReviewCount;
+
+    // Analyze timing from available nodes (first 100 reviews)
     for (const review of reviews) {
       if (review.author?.login === username) continue; // skip self reviews
-      reviewsReceived++;
-      repoStats.reviewCount++;
 
       const reviewDate = new Date(review.createdAt);
       const diffHours = (reviewDate.getTime() - createdDate.getTime()) / (1000 * 60 * 60);

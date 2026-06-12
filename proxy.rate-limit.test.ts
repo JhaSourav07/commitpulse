@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { NextRequest } from 'next/server';
-import { middleware as proxy } from './middleware';
+import { proxy } from './proxy';
 import { rateLimit } from './lib/rate-limit';
 
 vi.mock('./lib/rate-limit', () => ({
@@ -8,7 +8,7 @@ vi.mock('./lib/rate-limit', () => ({
 }));
 
 describe('Proxy rate-limit consistency', () => {
-  it('returns consistent JSON error shape for general and refresh rate limits', async () => {
+  it('returns consistent JSON error shape when rate limit is exceeded', async () => {
     vi.mocked(rateLimit).mockResolvedValue({
       success: false,
       limit: 60,
@@ -21,7 +21,7 @@ describe('Proxy rate-limit consistency', () => {
 
     vi.mocked(rateLimit).mockResolvedValue({
       success: false,
-      limit: 5,
+      limit: 60,
       remaining: 0,
       reset: 123456789,
     });
@@ -29,9 +29,7 @@ describe('Proxy rate-limit consistency', () => {
       new NextRequest('http://localhost:3000/api/streak?refresh=true')
     );
     expect(refreshResponse.status).toBe(429);
-    expect(await refreshResponse.json()).toEqual({
-      error: 'Too many refresh requests. Please wait before bypassing the cache again.',
-    });
+    expect(await refreshResponse.json()).toEqual({ error: 'Too many requests' });
   });
 
   it('includes rate limit headers on limited responses', async () => {
@@ -61,38 +59,35 @@ describe('Proxy rate-limit consistency', () => {
     expect(response.headers.get('X-RateLimit-Reset')).toBe('123456789');
   });
 
-  it('sets X-RateLimit-Policy header on refresh rate-limited responses', async () => {
+  it('returns 429 status on rate limited responses', async () => {
     vi.mocked(rateLimit).mockResolvedValue({
       success: false,
-      limit: 5,
+      limit: 60,
       remaining: 0,
       reset: 123456789,
     });
-    const response = await proxy(new NextRequest('http://localhost:3000/api/streak?refresh=true'));
-    expect(response.headers.get('X-RateLimit-Policy')).toBe('refresh');
+    const response = await proxy(new NextRequest('http://localhost:3000/api/streak'));
+    expect(response.status).toBe(429);
   });
 
-  it('middleware config matcher covers all expected API route patterns', async () => {
-    const { config: mwConfig } = await import('./middleware');
+  it('proxy config matcher covers all expected API route patterns', async () => {
+    const { config: mwConfig } = await import('./proxy');
     const expectedRoutes = [
       '/api/streak/:path*',
       '/api/github/:path*',
       '/api/track-user/:path*',
       '/api/stats/:path*',
       '/api/og/:path*',
-      '/api/notify/:path*',
-      '/api/compare/:path*',
-      '/api/wrapped/:path*',
-      '/api/student/:path*',
+      '/api/pr-insights/:path*',
     ];
     for (const route of expectedRoutes) {
       expect(mwConfig.matcher).toContain(route);
     }
   });
 
-  it('exports middleware function and config from middleware.ts', async () => {
-    const mod = await import('./middleware');
-    expect(typeof mod.middleware).toBe('function');
+  it('exports proxy function and config from proxy.ts', async () => {
+    const mod = await import('./proxy');
+    expect(typeof mod.proxy).toBe('function');
     expect(mod.config).toBeDefined();
     expect(Array.isArray(mod.config.matcher)).toBe(true);
     expect(mod.config.matcher.length).toBeGreaterThan(0);

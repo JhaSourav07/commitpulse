@@ -5,6 +5,7 @@ import { getClientIp } from '@/utils/getClientIp';
 import { getRateLimitHeaders, trackUserRateLimiter } from '@/lib/rate-limit';
 import { trackUserProtection } from '@/services/security/track-user-protection';
 import { githubUsernameSchema } from '@/lib/validations';
+import { sanitizeMongoPayload } from '@/utils/sanitize';
 
 export async function POST(req: Request) {
   // Get IP for rate limiting securely
@@ -31,6 +32,9 @@ export async function POST(req: Request) {
       { status: 400 }
     );
   }
+
+  // Sanitize MongoDB operators from body to prevent injection
+  sanitizeMongoPayload(body);
 
   try {
     const { username } = body as { username?: unknown };

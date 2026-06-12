@@ -63,12 +63,16 @@ describe('getClientIp — Dark & Light Prefers-Color-Scheme Visual Cohesion (Var
 
     const ip = getClientIp(req, {
       headersPriority: ['x-real-ip'],
+      proxyConfig: { trustedProxies: ['127.0.0.1'], trustPrivateRanges: true },
+      directIp: '127.0.0.1',
     });
     expect(ip).toBe('10.0.0.1');
 
     mockColorScheme('dark');
     const ipDark = getClientIp(req, {
       headersPriority: ['x-real-ip'],
+      proxyConfig: { trustedProxies: ['127.0.0.1'], trustPrivateRanges: true },
+      directIp: '127.0.0.1',
     });
     expect(ipDark).toBe('10.0.0.1');
   });

@@ -334,6 +334,35 @@ describe('GET /api/streak', () => {
       expect(body).toContain('<title>');
       expect(body).toContain('Stats for');
     });
+
+    it('returns a small SVG when size=small', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', size: 'small' }));
+
+      expect(response.status).toBe(200);
+
+      const body = await response.text();
+      expect(body).toContain('width="400"');
+      expect(body).toContain('height="280"');
+    });
+
+    it('returns the default medium SVG when size is omitted', async () => {
+      const response = await GET(makeRequest({ user: 'octocat' }));
+
+      expect(response.status).toBe(200);
+
+      const body = await response.text();
+      expect(body).toContain('width="600"');
+    });
+
+    it('returns a large SVG when size=large', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', size: 'large' }));
+
+      expect(response.status).toBe(200);
+
+      const body = await response.text();
+      expect(body).toContain('width="800"');
+      expect(body).toContain('height="560"');
+    });
   });
 
   describe('edge cases for empty/private profiles', () => {

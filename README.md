@@ -146,6 +146,7 @@ Transform your GitHub contribution history into a cinematic 3D monolith.
 | `glacier`          | Icy sky blue & cyan          | `e0f2fe` | `06b6d4` | `0369a1` |
 | `lumos`            | Void black & mint gold       | `0a0a0a` | `fbbf24` | `a7f3d0` |
 | `tokyo_night`      | Deep navy & soft pastel blue | `1a1b26` | `7aa2f7` | `c0caf5` |
+| `monokai`          | Classic vibrant dark         | `272822` | `a6e22e` | `f8f8f2` |
 
 > **`auto` uses CSS `@media (prefers-color-scheme)`** inside the SVG so the badge switches between the `light` and `dark` palettes based on the viewer's OS setting — no JavaScript required. This is ideal for GitHub profile READMEs where visitors may use either mode.
 

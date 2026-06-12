@@ -76,7 +76,11 @@ export function TechnologiesSection({ selected, onChange }: TechnologiesSectionP
             size={14}
             className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-white/30 pointer-events-none"
           />
+          <label htmlFor="tech-search" className="sr-only">
+            Search technologies
+          </label>
           <input
+            id="tech-search"
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -94,13 +98,17 @@ export function TechnologiesSection({ selected, onChange }: TechnologiesSectionP
           )}
         </div>
 
-        <div className="flex flex-wrap gap-1.5 mb-4 overflow-x-auto pb-1">
+        <div
+          role="group"
+          aria-label="Technology Categories"
+          className="flex flex-wrap gap-1.5 mb-4 overflow-x-auto pb-1"
+        >
           {categories.map((cat) => (
             <button
               key={cat}
               type="button"
               onClick={() => setActiveCategory(cat)}
-              className={`px-2.5 py-1 rounded-lg text-[11px] font-medium whitespace-nowrap transition-colors ${
+              className={`px-2.5 py-1 rounded-lg text-[11px] font-medium whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 ${
                 activeCategory === cat
                   ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
                   : 'bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-white/50 border border-transparent hover:bg-gray-200 dark:hover:bg-white/10'

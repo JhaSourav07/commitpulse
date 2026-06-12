@@ -88,12 +88,21 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body className={inter.className}>
+        {/* Skip link — first focusable element, lets keyboard users jump past the navbar */}
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[99999] focus:px-4 focus:py-2 focus:bg-blue-600 focus:text-white focus:rounded-md focus:outline-none focus:shadow-lg"
+        >
+          Skip to main content
+        </a>
         <Providers>
           <ScrollRestoration />
           <AnimatedCursor />
           <BrandParticles />
           <Navbar />
-          <div className="relative z-10">{children}</div>
+          <main id="main-content" className="relative z-10">
+            {children}
+          </main>
           <ReturnToTop />
           <KonamiEasterEgg />
           <Analytics />

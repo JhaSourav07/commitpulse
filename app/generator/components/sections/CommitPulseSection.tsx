@@ -191,12 +191,13 @@ export function CommitPulseSection({
       {showCommitPulse && (
         <div className="flex flex-col gap-4">
           <div>
-            <FieldLabel>GitHub Username</FieldLabel>
+            <FieldLabel htmlFor="commitpulse-username">GitHub Username</FieldLabel>
             <div className="relative flex items-center">
               <span className="absolute left-3 text-gray-400 dark:text-white/25 pointer-events-none">
                 <Search size={14} />
               </span>
               <input
+                id="commitpulse-username"
                 type="text"
                 value={safeUsername}
                 onChange={(e) => onGithubUsernameChange(e.target.value.trim())}
@@ -287,13 +288,14 @@ export function CommitPulseSection({
           </div>
 
           <div>
-            <FieldLabel>Accent Colour (optional)</FieldLabel>
+            <FieldLabel htmlFor="commitpulse-accent">Accent Colour (optional)</FieldLabel>
             <div className="flex items-center gap-3">
               <div className="relative flex items-center">
                 <span className="absolute left-3 text-xs text-gray-400 dark:text-white/30 select-none">
                   #
                 </span>
                 <input
+                  id="commitpulse-accent"
                   type="text"
                   value={safeAccent.replace(/^#/, '')}
                   onChange={(e) => onCommitPulseAccentChange(e.target.value.replace(/^#/, ''))}
