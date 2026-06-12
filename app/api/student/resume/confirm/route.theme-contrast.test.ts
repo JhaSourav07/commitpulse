@@ -11,6 +11,10 @@ vi.mock('@/models/StudentProfile', () => ({
   },
 }));
 
+vi.mock('@/lib/github-owner-verification', () => ({
+  verifyGitHubOwner: vi.fn().mockResolvedValue({ verified: true }),
+}));
+
 const { mockRateLimitCheck } = vi.hoisted(() => {
   return {
     mockRateLimitCheck: vi.fn().mockResolvedValue(true),
