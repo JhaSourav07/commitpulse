@@ -119,7 +119,19 @@ export class RateLimiter {
       };
     } else {
       const resetAt = record.resetAt;
-      await this.cache.update(ip, { count: count + 1, resetAt });
+      const updated = await this.cache.update(ip, { count: count + 1, resetAt });
+
+      if (!updated) {
+        const freshResetAt = now + this.windowMs;
+        await this.cache.set(ip, { count: 1, resetAt: freshResetAt }, this.windowMs);
+        return {
+          success: true,
+          limit: this.limit,
+          remaining: this.limit - 1,
+          reset: freshResetAt,
+        };
+      }
+
       return {
         success: true,
         limit: this.limit,
@@ -285,7 +297,18 @@ export async function rateLimit(
   }
 
   const newCount = tracker.count + 1;
-  await trackers.update(ip, { count: newCount, resetAt: tracker.resetAt });
+  const updated = await trackers.update(ip, { count: newCount, resetAt: tracker.resetAt });
+
+  if (!updated) {
+    const resetAt = now + windowMs;
+    await trackers.set(ip, { count: 1, resetAt }, windowMs);
+    return {
+      success: true,
+      limit,
+      remaining: limit - 1,
+      reset: resetAt,
+    };
+  }
 
   if (newCount > limit) {
     return {

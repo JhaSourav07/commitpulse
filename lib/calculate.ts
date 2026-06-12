@@ -5,6 +5,86 @@ import type { ContributionCalendar, ContributionDay, StreakStats, MonthlyStats }
  * STREAK & CALENDAR CALCULATIONS
  * ========================================================================== */
 
+export function convertLocalToUtc(
+  year: number,
+  month: number,
+  day: number,
+  hour: number,
+  minute: number,
+  second: number,
+  timeZone: string
+): string {
+  try {
+    const utcDate = new Date(Date.UTC(year, month - 1, day, hour, minute, second));
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone,
+      year: 'numeric',
+      month: 'numeric',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: 'numeric',
+      second: 'numeric',
+      hour12: false,
+    });
+    const parts = formatter.formatToParts(utcDate);
+    const partMap = Object.fromEntries(parts.map((p) => [p.type, p.value]));
+    const tzYear = parseInt(partMap.year, 10);
+    const tzMonth = parseInt(partMap.month, 10);
+    const tzDay = parseInt(partMap.day, 10);
+    let tzHour = parseInt(partMap.hour, 10);
+    if (tzHour === 24) tzHour = 0;
+    const tzMin = parseInt(partMap.minute, 10);
+    const tzSec = parseInt(partMap.second, 10);
+
+    const tzUtcTime = Date.UTC(tzYear, tzMonth - 1, tzDay, tzHour, tzMin, tzSec);
+    const offsetMs = tzUtcTime - utcDate.getTime();
+    const targetUtcTime = Date.UTC(year, month - 1, day, hour, minute, second) - offsetMs;
+    return new Date(targetUtcTime).toISOString().replace('.000Z', 'Z');
+  } catch (error) {
+    // Fallback to UTC if timezone is invalid or Intl throws
+    return new Date(Date.UTC(year, month - 1, day, hour, minute, second))
+      .toISOString()
+      .replace('.000Z', 'Z');
+  }
+}
+
+export function getLocalTodayStr(now: Date, timezone: string): string {
+  // Candidate dates are around the UTC date of now
+  const utcYear = now.getUTCFullYear();
+  const utcMonth = now.getUTCMonth(); // 0-indexed
+  const utcDate = now.getUTCDate();
+
+  // We check candidates from 1 day before to 1 day after the UTC date
+  for (let offset = -1; offset <= 1; offset++) {
+    const candidateDate = new Date(Date.UTC(utcYear, utcMonth, utcDate + offset));
+    const y = candidateDate.getUTCFullYear();
+    const m = candidateDate.getUTCMonth() + 1;
+    const d = candidateDate.getUTCDate();
+
+    const dateStr = `${y}-${m.toString().padStart(2, '0')}-${d.toString().padStart(2, '0')}`;
+
+    // Get the UTC time for local midnight (00:00:00) and next midnight (24:00:00 / 00:00:00 of next day)
+    const midnightUtcStr = convertLocalToUtc(y, m, d, 0, 0, 0, timezone);
+    const nextMidnightUtcStr = convertLocalToUtc(y, m, d + 1, 0, 0, 0, timezone);
+
+    const midnightTime = new Date(midnightUtcStr).getTime();
+    const nextMidnightTime = new Date(nextMidnightUtcStr).getTime();
+
+    const nowTime = now.getTime();
+    // Inclusive start, exclusive end: [midnight, next_midnight)
+    if (nowTime >= midnightTime && nowTime < nextMidnightTime) {
+      return dateStr;
+    }
+  }
+
+  // Fallback to standard Intl.DateTimeFormat if logic doesn't match
+  try {
+    return new Intl.DateTimeFormat('en-CA', { timeZone: timezone }).format(now);
+  } catch {
+    return now.toISOString().split('T')[0];
+  }
+}
+
 export function isStreakAlive(
   today: { contributionCount: number },
   yesterday: { contributionCount: number } | null
@@ -13,9 +93,7 @@ export function isStreakAlive(
 }
 
 export function findTodayIndex(days: ContributionDay[], timezone: string, now: Date): number {
-  const localTodayStr = new Intl.DateTimeFormat('en-CA', {
-    timeZone: timezone,
-  }).format(now);
+  const localTodayStr = getLocalTodayStr(now, timezone);
 
   const localTodayIndex = days.findIndex((d) => d.date === localTodayStr);
 
@@ -50,7 +128,7 @@ export function calculateStreak(
   }
 
   // 2. Calculate Current Streak (Backwards loop with Grace Period)
-  const localTodayStr = new Intl.DateTimeFormat('en-CA', { timeZone: timezone }).format(now);
+  const localTodayStr = getLocalTodayStr(now, timezone);
   let todayIndex = findTodayIndex(days, timezone, now);
 
   // If the calendar doesn't contain today's date, only fall back to the
@@ -87,9 +165,27 @@ export function calculateStreak(
     }
   }
 
+  let consecutiveZeroDays = 0;
+  if (todayIndex >= 0) {
+    let idx = todayIndex - 1;
+    while (idx >= 0 && days[idx].contributionCount === 0) {
+      consecutiveZeroDays++;
+      idx--;
+    }
+  }
+
+  const isActualToday = todayIndex >= 0 && days[todayIndex].date === localTodayStr;
+  const todayHasCommits = todayIndex >= 0 && days[todayIndex].contributionCount > 0;
+
+  // If we are looking at the actual today, and it has no commits,
+  const evaluationIndex =
+    isActualToday && !todayHasCommits && consecutiveZeroDays < Math.max(1, grace)
+      ? todayIndex - 1
+      : todayIndex;
+
   let isStreakAlive = false;
   for (let i = 0; i <= grace; i++) {
-    const checkIndex = todayIndex - i;
+    const checkIndex = evaluationIndex - i;
     if (checkIndex >= 0 && days[checkIndex].contributionCount > 0) {
       isStreakAlive = true;
       break;
@@ -97,8 +193,8 @@ export function calculateStreak(
   }
 
   if (isStreakAlive) {
-    let i = todayIndex;
-    while (i >= todayIndex - grace && i >= 0 && days[i].contributionCount === 0) {
+    let i = evaluationIndex;
+    while (i >= evaluationIndex - grace && i >= 0 && days[i].contributionCount === 0) {
       i--;
     }
     while (i >= 0 && days[i].contributionCount > 0) {
@@ -127,7 +223,7 @@ export function calculateMonthlyStats(
   const weeks = calendar?.weeks || [];
   const days = weeks.flatMap((week) => week?.contributionDays || []);
 
-  const localTodayStr = new Intl.DateTimeFormat('en-CA', { timeZone: timezone }).format(now);
+  const localTodayStr = getLocalTodayStr(now, timezone);
   const [currentYearStr, currentMonthStr] = localTodayStr.split('-');
   const currentYear = parseInt(currentYearStr, 10);
   const currentMonth = parseInt(currentMonthStr, 10);
@@ -235,9 +331,11 @@ export function aggregateCalendars(calendars: ContributionCalendar[]): Contribut
     });
   }
 
-  // Deep clone the base calendar so we don't mutate the original object
-  // Deep clone the base calendar so we don't mutate the original object
-  const aggregatedBase = JSON.parse(JSON.stringify(baseCalendar)) as ContributionCalendar;
+  // Deep clone the base calendar so we don't mutate the original object.
+  // Uses structuredClone() (native in Node 18+) instead of the
+  // JSON.parse(JSON.stringify()) anti-pattern which silently drops
+  // undefined values and Date objects during serialization.
+  const aggregatedBase = structuredClone(baseCalendar);
 
   aggregatedBase.totalContributions = totalContributions;
 
@@ -275,6 +373,32 @@ export function aggregateCalendars(calendars: ContributionCalendar[]): Contribut
   }
   return aggregatedBase;
 }
+
+/**
+ * Chunks a flat, date-ordered list of contribution days into weekday-aligned weeks,
+ * starting a new week on each Sunday. This mirrors GitHub's calendar layout so the
+ * renderers keep their week (column) and weekday (row) grid instead of collapsing
+ * every day into a single week.
+ */
+export function chunkDaysIntoWeeks(days: ContributionDay[]): ContributionCalendar['weeks'] {
+  const weeks: ContributionCalendar['weeks'] = [];
+  let currentWeek: ContributionDay[] = [];
+
+  for (const day of days) {
+    if (currentWeek.length > 0 && new Date(day.date).getUTCDay() === 0) {
+      weeks.push({ contributionDays: currentWeek });
+      currentWeek = [];
+    }
+    currentWeek.push(day);
+  }
+
+  if (currentWeek.length > 0) {
+    weeks.push({ contributionDays: currentWeek });
+  }
+
+  return weeks;
+}
+
 /**
  * Processes a calendar to generate deep insights for "GitHub Wrapped"
  */

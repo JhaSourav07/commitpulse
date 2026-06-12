@@ -1,5 +1,10 @@
 // types/index.ts
 
+/**
+ * Branded hex color string. Only `sanitizeHexColor` (for user input)
+ * or `hexColor` (for hardcoded literals) may produce this type.
+ * Do not cast plain strings to HexColor manually.
+ */
 export type HexColor = string & { __brand: 'HexColor' };
 
 export type Scale = 'linear' | 'log';
@@ -218,6 +223,18 @@ export interface BadgeParams {
   /** Background fill color as a hex string WITHOUT the leading '#'. Overrides theme default. */
   bg: HexColor;
 
+  /** Background fill color type. 'solid' (default), 'linear', or 'radial' gradient. */
+  bgType?: 'solid' | 'linear' | 'radial';
+
+  /** Start color for the background gradient. Hex string WITHOUT the leading '#'. */
+  bgStart?: HexColor;
+
+  /** End color for the background gradient. Hex string WITHOUT the leading '#'. */
+  bgEnd?: HexColor;
+
+  /** Angle for linear background gradient in degrees (0-360). */
+  bgAngle?: number;
+
   /** Label and stat text color as a hex string WITHOUT the leading '#'. Overrides theme default. */
   text: HexColor;
 
@@ -257,8 +274,8 @@ export interface BadgeParams {
   /** Language/locale code for stat labels (e.g. 'en', 'fr', 'ja'). Defaults to 'en'. */
   lang?: string;
 
-  /** Badge layout variant. 'default' shows the isometric monolith; 'monthly' shows month-over-month stats; 'heatmap' shows a flat 2D contribution heatmap; 'pulse' shows a heartbeat sparkline; 'languages' shows a 3D isometric city of top programming languages; 'constellation' shows a celestial star-map SVG visualization. */
-  view?: 'default' | 'monthly' | 'heatmap' | 'pulse' | 'languages' | 'constellation';
+  /** Badge layout variant. 'default' shows the isometric monolith; 'monthly' shows month-over-month stats; 'heatmap' shows a flat 2D contribution heatmap; 'pulse' shows a heartbeat sparkline; 'skyline' shows a city skyline; 'languages' shows a 3D isometric city of top programming languages; 'constellation' shows a celestial star-map SVG visualization. */
+  view?: 'default' | 'monthly' | 'heatmap' | 'pulse' | 'skyline' | 'languages' | 'constellation';
 
   /** Format for the monthly delta indicator. 'percent' shows %, 'absolute' shows raw count, 'both' shows both. */
   delta_format?: 'percent' | 'absolute' | 'both';
