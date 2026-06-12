@@ -1,6 +1,5 @@
 import CircuitBreaker from 'opossum';
 import type { ContributionCalendar } from '../types';
-import { calculateStreak } from './calculate';
 import type {
   ContributionDay,
   ContributedRepo,
@@ -235,73 +234,6 @@ export async function fetchWithRetry(
   return fetchWithRetry(url, options, attempt + 1, timeoutMs);
 }
 
-const GRAPHQL_INJECTION_PATTERNS: RegExp[] = [
-  /;\s*DROP/i,
-  /;\s*DELETE/i,
-  /;\s*TRUNCATE/i,
-  /union\s+select/i,
-  /exec\s*\(/i,
-];
-
-function assertValidGraphQLBody(options: RequestInit): void {
-  if (typeof options.body !== 'string') return;
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(options.body);
-  } catch {
-    throw new Error('GraphQL request body is not valid JSON');
-  }
-  const query = (parsed as Record<string, unknown>)?.query;
-  if (typeof query !== 'string' || query.trim() === '') {
-    throw new Error('GraphQL request must include a non-empty query string');
-  }
-  for (const pattern of GRAPHQL_INJECTION_PATTERNS) {
-    if (pattern.test(query)) {
-      throw new Error('GraphQL query contains disallowed patterns');
-    }
-  }
-  const open = (query.match(/{/g) ?? []).length;
-  const close = (query.match(/}/g) ?? []).length;
-  if (open === 0 || open !== close) {
-    throw new Error('GraphQL query has unbalanced braces');
-  }
-}
-
-async function fetchGraphQLWithRetry(
-  url: string | URL,
-  options: RequestInit,
-  attempt = 0,
-  timeoutMs?: number
-): Promise<Response> {
-  if (attempt === 0) assertValidGraphQLBody(options);
-  const res = await apiBreaker.fire({
-    url,
-    options,
-    timeoutMs,
-  });
-  if (!res.ok || attempt >= MAX_RETRIES) return res;
-
-  const body: unknown = await res
-    .clone()
-    .json()
-    .catch(() => null);
-  const isBodyRateLimited =
-    Array.isArray((body as { errors?: unknown })?.errors) &&
-    (body as { errors: unknown[] }).errors.some(
-      (e: unknown) =>
-        (e as { type?: string })?.type === 'RATE_LIMITED' ||
-        (e as { message?: string })?.message?.toLowerCase().includes('rate limit')
-    );
-
-  if (!isBodyRateLimited) return res;
-
-  const delay = BASE_DELAY_MS * Math.pow(2, attempt);
-  if (delay > MAX_RETRY_DELAY_MS) return res;
-
-  await new Promise((resolve) => setTimeout(resolve, delay));
-  return fetchGraphQLWithRetry(url, options, attempt + 1, timeoutMs);
-}
-
 const GITHUB_GRAPHQL_URL = 'https://api.github.com/graphql';
 const GITHUB_REST_URL = 'https://api.github.com';
 
@@ -352,7 +284,6 @@ function createRateLimitError(res: Response): RateLimitError {
   );
 }
 
-// FIXED: Explicitly typed 'res' parameter as Response
 function throwIfRateLimited(res: Response): void {
   const rateLimit = getGitHubRateLimitInfo(res);
 
