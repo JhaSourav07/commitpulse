@@ -22,6 +22,7 @@ interface GitHubRepo {
   fork?: boolean;
   forks_count?: number;
   updated_at?: string;
+  pushed_at?: string;
   owner?: { login: string };
   created_at?: string;
 }
@@ -446,6 +447,7 @@ function sanitizeRepo(repo: GitHubRepo): GitHubRepo {
     fork: repo.fork,
     forks_count: repo.forks_count,
     updated_at: repo.updated_at,
+    pushed_at: repo.pushed_at,
     created_at: repo.created_at,
   };
 }
@@ -1851,4 +1853,27 @@ export async function runCappedConcurrency<T, R>(
 
   await Promise.all(workers);
   return results;
+}
+
+// ============================================================================
+// TEST HELPER FUNCTIONS
+// ============================================================================
+
+/**
+ * Returns token rotation statistics for testing purposes.
+ * Used by github.rotation.test.ts to verify token rotation behavior.
+ */
+export function getTokenStatsForTests() {
+  return {
+    currentTokenIndex,
+    totalTokens: getGitHubTokens().length,
+  };
+}
+
+/**
+ * Returns the global circuit breaker open timestamp for testing purposes.
+ * Used by github.rotation.test.ts to verify circuit breaker behavior.
+ */
+export function getGlobalCircuitBreakerOpenUntilForTests() {
+  return globalCircuitBreakerOpenUntil;
 }
