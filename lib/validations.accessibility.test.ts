@@ -6,6 +6,8 @@ describe('validations.ts - Accessibility Standards & Screen Reader Aria Complian
     // Assert schema function returns expected output
     expect(validateGitHubUsername('octocat')).toBe(true);
     expect(validateGitHubUsername('invalid--user')).toBe(false);
+    expect(validateGitHubUsername('a'.repeat(39))).toBe(true);
+    expect(validateGitHubUsername('a'.repeat(40))).toBe(false);
 
     const validationAlert = {
       role: 'alert',
