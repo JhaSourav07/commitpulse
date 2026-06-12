@@ -11,9 +11,9 @@ const stats = {
 
 const baseParams = {
   user: 'benchmark-user',
-  bg: '0d1117',
-  accent: '00ffaa',
-  text: 'ffffff',
+  bg: hexColor('0d1117'),
+  accent: hexColor('00ffaa'),
+  text: hexColor('ffffff'),
   scale: 'linear' as const,
   speed: sanitizeSpeed('8s'),
 };

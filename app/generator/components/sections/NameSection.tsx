@@ -11,8 +11,9 @@ export function NameSection({ value, onChange }: NameSectionProps) {
   const safeValue = value || '';
   return (
     <SectionCard title="Name" description="Your display name for the README header" defaultOpen>
-      <FieldLabel>Display Name</FieldLabel>
+      <FieldLabel htmlFor="editor-display-name">Display Name</FieldLabel>
       <input
+        id="editor-display-name"
         type="text"
         value={safeValue}
         onChange={(e) => onChange(e.target.value)}
