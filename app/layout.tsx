@@ -5,6 +5,10 @@ import Navbar from './components/navbar';
 import BrandParticles from '@/components/BrandParticles';
 import ReturnToTop from '@/components/ReturnToTop';
 import type { Metadata } from 'next';
+import ScrollRestoration from './components/ScrollRestoration';
+import { Providers } from './providers';
+import AnimatedCursor from '@/components/AnimatedCursor';
+import KonamiEasterEgg from '@/components/KonamiEasterEgg';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -35,7 +39,7 @@ export const metadata: Metadata = {
     siteName: 'CommitPulse',
     images: [
       {
-        url: 'https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=neon',
+        url: 'https://commitpulse.vercel.app/api/streak',
         width: 1200,
         height: 630,
         alt: 'CommitPulse 3D GitHub Contribution Graph Preview',
@@ -47,8 +51,7 @@ export const metadata: Metadata = {
     title: 'CommitPulse | Elevate Your GitHub README',
     description:
       'Generate a cinematic, isometric 3D SVG of your GitHub contributions for your README.',
-    images: ['https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=neon'],
-    // creator: '@your_twitter_handle', // Uncomment and add your Twitter handle here
+    images: ['https://commitpulse.vercel.app/api/streak'],
   },
   robots: {
     index: true,
@@ -65,13 +68,36 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
-      <body className={`${inter.className} bg-black`}>
-        <BrandParticles />
-        <Navbar />
-        <div className="relative z-10">{children}</div>
-        <ReturnToTop />
-        <Analytics />
+    <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              try {
+                const storedTheme = window.localStorage.getItem('theme');
+                if (storedTheme === 'light') {
+                  document.documentElement.classList.remove('dark');
+                  document.documentElement.style.colorScheme = 'light';
+                } else {
+                  document.documentElement.classList.add('dark');
+                  document.documentElement.style.colorScheme = 'dark';
+                }
+              } catch (_) {}
+            `,
+          }}
+        />
+      </head>
+      <body className={inter.className}>
+        <Providers>
+          <ScrollRestoration />
+          <AnimatedCursor />
+          <BrandParticles />
+          <Navbar />
+          <div className="relative z-10">{children}</div>
+          <ReturnToTop />
+          <KonamiEasterEgg />
+          <Analytics />
+        </Providers>
       </body>
     </html>
   );

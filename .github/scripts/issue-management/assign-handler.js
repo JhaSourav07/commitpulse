@@ -10,7 +10,7 @@ async function findExistingAssignments(github, owner, repo, username, currentIss
   return issues.filter((issue) => !issue.pull_request && issue.number !== currentIssueNumber);
 }
 
-const MAX_ASSIGNED_ISSUES = 3;
+const MAX_ASSIGNED_ISSUES = 5;
 
 async function handleAssign({ github, context, username, hasWriteAccess }) {
   const { owner, repo } = context.repo;
@@ -64,7 +64,13 @@ async function handleAssign({ github, context, username, hasWriteAccess }) {
     throw error;
   }
 
-  const currentAssignees = context.payload.issue.assignees.map((a) => a.login.toLowerCase());
+  // Re-fetch to avoid stale assignee data from the webhook payload
+  const { data: freshIssue } = await github.rest.issues.get({
+    owner,
+    repo,
+    issue_number: issueNumber,
+  });
+  const currentAssignees = freshIssue.assignees.map((a) => a.login.toLowerCase());
   if (currentAssignees.includes(username.toLowerCase())) {
     await github.rest.issues.createComment({
       owner,

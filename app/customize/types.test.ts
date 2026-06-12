@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { THEME_KEYS } from './types';
+import { THEME_KEYS, TIMEZONES } from './types';
 import { themes } from '../../lib/svg/themes';
 
 describe('Theme Keys Synchronization', () => {
@@ -13,5 +13,16 @@ describe('Theme Keys Synchronization', () => {
 
     // 3. Assert they are 100% identical (no missing keys, no extra obsolete keys)
     expect(sortedActual).toEqual(sortedExpected);
+  });
+});
+
+describe('Timezone options', () => {
+  it('uses UTC as the default timezone option', () => {
+    expect(TIMEZONES[0]).toEqual({ value: 'UTC', label: 'UTC (Default)' });
+  });
+
+  it('contains unique IANA timezone values', () => {
+    const values = TIMEZONES.map((tz) => tz.value);
+    expect(new Set(values).size).toBe(values.length);
   });
 });

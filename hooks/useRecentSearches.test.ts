@@ -1,8 +1,10 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import React from 'react';
+import { describe, it, expect, beforeEach, vi, afterAll } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useRecentSearches, MAX_SEARCHES, STORAGE_KEY } from './useRecentSearches';
 
 const store: Record<string, string> = {};
+const originalLocalStorage = window.localStorage;
 
 beforeEach(() => {
   Object.keys(store).forEach((k) => delete store[k]);
@@ -15,8 +17,20 @@ beforeEach(() => {
       removeItem: (k: string) => {
         delete store[k];
       },
+      clear: () => {
+        Object.keys(store).forEach((k) => delete store[k]);
+      },
     },
     writable: true,
+    configurable: true,
+  });
+});
+
+afterAll(() => {
+  Object.defineProperty(window, 'localStorage', {
+    value: originalLocalStorage,
+    writable: true,
+    configurable: true,
   });
 });
 
@@ -32,6 +46,35 @@ describe('useRecentSearches', () => {
       result.current.addSearch('torvalds');
     });
     expect(result.current.searches[0]).toBe('torvalds');
+  });
+  it('ignores empty string input', () => {
+    const { result } = renderHook(() => useRecentSearches());
+
+    act(() => {
+      result.current.addSearch('');
+    });
+
+    expect(result.current.searches).toEqual([]);
+  });
+
+  it('ignores whitespace-only input', () => {
+    const { result } = renderHook(() => useRecentSearches());
+
+    act(() => {
+      result.current.addSearch('   ');
+    });
+
+    expect(result.current.searches).toEqual([]);
+  });
+
+  it('ignores newline-only input', () => {
+    const { result } = renderHook(() => useRecentSearches());
+
+    act(() => {
+      result.current.addSearch('\n');
+    });
+
+    expect(result.current.searches).toEqual([]);
   });
 
   it('deduplicates — moves existing to front', () => {
@@ -76,6 +119,7 @@ describe('useRecentSearches', () => {
     });
 
     expect(result.current.searches).toEqual([]);
+    expect(removeItemSpy).toHaveBeenCalledTimes(1);
     expect(removeItemSpy).toHaveBeenCalledWith(STORAGE_KEY);
   });
 
@@ -101,5 +145,68 @@ describe('useRecentSearches', () => {
     unmount();
     const { result: result2 } = renderHook(() => useRecentSearches());
     expect(result2.current.searches[0]).toBe('octocat');
+  });
+
+  it('ignores valid JSON from localStorage when it is not an array', () => {
+    store[STORAGE_KEY] = JSON.stringify({ value: 'octocat' });
+
+    const { result } = renderHook(() => useRecentSearches());
+
+    expect(result.current.searches).toEqual([]);
+
+    act(() => {
+      result.current.addSearch('torvalds');
+    });
+
+    expect(result.current.searches).toEqual(['torvalds']);
+  });
+
+  it('filters non-string entries loaded from localStorage', () => {
+    store[STORAGE_KEY] = JSON.stringify(['octocat', null, 42, 'torvalds']);
+
+    const { result } = renderHook(() => useRecentSearches());
+
+    expect(result.current.searches).toEqual(['octocat', 'torvalds']);
+  });
+
+  it('is safe under Strict Mode double invocation', () => {
+    const setItemSpy = vi.spyOn(window.localStorage, 'setItem');
+    const removeItemSpy = vi.spyOn(window.localStorage, 'removeItem');
+    const { result } = renderHook(() => useRecentSearches(), {
+      wrapper: React.StrictMode,
+    });
+
+    // Hydration sets the state from storage (starts empty)
+    expect(result.current.searches).toEqual([]);
+    expect(setItemSpy).not.toHaveBeenCalled();
+    expect(removeItemSpy).not.toHaveBeenCalled();
+
+    act(() => {
+      result.current.addSearch('torvalds');
+    });
+
+    expect(result.current.searches).toEqual(['torvalds']);
+    expect(setItemSpy).toHaveBeenCalledTimes(1);
+    expect(setItemSpy).toHaveBeenCalledWith(STORAGE_KEY, JSON.stringify(['torvalds']));
+    expect(removeItemSpy).not.toHaveBeenCalled();
+  });
+
+  it('performs localStorage writes reactively outside state updater logic', () => {
+    const setItemSpy = vi.spyOn(window.localStorage, 'setItem');
+    const removeItemSpy = vi.spyOn(window.localStorage, 'removeItem');
+    const { result } = renderHook(() => useRecentSearches());
+
+    // Initially loading from storage should not trigger any writes or removals
+    expect(setItemSpy).not.toHaveBeenCalled();
+    expect(removeItemSpy).not.toHaveBeenCalled();
+
+    act(() => {
+      result.current.addSearch('gaearon');
+    });
+
+    // Verify localStorage.setItem is synchronized correctly
+    expect(setItemSpy).toHaveBeenCalledTimes(1);
+    expect(setItemSpy).toHaveBeenCalledWith(STORAGE_KEY, JSON.stringify(['gaearon']));
+    expect(removeItemSpy).not.toHaveBeenCalled();
   });
 });

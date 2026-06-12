@@ -7,11 +7,20 @@ import { themes } from '@/lib/svg/themes';
 import { fetchGitHubContributions } from '@/lib/github';
 import { calculateStreak } from '@/lib/calculate';
 
-export const runtime = 'edge';
+const appUrl =
+  process.env.NEXT_PUBLIC_SITE_URL ||
+  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://commitpulse.vercel.app');
+
+const displayDomain = (() => {
+  try {
+    return new URL(appUrl).host;
+  } catch {
+    return 'commitpulse.vercel.app';
+  }
+})();
 
 function getLuminance(hex: string) {
   let normalizedHex = hex.trim();
-  // Normalize short hex (e.g., #fff or #ffff) to #rrggbb (alpha is ignored for luminance)
   if (normalizedHex.length === 4 || normalizedHex.length === 5) {
     normalizedHex = `#${normalizedHex[1]}${normalizedHex[1]}${normalizedHex[2]}${normalizedHex[2]}${normalizedHex[3]}${normalizedHex[3]}`;
   }
@@ -28,11 +37,44 @@ function getLuminance(hex: string) {
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
 
-  const { user, theme, bg, text, accent } = ogParamsSchema.parse(
-    Object.fromEntries(searchParams.entries())
-  );
+  const parseResult = ogParamsSchema.safeParse(Object.fromEntries(searchParams.entries()));
 
-  const selectedTheme = themes[theme] || themes.dark;
+  if (!parseResult.success) {
+    return new Response(
+      JSON.stringify({ error: 'Invalid parameters', details: parseResult.error.flatten() }),
+      {
+        status: 400,
+        headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+      }
+    );
+  }
+
+  const {
+    user,
+    theme,
+    bg,
+    text,
+    accent,
+    refresh,
+    bypassCache: bypassCacheParam,
+  } = parseResult.data;
+  // Treat either ?refresh=true or ?bypassCache=true as a cache-bypass request
+  const isRefreshRequested = refresh || bypassCacheParam;
+
+  const themeName = theme || 'dark';
+  const isAutoTheme = themeName === 'auto';
+  const isRandomTheme = themeName === 'random';
+  const selectedTheme = (() => {
+    if (isAutoTheme) return themes.light;
+    if (isRandomTheme) {
+      const keys = Object.keys(themes);
+      const hash = user.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
+      const stableKey = keys[hash % keys.length];
+      return themes[stableKey] || themes.dark;
+    }
+    return themes[themeName] || themes.dark;
+  })();
+
   const resolvedBg = `#${bg || selectedTheme.bg}`;
   const resolvedText = `#${text || selectedTheme.text}`;
   const resolvedAccent = `#${accent || selectedTheme.accent}`;
@@ -47,17 +89,22 @@ export async function GET(req: NextRequest) {
   let longestStreak = 0;
   let currentStreak = 0;
 
-  // Only the data fetching is wrapped in try/catch — not the JSX rendering.
   try {
-    const calendar = await fetchGitHubContributions(user, { bypassCache: true });
-    const stats = calculateStreak(calendar);
+    // bypassCache mirrors the ?refresh=true pattern used by /api/stats and /api/streak.
+    // Without this, every link-preview bot crawl fires a fresh GitHub GraphQL request,
+    // burning API quota on an endpoint that is embedded in every page's <meta> tag.
+    const data = await fetchGitHubContributions(user, { bypassCache: isRefreshRequested });
+    const stats = calculateStreak(data.calendar ?? data);
     totalCommits = stats.totalContributions;
     longestStreak = stats.longestStreak;
     currentStreak = stats.currentStreak;
   } catch (err) {
     console.error('[OG] stats fetch failed:', err);
-    // fallback to zeros if GitHub is unreachable
   }
+
+  const cacheControl = isRefreshRequested
+    ? 'no-cache, no-store, must-revalidate'
+    : 'public, max-age=3600, stale-while-revalidate=86400';
 
   return new ImageResponse(
     <div
@@ -99,7 +146,6 @@ export async function GET(req: NextRequest) {
         {`@${user}`}
       </div>
       <div style={{ display: 'flex', gap: '48px' }}>
-        {/* Total Commits */}
         <div
           style={{
             display: 'flex',
@@ -120,7 +166,6 @@ export async function GET(req: NextRequest) {
             Total Commits
           </div>
         </div>
-        {/* Longest Streak */}
         <div
           style={{
             display: 'flex',
@@ -141,7 +186,6 @@ export async function GET(req: NextRequest) {
             {'Longest Streak 🔥'}
           </div>
         </div>
-        {/* Current Streak */}
         <div
           style={{
             display: 'flex',
@@ -172,14 +216,14 @@ export async function GET(req: NextRequest) {
           color: subText,
         }}
       >
-        commitpulse.vercel.app
+        {displayDomain}
       </div>
     </div>,
     {
       width: 1200,
       height: 630,
       headers: {
-        'Cache-Control': 'public, max-age=3600, stale-while-revalidate=86400',
+        'Cache-Control': cacheControl,
       },
     }
   );

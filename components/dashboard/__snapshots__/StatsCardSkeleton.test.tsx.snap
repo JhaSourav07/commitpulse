@@ -2,7 +2,7 @@
 
 exports[`StatsCardSkeleton > matches snapshot without random variation 1`] = `
 <div
-  class="p-6 rounded-xl bg-[#0a0a0a] border border-[rgba(255,255,255,0.08)] overflow-hidden"
+  class="p-6 rounded-xl bg-white dark:bg-[#0a0a0a] border border-black/10 dark:border-[rgba(255,255,255,0.08)] overflow-hidden"
 >
   <div
     class="flex justify-between items-start mb-6"

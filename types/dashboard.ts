@@ -55,10 +55,26 @@ export interface Achievement {
   icon: string;
   isUnlocked: boolean;
 
-  type?: 'contributions' | 'streak';
-  threshold?: number;
-  currentValue?: number;
-  progress?: number;
+  type: 'contributions' | 'streak' | 'behavior';
+  threshold: number;
+  currentValue: number;
+  progress: number; // 0–100
+}
+
+export interface HallOfFameAward {
+  category: 'active' | 'growing' | 'collaborative' | 'popular' | 'contributed';
+  title: string;
+  repoName: string;
+  repoAvatar?: string;
+  description: string;
+
+  centerpieceLabel: string;
+  centerpieceValue: string | number;
+  bottomStats: string;
+
+  explanation: string;
+  icon: string;
+  url: string;
 }
 
 export interface CommitClockData {
@@ -69,6 +85,7 @@ export interface CommitClockData {
 export interface DashboardExportData {
   stats: UserStats;
   languages: LanguageData[];
+  activity?: ActivityData[];
 }
 
 /* ==========================================================================
@@ -82,10 +99,23 @@ export interface WrappedStats {
   busiestMonth: string;
   weekendRatio: number;
   topLanguage: string;
+  calendar: ContributionCalendar;
 }
 
 export interface OrgDashboardData {
   profile: UserProfile;
   stats: UserStats;
   calendar: ContributionCalendar;
+}
+
+export interface Repository {
+  name: string;
+  description: string | null;
+  stargazerCount: number;
+  forkCount: number;
+  url: string;
+  primaryLanguage: {
+    name: string;
+    color: string;
+  } | null;
 }

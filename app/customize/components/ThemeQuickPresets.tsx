@@ -2,7 +2,7 @@
 import type { ReactElement } from 'react';
 import { themes } from '../../../lib/svg/themes';
 import { THEME_KEYS, type ThemeKey } from '../types';
-
+import './ThemeQuickPresets.css';
 type ThemeQuickPresetsProps = {
   theme: string;
   onThemeChange: (theme: string) => void;
@@ -519,81 +519,7 @@ const ICON_MAP: Record<string, (c: IC) => ReactElement> = {
 export function ThemeQuickPresets({ theme, onThemeChange }: ThemeQuickPresetsProps): ReactElement {
   return (
     <>
-      <style>{`
-        @keyframes tqp-pop {
-          0%   { transform: scale(1); }
-          40%  { transform: scale(1.13); }
-          70%  { transform: scale(0.97); }
-          100% { transform: scale(1.06); }
-        }
-        @keyframes tqp-pulse {
-          0%, 100% { opacity: 0.55; }
-          50%       { opacity: 1; }
-        }
-        .tqp-btn {
-          position: relative;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          width: 40px;
-          height: 40px;
-          border-radius: 11px;
-          border: 1.5px solid transparent;
-          cursor: pointer;
-          outline: none;
-          transition:
-            transform 150ms cubic-bezier(.34,1.56,.64,1),
-            border-color 150ms ease,
-            box-shadow 150ms ease;
-          overflow: hidden;
-        }
-        .tqp-btn:hover:not(.tqp-on) {
-          transform: scale(1.06);
-          border-color: rgba(255,255,255,0.22);
-          box-shadow: 0 3px 12px rgba(0,0,0,0.3);
-        }
-        .tqp-btn:focus-visible {
-          box-shadow: 0 0 0 3px rgba(99,179,237,0.55);
-        }
-        .tqp-on {
-          border-color: rgba(255,255,255,0.38);
-          box-shadow: 0 0 0 1.5px rgba(255,255,255,0.1), 0 3px 12px rgba(0,0,0,0.35);
-          transform: scale(1.03);
-        }
-        /* glass shine overlay */
-        .tqp-shine {
-          pointer-events: none;
-          position: absolute;
-          inset: 0;
-          border-radius: 9px;
-          background: linear-gradient(
-            155deg,
-            rgba(255,255,255,0.17) 0%,
-            rgba(255,255,255,0.03) 42%,
-            rgba(0,0,0,0.08) 100%
-          );
-        }
-        /* subtle active border ring — no pulse */
-        .tqp-ring {
-          pointer-events: none;
-          position: absolute;
-          inset: -2px;
-          border-radius: 13px;
-          border: 1px solid rgba(255,255,255,0.28);
-        }
-        /* small active indicator dot */
-        .tqp-dot {
-          position: absolute;
-          bottom: 4px;
-          right: 4px;
-          width: 4px;
-          height: 4px;
-          border-radius: 50%;
-          background: rgba(255,255,255,0.85);
-        }
-      `}</style>
-
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+      <div className="theme-quick-presets">
         {THEME_KEYS.filter((key) => key !== 'auto' && key !== 'random').map((key) => {
           const t = themes[key as ThemeKey];
           if (!t) return null;

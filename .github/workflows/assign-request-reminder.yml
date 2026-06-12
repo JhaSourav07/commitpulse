@@ -42,7 +42,7 @@ jobs:
         contains(github.event.comment.body, 'can i be assigned') ||
         contains(github.event.comment.body, 'assign me to this') ||
         contains(github.event.comment.body, 'assign me this') ||
-        contains(github.event.comment.body, 'i will work on this') ||
+        contains(github.event.comment.body, 'work on this') ||
         contains(github.event.comment.body, 'i''ll work on this') ||
         contains(github.event.comment.body, 'ill work on this') ||
         contains(github.event.comment.body, 'i can work on this') ||
@@ -93,7 +93,7 @@ jobs:
               ``,
               `## 📋 A Few Things to Know`,
               ``,
-              `- You can hold a **maximum of 3 open issues** at a time.`,
+              `- You can hold a **maximum of 5 open issues** at a time.`,
               `- If there's **no activity for 3 days**, the assignment will automatically expire so others can pick it up.`,
               `- Make sure to read our **[CONTRIBUTING.md](https://github.com/${owner}/${repo}/blob/main/CONTRIBUTING.md)** before you start — it covers code style, commit conventions, and the PR checklist.`,
               ``,
