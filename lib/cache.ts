@@ -2,7 +2,6 @@ import { randomUUID } from 'crypto';
 import { brotliCompressSync, brotliDecompressSync } from 'zlib';
 import logger from '@/lib/logger';
 
-
 /**
  * Represents a cached item with its expiration timestamp.
  */
