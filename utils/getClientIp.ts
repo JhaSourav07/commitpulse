@@ -18,7 +18,7 @@ const MAX_RECENT_LOGS_CACHE_SIZE = 1000;
 /**
  * Logs security-relevant events such as spoofing attempts in a structured format.
  */
-function logSecurityEvent(event: string, details: Record<string, unknown>) {
+export function logSecurityEvent(event: string, details: Record<string, unknown>) {
   // Simple deduplication key to stop massive test suites from freezing the runner
   const cacheKey = `${event}:${details.resolvedIp || ''}`;
   if (recentLogsCache.has(cacheKey)) return;
