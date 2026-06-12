@@ -1,6 +1,5 @@
 import { describe, it, expect, expectTypeOf } from 'vitest';
 import { INotification, Notification } from './Notification';
-import { Document } from 'mongoose';
 
 describe('Notification.ts - TypeScript Compiler Validation & Schema Constraints Stability', () => {
   it('Import the interfaces, types, or validation schemas associated with the file.', () => {

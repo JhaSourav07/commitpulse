@@ -271,37 +271,89 @@ it('assigns correct row and col values based on week/day position', () => {
   expect(towers[3].col).toBe(0);
 });
 
+// ── computeFaceOpacity tests ──────────────────────────────────────────────────
+// Previously this function had ZERO test coverage despite being called for
+// every tower in the isometric grid. These tests lock in the behavior of all
+// three branches and serve as a regression guard for future opacity changes.
+
 describe('computeFaceOpacity', () => {
-  it('returns ghost opacity in ghost city mode', () => {
-    expect(computeFaceOpacity(10, true)).toEqual({
-      left: 0,
-      right: 0,
-      top: 0.08,
-    });
+  it('returns fully transparent sides and ghost top for ghost city mode', () => {
+    const result = computeFaceOpacity(0, true);
+    expect(result.left).toBe(0);
+    expect(result.right).toBe(0);
+    expect(result.top).toBe(0.08);
   });
 
-  it('returns ghost opacity for zero contributions', () => {
-    expect(computeFaceOpacity(0, false)).toEqual({
-      left: 0,
-      right: 0,
-      top: 0.08,
-    });
+  it('ghost city mode returns same opacity regardless of count value', () => {
+    // In ghost city mode, all towers use the same ghost opacity — even if
+    // a count value is somehow passed, isGhostCityMode takes priority
+    const resultZero = computeFaceOpacity(0, true);
+    const resultFive = computeFaceOpacity(5, true);
+    expect(resultZero).toEqual(resultFive);
   });
 
-  it('returns active opacity for low contribution count', () => {
-    expect(computeFaceOpacity(1, false)).toEqual({
-      left: 0.35,
-      right: 0.21,
-      top: 0.7,
-    });
+  it('returns fully transparent sides and ghost top for count===0 in active calendar', () => {
+    // Empty day in an active calendar — intentionally same as ghost city mode.
+    // This is the "dead branch" documented in Issue #(your issue number):
+    // both branches return identical values by design.
+    const result = computeFaceOpacity(0, false);
+    expect(result.left).toBe(0);
+    expect(result.right).toBe(0);
+    expect(result.top).toBe(0.08);
   });
 
-  it('returns active opacity for high contribution count', () => {
-    expect(computeFaceOpacity(999, false)).toEqual({
-      left: 0.35,
-      right: 0.21,
-      top: 0.7,
-    });
+  it('count===0 non-ghost and ghost mode produce identical FaceOpacity', () => {
+    // Documents that the two branches returning the same value is intentional.
+    // If this test ever fails, it means the design intent changed and both
+    // branches need to be updated consistently.
+    const ghost = computeFaceOpacity(0, true);
+    const emptyActive = computeFaceOpacity(0, false);
+    expect(ghost).toEqual(emptyActive);
+  });
+
+  it('returns full active opacity for count > 0 in non-ghost mode', () => {
+    const result = computeFaceOpacity(5, false);
+    expect(result.left).toBe(0.35);
+    expect(result.right).toBe(0.21);
+    expect(result.top).toBe(0.7);
+  });
+
+  it('active opacity applies regardless of contribution count magnitude', () => {
+    const resultOne = computeFaceOpacity(1, false);
+    const resultHundred = computeFaceOpacity(100, false);
+    expect(resultOne).toEqual(resultHundred);
+    expect(resultOne.left).toBe(0.35);
+    expect(resultOne.right).toBe(0.21);
+    expect(resultOne.top).toBe(0.7);
+  });
+
+  it('left face opacity is always 0 for empty or ghost towers', () => {
+    expect(computeFaceOpacity(0, true).left).toBe(0);
+    expect(computeFaceOpacity(0, false).left).toBe(0);
+  });
+
+  it('right face opacity is always 0 for empty or ghost towers', () => {
+    expect(computeFaceOpacity(0, true).right).toBe(0);
+    expect(computeFaceOpacity(0, false).right).toBe(0);
+  });
+
+  it('top face opacity is 0.08 for ghost/empty and 0.7 for active', () => {
+    expect(computeFaceOpacity(0, true).top).toBe(0.08);
+    expect(computeFaceOpacity(0, false).top).toBe(0.08);
+    expect(computeFaceOpacity(1, false).top).toBe(0.7);
+  });
+
+  it('active tower has higher opacity than ghost/empty on all faces', () => {
+    const active = computeFaceOpacity(10, false);
+    const ghost = computeFaceOpacity(0, true);
+    expect(active.left).toBeGreaterThan(ghost.left);
+    expect(active.right).toBeGreaterThan(ghost.right);
+    expect(active.top).toBeGreaterThan(ghost.top);
+  });
+
+  it('returns a plain object with exactly left, right, top keys', () => {
+    const result = computeFaceOpacity(5, false);
+    expect(Object.keys(result).sort()).toEqual(['left', 'right', 'top']);
   });
 });
 

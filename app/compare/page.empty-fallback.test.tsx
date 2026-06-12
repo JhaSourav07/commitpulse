@@ -1,7 +1,8 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import ComparePage, { metadata } from './page';
+// 1. Import generateMetadata instead of metadata
+import ComparePage, { generateMetadata } from './page';
 
 vi.mock('./CompareClient', () => ({
   default: () => <div data-testid="compare-client">Compare Client</div>,
@@ -28,11 +29,14 @@ describe('ComparePage empty fallback behavior', () => {
     expect(screen.getByTestId('footer')).toBeDefined();
   });
 
-  it('exports valid metadata', () => {
-    expect(metadata.title).toBe('Compare | CommitPulse');
+  // 2. Update to async tests that call generateMetadata
+  it('exports valid metadata', async () => {
+    const metadata = await generateMetadata({ searchParams: Promise.resolve({}) });
+    expect(metadata.title).toBe('Compare Developers | CommitPulse');
   });
 
-  it('contains openGraph fallback metadata', () => {
+  it('contains openGraph fallback metadata', async () => {
+    const metadata = await generateMetadata({ searchParams: Promise.resolve({}) });
     expect(metadata.openGraph?.title).toBe('Compare Developers | CommitPulse');
   });
 });

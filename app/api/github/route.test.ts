@@ -6,6 +6,17 @@ vi.mock('../../../lib/github', () => ({
   getFullDashboardData: vi.fn(),
 }));
 
+// Run after() callbacks synchronously in tests (outside a request scope it is otherwise a no-op).
+vi.mock('next/server', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('next/server')>();
+  return {
+    ...actual,
+    after: (fn: () => unknown) => {
+      void fn();
+    },
+  };
+});
+
 import { getFullDashboardData } from '../../../lib/github';
 import { quotaMonitor } from '@/services/github/quota-monitor';
 import { refreshPolicy } from '@/services/github/refresh-policy';
@@ -169,6 +180,30 @@ describe('GET /api/github', () => {
 
       expect(response.status).toBe(404);
       expect(body.error).toContain('User not found');
+    });
+
+    it('returns 404 when getFullDashboardData throws a wrapped User not found error', async () => {
+      const underlyingError = new Error('User not found');
+      const wrappedError = new Error('[GitHub API] Failed to fetch profile for user "octocat"', {
+        cause: underlyingError,
+      });
+      vi.mocked(getFullDashboardData).mockRejectedValue(wrappedError);
+
+      const response = await GET(makeRequest({ username: 'octocat' }));
+      const body = await response.json();
+
+      expect(response.status).toBe(404);
+      expect(body.error).toContain('User not found');
+    });
+
+    it('returns 500 when getFullDashboardData throws a generic internal error', async () => {
+      vi.mocked(getFullDashboardData).mockRejectedValue(new Error('Database offline'));
+
+      const response = await GET(makeRequest({ username: 'octocat' }));
+      const body = await response.json();
+
+      expect(response.status).toBe(500);
+      expect(body.error).toContain('Database offline');
     });
   });
 });

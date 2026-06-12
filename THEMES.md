@@ -36,6 +36,7 @@ https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&theme=<slug>
 | cyberpunk        | `#fce22a`  | `#111111` | `#ff003c` |
 | glacier          | `#e0f2fe`  | `#0369a1` | `#06b6d4` |
 | lumos            | `#0a0a0a`  | `#a7f3d0` | `#fbbf24` |
+| monokai          | `#272822`  | `#f8f8f2` | `#a6e22e` |
 
 ---
 
@@ -326,6 +327,18 @@ https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&theme=<slug>
 | `bg`      | 0a0a0a |
 | `text`    | a7f3d0 |
 | `accent`  | fbbf24 |
+
+---
+
+### Monokai
+
+![monokai](https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=monokai)
+
+| Parameter | Value  |
+| --------- | ------ |
+| `bg`      | 272822 |
+| `text`    | f8f8f2 |
+| `accent`  | a6e22e |
 
 ---
 

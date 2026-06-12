@@ -1,13 +1,8 @@
 // lib/svg/constants.accessibility.test.ts
 
 import { describe, expect, it } from 'vitest';
-import {
-  SVG_WIDTH,
-  SVG_HEIGHT,
-  FONT_MAP,
-  CONTRIBUTION_MILESTONES,
-  STREAK_MILESTONES,
-} from './constants';
+import { SVG_WIDTH, SVG_HEIGHT, CONTRIBUTION_MILESTONES, STREAK_MILESTONES } from './constants';
+import { FONT_MAP } from './fonts';
 
 describe('SVG Constants Accessibility', () => {
   it('provides valid SVG dimensions for accessible rendering', () => {

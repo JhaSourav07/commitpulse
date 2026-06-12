@@ -8,14 +8,16 @@ interface NameSectionProps {
 }
 
 export function NameSection({ value, onChange }: NameSectionProps) {
+  const safeValue = value || '';
   return (
     <SectionCard title="Name" description="Your display name for the README header" defaultOpen>
-      <FieldLabel>Display Name</FieldLabel>
+      <FieldLabel htmlFor="editor-display-name">Display Name</FieldLabel>
       <input
+        id="editor-display-name"
         type="text"
-        value={value}
+        value={safeValue}
         onChange={(e) => onChange(e.target.value)}
-        placeholder="e.g. John Doe"
+        placeholder="e.g. Omkar"
         maxLength={100}
         className="w-full rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 px-4 py-2.5 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/40 transition-colors"
       />

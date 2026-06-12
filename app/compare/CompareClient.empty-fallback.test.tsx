@@ -23,6 +23,8 @@ vi.mock('framer-motion', () => ({
       delete props.whileInView;
       delete props.whileHover;
       delete props.whileTap;
+      delete props.whileHover;
+      delete props.whileInView;
       delete props.viewport;
       delete props.transition;
       return <div className={className}>{children}</div>;
@@ -32,6 +34,8 @@ vi.mock('framer-motion', () => ({
       delete props.animate;
       delete props.whileHover;
       delete props.whileTap;
+      delete props.whileHover;
+      delete props.whileInView;
       delete props.transition;
       return (
         <button className={className} onClick={onClick} disabled={disabled}>

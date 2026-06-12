@@ -2,6 +2,7 @@
 
 'use client';
 
+import Image from 'next/image';
 import { motion, Variants } from 'framer-motion';
 import { Code, Flame, Calendar, Coffee, Trophy, Sparkles } from 'lucide-react';
 import type { WrappedStats, UserProfile } from '@/types/dashboard';
@@ -49,10 +50,15 @@ export default function GithubWrapped({ profile, wrappedData }: GithubWrappedPro
         {/* Header */}
         <motion.div variants={itemVariants} className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={profile.avatarUrl}
-              alt={profile.name}
+            <Image
+              src={
+                profile.avatarUrl.startsWith('http') || profile.avatarUrl.startsWith('/')
+                  ? profile.avatarUrl
+                  : `/${profile.avatarUrl}`
+              }
+              alt={profile.name || 'GitHub profile avatar'}
+              width={64}
+              height={64}
               className="w-16 h-16 rounded-full border-2 border-white/20"
             />
             <div>

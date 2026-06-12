@@ -1,8 +1,14 @@
 // app/api/streak/route.ts
 
+import crypto from 'crypto';
 import { NextResponse } from 'next/server';
 import { fetchGitHubContributions, getOrgDashboardData } from '@/lib/github';
-import { calculateStreak, calculateMonthlyStats, aggregateCalendars } from '@/lib/calculate';
+import {
+  calculateStreak,
+  calculateMonthlyStats,
+  aggregateCalendars,
+  chunkDaysIntoWeeks,
+} from '@/lib/calculate';
 import {
   generateNotFoundSVG,
   generateRateLimitSVG,
@@ -11,12 +17,15 @@ import {
   generateVersusSVG,
   generateHeatmapSVG,
   generatePulseSVG,
+  generateSkylineSVG,
+  generateLanguagesSVG,
 } from '@/lib/svg/generator';
+import { generateConstellationSVG } from '@/lib/svg/constellation';
 import { getSecondsUntilUTCMidnight, getSecondsUntilMidnightInTimezone } from '@/utils/time';
-import type { BadgeParams, ContributionCalendar } from '@/types';
+import type { BadgeParams, RepoContribution, ExtendedContributionData } from '@/types';
 import { themes } from '@/lib/svg/themes';
 import { streakParamsSchema } from '@/lib/validations';
-import { sanitizeHexColor } from '@/lib/svg/sanitizer';
+import { sanitizeHexColor, sanitizeRadius } from '@/lib/svg/sanitizer';
 
 const SVG_CSP_HEADER =
   "default-src 'none'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://fonts.gstatic.com;";
@@ -63,6 +72,10 @@ export async function GET(request: Request) {
       user,
       theme,
       bg,
+      bgType,
+      bgStart,
+      bgEnd,
+      bgAngle,
       text,
       accent,
       scale,
@@ -74,6 +87,7 @@ export async function GET(request: Request) {
       from: customFrom,
       to: customTo,
       refresh,
+      bypassCache: bypassCacheParam,
       hide_title,
       hide_background,
       hide_stats,
@@ -99,27 +113,58 @@ export async function GET(request: Request) {
       glow,
       format,
       days,
+      label,
       badges,
+      entrance,
     } = parseResult.data;
-    const normalizedView = view as 'default' | 'monthly' | 'heatmap' | 'pulse';
+    const normalizedView = view as
+      | 'default'
+      | 'monthly'
+      | 'heatmap'
+      | 'pulse'
+      | 'skyline'
+      | 'languages'
+      | 'constellation';
     const themeName = theme || 'dark';
+
+    // Treat either ?refresh=true or ?bypassCache=true as a cache-bypass request
+    const isRefreshRequested = refresh || bypassCacheParam;
+    const shouldBypassCache = isRefreshRequested;
 
     let timezone = 'UTC';
     if (tzParam) {
-      timezone = new Intl.DateTimeFormat(undefined, { timeZone: tzParam }).resolvedOptions()
-        .timeZone;
+      try {
+        timezone = new Intl.DateTimeFormat(undefined, { timeZone: tzParam }).resolvedOptions()
+          .timeZone;
+      } catch (error) {
+        if (error instanceof RangeError) {
+          const validationErr = new Error(`Invalid timezone: ${tzParam}`);
+          validationErr.name = 'ValidationError';
+          throw validationErr;
+        }
+        throw error;
+      }
     }
 
-    let from = customFrom
-      ? new Date(customFrom).toISOString()
-      : year
-        ? `${year}-01-01T00:00:00Z`
-        : undefined;
-    let to = customTo
-      ? new Date(customTo).toISOString()
-      : year
-        ? `${year}-12-31T23:59:59Z`
-        : undefined;
+    const parseDate = (value?: string) => {
+      if (!value) {
+        return undefined;
+      }
+
+      const date = new Date(value);
+
+      if (Number.isNaN(date.getTime())) {
+        const validationErr = new Error(`Invalid date: ${value}`);
+        validationErr.name = 'ValidationError';
+        throw validationErr;
+      }
+
+      return date.toISOString();
+    };
+
+    let from = parseDate(customFrom) ?? (year ? `${year}-01-01T00:00:00Z` : undefined);
+
+    let to = parseDate(customTo) ?? (year ? `${year}-12-31T23:59:59Z` : undefined);
 
     if (normalizedView === 'monthly') {
       const referenceDate = getMonthlyReferenceDate(year, timezone) || new Date();
@@ -177,14 +222,25 @@ export async function GET(request: Request) {
     const borderParam = searchParams.get('border');
     const sanitizedBorder = borderParam ? borderParam.replace(/[^a-fA-F0-9]/g, '') : undefined;
     const animate = searchParams.get('animate') !== 'false';
+    // Validate and clamp the speed param to prevent broken SVG animation
+    const rawSpeedNum = speed ? parseFloat(String(speed)) : NaN;
+    const validatedSpeed = (
+      !isNaN(rawSpeedNum) && isFinite(rawSpeedNum) && rawSpeedNum >= 1 && rawSpeedNum <= 60
+        ? `${rawSpeedNum}s`
+        : '8s'
+    ) as `${number}s`;
     const params: BadgeParams = {
       user: targetEntity,
       bg: isAutoTheme ? selectedTheme.bg : bg || selectedTheme.bg,
+      bgType,
+      bgStart,
+      bgEnd,
+      bgAngle,
       text: isAutoTheme ? selectedTheme.text : text || selectedTheme.text,
       accent: isAutoTheme ? selectedTheme.accent : accent || selectedTheme.accent,
       border: sanitizedBorder,
       radius,
-      speed: speed && /^(?:[2-9]|1\d|20)s$/.test(speed) ? speed : '8s',
+      speed: validatedSpeed,
       scale,
       font,
       autoTheme: isAutoTheme,
@@ -222,69 +278,84 @@ export async function GET(request: Request) {
       disable_particles,
       glow,
       animate,
+      label,
       badges,
+      entrance,
     };
 
     let calendar;
     let versusCalendar;
+    let repoContributions: RepoContribution[] = [];
 
     // Fetch Organization Mega-City Data OR Single User Data
     if (org) {
       const orgData = await getOrgDashboardData(org, {
-        bypassCache: refresh,
+        bypassCache: shouldBypassCache,
         from,
         to,
       });
       calendar = orgData.calendar;
+      repoContributions = normalizedView === 'languages' ? orgData.repoContributions || [] : [];
     } else if (user.includes(',')) {
       const users = user
         .split(',')
         .map((u) => u.trim())
         .filter(Boolean);
+
+      if (users.length > 2) {
+        throw new Error(
+          'ValidationError: The streak comparison generator strictly accepts a maximum of 2 usernames.'
+        );
+      }
       let lastError: unknown = null;
       let hasOfflineFallback = false;
       const fetchedCalendars = await Promise.all(
         users.map(async (u) => {
           try {
             const userData = await fetchGitHubContributions(u, {
-              bypassCache: refresh,
+              bypassCache: shouldBypassCache,
               from,
               to,
             });
             if (userData.isOfflineFallback) {
               hasOfflineFallback = true;
             }
-            return userData.calendar;
+            return userData;
           } catch (err) {
             lastError = err;
             return null;
           }
         })
       );
-      const successfulCalendars = fetchedCalendars.filter(
-        (c): c is ContributionCalendar => c !== null
+      const successfulData = fetchedCalendars.filter(
+        (d): d is ExtendedContributionData => d !== null
       );
-      if (successfulCalendars.length === 0) {
-        throw lastError || new Error('No successful calendars fetched');
+      if (successfulData.length === 0) {
+        throw lastError || new Error('No successful data fetched');
       }
-      calendar = aggregateCalendars(successfulCalendars);
+      calendar = aggregateCalendars(successfulData.map((d) => d.calendar));
+      repoContributions =
+        normalizedView === 'languages'
+          ? successfulData.flatMap((d) => d.repoContributions || [])
+          : [];
       if (hasOfflineFallback) {
         params.isOfflineFallback = true;
       }
     } else {
       const userData = await fetchGitHubContributions(user, {
-        bypassCache: refresh,
+        bypassCache: shouldBypassCache,
         from,
         to,
       });
       calendar = userData.calendar;
+      repoContributions = normalizedView === 'languages' ? userData.repoContributions || [] : [];
       if (userData.isOfflineFallback) {
         params.isOfflineFallback = true;
       }
 
       if (versus) {
         const versusData = await fetchGitHubContributions(versus, {
-          bypassCache: refresh,
+          bypassCache: shouldBypassCache,
           from,
           to,
         });
@@ -302,11 +373,7 @@ export async function GET(request: Request) {
 
       calendar = {
         totalContributions: filteredDays.reduce((sum, d) => sum + d.contributionCount, 0),
-        weeks: [
-          {
-            contributionDays: filteredDays,
-          },
-        ],
+        weeks: chunkDaysIntoWeeks(filteredDays),
       };
     }
 
@@ -322,27 +389,49 @@ export async function GET(request: Request) {
       const secondsToMidnight = tzParam
         ? getSecondsUntilMidnightInTimezone(timezone)
         : getSecondsUntilUTCMidnight();
-      const cacheControl = refresh
+      const cacheControl = isRefreshRequested
         ? 'no-cache, no-store, must-revalidate'
         : `public, s-maxage=${secondsToMidnight}, stale-while-revalidate=86400`;
 
-      return NextResponse.json(
-        {
-          user: targetEntity,
-          stats,
-          monthlyStats,
-          calendar: {
-            totalContributions: calendar.totalContributions,
-            weeks: calendar.weeks,
-          },
+      const cacheStatusHeader = shouldBypassCache
+        ? `BYPASS, fetched=${new Date().toISOString()}`
+        : 'HIT';
+
+      const jsonPayload = JSON.stringify({
+        user: targetEntity,
+        stats,
+        monthlyStats,
+        calendar: {
+          totalContributions: calendar.totalContributions,
+          weeks: calendar.weeks,
         },
-        {
-          headers: {
-            'Cache-Control': cacheControl,
-            'X-Cache-Status': refresh ? `BYPASS, fetched=${new Date().toISOString()}` : 'HIT',
-          },
+      });
+
+      const etag = crypto.createHash('sha1').update(jsonPayload).digest('hex');
+      const weakEtag = `W/"${etag}"`;
+      const ifNoneMatch = request.headers.get('if-none-match');
+
+      if (ifNoneMatch) {
+        const etags = ifNoneMatch.split(',').map((e) => e.trim());
+        if (etags.includes(weakEtag) || etags.includes(`"${etag}"`)) {
+          return new NextResponse(null, {
+            status: 304,
+            headers: {
+              'Cache-Control': cacheControl,
+              ETag: weakEtag,
+            },
+          });
         }
-      );
+      }
+
+      return new NextResponse(jsonPayload, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': cacheControl,
+          ETag: weakEtag,
+          'X-Cache-Status': cacheStatusHeader,
+        },
+      });
     }
 
     // ─── SVG output mode (default) ──────────────────────────────────────────
@@ -354,6 +443,9 @@ export async function GET(request: Request) {
         getMonthlyReferenceDate(year, timezone)
       );
       svg = generateMonthlySVG(stats, params);
+    } else if (normalizedView === 'languages') {
+      const stats = calculateStreak(calendar, timezone, undefined, grace);
+      svg = generateLanguagesSVG(stats, params, repoContributions);
     } else if (normalizedView === 'heatmap') {
       const stats = calculateStreak(calendar, timezone, undefined, grace);
       svg = generateHeatmapSVG(stats, params, calendar);
@@ -362,6 +454,12 @@ export async function GET(request: Request) {
       // even though the sparkline generator will extract its own daily 30-day timeline below.
       const stats = calculateStreak(calendar, timezone, undefined, grace);
       svg = generatePulseSVG(stats, params, calendar);
+    } else if (normalizedView === 'skyline') {
+      const stats = calculateStreak(calendar, timezone, undefined, grace);
+      svg = generateSkylineSVG(stats, params, calendar);
+    } else if (normalizedView === 'constellation') {
+      const stats = calculateStreak(calendar, timezone, undefined, grace);
+      svg = generateConstellationSVG(stats, params, calendar);
     } else if (versus && versusCalendar) {
       const stats1 = calculateStreak(calendar, timezone, undefined, grace);
       const stats2 = calculateStreak(versusCalendar, timezone, undefined, grace);
@@ -374,18 +472,37 @@ export async function GET(request: Request) {
     const secondsToMidnight = tzParam
       ? getSecondsUntilMidnightInTimezone(timezone)
       : getSecondsUntilUTCMidnight();
-    const cacheControl = refresh
+    const cacheControl = isRefreshRequested
       ? 'no-cache, no-store, must-revalidate'
       : isHistoricalYear
         ? 'public, s-maxage=31536000, immutable'
         : `public, s-maxage=${secondsToMidnight}, stale-while-revalidate=86400`;
+
+    const etag = crypto.createHash('sha1').update(svg).digest('hex');
+    const weakEtag = `W/"${etag}"`;
+    const ifNoneMatch = request.headers.get('if-none-match');
+
+    if (ifNoneMatch) {
+      const etags = ifNoneMatch.split(',').map((e) => e.trim());
+      if (etags.includes(weakEtag) || etags.includes(`"${etag}"`)) {
+        return new NextResponse(null, {
+          status: 304,
+          headers: {
+            'Cache-Control': cacheControl,
+            ETag: weakEtag,
+          },
+        });
+      }
+    }
 
     return new NextResponse(svg, {
       headers: {
         'Content-Type': 'image/svg+xml',
         'Cache-Control': cacheControl,
         'Content-Security-Policy': SVG_CSP_HEADER,
-        'X-Cache-Status': refresh ? `BYPASS, fetched=${new Date().toISOString()}` : 'HIT',
+        'X-CommitPulse-Grace-Applied': String(grace),
+        ETag: weakEtag,
+        'X-Cache-Status': shouldBypassCache ? `BYPASS, fetched=${new Date().toISOString()}` : 'HIT',
       },
     });
   } catch (error: unknown) {
@@ -438,12 +555,7 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
     undefined;
   const errAccent = `#${sanitizeHexColor(errAccentRaw, '58a6ff')}`;
   const errText = `#${sanitizeHexColor(parseResult.success ? parseResult.data.text : undefined, 'c9d1d9')}`;
-  const errRadius = parseResult.success
-    ? (() => {
-        const r = Number(parseResult.data.radius);
-        return Number.isFinite(r) ? Math.min(32, Math.max(0, r)) : 8;
-      })()
-    : 8;
+  const errRadius = sanitizeRadius(parseResult.success ? parseResult.data.radius : undefined, 8);
   const errSpeed = (parseResult.success && parseResult.data.speed) || '8s';
 
   if (isRateLimit) {

@@ -38,6 +38,7 @@ describe('Notification.ts - Asynchronous Service Layer Mocking & Local Cache Stu
     };
 
     const fetchPromise = fetchServiceData();
+    void fetchPromise;
 
     // Assert immediately before promise resolution
     expect(overlay.style.display).toBe('block');
@@ -92,7 +93,7 @@ describe('Notification.ts - Asynchronous Service Layer Mocking & Local Cache Stu
     const requestWithSafetyNet = async () => {
       try {
         await unstableEndpoint.fetch();
-      } catch (e: unknown) {
+      } catch {
         caughtTimeoutError = true;
         fallbackRendered = true; // procedure trigger
       }

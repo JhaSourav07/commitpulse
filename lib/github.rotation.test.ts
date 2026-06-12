@@ -1,5 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach, vi, type Mock } from 'vitest';
-import { fetchWithRetry, getGitHubTokens, clearGitHubApiCacheForTests } from './github';
+import {
+  fetchWithRetry,
+  getGitHubTokens,
+  clearGitHubApiCacheForTests,
+  getTokenStatsForTests,
+  getGlobalCircuitBreakerOpenUntilForTests,
+} from './github';
 
 describe('GitHub Multi-Token Rotation & Fallback', () => {
   const originalGitHubPat = process.env.GITHUB_PAT;
@@ -30,7 +36,6 @@ describe('GitHub Multi-Token Rotation & Fallback', () => {
     process.env.GITHUB_PAT = 'token1,token2';
     delete process.env.GITHUB_TOKEN;
 
-    // First fetch fails with 429
     fetchMock.mockResolvedValueOnce({
       status: 429,
       ok: false,
@@ -40,7 +45,6 @@ describe('GitHub Multi-Token Rotation & Fallback', () => {
       }),
     });
 
-    // Second fetch succeeds with 200
     fetchMock.mockResolvedValueOnce({
       status: 200,
       ok: true,
@@ -55,11 +59,9 @@ describe('GitHub Multi-Token Rotation & Fallback', () => {
     expect(res.status).toBe(200);
     expect(fetchMock).toHaveBeenCalledTimes(2);
 
-    // Verify first request used token1
     const firstCallHeaders = fetchMock.mock.calls[0][1].headers;
     expect(firstCallHeaders.Authorization).toBe('bearer token1');
 
-    // Verify second request rotated to token2
     const secondCallHeaders = fetchMock.mock.calls[1][1].headers;
     expect(secondCallHeaders.Authorization).toBe('bearer token2');
   });
@@ -68,14 +70,12 @@ describe('GitHub Multi-Token Rotation & Fallback', () => {
     process.env.GITHUB_PAT = 'bad_token,good_token';
     delete process.env.GITHUB_TOKEN;
 
-    // First fetch fails with 401 (Invalid token)
     fetchMock.mockResolvedValueOnce({
       status: 401,
       ok: false,
       headers: new Headers(),
     });
 
-    // Second fetch succeeds with 200
     fetchMock.mockResolvedValueOnce({
       status: 200,
       ok: true,
@@ -89,14 +89,9 @@ describe('GitHub Multi-Token Rotation & Fallback', () => {
 
     expect(res.status).toBe(200);
     expect(fetchMock).toHaveBeenCalledTimes(2);
-
-    // Verify first request used bad_token
     expect(fetchMock.mock.calls[0][1].headers.Authorization).toBe('bearer bad_token');
-
-    // Verify second request used good_token
     expect(fetchMock.mock.calls[1][1].headers.Authorization).toBe('bearer good_token');
 
-    // Verify a subsequent call still skips bad_token and immediately uses good_token
     fetchMock.mockResolvedValueOnce({
       status: 200,
       ok: true,
@@ -110,5 +105,68 @@ describe('GitHub Multi-Token Rotation & Fallback', () => {
     expect(res2.status).toBe(200);
     expect(fetchMock).toHaveBeenCalledTimes(3);
     expect(fetchMock.mock.calls[2][1].headers.Authorization).toBe('bearer good_token');
+  });
+
+  it('prioritizes token with highest remaining quota', async () => {
+    process.env.GITHUB_PAT = 'token1,token2';
+    delete process.env.GITHUB_TOKEN;
+
+    fetchMock.mockResolvedValueOnce({
+      status: 200,
+      ok: true,
+      headers: new Headers({
+        'x-ratelimit-remaining': '10',
+        'x-ratelimit-reset': String(Math.floor(Date.now() / 1000) + 3600),
+      }),
+      json: async () => ({ data: 'res1' }),
+    });
+
+    fetchMock.mockResolvedValueOnce({
+      status: 200,
+      ok: true,
+      headers: new Headers({
+        'x-ratelimit-remaining': '100',
+        'x-ratelimit-reset': String(Math.floor(Date.now() / 1000) + 3600),
+      }),
+      json: async () => ({ data: 'res2' }),
+    });
+
+    fetchMock.mockResolvedValueOnce({
+      status: 200,
+      ok: true,
+      headers: new Headers({
+        'x-ratelimit-remaining': '99',
+        'x-ratelimit-reset': String(Math.floor(Date.now() / 1000) + 3600),
+      }),
+      json: async () => ({ data: 'res3' }),
+    });
+
+    await fetchWithRetry('https://api.github.com/graphql', { headers: {} });
+    await fetchWithRetry('https://api.github.com/graphql', { headers: {} });
+    await fetchWithRetry('https://api.github.com/graphql', { headers: {} });
+
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(fetchMock.mock.calls[0][1].headers.Authorization).toBe('bearer token1');
+    expect(fetchMock.mock.calls[1][1].headers.Authorization).toBe('bearer token2');
+    expect(fetchMock.mock.calls[2][1].headers.Authorization).toBe('bearer token2');
+  });
+
+  it('correctly sets global circuit breaker to the earliest reset time when all tokens are rate-limited', async () => {
+    process.env.GITHUB_PAT = 'token1,token2';
+    delete process.env.GITHUB_TOKEN;
+
+    const resetTime1 = Date.now() + 5000;
+    const resetTime2 = Date.now() + 10000;
+
+    const tokenStats = getTokenStatsForTests();
+    tokenStats.set('token1', { remaining: 0, resetTime: resetTime1 });
+    tokenStats.set('token2', { remaining: 0, resetTime: resetTime2 });
+
+    await expect(fetchWithRetry('https://api.github.com/graphql', { headers: {} })).rejects.toThrow(
+      'API Rate Limit Exceeded'
+    );
+
+    expect(getGlobalCircuitBreakerOpenUntilForTests()).toBe(resetTime1);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });
