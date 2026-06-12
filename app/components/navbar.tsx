@@ -30,6 +30,12 @@ const NAV_LINKS = [
     isPrimary: false,
   },
   {
+    label: 'Burnout Radar',
+    href: '/burnout-analyzer',
+    isExternal: false,
+    isPrimary: false,
+  },
+  {
     label: 'Customization Studio',
     href: '/#customization-studio',
     isExternal: false,
@@ -128,13 +134,14 @@ export default function Navbar() {
   const getTranslatedLabel = (label: string) => {
     if (label === 'GitHub Repo') return t('navbar.repo');
     if (label === 'Compare') return t('navbar.compare');
+    if (label === 'Burnout Radar') return t('navbar.burnout_radar');
     if (label === 'Customization Studio') return t('navbar.customization_studio');
     if (label === 'Generator') return t('navbar.generator');
     return label;
   };
 
   return (
-    <header className="relative px-4 pt-4 sm:px-6 w-full">
+    <header className="sticky top-0 z-50 px-4 pt-4 sm:px-6 w-full">
       <div className="mx-auto max-w-6xl">
         <div
           ref={shellRef}

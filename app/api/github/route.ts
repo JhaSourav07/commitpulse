@@ -137,7 +137,13 @@ export async function GET(request: Request) {
       },
     });
   } catch (error: unknown) {
-    const err = error as {
+    let currentErr: unknown = error;
+    // Walk down the cause chain to find the underlying error if wrapped (e.g. in getFullDashboardData)
+    while (currentErr && typeof currentErr === 'object' && 'cause' in currentErr) {
+      currentErr = (currentErr as { cause: unknown }).cause;
+    }
+
+    const err = (currentErr || error) as {
       status?: number;
       response?: { status?: number };
       message?: string;

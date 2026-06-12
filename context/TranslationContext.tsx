@@ -16,8 +16,9 @@ import fr from '@/locales/fr.json';
 import zh from '@/locales/zh.json';
 import ja from '@/locales/ja.json';
 import ko from '@/locales/ko.json';
+import de from '@/locales/de.json';
 
-export type Language = 'en' | 'es' | 'hi' | 'fr' | 'zh' | 'ja' | 'ko';
+export type Language = 'en' | 'es' | 'hi' | 'fr' | 'zh' | 'ja' | 'ko' | 'de';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const translations: Record<Language, any> = {
@@ -28,6 +29,7 @@ const translations: Record<Language, any> = {
   zh,
   ja,
   ko,
+  de,
 };
 
 export const LANGUAGE_LABELS: Record<Language, string> = {
@@ -38,6 +40,7 @@ export const LANGUAGE_LABELS: Record<Language, string> = {
   zh: '\u7b80\u4f53\u4e2d\u6587',
   ja: '\u65e5\u672c\u8a9e',
   ko: '\ud55c\uad6d\uc5b4',
+  de: 'Deutsch',
 };
 
 interface TranslationContextType {
@@ -49,18 +52,21 @@ interface TranslationContextType {
 
 const TranslationContext = createContext<TranslationContextType | null>(null);
 
-const getNestedValue = (obj: Record<string, unknown> | null | undefined, path: string): string => {
-  if (!obj) return path;
+const getNestedValue = (
+  obj: Record<string, unknown> | null | undefined,
+  path: string
+): string | undefined => {
+  if (!obj) return undefined;
   const parts = path.split('.');
   let current: unknown = obj;
   for (const part of parts) {
     if (current && typeof current === 'object' && part in (current as Record<string, unknown>)) {
       current = (current as Record<string, unknown>)[part];
     } else {
-      return path;
+      return undefined;
     }
   }
-  return typeof current === 'string' ? current : path;
+  return typeof current === 'string' ? current : undefined;
 };
 
 export function TranslationProvider({ children }: { children: ReactNode }) {
@@ -107,11 +113,11 @@ export function TranslationProvider({ children }: { children: ReactNode }) {
     const translationSet = translations[currentLang] || translations.en;
     let value = getNestedValue(translationSet as Record<string, unknown>, path);
 
-    if (typeof value !== 'string') {
+    if (value === undefined) {
       value = getNestedValue(translations.en as Record<string, unknown>, path);
     }
 
-    if (typeof value !== 'string') {
+    if (value === undefined) {
       if (params && 'defaultValue' in params) {
         return params.defaultValue;
       }
@@ -144,7 +150,7 @@ export function useTranslation() {
       changeLanguage: () => {},
       t: (path: string, params?: Record<string, string>): string => {
         const value = getNestedValue(en, path);
-        if (typeof value !== 'string') {
+        if (value === undefined) {
           if (params && 'defaultValue' in params) {
             return params.defaultValue;
           }

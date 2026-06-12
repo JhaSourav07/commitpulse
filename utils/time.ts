@@ -37,7 +37,11 @@ export function getSecondsUntilUTCMidnight(): number {
  * const seconds = getSecondsUntilMidnightInTimezone("Asia/Kolkata");
  * console.log(seconds);
  */
-export function getSecondsUntilMidnightInTimezone(tz: string): number {
+export function getSecondsUntilMidnightInTimezone(tz?: string | null): number {
+  if (tz === undefined || tz === null || tz.trim() === '') {
+    return getSecondsUntilUTCMidnight();
+  }
+
   const now = new Date();
 
   const parts = new Intl.DateTimeFormat('en-US', {

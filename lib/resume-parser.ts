@@ -120,7 +120,8 @@ async function extractTextFromBuffer(buffer: Buffer, mimeType: string): Promise<
   if (mimeType === 'application/pdf') {
     try {
       if (buffer.toString('utf-8', 0, 4) === '%PDF') {
-        const pdf = await import('pdf-parse');
+        /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+        const pdf = (await import('pdf-parse')) as any;
         const pdfParser = ((pdf as unknown as { default?: unknown }).default || pdf) as (
           dataBuffer: Buffer,
           options?: unknown
@@ -139,7 +140,8 @@ async function extractTextFromBuffer(buffer: Buffer, mimeType: string): Promise<
   ) {
     try {
       if (buffer.toString('utf-8', 0, 2) === 'PK') {
-        const mammothModule = await import('mammoth');
+        /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+        const mammothModule = (await import('mammoth')) as any;
         const mammothParser = ((mammothModule as unknown as { default?: unknown }).default ||
           mammothModule) as typeof mammothModule;
         const result = await mammothParser.extractRawText({ buffer });

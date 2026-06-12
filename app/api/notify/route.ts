@@ -6,6 +6,7 @@ import { getClientIp } from '@/utils/getClientIp';
 import { DistributedCache } from '@/lib/cache';
 import { gitHubUserValidator } from '@/services/github/validate-user';
 import { getRateLimitHeaders, notifyRateLimiter } from '@/lib/rate-limit';
+import { verifyGitHubOwner } from '@/lib/github-owner-verification';
 
 const notifyWriteCache = new DistributedCache<number>(5000, 60000);
 const NOTIFY_WRITE_COOLDOWN_MS = 5 * 60 * 1000;
@@ -77,6 +78,14 @@ export async function POST(req: Request) {
 
   const { username, email, frequency, preferences } = parsed.data;
   const normalizedUsername = username.toLowerCase().trim();
+
+  const ownership = await verifyGitHubOwner(req, normalizedUsername);
+  if (!ownership.verified) {
+    return NextResponse.json(
+      { success: false, message: ownership.message },
+      { status: ownership.status }
+    );
+  }
 
   try {
     // Graceful MONGODB_URI handling
@@ -205,6 +214,15 @@ export async function DELETE(req: NextRequest) {
   }
 
   const { user: username } = parsed.data;
+  const normalizedUsername = username.toLowerCase();
+
+  const ownership = await verifyGitHubOwner(req, normalizedUsername);
+  if (!ownership.verified) {
+    return NextResponse.json(
+      { success: false, message: ownership.message },
+      { status: ownership.status }
+    );
+  }
 
   try {
     // Graceful MONGODB_URI handling
@@ -230,7 +248,7 @@ export async function DELETE(req: NextRequest) {
 
     await dbConnect();
 
-    const result = await Notification.deleteOne({ username: username.toLowerCase() });
+    const result = await Notification.deleteOne({ username: normalizedUsername });
 
     if (result.deletedCount === 0) {
       return NextResponse.json(

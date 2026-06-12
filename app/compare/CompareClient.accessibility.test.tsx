@@ -22,18 +22,18 @@ vi.mock('framer-motion', () => ({
       get: (_, tag) => {
         return ({
           children,
-          animate,
-          initial,
-          exit,
-          transition,
-          variants,
-          whileHover,
-          whileTap,
-          whileFocus,
-          whileDrag,
-          whileInView,
-          layout,
-          layoutId,
+          animate: _animate,
+          initial: _initial,
+          exit: _exit,
+          transition: _transition,
+          variants: _variants,
+          whileHover: _whileHover,
+          whileTap: _whileTap,
+          whileFocus: _whileFocus,
+          whileDrag: _whileDrag,
+          whileInView: _whileInView,
+          layout: _layout,
+          layoutId: _layoutId,
           ...props
         }: {
           children?: ReactNode;

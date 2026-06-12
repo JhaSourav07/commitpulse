@@ -1,8 +1,39 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import React, { type ComponentProps } from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { type ComponentProps } from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import RepositoryGraph from './RepositoryGraph';
+
+// Mock next/dynamic to return our ForceGraphMock component directly and synchronously
+vi.mock('next/dynamic', () => {
+  const DynamicForceGraphMock = React.forwardRef((props: any, ref: any) => {
+    React.useImperativeHandle(ref, () => ({
+      centerAt: vi.fn(),
+      zoom: vi.fn(),
+    }));
+
+    return (
+      <div data-testid="force-graph-2d">
+        {props.graphData?.nodes?.map((node: any) => (
+          <button
+            key={node.id}
+            data-testid={`graph-node-${node.id}`}
+            onClick={() => props.onNodeClick?.(node)}
+            onMouseEnter={() => props.onNodeHover?.(node)}
+            onMouseLeave={() => props.onNodeHover?.(null)}
+          >
+            {node.name}
+          </button>
+        ))}
+      </div>
+    );
+  });
+  DynamicForceGraphMock.displayName = 'ForceGraph2D';
+  return {
+    default: () => DynamicForceGraphMock,
+  };
+});
 
 // 1. Setup global Canvas mock to prevent ForceGraph2D from throwing scale/getContext runtime failures
 beforeEach(() => {
