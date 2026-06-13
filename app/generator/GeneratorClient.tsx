@@ -12,6 +12,11 @@ const INITIAL_STATE: GeneratorState = {
   selectedTechs: [],
   selectedSocials: [],
   socialLinks: {},
+
+  githubUsername: '',
+  showCommitPulse: false,
+  commitPulseAccent: '',
+  showSnakeGraph: false,
 };
 
 export function GeneratorClient() {

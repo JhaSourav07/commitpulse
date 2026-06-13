@@ -9,6 +9,11 @@ describe('GeneratorState empty fallback verification', () => {
     selectedTechs: [],
     selectedSocials: [],
     socialLinks: {},
+
+    githubUsername: '',
+    showCommitPulse: false,
+    commitPulseAccent: '',
+    showSnakeGraph: false,
   };
 
   it('handles empty generator state without crashing', () => {
