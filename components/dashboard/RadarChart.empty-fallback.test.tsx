@@ -50,47 +50,43 @@ describe('RadarChart - Edge Cases & Empty/Missing Inputs (Variation 1)', () => {
       <RadarChart languagesA={[]} languagesB={[]} labelA="User A" labelB="User B" />
     );
 
-    // No <circle> elements should exist because every padded language has 0% (pct > 0 check fails)
+    // No <circle> elements should exist because the empty state renders no chart vertices
     const circles = container.querySelectorAll('circle');
     expect(circles.length).toBe(0);
   });
 
-  it('falls back to padding languages (TypeScript, JavaScript, Python) to guarantee >= 3 axes', () => {
+  it('does not invent TypeScript/JavaScript/Python axes when there is no language data', () => {
     const { container } = render(
       <RadarChart languagesA={[]} languagesB={[]} labelA="Empty A" labelB="Empty B" />
     );
 
-    // All three pad languages must appear as axis labels in the SVG
-    expect(screen.getAllByText('TypeScript').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('JavaScript').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('Python').length).toBeGreaterThan(0);
+    // No fabricated language axis labels should appear
+    expect(screen.queryByText('TypeScript')).toBeNull();
+    expect(screen.queryByText('JavaScript')).toBeNull();
+    expect(screen.queryByText('Python')).toBeNull();
 
-    // Exactly 3 axis lines (one per padded language) must be rendered
+    // No axis lines are drawn for invented languages
     const axisLines = container.querySelectorAll('line[stroke-dasharray="2,2"]');
-    expect(axisLines.length).toBe(3);
+    expect(axisLines.length).toBe(0);
+
+    // An explicit empty state is shown instead
+    expect(screen.getByText('No language data to compare yet')).toBeInTheDocument();
   });
 
-  it('keeps standard SVG layout structure intact (grid rings, filters, svg dimensions) with empty inputs', () => {
+  it('renders the empty state without the chart SVG when there are no languages', () => {
     const { container } = render(
       <RadarChart languagesA={[]} languagesB={[]} labelA="A" labelB="B" />
     );
 
-    // SVG should be rendered with the fixed dimensions defined in the component
-    const svg = container.querySelector('svg');
-    expect(svg).toBeInTheDocument();
-    expect(svg).toHaveAttribute('width', '320');
-    expect(svg).toHaveAttribute('height', '300');
+    // No radar SVG is drawn for empty data; the empty-state message replaces it
+    expect(container.querySelector('svg')).toBeNull();
+    expect(screen.getByText('No language data to compare yet')).toBeInTheDocument();
 
-    // 4 concentric grid polygons (levels: 25, 50, 75, 100) must always exist
-    const gridPolygons = container.querySelectorAll('polygon[fill="none"]');
-    expect(gridPolygons.length).toBe(4);
-
-    // 2 glow filters (cyan + purple) must remain defined even with no data
-    const filters = container.querySelectorAll('filter');
-    expect(filters.length).toBe(2);
+    // The header (title) still renders so the card stays informative
+    expect(screen.getByText('Language Dominance')).toBeInTheDocument();
   });
 
-  it('maintains container styling and legend even when both label sets are empty arrays', () => {
+  it('maintains container styling and legend, showing the empty state, when both inputs are empty', () => {
     const { container } = render(
       <RadarChart languagesA={[]} languagesB={[]} labelA="Solo A" labelB="Solo B" />
     );
@@ -105,8 +101,8 @@ describe('RadarChart - Edge Cases & Empty/Missing Inputs (Variation 1)', () => {
     expect(screen.getByText('Solo A')).toBeInTheDocument();
     expect(screen.getByText('Solo B')).toBeInTheDocument();
 
-    // Stats table at the bottom exists (grid-cols-2 layout marker)
-    const statsTable = container.querySelector('.grid.grid-cols-2');
-    expect(statsTable).toBeInTheDocument();
+    // The chart stats table is replaced by the empty state
+    expect(container.querySelector('.grid.grid-cols-2')).toBeNull();
+    expect(screen.getByText('No language data to compare yet')).toBeInTheDocument();
   });
 });

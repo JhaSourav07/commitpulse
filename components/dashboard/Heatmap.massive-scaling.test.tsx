@@ -53,7 +53,9 @@ describe('Heatmap massive scaling', () => {
     render(<Heatmap data={massiveData} />);
 
     expect(screen.getByRole('grid')).toBeDefined();
-    expect(screen.getAllByRole('gridcell')).toHaveLength(1000);
+    const gridCells = screen.getAllByRole('gridcell');
+    const expectedCount = massiveData.filter((d) => new Date(d.date) <= new Date()).length;
+    expect(gridCells).toHaveLength(expectedCount);
   });
 
   it('keeps legend and labels visible under massive data load', () => {
@@ -89,8 +91,9 @@ describe('Heatmap massive scaling', () => {
     render(<Heatmap data={massiveData} />);
 
     const cells = screen.getAllByRole('gridcell');
+    const expectedCount = massiveData.filter((d) => new Date(d.date) <= new Date()).length;
 
-    expect(cells).toHaveLength(365);
+    expect(cells).toHaveLength(expectedCount);
     expect(cells[0].getAttribute('aria-label')).toContain('contributions');
   });
 });

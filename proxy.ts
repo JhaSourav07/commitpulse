@@ -3,26 +3,20 @@ import type { NextRequest } from 'next/server';
 import { rateLimit } from './lib/rate-limit';
 import { getClientIp } from './utils/getClientIp';
 
-export async function proxy(request: NextRequest): Promise<NextResponse> {
-  const ip = getClientIp(request);
-
-  const isRefresh = request.nextUrl.searchParams.get('refresh') === 'true';
-
-  if (isRefresh) {
-    const refreshResult = await rateLimit(`refresh:${ip}`, 5, 60000);
-
-    if (!refreshResult.success) {
-      const resp = NextResponse.json(
-        { error: 'Too many refresh requests. Please wait before bypassing the cache again.' },
-        { status: 429 }
-      );
-      resp.headers.set('X-RateLimit-Limit', refreshResult.limit.toString());
-      resp.headers.set('X-RateLimit-Remaining', '0');
-      resp.headers.set('X-RateLimit-Reset', refreshResult.reset.toString());
-      resp.headers.set('X-RateLimit-Policy', 'refresh');
-      return resp;
-    }
-  }
+/**
+ * Proxy to enforce rate limiting on specific API routes.
+ *
+ * Next.js requires this file to be named `middleware.ts` at the project root
+ * and to export a function named `middleware` (and optionally `config`).
+ *
+ * @see https://nextjs.org/docs/app/building-your-application/routing/middleware
+ */
+export async function proxy(request: NextRequest) {
+  // Use Vercel's ip property if available, fallback to headers, then localhost
+  const ip =
+    request.headers.get('x-forwarded-for')?.split(',')[0] ??
+    request.headers.get('x-real-ip') ??
+    '127.0.0.1';
 
   const result = await rateLimit(ip, 60, 60000);
 
@@ -49,6 +43,10 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
   return response;
 }
 
+/**
+ * Configure which routes should trigger this proxy.
+ * Using a matcher is more efficient than checking pathnames inside the proxy.
+ */
 export const config = {
   matcher: [
     '/api/streak/:path*',
@@ -60,5 +58,6 @@ export const config = {
     '/api/compare/:path*',
     '/api/wrapped/:path*',
     '/api/student/:path*',
+    '/api/pr-insights/:path*',
   ],
 };

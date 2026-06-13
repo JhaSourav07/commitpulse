@@ -6,6 +6,7 @@ import BrandParticles from '@/components/BrandParticles';
 import ReturnToTop from '@/components/ReturnToTop';
 import type { Metadata } from 'next';
 import ScrollRestoration from './components/ScrollRestoration';
+import { Providers } from './providers';
 import AnimatedCursor from '@/components/AnimatedCursor';
 import KonamiEasterEgg from '@/components/KonamiEasterEgg';
 
@@ -87,14 +88,25 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body className={inter.className}>
-        <ScrollRestoration />
-        <AnimatedCursor />
-        <BrandParticles />
-        <Navbar />
-        <div className="relative z-10">{children}</div>
-        <ReturnToTop />
-        <KonamiEasterEgg />
-        <Analytics />
+        {/* Skip link — first focusable element, lets keyboard users jump past the navbar */}
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[99999] focus:px-4 focus:py-2 focus:bg-blue-600 focus:text-white focus:rounded-md focus:outline-none focus:shadow-lg"
+        >
+          Skip to main content
+        </a>
+        <Providers>
+          <ScrollRestoration />
+          <AnimatedCursor />
+          <BrandParticles />
+          <Navbar />
+          <main id="main-content" className="relative z-10">
+            {children}
+          </main>
+          <ReturnToTop />
+          <KonamiEasterEgg />
+          <Analytics />
+        </Providers>
       </body>
     </html>
   );

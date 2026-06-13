@@ -160,10 +160,11 @@ function GitHubIcon() {
 /* ─── Star Rating ─── */
 function StarRating() {
   return (
-    <div className="flex gap-0.5">
+    <div className="flex gap-0.5" role="img" aria-label="5 out of 5 stars">
       {[...Array(5)].map((_, i) => (
         <svg
           key={i}
+          aria-hidden="true"
           width="12"
           height="12"
           viewBox="0 0 24 24"

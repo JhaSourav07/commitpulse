@@ -6,6 +6,7 @@ import { getClientIp } from '@/utils/getClientIp';
 import { DistributedCache } from '@/lib/cache';
 import { gitHubUserValidator } from '@/services/github/validate-user';
 import { getRateLimitHeaders, notifyRateLimiter } from '@/lib/rate-limit';
+import { verifyGitHubOwner } from '@/lib/github-owner-verification';
 
 const notifyWriteCache = new DistributedCache<number>(5000, 60000);
 const NOTIFY_WRITE_COOLDOWN_MS = 5 * 60 * 1000;
@@ -77,6 +78,14 @@ export async function POST(req: Request) {
 
   const { username, email, frequency, preferences } = parsed.data;
   const normalizedUsername = username.toLowerCase().trim();
+
+  const ownership = await verifyGitHubOwner(req, normalizedUsername);
+  if (!ownership.verified) {
+    return NextResponse.json(
+      { success: false, message: ownership.message },
+      { status: ownership.status }
+    );
+  }
 
   try {
     // Graceful MONGODB_URI handling
@@ -205,6 +214,15 @@ export async function DELETE(req: NextRequest) {
   }
 
   const { user: username } = parsed.data;
+  const normalizedUsername = username.toLowerCase();
+
+  const ownership = await verifyGitHubOwner(req, normalizedUsername);
+  if (!ownership.verified) {
+    return NextResponse.json(
+      { success: false, message: ownership.message },
+      { status: ownership.status }
+    );
+  }
 
   try {
     // Graceful MONGODB_URI handling
@@ -230,7 +248,7 @@ export async function DELETE(req: NextRequest) {
 
     await dbConnect();
 
-    const result = await Notification.deleteOne({ username: username.toLowerCase() });
+    const result = await Notification.deleteOne({ username: normalizedUsername });
 
     if (result.deletedCount === 0) {
       return NextResponse.json(
@@ -255,18 +273,19 @@ export async function DELETE(req: NextRequest) {
 // ─── GET /api/notify ─────────────────────────────────────────────────────────
 // Fetch notification preferences for a user
 export async function GET(req: Request) {
-  // Rate limiting
+  // Rate limiting — always applied with user-agent fallback for unknown IPs,
+  // consistent with the POST and DELETE handlers in this file.
   const ip = getClientIp(req);
 
-  if (ip !== 'unknown') {
-    const rateLimitResult = await notifyRateLimiter.checkWithResult(ip);
+  const rateLimitKey =
+    ip && ip !== 'unknown' ? ip : `unknown:${req.headers.get('user-agent') ?? 'no-agent'}`;
+  const rateLimitResult = await notifyRateLimiter.checkWithResult(rateLimitKey);
 
-    if (!rateLimitResult.success) {
-      return NextResponse.json(
-        { success: false, message: 'Too many requests, please try again later.' },
-        { status: 429, headers: getRateLimitHeaders(rateLimitResult) }
-      );
-    }
+  if (!rateLimitResult.success) {
+    return NextResponse.json(
+      { success: false, message: 'Too many requests, please try again later.' },
+      { status: 429, headers: getRateLimitHeaders(rateLimitResult) }
+    );
   }
 
   // Validate query params with Zod

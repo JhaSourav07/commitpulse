@@ -8,6 +8,10 @@ const defaultProps = {
   username: '',
   theme: 'github-dark',
   bgHex: '',
+  bgType: 'solid' as const,
+  bgStart: '',
+  bgEnd: '',
+  bgAngle: 90,
   accentHex: '',
   textHex: '',
   scale: 'linear' as Scale,
@@ -20,6 +24,10 @@ const defaultProps = {
   onUsernameChange: vi.fn(),
   onThemeChange: vi.fn(),
   onBgHexChange: vi.fn(),
+  onBgTypeChange: vi.fn(),
+  onBgStartChange: vi.fn(),
+  onBgEndChange: vi.fn(),
+  onBgAngleChange: vi.fn(),
   onAccentHexChange: vi.fn(),
   onTextHexChange: vi.fn(),
   onScaleChange: vi.fn(),
@@ -81,7 +89,7 @@ describe('ControlsPanel Component', () => {
   it('renders a generic username placeholder', () => {
     render(<ControlsPanel {...defaultProps} />);
 
-    expect(screen.getByPlaceholderText('your-github-username')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Enter username...')).toBeInTheDocument();
     expect(screen.queryByPlaceholderText('jhasourav07')).not.toBeInTheDocument();
   });
 
@@ -100,15 +108,15 @@ describe('ControlsPanel Component', () => {
   it('renders Linear and Logarithmic buttons', () => {
     render(<ControlsPanel {...defaultProps} />);
 
-    expect(screen.getByRole('button', { name: /Linear/i })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /^Linear$/ })).toBeTruthy();
 
-    expect(screen.getByRole('button', { name: /Logarithmic/i })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /^Logarithmic$/ })).toBeTruthy();
   });
 
   it('calls onScaleChange with log', () => {
     render(<ControlsPanel {...defaultProps} />);
 
-    const logButton = screen.getByText(/Logarithmic/i);
+    const logButton = screen.getByRole('button', { name: /^Logarithmic$/ });
 
     fireEvent.click(logButton);
 
@@ -118,12 +126,12 @@ describe('ControlsPanel Component', () => {
   it('hides Clear overrides button initially', () => {
     render(<ControlsPanel {...defaultProps} />);
 
-    expect(screen.queryByText(/Clear overrides/i)).toBeNull();
+    expect(screen.queryByText(/Clear Custom Colors/i)).toBeNull();
   });
 
   it('shows Clear overrides button when bgHex is provided', () => {
     render(<ControlsPanel {...defaultProps} bgHex="#000000" />);
 
-    expect(screen.getByText(/Clear overrides/i)).toBeTruthy();
+    expect(screen.getByText(/Clear Custom Colors/i)).toBeTruthy();
   });
 });
