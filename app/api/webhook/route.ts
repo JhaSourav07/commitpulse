@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
 
-const WEBHOOK_SECRET = process.env.GITHUB_WEBHOOK_SECRET || 'development_secret';
 const MAX_PAYLOAD_SIZE = 1024 * 1024; // 1MB
+const SIGNATURE_PREFIX = 'sha256=';
+const SHA256_HEX_LENGTH = 64;
 
 // In-memory rate limiting map: ip -> { count, resetTime }
 const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
@@ -24,11 +25,43 @@ function checkRateLimit(ip: string): boolean {
   return true;
 }
 
+function getWebhookSecret(): string | null {
+  const secret = process.env.GITHUB_WEBHOOK_SECRET?.trim();
+  return secret || null;
+}
+
+function verifyWebhookSignature(bodyText: string, signature: string, secret: string): boolean {
+  if (!signature.startsWith(SIGNATURE_PREFIX)) {
+    return false;
+  }
+
+  const signatureHex = signature.slice(SIGNATURE_PREFIX.length);
+  if (!/^[a-f0-9]{64}$/i.test(signatureHex)) {
+    return false;
+  }
+
+  const expectedHex = crypto.createHmac('sha256', secret).update(bodyText).digest('hex');
+  const expected = Buffer.from(expectedHex, 'hex');
+  const received = Buffer.from(signatureHex, 'hex');
+
+  return (
+    received.length === SHA256_HEX_LENGTH / 2 &&
+    expected.length === received.length &&
+    crypto.timingSafeEqual(expected, received)
+  );
+}
+
 export async function POST(req: Request) {
   // 1. Rate Limiting
   const ip = req.headers.get('x-forwarded-for') || 'unknown_ip';
   if (!checkRateLimit(ip)) {
     return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+  }
+
+  const webhookSecret = getWebhookSecret();
+  if (!webhookSecret) {
+    console.error('CRITICAL: GITHUB_WEBHOOK_SECRET is not configured. Webhook rejected.');
+    return NextResponse.json({ error: 'Webhook secret is not configured' }, { status: 500 });
   }
 
   // 2. Payload Validation
@@ -55,10 +88,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Missing signature' }, { status: 401 });
   }
 
-  const hmac = crypto.createHmac('sha256', WEBHOOK_SECRET);
-  const digest = 'sha256=' + hmac.update(bodyText).digest('hex');
-
-  if (signature !== digest) {
+  if (!verifyWebhookSignature(bodyText, signature, webhookSecret)) {
     return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
   }
 

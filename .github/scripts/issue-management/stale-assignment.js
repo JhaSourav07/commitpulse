@@ -1,6 +1,6 @@
 async function handleStaleAssignments({ github, context, core }) {
   const { owner, repo } = context.repo;
-  const TWO_DAYS_MS = 2 * 24 * 60 * 60 * 1000;
+  const STALE_THRESHOLD_MS = 48 * 60 * 60 * 1000; // 48 absolute hours
   const now = new Date();
 
   console.log(`Starting stale assignment check for ${owner}/${repo}`);
@@ -27,7 +27,7 @@ async function handleStaleAssignments({ github, context, core }) {
       const updatedAt = new Date(issue.updated_at);
       const timeSinceUpdate = now.getTime() - updatedAt.getTime();
 
-      if (timeSinceUpdate > TWO_DAYS_MS) {
+      if (timeSinceUpdate > STALE_THRESHOLD_MS) {
         const currentAssignees = issue.assignees.map((a) => a.login);
         if (currentAssignees.length === 0) continue;
 

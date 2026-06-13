@@ -16,6 +16,16 @@ vi.mock('framer-motion', () => ({
     }
   ),
 }));
+vi.mock('recharts', async () => {
+  const actual = await vi.importActual<typeof import('recharts')>('recharts');
+
+  return {
+    ...actual,
+    ResponsiveContainer: ({ children }: { children: React.ReactNode }) => (
+      <div style={{ width: 800, height: 400 }}>{children}</div>
+    ),
+  };
+});
 
 class ResizeObserverMock {
   observe() {}
