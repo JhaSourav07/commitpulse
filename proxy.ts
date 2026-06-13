@@ -22,7 +22,7 @@ export async function proxy(request: NextRequest) {
     const cacheBypassResult = await rateLimit(`bypassCache:${ip}`, 3, 600000);
     if (!cacheBypassResult.success) {
       return NextResponse.json(
-        { error: 'Too many cache bypass attempts. Please try again later.' },
+        { error: 'Too many requests' },
         {
           status: 429,
           headers: {
@@ -37,7 +37,7 @@ export async function proxy(request: NextRequest) {
   }
 
   // STANDARD REGULAR RATE LIMIT: Baseline rate limiting
-  const result = await rateLimit(ip, 60, 60000);
+  const result = await rateLimit(`bypassCache:${ip}`, 3, 600000);
 
   if (!result.success) {
     return NextResponse.json(
