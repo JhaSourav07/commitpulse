@@ -12,6 +12,7 @@ import { DistributedCache } from '@/lib/cache';
 import { LANGUAGE_COLORS } from '@/lib/svg/languageColors';
 import { CONTRIBUTION_MILESTONES, STREAK_MILESTONES } from './svg/constants';
 import { quotaMonitor } from '@/services/github/quota-monitor';
+import { deterministicRandom } from '@/lib/svg/generator';
 
 interface GitHubRepo {
   name: string;
@@ -897,8 +898,13 @@ async function fetchContributionsUncached(
         }
         return {
           ...rawDay,
-          locAdditions: Math.max(1, Math.floor(Math.random() * (count * 10))),
-          locDeletions: Math.floor(Math.random() * (count * 5)),
+          locAdditions: Math.max(
+            1,
+            Math.floor(deterministicRandom(`${username}:${rawDay.date}:additions`) * (count * 10))
+          ),
+          locDeletions: Math.floor(
+            deterministicRandom(`${username}:${rawDay.date}:deletions`) * (count * 5)
+          ),
         };
       }),
     };
