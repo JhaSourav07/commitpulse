@@ -129,6 +129,7 @@ export async function GET(request: Request) {
         if (error instanceof Error && error.name === 'ValidationError') {
           return NextResponse.json({ error: error.message }, { status: 400 });
         }
+        return NextResponse.json({ error: `Invalid timezone: ${tzParam}` }, { status: 400 });
       }
     }
 
