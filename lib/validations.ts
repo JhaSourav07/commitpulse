@@ -672,6 +672,7 @@ export const notifyPostSchema = z.object({
       notifyOnStreak: true,
       notifyOnMilestone: true,
     }),
+  managementToken: z.string().trim().min(16).max(256).optional(),
 });
 
 export const notifyGetSchema = z.object({

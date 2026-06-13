@@ -25,6 +25,7 @@ export function convertLocalToUtc(
       minute: 'numeric',
       second: 'numeric',
       hour12: false,
+      hourCycle: 'h23',
     });
     const parts = formatter.formatToParts(utcDate);
     const partMap = Object.fromEntries(parts.map((p) => [p.type, p.value]));
