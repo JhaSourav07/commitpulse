@@ -40,6 +40,7 @@ export const VIEW_MODES = [
   { value: 'default', label: 'Default' },
   { value: 'monthly', label: 'Monthly' },
   { value: 'pulse', label: 'Heartbeat Pulse' },
+  { value: 'skyline', label: 'Skyline Horizon' },
   { value: 'languages', label: 'Top Languages Skyline' },
 ] as const satisfies readonly { value: string; label: string }[];
 
@@ -70,6 +71,10 @@ export interface CustomizeOptions {
   username: string;
   theme: string;
   bgHex: string;
+  bgType: 'solid' | 'linear' | 'radial';
+  bgStart: string;
+  bgEnd: string;
+  bgAngle: number;
   accentHex: string;
   textHex: string;
   scale: Scale;
