@@ -81,8 +81,13 @@ if (typeof globalThis.fetch !== 'undefined') {
             ? (url as Request).url
             : '';
 
-    // Allow localhost/127.0.0.1 requests if needed for local test servers
-    if (urlString.includes('localhost') || urlString.includes('127.0.0.1')) {
+    // Allow localhost/127.0.0.1 and data: URLs (inline resources/WebAssembly)
+    const normalizedUrl = urlString.trim().toLowerCase();
+    if (
+      normalizedUrl.includes('localhost') ||
+      normalizedUrl.includes('127.0.0.1') ||
+      normalizedUrl.startsWith('data:')
+    ) {
       return originalFetch(url, init);
     }
 
