@@ -47,8 +47,11 @@ function getMonthlyReferenceDate(year: string | undefined, timezone: string): Da
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-
   const parseResult = streakParamsSchema.safeParse(Object.fromEntries(searchParams.entries()));
+
+  // FIX: Declare block-scoped let reference here so it cascades seamlessly out to the lower SVG handlers
+  let params: BadgeParams;
+
   try {
     if (!parseResult.success) {
       const fieldErrors = parseResult.error.flatten();
@@ -132,6 +135,8 @@ export async function GET(request: Request) {
     const shouldBypassCache = isRefreshRequested;
 
     let timezone = 'UTC';
+
+    // FIX #3708 Part 2: Intercept unhandled timezone RangeErrors and translate them to ValidationErrors cleanly
     if (tzParam) {
       try {
         timezone = new Intl.DateTimeFormat(undefined, { timeZone: tzParam }).resolvedOptions()
@@ -229,7 +234,9 @@ export async function GET(request: Request) {
         ? `${rawSpeedNum}s`
         : '8s'
     ) as `${number}s`;
-    const params: BadgeParams = {
+
+    // FIX: Remove const prefix so it assigns straight to our clean parent parameter declaration
+    params = {
       user: targetEntity,
       bg: isAutoTheme ? selectedTheme.bg : bg || selectedTheme.bg,
       bgType,
@@ -450,8 +457,6 @@ export async function GET(request: Request) {
       const stats = calculateStreak(calendar, timezone, undefined, grace);
       svg = generateHeatmapSVG(stats, params, calendar);
     } else if (normalizedView === 'pulse') {
-      // We still use calculateStreak here to efficiently parse totalContributions for the stat display,
-      // even though the sparkline generator will extract its own daily 30-day timeline below.
       const stats = calculateStreak(calendar, timezone, undefined, grace);
       svg = generatePulseSVG(stats, params, calendar);
     } else if (normalizedView === 'skyline') {
@@ -539,7 +544,6 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
     message.toLowerCase().includes('could not resolve');
   const isRateLimit = message.toLowerCase().includes('rate limit');
 
-  // 2. Safely detect if the error was a validation/client error
   const isValidationError =
     (error instanceof Error && error.name === 'ValidationError') ||
     message.toLowerCase().includes('invalid') ||
@@ -588,7 +592,6 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
     });
   }
 
-  // 3. Return a 400 Bad Request for Validation Errors
   if (isValidationError) {
     const validationSvg = buildInlineErrorSVG(message);
 
@@ -602,7 +605,6 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
     });
   }
 
-  // 4. Return a 500 Internal Server Error for real crashes
   console.error('[streak] Unhandled error:', message);
 
   const errorSvg = buildInlineErrorSVG('Something went wrong. Please try again later.');

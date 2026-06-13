@@ -1,15 +1,9 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { rateLimit } from './lib/rate-limit';
-import { getClientIp } from './utils/getClientIp';
 
 /**
  * Proxy to enforce rate limiting on specific API routes.
- *
- * Next.js requires this file to be named `middleware.ts` at the project root
- * and to export a function named `middleware` (and optionally `config`).
- *
- * @see https://nextjs.org/docs/app/building-your-application/routing/middleware
  */
 export async function proxy(request: NextRequest) {
   // Use Vercel's ip property if available, fallback to headers, then localhost
@@ -18,6 +12,31 @@ export async function proxy(request: NextRequest) {
     request.headers.get('x-real-ip') ??
     '127.0.0.1';
 
+  // Analyze URL parameters for cache-exhaustion vectors
+  const { searchParams } = new URL(request.url);
+  const isCacheBypass =
+    searchParams.get('refresh') === 'true' || searchParams.get('bypassCache') === 'true';
+
+  // FIX #3708 Part 1: Enforce strict sliding window on cache-bypassing parameters
+  if (isCacheBypass) {
+    const cacheBypassResult = await rateLimit(`bypassCache:${ip}`, 3, 600000);
+    if (!cacheBypassResult.success) {
+      return NextResponse.json(
+        { error: 'Too many cache bypass attempts. Please try again later.' },
+        {
+          status: 429,
+          headers: {
+            'Content-Type': 'application/json',
+            'X-RateLimit-Limit': cacheBypassResult.limit.toString(),
+            'X-RateLimit-Remaining': cacheBypassResult.remaining.toString(),
+            'X-RateLimit-Reset': cacheBypassResult.reset.toString(),
+          },
+        }
+      );
+    }
+  }
+
+  // STANDARD REGULAR RATE LIMIT: Baseline rate limiting
   const result = await rateLimit(ip, 60, 60000);
 
   if (!result.success) {
@@ -43,10 +62,6 @@ export async function proxy(request: NextRequest) {
   return response;
 }
 
-/**
- * Configure which routes should trigger this proxy.
- * Using a matcher is more efficient than checking pathnames inside the proxy.
- */
 export const config = {
   matcher: [
     '/api/streak/:path*',
