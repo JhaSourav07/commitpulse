@@ -57,8 +57,20 @@ export function getClientIp(
   request: Request | NextRequest,
   options: GetClientIpOptions = {}
 ): string {
-  const config = options.proxyConfig || loadTrustedProxyConfig();
+  const opt = options || {};
+  const isDevOrTest = process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test';
+  const defaultIp = isDevOrTest ? '127.0.0.1' : 'unknown';
+
+  if (!request) {
+    return defaultIp;
+  }
+
   const headers = request.headers;
+  if (!headers || typeof headers.get !== 'function') {
+    return defaultIp;
+  }
+
+  const config = opt.proxyConfig || loadTrustedProxyConfig();
 
   // 1. NextRequest has a secure, platform-populated request.ip property on Vercel/Next.js
   const requestIp = (request as unknown as { ip?: string }).ip;
@@ -77,7 +89,34 @@ export function getClientIp(
     return requestIp;
   }
 
-  // 2. Process X-Forwarded-For securely if present
+  const directIp = opt.directIp?.trim();
+  const forwardedHeaders = [
+    'x-forwarded-for',
+    ...(opt.headersPriority || ['x-vercel-proxied-for', 'cf-connecting-ip', 'x-real-ip']),
+  ];
+
+  // Forwarded headers cannot establish their own trust boundary. Without a
+  // separately supplied direct peer IP, treat them as attacker-controlled.
+  if (!directIp) {
+    const spoofedHeader = forwardedHeaders.find((headerName) => headers.get(headerName));
+    if (spoofedHeader) {
+      logSecurityEvent('UNTRUSTED_FORWARDED_HEADER_IGNORED', {
+        resolvedIp: 'unknown',
+        header: spoofedHeader,
+      });
+    }
+
+    return process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test'
+      ? '127.0.0.1'
+      : 'unknown';
+  }
+
+  // A direct, untrusted peer is the client. Never let it override its own IP.
+  if (!isTrustedProxy(directIp, config)) {
+    return directIp;
+  }
+
+  // 2. Process X-Forwarded-For only when the direct peer is trusted.
   const xff = headers.get('x-forwarded-for');
   if (xff) {
     const ips = xff
@@ -85,19 +124,6 @@ export function getClientIp(
       .map((ip: string) => ip.trim())
       .filter(Boolean);
     if (ips.length > 0) {
-      // If we don't trust any proxies, do NOT trust X-Forwarded-For values supplied by the client
-      if (config.trustedProxies.length === 0 && !config.trustPrivateRanges) {
-        const fallbackIp = headers.get('x-real-ip')?.trim() || '127.0.0.1';
-        if (ips[0] !== fallbackIp) {
-          logSecurityEvent('SPOOFED_HEADER_ATTEMPT', {
-            claimedIp: ips[0],
-            resolvedIp: fallbackIp,
-            header: 'x-forwarded-for',
-          });
-        }
-        return fallbackIp;
-      }
-
       // If all proxies are trusted via wildcard
       if (config.trustedProxies.includes('*')) {
         // When trusting ALL proxies via wildcard, the true client IP is the leftmost entry (ips[0])
@@ -114,7 +140,7 @@ export function getClientIp(
 
       // Traverse from right to left (most recent to oldest proxy hop)
       // The rightmost IP is the one that connected directly to our server/balancer
-      let clientIp = ips[ips.length - 1];
+      let clientIp = directIp;
 
       for (let i = ips.length - 1; i >= 0; i--) {
         const currentIp = ips[i];
@@ -144,8 +170,8 @@ export function getClientIp(
     }
   }
 
-  // 3. Custom/Platform priority headers (e.g. Cloudflare, Vercel)
-  const priorityHeaders = options.headersPriority || [
+  // 3. Custom/platform headers are accepted only behind a trusted direct peer.
+  const priorityHeaders = opt.headersPriority || [
     'x-vercel-proxied-for',
     'cf-connecting-ip',
     'x-real-ip',
@@ -161,11 +187,5 @@ export function getClientIp(
     }
   }
 
-  // 4. Ultimate Fallback
-  // 4. Ultimate Fallback
-  if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
-    return '127.0.0.1';
-  }
-
-  return 'unknown';
+  return directIp;
 }

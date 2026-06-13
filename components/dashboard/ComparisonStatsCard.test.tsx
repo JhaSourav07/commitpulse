@@ -313,9 +313,25 @@ describe('ComparisonStatsCard', () => {
         />
       );
 
-      expect(screen.getByText('9999')).toBeInTheDocument();
+      expect(screen.getByText((9999).toLocaleString())).toBeInTheDocument();
       expect(screen.getByText('1')).toBeInTheDocument();
       expect(screen.getByText('Winner')).toBeInTheDocument();
+    });
+
+    it('formats values with locale thousands separators (consistent with /compare)', () => {
+      render(
+        <ComparisonStatsCard
+          title="Total Contributions"
+          valueA={1234567}
+          valueB={89012}
+          labelA="Alice"
+          labelB="Bob"
+          icon="GitCommit"
+        />
+      );
+
+      expect(screen.getByText((1234567).toLocaleString())).toBeInTheDocument();
+      expect(screen.getByText((89012).toLocaleString())).toBeInTheDocument();
     });
   });
 
