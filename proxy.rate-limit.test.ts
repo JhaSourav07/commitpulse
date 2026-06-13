@@ -78,6 +78,7 @@ describe('Proxy rate-limit consistency', () => {
       '/api/track-user/:path*',
       '/api/stats/:path*',
       '/api/og/:path*',
+      '/api/pr-insights/:path*',
     ];
     for (const route of expectedRoutes) {
       expect(mwConfig.matcher).toContain(route);

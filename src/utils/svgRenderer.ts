@@ -92,7 +92,9 @@ export function generateOptimizedSvg(contributionData: ContributionNode[]): stri
   // STEP 6: OUTPUT FINISHED ROOT SVG STRING
   // ==========================================
   return `
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="-200 -50 800 600" width="100%" height="100%">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-200 -50 800 600" width="100%" height="100%" role="img" aria-labelledby="svg-title svg-desc">
+  <title id="svg-title">GitHub Contribution Graph</title>
+  <desc id="svg-desc">A 3D isometric visualization of GitHub contribution activity.</desc>
   ${svgDefs}
   <g id="monolith-grid">
     ${svgElements}

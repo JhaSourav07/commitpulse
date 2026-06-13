@@ -33,6 +33,10 @@ vi.mock('@/utils/getClientIp', () => ({
   getClientIp: vi.fn().mockReturnValue('127.0.0.1'),
 }));
 
+vi.mock('@/lib/github-owner-verification', () => ({
+  verifyGitHubOwner: vi.fn().mockResolvedValue({ verified: true }),
+}));
+
 // Set up prefers-color-scheme via window.matchMedia mock
 let prefersColorScheme: 'dark' | 'light' = 'dark';
 
@@ -54,6 +58,7 @@ function makeRequest(body: string | Record<string, unknown>): Request {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      Authorization: 'Bearer test-owner-token',
     },
     body: typeof body === 'string' ? body : JSON.stringify(body),
   });

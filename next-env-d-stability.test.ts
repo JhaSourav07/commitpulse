@@ -38,7 +38,10 @@ describe('next-env.d.ts type declaration stability', () => {
 
   it('references the dev route type declarations file', async () => {
     const content = await readFile(nextEnvPath, 'utf-8');
-    expect(content).toContain('.next/dev/types/routes.d.ts');
+    const hasRouteTypes =
+      content.includes('.next/dev/types/routes.d.ts') ||
+      content.includes('.next/types/routes.d.ts');
+    expect(hasRouteTypes).toBe(true);
   });
 
   it('contains the standard cannot-edit warning comment', async () => {

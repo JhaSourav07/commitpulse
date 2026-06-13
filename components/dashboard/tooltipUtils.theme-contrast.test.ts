@@ -14,6 +14,7 @@ describe('tooltipUtils', () => {
     expect(getContributionLabel(0)).toBe('0 contributions');
     expect(getContributionLabel(1)).toBe('1 contribution');
     expect(getContributionLabel(42)).toBe('42 contributions');
+    expect(getContributionLabel(100)).toBe('100 contributions');
   });
 
   it('maps correct text descriptions across all intensity thresholds', () => {
@@ -48,14 +49,19 @@ describe('tooltipUtils', () => {
     expect(getStreakLabel(3, mockT)).toBe('ACTIVE_STREAK');
   });
 
-  it('formats dates consistently and uses fallback values for invalid date inputs', () => {
-    const rawDate = '2026-06-07';
-    expect(formatTooltipDate(rawDate)).toBe('Jun 7, 2026');
+  it('formats single dates consistently across month boundaries and uses fallback for invalid inputs', () => {
+    expect(formatTooltipDate('2025-01-31')).toBe('Jan 31, 2025');
+    expect(formatTooltipDate('2025-02-28')).toBe('Feb 28, 2025');
+    expect(formatTooltipDate('2025-12-01')).toBe('Dec 1, 2025');
+    expect(formatTooltipDate('2026-06-07')).toBe('Jun 7, 2026');
     expect(formatTooltipDate('not-a-date')).toBe('not-a-date');
+  });
 
-    const rawStart = '2026-06-01';
-    const rawEnd = '2026-06-07';
-    expect(formatTooltipRange(rawStart, rawEnd)).toBe('Jun 1, 2026 - Jun 7, 2026');
+  it('formats date range labels correctly including cross-month and same-day boundaries', () => {
+    expect(formatTooltipRange('2025-06-01', '2025-06-30')).toBe('Jun 1, 2025 - Jun 30, 2025');
+    expect(formatTooltipRange('2025-01-31', '2025-02-01')).toBe('Jan 31, 2025 - Feb 1, 2025');
+    expect(formatTooltipRange('2025-06-15', '2025-06-15')).toBe('Jun 15, 2025 - Jun 15, 2025');
+    expect(formatTooltipRange('2026-06-01', '2026-06-07')).toBe('Jun 1, 2026 - Jun 7, 2026');
   });
 
   it('calculates consecutive active streak intervals and protects against out-of-bounds indices', () => {

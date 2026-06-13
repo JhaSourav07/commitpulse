@@ -58,5 +58,6 @@ export const config = {
     '/api/compare/:path*',
     '/api/wrapped/:path*',
     '/api/student/:path*',
+    '/api/pr-insights/:path*',
   ],
 };
