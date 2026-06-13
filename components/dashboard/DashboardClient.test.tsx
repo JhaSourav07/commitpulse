@@ -245,6 +245,23 @@ describe('DashboardClient', () => {
     vi.clearAllMocks();
   };
 
+  it('does not paint the worse user green in "Longest Inactive Period" when the other gap is 0', async () => {
+    // mockInitialData has a zero-count day (gapA = 1); mockSecondData has none (gapB = 0).
+    await renderInCompareMode();
+
+    const label = await screen.findByText('Longest Inactive Period');
+    const block = label.closest('.flex.flex-col');
+    expect(block).toBeTruthy();
+    const grid = block!.querySelector('.grid');
+    expect(grid).toBeTruthy();
+    const [userADiv, userBDiv] = Array.from(grid!.children) as HTMLElement[];
+
+    // User A (gap 1) is the worse one: it must NOT be highlighted green just because gapB === 0.
+    expect(userADiv.className).not.toContain('emerald');
+    // User B (gap 0) is the better one and is highlighted.
+    expect(userBDiv.className).toContain('emerald');
+  });
+
   it('renders standard single profile view by default', () => {
     render(
       <DashboardClient initialData={mockInitialData} username="Shivangi1515" period={mockPeriod} />

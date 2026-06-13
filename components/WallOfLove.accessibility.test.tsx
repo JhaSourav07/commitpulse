@@ -45,7 +45,8 @@ describe('WallOfLove accessibility', () => {
     expect(images.length).toBeGreaterThan(0);
 
     images.forEach((image) => {
-      expect(image.getAttribute('alt')).toBeTruthy();
+      const alt = image.getAttribute('alt') || image.getAttribute('aria-label');
+      expect(alt).toBeTruthy();
     });
   });
 

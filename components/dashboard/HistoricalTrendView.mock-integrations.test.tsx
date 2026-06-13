@@ -13,12 +13,15 @@ global.ResizeObserver = class ResizeObserver {
 
 global.IntersectionObserver = class IntersectionObserver {
   readonly root: Element | Document | null = null;
-  readonly rootMargin: string = '';
+  readonly rootMargin = '';
+  readonly scrollMargin = '';
   readonly thresholds: ReadonlyArray<number> = [];
+
   observe() {}
   unobserve() {}
   disconnect() {}
-  takeRecords() {
+
+  takeRecords(): IntersectionObserverEntry[] {
     return [];
   }
 };
@@ -30,8 +33,8 @@ const globalCache: Record<string, ActivityData[]> = {};
 
 // Mock Database stub
 class MockDatabase {
-  async fetchActivity(_username: string): Promise<ActivityData[]> {
-    // To be mocked per test
+  async fetchActivity(username: string): Promise<ActivityData[]> {
+    void username;
     return [];
   }
 }

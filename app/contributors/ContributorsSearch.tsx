@@ -75,7 +75,11 @@ function GlareCard({ children, className }: { children: React.ReactNode; classNa
   );
 }
 
-export default function ContributorsSearch({ contributors }: { contributors: Contributor[] }) {
+export default function ContributorsSearch({
+  contributors = [],
+}: {
+  contributors?: Contributor[];
+}) {
   const [search, setSearch] = useState('');
 
   const normalizedSearch = search.trim().toLowerCase();
@@ -93,6 +97,7 @@ export default function ContributorsSearch({ contributors }: { contributors: Con
             <input
               type="text"
               placeholder="Search the collective..."
+              aria-label="Search contributors by name"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full bg-transparent px-4 py-5 text-lg text-black dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-600 outline-none font-light"

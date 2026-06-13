@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import Leaderboard, { type Contributor } from './Leaderboard';
 
 vi.mock('next/image', () => ({
-  default: ({ alt = '', ...props }: ComponentProps<'img'>) => (
+  default: ({ alt = '', fill, ...props }: ComponentProps<'img'> & { fill?: boolean }) => (
     // eslint-disable-next-line @next/next/no-img-element
     <img alt={alt} {...props} />
   ),
@@ -12,9 +12,24 @@ vi.mock('next/image', () => ({
 
 vi.mock('framer-motion', () => ({
   motion: {
-    div: ({ children, ...props }: ComponentProps<'div'> & { children?: ReactNode }) => (
-      <div {...props}>{children}</div>
-    ),
+    div: ({
+      children,
+      whileHover,
+      whileInView,
+      initial,
+      viewport,
+      transition,
+      animate,
+      ...props
+    }: ComponentProps<'div'> & {
+      children?: ReactNode;
+      whileHover?: unknown;
+      whileInView?: unknown;
+      initial?: unknown;
+      viewport?: unknown;
+      transition?: unknown;
+      animate?: unknown;
+    }) => <div {...props}>{children}</div>,
   },
 }));
 

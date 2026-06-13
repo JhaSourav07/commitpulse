@@ -1,5 +1,5 @@
 import { render, screen, fireEvent } from '@testing-library/react';
-import { describe, it, expect, vi, beforeAll } from 'vitest';
+import { it, expect, vi, beforeAll } from 'vitest';
 import type { ReactNode, HTMLAttributes } from 'react';
 import Heatmap from './Heatmap';
 import type { ActivityData } from '@/types/dashboard';
@@ -74,6 +74,22 @@ it('renders daylight savings end date correctly', () => {
   render(<Heatmap data={data} />);
 
   expect(screen.getByLabelText(/nov 2, 2025/i)).toBeDefined();
+});
+
+it('filters future dates using the passed timezone', () => {
+  vi.useFakeTimers().setSystemTime(new Date('2025-01-02T03:00:00Z'));
+
+  const data: ActivityData[] = [
+    { date: '2025-01-02', count: 1, intensity: 1 },
+    { date: '2025-01-01', count: 1, intensity: 1 },
+  ];
+
+  render(<Heatmap data={data} timeZone="America/Los_Angeles" />);
+
+  expect(screen.getByLabelText(/jan 1, 2025/i)).toBeDefined();
+  expect(screen.queryByLabelText(/jan 2, 2025/i)).toBeNull();
+
+  vi.useRealTimers();
 });
 
 it('shows active streak across calendar boundaries', () => {

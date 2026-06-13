@@ -1,6 +1,6 @@
 async function handleStaleAssignments({ github, context, core }) {
   const { owner, repo } = context.repo;
-  const TWO_DAYS_MS = 2 * 24 * 60 * 60 * 1000;
+  const STALE_THRESHOLD_MS = 48 * 60 * 60 * 1000; // 48 absolute hours
   const now = new Date();
 
   console.log(`Starting stale assignment check for ${owner}/${repo}`);
@@ -27,31 +27,42 @@ async function handleStaleAssignments({ github, context, core }) {
       const updatedAt = new Date(issue.updated_at);
       const timeSinceUpdate = now.getTime() - updatedAt.getTime();
 
-      if (timeSinceUpdate > TWO_DAYS_MS) {
+      if (timeSinceUpdate > STALE_THRESHOLD_MS) {
+        const currentAssignees = issue.assignees.map((a) => a.login);
+        if (currentAssignees.length === 0) continue;
+
+        // Check if any open PRs reference this issue before unassigning
+        const { data: searchResult } = await github.rest.search.issuesAndPullRequests({
+          q: `"#${issue.number}" is:pr is:open repo:${owner}/${repo}`,
+        });
+
+        if (searchResult.total_count > 0) {
+          console.log(
+            `Issue #${issue.number} has open PR(s) referencing it. Skipping stale unassignment.`
+          );
+          continue;
+        }
+
         console.log(
           `Issue #${issue.number} has been inactive since ${issue.updated_at}. Removing assignees.`
         );
 
-        // 1. Remove all assignees
-        const currentAssignees = issue.assignees.map((a) => a.login);
-        if (currentAssignees.length > 0) {
-          await github.rest.issues.removeAssignees({
-            owner,
-            repo,
-            issue_number: issue.number,
-            assignees: currentAssignees,
-          });
+        await github.rest.issues.removeAssignees({
+          owner,
+          repo,
+          issue_number: issue.number,
+          assignees: currentAssignees,
+        });
 
-          // 2. Post a comment
-          await github.rest.issues.createComment({
-            owner,
-            repo,
-            issue_number: issue.number,
-            body: `⚠️ Assignment automatically removed due to inactivity.\nFeel free to reclaim the issue if you want to continue working on it.`,
-          });
+        // 2. Post a comment
+        await github.rest.issues.createComment({
+          owner,
+          repo,
+          issue_number: issue.number,
+          body: `⚠️ Assignment automatically removed due to inactivity.\nFeel free to reclaim the issue if you want to continue working on it.`,
+        });
 
-          staleCount++;
-        }
+        staleCount++;
       }
     }
 

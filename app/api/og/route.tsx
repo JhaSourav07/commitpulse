@@ -49,9 +49,32 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  const { user, theme, bg, text, accent, refresh } = parseResult.data;
+  const {
+    user,
+    theme,
+    bg,
+    text,
+    accent,
+    refresh,
+    bypassCache: bypassCacheParam,
+  } = parseResult.data;
+  // Treat either ?refresh=true or ?bypassCache=true as a cache-bypass request
+  const isRefreshRequested = refresh || bypassCacheParam;
 
-  const selectedTheme = themes[theme] || themes.dark;
+  const themeName = theme || 'dark';
+  const isAutoTheme = themeName === 'auto';
+  const isRandomTheme = themeName === 'random';
+  const selectedTheme = (() => {
+    if (isAutoTheme) return themes.light;
+    if (isRandomTheme) {
+      const keys = Object.keys(themes);
+      const hash = user.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
+      const stableKey = keys[hash % keys.length];
+      return themes[stableKey] || themes.dark;
+    }
+    return themes[themeName] || themes.dark;
+  })();
+
   const resolvedBg = `#${bg || selectedTheme.bg}`;
   const resolvedText = `#${text || selectedTheme.text}`;
   const resolvedAccent = `#${accent || selectedTheme.accent}`;
@@ -70,7 +93,7 @@ export async function GET(req: NextRequest) {
     // bypassCache mirrors the ?refresh=true pattern used by /api/stats and /api/streak.
     // Without this, every link-preview bot crawl fires a fresh GitHub GraphQL request,
     // burning API quota on an endpoint that is embedded in every page's <meta> tag.
-    const data = await fetchGitHubContributions(user, { bypassCache: refresh });
+    const data = await fetchGitHubContributions(user, { bypassCache: isRefreshRequested });
     const stats = calculateStreak(data.calendar ?? data);
     totalCommits = stats.totalContributions;
     longestStreak = stats.longestStreak;
@@ -79,7 +102,7 @@ export async function GET(req: NextRequest) {
     console.error('[OG] stats fetch failed:', err);
   }
 
-  const cacheControl = refresh
+  const cacheControl = isRefreshRequested
     ? 'no-cache, no-store, must-revalidate'
     : 'public, max-age=3600, stale-while-revalidate=86400';
 
