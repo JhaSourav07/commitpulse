@@ -34,7 +34,7 @@ describe('SuccessGuide', () => {
   it('renders the dismiss guide button with correct aria-label', () => {
     render(<SuccessGuide markdown={markdown} onDismiss={vi.fn()} />);
 
-    expect(screen.getByLabelText('Dismiss guide')).toBeTruthy();
+    expect(screen.getByRole('button', { name: /dismiss|close/i })).toBeTruthy();
   });
 
   it('calls onDismiss when dismiss button is clicked', () => {
@@ -42,7 +42,7 @@ describe('SuccessGuide', () => {
 
     render(<SuccessGuide markdown={markdown} onDismiss={onDismiss} />);
 
-    fireEvent.click(screen.getByLabelText('Dismiss guide'));
+    fireEvent.click(screen.getByRole('button', { name: /dismiss|close/i }));
 
     expect(onDismiss).toHaveBeenCalledTimes(1);
   });

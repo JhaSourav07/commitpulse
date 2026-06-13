@@ -7,6 +7,8 @@ import {
   sanitizeRadius,
   sanitizeFont,
   sanitizeGoogleFontUrl,
+  parseGradientStops,
+  MAX_GRADIENT_STOPS,
 } from './sanitizer';
 
 describe('SVG Sanitizer Utilities', () => {
@@ -302,5 +304,60 @@ describe('SVG Sanitizer Utilities', () => {
       expect(hexColor('c9d1d9', '000000')).toBe('c9d1d9');
       expect(hexColor('58a6ff', '000000')).toBe('58a6ff');
     });
+  });
+});
+
+describe('parseGradientStops', () => {
+  it('returns empty array for undefined input', () => {
+    expect(parseGradientStops(undefined)).toEqual([]);
+  });
+
+  it('returns empty array for empty string', () => {
+    expect(parseGradientStops('')).toEqual([]);
+  });
+
+  it('parses valid hex colors without # prefix', () => {
+    expect(parseGradientStops('ff6b35,7000ff')).toEqual(['ff6b35', '7000ff']);
+  });
+
+  it('parses valid hex colors with # prefix and strips it', () => {
+    expect(parseGradientStops('#ff6b35,#7000ff')).toEqual(['ff6b35', '7000ff']);
+  });
+
+  it('filters out invalid hex tokens and keeps valid ones', () => {
+    expect(parseGradientStops('ff6b35,invalid,7000ff')).toEqual(['ff6b35', '7000ff']);
+  });
+
+  it('returns empty array when all tokens are invalid', () => {
+    expect(parseGradientStops('invalid,colors,here')).toEqual([]);
+  });
+
+  it('returns a single valid color', () => {
+    expect(parseGradientStops('ff6b35')).toEqual(['ff6b35']);
+  });
+
+  it(`caps output at MAX_GRADIENT_STOPS (${MAX_GRADIENT_STOPS}) entries`, () => {
+    // Build a string with MAX_GRADIENT_STOPS + 5 valid colors
+    const allColors = Array.from({ length: MAX_GRADIENT_STOPS + 5 }, (_, i) =>
+      i.toString(16).padStart(6, '0')
+    );
+    const input = allColors.join(',');
+    const result = parseGradientStops(input);
+    expect(result.length).toBe(MAX_GRADIENT_STOPS);
+    // Only the first MAX_GRADIENT_STOPS tokens should appear
+    expect(result).toEqual(allColors.slice(0, MAX_GRADIENT_STOPS));
+  });
+
+  it('does not error on a massive comma-separated string beyond MAX_GRADIENT_STOPS', () => {
+    const massive = Array.from({ length: 1000 }, () => 'ff0000').join(',');
+    const result = parseGradientStops(massive);
+    expect(result.length).toBeLessThanOrEqual(MAX_GRADIENT_STOPS);
+  });
+
+  it('handles mixed valid/invalid colors when list is larger than cap', () => {
+    // 12 valid colors — should be capped at MAX_GRADIENT_STOPS
+    const colors = Array.from({ length: 12 }, () => 'aabbcc').join(',');
+    const result = parseGradientStops(colors);
+    expect(result.length).toBe(MAX_GRADIENT_STOPS);
   });
 });

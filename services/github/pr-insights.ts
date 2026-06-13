@@ -2,6 +2,7 @@ import { fetchWithRetry, getGitHubTokens } from '@/lib/github';
 import { DistributedCache } from '@/lib/cache';
 
 const GITHUB_GRAPHQL_URL = 'https://api.github.com/graphql';
+const MAX_PAGES = 3;
 
 export interface PRInsightData {
   totalPRs: number;
@@ -69,8 +70,8 @@ async function fetchPRInsightsUncached(username: string): Promise<PRInsightData>
   // This is more efficient than iterating through user.pullRequests.
 
   const query = `
-    query($authorQuery: String!, $reviewerQuery: String!) {
-      authored: search(query: $authorQuery, type: ISSUE, first: 100) {
+    query($authorQuery: String!, $reviewerQuery: String!, $after: String) {
+      authored: search(query: $authorQuery, type: ISSUE, first: 100, after: $after) {
         nodes {
           ... on PullRequest {
             id
@@ -88,14 +89,23 @@ async function fetchPRInsightsUncached(username: string): Promise<PRInsightData>
             comments {
               totalCount
             }
-            reviews(first: 50) {
+            reviews(first: 100) {
               nodes {
                 author { login }
                 createdAt
                 state
               }
+              pageInfo {
+                hasNextPage
+                endCursor
+              }
+              totalCount
             }
           }
+        }
+        pageInfo {
+          hasNextPage
+          endCursor
         }
       }
       reviewed: search(query: $reviewerQuery, type: ISSUE, first: 100) {
@@ -114,25 +124,41 @@ async function fetchPRInsightsUncached(username: string): Promise<PRInsightData>
     reviewerQuery: `is:pr reviewed-by:${username} -author:${username} created:>=${dateStr}`,
   };
 
-  const res = await fetchWithRetry(GITHUB_GRAPHQL_URL, {
-    method: 'POST',
-    headers: getHeaders(),
-    body: JSON.stringify({ query, variables }),
-    cache: 'no-store',
-  });
-
-  if (!res.ok) {
-    throw new Error(`Failed to fetch PR insights: ${res.statusText}`);
-  }
-
-  const json = await res.json();
-  if (json.errors) {
-    throw new Error(json.errors[0]?.message || 'GraphQL Error');
-  }
-
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const authoredPRs = (json.data?.authored?.nodes || []).filter((n: any) => n && n.title); // filter out non-PRs or nulls
-  const reviewsGivenCount = json.data?.reviewed?.issueCount || 0;
+  let allAuthoredPRs: any[] = [];
+  let hasNextPage = true;
+  let after: string | null = null;
+  let reviewsGivenCount = 0;
+  for (let page = 0; page < MAX_PAGES && hasNextPage; page++) {
+    const res = await fetchWithRetry(GITHUB_GRAPHQL_URL, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ query, variables: { ...variables, after } }),
+      cache: 'no-store',
+    });
+
+    if (!res.ok) {
+      throw new Error(`Failed to fetch PR insights: ${res.statusText}`);
+    }
+
+    const json = await res.json();
+    if (json.errors) {
+      throw new Error(json.errors[0]?.message || 'GraphQL Error');
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const pageNodes = (json.data?.authored?.nodes || []).filter((n: any) => n && n.title);
+    allAuthoredPRs = allAuthoredPRs.concat(pageNodes);
+
+    hasNextPage = json.data?.authored?.pageInfo?.hasNextPage || false;
+    after = json.data?.authored?.pageInfo?.endCursor || null;
+
+    if (page === 0) {
+      reviewsGivenCount = json.data?.reviewed?.issueCount || 0;
+    }
+  }
+
+  const authoredPRs = allAuthoredPRs;
 
   // Process data
   const totalPRs = authoredPRs.length;
@@ -207,14 +233,18 @@ async function fetchPRInsightsUncached(username: string): Promise<PRInsightData>
       mostDiscussed = { title: pr.title, url: pr.url, comments: pr.comments.totalCount };
     }
 
-    // Reviews
+    // Reviews - use totalCount for accurate count, nodes for timing analysis
     const reviews = pr.reviews?.nodes || [];
+    const totalReviewCount = pr.reviews?.totalCount || reviews.length;
     const prReviewTimes: number[] = [];
 
+    // Use totalCount for accurate reviewsReceived (accounts for reviews beyond first 100)
+    reviewsReceived += totalReviewCount;
+    repoStats.reviewCount += totalReviewCount;
+
+    // Analyze timing from available nodes (first 100 reviews)
     for (const review of reviews) {
       if (review.author?.login === username) continue; // skip self reviews
-      reviewsReceived++;
-      repoStats.reviewCount++;
 
       const reviewDate = new Date(review.createdAt);
       const diffHours = (reviewDate.getTime() - createdDate.getTime()) / (1000 * 60 * 60);
