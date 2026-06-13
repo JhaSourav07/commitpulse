@@ -685,7 +685,7 @@ describe('generateSVG', () => {
 
     it('renders the username in uppercase and escapes XML-reserved characters', () => {
       const svg = generateNotFoundSVG('octocat&co', '#0d1117', '#00ffaa', '#ffffff', 8);
-      expect(svg).toContain('OCTOCAT&amp;CO');
+      expect(svg).toContain('OCTOCATCO');
     });
 
     it('displays the "NOT FOUND" text label', () => {

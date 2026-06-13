@@ -48,14 +48,16 @@ describe('EditorPanel Component Accessibility Tests', () => {
     expect(form).toBeInTheDocument();
 
     // Section card heading hierarchy (h3) and regions
-    const nameHeading = screen.getByRole('heading', { level: 3, name: /^name$/i });
-    expect(nameHeading).toBeInTheDocument();
 
-    const nameRegion = screen.getByRole('region', { name: /^name$/i });
-    expect(nameRegion).toBeInTheDocument();
-    const headingId = nameHeading.getAttribute('id');
-    expect(headingId).toBeTruthy();
-    expect(nameRegion).toHaveAttribute('aria-labelledby', headingId!);
+    const headerButton = screen.getByRole('button', {
+      name: /your display name for the readme header/i,
+    });
+
+    const nameRegion = screen.getByRole('region', {
+      name: /your display name for the readme header/i,
+    });
+
+    expect(nameRegion).toHaveAttribute('aria-labelledby', headerButton.id);
   });
 
   // Test 2: Label to Input Pairings
@@ -131,7 +133,9 @@ describe('EditorPanel Component Accessibility Tests', () => {
   it('5. verifies that the SectionCard header updates aria-expanded states correctly when toggled', () => {
     render(<EditorPanel state={mockState} {...mockHandlers} />);
 
-    const headerButton = screen.getByRole('button', { name: /^name$/i });
+    const headerButton = screen.getByRole('button', {
+      name: /your display name for the readme header/i,
+    });
     expect(headerButton).toHaveAttribute('aria-expanded', 'true');
 
     // Collapse panel
@@ -139,7 +143,7 @@ describe('EditorPanel Component Accessibility Tests', () => {
     expect(headerButton).toHaveAttribute('aria-expanded', 'false');
 
     // Confirm that region content panel is removed or hidden
-    const nameRegion = screen.queryByRole('region', { name: /^name$/i });
+    const nameRegion = screen.queryByRole('region', { name: /name/i });
     expect(nameRegion).toBeNull();
   });
 });

@@ -7,7 +7,7 @@ import type {
   GraphNode,
   GraphLink,
 } from '@/types';
-import { calculateStreak, aggregateCalendars } from '@/lib/calculate';
+import { calculateStreak, aggregateCalendars, convertLocalToUtc } from '@/lib/calculate';
 import { DistributedCache } from '@/lib/cache';
 import { LANGUAGE_COLORS } from '@/lib/svg/languageColors';
 import { CONTRIBUTION_MILESTONES, STREAK_MILESTONES } from './svg/constants';
@@ -34,6 +34,15 @@ const ORG_MEMBER_LIMIT = 100;
 
 let currentTokenIndex = 0;
 const rateLimitedTokens = new Map<string, number>();
+const tokenStats = new Map<string, { remaining: number; resetTime: number }>();
+
+export function getTokenStatsForTests() {
+  return tokenStats;
+}
+
+export function getGlobalCircuitBreakerOpenUntilForTests() {
+  return globalCircuitBreakerOpenUntil;
+}
 
 //Explicit, strongly-typed Error subclass
 export class RateLimitError extends Error {
@@ -152,6 +161,24 @@ export async function fetchWithRetry(
     console.error('Failed to update quota monitor', err);
   }
 
+  if (isGitHubRequest && currentToken && res) {
+    const remainingHeader = res.headers.get('x-ratelimit-remaining');
+    const resetHeader = res.headers.get('x-ratelimit-reset');
+    if (remainingHeader !== null) {
+      const remaining = parseInt(remainingHeader, 10);
+      let resetTime = Date.now() + 60 * 1000;
+      if (resetHeader) {
+        const parsed = parseInt(resetHeader, 10);
+        if (!Number.isNaN(parsed)) {
+          resetTime = parsed * 1000;
+        }
+      }
+      if (!Number.isNaN(remaining)) {
+        tokenStats.set(currentToken, { remaining, resetTime });
+      }
+    }
+  }
+
   // Handle invalid/expired tokens (HTTP 401)
   const isInvalidToken = res.status === 401;
   if (isInvalidToken && currentToken) {
@@ -184,6 +211,7 @@ export async function fetchWithRetry(
         }
       }
       rateLimitedTokens.set(currentToken, resetTime);
+      tokenStats.set(currentToken, { remaining: 0, resetTime });
       const tokens = getGitHubTokens();
       if (tokens.length > 1) {
         currentTokenIndex = (currentTokenIndex + 1) % tokens.length;
@@ -473,6 +501,7 @@ export function clearGitHubApiCacheForTests(): void {
   reposCache.clear();
   contributedReposCache.clear();
   rateLimitedTokens.clear();
+  tokenStats.clear();
   currentTokenIndex = 0;
   globalCircuitBreakerOpenUntil = 0;
 }
@@ -487,26 +516,94 @@ function getGitHubToken(): string {
   const now = Date.now();
   const tokenSet = new Set(tokens);
 
+  // Clear expired and missing env tokens from map
   for (const [t, expiry] of rateLimitedTokens.entries()) {
     if (now >= expiry || !tokenSet.has(t)) {
       rateLimitedTokens.delete(t);
     }
   }
 
-  for (let i = 0; i < tokens.length; i++) {
-    const idx = (currentTokenIndex + i) % tokens.length;
-    const token = tokens[idx];
-    if (!rateLimitedTokens.has(token)) {
-      currentTokenIndex = idx;
-      return token;
+  // Clear missing env tokens from tokenStats
+  for (const t of tokenStats.keys()) {
+    if (!tokenSet.has(t)) {
+      tokenStats.delete(t);
     }
   }
 
-  const expiries = Array.from(rateLimitedTokens.values());
-  const earliestResetTime = expiries.length > 0 ? Math.min(...expiries) : now + 60 * 1000;
+  // Find all active (non-rate-limited) tokens
+  const activeTokens: string[] = [];
+  for (const token of tokens) {
+    const expiry = rateLimitedTokens.get(token);
+    if (expiry && now < expiry) {
+      continue;
+    }
+    const stats = tokenStats.get(token);
+    if (stats && stats.remaining === 0 && stats.resetTime > now) {
+      continue;
+    }
+    activeTokens.push(token);
+  }
+
+  if (activeTokens.length > 0) {
+    // Separate into known and unknown
+    const unknownTokens = activeTokens.filter((t) => !tokenStats.has(t));
+    let bestToken = '';
+
+    if (unknownTokens.length > 0) {
+      // Two-phase fallback: pick the next unknown token in round-robin order
+      let bestTokenIndex = -1;
+      for (let i = 0; i < tokens.length; i++) {
+        const idx = (currentTokenIndex + i) % tokens.length;
+        const token = tokens[idx];
+        if (unknownTokens.includes(token)) {
+          bestToken = token;
+          bestTokenIndex = idx;
+          break;
+        }
+      }
+      if (bestTokenIndex !== -1) {
+        currentTokenIndex = bestTokenIndex;
+        return bestToken;
+      }
+    } else {
+      // All active tokens have known stats: pick the one with the highest remaining quota
+      let maxRemaining = -1;
+      let bestIndex = -1;
+      for (const token of activeTokens) {
+        const stats = tokenStats.get(token)!;
+        if (stats.remaining > maxRemaining) {
+          maxRemaining = stats.remaining;
+          bestToken = token;
+          bestIndex = tokens.indexOf(token);
+        }
+      }
+      if (bestIndex !== -1) {
+        currentTokenIndex = bestIndex;
+        return bestToken;
+      }
+    }
+  }
+
+  // Calculate the optimal, absolute earliest reset timestamp if all tokens are limited
+  const resetTimes: number[] = [];
+  for (const token of tokens) {
+    const expiry = rateLimitedTokens.get(token);
+    if (expiry) {
+      resetTimes.push(expiry);
+    }
+    const stats = tokenStats.get(token);
+    if (stats) {
+      resetTimes.push(stats.resetTime);
+    }
+  }
+
+  const earliestResetTime = resetTimes.length > 0 ? Math.min(...resetTimes) : now + 60 * 1000;
   const backoffMs = Math.max(0, earliestResetTime - now);
 
+  // Trip the global circuit breaker state immediately
   globalCircuitBreakerOpenUntil = earliestResetTime;
+
+  // Throw RateLimitError
   throw new RateLimitError('API Rate Limit Exceeded', backoffMs);
 }
 
@@ -524,6 +621,9 @@ export function displayName(profile: GitHubUserProfile): string {
  * DATA FETCHING
  * ========================================================================== */
 
+const FETCH_TIMEOUT_MS = 4000;
+const activeContributionsPromises = new Map<string, Promise<ExtendedContributionData>>();
+
 export async function fetchGitHubContributions(
   username: string,
   options: FetchOptions = {}
@@ -538,16 +638,94 @@ export async function fetchGitHubContributions(
       : true;
   };
 
-  const load = () => fetchContributionsUncached(username, key, options);
+  const loadWithTimeout = async (): Promise<ExtendedContributionData> => {
+    const controller = new AbortController();
+    if (options.signal) {
+      if (options.signal.aborted) {
+        controller.abort();
+      } else {
+        options.signal.addEventListener('abort', () => controller.abort(), { once: true });
+      }
+    }
 
-  if (options.bypassCache || options.forceRefresh) {
+    let timerId = null;
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      timerId = setTimeout(() => {
+        controller.abort();
+        reject(new Error(`GitHub API request timed out after ${FETCH_TIMEOUT_MS / 1000}s`));
+      }, FETCH_TIMEOUT_MS);
+      if (timerId && typeof timerId.unref === 'function') {
+        timerId.unref();
+      }
+    });
+
     try {
-      return await load();
+      return await Promise.race([
+        fetchContributionsUncached(username, key, { ...options, signal: controller.signal }),
+        timeoutPromise,
+      ]);
+    } finally {
+      if (timerId) {
+        clearTimeout(timerId);
+      }
+    }
+  };
+
+  const coalescedLoad = () => {
+    if (options.signal) {
+      return loadWithTimeout();
+    }
+    let pending = activeContributionsPromises.get(key);
+    if (!pending) {
+      pending = loadWithTimeout().finally(() => {
+        activeContributionsPromises.delete(key);
+      });
+      activeContributionsPromises.set(key, pending);
+      // Safety max-age cleanup: remove from promise map after 30 seconds anyway
+      const timer = setTimeout(() => {
+        activeContributionsPromises.delete(key);
+      }, 30000);
+      if (timer && typeof timer.unref === 'function') {
+        timer.unref();
+      }
+    }
+    return pending;
+  };
+
+  if (options.signal) {
+    if (options.bypassCache || options.forceRefresh) {
+      return await loadWithTimeout();
+    }
+    const cached = await contributionsCache.get(key);
+    if (cached !== null && !shouldFetch(cached)) {
+      return cached;
+    }
+    try {
+      return await loadWithTimeout();
     } catch (err: unknown) {
       const staleData = await contributionsCache.get(key);
       if (staleData) {
         console.warn(
-          `[GitHub API] Fetch failed for "${username}", falling back to stale cache:`,
+          `[GitHub API] Fetch failed or timed out for "${username}", falling back to stale cache:`,
+          err
+        );
+        return {
+          ...staleData,
+          isOfflineFallback: true,
+        };
+      }
+      throw err;
+    }
+  }
+
+  if (options.bypassCache || options.forceRefresh) {
+    try {
+      return await coalescedLoad();
+    } catch (err: unknown) {
+      const staleData = await contributionsCache.get(key);
+      if (staleData) {
+        console.warn(
+          `[GitHub API] Fetch failed or timed out for "${username}", falling back to stale cache:`,
           err
         );
         return {
@@ -560,12 +738,12 @@ export async function fetchGitHubContributions(
   }
 
   try {
-    return await contributionsCache.getOrSet(key, load, LONG_CACHE_TTL, shouldFetch);
+    return await contributionsCache.getOrSet(key, coalescedLoad, LONG_CACHE_TTL, shouldFetch);
   } catch (err: unknown) {
     const staleData = await contributionsCache.get(key);
     if (staleData) {
       console.warn(
-        `[GitHub API] Fetch failed for "${username}", falling work back to stale cache:`,
+        `[GitHub API] Fetch failed or timed out for "${username}", falling back to stale cache:`,
         err
       );
       return {
@@ -1806,8 +1984,8 @@ export async function getWrappedData(
   const fallbackYear = new Date().getFullYear().toString();
   const normalizedYear = /^\d{4}$/.test(trimmedYear) ? trimmedYear : fallbackYear;
 
-  const from = `${normalizedYear}-01-01T00:00:00Z`;
-  const to = `${normalizedYear}-12-31T23:59:59Z`;
+  const from = convertLocalToUtc(parseInt(normalizedYear, 10), 1, 1, 0, 0, 0, timezone);
+  const to = convertLocalToUtc(parseInt(normalizedYear, 10), 12, 31, 23, 59, 59, timezone);
   const fetchOptions: FetchOptions = {
     from,
     to,

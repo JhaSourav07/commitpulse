@@ -37,6 +37,7 @@ export const themes: Record<string, BadgeTheme> = {
   tokyonight: makeTheme('1a1b26', 'c0caf5', 'f7768e'),
   cyberpunk: makeTheme('fce22a', '111111', 'ff003c'),
   tokyo_night: makeTheme('1a1b26', 'c0caf5', '7aa2f7'),
+  monokai: makeTheme('272822', 'f8f8f2', 'a6e22e', 'f92672'),
 };
 
 // Auto-theme pairs: the SVG switches between these two palettes

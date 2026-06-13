@@ -57,8 +57,20 @@ export function getClientIp(
   request: Request | NextRequest,
   options: GetClientIpOptions = {}
 ): string {
-  const config = options.proxyConfig || loadTrustedProxyConfig();
+  const opt = options || {};
+  const isDevOrTest = process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test';
+  const defaultIp = isDevOrTest ? '127.0.0.1' : 'unknown';
+
+  if (!request) {
+    return defaultIp;
+  }
+
   const headers = request.headers;
+  if (!headers || typeof headers.get !== 'function') {
+    return defaultIp;
+  }
+
+  const config = opt.proxyConfig || loadTrustedProxyConfig();
 
   // 1. NextRequest has a secure, platform-populated request.ip property on Vercel/Next.js
   const requestIp = (request as unknown as { ip?: string }).ip;
@@ -77,10 +89,10 @@ export function getClientIp(
     return requestIp;
   }
 
-  const directIp = options.directIp?.trim();
+  const directIp = opt.directIp?.trim();
   const forwardedHeaders = [
     'x-forwarded-for',
-    ...(options.headersPriority || ['x-vercel-proxied-for', 'cf-connecting-ip', 'x-real-ip']),
+    ...(opt.headersPriority || ['x-vercel-proxied-for', 'cf-connecting-ip', 'x-real-ip']),
   ];
 
   // Forwarded headers cannot establish their own trust boundary. Without a
@@ -159,7 +171,7 @@ export function getClientIp(
   }
 
   // 3. Custom/platform headers are accepted only behind a trusted direct peer.
-  const priorityHeaders = options.headersPriority || [
+  const priorityHeaders = opt.headersPriority || [
     'x-vercel-proxied-for',
     'cf-connecting-ip',
     'x-real-ip',

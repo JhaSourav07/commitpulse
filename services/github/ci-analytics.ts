@@ -12,6 +12,9 @@ import type {
 } from '@/types/ci-analytics';
 
 const GITHUB_REST_URL = 'https://api.github.com';
+const MAX_REPO_PAGES = 2;
+const MAX_ACTION_PAGES = 2;
+const MAX_FETCH_TARGETS = 5;
 
 const cache = new DistributedCache<CIAnalyticsData>(500);
 
@@ -34,7 +37,7 @@ async function fetchAllPages<T>(url: string, perPage = 100): Promise<T[]> {
   let page = 1;
   let hasMore = true;
 
-  while (hasMore && page <= 3) {
+  while (hasMore && page <= MAX_REPO_PAGES) {
     const paginatedUrl = `${url}${url.includes('?') ? '&' : '?'}per_page=${perPage}&page=${page}`;
     const res = await fetchWithRetry(paginatedUrl, { headers: getHeaders(), cache: 'no-store' });
     if (!res.ok) break;
@@ -76,7 +79,7 @@ async function fetchActionsPages<T>(url: string, dataField: string, perPage = 50
   const results: T[] = [];
   let page = 1;
 
-  while (page <= 3) {
+  while (page <= MAX_ACTION_PAGES) {
     const paginatedUrl = `${url}${url.includes('?') ? '&' : '?'}per_page=${perPage}&page=${page}`;
     const res = await fetchWithRetry(paginatedUrl, { headers: getHeaders(), cache: 'no-store' });
     if (!res.ok) break;
@@ -369,9 +372,10 @@ async function fetchCIAnalyticsUncached(username: string): Promise<CIAnalyticsDa
 
   const fetchTargets: { owner: string; repo: string; label: string }[] = [];
 
-  for (const repo of repos.slice(0, 10)) {
+  for (const repo of repos) {
+    if (fetchTargets.length >= MAX_FETCH_TARGETS) break;
     fetchTargets.push({ owner: repo.owner, repo: repo.name, label: `${repo.owner}/${repo.name}` });
-    if (repo.fork && repo.parent) {
+    if (repo.fork && repo.parent && fetchTargets.length < MAX_FETCH_TARGETS) {
       const parentLabel = `${repo.parent.owner.login}/${repo.parent.name}`;
       if (!fetchTargets.some((t) => t.label === parentLabel)) {
         fetchTargets.push({
@@ -422,7 +426,7 @@ async function fetchCIAnalyticsUncached(username: string): Promise<CIAnalyticsDa
     insights: buildInsights(allRuns),
 
     workflows: allWorkflows,
-    repos: repos.map((r) => r.name).slice(0, 10),
+    repos: repos.map((r) => r.name).slice(0, MAX_FETCH_TARGETS),
     branches: Array.from(allBranches).sort(),
   };
 

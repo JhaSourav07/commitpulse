@@ -7,7 +7,7 @@ describe('verifyGitHubOwner', () => {
   });
 
   it('rejects requests without a bearer token', async () => {
-    const result = await verifyGitHubOwner(new Request('http://localhost/api/profile'), 'octocat');
+    const result = await verifyGitHubOwner(new Request('http://localhost/api/notify'), 'octocat');
 
     expect(result).toEqual({
       verified: false,
@@ -16,11 +16,11 @@ describe('verifyGitHubOwner', () => {
     });
   });
 
-  it('verifies a matching GitHub account', async () => {
+  it('verifies a matching GitHub account without leaking or storing the token', async () => {
     const fetchSpy = vi
       .spyOn(globalThis, 'fetch')
       .mockResolvedValue(new Response(JSON.stringify({ login: 'OctoCat' }), { status: 200 }));
-    const request = new Request('http://localhost/api/profile', {
+    const request = new Request('http://localhost/api/notify', {
       headers: { Authorization: 'Bearer caller-token' },
     });
 
@@ -38,7 +38,7 @@ describe('verifyGitHubOwner', () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(
       new Response(JSON.stringify({ login: 'attacker' }), { status: 200 })
     );
-    const request = new Request('http://localhost/api/profile', {
+    const request = new Request('http://localhost/api/notify', {
       headers: { Authorization: 'Bearer attacker-token' },
     });
 
@@ -47,9 +47,9 @@ describe('verifyGitHubOwner', () => {
     expect(result).toMatchObject({ verified: false, status: 403 });
   });
 
-  it('rejects invalid tokens without exposing them', async () => {
+  it('rejects invalid tokens with a controlled response', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(null, { status: 401 }));
-    const request = new Request('http://localhost/api/profile', {
+    const request = new Request('http://localhost/api/notify', {
       headers: { Authorization: 'Bearer expired-token' },
     });
 
@@ -61,7 +61,7 @@ describe('verifyGitHubOwner', () => {
 
   it('fails closed when GitHub ownership verification is unavailable', async () => {
     vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('network failure'));
-    const request = new Request('http://localhost/api/profile', {
+    const request = new Request('http://localhost/api/notify', {
       headers: { Authorization: 'Bearer caller-token' },
     });
 
