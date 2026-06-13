@@ -69,7 +69,7 @@ describe('CompareClient empty fallback', () => {
 
   it('renders compare button in default state', () => {
     render(<CompareClient />);
-    const button = screen.getByRole('button');
+    const button = screen.getByRole('button', { name: /compare/i });
     expect(button).toBeDefined();
     expect(button.textContent).toContain('Compare');
   });

@@ -67,6 +67,7 @@ export function toDimensionValue(val?: string): number | undefined {
 }
 
 export function validateGitHubUsername(username: string): boolean {
+  if (!username || typeof username !== 'string') return false;
   return /^[a-z\d](?:[a-z\d]|-(?=[a-z\d])){0,38}$/i.test(username);
 }
 
@@ -80,6 +81,7 @@ export function validateGitHubUsername(username: string): boolean {
  * For non-YYYY-MM-DD formats, falls back to Date.parse validation.
  */
 export function validateStrictISODate(dateStr: string): boolean {
+  if (!dateStr || typeof dateStr !== 'string') return false;
   // Check if it matches YYYY-MM-DD format
   const match = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
 
@@ -637,6 +639,7 @@ export const wrappedParamsSchema = z.object({
   hide_background: z.string().optional().transform(toBooleanFlag), // ✅ Fixed: was toRefreshFlag
   width: dimensionParam('width', 100, 1200),
   height: dimensionParam('height', 80, 800),
+  tz: timeZoneParam,
 });
 
 export const notifyPostSchema = z.object({

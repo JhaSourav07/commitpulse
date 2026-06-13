@@ -1498,6 +1498,47 @@ describe('calculateStreak — timezone awareness', () => {
     expect(istResult.todayDate).toBe('2024-06-15');
     expect(jstResult.todayDate).toBe('2024-06-15');
   });
+
+  it('credits contribution at exactly local midnight to the correct day (Issue #5258)', () => {
+    const calendar = {
+      totalContributions: 1,
+      weeks: [
+        {
+          contributionDays: [
+            { contributionCount: 0, date: '2026-06-10' },
+            { contributionCount: 1, date: '2026-06-11' },
+            { contributionCount: 0, date: '2026-06-12' },
+          ],
+        },
+      ],
+    };
+    // 2026-06-11T00:00:00.000+05:30 is 2026-06-10T18:30:00.000Z
+    const nowInKolkataMidnight = new Date('2026-06-10T18:30:00.000Z');
+    const result = calculateStreak(calendar, 'Asia/Kolkata', nowInKolkataMidnight);
+    expect(result.todayDate).toBe('2026-06-11');
+    expect(result.currentStreak).toBe(1);
+  });
+
+  it('keeps streak active during the current day before any contributions are made (Issue #5260)', () => {
+    const calendar = {
+      totalContributions: 2,
+      weeks: [
+        {
+          contributionDays: [
+            { contributionCount: 1, date: '2026-06-10' },
+            { contributionCount: 1, date: '2026-06-11' },
+            { contributionCount: 0, date: '2026-06-12' },
+          ],
+        },
+      ],
+    };
+    // At 09:00 AM local time on 2026-06-12, the user has not committed yet today.
+    // The streak should still be 2.
+    const now = new Date('2026-06-12T09:00:00.000Z');
+    const result = calculateStreak(calendar, 'UTC', now, 0); // grace = 0
+    expect(result.todayDate).toBe('2026-06-12');
+    expect(result.currentStreak).toBe(2);
+  });
 });
 
 describe('isStreakAlive', () => {
@@ -2467,6 +2508,121 @@ describe('aggregateCalendars — missing days chronological order', () => {
     expect(jun1?.contributionCount).toBe(5);
     expect(jun3?.contributionCount).toBe(3);
     expect(result.totalContributions).toBe(8);
+  });
+
+  // ── structuredClone correctness tests ────────────────────────────────────
+  // These tests verify that the deep clone in aggregateCalendars()
+  // does not mutate the original calendar objects — the core contract
+  // that structuredClone() (replacing JSON.parse/stringify) must uphold.
+
+  it('does not mutate the original calendar objects after aggregation', () => {
+    const cal1 = {
+      totalContributions: 10,
+      weeks: [
+        {
+          contributionDays: [{ date: '2024-01-01', contributionCount: 10 }],
+        },
+      ],
+    };
+    const cal2 = {
+      totalContributions: 5,
+      weeks: [
+        {
+          contributionDays: [{ date: '2024-01-01', contributionCount: 5 }],
+        },
+      ],
+    };
+
+    // Capture originals before aggregation
+    const original1Count = cal1.weeks[0].contributionDays[0].contributionCount;
+    const original2Count = cal2.weeks[0].contributionDays[0].contributionCount;
+
+    aggregateCalendars([cal1, cal2]);
+
+    // Originals must be unchanged — structuredClone creates a true deep copy
+    expect(cal1.weeks[0].contributionDays[0].contributionCount).toBe(original1Count);
+    expect(cal2.weeks[0].contributionDays[0].contributionCount).toBe(original2Count);
+    expect(cal1.totalContributions).toBe(10);
+    expect(cal2.totalContributions).toBe(5);
+  });
+
+  it('aggregated result is a new object — not a reference to the original', () => {
+    const cal1 = {
+      totalContributions: 5,
+      weeks: [
+        {
+          contributionDays: [{ date: '2024-01-01', contributionCount: 5 }],
+        },
+      ],
+    };
+
+    const result = aggregateCalendars([cal1]);
+
+    // Result must be a different object reference
+    expect(result).not.toBe(cal1);
+    expect(result.weeks).not.toBe(cal1.weeks);
+    expect(result.weeks[0]).not.toBe(cal1.weeks[0]);
+    expect(result.weeks[0].contributionDays[0]).not.toBe(cal1.weeks[0].contributionDays[0]);
+  });
+
+  it('mutating the result does not affect the original calendar', () => {
+    const cal = {
+      totalContributions: 7,
+      weeks: [
+        {
+          contributionDays: [{ date: '2024-01-01', contributionCount: 7 }],
+        },
+      ],
+    };
+
+    const result = aggregateCalendars([cal]);
+
+    // Mutate the result
+    result.weeks[0].contributionDays[0].contributionCount = 999;
+    result.totalContributions = 999;
+
+    // Original must be completely unaffected
+    expect(cal.weeks[0].contributionDays[0].contributionCount).toBe(7);
+    expect(cal.totalContributions).toBe(7);
+  });
+
+  it('preserves optional fields on ContributionDay through the deep clone', () => {
+    const calWithOptionals = {
+      totalContributions: 100,
+      weeks: [
+        {
+          contributionDays: [
+            {
+              date: '2024-01-01',
+              contributionCount: 10,
+              locAdditions: 500,
+              locDeletions: 200,
+            },
+          ],
+        },
+      ],
+    };
+
+    const result = aggregateCalendars([calWithOptionals]);
+
+    // structuredClone preserves optional fields — JSON.parse/stringify
+    // would also preserve these since they are numbers not undefined,
+    // but this test documents the contract explicitly
+    expect(result.weeks[0].contributionDays[0].locAdditions).toBe(500);
+    expect(result.weeks[0].contributionDays[0].locDeletions).toBe(200);
+  });
+
+  it('aggregation result has correct total after structuredClone refactor', () => {
+    const cal1 = buildCalendar([3, 5, 2]);
+    const cal2 = buildCalendar([1, 4, 6]);
+
+    const result = aggregateCalendars([cal1, cal2]);
+
+    // 3+1=4, 5+4=9, 2+6=8 → total = 21
+    expect(result.totalContributions).toBe(21);
+    expect(result.weeks[0].contributionDays[0].contributionCount).toBe(4);
+    expect(result.weeks[0].contributionDays[1].contributionCount).toBe(9);
+    expect(result.weeks[0].contributionDays[2].contributionCount).toBe(8);
   });
 });
 

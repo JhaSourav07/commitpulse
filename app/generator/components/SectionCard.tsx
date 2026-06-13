@@ -33,7 +33,6 @@ export function SectionCard({
         id={headerId}
         aria-expanded={open}
         aria-controls={contentId}
-        aria-labelledby={titleId}
         aria-describedby={description ? descriptionId : undefined}
         onClick={() => setOpen((p) => !p)}
         className="w-full flex items-center gap-3 px-5 py-4 text-left group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50"
@@ -68,7 +67,7 @@ export function SectionCard({
       </button>
 
       {open && (
-        <div id={contentId} role="region" aria-labelledby={titleId} className="px-5 pb-5 pt-1">
+        <div id={contentId} role="region" aria-labelledby={headerId} className="px-5 pb-5 pt-1">
           <div className="h-px bg-gray-100 dark:bg-white/5 mb-4" />
           {children}
         </div>

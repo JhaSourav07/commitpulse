@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { NextRequest } from 'next/server';
-import { GET, POST } from './route';
+import { DELETE, GET, POST } from './route';
 import dbConnect from '@/lib/mongodb';
 
 // Mock dependencies
@@ -9,6 +9,7 @@ vi.mock('@/models/Notification', () => ({
   Notification: {
     findOneAndUpdate: vi.fn(),
     findOne: vi.fn(),
+    deleteOne: vi.fn(),
   },
 }));
 vi.mock('@/lib/rate-limit', () => ({
@@ -35,17 +36,24 @@ vi.mock('@/services/github/validate-user', () => ({
     validateUser: vi.fn().mockResolvedValue(true),
   },
 }));
+vi.mock('@/lib/github-owner-verification', () => ({
+  verifyGitHubOwner: vi.fn().mockResolvedValue({ verified: true }),
+}));
 
 import { Notification } from '@/models/Notification';
 import { notifyRateLimiter } from '@/lib/rate-limit';
 import { gitHubUserValidator } from '@/services/github/validate-user';
 import { getClientIp } from '@/utils/getClientIp';
+import { verifyGitHubOwner } from '@/lib/github-owner-verification';
 
 const makeRequest = (method: string, body?: object, search?: string) => {
   const url = `http://localhost:3000/api/notify${search ? '?' + search : ''}`;
   return new NextRequest(url, {
     method,
-    headers: { 'x-forwarded-for': '127.0.0.1' },
+    headers: {
+      'x-forwarded-for': '127.0.0.1',
+      Authorization: 'Bearer test-owner-token',
+    },
     body: body ? JSON.stringify(body) : undefined,
   });
 };
@@ -58,6 +66,7 @@ describe('POST /api/notify', () => {
     process.env = { ...originalEnv, MONGODB_URI: 'mongodb://localhost/test' };
     vi.mocked(notifyRateLimiter.check).mockResolvedValue(true);
     vi.mocked(gitHubUserValidator.validateUser).mockResolvedValue(true);
+    vi.mocked(verifyGitHubOwner).mockResolvedValue({ verified: true });
   });
 
   afterEach(() => {
@@ -129,6 +138,33 @@ describe('POST /api/notify', () => {
     expect(res.headers.get('x-ratelimit-limit')).toBe('5');
     expect(res.headers.get('x-ratelimit-remaining')).toBe('0');
     expect(res.headers.get('x-ratelimit-reset')).toBe(reset.toString());
+  });
+
+  it('returns 401 when GitHub authentication is missing or invalid', async () => {
+    vi.mocked(verifyGitHubOwner).mockResolvedValueOnce({
+      verified: false,
+      status: 401,
+      message: 'GitHub authentication is required.',
+    });
+
+    const res = await POST(makeRequest('POST', { username: 'testuser', email: 'a@b.com' }));
+
+    expect(res.status).toBe(401);
+    expect(Notification.findOneAndUpdate).not.toHaveBeenCalled();
+  });
+
+  it('returns 403 when the authenticated GitHub account does not own the username', async () => {
+    vi.mocked(verifyGitHubOwner).mockResolvedValueOnce({
+      verified: false,
+      status: 403,
+      message: 'The authenticated GitHub account does not own this username.',
+    });
+
+    const res = await POST(makeRequest('POST', { username: 'victim', email: 'a@b.com' }));
+
+    expect(res.status).toBe(403);
+    expect(verifyGitHubOwner).toHaveBeenCalledWith(expect.any(Request), 'victim');
+    expect(Notification.findOneAndUpdate).not.toHaveBeenCalled();
   });
 
   // ── Per-username write cooldown ───────────────────────────────────────────
@@ -222,6 +258,44 @@ describe('POST /api/notify', () => {
 
     const res = await POST(makeRequest('POST', { username: 'defaultuser', email: 'a@b.com' }));
     expect(res.status).toBe(200);
+  });
+});
+
+describe('DELETE /api/notify', () => {
+  const originalEnv = process.env;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    process.env = { ...originalEnv, MONGODB_URI: 'mongodb://localhost/test' };
+    vi.mocked(notifyRateLimiter.check).mockResolvedValue(true);
+    vi.mocked(verifyGitHubOwner).mockResolvedValue({ verified: true });
+  });
+
+  afterEach(() => {
+    process.env = originalEnv;
+  });
+
+  it('rejects deletion when the authenticated account does not own the username', async () => {
+    vi.mocked(verifyGitHubOwner).mockResolvedValueOnce({
+      verified: false,
+      status: 403,
+      message: 'The authenticated GitHub account does not own this username.',
+    });
+
+    const res = await DELETE(makeRequest('DELETE', undefined, 'user=victim'));
+
+    expect(res.status).toBe(403);
+    expect(Notification.deleteOne).not.toHaveBeenCalled();
+  });
+
+  it('deletes preferences after ownership is verified', async () => {
+    vi.mocked(Notification.deleteOne).mockResolvedValue({ deletedCount: 1 } as never);
+
+    const res = await DELETE(makeRequest('DELETE', undefined, 'user=testuser'));
+
+    expect(res.status).toBe(200);
+    expect(verifyGitHubOwner).toHaveBeenCalledWith(expect.any(Request), 'testuser');
+    expect(Notification.deleteOne).toHaveBeenCalledWith({ username: 'testuser' });
   });
 });
 
