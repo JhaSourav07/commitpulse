@@ -171,6 +171,7 @@ export interface ExtendedContributionData {
   totalPRs?: number;
   totalIssues?: number;
   isOfflineFallback?: boolean;
+  cacheStatus?: 'HIT' | 'MISS' | 'STALE';
 }
 
 /**

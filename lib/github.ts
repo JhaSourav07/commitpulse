@@ -694,14 +694,14 @@ export async function fetchGitHubContributions(
 
   if (options.signal) {
     if (options.bypassCache || options.forceRefresh) {
-      return await loadWithTimeout();
+      return { ...(await loadWithTimeout()), cacheStatus: 'MISS' };
     }
     const cached = await contributionsCache.get(key);
     if (cached !== null && !shouldFetch(cached)) {
-      return cached;
+      return { ...cached, cacheStatus: 'HIT' };
     }
     try {
-      return await loadWithTimeout();
+      return { ...(await loadWithTimeout()), cacheStatus: 'MISS' };
     } catch (err: unknown) {
       const staleData = await contributionsCache.get(key);
       if (staleData) {
@@ -712,6 +712,7 @@ export async function fetchGitHubContributions(
         return {
           ...staleData,
           isOfflineFallback: true,
+          cacheStatus: 'STALE',
         };
       }
       throw err;
@@ -720,7 +721,7 @@ export async function fetchGitHubContributions(
 
   if (options.bypassCache || options.forceRefresh) {
     try {
-      return await coalescedLoad();
+      return { ...(await coalescedLoad()), cacheStatus: 'MISS' };
     } catch (err: unknown) {
       const staleData = await contributionsCache.get(key);
       if (staleData) {
@@ -731,14 +732,20 @@ export async function fetchGitHubContributions(
         return {
           ...staleData,
           isOfflineFallback: true,
+          cacheStatus: 'STALE',
         };
       }
       throw err;
     }
   }
 
+  const preCached = await contributionsCache.get(key);
+  const isCacheHit = preCached !== null && !shouldFetch(preCached);
   try {
-    return await contributionsCache.getOrSet(key, coalescedLoad, LONG_CACHE_TTL, shouldFetch);
+    return {
+      ...(await contributionsCache.getOrSet(key, coalescedLoad, LONG_CACHE_TTL, shouldFetch)),
+      cacheStatus: isCacheHit ? 'HIT' : 'MISS',
+    };
   } catch (err: unknown) {
     const staleData = await contributionsCache.get(key);
     if (staleData) {
@@ -749,6 +756,7 @@ export async function fetchGitHubContributions(
       return {
         ...staleData,
         isOfflineFallback: true,
+        cacheStatus: 'STALE',
       };
     }
     throw err;

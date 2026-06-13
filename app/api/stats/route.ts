@@ -136,7 +136,7 @@ export async function GET(request: Request) {
       headers.set('Pragma', 'no-cache');
       headers.set('Expires', '0');
     }
-    headers.set('X-Cache-Status', shouldBypassCache ? 'MISS' : 'HIT');
+    headers.set('X-Cache-Status', userData.cacheStatus ?? (shouldBypassCache ? 'MISS' : 'HIT'));
     headers.set(
       'X-Refresh-Status',
       shouldBypassCache ? 'Fresh' : isRefreshRequested ? 'Cooldown-Served-Cached' : 'Cached'
