@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
 import LoadingScreen from './LoadingScreen';
 
@@ -19,9 +19,11 @@ interface DashboardPageWrapperProps {
 export default function DashboardPageWrapper({ children }: DashboardPageWrapperProps) {
   const [ready, setReady] = useState(false);
 
-  // Lazy initializer — typeof check makes this SSR-safe. Returns true only on
-  // the client where document exists, avoiding the set-state-in-effect lint rule.
-  const [mounted] = useState<boolean>(() => typeof document !== 'undefined');
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  );
 
   return (
     <>

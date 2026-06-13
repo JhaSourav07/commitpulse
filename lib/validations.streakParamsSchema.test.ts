@@ -96,18 +96,20 @@ describe('streakParamsSchema', () => {
     expect(result.success).toBe(false);
   });
 
-  it('fails when grace is out of range (> 7)', () => {
+  it('clamps grace to 7 when out of range (> 7)', () => {
     const result = streakParamsSchema.safeParse({ user: 'octocat', grace: '8' });
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      const messages = result.error.issues.map((i) => i.message);
-      expect(messages.some((m) => m.includes('grace'))).toBe(true);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.grace).toBe(7);
     }
   });
 
-  it('fails when grace is negative', () => {
+  it('clamps grace to 0 when negative', () => {
     const result = streakParamsSchema.safeParse({ user: 'octocat', grace: '-1' });
-    expect(result.success).toBe(false);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.grace).toBe(0);
+    }
   });
 
   it('fails when "to" date is before "from" date', () => {

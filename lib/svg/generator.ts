@@ -27,25 +27,16 @@ import { GRID_ORIGIN_X, GRID_ORIGIN_Y, TILE_HEIGHT_HALF, TILE_WIDTH_HALF } from 
 import { SVG_WIDTH, SVG_HEIGHT } from './generatorConstants';
 
 const FONT_MAP = {
-  // ── Pre-existing entries ────────────────────────────────────────────────
   jetbrains: '"JetBrains Mono", monospace',
   fira: '"Fira Code", monospace',
   roboto: '"Roboto", sans-serif',
-
-  // ── Previously missing — both fonts are in the unconditional @import ───
-  // Without these entries, passing ?font=syncopate or ?font=spacegrotesk
-  // incorrectly triggers a duplicate dynamic Google Fonts fetch.
   syncopate: '"Syncopate", sans-serif',
   spacegrotesk: '"Space Grotesk", sans-serif',
-  'space grotesk': '"Space Grotesk", sans-serif', // handles spaced user input
-
-  // ── Aliases for common variations ───────────────────────────────────────
-  firacode: '"Fira Code", monospace', // alias: fira is the canonical key
-  'jetbrains mono': '"JetBrains Mono", monospace', // handles spaced user input
-
-  // ── Legacy keys for backward compatibility ──────────────────────────────
+  'space grotesk': '"Space Grotesk", sans-serif',
+  firacode: '"Fira Code", monospace',
+  'jetbrains mono': '"JetBrains Mono", monospace',
   inter: '"Inter", sans-serif',
-  space: '"Space Grotesk", sans-serif', // old key for spacegrotesk
+  space: '"Space Grotesk", sans-serif',
 } as const;
 
 export function resolveFont(sanitizedFont?: string | null): string | null {
@@ -64,7 +55,6 @@ function isBundledFont(sanitizedFont?: string | null): boolean {
   return fontKey in FONT_MAP && fontKey !== 'inter';
 }
 
-// helpers
 export function getSizeScale(size?: 'small' | 'medium' | 'large') {
   if (size === 'small') return 400 / SVG_WIDTH;
   if (size === 'large') return 800 / SVG_WIDTH;
@@ -121,12 +111,6 @@ export interface TowerPaths {
   top: string;
 }
 
-/**
- * Builds the SVG path strings for the three faces of an isometric 3D tower.
- *
- * @param h - The height of the tower.
- * @param scale - Optional scale factor (defaults to 1, which represents the standard 16x10 grid).
- */
 export function buildTowerPaths(h: number, scale: number = 1): TowerPaths {
   const tileHalfWidth = 16 * scale;
   const tileHalfHeight = 10 * scale;
@@ -183,8 +167,6 @@ export function getInteractiveTowerCSS(accentColorExpr: string): string {
   `;
 }
 
-// ── Section helpers for generateSVG ──────────────────────────────────────
-
 function renderHeader(
   safeUser: string,
   stats: StreakStats,
@@ -203,24 +185,14 @@ function renderHeader(
   ${renderDefs(sf, params)}`;
 }
 
-/**
- * Generates custom SVG gradient definitions from gradient_stops and gradient_dir parameters.
- * Returns an object with gradient SVG elements and the gradient ID (or empty string if invalid).
- * If custom stops are invalid or insufficient, returns { gradients: '', gradientId: '' }.
- * Also stores the gradient ID on the params object for tower rendering to use.
- */
 function generateCustomGradients(params: BadgeParams): { gradients: string; gradientId: string } {
   const stops = parseGradientStops(params.gradient_stops);
 
-  // Require at least 2 valid colors for custom gradient
   if (stops.length < 2) {
     return { gradients: '', gradientId: '' };
   }
 
   const coords = getGradientCoordinates(params.gradient_dir);
-
-  // Create a deterministic gradient ID based on the color stops and direction
-  // This ensures consistent output and avoids random/duplicate IDs
   const gradientSignature = `${stops.join('-')}-${params.gradient_dir || 'vertical'}`;
   const gradientId = `custom-grad-${deterministicRandom(gradientSignature)
     .toString()
@@ -228,19 +200,15 @@ function generateCustomGradients(params: BadgeParams): { gradients: string; grad
 
   let gradients = '';
 
-  // Generate 4 gradient definitions (one for each intensity level)
-  // Each uses the same color stops but with different opacity progression
   for (let i = 0; i < 4; i++) {
     const level = i + 1;
     const levelId = `${gradientId}-level-${level}`;
 
-    // Build the stop elements
     let stopElements = '';
     const stopCount = stops.length;
 
     stops.forEach((color, stopIdx) => {
       const offset = (stopIdx / (stopCount - 1)) * 100;
-      // Increase opacity with intensity level (0.4 to 0.8)
       const baseOpacity = 0.4 + i * 0.2;
       const stopOpacity = Math.min(1, baseOpacity + stopIdx * 0.1);
 
@@ -255,9 +223,7 @@ ${stopElements}
       </linearGradient>`;
   }
 
-  // Store the gradient ID on params for tower rendering to use
   params.__customGradientId = gradientId;
-
   return { gradients, gradientId };
 }
 
@@ -266,13 +232,10 @@ function renderDefs(sf: number, params: BadgeParams): string {
 
   let gradients = '';
   if (params.gradient) {
-    // Try to use custom gradient if gradient_stops is provided
     const result = generateCustomGradients(params);
     if (result.gradientId) {
-      // Custom gradient stops were valid and used
       gradients = result.gradients;
     } else {
-      // Fallback to default gradient behavior
       const bgStr = params.bg || '0d1117';
       const bgHex = bgStr.startsWith('#') ? bgStr : `#${bgStr}`;
 
@@ -316,9 +279,43 @@ function renderDefs(sf: number, params: BadgeParams): string {
         )}" result="blur" /><feComposite in="SourceGraphic" in2="blur" operator="over" /></filter>`
       : '';
 
+  let canvasGradient = '';
+  if (params.bgType === 'linear' || params.bgType === 'radial') {
+    const bgStart = params.bgStart
+      ? params.bgStart.startsWith('#')
+        ? params.bgStart
+        : `#${params.bgStart}`
+      : '#0d1117';
+    const bgEnd = params.bgEnd
+      ? params.bgEnd.startsWith('#')
+        ? params.bgEnd
+        : `#${params.bgEnd}`
+      : '#000000';
+    if (params.bgType === 'linear') {
+      const angle = params.bgAngle !== undefined ? params.bgAngle : 90;
+      const angleRad = (angle - 90) * (Math.PI / 180);
+      const x1 = Math.round(50 + Math.cos(angleRad + Math.PI) * 50) + '%';
+      const y1 = Math.round(50 + Math.sin(angleRad + Math.PI) * 50) + '%';
+      const x2 = Math.round(50 + Math.cos(angleRad) * 50) + '%';
+      const y2 = Math.round(50 + Math.sin(angleRad) * 50) + '%';
+      canvasGradient = `
+      <linearGradient id="canvas-gradient" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}">
+        <stop offset="0%" stop-color="${bgStart}" />
+        <stop offset="100%" stop-color="${bgEnd}" />
+      </linearGradient>`;
+    } else {
+      canvasGradient = `
+      <radialGradient id="canvas-gradient" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
+        <stop offset="0%" stop-color="${bgStart}" />
+        <stop offset="100%" stop-color="${bgEnd}" />
+      </radialGradient>`;
+    }
+  }
+
   return `<defs>
     ${filterGlow}
     ${gradients}
+    ${canvasGradient}
   </defs>`;
 }
 
@@ -390,6 +387,8 @@ function renderStyle(
       transition: none !important;
       transform: translateY(var(--scan-start, ${fs(0)}px)) !important;
     }
+    .cp-tower animate { display: none; }
+    .interactive-tower { transition: none !important; }
   }
   .isometric-label { font-family: ${selectedFont || '"Roboto", sans-serif'}; font-size: ${fs(10)}px; font-weight: 400; letter-spacing: 1px; fill-opacity: 0.6; }
   .dimmed-tower { opacity: 0.3; }
@@ -442,7 +441,6 @@ function renderTowers(
       topFillAttr = leftRightFillAttr;
     }
 
-    // opacity scalar: clamp 0.1–1.0, applied globally to all tower faces
     let leftFaceOpacity = Math.round(t.faceOpacity.left * opacity * 100) / 100;
     let rightFaceOpacity = Math.round(t.faceOpacity.right * opacity * 100) / 100;
     let topFaceOpacity = Math.round(t.faceOpacity.top * opacity * 100) / 100;
@@ -459,7 +457,6 @@ function renderTowers(
     let finalTopFillAttr = topFillAttr;
 
     if (!isGhost && t.intensityLevel > 0 && params.gradient === true) {
-      // Use custom gradient ID if available, otherwise use default gradient ID
       const customGradId = params.__customGradientId;
       const gradId = customGradId
         ? `${customGradId}-level-${t.intensityLevel}`
@@ -582,6 +579,12 @@ function renderFooter(
   const s = createScaler(sf);
   const statsOffset = params.label === false ? -40 : 0;
 
+  // Static themes do not define the .cp-accent-fill CSS rule, so the scan line needs an
+  // explicit fill or it inherits the SVG default fill="none" and becomes invisible.
+  const scanLineFill = params.autoTheme
+    ? 'class="cp-accent-fill scan-line"'
+    : `fill="${accent}" class="cp-accent-fill scan-line"`;
+
   const titleText = `${truncateUsername(safeUser).toUpperCase()}${isWinner ? ' 👑' : ''}${
     params.isOfflineFallback
       ? '<tspan fill="#ff9f43" font-size="10px" font-weight="bold"> [STALE CACHE]</tspan>'
@@ -601,7 +604,7 @@ function renderFooter(
     y="${s(80 + statsOffset)}"
     width="${s(400)}"
     height="${s(1)}"
-    class="cp-accent-fill scan-line"
+    ${scanLineFill}
     fill-opacity="0.3"
     style="--scan-speed: ${params.speed || '8s'}; --scan-start: ${s(0)}px; --scan-end: ${s(240)}px;"
   />`;
@@ -622,11 +625,10 @@ const MONTH_NAMES = [
   'Dec',
 ];
 
-// Layout constants for 3D isometric label positioning
 const ISOMETRIC_VERTICAL_OFFSET = 20;
-
 const MONTH_LABEL_ROW_OFFSET = 7.2;
 const WEEKDAY_LABEL_COL_OFFSET = -1.2;
+
 function renderIsometricLabels(
   calendar: ContributionCalendar,
   params: BadgeParams,
@@ -728,8 +730,6 @@ function renderMilestoneBadges(stats: StreakStats, params: BadgeParams, sf: numb
   return `<g class="milestone-badges">${elements}</g>`;
 }
 
-// ── Main static-theme renderer ────────────────────────────────────────────
-
 export function generateSVG(
   stats: StreakStats,
   params: BadgeParams,
@@ -740,6 +740,8 @@ export function generateSVG(
   const animate = params.animate ?? true;
   const safeUser = escapeXML(params.user || 'GitHub User');
   const bg = `#${sanitizeHexColor(params.bg, '0d1117')}`;
+  const bgFill =
+    params.bgType === 'linear' || params.bgType === 'radial' ? 'url(#canvas-gradient)' : bg;
 
   const accent = Array.isArray(params.accent)
     ? params.accent.map((c) => sanitizeHexColor(c, '00ffaa'))
@@ -796,7 +798,7 @@ export function generateSVG(
 <svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 ${W} ${H}" fill="none" role="img" aria-labelledby="cp-title-${safeId}" aria-describedby="cp-desc-${safeId}">
   ${renderHeader(safeUser, stats, sf, params, safeId)}
   ${renderStyle(selectedFont, statsFont, googleFontsImport, text, mainAccentHex, sf, bg, params.entrance || 'rise')}
-  <rect width="${W}" height="${H}" rx="${radius}" fill="${params.hideBackground ? 'transparent' : bg}" ${borderAttr} />
+  <rect width="${W}" height="${H}" rx="${radius}" fill="${params.hideBackground ? 'transparent' : bgFill}" ${borderAttr} />
   <g id="cp-towers" style="transform-origin: center; transform-box: fill-box;" transform="translate(0, ${Math.round((20 + yOffset) * sf)})">${towers}</g>
   ${renderIsometricLabels(calendar, params, text, sf)}
   ${renderFooter(stats, params, labels, safeUser, mainAccentHex, sf)}
@@ -884,6 +886,8 @@ function generateAutoThemeSVG(
       transition: none !important;
       transform: translateY(var(--scan-start, ${s(0)}px)) !important;
     }
+    .cp-tower animate { display: none; }
+    .interactive-tower { transition: none !important; }
   }
   </style>
 
@@ -904,15 +908,6 @@ ${renderMilestoneBadges(stats, params, sf)}
 `;
 }
 
-/**
- * Computes the formatted delta text string for the monthly stats badge.
- * Shared between generateMonthlySVG (static theme) and
- * generateAutoThemeMonthlySVG (auto theme) to prevent divergence.
- *
- * @param stats - Monthly contribution statistics
- * @param deltaUnit - 'commits' or 'lines' depending on mode
- * @param deltaFormat - 'percent' | 'absolute' | 'both' from URL params
- */
 function computeDeltaText(
   stats: MonthlyStats,
   deltaUnit: string,
@@ -936,7 +931,6 @@ function computeDeltaText(
           : `0% (${stats.deltaAbsolute > 0 ? '+' : ''}${stats.deltaAbsolute})`;
   }
 
-  // percent (default)
   return stats.deltaPercentage === null
     ? 'N/A'
     : stats.deltaPercentage > 0
@@ -953,6 +947,8 @@ export function generateMonthlySVG(stats: MonthlyStats, params: BadgeParams): st
 
   const safeUser = escapeXML(params.user || 'GitHub User');
   const bg = `#${sanitizeHexColor(params.bg, '0d1117')}`;
+  const bgFill =
+    params.bgType === 'linear' || params.bgType === 'radial' ? 'url(#canvas-gradient)' : bg;
 
   const rawAccent = Array.isArray(params.accent)
     ? params.accent[params.accent.length - 1]
@@ -982,7 +978,6 @@ export function generateMonthlySVG(stats: MonthlyStats, params: BadgeParams): st
   const deltaUnit = params.mode === 'loc' ? 'LINES (EST.)' : 'commits';
 
   const deltaText = computeDeltaText(stats, deltaUnit, params.delta_format);
-  // Resolve negative color
   let negativeColor = '#ff4444';
   const cleanBg = sanitizeHexColor(params.bg, '0d1117');
   const matchedTheme = Object.values(themes).find(
@@ -992,7 +987,6 @@ export function generateMonthlySVG(stats: MonthlyStats, params: BadgeParams): st
   if (matchedTheme && matchedTheme.negative) {
     negativeColor = `#${matchedTheme.negative}`;
   } else {
-    // Dynamic fallback based on background luminance
     const luminance = getLuminance(cleanBg);
     negativeColor = luminance > 0.5 ? '#cf222e' : '#f85149';
   }
@@ -1027,7 +1021,7 @@ export function generateMonthlySVG(stats: MonthlyStats, params: BadgeParams): st
   }
   </style>
 
-  <rect width="${width}" height="${height}" rx="${radius}" fill="${params.hideBackground ? 'transparent' : bg}" />
+  <rect width="${width}" height="${height}" rx="${radius}" fill="${params.hideBackground ? 'transparent' : bgFill}" />
 
   <text x="20" y="40" class="title">${stats.currentMonthName.toUpperCase()}</text>
   <text x="20" y="85" class="stats">${stats.currentMonthTotal}</text>
@@ -1041,10 +1035,6 @@ export function generateMonthlySVG(stats: MonthlyStats, params: BadgeParams): st
 `;
 }
 
-/**
- * Backwards-compatible alias used by some integrations/tests.
- * Keeps the public API explicit: `generateMonthlyBadge` -> `generateMonthlySVG`.
- */
 export function generateMonthlyBadge(stats: MonthlyStats, params: BadgeParams): string {
   return generateMonthlySVG(stats, params);
 }
@@ -1057,6 +1047,8 @@ export function generateWrappedSVG(
 ): string {
   const safeUser = escapeXML(params.user || 'GitHub User');
   const bg = `#${sanitizeHexColor(params.bg, '0d1117')}`;
+  const bgFill =
+    params.bgType === 'linear' || params.bgType === 'radial' ? 'url(#canvas-gradient)' : bg;
 
   const rawAccent = Array.isArray(params.accent)
     ? params.accent[params.accent.length - 1]
@@ -1080,7 +1072,6 @@ export function generateWrappedSVG(
     ? `@import url('https://fonts.googleapis.com/css2?family=${googleFontUrlPart}&amp;display=swap');`
     : '';
 
-  // Format month name (e.g. "2025-11" -> "NOVEMBER")
   const MONTH_NAMES: Record<string, string> = {
     '01': 'JANUARY',
     '02': 'FEBRUARY',
@@ -1100,7 +1091,6 @@ export function generateWrappedSVG(
     ? MONTH_NAMES[monthPart] || stats.busiestMonth
     : stats.busiestMonth || 'N/A';
 
-  // Format peak day (e.g. "2025-11-20" -> "Nov 20")
   function formatActiveDate(dateStr: string): string {
     if (!dateStr) return 'N/A';
     const parts = dateStr.split('-');
@@ -1126,29 +1116,20 @@ export function generateWrappedSVG(
   }
   const formattedPeakDate = formatActiveDate(stats.mostActiveDate);
 
-  // Circular progress calculations for weekend grind
-  // Radius = 14, circumference = 2 * PI * 14 = 87.96
   const radiusCircle = 14;
-  const circ = 2 * Math.PI * radiusCircle; // ~87.96
+  const circ = 2 * Math.PI * radiusCircle;
   const clampedRatio = Math.max(0, Math.min(stats.weekendRatio || 0, 100));
   const strokeDashoffset = circ - (clampedRatio / 100) * circ;
 
-  // Background Mini-Monolith calculations
-  // Get 14 weeks of towers and scale them down
-  const sf = 0.45; // scale down
+  const sf = 0.45;
   const rawTowers = computeTowers(calendar, params.scale, '', 'commits');
-  // We want to translate them to align beautifully behind the total contributions count
-  // Scale raw coordinates: tx * sf, ty * sf
   let bgTowersMarkup = '';
   const resolvedSolidColor = accent;
   for (const t of rawTowers) {
-    // Only draw towers that have contributions or represent ghost city landscape
-    // We scale down the height and coordinates
     const scaleHeight = t.h * sf;
-    const scaleX = Math.round(t.x * sf) - 50; // offset left to shift it to the background
-    const scaleY = Math.round(t.y * sf) + 80; // shift down slightly
+    const scaleX = Math.round(t.x * sf) - 50;
+    const scaleY = Math.round(t.y * sf) + 80;
 
-    // Extreme low opacity for elegant backdrop watermark
     const leftFaceOpacity = t.isGhost ? 0.01 : 0.015;
     const rightFaceOpacity = t.isGhost ? 0.005 : 0.01;
     const topFaceOpacity = t.isGhost ? 0.02 : 0.035;
@@ -1164,7 +1145,6 @@ export function generateWrappedSVG(
         </g>`;
   }
 
-  // Border override or default glow
   const borderAttr = params.border
     ? `stroke="#${sanitizeHexColor(params.border, '58a6ff')}" stroke-width="1.5"`
     : `stroke="${accent}" stroke-opacity="0.15" stroke-width="1.5"`;
@@ -1182,7 +1162,7 @@ export function generateWrappedSVG(
 
   const rectFill = params.autoTheme
     ? 'class="cp-bg-fill"'
-    : `fill="${params.hideBackground ? 'transparent' : bg}"`;
+    : `fill="${params.hideBackground ? 'transparent' : bgFill}"`;
   const textClass = params.autoTheme ? 'class="cp-text-fill"' : `fill="${text}"`;
   const accentClass = params.autoTheme ? 'class="cp-accent-fill"' : `fill="${accent}"`;
   const borderStroke = params.autoTheme
@@ -1288,7 +1268,7 @@ export function generateWrappedSVG(
         <circle cx="0" cy="0" r="14" stroke="${params.autoTheme ? 'var(--cp-accent)' : accent}" stroke-width="3" fill="none"
                 stroke-dasharray="${circ.toFixed(2)}" stroke-dashoffset="${strokeDashoffset.toFixed(2)}"
                 stroke-linecap="round" transform="rotate(-90)" />
-        <text x="0" y="3.5" text-anchor="middle" font-family="${statsFont}" font-size="9" font-weight="700" ${textClass}>${clampedRatio}%</text>
+        <text x="0" y="3.5" text-anchor="middle" font-family="${statsFont.replace(/"/g, "'")}" font-size="9" font-weight="700" ${textClass}>${clampedRatio}%</text>
       </g>
     </g>
   </g>
@@ -1384,8 +1364,6 @@ function generateAutoThemeMonthlySVG(stats: MonthlyStats, params: BadgeParams): 
 `;
 }
 
-// ── Heatmap View ──────────────────────────────────────────────────────────
-
 const HEATMAP_CELL_SIZE = 16;
 const HEATMAP_CELL_GAP = 3;
 const HEATMAP_CELL_RADIUS = 2;
@@ -1436,7 +1414,6 @@ function renderHeatmapGrid(
   const originY = Math.round(HEATMAP_GRID_ORIGIN_Y * sf);
   const step = cellSize + cellGap;
 
-  // Find max contribution count for intensity calculation
   let maxCount = 0;
   weeks.forEach((week) => {
     week.contributionDays.forEach((day) => {
@@ -1446,14 +1423,12 @@ function renderHeatmapGrid(
     });
   });
 
-  // Check if todayDate is in visible window
   const todayInWindow = weeks.some((w) => w.contributionDays.some((d) => d.date === todayDate));
 
   let cells = '';
   let monthHeaders = '';
   let prevMonth = '';
 
-  // Render grid cells
   weeks.forEach((week, col) => {
     week.contributionDays.forEach((day, row) => {
       const count =
@@ -1472,8 +1447,6 @@ function renderHeatmapGrid(
       const tooltip = `${tooltipPrefix}${day.date}: ${count} ${unit}`;
 
       const fillAttr = isAutoTheme ? 'fill="var(--cp-accent)"' : `fill="${accent}"`;
-
-      // Glow on high-intensity cells
       const filterAttr = intensity === 4 && glow !== false ? ' filter="url(#hm-glow)"' : '';
 
       cells += `
@@ -1487,7 +1460,6 @@ function renderHeatmapGrid(
       </rect>`;
     });
 
-    // Month header: detect month change from first day of each week
     if (week.contributionDays.length > 0) {
       const firstDay = week.contributionDays[0];
       const monthNum = parseInt(firstDay.date.substring(5, 7), 10);
@@ -1503,7 +1475,6 @@ function renderHeatmapGrid(
     }
   });
 
-  // Weekday labels
   let weekdayLabels = '';
   HEATMAP_WEEKDAY_LABELS.forEach((label, row) => {
     if (!label) return;
@@ -1563,6 +1534,8 @@ export function generateHeatmapSVG(
 
   const safeUser = escapeXML(params.user || 'GitHub User');
   const bg = `#${sanitizeHexColor(params.bg, '0d1117')}`;
+  const bgFill =
+    params.bgType === 'linear' || params.bgType === 'radial' ? 'url(#canvas-gradient)' : bg;
 
   const rawAccent = Array.isArray(params.accent)
     ? params.accent[params.accent.length - 1]
@@ -1659,7 +1632,7 @@ export function generateHeatmapSVG(
   }
   </style>
 
-  <rect width="${W}" height="${H}" rx="${radius}" fill="${params.hideBackground ? 'transparent' : bg}" ${borderAttr} />
+  <rect width="${W}" height="${H}" rx="${radius}" fill="${params.hideBackground ? 'transparent' : bgFill}" ${borderAttr} />
 
   ${!params.hide_title ? `<text x="${s(60)}" y="${s(30)}" class="hm-title">${truncateUsername(safeUser).toUpperCase()}${params.isOfflineFallback ? '<tspan fill="#ff9f43" font-size="10px" font-weight="bold"> [STALE CACHE]</tspan>' : ''}</text>` : ''}
 
@@ -1829,7 +1802,6 @@ function generateAutoThemeHeatmapSVG(
 </svg>`;
 }
 
-// Fixed isometric tower layout for the not-found ghost city.
 const GHOST_LAYOUT: { col: number; row: number; h: number }[] = [
   { col: 0, row: 0, h: 8 },
   { col: 1, row: 0, h: 20 },
@@ -1881,16 +1853,6 @@ const GHOST_LAYOUT: { col: number; row: number; h: number }[] = [
   { col: 7, row: 5, h: 6 },
 ];
 
-/**
- * Renders a list of ghost tower entries as isometric wireframe SVG paths.
- * Shared by generateNotFoundSVG and generateRateLimitSVG to avoid duplicated
- * ghost-city rendering logic. Any visual change to ghost tower geometry
- * (stroke widths, fill-opacity, coordinate math) only needs to happen here.
- *
- * @param layout - Array of {col, row, h} tower descriptors
- * @param accent - Hex color string (with #) for tower stroke and fill tint
- * @returns SVG string: a <g class="ghost-towers"> wrapping all tower groups
- */
 function renderGhostTowers(
   layout: { col: number; row: number; h: number }[],
   accent: string
@@ -1898,7 +1860,7 @@ function renderGhostTowers(
   let ghostTowers = '';
   for (const { col, row, h } of layout) {
     const tx = 300 + (col - row) * 16;
-    const ty = 120 + (col + row) * 9;
+    const ty = 120 + (col + row) * TILE_HEIGHT_HALF;
     ghostTowers += `
       <g transform="translate(${tx}, ${ty - h})">
         <path d="M0 10 L0 ${10 + h} L-16 ${h} L-16 0 Z"
@@ -1923,7 +1885,8 @@ export function generateNotFoundSVG(
   radius: number,
   speed: string = '8s'
 ): string {
-  const safeName = escapeXML(username.toUpperCase());
+  const sanitizedUsername = username.replace(/[^a-zA-Z0-9\-]/g, '').slice(0, 39) || 'unknown';
+  const safeName = escapeXML(sanitizedUsername.toUpperCase());
   const ghostTowersHtml = renderGhostTowers(GHOST_LAYOUT, accent);
 
   const safeId = safeName.replace(/[^a-zA-Z0-9-]/g, '_').toLowerCase();
@@ -2143,26 +2106,8 @@ function generateAutoThemeVersusSVG(
     sf
   );
 
-  const towers1 = renderTowers(
-    towerData1,
-    params,
-    '',
-    '',
-    sf,
-    true,
-    params.opacity ?? 1.0,
-    params.animate ?? true
-  );
-  const towers2 = renderTowers(
-    towerData2,
-    params,
-    '',
-    '',
-    sf,
-    true,
-    params.opacity ?? 1.0,
-    params.animate ?? true
-  );
+  const towers1 = renderTowers(towerData1, params, '', '', sf, true, params.opacity ?? 1.0);
+  const towers2 = renderTowers(towerData2, params, '', '', sf, true, params.opacity ?? 1.0);
 
   const s = createScaler(sf);
   const fs = (n: number): number => Math.round(n * sf * 10) / 10;
@@ -2268,7 +2213,6 @@ export function generatePulseSVG(
   const width = params.width || 800;
   const height = params.height || 170;
 
-  // Extract the last 30 days of contributions
   const days: number[] = [];
   calendar.weeks.forEach((week) => {
     week.contributionDays.forEach((day) => {
@@ -2377,11 +2321,12 @@ export function generatePulseSVG(
   @media (prefers-reduced-motion: reduce) {
     .pulse-line { animation: none !important; stroke-dashoffset: 0; }
     .pulse-area { animation: none !important; opacity: 1; }
+    .pulse-dot animate { display: none; }
   }
   </style>
 
   <defs>
-    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
       <feGaussianBlur stdDeviation="4" result="blur" />
       <feMerge>
         <feMergeNode in="blur" />
@@ -2417,7 +2362,7 @@ export function generatePulseSVG(
   <path class="pulse-area" d="${areaPathD}" />
   <path class="pulse-line" d="${pathD}" pathLength="1" />
 
-  <g>
+  <g class="pulse-dot">
     <circle cx="${lastX}" cy="${lastY}" r="7" fill="${accent}" opacity="0.4">
       <animate attributeName="r" values="5;10;5" dur="2s" repeatCount="indefinite" />
       <animate attributeName="opacity" values="0.4;0;0.4" dur="2s" repeatCount="indefinite" />
@@ -2565,11 +2510,12 @@ function generateAutoThemePulseSVG(
   @media (prefers-reduced-motion: reduce) {
     .pulse-line { animation: none !important; stroke-dashoffset: 0; }
     .pulse-area { animation: none !important; opacity: 1; }
+    .pulse-dot animate { display: none; }
   }
   </style>
 
   <defs>
-    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
       <feGaussianBlur stdDeviation="4" result="blur" />
       <feMerge>
         <feMergeNode in="blur" />
@@ -2605,13 +2551,399 @@ function generateAutoThemePulseSVG(
   <path class="pulse-area" d="${areaPathD}" />
   <path class="pulse-line" d="${pathD}" pathLength="1" />
 
-  <g>
+  <g class="pulse-dot">
     <circle cx="${lastX}" cy="${lastY}" r="7" fill="var(--cp-accent)" opacity="0.4">
       <animate attributeName="r" values="5;10;5" dur="2s" repeatCount="indefinite" />
       <animate attributeName="opacity" values="0.4;0;0.4" dur="2s" repeatCount="indefinite" />
     </circle>
     <circle cx="${lastX}" cy="${lastY}" r="3.5" fill="#ffffff" stroke="var(--cp-accent)" stroke-width="1.5" />
   </g>
+</svg>
+`;
+}
+
+export function generateSkylineSVG(
+  stats: StreakStats,
+  params: BadgeParams,
+  calendar: ContributionCalendar
+): string {
+  if (params.autoTheme) {
+    return generateAutoThemeSkylineSVG(stats, params, calendar);
+  }
+  return renderSkylineSVG(stats, params, calendar, false);
+}
+
+export function generateAutoThemeSkylineSVG(
+  stats: StreakStats,
+  params: BadgeParams,
+  calendar: ContributionCalendar
+): string {
+  return renderSkylineSVG(stats, params, calendar, true);
+}
+
+function renderSkylineSVG(
+  stats: StreakStats,
+  params: BadgeParams,
+  calendar: ContributionCalendar,
+  isAutoTheme: boolean
+): string {
+  const safeUser = escapeXML(params.user || 'GitHub User');
+  const light = AUTO_THEME_LIGHT;
+  const dark = AUTO_THEME_DARK;
+
+  const bg = isAutoTheme ? '' : `#${sanitizeHexColor(params.bg, '0d1117')}`;
+  const rawAccent = Array.isArray(params.accent)
+    ? params.accent[params.accent.length - 1]
+    : params.accent;
+  const accent = isAutoTheme ? '' : `#${sanitizeHexColor(rawAccent, '00ffaa')}`;
+  const text = isAutoTheme ? '' : `#${sanitizeHexColor(params.text, 'ffffff')}`;
+
+  const sanitizedFont = sanitizeFont(params.font);
+  const predefinedFont = sanitizedFont
+    ? (FONT_MAP[sanitizedFont.toLowerCase() as keyof typeof FONT_MAP] ?? null)
+    : null;
+  const isPredefinedFont = Boolean(predefinedFont);
+  const selectedFont = isPredefinedFont
+    ? predefinedFont
+    : sanitizedFont
+      ? `"${sanitizedFont}", sans-serif`
+      : null;
+  const statsFont = selectedFont || '"Space Grotesk", sans-serif';
+
+  const googleFontUrlPart =
+    sanitizedFont && !isPredefinedFont ? sanitizeGoogleFontUrl(sanitizedFont) : null;
+  const googleFontsImport = googleFontUrlPart
+    ? `@import url('https://fonts.googleapis.com/css2?family=${googleFontUrlPart}&amp;display=swap');`
+    : '';
+
+  const parsedRadius = Number(params.radius);
+  const radius = Math.max(0, Math.min(Number.isNaN(parsedRadius) ? 8 : parsedRadius, 50));
+
+  const width = params.width || 800;
+  const height = params.height || 260;
+
+  const weeklyContributions: number[] = [];
+  const weeks = calendar.weeks;
+  weeks.forEach((week) => {
+    let count = 0;
+    week.contributionDays.forEach((day) => {
+      count +=
+        params.mode === 'loc'
+          ? (day.locAdditions || 0) + (day.locDeletions || 0)
+          : day.contributionCount;
+    });
+    weeklyContributions.push(count);
+  });
+
+  const totalContributions = weeklyContributions.reduce((sum, c) => sum + c, 0);
+  const maxWeeklyCount = Math.max(...weeklyContributions, 1);
+
+  const paddingX = 40;
+  const paddingYTop = 80;
+  const paddingYBottom = 40;
+  const graphWidth = width - paddingX * 2;
+  const graphHeight = height - paddingYTop - paddingYBottom;
+  const bottomY = paddingYTop + graphHeight;
+
+  const numWeeks = weeklyContributions.length || 1;
+  const stepX = graphWidth / Math.max(numWeeks - 1, 1);
+  const buildingWidth = Math.max(2, Math.floor(stepX - 3));
+
+  let buildingsSVG = '';
+  const animate = params.animate ?? true;
+
+  const accentList = Array.isArray(params.accent)
+    ? params.accent.map((c) => `#${sanitizeHexColor(c, '00ffaa')}`)
+    : [accent];
+
+  weeklyContributions.forEach((count, i) => {
+    const x = paddingX + i * stepX;
+
+    let normalized = 0;
+    if (count > 0) {
+      if (params.scale === 'log') {
+        const logMax = Math.log2(maxWeeklyCount + 1) || 1;
+        normalized = Math.log2(count + 1) / logMax;
+      } else {
+        normalized = count / maxWeeklyCount;
+      }
+    }
+
+    let h = normalized * graphHeight;
+    if (count > 0 && h < 6) {
+      h = 6;
+    }
+    if (count === 0) {
+      h = 1.5;
+    }
+
+    const y = bottomY - h;
+    const delay = (i * 0.015).toFixed(3);
+
+    let buildingColor = '';
+    let opacity = 0.8;
+    if (isAutoTheme) {
+      buildingColor = 'var(--cp-accent)';
+      opacity = count === 0 ? 0.15 : 0.7;
+    } else {
+      if (count === 0) {
+        buildingColor = accentList[0];
+        opacity = 0.15;
+      } else if (accentList.length > 1) {
+        const ratio = count / maxWeeklyCount;
+        let colorIdx = 0;
+        if (ratio <= 0.25) colorIdx = 0;
+        else if (ratio <= 0.5) colorIdx = 1;
+        else if (ratio <= 0.75) colorIdx = 2;
+        else colorIdx = 3;
+        buildingColor = accentList[Math.min(colorIdx, accentList.length - 1)];
+        opacity = 0.8;
+      } else {
+        buildingColor = accent;
+        opacity = 0.8;
+      }
+    }
+
+    let windowsSVG = '';
+    const canHaveWindows = count > 0 && h >= 22 && buildingWidth >= 5;
+    if (canHaveWindows) {
+      const windowW = 2;
+      const windowH = 3;
+      const topPadding = 6;
+      const bottomPadding = 4;
+      const stepYOffset = 8;
+
+      const numCols = buildingWidth >= 8 ? 2 : 1;
+      const startX =
+        numCols === 2
+          ? [
+              x + (buildingWidth - windowW * 2 - 2) / 2,
+              x + (buildingWidth - windowW * 2 - 2) / 2 + windowW + 2,
+            ]
+          : [x + (buildingWidth - windowW) / 2];
+
+      const numRows = Math.floor((h - topPadding - bottomPadding) / stepYOffset);
+      const windowDelay = (parseFloat(delay) + 0.8).toFixed(3);
+
+      for (let r = 0; r < numRows; r++) {
+        const windowY = y + topPadding + r * stepYOffset;
+        for (let c = 0; c < numCols; c++) {
+          const winSeed = `${i}:${r}:${c}`;
+          const isLit = deterministicRandom(winSeed) < 0.35;
+          if (isLit) {
+            const winFill = isAutoTheme ? 'var(--cp-text)' : '#ffffff';
+            if (animate) {
+              windowsSVG += `
+                <rect class="cp-window cp-window-animated" style="animation-delay: ${windowDelay}s;" x="${startX[c].toFixed(1)}" y="${windowY.toFixed(1)}" width="${windowW}" height="${windowH}" fill="${winFill}" opacity="0" pointer-events="none" />
+              `;
+            } else {
+              windowsSVG += `
+                <rect class="cp-window" x="${startX[c].toFixed(1)}" y="${windowY.toFixed(1)}" width="${windowW}" height="${windowH}" fill="${winFill}" opacity="0.85" pointer-events="none" />
+              `;
+            }
+          }
+        }
+      }
+    }
+
+    const dateStr = weeks[i]?.contributionDays[0]?.date || '';
+    const unit = params.mode === 'loc' ? 'lines' : 'commits';
+    const tooltipText = `${dateStr} week: ${count} ${unit}`;
+
+    let rectSVG = '';
+    const rectClass = `cp-building${animate ? ' cp-building-animated' : ''}`;
+    const rectStyle = animate ? ` style="animation-delay: ${delay}s;"` : '';
+
+    if (isAutoTheme) {
+      rectSVG = `<rect class="${rectClass}"${rectStyle} x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${buildingWidth}" height="${h.toFixed(1)}" fill="var(--cp-accent)" fill-opacity="${opacity}" rx="1" />`;
+    } else {
+      rectSVG = `<rect class="${rectClass}"${rectStyle} x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${buildingWidth}" height="${h.toFixed(1)}" fill="${buildingColor}" fill-opacity="${opacity}" rx="1" />`;
+    }
+
+    buildingsSVG += `
+      <g>
+        <title>${escapeXML(tooltipText)}</title>
+        ${rectSVG}
+        ${windowsSVG}
+      </g>
+    `;
+  });
+
+  let starsSVG = '';
+  const numStars = 25;
+  for (let sIdx = 0; sIdx < numStars; sIdx++) {
+    const seedX = `star:${sIdx}:x`;
+    const seedY = `star:${sIdx}:y`;
+    const seedR = `star:${sIdx}:r`;
+    const starX = paddingX + deterministicRandom(seedX) * graphWidth;
+    const starY = paddingYTop - 30 + deterministicRandom(seedY) * (graphHeight * 0.75);
+    const starR = 0.5 + deterministicRandom(seedR) * 0.8;
+    const seedO = `star:${sIdx}:o`;
+    const starOpacity = 0.2 + deterministicRandom(seedO) * 0.6;
+    const starFill = isAutoTheme ? 'var(--cp-text)' : '#ffffff';
+
+    let starAnim = '';
+    if (animate) {
+      const delay = (deterministicRandom(seedX) * 3).toFixed(2);
+      const dur = (2 + deterministicRandom(seedY) * 3).toFixed(2);
+      starAnim = `style="animation: twinkle ${dur}s ease-in-out infinite; animation-delay: ${delay}s;"`;
+    }
+
+    starsSVG += `<circle class="cp-star" cx="${starX.toFixed(1)}" cy="${starY.toFixed(1)}" r="${starR.toFixed(1)}" fill="${starFill}" opacity="${starOpacity.toFixed(2)}" ${starAnim} pointer-events="none" />`;
+  }
+
+  const styleBg = isAutoTheme ? 'var(--cp-bg)' : bg;
+
+  const labels = getLabels(params.lang);
+  const modeLabel = params.mode === 'loc' ? 'TOTAL LINES OF CODE' : labels.ANNUAL_SYNC_TOTAL;
+
+  let defs = '';
+  if (isAutoTheme) {
+    defs = `
+      <defs>
+        <linearGradient id="skyGradient" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="var(--cp-bg)" stop-opacity="0" />
+          <stop offset="100%" stop-color="var(--cp-accent)" stop-opacity="0.12" />
+        </linearGradient>
+        <filter id="horizonGlow" x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur stdDeviation="6" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+      </defs>
+    `;
+  } else {
+    defs = `
+      <defs>
+        <linearGradient id="skyGradient" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="${bg}" stop-opacity="0" />
+          <stop offset="100%" stop-color="${accent}" stop-opacity="0.12" />
+        </linearGradient>
+        <filter id="horizonGlow" x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur stdDeviation="6" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+      </defs>
+    `;
+  }
+
+  const groundStroke = isAutoTheme ? 'var(--cp-accent)' : accent;
+  const groundLine = `
+    <line x1="${paddingX}" y1="${bottomY}" x2="${width - paddingX}" y2="${bottomY}" stroke="${groundStroke}" stroke-width="1.5" stroke-opacity="0.6" filter="url(#horizonGlow)" />
+  `;
+
+  const upperUser = escapeXML((params.user || 'GitHub User').toUpperCase());
+
+  return `
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  width="${width}"
+  height="${height}"
+  viewBox="0 0 ${width} ${height}"
+  fill="none"
+  role="img"
+  aria-labelledby="skyline-title skyline-desc"
+>
+  <title id="skyline-title">${upperUser}'s CommitPulse Skyline</title>
+  <desc id="skyline-desc">A panoramic city skyline visualization of ${upperUser}'s GitHub contributions</desc>
+  <style>
+  @import url('https://fonts.googleapis.com/css2?family=Fira+Code&amp;family=JetBrains+Mono&amp;family=Roboto&amp;family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');
+  ${googleFontsImport}
+
+  ${
+    isAutoTheme
+      ? `
+  :root { --cp-bg: #${light.bg}; --cp-text: #${light.text}; --cp-accent: #${light.accent}; }
+  @media (prefers-color-scheme: dark) { :root { --cp-bg: #${dark.bg}; --cp-text: #${dark.text}; --cp-accent: #${dark.accent}; } }
+  .cp-bg-fill { fill: var(--cp-bg); }
+  .title { font-family: ${selectedFont || '"Syncopate", sans-serif'}; fill: var(--cp-text); font-size: 16px; letter-spacing: 2px; font-weight: 700; opacity: 0.9; text-transform: uppercase; }
+  .stats { font-family: ${statsFont}; fill: var(--cp-accent); font-size: 26px; font-weight: 600; letter-spacing: 0; }
+  .label { font-family: "Roboto", sans-serif; fill: var(--cp-text); font-size: 10px; font-weight: 500; letter-spacing: 0.5px; opacity: 0.5; }
+  .label-end { text-anchor: end; }
+  .stats-end { text-anchor: end; }
+  `
+      : `
+  .title { font-family: ${selectedFont || '"Syncopate", sans-serif'}; fill: ${text}; font-size: 16px; letter-spacing: 2px; font-weight: 700; opacity: 0.9; text-transform: uppercase; }
+  .stats { font-family: ${statsFont}; fill: ${accent}; font-size: 26px; font-weight: 600; letter-spacing: 0; }
+  .label { font-family: "Roboto", sans-serif; fill: ${text}; font-size: 10px; font-weight: 500; letter-spacing: 0.5px; opacity: 0.5; }
+  .label-end { text-anchor: end; }
+  .stats-end { text-anchor: end; }
+  `
+  }
+
+  @keyframes twinkle {
+    0%, 100% { opacity: 0.2; }
+    50% { opacity: 0.8; }
+  }
+
+  .cp-building {
+    transition: fill-opacity 0.2s ease;
+    transform-origin: 0px ${bottomY}px;
+    transform: scaleY(1);
+  }
+  .cp-building:hover {
+    fill-opacity: 1.0 !important;
+  }
+  .cp-building-animated {
+    transform: scaleY(0);
+    animation: skyline-rise 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+  .cp-window-animated {
+    opacity: 0;
+    animation: window-fade 0.6s ease-out forwards;
+  }
+  @keyframes skyline-rise {
+    to { transform: scaleY(1); }
+  }
+  @keyframes window-fade {
+    to { opacity: 0.85; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .cp-star { animation: none !important; }
+    .cp-building-animated { transform: scaleY(1) !important; animation: none !important; }
+    .cp-window-animated { opacity: 0.85 !important; animation: none !important; }
+  }
+  </style>
+
+  ${defs}
+
+  <rect width="${width}" height="${height}" rx="${radius}" class="${isAutoTheme && !params.hideBackground ? 'cp-bg-fill' : ''}" fill="${params.hideBackground ? 'transparent' : styleBg}" />
+
+  <!-- Sky glow gradient -->
+  <rect x="${paddingX}" y="${paddingYTop - 20}" width="${graphWidth}" height="${graphHeight + 20}" fill="url(#skyGradient)" />
+
+  <!-- Stars Background -->
+  <g class="cp-stars">${starsSVG}</g>
+
+  <!-- Skyline Buildings -->
+  <g class="cp-skyline">${buildingsSVG}</g>
+
+  <!-- Horizon Ground Line -->
+  ${groundLine}
+
+  <!-- Header Info -->
+  ${!params.hide_title ? `<text x="30" y="38" class="title">${safeUser}</text>` : ''}
+  ${
+    !params.hide_stats
+      ? `
+      <g transform="translate(${width - 330}, 24)">
+        <g transform="translate(0, 0)">
+          <text class="label">${modeLabel}</text>
+          <text y="34" class="stats">${totalContributions}</text>
+        </g>
+        <g transform="translate(300, 0)">
+          <text class="label label-end">${labels.CURRENT_STREAK}</text>
+          <text y="34" class="stats stats-end">${stats.currentStreak}d</text>
+        </g>
+      </g>
+      `
+      : ''
+  }
 </svg>
 `;
 }
@@ -2660,7 +2992,10 @@ export function generateRateLimitSVG(
     .stats  { font-family: "Space Grotesk", sans-serif; fill: ${text}; font-size: 42px; font-weight: 500; opacity: 0.2; }
     .ghost-pulse { animation: gp 2.6s ease-in-out infinite; }
     @keyframes gp { 0%,100%{opacity:.55} 50%{opacity:1} }
-    @media (prefers-reduced-motion: reduce) { .ghost-pulse { animation: none; } }
+    @media (prefers-reduced-motion: reduce) {
+      .ghost-pulse { animation: none; }
+      .rate-limit-scan animate { display: none; }
+    }
   </style>
 
   <rect width="${SVG_WIDTH}" height="${SVG_HEIGHT}" rx="${radius}" fill="${bg}"/>
@@ -2671,7 +3006,7 @@ export function generateRateLimitSVG(
 
   <rect width="${SVG_WIDTH}" height="${SVG_HEIGHT}" rx="${radius}" fill="url(#ghostFade)"/>
 
-  <rect x="100" y="80" width="400" height="1" fill="${accent}" fill-opacity="0.12">
+  <rect x="100" y="80" width="400" height="1" fill="${accent}" fill-opacity="0.12" class="rate-limit-scan">
     <animate attributeName="y" values="80;320;80" dur="${speed}" repeatCount="indefinite"/>
   </rect>
 
@@ -2775,21 +3110,18 @@ export function generateLanguagesSVG(
     .sort((a, b) => b.percentage - a.percentage)
     .slice(0, 5);
 
-  // We use custom isometric pixel coordinates from a center origin
-  // to spread the 5 towers across the canvas.
-  const TOWER_SCALE = 2.5; // Make the 5 language towers much larger than daily contribution tiles
+  const TOWER_SCALE = 2.5;
   const V_SHAPE_COORDS = [
-    { x: 0, y: 0, zIndex: 3 }, // 1st (Center, Front)
-    { x: -80, y: -45, zIndex: 2 }, // 2nd (Left, Mid)
-    { x: 80, y: -45, zIndex: 2 }, // 3rd (Right, Mid)
-    { x: -160, y: -90, zIndex: 1 }, // 4th (Far Left, Back)
-    { x: 160, y: -90, zIndex: 1 }, // 5th (Far Right, Back)
+    { x: 0, y: 0, zIndex: 3 },
+    { x: -80, y: -45, zIndex: 2 },
+    { x: 80, y: -45, zIndex: 2 },
+    { x: -160, y: -90, zIndex: 1 },
+    { x: 160, y: -90, zIndex: 1 },
   ];
 
   let towersHtml = '';
   const maxPercent = languages[0]?.percentage || 100;
 
-  // Sort languages by zIndex so we render back-to-front (painter's algorithm)
   const sortedLanguages = languages
     .map((lang, idx) => ({
       ...lang,
@@ -2798,15 +3130,13 @@ export function generateLanguagesSVG(
     .sort((a, b) => a.coord.zIndex - b.coord.zIndex);
 
   sortedLanguages.forEach((lang, idx) => {
-    // W and H are already scaled by sf, so we only scale the coordinate offsets
     const scaledX = W / 2 + lang.coord.x * sf;
     const scaledY = H / 2 + (50 + lang.coord.y) * sf;
     const h = Math.max(30, (lang.percentage / maxPercent) * 140) * sf;
 
-    // Use the centralized tower path builder for consistent isometric geometry
     const towerScale = TOWER_SCALE * sf;
     const paths = buildTowerPaths(h, towerScale);
-    const th = 10 * towerScale; // half-height, used for text label positioning
+    const th = 10 * towerScale;
 
     const hexColor = lang.color.startsWith('#') ? lang.color : `#${lang.color}`;
     const delay = (idx * 0.15).toFixed(3);
@@ -2820,8 +3150,8 @@ export function generateLanguagesSVG(
             <path d="${paths.right}" fill="${hexColor}" fill-opacity="0.65" />
             <path d="${paths.top}" fill="${hexColor}" fill-opacity="1.0" />
             
-            <text x="0" y="${-h - th - 18 * sf}" text-anchor="middle" font-family='${statsFont}' font-size="${14 * sf}px" fill="${text}" font-weight="bold">${lang.name}</text>
-            <text x="0" y="${-h - th - 4 * sf}" text-anchor="middle" font-family='${statsFont}' font-size="${12 * sf}px" fill="${text}" opacity="0.6">${lang.percentage}%</text>
+            <text x="0" y="${-h - 18 * sf}" text-anchor="middle" font-family='${statsFont}' font-size="${14 * sf}px" fill="${text}" font-weight="bold">${lang.name}</text>
+            <text x="0" y="${-h - 4 * sf}" text-anchor="middle" font-family='${statsFont}' font-size="${12 * sf}px" fill="${text}" opacity="0.6">${lang.percentage}%</text>
           </g>
         </g>`;
   });
