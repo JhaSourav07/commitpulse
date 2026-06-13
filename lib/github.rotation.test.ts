@@ -3,8 +3,7 @@ import {
   fetchWithRetry,
   getGitHubTokens,
   clearGitHubApiCacheForTests,
-  getTokenStatsForTests,
-  getGlobalCircuitBreakerOpenUntilForTests,
+  resetCircuitBreakerForTests,
 } from './github';
 
 describe('GitHub Multi-Token Rotation & Fallback', () => {
@@ -16,12 +15,15 @@ describe('GitHub Multi-Token Rotation & Fallback', () => {
     fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
     clearGitHubApiCacheForTests();
+    resetCircuitBreakerForTests();
   });
 
   afterEach(() => {
     vi.unstubAllGlobals();
     process.env.GITHUB_PAT = originalGitHubPat;
     process.env.GITHUB_TOKEN = originalGitHubToken;
+    clearGitHubApiCacheForTests();
+    resetCircuitBreakerForTests();
   });
 
   it('correctly parses multiple comma-separated tokens', () => {
@@ -153,16 +155,12 @@ describe('GitHub Multi-Token Rotation & Fallback', () => {
 
   // SKIPPED: This test expects Map functionality from getTokenStatsForTests
   // The current implementation returns an object { currentTokenIndex, totalTokens }
-  // To fix properly, we would need to expose the rateLimitedTokens Map or restructure the test
   it.skip('correctly sets global circuit breaker to the earliest reset time when all tokens are rate-limited', async () => {
     process.env.GITHUB_PAT = 'token1,token2';
     delete process.env.GITHUB_TOKEN;
 
-    const resetTime1 = Date.now() + 5000;
-    const resetTime2 = Date.now() + 10000;
-
-    // This test expects tokenStats to be a Map with .set() method
-    // The current implementation returns an object, so this test is skipped
+    // This test expects getTokenStatsForTests to return a Map with .set() method
+    // The current implementation returns { currentTokenIndex, totalTokens }
     // TODO: Rewrite this test to properly test token exhaustion and circuit breaker
 
     expect(true).toBe(true);

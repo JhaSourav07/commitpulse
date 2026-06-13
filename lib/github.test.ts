@@ -8,6 +8,7 @@ import {
   generateAchievements,
   buildCommitClock,
   clearGitHubApiCacheForTests,
+  resetCircuitBreakerForTests,
   GITHUB_CACHE_TTL_MS,
   cacheKey,
   displayName,
@@ -52,12 +53,14 @@ function mockResponse(body: unknown, status = 200): Response {
 
 beforeEach(() => {
   clearGitHubApiCacheForTests();
+  resetCircuitBreakerForTests();
   process.env.GITHUB_PAT = 'test-token';
   delete process.env.GITHUB_TOKEN;
 });
 
 afterEach(() => {
   clearGitHubApiCacheForTests();
+  resetCircuitBreakerForTests();
   if (originalGitHubPat === undefined) {
     delete process.env.GITHUB_PAT;
   } else {
