@@ -43,12 +43,12 @@ export default function PRStatusDistribution({ data }: { data: PRInsightData }) 
             </Pie>
             <Tooltip
               contentStyle={{
-                backgroundColor: 'rgba(24, 24, 27, 0.9)',
+                backgroundColor: 'var(--recharts-tooltip-bg)',
                 border: 'none',
                 borderRadius: '12px',
-                color: '#fff',
+                color: 'var(--recharts-tooltip-color)',
               }}
-              itemStyle={{ color: '#fff' }}
+              itemStyle={{ color: 'var(--recharts-tooltip-color)' }}
             />
           </PieChart>
         </ResponsiveContainer>

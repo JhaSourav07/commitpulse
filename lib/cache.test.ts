@@ -868,6 +868,37 @@ describe('DistributedCache', () => {
     );
     cache.destroy();
   });
+
+  it('evicts stale local state when a Redis update loses an expiry race', async () => {
+    process.env.KV_REST_API_URL = 'https://mock-redis.upstash.io';
+    process.env.KV_REST_API_TOKEN = 'mock-token';
+
+    vi.mocked(fetch)
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve({ result: 'OK' }),
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve({ result: null }),
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve({ result: null }),
+      } as Response);
+
+    const cache = new DistributedCache<string>();
+    await cache.set('redis-key', 'old-value', 60000);
+
+    expect(await cache.update('redis-key', 'new-value')).toBe(false);
+    expect(await cache.get('redis-key')).toBeNull();
+    expect(fetch).toHaveBeenCalledTimes(3);
+
+    cache.destroy();
+  });
 });
 
 describe('TTLCache with infinite TTL', () => {
