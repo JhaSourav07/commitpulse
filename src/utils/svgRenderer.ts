@@ -14,13 +14,24 @@ export function generateOptimizedSvg(contributionData: ContributionNode[]): stri
   const tileHeight = 8;
   const blockHeightUnit = 4; // Height pixels added per contribution point
 
+  // Handle null/undefined or non-array input gracefully
+  const safeData = Array.isArray(contributionData) ? contributionData : [];
+
   // ==========================================
   // STEP 1: THE GRID MAP MATRIX SYSTEM
   // ==========================================
   const gridMap: Record<string, number> = {};
-  for (let i = 0; i < contributionData.length; i++) {
-    const node = contributionData[i];
-    gridMap[`${node.x},${node.y}`] = node.count;
+  for (let i = 0; i < safeData.length; i++) {
+    const node = safeData[i];
+    if (
+      node &&
+      typeof node === 'object' &&
+      typeof node.x === 'number' &&
+      typeof node.y === 'number'
+    ) {
+      const count = typeof node.count === 'number' && !isNaN(node.count) ? node.count : 0;
+      gridMap[`${node.x},${node.y}`] = count;
+    }
   }
 
   // ==========================================
@@ -46,7 +57,17 @@ export function generateOptimizedSvg(contributionData: ContributionNode[]): stri
   `;
 
   // Sort back-to-front based on spatial layout depth (Painter's Algorithm)
-  const sortedData = [...contributionData].sort((a, b) => a.x + a.y - (b.x + b.y));
+  const sortedData = [...safeData]
+    .filter(
+      (node): node is ContributionNode =>
+        !!(
+          node &&
+          typeof node === 'object' &&
+          typeof node.x === 'number' &&
+          typeof node.y === 'number'
+        )
+    )
+    .sort((a, b) => a.x + a.y - (b.x + b.y));
 
   let svgElements = '';
 
@@ -54,7 +75,8 @@ export function generateOptimizedSvg(contributionData: ContributionNode[]): stri
   // STEPS 3, 4 & 5: ITERATE, CULL, & INSTANTIATE
   // ==========================================
   for (const node of sortedData) {
-    const { x, y, count } = node;
+    const { x, y } = node;
+    const count = typeof node.count === 'number' && !isNaN(node.count) ? node.count : 0;
 
     // Convert 2D matrix positions into flat pixel space mappings
     const isoX = (x - y) * (tileWidth / 2);
