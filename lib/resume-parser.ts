@@ -1,4 +1,5 @@
 import type { ParsedResume, Education, Experience } from '@/types/student';
+import { Worker } from 'worker_threads';
 
 // Polyfill DOMMatrix for server-side/test environments to prevent pdfjs-dist crash
 if (typeof globalThis !== 'undefined' && !('DOMMatrix' in globalThis)) {
@@ -114,74 +115,169 @@ function extractExperience(text: string): Experience[] {
   return experience;
 }
 
-async function extractTextFromBuffer(buffer: Buffer, mimeType: string): Promise<string> {
-  let rawText = '';
+function checkZipRatios(
+  buffer: Buffer,
+  maxDecompressedSize = 50 * 1024 * 1024,
+  maxRatio = 100
+): boolean {
+  let totalUncompressedSize = 0;
+  let totalCompressedSize = 0;
+  let offset = 0;
 
-  if (mimeType === 'application/pdf') {
-    try {
-      if (buffer.toString('utf-8', 0, 4) === '%PDF') {
-        const pdfModule = (await import('pdf-parse')) as Record<string, unknown>;
+  // We search for Central Directory Headers first. If we find them, we count uncompressed/compressed size.
+  // Central directory file header signature is 0x02014b50 (PK\x01\x02)
+  while (offset < buffer.length - 46) {
+    if (buffer.readUInt32LE(offset) === 0x02014b50) {
+      const compressedSize = buffer.readUInt32LE(offset + 20);
+      const uncompressedSize = buffer.readUInt32LE(offset + 24);
+      const fileNameLength = buffer.readUInt16LE(offset + 28);
+      const extraFieldLength = buffer.readUInt16LE(offset + 30);
+      const fileCommentLength = buffer.readUInt16LE(offset + 32);
 
-        console.debug('pdf-parse exports:', Object.keys(pdfModule));
+      totalCompressedSize += compressedSize;
+      totalUncompressedSize += uncompressedSize;
 
-        type PdfParser = (dataBuffer: Buffer, options?: unknown) => Promise<{ text: string }>;
-
-        let pdfParser: PdfParser | null = null;
-
-        if (typeof pdfModule.default === 'function') {
-          pdfParser = pdfModule.default as PdfParser;
-        } else if (typeof (pdfModule as unknown) === 'function') {
-          pdfParser = pdfModule as unknown as PdfParser;
-        } else {
-          const nestedDefault = (pdfModule.default as Record<string, unknown> | undefined)?.default;
-
-          if (typeof nestedDefault === 'function') {
-            pdfParser = nestedDefault as PdfParser;
-          }
-        }
-
-        if (!pdfParser) {
-          throw new TypeError(
-            `Unable to resolve pdf-parse export. Available keys: ${Object.keys(pdfModule).join(', ')}`
-          );
-        }
-
-        const data = await pdfParser(buffer);
-        rawText = data.text;
-      } else {
-        rawText = buffer.toString('utf-8');
+      if (totalUncompressedSize > maxDecompressedSize) {
+        return false;
       }
-    } catch (error) {
-      console.warn('Failed to parse PDF using pdf-parse, falling back to UTF-8 decoding:', error);
-      rawText = buffer.toString('utf-8');
-    }
-  } else if (
-    mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-  ) {
-    try {
-      if (buffer.toString('utf-8', 0, 2) === 'PK') {
-        const mammothModule = await import('mammoth');
-        const mammothParser = ((mammothModule as unknown as { default?: unknown }).default ||
-          mammothModule) as typeof mammothModule;
-        const result = await mammothParser.extractRawText({ buffer });
-        rawText = result.value;
-      } else {
-        rawText = buffer.toString('utf-8');
+
+      if (compressedSize > 0 && uncompressedSize / compressedSize > maxRatio) {
+        return false;
       }
-    } catch (error) {
-      console.warn('Failed to parse DOCX using mammoth, falling back to UTF-8 decoding:', error);
-      rawText = buffer.toString('utf-8');
+
+      offset += 46 + fileNameLength + extraFieldLength + fileCommentLength;
+    } else {
+      offset++;
     }
-  } else {
-    rawText = buffer.toString('utf-8');
   }
 
-  const printable = rawText
-    .replace(/[^\x20-\x7E\n\r]/g, ' ')
-    .replace(/[ \t]+/g, ' ')
-    .replace(/\r/g, '')
-    .trim();
-  return printable;
+  // Also check Local File Headers if Central Directory scan was empty (e.g. malformed or partial zip)
+  // Local file header signature is 0x04034b50 (PK\x03\x04)
+  if (totalUncompressedSize === 0) {
+    offset = 0;
+    while (offset < buffer.length - 30) {
+      if (buffer.readUInt32LE(offset) === 0x04034b50) {
+        const compressedSize = buffer.readUInt32LE(offset + 18);
+        const uncompressedSize = buffer.readUInt32LE(offset + 22);
+        const fileNameLength = buffer.readUInt16LE(offset + 26);
+        const extraFieldLength = buffer.readUInt16LE(offset + 28);
+
+        totalCompressedSize += compressedSize;
+        totalUncompressedSize += uncompressedSize;
+
+        if (totalUncompressedSize > maxDecompressedSize) {
+          return false;
+        }
+
+        if (compressedSize > 0 && uncompressedSize / compressedSize > maxRatio) {
+          return false;
+        }
+
+        offset += 30 + fileNameLength + extraFieldLength + compressedSize;
+      } else {
+        offset++;
+      }
+    }
+  }
+
+  return true;
+}
+
+export function parseResumeInWorker(buffer: Buffer, mimeType: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    // The worker code must be a plain JS string because Next.js/Webpack won't bundle ESM imports nicely for child workers via eval.
+    // Therefore, we use require() for the dependencies.
+    const workerCode = `
+      const { parentPort, workerData } = require('worker_threads');
+      
+      async function run() {
+        try {
+          const { buffer, mimeType } = workerData;
+          let rawText = '';
+          
+          if (mimeType === 'application/pdf') {
+            try {
+              if (buffer.toString('utf-8', 0, 4) === '%PDF') {
+                const pdf = require('pdf-parse');
+                const pdfParser = pdf.default || pdf;
+                // Limit page count to 15 for safety
+                const data = await pdfParser(buffer, { max: 15 });
+                rawText = data.text;
+              } else {
+                rawText = buffer.toString('utf-8');
+              }
+            } catch (error) {
+              rawText = buffer.toString('utf-8');
+            }
+          } else if (
+            mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+          ) {
+            try {
+              if (buffer.toString('utf-8', 0, 2) === 'PK') {
+                const mammoth = require('mammoth');
+                const mammothParser = mammoth.default || mammoth;
+                const result = await mammothParser.extractRawText({ buffer });
+                rawText = result.value;
+              } else {
+                rawText = buffer.toString('utf-8');
+              }
+            } catch (error) {
+              rawText = buffer.toString('utf-8');
+            }
+          } else {
+            rawText = buffer.toString('utf-8');
+          }
+          
+          if (rawText.length > 100000) {
+            throw new Error('Extracted text exceeds the safety limit of 100,000 characters.');
+          }
+          
+          parentPort.postMessage({ success: true, rawText });
+        } catch (error) {
+          parentPort.postMessage({ success: false, error: error.message });
+        }
+      }
+      
+      run();
+    `;
+
+    const worker = new Worker(workerCode, {
+      eval: true,
+      workerData: { buffer, mimeType },
+      resourceLimits: {
+        maxOldGenerationSizeMb: 128,
+        maxYoungGenerationSizeMb: 32,
+      },
+    });
+
+    const timeout = setTimeout(() => {
+      worker.terminate();
+      reject(new Error('Parser timeout: parsing took longer than 10 seconds.'));
+    }, 10000);
+
+    worker.on('message', (message) => {
+      clearTimeout(timeout);
+      if (message.success) {
+        resolve(message.rawText);
+      } else {
+        reject(new Error(message.error || 'Unknown parsing error'));
+      }
+      worker.terminate();
+    });
+
+    worker.on('error', (err) => {
+      clearTimeout(timeout);
+      reject(err);
+      worker.terminate();
+    });
+
+    worker.on('exit', (code) => {
+      clearTimeout(timeout);
+      if (code !== 0) {
+        reject(new Error(`Worker stopped with exit code ${code}`));
+      }
+    });
+  });
 }
 
 /**
@@ -202,15 +298,30 @@ function extractPhone(text: string): string {
 }
 
 export async function parseResume(buffer: Buffer, mimeType: string): Promise<ParsedResume> {
-  const rawText = await extractTextFromBuffer(buffer, mimeType);
+  // 1. Structural checks for DOCX/ZIP decompression ratios and zip bombs
+  if (mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+    if (!checkZipRatios(buffer)) {
+      throw new Error(
+        'Suspicious zip/docx structure detected (potential zip bomb or excessive uncompressed size).'
+      );
+    }
+  }
+
+  const rawText = await parseResumeInWorker(buffer, mimeType);
+
+  const printable = rawText
+    .replace(/[^\x20-\x7E\n\r]/g, ' ')
+    .replace(/[ \t]+/g, ' ')
+    .replace(/\r/g, '')
+    .trim();
 
   return {
-    name: extractName(rawText),
-    email: extractEmail(rawText),
-    phone: extractPhone(rawText),
-    skills: extractSkills(rawText),
-    education: extractEducation(rawText),
-    experience: extractExperience(rawText),
+    name: extractName(printable),
+    email: extractEmail(printable),
+    phone: extractPhone(printable),
+    skills: extractSkills(printable),
+    education: extractEducation(printable),
+    experience: extractExperience(printable),
   };
 }
 

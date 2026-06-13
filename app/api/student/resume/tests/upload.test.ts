@@ -59,4 +59,65 @@ describe('POST /api/student/resume/upload', () => {
     expect(body.success).toBe(true);
     expect(body.data).toBeDefined();
   });
+
+  it('rejects a DOCX/ZIP file containing a zip bomb (high decompression ratio)', async () => {
+    const mockZipBomb = Buffer.alloc(200);
+    mockZipBomb.writeUInt32LE(0x04034b50, 0); // Local Header signature
+    mockZipBomb.writeUInt32LE(0x02014b50, 50); // Central Directory signature
+    mockZipBomb.writeUInt32LE(10, 50 + 20); // Compressed size = 10
+    mockZipBomb.writeUInt32LE(10000, 50 + 24); // Uncompressed size = 10,000 (ratio = 1000x > 100x limit)
+    mockZipBomb.writeUInt16LE(4, 50 + 28); // File name length = 4
+
+    const response = await POST(
+      makeUploadRequest(
+        Array.from(mockZipBomb),
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'bomb.docx'
+      )
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(422);
+    expect(body.success).toBe(false);
+    expect(body.error).toContain('Failed to parse resume');
+  });
+
+  it('accepts a valid DOCX structure with normal decompression ratio', async () => {
+    const mockValidDocx = Buffer.alloc(200);
+    mockValidDocx.writeUInt32LE(0x04034b50, 0); // Local Header signature
+    mockValidDocx.writeUInt32LE(0x02014b50, 50); // Central Directory signature
+    mockValidDocx.writeUInt32LE(100, 50 + 20); // Compressed size = 100
+    mockValidDocx.writeUInt32LE(200, 50 + 24); // Uncompressed size = 200 (ratio = 2x)
+    mockValidDocx.writeUInt16LE(4, 50 + 28); // File name length = 4
+
+    const response = await POST(
+      makeUploadRequest(
+        Array.from(mockValidDocx),
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'valid.docx'
+      )
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.success).toBe(true);
+  });
+
+  it('returns 422 if the resume parser times out', async () => {
+    const resumeParser = await import('@/lib/resume-parser');
+    const spy = vi
+      .spyOn(resumeParser, 'parseResume')
+      .mockRejectedValue(new Error('Parser timeout: parsing took longer than 10 seconds.'));
+
+    const response = await POST(
+      makeUploadRequest('%PDF-1.7\nJohn Doe\njohn@example.com', 'application/pdf')
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(422);
+    expect(body.success).toBe(false);
+    expect(body.error).toContain('Failed to parse resume');
+
+    spy.mockRestore();
+  });
 });
