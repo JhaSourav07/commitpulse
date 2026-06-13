@@ -38,12 +38,19 @@ describe('DashboardError - Edge Cases & Empty/Missing Inputs', () => {
   it('renders the generic emoji when error message is an empty string', () => {
     render(<DashboardError error={new Error('')} reset={vi.fn()} />);
 
+    expect(screen.getByRole('heading', { name: 'Something went wrong' })).toBeInTheDocument();
+    expect(
+      screen.getByText('An unexpected error occurred while fetching the dashboard data.')
+    ).toBeInTheDocument();
     expect(screen.getByText('⚠️')).toBeInTheDocument();
   });
 
-  it('renders the fallback description when error message is an empty string', () => {
-    render(<DashboardError error={new Error('')} reset={vi.fn()} />);
+  it('renders successfully when error is undefined', () => {
+    expect(() =>
+      render(<DashboardError error={undefined as unknown as Error} reset={vi.fn()} />)
+    ).not.toThrow();
 
+    expect(screen.getByRole('heading', { name: 'Something went wrong' })).toBeInTheDocument();
     expect(
       screen.getByText('An unexpected error occurred while fetching the dashboard data.')
     ).toBeInTheDocument();
@@ -86,6 +93,29 @@ describe('DashboardError - Edge Cases & Empty/Missing Inputs', () => {
     render(<DashboardError error={new Error('')} reset={vi.fn()} />);
 
     expect(screen.getByRole('heading', { name: 'Something went wrong' })).toBeInTheDocument();
+    expect(
+      screen.getByText('An unexpected error occurred while fetching the dashboard data.')
+    ).toBeInTheDocument();
+  });
+
+  it('renders successfully when error has no message property', () => {
+    expect(() =>
+      render(<DashboardError error={{ name: 'CustomError' } as unknown as Error} reset={vi.fn()} />)
+    ).not.toThrow();
+
+    expect(screen.getByRole('heading', { name: 'Something went wrong' })).toBeInTheDocument();
+    expect(
+      screen.getByText('An unexpected error occurred while fetching the dashboard data.')
+    ).toBeInTheDocument();
+  });
+
+  it('renders successfully when error message is an empty string', () => {
+    expect(() => render(<DashboardError error={new Error('')} reset={vi.fn()} />)).not.toThrow();
+
+    expect(screen.getByRole('heading', { name: 'Something went wrong' })).toBeInTheDocument();
+    expect(
+      screen.getByText('An unexpected error occurred while fetching the dashboard data.')
+    ).toBeInTheDocument();
   });
 
   it('renders without errors when the optional digest field is absent', () => {
@@ -96,8 +126,8 @@ describe('DashboardError - Edge Cases & Empty/Missing Inputs', () => {
     expect(screen.getByText('⚠️')).toBeInTheDocument();
   });
 
-  it('renders both action controls in the default empty-message fallback state', () => {
-    render(<DashboardError error={new Error('')} reset={vi.fn()} />);
+  it('renders interactive elements correctly in fallback state', () => {
+    render(<DashboardError error={{} as unknown as Error} reset={vi.fn()} />);
 
     expect(screen.getByRole('button', { name: /try again/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /go back home/i })).toBeInTheDocument();
