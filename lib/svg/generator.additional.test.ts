@@ -762,3 +762,48 @@ describe('[Refactor] renderGhostTowers — shared helper consistency', () => {
     expect(rateLimitSvg).toContain('</svg>');
   });
 });
+
+// ─── 6. Customizable 3D projection angles (theta and phi) ─────────────────────
+
+describe('[Feature] Customizable 3D projection angles (theta and phi)', () => {
+  it('renders SVG with default angles (45 degrees, arcsin(10/16)) when params are absent', () => {
+    const svg = generateSVG(
+      baseStats,
+      {
+        user: 'chetan',
+        bg: hexColor('0d1117'),
+        text: hexColor('ffffff'),
+        accent: hexColor('58a6ff'),
+        speed: '8s',
+        scale: 'linear',
+      } satisfies BadgeParams,
+      baseCalendar
+    );
+
+    // Default theta=45, phi=38.68
+    // Tower 1 (row=0, col=1) translates to (284, 130)
+    expect(svg).toContain('translate(284, 130)');
+  });
+
+  it('translates tower coordinates differently when custom theta and phi are passed', () => {
+    const svgCustom = generateSVG(
+      baseStats,
+      {
+        user: 'chetan',
+        bg: hexColor('0d1117'),
+        text: hexColor('ffffff'),
+        accent: hexColor('58a6ff'),
+        speed: '8s',
+        scale: 'linear',
+        theta: 90,
+        phi: 45,
+      } satisfies BadgeParams,
+      baseCalendar
+    );
+
+    // Custom theta=90, phi=45
+    // Tower 1 (row=0, col=1) translates to (277, 120)
+    expect(svgCustom).toContain('translate(277, 120)');
+    expect(svgCustom).not.toContain('translate(284, 130)');
+  });
+});
