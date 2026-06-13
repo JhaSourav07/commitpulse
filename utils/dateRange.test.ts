@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { formatDateRange, DEFAULT_DATE_RANGE } from './dateRange';
+import { describe, it, expect, vi, afterEach } from 'vitest';
+import { formatDateRange, getDefaultDateRange, DEFAULT_DATE_RANGE } from './dateRange';
 
 describe('formatDateRange', () => {
   it('returns full date range for valid 4-digit year', () => {
@@ -105,9 +105,39 @@ describe('formatDateRange', () => {
     expect(typeof result.to).toBe('string');
   });
 
+  it('getDefaultDateRange uses the current UTC year', () => {
+    const currentYear = new Date().getUTCFullYear();
+    const range = getDefaultDateRange();
+    expect(range.from).toBe(`${currentYear}-01-01T00:00:00Z`);
+    expect(range.to).toBe(`${currentYear}-12-31T23:59:59Z`);
+  });
+
   it('DEFAULT_DATE_RANGE uses current UTC year', () => {
     const currentYear = new Date().getUTCFullYear();
     expect(DEFAULT_DATE_RANGE.from).toBe(`${currentYear}-01-01T00:00:00Z`);
     expect(DEFAULT_DATE_RANGE.to).toBe(`${currentYear}-12-31T23:59:59Z`);
+  });
+});
+
+describe('getDefaultDateRange', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('reflects the current year lazily rather than a value captured at module load', () => {
+    vi.useFakeTimers();
+
+    vi.setSystemTime(new Date('2030-06-15T00:00:00Z'));
+    expect(getDefaultDateRange()).toEqual({
+      from: '2030-01-01T00:00:00Z',
+      to: '2030-12-31T23:59:59Z',
+    });
+
+    // Crossing into a new year must be reflected on the next call.
+    vi.setSystemTime(new Date('2031-01-02T00:00:00Z'));
+    expect(getDefaultDateRange()).toEqual({
+      from: '2031-01-01T00:00:00Z',
+      to: '2031-12-31T23:59:59Z',
+    });
   });
 });

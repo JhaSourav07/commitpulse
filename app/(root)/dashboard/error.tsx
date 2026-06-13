@@ -11,12 +11,16 @@ export default function DashboardError({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error(error);
+    if (error) {
+      console.error(error);
+    }
   }, [error]);
 
-  const isRateLimit = error.message.includes('API limit') || error.message.includes('rate limit');
+  const errorMessage = error?.message || '';
 
-  const isNotFound = error.message.includes('not found');
+  const isRateLimit = errorMessage.includes('API limit') || errorMessage.includes('rate limit');
+
+  const isNotFound = errorMessage.includes('not found');
 
   return (
     <div className="min-h-[80vh] flex flex-col items-center justify-center p-6 text-center">
@@ -38,7 +42,7 @@ export default function DashboardError({
             ? "We couldn't find a GitHub user with that username. Please check the spelling and try again."
             : isRateLimit
               ? "GitHub's API rate limit has been reached. Please add a GITHUB_TOKEN to your environment variables to increase the limit, or try again later."
-              : error.message || 'An unexpected error occurred while fetching the dashboard data.'}
+              : errorMessage || 'An unexpected error occurred while fetching the dashboard data.'}
         </p>
 
         <div className="flex flex-col gap-3">

@@ -406,12 +406,16 @@ export default function LandingPageClient() {
       return;
     }
 
+    // Create AbortController to manage fetch lifecycle
+    const abortController = new AbortController();
+
     const fetchDetails = async () => {
       setUserDetailsLoading(true);
       setUserDetailsError(null);
       try {
         const response = await fetch(
-          `/api/user-details?username=${encodeURIComponent(debouncedUsername)}`
+          `/api/user-details?username=${encodeURIComponent(debouncedUsername)}`,
+          { signal: abortController.signal }
         );
         if (!response.ok) {
           if (response.status === 404) {
@@ -421,17 +425,34 @@ export default function LandingPageClient() {
           throw new Error(errData.error || 'Failed to fetch user');
         }
         const data = await response.json();
-        setUserDetails(data);
+        // Only update state if the request wasn't aborted
+        if (!abortController.signal.aborted) {
+          setUserDetails(data);
+        }
       } catch (err) {
+        // Don't update state if the request was aborted (component unmount or new request)
+        if (err instanceof Error && err.name === 'AbortError') {
+          return;
+        }
         const message = err instanceof Error ? err.message : 'Failed to fetch user';
-        setUserDetails(null);
-        setUserDetailsError(message);
+        if (!abortController.signal.aborted) {
+          setUserDetails(null);
+          setUserDetailsError(message);
+        }
       } finally {
-        setUserDetailsLoading(false);
+        // Always clear loading state if not aborted
+        if (!abortController.signal.aborted) {
+          setUserDetailsLoading(false);
+        }
       }
     };
 
     fetchDetails();
+
+    // Cleanup: abort fetch when component unmounts or dependencies change
+    return () => {
+      abortController.abort();
+    };
   }, [debouncedUsername, mounted]);
 
   const copyToClipboard = async () => {
@@ -464,12 +485,14 @@ export default function LandingPageClient() {
   const selectDemoUser = (name: string) => {
     setUsername(name);
     setInstantUsername(name);
+    setBadgeResult(null);
   };
 
   const handleGenerate = (e: React.FormEvent) => {
     e.preventDefault();
     if (trimmedUsername.length > 0) {
       setInstantUsername(trimmedUsername);
+      setBadgeResult(null);
       trackUser(trimmedUsername);
       addSearch(trimmedUsername);
     }
@@ -576,6 +599,7 @@ export default function LandingPageClient() {
                       }
                       setUsername(val);
                       setInstantUsername('');
+                      setBadgeResult(null);
                     }}
                     maxLength={39}
                   />
@@ -783,19 +807,27 @@ export default function LandingPageClient() {
             <div className="relative flex flex-col min-h-[480px] md:min-h-[520px] items-center justify-center overflow-hidden rounded-3xl border border-black/5 bg-white/50 p-8 backdrop-blur-xl shadow-2xl dark:border-white/10 dark:bg-[#0a0a0a]/80">
               {hasUsername ? (
                 <div className="w-full flex flex-col items-center justify-center gap-4">
-                  {userDetailsError === 'User not found' ? (
+                  {userDetailsError ? (
                     <div className="flex flex-col items-center justify-center gap-4 py-12 text-center">
                       <div className="flex h-16 w-16 items-center justify-center rounded-3xl border border-red-500/20 bg-red-500/10 shadow-inner">
                         <X size={32} className="text-red-500" />
                       </div>
                       <div>
                         <p className="text-lg font-bold text-gray-900 dark:text-white tracking-tight">
-                          {t('landing.user_not_found', { defaultValue: 'GitHub user not found' })}
+                          {userDetailsError === 'User not found'
+                            ? t('landing.user_not_found', { defaultValue: 'GitHub user not found' })
+                            : t('landing.verification_failed', {
+                                defaultValue: 'Verification failed',
+                              })}
                         </p>
                         <p className="text-sm text-gray-500 dark:text-white/65 mt-1">
-                          {t('landing.user_not_found_desc', {
-                            defaultValue: 'Please check the username and try again.',
-                          })}
+                          {userDetailsError === 'User not found'
+                            ? t('landing.user_not_found_desc', {
+                                defaultValue: 'Please check the username and try again.',
+                              })
+                            : `${t('landing.verification_failed', {
+                                defaultValue: 'Verification failed',
+                              })}: ${userDetailsError}`}
                         </p>
                       </div>
                     </div>

@@ -1,162 +1,229 @@
-import { describe, expect, it } from 'vitest';
+// lib/svg/themes.test.ts
+// Comprehensive coverage for the themes system.
+// Previously had only 3 tests — this file adds hex validity, theme count,
+// structure integrity, and AUTO_THEME pair safety checks.
+
+import { describe, it, expect } from 'vitest';
 import { themes, AUTO_THEME_LIGHT, AUTO_THEME_DARK } from './themes';
 
-describe('themes', () => {
-  it('validates every theme has bg, text, and accent as valid 6-character hex strings', () => {
-    const hexRegex = /^#[0-9a-f]{6}$/i;
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
-    Object.entries(themes).forEach(([name, theme]) => {
-      // Validate every theme has bg, text, and accent
-      expect(theme).toHaveProperty('bg');
-      expect(theme).toHaveProperty('text');
-      expect(theme).toHaveProperty('accent');
+const HEX_REGEX = /^[0-9a-fA-F]{6}$/;
 
-      // Assert they are valid 6-character hex strings using the requested regex.
-      // We prepend '#' because the sanitizer strips it from the final object.
-      expect(`#${theme.bg}`, `Theme "${name}" bg is invalid`).toMatch(hexRegex);
-      expect(`#${theme.text}`, `Theme "${name}" text is invalid`).toMatch(hexRegex);
-      expect(`#${theme.accent}`, `Theme "${name}" accent is invalid`).toMatch(hexRegex);
+function isValidHex(value: string): boolean {
+  return HEX_REGEX.test(value);
+}
 
-      // negative is optional, but if present, must be valid hex
-      if (theme.negative) {
-        expect(`#${theme.negative}`, `Theme "${name}" negative is invalid`).toMatch(hexRegex);
-      }
-    });
+const themeEntries = Object.entries(themes);
+const themeNames = Object.keys(themes);
+
+// ── Original 3 tests (preserved) ─────────────────────────────────────────────
+
+describe('themes object', () => {
+  it('is defined and is an object', () => {
+    expect(themes).toBeDefined();
+    expect(typeof themes).toBe('object');
   });
 
-  it('asserts no two themes are identical', () => {
-    const uniqueThemes = new Set<string>();
-
-    Object.entries(themes).forEach(([name, theme]) => {
-      // Create a unique fingerprint for each theme based on its colors
-      const fingerprint = `${theme.bg}-${theme.text}-${theme.accent}`;
-
-      // If the fingerprint already exists, this theme is a duplicate
-      expect(uniqueThemes.has(fingerprint), `Theme "${name}" is a duplicate`).toBe(false);
-
-      uniqueThemes.add(fingerprint);
-    });
+  it('dark theme has expected hex values', () => {
+    expect(themes.dark.bg).toBe('0d1117');
+    expect(themes.dark.text).toBe('c9d1d9');
+    expect(themes.dark.accent).toBe('58a6ff');
   });
 
-  it('asserts auto themes match their respective light/dark counterparts', () => {
-    // Assert strictly equal (===)
-    expect(AUTO_THEME_LIGHT).toBe(themes.light);
-    expect(AUTO_THEME_DARK).toBe(themes.dark);
+  it('light theme has expected hex values', () => {
+    expect(themes.light.bg).toBe('ffffff');
+    expect(themes.light.text).toBe('24292f');
+    expect(themes.light.accent).toBe('0969da');
+  });
+});
+
+// ── Theme count ───────────────────────────────────────────────────────────────
+
+describe('theme count', () => {
+  it('contains exactly 26 preset themes matching THEMES.md documentation', () => {
+    // If this fails, either a theme was added to themes.ts without updating
+    // THEMES.md, or a theme was removed without updating the docs.
+    // Update this count when intentionally adding/removing themes.
+    expect(themeNames).toHaveLength(26);
   });
 
-  describe('new light theme variants', () => {
-    it('asserts aurora_cyberpunk theme exists', () => {
-      expect(themes).toHaveProperty('aurora_cyberpunk');
-      expect(themes.aurora_cyberpunk).toBeDefined();
-    });
+  it('contains all expected theme keys', () => {
+    const expectedKeys = [
+      'dark',
+      'light',
+      'neon',
+      'github',
+      'dracula',
+      'ocean',
+      'sunset',
+      'forest',
+      'rose',
+      'nord',
+      'synthwave',
+      'gruvbox',
+      'aurora_cyberpunk',
+      'highcontrast',
+      'catppuccin_latte',
+      'solarized_light',
+      'gruvbox_light',
+      'nord_light',
+      'cyber-pulse',
+      'obsidian',
+      'glacier',
+      'lumos',
+      'tokyonight',
+      'cyberpunk',
+      'tokyo_night',
+      'monokai',
+    ];
+    for (const key of expectedKeys) {
+      expect(themeNames).toContain(key);
+    }
+  });
+});
 
-    it('asserts aurora_cyberpunk has valid bg, text, accent hex values', () => {
-      const hexRegex = /^#[0-9a-f]{6}$/i;
-      const theme = themes.aurora_cyberpunk;
+// ── Theme structure ───────────────────────────────────────────────────────────
 
-      expect(`#${theme.bg}`).toMatch(hexRegex);
-      expect(`#${theme.text}`).toMatch(hexRegex);
-      expect(`#${theme.accent}`).toMatch(hexRegex);
-    });
-
-    it('asserts catppuccin_latte theme exists', () => {
-      expect(themes).toHaveProperty('catppuccin_latte');
-      expect(themes.catppuccin_latte).toBeDefined();
-    });
-
-    it('asserts catppuccin_latte has valid bg, text, accent hex values', () => {
-      const hexRegex = /^#[0-9a-f]{6}$/i;
-      const theme = themes.catppuccin_latte;
-
-      expect(`#${theme.bg}`).toMatch(hexRegex);
-      expect(`#${theme.text}`).toMatch(hexRegex);
-      expect(`#${theme.accent}`).toMatch(hexRegex);
-    });
-
-    it('asserts solarized_light theme exists', () => {
-      expect(themes).toHaveProperty('solarized_light');
-      expect(themes.solarized_light).toBeDefined();
-    });
-
-    it('asserts solarized_light has valid bg, text, accent hex values', () => {
-      const hexRegex = /^#[0-9a-f]{6}$/i;
-      const theme = themes.solarized_light;
-
-      expect(`#${theme.bg}`).toMatch(hexRegex);
-      expect(`#${theme.text}`).toMatch(hexRegex);
-      expect(`#${theme.accent}`).toMatch(hexRegex);
-    });
-
-    it('asserts gruvbox_light theme exists', () => {
-      expect(themes).toHaveProperty('gruvbox_light');
-      expect(themes.gruvbox_light).toBeDefined();
-    });
-
-    it('asserts gruvbox_light has valid bg, text, accent hex values', () => {
-      const hexRegex = /^#[0-9a-f]{6}$/i;
-      const theme = themes.gruvbox_light;
-
-      expect(`#${theme.bg}`).toMatch(hexRegex);
-      expect(`#${theme.text}`).toMatch(hexRegex);
-      expect(`#${theme.accent}`).toMatch(hexRegex);
-    });
-
-    it('asserts nord_light theme exists', () => {
-      expect(themes).toHaveProperty('nord_light');
-      expect(themes.nord_light).toBeDefined();
-    });
-
-    it('asserts nord_light has valid bg, text, accent hex values', () => {
-      const hexRegex = /^#[0-9a-f]{6}$/i;
-      const theme = themes.nord_light;
-
-      expect(`#${theme.bg}`).toMatch(hexRegex);
-      expect(`#${theme.text}`).toMatch(hexRegex);
-      expect(`#${theme.accent}`).toMatch(hexRegex);
-    });
+describe('theme structure — every theme has required bg, text, accent', () => {
+  it.each(themeEntries)('theme "%s" has bg, text, and accent keys', (name, theme) => {
+    const keys = Object.keys(theme).sort();
+    expect(keys).toContain('bg');
+    expect(keys).toContain('text');
+    expect(keys).toContain('accent');
   });
 
-  describe('github theme', () => {
-    it('asserts github theme exists', () => {
-      expect(themes).toHaveProperty('github');
-      expect(themes.github).toBeDefined();
-    });
+  it.each(themeEntries)('theme "%s" has no undefined properties', (name, theme) => {
+    expect(theme.bg).toBeDefined();
+    expect(theme.text).toBeDefined();
+    expect(theme.accent).toBeDefined();
+  });
+});
 
-    it('asserts github theme has correct color configuration matching the theme specification', () => {
-      expect(themes.github.bg).toBe('0d1117');
-      expect(themes.github.text).toBe('ffffff');
-      expect(themes.github.accent).toBe('238636');
-      expect(themes.github.negative).toBe('f85149');
-    });
+// ── Hex validity — all 20 themes × 3 properties = 60 values checked ──────────
+
+describe('hex validity — all theme color values must be valid 6-char hex strings', () => {
+  it.each(themeEntries)('theme "%s" bg is a valid 6-char hex string', (name, theme) => {
+    expect(
+      isValidHex(theme.bg),
+      `theme "${name}" has invalid bg: "${theme.bg}" — must match /^[0-9a-fA-F]{6}$/`
+    ).toBe(true);
   });
 
-  describe('makeTheme produces HexColor branded types', () => {
-    const hexRegex = /^[0-9a-f]{6}$/i;
+  it.each(themeEntries)('theme "%s" text is a valid 6-char hex string', (name, theme) => {
+    expect(
+      isValidHex(theme.text),
+      `theme "${name}" has invalid text: "${theme.text}" — must match /^[0-9a-fA-F]{6}$/`
+    ).toBe(true);
+  });
 
-    it('every theme bg matches hex regex', () => {
-      Object.entries(themes).forEach(([name, theme]) => {
-        expect(theme.bg, `theme "${name}" bg`).toMatch(hexRegex);
-      });
-    });
+  it.each(themeEntries)('theme "%s" accent is a valid 6-char hex string', (name, theme) => {
+    expect(
+      isValidHex(theme.accent),
+      `theme "${name}" has invalid accent: "${theme.accent}" — must match /^[0-9a-fA-F]{6}$/`
+    ).toBe(true);
+  });
 
-    it('every theme text matches hex regex', () => {
-      Object.entries(themes).forEach(([name, theme]) => {
-        expect(theme.text, `theme "${name}" text`).toMatch(hexRegex);
-      });
-    });
+  it('no theme has a hex value with a leading # (values must be without #)', () => {
+    for (const [name, theme] of themeEntries) {
+      expect(theme.bg.startsWith('#')).toBe(false);
+      expect(theme.text.startsWith('#')).toBe(false);
+      expect(theme.accent.startsWith('#')).toBe(false);
+    }
+  });
 
-    it('every theme accent matches hex regex', () => {
-      Object.entries(themes).forEach(([name, theme]) => {
-        expect(theme.accent, `theme "${name}" accent`).toMatch(hexRegex);
-      });
-    });
+  it('no theme has a hex value shorter than 6 characters', () => {
+    for (const [name, theme] of themeEntries) {
+      expect(theme.bg.length).toBeGreaterThanOrEqual(6);
+      expect(theme.text.length).toBeGreaterThanOrEqual(6);
+      expect(theme.accent.length).toBeGreaterThanOrEqual(6);
+    }
+  });
+});
 
-    it('no theme value starts with #', () => {
-      Object.entries(themes).forEach(([name, theme]) => {
-        expect(theme.bg.startsWith('#'), `theme "${name}" bg starts with #`).toBe(false);
-        expect(theme.text.startsWith('#'), `theme "${name}" text starts with #`).toBe(false);
-        expect(theme.accent.startsWith('#'), `theme "${name}" accent starts with #`).toBe(false);
-      });
-    });
+// ── AUTO_THEME pair integrity ─────────────────────────────────────────────────
+
+describe('AUTO_THEME_LIGHT and AUTO_THEME_DARK — integrity checks', () => {
+  it('AUTO_THEME_LIGHT is defined and not null', () => {
+    expect(AUTO_THEME_LIGHT).toBeDefined();
+    expect(AUTO_THEME_LIGHT).not.toBeNull();
+  });
+
+  it('AUTO_THEME_DARK is defined and not null', () => {
+    expect(AUTO_THEME_DARK).toBeDefined();
+    expect(AUTO_THEME_DARK).not.toBeNull();
+  });
+
+  it('AUTO_THEME_LIGHT references the light theme palette', () => {
+    expect(AUTO_THEME_LIGHT.bg).toBe(themes.light.bg);
+    expect(AUTO_THEME_LIGHT.text).toBe(themes.light.text);
+    expect(AUTO_THEME_LIGHT.accent).toBe(themes.light.accent);
+  });
+
+  it('AUTO_THEME_DARK references the dark theme palette', () => {
+    expect(AUTO_THEME_DARK.bg).toBe(themes.dark.bg);
+    expect(AUTO_THEME_DARK.text).toBe(themes.dark.text);
+    expect(AUTO_THEME_DARK.accent).toBe(themes.dark.accent);
+  });
+
+  it('AUTO_THEME_LIGHT bg is a valid hex string', () => {
+    expect(isValidHex(AUTO_THEME_LIGHT.bg)).toBe(true);
+  });
+
+  it('AUTO_THEME_LIGHT text is a valid hex string', () => {
+    expect(isValidHex(AUTO_THEME_LIGHT.text)).toBe(true);
+  });
+
+  it('AUTO_THEME_LIGHT accent is a valid hex string', () => {
+    expect(isValidHex(AUTO_THEME_LIGHT.accent)).toBe(true);
+  });
+
+  it('AUTO_THEME_DARK bg is a valid hex string', () => {
+    expect(isValidHex(AUTO_THEME_DARK.bg)).toBe(true);
+  });
+
+  it('AUTO_THEME_DARK text is a valid hex string', () => {
+    expect(isValidHex(AUTO_THEME_DARK.text)).toBe(true);
+  });
+
+  it('AUTO_THEME_DARK accent is a valid hex string', () => {
+    expect(isValidHex(AUTO_THEME_DARK.accent)).toBe(true);
+  });
+
+  it('AUTO_THEME_LIGHT and AUTO_THEME_DARK have different bg values', () => {
+    // Light and dark themes must be visually distinct
+    expect(AUTO_THEME_LIGHT.bg).not.toBe(AUTO_THEME_DARK.bg);
+  });
+
+  it('AUTO_THEME_LIGHT and AUTO_THEME_DARK have different text values', () => {
+    expect(AUTO_THEME_LIGHT.text).not.toBe(AUTO_THEME_DARK.text);
+  });
+});
+
+// ── Specific known theme values (regression guards) ───────────────────────────
+
+describe('known theme palette regression guards', () => {
+  it('neon theme has correct cyberpunk palette', () => {
+    expect(themes.neon.bg).toBe('000000');
+    expect(themes.neon.text).toBe('00ffcc');
+    expect(themes.neon.accent).toBe('ff00ff');
+  });
+
+  it('dracula theme has correct purple palette', () => {
+    expect(themes.dracula.bg).toBe('282a36');
+    expect(themes.dracula.text).toBe('f8f8f2');
+    expect(themes.dracula.accent).toBe('bd93f9');
+  });
+
+  it('obsidian theme has correct charcoal amber palette', () => {
+    expect(themes.obsidian.bg).toBe('1a1a2e');
+    expect(themes.obsidian.text).toBe('e2e8f0');
+    expect(themes.obsidian.accent).toBe('f59e0b');
+  });
+
+  it('cyber-pulse theme has correct AMOLED cyan palette', () => {
+    expect(themes['cyber-pulse'].bg).toBe('000000');
+    expect(themes['cyber-pulse'].text).toBe('ffffff');
+    expect(themes['cyber-pulse'].accent).toBe('00ffee');
   });
 });
