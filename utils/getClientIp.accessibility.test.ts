@@ -18,6 +18,7 @@ describe('getClientIp Data Accessibility & Header Resolution Tests', () => {
     });
 
     const ip = getClientIp(request, {
+      directIp: '192.168.1.1',
       proxyConfig: { trustedProxies: ['*'], trustPrivateRanges: true },
     });
 
@@ -33,7 +34,8 @@ describe('getClientIp Data Accessibility & Header Resolution Tests', () => {
     });
 
     const ip = getClientIp(request, {
-      proxyConfig: { trustedProxies: [], trustPrivateRanges: false },
+      directIp: '192.168.1.1',
+      proxyConfig: { trustedProxies: ['192.168.1.1'], trustPrivateRanges: false },
     });
 
     expect(ip).toBe('198.51.100.5');
@@ -42,13 +44,13 @@ describe('getClientIp Data Accessibility & Header Resolution Tests', () => {
   it('3. identifies spoofing attempts by verifying that claimed IPs match the securely accessed resolution', () => {
     const request = new Request('https://commitpulse.com', {
       headers: new Headers({
-        'x-forwarded-for': '9.9.9.9', // Claimed spoofed IP
-        'x-real-ip': '1.1.1.1', // Actual accessed IP
+        'x-forwarded-for': '9.9.9.9, 1.1.1.1', // 9.9.9.9 is a spoofed injected IP, 1.1.1.1 is the real client
       }),
     });
 
     const ip = getClientIp(request, {
-      proxyConfig: { trustedProxies: [], trustPrivateRanges: false },
+      directIp: '192.168.1.1',
+      proxyConfig: { trustedProxies: ['192.168.1.1'], trustPrivateRanges: false },
     });
 
     expect(ip).toBe('1.1.1.1');
@@ -68,11 +70,12 @@ describe('getClientIp Data Accessibility & Header Resolution Tests', () => {
     const request = new Request('https://commitpulse.com', {
       headers: new Headers({
         // Client -> Untrusted -> Trusted -> Trusted
-        'x-forwarded-for': '203.0.113.1, 100.0.0.1, 192.168.1.100, 192.168.1.200',
+        'x-forwarded-for': '203.0.113.1, 100.0.0.1, 192.168.1.100',
       }),
     });
 
     const ip = getClientIp(request, {
+      directIp: '192.168.1.200',
       proxyConfig: {
         trustedProxies: ['192.168.1.100', '192.168.1.200'],
         trustPrivateRanges: false,
