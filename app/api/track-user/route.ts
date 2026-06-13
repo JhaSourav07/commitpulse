@@ -11,11 +11,7 @@ export async function POST(req: Request) {
   // Get IP for rate limiting securely
   const ip = getClientIp(req);
 
-  const rateLimitKey = ip === 'unknown' ? 'unknown-client' : ip;
-
-  const rateLimitResult = await trackUserRateLimiter.checkWithResult(rateLimitKey);
-
-  if (!rateLimitResult.success) {
+  if (ip !== 'unknown' && !(await trackUserRateLimiter.check(ip))) {
     return NextResponse.json(
       { success: false, error: 'Too many requests, please try again later.' },
       { status: 429, headers: getRateLimitHeaders(rateLimitResult) }

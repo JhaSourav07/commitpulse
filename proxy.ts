@@ -11,13 +11,15 @@ import { getClientIp } from './utils/getClientIp';
  *
  * @see https://nextjs.org/docs/app/building-your-application/routing/middleware
  */
-export async function proxy(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   // Use Vercel's ip property if available, fallback to headers, then localhost
   const ip =
     request.headers.get('x-forwarded-for')?.split(',')[0] ??
     request.headers.get('x-real-ip') ??
     '127.0.0.1';
 
+  // Apply rate limiting
+  // 60 requests per 60,000ms (1 minute)
   const result = await rateLimit(ip, 60, 60000);
 
   if (!result.success) {

@@ -525,103 +525,102 @@ describe('streakParamsSchema', () => {
   });
 });
 
-  it('should accept delta_format percent', () => {
-    const result = streakParamsSchema.safeParse({
-      user: 'octocat',
-      delta_format: 'percent',
-    });
-
-    expect(result.success).toBe(true);
-
-    if (result.success) {
-      expect(result.data.delta_format).toBe('percent');
-    }
+it('should accept delta_format percent', () => {
+  const result = streakParamsSchema.safeParse({
+    user: 'octocat',
+    delta_format: 'percent',
   });
 
-  it('should accept delta_format absolute', () => {
-    const result = streakParamsSchema.safeParse({
-      user: 'octocat',
-      delta_format: 'absolute',
-    });
+  expect(result.success).toBe(true);
 
-    expect(result.success).toBe(true);
+  if (result.success) {
+    expect(result.data.delta_format).toBe('percent');
+  }
+});
 
-    if (result.success) {
-      expect(result.data.delta_format).toBe('absolute');
-    }
+it('should accept delta_format absolute', () => {
+  const result = streakParamsSchema.safeParse({
+    user: 'octocat',
+    delta_format: 'absolute',
   });
 
-  it('should accept delta_format both', () => {
-    const result = streakParamsSchema.safeParse({
-      user: 'octocat',
-      delta_format: 'both',
-    });
+  expect(result.success).toBe(true);
 
-    expect(result.success).toBe(true);
+  if (result.success) {
+    expect(result.data.delta_format).toBe('absolute');
+  }
+});
 
-    if (result.success) {
-      expect(result.data.delta_format).toBe('both');
-    }
+it('should accept delta_format both', () => {
+  const result = streakParamsSchema.safeParse({
+    user: 'octocat',
+    delta_format: 'both',
   });
 
-  it('should fallback to percent for invalid delta_format', () => {
-    const result = streakParamsSchema.safeParse({
-      user: 'octocat',
-      delta_format: 'unknown',
-    });
+  expect(result.success).toBe(true);
 
-    expect(result.success).toBe(true);
+  if (result.success) {
+    expect(result.data.delta_format).toBe('both');
+  }
+});
 
-    if (result.success) {
-      expect(result.data.delta_format).toBe('percent');
-    }
+it('should fallback to percent for invalid delta_format', () => {
+  const result = streakParamsSchema.safeParse({
+    user: 'octocat',
+    delta_format: 'unknown',
   });
 
-  it('should default delta_format to percent when omitted', () => {
-    const result = streakParamsSchema.safeParse({
-      user: 'octocat',
-    });
+  expect(result.success).toBe(true);
 
-    expect(result.success).toBe(true);
+  if (result.success) {
+    expect(result.data.delta_format).toBe('percent');
+  }
+});
 
-    if (result.success) {
-      expect(result.data.delta_format).toBe('percent');
-    }
+it('should default delta_format to percent when omitted', () => {
+  const result = streakParamsSchema.safeParse({
+    user: 'octocat',
   });
 
-  it('rejects invalid IANA timezone names', () => {
-    const result = streakParamsSchema.safeParse({
-      user: 'octocat',
-      tz: 'Mars/Cyonia',
-    });
+  expect(result.success).toBe(true);
+
+  if (result.success) {
+    expect(result.data.delta_format).toBe('percent');
+  }
+});
+
+it('rejects invalid IANA timezone names', () => {
+  const result = streakParamsSchema.safeParse({
+    user: 'octocat',
+    tz: 'Mars/Cyonia',
+  });
+
+  expect(result.success).toBe(false);
+
+  if (!result.success) {
+    expect(result.error.issues[0]?.message).toBe('Invalid timezone');
+  }
+});
+
+it('rejects path-traversal and injection ?tz= payloads while accepting a real IANA zone', () => {
+  const maliciousZones = [
+    '../../../../etc/passwd',
+    'America/New_York; rm -rf /',
+    'America/New_York ',
+  ];
+
+  for (const tz of maliciousZones) {
+    const result = streakParamsSchema.safeParse({ user: 'octocat', tz });
 
     expect(result.success).toBe(false);
-
     if (!result.success) {
       expect(result.error.issues[0]?.message).toBe('Invalid timezone');
     }
-  });
+  }
 
-  it('rejects path-traversal and injection ?tz= payloads while accepting a real IANA zone', () => {
-    const maliciousZones = [
-      '../../../../etc/passwd',
-      'America/New_York; rm -rf /',
-      'America/New_York ',
-    ];
-
-    for (const tz of maliciousZones) {
-      const result = streakParamsSchema.safeParse({ user: 'octocat', tz });
-
-      expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error.issues[0]?.message).toBe('Invalid timezone');
-      }
-    }
-
-    expect(streakParamsSchema.safeParse({ user: 'octocat', tz: 'America/New_York' }).success).toBe(
-      true
-    );
-  });
+  expect(streakParamsSchema.safeParse({ user: 'octocat', tz: 'America/New_York' }).success).toBe(
+    true
+  );
 });
 
 describe('streakParamsSchema — user hyphen validation', () => {

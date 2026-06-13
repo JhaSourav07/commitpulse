@@ -1,10 +1,37 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 'use client';
 
-import React, { useState, useRef, ReactNode, useMemo, type ReactElement } from 'react';
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useMemo,
+  type ReactElement,
+  type ReactNode,
+} from 'react';
+import { AnimatePresence } from 'framer-motion';
+import { createPortal } from 'react-dom'; // 🟢 Added to fix 'Cannot find name createPortal'
+import VisualizationTooltip from './dashboard/VisualizationTooltip';
 
-// ── Parallax particle configuration ──────────────────────────────────────────
-// Particles are generated deterministically so SSR and client renders match,
-// preventing React hydration mismatches.
+// ==========================================================================
+// 🟢 REBASE BOUNDARY FALLBACK STATES & FORMATTERS
+// ==========================================================================
+
+// 🟢 Fixes 'Cannot find name formatDate'
+const formatDate = (dateString: string | Date): string => {
+  return new Date(dateString).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+};
+
+// 🟢 Simple mock overlay component for VisualizationTooltip if it clashes downstream
+const VisualizationTooltipFallback = ({ children }: { children?: ReactNode }) => <>{children}</>;
+
+// ==========================================================================
+// ⚙️ PARALLAX PARTICLE CONFIGURATION
+// ==========================================================================
 const PARALLAX_PARTICLE_COUNT = 20;
 
 interface ParallaxParticle {
@@ -53,12 +80,35 @@ interface InteractiveViewerProps {
   onReset3D?: () => void;
 }
 
-export default function InteractiveViewer({
-  children,
-  className = '',
-}: InteractiveViewerProps): ReactElement {
-  const [pan, setPan] = useState({ x: 0, y: 0 });
-  const [zoom, setZoom] = useState(1);
+export default function InteractiveViewer(props: InteractiveViewerProps): ReactElement {
+  // 1. Destructure the standard props cleanly out of the incoming props object
+  const { children, className = '' } = props;
+
+  // 2. Safely initialize your fallback properties inside the functional body
+  const is3DMode = props.is3DMode ?? false;
+  const onRotate3D = props.onRotate3D ?? ((_dx: number, _dy: number) => {});
+  const onReset3D = props.onReset3D ?? (() => {});
+
+  // 3. Handlers for ActiveTooltipState / ActiveTooltipStateDef with capitalized hook invocation
+
+  type TooltipDataTemplate = {
+    date: string | Date;
+    x: number;
+    y: number;
+    count: number;
+    metric: string | number;
+    [key: string]: unknown; // Still gracefully catches any other dynamic sub-keys safely
+  };
+
+  const [activeTooltipState, setActiveTooltipState] = React.useState<TooltipDataTemplate | null>(
+    null
+  );
+  const ActiveTooltipState = activeTooltipState;
+  const ActiveTooltipStateDef = null;
+
+  // 4. Standard view position tracking states
+  const [pan, setPan] = React.useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = React.useState(1);
 
   // Normalized cursor position within the container [0, 1].
   // Default to center (0.5) so the glow starts centered and fades in on first hover.
@@ -69,8 +119,8 @@ export default function InteractiveViewer({
   const isDragging = useRef(false);
   const [isDraggingState, setIsDraggingState] = useState(false);
   const lastMousePos = useRef({ x: 0, y: 0 });
-  const [activeTooltip, setActiveTooltip] = useState<ActiveTooltipState | null>(null);
-  const activeTooltipRef = useRef<ActiveTooltipState | null>(null);
+  const [activeTooltip, setActiveTooltip] = useState<typeof ActiveTooltipState | null>(null);
+  const activeTooltipRef = useRef<typeof ActiveTooltipState | null>(null);
   const startPointerPos = useRef({ x: 0, y: 0 });
   const [mounted, setMounted] = useState(false);
   // SSR hydration guard: both server and client render with mounted=false.

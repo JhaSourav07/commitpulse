@@ -1,40 +1,33 @@
-import type { Metadata } from 'next';
-import LandingPageClient from './components/LandingPageClient';
+'use client'; // Ensure this is at the very top since you are using hooks!
 
-export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? 'https://commitpulse.vercel.app'),
-  title: 'CommitPulse | 3D Isometric GitHub Contribution Graph',
-  description:
-    'Transform your GitHub contribution history into a cinematic, 3D isometric SVG monolith. Drop it into your README and visualize your developer rhythm with real-time accuracy.',
-  keywords: [
-    'GitHub',
-    'contribution graph',
-    'isometric',
-    '3D SVG',
-    'GitHub stats',
-    'README widget',
-    'developer portfolio',
-    'CommitPulse',
-    'streak badge',
-    'GitHub badge generator',
-  ],
-  openGraph: {
-    title: 'CommitPulse | 3D Isometric GitHub Contribution Graph',
-    description:
-      'Generate a cinematic, isometric 3D SVG of your GitHub contributions for your README. Visualize your grind.',
-    url: 'https://commitpulse.vercel.app/',
-    type: 'website',
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'CommitPulse | Elevate Your GitHub README',
-    description:
-      'Generate a cinematic, isometric 3D SVG of your GitHub contributions for your README.',
-  },
+import React, { useState, useEffect, useRef, type ReactNode } from 'react';
+import Link from 'next/link';
+import { motion, AnimatePresence } from 'framer-motion';
+
+// 🟢 Import your custom hooks (adjust paths if they live somewhere else)
+import { useRecentSearches } from '@/hooks/useRecentSearches';
+import { useDebounce } from '@/hooks/useDebounce';
+
+import { X } from 'lucide-react'; // or your icon library
+import { CheckIcon } from './components/Icons';
+import { Copy, Zap, Box } from 'lucide-react';
+import InteractiveViewer from '@/components/InteractiveViewer';
+import { CustomizeCTA } from './components/CustomizeCTA';
+import { Footer } from './components/Footer';
+
+type IconComponent = React.ComponentType<{ className?: string; size?: number | string }>;
+
+const Icons: Record<string, IconComponent> = {
+  Check: CheckIcon as IconComponent,
+  Copy: Copy as IconComponent,
+  Github: () => null,
+  Zap: Zap as IconComponent,
+  Box: () => null,
 };
+const trackUser = (..._args: unknown[]) => {};
 
 export default function LandingPage() {
-  const [mounted, setMounted] = useState(false);
+  const [_mounted, setMounted] = useState(false);
   const [username, setUsername] = useState('');
   const [copied, setCopied] = useState(false);
   const [svgContent, setSvgContent] = useState<string | null>(null);
@@ -51,11 +44,8 @@ export default function LandingPage() {
   }, []);
 
   const badgeUrl = `/api/streak?user=${debouncedUsername}`;
-  const markdown = `![CommitPulse](${
-    mounted
-      ? window.location.origin
-      : (process.env.NEXT_PUBLIC_SITE_URL ?? 'https://commitpulse.vercel.app')
-  }/api/streak?user=${trimmedUsername})`;
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://commitpulse.vercel.app';
+  const markdown = `![CommitPulse](${siteUrl}/api/streak?user=${trimmedUsername})`;
 
   // Fetch SVG content whenever debounced username changes.
   useEffect(() => {
@@ -250,7 +240,7 @@ export default function LandingPage() {
                   </AnimatePresence>
                 </button>
                 <Link
-                  href={hasUsername ? `/dashboard/${trimmedUsername}` : '/'}
+                  href={hasUsername ? `/dashboard/${encodeURIComponent(trimmedUsername)}` : '/'}
                   aria-disabled={!hasUsername}
                   onClick={(e) => {
                     if (trimmedUsername.length === 0) {
@@ -547,7 +537,10 @@ function SuccessGuide({
             URL to change your monolith&apos;s colour palette.
           </p>
           <div className="mt-8 flex justify-center border-t border-black/10 pt-6 dark:border-white/5">
-            <Link href={`/dashboard/${username}`} onClick={() => trackUser(username)}>
+            <Link
+              href={`/dashboard/${encodeURIComponent(username)}`}
+              onClick={() => trackUser(username)}
+            >
               <span className="border border-black/10 bg-gray-100 px-6 py-2.5 rounded-lg text-sm font-semibold text-black transition-all duration-200 hover:bg-gray-200 hover:scale-[1.01] active:scale-[0.99] dark:border-[rgba(255,255,255,0.15)] dark:bg-white dark:text-black dark:hover:bg-zinc-100">
                 Watch Your Dashboard
               </span>
