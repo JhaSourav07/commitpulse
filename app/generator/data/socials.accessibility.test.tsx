@@ -50,11 +50,11 @@ describe('SocialsSection Accessibility Standards & Screen Reader Compliance', ()
     expect(searchInput).toHaveFocus();
   });
 
-  it('Case 2: exposes navigation tabs as accessible buttons', () => {
+  it('Case 2: exposes navigation tabs as accessible tab controls', () => {
     render(<SocialsSection {...defaultProps} />);
 
     expect(
-      screen.getByRole('button', {
+      screen.getByRole('tab', {
         name: /pick platforms/i,
       })
     ).toBeInTheDocument();
@@ -100,7 +100,7 @@ describe('SocialsSection Accessibility Standards & Screen Reader Compliance', ()
     render(<SocialsSection {...defaultProps} />);
 
     const linksTab = screen
-      .getAllByRole('button')
+      .getAllByRole('tab')
       .find((btn) => btn.textContent?.includes('Add Links'));
 
     expect(linksTab).toBeDefined();

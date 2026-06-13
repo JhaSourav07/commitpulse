@@ -4,7 +4,8 @@ import userEvent from '@testing-library/user-event';
 import ProfileCard from './ProfileCard';
 
 vi.mock('next/image', () => ({
-  default: (props: React.ImgHTMLAttributes<HTMLImageElement>) => <img {...props} />,
+  // eslint-disable-next-line @next/next/no-img-element
+  default: (props: React.ImgHTMLAttributes<HTMLImageElement>) => <img alt="" {...props} />,
 }));
 
 vi.mock('./ShareSheet', () => ({

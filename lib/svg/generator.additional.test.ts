@@ -1,4 +1,4 @@
-// lib/svg/generator.test.new.ts
+// lib/svg/generator.additional.test.ts
 // New tests covering gaps in existing generator.test.ts coverage.
 // Covers: generateVersusSVG, neon theme bg, accent override, border param, org/repo title entity.
 
@@ -760,5 +760,126 @@ describe('[Refactor] renderGhostTowers — shared helper consistency', () => {
     expect(notFoundSvg).toContain('</svg>');
     expect(rateLimitSvg).toContain('<svg');
     expect(rateLimitSvg).toContain('</svg>');
+  });
+});
+
+// ─── generateAutoThemeVersusSVG refactor — renderTowers consistency ──────────
+// Verifies that after replacing the manual tower loops with renderTowers(),
+// the auto-theme versus SVG produces the same CSS class output as other
+// auto-theme paths. Any regression here means the refactor broke something.
+
+describe('[Refactor] generateAutoThemeVersusSVG — uses renderTowers consistency', () => {
+  const stats1: StreakStats = {
+    currentStreak: 5,
+    longestStreak: 10,
+    totalContributions: 120,
+    todayDate: '2024-06-12',
+  };
+
+  const stats2: StreakStats = {
+    currentStreak: 3,
+    longestStreak: 8,
+    totalContributions: 80,
+    todayDate: '2024-06-12',
+  };
+
+  const calendar1: ContributionCalendar = {
+    totalContributions: 120,
+    weeks: [
+      {
+        contributionDays: [
+          { contributionCount: 0, date: '2024-06-09' },
+          { contributionCount: 5, date: '2024-06-10' },
+          { contributionCount: 11, date: '2024-06-11' },
+          { contributionCount: 6, date: '2024-06-12' },
+        ],
+      },
+    ],
+  };
+
+  const calendar2: ContributionCalendar = {
+    totalContributions: 80,
+    weeks: [
+      {
+        contributionDays: [
+          { contributionCount: 0, date: '2024-06-09' },
+          { contributionCount: 3, date: '2024-06-10' },
+          { contributionCount: 12, date: '2024-06-11' },
+          { contributionCount: 2, date: '2024-06-12' },
+        ],
+      },
+    ],
+  };
+
+  const autoVersusParams: BadgeParams = {
+    user: 'chetan',
+    versus: 'rival',
+    bg: hexColor('0d1117'),
+    text: hexColor('ffffff'),
+    accent: hexColor('58a6ff'),
+    speed: '8s',
+    scale: 'linear',
+    autoTheme: true,
+  };
+
+  it('auto-theme versus SVG contains cp-accent-fill class for active towers', () => {
+    const svg = generateVersusSVG(stats1, stats2, autoVersusParams, calendar1, calendar2);
+    expect(svg).toContain('class="cp-accent-fill"');
+  });
+
+  it('auto-theme versus SVG contains cp-text-fill class for ghost towers', () => {
+    const ghostCalendar: ContributionCalendar = {
+      totalContributions: 0,
+      weeks: [{ contributionDays: [{ contributionCount: 0, date: '2024-06-12' }] }],
+    };
+    const svg = generateVersusSVG(stats1, stats2, autoVersusParams, ghostCalendar, ghostCalendar);
+    expect(svg).toContain('class="cp-text-fill"');
+  });
+
+  it('auto-theme versus SVG contains cp-bg CSS variable (from auto-theme style block)', () => {
+    const svg = generateVersusSVG(stats1, stats2, autoVersusParams, calendar1, calendar2);
+    expect(svg).toContain('--cp-bg');
+    expect(svg).toContain('--cp-accent');
+    expect(svg).toContain('prefers-color-scheme: dark');
+  });
+
+  it('auto-theme versus SVG has heat particles for high-contribution days', () => {
+    const svg = generateVersusSVG(stats1, stats2, autoVersusParams, calendar1, calendar2);
+    expect(svg).toContain('class="heat-particles"');
+  });
+
+  it('auto-theme versus SVG has today pulse animation', () => {
+    const svg = generateVersusSVG(stats1, stats2, autoVersusParams, calendar1, calendar2);
+    expect(svg).toContain('attributeName="opacity" values="1;0.4;1"');
+  });
+
+  it('auto-theme versus SVG has staggered tower animation delays', () => {
+    const svg = generateVersusSVG(stats1, stats2, autoVersusParams, calendar1, calendar2);
+    expect(svg).toMatch(/style="animation-delay: \d+\.\d+s;"/);
+  });
+
+  it('auto-theme versus and static versus produce same structural tower count', () => {
+    const staticParams: BadgeParams = {
+      ...autoVersusParams,
+      autoTheme: false,
+    };
+    const autoSvg = generateVersusSVG(stats1, stats2, autoVersusParams, calendar1, calendar2);
+    const staticSvg = generateVersusSVG(stats1, stats2, staticParams, calendar1, calendar2);
+
+    // Both should have the same number of tower groups
+    const autoTowers = [...autoSvg.matchAll(/class="cp-tower"/g)].length;
+    const staticTowers = [...staticSvg.matchAll(/class="cp-tower"/g)].length;
+    expect(autoTowers).toBe(staticTowers);
+  });
+
+  it('auto-theme versus does not contain inline hex fill colors on tower paths', () => {
+    const svg = generateVersusSVG(stats1, stats2, autoVersusParams, calendar1, calendar2);
+
+    // Auto-theme uses CSS classes — tower paths must NOT have fill="#hexvalue"
+    // (scan-line and other elements may have fill attrs, but not tower paths)
+    const towerSection = svg.match(/class="cp-tower"[\s\S]*?<\/g>/g) || [];
+    for (const tower of towerSection) {
+      expect(tower).not.toMatch(/fill="#[0-9a-fA-F]{6}"/);
+    }
   });
 });

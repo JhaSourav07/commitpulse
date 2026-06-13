@@ -14,9 +14,9 @@ describe('SocialsSection Accessibility', () => {
   it('renders accessible tab buttons', () => {
     render(<SocialsSection {...makeProps()} />);
 
-    expect(screen.getByRole('button', { name: /① pick platforms/i })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /① pick platforms/i })).toBeInTheDocument();
 
-    expect(screen.getByRole('button', { name: /② add links/i })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /② add links/i })).toBeInTheDocument();
   });
 
   it('allows keyboard navigation through primary controls', async () => {
@@ -28,11 +28,11 @@ describe('SocialsSection Accessibility', () => {
       name: /socials/i,
     });
 
-    const pickPlatforms = screen.getByRole('button', {
+    const pickPlatforms = screen.getByRole('tab', {
       name: /① pick platforms/i,
     });
 
-    const addLinks = screen.getByRole('button', {
+    const addLinks = screen.getByRole('tab', {
       name: /② add links/i,
     });
 

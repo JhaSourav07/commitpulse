@@ -67,7 +67,47 @@ export function toDimensionValue(val?: string): number | undefined {
 }
 
 export function validateGitHubUsername(username: string): boolean {
+  if (!username || typeof username !== 'string') return false;
   return /^[a-z\d](?:[a-z\d]|-(?=[a-z\d])){0,38}$/i.test(username);
+}
+
+/**
+ * Strict ISO date validation for date-only inputs (YYYY-MM-DD).
+ * Validates that the date is a real calendar date by checking:
+ * 1. Format matches YYYY-MM-DD
+ * 2. Year, month, day are valid ranges
+ * 3. Date round-trips correctly (serialization matches input)
+ *
+ * For non-YYYY-MM-DD formats, falls back to Date.parse validation.
+ */
+export function validateStrictISODate(dateStr: string): boolean {
+  if (!dateStr || typeof dateStr !== 'string') return false;
+  // Check if it matches YYYY-MM-DD format
+  const match = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+
+  if (match) {
+    // Strict validation for YYYY-MM-DD format
+    const [, yearStr, monthStr, dayStr] = match;
+    const year = parseInt(yearStr, 10);
+    const month = parseInt(monthStr, 10);
+    const day = parseInt(dayStr, 10);
+
+    // Basic range checks
+    if (month < 1 || month > 12) return false;
+    if (day < 1 || day > 31) return false;
+    if (year < 2008) return false;
+
+    // Create UTC date and verify it round-trips
+    const date = new Date(Date.UTC(year, month - 1, day));
+    const serialized = date.toISOString().split('T')[0];
+
+    // Check that the serialized date matches the input
+    // This catches invalid dates like Feb 31, Apr 31, etc.
+    return serialized === dateStr;
+  }
+
+  // For non-YYYY-MM-DD formats, fall back to Date.parse validation
+  return !isNaN(Date.parse(dateStr));
 }
 
 function dimensionParam(name: string, min: number, max: number) {
@@ -293,7 +333,7 @@ const baseStreakParamsSchema = z.object({
     .refine(
       (val) => {
         if (!val) return true;
-        return !isNaN(Date.parse(val));
+        return validateStrictISODate(val);
       },
       { message: 'Invalid "from" date format. Use ISO 8601 (e.g. 2023-01-01).' }
     ),
@@ -303,7 +343,7 @@ const baseStreakParamsSchema = z.object({
     .refine(
       (val) => {
         if (!val) return true;
-        return !isNaN(Date.parse(val));
+        return validateStrictISODate(val);
       },
       { message: 'Invalid "to" date format. Use ISO 8601 (e.g. 2023-12-31).' }
     ),
@@ -313,7 +353,7 @@ const baseStreakParamsSchema = z.object({
     .refine(
       (val) => {
         if (!val) return true;
-        return !isNaN(Date.parse(val));
+        return validateStrictISODate(val);
       },
       { message: 'Invalid "date" format. Use ISO 8601.' }
     ),
@@ -336,14 +376,12 @@ const baseStreakParamsSchema = z.object({
   grace: z
     .string()
     .optional()
-    .refine(
-      (val) => {
-        if (val === undefined || val === '') return true;
-        return /^\d+$/.test(val) && Number(val) >= 0 && Number(val) <= 7;
-      },
-      { message: 'grace must be an integer between 0 and 7' }
-    )
-    .transform((val) => (val === undefined || val === '' ? 1 : Number(val)))
+    .transform((val) => {
+      if (val === undefined || val === '') return 1;
+      const n = Number(val);
+      if (isNaN(n) || !Number.isInteger(n)) return 1;
+      return Math.min(7, Math.max(0, n));
+    })
     .default(1),
 
   mode: z.enum(['commits', 'loc']).catch('commits').default('commits'),
@@ -601,6 +639,7 @@ export const wrappedParamsSchema = z.object({
   hide_background: z.string().optional().transform(toBooleanFlag), // ✅ Fixed: was toRefreshFlag
   width: dimensionParam('width', 100, 1200),
   height: dimensionParam('height', 80, 800),
+  tz: timeZoneParam,
 });
 
 export const notifyPostSchema = z.object({

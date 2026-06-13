@@ -1,7 +1,6 @@
-﻿import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
   fetchGitHubContributions,
-  fetchWithRetry,
   fetchUserProfile,
   fetchUserRepos,
   fetchContributedRepos,
@@ -1546,6 +1545,40 @@ describe('GitHub API cache behavior', () => {
     expect(results.map((result) => result.calendar.repoContributions)).toEqual([42, 42, 42]);
   });
 
+  it('does not coalesce requests when options.signal is provided', async () => {
+    const resolvers: ((response: Response) => void)[] = [];
+    vi.mocked(fetch).mockImplementation(
+      () =>
+        new Promise<Response>((resolve) => {
+          resolvers.push(resolve);
+        })
+    );
+
+    const controller = new AbortController();
+    const requests = Promise.all([
+      fetchGitHubContributions('octocat'),
+      fetchGitHubContributions('octocat', { signal: controller.signal }),
+    ]);
+
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
+
+    const responseFn = () =>
+      mockResponse({
+        data: {
+          user: {
+            contributionsCollection: {
+              contributionCalendar: mockCalendar,
+              commitContributionsByRepository: [],
+            },
+          },
+        },
+      });
+    resolvers.forEach((resolve) => resolve(responseFn()));
+
+    const results = await requests;
+    expect(results.map((result) => result.calendar.repoContributions)).toEqual([42, 42]);
+  });
+
   it('refresh bypass: bypassCache=true forces a fresh fetch', async () => {
     vi.mocked(fetch).mockImplementation(async () =>
       mockResponse({
@@ -2097,6 +2130,57 @@ describe('getOrgDashboardData', () => {
     vi.restoreAllMocks();
   });
 
+  const getFetchUrl = (input: RequestInfo | URL | undefined): string => {
+    if (!input) return '';
+    if (typeof input === 'string') return input;
+    if (typeof input === 'object') {
+      if ('url' in input) return input.url;
+      return input.toString();
+    }
+    return String(input);
+  };
+
+  const setupOrgMocks = (orgName: string, membersCount: number) => {
+    const mockMembers = Array.from({ length: membersCount }, (_, i) => ({ login: `member${i}` }));
+
+    vi.mocked(fetch).mockImplementation(async (url) => {
+      const urlStr = getFetchUrl(url);
+      if (urlStr.includes(`/orgs/${orgName}/members`)) {
+        if (urlStr.includes('page=2')) {
+          return mockResponse(mockMembers.slice(100));
+        }
+        return mockResponse(mockMembers.slice(0, 100));
+      }
+      if (urlStr.includes(`/users/${orgName}/repos`)) return mockResponse([]);
+      if (urlStr.includes(`/users/${orgName}`)) {
+        return mockResponse({
+          login: orgName,
+          type: 'Organization',
+          public_repos: 5,
+          followers: 10,
+          created_at: '2020-01-01T00:00:00Z',
+        });
+      }
+      return mockResponse({
+        data: {
+          user: {
+            contributionsCollection: {
+              contributionCalendar: mockCalendar,
+              commitContributionsByRepository: [],
+            },
+          },
+        },
+      });
+    });
+  };
+
+  const countGraphqlCalls = (): number => {
+    return vi.mocked(fetch).mock.calls.filter((call) => {
+      const urlStr = getFetchUrl(call[0]);
+      return urlStr.includes('graphql');
+    }).length;
+  };
+
   it('aggregates org data correctly', async () => {
     vi.mocked(fetch).mockImplementation(async (url) => {
       const urlStr = typeof url === 'string' ? url : (url?.toString() ?? '');
@@ -2144,6 +2228,33 @@ describe('getOrgDashboardData', () => {
     await expect(getOrgDashboardData('notanorg')).rejects.toThrow(
       'This endpoint is strictly for organizations.'
     );
+  });
+
+  it('correctly processes and aggregates 20 members without truncation', async () => {
+    setupOrgMocks('org20', 20);
+
+    const result = await getOrgDashboardData('org20');
+    expect(result.profile.stats.following).toBe(20);
+    expect(result.isPartial).toBe(false);
+    expect(countGraphqlCalls()).toBe(20);
+  });
+
+  it('correctly processes and aggregates 50 members without truncation', async () => {
+    setupOrgMocks('org50', 50);
+
+    const result = await getOrgDashboardData('org50');
+    expect(result.profile.stats.following).toBe(50);
+    expect(result.isPartial).toBe(false);
+    expect(countGraphqlCalls()).toBe(50);
+  });
+
+  it('correctly caps member processing at 100 for an organization with 120 members and flags isPartial as true', async () => {
+    setupOrgMocks('org120', 120);
+
+    const result = await getOrgDashboardData('org120');
+    expect(result.profile.stats.following).toBe(120);
+    expect(result.isPartial).toBe(true);
+    expect(countGraphqlCalls()).toBe(100);
   });
 });
 
@@ -2237,6 +2348,37 @@ describe('getWrappedData', () => {
 
     expect(body.variables.from).toBe('2024-01-01T00:00:00Z');
     expect(body.variables.to).toBe('2024-12-31T23:59:59Z');
+  });
+
+  it('TestCase: aligns query bounds to user timezone offset (Issue #5259)', async () => {
+    vi.mocked(fetch).mockImplementation(async (url) => {
+      const urlStr = typeof url === 'string' ? url : (url?.toString() ?? '');
+      if (urlStr.includes('/repos')) {
+        return mockResponse([]);
+      }
+      return mockResponse({
+        data: {
+          user: {
+            contributionsCollection: {
+              contributionCalendar: mockCalendar,
+            },
+          },
+        },
+      });
+    });
+
+    // For Pacific/Honolulu (UTC-10), local 2024-01-01T00:00:00 is UTC 2024-01-01T10:00:00Z
+    // and local 2024-12-31T23:59:59 is UTC 2025-01-01T09:59:59Z
+    await getWrappedData('octocat', '2024', undefined, 'Pacific/Honolulu');
+
+    const graphQLCall = vi
+      .mocked(fetch)
+      .mock.calls.find(([url]) => url.toString().includes('/graphql'));
+
+    const body = JSON.parse(graphQLCall?.[1]?.body as string);
+
+    expect(body.variables.from).toBe('2024-01-01T10:00:00Z');
+    expect(body.variables.to).toBe('2025-01-01T09:59:59Z');
   });
 
   it('falls back to the current-year date range when wrapped year is missing or partial', async () => {

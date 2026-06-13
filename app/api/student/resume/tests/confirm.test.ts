@@ -22,11 +22,18 @@ vi.mock('@/lib/rate-limit', () => {
   };
 });
 
+vi.mock('@/lib/github-owner-verification', () => ({
+  verifyGitHubOwner: vi.fn().mockResolvedValue({ verified: true }),
+}));
+
+import { verifyGitHubOwner } from '@/lib/github-owner-verification';
+
 function makeRequest(body: Record<string, unknown>): Request {
   return new Request('http://localhost/api/student/resume/confirm', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      Authorization: 'Bearer test-owner-token',
     },
     body: JSON.stringify(body),
   });
@@ -35,6 +42,7 @@ function makeRequest(body: Record<string, unknown>): Request {
 describe('POST /api/student/resume/confirm', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(verifyGitHubOwner).mockResolvedValue({ verified: true });
   });
 
   afterEach(() => {
@@ -113,6 +121,28 @@ describe('POST /api/student/resume/confirm', () => {
 
     expect(response.status).toBe(200);
     expect(body.success).toBe(true);
+  });
+
+  it('blocks profile takeover when the authenticated GitHub account does not match', async () => {
+    process.env.MONGODB_URI = 'mongodb://localhost:27017/test';
+    vi.mocked(verifyGitHubOwner).mockResolvedValueOnce({
+      verified: false,
+      status: 403,
+      message: 'The authenticated GitHub account does not own this username.',
+    });
+
+    const response = await POST(
+      makeRequest({
+        githubUsername: 'victim',
+        data: {
+          name: 'Attacker',
+          email: 'attacker@example.com',
+        },
+      })
+    );
+
+    expect(response.status).toBe(403);
+    expect(StudentProfile.findOneAndUpdate).not.toHaveBeenCalled();
   });
 
   it('returns 500 when database update fails', async () => {

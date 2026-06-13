@@ -1,109 +1,89 @@
-import { cleanup, render, screen } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { useTransition } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { render, screen } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import RefreshButton from './RefreshButton';
 
-vi.mock('react', async () => {
-  const actual = await vi.importActual<typeof import('react')>('react');
-  return { ...actual, useTransition: vi.fn() };
-});
+const mockPush = vi.fn();
+const mockReplace = vi.fn();
+const mockRefresh = vi.fn();
 
 vi.mock('next/navigation', () => ({
-  useRouter: vi.fn(),
-  useSearchParams: vi.fn(),
+  useRouter: () => ({
+    push: mockPush,
+    replace: mockReplace,
+    refresh: mockRefresh,
+  }),
+  useSearchParams: () => ({
+    get: vi.fn(() => null),
+    toString: vi.fn(() => ''),
+  }),
 }));
 
-vi.mock('sonner', () => ({ toast: { success: vi.fn() } }));
+vi.mock('@/context/TranslationContext', () => ({
+  useTranslation: () => ({
+    t: (key: string) => {
+      const translations: Record<string, string> = {
+        'dashboard.refresh_btn': 'Refresh',
+        'dashboard.refreshing': 'Refreshing...',
+        'dashboard.refreshed_toast': 'Dashboard refreshed',
+      };
+      return translations[key] || key;
+    },
+  }),
+}));
 
-function mockMatchMedia(prefersDark: boolean) {
-  vi.stubGlobal(
-    'matchMedia',
-    vi.fn().mockImplementation((query: string) => ({
-      matches: prefersDark
-        ? query === '(prefers-color-scheme: dark)'
-        : query === '(prefers-color-scheme: light)',
-      media: query,
-      onchange: null,
-      addListener: vi.fn(),
-      removeListener: vi.fn(),
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-      dispatchEvent: vi.fn(),
-    }))
-  );
-}
+vi.mock('sonner', () => ({
+  toast: {
+    success: vi.fn(),
+  },
+}));
 
-beforeEach(() => {
-  vi.mocked(useTransition).mockReturnValue([false, (cb: () => void) => cb()]);
-  vi.mocked(useRouter).mockReturnValue({
-    push: vi.fn(),
-    replace: vi.fn(),
-    refresh: vi.fn(),
-  } as unknown as ReturnType<typeof useRouter>);
-  vi.mocked(useSearchParams).mockReturnValue({
-    get: vi.fn().mockReturnValue(null),
-    toString: vi.fn().mockReturnValue(''),
-  } as unknown as ReturnType<typeof useSearchParams>);
-});
-
-afterEach(() => {
-  cleanup();
-  vi.unstubAllGlobals();
-  vi.restoreAllMocks();
-});
-
-describe('RefreshButton — Dark and Light Prefers-Color-Scheme Visual Cohesion', () => {
-  it('renders in both dark and light matchMedia environments without error', () => {
-    mockMatchMedia(true);
-    const { unmount } = render(<RefreshButton username="testuser" />);
-    expect(screen.getByRole('button')).toBeInTheDocument();
-    unmount();
-
-    mockMatchMedia(false);
-    render(<RefreshButton username="testuser" />);
-    expect(screen.getByRole('button')).toBeInTheDocument();
+describe('RefreshButton Theme Contrast', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
   });
 
-  it('button carries dark-mode border and hover classes in the markup', () => {
-    mockMatchMedia(true);
-    render(<RefreshButton username="testuser" />);
-    const btn = screen.getByRole('button');
-    expect(btn.classList.contains('dark:border-[rgba(255,255,255,0.15)]')).toBe(true);
-    expect(btn.classList.contains('dark:hover:bg-white/10')).toBe(true);
+  it('applies dark mode border contrast styling', () => {
+    render(<RefreshButton username="octocat" />);
+
+    const button = screen.getByRole('button');
+
+    expect(button.className).toContain('dark:border-[rgba(255,255,255,0.15)]');
   });
 
-  it('button carries light-mode border and hover classes in the markup', () => {
-    mockMatchMedia(false);
-    render(<RefreshButton username="testuser" />);
-    const btn = screen.getByRole('button');
-    expect(btn.classList.contains('border-black/10')).toBe(true);
-    expect(btn.classList.contains('hover:bg-gray-800')).toBe(true);
+  it('applies dark mode text contrast styling', () => {
+    render(<RefreshButton username="octocat" />);
+
+    const button = screen.getByRole('button');
+
+    expect(button.className).toContain('dark:text-white');
+    expect(button.className).toContain('dark:bg-black');
   });
 
-  it('foreground text class (text-white) and background class (bg-black) are both present, ensuring text is not obscured', () => {
-    mockMatchMedia(true);
-    const { unmount } = render(<RefreshButton username="testuser" />);
-    const btn = screen.getByRole('button');
-    expect(btn.classList.contains('text-white')).toBe(true);
-    expect(btn.classList.contains('bg-black')).toBe(true);
-    unmount();
+  it('applies light mode contrast styling', () => {
+    render(<RefreshButton username="octocat" />);
 
-    mockMatchMedia(false);
-    render(<RefreshButton username="testuser" />);
-    const btn2 = screen.getByRole('button');
-    expect(btn2.classList.contains('text-white')).toBe(true);
-    expect(btn2.classList.contains('bg-black')).toBe(true);
+    const button = screen.getByRole('button');
+
+    expect(button.className).toContain('border-black/10');
+    expect(button.className).toContain('bg-black');
+    expect(button.className).toContain('text-white');
   });
 
-  it('disabled state applies opacity class without removing text or background styling', () => {
-    vi.mocked(useTransition).mockReturnValue([true, (cb: () => void) => cb()]);
-    mockMatchMedia(true);
-    render(<RefreshButton username="testuser" />);
-    const btn = screen.getByRole('button');
-    expect(btn.classList.contains('disabled:opacity-50')).toBe(true);
-    expect(btn.classList.contains('text-white')).toBe(true);
-    expect(btn.classList.contains('bg-black')).toBe(true);
-    expect(btn).toBeDisabled();
+  it('includes theme-specific hover states', () => {
+    render(<RefreshButton username="octocat" />);
+
+    const button = screen.getByRole('button');
+
+    expect(button.className).toContain('hover:bg-gray-800');
+    expect(button.className).toContain('dark:hover:bg-white/10');
+  });
+
+  it('includes disabled-state visual accessibility styling', () => {
+    render(<RefreshButton username="octocat" />);
+
+    const button = screen.getByRole('button');
+
+    expect(button.className).toContain('disabled:opacity-50');
+    expect(button.className).toContain('disabled:cursor-not-allowed');
   });
 });

@@ -1,4 +1,5 @@
 import { randomUUID } from 'crypto';
+import { brotliCompressSync, brotliDecompressSync } from 'zlib';
 
 /**
  * Represents a cached item with its expiration timestamp.
@@ -17,7 +18,7 @@ type CacheItem<T> = {
  * @typeParam T - Type of values stored in the cache.
  */
 export class TTLCache<T> {
-  private store = new Map<string, CacheItem<T>>();
+  private store = new Map<string, CacheItem<T | Buffer>>();
   private cleanupInterval: ReturnType<typeof setInterval> | null = null;
   private readonly maxSize?: number;
 
@@ -58,6 +59,44 @@ export class TTLCache<T> {
     }
   }
 
+  private compress(value: T): T | Buffer {
+    if (typeof value === 'string') {
+      if (value.length > 1024) {
+        try {
+          return brotliCompressSync(Buffer.from(value));
+        } catch {
+          return value;
+        }
+      }
+    } else if (value && typeof value === 'object') {
+      try {
+        const str = JSON.stringify(value);
+        if (str.length > 1024) {
+          return brotliCompressSync(Buffer.from(str));
+        }
+      } catch {
+        return value;
+      }
+    }
+    return value;
+  }
+
+  private decompress(stored: T | Buffer): T {
+    if (Buffer.isBuffer(stored)) {
+      try {
+        const decompressed = brotliDecompressSync(stored).toString();
+        try {
+          return JSON.parse(decompressed) as T;
+        } catch {
+          return decompressed as unknown as T;
+        }
+      } catch {
+        return stored as unknown as T;
+      }
+    }
+    return stored;
+  }
+
   /**
    * Retrieves a value from the cache.
    *
@@ -80,7 +119,7 @@ export class TTLCache<T> {
       return null;
     }
 
-    return hit.value;
+    return this.decompress(hit.value);
   }
 
   /**
@@ -159,7 +198,7 @@ export class TTLCache<T> {
       return false;
     }
 
-    hit.value = value;
+    hit.value = this.compress(value);
     return true;
   }
 
@@ -185,7 +224,7 @@ export class TTLCache<T> {
     }
 
     this.store.delete(key);
-    this.store.set(key, { value, expiresAt: Date.now() + ttlMs });
+    this.store.set(key, { value: this.compress(value), expiresAt: Date.now() + ttlMs });
   }
 
   /**

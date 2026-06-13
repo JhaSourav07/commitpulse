@@ -116,14 +116,15 @@ const mockPeriod: DashboardPeriod = {
 
 describe('DashboardClient - Massive Data Sets and Extreme High Bounds Scaling', () => {
   // Test Case 1: Performance Execution Time Boundaries
-  it.skip('should render a massive dataset within acceptable performance limits', () => {
+  it('should render a massive dataset within acceptable performance limits', () => {
     const massiveData = generateMassiveMockData(15000);
 
-    expect(() => {
-      render(<DashboardClient initialData={massiveData} username="testuser" period={mockPeriod} />);
-    }).not.toThrow();
+    const startTime = performance.now();
+    render(<DashboardClient initialData={massiveData} username="testuser" period={mockPeriod} />);
+    const endTime = performance.now();
 
-    expect(screen.getByTestId('mock-activity-landscape')).toBeInTheDocument();
+    const executionTime = endTime - startTime;
+    expect(executionTime).toBeLessThan(1000);
   });
 
   // Test Case 2: Extreme High Bounds Value Handling (No Layout Overflow)

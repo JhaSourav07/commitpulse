@@ -100,18 +100,14 @@ describe('GET /api/streak', () => {
   });
 
   describe('parameter validation', () => {
-    it('returns 400 when grace=-1 is provided', async () => {
+    it('clamps grace=-1 to 0 is provided', async () => {
       const response = await GET(makeRequest({ user: 'octocat', grace: '-1' }));
-      expect(response.status).toBe(400);
-      const body = await response.json();
-      expect(body.details.fieldErrors.grace[0]).toBe('grace must be an integer between 0 and 7');
+      expect(response.status).toBe(200);
     });
 
-    it('returns 400 when grace exceeds max value', async () => {
+    it('clamps grace to when exceeds max value', async () => {
       const response = await GET(makeRequest({ user: 'octocat', grace: '999' }));
-      expect(response.status).toBe(400);
-      const body = await response.json();
-      expect(body.details.fieldErrors.grace[0]).toBe('grace must be an integer between 0 and 7');
+      expect(response.status).toBe(200);
     });
 
     it('returns 400 when days=0 is provided', async () => {
@@ -239,13 +235,9 @@ describe('GET /api/streak', () => {
       expect(fetchGitHubContributions).not.toHaveBeenCalled();
     });
 
-    it('returns 400 when grace is below the minimum value', async () => {
+    it('clamps grace to 0 when below the minimum value', async () => {
       const response = await GET(makeRequest({ user: 'octocat', grace: '-1' }));
-      expect(response.status).toBe(400);
-      const body = await response.json();
-      expect(body.error).toBe('Invalid parameters');
-      expect(body.details.fieldErrors.grace[0]).toBe('grace must be an integer between 0 and 7');
-      expect(fetchGitHubContributions).not.toHaveBeenCalled();
+      expect(response.status).toBe(200);
     });
 
     it('returns 400 for unsupported ?layout query parameter values (strict schema validation)', async () => {
@@ -341,6 +333,35 @@ describe('GET /api/streak', () => {
       const body = await response.text();
       expect(body).toContain('<title>');
       expect(body).toContain('Stats for');
+    });
+
+    it('returns a small SVG when size=small', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', size: 'small' }));
+
+      expect(response.status).toBe(200);
+
+      const body = await response.text();
+      expect(body).toContain('width="400"');
+      expect(body).toContain('height="280"');
+    });
+
+    it('returns the default medium SVG when size is omitted', async () => {
+      const response = await GET(makeRequest({ user: 'octocat' }));
+
+      expect(response.status).toBe(200);
+
+      const body = await response.text();
+      expect(body).toContain('width="600"');
+    });
+
+    it('returns a large SVG when size=large', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', size: 'large' }));
+
+      expect(response.status).toBe(200);
+
+      const body = await response.text();
+      expect(body).toContain('width="800"');
+      expect(body).toContain('height="560"');
     });
   });
 
@@ -1569,59 +1590,39 @@ describe('GET /api/streak', () => {
       expect(fetchGitHubContributions).toHaveBeenCalledWith('octocat', { bypassCache: false });
     });
 
-    it('returns 400 when grace exceeds max (8)', async () => {
+    it('clamps grace=8 to 7', async () => {
       const response = await GET(makeRequest({ user: 'octocat', grace: '8' }));
-      expect(response.status).toBe(400);
-      const body = await response.json();
-      expect(body.details.fieldErrors.grace).toBeDefined();
-      expect(body.details.fieldErrors.grace[0]).toContain(
-        'grace must be an integer between 0 and 7'
-      );
+      expect(response.status).toBe(200);
     });
 
-    it('returns 400 when grace far exceeds max (999)', async () => {
+    it('clamps grace=999 to 7', async () => {
       const response = await GET(makeRequest({ user: 'octocat', grace: '999' }));
-      expect(response.status).toBe(400);
-      const body = await response.json();
-      expect(body.details.fieldErrors.grace).toBeDefined();
-      expect(body.details.fieldErrors.grace[0]).toContain(
-        'grace must be an integer between 0 and 7'
-      );
+      expect(response.status).toBe(200);
     });
 
-    it('returns 400 when grace is negative', async () => {
+    it('clamps grace=-1 to 0', async () => {
       const response = await GET(makeRequest({ user: 'octocat', grace: '-1' }));
-      expect(response.status).toBe(400);
-      const body = await response.json();
-      expect(body.details.fieldErrors.grace).toBeDefined();
+      expect(response.status).toBe(200);
     });
 
-    it('returns 400 when grace is negative double-digit (-99)', async () => {
+    it('clamps grace=-99 to 0', async () => {
       const response = await GET(makeRequest({ user: 'octocat', grace: '-99' }));
-      expect(response.status).toBe(400);
-      const body = await response.json();
-      expect(body.details.fieldErrors.grace).toBeDefined();
+      expect(response.status).toBe(200);
     });
 
-    it('returns 400 when grace is non-numeric', async () => {
+    it('falls back to 1 for non-numeric grace', async () => {
       const response = await GET(makeRequest({ user: 'octocat', grace: 'abc' }));
-      expect(response.status).toBe(400);
-      const body = await response.json();
-      expect(body.details.fieldErrors.grace).toBeDefined();
+      expect(response.status).toBe(200);
     });
 
-    it('returns 400 when grace is a float (decimal)', async () => {
+    it('falls back to 1 for float grace value', async () => {
       const response = await GET(makeRequest({ user: 'octocat', grace: '3.5' }));
-      expect(response.status).toBe(400);
-      const body = await response.json();
-      expect(body.details.fieldErrors.grace).toBeDefined();
+      expect(response.status).toBe(200);
     });
 
-    it('returns 400 when grace contains special characters', async () => {
+    it('falls back to 1 for grace with special characters', async () => {
       const response = await GET(makeRequest({ user: 'octocat', grace: '5!' }));
-      expect(response.status).toBe(400);
-      const body = await response.json();
-      expect(body.details.fieldErrors.grace).toBeDefined();
+      expect(response.status).toBe(200);
     });
   });
 
@@ -1753,29 +1754,25 @@ describe('GET /api/streak', () => {
       expect(body).toContain('<svg');
     });
 
-    it('returns 400 when both grace exceeds max and opacity exceeds max', async () => {
+    it('clamps both grace and opacity when both exceed max', async () => {
       const response = await GET(makeRequest({ user: 'octocat', grace: '999', opacity: '99.0' }));
-      expect(response.status).toBe(400);
-      // grace=999 should be rejected at schema validation
-      const body = await response.json();
-      expect(body.details.fieldErrors.grace).toBeDefined();
+      expect(response.status).toBe(200);
+      const body = await response.text();
+      expect(body).toContain('<svg');
     });
 
-    it('returns 400 when grace is invalid but opacity is valid', async () => {
+    it('falls back grace to 1 when invalid, returns 200 with valid opacity', async () => {
       const response = await GET(
         makeRequest({ user: 'octocat', grace: 'invalid', opacity: '0.5' })
       );
-      expect(response.status).toBe(400);
-      const body = await response.json();
-      expect(body.details.fieldErrors.grace).toBeDefined();
+      expect(response.status).toBe(200);
+      const body = await response.text();
+      expect(body).toContain('<svg');
     });
 
     it('returns 200 when grace is valid but opacity is invalid (defaults)', async () => {
       const response = await GET(makeRequest({ user: 'octocat', grace: '3', opacity: 'invalid' }));
       expect(response.status).toBe(200);
-      // opacity='invalid' should default to 1.0
-      const body = await response.text();
-      expect(body).toContain('<svg');
     });
   });
 

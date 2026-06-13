@@ -79,13 +79,21 @@ export function SocialsSection({
         badge={safeSelected.length}
         defaultOpen
       >
-        <div className="flex rounded-xl bg-gray-100 dark:bg-white/5 p-1 mb-4 gap-1">
+        <div
+          role="tablist"
+          aria-label="Socials settings tabs"
+          className="flex rounded-xl bg-gray-100 dark:bg-white/5 p-1 mb-4 gap-1"
+        >
           {(['pick', 'links'] as const).map((tab) => (
             <button
               key={tab}
               type="button"
+              role="tab"
+              id={`tab-social-${tab}`}
+              aria-selected={activeTab === tab}
+              aria-controls={`panel-social-${tab}`}
               onClick={() => setActiveTab(tab)}
-              className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-colors capitalize ${
+              className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-colors capitalize focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 ${
                 activeTab === tab
                   ? 'bg-white dark:bg-white/10 text-gray-900 dark:text-white shadow-sm'
                   : 'text-gray-500 dark:text-white/40 hover:text-gray-700 dark:hover:text-white/60'
@@ -99,7 +107,7 @@ export function SocialsSection({
         </div>
 
         {activeTab === 'pick' && (
-          <>
+          <div role="tabpanel" id="panel-social-pick" aria-labelledby="tab-social-pick">
             <div className="relative mb-3">
               <Search
                 size={14}
@@ -248,11 +256,16 @@ export function SocialsSection({
                 </div>
               )}
             </div>
-          </>
+          </div>
         )}
 
         {activeTab === 'links' && (
-          <div className="space-y-3">
+          <div
+            role="tabpanel"
+            id="panel-social-links"
+            aria-labelledby="tab-social-links"
+            className="space-y-3"
+          >
             {safeSelected.length === 0 ? (
               <div className="py-8 text-center">
                 <p className="text-sm text-gray-400 dark:text-white/30 mb-3">
@@ -290,9 +303,12 @@ export function SocialsSection({
                             (e.currentTarget as HTMLImageElement).style.display = 'none';
                           }}
                         />
-                        <span className="text-xs font-semibold text-gray-700 dark:text-white/70">
+                        <label
+                          htmlFor={`social-link-${id}`}
+                          className="text-xs font-semibold text-gray-700 dark:text-white/70 cursor-pointer"
+                        >
                           {social.name}
-                        </span>
+                        </label>
                         {hasLink && (
                           <a
                             href={
@@ -309,6 +325,7 @@ export function SocialsSection({
                       </div>
                       <div className="relative">
                         <input
+                          id={`social-link-${id}`}
                           type={social.id === 'email' ? 'email' : 'url'}
                           value={val}
                           onChange={(e) => onLinkChange(id, e.target.value)}

@@ -22,31 +22,29 @@ describe('streakParamsSchema — grace fallback behavior', () => {
     expect(parse({ grace: '7' }).grace).toBe(7);
   });
 
-  it('rejects "8" as out-of-range', () => {
+  it('clamps "8" to 7', () => {
     const result = streakParamsSchema.safeParse({ user: 'octocat', grace: '8' });
-    expect(result.success).toBe(false);
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.grace).toBe(7);
   });
 
-  it('rejects "-1" and returns correct error message', () => {
+  it('clamps "-1" to 0', () => {
     const result = streakParamsSchema.safeParse({ user: 'octocat', grace: '-1' });
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.error.flatten().fieldErrors.grace?.[0]).toBe(
-        'grace must be an integer between 0 and 7'
-      );
-    }
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.grace).toBe(0);
   });
 
-  it('rejects a negative non-integer grace input', () => {
+  it('falls back to 1 for negative non-integer grace input', () => {
     const result = streakParamsSchema.safeParse({ user: 'octocat', grace: '-1.5' });
-    expect(result.success).toBe(false);
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.grace).toBe(1);
   });
 
-  it('rejects non-numeric grace value', () => {
+  it('falls back to 1 for non-numeric grace value', () => {
     const result = streakParamsSchema.safeParse({ user: 'octocat', grace: 'abc' });
-    expect(result.success).toBe(false);
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.grace).toBe(1);
   });
-
   it('defaults to 1 when grace is omitted', () => {
     expect(parse({}).grace).toBe(1);
   });
@@ -87,9 +85,10 @@ describe('grace parameter — missed-day forgiveness (not timezone)', () => {
     if (result.success) expect(result.data.grace).toBe(7);
   });
 
-  it('grace=8 is rejected as it exceeds the maximum limit of 7', () => {
+  it('grace=8 is clamped to 7', () => {
     const result = streakParamsSchema.safeParse({ user: 'chetan', grace: '8' });
-    expect(result.success).toBe(false);
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.grace).toBe(7);
   });
 
   it('grace is independent of tz param — both can coexist', () => {
@@ -292,17 +291,15 @@ describe('streakParamsSchema', () => {
     }
   });
 
-  it('should fail when grace is below the minimum value of 0', () => {
+  it('clamps grace below minimum to 0', () => {
     const result = streakParamsSchema.safeParse({
       user: 'octocat',
       grace: '-1',
     });
 
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.error.flatten().fieldErrors.grace?.[0]).toBe(
-        'grace must be an integer between 0 and 7'
-      );
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.grace).toBe(0);
     }
   });
 
@@ -653,52 +650,28 @@ describe('streakParamsSchema — grace validation', () => {
     }
   });
 
-  it('rejects grace=-1', () => {
-    const result = streakParamsSchema.safeParse({
-      user: 'octocat',
-      grace: '-1',
-    });
-
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.error.issues[0]?.message).toBe('grace must be an integer between 0 and 7');
-    }
+  it('clamps grace=-1 to 0', () => {
+    const result = streakParamsSchema.safeParse({ user: 'octocat', grace: '-1' });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.grace).toBe(0);
   });
 
-  it('rejects grace=8 (exceeds max)', () => {
-    const result = streakParamsSchema.safeParse({
-      user: 'octocat',
-      grace: '8',
-    });
-
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.error.issues[0]?.message).toBe('grace must be an integer between 0 and 7');
-    }
+  it('clamps grace=8 to 7', () => {
+    const result = streakParamsSchema.safeParse({ user: 'octocat', grace: '8' });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.grace).toBe(7);
   });
 
-  it('rejects non-numeric grace value', () => {
-    const result = streakParamsSchema.safeParse({
-      user: 'octocat',
-      grace: 'abc',
-    });
-
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.error.issues[0]?.message).toBe('grace must be an integer between 0 and 7');
-    }
+  it('falls back to 1 for non-numeric grace value', () => {
+    const result = streakParamsSchema.safeParse({ user: 'octocat', grace: 'abc' });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.grace).toBe(1);
   });
 
-  it('rejects float grace value', () => {
-    const result = streakParamsSchema.safeParse({
-      user: 'octocat',
-      grace: '5.5',
-    });
-
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.error.issues[0]?.message).toBe('grace must be an integer between 0 and 7');
-    }
+  it('falls back to 1 for float grace value', () => {
+    const result = streakParamsSchema.safeParse({ user: 'octocat', grace: '5.5' });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.grace).toBe(1);
   });
 });
 
