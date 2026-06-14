@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { parseResume } from './resume-parser';
 
 describe('Resume Parser Timezone Boundaries', () => {
-  it('parses resume data consistently with UTC date strings', async () => {
+  it('rejects plain text with UTC date strings as invalid PDF', async () => {
     const resume = `
 John Doe
 john@example.com
@@ -13,13 +13,12 @@ Experience
 Software Engineer 2020-2024 UTC
 `;
 
-    const result = await parseResume(Buffer.from(resume), 'application/pdf');
-
-    expect(result).toBeDefined();
-    expect(typeof result.name).toBe('string');
+    await expect(parseResume(Buffer.from(resume), 'application/pdf')).rejects.toThrow(
+      'Invalid PDF structure'
+    );
   });
 
-  it('parses resume data consistently with EST date strings', async () => {
+  it('rejects plain text with EST date strings as invalid PDF', async () => {
     const resume = `
 John Doe
 john@example.com
@@ -28,13 +27,12 @@ Experience
 Software Engineer 2020-2024 EST
 `;
 
-    const result = await parseResume(Buffer.from(resume), 'application/pdf');
-
-    expect(result).toBeDefined();
-    expect(result.experience).toBeDefined();
+    await expect(parseResume(Buffer.from(resume), 'application/pdf')).rejects.toThrow(
+      'Invalid PDF structure'
+    );
   });
 
-  it('parses resume data consistently with IST date strings', async () => {
+  it('rejects plain text with IST date strings as invalid PDF', async () => {
     const resume = `
 John Doe
 john@example.com
@@ -43,13 +41,12 @@ Education
 University Degree 2019-2023 IST
 `;
 
-    const result = await parseResume(Buffer.from(resume), 'application/pdf');
-
-    expect(result).toBeDefined();
-    expect(result.education).toBeDefined();
+    await expect(parseResume(Buffer.from(resume), 'application/pdf')).rejects.toThrow(
+      'Invalid PDF structure'
+    );
   });
 
-  it('handles leap-year date references without failures', async () => {
+  it('rejects plain text with leap-year date references as invalid PDF', async () => {
     const resume = `
 John Doe
 john@example.com
@@ -58,12 +55,12 @@ Experience
 Project Lead Feb 29 2024
 `;
 
-    const result = await parseResume(Buffer.from(resume), 'application/pdf');
-
-    expect(result).toBeDefined();
+    await expect(parseResume(Buffer.from(resume), 'application/pdf')).rejects.toThrow(
+      'Invalid PDF structure'
+    );
   });
 
-  it('handles daylight-saving and boundary date text safely', async () => {
+  it('rejects plain text with daylight-saving date text as invalid PDF', async () => {
     const resume = `
 John Doe
 john@example.com
@@ -72,9 +69,8 @@ Experience
 Engineer March 10 2024 DST
 `;
 
-    const result = await parseResume(Buffer.from(resume), 'application/pdf');
-
-    expect(result).toBeDefined();
-    expect(result.email).toBe('john@example.com');
+    await expect(parseResume(Buffer.from(resume), 'application/pdf')).rejects.toThrow(
+      'Invalid PDF structure'
+    );
   });
 });

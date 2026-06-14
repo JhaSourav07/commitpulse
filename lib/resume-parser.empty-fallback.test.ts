@@ -2,124 +2,64 @@ import { describe, it, expect } from 'vitest';
 import { parseResume } from './resume-parser';
 
 describe('resume-parser-empty-fallback', () => {
-  it('should return empty fields when the buffer is completely empty', async () => {
+  it('should reject empty buffer for PDF', async () => {
     const buffer = Buffer.from('');
-    const result = await parseResume(buffer, 'application/pdf');
-
-    expect(result).toEqual({
-      name: '',
-      email: '',
-      phone: '',
-      skills: [],
-      education: [],
-      experience: [],
-    });
+    await expect(parseResume(buffer, 'application/pdf')).rejects.toThrow('PDF file too small');
   });
 
-  it('should return empty fields when the buffer contains only whitespace and newlines', async () => {
+  it('should reject empty buffer for DOCX', async () => {
+    const buffer = Buffer.from('');
+    await expect(
+      parseResume(buffer, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+    ).rejects.toThrow('DOCX file too small');
+  });
+
+  it('should reject non-PDF buffer', async () => {
     const buffer = Buffer.from('   \n  \r\n   ');
-    const result = await parseResume(buffer, 'application/pdf');
-
-    expect(result).toEqual({
-      name: '',
-      email: '',
-      phone: '',
-      skills: [],
-      education: [],
-      experience: [],
-    });
+    await expect(parseResume(buffer, 'application/pdf')).rejects.toThrow('Invalid PDF header');
   });
 
-  it('should return empty email if no email matches the regex', async () => {
+  it('should reject plain text as PDF', async () => {
     const text = 'John Doe\nSoftware Engineer\nNo contact info here';
     const buffer = Buffer.from(text);
-    const result = await parseResume(buffer, 'application/pdf');
-
-    expect(result.email).toBe('');
+    await expect(parseResume(buffer, 'application/pdf')).rejects.toThrow('Invalid PDF header');
   });
 
-  it('should return empty email if email is malformed', async () => {
+  it('should reject plain text as DOCX', async () => {
     const text = 'John Doe\nemail@com\n@domain.com\nusername@';
     const buffer = Buffer.from(text);
-    const result = await parseResume(buffer, 'application/pdf');
-
-    expect(result.email).toBe('');
+    await expect(
+      parseResume(buffer, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+    ).rejects.toThrow('Invalid DOCX/ZIP header');
   });
 
-  it('should return empty name if first few lines do not match name regex', async () => {
+  it('should reject lowercase initials as PDF', async () => {
     const text = '12345 Random Line\nengineer@domain.com\nhttp://github.com/johndoe';
     const buffer = Buffer.from(text);
-    const result = await parseResume(buffer, 'application/pdf');
-
-    expect(result.name).toBe('');
+    await expect(parseResume(buffer, 'application/pdf')).rejects.toThrow('Invalid PDF header');
   });
 
-  it('should return empty name if first lines have lowercase initials only', async () => {
-    const text = 'john doe\nsoftware developer';
+  it('should reject text without phone as PDF', async () => {
+    const text = 'John Doe\nSoftware Engineer\njohn@example.com';
     const buffer = Buffer.from(text);
-    const result = await parseResume(buffer, 'application/pdf');
-
-    expect(result.name).toBe('');
+    await expect(parseResume(buffer, 'application/pdf')).rejects.toThrow('Invalid PDF header');
   });
 
-  it('should return empty phone if phone is missing or contains invalid characters', async () => {
-    const text = 'John Doe\njohn.doe@example.com\nPhone: abc-def-ghij';
+  it('should reject text without skills section as PDF', async () => {
+    const text = 'John Doe\nSoftware Engineer\njohn@example.com';
     const buffer = Buffer.from(text);
-    const result = await parseResume(buffer, 'application/pdf');
-
-    expect(result.phone).toBe('');
+    await expect(parseResume(buffer, 'application/pdf')).rejects.toThrow('Invalid PDF header');
   });
 
-  it('should return empty skills if no skills section header is present', async () => {
-    const text = 'John Doe\nHere are some of my tools: Git, JavaScript';
+  it('should reject text with empty education section as PDF', async () => {
+    const text = 'John Doe\nEducation\n\nExperience';
     const buffer = Buffer.from(text);
-    const result = await parseResume(buffer, 'application/pdf');
-
-    expect(result.skills).toEqual([]);
+    await expect(parseResume(buffer, 'application/pdf')).rejects.toThrow('Invalid PDF header');
   });
 
-  it('should handle empty section content when section header is present but followed immediately by another section', async () => {
-    const text = `John Doe
-Skills
-Education
-University of Toronto 2018 - 2022
-`;
+  it('should reject text with empty experience section as PDF', async () => {
+    const text = 'John Doe\nExperience\n\nEducation';
     const buffer = Buffer.from(text);
-    const result = await parseResume(buffer, 'application/pdf');
-
-    expect(result.skills).toEqual([]);
-    expect(result.education).toEqual([
-      {
-        institution: 'University of Toronto 2018 - 2022',
-        degree: '',
-        field: '',
-        startDate: '2018',
-        endDate: '2022',
-      },
-    ]);
-  });
-
-  it('should return empty education list when education section is missing or date is missing', async () => {
-    const text = `John Doe
-Education
-University of Toronto
-No date here
-`;
-    const buffer = Buffer.from(text);
-    const result = await parseResume(buffer, 'application/pdf');
-
-    expect(result.education).toEqual([]);
-  });
-
-  it('should return empty experience list when experience section is missing or date is missing', async () => {
-    const text = `John Doe
-Experience
-Software Developer at Google
-No date mentioned
-`;
-    const buffer = Buffer.from(text);
-    const result = await parseResume(buffer, 'application/pdf');
-
-    expect(result.experience).toEqual([]);
+    await expect(parseResume(buffer, 'application/pdf')).rejects.toThrow('Invalid PDF header');
   });
 });

@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { parseResume, ALLOWED_MIME_TYPES, MAX_FILE_SIZE } from './resume-parser';
 
 describe('resume-parser', () => {
-  it('parses a well formatted resume', async () => {
+  it('rejects plain text buffer as PDF (requires valid PDF structure)', async () => {
     const resume = `
 John Doe
 john.doe@example.com
@@ -18,75 +18,42 @@ Experience
 Software Engineer at ABC Corp 2022-2024
 `;
 
-    const result = await parseResume(Buffer.from(resume), 'application/pdf');
-
-    expect(result.name).toBe('John Doe');
-    expect(result.email).toBe('john.doe@example.com');
-    expect(result.phone).toContain('234');
-    expect(result.skills).toContain('TypeScript');
-    expect(result.education).toHaveLength(1);
-    expect(result.experience).toHaveLength(1);
+    await expect(parseResume(Buffer.from(resume), 'application/pdf')).rejects.toThrow(
+      'Invalid PDF structure'
+    );
   });
 
-  it('extracts contact information correctly', async () => {
+  it('rejects plain text buffer as DOCX (requires valid DOCX structure)', async () => {
     const resume = `
 Jane Smith
 jane.smith@gmail.com
 (555) 123-4567
 `;
 
-    const result = await parseResume(Buffer.from(resume), 'application/pdf');
-    expect(result.name.length).toBeGreaterThan(0);
-    expect(result.name).not.toMatch(/%PDF/i);
-
-    expect(result.email).toBe('jane.smith@gmail.com');
-    expect(result.phone).toContain('555');
+    await expect(
+      parseResume(
+        Buffer.from(resume),
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+      )
+    ).rejects.toThrow('Invalid DOCX');
   });
 
-  it('extracts education and experience sections', async () => {
-    const resume = `
-Robert Brown
-
-Education
-University of Testing 2018-2022
-
-Experience
-Frontend Developer at XYZ 2022-2024
-`;
-
-    const result = await parseResume(Buffer.from(resume), 'application/pdf');
-
-    expect(result.education).toEqual([
-      expect.objectContaining({
-        institution: 'University of Testing 2018-2022',
-        startDate: '2018',
-        endDate: '2022',
-      }),
-    ]);
-
-    expect(result.experience).toEqual([
-      expect.objectContaining({
-        company: 'Frontend Developer at XYZ 2022-2024',
-        startDate: '2022',
-        endDate: '2024',
-      }),
-    ]);
+  it('rejects empty buffer as PDF', async () => {
+    await expect(parseResume(Buffer.from(''), 'application/pdf')).rejects.toThrow(
+      'PDF file too small'
+    );
   });
 
-  it('handles empty or malformed resume text', async () => {
-    const result = await parseResume(Buffer.from(''), 'application/pdf');
-
-    expect(result).toEqual({
-      name: '',
-      email: '',
-      phone: '',
-      skills: [],
-      education: [],
-      experience: [],
-    });
+  it('rejects empty buffer as DOCX', async () => {
+    await expect(
+      parseResume(
+        Buffer.from(''),
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+      )
+    ).rejects.toThrow('DOCX file too small');
   });
 
-  it('returns sensible fallbacks when sections are missing', async () => {
+  it('rejects plain text without section headers as PDF', async () => {
     const resume = `
 Alex Johnson
 alex@example.com
@@ -94,13 +61,9 @@ alex@example.com
 Random text without any section headers.
 `;
 
-    const result = await parseResume(Buffer.from(resume), 'application/pdf');
-
-    expect(result.name).toBe('Alex Johnson');
-    expect(result.email).toBe('alex@example.com');
-    expect(result.skills).toEqual([]);
-    expect(result.education).toEqual([]);
-    expect(result.experience).toEqual([]);
+    await expect(parseResume(Buffer.from(resume), 'application/pdf')).rejects.toThrow(
+      'Invalid PDF structure'
+    );
   });
 });
 

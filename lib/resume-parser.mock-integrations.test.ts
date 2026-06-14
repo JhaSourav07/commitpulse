@@ -108,18 +108,10 @@ describe('resume-parser mock integrations', () => {
     expect(cached?.email).toContain('@');
   });
 
-  it('should safely handle invalid or empty buffer inputs', async () => {
+  it('should safely reject invalid or empty buffer inputs with proper errors', async () => {
     const emptyBuffer = createMockBuffer('');
 
-    let error: unknown = null;
-
-    try {
-      await parseResume(emptyBuffer, mime);
-    } catch (e) {
-      error = e;
-    }
-
-    // Ensures the actual logic does not throw uncaught exceptions in the CI pipeline
-    expect(error).toBeNull();
+    // With security validations, empty buffers should be rejected with proper errors
+    await expect(parseResume(emptyBuffer, mime)).rejects.toThrow();
   });
 });

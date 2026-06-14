@@ -23,8 +23,10 @@ vi.mock('mammoth', () => {
 
 describe('resume-parser binary document parsing', () => {
   it('correctly uses pdf-parse when parsing a valid PDF buffer', async () => {
-    // A mock PDF buffer starts with "%PDF"
-    const buffer = Buffer.from('%PDF-1.4\nSome binary content');
+    // A valid PDF buffer starts with "%PDF" and has proper structure
+    const pdfHeader = '%PDF-1.4\n';
+    const padding = ' '.repeat(100); // Ensure minimum size
+    const buffer = Buffer.from(pdfHeader + padding + 'Some binary content');
     const result = await parseResume(buffer, 'application/pdf');
 
     expect(result.name).toBe('John Doe');
@@ -36,8 +38,10 @@ describe('resume-parser binary document parsing', () => {
   });
 
   it('correctly uses mammoth when parsing a valid DOCX buffer', async () => {
-    // A mock DOCX/ZIP container starts with "PK"
-    const buffer = Buffer.from('PK\x03\x04\nSome binary docx zip content');
+    // A valid DOCX/ZIP buffer starts with "PK\x03\x04" and has proper structure
+    const docxHeader = 'PK\x03\x04';
+    const padding = 'x'.repeat(100); // Ensure minimum size
+    const buffer = Buffer.from(docxHeader + padding + '\nSome binary docx zip content');
     const result = await parseResume(
       buffer,
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
