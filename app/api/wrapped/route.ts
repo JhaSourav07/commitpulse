@@ -48,12 +48,10 @@ export async function GET(request: Request) {
       font,
       year: customYear,
       refresh,
-      bypassCache: bypassCacheParam,
       hide_title,
       hide_background,
       width,
       height,
-      tz,
     } = parseResult.data;
 
     const year = customYear || new Date().getFullYear().toString();
@@ -82,7 +80,7 @@ export async function GET(request: Request) {
       accent: isAutoTheme ? selectedTheme.accent : accent || selectedTheme.accent,
       border: sanitizedBorder,
       radius,
-      speed,
+      speed: speed && /^(?:[2-9]|1\d|20)s$/.test(speed) ? speed : '8s',
       font,
       autoTheme: isAutoTheme,
       hide_title,
@@ -92,19 +90,14 @@ export async function GET(request: Request) {
       scale: 'linear',
     };
 
-    // Treat either ?refresh=true or ?bypassCache=true as a cache-bypass request
-    const isRefreshRequested = refresh || bypassCacheParam;
-
     // Fetch the wrapped stats for the year (calendar is included to avoid a duplicate API call)
-    const wrappedStats = tz
-      ? await getWrappedData(user, year, { bypassCache: isRefreshRequested }, tz)
-      : await getWrappedData(user, year, { bypassCache: isRefreshRequested });
+    const wrappedStats = await getWrappedData(user, year, { bypassCache: refresh });
 
     const svg = generateWrappedSVG(wrappedStats, params, year, wrappedStats.calendar);
 
     // Cache-Control: Annual wrapped stats are stable, cache for 24 hours.
-    // Clients can bust with ?refresh=true or ?bypassCache=true.
-    const cacheControl = isRefreshRequested
+    // Clients can bust with ?refresh=true.
+    const cacheControl = refresh
       ? 'no-cache, no-store, must-revalidate'
       : 'public, s-maxage=86400, stale-while-revalidate=86400';
 
@@ -113,9 +106,7 @@ export async function GET(request: Request) {
         'Content-Type': 'image/svg+xml',
         'Cache-Control': cacheControl,
         'Content-Security-Policy': SVG_CSP_HEADER,
-        'X-Cache-Status': isRefreshRequested
-          ? `BYPASS, fetched=${new Date().toISOString()}`
-          : 'HIT',
+        'X-Cache-Status': refresh ? `BYPASS, fetched=${new Date().toISOString()}` : 'HIT',
       },
     });
   } catch (error: unknown) {
