@@ -12,7 +12,7 @@ vi.mock('@/models/Notification', () => ({
   },
 }));
 vi.mock('@/lib/rate-limit', () => ({
-  getRateLimitHeaders: vi.fn((result: any) => ({
+  getRateLimitHeaders: vi.fn((result: { limit: number; remaining: number; reset: number }) => ({
     'X-RateLimit-Limit': result.limit.toString(),
     'X-RateLimit-Remaining': result.remaining.toString(),
     'X-RateLimit-Reset': result.reset.toString(),
@@ -39,6 +39,7 @@ vi.mock('@/lib/github-owner-verification', () => ({
   verifyGitHubOwner: vi.fn().mockResolvedValue({ verified: true }),
 }));
 
+import { notifyRateLimiter } from "@/lib/rate-limit";
 const makeRequest = (method: string, body?: object, search?: string, ip?: string) => {
   const url = `http://localhost:3000/api/notify${search ? '?' + search : ''}`;
   return new NextRequest(url, {
@@ -86,7 +87,7 @@ describe('POST /api/notify massive scaling: Massive Data Sets and Extreme High B
   it('returns 429 with correct rate limit headers after exceeding the 5-request limit for a single IP', async () => {
     const ip = '198.51.100.10';
 
-    let lastResponse: any;
+    let lastResponse: Response | undefined;
     for (let i = 0; i < 6; i++) {
       lastResponse = await POST(makeRequest('POST', { username: 'testuser', email: 'a@b.com' }, undefined, ip));
     }
