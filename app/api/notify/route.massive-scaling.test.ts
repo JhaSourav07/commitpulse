@@ -39,7 +39,7 @@ vi.mock('@/lib/github-owner-verification', () => ({
   verifyGitHubOwner: vi.fn().mockResolvedValue({ verified: true }),
 }));
 
-import { notifyRateLimiter } from "@/lib/rate-limit";
+import { notifyRateLimiter } from '@/lib/rate-limit';
 const makeRequest = (method: string, body?: object, search?: string, ip?: string) => {
   const url = `http://localhost:3000/api/notify${search ? '?' + search : ''}`;
   return new NextRequest(url, {
