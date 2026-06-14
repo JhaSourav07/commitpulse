@@ -1,6 +1,6 @@
 // app/contributors/page.mock-integrations.test.tsx
 
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
@@ -21,9 +21,39 @@ vi.mock('./ContributorsClient', () => ({
 }));
 
 describe('ContributorsPage Mock Integrations', () => {
+  let originalFetch: typeof fetch;
+
   beforeEach(() => {
     vi.clearAllMocks();
     vi.resetModules();
+    originalFetch = global.fetch;
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      headers: {
+        get: () => null,
+      },
+      json: async () => [
+        {
+          id: 1,
+          login: 'test-contributor-1',
+          avatar_url: 'https://avatars.githubusercontent.com/u/1?v=4',
+          contributions: 42,
+          html_url: 'https://github.com/test-contributor-1',
+        },
+        {
+          id: 2,
+          login: 'test-contributor-2',
+          avatar_url: 'https://avatars.githubusercontent.com/u/2?v=4',
+          contributions: 10,
+          html_url: 'https://github.com/test-contributor-2',
+        },
+      ],
+    } as unknown as Response);
+  });
+
+  afterEach(() => {
+    global.fetch = originalFetch;
+    vi.unstubAllGlobals();
   });
 
   it('renders successfully using mocked service data', async () => {
