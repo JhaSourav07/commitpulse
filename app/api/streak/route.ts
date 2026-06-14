@@ -8,6 +8,7 @@ import {
   calculateMonthlyStats,
   aggregateCalendars,
   chunkDaysIntoWeeks,
+  normalizeCalendarToTimezone,
 } from '@/lib/calculate';
 import {
   generateNotFoundSVG,
@@ -531,9 +532,13 @@ export async function GET(request: Request) {
       const stats = calculateStreak(calendar, timezone, undefined, grace);
       svg = generateRadarSVG(stats, params, calendar);
     } else if (versus && versusCalendar) {
-      const stats1 = calculateStreak(calendar, timezone, undefined, grace);
-      const stats2 = calculateStreak(versusCalendar, timezone, undefined, grace);
-      svg = generateVersusSVG(stats1, stats2, params, calendar, versusCalendar);
+      // Normalize both calendars to the target timezone for accurate comparison
+      const normalizedCalendar = normalizeCalendarToTimezone(calendar, timezone);
+      const normalizedVersusCalendar = normalizeCalendarToTimezone(versusCalendar, timezone);
+
+      const stats1 = calculateStreak(normalizedCalendar, timezone, undefined, grace);
+      const stats2 = calculateStreak(normalizedVersusCalendar, timezone, undefined, grace);
+      svg = generateVersusSVG(stats1, stats2, params, normalizedCalendar, normalizedVersusCalendar);
     } else {
       const stats = calculateStreak(calendar, timezone, undefined, grace);
       svg = generateSVG(stats, params, calendar);

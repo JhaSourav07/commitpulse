@@ -529,3 +529,96 @@ export function calculateWrappedStats(calendar?: ContributionCalendar | null) {
     })(),
   };
 }
+
+/**
+ * Normalizes a contribution calendar to a target timezone.
+ *
+ * This function converts each contribution day's date to the target timezone
+ * and re-groups the days by the target timezone's midnight boundaries.
+ * This is essential for accurate comparisons between users in different timezones.
+ *
+ * @param calendar - The contribution calendar to normalize
+ * @param targetTimezone - The target timezone to normalize to (e.g., 'UTC', 'America/New_York')
+ * @returns A new calendar with dates normalized to the target timezone
+ */
+export function normalizeCalendarToTimezone(
+  calendar: ContributionCalendar,
+  targetTimezone: string
+): ContributionCalendar {
+  if (!calendar || !calendar.weeks || calendar.weeks.length === 0) {
+    return calendar;
+  }
+
+  // Flatten all contribution days
+  const allDays = calendar.weeks.flatMap((week) => week.contributionDays || []);
+
+  // Group contributions by target timezone date
+  const dateMap = new Map<string, number>();
+
+  for (const day of allDays) {
+    if (!day || !day.date) continue;
+
+    // Parse the date (YYYY-MM-DD) as a UTC date
+    const [yearStr, monthStr, dayStr] = day.date.split('-');
+    const year = parseInt(yearStr, 10);
+    const month = parseInt(monthStr, 10);
+    const dayNum = parseInt(dayStr, 10);
+
+    // Create a UTC date for midnight on this day
+    const utcMidnight = new Date(Date.UTC(year, month - 1, dayNum, 0, 0, 0));
+
+    // Get the date in the target timezone
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone: targetTimezone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    });
+
+    const parts = formatter.formatToParts(utcMidnight);
+    const tzYear = parseInt(parts.find((p) => p.type === 'year')?.value || yearStr, 10);
+    const tzMonth = parseInt(parts.find((p) => p.type === 'month')?.value || monthStr, 10);
+    const tzDay = parseInt(parts.find((p) => p.type === 'day')?.value || dayStr, 10);
+
+    // Create the normalized date string
+    const normalizedDate = `${tzYear}-${String(tzMonth).padStart(2, '0')}-${String(tzDay).padStart(2, '0')}`;
+
+    // Accumulate contribution count
+    const currentCount = dateMap.get(normalizedDate) || 0;
+    dateMap.set(normalizedDate, currentCount + (day.contributionCount || 0));
+  }
+
+  // Sort dates and create weeks
+  const sortedDates = Array.from(dateMap.entries()).sort(([a], [b]) => a.localeCompare(b));
+
+  // Group into weeks (Sunday to Saturday)
+  const weeks: ContributionWeek[] = [];
+  let currentWeek: ContributionDay[] = [];
+
+  for (const [date, contributionCount] of sortedDates) {
+    const [yearStr, monthStr, dayStr] = date.split('-');
+    const dateObj = new Date(
+      Date.UTC(parseInt(yearStr, 10), parseInt(monthStr, 10) - 1, parseInt(dayStr, 10))
+    );
+    const dayOfWeek = dateObj.getUTCDay();
+
+    // Start a new week on Sunday
+    if (dayOfWeek === 0 && currentWeek.length > 0) {
+      weeks.push({ contributionDays: currentWeek });
+      currentWeek = [];
+    }
+
+    currentWeek.push({ date, contributionCount });
+  }
+
+  // Add the last week
+  if (currentWeek.length > 0) {
+    weeks.push({ contributionDays: currentWeek });
+  }
+
+  return {
+    totalContributions: calendar.totalContributions,
+    weeks,
+    lastSyncedAt: calendar.lastSyncedAt,
+  };
+}
