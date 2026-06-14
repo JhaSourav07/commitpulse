@@ -1,3 +1,4 @@
+import Script from 'next/script';
 import './globals.css';
 import { Inter } from 'next/font/google';
 import { Analytics } from '@vercel/analytics/next';
@@ -70,22 +71,22 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning>
       <head>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              try {
-                const storedTheme = window.localStorage.getItem('theme');
-                if (storedTheme === 'light') {
-                  document.documentElement.classList.remove('dark');
-                  document.documentElement.style.colorScheme = 'light';
-                } else {
-                  document.documentElement.classList.add('dark');
-                  document.documentElement.style.colorScheme = 'dark';
-                }
-              } catch (_) {}
-            `,
-          }}
-        />
+        <Script id="theme-script" strategy="beforeInteractive">
+          {`
+    (function() {
+      try {
+        const storedTheme = window.localStorage.getItem('theme');
+        if (storedTheme === 'light') {
+          document.documentElement.classList.remove('dark');
+          document.documentElement.style.colorScheme = 'light';
+        } else {
+          document.documentElement.classList.add('dark');
+          document.documentElement.style.colorScheme = 'dark';
+        }
+      } catch (e) {}
+    })();
+  `}
+        </Script>
       </head>
       <body className={inter.className}>
         {/* Skip link — first focusable element, lets keyboard users jump past the navbar */}

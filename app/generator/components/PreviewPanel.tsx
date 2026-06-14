@@ -1,5 +1,6 @@
 'use client';
 
+import DOMPurify from 'dompurify';
 import { fallbackCopyToClipboard } from '@/utils/clipboard';
 import { useState, useCallback } from 'react';
 import { Copy, Check, Eye, Code2, Download } from 'lucide-react';
@@ -157,7 +158,7 @@ export function PreviewPanel({ markdown }: PreviewPanelProps) {
             <div className="rounded-xl border border-gray-200 dark:border-white/8 bg-white dark:bg-[#0d1117] p-6 min-h-[200px]">
               <div
                 className="readme-preview text-gray-800 dark:text-[#e6edf3] text-sm leading-relaxed wrap-break-word"
-                dangerouslySetInnerHTML={{ __html: previewHtml }}
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(previewHtml) }}
               />
             </div>
           </div>

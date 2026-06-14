@@ -1,5 +1,6 @@
 'use client'; // Ensure this is at the very top since you are using hooks!
 
+import DOMPurify from 'dompurify';
 import React, { useState, useEffect, useRef, type ReactNode } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -325,7 +326,7 @@ export default function LandingPage() {
                       animate={{ opacity: 1, scale: 1 }}
                       transition={{ duration: 0.5, ease: 'easeOut' }}
                       className="cp-svg-container w-full max-w-[700px] drop-shadow-[0_30px_60px_rgba(0,0,0,0.15)] dark:drop-shadow-[0_30px_60px_rgba(0,0,0,0.5)] [&>svg]:w-full [&>svg]:h-auto"
-                      dangerouslySetInnerHTML={{ __html: svgContent }}
+                      dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(svgContent) }}
                     />
                   )}
                 </div>

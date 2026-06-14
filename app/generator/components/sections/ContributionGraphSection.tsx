@@ -1,5 +1,6 @@
 'use client';
 
+import DOMPurify from 'dompurify';
 import { useState, useEffect } from 'react';
 import { Loader2, Search, X, ExternalLink, Info, Copy, Check, ChevronDown } from 'lucide-react';
 import { SectionCard, FieldLabel } from '../SectionCard';

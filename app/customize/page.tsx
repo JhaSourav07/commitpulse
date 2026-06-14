@@ -597,7 +597,7 @@ function CustomizePageInner(): ReactElement {
                           animate={{ opacity: 1, scale: 1 }}
                           transition={{ duration: 0.5, ease: 'easeOut' }}
                           className="cp-svg-container w-full max-w-[600px] drop-shadow-[0_30px_60px_rgba(0,0,0,0.15)] dark:drop-shadow-[0_30px_60px_rgba(0,0,0,0.5)] [&>svg]:w-full [&>svg]:h-auto"
-                          dangerouslySetInnerHTML={{ __html: svgContent }}
+                          dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(svgContent) }}
                         />
                       )}
                       {svgState === 'loaded' && !svgContent && errorMessage && (

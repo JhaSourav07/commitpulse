@@ -1,4 +1,5 @@
 import type { CustomizeOptions, ExportFormat } from './types';
+import DOMPurify from 'dompurify';
 
 const BADGE_BASE_URL = 'https://commitpulse.vercel.app/api/streak';
 
@@ -201,7 +202,7 @@ export function getExportSnippet(format: ExportFormat, queryString: string): str
       '        <div',
       "          style={{ width: '100%', height: '100%' }}",
       '          className="[&>svg]:w-full [&>svg]:h-auto"',
-      '          dangerouslySetInnerHTML={{ __html: svgContent }}',
+      '          dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(svgContent) }}',
       '        />',
       '      )}',
       '    </div>',
