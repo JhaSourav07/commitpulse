@@ -7,6 +7,13 @@ import { DistributedCache } from '@/lib/cache';
 import { gitHubUserValidator } from '@/services/github/validate-user';
 import { getRateLimitHeaders, notifyRateLimiter } from '@/lib/rate-limit';
 import { verifyGitHubOwner } from '@/lib/github-owner-verification';
+import {
+  createNotificationManagementToken,
+  getNotificationManagementToken,
+  hashNotificationManagementToken,
+  verifyNotificationManagementToken,
+} from '@/lib/notification-management-token';
+import type { INotification } from '@/models/Notification';
 
 const notifyWriteCache = new DistributedCache<number>(5000, 60000);
 const NOTIFY_WRITE_COOLDOWN_MS = 5 * 60 * 1000;
@@ -34,6 +41,51 @@ function maskEmail(email: string): string {
   const maskedDomain = domainName.slice(0, Math.min(2, domainName.length)) + '***';
 
   return `${maskedLocal}@${maskedDomain}.${tld}`;
+}
+
+function isMongooseQuery<T>(value: unknown): value is { select: (fields: string) => Promise<T> } {
+  return Boolean(value && typeof value === 'object' && 'select' in value);
+}
+
+async function findNotificationWithManagementHash(username: string): Promise<INotification | null> {
+  const query = Notification.findOne({ username }) as unknown;
+  if (isMongooseQuery<INotification | null>(query)) {
+    return query.select('+managementTokenHash');
+  }
+  return query as Promise<INotification | null>;
+}
+
+async function authorizeNotificationMutation(
+  req: Request,
+  username: string,
+  existing: INotification | null,
+  providedToken: string | null
+): Promise<{ authorized: true; via: 'token' | 'github' } | NextResponse> {
+  if (existing && verifyNotificationManagementToken(providedToken, existing.managementTokenHash)) {
+    return { authorized: true, via: 'token' };
+  }
+
+  const ownership = await verifyGitHubOwner(req, username);
+  if (ownership.verified) {
+    return { authorized: true, via: 'github' };
+  }
+
+  if (providedToken) {
+    return NextResponse.json(
+      { success: false, message: 'Invalid notification management token.' },
+      { status: 403 }
+    );
+  }
+
+  return NextResponse.json(
+    {
+      success: false,
+      message: existing
+        ? 'A valid management token or matching GitHub authentication is required.'
+        : ownership.message,
+    },
+    { status: ownership.status }
+  );
 }
 
 // ─── POST /api/notify ────────────────────────────────────────────────────────
@@ -78,14 +130,7 @@ export async function POST(req: Request) {
 
   const { username, email, frequency, preferences } = parsed.data;
   const normalizedUsername = username.toLowerCase().trim();
-
-  const ownership = await verifyGitHubOwner(req, normalizedUsername);
-  if (!ownership.verified) {
-    return NextResponse.json(
-      { success: false, message: ownership.message },
-      { status: ownership.status }
-    );
-  }
+  const providedManagementToken = getNotificationManagementToken(req, parsed.data);
 
   try {
     // Graceful MONGODB_URI handling
@@ -111,6 +156,17 @@ export async function POST(req: Request) {
 
     await dbConnect();
 
+    const existingNotification = await findNotificationWithManagementHash(normalizedUsername);
+    const authorization = await authorizeNotificationMutation(
+      req,
+      normalizedUsername,
+      existingNotification,
+      providedManagementToken
+    );
+    if (authorization instanceof NextResponse) {
+      return authorization;
+    }
+
     // Per-username write cooldown prevents rapid upserts against the same user
     const lastWrite = await notifyWriteCache.get(`notify:write:${normalizedUsername}`);
     if (lastWrite) {
@@ -135,11 +191,22 @@ export async function POST(req: Request) {
       );
     }
 
+    const shouldIssueManagementToken =
+      !existingNotification ||
+      !existingNotification.managementTokenHash ||
+      authorization.via === 'github';
+    const managementToken = shouldIssueManagementToken
+      ? createNotificationManagementToken()
+      : undefined;
+
     // Upsert notification preferences
     const notification = await Notification.findOneAndUpdate(
       { username: normalizedUsername },
       {
         email: email.toLowerCase(),
+        ...(managementToken
+          ? { managementTokenHash: hashNotificationManagementToken(managementToken) }
+          : {}),
         frequency,
         notifyOnCommit: preferences.notifyOnCommit,
         notifyOnStreak: preferences.notifyOnStreak,
@@ -162,7 +229,7 @@ export async function POST(req: Request) {
         message: 'Notification preferences saved successfully.',
         data: {
           username: notification.username,
-          email: notification.email,
+          email: maskEmail(notification.email),
           frequency: notification.frequency,
           preferences: {
             notifyOnCommit: notification.notifyOnCommit,
@@ -170,6 +237,7 @@ export async function POST(req: Request) {
             notifyOnMilestone: notification.notifyOnMilestone,
           },
         },
+        ...(managementToken ? { managementToken } : {}),
       },
       { status: 200 }
     );
@@ -216,14 +284,6 @@ export async function DELETE(req: NextRequest) {
   const { user: username } = parsed.data;
   const normalizedUsername = username.toLowerCase();
 
-  const ownership = await verifyGitHubOwner(req, normalizedUsername);
-  if (!ownership.verified) {
-    return NextResponse.json(
-      { success: false, message: ownership.message },
-      { status: ownership.status }
-    );
-  }
-
   try {
     // Graceful MONGODB_URI handling
     if (!process.env.MONGODB_URI) {
@@ -247,6 +307,26 @@ export async function DELETE(req: NextRequest) {
     }
 
     await dbConnect();
+
+    const existingNotification = await findNotificationWithManagementHash(normalizedUsername);
+
+    if (!existingNotification) {
+      return NextResponse.json(
+        { success: false, message: 'No notification preferences found for this user.' },
+        { status: 404 }
+      );
+    }
+
+    const providedManagementToken = getNotificationManagementToken(req, undefined, searchParams);
+    const authorization = await authorizeNotificationMutation(
+      req,
+      normalizedUsername,
+      existingNotification,
+      providedManagementToken
+    );
+    if (authorization instanceof NextResponse) {
+      return authorization;
+    }
 
     const result = await Notification.deleteOne({ username: normalizedUsername });
 

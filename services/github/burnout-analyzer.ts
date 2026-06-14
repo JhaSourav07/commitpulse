@@ -427,9 +427,13 @@ async function generateRecommendationsWithGemini(
   const data = await res.json();
   const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
   if (text) {
-    const parsed = JSON.parse(text);
-    if (Array.isArray(parsed)) {
-      return parsed.map((item) => `[AI Recommendation] ${item}`);
+    try {
+      const parsed = JSON.parse(text);
+      if (Array.isArray(parsed)) {
+        return parsed.map((item) => `[AI Recommendation] ${item}`);
+      }
+    } catch {
+      console.warn('Gemini returned malformed JSON, skipping AI recommendations.');
     }
   }
   return [];
