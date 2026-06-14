@@ -1098,8 +1098,12 @@ describe('streakParamsSchema — view fallback behavior', () => {
     expect(parse({ view: 'languages' }).view).toBe('languages');
   });
 
+  it('accepts "radar" as a valid view value', () => {
+    expect(parse({ view: 'radar' }).view).toBe('radar');
+  });
+
   it('falls back to "default" for unknown view value', () => {
-    expect(parse({ view: 'radar' }).view).toBe('default');
+    expect(parse({ view: 'unknown_view' }).view).toBe('default');
   });
 
   it('defaults to "default" when view is omitted', () => {

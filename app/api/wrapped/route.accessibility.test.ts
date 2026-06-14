@@ -9,6 +9,7 @@ import type { WrappedStats } from '../../../types/dashboard';
 vi.mock('../../../lib/github', () => ({
   getWrappedData: vi.fn(),
   fetchGitHubContributions: vi.fn(),
+  getCircuitTelemetry: vi.fn().mockReturnValue({ isOpen: false, resetInMs: 0 }),
 }));
 
 const mockCalendar: ContributionCalendar = {

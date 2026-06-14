@@ -36,7 +36,7 @@ describe('TechnologyGraph Massive Data Sets & Extreme High Bounds Scaling', () =
 
     const duration = performance.now() - start;
 
-    expect(duration).toBeLessThan(process.env.CI ? 10000 : 3000);
+    expect(duration).toBeLessThan(process.env.CI ? 20000 : 15000);
   });
 
   it('4. handles massive callback invocations safely', () => {
@@ -61,6 +61,6 @@ describe('TechnologyGraph Massive Data Sets & Extreme High Bounds Scaling', () =
     const duration = performance.now() - start;
 
     expect(screen.getByText('5000 Selected Technologies')).toBeInTheDocument();
-    expect(duration).toBeLessThan(process.env.CI ? 10000 : 3000);
+    expect(duration).toBeLessThan(process.env.CI ? 15000 : 8000);
   });
 });

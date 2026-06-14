@@ -262,6 +262,10 @@ Explore some of the built-in CommitPulse themes and quickly copy the style you l
 <!-- Heatmap with Neon theme -->
 
 ![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&view=heatmap&theme=neon)
+
+<!-- Radar Chart View -->
+
+![](https://commitpulse.vercel.app/api/streak?user=jhasourav07&view=radar)
 ```
 
 ---
