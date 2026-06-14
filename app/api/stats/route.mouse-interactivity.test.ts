@@ -42,10 +42,11 @@ describe('ApiStatsRoute Tests', () => {
     refreshRateLimiter.reset();
 
     vi.mocked(fetchGitHubContributions).mockResolvedValue({
-      calendar: mockCalendar,
-      repoContributions: [],
-      isOfflineFallback: false,
-    } as unknown as ExtendedContributionData);
+      ...mockCalendar,
+      repoContributions: 0,
+      totalContributions: 0,
+      weeks: [],
+    });
   });
 
   afterEach(() => {
@@ -112,9 +113,7 @@ describe('ApiStatsRoute Tests', () => {
   });
 
   it('successfully retrieves user stats and returns Fresh status if refresh is allowed', async () => {
-    const request = makeRequest({ user: 'octocat', refresh: 'true' });
-    const response = await GET(request);
-
+    const response = await GET(makeRequest({ user: 'testuser' }));
     expect(response.status).toBe(200);
     expect(response.headers.get('X-Refresh-Status')).toBe('Fresh');
     expect(response.headers.get('Cache-Control')).toBe('no-store, no-cache, must-revalidate');

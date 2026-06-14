@@ -387,6 +387,17 @@ export class DistributedCache<T> {
     }
   }
 
+  async getOrSet(key: string, cb: () => Promise<T>, ttlMs?: number): Promise<T> {
+    const cached = await this.get(key);
+    if (cached !== null) {
+      return cached;
+    }
+
+    const freshData = await cb();
+    await this.set(key, freshData, ttlMs !== undefined ? ttlMs : 0);
+    return freshData;
+  }
+
   clear(): void {
     this.localCache.clear();
   }

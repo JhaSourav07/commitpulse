@@ -893,7 +893,7 @@ describe('DistributedCache', () => {
     const cache = new DistributedCache<string>();
     await cache.set('redis-key', 'old-value', 60000);
 
-    expect(await cache.update('redis-key', 'new-value')).toBe(false);
+    expect(await (cache as any).update('redis-key', 'new-value')).toBe(false);
     expect(await cache.get('redis-key')).toBeNull();
     expect(fetch).toHaveBeenCalledTimes(3);
 
@@ -926,8 +926,6 @@ describe('TTLCache with infinite TTL', () => {
     expect(cache.get('key3')).toBe('value3');
   });
 });
-
-import { DistributedCache } from './cache';
 
 describe('DistributedCache', () => {
   const originalEnv = { ...process.env };

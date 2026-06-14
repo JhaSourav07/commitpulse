@@ -124,7 +124,7 @@ export async function GET(request: Request) {
 
   try {
     const userData = await fetchGitHubContributions(user, { bypassCache: shouldBypassCache });
-    const calendar = userData.calendar;
+    const calendar = (userData as any)?.calendar;
     const stats = calculateStreak(calendar, timezone);
     const headers = new Headers({
       // Cache until next UTC midnight; clients can bust with ?refresh=true
@@ -144,9 +144,23 @@ export async function GET(request: Request) {
 
     return NextResponse.json(
       {
-        totalContributions: stats.totalContributions,
-        longestStreak: stats.longestStreak,
-        currentStreak: stats.currentStreak,
+        profile: (userData as any)?.profile ?? {
+          username: user,
+          name: user,
+          avatar_url: '',
+          bio: '',
+          location: '',
+          joinedDate: '',
+          developerScore: 0,
+        },
+        calendar: calendar ?? { totalContributions: 0, weeks: [], colors: [], months: [] },
+        stats: {
+          currentStreak: (stats as any)?.currentStreak ?? 0,
+          peakStreak: (stats as any)?.peakStreak ?? (stats as any)?.longestStreak ?? 0,
+          longestStreak: (stats as any)?.longestStreak ?? (stats as any)?.peakStreak ?? 0,
+          totalContributions:
+            (stats as any)?.totalContributions ?? (stats as any)?.totalCommits ?? 0,
+        },
       },
       { headers }
     );

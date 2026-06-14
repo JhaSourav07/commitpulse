@@ -43,55 +43,64 @@ function makeRequest(params: Record<string, string> = {}): Request {
 
 describe('yearBoundary constraints', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
-    vi.mocked(getWrappedData).mockResolvedValue(mockWrappedStats);
+    vi.mocked(getWrappedData).mockResolvedValue(mockWrappedStats as any);
     vi.mocked(fetchGitHubContributions).mockResolvedValue({
       calendar: mockCalendar,
-    } as unknown as import('../../../types').ExtendedContributionData);
-  });
+      repoContributions: [],
+      profile: {
+        username: 'octocat',
+        name: 'The Octocat',
+        avatar_url: '',
+        bio: '',
+        location: '',
+        joinedDate: '',
+        developerScore: 0,
+      },
+    } as any);
 
-  it('Validation (Lower Bound): Returns 400 for a year before GitHub was founded (e.g., 2007)', async () => {
-    const response = await GET(makeRequest({ user: 'octocat', year: '2007' }));
-    expect(response.status).toBe(400);
-    const body = await response.json();
-    expect(body.error).toBe('Invalid parameters');
-    expect(body.details.fieldErrors.year[0]).toContain('2008');
-    expect(getWrappedData).not.toHaveBeenCalled();
-  });
+    it('Validation (Lower Bound): Returns 400 for a year before GitHub was founded (e.g., 2007)', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', year: '2007' }));
+      expect(response.status).toBe(400);
+      const body = await response.json();
+      expect(body.error).toBe('Invalid parameters');
+      expect(body.details.fieldErrors.year[0]).toContain('2008');
+      expect(getWrappedData).not.toHaveBeenCalled();
+    });
 
-  it('Validation (Upper Bound): Returns 400 for a future year (e.g., 2099)', async () => {
-    const response = await GET(makeRequest({ user: 'octocat', year: '2099' }));
-    expect(response.status).toBe(400);
-    const body = await response.json();
-    expect(body.error).toBe('Invalid parameters');
-    expect(body.details.fieldErrors.year[0]).toContain('2008');
-    expect(getWrappedData).not.toHaveBeenCalled();
-  });
+    it('Validation (Upper Bound): Returns 400 for a future year (e.g., 2099)', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', year: '2099' }));
+      expect(response.status).toBe(400);
+      const body = await response.json();
+      expect(body.error).toBe('Invalid parameters');
+      expect(body.details.fieldErrors.year[0]).toContain('2008');
+      expect(getWrappedData).not.toHaveBeenCalled();
+    });
 
-  it('Mocking GitHub Responses: Successfully mocks responses for a valid custom year (e.g., 2023) and returns 200', async () => {
-    const response = await GET(makeRequest({ user: 'octocat', year: '2023' }));
-    expect(response.status).toBe(200);
+    it('Mocking GitHub Responses: Successfully mocks responses for a valid custom year (e.g., 2023) and returns 200', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', year: '2023' }));
+      expect(response.status).toBe(200);
 
-    expect(getWrappedData).toHaveBeenCalledWith('octocat', '2023', { bypassCache: false });
-  });
+      expect(getWrappedData).toHaveBeenCalledWith('octocat', '2023', { bypassCache: false });
+    });
 
-  it('Computed Stats Metrics: Verifies peak commits and weekend ratio render in the SVG output', async () => {
-    const response = await GET(makeRequest({ user: 'octocat', year: '2023' }));
-    const body = await response.text();
+    it('Computed Stats Metrics: Verifies peak commits and weekend ratio render in the SVG output', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', year: '2023' }));
+      const body = await response.text();
 
-    expect(response.status).toBe(200);
-    expect(body).toContain('42 COMMITS'); // highestDailyCount
-    expect(body).toContain('24%'); // weekendRatio
-  });
+      expect(response.status).toBe(200);
+      expect(body).toContain('42 COMMITS'); // highestDailyCount
+      expect(body).toContain('24%'); // weekendRatio
+    });
 
-  it('SVG Visual Components: Ensures the SVG renders correctly based on active params', async () => {
-    // Testing custom theme (neon) to ensure parameters pass through correctly for the year
-    const response = await GET(makeRequest({ user: 'octocat', year: '2023', theme: 'neon' }));
-    const body = await response.text();
+    it('SVG Visual Components: Ensures the SVG renders correctly based on active params', async () => {
+      // Testing custom theme (neon) to ensure parameters pass through correctly for the year
+      const response = await GET(makeRequest({ user: 'octocat', year: '2023', theme: 'neon' }));
+      const body = await response.text();
 
-    expect(response.status).toBe(200);
-    expect(body).toContain('2023 WRAPPED');
-    // Neon accent color is #ff00ff, which should appear in the SVG
-    expect(body).toContain('#ff00ff');
+      expect(response.status).toBe(200);
+      expect(body).toContain('2023 WRAPPED');
+      // Neon accent color is #ff00ff, which should appear in the SVG
+      expect(body).toContain('#ff00ff');
+    });
   });
 });

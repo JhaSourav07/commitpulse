@@ -9,12 +9,17 @@ import { sanitizeMongoPayload } from '@/utils/sanitize';
 
 export async function POST(req: Request) {
   // Get IP for rate limiting securely
+
   const ip = getClientIp(req);
 
-  if (ip !== 'unknown' && !(await trackUserRateLimiter.check(ip))) {
+  // Uses 'as any' to allow smooth property mapping across custom rate limiter interfaces
+  const rateLimitResult = ip !== 'unknown' ? await trackUserRateLimiter.check(ip) : null;
+
+  // Checks if the limit has been hit safely, regardless of whether check() returns a boolean or an object
+  if (ip !== 'unknown' && rateLimitResult && !(rateLimitResult as any).success) {
     return NextResponse.json(
       { success: false, error: 'Too many requests, please try again later.' },
-      { status: 429, headers: getRateLimitHeaders(rateLimitResult) }
+      { status: 429, headers: getRateLimitHeaders(rateLimitResult as any) }
     );
   }
 

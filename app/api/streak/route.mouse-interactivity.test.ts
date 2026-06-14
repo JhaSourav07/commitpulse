@@ -53,7 +53,16 @@ describe('ApiStreakRoute Tests', () => {
       calendar: mockCalendar,
       repoContributions: [],
       isOfflineFallback: false,
-    } as unknown as ExtendedContributionData);
+      profile: {
+        username: 'octocat',
+        name: 'The Octocat',
+        avatar_url: '',
+        bio: '',
+        location: '',
+        joinedDate: '',
+        developerScore: 0,
+      },
+    } as any);
 
     const request = makeRequest({ user: 'octocat', format: 'json' });
     const response = await GET(request);
@@ -75,7 +84,16 @@ describe('ApiStreakRoute Tests', () => {
       calendar: mockCalendar,
       repoContributions: [],
       isOfflineFallback: false,
-    } as unknown as ExtendedContributionData);
+      profile: {
+        username: 'octocat',
+        name: 'The Octocat',
+        avatar_url: '',
+        bio: '',
+        location: '',
+        joinedDate: '',
+        developerScore: 0,
+      },
+    } as any);
 
     const request1 = makeRequest({ user: 'octocat', format: 'json' });
     const response1 = await GET(request1);
@@ -94,7 +112,16 @@ describe('ApiStreakRoute Tests', () => {
       calendar: mockCalendar,
       repoContributions: [],
       isOfflineFallback: false,
-    } as unknown as ExtendedContributionData);
+      profile: {
+        username: 'octocat',
+        name: 'The Octocat',
+        avatar_url: '',
+        bio: '',
+        location: '',
+        joinedDate: '',
+        developerScore: 0,
+      },
+    } as any);
 
     const request = makeRequest({ user: 'octocat', format: 'json', refresh: 'true' });
     const response = await GET(request);
@@ -114,8 +141,16 @@ describe('ApiStreakRoute Tests', () => {
       calendar: mockCalendar,
       repoContributions: [],
       isOfflineFallback: false,
-    } as unknown as ExtendedContributionData);
-
+      profile: {
+        username: 'octocat',
+        name: 'The Octocat',
+        avatar_url: '',
+        bio: '',
+        location: '',
+        joinedDate: '',
+        developerScore: 0,
+      },
+    } as any);
     const request = makeRequest({ user: 'octocat' });
     const response = await GET(request);
 

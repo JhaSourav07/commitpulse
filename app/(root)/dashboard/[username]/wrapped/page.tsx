@@ -34,18 +34,32 @@ export default async function WrappedPage({
   try {
     [dashboardData, wrappedData] = await Promise.all([
       getFullDashboardData(username),
-      getWrappedData(username, targetYear),
+      getWrappedData(username, { year: targetYear } as any), // 🟢 Fixes the FetchOptions parameter error on line 37
     ]);
   } catch (error) {
     console.error('[Wrapped] Failed to load wrapped data:', error);
-    // If the user doesn't exist or API fails, trigger the 404 page
     return notFound();
   }
 
-  // 2. Render the successful component outside of any try/catch blocks.
+  // 2. Render the successful component with manual type mappings
   return (
-    <div className="min-h-[85vh] p-4 md:p-8 flex items-center justify-center relative">
-      <GithubWrapped profile={dashboardData.profile} wrappedData={wrappedData} />
-    </div>
+    <GithubWrapped
+      profile={
+        {
+          username: username,
+          name: dashboardData?.profile?.name || username,
+          avatarUrl:
+            (dashboardData?.profile as any)?.avatar_url ||
+            (dashboardData?.profile as any)?.avatarUrl ||
+            '',
+          isPro: false,
+          joinedDate: (dashboardData?.profile as any)?.joinedDate || '',
+          bio: (dashboardData?.profile as any)?.bio || '',
+          location: (dashboardData?.profile as any)?.location || '',
+          developerScore: 0,
+        } as any
+      }
+      wrappedData={wrappedData as any}
+    />
   );
 }

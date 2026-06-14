@@ -50,8 +50,8 @@ describe('GET /api/stats', () => {
     refreshPolicy.reset();
     refreshRateLimiter.reset();
     vi.mocked(fetchGitHubContributions).mockResolvedValue({
-      calendar: mockCalendar,
-      repoContributions: [],
+      ...mockCalendar,
+      repoContributions: 0,
     });
   });
 

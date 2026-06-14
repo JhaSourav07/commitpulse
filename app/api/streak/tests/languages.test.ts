@@ -55,7 +55,16 @@ describe('GET /api/streak — languages (lang) parameter', () => {
     vi.mocked(fetchGitHubContributions).mockResolvedValue({
       calendar: mockCalendar,
       repoContributions: [],
-    } as unknown as ExtendedContributionData);
+      profile: {
+        username: 'octocat',
+        name: 'The Octocat',
+        avatar_url: '',
+        bio: '',
+        location: '',
+        joinedDate: '',
+        developerScore: 0,
+      },
+    } as any);
     vi.mocked(getSecondsUntilUTCMidnight).mockReturnValue(3600);
   });
 

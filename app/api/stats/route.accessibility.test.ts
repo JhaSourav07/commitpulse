@@ -38,8 +38,10 @@ describe('ApiStatsRoute Accessibility Standards & Screen Reader Aria Compliance'
     refreshPolicy.reset();
     refreshRateLimiter.reset();
     vi.mocked(fetchGitHubContributions).mockResolvedValue({
-      calendar: mockCalendar,
-      repoContributions: [],
+      ...mockCalendar,
+      repoContributions: 0,
+      totalContributions: 0,
+      weeks: [],
     });
   });
 

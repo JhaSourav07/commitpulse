@@ -94,7 +94,7 @@ export async function GET(req: NextRequest) {
     // Without this, every link-preview bot crawl fires a fresh GitHub GraphQL request,
     // burning API quota on an endpoint that is embedded in every page's <meta> tag.
     const data = await fetchGitHubContributions(user, { bypassCache: isRefreshRequested });
-    const stats = calculateStreak(data.calendar ?? data);
+    const stats = calculateStreak(data);
     totalCommits = stats.totalContributions;
     longestStreak = stats.longestStreak;
     currentStreak = stats.currentStreak;

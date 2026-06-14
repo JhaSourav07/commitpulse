@@ -63,7 +63,17 @@ describe('GET /api/streak', () => {
     vi.mocked(fetchGitHubContributions).mockResolvedValue({
       calendar: mockCalendar,
       repoContributions: [],
-    } as unknown as ExtendedContributionData);
+      isOfflineFallback: false,
+      profile: {
+        username: 'octocat',
+        name: 'The Octocat',
+        avatar_url: '',
+        bio: '',
+        location: '',
+        joinedDate: '',
+        developerScore: 0,
+      },
+    } as any);
     vi.mocked(getOrgDashboardData).mockResolvedValue({
       profile: {
         username: 'octocat',
@@ -382,9 +392,19 @@ describe('GET /api/streak', () => {
 
     it('Scenario 2 & 3: User with 0 public repositories or private profile (empty calendar)', async () => {
       vi.mocked(fetchGitHubContributions).mockResolvedValue({
-        calendar: { totalContributions: 0, weeks: [] },
+        calendar: mockCalendar,
         repoContributions: [],
-      } as unknown as ExtendedContributionData);
+        isOfflineFallback: false,
+        profile: {
+          username: 'octocat',
+          name: 'The Octocat',
+          avatar_url: '',
+          bio: '',
+          location: '',
+          joinedDate: '',
+          developerScore: 0,
+        },
+      } as any);
 
       const response = await GET(makeRequest({ user: 'private-user' }));
       expect(response.status).toBe(200);
@@ -564,7 +584,16 @@ describe('GET /api/streak', () => {
           ],
         },
         repoContributions: [],
-      } as unknown as ExtendedContributionData);
+        profile: {
+          username: 'octocat',
+          name: 'The Octocat',
+          avatar_url: '',
+          bio: '',
+          location: '',
+          joinedDate: '',
+          developerScore: 0,
+        },
+      } as any);
 
       const linearResponse = await GET(makeRequest({ user: 'octocat', scale: 'linear' }));
       const logResponse = await GET(makeRequest({ user: 'octocat', scale: 'log' }));
@@ -1106,9 +1135,18 @@ describe('GET /api/streak', () => {
               ],
             },
           ],
-        } as ContributionCalendar,
+        },
         repoContributions: [],
-      } as unknown as ExtendedContributionData);
+        profile: {
+          username: 'octocat',
+          name: 'The Octocat',
+          avatar_url: '',
+          bio: '',
+          location: '',
+          joinedDate: '',
+          developerScore: 0,
+        },
+      } as any);
 
       try {
         const response = await GET(
@@ -1146,9 +1184,18 @@ describe('GET /api/streak', () => {
               ],
             },
           ],
-        } as ContributionCalendar,
+        },
         repoContributions: [],
-      } as unknown as ExtendedContributionData);
+        profile: {
+          username: 'octocat',
+          name: 'The Octocat',
+          avatar_url: '',
+          bio: '',
+          location: '',
+          joinedDate: '',
+          developerScore: 0,
+        },
+      } as any);
 
       try {
         const response = await GET(
@@ -1246,9 +1293,18 @@ describe('GET /api/streak', () => {
               ],
             },
           ],
-        } as ContributionCalendar,
+        },
         repoContributions: [],
-      } as unknown as ExtendedContributionData);
+        profile: {
+          username: 'octocat',
+          name: 'The Octocat',
+          avatar_url: '',
+          bio: '',
+          location: '',
+          joinedDate: '',
+          developerScore: 0,
+        },
+      } as any);
 
       vi.useFakeTimers();
       vi.setSystemTime(new Date('2026-05-20T12:00:00Z'));
@@ -1279,9 +1335,18 @@ describe('GET /api/streak', () => {
               ],
             },
           ],
-        } as ContributionCalendar,
+        },
         repoContributions: [],
-      } as unknown as ExtendedContributionData);
+        profile: {
+          username: 'octocat',
+          name: 'The Octocat',
+          avatar_url: '',
+          bio: '',
+          location: '',
+          joinedDate: '',
+          developerScore: 0,
+        },
+      } as any);
 
       vi.useFakeTimers();
       vi.setSystemTime(new Date('2026-05-20T12:00:00Z'));
@@ -1321,7 +1386,16 @@ describe('GET /api/streak', () => {
       vi.mocked(fetchGitHubContributions).mockResolvedValue({
         calendar: emptyCalendar,
         repoContributions: [],
-      } as unknown as ExtendedContributionData);
+        profile: {
+          username: 'octocat',
+          name: 'The Octocat',
+          avatar_url: '',
+          bio: '',
+          location: '',
+          joinedDate: '',
+          developerScore: 0,
+        },
+      } as any);
       const response = await GET(makeRequest({ user: 'octocat' }));
       const body = await response.text();
 
@@ -1533,11 +1607,29 @@ describe('GET /api/streak', () => {
         .mockResolvedValueOnce({
           calendar: mockCalendar,
           repoContributions: [],
-        } as unknown as ExtendedContributionData)
+          profile: {
+            username: 'a',
+            name: 'User A',
+            avatar_url: '',
+            bio: '',
+            location: '',
+            joinedDate: '',
+            developerScore: 0,
+          },
+        } as any)
         .mockResolvedValueOnce({
           calendar: mockCalendar,
           repoContributions: [],
-        } as unknown as ExtendedContributionData);
+          profile: {
+            username: 'b',
+            name: 'User B',
+            avatar_url: '',
+            bio: '',
+            location: '',
+            joinedDate: '',
+            developerScore: 0,
+          },
+        } as any);
 
       const response = await GET(makeRequest({ user: 'a, b' }));
       expect(response.status).toBe(200);
@@ -1550,13 +1642,19 @@ describe('GET /api/streak', () => {
     });
 
     it('gracefully handles partial fetch failures by filtering out failed calendars', async () => {
-      vi.mocked(fetchGitHubContributions)
-        .mockResolvedValueOnce({
-          calendar: mockCalendar,
-          repoContributions: [],
-        } as unknown as ExtendedContributionData)
-        .mockRejectedValueOnce(new Error('GitHub user "b" not found'));
-
+      vi.mocked(fetchGitHubContributions).mockResolvedValueOnce({
+        calendar: mockCalendar,
+        repoContributions: [],
+        profile: {
+          username: 'a',
+          name: 'User A',
+          avatar_url: '',
+          bio: '',
+          location: '',
+          joinedDate: '',
+          developerScore: 0,
+        },
+      } as any);
       const response = await GET(makeRequest({ user: 'a, b' }));
       expect(response.status).toBe(200);
 

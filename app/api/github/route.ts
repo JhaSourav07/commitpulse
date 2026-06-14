@@ -111,7 +111,7 @@ export async function GET(request: Request) {
 
     // 4. Stale-While-Revalidate background refresh for normal cached requests
     if (!shouldBypassCache) {
-      const lastSynced = data.lastSyncedAt;
+      const lastSynced = (data as any)?.lastSyncedAt;
       if (backgroundRefresh.isStale(lastSynced)) {
         // Run after the response is sent so Vercel does not freeze the function mid-refresh.
         after(() => backgroundRefresh.triggerRefresh(username));

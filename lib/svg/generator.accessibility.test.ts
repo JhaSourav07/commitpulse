@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { generateSVG, generateHeatmapSVG, generateNotFoundSVG } from './generator';
+import { generateSVG, generatePulseSVG, generateNotFoundSVG } from './generator';
 import type { BadgeParams, ContributionCalendar, StreakStats } from '../../types';
 
 // ── Minimal fixtures ──────────────────────────────────────────────────────
@@ -101,7 +101,7 @@ describe('Accessibility Standards & Screen Reader Aria Compliance', () => {
     expect(notFoundSvg).toMatch(/aria-labelledby="[^"]+"/);
     expect(notFoundSvg).toMatch(/aria-describedby="[^"]+"/);
 
-    const heatmapSvg = generateHeatmapSVG(makeStats(), makeParams(), makeCalendar());
+    const heatmapSvg = generatePulseSVG(makeStats(), makeParams(), makeCalendar());
 
     expect(heatmapSvg).toContain('role="img"');
     // Heatmap uses an inline title/desc without aria ids but must still carry role

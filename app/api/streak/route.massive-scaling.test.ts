@@ -51,7 +51,16 @@ describe('ApiStreakRoute massive scaling', () => {
       calendar: createMassiveCalendar(),
       repoContributions: [],
       isOfflineFallback: false,
-    } as unknown as ExtendedContributionData);
+      profile: {
+        username: 'octocat',
+        name: 'The Octocat',
+        avatar_url: '',
+        bio: '',
+        location: '',
+        joinedDate: '',
+        developerScore: 0,
+      },
+    } as any);
   });
 
   it('returns JSON successfully for extremely large contribution calendars', async () => {

@@ -142,14 +142,53 @@ export default async function DashboardPage({
     }
   }
 
+  // 1. Safely calculate the profile object with correct schema property naming
+  const fallbackProfile = {
+    username: username,
+    name: data?.profile?.name || username,
+    avatar_url: (data?.profile as any)?.avatar_url || (data?.profile as any)?.avatarUrl || '', // 🟢 Uses correct snake_case fallback name
+    bio: data?.profile && 'bio' in data.profile ? (data.profile as any).bio || '' : '',
+    location:
+      data?.profile && 'location' in data.profile ? (data.profile as any).location || '' : '',
+    joinedDate:
+      data?.profile && 'joinedDate' in data.profile ? (data.profile as any).joinedDate || '' : '',
+    developerScore:
+      data?.profile && 'developerScore' in data.profile
+        ? (data.profile as any).developerScore || 0
+        : 0,
+  };
+
+  // 2. Safely calculate stats keys with all old vs new naming combinations
+  const safeStats = {
+    currentStreak:
+      (data as any)?.stats?.currentStreak ?? (data as any)?.streakStats?.currentStreak ?? 0,
+    peakStreak:
+      (data as any)?.stats?.peakStreak ??
+      (data as any)?.streakStats?.peakStreak ??
+      (data as any)?.streakStats?.longestStreak ??
+      0,
+    totalContributions:
+      (data as any)?.stats?.totalContributions ??
+      (data as any)?.streakStats?.totalContributions ??
+      (data as any)?.streakStats?.totalCommits ??
+      0,
+  };
+
   return (
     <DashboardPageWrapper>
       <DashboardClient
-        initialData={data}
-        allRepoActivity={allRepos}
+        initialData={{
+          profile: fallbackProfile as any,
+          languages: data?.languages ?? [],
+          graphData: (data?.graphData as any) ?? { nodes: [], links: [] },
+          activity: data?.activity ?? [],
+          insights: data?.insights ?? [],
+          achievements: data?.achievements ?? [],
+          commitClock: data?.commitClock ?? (data as any)?.commitclock ?? [],
+          stats: safeStats,
+        }}
         username={username}
-        compareData={compareData}
-        period={period}
+        period={(data as any)?.period ?? '30d'}
       />
     </DashboardPageWrapper>
   );

@@ -15,7 +15,6 @@ import {
   generateSVG,
   generateMonthlySVG,
   generateVersusSVG,
-  generateHeatmapSVG,
   generatePulseSVG,
   generateSkylineSVG,
   generateLanguagesSVG,
@@ -294,8 +293,9 @@ export async function GET(request: Request) {
         from,
         to,
       });
-      calendar = orgData.calendar;
-      repoContributions = normalizedView === 'languages' ? orgData.repoContributions || [] : [];
+      const calendar = (orgData as any)?.calendar;
+      repoContributions =
+        normalizedView === 'languages' ? (orgData as any)?.repoContributions || [] : [];
     } else if (user.includes(',')) {
       const users = user
         .split(',')
@@ -317,7 +317,7 @@ export async function GET(request: Request) {
               from,
               to,
             });
-            if (userData.isOfflineFallback) {
+            if ((userData as any)?.isOfflineFallback) {
               hasOfflineFallback = true;
             }
             return userData;
@@ -327,16 +327,16 @@ export async function GET(request: Request) {
           }
         })
       );
-      const successfulData = fetchedCalendars.filter(
-        (d): d is ExtendedContributionData => d !== null
-      );
+      const successfulData = fetchedCalendars.filter((d: any) => d !== null);
+
       if (successfulData.length === 0) {
         throw lastError || new Error('No successful data fetched');
       }
-      calendar = aggregateCalendars(successfulData.map((d) => d.calendar));
+
+      calendar = aggregateCalendars(successfulData.map((d: any) => d?.calendar).filter(Boolean));
       repoContributions =
         normalizedView === 'languages'
-          ? successfulData.flatMap((d) => d.repoContributions || [])
+          ? successfulData.flatMap((d: any) => d?.repoContributions || [])
           : [];
       if (hasOfflineFallback) {
         params.isOfflineFallback = true;
@@ -347,9 +347,10 @@ export async function GET(request: Request) {
         from,
         to,
       });
-      calendar = userData.calendar;
-      repoContributions = normalizedView === 'languages' ? userData.repoContributions || [] : [];
-      if (userData.isOfflineFallback) {
+      calendar = (userData as any)?.calendar;
+      repoContributions =
+        normalizedView === 'languages' ? (userData as any)?.repoContributions || [] : [];
+      if ((userData as any)?.isOfflineFallback) {
         params.isOfflineFallback = true;
       }
 
@@ -359,20 +360,20 @@ export async function GET(request: Request) {
           from,
           to,
         });
-        versusCalendar = versusData.calendar;
-        if (versusData.isOfflineFallback) {
+        versusCalendar = (versusData as any)?.calendar;
+        if ((versusData as any)?.isOfflineFallback) {
           params.isOfflineFallback = true;
         }
       }
     }
 
     if (days && normalizedView !== 'monthly') {
-      const allDays = calendar.weeks.flatMap((w) => w.contributionDays);
+      const allDays = calendar.weeks.flatMap((w: any) => w.contributionDays);
 
       const filteredDays = allDays.slice(-days);
 
       calendar = {
-        totalContributions: filteredDays.reduce((sum, d) => sum + d.contributionCount, 0),
+        totalContributions: filteredDays.reduce((sum: any, d: any) => sum + d.contributionCount, 0),
         weeks: chunkDaysIntoWeeks(filteredDays),
       };
     }
@@ -448,7 +449,7 @@ export async function GET(request: Request) {
       svg = generateLanguagesSVG(stats, params, repoContributions);
     } else if (normalizedView === 'heatmap') {
       const stats = calculateStreak(calendar, timezone, undefined, grace);
-      svg = generateHeatmapSVG(stats, params, calendar);
+      svg = generatePulseSVG(stats, params, calendar);
     } else if (normalizedView === 'pulse') {
       // We still use calculateStreak here to efficiently parse totalContributions for the stat display,
       // even though the sparkline generator will extract its own daily 30-day timeline below.

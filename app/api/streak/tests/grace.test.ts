@@ -60,7 +60,16 @@ describe('Grace Parameter Integration Tests', () => {
     vi.mocked(fetchGitHubContributions).mockResolvedValue({
       calendar: mockCalendarWithGraceScenario,
       repoContributions: [],
-    } as unknown as ExtendedContributionData);
+      profile: {
+        username: 'octocat',
+        name: 'The Octocat',
+        avatar_url: '',
+        bio: '',
+        location: '',
+        joinedDate: '',
+        developerScore: 0,
+      },
+    } as any);
     vi.mocked(getSecondsUntilUTCMidnight).mockReturnValue(3600);
   });
 

@@ -47,7 +47,16 @@ describe('GET /api/user-details', () => {
       repoContributions: [],
       totalPRs: 0,
       totalIssues: 0,
-    });
+      profile: {
+        username: 'octocat',
+        name: 'The Octocat',
+        avatar_url: '',
+        bio: '',
+        location: '',
+        joinedDate: '',
+        developerScore: 0,
+      },
+    } as any);
   });
 
   it('returns 400 when username is missing', async () => {

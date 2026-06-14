@@ -60,19 +60,40 @@ export class RateLimiter {
     return true;
   }
   async checkWithResult(ip: string): Promise<RateLimitResult> {
+    const current = (await this.cache.get(ip)) ?? 0;
+    const now = Date.now();
+
     if (this.allowlist.has(ip))
       return {
         success: true,
         limit: this.limit,
         remaining: this.limit,
-        reset: Date.now() + this.windowMs,
+        reset: now + this.windowMs,
       };
-    if (this.blocklist.has(ip))
-      return { success: false, limit: this.limit, remaining: 0, reset: Date.now() + this.windowMs };
-    const now = Date.now();
-    const current = (await this.cache.get(ip)) ?? 0;
 
-    const now = Date.now();
+    if (this.blocklist.has(ip))
+      return { success: false, limit: this.limit, remaining: 0, reset: now + this.windowMs };
+
+    // 4. Standard Rate Limiting Logic for normal users:
+    if (current >= this.limit) {
+      return {
+        success: false,
+        limit: this.limit,
+        remaining: 0,
+        reset: now + this.windowMs,
+      };
+    }
+
+    // Increment and update cache for the current request
+    await this.cache.set(ip, current + 1, this.windowMs);
+
+    return {
+      success: true,
+      limit: this.limit,
+      remaining: this.limit - (current + 1),
+      reset: now + this.windowMs,
+    };
+
     const url = process.env.KV_REST_API_URL;
     const token = process.env.KV_REST_API_TOKEN;
 
@@ -105,7 +126,7 @@ export class RateLimiter {
       }
     }
 
-    const record = await this.cache.get(ip);
+    const record = (await this.cache.get(ip)) as { count: number; resetAt: number } | null;
     const count = record?.count ?? 0;
 
     if (count >= this.limit) {
@@ -194,33 +215,35 @@ export async function rateLimit(
   windowMs: number = 60000
 ): Promise<RateLimitResult> {
   const now = Date.now();
-  const tracker = await trackers.get(ip);
+  const tracker = (await trackers.get(ip)) as { count: number; resetAt: number } | null;
 
   if (!tracker) {
+    const resetAtTime = Date.now() + windowMs;
     await trackers.set(ip, { count: 1 }, windowMs);
     return {
       success: true,
       limit,
       remaining: limit - 1,
-      reset: resetAt,
+      reset: resetAtTime,
     };
   }
 
   tracker.count++;
   await trackers.set(ip, tracker, windowMs);
 
-  if (!updated) {
-    const resetAt = now + windowMs;
-    await trackers.set(ip, { count: 1, resetAt }, windowMs);
+  // If the window has expired or reset is needed, recalculate
+  if (Date.now() > tracker.resetAt) {
+    const resetAtTime = Date.now() + windowMs;
+    await trackers.set(ip, { count: 1 }, windowMs);
     return {
       success: true,
       limit,
       remaining: limit - 1,
-      reset: resetAt,
+      reset: resetAtTime,
     };
   }
 
-  if (newCount > limit) {
+  if (tracker.count > limit) {
     return {
       success: false,
       limit,
@@ -232,7 +255,7 @@ export async function rateLimit(
   return {
     success: true,
     limit,
-    remaining: limit - newCount,
+    remaining: limit - tracker.count,
     reset: tracker.resetAt,
   };
 }

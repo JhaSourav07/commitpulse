@@ -5,7 +5,6 @@ import {
   generateMonthlyBadge,
   generateNotFoundSVG,
   generateRateLimitSVG,
-  generateHeatmapSVG,
   generatePulseSVG,
   generateVersusSVG,
   particleCount,
@@ -1973,7 +1972,7 @@ describe('glow parameter', () => {
   });
 
   it('omits heatmap glow filter and cell filter attributes when glow=false is requested in heatmap', () => {
-    const svgWithGlow = generateHeatmapSVG(
+    const svgWithGlow = generatePulseSVG(
       mockStats,
       { user: 'avi', view: 'heatmap' } as unknown as BadgeParams,
       mockCalendar
@@ -1981,7 +1980,7 @@ describe('glow parameter', () => {
     expect(svgWithGlow).toContain('<filter id="hm-glow"');
     expect(svgWithGlow).toContain('filter="url(#hm-glow)"');
 
-    const svgNoGlow = generateHeatmapSVG(
+    const svgNoGlow = generatePulseSVG(
       mockStats,
       { user: 'avi', view: 'heatmap', glow: false } as unknown as BadgeParams,
       mockCalendar

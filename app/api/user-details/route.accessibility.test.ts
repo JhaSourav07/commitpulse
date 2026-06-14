@@ -49,7 +49,16 @@ describe('ApiUser-detailsRoute Accessibility (WCAG / ARIA compliance)', () => {
       repoContributions: [],
       totalPRs: 0,
       totalIssues: 0,
-    });
+      profile: {
+        username: 'octocat',
+        name: 'The Octocat',
+        avatar_url: '',
+        bio: '',
+        location: '',
+        joinedDate: '',
+        developerScore: 0,
+      },
+    } as any);
   });
 
   // -----------------------------------------------------------------------

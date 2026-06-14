@@ -62,7 +62,16 @@ describe('GET /api/streak view parameter integration', () => {
     vi.mocked(fetchGitHubContributions).mockResolvedValue({
       calendar: mockCalendar,
       repoContributions: [],
-    } as unknown as ExtendedContributionData);
+      profile: {
+        username: 'octocat',
+        name: 'The Octocat',
+        avatar_url: '',
+        bio: '',
+        location: '',
+        joinedDate: '',
+        developerScore: 0,
+      },
+    } as any);
 
     vi.mocked(getOrgDashboardData).mockResolvedValue({
       profile: {

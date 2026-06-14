@@ -29,7 +29,7 @@ export async function GET(request: Request) {
 
     let stats = { currentStreak: 0, longestStreak: 0, totalContributions: 0 };
     if (contributions) {
-      const calculated = calculateStreak(contributions.calendar);
+      const calculated = calculateStreak((contributions as any)?.calendar);
       stats = {
         currentStreak: calculated.currentStreak,
         longestStreak: calculated.longestStreak,

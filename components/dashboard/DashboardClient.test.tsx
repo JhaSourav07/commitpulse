@@ -215,22 +215,6 @@ const mockPeriod = {
   year: '2026',
 };
 
-const initialDataWithHigherStreak = {
-  ...mockInitialData,
-  stats: {
-    ...mockInitialData.stats,
-    peakStreak: 50,
-  },
-};
-
-const secondDataWithLowerStreak = {
-  ...mockSecondData,
-  stats: {
-    ...mockSecondData.stats,
-    peakStreak: 10,
-  },
-};
-
 describe('DashboardClient', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
@@ -539,7 +523,11 @@ describe('DashboardClient', () => {
   // ISSUE OBJECTIVE #1063: Verify compare modal input can be cleared
   // =========================================================================
   it('verify compare modal input can be cleared', async () => {
-    render(<DashboardClient initialData={mockInitialData} username="Shivangi1515" />);
+    render(
+      <DashboardClient
+        {...({ initialData: mockInitialData, username: 'Shivangi1515', period: 'YEARLY' } as any)}
+      />
+    );
 
     // 1. Open modal
     const compareBtn = screen.getByText('Compare Profile');
@@ -568,7 +556,15 @@ it('shows Most Consistent badge for profile with higher peak streak in compare m
 
   vi.stubGlobal('fetch', mockFetch);
 
-  render(<DashboardClient initialData={initialDataWithHigherStreak} username="Shivangi1515" />);
+  render(
+    <DashboardClient
+      {...({
+        initialData: initialDataWithHigherStreak,
+        username: 'Shivangi1515',
+        period: 'YEARLY',
+      } as any)}
+    />
+  );
 
   fireEvent.click(screen.getByText('Compare Profile'));
 

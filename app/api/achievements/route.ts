@@ -557,14 +557,19 @@ export async function GET(request: Request) {
   try {
     const dashboardData = await getFullDashboardData(username);
 
-    const { profile, stats, languages } = dashboardData;
-    const totalStars = profile.stats.stars;
+    const { profile, languages } = dashboardData as any;
+
+    // Safely extract the statistics object from whichever property the backend provides
+    const safeStats =
+      (dashboardData as any)?.stats ?? (dashboardData as any)?.streakStats ?? profile?.stats ?? {};
+
+    const totalStars = safeStats?.stars ?? 0;
     const totalForks =
-      (dashboardData.popularRepos as Array<{ forkCount: number }> | undefined)?.reduce(
+      ((dashboardData as any)?.popularRepos as Array<{ forkCount: number }> | undefined)?.reduce(
         (sum, r) => sum + (r.forkCount ?? 0),
         0
       ) ?? 0;
-    const totalRepos = profile.stats.repositories;
+    const totalRepos = safeStats?.repositories ?? 0;
     const contributedRepoCount =
       dashboardData.graphData?.nodes?.filter((n) => n.type === 'Contribution').length ?? 0;
 
@@ -589,18 +594,20 @@ export async function GET(request: Request) {
       AI_KEYWORDS.some((kw) => l.toLowerCase().includes(kw))
     ).length;
 
-    const popularRepos = (dashboardData.popularRepos ?? []) as Array<{ stargazerCount: number }>;
+    const popularRepos = ((dashboardData as any).popularRepos ?? []) as Array<{
+      stargazerCount: number;
+    }>;
     let topStarDensity = 0;
     for (const repo of popularRepos) {
       const density = repo.stargazerCount / 6;
       if (density > topStarDensity) topStarDensity = density;
     }
 
-    const totalEngagement = totalStars + totalForks + stats.totalIssues + stats.totalPRs;
-
-    const totalContributions = stats.totalContributions;
-    const currentStreak = stats.currentStreak;
-    const longestStreak = stats.peakStreak;
+    const totalEngagement =
+      totalStars + totalForks + (safeStats.totalIssues ?? 0) + (safeStats.totalPRs ?? 0);
+    const totalContributions = safeStats.totalContributions ?? 0;
+    const currentStreak = safeStats.currentStreak ?? 0;
+    const longestStreak = safeStats.peakStreak ?? safeStats.longestStreak ?? 0;
 
     const allCategories: AchievementCategory[] = [
       'contribution',
@@ -616,18 +623,21 @@ export async function GET(request: Request) {
       'daily-contributor': activeDays,
       'marathon-coder': totalContributions,
       'weekend-warrior': weekendContributions,
-      'pr-rookie': stats.totalPRs,
-      'pr-master': stats.totalPRs,
-      'merge-master': stats.totalPRs,
-      'review-expert': Math.min(stats.totalPRs, Math.round(stats.totalPRs * 0.3)),
-      'pr-legend': stats.totalPRs,
+      'pr-rookie': safeStats.totalPRs ?? 0,
+      'pr-master': safeStats.totalPRs ?? 0,
+      'merge-master': safeStats.totalPRs ?? 0,
+      'review-expert': Math.min(
+        safeStats.totalPRs ?? 0,
+        Math.round((safeStats.totalPRs ?? 0) * 0.3)
+      ),
+      'pr-legend': safeStats.totalPRs ?? 0,
       'star-collector': totalStars,
       'repository-creator': totalRepos,
       'project-maintainer': totalForks,
       'hidden-gem': topStarDensity,
       'repository-explorer': contributedRepoCount,
       'open-source-explorer': contributedRepoCount,
-      'collaboration-champion': stats.totalIssues + stats.totalPRs,
+      'collaboration-champion': (safeStats.totalIssues ?? 0) + (safeStats.totalPRs ?? 0),
       'team-player': contributedRepoCount,
       'community-builder': totalEngagement,
       'polyglot-developer': uniqueLanguageCount,

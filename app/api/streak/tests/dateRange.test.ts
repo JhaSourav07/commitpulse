@@ -45,7 +45,16 @@ describe('GET /api/streak dateRange parameter', () => {
     vi.mocked(fetchGitHubContributions).mockResolvedValue({
       calendar: baseCalendar,
       repoContributions: [],
-    } as unknown as ExtendedContributionData);
+      profile: {
+        username: 'octocat',
+        name: 'The Octocat',
+        avatar_url: '',
+        bio: '',
+        location: '',
+        joinedDate: '',
+        developerScore: 0,
+      },
+    } as any);
 
     vi.mocked(getOrgDashboardData).mockResolvedValue({
       profile: { username: 'org' },
@@ -75,7 +84,16 @@ describe('GET /api/streak dateRange parameter', () => {
     vi.mocked(fetchGitHubContributions).mockResolvedValueOnce({
       calendar: decCalendar,
       repoContributions: [],
-    } as unknown as ExtendedContributionData);
+      profile: {
+        username: 'octocat',
+        name: 'The Octocat',
+        avatar_url: '',
+        bio: '',
+        location: '',
+        joinedDate: '',
+        developerScore: 0,
+      },
+    } as any);
 
     const res = await GET(makeRequest({ user: 'octocat', from: '2024-12-01', to: '2024-12-31' }));
     expect(res.status).toBe(200);

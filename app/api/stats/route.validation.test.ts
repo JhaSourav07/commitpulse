@@ -48,7 +48,16 @@ describe('GET /api/stats additional runtime coverage', () => {
     vi.mocked(fetchGitHubContributions).mockResolvedValue({
       calendar: mockCalendar,
       repoContributions: [],
-    });
+      profile: {
+        username: 'octocat',
+        name: 'The Octocat',
+        avatar_url: '',
+        bio: '',
+        location: '',
+        joinedDate: '',
+        developerScore: 0,
+      },
+    } as any);
   });
 
   it('treats bypassCache=true as a refresh request', async () => {

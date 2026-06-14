@@ -51,50 +51,60 @@ describe('GET /api/wrapped stats calculation', () => {
       topLanguage: 'TypeScript',
     };
 
-    vi.mocked(getWrappedData).mockResolvedValue(wrappedStats);
+    vi.mocked(getWrappedData).mockResolvedValue(wrappedStats as any);
     vi.mocked(fetchGitHubContributions).mockResolvedValue({
       calendar: statsCalendar,
-    } as unknown as import('../../../../types').ExtendedContributionData);
-  });
+      repoContributions: [],
+      profile: {
+        username: 'octocat',
+        name: 'The Octocat',
+        avatar_url: '',
+        bio: '',
+        location: '',
+        joinedDate: '',
+        developerScore: 0,
+      },
+    } as any);
 
-  it('renders the calculated busiest month in the wrapped SVG', async () => {
-    const response = await GET(makeRequest({ user: 'octocat', year: '2025' }));
-    const body = await response.text();
+    it('renders the calculated busiest month in the wrapped SVG', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', year: '2025' }));
+      const body = await response.text();
 
-    expect(response.status).toBe(200);
-    expect(body).toContain('MARCH');
-  });
-
-  it('renders the calculated weekend contribution ratio', async () => {
-    const response = await GET(makeRequest({ user: 'octocat', year: '2025' }));
-    const body = await response.text();
-
-    expect(response.status).toBe(200);
-    expect(body).toContain('68%');
-  });
-
-  it('renders the peak contribution day count and date', async () => {
-    const response = await GET(makeRequest({ user: 'octocat', year: '2025' }));
-    const body = await response.text();
-
-    expect(response.status).toBe(200);
-    expect(body).toContain('30 COMMITS');
-    expect(body).toContain('ON MAR 8');
-  });
-
-  it('requests wrapped stats and contribution data using selected year bounds', async () => {
-    await GET(makeRequest({ user: 'octocat', year: '2025' }));
-
-    expect(getWrappedData).toHaveBeenCalledWith('octocat', '2025', {
-      bypassCache: false,
+      expect(response.status).toBe(200);
+      expect(body).toContain('MARCH');
     });
-  });
 
-  it('returns 400 and skips wrapped stats calculation when validation fails', async () => {
-    const response = await GET(makeRequest({ user: 'invalid_user', year: '2025' }));
+    it('renders the calculated weekend contribution ratio', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', year: '2025' }));
+      const body = await response.text();
 
-    expect(response.status).toBe(400);
-    expect(getWrappedData).not.toHaveBeenCalled();
-    expect(fetchGitHubContributions).not.toHaveBeenCalled();
+      expect(response.status).toBe(200);
+      expect(body).toContain('68%');
+    });
+
+    it('renders the peak contribution day count and date', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', year: '2025' }));
+      const body = await response.text();
+
+      expect(response.status).toBe(200);
+      expect(body).toContain('30 COMMITS');
+      expect(body).toContain('ON MAR 8');
+    });
+
+    it('requests wrapped stats and contribution data using selected year bounds', async () => {
+      await GET(makeRequest({ user: 'octocat', year: '2025' }));
+
+      expect(getWrappedData).toHaveBeenCalledWith('octocat', '2025', {
+        bypassCache: false,
+      });
+    });
+
+    it('returns 400 and skips wrapped stats calculation when validation fails', async () => {
+      const response = await GET(makeRequest({ user: 'invalid_user', year: '2025' }));
+
+      expect(response.status).toBe(400);
+      expect(getWrappedData).not.toHaveBeenCalled();
+      expect(fetchGitHubContributions).not.toHaveBeenCalled();
+    });
   });
 });

@@ -64,8 +64,10 @@ export default async function OrgDashboardPage({
   }
 
   // 1. Process Calendar into Activity Array for Org
-  const allDays = data.calendar.weeks.flatMap((w) => w.contributionDays);
-  const activity = allDays.map((day) => {
+  const allDays = (data?.calendar?.weeks || []).flatMap(
+    (w: { contributionDays: any[] }) => w.contributionDays || []
+  );
+  const activity = allDays.map((day: { contributionCount: number; date: string }) => {
     let intensity: 0 | 1 | 2 | 3 | 4 = 0;
     // Scaled up intensity thresholds because orgs have way more commits than single users
     if (day.contributionCount > 0) intensity = 1;
@@ -83,26 +85,37 @@ export default async function OrgDashboardPage({
   // 2. Generate Org Specific Assets
   const commitClock = buildCommitClock(allDays);
   const achievements = generateAchievements(
-    data.stats.totalContributions,
-    data.stats.currentStreak
+    (data as any)?.stats?.totalContributions ?? (data as any)?.streakStats?.totalContributions ?? 0,
+    (data as any)?.stats?.currentStreak ?? (data as any)?.streakStats?.currentStreak ?? 0
   );
+
+  // Pre-calculate safe string values to prevent template syntax bugs
+  const totalContributionsText =
+    (data as any)?.stats?.totalContributions ?? (data as any)?.streakStats?.totalContributions ?? 0;
+  const peakStreakText =
+    (data as any)?.stats?.peakStreak ??
+    (data as any)?.streakStats?.peakStreak ??
+    (data as any)?.streakStats?.longestStreak ??
+    0;
+  const followersText =
+    (data as any)?.profile?.stats?.following ?? (data as any)?.profile?.following ?? 0;
 
   // 3. Custom Org AI Insights
   const insights = [
     {
       id: '1',
       icon: 'Users',
-      text: `This organization is powered by ${data.profile.stats.following} core open-source contributors.`,
+      text: `This organization is powered by ${followersText} core open-source contributors.`,
     },
     {
       id: '2',
       icon: 'GitCommit',
-      text: `A massive ${data.stats.totalContributions} total contributions were merged by the team this year.`,
+      text: `A massive ${totalContributionsText} total contributions were merged by the team this year.`,
     },
     {
       id: '3',
       icon: 'Flame',
-      text: `The team's peak collaborative streak reached ${data.stats.peakStreak} consecutive days.`,
+      text: `The team's peak collaborative streak reached ${peakStreakText} consecutive days.`,
     },
   ];
 
@@ -133,12 +146,40 @@ export default async function OrgDashboardPage({
         {/* Left Sidebar */}
         <aside className="flex flex-col gap-6">
           <ProfileCard
-            user={data.profile}
+            user={
+              {
+                username: orgname,
+                name: data?.profile?.name || orgname,
+                avatarUrl:
+                  (data?.profile as any)?.avatar_url || (data?.profile as any)?.avatarUrl || '',
+                isPro: false,
+                joinedDate: (data?.profile as any)?.joinedDate || '',
+                bio: (data?.profile as any)?.bio || '',
+                location: (data?.profile as any)?.location || '',
+                developerScore: 0,
+              } as any
+            }
             exportData={{
-              stats: data.stats,
+              stats: {
+                currentStreak:
+                  (data as any)?.stats?.currentStreak ??
+                  (data as any)?.streakStats?.currentStreak ??
+                  0,
+                peakStreak:
+                  (data as any)?.stats?.peakStreak ??
+                  (data as any)?.streakStats?.peakStreak ??
+                  (data as any)?.streakStats?.longestStreak ??
+                  0,
+                totalContributions:
+                  (data as any)?.stats?.totalContributions ??
+                  (data as any)?.streakStats?.totalContributions ??
+                  (data as any)?.streakStats?.totalCommits ??
+                  0,
+              },
               languages: [], // Orgs skip language donut chart for now
             }}
           />
+
           <Achievements achievements={achievements} />
         </aside>
 
@@ -163,21 +204,35 @@ export default async function OrgDashboardPage({
           <div className="flex flex-col gap-4">
             <StatsCard
               title="Team Current Streak"
-              value={data.stats.currentStreak.toString()}
+              value={(
+                (data as any)?.stats?.currentStreak ??
+                (data as any)?.streakStats?.currentStreak ??
+                0
+              ).toString()}
               description="Days"
               icon="Flame"
             />
 
             <StatsCard
               title="Team Peak Streak"
-              value={data.stats.peakStreak.toString()}
+              value={(
+                (data as any)?.stats?.peakStreak ??
+                (data as any)?.streakStats?.peakStreak ??
+                (data as any)?.streakStats?.longestStreak ??
+                0
+              ).toString()}
               description="Days"
               icon="TrendingUp"
             />
 
             <StatsCard
               title="Total Team Commits"
-              value={data.stats.totalContributions.toString()}
+              value={(
+                (data as any)?.stats?.totalContributions ??
+                (data as any)?.streakStats?.totalContributions ??
+                (data as any)?.streakStats?.totalCommits ??
+                0
+              ).toString()}
               description="Last 365 Days"
               icon="GitCommit"
             />
