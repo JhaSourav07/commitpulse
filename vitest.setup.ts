@@ -1,7 +1,5 @@
-import React from 'react';
 import { vi } from 'vitest';
 import '@testing-library/jest-dom';
-import { motion } from 'framer-motion';
 
 // Custom Storage prototype override to fix Node.js v25+ experimental localStorage incompatibility with JSDOM
 if (typeof window !== 'undefined' && typeof window.Storage !== 'undefined') {
