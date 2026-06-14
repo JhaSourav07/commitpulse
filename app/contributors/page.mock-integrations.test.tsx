@@ -1,8 +1,88 @@
 // app/contributors/page.mock-integrations.test.tsx
 
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
+
+vi.mock('framer-motion', async () => {
+  const React = await import('react');
+
+  const motionProps = new Set([
+    'whileHover',
+    'whileTap',
+    'whileInView',
+    'initial',
+    'animate',
+    'exit',
+    'variants',
+    'transition',
+    'viewport',
+    'drag',
+    'layout',
+    'layoutId',
+  ]);
+
+  const stripMotionProps = (props: Record<string, unknown>) =>
+    Object.fromEntries(Object.entries(props).filter(([key]) => !motionProps.has(key)));
+
+  const createMotionComponent = (tag: string) => {
+    const Component = ({
+      children,
+      ...props
+    }: React.HTMLAttributes<HTMLElement> & { children?: React.ReactNode }) =>
+      React.createElement(tag, stripMotionProps(props), children);
+
+    Component.displayName = `Motion${tag}`;
+
+    return Component;
+  };
+
+  return {
+    motion: {
+      div: createMotionComponent('div'),
+      span: createMotionComponent('span'),
+      p: createMotionComponent('p'),
+      a: createMotionComponent('a'),
+      button: createMotionComponent('button'),
+      section: createMotionComponent('section'),
+      article: createMotionComponent('article'),
+      header: createMotionComponent('header'),
+      footer: createMotionComponent('footer'),
+      main: createMotionComponent('main'),
+      nav: createMotionComponent('nav'),
+      ul: createMotionComponent('ul'),
+      li: createMotionComponent('li'),
+      h1: createMotionComponent('h1'),
+      h2: createMotionComponent('h2'),
+      h3: createMotionComponent('h3'),
+      h4: createMotionComponent('h4'),
+      h5: createMotionComponent('h5'),
+      h6: createMotionComponent('h6'),
+
+      svg: createMotionComponent('svg'),
+      g: createMotionComponent('g'),
+      path: createMotionComponent('path'),
+      circle: createMotionComponent('circle'),
+      line: createMotionComponent('line'),
+
+      img: createMotionComponent('img'),
+    },
+
+    AnimatePresence: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
+
+    useReducedMotion: () => false,
+
+    useMotionValue: (initial = 0) => ({
+      get: () => initial,
+      set: vi.fn(),
+      on: vi.fn(),
+      destroy: vi.fn(),
+    }),
+
+    useSpring: (value: unknown) => value,
+    useTransform: (value: unknown) => value,
+  };
+});
 
 type ContributorsClientProps = {
   contributors: unknown[];
