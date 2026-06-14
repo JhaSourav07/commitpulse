@@ -14,10 +14,29 @@ jobs:
     if: github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Base Branch
+      - name: Checkout Code
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.workflow_run.pull_requests[0].base.ref || 'main' }}
+          fetch-depth: 0
+
+      - name: Resolve Base Ref
+        id: resolve-base
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BASE_REF=$(jq -r '.workflow_run.pull_requests[0].base.ref // empty' "$GITHUB_EVENT_PATH")
+          if [ -z "$BASE_REF" ] || [ "$BASE_REF" = "null" ]; then
+            HEAD_OWNER=$(jq -r '.workflow_run.head_repository.owner.login' "$GITHUB_EVENT_PATH")
+            HEAD_BRANCH=$(jq -r '.workflow_run.head_branch' "$GITHUB_EVENT_PATH")
+            BASE_REF=$(gh pr list --head "$HEAD_OWNER:$HEAD_BRANCH" --json baseRefName --jq '.[0].baseRefName' 2>/dev/null || true)
+            if [ -z "$BASE_REF" ] || [ "$BASE_REF" = "null" ]; then
+              BASE_REF="main"
+            fi
+          fi
+          echo "base_ref=$BASE_REF" >> $GITHUB_OUTPUT
+
+      - name: Checkout Base Branch
+        run: git checkout ${{ steps.resolve-base.outputs.base_ref }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -74,7 +93,10 @@ jobs:
                 state: 'open',
                 per_page: 100
               });
-              const pr = openPRs.find(p => p.head.sha === run.head_sha) || openPRs.find(p => p.head.ref === run.head_branch);
+              const pr = openPRs.find(p => p.head.sha === run.head_sha) || 
+                         openPRs.find(p => p.head.ref === run.head_branch && 
+                                           p.head.repo && p.head.repo.owner && run.head_repository && run.head_repository.owner &&
+                                           p.head.repo.owner.login === run.head_repository.owner.login);
               if (pr) {
                 prNumber = pr.number;
               }

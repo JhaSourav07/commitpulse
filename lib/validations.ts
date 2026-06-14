@@ -366,7 +366,16 @@ const baseStreakParamsSchema = z.object({
   tz: timeZoneParam,
   // Unknown view values fall back to the default dashboard view.
   view: z
-    .enum(['default', 'monthly', 'heatmap', 'pulse', 'skyline', 'languages', 'constellation'])
+    .enum([
+      'default',
+      'monthly',
+      'heatmap',
+      'pulse',
+      'skyline',
+      'languages',
+      'constellation',
+      'radar',
+    ])
     .catch('default')
     .default('default'),
   // Invalid delta formats fall back to percentage mode.
@@ -447,6 +456,32 @@ const baseStreakParamsSchema = z.object({
   // Output format: 'svg' (default) or 'json' for programmatic access.
   // Invalid values silently fall back to 'svg'.
   format: z.enum(['svg', 'json']).catch('svg').default('svg'),
+
+  theta: z
+    .string()
+    .optional()
+    .refine(
+      (val) => {
+        if (val === undefined || val === '') return true;
+        const num = Number(val);
+        return !isNaN(num) && num >= 0 && num <= 360;
+      },
+      { message: 'theta must be a number between 0 and 360' }
+    )
+    .transform((val) => (val === undefined || val === '' ? undefined : Number(val))),
+
+  phi: z
+    .string()
+    .optional()
+    .refine(
+      (val) => {
+        if (val === undefined || val === '') return true;
+        const num = Number(val);
+        return !isNaN(num) && num >= 0 && num <= 90;
+      },
+      { message: 'phi must be a number between 0 and 90' }
+    )
+    .transform((val) => (val === undefined || val === '' ? undefined : Number(val))),
 
   // layout parameter: strictly validated — unsupported values return a 400 Bad Request.
   layout: z

@@ -17,10 +17,20 @@ export function generateOptimizedSvg(contributionData: ContributionNode[]): stri
   // ==========================================
   // STEP 1: THE GRID MAP MATRIX SYSTEM
   // ==========================================
+  const safeData = (Array.isArray(contributionData) ? contributionData : []).filter(
+    (node) => node && typeof node === 'object'
+  );
+
+  // ==========================================
+  // STEP 1: THE GRID MAP MATRIX SYSTEM
+  // ==========================================
   const gridMap: Record<string, number> = {};
-  for (let i = 0; i < contributionData.length; i++) {
-    const node = contributionData[i];
-    gridMap[`${node.x},${node.y}`] = node.count;
+  for (let i = 0; i < safeData.length; i++) {
+    const node = safeData[i];
+    const x = typeof node.x === 'number' ? node.x : 0;
+    const y = typeof node.y === 'number' ? node.y : 0;
+    const count = typeof node.count === 'number' ? node.count : 0;
+    gridMap[`${x},${y}`] = count;
   }
 
   // ==========================================
@@ -46,7 +56,13 @@ export function generateOptimizedSvg(contributionData: ContributionNode[]): stri
   `;
 
   // Sort back-to-front based on spatial layout depth (Painter's Algorithm)
-  const sortedData = [...contributionData].sort((a, b) => a.x + a.y - (b.x + b.y));
+  const sortedData = [...safeData].sort((a, b) => {
+    const ax = typeof a.x === 'number' ? a.x : 0;
+    const ay = typeof a.y === 'number' ? a.y : 0;
+    const bx = typeof b.x === 'number' ? b.x : 0;
+    const by = typeof b.y === 'number' ? b.y : 0;
+    return ax + ay - (bx + by);
+  });
 
   let svgElements = '';
 
@@ -54,7 +70,9 @@ export function generateOptimizedSvg(contributionData: ContributionNode[]): stri
   // STEPS 3, 4 & 5: ITERATE, CULL, & INSTANTIATE
   // ==========================================
   for (const node of sortedData) {
-    const { x, y, count } = node;
+    const x = typeof node.x === 'number' ? node.x : 0;
+    const y = typeof node.y === 'number' ? node.y : 0;
+    const count = typeof node.count === 'number' ? node.count : 0;
 
     // Convert 2D matrix positions into flat pixel space mappings
     const isoX = (x - y) * (tileWidth / 2);
