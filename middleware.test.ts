@@ -86,7 +86,7 @@ describe('middleware', () => {
     expect(response.headers.get('X-RateLimit-Remaining')).toBe('59');
   });
 
-  it('uses first IP from x-forwarded-for', async () => {
+  it('ignores spoofable x-forwarded-for header and uses platform IP', async () => {
     vi.mocked(rateLimit).mockResolvedValue({
       success: true,
       limit: 60,
@@ -94,18 +94,21 @@ describe('middleware', () => {
       reset: 123456789,
     });
 
+    // Create request with platform-provided IP (simulating Vercel/Next.js environment)
     const request = new NextRequest('http://localhost:3000/api/streak?user=octocat', {
       headers: {
         'x-forwarded-for': '1.2.3.4, 5.6.7.8',
       },
-    });
+    }) as unknown as NextRequest & { ip?: string };
+    (request as unknown as { ip: string }).ip = '203.0.113.10';
 
     await middleware(request);
 
-    expect(rateLimit).toHaveBeenCalledWith('1.2.3.4', 60, 60000);
+    // Should use platform IP, not the spoofed x-forwarded-for header
+    expect(rateLimit).toHaveBeenCalledWith('203.0.113.10', 60, 60000);
   });
 
-  it('uses x-real-ip if x-forwarded-for is missing', async () => {
+  it('ignores spoofable x-real-ip header and uses platform IP', async () => {
     vi.mocked(rateLimit).mockResolvedValue({
       success: true,
       limit: 60,
@@ -117,14 +120,16 @@ describe('middleware', () => {
       headers: {
         'x-real-ip': '9.9.9.9',
       },
-    });
+    }) as unknown as NextRequest & { ip?: string };
+    (request as unknown as { ip: string }).ip = '203.0.113.10';
 
     await middleware(request);
 
-    expect(rateLimit).toHaveBeenCalledWith('9.9.9.9', 60, 60000);
+    // Should use platform IP, not the spoofed x-real-ip header
+    expect(rateLimit).toHaveBeenCalledWith('203.0.113.10', 60, 60000);
   });
 
-  it('defaults to 127.0.0.1 when no IP headers', async () => {
+  it('defaults to unknown when no platform IP available', async () => {
     vi.mocked(rateLimit).mockResolvedValue({
       success: true,
       limit: 60,
@@ -136,10 +141,13 @@ describe('middleware', () => {
 
     await middleware(request);
 
-    expect(rateLimit).toHaveBeenCalledWith('127.0.0.1', 60, 60000);
+    // Without platform IP, getClientIp returns 'unknown' in production
+    // or '127.0.0.1' in development/test
+    const calledIp = vi.mocked(rateLimit).mock.calls[0][0];
+    expect(['unknown', '127.0.0.1']).toContain(calledIp);
   });
 
-  it('prefers x-forwarded-for over x-real-ip', async () => {
+  it('prefers platform IP over any user-controlled headers', async () => {
     vi.mocked(rateLimit).mockResolvedValue({
       success: true,
       limit: 60,
@@ -152,14 +160,16 @@ describe('middleware', () => {
         'x-forwarded-for': '1.2.3.4, 5.6.7.8',
         'x-real-ip': '9.9.9.9',
       },
-    });
+    }) as unknown as NextRequest & { ip?: string };
+    (request as unknown as { ip: string }).ip = '203.0.113.10';
 
     await middleware(request);
 
-    expect(rateLimit).toHaveBeenCalledWith('1.2.3.4', 60, 60000);
+    // Should use platform IP, ignoring all spoofable headers
+    expect(rateLimit).toHaveBeenCalledWith('203.0.113.10', 60, 60000);
   });
 
-  it('handles multiple IPs with whitespace', async () => {
+  it('prevents rate limit evasion via header rotation', async () => {
     vi.mocked(rateLimit).mockResolvedValue({
       success: true,
       limit: 60,
@@ -167,14 +177,22 @@ describe('middleware', () => {
       reset: 123456789,
     });
 
-    const request = new NextRequest('http://localhost:3000/api/streak?user=octocat', {
-      headers: {
-        'x-forwarded-for': '1.2.3.4,  5.6.7.8,  9.10.11.12',
-      },
-    });
+    // Simulate attacker rotating x-forwarded-for headers
+    const request1 = new NextRequest('http://localhost:3000/api/streak?user=octocat', {
+      headers: { 'x-forwarded-for': '1.1.1.1' },
+    }) as unknown as NextRequest & { ip?: string };
+    (request1 as unknown as { ip: string }).ip = '203.0.113.10';
 
-    await middleware(request);
+    const request2 = new NextRequest('http://localhost:3000/api/streak?user=octocat', {
+      headers: { 'x-forwarded-for': '2.2.2.2' },
+    }) as unknown as NextRequest & { ip?: string };
+    (request2 as unknown as { ip: string }).ip = '203.0.113.10';
 
-    expect(rateLimit).toHaveBeenCalledWith('1.2.3.4', 60, 60000);
+    await middleware(request1);
+    await middleware(request2);
+
+    // Both requests should be tracked under the same platform IP
+    expect(rateLimit).toHaveBeenNthCalledWith(1, '203.0.113.10', 60, 60000);
+    expect(rateLimit).toHaveBeenNthCalledWith(2, '203.0.113.10', 60, 60000);
   });
 });

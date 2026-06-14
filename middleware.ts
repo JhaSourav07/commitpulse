@@ -12,11 +12,13 @@ import { getClientIp } from './utils/getClientIp';
  * @see https://nextjs.org/docs/app/building-your-application/routing/middleware
  */
 export async function middleware(request: NextRequest) {
-  const directIp =
-    (request as unknown as { ip?: string }).ip ||
-    request.headers.get('x-forwarded-for')?.split(',')[0] ||
-    request.headers.get('x-real-ip') ||
-    '127.0.0.1';
+  // Only use platform-provided IP (request.ip) as the direct peer IP.
+  // Never trust x-forwarded-for or x-real-ip headers directly as they
+  // can be spoofed by attackers to evade rate limiting.
+  // The getClientIp() utility will securely resolve the true client IP
+  // by validating proxy trust boundaries.
+  const platformIp = (request as unknown as { ip?: string }).ip;
+  const directIp = platformIp || undefined;
 
   const ip = getClientIp(request, { directIp });
 
