@@ -76,7 +76,9 @@ describe('POST /api/notify massive scaling: Massive Data Sets and Extreme High B
 
     for (let i = 0; i < 1000; i++) {
       const ip = `203.0.${Math.floor(i / 256)}.${i % 256}`;
-      const response = await POST(makeRequest('POST', { username: 'testuser', email: 'a@b.com' }, undefined, ip));
+      const response = await POST(
+        makeRequest('POST', { username: 'testuser', email: 'a@b.com' }, undefined, ip)
+      );
       expect(response.status).not.toBe(429);
     }
 
@@ -89,7 +91,9 @@ describe('POST /api/notify massive scaling: Massive Data Sets and Extreme High B
 
     let lastResponse: Response | undefined;
     for (let i = 0; i < 6; i++) {
-      lastResponse = await POST(makeRequest('POST', { username: 'testuser', email: 'a@b.com' }, undefined, ip));
+      lastResponse = await POST(
+        makeRequest('POST', { username: 'testuser', email: 'a@b.com' }, undefined, ip)
+      );
     }
 
     expect(lastResponse!.status).toBe(429);
@@ -100,7 +104,9 @@ describe('POST /api/notify massive scaling: Massive Data Sets and Extreme High B
   it('handles 3000 distinct IPs exceeding the internal cache capacity without throwing or breaking rate limit tracking', async () => {
     for (let i = 0; i < 3000; i++) {
       const ip = `172.${16 + (i % 16)}.${Math.floor(i / 256) % 256}.${i % 256}`;
-      const response = await POST(makeRequest('POST', { username: 'testuser', email: 'a@b.com' }, undefined, ip));
+      const response = await POST(
+        makeRequest('POST', { username: 'testuser', email: 'a@b.com' }, undefined, ip)
+      );
       expect(response.status).not.toBe(500);
     }
   });
