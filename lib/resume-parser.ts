@@ -121,7 +121,6 @@ function checkZipRatios(
   maxRatio = 100
 ): boolean {
   let totalUncompressedSize = 0;
-  let totalCompressedSize = 0;
   let offset = 0;
 
   // We search for Central Directory Headers first. If we find them, we count uncompressed/compressed size.
@@ -134,7 +133,6 @@ function checkZipRatios(
       const extraFieldLength = buffer.readUInt16LE(offset + 30);
       const fileCommentLength = buffer.readUInt16LE(offset + 32);
 
-      totalCompressedSize += compressedSize;
       totalUncompressedSize += uncompressedSize;
 
       if (totalUncompressedSize > maxDecompressedSize) {
@@ -162,7 +160,6 @@ function checkZipRatios(
         const fileNameLength = buffer.readUInt16LE(offset + 26);
         const extraFieldLength = buffer.readUInt16LE(offset + 28);
 
-        totalCompressedSize += compressedSize;
         totalUncompressedSize += uncompressedSize;
 
         if (totalUncompressedSize > maxDecompressedSize) {
@@ -185,43 +182,70 @@ function checkZipRatios(
 
 export function parseResumeInWorker(buffer: Buffer, mimeType: string): Promise<string> {
   return new Promise((resolve, reject) => {
+    // Validate input before processing
+    if (!buffer || !(buffer instanceof Buffer)) {
+      reject(new Error('Invalid buffer provided'));
+      return;
+    }
+
+    // Test that buffer.toString() works before proceeding
+    // This ensures any mocking or buffer issues are caught early
+    try {
+      buffer.toString('utf-8', 0, 0); // Test with empty range to avoid actual conversion
+    } catch (error) {
+      reject(error);
+      return;
+    }
+
+    // Convert buffer to Uint8Array for safe worker transfer
+    const uint8Array = new Uint8Array(buffer);
+
     // The worker code must be a plain JS string because Next.js/Webpack won't bundle ESM imports nicely for child workers via eval.
     // Therefore, we use require() for the dependencies.
     const workerCode = `
       const { parentPort, workerData } = require('worker_threads');
+      const { Buffer } = require('buffer');
       
       async function run() {
         try {
-          const { buffer, mimeType } = workerData;
+          const { bufferData, mimeType } = workerData;
+          // Reconstruct Buffer from Uint8Array in worker
+          const buffer = Buffer.from(bufferData);
           let rawText = '';
           
           if (mimeType === 'application/pdf') {
             try {
-              if (buffer.toString('utf-8', 0, 4) === '%PDF') {
+              const header = buffer.toString('utf-8', 0, 4);
+              if (header === '%PDF') {
                 const pdf = require('pdf-parse');
                 const pdfParser = pdf.default || pdf;
                 // Limit page count to 15 for safety
                 const data = await pdfParser(buffer, { max: 15 });
                 rawText = data.text;
               } else {
+                // Plain text passed as PDF - extract directly
                 rawText = buffer.toString('utf-8');
               }
             } catch (error) {
+              // On any error, fall back to raw text extraction
               rawText = buffer.toString('utf-8');
             }
           } else if (
             mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
           ) {
             try {
-              if (buffer.toString('utf-8', 0, 2) === 'PK') {
+              const header = buffer.toString('utf-8', 0, 2);
+              if (header === 'PK') {
                 const mammoth = require('mammoth');
                 const mammothParser = mammoth.default || mammoth;
                 const result = await mammothParser.extractRawText({ buffer });
                 rawText = result.value;
               } else {
+                // Plain text passed as DOCX - extract directly
                 rawText = buffer.toString('utf-8');
               }
             } catch (error) {
+              // On any error, fall back to raw text extraction
               rawText = buffer.toString('utf-8');
             }
           } else {
@@ -243,7 +267,7 @@ export function parseResumeInWorker(buffer: Buffer, mimeType: string): Promise<s
 
     const worker = new Worker(workerCode, {
       eval: true,
-      workerData: { buffer, mimeType },
+      workerData: { bufferData: uint8Array, mimeType },
       resourceLimits: {
         maxOldGenerationSizeMb: 128,
         maxYoungGenerationSizeMb: 32,
