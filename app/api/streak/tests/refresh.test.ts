@@ -5,6 +5,11 @@ import { GET } from '../route';
 vi.mock('../../../../lib/github', () => ({
   fetchGitHubContributions: vi.fn(),
   getOrgDashboardData: vi.fn(),
+  getCircuitTelemetry: vi.fn(() => ({
+    failures: 0,
+    openedAt: null,
+    state: 'closed',
+  })),
 }));
 
 vi.mock('../../../../utils/time', () => ({
