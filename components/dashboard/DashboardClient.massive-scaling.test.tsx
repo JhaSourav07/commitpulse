@@ -124,7 +124,7 @@ describe('DashboardClient - Massive Data Sets and Extreme High Bounds Scaling', 
     const endTime = performance.now();
 
     const executionTime = endTime - startTime;
-    expect(executionTime).toBeLessThan(3000);
+    expect(executionTime).toBeLessThan(1000);
   });
 
   // Test Case 2: Extreme High Bounds Value Handling (No Layout Overflow)

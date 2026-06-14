@@ -1,14 +1,17 @@
 @import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
 @import 'tailwindcss';
+
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
   --font-sans: 'Inter', ui-sans-serif, system-ui;
   --breakpoint-xs: 26rem;
 }
+
 html {
   scroll-behavior: smooth;
 }
+
 @layer utilities {
   /* Typography enhancement utilities */
   .text-readable-sm {
@@ -52,14 +55,14 @@ html {
     height: 20px;
     border-radius: 9999px;
     background: black;
-    border: 1px solid rgb(16 185 129 / 0.5);
-    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.12);
+    border: 1px solid rgb(16 185 129 / 50%);
+    box-shadow: 0 0 0 3px rgb(16 185 129 / 12%);
     transition: box-shadow 150ms;
   }
 
   .slider:hover::-webkit-slider-thumb {
     border-color: rgb(16 185 129);
-    box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.22);
+    box-shadow: 0 0 0 4px rgb(16 185 129 / 22%);
   }
 
   .slider::-webkit-slider-runnable-track {
@@ -71,8 +74,8 @@ html {
     height: 20px;
     border-radius: 9999px;
     background: black;
-    border: 1px solid rgb(16 185 129 / 0.5);
-    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.12);
+    border: 1px solid rgb(16 185 129 / 50%);
+    box-shadow: 0 0 0 3px rgb(16 185 129 / 12%);
   }
 
   .slider::-moz-range-track {
@@ -87,33 +90,33 @@ html {
   }
 
   .dark .text-white\/20 {
-    color: rgba(255, 255, 255, 0.56);
+    color: rgb(255 255 255 / 56%);
   }
 
   .dark .text-white\/25 {
-    color: rgba(255, 255, 255, 0.62);
+    color: rgb(255 255 255 / 62%);
   }
 
   .dark .text-white\/30 {
-    color: rgba(255, 255, 255, 0.68);
+    color: rgb(255 255 255 / 68%);
   }
 
   .dark .text-white\/35 {
-    color: rgba(255, 255, 255, 0.72);
+    color: rgb(255 255 255 / 72%);
   }
 
   .dark .text-white\/40 {
-    color: rgba(255, 255, 255, 0.78);
+    color: rgb(255 255 255 / 78%);
   }
 
   .dark .text-white\/45 {
-    color: rgba(255, 255, 255, 0.82);
+    color: rgb(255 255 255 / 82%);
   }
 
   .dark input::placeholder,
   .dark textarea::placeholder,
   .dark select::placeholder {
-    color: rgba(255, 255, 255, 0.66);
+    color: rgb(255 255 255 / 66%);
     opacity: 1;
   }
 }
@@ -133,9 +136,9 @@ html {
   background-color: #1e2433; /* visible dark blue-gray on black */
   background-image: linear-gradient(
     90deg,
-    rgba(255, 255, 255, 0) 0%,
-    rgba(255, 255, 255, 0.08) 50%,
-    rgba(255, 255, 255, 0) 100%
+    rgb(255 255 255 / 0%) 0%,
+    rgb(255 255 255 / 8%) 50%,
+    rgb(255 255 255 / 0%) 100%
   );
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
@@ -143,23 +146,25 @@ html {
 
 :root {
   /* Vercel-inspired token set */
-  --color-surface-0: #000000;
+  --color-surface-0: #000;
   --color-surface-1: #0a0a0a;
-  --color-surface-2: #111111;
-  --color-border: rgba(255, 255, 255, 0.08);
+  --color-surface-2: #111;
+  --color-border: rgb(255 255 255 / 8%);
   --color-muted: #a1a1aa;
-  --color-accent: rgba(99, 102, 241, 0.5);
+  --color-accent: rgb(99 102 241 / 50%);
+
   /* Chart / Recharts theme tokens (used by inline chart styles) */
-  --recharts-tooltip-bg: rgba(255, 255, 255, 0.95);
+  --recharts-tooltip-bg: rgb(255 255 255 / 95%);
   --recharts-tooltip-color: #0d1117;
   --recharts-tooltip-accent: #06b6d4;
   --chart-axis-color: #6b7280; /* gray-500 */
+
   /* indigo glow, hover only */
 }
 
 body {
-  background: #ffffff;
-  color: #000000;
+  background: #fff;
+  color: #000;
   margin: 0;
   padding: 0;
   -webkit-font-smoothing: antialiased;
@@ -167,19 +172,20 @@ body {
 }
 
 .dark body {
-  background: #000000;
-  color: #ffffff;
+  background: #000;
+  color: #fff;
 }
 
 /* Dark theme overrides for chart tokens */
 .dark {
-  --recharts-tooltip-bg: rgba(24, 24, 27, 0.9);
-  --recharts-tooltip-color: #ffffff;
+  --recharts-tooltip-bg: rgb(24 24 27 / 90%);
+  --recharts-tooltip-color: #fff;
   --recharts-tooltip-accent: #06b6d4;
   --chart-axis-color: #d4d4d8; /* maps to improved contrast in dark mode */
 }
 
 /* Vercel-style focus ring */
+
 /* Keyboard focus ring — visible only for keyboard nav, not mouse clicks */
 @layer base {
   *:focus-visible {
@@ -275,34 +281,35 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(120, 120, 120, 0.35);
+  background: rgb(120 120 120 / 35%);
   border-radius: 999px;
 }
 
 .dark ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.18);
+  background: rgb(255 255 255 / 18%);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(120, 120, 120, 0.55);
+  background: rgb(120 120 120 / 55%);
 }
 
 .dark ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: rgb(255 255 255 / 30%);
 }
 
 /* Custom text selection color to match site theme */
 ::selection {
-  background-color: #00ffaa;
+  background-color: #0fa;
   color: #0d1117;
 }
+
 /* html {
   scroll-behavior: smooth;
 } */
 
 /* CommitPulse dynamic SVG animation and typography optimization */
 .cp-svg-container svg .title {
-  font-family: 'Syncopate', sans-serif;
+  font-family: Syncopate, sans-serif;
   font-size: 18px;
   letter-spacing: 6px;
   font-weight: 400;
@@ -322,7 +329,7 @@ body {
 }
 
 .cp-svg-container svg .label {
-  font-family: 'Roboto', sans-serif;
+  font-family: Roboto, sans-serif;
   font-size: 11px;
   font-weight: 400;
   letter-spacing: 2px;
@@ -330,7 +337,7 @@ body {
 }
 
 .cp-svg-container svg .delta {
-  font-family: 'Roboto', sans-serif;
+  font-family: Roboto, sans-serif;
   font-size: 12px;
   font-weight: 500;
 }
@@ -345,6 +352,7 @@ body {
   from {
     transform: scaleY(0);
   }
+
   to {
     transform: scaleY(1);
   }
@@ -354,5 +362,41 @@ body {
   .cp-svg-container svg .cp-tower {
     animation: none !important;
     transform: scaleY(1) !important;
+  }
+}
+
+/* ── Accessibility: screen-reader only utility ── */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ── Accessibility: visible focus ring ── */
+:focus-visible {
+  outline: 2px solid #58a6ff;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* ── Accessibility: reduced motion ── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

@@ -67,6 +67,7 @@ export function toDimensionValue(val?: string): number | undefined {
 }
 
 export function validateGitHubUsername(username: string): boolean {
+  if (!username || typeof username !== 'string') return false;
   return /^[a-z\d](?:[a-z\d]|-(?=[a-z\d])){0,38}$/i.test(username);
 }
 
@@ -80,6 +81,7 @@ export function validateGitHubUsername(username: string): boolean {
  * For non-YYYY-MM-DD formats, falls back to Date.parse validation.
  */
 export function validateStrictISODate(dateStr: string): boolean {
+  if (!dateStr || typeof dateStr !== 'string') return false;
   // Check if it matches YYYY-MM-DD format
   const match = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
 
@@ -364,7 +366,16 @@ const baseStreakParamsSchema = z.object({
   tz: timeZoneParam,
   // Unknown view values fall back to the default dashboard view.
   view: z
-    .enum(['default', 'monthly', 'heatmap', 'pulse', 'skyline', 'languages', 'constellation'])
+    .enum([
+      'default',
+      'monthly',
+      'heatmap',
+      'pulse',
+      'skyline',
+      'languages',
+      'constellation',
+      'radar',
+    ])
     .catch('default')
     .default('default'),
   // Invalid delta formats fall back to percentage mode.
@@ -445,6 +456,32 @@ const baseStreakParamsSchema = z.object({
   // Output format: 'svg' (default) or 'json' for programmatic access.
   // Invalid values silently fall back to 'svg'.
   format: z.enum(['svg', 'json']).catch('svg').default('svg'),
+
+  theta: z
+    .string()
+    .optional()
+    .refine(
+      (val) => {
+        if (val === undefined || val === '') return true;
+        const num = Number(val);
+        return !isNaN(num) && num >= 0 && num <= 360;
+      },
+      { message: 'theta must be a number between 0 and 360' }
+    )
+    .transform((val) => (val === undefined || val === '' ? undefined : Number(val))),
+
+  phi: z
+    .string()
+    .optional()
+    .refine(
+      (val) => {
+        if (val === undefined || val === '') return true;
+        const num = Number(val);
+        return !isNaN(num) && num >= 0 && num <= 90;
+      },
+      { message: 'phi must be a number between 0 and 90' }
+    )
+    .transform((val) => (val === undefined || val === '' ? undefined : Number(val))),
 
   // layout parameter: strictly validated — unsupported values return a 400 Bad Request.
   layout: z
@@ -637,6 +674,7 @@ export const wrappedParamsSchema = z.object({
   hide_background: z.string().optional().transform(toBooleanFlag), // ✅ Fixed: was toRefreshFlag
   width: dimensionParam('width', 100, 1200),
   height: dimensionParam('height', 80, 800),
+  tz: timeZoneParam,
 });
 
 export const notifyPostSchema = z.object({
@@ -669,6 +707,7 @@ export const notifyPostSchema = z.object({
       notifyOnStreak: true,
       notifyOnMilestone: true,
     }),
+  managementToken: z.string().trim().min(16).max(256).optional(),
 });
 
 export const notifyGetSchema = z.object({

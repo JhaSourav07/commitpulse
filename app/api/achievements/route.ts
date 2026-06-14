@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { validateGitHubUsername } from '@/lib/validations';
 import { getFullDashboardData } from '@/lib/github';
 import type {
   AchievementDef,
@@ -9,8 +10,6 @@ import type {
   AchievementData,
   AchievementsResponse,
 } from '@/types/achievements';
-
-const GITHUB_USERNAME_REGEX = /^[a-zA-Z0-9](?:[a-zA-Z0-9]|-(?=[a-zA-Z0-9])){0,38}$/;
 
 const ACHIEVEMENT_DEFS: AchievementDef[] = [
   // 🔥 Contribution
@@ -551,7 +550,7 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const username = searchParams.get('username');
 
-  if (!username || !GITHUB_USERNAME_REGEX.test(username)) {
+  if (!username || !validateGitHubUsername(username)) {
     return NextResponse.json({ error: 'Valid username parameter is required' }, { status: 400 });
   }
 
@@ -586,11 +585,18 @@ export async function GET(request: Request) {
     const frontendCount = languageNames.filter((l) => FRONTEND_LANGUAGES.has(l)).length;
     const backendCount = languageNames.filter((l) => BACKEND_LANGUAGES.has(l)).length;
 
-    const aiRepoCount = languageNames.filter((l) =>
-      AI_KEYWORDS.some((kw) => l.toLowerCase().includes(kw))
+    const popularRepos = (dashboardData.popularRepos ?? []) as Array<{
+      name: string;
+      description: string | null;
+      stargazerCount: number;
+    }>;
+    const aiRepoCount = popularRepos.filter((repo) =>
+      AI_KEYWORDS.some(
+        (kw) =>
+          repo.name.toLowerCase().includes(kw) ||
+          (repo.description && repo.description.toLowerCase().includes(kw))
+      )
     ).length;
-
-    const popularRepos = (dashboardData.popularRepos ?? []) as Array<{ stargazerCount: number }>;
     let topStarDensity = 0;
     for (const repo of popularRepos) {
       const density = repo.stargazerCount / 6;
@@ -620,7 +626,7 @@ export async function GET(request: Request) {
       'pr-rookie': stats.totalPRs,
       'pr-master': stats.totalPRs,
       'merge-master': stats.totalPRs,
-      'review-expert': Math.min(stats.totalPRs, Math.round(stats.totalPRs * 0.3)),
+      'review-expert': stats.totalReviews,
       'pr-legend': stats.totalPRs,
       'star-collector': totalStars,
       'repository-creator': totalRepos,

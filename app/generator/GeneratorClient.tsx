@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react';
 import { EditorPanel } from './components/EditorPanel';
 import { PreviewPanel } from './components/PreviewPanel';
+import { CompletionScorePanel } from './components/CompletionScorePanel';
 import { generateReadme, getEmptyReadme } from './utils/readmeGenerator';
 import type { GeneratorState } from './types';
 import type { ImportedData } from './utils/githubMapper';
@@ -93,8 +94,9 @@ export function GeneratorClient() {
         />
       </div>
 
-      <div className="w-full lg:flex-1">
+      <div className="w-full lg:flex-1 flex flex-col gap-5 xl:gap-6">
         <PreviewPanel markdown={markdown} />
+        <CompletionScorePanel state={state} />
       </div>
     </div>
   );

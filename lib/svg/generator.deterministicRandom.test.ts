@@ -46,7 +46,7 @@ describe('Helper Function: deterministicRandom', () => {
     const endTime = performance.now();
 
     const duration = endTime - startTime;
-    // Bounded higher to protect execution consistency against execution timing spikes in virtual test configurations
+    // 10,000 FNV-1a hashes should easily complete under 50ms on modern hardware
     expect(duration).toBeLessThan(150);
   });
 });

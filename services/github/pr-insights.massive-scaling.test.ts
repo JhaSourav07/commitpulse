@@ -216,4 +216,29 @@ describe('PR Insights - Massive Data Sets and Extreme High Bounds Scaling', () =
     expect(layoutGrid.style.gridTemplateColumns).toBe('repeat(20000, 1fr)');
     expect(document.body.contains(layoutGrid)).toBe(true);
   });
+
+  it('caps GraphQL pagination at three pages even when GitHub reports more results', async () => {
+    const mockResponse = {
+      ok: true,
+      status: 200,
+      json: async () => ({
+        data: {
+          authored: {
+            nodes: [],
+            pageInfo: {
+              hasNextPage: true,
+              endCursor: 'next-page',
+            },
+          },
+          reviewed: { issueCount: 0 },
+        },
+      }),
+    };
+
+    vi.mocked(fetchWithRetry).mockResolvedValue(mockResponse as any);
+
+    await fetchPRInsights('PaginationBudgetContributor');
+
+    expect(fetchWithRetry).toHaveBeenCalledTimes(3);
+  });
 });

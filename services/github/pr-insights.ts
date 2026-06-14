@@ -2,6 +2,7 @@ import { fetchWithRetry, getGitHubTokens } from '@/lib/github';
 import { DistributedCache } from '@/lib/cache';
 
 const GITHUB_GRAPHQL_URL = 'https://api.github.com/graphql';
+const MAX_PAGES = 3;
 
 export interface PRInsightData {
   totalPRs: number;
@@ -128,8 +129,6 @@ async function fetchPRInsightsUncached(username: string): Promise<PRInsightData>
   let hasNextPage = true;
   let after: string | null = null;
   let reviewsGivenCount = 0;
-  const MAX_PAGES = 10; // Cap at 1000 PRs (10 pages x 100)
-
   for (let page = 0; page < MAX_PAGES && hasNextPage; page++) {
     const res = await fetchWithRetry(GITHUB_GRAPHQL_URL, {
       method: 'POST',
