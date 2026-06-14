@@ -14,6 +14,43 @@ const SKILL_SECTION_HEADERS = /skills|technologies|proficiencies|tech stack|tool
 const EDUCATION_SECTION_HEADERS = /education|academic|qualification|degree/i;
 const EXPERIENCE_SECTION_HEADERS = /experience|work|employment|professional|career/i;
 
+// Security constants for file validation
+export const SECURITY_CONFIG = {
+  // Decompression limits
+  MAX_DECOMPRESSED_SIZE: 50 * 1024 * 1024, // 50MB max decompressed size
+  MAX_DECOMPRESSION_RATIO: 50, // Max 50:1 compression ratio (stricter than 100:1)
+
+  // PDF limits
+  MAX_PDF_PAGES: 10, // Reduced from 15 for safety
+  MAX_PDF_FILE_SIZE: 10 * 1024 * 1024, // 10MB for PDFs
+
+  // DOCX limits
+  MAX_DOCX_FILES: 100, // Max number of files in DOCX archive
+  MAX_DOCX_FILE_SIZE: 5 * 1024 * 1024, // 5MB for DOCX
+
+  // Content limits
+  MAX_EXTRACTED_TEXT_LENGTH: 50000, // Reduced from 100,000 for safety
+  MAX_FIELD_LENGTH: 1000, // Max length for any single field
+
+  // Timeout
+  PARSER_TIMEOUT_MS: 8000, // Reduced from 10000ms
+
+  // Memory limits for worker (in MB)
+  WORKER_MAX_OLD_GENERATION_MB: 100, // Reduced from 128MB
+  WORKER_MAX_YOUNG_GENERATION_MB: 25, // Reduced from 32MB
+
+  // Zip bomb detection thresholds
+  ZIP_BOMB_THRESHOLD_RATIO: 50,
+  ZIP_BOMB_THRESHOLD_SIZE: 50 * 1024 * 1024,
+
+  // Dangerous file patterns in archives
+  DANGEROUS_PATH_PATTERNS: [
+    /\.\.[\\/]/, // Directory traversal
+    /^\//, // Absolute paths
+    /\\x00/, // Null bytes
+  ],
+} as const;
+
 function extractEmail(text: string): string {
   const match = text.match(EMAIL_REGEX);
   return match ? match[0] : '';
@@ -115,35 +152,103 @@ function extractExperience(text: string): Experience[] {
   return experience;
 }
 
-function checkZipRatios(
+/**
+ * Validates zip file structure for potential zip bombs and malicious content.
+ * Performs comprehensive checks including:
+ * - Decompression ratio analysis
+ * - Total uncompressed size limits
+ * - File count limits
+ * - Path traversal detection (zip slip)
+ * - Nested archive detection
+ */
+export function checkZipRatios(
   buffer: Buffer,
-  maxDecompressedSize = 50 * 1024 * 1024,
-  maxRatio = 100
-): boolean {
+  maxDecompressedSize = SECURITY_CONFIG.MAX_DECOMPRESSED_SIZE,
+  maxRatio = SECURITY_CONFIG.MAX_DECOMPRESSION_RATIO
+): { valid: boolean; reason?: string } {
   let totalUncompressedSize = 0;
+  let totalCompressedSize = 0;
+  let fileCount = 0;
   let offset = 0;
+  const maxFiles = SECURITY_CONFIG.MAX_DOCX_FILES;
+
+  // Validate buffer has minimum size for zip headers
+  if (buffer.length < 22) {
+    return { valid: false, reason: 'Buffer too small to be a valid zip file' };
+  }
 
   // We search for Central Directory Headers first. If we find them, we count uncompressed/compressed size.
   // Central directory file header signature is 0x02014b50 (PK\x01\x02)
   while (offset < buffer.length - 46) {
     if (buffer.readUInt32LE(offset) === 0x02014b50) {
+      // Validate we have enough bytes for the header
+      if (offset + 46 > buffer.length) {
+        return { valid: false, reason: 'Truncated central directory header' };
+      }
+
       const compressedSize = buffer.readUInt32LE(offset + 20);
       const uncompressedSize = buffer.readUInt32LE(offset + 24);
       const fileNameLength = buffer.readUInt16LE(offset + 28);
       const extraFieldLength = buffer.readUInt16LE(offset + 30);
       const fileCommentLength = buffer.readUInt16LE(offset + 32);
 
+      // Validate header values
+      if (fileNameLength > 65535 || extraFieldLength > 65535 || fileCommentLength > 65535) {
+        return { valid: false, reason: 'Invalid header field lengths' };
+      }
+
+      fileCount++;
+      if (fileCount > maxFiles) {
+        return { valid: false, reason: `Too many files in archive (max ${maxFiles})` };
+      }
+
       totalUncompressedSize += uncompressedSize;
+      totalCompressedSize += compressedSize;
 
       if (totalUncompressedSize > maxDecompressedSize) {
-        return false;
+        return {
+          valid: false,
+          reason: `Total uncompressed size (${totalUncompressedSize} bytes) exceeds limit (${maxDecompressedSize} bytes)`,
+        };
       }
 
+      // Check compression ratio for each file
       if (compressedSize > 0 && uncompressedSize / compressedSize > maxRatio) {
-        return false;
+        return {
+          valid: false,
+          reason: `Compression ratio (${(uncompressedSize / compressedSize).toFixed(1)}:1) exceeds limit (${maxRatio}:1)`,
+        };
       }
 
-      offset += 46 + fileNameLength + extraFieldLength + fileCommentLength;
+      // Check for nested archives (zip within zip)
+      if (fileNameLength > 0 && offset + 46 + fileNameLength <= buffer.length) {
+        const fileName = buffer.toString('utf-8', offset + 46, offset + 46 + fileNameLength);
+        const lowerName = fileName.toLowerCase();
+
+        // Check for dangerous path patterns (zip slip)
+        for (const pattern of SECURITY_CONFIG.DANGEROUS_PATH_PATTERNS) {
+          if (pattern.test(fileName)) {
+            return { valid: false, reason: `Dangerous file path detected: ${fileName}` };
+          }
+        }
+
+        // Check for nested archives
+        if (
+          lowerName.endsWith('.zip') ||
+          lowerName.endsWith('.docx') ||
+          lowerName.endsWith('.xlsx') ||
+          lowerName.endsWith('.pptx') ||
+          lowerName.endsWith('.jar')
+        ) {
+          return { valid: false, reason: `Nested archive detected: ${fileName}` };
+        }
+      }
+
+      const nextOffset = offset + 46 + fileNameLength + extraFieldLength + fileCommentLength;
+      if (nextOffset <= offset) {
+        return { valid: false, reason: 'Invalid header structure' };
+      }
+      offset = nextOffset;
     } else {
       offset++;
     }
@@ -151,33 +256,137 @@ function checkZipRatios(
 
   // Also check Local File Headers if Central Directory scan was empty (e.g. malformed or partial zip)
   // Local file header signature is 0x04034b50 (PK\x03\x04)
-  if (totalUncompressedSize === 0) {
+  if (fileCount === 0) {
     offset = 0;
     while (offset < buffer.length - 30) {
       if (buffer.readUInt32LE(offset) === 0x04034b50) {
+        if (offset + 30 > buffer.length) {
+          return { valid: false, reason: 'Truncated local file header' };
+        }
+
         const compressedSize = buffer.readUInt32LE(offset + 18);
         const uncompressedSize = buffer.readUInt32LE(offset + 22);
         const fileNameLength = buffer.readUInt16LE(offset + 26);
         const extraFieldLength = buffer.readUInt16LE(offset + 28);
 
+        // Validate header values
+        if (fileNameLength > 65535 || extraFieldLength > 65535) {
+          return { valid: false, reason: 'Invalid header field lengths' };
+        }
+
+        fileCount++;
+        if (fileCount > maxFiles) {
+          return { valid: false, reason: `Too many files in archive (max ${maxFiles})` };
+        }
+
         totalUncompressedSize += uncompressedSize;
+        totalCompressedSize += compressedSize;
 
         if (totalUncompressedSize > maxDecompressedSize) {
-          return false;
+          return {
+            valid: false,
+            reason: `Total uncompressed size (${totalUncompressedSize} bytes) exceeds limit (${maxDecompressedSize} bytes)`,
+          };
         }
 
         if (compressedSize > 0 && uncompressedSize / compressedSize > maxRatio) {
-          return false;
+          return {
+            valid: false,
+            reason: `Compression ratio (${(uncompressedSize / compressedSize).toFixed(1)}:1) exceeds limit (${maxRatio}:1)`,
+          };
         }
 
-        offset += 30 + fileNameLength + extraFieldLength + compressedSize;
+        // Check for dangerous paths in local headers too
+        if (fileNameLength > 0 && offset + 30 + fileNameLength <= buffer.length) {
+          const fileName = buffer.toString('utf-8', offset + 30, offset + 30 + fileNameLength);
+
+          for (const pattern of SECURITY_CONFIG.DANGEROUS_PATH_PATTERNS) {
+            if (pattern.test(fileName)) {
+              return { valid: false, reason: `Dangerous file path detected: ${fileName}` };
+            }
+          }
+        }
+
+        const nextOffset = offset + 30 + fileNameLength + extraFieldLength + compressedSize;
+        if (nextOffset <= offset && compressedSize > 0) {
+          return { valid: false, reason: 'Invalid header structure' };
+        }
+        offset = nextOffset;
       } else {
         offset++;
       }
     }
   }
 
-  return true;
+  // Check overall compression ratio
+  if (totalCompressedSize > 0) {
+    const overallRatio = totalUncompressedSize / totalCompressedSize;
+    if (overallRatio > maxRatio) {
+      return {
+        valid: false,
+        reason: `Overall compression ratio (${overallRatio.toFixed(1)}:1) exceeds limit (${maxRatio}:1)`,
+      };
+    }
+  }
+
+  return { valid: true };
+}
+
+/**
+ * Validates a PDF buffer for potential security issues before parsing.
+ * Checks for:
+ * - Valid PDF header
+ * - Reasonable file size
+ * - Obvious corruption indicators
+ */
+function validatePdfStructure(buffer: Buffer): { valid: boolean; reason?: string } {
+  // Check minimum PDF size
+  if (buffer.length < 8) {
+    return { valid: false, reason: 'PDF file too small' };
+  }
+
+  // Verify PDF header
+  const header = buffer.toString('utf-8', 0, 5);
+  if (!header.startsWith('%PDF')) {
+    return { valid: false, reason: 'Invalid PDF header' };
+  }
+
+  // Check for obviously corrupted PDFs (e.g., all null bytes after header)
+  let nonNullCount = 0;
+  const checkLength = Math.min(buffer.length, 1024);
+  for (let i = 5; i < checkLength; i++) {
+    if (buffer[i] !== 0) nonNullCount++;
+  }
+  if (nonNullCount < 10) {
+    return { valid: false, reason: 'PDF appears to be mostly null bytes' };
+  }
+
+  return { valid: true };
+}
+
+/**
+ * Validates a DOCX buffer for potential security issues before parsing.
+ * Checks for:
+ * - Valid ZIP structure
+ * - Required DOCX components
+ * - Reasonable file structure
+ */
+function validateDocxStructure(buffer: Buffer): { valid: boolean; reason?: string } {
+  // Check minimum DOCX size
+  if (buffer.length < 22) {
+    return { valid: false, reason: 'DOCX file too small' };
+  }
+
+  // Verify ZIP header (PK signature)
+  const signature = buffer.readUInt32LE(0);
+  if (signature !== 0x04034b50 && signature !== 0x504b0304) {
+    // Also check for end of central directory
+    if (buffer.readUInt32LE(0) !== 0x06054b50) {
+      return { valid: false, reason: 'Invalid DOCX/ZIP header' };
+    }
+  }
+
+  return { valid: true };
 }
 
 export function parseResumeInWorker(buffer: Buffer, mimeType: string): Promise<string> {
@@ -197,6 +406,23 @@ export function parseResumeInWorker(buffer: Buffer, mimeType: string): Promise<s
       return;
     }
 
+    // Additional validation based on MIME type
+    if (mimeType === 'application/pdf') {
+      const validation = validatePdfStructure(buffer);
+      if (!validation.valid) {
+        reject(new Error(`Invalid PDF structure: ${validation.reason}`));
+        return;
+      }
+    } else if (
+      mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    ) {
+      const validation = validateDocxStructure(buffer);
+      if (!validation.valid) {
+        reject(new Error(`Invalid DOCX structure: ${validation.reason}`));
+        return;
+      }
+    }
+
     // Convert buffer to Uint8Array for safe worker transfer
     const uint8Array = new Uint8Array(buffer);
 
@@ -205,6 +431,10 @@ export function parseResumeInWorker(buffer: Buffer, mimeType: string): Promise<s
     const workerCode = `
       const { parentPort, workerData } = require('worker_threads');
       const { Buffer } = require('buffer');
+      
+      // Security limits (mirrored from main thread)
+      const MAX_EXTRACTED_TEXT_LENGTH = ${SECURITY_CONFIG.MAX_EXTRACTED_TEXT_LENGTH};
+      const MAX_PDF_PAGES = ${SECURITY_CONFIG.MAX_PDF_PAGES};
       
       async function run() {
         try {
@@ -219,8 +449,8 @@ export function parseResumeInWorker(buffer: Buffer, mimeType: string): Promise<s
               if (header === '%PDF') {
                 const pdf = require('pdf-parse');
                 const pdfParser = pdf.default || pdf;
-                // Limit page count to 15 for safety
-                const data = await pdfParser(buffer, { max: 15 });
+                // Limit page count for safety
+                const data = await pdfParser(buffer, { max: MAX_PDF_PAGES });
                 rawText = data.text;
               } else {
                 // Plain text passed as PDF - extract directly
@@ -252,8 +482,8 @@ export function parseResumeInWorker(buffer: Buffer, mimeType: string): Promise<s
             rawText = buffer.toString('utf-8');
           }
           
-          if (rawText.length > 100000) {
-            throw new Error('Extracted text exceeds the safety limit of 100,000 characters.');
+          if (rawText.length > MAX_EXTRACTED_TEXT_LENGTH) {
+            throw new Error('Extracted text exceeds the safety limit of ${SECURITY_CONFIG.MAX_EXTRACTED_TEXT_LENGTH} characters.');
           }
           
           parentPort.postMessage({ success: true, rawText });
@@ -269,15 +499,19 @@ export function parseResumeInWorker(buffer: Buffer, mimeType: string): Promise<s
       eval: true,
       workerData: { bufferData: uint8Array, mimeType },
       resourceLimits: {
-        maxOldGenerationSizeMb: 128,
-        maxYoungGenerationSizeMb: 32,
+        maxOldGenerationSizeMb: SECURITY_CONFIG.WORKER_MAX_OLD_GENERATION_MB,
+        maxYoungGenerationSizeMb: SECURITY_CONFIG.WORKER_MAX_YOUNG_GENERATION_MB,
       },
     });
 
     const timeout = setTimeout(() => {
       worker.terminate();
-      reject(new Error('Parser timeout: parsing took longer than 10 seconds.'));
-    }, 10000);
+      reject(
+        new Error(
+          `Parser timeout: parsing took longer than ${SECURITY_CONFIG.PARSER_TIMEOUT_MS / 1000} seconds.`
+        )
+      );
+    }, SECURITY_CONFIG.PARSER_TIMEOUT_MS);
 
     worker.on('message', (message) => {
       clearTimeout(timeout);
@@ -324,9 +558,10 @@ function extractPhone(text: string): string {
 export async function parseResume(buffer: Buffer, mimeType: string): Promise<ParsedResume> {
   // 1. Structural checks for DOCX/ZIP decompression ratios and zip bombs
   if (mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-    if (!checkZipRatios(buffer)) {
+    const zipValidation = checkZipRatios(buffer);
+    if (!zipValidation.valid) {
       throw new Error(
-        'Suspicious zip/docx structure detected (potential zip bomb or excessive uncompressed size).'
+        `Suspicious zip/docx structure detected: ${zipValidation.reason || 'potential zip bomb or excessive uncompressed size'}`
       );
     }
   }
