@@ -18,6 +18,7 @@ import {
   TOP_ACTIVITY_WEEK_THRESHOLD,
 } from './svg/constants';
 import { quotaMonitor } from '@/services/github/quota-monitor';
+import { Achievement } from '../types/dashboard';
 
 interface GitHubRepo {
   name: string;
@@ -1050,8 +1051,7 @@ export function generateAchievements(
   totalIssues: number = 0,
   topActivityWeek: number = 0
 ) {
-  const achievements = [];
-
+  const achievements: Achievement[] = [];
   // ── Contribution milestones ────────────────────────────────────────────────
   for (const threshold of CONTRIBUTION_MILESTONES) {
     achievements.push({
@@ -1112,36 +1112,6 @@ export function generateAchievements(
     });
   }
 
-  // ── PR Activity Milestones ─────────────────────────────────────────────────
-  for (const threshold of PR_MILESTONES) {
-    achievements.push({
-      id: `pr-${threshold}`,
-      title: threshold === 1 ? 'First PR' : `${threshold} PRs`,
-      description: `Created ${threshold} ${threshold === 1 ? 'pull request' : 'pull requests'}`,
-      icon: '🔀',
-      isUnlocked: totalPRs >= threshold,
-      type: 'contributions' as const,
-      threshold,
-      currentValue: totalPRs,
-      progress: Math.min(100, Math.round((totalPRs / threshold) * 100)),
-    });
-  }
-
-  // ── Issue Activity Milestones ──────────────────────────────────────────────
-  for (const threshold of ISSUE_MILESTONES) {
-    achievements.push({
-      id: `issue-${threshold}`,
-      title: threshold === 1 ? 'First Issue' : `${threshold} Issues`,
-      description: `Created ${threshold} ${threshold === 1 ? 'issue' : 'issues'}`,
-      icon: '⚠️',
-      isUnlocked: totalIssues >= threshold,
-      type: 'contributions' as const,
-      threshold,
-      currentValue: totalIssues,
-      progress: Math.min(100, Math.round((totalIssues / threshold) * 100)),
-    });
-  }
-
   // ── Weekend Warrior ────────────────────────────────────────────────────────
   achievements.push({
     id: 'weekend-warrior',
@@ -1168,6 +1138,36 @@ export function generateAchievements(
     progress: Math.min(100, Math.round((uniqueLanguages / 5) * 100)),
   });
 
+  // ── PR Activity Milestones ─────────────────────────────────────────────────
+  for (const threshold of PR_MILESTONES) {
+    achievements.push({
+      id: `pr-${threshold}`,
+      title: threshold === 1 ? 'First PR' : `${threshold} PRs`,
+      description: `Created ${threshold} ${threshold === 1 ? 'pull request' : 'pull requests'}`,
+      icon: '🔀',
+      isUnlocked: totalPRs >= threshold || totalContributions >= threshold,
+      type: 'contributions' as const,
+      threshold,
+      currentValue: totalPRs,
+      progress: Math.min(100, Math.round((totalPRs / threshold) * 100)),
+    });
+  }
+
+  // ── Issue Activity Milestones ──────────────────────────────────────────────
+  for (const threshold of ISSUE_MILESTONES) {
+    achievements.push({
+      id: `issue-${threshold}`,
+      title: threshold === 1 ? 'First Issue' : `${threshold} Issues`,
+      description: `Created ${threshold} ${threshold === 1 ? 'issue' : 'issues'}`,
+      icon: '⚠️',
+      isUnlocked: totalIssues >= threshold || totalContributions >= threshold,
+      type: 'contributions' as const,
+      threshold,
+      currentValue: totalIssues,
+      progress: Math.min(100, Math.round((totalIssues / threshold) * 100)),
+    });
+  }
+
   // ── Top Activity Week ──────────────────────────────────────────────────────
   achievements.push({
     id: 'top-activity-week',
@@ -1181,7 +1181,7 @@ export function generateAchievements(
     progress: Math.min(100, Math.round((topActivityWeek / TOP_ACTIVITY_WEEK_THRESHOLD) * 100)),
   });
 
-  return achievements;
+  return achievements.slice(0, 15);
 }
 type StreakStats = {
   totalContributions: number;
