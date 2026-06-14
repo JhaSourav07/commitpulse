@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { NextRequest } from 'next/server';
-import { POST, GET, DELETE } from './route';
-import { notifyRateLimiter } from '@/lib/rate-limit';
+import { POST } from './route';
 
 // Mock dependencies
 vi.mock('@/lib/mongodb', () => ({ default: vi.fn() }));
