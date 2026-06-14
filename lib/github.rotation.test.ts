@@ -4,6 +4,8 @@ import {
   getGitHubTokens,
   clearGitHubApiCacheForTests,
   resetCircuitBreakerForTests,
+  getTokenStatsForTests,
+  getGlobalCircuitBreakerOpenUntilForTests,
 } from './github';
 
 describe('GitHub Multi-Token Rotation & Fallback', () => {
@@ -153,16 +155,21 @@ describe('GitHub Multi-Token Rotation & Fallback', () => {
     expect(fetchMock.mock.calls[2][1].headers.Authorization).toBe('bearer token2');
   });
 
-  // SKIPPED: This test expects Map functionality from getTokenStatsForTests
-  // The current implementation returns an object { currentTokenIndex, totalTokens }
-  it.skip('correctly sets global circuit breaker to the earliest reset time when all tokens are rate-limited', async () => {
+  it('correctly sets global circuit breaker to the earliest reset time when all tokens are rate-limited', async () => {
     process.env.GITHUB_PAT = 'token1,token2';
     delete process.env.GITHUB_TOKEN;
 
-    // This test expects getTokenStatsForTests to return a Map with .set() method
-    // The current implementation returns { currentTokenIndex, totalTokens }
-    // TODO: Rewrite this test to properly test token exhaustion and circuit breaker
+    const resetTime1 = Date.now() + 5000;
+    const resetTime2 = Date.now() + 10000;
 
-    expect(true).toBe(true);
+    const stats = getTokenStatsForTests();
+    stats.set('token1', { remaining: 0, resetTime: resetTime1 });
+    stats.set('token2', { remaining: 0, resetTime: resetTime2 });
+
+    await expect(
+      fetchWithRetry('https://api.github.com/graphql', { headers: {} })
+    ).rejects.toThrow();
+
+    expect(getGlobalCircuitBreakerOpenUntilForTests()).toBe(resetTime1);
   });
 });
