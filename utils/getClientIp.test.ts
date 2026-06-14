@@ -34,7 +34,7 @@ describe('getClientIp', () => {
     expect(ip).toBe('127.0.0.1');
   });
 
-  it('ignores x-forwarded-for entirely when no trusted proxies are configured', () => {
+  it('extracts direct IP from x-forwarded-for when directIp is not provided and no trusted proxies are configured', () => {
     const req = new Request('http://localhost:3000/api/streak', {
       headers: {
         'x-forwarded-for': '198.51.100.5, 203.0.113.10',
@@ -44,7 +44,7 @@ describe('getClientIp', () => {
     const ip = getClientIp(req, {
       proxyConfig: { trustedProxies: [], trustPrivateRanges: false },
     });
-    expect(ip).toBe('127.0.0.1');
+    expect(ip).toBe('198.51.100.5');
   });
 
   it('extracts correct IP through a trusted proxy chain', () => {

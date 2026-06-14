@@ -89,7 +89,11 @@ export function getClientIp(
     return requestIp;
   }
 
-  const directIp = opt.directIp?.trim();
+  const directIp =
+    opt.directIp?.trim() ||
+    (request as unknown as { ip?: string }).ip ||
+    headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+    headers.get('x-real-ip')?.trim();
   const forwardedHeaders = [
     'x-forwarded-for',
     ...(opt.headersPriority || ['x-vercel-proxied-for', 'cf-connecting-ip', 'x-real-ip']),
