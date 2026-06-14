@@ -252,6 +252,22 @@ describe('TTLCache', () => {
 
       cache.destroy();
     });
+
+    it('falls back to default TTL when ttl is NaN', () => {
+      vi.useFakeTimers();
+
+      const cache = new TTLCache<string>();
+
+      cache.set('nan-key', 'value', Number.NaN);
+
+      expect(cache.get('nan-key')).toBe('value');
+
+      vi.advanceTimersByTime(1_000);
+
+      expect(cache.get('nan-key')).toBe('value');
+
+      cache.destroy();
+    });
     it('returns correct values around the exact TTL boundary', () => {
       vi.useFakeTimers();
 

@@ -81,7 +81,17 @@ export async function POST(req: Request) {
 
   try {
     if (!process.env.MONGODB_URI) {
-      console.warn('MONGODB_URI is not set. Bypassing student profile save.');
+      const isProduction =
+        process.env.NODE_ENV === 'production' ||
+        process.env.VERCEL_ENV === 'production' ||
+        process.env.VERCEL_ENV === 'preview';
+      if (isProduction) {
+        return NextResponse.json(
+          { success: false, error: 'Server configuration error: Database not configured' },
+          { status: 500 }
+        );
+      }
+      console.warn('MONGODB_URI is not set. Bypassing student profile save (local dev).');
       return NextResponse.json({ success: true, bypassed: true });
     }
 
