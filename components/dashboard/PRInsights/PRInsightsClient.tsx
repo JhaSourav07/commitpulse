@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
 import type { PRInsightData } from '@/services/github/pr-insights';
 import TopMetricsRow from './TopMetricsRow';
 import PRTrendChart from './PRTrendChart';

@@ -1,10 +1,8 @@
 .page {
   --background: #fafafa;
   --foreground: #fff;
-
   --text-primary: #000;
   --text-secondary: #666;
-
   --button-primary-hover: #383838;
   --button-secondary-hover: #f2f2f2;
   --button-secondary-border: #ebebeb;
@@ -107,7 +105,7 @@ a.secondary {
   }
 }
 
-@media (max-width: 600px) {
+@media (width <= 600px) {
   .main {
     padding: 48px 24px;
   }
@@ -131,10 +129,8 @@ a.secondary {
   .page {
     --background: #000;
     --foreground: #000;
-
     --text-primary: #ededed;
     --text-secondary: #999;
-
     --button-primary-hover: #ccc;
     --button-secondary-hover: #1a1a1a;
     --button-secondary-border: #1a1a1a;

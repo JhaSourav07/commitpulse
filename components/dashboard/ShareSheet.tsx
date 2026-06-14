@@ -14,10 +14,11 @@ import { Check, Code, Copy, Download, ExternalLink, Loader2, Sparkles, X } from 
 import type { DashboardExportData } from '@/types/dashboard';
 import { useShareActions } from '@/hooks/useShareActions';
 import { useTranslation } from '@/context/TranslationContext';
+import NextImage from 'next/image';
 
 type OptionState = 'idle' | 'loading' | 'success' | 'error';
 
-interface ShareSheetProps {
+export interface ShareSheetProps {
   username: string;
   isOpen: boolean;
   onClose: () => void;
@@ -116,12 +117,13 @@ function GitHubAvatar({ username }: { username: string }) {
 
   if (src) {
     return (
-      <img
+      <NextImage
         src={src}
         alt={username}
         width={36}
         height={36}
         className="w-9 h-9 rounded-full ring-2 ring-zinc-200 dark:ring-zinc-700 object-cover shrink-0"
+        unoptimized
       />
     );
   }

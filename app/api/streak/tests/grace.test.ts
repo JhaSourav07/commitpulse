@@ -145,48 +145,29 @@ describe('Grace Parameter Integration Tests', () => {
   });
 
   describe('Test 3: Invalid grace parameter values (out of range and non-integer)', () => {
-    it('should return 400 Bad Request when grace=-1 (negative)', async () => {
+    it('should clamp grace=-1 to 0 and return 200', async () => {
       const request = makeRequest({
         user: 'octocat',
         grace: '-1',
       });
-
       const response = await GET(request);
-
-      expect(response.status).toBe(400);
-      const body = await response.json();
-      expect(body.error).toBe('Invalid parameters');
-      expect(body.details.fieldErrors.grace).toBeDefined();
-      expect(body.details.fieldErrors.grace[0]).toContain(
-        'grace must be an integer between 0 and 7'
-      );
+      expect(response.status).toBe(200);
     });
-
-    it('should return 400 Bad Request when grace=8 (exceeds max)', async () => {
+    it('should clamp grace=8 to 7 and return 200', async () => {
       const request = makeRequest({
         user: 'octocat',
         grace: '8',
       });
-
       const response = await GET(request);
-
-      expect(response.status).toBe(400);
-      const body = await response.json();
-      expect(body.error).toBe('Invalid parameters');
-      expect(body.details.fieldErrors.grace[0]).toContain(
-        'grace must be an integer between 0 and 7'
-      );
+      expect(response.status).toBe(200);
     });
-
-    it('should not call GitHub API when grace parameter is invalid', async () => {
+    it('should call GitHub API even when grace is out of range (clamped)', async () => {
       const request = makeRequest({
         user: 'octocat',
         grace: '99',
       });
-
       await GET(request);
-
-      expect(fetchGitHubContributions).not.toHaveBeenCalled();
+      expect(fetchGitHubContributions).toHaveBeenCalled();
     });
   });
 

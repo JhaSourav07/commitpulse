@@ -1,0 +1,40 @@
+/* --- Center-Aligned Telemetry Layout --- */
+.dashboard-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 80vh;
+  padding: 1.5rem;
+  box-sizing: border-box;
+}
+
+.metrics-display {
+  width: 100%;
+  max-width: 550px;
+  text-align: center;
+  margin: 0 auto;
+}
+
+.pulse-tracker-card {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 1rem 2rem;
+  border: 1px solid var(--border-color);
+  border-radius: 0.5rem;
+  /* Removed rgba and hardcoded values to satisfy Stylelint config rules */
+  background: transparent;
+  margin-top: 1.5rem;
+}
+
+.matrix-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.matrix-subtitle {
+  font-size: 0.875rem;
+}
