@@ -2,11 +2,18 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { getClientIp } from './getClientIp';
 
 describe('getClientIp Data Accessibility & Header Resolution Tests', () => {
+  const originalEnv = process.env.NODE_ENV;
+
   beforeEach(() => {
     vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    vi.useFakeTimers();
+    process.env.NODE_ENV = 'development';
   });
 
   afterEach(() => {
+    process.env.NODE_ENV = originalEnv;
+    vi.runAllTimers();
+    vi.useRealTimers();
     vi.restoreAllMocks();
   });
 
