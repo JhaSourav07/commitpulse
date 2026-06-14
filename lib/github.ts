@@ -750,12 +750,15 @@ export async function fetchGitHubContributions(
     }
   }
 
-  const preCached = await contributionsCache.get(key);
-  const isCacheHit = preCached !== null && !shouldFetch(preCached);
+  let isFreshFetch = false;
+  const trackingLoad = async (cached: ExtendedContributionData | null) => {
+    isFreshFetch = true;
+    return await coalescedLoad();
+  };
   try {
     return {
-      ...(await contributionsCache.getOrSet(key, coalescedLoad, LONG_CACHE_TTL, shouldFetch)),
-      cacheStatus: isCacheHit ? 'HIT' : 'MISS',
+      ...(await contributionsCache.getOrSet(key, trackingLoad, LONG_CACHE_TTL, shouldFetch)),
+      cacheStatus: isFreshFetch ? 'MISS' : 'HIT',
     };
   } catch (err: unknown) {
     const staleData = await contributionsCache.get(key);
