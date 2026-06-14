@@ -72,6 +72,14 @@ function formatDateTime(isoString: string): string {
   }
 }
 
+function formatDuration(seconds: number): string {
+  if (seconds < 60) return `${seconds}s`;
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  return `${h}h ${m}m`;
+}
+
 export default function CIWorkflowTable({ runs }: { runs: CIWorkflowRun[] }) {
   if (runs.length === 0) {
     return (
@@ -133,7 +141,7 @@ export default function CIWorkflowTable({ runs }: { runs: CIWorkflowRun[] }) {
             </tr>
           </thead>
           <tbody>
-            {runs.slice(0, 20).map((run, idx) => {
+            {runs.slice(0, 20).map((run) => {
               const badge = getStatusBadge(run);
               return (
                 <tr
@@ -191,12 +199,4 @@ export default function CIWorkflowTable({ runs }: { runs: CIWorkflowRun[] }) {
       </div>
     </motion.div>
   );
-}
-
-function formatDuration(seconds: number): string {
-  if (seconds < 60) return `${seconds}s`;
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  return `${h}h ${m}m`;
 }

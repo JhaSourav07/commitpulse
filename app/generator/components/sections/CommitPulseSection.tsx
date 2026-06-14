@@ -355,6 +355,7 @@ export function CommitPulseSection({
                     the full dashboard link above.
                   </p>
                 )}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   key={`${badgeKey}-${safeAccent}`}
                   src={badgeUrl}

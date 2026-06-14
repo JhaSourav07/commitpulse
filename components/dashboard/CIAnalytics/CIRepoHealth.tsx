@@ -2,7 +2,6 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { ShieldCheck, Activity, Clock, GitBranch } from 'lucide-react';
 import type { CIRepoHealth } from '@/types/ci-analytics';
 
 const STATUS_BADGE: Record<string, string> = {
@@ -77,7 +76,7 @@ export default function CIRepoHealth({ repos }: { repos: CIRepoHealth[] }) {
             </tr>
           </thead>
           <tbody>
-            {repos.slice(0, 10).map((repo, idx) => (
+            {repos.slice(0, 10).map((repo) => (
               <tr
                 key={repo.name}
                 className="border-b border-black/5 dark:border-white/5 hover:bg-black/5 dark:hover:bg-white/5 transition-colors"

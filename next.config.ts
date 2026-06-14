@@ -1,12 +1,25 @@
 import type { NextConfig } from 'next';
-
 const nextConfig: NextConfig = {
-  // Prevent Turbopack from bundling next/og through its shared module context,
-  // which causes the "Next.js package not found" HMR panic on dynamic routes.
   serverExternalPackages: ['next/og', '@resvg/resvg-js'],
-  // Allow the local network IP to access dev resources without cross-origin warnings
   allowedDevOrigins: ['172.31.128.1'],
   devIndicators: false,
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          { key: 'X-Frame-Options', value: 'DENY' },
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+          { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
+          {
+            key: 'Strict-Transport-Security',
+            value: 'max-age=63072000; includeSubDomains; preload',
+          },
+        ],
+      },
+    ];
+  },
   images: {
     remotePatterns: [
       {
@@ -20,5 +33,4 @@ const nextConfig: NextConfig = {
     ],
   },
 };
-
 export default nextConfig;

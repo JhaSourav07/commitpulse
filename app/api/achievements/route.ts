@@ -3,9 +3,9 @@ import { validateGitHubUsername } from '@/lib/validations';
 import { getFullDashboardData } from '@/lib/github';
 import type {
   AchievementDef,
-  AchievementLevelDef,
+  //AchievementLevelDef,
   AchievementCategory,
-  AchievementRarity,
+  //AchievementRarity,
   AchievementState,
   AchievementData,
   AchievementsResponse,
@@ -585,11 +585,18 @@ export async function GET(request: Request) {
     const frontendCount = languageNames.filter((l) => FRONTEND_LANGUAGES.has(l)).length;
     const backendCount = languageNames.filter((l) => BACKEND_LANGUAGES.has(l)).length;
 
-    const aiRepoCount = languageNames.filter((l) =>
-      AI_KEYWORDS.some((kw) => l.toLowerCase().includes(kw))
+    const popularRepos = (dashboardData.popularRepos ?? []) as Array<{
+      name: string;
+      description: string | null;
+      stargazerCount: number;
+    }>;
+    const aiRepoCount = popularRepos.filter((repo) =>
+      AI_KEYWORDS.some(
+        (kw) =>
+          repo.name.toLowerCase().includes(kw) ||
+          (repo.description && repo.description.toLowerCase().includes(kw))
+      )
     ).length;
-
-    const popularRepos = (dashboardData.popularRepos ?? []) as Array<{ stargazerCount: number }>;
     let topStarDensity = 0;
     for (const repo of popularRepos) {
       const density = repo.stargazerCount / 6;
@@ -599,7 +606,7 @@ export async function GET(request: Request) {
     const totalEngagement = totalStars + totalForks + stats.totalIssues + stats.totalPRs;
 
     const totalContributions = stats.totalContributions;
-    const currentStreak = stats.currentStreak;
+    //const currentStreak = stats.currentStreak;
     const longestStreak = stats.peakStreak;
 
     const allCategories: AchievementCategory[] = [
@@ -619,7 +626,7 @@ export async function GET(request: Request) {
       'pr-rookie': stats.totalPRs,
       'pr-master': stats.totalPRs,
       'merge-master': stats.totalPRs,
-      'review-expert': Math.min(stats.totalPRs, Math.round(stats.totalPRs * 0.3)),
+      'review-expert': stats.totalReviews,
       'pr-legend': stats.totalPRs,
       'star-collector': totalStars,
       'repository-creator': totalRepos,

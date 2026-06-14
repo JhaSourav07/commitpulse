@@ -16,6 +16,7 @@ interface SocialsSectionProps {
 function SocialIcon({ social, isDark }: { social: Social; isDark: boolean }) {
   const filterClass = social.type === 'simpleicon' && isDark ? 'invert brightness-200' : '';
   return (
+    // eslint-disable-next-line @next/next/no-img-element
     <img
       src={social.iconUrl}
       alt={social.name}
@@ -174,6 +175,7 @@ export function SocialsSection({
                             : 'bg-amber-500/10 border-amber-500/20 text-amber-700 dark:text-amber-300'
                         }`}
                       >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                           src={social.iconUrl}
                           alt=""
@@ -293,6 +295,7 @@ export function SocialsSection({
                   return (
                     <div key={id}>
                       <div className="flex items-center gap-2 mb-1.5">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                           src={social.iconUrl}
                           alt=""

@@ -7,9 +7,6 @@ import type { CIAnalyticsFilters } from '@/types/ci-analytics';
 interface CIFiltersProps {
   filters: CIAnalyticsFilters;
   onChange: (filters: CIAnalyticsFilters) => void;
-  repos: string[];
-  branches: string[];
-  workflows: string[];
 }
 
 const TIME_RANGES = [
@@ -20,13 +17,7 @@ const TIME_RANGES = [
   { value: '90d', label: 'Last 90 Days' },
 ];
 
-export default function CIFilters({
-  filters,
-  onChange,
-  repos,
-  branches,
-  workflows,
-}: CIFiltersProps) {
+export default function CIFilters({ filters, onChange }: CIFiltersProps) {
   const update = (key: keyof CIAnalyticsFilters, value: string) => {
     onChange({ ...filters, [key]: value });
   };

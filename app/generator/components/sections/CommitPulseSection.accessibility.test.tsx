@@ -17,7 +17,7 @@ vi.mock('@/lib/validations', () => ({
 
 // Mock next/image
 vi.mock('next/image', () => ({
-  default: (props: React.ImgHTMLAttributes<HTMLImageElement>) => <img {...props} />,
+  default: (props: React.ImgHTMLAttributes<HTMLImageElement>) => <img {...props} alt="" />,
 }));
 
 describe('CommitPulseSection Accessibility Standards & Screen Reader Compliance', () => {

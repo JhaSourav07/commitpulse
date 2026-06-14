@@ -14,11 +14,15 @@ import { Check, Code, Copy, Download, ExternalLink, Loader2, Sparkles, X } from 
 import type { DashboardExportData } from '@/types/dashboard';
 import { useShareActions } from '@/hooks/useShareActions';
 import { useTranslation } from '@/context/TranslationContext';
-import NextImage from 'next/image';
+import NextImage from 'next/image'; // Keeps Next.js image components safe
+
+// Explicitly tell TypeScript to look at the global window browser object
+// for native canvas drawing, avoiding collisions.
+const NativeBrowserImage = typeof window !== 'undefined' ? window.Image : class {};
 
 type OptionState = 'idle' | 'loading' | 'success' | 'error';
 
-interface ShareSheetProps {
+export interface ShareSheetProps {
   username: string;
   isOpen: boolean;
   onClose: () => void;
@@ -266,7 +270,7 @@ export default function ShareSheet({ username, isOpen, onClose, exportData }: Sh
     try {
       const svgString = new XMLSerializer().serializeToString(svgElement);
       const blobURL = URL.createObjectURL(new Blob([svgString], { type: 'image/svg+xml' }));
-      const image = new Image();
+      const image = new NativeBrowserImage() as HTMLImageElement;
       image.onload = async () => {
         const canvas = document.createElement('canvas');
         canvas.width = 512;

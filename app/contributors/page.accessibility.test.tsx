@@ -1,6 +1,6 @@
 // app/contributors/page.accessibility.test.tsx
 
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
@@ -103,8 +103,6 @@ describe('ContributorsPage Accessibility', () => {
   });
 
   it('renders successfully when contributor data is empty', async () => {
-    const originalFetch = global.fetch;
-
     global.fetch = vi.fn().mockResolvedValue({
       ok: false,
       status: 500,
@@ -120,7 +118,5 @@ describe('ContributorsPage Accessibility', () => {
     render(page);
 
     expect(screen.getByTestId('contributors-client')).toBeInTheDocument();
-
-    global.fetch = originalFetch;
   });
 });

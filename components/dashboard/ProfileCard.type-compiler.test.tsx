@@ -32,10 +32,7 @@ vi.mock('next/image', () => ({
     alt: string;
     width: number;
     height: number;
-  }) => (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img src={src} alt={alt} width={width} height={height} />
-  ),
+  }) => <img src={src} alt={alt} width={width} height={height} />,
 }));
 
 const mockExportData: DashboardExportData = {

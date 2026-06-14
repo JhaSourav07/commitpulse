@@ -29,7 +29,7 @@ async function worker() {
         errors++;
       }
       totalRequests++;
-    } catch (e) {
+    } catch {
       errors++;
       totalRequests++;
     }

@@ -452,6 +452,7 @@ jobs:
                           Snake graph not found. Setup the Action in your repo to load live data.
                         </p>
                       )}
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={snakeUrl}
                         alt={`Snake Contribution Graph for ${debouncedUsername}`}
@@ -497,6 +498,7 @@ jobs:
                           Pacman graph not found. Setup the Action in your repo to load live data.
                         </p>
                       )}
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={pacmanUrl}
                         alt={`Pacman Contribution Graph for ${debouncedUsername}`}

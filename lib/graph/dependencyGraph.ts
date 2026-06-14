@@ -175,7 +175,7 @@ function addCandidate(
   bucketMap.set(sourceId, sourceBucket);
 }
 
-function connectManyToMany(
+/* function connectManyToMany(
   bucketMap: Map<string, Map<string, EdgeBucket>>,
   sources: string[],
   targets: string[],
@@ -201,7 +201,7 @@ function connectManyToMany(
       );
     }
   }
-}
+} */
 
 function connectCategoryToCategories(
   bucketMap: Map<string, Map<string, EdgeBucket>>,
