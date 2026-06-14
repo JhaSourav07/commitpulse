@@ -135,6 +135,7 @@ describe('DashboardPage', () => {
       codingHabit: 'Night Owl',
       totalPRs: 10,
       totalIssues: 5,
+      totalReviews: 3,
     },
     languages: [{ name: 'TypeScript', percentage: 100, color: '#3178c6' }],
     activity: [],

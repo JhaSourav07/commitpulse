@@ -251,18 +251,22 @@ describe('POST /api/track-user', () => {
       expect(data.bypassed).toBeUndefined();
     });
 
-    it('returns 500 when database connection fails', async () => {
-      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    it('bypasses user tracking gracefully when database connection fails', async () => {
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
       vi.mocked(dbConnect).mockRejectedValueOnce(new Error('DB Down'));
 
       const response = await POST(makeRequest({ username: 'octocat' }));
 
-      expect(response.status).toBe(500);
+      expect(response.status).toBe(200);
       const data = await response.json();
-      expect(data.success).toBe(false);
-      expect(data.error).toBe('Internal server error');
+      expect(data.success).toBe(true);
 
-      consoleErrorSpy.mockRestore();
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        'Database operation failed or timed out. Bypassing user tracking:',
+        expect.any(Error)
+      );
+
+      consoleWarnSpy.mockRestore();
     });
   });
 

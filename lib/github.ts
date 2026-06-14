@@ -13,6 +13,7 @@ import { LANGUAGE_COLORS } from '@/lib/svg/languageColors';
 import { CONTRIBUTION_MILESTONES, STREAK_MILESTONES } from './svg/constants';
 import { quotaMonitor } from '@/services/github/quota-monitor';
 import { deterministicRandom } from '@/lib/svg/generator';
+import pLimit from 'p-limit';
 
 interface GitHubRepo {
   name: string;
@@ -390,6 +391,7 @@ interface GitHubGraphQLResponse {
       contributionsCollection: {
         totalPullRequestContributions: number;
         totalIssueContributions: number;
+        totalPullRequestReviewContributions: number;
         contributionCalendar: ContributionCalendar;
         commitContributionsByRepository: RepoContribution[];
       };
@@ -618,6 +620,15 @@ export function displayName(profile: GitHubUserProfile): string {
   return profile.login;
 }
 
+export function getCircuitTelemetry() {
+  const now = Date.now();
+  const isOpen = now < globalCircuitBreakerOpenUntil;
+  return {
+    isOpen,
+    resetInMs: isOpen ? Math.max(0, globalCircuitBreakerOpenUntil - now) : 0,
+  };
+}
+
 /* ==========================================================================
  * DATA FETCHING
  * ========================================================================== */
@@ -767,6 +778,7 @@ async function fetchContributionsUncached(
           contributionsCollection(from: $from, to: $to) {
             totalPullRequestContributions
             totalIssueContributions
+            totalPullRequestReviewContributions
             contributionCalendar {
               totalContributions
               weeks {
@@ -860,6 +872,8 @@ async function fetchContributionsUncached(
 
   const totalPRs = data.data.user.contributionsCollection?.totalPullRequestContributions || 0;
   const totalIssues = data.data.user.contributionsCollection?.totalIssueContributions || 0;
+  const totalReviews =
+    data.data.user.contributionsCollection?.totalPullRequestReviewContributions || 0;
 
   calendar.lastSyncedAt = new Date().toISOString();
 
@@ -872,6 +886,7 @@ async function fetchContributionsUncached(
         repoContributions,
         totalPRs,
         totalIssues,
+        totalReviews,
       },
       LONG_CACHE_TTL
     );
@@ -919,6 +934,7 @@ async function fetchContributionsUncached(
     repoContributions,
     totalPRs,
     totalIssues,
+    totalReviews,
   };
 }
 
@@ -1959,6 +1975,8 @@ export async function getFullDashboardData(username: string, options: FetchOptio
       totalPRs: calendarResult.status === 'fulfilled' ? (calendarResult.value.totalPRs ?? 0) : 0,
       totalIssues:
         calendarResult.status === 'fulfilled' ? (calendarResult.value.totalIssues ?? 0) : 0,
+      totalReviews:
+        calendarResult.status === 'fulfilled' ? (calendarResult.value.totalReviews ?? 0) : 0,
     },
     languages,
     activity: buildActivityMap(allDays),
@@ -2053,26 +2071,16 @@ export async function runCappedConcurrency<T, R>(
   limit: number,
   fn: (item: T) => Promise<R>
 ): Promise<R[]> {
-  const results: R[] = new Array(items.length);
-  let currentIndex = 0;
-
-  async function worker(): Promise<void> {
-    while (currentIndex < items.length) {
-      const index = currentIndex++;
-      try {
-        results[index] = await fn(items[index]);
-      } catch {
-        results[index] = null as unknown as R;
-      }
-    }
-  }
-
-  const workers: Promise<void>[] = [];
-  const workerCount = Math.min(limit, items.length);
-  for (let i = 0; i < workerCount; i++) {
-    workers.push(worker());
-  }
-
-  await Promise.all(workers);
-  return results;
+  const limiter = pLimit(limit);
+  return Promise.all(
+    items.map((item) =>
+      limiter(async () => {
+        try {
+          return await fn(item);
+        } catch {
+          return null as unknown as R;
+        }
+      })
+    )
+  );
 }

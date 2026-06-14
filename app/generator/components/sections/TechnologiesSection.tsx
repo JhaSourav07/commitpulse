@@ -32,9 +32,11 @@ function TechIcon({ tech, isDark }: { tech: Technology; isDark: boolean }) {
   );
 }
 
-export function TechnologiesSection({ selected, onChange }: TechnologiesSectionProps) {
+export function TechnologiesSection({ selected = [], onChange }: TechnologiesSectionProps) {
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState<string>('All');
+
+  const safeSelected = selected || [];
 
   const isDark = false;
 
@@ -55,20 +57,21 @@ export function TechnologiesSection({ selected, onChange }: TechnologiesSectionP
   }, [search, activeCategory]);
 
   const toggle = (id: string) => {
-    if (selected.includes(id)) {
-      onChange(selected.filter((s) => s !== id));
+    if (!onChange) return;
+    if (safeSelected.includes(id)) {
+      onChange(safeSelected.filter((s) => s !== id));
     } else {
-      onChange([...selected, id]);
+      onChange([...safeSelected, id]);
     }
   };
 
-  const clearAll = () => onChange([]);
+  const clearAll = () => onChange && onChange([]);
   return (
     <div id="technologies-section">
       <SectionCard
         title="Technologies"
         description="Select your tech stack"
-        badge={selected.length}
+        badge={safeSelected.length}
         defaultOpen
       >
         <div className="relative mb-3">
@@ -119,10 +122,10 @@ export function TechnologiesSection({ selected, onChange }: TechnologiesSectionP
           ))}
         </div>
 
-        {selected.length > 0 && (
+        {safeSelected.length > 0 && (
           <div className="mb-4">
             <div className="flex items-center justify-between mb-2">
-              <FieldLabel>Selected ({selected.length})</FieldLabel>
+              <FieldLabel>Selected ({safeSelected.length})</FieldLabel>
               <button
                 type="button"
                 onClick={clearAll}
@@ -132,7 +135,7 @@ export function TechnologiesSection({ selected, onChange }: TechnologiesSectionP
               </button>
             </div>
             <div className="flex flex-wrap gap-1.5">
-              {selected.map((id) => {
+              {safeSelected.map((id) => {
                 const tech = TECHNOLOGIES.find((t) => t.id === id);
                 if (!tech) return null;
                 return (
@@ -170,7 +173,7 @@ export function TechnologiesSection({ selected, onChange }: TechnologiesSectionP
         </FieldLabel>
         <div className="grid grid-cols-1 gap-1 max-h-72 overflow-y-auto pr-1">
           {filtered.map((tech) => {
-            const isSelected = selected.includes(tech.id);
+            const isSelected = safeSelected.includes(tech.id);
             return (
               <button
                 key={tech.id}
