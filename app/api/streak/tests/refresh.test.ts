@@ -1,18 +1,20 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { createRequest } from 'node-mocks-http';
-import { GET } from '../route';
 
-vi.mock('../../../../lib/github', () => ({
+vi.mock('@/lib/github', () => ({
   fetchGitHubContributions: vi.fn(),
   getOrgDashboardData: vi.fn(),
+  getCircuitTelemetry: vi.fn().mockReturnValue({ isOpen: false, resetInMs: 0 }),
 }));
+
+import { GET } from '../route';
 
 vi.mock('../../../../utils/time', () => ({
   getSecondsUntilUTCMidnight: vi.fn(),
   getSecondsUntilMidnightInTimezone: vi.fn(),
 }));
 
-import { fetchGitHubContributions } from '../../../../lib/github';
+import { fetchGitHubContributions } from '@/lib/github';
 import { getSecondsUntilUTCMidnight } from '../../../../utils/time';
 import type { ExtendedContributionData } from '../../../../types';
 import { refreshPolicy } from '../../../../services/github/refresh-policy';

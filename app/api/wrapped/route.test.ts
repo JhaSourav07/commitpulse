@@ -1,13 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { GET } from './route';
 
-vi.mock('../../../lib/github', () => ({
+vi.mock('@/lib/github', () => ({
   getWrappedData: vi.fn(),
   fetchGitHubContributions: vi.fn(),
   getCircuitTelemetry: vi.fn().mockReturnValue({ isOpen: false, resetInMs: 0 }),
 }));
 
-import { getWrappedData, fetchGitHubContributions, getCircuitTelemetry } from '../../../lib/github';
+import { GET } from './route';
+import { getWrappedData, fetchGitHubContributions, getCircuitTelemetry } from '@/lib/github';
 import type { ContributionCalendar } from '../../../types';
 import type { WrappedStats } from '../../../types/dashboard';
 import { refreshPolicy } from '../../../services/github/refresh-policy';
@@ -55,6 +55,7 @@ describe('GET /api/wrapped', () => {
     vi.mocked(fetchGitHubContributions).mockResolvedValue({
       calendar: mockCalendar,
     } as unknown as import('../../../types').ExtendedContributionData);
+    vi.mocked(getCircuitTelemetry).mockReturnValue({ isOpen: false, resetInMs: 0 });
   });
 
   describe('parameter validation', () => {
