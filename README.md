@@ -665,6 +665,7 @@ _Built with obsession, shipped with precision._
 ⭐ **If CommitPulse made your profile look elite, drop a star.** ⭐
 
 ### This project is an official participant in GSSoC 2026.
+[![GSSOC 2026](https://img.shields.io/badge/GSSOC-2026-blue.svg)](https://gssoc.girlscript.org)
 
   </div>
 
