@@ -71,43 +71,79 @@ if (typeof window !== 'undefined' && typeof window.Storage !== 'undefined') {
     configurable: true,
   });
 }
-const MOTION_PROPS = new Set([
-  'animate',
-  'initial',
-  'exit',
-  'transition',
-  'variants',
-  'whileHover',
-  'whileTap',
-  'whileInView',
-  'viewport',
-  'layout',
-  'layoutId',
-  'drag',
-  'dragConstraints',
-]);
+vi.mock('framer-motion', async () => {
+  const React = await import('react');
 
-function stripMotionProps(props: Record<string, unknown>) {
-  return Object.fromEntries(Object.entries(props).filter(([key]) => !MOTION_PROPS.has(key)));
-}
+  const motionProps = new Set([
+    'whileHover',
+    'whileTap',
+    'whileInView',
+    'initial',
+    'animate',
+    'exit',
+    'variants',
+    'transition',
+    'viewport',
+    'drag',
+    'layout',
+    'layoutId',
+  ]);
 
-vi.mock('framer-motion', () => ({
-  AnimatePresence: ({ children }: { children: React.ReactNode }) => {
-    children;
-  },
+  const stripMotionProps = (props: Record<string, unknown>) =>
+    Object.fromEntries(Object.entries(props).filter(([key]) => !motionProps.has(key)));
 
-  motion: new Proxy(
-    {},
-    {
-      get: (_target, tag: string | symbol) => {
-        const element = typeof tag === 'string' ? tag : 'div';
+  const createMotionComponent = (tag: string) => {
+    const MotionComponent = (props: Record<string, unknown>) => {
+      const { children, ...rest } = props;
 
-        return ({ children, ...props }: { children?: React.ReactNode; [key: string]: unknown }) => {
-          const safeProps = stripMotionProps(props);
+      return React.createElement(tag, stripMotionProps(rest), children as React.ReactNode);
+    };
 
-          return React.createElement(element, safeProps, children);
-        };
-      },
-    }
-  ),
-}));
+    MotionComponent.displayName = `Motion${tag}`;
+
+    return MotionComponent;
+  };
+
+  return {
+    motion: {
+      div: createMotionComponent('div'),
+      span: createMotionComponent('span'),
+      p: createMotionComponent('p'),
+      a: createMotionComponent('a'),
+      button: createMotionComponent('button'),
+      section: createMotionComponent('section'),
+      article: createMotionComponent('article'),
+      header: createMotionComponent('header'),
+      footer: createMotionComponent('footer'),
+      main: createMotionComponent('main'),
+      nav: createMotionComponent('nav'),
+      ul: createMotionComponent('ul'),
+      li: createMotionComponent('li'),
+      h1: createMotionComponent('h1'),
+      h2: createMotionComponent('h2'),
+      h3: createMotionComponent('h3'),
+      h4: createMotionComponent('h4'),
+      h5: createMotionComponent('h5'),
+      h6: createMotionComponent('h6'),
+      img: createMotionComponent('img'),
+      svg: createMotionComponent('svg'),
+      path: createMotionComponent('path'),
+    },
+
+    AnimatePresence: ({ children }: { children?: React.ReactNode }) =>
+      React.createElement(React.Fragment, null, children),
+
+    useReducedMotion: () => false,
+
+    useMotionValue: (initial: number | string = 0) => ({
+      get: () => initial,
+      set: vi.fn(),
+      on: vi.fn(),
+      destroy: vi.fn(),
+    }),
+
+    useSpring: (value: unknown) => value,
+
+    useTransform: (value: unknown) => value,
+  };
+});
