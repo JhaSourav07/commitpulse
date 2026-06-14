@@ -31,29 +31,43 @@ async function getContributors(): Promise<Contributor[]> {
     const controller = new AbortController();
     const timeoutMs = process.env.NODE_ENV === 'test' ? 100 : 10000;
     timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    const contributors: Contributor[] = [];
+    let page = 1;
 
-    const res = await fetch('https://api.github.com/repos/JhaSourav07/commitpulse/contributors', {
-      next: { revalidate: 3600 },
-      signal: controller.signal,
-      headers: {
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        Accept: 'application/vnd.github+json',
-      },
-    });
+    while (true) {
+      const res = await fetch(
+        `https://api.github.com/repos/JhaSourav07/commitpulse/contributors?per_page=100&page=${page}`,
+        {
+          next: { revalidate: 3600 },
+          signal: controller.signal,
+          headers: {
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            Accept: 'application/vnd.github+json',
+          },
+        }
+      );
 
-    if (!res.ok) {
-      const remaining = res.headers.get('x-ratelimit-remaining');
+      if (!res.ok) {
+        const remaining = res.headers.get('x-ratelimit-remaining');
 
-      if ((res.status === 403 && remaining === '0') || res.status === 429) {
-        throw new Error(
-          `GitHub API rate limit exceeded.${getRateLimitResetMessage(res)} Please try again later.`
-        );
+        if ((res.status === 403 && remaining === '0') || res.status === 429) {
+          throw new Error(
+            `GitHub API rate limit exceeded.${getRateLimitResetMessage(res)} Please try again later.`
+          );
+        }
+
+        throw new Error('Failed to fetch contributors');
       }
 
-      throw new Error('Failed to fetch contributors');
-    }
+      const pageContributors = (await res.json()) as Contributor[];
+      contributors.push(...pageContributors);
 
-    return res.json();
+      if (pageContributors.length !== 100) {
+        return contributors;
+      }
+
+      page += 1;
+    }
   } catch (error) {
     console.error('Failed to fetch contributors:', error);
     return [];

@@ -117,13 +117,16 @@ export async function GET(request: Request) {
         remainingMs: refreshPolicy.getRemainingCooldown(user),
       });
       shouldBypassCache = false;
-    } else {
-      refreshPolicy.recordRefresh(user);
     }
   }
 
   try {
     const userData = await fetchGitHubContributions(user, { bypassCache: shouldBypassCache });
+
+    if (shouldBypassCache) {
+      refreshPolicy.recordRefresh(user);
+    }
+
     const calendar = userData.calendar;
     const stats = calculateStreak(calendar, timezone);
     const headers = new Headers({

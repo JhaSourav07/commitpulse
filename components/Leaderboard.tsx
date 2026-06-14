@@ -17,9 +17,10 @@ interface LeaderboardProps {
   contributors: Contributor[];
 }
 
-export default function Leaderboard({ contributors }: LeaderboardProps) {
-  const top3 = contributors.slice(0, 3);
-  const listEntries = contributors.slice(3);
+export default function Leaderboard({ contributors = [] }: LeaderboardProps) {
+  const safeContributors = contributors || [];
+  const top3 = safeContributors.slice(0, 3);
+  const listEntries = safeContributors.slice(3);
 
   const rank1 = top3[0];
   const rank2 = top3[1];

@@ -49,7 +49,7 @@ vi.mock('gsap/ScrollTrigger', () => ({
 vi.mock('framer-motion', () => {
   return {
     motion: {
-      div: 'div',
+      div: ({ children, layout, ...props }: any) => <div {...props}>{children}</div>,
       span: 'span',
       p: 'p',
       h1: 'h1',
