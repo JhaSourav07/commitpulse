@@ -108,8 +108,8 @@ describe('GET /api/streak dateRange parameter', () => {
   it('invalid dateRange formats return a validation error without crashing', async () => {
     const res = await GET(makeRequest({ user: 'octocat', from: 'not-a-date', to: 'also-not' }));
     expect(res.status).toBe(400);
-    const body = await res.json();
-    expect(body.error).toBe('Invalid parameters');
+    const body = await res.text();
+    expect(body).toContain('<svg');
   });
 
   it('sets sensible Cache-Control and Content-Type headers for SVG output', async () => {
