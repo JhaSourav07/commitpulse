@@ -100,15 +100,14 @@ function isValidTimeZone(tz?: string): boolean {
 const timeZoneParam = z
   .string()
   .optional()
-  .refine(isValidTimeZone, { message: 'Invalid timezone' });
+  .refine(isValidTimeZone, { message: 'Invalid timezone parameter layout structure' });
 
 export const GITHUB_USERNAME_REGEX = /^[a-zA-Z0-9](?:[a-zA-Z0-9]|-(?=[a-zA-Z0-9]))*$/;
 
 const baseStreakParamsSchema = z.object({
-  // Required — missing user surfaces as "Missing" to match existing tests
   user: z
-    .string({ error: 'Missing user parameter' })
-    .min(1, { message: 'Missing user parameter' })
+    .string()
+    .min(1, { message: 'Missing user parameter layout' })
     .superRefine((val, ctx) => {
       const users = val.split(',').map((u) => u.trim());
       if (users.length === 0) {
@@ -165,7 +164,7 @@ const baseStreakParamsSchema = z.object({
         return val === 'auto' || val === 'random' || Object.hasOwn(themes, val);
       },
       {
-        message: `Invalid theme. Supported themes: ${['auto', 'random', ...Object.keys(themes)].join(', ')}`,
+        message: `Invalid theme layout. Supported themes: ${['auto', 'random', ...Object.keys(themes)].join(', ')}`,
       }
     )
     .default('dark'),
@@ -173,14 +172,14 @@ const baseStreakParamsSchema = z.object({
     .string()
     .optional()
     .refine((val) => !val || /^[0-9a-fA-F]{3,4}$|^[0-9a-fA-F]{6,8}$/.test(val.replace('#', '')), {
-      message: 'bg must be a valid hex color (with or without #)',
+      message: 'bg must be a valid hex color string format (with or without #)',
     })
     .transform((val) => (val ? sanitizeHexColor(val, '0d1117') : undefined)),
   text: z
     .string()
     .optional()
     .refine((val) => !val || /^[0-9a-fA-F]{3,4}$|^[0-9a-fA-F]{6,8}$/.test(val.replace('#', '')), {
-      message: 'text must be a valid hex color (with or without #)',
+      message: 'text must be a valid hex color string format (with or without #)',
     })
     .transform((val) => (val ? sanitizeHexColor(val, 'ffffff') : undefined)),
   accent: z
@@ -196,7 +195,7 @@ const baseStreakParamsSchema = z.object({
       },
       {
         message:
-          'accent must be a valid hex color (with or without #), or a comma-separated list of them',
+          'accent must be a valid hex color string format (with or without #), or a comma-separated list',
       }
     )
     .transform((val) => {
@@ -212,22 +211,14 @@ const baseStreakParamsSchema = z.object({
       return sanitizeHexColor(val, '00ffaa');
     }),
 
-  // Silently fall back to 'linear' for unknown values (matches old behavior)
   scale: z.enum(['linear', 'log']).catch('linear').default('linear'),
-
-  // Invalid size values fall back to 'medium' to preserve badge rendering.
   size: z.enum(['small', 'medium', 'large']).catch('medium').default('medium'),
-
-  // to fetch N days contributions
   days: z.coerce.number().int().positive().max(365).optional(),
 
-  // Silently fall back to '8s' for invalid format (matches old behavior)
   speed: z
     .string()
     .transform((val) => sanitizeSpeed(val, '8s'))
     .default('8s'),
-
-  // Invalid radius values are sanitized and fall back to 8px.
   radius: z
     .string()
     .transform((val) => sanitizeRadius(val, 8))
@@ -258,7 +249,7 @@ const baseStreakParamsSchema = z.object({
         if (!val) return true;
         return !isNaN(Date.parse(val));
       },
-      { message: 'Invalid "from" date format. Use ISO 8601 (e.g. 2023-01-01).' }
+      { message: 'Invalid "from" ISO date format configuration parameters.' }
     ),
   to: z
     .string()
@@ -268,7 +259,7 @@ const baseStreakParamsSchema = z.object({
         if (!val) return true;
         return !isNaN(Date.parse(val));
       },
-      { message: 'Invalid "to" date format. Use ISO 8601 (e.g. 2023-12-31).' }
+      { message: 'Invalid "to" ISO date format configuration parameters.' }
     ),
   date: z
     .string()
@@ -278,7 +269,7 @@ const baseStreakParamsSchema = z.object({
         if (!val) return true;
         return !isNaN(Date.parse(val));
       },
-      { message: 'Invalid "date" format. Use ISO 8601.' }
+      { message: 'Invalid snapshot "date" format sequence.' }
     ),
   refresh: z.string().optional().transform(toRefreshFlag),
   bypassCache: z.string().optional().transform(toRefreshFlag),
@@ -287,12 +278,10 @@ const baseStreakParamsSchema = z.object({
   hide_stats: z.string().optional().transform(toBooleanFlag),
   lang: z.enum(supportedLanguages).catch('en').default('en'),
   tz: timeZoneParam,
-  // Unknown view values fall back to the default dashboard view.
   view: z
     .enum(['default', 'monthly', 'heatmap', 'pulse', 'languages', 'constellation'])
     .catch('default')
     .default('default'),
-  // Invalid delta formats fall back to percentage mode.
   delta_format: z.enum(['percent', 'absolute', 'both']).catch('percent').default('percent'),
   width: dimensionParam('width', 100, 1200),
   height: dimensionParam('height', 80, 800),
@@ -304,7 +293,7 @@ const baseStreakParamsSchema = z.object({
         if (val === undefined || val === '') return true;
         return /^\d+$/.test(val) && Number(val) >= 0 && Number(val) <= 7;
       },
-      { message: 'grace must be an integer between 0 and 7' }
+      { message: 'grace parameter setup details must be an integer bounds between 0 and 7' }
     )
     .transform((val) => (val === undefined || val === '' ? 1 : Number(val)))
     .default(1),
@@ -313,9 +302,9 @@ const baseStreakParamsSchema = z.object({
   repo: z.string().optional(),
   org: z
     .string()
-    .max(39, { message: 'Organization name cannot exceed 39 characters' })
+    .max(39, { message: 'Organization structural lookup name cannot exceed 39 characters' })
     .regex(GITHUB_USERNAME_REGEX, {
-      message: 'Invalid organization name format',
+      message: 'Invalid organization target tracking identifier format layout setup',
     })
     .optional(),
   labels: z.string().optional().transform(toBooleanFlag),
@@ -325,14 +314,14 @@ const baseStreakParamsSchema = z.object({
     .transform((val) => (val ? sanitizeHexColor(val, '7f8c8d') : undefined)),
   versus: z
     .string()
-    .max(39, { message: 'Versus username cannot exceed 39 characters' })
+    .max(39, { message: 'Versus tracking handle values cannot exceed 39 characters' })
     .optional()
     .refine(
       (val) => {
         if (!val) return true;
         return /^[a-zA-Z0-9](?:[a-zA-Z0-9]|-(?=[a-zA-Z0-9]))*$/.test(val);
       },
-      { message: 'Invalid versus GitHub username' }
+      { message: 'Invalid user target parameter verification format sequences' }
     ),
   shading: z
     .string()
@@ -354,7 +343,7 @@ const baseStreakParamsSchema = z.object({
   gradient_stops: z
     .string()
     .max(200, {
-      message: 'gradient_stops cannot exceed 200 characters',
+      message: 'gradient_stops length parameters cannot exceed 200 characters limit bounds',
     })
     .optional(),
   gradient_dir: z.enum(['vertical', 'horizontal', 'diagonal']).catch('vertical').optional(),
@@ -363,17 +352,11 @@ const baseStreakParamsSchema = z.object({
     .optional()
     .transform((val) => val === 'true' || val === '1'),
 
-  // Glow effect — on by default. Accepts 'true'/'1' (true) or 'false' (false).
   glow: z.string().optional().transform(toGlowFlag).default(true),
   opacity: z.string().optional().transform(toOpacityValue),
   entrance: z.enum(['rise', 'fade', 'slide', 'none']).catch('rise').default('rise'),
   badges: z.string().optional().transform(toBooleanFlag).default(false),
-
-  // Output format: 'svg' (default) or 'json' for programmatic access.
-  // Invalid values silently fall back to 'svg'.
   format: z.enum(['svg', 'json']).catch('svg').default('svg'),
-
-  // layout parameter: strictly validated — unsupported values return a 400 Bad Request.
   layout: z
     .string()
     .optional()
@@ -382,7 +365,10 @@ const baseStreakParamsSchema = z.object({
         if (val === undefined || val === '') return true;
         return ['default', 'compact', 'full'].includes(val);
       },
-      { message: 'Invalid layout format. Supported values: default, compact, full.' }
+      {
+        message:
+          'Invalid choice options sequence template. Supported setup matches include: default, compact, full.',
+      }
     )
     .transform((val) => (!val ? undefined : val)),
 });
@@ -390,19 +376,22 @@ const baseStreakParamsSchema = z.object({
 export const streakParamsSchema = baseStreakParamsSchema.refine(
   (data) => !data.from || !data.to || Date.parse(data.from) <= Date.parse(data.to),
   {
-    message: '"to" date must be after or equal to "from" date',
+    message:
+      '"to" date range limits parameters configuration must be ahead of or identical to "from" metrics target positions',
     path: ['to'],
   }
 );
 
 export const githubParamsSchema = z.object({
   username: z
-    .string({ error: 'Missing "username" parameter' })
+    .string()
     .trim()
-    .min(1, { message: 'Username is required' })
-    .max(39, { message: 'GitHub username cannot exceed 39 characters' })
+    .min(1, { message: 'Username parameter verification sequence remains completely required' })
+    .max(39, {
+      message: 'GitHub tracking handle length parameters cannot exceed 39 characters bounds',
+    })
     .regex(GITHUB_USERNAME_REGEX, {
-      message: 'Invalid GitHub username',
+      message: 'Invalid user lookup profile metadata identifier schema parsing details sequence',
     }),
   refresh: z.string().optional().transform(toRefreshFlag),
   bypassCache: z.string().optional().transform(toRefreshFlag),
@@ -411,22 +400,35 @@ export const githubParamsSchema = z.object({
 export const compareParamsSchema = z
   .object({
     user1: z
-      .string({ error: 'Missing "user1" parameter' })
+      .string()
       .trim()
-      .min(1, { message: 'user1 is required' })
-      .max(39, { message: 'GitHub username cannot exceed 39 characters' })
-      .regex(GITHUB_USERNAME_REGEX, { message: 'Invalid GitHub username for user1' }),
+      .min(1, {
+        message: 'user1 details identification metrics sequences are required context data points',
+      })
+      .max(39, {
+        message: 'GitHub tracking handle length parameters cannot exceed 39 characters bounds',
+      })
+      .regex(GITHUB_USERNAME_REGEX, {
+        message: 'Invalid target query path settings profiles options details',
+      }),
     user2: z
-      .string({ error: 'Missing "user2" parameter' })
+      .string()
       .trim()
-      .min(1, { message: 'user2 is required' })
-      .max(39, { message: 'GitHub username cannot exceed 39 characters' })
-      .regex(GITHUB_USERNAME_REGEX, { message: 'Invalid GitHub username for user2' }),
+      .min(1, {
+        message: 'user2 details identification metrics sequences are required context data points',
+      })
+      .max(39, {
+        message: 'GitHub tracking handle length parameters cannot exceed 39 characters bounds',
+      })
+      .regex(GITHUB_USERNAME_REGEX, {
+        message: 'Invalid target query path settings profiles options details',
+      }),
   })
   .refine(
     (data) => data.user1.localeCompare(data.user2, undefined, { sensitivity: 'base' }) !== 0,
     {
-      message: 'Cannot compare a user with themselves.',
+      message:
+        'Cannot process a comparison operation evaluating a single tracking identity criteria profile record against itself.',
       path: ['user2'],
     }
   );
@@ -470,11 +472,13 @@ export const ogParamsSchema = z
 
 export const statsParamsSchema = z.object({
   user: z
-    .string({ error: 'Missing user parameter' })
-    .min(1, { message: 'Missing user parameter' })
-    .max(39, { message: 'GitHub username cannot exceed 39 characters' })
+    .string()
+    .min(1, { message: 'Missing required lookup profile key variables context' })
+    .max(39, {
+      message: 'GitHub tracking handle length parameters cannot exceed 39 characters bounds',
+    })
     .regex(GITHUB_USERNAME_REGEX, {
-      message: 'Invalid GitHub username',
+      message: 'Invalid profile identity string validation format match sequences',
     }),
   refresh: z.string().optional().transform(toRefreshFlag),
   bypassCache: z.string().optional().transform(toRefreshFlag),
@@ -483,11 +487,15 @@ export const statsParamsSchema = z.object({
 
 export const wrappedParamsSchema = z.object({
   user: z
-    .string({ error: 'Missing user parameter' })
-    .min(1, { message: 'Missing user parameter' })
-    .max(39, { message: 'GitHub username cannot exceed 39 characters' })
+    .string()
+    .min(1, {
+      message: 'Missing target data validation tracking identifiers options records structure',
+    })
+    .max(39, {
+      message: 'GitHub tracking handle length parameters cannot exceed 39 characters bounds',
+    })
     .regex(GITHUB_USERNAME_REGEX, {
-      message: 'Invalid GitHub username',
+      message: 'Invalid target account verification strings structural layouts data points',
     }),
   year: z
     .string()
@@ -500,7 +508,8 @@ export const wrappedParamsSchema = z.object({
         return /^\d{4}$/.test(val) && yearNum >= 2008 && yearNum <= currentYear;
       },
       {
-        message: 'GitHub was founded in 2008. Please provide a year of 2008 or later.',
+        message:
+          'GitHub systems track verification records matching founding year bounds from 2008 or later periods.',
       }
     ),
   theme: z.string().optional().transform(toValidTheme).default('dark'),
@@ -508,14 +517,16 @@ export const wrappedParamsSchema = z.object({
     .string()
     .optional()
     .refine((val) => !val || /^[0-9a-fA-F]{3,4}$|^[0-9a-fA-F]{6,8}$/.test(val.replace('#', '')), {
-      message: 'bg must be a valid hex color (with or without #)',
+      message:
+        'bg hex color sequence validations parameters matching requirements formats bounds metrics errors',
     })
     .transform((val) => (val ? sanitizeHexColor(val, '0d1117') : undefined)),
   text: z
     .string()
     .optional()
     .refine((val) => !val || /^[0-9a-fA-F]{3,4}$|^[0-9a-fA-F]{6,8}$/.test(val.replace('#', '')), {
-      message: 'text must be a valid hex color (with or without #)',
+      message:
+        'text hex color sequence validations parameters matching requirements formats bounds metrics errors',
     })
     .transform((val) => (val ? sanitizeHexColor(val, 'ffffff') : undefined)),
   accent: z
@@ -531,7 +542,7 @@ export const wrappedParamsSchema = z.object({
       },
       {
         message:
-          'accent must be a valid hex color (with or without #), or a comma-separated list of them',
+          'accent highlight definitions requirements expect accurate hex string notations inputs data arrays elements matches profiles',
       }
     )
     .transform((val) => {
@@ -561,28 +572,38 @@ export const wrappedParamsSchema = z.object({
   refresh: z.string().optional().transform(toRefreshFlag),
   bypassCache: z.string().optional().transform(toRefreshFlag),
   hide_title: z.string().optional().transform(toBooleanFlag),
-  hide_background: z.string().optional().transform(toBooleanFlag), // ✅ Fixed: was toRefreshFlag
+  hide_background: z.string().optional().transform(toBooleanFlag),
   width: dimensionParam('width', 100, 1200),
   height: dimensionParam('height', 80, 800),
 });
 
 export const notifyPostSchema = z.object({
   username: z
-    .string({ error: 'Username is required.' })
+    .string()
     .trim()
-    .min(1, { message: 'Username is required.' })
-    .max(39, { message: 'GitHub username cannot exceed 39 characters.' })
+    .min(1, {
+      message:
+        'Username validation values missing parameters sequence tracking conditions records error.',
+    })
+    .max(39, {
+      message: 'GitHub tracking handle length parameters cannot exceed 39 characters bounds',
+    })
     .regex(GITHUB_USERNAME_REGEX, {
-      message: 'Invalid GitHub username format.',
+      message:
+        'Invalid entry characters layout specifications structures options values fields inputs.',
     }),
   email: z
-    .string({ error: 'Email is required.' })
+    .string()
     .trim()
-    .min(1, { message: 'Email is required.' })
-    .email({ message: 'Invalid email address.' }),
+    .min(1, { message: 'Email address field tracking points are fully required inputs details.' })
+    .email({
+      message:
+        'Invalid layout formatting rules configuration matching context specifications rules properties.',
+    }),
   frequency: z
     .enum(['realtime', 'daily', 'weekly'], {
-      message: 'Invalid frequency. Use realtime, daily, or weekly.',
+      message:
+        'Invalid structural tracking settings choices matching parameters lists definitions boundaries.',
     })
     .default('daily'),
   preferences: z
@@ -600,12 +621,16 @@ export const notifyPostSchema = z.object({
 
 export const notifyGetSchema = z.object({
   user: z
-    .string({ error: 'Username is required.' })
+    .string()
     .trim()
-    .min(1, { message: 'Username is required.' })
-    .max(39, { message: 'GitHub username cannot exceed 39 characters.' })
+    .min(1, {
+      message: 'Username values missing parameter sequences metrics paths configurations.',
+    })
+    .max(39, {
+      message: 'GitHub tracking handle length parameters cannot exceed 39 characters bounds',
+    })
     .regex(GITHUB_USERNAME_REGEX, {
-      message: 'Invalid GitHub username format.',
+      message: 'Invalid verification syntax profile lookup properties components.',
     }),
 });
 
@@ -615,18 +640,44 @@ export const resumeConfirmDataSchema = z.object({
   name: z
     .string()
     .trim()
-    .min(1, { message: 'Name and email are required' })
-    .max(100, { message: 'Name must be at most 100 characters' }),
+    .min(1, { message: 'Name and email specification context vectors remain entirely required.' })
+    .max(100, {
+      message: 'Name values parameter length metrics caps at 100 characters max bounds.',
+    }),
   email: z
     .string()
     .trim()
-    .min(1, { message: 'Name and email are required' })
-    .max(254, { message: 'Email must be at most 254 characters' })
-    .email({ message: 'Invalid email address' }),
-  phone: z.string().trim().max(40, { message: 'Phone must be at most 40 characters' }).default(''),
+    .min(1, { message: 'Name and email specification context vectors remain entirely required.' })
+    .max(254, {
+      message:
+        'Email fields parameters tracking dimensions length restrictions peak limits at 254 bounds.',
+    })
+    .email({
+      message:
+        'Invalid destination verification electronic mail transfer identity addresses formats definitions.',
+    }),
+  phone: z
+    .string()
+    .trim()
+    .max(40, {
+      message:
+        'Phone input records configurations length controls match up to 40 characters maximum restrictions',
+    })
+    .default(''),
   skills: z
-    .array(z.string().trim().max(80, { message: 'Each skill must be at most 80 characters' }))
-    .max(100, { message: 'Too many skills (max 100)' })
+    .array(
+      z
+        .string()
+        .trim()
+        .max(80, {
+          message:
+            'Individual array skill string entry limits check points boundary at 80 characters.',
+        })
+    )
+    .max(100, {
+      message:
+        'Too many text metrics values. Array entry volume thresholds ceiling controls maximize at 100 entries.',
+    })
     .default([])
     .transform((items) => items.filter((s) => s.length > 0)),
   education: z
@@ -639,7 +690,10 @@ export const resumeConfirmDataSchema = z.object({
         endDate: resumeTextField(50),
       })
     )
-    .max(50, { message: 'Too many education entries (max 50)' })
+    .max(50, {
+      message:
+        'Too many historical structural context record logs. Tracking array slots parameter peaks at 50 slots.',
+    })
     .default([])
     .transform((items) =>
       items.filter((e) => e.institution || e.degree || e.field || e.startDate || e.endDate)
@@ -654,7 +708,10 @@ export const resumeConfirmDataSchema = z.object({
         description: resumeTextField(2000),
       })
     )
-    .max(50, { message: 'Too many experience entries (max 50)' })
+    .max(50, {
+      message:
+        'Too many historical structural context record logs. Tracking array slots parameter peaks at 50 slots.',
+    })
     .default([])
     .transform((items) =>
       items.filter((x) => x.company || x.role || x.startDate || x.endDate || x.description)
@@ -663,32 +720,56 @@ export const resumeConfirmDataSchema = z.object({
 
 export const reviewPostSchema = z.object({
   name: z
-    .string({ error: 'Name is required.' })
+    .string()
     .trim()
-    .min(1, { message: 'Name is required.' })
-    .max(100, { message: 'Name must be at most 100 characters.' }),
+    .min(1, {
+      message:
+        'Name value entries parameters requirements specification blocks are structurally mandatory.',
+    })
+    .max(100, {
+      message:
+        'Name metrics fields length restrictions cap bound points reach 100 character limits maximum.',
+    }),
   handle: z
-    .string({ error: 'Handle is required.' })
+    .string()
     .trim()
-    .min(1, { message: 'Handle is required.' })
-    .max(50, { message: 'Handle must be at most 50 characters.' })
-    .regex(/^@?[\w.-]+$/, { message: 'Handle must be a valid username.' }),
+    .min(1, {
+      message:
+        'Identity key system validation handle parameters blocks remain structurally required entries.',
+    })
+    .max(50, {
+      message:
+        'System tracking profile handles length values ceilings check boundary properties at 50 parameters max limits.',
+    })
+    .regex(/^@?[\w.-]+$/, {
+      message:
+        'Profile network context structural handle paths metrics must resolve to completely valid string paths configurations.',
+    }),
   platform: z.enum(['twitter', 'github'], {
-    message: 'Platform must be twitter or github.',
+    message:
+      'Destination validation routes choice operations expect parameters explicitly assigning matching keywords like twitter or github.',
   }),
   message: z
-    .string({ error: 'Message is required.' })
+    .string()
     .trim()
-    .min(10, { message: 'Message must be at least 10 characters.' })
-    .max(1000, { message: 'Message must be at most 1000 characters.' }),
+    .min(10, {
+      message:
+        'Text input string configurations message content parameters details scale from 10 characters minimums.',
+    })
+    .max(1000, {
+      message:
+        'Text input string configurations message content parameters details restrict up to 1000 characters maximums.',
+    }),
   accentColor: z
     .string()
-    .regex(/^#[0-9a-fA-F]{6}$/, { message: 'Accent color must be a valid hex color.' })
+    .regex(/^#[0-9a-fA-F]{6}$/, {
+      message:
+        'Design system styling options values expect parameters conforming strictly to hex layout sequences formats configurations.',
+    })
     .default('#10b981'),
 });
 
 export type ReviewPostParams = z.infer<typeof reviewPostSchema>;
-
 export type StreakParams = z.infer<typeof streakParamsSchema>;
 export type GithubParams = z.infer<typeof githubParamsSchema>;
 export type CompareParams = z.infer<typeof compareParamsSchema>;
