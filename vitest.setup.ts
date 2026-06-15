@@ -1,4 +1,5 @@
 import '@testing-library/jest-dom';
+import { afterEach } from 'vitest';
 
 // Custom Storage prototype override to fix Node.js v25+ experimental localStorage incompatibility with JSDOM
 if (typeof window !== 'undefined' && typeof window.Storage !== 'undefined') {
@@ -66,5 +67,41 @@ if (typeof window !== 'undefined' && typeof window.Storage !== 'undefined') {
     value: mockSessionStorage,
     writable: true,
     configurable: true,
+  });
+}
+
+if (typeof globalThis.fetch !== 'undefined') {
+  const originalFetch = globalThis.fetch;
+  const guardedFetch = function (url: URL | RequestInfo, init?: RequestInit) {
+    const urlString =
+      typeof url === 'string'
+        ? url
+        : url instanceof URL
+          ? url.toString()
+          : url && typeof url === 'object' && 'url' in url
+            ? (url as Request).url
+            : '';
+
+    // Allow localhost/127.0.0.1 and data: URLs (inline resources/WebAssembly)
+    const normalizedUrl = urlString.trim().toLowerCase();
+    if (
+      normalizedUrl.includes('localhost') ||
+      normalizedUrl.includes('127.0.0.1') ||
+      normalizedUrl.startsWith('data:')
+    ) {
+      return originalFetch(url, init);
+    }
+
+    throw new Error(
+      `[Vitest Guard] Blocked outbound network request to: ${urlString}. ` +
+        `Do not make real network requests in unit tests. Please mock global.fetch or use MSW.`
+    );
+  } as typeof fetch;
+
+  globalThis.fetch = guardedFetch;
+
+  // Restore the guarded fetch after each test to prevent global fetch mock leaks
+  afterEach(() => {
+    globalThis.fetch = guardedFetch;
   });
 }

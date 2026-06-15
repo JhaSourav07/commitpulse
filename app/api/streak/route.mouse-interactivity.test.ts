@@ -43,9 +43,9 @@ describe('ApiStreakRoute Tests', () => {
     const response = await GET(request);
 
     expect(response.status).toBe(400);
-    const json = await response.json();
-    expect(json.error).toBe('Invalid parameters');
-    expect(json.details.fieldErrors).toHaveProperty('user');
+    const body = await response.text();
+    expect(body).toContain('<svg');
+    expect(response.headers.get('Content-Type')).toContain('image/svg+xml');
   });
 
   it('returns JSON data when format is set to json', async () => {

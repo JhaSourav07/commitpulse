@@ -4,11 +4,15 @@ import { GET } from './route';
 vi.mock('../../../lib/github', () => ({
   getWrappedData: vi.fn(),
   fetchGitHubContributions: vi.fn(),
+  getCircuitTelemetry: vi.fn().mockReturnValue({ isOpen: false, resetInMs: 0 }),
 }));
 
-import { getWrappedData, fetchGitHubContributions } from '../../../lib/github';
+import { getWrappedData, fetchGitHubContributions, getCircuitTelemetry } from '../../../lib/github';
 import type { ContributionCalendar } from '../../../types';
 import type { WrappedStats } from '../../../types/dashboard';
+import { refreshPolicy } from '../../../services/github/refresh-policy';
+import { refreshRateLimiter } from '../../../services/github/refresh-rate-limiter';
+import { quotaMonitor } from '../../../services/github/quota-monitor';
 
 const mockCalendar: ContributionCalendar = {
   totalContributions: 1420,
@@ -44,10 +48,14 @@ function makeRequest(params: Record<string, string> = {}): Request {
 describe('GET /api/wrapped', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    refreshPolicy.reset();
+    refreshRateLimiter.reset();
+    quotaMonitor.reset();
     vi.mocked(getWrappedData).mockResolvedValue(mockWrappedStats);
     vi.mocked(fetchGitHubContributions).mockResolvedValue({
       calendar: mockCalendar,
     } as unknown as import('../../../types').ExtendedContributionData);
+    vi.mocked(getCircuitTelemetry).mockReturnValue({ isOpen: false, resetInMs: 0 });
   });
 
   describe('parameter validation', () => {
@@ -215,6 +223,18 @@ describe('GET /api/wrapped', () => {
       const body = await response.text();
       expect(body).toContain('RATE LIMITED');
     });
+
+    it('returns 429 with SVG rate limit card and circuit telemetry headers when circuit is open', async () => {
+      vi.mocked(getWrappedData).mockRejectedValue(new Error('API Rate Limit Exceeded'));
+      vi.mocked(getCircuitTelemetry).mockReturnValue({ isOpen: true, resetInMs: 12345 });
+      const response = await GET(makeRequest({ user: 'octocat' }));
+      expect(response.status).toBe(429);
+      expect(response.headers.get('X-CommitPulse-Circuit-Status')).toBe('Open');
+      expect(response.headers.get('X-CommitPulse-Circuit-Reset-In')).toBe('12345');
+      const body = await response.text();
+      expect(body).toContain('CIRCUIT BREAKER');
+      expect(body).toContain('Circuit breaker active. System is temporarily offline.');
+    });
   });
 
   describe('speed parameter', () => {
@@ -231,6 +251,35 @@ describe('GET /api/wrapped', () => {
         expect(body).toContain('--scan-speed: 8s');
         expect(body).not.toContain(speed === 'fast' ? 'fast' : `--scan-speed: ${speed}`);
       }
+    });
+  });
+
+  describe('cache bypass security', () => {
+    it('returns 429 when GitHub API quota is low', async () => {
+      quotaMonitor.setQuota(5000, 400, Date.now() + 60000); // 8% remaining
+      const response = await GET(makeRequest({ user: 'octocat', refresh: 'true' }));
+      expect(response.status).toBe(429);
+      const body = await response.text();
+      expect(body).toContain('API RATE LIMIT');
+    });
+
+    it('returns 429 when IP refresh limit is exceeded', async () => {
+      refreshRateLimiter.setLimit(1, 60000); // 1 refresh per window
+      const response1 = await GET(makeRequest({ user: 'octocat', refresh: 'true' }));
+      expect(response1.status).toBe(200);
+
+      const response2 = await GET(makeRequest({ user: 'octocat', refresh: 'true' }));
+      expect(response2.status).toBe(429);
+    });
+
+    it('falls back to cached data when per-username cooldown is active', async () => {
+      const response1 = await GET(makeRequest({ user: 'octocat', refresh: 'true' }));
+      expect(response1.status).toBe(200);
+      expect(response1.headers.get('X-Cache-Status')).toMatch(/^BYPASS/);
+
+      const response2 = await GET(makeRequest({ user: 'octocat', refresh: 'true' }));
+      expect(response2.status).toBe(200);
+      expect(response2.headers.get('X-Cache-Status')).toBe('HIT');
     });
   });
 });

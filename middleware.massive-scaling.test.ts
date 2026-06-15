@@ -1,21 +1,24 @@
 import { describe, it, expect } from 'vitest';
 import { NextRequest } from 'next/server';
-import { proxy } from './proxy';
+import { middleware } from './middleware';
 
 function makeRequest(ip: string, xff?: string): NextRequest {
-  const headers: Record<string, string> = {
-    'x-forwarded-for': xff ?? ip,
-  };
-  return new NextRequest('http://localhost:3000/api/streak?user=octocat', { headers });
+  const headers: Record<string, string> = {};
+  if (xff) {
+    headers['x-forwarded-for'] = xff;
+  }
+  const request = new NextRequest('http://localhost:3000/api/streak?user=octocat', { headers });
+  Object.defineProperty(request, 'ip', { value: ip, writable: true });
+  return request;
 }
 
-describe('proxy massive-scaling: Massive Data Sets and Extreme High Bounds Scaling', () => {
+describe('middleware massive-scaling: Massive Data Sets and Extreme High Bounds Scaling', () => {
   it('processes 1000 requests from distinct IPs successfully within the rate limit', async () => {
     const start = performance.now();
 
     for (let i = 0; i < 1000; i++) {
       const ip = `203.0.${Math.floor(i / 256)}.${i % 256}`;
-      const response = await proxy(makeRequest(ip));
+      const response = await middleware(makeRequest(ip));
       expect(response.status).not.toBe(429);
       expect(response.headers.get('X-RateLimit-Limit')).toBe('60');
     }
@@ -29,7 +32,7 @@ describe('proxy massive-scaling: Massive Data Sets and Extreme High Bounds Scali
 
     let lastResponse;
     for (let i = 0; i < 61; i++) {
-      lastResponse = await proxy(makeRequest(ip));
+      lastResponse = await middleware(makeRequest(ip));
     }
 
     expect(lastResponse!.status).toBe(429);
@@ -43,17 +46,17 @@ describe('proxy massive-scaling: Massive Data Sets and Extreme High Bounds Scali
   it('handles 3000 distinct IPs exceeding the internal cache capacity without throwing or breaking rate limit tracking', async () => {
     for (let i = 0; i < 3000; i++) {
       const ip = `172.${16 + (i % 16)}.${Math.floor(i / 256) % 256}.${i % 256}`;
-      const response = await proxy(makeRequest(ip));
+      const response = await middleware(makeRequest(ip));
       expect(response.status).not.toBe(429);
       expect(response.headers.get('X-RateLimit-Remaining')).toBe('59');
     }
   });
 
-  it('extracts only the first IP from an extremely long x-forwarded-for chain of 100 proxies', async () => {
+  it('ignores spoofed chain of 100 proxies and uses the connection IP (request.ip)', async () => {
     const chain = Array.from({ length: 100 }, (_, i) => `10.0.0.${i + 1}`).join(', ');
     const ip = '203.0.113.50';
 
-    const response = await proxy(makeRequest(ip, `${ip}, ${chain}`));
+    const response = await middleware(makeRequest(ip, `${ip}, ${chain}`));
 
     expect(response.status).not.toBe(429);
     expect(response.headers.get('X-RateLimit-Remaining')).toBe('59');
@@ -64,7 +67,7 @@ describe('proxy massive-scaling: Massive Data Sets and Extreme High Bounds Scali
     const remainingValues: string[] = [];
 
     for (let i = 0; i < 60; i++) {
-      const response = await proxy(makeRequest(ip));
+      const response = await middleware(makeRequest(ip));
       remainingValues.push(response.headers.get('X-RateLimit-Remaining')!);
     }
 

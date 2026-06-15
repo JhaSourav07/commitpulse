@@ -130,18 +130,27 @@ describe('GET /api/streak view parameter integration', () => {
   });
 
   it('treats an invalid view value as default without crashing', async () => {
-    const parsed = streakParamsSchema.safeParse({ user: 'octocat', view: 'radar' });
+    const parsed = streakParamsSchema.safeParse({ user: 'octocat', view: 'unknown_view' });
 
     expect(parsed.success).toBe(true);
     expect(parsed.success && parsed.data.view).toBe('default');
 
-    const response = await GET(makeRequest({ user: 'octocat', view: 'radar' }));
+    const response = await GET(makeRequest({ user: 'octocat', view: 'unknown_view' }));
 
     expect(response.status).toBe(200);
 
     const body = await response.text();
     expect(body).toContain('CURRENT_STREAK');
     expect(body).not.toContain('COMMITS THIS MONTH');
+  });
+
+  it('returns 200 and renders radar map for view=radar', async () => {
+    const response = await GET(makeRequest({ user: 'octocat', view: 'radar' }));
+
+    expect(response.status).toBe(200);
+
+    const body = await response.text();
+    expect(body).toContain('Contribution Radar');
   });
 
   it('exposes stable caching headers on the SVG response', async () => {
