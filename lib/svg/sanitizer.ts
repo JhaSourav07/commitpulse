@@ -186,3 +186,30 @@ export function getGradientCoordinates(dir?: string): {
       return { x1: '0%', y1: '0%', x2: '0%', y2: '100%' };
   }
 }
+
+/**
+ * Probes the Google Fonts CSS2 API (HEAD request) to confirm a font exists.
+ * Returns the font name if valid, or null if the font is not found.
+ * Fails open on network errors so transient outages do not break badge generation.
+ */
+export async function validateGoogleFont(fontName: string | null): Promise<string | null> {
+  if (!fontName) return null;
+  const urlSafe = sanitizeGoogleFontUrl(fontName);
+  if (!urlSafe) return null;
+  try {
+    const res = await fetch(`https://fonts.googleapis.com/css2?family=${urlSafe}&display=swap`, {
+      method: 'HEAD',
+      signal: AbortSignal.timeout(2000),
+    });
+    if (res.ok) return fontName;
+    console.warn(
+      `[commitpulse] Font "${fontName}" not found on Google Fonts (HTTP ${res.status}). Using default.`
+    );
+    return null;
+  } catch (err) {
+    console.warn(
+      `[commitpulse] Could not probe Google Fonts for "${fontName}": ${err}. Failing open.`
+    );
+    return fontName;
+  }
+}
