@@ -1,20 +1,13 @@
 // lib/svg/generator.ts
 
-feat/svg-optimization
 import type { BadgeParams, ContributionCalendar, MonthlyStats, StreakStats } from '../../types';
 
-import type {
-  BadgeParams,
-  ContributionCalendar,
-  StreakStats,
-  MonthlyStats,
-  RepoContribution,
-} from '../../types';
- main
+import type { RepoContribution } from '../../types';
+
 import { getLabels, type BadgeLabels } from '../i18n/badgeLabels';
 import { getTowerAnimationCSS } from './animations';
-import { computeTowers, type TowerData } from './layout';
 import { LANGUAGE_COLORS } from './languageColors';
+import { computeTowers, type TowerData } from './layout';
 import {
   getGradientCoordinates,
   getLuminance,
@@ -28,25 +21,9 @@ import { AUTO_THEME_DARK, AUTO_THEME_LIGHT, themes } from './themes';
 
 import { GRID_ORIGIN_X, GRID_ORIGIN_Y, TILE_HEIGHT_HALF, TILE_WIDTH_HALF } from './layoutConstants';
 
- feat/svg-optimization
 import { SVG_HEIGHT, SVG_WIDTH } from './generatorConstants';
 
 import { FONT_MAP, resolveFont } from './fonts';
-
-import { SVG_WIDTH, SVG_HEIGHT } from './generatorConstants';
-
-const FONT_MAP = {
-  jetbrains: '"JetBrains Mono", monospace',
-  fira: '"Fira Code", monospace',
-  roboto: '"Roboto", sans-serif',
-  syncopate: '"Syncopate", sans-serif',
-  spacegrotesk: '"Space Grotesk", sans-serif',
-  'space grotesk': '"Space Grotesk", sans-serif',
-  firacode: '"Fira Code", monospace',
-  'jetbrains mono': '"JetBrains Mono", monospace',
-  inter: '"Inter", sans-serif',
-  space: '"Space Grotesk", sans-serif',
-} as const;
 
 export function resolveFont(sanitizedFont?: string | null): string | null {
   if (!sanitizedFont) return null;
@@ -56,7 +33,6 @@ export function resolveFont(sanitizedFont?: string | null): string | null {
     `"${sanitizedFont}", sans-serif`
   );
 }
- main
 
 function isBundledFont(sanitizedFont?: string | null): boolean {
   if (!sanitizedFont) return false;

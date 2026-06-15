@@ -1,10 +1,8 @@
 // lib/validations.ts
 import { z } from 'zod';
-feat/svg-optimization
 import { supportedLanguages } from './i18n/badgeLabels';
 
 import type { HexColor } from '../types/index';
- main
 import {
   isValidHex,
   sanitizeFont,
@@ -353,15 +351,6 @@ const baseStreakParamsSchema = z.object({
   date: z
     .string()
     .optional()
-feat/svg-optimization
-    .transform((val) => val === 'true' || val === '1'),
-
-  optimize: z
-    .string()
-    .optional()
-    .transform((val) => val === 'true'),
-  lang: z.string().optional().default('en'),
-
     .refine(
       (val) => {
         if (!val) return true;
@@ -369,7 +358,13 @@ feat/svg-optimization
       },
       { message: 'Invalid "date" format. Use ISO 8601.' }
     ),
-main
+
+  optimize: z
+    .string()
+    .optional()
+    .transform((val) => val === 'true'),
+
+  lang: z.enum(supportedLanguages).catch('en').default('en'),
   refresh: z.string().optional().transform(toRefreshFlag),
   bypassCache: z.string().optional().transform(toRefreshFlag),
   hide_title: z.string().optional().transform(toBooleanFlag),
