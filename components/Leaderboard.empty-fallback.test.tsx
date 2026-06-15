@@ -8,7 +8,6 @@ import Leaderboard, { type Contributor } from './Leaderboard';
 vi.mock('next/image', () => ({
   default: ({ alt = '', src = '', fill, ...props }: ComponentProps<'img'> & { fill?: boolean }) => {
     void fill;
-
     return <img alt={alt} src={src} {...props} />;
   },
 }));

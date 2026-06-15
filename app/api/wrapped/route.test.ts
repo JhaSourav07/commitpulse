@@ -55,6 +55,7 @@ describe('GET /api/wrapped', () => {
     vi.mocked(fetchGitHubContributions).mockResolvedValue({
       calendar: mockCalendar,
     } as unknown as import('../../../types').ExtendedContributionData);
+    vi.mocked(getCircuitTelemetry).mockReturnValue({ isOpen: false, resetInMs: 0 });
   });
 
   describe('parameter validation', () => {

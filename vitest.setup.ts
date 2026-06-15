@@ -1,4 +1,5 @@
 import '@testing-library/jest-dom';
+import { afterEach } from 'vitest';
 
 // Custom Storage prototype override to fix Node.js v25+ experimental localStorage incompatibility with JSDOM
 if (typeof window !== 'undefined' && typeof window.Storage !== 'undefined') {
@@ -71,7 +72,7 @@ if (typeof window !== 'undefined' && typeof window.Storage !== 'undefined') {
 
 if (typeof globalThis.fetch !== 'undefined') {
   const originalFetch = globalThis.fetch;
-  globalThis.fetch = function (url: URL | RequestInfo, init?: RequestInit) {
+  const guardedFetch = function (url: URL | RequestInfo, init?: RequestInit) {
     const urlString =
       typeof url === 'string'
         ? url
@@ -96,4 +97,11 @@ if (typeof globalThis.fetch !== 'undefined') {
         `Do not make real network requests in unit tests. Please mock global.fetch or use MSW.`
     );
   } as typeof fetch;
+
+  globalThis.fetch = guardedFetch;
+
+  // Restore the guarded fetch after each test to prevent global fetch mock leaks
+  afterEach(() => {
+    globalThis.fetch = guardedFetch;
+  });
 }

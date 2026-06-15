@@ -12,10 +12,11 @@ export default defineConfig({
       '.next',
       ...(process.argv.some((arg) => arg.includes('massive-scaling'))
         ? []
-        : ['**/*.massive-scaling.test.ts']),
+        : ['**/*.massive-scaling.test.ts', '**/*.massive-scaling.test.tsx']),
     ],
-    maxWorkers: process.env.CI ? 2 : 15,
+    maxWorkers: process.env.CI ? 2 : 4,
     testTimeout: 30000,
+    pool: 'forks',
     coverage: {
       provider: 'v8',
       reporter: ['text', 'lcov'],

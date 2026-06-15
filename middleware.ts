@@ -11,13 +11,11 @@ import { rateLimit } from './lib/rate-limit';
  * @see https://nextjs.org/docs/app/building-your-application/routing/middleware
  */
 export async function middleware(request: NextRequest) {
-  const directIp =
-    (request as unknown as { ip?: string }).ip ||
-    request.headers.get('x-forwarded-for')?.split(',')[0] ||
+  // Get IP from standard headers (works on all hosting platforms)
+  const ip =
+    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
     request.headers.get('x-real-ip') ||
     '127.0.0.1';
-
-  const ip = getClientIp(request, { directIp });
 
   const result = await rateLimit(ip, 60, 60000);
 

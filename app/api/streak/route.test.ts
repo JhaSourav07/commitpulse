@@ -810,32 +810,32 @@ describe('GET /api/streak', () => {
       expect(body).toContain('#ff0000');
     });
 
-    it('does not crash when an invalid text color is provided', async () => {
+    it('does not crash when an invalid text color is provided and falls back gracefully', async () => {
       const response = await GET(makeRequest({ user: 'octocat', text: 'notacolor' }));
 
-      expect(response.status).toBe(400);
+      expect(response.status).toBe(200);
     });
 
-    it('returns 400 when an invalid hex color is passed as accent', async () => {
+    it('falls back gracefully when an invalid hex color is passed as accent', async () => {
       const response = await GET(makeRequest({ user: 'octocat', accent: '#ZZZZZZZ' }));
 
-      expect(response.status).toBe(400);
+      expect(response.status).toBe(200);
     });
 
-    it('returns 400 Bad Request for invalid color hex syntax targeting the ?accent= parameter', async () => {
+    it('strips invalid color hex syntax targeting the ?accent= parameter and returns 200', async () => {
       const response = await GET(makeRequest({ user: 'octocat', accent: '#ZZZZZZ' }));
 
-      expect(response.status).toBe(400);
+      expect(response.status).toBe(200);
 
       const body = await response.text();
       expect(body).toContain('<svg');
       expect(response.headers.get('Content-Type')).toContain('image/svg+xml');
     });
   });
-  it('returns 400 when an invalid hex color is passed as bg', async () => {
+  it('falls back gracefully when an invalid hex color is passed as bg', async () => {
     const response = await GET(makeRequest({ user: 'octocat', bg: '#ZZZZZZ' }));
 
-    expect(response.status).toBe(400);
+    expect(response.status).toBe(200);
   });
   describe('hide parameters', () => {
     it('removes the username title when hide_title=true', async () => {
