@@ -188,6 +188,22 @@ export function getGradientCoordinates(dir?: string): {
 }
 
 /**
+ * Escapes special XML/SVG characters in a string to prevent injection.
+ */
+export function escapeXML(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+}
+
+/**
+ * Escapes special XML/SVG characters in a string to prevent injection.
+ */
+
+/**
  * Probes the Google Fonts CSS2 API (HEAD request) to confirm a font exists.
  * Returns the font name if valid, or null if the font is not found.
  * Fails open on network errors so transient outages do not break badge generation.
