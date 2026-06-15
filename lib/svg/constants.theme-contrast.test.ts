@@ -1,13 +1,12 @@
+import { SVG_WIDTH, SVG_HEIGHT, CONTRIBUTION_MILESTONES, STREAK_MILESTONES } from './constants';
 import {
-  SVG_WIDTH,
-  SVG_HEIGHT,
   GHOST_HEIGHT_PX,
   LOG_SCALE_MULTIPLIER,
   LINEAR_SCALE_MULTIPLIER,
-  FONT_MAP,
-  CONTRIBUTION_MILESTONES,
-  STREAK_MILESTONES,
-} from './constants';
+  MAX_LOG_HEIGHT,
+  MAX_LINEAR_HEIGHT,
+} from './layoutConstants';
+import { FONT_MAP } from './fonts';
 
 import { describe, it, expect } from 'vitest';
 

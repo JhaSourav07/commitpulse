@@ -66,7 +66,9 @@ describe('RepositoryGraph — Interactive Tooltips, Cursor Hovers & Touch Event 
   it('clicking an active filter button toggles it to inactive and removes its background colour', () => {
     render(<RepositoryGraph data={mockData} />);
 
-    const personalButton = screen.getByRole('button', { name: 'Personal' });
+    const personalButton = screen.getByRole('button', {
+      name: /toggle personal repositories/i,
+    });
 
     expect(personalButton.style.backgroundColor).toBe('rgb(59, 130, 246)');
 

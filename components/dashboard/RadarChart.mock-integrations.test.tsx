@@ -80,7 +80,7 @@ describe('RadarChart mock integrations', () => {
     expect(screen.getByText('Fallback')).toBeDefined();
   });
 
-  it('handles delayed or partial data using padding logic', () => {
+  it('renders the single provided language without inventing extra axes', () => {
     render(
       <RadarChart
         languagesA={[
@@ -96,7 +96,9 @@ describe('RadarChart mock integrations', () => {
       />
     );
 
-    expect(screen.getAllByText('TypeScript')).toBeDefined();
+    expect(screen.getAllByText('TypeScript').length).toBeGreaterThan(0);
+    expect(screen.queryByText('JavaScript')).toBeNull();
+    expect(screen.queryByText('Python')).toBeNull();
   });
 
   it('renders consistently when cache and remote datasets differ', () => {

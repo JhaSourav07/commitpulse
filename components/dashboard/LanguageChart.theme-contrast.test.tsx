@@ -36,7 +36,7 @@ describe('LanguageChart theme contrast', () => {
 
     const title = screen.getByText('Top Languages');
 
-    expect(title.className).toContain('text-gray-900');
+    expect(title.className).toContain('text-zinc-900');
     expect(title.className).toContain('dark:text-white');
   });
 
@@ -45,7 +45,7 @@ describe('LanguageChart theme contrast', () => {
 
     const percentageText = container.querySelector('.text-xl');
 
-    expect(percentageText?.className).toContain('text-gray-900');
+    expect(percentageText?.className).toContain('text-zinc-900');
     expect(percentageText?.className).toContain('dark:text-white');
   });
 
@@ -54,7 +54,7 @@ describe('LanguageChart theme contrast', () => {
 
     const legendValue = container.querySelector('.font-mono');
 
-    expect(legendValue?.className).toContain('text-gray-500');
+    expect(legendValue?.className).toContain('text-zinc-600');
     expect(legendValue?.className).toContain('dark:text-white/60');
   });
 

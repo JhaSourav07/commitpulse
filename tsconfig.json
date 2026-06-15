@@ -19,7 +19,9 @@
       }
     ],
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      "pdfjs-dist": ["./types/pdfjs-dist-mock.d.ts"],
+      "pdfjs-dist/*": ["./types/pdfjs-dist-mock.d.ts"]
     }
   },
   "include": [

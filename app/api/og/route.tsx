@@ -6,7 +6,10 @@ import { ogParamsSchema } from '@/lib/validations';
 import { themes } from '@/lib/svg/themes';
 import { fetchGitHubContributions } from '@/lib/github';
 import { calculateStreak } from '@/lib/calculate';
+import { getClientIp } from '@/utils/getClientIp';
+import { RateLimiter } from '@/lib/rate-limit';
 
+const ogRateLimiter = new RateLimiter(30, 60_000, 1);
 const appUrl =
   process.env.NEXT_PUBLIC_SITE_URL ||
   (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://commitpulse.vercel.app');
@@ -35,6 +38,20 @@ function getLuminance(hex: string) {
 }
 
 export async function GET(req: NextRequest) {
+  const ip = getClientIp(req);
+  const rateLimitKey =
+    ip && ip !== 'unknown' ? ip : `unknown:${req.headers.get('user-agent') ?? 'no-agent'}`;
+
+  if (!(await ogRateLimiter.check(rateLimitKey))) {
+    return new Response(JSON.stringify({ error: 'Too many requests. Please try again later.' }), {
+      status: 429,
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-store',
+      },
+    });
+  }
+
   const { searchParams } = new URL(req.url);
 
   const parseResult = ogParamsSchema.safeParse(Object.fromEntries(searchParams.entries()));
@@ -49,7 +66,17 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  const { user, theme, bg, text, accent, refresh } = parseResult.data;
+  const {
+    user,
+    theme,
+    bg,
+    text,
+    accent,
+    refresh,
+    bypassCache: bypassCacheParam,
+  } = parseResult.data;
+  // Treat either ?refresh=true or ?bypassCache=true as a cache-bypass request
+  const isRefreshRequested = refresh || bypassCacheParam;
 
   const themeName = theme || 'dark';
   const isAutoTheme = themeName === 'auto';
@@ -83,7 +110,7 @@ export async function GET(req: NextRequest) {
     // bypassCache mirrors the ?refresh=true pattern used by /api/stats and /api/streak.
     // Without this, every link-preview bot crawl fires a fresh GitHub GraphQL request,
     // burning API quota on an endpoint that is embedded in every page's <meta> tag.
-    const data = await fetchGitHubContributions(user, { bypassCache: refresh });
+    const data = await fetchGitHubContributions(user, { bypassCache: isRefreshRequested });
     const stats = calculateStreak(data.calendar ?? data);
     totalCommits = stats.totalContributions;
     longestStreak = stats.longestStreak;
@@ -92,7 +119,7 @@ export async function GET(req: NextRequest) {
     console.error('[OG] stats fetch failed:', err);
   }
 
-  const cacheControl = refresh
+  const cacheControl = isRefreshRequested
     ? 'no-cache, no-store, must-revalidate'
     : 'public, max-age=3600, stale-while-revalidate=86400';
 

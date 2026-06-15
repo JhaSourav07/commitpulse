@@ -16,17 +16,7 @@ export default function RadarChart({ languagesA, languagesB, labelA, labelB }: R
     new Set([...languagesA.map((l) => l.name), ...languagesB.map((l) => l.name)])
   ).slice(0, 6); // Cap at 6 languages for clean layout
 
-  // Pad with common languages if there are fewer than 3 axes
-  const padLangs = ['TypeScript', 'JavaScript', 'Python'];
-  while (combinedLanguages.length < 3) {
-    const nextPad = padLangs.find((l) => !combinedLanguages.includes(l));
-    if (nextPad) {
-      combinedLanguages.push(nextPad);
-    } else {
-      combinedLanguages.push(`Lang ${combinedLanguages.length + 1}`);
-    }
-  }
-
+  const hasLanguages = combinedLanguages.length > 0;
   const N = combinedLanguages.length;
   const cx = 160;
   const cy = 160;
@@ -103,143 +93,151 @@ export default function RadarChart({ languagesA, languagesB, labelA, labelB }: R
         </div>
       </div>
 
-      <div className="relative w-[320px] h-[300px] flex items-center justify-center">
-        <svg width="320" height="300" className="overflow-visible">
-          <defs>
-            <filter id="glow-cyan" x="-20%" y="-20%" width="140%" height="140%">
-              <feGaussianBlur stdDeviation="3" result="blur" />
-              <feComposite in="SourceGraphic" in2="blur" operator="over" />
-            </filter>
-            <filter id="glow-purple" x="-20%" y="-20%" width="140%" height="140%">
-              <feGaussianBlur stdDeviation="3" result="blur" />
-              <feComposite in="SourceGraphic" in2="blur" operator="over" />
-            </filter>
-          </defs>
+      {hasLanguages ? (
+        <>
+          <div className="relative w-[320px] h-[300px] flex items-center justify-center">
+            <svg width="320" height="300" className="overflow-visible">
+              <defs>
+                <filter id="glow-cyan" x="-20%" y="-20%" width="140%" height="140%">
+                  <feGaussianBlur stdDeviation="3" result="blur" />
+                  <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                </filter>
+                <filter id="glow-purple" x="-20%" y="-20%" width="140%" height="140%">
+                  <feGaussianBlur stdDeviation="3" result="blur" />
+                  <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                </filter>
+              </defs>
 
-          {/* Grid Polygons */}
-          {gridPolygons.map((points, idx) => (
-            <polygon
-              key={`grid-${idx}`}
-              points={points}
-              fill="none"
-              stroke="rgba(120, 120, 120, 0.12)"
-              strokeWidth="1"
-            />
-          ))}
-
-          {/* Axis lines and labels */}
-          {combinedLanguages.map((lang, i) => {
-            const outerCoord = getCoordinates(i, 100);
-            const labelDist = r + 18;
-            const angle = outerCoord.angle;
-            const labelX = cx + labelDist * Math.cos(angle);
-            const labelY = cy + labelDist * Math.sin(angle);
-
-            // Determine text alignment based on angle to avoid chart overlap
-            const cos = Math.cos(angle);
-            const textAnchor = Math.abs(cos) < 0.1 ? 'middle' : cos > 0 ? 'start' : 'end';
-
-            return (
-              <g key={`axis-${i}`}>
-                {/* Axis line */}
-                <line
-                  x1={cx}
-                  y1={cy}
-                  x2={outerCoord.x}
-                  y2={outerCoord.y}
-                  stroke="rgba(120, 120, 120, 0.16)"
+              {/* Grid Polygons */}
+              {gridPolygons.map((points, idx) => (
+                <polygon
+                  key={`grid-${idx}`}
+                  points={points}
+                  fill="none"
+                  stroke="rgba(120, 120, 120, 0.12)"
                   strokeWidth="1"
-                  strokeDasharray="2,2"
                 />
+              ))}
 
-                {/* Axis label text */}
-                <text
-                  x={labelX}
-                  y={labelY + 4}
-                  fill="rgba(161, 161, 170, 0.9)"
-                  fontSize="9"
-                  fontWeight="600"
-                  textAnchor={textAnchor}
-                  className="font-sans tracking-wide"
-                >
-                  {lang}
-                </text>
-              </g>
-            );
-          })}
+              {/* Axis lines and labels */}
+              {combinedLanguages.map((lang, i) => {
+                const outerCoord = getCoordinates(i, 100);
+                const labelDist = r + 18;
+                const angle = outerCoord.angle;
+                const labelX = cx + labelDist * Math.cos(angle);
+                const labelY = cy + labelDist * Math.sin(angle);
 
-          {/* User A Area Polygon */}
-          <motion.polygon
-            initial={{ points: zeroPointsStr }}
-            animate={{ points: pointsStrA }}
-            transition={{ duration: 1.0, ease: [0.16, 1, 0.3, 1] }}
-            fill="rgba(6, 182, 212, 0.08)"
-            stroke="#06b6d4"
-            strokeWidth="1.8"
-            filter="url(#glow-cyan)"
-          />
+                // Determine text alignment based on angle to avoid chart overlap
+                const cos = Math.cos(angle);
+                const textAnchor = Math.abs(cos) < 0.1 ? 'middle' : cos > 0 ? 'start' : 'end';
 
-          {/* User B Area Polygon */}
-          <motion.polygon
-            initial={{ points: zeroPointsStr }}
-            animate={{ points: pointsStrB }}
-            transition={{ duration: 1.0, ease: [0.16, 1, 0.3, 1], delay: 0.15 }}
-            fill="rgba(168, 85, 247, 0.08)"
-            stroke="#a855f7"
-            strokeWidth="1.8"
-            filter="url(#glow-purple)"
-          />
+                return (
+                  <g key={`axis-${i}`}>
+                    {/* Axis line */}
+                    <line
+                      x1={cx}
+                      y1={cy}
+                      x2={outerCoord.x}
+                      y2={outerCoord.y}
+                      stroke="rgba(120, 120, 120, 0.16)"
+                      strokeWidth="1"
+                      strokeDasharray="2,2"
+                    />
 
-          {/* Dots on Vertices (User A) */}
-          {pointsDataA.map(
-            (p, i) =>
-              p.pct > 0 && (
-                <circle
-                  key={`dot-a-${i}`}
-                  cx={p.x}
-                  cy={p.y}
-                  r="3"
-                  fill="#06b6d4"
-                  className="drop-shadow-[0_0_4px_rgba(6,182,212,0.6)]"
-                />
-              )
-          )}
+                    {/* Axis label text */}
+                    <text
+                      x={labelX}
+                      y={labelY + 4}
+                      fill="rgba(161, 161, 170, 0.9)"
+                      fontSize="9"
+                      fontWeight="600"
+                      textAnchor={textAnchor}
+                      className="font-sans tracking-wide"
+                    >
+                      {lang}
+                    </text>
+                  </g>
+                );
+              })}
 
-          {/* Dots on Vertices (User B) */}
-          {pointsDataB.map(
-            (p, i) =>
-              p.pct > 0 && (
-                <circle
-                  key={`dot-b-${i}`}
-                  cx={p.x}
-                  cy={p.y}
-                  r="3"
-                  fill="#a855f7"
-                  className="drop-shadow-[0_0_4px_rgba(168,85,247,0.6)]"
-                />
-              )
-          )}
-        </svg>
-      </div>
+              {/* User A Area Polygon */}
+              <motion.polygon
+                initial={{ points: zeroPointsStr }}
+                animate={{ points: pointsStrA }}
+                transition={{ duration: 1.0, ease: [0.16, 1, 0.3, 1] }}
+                fill="rgba(6, 182, 212, 0.08)"
+                stroke="#06b6d4"
+                strokeWidth="1.8"
+                filter="url(#glow-cyan)"
+              />
 
-      {/* Language percentages side-by-side overview */}
-      <div className="w-full mt-4 grid grid-cols-2 gap-x-6 gap-y-1.5 border-t border-black/5 dark:border-white/5 pt-4 text-[10px]">
-        {combinedLanguages.slice(0, 4).map((lang) => {
-          const pctA = languagesA.find((l) => l.name === lang)?.percentage || 0;
-          const pctB = languagesB.find((l) => l.name === lang)?.percentage || 0;
+              {/* User B Area Polygon */}
+              <motion.polygon
+                initial={{ points: zeroPointsStr }}
+                animate={{ points: pointsStrB }}
+                transition={{ duration: 1.0, ease: [0.16, 1, 0.3, 1], delay: 0.15 }}
+                fill="rgba(168, 85, 247, 0.08)"
+                stroke="#a855f7"
+                strokeWidth="1.8"
+                filter="url(#glow-purple)"
+              />
 
-          return (
-            <div key={lang} className="flex justify-between items-center py-0.5">
-              <span className="text-[#A1A1AA] truncate font-medium max-w-[70px]">{lang}</span>
-              <div className="flex gap-3 font-mono font-bold">
-                <span className="text-cyan-500">{pctA}%</span>
-                <span className="text-zinc-600 dark:text-zinc-500">|</span>
-                <span className="text-purple-500">{pctB}%</span>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+              {/* Dots on Vertices (User A) */}
+              {pointsDataA.map(
+                (p, i) =>
+                  p.pct > 0 && (
+                    <circle
+                      key={`dot-a-${i}`}
+                      cx={p.x}
+                      cy={p.y}
+                      r="3"
+                      fill="#06b6d4"
+                      className="drop-shadow-[0_0_4px_rgba(6,182,212,0.6)]"
+                    />
+                  )
+              )}
+
+              {/* Dots on Vertices (User B) */}
+              {pointsDataB.map(
+                (p, i) =>
+                  p.pct > 0 && (
+                    <circle
+                      key={`dot-b-${i}`}
+                      cx={p.x}
+                      cy={p.y}
+                      r="3"
+                      fill="#a855f7"
+                      className="drop-shadow-[0_0_4px_rgba(168,85,247,0.6)]"
+                    />
+                  )
+              )}
+            </svg>
+          </div>
+
+          {/* Language percentages side-by-side overview */}
+          <div className="w-full mt-4 grid grid-cols-2 gap-x-6 gap-y-1.5 border-t border-black/5 dark:border-white/5 pt-4 text-[10px]">
+            {combinedLanguages.slice(0, 4).map((lang) => {
+              const pctA = languagesA.find((l) => l.name === lang)?.percentage || 0;
+              const pctB = languagesB.find((l) => l.name === lang)?.percentage || 0;
+
+              return (
+                <div key={lang} className="flex justify-between items-center py-0.5">
+                  <span className="text-[#A1A1AA] truncate font-medium max-w-[70px]">{lang}</span>
+                  <div className="flex gap-3 font-mono font-bold">
+                    <span className="text-cyan-500">{pctA}%</span>
+                    <span className="text-zinc-600 dark:text-zinc-500">|</span>
+                    <span className="text-purple-500">{pctB}%</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      ) : (
+        <div className="flex flex-1 items-center justify-center py-12 text-center">
+          <p className="text-xs font-medium text-[#A1A1AA]">No language data to compare yet</p>
+        </div>
+      )}
     </motion.div>
   );
 }

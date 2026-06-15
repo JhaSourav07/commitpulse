@@ -55,4 +55,53 @@ describe('Template Empty & Missing Input Fallbacks', () => {
 
     expect(screen.getByText('Fallback Content')).toBeInTheDocument();
   });
+
+  it('renders with a number as children', () => {
+    render(<Template>{42}</Template>);
+
+    expect(screen.getByTestId('motion-wrapper')).toBeInTheDocument();
+    expect(screen.getByText('42')).toBeInTheDocument();
+  });
+
+  it('renders with a plain string as children', () => {
+    render(<Template>{'hello world'}</Template>);
+
+    expect(screen.getByText('hello world')).toBeInTheDocument();
+  });
+
+  it('renders with multiple children correctly', () => {
+    render(
+      <Template>
+        <span data-testid="child-1">First</span>
+        <span data-testid="child-2">Second</span>
+      </Template>
+    );
+
+    expect(screen.getByTestId('child-1')).toBeInTheDocument();
+    expect(screen.getByTestId('child-2')).toBeInTheDocument();
+  });
+
+  it('renders with deeply nested children', () => {
+    render(
+      <Template>
+        <div>
+          <section>
+            <p data-testid="deep">Deep content</p>
+          </section>
+        </div>
+      </Template>
+    );
+
+    expect(screen.getByTestId('deep')).toBeInTheDocument();
+  });
+
+  it('does not add extra DOM elements around children', () => {
+    const { container } = render(
+      <Template>
+        <p data-testid="only-child">content</p>
+      </Template>
+    );
+
+    expect(container.querySelector('[data-testid="only-child"]')).toBeInTheDocument();
+  });
 });

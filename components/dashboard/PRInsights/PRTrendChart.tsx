@@ -31,20 +31,20 @@ export default function PRTrendChart({ data }: { data: PRInsightData }) {
         <div className="flex bg-gray-100 dark:bg-zinc-800 p-1 rounded-xl">
           <button
             onClick={() => setView('weekly')}
-            className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${view === 'weekly' ? 'bg-white dark:bg-zinc-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'}`}
+            className={`cursor-pointer px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${view === 'weekly' ? 'bg-white dark:bg-zinc-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'}`}
           >
             Weekly
           </button>
           <button
             onClick={() => setView('monthly')}
-            className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${view === 'monthly' ? 'bg-white dark:bg-zinc-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'}`}
+            className={`cursor-pointer px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${view === 'monthly' ? 'bg-white dark:bg-zinc-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'}`}
           >
             Monthly
           </button>
         </div>
       </div>
 
-      <div className="flex-1 min-h-[300px]">
+      <div className="flex-1 min-h-[300px] text-gray-400 dark:text-white/35">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
             <defs>
@@ -62,18 +62,22 @@ export default function PRTrendChart({ data }: { data: PRInsightData }) {
               dataKey="name"
               axisLine={false}
               tickLine={false}
-              tick={{ fill: '#9ca3af', fontSize: 12 }}
+              tick={{ fill: 'currentColor', fontSize: 12 }}
               dy={10}
             />
-            <YAxis axisLine={false} tickLine={false} tick={{ fill: '#9ca3af', fontSize: 12 }} />
+            <YAxis
+              axisLine={false}
+              tickLine={false}
+              tick={{ fill: 'currentColor', fontSize: 12 }}
+            />
             <Tooltip
               contentStyle={{
-                backgroundColor: 'rgba(24, 24, 27, 0.9)',
+                backgroundColor: 'var(--recharts-tooltip-bg)',
                 border: 'none',
                 borderRadius: '12px',
-                color: '#fff',
+                color: 'var(--recharts-tooltip-color)',
               }}
-              itemStyle={{ color: '#06b6d4' }}
+              itemStyle={{ color: 'var(--recharts-tooltip-accent)' }}
             />
             <Area
               type="monotone"

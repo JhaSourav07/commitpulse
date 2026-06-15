@@ -7,6 +7,7 @@ import { getClientIp } from '@/utils/getClientIp';
 import { quotaMonitor } from '@/services/github/quota-monitor';
 import { refreshPolicy } from '@/services/github/refresh-policy';
 import { refreshRateLimiter } from '@/services/github/refresh-rate-limiter';
+import { getUserGitHubToken } from '@/lib/githubtoken';
 
 function logSecurityEvent(event: string, details: Record<string, unknown>) {
   console.warn(
@@ -61,7 +62,9 @@ export async function GET(request: Request) {
     );
   }
 
-  const { user, refresh, tz } = parseResult.data;
+  const { user, refresh, bypassCache: bypassCacheParam, tz } = parseResult.data;
+  // Treat either ?refresh=true or ?bypassCache=true as a cache-bypass request
+  const isRefreshRequested = refresh || bypassCacheParam;
 
   let timezone: string;
   try {
@@ -72,7 +75,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: `Invalid "tz" parameter: "${tz}"` }, { status: 400 });
   }
 
-  if (refresh && quotaMonitor.isQuotaLow()) {
+  if (isRefreshRequested && quotaMonitor.isQuotaLow()) {
     logSecurityEvent('LOW_QUOTA_STATS_REFRESH_BLOCKED', {
       user,
       ip,
@@ -84,7 +87,7 @@ export async function GET(request: Request) {
     );
   }
 
-  if (refresh) {
+  if (isRefreshRequested) {
     const rateLimitCheck = refreshRateLimiter.checkLimit(ip);
     if (!rateLimitCheck.success) {
       logSecurityEvent('STATS_REFRESH_RATE_LIMIT_EXCEEDED', {
@@ -106,8 +109,8 @@ export async function GET(request: Request) {
     }
   }
 
-  let shouldBypassCache = refresh;
-  if (refresh) {
+  let shouldBypassCache = isRefreshRequested;
+  if (isRefreshRequested) {
     if (!refreshPolicy.isRefreshAllowed(user)) {
       logSecurityEvent('STATS_REFRESH_COOLDOWN_VIOLATION', {
         user,
@@ -115,13 +118,20 @@ export async function GET(request: Request) {
         remainingMs: refreshPolicy.getRemainingCooldown(user),
       });
       shouldBypassCache = false;
-    } else {
-      refreshPolicy.recordRefresh(user);
     }
   }
 
   try {
-    const userData = await fetchGitHubContributions(user, { bypassCache: shouldBypassCache });
+    // Authenticated -> user's OAuth token (their quota); anonymous -> undefined (global PAT).
+    const userToken = await getUserGitHubToken();
+    const userData = await fetchGitHubContributions(user, {
+      bypassCache: shouldBypassCache,
+      token: userToken,
+    });
+    if (shouldBypassCache) {
+      refreshPolicy.recordRefresh(user);
+    }
+
     const calendar = userData.calendar;
     const stats = calculateStreak(calendar, timezone);
     const headers = new Headers({
@@ -134,9 +144,10 @@ export async function GET(request: Request) {
       headers.set('Pragma', 'no-cache');
       headers.set('Expires', '0');
     }
+    headers.set('X-Cache-Status', shouldBypassCache ? 'MISS' : 'HIT');
     headers.set(
       'X-Refresh-Status',
-      shouldBypassCache ? 'Fresh' : refresh ? 'Cooldown-Served-Cached' : 'Cached'
+      shouldBypassCache ? 'Fresh' : isRefreshRequested ? 'Cooldown-Served-Cached' : 'Cached'
     );
 
     return NextResponse.json(

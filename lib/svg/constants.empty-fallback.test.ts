@@ -1,16 +1,13 @@
 import { describe, expect, it } from 'vitest';
+import { CONTRIBUTION_MILESTONES, STREAK_MILESTONES, SVG_HEIGHT, SVG_WIDTH } from './constants';
 import {
-  CONTRIBUTION_MILESTONES,
-  FONT_MAP,
   GHOST_HEIGHT_PX,
   LINEAR_SCALE_MULTIPLIER,
   LOG_SCALE_MULTIPLIER,
   MAX_LINEAR_HEIGHT,
   MAX_LOG_HEIGHT,
-  STREAK_MILESTONES,
-  SVG_HEIGHT,
-  SVG_WIDTH,
-} from './constants';
+} from './layoutConstants';
+import { FONT_MAP } from './fonts';
 
 describe('SVG constants empty fallback behavior', () => {
   it('provides positive fallback SVG dimensions', () => {

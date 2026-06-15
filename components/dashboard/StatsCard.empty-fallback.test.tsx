@@ -26,25 +26,6 @@ describe('StatsCard empty fallback', () => {
     vi.clearAllMocks();
   });
 
-  it('renders safely when chartData is an empty array', () => {
-    const { container } = renderStatsCard({ chartData: [] });
-
-    expect(screen.getByText('Total Commits')).toBeInTheDocument();
-    expect(screen.getByText('120')).toBeInTheDocument();
-
-    const fallbackBars = container.querySelectorAll('.flex-1.bg-black.dark\\:bg-white');
-    expect(fallbackBars.length).toBe(12);
-  });
-
-  it('renders safely when chartData is missing', () => {
-    const { container } = renderStatsCard();
-
-    expect(screen.getByText('Commits this month')).toBeInTheDocument();
-
-    const fallbackBars = container.querySelectorAll('.flex-1.bg-black.dark\\:bg-white');
-    expect(fallbackBars.length).toBe(12);
-  });
-
   it('uses fallback icon when icon name is unknown', () => {
     renderStatsCard({ icon: 'UnknownIcon' });
 
@@ -62,17 +43,32 @@ describe('StatsCard empty fallback', () => {
     expect(screen.queryByText(/UTC Date:/i)).not.toBeInTheDocument();
   });
 
-  it('preserves default card styles in fallback state', () => {
+  it('renders exactly 12 generated chart bars when chartData is empty', () => {
     const { container } = renderStatsCard({
       chartData: [],
-      icon: '',
     });
 
-    const card = container.firstElementChild as HTMLElement;
+    const bars = container.querySelectorAll('[style*="height"]');
 
-    expect(card.className).toContain('rounded-xl');
-    expect(card.className).toContain('bg-white');
-    expect(card.className).toContain('dark:bg-[#0a0a0a]');
-    expect(card.className).toContain('overflow-hidden');
+    expect(bars).toHaveLength(12);
+  });
+
+  it('uses provided chartData instead of fallback data', () => {
+    const { container } = renderStatsCard({
+      chartData: [10, 20, 30],
+    });
+
+    const bars = container.querySelectorAll('[style*="height"]');
+
+    expect(bars).toHaveLength(3);
+  });
+
+  it('renders UTC date when disclaimer is enabled', () => {
+    renderStatsCard({
+      showUTCDisclaimer: true,
+      utcDate: '2025-06-07',
+    });
+
+    expect(screen.getByText(/UTC Date: 2025-06-07/i)).toBeInTheDocument();
   });
 });

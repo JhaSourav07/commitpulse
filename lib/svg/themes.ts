@@ -32,10 +32,13 @@ export const themes: Record<string, BadgeTheme> = {
   nord_light: makeTheme('eceff4', '2e3440', '5e81ac', 'bf616a'),
   obsidian: makeTheme('1a1a2e', 'e2e8f0', 'f59e0b'),
   'cyber-pulse': makeTheme('000000', 'ffffff', '00ffee', 'ff0055'),
+  'retro-terminal': makeTheme('000000', '00ff41', '00ff41', '00aa2b'),
   glacier: makeTheme('e0f2fe', '0369a1', '06b6d4', 'ef4444'),
   lumos: makeTheme('0a0a0a', 'a7f3d0', 'fbbf24', 'ef4444'),
   tokyonight: makeTheme('1a1b26', 'c0caf5', 'f7768e'),
   cyberpunk: makeTheme('fce22a', '111111', 'ff003c'),
+  tokyo_night: makeTheme('1a1b26', 'c0caf5', '7aa2f7'),
+  monokai: makeTheme('272822', 'f8f8f2', 'a6e22e', 'f92672'),
 };
 
 // Auto-theme pairs: the SVG switches between these two palettes
