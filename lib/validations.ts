@@ -215,21 +215,30 @@ const baseStreakParamsSchema = z.object({
         return val === 'auto' || val === 'random' || Object.hasOwn(themes, val);
       },
       {
-        message: `Invalid theme. Supported themes: ${['auto', 'random', ...Object.keys(themes)].join(', ')}`,
+        message: `Invalid theme selection. Supported themes: ${['auto', 'random', ...Object.keys(themes)].join(', ')}`,
       }
     )
     .default('dark'),
+
   bg: z
     .string()
     .optional()
+    .refine(
+      (val) => {
+        if (!val) return true;
+        const cleanVal = val.trim().replace(/^#+/, '');
+        return /^([0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(cleanVal);
+      },
+      {
+        message:
+          'Invalid background hex color format. Expected a valid 3, 4, 6, or 8-digit hex string.',
+      }
+    )
     .transform((val) => {
       if (!val) return undefined;
-      const cleanVal = val.trim().replace(/^#+/, '');
-      if (/^([0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(cleanVal)) {
-        return cleanVal as HexColor;
-      }
-      return undefined;
+      return val.trim().replace(/^#+/, '') as HexColor;
     }),
+
   bgType: z.enum(['solid', 'linear', 'radial']).catch('solid').default('solid'),
   bgStart: z
     .string()
@@ -257,20 +266,47 @@ const baseStreakParamsSchema = z.object({
       { message: 'bgAngle must be a number between 0 and 360' }
     )
     .transform((val) => (val === undefined || val === '' ? undefined : Number(val))),
+
   text: z
     .string()
     .optional()
+    .refine(
+      (val) => {
+        if (!val) return true;
+        const cleanVal = val.trim().replace(/^#+/, '');
+        return /^([0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(cleanVal);
+      },
+      {
+        message: 'Invalid text hex color format. Expected a valid 3, 4, 6, or 8-digit hex string.',
+      }
+    )
     .transform((val) => {
       if (!val) return undefined;
-      const cleanVal = val.trim().replace(/^#+/, '');
-      if (/^([0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(cleanVal)) {
-        return cleanVal as HexColor;
-      }
-      return undefined;
+      return val.trim().replace(/^#+/, '') as HexColor;
     }),
+
   accent: z
     .string()
     .optional()
+    .refine(
+      (val) => {
+        if (!val) return true;
+        if (val.includes(',')) {
+          const parts = val.split(',').map((c) => c.trim().replace(/^#+/, ''));
+          return parts.every(
+            (c) =>
+              c.length > 0 &&
+              /^([0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(c)
+          );
+        }
+        const cleanVal = val.trim().replace(/^#+/, '');
+        return /^([0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(cleanVal);
+      },
+      {
+        message:
+          'Invalid accent hex color format. Provide a valid hex string or a comma-separated list of valid hex strings.',
+      }
+    )
     .transform((val) => {
       if (!val) return undefined;
       if (val.includes(',')) {
