@@ -49,6 +49,7 @@ const GRAPH_EDGES = [
 ];
 
 export function TechnologyGraph({ selected, onToggle }: TechnologyGraphProps) {
+  const safeSelected = Array.isArray(selected) ? selected : [];
   const containerRef = useRef<HTMLDivElement>(null);
   const requestRef = useRef<number | null>(null);
 
@@ -120,7 +121,7 @@ export function TechnologyGraph({ selected, onToggle }: TechnologyGraphProps) {
 
           // Tweak forces: pull selected nodes closer together or repel unselected
           let forceFactor = 3500;
-          if (selected.includes(n1.id) && selected.includes(n2.id)) {
+          if (safeSelected.includes(n1.id) && safeSelected.includes(n2.id)) {
             // Selected nodes have lower repulsion to allow clustering
             forceFactor = 2000;
           }
@@ -151,7 +152,7 @@ export function TechnologyGraph({ selected, onToggle }: TechnologyGraphProps) {
         const dist = Math.sqrt(dx * dx + dy * dy) || 1;
 
         // Selected connections pull slightly tighter
-        const isBothSelected = selected.includes(n1.id) && selected.includes(n2.id);
+        const isBothSelected = safeSelected.includes(n1.id) && safeSelected.includes(n2.id);
         const restLength = isBothSelected ? 90 : 130;
         const k = isBothSelected ? 0.04 : 0.02;
 
@@ -176,7 +177,7 @@ export function TechnologyGraph({ selected, onToggle }: TechnologyGraphProps) {
         const dx = cx - node.x;
         const dy = cy - node.y;
         // Nodes not in active selection gravitate slightly more to perimeter/background
-        const gravity = selected.includes(node.id) ? 0.012 : 0.008;
+        const gravity = safeSelected.includes(node.id) ? 0.012 : 0.008;
         node.vx += dx * gravity;
         node.vy += dy * gravity;
       });
@@ -219,7 +220,7 @@ export function TechnologyGraph({ selected, onToggle }: TechnologyGraphProps) {
     return () => {
       if (requestRef.current) cancelAnimationFrame(requestRef.current);
     };
-  }, [draggedNode, selected]);
+  }, [draggedNode, safeSelected]);
 
   // Handle zooming & panning events
   const handleWheel = (e: React.WheelEvent) => {
@@ -294,7 +295,7 @@ export function TechnologyGraph({ selected, onToggle }: TechnologyGraphProps) {
     }
 
     // Include selected nodes and their immediate connected neighbors
-    selected.forEach((selId) => {
+    safeSelected.forEach((selId) => {
       activeIds.add(selId);
       GRAPH_EDGES.forEach((edge) => {
         if (edge.source === selId) activeIds.add(edge.target);
@@ -303,10 +304,10 @@ export function TechnologyGraph({ selected, onToggle }: TechnologyGraphProps) {
     });
 
     return activeIds;
-  }, [selected, hoveredNode]);
+  }, [safeSelected, hoveredNode]);
 
   const isNodeHighlighted = (id: string) => {
-    if (selected.length === 0 && !hoveredNode) return true; // Show full color initially
+    if (safeSelected.length === 0 && !hoveredNode) return true; // Show full color initially
     return activeAndHoveredConnections.has(id);
   };
 
@@ -379,7 +380,7 @@ export function TechnologyGraph({ selected, onToggle }: TechnologyGraphProps) {
         {/* Selected counts overlay */}
         <div className="absolute top-3 left-3 pointer-events-none bg-white/75 dark:bg-black/60 backdrop-blur-md border border-gray-100 dark:border-white/5 px-2.5 py-1 rounded-md text-[10px] font-semibold text-gray-600 dark:text-white/70 flex items-center gap-1.5">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-          <span>{selected.length} Selected Technologies</span>
+          <span>{safeSelected.length} Selected Technologies</span>
         </div>
 
         <svg className="w-full h-full">
@@ -423,8 +424,8 @@ export function TechnologyGraph({ selected, onToggle }: TechnologyGraphProps) {
               const targetNode = nodes.find((n) => n.id === edge.target);
               if (!sourceNode || !targetNode) return null;
 
-              const isSourceSelected = selected.includes(edge.source);
-              const isTargetSelected = selected.includes(edge.target);
+              const isSourceSelected = safeSelected.includes(edge.source);
+              const isTargetSelected = safeSelected.includes(edge.target);
               const isSourceHovered = hoveredNode === edge.source;
               const isTargetHovered = hoveredNode === edge.target;
 
@@ -455,7 +456,7 @@ export function TechnologyGraph({ selected, onToggle }: TechnologyGraphProps) {
                 strokeWidth = 2;
                 strokeDash = '3 3';
                 marker = 'url(#arrow-active)';
-              } else if (hoveredNode || selected.length > 0) {
+              } else if (hoveredNode || safeSelected.length > 0) {
                 // Dim non-connected lines when something is selected/hovered
                 strokeColor = '#f3f4f6';
                 if (
@@ -499,7 +500,7 @@ export function TechnologyGraph({ selected, onToggle }: TechnologyGraphProps) {
 
             {/* Draw Technology Bubble Cards (Nodes) */}
             {nodes.map((node) => {
-              const isSelected = selected.includes(node.id);
+              const isSelected = safeSelected.includes(node.id);
               const isHovered = hoveredNode === node.id;
               const isHighlighted = isNodeHighlighted(node.id);
 

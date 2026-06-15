@@ -75,6 +75,6 @@ describe('HistoricalTrendView theme contrast', () => {
     render(<HistoricalTrendView username="tester" activity={activity} period={period} />);
 
     expect(screen.getByTestId('heatmap')).toBeInTheDocument();
-    expect(screen.getByText(/Current Streak/i)).toBeInTheDocument();
+    expect(screen.getByText(/Based on the selected activity window/i)).toBeInTheDocument();
   });
 });

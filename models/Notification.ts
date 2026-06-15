@@ -4,6 +4,7 @@ import { NotificationFrequency } from '../types/index';
 export interface INotification extends Document {
   username: string;
   email: string;
+  managementTokenHash?: string;
   frequency: NotificationFrequency;
   notifyOnCommit: boolean;
   notifyOnStreak: boolean;
@@ -26,6 +27,11 @@ const NotificationSchema: Schema = new Schema({
     required: true,
     lowercase: true,
     trim: true,
+  },
+  managementTokenHash: {
+    type: String,
+    required: false,
+    select: false,
   },
   frequency: {
     type: String,

@@ -1,10 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
-import { Menu, X, Activity, Moon, Sun } from 'lucide-react';
+import { Menu, X, Activity, Moon, Sun, Globe } from 'lucide-react';
 import { useGlowEffect } from '@/hooks/useGlowEffect';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useThemeToggle } from './theme-switch';
+import { useTranslation, LANGUAGE_LABELS, type Language } from '@/context/TranslationContext';
 
 function GithubMark() {
   return (
@@ -28,6 +30,12 @@ const NAV_LINKS = [
     isPrimary: false,
   },
   {
+    label: 'Burnout Radar',
+    href: '/burnout-analyzer',
+    isExternal: false,
+    isPrimary: false,
+  },
+  {
     label: 'Customization Studio',
     href: '/#customization-studio',
     isExternal: false,
@@ -41,8 +49,52 @@ const NAV_LINKS = [
   },
 ];
 
+const emptySubscribe = () => () => {};
+
+function LanguageSelector() {
+  const { language, changeLanguage, isPending } = useTranslation();
+  const mounted = useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false
+  );
+
+  if (!mounted) {
+    return (
+      <div className="w-24 h-9 rounded-xl border border-black/10 dark:border-white/15 bg-black/5 dark:bg-white/5" />
+    );
+  }
+
+  return (
+    <div
+      className={`relative inline-flex items-center gap-1.5 rounded-xl border border-black/10 dark:border-white/15 bg-black/5 dark:bg-white/5 px-2.5 py-1.5 text-black/90 dark:text-white/90 hover:bg-black/10 dark:hover:bg-white/10 transition-colors ${isPending ? 'opacity-50' : ''}`}
+    >
+      <Globe size={14} className="text-zinc-500 dark:text-white/40" />
+      <select
+        value={language}
+        onChange={(e) => changeLanguage(e.target.value as Language)}
+        className="bg-transparent text-xs font-semibold focus:outline-none cursor-pointer pr-1"
+        aria-label="Select Language"
+      >
+        {Object.entries(LANGUAGE_LABELS).map(([code, label]) => (
+          <option
+            key={code}
+            value={code}
+            className="bg-white dark:bg-black text-black dark:text-white"
+          >
+            {label}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
 export default function Navbar() {
   const [open, setOpen] = useState(false);
+  const { t } = useTranslation();
+
+  useKeyboardShortcuts();
 
   const { shellRef, shellVars, handleMouseEnter, handleMouseMove, handleMouseLeave } =
     useGlowEffect();
@@ -79,8 +131,17 @@ export default function Navbar() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const getTranslatedLabel = (label: string) => {
+    if (label === 'GitHub Repo') return t('navbar.repo');
+    if (label === 'Compare') return t('navbar.compare');
+    if (label === 'Burnout Radar') return t('navbar.burnout_radar');
+    if (label === 'Customization Studio') return t('navbar.customization_studio');
+    if (label === 'Generator') return t('navbar.generator');
+    return label;
+  };
+
   return (
-    <header className="relative px-4 pt-4 sm:px-6 w-full">
+    <header className="sticky top-0 z-50 px-4 pt-4 sm:px-6 w-full">
       <div className="mx-auto max-w-6xl">
         <div
           ref={shellRef}
@@ -115,7 +176,7 @@ export default function Navbar() {
           <nav className="relative flex items-center justify-between px-4 py-3 sm:px-6">
             <Link
               href="/"
-              aria-label="Go to home"
+              aria-label={t('navbar.home')}
               className="group inline-flex items-center gap-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2 rounded-xl dark:focus-visible:ring-gray-300 dark:focus-visible:ring-offset-[#0a0a0a]"
               onClick={handleLogoClick}
             >
@@ -132,6 +193,7 @@ export default function Navbar() {
             </Link>
 
             <div className="hidden items-center gap-2 md:flex">
+              <LanguageSelector />
               {NAV_LINKS.map((link) => (
                 <a
                   key={link.href}
@@ -146,9 +208,9 @@ export default function Navbar() {
                 >
                   {link.isExternal && <GithubMark />}
                   {link.label === 'GitHub Repo' ? (
-                    <span className="hidden lg:inline">{link.label}</span>
+                    <span className="hidden lg:inline">{getTranslatedLabel(link.label)}</span>
                   ) : (
-                    <span>{link.label}</span>
+                    <span>{getTranslatedLabel(link.label)}</span>
                   )}
                 </a>
               ))}
@@ -160,7 +222,8 @@ export default function Navbar() {
                 type="button"
                 onClick={toggleTheme}
                 className="group inline-flex h-10 w-10 items-center justify-center rounded-xl text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2 dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-white dark:focus-visible:ring-gray-400 dark:focus-visible:ring-offset-[#0a0a0a]"
-                aria-label="Toggle theme"
+                aria-label={t('navbar.theme_toggle')}
+                suppressHydrationWarning
               >
                 {mounted ? (
                   isDark ? (
@@ -186,7 +249,7 @@ export default function Navbar() {
                 type="button"
                 onClick={toggleTheme}
                 className="group hidden sm:inline-flex h-10 w-10 items-center justify-center rounded-xl text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-white"
-                aria-label="Toggle theme"
+                aria-label={t('navbar.theme_toggle')}
               >
                 {mounted ? (
                   isDark ? (
@@ -207,7 +270,7 @@ export default function Navbar() {
               <button
                 type="button"
                 className="md:hidden inline-flex items-center justify-center rounded-xl p-2 text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-white"
-                aria-label={open ? 'Close menu' : 'Open menu'}
+                aria-label={open ? t('navbar.menu_close') : t('navbar.menu_open')}
                 aria-expanded={open}
                 onClick={() => setOpen((prev) => !prev)}
               >
@@ -224,6 +287,12 @@ export default function Navbar() {
           {open ? (
             <div className="border-t border-gray-100 dark:border-white/10 px-4 py-4 md:hidden">
               <ul className="space-y-1">
+                <li className="flex items-center justify-between px-4 py-2 border-b border-gray-100 dark:border-white/10 mb-2">
+                  <span className="text-sm font-medium text-black/60 dark:text-white/60">
+                    Language / Bhasha
+                  </span>
+                  <LanguageSelector />
+                </li>
                 {NAV_LINKS.map((link) => (
                   <li key={link.href}>
                     <a
@@ -238,7 +307,7 @@ export default function Navbar() {
                       }`}
                     >
                       {link.isExternal && <GithubMark />}
-                      {link.label}
+                      {getTranslatedLabel(link.label)}
                     </a>
                   </li>
                 ))}
@@ -248,7 +317,7 @@ export default function Navbar() {
                     type="button"
                     onClick={toggleTheme}
                     className="inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-white dark:focus-visible:ring-gray-500"
-                    aria-label="Toggle theme"
+                    aria-label={t('navbar.theme_toggle')}
                   >
                     {mounted ? (
                       isDark ? (

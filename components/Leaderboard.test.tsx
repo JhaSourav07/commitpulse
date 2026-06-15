@@ -6,7 +6,7 @@ import Leaderboard, { type Contributor } from './Leaderboard';
 
 // Mock next/image
 vi.mock('next/image', () => ({
-  default: ({ alt = '', src = '', ...props }: ComponentProps<'img'>) => (
+  default: ({ alt = '', src = '', fill, ...props }: ComponentProps<'img'> & { fill?: boolean }) => (
     // eslint-disable-next-line @next/next/no-img-element
     <img alt={alt} src={src} {...props} />
   ),
@@ -123,14 +123,10 @@ describe('Leaderboard Component', () => {
     expect(screen.getByText('#5')).toBeInTheDocument();
   });
 
-  it('scrolls to contributors container when list entry is clicked', () => {
-    const scrollIntoViewMock = vi.fn();
-
-    // Create elements mock to verify scrollIntoView behavior
-    const originalGetElementById = document.getElementById;
-    document.getElementById = vi.fn().mockReturnValue({
-      scrollIntoView: scrollIntoViewMock,
-    });
+  it('opens contributor GitHub profile in new tab when list entry is clicked', () => {
+    const openMock = vi.fn();
+    const originalOpen = window.open;
+    window.open = openMock;
 
     render(<Leaderboard contributors={mockContributors} />);
 
@@ -139,11 +135,14 @@ describe('Leaderboard Component', () => {
 
     fireEvent.click(entryElement!);
 
-    expect(document.getElementById).toHaveBeenCalledWith('contributors');
-    expect(scrollIntoViewMock).toHaveBeenCalledWith({ behavior: 'smooth' });
+    expect(openMock).toHaveBeenCalledWith(
+      'https://github.com/runner4_dev',
+      '_blank',
+      'noopener,noreferrer'
+    );
 
-    // Restore original getElementById
-    document.getElementById = originalGetElementById;
+    // Restore original window.open
+    window.open = originalOpen;
   });
 
   //since sorted array is passes to leaderboard

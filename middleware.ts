@@ -6,51 +6,15 @@ import { getClientIp } from './utils/getClientIp';
 /**
  * Middleware to enforce rate limiting on specific API routes.
  *
- * Protected Routes:
- * - /api/streak
- * - /api/github
- * - /api/track-user
- * - /api/stats
- * - /api/og
- * - /api/notify
- * - /api/compare
- * - /api/wrapped
- * - /api/student
+ * Next.js requires this file to be named `middleware.ts` at the project root
+ * and to export a function named `middleware` (and optionally `config`).
  *
- * General limit : 60 requests per minute per IP.
- * Refresh limit : 5 requests per minute per IP (when ?refresh=true).
- *
- * The refresh-specific limit is checked first. If it is exceeded the request
- * is rejected immediately with a 429 and the general counter is NOT consumed,
- * which avoids accidentally burning a user's normal quota on blocked refreshes.
+ * @see https://nextjs.org/docs/app/building-your-application/routing/middleware
  */
 export async function middleware(request: NextRequest) {
-  // Secure client IP extraction
+  // Extract client IP securely using the getClientIp helper
   const ip = getClientIp(request);
 
-  const isRefresh = request.nextUrl.searchParams.get('refresh') === 'true';
-
-  if (isRefresh) {
-    // Stricter limit: 5 cache-bypass requests per minute per IP.
-    // Uses a separate key prefix so it doesn't share counters with the
-    // general rate limiter.
-    const refreshResult = await rateLimit(`refresh:${ip}`, 5, 60000);
-
-    if (!refreshResult.success) {
-      // Return early — do NOT consume the general-limiter quota for a blocked refresh.
-      const resp = NextResponse.json(
-        { error: 'Too many refresh requests. Please wait before bypassing the cache again.' },
-        { status: 429 }
-      );
-      resp.headers.set('X-RateLimit-Limit', refreshResult.limit.toString());
-      resp.headers.set('X-RateLimit-Remaining', '0');
-      resp.headers.set('X-RateLimit-Reset', refreshResult.reset.toString());
-      resp.headers.set('X-RateLimit-Policy', 'refresh');
-      return resp;
-    }
-  }
-
-  // General limit: 60 requests per 60,000 ms (1 minute)
   const result = await rateLimit(ip, 60, 60000);
 
   if (!result.success) {
@@ -68,26 +32,17 @@ export async function middleware(request: NextRequest) {
     );
   }
 
-  // Build the headers once.
-  // Some API routes return their own Response/NextResponse objects, so we must ensure
-  // the rate-limit headers survive and are present on the final response.
-  const headers = {
-    'X-RateLimit-Limit': result.limit.toString(),
-    'X-RateLimit-Remaining': result.remaining.toString(),
-    'X-RateLimit-Reset': result.reset.toString(),
-  };
-
-  // `NextResponse.next()` attaches headers to the outgoing response pipeline.
-  // Ensure they are set on the returned response object.
   const response = NextResponse.next();
-  Object.entries(headers).forEach(([k, v]) => response.headers.set(k, v));
+  response.headers.set('X-RateLimit-Limit', result.limit.toString());
+  response.headers.set('X-RateLimit-Remaining', result.remaining.toString());
+  response.headers.set('X-RateLimit-Reset', result.reset.toString());
 
   return response;
 }
 
 /**
- * Configure which routes should trigger this middleware.
- * Using a matcher is more efficient than checking pathnames inside the middleware.
+ * Configure which routes should trigger this proxy.
+ * Using a matcher is more efficient than checking pathnames inside the proxy.
  */
 export const config = {
   matcher: [
@@ -100,5 +55,6 @@ export const config = {
     '/api/compare/:path*',
     '/api/wrapped/:path*',
     '/api/student/:path*',
+    '/api/pr-insights/:path*',
   ],
 };

@@ -4,6 +4,7 @@ import { themes } from '../../../lib/svg/themes';
 import { THEME_KEYS, type ThemeKey } from '../types';
 import { SectionLabel } from './SectionLabel';
 import { ThemeQuickPresets } from './ThemeQuickPresets';
+import { useTranslation } from '@/context/TranslationContext';
 
 function StyledSelect({
   id,
@@ -41,6 +42,7 @@ export function ThemeSelector({
   const isAuto = theme === 'auto';
   const isRandom = theme === 'random';
   const randomAccentColors = [themes.neon.accent, themes.ocean.accent, themes.sunset.accent];
+  const { t } = useTranslation();
 
   const handleRandomTheme = () => {
     const selectableThemes = THEME_KEYS.filter((k) => k !== 'auto' && k !== 'random');
@@ -51,7 +53,7 @@ export function ThemeSelector({
   return (
     <div className="flex flex-col gap-1.5">
       <div className="flex items-center justify-between">
-        <SectionLabel>Theme Preset</SectionLabel>
+        <SectionLabel>{t('customize.controls.theme_presets')}</SectionLabel>
         <button
           onClick={handleRandomTheme}
           title="Pick a random theme"

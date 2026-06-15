@@ -3,6 +3,7 @@ import { FONTS, SIZES, SPEEDS, type BadgeSize, type Font, type Scale } from '../
 import { isValidHex, stripHash } from '../utils';
 import { SectionLabel } from './SectionLabel';
 import { StyledSelect, ThemeSelector } from './ThemeSelector';
+import { useTranslation } from '@/context/TranslationContext';
 
 function ControlRow({ label, children }: { label: string; children: ReactNode }): ReactElement {
   return (
@@ -81,6 +82,10 @@ export function ControlsPanel({
   username,
   theme,
   bgHex,
+  bgType,
+  bgStart,
+  bgEnd,
+  bgAngle,
   accentHex,
   textHex,
   scale,
@@ -92,6 +97,10 @@ export function ControlsPanel({
   onUsernameChange,
   onThemeChange,
   onBgHexChange,
+  onBgTypeChange,
+  onBgStartChange,
+  onBgEndChange,
+  onBgAngleChange,
   onAccentHexChange,
   onTextHexChange,
   onScaleChange,
@@ -105,6 +114,10 @@ export function ControlsPanel({
   username: string;
   theme: string;
   bgHex: string;
+  bgType: 'solid' | 'linear' | 'radial';
+  bgStart: string;
+  bgEnd: string;
+  bgAngle: number;
   accentHex: string;
   textHex: string;
   scale: Scale;
@@ -116,6 +129,10 @@ export function ControlsPanel({
   onUsernameChange: (value: string) => void;
   onThemeChange: (value: string) => void;
   onBgHexChange: (value: string) => void;
+  onBgTypeChange: (value: 'solid' | 'linear' | 'radial') => void;
+  onBgStartChange: (value: string) => void;
+  onBgEndChange: (value: string) => void;
+  onBgAngleChange: (value: number) => void;
   onAccentHexChange: (value: string) => void;
   onTextHexChange: (value: string) => void;
   onScaleChange: (value: Scale) => void;
@@ -125,27 +142,28 @@ export function ControlsPanel({
   onSizeChange: (value: BadgeSize) => void;
   onClearOverrides: () => void;
   onRadiusChange: (value: number) => void;
-}): ReactElement {
-  const hasOverrides = Boolean(bgHex || accentHex || textHex);
+} & React.ComponentPropsWithoutRef<'div'>): ReactElement {
+  const hasOverrides = Boolean(bgHex || accentHex || textHex || (bgType && bgType !== 'solid'));
   const currentYear = new Date().getFullYear();
   const isAutoTheme = theme === 'auto';
   const isRandomTheme = theme === 'random';
   const disablesCustomColors = isAutoTheme || isRandomTheme;
+  const { t } = useTranslation();
 
   return (
     <div>
       <p className="text-xs font-bold uppercase tracking-[0.22em] text-emerald-600 dark:text-emerald-400 mb-4">
-        Controls
+        {t('customize_cta.studio_badge')}
       </p>
 
       <div className="flex flex-col gap-5">
-        <ControlRow label="GitHub Username">
+        <ControlRow label={t('customize.controls.username')}>
           <input
             id="username-input"
             type="text"
             value={username}
             onChange={(e) => onUsernameChange(e.target.value)}
-            placeholder="your-github-username"
+            placeholder={t('customize.controls.username_placeholder')}
             className="w-full min-w-0 bg-white/60 backdrop-blur-md border border-black/10 dark:bg-black/40 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm font-mono text-black dark:text-emerald-300 placeholder:text-gray-400 dark:placeholder:text-white/60 outline-none focus:border-emerald-500/50 transition-all duration-300"
           />
         </ControlRow>
@@ -153,7 +171,7 @@ export function ControlsPanel({
         <ThemeSelector theme={theme} onThemeChange={onThemeChange} />
 
         <div className="h-px bg-black/5 dark:bg-white/5" />
-        <ControlRow label="Year">
+        <ControlRow label={t('customize.controls.sync_year')}>
           <div className="relative">
             <StyledSelect id="year-select" value={year} onChange={(value) => onYearChange(value)}>
               <option value="">{currentYear} (current)</option>
@@ -173,10 +191,8 @@ export function ControlsPanel({
 
         <div className="h-px bg-black/5 dark:bg-white/5" />
 
-        <div className="h-px bg-black/5 dark:bg-white/5" />
-
         <div>
-          <SectionLabel>Custom Color Overrides</SectionLabel>
+          <SectionLabel>{t('customize.controls.color_overrides')}</SectionLabel>
           {disablesCustomColors ? (
             <div className="mt-2 flex flex-col gap-2">
               <p className="text-[11px] text-gray-500 dark:text-white/60 leading-relaxed">
@@ -202,23 +218,71 @@ export function ControlsPanel({
                 <code className="text-gray-700 dark:text-white/65">#</code>.
               </p>
               <div className="flex flex-col gap-3">
-                <HexInput
-                  id="bg-hex-input"
-                  label="Background"
-                  value={bgHex}
-                  onChange={onBgHexChange}
-                  placeholder="e.g. 0a0a0a"
-                />
+                <div className="flex gap-2 bg-gray-100/80 dark:bg-white/[0.03] p-1 rounded-xl border border-black/10 dark:border-white/10">
+                  {(['solid', 'linear', 'radial'] as const).map((type) => (
+                    <button
+                      key={type}
+                      onClick={() => onBgTypeChange(type)}
+                      className={`flex-1 text-[11px] py-1.5 rounded-lg capitalize transition-colors ${
+                        bgType === type
+                          ? 'bg-white dark:bg-white/10 shadow-sm text-black dark:text-white'
+                          : 'text-gray-500 dark:text-white/50 hover:text-black dark:hover:text-white'
+                      }`}
+                    >
+                      {type}
+                    </button>
+                  ))}
+                </div>
+
+                {bgType === 'solid' ? (
+                  <HexInput
+                    id="bg-hex-input"
+                    label={t('customize.controls.custom_bg')}
+                    value={bgHex}
+                    onChange={onBgHexChange}
+                    placeholder="e.g. 0a0a0a"
+                  />
+                ) : (
+                  <div className="flex flex-col gap-3 p-3 bg-black/5 dark:bg-white/5 rounded-xl border border-black/5 dark:border-white/5">
+                    <HexInput
+                      id="bg-start-hex-input"
+                      label="Gradient Start"
+                      value={bgStart}
+                      onChange={onBgStartChange}
+                      placeholder="e.g. 000000"
+                    />
+                    <HexInput
+                      id="bg-end-hex-input"
+                      label="Gradient End"
+                      value={bgEnd}
+                      onChange={onBgEndChange}
+                      placeholder="e.g. 1a1a1a"
+                    />
+                    {bgType === 'linear' && (
+                      <div className="flex flex-col gap-1.5">
+                        <SectionLabel>Angle: {bgAngle}°</SectionLabel>
+                        <input
+                          type="range"
+                          min="0"
+                          max="360"
+                          value={bgAngle}
+                          onChange={(e) => onBgAngleChange(Number(e.target.value))}
+                          className="w-full accent-emerald-500"
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
                 <HexInput
                   id="accent-hex-input"
-                  label="Accent / Tower Color"
+                  label={t('customize.controls.custom_accent')}
                   value={accentHex}
                   onChange={onAccentHexChange}
                   placeholder="e.g. 00ffaa"
                 />
                 <HexInput
                   id="text-hex-input"
-                  label="Text / Label Color"
+                  label={t('customize.controls.custom_text')}
                   value={textHex}
                   onChange={onTextHexChange}
                   placeholder="e.g. ffffff"
@@ -230,7 +294,7 @@ export function ControlsPanel({
                   onClick={onClearOverrides}
                   className="mt-3 text-[11px] text-red-400/60 hover:text-red-400 transition-colors"
                 >
-                  Clear overrides
+                  {t('customize.controls.clear_custom')}
                 </button>
               )}
             </>
@@ -239,7 +303,7 @@ export function ControlsPanel({
 
         <div className="h-px bg-black/5 dark:bg-white/5" />
 
-        <ControlRow label="Tower Height Scaling">
+        <ControlRow label={t('customize.controls.log_scaling')}>
           <div className="grid grid-cols-2 gap-2">
             {(['linear', 'log'] as Scale[]).map((currentScale) => (
               <button
@@ -263,7 +327,7 @@ export function ControlsPanel({
           </p>
         </ControlRow>
 
-        <ControlRow label="Radar Scan Speed">
+        <ControlRow label={t('customize.controls.speed')}>
           <div className="relative">
             <StyledSelect id="speed-select" value={speed} onChange={onSpeedChange}>
               {SPEEDS.map((speedOption) => (
@@ -275,7 +339,7 @@ export function ControlsPanel({
           </div>
         </ControlRow>
 
-        <ControlRow label="Font">
+        <ControlRow label={t('customize.controls.font')}>
           <div className="relative">
             <StyledSelect
               id="font-select"
@@ -293,7 +357,7 @@ export function ControlsPanel({
                   {fontOption.label}
                 </option>
               ))}
-              <option value="custom">Custom Google Font...</option>
+              <option value="custom">{t('customize.controls.custom_font_option')}</option>
             </StyledSelect>
           </div>
           {!FONTS.some((f) => f.value === font) && (
@@ -302,13 +366,13 @@ export function ControlsPanel({
               type="text"
               value={font}
               onChange={(e) => onFontChange(e.target.value as Font)}
-              placeholder="e.g. Orbitron, Space Mono, Inter"
+              placeholder={t('customize.controls.custom_font_placeholder')}
               className="w-full min-w-0 bg-gray-100/80 backdrop-blur-md border border-black/10 dark:bg-white/[0.03] dark:border-white/10 rounded-xl px-4 py-2.5 text-sm font-mono text-black dark:text-emerald-300 placeholder:text-gray-400 dark:placeholder:text-white/60 outline-none focus:border-emerald-500/50 transition-colors mt-2"
             />
           )}
         </ControlRow>
 
-        <ControlRow label="Border Radius">
+        <ControlRow label={t('customize.controls.radius')}>
           <div className="relative flex items-center">
             <div className="absolute inset-x-0 h-1 rounded-full bg-gray-300 dark:bg-white/6" />
             <input
@@ -330,7 +394,7 @@ export function ControlsPanel({
           </div>
         </ControlRow>
 
-        <ControlRow label="Badge Size">
+        <ControlRow label={t('customize.controls.badge_size')}>
           <div className="relative">
             <StyledSelect
               id="size-select"

@@ -4,6 +4,7 @@ import { StudentProfile } from '@/models/StudentProfile';
 import { RateLimiter } from '@/lib/rate-limit';
 import { getClientIp } from '@/utils/getClientIp';
 import { resumeConfirmDataSchema, GITHUB_USERNAME_REGEX } from '@/lib/validations';
+import { verifyGitHubOwner } from '@/lib/github-owner-verification';
 
 const confirmLimiter = new RateLimiter(10, 60000);
 
@@ -68,17 +69,36 @@ export async function POST(req: Request) {
     );
   }
   const profile = parsed.data;
+  const normalizedUsername = githubUsername.trim().toLowerCase();
+
+  const ownership = await verifyGitHubOwner(req, normalizedUsername);
+  if (!ownership.verified) {
+    return NextResponse.json(
+      { success: false, error: ownership.message },
+      { status: ownership.status }
+    );
+  }
 
   try {
     if (!process.env.MONGODB_URI) {
-      console.warn('MONGODB_URI is not set. Bypassing student profile save.');
+      const isProduction =
+        process.env.NODE_ENV === 'production' ||
+        process.env.VERCEL_ENV === 'production' ||
+        process.env.VERCEL_ENV === 'preview';
+      if (isProduction) {
+        return NextResponse.json(
+          { success: false, error: 'Server configuration error: Database not configured' },
+          { status: 500 }
+        );
+      }
+      console.warn('MONGODB_URI is not set. Bypassing student profile save (local dev).');
       return NextResponse.json({ success: true, bypassed: true });
     }
 
     await dbConnect();
 
     await StudentProfile.findOneAndUpdate(
-      { githubUsername: githubUsername.trim().toLowerCase() },
+      { githubUsername: normalizedUsername },
       {
         $set: {
           name: profile.name,
@@ -90,7 +110,7 @@ export async function POST(req: Request) {
           updatedAt: new Date(),
         },
       },
-      { upsert: true, new: true }
+      { upsert: true, new: true, runValidators: true }
     );
 
     return NextResponse.json({ success: true });
