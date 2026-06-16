@@ -12,13 +12,8 @@ import { getClientIp } from './utils/getClientIp';
  * @see https://nextjs.org/docs/app/building-your-application/routing/middleware
  */
 export async function middleware(request: NextRequest) {
-  const directIp =
-    (request as unknown as { ip?: string }).ip ||
-    request.headers.get('x-forwarded-for')?.split(',')[0] ||
-    request.headers.get('x-real-ip') ||
-    '127.0.0.1';
-
-  const ip = getClientIp(request, { directIp });
+  // Extract client IP securely using the getClientIp helper
+  const ip = getClientIp(request);
 
   const result = await rateLimit(ip, 60, 60000);
 

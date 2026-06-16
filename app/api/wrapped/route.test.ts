@@ -51,6 +51,7 @@ describe('GET /api/wrapped', () => {
     refreshPolicy.reset();
     refreshRateLimiter.reset();
     quotaMonitor.reset();
+    vi.mocked(getCircuitTelemetry).mockReturnValue({ isOpen: false, resetInMs: 0 });
     vi.mocked(getWrappedData).mockResolvedValue(mockWrappedStats);
     vi.mocked(fetchGitHubContributions).mockResolvedValue({
       calendar: mockCalendar,
@@ -221,7 +222,7 @@ describe('GET /api/wrapped', () => {
       const response = await GET(makeRequest({ user: 'octocat' }));
       expect(response.status).toBe(429);
       const body = await response.text();
-      expect(body).toContain('RATE LIMITED');
+      expect(body).toContain('API RATE LIMIT');
     });
 
     it('returns 429 with SVG rate limit card and circuit telemetry headers when circuit is open', async () => {
@@ -260,7 +261,7 @@ describe('GET /api/wrapped', () => {
       const response = await GET(makeRequest({ user: 'octocat', refresh: 'true' }));
       expect(response.status).toBe(429);
       const body = await response.text();
-      expect(body).toContain('RATE LIMITED');
+      expect(body).toContain('API RATE LIMIT');
     });
 
     it('returns 429 when IP refresh limit is exceeded', async () => {

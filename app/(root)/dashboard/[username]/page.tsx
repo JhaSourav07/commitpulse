@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import DashboardClient from '@/components/dashboard/DashboardClient';
 import { getFullDashboardData, fetchUserProfile, fetchUserRepos } from '@/lib/github';
+import { getUserGitHubToken } from '@/lib/githubtoken';
+
 import type { RepoActivityInfo } from '@/types/dashboard';
 import { notFound, redirect } from 'next/navigation';
 import { resolveDashboardPeriod } from '@/utils/dashboardPeriod';
@@ -90,6 +92,7 @@ export default async function DashboardPage({
     from: resolvedSearchParams?.from,
     to: resolvedSearchParams?.to,
   });
+  const userToken = await getUserGitHubToken();
 
   let data;
 
@@ -99,6 +102,7 @@ export default async function DashboardPage({
       from: period.from,
       to: period.to,
       rangeLabel: period.label,
+      token: userToken,
     });
   } catch (error) {
     if (error instanceof Error && error.message.includes('not found')) {
@@ -106,6 +110,7 @@ export default async function DashboardPage({
       try {
         fallbackProfile = await fetchUserProfile(username, {
           bypassCache,
+          token: userToken,
         });
       } catch {
         return notFound();
@@ -120,7 +125,7 @@ export default async function DashboardPage({
 
   let allRepos: RepoActivityInfo[] = [];
   try {
-    const reposData = await fetchUserRepos(username, { bypassCache });
+    const reposData = await fetchUserRepos(username, { bypassCache, token: userToken });
     allRepos = reposData.map((r) => ({
       name: r.name,
       url: `https://github.com/${username}/${r.name}`,
@@ -136,6 +141,7 @@ export default async function DashboardPage({
     try {
       compareData = await getFullDashboardData(compareUsername, {
         bypassCache,
+        token: userToken,
       });
     } catch {
       compareData = null;

@@ -1,18 +1,23 @@
 import { NextResponse } from 'next/server';
 import { fetchCIAnalytics } from '@/services/github/ci-analytics';
+import { getUserGitHubToken } from '@/lib/githubtoken';
 import { validateGitHubUsername } from '@/lib/validations';
 import { RateLimiter } from '@/lib/rate-limit';
 
 const ciAnalyticsLimiter = new RateLimiter(10, 60_000, 1);
 
 export async function GET(request: Request) {
-  if (!(await ciAnalyticsLimiter.check('ci-analytics'))) {
+  const ip =
+    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
+    request.headers.get('x-real-ip') ??
+    'unknown';
+
+  if (!(await ciAnalyticsLimiter.check(ip))) {
     return NextResponse.json(
       { error: 'Too many requests. Please try again later.' },
       { status: 429 }
     );
   }
-
   const { searchParams } = new URL(request.url);
   const username = searchParams.get('username')?.trim();
 
@@ -25,7 +30,8 @@ export async function GET(request: Request) {
   }
 
   try {
-    const data = await fetchCIAnalytics(username);
+    const userToken = await getUserGitHubToken();
+    const data = await fetchCIAnalytics(username, userToken);
     return NextResponse.json(data);
   } catch (error: unknown) {
     console.error('Error fetching CI analytics:', error);

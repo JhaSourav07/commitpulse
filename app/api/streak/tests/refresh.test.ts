@@ -13,7 +13,7 @@ vi.mock('../../../../utils/time', () => ({
   getSecondsUntilMidnightInTimezone: vi.fn(),
 }));
 
-import { fetchGitHubContributions } from '../../../../lib/github';
+import { fetchGitHubContributions, getCircuitTelemetry } from '../../../../lib/github';
 import { getSecondsUntilUTCMidnight } from '../../../../utils/time';
 import type { ExtendedContributionData } from '../../../../types';
 import { refreshPolicy } from '../../../../services/github/refresh-policy';
@@ -36,6 +36,7 @@ describe('GET /api/streak - refresh parameter group', () => {
       repoContributions: [],
     } as unknown as ExtendedContributionData);
     vi.mocked(getSecondsUntilUTCMidnight).mockReturnValue(3600);
+    vi.mocked(getCircuitTelemetry).mockReturnValue({ isOpen: false, resetInMs: 0 });
   });
 
   it('returns status 200 for valid requests with custom refresh values', async () => {

@@ -39,15 +39,20 @@ export interface BurnoutReport {
 const reportCache = new DistributedCache<BurnoutReport>(200);
 
 let currentTokenIndex = 0;
-function getHeaders() {
-  const tokens = getGitHubTokens();
+function getHeaders(userToken?: string) {
   const headers: Record<string, string> = {
     Accept: 'application/vnd.github.v3+json',
     'Content-Type': 'application/json',
   };
-  if (tokens.length > 0) {
-    const token = tokens[currentTokenIndex % tokens.length];
-    currentTokenIndex++;
+  let token = userToken;
+  if (!token) {
+    const tokens = getGitHubTokens();
+    if (tokens.length > 0) {
+      token = tokens[currentTokenIndex % tokens.length];
+      currentTokenIndex++;
+    }
+  }
+  if (token) {
     headers['Authorization'] = `bearer ${token}`;
   }
   return headers;
@@ -56,13 +61,13 @@ function getHeaders() {
 export async function fetchBurnoutAnalysis(
   owner: string,
   repo: string,
-  options: { bypassCache?: boolean } = {}
+  options: { bypassCache?: boolean; token?: string } = {}
 ): Promise<BurnoutReport> {
   const cacheKey = `burnout-analyzer:${owner.toLowerCase()}/${repo.toLowerCase()}`;
   const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour cache
 
   if (options.bypassCache) {
-    const fresh = await analyzeRepositoryUncached(owner, repo);
+    const fresh = await analyzeRepositoryUncached(owner, repo, options.token);
     await reportCache.set(cacheKey, fresh, CACHE_TTL_MS);
     return fresh;
   }
@@ -70,7 +75,7 @@ export async function fetchBurnoutAnalysis(
   return reportCache.getOrSet(
     cacheKey,
     async () => {
-      return analyzeRepositoryUncached(owner, repo);
+      return analyzeRepositoryUncached(owner, repo, options.token);
     },
     CACHE_TTL_MS
   );
@@ -109,9 +114,13 @@ async function fetchStatsWithCompilingRetry(
   throw new Error('GitHub is still compiling statistics. Please try again in a few moments.');
 }
 
-async function analyzeRepositoryUncached(owner: string, repo: string): Promise<BurnoutReport> {
+async function analyzeRepositoryUncached(
+  owner: string,
+  repo: string,
+  userToken?: string
+): Promise<BurnoutReport> {
   const url = `${GITHUB_REST_URL}/repos/${owner}/${repo}/stats/contributors`;
-  const headers = getHeaders();
+  const headers = getHeaders(userToken);
 
   const res = await fetchStatsWithCompilingRetry(url, headers);
   if (!res.ok) {

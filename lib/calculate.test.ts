@@ -6,6 +6,7 @@ import {
   aggregateCalendars,
   isStreakAlive,
   chunkDaysIntoWeeks,
+  normalizeCalendarToTimezone,
 } from './calculate';
 import type { ContributionCalendar, ContributionDay } from '../types';
 
@@ -2655,5 +2656,98 @@ describe('chunkDaysIntoWeeks', () => {
 
   it('returns an empty array when given no days', () => {
     expect(chunkDaysIntoWeeks([])).toEqual([]);
+  });
+});
+
+describe('normalizeCalendarToTimezone', () => {
+  it('normalizes calendar dates to the target timezone', () => {
+    // Create a calendar with dates in UTC
+    const calendar: ContributionCalendar = {
+      totalContributions: 10,
+      weeks: [
+        {
+          contributionDays: [
+            { contributionCount: 5, date: '2024-01-01' }, // UTC Monday
+            { contributionCount: 3, date: '2024-01-02' }, // UTC Tuesday
+            { contributionCount: 2, date: '2024-01-03' }, // UTC Wednesday
+          ],
+        },
+      ],
+    };
+
+    // Normalize to UTC (should not change dates)
+    const normalized = normalizeCalendarToTimezone(calendar, 'UTC');
+    expect(normalized.totalContributions).toBe(10);
+    expect(normalized.weeks).toHaveLength(1);
+    expect(normalized.weeks[0].contributionDays).toHaveLength(3);
+    expect(normalized.weeks[0].contributionDays[0].date).toBe('2024-01-01');
+    expect(normalized.weeks[0].contributionDays[0].contributionCount).toBe(5);
+  });
+
+  it('handles empty calendar', () => {
+    const calendar: ContributionCalendar = {
+      totalContributions: 0,
+      weeks: [],
+    };
+
+    const normalized = normalizeCalendarToTimezone(calendar, 'UTC');
+    expect(normalized.totalContributions).toBe(0);
+    expect(normalized.weeks).toHaveLength(0);
+  });
+
+  it('handles null/undefined calendar', () => {
+    expect(normalizeCalendarToTimezone(null as unknown as ContributionCalendar, 'UTC')).toEqual(
+      null
+    );
+    expect(
+      normalizeCalendarToTimezone(undefined as unknown as ContributionCalendar, 'UTC')
+    ).toEqual(undefined);
+  });
+
+  it('groups contributions by target timezone date', () => {
+    // Create a calendar with dates that might span multiple days in different timezones
+    const calendar: ContributionCalendar = {
+      totalContributions: 15,
+      weeks: [
+        {
+          contributionDays: [
+            { contributionCount: 5, date: '2024-01-01' },
+            { contributionCount: 3, date: '2024-01-02' },
+            { contributionCount: 2, date: '2024-01-03' },
+            { contributionCount: 5, date: '2024-01-04' },
+          ],
+        },
+      ],
+    };
+
+    // Normalize to UTC (should preserve all dates)
+    const normalized = normalizeCalendarToTimezone(calendar, 'UTC');
+    expect(normalized.totalContributions).toBe(15);
+    expect(normalized.weeks).toHaveLength(1);
+    expect(normalized.weeks[0].contributionDays).toHaveLength(4);
+  });
+
+  it('preserves contribution counts when normalizing', () => {
+    const calendar: ContributionCalendar = {
+      totalContributions: 20,
+      weeks: [
+        {
+          contributionDays: [
+            { contributionCount: 10, date: '2024-06-15' },
+            { contributionCount: 10, date: '2024-06-16' },
+          ],
+        },
+      ],
+    };
+
+    const normalized = normalizeCalendarToTimezone(calendar, 'UTC');
+    expect(normalized.totalContributions).toBe(20);
+    // Count total contributions across all days
+    const totalContributions = normalized.weeks.reduce(
+      (sum, week) =>
+        sum + week.contributionDays.reduce((daySum, day) => daySum + day.contributionCount, 0),
+      0
+    );
+    expect(totalContributions).toBe(20);
   });
 });

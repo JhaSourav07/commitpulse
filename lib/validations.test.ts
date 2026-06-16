@@ -1112,52 +1112,16 @@ describe('streakParamsSchema — view fallback behavior', () => {
 });
 
 describe('streakParamsSchema — accent parameter HEX color validation', () => {
-  it('rejects an invalid hex color like "#ZZZZZZ" for accent', () => {
-    // #ZZZZZZ contains non-hex characters — must fail schema validation
+  it('strips an invalid hex color like "#ZZZZZZ" for accent and falls back gracefully', () => {
+    // #ZZZZZZ contains non-hex characters — must be stripped to prevent CSS injection
     const result = streakParamsSchema.safeParse({
       user: 'octocat',
       accent: '#ZZZZZZ',
     });
 
-    expect(result.success).toBe(false);
-  });
-
-  it('rejects an invalid hex color like "#ZZZZZZ" for accent (Variation 4)', () => {
-    const result = streakParamsSchema.safeParse({
-      user: 'octocat',
-      accent: '#ZZZZZZ',
-    });
-
-    expect(result.success).toBe(false);
-  });
-
-  it('rejects an invalid hex color like "#ZZZZZZ" for accent (Variation 5)', () => {
-    const result = streakParamsSchema.safeParse({
-      user: 'octocat',
-      accent: '#ZZZZZZ',
-    });
-
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      // This extra check ensures Variation 5 isn't just a duplicate,
-      // but a stricter validation check!
-      expect(result.error.issues[0]?.message).toContain(
-        'accent must be a valid hex color (with or without #)'
-      );
-    }
-  });
-
-  it('rejects the invalid boundary hex color "#ZZZZZZ" for accent', () => {
-    const result = streakParamsSchema.safeParse({
-      user: 'octocat',
-      accent: '#ZZZZZZ',
-    });
-
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.error.issues[0]?.message).toContain(
-        'accent must be a valid hex color (with or without #)'
-      );
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.accent).toBeUndefined();
     }
   });
 

@@ -12,6 +12,7 @@ import Heatmap from '@/components/dashboard/Heatmap';
 import AIInsights from '@/components/dashboard/AIInsights';
 import Achievements from '@/components/dashboard/Achievements';
 import { getOrgDashboardData, buildCommitClock, generateAchievements } from '@/lib/github';
+import { getUserGitHubToken } from '@/lib/githubtoken';
 
 export const revalidate = 3600; // Cache for 1 hour
 
@@ -53,11 +54,12 @@ export default async function OrgDashboardPage({
   const { orgname } = await params;
   const refreshParams = await searchParams;
   const bypassCache = refreshParams?.refresh === 'true';
+  const userToken = await getUserGitHubToken();
 
   let data;
 
   try {
-    data = await getOrgDashboardData(orgname, { bypassCache });
+    data = await getOrgDashboardData(orgname, { bypassCache, token: userToken });
   } catch (error) {
     console.error(error);
     return notFound();

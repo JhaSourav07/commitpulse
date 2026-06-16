@@ -8,6 +8,7 @@ import {
   calculateMonthlyStats,
   aggregateCalendars,
   chunkDaysIntoWeeks,
+  normalizeCalendarToTimezone,
 } from '@/lib/calculate';
 import {
   generateNotFoundSVG,
@@ -26,7 +27,7 @@ import { getSecondsUntilUTCMidnight, getSecondsUntilMidnightInTimezone } from '@
 import type { BadgeParams, RepoContribution, ExtendedContributionData } from '@/types';
 import { themes } from '@/lib/svg/themes';
 import { streakParamsSchema } from '@/lib/validations';
-import { sanitizeHexColor, sanitizeRadius } from '@/lib/svg/sanitizer';
+import { sanitizeHexColor, sanitizeRadius, escapeXML } from '@/lib/svg/sanitizer';
 import { getClientIp } from '@/utils/getClientIp';
 import { quotaMonitor } from '@/services/github/quota-monitor';
 import { refreshPolicy } from '@/services/github/refresh-policy';
@@ -35,15 +36,11 @@ import { refreshRateLimiter } from '@/services/github/refresh-rate-limiter';
 const SVG_CSP_HEADER =
   "default-src 'none'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://fonts.gstatic.com;";
 
-function escapeSVGText(value: string): string {
-  return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
-
 function buildInlineErrorSVG(text: string): string {
   const MAX_LINE = 48;
   const truncated = text.length > MAX_LINE * 2 ? text.slice(0, MAX_LINE * 2 - 1) + '…' : text;
-  const line1 = escapeSVGText(truncated.slice(0, MAX_LINE));
-  const line2 = truncated.length > MAX_LINE ? escapeSVGText(truncated.slice(MAX_LINE)) : null;
+  const line1 = escapeXML(truncated.slice(0, MAX_LINE));
+  const line2 = truncated.length > MAX_LINE ? escapeXML(truncated.slice(MAX_LINE)) : null;
   const textY = line2 ? '62' : '75';
   return `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="150" viewBox="0 0 400 150">
   <rect width="400" height="150" fill="#2d0000" rx="8"/>
@@ -531,9 +528,13 @@ export async function GET(request: Request) {
       const stats = calculateStreak(calendar, timezone, undefined, grace);
       svg = generateRadarSVG(stats, params, calendar);
     } else if (versus && versusCalendar) {
-      const stats1 = calculateStreak(calendar, timezone, undefined, grace);
-      const stats2 = calculateStreak(versusCalendar, timezone, undefined, grace);
-      svg = generateVersusSVG(stats1, stats2, params, calendar, versusCalendar);
+      // Normalize both calendars to the target timezone for accurate comparison
+      const normalizedCalendar = normalizeCalendarToTimezone(calendar, timezone);
+      const normalizedVersusCalendar = normalizeCalendarToTimezone(versusCalendar, timezone);
+
+      const stats1 = calculateStreak(normalizedCalendar, timezone, undefined, grace);
+      const stats2 = calculateStreak(normalizedVersusCalendar, timezone, undefined, grace);
+      svg = generateVersusSVG(stats1, stats2, params, normalizedCalendar, normalizedVersusCalendar);
     } else {
       const stats = calculateStreak(calendar, timezone, undefined, grace);
       svg = generateSVG(stats, params, calendar);
@@ -612,8 +613,8 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
     const MAX_LINE = 48;
     const truncated = text.length > MAX_LINE * 2 ? text.slice(0, MAX_LINE * 2 - 1) + '…' : text;
 
-    const line1 = escapeSVGText(truncated.slice(0, MAX_LINE));
-    const line2 = truncated.length > MAX_LINE ? escapeSVGText(truncated.slice(MAX_LINE)) : null;
+    const line1 = escapeXML(truncated.slice(0, MAX_LINE));
+    const line2 = truncated.length > MAX_LINE ? escapeXML(truncated.slice(MAX_LINE)) : null;
 
     const textY = line2 ? '62' : '75';
 
