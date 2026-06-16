@@ -47,12 +47,14 @@ export function getGlobalCircuitBreakerOpenUntilForTests() {
 
 //Explicit, strongly-typed Error subclass
 export class RateLimitError extends Error {
-  constructor(
-    message: string,
-    public readonly retryAfterMs: number
-  ) {
+  /** Human-readable reason / backoff hint passed as the error message */
+  /** Optional milliseconds until the rate-limit window resets */
+  public retryAfterMs?: number;
+
+  constructor(message: string, retryAfterMs?: number) {
     super(message);
     this.name = 'RateLimitError';
+    this.retryAfterMs = retryAfterMs;
   }
 }
 
@@ -852,7 +854,13 @@ async function fetchContributionsUncached(
           (e as { type?: string })?.type === 'RATE_LIMITED'
       );
       if (isRateLimit) {
-        throw new Error('API Rate Limit Exceeded');
+        // Throw a typed RateLimitError so callers (e.g. route.ts) can detect it
+        // via instanceof and attach correct Retry-After / HTTP 429 headers.
+        const resetAt = res.headers.get('x-ratelimit-reset') ?? undefined;
+        const retryAfterMs = resetAt
+          ? Math.max(0, parseInt(resetAt, 10) * 1000 - Date.now())
+          : 60_000;
+        throw new RateLimitError('API Rate Limit Exceeded', retryAfterMs);
       }
     }
     throw new Error(getGraphQLErrorMessage(data.errors));

@@ -5,11 +5,23 @@ import { GET } from './route';
 // We only mock the two things that reach outside this process:
 // the GitHub API call and the wall-clock time helper.
 // calculateStreak and generateSVG run for real, giving us genuine end-to-end coverage.
-vi.mock('../../../lib/github', () => ({
-  fetchGitHubContributions: vi.fn(),
-  getOrgDashboardData: vi.fn(),
-  getCircuitTelemetry: vi.fn().mockReturnValue({ isOpen: false, resetInMs: 0 }),
-}));
+// RateLimitError is kept as a real class so route.ts instanceof checks work correctly.
+vi.mock('../../../lib/github', () => {
+  class RateLimitError extends Error {
+    public retryAfterMs?: number;
+    constructor(message: string, retryAfterMs?: number) {
+      super(message);
+      this.name = 'RateLimitError';
+      this.retryAfterMs = retryAfterMs;
+    }
+  }
+  return {
+    fetchGitHubContributions: vi.fn(),
+    getOrgDashboardData: vi.fn(),
+    getCircuitTelemetry: vi.fn().mockReturnValue({ isOpen: false, resetInMs: 0 }),
+    RateLimitError,
+  };
+});
 
 vi.mock('../../../utils/time', () => ({
   getSecondsUntilUTCMidnight: vi.fn(),
@@ -20,6 +32,7 @@ import {
   fetchGitHubContributions,
   getOrgDashboardData,
   getCircuitTelemetry,
+  RateLimitError,
 } from '../../../lib/github';
 import { getSecondsUntilUTCMidnight, getSecondsUntilMidnightInTimezone } from '../../../utils/time';
 import type { ContributionCalendar, ExtendedContributionData } from '../../../types';
@@ -1870,6 +1883,70 @@ describe('GET /api/streak', () => {
       const body = await response.text();
       expect(body).toContain('<svg');
       expect(body).toContain('cannot exceed 39 characters');
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // RateLimitError — typed throw → 429 + Retry-After header
+  // -------------------------------------------------------------------------
+  describe('typed RateLimitError handling', () => {
+    it('returns HTTP 429 when fetchGitHubContributions throws a typed RateLimitError', async () => {
+      vi.mocked(fetchGitHubContributions).mockRejectedValue(
+        new RateLimitError('API Rate Limit Exceeded', 3600000)
+      );
+
+      const response = await GET(makeRequest({ user: 'octocat' }));
+      expect(response.status).toBe(429);
+    });
+
+    it('sets Content-Type: image/svg+xml on a 429 RateLimitError response', async () => {
+      vi.mocked(fetchGitHubContributions).mockRejectedValue(
+        new RateLimitError('API Rate Limit Exceeded', 3600000)
+      );
+
+      const response = await GET(makeRequest({ user: 'octocat' }));
+      expect(response.headers.get('Content-Type')).toBe('image/svg+xml');
+    });
+
+    it('sets Cache-Control: no-cache, no-store on a 429 RateLimitError response', async () => {
+      vi.mocked(fetchGitHubContributions).mockRejectedValue(
+        new RateLimitError('API Rate Limit Exceeded', 3600000)
+      );
+
+      const response = await GET(makeRequest({ user: 'octocat' }));
+      expect(response.headers.get('Cache-Control')).toBe('no-cache, no-store, must-revalidate');
+    });
+
+    it('sets Retry-After header (in seconds) when RateLimitError carries retryAfterMs', async () => {
+      // 3 600 000 ms = 3600 s
+      vi.mocked(fetchGitHubContributions).mockRejectedValue(
+        new RateLimitError('API Rate Limit Exceeded', 3_600_000)
+      );
+
+      const response = await GET(makeRequest({ user: 'octocat' }));
+      expect(response.status).toBe(429);
+      expect(response.headers.get('Retry-After')).toBe('3600');
+    });
+
+    it('does NOT set Retry-After when RateLimitError has no retryAfterMs', async () => {
+      vi.mocked(fetchGitHubContributions).mockRejectedValue(
+        new RateLimitError('API Rate Limit Exceeded')
+      );
+
+      const response = await GET(makeRequest({ user: 'octocat' }));
+      expect(response.status).toBe(429);
+      expect(response.headers.get('Retry-After')).toBeNull();
+    });
+
+    it('returns a valid SVG body on a typed RateLimitError', async () => {
+      vi.mocked(fetchGitHubContributions).mockRejectedValue(
+        new RateLimitError('API Rate Limit Exceeded', 60000)
+      );
+
+      const response = await GET(makeRequest({ user: 'octocat' }));
+      const body = await response.text();
+      expect(body).toContain('<svg');
+      expect(body).toContain('</svg>');
     });
   });
 });

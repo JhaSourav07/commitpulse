@@ -2,7 +2,12 @@
 
 import crypto from 'crypto';
 import { NextResponse } from 'next/server';
-import { fetchGitHubContributions, getOrgDashboardData, getCircuitTelemetry } from '@/lib/github';
+import {
+  fetchGitHubContributions,
+  getOrgDashboardData,
+  getCircuitTelemetry,
+  RateLimitError,
+} from '@/lib/github';
 import {
   calculateStreak,
   calculateMonthlyStats,
@@ -663,6 +668,12 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
       'Cache-Control': 'no-cache, no-store, must-revalidate',
       'Content-Security-Policy': SVG_CSP_HEADER,
     };
+
+    // Attach Retry-After header when we have a typed RateLimitError with reset info
+    if (error instanceof RateLimitError && error.retryAfterMs != null && error.retryAfterMs > 0) {
+      // Retry-After is specified in seconds (integer)
+      headers['Retry-After'] = String(Math.ceil(error.retryAfterMs / 1000));
+    }
 
     if (isCircuitOpen) {
       headers['X-CommitPulse-Circuit-Status'] = 'Open';

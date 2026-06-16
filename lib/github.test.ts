@@ -21,6 +21,7 @@ import {
   buildInsights,
   buildActivityMap,
   contributionsCache,
+  RateLimitError,
 } from './github';
 import type { ContributionCalendar } from '../types';
 
@@ -71,13 +72,17 @@ afterEach(() => {
   }
 });
 
-describe('fetchGitHubContributions', () => {
+describe('fetchGitHubContributions — GraphQL RATE_LIMITED typed error', () => {
   beforeEach(() => {
     vi.spyOn(global, 'fetch');
+    vi.useFakeTimers();
   });
 
-  afterEach(() => {
+  afterEach(async () => {
+    await vi.runOnlyPendingTimersAsync(); // flush any stragglers before teardown
+    vi.useRealTimers();
     vi.restoreAllMocks();
+    clearGitHubApiCacheForTests();
   });
 
   it('returns the contribution calendar on a successful response', async () => {
@@ -358,9 +363,8 @@ describe('fetchGitHubContributions', () => {
       );
 
       const promise = fetchGitHubContributions('octocat');
-      const assertion = expect(promise).rejects.toThrow('API Rate Limit Exceeded');
-      await vi.advanceTimersByTimeAsync(3500);
-      await assertion;
+      await vi.advanceTimersByTimeAsync(10000); // promise rejects HERE, with no handler yet
+      await expect(promise).rejects.toBeInstanceOf(RateLimitError);
       expect(fetch).toHaveBeenCalledTimes(4);
     });
   });
@@ -2653,5 +2657,135 @@ describe('getWrappedData weekendRatio', () => {
     });
     const result = await getWrappedData('octocat', '2024');
     expect(result.weekendRatio).toBe(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// RateLimitError — class contract
+// ---------------------------------------------------------------------------
+describe('RateLimitError', () => {
+  it('is an instance of Error', () => {
+    const err = new RateLimitError('GitHub GraphQL rate limit exceeded');
+    expect(err).toBeInstanceOf(Error);
+  });
+
+  it('has name "RateLimitError"', () => {
+    const err = new RateLimitError('GitHub GraphQL rate limit exceeded');
+    expect(err.name).toBe('RateLimitError');
+  });
+
+  it('stores the message passed to the constructor', () => {
+    const err = new RateLimitError('API Rate Limit Exceeded');
+    expect(err.message).toBe('API Rate Limit Exceeded');
+  });
+
+  it('stores retryAfterMs when provided', () => {
+    const err = new RateLimitError('API Rate Limit Exceeded', 60000);
+    expect(err.retryAfterMs).toBe(60000);
+  });
+
+  it('leaves retryAfterMs undefined when not provided', () => {
+    const err = new RateLimitError('API Rate Limit Exceeded');
+    expect(err.retryAfterMs).toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// fetchGitHubContributions — GraphQL RATE_LIMITED → typed RateLimitError
+// ---------------------------------------------------------------------------
+describe('fetchGitHubContributions — GraphQL RATE_LIMITED typed error', () => {
+  beforeEach(() => {
+    vi.spyOn(global, 'fetch');
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+    clearGitHubApiCacheForTests();
+  });
+
+  it('throws RateLimitError (not generic Error) when GraphQL returns RATE_LIMITED', async () => {
+    vi.mocked(fetch).mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          errors: [{ type: 'RATE_LIMITED', message: 'API rate limit exceeded' }],
+          data: null,
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } }
+      )
+    );
+
+    const promise = fetchGitHubContributions('octocat');
+    const assertion = expect(promise).rejects.toBeInstanceOf(RateLimitError);
+    await vi.advanceTimersByTimeAsync(10000);
+    await assertion;
+  });
+
+  it('thrown RateLimitError has message "API Rate Limit Exceeded"', async () => {
+    vi.mocked(fetch).mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          errors: [{ type: 'RATE_LIMITED', message: 'API rate limit exceeded' }],
+          data: null,
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } }
+      )
+    );
+
+    const promise = fetchGitHubContributions('octocat');
+    await vi.advanceTimersByTimeAsync(10000);
+
+    await expect(promise).rejects.toThrow('API Rate Limit Exceeded');
+  });
+
+  it('thrown RateLimitError carries a positive retryAfterMs when x-ratelimit-reset header is present', async () => {
+    const resetUnix = Math.floor(Date.now() / 1000) + 3600; // 1 hour from now
+    vi.mocked(fetch).mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          errors: [{ type: 'RATE_LIMITED', message: 'API rate limit exceeded' }],
+          data: null,
+        }),
+        {
+          status: 200,
+          headers: {
+            'Content-Type': 'application/json',
+            'x-ratelimit-reset': String(resetUnix),
+          },
+        }
+      )
+    );
+
+    const promise = fetchGitHubContributions('octocat');
+    const caughtPromise = promise.catch((e) => e); // handler attached immediately
+    await vi.advanceTimersByTimeAsync(10000);
+    const caught = await caughtPromise;
+
+    expect(caught).toBeInstanceOf(RateLimitError);
+    const rle = caught as RateLimitError;
+    expect(typeof rle.retryAfterMs).toBe('number');
+    expect(rle.retryAfterMs!).toBeGreaterThan(0);
+  });
+
+  it('defaults retryAfterMs to 60_000 when x-ratelimit-reset header is absent', async () => {
+    vi.mocked(fetch).mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          errors: [{ type: 'RATE_LIMITED', message: 'API rate limit exceeded' }],
+          data: null,
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } }
+      )
+    );
+
+    const promise = fetchGitHubContributions('octocat');
+    const caughtPromise = promise.catch((e) => e);
+    await vi.advanceTimersByTimeAsync(10000);
+    const caught = await caughtPromise;
+
+    expect(caught).toBeInstanceOf(RateLimitError);
+    const rle = caught as RateLimitError;
+    expect(rle.retryAfterMs).toBe(60_000);
   });
 });
