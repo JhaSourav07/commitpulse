@@ -395,10 +395,8 @@ async function generateRecommendationsWithGemini(
   busFactor: number,
   dependencyRisk: string,
   sustainabilityScore: number,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  topContributors: any[],
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  inactivityAlerts: any[]
+  topContributors: ContributorMetric[],
+  inactivityAlerts: BurnoutReport['inactivityAlerts']
 ): Promise<string[]> {
   const prompt = `
   You are an expert AI repository consultant. Analyze these contributor metrics for GitHub repository ${owner}/${repo}:
