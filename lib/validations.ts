@@ -150,24 +150,30 @@ const baseStreakParamsSchema = z.object({
 
   theme: z
     .string()
+    .trim()
     .optional()
-    .transform((val) => {
-      if (val === undefined || val === '') return 'dark';
-      const normalized = val.toLowerCase();
-      if (normalized === 'auto' || normalized === 'random') {
-        return normalized;
-      }
-      const matchedKey = Object.keys(themes).find((key) => key.toLowerCase() === normalized);
-      return matchedKey || val;
-    })
+    .transform(toEmptyStringAsUndefined)
     .refine(
       (val) => {
-        return val === 'auto' || val === 'random' || Object.hasOwn(themes, val);
+        if (!val) return true;
+
+        const normalized = val.toLowerCase();
+
+        return (
+          normalized === 'auto' ||
+          normalized === 'random' ||
+          Object.keys(themes).some((key) => key.toLowerCase() === normalized)
+        );
       },
       {
-        message: `Invalid theme. Supported themes: ${['auto', 'random', ...Object.keys(themes)].join(', ')}`,
+        message: `Invalid theme. Supported themes: ${[
+          'auto',
+          'random',
+          ...Object.keys(themes),
+        ].join(', ')}`,
       }
     )
+    .transform(toValidTheme)
     .default('dark'),
   bg: z
     .string()
@@ -201,6 +207,7 @@ const baseStreakParamsSchema = z.object({
     )
     .transform((val) => {
       if (!val) return undefined;
+
       if (val.includes(',')) {
         return val
           .split(',')
@@ -209,6 +216,7 @@ const baseStreakParamsSchema = z.object({
           .slice(0, 4)
           .map((c) => sanitizeHexColor(c, '00ffaa'));
       }
+
       return sanitizeHexColor(val, '00ffaa');
     }),
 
