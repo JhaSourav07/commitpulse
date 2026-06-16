@@ -222,10 +222,14 @@ const baseStreakParamsSchema = z.object({
   bg: z
     .string()
     .optional()
-    .refine((val) => !val || /^[0-9a-fA-F]{3,4}$|^[0-9a-fA-F]{6,8}$/.test(val.replace('#', '')), {
-      message: 'bg must be a valid hex color (with or without #)',
-    })
-    .transform((val) => (val ? sanitizeHexColor(val, '0d1117') : undefined)),
+    .transform((val) => {
+      if (!val) return undefined;
+      const cleanVal = val.trim().replace(/^#+/, '');
+      if (/^([0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(cleanVal)) {
+        return cleanVal as HexColor;
+      }
+      return undefined;
+    }),
   bgType: z.enum(['solid', 'linear', 'radial']).catch('solid').default('solid'),
   bgStart: z
     .string()
@@ -256,37 +260,34 @@ const baseStreakParamsSchema = z.object({
   text: z
     .string()
     .optional()
-    .refine((val) => !val || /^[0-9a-fA-F]{3,4}$|^[0-9a-fA-F]{6,8}$/.test(val.replace('#', '')), {
-      message: 'text must be a valid hex color (with or without #)',
-    })
-    .transform((val) => (val ? sanitizeHexColor(val, 'ffffff') : undefined)),
+    .transform((val) => {
+      if (!val) return undefined;
+      const cleanVal = val.trim().replace(/^#+/, '');
+      if (/^([0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(cleanVal)) {
+        return cleanVal as HexColor;
+      }
+      return undefined;
+    }),
   accent: z
     .string()
     .optional()
-    .refine(
-      (val) => {
-        if (!val) return true;
-        const parts = val.includes(',') ? val.split(',') : [val];
-        return parts.every((p) =>
-          /^[0-9a-fA-F]{3,4}$|^[0-9a-fA-F]{6,8}$/.test(p.trim().replace('#', ''))
-        );
-      },
-      {
-        message:
-          'accent must be a valid hex color (with or without #), or a comma-separated list of them',
-      }
-    )
     .transform((val) => {
       if (!val) return undefined;
       if (val.includes(',')) {
-        return val
+        const parts = val
           .split(',')
-          .map((c) => c.trim())
+          .map((c) => c.trim().replace(/^#+/, ''))
           .filter((c) => c.length > 0)
-          .slice(0, 4)
-          .map((c) => sanitizeHexColor(c, '00ffaa'));
+          .filter((c) => /^([0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(c))
+          .map((c) => c as HexColor)
+          .slice(0, 4);
+        return parts.length > 0 ? parts : undefined;
       }
-      return sanitizeHexColor(val, '00ffaa');
+      const cleanVal = val.trim().replace(/^#+/, '');
+      if (/^([0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(cleanVal)) {
+        return cleanVal as HexColor;
+      }
+      return undefined;
     }),
 
   // Silently fall back to 'linear' for unknown values (matches old behavior)

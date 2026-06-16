@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getClientIp } from '@/utils/getClientIp';
 import { fetchCIAnalytics } from '@/services/github/ci-analytics';
+import { getUserGitHubToken } from '@/lib/githubtoken';
 import { validateGitHubUsername } from '@/lib/validations';
 import { RateLimiter } from '@/lib/rate-limit';
 
@@ -14,7 +15,6 @@ export async function GET(request: Request) {
       { status: 429 }
     );
   }
-
   const { searchParams } = new URL(request.url);
   const username = searchParams.get('username')?.trim();
 
@@ -27,7 +27,8 @@ export async function GET(request: Request) {
   }
 
   try {
-    const data = await fetchCIAnalytics(username);
+    const userToken = await getUserGitHubToken();
+    const data = await fetchCIAnalytics(username, userToken);
     return NextResponse.json(data);
   } catch (error: unknown) {
     console.error('Error fetching CI analytics:', error);

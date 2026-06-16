@@ -3,6 +3,7 @@
 import { NextResponse } from 'next/server';
 import { getWrappedData, getCircuitTelemetry } from '@/lib/github';
 import { generateWrappedSVG, generateNotFoundSVG, generateRateLimitSVG } from '@/lib/svg/generator';
+import { escapeXML } from '@/lib/svg/sanitizer';
 import { wrappedParamsSchema } from '@/lib/validations';
 import type { BadgeParams } from '@/types';
 import { themes } from '@/lib/svg/themes';
@@ -14,9 +15,7 @@ import { refreshRateLimiter } from '@/services/github/refresh-rate-limiter';
 const SVG_CSP_HEADER =
   "default-src 'none'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://fonts.gstatic.com;";
 
-function escapeSVGText(value: string): string {
-  return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
+// Removing escapeSVGText in favor of escapeXML
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -222,7 +221,7 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
       <svg xmlns="http://www.w3.org/2000/svg" width="400" height="150">
         <rect width="100%" height="100%" fill="#2d0000" rx="8"/>
         <text x="50%" y="50%" text-anchor="middle" fill="#ffcccc" font-family="sans-serif">
-          ${escapeSVGText(message)}
+          ${escapeXML(message)}
         </text>
       </svg>
     `;

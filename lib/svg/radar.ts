@@ -1,7 +1,8 @@
 // lib/svg/radar.ts
 
 import type { BadgeParams, ContributionCalendar, StreakStats } from '../../types';
-import { deterministicRandom, escapeXML, truncateUsername } from './generator';
+import { deterministicRandom, truncateUsername, getSizeScale } from './generator';
+import { sanitizeHexColor, escapeXML } from './sanitizer';
 import { calculateWrappedStats, calculateMonthlyStats } from '../calculate';
 import {
   RADAR_SVG_WIDTH,
@@ -58,6 +59,7 @@ export function generateRadarSVG(
   params: BadgeParams,
   calendar: ContributionCalendar
 ): string {
+  const sf = getSizeScale(params.size);
   const safeUser = escapeXML(truncateUsername(params.user));
   const bgColor = params.bg || '0d1117';
   const textColor = params.text || 'c9d1d9';
@@ -127,7 +129,7 @@ export function generateRadarSVG(
     }
   `;
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${RADAR_SVG_WIDTH}" height="${RADAR_SVG_HEIGHT}" viewBox="0 0 ${RADAR_SVG_WIDTH} ${RADAR_SVG_HEIGHT}" role="img" aria-labelledby="cp-radar-title cp-radar-desc">
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${Math.round(RADAR_SVG_WIDTH * sf)}" height="${Math.round(RADAR_SVG_HEIGHT * sf)}" viewBox="0 0 ${RADAR_SVG_WIDTH} ${RADAR_SVG_HEIGHT}" role="img" aria-labelledby="cp-radar-title cp-radar-desc">
   <title id="cp-radar-title">CommitPulse Radar Map for ${safeUser}</title>
   <desc id="cp-radar-desc">A radar chart visualization of ${safeUser}'s GitHub contributions across 6 dimensions.</desc>
   <defs>

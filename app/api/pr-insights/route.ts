@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { fetchPRInsights } from '@/services/github/pr-insights';
 import { validateGitHubUsername } from '@/lib/validations';
 import { getRateLimitHeaders, RateLimiter } from '@/lib/rate-limit';
+import { getUserGitHubToken } from '@/lib/githubtoken';
 
 const prInsightsLimiter = new RateLimiter(10, 60_000, 1);
 
@@ -27,7 +28,9 @@ export async function GET(request: Request) {
   }
 
   try {
-    const data = await fetchPRInsights(trimmed);
+    const userToken = await getUserGitHubToken();
+    const data = await fetchPRInsights(trimmed, userToken);
+
     return NextResponse.json(data);
   } catch (error: unknown) {
     console.error('Error fetching PR insights:', error);

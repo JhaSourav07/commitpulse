@@ -10,6 +10,7 @@ import type {
   AchievementData,
   AchievementsResponse,
 } from '@/types/achievements';
+import { getUserGitHubToken } from '@/lib/githubtoken';
 
 const ACHIEVEMENT_DEFS: AchievementDef[] = [
   // 🔥 Contribution
@@ -555,7 +556,8 @@ export async function GET(request: Request) {
   }
 
   try {
-    const dashboardData = await getFullDashboardData(username);
+    const userToken = await getUserGitHubToken();
+    const dashboardData = await getFullDashboardData(username, { token: userToken });
 
     const { profile, stats, languages } = dashboardData;
     const totalStars = profile.stats.stars;

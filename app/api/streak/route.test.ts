@@ -619,7 +619,7 @@ describe('GET /api/streak', () => {
       );
       const body = await response.text();
       expect(response.status).toBe(400);
-      expect(body).toContain('"to" date must be after or equal to "from" date');
+      expect(body).toContain('&quot;to&quot; date must be after or equal to &quot;from&quot; date');
       expect(fetchGitHubContributions).not.toHaveBeenCalled();
     });
 
@@ -682,7 +682,7 @@ describe('GET /api/streak', () => {
 
         expect(response.status).toBe(400);
         expect(body).toContain('<svg');
-        expect(body).toContain('Invalid "date" format');
+        expect(body).toContain('Invalid &quot;date&quot; format');
         expect(fetchGitHubContributions).not.toHaveBeenCalled();
       });
 
@@ -690,14 +690,14 @@ describe('GET /api/streak', () => {
         const response = await GET(makeRequest({ user: 'octocat', date: '2026-15-40' }));
         const body = await response.text();
         expect(response.status).toBe(400);
-        expect(body).toContain('Invalid "date" format');
+        expect(body).toContain('Invalid &quot;date&quot; format');
       });
 
       it('returns 400 when an invalid ISO8601 calendar date format like "2026-15-40" is supplied (Variation 4)', async () => {
         const response = await GET(makeRequest({ user: 'octocat', date: '2026-15-40' }));
         const body = await response.text();
         expect(response.status).toBe(400);
-        expect(body).toContain('Invalid "date" format. Use ISO 8601.');
+        expect(body).toContain('Invalid &quot;date&quot; format. Use ISO 8601.');
       });
     });
   });
@@ -810,32 +810,32 @@ describe('GET /api/streak', () => {
       expect(body).toContain('#ff0000');
     });
 
-    it('does not crash when an invalid text color is provided', async () => {
+    it('does not crash when an invalid text color is provided and falls back gracefully', async () => {
       const response = await GET(makeRequest({ user: 'octocat', text: 'notacolor' }));
 
-      expect(response.status).toBe(400);
+      expect(response.status).toBe(200);
     });
 
-    it('returns 400 when an invalid hex color is passed as accent', async () => {
+    it('falls back gracefully when an invalid hex color is passed as accent', async () => {
       const response = await GET(makeRequest({ user: 'octocat', accent: '#ZZZZZZZ' }));
 
-      expect(response.status).toBe(400);
+      expect(response.status).toBe(200);
     });
 
-    it('returns 400 Bad Request for invalid color hex syntax targeting the ?accent= parameter', async () => {
+    it('strips invalid color hex syntax targeting the ?accent= parameter and returns 200', async () => {
       const response = await GET(makeRequest({ user: 'octocat', accent: '#ZZZZZZ' }));
 
-      expect(response.status).toBe(400);
+      expect(response.status).toBe(200);
 
       const body = await response.text();
       expect(body).toContain('<svg');
       expect(response.headers.get('Content-Type')).toContain('image/svg+xml');
     });
   });
-  it('returns 400 when an invalid hex color is passed as bg', async () => {
+  it('falls back gracefully when an invalid hex color is passed as bg', async () => {
     const response = await GET(makeRequest({ user: 'octocat', bg: '#ZZZZZZ' }));
 
-    expect(response.status).toBe(400);
+    expect(response.status).toBe(200);
   });
   describe('hide parameters', () => {
     it('removes the username title when hide_title=true', async () => {
@@ -1804,7 +1804,7 @@ describe('GET /api/streak', () => {
 
       expect(response.status).toBe(400);
       expect(body).toContain('<svg');
-      expect(body).toContain('Invalid "date" format');
+      expect(body).toContain('Invalid &quot;date&quot; format');
     });
 
     it('does not call fetchGitHubContributions when ?date= is malformed', async () => {
@@ -1818,7 +1818,7 @@ describe('GET /api/streak', () => {
       expect(response.status).toBe(400);
       const body = await response.text();
       expect(body).toContain('<svg');
-      expect(body).toContain('Invalid "date" format');
+      expect(body).toContain('Invalid &quot;date&quot; format');
     });
 
     it('returns 400 for a freeform string ?date=not-a-date', async () => {
