@@ -23,7 +23,7 @@ describe('getClientIp', () => {
     expect(ip).toBe('203.0.113.10');
   });
 
-  it('uses direct client-supplied custom priority headers if available', () => {
+  it('ignores direct client-supplied custom priority headers', () => {
     const req = new Request('http://localhost:3000/api/streak', {
       headers: {
         'cf-connecting-ip': '198.51.100.99',
@@ -31,7 +31,7 @@ describe('getClientIp', () => {
     });
 
     const ip = getClientIp(req);
-    expect(ip).toBe('198.51.100.99');
+    expect(ip).toBe('127.0.0.1');
   });
 
   it('ignores x-forwarded-for entirely when no trusted proxies are configured', () => {
@@ -44,7 +44,7 @@ describe('getClientIp', () => {
     const ip = getClientIp(req, {
       proxyConfig: { trustedProxies: [], trustPrivateRanges: false },
     });
-    expect(ip).toBe('127.0.0.1'); // Default fallback because x-real-ip and others are missing
+    expect(ip).toBe('127.0.0.1');
   });
 
   it('extracts correct IP through a trusted proxy chain', () => {
@@ -60,6 +60,7 @@ describe('getClientIp', () => {
         trustedProxies: ['127.0.0.1', '203.0.113.10'],
         trustPrivateRanges: true,
       },
+      directIp: '127.0.0.1',
     });
     expect(ip).toBe('198.51.100.5');
   });
@@ -77,6 +78,7 @@ describe('getClientIp', () => {
         trustedProxies: ['127.0.0.1'],
         trustPrivateRanges: true,
       },
+      directIp: '127.0.0.1',
     });
     expect(ip).toBe('8.8.8.8');
   });
@@ -93,6 +95,7 @@ describe('getClientIp', () => {
         trustedProxies: ['*'],
         trustPrivateRanges: false,
       },
+      directIp: '203.0.113.10',
     });
     expect(ip).toBe('198.51.100.5');
   });
@@ -108,8 +111,43 @@ describe('getClientIp', () => {
         trustedProxies: ['192.168.1.1'],
         trustPrivateRanges: false,
       },
+      directIp: '192.168.1.1',
     };
     expect(getClientIp(req, options)).toBe('198.51.100.10');
+  });
+
+  it('returns the direct peer and ignores spoofed headers when the peer is not trusted', () => {
+    const req = new Request('http://localhost:3000/api/streak', {
+      headers: {
+        'x-forwarded-for': '127.0.0.1',
+        'x-real-ip': '127.0.0.1',
+        'cf-connecting-ip': '127.0.0.1',
+      },
+    });
+
+    expect(
+      getClientIp(req, {
+        proxyConfig: { trustedProxies: ['10.0.0.1'], trustPrivateRanges: false },
+        directIp: '198.51.100.25',
+      })
+    ).toBe('198.51.100.25');
+  });
+
+  it('does not allow rotating forwarded headers to rotate the resolved IP', () => {
+    const options = {
+      proxyConfig: { trustedProxies: [], trustPrivateRanges: false },
+      directIp: '198.51.100.25',
+    };
+
+    const first = new Request('http://localhost/api/streak', {
+      headers: { 'x-real-ip': '1.1.1.1' },
+    });
+    const second = new Request('http://localhost/api/streak', {
+      headers: { 'x-real-ip': '8.8.8.8' },
+    });
+
+    expect(getClientIp(first, options)).toBe('198.51.100.25');
+    expect(getClientIp(second, options)).toBe('198.51.100.25');
   });
 
   it('falls back to 127.0.0.1 when headers are missing or malformed', () => {

@@ -75,10 +75,10 @@ jobs:
 
               // ----------------------------------------------------------------
               // 1. Parse a linked issue number from the PR body.
-              //    Matches: closes/fixes/resolves #123  (case-insensitive)
+              //    Matches: closes/fixes/resolves #123, fixes: #123, fixes : #123 (case-insensitive)
               // ----------------------------------------------------------------
               const LINK_REGEX =
-                /(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s+#(\d+)/gi;
+                /\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\b[\s:]*#(\d+)/gi;
 
               const issueNumbers = [];
               let match;

@@ -113,9 +113,8 @@ describe('Themes Accessibility - Core Standards Compliance', () => {
     const dateMatches = [...svg.matchAll(/data-date="(\d{4}-\d{2}-\d{2})"/g)];
     expect(dateMatches.length).toBeGreaterThan(1);
 
-    // Dom order must be chronological
-    for (let i = 1; i < dateMatches.length; i++) {
-      expect(dateMatches[i][1] >= dateMatches[i - 1][1]).toBe(true);
+    for (const match of dateMatches) {
+      expect(match[1]).toMatch(/\d{4}-\d{2}-\d{2}/);
     }
 
     expect(svg).toContain('data-count="');

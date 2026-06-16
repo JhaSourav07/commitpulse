@@ -4,6 +4,8 @@ import { User } from '@/models/User';
 import { getClientIp } from '@/utils/getClientIp';
 import { getRateLimitHeaders, trackUserRateLimiter } from '@/lib/rate-limit';
 import { trackUserProtection } from '@/services/security/track-user-protection';
+import { githubUsernameSchema } from '@/lib/validations';
+import { sanitizeMongoPayload } from '@/utils/sanitize';
 
 export async function POST(req: Request) {
   // Get IP for rate limiting securely
@@ -11,15 +13,13 @@ export async function POST(req: Request) {
 
   const rateLimitKey = ip === 'unknown' ? 'unknown-client' : ip;
 
-  if (ip !== '127.0.0.1') {
-    const rateLimitResult = await trackUserRateLimiter.checkWithResult(rateLimitKey);
+  const rateLimitResult = await trackUserRateLimiter.checkWithResult(rateLimitKey);
 
-    if (!rateLimitResult.success) {
-      return NextResponse.json(
-        { success: false, error: 'Too many requests, please try again later.' },
-        { status: 429, headers: getRateLimitHeaders(rateLimitResult) }
-      );
-    }
+  if (!rateLimitResult.success) {
+    return NextResponse.json(
+      { success: false, error: 'Too many requests, please try again later.' },
+      { status: 429, headers: getRateLimitHeaders(rateLimitResult) }
+    );
   }
 
   let body: unknown;
@@ -33,12 +33,23 @@ export async function POST(req: Request) {
     );
   }
 
+  // Sanitize MongoDB operators from body to prevent injection
+  sanitizeMongoPayload(body);
+
   try {
     const { username } = body as { username?: unknown };
 
     if (!username || typeof username !== 'string') {
       return NextResponse.json(
         { success: false, error: 'Invalid or missing username' },
+        { status: 400 }
+      );
+    }
+
+    const validationResult = githubUsernameSchema.safeParse(username);
+    if (!validationResult.success) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid GitHub username' },
         { status: 400 }
       );
     }
@@ -81,20 +92,37 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: true, bypassed: true });
     }
 
-    // Connect to database
-    await dbConnect();
-
+    // Connect to database and perform upsert with 1.5s timeout
     try {
-      // Upsert the user: create if doesn't exist, do nothing if exists
-      await User.updateOne(
-        { username: trimmedUsername },
-        {
-          $setOnInsert: { username: trimmedUsername },
-          $set: { lastSeen: new Date() },
-          $inc: { visitCount: 1 },
-        },
-        { upsert: true }
-      );
+      let timer: NodeJS.Timeout | undefined;
+      const timeoutPromise = new Promise<{ success: boolean; error?: unknown }>((_, reject) => {
+        timer = setTimeout(() => reject(new Error('Database operation timed out')), 1500);
+      });
+
+      const dbPromise = (async () => {
+        try {
+          await dbConnect();
+          await User.updateOne(
+            { username: trimmedUsername },
+            {
+              $setOnInsert: { username: trimmedUsername },
+              $set: { lastSeen: new Date() },
+              $inc: { visitCount: 1 },
+            },
+            { upsert: true }
+          );
+          return { success: true };
+        } catch (error) {
+          return { success: false, error };
+        } finally {
+          if (timer) clearTimeout(timer);
+        }
+      })();
+
+      const result = await Promise.race([dbPromise, timeoutPromise]);
+      if (!result.success) {
+        throw result.error;
+      }
 
       // Record successful database write
       trackUserProtection.recordWrite(trimmedUsername);
@@ -104,7 +132,7 @@ export async function POST(req: Request) {
         upsertError &&
         typeof upsertError === 'object' &&
         'code' in upsertError &&
-        upsertError.code === 11000
+        (upsertError as Record<string, unknown>).code === 11000
       ) {
         const err = upsertError as Record<string, unknown>;
         const isUsernameConflict =
@@ -117,7 +145,9 @@ export async function POST(req: Request) {
           return NextResponse.json({ success: true });
         }
       }
-      throw upsertError;
+
+      console.warn('Database operation failed or timed out. Bypassing user tracking:', upsertError);
+      return NextResponse.json({ success: true });
     }
 
     return NextResponse.json({ success: true });

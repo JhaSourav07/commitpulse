@@ -27,8 +27,8 @@ describe('ComparisonStatsCard — Massive Data Sets & Extreme High Bounds', () =
         icon="Flame"
       />
     );
-    expect(screen.getByText('999999999')).toBeInTheDocument();
-    expect(screen.getByText('888888888')).toBeInTheDocument();
+    expect(screen.getByText((999999999).toLocaleString())).toBeInTheDocument();
+    expect(screen.getByText((888888888).toLocaleString())).toBeInTheDocument();
   });
 
   it('correctly identifies winner with extreme values', () => {
@@ -61,7 +61,7 @@ describe('ComparisonStatsCard — Massive Data Sets & Extreme High Bounds', () =
     const grid = container.querySelector('.grid.grid-cols-2');
     expect(grid).toBeInTheDocument();
 
-    expect(screen.getByText('1000000')).toBeInTheDocument();
+    expect(screen.getByText((1000000).toLocaleString())).toBeInTheDocument();
     expect(screen.getByText('1')).toBeInTheDocument();
 
     const progressBar = container.querySelector('.w-full.h-2');
