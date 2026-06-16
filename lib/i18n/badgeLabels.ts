@@ -79,11 +79,29 @@ export const labels: Record<string, BadgeLabels> = {
   },
 };
 
-export const supportedLanguages = Object.keys(labels) as [
-  keyof typeof labels,
-  ...(keyof typeof labels)[],
-];
+export const supportedLanguages = [
+  'en',
+  'zh',
+  'es',
+  'hi',
+  'pt',
+  'ko',
+  'ja',
+  'fr',
+  'ta',
+  'de',
+] as const;
 
 export function getLabels(lang: string = 'en'): BadgeLabels {
-  return labels[lang.toLowerCase()] || labels['en'];
+  if (!lang || typeof lang !== 'string') {
+    return labels['en'];
+  }
+
+  const normalizedLang = lang.toLowerCase();
+
+  if (!(supportedLanguages as readonly string[]).includes(normalizedLang)) {
+    return labels['en'];
+  }
+
+  return labels[normalizedLang] || labels['en'];
 }
