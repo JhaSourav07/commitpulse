@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { BackgroundRefresh } from './background-refresh';
 import { getFullDashboardData } from '../../lib/github';
 
@@ -13,6 +13,10 @@ describe('BackgroundRefresh - Massive Data Sets and Extreme High Bounds Scaling 
     service = BackgroundRefresh.getInstance();
     service.reset();
     vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it('processes 100,000 isStale calls with diverse timestamps and measures sub-2000ms execution', () => {
@@ -35,6 +39,8 @@ describe('BackgroundRefresh - Massive Data Sets and Extreme High Bounds Scaling 
   });
 
   it('validates isStale boundary at exact 10-minute threshold crossing', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-01-01T00:00:00Z'));
     const boundaryExceeded = new Date(Date.now() - 600001).toISOString();
     expect(service.isStale(boundaryExceeded)).toBe(true);
 
