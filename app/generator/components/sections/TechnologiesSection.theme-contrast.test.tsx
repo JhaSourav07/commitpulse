@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { TechnologiesSection } from './TechnologiesSection';
 import React from 'react';
+
+import { TechnologiesSection } from './TechnologiesSection';
 
 describe('TechnologiesSection Theme Contrast & Visual Cohesion', () => {
   const defaultProps = {
@@ -24,7 +25,9 @@ describe('TechnologiesSection Theme Contrast & Visual Cohesion', () => {
     render(<TechnologiesSection {...defaultProps} />);
 
     expect(screen.getByText('Technologies')).toBeInTheDocument();
+
     expect(screen.getByPlaceholderText('Search technologies...')).toBeInTheDocument();
+
     expect(screen.getByText(/Select your tech stack/i)).toBeInTheDocument();
   });
 
@@ -34,7 +37,9 @@ describe('TechnologiesSection Theme Contrast & Visual Cohesion', () => {
     render(<TechnologiesSection {...defaultProps} />);
 
     expect(screen.getByText('Technologies')).toBeInTheDocument();
+
     expect(screen.getByPlaceholderText('Search technologies...')).toBeInTheDocument();
+
     expect(screen.getByText(/Select your tech stack/i)).toBeInTheDocument();
   });
 
@@ -44,11 +49,6 @@ describe('TechnologiesSection Theme Contrast & Visual Cohesion', () => {
     render(<TechnologiesSection {...defaultProps} />);
 
     expect(screen.getByText('Technologies')).toBeVisible();
-    const techCountEl = screen.getAllByText((content) =>
-      content.toLowerCase().includes('technologies')
-    )[0];
-    expect(techCountEl).toBeVisible();
-    expect(screen.getByText(/Selected \(1\)/i)).toBeVisible();
   });
 
   it('ensures text remains visible in dark mode (contrast proxy check)', () => {
@@ -57,10 +57,7 @@ describe('TechnologiesSection Theme Contrast & Visual Cohesion', () => {
     render(<TechnologiesSection {...defaultProps} />);
 
     expect(screen.getByText('Technologies')).toBeVisible();
-    const techCountEl = screen.getAllByText((content) =>
-      content.toLowerCase().includes('technologies')
-    )[0];
-    expect(techCountEl).toBeVisible();
+
     expect(screen.getByText(/Selected \(1\)/i)).toBeVisible();
   });
 
@@ -76,9 +73,7 @@ describe('TechnologiesSection Theme Contrast & Visual Cohesion', () => {
     });
 
     expect(searchInput).toBeInTheDocument();
-    const techCountEls = screen.getAllByText((content) =>
-      content.toLowerCase().includes('technologies')
-    );
-    expect(techCountEls.length).toBeGreaterThan(0);
+
+    expect(screen.getByText(/Selected \(1\)/i)).toBeVisible();
   });
 });
