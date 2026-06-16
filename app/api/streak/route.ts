@@ -2,12 +2,13 @@
 
 import crypto from 'crypto';
 import { NextResponse } from 'next/server';
-import { fetchGitHubContributions, getOrgDashboardData } from '@/lib/github';
+import { fetchGitHubContributions, getOrgDashboardData, getCircuitTelemetry } from '@/lib/github';
 import {
   calculateStreak,
   calculateMonthlyStats,
   aggregateCalendars,
   chunkDaysIntoWeeks,
+  normalizeCalendarToTimezone,
 } from '@/lib/calculate';
 import {
   generateNotFoundSVG,
@@ -21,17 +22,34 @@ import {
   generateLanguagesSVG,
 } from '@/lib/svg/generator';
 import { generateConstellationSVG } from '@/lib/svg/constellation';
+import { generateRadarSVG } from '@/lib/svg/radar';
 import { getSecondsUntilUTCMidnight, getSecondsUntilMidnightInTimezone } from '@/utils/time';
 import type { BadgeParams, RepoContribution, ExtendedContributionData } from '@/types';
 import { themes } from '@/lib/svg/themes';
 import { streakParamsSchema } from '@/lib/validations';
-import { sanitizeHexColor, sanitizeRadius } from '@/lib/svg/sanitizer';
+import { sanitizeHexColor, sanitizeRadius, escapeXML } from '@/lib/svg/sanitizer';
+import { getClientIp } from '@/utils/getClientIp';
+import { quotaMonitor } from '@/services/github/quota-monitor';
+import { refreshPolicy } from '@/services/github/refresh-policy';
+import { refreshRateLimiter } from '@/services/github/refresh-rate-limiter';
 
 const SVG_CSP_HEADER =
   "default-src 'none'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://fonts.gstatic.com;";
 
-function escapeSVGText(value: string): string {
-  return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+function buildInlineErrorSVG(text: string): string {
+  const MAX_LINE = 48;
+  const truncated = text.length > MAX_LINE * 2 ? text.slice(0, MAX_LINE * 2 - 1) + '…' : text;
+  const line1 = escapeXML(truncated.slice(0, MAX_LINE));
+  const line2 = truncated.length > MAX_LINE ? escapeXML(truncated.slice(MAX_LINE)) : null;
+  const textY = line2 ? '62' : '75';
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="150" viewBox="0 0 400 150">
+  <rect width="400" height="150" fill="#2d0000" rx="8"/>
+  <text x="200" y="${textY}" text-anchor="middle" dominant-baseline="central" fill="#ffcccc" font-family="sans-serif" font-size="13">${line1}</text>${
+    line2
+      ? `\n    <text x="200" y="91" text-anchor="middle" dominant-baseline="central" fill="#ffcccc" font-family="sans-serif" font-size="13">${line2}</text>`
+      : ''
+  }
+  </svg>`;
 }
 
 function getMonthlyReferenceDate(year: string | undefined, timezone: string): Date | undefined {
@@ -53,19 +71,19 @@ export async function GET(request: Request) {
     if (!parseResult.success) {
       const fieldErrors = parseResult.error.flatten();
 
-      return NextResponse.json(
-        {
-          error: 'Invalid parameters',
-          details: fieldErrors,
+      const firstError =
+        Object.values(fieldErrors.fieldErrors).flat()[0] ??
+        fieldErrors.formErrors[0] ??
+        'Invalid parameters';
+      const errorSvg = buildInlineErrorSVG(firstError);
+      return new NextResponse(errorSvg, {
+        status: 400,
+        headers: {
+          'Content-Type': 'image/svg+xml',
+          'Cache-Control': 'no-store',
+          'Content-Security-Policy': SVG_CSP_HEADER,
         },
-        {
-          status: 400,
-          headers: {
-            'Content-Type': 'application/json',
-            'Cache-Control': 'no-store',
-          },
-        }
-      );
+      });
     }
 
     const {
@@ -116,6 +134,8 @@ export async function GET(request: Request) {
       label,
       badges,
       entrance,
+      theta,
+      phi,
     } = parseResult.data;
     const normalizedView = view as
       | 'default'
@@ -124,12 +144,54 @@ export async function GET(request: Request) {
       | 'pulse'
       | 'skyline'
       | 'languages'
-      | 'constellation';
+      | 'constellation'
+      | 'radar';
     const themeName = theme || 'dark';
+
+    const ip = getClientIp(request);
 
     // Treat either ?refresh=true or ?bypassCache=true as a cache-bypass request
     const isRefreshRequested = refresh || bypassCacheParam;
-    const shouldBypassCache = isRefreshRequested;
+
+    if (isRefreshRequested && quotaMonitor.isQuotaLow()) {
+      throw new Error('Rate Limit: GitHub API quota is low. Cache refresh temporarily disabled.');
+    }
+
+    if (isRefreshRequested) {
+      const rateLimitCheck = refreshRateLimiter.checkLimit(ip);
+      if (!rateLimitCheck.success) {
+        throw new Error('Rate Limit: Refresh rate limit exceeded. Please try again later.');
+      }
+    }
+
+    let shouldBypassCache = isRefreshRequested;
+    if (isRefreshRequested) {
+      let cooldownViolated = false;
+      const usernamesToCheck = org
+        ? [org]
+        : user
+            .split(',')
+            .map((u) => u.trim())
+            .filter(Boolean);
+      if (versus) {
+        usernamesToCheck.push(versus);
+      }
+
+      for (const u of usernamesToCheck) {
+        if (!refreshPolicy.isRefreshAllowed(u)) {
+          cooldownViolated = true;
+          break;
+        }
+      }
+
+      if (cooldownViolated) {
+        shouldBypassCache = false;
+      } else {
+        for (const u of usernamesToCheck) {
+          refreshPolicy.recordRefresh(u);
+        }
+      }
+    }
 
     let timezone = 'UTC';
     if (tzParam) {
@@ -281,6 +343,8 @@ export async function GET(request: Request) {
       label,
       badges,
       entrance,
+      theta,
+      phi,
     };
 
     let calendar;
@@ -460,10 +524,17 @@ export async function GET(request: Request) {
     } else if (normalizedView === 'constellation') {
       const stats = calculateStreak(calendar, timezone, undefined, grace);
       svg = generateConstellationSVG(stats, params, calendar);
+    } else if (normalizedView === 'radar') {
+      const stats = calculateStreak(calendar, timezone, undefined, grace);
+      svg = generateRadarSVG(stats, params, calendar);
     } else if (versus && versusCalendar) {
-      const stats1 = calculateStreak(calendar, timezone, undefined, grace);
-      const stats2 = calculateStreak(versusCalendar, timezone, undefined, grace);
-      svg = generateVersusSVG(stats1, stats2, params, calendar, versusCalendar);
+      // Normalize both calendars to the target timezone for accurate comparison
+      const normalizedCalendar = normalizeCalendarToTimezone(calendar, timezone);
+      const normalizedVersusCalendar = normalizeCalendarToTimezone(versusCalendar, timezone);
+
+      const stats1 = calculateStreak(normalizedCalendar, timezone, undefined, grace);
+      const stats2 = calculateStreak(normalizedVersusCalendar, timezone, undefined, grace);
+      svg = generateVersusSVG(stats1, stats2, params, normalizedCalendar, normalizedVersusCalendar);
     } else {
       const stats = calculateStreak(calendar, timezone, undefined, grace);
       svg = generateSVG(stats, params, calendar);
@@ -478,7 +549,7 @@ export async function GET(request: Request) {
         ? 'public, s-maxage=31536000, immutable'
         : `public, s-maxage=${secondsToMidnight}, stale-while-revalidate=86400`;
 
-    const etag = crypto.createHash('sha1').update(svg).digest('hex');
+    const etag = crypto.createHash('sha256').update(svg).digest('hex');
     const weakEtag = `W/"${etag}"`;
     const ifNoneMatch = request.headers.get('if-none-match');
 
@@ -514,12 +585,36 @@ type ParseResult = ReturnType<typeof streakParamsSchema.safeParse>;
 
 function buildErrorResponse(error: unknown, parseResult: ParseResult): NextResponse {
   const message = error instanceof Error ? error.message : String(error);
+
+  if (parseResult.success && parseResult.data.format === 'json') {
+    const isNotFound =
+      message.toLowerCase().includes('not found') ||
+      message.toLowerCase().includes('could not resolve');
+    const isRateLimit = message.toLowerCase().includes('rate limit');
+    const isValidationError =
+      (error instanceof Error && error.name === 'ValidationError') ||
+      message.toLowerCase().includes('invalid') ||
+      message.toLowerCase().includes('validation') ||
+      message.toLowerCase().includes('strictly for organizations');
+
+    const status = isRateLimit ? 429 : isNotFound ? 404 : isValidationError ? 400 : 500;
+    return NextResponse.json(
+      { error: message },
+      {
+        status,
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-store',
+        },
+      }
+    );
+  }
   function buildInlineErrorSVG(text: string): string {
     const MAX_LINE = 48;
     const truncated = text.length > MAX_LINE * 2 ? text.slice(0, MAX_LINE * 2 - 1) + '…' : text;
 
-    const line1 = escapeSVGText(truncated.slice(0, MAX_LINE));
-    const line2 = truncated.length > MAX_LINE ? escapeSVGText(truncated.slice(MAX_LINE)) : null;
+    const line1 = escapeXML(truncated.slice(0, MAX_LINE));
+    const line2 = truncated.length > MAX_LINE ? escapeXML(truncated.slice(MAX_LINE)) : null;
 
     const textY = line2 ? '62' : '75';
 
@@ -559,14 +654,24 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
   const errSpeed = (parseResult.success && parseResult.data.speed) || '8s';
 
   if (isRateLimit) {
-    const svg = generateRateLimitSVG(errBg, errAccent, errText, errRadius, errSpeed);
+    const telemetry = getCircuitTelemetry();
+    const isCircuitOpen = telemetry.isOpen;
+    const svg = generateRateLimitSVG(errBg, errAccent, errText, errRadius, errSpeed, isCircuitOpen);
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'image/svg+xml',
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Content-Security-Policy': SVG_CSP_HEADER,
+    };
+
+    if (isCircuitOpen) {
+      headers['X-CommitPulse-Circuit-Status'] = 'Open';
+      headers['X-CommitPulse-Circuit-Reset-In'] = String(telemetry.resetInMs);
+    }
+
     return new NextResponse(svg, {
       status: 429,
-      headers: {
-        'Content-Type': 'image/svg+xml',
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Content-Security-Policy': SVG_CSP_HEADER,
-      },
+      headers,
     });
   }
 

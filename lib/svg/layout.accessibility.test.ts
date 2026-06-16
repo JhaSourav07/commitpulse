@@ -97,7 +97,7 @@ describe('Layout Accessibility Standards & Screen Reader Aria Compliance', () =>
   });
 
   // 4. Keyboard Control Path & Ordering
-  it('tests keyboard control path selectors to ensure normal chronological tab ordering', () => {
+  it('tests keyboard control path selectors to ensure depth-correct tab ordering', () => {
     const calendar = {
       weeks: [
         {
@@ -111,12 +111,14 @@ describe('Layout Accessibility Standards & Screen Reader Aria Compliance', () =>
 
     const svg = generateSVG(makeStats(), makeParams(), calendar);
 
-    // Extract dates in DOM order
+    // Extract dates in DOM order — Painter's Algorithm sorts by (row+col) ascending,
+    // so depth-first (further from viewer) towers render before closer ones.
+    // 2024-06-02 (Sunday, row=0+col=0=0) renders before 2024-06-01 (Saturday, row=0+col=6=6).
     const datesInDomOrder = [...svg.matchAll(/data-date="(\d{4}-\d{2}-\d{2})"/g)].map((m) => m[1]);
 
     expect(datesInDomOrder.length).toBe(2);
-    expect(datesInDomOrder[0]).toBe('2024-06-01');
-    expect(datesInDomOrder[1]).toBe('2024-06-02');
+    expect(datesInDomOrder[0]).toBe('2024-06-02');
+    expect(datesInDomOrder[1]).toBe('2024-06-01');
 
     // Verify accessibility metadata used for navigation
     expect(svg).toContain('data-metric="Active day"');

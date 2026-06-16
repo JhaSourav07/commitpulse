@@ -85,7 +85,7 @@ describe('GET /api/pr-insights', () => {
     const response = await GET(makeRequest({ username: '  octocat  ' }));
 
     expect(response.status).toBe(200);
-    expect(fetchPRInsights).toHaveBeenCalledWith('octocat');
+    expect(fetchPRInsights).toHaveBeenCalledWith('octocat', undefined);
   });
 
   it('returns the full PR insights payload on a successful fetch', async () => {
@@ -94,7 +94,7 @@ describe('GET /api/pr-insights', () => {
     expect(response.status).toBe(200);
     const body = await response.json();
     expect(body).toEqual(mockInsights);
-    expect(fetchPRInsights).toHaveBeenCalledWith('octocat');
+    expect(fetchPRInsights).toHaveBeenCalledWith('octocat', undefined);
   });
 
   it('returns 500 with the error message when fetchPRInsights throws an Error', async () => {

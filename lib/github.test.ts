@@ -1610,6 +1610,7 @@ describe('GitHub API cache behavior', () => {
             contributionsCollection: {
               totalPullRequestContributions: prs,
               totalIssueContributions: issues,
+              totalPullRequestReviewContributions: 0,
               contributionCalendar: {
                 totalContributions: total,
                 weeks: [
@@ -1675,6 +1676,7 @@ describe('GitHub API cache behavior', () => {
             contributionsCollection: {
               totalPullRequestContributions: 0,
               totalIssueContributions: 0,
+              totalPullRequestReviewContributions: 0,
               contributionCalendar: mockCalendar,
               commitContributionsByRepository: [],
             },

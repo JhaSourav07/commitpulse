@@ -38,6 +38,7 @@ https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&theme=<slug>
 | glacier          | `#e0f2fe`  | `#0369a1` | `#06b6d4` |
 | lumos            | `#0a0a0a`  | `#a7f3d0` | `#fbbf24` |
 | monokai          | `#272822`  | `#f8f8f2` | `#a6e22e` |
+| retro-terminal   | `#000000`  | `#00ff41` | `#00ff41` |
 
 ---
 

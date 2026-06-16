@@ -3,7 +3,6 @@ import { fetchBurnoutAnalysis } from './burnout-analyzer';
 
 // Mock global fetch
 const fetchMock = vi.fn();
-global.fetch = fetchMock;
 
 vi.mock('@/lib/github', async () => {
   const actual = await vi.importActual<typeof import('@/lib/github')>('@/lib/github');
@@ -16,6 +15,9 @@ vi.mock('@/lib/github', async () => {
 describe('BurnoutAnalyzer Service', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    // Re-assign fetch mock before each test to prevent the vitest.setup.ts
+    // afterEach guard from leaking guardedFetch into subsequent tests.
+    global.fetch = fetchMock;
   });
 
   it('correctly calculates repository metrics, burnout risk levels, and inactivity alerts', async () => {
@@ -80,5 +82,43 @@ describe('BurnoutAnalyzer Service', () => {
     expect(churnAlert).toBeDefined();
     expect(churnAlert?.weeksSilent).toBe(3);
     expect(churnAlert?.severity).toBe('Medium');
+  });
+
+  it('falls back to rules-based recommendations when Gemini returns malformed JSON', async () => {
+    const mockStats = [
+      {
+        author: { login: 'dev', avatar_url: 'https://avatar/dev' },
+        total: 10,
+        weeks: Array.from({ length: 52 }, (_, i) => ({
+          w: 1600000000 + i * 7 * 24 * 3600,
+          a: 100,
+          d: 10,
+          c: 2,
+        })),
+      },
+    ];
+
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => mockStats,
+      headers: new Headers(),
+    } as Response);
+
+    process.env.GEMINI_API_KEY = 'mock-gemini-key';
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        candidates: [{ content: { parts: [{ text: 'this is not valid json {{' }] } }],
+      }),
+      headers: new Headers(),
+    } as Response);
+
+    const report = await fetchBurnoutAnalysis('owner', 'repo', { bypassCache: true });
+    expect(report).toBeDefined();
+    expect(report.recommendations.length).toBeGreaterThan(0);
+
+    delete process.env.GEMINI_API_KEY;
   });
 });

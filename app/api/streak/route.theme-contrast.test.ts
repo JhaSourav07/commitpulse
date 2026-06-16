@@ -1,52 +1,136 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { GET } from './route';
 
-describe('ApiStreakRoute Theme Contrast and Visual Cohesion', () => {
-  it('emulates dual theme configuration presets correctly for streak route views', () => {
-    const themes = {
-      dark: { bg: '#0f172a', text: '#f8fafc' },
-      light: { bg: '#ffffff', text: '#0f172a' },
-    };
+vi.mock('../../../lib/github', () => ({
+  fetchGitHubContributions: vi.fn(),
+  getOrgDashboardData: vi.fn(),
+}));
 
-    expect(themes.dark.bg).toBe('#0f172a');
-    expect(themes.light.bg).toBe('#ffffff');
+vi.mock('../../../utils/time', () => ({
+  getSecondsUntilUTCMidnight: vi.fn(),
+  getSecondsUntilMidnightInTimezone: vi.fn(),
+}));
+
+import { fetchGitHubContributions, getOrgDashboardData } from '../../../lib/github';
+import { getSecondsUntilUTCMidnight, getSecondsUntilMidnightInTimezone } from '../../../utils/time';
+
+const mockCalendar = {
+  totalContributions: 10,
+  weeks: [
+    {
+      contributionDays: [
+        { contributionCount: 1, date: '2024-06-10' },
+        { contributionCount: 2, date: '2024-06-11' },
+        { contributionCount: 3, date: '2024-06-12' },
+      ],
+    },
+  ],
+};
+
+function makeRequest(params: Record<string, string> = {}): Request {
+  const url = new URL('http://localhost/api/streak');
+
+  for (const [key, value] of Object.entries(params)) {
+    url.searchParams.set(key, value);
+  }
+
+  return new Request(url.toString());
+}
+
+describe('GET /api/streak theme contrast', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+
+    vi.mocked(fetchGitHubContributions).mockResolvedValue({
+      calendar: mockCalendar,
+      repoContributions: [],
+    } as never);
+
+    vi.mocked(getOrgDashboardData).mockResolvedValue({
+      calendar: mockCalendar,
+    } as never);
+
+    vi.mocked(getSecondsUntilUTCMidnight).mockReturnValue(3600);
+    vi.mocked(getSecondsUntilMidnightInTimezone).mockReturnValue(7200);
   });
 
-  it('asserts styling adapts properly according to current theme preset', () => {
-    const getThemeStyles = (theme: 'dark' | 'light') => ({
-      bg: theme === 'dark' ? 'bg-slate-900' : 'bg-white',
-      text: theme === 'dark' ? 'text-slate-100' : 'text-slate-900',
-    });
+  it('renders successfully with dark theme', async () => {
+    const response = await GET(
+      makeRequest({
+        user: 'octocat',
+        theme: 'dark',
+      })
+    );
 
-    expect(getThemeStyles('dark').bg).toBe('bg-slate-900');
-    expect(getThemeStyles('light').bg).toBe('bg-white');
+    expect(response.status).toBe(200);
+
+    const body = await response.text();
+
+    expect(body).toContain('<svg');
+    expect(body).toContain('</svg>');
   });
 
-  it('verifies contrast ratio compliance thresholds are met for all textual elements', () => {
-    const contrastRatio = 7.1;
+  it('renders successfully with light theme', async () => {
+    const response = await GET(
+      makeRequest({
+        user: 'octocat',
+        theme: 'light',
+      })
+    );
 
-    expect(contrastRatio).toBeGreaterThanOrEqual(4.5);
+    expect(response.status).toBe(200);
+
+    const body = await response.text();
+
+    expect(body).toContain('<svg');
+    expect(body).toContain('</svg>');
   });
 
-  it('checks presence of active tailwind or custom class properties for streak route container', () => {
-    const streakRouteClasses = [
-      'dark:bg-slate-900',
-      'bg-white',
-      'text-slate-100',
-      'border-slate-200',
-      'dark:border-slate-800',
-    ];
+  it('produces different SVG output for dark and light themes', async () => {
+    const darkResponse = await GET(
+      makeRequest({
+        user: 'octocat',
+        theme: 'dark',
+      })
+    );
 
-    expect(streakRouteClasses).toContain('dark:bg-slate-900');
-    expect(streakRouteClasses).toContain('dark:border-slate-800');
+    const lightResponse = await GET(
+      makeRequest({
+        user: 'octocat',
+        theme: 'light',
+      })
+    );
+
+    const darkSvg = await darkResponse.text();
+    const lightSvg = await lightResponse.text();
+
+    expect(darkSvg).not.toEqual(lightSvg);
   });
 
-  it('ensures background overlays do not obstruct or clip foreground content colors', () => {
-    const overlay = {
-      opacity: 0.9,
-      isTextVisible: true,
-    };
+  it('uses prefers-color-scheme CSS when theme=auto', async () => {
+    const response = await GET(
+      makeRequest({
+        user: 'octocat',
+        theme: 'auto',
+      })
+    );
 
-    expect(overlay.opacity).toBeLessThan(1.0);
-    expect(overlay.isTextVisible).toBe(true);
+    const body = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(body).toContain('prefers-color-scheme: dark');
+  });
+
+  it('includes CSS variables for automatic theme switching', async () => {
+    const response = await GET(
+      makeRequest({
+        user: 'octocat',
+        theme: 'auto',
+      })
+    );
+
+    const body = await response.text();
+
+    expect(body).toContain('--cp-bg');
   });
 });
