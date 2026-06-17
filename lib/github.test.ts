@@ -409,27 +409,32 @@ describe('fetchGitHubContributions', () => {
 
     it('returns cacheStatus STALE when fetch fails and stale cache exists', async () => {
       vi.useFakeTimers();
-      vi.mocked(fetch).mockResolvedValueOnce(
-        mockResponse({
-          data: {
-            user: {
-              contributionsCollection: { contributionCalendar: mockCalendar },
+      try {
+        vi.mocked(fetch).mockResolvedValueOnce(
+          mockResponse({
+            data: {
+              user: {
+                contributionsCollection: { contributionCalendar: mockCalendar },
+              },
             },
-          },
-        })
-      );
+          })
+        );
 
-      await fetchGitHubContributions('octocat');
+        await fetchGitHubContributions('octocat');
 
-      vi.mocked(fetch).mockRejectedValueOnce(new Error('Network failure'));
+        vi.mocked(fetch).mockRejectedValue(new Error('Network failure'));
 
-      await vi.advanceTimersByTimeAsync(GITHUB_CACHE_TTL_MS + 1000);
+        await vi.advanceTimersByTimeAsync(GITHUB_CACHE_TTL_MS + 1000);
 
-      const result = await fetchGitHubContributions('octocat');
+        const staleResult = fetchGitHubContributions('octocat');
+        await vi.advanceTimersByTimeAsync(500 + 1000 + 2000);
+        const result = await staleResult;
 
-      expect(result.cacheStatus).toBe('STALE');
-      expect(result.isOfflineFallback).toBe(true);
-      vi.useRealTimers();
+        expect(result.cacheStatus).toBe('STALE');
+        expect(result.isOfflineFallback).toBe(true);
+      } finally {
+        vi.useRealTimers();
+      }
     });
   });
 
@@ -1624,7 +1629,9 @@ describe('GitHub API cache behavior', () => {
       fetchGitHubContributions('octocat'),
     ];
 
-    await Promise.resolve();
+    for (let i = 0; i < 5; i++) {
+      await Promise.resolve();
+    }
 
     expect(fetch).toHaveBeenCalledTimes(1);
     expect(resolveFetchSpy).not.toHaveBeenCalled();
