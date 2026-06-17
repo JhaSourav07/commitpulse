@@ -297,7 +297,8 @@ describe('[Issue] generateVersusSVG — zero existing test coverage', () => {
   it('total width viewBox is double the single card width for medium size', () => {
     const svg = generateVersusSVG(stats1, stats2, versusParams, calendar1, calendar2);
     expect(svg).toContain('viewBox="0 0 1200 420"');
-    expect(svg).toContain('width="100%"');
+    expect(svg).toContain('width="1200"');
+    expect(svg).toContain('height="420"');
   });
 
   it('renders correct viewBox for small size in versus SVG', () => {

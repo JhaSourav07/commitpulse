@@ -223,7 +223,7 @@
       "svg_downloaded": "SVG téléchargé !",
       "json_downloaded": "JSON téléchargé !",
       "failed": "Échec — réessayez",
-      "download_stl": "Télécharger le monolithe STL 3D imprimable (bientôt disponible)"
+      "download_stl": "Télécharger le monolithe STL 3D imprimable"
     }
   }
 }

@@ -84,8 +84,7 @@
     "copied_snippet_label": "Your copied snippet",
     "color_tip": "Tip: Add ?accent=808080 to the URL to change your monolith's colour palette.",
     "watch_dashboard_btn": "Watch Your Dashboard",
-    "customize_more_btn": "Want to customize more?",
-    "dismiss_aria": "Dismiss guide"
+    "customize_more_btn": "Want to customize more?"
   },
   "customize_cta": {
     "studio_badge": "Customization Studio",
@@ -135,7 +134,7 @@
       "copied": "Copied!",
       "copy_aria_disabled": "Add a GitHub username to enable copying the {{format}} export snippet",
       "copy_aria_enabled": "Copy {{format}} export snippet to clipboard",
-      "footer_tip": "Paste this into your GitHub profile's README.md. The badge renders server-side, no script required.",
+      "footer_tip": "The badge renders server-side, no script required.",
       "tsx": "React TSX",
       "download_svg": "Download SVG",
       "download_png": "Download PNG"
@@ -249,7 +248,7 @@
       "export_options": "Export Options",
       "github_wrapped": "GitHub Wrapped",
       "download_webp": "Download Optimized WebP",
-      "download_stl": "Download Printable 3D STL (Coming Soon)"
+      "download_stl": "Download Printable 3D STL"
     }
   }
 }

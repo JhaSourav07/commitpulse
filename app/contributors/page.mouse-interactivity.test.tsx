@@ -1,5 +1,3 @@
-// app/contributors/page.mouse-interactivity.test.tsx
-
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';

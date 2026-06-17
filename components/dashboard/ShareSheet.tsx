@@ -31,7 +31,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
       <span className="text-[10px] font-mono font-bold uppercase tracking-[0.15em] text-zinc-400 dark:text-zinc-500">
         {children}
       </span>
-      <div className="flex-1 h-px bg-gradient-to-r from-zinc-200 to-transparent dark:from-zinc-800" />
+      <div className="flex-1 h-px bg-linear-to-r from-zinc-200 to-transparent dark:from-zinc-800" />
     </div>
   );
 }
@@ -129,7 +129,7 @@ function GitHubAvatar({ username }: { username: string }) {
   }
 
   return (
-    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-zinc-300 to-zinc-400 dark:from-zinc-600 dark:to-zinc-700 ring-2 ring-zinc-200 dark:ring-zinc-700 flex items-center justify-center shrink-0">
+    <div className="w-9 h-9 rounded-full bg-linear-to-br from-zinc-300 to-zinc-400 dark:from-zinc-600 dark:to-zinc-700 ring-2 ring-zinc-200 dark:ring-zinc-700 flex items-center justify-center shrink-0">
       <span className="text-[13px] font-bold text-white uppercase leading-none">
         {username.charAt(0)}
       </span>
@@ -160,6 +160,7 @@ export default function ShareSheet({ username, isOpen, onClose, exportData }: Sh
     handleDownloadSVG,
     handleCopyMarkdown,
     handleDownloadJSON,
+    handleDownloadSTL,
     handleNativeShare,
   } = useShareActions(username, exportData, onClose);
 
@@ -379,6 +380,7 @@ export default function ShareSheet({ username, isOpen, onClose, exportData }: Sh
                 </div>
               </div>
               <button
+                type="button"
                 onClick={onClose}
                 aria-label={t('dashboard.share.close_aria')}
                 className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 dark:hover:text-zinc-200 transition-colors"
@@ -404,12 +406,14 @@ export default function ShareSheet({ username, isOpen, onClose, exportData }: Sh
                   />
                   <div className="absolute inset-0 bg-zinc-950/80 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col items-center justify-center gap-1.5 p-2">
                     <button
+                      type="button"
                       onClick={handleCopyQRAsImage}
                       className="w-28 py-1 rounded bg-purple-600 text-white font-mono text-[9px] font-bold"
                     >
                       {qrCopied ? 'Copied!' : 'Copy Image'}
                     </button>
                     <button
+                      type="button"
                       onClick={handleDownloadQR}
                       className="w-28 py-1 rounded bg-zinc-800 text-zinc-200 font-mono text-[9px] font-bold"
                     >
@@ -424,21 +428,25 @@ export default function ShareSheet({ username, isOpen, onClose, exportData }: Sh
                       <input
                         ref={inputRef}
                         readOnly
+                        aria-label="Your CommitPulse profile URL"
                         value={profileUrl}
                         className="w-full bg-transparent text-xs font-mono text-zinc-500 dark:text-zinc-300 outline-none select-all"
                       />
                     </div>
                     <button
+                      type="button"
                       onClick={handleLocalCopyLink}
                       className="p-2 bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 rounded-lg shadow-sm"
                     >
                       {linkCopied ? <Check size={14} /> : <Copy size={14} />}
                     </button>
                     <button
+                      type="button"
+                      aria-label="Open profile in new tab"
                       onClick={() => window.open(profileUrl, '_blank')}
                       className="p-2 bg-white border border-zinc-200 text-zinc-600 rounded-lg dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-400"
                     >
-                      <ExternalLink size={14} />
+                      <ExternalLink size={14} aria-hidden="true" />
                     </button>
                   </div>
                 </div>
@@ -449,24 +457,28 @@ export default function ShareSheet({ username, isOpen, onClose, exportData }: Sh
                 <SectionLabel>{t('dashboard.share.social_channels')}</SectionLabel>
                 <div className="grid grid-cols-2 gap-2">
                   <button
+                    type="button"
                     onClick={handleTwitter}
                     className="p-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-xl text-left font-medium text-xs flex items-center gap-2 hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors"
                   >
                     <XIcon size={15} /> {t('dashboard.share.share_x')}
                   </button>
                   <button
+                    type="button"
                     onClick={handleLinkedIn}
                     className="p-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-xl text-left font-medium text-xs flex items-center gap-2 hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors"
                   >
                     <LinkedInIcon size={15} /> {t('dashboard.share.share_linkedin')}
                   </button>
                   <button
+                    type="button"
                     onClick={handleReddit}
                     className="p-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-xl text-left font-medium text-xs flex items-center gap-2 hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors"
                   >
                     <RedditIcon size={15} /> {t('dashboard.share.share_reddit')}
                   </button>
                   <button
+                    type="button"
                     onClick={handleNativeShare}
                     className="p-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-xl text-left font-medium text-xs flex items-center gap-2 hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors"
                   >
@@ -480,6 +492,7 @@ export default function ShareSheet({ username, isOpen, onClose, exportData }: Sh
                 <SectionLabel>{t('dashboard.share.export_options')}</SectionLabel>
                 <div className="space-y-1.5">
                   <button
+                    type="button"
                     onClick={() => {
                       window.open(`/dashboard/${username}/wrapped`, '_blank');
                       onClose();
@@ -495,6 +508,7 @@ export default function ShareSheet({ username, isOpen, onClose, exportData }: Sh
                   </button>
 
                   <button
+                    type="button"
                     onClick={handleLocalCopyMarkdown}
                     className="w-full p-2 bg-zinc-50 dark:bg-zinc-900 rounded-xl text-left flex items-center gap-3 border border-transparent hover:border-zinc-200"
                   >
@@ -530,8 +544,7 @@ export default function ShareSheet({ username, isOpen, onClose, exportData }: Sh
                     {
                       key: 'stl',
                       label: t('dashboard.share.download_stl'),
-                      action: () => {},
-                      disabled: true,
+                      action: handleDownloadSTL,
                     },
                   ].map((row) => {
                     const rowState = combinedStates[row.key] ?? 'idle';
@@ -539,6 +552,7 @@ export default function ShareSheet({ username, isOpen, onClose, exportData }: Sh
                       'disabled' in row && row.disabled ? true : rowState === 'loading';
                     return (
                       <button
+                        type="button"
                         key={row.key}
                         onClick={row.action}
                         disabled={isDisabled}
