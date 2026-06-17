@@ -771,15 +771,14 @@ export async function fetchGitHubContributions(
     }
   }
 
-  let isFreshFetch = false;
-  const trackingLoad = async (cached: ExtendedContributionData | null) => {
-    isFreshFetch = true;
-    return await coalescedLoad();
-  };
   try {
+    const cached = await contributionsCache.get(key, LONG_CACHE_TTL);
+    if (cached !== null && !shouldFetch(cached)) {
+      return { ...cached, cacheStatus: 'HIT' };
+    }
     return {
-      ...(await contributionsCache.getOrSet(key, trackingLoad, LONG_CACHE_TTL, shouldFetch)),
-      cacheStatus: isFreshFetch ? 'MISS' : 'HIT',
+      ...(await contributionsCache.getOrSet(key, coalescedLoad, LONG_CACHE_TTL, shouldFetch)),
+      cacheStatus: 'MISS',
     };
   } catch (err: unknown) {
     const staleData = await contributionsCache.get(key);
