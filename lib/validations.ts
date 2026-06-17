@@ -454,9 +454,9 @@ const baseStreakParamsSchema = z.object({
   entrance: z.enum(['rise', 'fade', 'slide', 'none']).catch('rise').default('rise'),
   badges: z.string().optional().transform(toBooleanFlag).default(false),
 
-  // Output format: 'svg' (default) or 'json' for programmatic access.
+  // Output format: 'svg' (default), 'json', or 'png' for image export.
   // Invalid values silently fall back to 'svg'.
-  format: z.enum(['svg', 'json']).catch('svg').default('svg'),
+  format: z.enum(['svg', 'json', 'png']).catch('svg').default('svg'),
 
   theta: z
     .string()

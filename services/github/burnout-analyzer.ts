@@ -1,6 +1,26 @@
 import { getGitHubTokens } from '@/lib/github';
 import { DistributedCache } from '@/lib/cache';
 
+interface ContributorWeekData {
+  w: number; // week timestamp (Unix)
+  a: number; // additions
+  d: number; // deletions
+  c: number; // commits
+}
+
+interface ContributorStats {
+  author: { login: string; avatar_url: string };
+  weeks: ContributorWeekData[];
+  total: number;
+}
+
+interface InactivityAlert {
+  username: string;
+  avatarUrl: string;
+  previousAvgWeeklyCommits: number;
+  weeksSilent: number;
+}
+
 const GITHUB_REST_URL = 'https://api.github.com';
 
 export interface ContributorMetric {
@@ -130,8 +150,7 @@ async function analyzeRepositoryUncached(
     throw new Error(`Failed to fetch contributor stats: ${res.statusText}`);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const rawData: any[] = await res.json();
+  const rawData: ContributorStats[] = await res.json();
   if (!Array.isArray(rawData) || rawData.length === 0) {
     throw new Error('No contribution data found for this repository.');
   }
@@ -395,10 +414,10 @@ async function generateRecommendationsWithGemini(
   busFactor: number,
   dependencyRisk: string,
   sustainabilityScore: number,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  topContributors: any[],
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  inactivityAlerts: any[]
+
+  topContributors: ContributorMetric[],
+
+  inactivityAlerts: InactivityAlert[]
 ): Promise<string[]> {
   const prompt = `
   You are an expert AI repository consultant. Analyze these contributor metrics for GitHub repository ${owner}/${repo}:

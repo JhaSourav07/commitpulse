@@ -101,7 +101,7 @@ describe('GET /api/streak - refresh parameter group', () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get('Cache-Control')).toBe(
-      'public, s-maxage=3600, stale-while-revalidate=86400'
+      'public, max-age=14400, s-maxage=3600, stale-while-revalidate=7200'
     );
     expect(response.headers.get('X-Cache-Status')).toBe('HIT');
   });

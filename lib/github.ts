@@ -287,6 +287,21 @@ function assertValidGraphQLBody(options: RequestInit): void {
   if (open === 0 || open !== close) {
     throw new Error('GraphQL query has unbalanced braces');
   }
+
+  const MAX_QUERY_DEPTH = 10;
+  let depth = 0;
+  let maxDepth = 0;
+  for (const ch of query) {
+    if (ch === '{') {
+      depth++;
+      if (depth > maxDepth) maxDepth = depth;
+    } else if (ch === '}') {
+      depth--;
+    }
+    if (maxDepth > MAX_QUERY_DEPTH) {
+      throw new Error(`GraphQL query exceeds maximum depth of ${MAX_QUERY_DEPTH}`);
+    }
+  }
 }
 
 // Wraps fetchWithRetry to also retry on GraphQL-level RATE_LIMITED errors
@@ -924,8 +939,8 @@ async function fetchContributionsUncached(
         }
         return {
           ...rawDay,
-          locAdditions: Math.max(1, Math.floor(Math.random() * (count * 10))),
-          locDeletions: Math.floor(Math.random() * (count * 5)),
+          locAdditions: undefined,
+          locDeletions: undefined,
         };
       }),
     };

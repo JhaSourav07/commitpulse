@@ -2750,4 +2750,64 @@ describe('normalizeCalendarToTimezone', () => {
     );
     expect(totalContributions).toBe(20);
   });
+
+  it('does not shift dates for users in UTC-5 (regression: timezone date shift bug)', () => {
+    const calendar: ContributionCalendar = {
+      totalContributions: 10,
+      weeks: [
+        {
+          contributionDays: [
+            { contributionCount: 4, date: '2024-01-01' },
+            { contributionCount: 6, date: '2024-01-02' },
+          ],
+        },
+      ],
+    };
+
+    const normalized = normalizeCalendarToTimezone(calendar, 'America/New_York');
+    const allDays = normalized.weeks.flatMap((w) => w.contributionDays);
+    const dates = allDays.map((d) => d.date);
+
+    expect(dates).toContain('2024-01-01');
+    expect(dates).toContain('2024-01-02');
+    expect(dates).not.toContain('2023-12-31'); // ghost date from the old bug
+  });
+
+  it('does not shift dates for users in UTC+9 (Tokyo)', () => {
+    const calendar: ContributionCalendar = {
+      totalContributions: 5,
+      weeks: [
+        {
+          contributionDays: [{ contributionCount: 5, date: '2024-03-15' }],
+        },
+      ],
+    };
+
+    const normalized = normalizeCalendarToTimezone(calendar, 'Asia/Tokyo');
+    const allDays = normalized.weeks.flatMap((w) => w.contributionDays);
+
+    expect(allDays[0].date).toBe('2024-03-15');
+    expect(allDays[0].contributionCount).toBe(5);
+  });
+
+  it('accumulates duplicate dates from multi-user data without shifting', () => {
+    const calendar: ContributionCalendar = {
+      totalContributions: 12,
+      weeks: [
+        {
+          contributionDays: [
+            { contributionCount: 7, date: '2024-06-10' },
+            { contributionCount: 5, date: '2024-06-10' },
+          ],
+        },
+      ],
+    };
+
+    const normalized = normalizeCalendarToTimezone(calendar, 'America/Los_Angeles');
+    const allDays = normalized.weeks.flatMap((w) => w.contributionDays);
+
+    expect(allDays).toHaveLength(1);
+    expect(allDays[0].date).toBe('2024-06-10');
+    expect(allDays[0].contributionCount).toBe(12);
+  });
 });

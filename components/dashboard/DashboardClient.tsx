@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback, useSyncExternalStore } from 'react';
+import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import DashboardSkeleton from './DashboardSkeleton';
-import { X, RefreshCw, Share2 } from 'lucide-react';
+import { X, RefreshCw, Share2, Network } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import type { Achievement, Repository, HallOfFameAward, RepoActivityInfo } from '@/types/dashboard';
@@ -32,6 +33,7 @@ import { PopularRepos } from './PopularPinnnedRepos';
 import InactiveRepoReminder from './InactiveRepoReminder';
 import PRInsightsClient from './PRInsights/PRInsightsClient';
 import CIAnalyticsClient from './CIAnalytics/CIAnalyticsClient';
+import ArchitectureVisualizer from './ArchitectureVisualizer';
 
 // Define the dashboard data structure
 export interface DashboardData {
@@ -327,6 +329,7 @@ export default function DashboardClient({
   const [isCompareMode, setIsCompareMode] = useState(Boolean(compareData));
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isOptimizerOpen, setIsOptimizerOpen] = useState(false);
+  const [isVisualizerOpen, setIsVisualizerOpen] = useState(false);
   const [secondUsernameInput, setSecondUsernameInput] = useState('');
   const [isLoadingSecond, setIsLoadingSecond] = useState(false);
   const [compareError, setCompareError] = useState<string | null>(null);
@@ -571,7 +574,7 @@ export default function DashboardClient({
             <>
               <button
                 onClick={() => setIsOptimizerOpen(true)}
-                className="flex items-center gap-2 rounded-xl border border-black/10 dark:border-[rgba(255,255,255,0.15)] bg-black dark:bg-[#111] hover:bg-zinc-800 dark:hover:bg-zinc-900 px-4 py-2 text-sm font-semibold text-white dark:text-white transition-all duration-200 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+                className="flex items-center gap-2 rounded-xl border border-black/10 dark:border-[rgba(255,255,255,0.15)] bg-black dark:bg-[#111] hover:bg-zinc-800 dark:hover:bg-zinc-900 px-4 py-2 text-sm font-semibold text-white dark:text-white transition-all duration-200 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2 focus-visible:ring-offset-black cursor-pointer"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -588,6 +591,13 @@ export default function DashboardClient({
                   <polyline points="16 7 22 7 22 13"></polyline>
                 </svg>
                 Profile Optimizer
+              </button>
+              <button
+                onClick={() => setIsVisualizerOpen(true)}
+                className="flex items-center gap-2 rounded-xl border border-black/10 dark:border-[rgba(255,255,255,0.15)] bg-black dark:bg-[#111] hover:bg-zinc-800 dark:hover:bg-zinc-900 px-4 py-2 text-sm font-semibold text-white dark:text-white transition-all duration-200 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2 focus-visible:ring-offset-black cursor-pointer"
+              >
+                <Network size={16} />
+                Architecture Visualizer
               </button>
               <Link
                 href={`/achievements?username=${username}`}
@@ -1218,6 +1228,36 @@ export default function DashboardClient({
         onClose={() => setIsOptimizerOpen(false)}
         userData={initialData}
       />
+
+      {typeof window !== 'undefined' &&
+        createPortal(
+          <AnimatePresence>
+            {isVisualizerOpen && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  onClick={() => setIsVisualizerOpen(false)}
+                  className="absolute inset-0 bg-black/60 backdrop-blur-md"
+                  aria-hidden="true"
+                />
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95, y: 16 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95, y: 16 }}
+                  transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                  className="relative w-full max-w-6xl h-[85vh] overflow-hidden rounded-2xl border border-black/10 bg-white dark:border-[rgba(255,255,255,0.08)] dark:bg-[#0a0a0a] shadow-xl flex flex-col"
+                >
+                  <div className="flex-1 overflow-hidden h-full">
+                    <ArchitectureVisualizer onClose={() => setIsVisualizerOpen(false)} />
+                  </div>
+                </motion.div>
+              </div>
+            )}
+          </AnimatePresence>,
+          document.body
+        )}
     </div>
   );
 }
