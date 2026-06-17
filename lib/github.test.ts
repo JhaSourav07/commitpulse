@@ -363,6 +363,58 @@ describe('fetchGitHubContributions', () => {
       await assertion;
       expect(fetch).toHaveBeenCalledTimes(4);
     });
+
+  it('returns cacheStatus MISS on first fetch (cold cache)', async () => {
+    vi.mocked(fetch).mockResolvedValue(
+      mockResponse({
+        data: {
+          user: { contributionsCollection: { contributionCalendar: mockCalendar } },
+        },
+      })
+    );
+
+    const result = await fetchGitHubContributions('octocat');
+
+    expect(result.cacheStatus).toBe('MISS');
+  });
+
+  it('returns cacheStatus HIT on second fetch (warm cache)', async () => {
+    vi.mocked(fetch).mockResolvedValue(
+      mockResponse({
+        data: {
+          user: { contributionsCollection: { contributionCalendar: mockCalendar } },
+        },
+      })
+    );
+
+    await fetchGitHubContributions('octocat');
+    const result = await fetchGitHubContributions('octocat');
+
+    expect(result.cacheStatus).toBe('HIT');
+  });
+
+  it('returns cacheStatus STALE when fetch fails and stale cache exists', async () => {
+    vi.useFakeTimers();
+    vi.mocked(fetch).mockResolvedValueOnce(
+      mockResponse({
+        data: {
+          user: { contributionsCollection: { contributionCalendar: mockCalendar } },
+        },
+      })
+    );
+
+    await fetchGitHubContributions('octocat');
+
+    vi.mocked(fetch).mockRejectedValueOnce(new Error('Network failure'));
+
+    await vi.advanceTimersByTimeAsync(GITHUB_CACHE_TTL_MS + 1000);
+
+    const result = await fetchGitHubContributions('octocat');
+
+    expect(result.cacheStatus).toBe('STALE');
+    expect(result.isOfflineFallback).toBe(true);
+    vi.useRealTimers();
+  });
   });
 
   it('throws a descriptive "user not found" error when the username does not exist on GitHub', async () => {
