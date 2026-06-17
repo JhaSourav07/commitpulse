@@ -478,6 +478,7 @@ export class DistributedCache<T> {
 
   clear(): void {
     this.localCache.clear();
+    this.localLocks.clear();
   }
 
   /**

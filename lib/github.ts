@@ -527,6 +527,7 @@ export function clearGitHubApiCacheForTests(): void {
   tokenStats.clear();
   currentTokenIndex = 0;
   globalCircuitBreakerOpenUntil = 0;
+  activeContributionsPromises.clear();
 }
 
 function getGitHubToken(): string {
