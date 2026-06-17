@@ -237,7 +237,7 @@
       "svg_downloaded": "¡SVG descargado!",
       "json_downloaded": "¡JSON descargado!",
       "failed": "Error — intenta de nuevo",
-      "download_stl": "Descargar monolito 3D imprimible STL (próximamente)"
+      "download_stl": "Descargar monolito 3D imprimible STL"
     }
   }
 }

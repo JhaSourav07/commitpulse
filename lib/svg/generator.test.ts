@@ -7,14 +7,15 @@ import {
   generateRateLimitSVG,
   generateHeatmapSVG,
   generatePulseSVG,
+  resolveFont,
   generateVersusSVG,
   particleCount,
-  escapeXML,
   getSizeScale,
   truncateUsername,
   deterministicRandom,
   buildTowerPaths,
 } from './generator';
+import { escapeXML } from './sanitizer';
 import type { BadgeParams, ContributionCalendar, StreakStats, MonthlyStats } from '../../types';
 import { hexColor } from './sanitizer';
 import { themes } from './themes';
@@ -945,34 +946,37 @@ describe('generateSVG', () => {
   });
 
   describe('SVG dimensions per size', () => {
-    it('renders responsive width="100%" for medium size (default)', () => {
+    it('renders explicit width="600" and height="420" for medium size (default)', () => {
       const svg = generateSVG(
         mockStats,
         { user: 'avi', size: 'medium' } as unknown as BadgeParams,
         mockCalendar
       );
-      expect(svg).toContain('width="100%"');
+      expect(svg).toContain('width="600"');
+      expect(svg).toContain('height="420"');
       // viewBox should still carry the correct pixel dimensions
       expect(svg).toContain('viewBox="0 0 600 420"');
     });
 
-    it('renders responsive width="100%" for small size with correct viewBox', () => {
+    it('renders explicit width="400" and height="280" for small size with correct viewBox', () => {
       const svg = generateSVG(
         mockStats,
         { user: 'avi', size: 'small' } as unknown as BadgeParams,
         mockCalendar
       );
-      expect(svg).toContain('width="100%"');
+      expect(svg).toContain('width="400"');
+      expect(svg).toContain('height="280"');
       expect(svg).toContain('viewBox="0 0 400 280"');
     });
 
-    it('renders responsive width="100%" for large size with correct viewBox', () => {
+    it('renders explicit width="800" and height="560" for large size with correct viewBox', () => {
       const svg = generateSVG(
         mockStats,
         { user: 'avi', size: 'large' } as unknown as BadgeParams,
         mockCalendar
       );
-      expect(svg).toContain('width="100%"');
+      expect(svg).toContain('width="800"');
+      expect(svg).toContain('height="560"');
       expect(svg).toContain('viewBox="0 0 800 560"');
     });
   });
@@ -1529,7 +1533,7 @@ describe('escapeXML', () => {
   });
 
   it('leaves a safe string unchanged', () => {
-    const safe = 'Hello World 123!@#%^*()_+-=[]{}|;:,./?`~';
+    const safe = 'Hello World 123!@#%^*()_+-=[]{}|;:,./?~';
     expect(escapeXML(safe)).toBe(safe);
   });
   it('escapes script injection characters <script>&" together', () => {

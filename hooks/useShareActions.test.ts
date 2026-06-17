@@ -234,4 +234,17 @@ describe('useShareActions', () => {
     expect(mockLinkElement.click).toHaveBeenCalled();
     expect(global.URL.createObjectURL).toHaveBeenCalled();
   });
+
+  it('handleDownloadSTL generates and initiates download of STL file', () => {
+    const { result } = renderHook(() => useShareActions(mockUsername, mockExportData, mockClose));
+
+    act(() => {
+      result.current.handleDownloadSTL();
+    });
+
+    expect(mockLinkElement.download).toContain(`commitpulse-${mockUsername}-monolith.stl`);
+    expect(mockLinkElement.href).toBe('blob:mock-url');
+    expect(mockLinkElement.click).toHaveBeenCalled();
+    expect(global.URL.createObjectURL).toHaveBeenCalled();
+  });
 });

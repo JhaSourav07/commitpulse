@@ -223,7 +223,7 @@
       "svg_downloaded": "SVG가 다운로드되었습니다!",
       "json_downloaded": "JSON이 다운로드되었습니다!",
       "failed": "실패 — 다시 시도하세요",
-      "download_stl": "인쇄 가능한 3D STL 모놀리스 다운로드 (출시 예정)"
+      "download_stl": "인쇄 가능한 3D STL 모놀리스 다운로드"
     }
   }
 }

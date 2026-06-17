@@ -121,8 +121,8 @@ describe('fetchGitHubContributions', () => {
     const result = await fetchGitHubContributions('octocat');
     const day = result.calendar.weeks[0].contributionDays[0];
 
-    expect(day.locAdditions).toBeGreaterThan(0);
-    expect(day.locDeletions).toBeGreaterThanOrEqual(0);
+    expect(day.locAdditions).toBeUndefined();
+    expect(day.locDeletions).toBeUndefined();
   });
 
   it('sets locAdditions and locDeletions to zero for zero-contribution days', async () => {

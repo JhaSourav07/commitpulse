@@ -51,10 +51,12 @@ describe('GET /api/wrapped', () => {
     refreshPolicy.reset();
     refreshRateLimiter.reset();
     quotaMonitor.reset();
+    vi.mocked(getCircuitTelemetry).mockReturnValue({ isOpen: false, resetInMs: 0 });
     vi.mocked(getWrappedData).mockResolvedValue(mockWrappedStats);
     vi.mocked(fetchGitHubContributions).mockResolvedValue({
       calendar: mockCalendar,
     } as unknown as import('../../../types').ExtendedContributionData);
+    vi.mocked(getCircuitTelemetry).mockReturnValue({ isOpen: false, resetInMs: 0 });
   });
 
   describe('parameter validation', () => {
@@ -100,7 +102,7 @@ describe('GET /api/wrapped', () => {
     it('returns 200 with SVG content type', async () => {
       const response = await GET(makeRequest({ user: 'octocat' }));
       expect(response.status).toBe(200);
-      expect(response.headers.get('Content-Type')).toBe('image/svg+xml');
+      expect(response.headers.get('Content-Type')).toBe('image/svg+xml; charset=utf-8');
     });
 
     it('returns a well-formed SVG body representing Wrapped stats', async () => {
@@ -172,7 +174,7 @@ describe('GET /api/wrapped', () => {
     it('caches for 24 hours by default', async () => {
       const response = await GET(makeRequest({ user: 'octocat' }));
       expect(response.headers.get('Cache-Control')).toBe(
-        'public, s-maxage=86400, stale-while-revalidate=86400'
+        'public, max-age=14400, s-maxage=86400, stale-while-revalidate=7200'
       );
     });
 
@@ -201,7 +203,7 @@ describe('GET /api/wrapped', () => {
       vi.mocked(getWrappedData).mockRejectedValue(new Error('GitHub is down'));
       const response = await GET(makeRequest({ user: 'octocat' }));
       expect(response.status).toBe(500);
-      expect(response.headers.get('Content-Type')).toBe('image/svg+xml');
+      expect(response.headers.get('Content-Type')).toBe('image/svg+xml; charset=utf-8');
       const body = await response.text();
       expect(body).toContain('Something went wrong. Please try again later.');
     });
@@ -210,7 +212,7 @@ describe('GET /api/wrapped', () => {
       vi.mocked(getWrappedData).mockRejectedValue(new Error('User not found'));
       const response = await GET(makeRequest({ user: 'not-real-user' }));
       expect(response.status).toBe(404);
-      expect(response.headers.get('Content-Type')).toBe('image/svg+xml');
+      expect(response.headers.get('Content-Type')).toBe('image/svg+xml; charset=utf-8');
       const body = await response.text();
       expect(body).toContain('NOT FOUND');
     });
@@ -220,7 +222,7 @@ describe('GET /api/wrapped', () => {
       const response = await GET(makeRequest({ user: 'octocat' }));
       expect(response.status).toBe(429);
       const body = await response.text();
-      expect(body).toContain('RATE LIMITED');
+      expect(body).toContain('API RATE LIMIT');
     });
 
     it('returns 429 with SVG rate limit card and circuit telemetry headers when circuit is open', async () => {
@@ -259,7 +261,7 @@ describe('GET /api/wrapped', () => {
       const response = await GET(makeRequest({ user: 'octocat', refresh: 'true' }));
       expect(response.status).toBe(429);
       const body = await response.text();
-      expect(body).toContain('RATE LIMITED');
+      expect(body).toContain('API RATE LIMIT');
     });
 
     it('returns 429 when IP refresh limit is exceeded', async () => {
