@@ -84,7 +84,9 @@ describe('fetchGitHubContributions', () => {
     vi.mocked(fetch).mockResolvedValue(
       mockResponse({
         data: {
-          user: { contributionsCollection: { contributionCalendar: mockCalendar } },
+          user: {
+            contributionsCollection: { contributionCalendar: mockCalendar },
+          },
         },
       })
     );
@@ -336,11 +338,17 @@ describe('fetchGitHubContributions', () => {
     it('retries with backoff when GitHub returns RATE_LIMITED inside a 200 OK body', async () => {
       vi.mocked(fetch)
         .mockResolvedValueOnce(
-          mockResponse({ errors: [{ type: 'RATE_LIMITED', message: 'API rate limit exceeded' }] })
+          mockResponse({
+            errors: [{ type: 'RATE_LIMITED', message: 'API rate limit exceeded' }],
+          })
         )
         .mockResolvedValueOnce(
           mockResponse({
-            data: { user: { contributionsCollection: { contributionCalendar: mockCalendar } } },
+            data: {
+              user: {
+                contributionsCollection: { contributionCalendar: mockCalendar },
+              },
+            },
           })
         );
 
@@ -354,7 +362,9 @@ describe('fetchGitHubContributions', () => {
 
     it('throws after exhausting all retries on repeated body-level RATE_LIMITED errors', async () => {
       vi.mocked(fetch).mockResolvedValue(
-        mockResponse({ errors: [{ type: 'RATE_LIMITED', message: 'API rate limit exceeded' }] })
+        mockResponse({
+          errors: [{ type: 'RATE_LIMITED', message: 'API rate limit exceeded' }],
+        })
       );
 
       const promise = fetchGitHubContributions('octocat');
@@ -364,57 +374,63 @@ describe('fetchGitHubContributions', () => {
       expect(fetch).toHaveBeenCalledTimes(4);
     });
 
-  it('returns cacheStatus MISS on first fetch (cold cache)', async () => {
-    vi.mocked(fetch).mockResolvedValue(
-      mockResponse({
-        data: {
-          user: { contributionsCollection: { contributionCalendar: mockCalendar } },
-        },
-      })
-    );
+    it('returns cacheStatus MISS on first fetch (cold cache)', async () => {
+      vi.mocked(fetch).mockResolvedValue(
+        mockResponse({
+          data: {
+            user: {
+              contributionsCollection: { contributionCalendar: mockCalendar },
+            },
+          },
+        })
+      );
 
-    const result = await fetchGitHubContributions('octocat');
+      const result = await fetchGitHubContributions('octocat');
 
-    expect(result.cacheStatus).toBe('MISS');
-  });
+      expect(result.cacheStatus).toBe('MISS');
+    });
 
-  it('returns cacheStatus HIT on second fetch (warm cache)', async () => {
-    vi.mocked(fetch).mockResolvedValue(
-      mockResponse({
-        data: {
-          user: { contributionsCollection: { contributionCalendar: mockCalendar } },
-        },
-      })
-    );
+    it('returns cacheStatus HIT on second fetch (warm cache)', async () => {
+      vi.mocked(fetch).mockResolvedValue(
+        mockResponse({
+          data: {
+            user: {
+              contributionsCollection: { contributionCalendar: mockCalendar },
+            },
+          },
+        })
+      );
 
-    await fetchGitHubContributions('octocat');
-    const result = await fetchGitHubContributions('octocat');
+      await fetchGitHubContributions('octocat');
+      const result = await fetchGitHubContributions('octocat');
 
-    expect(result.cacheStatus).toBe('HIT');
-  });
+      expect(result.cacheStatus).toBe('HIT');
+    });
 
-  it('returns cacheStatus STALE when fetch fails and stale cache exists', async () => {
-    vi.useFakeTimers();
-    vi.mocked(fetch).mockResolvedValueOnce(
-      mockResponse({
-        data: {
-          user: { contributionsCollection: { contributionCalendar: mockCalendar } },
-        },
-      })
-    );
+    it('returns cacheStatus STALE when fetch fails and stale cache exists', async () => {
+      vi.useFakeTimers();
+      vi.mocked(fetch).mockResolvedValueOnce(
+        mockResponse({
+          data: {
+            user: {
+              contributionsCollection: { contributionCalendar: mockCalendar },
+            },
+          },
+        })
+      );
 
-    await fetchGitHubContributions('octocat');
+      await fetchGitHubContributions('octocat');
 
-    vi.mocked(fetch).mockRejectedValueOnce(new Error('Network failure'));
+      vi.mocked(fetch).mockRejectedValueOnce(new Error('Network failure'));
 
-    await vi.advanceTimersByTimeAsync(GITHUB_CACHE_TTL_MS + 1000);
+      await vi.advanceTimersByTimeAsync(GITHUB_CACHE_TTL_MS + 1000);
 
-    const result = await fetchGitHubContributions('octocat');
+      const result = await fetchGitHubContributions('octocat');
 
-    expect(result.cacheStatus).toBe('STALE');
-    expect(result.isOfflineFallback).toBe(true);
-    vi.useRealTimers();
-  });
+      expect(result.cacheStatus).toBe('STALE');
+      expect(result.isOfflineFallback).toBe(true);
+      vi.useRealTimers();
+    });
   });
 
   it('throws a descriptive "user not found" error when the username does not exist on GitHub', async () => {
@@ -471,8 +487,12 @@ describe('fetchGitHubContributions', () => {
       })
     );
 
-    const r1 = await fetchGitHubContributions('empty-user', { bypassCache: true });
-    const r2 = await fetchGitHubContributions('empty-user', { bypassCache: true });
+    const r1 = await fetchGitHubContributions('empty-user', {
+      bypassCache: true,
+    });
+    const r2 = await fetchGitHubContributions('empty-user', {
+      bypassCache: true,
+    });
     expect(r1.calendar.repoContributions).toBe(r2.calendar.repoContributions);
     expect(r1.calendar.weeks).toEqual(r2.calendar.weeks);
   });
@@ -523,7 +543,9 @@ describe('fetchGitHubContributions', () => {
 
     vi.mocked(fetch).mockRejectedValue(new Error('Failed to fetch'));
 
-    const result = await fetchGitHubContributions('bypass-fallback-user', { bypassCache: true });
+    const result = await fetchGitHubContributions('bypass-fallback-user', {
+      bypassCache: true,
+    });
     expect(result.calendar.totalContributions).toBe(mockCalendar.totalContributions);
     expect(result.isOfflineFallback).toBe(true);
   });
@@ -839,7 +861,9 @@ describe('fetchContributedRepos', () => {
 
   it('throws on a rate-limited GraphQL 200 response instead of returning []', async () => {
     vi.mocked(fetch).mockResolvedValue(
-      mockResponse({ errors: [{ type: 'RATE_LIMITED', message: 'API rate limit exceeded' }] })
+      mockResponse({
+        errors: [{ type: 'RATE_LIMITED', message: 'API rate limit exceeded' }],
+      })
     );
 
     const promise = fetchContributedRepos('octocat');
@@ -858,7 +882,9 @@ describe('fetchContributedRepos', () => {
 
     const mockNodes = [{ name: 'r1', nameWithOwner: 'o/r1' }];
     vi.mocked(fetch).mockResolvedValue(
-      mockResponse({ data: { user: { repositoriesContributedTo: { nodes: mockNodes } } } })
+      mockResponse({
+        data: { user: { repositoriesContributedTo: { nodes: mockNodes } } },
+      })
     );
 
     const result = await fetchContributedRepos('octocat');
@@ -873,7 +899,11 @@ describe('forceRefresh write-back', () => {
   it('fetchGitHubContributions: forceRefresh writes back so a later normal read is a cache hit', async () => {
     vi.mocked(fetch).mockResolvedValue(
       mockResponse({
-        data: { user: { contributionsCollection: { contributionCalendar: mockCalendar } } },
+        data: {
+          user: {
+            contributionsCollection: { contributionCalendar: mockCalendar },
+          },
+        },
       })
     );
 
@@ -910,7 +940,9 @@ describe('forceRefresh write-back', () => {
   it('fetchContributedRepos: forceRefresh writes back so a later normal read is a cache hit', async () => {
     const nodes = [{ name: 'r1', nameWithOwner: 'o/r1' }];
     vi.mocked(fetch).mockResolvedValue(
-      mockResponse({ data: { user: { repositoriesContributedTo: { nodes } } } })
+      mockResponse({
+        data: { user: { repositoriesContributedTo: { nodes } } },
+      })
     );
 
     await fetchContributedRepos('octocat', { forceRefresh: true });
@@ -1090,7 +1122,11 @@ describe('aggregateLanguages', () => {
 });
 
 describe('buildInsights', () => {
-  const baseStreak = { totalContributions: 120, currentStreak: 0, longestStreak: 14 };
+  const baseStreak = {
+    totalContributions: 120,
+    currentStreak: 0,
+    longestStreak: 14,
+  };
 
   it('always returns exactly 3 insight cards', () => {
     const result = buildInsights(baseStreak, [{ name: 'TypeScript' }]);
@@ -1192,7 +1228,12 @@ describe('buildActivityMap', () => {
     expect(intensities).toEqual([0, 1, 2, 3, 4]);
   });
   it('passes through locAdditions and locDeletions from the LoC injection step', () => {
-    const day = { date: '2024-01-01', contributionCount: 5, locAdditions: 120, locDeletions: 30 };
+    const day = {
+      date: '2024-01-01',
+      contributionCount: 5,
+      locAdditions: 120,
+      locDeletions: 30,
+    };
     const result = buildActivityMap([day]);
     expect(result[0].locAdditions).toBe(120);
     expect(result[0].locDeletions).toBe(30);
@@ -1566,7 +1607,9 @@ describe('GitHub API cache behavior', () => {
               mockResponse({
                 data: {
                   user: {
-                    contributionsCollection: { contributionCalendar: mockCalendar },
+                    contributionsCollection: {
+                      contributionCalendar: mockCalendar,
+                    },
                   },
                 },
               })
@@ -1668,7 +1711,11 @@ describe('GitHub API cache behavior', () => {
                 weeks: [
                   {
                     contributionDays: [
-                      { contributionCount: total, date: '2025-12-31', color: '#216e39' },
+                      {
+                        contributionCount: total,
+                        date: '2025-12-31',
+                        color: '#216e39',
+                      },
                     ],
                   },
                 ],
@@ -2149,8 +2196,12 @@ describe('fetchOrgMembers', () => {
   });
 
   it('paginates correctly up to less than perPage returning end', async () => {
-    const page1 = Array.from({ length: 100 }, (_, i) => ({ login: `user${i}` }));
-    const page2 = Array.from({ length: 20 }, (_, i) => ({ login: `user${100 + i}` }));
+    const page1 = Array.from({ length: 100 }, (_, i) => ({
+      login: `user${i}`,
+    }));
+    const page2 = Array.from({ length: 20 }, (_, i) => ({
+      login: `user${100 + i}`,
+    }));
 
     vi.mocked(fetch)
       .mockResolvedValueOnce(mockResponse(page1))
@@ -2165,7 +2216,9 @@ describe('fetchOrgMembers', () => {
   });
 
   it('stops paginating at max limit of 1000 members even if pages return 100 members', async () => {
-    const pageData = Array.from({ length: 100 }, (_, i) => ({ login: `user${i}` }));
+    const pageData = Array.from({ length: 100 }, (_, i) => ({
+      login: `user${i}`,
+    }));
 
     vi.mocked(fetch).mockImplementation(async () => mockResponse(pageData));
 
@@ -2195,7 +2248,9 @@ describe('getOrgDashboardData', () => {
   };
 
   const setupOrgMocks = (orgName: string, membersCount: number) => {
-    const mockMembers = Array.from({ length: membersCount }, (_, i) => ({ login: `member${i}` }));
+    const mockMembers = Array.from({ length: membersCount }, (_, i) => ({
+      login: `member${i}`,
+    }));
 
     vi.mocked(fetch).mockImplementation(async (url) => {
       const urlStr = getFetchUrl(url);
@@ -2678,7 +2733,11 @@ describe('getWrappedData weekendRatio', () => {
             contributionsCollection: {
               contributionCalendar: {
                 totalContributions: 10,
-                weeks: [{ contributionDays: [{ date: '2024-01-05', contributionCount: 10 }] }],
+                weeks: [
+                  {
+                    contributionDays: [{ date: '2024-01-05', contributionCount: 10 }],
+                  },
+                ],
               },
             },
           },
