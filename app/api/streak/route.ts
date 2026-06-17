@@ -32,6 +32,9 @@ import { quotaMonitor } from '@/services/github/quota-monitor';
 import { refreshPolicy } from '@/services/github/refresh-policy';
 import { refreshRateLimiter } from '@/services/github/refresh-rate-limiter';
 
+// ─── NEW: Import rateLimit and getRateLimitHeaders ──────────────────────────
+import { rateLimit, getRateLimitHeaders } from '@/lib/rate-limit';
+
 const SVG_CSP_HEADER =
   "default-src 'none'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://fonts.gstatic.com;";
 
@@ -152,6 +155,23 @@ export async function GET(request: Request) {
     const themeName = theme || 'dark';
 
     const ip = getClientIp(request);
+
+    // ─── NEW: General rate limiting (10 requests per IP per minute) ──────────
+    // This runs before any GitHub API call to protect the token quota.
+    const rateLimitResult = await rateLimit(ip, 10, 60000);
+    if (!rateLimitResult.success) {
+      const svg = generateRateLimitSVG('#0d1117', '#58a6ff', '#c9d1d9', 8, '8s', false);
+      return new NextResponse(svg, {
+        status: 429,
+        headers: {
+          'Content-Type': 'image/svg+xml',
+          'Cache-Control': 'no-store',
+          'Content-Security-Policy': SVG_CSP_HEADER,
+          ...getRateLimitHeaders(rateLimitResult),
+        },
+      });
+    }
+    // ─────────────────────────────────────────────────────────────────────────
 
     // Treat either ?refresh=true or ?bypassCache=true as a cache-bypass request
     const isRefreshRequested = refresh || bypassCacheParam;
