@@ -47,3 +47,11 @@ next-env.d.ts
 # Generated agent artifacts
 github_issues_proposals.md
 pr_details.md
+
+# Serwist / PWA build artifacts
+/public/sw.js
+/public/sw.js.map
+/public/workbox-*.js
+/public/workbox-*.js.map
+/public/swe-*.js
+/public/swe-*.js.map

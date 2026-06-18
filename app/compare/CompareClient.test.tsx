@@ -171,8 +171,8 @@ describe('CompareClient', () => {
       expect(screen.getByText(/stats showdown/i)).toBeInTheDocument();
     });
 
-    expect(screen.getByText('5,000')).toBeInTheDocument();
-    expect(screen.getByText('3,000')).toBeInTheDocument();
+    expect(screen.getByText((5000).toLocaleString())).toBeInTheDocument();
+    expect(screen.getByText((3000).toLocaleString())).toBeInTheDocument();
   });
 
   it('updates route when compare button is clicked', async () => {

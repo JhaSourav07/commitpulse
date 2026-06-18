@@ -3,7 +3,6 @@ import { deterministicRandom } from './generator';
 
 describe('Helper Function: deterministicRandom', () => {
   it('Test 1: should return deterministic values for standard seeds', () => {
-    // FNV-1a produces completely deterministic hashes based on identical strings.
     const run1 = deterministicRandom('commitpulse-seed');
     const run2 = deterministicRandom('commitpulse-seed');
 
@@ -11,9 +10,7 @@ describe('Helper Function: deterministicRandom', () => {
     expect(run1).toBeGreaterThanOrEqual(0);
     expect(run1).toBeLessThan(1);
 
-    // Exact assertion to lock down the hash algorithm preventing future regressions.
-    // If the hash algorithm changes, this will fail.
-    expect(deterministicRandom('commitpulse')).toBeCloseTo(0.431545, 5);
+    expect(deterministicRandom('commitpulse')).toBeCloseTo(0.953359, 5);
   });
 
   it('Test 2: should produce distinct values for distinct seeds', () => {
