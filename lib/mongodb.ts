@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { MongoClient } from 'mongodb';
 
 declare global {
   // Cached across hot reloads and repeated serverless invocations in the same process.
@@ -6,6 +7,7 @@ declare global {
     conn: typeof import('mongoose') | null;
     promise: Promise<typeof import('mongoose')> | null;
   };
+  var _mongoClientPromise: Promise<MongoClient> | undefined;
 }
 
 let cached = global.mongoose;
@@ -32,6 +34,15 @@ async function dbConnect() {
   }
 
   if (cached.conn && mongoose.connection.readyState === 1) {
+    if (!globalThis._mongoClientPromise) {
+      if (cached.conn.connection && typeof cached.conn.connection.getClient === 'function') {
+        globalThis._mongoClientPromise = Promise.resolve(
+          cached.conn.connection.getClient() as unknown as MongoClient
+        );
+      } else {
+        globalThis._mongoClientPromise = Promise.resolve({} as unknown as MongoClient);
+      }
+    }
     return cached.conn;
   }
 
@@ -55,15 +66,27 @@ async function dbConnect() {
       serverSelectionTimeoutMS: 5000,
     };
 
-    cached.promise = mongoose.connect(MONGODB_URI, opts).then((mongoose) => {
-      return mongoose;
+    cached.promise = mongoose.connect(MONGODB_URI, opts).then((m) => {
+      return m;
     });
+
+    globalThis._mongoClientPromise = cached.promise
+      .then((m) => {
+        if (m && m.connection && typeof m.connection.getClient === 'function') {
+          return m.connection.getClient() as unknown as MongoClient;
+        }
+        return {} as unknown as MongoClient;
+      })
+      .catch(() => {
+        return undefined as unknown as MongoClient;
+      });
   }
 
   try {
     cached.conn = await cached.promise;
   } catch (e) {
     cached.promise = null;
+    globalThis._mongoClientPromise = undefined;
     throw e;
   }
 
@@ -83,6 +106,7 @@ export async function dbDisconnect(): Promise<void> {
   await mongoose.disconnect();
   cached.conn = null;
   cached.promise = null;
+  globalThis._mongoClientPromise = undefined;
 }
 
 export default dbConnect;

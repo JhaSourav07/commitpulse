@@ -33,6 +33,7 @@ const healthyShareActions = {
   handleDownloadSVG: vi.fn(),
   handleCopyMarkdown: vi.fn(),
   handleDownloadJSON: vi.fn(),
+  handleDownloadSTL: vi.fn(),
   handleNativeShare: vi.fn(),
 };
 

@@ -1,7 +1,7 @@
 // lib/svg/generator.escapeXML.test.ts
 
 import { describe, it, expect } from 'vitest';
-import { escapeXML } from './generator';
+import { escapeXML } from './sanitizer';
 
 describe('escapeXML', () => {
   it('escapes script-like XML boundary characters safely', () => {
