@@ -3,8 +3,9 @@ import { fetchPRInsights } from '@/services/github/pr-insights';
 import { validateGitHubUsername } from '@/lib/validations';
 import { getRateLimitHeaders, RateLimiter } from '@/lib/rate-limit';
 import { getUserGitHubToken } from '@/lib/githubtoken';
+import { getClientIp } from '@/utils/getClientIp';
 
-const prInsightsLimiter = new RateLimiter(10, 60_000, 1);
+const prInsightsLimiter = new RateLimiter(10, 60_000, 10_000);
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -19,7 +20,11 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Invalid GitHub username' }, { status: 400 });
   }
 
-  const rateLimitResult = await prInsightsLimiter.checkWithResult('pr-insights');
+  const ip = getClientIp(request);
+  const rateLimitKey =
+    ip && ip !== 'unknown' ? ip : `unknown:${request.headers.get('user-agent') ?? 'no-agent'}`;
+
+  const rateLimitResult = await prInsightsLimiter.checkWithResult(rateLimitKey);
   if (!rateLimitResult.success) {
     return NextResponse.json(
       { error: 'Too many requests. Please try again later.' },

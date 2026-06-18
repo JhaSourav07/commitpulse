@@ -223,7 +223,7 @@
       "svg_downloaded": "SVG 已下载！",
       "json_downloaded": "JSON 已下载！",
       "failed": "操作失败 — 请重试",
-      "download_stl": "下载可打印的 3D STL 整体结构（即将推出）"
+      "download_stl": "下载可打印的 3D STL 整体结构"
     }
   }
 }

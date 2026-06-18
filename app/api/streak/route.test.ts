@@ -309,7 +309,7 @@ describe('GET /api/streak', () => {
     it('returns 200 with SVG content type', async () => {
       const response = await GET(makeRequest({ user: 'octocat' }));
       expect(response.status).toBe(200);
-      expect(response.headers.get('Content-Type')).toBe('image/svg+xml');
+      expect(response.headers.get('Content-Type')).toBe('image/svg+xml; charset=utf-8');
     });
 
     it('returns a well-formed SVG body', async () => {
@@ -324,7 +324,7 @@ describe('GET /api/streak', () => {
     it('returns valid SVG when mode=loc is given', async () => {
       const response = await GET(makeRequest({ user: 'octocat', mode: 'loc' }));
       expect(response.status).toBe(200);
-      expect(response.headers.get('Content-Type')).toBe('image/svg+xml');
+      expect(response.headers.get('Content-Type')).toBe('image/svg+xml; charset=utf-8');
       const body = await response.text();
       expect(body).toContain('<svg');
     });
@@ -447,7 +447,7 @@ describe('GET /api/streak', () => {
     it('caches until UTC midnight by default, using the value from getSecondsUntilUTCMidnight', async () => {
       const response = await GET(makeRequest({ user: 'octocat' }));
       expect(response.headers.get('Cache-Control')).toBe(
-        'public, s-maxage=3600, stale-while-revalidate=86400'
+        'public, max-age=14400, s-maxage=3600, stale-while-revalidate=7200'
       );
     });
 
@@ -455,7 +455,7 @@ describe('GET /api/streak', () => {
       vi.mocked(getSecondsUntilUTCMidnight).mockReturnValue(7200);
       const response = await GET(makeRequest({ user: 'octocat' }));
       expect(response.headers.get('Cache-Control')).toBe(
-        'public, s-maxage=7200, stale-while-revalidate=86400'
+        'public, max-age=14400, s-maxage=7200, stale-while-revalidate=7200'
       );
     });
 
@@ -755,17 +755,17 @@ describe('GET /api/streak', () => {
 
     it('returns SVG content type for theme=neon', async () => {
       const response = await GET(makeRequest({ user: 'octocat', theme: 'neon' }));
-      expect(response.headers.get('Content-Type')).toBe('image/svg+xml');
+      expect(response.headers.get('Content-Type')).toBe('image/svg+xml; charset=utf-8');
     });
 
     it('returns SVG content type for theme=dracula', async () => {
       const response = await GET(makeRequest({ user: 'octocat', theme: 'dracula' }));
-      expect(response.headers.get('Content-Type')).toBe('image/svg+xml');
+      expect(response.headers.get('Content-Type')).toBe('image/svg+xml; charset=utf-8');
     });
 
     it('returns SVG content type for theme=auto', async () => {
       const response = await GET(makeRequest({ user: 'octocat', theme: 'auto' }));
-      expect(response.headers.get('Content-Type')).toBe('image/svg+xml');
+      expect(response.headers.get('Content-Type')).toBe('image/svg+xml; charset=utf-8');
     });
 
     it('returns auto-theme SVG markup with dark-mode CSS variables when theme=auto', async () => {
@@ -887,7 +887,7 @@ describe('GET /api/streak', () => {
       const response = await GET(makeRequest({ user: 'octocat' }));
 
       expect(response.status).toBe(500);
-      expect(response.headers.get('Content-Type')).toBe('image/svg+xml');
+      expect(response.headers.get('Content-Type')).toBe('image/svg+xml; charset=utf-8');
     });
 
     it('embeds the thrown error message in the error SVG', async () => {
@@ -990,7 +990,7 @@ describe('GET /api/streak', () => {
       const response = await GET(makeRequest({ user: 'octocat', tz: 'America/New_York' }));
 
       expect(response.headers.get('Cache-Control')).toBe(
-        'public, s-maxage=7200, stale-while-revalidate=86400'
+        'public, max-age=14400, s-maxage=7200, stale-while-revalidate=7200'
       );
       expect(getSecondsUntilMidnightInTimezone).toHaveBeenCalledWith('America/New_York');
       expect(getSecondsUntilUTCMidnight).not.toHaveBeenCalled();
@@ -1324,7 +1324,7 @@ describe('GET /api/streak', () => {
     it('returns no-cache header when ?theme=random is given', async () => {
       const response = await GET(makeRequest({ user: 'octocat', theme: 'random' }));
 
-      expect(response.headers.get('Cache-Control')).toMatch(/public, s-maxage=/);
+      expect(response.headers.get('Cache-Control')).toMatch(/public, max-age=14400, s-maxage=/);
     });
   });
 
@@ -1513,16 +1513,16 @@ describe('GET /api/streak', () => {
   });
 
   describe('stale-while-revalidate cache header', () => {
-    it('contains stale-while-revalidate=86400 for normal request', async () => {
+    it('contains stale-while-revalidate=7200 for normal request', async () => {
       const response = await GET(makeRequest({ user: 'octocat' }));
 
-      expect(response.headers.get('Cache-Control')).toContain('stale-while-revalidate=86400');
+      expect(response.headers.get('Cache-Control')).toContain('stale-while-revalidate=7200');
     });
 
     it('does NOT contain stale-while-revalidate when ?refresh=true', async () => {
       const response = await GET(makeRequest({ user: 'octocat', refresh: 'true' }));
 
-      expect(response.headers.get('Cache-Control')).not.toContain('stale-while-revalidate=86400');
+      expect(response.headers.get('Cache-Control')).not.toContain('stale-while-revalidate=7200');
     });
   });
 

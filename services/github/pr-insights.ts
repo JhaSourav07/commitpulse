@@ -1,6 +1,30 @@
 import { fetchWithRetry, getGitHubTokens } from '@/lib/github';
 import { DistributedCache } from '@/lib/cache';
 
+interface PRReviewNode {
+  author: { login: string } | null;
+  createdAt: string;
+  state: string;
+}
+
+interface PRNode {
+  id: string;
+  title: string;
+  url: string;
+  state: string;
+  createdAt: string;
+  closedAt: string | null;
+  mergedAt: string | null;
+  additions: number;
+  deletions: number;
+  repository: { nameWithOwner: string } | null;
+  comments: { totalCount: number } | null;
+  reviews: {
+    nodes: PRReviewNode[];
+    totalCount: number;
+  } | null;
+}
+
 const GITHUB_GRAPHQL_URL = 'https://api.github.com/graphql';
 const MAX_PAGES = 3;
 
@@ -133,8 +157,7 @@ async function fetchPRInsightsUncached(
     reviewerQuery: `is:pr reviewed-by:${username} -author:${username} created:>=${dateStr}`,
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let allAuthoredPRs: any[] = [];
+  let allAuthoredPRs: PRNode[] = [];
   let hasNextPage = true;
   let after: string | null = null;
   let reviewsGivenCount = 0;
@@ -155,8 +178,7 @@ async function fetchPRInsightsUncached(
       throw new Error(json.errors[0]?.message || 'GraphQL Error');
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const pageNodes = (json.data?.authored?.nodes || []).filter((n: any) => n && n.title);
+    const pageNodes = (json.data?.authored?.nodes || []).filter((n: PRNode) => n && n.title);
     allAuthoredPRs = allAuthoredPRs.concat(pageNodes);
 
     hasNextPage = json.data?.authored?.pageInfo?.hasNextPage || false;
@@ -238,7 +260,7 @@ async function fetchPRInsightsUncached(
     }
 
     // Comments
-    if (pr.comments?.totalCount > mostDiscussed.comments) {
+    if (pr.comments !== null && (pr.comments?.totalCount ?? 0) > mostDiscussed.comments) {
       mostDiscussed = { title: pr.title, url: pr.url, comments: pr.comments.totalCount };
     }
 

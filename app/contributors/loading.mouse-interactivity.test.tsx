@@ -42,8 +42,8 @@ describe('ContributorsLoading Interactivity & Touch Events (Real Component Verif
     render(<InteractiveLoadingHarness />);
     const wrapper = screen.getByTestId('interactive-wrapper');
 
-    // Assert the real component text is present in the rendered tree
-    expect(screen.getByText('Loading the collective...')).toBeDefined();
+    // Assert stale loading copy is not present in the rendered tree.
+    expect(screen.queryByText('Loading the collective...')).toBeNull();
 
     fireEvent.mouseEnter(wrapper);
     expect(screen.getByTestId('interactive-tooltip')).toBeDefined();
@@ -117,10 +117,10 @@ describe('Contributors Loading — structure & accessibility', () => {
     expect(screen.getByRole('status')).toHaveAttribute('aria-live', 'polite');
   });
 
-  it('contains both the primary and secondary loading messages', () => {
+  it('does not contain persistent primary or secondary loading messages', () => {
     render(<Loading />);
-    expect(screen.getByText('Loading the collective...')).toBeInTheDocument();
-    expect(screen.getByText('Fetching contributor data from GitHub')).toBeInTheDocument();
+    expect(screen.queryByText('Loading the collective...')).not.toBeInTheDocument();
+    expect(screen.queryByText('Fetching contributor data from GitHub')).not.toBeInTheDocument();
   });
 
   it('renders the spinning ring with the correct Tailwind animation class', () => {
@@ -163,16 +163,13 @@ describe('Contributors Loading — structure & accessibility', () => {
     expect(focusable.length).toBe(0);
   });
 
-  it('primary message uses light typography appropriate for a dark background', () => {
+  it('does not render the old primary loading message', () => {
     render(<Loading />);
-    const primary = screen.getByText('Loading the collective...');
-    expect(primary.tagName.toLowerCase()).toBe('p');
-    expect(primary).toHaveClass('text-zinc-400');
+    expect(screen.queryByText('Loading the collective...')).not.toBeInTheDocument();
   });
 
-  it('secondary message is rendered in monospace font for a technical feel', () => {
+  it('does not render the old secondary loading message', () => {
     render(<Loading />);
-    const secondary = screen.getByText('Fetching contributor data from GitHub');
-    expect(secondary).toHaveClass('font-mono');
+    expect(screen.queryByText('Fetching contributor data from GitHub')).not.toBeInTheDocument();
   });
 });

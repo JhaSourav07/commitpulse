@@ -393,11 +393,7 @@ export function aggregateCalendars(
     return { totalContributions: 0, weeks: [] };
   }
 
-  // Deep clone the base calendar so we don't mutate the original object.
-  // Uses structuredClone() (native in Node 18+) instead of the
-  // JSON.parse(JSON.stringify()) anti-pattern which silently drops
-  // undefined values and Date objects during serialization.
-  const aggregatedBase = structuredClone(baseCalendar);
+  const aggregatedBase: ContributionCalendar = structuredClone(baseCalendar);
 
   aggregatedBase.totalContributions = totalContributions;
 
@@ -576,34 +572,8 @@ export function normalizeCalendarToTimezone(
   for (const day of allDays) {
     if (!day || !day.date) continue;
 
-    // Parse the date (YYYY-MM-DD) as a UTC date
-    const [yearStr, monthStr, dayStr] = day.date.split('-');
-    const year = parseInt(yearStr, 10);
-    const month = parseInt(monthStr, 10);
-    const dayNum = parseInt(dayStr, 10);
-
-    // Create a UTC date for midnight on this day
-    const utcMidnight = new Date(Date.UTC(year, month - 1, dayNum, 0, 0, 0));
-
-    // Get the date in the target timezone
-    const formatter = new Intl.DateTimeFormat('en-CA', {
-      timeZone: targetTimezone,
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-    });
-
-    const parts = formatter.formatToParts(utcMidnight);
-    const tzYear = parseInt(parts.find((p) => p.type === 'year')?.value || yearStr, 10);
-    const tzMonth = parseInt(parts.find((p) => p.type === 'month')?.value || monthStr, 10);
-    const tzDay = parseInt(parts.find((p) => p.type === 'day')?.value || dayStr, 10);
-
-    // Create the normalized date string
-    const normalizedDate = `${tzYear}-${String(tzMonth).padStart(2, '0')}-${String(tzDay).padStart(2, '0')}`;
-
-    // Accumulate contribution count
-    const currentCount = dateMap.get(normalizedDate) || 0;
-    dateMap.set(normalizedDate, currentCount + (day.contributionCount || 0));
+    const currentCount = dateMap.get(day.date) || 0;
+    dateMap.set(day.date, currentCount + (day.contributionCount || 0));
   }
 
   // Sort dates and create weeks

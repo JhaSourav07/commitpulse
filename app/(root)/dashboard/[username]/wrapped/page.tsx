@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation';
+import { logger } from '@/lib/logger';
 import type { Metadata } from 'next';
 import GithubWrapped from '@/components/dashboard/GithubWrapped';
 import { getFullDashboardData, getWrappedData } from '@/lib/github';
@@ -39,7 +40,10 @@ export default async function WrappedPage({
       getWrappedData(username, targetYear, { token: userToken }),
     ]);
   } catch (error) {
-    console.error('[Wrapped] Failed to load wrapped data:', error);
+    logger.error('Failed to load wrapped data', {
+      source: 'Wrapped',
+      error,
+    });
     // If the user doesn't exist or API fails, trigger the 404 page
     return notFound();
   }

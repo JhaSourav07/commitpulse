@@ -11,6 +11,7 @@ import { getClientIp } from '@/utils/getClientIp';
 import { quotaMonitor } from '@/services/github/quota-monitor';
 import { refreshPolicy } from '@/services/github/refresh-policy';
 import { refreshRateLimiter } from '@/services/github/refresh-rate-limiter';
+import logger from '@/lib/logger';
 
 const SVG_CSP_HEADER =
   "default-src 'none'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://fonts.gstatic.com;";
@@ -131,11 +132,11 @@ export async function GET(request: Request) {
     // Clients can bust with ?refresh=true or ?bypassCache=true.
     const cacheControl = isRefreshRequested
       ? 'no-cache, no-store, must-revalidate'
-      : 'public, s-maxage=86400, stale-while-revalidate=86400';
+      : 'public, max-age=14400, s-maxage=86400, stale-while-revalidate=7200';
 
     return new NextResponse(svg, {
       headers: {
-        'Content-Type': 'image/svg+xml',
+        'Content-Type': 'image/svg+xml; charset=utf-8',
         'Cache-Control': cacheControl,
         'Content-Security-Policy': SVG_CSP_HEADER,
         'X-Cache-Status': shouldBypassCache ? `BYPASS, fetched=${new Date().toISOString()}` : 'HIT',
@@ -184,7 +185,7 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
     const svg = generateRateLimitSVG(errBg, errAccent, errText, errRadius, errSpeed, isCircuitOpen);
 
     const headers: Record<string, string> = {
-      'Content-Type': 'image/svg+xml',
+      'Content-Type': 'image/svg+xml; charset=utf-8',
       'Cache-Control': 'no-cache, no-store, must-revalidate',
       'Content-Security-Policy': SVG_CSP_HEADER,
     };
@@ -209,7 +210,7 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
     return new NextResponse(svg, {
       status: 404,
       headers: {
-        'Content-Type': 'image/svg+xml',
+        'Content-Type': 'image/svg+xml; charset=utf-8',
         'Cache-Control': 'no-cache',
         'Content-Security-Policy': SVG_CSP_HEADER,
       },
@@ -229,14 +230,17 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
     return new NextResponse(validationSvg, {
       status: 400,
       headers: {
-        'Content-Type': 'image/svg+xml',
+        'Content-Type': 'image/svg+xml; charset=utf-8',
         'Cache-Control': 'no-store',
         'Content-Security-Policy': SVG_CSP_HEADER,
       },
     });
   }
 
-  console.error('[wrapped] Unhandled error:', message);
+  logger.error('Unhandled error', {
+    source: 'wrapped',
+    message,
+  });
 
   const errorSvg = `
       <svg xmlns="http://www.w3.org/2000/svg" width="400" height="150">
@@ -250,7 +254,7 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
   return new NextResponse(errorSvg, {
     status: 500,
     headers: {
-      'Content-Type': 'image/svg+xml',
+      'Content-Type': 'image/svg+xml; charset=utf-8',
       'Cache-Control': 'no-store',
       'Content-Security-Policy': SVG_CSP_HEADER,
     },

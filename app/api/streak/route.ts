@@ -28,6 +28,7 @@ import {
 } from '@/lib/svg/generator';
 import { generateConstellationSVG } from '@/lib/svg/constellation';
 import { generateRadarSVG } from '@/lib/svg/radar';
+import { generateDoughnutSVG } from '@/lib/svg/doughnut';
 import { getSecondsUntilUTCMidnight, getSecondsUntilMidnightInTimezone } from '@/utils/time';
 import type { BadgeParams, RepoContribution, ExtendedContributionData } from '@/types';
 import { themes } from '@/lib/svg/themes';
@@ -37,6 +38,25 @@ import { getClientIp } from '@/utils/getClientIp';
 import { quotaMonitor } from '@/services/github/quota-monitor';
 import { refreshPolicy } from '@/services/github/refresh-policy';
 import { refreshRateLimiter } from '@/services/github/refresh-rate-limiter';
+import { logger } from '@/lib/logger';
+
+const VALIDATION_CACHE_MAX = 256;
+const validationCache = new Map<string, ReturnType<typeof streakParamsSchema.safeParse>>();
+
+function cachedValidation(
+  key: string,
+  parseFn: () => ReturnType<typeof streakParamsSchema.safeParse>
+) {
+  let cached = validationCache.get(key);
+  if (cached !== undefined) return cached;
+  cached = parseFn();
+  if (validationCache.size >= VALIDATION_CACHE_MAX) {
+    const firstKey = validationCache.keys().next().value;
+    if (firstKey !== undefined) validationCache.delete(firstKey);
+  }
+  validationCache.set(key, cached);
+  return cached;
+}
 
 const SVG_CSP_HEADER =
   "default-src 'none'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://fonts.gstatic.com;";
@@ -71,7 +91,10 @@ function getMonthlyReferenceDate(year: string | undefined, timezone: string): Da
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
 
-  const parseResult = streakParamsSchema.safeParse(Object.fromEntries(searchParams.entries()));
+  const cacheKey = searchParams.toString();
+  const parseResult = cachedValidation(cacheKey, () =>
+    streakParamsSchema.safeParse(Object.fromEntries(searchParams.entries()))
+  );
   try {
     if (!parseResult.success) {
       const fieldErrors = parseResult.error.flatten();
@@ -150,7 +173,9 @@ export async function GET(request: Request) {
       | 'skyline'
       | 'languages'
       | 'constellation'
-      | 'radar';
+      | 'radar'
+      | 'doughnut'
+      | 'pie';
     const themeName = theme || 'dark';
 
     const ip = getClientIp(request);
@@ -532,6 +557,9 @@ export async function GET(request: Request) {
     } else if (normalizedView === 'radar') {
       const stats = calculateStreak(calendar, timezone, undefined, grace);
       svg = generateRadarSVG(stats, params, calendar);
+    } else if (normalizedView === 'doughnut' || normalizedView === 'pie') {
+      const stats = calculateStreak(calendar, timezone, undefined, grace);
+      svg = generateDoughnutSVG(stats, params, calendar);
     } else if (versus && versusCalendar) {
       // Normalize both calendars to the target timezone for accurate comparison
       const normalizedCalendar = normalizeCalendarToTimezone(calendar, timezone);
@@ -551,8 +579,8 @@ export async function GET(request: Request) {
     const cacheControl = isRefreshRequested
       ? 'no-cache, no-store, must-revalidate'
       : isHistoricalYear
-        ? 'public, s-maxage=31536000, immutable'
-        : `public, s-maxage=${secondsToMidnight}, stale-while-revalidate=86400`;
+        ? 'public, max-age=31536000, s-maxage=31536000, immutable'
+        : `public, max-age=14400, s-maxage=${secondsToMidnight}, stale-while-revalidate=7200`;
 
     const etag = crypto.createHash('sha256').update(svg).digest('hex');
     const weakEtag = `W/"${etag}"`;
@@ -571,9 +599,30 @@ export async function GET(request: Request) {
       }
     }
 
+    if (format === 'png') {
+      const { Resvg } = await import('@resvg/resvg-js');
+      const resvg = new Resvg(svg, {
+        background: 'transparent',
+        fitTo: { mode: 'original' },
+      });
+      const pngBuffer = resvg.render().asPng();
+
+      return new NextResponse(new Uint8Array(pngBuffer), {
+        headers: {
+          'Content-Type': 'image/png',
+          'Cache-Control': cacheControl,
+          'X-CommitPulse-Grace-Applied': String(grace),
+          ETag: weakEtag,
+          'X-Cache-Status': shouldBypassCache
+            ? `BYPASS, fetched=${new Date().toISOString()}`
+            : 'HIT',
+        },
+      });
+    }
+
     return new NextResponse(svg, {
       headers: {
-        'Content-Type': 'image/svg+xml',
+        'Content-Type': 'image/svg+xml; charset=utf-8',
         'Cache-Control': cacheControl,
         'Content-Security-Policy': SVG_CSP_HEADER,
         'X-CommitPulse-Grace-Applied': String(grace),
@@ -588,8 +637,19 @@ export async function GET(request: Request) {
 
 type ParseResult = ReturnType<typeof streakParamsSchema.safeParse>;
 
+function sanitizeErrorMessage(message: string): string {
+  if (message.includes('ZodError') || message.includes('zod')) {
+    return 'Invalid request parameters';
+  }
+  if (message.includes('schema') || message.includes('Schema')) {
+    return 'Invalid request parameters';
+  }
+  return message;
+}
+
 function buildErrorResponse(error: unknown, parseResult: ParseResult): NextResponse {
-  const message = error instanceof Error ? error.message : String(error);
+  const rawMessage = error instanceof Error ? error.message : String(error);
+  const message = sanitizeErrorMessage(rawMessage);
 
   if (parseResult.success && parseResult.data.format === 'json') {
     const isNotFound =
@@ -613,25 +673,6 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
         },
       }
     );
-  }
-  function buildInlineErrorSVG(text: string): string {
-    const MAX_LINE = 48;
-    const truncated = text.length > MAX_LINE * 2 ? text.slice(0, MAX_LINE * 2 - 1) + '…' : text;
-
-    const line1 = escapeXML(truncated.slice(0, MAX_LINE));
-    const line2 = truncated.length > MAX_LINE ? escapeXML(truncated.slice(MAX_LINE)) : null;
-
-    const textY = line2 ? '62' : '75';
-
-    return `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="150" viewBox="0 0 400 150">
-      <rect width="400" height="150" fill="#2d0000" rx="8"/>
-      <text x="200" y="${textY}" text-anchor="middle" dominant-baseline="central" fill="#ffcccc" font-family="sans-serif" font-size="13">${line1}</text>${
-        line2
-          ? `
-      <text x="200" y="91" text-anchor="middle" dominant-baseline="central" fill="#ffcccc" font-family="sans-serif" font-size="13">${line2}</text>`
-          : ''
-      }
-    </svg>`;
   }
 
   const isNotFound =
@@ -664,7 +705,7 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
     const svg = generateRateLimitSVG(errBg, errAccent, errText, errRadius, errSpeed, isCircuitOpen);
 
     const headers: Record<string, string> = {
-      'Content-Type': 'image/svg+xml',
+      'Content-Type': 'image/svg+xml; charset=utf-8',
       'Cache-Control': 'no-cache, no-store, must-revalidate',
       'Content-Security-Policy': SVG_CSP_HEADER,
     };
@@ -697,7 +738,7 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
     return new NextResponse(svg, {
       status: 404,
       headers: {
-        'Content-Type': 'image/svg+xml',
+        'Content-Type': 'image/svg+xml; charset=utf-8',
         'Cache-Control': 'no-cache',
         'Content-Security-Policy': SVG_CSP_HEADER,
       },
@@ -711,7 +752,7 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
     return new NextResponse(validationSvg, {
       status: 400,
       headers: {
-        'Content-Type': 'image/svg+xml',
+        'Content-Type': 'image/svg+xml; charset=utf-8',
         'Cache-Control': 'no-store',
         'Content-Security-Policy': SVG_CSP_HEADER,
       },
@@ -719,14 +760,17 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
   }
 
   // 4. Return a 500 Internal Server Error for real crashes
-  console.error('[streak] Unhandled error:', message);
+  logger.error('Unhandled error', {
+    source: 'streak',
+    message,
+  });
 
   const errorSvg = buildInlineErrorSVG('Something went wrong. Please try again later.');
 
   return new NextResponse(errorSvg, {
     status: 500,
     headers: {
-      'Content-Type': 'image/svg+xml',
+      'Content-Type': 'image/svg+xml; charset=utf-8',
       'Cache-Control': 'no-store',
       'Content-Security-Policy': SVG_CSP_HEADER,
     },
