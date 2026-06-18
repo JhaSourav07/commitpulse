@@ -11,6 +11,7 @@ async function findExistingAssignments(github, owner, repo, username, currentIss
 }
 
 const MAX_ASSIGNED_ISSUES = 5;
+const COMMUNITY_CLAIM_THRESHOLD_MS = 48 * 60 * 60 * 1000;
 
 async function handleClaim({ github, context }) {
   const { owner, repo } = context.repo;
@@ -28,12 +29,25 @@ async function handleClaim({ github, context }) {
     return;
   }
 
-  const issueAuthor = context.payload.issue.user.login;
+  // Re-fetch to avoid stale assignee data from the webhook payload
+  const { data: freshIssue } = await github.rest.issues.get({
+    owner,
+    repo,
+    issue_number: issueNumber,
+  });
+  const currentAssignees = freshIssue.assignees.map((a) => a.login.toLowerCase());
 
+  const issueAuthor = context.payload.issue.user.login;
   const MAINTAINERS = ['jhasourav07', 'aamod007', 'souravjhahind'];
   const isOpenedByMaintainer = MAINTAINERS.includes(issueAuthor.toLowerCase());
+  const isCommenterAuthor = commenter.toLowerCase() === issueAuthor.toLowerCase();
+  const createdAt = new Date(freshIssue.created_at || context.payload.issue.created_at);
+  const isOldUnassignedIssue =
+    currentAssignees.length === 0 &&
+    Number.isFinite(createdAt.getTime()) &&
+    Date.now() - createdAt.getTime() >= COMMUNITY_CLAIM_THRESHOLD_MS;
 
-  if (!isOpenedByMaintainer && commenter.toLowerCase() !== issueAuthor.toLowerCase()) {
+  if (!isOpenedByMaintainer && !isCommenterAuthor && !isOldUnassignedIssue) {
     await github.rest.issues.createComment({
       owner,
       repo,
@@ -42,14 +56,6 @@ async function handleClaim({ github, context }) {
     });
     return;
   }
-
-  // Re-fetch to avoid stale assignee data from the webhook payload
-  const { data: freshIssue } = await github.rest.issues.get({
-    owner,
-    repo,
-    issue_number: issueNumber,
-  });
-  const currentAssignees = freshIssue.assignees.map((a) => a.login.toLowerCase());
 
   if (currentAssignees.length > 0) {
     if (currentAssignees.includes(commenter.toLowerCase())) {
