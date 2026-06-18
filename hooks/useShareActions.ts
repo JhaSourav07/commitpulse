@@ -3,6 +3,7 @@ import { useState, useRef, useEffect } from 'react';
 import { toPng, toCanvas } from 'html-to-image';
 import type { DashboardExportData } from '@/types/dashboard';
 import { getDashboardUrl, getOrigin } from '@/utils/urls';
+import { activityToTowers, generateMonolithSTL } from '@/lib/export3d';
 
 type OptionState = 'idle' | 'loading' | 'success' | 'error';
 
@@ -405,6 +406,56 @@ export function useShareActions(
     }
   };
 
+  const handleDownloadSTL = () => {
+    setOptionState('stl', 'loading');
+    const activity = exportData.activity ?? [];
+
+    if (typeof window === 'undefined') {
+      setOptionState('stl', 'error');
+      return;
+    }
+
+    try {
+      // Try using a Web Worker first
+      const worker = new Worker(new URL('./stl.worker.ts', import.meta.url));
+
+      worker.onmessage = (event) => {
+        const { success, stl, error } = event.data;
+        if (success) {
+          downloadTextFile(stl, `commitpulse-${username}-monolith.stl`, 'text/plain;charset=utf-8');
+          setOptionState('stl', 'success');
+        } else {
+          console.error('Worker failed to generate STL:', error);
+          runStlSync();
+        }
+        worker.terminate();
+      };
+
+      worker.onerror = (err) => {
+        console.error('Worker error:', err);
+        runStlSync();
+        worker.terminate();
+      };
+
+      worker.postMessage({ activity });
+    } catch (err) {
+      console.warn('Could not initialize worker, running synchronously:', err);
+      runStlSync();
+    }
+
+    function runStlSync() {
+      try {
+        const towers = activityToTowers(activity);
+        const stl = generateMonolithSTL(towers);
+        downloadTextFile(stl, `commitpulse-${username}-monolith.stl`, 'text/plain;charset=utf-8');
+        setOptionState('stl', 'success');
+      } catch (e) {
+        console.error('Synchronous STL generation failed:', e);
+        setOptionState('stl', 'error');
+      }
+    }
+  };
+
   const handleNativeShare = async () => {
     if (!('share' in navigator)) {
       setOptionState('native', 'loading');
@@ -443,6 +494,7 @@ export function useShareActions(
     handleCopyMarkdown,
     handleDownloadCSV,
     handleDownloadJSON,
+    handleDownloadSTL,
     handleNativeShare,
   };
 }

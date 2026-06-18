@@ -20,6 +20,7 @@ import {
   getLuminance,
   parseGradientStops,
   getGradientCoordinates,
+  escapeXML,
 } from './sanitizer';
 
 import { GRID_ORIGIN_X, GRID_ORIGIN_Y, TILE_HEIGHT_HALF, TILE_WIDTH_HALF } from './layoutConstants';
@@ -67,12 +68,23 @@ export function truncateUsername(username: string): string {
 
 export function deterministicRandom(seed?: string | null): number {
   const safeSeed = seed || '';
-  let hash = 2166136261;
+  let h1 = 0xdeadbeef;
   for (let i = 0; i < safeSeed.length; i++) {
-    hash ^= safeSeed.charCodeAt(i);
-    hash = Math.imul(hash, 16777619);
+    let k = safeSeed.charCodeAt(i) & 0xff;
+    k = Math.imul(k, 0xcc9e2d51);
+    k = (k << 15) | (k >>> 17);
+    k = Math.imul(k, 0x1b873593);
+    h1 ^= k;
+    h1 = (h1 << 13) | (h1 >>> 19);
+    h1 = Math.imul(h1, 5) + 0xe6546b64;
   }
-  return (hash >>> 0) / 4294967296;
+  h1 ^= safeSeed.length;
+  h1 ^= h1 >>> 16;
+  h1 = Math.imul(h1, 0x85ebca6b);
+  h1 ^= h1 >>> 13;
+  h1 = Math.imul(h1, 0xc2b2ae35);
+  h1 ^= h1 >>> 16;
+  return (h1 >>> 0) / 4294967296;
 }
 
 function scaleTowerData(towerData: TowerData[], sf: number): TowerData[] {
@@ -89,15 +101,6 @@ type Scaler = (n: number) => number;
 
 function createScaler(sf: number): Scaler {
   return (n: number): number => Math.round(n * sf);
-}
-
-export function escapeXML(str: string): string {
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
 }
 
 export function particleCount(count?: number | null): number {
@@ -355,7 +358,7 @@ function renderStyle(
   accent: string,
   sf: number,
   bg: string,
-  entrance: 'rise' | 'fade' | 'slide' | 'none' = 'rise'
+  entrance: 'rise' | 'fade' | 'slide' | 'wave' | 'bounce' | 'none' = 'rise'
 ): string {
   const fs = (n: number) => Math.round(n * sf * 10) / 10;
   const isLightBg = getLuminance(bg) > 0.5;
@@ -409,7 +412,45 @@ function renderTowers(
   let towers = '';
   const opacityMultipliers = [0.4, 0.6, 0.8, 1.0];
 
-  for (const t of towerData) {
+  const theta = params.theta !== undefined ? params.theta : 45;
+  const phi = params.phi !== undefined ? params.phi : Math.asin(10 / 16) * (180 / Math.PI);
+
+  const thetaRad = (theta * Math.PI) / 180;
+  const phiRad = (phi * Math.PI) / 180;
+
+  const d = 8 * Math.sqrt(2);
+  const cosTheta = Math.cos(thetaRad);
+  const sinTheta = Math.sin(thetaRad);
+  const sinPhi = Math.sin(phiRad);
+
+  // Base tile corners relative to the center of the base (unscaled)
+  const ax = cosTheta * -d - sinTheta * -d;
+  const ay = sinTheta * sinPhi * -d + cosTheta * sinPhi * -d;
+  const bx = cosTheta * d - sinTheta * -d;
+  const by = sinTheta * sinPhi * d + cosTheta * sinPhi * -d;
+  const cx = cosTheta * d - sinTheta * d;
+  const cy = sinTheta * sinPhi * d + cosTheta * sinPhi * d;
+  const dx = cosTheta * -d - sinTheta * d;
+  const dy = sinTheta * sinPhi * -d + cosTheta * sinPhi * d;
+
+  const rnd = (num: number) => {
+    const val = Math.round(num * 10000) / 10000;
+    return val === 0 ? 0 : val;
+  };
+
+  // Scale the local offsets by sf and round to eliminate float noise
+  const ax_sf = rnd(ax * sf);
+  const ay_sf = rnd(ay * sf);
+  const bx_sf = rnd(bx * sf);
+  const by_sf = rnd(by * sf);
+  const cx_sf = rnd(cx * sf);
+  const cy_sf = rnd(cy * sf);
+  const dx_sf = rnd(dx * sf);
+  const dy_sf = rnd(dy * sf);
+
+  const sortedTowers = [...towerData].sort((a, b) => a.row + a.col - (b.row + b.col));
+
+  for (const t of sortedTowers) {
     const isGhost = t.isGhost;
     let strokeColor = '';
     let leftRightFillAttr = '';
@@ -503,10 +544,27 @@ function renderTowers(
     const shouldDim = params.dim_weekends && isWeekend;
     const dimAttr = shouldDim ? ' class="dimmed-tower" style="opacity: 0.3;"' : '';
 
-    const paths = buildTowerPaths(t.h, 1);
+    // Calculate dynamic 3D coordinates based on row, col, theta, phi
+    const gridX = t.row * 16 * Math.sqrt(2);
+    const gridY = t.col * 16 * Math.sqrt(2);
+
+    const x_base = cosTheta * gridX - sinTheta * gridY;
+    const y_base = sinTheta * sinPhi * gridX + cosTheta * sinPhi * gridY;
+
+    // Apply scaling factor (sf) and add origin offsets
+    const towerX = Math.round((GRID_ORIGIN_X + x_base) * sf);
+    const towerY = Math.round((GRID_ORIGIN_Y + y_base) * sf);
+
+    const hOffset = t.h;
+
+    const paths = {
+      left: `M${cx_sf} ${rnd(cy_sf - hOffset)} L${cx_sf} ${cy_sf} L${dx_sf} ${dy_sf} L${dx_sf} ${rnd(dy_sf - hOffset)} Z`,
+      right: `M${cx_sf} ${rnd(cy_sf - hOffset)} L${cx_sf} ${cy_sf} L${bx_sf} ${by_sf} L${bx_sf} ${rnd(by_sf - hOffset)} Z`,
+      top: `M${ax_sf} ${rnd(ay_sf - hOffset)} L${bx_sf} ${rnd(by_sf - hOffset)} L${cx_sf} ${rnd(cy_sf - hOffset)} L${dx_sf} ${rnd(dy_sf - hOffset)} Z`,
+    };
 
     towers += `
-        <g transform="translate(${t.x}, ${t.y})"${dimAttr}>
+        <g transform="translate(${towerX}, ${towerY})"${dimAttr}>
           <g class="cp-tower interactive-tower" data-date="${escapeXML(t.date)}" data-count="${t.contributionCount}" data-metric="${escapeXML(metric)}" style="animation-delay: ${delay}s;">
             ${animate && t.isToday ? '<animate attributeName="opacity" values="1;0.4;1" dur="1.5s" repeatCount="indefinite" />' : ''}
             <title>${escapeXML(t.tooltip)}</title>
@@ -528,9 +586,9 @@ function renderTowers(
           ? pColorResolved
           : `#${pColorResolved}`;
       let particlesMarkup = generateParticles(
-        t.x,
-        t.y,
-        t.h,
+        towerX,
+        towerY,
+        hOffset,
         t.contributionCount,
         sf,
         isAutoTheme,
@@ -795,7 +853,7 @@ export function generateSVG(
   const safeId = safeUser.replace(/[^a-zA-Z0-9-]/g, '_').toLowerCase();
 
   return `
-<svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 ${W} ${H}" fill="none" role="img" aria-labelledby="cp-title-${safeId}" aria-describedby="cp-desc-${safeId}">
+<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" fill="none" role="img" aria-labelledby="cp-title-${safeId}" aria-describedby="cp-desc-${safeId}">
   ${renderHeader(safeUser, stats, sf, params, safeId)}
   ${renderStyle(selectedFont, statsFont, googleFontsImport, text, mainAccentHex, sf, bg, params.entrance || 'rise')}
   <rect width="${W}" height="${H}" rx="${radius}" fill="${params.hideBackground ? 'transparent' : bgFill}" ${borderAttr} />
@@ -846,7 +904,8 @@ function generateAutoThemeSVG(
   return `
 <svg
   xmlns="http://www.w3.org/2000/svg"
-  width="100%"
+  width="${W}"
+  height="${H}"
   viewBox="0 0 ${W} ${H}"
   fill="none"
   role="img"
@@ -1023,7 +1082,7 @@ export function generateMonthlySVG(stats: MonthlyStats, params: BadgeParams): st
 
   <rect width="${width}" height="${height}" rx="${radius}" fill="${params.hideBackground ? 'transparent' : bgFill}" />
 
-  <text x="20" y="40" class="title">${stats.currentMonthName.toUpperCase()}</text>
+  <text x="20" y="40" class="title">${escapeXML(stats.currentMonthName.toUpperCase())}</text>
   <text x="20" y="85" class="stats">${stats.currentMonthTotal}</text>
   <text x="20" y="105" class="label">${commitsLabel}</text>
 
@@ -1352,7 +1411,7 @@ function generateAutoThemeMonthlySVG(stats: MonthlyStats, params: BadgeParams): 
 
   <rect width="${width}" height="${height}" rx="${radius}" ${params.hideBackground ? 'fill="transparent"' : 'class="cp-bg-fill"'} />
 
-  <text x="20" y="40" class="title">${stats.currentMonthName.toUpperCase()}</text>
+  <text x="20" y="40" class="title">${escapeXML(stats.currentMonthName.toUpperCase())}</text>
   <text x="20" y="85" class="stats">${stats.currentMonthTotal}</text>
   <text x="20" y="105" class="label">${commitsLabel}</text>
 
@@ -1589,7 +1648,7 @@ export function generateHeatmapSVG(
       : '';
 
   return `
-<svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 ${W} ${H}" fill="none" role="img">
+<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" fill="none" role="img">
   <title>CommitPulse Heatmap for ${safeUser}</title>
   <desc>${safeUser} has ${stats.totalContributions} ${unit} and a longest streak of ${stats.longestStreak} days.</desc>
 
@@ -1716,7 +1775,7 @@ function generateAutoThemeHeatmapSVG(
       : '';
 
   return `
-<svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 ${W} ${H}" fill="none" role="img">
+<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" fill="none" role="img">
   <title>CommitPulse Heatmap for ${safeUser}</title>
   <desc>${safeUser} has ${stats.totalContributions} ${unit} and a longest streak of ${stats.longestStreak} days.</desc>
 
@@ -2043,7 +2102,7 @@ export function generateVersusSVG(
   const isWinner2 = stats2.totalContributions > stats1.totalContributions;
 
   return `
-<svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 ${W} ${H}" fill="none" role="img" aria-labelledby="cp-title-${safeId}" aria-describedby="cp-desc-${safeId}">
+<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" fill="none" role="img" aria-labelledby="cp-title-${safeId}" aria-describedby="cp-desc-${safeId}">
   <title id="cp-title-${safeId}">CommitPulse Versus Stats: ${safeUser1} vs ${safeUser2}</title>
   <desc id="cp-desc-${safeId}">${safeUser1} has ${stats1.totalContributions} ${unit}. ${safeUser2} has ${stats2.totalContributions} ${unit}.</desc>
   ${renderDefs(sf, params)}
@@ -2119,7 +2178,7 @@ function generateAutoThemeVersusSVG(
   const isWinner2 = stats2.totalContributions > stats1.totalContributions;
 
   return `
-<svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 ${W} ${H}" fill="none" role="img" aria-labelledby="cp-title-${safeId}" aria-describedby="cp-desc-${safeId}">
+<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" fill="none" role="img" aria-labelledby="cp-title-${safeId}" aria-describedby="cp-desc-${safeId}">
   <title id="cp-title-${safeId}">CommitPulse Versus Stats: ${safeUser1} vs ${safeUser2}</title>
   <desc id="cp-desc-${safeId}">${safeUser1} has ${stats1.totalContributions} ${unit}. ${safeUser2} has ${stats2.totalContributions} ${unit}.</desc>
   ${renderDefs(sf, params)}
@@ -2953,11 +3012,18 @@ export function generateRateLimitSVG(
   accent: string,
   text: string,
   radius: number,
-  speed: string = '8s'
+  speed: string = '8s',
+  isCircuitOpen = false
 ): string {
   const ghostTowersHtml = renderGhostTowers(GHOST_LAYOUT, accent);
 
   const safeId = 'rate_limit';
+  const subtitle = isCircuitOpen ? 'CIRCUIT BREAKER' : 'RATE LIMITED';
+  const subtitleWidth = isCircuitOpen ? 220 : 180;
+  const subtitleRectX = 300 - subtitleWidth / 2;
+  const note = isCircuitOpen
+    ? 'Circuit breaker active. System is temporarily offline.'
+    : 'Please wait a moment before trying again';
 
   return `<svg
   xmlns="http://www.w3.org/2000/svg"
@@ -3019,17 +3085,17 @@ export function generateRateLimitSVG(
   <path d="M300 172 V200 M300 210 V210.1"
     stroke="${accent}" stroke-width="2.5" stroke-linecap="round" stroke-opacity="0.6"/>
 
-  <rect x="210" y="235" width="180" height="22" rx="4"
+  <rect x="${subtitleRectX}" y="235" width="${subtitleWidth}" height="22" rx="4"
     fill="${accent}" fill-opacity="0.08"
     stroke="${accent}" stroke-width="0.8" stroke-opacity="0.25"/>
   <text x="300" y="250" text-anchor="middle"
     font-family="Syncopate, sans-serif" font-size="9" font-weight="700"
-    fill="${accent}" opacity="0.7" letter-spacing="4">RATE LIMITED</text>
+    fill="${accent}" opacity="0.7" letter-spacing="4">${subtitle}</text>
 
   <text x="300" y="278" text-anchor="middle"
     font-family="Space Grotesk, sans-serif" font-size="11"
     fill="${text}" opacity="0.3">
-    Please wait a moment before trying again
+    ${note}
   </text>
 
   <g transform="translate(40, 340)">
@@ -3092,7 +3158,7 @@ export function generateLanguagesSVG(
 
   if (total === 0) {
     return `
-<svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 ${W} ${H}" fill="none" role="img" aria-labelledby="cp-title-${safeId}">
+<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" fill="none" role="img" aria-labelledby="cp-title-${safeId}">
   ${renderHeader(safeUser, stats, sf, params, safeId)}
   ${renderStyle(selectedFont, statsFont, googleFontsImport, text, accent, sf, bg, params.entrance || 'rise')}
   <rect width="${W}" height="${H}" rx="${radius}" fill="${params.hideBackground ? 'transparent' : bg}" ${borderAttr} />
@@ -3157,7 +3223,7 @@ export function generateLanguagesSVG(
   });
 
   return `
-<svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 ${W} ${H}" fill="none" role="img" aria-labelledby="cp-title-${safeId}" aria-describedby="cp-desc-${safeId}">
+<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" fill="none" role="img" aria-labelledby="cp-title-${safeId}" aria-describedby="cp-desc-${safeId}">
   ${renderHeader(safeUser, stats, sf, params, safeId)}
   ${renderStyle(selectedFont, statsFont, googleFontsImport, text, accent, sf, bg, params.entrance || 'rise')}
   <rect width="${W}" height="${H}" rx="${radius}" fill="${params.hideBackground ? 'transparent' : bg}" ${borderAttr} />

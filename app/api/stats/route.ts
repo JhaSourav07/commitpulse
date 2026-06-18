@@ -7,6 +7,7 @@ import { getClientIp } from '@/utils/getClientIp';
 import { quotaMonitor } from '@/services/github/quota-monitor';
 import { refreshPolicy } from '@/services/github/refresh-policy';
 import { refreshRateLimiter } from '@/services/github/refresh-rate-limiter';
+import { getUserGitHubToken } from '@/lib/githubtoken';
 
 function logSecurityEvent(event: string, details: Record<string, unknown>) {
   console.warn(
@@ -117,13 +118,20 @@ export async function GET(request: Request) {
         remainingMs: refreshPolicy.getRemainingCooldown(user),
       });
       shouldBypassCache = false;
-    } else {
-      refreshPolicy.recordRefresh(user);
     }
   }
 
   try {
-    const userData = await fetchGitHubContributions(user, { bypassCache: shouldBypassCache });
+    // Authenticated -> user's OAuth token (their quota); anonymous -> undefined (global PAT).
+    const userToken = await getUserGitHubToken();
+    const userData = await fetchGitHubContributions(user, {
+      bypassCache: shouldBypassCache,
+      token: userToken,
+    });
+    if (shouldBypassCache) {
+      refreshPolicy.recordRefresh(user);
+    }
+
     const calendar = userData.calendar;
     const stats = calculateStreak(calendar, timezone);
     const headers = new Headers({

@@ -31,6 +31,9 @@ jobs:
       - name: Check Prettier Formatting
         run: npm run format:check
 
+      - name: Run Stylelint
+        run: npm run lint:css
+
       - name: Run ESLint
         run: npm run lint
 
@@ -61,3 +64,15 @@ jobs:
         run: npm run build
         env:
           CI: false
+
+      - name: Measure Bundle Size
+        run: node scripts/measure-bundle-size.js bundle-sizes.json
+
+      - name: Upload Bundle Sizes
+        uses: actions/upload-artifact@v4
+        with:
+          name: bundle-sizes
+          path: |
+            bundle-sizes.json
+            scripts/measure-bundle-size.js
+            scripts/compare-bundle-sizes.js
