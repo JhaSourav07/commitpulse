@@ -63,7 +63,7 @@ describe('GET /api/streak — languages (lang) parameter', () => {
     const response = await GET(makeRequest({ user: 'octocat', lang: 'de' }));
 
     expect(response.status).toBe(200);
-    expect(response.headers.get('Content-Type')).toBe('image/svg+xml');
+    expect(response.headers.get('Content-Type')).toBe('image/svg+xml; charset=utf-8');
   });
 
   it('returns a well-formed SVG body when lang=pt is given', async () => {
@@ -98,7 +98,7 @@ describe('GET /api/streak — languages (lang) parameter', () => {
   it('sets Cache-Control and Content-Security-Policy headers for a valid lang parameter', async () => {
     const response = await GET(makeRequest({ user: 'octocat', lang: 'de' }));
 
-    expect(response.headers.get('Cache-Control')).toMatch(/public, s-maxage=\d+/);
+    expect(response.headers.get('Cache-Control')).toMatch(/public, max-age=14400, s-maxage=\d+/);
     const csp = response.headers.get('Content-Security-Policy');
     expect(csp).toContain("default-src 'none'");
     expect(csp).toContain("style-src 'unsafe-inline'");

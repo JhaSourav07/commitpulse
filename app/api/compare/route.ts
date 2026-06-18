@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getFullDashboardData } from '@/lib/github';
+import { getUserGitHubToken } from '@/lib/githubtoken';
 import { compareParamsSchema } from '@/lib/validations';
 import crypto from 'crypto';
 
@@ -65,9 +66,10 @@ export async function GET(request: Request) {
   const { user1, user2 } = parseResult.data;
 
   try {
+    const userToken = await getUserGitHubToken();
     const [result1, result2] = await Promise.allSettled([
-      getFullDashboardData(user1),
-      getFullDashboardData(user2),
+      getFullDashboardData(user1, { token: userToken }),
+      getFullDashboardData(user2, { token: userToken }),
     ]);
 
     if (result1.status === 'rejected') {

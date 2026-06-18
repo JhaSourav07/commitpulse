@@ -1,6 +1,6 @@
 # CommitPulse Themes
 
-All 26 available themes for your CommitPulse badge. Use the `?theme=<slug>` query parameter to apply a theme.
+All 27 available themes for your CommitPulse badge. Use the `?theme=<slug>` query parameter to apply a theme.
 
 ```
 https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&theme=<slug>
@@ -38,6 +38,7 @@ https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&theme=<slug>
 | glacier          | `#e0f2fe`  | `#0369a1` | `#06b6d4` |
 | lumos            | `#0a0a0a`  | `#a7f3d0` | `#fbbf24` |
 | monokai          | `#272822`  | `#f8f8f2` | `#a6e22e` |
+| retro-terminal   | `#000000`  | `#00ff41` | `#00ff41` |
 
 ---
 
@@ -268,6 +269,18 @@ https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&theme=<slug>
 | `bg`      | 000000 |
 | `text`    | ffffff |
 | `accent`  | 00ffee |
+
+---
+
+### Retro Terminal
+
+![retro-terminal](https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=retro-terminal)
+
+| Parameter | Value  |
+| --------- | ------ |
+| `bg`      | 000000 |
+| `text`    | 00ff41 |
+| `accent`  | 00ff41 |
 
 ---
 

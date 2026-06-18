@@ -26,6 +26,32 @@ vi.mock('./ThemeSelector', () => ({
   ),
 }));
 
+vi.mock('@/context/TranslationContext', () => ({
+  useTranslation: () => ({
+    t: (key: string) => {
+      const translations: Record<string, string> = {
+        'customize_cta.studio_badge': 'Customization Studio',
+        'customize.controls.username': 'Username',
+        'customize.controls.username_placeholder': 'Enter username...',
+        'customize.controls.sync_year': 'Sync Year',
+        'customize.controls.color_overrides': 'Color Overrides',
+        'customize.controls.custom_bg': 'Custom Background',
+        'customize.controls.custom_accent': 'Custom Accent',
+        'customize.controls.custom_text': 'Custom Text',
+        'customize.controls.clear_custom': 'Clear Custom Colors',
+        'customize.controls.log_scaling': 'Log Scaling',
+        'customize.controls.speed': 'Speed',
+        'customize.controls.font': 'Font',
+        'customize.controls.custom_font_option': 'Custom Font',
+        'customize.controls.custom_font_placeholder': 'Enter font name',
+        'customize.controls.radius': 'Border Radius',
+        'customize.controls.badge_size': 'Badge Size',
+      };
+      return translations[key] ?? key;
+    },
+  }),
+}));
+
 const createProps = () => ({
   username: 'octocat',
   theme: 'default',

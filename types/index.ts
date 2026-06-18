@@ -170,6 +170,7 @@ export interface ExtendedContributionData {
   repoContributions: RepoContribution[];
   totalPRs?: number;
   totalIssues?: number;
+  totalReviews?: number;
   isOfflineFallback?: boolean;
 }
 
@@ -244,8 +245,8 @@ export interface BadgeParams {
   /** Duration of the radar scan line animation (e.g. '4s', '8s', '12s'). Defaults to '8s'. */
   speed: SpeedString;
 
-  /** Animation style for the isometric towers on load: 'rise' (default), 'fade', 'slide', or 'none'. */
-  entrance?: 'rise' | 'fade' | 'slide' | 'none';
+  /** Animation style for the isometric towers on load: 'rise' (default), 'fade', 'slide', 'wave', 'bounce', or 'none'. */
+  entrance?: 'rise' | 'fade' | 'slide' | 'wave' | 'bounce' | 'none';
 
   /** Tower height scaling algorithm. 'linear' scales proportionally; 'log' uses logarithmic scale for high contributors. Defaults to 'linear'. */
   scale: Scale;
@@ -274,8 +275,18 @@ export interface BadgeParams {
   /** Language/locale code for stat labels (e.g. 'en', 'fr', 'ja'). Defaults to 'en'. */
   lang?: string;
 
-  /** Badge layout variant. 'default' shows the isometric monolith; 'monthly' shows month-over-month stats; 'heatmap' shows a flat 2D contribution heatmap; 'pulse' shows a heartbeat sparkline; 'skyline' shows a city skyline; 'languages' shows a 3D isometric city of top programming languages; 'constellation' shows a celestial star-map SVG visualization. */
-  view?: 'default' | 'monthly' | 'heatmap' | 'pulse' | 'skyline' | 'languages' | 'constellation';
+  /** Badge layout variant. 'default' shows the isometric monolith; 'monthly' shows month-over-month stats; 'heatmap' shows a flat 2D contribution heatmap; 'pulse' shows a heartbeat sparkline; 'skyline' shows a city skyline; 'languages' shows a 3D isometric city of top programming languages; 'constellation' shows a celestial star-map SVG visualization; 'radar' shows a radar chart of contribution metrics. */
+  view?:
+    | 'default'
+    | 'monthly'
+    | 'heatmap'
+    | 'pulse'
+    | 'skyline'
+    | 'languages'
+    | 'constellation'
+    | 'radar'
+    | 'doughnut'
+    | 'pie';
 
   /** Format for the monthly delta indicator. 'percent' shows %, 'absolute' shows raw count, 'both' shows both. */
   delta_format?: 'percent' | 'absolute' | 'both';
@@ -339,6 +350,12 @@ export interface BadgeParams {
   isOfflineFallback?: boolean;
   badges?: boolean;
 
+  /** Projection rotation angle around the Z-axis in degrees (0-360). */
+  theta?: number;
+
+  /** Projection tilt angle around the X-axis in degrees (0-90). */
+  phi?: number;
+
   /** @internal Temporary property to track custom gradient ID during SVG generation. */
   __customGradientId?: string;
 }
@@ -392,4 +409,5 @@ export interface NotificationResponse {
   success: boolean;
   message: string;
   data?: NotificationPayload;
+  managementToken?: string;
 }
