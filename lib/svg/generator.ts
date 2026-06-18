@@ -358,7 +358,7 @@ function renderStyle(
   accent: string,
   sf: number,
   bg: string,
-  entrance: 'rise' | 'fade' | 'slide' | 'none' = 'rise'
+  entrance: 'rise' | 'fade' | 'slide' | 'wave' | 'bounce' | 'none' = 'rise'
 ): string {
   const fs = (n: number) => Math.round(n * sf * 10) / 10;
   const isLightBg = getLuminance(bg) > 0.5;

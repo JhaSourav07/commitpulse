@@ -5,7 +5,7 @@ import { getRateLimitHeaders, RateLimiter } from '@/lib/rate-limit';
 import { getUserGitHubToken } from '@/lib/githubtoken';
 import { getClientIp } from '@/utils/getClientIp';
 
-const prInsightsLimiter = new RateLimiter(10, 60_000, 1);
+const prInsightsLimiter = new RateLimiter(10, 60_000, 10_000);
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);

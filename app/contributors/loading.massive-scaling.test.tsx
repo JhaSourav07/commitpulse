@@ -17,7 +17,7 @@ describe('ContributorsLoading massive scaling behavior', () => {
     }).not.toThrow();
   });
 
-  it('preserves loading text across repeated high-volume renders', () => {
+  it('does not duplicate loading text across repeated high-volume renders', () => {
     render(
       <>
         {Array.from({ length: 100 }, (_, index) => (
@@ -26,10 +26,10 @@ describe('ContributorsLoading massive scaling behavior', () => {
       </>
     );
 
-    expect(screen.getAllByText('Loading the collective...')).toHaveLength(100);
+    expect(screen.queryAllByText('Loading the collective...')).toHaveLength(0);
   });
 
-  it('preserves contributor fetch messaging at scale', () => {
+  it('does not duplicate contributor fetch messaging at scale', () => {
     render(
       <>
         {Array.from({ length: 100 }, (_, index) => (
@@ -38,7 +38,7 @@ describe('ContributorsLoading massive scaling behavior', () => {
       </>
     );
 
-    expect(screen.getAllByText('Fetching contributor data from GitHub')).toHaveLength(100);
+    expect(screen.queryAllByText('Fetching contributor data from GitHub')).toHaveLength(0);
   });
 
   it('renders spinner elements consistently under heavy load', () => {

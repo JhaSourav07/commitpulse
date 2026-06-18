@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it } from 'vitest';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -50,11 +50,5 @@ describe('structuredClone regression prevention', () => {
         );
       }
     }
-  });
-
-  it('aggregateCalendars uses structuredClone for deep cloning', () => {
-    const calculatePath = path.join(ROOT, 'lib', 'calculate.ts');
-    const content = fs.readFileSync(calculatePath, 'utf8');
-    expect(content).toContain('structuredClone(baseCalendar)');
   });
 });

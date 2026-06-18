@@ -45,7 +45,6 @@ import {
   Camera,
 } from 'lucide-react';
 import { validateGitHubUsername } from '@/lib/validations';
-import { toPng } from 'html-to-image';
 
 /* ── types ────────────────────────────────────────────────────────────── */
 
@@ -1034,6 +1033,8 @@ export default function CompareClient() {
           }
         })
       );
+
+      const { toPng } = await import('html-to-image');
 
       const image = await toPng(captureRef.current, {
         pixelRatio: 2,

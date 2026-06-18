@@ -3,14 +3,12 @@ import { fetchCIAnalytics } from '@/services/github/ci-analytics';
 import { getUserGitHubToken } from '@/lib/githubtoken';
 import { validateGitHubUsername } from '@/lib/validations';
 import { RateLimiter } from '@/lib/rate-limit';
+import { getClientIp } from '@/utils/getClientIp';
 
-const ciAnalyticsLimiter = new RateLimiter(10, 60_000, 1);
+const ciAnalyticsLimiter = new RateLimiter(10, 60_000, 10_000);
 
 export async function GET(request: Request) {
-  const ip =
-    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
-    request.headers.get('x-real-ip') ??
-    'unknown';
+  const ip = getClientIp(request);
 
   if (!(await ciAnalyticsLimiter.check(ip))) {
     return NextResponse.json(
