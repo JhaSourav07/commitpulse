@@ -13,7 +13,7 @@ interface SocialLink {
   label: string;
   href: string;
   ariaLabel: string;
-  icon: string;
+  iconPath: React.ReactNode;
 }
 
 function LinkComponent({
@@ -88,49 +88,77 @@ export function Footer() {
       label: t('footer.github'),
       href: 'https://github.com/JhaSourav07/commitpulse',
       ariaLabel: 'CommitPulse on GitHub',
-      icon: 'github',
+      iconPath: (
+        <path
+          d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.603-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.464-1.11-1.464-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.087 2.91.831.092-.646.35-1.086.636-1.336-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.579.688.481C19.137 20.162 22 16.418 22 12c0-5.523-4.477-10-10-10z"
+          fill="currentColor"
+        />
+      ),
     },
     {
       label: t('footer.creator_github'),
       href: 'https://github.com/jhasourav07',
       ariaLabel: 'Creator Sourav Jha on GitHub',
-      icon: 'creator',
+      iconPath: (
+        <path
+          d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"
+          fill="currentColor"
+        />
+      ),
     },
     {
       label: t('footer.discord'),
       href: 'https://discord.gg/Cb73bS79j',
       ariaLabel: 'Join CommitPulse on Discord',
-      icon: 'discord',
+      iconPath: (
+        <path
+          d="M19.27 4.73a16.14 16.14 0 00-3.97-1.23.13.13 0 00-.14.07c-.17.31-.36.72-.5 1.04a14.86 14.86 0 00-5.32 0c-.14-.32-.34-.73-.52-1.04a.13.13 0 00-.14-.07 16.09 16.09 0 00-3.97 1.23.13.13 0 00-.06.05A16.17 16.17 0 001.15 16.07a.12.12 0 00.05.09 16.43 16.43 0 004.95 2.5.14.14 0 00.15-.05c.42-.57.8-1.18 1.12-1.82a.13.13 0 00-.07-.18 10.74 10.74 0 01-1.55-.74.13.13 0 01-.01-.22c.1-.08.21-.15.31-.23a.13.13 0 01.14-.02 11.75 11.75 0 008.42 0 .13.13 0 01.14.02c.1.08.21.15.31.23a.13.13 0 01-.01.22 10.51 10.51 0 01-1.55.74.13.13 0 00-.07.19c.32.64.7 1.25 1.12 1.82a.13.13 0 00.15.05 16.35 16.35 0 004.95-2.5.12.12 0 00.05-.09 16.12 16.12 0 00-4.1-11.29.12.12 0 00-.06-.05zM8.02 13.52c-.98 0-1.79-.9-1.79-2a1.79 1.79 0 011.79-2c1 0 1.8.9 1.79 2a1.79 1.79 0 01-1.79 2zm7.96 0c-.98 0-1.79-.9-1.79-2a1.79 1.79 0 011.79-2c1 0 1.8.9 1.79 2a1.79 1.79 0 01-1.79 2z"
+          fill="currentColor"
+        />
+      ),
     },
     {
       label: t('footer.twitter'),
       href: 'https://x.com/JhaSourav07',
       ariaLabel: 'Creator on X',
-      icon: 'twitter',
+      iconPath: (
+        <path
+          d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"
+          fill="currentColor"
+        />
+      ),
     },
     {
       label: t('footer.linkedin'),
       href: 'https://linkedin.com/in/souravjhahind',
       ariaLabel: 'Creator on LinkedIn',
-      icon: 'linkedin',
+      iconPath: (
+        <path
+          d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.79M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"
+          fill="currentColor"
+        />
+      ),
     },
   ];
 
   return (
-    <footer className="mt-auto border-t border-black/5 bg-white/50 px-4 py-8 backdrop-blur dark:border-white/5 dark:bg-zinc-950/50 sm:px-6 md:py-12">
+    <footer className="relative mt-auto border-t border-black/[0.06] bg-gradient-to-b from-white/40 to-white/80 px-4 py-8 backdrop-blur-md dark:border-white/[0.06] dark:from-zinc-950/40 dark:to-zinc-950/80 sm:px-6 md:py-12 overflow-hidden">
+      <div className="absolute top-0 left-1/4 -z-10 h-32 w-72 rounded-full bg-teal-500/5 blur-[80px] dark:bg-violet-500/5 pointer-events-none" />
+      <div className="absolute bottom-0 right-1/4 -z-10 h-32 w-72 rounded-full bg-blue-500/5 blur-[80px] dark:bg-fuchsia-500/5 pointer-events-none" />
+
       <div className="mx-auto max-w-6xl">
-        {/* Main Footer Content */}
         <div className="grid grid-cols-2 gap-6 md:grid-cols-2 lg:grid-cols-4 mb-6">
-          {/* Brand Section */}
           <div className="flex flex-col items-start lg:col-span-1">
-            <h2 className="font-bold text-lg text-black dark:text-white">CommitPulse</h2>
-            <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">{t('footer.tagline')}</p>
+            <h2 className="font-extrabold text-2xl sm:text-3xl tracking-tight bg-gradient-to-r from-teal-600 via-sky-500 to-violet-500 bg-clip-text text-transparent dark:from-teal-400 dark:via-sky-400 dark:to-violet-400">
+              CommitPulse
+            </h2>
+            <p className="mt-3 text-base leading-relaxed text-zinc-600 dark:text-zinc-400 font-normal max-w-xs">
+              Designed for the elite builder community.
+            </p>
           </div>
 
-          {/* Navigation Section */}
-
-          <div className="flex flex-col items-center sm:items-start">
-            <h3 className="font-semibold text-sm text-black dark:text-white mb-3">
+          <div className="flex flex-col items-center sm:items-start lg:pl-16">
+            <h3 className="font-semibold text-sm text-black dark:text-white mb-3 border-b border-black/20 dark:border-white/20 pb-1 w-fit">
               {t('footer.navigation')}
             </h3>
             <nav className="flex flex-col gap-2 text-center sm:text-left">
@@ -147,10 +175,8 @@ export function Footer() {
             </nav>
           </div>
 
-          {/* Resources Section */}
-
-          <div className="flex flex-col items-center sm:items-start">
-            <h3 className="font-semibold text-sm text-black dark:text-white mb-3">
+          <div className="flex flex-col items-center sm:items-start lg:pl-10">
+            <h3 className="font-semibold text-sm text-black dark:text-white mb-3 border-b border-black/20 dark:border-white/20 pb-1 w-fit">
               {t('footer.resources')}
             </h3>
             <nav className="flex flex-col gap-2 text-center sm:text-left">
@@ -167,35 +193,44 @@ export function Footer() {
             </nav>
           </div>
 
-          {/* Connect Section */}
-
-          <div className="flex flex-col items-center sm:items-start">
-            <h3 className="font-semibold text-sm text-black dark:text-white mb-3">
+          <div className="flex flex-col items-center sm:items-start lg:pl-10">
+            <h3 className="font-semibold text-sm text-black dark:text-white mb-3 border-b border-black/20 dark:border-white/20 pb-1 w-fit">
               {t('footer.connect')}
             </h3>
-            <div className="flex flex-col gap-2 text-center sm:text-left">
+            <div className="flex flex-col gap-2.5 text-center sm:text-left">
               {socialLinks.map((link) => (
                 <LinkComponent
                   key={link.href}
                   href={link.href}
                   isExternal
                   ariaLabel={link.ariaLabel}
-                  className="text-sm text-zinc-600 dark:text-zinc-400"
+                  className="text-sm text-zinc-600 dark:text-zinc-400 group/item"
                 >
-                  {link.label}
+                  <span className="flex items-center gap-2.5">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      className="w-5 h-5 text-zinc-500 transition-colors duration-300 group-hover/item:text-teal-600 dark:group-hover/item:text-violet-400 block shrink-0"
+                    >
+                      {link.iconPath}
+                    </svg>
+                    <span>{link.label}</span>
+                  </span>
                 </LinkComponent>
               ))}
             </div>
           </div>
         </div>
 
-        {/* Divider */}
         <div className="border-t border-black/5 dark:border-white/5" />
 
-        {/* Bottom Section */}
-        <div className="mt-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 text-xs text-zinc-500 dark:text-zinc-500">
-          <p>{t('footer.copyright', { year: currentYear.toString() })}</p>
-          <p>{t('footer.made_with')}</p>
+        <div className="mt-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 text-xs text-zinc-400/70 dark:text-zinc-500/60 font-light select-none">
+          <div className="flex flex-col gap-0.5">
+            <p>{currentYear} CommitPulse</p>
+            <p>&copy; All rights reserved</p>
+          </div>
+          <p className="text-zinc-400 dark:text-zinc-500 font-normal">{t('footer.made_with')}</p>
         </div>
       </div>
     </footer>
