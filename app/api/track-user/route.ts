@@ -6,8 +6,39 @@ import { getRateLimitHeaders, trackUserRateLimiter } from '@/lib/rate-limit';
 import { trackUserProtection } from '@/services/security/track-user-protection';
 import { githubUsernameSchema } from '@/lib/validations';
 import { sanitizeMongoPayload } from '@/utils/sanitize';
+import logger from '@/lib/logger';
+
+const ALLOWED_ORIGINS = [
+  process.env.NEXT_PUBLIC_APP_URL || 'https://commitpulse.vercel.app',
+  'https://commitpulse.vercel.app',
+];
+
+function getCorsHeaders(origin: string | null): Record<string, string> {
+  const allowed = origin && ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  return {
+    'Access-Control-Allow-Origin': allowed,
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Max-Age': '86400',
+  };
+}
+
+export async function OPTIONS(req: Request) {
+  const origin = req.headers.get('origin');
+  return new NextResponse(null, { status: 204, headers: getCorsHeaders(origin) });
+}
 
 export async function POST(req: Request) {
+  const origin = req.headers.get('origin');
+  const corsHeaders = getCorsHeaders(origin);
+
+  if (req.method === 'POST' && origin && !ALLOWED_ORIGINS.includes(origin)) {
+    return NextResponse.json(
+      { success: false, error: 'Origin not allowed' },
+      { status: 403, headers: corsHeaders }
+    );
+  }
+
   // Get IP for rate limiting securely
   const ip = getClientIp(req);
 
@@ -77,9 +108,9 @@ export async function POST(req: Request) {
     if (!process.env.MONGODB_URI) {
       // In production, this is a critical configuration failure
       if (process.env.NODE_ENV === 'production') {
-        console.error(
-          'CRITICAL: MONGODB_URI is not set in production environment. User tracking is disabled.'
-        );
+        logger.error('User tracking disabled: MONGODB_URI is not set', {
+          environment: process.env.NODE_ENV,
+        });
         return NextResponse.json(
           { success: false, error: 'Database configuration error' },
           { status: 500 }
@@ -87,25 +118,44 @@ export async function POST(req: Request) {
       }
 
       // For development/non-production environments, bypass gracefully
-      console.warn('MONGODB_URI is not set. Bypassing user tracking for local development.');
+      logger.warn('User tracking bypassed: MONGODB_URI is not set', {
+        environment: process.env.NODE_ENV,
+      });
       trackUserProtection.recordWrite(trimmedUsername);
       return NextResponse.json({ success: true, bypassed: true });
     }
 
-    // Connect to database
-    await dbConnect();
-
+    // Connect to database and perform upsert with 1.5s timeout
     try {
-      // Upsert the user: create if doesn't exist, do nothing if exists
-      await User.updateOne(
-        { username: trimmedUsername },
-        {
-          $setOnInsert: { username: trimmedUsername },
-          $set: { lastSeen: new Date() },
-          $inc: { visitCount: 1 },
-        },
-        { upsert: true }
-      );
+      let timer: NodeJS.Timeout | undefined;
+      const timeoutPromise = new Promise<{ success: boolean; error?: unknown }>((_, reject) => {
+        timer = setTimeout(() => reject(new Error('Database operation timed out')), 1500);
+      });
+
+      const dbPromise = (async () => {
+        try {
+          await dbConnect();
+          await User.updateOne(
+            { username: trimmedUsername },
+            {
+              $setOnInsert: { username: trimmedUsername },
+              $set: { lastSeen: new Date() },
+              $inc: { visitCount: 1 },
+            },
+            { upsert: true }
+          );
+          return { success: true };
+        } catch (error) {
+          return { success: false, error };
+        } finally {
+          if (timer) clearTimeout(timer);
+        }
+      })();
+
+      const result = await Promise.race([dbPromise, timeoutPromise]);
+      if (!result.success) {
+        throw result.error;
+      }
 
       // Record successful database write
       trackUserProtection.recordWrite(trimmedUsername);
@@ -115,7 +165,7 @@ export async function POST(req: Request) {
         upsertError &&
         typeof upsertError === 'object' &&
         'code' in upsertError &&
-        upsertError.code === 11000
+        (upsertError as Record<string, unknown>).code === 11000
       ) {
         const err = upsertError as Record<string, unknown>;
         const isUsernameConflict =
@@ -128,12 +178,17 @@ export async function POST(req: Request) {
           return NextResponse.json({ success: true });
         }
       }
-      throw upsertError;
+
+      console.warn('Database operation failed or timed out. Bypassing user tracking:', upsertError);
+      return NextResponse.json({ success: true });
     }
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error tracking user:', error);
+    logger.error('Failed to track user', {
+      route: '/api/track-user',
+      error,
+    });
 
     return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
   }

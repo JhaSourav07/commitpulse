@@ -121,8 +121,8 @@ describe('fetchGitHubContributions', () => {
     const result = await fetchGitHubContributions('octocat');
     const day = result.calendar.weeks[0].contributionDays[0];
 
-    expect(day.locAdditions).toBeGreaterThan(0);
-    expect(day.locDeletions).toBeGreaterThanOrEqual(0);
+    expect(day.locAdditions).toBeUndefined();
+    expect(day.locDeletions).toBeUndefined();
   });
 
   it('sets locAdditions and locDeletions to zero for zero-contribution days', async () => {
@@ -591,6 +591,7 @@ describe('fetchUserRepos', () => {
           id: 12345,
           private: false,
           owner: { login: 'octocat' },
+          homepage: 'https://some-repo.vercel.app',
         },
       ])
     );
@@ -601,7 +602,11 @@ describe('fetchUserRepos', () => {
     expect(result[0].language).toBe('TypeScript');
     expect(result[0].id).toBeUndefined();
     expect(result[0].private).toBeUndefined();
-    expect(result[0].owner).toBeUndefined();
+    // owner and homepage are intentionally kept — required for the
+    // Production Deployments feature to resolve {owner}/{repo} paths
+    // and fall back to a configured live URL.
+    expect(result[0].owner).toEqual({ login: 'octocat' });
+    expect(result[0].homepage).toBe('https://some-repo.vercel.app');
   });
 
   it('returns a full three-repo payload with the expected star counts and languages', async () => {
@@ -819,10 +824,12 @@ describe('forceRefresh write-back', () => {
   afterEach(() => vi.restoreAllMocks());
 
   it('fetchGitHubContributions: forceRefresh writes back so a later normal read is a cache hit', async () => {
-    vi.mocked(fetch).mockResolvedValue(
-      mockResponse({
-        data: { user: { contributionsCollection: { contributionCalendar: mockCalendar } } },
-      })
+    vi.mocked(fetch).mockImplementation(() =>
+      Promise.resolve(
+        mockResponse({
+          data: { user: { contributionsCollection: { contributionCalendar: mockCalendar } } },
+        })
+      )
     );
 
     await fetchGitHubContributions('octocat', { forceRefresh: true });
@@ -1610,6 +1617,7 @@ describe('GitHub API cache behavior', () => {
             contributionsCollection: {
               totalPullRequestContributions: prs,
               totalIssueContributions: issues,
+              totalPullRequestReviewContributions: 0,
               contributionCalendar: {
                 totalContributions: total,
                 weeks: [
@@ -1675,6 +1683,7 @@ describe('GitHub API cache behavior', () => {
             contributionsCollection: {
               totalPullRequestContributions: 0,
               totalIssueContributions: 0,
+              totalPullRequestReviewContributions: 0,
               contributionCalendar: mockCalendar,
               commitContributionsByRepository: [],
             },

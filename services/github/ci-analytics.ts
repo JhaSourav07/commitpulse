@@ -20,11 +20,14 @@ const cache = new DistributedCache<CIAnalyticsData>(500);
 
 let currentTokenIndex = 0;
 
-function getHeaders() {
-  const tokens = getGitHubTokens();
-  if (tokens.length === 0) throw new Error('GitHub token is missing');
-  const token = tokens[currentTokenIndex % tokens.length];
-  currentTokenIndex++;
+function getHeaders(userToken?: string) {
+  let token = userToken;
+  if (!token) {
+    const tokens = getGitHubTokens();
+    if (tokens.length === 0) throw new Error('GitHub token is missing');
+    token = tokens[currentTokenIndex % tokens.length];
+    currentTokenIndex++;
+  }
   return {
     Authorization: `bearer ${token}`,
     Accept: 'application/vnd.github.v3+json',
@@ -32,14 +35,17 @@ function getHeaders() {
   };
 }
 
-async function fetchAllPages<T>(url: string, perPage = 100): Promise<T[]> {
+async function fetchAllPages<T>(url: string, perPage = 100, userToken?: string): Promise<T[]> {
   const results: T[] = [];
   let page = 1;
   let hasMore = true;
 
   while (hasMore && page <= MAX_REPO_PAGES) {
     const paginatedUrl = `${url}${url.includes('?') ? '&' : '?'}per_page=${perPage}&page=${page}`;
-    const res = await fetchWithRetry(paginatedUrl, { headers: getHeaders(), cache: 'no-store' });
+    const res = await fetchWithRetry(paginatedUrl, {
+      headers: getHeaders(userToken),
+      cache: 'no-store',
+    });
     if (!res.ok) break;
     const data = await res.json();
     if (!Array.isArray(data) || data.length === 0) {
@@ -60,13 +66,13 @@ interface RepoInfo {
   parent?: { owner: { login: string }; name: string };
 }
 
-async function fetchUserRepos(username: string): Promise<RepoInfo[]> {
+async function fetchUserRepos(username: string, userToken?: string): Promise<RepoInfo[]> {
   const repos = await fetchAllPages<{
     name: string;
     owner: { login: string };
     fork: boolean;
     parent?: { owner: { login: string }; name: string };
-  }>(`${GITHUB_REST_URL}/users/${encodeURIComponent(username)}/repos?sort=pushed`);
+  }>(`${GITHUB_REST_URL}/users/${encodeURIComponent(username)}/repos?sort=pushed`, 100, userToken);
   return repos.map((r) => ({
     name: r.name,
     owner: r.owner.login,
@@ -75,13 +81,21 @@ async function fetchUserRepos(username: string): Promise<RepoInfo[]> {
   }));
 }
 
-async function fetchActionsPages<T>(url: string, dataField: string, perPage = 50): Promise<T[]> {
+async function fetchActionsPages<T>(
+  url: string,
+  dataField: string,
+  perPage = 50,
+  userToken?: string
+): Promise<T[]> {
   const results: T[] = [];
   let page = 1;
 
   while (page <= MAX_ACTION_PAGES) {
     const paginatedUrl = `${url}${url.includes('?') ? '&' : '?'}per_page=${perPage}&page=${page}`;
-    const res = await fetchWithRetry(paginatedUrl, { headers: getHeaders(), cache: 'no-store' });
+    const res = await fetchWithRetry(paginatedUrl, {
+      headers: getHeaders(userToken),
+      cache: 'no-store',
+    });
     if (!res.ok) break;
     const body = await res.json();
     const items = body[dataField];
@@ -96,7 +110,8 @@ async function fetchActionsPages<T>(url: string, dataField: string, perPage = 50
 async function fetchWorkflowRuns(
   owner: string,
   repo: string,
-  label?: string
+  label?: string,
+  userToken?: string
 ): Promise<{
   runs: CIWorkflowRun[];
   workflows: CIWorkflow[];
@@ -119,12 +134,12 @@ async function fetchWorkflowRuns(
       event: string;
       html_url: string;
       run_duration_ms?: number;
-    }>(runsUrl, 'workflow_runs', 50),
+    }>(runsUrl, 'workflow_runs', 50, userToken),
     fetchActionsPages<{
       id: number;
       name: string;
       state: string;
-    }>(workflowsUrl, 'workflows'),
+    }>(workflowsUrl, 'workflows', 50, userToken),
   ]);
 
   const branches = new Set<string>();
@@ -352,15 +367,25 @@ function buildInsights(runs: CIWorkflowRun[]): CIInsights {
   };
 }
 
-export async function fetchCIAnalytics(username: string): Promise<CIAnalyticsData> {
+export async function fetchCIAnalytics(
+  username: string,
+  userToken?: string
+): Promise<CIAnalyticsData> {
   const cacheKey = `ci-analytics:${username.toLowerCase()}`;
   const CACHE_TTL_MS = 10 * 60 * 1000;
 
-  return cache.getOrSet(cacheKey, async () => fetchCIAnalyticsUncached(username), CACHE_TTL_MS);
+  return cache.getOrSet(
+    cacheKey,
+    async () => fetchCIAnalyticsUncached(username, userToken),
+    CACHE_TTL_MS
+  );
 }
 
-async function fetchCIAnalyticsUncached(username: string): Promise<CIAnalyticsData> {
-  const repos = await fetchUserRepos(username);
+async function fetchCIAnalyticsUncached(
+  username: string,
+  userToken?: string
+): Promise<CIAnalyticsData> {
+  const repos = await fetchUserRepos(username, userToken);
 
   if (repos.length === 0) {
     return buildEmptyData();
@@ -388,7 +413,7 @@ async function fetchCIAnalyticsUncached(username: string): Promise<CIAnalyticsDa
   }
 
   const results = await Promise.allSettled(
-    fetchTargets.map((t) => fetchWorkflowRuns(t.owner, t.repo, t.label))
+    fetchTargets.map((t) => fetchWorkflowRuns(t.owner, t.repo, t.label, userToken))
   );
 
   for (const result of results) {

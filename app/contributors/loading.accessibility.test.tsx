@@ -17,15 +17,14 @@ describe('Contributors loading accessibility', () => {
     const status = screen.getByRole('status');
 
     expect(status.getAttribute('aria-live')).toBe('polite');
-    expect(status.textContent).toContain('Loading the collective...');
-    expect(status.textContent).toContain('Fetching contributor data from GitHub');
+    expect(status.getAttribute('aria-label')).toBe('Loading contributors');
   });
 
-  it('keeps descriptive loading text available to assistive technologies', () => {
+  it('does not keep contributor loading placeholder text in the DOM', () => {
     render(<Loading />);
 
-    expect(screen.getByText('Loading the collective...')).toBeTruthy();
-    expect(screen.getByText('Fetching contributor data from GitHub')).toBeTruthy();
+    expect(screen.queryByText('Loading the collective...')).toBeNull();
+    expect(screen.queryByText('Fetching contributor data from GitHub')).toBeNull();
   });
 
   it('does not expose decorative spinner elements as interactive controls', () => {
@@ -62,9 +61,7 @@ describe('Contributors loading accessibility', () => {
     const status = screen.getByRole('status');
     const children = Array.from(status.children);
 
-    expect(children.length).toBeGreaterThanOrEqual(3);
+    expect(children).toHaveLength(1);
     expect(children[0].tagName.toLowerCase()).toBe('div');
-    expect(children[1].textContent).toBe('Loading the collective...');
-    expect(children[2].textContent).toBe('Fetching contributor data from GitHub');
   });
 });

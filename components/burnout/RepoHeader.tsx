@@ -3,6 +3,8 @@
 import { motion } from 'framer-motion';
 import { GitFork, Users, GitCommit, RefreshCw, ChevronLeft, ShieldAlert } from 'lucide-react';
 import Link from 'next/link';
+import DownloadReportMenu from './DownloadReportMenu';
+import type { BurnoutReport } from '@/services/github/burnout-analyzer';
 
 interface RepoHeaderProps {
   repoName: string;
@@ -11,6 +13,7 @@ interface RepoHeaderProps {
   sustainabilityScore: number;
   onRefresh: () => void;
   isRefreshing: boolean;
+  report?: BurnoutReport;
 }
 
 export default function RepoHeader({
@@ -20,6 +23,7 @@ export default function RepoHeader({
   sustainabilityScore,
   onRefresh,
   isRefreshing,
+  report,
 }: RepoHeaderProps) {
   const [owner, name] = repoName.split('/');
 
@@ -144,16 +148,19 @@ export default function RepoHeader({
           </div>
         </div>
 
-        <button
-          onClick={onRefresh}
-          disabled={isRefreshing}
-          className={`flex h-10 w-10 items-center justify-center rounded-xl border border-black/10 dark:border-white/15 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 active:scale-95 transition-all text-gray-600 dark:text-zinc-300 ${
-            isRefreshing ? 'opacity-50 cursor-not-allowed' : ''
-          }`}
-          title="Refresh Analysis"
-        >
-          <RefreshCw size={16} className={isRefreshing ? 'animate-spin' : ''} />
-        </button>
+        <div className="flex items-center gap-2">
+          {report && <DownloadReportMenu report={report} />}
+          <button
+            onClick={onRefresh}
+            disabled={isRefreshing}
+            className={`flex h-10 w-10 items-center justify-center rounded-xl border border-black/10 dark:border-white/15 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 active:scale-95 transition-all text-gray-600 dark:text-zinc-300 ${
+              isRefreshing ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
+            title="Refresh Analysis"
+          >
+            <RefreshCw size={16} className={isRefreshing ? 'animate-spin' : ''} />
+          </button>
+        </div>
       </div>
     </div>
   );
