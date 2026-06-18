@@ -10,6 +10,11 @@ import type {
   AchievementData,
   AchievementsResponse,
 } from '@/types/achievements';
+import { getUserGitHubToken } from '@/lib/githubtoken';
+import { getClientIp } from '@/utils/getClientIp';
+import { RateLimiter } from '@/lib/rate-limit';
+
+const achievementsLimiter = new RateLimiter(10, 60_000, 1);
 
 const ACHIEVEMENT_DEFS: AchievementDef[] = [
   // 🔥 Contribution
@@ -547,6 +552,17 @@ function computeDeveloperLevel(totalXp: number): {
 }
 
 export async function GET(request: Request) {
+  const ip = getClientIp(request);
+  const rateLimitKey =
+    ip && ip !== 'unknown' ? ip : `unknown:${request.headers.get('user-agent') ?? 'no-agent'}`;
+
+  if (!(await achievementsLimiter.check(rateLimitKey))) {
+    return NextResponse.json(
+      { error: 'Too many requests. Please try again later.' },
+      { status: 429 }
+    );
+  }
+
   const { searchParams } = new URL(request.url);
   const username = searchParams.get('username');
 
@@ -555,7 +571,8 @@ export async function GET(request: Request) {
   }
 
   try {
-    const dashboardData = await getFullDashboardData(username);
+    const userToken = await getUserGitHubToken();
+    const dashboardData = await getFullDashboardData(username, { token: userToken });
 
     const { profile, stats, languages } = dashboardData;
     const totalStars = profile.stats.stars;

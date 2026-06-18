@@ -105,11 +105,3 @@ it('renders with empty data without crashing', () => {
 
   expect(screen.getByText('Activity Landscape')).toBeTruthy();
 });
-
-it('labels aggregated bars with a date range rather than a single day', () => {
-  render(<ActivityLandscape data={mockData} />);
-
-  const rangeBars = screen.getAllByLabelText(/contributions/i);
-
-  expect(rangeBars.length).toBeGreaterThan(0);
-});

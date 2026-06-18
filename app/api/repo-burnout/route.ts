@@ -3,6 +3,8 @@ import { z } from 'zod';
 import { fetchBurnoutAnalysis } from '@/services/github/burnout-analyzer';
 import { quotaMonitor } from '@/services/github/quota-monitor';
 import { getClientIp } from '@/utils/getClientIp';
+import { getUserGitHubToken } from '@/lib/githubtoken';
+
 import { refreshPolicy } from '@/services/github/refresh-policy';
 import { refreshRateLimiter } from '@/services/github/refresh-rate-limiter';
 
@@ -89,7 +91,11 @@ export async function GET(request: Request) {
   }
 
   try {
-    const data = await fetchBurnoutAnalysis(owner, repo, { bypassCache: shouldBypassCache });
+    const userToken = await getUserGitHubToken();
+    const data = await fetchBurnoutAnalysis(owner, repo, {
+      bypassCache: refresh,
+      token: userToken,
+    });
 
     const cacheControl = shouldBypassCache
       ? 'no-cache, no-store, must-revalidate'

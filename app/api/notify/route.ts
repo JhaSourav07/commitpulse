@@ -14,6 +14,7 @@ import {
   verifyNotificationManagementToken,
 } from '@/lib/notification-management-token';
 import type { INotification } from '@/models/Notification';
+import logger from '@/lib/logger';
 
 const notifyWriteCache = new DistributedCache<number>(5000, 60000);
 const NOTIFY_WRITE_COOLDOWN_MS = 5 * 60 * 1000;
@@ -136,18 +137,18 @@ export async function POST(req: Request) {
     // Graceful MONGODB_URI handling
     if (!process.env.MONGODB_URI) {
       if (process.env.NODE_ENV === 'production') {
-        console.error(
-          'CRITICAL: MONGODB_URI is not set in production environment. Notification registration is disabled.'
-        );
+        logger.error('Notification registration disabled: MONGODB_URI is not set', {
+          environment: process.env.NODE_ENV,
+        });
         return NextResponse.json(
           { success: false, message: 'Database configuration error.' },
           { status: 500 }
         );
       }
 
-      console.warn(
-        'MONGODB_URI is not set. Bypassing notification registration for local development.'
-      );
+      logger.warn('Notification registration bypassed: MONGODB_URI is not set', {
+        environment: process.env.NODE_ENV,
+      });
       return NextResponse.json({
         success: true,
         message: 'Notification registration bypassed (no database configured).',
@@ -242,7 +243,10 @@ export async function POST(req: Request) {
       { status: 200 }
     );
   } catch (error) {
-    console.error('[/api/notify] Error saving notification preferences:', error);
+    logger.error('Failed to save notification preferences', {
+      route: '/api/notify',
+      error,
+    });
     return NextResponse.json(
       { success: false, message: 'Internal server error.' },
       { status: 500 }
@@ -389,23 +393,22 @@ export async function GET(req: Request) {
     // Graceful MONGODB_URI handling
     if (!process.env.MONGODB_URI) {
       if (process.env.NODE_ENV === 'production') {
-        console.error(
-          'CRITICAL: MONGODB_URI is not set in production environment. Notification lookup is disabled.'
-        );
+        logger.error('Notification lookup disabled: MONGODB_URI is not set', {
+          environment: process.env.NODE_ENV,
+        });
         return NextResponse.json(
           { success: false, message: 'Database configuration error.' },
           { status: 500 }
         );
       }
+      logger.warn('Notification lookup bypassed: MONGODB_URI is not set', {
+        environment: process.env.NODE_ENV,
+      });
 
-      console.warn('MONGODB_URI is not set. Bypassing notification lookup for local development.');
-      return NextResponse.json(
-        {
-          success: false,
-          message: 'No notification preferences found (no database configured).',
-        },
-        { status: 503 }
-      );
+      return NextResponse.json({
+        success: false,
+        message: 'No notification preferences found (no database configured).',
+      });
     }
 
     await dbConnect();
@@ -441,7 +444,10 @@ export async function GET(req: Request) {
       { status: 200 }
     );
   } catch (error) {
-    console.error('[/api/notify] Error fetching notification preferences:', error);
+    logger.error('Failed to fetch notification preferences', {
+      route: '/api/notify',
+      error,
+    });
     return NextResponse.json(
       { success: false, message: 'Internal server error.' },
       { status: 500 }

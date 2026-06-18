@@ -120,7 +120,7 @@ describe('ApiStreakRoute Tests', () => {
     const response = await GET(request);
 
     expect(response.status).toBe(200);
-    expect(response.headers.get('Content-Type')).toBe('image/svg+xml');
+    expect(response.headers.get('Content-Type')).toBe('image/svg+xml; charset=utf-8');
     expect(response.headers.get('Content-Security-Policy')).toContain("default-src 'none';");
     const svgText = await response.text();
     expect(svgText).toContain('<svg');

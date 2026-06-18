@@ -3,6 +3,18 @@ import path from 'path';
 
 export default defineConfig({
   test: {
+    // 1. Add aliases for next/server mapping
+    alias: {
+      'next/server': path.resolve(__dirname, './node_modules/next/server.js'),
+      '@/': path.resolve(__dirname, './'), // Keeps your absolute paths working
+    },
+    server: {
+      deps: {
+        // 2. Force Vitest to inline next-auth so it respects the node resolution
+        inline: ['next-auth'],
+      },
+    },
+    // ... rest of your existing test config (environment: 'jsdom', etc.)
     environment: 'jsdom',
     globals: true,
     setupFiles: ['./vitest.setup.ts'],
