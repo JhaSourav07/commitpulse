@@ -1,6 +1,30 @@
 import { fetchWithRetry, getGitHubTokens } from '@/lib/github';
 import { DistributedCache } from '@/lib/cache';
 
+interface PRReviewNode {
+  author: { login: string } | null;
+  createdAt: string;
+  state: string;
+}
+
+interface PRNode {
+  id: string;
+  title: string;
+  url: string;
+  state: string;
+  createdAt: string;
+  closedAt: string | null;
+  mergedAt: string | null;
+  additions: number;
+  deletions: number;
+  repository: { nameWithOwner: string } | null;
+  comments: { totalCount: number } | null;
+  reviews: {
+    nodes: PRReviewNode[];
+    totalCount: number;
+  } | null;
+}
+
 const GITHUB_GRAPHQL_URL = 'https://api.github.com/graphql';
 const MAX_PAGES = 3;
 
@@ -41,31 +65,40 @@ export interface PRInsightData {
 const prInsightsCache = new DistributedCache<PRInsightData>(500);
 
 let currentTokenIndex = 0;
-function getHeaders() {
-  const tokens = getGitHubTokens();
-  if (tokens.length === 0) throw new Error('GitHub token is missing');
-  const token = tokens[currentTokenIndex % tokens.length];
-  currentTokenIndex++;
+function getHeaders(userToken?: string) {
+  let token = userToken;
+  if (!token) {
+    const tokens = getGitHubTokens();
+    if (tokens.length === 0) throw new Error('GitHub token is missing');
+    token = tokens[currentTokenIndex % tokens.length];
+    currentTokenIndex++;
+  }
   return {
     Authorization: `bearer ${token}`,
     'Content-Type': 'application/json',
   };
 }
 
-export async function fetchPRInsights(username: string): Promise<PRInsightData> {
+export async function fetchPRInsights(
+  username: string,
+  userToken?: string
+): Promise<PRInsightData> {
   const cacheKey = `pr-insights:${username.toLowerCase()}`;
   const CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutes cache
 
   return prInsightsCache.getOrSet(
     cacheKey,
     async () => {
-      return fetchPRInsightsUncached(username);
+      return fetchPRInsightsUncached(username, userToken);
     },
     CACHE_TTL_MS
   );
 }
 
-async function fetchPRInsightsUncached(username: string): Promise<PRInsightData> {
+async function fetchPRInsightsUncached(
+  username: string,
+  userToken?: string
+): Promise<PRInsightData> {
   // We use the GraphQL search API to get PRs authored by the user and PRs reviewed by the user.
   // This is more efficient than iterating through user.pullRequests.
 
@@ -124,15 +157,14 @@ async function fetchPRInsightsUncached(username: string): Promise<PRInsightData>
     reviewerQuery: `is:pr reviewed-by:${username} -author:${username} created:>=${dateStr}`,
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let allAuthoredPRs: any[] = [];
+  let allAuthoredPRs: PRNode[] = [];
   let hasNextPage = true;
   let after: string | null = null;
   let reviewsGivenCount = 0;
   for (let page = 0; page < MAX_PAGES && hasNextPage; page++) {
     const res = await fetchWithRetry(GITHUB_GRAPHQL_URL, {
       method: 'POST',
-      headers: getHeaders(),
+      headers: getHeaders(userToken),
       body: JSON.stringify({ query, variables: { ...variables, after } }),
       cache: 'no-store',
     });
@@ -146,8 +178,7 @@ async function fetchPRInsightsUncached(username: string): Promise<PRInsightData>
       throw new Error(json.errors[0]?.message || 'GraphQL Error');
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const pageNodes = (json.data?.authored?.nodes || []).filter((n: any) => n && n.title);
+    const pageNodes = (json.data?.authored?.nodes || []).filter((n: PRNode) => n && n.title);
     allAuthoredPRs = allAuthoredPRs.concat(pageNodes);
 
     hasNextPage = json.data?.authored?.pageInfo?.hasNextPage || false;
@@ -229,7 +260,7 @@ async function fetchPRInsightsUncached(username: string): Promise<PRInsightData>
     }
 
     // Comments
-    if (pr.comments?.totalCount > mostDiscussed.comments) {
+    if (pr.comments !== null && (pr.comments?.totalCount ?? 0) > mostDiscussed.comments) {
       mostDiscussed = { title: pr.title, url: pr.url, comments: pr.comments.totalCount };
     }
 

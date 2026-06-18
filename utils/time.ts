@@ -50,6 +50,7 @@ export function getSecondsUntilMidnightInTimezone(tz?: string | null): number {
     minute: 'numeric',
     second: 'numeric',
     hour12: false,
+    hourCycle: 'h23',
   }).formatToParts(now);
 
   const get = (type: string) => parseInt(parts.find((p) => p.type === type)?.value ?? '0', 10);

@@ -12,6 +12,8 @@ import { DistributedCache } from '@/lib/cache';
 import { LANGUAGE_COLORS } from '@/lib/svg/languageColors';
 import { CONTRIBUTION_MILESTONES, STREAK_MILESTONES } from './svg/constants';
 import { quotaMonitor } from '@/services/github/quota-monitor';
+import pLimit from 'p-limit';
+import logger from '@/lib/logger';
 
 interface GitHubRepo {
   name: string;
@@ -23,6 +25,7 @@ interface GitHubRepo {
   pushed_at?: string;
   owner?: { login: string };
   created_at?: string;
+  homepage?: string | null;
 }
 
 const MAX_RETRIES = 3;
@@ -79,7 +82,8 @@ export async function fetchWithRetry(
   url: string | URL,
   options: RequestInit,
   attempt = 0,
-  timeoutMs?: number
+  timeoutMs?: number,
+  userToken?: string
 ): Promise<Response> {
   const now = Date.now();
 
@@ -102,7 +106,7 @@ export async function fetchWithRetry(
 
   if (isGitHubRequest) {
     try {
-      currentToken = getGitHubToken();
+      currentToken = userToken || getGitHubToken();
       // Ensure your headers instantiation copies existing layout keys safely
       options.headers = {
         ...options.headers,
@@ -150,7 +154,7 @@ export async function fetchWithRetry(
     }
     const delay = BASE_DELAY_MS * Math.pow(2, attempt);
     await new Promise((resolve) => setTimeout(resolve, delay));
-    return fetchWithRetry(url, options, attempt + 1, timeoutMs);
+    return fetchWithRetry(url, options, attempt + 1, timeoutMs, userToken);
   }
 
   if (!res) throw new Error('GitHub API request failed without a response');
@@ -158,7 +162,10 @@ export async function fetchWithRetry(
   try {
     quotaMonitor.updateQuotaFromHeaders(res.headers);
   } catch (err) {
-    console.error('Failed to update quota monitor', err);
+    logger.error('Failed to update quota monitor', {
+      component: 'GitHub',
+      error: err,
+    });
   }
 
   if (isGitHubRequest && currentToken && res) {
@@ -191,7 +198,7 @@ export async function fetchWithRetry(
     if (attempt < MAX_RETRIES && tokens.length > 1) {
       const delay = BASE_DELAY_MS * Math.pow(2, attempt);
       await new Promise((resolve) => setTimeout(resolve, delay));
-      return fetchWithRetry(url, options, attempt + 1, timeoutMs);
+      return fetchWithRetry(url, options, attempt + 1, timeoutMs, userToken);
     }
   }
 
@@ -243,7 +250,7 @@ export async function fetchWithRetry(
     }
 
     await new Promise((resolve) => setTimeout(resolve, delay));
-    return fetchWithRetry(url, options, attempt + 1, timeoutMs);
+    return fetchWithRetry(url, options, attempt + 1, timeoutMs, userToken);
   }
 
   // Only retry on 5xx — all other statuses are returned immediately
@@ -252,7 +259,7 @@ export async function fetchWithRetry(
 
   const delay = BASE_DELAY_MS * Math.pow(2, attempt);
   await new Promise((resolve) => setTimeout(resolve, delay));
-  return fetchWithRetry(url, options, attempt + 1, timeoutMs);
+  return fetchWithRetry(url, options, attempt + 1, timeoutMs, userToken);
 }
 
 const GRAPHQL_INJECTION_PATTERNS: RegExp[] = [
@@ -285,6 +292,21 @@ function assertValidGraphQLBody(options: RequestInit): void {
   if (open === 0 || open !== close) {
     throw new Error('GraphQL query has unbalanced braces');
   }
+
+  const MAX_QUERY_DEPTH = 10;
+  let depth = 0;
+  let maxDepth = 0;
+  for (const ch of query) {
+    if (ch === '{') {
+      depth++;
+      if (depth > maxDepth) maxDepth = depth;
+    } else if (ch === '}') {
+      depth--;
+    }
+    if (maxDepth > MAX_QUERY_DEPTH) {
+      throw new Error(`GraphQL query exceeds maximum depth of ${MAX_QUERY_DEPTH}`);
+    }
+  }
 }
 
 // Wraps fetchWithRetry to also retry on GraphQL-level RATE_LIMITED errors
@@ -293,10 +315,12 @@ async function fetchGraphQLWithRetry(
   url: string | URL,
   options: RequestInit,
   attempt = 0,
-  timeoutMs?: number
+  timeoutMs?: number,
+  userToken?: string
 ): Promise<Response> {
   if (attempt === 0) assertValidGraphQLBody(options);
-  const res = await fetchWithRetry(url, options, attempt, timeoutMs);
+  const res = await fetchWithRetry(url, options, attempt, timeoutMs, userToken);
+
   if (!res.ok || attempt >= MAX_RETRIES) return res;
 
   const body: unknown = await res
@@ -317,7 +341,7 @@ async function fetchGraphQLWithRetry(
   if (delay > MAX_RETRY_DELAY_MS) return res;
 
   await new Promise((resolve) => setTimeout(resolve, delay));
-  return fetchGraphQLWithRetry(url, options, attempt + 1, timeoutMs);
+  return fetchGraphQLWithRetry(url, options, attempt + 1, timeoutMs, userToken);
 }
 
 const GITHUB_GRAPHQL_URL = 'https://api.github.com/graphql';
@@ -389,6 +413,7 @@ interface GitHubGraphQLResponse {
       contributionsCollection: {
         totalPullRequestContributions: number;
         totalIssueContributions: number;
+        totalPullRequestReviewContributions: number;
         contributionCalendar: ContributionCalendar;
         commitContributionsByRepository: RepoContribution[];
       };
@@ -418,6 +443,9 @@ type FetchOptions = {
   to?: string;
   rangeLabel?: string;
   signal?: AbortSignal;
+  // Authenticated user's OAuth token. When set, GitHub calls use THIS token
+  // (the user's personal rate-limit quota) instead of the global PAT pool.
+  token?: string;
 };
 
 export const GITHUB_CACHE_TTL_MS = 5 * 60 * 1000;
@@ -467,6 +495,8 @@ function sanitizeRepo(repo: GitHubRepo): GitHubRepo {
     updated_at: repo.updated_at,
     pushed_at: repo.pushed_at,
     created_at: repo.created_at,
+    owner: repo.owner,
+    homepage: repo.homepage,
   };
 }
 
@@ -607,14 +637,23 @@ function getGitHubToken(): string {
   throw new RateLimitError('API Rate Limit Exceeded', backoffMs);
 }
 
-const getHeaders = () => ({
-  Authorization: `bearer ${getGitHubToken()}`,
+const getHeaders = (userToken?: string) => ({
+  Authorization: `bearer ${userToken || getGitHubToken()}`,
   'Content-Type': 'application/json',
 });
 
 export function displayName(profile: GitHubUserProfile): string {
   if (typeof profile.name === 'string' && profile.name.trim() !== '') return profile.name;
   return profile.login;
+}
+
+export function getCircuitTelemetry() {
+  const now = Date.now();
+  const isOpen = now < globalCircuitBreakerOpenUntil;
+  return {
+    isOpen,
+    resetInMs: isOpen ? Math.max(0, globalCircuitBreakerOpenUntil - now) : 0,
+  };
 }
 
 /* ==========================================================================
@@ -705,10 +744,11 @@ export async function fetchGitHubContributions(
     } catch (err: unknown) {
       const staleData = await contributionsCache.get(key);
       if (staleData) {
-        console.warn(
-          `[GitHub API] Fetch failed or timed out for "${username}", falling back to stale cache:`,
-          err
-        );
+        logger.warn('GitHub API fetch failed, falling back to stale cache', {
+          component: 'GitHub API',
+          username,
+          error: err,
+        });
         return {
           ...staleData,
           isOfflineFallback: true,
@@ -720,7 +760,11 @@ export async function fetchGitHubContributions(
 
   if (options.bypassCache || options.forceRefresh) {
     try {
-      return await coalescedLoad();
+      const result = await coalescedLoad();
+      if (options.forceRefresh) {
+        await contributionsCache.set(key, result, LONG_CACHE_TTL);
+      }
+      return result;
     } catch (err: unknown) {
       const staleData = await contributionsCache.get(key);
       if (staleData) {
@@ -742,10 +786,11 @@ export async function fetchGitHubContributions(
   } catch (err: unknown) {
     const staleData = await contributionsCache.get(key);
     if (staleData) {
-      console.warn(
-        `[GitHub API] Fetch failed or timed out for "${username}", falling back to stale cache:`,
-        err
-      );
+      logger.warn('GitHub API fetch failed, falling back to stale cache', {
+        component: 'GitHub API',
+        username,
+        error: err,
+      });
       return {
         ...staleData,
         isOfflineFallback: true,
@@ -766,6 +811,7 @@ async function fetchContributionsUncached(
           contributionsCollection(from: $from, to: $to) {
             totalPullRequestContributions
             totalIssueContributions
+            totalPullRequestReviewContributions
             contributionCalendar {
               totalContributions
               weeks {
@@ -793,16 +839,22 @@ async function fetchContributionsUncached(
       }
     `;
 
-  const res = await fetchGraphQLWithRetry(GITHUB_GRAPHQL_URL, {
-    method: 'POST',
-    headers: getHeaders(),
-    body: JSON.stringify({
-      query,
-      variables: { login: username, from: options.from, to: options.to },
-    }),
-    cache: 'no-store',
-    signal: options.signal,
-  });
+  const res = await fetchGraphQLWithRetry(
+    GITHUB_GRAPHQL_URL,
+    {
+      method: 'POST',
+      headers: getHeaders(options.token),
+      body: JSON.stringify({
+        query,
+        variables: { login: username, from: options.from, to: options.to },
+      }),
+      cache: 'no-store',
+      signal: options.signal,
+    },
+    0,
+    undefined,
+    options.token
+  );
 
   if (!res.ok) {
     throwIfRateLimited(res);
@@ -859,22 +911,11 @@ async function fetchContributionsUncached(
 
   const totalPRs = data.data.user.contributionsCollection?.totalPullRequestContributions || 0;
   const totalIssues = data.data.user.contributionsCollection?.totalIssueContributions || 0;
+  const totalReviews =
+    data.data.user.contributionsCollection?.totalPullRequestReviewContributions || 0;
 
   calendar.lastSyncedAt = new Date().toISOString();
 
-  const LONG_CACHE_TTL = 7 * 24 * 60 * 60 * 1000;
-  if (!options.bypassCache) {
-    await contributionsCache.set(
-      key,
-      {
-        calendar,
-        repoContributions,
-        totalPRs,
-        totalIssues,
-      },
-      LONG_CACHE_TTL
-    );
-  }
   // 1. Fabricate the LOC additions and deletions fields with strict lint-compliant object mappings
   const processedWeeks = (calendar.weeks || []).map((week: unknown) => {
     const rawWeek = week as unknown as Record<string, unknown>;
@@ -897,8 +938,8 @@ async function fetchContributionsUncached(
         }
         return {
           ...rawDay,
-          locAdditions: Math.max(1, Math.floor(Math.random() * (count * 10))),
-          locDeletions: Math.floor(Math.random() * (count * 5)),
+          locAdditions: undefined,
+          locDeletions: undefined,
         };
       }),
     };
@@ -913,6 +954,7 @@ async function fetchContributionsUncached(
     repoContributions,
     totalPRs,
     totalIssues,
+    totalReviews,
   };
 }
 
@@ -936,11 +978,17 @@ async function fetchProfileUncached(
   key: string,
   options: FetchOptions
 ): Promise<GitHubUserProfile> {
-  const res = await fetchWithRetry(`${GITHUB_REST_URL}/users/${encodedUsername}`, {
-    headers: getHeaders(),
-    cache: 'no-store',
-    signal: options.signal,
-  });
+  const res = await fetchWithRetry(
+    `${GITHUB_REST_URL}/users/${encodedUsername}`,
+    {
+      headers: getHeaders(options.token),
+      cache: 'no-store',
+      signal: options.signal,
+    },
+    0,
+    undefined,
+    options.token
+  );
 
   if (!res.ok) {
     throwIfRateLimited(res);
@@ -984,10 +1032,13 @@ async function fetchReposUncached(
   const firstPageRes = await fetchWithRetry(
     `${GITHUB_REST_URL}/users/${encodedUsername}/repos?per_page=100&page=1&sort=pushed`,
     {
-      headers: getHeaders(),
+      headers: getHeaders(options.token),
       cache: 'no-store',
       signal: options.signal,
-    }
+    },
+    0,
+    undefined,
+    options.token
   );
 
   if (!firstPageRes.ok) {
@@ -1008,10 +1059,13 @@ async function fetchReposUncached(
         fetchWithRetry(
           `${GITHUB_REST_URL}/users/${encodedUsername}/repos?per_page=100&page=${page}&sort=pushed`,
           {
-            headers: getHeaders(),
+            headers: getHeaders(options.token),
             cache: 'no-store',
             signal: options.signal,
-          }
+          },
+          0,
+          undefined,
+          options.token
         )
       )
     );
@@ -1041,7 +1095,7 @@ async function fetchReposUncached(
  * ORG AGGREGATION & EPIC FEATURES
  * ========================================================================== */
 
-export async function fetchOrgMembers(orgName: string): Promise<string[]> {
+export async function fetchOrgMembers(orgName: string, userToken?: string): Promise<string[]> {
   const encodedOrgName = encodeURIComponent(orgName);
   const allMembers: string[] = [];
   const perPage = 100;
@@ -1052,7 +1106,7 @@ export async function fetchOrgMembers(orgName: string): Promise<string[]> {
     const res = await fetchWithRetry(
       `${GITHUB_REST_URL}/orgs/${encodedOrgName}/members?per_page=${perPage}&page=${page}`,
       {
-        headers: getHeaders(),
+        headers: getHeaders(userToken),
         cache: 'no-store',
       }
     );
@@ -1097,7 +1151,7 @@ export async function getOrgDashboardData(
   const [profileData, reposData, membersOrError] = await Promise.all([
     fetchUserProfile(orgName, options),
     fetchUserRepos(orgName, options),
-    fetchOrgMembers(orgName).catch((err) => err as Error),
+    fetchOrgMembers(orgName, options.token).catch((err) => err as Error),
   ]);
 
   if (profileData.type !== 'Organization')
@@ -1343,16 +1397,22 @@ export async function fetchContributedRepos(
       }
     `;
 
-    const res = await fetchGraphQLWithRetry(GITHUB_GRAPHQL_URL, {
-      method: 'POST',
-      headers: getHeaders(),
-      body: JSON.stringify({
-        query,
-        variables: { login: username },
-      }),
-      cache: 'no-store',
-      signal: options.signal,
-    });
+    const res = await fetchGraphQLWithRetry(
+      GITHUB_GRAPHQL_URL,
+      {
+        method: 'POST',
+        headers: getHeaders(options.token),
+        body: JSON.stringify({
+          query,
+          variables: { login: username },
+        }),
+        cache: 'no-store',
+        signal: options.signal,
+      },
+      0,
+      undefined,
+      options.token
+    );
 
     if (!res.ok) {
       throwIfRateLimited(res);
@@ -1492,7 +1552,7 @@ export interface PopularRepo {
   primaryLanguage: { name: string; color: string } | null;
 }
 
-export async function fetchPinnedRepos(username: string): Promise<PopularRepo[]> {
+export async function fetchPinnedRepos(username: string, token?: string): Promise<PopularRepo[]> {
   const query = `
     query($login: String!) {
       user(login: $login) {
@@ -1515,12 +1575,18 @@ export async function fetchPinnedRepos(username: string): Promise<PopularRepo[]>
     }
   `;
   try {
-    const res = await fetchWithRetry(GITHUB_GRAPHQL_URL, {
-      method: 'POST',
-      headers: getHeaders(),
-      body: JSON.stringify({ query, variables: { login: username } }),
-      cache: 'no-store',
-    });
+    const res = await fetchWithRetry(
+      GITHUB_GRAPHQL_URL,
+      {
+        method: 'POST',
+        headers: getHeaders(token),
+        body: JSON.stringify({ query, variables: { login: username } }),
+        cache: 'no-store',
+      },
+      0,
+      undefined,
+      token
+    );
     if (!res.ok) return [];
     const data = await res.json();
     return (data?.data?.user?.pinnedItems?.nodes ?? []) as PopularRepo[];
@@ -1529,7 +1595,7 @@ export async function fetchPinnedRepos(username: string): Promise<PopularRepo[]>
   }
 }
 
-async function fetchPopularRepos(username: string): Promise<PopularRepo[]> {
+async function fetchPopularRepos(username: string, token?: string): Promise<PopularRepo[]> {
   const query = `
     query($login: String!) {
       user(login: $login) {
@@ -1550,12 +1616,18 @@ async function fetchPopularRepos(username: string): Promise<PopularRepo[]> {
     }
   `;
   try {
-    const res = await fetchWithRetry(GITHUB_GRAPHQL_URL, {
-      method: 'POST',
-      headers: getHeaders(),
-      body: JSON.stringify({ query, variables: { login: username } }),
-      cache: 'no-store',
-    });
+    const res = await fetchWithRetry(
+      GITHUB_GRAPHQL_URL,
+      {
+        method: 'POST',
+        headers: getHeaders(token),
+        body: JSON.stringify({ query, variables: { login: username } }),
+        cache: 'no-store',
+      },
+      0,
+      undefined,
+      token
+    );
     if (!res.ok) return [];
     const data = await res.json();
     return (data?.data?.user?.repositories?.nodes ?? []) as PopularRepo[];
@@ -1564,7 +1636,7 @@ async function fetchPopularRepos(username: string): Promise<PopularRepo[]> {
   }
 }
 
-async function fetchStarredRepos(username: string): Promise<PopularRepo[]> {
+async function fetchStarredRepos(username: string, token?: string): Promise<PopularRepo[]> {
   const query = `
     query($login: String!) {
       user(login: $login) {
@@ -1585,18 +1657,198 @@ async function fetchStarredRepos(username: string): Promise<PopularRepo[]> {
     }
   `;
   try {
-    const res = await fetchWithRetry(GITHUB_GRAPHQL_URL, {
-      method: 'POST',
-      headers: getHeaders(),
-      body: JSON.stringify({ query, variables: { login: username } }),
-      cache: 'no-store',
-    });
+    const res = await fetchWithRetry(
+      GITHUB_GRAPHQL_URL,
+      {
+        method: 'POST',
+        headers: getHeaders(token),
+        body: JSON.stringify({ query, variables: { login: username } }),
+        cache: 'no-store',
+      },
+      0,
+      undefined,
+      token
+    );
     if (!res.ok) return [];
     const data = await res.json();
     return (data?.data?.user?.starredRepositories?.nodes ?? []) as PopularRepo[];
   } catch {
     return [];
   }
+}
+
+/* ==========================================================================
+ * PRODUCTION DEPLOYMENTS — CI/CD shipping velocity tracker
+ * ========================================================================== */
+
+interface GitHubWorkflowRun {
+  status: string; // 'completed' | 'in_progress' | 'queued' | ...
+  conclusion: string | null; // 'success' | 'failure' | 'cancelled' | null
+  name: string | null;
+  created_at: string;
+}
+
+interface GitHubDeployment {
+  id: number;
+  environment: string;
+  created_at: string;
+}
+
+interface GitHubDeploymentStatus {
+  state: string; // 'success' | 'failure' | 'error' | 'pending' | ...
+  environment_url: string | null;
+  created_at: string;
+}
+
+function mapConclusionToStatus(
+  status: string,
+  conclusion: string | null
+): import('../types/dashboard').WorkflowStatus {
+  if (status === 'in_progress' || status === 'queued' || status === 'waiting') {
+    return 'in_progress';
+  }
+  if (conclusion === 'success') return 'success';
+  if (conclusion === 'failure' || conclusion === 'timed_out' || conclusion === 'cancelled') {
+    return 'failure';
+  }
+  return 'unknown';
+}
+
+/** Fetch the most recent workflow run for a single repo (used for the status badge). */
+async function fetchLatestWorkflowRun(
+  owner: string,
+  repo: string
+): Promise<GitHubWorkflowRun | null> {
+  try {
+    const res = await fetchWithRetry(
+      `${GITHUB_REST_URL}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/actions/runs?per_page=1`,
+      {
+        headers: getHeaders(),
+        cache: 'no-store',
+      },
+      0,
+      REST_TIMEOUT_MS
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    const run = data?.workflow_runs?.[0];
+    return run ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** Fetch the most recent deployment + its latest status for a single repo. */
+async function fetchLatestDeployment(
+  owner: string,
+  repo: string
+): Promise<{
+  deployment: GitHubDeployment;
+  deploymentStatus: GitHubDeploymentStatus | null;
+} | null> {
+  try {
+    const res = await fetchWithRetry(
+      `${GITHUB_REST_URL}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/deployments?per_page=1&environment=production`,
+      {
+        headers: getHeaders(),
+        cache: 'no-store',
+      },
+      0,
+      REST_TIMEOUT_MS
+    );
+    if (!res.ok) return null;
+    const deployments = (await res.json()) as GitHubDeployment[];
+    const deployment = deployments?.[0];
+    if (!deployment) return null;
+
+    const statusRes = await fetchWithRetry(
+      `${GITHUB_REST_URL}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/deployments/${deployment.id}/statuses?per_page=1`,
+      {
+        headers: getHeaders(),
+        cache: 'no-store',
+      },
+      0,
+      REST_TIMEOUT_MS
+    );
+    const statuses = statusRes.ok ? ((await statusRes.json()) as GitHubDeploymentStatus[]) : [];
+    return { deployment, deploymentStatus: statuses?.[0] ?? null };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Builds the "Production Deployments" card data for up to `limit` of the user's
+ * most-recently-pushed repositories. Combines GitHub Actions workflow status
+ * (for the badge) with the Deployments API (for the live URL + timestamp).
+ * Repos with neither a deployment nor a workflow run are skipped — only repos
+ * that are actually shipping show up here.
+ */
+async function fetchDeploymentTrackerData(
+  username: string,
+  reposData: GitHubRepo[],
+  limit = 3
+): Promise<import('../types/dashboard').DeploymentData[]> {
+  // Only consider non-fork repos, most-recently-pushed first (reposData is
+  // already sorted by `pushed` from fetchUserRepos). Check a slightly larger
+  // candidate pool than `limit` since some repos won't have any deployments.
+  const candidates = reposData.filter((r) => !r.fork).slice(0, limit * 4);
+  if (candidates.length === 0) return [];
+
+  const results = await Promise.all(
+    candidates.map(async (repo) => {
+      const owner = repo.owner?.login || username;
+      const [workflowRun, deploymentInfo] = await Promise.all([
+        fetchLatestWorkflowRun(owner, repo.name),
+        fetchLatestDeployment(owner, repo.name),
+      ]);
+
+      // Skip repos with no shipping signal at all
+      if (!workflowRun && !deploymentInfo) return null;
+
+      const liveUrl = deploymentInfo?.deploymentStatus?.environment_url || repo.homepage || null;
+
+      const status = workflowRun
+        ? mapConclusionToStatus(workflowRun.status, workflowRun.conclusion)
+        : deploymentInfo?.deploymentStatus
+          ? deploymentInfo.deploymentStatus.state === 'success'
+            ? 'success'
+            : deploymentInfo.deploymentStatus.state === 'failure' ||
+                deploymentInfo.deploymentStatus.state === 'error'
+              ? 'failure'
+              : deploymentInfo.deploymentStatus.state === 'pending' ||
+                  deploymentInfo.deploymentStatus.state === 'in_progress'
+                ? 'in_progress'
+                : 'unknown'
+          : 'unknown';
+
+      const deployedAt =
+        deploymentInfo?.deploymentStatus?.created_at ||
+        deploymentInfo?.deployment.created_at ||
+        workflowRun?.created_at ||
+        null;
+
+      const deployment: import('../types/dashboard').DeploymentData = {
+        repoName: repo.name,
+        repoUrl: `https://github.com/${owner}/${repo.name}`,
+        liveUrl,
+        status,
+        deployedAt,
+        environment: deploymentInfo?.deployment.environment || 'production',
+        workflowName: workflowRun?.name || null,
+      };
+      return deployment;
+    })
+  );
+
+  return results
+    .filter((d): d is import('../types/dashboard').DeploymentData => d !== null)
+    .sort((a, b) => {
+      const aTime = a.deployedAt ? new Date(a.deployedAt).getTime() : 0;
+      const bTime = b.deployedAt ? new Date(b.deployedAt).getTime() : 0;
+      return bTime - aTime;
+    })
+    .slice(0, limit);
 }
 
 export async function getFullDashboardData(username: string, options: FetchOptions = {}) {
@@ -1613,9 +1865,9 @@ export async function getFullDashboardData(username: string, options: FetchOptio
     fetchUserRepos(username, options),
     fetchGitHubContributions(username, options),
     fetchContributedRepos(username, options),
-    fetchPopularRepos(username),
-    fetchPinnedRepos(username),
-    fetchStarredRepos(username),
+    fetchPopularRepos(username, options.token),
+    fetchPinnedRepos(username, options.token),
+    fetchStarredRepos(username, options.token),
   ]);
 
   if (profileResult.status === 'rejected')
@@ -1641,6 +1893,8 @@ export async function getFullDashboardData(username: string, options: FetchOptio
   const popularRepos = popularReposResult.status === 'fulfilled' ? popularReposResult.value : [];
   const pinnedRepos = pinnedReposResult.status === 'fulfilled' ? pinnedReposResult.value : [];
   const starredRepos = starredReposResult.status === 'fulfilled' ? starredReposResult.value : [];
+
+  const deployments = await fetchDeploymentTrackerData(username, reposData).catch(() => []);
 
   const streakStats = calculateStreak(calendarData);
   const totalStars = reposData.reduce((acc, r) => acc + r.stargazers_count, 0);
@@ -1953,6 +2207,8 @@ export async function getFullDashboardData(username: string, options: FetchOptio
       totalPRs: calendarResult.status === 'fulfilled' ? (calendarResult.value.totalPRs ?? 0) : 0,
       totalIssues:
         calendarResult.status === 'fulfilled' ? (calendarResult.value.totalIssues ?? 0) : 0,
+      totalReviews:
+        calendarResult.status === 'fulfilled' ? (calendarResult.value.totalReviews ?? 0) : 0,
     },
     languages,
     activity: buildActivityMap(allDays),
@@ -1968,6 +2224,7 @@ export async function getFullDashboardData(username: string, options: FetchOptio
     popularRepos,
     pinnedRepos,
     starredRepos,
+    deployments,
     hallOfFame: finalHallOfFame,
     graphData: { nodes, links },
     lastSyncedAt: calendarData.lastSyncedAt,
@@ -1991,6 +2248,7 @@ export async function getWrappedData(
     to,
     bypassCache: options?.bypassCache ?? false,
     signal: options?.signal,
+    token: options?.token,
   };
 
   const [userData, repos] = await Promise.all([
@@ -2047,26 +2305,16 @@ export async function runCappedConcurrency<T, R>(
   limit: number,
   fn: (item: T) => Promise<R>
 ): Promise<R[]> {
-  const results: R[] = new Array(items.length);
-  let currentIndex = 0;
-
-  async function worker(): Promise<void> {
-    while (currentIndex < items.length) {
-      const index = currentIndex++;
-      try {
-        results[index] = await fn(items[index]);
-      } catch {
-        results[index] = null as unknown as R;
-      }
-    }
-  }
-
-  const workers: Promise<void>[] = [];
-  const workerCount = Math.min(limit, items.length);
-  for (let i = 0; i < workerCount; i++) {
-    workers.push(worker());
-  }
-
-  await Promise.all(workers);
-  return results;
+  const limiter = pLimit(limit);
+  return Promise.all(
+    items.map((item) =>
+      limiter(async () => {
+        try {
+          return await fn(item);
+        } catch {
+          return null as unknown as R;
+        }
+      })
+    )
+  );
 }

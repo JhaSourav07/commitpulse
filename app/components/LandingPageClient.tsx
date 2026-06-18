@@ -456,7 +456,35 @@ export default function LandingPageClient() {
   }, [debouncedUsername, mounted]);
 
   const copyToClipboard = async () => {
-    if (trimmedUsername.length === 0) return;
+    if (trimmedUsername.length === 0) {
+      const inputField = document.querySelector('input[type="text"]') as HTMLInputElement;
+      if (inputField) {
+        inputField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        inputField.focus();
+        gsap.fromTo(
+          inputField,
+          { x: -6, boxShadow: '0 0 0px rgba(239, 68, 68, 0)', borderColor: 'inherit' },
+          {
+            x: 6,
+            borderColor: 'rgba(239, 68, 68, 0.8)',
+            boxShadow: '0 0 20px rgba(239, 68, 68, 0.3)',
+            duration: 0.08,
+            yoyo: true,
+            repeat: 5,
+            ease: 'power1.inOut',
+            onComplete: () => {
+              gsap.to(inputField, {
+                x: 0,
+                borderColor: 'rgba(255, 255, 255, 0.1)',
+                boxShadow: 'none',
+                duration: 0.4,
+              });
+            },
+          }
+        );
+      }
+      return;
+    }
 
     try {
       await navigator.clipboard.writeText(markdown);
@@ -471,8 +499,8 @@ export default function LandingPageClient() {
     scrollTimeoutRef.current = setTimeout(() => {
       guideRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 80);
-    if (copiedTimeoutRef.current) clearTimeout(copiedTimeoutRef.current);
-    copiedTimeoutRef.current = setTimeout(() => setCopied(false), 3000);
+    //if (copiedTimeoutRef.current) clearTimeout(copiedTimeoutRef.current);
+    //copiedTimeoutRef.current = setTimeout(() => setCopied(false), 3000);
   };
 
   useEffect(() => {
@@ -939,11 +967,11 @@ export default function LandingPageClient() {
                 <button
                   type="button"
                   onClick={copyToClipboard}
-                  disabled={!mounted || trimmedUsername.length === 0}
-                  className={`relative flex flex-1 items-center justify-center gap-2 overflow-hidden rounded-2xl border px-6 py-3.5 text-sm font-bold transition-all duration-300 active:scale-[0.98] disabled:cursor-not-allowed ${
+                  aria-disabled={!mounted || trimmedUsername.length === 0}
+                  className={`relative flex flex-1 items-center justify-center gap-2 overflow-hidden rounded-2xl border px-6 py-3.5 text-sm font-bold transition-all duration-300 active:scale-[0.98] ${
                     mounted && trimmedUsername.length > 0
                       ? 'border-emerald-500/20 bg-emerald-500/5 text-emerald-400 hover:scale-[1.02] hover:bg-emerald-500/10 hover:border-emerald-500/40 hover:shadow-[0_0_20px_rgba(16,185,129,0.15)] cursor-pointer'
-                      : 'border-black/5 bg-gray-50 text-gray-400 dark:border-white/5 dark:bg-transparent dark:text-white/55'
+                      : 'border-black/5 bg-gray-50 text-gray-400 opacity-50 dark:border-white/5 dark:bg-transparent dark:text-white/30 cursor-not-allowed hover:bg-gray-100 dark:hover:bg-white/10'
                   }`}
                 >
                   <AnimatePresence mode="wait">
@@ -981,6 +1009,44 @@ export default function LandingPageClient() {
                   onClick={(e) => {
                     if (!mounted || trimmedUsername.length === 0) {
                       e.preventDefault();
+                      const inputField = document.querySelector(
+                        'input[type="text"]'
+                      ) as HTMLInputElement;
+                      if (inputField) {
+                        // 1. Smoothly scroll to the input
+                        inputField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+                        // 2. Focus the input so user can type immediately
+                        inputField.focus();
+
+                        // 3. THE TRENDY FIX: GSAP Shake and Error Glow
+                        gsap.fromTo(
+                          inputField,
+                          {
+                            x: -6,
+                            boxShadow: '0 0 0px rgba(239, 68, 68, 0)',
+                            borderColor: 'inherit',
+                          },
+                          {
+                            x: 6,
+                            borderColor: 'rgba(239, 68, 68, 0.8)', // Subtle red border
+                            boxShadow: '0 0 20px rgba(239, 68, 68, 0.3)', // Soft red glow
+                            duration: 0.08,
+                            yoyo: true,
+                            repeat: 5,
+                            ease: 'power1.inOut',
+                            onComplete: () => {
+                              // Smoothly fade the glow out after shaking
+                              gsap.to(inputField, {
+                                x: 0,
+                                borderColor: 'rgba(255, 255, 255, 0.1)', // Default border
+                                boxShadow: 'none',
+                                duration: 0.4,
+                              });
+                            },
+                          }
+                        );
+                      }
                     } else {
                       trackUser(trimmedUsername);
                       addSearch(trimmedUsername);
@@ -989,7 +1055,7 @@ export default function LandingPageClient() {
                   className={`relative flex flex-1 items-center justify-center gap-2 overflow-hidden rounded-2xl border px-6 py-3.5 text-sm font-bold transition-all duration-300 active:scale-[0.98] ${
                     mounted && trimmedUsername.length > 0
                       ? 'border-cyan-500/20 bg-cyan-500/5 text-cyan-400 hover:scale-[1.02] hover:bg-cyan-500/10 hover:border-cyan-500/40 hover:shadow-[0_0_20px_rgba(6,182,212,0.15)] cursor-pointer'
-                      : 'border-black/5 bg-gray-50 text-gray-400 dark:border-white/5 dark:bg-transparent dark:text-white/55 cursor-not-allowed'
+                      : 'border-black/5 bg-gray-50 text-gray-400 opacity-50 dark:border-white/5 dark:bg-transparent dark:text-white/30 cursor-not-allowed'
                   }`}
                 >
                   <ExternalLink size={16} />
