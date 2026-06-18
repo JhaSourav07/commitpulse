@@ -112,6 +112,7 @@ export default function Leaderboard({ contributors = [] }: LeaderboardProps) {
                     src={contributor.avatar_url}
                     alt={contributor.login}
                     fill
+                    unoptimized
                     className="object-cover"
                   />
                 ) : (
@@ -227,6 +228,7 @@ function PodiumItem({ contributor, height, variant, delay, isFirst }: PodiumItem
                 src={contributor.avatar_url}
                 alt={contributor.login}
                 fill
+                unoptimized
                 className="rounded-full object-cover"
               />
             ) : (

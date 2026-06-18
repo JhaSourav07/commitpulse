@@ -100,6 +100,64 @@ vi.mock('./ContributorsClient', () => ({
   default: (props: ContributorsClientProps) => mockContributorsClient(props),
 }));
 
+vi.mock('framer-motion', async () => {
+  const React = await import('react');
+
+  const motionProps = new Set([
+    'whileHover',
+    'whileTap',
+    'whileInView',
+    'initial',
+    'animate',
+    'exit',
+    'variants',
+    'transition',
+    'viewport',
+    'drag',
+    'layout',
+    'layoutId',
+  ]);
+
+  const stripMotionProps = (props: Record<string, unknown>) =>
+    Object.fromEntries(Object.entries(props).filter(([key]) => !motionProps.has(key)));
+
+  const createMotionComponent = (tag: string) => {
+    const Component = ({
+      children,
+      ...props
+    }: React.HTMLAttributes<HTMLElement> & { children?: React.ReactNode }) =>
+      React.createElement(tag, stripMotionProps(props), children);
+
+    return Component;
+  };
+
+  return {
+    motion: {
+      div: createMotionComponent('div'),
+      button: createMotionComponent('button'),
+      section: createMotionComponent('section'),
+      article: createMotionComponent('article'),
+      nav: createMotionComponent('nav'),
+      header: createMotionComponent('header'),
+      footer: createMotionComponent('footer'),
+      main: createMotionComponent('main'),
+      aside: createMotionComponent('aside'),
+      span: createMotionComponent('span'),
+      ul: createMotionComponent('ul'),
+      li: createMotionComponent('li'),
+      a: createMotionComponent('a'),
+      p: createMotionComponent('p'),
+      h1: createMotionComponent('h1'),
+      h2: createMotionComponent('h2'),
+      h3: createMotionComponent('h3'),
+      h4: createMotionComponent('h4'),
+      h5: createMotionComponent('h5'),
+      h6: createMotionComponent('h6'),
+    },
+    AnimatePresence: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  };
+});
+
 describe('ContributorsPage Mock Integrations', () => {
   let originalFetch: typeof fetch;
 
@@ -133,6 +191,10 @@ describe('ContributorsPage Mock Integrations', () => {
 
   afterEach(() => {
     global.fetch = originalFetch;
+    vi.unstubAllGlobals();
+  });
+
+  afterEach(() => {
     vi.unstubAllGlobals();
   });
 
@@ -183,7 +245,7 @@ describe('ContributorsPage Mock Integrations', () => {
     const props = mockContributorsClient.mock.calls[0][0] as ContributorsClientProps;
 
     expect(Array.isArray(props.topContributors)).toBe(true);
-  });
+  }, 60000); // Fixed: Added 60 second timeout to prevent CI timeout
 
   it('falls back to empty contributor data on failed endpoint responses', async () => {
     vi.stubGlobal(

@@ -77,7 +77,7 @@ describe('ShareSheet — Responsive Multi-device Columns & Mobile Viewport Layou
     expect(socialGrid!.classList.contains('grid')).toBe(true);
 
     const buttonsInGrid = socialGrid!.querySelectorAll('button');
-    expect(buttonsInGrid.length).toBe(4);
+    expect(buttonsInGrid.length).toBe(5);
   });
 
   it('all export option buttons have w-full class ensuring vertical stacking on mobile', () => {

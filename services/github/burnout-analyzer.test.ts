@@ -3,7 +3,6 @@ import { fetchBurnoutAnalysis } from './burnout-analyzer';
 
 // Mock global fetch
 const fetchMock = vi.fn();
-global.fetch = fetchMock;
 
 vi.mock('@/lib/github', async () => {
   const actual = await vi.importActual<typeof import('@/lib/github')>('@/lib/github');
@@ -16,6 +15,9 @@ vi.mock('@/lib/github', async () => {
 describe('BurnoutAnalyzer Service', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    // Re-assign fetch mock before each test to prevent the vitest.setup.ts
+    // afterEach guard from leaking guardedFetch into subsequent tests.
+    global.fetch = fetchMock;
   });
 
   it('correctly calculates repository metrics, burnout risk levels, and inactivity alerts', async () => {
