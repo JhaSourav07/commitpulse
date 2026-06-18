@@ -7,7 +7,13 @@ import DashboardSkeleton from './DashboardSkeleton';
 import { X, RefreshCw, Share2, Network } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
-import type { Achievement, Repository, HallOfFameAward, RepoActivityInfo } from '@/types/dashboard';
+import type {
+  Achievement,
+  Repository,
+  HallOfFameAward,
+  RepoActivityInfo,
+  DeploymentData,
+} from '@/types/dashboard';
 import type { GraphNode, GraphLink } from '@/types';
 
 import RefreshButton from './RefreshButton';
@@ -33,6 +39,7 @@ import { PopularRepos } from './PopularPinnnedRepos';
 import InactiveRepoReminder from './InactiveRepoReminder';
 import PRInsightsClient from './PRInsights/PRInsightsClient';
 import CIAnalyticsClient from './CIAnalytics/CIAnalyticsClient';
+import DeploymentTracker from './DeploymentTracker';
 import ArchitectureVisualizer from './ArchitectureVisualizer';
 
 // Define the dashboard data structure
@@ -85,6 +92,7 @@ export interface DashboardData {
   popularRepos?: Repository[];
   pinnedRepos?: Repository[];
   starredRepos?: Repository[];
+  deployments?: DeploymentData[];
   hallOfFame?: HallOfFameAward[];
 }
 
@@ -694,6 +702,7 @@ export default function DashboardClient({
             />
             <Achievements achievements={initialData.achievements} />
             <ResumeProfileSection githubUsername={username} />
+            <DeploymentTracker data={initialData.deployments} />
           </aside>
 
           <div className="flex flex-col gap-6 lg:gap-8 min-w-0">

@@ -224,6 +224,7 @@ export default function BurnoutAnalyzerPage() {
               sustainabilityScore={report.sustainabilityScore}
               onRefresh={handleRefresh}
               isRefreshing={isRefreshing}
+              report={report}
             />
 
             {error && (

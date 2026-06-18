@@ -4,6 +4,7 @@ import { Analytics } from '@vercel/analytics/next';
 import Navbar from './components/navbar';
 import BrandParticles from '@/components/BrandParticles';
 import ReturnToTop from '@/components/ReturnToTop';
+import ScrollToBottom from '@/components/ScrollToBottom';
 import type { Metadata, Viewport } from 'next';
 import ScrollRestoration from './components/ScrollRestoration';
 import { Providers } from './providers';
@@ -31,7 +32,11 @@ export const metadata: Metadata = {
   creator: 'Sourav Jha',
   manifest: '/manifest.webmanifest',
   icons: {
-    apple: '/icons/icon-192x192.png',
+    icon: [
+      { url: '/favicon.ico', sizes: '48x48' },
+      { url: '/icon.svg', type: 'image/svg+xml' },
+    ],
+    apple: '/apple-icon.png',
   },
   appleWebApp: {
     capable: true,
@@ -117,6 +122,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             {children}
           </main>
           <ReturnToTop />
+          <ScrollToBottom />
           <KonamiEasterEgg />
           <Analytics />
         </Providers>

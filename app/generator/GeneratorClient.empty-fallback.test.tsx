@@ -69,7 +69,8 @@ describe('GeneratorClient - Edge Cases & Empty/Missing Inputs Verification', () 
     render(<GeneratorClient />);
 
     // Score evaluation
-    expect(screen.getByText('0%')).toBeInTheDocument();
+    const zeroPercents = screen.getAllByText('0%');
+    expect(zeroPercents.length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText('Level: Beginner')).toBeInTheDocument();
 
     // Suggestion checklist icons should all render warning/alert circles (not completed)

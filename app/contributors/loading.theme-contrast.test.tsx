@@ -17,8 +17,7 @@ describe('Contributors loading theme contrast', () => {
     const status = screen.getByRole('status');
 
     expect(status.getAttribute('aria-live')).toBe('polite');
-    expect(screen.getByText('Loading the collective...')).toBeTruthy();
-    expect(screen.getByText('Fetching contributor data from GitHub')).toBeTruthy();
+    expect(status.getAttribute('aria-label')).toBe('Loading contributors');
   });
 
   it('applies cohesive dark visual shell classes', () => {
@@ -36,14 +35,11 @@ describe('Contributors loading theme contrast', () => {
     ]);
   });
 
-  it('keeps contributor loading text visually readable', () => {
+  it('does not render contributor loading text that can linger after data loads', () => {
     render(<Loading />);
 
-    const primaryText = screen.getByText('Loading the collective...');
-    const secondaryText = screen.getByText('Fetching contributor data from GitHub');
-
-    hasClasses(primaryText, ['text-zinc-400', 'font-light', 'text-lg']);
-    hasClasses(secondaryText, ['text-sm', 'text-zinc-600', 'font-mono']);
+    expect(screen.queryByText('Loading the collective...')).toBeNull();
+    expect(screen.queryByText('Fetching contributor data from GitHub')).toBeNull();
   });
 
   it('uses premium spinner styling with visible foreground contrast', () => {

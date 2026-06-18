@@ -70,6 +70,16 @@ export default function ContributionCity3D({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  const hoverDataRef = useRef<
+    Array<{
+      x: number;
+      y: number;
+      count: number;
+      date: string;
+      radius: number;
+    }>
+  >([]);
+
   // Camera state – angles in radians
   const [isDragging, setIsDragging] = useState(false);
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
@@ -163,6 +173,7 @@ export default function ContributionCity3D({
       const db = b.col * sinY + b.row * cosY;
       return da - db;
     });
+    hoverDataRef.current = [];
 
     for (const cube of sorted) {
       const { col, row, height } = cube;
@@ -183,6 +194,16 @@ export default function ContributionCity3D({
       const t1 = project(wx + 1, cubeHWorld, wz);
       const t2 = project(wx + 1, cubeHWorld, wz + 1);
       const t3 = project(wx, cubeHWorld, wz + 1);
+      const centerX = (t0.cx + t1.cx + t2.cx + t3.cx) / 4;
+      const centerY = (t0.cy + t1.cy + t2.cy + t3.cy) / 4;
+
+      hoverDataRef.current.push({
+        x: centerX,
+        y: centerY,
+        count: cube.count,
+        date: cube.date,
+        radius: tileW * 0.45,
+      });
 
       // Intensity-based tint
       const intFactor = cube.intensity / 4;
@@ -294,13 +315,49 @@ export default function ContributionCity3D({
   };
 
   const onPointerMove = (e: React.PointerEvent) => {
-    if (!isDragging) return;
-    const cam = cameraRef.current;
-    const dx = e.clientX - cam.dragStartX;
-    const dy = e.clientY - cam.dragStartY;
-    cam.rotY = cam.startRotY + dx * 0.008;
-    cam.tiltX = Math.max(0.1, Math.min(1.2, cam.startTiltX + dy * 0.005));
-    draw();
+    if (isDragging) {
+      const cam = cameraRef.current;
+      const dx = e.clientX - cam.dragStartX;
+      const dy = e.clientY - cam.dragStartY;
+
+      cam.rotY = cam.startRotY + dx * 0.008;
+      cam.tiltX = Math.max(0.1, Math.min(1.2, cam.startTiltX + dy * 0.005));
+
+      draw();
+      return;
+    }
+
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const rect = canvas.getBoundingClientRect();
+
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+
+    const hit = hoverDataRef.current.find((tower) => {
+      const dx = mouseX - tower.x;
+      const dy = mouseY - tower.y;
+
+      return Math.sqrt(dx * dx + dy * dy) <= tower.radius;
+    });
+
+    if (hit) {
+      const padding = 80;
+
+      const safeX = Math.max(padding, Math.min(hit.x, rect.width - padding));
+
+      const safeY = Math.max(40, hit.y);
+
+      setTooltip({
+        x: safeX,
+        y: safeY,
+        count: hit.count,
+        date: hit.date,
+      });
+    } else {
+      setTooltip(null);
+    }
   };
 
   const onPointerUp = () => setIsDragging(false);
@@ -345,6 +402,7 @@ export default function ContributionCity3D({
           className="w-full h-full"
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
+          onPointerLeave={() => setTooltip(null)}
           onPointerUp={onPointerUp}
           onPointerCancel={onPointerUp}
           onWheel={onWheel}

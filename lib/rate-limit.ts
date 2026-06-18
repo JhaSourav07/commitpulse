@@ -69,27 +69,54 @@ export class RateLimiter {
 
     if (url && token) {
       try {
-        const res = await fetch(`${url}/pipeline`, {
+        const getRes = await fetch(`${url}/pipeline`, {
           method: 'POST',
           headers: {
             Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify([
-            ['INCR', `ratelimit_class:${ip}`],
-            ['EXPIRE', `ratelimit_class:${ip}`, Math.floor(this.windowMs / 1000), 'NX'],
+            ['GET', `ratelimit_class:${ip}`],
+            ['TTL', `ratelimit_class:${ip}`],
           ]),
         });
 
-        if (res.ok) {
-          const data = await res.json();
-          const count = data[0].result as number;
-          return {
-            success: count <= this.limit,
-            limit: this.limit,
-            remaining: Math.max(0, this.limit - count),
-            reset: now + this.windowMs,
-          };
+        if (getRes.ok) {
+          const getData = await getRes.json();
+          const currentCount = parseInt(getData[0].result ?? '0', 10);
+          const ttl = getData[1].result as number;
+
+          if (currentCount >= this.limit) {
+            return {
+              success: false,
+              limit: this.limit,
+              remaining: 0,
+              reset: ttl > 0 ? now + ttl * 1000 : now + this.windowMs,
+            };
+          }
+
+          const incrRes = await fetch(`${url}/pipeline`, {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify([
+              ['INCR', `ratelimit_class:${ip}`],
+              ['EXPIRE', `ratelimit_class:${ip}`, Math.floor(this.windowMs / 1000), 'NX'],
+            ]),
+          });
+
+          if (incrRes.ok) {
+            const incrData = await incrRes.json();
+            const count = incrData[0].result as number;
+            return {
+              success: count <= this.limit,
+              limit: this.limit,
+              remaining: Math.max(0, this.limit - count),
+              reset: now + this.windowMs,
+            };
+          }
         }
       } catch (error) {
         console.error('RateLimiter KV error, falling back to memory:', error);

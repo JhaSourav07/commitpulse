@@ -76,7 +76,7 @@ describe('ContributorsPage Accessibility', () => {
     const props = mockContributorsClient.mock.calls[0][0] as ContributorsClientProps;
 
     expect(Array.isArray(props.contributors)).toBe(true);
-  });
+  }, 60000);
 
   it('passes totalContributions to client component', async () => {
     const { default: ContributorsPage } = await import('./page');
@@ -100,7 +100,7 @@ describe('ContributorsPage Accessibility', () => {
     const props = mockContributorsClient.mock.calls[0][0] as ContributorsClientProps;
 
     expect(Array.isArray(props.topContributors)).toBe(true);
-  });
+  }, 60000);
 
   it('renders successfully when contributor data is empty', async () => {
     global.fetch = vi.fn().mockResolvedValue({

@@ -376,6 +376,8 @@ const baseStreakParamsSchema = z.object({
       'languages',
       'constellation',
       'radar',
+      'doughnut',
+      'pie',
     ])
     .catch('default')
     .default('default'),
@@ -451,7 +453,10 @@ const baseStreakParamsSchema = z.object({
   // Glow effect — on by default. Accepts 'true'/'1' (true) or 'false' (false).
   glow: z.string().optional().transform(toGlowFlag).default(true),
   opacity: z.string().optional().transform(toOpacityValue),
-  entrance: z.enum(['rise', 'fade', 'slide', 'none']).catch('rise').default('rise'),
+  entrance: z
+    .enum(['rise', 'fade', 'slide', 'wave', 'bounce', 'none'])
+    .catch('rise')
+    .default('rise'),
   badges: z.string().optional().transform(toBooleanFlag).default(false),
 
   // Output format: 'svg' (default), 'json', or 'png' for image export.
