@@ -58,7 +58,7 @@ describe('GET /api/streak dateRange parameter', () => {
     const res = await GET(makeRequest({ user: 'octocat', from: '2024-06-01', to: '2024-06-30' }));
 
     expect(res.status).toBe(200);
-    expect(res.headers.get('Content-Type')).toBe('image/svg+xml');
+    expect(res.headers.get('Content-Type')).toBe('image/svg+xml; charset=utf-8');
     expect(res.headers.get('Content-Security-Policy')).toContain("default-src 'none'");
 
     const body = await res.text();
@@ -116,9 +116,9 @@ describe('GET /api/streak dateRange parameter', () => {
     const res = await GET(makeRequest({ user: 'octocat', from: '2024-06-01', to: '2024-06-30' }));
 
     expect(res.status).toBe(200);
-    expect(res.headers.get('Content-Type')).toBe('image/svg+xml');
+    expect(res.headers.get('Content-Type')).toBe('image/svg+xml; charset=utf-8');
     expect(res.headers.get('Cache-Control')).toBe(
-      'public, s-maxage=3600, stale-while-revalidate=86400'
+      'public, max-age=14400, s-maxage=3600, stale-while-revalidate=7200'
     );
   });
 });

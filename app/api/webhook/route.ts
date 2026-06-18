@@ -1,29 +1,10 @@
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
+import { rateLimit } from '@/lib/rate-limit';
 
 const MAX_PAYLOAD_SIZE = 1024 * 1024; // 1MB
 const SIGNATURE_PREFIX = 'sha256=';
 const SHA256_HEX_LENGTH = 64;
-
-// In-memory rate limiting map: ip -> { count, resetTime }
-const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
-const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
-const MAX_REQUESTS_PER_WINDOW = 10;
-
-function checkRateLimit(ip: string): boolean {
-  const now = Date.now();
-  let record = rateLimitMap.get(ip);
-  if (!record || now > record.resetTime) {
-    record = { count: 1, resetTime: now + RATE_LIMIT_WINDOW };
-    rateLimitMap.set(ip, record);
-    return true;
-  }
-  record.count++;
-  if (record.count > MAX_REQUESTS_PER_WINDOW) {
-    return false;
-  }
-  return true;
-}
 
 function getWebhookSecret(): string | null {
   const secret = process.env.GITHUB_WEBHOOK_SECRET?.trim();
@@ -54,7 +35,8 @@ function verifyWebhookSignature(bodyText: string, signature: string, secret: str
 export async function POST(req: Request) {
   // 1. Rate Limiting
   const ip = req.headers.get('x-forwarded-for') || 'unknown_ip';
-  if (!checkRateLimit(ip)) {
+  const limit = await rateLimit(ip, 10, 60000);
+  if (!limit.success) {
     return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
   }
 

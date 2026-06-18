@@ -7,7 +7,37 @@ import { trackUserProtection } from '@/services/security/track-user-protection';
 import { githubUsernameSchema } from '@/lib/validations';
 import { sanitizeMongoPayload } from '@/utils/sanitize';
 
+const ALLOWED_ORIGINS = [
+  process.env.NEXT_PUBLIC_APP_URL || 'https://commitpulse.vercel.app',
+  'https://commitpulse.vercel.app',
+];
+
+function getCorsHeaders(origin: string | null): Record<string, string> {
+  const allowed = origin && ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  return {
+    'Access-Control-Allow-Origin': allowed,
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Max-Age': '86400',
+  };
+}
+
+export async function OPTIONS(req: Request) {
+  const origin = req.headers.get('origin');
+  return new NextResponse(null, { status: 204, headers: getCorsHeaders(origin) });
+}
+
 export async function POST(req: Request) {
+  const origin = req.headers.get('origin');
+  const corsHeaders = getCorsHeaders(origin);
+
+  if (req.method === 'POST' && origin && !ALLOWED_ORIGINS.includes(origin)) {
+    return NextResponse.json(
+      { success: false, error: 'Origin not allowed' },
+      { status: 403, headers: corsHeaders }
+    );
+  }
+
   // Get IP for rate limiting securely
   const ip = getClientIp(req);
 

@@ -5,13 +5,9 @@ import { getClientIp } from './utils/getClientIp';
 
 /**
  * Middleware to enforce rate limiting on specific API routes.
- *
- * Next.js requires this file to be named `middleware.ts` at the project root
- * and to export a function named `middleware` (and optionally `config`).
- *
- * @see https://nextjs.org/docs/app/building-your-application/routing/middleware
  */
 export async function middleware(request: NextRequest) {
+ fix/5491-rate-limit-spoofable-headers
   // Only use platform-provided IP (request.ip) as the direct peer IP.
   // Never trust x-forwarded-for or x-real-ip headers directly as they
   // can be spoofed by attackers to evade rate limiting.
@@ -20,9 +16,24 @@ export async function middleware(request: NextRequest) {
   const platformIp = (request as unknown as { ip?: string }).ip;
   const directIp = platformIp || undefined;
 
-  const ip = getClientIp(request, { directIp });
+  // Extract client IP securely using the getClientIp helper
+  const ip = getClientIp(request);
+ main
 
-  const result = await rateLimit(ip, 60, 60000);
+  // Determine if this is a hard-refresh request (bypasses cache/hits GitHub API)
+  const isRefreshRequest =
+    request.nextUrl.searchParams.get('refresh') === 'true' ||
+    request.nextUrl.searchParams.get('bypassCache') === 'true';
+
+  let result;
+
+  if (isRefreshRequest) {
+    // Strict rate limit for explicit refresh requests: 3 requests per 10 minutes (600,000ms)
+    result = await rateLimit(`refresh_limiter:${ip}`, 3, 600000);
+  } else {
+    // Standard rate limit: 60 requests per 1 minute (60,000ms)
+    result = await rateLimit(ip, 60, 60000);
+  }
 
   if (!result.success) {
     return NextResponse.json(
@@ -49,7 +60,6 @@ export async function middleware(request: NextRequest) {
 
 /**
  * Configure which routes should trigger this proxy.
- * Using a matcher is more efficient than checking pathnames inside the proxy.
  */
 export const config = {
   matcher: [
