@@ -1,7 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import type { PRInsightData } from '@/services/github/pr-insights';
-import { GitPullRequest, GitMerge, MessageSquare } from 'lucide-react';
 
 export default function RepoPerformanceTable({ data }: { data: PRInsightData }) {
   const { repoPerformance } = data;
@@ -39,7 +38,7 @@ export default function RepoPerformanceTable({ data }: { data: PRInsightData }) 
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100 dark:divide-zinc-800/50">
-            {repoPerformance.map((repo, idx) => (
+            {repoPerformance.map((repo) => (
               <tr
                 key={repo.name}
                 className="group hover:bg-gray-50 dark:hover:bg-zinc-800/50 transition-colors"

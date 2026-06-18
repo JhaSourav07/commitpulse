@@ -406,12 +406,16 @@ export default function LandingPageClient() {
       return;
     }
 
+    // Create AbortController to manage fetch lifecycle
+    const abortController = new AbortController();
+
     const fetchDetails = async () => {
       setUserDetailsLoading(true);
       setUserDetailsError(null);
       try {
         const response = await fetch(
-          `/api/user-details?username=${encodeURIComponent(debouncedUsername)}`
+          `/api/user-details?username=${encodeURIComponent(debouncedUsername)}`,
+          { signal: abortController.signal }
         );
         if (!response.ok) {
           if (response.status === 404) {
@@ -421,21 +425,66 @@ export default function LandingPageClient() {
           throw new Error(errData.error || 'Failed to fetch user');
         }
         const data = await response.json();
-        setUserDetails(data);
+        // Only update state if the request wasn't aborted
+        if (!abortController.signal.aborted) {
+          setUserDetails(data);
+        }
       } catch (err) {
+        // Don't update state if the request was aborted (component unmount or new request)
+        if (err instanceof Error && err.name === 'AbortError') {
+          return;
+        }
         const message = err instanceof Error ? err.message : 'Failed to fetch user';
-        setUserDetails(null);
-        setUserDetailsError(message);
+        if (!abortController.signal.aborted) {
+          setUserDetails(null);
+          setUserDetailsError(message);
+        }
       } finally {
-        setUserDetailsLoading(false);
+        // Always clear loading state if not aborted
+        if (!abortController.signal.aborted) {
+          setUserDetailsLoading(false);
+        }
       }
     };
 
     fetchDetails();
+
+    // Cleanup: abort fetch when component unmounts or dependencies change
+    return () => {
+      abortController.abort();
+    };
   }, [debouncedUsername, mounted]);
 
   const copyToClipboard = async () => {
-    if (trimmedUsername.length === 0) return;
+    if (trimmedUsername.length === 0) {
+      const inputField = document.querySelector('input[type="text"]') as HTMLInputElement;
+      if (inputField) {
+        inputField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        inputField.focus();
+        gsap.fromTo(
+          inputField,
+          { x: -6, boxShadow: '0 0 0px rgba(239, 68, 68, 0)', borderColor: 'inherit' },
+          {
+            x: 6,
+            borderColor: 'rgba(239, 68, 68, 0.8)',
+            boxShadow: '0 0 20px rgba(239, 68, 68, 0.3)',
+            duration: 0.08,
+            yoyo: true,
+            repeat: 5,
+            ease: 'power1.inOut',
+            onComplete: () => {
+              gsap.to(inputField, {
+                x: 0,
+                borderColor: 'rgba(255, 255, 255, 0.1)',
+                boxShadow: 'none',
+                duration: 0.4,
+              });
+            },
+          }
+        );
+      }
+      return;
+    }
 
     try {
       await navigator.clipboard.writeText(markdown);
@@ -464,12 +513,14 @@ export default function LandingPageClient() {
   const selectDemoUser = (name: string) => {
     setUsername(name);
     setInstantUsername(name);
+    setBadgeResult(null);
   };
 
   const handleGenerate = (e: React.FormEvent) => {
     e.preventDefault();
     if (trimmedUsername.length > 0) {
       setInstantUsername(trimmedUsername);
+      setBadgeResult(null);
       trackUser(trimmedUsername);
       addSearch(trimmedUsername);
     }
@@ -576,6 +627,7 @@ export default function LandingPageClient() {
                       }
                       setUsername(val);
                       setInstantUsername('');
+                      setBadgeResult(null);
                     }}
                     maxLength={39}
                   />
@@ -783,19 +835,27 @@ export default function LandingPageClient() {
             <div className="relative flex flex-col min-h-[480px] md:min-h-[520px] items-center justify-center overflow-hidden rounded-3xl border border-black/5 bg-white/50 p-8 backdrop-blur-xl shadow-2xl dark:border-white/10 dark:bg-[#0a0a0a]/80">
               {hasUsername ? (
                 <div className="w-full flex flex-col items-center justify-center gap-4">
-                  {userDetailsError === 'User not found' ? (
+                  {userDetailsError ? (
                     <div className="flex flex-col items-center justify-center gap-4 py-12 text-center">
                       <div className="flex h-16 w-16 items-center justify-center rounded-3xl border border-red-500/20 bg-red-500/10 shadow-inner">
                         <X size={32} className="text-red-500" />
                       </div>
                       <div>
                         <p className="text-lg font-bold text-gray-900 dark:text-white tracking-tight">
-                          {t('landing.user_not_found', { defaultValue: 'GitHub user not found' })}
+                          {userDetailsError === 'User not found'
+                            ? t('landing.user_not_found', { defaultValue: 'GitHub user not found' })
+                            : t('landing.verification_failed', {
+                                defaultValue: 'Verification failed',
+                              })}
                         </p>
                         <p className="text-sm text-gray-500 dark:text-white/65 mt-1">
-                          {t('landing.user_not_found_desc', {
-                            defaultValue: 'Please check the username and try again.',
-                          })}
+                          {userDetailsError === 'User not found'
+                            ? t('landing.user_not_found_desc', {
+                                defaultValue: 'Please check the username and try again.',
+                              })
+                            : `${t('landing.verification_failed', {
+                                defaultValue: 'Verification failed',
+                              })}: ${userDetailsError}`}
                         </p>
                       </div>
                     </div>
@@ -907,11 +967,11 @@ export default function LandingPageClient() {
                 <button
                   type="button"
                   onClick={copyToClipboard}
-                  disabled={!mounted || trimmedUsername.length === 0}
-                  className={`relative flex flex-1 items-center justify-center gap-2 overflow-hidden rounded-2xl border px-6 py-3.5 text-sm font-bold transition-all duration-300 active:scale-[0.98] disabled:cursor-not-allowed ${
+                  aria-disabled={!mounted || trimmedUsername.length === 0}
+                  className={`relative flex flex-1 items-center justify-center gap-2 overflow-hidden rounded-2xl border px-6 py-3.5 text-sm font-bold transition-all duration-300 active:scale-[0.98] ${
                     mounted && trimmedUsername.length > 0
                       ? 'border-emerald-500/20 bg-emerald-500/5 text-emerald-400 hover:scale-[1.02] hover:bg-emerald-500/10 hover:border-emerald-500/40 hover:shadow-[0_0_20px_rgba(16,185,129,0.15)] cursor-pointer'
-                      : 'border-black/5 bg-gray-50 text-gray-400 dark:border-white/5 dark:bg-transparent dark:text-white/55'
+                      : 'border-black/5 bg-gray-50 text-gray-400 opacity-50 dark:border-white/5 dark:bg-transparent dark:text-white/30 cursor-not-allowed hover:bg-gray-100 dark:hover:bg-white/10'
                   }`}
                 >
                   <AnimatePresence mode="wait">
@@ -949,6 +1009,44 @@ export default function LandingPageClient() {
                   onClick={(e) => {
                     if (!mounted || trimmedUsername.length === 0) {
                       e.preventDefault();
+                      const inputField = document.querySelector(
+                        'input[type="text"]'
+                      ) as HTMLInputElement;
+                      if (inputField) {
+                        // 1. Smoothly scroll to the input
+                        inputField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+                        // 2. Focus the input so user can type immediately
+                        inputField.focus();
+
+                        // 3. THE TRENDY FIX: GSAP Shake and Error Glow
+                        gsap.fromTo(
+                          inputField,
+                          {
+                            x: -6,
+                            boxShadow: '0 0 0px rgba(239, 68, 68, 0)',
+                            borderColor: 'inherit',
+                          },
+                          {
+                            x: 6,
+                            borderColor: 'rgba(239, 68, 68, 0.8)', // Subtle red border
+                            boxShadow: '0 0 20px rgba(239, 68, 68, 0.3)', // Soft red glow
+                            duration: 0.08,
+                            yoyo: true,
+                            repeat: 5,
+                            ease: 'power1.inOut',
+                            onComplete: () => {
+                              // Smoothly fade the glow out after shaking
+                              gsap.to(inputField, {
+                                x: 0,
+                                borderColor: 'rgba(255, 255, 255, 0.1)', // Default border
+                                boxShadow: 'none',
+                                duration: 0.4,
+                              });
+                            },
+                          }
+                        );
+                      }
                     } else {
                       trackUser(trimmedUsername);
                       addSearch(trimmedUsername);
@@ -957,7 +1055,7 @@ export default function LandingPageClient() {
                   className={`relative flex flex-1 items-center justify-center gap-2 overflow-hidden rounded-2xl border px-6 py-3.5 text-sm font-bold transition-all duration-300 active:scale-[0.98] ${
                     mounted && trimmedUsername.length > 0
                       ? 'border-cyan-500/20 bg-cyan-500/5 text-cyan-400 hover:scale-[1.02] hover:bg-cyan-500/10 hover:border-cyan-500/40 hover:shadow-[0_0_20px_rgba(6,182,212,0.15)] cursor-pointer'
-                      : 'border-black/5 bg-gray-50 text-gray-400 dark:border-white/5 dark:bg-transparent dark:text-white/55 cursor-not-allowed'
+                      : 'border-black/5 bg-gray-50 text-gray-400 opacity-50 dark:border-white/5 dark:bg-transparent dark:text-white/30 cursor-not-allowed'
                   }`}
                 >
                   <ExternalLink size={16} />

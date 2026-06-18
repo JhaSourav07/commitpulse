@@ -6,6 +6,7 @@ import { DescriptionSection } from './sections/DescriptionSection';
 import { TechnologiesSection } from './sections/TechnologiesSection';
 import { SocialsSection } from './sections/SocialsSection';
 import { CommitPulseSection } from './sections/CommitPulseSection';
+import { ContributionGraphSection } from './sections/ContributionGraphSection';
 import { GitHubImportModal } from './GitHubImportModal';
 import { FaGithub } from 'react-icons/fa';
 import type { GeneratorState } from '../types';
@@ -21,6 +22,12 @@ interface EditorPanelProps {
   onGithubUsernameChange: (v: string) => void;
   onShowCommitPulseChange: (v: boolean) => void;
   onCommitPulseAccentChange: (v: string) => void;
+  showSnakeGraph?: boolean;
+  showPacmanGraph?: boolean;
+  graphPlacement?: 'top' | 'middle' | 'bottom';
+  onShowSnakeGraphChange?: (v: boolean) => void;
+  onShowPacmanGraphChange?: (v: boolean) => void;
+  onGraphPlacementChange?: (v: 'top' | 'middle' | 'bottom') => void;
   onApplyImport: (data: ImportedData) => void;
 }
 
@@ -34,12 +41,15 @@ export function EditorPanel({
   onGithubUsernameChange,
   onShowCommitPulseChange,
   onCommitPulseAccentChange,
+  onShowSnakeGraphChange = () => {},
+  onShowPacmanGraphChange = () => {},
+  onGraphPlacementChange = () => {},
   onApplyImport,
 }: EditorPanelProps) {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   return (
-    <div className="flex flex-col gap-4">
+    <form role="form" aria-label="Readme Configuration Editor" className="flex flex-col gap-4">
       <button
         onClick={() => setIsImportModalOpen(true)}
         className="w-full group relative flex items-center justify-center gap-2.5 px-4 py-3.5 rounded-2xl bg-white dark:bg-[#111111] border border-gray-200 dark:border-white/10 hover:border-emerald-500/30 dark:hover:border-emerald-500/30 shadow-sm transition-all overflow-hidden"
@@ -74,6 +84,16 @@ export function EditorPanel({
         onShowCommitPulseChange={onShowCommitPulseChange}
         onCommitPulseAccentChange={onCommitPulseAccentChange}
       />
-    </div>
+      <ContributionGraphSection
+        githubUsername={state.githubUsername}
+        showSnakeGraph={state.showSnakeGraph}
+        showPacmanGraph={state.showPacmanGraph}
+        graphPlacement={state.graphPlacement}
+        onGithubUsernameChange={onGithubUsernameChange}
+        onShowSnakeGraphChange={onShowSnakeGraphChange}
+        onShowPacmanGraphChange={onShowPacmanGraphChange}
+        onGraphPlacementChange={onGraphPlacementChange}
+      />
+    </form>
   );
 }

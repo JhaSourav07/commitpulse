@@ -6,7 +6,10 @@ import { ogParamsSchema } from '@/lib/validations';
 import { themes } from '@/lib/svg/themes';
 import { fetchGitHubContributions } from '@/lib/github';
 import { calculateStreak } from '@/lib/calculate';
+import { getClientIp } from '@/utils/getClientIp';
+import { RateLimiter } from '@/lib/rate-limit';
 
+const ogRateLimiter = new RateLimiter(30, 60_000, 1);
 const appUrl =
   process.env.NEXT_PUBLIC_SITE_URL ||
   (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://commitpulse.vercel.app');
@@ -35,6 +38,20 @@ function getLuminance(hex: string) {
 }
 
 export async function GET(req: NextRequest) {
+  const ip = getClientIp(req);
+  const rateLimitKey =
+    ip && ip !== 'unknown' ? ip : `unknown:${req.headers.get('user-agent') ?? 'no-agent'}`;
+
+  if (!(await ogRateLimiter.check(rateLimitKey))) {
+    return new Response(JSON.stringify({ error: 'Too many requests. Please try again later.' }), {
+      status: 429,
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-store',
+      },
+    });
+  }
+
   const { searchParams } = new URL(req.url);
 
   const parseResult = ogParamsSchema.safeParse(Object.fromEntries(searchParams.entries()));

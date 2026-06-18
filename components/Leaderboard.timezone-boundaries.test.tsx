@@ -7,8 +7,7 @@ import React from 'react';
 
 // Mock next/image
 vi.mock('next/image', () => ({
-  default: ({ alt = '', src = '', ...props }: ComponentProps<'img'>) => (
-    // eslint-disable-next-line @next/next/no-img-element
+  default: ({ alt = '', src = '', fill, ...props }: ComponentProps<'img'> & { fill?: boolean }) => (
     <img alt={alt} src={src} {...props} />
   ),
 }));
