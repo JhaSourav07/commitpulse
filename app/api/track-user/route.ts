@@ -6,6 +6,7 @@ import { getRateLimitHeaders, trackUserRateLimiter } from '@/lib/rate-limit';
 import { trackUserProtection } from '@/services/security/track-user-protection';
 import { githubUsernameSchema } from '@/lib/validations';
 import { sanitizeMongoPayload } from '@/utils/sanitize';
+import logger from '@/lib/logger';
 
 const ALLOWED_ORIGINS = [
   process.env.NEXT_PUBLIC_APP_URL || 'https://commitpulse.vercel.app',
@@ -107,9 +108,9 @@ export async function POST(req: Request) {
     if (!process.env.MONGODB_URI) {
       // In production, this is a critical configuration failure
       if (process.env.NODE_ENV === 'production') {
-        console.error(
-          'CRITICAL: MONGODB_URI is not set in production environment. User tracking is disabled.'
-        );
+        logger.error('User tracking disabled: MONGODB_URI is not set', {
+          environment: process.env.NODE_ENV,
+        });
         return NextResponse.json(
           { success: false, error: 'Database configuration error' },
           { status: 500 }
@@ -117,7 +118,9 @@ export async function POST(req: Request) {
       }
 
       // For development/non-production environments, bypass gracefully
-      console.warn('MONGODB_URI is not set. Bypassing user tracking for local development.');
+      logger.warn('User tracking bypassed: MONGODB_URI is not set', {
+        environment: process.env.NODE_ENV,
+      });
       trackUserProtection.recordWrite(trimmedUsername);
       return NextResponse.json({ success: true, bypassed: true });
     }
@@ -182,7 +185,10 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error tracking user:', error);
+    logger.error('Failed to track user', {
+      route: '/api/track-user',
+      error,
+    });
 
     return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
   }

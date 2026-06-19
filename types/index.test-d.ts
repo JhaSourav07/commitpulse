@@ -48,7 +48,7 @@ describe('Type Safety Assertions for types/index.ts', () => {
     // Asserts that animations are restricted to exact string literals or undefined
     expectTypeOf<BadgeParams>()
       .toHaveProperty('entrance')
-      .toEqualTypeOf<'rise' | 'fade' | 'slide' | 'none' | undefined>();
+      .toEqualTypeOf<'rise' | 'fade' | 'slide' | 'wave' | 'bounce' | 'none' | undefined>();
   });
 
   it('Test 5: NotificationPreferences should enforce exact literal types for frequency', () => {

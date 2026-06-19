@@ -2,15 +2,21 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { GET } from './route';
 import { RateLimiter } from '@/lib/rate-limit';
 import { fetchCIAnalytics } from '@/services/github/ci-analytics';
+import { getClientIp } from '@/utils/getClientIp';
 
 vi.mock('@/services/github/ci-analytics', () => ({
   fetchCIAnalytics: vi.fn(),
+}));
+
+vi.mock('@/utils/getClientIp', () => ({
+  getClientIp: vi.fn(),
 }));
 
 describe('GET /api/ci-analytics', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.spyOn(RateLimiter.prototype, 'check').mockResolvedValue(true);
+    vi.mocked(getClientIp).mockReturnValue('127.0.0.1');
   });
 
   it('rejects requests when the endpoint abuse budget is exhausted', async () => {
@@ -26,16 +32,10 @@ describe('GET /api/ci-analytics', () => {
     vi.mocked(fetchCIAnalytics).mockResolvedValue({} as never);
     const checkSpy = vi.spyOn(RateLimiter.prototype, 'check').mockResolvedValue(true);
 
-    await GET(
-      new Request('http://localhost/api/ci-analytics?username=octocat', {
-        headers: { 'x-forwarded-for': '1.2.3.4' },
-      })
-    );
-    await GET(
-      new Request('http://localhost/api/ci-analytics?username=octocat', {
-        headers: { 'x-forwarded-for': '5.6.7.8' },
-      })
-    );
+    vi.mocked(getClientIp).mockReturnValueOnce('1.2.3.4').mockReturnValueOnce('5.6.7.8');
+
+    await GET(new Request('http://localhost/api/ci-analytics?username=octocat'));
+    await GET(new Request('http://localhost/api/ci-analytics?username=octocat'));
     expect(checkSpy).toHaveBeenNthCalledWith(1, '1.2.3.4');
     expect(checkSpy).toHaveBeenNthCalledWith(2, '5.6.7.8');
   });

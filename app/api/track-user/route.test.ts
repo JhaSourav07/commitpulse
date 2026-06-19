@@ -215,9 +215,8 @@ describe('POST /api/track-user', () => {
       expect(data.success).toBe(true);
       expect(data.bypassed).toBe(true);
 
-      expect(consoleSpy).toHaveBeenCalledWith(
-        'MONGODB_URI is not set. Bypassing user tracking for local development.'
-      );
+      expect(consoleSpy).toHaveBeenCalled();
+      expect(consoleSpy.mock.calls[0][0]).toContain('User tracking bypassed');
       expect(dbConnect).not.toHaveBeenCalled();
 
       consoleSpy.mockRestore();
