@@ -23,6 +23,7 @@ import {
 } from '@/lib/svg/generator';
 import { generateConstellationSVG } from '@/lib/svg/constellation';
 import { generateRadarSVG } from '@/lib/svg/radar';
+import { generateDoughnutSVG } from '@/lib/svg/doughnut';
 import { getSecondsUntilUTCMidnight, getSecondsUntilMidnightInTimezone } from '@/utils/time';
 import type { BadgeParams, RepoContribution, ExtendedContributionData } from '@/types';
 import { themes } from '@/lib/svg/themes';
@@ -32,6 +33,7 @@ import { getClientIp } from '@/utils/getClientIp';
 import { quotaMonitor } from '@/services/github/quota-monitor';
 import { refreshPolicy } from '@/services/github/refresh-policy';
 import { refreshRateLimiter } from '@/services/github/refresh-rate-limiter';
+import { logger } from '@/lib/logger';
 
 const VALIDATION_CACHE_MAX = 256;
 const validationCache = new Map<string, ReturnType<typeof streakParamsSchema.safeParse>>();
@@ -166,7 +168,9 @@ export async function GET(request: Request) {
       | 'skyline'
       | 'languages'
       | 'constellation'
-      | 'radar';
+      | 'radar'
+      | 'doughnut'
+      | 'pie';
     const themeName = theme || 'dark';
 
     const ip = getClientIp(request);
@@ -548,6 +552,9 @@ export async function GET(request: Request) {
     } else if (normalizedView === 'radar') {
       const stats = calculateStreak(calendar, timezone, undefined, grace);
       svg = generateRadarSVG(stats, params, calendar);
+    } else if (normalizedView === 'doughnut' || normalizedView === 'pie') {
+      const stats = calculateStreak(calendar, timezone, undefined, grace);
+      svg = generateDoughnutSVG(stats, params, calendar);
     } else if (versus && versusCalendar) {
       // Normalize both calendars to the target timezone for accurate comparison
       const normalizedCalendar = normalizeCalendarToTimezone(calendar, timezone);
@@ -662,25 +669,6 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
       }
     );
   }
-  function buildInlineErrorSVG(text: string): string {
-    const MAX_LINE = 48;
-    const truncated = text.length > MAX_LINE * 2 ? text.slice(0, MAX_LINE * 2 - 1) + '…' : text;
-
-    const line1 = escapeXML(truncated.slice(0, MAX_LINE));
-    const line2 = truncated.length > MAX_LINE ? escapeXML(truncated.slice(MAX_LINE)) : null;
-
-    const textY = line2 ? '62' : '75';
-
-    return `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="150" viewBox="0 0 400 150">
-      <rect width="400" height="150" fill="#2d0000" rx="8"/>
-      <text x="200" y="${textY}" text-anchor="middle" dominant-baseline="central" fill="#ffcccc" font-family="sans-serif" font-size="13">${line1}</text>${
-        line2
-          ? `
-      <text x="200" y="91" text-anchor="middle" dominant-baseline="central" fill="#ffcccc" font-family="sans-serif" font-size="13">${line2}</text>`
-          : ''
-      }
-    </svg>`;
-  }
 
   const isNotFound =
     message.toLowerCase().includes('not found') ||
@@ -761,7 +749,10 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
   }
 
   // 4. Return a 500 Internal Server Error for real crashes
-  console.error('[streak] Unhandled error:', message);
+  logger.error('Unhandled error', {
+    source: 'streak',
+    message,
+  });
 
   const errorSvg = buildInlineErrorSVG('Something went wrong. Please try again later.');
 

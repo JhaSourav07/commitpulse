@@ -12,6 +12,7 @@ import Heatmap from '@/components/dashboard/Heatmap';
 import AIInsights from '@/components/dashboard/AIInsights';
 import Achievements from '@/components/dashboard/Achievements';
 import { getOrgDashboardData, buildCommitClock, generateAchievements } from '@/lib/github';
+import logger from '@/lib/logger';
 import { getUserGitHubToken } from '@/lib/githubtoken';
 
 export const revalidate = 3600; // Cache for 1 hour
@@ -61,7 +62,9 @@ export default async function OrgDashboardPage({
   try {
     data = await getOrgDashboardData(orgname, { bypassCache, token: userToken });
   } catch (error) {
-    console.error(error);
+    logger.error('Failed to load organization page', {
+      error,
+    });
     return notFound();
   }
 

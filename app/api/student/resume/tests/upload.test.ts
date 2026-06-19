@@ -1,5 +1,6 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { POST } from '../upload/route';
+import { MAX_FILE_SIZE } from '@/lib/resume-parser';
 
 vi.mock('@/lib/rate-limit', () => {
   class MockRateLimiter {
@@ -11,6 +12,12 @@ vi.mock('@/lib/rate-limit', () => {
   };
 });
 
+const originalFormData = globalThis.FormData;
+
+afterEach(() => {
+  globalThis.FormData = originalFormData;
+});
+
 // Build the handler request directly from a real File/FormData so the file bytes are
 // preserved (the multipart transport itself is Next.js's responsibility, not this route's).
 function makeUploadRequest(content: string | number[], type: string, name = 'resume.pdf'): Request {
@@ -19,6 +26,14 @@ function makeUploadRequest(content: string | number[], type: string, name = 'res
   const form = new FormData();
   form.append('resume', file);
 
+  return {
+    headers: new Headers(),
+    formData: async () => form,
+  } as unknown as Request;
+}
+
+function makeEmptyUploadRequest(): Request {
+  const form = new FormData();
   return {
     headers: new Headers(),
     formData: async () => form,
@@ -58,5 +73,31 @@ describe('POST /api/student/resume/upload', () => {
     expect(response.status).toBe(200);
     expect(body.success).toBe(true);
     expect(body.data).toBeDefined();
+  });
+
+  it('returns 400 when no resume file is provided in the form data', async () => {
+    const response = await POST(makeEmptyUploadRequest());
+    const body = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(body.error).toContain('No resume file');
+  });
+
+  it('returns 400 for a file exceeding the size limit', async () => {
+    const oversized = new ArrayBuffer(MAX_FILE_SIZE + 1);
+    const largeFile = new File([oversized], 'large.pdf', { type: 'application/pdf' });
+    const form = new FormData();
+    form.append('resume', largeFile);
+
+    const request = {
+      headers: new Headers(),
+      formData: async () => form,
+    } as unknown as Request;
+
+    const response = await POST(request);
+    const body = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(body.error).toContain('5MB');
   });
 });

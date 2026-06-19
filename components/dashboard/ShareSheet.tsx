@@ -105,6 +105,12 @@ const SystemShareIcon = ({ size = 12 }: { size?: number }) => (
   </svg>
 );
 
+const WhatsAppIcon = ({ size = 15 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 32 32" fill="currentColor" aria-hidden="true">
+    <path d="M19.11 17.21c-.29-.14-1.7-.84-1.96-.94-.26-.1-.45-.14-.64.14-.19.29-.74.94-.91 1.13-.17.19-.33.22-.62.07-.29-.14-1.2-.44-2.28-1.4-.84-.75-1.41-1.68-1.58-1.97-.17-.29-.02-.44.13-.58.13-.13.29-.33.43-.5.14-.17.19-.29.29-.48.1-.19.05-.36-.02-.5-.07-.14-.64-1.55-.88-2.12-.23-.55-.47-.48-.64-.49h-.55c-.19 0-.5.07-.76.36-.26.29-1 1-.96 2.44.05 1.44 1.04 2.84 1.19 3.03.14.19 2.05 3.13 4.96 4.39.69.3 1.23.48 1.65.62.69.22 1.31.19 1.81.12.55-.08 1.7-.69 1.94-1.36.24-.67.24-1.24.17-1.36-.07-.12-.26-.19-.55-.33z" />
+  </svg>
+);
+
 function GitHubAvatar({ username }: { username: string }) {
   const [src, setSrc] = useState<string | null>(null);
 
@@ -149,6 +155,12 @@ export default function ShareSheet({ username, isOpen, onClose, exportData }: Sh
   const [toast, setToast] = useState<{ msg: string; id: number } | null>(null);
 
   const profileUrl = `https://commitpulse.vercel.app/dashboard/${username}`;
+
+  const handleWhatsApp = () => {
+    const text = encodeURIComponent(profileUrl);
+
+    window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
+  };
 
   const {
     states,
@@ -478,7 +490,12 @@ export default function ShareSheet({ username, isOpen, onClose, exportData }: Sh
                     <RedditIcon size={15} /> {t('dashboard.share.share_reddit')}
                   </button>
                   <button
-                    type="button"
+                    onClick={handleWhatsApp}
+                    className="p-2 bg-gradient-to-r from-green-500 to-green-700 text-white rounded-xl text-left font-medium text-xs flex items-center gap-2 hover:opacity-90 transition-opacity"
+                  >
+                    <WhatsAppIcon size={15} /> WhatsApp
+                  </button>
+                  <button
                     onClick={handleNativeShare}
                     className="p-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-xl text-left font-medium text-xs flex items-center gap-2 hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors"
                   >
