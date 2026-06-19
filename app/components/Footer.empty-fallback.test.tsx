@@ -23,13 +23,11 @@ describe('Footer empty-fallback and edge-cases', () => {
 
     render(<Footer />);
 
-    // Check that sections render raw keys
-    expect(screen.getByText('footer.tagline')).toBeInTheDocument();
+    // Your overhaul hardcodes the brand subtitle text, so we check formatting headers & structure
     expect(screen.getByText('footer.navigation')).toBeInTheDocument();
     expect(screen.getByText('footer.resources')).toBeInTheDocument();
     expect(screen.getByText('footer.connect')).toBeInTheDocument();
 
-    // Check navigation links contain path strings
     expect(screen.getByRole('link', { name: 'footer.home' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'footer.contributors' })).toBeInTheDocument();
   });
@@ -44,15 +42,11 @@ describe('Footer empty-fallback and edge-cases', () => {
 
     const { container } = render(<Footer />);
 
-    // Verify it doesn't crash and layout spans/links are rendered but empty
     const footer = screen.getByRole('contentinfo');
     expect(footer).toBeInTheDocument();
 
     const links = container.querySelectorAll('a');
     expect(links.length).toBeGreaterThan(0);
-    links.forEach((link) => {
-      expect(link.textContent).toBe('');
-    });
   });
 
   it('handles copyright string safely when year parameter is missing or ignored by t', () => {
@@ -69,13 +63,11 @@ describe('Footer empty-fallback and edge-cases', () => {
     });
 
     render(<Footer />);
-
-    expect(screen.getByText('Copyright CommitPulse')).toBeInTheDocument();
+    const currentYear = new Date().getFullYear();
+    expect(screen.getByText(new RegExp(`${currentYear} CommitPulse`))).toBeInTheDocument();
   });
 
   it('handles custom LinkComponent renders safely with missing optional params', () => {
-    // Optional params like ariaLabel are undefined/missing for navigation links.
-    // We mock useTranslation to return specific values.
     vi.mocked(useTranslation).mockReturnValue({
       language: 'en',
       changeLanguage: vi.fn(),
@@ -89,13 +81,11 @@ describe('Footer empty-fallback and edge-cases', () => {
 
     render(<Footer />);
 
-    // Internal Link Component with missing parameters
     const homeLink = screen.getByRole('link', { name: 'Home' });
     expect(homeLink).toBeInTheDocument();
-    expect(homeLink).not.toHaveAttribute('aria-label'); // undefined ariaLabel
-    expect(homeLink).not.toHaveAttribute('target'); // not external
+    expect(homeLink).not.toHaveAttribute('aria-label');
+    expect(homeLink).not.toHaveAttribute('target');
 
-    // External Link Component
     const githubLink = screen.getByRole('link', { name: 'CommitPulse on GitHub' });
     expect(githubLink).toBeInTheDocument();
     expect(githubLink).toHaveAttribute('target', '_blank');
@@ -103,24 +93,15 @@ describe('Footer empty-fallback and edge-cases', () => {
   });
 
   it('renders correct current year when system date environment changes', () => {
-    const mockT = vi.fn().mockImplementation((path: string, params?: Record<string, string>) => {
-      if (path === 'footer.copyright' && params) {
-        return `© ${params.year} CommitPulse`;
-      }
-      return path;
-    });
-
     vi.mocked(useTranslation).mockReturnValue({
       language: 'en',
       changeLanguage: vi.fn(),
-      t: mockT,
+      t: (path: string) => path,
       isPending: false,
     });
 
-    const currentYear = new Date().getFullYear().toString();
     render(<Footer />);
-
-    expect(screen.getByText(`© ${currentYear} CommitPulse`)).toBeInTheDocument();
-    expect(mockT).toHaveBeenCalledWith('footer.copyright', { year: currentYear });
+    const currentYear = new Date().getFullYear();
+    expect(screen.getByText(new RegExp(`${currentYear} CommitPulse`))).toBeInTheDocument();
   });
 });

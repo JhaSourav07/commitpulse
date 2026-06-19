@@ -227,8 +227,7 @@ export function Footer() {
 
         <div className="mt-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 text-xs text-zinc-400/70 dark:text-zinc-500/60 font-light select-none">
           <div className="flex flex-col gap-0.5">
-            <p>{currentYear} CommitPulse</p>
-            <p>&copy; All rights reserved</p>
+            <p> &copy;{currentYear} CommitPulse All rights reserved</p>
           </div>
           <p className="text-zinc-400 dark:text-zinc-500 font-normal">{t('footer.made_with')}</p>
         </div>
