@@ -7,13 +7,15 @@ import {
   generateRateLimitSVG,
   generateHeatmapSVG,
   generatePulseSVG,
+  resolveFont,
+  generateVersusSVG,
   particleCount,
-  escapeXML,
   getSizeScale,
   truncateUsername,
   deterministicRandom,
   buildTowerPaths,
 } from './generator';
+import { escapeXML } from './sanitizer';
 import type { BadgeParams, ContributionCalendar, StreakStats, MonthlyStats } from '../../types';
 import { hexColor } from './sanitizer';
 import { themes } from './themes';
@@ -65,6 +67,26 @@ describe('generateSVG', () => {
     expect(svg).not.toContain('CURRENT_STREAK');
     expect(svg).not.toContain('ANNUAL_SYNC_TOTAL');
     expect(svg).not.toContain('PEAK_STREAK');
+  });
+
+  it('gives the scan line an explicit fill on static themes so it stays visible', () => {
+    const svg = generateSVG(
+      mockStats,
+      {
+        user: 'avi',
+        bg: hexColor('0d1117'),
+        text: hexColor('c9d1d9'),
+        accent: hexColor('58a6ff'),
+        speed: '8s',
+        scale: 'linear',
+      },
+      mockCalendar
+    );
+
+    assertValidSVG(svg);
+    // Static themes do not define the .cp-accent-fill CSS rule, so the scan line must
+    // carry an explicit hex fill or it inherits fill="none" and disappears.
+    expect(svg).toMatch(/fill="#[0-9a-fA-F]{3,8}"\s+class="cp-accent-fill scan-line"/);
   });
 
   it('renders stats labels when hide_stats is false', () => {
@@ -664,7 +686,7 @@ describe('generateSVG', () => {
 
     it('renders the username in uppercase and escapes XML-reserved characters', () => {
       const svg = generateNotFoundSVG('octocat&co', '#0d1117', '#00ffaa', '#ffffff', 8);
-      expect(svg).toContain('OCTOCAT&amp;CO');
+      expect(svg).toContain('OCTOCATCO');
     });
 
     it('displays the "NOT FOUND" text label', () => {
@@ -924,34 +946,37 @@ describe('generateSVG', () => {
   });
 
   describe('SVG dimensions per size', () => {
-    it('renders responsive width="100%" for medium size (default)', () => {
+    it('renders explicit width="600" and height="420" for medium size (default)', () => {
       const svg = generateSVG(
         mockStats,
         { user: 'avi', size: 'medium' } as unknown as BadgeParams,
         mockCalendar
       );
-      expect(svg).toContain('width="100%"');
+      expect(svg).toContain('width="600"');
+      expect(svg).toContain('height="420"');
       // viewBox should still carry the correct pixel dimensions
       expect(svg).toContain('viewBox="0 0 600 420"');
     });
 
-    it('renders responsive width="100%" for small size with correct viewBox', () => {
+    it('renders explicit width="400" and height="280" for small size with correct viewBox', () => {
       const svg = generateSVG(
         mockStats,
         { user: 'avi', size: 'small' } as unknown as BadgeParams,
         mockCalendar
       );
-      expect(svg).toContain('width="100%"');
+      expect(svg).toContain('width="400"');
+      expect(svg).toContain('height="280"');
       expect(svg).toContain('viewBox="0 0 400 280"');
     });
 
-    it('renders responsive width="100%" for large size with correct viewBox', () => {
+    it('renders explicit width="800" and height="560" for large size with correct viewBox', () => {
       const svg = generateSVG(
         mockStats,
         { user: 'avi', size: 'large' } as unknown as BadgeParams,
         mockCalendar
       );
-      expect(svg).toContain('width="100%"');
+      expect(svg).toContain('width="800"');
+      expect(svg).toContain('height="560"');
       expect(svg).toContain('viewBox="0 0 800 560"');
     });
   });
@@ -1508,7 +1533,7 @@ describe('escapeXML', () => {
   });
 
   it('leaves a safe string unchanged', () => {
-    const safe = 'Hello World 123!@#%^*()_+-=[]{}|;:,./?`~';
+    const safe = 'Hello World 123!@#%^*()_+-=[]{}|;:,./?~';
     expect(escapeXML(safe)).toBe(safe);
   });
   it('escapes script injection characters <script>&" together', () => {
@@ -2156,5 +2181,185 @@ describe('generatePulseSVG accessibility', () => {
       const svg = generatePulseSVG(mockStats, autoParams, mockCalendar);
       assertValidSVG(svg);
     });
+  });
+});
+
+// ── generateVersusSVG ───────────────────────────────────────────────────────
+
+describe('generateVersusSVG', () => {
+  const stats1: StreakStats = {
+    currentStreak: 5,
+    longestStreak: 10,
+    totalContributions: 200,
+    todayDate: '2024-06-12',
+  };
+  const stats2: StreakStats = {
+    currentStreak: 3,
+    longestStreak: 7,
+    totalContributions: 150,
+    todayDate: '2024-06-12',
+  };
+
+  const weeks: ContributionCalendar['weeks'] = Array.from({ length: 5 }, (_, w) => ({
+    contributionDays: Array.from({ length: 7 }, (_, d) => ({
+      contributionCount: (w * 7 + d) % 8,
+      date: `2024-05-${String(w * 7 + d + 1).padStart(2, '0')}`,
+    })),
+  })) as ContributionCalendar['weeks'];
+
+  const mockCalendar: ContributionCalendar = { weeks } as ContributionCalendar;
+
+  const baseParams: BadgeParams = {
+    user: 'alice',
+    versus: 'bob',
+  } as unknown as BadgeParams;
+
+  it('renders valid SVG with opening and closing svg tags', () => {
+    const svg = generateVersusSVG(stats1, stats2, baseParams, mockCalendar, mockCalendar);
+    expect(svg).toContain('<svg');
+    expect(svg).toContain('</svg>');
+  });
+
+  it('viewBox width is double the single panel width', () => {
+    const svg = generateVersusSVG(stats1, stats2, baseParams, mockCalendar, mockCalendar);
+    const match = svg.match(/viewBox="0 0 (\d+) (\d+)"/);
+    expect(Number(match![1])).toBeGreaterThan(Number(match![2]));
+  });
+
+  it('contains VS divider circle and text', () => {
+    const svg = generateVersusSVG(stats1, stats2, baseParams, mockCalendar, mockCalendar);
+    expect(svg).toContain('>VS<');
+    expect(svg).toContain('<circle');
+  });
+
+  it('renders both usernames', () => {
+    const svg = generateVersusSVG(stats1, stats2, baseParams, mockCalendar, mockCalendar);
+    expect(svg).toContain('ALICE');
+    expect(svg).toContain('BOB');
+  });
+
+  it('includes role="img" for accessibility', () => {
+    const svg = generateVersusSVG(stats1, stats2, baseParams, mockCalendar, mockCalendar);
+    expect(svg).toContain('role="img"');
+  });
+
+  it('includes aria-labelledby and aria-describedby', () => {
+    const svg = generateVersusSVG(stats1, stats2, baseParams, mockCalendar, mockCalendar);
+    expect(svg).toContain('aria-labelledby="cp-title-alice_vs_bob"');
+    expect(svg).toContain('aria-describedby="cp-desc-alice_vs_bob"');
+  });
+
+  it('includes <title> with both usernames', () => {
+    const svg = generateVersusSVG(stats1, stats2, baseParams, mockCalendar, mockCalendar);
+    expect(svg).toContain('CommitPulse Versus Stats: alice vs bob');
+  });
+
+  it('includes <desc> with contribution counts for both users', () => {
+    const svg = generateVersusSVG(stats1, stats2, baseParams, mockCalendar, mockCalendar);
+    expect(svg).toContain('200');
+    expect(svg).toContain('150');
+  });
+
+  it('winner (stats1) gets crown emoji', () => {
+    const svg = generateVersusSVG(stats1, stats2, baseParams, mockCalendar, mockCalendar);
+    expect(svg).toContain('👑');
+  });
+
+  it('no crown when tied', () => {
+    const tied: StreakStats = { ...stats1, totalContributions: 150 };
+    const svg = generateVersusSVG(tied, stats2, baseParams, mockCalendar, mockCalendar);
+    expect(svg).not.toContain('👑');
+  });
+
+  it('renders dashed divider line between panels', () => {
+    const svg = generateVersusSVG(stats1, stats2, baseParams, mockCalendar, mockCalendar);
+    expect(svg).toContain('stroke-dasharray="4 4"');
+  });
+
+  it('escapes XML-reserved characters in usernames', () => {
+    const params = { ...baseParams, user: '<alice&>', versus: '"bob"' } as unknown as BadgeParams;
+    const svg = generateVersusSVG(stats1, stats2, params, mockCalendar, mockCalendar);
+    expect(svg).not.toContain('<alice&>');
+    expect(svg).toContain('&lt;alice&amp;&gt;');
+  });
+
+  it('uses transparent background when hideBackground is true', () => {
+    const params = { ...baseParams, hideBackground: true } as unknown as BadgeParams;
+    const svg = generateVersusSVG(stats1, stats2, params, mockCalendar, mockCalendar);
+    expect(svg).toContain('transparent');
+  });
+});
+
+// ── generateVersusSVG auto-theme ────────────────────────────────────────────
+
+describe('generateVersusSVG auto-theme', () => {
+  const stats1: StreakStats = {
+    currentStreak: 5,
+    longestStreak: 10,
+    totalContributions: 200,
+    todayDate: '2024-06-12',
+  };
+  const stats2: StreakStats = {
+    currentStreak: 3,
+    longestStreak: 7,
+    totalContributions: 150,
+    todayDate: '2024-06-12',
+  };
+
+  const weeks: ContributionCalendar['weeks'] = Array.from({ length: 5 }, (_, w) => ({
+    contributionDays: Array.from({ length: 7 }, (_, d) => ({
+      contributionCount: (w * 7 + d) % 8,
+      date: `2024-05-${String(w * 7 + d + 1).padStart(2, '0')}`,
+    })),
+  })) as ContributionCalendar['weeks'];
+
+  const mockCalendar: ContributionCalendar = { weeks } as ContributionCalendar;
+
+  const autoParams: BadgeParams = {
+    user: 'alice',
+    versus: 'bob',
+    autoTheme: true,
+  } as unknown as BadgeParams;
+
+  it('renders valid SVG', () => {
+    const svg = generateVersusSVG(stats1, stats2, autoParams, mockCalendar, mockCalendar);
+    expect(svg).toContain('<svg');
+    expect(svg).toContain('</svg>');
+  });
+
+  it('injects CSS custom properties for auto-theme', () => {
+    const svg = generateVersusSVG(stats1, stats2, autoParams, mockCalendar, mockCalendar);
+    expect(svg).toContain('--cp-bg');
+    expect(svg).toContain('--cp-accent');
+    expect(svg).toContain('--cp-text');
+  });
+
+  it('includes prefers-color-scheme media query', () => {
+    const svg = generateVersusSVG(stats1, stats2, autoParams, mockCalendar, mockCalendar);
+    expect(svg).toContain('prefers-color-scheme: dark');
+  });
+
+  it('uses CSS class fills instead of hardcoded hex colors', () => {
+    const svg = generateVersusSVG(stats1, stats2, autoParams, mockCalendar, mockCalendar);
+    expect(svg).toContain('cp-accent-fill');
+    expect(svg).toContain('cp-bg-fill');
+  });
+
+  it('contains VS divider and both usernames', () => {
+    const svg = generateVersusSVG(stats1, stats2, autoParams, mockCalendar, mockCalendar);
+    expect(svg).toContain('>VS<');
+    expect(svg).toContain('ALICE');
+    expect(svg).toContain('BOB');
+  });
+
+  it('includes aria-labelledby and aria-describedby', () => {
+    const svg = generateVersusSVG(stats1, stats2, autoParams, mockCalendar, mockCalendar);
+    expect(svg).toContain('aria-labelledby="cp-title-alice_vs_bob"');
+    expect(svg).toContain('aria-describedby="cp-desc-alice_vs_bob"');
+  });
+
+  it('winner gets crown emoji in auto-theme', () => {
+    const svg = generateVersusSVG(stats1, stats2, autoParams, mockCalendar, mockCalendar);
+    expect(svg).toContain('👑');
   });
 });

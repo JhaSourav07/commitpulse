@@ -75,11 +75,16 @@ function GlareCard({ children, className }: { children: React.ReactNode; classNa
   );
 }
 
-export default function ContributorsSearch({ contributors }: { contributors: Contributor[] }) {
+export default function ContributorsSearch({
+  contributors = [],
+}: {
+  contributors?: Contributor[];
+}) {
   const [search, setSearch] = useState('');
 
   const normalizedSearch = search.trim().toLowerCase();
   const filtered = contributors.filter((c) => c.login.toLowerCase().includes(normalizedSearch));
+  const rendered = filtered.slice(0, 2000);
 
   return (
     <>
@@ -134,7 +139,6 @@ export default function ContributorsSearch({ contributors }: { contributors: Con
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        key={normalizedSearch}
         className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
       >
         <AnimatePresence>
@@ -205,11 +209,18 @@ export default function ContributorsSearch({ contributors }: { contributors: Con
                       View Profile
                     </div>
                   </div>
-                </Link>
-              </GlareCard>
-            </motion.div>
-          ))}
-        </AnimatePresence>
+
+                  <div className="flex-grow" />
+
+                  <div className="mt-5 w-full inline-flex items-center justify-center gap-2 rounded-xl border border-black/10 dark:border-white/[0.06] bg-black/[0.04] dark:bg-white/[0.03] px-4 py-2.5 text-sm font-medium text-zinc-600 dark:text-zinc-400 transition-all duration-300 group-hover:border-cyan-500/30 group-hover:bg-cyan-500/10 group-hover:text-cyan-600 dark:group-hover:text-cyan-300">
+                    <GitFork className="h-4 w-4" />
+                    View Profile
+                  </div>
+                </div>
+              </Link>
+            </GlareCard>
+          </motion.div>
+        ))}
       </motion.div>
     </>
   );

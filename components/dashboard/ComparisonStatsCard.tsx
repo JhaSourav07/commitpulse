@@ -92,7 +92,7 @@ export default function ComparisonStatsCard({
                   : 'text-gray-900 dark:text-white'
               }`}
             >
-              {valueA}
+              {valueA.toLocaleString()}
             </span>
             {isWinnerA && (
               <span
@@ -129,7 +129,7 @@ export default function ComparisonStatsCard({
                   : 'text-gray-900 dark:text-white'
               }`}
             >
-              {valueB}
+              {valueB.toLocaleString()}
             </span>
           </div>
         </div>
