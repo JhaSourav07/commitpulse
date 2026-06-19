@@ -23,6 +23,8 @@ vi.mock('framer-motion', () => ({
       delete props.whileInView;
       delete props.whileHover;
       delete props.whileTap;
+      delete props.whileHover;
+      delete props.whileInView;
       delete props.viewport;
       delete props.transition;
       return <div className={className}>{children}</div>;
@@ -32,6 +34,8 @@ vi.mock('framer-motion', () => ({
       delete props.animate;
       delete props.whileHover;
       delete props.whileTap;
+      delete props.whileHover;
+      delete props.whileInView;
       delete props.transition;
       return (
         <button className={className} onClick={onClick} disabled={disabled}>
@@ -65,7 +69,7 @@ describe('CompareClient empty fallback', () => {
 
   it('renders compare button in default state', () => {
     render(<CompareClient />);
-    const button = screen.getByRole('button');
+    const button = screen.getByRole('button', { name: /compare/i });
     expect(button).toBeDefined();
     expect(button.textContent).toContain('Compare');
   });

@@ -23,14 +23,14 @@ export class RateLimiter {
 
   /**
    * Creates a new RateLimiter instance.
-   *
+   *clean
    * @param limit - Maximum number of requests allowed per window. Defaults to 5.
    * @param windowMs - Time window in milliseconds. Defaults to 60000 (1 minute).
    */
-  constructor(limit = 5, windowMs = 60000) {
+  constructor(limit = 5, windowMs = 60000, maxSize = 10000) {
     this.limit = limit;
     this.windowMs = windowMs;
-    this.cache = new DistributedCache<{ count: number; resetAt: number }>(10000, windowMs);
+    this.cache = new DistributedCache<{ count: number; resetAt: number }>(maxSize, windowMs);
   }
 
   /**
@@ -69,27 +69,54 @@ export class RateLimiter {
 
     if (url && token) {
       try {
-        const res = await fetch(`${url}/pipeline`, {
+        const getRes = await fetch(`${url}/pipeline`, {
           method: 'POST',
           headers: {
             Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify([
-            ['INCR', `ratelimit_class:${ip}`],
-            ['EXPIRE', `ratelimit_class:${ip}`, Math.floor(this.windowMs / 1000), 'NX'],
+            ['GET', `ratelimit_class:${ip}`],
+            ['TTL', `ratelimit_class:${ip}`],
           ]),
         });
 
-        if (res.ok) {
-          const data = await res.json();
-          const count = data[0].result as number;
-          return {
-            success: count <= this.limit,
-            limit: this.limit,
-            remaining: Math.max(0, this.limit - count),
-            reset: now + this.windowMs,
-          };
+        if (getRes.ok) {
+          const getData = await getRes.json();
+          const currentCount = parseInt(getData[0].result ?? '0', 10);
+          const ttl = getData[1].result as number;
+
+          if (currentCount >= this.limit) {
+            return {
+              success: false,
+              limit: this.limit,
+              remaining: 0,
+              reset: ttl > 0 ? now + ttl * 1000 : now + this.windowMs,
+            };
+          }
+
+          const incrRes = await fetch(`${url}/pipeline`, {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify([
+              ['INCR', `ratelimit_class:${ip}`],
+              ['EXPIRE', `ratelimit_class:${ip}`, Math.floor(this.windowMs / 1000), 'NX'],
+            ]),
+          });
+
+          if (incrRes.ok) {
+            const incrData = await incrRes.json();
+            const count = incrData[0].result as number;
+            return {
+              success: count <= this.limit,
+              limit: this.limit,
+              remaining: Math.max(0, this.limit - count),
+              reset: now + this.windowMs,
+            };
+          }
         }
       } catch (error) {
         console.error('RateLimiter KV error, falling back to memory:', error);
@@ -119,7 +146,19 @@ export class RateLimiter {
       };
     } else {
       const resetAt = record.resetAt;
-      await this.cache.update(ip, { count: count + 1, resetAt });
+      const updated = await this.cache.update(ip, { count: count + 1, resetAt });
+
+      if (!updated) {
+        const freshResetAt = now + this.windowMs;
+        await this.cache.set(ip, { count: 1, resetAt: freshResetAt }, this.windowMs);
+        return {
+          success: true,
+          limit: this.limit,
+          remaining: this.limit - 1,
+          reset: freshResetAt,
+        };
+      }
+
       return {
         success: true,
         limit: this.limit,
@@ -141,7 +180,25 @@ export class RateLimiter {
    * rateLimiter.reset("192.168.1.1");
    */
   async reset(ip: string): Promise<void> {
-    await this.cache.delete(`ratelimit:${ip}`);
+    const url = process.env.KV_REST_API_URL;
+    const token = process.env.KV_REST_API_TOKEN;
+
+    if (url && token) {
+      try {
+        await fetch(`${url}/pipeline`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify([['DEL', `ratelimit_class:${ip}`]]),
+        });
+      } catch (error) {
+        console.error('RateLimiter KV reset error:', error);
+      }
+    }
+
+    await this.cache.delete(ip);
   }
 
   /**
@@ -266,10 +323,21 @@ export async function rateLimit(
     };
   }
 
-  tracker.count++;
-  await trackers.update(ip, tracker);
+  const newCount = tracker.count + 1;
+  const updated = await trackers.update(ip, { count: newCount, resetAt: tracker.resetAt });
 
-  if (tracker.count > limit) {
+  if (!updated) {
+    const resetAt = now + windowMs;
+    await trackers.set(ip, { count: 1, resetAt }, windowMs);
+    return {
+      success: true,
+      limit,
+      remaining: limit - 1,
+      reset: resetAt,
+    };
+  }
+
+  if (newCount > limit) {
     return {
       success: false,
       limit,
@@ -281,7 +349,15 @@ export async function rateLimit(
   return {
     success: true,
     limit,
-    remaining: limit - tracker.count,
+    remaining: limit - newCount,
     reset: tracker.resetAt,
+  };
+}
+
+export function getRateLimitHeaders(result: RateLimitResult) {
+  return {
+    'X-RateLimit-Limit': result.limit.toString(),
+    'X-RateLimit-Remaining': result.remaining.toString(),
+    'X-RateLimit-Reset': result.reset.toString(),
   };
 }

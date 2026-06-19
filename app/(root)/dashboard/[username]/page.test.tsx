@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+import type { Metadata } from 'next';
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import DashboardPage, { generateMetadata } from './page';
@@ -24,6 +24,7 @@ vi.mock('@/lib/github', () => ({
   getFullDashboardData: vi.fn(),
 }));
 
+// --- Mocking Core UI Blocks ---
 vi.mock('@/components/dashboard/ProfileCard', () => ({
   default: () => <div data-testid="profile-card">ProfileCard</div>,
 }));
@@ -32,8 +33,13 @@ vi.mock('@/components/dashboard/ActivityLandscape', () => ({
   default: () => <div data-testid="activity-landscape">ActivityLandscape</div>,
 }));
 
+type StatsCardProps = {
+  title: string;
+  value: string | number;
+};
+
 vi.mock('@/components/dashboard/StatsCard', () => ({
-  default: ({ title, value }: any) => (
+  default: ({ title, value }: StatsCardProps) => (
     <div data-testid="stats-card">
       {title}: {value}
     </div>
@@ -76,6 +82,39 @@ vi.mock('@/components/dashboard/RefreshButton', () => ({
   default: () => <div data-testid="refresh-button">RefreshButton</div>,
 }));
 
+// --- Insulate Complex Client-Side Components (Canvas, D3, Browser API dependencies) ---
+vi.mock('@/components/dashboard/PopularPinnnedRepos', () => ({
+  PopularRepos: () => <div data-testid="popular-repos-mock">PopularPinnedRepos</div>,
+}));
+
+vi.mock('@/components/dashboard/RepositoryGraph', () => ({
+  default: () => <div data-testid="repository-graph-mock">RepositoryGraph</div>,
+}));
+
+vi.mock('@/components/dashboard/HallOfFame', () => ({
+  default: () => <div data-testid="hall-of-fame-mock">HallOfFame</div>,
+}));
+
+vi.mock('@/components/dashboard/RadarChart', () => ({
+  default: () => <div data-testid="radar-chart-mock">RadarChart</div>,
+}));
+
+vi.mock('@/components/dashboard/GrowthTrendChart', () => ({
+  default: () => <div data-testid="growth-trend-chart-mock">GrowthTrendChart</div>,
+}));
+
+vi.mock('@/components/dashboard/ProfileOptimizerModal', () => ({
+  default: () => <div data-testid="profile-optimizer-modal-mock">ProfileOptimizerModal</div>,
+}));
+
+vi.mock('@/components/dashboard/ResumeProfileSection', () => ({
+  default: () => <div data-testid="resume-profile-section-mock">ResumeProfileSection</div>,
+}));
+
+vi.mock('@/components/dashboard/PRInsights/PRInsightsClient', () => ({
+  default: () => <div data-testid="pr-insights-client-mock">PRInsightsClient</div>,
+}));
+
 describe('DashboardPage', () => {
   const mockData = {
     profile: {
@@ -96,6 +135,7 @@ describe('DashboardPage', () => {
       codingHabit: 'Night Owl',
       totalPRs: 10,
       totalIssues: 5,
+      totalReviews: 3,
     },
     languages: [{ name: 'TypeScript', percentage: 100, color: '#3178c6' }],
     activity: [],
@@ -106,6 +146,9 @@ describe('DashboardPage', () => {
     lastSyncedAt: undefined,
     popularRepos: [],
     pinnedRepos: [],
+    starredRepos: [],
+    deployments: [],
+    hallOfFame: [],
   };
 
   beforeEach(() => {
@@ -132,11 +175,21 @@ describe('DashboardPage', () => {
         }),
       });
 
-      const openGraphImage = (metadata.openGraph?.images as any[])?.[0];
+      const openGraphImages = metadata.openGraph?.images as Array<{
+        url: string;
+        width: number;
+        height: number;
+        alt: string;
+      }>;
+      const openGraphImage = openGraphImages?.[0];
 
       expect(metadata.title).toBe("octocat's Commit Pulse");
       expect(metadata.description).toContain("octocat's GitHub contribution pulse");
-      const url = openGraphImage.url;
+
+      // Fixed: Strict Type-safe navigation mapping
+      expect(openGraphImage).toBeDefined();
+      const url = openGraphImage!.url;
+
       expect(url).toContain('api/og?');
       expect(url).toContain('user=octocat');
       expect(url).toContain('theme=neon');
@@ -145,19 +198,23 @@ describe('DashboardPage', () => {
       expect(url).toContain('accent=ff00ff');
       expect(url).not.toContain('ignoredArray');
       expect(url).not.toContain('ignoredUndefined');
-      expect(openGraphImage.width).toBe(1200);
-      expect(openGraphImage.height).toBe(630);
-      expect(openGraphImage.alt).toContain(username);
-      expect((metadata.twitter as any)?.card).toBe('summary_large_image');
+      expect(openGraphImage!.width).toBe(1200);
+      expect(openGraphImage!.height).toBe(630);
+      expect(openGraphImage!.alt).toContain(username);
+      expect((metadata.twitter as Metadata['twitter'] & { card?: string })?.card).toBe(
+        'summary_large_image'
+      );
     });
   });
 
   describe('DashboardPage rendering', () => {
     it('renders the dashboard components with the fetched data', async () => {
-      const PageContent = await DashboardPage({
+      const SuspenseTree = await DashboardPage({
         params: Promise.resolve({ username: 'octocat' }),
         searchParams: Promise.resolve({}),
       });
+      const DashboardContent = SuspenseTree.props.children.type;
+      const PageContent = await DashboardContent(SuspenseTree.props.children.props);
 
       render(PageContent);
 
@@ -188,10 +245,12 @@ describe('DashboardPage', () => {
     });
 
     it('calls getFullDashboardData with bypassCache: true when refresh param is set', async () => {
-      const PageContent = await DashboardPage({
+      const SuspenseTree = await DashboardPage({
         params: Promise.resolve({ username: 'octocat' }),
         searchParams: Promise.resolve({ refresh: 'true' }),
       });
+      const DashboardContent = SuspenseTree.props.children.type;
+      const PageContent = await DashboardContent(SuspenseTree.props.children.props);
 
       render(PageContent);
 
@@ -207,10 +266,12 @@ describe('DashboardPage', () => {
     });
 
     it('passes a calendar-year query through to getFullDashboardData', async () => {
-      const PageContent = await DashboardPage({
+      const SuspenseTree = await DashboardPage({
         params: Promise.resolve({ username: 'octocat' }),
         searchParams: Promise.resolve({ year: '2024' }),
       });
+      const DashboardContent = SuspenseTree.props.children.type;
+      const PageContent = await DashboardContent(SuspenseTree.props.children.props);
 
       render(PageContent);
 
@@ -226,10 +287,12 @@ describe('DashboardPage', () => {
     });
 
     it('passes the correct activity data to the historical trend view', async () => {
-      const PageContent = await DashboardPage({
+      const SuspenseTree = await DashboardPage({
         params: Promise.resolve({ username: 'octocat' }),
         searchParams: Promise.resolve({}),
       });
+      const DashboardContent = SuspenseTree.props.children.type;
+      const PageContent = await DashboardContent(SuspenseTree.props.children.props);
 
       render(PageContent);
 
@@ -240,10 +303,12 @@ describe('DashboardPage', () => {
     it('calls notFound when dashboard data fetch throws an error', async () => {
       vi.mocked(getFullDashboardData).mockRejectedValueOnce(new Error('User not found'));
 
-      await DashboardPage({
+      const SuspenseTree = await DashboardPage({
         params: Promise.resolve({ username: 'missing-user' }),
         searchParams: Promise.resolve({}),
       });
+      const DashboardContent = SuspenseTree.props.children.type;
+      await DashboardContent(SuspenseTree.props.children.props);
 
       expect(mockNotFound).toHaveBeenCalledOnce();
     });

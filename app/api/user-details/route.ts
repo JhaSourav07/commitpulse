@@ -2,8 +2,23 @@ import { NextResponse } from 'next/server';
 import { fetchUserProfile, fetchGitHubContributions } from '@/lib/github';
 import { calculateStreak } from '@/lib/calculate';
 import { validateGitHubUsername } from '@/lib/validations';
+import { getClientIp } from '@/utils/getClientIp';
+import { RateLimiter } from '@/lib/rate-limit';
+
+const userDetailsLimiter = new RateLimiter(20, 60_000, 1);
 
 export async function GET(request: Request) {
+  const ip = getClientIp(request);
+  const rateLimitKey =
+    ip && ip !== 'unknown' ? ip : `unknown:${request.headers.get('user-agent') ?? 'no-agent'}`;
+
+  if (!(await userDetailsLimiter.check(rateLimitKey))) {
+    return NextResponse.json(
+      { error: 'Too many requests. Please try again later.' },
+      { status: 429 }
+    );
+  }
+
   const { searchParams } = new URL(request.url);
   const username = searchParams.get('username')?.trim();
 
@@ -18,7 +33,13 @@ export async function GET(request: Request) {
   try {
     const [profile, contributions] = await Promise.all([
       fetchUserProfile(username),
-      fetchGitHubContributions(username).catch(() => null),
+      fetchGitHubContributions(username).catch((err: unknown) => {
+        const msg = err instanceof Error ? err.message : '';
+        // Propagate "not found" so both endpoints agree on user existence.
+        // Swallow transient failures (rate limits, timeouts) and return partial data.
+        if (msg.toLowerCase().includes('not found')) throw err;
+        return null;
+      }),
     ]);
 
     let stats = { currentStreak: 0, longestStreak: 0, totalContributions: 0 };

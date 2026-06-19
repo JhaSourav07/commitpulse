@@ -204,7 +204,7 @@ describe('WallOfLove — Massive Scaling', () => {
     // 6 cards in Row1 × 2 (duplicate) = 12 images
     // 6 cards in Row2 × 2 (duplicate) = 12 images
     // Total = 24
-    const avatars = screen.getAllByRole('img');
+    const avatars = screen.getAllByRole('img').filter((el) => el.tagName.toLowerCase() === 'img');
     expect(avatars.length).toBe(24);
 
     // Every image must have a non-empty src (no broken blank images)

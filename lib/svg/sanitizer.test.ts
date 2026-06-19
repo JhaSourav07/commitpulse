@@ -7,6 +7,8 @@ import {
   sanitizeRadius,
   sanitizeFont,
   sanitizeGoogleFontUrl,
+  parseGradientStops,
+  MAX_GRADIENT_STOPS,
 } from './sanitizer';
 
 describe('SVG Sanitizer Utilities', () => {
@@ -41,6 +43,22 @@ describe('SVG Sanitizer Utilities', () => {
       expect(isValidHex(null as unknown as string)).toBe(false);
       expect(isValidHex('')).toBe(false);
     });
+
+    it('returns false for an empty string', () => {
+      expect(isValidHex('')).toBe(false);
+    });
+
+    it('returns false for just a hash symbol', () => {
+      expect(isValidHex('#')).toBe(false);
+    });
+
+    it('returns false for undefined input', () => {
+      expect(isValidHex(undefined)).toBe(false);
+    });
+
+    it('returns false for invalid length (7 characters)', () => {
+      expect(isValidHex('fffffff')).toBe(false);
+    });
   });
 
   describe('hexColor', () => {
@@ -62,6 +80,12 @@ describe('SVG Sanitizer Utilities', () => {
       expect(hexColor('not-an-accent-color', '58a6ff')).toBe('58a6ff');
     });
 
+    it('strips # from fallback theme colors when invalid hex names are provided', () => {
+      expect(hexColor('not-a-theme-color', '#0d1117')).toBe('0d1117');
+      expect(hexColor('invalid-text-color', '#c9d1d9')).toBe('c9d1d9');
+      expect(hexColor('invalid-accent-color', '#58a6ff')).toBe('58a6ff');
+    });
+
     it('returns default fallback for empty string', () => {
       expect(hexColor('')).toBe('000000');
     });
@@ -71,6 +95,13 @@ describe('SVG Sanitizer Utilities', () => {
       expect(hexColor('GGGGGG', '808080')).toBe('808080');
       expect(hexColor('xyz999', '808080')).toBe('808080');
       expect(hexColor('------', '808080')).toBe('808080');
+    });
+
+    it('applies standard gray fallback for mixed invalid hex patterns', () => {
+      expect(hexColor('12ZZ34', '808080')).toBe('808080');
+      expect(hexColor('#XXYYZZ', '808080')).toBe('808080');
+      expect(hexColor('abc!23', '808080')).toBe('808080');
+      expect(hexColor('12345?', '808080')).toBe('808080');
     });
   });
 
@@ -118,6 +149,12 @@ describe('SVG Sanitizer Utilities', () => {
     it('returns fallback for null/undefined', () => {
       expect(sanitizeHexColor(null, '000000')).toBe('000000');
       expect(sanitizeHexColor(undefined, '000000')).toBe('000000');
+    });
+
+    it('uses drop-shadow glow color fallback for unrecognized hex strings in SVG filters', () => {
+      expect(sanitizeHexColor('invalid-accent', '00ffaa')).toBe('00ffaa');
+      expect(sanitizeHexColor('not-a-glow', '00ffaa')).toBe('00ffaa');
+      expect(sanitizeHexColor('xyz123abc', '00ffaa')).toBe('00ffaa');
     });
   });
 
@@ -267,5 +304,60 @@ describe('SVG Sanitizer Utilities', () => {
       expect(hexColor('c9d1d9', '000000')).toBe('c9d1d9');
       expect(hexColor('58a6ff', '000000')).toBe('58a6ff');
     });
+  });
+});
+
+describe('parseGradientStops', () => {
+  it('returns empty array for undefined input', () => {
+    expect(parseGradientStops(undefined)).toEqual([]);
+  });
+
+  it('returns empty array for empty string', () => {
+    expect(parseGradientStops('')).toEqual([]);
+  });
+
+  it('parses valid hex colors without # prefix', () => {
+    expect(parseGradientStops('ff6b35,7000ff')).toEqual(['ff6b35', '7000ff']);
+  });
+
+  it('parses valid hex colors with # prefix and strips it', () => {
+    expect(parseGradientStops('#ff6b35,#7000ff')).toEqual(['ff6b35', '7000ff']);
+  });
+
+  it('filters out invalid hex tokens and keeps valid ones', () => {
+    expect(parseGradientStops('ff6b35,invalid,7000ff')).toEqual(['ff6b35', '7000ff']);
+  });
+
+  it('returns empty array when all tokens are invalid', () => {
+    expect(parseGradientStops('invalid,colors,here')).toEqual([]);
+  });
+
+  it('returns a single valid color', () => {
+    expect(parseGradientStops('ff6b35')).toEqual(['ff6b35']);
+  });
+
+  it(`caps output at MAX_GRADIENT_STOPS (${MAX_GRADIENT_STOPS}) entries`, () => {
+    // Build a string with MAX_GRADIENT_STOPS + 5 valid colors
+    const allColors = Array.from({ length: MAX_GRADIENT_STOPS + 5 }, (_, i) =>
+      i.toString(16).padStart(6, '0')
+    );
+    const input = allColors.join(',');
+    const result = parseGradientStops(input);
+    expect(result.length).toBe(MAX_GRADIENT_STOPS);
+    // Only the first MAX_GRADIENT_STOPS tokens should appear
+    expect(result).toEqual(allColors.slice(0, MAX_GRADIENT_STOPS));
+  });
+
+  it('does not error on a massive comma-separated string beyond MAX_GRADIENT_STOPS', () => {
+    const massive = Array.from({ length: 1000 }, () => 'ff0000').join(',');
+    const result = parseGradientStops(massive);
+    expect(result.length).toBeLessThanOrEqual(MAX_GRADIENT_STOPS);
+  });
+
+  it('handles mixed valid/invalid colors when list is larger than cap', () => {
+    // 12 valid colors — should be capped at MAX_GRADIENT_STOPS
+    const colors = Array.from({ length: 12 }, () => 'aabbcc').join(',');
+    const result = parseGradientStops(colors);
+    expect(result.length).toBe(MAX_GRADIENT_STOPS);
   });
 });

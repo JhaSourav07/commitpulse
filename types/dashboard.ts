@@ -61,6 +61,22 @@ export interface Achievement {
   progress: number; // 0–100
 }
 
+export interface HallOfFameAward {
+  category: 'active' | 'growing' | 'collaborative' | 'popular' | 'contributed';
+  title: string;
+  repoName: string;
+  repoAvatar?: string;
+  description: string;
+
+  centerpieceLabel: string;
+  centerpieceValue: string | number;
+  bottomStats: string;
+
+  explanation: string;
+  icon: string;
+  url: string;
+}
+
 export interface CommitClockData {
   day: string; // 'Sun' | 'Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri' | 'Sat'
   commits: number;
@@ -102,4 +118,26 @@ export interface Repository {
     name: string;
     color: string;
   } | null;
+}
+
+export interface RepoActivityInfo {
+  name: string;
+  url: string;
+  pushedAt: string | null;
+}
+
+/* ==========================================================================
+ * PRODUCTION DEPLOYMENTS FEATURE
+ * ========================================================================== */
+
+export type WorkflowStatus = 'success' | 'failure' | 'in_progress' | 'unknown';
+
+export interface DeploymentData {
+  repoName: string;
+  repoUrl: string;
+  liveUrl: string | null;
+  status: WorkflowStatus;
+  deployedAt: string | null; // ISO timestamp of the deployment
+  environment: string; // e.g. "production"
+  workflowName: string | null; // e.g. "Vercel Production Deployment"
 }

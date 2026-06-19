@@ -1,5 +1,6 @@
 'use client';
 
+import { fallbackCopyToClipboard } from '@/utils/clipboard';
 import { useCallback, useEffect, useRef, useState, Suspense, type ReactElement } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { validateGitHubUsername } from '@/lib/validations';
@@ -9,6 +10,7 @@ import { ControlsPanel } from './components/ControlsPanel';
 import { AdvancedSettingsPanel } from './components/AdvancedSettingsPanel';
 import { ExportPanel } from './components/ExportPanel';
 import InteractiveViewer from '@/components/InteractiveViewer';
+import { Footer } from '@/app/components/Footer';
 import DOMPurify from 'dompurify';
 import type {
   ExportFormat,
@@ -20,8 +22,11 @@ import type {
   Language,
   Timezone,
 } from './types';
+
 import { useDebounce } from '@/hooks/useDebounce';
-import { getExportSnippet, buildQueryParams } from './utils';
+import useFetchCache from '@/hooks/useFetchCache';
+import { getExportSnippet, buildQueryParams, streakErrorMessage } from './utils';
+import { useTranslation } from '@/context/TranslationContext';
 
 function readNumericSearchParam(
   searchParams: URLSearchParams,
@@ -47,9 +52,14 @@ function readNumericSearchParam(
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 function CustomizePageInner(): ReactElement {
+  const { t } = useTranslation();
   const [username, setUsername] = useState('');
   const [theme, setTheme] = useState('dark');
   const [bgHex, setBgHex] = useState('');
+  const [bgType, setBgType] = useState<'solid' | 'linear' | 'radial'>('solid');
+  const [bgStart, setBgStart] = useState('');
+  const [bgEnd, setBgEnd] = useState('');
+  const [bgAngle, setBgAngle] = useState<number>(90);
   const [accentHex, setAccentHex] = useState('');
   const [textHex, setTextHex] = useState('');
   const [scale, setScale] = useState<Scale>('linear');
@@ -73,10 +83,10 @@ function CustomizePageInner(): ReactElement {
   const [copyStatusMessage, setCopyStatusMessage] = useState('');
   const copyResetTimeoutRef = useRef<number | null>(null);
   const [svgContent, setSvgContent] = useState<string>('');
+  const svgCache = useFetchCache<string>();
   const [svgState, setSvgState] = useState<'idle' | 'loading' | 'loaded' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const trimmedUsername = username.trim();
-  const debouncedUsername = useDebounce(trimmedUsername, 400);
   const hasUsername = trimmedUsername.length > 0;
   const isRandomTheme = theme === 'random';
 
@@ -84,6 +94,11 @@ function CustomizePageInner(): ReactElement {
   const searchParams = useSearchParams();
 
   // On mount: initialize state from URL search params
+  // Multiple setState calls are intentional here — we sync every customization
+  // control from the URL once on mount so that shared/bookmarked links restore
+  // the full editor state. Each setter corresponds to a single URL param and
+  // they all run synchronously in a single effect pass, so React batches them
+  // into one re-render. No stale-dependency risk: deps are intentionally [].
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     const u = searchParams.get('user') ?? '';
@@ -91,6 +106,10 @@ function CustomizePageInner(): ReactElement {
     setUsername(u);
     setTheme(t);
     setBgHex(searchParams.get('bg') ?? '');
+    setBgType((searchParams.get('bgType') as 'solid' | 'linear' | 'radial') ?? 'solid');
+    setBgStart(searchParams.get('bgStart') ?? '');
+    setBgEnd(searchParams.get('bgEnd') ?? '');
+    setBgAngle(readNumericSearchParam(searchParams, 'bgAngle', 90, 0, 360) as number);
     setAccentHex(searchParams.get('accent') ?? '');
     setTextHex(searchParams.get('text') ?? '');
     setScale((searchParams.get('scale') as Scale) ?? 'linear');
@@ -141,6 +160,10 @@ function CustomizePageInner(): ReactElement {
     setTheme(newTheme);
     if (newTheme === 'auto' || newTheme === 'random') {
       setBgHex('');
+      setBgType('solid');
+      setBgStart('');
+      setBgEnd('');
+      setBgAngle(90);
       setAccentHex('');
       setTextHex('');
     }
@@ -150,6 +173,10 @@ function CustomizePageInner(): ReactElement {
     username,
     theme,
     bgHex,
+    bgType,
+    bgStart,
+    bgEnd,
+    bgAngle,
     accentHex,
     textHex,
     scale,
@@ -170,31 +197,12 @@ function CustomizePageInner(): ReactElement {
     timezone,
   });
 
-  const previewQueryString = buildQueryParams({
-    username: debouncedUsername,
-    theme,
-    bgHex,
-    accentHex,
-    textHex,
-    scale,
-    speed,
-    font,
-    year,
-    radius,
-    size,
-    hideTitle,
-    hideBackground,
-    hideStats,
-    viewMode,
-    deltaFormat,
-    badgeWidth,
-    badgeHeight,
-    grace,
-    language,
-    timezone,
-  });
+  // ─── DEBOUNCE ALL PAGE PARAMETERS AT ONCE ──────────────────────────────────
+  // Instead of debouncing a single string, we pass the built query string
+  // through the hook to hold off any API fetch request during rapid changes!
+  const debouncedQueryString = useDebounce(queryString, 400);
 
-  const previewSrc = `/api/streak?${previewQueryString}`;
+  const previewSrc = `/api/streak?${debouncedQueryString}`;
 
   // On change sync state to URL
   useEffect(() => {
@@ -203,6 +211,9 @@ function CustomizePageInner(): ReactElement {
   }, [queryString, router]);
 
   useEffect(() => {
+    // Safe: resets error state as the first synchronous step when any preview
+    // dependency changes. The reset always precedes any async fetch or early
+    // return so there is no intermediate render with stale error text.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setErrorMessage(null);
     if (!hasUsername) {
@@ -210,14 +221,8 @@ function CustomizePageInner(): ReactElement {
       setSvgState('idle');
       return;
     }
-    if (!validateGitHubUsername(trimmedUsername)) {
-      setSvgContent('');
-      setSvgState('error');
-      setErrorMessage("That doesn't look like a valid GitHub username");
-      return;
-    }
 
-    if (!validateGitHubUsername(debouncedUsername)) {
+    if (!validateGitHubUsername(trimmedUsername)) {
       setSvgContent('');
       setSvgState('error');
       setErrorMessage("That doesn't look like a valid GitHub username");
@@ -226,6 +231,13 @@ function CustomizePageInner(): ReactElement {
 
     setSvgState('loading');
     const controller = new AbortController();
+    const cached = svgCache.get(previewSrc);
+
+    if (cached) {
+      setSvgContent(cached);
+      setSvgState('loaded');
+      return;
+    }
 
     fetch(previewSrc, { signal: controller.signal })
       .then(async (res) => {
@@ -233,53 +245,56 @@ function CustomizePageInner(): ReactElement {
         if (!res.ok) {
           setSvgContent('');
           setSvgState('error');
-          if (res.status === 404 || res.status === 400) {
-            setErrorMessage('GitHub user not found');
-          } else if (res.status === 429) {
-            setErrorMessage('Rate limit exceeded. Please try again later.');
-          } else {
-            setErrorMessage('Failed to load badge');
-          }
+          setErrorMessage(streakErrorMessage(res.status));
           return;
         }
         return text;
       })
       .then((text) => {
         if (!text) return;
+
+        // Ensure we strictly sanitize the raw SVG markup using DOMPurify,
+        // while preserving the necessary layout and structural attributes our SVG requires.
         const sanitized = DOMPurify.sanitize(text, {
-          USE_PROFILES: { svg: true },
-          ADD_TAGS: ['animate', 'style'],
+          USE_PROFILES: { svg: true, svgFilters: true },
+          ADD_TAGS: [
+            'animate',
+            'style',
+            'filter',
+            'feGaussianBlur',
+            'feMerge',
+            'feMergeNode',
+            'feComposite',
+          ],
           ADD_ATTR: [
-            'fill',
-            'fill-opacity',
-            'stroke',
-            'stroke-width',
-            'stroke-opacity',
-            'x1',
-            'y1',
-            'x2',
-            'y2',
-            'stop-color',
-            'stop-opacity',
-            'offset',
+            'viewBox',
+            'd',
+            'width',
+            'height',
+            'rx',
+            'ry',
             'transform-origin',
             'transform-box',
-            'transform',
-            'attributeName',
-            'from',
-            'to',
-            'dur',
-            'repeatCount',
+            'animation-delay',
+            'xmlns',
+            'font-family',
+            'font-size',
+            'font-weight',
+            'fill-opacity',
+            'filter',
+            'stdDeviation',
+            'result',
+            'in',
+            'in2',
+            'operator',
+            'x',
+            'y',
             'id',
-            'class',
-            'href',
           ],
-          FORBID_TAGS: ['foreignObject', 'iframe', 'object', 'embed', 'script'],
-          FORBID_ATTR: ['xlink:href'],
-          ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto|data):|#)/i,
         });
 
-        setSvgContent(sanitized as string);
+        svgCache.set(previewSrc, sanitized);
+        setSvgContent(sanitized);
         setSvgState('loaded');
         setErrorMessage(null);
       })
@@ -290,33 +305,10 @@ function CustomizePageInner(): ReactElement {
       });
 
     return () => controller.abort();
-  }, [previewSrc, hasUsername, debouncedUsername, trimmedUsername]);
+    // By changing this list, useEffect only runs when previewSrc finishes debouncing
+  }, [previewSrc, hasUsername, trimmedUsername]);
 
   const exportSnippet = getExportSnippet(exportFormat, queryString);
-
-  const fallbackCopyToClipboard = (text: string): boolean => {
-    try {
-      const textArea = document.createElement('textarea');
-
-      textArea.value = text;
-      textArea.style.position = 'fixed';
-      textArea.style.opacity = '0';
-      textArea.style.pointerEvents = 'none';
-
-      document.body.appendChild(textArea);
-
-      textArea.focus();
-      textArea.select();
-
-      const successful = document.execCommand('copy');
-
-      document.body.removeChild(textArea);
-
-      return successful;
-    } catch {
-      return false;
-    }
-  };
 
   const announceCopyStatus = useCallback((message: string): void => {
     setCopyStatusMessage('');
@@ -330,7 +322,15 @@ function CustomizePageInner(): ReactElement {
 
     try {
       if (navigator.clipboard && window.isSecureContext) {
-        await navigator.clipboard.writeText(exportSnippet);
+        try {
+          await navigator.clipboard.writeText(exportSnippet);
+        } catch {
+          const copiedSuccessfully = fallbackCopyToClipboard(exportSnippet);
+
+          if (!copiedSuccessfully) {
+            throw new Error('Fallback clipboard copy failed.');
+          }
+        }
       } else {
         const copiedSuccessfully = fallbackCopyToClipboard(exportSnippet);
 
@@ -342,7 +342,21 @@ function CustomizePageInner(): ReactElement {
       setCopied(true);
 
       announceCopyStatus(
-        `${exportFormat === 'markdown' ? 'Markdown' : 'HTML'} snippet copied to clipboard.`
+        exportFormat === 'markdown'
+          ? t('customize.export.copy_status_markdown_success', {
+              defaultValue: 'Markdown snippet copied to clipboard.',
+            })
+          : exportFormat === 'html'
+            ? t('customize.export.copy_status_html_success', {
+                defaultValue: 'HTML snippet copied to clipboard.',
+              })
+            : exportFormat === 'tsx'
+              ? t('customize.export.copy_status_tsx_success', {
+                  defaultValue: 'React TSX snippet copied to clipboard.',
+                })
+              : t('customize.export.copy_status_action_success', {
+                  defaultValue: 'GitHub Action snippet copied to clipboard.',
+                })
       );
 
       if (copyResetTimeoutRef.current !== null) {
@@ -357,10 +371,13 @@ function CustomizePageInner(): ReactElement {
       setCopied(false);
 
       announceCopyStatus(
-        `Unable to copy the ${exportFormat === 'markdown' ? 'Markdown' : 'HTML'} snippet.`
+        t('customize.export.copy_status_error', {
+          defaultValue: `Unable to copy the ${exportFormat === 'markdown' ? 'Markdown' : 'HTML'} snippet.`,
+        })
       );
     }
   };
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleDownloadimage = () => {
     alert('Download image functionality coming soon!');
   };
@@ -400,14 +417,14 @@ function CustomizePageInner(): ReactElement {
             >
               <path d="M19 12H5M12 5l-7 7 7 7" />
             </svg>
-            Back to Home
+            {t('customize.back_to_home')}
           </Link>
 
           <div className="h-4 w-px bg-white/10" />
 
           <div>
             <span className="text-xs font-bold uppercase tracking-[0.22em] text-emerald-600 dark:text-emerald-400">
-              Customization Studio
+              {t('customize_cta.studio_badge')}
             </span>
           </div>
         </motion.div>
@@ -420,12 +437,9 @@ function CustomizePageInner(): ReactElement {
           className="mb-10"
         >
           <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-black dark:text-white leading-tight mb-2">
-            Fine-tune your monolith.
+            {t('customize.title')}
           </h1>
-          <p className="text-gray-600 dark:text-white/65 text-sm max-w-xl">
-            Every change below updates the preview in real-time. Copy the export snippet when
-            you&apos;re done. No extra steps required.
-          </p>
+          <p className="text-gray-600 dark:text-white/65 text-sm max-w-xl">{t('customize.desc')}</p>
         </motion.div>
 
         {/* ── Split layout ─────────────────────────────────────────────────── */}
@@ -435,12 +449,16 @@ function CustomizePageInner(): ReactElement {
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="bg-white/70 backdrop-blur-xl border border-black/10 dark:bg-black/35 dark:border-white/10 rounded-[1.75rem] p-6 flex flex-col gap-6 sticky top-6 shadow-[0_20px_60px_rgba(0,0,0,0.35)]"
+            className="bg-white/70 backdrop-blur-xl border border-black/10 dark:bg-black/35 dark:border-white/10 rounded-[1.75rem] p-6 flex flex-col gap-6 sticky top-6 shadow-[0_20px_60px_rgba(0,0,0,0.35)] min-w-0"
           >
             <ControlsPanel
               username={username}
               theme={theme}
               bgHex={bgHex}
+              bgType={bgType}
+              bgStart={bgStart}
+              bgEnd={bgEnd}
+              bgAngle={bgAngle}
               accentHex={accentHex}
               textHex={textHex}
               scale={scale}
@@ -452,6 +470,10 @@ function CustomizePageInner(): ReactElement {
               onUsernameChange={setUsername}
               onThemeChange={handleThemeChange}
               onBgHexChange={setBgHex}
+              onBgTypeChange={setBgType}
+              onBgStartChange={setBgStart}
+              onBgEndChange={setBgEnd}
+              onBgAngleChange={setBgAngle}
               onAccentHexChange={setAccentHex}
               onTextHexChange={setTextHex}
               onScaleChange={setScale}
@@ -462,6 +484,10 @@ function CustomizePageInner(): ReactElement {
               onSizeChange={setSize}
               onClearOverrides={() => {
                 setBgHex('');
+                setBgType('solid');
+                setBgStart('');
+                setBgEnd('');
+                setBgAngle(90);
                 setAccentHex('');
                 setTextHex('');
               }}
@@ -473,12 +499,12 @@ function CustomizePageInner(): ReactElement {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5, delay: 0.15 }}
-            className="flex flex-col gap-6"
+            className="flex flex-col gap-6 min-w-0"
           >
             {/* Live Preview */}
             <div className="bg-white/70 backdrop-blur-xl border border-black/10 dark:bg-black/35 dark:border-white/10 rounded-[1.75rem] p-6 shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
               <p className="text-xs font-bold uppercase tracking-[0.22em] text-emerald-600 dark:text-emerald-400 mb-5">
-                Live Preview
+                {t('customize.live_preview')}
               </p>
 
               {/* ─── MOVING THE INTERACTION LISTENER DIRECTLY TO THE OUTER WRAPPER CONTAINER ROW ─── */}
@@ -597,10 +623,10 @@ function CustomizePageInner(): ReactElement {
                         </svg>
                       </div>
                       <p className="text-lg font-semibold tracking-tight text-black dark:text-white">
-                        Enter a GitHub username to preview
+                        {t('landing.preview_placeholder_title')}
                       </p>
                       <p className="mt-2 max-w-md text-sm leading-relaxed text-gray-500 dark:text-white/65">
-                        The live badge preview will appear here once a username is added.
+                        {t('customize.empty_preview_desc')}
                       </p>
                     </div>
                   )}
@@ -610,9 +636,9 @@ function CustomizePageInner(): ReactElement {
               <p className="mt-3 text-[11px] text-gray-500 dark:text-white/55 text-center">
                 {hasUsername
                   ? isRandomTheme
-                    ? 'Random theme changes on every page load and disables caching'
-                    : 'Preview updates on every change. Hosted badge is cached at UTC midnight'
-                  : 'Add a username to enable live preview and export snippets'}
+                    ? t('landing.preview_auto_theme')
+                    : t('landing.preview_caching_tip')
+                  : t('landing.preview_empty_tip')}
               </p>
             </div>
 
@@ -630,7 +656,7 @@ function CustomizePageInner(): ReactElement {
             {/* URL breakdown */}
             <div className="bg-white/70 backdrop-blur-xl border border-black/10 dark:bg-black/35 dark:border-white/10 rounded-[1.75rem] p-6 shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
               <p className="text-xs font-bold uppercase tracking-[0.22em] text-gray-500 dark:text-white/55 mb-4">
-                Active Parameters
+                {t('customize.active_params')}
               </p>
               <div className="flex flex-wrap gap-2">
                 {(hasUsername ? queryString.split('&') : ['user=your-github-username']).map(
@@ -639,11 +665,11 @@ function CustomizePageInner(): ReactElement {
                     return (
                       <span
                         key={k}
-                        className="inline-flex items-center gap-1.5 bg-gray-100/80 backdrop-blur-md border border-black/10 dark:bg-white/[0.03] dark:border-white/10 rounded-lg px-3 py-1.5 text-xs font-mono"
+                        className="inline-flex items-center gap-1.5 bg-gray-100/80 backdrop-blur-md border border-black/10 dark:bg-white/[0.03] dark:border-white/10 rounded-lg px-3 py-1.5 text-xs font-mono break-all"
                       >
-                        <span className="text-purple-400">{decodeURIComponent(k)}</span>
-                        <span className="text-gray-400 dark:text-white/55">=</span>
-                        <span className="text-emerald-600 dark:text-emerald-400">
+                        <span className="text-purple-400 break-all">{decodeURIComponent(k)}</span>
+                        <span className="text-gray-400 dark:text-white/55 shrink-0">=</span>
+                        <span className="text-emerald-600 dark:text-emerald-400 break-all">
                           {decodeURIComponent(v)}
                         </span>
                       </span>
@@ -659,7 +685,7 @@ function CustomizePageInner(): ReactElement {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="bg-white/70 backdrop-blur-xl border border-black/10 dark:bg-black/35 dark:border-white/10 rounded-[1.75rem] p-6 flex flex-col gap-6 sticky top-6 shadow-[0_20px_60px_rgba(0,0,0,0.35)] xl:col-start-3"
+            className="bg-white/70 backdrop-blur-xl border border-black/10 dark:bg-black/35 dark:border-white/10 rounded-[1.75rem] p-6 flex flex-col gap-6 sticky top-6 shadow-[0_20px_60px_rgba(0,0,0,0.35)] xl:col-start-3 min-w-0"
           >
             <AdvancedSettingsPanel
               hideTitle={hideTitle}
@@ -686,6 +712,7 @@ function CustomizePageInner(): ReactElement {
           </motion.aside>
         </div>
       </div>
+      <Footer />
     </div>
   );
 }

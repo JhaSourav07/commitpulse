@@ -43,7 +43,13 @@ async function handleClaim({ github, context }) {
     return;
   }
 
-  const currentAssignees = context.payload.issue.assignees.map((a) => a.login.toLowerCase());
+  // Re-fetch to avoid stale assignee data from the webhook payload
+  const { data: freshIssue } = await github.rest.issues.get({
+    owner,
+    repo,
+    issue_number: issueNumber,
+  });
+  const currentAssignees = freshIssue.assignees.map((a) => a.login.toLowerCase());
 
   if (currentAssignees.length > 0) {
     if (currentAssignees.includes(commenter.toLowerCase())) {

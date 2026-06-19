@@ -5,7 +5,9 @@ import Leaderboard, { Contributor } from './Leaderboard';
 
 // Mock Next.js Image
 vi.mock('next/image', () => ({
-  default: (props: React.ImgHTMLAttributes<HTMLImageElement>) => <img alt="mock" {...props} />,
+  default: ({ fill, ...props }: React.ImgHTMLAttributes<HTMLImageElement> & { fill?: boolean }) => (
+    <img alt="mock" {...props} />
+  ),
 }));
 
 // Mock framer-motion strictly
@@ -19,11 +21,23 @@ vi.mock('framer-motion', async () => {
         className,
         onClick,
         style,
+        whileHover,
+        whileInView,
+        initial,
+        viewport,
+        transition,
+        animate,
       }: {
         children?: React.ReactNode;
         className?: string;
         onClick?: React.MouseEventHandler<HTMLDivElement>;
         style?: React.CSSProperties;
+        whileHover?: unknown;
+        whileInView?: unknown;
+        initial?: unknown;
+        viewport?: unknown;
+        transition?: unknown;
+        animate?: unknown;
       }) => (
         <div className={className} onClick={onClick} style={style} data-testid="motion-div">
           {children}
@@ -99,10 +113,9 @@ describe('Leaderboard - Responsive Breakpoints & Mobile Layouts (Issue #2759 Equ
   });
 
   it('Mobile Touch Target Scaling (Navigation Scaling Equivalent): preserves large click zones for touch devices even on mobile', () => {
-    const scrollIntoViewMock = vi.fn();
-    document.getElementById = vi.fn().mockReturnValue({
-      scrollIntoView: scrollIntoViewMock,
-    });
+    const openMock = vi.fn();
+    const originalOpen = window.open;
+    window.open = openMock;
 
     const { container } = render(<Leaderboard contributors={mockData} />);
 
@@ -112,8 +125,9 @@ describe('Leaderboard - Responsive Breakpoints & Mobile Layouts (Issue #2759 Equ
 
     fireEvent.click(listItem as Element);
 
-    // Verify the simulated 'navigation' click still functions
-    expect(document.getElementById).toHaveBeenCalledWith('contributors');
-    expect(scrollIntoViewMock).toHaveBeenCalledWith({ behavior: 'smooth' });
+    // Verify click opens contributor's GitHub profile in a new tab
+    expect(openMock).toHaveBeenCalledWith('', '_blank', 'noopener,noreferrer');
+
+    window.open = originalOpen;
   });
 });

@@ -101,4 +101,13 @@ describe('GET /api/user-details', () => {
       totalContributions: 0,
     });
   });
+  it('returns 429 when rate limit is exceeded', async () => {
+    const { RateLimiter } = await import('@/lib/rate-limit');
+    vi.spyOn(RateLimiter.prototype, 'check').mockResolvedValueOnce(false);
+
+    const response = await GET(makeRequest({ username: 'testuser' }));
+    expect(response.status).toBe(429);
+    const body = await response.json();
+    expect(body.error).toBe('Too many requests. Please try again later.');
+  });
 });

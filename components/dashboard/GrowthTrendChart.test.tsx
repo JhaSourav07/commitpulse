@@ -195,6 +195,21 @@ describe('GrowthTrendChart', () => {
     expect(svgElement?.getAttribute('class')).toContain('w-full');
   });
 
+  it('renders reduced month labels to avoid overlap on small screens', () => {
+    const { container } = render(
+      <GrowthTrendChart
+        activityA={activityA}
+        activityB={activityB}
+        labelA="User A"
+        labelB="User B"
+      />
+    );
+
+    const monthLabels = container.querySelectorAll('text[text-anchor="middle"]');
+    expect(monthLabels.length).toBeLessThanOrEqual(7);
+    expect(monthLabels.length).toBeGreaterThan(0);
+  });
+
   it('handles empty activity data gracefully without crashing', () => {
     const { container } = render(
       <GrowthTrendChart activityA={[]} activityB={[]} labelA="User A" labelB="User B" />
@@ -202,6 +217,46 @@ describe('GrowthTrendChart', () => {
 
     const svgElement = container.querySelector('svg');
     expect(svgElement).not.toBeNull();
+  });
+  it('renders path coordinates for responsive scaling', () => {
+    const { container } = render(
+      <GrowthTrendChart
+        activityA={activityA}
+        activityB={activityB}
+        labelA="User A"
+        labelB="User B"
+      />
+    );
+
+    const paths = container.querySelectorAll('path');
+
+    expect(paths.length).toBeGreaterThan(0);
+
+    paths.forEach((path) => {
+      const d = path.getAttribute('d');
+
+      if (d) {
+        expect(d.length).toBeGreaterThan(0);
+        expect(d).toMatch(/[MLCQ]/);
+      }
+    });
+  });
+  it('renders gradient stop elements for area fills', () => {
+    const { container } = render(
+      <GrowthTrendChart
+        activityA={activityA}
+        activityB={activityB}
+        labelA="User A"
+        labelB="User B"
+      />
+    );
+
+    const gradientA = container.querySelector('linearGradient[id$="-gradient-area-a"]');
+
+    const gradientB = container.querySelector('linearGradient[id$="-gradient-area-b"]');
+
+    expect(gradientA?.querySelectorAll('stop').length).toBeGreaterThan(0);
+    expect(gradientB?.querySelectorAll('stop').length).toBeGreaterThan(0);
   });
 
   it('handles single data point without crashing', () => {

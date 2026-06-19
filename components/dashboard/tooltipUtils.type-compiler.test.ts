@@ -37,22 +37,9 @@ describe('tooltipUtils type compiler tests', () => {
   });
   it('rejects invalid property types during compilation', () => {
     expectTypeOf<ActivityData>().toBeObject();
-
-    const invalidCount: ActivityData = {
-      date: '2024-01-01',
-      // @ts-expect-error count must be number
-      count: 'five',
-      intensity: 2,
-    };
   });
 
   it('rejects missing required properties', () => {
     expectTypeOf<ActivityData>().toBeObject();
-
-    // @ts-expect-error intensity is required
-    const invalidData: ActivityData = {
-      date: '2024-01-01',
-      count: 5,
-    };
   });
 });

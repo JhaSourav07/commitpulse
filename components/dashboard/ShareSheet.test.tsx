@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import ShareSheet from './ShareSheet';
 
@@ -13,6 +13,7 @@ const mockHandleDownloadPNG = vi.fn();
 const mockHandleDownloadWEBP = vi.fn();
 const mockHandleDownloadSVG = vi.fn();
 const mockHandleDownloadJSON = vi.fn();
+const mockHandleDownloadSTL = vi.fn();
 const mockHandleCopyMarkdown = vi.fn();
 const mockHandleNativeShare = vi.fn();
 let mockStates: Record<string, 'idle' | 'loading' | 'success' | 'error'> = {};
@@ -32,6 +33,7 @@ const mockHandlers = {
   handleDownloadWEBP: mockHandleDownloadWEBP,
   handleDownloadSVG: mockHandleDownloadSVG,
   handleDownloadJSON: mockHandleDownloadJSON,
+  handleDownloadSTL: mockHandleDownloadSTL,
   handleCopyMarkdown: mockHandleCopyMarkdown,
   handleNativeShare: mockHandleNativeShare,
 };
@@ -175,6 +177,12 @@ describe('ShareSheet', () => {
       mockStates = { ...mockStates, webp: 'loading' };
       await Promise.resolve();
       mockStates = { ...mockStates, webp: 'success' };
+    });
+
+    mockHandlers.handleDownloadSTL.mockImplementation(async () => {
+      mockStates = { ...mockStates, stl: 'loading' };
+      await Promise.resolve();
+      mockStates = { ...mockStates, stl: 'success' };
     });
 
     mockHandlers.handleDownloadSVG.mockImplementation(async () => {
@@ -396,29 +404,13 @@ describe('ShareSheet', () => {
     expect(mockHandleDownloadSVG).toHaveBeenCalled();
   });
 
-  it('handles Download Printable 3D STL Monolith action', async () => {
-    const realSetTimeout = globalThis.setTimeout.bind(globalThis);
-    vi.spyOn(globalThis, 'setTimeout').mockImplementation(
-      (fn: any, delay?: any, ...args: any[]) => {
-        if (delay === 1200) {
-          fn(...args);
-          return 0 as any;
-        }
-        return realSetTimeout(fn, delay, ...args);
-      }
-    );
-
+  it('handles Download STL action', () => {
     render(<ShareSheet {...defaultProps} />);
-    await act(async () => {
-      fireEvent.click(screen.getByText('Download Printable 3D STL Monolith').closest('button')!);
-    });
-
-    expect(HTMLAnchorElement.prototype.click).toHaveBeenCalled();
-    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:mock-url');
-
-    await waitFor(() => {
-      expect(screen.getByText('Saved Asset!')).toBeDefined();
-    });
+    const stlButton = screen.getByText('Download Printable 3D STL').closest('button');
+    expect(stlButton).toBeDefined();
+    expect(stlButton?.disabled).toBe(false);
+    fireEvent.click(stlButton!);
+    expect(mockHandleDownloadSTL).toHaveBeenCalled();
   });
 
   // ── GitHub Wrapped ---------------------------------------------------------

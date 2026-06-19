@@ -4,8 +4,10 @@ import { Analytics } from '@vercel/analytics/next';
 import Navbar from './components/navbar';
 import BrandParticles from '@/components/BrandParticles';
 import ReturnToTop from '@/components/ReturnToTop';
-import type { Metadata } from 'next';
+import ScrollToBottom from '@/components/ScrollToBottom';
+import type { Metadata, Viewport } from 'next';
 import ScrollRestoration from './components/ScrollRestoration';
+import { Providers } from './providers';
 import AnimatedCursor from '@/components/AnimatedCursor';
 import KonamiEasterEgg from '@/components/KonamiEasterEgg';
 
@@ -28,6 +30,19 @@ export const metadata: Metadata = {
   ],
   authors: [{ name: 'Sourav Jha', url: 'https://github.com/JhaSourav07' }],
   creator: 'Sourav Jha',
+  manifest: '/manifest.webmanifest',
+  icons: {
+    icon: [
+      { url: '/favicon.ico', sizes: '48x48' },
+      { url: '/icon.svg', type: 'image/svg+xml' },
+    ],
+    apple: '/apple-icon.png',
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'CommitPulse',
+  },
   openGraph: {
     type: 'website',
     locale: 'en_US',
@@ -38,7 +53,7 @@ export const metadata: Metadata = {
     siteName: 'CommitPulse',
     images: [
       {
-        url: 'https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=neon',
+        url: 'https://commitpulse.vercel.app/api/streak',
         width: 1200,
         height: 630,
         alt: 'CommitPulse 3D GitHub Contribution Graph Preview',
@@ -50,8 +65,7 @@ export const metadata: Metadata = {
     title: 'CommitPulse | Elevate Your GitHub README',
     description:
       'Generate a cinematic, isometric 3D SVG of your GitHub contributions for your README.',
-    images: ['https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=neon'],
-    // creator: '@your_twitter_handle', // Uncomment and add your Twitter handle here
+    images: ['https://commitpulse.vercel.app/api/streak'],
   },
   robots: {
     index: true,
@@ -66,9 +80,13 @@ export const metadata: Metadata = {
   },
 };
 
+export const viewport: Viewport = {
+  themeColor: '#0d0d0d',
+};
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning>
       <head>
         <script
           dangerouslySetInnerHTML={{
@@ -88,14 +106,26 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body className={inter.className}>
-        <ScrollRestoration />
-        <AnimatedCursor />
-        <BrandParticles />
-        <Navbar />
-        <div className="relative z-10">{children}</div>
-        <ReturnToTop />
-        <KonamiEasterEgg />
-        <Analytics />
+        {/* Skip link — first focusable element, lets keyboard users jump past the navbar */}
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-99999 focus:px-4 focus:py-2 focus:bg-blue-600 focus:text-white focus:rounded-md focus:outline-none focus:shadow-lg"
+        >
+          Skip to main content
+        </a>
+        <Providers>
+          <ScrollRestoration />
+          <AnimatedCursor />
+          <BrandParticles />
+          <Navbar />
+          <main id="main-content" className="relative z-10">
+            {children}
+          </main>
+          <ReturnToTop />
+          <ScrollToBottom />
+          <KonamiEasterEgg />
+          <Analytics />
+        </Providers>
       </body>
     </html>
   );

@@ -28,7 +28,7 @@ describe('ResumeUpload - Accessibility compliance', () => {
     const fileInput = screen.getByLabelText('Upload resume');
     expect(fileInput).toBeInTheDocument();
     expect(fileInput).toHaveAttribute('type', 'file');
-    expect(fileInput).toHaveAttribute('accept', '.pdf,.docx,.doc');
+    expect(fileInput).toHaveAttribute('accept', '.pdf,.docx');
   });
 
   it('displays descriptive, screen-reader-visible instruction text in the empty state', () => {
@@ -118,5 +118,35 @@ describe('ResumeUpload - Accessibility compliance', () => {
 
     // Verify the parsing state is announced
     expect(screen.getByText('Parsing resume...')).toBeInTheDocument();
+  });
+
+  it('is keyboard-focusable', () => {
+    render(<ResumeUpload onParsed={onParsed} onError={onError} />);
+    const dropzone = screen.getByRole('button', { name: /drop your resume here/i });
+    expect(dropzone).toHaveAttribute('tabIndex', '0');
+  });
+
+  it('activates the upload action when Enter is pressed', () => {
+    render(<ResumeUpload onParsed={onParsed} onError={onError} />);
+    const dropzone = screen.getByRole('button', { name: /drop your resume here/i });
+    const fileInput = screen.getByLabelText('Upload resume');
+
+    // Create a spy on the click method of the input element
+    const clickSpy = vi.spyOn(fileInput, 'click');
+
+    fireEvent.keyDown(dropzone, { key: 'Enter' });
+    expect(clickSpy).toHaveBeenCalled();
+  });
+
+  it('activates the upload action when Space is pressed', () => {
+    render(<ResumeUpload onParsed={onParsed} onError={onError} />);
+    const dropzone = screen.getByRole('button', { name: /drop your resume here/i });
+    const fileInput = screen.getByLabelText('Upload resume');
+
+    // Create a spy on the click method of the input element
+    const clickSpy = vi.spyOn(fileInput, 'click');
+
+    fireEvent.keyDown(dropzone, { key: ' ' });
+    expect(clickSpy).toHaveBeenCalled();
   });
 });

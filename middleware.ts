@@ -5,27 +5,25 @@ import { getClientIp } from './utils/getClientIp';
 
 /**
  * Middleware to enforce rate limiting on specific API routes.
- *
- * Protected Routes:
- * - /api/streak
- * - /api/github
- * - /api/track-user
- * - /api/stats
- * - /api/og
- * - /api/notify
- * - /api/compare
- * - /api/wrapped
- * - /api/student
- *
- * Limit: 60 requests per minute per IP.
  */
 export async function middleware(request: NextRequest) {
-  // Secure client IP extraction
+  // Extract client IP securely using the getClientIp helper
   const ip = getClientIp(request);
 
-  // Apply rate limiting
-  // 60 requests per 60,000ms (1 minute)
-  const result = await rateLimit(ip, 60, 60000);
+  // Determine if this is a hard-refresh request (bypasses cache/hits GitHub API)
+  const isRefreshRequest =
+    request.nextUrl.searchParams.get('refresh') === 'true' ||
+    request.nextUrl.searchParams.get('bypassCache') === 'true';
+
+  let result;
+
+  if (isRefreshRequest) {
+    // Strict rate limit for explicit refresh requests: 3 requests per 10 minutes (600,000ms)
+    result = await rateLimit(`refresh_limiter:${ip}`, 3, 600000);
+  } else {
+    // Standard rate limit: 60 requests per 1 minute (60,000ms)
+    result = await rateLimit(ip, 60, 60000);
+  }
 
   if (!result.success) {
     return NextResponse.json(
@@ -42,7 +40,6 @@ export async function middleware(request: NextRequest) {
     );
   }
 
-  // Add rate limit headers to the response for successful requests
   const response = NextResponse.next();
   response.headers.set('X-RateLimit-Limit', result.limit.toString());
   response.headers.set('X-RateLimit-Remaining', result.remaining.toString());
@@ -52,8 +49,7 @@ export async function middleware(request: NextRequest) {
 }
 
 /**
- * Configure which routes should trigger this middleware.
- * Using a matcher is more efficient than checking pathnames inside the middleware.
+ * Configure which routes should trigger this proxy.
  */
 export const config = {
   matcher: [
@@ -66,5 +62,6 @@ export const config = {
     '/api/compare/:path*',
     '/api/wrapped/:path*',
     '/api/student/:path*',
+    '/api/pr-insights/:path*',
   ],
 };

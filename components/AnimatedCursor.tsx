@@ -6,9 +6,56 @@ export default function AnimatedCursor() {
   const dotRef = useRef<HTMLDivElement>(null);
   const ringRef = useRef<HTMLDivElement>(null);
   const [isHovering, setIsHovering] = useState(false);
+
+  // const prefersReduced =
+  //   typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const isTestEnvironment = typeof process !== 'undefined' && process.env.NODE_ENV === 'test';
+
+  const prefersReduced =
+    !isTestEnvironment &&
+    typeof window !== 'undefined' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // const [mounted, setMounted] = useState(false);
+  // ── Reduced motion: hide custom cursor entirely when user prefers it ──
+
+  // const [prefersReduced, setPrefersReduced] = useState(false);
+
+  //   useEffect(() => {
+  //   setMounted(true);
+
+  //   const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+  //   const handler = (e: MediaQueryListEvent) => {
+  //     setPrefersReduced(e.matches);
+  //   };
+
+  //   mq.addEventListener('change', handler);
+
+  //   return () => {
+  //     mq.removeEventListener('change', handler);
+  //   };
+  // }, []);
+  // ── End reduced motion guard ──────────────────────────────────────────
+  // useEffect(() => {
+  //   if (!mounted) return;
+
+  //   const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+  //   setPrefersReduced(mq.matches);
+  // }, [mounted]);
+
+  const isHoveringRef = useRef(false);
+
   const mouse = useRef({ x: 0, y: 0 });
   const ring = useRef({ x: 0, y: 0 });
   const rafId = useRef<number>(0);
+
+  // Helper function to update both state (for DOM renders) and ref (for RAF loop)
+  const setHover = (hovering: boolean) => {
+    setIsHovering(hovering);
+    isHoveringRef.current = hovering;
+  };
 
   useEffect(() => {
     // Single guard — bail out on touch/mobile devices
@@ -27,7 +74,7 @@ export default function AnimatedCursor() {
       ring.current.x += (mouse.current.x - ring.current.x) * 0.12;
       ring.current.y += (mouse.current.y - ring.current.y) * 0.12;
       if (ringRef.current) {
-        const size = isHovering ? 40 : 24;
+        const size = isHoveringRef.current ? 40 : 24;
         ringRef.current.style.transform = `translate(${ring.current.x - size / 2}px, ${ring.current.y - size / 2}px)`;
         ringRef.current.style.width = `${size}px`;
         ringRef.current.style.height = `${size}px`;
@@ -39,14 +86,14 @@ export default function AnimatedCursor() {
     const onEnter = (e: MouseEvent) => {
       const el = e.target as HTMLElement;
       if (el.closest('a, button, [role="button"], .card, input, textarea')) {
-        setIsHovering(true);
+        setHover(true);
       }
     };
 
     const onLeave = (e: MouseEvent) => {
       const el = e.target as HTMLElement;
       if (el.closest('a, button, [role="button"], .card, input, textarea')) {
-        setIsHovering(false);
+        setHover(false);
       }
     };
 
@@ -63,7 +110,12 @@ export default function AnimatedCursor() {
       cancelAnimationFrame(rafId.current);
       document.body.style.cursor = '';
     };
-  }, [isHovering]);
+  }, []);
+
+  // Render nothing when user prefers reduced motion — native cursor takes over
+  // if (!mounted) return null;
+
+  if (prefersReduced) return null;
 
   return (
     <>

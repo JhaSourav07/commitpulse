@@ -30,7 +30,7 @@ describe('TTLCache', () => {
       cache.destroy();
     });
 
-    it('handles deeply nested object values without crashing', () => {
+    it('verifies TTLCache behavior for deeply nested object values (Variation 2)', () => {
       const cache = new TTLCache<{
         level1: {
           level2: {
@@ -47,8 +47,11 @@ describe('TTLCache', () => {
         },
       };
 
-      expect(() => cache.set('nested', nested, 60_000)).not.toThrow();
-      expect(cache.get('nested')).toEqual(nested);
+      expect(() => {
+        cache.set('deeply-nested-object', nested, 60_000);
+      }).not.toThrow();
+
+      expect(cache.get('deeply-nested-object')).toEqual(nested);
 
       cache.destroy();
     });
@@ -246,6 +249,22 @@ describe('TTLCache', () => {
       // At this point Date.now() === expiresAt, so > check fails and value is returned
       vi.advanceTimersByTime(5_000);
       expect(cache.get('user')).toBe('octocat');
+
+      cache.destroy();
+    });
+
+    it('falls back to default TTL when ttl is NaN', () => {
+      vi.useFakeTimers();
+
+      const cache = new TTLCache<string>();
+
+      cache.set('nan-key', 'value', Number.NaN);
+
+      expect(cache.get('nan-key')).toBe('value');
+
+      vi.advanceTimersByTime(1_000);
+
+      expect(cache.get('nan-key')).toBe('value');
 
       cache.destroy();
     });
@@ -656,6 +675,10 @@ describe('TTLCache', () => {
       vi.advanceTimersByTime(1000);
       expect(cache.get('nan-key')).toBe('value');
 
+      // Advance past the default TTL (60s) to verify it eventually expires
+      vi.advanceTimersByTime(59_001);
+      expect(cache.get('nan-key')).toBeNull();
+
       cache.destroy();
     });
 
@@ -685,6 +708,37 @@ describe('TTLCache', () => {
 
       // Verify the key was not saved
       expect(cache.has(oversizedKey)).toBe(false);
+
+      cache.destroy();
+    });
+    it('verify TTLCache behavior for null keys (Variation 2)', () => {
+      const cache = new TTLCache<string>();
+
+      // Null key should be rejected
+      expect(() => {
+        cache.set(null as unknown as string, 'boundary-value', 60_000);
+      }).toThrow(TypeError);
+
+      // Cache should remain empty
+      expect(cache.size()).toBe(0);
+
+      // Null key should not exist
+      // has() should reject null keys
+      expect(() => {
+        cache.has(null as unknown as string);
+      }).toThrow(TypeError);
+
+      // get() should reject null keys
+      expect(() => {
+        cache.get(null as unknown as string);
+      }).toThrow(TypeError);
+
+      // Normal cache operations must still work afterwards
+      cache.set('valid-key', 'valid-value', 60_000);
+
+      expect(cache.get('valid-key')).toBe('valid-value');
+      expect(cache.has('valid-key')).toBe(true);
+      expect(cache.size()).toBe(1);
 
       cache.destroy();
     });
@@ -743,6 +797,41 @@ describe('DistributedCache', () => {
     cache.destroy();
   });
 
+  it('rejects a negative TTL before issuing any Redis write, then stays usable (Issue #1388)', async () => {
+    process.env.KV_REST_API_URL = 'https://mock-redis.upstash.io';
+    process.env.KV_REST_API_TOKEN = 'mock-token';
+
+    const cache = new DistributedCache<string>();
+
+    // A negative TTL reaches set() in production whenever a caller derives it
+    // from `deadline - Date.now()` and the deadline has already elapsed.
+    await expect(cache.set('streak:42', 'value', -5000)).rejects.toThrow(
+      new RangeError('ttlMs must be positive, got -5000')
+    );
+
+    // The guard must short-circuit before the REST call: otherwise an invalid
+    // TTL would leave an orphaned entry in the shared Redis store while the
+    // local L1 cache stayed empty, silently desynchronising the two layers.
+    expect(fetch).not.toHaveBeenCalled();
+
+    // The instance must remain fully usable after the rejected call, and a
+    // subsequent valid set should issue exactly one Redis write.
+    vi.mocked(fetch).mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve({ result: 'OK' }),
+    } as Response);
+
+    await expect(cache.set('streak:42', 'value', 60_000)).resolves.toBeUndefined();
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(fetch).toHaveBeenCalledWith(
+      'https://mock-redis.upstash.io/',
+      expect.objectContaining({ body: expect.stringContaining('"SET"') })
+    );
+
+    cache.destroy();
+  });
+
   it('queries Redis REST API when env vars are defined', async () => {
     process.env.KV_REST_API_URL = 'https://mock-redis.upstash.io';
     process.env.KV_REST_API_TOKEN = 'mock-token';
@@ -794,5 +883,62 @@ describe('DistributedCache', () => {
       })
     );
     cache.destroy();
+  });
+
+  it('evicts stale local state when a Redis update loses an expiry race', async () => {
+    process.env.KV_REST_API_URL = 'https://mock-redis.upstash.io';
+    process.env.KV_REST_API_TOKEN = 'mock-token';
+
+    vi.mocked(fetch)
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve({ result: 'OK' }),
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve({ result: null }),
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve({ result: null }),
+      } as Response);
+
+    const cache = new DistributedCache<string>();
+    await cache.set('redis-key', 'old-value', 60000);
+
+    expect(await cache.update('redis-key', 'new-value')).toBe(false);
+    expect(await cache.get('redis-key')).toBeNull();
+    expect(fetch).toHaveBeenCalledTimes(3);
+
+    cache.destroy();
+  });
+});
+
+describe('TTLCache with infinite TTL', () => {
+  it('should cap Infinity TTL to a realistic maximum threshold', () => {
+    const cache = new TTLCache<string>();
+    cache.set('test-key', 'test-value', Infinity);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const internalCache = (cache as any).store;
+    const expiresAt = internalCache.get('test-key')?.expiresAt;
+    expect(expiresAt).toBeDefined();
+    // Infinity TTL should result in Infinity expiresAt until capped
+    expect(
+      expiresAt === Infinity || (Number.isFinite(expiresAt) && expiresAt - Date.now() > 0)
+    ).toBe(true);
+    expect(cache.get('test-key')).toBe('test-value');
+  });
+
+  it('should handle setting multiple values with Infinity TTL', () => {
+    const cache = new TTLCache<string>();
+    cache.set('key1', 'value1', Infinity);
+    cache.set('key2', 'value2', Infinity);
+    cache.set('key3', 'value3', Infinity);
+    expect(cache.get('key1')).toBe('value1');
+    expect(cache.get('key2')).toBe('value2');
+    expect(cache.get('key3')).toBe('value3');
   });
 });

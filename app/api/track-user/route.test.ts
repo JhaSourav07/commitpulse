@@ -2,11 +2,23 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { POST } from './route';
 import { User } from '@/models/User';
 import dbConnect from '@/lib/mongodb';
+import { trackUserRateLimiter } from '@/lib/rate-limit';
 
 // Mock dependencies
 vi.mock('@/lib/rate-limit', () => ({
+  getRateLimitHeaders: vi.fn((result) => ({
+    'X-RateLimit-Limit': result.limit.toString(),
+    'X-RateLimit-Remaining': result.remaining.toString(),
+    'X-RateLimit-Reset': result.reset.toString(),
+  })),
   trackUserRateLimiter: {
     check: vi.fn().mockResolvedValue(true),
+    checkWithResult: vi.fn().mockResolvedValue({
+      success: true,
+      limit: 5,
+      remaining: 4,
+      reset: Date.now() + 60000,
+    }),
   },
 }));
 
@@ -34,10 +46,10 @@ import { fetchUserProfile } from '@/lib/github';
 import { trackUserProtection } from '@/services/security/track-user-protection';
 import { gitHubUserValidator } from '@/services/github/validate-user';
 
-function makeRequest(body: Record<string, unknown>): Request {
+function makeRequest(body: Record<string, unknown>, headers?: HeadersInit): Request {
   return new Request('http://localhost/api/track-user', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...headers },
     body: JSON.stringify(body),
   });
 }
@@ -143,6 +155,50 @@ describe('POST /api/track-user', () => {
       const data = await response.json();
       expect(data.success).toBe(false);
     });
+
+    it('sanitizes and rejects nested MongoDB operators in username field', async () => {
+      const response = await POST(makeRequest({ username: { $ne: 'octocat' } }));
+      expect(response.status).toBe(400);
+      const data = await response.json();
+      expect(data.success).toBe(false);
+      expect(data.error).toBe('Invalid or missing username');
+    });
+
+    it('sanitizes query injection fields from root payload', async () => {
+      process.env.MONGODB_URI = 'mongodb://localhost:27017/test';
+      const response = await POST(makeRequest({ username: 'valid-user', $where: 'javascript' }));
+      expect(response.status).toBe(200);
+      const data = await response.json();
+      expect(data.success).toBe(true);
+      expect(User.updateOne).toHaveBeenCalledWith({ username: 'valid-user' }, expect.any(Object), {
+        upsert: true,
+      });
+    });
+  });
+
+  it('returns 429 with rate limit headers when rate limited', async () => {
+    const reset = Date.now() + 60000;
+    vi.mocked(trackUserRateLimiter.checkWithResult).mockResolvedValueOnce({
+      success: false,
+      limit: 5,
+      remaining: 0,
+      reset,
+    });
+
+    const response = await POST(
+      makeRequest({ username: 'valid-user' }, { 'x-real-ip': '198.51.100.10' })
+    );
+
+    expect(response.status).toBe(429);
+    expect(response.headers.get('x-ratelimit-limit')).toBe('5');
+    expect(response.headers.get('x-ratelimit-remaining')).toBe('0');
+    expect(response.headers.get('x-ratelimit-reset')).toBe(reset.toString());
+  });
+
+  it('applies rate limiting to localhost requests', async () => {
+    await POST(makeRequest({ username: 'valid-user' }));
+
+    expect(trackUserRateLimiter.checkWithResult).toHaveBeenCalledWith('127.0.0.1');
   });
 
   describe('Without MONGODB_URI (Local Development Bypass)', () => {
@@ -159,9 +215,8 @@ describe('POST /api/track-user', () => {
       expect(data.success).toBe(true);
       expect(data.bypassed).toBe(true);
 
-      expect(consoleSpy).toHaveBeenCalledWith(
-        'MONGODB_URI is not set. Bypassing user tracking for local development.'
-      );
+      expect(consoleSpy).toHaveBeenCalled();
+      expect(consoleSpy.mock.calls[0][0]).toContain('User tracking bypassed');
       expect(dbConnect).not.toHaveBeenCalled();
 
       consoleSpy.mockRestore();
@@ -195,18 +250,64 @@ describe('POST /api/track-user', () => {
       expect(data.bypassed).toBeUndefined();
     });
 
-    it('returns 500 when database connection fails', async () => {
-      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    it('bypasses user tracking gracefully when database connection fails', async () => {
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
       vi.mocked(dbConnect).mockRejectedValueOnce(new Error('DB Down'));
 
       const response = await POST(makeRequest({ username: 'octocat' }));
 
-      expect(response.status).toBe(500);
+      expect(response.status).toBe(200);
       const data = await response.json();
-      expect(data.success).toBe(false);
-      expect(data.error).toBe('Internal server error');
+      expect(data.success).toBe(true);
 
-      consoleErrorSpy.mockRestore();
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        'Database operation failed or timed out. Bypassing user tracking:',
+        expect.any(Error)
+      );
+
+      consoleWarnSpy.mockRestore();
+    });
+  });
+
+  describe('GitHub Username Validation Regression Tests (#4895)', () => {
+    beforeEach(() => {
+      process.env.MONGODB_URI = 'mongodb://localhost:27017/test';
+      vi.mocked(fetchUserProfile).mockImplementation((username) => {
+        return Promise.resolve({ login: username } as unknown as Awaited<
+          ReturnType<typeof fetchUserProfile>
+        >);
+      });
+    });
+
+    const validUsernames = ['octocat', 'KRUSHAL2956', 'my-user'];
+    const invalidUsernames = ['!!!!!!!!', '--------', 'abc--', '--abc', '<script>', 'user--name'];
+
+    it('Scenario: valid usernames are allowed and write to database', async () => {
+      for (const username of validUsernames) {
+        vi.clearAllMocks();
+        const response = await POST(makeRequest({ username }));
+        expect(response.status).toBe(200);
+        const data = await response.json();
+        expect(data.success).toBe(true);
+        expect(User.updateOne).toHaveBeenCalledWith(
+          { username: username.trim().toLowerCase() },
+          expect.any(Object),
+          { upsert: true }
+        );
+      }
+    });
+
+    it('Scenario: invalid usernames return 400 and never perform database operations', async () => {
+      for (const username of invalidUsernames) {
+        vi.clearAllMocks();
+        const response = await POST(makeRequest({ username }));
+        expect(response.status).toBe(400);
+        const data = await response.json();
+        expect(data.success).toBe(false);
+        expect(data.error).toBe('Invalid GitHub username');
+        expect(dbConnect).not.toHaveBeenCalled();
+        expect(User.updateOne).not.toHaveBeenCalled();
+      }
     });
   });
 });

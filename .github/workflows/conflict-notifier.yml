@@ -101,11 +101,19 @@ jobs:
                 }
               } else if (!isConflicting && alreadyLabeled) {
                 // PR is no longer conflicting — remove the stale label
-                await github.rest.issues.removeLabel({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  issue_number: pr.number,
-                  name: label,
-                });
+                try {
+                  await github.rest.issues.removeLabel({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: pr.number,
+                    name: label,
+                  });
+                } catch (error) {
+                  if (error instanceof Error && error.message.includes('Label does not exist')) {
+                    core.info(`Label '${label}' not found on PR #${pr.number}, skipping removal`);
+                  } else {
+                    throw error;
+                  }
+                }
               }
             }
