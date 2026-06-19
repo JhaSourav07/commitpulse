@@ -60,6 +60,12 @@ export default function GithubWrapped({ profile, wrappedData }: GithubWrappedPro
               width={64}
               height={64}
               className="w-16 h-16 rounded-full border-2 border-white/20"
+              onError={(e) => {
+                const target = e.currentTarget as HTMLImageElement;
+                if (target.src !== 'https://github.com/github.png') {
+                  target.src = 'https://github.com/github.png';
+                }
+              }}
             />
             <div>
               <h2 className="text-2xl font-bold tracking-tight">{profile.name}</h2>

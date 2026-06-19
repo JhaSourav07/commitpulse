@@ -386,6 +386,12 @@ function CompareProfileCard({ user, side }: { user: CompareUserData; side: 'left
               width={80}
               height={80}
               className="w-full h-full object-cover"
+              onError={(e) => {
+                const target = e.currentTarget as HTMLImageElement;
+                if (target.src !== 'https://github.com/github.png') {
+                  target.src = 'https://github.com/github.png';
+                }
+              }}
             />
           </div>
           {profile.isPro && (

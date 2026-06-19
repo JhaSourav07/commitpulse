@@ -56,6 +56,12 @@ export default function ProfileCard({ user, exportData, badges }: ProfileCardPro
                 width={96}
                 height={96}
                 className="w-full h-full aspect-square object-cover"
+                onError={(e) => {
+                  const target = e.currentTarget as HTMLImageElement;
+                  if (target.src !== 'https://github.com/github.png') {
+                    target.src = 'https://github.com/github.png';
+                  }
+                }}
               />
             </div>
             {user.isPro && (

@@ -112,6 +112,12 @@ export default function Leaderboard({ contributors }: LeaderboardProps) {
                     alt={contributor.login}
                     fill
                     className="object-cover"
+                    onError={(e) => {
+                      const target = e.currentTarget as HTMLImageElement;
+                      if (target.src !== 'https://github.com/github.png') {
+                        target.src = 'https://github.com/github.png';
+                      }
+                    }}
                   />
                 ) : (
                   <div className="w-full h-full bg-zinc-200 dark:bg-white/10" />
@@ -227,6 +233,12 @@ function PodiumItem({ contributor, height, variant, delay, isFirst }: PodiumItem
                 alt={contributor.login}
                 fill
                 className="rounded-full object-cover"
+                onError={(e) => {
+                  const target = e.currentTarget as HTMLImageElement;
+                  if (target.src !== 'https://github.com/github.png') {
+                    target.src = 'https://github.com/github.png';
+                  }
+                }}
               />
             ) : (
               <div className="w-full h-full rounded-full bg-zinc-200 dark:bg-white/10" />

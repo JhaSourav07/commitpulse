@@ -176,6 +176,12 @@ export default function ContributorsSearch({ contributors }: { contributors: Con
                         width={90}
                         height={90}
                         className="relative rounded-full border-2 border-black/10 dark:border-white/10 transition-all duration-500 group-hover:border-cyan-500/50 dark:group-hover:border-cyan-400/50 group-hover:scale-105"
+                        onError={(e) => {
+                          const target = e.currentTarget as HTMLImageElement;
+                          if (target.src !== 'https://github.com/github.png') {
+                            target.src = 'https://github.com/github.png';
+                          }
+                        }}
                       />
                       {/* Online indicator */}
                       <div className="absolute bottom-1 right-1 w-4 h-4 rounded-full bg-emerald-500 border-2 border-[#0a0a0a] opacity-0 group-hover:opacity-100 transition-opacity" />

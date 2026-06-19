@@ -244,6 +244,12 @@ export function CommitPulseSection({
                     width={22}
                     height={22}
                     className="rounded-full border border-emerald-500/20 flex-shrink-0"
+                    onError={(e) => {
+                      const target = e.currentTarget as HTMLImageElement;
+                      if (target.src !== 'https://github.com/github.png') {
+                        target.src = 'https://github.com/github.png';
+                      }
+                    }}
                   />
                   <div className="flex flex-col min-w-0">
                     <span className="text-xs font-semibold text-gray-900 dark:text-white truncate">

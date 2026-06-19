@@ -141,6 +141,12 @@ export default function HallOfFame({ data }: HallOfFameProps) {
                       height={40}
                       className="rounded-full shadow-md bg-white border border-black/10 dark:border-white/10"
                       unoptimized
+                      onError={(e) => {
+                        const target = e.currentTarget as HTMLImageElement;
+                        if (target.src !== 'https://github.com/github.png') {
+                          target.src = 'https://github.com/github.png';
+                        }
+                      }}
                     />
                   ) : (
                     <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gray-200 to-gray-300 dark:from-zinc-700 dark:to-zinc-800 flex items-center justify-center shadow-md">

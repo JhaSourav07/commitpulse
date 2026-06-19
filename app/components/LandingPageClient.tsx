@@ -692,6 +692,12 @@ export default function LandingPageClient() {
                           width={24}
                           height={24}
                           className="w-6 h-6 rounded-full border border-emerald-500/20"
+                          onError={(e) => {
+                            const target = e.currentTarget as HTMLImageElement;
+                            if (target.src !== 'https://github.com/github.png') {
+                              target.src = 'https://github.com/github.png';
+                            }
+                          }}
                         />
                         <div className="flex flex-col">
                           <span className="text-xs font-bold text-zinc-200">
@@ -748,6 +754,12 @@ export default function LandingPageClient() {
                               width={16}
                               height={16}
                               className="w-4 h-4 rounded-full border border-zinc-200/20 dark:border-white/20"
+                              onError={(e) => {
+                                const target = e.currentTarget as HTMLImageElement;
+                                if (target.src !== 'https://github.com/github.png') {
+                                  target.src = 'https://github.com/github.png';
+                                }
+                              }}
                             />
                             <button
                               type="button"
