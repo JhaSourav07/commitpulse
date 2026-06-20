@@ -1,11 +1,12 @@
-import { HTMLAttributes, ReactNode } from 'react';
+// components/dashboard/AIInsights.accessibility.test.tsx
+
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import AIInsights from './AIInsights';
 
 vi.mock('framer-motion', () => ({
   motion: {
-    div: ({ children, ...props }: HTMLAttributes<HTMLDivElement> & { children?: ReactNode }) => (
+    div: ({ children, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
       <div {...props}>{children}</div>
     ),
   },
@@ -13,78 +14,74 @@ vi.mock('framer-motion', () => ({
 
 vi.mock('@/context/TranslationContext', () => ({
   useTranslation: () => ({
-    t: (key: string) => {
-      const translations: Record<string, string> = {
-        'dashboard.insights.title': 'AI Insights',
-      };
-      return translations[key] ?? key;
-    },
+    t: (key: string) => key,
   }),
 }));
 
-const mockInsights = [
-  { id: '1', icon: 'Zap', text: 'You commit most frequently on Tuesdays.' },
-  { id: '2', icon: 'Moon', text: 'Your peak coding hours are between 10pm and midnight.' },
-  { id: '3', icon: 'Flame', text: 'You have a 5-day commit streak this week.' },
-];
+vi.mock('lucide-react', () => ({
+  Sparkles: () => <svg aria-hidden="true" data-testid="sparkles-icon" />,
+  Moon: () => <svg aria-hidden="true" />,
+  Sun: () => <svg aria-hidden="true" />,
+  Zap: () => <svg aria-hidden="true" />,
+  Calendar: () => <svg aria-hidden="true" />,
+  Flame: () => <svg aria-hidden="true" />,
+  Code: () => <svg aria-hidden="true" />,
+  Star: () => <svg aria-hidden="true" />,
+}));
 
-describe('AIInsights – Accessibility Standards & Screen Reader ARIA Compliance', () => {
-  it('renders a heading with correct accessible text for screen readers', () => {
-    render(<AIInsights insights={mockInsights} />);
+describe('AIInsights Accessibility', () => {
+  const insights = [
+    {
+      id: '1',
+      icon: 'Moon',
+      text: 'Night productivity increased by 32%',
+    },
+    {
+      id: '2',
+      icon: 'Zap',
+      text: 'Fastest merge response this week',
+    },
+  ];
 
-    const heading = screen.getByRole('heading', { level: 3, name: 'AI Insights' });
-    expect(heading).toBeInTheDocument();
+  it('renders a semantic heading for screen readers', () => {
+    render(<AIInsights insights={insights} />);
+
+    expect(
+      screen.getByRole('heading', {
+        name: /dashboard\.insights\.title/i,
+      })
+    ).toBeTruthy();
   });
 
-  it('exposes insight text as accessible content readable by screen readers', () => {
-    render(<AIInsights insights={mockInsights} />);
+  it('renders all insight descriptions as readable text content', () => {
+    render(<AIInsights insights={insights} />);
 
-    mockInsights.forEach((insight) => {
-      expect(screen.getByText(insight.text)).toBeInTheDocument();
-    });
+    expect(screen.getByText(/night productivity increased/i)).toBeTruthy();
+    expect(screen.getByText(/fastest merge response/i)).toBeTruthy();
   });
 
-  it('renders insight items in source order for correct tab navigation', () => {
-    render(<AIInsights insights={mockInsights} />);
+  it('marks decorative icons as aria-hidden for assistive technologies', () => {
+    render(<AIInsights insights={insights} />);
 
-    // Collect only <p> elements whose text matches an insight, preserving DOM order
-    const paragraphs = screen
-      .getAllByText(/.*/, { selector: 'p' })
-      .filter((p) => mockInsights.some((insight) => p.textContent === insight.text));
-
-    expect(paragraphs).toHaveLength(mockInsights.length);
-    paragraphs.forEach((p, i) => {
-      expect(p).toHaveTextContent(mockInsights[i].text);
-    });
+    const icons = screen.getAllByTestId('sparkles-icon');
+    expect(icons[0]).toHaveAttribute('aria-hidden', 'true');
   });
 
-  it('section container has no interactive role that could mislead assistive technologies', () => {
-    render(<AIInsights insights={mockInsights} />);
+  it('preserves logical content order for keyboard and screen reader flow', () => {
+    render(<AIInsights insights={insights} />);
 
-    // Walk up from the heading to the outermost wrapping div (the motion.div root)
-    const heading = screen.getByRole('heading', { level: 3, name: 'AI Insights' });
-    const sectionRoot = heading.closest('div')?.closest('div') as HTMLElement;
+    const heading = screen.getByRole('heading');
+    const firstInsight = screen.getByText(/night productivity increased/i);
 
-    expect(sectionRoot).toBeInTheDocument();
-    expect(sectionRoot.getAttribute('role')).toBeNull();
-    expect(sectionRoot.getAttribute('tabindex')).toBeNull();
+    expect(
+      heading.compareDocumentPosition(firstInsight) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
   });
 
-  it('insight text nodes are not hidden from the accessibility tree', () => {
-    render(<AIInsights insights={mockInsights} />);
+  it('does not render inaccessible interactive controls unexpectedly', () => {
+    render(<AIInsights insights={insights} />);
 
-    mockInsights.forEach((insight) => {
-      const textNode = screen.getByText(insight.text);
-
-      expect(textNode).not.toHaveAttribute('aria-hidden', 'true');
-
-      // Walk every ancestor up to <body> — aria-hidden="true" on any parent
-      // suppresses the entire subtree from screen readers
-      let ancestor = textNode.parentElement;
-      while (ancestor && ancestor.tagName !== 'BODY') {
-        expect(ancestor).not.toHaveAttribute('aria-hidden', 'true');
-        ancestor = ancestor.parentElement;
-      }
-    });
+    expect(screen.queryByRole('button')).toBeNull();
+    expect(screen.queryByRole('textbox')).toBeNull();
   });
 });

@@ -64,6 +64,10 @@ describe('LanguageChart massive scaling', () => {
 
     const end = performance.now();
 
+<<<<<<< HEAD
     expect(end - start).toBeLessThan(process.env.CI ? 10000 : 10000);
+=======
+    expect(end - start).toBeLessThan(process.env.CI ? 8000 : 5000);
+>>>>>>> 82dc059aa07633ecdf67b379dfb555f97bf540ce
   });
 });

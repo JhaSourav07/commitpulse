@@ -223,7 +223,7 @@
       "svg_downloaded": "SVGがダウンロードされました！",
       "json_downloaded": "JSONがダウンロードされました！",
       "failed": "失敗しました — 再試行してください",
-      "download_stl": "印刷可能な3D STLモノリスのダウンロード（近日公開）"
+      "download_stl": "印刷可能な3D STLモノリスのダウンロード"
     }
   }
 }

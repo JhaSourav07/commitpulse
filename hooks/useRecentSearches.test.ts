@@ -1,6 +1,7 @@
 import React from 'react';
 import { describe, it, expect, beforeEach, vi, afterAll } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
+import { renderToString } from 'react-dom/server';
 import { useRecentSearches, MAX_SEARCHES, STORAGE_KEY } from './useRecentSearches';
 
 const store: Record<string, string> = {};
@@ -47,6 +48,7 @@ describe('useRecentSearches', () => {
     });
     expect(result.current.searches[0]).toBe('torvalds');
   });
+
   it('ignores empty string input', () => {
     const { result } = renderHook(() => useRecentSearches());
 
@@ -208,5 +210,37 @@ describe('useRecentSearches', () => {
     expect(setItemSpy).toHaveBeenCalledTimes(1);
     expect(setItemSpy).toHaveBeenCalledWith(STORAGE_KEY, JSON.stringify(['gaearon']));
     expect(removeItemSpy).not.toHaveBeenCalled();
+  });
+
+  it('handles undefined window (SSR guard)', () => {
+    const originalWindow = global.window;
+
+    try {
+      // 1. Temporarily mock window as undefined to simulate SSR
+      Object.defineProperty(global, 'window', {
+        value: undefined,
+        writable: true,
+        configurable: true,
+      });
+
+      // 2. Render the hook in true SSR state using renderToString (React-DOM Server)
+      // This circumvents @testing-library/react's crash when window is missing
+      let hookResult: ReturnType<typeof useRecentSearches> | undefined;
+      function TestComponent() {
+        hookResult = useRecentSearches();
+        return null;
+      }
+      renderToString(React.createElement(TestComponent));
+
+      // 3. Assert that the hook falls back correctly to an empty array without crashing
+      expect(hookResult?.searches).toEqual([]);
+    } finally {
+      // 4. ALWAYS restore window inside a finally block so afterAll teardowns don't crash
+      Object.defineProperty(global, 'window', {
+        value: originalWindow,
+        writable: true,
+        configurable: true,
+      });
+    }
   });
 });

@@ -1,12 +1,19 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback, useSyncExternalStore } from 'react';
+import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import DashboardSkeleton from './DashboardSkeleton';
-import { X, RefreshCw, Share2 } from 'lucide-react';
+import { X, RefreshCw, Share2, Network } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
-import type { Achievement, Repository, HallOfFameAward } from '@/types/dashboard';
+import type {
+  Achievement,
+  Repository,
+  HallOfFameAward,
+  RepoActivityInfo,
+  DeploymentData,
+} from '@/types/dashboard';
 import type { GraphNode, GraphLink } from '@/types';
 
 import RefreshButton from './RefreshButton';
@@ -29,7 +36,11 @@ import ProfileOptimizerModal from './ProfileOptimizerModal';
 import ResumeProfileSection from './ResumeProfileSection';
 import type { DashboardPeriod } from '@/utils/dashboardPeriod';
 import { PopularRepos } from './PopularPinnnedRepos';
+import InactiveRepoReminder from './InactiveRepoReminder';
 import PRInsightsClient from './PRInsights/PRInsightsClient';
+import CIAnalyticsClient from './CIAnalytics/CIAnalyticsClient';
+import DeploymentTracker from './DeploymentTracker';
+import ArchitectureVisualizer from './ArchitectureVisualizer';
 
 // Define the dashboard data structure
 export interface DashboardData {
@@ -80,11 +91,14 @@ export interface DashboardData {
   };
   popularRepos?: Repository[];
   pinnedRepos?: Repository[];
+  starredRepos?: Repository[];
+  deployments?: DeploymentData[];
   hallOfFame?: HallOfFameAward[];
 }
 
 interface DashboardClientProps {
   initialData: DashboardData;
+  allRepoActivity?: RepoActivityInfo[];
   username: string;
   compareData?: DashboardData | null;
   period: DashboardPeriod;
@@ -105,18 +119,6 @@ export interface CoderProfile {
 
 /**
  * Generates a coder profile based on available metrics.
- *
- * NOTE: Night Owl classification via hourlyData is NOT IMPLEMENTED.
- * GitHub's REST API only provides daily contribution granularity. Fetching hourly data
- * would require querying individual commits across all repositories, which is:
- * - Prohibitively expensive in latency (100s-1000s of requests per user)
- * - Infeasible within serverless function timeout constraints (~10 seconds)
- * - Not required for daily activity visualization use cases
- *
- * Instead, we classify developers into 3 profile types:
- * - Consistent Runner: High daily commit frequency (streak >= 10)
- * - Weekend Warrior: Most commits occur on weekends (>35% of commits)
- * - Early Builder: Default for other patterns
  */
 export function generateCoderProfile(metrics: ProfileMetrics): CoderProfile {
   const { currentStreak, commitClock } = metrics;
@@ -141,7 +143,6 @@ export function generateCoderProfile(metrics: ProfileMetrics): CoderProfile {
   }
 
   // 3. Populate UI properties based on the derived profile.
-  // We use smooth curves here without the random 'hash' jitter for a cleaner UI.
   let peakHourStart = 9;
   let peakHourEnd = 17;
   let hourlyDistribution = new Array(24).fill(0);
@@ -319,6 +320,7 @@ function getPersonalityTags(
 
 export default function DashboardClient({
   initialData,
+  allRepoActivity = [],
   username,
   compareData = null,
   period,
@@ -329,10 +331,13 @@ export default function DashboardClient({
     () => true
   );
   const [secondUserData, setSecondUserData] = useState<DashboardData | null>(compareData);
-  const [activeTab, setActiveTab] = useState<'overview' | 'pr-insights'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'pr-insights' | 'ci-analytics'>(
+    'overview'
+  );
   const [isCompareMode, setIsCompareMode] = useState(Boolean(compareData));
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isOptimizerOpen, setIsOptimizerOpen] = useState(false);
+  const [isVisualizerOpen, setIsVisualizerOpen] = useState(false);
   const [secondUsernameInput, setSecondUsernameInput] = useState('');
   const [isLoadingSecond, setIsLoadingSecond] = useState(false);
   const [compareError, setCompareError] = useState<string | null>(null);
@@ -566,7 +571,7 @@ export default function DashboardClient({
           {isCompareMode && secondUserData && (
             <button
               onClick={handleExitCompare}
-              className="flex items-center gap-2 rounded-xl border border-black/10 dark:border-[rgba(255,255,255,0.15)] bg-red-600 hover:bg-red-700 text-white px-4 py-2 text-sm font-semibold transition-all duration-200 active:scale-[0.98]"
+              className="flex items-center gap-2 rounded-xl border border-black/10 dark:border-[rgba(255,255,255,0.15)] bg-red-600 hover:bg-red-700 text-white px-4 py-2 text-sm font-semibold transition-all duration-200 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
             >
               Exit Compare Mode
             </button>
@@ -577,7 +582,7 @@ export default function DashboardClient({
             <>
               <button
                 onClick={() => setIsOptimizerOpen(true)}
-                className="flex items-center gap-2 rounded-xl border border-black/10 dark:border-[rgba(255,255,255,0.15)] bg-black dark:bg-[#111] hover:bg-zinc-800 dark:hover:bg-zinc-900 px-4 py-2 text-sm font-semibold text-white dark:text-white transition-all duration-200 active:scale-[0.98]"
+                className="flex items-center gap-2 rounded-xl border border-black/10 dark:border-[rgba(255,255,255,0.15)] bg-black dark:bg-[#111] hover:bg-zinc-800 dark:hover:bg-zinc-900 px-4 py-2 text-sm font-semibold text-white dark:text-white transition-all duration-200 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2 focus-visible:ring-offset-black cursor-pointer"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -596,9 +601,22 @@ export default function DashboardClient({
                 Profile Optimizer
               </button>
               <button
+                onClick={() => setIsVisualizerOpen(true)}
+                className="flex items-center gap-2 rounded-xl border border-black/10 dark:border-[rgba(255,255,255,0.15)] bg-black dark:bg-[#111] hover:bg-zinc-800 dark:hover:bg-zinc-900 px-4 py-2 text-sm font-semibold text-white dark:text-white transition-all duration-200 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2 focus-visible:ring-offset-black cursor-pointer"
+              >
+                <Network size={16} />
+                Architecture Visualizer
+              </button>
+              <Link
+                href={`/achievements?username=${username}`}
+                className="flex items-center gap-2 rounded-xl border border-black/10 dark:border-[rgba(255,255,255,0.15)] bg-black dark:bg-[#111] hover:bg-zinc-800 dark:hover:bg-zinc-900 px-4 py-2 text-sm font-semibold text-white dark:text-white transition-all duration-200 active:scale-[0.98]"
+              >
+                🏆 Achievements
+              </Link>
+              <button
                 ref={triggerRef}
                 onClick={handleOpenModal}
-                className="flex items-center gap-2 rounded-xl border border-black/10 dark:border-[rgba(255,255,255,0.15)] bg-black dark:bg-[#111] hover:bg-zinc-800 dark:hover:bg-zinc-900 px-4 py-2 text-sm font-semibold text-white dark:text-white transition-all duration-200 active:scale-[0.98]"
+                className="flex items-center gap-2 rounded-xl border border-black/10 dark:border-[rgba(255,255,255,0.15)] bg-black dark:bg-[#111] hover:bg-zinc-800 dark:hover:bg-zinc-900 px-4 py-2 text-sm font-semibold text-white dark:text-white transition-all duration-200 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
               >
                 Compare Profile
               </button>
@@ -617,7 +635,7 @@ export default function DashboardClient({
           <RefreshButton username={username} />
           <button
             onClick={handleShareDashboard}
-            className="flex items-center gap-2 rounded-xl border border-black/10 px-4 py-2 text-sm font-semibold hover:bg-gray-100 dark:hover:bg-zinc-800 transition"
+            className="flex items-center gap-2 rounded-xl border border-black/10 px-4 py-2 text-sm font-semibold hover:bg-gray-100 dark:hover:bg-zinc-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
           >
             <Share2 size={16} />
             Share
@@ -647,21 +665,29 @@ export default function DashboardClient({
       <div className="flex justify-center mb-8">
         <div className="bg-white/50 dark:bg-zinc-900/50 p-1.5 rounded-2xl flex gap-2 w-fit border border-black/10 dark:border-white/10 shadow-sm backdrop-blur-sm">
           <button
+            onClick={() => setActiveTab('ci-analytics')}
+            className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${activeTab === 'ci-analytics' ? 'bg-white dark:bg-zinc-800 text-gray-900 dark:text-white shadow-sm ring-1 ring-black/5 dark:ring-white/10' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'}`}
+          >
+            CI Analytics
+          </button>
+          <button
             onClick={() => setActiveTab('overview')}
-            className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${activeTab === 'overview' ? 'bg-white dark:bg-zinc-800 text-gray-900 dark:text-white shadow-sm ring-1 ring-black/5 dark:ring-white/10' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'}`}
+            className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-black ${activeTab === 'overview' ? 'bg-white dark:bg-zinc-800 text-gray-900 dark:text-white shadow-sm ring-1 ring-black/5 dark:ring-white/10' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'}`}
           >
             Overview
           </button>
           <button
             onClick={() => setActiveTab('pr-insights')}
-            className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${activeTab === 'pr-insights' ? 'bg-white dark:bg-zinc-800 text-gray-900 dark:text-white shadow-sm ring-1 ring-black/5 dark:ring-white/10' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'}`}
+            className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-black ${activeTab === 'pr-insights' ? 'bg-white dark:bg-zinc-800 text-gray-900 dark:text-white shadow-sm ring-1 ring-black/5 dark:ring-white/10' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'}`}
           >
             PR Insights
           </button>
         </div>
       </div>
 
-      {activeTab === 'pr-insights' ? (
+      {activeTab === 'ci-analytics' ? (
+        <CIAnalyticsClient username={username} />
+      ) : activeTab === 'pr-insights' ? (
         <PRInsightsClient username={username} />
       ) : !isCompareMode || !secondUserData || !coderProfileB ? (
         <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr_320px] gap-6 lg:gap-8">
@@ -676,6 +702,7 @@ export default function DashboardClient({
             />
             <Achievements achievements={initialData.achievements} />
             <ResumeProfileSection githubUsername={username} />
+            <DeploymentTracker data={initialData.deployments} />
           </aside>
 
           <div className="flex flex-col gap-6 lg:gap-8 min-w-0">
@@ -728,7 +755,10 @@ export default function DashboardClient({
             <PopularRepos
               popularRepos={initialData.popularRepos || []}
               pinnedRepos={initialData.pinnedRepos || []}
+              starredRepos={initialData.starredRepos || []}
             />
+
+            <InactiveRepoReminder repos={allRepoActivity} />
           </aside>
 
           <div className="col-span-1 lg:col-span-3">
@@ -738,6 +768,7 @@ export default function DashboardClient({
         </div>
       ) : (
         <div className="flex flex-col gap-8">
+          {/* Compare profile code blocks preserve standard layouts */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
             <div className="relative">
               <ProfileCard
@@ -1206,6 +1237,36 @@ export default function DashboardClient({
         onClose={() => setIsOptimizerOpen(false)}
         userData={initialData}
       />
+
+      {typeof window !== 'undefined' &&
+        createPortal(
+          <AnimatePresence>
+            {isVisualizerOpen && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  onClick={() => setIsVisualizerOpen(false)}
+                  className="absolute inset-0 bg-black/60 backdrop-blur-md"
+                  aria-hidden="true"
+                />
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95, y: 16 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95, y: 16 }}
+                  transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                  className="relative w-full max-w-6xl h-[85vh] overflow-hidden rounded-2xl border border-black/10 bg-white dark:border-[rgba(255,255,255,0.08)] dark:bg-[#0a0a0a] shadow-xl flex flex-col"
+                >
+                  <div className="flex-1 overflow-hidden h-full">
+                    <ArchitectureVisualizer onClose={() => setIsVisualizerOpen(false)} />
+                  </div>
+                </motion.div>
+              </div>
+            )}
+          </AnimatePresence>,
+          document.body
+        )}
     </div>
   );
 }

@@ -1,6 +1,7 @@
 // lib/validations.ts
 import { supportedLanguages } from './i18n/badgeLabels';
 import { z } from 'zod';
+import type { HexColor } from '../types/index';
 import {
   isValidHex,
   sanitizeHexColor,
@@ -38,7 +39,7 @@ export function toValidTheme(val?: string): string | undefined {
 }
 
 export function toValidHexColor(defaultColor: string) {
-  return (val?: string): string | undefined =>
+  return (val?: string): HexColor | undefined =>
     val && isValidHex(val) ? sanitizeHexColor(val, defaultColor) : undefined;
 }
 
@@ -66,7 +67,47 @@ export function toDimensionValue(val?: string): number | undefined {
 }
 
 export function validateGitHubUsername(username: string): boolean {
+  if (!username || typeof username !== 'string') return false;
   return /^[a-z\d](?:[a-z\d]|-(?=[a-z\d])){0,38}$/i.test(username);
+}
+
+/**
+ * Strict ISO date validation for date-only inputs (YYYY-MM-DD).
+ * Validates that the date is a real calendar date by checking:
+ * 1. Format matches YYYY-MM-DD
+ * 2. Year, month, day are valid ranges
+ * 3. Date round-trips correctly (serialization matches input)
+ *
+ * For non-YYYY-MM-DD formats, falls back to Date.parse validation.
+ */
+export function validateStrictISODate(dateStr: string): boolean {
+  if (!dateStr || typeof dateStr !== 'string') return false;
+  // Check if it matches YYYY-MM-DD format
+  const match = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+
+  if (match) {
+    // Strict validation for YYYY-MM-DD format
+    const [, yearStr, monthStr, dayStr] = match;
+    const year = parseInt(yearStr, 10);
+    const month = parseInt(monthStr, 10);
+    const day = parseInt(dayStr, 10);
+
+    // Basic range checks
+    if (month < 1 || month > 12) return false;
+    if (day < 1 || day > 31) return false;
+    if (year < 2008) return false;
+
+    // Create UTC date and verify it round-trips
+    const date = new Date(Date.UTC(year, month - 1, day));
+    const serialized = date.toISOString().split('T')[0];
+
+    // Check that the serialized date matches the input
+    // This catches invalid dates like Feb 31, Apr 31, etc.
+    return serialized === dateStr;
+  }
+
+  // For non-YYYY-MM-DD formats, fall back to Date.parse validation
+  return !isNaN(Date.parse(dateStr));
 }
 
 function dimensionParam(name: string, min: number, max: number) {
@@ -103,6 +144,15 @@ const timeZoneParam = z
   .refine(isValidTimeZone, { message: 'Invalid timezone' });
 
 export const GITHUB_USERNAME_REGEX = /^[a-zA-Z0-9](?:[a-zA-Z0-9]|-(?=[a-zA-Z0-9]))*$/;
+
+export const githubUsernameSchema = z
+  .string({ error: 'Invalid GitHub username' })
+  .trim()
+  .min(1, { message: 'Invalid GitHub username' })
+  .max(39, { message: 'Invalid GitHub username' })
+  .regex(GITHUB_USERNAME_REGEX, {
+    message: 'Invalid GitHub username',
+  });
 
 const baseStreakParamsSchema = z.object({
   // Required — missing user surfaces as "Missing" to match existing tests
@@ -172,44 +222,72 @@ const baseStreakParamsSchema = z.object({
   bg: z
     .string()
     .optional()
-    .refine((val) => !val || /^[0-9a-fA-F]{3,4}$|^[0-9a-fA-F]{6,8}$/.test(val.replace('#', '')), {
-      message: 'bg must be a valid hex color (with or without #)',
-    })
-    .transform((val) => (val ? sanitizeHexColor(val, '0d1117') : undefined)),
-  text: z
+    .transform((val) => {
+      if (!val) return undefined;
+      const cleanVal = val.trim().replace(/^#+/, '');
+      if (/^([0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(cleanVal)) {
+        return cleanVal as HexColor;
+      }
+      return undefined;
+    }),
+  bgType: z.enum(['solid', 'linear', 'radial']).catch('solid').default('solid'),
+  bgStart: z
     .string()
     .optional()
     .refine((val) => !val || /^[0-9a-fA-F]{3,4}$|^[0-9a-fA-F]{6,8}$/.test(val.replace('#', '')), {
-      message: 'text must be a valid hex color (with or without #)',
+      message: 'bgStart must be a valid hex color',
     })
-    .transform((val) => (val ? sanitizeHexColor(val, 'ffffff') : undefined)),
-  accent: z
+    .transform((val) => (val ? sanitizeHexColor(val, '0d1117') : undefined)),
+  bgEnd: z
+    .string()
+    .optional()
+    .refine((val) => !val || /^[0-9a-fA-F]{3,4}$|^[0-9a-fA-F]{6,8}$/.test(val.replace('#', '')), {
+      message: 'bgEnd must be a valid hex color',
+    })
+    .transform((val) => (val ? sanitizeHexColor(val, '0d1117') : undefined)),
+  bgAngle: z
     .string()
     .optional()
     .refine(
       (val) => {
-        if (!val) return true;
-        const parts = val.includes(',') ? val.split(',') : [val];
-        return parts.every((p) =>
-          /^[0-9a-fA-F]{3,4}$|^[0-9a-fA-F]{6,8}$/.test(p.trim().replace('#', ''))
-        );
+        if (val === undefined || val === '') return true;
+        const num = Number(val);
+        return !isNaN(num) && num >= 0 && num <= 360;
       },
-      {
-        message:
-          'accent must be a valid hex color (with or without #), or a comma-separated list of them',
-      }
+      { message: 'bgAngle must be a number between 0 and 360' }
     )
+    .transform((val) => (val === undefined || val === '' ? undefined : Number(val))),
+  text: z
+    .string()
+    .optional()
+    .transform((val) => {
+      if (!val) return undefined;
+      const cleanVal = val.trim().replace(/^#+/, '');
+      if (/^([0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(cleanVal)) {
+        return cleanVal as HexColor;
+      }
+      return undefined;
+    }),
+  accent: z
+    .string()
+    .optional()
     .transform((val) => {
       if (!val) return undefined;
       if (val.includes(',')) {
-        return val
+        const parts = val
           .split(',')
-          .map((c) => c.trim())
+          .map((c) => c.trim().replace(/^#+/, ''))
           .filter((c) => c.length > 0)
-          .slice(0, 4)
-          .map((c) => sanitizeHexColor(c, '00ffaa'));
+          .filter((c) => /^([0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(c))
+          .map((c) => c as HexColor)
+          .slice(0, 4);
+        return parts.length > 0 ? parts : undefined;
       }
-      return sanitizeHexColor(val, '00ffaa');
+      const cleanVal = val.trim().replace(/^#+/, '');
+      if (/^([0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(cleanVal)) {
+        return cleanVal as HexColor;
+      }
+      return undefined;
     }),
 
   // Silently fall back to 'linear' for unknown values (matches old behavior)
@@ -256,7 +334,7 @@ const baseStreakParamsSchema = z.object({
     .refine(
       (val) => {
         if (!val) return true;
-        return !isNaN(Date.parse(val));
+        return validateStrictISODate(val);
       },
       { message: 'Invalid "from" date format. Use ISO 8601 (e.g. 2023-01-01).' }
     ),
@@ -266,7 +344,7 @@ const baseStreakParamsSchema = z.object({
     .refine(
       (val) => {
         if (!val) return true;
-        return !isNaN(Date.parse(val));
+        return validateStrictISODate(val);
       },
       { message: 'Invalid "to" date format. Use ISO 8601 (e.g. 2023-12-31).' }
     ),
@@ -276,7 +354,7 @@ const baseStreakParamsSchema = z.object({
     .refine(
       (val) => {
         if (!val) return true;
-        return !isNaN(Date.parse(val));
+        return validateStrictISODate(val);
       },
       { message: 'Invalid "date" format. Use ISO 8601.' }
     ),
@@ -289,7 +367,18 @@ const baseStreakParamsSchema = z.object({
   tz: timeZoneParam,
   // Unknown view values fall back to the default dashboard view.
   view: z
-    .enum(['default', 'monthly', 'heatmap', 'pulse', 'languages', 'constellation'])
+    .enum([
+      'default',
+      'monthly',
+      'heatmap',
+      'pulse',
+      'skyline',
+      'languages',
+      'constellation',
+      'radar',
+      'doughnut',
+      'pie',
+    ])
     .catch('default')
     .default('default'),
   // Invalid delta formats fall back to percentage mode.
@@ -299,14 +388,12 @@ const baseStreakParamsSchema = z.object({
   grace: z
     .string()
     .optional()
-    .refine(
-      (val) => {
-        if (val === undefined || val === '') return true;
-        return /^\d+$/.test(val) && Number(val) >= 0 && Number(val) <= 7;
-      },
-      { message: 'grace must be an integer between 0 and 7' }
-    )
-    .transform((val) => (val === undefined || val === '' ? 1 : Number(val)))
+    .transform((val) => {
+      if (val === undefined || val === '') return 1;
+      const n = Number(val);
+      if (isNaN(n) || !Number.isInteger(n)) return 1;
+      return Math.min(7, Math.max(0, n));
+    })
     .default(1),
 
   mode: z.enum(['commits', 'loc']).catch('commits').default('commits'),
@@ -366,12 +453,41 @@ const baseStreakParamsSchema = z.object({
   // Glow effect — on by default. Accepts 'true'/'1' (true) or 'false' (false).
   glow: z.string().optional().transform(toGlowFlag).default(true),
   opacity: z.string().optional().transform(toOpacityValue),
-  entrance: z.enum(['rise', 'fade', 'slide', 'none']).catch('rise').default('rise'),
+  entrance: z
+    .enum(['rise', 'fade', 'slide', 'wave', 'bounce', 'none'])
+    .catch('rise')
+    .default('rise'),
   badges: z.string().optional().transform(toBooleanFlag).default(false),
 
-  // Output format: 'svg' (default) or 'json' for programmatic access.
+  // Output format: 'svg' (default), 'json', or 'png' for image export.
   // Invalid values silently fall back to 'svg'.
-  format: z.enum(['svg', 'json']).catch('svg').default('svg'),
+  format: z.enum(['svg', 'json', 'png']).catch('svg').default('svg'),
+
+  theta: z
+    .string()
+    .optional()
+    .refine(
+      (val) => {
+        if (val === undefined || val === '') return true;
+        const num = Number(val);
+        return !isNaN(num) && num >= 0 && num <= 360;
+      },
+      { message: 'theta must be a number between 0 and 360' }
+    )
+    .transform((val) => (val === undefined || val === '' ? undefined : Number(val))),
+
+  phi: z
+    .string()
+    .optional()
+    .refine(
+      (val) => {
+        if (val === undefined || val === '') return true;
+        const num = Number(val);
+        return !isNaN(num) && num >= 0 && num <= 90;
+      },
+      { message: 'phi must be a number between 0 and 90' }
+    )
+    .transform((val) => (val === undefined || val === '' ? undefined : Number(val))),
 
   // layout parameter: strictly validated — unsupported values return a 400 Bad Request.
   layout: z
@@ -564,6 +680,7 @@ export const wrappedParamsSchema = z.object({
   hide_background: z.string().optional().transform(toBooleanFlag), // ✅ Fixed: was toRefreshFlag
   width: dimensionParam('width', 100, 1200),
   height: dimensionParam('height', 80, 800),
+  tz: timeZoneParam,
 });
 
 export const notifyPostSchema = z.object({
@@ -596,6 +713,7 @@ export const notifyPostSchema = z.object({
       notifyOnStreak: true,
       notifyOnMilestone: true,
     }),
+  managementToken: z.string().trim().min(16).max(256).optional(),
 });
 
 export const notifyGetSchema = z.object({
@@ -642,7 +760,14 @@ export const resumeConfirmDataSchema = z.object({
     .max(50, { message: 'Too many education entries (max 50)' })
     .default([])
     .transform((items) =>
-      items.filter((e) => e.institution || e.degree || e.field || e.startDate || e.endDate)
+      items.filter(
+        (e) =>
+          e.institution.length > 0 &&
+          e.degree.length > 0 &&
+          e.field.length > 0 &&
+          e.startDate.length > 0 &&
+          e.endDate.length > 0
+      )
     ),
   experience: z
     .array(
@@ -657,7 +782,13 @@ export const resumeConfirmDataSchema = z.object({
     .max(50, { message: 'Too many experience entries (max 50)' })
     .default([])
     .transform((items) =>
-      items.filter((x) => x.company || x.role || x.startDate || x.endDate || x.description)
+      items.filter(
+        (x) =>
+          x.company.length > 0 &&
+          x.role.length > 0 &&
+          x.startDate.length > 0 &&
+          x.endDate.length > 0
+      )
     ),
 });
 

@@ -23,6 +23,7 @@ describe('EditorPanel Component Interactivity Tests', () => {
   const mockOnGithubUsernameChange = vi.fn();
   const mockOnShowCommitPulseChange = vi.fn();
   const mockOnCommitPulseAccentChange = vi.fn();
+  const mockOnApplyImport = vi.fn();
 
   beforeEach(() => {
     vi.useFakeTimers();
@@ -58,6 +59,7 @@ describe('EditorPanel Component Interactivity Tests', () => {
         onGithubUsernameChange={mockOnGithubUsernameChange}
         onShowCommitPulseChange={mockOnShowCommitPulseChange}
         onCommitPulseAccentChange={mockOnCommitPulseAccentChange}
+        onApplyImport={mockOnApplyImport}
       />
     );
     await act(async () => {
@@ -106,6 +108,7 @@ describe('EditorPanel Component Interactivity Tests', () => {
           onGithubUsernameChange={mockOnGithubUsernameChange}
           onShowCommitPulseChange={mockOnShowCommitPulseChange}
           onCommitPulseAccentChange={mockOnCommitPulseAccentChange}
+          onApplyImport={mockOnApplyImport}
         />
       </div>
     );
@@ -155,6 +158,7 @@ describe('EditorPanel Component Interactivity Tests', () => {
           onGithubUsernameChange={mockOnGithubUsernameChange}
           onShowCommitPulseChange={mockOnShowCommitPulseChange}
           onCommitPulseAccentChange={mockOnCommitPulseAccentChange}
+          onApplyImport={mockOnApplyImport}
         />
       </div>
     );

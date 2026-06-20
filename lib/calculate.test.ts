@@ -5,8 +5,10 @@ import {
   calculateWrappedStats,
   aggregateCalendars,
   isStreakAlive,
+  chunkDaysIntoWeeks,
+  normalizeCalendarToTimezone,
 } from './calculate';
-import type { ContributionCalendar } from '../types';
+import type { ContributionCalendar, ContributionDay } from '../types';
 
 // Turns a flat array of daily counts into the ContributionCalendar shape,
 // grouping every 7 values into a "week" — the same way GitHub's API returns data.
@@ -1497,6 +1499,47 @@ describe('calculateStreak — timezone awareness', () => {
     expect(istResult.todayDate).toBe('2024-06-15');
     expect(jstResult.todayDate).toBe('2024-06-15');
   });
+
+  it('credits contribution at exactly local midnight to the correct day (Issue #5258)', () => {
+    const calendar = {
+      totalContributions: 1,
+      weeks: [
+        {
+          contributionDays: [
+            { contributionCount: 0, date: '2026-06-10' },
+            { contributionCount: 1, date: '2026-06-11' },
+            { contributionCount: 0, date: '2026-06-12' },
+          ],
+        },
+      ],
+    };
+    // 2026-06-11T00:00:00.000+05:30 is 2026-06-10T18:30:00.000Z
+    const nowInKolkataMidnight = new Date('2026-06-10T18:30:00.000Z');
+    const result = calculateStreak(calendar, 'Asia/Kolkata', nowInKolkataMidnight);
+    expect(result.todayDate).toBe('2026-06-11');
+    expect(result.currentStreak).toBe(1);
+  });
+
+  it('keeps streak active during the current day before any contributions are made (Issue #5260)', () => {
+    const calendar = {
+      totalContributions: 2,
+      weeks: [
+        {
+          contributionDays: [
+            { contributionCount: 1, date: '2026-06-10' },
+            { contributionCount: 1, date: '2026-06-11' },
+            { contributionCount: 0, date: '2026-06-12' },
+          ],
+        },
+      ],
+    };
+    // At 09:00 AM local time on 2026-06-12, the user has not committed yet today.
+    // The streak should still be 2.
+    const now = new Date('2026-06-12T09:00:00.000Z');
+    const result = calculateStreak(calendar, 'UTC', now, 0); // grace = 0
+    expect(result.todayDate).toBe('2026-06-12');
+    expect(result.currentStreak).toBe(2);
+  });
 });
 
 describe('isStreakAlive', () => {
@@ -2466,5 +2509,305 @@ describe('aggregateCalendars — missing days chronological order', () => {
     expect(jun1?.contributionCount).toBe(5);
     expect(jun3?.contributionCount).toBe(3);
     expect(result.totalContributions).toBe(8);
+  });
+
+  // ── structuredClone correctness tests ────────────────────────────────────
+  // These tests verify that the deep clone in aggregateCalendars()
+  // does not mutate the original calendar objects — the core contract
+  // that structuredClone() (replacing JSON.parse/stringify) must uphold.
+
+  it('does not mutate the original calendar objects after aggregation', () => {
+    const cal1 = {
+      totalContributions: 10,
+      weeks: [
+        {
+          contributionDays: [{ date: '2024-01-01', contributionCount: 10 }],
+        },
+      ],
+    };
+    const cal2 = {
+      totalContributions: 5,
+      weeks: [
+        {
+          contributionDays: [{ date: '2024-01-01', contributionCount: 5 }],
+        },
+      ],
+    };
+
+    // Capture originals before aggregation
+    const original1Count = cal1.weeks[0].contributionDays[0].contributionCount;
+    const original2Count = cal2.weeks[0].contributionDays[0].contributionCount;
+
+    aggregateCalendars([cal1, cal2]);
+
+    // Originals must be unchanged — structuredClone creates a true deep copy
+    expect(cal1.weeks[0].contributionDays[0].contributionCount).toBe(original1Count);
+    expect(cal2.weeks[0].contributionDays[0].contributionCount).toBe(original2Count);
+    expect(cal1.totalContributions).toBe(10);
+    expect(cal2.totalContributions).toBe(5);
+  });
+
+  it('aggregated result is a new object — not a reference to the original', () => {
+    const cal1 = {
+      totalContributions: 5,
+      weeks: [
+        {
+          contributionDays: [{ date: '2024-01-01', contributionCount: 5 }],
+        },
+      ],
+    };
+
+    const result = aggregateCalendars([cal1]);
+
+    // Result must be a different object reference
+    expect(result).not.toBe(cal1);
+    expect(result.weeks).not.toBe(cal1.weeks);
+    expect(result.weeks[0]).not.toBe(cal1.weeks[0]);
+    expect(result.weeks[0].contributionDays[0]).not.toBe(cal1.weeks[0].contributionDays[0]);
+  });
+
+  it('mutating the result does not affect the original calendar', () => {
+    const cal = {
+      totalContributions: 7,
+      weeks: [
+        {
+          contributionDays: [{ date: '2024-01-01', contributionCount: 7 }],
+        },
+      ],
+    };
+
+    const result = aggregateCalendars([cal]);
+
+    // Mutate the result
+    result.weeks[0].contributionDays[0].contributionCount = 999;
+    result.totalContributions = 999;
+
+    // Original must be completely unaffected
+    expect(cal.weeks[0].contributionDays[0].contributionCount).toBe(7);
+    expect(cal.totalContributions).toBe(7);
+  });
+
+  it('preserves optional fields on ContributionDay through the deep clone', () => {
+    const calWithOptionals = {
+      totalContributions: 100,
+      weeks: [
+        {
+          contributionDays: [
+            {
+              date: '2024-01-01',
+              contributionCount: 10,
+              locAdditions: 500,
+              locDeletions: 200,
+            },
+          ],
+        },
+      ],
+    };
+
+    const result = aggregateCalendars([calWithOptionals]);
+
+    // structuredClone preserves optional fields — JSON.parse/stringify
+    // would also preserve these since they are numbers not undefined,
+    // but this test documents the contract explicitly
+    expect(result.weeks[0].contributionDays[0].locAdditions).toBe(500);
+    expect(result.weeks[0].contributionDays[0].locDeletions).toBe(200);
+  });
+
+  it('aggregation result has correct total after structuredClone refactor', () => {
+    const cal1 = buildCalendar([3, 5, 2]);
+    const cal2 = buildCalendar([1, 4, 6]);
+
+    const result = aggregateCalendars([cal1, cal2]);
+
+    // 3+1=4, 5+4=9, 2+6=8 → total = 21
+    expect(result.totalContributions).toBe(21);
+    expect(result.weeks[0].contributionDays[0].contributionCount).toBe(4);
+    expect(result.weeks[0].contributionDays[1].contributionCount).toBe(9);
+    expect(result.weeks[0].contributionDays[2].contributionCount).toBe(8);
+  });
+});
+
+describe('chunkDaysIntoWeeks', () => {
+  // 30 consecutive days starting Mon 2024-01-01.
+  const days: ContributionDay[] = Array.from({ length: 30 }, (_, i) => ({
+    date: new Date(Date.UTC(2024, 0, 1 + i)).toISOString().slice(0, 10),
+    contributionCount: i,
+  }));
+
+  it('splits consecutive days into multiple weekday-aligned weeks (no single-column collapse)', () => {
+    const weeks = chunkDaysIntoWeeks(days);
+
+    // More than one week, so towers/heatmap are not all crammed into a single column.
+    expect(weeks.length).toBeGreaterThan(1);
+    // No week exceeds 7 days, so heatmap rows never overflow the canvas.
+    expect(weeks.every((w) => w.contributionDays.length <= 7)).toBe(true);
+    // Every day is preserved exactly once, in order.
+    const flattened = weeks.flatMap((w) => w.contributionDays);
+    expect(flattened).toHaveLength(30);
+    expect(flattened.map((d) => d.date)).toEqual(days.map((d) => d.date));
+  });
+
+  it('starts every week after the first on a Sunday', () => {
+    const weeks = chunkDaysIntoWeeks(days);
+    weeks.slice(1).forEach((week) => {
+      expect(new Date(week.contributionDays[0].date).getUTCDay()).toBe(0);
+    });
+  });
+
+  it('returns an empty array when given no days', () => {
+    expect(chunkDaysIntoWeeks([])).toEqual([]);
+  });
+});
+
+describe('normalizeCalendarToTimezone', () => {
+  it('normalizes calendar dates to the target timezone', () => {
+    // Create a calendar with dates in UTC
+    const calendar: ContributionCalendar = {
+      totalContributions: 10,
+      weeks: [
+        {
+          contributionDays: [
+            { contributionCount: 5, date: '2024-01-01' }, // UTC Monday
+            { contributionCount: 3, date: '2024-01-02' }, // UTC Tuesday
+            { contributionCount: 2, date: '2024-01-03' }, // UTC Wednesday
+          ],
+        },
+      ],
+    };
+
+    // Normalize to UTC (should not change dates)
+    const normalized = normalizeCalendarToTimezone(calendar, 'UTC');
+    expect(normalized.totalContributions).toBe(10);
+    expect(normalized.weeks).toHaveLength(1);
+    expect(normalized.weeks[0].contributionDays).toHaveLength(3);
+    expect(normalized.weeks[0].contributionDays[0].date).toBe('2024-01-01');
+    expect(normalized.weeks[0].contributionDays[0].contributionCount).toBe(5);
+  });
+
+  it('handles empty calendar', () => {
+    const calendar: ContributionCalendar = {
+      totalContributions: 0,
+      weeks: [],
+    };
+
+    const normalized = normalizeCalendarToTimezone(calendar, 'UTC');
+    expect(normalized.totalContributions).toBe(0);
+    expect(normalized.weeks).toHaveLength(0);
+  });
+
+  it('handles null/undefined calendar', () => {
+    expect(normalizeCalendarToTimezone(null as unknown as ContributionCalendar, 'UTC')).toEqual(
+      null
+    );
+    expect(
+      normalizeCalendarToTimezone(undefined as unknown as ContributionCalendar, 'UTC')
+    ).toEqual(undefined);
+  });
+
+  it('groups contributions by target timezone date', () => {
+    // Create a calendar with dates that might span multiple days in different timezones
+    const calendar: ContributionCalendar = {
+      totalContributions: 15,
+      weeks: [
+        {
+          contributionDays: [
+            { contributionCount: 5, date: '2024-01-01' },
+            { contributionCount: 3, date: '2024-01-02' },
+            { contributionCount: 2, date: '2024-01-03' },
+            { contributionCount: 5, date: '2024-01-04' },
+          ],
+        },
+      ],
+    };
+
+    // Normalize to UTC (should preserve all dates)
+    const normalized = normalizeCalendarToTimezone(calendar, 'UTC');
+    expect(normalized.totalContributions).toBe(15);
+    expect(normalized.weeks).toHaveLength(1);
+    expect(normalized.weeks[0].contributionDays).toHaveLength(4);
+  });
+
+  it('preserves contribution counts when normalizing', () => {
+    const calendar: ContributionCalendar = {
+      totalContributions: 20,
+      weeks: [
+        {
+          contributionDays: [
+            { contributionCount: 10, date: '2024-06-15' },
+            { contributionCount: 10, date: '2024-06-16' },
+          ],
+        },
+      ],
+    };
+
+    const normalized = normalizeCalendarToTimezone(calendar, 'UTC');
+    expect(normalized.totalContributions).toBe(20);
+    // Count total contributions across all days
+    const totalContributions = normalized.weeks.reduce(
+      (sum, week) =>
+        sum + week.contributionDays.reduce((daySum, day) => daySum + day.contributionCount, 0),
+      0
+    );
+    expect(totalContributions).toBe(20);
+  });
+
+  it('does not shift dates for users in UTC-5 (regression: timezone date shift bug)', () => {
+    const calendar: ContributionCalendar = {
+      totalContributions: 10,
+      weeks: [
+        {
+          contributionDays: [
+            { contributionCount: 4, date: '2024-01-01' },
+            { contributionCount: 6, date: '2024-01-02' },
+          ],
+        },
+      ],
+    };
+
+    const normalized = normalizeCalendarToTimezone(calendar, 'America/New_York');
+    const allDays = normalized.weeks.flatMap((w) => w.contributionDays);
+    const dates = allDays.map((d) => d.date);
+
+    expect(dates).toContain('2024-01-01');
+    expect(dates).toContain('2024-01-02');
+    expect(dates).not.toContain('2023-12-31'); // ghost date from the old bug
+  });
+
+  it('does not shift dates for users in UTC+9 (Tokyo)', () => {
+    const calendar: ContributionCalendar = {
+      totalContributions: 5,
+      weeks: [
+        {
+          contributionDays: [{ contributionCount: 5, date: '2024-03-15' }],
+        },
+      ],
+    };
+
+    const normalized = normalizeCalendarToTimezone(calendar, 'Asia/Tokyo');
+    const allDays = normalized.weeks.flatMap((w) => w.contributionDays);
+
+    expect(allDays[0].date).toBe('2024-03-15');
+    expect(allDays[0].contributionCount).toBe(5);
+  });
+
+  it('accumulates duplicate dates from multi-user data without shifting', () => {
+    const calendar: ContributionCalendar = {
+      totalContributions: 12,
+      weeks: [
+        {
+          contributionDays: [
+            { contributionCount: 7, date: '2024-06-10' },
+            { contributionCount: 5, date: '2024-06-10' },
+          ],
+        },
+      ],
+    };
+
+    const normalized = normalizeCalendarToTimezone(calendar, 'America/Los_Angeles');
+    const allDays = normalized.weeks.flatMap((w) => w.contributionDays);
+
+    expect(allDays).toHaveLength(1);
+    expect(allDays[0].date).toBe('2024-06-10');
+    expect(allDays[0].contributionCount).toBe(12);
   });
 });

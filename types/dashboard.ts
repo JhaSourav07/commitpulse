@@ -119,3 +119,25 @@ export interface Repository {
     color: string;
   } | null;
 }
+
+export interface RepoActivityInfo {
+  name: string;
+  url: string;
+  pushedAt: string | null;
+}
+
+/* ==========================================================================
+ * PRODUCTION DEPLOYMENTS FEATURE
+ * ========================================================================== */
+
+export type WorkflowStatus = 'success' | 'failure' | 'in_progress' | 'unknown';
+
+export interface DeploymentData {
+  repoName: string;
+  repoUrl: string;
+  liveUrl: string | null;
+  status: WorkflowStatus;
+  deployedAt: string | null; // ISO timestamp of the deployment
+  environment: string; // e.g. "production"
+  workflowName: string | null; // e.g. "Vercel Production Deployment"
+}

@@ -56,6 +56,10 @@ function CustomizePageInner(): ReactElement {
   const [username, setUsername] = useState('');
   const [theme, setTheme] = useState('dark');
   const [bgHex, setBgHex] = useState('');
+  const [bgType, setBgType] = useState<'solid' | 'linear' | 'radial'>('solid');
+  const [bgStart, setBgStart] = useState('');
+  const [bgEnd, setBgEnd] = useState('');
+  const [bgAngle, setBgAngle] = useState<number>(90);
   const [accentHex, setAccentHex] = useState('');
   const [textHex, setTextHex] = useState('');
   const [scale, setScale] = useState<Scale>('linear');
@@ -102,6 +106,10 @@ function CustomizePageInner(): ReactElement {
     setUsername(u);
     setTheme(t);
     setBgHex(searchParams.get('bg') ?? '');
+    setBgType((searchParams.get('bgType') as 'solid' | 'linear' | 'radial') ?? 'solid');
+    setBgStart(searchParams.get('bgStart') ?? '');
+    setBgEnd(searchParams.get('bgEnd') ?? '');
+    setBgAngle(readNumericSearchParam(searchParams, 'bgAngle', 90, 0, 360) as number);
     setAccentHex(searchParams.get('accent') ?? '');
     setTextHex(searchParams.get('text') ?? '');
     setScale((searchParams.get('scale') as Scale) ?? 'linear');
@@ -152,6 +160,10 @@ function CustomizePageInner(): ReactElement {
     setTheme(newTheme);
     if (newTheme === 'auto' || newTheme === 'random') {
       setBgHex('');
+      setBgType('solid');
+      setBgStart('');
+      setBgEnd('');
+      setBgAngle(90);
       setAccentHex('');
       setTextHex('');
     }
@@ -161,6 +173,10 @@ function CustomizePageInner(): ReactElement {
     username,
     theme,
     bgHex,
+    bgType,
+    bgStart,
+    bgEnd,
+    bgAngle,
     accentHex,
     textHex,
     scale,
@@ -240,8 +256,16 @@ function CustomizePageInner(): ReactElement {
         // Ensure we strictly sanitize the raw SVG markup using DOMPurify,
         // while preserving the necessary layout and structural attributes our SVG requires.
         const sanitized = DOMPurify.sanitize(text, {
-          USE_PROFILES: { svg: true },
-          ADD_TAGS: ['filter', 'feGaussianBlur', 'feMerge', 'feMergeNode', 'feComposite'],
+          USE_PROFILES: { svg: true, svgFilters: true },
+          ADD_TAGS: [
+            'animate',
+            'style',
+            'filter',
+            'feGaussianBlur',
+            'feMerge',
+            'feMergeNode',
+            'feComposite',
+          ],
           ADD_ATTR: [
             'viewBox',
             'd',
@@ -431,6 +455,10 @@ function CustomizePageInner(): ReactElement {
               username={username}
               theme={theme}
               bgHex={bgHex}
+              bgType={bgType}
+              bgStart={bgStart}
+              bgEnd={bgEnd}
+              bgAngle={bgAngle}
               accentHex={accentHex}
               textHex={textHex}
               scale={scale}
@@ -442,6 +470,10 @@ function CustomizePageInner(): ReactElement {
               onUsernameChange={setUsername}
               onThemeChange={handleThemeChange}
               onBgHexChange={setBgHex}
+              onBgTypeChange={setBgType}
+              onBgStartChange={setBgStart}
+              onBgEndChange={setBgEnd}
+              onBgAngleChange={setBgAngle}
               onAccentHexChange={setAccentHex}
               onTextHexChange={setTextHex}
               onScaleChange={setScale}
@@ -452,6 +484,10 @@ function CustomizePageInner(): ReactElement {
               onSizeChange={setSize}
               onClearOverrides={() => {
                 setBgHex('');
+                setBgType('solid');
+                setBgStart('');
+                setBgEnd('');
+                setBgAngle(90);
                 setAccentHex('');
                 setTextHex('');
               }}

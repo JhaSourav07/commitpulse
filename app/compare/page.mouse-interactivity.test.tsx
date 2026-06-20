@@ -1,18 +1,17 @@
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, cleanup } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import CompareClient from './CompareClient';
 import React, { type ReactNode } from 'react';
 
-const replaceMock = vi.fn();
+const { mockRouter, mockSearchParams } = vi.hoisted(() => ({
+  mockRouter: { replace: vi.fn() },
+  mockSearchParams: { get: vi.fn(() => null) },
+}));
 
 vi.mock('next/navigation', () => ({
-  useRouter: () => ({
-    replace: replaceMock,
-  }),
-  useSearchParams: () => ({
-    get: vi.fn(() => null),
-  }),
+  useRouter: () => mockRouter,
+  useSearchParams: () => mockSearchParams,
 }));
 
 vi.mock('framer-motion', () => ({
@@ -78,15 +77,13 @@ const mockResponse = {
         percentage: 80,
       },
     ],
-    activity: [
-      {
-        date: '2026-06-01',
-        count: 5,
-        intensity: 2,
-        locAdditions: 150,
-        locDeletions: 50,
-      },
-    ],
+    activity: Array.from({ length: 100 }, (_, i) => ({
+      date: new Date(Date.now() - i * 86400000).toISOString().slice(0, 10),
+      count: Math.floor(Math.random() * 10),
+      intensity: Math.floor(Math.random() * 5) as 0 | 1 | 2 | 3 | 4,
+      locAdditions: Math.floor(Math.random() * 200),
+      locDeletions: Math.floor(Math.random() * 100),
+    })),
   },
   user2: {
     profile: {
@@ -120,21 +117,24 @@ const mockResponse = {
         percentage: 70,
       },
     ],
-    activity: [
-      {
-        date: '2026-06-01',
-        count: 2,
-        intensity: 1,
-        locAdditions: 80,
-        locDeletions: 30,
-      },
-    ],
+    activity: Array.from({ length: 100 }, (_, i) => ({
+      date: new Date(Date.now() - i * 86400000).toISOString().slice(0, 10),
+      count: Math.floor(Math.random() * 10),
+      intensity: Math.floor(Math.random() * 5) as 0 | 1 | 2 | 3 | 4,
+      locAdditions: Math.floor(Math.random() * 200),
+      locDeletions: Math.floor(Math.random() * 100),
+    })),
   },
 };
 
 describe('CompareClient Mouse Interactivity & Touch Events', () => {
+  afterEach(() => {
+    cleanup();
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
+    window.localStorage.clear();
 
     global.fetch = vi.fn(
       async () =>
@@ -261,16 +261,16 @@ describe('CompareClient Mouse Interactivity & Touch Events', () => {
       expect(screen.getByText(/stats showdown/i)).toBeInTheDocument();
     });
 
-    // Find custom heatmap items having 'contributions' in the title attribute
-    const allCells = document.querySelectorAll('[title*="contributions"]');
-    expect(allCells.length).toBeGreaterThan(0);
-
-    // Verify hover details on a heatmap cell
-    const sampleCell = allCells[0];
-    expect(sampleCell).toHaveAttribute('title');
-    expect(sampleCell.getAttribute('title')).toContain('contributions');
-
-    fireEvent.mouseEnter(sampleCell);
-    fireEvent.mouseLeave(sampleCell);
+    // Find custom heatmap items having 'contributions' in the title attribute,
+    // verify hover details on a heatmap cell
+    await waitFor(() => {
+      const allCells = document.querySelectorAll('[title*="contributions"]');
+      expect(allCells.length).toBeGreaterThan(0);
+      const sampleCell = allCells[0];
+      expect(sampleCell).toHaveAttribute('title');
+      expect(sampleCell.getAttribute('title')).toContain('contributions');
+      fireEvent.mouseEnter(sampleCell);
+      fireEvent.mouseLeave(sampleCell);
+    });
   });
 });
