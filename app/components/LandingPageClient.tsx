@@ -637,7 +637,7 @@ export default function LandingPageClient() {
                     }}
                     maxLength={39}
                   />
-                  {username.length > 0 ? (
+                  {mounted && username.length > 0 ? (
                     <button
                       onClick={() => {
                         setUsername('');
@@ -741,8 +741,8 @@ export default function LandingPageClient() {
                         <Image
                           src={userDetails.avatar_url}
                           alt={userDetails.login}
-                          width={24}
-                          height={24}
+                          width={25}
+                          height={25}
                           className="w-6 h-6 rounded-full border border-emerald-500/20"
                           onError={(e) => {
                             const target = e.currentTarget as HTMLImageElement;
@@ -803,8 +803,8 @@ export default function LandingPageClient() {
                             <Image
                               src={`https://github.com/${displayName}.png?size=40`}
                               alt={displayName}
-                              width={16}
-                              height={16}
+                              width={17}
+                              height={17}
                               className="w-4 h-4 rounded-full border border-zinc-200/20 dark:border-white/20"
                               onError={(e) => {
                                 const target = e.currentTarget as HTMLImageElement;
@@ -813,6 +813,7 @@ export default function LandingPageClient() {
                                 }
                               }}
                             />
+
                             <button
                               type="button"
                               onClick={() => selectDemoUser(displayName)}
