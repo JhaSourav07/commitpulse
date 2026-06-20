@@ -208,16 +208,8 @@ const baseStreakParamsSchema = z.object({
         return normalized;
       }
       const matchedKey = Object.keys(themes).find((key) => key.toLowerCase() === normalized);
-      return matchedKey || val;
+      return matchedKey || 'dark';
     })
-    .refine(
-      (val) => {
-        return val === 'auto' || val === 'random' || Object.hasOwn(themes, val);
-      },
-      {
-        message: `Invalid theme. Supported themes: ${['auto', 'random', ...Object.keys(themes)].join(', ')}`,
-      }
-    )
     .default('dark'),
   bg: z
     .string()
@@ -234,17 +226,25 @@ const baseStreakParamsSchema = z.object({
   bgStart: z
     .string()
     .optional()
-    .refine((val) => !val || /^[0-9a-fA-F]{3,4}$|^[0-9a-fA-F]{6,8}$/.test(val.replace('#', '')), {
-      message: 'bgStart must be a valid hex color',
-    })
-    .transform((val) => (val ? sanitizeHexColor(val, '0d1117') : undefined)),
+    .transform((val) => {
+      if (!val) return undefined;
+      const cleanVal = val.replace(/^#/, '');
+      if (/^[0-9a-fA-F]{3,4}$|^[0-9a-fA-F]{6,8}$/.test(cleanVal)) {
+        return sanitizeHexColor(val, '0d1117');
+      }
+      return undefined;
+    }),
   bgEnd: z
     .string()
     .optional()
-    .refine((val) => !val || /^[0-9a-fA-F]{3,4}$|^[0-9a-fA-F]{6,8}$/.test(val.replace('#', '')), {
-      message: 'bgEnd must be a valid hex color',
-    })
-    .transform((val) => (val ? sanitizeHexColor(val, '0d1117') : undefined)),
+    .transform((val) => {
+      if (!val) return undefined;
+      const cleanVal = val.replace(/^#/, '');
+      if (/^[0-9a-fA-F]{3,4}$|^[0-9a-fA-F]{6,8}$/.test(cleanVal)) {
+        return sanitizeHexColor(val, '0d1117');
+      }
+      return undefined;
+    }),
   bgAngle: z
     .string()
     .optional()
@@ -507,17 +507,13 @@ const baseStreakParamsSchema = z.object({
   border: z
     .string()
     .optional()
-    .refine(
-      (val) => {
-        if (val === undefined || val === '') return true;
-        const cleanVal = val.replace(/^#/, '');
-        return /^[0-9a-fA-F]{3,4}$|^[0-9a-fA-F]{6,8}$/.test(cleanVal);
-      },
-      { message: 'border must be a valid hex color (with or without #)' }
-    )
     .transform((val) => {
       if (!val) return undefined;
-      return sanitizeHexColor(val, '58a6ff');
+      const cleanVal = val.replace(/^#/, '');
+      if (/^[0-9a-fA-F]{3,4}$|^[0-9a-fA-F]{6,8}$/.test(cleanVal)) {
+        return sanitizeHexColor(val, '58a6ff');
+      }
+      return undefined;
     }),
 });
 
