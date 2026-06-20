@@ -69,7 +69,7 @@ export default function InactiveRepoReminder({ repos }: InactiveRepoReminderProp
             <select
               value={filter}
               onChange={(e) => setFilter(Number(e.target.value) as InactivityFilter)}
-              className="text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-neutral-700 bg-gray-50 hover:bg-gray-100 dark:bg-neutral-900 dark:hover:bg-neutral-800 text-gray-600 dark:text-zinc-400 transition-colors outline-none cursor-pointer"
+              className="text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-neutral-700 bg-gray-50 hover:bg-gray-100 dark:bg-neutral-900 dark:hover:bg-neutral-800 text-gray-600 dark:text-zinc-400 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-purple-500 cursor-pointer"
               aria-label="Inactivity filter"
             >
               {FILTER_OPTIONS.map((opt) => (

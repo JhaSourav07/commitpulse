@@ -97,7 +97,7 @@ export default function CIFilters({
         <select
           value={filters.timeRange}
           onChange={(e) => update('timeRange', e.target.value)}
-          className="px-3 py-2 text-sm bg-white dark:bg-zinc-800/50 border border-black/10 dark:border-white/10 rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/30 transition-all"
+          className="px-3 py-2 text-sm bg-white dark:bg-zinc-800/50 border border-black/10 dark:border-white/10 rounded-xl text-gray-900 dark:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 transition-all"
         >
           {TIME_RANGES.map((t) => (
             <option key={t.value} value={t.value}>
@@ -109,7 +109,7 @@ export default function CIFilters({
         <select
           value={filters.status}
           onChange={(e) => update('status', e.target.value)}
-          className="px-3 py-2 text-sm bg-white dark:bg-zinc-800/50 border border-black/10 dark:border-white/10 rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/30 transition-all"
+          className="px-3 py-2 text-sm bg-white dark:bg-zinc-800/50 border border-black/10 dark:border-white/10 rounded-xl text-gray-900 dark:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 transition-all"
         >
           <option value="">All Statuses</option>
           <option value="success">Success</option>
