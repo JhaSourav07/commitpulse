@@ -135,12 +135,12 @@ export function calculateStreak(
     };
   }
 
-  const weeks = calendar.weeks || [];
-  const days = weeks.flatMap((week) => week?.contributionDays || []).filter(Boolean);
+  const weeks = (calendar.weeks || []).filter(Boolean);
+  const days = weeks.flatMap((week) => (week?.contributionDays || []).filter(Boolean)).filter(Boolean);
 
   const seen = new Set<string>();
   const uniqueDays = days.filter((d) => {
-    if (!d || seen.has(d.date)) return false;
+    if (!d || !d.date || seen.has(d.date)) return false;
     seen.add(d.date);
     return true;
   });
@@ -271,8 +271,8 @@ export function calculateMonthlyStats(
     };
   }
 
-  const weeks = calendar.weeks || [];
-  const days = weeks.flatMap((week) => week?.contributionDays || []).filter(Boolean);
+  const weeks = (calendar.weeks || []).filter(Boolean);
+  const days = weeks.flatMap((week) => (week?.contributionDays || []).filter(Boolean)).filter(Boolean);
 
   const localTodayStr = getLocalTodayStr(now || new Date(), timezone || 'UTC');
   const [currentYearStr, currentMonthStr] = localTodayStr.split('-');
@@ -379,8 +379,8 @@ export function aggregateCalendars(
     }
 
     // Populate the Map with all contributions from all calendars
-    (cal.weeks || []).forEach((week) => {
-      (week?.contributionDays || []).forEach((day) => {
+    (cal.weeks || []).filter(Boolean).forEach((week) => {
+      (week?.contributionDays || []).filter(Boolean).forEach((day) => {
         if (day && day.date) {
           const currentCount = dateMap.get(day.date) || 0;
           dateMap.set(day.date, currentCount + (day.contributionCount || 0));
@@ -398,8 +398,8 @@ export function aggregateCalendars(
   aggregatedBase.totalContributions = totalContributions;
 
   // Re-map the structural base using our aggregated date map
-  (aggregatedBase.weeks || []).forEach((week) => {
-    (week?.contributionDays || []).forEach((day) => {
+  (aggregatedBase.weeks || []).filter(Boolean).forEach((week) => {
+    (week?.contributionDays || []).filter(Boolean).forEach((day) => {
       if (day && day.date) {
         day.contributionCount = dateMap.get(day.date) || 0;
       }
@@ -408,8 +408,8 @@ export function aggregateCalendars(
 
   const existingDates = new Set<string>();
 
-  (aggregatedBase.weeks || []).forEach((week) => {
-    (week?.contributionDays || []).forEach((day) => {
+  (aggregatedBase.weeks || []).filter(Boolean).forEach((week) => {
+    (week?.contributionDays || []).filter(Boolean).forEach((day) => {
       if (day && day.date) {
         existingDates.add(day.date);
       }
@@ -490,8 +490,8 @@ export function calculateWrappedStats(calendar?: ContributionCalendar | null) {
     };
   }
 
-  const weeks = calendar.weeks || [];
-  const days = weeks.flatMap((w) => w?.contributionDays || []).filter(Boolean);
+  const weeks = (calendar.weeks || []).filter(Boolean);
+  const days = weeks.flatMap((w) => (w?.contributionDays || []).filter(Boolean)).filter(Boolean);
 
   let mostActiveDay = { date: 'N/A', count: 0 };
   const monthCounts: Record<string, number> = {};
@@ -564,7 +564,9 @@ export function normalizeCalendarToTimezone(
   }
 
   // Flatten all contribution days
-  const allDays = calendar.weeks.flatMap((week) => week.contributionDays || []);
+  const allDays = (calendar.weeks || [])
+    .filter(Boolean)
+    .flatMap((week) => (week.contributionDays || []).filter(Boolean));
 
   // Group contributions by target timezone date
   const dateMap = new Map<string, number>();
