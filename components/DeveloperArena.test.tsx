@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { describe, it, expect, vi } from 'vitest';
@@ -9,7 +9,6 @@ import React from 'react';
 vi.mock('next/image', () => ({
   __esModule: true,
   default: ({ fill, priority, ...props }: any) => {
-    // eslint-disable-next-line @next/next/no-img-element
     return <img alt="" {...props} />;
   },
 }));
