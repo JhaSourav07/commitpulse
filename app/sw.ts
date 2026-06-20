@@ -1,6 +1,6 @@
 import { defaultCache } from '@serwist/next/worker';
 import type { PrecacheEntry, SerwistGlobalConfig } from 'serwist';
-import { Serwist } from 'serwist';
+import { Serwist, NetworkFirst } from 'serwist';
 
 // Extend the ServiceWorkerGlobalScope with Serwist's injected manifest
 declare global {
@@ -22,7 +22,34 @@ const serwist = new Serwist({
   // Prefetch responses while the browser handles navigation
   navigationPreload: true,
 
-  runtimeCaching: defaultCache,
+  runtimeCaching: [
+    {
+      matcher({ request }) {
+        return request.mode === 'navigate';
+      },
+      handler: new NetworkFirst({
+        cacheName: 'pages',
+        plugins: [
+          {
+            async handlerDidError() {
+              return caches.match('/offline');
+            },
+          },
+        ],
+      }),
+    },
+    ...defaultCache,
+  ],
+  fallbacks: {
+    entries: [
+      {
+        url: '/offline',
+        matcher({ request }) {
+          return request.mode === 'navigate';
+        },
+      },
+    ],
+  },
 });
 
 serwist.addEventListeners();
