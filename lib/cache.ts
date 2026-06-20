@@ -2,6 +2,24 @@ import { randomUUID } from 'crypto';
 import { brotliCompressSync, brotliDecompressSync } from 'zlib';
 import logger from '@/lib/logger';
 
+export const CACHE_VERSION = 'v1';
+
+export interface CacheEnvelope<T> {
+  v: string;
+  t: number; // Write timestamp
+  ttl: number; // Nominal TTL in milliseconds
+  d: T | Buffer;
+}
+
+export interface CacheStats {
+  hits: number;
+  misses: number;
+  writes: number;
+  evictions: number;
+  swrRefreshes: number;
+  size: number;
+}
+
 /**
  * Configuration options for the distributed mutex lock used by {@link DistributedCache.getOrSet}.
  */
@@ -38,9 +56,10 @@ export interface LockConfig {
  * Represents a cached item with its expiration timestamp.
  */
 type CacheItem<T> = {
-  value: T;
-  expiresAt: number;
+  value: CacheEnvelope<T>;
+  expiresAt: number; // Physical cache eviction time
 };
+
 /**
  * A Simple in-memory TTL(Time To Live) cache.
  *
@@ -50,12 +69,18 @@ type CacheItem<T> = {
  * @typeParam T - Type of values stored in the cache.
  */
 export class TTLCache<T> {
-  //private store = new Map<string, CacheItem<T>>();
-
-  private store = new Map<string, CacheItem<T | Buffer>>();
-
+  private store = new Map<string, CacheItem<T>>();
   private cleanupInterval: ReturnType<typeof setInterval> | null = null;
   private readonly maxSize?: number;
+
+  private stats: Omit<CacheStats, 'size'> = {
+    hits: 0,
+    misses: 0,
+    writes: 0,
+    evictions: 0,
+    swrRefreshes: 0,
+  };
+
   private static assertValidKey(key: unknown): asserts key is string {
     if (typeof key !== 'string') {
       throw new TypeError('Cache key must be a string');
@@ -65,6 +90,7 @@ export class TTLCache<T> {
       throw new TypeError('Cache key cannot be empty');
     }
   }
+
   /**
    * Creates a new TTL cache instance.
    *
@@ -134,58 +160,110 @@ export class TTLCache<T> {
     return stored;
   }
 
-  /**
-   * Retrieves a value from the cache.
-   *
-   * Returns 'null' if the key does not exist or if the entry has expired.
-   *
-   * @param key - Cache key.
-   * @returns The cached value or 'null'.
-   *
-   * @example
-   * const user = cache.get("user:1");
-   */
-  get(key: string): T | null {
-    //TTLCache.assertValidKey(key);
-    if (key === null || key === undefined) {
-      throw new TypeError('Cache key must be a string');
-    }
+  private wrap(value: T | Buffer, ttl: number): CacheEnvelope<T> {
+    return {
+      v: CACHE_VERSION,
+      t: Date.now(),
+      ttl,
+      d: value,
+    };
+  }
 
-    if (typeof key !== 'string') {
+  private unwrap(item: unknown): CacheEnvelope<T> | null {
+    if (item && typeof item === 'object' && 'v' in item && 'd' in item && 't' in item) {
+      const env = item as CacheEnvelope<T>;
+      if (env.v === CACHE_VERSION) {
+        return env;
+      }
+      return null; // Version mismatch
+    }
+    // Backward compatibility for legacy cached entries (treat as v1 wrapper on the fly)
+    if (item !== null && item !== undefined) {
+      return {
+        v: CACHE_VERSION,
+        t: Date.now() - 60 * 1000,
+        ttl: 60 * 1000,
+        d: item as T | Buffer,
+      };
+    }
+    return null;
+  }
+
+  getStats(): CacheStats {
+    return {
+      ...this.stats,
+      size: this.store.size,
+    };
+  }
+
+  incrementSwrRefreshes(): void {
+    this.stats.swrRefreshes++;
+  }
+
+  invalidatePattern(pattern: RegExp | string): number {
+    const regex = typeof pattern === 'string' ? new RegExp(pattern) : pattern;
+    let count = 0;
+    for (const key of this.store.keys()) {
+      if (regex.test(key)) {
+        this.store.delete(key);
+        count++;
+      }
+    }
+    return count;
+  }
+
+  getWithMetadata(key: string): { value: T; expiresAt: number; writtenAt: number } | null {
+    if (key === null || key === undefined || typeof key !== 'string') {
       throw new TypeError('Cache key must be a string');
     }
 
     const hit = this.store.get(key);
-    if (!hit) return null;
-
-    if (Date.now() > hit.expiresAt) {
-      this.store.delete(key);
+    if (!hit) {
+      this.stats.misses++;
       return null;
     }
 
-    return this.decompress(hit.value);
+    if (Date.now() > hit.expiresAt) {
+      this.store.delete(key);
+      this.stats.misses++;
+      return null;
+    }
+
+    const unwrapped = this.unwrap(hit.value);
+    if (!unwrapped) {
+      this.store.delete(key);
+      this.stats.misses++;
+      return null;
+    }
+
+    this.stats.hits++;
+    return {
+      value: this.decompress(unwrapped.d),
+      expiresAt: unwrapped.t + unwrapped.ttl, // return nominal expiration
+      writtenAt: unwrapped.t,
+    };
+  }
+
+  /**
+   * Retrieves a value from the cache.
+   *
+   * Returns 'null' if the key does not exist or if the entry has expired.
+   */
+  get(key: string): T | null {
+    const meta = this.getWithMetadata(key);
+    if (!meta) return null;
+    // Standard get should return null if past nominal expiration
+    if (Date.now() > meta.expiresAt) {
+      return null;
+    }
+    return meta.value;
   }
 
   /**
    * Checks whether a key exists in the cache and has not expired.
-   *
-   * Unlike `get()`, this does not return the value.
-   *
-   * @param key - Cache key.
-   * @returns `true` if the key exists and is still valid, `false` otherwise.
-   *
-   * @example
-   * if (cache.has("user:1")) {
-   *   // safe to call get()
-   * }
    */
   has(key: string): boolean {
-    //TTLCache.assertValidKey(key);
-    if (key === null || key === undefined) {
-      throw new TypeError('Cache key must be a string');
-    }
-
-    if (typeof key !== 'string') {
+    if (key === null || key === undefined || typeof key !== 'string') {
       throw new TypeError('Cache key must be a string');
     }
 
@@ -197,45 +275,30 @@ export class TTLCache<T> {
       return false;
     }
 
+    const unwrapped = this.unwrap(hit.value);
+    if (!unwrapped) {
+      this.store.delete(key);
+      return false;
+    }
+
+    // Standard check has() should be false if past nominal expiration
+    if (Date.now() > unwrapped.t + unwrapped.ttl) {
+      return false;
+    }
+
     return true;
   }
+
   /**
    * Removes a single entry from the cache.
-   *
-   * Does nothing if the key does not exist.
-   *
-   * @param key - Cache key to remove.
-   * @returns `true` if the key existed and was deleted, `false` otherwise.
-   *
-   * @example
-   * cache.delete("user:1");
    */
   delete(key: string): boolean {
     TTLCache.assertValidKey(key);
-
     return this.store.delete(key);
   }
 
   /**
-   * Stores a value in the cache with a TTL.
-   *
-   * If the cache reaches its maximum capacity, the oldest item
-   * may be removed to make room for new entries.
-   *
-   * @param key - Cache key.
-   * @param value - Value to cache.
-   * @param ttlMs - Time to live in milliseconds.
-   * @returns void
-   *
-   * @example
-   * cache.set("user:1", userData, 5000);
-   */
-  /**
    * Updates the value of an existing, non-expired cache entry without resetting its TTL.
-   *
-   * @param key - Cache key.
-   * @param value - New value to store.
-   * @returns `true` if the entry existed and was updated, `false` if missing or expired.
    */
   update(key: string, value: T): boolean {
     const hit = this.store.get(key);
@@ -249,12 +312,18 @@ export class TTLCache<T> {
       return false;
     }
 
-    hit.value = this.compress(value);
+    const unwrapped = this.unwrap(hit.value);
+    if (!unwrapped) {
+      this.store.delete(key);
+      return false;
+    }
+
+    unwrapped.d = this.compress(value);
+    unwrapped.t = Date.now();
     return true;
   }
 
-  set(key: string, value: T, ttlMs: number): void {
-    //TTLCache.assertValidKey(key);
+  set(key: string, value: T, ttlMs: number, swrMs: number = 0): void {
     if (typeof key !== 'string' || key.trim().length === 0) {
       throw new TypeError('Cache key cannot be empty');
     }
@@ -273,22 +342,19 @@ export class TTLCache<T> {
         const oldestKey = this.store.keys().next().value as string | undefined;
         if (oldestKey !== undefined) {
           this.store.delete(oldestKey);
+          this.stats.evictions++;
         }
       }
     }
 
+    const compressed = this.compress(value);
+    const envelope = this.wrap(compressed, ttlMs);
+
     this.store.delete(key);
-    this.store.set(key, { value: this.compress(value), expiresAt: Date.now() + ttlMs });
+    this.store.set(key, { value: envelope, expiresAt: Date.now() + ttlMs + swrMs });
+    this.stats.writes++;
   }
 
-  /**
-   * Removes all entries from the cache.
-   *
-   * @returns void
-   *
-   * @example
-   * cache.clear();
-   */
   clear(): void {
     this.store.clear();
   }
@@ -320,6 +386,14 @@ export class DistributedCache<T> {
   private redisToken: string = '';
   private localLocks = new Map<string, Promise<T>>();
 
+  private stats: Omit<CacheStats, 'size'> = {
+    hits: 0,
+    misses: 0,
+    writes: 0,
+    evictions: 0,
+    swrRefreshes: 0,
+  };
+
   constructor(maxSize?: number, cleanupIntervalMs?: number) {
     this.localCache = new TTLCache<T>(maxSize, cleanupIntervalMs);
     const url = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
@@ -331,15 +405,34 @@ export class DistributedCache<T> {
     }
   }
 
-  async get(key: string, localTtlMs: number = 5 * 60 * 1000): Promise<T | null> {
-    if (!this.useRedis) {
-      return this.localCache.get(key);
-    }
+  getStats(): CacheStats {
+    const local = this.localCache.getStats();
+    return {
+      hits: this.stats.hits + local.hits,
+      misses: this.stats.misses + local.misses,
+      writes: this.stats.writes + local.writes,
+      evictions: this.stats.evictions + local.evictions,
+      swrRefreshes: this.stats.swrRefreshes + local.swrRefreshes,
+      size: local.size,
+    };
+  }
 
-    // Check local L1 cache first for fast in-instance lookups
-    const localHit = this.localCache.get(key);
+  invalidatePattern(pattern: RegExp | string): number {
+    return this.localCache.invalidatePattern(pattern);
+  }
+
+  async getWithMetadata(
+    key: string,
+    localTtlMs: number = 5 * 60 * 1000
+  ): Promise<{ value: T; expiresAt: number; writtenAt: number } | null> {
+    // Check local L1 cache first
+    const localHit = this.localCache.getWithMetadata(key);
     if (localHit !== null) {
       return localHit;
+    }
+
+    if (!this.useRedis) {
+      return null;
     }
 
     try {
@@ -358,40 +451,91 @@ export class DistributedCache<T> {
 
       const data = await res.json();
       if (!data || data.result === undefined || data.result === null) {
+        this.stats.misses++;
         return null;
       }
 
-      const parsed = JSON.parse(data.result) as T;
-      // Backfill local cache so subsequent requests in this instance are instant
-      this.localCache.set(key, parsed, localTtlMs);
-      return parsed;
+      const rawResult = JSON.parse(data.result);
+      if (
+        rawResult &&
+        typeof rawResult === 'object' &&
+        'v' in rawResult &&
+        'd' in rawResult &&
+        't' in rawResult &&
+        'ttl' in rawResult
+      ) {
+        const envelope = rawResult as CacheEnvelope<T>;
+        if (envelope.v === CACHE_VERSION) {
+          const expiresAt = envelope.t + envelope.ttl;
+          this.localCache.set(key, envelope.d as T, envelope.ttl);
+          this.stats.hits++;
+          return {
+            value: envelope.d as T,
+            expiresAt,
+            writtenAt: envelope.t,
+          };
+        } else {
+          // Version mismatch
+          this.stats.misses++;
+          return null;
+        }
+      } else {
+        // Backward compatibility for unversioned legacy items
+        const parsed = rawResult as T;
+        const expiresAt = Date.now() + localTtlMs;
+        this.localCache.set(key, parsed, localTtlMs);
+        this.stats.hits++;
+        return {
+          value: parsed,
+          expiresAt,
+          writtenAt: Date.now() - 60 * 1000,
+        };
+      }
     } catch (err) {
       logger.error('Cache GET failed', {
         component: 'DistributedCache',
         key,
         error: err,
       });
-      return this.localCache.get(key);
+      return this.localCache.getWithMetadata(key);
     }
   }
 
-  async set(key: string, value: T, ttlMs: number): Promise<void> {
+  async get(key: string, localTtlMs: number = 5 * 60 * 1000): Promise<T | null> {
+    const meta = await this.getWithMetadata(key, localTtlMs);
+    if (!meta) return null;
+    if (Date.now() > meta.expiresAt) {
+      return null;
+    }
+    return meta.value;
+  }
+
+  async set(key: string, value: T, ttlMs: number, swrMs: number = 0): Promise<void> {
     // Always update local cache
-    this.localCache.set(key, value, ttlMs);
+    this.localCache.set(key, value, ttlMs, swrMs);
+    this.stats.writes++;
 
     if (!this.useRedis) {
       return;
     }
 
     try {
-      const ttlSec = Math.max(1, Math.ceil(ttlMs / 1000));
+      const envelope: CacheEnvelope<T> = {
+        v: CACHE_VERSION,
+        t: Date.now(),
+        ttl: ttlMs,
+        d: value,
+      };
+
+      const physicalTtl = ttlMs + swrMs;
+      const ttlSec = Math.max(1, Math.ceil(physicalTtl / 1000));
       const res = await fetch(`${this.redisUrl}/`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${this.redisToken}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(['SET', key, JSON.stringify(value), 'EX', ttlSec]),
+        body: JSON.stringify(['SET', key, JSON.stringify(envelope), 'EX', ttlSec]),
       });
 
       if (!res.ok) {
@@ -460,13 +604,20 @@ export class DistributedCache<T> {
     }
 
     try {
+      const envelope: CacheEnvelope<T> = {
+        v: CACHE_VERSION,
+        t: Date.now(),
+        ttl: 60 * 1000, // Guess default TTL
+        d: value,
+      };
+
       const res = await fetch(`${this.redisUrl}/`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${this.redisToken}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(['SET', key, JSON.stringify(value), 'KEEPTTL', 'XX']),
+        body: JSON.stringify(['SET', key, JSON.stringify(envelope), 'KEEPTTL', 'XX']),
       });
 
       if (!res.ok) {
@@ -477,6 +628,7 @@ export class DistributedCache<T> {
 
       if (updated) {
         this.localCache.update(key, value);
+        this.stats.writes++;
       } else {
         // Redis no longer has the key, so the L1 value is stale.
         this.localCache.delete(key);
@@ -497,17 +649,8 @@ export class DistributedCache<T> {
     this.localCache.clear();
   }
 
-  /**
-   * Atomically increments a numeric counter stored under `key` and returns the new value.
-   *
-   * When Redis is available, uses EVAL + Lua script for true atomicity.
-   * Falls back to the local TTLCache for non-Redis deployments (dev/test).
-   *
-   * @param key - Cache key holding a numeric counter.
-   * @param ttlMs - Time-to-live in milliseconds. Only applied when the key is first created (count == 1).
-   * @returns The incremented counter value.
-   */
   async incr(key: string, ttlMs: number): Promise<number> {
+    this.stats.writes++;
     if (!this.useRedis) {
       const current = (this.localCache.get(key) as unknown as number) || 0;
       const next = current + 1;
@@ -581,34 +724,68 @@ return c`;
    * @param ttlMs - Cache expiration time in milliseconds.
    * @param shouldFetch - Optional predicate that forces refresh even on cache hits.
    * @param lockConfig - Optional distributed lock tuning.
+   * @param swrMs - Optional stale-while-revalidate duration in milliseconds.
    */
   async getOrSet(
     key: string,
     loadFn: (cached: T | null) => Promise<T>,
     ttlMs: number,
     shouldFetch?: (cached: T) => boolean,
-    lockConfig?: LockConfig
+    lockConfig?: LockConfig,
+    swrMs?: number
   ): Promise<T> {
-    // Join an existing in-flight request before any async operation to avoid
-    // concurrent loadFn execution for the same key.
+    // Join an existing in-flight request before any async operation
     const existing = this.localLocks.get(key);
     if (existing) return existing;
 
-    // Attempt to retrieve an existing value before triggering a refresh.
-    const cached = await this.get(key, ttlMs);
+    // Retrieve cached item with metadata
+    const cachedMeta = await this.getWithMetadata(key, ttlMs);
 
-    if (cached !== null && (!shouldFetch || !shouldFetch(cached))) {
-      return cached;
+    if (cachedMeta !== null) {
+      const forceFetch = shouldFetch && shouldFetch(cachedMeta.value);
+      if (!forceFetch) {
+        if (Date.now() < cachedMeta.expiresAt) {
+          return cachedMeta.value;
+        }
+
+        // Check if inside SWR window
+        if (swrMs && Date.now() < cachedMeta.expiresAt + swrMs) {
+          this.stats.swrRefreshes++;
+          this.localCache.incrementSwrRefreshes();
+          // Trigger asynchronous background refresh
+          this.executeAndLockBg(key, loadFn, ttlMs, cachedMeta.value, lockConfig, swrMs);
+          // Return stale cached value immediately
+          return cachedMeta.value;
+        }
+      }
     }
 
-    // Double-check local locks after the await in case another call interleaved.
     const pendingLocal = this.localLocks.get(key);
     if (pendingLocal) return pendingLocal;
 
+    const promise = this.executeAndLockBg(
+      key,
+      loadFn,
+      ttlMs,
+      cachedMeta ? cachedMeta.value : null,
+      lockConfig,
+      swrMs
+    );
+    return promise;
+  }
+
+  private async executeAndLockBg(
+    key: string,
+    loadFn: (cached: T | null) => Promise<T>,
+    ttlMs: number,
+    cached: T | null,
+    lockConfig?: LockConfig,
+    swrMs: number = 0
+  ): Promise<T> {
     const executeAndLock = async () => {
       if (!this.useRedis) {
         const data = await loadFn(cached);
-        await this.set(key, data, ttlMs);
+        await this.set(key, data, ttlMs, swrMs);
         return data;
       }
 
@@ -623,8 +800,6 @@ return c`;
       const start = Date.now();
       let attempt = 0;
 
-      // Only DEL the lock if the stored token still matches ours, preventing
-      // accidental deletion of a lock acquired by another instance after ours expired.
       const luaRelease = `
         if redis.call("GET", KEYS[1]) == ARGV[1] then
           return redis.call("DEL", KEYS[1])
@@ -664,8 +839,6 @@ return c`;
         let acquired = false;
 
         try {
-          // NX: acquire only if lock doesn't already exist.
-          // PX: auto-expire lock to avoid deadlocks.
           const lockRes = await fetch(`${this.redisUrl}/`, {
             method: 'POST',
             headers: {
@@ -682,14 +855,13 @@ return c`;
             throw new Error(`Redis lock HTTP error: ${lockRes.status}`);
           }
         } catch (err) {
-          // Redis network error during locking. Fallback to direct execution.
           logger.error('Cache lock failed', {
             component: 'DistributedCache',
             key,
             error: err,
           });
           const fallbackData = await loadFn(cached);
-          await this.set(key, fallbackData, ttlMs);
+          await this.set(key, fallbackData, ttlMs, swrMs);
           return fallbackData;
         }
 
@@ -697,18 +869,12 @@ return c`;
           let extensionTimer: ReturnType<typeof setInterval> | null = null;
 
           if (enableLockExtension) {
-            // Heartbeat fires at 60% of lockTtlMs so there is always time before expiry.
-            // When lockTtlMs is small (<1667ms), clamp to lockTtlMs/2 but with at least
-            // 100ms of headroom so the heartbeat always fires before the lock expires.
             const rawInterval = Math.floor(lockTtlMs * 0.6);
             const minInterval = Math.min(1000, Math.max(100, lockTtlMs - 100));
             const extensionInterval = Math.max(minInterval, rawInterval);
 
             extensionTimer = setInterval(async () => {
               try {
-                // Atomically extend only if we still own the lock (token matches).
-                // Using SET XX without a token check would let us extend a lock that
-                // another instance acquired after ours expired — do not use SET XX alone.
                 const luaExtend = `
                   if redis.call("GET", KEYS[1]) == ARGV[1] then
                     redis.call("PEXPIRE", KEYS[1], ARGV[2])
@@ -730,7 +896,7 @@ return c`;
                   ]),
                 });
               } catch {
-                // Silently ignore extension failures — the lock will expire naturally.
+                // Ignore extension failures
               }
             }, extensionInterval);
             if (typeof extensionTimer === 'object' && typeof extensionTimer.unref === 'function') {
@@ -740,7 +906,7 @@ return c`;
 
           try {
             const freshData = await loadFn(cached);
-            await this.set(key, freshData, ttlMs);
+            await this.set(key, freshData, ttlMs, swrMs);
             return freshData;
           } finally {
             if (extensionTimer) clearInterval(extensionTimer);
@@ -748,8 +914,6 @@ return c`;
           }
         }
 
-        // Exponential backoff with jitter to prevent thundering herd
-        // when multiple instances contend for the same lock.
         const baseBackoff = Math.min(BASE_POLL_MS * 2 ** attempt, MAX_POLL_MS);
         const jitter = 0.5 + Math.random() * 0.5;
         const backoffMs = Math.round(baseBackoff * jitter);
@@ -757,14 +921,13 @@ return c`;
         attempt++;
         const doubleCheck = await this.get(key, ttlMs);
 
-        if (doubleCheck !== null && (!shouldFetch || !shouldFetch(doubleCheck))) {
+        if (doubleCheck !== null) {
           return doubleCheck;
         }
       }
 
-      // Timed out waiting for lock. Fallback to direct execution.
       const finalFallback = await loadFn(cached);
-      await this.set(key, finalFallback, ttlMs);
+      await this.set(key, finalFallback, ttlMs, swrMs);
       return finalFallback;
     };
 
