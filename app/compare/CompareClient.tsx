@@ -43,7 +43,6 @@ import {
   Tent,
   Camera,
 } from 'lucide-react';
-import html2canvas from 'html2canvas';
 import { validateGitHubUsername } from '@/lib/validations';
 import { toPng } from 'html-to-image';
 
@@ -1440,6 +1439,7 @@ export default function CompareClient() {
                               @{user.profile.username}
                             </span>
                           </div>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
                             data-monolith-img="true"
                             key={`${user.profile.username}-${monolithKey}`}

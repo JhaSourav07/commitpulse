@@ -49,7 +49,7 @@ const GRAPH_EDGES = [
 ];
 
 export function TechnologyGraph({ selected, onToggle }: TechnologyGraphProps) {
-  const safeSelected = Array.isArray(selected) ? selected : [];
+  const safeSelected = useMemo(() => (Array.isArray(selected) ? selected : []), [selected]);
   const containerRef = useRef<HTMLDivElement>(null);
   const requestRef = useRef<number | null>(null);
 

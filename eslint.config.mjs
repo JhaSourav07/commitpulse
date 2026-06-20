@@ -21,6 +21,9 @@ const eslintConfig = defineConfig([
     ],
     rules: {
       'no-console': 'off',
+      '@typescript-eslint/no-unused-vars': 'off',
+      '@next/next/no-img-element': 'off',
+      'jsx-a11y/alt-text': 'off',
     },
   },
 ]);

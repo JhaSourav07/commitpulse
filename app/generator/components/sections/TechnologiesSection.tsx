@@ -17,6 +17,7 @@ function TechIcon({ tech, isDark }: { tech: Technology; isDark: boolean }) {
   const filterClass = tech.type === 'simpleicon' && isDark ? 'invert brightness-200' : '';
 
   return (
+    // eslint-disable-next-line @next/next/no-img-element
     <img
       src={tech.iconUrl}
       alt={tech.name}
@@ -33,7 +34,7 @@ function TechIcon({ tech, isDark }: { tech: Technology; isDark: boolean }) {
 }
 
 export function TechnologiesSection({ selected, onChange }: TechnologiesSectionProps) {
-  const safeSelected = Array.isArray(selected) ? selected : [];
+  const safeSelected = useMemo(() => (Array.isArray(selected) ? selected : []), [selected]);
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState<string>('All');
   const [recCategory, setRecCategory] = useState<string>('All');
@@ -150,6 +151,7 @@ export function TechnologiesSection({ selected, onChange }: TechnologiesSectionP
                   key={id}
                   className="inline-flex items-center gap-1.5 pl-2 pr-1 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-[11px] text-emerald-700 dark:text-emerald-300"
                 >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={tech.iconUrl}
                     alt=""
@@ -236,6 +238,7 @@ export function TechnologiesSection({ selected, onChange }: TechnologiesSectionP
                           className="flex items-center gap-2.5 flex-1 text-left"
                         >
                           <div className="p-1 rounded-lg bg-gray-100 dark:bg-white/5 group-hover:scale-110 transition-transform duration-200">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
                               src={tech.iconUrl}
                               alt={tech.name}

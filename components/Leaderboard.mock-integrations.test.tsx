@@ -5,7 +5,6 @@ import Leaderboard, { type Contributor } from './Leaderboard';
 
 vi.mock('next/image', () => ({
   default: ({ alt = '', fill, ...props }: ComponentProps<'img'> & { fill?: boolean }) => (
-    // eslint-disable-next-line @next/next/no-img-element
     <img alt={alt} {...props} />
   ),
 }));

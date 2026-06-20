@@ -283,13 +283,6 @@ async function fetchGraphQLWithRetry(
 
   if (!isBodyRateLimited) return res;
 
-  // Rate-limit tracking for GraphQL-level rate limits
-  let usedToken = '';
-  const authHeader = (options.headers as Record<string, string>)?.Authorization;
-  if (authHeader && authHeader.startsWith('bearer ')) {
-    usedToken = authHeader.substring(7);
-  }
-
   const delay = BASE_DELAY_MS * Math.pow(2, attempt);
   if (delay > MAX_RETRY_DELAY_MS) return res;
 
@@ -418,33 +411,6 @@ interface GitHubUserProfile {
   location: string | null;
   type?: string; // e.g. "User" or "Organization"
   plan?: { name?: string } | null;
-}
-
-/**
- * Proactively evaluates total token matrix state pool availability.
- * If all tokens are exhausted, it immediately trips the global circuit barrier.
- */
-function checkAndTripCircuitBreaker(): void {
-  const tokens = getGitHubTokens();
-  if (tokens.length === 0) return;
-
-  const now = Date.now();
-  const expiries: number[] = [];
-  let unblockedTokenExists = false;
-
-  for (const token of tokens) {
-    const expiry = rateLimitedTokens.get(token);
-    if (expiry && now < expiry) {
-      expiries.push(expiry);
-    } else {
-      unblockedTokenExists = true;
-    }
-  }
-
-  // If no token is clear of the boundary tracking markers, trip circuit immediately
-  if (!unblockedTokenExists && expiries.length > 0) {
-    globalCircuitBreakerOpenUntil = Math.min(...expiries);
-  }
 }
 
 /**
