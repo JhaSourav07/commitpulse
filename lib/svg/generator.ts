@@ -23,7 +23,15 @@ import {
   escapeXML,
 } from './sanitizer';
 
-import { GRID_ORIGIN_X, GRID_ORIGIN_Y, TILE_HEIGHT_HALF, TILE_WIDTH_HALF } from './layoutConstants';
+import {
+  GRID_ORIGIN_X,
+  GRID_ORIGIN_Y,
+  TILE_HEIGHT_HALF,
+  TILE_WIDTH_HALF,
+  TILE_FULL_HEIGHT,
+  MONTH_LABEL_OFFSET_X,
+  ISOMETRIC_LABEL_VERTICAL_OFFSET,
+} from './layoutConstants';
 
 import { SVG_WIDTH, SVG_HEIGHT, MAX_USERNAME_DISPLAY_LENGTH } from './generatorConstants';
 
@@ -117,9 +125,9 @@ export interface TowerPaths {
 }
 
 export function buildTowerPaths(h: number, scale: number = 1): TowerPaths {
-  const tileHalfWidth = 16 * scale;
-  const tileHalfHeight = 10 * scale;
-  const tileFullHeight = 20 * scale;
+  const tileHalfWidth = TILE_WIDTH_HALF * scale;
+  const tileHalfHeight = TILE_HEIGHT_HALF * scale;
+  const tileFullHeight = TILE_FULL_HEIGHT * scale;
 
   return {
     left: `M0 ${tileHalfHeight - h} L0 ${tileHalfHeight} L-${tileHalfWidth} 0 L-${tileHalfWidth} ${-h} Z`,
@@ -685,7 +693,6 @@ const MONTH_NAMES = [
   'Dec',
 ];
 
-const ISOMETRIC_VERTICAL_OFFSET = 20;
 const MONTH_LABEL_ROW_OFFSET = 7.2;
 const WEEKDAY_LABEL_COL_OFFSET = -1.2;
 
@@ -719,13 +726,13 @@ function renderIsometricLabels(
   const labelColorHex = params.labelColor ? `#${params.labelColor}` : color;
 
   monthLabels.forEach((label) => {
-    const tx = s(GRID_ORIGIN_X + (label.col - MONTH_LABEL_ROW_OFFSET) * TILE_WIDTH_HALF + 8);
+    const tx = s(GRID_ORIGIN_X + (label.col - MONTH_LABEL_ROW_OFFSET) * TILE_WIDTH_HALF + MONTH_LABEL_OFFSET_X);
     const ty =
       s(
         GRID_ORIGIN_Y +
           (label.col + MONTH_LABEL_ROW_OFFSET) * TILE_HEIGHT_HALF +
-          ISOMETRIC_VERTICAL_OFFSET
-      ) + Math.round(20 * sf);
+          ISOMETRIC_LABEL_VERTICAL_OFFSET
+      ) + Math.round(ISOMETRIC_LABEL_VERTICAL_OFFSET * sf);
     elements += `
     <text x="${tx}" y="${ty}" text-anchor="middle" fill="${labelColorHex}" class="isometric-label">${label.text}</text>`;
   });
@@ -742,8 +749,8 @@ function renderIsometricLabels(
       s(
         GRID_ORIGIN_Y +
           (WEEKDAY_LABEL_COL_OFFSET + day.row) * TILE_HEIGHT_HALF +
-          ISOMETRIC_VERTICAL_OFFSET
-      ) + Math.round(20 * sf);
+          ISOMETRIC_LABEL_VERTICAL_OFFSET
+      ) + Math.round(ISOMETRIC_LABEL_VERTICAL_OFFSET * sf);
     elements += `
     <text x="${tx}" y="${ty}" text-anchor="end" fill="${labelColorHex}" class="isometric-label">${day.text}</text>`;
   });
@@ -3201,7 +3208,7 @@ export function generateLanguagesSVG(
 
     const towerScale = TOWER_SCALE * sf;
     const paths = buildTowerPaths(h, towerScale);
-    const th = 10 * towerScale;
+    const th = TILE_HEIGHT_HALF * towerScale;
 
     const hexColor = lang.color.startsWith('#') ? lang.color : `#${lang.color}`;
     const delay = (idx * 0.15).toFixed(3);
