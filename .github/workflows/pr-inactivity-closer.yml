@@ -81,20 +81,32 @@ jobs:
               if (daysSinceUpdate >= closeAfterDays) {
                 core.info(`PR #${pr.number} (@${pr.user.login}) is inactive. Last updated: ${pr.updated_at}. Closing...`);
 
-                // 1. Add inactivity label
+                // Check for existing close comment to avoid duplicates
+                const { data: existingComments } = await github.rest.issues.listComments({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: pr.number,
+                  per_page: 10,
+                });
+
+                if (existingComments.some(c => c.body && c.body.includes('<!-- inactivity-close -->'))) {
+                  core.info(`PR #${pr.number} already has a close comment. Closing without duplicate comment.`);
+                } else {
+                  // 1. Post explanatory comment before closing
+                  await github.rest.issues.createComment({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: pr.number,
+                    body: `🤖 Hey @${pr.user.login}, this pull request has been automatically closed because it has been inactive for ${closeAfterDays} days.\n\n**Why was this PR closed?**\nTo keep the repository manageable, we automatically close pull requests that have had no activity for ${closeAfterDays} days.\n\n**How to reopen this PR:**\n1. Pull the latest changes from the upstream repository\n2. Resolve any merge conflicts\n3. Address any review feedback\n4. Push your changes to your branch\n5. Reopen this PR by commenting \`/reopen\` or creating a new PR\n\nWe appreciate your contribution and would love to review your work when it's ready! Thank you! ❤️\n\n<!-- inactivity-close -->`,
+                  });
+                }
+
+                // 2. Add inactivity label
                 await github.rest.issues.addLabels({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
                   issue_number: pr.number,
                   labels: [label],
-                });
-
-                // 2. Post explanatory comment
-                await github.rest.issues.createComment({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  issue_number: pr.number,
-                  body: `🤖 Hey @${pr.user.login}, this pull request has been automatically closed because it has been inactive for ${closeAfterDays} days.\n\nIf you are still interested in fixing the issue and contributing, please feel free to pull the latest changes, resolve any conflicts, and reopen this PR at any time! We'd love to review your work. Thank you! ❤️`,
                 });
 
                 // 3. Close the PR

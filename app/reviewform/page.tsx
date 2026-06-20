@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import AdvancedColorPicker from '@/components/AdvancedColorPicker';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type Platform = 'twitter' | 'github';
@@ -56,82 +57,58 @@ function PlatformToggle({ value, onChange }: { value: Platform; onChange: (p: Pl
   );
 }
 
-function ColorPicker({ value, onChange }: { value: string; onChange: (color: string) => void }) {
-  const [customInput, setCustomInput] = useState('');
-  const [customError, setCustomError] = useState('');
-
-  function handleCustomChange(raw: string) {
-    setCustomInput(raw);
-    setCustomError('');
-    const val = raw.startsWith('#') ? raw : `#${raw}`;
-    if (/^#[0-9a-fA-F]{6}$/.test(val)) {
-      onChange(val);
-    }
-  }
-
-  function handleCustomBlur() {
-    if (customInput && !/^#?[0-9a-fA-F]{6}$/.test(customInput)) {
-      setCustomError('Must be a valid 6-digit hex e.g. #ff6b35');
-    } else {
-      setCustomError('');
-    }
-  }
-
+function LivePreview({ form }: { form: FormState }) {
   return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap gap-2">
-        {ACCENT_PRESETS.map(({ hex, label }) => (
-          <button
-            key={hex}
-            type="button"
-            title={label}
-            onClick={() => {
-              onChange(hex);
-              setCustomInput('');
-              setCustomError('');
-            }}
-            className={`w-8 h-8 rounded-full transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-blue-500
-              ${value === hex ? 'ring-2 ring-offset-2 ring-slate-400 dark:ring-slate-300 scale-110' : 'hover:scale-105'}`}
-            style={{ backgroundColor: hex }}
-          />
-        ))}
-      </div>
-
-      <div className="flex items-center gap-2">
-        <input
-          type="color"
-          value={value}
-          onChange={(e) => {
-            onChange(e.target.value);
-            setCustomInput(e.target.value);
-            setCustomError('');
+    <div className="rounded-xl border border-slate-200 dark:border-slate-700/60 bg-white dark:bg-[#161b22] shadow-sm p-4">
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-3">
+        Card Preview
+      </p>
+      <div className="relative overflow-hidden rounded-xl border border-black/5 bg-white/70 p-4 shadow-lg shadow-black/5 backdrop-blur-xl dark:border-white/[0.08] dark:bg-[#0c0c0c]/90 dark:shadow-2xl dark:shadow-black/40">
+        <div
+          className="absolute top-0 left-[10%] right-[10%] h-[2px] rounded-full"
+          style={{
+            background: `linear-gradient(90deg, transparent, ${form.accentColor}, transparent)`,
           }}
-          className="w-8 h-8 rounded cursor-pointer border-0 bg-transparent p-0"
-          title="Pick a custom color"
         />
-        <div className="flex-1">
-          <input
-            type="text"
-            value={customInput}
-            onChange={(e) => handleCustomChange(e.target.value)}
-            onBlur={handleCustomBlur}
-            placeholder="#10b981"
-            maxLength={7}
-            className={`w-full px-3 py-2 rounded-lg text-sm font-mono
-              bg-slate-50 dark:bg-[#0d1117]
-              border ${customError ? 'border-red-400 dark:border-red-500' : 'border-slate-300 dark:border-slate-600'}
-              text-slate-900 dark:text-slate-100
-              placeholder:text-slate-400 dark:placeholder:text-slate-600
-              focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400
-              focus:border-transparent transition-all duration-200`}
-          />
-          {customError && (
-            <p className="mt-1 text-xs text-red-500 dark:text-red-400">{customError}</p>
-          )}
+        <div className="relative z-10">
+          <div className="flex items-start gap-3 mb-3">
+            <div className="h-10 w-10 rounded-full border border-black/5 bg-slate-200 dark:border-white/10 dark:bg-zinc-700 shadow-sm flex items-center justify-center text-xs text-slate-500 dark:text-zinc-400">
+              {form.name ? form.name.charAt(0).toUpperCase() : '?'}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-bold text-gray-900 dark:text-white truncate">
+                  {form.name || 'Your Name'}
+                </p>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill={form.accentColor}>
+                  <path d="M9 12l2 2 4-4m6 2a8 8 0 11-16 0 8 8 0 0116 0z" />
+                  <path
+                    d="M9 12l2 2 4-4"
+                    fill="none"
+                    stroke="white"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <svg className="w-3 h-3 text-slate-400" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" />
+                </svg>
+                <p className="text-xs text-gray-500 dark:text-gray-500">
+                  @{form.handle || 'handle'}
+                </p>
+              </div>
+            </div>
+          </div>
+          <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed line-clamp-3">
+            {form.message || 'Your testimonial message will appear here...'}
+          </p>
         </div>
         <div
-          className="w-8 h-8 rounded-lg border border-slate-200 dark:border-slate-700 shrink-0 transition-colors duration-200"
-          style={{ backgroundColor: value }}
+          className="absolute -right-10 -top-10 h-24 w-24 rounded-full blur-3xl opacity-60"
+          style={{ background: `${form.accentColor}15` }}
         />
       </div>
     </div>
@@ -410,13 +387,18 @@ export default function ReviewFormPage() {
                 style={{ backgroundColor: form.accentColor }}
               />
             </div>
-            <ColorPicker value={form.accentColor} onChange={(c) => update('accentColor', c)} />
+            <AdvancedColorPicker
+              value={form.accentColor}
+              onChange={(c) => update('accentColor', c)}
+              presets={ACCENT_PRESETS}
+            />
             {errors.accentColor && (
               <p className="text-xs text-red-500 dark:text-red-400">{errors.accentColor}</p>
             )}
             <p className="text-xs text-slate-400 dark:text-slate-500">
               This color will be used to style your testimonial card on the Wall of Love.
             </p>
+            <LivePreview form={form} />
           </div>
 
           {/* Submit */}

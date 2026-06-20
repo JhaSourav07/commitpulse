@@ -606,6 +606,7 @@ export async function GET(request: Request) {
       name: string;
       description: string | null;
       stargazerCount: number;
+      createdAt: string;
     }>;
     const aiRepoCount = popularRepos.filter((repo) =>
       AI_KEYWORDS.some(
@@ -616,7 +617,11 @@ export async function GET(request: Request) {
     ).length;
     let topStarDensity = 0;
     for (const repo of popularRepos) {
-      const density = repo.stargazerCount / 6;
+      const ageInYears = Math.max(
+        0.1,
+        (Date.now() - new Date(repo.createdAt).getTime()) / (1000 * 60 * 60 * 24 * 365.25)
+      );
+      const density = repo.stargazerCount / ageInYears;
       if (density > topStarDensity) topStarDensity = density;
     }
 

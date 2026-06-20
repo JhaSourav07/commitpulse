@@ -12,6 +12,7 @@ function makeTheme(bg: string, text: string, accent: string, negative?: string):
 }
 
 export const themes: Record<string, BadgeTheme> = {
+  default: makeTheme('0d1117', 'ffffff', '2da44e', 'f85149'),
   dark: makeTheme('0d1117', 'c9d1d9', '58a6ff', 'f85149'),
   light: makeTheme('ffffff', '24292f', '0969da', 'cf222e'),
   neon: makeTheme('000000', '00ffcc', 'ff00ff', 'ff0055'),

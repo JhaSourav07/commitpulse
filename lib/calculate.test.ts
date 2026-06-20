@@ -2811,3 +2811,80 @@ describe('normalizeCalendarToTimezone', () => {
     expect(allDays[0].contributionCount).toBe(12);
   });
 });
+
+describe('DST transition boundary handling', () => {
+  it('maps contribution days to absolute date strings during spring-forward DST', () => {
+    const calendar: ContributionCalendar = {
+      totalContributions: 3,
+      weeks: [
+        {
+          contributionDays: [
+            { contributionCount: 1, date: '2024-03-09' },
+            { contributionCount: 1, date: '2024-03-10' },
+            { contributionCount: 1, date: '2024-03-11' },
+          ],
+        },
+      ],
+    };
+
+    const result = calculateStreak(calendar, 'America/New_York', new Date('2024-03-11T12:00:00Z'));
+    expect(result.currentStreak).toBe(3);
+    expect(result.longestStreak).toBe(3);
+  });
+
+  it('maps contribution days to absolute date strings during fall-back DST', () => {
+    const calendar: ContributionCalendar = {
+      totalContributions: 3,
+      weeks: [
+        {
+          contributionDays: [
+            { contributionCount: 1, date: '2024-11-02' },
+            { contributionCount: 1, date: '2024-11-03' },
+            { contributionCount: 1, date: '2024-11-04' },
+          ],
+        },
+      ],
+    };
+
+    const result = calculateStreak(calendar, 'America/New_York', new Date('2024-11-04T12:00:00Z'));
+    expect(result.currentStreak).toBe(3);
+    expect(result.longestStreak).toBe(3);
+  });
+
+  it('correctly identifies today during spring-forward DST', () => {
+    const calendar: ContributionCalendar = {
+      totalContributions: 2,
+      weeks: [
+        {
+          contributionDays: [
+            { contributionCount: 1, date: '2024-03-10' },
+            { contributionCount: 1, date: '2024-03-11' },
+          ],
+        },
+      ],
+    };
+
+    const result = calculateStreak(calendar, 'America/New_York', new Date('2024-03-11T14:00:00Z'));
+    expect(result.todayDate).toBe('2024-03-11');
+  });
+
+  it('does not shift contributions across DST boundaries', () => {
+    const calendar: ContributionCalendar = {
+      totalContributions: 5,
+      weeks: [
+        {
+          contributionDays: [
+            { contributionCount: 0, date: '2024-03-08' },
+            { contributionCount: 2, date: '2024-03-09' },
+            { contributionCount: 0, date: '2024-03-10' },
+            { contributionCount: 3, date: '2024-03-11' },
+          ],
+        },
+      ],
+    };
+
+    const result = calculateStreak(calendar, 'America/New_York', new Date('2024-03-11T12:00:00Z'));
+    expect(result.longestStreak).toBe(1);
+    expect(result.currentStreak).toBe(1);
+  });
+});

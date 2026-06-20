@@ -121,7 +121,12 @@ export default function BurnoutRiskTable({ contributors }: BurnoutRiskTableProps
               >
                 {/* Contributor Profile */}
                 <td className="py-4 pl-1">
-                  <div className="flex items-center gap-3">
+                  <a
+                    href={`https://github.com/${c.username}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-3 cursor-pointer"
+                  >
                     <div className="relative w-8 h-8 rounded-full overflow-hidden border border-black/10 dark:border-white/10">
                       <Image
                         src={c.avatarUrl}
@@ -140,7 +145,7 @@ export default function BurnoutRiskTable({ contributors }: BurnoutRiskTableProps
                         {c.totalCommits.toLocaleString()} commits
                       </span>
                     </div>
-                  </div>
+                  </a>
                 </td>
 
                 {/* Workload Share */}

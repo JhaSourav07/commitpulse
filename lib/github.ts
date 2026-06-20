@@ -1549,6 +1549,7 @@ export interface PopularRepo {
   stargazerCount: number;
   forkCount: number;
   url: string;
+  createdAt: string;
   primaryLanguage: { name: string; color: string } | null;
 }
 
@@ -1564,6 +1565,7 @@ export async function fetchPinnedRepos(username: string, token?: string): Promis
               stargazerCount
               forkCount
               url
+              createdAt
               primaryLanguage {
                 name
                 color
@@ -1606,6 +1608,7 @@ async function fetchPopularRepos(username: string, token?: string): Promise<Popu
             stargazerCount
             forkCount
             url
+            createdAt
             primaryLanguage {
               name
               color
@@ -1647,6 +1650,7 @@ async function fetchStarredRepos(username: string, token?: string): Promise<Popu
             stargazerCount
             forkCount
             url
+            createdAt
             primaryLanguage {
               name
               color

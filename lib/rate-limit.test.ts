@@ -177,15 +177,11 @@ describe('rateLimit', () => {
     });
   });
 
-  it('starts a fresh window when an update loses an expiry race', async () => {
+  it('uses atomic incr to avoid TOCTOU race condition', async () => {
     vi.setSystemTime(1000);
-    const getSpy = vi
-      .spyOn(DistributedCache.prototype, 'get')
-      .mockResolvedValueOnce({ count: 2, resetAt: 5000 });
-    const updateSpy = vi.spyOn(DistributedCache.prototype, 'update').mockResolvedValueOnce(false);
-    const setSpy = vi.spyOn(DistributedCache.prototype, 'set').mockResolvedValueOnce();
+    const incrSpy = vi.spyOn(DistributedCache.prototype, 'incr').mockResolvedValueOnce(1);
 
-    const result = await rateLimit('expiry-race-function', 5, 60000);
+    const result = await rateLimit('atomic-test-function', 5, 60000);
 
     expect(result).toEqual({
       success: true,
@@ -193,16 +189,9 @@ describe('rateLimit', () => {
       remaining: 4,
       reset: 61000,
     });
-    expect(updateSpy).toHaveBeenCalledWith('expiry-race-function', { count: 3, resetAt: 5000 });
-    expect(setSpy).toHaveBeenCalledWith(
-      'expiry-race-function',
-      { count: 1, resetAt: 61000 },
-      60000
-    );
+    expect(incrSpy).toHaveBeenCalledWith('ratelimit:atomic-test-function', 60000);
 
-    getSpy.mockRestore();
-    updateSpy.mockRestore();
-    setSpy.mockRestore();
+    incrSpy.mockRestore();
   });
 });
 
@@ -326,7 +315,7 @@ describe('RateLimiter', () => {
     expect(await limiter.check(ip)).toBe(true);
   });
 
-  it('starts a fresh window when an update loses an expiry race', async () => {
+  it('uses atomic incr to avoid TOCTOU race condition', async () => {
     vi.setSystemTime(1000);
     const limiter = new RateLimiter(5, 60000);
     const cache = (
@@ -335,11 +324,9 @@ describe('RateLimiter', () => {
       }
     ).cache;
 
-    vi.spyOn(cache, 'get').mockResolvedValueOnce({ count: 2, resetAt: 5000 });
-    const updateSpy = vi.spyOn(cache, 'update').mockResolvedValueOnce(false);
-    const setSpy = vi.spyOn(cache, 'set').mockResolvedValueOnce();
+    const incrSpy = vi.spyOn(cache, 'incr').mockResolvedValueOnce(1);
 
-    const result = await limiter.checkWithResult('expiry-race-class');
+    const result = await limiter.checkWithResult('atomic-test-class');
 
     expect(result).toEqual({
       success: true,
@@ -347,8 +334,9 @@ describe('RateLimiter', () => {
       remaining: 4,
       reset: 61000,
     });
-    expect(updateSpy).toHaveBeenCalledWith('expiry-race-class', { count: 3, resetAt: 5000 });
-    expect(setSpy).toHaveBeenCalledWith('expiry-race-class', { count: 1, resetAt: 61000 }, 60000);
+    expect(incrSpy).toHaveBeenCalledWith('ratelimit:atomic-test-class', 60000);
+
+    incrSpy.mockRestore();
   });
 
   it('reset() clears the counter and restores the full request allowance', async () => {

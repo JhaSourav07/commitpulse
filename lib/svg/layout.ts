@@ -165,10 +165,27 @@ export function computeTowers(
       const isGhost = !hasCommits && shouldShowGhostCity;
       const isTodayWithCommits = isToday && hasCommits;
 
-      const unit = mode === 'loc' ? 'est. lines of code' : 'contributions';
+      const [y, m, d] = day.date.split('-');
+      const monthNames = [
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec',
+      ];
+      const formattedDate = `${monthNames[parseInt(m, 10) - 1]} ${parseInt(d, 10)}`;
+
+      const unit = mode === 'loc' ? 'est. lines of code' : 'commits';
       const tooltip = isToday
-        ? `TODAY: ${day.date}: ${count} ${unit}`
-        : `${day.date}: ${count} ${unit}`;
+        ? `TODAY: ${formattedDate}: ${count} ${unit}`
+        : `${formattedDate}: ${count} ${unit}`;
 
       const dayOfWeekIndex = new Date(day.date).getUTCDay();
       const coords = projectIsometric(i, dayOfWeekIndex);
