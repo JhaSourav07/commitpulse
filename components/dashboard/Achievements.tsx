@@ -44,8 +44,8 @@ export default function Achievements({ achievements }: { achievements: Achieveme
             transition={{ delay: 0.15 + i * 0.07, duration: 0.2 }}
             className={`p-4 flex flex-col items-center text-center rounded-lg border transition-all duration-200 ${
               achievement.isUnlocked
-                ? 'bg-gray-100 dark:bg-[#111] border-[rgba(255,255,255,0.08)] hover:border-[rgba(255,255,255,0.16)] hover:bg-gray-200 dark:hover:bg-[#161616] cursor-default'
-                : 'bg-white dark:bg-[#0a0a0a] border border-gray-300 dark:border-[rgba(255,255,255,0.04)] opacity-30 grayscale pointer-events-none'
+                ? 'bg-gray-50 dark:bg-[#111] border-black/5 dark:border-[rgba(255,255,255,0.08)] hover:border-black/10 dark:hover:border-[rgba(255,255,255,0.16)] hover:bg-gray-100 dark:hover:bg-[#161616] cursor-default'
+                : 'bg-white dark:bg-[#0a0a0a] border-gray-200 dark:border-[rgba(255,255,255,0.04)] opacity-30 grayscale pointer-events-none'
             }`}
           >
             <AchievementIcon type={achievement.type} isUnlocked={achievement.isUnlocked} />
