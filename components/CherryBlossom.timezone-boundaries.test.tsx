@@ -27,6 +27,7 @@ vi.mock('framer-motion', () => ({
       </div>
     ),
   },
+  useReducedMotion: () => false,
 }));
 
 describe('CherryBlossom Timezone Boundaries', () => {
