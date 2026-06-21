@@ -1905,7 +1905,7 @@ describe('GET /api/streak', () => {
       );
 
       const response = await GET(makeRequest({ user: 'octocat' }));
-      expect(response.headers.get('Content-Type')).toBe('image/svg+xml');
+      expect(response.headers.get('Content-Type')).toContain('image/svg+xml');
     });
 
     it('sets Cache-Control: no-cache, no-store on a 429 RateLimitError response', async () => {

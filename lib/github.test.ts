@@ -75,6 +75,7 @@ afterEach(() => {
 describe('fetchGitHubContributions — GraphQL RATE_LIMITED typed error', () => {
   beforeEach(() => {
     vi.spyOn(global, 'fetch');
+    vi.clearAllMocks();
     vi.useFakeTimers();
   });
 
@@ -275,9 +276,10 @@ describe('fetchGitHubContributions — GraphQL RATE_LIMITED typed error', () => 
   it('throws with the status code when the server returns 500', async () => {
     vi.mocked(fetch).mockResolvedValue(mockResponse({ message: 'Internal Server Error' }, 500));
 
-    await expect(fetchGitHubContributions('octocat')).rejects.toThrow(
-      'GitHub GraphQL API returned status 500'
-    );
+    const promise = fetchGitHubContributions('octocat');
+    const assertion = expect(promise).rejects.toThrow('GitHub GraphQL API returned status 500');
+    await vi.runAllTimersAsync();
+    await assertion;
   });
 
   it('throws with the status code when the server returns 401 (expired or missing token)', async () => {
@@ -291,7 +293,10 @@ describe('fetchGitHubContributions — GraphQL RATE_LIMITED typed error', () => 
   it('throws when fetch itself rejects due to a network failure', async () => {
     vi.mocked(fetch).mockRejectedValue(new Error('Failed to fetch'));
 
-    await expect(fetchGitHubContributions('octocat')).rejects.toThrow('Failed to fetch');
+    const promise = fetchGitHubContributions('octocat');
+    const assertion = expect(promise).rejects.toThrow('Failed to fetch');
+    await vi.runAllTimersAsync();
+    await assertion;
   });
 
   it('throws the first GraphQL error when the API returns an errors array', async () => {
@@ -330,14 +335,6 @@ describe('fetchGitHubContributions — GraphQL RATE_LIMITED typed error', () => 
   });
 
   describe('body-level RATE_LIMITED retry (HTTP 200)', () => {
-    beforeEach(() => {
-      vi.useFakeTimers();
-    });
-
-    afterEach(() => {
-      vi.useRealTimers();
-    });
-
     it('retries with backoff when GitHub returns RATE_LIMITED inside a 200 OK body', async () => {
       vi.mocked(fetch)
         .mockResolvedValueOnce(
@@ -363,8 +360,9 @@ describe('fetchGitHubContributions — GraphQL RATE_LIMITED typed error', () => 
       );
 
       const promise = fetchGitHubContributions('octocat');
-      await vi.advanceTimersByTimeAsync(10000); // promise rejects HERE, with no handler yet
-      await expect(promise).rejects.toBeInstanceOf(RateLimitError);
+      const assertion = expect(promise).rejects.toBeInstanceOf(RateLimitError);
+      await vi.advanceTimersByTimeAsync(10000); // advances through the retries
+      await assertion;
       expect(fetch).toHaveBeenCalledTimes(4);
     });
   });
@@ -453,7 +451,8 @@ describe('fetchGitHubContributions — GraphQL RATE_LIMITED typed error', () => 
 
     vi.mocked(fetch).mockRejectedValue(new Error('API rate limit exceeded'));
 
-    const result = await fetchGitHubContributions('fallback-user');
+    const promise = fetchGitHubContributions('fallback-user');
+    const [result] = await Promise.all([promise, vi.runAllTimersAsync()]);
     expect(result.calendar.totalContributions).toBe(mockCalendar.totalContributions);
     expect(result.isOfflineFallback).toBe(true);
   });
@@ -475,7 +474,8 @@ describe('fetchGitHubContributions — GraphQL RATE_LIMITED typed error', () => 
 
     vi.mocked(fetch).mockRejectedValue(new Error('Failed to fetch'));
 
-    const result = await fetchGitHubContributions('bypass-fallback-user', { bypassCache: true });
+    const promise = fetchGitHubContributions('bypass-fallback-user', { bypassCache: true });
+    const [result] = await Promise.all([promise, vi.runAllTimersAsync()]);
     expect(result.calendar.totalContributions).toBe(mockCalendar.totalContributions);
     expect(result.isOfflineFallback).toBe(true);
   });
@@ -2741,9 +2741,9 @@ describe('fetchGitHubContributions — GraphQL RATE_LIMITED typed error', () => 
     );
 
     const promise = fetchGitHubContributions('octocat');
+    const assertion = expect(promise).rejects.toThrow('API Rate Limit Exceeded');
     await vi.advanceTimersByTimeAsync(10000);
-
-    await expect(promise).rejects.toThrow('API Rate Limit Exceeded');
+    await assertion;
   });
 
   it('thrown RateLimitError carries a positive retryAfterMs when x-ratelimit-reset header is present', async () => {
