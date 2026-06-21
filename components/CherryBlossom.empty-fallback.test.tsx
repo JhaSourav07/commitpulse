@@ -5,6 +5,7 @@ import CherryBlossom from './CherryBlossom';
 // Mock framer-motion to avoid animation DOM complexity
 vi.mock('framer-motion', () => {
   return {
+    useReducedMotion: vi.fn(() => false),
     motion: {
       div: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
     },

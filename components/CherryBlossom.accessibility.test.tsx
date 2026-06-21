@@ -5,6 +5,7 @@ import CherryBlossom from './CherryBlossom';
 import type React from 'react';
 
 vi.mock('framer-motion', () => ({
+  useReducedMotion: vi.fn(() => false),
   motion: {
     div: ({
       children,

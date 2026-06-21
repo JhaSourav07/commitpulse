@@ -11,6 +11,7 @@ const motionRuntime = vi.hoisted(() => ({
 }));
 
 vi.mock('framer-motion', () => ({
+  useReducedMotion: vi.fn(() => false),
   motion: {
     div: ({ children, ...props }: React.HTMLAttributes<HTMLDivElement>) => {
       if (motionRuntime.shouldThrow) {
