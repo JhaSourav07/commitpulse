@@ -4,7 +4,7 @@
 // structure integrity, and AUTO_THEME pair safety checks.
 
 import { describe, it, expect } from 'vitest';
-import { themes, AUTO_THEME_LIGHT, AUTO_THEME_DARK } from './themes';
+import { themes, AUTO_THEME_LIGHT, AUTO_THEME_DARK, getNormalizedThemeKey } from './themes';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -45,7 +45,7 @@ describe('theme count', () => {
     // If this fails, either a theme was added to themes.ts without updating
     // THEMES.md, or a theme was removed without updating the docs.
     // Update this count when intentionally adding/removing themes.
-    expect(themeNames).toHaveLength(28);
+    expect(themeNames).toHaveLength(29);
   });
 
   it('contains all expected theme keys', () => {
@@ -78,6 +78,7 @@ describe('theme count', () => {
       'cyberpunk',
       'tokyo_night',
       'monokai',
+      'midnight_ocean',
     ];
     for (const key of expectedKeys) {
       expect(themeNames).toContain(key);
@@ -227,5 +228,26 @@ describe('known theme palette regression guards', () => {
     expect(themes['cyber-pulse'].bg).toBe('000000');
     expect(themes['cyber-pulse'].text).toBe('ffffff');
     expect(themes['cyber-pulse'].accent).toBe('00ffee');
+  });
+});
+
+// ── Normalization Behavior Checks ─────────────────────────────────────────────
+
+describe('getNormalizedThemeKey', () => {
+  it('matches kebab-case keys when user provides all lowercase mashed inputs', () => {
+    expect(getNormalizedThemeKey('cyber-pulse')).toBe('cyber-pulse');
+  });
+
+  it('matches keys when user provides screaming uppercase inputs', () => {
+    expect(getNormalizedThemeKey('DRACULA')).toBe('dracula');
+  });
+
+  it('returns default fallback when theme name does not exist', () => {
+    expect(getNormalizedThemeKey('invalidThemeNonexistent')).toBe('default');
+  });
+
+  it('returns default fallback gracefully when theme parameter is undefined or null', () => {
+    expect(getNormalizedThemeKey(undefined)).toBe('default');
+    expect(getNormalizedThemeKey(null)).toBe('default');
   });
 });

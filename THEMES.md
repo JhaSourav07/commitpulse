@@ -39,6 +39,7 @@ https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&theme=<slug>
 | lumos            | `#0a0a0a`  | `#a7f3d0` | `#fbbf24` |
 | monokai          | `#272822`  | `#f8f8f2` | `#a6e22e` |
 | retro-terminal   | `#000000`  | `#00ff41` | `#00ff41` |
+| midnight_ocean   | `#020c1b`  | `#ccd6f6` | `#0af5ff` |
 
 ---
 
@@ -365,6 +366,18 @@ https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&theme=<slug>
 | `bg`      | 272822 |
 | `text`    | f8f8f2 |
 | `accent`  | a6e22e |
+
+---
+
+### Midnight Ocean
+
+![midnight_ocean](https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=midnight_ocean)
+
+| Parameter | Value  |
+| --------- | ------ |
+| `bg`      | 020c1b |
+| `text`    | ccd6f6 |
+| `accent`  | 0af5ff |
 
 ---
 

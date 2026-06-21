@@ -68,16 +68,16 @@ describe('notification management token empty / missing inputs', () => {
       expect(getNotificationManagementToken(req, body)).toBe('body-token-xyz');
     });
 
-    it('extracts token from search params managementToken', () => {
+    it('ignores managementToken in query parameters (security: no URL leakage)', () => {
       const req = mockRequest();
       const params = new URLSearchParams({ managementToken: 'query-token-123' });
-      expect(getNotificationManagementToken(req, undefined, params)).toBe('query-token-123');
+      expect(getNotificationManagementToken(req, undefined)).toBeNull();
     });
 
-    it('extracts token from search params token fallback', () => {
+    it('ignores token query parameter (security: no URL leakage)', () => {
       const req = mockRequest();
       const params = new URLSearchParams({ token: 'fallback-token-456' });
-      expect(getNotificationManagementToken(req, undefined, params)).toBe('fallback-token-456');
+      expect(getNotificationManagementToken(req, undefined)).toBeNull();
     });
 
     it('prefers header over body when both are present', () => {
@@ -90,7 +90,7 @@ describe('notification management token empty / missing inputs', () => {
       const req = mockRequest();
       const body = { managementToken: 'body-value' };
       const params = new URLSearchParams({ managementToken: 'query-value' });
-      expect(getNotificationManagementToken(req, body, params)).toBe('body-value');
+      expect(getNotificationManagementToken(req, body)).toBe('body-value');
     });
 
     it('ignores body managementToken when it is not a string', () => {

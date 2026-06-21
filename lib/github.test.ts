@@ -283,10 +283,12 @@ describe('fetchGitHubContributions', () => {
     );
   });
 
-  it('throws when fetch itself rejects due to a network failure', async () => {
+  it('falls back to empty calendar when fetch itself rejects due to a network failure', async () => {
     vi.mocked(fetch).mockRejectedValue(new Error('Failed to fetch'));
 
-    await expect(fetchGitHubContributions('octocat')).rejects.toThrow('Failed to fetch');
+    const result = await fetchGitHubContributions('octocat');
+    expect(result.calendar.totalContributions).toBe(0);
+    expect(result.isOfflineFallback).toBe(true);
   });
 
   it('throws the first GraphQL error when the API returns an errors array', async () => {
@@ -352,15 +354,16 @@ describe('fetchGitHubContributions', () => {
       expect(fetch).toHaveBeenCalledTimes(2);
     });
 
-    it('throws after exhausting all retries on repeated body-level RATE_LIMITED errors', async () => {
+    it('falls back to empty calendar after exhausting all retries on repeated body-level RATE_LIMITED errors', async () => {
       vi.mocked(fetch).mockResolvedValue(
         mockResponse({ errors: [{ type: 'RATE_LIMITED', message: 'API rate limit exceeded' }] })
       );
 
       const promise = fetchGitHubContributions('octocat');
-      const assertion = expect(promise).rejects.toThrow('API Rate Limit Exceeded');
       await vi.advanceTimersByTimeAsync(3500);
-      await assertion;
+      const result = await promise;
+      expect(result.calendar.totalContributions).toBe(0);
+      expect(result.isOfflineFallback).toBe(true);
       expect(fetch).toHaveBeenCalledTimes(4);
     });
   });
@@ -790,15 +793,15 @@ describe('fetchContributedRepos', () => {
     await assertion;
   });
 
-  it('throws on a rate-limited GraphQL 200 response instead of returning []', async () => {
+  it('falls back to [] on a rate-limited GraphQL 200 response', async () => {
     vi.mocked(fetch).mockResolvedValue(
       mockResponse({ errors: [{ type: 'RATE_LIMITED', message: 'API rate limit exceeded' }] })
     );
 
     const promise = fetchContributedRepos('octocat');
-    const assertion = expect(promise).rejects.toThrow('API Rate Limit Exceeded');
     await vi.advanceTimersByTimeAsync(3500);
-    await assertion;
+    const result = await promise;
+    expect(result).toEqual([]);
   });
 
   it('does not cache the failure: a later call refetches and can succeed', async () => {

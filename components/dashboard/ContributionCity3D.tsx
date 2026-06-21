@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
+import { Play, Pause, RotateCcw } from 'lucide-react';
 import type { ActivityData } from '@/types/dashboard';
 
 // ─── Theme palette (mirrors lib/svg/themes.ts accent colours) ────────────────
@@ -53,6 +54,7 @@ export interface ContributionCity3DProps {
   theme?: string;
   /** Show the last N days of data (default: 98 = 14 weeks) */
   days?: number;
+  timeLapseMode?: boolean;
 }
 
 interface TooltipState {
@@ -66,6 +68,7 @@ export default function ContributionCity3D({
   data,
   theme = 'dark',
   days = 98,
+  timeLapseMode = false,
 }: ContributionCity3DProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -83,6 +86,10 @@ export default function ContributionCity3D({
   // Camera state – angles in radians
   const [isDragging, setIsDragging] = useState(false);
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
+
+  // Time-Lapse state
+  const [isPlaying, setIsPlaying] = useState(timeLapseMode);
+  const [playbackIndex, setPlaybackIndex] = useState(timeLapseMode ? 7 : days);
 
   const cameraRef = useRef({
     rotY: 0.45, // orbit angle (0 = looking from +Z)
@@ -145,10 +152,12 @@ export default function ContributionCity3D({
   const cubes = useCallback((): CubeSpec[] => {
     const recent = data.slice(-days);
     // When replaying, slice to current frame; zero out future cubes for clean build-up
-    const visibleCount = replayIndex !== null ? replayIndex : recent.length;
     const max = Math.max(...recent.map((d) => d.count), 1);
 
-    return recent.map((d, i) => ({
+    const visibleData = timeLapseMode ? recent.slice(0, playbackIndex) : recent;
+    const visibleCount = replayIndex !== null ? replayIndex : visibleData.length;
+
+    return visibleData.map((d, i) => ({
       col: Math.floor(i / 7),
       row: i % 7,
       height: i >= visibleCount ? 0.04 : d.count === 0 ? 0.04 : 0.1 + 0.9 * (d.count / max),
@@ -156,7 +165,7 @@ export default function ContributionCity3D({
       date: d.date,
       intensity: i >= visibleCount ? 0 : d.intensity,
     }));
-  }, [data, days, replayIndex]);
+  }, [data, days, timeLapseMode, playbackIndex, replayIndex]);
 
   // ── Draw ───────────────────────────────────────────────────────────────────
   const draw = useCallback(() => {
@@ -348,6 +357,40 @@ export default function ContributionCity3D({
   useEffect(() => {
     draw();
   }, [draw]);
+
+  // ── Time-Lapse Animation Loop ──────────────────────────────────────────────
+  useEffect(() => {
+    if (!timeLapseMode) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setPlaybackIndex(days);
+
+      setIsPlaying(false);
+      return;
+    }
+
+    if (!isPlaying) return;
+
+    const maxIndex = Math.min(days, data.length);
+    let frame: number;
+    let lastTime = performance.now();
+
+    const tick = (time: number) => {
+      if (time - lastTime > 60) {
+        setPlaybackIndex((prev) => {
+          if (prev >= maxIndex) {
+            setIsPlaying(false);
+            return maxIndex;
+          }
+          return Math.min(prev + 7, maxIndex);
+        });
+        lastTime = time;
+      }
+      frame = requestAnimationFrame(tick);
+    };
+
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [timeLapseMode, isPlaying, data.length, days]);
 
   // ── Pointer events – orbit drag ────────────────────────────────────────────
   const onPointerDown = (e: React.PointerEvent) => {
@@ -541,12 +584,65 @@ export default function ContributionCity3D({
       )}
 
       {/* Controls hint */}
-      <div
-        className="absolute bottom-3 right-4 text-xs opacity-40 select-none pointer-events-none"
-        style={{ color: palette.accent }}
-      >
-        Drag to rotate · Scroll to zoom
-      </div>
+      {!timeLapseMode && (
+        <div
+          className="absolute bottom-3 right-4 text-xs opacity-40 select-none pointer-events-none"
+          style={{ color: palette.accent }}
+        >
+          Drag to rotate · Scroll to zoom
+        </div>
+      )}
+
+      {/* Time-Lapse UI Overlay */}
+      {timeLapseMode && (
+        <div className="absolute top-4 left-4 z-10 flex flex-col gap-2">
+          {/* Playback Controls */}
+          <div
+            className="flex items-center gap-2 px-3 py-2 rounded-xl backdrop-blur-md shadow-sm border border-white/10"
+            style={{ background: `${palette.bg}88` }}
+          >
+            <button
+              onClick={() => {
+                if (playbackIndex >= Math.min(days, data.length)) {
+                  setPlaybackIndex(7);
+                }
+                setIsPlaying(!isPlaying);
+              }}
+              className="p-1.5 rounded-lg transition-colors hover:bg-white/10 text-white"
+              aria-label={isPlaying ? 'Pause' : 'Play'}
+            >
+              {isPlaying ? <Pause size={16} /> : <Play size={16} />}
+            </button>
+            <button
+              onClick={() => {
+                setPlaybackIndex(7);
+                setIsPlaying(true);
+              }}
+              className="p-1.5 rounded-lg transition-colors hover:bg-white/10 text-white"
+              aria-label="Restart"
+            >
+              <RotateCcw size={16} />
+            </button>
+            <div className="w-px h-5 bg-white/20 mx-1" />
+            <div
+              className="text-xs font-semibold px-1 min-w-[80px]"
+              style={{ color: palette.accent }}
+            >
+              {playbackIndex > 0 &&
+                (() => {
+                  const recent = data.slice(-days);
+                  const currentData = recent[Math.min(playbackIndex - 1, recent.length - 1)];
+                  if (!currentData) return '...';
+                  const dateObj = new Date(currentData.date);
+                  return dateObj.toLocaleDateString(undefined, {
+                    month: 'short',
+                    year: 'numeric',
+                  });
+                })()}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

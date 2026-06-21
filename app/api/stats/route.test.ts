@@ -3,6 +3,8 @@ import { GET } from './route';
 
 vi.mock('../../../lib/github', () => ({
   fetchGitHubContributions: vi.fn(),
+  contributionsCache: { has: vi.fn().mockResolvedValue(false) },
+  cacheKey: vi.fn().mockReturnValue('key'),
 }));
 
 import { fetchGitHubContributions } from '../../../lib/github';

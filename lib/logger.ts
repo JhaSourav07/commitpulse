@@ -2,6 +2,30 @@ type Context = Record<string, unknown>;
 
 const isProduction = process.env.NODE_ENV === 'production';
 
+// Define sensitive keys that should be masked
+const SENSITIVE_KEYS = ['token', 'key', 'secret', 'password', 'authorization', 'cookie', 'email'];
+
+/**
+ * Recursively scans and redacts sensitive information from an object.
+ */
+function redact(obj: Context): Context {
+  const result: Context = {};
+
+  for (const [key, value] of Object.entries(obj)) {
+    // Check if the current key contains any of our sensitive keywords
+    if (SENSITIVE_KEYS.some((k) => key.toLowerCase().includes(k))) {
+      result[key] = '[REDACTED]';
+    } else if (typeof value === 'object' && value !== null) {
+      // Recursively redact nested objects
+      result[key] = redact(value as Record<string, unknown>);
+    } else {
+      result[key] = value;
+    }
+  }
+
+  return result;
+}
+
 const COLORS = {
   debug: '\x1b[36m', // Cyan
   info: '\x1b[32m', // Green
@@ -15,11 +39,14 @@ function createTimestamp(): string {
 }
 
 function logProduction(level: 'warn' | 'error', msg: string, ctx: Context = {}): void {
+  // Redact sensitive fields before structure serialization
+  const redactedCtx = redact(ctx);
+
   const payload = {
     level,
     msg,
     timestamp: createTimestamp(),
-    ...ctx,
+    ...redactedCtx,
   };
 
   console.log(JSON.stringify(payload));
@@ -31,7 +58,11 @@ function logDevelopment(
   ctx: Context = {}
 ): void {
   const color = COLORS[level];
-  const contextString = Object.keys(ctx).length > 0 ? ` ${JSON.stringify(ctx)}` : '';
+
+  // Also redact in development to prevent accidental terminal exposure
+  const redactedCtx = redact(ctx);
+  const contextString =
+    Object.keys(redactedCtx).length > 0 ? ` ${JSON.stringify(redactedCtx)}` : '';
 
   const output = `${color}[${level.toUpperCase()}]${COLORS.reset} ${msg}${contextString}`;
 

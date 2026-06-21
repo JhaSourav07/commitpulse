@@ -1,6 +1,6 @@
 // app/api/stats/route.ts
 import { NextResponse } from 'next/server';
-import { fetchGitHubContributions } from '@/lib/github';
+import { fetchGitHubContributions, contributionsCache, cacheKey } from '@/lib/github';
 import { calculateStreak } from '@/lib/calculate';
 import { statsParamsSchema } from '@/lib/validations';
 import { getClientIp } from '@/utils/getClientIp';
@@ -122,6 +122,9 @@ export async function GET(request: Request) {
   }
 
   try {
+    const key = cacheKey('contributions', user);
+    const wasCachedBefore = await contributionsCache.has(key);
+
     // Authenticated -> user's OAuth token (their quota); anonymous -> undefined (global PAT).
     const userToken = await getUserGitHubToken();
     const userData = await fetchGitHubContributions(user, {
@@ -144,7 +147,7 @@ export async function GET(request: Request) {
       headers.set('Pragma', 'no-cache');
       headers.set('Expires', '0');
     }
-    headers.set('X-Cache-Status', shouldBypassCache ? 'MISS' : 'HIT');
+    headers.set('X-Cache-Status', shouldBypassCache ? 'MISS' : wasCachedBefore ? 'HIT' : 'MISS');
     headers.set(
       'X-Refresh-Status',
       shouldBypassCache ? 'Fresh' : isRefreshRequested ? 'Cooldown-Served-Cached' : 'Cached'

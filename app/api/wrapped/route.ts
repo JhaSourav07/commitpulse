@@ -60,7 +60,11 @@ export async function GET(request: Request) {
       tz,
     } = parseResult.data;
 
-    const year = customYear || new Date().getFullYear().toString();
+    const year =
+      customYear ||
+      (tz
+        ? new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric' }).format(new Date())
+        : new Date().getFullYear().toString());
 
     const themeName = theme || 'dark';
     const isAutoTheme = themeName === 'auto';
