@@ -29,7 +29,7 @@ function getHeaders(userToken?: string) {
     currentTokenIndex++;
   }
   return {
-    Authorization: `bearer ${token}`,
+    Authorization: `Bearer ${token}`,
     Accept: 'application/vnd.github.v3+json',
     'Content-Type': 'application/json',
   };

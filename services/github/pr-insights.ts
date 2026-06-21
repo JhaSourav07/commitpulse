@@ -75,7 +75,7 @@ function getHeaders(userToken?: string) {
     currentTokenIndex++;
   }
   return {
-    Authorization: `bearer ${token}`,
+    Authorization: `Bearer ${token}`,
     'Content-Type': 'application/json',
   };
 }

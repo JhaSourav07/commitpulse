@@ -110,7 +110,7 @@ export async function fetchWithRetry(
       // Ensure your headers instantiation copies existing layout keys safely
       options.headers = {
         ...options.headers,
-        Authorization: `bearer ${currentToken}`,
+        Authorization: `Bearer ${currentToken}`,
       };
     } catch (e) {
       // Problem 3 Fix: Never swallow or compromise a structural RateLimitError instance
@@ -638,7 +638,7 @@ function getGitHubToken(): string {
 }
 
 const getHeaders = (userToken?: string) => ({
-  Authorization: `bearer ${userToken || getGitHubToken()}`,
+  Authorization: `Bearer ${userToken || getGitHubToken()}`,
   'Content-Type': 'application/json',
 });
 

@@ -287,7 +287,7 @@ export async function POST(req: NextRequest) {
     try {
       await execFilePromise('git', ['clone', '--depth', '1', '--', cloneUrl, tempDir]);
     } catch (err) {
-      console.error('Cloning failed for repository:', repoUrl, err);
+      console.error('Cloning failed for repository:', repoUrl.replace(/https:\/\/x-access-token:[^@]+@/, 'https://<token>@'), err);
       // Clean up tempDir if it was created
       if (tempDir && fs.existsSync(tempDir)) {
         fs.rmSync(tempDir, { recursive: true, force: true });
@@ -593,10 +593,13 @@ export async function POST(req: NextRequest) {
         Return exactly 5 bullet points. Do not include a conversational introduction or outro.
         `;
 
-        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`;
+        const geminiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
         const response = await fetch(geminiUrl, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'x-goog-api-key': geminiApiKey,
+          },
           body: JSON.stringify({
             contents: [{ parts: [{ text: prompt }] }],
             generationConfig: { responseMaxOutputTokens: 500 },
