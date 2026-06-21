@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { rateLimit } from './lib/rate-limit';
+import { rateLimit, getRateLimitHeaders } from './lib/rate-limit';
 import { getClientIp } from './utils/getClientIp';
 
 /**
@@ -32,18 +32,17 @@ export async function middleware(request: NextRequest) {
         status: 429,
         headers: {
           'Content-Type': 'application/json',
-          'X-RateLimit-Limit': result.limit.toString(),
-          'X-RateLimit-Remaining': result.remaining.toString(),
-          'X-RateLimit-Reset': result.reset.toString(),
+          ...getRateLimitHeaders(result),
         },
       }
     );
   }
 
   const response = NextResponse.next();
-  response.headers.set('X-RateLimit-Limit', result.limit.toString());
-  response.headers.set('X-RateLimit-Remaining', result.remaining.toString());
-  response.headers.set('X-RateLimit-Reset', result.reset.toString());
+  const headers = getRateLimitHeaders(result);
+  for (const [key, value] of Object.entries(headers)) {
+    response.headers.set(key, value);
+  }
 
   return response;
 }
