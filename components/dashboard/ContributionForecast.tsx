@@ -2,16 +2,16 @@
 
 import { useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { 
-  TrendingUp, 
-  TrendingDown, 
+import {
+  TrendingUp,
+  TrendingDown,
   Minus,
-  Sparkles, 
-  Calendar, 
-  Zap, 
-  LineChart, 
-  Activity, 
-  Target 
+  Sparkles,
+  Calendar,
+  Zap,
+  LineChart,
+  Activity,
+  Target,
 } from 'lucide-react';
 import type { ActivityData } from '@/types/dashboard';
 import { useTranslation } from '@/context/TranslationContext';
@@ -21,7 +21,10 @@ interface ContributionForecastProps {
   totalContributions?: number;
 }
 
-export default function ContributionForecast({ activity = [], totalContributions }: ContributionForecastProps) {
+export default function ContributionForecast({
+  activity = [],
+  totalContributions,
+}: ContributionForecastProps) {
   const { t } = useTranslation();
 
   const calculations = useMemo(() => {
@@ -40,7 +43,10 @@ export default function ContributionForecast({ activity = [], totalContributions
     }
 
     const N = activity.length;
-    const currentTotal = totalContributions !== undefined ? totalContributions : activity.reduce((sum, d) => sum + d.count, 0);
+    const currentTotal =
+      totalContributions !== undefined
+        ? totalContributions
+        : activity.reduce((sum, d) => sum + d.count, 0);
 
     // 1. Average Daily, Weekly, Monthly Velocity
     const totalActivityCommits = activity.reduce((sum, d) => sum + d.count, 0);
@@ -100,11 +106,12 @@ export default function ContributionForecast({ activity = [], totalContributions
 
     // 4. Consistency Score
     // Active days (days with count > 0)
-    const activeDays = activity.filter(d => d.count > 0).length;
+    const activeDays = activity.filter((d) => d.count > 0).length;
     const activeRatio = activeDays / N;
     const consistencyScore = Math.min(100, Math.round(activeRatio * 100));
 
-    let consistencyLevel: 'elite' | 'consistent' | 'occasional' | 'sporadic' | 'inactive' = 'inactive';
+    let consistencyLevel: 'elite' | 'consistent' | 'occasional' | 'sporadic' | 'inactive' =
+      'inactive';
     if (consistencyScore >= 85) {
       consistencyLevel = 'elite';
     } else if (consistencyScore >= 60) {
@@ -116,7 +123,8 @@ export default function ContributionForecast({ activity = [], totalContributions
     }
 
     // 5. Trend slope categorization
-    let trendType: 'strong_growth' | 'moderate_growth' | 'stable' | 'cooling' | 'decline' = 'stable';
+    let trendType: 'strong_growth' | 'moderate_growth' | 'stable' | 'cooling' | 'decline' =
+      'stable';
     if (slope > 0.02) {
       trendType = 'strong_growth';
     } else if (slope > 0.005) {
@@ -214,7 +222,9 @@ export default function ContributionForecast({ activity = [], totalContributions
               className="p-4 rounded-lg bg-gray-50 dark:bg-[#111] border border-black/5 dark:border-[rgba(255,255,255,0.05)]"
             >
               <div className="flex items-center justify-between text-zinc-500 dark:text-[#A1A1AA] mb-2">
-                <span className="text-xs font-medium">{t('dashboard.forecast.weekly_velocity')}</span>
+                <span className="text-xs font-medium">
+                  {t('dashboard.forecast.weekly_velocity')}
+                </span>
                 <Zap size={14} />
               </div>
               <div className="text-lg md:text-xl font-bold text-zinc-900 dark:text-white">
@@ -227,7 +237,9 @@ export default function ContributionForecast({ activity = [], totalContributions
               className="p-4 rounded-lg bg-gray-50 dark:bg-[#111] border border-black/5 dark:border-[rgba(255,255,255,0.05)]"
             >
               <div className="flex items-center justify-between text-zinc-500 dark:text-[#A1A1AA] mb-2">
-                <span className="text-xs font-medium">{t('dashboard.forecast.monthly_velocity')}</span>
+                <span className="text-xs font-medium">
+                  {t('dashboard.forecast.monthly_velocity')}
+                </span>
                 <Calendar size={14} />
               </div>
               <div className="text-lg md:text-xl font-bold text-zinc-900 dark:text-white">
@@ -240,7 +252,9 @@ export default function ContributionForecast({ activity = [], totalContributions
               className="p-4 rounded-lg bg-gray-50 dark:bg-[#111] border border-black/5 dark:border-[rgba(255,255,255,0.05)]"
             >
               <div className="flex items-center justify-between text-zinc-500 dark:text-[#A1A1AA] mb-2">
-                <span className="text-xs font-medium">{t('dashboard.forecast.projected_month')}</span>
+                <span className="text-xs font-medium">
+                  {t('dashboard.forecast.projected_month')}
+                </span>
                 <Target size={14} />
               </div>
               <div className="text-lg md:text-xl font-bold text-zinc-900 dark:text-white">
@@ -253,7 +267,9 @@ export default function ContributionForecast({ activity = [], totalContributions
               className="p-4 rounded-lg bg-gray-50 dark:bg-[#111] border border-black/5 dark:border-[rgba(255,255,255,0.05)]"
             >
               <div className="flex items-center justify-between text-zinc-500 dark:text-[#A1A1AA] mb-2">
-                <span className="text-xs font-medium">{t('dashboard.forecast.projected_year')}</span>
+                <span className="text-xs font-medium">
+                  {t('dashboard.forecast.projected_year')}
+                </span>
                 <Sparkles size={14} className="text-amber-500 dark:text-amber-400" />
               </div>
               <div className="text-lg md:text-xl font-bold text-zinc-900 dark:text-white">
@@ -300,9 +316,7 @@ export default function ContributionForecast({ activity = [], totalContributions
                   {t('dashboard.forecast.growth_rate', { rate: slope.toFixed(4) })}
                 </span>
               </div>
-              <div className="p-2 rounded-full bg-black/5 dark:bg-white/5">
-                {getTrendIcon()}
-              </div>
+              <div className="p-2 rounded-full bg-black/5 dark:bg-white/5">{getTrendIcon()}</div>
             </div>
           </div>
         </>
