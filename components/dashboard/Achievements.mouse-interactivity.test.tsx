@@ -108,7 +108,7 @@ describe('Achievements — mouse interactivity', () => {
     const unlockedCard = findAchievementCard('First PR', 'cursor-default');
     expect(unlockedCard.className).toContain('cursor-default');
     expect(unlockedCard.className).toContain('hover:border-[rgba(255,255,255,0.16)]');
-    expect(unlockedCard.className).toContain('hover:bg-gray-200');
+    expect(unlockedCard.className).toContain('hover:bg-gray-100');
     expect(unlockedCard.className).not.toContain('pointer-events-none');
   });
 
