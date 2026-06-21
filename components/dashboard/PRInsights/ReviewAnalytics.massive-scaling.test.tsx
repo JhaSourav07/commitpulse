@@ -13,6 +13,7 @@ vi.mock('framer-motion', () => ({
 
 const massiveData: PRInsightData = {
   totalPRs: 999999999,
+  prs: [],
   openPRs: 111111111,
   mergedPRs: 777777777,
   closedPRs: 111111111,

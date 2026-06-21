@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { rateLimit } from '@/lib/rate-limit';
+import { logger } from '@/lib/logger';
 
 const MAX_PAYLOAD_SIZE = 1024 * 1024; // 1MB
 const SIGNATURE_PREFIX = 'sha256=';
@@ -42,7 +43,9 @@ export async function POST(req: Request) {
 
   const webhookSecret = getWebhookSecret();
   if (!webhookSecret) {
-    console.error('CRITICAL: GITHUB_WEBHOOK_SECRET is not configured. Webhook rejected.');
+    logger.error('Webhook rejected: GITHUB_WEBHOOK_SECRET is not configured', {
+      route: '/api/webhook',
+    });
     return NextResponse.json({ error: 'Webhook secret is not configured' }, { status: 500 });
   }
 

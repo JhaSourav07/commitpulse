@@ -4,12 +4,18 @@ import { describe, expect, it } from 'vitest';
 
 import ContributorsSearch from './ContributorsSearch';
 
+function expectContributorsCount(container: HTMLElement, filtered: number, total: number) {
+  expect(container.textContent?.replace(/\s+/g, '').trim()).toContain(
+    `${filtered}/${total}contributors`
+  );
+}
+
 describe('ContributorsSearch empty fallback', () => {
   it('renders the fallback when the contributor collection is missing', () => {
-    render(<ContributorsSearch />);
+    const { container } = render(<ContributorsSearch />);
 
     expect(screen.getByText('No architects found')).toBeTruthy();
-    expect(screen.getByText('0 of 0 contributors')).toBeTruthy();
+    expectContributorsCount(container, 0, 0);
   });
 
   it('renders no contributor profile links for an empty collection', () => {
@@ -21,15 +27,15 @@ describe('ContributorsSearch empty fallback', () => {
 
   it('keeps the empty collection stable while searching and clearing', async () => {
     const user = userEvent.setup();
-    render(<ContributorsSearch contributors={[]} />);
+    const { container } = render(<ContributorsSearch contributors={[]} />);
 
     const input = screen.getByRole('textbox', { name: 'Search contributors by name' });
     await user.type(input, 'missing contributor');
 
     expect(screen.getByText('No architects found')).toBeTruthy();
-    expect(screen.getByText('0 of 0 contributors')).toBeTruthy();
+    expectContributorsCount(container, 0, 0);
 
-    await user.click(screen.getByRole('button', { name: 'Clear' }));
+    await user.click(screen.getByRole('button', { name: 'Clear search' }));
 
     expect(input).toHaveValue('');
     expect(screen.getByText('No architects found')).toBeTruthy();
@@ -37,7 +43,7 @@ describe('ContributorsSearch empty fallback', () => {
 
   it('moves from populated results to the fallback and back', async () => {
     const user = userEvent.setup();
-    render(
+    const { container } = render(
       <ContributorsSearch
         contributors={[
           {
@@ -58,8 +64,8 @@ describe('ContributorsSearch empty fallback', () => {
     expect(screen.getByText('No architects found')).toBeTruthy();
     expect(screen.queryByRole('link')).toBeNull();
 
-    await user.click(screen.getByRole('button', { name: 'Clear' }));
+    await user.click(screen.getByRole('button', { name: 'Clear search' }));
     expect(screen.getByRole('link', { name: /alice/i })).toBeTruthy();
-    expect(screen.getByText('1 of 1 contributors')).toBeTruthy();
+    expectContributorsCount(container, 1, 1);
   });
 });

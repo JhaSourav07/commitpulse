@@ -25,7 +25,7 @@ import {
 
 import { GRID_ORIGIN_X, GRID_ORIGIN_Y, TILE_HEIGHT_HALF, TILE_WIDTH_HALF } from './layoutConstants';
 
-import { SVG_WIDTH, SVG_HEIGHT } from './generatorConstants';
+import { SVG_WIDTH, SVG_HEIGHT, MAX_USERNAME_DISPLAY_LENGTH } from './generatorConstants';
 
 const FONT_MAP = {
   jetbrains: '"JetBrains Mono", monospace',
@@ -63,7 +63,9 @@ export function getSizeScale(size?: 'small' | 'medium' | 'large') {
 }
 
 export function truncateUsername(username: string): string {
-  return username.length > 12 ? `${username.slice(0, 12)}...` : username;
+  return username.length > MAX_USERNAME_DISPLAY_LENGTH
+    ? `${username.slice(0, MAX_USERNAME_DISPLAY_LENGTH)}...`
+    : username;
 }
 
 export function deterministicRandom(seed?: string | null): number {
@@ -148,17 +150,17 @@ function generateParticles(
     const fillAttr = autoTheme ? 'class="cp-accent-fill"' : `fill="${color}"`;
 
     particles += `
-      <circle ${fillAttr} cx="${x + offsetX}" cy="${y - height}" r="${1.5 * sf}" opacity="1" pointer-events="none">
-      ${
-        animate
-          ? `
-        <animate attributeName="cy" from="${y - height}" to="${y - height - Math.round(20 * sf)}" dur="1.5s" begin="${delay}s" repeatCount="indefinite" />
-        <animate attributeName="opacity" from="1" to="0" dur="1.5s" begin="${delay}s" repeatCount="indefinite" />
-      `
-          : ''
-      }
-      </circle>
-    `;
+       <circle ${fillAttr} cx="${x + offsetX}" cy="${y - height}" r="${1.5 * sf}" opacity="1" pointer-events="none">
+       ${
+         animate
+           ? `
+         <animate attributeName="cy" from="${y - height}" to="${y - height - Math.round(20 * sf)}" dur="1.5s" begin="${delay}s" repeatCount="indefinite" />
+         <animate attributeName="opacity" from="1" to="0" dur="1.5s" begin="${delay}s" repeatCount="indefinite" />
+       `
+           : ''
+       }
+       </circle>
+     `;
   }
   return `<g class="heat-particles" pointer-events="none">${particles}</g>`;
 }
@@ -217,13 +219,13 @@ function generateCustomGradients(params: BadgeParams): { gradients: string; grad
 
       const colorHex = color.startsWith('#') ? color : `#${color}`;
       stopElements += `
-        <stop offset="${offset}%" stop-color="${colorHex}" stop-opacity="${stopOpacity}" />`;
+         <stop offset="${offset}%" stop-color="${colorHex}" stop-opacity="${stopOpacity}" />`;
     });
 
     gradients += `
-      <linearGradient id="${levelId}" x1="${coords.x1}" y1="${coords.y1}" x2="${coords.x2}" y2="${coords.y2}">
+       <linearGradient id="${levelId}" x1="${coords.x1}" y1="${coords.y1}" x2="${coords.x2}" y2="${coords.y2}">
 ${stopElements}
-      </linearGradient>`;
+       </linearGradient>`;
   }
 
   params.__customGradientId = gradientId;
@@ -246,10 +248,10 @@ function renderDefs(sf: number, params: BadgeParams): string {
         for (let i = 0; i < 4; i++) {
           const level = i + 1;
           gradients += `
-      <linearGradient id="tower-grad-level-${level}" x1="0" y1="1" x2="0" y2="0">
-        <stop offset="0%" stop-color="var(--cp-bg)" stop-opacity="0.1" />
-        <stop offset="100%" stop-color="var(--cp-accent)" stop-opacity="${0.4 + i * 0.2}" />
-      </linearGradient>`;
+       <linearGradient id="tower-grad-level-${level}" x1="0" y1="1" x2="0" y2="0">
+         <stop offset="0%" stop-color="var(--cp-bg)" stop-opacity="0.1" />
+         <stop offset="100%" stop-color="var(--cp-accent)" stop-opacity="${0.4 + i * 0.2}" />
+       </linearGradient>`;
         }
       } else {
         const accent = params.accent;
@@ -266,10 +268,10 @@ function renderDefs(sf: number, params: BadgeParams): string {
         colors.forEach((c, idx) => {
           const level = idx + 1;
           gradients += `
-      <linearGradient id="tower-grad-level-${level}" x1="0" y1="1" x2="0" y2="0">
-        <stop offset="0%" stop-color="${bgHex}" stop-opacity="0.1" />
-        <stop offset="100%" stop-color="${c}" stop-opacity="${0.4 + idx * 0.2}" />
-      </linearGradient>`;
+       <linearGradient id="tower-grad-level-${level}" x1="0" y1="1" x2="0" y2="0">
+         <stop offset="0%" stop-color="${bgHex}" stop-opacity="0.1" />
+         <stop offset="100%" stop-color="${c}" stop-opacity="${0.4 + idx * 0.2}" />
+       </linearGradient>`;
         });
       }
     }
@@ -302,24 +304,24 @@ function renderDefs(sf: number, params: BadgeParams): string {
       const x2 = Math.round(50 + Math.cos(angleRad) * 50) + '%';
       const y2 = Math.round(50 + Math.sin(angleRad) * 50) + '%';
       canvasGradient = `
-      <linearGradient id="canvas-gradient" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}">
-        <stop offset="0%" stop-color="${bgStart}" />
-        <stop offset="100%" stop-color="${bgEnd}" />
-      </linearGradient>`;
+       <linearGradient id="canvas-gradient" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}">
+         <stop offset="0%" stop-color="${bgStart}" />
+         <stop offset="100%" stop-color="${bgEnd}" />
+       </linearGradient>`;
     } else {
       canvasGradient = `
-      <radialGradient id="canvas-gradient" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
-        <stop offset="0%" stop-color="${bgStart}" />
-        <stop offset="100%" stop-color="${bgEnd}" />
-      </radialGradient>`;
+       <radialGradient id="canvas-gradient" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
+         <stop offset="0%" stop-color="${bgStart}" />
+         <stop offset="100%" stop-color="${bgEnd}" />
+       </radialGradient>`;
     }
   }
 
   return `<defs>
-    ${filterGlow}
-    ${gradients}
-    ${canvasGradient}
-  </defs>`;
+     ${filterGlow}
+     ${gradients}
+     ${canvasGradient}
+   </defs>`;
 }
 
 function renderStatsSection(
@@ -1501,9 +1503,11 @@ function renderHeatmapGrid(
         day.date === todayDate ||
         (!todayInWindow && col === weeks.length - 1 && row === week.contributionDays.length - 1);
 
-      const unit = mode === 'loc' ? 'est. lines of code' : 'contributions';
+      const [yr, m, d] = day.date.split('-');
+      const formattedDate = `${MONTH_NAMES[parseInt(m, 10) - 1]} ${parseInt(d, 10)}`;
+      const unit = mode === 'loc' ? 'est. lines of code' : 'commits';
       const tooltipPrefix = isToday ? 'TODAY: ' : '';
-      const tooltip = `${tooltipPrefix}${day.date}: ${count} ${unit}`;
+      const tooltip = `${tooltipPrefix}${formattedDate}: ${count} ${unit}`;
 
       const fillAttr = isAutoTheme ? 'fill="var(--cp-accent)"' : `fill="${accent}"`;
       const filterAttr = intensity === 4 && glow !== false ? ' filter="url(#hm-glow)"' : '';
@@ -1977,7 +1981,7 @@ export function generateNotFoundSVG(
   </defs>
 
   <style>
-@import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');    .title  { font-family: "Syncopate", sans-serif; fill: ${text}; font-size: 18px; letter-spacing: 6px; font-weight: 400; opacity: 0.5; }
+@import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600&amp;display=swap');    .title  { font-family: "Syncopate", sans-serif; fill: ${text}; font-size: 18px; letter-spacing: 6px; font-weight: 400; opacity: 0.5; }
     .label  { font-family: "Roboto", sans-serif; fill: ${accent}; font-size: 11px; letter-spacing: 2px; opacity: 0.4; }
     .stats  { font-family: "Space Grotesk", sans-serif; fill: ${text}; font-size: 42px; font-weight: 500; opacity: 0.2; }
     .ghost-pulse { animation: gp 2.6s ease-in-out infinite; }
@@ -2891,9 +2895,9 @@ function renderSkylineSVG(
     `;
   }
 
-  const groundStroke = isAutoTheme ? 'var(--cp-accent)' : accent;
+  const strokeStroke = isAutoTheme ? 'var(--cp-accent)' : accent;
   const groundLine = `
-    <line x1="${paddingX}" y1="${bottomY}" x2="${width - paddingX}" y2="${bottomY}" stroke="${groundStroke}" stroke-width="1.5" stroke-opacity="0.6" filter="url(#horizonGlow)" />
+    <line x1="${paddingX}" y1="${bottomY}" x2="${width - paddingX}" y2="${bottomY}" stroke="${strokeStroke}" stroke-width="1.5" stroke-opacity="0.6" filter="url(#horizonGlow)" />
   `;
 
   const upperUser = escapeXML((params.user || 'GitHub User').toUpperCase());
@@ -2973,19 +2977,14 @@ function renderSkylineSVG(
 
   <rect width="${width}" height="${height}" rx="${radius}" class="${isAutoTheme && !params.hideBackground ? 'cp-bg-fill' : ''}" fill="${params.hideBackground ? 'transparent' : styleBg}" />
 
-  <!-- Sky glow gradient -->
   <rect x="${paddingX}" y="${paddingYTop - 20}" width="${graphWidth}" height="${graphHeight + 20}" fill="url(#skyGradient)" />
 
-  <!-- Stars Background -->
   <g class="cp-stars">${starsSVG}</g>
 
-  <!-- Skyline Buildings -->
   <g class="cp-skyline">${buildingsSVG}</g>
 
-  <!-- Horizon Ground Line -->
   ${groundLine}
 
-  <!-- Header Info -->
   ${!params.hide_title ? `<text x="30" y="38" class="title">${safeUser}</text>` : ''}
   ${
     !params.hide_stats
@@ -3202,7 +3201,6 @@ export function generateLanguagesSVG(
 
     const towerScale = TOWER_SCALE * sf;
     const paths = buildTowerPaths(h, towerScale);
-    const th = 10 * towerScale;
 
     const hexColor = lang.color.startsWith('#') ? lang.color : `#${lang.color}`;
     const delay = (idx * 0.15).toFixed(3);
@@ -3234,4 +3232,405 @@ export function generateLanguagesSVG(
   
   ${renderFooter(stats, params, labels, safeUser, accent, sf)}
 </svg>`;
+}
+
+// ─── Activity Graph View ───────────────────────────────────────────────────
+
+export function generateActivityGraphSVG(
+  stats: StreakStats,
+  params: BadgeParams,
+  calendar: ContributionCalendar
+): string {
+  if (params.autoTheme) return generateAutoThemeActivityGraphSVG(stats, params, calendar);
+
+  const safeUser = escapeXML(params.user || 'GitHub User');
+  const bg = `#${sanitizeHexColor(params.bg, '0d1117')}`;
+  const bgFill =
+    params.bgType === 'linear' || params.bgType === 'radial' ? 'url(#canvas-gradient)' : bg;
+
+  const rawAccent = Array.isArray(params.accent)
+    ? params.accent[params.accent.length - 1]
+    : params.accent;
+  const accent = `#${sanitizeHexColor(rawAccent, '00ffaa')}`;
+  const text = `#${sanitizeHexColor(params.text, 'ffffff')}`;
+
+  const sanitizedFont = sanitizeFont(params.font);
+  const selectedFont = resolveFont(sanitizedFont);
+  const isPredefinedFont = isBundledFont(sanitizedFont);
+  const statsFont = selectedFont || '"Space Grotesk", sans-serif';
+  const googleFontUrlPart =
+    sanitizedFont && !isPredefinedFont ? sanitizeGoogleFontUrl(sanitizedFont) : null;
+  const googleFontsImport = googleFontUrlPart
+    ? `@import url('https://fonts.googleapis.com/css2?family=${googleFontUrlPart}&amp;display=swap');`
+    : '';
+
+  const parsedRadius = Number(params.radius);
+  const radius = Math.max(0, Math.min(Number.isNaN(parsedRadius) ? 8 : parsedRadius, 50));
+
+  const width = params.width || 800;
+  const height = params.height || 220;
+
+  const { pathD, areaPathD, trendPathD, peakX, peakY, peakCount, peakDate, days, totalCount } =
+    _buildActivityGraphData(calendar, params, width, height);
+
+  const safeId = safeUser.replace(/[^a-zA-Z0-9-]/g, '_').toLowerCase();
+  const unit = params.mode === 'loc' ? 'LINES (EST.)' : 'COMMITS';
+
+  return `
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  width="${width}"
+  height="${height}"
+  viewBox="0 0 ${width} ${height}"
+  fill="none"
+  role="img"
+  aria-labelledby="cp-title-${safeId}"
+  aria-describedby="cp-desc-${safeId}"
+>
+  <title id="cp-title-${safeId}">Activity Graph for ${safeUser}</title>
+  <desc id="cp-desc-${safeId}">Contribution activity graph for ${safeUser} over ${days} days, totalling ${totalCount} ${unit.toLowerCase()}.</desc>
+  &lt;!--_renderActivityGraphDefs(accent, bg, params)--&gt;
+  <style>
+  @import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');
+  ${googleFontsImport}
+  &lt;!--_activityGraphCSS(selectedFont, statsFont, text, accent, false)--&gt;
+  </style>
+  <rect width="${width}" height="${height}" rx="${radius}" fill="${params.hideBackground ? 'transparent' : bgFill}" />
+  <path class="ag-area" d="${areaPathD}" />
+  <path class="ag-trend" d="${trendPathD}" stroke="${accent}" />
+  <path class="ag-line" d="${pathD}" stroke="${accent}" />
+  &lt;!--_renderPeakAnnotation(peakX, peakY, peakCount, peakDate, accent, text, statsFont, false)--&gt;
+  ${!params.hide_title ? `<text x="24" y="28" class="ag-title">${safeUser.toUpperCase()}${params.isOfflineFallback ? '<tspan fill="#ff9f43" font-size="10px" font-weight="bold"> [STALE CACHE]</tspan>' : ''}</text>` : ''}
+  ${!params.hide_stats ? `<text x="${width - 24}" y="28" text-anchor="end" class="ag-total">${totalCount} ${unit}</text>` : ''}
+</svg>
+`;
+}
+
+function generateAutoThemeActivityGraphSVG(
+  stats: StreakStats,
+  params: BadgeParams,
+  calendar: ContributionCalendar
+): string {
+  const light = AUTO_THEME_LIGHT;
+  const dark = AUTO_THEME_DARK;
+  const safeUser = escapeXML(params.user || 'GitHub User');
+
+  const sanitizedFont = sanitizeFont(params.font);
+  const selectedFont = resolveFont(sanitizedFont);
+  const isPredefinedFont = isBundledFont(sanitizedFont);
+  const statsFont = selectedFont || '"Space Grotesk", sans-serif';
+  const googleFontUrlPart =
+    sanitizedFont && !isPredefinedFont ? sanitizeGoogleFontUrl(sanitizedFont) : null;
+  const googleFontsImport = googleFontUrlPart
+    ? `@import url('https://fonts.googleapis.com/css2?family=${googleFontUrlPart}&amp;display=swap');`
+    : '';
+
+  const parsedRadius = Number(params.radius);
+  const radius = Math.max(0, Math.min(Number.isNaN(parsedRadius) ? 8 : parsedRadius, 50));
+
+  const width = params.width || 800;
+  const height = params.height || 220;
+
+  const { pathD, areaPathD, trendPathD, peakX, peakY, peakCount, peakDate, days, totalCount } =
+    _buildActivityGraphData(calendar, params, width, height);
+
+  const safeId = safeUser.replace(/[^a-zA-Z0-9-]/g, '_').toLowerCase();
+  const unit = params.mode === 'loc' ? 'LINES (EST.)' : 'COMMITS';
+
+  return `
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  width="${width}"
+  height="${height}"
+  viewBox="0 0 ${width} ${height}"
+  fill="none"
+  role="img"
+  aria-labelledby="cp-title-${safeId}"
+  aria-describedby="cp-desc-${safeId}"
+>
+  <title id="cp-title-${safeId}">Activity Graph for ${safeUser}</title>
+  <desc id="cp-desc-${safeId}">Contribution activity graph for ${safeUser} over ${days} days, totalling ${totalCount} ${unit.toLowerCase()}.</desc>
+  <defs>
+    <linearGradient id="ag-area-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="var(--cp-accent)" stop-opacity="0.35" />
+      <stop offset="100%" stop-color="var(--cp-accent)" stop-opacity="0.0" />
+    </linearGradient>
+    <filter id="ag-glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="4" result="blur" />
+      <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+    </filter>
+  </defs>
+  <style>
+  @import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');
+  ${googleFontsImport}
+  :root { --cp-bg: #${light.bg}; --cp-text: #${light.text}; --cp-accent: #${light.accent}; }
+  @media (prefers-color-scheme: dark) { :root { --cp-bg: #${dark.bg}; --cp-text: #${dark.text}; --cp-accent: #${dark.accent}; } }
+  .cp-bg-fill { fill: var(--cp-bg); }
+  &lt;!--_activityGraphCSS(selectedFont, statsFont, 'var(--cp-text)', 'var(--cp-accent)', true)--&gt;
+  </style>
+  <rect width="${width}" height="${height}" rx="${radius}" ${params.hideBackground ? 'fill="transparent"' : 'class="cp-bg-fill"'} />
+  <path class="ag-area" d="${areaPathD}" />
+  <path class="ag-trend" d="${trendPathD}" stroke="var(--cp-accent)" />
+  <path class="ag-line" d="${pathD}" stroke="var(--cp-accent)" />
+  &lt;!--_renderPeakAnnotation(peakX, peakY, peakCount, peakDate, 'var(--cp-accent)', 'var(--cp-text)', statsFont, true)--&gt;
+  ${!params.hide_title ? `<text x="24" y="28" class="ag-title">${safeUser.toUpperCase()}${params.isOfflineFallback ? '<tspan fill="#ff9f43" font-size="10px" font-weight="bold"> [STALE CACHE]</tspan>' : ''}</text>` : ''}
+  ${!params.hide_stats ? `<text x="${width - 24}" y="28" text-anchor="end" class="ag-total">${totalCount} ${unit}</text>` : ''}
+</svg>
+`;
+}
+
+interface ActivityGraphData {
+  pathD: string;
+  areaPathD: string;
+  trendPathD: string;
+  peakX: number;
+  peakY: number;
+  peakCount: number;
+  peakDate: string;
+  days: number;
+  totalCount: number;
+}
+
+function _buildActivityGraphData(
+  calendar: ContributionCalendar,
+  params: BadgeParams,
+  width: number,
+  height: number
+): ActivityGraphData {
+  // Flatten all days from the calendar (already filtered to from/to by API)
+  const allDays = calendar.weeks.flatMap((w) => w.contributionDays);
+
+  // Deduplicate by date, preserving order
+  const seen = new Set<string>();
+  const uniqueDays = allDays.filter((d) => {
+    if (!d || seen.has(d.date)) return false;
+    seen.add(d.date);
+    return true;
+  });
+
+  const counts = uniqueDays.map((d) =>
+    params.mode === 'loc' ? (d.locAdditions || 0) + (d.locDeletions || 0) : d.contributionCount
+  );
+
+  const totalCount = counts.reduce((s, c) => s + c, 0);
+  const n = counts.length;
+
+  const paddingX = 40;
+  const paddingYTop = 46;
+  const paddingYBottom = 24;
+  const graphWidth = width - paddingX * 2;
+  const graphHeight = height - paddingYTop - paddingYBottom;
+  const bottomY = paddingYTop + graphHeight;
+
+  const maxCount = Math.max(...counts, 1);
+  const minCount = Math.min(...counts);
+  const range = maxCount - minCount || 1;
+
+  const stepX = n > 1 ? graphWidth / (n - 1) : graphWidth;
+
+  // Point coordinates
+  const pts = counts.map((c, i) => {
+    const x = paddingX + i * stepX;
+    const normalized = (c - minCount) / range;
+    const y = paddingYTop + graphHeight - normalized * graphHeight;
+    return { x, y, c, date: uniqueDays[i]?.date ?? '' };
+  });
+
+  // Smooth cubic bezier area chart path
+  let pathD = '';
+  pts.forEach((pt, i) => {
+    if (i === 0) {
+      pathD += `M ${pt.x} ${pt.y}`;
+    } else {
+      const prev = pts[i - 1];
+      const cp1x = prev.x + stepX / 2;
+      const cp2x = pt.x - stepX / 2;
+      pathD += ` C ${cp1x} ${prev.y}, ${cp2x} ${pt.y}, ${pt.x} ${pt.y}`;
+    }
+  });
+
+  const lastPt = pts[pts.length - 1] ?? { x: paddingX, y: bottomY };
+  const firstPt = pts[0] ?? { x: paddingX, y: bottomY };
+  const areaPathD = n > 0 ? `${pathD} L ${lastPt.x} ${bottomY} L ${firstPt.x} ${bottomY} Z` : '';
+
+  // Linear trend line (least-squares regression)
+  let sumX = 0,
+    sumY = 0,
+    sumXY = 0,
+    sumXX = 0;
+  pts.forEach(({ x, y }) => {
+    sumX += x;
+    sumY += y;
+    sumXY += x * y;
+    sumXX += x * x;
+  });
+  const slope = n > 1 ? (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX) : 0;
+  const intercept = n > 0 ? (sumY - slope * sumX) / n : paddingYTop + graphHeight / 2;
+  const trendY1 = slope * firstPt.x + intercept;
+  const trendY2 = slope * lastPt.x + intercept;
+  const trendPathD = n > 1 ? `M ${firstPt.x} ${trendY1} L ${lastPt.x} ${trendY2}` : '';
+
+  // Peak point
+  let peakIdx = 0;
+  counts.forEach((c, i) => {
+    if (c > counts[peakIdx]) peakIdx = i;
+  });
+  const peakPt = pts[peakIdx] ?? { x: paddingX, y: paddingYTop, date: '' };
+
+  return {
+    pathD,
+    areaPathD,
+    trendPathD,
+    peakX: peakPt.x,
+    peakY: peakPt.y,
+    peakCount: counts[peakIdx] ?? 0,
+    peakDate: peakPt.date,
+    days: n,
+    totalCount,
+  };
+}
+
+function _renderActivityGraphDefs(accent: string, bg: string, params: BadgeParams): string {
+  const bgFill =
+    params.bgType === 'linear' || params.bgType === 'radial' ? 'url(#canvas-gradient)' : bg;
+
+  let canvasGradient = '';
+  if (params.bgType === 'linear' || params.bgType === 'radial') {
+    const bgStart = params.bgStart
+      ? params.bgStart.startsWith('#')
+        ? params.bgStart
+        : `#${params.bgStart}`
+      : '#0d1117';
+    const bgEnd = params.bgEnd
+      ? params.bgEnd.startsWith('#')
+        ? params.bgEnd
+        : `#${params.bgEnd}`
+      : '#000000';
+    if (params.bgType === 'linear') {
+      const angle = params.bgAngle ?? 90;
+      const angleRad = (angle - 90) * (Math.PI / 180);
+      const x1 = Math.round(50 + Math.cos(angleRad + Math.PI) * 50) + '%';
+      const y1 = Math.round(50 + Math.sin(angleRad + Math.PI) * 50) + '%';
+      const x2 = Math.round(50 + Math.cos(angleRad) * 50) + '%';
+      const y2 = Math.round(50 + Math.sin(angleRad) * 50) + '%';
+      canvasGradient = `<linearGradient id="canvas-gradient" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}">
+        <stop offset="0%" stop-color="${bgStart}" />
+        <stop offset="100%" stop-color="${bgEnd}" />
+      </linearGradient>`;
+    } else {
+      canvasGradient = `<radialGradient id="canvas-gradient" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
+        <stop offset="0%" stop-color="${bgStart}" />
+        <stop offset="100%" stop-color="${bgEnd}" />
+      </radialGradient>`;
+    }
+  }
+
+  return `<defs>
+    <linearGradient id="ag-area-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="${accent}" stop-opacity="0.35" />
+      <stop offset="100%" stop-color="${accent}" stop-opacity="0.0" />
+    </linearGradient>
+    <filter id="ag-glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="4" result="blur" />
+      <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+    </filter>
+    ${canvasGradient}
+  </defs>`;
+}
+
+function _activityGraphCSS(
+  selectedFont: string | null,
+  statsFont: string,
+  text: string,
+  accent: string,
+  isAutoTheme: boolean
+): string {
+  const areaFill = isAutoTheme ? 'url(#ag-area-grad)' : 'url(#ag-area-grad)';
+  return `
+  .ag-title { font-family: ${selectedFont || '"Syncopate", sans-serif'}; fill: ${text}; font-size: 13px; letter-spacing: 3px; font-weight: 700; opacity: 0.85; }
+  .ag-total { font-family: ${statsFont}; fill: ${accent}; font-size: 15px; font-weight: 600; }
+  .ag-area {
+    fill: ${areaFill};
+    opacity: 0;
+    animation: ag-fade-in 1.2s ease-out 0.4s forwards;
+  }
+  .ag-line {
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    filter: url(#ag-glow);
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    animation: ag-draw 2.2s ease-out forwards;
+  }
+  .ag-trend {
+    fill: none;
+    stroke-width: 1.2;
+    stroke-dasharray: 5 4;
+    opacity: 0.45;
+    stroke-linecap: round;
+  }
+  .ag-peak-dot {
+    animation: ag-pulse 1.8s ease-in-out infinite;
+  }
+  @keyframes ag-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+  @keyframes ag-fade-in { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes ag-pulse { 0%,100% { r: 4; opacity: 0.9; } 50% { r: 6; opacity: 0.4; } }
+  @media (prefers-reduced-motion: reduce) {
+    .ag-line { animation: none !important; stroke-dashoffset: 0; }
+    .ag-area { animation: none !important; opacity: 1; }
+    .ag-peak-dot { animation: none !important; }
+  }`;
+}
+
+function _renderPeakAnnotation(
+  peakX: number,
+  peakY: number,
+  peakCount: number,
+  peakDate: string,
+  accent: string,
+  text: string,
+  statsFont: string,
+  isAutoTheme: boolean
+): string {
+  if (peakCount === 0) return '';
+
+  // Format date label: "MMM D"
+  let dateLabel = '';
+  if (peakDate) {
+    const parts = peakDate.split('-');
+    const monthAbbrs = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    const m = parts[1] ? monthAbbrs[parseInt(parts[1], 10) - 1] : '';
+    const d = parts[2] ? parseInt(parts[2], 10) : '';
+    dateLabel = m && d ? ` ${m} ${d}` : '';
+  }
+
+  // Flip label above or below to avoid clipping at top
+  const labelY = peakY < 50 ? peakY + 22 : peakY - 14;
+  const textAnchor = peakX > 600 ? 'end' : peakX < 200 ? 'start' : 'middle';
+  const dotFill = isAutoTheme ? 'var(--cp-accent)' : accent;
+  const labelFill = isAutoTheme ? 'var(--cp-accent)' : accent;
+  const dateFill = isAutoTheme ? 'var(--cp-text)' : text;
+
+  return `
+  <g class="ag-peak">
+    <circle cx="${peakX.toFixed(1)}" cy="${peakY.toFixed(1)}" r="5" fill="${dotFill}" opacity="0.25" />
+    <circle class="ag-peak-dot" cx="${peakX.toFixed(1)}" cy="${peakY.toFixed(1)}" r="4" fill="${dotFill}" />
+    <text x="${peakX.toFixed(1)}" y="${labelY.toFixed(1)}" text-anchor="${textAnchor}"
+      font-family="${statsFont.replace(/"/g, "'")}" font-size="11" font-weight="700" fill="${labelFill}">${peakCount}${dateLabel ? `<tspan font-size="9.5" font-weight="400" fill="${dateFill}" opacity="0.7">${escapeXML(dateLabel)}</tspan>` : ''}</text>
+  </g>`;
 }

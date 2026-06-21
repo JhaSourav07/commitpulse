@@ -378,6 +378,7 @@ const baseStreakParamsSchema = z.object({
       'radar',
       'doughnut',
       'pie',
+      'activity_graph',
     ])
     .catch('default')
     .default('default'),
@@ -501,6 +502,23 @@ const baseStreakParamsSchema = z.object({
       { message: 'Invalid layout format. Supported values: default, compact, full.' }
     )
     .transform((val) => (!val ? undefined : val)),
+
+  // border parameter: optional hex color for SVG badge border stroke
+  border: z
+    .string()
+    .optional()
+    .refine(
+      (val) => {
+        if (val === undefined || val === '') return true;
+        const cleanVal = val.replace(/^#/, '');
+        return /^[0-9a-fA-F]{3,4}$|^[0-9a-fA-F]{6,8}$/.test(cleanVal);
+      },
+      { message: 'border must be a valid hex color (with or without #)' }
+    )
+    .transform((val) => {
+      if (!val) return undefined;
+      return sanitizeHexColor(val, '58a6ff');
+    }),
 });
 
 export const streakParamsSchema = baseStreakParamsSchema.refine(
@@ -511,17 +529,59 @@ export const streakParamsSchema = baseStreakParamsSchema.refine(
   }
 );
 
+const HEX_REGEX = /^([A-Fa-f0-9]{3,4}|[A-Fa-f0-9]{6}|[A-Fa-f0-9]{8})$/;
+
 export const githubParamsSchema = z.object({
-  username: z
-    .string({ error: 'Missing "username" parameter' })
-    .trim()
-    .min(1, { message: 'Username is required' })
-    .max(39, { message: 'GitHub username cannot exceed 39 characters' })
-    .regex(GITHUB_USERNAME_REGEX, {
-      message: 'Invalid GitHub username',
-    }),
-  refresh: z.string().optional().transform(toRefreshFlag),
-  bypassCache: z.string().optional().transform(toRefreshFlag),
+  // Preprocess leaves undefined untouched so we can distinguish missing vs empty string
+  username: z.preprocess(
+    (val) => (typeof val === 'string' ? val.trim() : val),
+    z
+      .custom<string>()
+      .refine((val) => val !== undefined && val !== null, {
+        message: 'Missing "username" parameter',
+      })
+      .transform((val) => String(val))
+      .refine((val) => val.length > 0, {
+        message: 'Username is required',
+      })
+      .refine((val) => val.length <= 39, {
+        message: 'GitHub username cannot exceed 39 characters',
+      })
+      .refine((val) => validateGitHubUsername(val), {
+        message: 'Invalid GitHub username',
+      })
+  ),
+
+  bg: z
+    .string()
+    .optional()
+    .transform((val) => val?.replace('#', '') || 'ffffff')
+    .refine((val) => HEX_REGEX.test(val))
+    .catch('ffffff'),
+
+  accent: z
+    .string()
+    .optional()
+    .transform((val) => val?.replace('#', '') || 'ff6b35')
+    .refine((val) => HEX_REGEX.test(val))
+    .catch('ff6b35'),
+
+  width: z
+    .string()
+    .optional()
+    .transform((val) => (val ? parseInt(val, 10) : 400))
+    .refine((val) => !isNaN(val) && val >= 100 && val <= 2000)
+    .catch(400),
+
+  height: z
+    .string()
+    .optional()
+    .transform((val) => (val ? parseInt(val, 10) : 150))
+    .refine((val) => !isNaN(val) && val >= 100 && val <= 2000)
+    .catch(150),
+
+  refresh: z.preprocess((val) => val === 'true', z.boolean()).default(false),
+  bypassCache: z.preprocess((val) => val === 'true', z.boolean()).default(false),
 });
 
 export const compareParamsSchema = z

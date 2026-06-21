@@ -1215,7 +1215,64 @@ describe('getFullDashboardData', () => {
     ]);
     expect(result.insights).toBeDefined();
   });
+  it('forwards the per-user token to deployment tracker requests instead of using the shared pool', async () => {
+    const capturedAuthHeaders: string[] = [];
 
+    vi.mocked(fetch).mockImplementation(async (url: RequestInfo | URL, init?: RequestInit) => {
+      const urlStr = typeof url === 'string' ? url : (url?.toString() ?? '');
+
+      if (urlStr.includes('/actions/runs') || urlStr.includes('/deployments')) {
+        const headers = init?.headers as Record<string, string> | undefined;
+        capturedAuthHeaders.push(headers?.Authorization ?? '');
+        if (urlStr.includes('/actions/runs')) {
+          return mockResponse({ workflow_runs: [] });
+        }
+        return mockResponse([]);
+      }
+      if (urlStr.includes('/users/octocat/repos')) {
+        return mockResponse([
+          {
+            name: 'repo1',
+            stargazers_count: 10,
+            language: 'TypeScript',
+            fork: false,
+            owner: { login: 'octocat' },
+          },
+        ]);
+      }
+      if (urlStr.includes('/users/octocat')) {
+        return mockResponse({
+          login: 'octocat',
+          name: 'The Octocat',
+          avatar_url: 'avatar.png',
+          public_repos: 1,
+          followers: 1,
+          following: 1,
+          created_at: '2020-01-01T00:00:00Z',
+          bio: null,
+          location: null,
+        });
+      }
+      return mockResponse({
+        data: {
+          user: {
+            contributionsCollection: {
+              contributionCalendar: mockCalendar,
+              commitContributionsByRepository: [],
+            },
+          },
+        },
+      });
+    });
+
+    const userToken = 'user-personal-oauth-token';
+    await getFullDashboardData('octocat', { token: userToken });
+
+    expect(capturedAuthHeaders.length).toBeGreaterThan(0);
+    for (const authHeader of capturedAuthHeaders) {
+      expect(authHeader).toBe(`bearer ${userToken}`);
+    }
+  });
   it('caps developerScore at 100 for extreme profile metrics', async () => {
     const saturatedCalendar: ContributionCalendar = {
       totalContributions: 500,

@@ -96,7 +96,10 @@ export function computeFaceOpacity(count: number, isGhostCityMode: boolean): Fac
 }
 
 /**
- * Projects 2D grid coordinates (weekIndex, dayIndex) into 3D isometric screen coordinates.
+ * Projects 2D grid coordinates (weekIndex, dayIndex) into 3D isometric
+ * screen coordinates using the shared grid constants from layoutConstants.ts.
+ * Tower positions computed here must use the same constants as label positions
+ * in renderIsometricLabels() to prevent coordinate drift on ?labels=true badges.
  *
  * @param weekIndex The week column index (0 to 13).
  * @param dayIndex The day-of-week row index (0 to 6).
@@ -165,10 +168,27 @@ export function computeTowers(
       const isGhost = !hasCommits && shouldShowGhostCity;
       const isTodayWithCommits = isToday && hasCommits;
 
-      const unit = mode === 'loc' ? 'est. lines of code' : 'contributions';
+      const [y, m, d] = day.date.split('-');
+      const monthNames = [
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec',
+      ];
+      const formattedDate = `${monthNames[parseInt(m, 10) - 1]} ${parseInt(d, 10)}`;
+
+      const unit = mode === 'loc' ? 'est. lines of code' : 'commits';
       const tooltip = isToday
-        ? `TODAY: ${day.date}: ${count} ${unit}`
-        : `${day.date}: ${count} ${unit}`;
+        ? `TODAY: ${formattedDate}: ${count} ${unit}`
+        : `${formattedDate}: ${count} ${unit}`;
 
       const dayOfWeekIndex = new Date(day.date).getUTCDay();
       const coords = projectIsometric(i, dayOfWeekIndex);

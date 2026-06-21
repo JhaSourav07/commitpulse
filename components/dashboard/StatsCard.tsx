@@ -50,7 +50,7 @@ export default function StatsCard({
     >
       <div className="flex justify-between items-start mb-6">
         <div>
-          <p className="text-xs text-[#A1A1AA] uppercase tracking-widest font-medium mb-3">
+          <p className="text-xs text-gray-500 uppercase tracking-widest font-medium mb-3">
             {title}
           </p>
 
@@ -58,15 +58,15 @@ export default function StatsCard({
             {value}
           </p>
 
-          <p className="text-xs text-[#A1A1AA] mt-1.5">{description}</p>
+          <p className="text-xs text-gray-500 mt-1.5">{description}</p>
 
           {showUTCDisclaimer && (
             <div className="mt-3 space-y-1">
-              <p className="text-[11px] text-[#71717A] leading-relaxed">
+              <p className="text-[11px] text-gray-500 leading-relaxed">
                 ℹ {t('dashboard.stats.utc_disclaimer')}
               </p>
 
-              {utcDate && <p className="text-[10px] text-[#52525B]">UTC Date: {utcDate}</p>}
+              {utcDate && <p className="text-[10px] text-gray-500">UTC Date: {utcDate}</p>}
             </div>
           )}
         </div>
@@ -74,7 +74,7 @@ export default function StatsCard({
         <div className="p-2 rounded-lg bg-gray-100 dark:bg-[#111] border border-black/10 dark:border-[rgba(255,255,255,0.06)] group-hover:border-[rgba(99,102,241,0.2)] transition-colors duration-200">
           <IconComponent
             size={18}
-            className="text-[#A1A1AA] group-hover:text-black dark:group-hover:text-white transition-colors duration-200"
+            className="text-gray-500 group-hover:text-black dark:group-hover:text-white transition-colors duration-200"
           />
         </div>
       </div>

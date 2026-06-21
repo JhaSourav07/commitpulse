@@ -25,6 +25,7 @@ import {
   generatePulseSVG,
   generateSkylineSVG,
   generateLanguagesSVG,
+  generateActivityGraphSVG,
 } from '@/lib/svg/generator';
 import { generateConstellationSVG } from '@/lib/svg/constellation';
 import { generateRadarSVG } from '@/lib/svg/radar';
@@ -164,6 +165,7 @@ export async function GET(request: Request) {
       entrance,
       theta,
       phi,
+      border,
     } = parseResult.data;
     const normalizedView = view as
       | 'default'
@@ -175,7 +177,8 @@ export async function GET(request: Request) {
       | 'constellation'
       | 'radar'
       | 'doughnut'
-      | 'pie';
+      | 'pie'
+      | 'activity_graph';
     const themeName = theme || 'dark';
 
     const ip = getClientIp(request);
@@ -311,8 +314,6 @@ export async function GET(request: Request) {
             .slice(0, 2)
             .join(' + ')
         : user);
-    const borderParam = searchParams.get('border');
-    const sanitizedBorder = borderParam ? borderParam.replace(/[^a-fA-F0-9]/g, '') : undefined;
     const animate = searchParams.get('animate') !== 'false';
     // Validate and clamp the speed param to prevent broken SVG animation
     const rawSpeedNum = speed ? parseFloat(String(speed)) : NaN;
@@ -323,6 +324,7 @@ export async function GET(request: Request) {
     ) as `${number}s`;
     const params: BadgeParams = {
       user: targetEntity,
+      theme: themeName,
       bg: isAutoTheme ? selectedTheme.bg : bg || selectedTheme.bg,
       bgType,
       bgStart,
@@ -330,7 +332,7 @@ export async function GET(request: Request) {
       bgAngle,
       text: isAutoTheme ? selectedTheme.text : text || selectedTheme.text,
       accent: isAutoTheme ? selectedTheme.accent : accent || selectedTheme.accent,
-      border: sanitizedBorder,
+      border,
       radius,
       speed: validatedSpeed,
       scale,
@@ -560,6 +562,9 @@ export async function GET(request: Request) {
     } else if (normalizedView === 'doughnut' || normalizedView === 'pie') {
       const stats = calculateStreak(calendar, timezone, undefined, grace);
       svg = generateDoughnutSVG(stats, params, calendar);
+    } else if (normalizedView === 'activity_graph') {
+      const stats = calculateStreak(calendar, timezone, undefined, grace);
+      svg = generateActivityGraphSVG(stats, params, calendar);
     } else if (versus && versusCalendar) {
       // Normalize both calendars to the target timezone for accurate comparison
       const normalizedCalendar = normalizeCalendarToTimezone(calendar, timezone);
@@ -580,7 +585,7 @@ export async function GET(request: Request) {
       ? 'no-cache, no-store, must-revalidate'
       : isHistoricalYear
         ? 'public, max-age=31536000, s-maxage=31536000, immutable'
-        : `public, max-age=14400, s-maxage=${secondsToMidnight}, stale-while-revalidate=7200`;
+        : `public, max-age=60, s-maxage=${secondsToMidnight}, stale-while-revalidate=60`;
 
     const etag = crypto.createHash('sha256').update(svg).digest('hex');
     const weakEtag = `W/"${etag}"`;

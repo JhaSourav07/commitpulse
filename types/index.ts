@@ -263,6 +263,9 @@ export interface BadgeParams {
   /** When true, automatically selects a theme based on the viewer's system color scheme. */
   autoTheme?: boolean;
 
+  /** Predefined theme name to use for the badge color palette. Overridden by explicit bg/text/accent parameters. */
+  theme?: string;
+
   /** When true, hides the username title from the badge. */
   hide_title?: boolean;
 
@@ -286,7 +289,8 @@ export interface BadgeParams {
     | 'constellation'
     | 'radar'
     | 'doughnut'
-    | 'pie';
+    | 'pie'
+    | 'activity_graph';
 
   /** Format for the monthly delta indicator. 'percent' shows %, 'absolute' shows raw count, 'both' shows both. */
   delta_format?: 'percent' | 'absolute' | 'both';

@@ -1557,6 +1557,7 @@ export interface PopularRepo {
   stargazerCount: number;
   forkCount: number;
   url: string;
+  createdAt: string;
   primaryLanguage: { name: string; color: string } | null;
 }
 
@@ -1572,6 +1573,7 @@ export async function fetchPinnedRepos(username: string, token?: string): Promis
               stargazerCount
               forkCount
               url
+              createdAt
               primaryLanguage {
                 name
                 color
@@ -1614,6 +1616,7 @@ async function fetchPopularRepos(username: string, token?: string): Promise<Popu
             stargazerCount
             forkCount
             url
+            createdAt
             primaryLanguage {
               name
               color
@@ -1655,6 +1658,7 @@ async function fetchStarredRepos(username: string, token?: string): Promise<Popu
             stargazerCount
             forkCount
             url
+            createdAt
             primaryLanguage {
               name
               color
@@ -1725,17 +1729,19 @@ function mapConclusionToStatus(
 /** Fetch the most recent workflow run for a single repo (used for the status badge). */
 async function fetchLatestWorkflowRun(
   owner: string,
-  repo: string
+  repo: string,
+  token?: string
 ): Promise<GitHubWorkflowRun | null> {
   try {
     const res = await fetchWithRetry(
       `${GITHUB_REST_URL}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/actions/runs?per_page=1`,
       {
-        headers: getHeaders(),
+        headers: getHeaders(token),
         cache: 'no-store',
       },
       0,
-      REST_TIMEOUT_MS
+      REST_TIMEOUT_MS,
+      token
     );
     if (!res.ok) return null;
     const data = await res.json();
@@ -1749,7 +1755,8 @@ async function fetchLatestWorkflowRun(
 /** Fetch the most recent deployment + its latest status for a single repo. */
 async function fetchLatestDeployment(
   owner: string,
-  repo: string
+  repo: string,
+  token?: string
 ): Promise<{
   deployment: GitHubDeployment;
   deploymentStatus: GitHubDeploymentStatus | null;
@@ -1758,11 +1765,12 @@ async function fetchLatestDeployment(
     const res = await fetchWithRetry(
       `${GITHUB_REST_URL}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/deployments?per_page=1&environment=production`,
       {
-        headers: getHeaders(),
+        headers: getHeaders(token),
         cache: 'no-store',
       },
       0,
-      REST_TIMEOUT_MS
+      REST_TIMEOUT_MS,
+      token
     );
     if (!res.ok) return null;
     const deployments = (await res.json()) as GitHubDeployment[];
@@ -1772,11 +1780,12 @@ async function fetchLatestDeployment(
     const statusRes = await fetchWithRetry(
       `${GITHUB_REST_URL}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/deployments/${deployment.id}/statuses?per_page=1`,
       {
-        headers: getHeaders(),
+        headers: getHeaders(token),
         cache: 'no-store',
       },
       0,
-      REST_TIMEOUT_MS
+      REST_TIMEOUT_MS,
+      token
     );
     const statuses = statusRes.ok ? ((await statusRes.json()) as GitHubDeploymentStatus[]) : [];
     return { deployment, deploymentStatus: statuses?.[0] ?? null };
@@ -1795,7 +1804,8 @@ async function fetchLatestDeployment(
 async function fetchDeploymentTrackerData(
   username: string,
   reposData: GitHubRepo[],
-  limit = 3
+  limit = 3,
+  token?: string
 ): Promise<import('../types/dashboard').DeploymentData[]> {
   // Only consider non-fork repos, most-recently-pushed first (reposData is
   // already sorted by `pushed` from fetchUserRepos). Check a slightly larger
@@ -1807,8 +1817,8 @@ async function fetchDeploymentTrackerData(
     candidates.map(async (repo) => {
       const owner = repo.owner?.login || username;
       const [workflowRun, deploymentInfo] = await Promise.all([
-        fetchLatestWorkflowRun(owner, repo.name),
-        fetchLatestDeployment(owner, repo.name),
+        fetchLatestWorkflowRun(owner, repo.name, token),
+        fetchLatestDeployment(owner, repo.name, token),
       ]);
 
       // Skip repos with no shipping signal at all
@@ -1902,7 +1912,9 @@ export async function getFullDashboardData(username: string, options: FetchOptio
   const pinnedRepos = pinnedReposResult.status === 'fulfilled' ? pinnedReposResult.value : [];
   const starredRepos = starredReposResult.status === 'fulfilled' ? starredReposResult.value : [];
 
-  const deployments = await fetchDeploymentTrackerData(username, reposData).catch(() => []);
+  const deployments = await fetchDeploymentTrackerData(username, reposData, 3, options.token).catch(
+    () => []
+  );
 
   const streakStats = calculateStreak(calendarData);
   const totalStars = reposData.reduce((acc, r) => acc + r.stargazers_count, 0);

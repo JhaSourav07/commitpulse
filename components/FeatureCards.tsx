@@ -323,7 +323,7 @@ export function FeatureCard({ icon, title, desc, accent, index, accentColor }: F
   return (
     <div
       ref={cardRef}
-      className="relative cursor-pointer"
+      className="relative cursor-pointer h-full"
       style={{
         transformStyle: 'preserve-3d',
         perspective: '800px',
@@ -333,7 +333,7 @@ export function FeatureCard({ icon, title, desc, accent, index, accentColor }: F
       {/* Animated rotating conic gradient border on hover */}
       <AnimatedBorder color={accentColor} isHovered={hovered} />
 
-      <div className="group relative overflow-hidden rounded-3xl border border-black/5 bg-white/60 p-8 shadow-xl shadow-black/5 dark:border-white/[0.08] dark:bg-[#0a0a0a]/90 dark:shadow-2xl dark:shadow-black/50 backdrop-blur-xl transition-colors duration-300">
+      <div className="group relative overflow-hidden rounded-3xl border border-black/5 bg-white/60 p-8 shadow-xl shadow-black/5 dark:border-white/[0.08] dark:bg-[#0a0a0a]/90 dark:shadow-2xl dark:shadow-black/50 backdrop-blur-xl transition-colors duration-300 h-full flex flex-col">
         {/* Spotlight glow following cursor */}
         <div
           ref={glowRef}
@@ -398,7 +398,7 @@ export function FeatureCard({ icon, title, desc, accent, index, accentColor }: F
         {/* Description */}
         <p
           ref={descRef}
-          className="relative z-10 text-sm leading-relaxed text-gray-600 dark:text-gray-400"
+          className="relative z-10 text-sm leading-relaxed text-gray-600 dark:text-gray-400 flex-1"
         >
           {desc}
         </p>

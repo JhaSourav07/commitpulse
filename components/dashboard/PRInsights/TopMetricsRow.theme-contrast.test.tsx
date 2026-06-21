@@ -24,7 +24,7 @@ const mockData: PRInsightData = {
   slowestReview: 48.7,
 
   repoPerformance: [],
-
+  prs: [],
   highlights: {},
 };
 

@@ -6,6 +6,7 @@ import type { PRInsightData } from '@/services/github/pr-insights';
 
 const createMockData = (repos: PRInsightData['repoPerformance']): PRInsightData => ({
   totalPRs: 0,
+  prs: [],
   openPRs: 0,
   mergedPRs: 0,
   closedPRs: 0,
@@ -67,6 +68,7 @@ describe('RepoPerformanceTable Massive Scaling', () => {
       {
         name: 'huge/repo',
         totalPRs: 999999999,
+        prs: [],
         mergeRate: 100,
         reviewCount: 999999,
         avgReviewTime: 24,

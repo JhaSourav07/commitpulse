@@ -16,6 +16,18 @@ describe('getSecondsUntilUTCMidnight', () => {
     expect(getSecondsUntilUTCMidnight()).toBe(86400);
   });
 
+  it('returns 86399 seconds right after UTC midnight (1 second past midnight)', () => {
+    vi.setSystemTime(new Date('2024-06-15T00:00:01.000Z'));
+
+    expect(getSecondsUntilUTCMidnight()).toBe(86399);
+  });
+
+  it('returns 86340 seconds exactly one minute after UTC midnight', () => {
+    vi.setSystemTime(new Date('2024-06-15T00:01:00.000Z'));
+
+    expect(getSecondsUntilUTCMidnight()).toBe(86340);
+  });
+
   it('returns 43200 seconds (12 hours) at UTC noon', () => {
     vi.setSystemTime(new Date('2024-06-15T12:00:00.000Z'));
 

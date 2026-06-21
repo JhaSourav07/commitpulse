@@ -294,8 +294,7 @@ export async function POST(req: NextRequest) {
       }
       return NextResponse.json(
         {
-          error:
-            'Failed to clone repository. Make sure the repository exists and is public (or access token is set).',
+          error: 'Failed to clone repository. Make sure the repository exists and is accessible.',
         },
         { status: 404 }
       );
@@ -637,11 +636,10 @@ export async function POST(req: NextRequest) {
     });
   } catch (error) {
     console.error('Architecture visualizer route crashed:', error);
-    const errorMessage =
-      error instanceof Error
-        ? error.message
-        : 'An unexpected error occurred while analyzing the repository.';
-    return NextResponse.json({ error: errorMessage }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to analyze repository. Please try again later.' },
+      { status: 500 }
+    );
   } finally {
     // Clean up temporary directory
     if (tempDir && fs.existsSync(tempDir)) {
