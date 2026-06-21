@@ -3,6 +3,12 @@ import { GET } from './route';
 
 vi.mock('@/lib/github', () => ({
   fetchGitHubContributions: vi.fn(),
+  contributionsCache: { has: vi.fn().mockResolvedValue(true) },
+  cacheKey: vi.fn().mockReturnValue('key'),
+}));
+
+vi.mock('@/lib/githubtoken', () => ({
+  getUserGitHubToken: vi.fn().mockResolvedValue(undefined),
 }));
 
 import { fetchGitHubContributions } from '@/lib/github';

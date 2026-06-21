@@ -26,6 +26,7 @@ import DeploymentTracker from './DeploymentTracker';
 import ArchitectureVisualizer from './ArchitectureVisualizer';
 import ResumeProfileSection from './ResumeProfileSection';
 import { PopularRepos } from './PopularPinnnedRepos';
+import GoalTracker from './GoalTracker';
 
 import RepositoryImpactAnalyzer from './RepositoryImpactAnalyzer';
 import ContributionForecast from './ContributionForecast';
@@ -117,17 +118,27 @@ export default function DashboardClient({
             <DeploymentTracker data={initialData.deployments} />
           </aside>
 
-          <div className="space-y-6 min-w-0">
-            <ActivityLandscape data={initialData.activity} />
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="flex flex-col gap-6 lg:gap-8 min-w-0">
+            <section>
+              <ActivityLandscape data={initialData.activity} />
+            </section>
+
+            <section>
+              <GoalTracker username={username} activity={initialData.activity} />
+            </section>
+
+            <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <LanguageChart languages={initialData.languages} />
               <CommitClock data={initialData.commitClock} />
-            </div>
-            <HistoricalTrendView
-              activity={initialData.activity}
-              username={username}
-              period={period}
-            />
+            </section>
+
+            <section>
+              <HistoricalTrendView
+                activity={initialData.activity}
+                username={username}
+                period={period}
+              />
+            </section>
 
             <section>
               <RepositoryImpactAnalyzer repositories={deduplicatedRepos} />

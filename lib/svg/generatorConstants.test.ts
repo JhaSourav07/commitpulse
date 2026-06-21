@@ -201,10 +201,8 @@ describe('MAX_USERNAME_DISPLAY_LENGTH', () => {
     expect(Number.isInteger(MAX_USERNAME_DISPLAY_LENGTH)).toBe(true);
   });
 
-  it('equals 12 — the documented value for Syncopate 18px at SVG_WIDTH=600', () => {
-    // Regression guard: if this fails, the constant was changed without
-    // verifying that it still fits within SVG_WIDTH at the badge font size.
-    expect(MAX_USERNAME_DISPLAY_LENGTH).toBe(12);
+  it('equals 20 — the increased value supporting longer usernames', () => {
+    expect(MAX_USERNAME_DISPLAY_LENGTH).toBe(20);
   });
 
   it('is less than GitHub max username length of 39 characters', () => {

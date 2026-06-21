@@ -1,5 +1,5 @@
 import React from 'react';
-import { truncateUsername } from '../generator';
+import { truncateUsername, getUsernameFontSize } from '../generator';
 
 export interface VersusPanelProps {
   user1: string;
@@ -60,7 +60,18 @@ export const VersusPanel: React.FC<VersusPanelProps> = ({
         />
         <g dangerouslySetInnerHTML={{ __html: labels1 }} />
         <g dangerouslySetInnerHTML={{ __html: stats1Html }} />
-        <text x={s(300)} y={s(50)} textAnchor="middle" className="title">
+        <text
+          x={s(300)}
+          y={s(50)}
+          textAnchor="middle"
+          className="title"
+          fontSize={
+            Math.round(getUsernameFontSize(truncateUsername(user1 || 'User 1')) * sf * 10) / 10
+          }
+          style={{
+            fontSize: `${Math.round(getUsernameFontSize(truncateUsername(user1 || 'User 1')) * sf * 10) / 10}px`,
+          }}
+        >
           {title1}
         </text>
       </g>
@@ -72,7 +83,18 @@ export const VersusPanel: React.FC<VersusPanelProps> = ({
         />
         <g dangerouslySetInnerHTML={{ __html: labels2 }} />
         <g dangerouslySetInnerHTML={{ __html: stats2Html }} />
-        <text x={s(300)} y={s(50)} textAnchor="middle" className="title">
+        <text
+          x={s(300)}
+          y={s(50)}
+          textAnchor="middle"
+          className="title"
+          fontSize={
+            Math.round(getUsernameFontSize(truncateUsername(user2 || 'User 2')) * sf * 10) / 10
+          }
+          style={{
+            fontSize: `${Math.round(getUsernameFontSize(truncateUsername(user2 || 'User 2')) * sf * 10) / 10}px`,
+          }}
+        >
           {title2}
         </text>
       </g>

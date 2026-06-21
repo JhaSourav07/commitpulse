@@ -21,6 +21,7 @@ import {
   parseGradientStops,
   getGradientCoordinates,
   escapeXML,
+  sanitizeSpeed,
 } from './sanitizer';
 
 import { GRID_ORIGIN_X, GRID_ORIGIN_Y, TILE_HEIGHT_HALF, TILE_WIDTH_HALF } from './layoutConstants';
@@ -66,6 +67,12 @@ export function truncateUsername(username: string): string {
   return username.length > MAX_USERNAME_DISPLAY_LENGTH
     ? `${username.slice(0, MAX_USERNAME_DISPLAY_LENGTH)}...`
     : username;
+}
+
+export function getUsernameFontSize(username: string): number {
+  const len = username.length;
+  if (len <= 12) return 18;
+  return Math.max(10, 18 - (len - 12) * 0.5);
 }
 
 export function deterministicRandom(seed?: string | null): number {
@@ -612,6 +619,7 @@ function renderRadarScan(
   accentColor: string,
   autoTheme: boolean
 ): string {
+  const safeSpeed = sanitizeSpeed(speed);
   const s = createScaler(sf);
   const fillAttr = autoTheme
     ? 'class="cp-accent-fill scan-line"'
@@ -623,7 +631,7 @@ function renderRadarScan(
     height="${s(1)}"
     ${fillAttr}
     fill-opacity="0.3"
-    style="--scan-speed: ${speed}; --scan-start: ${s(0)}px; --scan-end: ${s(240)}px;"
+    style="--scan-speed: ${safeSpeed}; --scan-start: ${s(0)}px; --scan-end: ${s(240)}px;"
   />`;
 }
 
@@ -637,6 +645,7 @@ function renderFooter(
   isWinner?: boolean
 ): string {
   const s = createScaler(sf);
+  const fs = (n: number): number => Math.round(n * sf * 10) / 10;
   const statsOffset = params.label === false ? -40 : 0;
 
   // Static themes do not define the .cp-accent-fill CSS rule, so the scan line needs an
@@ -656,7 +665,7 @@ function renderFooter(
 
   ${
     !params.hide_title && params.label !== false
-      ? `<text x="${s(300)}" y="${s(50)}" text-anchor="middle" class="title">${titleText}</text>`
+      ? `<text x="${s(300)}" y="${s(50)}" text-anchor="middle" class="title" font-size="${fs(getUsernameFontSize(truncateUsername(safeUser)))}" style="font-size: ${fs(getUsernameFontSize(truncateUsername(safeUser)))}px;">${titleText}</text>`
       : ''
   }
   <rect
@@ -666,7 +675,7 @@ function renderFooter(
     height="${s(1)}"
     ${scanLineFill}
     fill-opacity="0.3"
-    style="--scan-speed: ${params.speed || '8s'}; --scan-start: ${s(0)}px; --scan-end: ${s(240)}px;"
+    style="--scan-speed: ${sanitizeSpeed(params.speed)}; --scan-start: ${s(0)}px; --scan-end: ${s(240)}px;"
   />`;
 }
 
@@ -715,8 +724,11 @@ function renderIsometricLabels(
       prevMonthStr = monthStr;
     }
   });
-
-  const labelColorHex = params.labelColor ? `#${params.labelColor}` : color;
+  let labelColorHex = color;
+  if (params.labelColor) {
+    const fallbackHex = color.replace(/^#/, '') || 'ffffff';
+    labelColorHex = `#${sanitizeHexColor(params.labelColor, fallbackHex)}`;
+  }
 
   monthLabels.forEach((label) => {
     const tx = s(GRID_ORIGIN_X + (label.col - MONTH_LABEL_ROW_OFFSET) * TILE_WIDTH_HALF + 8);
@@ -796,6 +808,7 @@ export function generateSVG(
   calendar: ContributionCalendar
 ): string {
   if (params.autoTheme) return generateAutoThemeSVG(stats, params, calendar);
+  if (params.compact) return generateCompactSVG(stats, params);
 
   const animate = params.animate ?? true;
   const safeUser = escapeXML(params.user || 'GitHub User');
@@ -809,7 +822,9 @@ export function generateSVG(
 
   const text = `#${sanitizeHexColor(params.text, 'ffffff')}`;
 
-  const borderAttr = params.border ? `stroke="#${params.border}" stroke-width="2"` : '';
+  const borderAttr = params.border
+    ? `stroke="#${sanitizeHexColor(params.border, '000000')}" stroke-width="2"`
+    : '';
 
   const sanitizedFont = sanitizeFont(params.font);
   const selectedFont = resolveFont(sanitizedFont);
@@ -863,6 +878,52 @@ export function generateSVG(
   ${renderIsometricLabels(calendar, params, text, sf)}
   ${renderFooter(stats, params, labels, safeUser, mainAccentHex, sf)}
   ${renderMilestoneBadges(stats, params, sf)}
+</svg>`;
+}
+
+function generateCompactSVG(stats: StreakStats, params: BadgeParams): string {
+  const safeUser = escapeXML(params.user || 'GitHub User');
+  const bg = `#${sanitizeHexColor(params.bg, '0d1117')}`;
+  const text = `#${sanitizeHexColor(params.text, 'ffffff')}`;
+
+  const accentRaw = Array.isArray(params.accent)
+    ? params.accent[params.accent.length - 1]
+    : params.accent;
+  const accent = `#${sanitizeHexColor(accentRaw, '00ffaa')}`;
+
+  const borderAttr = params.border ? `stroke="#${params.border}" stroke-width="2"` : '';
+  const radius = sanitizeRadius(params.radius, 12);
+
+  const sanitizedFont = sanitizeFont(params.font);
+  const selectedFont = resolveFont(sanitizedFont);
+  const isPredefinedFont = isBundledFont(sanitizedFont);
+  const statsFont = selectedFont || '"Space Grotesk", sans-serif';
+  const googleFontUrlPart =
+    sanitizedFont && !isPredefinedFont ? sanitizeGoogleFontUrl(sanitizedFont) : null;
+  const googleFontsImport = googleFontUrlPart
+    ? `@import url('https://fonts.googleapis.com/css2?family=${googleFontUrlPart}&amp;display=swap');`
+    : '';
+
+  const width = 280;
+  const height = 100;
+  const safeId = safeUser.replace(/[^a-zA-Z0-9-]/g, '_').toLowerCase();
+  const titleText = `${truncateUsername(safeUser)}${
+    params.isOfflineFallback ? ' [STALE CACHE]' : ''
+  }`;
+
+  return `
+<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" fill="none" role="img" aria-labelledby="cp-title-${safeId}" aria-describedby="cp-desc-${safeId}">
+  <title id="cp-title-${safeId}">CommitPulse Compact Streak for ${safeUser}</title>
+  <desc id="cp-desc-${safeId}">${safeUser} has a current streak of ${stats.currentStreak} days.</desc>
+  <style>
+  @import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600&amp;display=swap');
+  ${googleFontsImport}
+  .cp-compact-title { font-family: ${selectedFont || '"Syncopate", sans-serif'}; fill: ${text}; font-size: 15px; font-weight: 700; letter-spacing: 1px; opacity: 0.9; }
+  .cp-compact-streak { font-family: ${statsFont}; fill: ${accent}; font-size: 20px; font-weight: 600; }
+  </style>
+  <rect width="${width}" height="${height}" rx="${radius}" fill="${params.hideBackground ? 'transparent' : bg}" ${borderAttr} />
+  <text x="20" y="42" class="cp-compact-title">${titleText}</text>
+  <text x="20" y="70" class="cp-compact-streak">${'\u{1F525}'} ${stats.currentStreak}d streak</text>
 </svg>`;
 }
 
@@ -960,10 +1021,10 @@ function generateAutoThemeSVG(
   ${!params.hide_stats ? renderStatsSection(stats, labels, s, params) : ''}
 ${
   !params.hide_title && params.label !== false
-    ? `<text x="${s(300)}" y="${s(50)}" text-anchor="middle" class="title">${truncateUsername(safeUser).toUpperCase()}${params.isOfflineFallback ? '<tspan fill="#ff9f43" font-size="10px" font-weight="bold"> [STALE CACHE]</tspan>' : ''}</text>`
+    ? `<text x="${s(300)}" y="${s(50)}" text-anchor="middle" class="title" font-size="${fs(getUsernameFontSize(truncateUsername(safeUser)))}" style="font-size: ${fs(getUsernameFontSize(truncateUsername(safeUser)))}px;">${truncateUsername(safeUser).toUpperCase()}${params.isOfflineFallback ? '<tspan fill="#ff9f43" font-size="10px" font-weight="bold"> [STALE CACHE]</tspan>' : ''}</text>`
     : ''
 }
-${renderRadarScan(params.speed || '8s', sf, '', true)}
+${renderRadarScan(params.speed, sf, '', true)}
 ${renderMilestoneBadges(stats, params, sf)}
 </svg>
 `;
@@ -1300,7 +1361,7 @@ export function generateWrappedSVG(
     ${accentClass}
     class="scan-line"
     fill-opacity="0.18"
-    style="--scan-speed: ${params.speed || '8s'};"
+    style="--scan-speed: ${sanitizeSpeed(params.speed)};"
   />
 
   <g transform="translate(25, 45)">
@@ -1606,7 +1667,9 @@ export function generateHeatmapSVG(
   const accent = `#${sanitizeHexColor(rawAccent, '00ffaa')}`;
   const text = `#${sanitizeHexColor(params.text, 'ffffff')}`;
 
-  const borderAttr = params.border ? `stroke="#${params.border}" stroke-width="2"` : '';
+  const borderAttr = params.border
+    ? `stroke="#${sanitizeHexColor(params.border, '000000')}" stroke-width="2"`
+    : '';
 
   const sanitizedFont = sanitizeFont(params.font);
   const selectedFont = resolveFont(sanitizedFont);
@@ -1705,7 +1768,7 @@ export function generateHeatmapSVG(
     x="${s(60)}" y="${s(55)}" width="${s(2)}" height="${s(133)}"
     fill="${accent}" fill-opacity="0.2"
     class="hm-scan"
-    style="--scan-speed: ${params.speed || '8s'};"
+    style="--scan-speed: ${sanitizeSpeed(params.speed)};"
   />
 
   ${
@@ -1838,7 +1901,7 @@ function generateAutoThemeHeatmapSVG(
     x="${s(60)}" y="${s(55)}" width="${s(2)}" height="${s(133)}"
     class="cp-accent-fill hm-scan"
     fill-opacity="0.2"
-    style="--scan-speed: ${params.speed || '8s'};"
+    style="--scan-speed: ${sanitizeSpeed(params.speed)};"
   />
 
   ${
@@ -1948,6 +2011,7 @@ export function generateNotFoundSVG(
   radius: number,
   speed: string = '8s'
 ): string {
+  const safeSpeed = sanitizeSpeed(speed);
   const sanitizedUsername = username.replace(/[^a-zA-Z0-9\-]/g, '').slice(0, 39) || 'unknown';
   const safeName = escapeXML(sanitizedUsername.toUpperCase());
   const ghostTowersHtml = renderGhostTowers(GHOST_LAYOUT, accent);
@@ -2006,9 +2070,9 @@ export function generateNotFoundSVG(
 
   <rect width="${SVG_WIDTH}" height="${SVG_HEIGHT}" rx="${radius}" fill="url(#ghostFade)"/>
 
-  <rect x="100" y="80" width="400" height="1" class="scan-line" fill="${accent}" fill-opacity="0.12" style="--scan-speed: ${speed};"/>
+  <rect x="100" y="80" width="400" height="1" class="scan-line" fill="${accent}" fill-opacity="0.12" style="--scan-speed: ${safeSpeed};"/>
 
-  <text x="300" y="50" text-anchor="middle" class="title">${safeName}</text>
+  <text x="300" y="50" text-anchor="middle" class="title" font-size="${getUsernameFontSize(truncateUsername(sanitizedUsername))}" style="font-size: ${getUsernameFontSize(truncateUsername(sanitizedUsername))}px;">${escapeXML(truncateUsername(sanitizedUsername).toUpperCase())}</text>
 
   <rect x="180" y="62" width="240" height="1" fill="${accent}" fill-opacity="0.15"/>
 
@@ -2412,7 +2476,7 @@ export function generatePulseSVG(
   <line x1="${paddingX}" y1="${paddingYTop}" x2="${width - paddingX}" y2="${paddingYTop}" stroke="${text}" stroke-width="0.75" stroke-opacity="0.05" />
   <line x1="${paddingX}" y1="${paddingYTop + graphHeight}" x2="${width - paddingX}" y2="${paddingYTop + graphHeight}" stroke="${text}" stroke-width="0.75" stroke-opacity="0.05" />
 
-  ${!params.hide_title ? `<text x="30" y="38" class="title">${safeUser.toUpperCase()}${params.isOfflineFallback ? '<tspan fill="#ff9f43" font-size="10px" font-weight="bold"> [STALE CACHE]</tspan>' : ''}</text>` : ''}
+  ${!params.hide_title ? `<text x="30" y="38" class="title" font-size="${getUsernameFontSize(truncateUsername(safeUser))}" style="font-size: ${getUsernameFontSize(truncateUsername(safeUser))}px;">${truncateUsername(safeUser).toUpperCase()}${params.isOfflineFallback ? '<tspan fill="#ff9f43" font-size="10px" font-weight="bold"> [STALE CACHE]</tspan>' : ''}</text>` : ''}
   ${
     !params.hide_stats
       ? `
@@ -2601,7 +2665,7 @@ function generateAutoThemePulseSVG(
   <line x1="${paddingX}" y1="${paddingYTop}" x2="${width - paddingX}" y2="${paddingYTop}" stroke="var(--cp-text)" stroke-width="0.75" stroke-opacity="0.05" />
   <line x1="${paddingX}" y1="${paddingYTop + graphHeight}" x2="${width - paddingX}" y2="${paddingYTop + graphHeight}" stroke="var(--cp-text)" stroke-width="0.75" stroke-opacity="0.05" />
 
-  ${!params.hide_title ? `<text x="30" y="38" class="title">${safeUser.toUpperCase()}${params.isOfflineFallback ? '<tspan fill="#ff9f43" font-size="10px" font-weight="bold"> [STALE CACHE]</tspan>' : ''}</text>` : ''}
+  ${!params.hide_title ? `<text x="30" y="38" class="title" font-size="${getUsernameFontSize(truncateUsername(safeUser))}" style="font-size: ${getUsernameFontSize(truncateUsername(safeUser))}px;">${truncateUsername(safeUser).toUpperCase()}${params.isOfflineFallback ? '<tspan fill="#ff9f43" font-size="10px" font-weight="bold"> [STALE CACHE]</tspan>' : ''}</text>` : ''}
   ${
     !params.hide_stats
       ? `
@@ -2985,7 +3049,7 @@ function renderSkylineSVG(
 
   ${groundLine}
 
-  ${!params.hide_title ? `<text x="30" y="38" class="title">${safeUser}</text>` : ''}
+  ${!params.hide_title ? `<text x="30" y="38" class="title" font-size="${getUsernameFontSize(truncateUsername(safeUser))}" style="font-size: ${getUsernameFontSize(truncateUsername(safeUser))}px;">${truncateUsername(safeUser)}</text>` : ''}
   ${
     !params.hide_stats
       ? `
@@ -3014,6 +3078,7 @@ export function generateRateLimitSVG(
   speed: string = '8s',
   isCircuitOpen = false
 ): string {
+  const safeSpeed = sanitizeSpeed(speed);
   const ghostTowersHtml = renderGhostTowers(GHOST_LAYOUT, accent);
 
   const safeId = 'rate_limit';
@@ -3072,7 +3137,7 @@ export function generateRateLimitSVG(
   <rect width="${SVG_WIDTH}" height="${SVG_HEIGHT}" rx="${radius}" fill="url(#ghostFade)"/>
 
   <rect x="100" y="80" width="400" height="1" fill="${accent}" fill-opacity="0.12" class="rate-limit-scan">
-    <animate attributeName="y" values="80;320;80" dur="${speed}" repeatCount="indefinite"/>
+    <animate attributeName="y" values="80;320;80" dur="${safeSpeed}" repeatCount="indefinite"/>
   </rect>
 
   <text x="300" y="50" text-anchor="middle" class="title">API RATE LIMIT</text>
@@ -3128,7 +3193,9 @@ export function generateLanguagesSVG(
   const accent = `#${sanitizeHexColor(accentStr, '00ffaa')}`;
 
   const text = `#${sanitizeHexColor(params.text, 'ffffff')}`;
-  const borderAttr = params.border ? `stroke="#${params.border}" stroke-width="2"` : '';
+  const borderAttr = params.border
+    ? `stroke="#${sanitizeHexColor(params.border, '000000')}" stroke-width="2"`
+    : '';
 
   const sanitizedFont = sanitizeFont(params.font);
   const selectedFont = resolveFont(sanitizedFont);
@@ -3201,7 +3268,6 @@ export function generateLanguagesSVG(
 
     const towerScale = TOWER_SCALE * sf;
     const paths = buildTowerPaths(h, towerScale);
-    const th = 10 * towerScale;
 
     const hexColor = lang.color.startsWith('#') ? lang.color : `#${lang.color}`;
     const delay = (idx * 0.15).toFixed(3);

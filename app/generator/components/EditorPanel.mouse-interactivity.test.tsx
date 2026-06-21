@@ -39,7 +39,10 @@ describe('EditorPanel Component Interactivity Tests', () => {
       githubUsername: 'johndoe',
       showCommitPulse: true,
       commitPulseAccent: '#10b981',
-    } as unknown as GeneratorState;
+      showSnakeGraph: false,
+      showPacmanGraph: false,
+      graphPlacement: 'bottom',
+    };
   });
 
   afterEach(() => {

@@ -1,8 +1,11 @@
 'use client';
 
 import Image from 'next/image';
-import { useState, useEffect } from 'react';
-import { Loader2, Search, X, ExternalLink } from 'lucide-react';
+import { useState, useEffect, lazy, Suspense } from 'react';
+import { Loader2, Search, X, ExternalLink, PlaySquare } from 'lucide-react';
+import type { ActivityData } from '@/types/dashboard';
+
+const ContributionCity3D = lazy(() => import('@/components/dashboard/ContributionCity3D'));
 
 import { SectionCard, FieldLabel } from '../SectionCard';
 import { validateGitHubUsername } from '@/lib/validations';
@@ -89,6 +92,10 @@ export function CommitPulseSection({
   const [badgeLoaded, setBadgeLoaded] = useState(false);
   const [badgeError, setBadgeError] = useState(false);
 
+  const [timeLapseMode, setTimeLapseMode] = useState(false);
+  const [fullActivityData, setFullActivityData] = useState<ActivityData[] | null>(null);
+  const [loadingFullData, setLoadingFullData] = useState(false);
+
   useEffect(() => {
     if (!debouncedUsername) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -145,6 +152,33 @@ export function CommitPulseSection({
       cancelled = true;
     };
   }, [debouncedUsername]);
+
+  useEffect(() => {
+    if (timeLapseMode && !fullActivityData && debouncedUsername && userDetails && !fetchError) {
+      let cancelled = false;
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setLoadingFullData(true);
+      fetch(`/api/github?username=${encodeURIComponent(debouncedUsername)}`)
+        .then((res) => {
+          if (!res.ok) throw new Error('Failed to fetch full data');
+          return res.json();
+        })
+        .then((data) => {
+          if (!cancelled) {
+            setFullActivityData(data.activity);
+            setLoadingFullData(false);
+          }
+        })
+        .catch(() => {
+          if (!cancelled) {
+            setLoadingFullData(false);
+          }
+        });
+      return () => {
+        cancelled = true;
+      };
+    }
+  }, [timeLapseMode, debouncedUsername, userDetails, fetchError, fullActivityData]);
 
   const badgeUrl = userDetails && !fetchError ? buildBadgeUrl(debouncedUsername, safeAccent) : null;
 
@@ -333,7 +367,21 @@ export function CommitPulseSection({
             {badgeUrl && userDetails && (
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <FieldLabel>Live Preview</FieldLabel>
+                  <div className="flex items-center gap-3">
+                    <FieldLabel>Live Preview</FieldLabel>
+                    {/* Time-Lapse Toggle */}
+                    <button
+                      onClick={() => setTimeLapseMode((v) => !v)}
+                      className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-semibold transition-all ${
+                        timeLapseMode
+                          ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
+                          : 'bg-gray-100 dark:bg-white/5 text-gray-500 hover:text-gray-900 dark:hover:text-white border border-black/5 dark:border-white/10'
+                      }`}
+                    >
+                      <PlaySquare size={12} />
+                      Time-Lapse Preview
+                    </button>
+                  </div>
                   <a
                     href={`${DASHBOARD_BASE}/${debouncedUsername}`}
                     target="_blank"
@@ -345,33 +393,62 @@ export function CommitPulseSection({
                 </div>
 
                 <div className="relative rounded-xl border border-gray-200 dark:border-white/8 bg-[#0d1117] p-4 flex items-center justify-center min-h-[140px] overflow-hidden">
-                  {!badgeLoaded && !badgeError && (
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <Loader2 size={24} className="animate-spin text-zinc-600" />
-                    </div>
+                  {timeLapseMode ? (
+                    fullActivityData ? (
+                      <Suspense
+                        fallback={<Loader2 size={24} className="animate-spin text-zinc-600" />}
+                      >
+                        <div className="w-full">
+                          <ContributionCity3D
+                            data={fullActivityData}
+                            theme="dark" // Using default dark theme for preview, or could map accent color
+                            timeLapseMode={true}
+                          />
+                        </div>
+                      </Suspense>
+                    ) : loadingFullData ? (
+                      <div className="flex flex-col items-center gap-2">
+                        <Loader2 size={24} className="animate-spin text-zinc-600" />
+                        <span className="text-[10px] text-gray-400">
+                          Loading full activity data...
+                        </span>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-red-400 text-center px-4">
+                        Failed to load time-lapse data.
+                      </p>
+                    )
+                  ) : (
+                    <>
+                      {!badgeLoaded && !badgeError && (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <Loader2 size={24} className="animate-spin text-zinc-600" />
+                        </div>
+                      )}
+                      {badgeError && (
+                        <p className="text-xs text-red-400 text-center px-4">
+                          Could not load badge preview. The streak data may still be generating —
+                          check the full dashboard link above.
+                        </p>
+                      )}
+                      <img
+                        key={`${badgeKey}-${safeAccent}`}
+                        src={badgeUrl}
+                        alt={`CommitPulse badge for ${debouncedUsername}`}
+                        className={`w-full h-auto max-w-[480px] transition-opacity duration-500 ${
+                          badgeLoaded ? 'opacity-100' : 'opacity-0 absolute'
+                        }`}
+                        onLoad={() => {
+                          setBadgeLoaded(true);
+                          setBadgeError(false);
+                        }}
+                        onError={() => {
+                          setBadgeError(true);
+                          setBadgeLoaded(false);
+                        }}
+                      />
+                    </>
                   )}
-                  {badgeError && (
-                    <p className="text-xs text-red-400 text-center px-4">
-                      Could not load badge preview. The streak data may still be generating — check
-                      the full dashboard link above.
-                    </p>
-                  )}
-                  <img
-                    key={`${badgeKey}-${safeAccent}`}
-                    src={badgeUrl}
-                    alt={`CommitPulse badge for ${debouncedUsername}`}
-                    className={`w-full h-auto max-w-[480px] transition-opacity duration-500 ${
-                      badgeLoaded ? 'opacity-100' : 'opacity-0 absolute'
-                    }`}
-                    onLoad={() => {
-                      setBadgeLoaded(true);
-                      setBadgeError(false);
-                    }}
-                    onError={() => {
-                      setBadgeError(true);
-                      setBadgeLoaded(false);
-                    }}
-                  />
                 </div>
 
                 {userDetails.stats && (

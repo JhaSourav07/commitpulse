@@ -18,4 +18,4 @@ export function isFontKey(font: string): font is FontKey {
  * Increasing this value may cause title overflow on small (400px) and
  * medium (600px) badges. Coordinate any change with SVG_WIDTH in this file.
  */
-export const MAX_USERNAME_DISPLAY_LENGTH = 12;
+export const MAX_USERNAME_DISPLAY_LENGTH = 20;

@@ -321,7 +321,7 @@ export async function DELETE(req: NextRequest) {
       );
     }
 
-    const providedManagementToken = getNotificationManagementToken(req, undefined, searchParams);
+    const providedManagementToken = getNotificationManagementToken(req);
     const authorization = await authorizeNotificationMutation(
       req,
       normalizedUsername,

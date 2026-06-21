@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   calculateStreak,
   calculateMonthlyStats,
+  calculateSafePercentage,
   calculateWrappedStats,
   aggregateCalendars,
   isStreakAlive,
@@ -2819,5 +2820,16 @@ describe('DST transition boundary handling', () => {
     const result = calculateStreak(calendar, 'America/New_York', new Date('2024-03-11T12:00:00Z'));
     expect(result.longestStreak).toBe(1);
     expect(result.currentStreak).toBe(1);
+  });
+});
+
+describe('calculateSafePercentage utility metric verification', () => {
+  it('safely yields 0 when denominator total is 0', () => {
+    expect(calculateSafePercentage(10, 0)).toBe(0);
+  });
+
+  it('correctly rounds regular integer percentages', () => {
+    expect(calculateSafePercentage(1, 3)).toBe(33); // 33.333... rounds to 33
+    expect(calculateSafePercentage(2, 3)).toBe(67); // 66.666... rounds to 67
   });
 });

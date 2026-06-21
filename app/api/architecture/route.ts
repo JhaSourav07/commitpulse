@@ -10,6 +10,15 @@ import { getGitHubTokens } from '@/lib/github';
 
 const execFilePromise = promisify(execFile);
 
+/**
+ * Strips credentials (x-access-token:...@) from error messages to prevent
+ * leaking tokens into server logs.
+ */
+function sanitizeError(err: unknown): string {
+  const msg = err instanceof Error ? err.message : String(err);
+  return msg.replace(/x-access-token:[^@]+@/g, 'x-access-token:[REDACTED]@');
+}
+
 // Supported files for parsing imports/exports
 const PARSABLE_EXTENSIONS = new Set(['.js', '.jsx', '.ts', '.tsx']);
 // Supported text files to show in folder tree
@@ -273,21 +282,30 @@ export async function POST(req: NextRequest) {
 
     const { owner, repo } = repoDetails;
 
-    // Construct authenticated clone URL if GITHUB_TOKEN is available
+    // Construct clone URL — never embed credentials in the URL string.
+    // If a token is available, use GIT_ASKPASS to provide it securely so it
+    // never appears in process arguments, shell history, or error output.
     const tokens = getGitHubTokens();
     const token = tokens.length > 0 ? tokens[0] : null;
-    const cloneUrl = token
-      ? `https://x-access-token:${token}@github.com/${owner}/${repo}.git`
-      : `https://github.com/${owner}/${repo}.git`;
+    const cloneUrl = `https://github.com/${owner}/${repo}.git`;
 
     // Create a temporary directory
     tempDir = fs.mkdtempSync(path.join(os.tmpdir(), `commitpulse-arch-${owner}-${repo}-`));
 
     // Shallow clone the repository
     try {
-      await execFilePromise('git', ['clone', '--depth', '1', '--', cloneUrl, tempDir]);
+      const env = { ...process.env } as NodeJS.ProcessEnv;
+      if (token) {
+        // GIT_ASKPASS points to a script that echoes the token when git asks
+        // for credentials, keeping the token out of process arguments.
+        const askpassScript = path.join(tempDir, '.git-askpass.sh');
+        fs.writeFileSync(askpassScript, `#!/bin/sh\necho "${token}"`, { mode: 0o700 });
+        env.GIT_ASKPASS = askpassScript;
+        env.GIT_TERMINAL_PROMPT = '0';
+      }
+      await execFilePromise('git', ['clone', '--depth', '1', '--', cloneUrl, tempDir], { env });
     } catch (err) {
-      console.error('Cloning failed for repository:', repoUrl, err);
+      console.error('Cloning failed for repository:', repoUrl, sanitizeError(err));
       // Clean up tempDir if it was created
       if (tempDir && fs.existsSync(tempDir)) {
         fs.rmSync(tempDir, { recursive: true, force: true });
@@ -593,10 +611,13 @@ export async function POST(req: NextRequest) {
         Return exactly 5 bullet points. Do not include a conversational introduction or outro.
         `;
 
-        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`;
+        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent`;
         const response = await fetch(geminiUrl, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'x-goog-api-key': geminiApiKey,
+          },
           body: JSON.stringify({
             contents: [{ parts: [{ text: prompt }] }],
             generationConfig: { responseMaxOutputTokens: 500 },

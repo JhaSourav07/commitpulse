@@ -8,6 +8,8 @@ import type { ContributionCalendar, ExtendedContributionData } from '@/types';
 
 vi.mock('@/lib/github', () => ({
   fetchGitHubContributions: vi.fn(),
+  contributionsCache: { has: vi.fn().mockResolvedValue(false) },
+  cacheKey: vi.fn().mockReturnValue('key'),
 }));
 
 const mockCalendar: ContributionCalendar = {

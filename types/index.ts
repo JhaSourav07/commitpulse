@@ -360,6 +360,9 @@ export interface BadgeParams {
   /** Projection tilt angle around the X-axis in degrees (0-90). */
   phi?: number;
 
+  /** When true, renders a compact single-row card (~100px tall) with only username, avatar, and streak count. Skips the full isometric grid. */
+  compact?: boolean;
+
   /** @internal Temporary property to track custom gradient ID during SVG generation. */
   __customGradientId?: string;
 }
