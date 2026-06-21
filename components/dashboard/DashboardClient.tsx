@@ -46,7 +46,9 @@ export default function DashboardClient({
 }: DashboardClientProps) {
   const { t } = useTranslation();
   const [secondUserData, setSecondUserData] = useState<DashboardData | null>(compareData);
-  const [activeTab, setActiveTab] = useState<'overview' | 'pr-insights' | 'ci-analytics'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'pr-insights' | 'ci-analytics'>(
+    'overview'
+  );
   const [isCompareMode, setIsCompareMode] = useState(Boolean(compareData));
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isOptimizerOpen, setIsOptimizerOpen] = useState(false);
@@ -64,15 +66,20 @@ export default function DashboardClient({
     ...(initialData.pinnedRepos || []),
     ...(initialData.starredRepos || []),
   ];
-  const deduplicatedRepos = Array.from(
-    new Map(allRepos.map((repo) => [repo.name, repo])).values()
-  );
+  const deduplicatedRepos = Array.from(new Map(allRepos.map((repo) => [repo.name, repo])).values());
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-6 lg:grid lg:grid-cols-[300px_1fr_320px] lg:gap-8">
         <aside className="space-y-6">
-          <ProfileCard user={initialData.profile} exportData={{ stats: initialData.stats, languages: initialData.languages, activity: initialData.activity }} />
+          <ProfileCard
+            user={initialData.profile}
+            exportData={{
+              stats: initialData.stats,
+              languages: initialData.languages,
+              activity: initialData.activity,
+            }}
+          />
           <Achievements achievements={initialData.achievements} />
           <ResumeProfileSection githubUsername={username} />
           <DeploymentTracker data={initialData.deployments} />
@@ -84,8 +91,12 @@ export default function DashboardClient({
             <LanguageChart languages={initialData.languages} />
             <CommitClock data={initialData.commitClock} />
           </div>
-          <HistoricalTrendView activity={initialData.activity} username={username} period={period} />
-          
+          <HistoricalTrendView
+            activity={initialData.activity}
+            username={username}
+            period={period}
+          />
+
           <section>
             <RepositoryImpactAnalyzer repositories={deduplicatedRepos} />
           </section>
@@ -93,12 +104,33 @@ export default function DashboardClient({
 
         <aside className="space-y-6">
           <div className="space-y-4">
-            <StatsCard title="Current Streak" value={initialData.stats.currentStreak.toString()} description="Days" icon="Flame" showUTCDisclaimer={true} utcDate={new Date().toISOString().split('T')[0]} />
-            <StatsCard title="Peak Streak" value={initialData.stats.peakStreak.toString()} description="Days" icon="TrendingUp" />
-            <StatsCard title="Contributions" value={initialData.stats.totalContributions.toString()} description={period.label} icon="GitCommit" />
+            <StatsCard
+              title="Current Streak"
+              value={initialData.stats.currentStreak.toString()}
+              description="Days"
+              icon="Flame"
+              showUTCDisclaimer={true}
+              utcDate={new Date().toISOString().split('T')[0]}
+            />
+            <StatsCard
+              title="Peak Streak"
+              value={initialData.stats.peakStreak.toString()}
+              description="Days"
+              icon="TrendingUp"
+            />
+            <StatsCard
+              title="Contributions"
+              value={initialData.stats.totalContributions.toString()}
+              description={period.label}
+              icon="GitCommit"
+            />
           </div>
           <AIInsights insights={initialData.insights} />
-          <PopularRepos popularRepos={initialData.popularRepos || []} pinnedRepos={initialData.pinnedRepos || []} starredRepos={initialData.starredRepos || []} />
+          <PopularRepos
+            popularRepos={initialData.popularRepos || []}
+            pinnedRepos={initialData.pinnedRepos || []}
+            starredRepos={initialData.starredRepos || []}
+          />
           <InactiveRepoReminder repos={allRepoActivity} />
         </aside>
       </div>

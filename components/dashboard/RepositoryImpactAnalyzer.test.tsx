@@ -31,7 +31,7 @@ function getRelativeDateString(monthsAgo: number): string {
 describe('RepositoryImpactAnalyzer', () => {
   it('renders an empty state when no repositories are provided', () => {
     render(<RepositoryImpactAnalyzer repositories={[]} />);
-    
+
     expect(screen.getByText('Repository Impact Analyzer')).toBeDefined();
     expect(screen.getByText('No repository data available.')).toBeDefined();
   });
@@ -40,18 +40,18 @@ describe('RepositoryImpactAnalyzer', () => {
     // Score formulas: (commits * 3) + (stars * 5) + (forks * 10)
     const repos = [
       { name: 'Repo1', commits: 10, stars: 10, forks: 10, createdAt: getRelativeDateString(10) }, // 30 + 50 + 100 = 180
-      { name: 'Repo2', commits: 50, stars: 20, forks: 5, createdAt: getRelativeDateString(10) },  // 150 + 100 + 50 = 300
-      { name: 'Repo3', commits: 5, stars: 2, forks: 0, createdAt: getRelativeDateString(10) },     // 15 + 10 + 0 = 25
-      { name: 'Repo4', commits: 100, stars: 100, forks: 50, createdAt: getRelativeDateString(10) },// 300 + 500 + 500 = 1300
-      { name: 'Repo5', commits: 20, stars: 50, forks: 12, createdAt: getRelativeDateString(10) },  // 60 + 250 + 120 = 430
-      { name: 'Repo6', commits: 80, stars: 40, forks: 8, createdAt: getRelativeDateString(10) },   // 240 + 200 + 80 = 520
+      { name: 'Repo2', commits: 50, stars: 20, forks: 5, createdAt: getRelativeDateString(10) }, // 150 + 100 + 50 = 300
+      { name: 'Repo3', commits: 5, stars: 2, forks: 0, createdAt: getRelativeDateString(10) }, // 15 + 10 + 0 = 25
+      { name: 'Repo4', commits: 100, stars: 100, forks: 50, createdAt: getRelativeDateString(10) }, // 300 + 500 + 500 = 1300
+      { name: 'Repo5', commits: 20, stars: 50, forks: 12, createdAt: getRelativeDateString(10) }, // 60 + 250 + 120 = 430
+      { name: 'Repo6', commits: 80, stars: 40, forks: 8, createdAt: getRelativeDateString(10) }, // 240 + 200 + 80 = 520
     ];
 
     render(<RepositoryImpactAnalyzer repositories={repos} />);
 
     // Top 5 rank order expected: Repo4 (1300), Repo6 (520), Repo5 (430), Repo2 (300), Repo1 (180)
     // Repo3 (25) should be excluded (ranked 6th)
-    
+
     expect(screen.getByText('Repo4')).toBeDefined();
     expect(screen.getByText('Repo6')).toBeDefined();
     expect(screen.getByText('Repo5')).toBeDefined();
@@ -85,7 +85,7 @@ describe('RepositoryImpactAnalyzer', () => {
     // Individual repo metrics verification:
     // Age = 10 months
     expect(screen.getAllByText('10 months').length).toBeGreaterThanOrEqual(1);
-    
+
     // Overall growth metrics cards verification:
     // Avg Stars/Mo overall = 30 / 10 = 3
     // Avg Forks/Mo overall = 20 / 10 = 2
