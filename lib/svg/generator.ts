@@ -3201,7 +3201,6 @@ export function generateLanguagesSVG(
 
     const towerScale = TOWER_SCALE * sf;
     const paths = buildTowerPaths(h, towerScale);
-    const th = 10 * towerScale;
 
     const hexColor = lang.color.startsWith('#') ? lang.color : `#${lang.color}`;
     const delay = (idx * 0.15).toFixed(3);
