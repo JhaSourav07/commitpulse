@@ -219,7 +219,7 @@ This project is licensed under the MIT License. See [LICENSE](LICENSE) for detai
 ## 👥 Maintainers
 
 - **Sourav Jha** ([@jhasourav07](https://github.com/jhasourav07)) - [LinkedIn](https://linkedin.com/in/souravjhahind)
-- **Aamod Kumar** ([@Aamod007](https://github.com/Aamod007)) - [LinkedIn](https://linkedin.com/in/aamod-kumar/)
+- **Aamod Kumar** ([@Aamod-Dev](https://github.com/Aamod-Dev)) - [LinkedIn](https://linkedin.com/in/aamod-kumar/)
 
 For details on the project leads and roles, please see [MAINTAINER.md](MAINTAINER.md).
 
