@@ -13,8 +13,7 @@ export function hashNotificationManagementToken(token: string): string {
 
 export function getNotificationManagementToken(
   request: Request,
-  body?: { managementToken?: unknown },
-  searchParams?: URLSearchParams
+  body?: { managementToken?: unknown }
 ): string | null {
   const headerToken = request.headers.get('x-notification-token')?.trim();
   if (headerToken) return headerToken;
@@ -24,9 +23,7 @@ export function getNotificationManagementToken(
     return bodyToken.trim();
   }
 
-  const queryToken =
-    searchParams?.get('managementToken')?.trim() || searchParams?.get('token')?.trim();
-  return queryToken || null;
+  return null;
 }
 
 export function verifyNotificationManagementToken(

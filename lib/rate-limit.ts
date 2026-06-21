@@ -8,11 +8,17 @@ interface RateLimitResult {
 }
 
 /**
- * In-memory rate limiter to prevent basic DoS/spam (Denial of Wallet).
+ * Rate limiter to prevent basic DoS/spam (Denial of Wallet).
  *
- * Note: In a serverless environment, this resets per cold-start/instance,
- * but it is highly effective at stopping aggressive single-instance spikes.
- * For multi-instance strict syncing, a Redis store (Vercel KV/Upstash) should be used.
+ * When Upstash Redis / Vercel KV is configured (KV_REST_API_URL + KV_REST_API_TOKEN
+ * environment variables), rate limit state is persisted across restarts and shared
+ * across all serverless instances via atomic INCR + EXPIRE operations.
+ *
+ * Falls back to an in-memory TTL cache when KV is not configured. In this mode,
+ * state resets on cold start / server restart, but it is highly effective at
+ * stopping aggressive single-instance spikes during normal operation.
+ *
+ * @see https://upstash.com/docs/rate-limiting/quickstart for KV setup instructions.
  */
 export class RateLimiter {
   private cache: DistributedCache<{ count: number; resetAt: number }>;

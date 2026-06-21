@@ -1038,7 +1038,7 @@ describe('generateSVG', () => {
       const svg = generateSVG(mockStats, extendedParams, mockCalendar);
 
       expect(extendedLongUsername.length).toBeGreaterThan(30);
-      expect(svg).toContain('ABCDEFGHIJKL...');
+      expect(svg).toContain('ABCDEFGHIJKLMNOPQRST...');
       expect(svg).not.toContain('ABCDEFGHIJKLMNOPQRSTUVWXYZ');
     });
   });
@@ -1737,7 +1737,7 @@ describe('Radar Scan Line Animation Alignment', () => {
     // 1. Arrange: Create usernames (one short baseline, one strictly > 30 chars)
     const shortUsername = 'avi';
     const longUsername = 'ThisIsAVeryLongUsernameThatExceedsThirtyCharacters';
-    const expectedTruncated = longUsername.slice(0, 12) + '...';
+    const expectedTruncated = longUsername.slice(0, 20) + '...';
 
     const paramsBaseline = {
       user: shortUsername,
@@ -1782,9 +1782,9 @@ describe('Radar Scan Line Animation Alignment', () => {
     expect(geometryLong).toEqual(geometryBaseline);
   });
 
-  it('truncates usernames longer than 12 characters and adds an ellipsis in generateSVG', () => {
-    const longUsername = 'averylongusernamethatexceeds20chars'; // 36 characters
-    const expectedTruncated = 'AVERYLONGUSE...'; // 12 characters + '...' (in uppercase)
+  it('truncates usernames longer than 20 characters and adds an ellipsis in generateSVG', () => {
+    const longUsername = 'averylongusernamethatexceeds20chars'; // 35 characters
+    const expectedTruncated = 'AVERYLONGUSERNAMETHA...'; // 20 characters + '...' (in uppercase)
 
     const svg = generateSVG(
       mockStats,

@@ -48,9 +48,9 @@ describe('GraphQL Syncing Utility Integration Tests', () => {
       }),
     });
 
-    // Verifies your utility safely surfaces network errors instead of an unhandled crash
-    await expect(
-      fetchGitHubContributions('attardekhushi78-cpu', { bypassCache: true })
-    ).rejects.toThrow();
+    // Verifies your utility gracefully falls back to empty calendar instead of an unhandled crash
+    const result = await fetchGitHubContributions('attardekhushi78-cpu', { bypassCache: true });
+    expect(result.calendar.totalContributions).toBe(0);
+    expect(result.isOfflineFallback).toBe(true);
   });
 });

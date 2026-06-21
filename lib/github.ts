@@ -31,6 +31,48 @@ interface GitHubRepo {
 const MAX_RETRIES = 3;
 const BASE_DELAY_MS = 500;
 const MAX_RETRY_DELAY_MS = 5000;
+
+export function getJitteredBackoff(attempt: number): number {
+  const base = BASE_DELAY_MS * Math.pow(2, attempt);
+  const jitter = 0.5 + Math.random() * 0.5;
+  return Math.round(base * jitter);
+}
+
+export function shouldFallbackOnError(err: unknown): boolean {
+  if (!err) return false;
+  const msg = err instanceof Error ? err.message : String(err);
+
+  if (
+    msg.includes('not found') ||
+    msg.includes('Not Found') ||
+    msg.includes('401') ||
+    msg.includes('Unauthorized') ||
+    msg.includes('token') ||
+    msg.includes('PAT') ||
+    msg.includes('Authorization') ||
+    msg.includes('status 500') ||
+    msg.includes('error: 500') ||
+    msg.includes('Bad credentials')
+  ) {
+    return false;
+  }
+
+  if (
+    msg.includes('fetch') ||
+    msg.includes('timeout') ||
+    msg.includes('timed out') ||
+    msg.includes('AbortError') ||
+    msg.includes('rate limit') ||
+    msg.includes('RATE_LIMITED') ||
+    msg.includes('Rate Limit') ||
+    err instanceof RateLimitError
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
 const GRAPHQL_TIMEOUT_MS = 8000; // 8s for GraphQL endpoint
 const REST_TIMEOUT_MS = 5000; // 5s for REST endpoints
 const ORG_MEMBER_LIMIT = 100;
@@ -152,7 +194,7 @@ export async function fetchWithRetry(
       }
       throw fetchError;
     }
-    const delay = BASE_DELAY_MS * Math.pow(2, attempt);
+    const delay = getJitteredBackoff(attempt);
     await new Promise((resolve) => setTimeout(resolve, delay));
     return fetchWithRetry(url, options, attempt + 1, timeoutMs, userToken);
   }
@@ -196,7 +238,7 @@ export async function fetchWithRetry(
     }
     // Retry immediately with the next token if available
     if (attempt < MAX_RETRIES && tokens.length > 1) {
-      const delay = BASE_DELAY_MS * Math.pow(2, attempt);
+      const delay = getJitteredBackoff(attempt);
       await new Promise((resolve) => setTimeout(resolve, delay));
       return fetchWithRetry(url, options, attempt + 1, timeoutMs, userToken);
     }
@@ -227,7 +269,7 @@ export async function fetchWithRetry(
 
     if (attempt >= MAX_RETRIES) return res;
 
-    let delay = BASE_DELAY_MS * Math.pow(2, attempt);
+    let delay = getJitteredBackoff(attempt);
     if (retryAfter) {
       const parsed = parseInt(retryAfter, 10);
       if (!Number.isNaN(parsed) && String(parsed) === retryAfter) {
@@ -257,7 +299,7 @@ export async function fetchWithRetry(
   const shouldRetry = res.status >= 500;
   if (!shouldRetry || attempt >= MAX_RETRIES) return res;
 
-  const delay = BASE_DELAY_MS * Math.pow(2, attempt);
+  const delay = getJitteredBackoff(attempt);
   await new Promise((resolve) => setTimeout(resolve, delay));
   return fetchWithRetry(url, options, attempt + 1, timeoutMs, userToken);
 }
@@ -337,9 +379,7 @@ async function fetchGraphQLWithRetry(
 
   if (!isBodyRateLimited) return res;
 
-  const delay = BASE_DELAY_MS * Math.pow(2, attempt);
-  if (delay > MAX_RETRY_DELAY_MS) return res;
-
+  const delay = getJitteredBackoff(attempt);
   await new Promise((resolve) => setTimeout(resolve, delay));
   return fetchGraphQLWithRetry(url, options, attempt + 1, timeoutMs, userToken);
 }
@@ -467,6 +507,7 @@ interface GitHubUserProfile {
   location: string | null;
   type?: string;
   plan?: { name?: string } | null;
+  isOfflineFallback?: boolean;
 }
 
 function sanitizeUserProfile(profile: GitHubUserProfile): GitHubUserProfile {
@@ -663,6 +704,21 @@ export function getCircuitTelemetry() {
 const FETCH_TIMEOUT_MS = 4000;
 const activeContributionsPromises = new Map<string, Promise<ExtendedContributionData>>();
 
+export function getMockContributions(): ExtendedContributionData {
+  return {
+    calendar: {
+      totalContributions: 0,
+      weeks: [],
+      lastSyncedAt: new Date().toISOString(),
+    },
+    repoContributions: [],
+    totalPRs: 0,
+    totalIssues: 0,
+    totalReviews: 0,
+    isOfflineFallback: true,
+  };
+}
+
 export async function fetchGitHubContributions(
   username: string,
   options: FetchOptions = {}
@@ -733,7 +789,26 @@ export async function fetchGitHubContributions(
 
   if (options.signal) {
     if (options.bypassCache || options.forceRefresh) {
-      return await loadWithTimeout();
+      try {
+        return await loadWithTimeout();
+      } catch (err: unknown) {
+        if (shouldFallbackOnError(err)) {
+          const staleData = await contributionsCache.get(key);
+          if (staleData) {
+            logger.warn('GitHub API fetch failed, falling back to stale cache', {
+              component: 'GitHub API',
+              username,
+              error: err,
+            });
+            return {
+              ...staleData,
+              isOfflineFallback: true,
+            };
+          }
+          return getMockContributions();
+        }
+        throw err;
+      }
     }
     const cached = await contributionsCache.get(key);
     if (cached !== null && !shouldFetch(cached)) {
@@ -742,17 +817,20 @@ export async function fetchGitHubContributions(
     try {
       return await loadWithTimeout();
     } catch (err: unknown) {
-      const staleData = await contributionsCache.get(key);
-      if (staleData) {
-        logger.warn('GitHub API fetch failed, falling back to stale cache', {
-          component: 'GitHub API',
-          username,
-          error: err,
-        });
-        return {
-          ...staleData,
-          isOfflineFallback: true,
-        };
+      if (shouldFallbackOnError(err)) {
+        const staleData = await contributionsCache.get(key);
+        if (staleData) {
+          logger.warn('GitHub API fetch failed, falling back to stale cache', {
+            component: 'GitHub API',
+            username,
+            error: err,
+          });
+          return {
+            ...staleData,
+            isOfflineFallback: true,
+          };
+        }
+        return getMockContributions();
       }
       throw err;
     }
@@ -766,16 +844,19 @@ export async function fetchGitHubContributions(
       }
       return result;
     } catch (err: unknown) {
-      const staleData = await contributionsCache.get(key);
-      if (staleData) {
-        console.warn(
-          `[GitHub API] Fetch failed or timed out for "${username}", falling back to stale cache:`,
-          err
-        );
-        return {
-          ...staleData,
-          isOfflineFallback: true,
-        };
+      if (shouldFallbackOnError(err)) {
+        const staleData = await contributionsCache.get(key);
+        if (staleData) {
+          console.warn(
+            `[GitHub API] Fetch failed or timed out for "${username}", falling back to stale cache:`,
+            err
+          );
+          return {
+            ...staleData,
+            isOfflineFallback: true,
+          };
+        }
+        return getMockContributions();
       }
       throw err;
     }
@@ -784,17 +865,20 @@ export async function fetchGitHubContributions(
   try {
     return await contributionsCache.getOrSet(key, coalescedLoad, LONG_CACHE_TTL, shouldFetch);
   } catch (err: unknown) {
-    const staleData = await contributionsCache.get(key);
-    if (staleData) {
-      logger.warn('GitHub API fetch failed, falling back to stale cache', {
-        component: 'GitHub API',
-        username,
-        error: err,
-      });
-      return {
-        ...staleData,
-        isOfflineFallback: true,
-      };
+    if (shouldFallbackOnError(err)) {
+      const staleData = await contributionsCache.get(key);
+      if (staleData) {
+        logger.warn('GitHub API fetch failed, falling back to stale cache', {
+          component: 'GitHub API',
+          username,
+          error: err,
+        });
+        return {
+          ...staleData,
+          isOfflineFallback: true,
+        };
+      }
+      return getMockContributions();
     }
     throw err;
   }
@@ -958,6 +1042,23 @@ async function fetchContributionsUncached(
   };
 }
 
+export function getMockProfile(username: string): GitHubUserProfile {
+  return {
+    login: username,
+    name: username,
+    avatar_url: `https://github.com/${username}.png`,
+    public_repos: 0,
+    followers: 0,
+    following: 0,
+    created_at: new Date().toISOString(),
+    bio: 'Profile currently unavailable (offline fallback)',
+    location: null,
+    type: 'User',
+    plan: null,
+    isOfflineFallback: true,
+  };
+}
+
 export async function fetchUserProfile(
   username: string,
   options: FetchOptions = {}
@@ -969,8 +1070,41 @@ export async function fetchUserProfile(
     return fetchProfileUncached(encodedUsername, key, options);
   };
 
-  if (options.bypassCache || options.forceRefresh) return load();
-  return profileCache.getOrSet(key, load, GITHUB_CACHE_TTL_MS);
+  if (options.bypassCache || options.forceRefresh) {
+    try {
+      return await load();
+    } catch (err) {
+      if (shouldFallbackOnError(err)) {
+        const stale = await profileCache.get(key);
+        if (stale) {
+          logger.warn('GitHub API profile fetch failed, returning stale cache data', {
+            username,
+            error: err,
+          });
+          return { ...stale, isOfflineFallback: true };
+        }
+        return getMockProfile(username);
+      }
+      throw err;
+    }
+  }
+
+  try {
+    return await profileCache.getOrSet(key, load, GITHUB_CACHE_TTL_MS);
+  } catch (err) {
+    if (shouldFallbackOnError(err)) {
+      const stale = await profileCache.get(key);
+      if (stale) {
+        logger.warn('GitHub API profile fetch failed, returning stale cache data', {
+          username,
+          error: err,
+        });
+        return { ...stale, isOfflineFallback: true };
+      }
+      return getMockProfile(username);
+    }
+    throw err;
+  }
 }
 
 async function fetchProfileUncached(
@@ -1020,8 +1154,41 @@ export async function fetchUserRepos(
     return fetchReposUncached(encodedUsername, key, options);
   };
 
-  if (options.bypassCache || options.forceRefresh) return load();
-  return reposCache.getOrSet(key, load, GITHUB_CACHE_TTL_MS);
+  if (options.bypassCache || options.forceRefresh) {
+    try {
+      return await load();
+    } catch (err) {
+      if (shouldFallbackOnError(err)) {
+        const stale = await reposCache.get(key);
+        if (stale) {
+          logger.warn('GitHub API repos fetch failed, returning stale cache data', {
+            username,
+            error: err,
+          });
+          return stale;
+        }
+        return [];
+      }
+      throw err;
+    }
+  }
+
+  try {
+    return await reposCache.getOrSet(key, load, GITHUB_CACHE_TTL_MS);
+  } catch (err) {
+    if (shouldFallbackOnError(err)) {
+      const stale = await reposCache.get(key);
+      if (stale) {
+        logger.warn('GitHub API repos fetch failed, returning stale cache data', {
+          username,
+          error: err,
+        });
+        return stale;
+      }
+      return [];
+    }
+    throw err;
+  }
 }
 
 async function fetchReposUncached(
@@ -1439,13 +1606,45 @@ export async function fetchContributedRepos(
     return data?.data?.user?.repositoriesContributedTo?.nodes || [];
   };
 
-  if (options.bypassCache) return load();
-  if (options.forceRefresh) {
-    const fresh = await load();
-    await contributedReposCache.set(key, fresh, GITHUB_CACHE_TTL_MS);
-    return fresh;
+  if (options.bypassCache || options.forceRefresh) {
+    try {
+      const fresh = await load();
+      if (options.forceRefresh) {
+        await contributedReposCache.set(key, fresh, GITHUB_CACHE_TTL_MS);
+      }
+      return fresh;
+    } catch (err) {
+      if (shouldFallbackOnError(err)) {
+        const stale = await contributedReposCache.get(key);
+        if (stale) {
+          logger.warn('GitHub API contributed repos fetch failed, returning stale cache data', {
+            username,
+            error: err,
+          });
+          return stale;
+        }
+        return [];
+      }
+      throw err;
+    }
   }
-  return contributedReposCache.getOrSet(key, load, GITHUB_CACHE_TTL_MS);
+
+  try {
+    return await contributedReposCache.getOrSet(key, load, GITHUB_CACHE_TTL_MS);
+  } catch (err) {
+    if (shouldFallbackOnError(err)) {
+      const stale = await contributedReposCache.get(key);
+      if (stale) {
+        logger.warn('GitHub API contributed repos fetch failed, returning stale cache data', {
+          username,
+          error: err,
+        });
+        return stale;
+      }
+      return [];
+    }
+    throw err;
+  }
 }
 
 export interface DeveloperScoreInput {

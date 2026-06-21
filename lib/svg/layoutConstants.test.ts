@@ -12,16 +12,16 @@ describe('layoutConstants', () => {
     expect(GHOST_HEIGHT_PX).toBe(4);
   });
 
-  it('LOG_SCALE_MULTIPLIER equals 12', () => {
-    expect(LOG_SCALE_MULTIPLIER).toBe(12);
+  it('LOG_SCALE_MULTIPLIER equals 15', () => {
+    expect(LOG_SCALE_MULTIPLIER).toBe(15);
   });
 
   it('LINEAR_SCALE_MULTIPLIER equals 5', () => {
     expect(LINEAR_SCALE_MULTIPLIER).toBe(5);
   });
 
-  it('MAX_LOG_HEIGHT equals 80', () => {
-    expect(MAX_LOG_HEIGHT).toBe(80);
+  it('MAX_LOG_HEIGHT equals 50', () => {
+    expect(MAX_LOG_HEIGHT).toBe(50);
   });
 
   it('MAX_LINEAR_HEIGHT equals 50', () => {

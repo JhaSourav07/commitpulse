@@ -304,7 +304,7 @@ describe('MSW: error handling', () => {
     await expect(fetchUserProfile('octocat')).rejects.toThrow();
   });
 
-  it('handles network errors gracefully', async () => {
+  it('handles network errors gracefully by falling back to mock profile', async () => {
     globalThis.fetch = (() => {
       throw new TypeError('Failed to fetch');
     }) as typeof fetch;
@@ -312,6 +312,8 @@ describe('MSW: error handling', () => {
     process.env.GITHUB_PAT = 'test-token';
     delete process.env.GITHUB_TOKEN;
     clearGitHubApiCacheForTests();
-    await expect(fetchUserProfile('octocat')).rejects.toThrow();
+    const result = await fetchUserProfile('octocat');
+    expect(result.isOfflineFallback).toBe(true);
+    expect(result.login).toBe('octocat');
   });
 });

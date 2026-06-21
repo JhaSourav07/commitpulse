@@ -30,8 +30,6 @@ import GoalTracker from './GoalTracker';
 
 import RepositoryImpactAnalyzer from './RepositoryImpactAnalyzer';
 
-
-
 interface DashboardClientProps {
   initialData: DashboardData;
   allRepoActivity?: RepoActivityInfo[];
@@ -170,8 +168,6 @@ export default function DashboardClient({
             </div>
             <AIInsights insights={initialData.insights} />
 
-
-
             <PopularRepos
               popularRepos={initialData.popularRepos || []}
               pinnedRepos={initialData.pinnedRepos || []}
@@ -200,8 +196,6 @@ export default function DashboardClient({
               }}
             />
           </div>
-
-
         </div>
       )}
 

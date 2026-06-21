@@ -505,8 +505,8 @@ export default function LandingPageClient() {
     scrollTimeoutRef.current = setTimeout(() => {
       guideRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 80);
-    //if (copiedTimeoutRef.current) clearTimeout(copiedTimeoutRef.current);
-    //copiedTimeoutRef.current = setTimeout(() => setCopied(false), 3000);
+    if (copiedTimeoutRef.current) clearTimeout(copiedTimeoutRef.current);
+    copiedTimeoutRef.current = setTimeout(() => setCopied(false), 3000);
   };
 
   useEffect(() => {

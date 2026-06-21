@@ -40,6 +40,7 @@ export const themes: Record<string, BadgeTheme> = {
   cyberpunk: makeTheme('fce22a', '111111', 'ff003c'),
   tokyo_night: makeTheme('1a1b26', 'c0caf5', '7aa2f7'),
   monokai: makeTheme('272822', 'f8f8f2', 'a6e22e', 'f92672'),
+  midnight_ocean: makeTheme('020c1b', 'ccd6f6', '0af5ff', 'ff4d6d'),
 };
 
 // Auto-theme pairs: the SVG switches between these two palettes
@@ -47,3 +48,16 @@ export const themes: Record<string, BadgeTheme> = {
 // viewer's OS-level light/dark setting without any JavaScript.
 export const AUTO_THEME_LIGHT: BadgeTheme = themes.light;
 export const AUTO_THEME_DARK: BadgeTheme = themes.dark;
+
+/**
+ * Resolves a theme case-insensitively by matching the normalized user input
+ * against the normalized theme registry keys. Returns the standard theme key.
+ */
+export function getNormalizedThemeKey(themeInput: string | undefined | null): string {
+  if (!themeInput) return 'default'; // fallback key
+
+  const target = themeInput.toLowerCase();
+  const matchedKey = Object.keys(themes).find((key) => key.toLowerCase() === target);
+
+  return matchedKey || 'default';
+}
