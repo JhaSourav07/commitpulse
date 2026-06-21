@@ -1,6 +1,6 @@
 'use client';
 
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import { useEffect, useState } from 'react';
 
 const generatePetals = (count: number) => {
@@ -32,6 +32,7 @@ export interface Petal {
 export default function CherryBlossom() {
   const [petals] = useState<Petal[]>(() => generatePetals(25));
   const [mounted, setMounted] = useState(false);
+  const prefersReducedMotion = useReducedMotion();
 
   // SSR hydration guard: the petal animations use framer-motion values derived
   // from Math.random() at component initialisation time (via useState initialiser).
@@ -43,6 +44,10 @@ export default function CherryBlossom() {
   }, []);
 
   if (!mounted) return null;
+  // Skip rendering entirely when the user has requested reduced motion
+  if (prefersReducedMotion) {
+    return null;
+  }
 
   return (
     <div className="fixed inset-0 pointer-events-none z-10 overflow-hidden">

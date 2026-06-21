@@ -6,6 +6,7 @@ import '@testing-library/jest-dom';
 
 // Mock framer-motion to inspect the props passed to the animated elements
 vi.mock('framer-motion', () => ({
+  useReducedMotion: vi.fn(() => false),
   motion: {
     div: ({
       children,

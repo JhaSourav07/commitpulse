@@ -1,8 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import CherryBlossom from './CherryBlossom';
+import { useReducedMotion } from 'framer-motion';
 import type React from 'react';
 import '@testing-library/jest-dom';
+
 // Mock framer-motion
 vi.mock('framer-motion', () => ({
   motion: {
@@ -15,11 +17,13 @@ vi.mock('framer-motion', () => ({
       </div>
     ),
   },
+  useReducedMotion: vi.fn(() => false), // default: motion is allowed
 }));
 
 describe('CherryBlossom', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    vi.mocked(useReducedMotion).mockReturnValue(false);
   });
 
   it('renders without crashing after mount', async () => {
@@ -66,5 +70,32 @@ describe('CherryBlossom', () => {
     });
 
     expect(() => unmount()).not.toThrow();
+  });
+});
+
+describe('CherryBlossom - Reduced Motion Accessibility', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    vi.mocked(useReducedMotion).mockReturnValue(false);
+  });
+
+  it('renders nothing when the user prefers reduced motion', async () => {
+    vi.mocked(useReducedMotion).mockReturnValue(true);
+
+    const { container } = render(<CherryBlossom />);
+
+    await waitFor(() => {
+      expect(container.firstChild).toBeNull();
+    });
+  });
+
+  it('still renders the falling petals when reduced motion is not requested', async () => {
+    vi.mocked(useReducedMotion).mockReturnValue(false);
+
+    const { container } = render(<CherryBlossom />);
+
+    await waitFor(() => {
+      expect(container.querySelector('.fixed.inset-0')).toBeInTheDocument();
+    });
   });
 });

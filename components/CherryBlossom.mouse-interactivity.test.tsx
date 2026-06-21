@@ -6,6 +6,7 @@ import '@testing-library/jest-dom';
 
 // Mock framer-motion to keep the tests simple and stable
 vi.mock('framer-motion', () => ({
+  useReducedMotion: vi.fn(() => false),
   motion: {
     div: ({
       children,

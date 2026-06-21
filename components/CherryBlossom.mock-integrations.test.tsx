@@ -6,6 +6,7 @@ import CherryBlossom from './CherryBlossom';
 // 1. Mock standard asynchronous imports and databases using stubs
 // We mock framer-motion to execute synchronously to avoid async animation timeouts
 vi.mock('framer-motion', () => ({
+  useReducedMotion: vi.fn(() => false),
   motion: {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     div: ({ children, className, ...props }: any) => (
