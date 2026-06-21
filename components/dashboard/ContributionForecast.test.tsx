@@ -62,7 +62,9 @@ describe('ContributionForecast', () => {
   it('handles empty activity data gracefully', () => {
     render(<ContributionForecast activity={[]} />);
 
-    expect(screen.getByText(/No past activity data available to generate predictions/i)).toBeDefined();
+    expect(
+      screen.getByText(/No past activity data available to generate predictions/i)
+    ).toBeDefined();
     expect(screen.queryByText('commits/wk')).toBeNull();
   });
 
@@ -74,7 +76,7 @@ describe('ContributionForecast', () => {
     expect(screen.getByText('0.0 Commits/Month')).toBeDefined();
     expect(screen.getByText('Inactive')).toBeDefined();
     expect(screen.getByText('Stable Rhythm')).toBeDefined();
-    
+
     // Projections should equal currentTotal contributions (100) because slope and intercept are 0
     const projectedCommits = screen.getAllByText('100 Commits');
     expect(projectedCommits.length).toBeGreaterThanOrEqual(2);
@@ -110,7 +112,7 @@ describe('ContributionForecast', () => {
 
     expect(screen.getByText('Elite (Very Consistent)')).toBeDefined();
     expect(screen.getByText('90% active days')).toBeDefined();
-    
+
     // slope is positive and strong
     expect(screen.getByText('Strong Growth')).toBeDefined();
   });

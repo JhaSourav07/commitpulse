@@ -11,8 +11,8 @@ vi.mock('@/context/TranslationContext', () => ({
         return key; // Simple mock returning key
       }
       return key;
-    }
-  })
+    },
+  }),
 }));
 
 // Mock framer-motion to render clean HTML containers for testing
@@ -57,33 +57,99 @@ const mockUser1: CompareUser = {
     location: 'New York',
     joinedDate: 'Joined Oct 2020',
     developerScore: 85,
-    stats: { repositories: 12, followers: 150, following: 80, stars: 300 }
+    stats: { repositories: 12, followers: 150, following: 80, stars: 300 },
   },
   stats: {
     currentStreak: 5,
     peakStreak: 15,
-    totalContributions: 500
+    totalContributions: 500,
   },
   languages: [
     { name: 'TypeScript', color: '#3178c6', percentage: 70 },
-    { name: 'JavaScript', color: '#f1e05a', percentage: 30 }
+    { name: 'JavaScript', color: '#f1e05a', percentage: 30 },
   ],
   activity: [
     { date: '2026-05-10', count: 5, intensity: 2 },
     { date: '2026-05-11', count: 10, intensity: 3 },
-    { date: '2026-06-01', count: 2, intensity: 1 }
+    { date: '2026-06-01', count: 2, intensity: 1 },
   ],
   achievements: [
-    { id: 'streak-10', title: '10 Day Streak', description: 'Coded for 10 days', icon: 'flame', isUnlocked: true, type: 'streak', threshold: 10, currentValue: 10, progress: 100 },
-    { id: 'contrib-100', title: 'Centurion', description: '100 contributions', icon: 'trophy', isUnlocked: true, type: 'contributions', threshold: 100, currentValue: 100, progress: 100 },
-    { id: 'ach-3', title: 'Achievement 3', description: 'Description 3', icon: 'star', isUnlocked: true, type: 'streak', threshold: 5, currentValue: 5, progress: 100 },
-    { id: 'ach-4', title: 'Achievement 4', description: 'Description 4', icon: 'star', isUnlocked: true, type: 'streak', threshold: 5, currentValue: 5, progress: 100 },
-    { id: 'ach-5', title: 'Achievement 5', description: 'Description 5', icon: 'star', isUnlocked: true, type: 'streak', threshold: 5, currentValue: 5, progress: 100 }
+    {
+      id: 'streak-10',
+      title: '10 Day Streak',
+      description: 'Coded for 10 days',
+      icon: 'flame',
+      isUnlocked: true,
+      type: 'streak',
+      threshold: 10,
+      currentValue: 10,
+      progress: 100,
+    },
+    {
+      id: 'contrib-100',
+      title: 'Centurion',
+      description: '100 contributions',
+      icon: 'trophy',
+      isUnlocked: true,
+      type: 'contributions',
+      threshold: 100,
+      currentValue: 100,
+      progress: 100,
+    },
+    {
+      id: 'ach-3',
+      title: 'Achievement 3',
+      description: 'Description 3',
+      icon: 'star',
+      isUnlocked: true,
+      type: 'streak',
+      threshold: 5,
+      currentValue: 5,
+      progress: 100,
+    },
+    {
+      id: 'ach-4',
+      title: 'Achievement 4',
+      description: 'Description 4',
+      icon: 'star',
+      isUnlocked: true,
+      type: 'streak',
+      threshold: 5,
+      currentValue: 5,
+      progress: 100,
+    },
+    {
+      id: 'ach-5',
+      title: 'Achievement 5',
+      description: 'Description 5',
+      icon: 'star',
+      isUnlocked: true,
+      type: 'streak',
+      threshold: 5,
+      currentValue: 5,
+      progress: 100,
+    },
   ],
   popularRepos: [
-    { name: 'alice-cool-web', description: 'Alice web project', stargazerCount: 50, forkCount: 10, url: 'https://github.com/alice/alice-cool-web', primaryLanguage: { name: 'TypeScript', color: '#3178c6' }, commits: 20 } as any,
-    { name: 'alice-utils', description: 'Alice util project', stargazerCount: 10, forkCount: 2, url: 'https://github.com/alice/alice-utils', primaryLanguage: { name: 'JavaScript', color: '#f1e05a' }, commits: 5 } as any
-  ]
+    {
+      name: 'alice-cool-web',
+      description: 'Alice web project',
+      stargazerCount: 50,
+      forkCount: 10,
+      url: 'https://github.com/alice/alice-cool-web',
+      primaryLanguage: { name: 'TypeScript', color: '#3178c6' },
+      commits: 20,
+    } as any,
+    {
+      name: 'alice-utils',
+      description: 'Alice util project',
+      stargazerCount: 10,
+      forkCount: 2,
+      url: 'https://github.com/alice/alice-utils',
+      primaryLanguage: { name: 'JavaScript', color: '#f1e05a' },
+      commits: 5,
+    } as any,
+  ],
 };
 
 const mockUser2: CompareUser = {
@@ -96,29 +162,65 @@ const mockUser2: CompareUser = {
     location: 'Berlin',
     joinedDate: 'Joined Jan 2021',
     developerScore: 90,
-    stats: { repositories: 8, followers: 90, following: 40, stars: 120 }
+    stats: { repositories: 8, followers: 90, following: 40, stars: 120 },
   },
   stats: {
     currentStreak: 2,
     peakStreak: 8,
-    totalContributions: 320
+    totalContributions: 320,
   },
   languages: [
     { name: 'TypeScript', color: '#3178c6', percentage: 40 },
-    { name: 'Go', color: '#00add8', percentage: 60 }
+    { name: 'Go', color: '#00add8', percentage: 60 },
   ],
   activity: [
     { date: '2026-05-10', count: 3, intensity: 1 },
-    { date: '2026-06-01', count: 8, intensity: 3 }
+    { date: '2026-06-01', count: 8, intensity: 3 },
   ],
   achievements: [
-    { id: 'streak-10', title: '10 Day Streak', description: 'Coded for 10 days', icon: 'flame', isUnlocked: false, type: 'streak', threshold: 10, currentValue: 4, progress: 40 },
-    { id: 'contrib-100', title: 'Centurion', description: '100 contributions', icon: 'trophy', isUnlocked: true, type: 'contributions', threshold: 100, currentValue: 100, progress: 100 }
+    {
+      id: 'streak-10',
+      title: '10 Day Streak',
+      description: 'Coded for 10 days',
+      icon: 'flame',
+      isUnlocked: false,
+      type: 'streak',
+      threshold: 10,
+      currentValue: 4,
+      progress: 40,
+    },
+    {
+      id: 'contrib-100',
+      title: 'Centurion',
+      description: '100 contributions',
+      icon: 'trophy',
+      isUnlocked: true,
+      type: 'contributions',
+      threshold: 100,
+      currentValue: 100,
+      progress: 100,
+    },
   ],
   popularRepos: [
-    { name: 'bob-go-engine', description: 'Bob high performance engine', stargazerCount: 100, forkCount: 30, url: 'https://github.com/bob/bob-go-engine', primaryLanguage: { name: 'Go', color: '#00add8' }, commits: 40 } as any,
-    { name: 'bob-script', description: 'Bob basic script', stargazerCount: 5, forkCount: 0, url: 'https://github.com/bob/bob-script', primaryLanguage: { name: 'Go', color: '#00add8' }, commits: 2 } as any
-  ]
+    {
+      name: 'bob-go-engine',
+      description: 'Bob high performance engine',
+      stargazerCount: 100,
+      forkCount: 30,
+      url: 'https://github.com/bob/bob-go-engine',
+      primaryLanguage: { name: 'Go', color: '#00add8' },
+      commits: 40,
+    } as any,
+    {
+      name: 'bob-script',
+      description: 'Bob basic script',
+      stargazerCount: 5,
+      forkCount: 0,
+      url: 'https://github.com/bob/bob-script',
+      primaryLanguage: { name: 'Go', color: '#00add8' },
+      commits: 2,
+    } as any,
+  ],
 };
 
 describe('ProfileComparisonAnalytics', () => {
@@ -136,7 +238,9 @@ describe('ProfileComparisonAnalytics', () => {
     expect(screen.getByText('dashboard.compare.developer_score: 90')).toBeDefined();
 
     // Check total contributions
-    expect(screen.getAllByText('dashboard.compare.contribution_comparison.user_total')[0]).toBeDefined();
+    expect(
+      screen.getAllByText('dashboard.compare.contribution_comparison.user_total')[0]
+    ).toBeDefined();
   });
 
   it('correctly ranks repositories and calculates impact scores', () => {
@@ -178,7 +282,9 @@ describe('ProfileComparisonAnalytics', () => {
     expect(screen.getByText('10 Day Streak')).toBeDefined();
 
     // Alice unlocked badge, Bob locked badge
-    const aliceUnlockedBadges = screen.getAllByRole('img', { name: 'alice unlocked 10 Day Streak' });
+    const aliceUnlockedBadges = screen.getAllByRole('img', {
+      name: 'alice unlocked 10 Day Streak',
+    });
     const bobLockedBadges = screen.getAllByRole('img', { name: 'bob locked 10 Day Streak' });
 
     expect(aliceUnlockedBadges.length).toBe(1);
@@ -196,13 +302,13 @@ describe('ProfileComparisonAnalytics', () => {
         location: '',
         joinedDate: '',
         developerScore: 0,
-        stats: { repositories: 0, followers: 0, following: 0, stars: 0 }
+        stats: { repositories: 0, followers: 0, following: 0, stars: 0 },
       },
       stats: { currentStreak: 0, peakStreak: 0, totalContributions: 0 },
       languages: [],
       activity: [],
       achievements: [],
-      popularRepos: []
+      popularRepos: [],
     };
 
     const emptyUser2: CompareUser = {
@@ -215,13 +321,13 @@ describe('ProfileComparisonAnalytics', () => {
         location: '',
         joinedDate: '',
         developerScore: 0,
-        stats: { repositories: 0, followers: 0, following: 0, stars: 0 }
+        stats: { repositories: 0, followers: 0, following: 0, stars: 0 },
       },
       stats: { currentStreak: 0, peakStreak: 0, totalContributions: 0 },
       languages: [],
       activity: [],
       achievements: [],
-      popularRepos: []
+      popularRepos: [],
     };
 
     render(<ProfileComparisonAnalytics user1={emptyUser1} user2={emptyUser2} />);
@@ -234,7 +340,9 @@ describe('ProfileComparisonAnalytics', () => {
   });
 
   it('supports keyboard accessibility controls and ARIA compliance', () => {
-    const { container } = render(<ProfileComparisonAnalytics user1={mockUser1} user2={mockUser2} />);
+    const { container } = render(
+      <ProfileComparisonAnalytics user1={mockUser1} user2={mockUser2} />
+    );
 
     // Region has comparison aria label
     const region = screen.getByRole('region', { name: 'dashboard.compare.title' });

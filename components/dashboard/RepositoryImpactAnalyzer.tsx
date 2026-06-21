@@ -15,14 +15,20 @@ export interface RepositoryImpactAnalyzerProps {
     forkCount?: number;
     createdAt?: string | Date;
     created_at?: string | Date;
-    language?: {
-      name: string;
-      color: string;
-    } | string | null;
-    primaryLanguage?: {
-      name: string;
-      color: string;
-    } | string | null;
+    language?:
+      | {
+          name: string;
+          color: string;
+        }
+      | string
+      | null;
+    primaryLanguage?:
+      | {
+          name: string;
+          color: string;
+        }
+      | string
+      | null;
     url?: string;
   }>;
 }
@@ -34,13 +40,16 @@ export function formatAge(months: number, t: (key: string) => string): string {
   const years = Math.floor(months / 12);
   const remainingMonths = months % 12;
   if (remainingMonths === 0) {
-    const unit = years === 1 ? t('dashboard.impact.years').replace(/s$/, '') : t('dashboard.impact.years');
+    const unit =
+      years === 1 ? t('dashboard.impact.years').replace(/s$/, '') : t('dashboard.impact.years');
     return `${years} ${unit}`;
   }
   return `${years}y ${remainingMonths}m`;
 }
 
-export default function RepositoryImpactAnalyzer({ repositories = [] }: RepositoryImpactAnalyzerProps) {
+export default function RepositoryImpactAnalyzer({
+  repositories = [],
+}: RepositoryImpactAnalyzerProps) {
   const { t } = useTranslation();
 
   // Handle empty state gracefully
@@ -142,7 +151,8 @@ export default function RepositoryImpactAnalyzer({ repositories = [] }: Reposito
 
   const languageContribution = Object.entries(languageGroups)
     .map(([name, data]) => {
-      const percentage = totalCommits > 0 ? parseFloat(((data.commits / totalCommits) * 100).toFixed(1)) : 0;
+      const percentage =
+        totalCommits > 0 ? parseFloat(((data.commits / totalCommits) * 100).toFixed(1)) : 0;
       return {
         name,
         commits: data.commits,
@@ -158,8 +168,10 @@ export default function RepositoryImpactAnalyzer({ repositories = [] }: Reposito
   const totalStars = processedRepos.reduce((acc, repo) => acc + repo.stars, 0);
   const totalForks = processedRepos.reduce((acc, repo) => acc + repo.forks, 0);
 
-  const avgStarsPerMonthOverall = totalAgeMonths > 0 ? parseFloat((totalStars / totalAgeMonths).toFixed(2)) : 0;
-  const avgForksPerMonthOverall = totalAgeMonths > 0 ? parseFloat((totalForks / totalAgeMonths).toFixed(2)) : 0;
+  const avgStarsPerMonthOverall =
+    totalAgeMonths > 0 ? parseFloat((totalStars / totalAgeMonths).toFixed(2)) : 0;
+  const avgForksPerMonthOverall =
+    totalAgeMonths > 0 ? parseFloat((totalForks / totalAgeMonths).toFixed(2)) : 0;
 
   return (
     <motion.div
@@ -177,7 +189,10 @@ export default function RepositoryImpactAnalyzer({ repositories = [] }: Reposito
             <Award className="w-5 h-5" />
           </div>
           <div>
-            <h3 id="impact-analyzer-title" className="text-base font-bold text-zinc-900 dark:text-white">
+            <h3
+              id="impact-analyzer-title"
+              className="text-base font-bold text-zinc-900 dark:text-white"
+            >
               {t('dashboard.impact.title')}
             </h3>
             <p className="text-xs text-zinc-500 dark:text-zinc-400">
@@ -189,7 +204,6 @@ export default function RepositoryImpactAnalyzer({ repositories = [] }: Reposito
 
       {/* Main Grid Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        
         {/* Left Column: Top 5 Repositories ranking */}
         <div className="flex flex-col gap-4">
           <h4 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 flex items-center gap-2">
@@ -219,7 +233,10 @@ export default function RepositoryImpactAnalyzer({ repositories = [] }: Reposito
                     <div className="flex items-center gap-2 mt-1 flex-wrap">
                       {/* Language Indicator */}
                       <span className="flex items-center gap-1 text-[10px] text-zinc-500 dark:text-zinc-400">
-                        <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: repo.language.color }} />
+                        <span
+                          className="w-1.5 h-1.5 rounded-full"
+                          style={{ backgroundColor: repo.language.color }}
+                        />
                         {repo.language.name}
                       </span>
                       <span className="text-[10px] text-zinc-400 dark:text-zinc-500">•</span>
@@ -232,8 +249,12 @@ export default function RepositoryImpactAnalyzer({ repositories = [] }: Reposito
 
                 <div className="flex items-center gap-4 text-right flex-shrink-0">
                   <div className="text-[10px] text-zinc-400 dark:text-zinc-500 hidden sm:block">
-                    <div>{repo.commits} {t('dashboard.impact.commits').toLowerCase()}</div>
-                    <div>{repo.stars} ★ • {repo.forks} ⑂</div>
+                    <div>
+                      {repo.commits} {t('dashboard.impact.commits').toLowerCase()}
+                    </div>
+                    <div>
+                      {repo.stars} ★ • {repo.forks} ⑂
+                    </div>
                   </div>
                   <div>
                     <div className="text-[10px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">
@@ -251,7 +272,6 @@ export default function RepositoryImpactAnalyzer({ repositories = [] }: Reposito
 
         {/* Right Column: Language Contribution & Overall Growth Metrics */}
         <div className="flex flex-col gap-6 justify-between">
-          
           {/* Language Contribution */}
           <div className="flex flex-col gap-3">
             <h4 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">
@@ -285,8 +305,13 @@ export default function RepositoryImpactAnalyzer({ repositories = [] }: Reposito
                   className="flex items-center justify-between p-2 rounded-lg bg-gray-50/50 dark:bg-neutral-950/10 border border-gray-100 dark:border-neutral-800/20 text-xs"
                 >
                   <div className="flex items-center gap-1.5 min-w-0">
-                    <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: lang.color }} />
-                    <span className="text-zinc-600 dark:text-zinc-400 truncate font-medium">{lang.name}</span>
+                    <span
+                      className="w-2 h-2 rounded-full flex-shrink-0"
+                      style={{ backgroundColor: lang.color }}
+                    />
+                    <span className="text-zinc-600 dark:text-zinc-400 truncate font-medium">
+                      {lang.name}
+                    </span>
                   </div>
                   <span className="font-mono text-[10px] text-zinc-500 dark:text-zinc-400 ml-1">
                     {lang.percentage}%
@@ -338,9 +363,7 @@ export default function RepositoryImpactAnalyzer({ repositories = [] }: Reposito
               </div>
             </div>
           </div>
-
         </div>
-
       </div>
     </motion.div>
   );

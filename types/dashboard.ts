@@ -141,3 +141,22 @@ export interface DeploymentData {
   environment: string; // e.g. "production"
   workflowName: string | null; // e.g. "Vercel Production Deployment"
 }
+
+export interface DashboardData {
+  profile: UserProfile;
+  stats: UserStats;
+  languages: LanguageData[];
+  activity: ActivityData[];
+  insights: AIInsight[];
+  achievements: Achievement[];
+  commitClock: CommitClockData[];
+  graphData: {
+    nodes: any[];
+    links: any[];
+  };
+  popularRepos?: Repository[];
+  pinnedRepos?: Repository[];
+  starredRepos?: Repository[];
+  deployments?: DeploymentData[];
+  hallOfFame?: HallOfFameAward[];
+}

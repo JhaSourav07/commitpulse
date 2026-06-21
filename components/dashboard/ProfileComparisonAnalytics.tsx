@@ -16,7 +16,7 @@ import {
   Lock,
   ExternalLink,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
 } from 'lucide-react';
 import { useTranslation } from '@/context/TranslationContext';
 import type {
@@ -25,7 +25,7 @@ import type {
   LanguageData,
   ActivityData,
   Achievement,
-  Repository
+  Repository,
 } from '@/types/dashboard';
 
 // Types for the comparison component input
@@ -45,43 +45,57 @@ interface ProfileComparisonAnalyticsProps {
 
 export default function ProfileComparisonAnalytics({
   user1,
-  user2
+  user2,
 }: ProfileComparisonAnalyticsProps) {
   const { t } = useTranslation();
 
   // Safely fallback for User 1
-  const u1Profile = useMemo(() => user1?.profile || {
-    username: 'user1',
-    name: 'User One',
-    avatarUrl: '',
-    isPro: false,
-    bio: '',
-    location: '',
-    joinedDate: '',
-    developerScore: 0,
-    stats: { repositories: 0, followers: 0, following: 0, stars: 0 }
-  }, [user1]);
+  const u1Profile = useMemo(
+    () =>
+      user1?.profile || {
+        username: 'user1',
+        name: 'User One',
+        avatarUrl: '',
+        isPro: false,
+        bio: '',
+        location: '',
+        joinedDate: '',
+        developerScore: 0,
+        stats: { repositories: 0, followers: 0, following: 0, stars: 0 },
+      },
+    [user1]
+  );
 
-  const u1Stats = useMemo(() => user1?.stats || { currentStreak: 0, peakStreak: 0, totalContributions: 0 }, [user1]);
+  const u1Stats = useMemo(
+    () => user1?.stats || { currentStreak: 0, peakStreak: 0, totalContributions: 0 },
+    [user1]
+  );
   const u1Languages = useMemo(() => user1?.languages || [], [user1]);
   const u1Activity = useMemo(() => user1?.activity || [], [user1]);
   const u1Achievements = useMemo(() => user1?.achievements || [], [user1]);
   const u1Repos = useMemo(() => user1?.popularRepos || [], [user1]);
 
   // Safely fallback for User 2
-  const u2Profile = useMemo(() => user2?.profile || {
-    username: 'user2',
-    name: 'User Two',
-    avatarUrl: '',
-    isPro: false,
-    bio: '',
-    location: '',
-    joinedDate: '',
-    developerScore: 0,
-    stats: { repositories: 0, followers: 0, following: 0, stars: 0 }
-  }, [user2]);
+  const u2Profile = useMemo(
+    () =>
+      user2?.profile || {
+        username: 'user2',
+        name: 'User Two',
+        avatarUrl: '',
+        isPro: false,
+        bio: '',
+        location: '',
+        joinedDate: '',
+        developerScore: 0,
+        stats: { repositories: 0, followers: 0, following: 0, stars: 0 },
+      },
+    [user2]
+  );
 
-  const u2Stats = useMemo(() => user2?.stats || { currentStreak: 0, peakStreak: 0, totalContributions: 0 }, [user2]);
+  const u2Stats = useMemo(
+    () => user2?.stats || { currentStreak: 0, peakStreak: 0, totalContributions: 0 },
+    [user2]
+  );
   const u2Languages = useMemo(() => user2?.languages || [], [user2]);
   const u2Activity = useMemo(() => user2?.activity || [], [user2]);
   const u2Achievements = useMemo(() => user2?.achievements || [], [user2]);
@@ -93,7 +107,7 @@ export default function ProfileComparisonAnalytics({
   // 1. Process Activity month-by-month
   const monthlyData = useMemo(() => {
     const monthlyMap: Record<string, { user1: number; user2: number }> = {};
-    
+
     const processAct = (act: ActivityData[], key: 'user1' | 'user2') => {
       if (!Array.isArray(act)) return;
       act.forEach((item) => {
@@ -113,18 +127,33 @@ export default function ProfileComparisonAnalytics({
     processAct(u1Activity, 'user1');
     processAct(u2Activity, 'user2');
 
-    const monthNames = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
-    
+    const monthNames = [
+      'jan',
+      'feb',
+      'mar',
+      'apr',
+      'may',
+      'jun',
+      'jul',
+      'aug',
+      'sep',
+      'oct',
+      'nov',
+      'dec',
+    ];
+
     return Object.entries(monthlyMap)
       .sort((a, b) => a[0].localeCompare(b[0]))
       .map(([monthYear, counts]) => {
         const [year, monthStr] = monthYear.split('-');
         const monthIdx = parseInt(monthStr, 10) - 1;
         const monthKey = monthNames[monthIdx] || monthStr;
-        const localizedMonthName = t(`dashboard.compare.months.${monthKey}`, { defaultValue: monthKey.toUpperCase() });
+        const localizedMonthName = t(`dashboard.compare.months.${monthKey}`, {
+          defaultValue: monthKey.toUpperCase(),
+        });
         return {
           label: `${localizedMonthName} ${year}`,
-          ...counts
+          ...counts,
         };
       });
   }, [u1Activity, u2Activity, t]);
@@ -137,7 +166,10 @@ export default function ProfileComparisonAnalytics({
 
   // 2. Process Languages side-by-side
   const combinedLanguages = useMemo(() => {
-    const allLangs: Record<string, { name: string; color: string; user1Pct: number; user2Pct: number }> = {};
+    const allLangs: Record<
+      string,
+      { name: string; color: string; user1Pct: number; user2Pct: number }
+    > = {};
 
     u1Languages.forEach((l) => {
       if (!l.name) return;
@@ -145,26 +177,28 @@ export default function ProfileComparisonAnalytics({
         name: l.name,
         color: l.color || '#94a3b8',
         user1Pct: typeof l.percentage === 'number' && !isNaN(l.percentage) ? l.percentage : 0,
-        user2Pct: 0
+        user2Pct: 0,
       };
     });
 
     u2Languages.forEach((l) => {
       if (!l.name) return;
       if (allLangs[l.name]) {
-        allLangs[l.name].user2Pct = typeof l.percentage === 'number' && !isNaN(l.percentage) ? l.percentage : 0;
+        allLangs[l.name].user2Pct =
+          typeof l.percentage === 'number' && !isNaN(l.percentage) ? l.percentage : 0;
       } else {
         allLangs[l.name] = {
           name: l.name,
           color: l.color || '#94a3b8',
           user1Pct: 0,
-          user2Pct: typeof l.percentage === 'number' && !isNaN(l.percentage) ? l.percentage : 0
+          user2Pct: typeof l.percentage === 'number' && !isNaN(l.percentage) ? l.percentage : 0,
         };
       }
     });
 
-    return Object.values(allLangs)
-      .sort((a, b) => (b.user1Pct + b.user2Pct) - (a.user1Pct + a.user2Pct));
+    return Object.values(allLangs).sort(
+      (a, b) => b.user1Pct + b.user2Pct - (a.user1Pct + a.user2Pct)
+    );
   }, [u1Languages, u2Languages]);
 
   // 3. Process Achievements comparison
@@ -189,7 +223,7 @@ export default function ProfileComparisonAnalytics({
         description: a.description || '',
         type: a.type || 'contributions',
         user1: a,
-        user2: null
+        user2: null,
       };
     });
 
@@ -204,7 +238,7 @@ export default function ProfileComparisonAnalytics({
           description: a.description || '',
           type: a.type || 'contributions',
           user1: null,
-          user2: a
+          user2: a,
         };
       }
     });
@@ -226,7 +260,7 @@ export default function ProfileComparisonAnalytics({
         const commits = (repo as any).commits ?? (repo as any).commitCount ?? 0;
         const stars = repo.stargazerCount ?? (repo as any).stars ?? 0;
         const forks = repo.forkCount ?? (repo as any).forks ?? 0;
-        
+
         // Impact Score: (commits * 3) + (stars * 5) + (forks * 10)
         const score = commits * 3 + stars * 5 + forks * 10;
 
@@ -245,7 +279,7 @@ export default function ProfileComparisonAnalytics({
           forks,
           score,
           url: repo.url || '#',
-          language: { name: langName, color: langColor }
+          language: { name: langName, color: langColor },
         };
       })
       .sort((a, b) => b.score - a.score)
@@ -262,9 +296,8 @@ export default function ProfileComparisonAnalytics({
     <div className="space-y-8 w-full" role="region" aria-label={t('dashboard.compare.title')}>
       {/* Header section with profile cards & VS floating circle */}
       <div className="relative grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
-        
         {/* Floating VS middle divider */}
-        <div 
+        <div
           className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 hidden md:flex items-center justify-center w-12 h-12 rounded-full border border-black/10 dark:border-white/10 bg-white dark:bg-[#0a0a0a] font-extrabold text-sm shadow-md text-zinc-500 dark:text-zinc-400 select-none pointer-events-none"
           aria-hidden="true"
         >
@@ -309,7 +342,7 @@ export default function ProfileComparisonAnalytics({
                   {u1Profile.name || u1Profile.username}
                 </h2>
                 <p className="text-xs text-zinc-500 dark:text-[#A1A1AA]">@{u1Profile.username}</p>
-                
+
                 <div className="mt-2 flex items-center gap-1.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded-md w-fit">
                   <Award size={13} />
                   <span className="text-[10px] font-bold tracking-wide uppercase">
@@ -344,19 +377,25 @@ export default function ProfileComparisonAnalytics({
               <span className="block text-xs font-semibold text-gray-900 dark:text-white">
                 {u1Profile.stats?.repositories || 0}
               </span>
-              <span className="text-[10px] text-zinc-500 dark:text-[#A1A1AA]">{t('dashboard.profile.repos')}</span>
+              <span className="text-[10px] text-zinc-500 dark:text-[#A1A1AA]">
+                {t('dashboard.profile.repos')}
+              </span>
             </div>
             <div className="text-center">
               <span className="block text-xs font-semibold text-gray-900 dark:text-white">
                 {u1Profile.stats?.followers || 0}
               </span>
-              <span className="text-[10px] text-zinc-500 dark:text-[#A1A1AA]">{t('dashboard.profile.followers')}</span>
+              <span className="text-[10px] text-zinc-500 dark:text-[#A1A1AA]">
+                {t('dashboard.profile.followers')}
+              </span>
             </div>
             <div className="text-center">
               <span className="block text-xs font-semibold text-gray-900 dark:text-white">
                 {u1Stats.totalContributions || 0}
               </span>
-              <span className="text-[10px] text-zinc-500 dark:text-[#A1A1AA]">{t('dashboard.stats.contributions')}</span>
+              <span className="text-[10px] text-zinc-500 dark:text-[#A1A1AA]">
+                {t('dashboard.stats.contributions')}
+              </span>
             </div>
           </div>
         </motion.div>
@@ -399,7 +438,7 @@ export default function ProfileComparisonAnalytics({
                   {u2Profile.name || u2Profile.username}
                 </h2>
                 <p className="text-xs text-zinc-500 dark:text-[#A1A1AA]">@{u2Profile.username}</p>
-                
+
                 <div className="mt-2 flex items-center gap-1.5 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded-md w-fit">
                   <Award size={13} />
                   <span className="text-[10px] font-bold tracking-wide uppercase">
@@ -434,19 +473,25 @@ export default function ProfileComparisonAnalytics({
               <span className="block text-xs font-semibold text-gray-900 dark:text-white">
                 {u2Profile.stats?.repositories || 0}
               </span>
-              <span className="text-[10px] text-zinc-500 dark:text-[#A1A1AA]">{t('dashboard.profile.repos')}</span>
+              <span className="text-[10px] text-zinc-500 dark:text-[#A1A1AA]">
+                {t('dashboard.profile.repos')}
+              </span>
             </div>
             <div className="text-center">
               <span className="block text-xs font-semibold text-gray-900 dark:text-white">
                 {u2Profile.stats?.followers || 0}
               </span>
-              <span className="text-[10px] text-zinc-500 dark:text-[#A1A1AA]">{t('dashboard.profile.followers')}</span>
+              <span className="text-[10px] text-zinc-500 dark:text-[#A1A1AA]">
+                {t('dashboard.profile.followers')}
+              </span>
             </div>
             <div className="text-center">
               <span className="block text-xs font-semibold text-gray-900 dark:text-white">
                 {u2Stats.totalContributions || 0}
               </span>
-              <span className="text-[10px] text-zinc-500 dark:text-[#A1A1AA]">{t('dashboard.stats.contributions')}</span>
+              <span className="text-[10px] text-zinc-500 dark:text-[#A1A1AA]">
+                {t('dashboard.stats.contributions')}
+              </span>
             </div>
           </div>
         </motion.div>
@@ -476,7 +521,7 @@ export default function ProfileComparisonAnalytics({
         ) : (
           <div className="space-y-6">
             {/* Visual Bar Chart */}
-            <div 
+            <div
               className="relative h-64 border-b border-black/10 dark:border-white/10 pb-2 overflow-x-auto scrollbar-thin flex items-end gap-6 md:justify-around w-full"
               role="img"
               aria-label="Activity comparison chart"
@@ -486,13 +531,19 @@ export default function ProfileComparisonAnalytics({
                 const u2Pct = (data.user2 / maxMonthlyVal) * 100;
 
                 return (
-                  <div key={idx} className="flex flex-col items-center min-w-[50px] group relative h-full justify-end">
-                    
+                  <div
+                    key={idx}
+                    className="flex flex-col items-center min-w-[50px] group relative h-full justify-end"
+                  >
                     {/* Hover Stats Tooltip */}
                     <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-black dark:bg-white text-white dark:text-black text-[10px] rounded p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap shadow-md z-20">
                       <p className="font-semibold">{data.label}</p>
-                      <p className="text-emerald-500">@{u1Profile.username}: {data.user1}</p>
-                      <p className="text-indigo-500">@{u2Profile.username}: {data.user2}</p>
+                      <p className="text-emerald-500">
+                        @{u1Profile.username}: {data.user1}
+                      </p>
+                      <p className="text-indigo-500">
+                        @{u2Profile.username}: {data.user2}
+                      </p>
                     </div>
 
                     {/* The double bar */}
@@ -504,7 +555,7 @@ export default function ProfileComparisonAnalytics({
                           style={{ height: `${u1Pct}%` }}
                         />
                       </div>
-                      
+
                       {/* User 2 bar (indigo) */}
                       <div className="w-3 bg-zinc-100 dark:bg-zinc-900/50 rounded-t h-full flex items-end overflow-hidden">
                         <div
@@ -530,14 +581,14 @@ export default function ProfileComparisonAnalytics({
                   <span className="w-2.5 h-2.5 bg-emerald-500 rounded-sm inline-block" />
                   {t('dashboard.compare.contribution_comparison.user_total', {
                     name: `@${u1Profile.username}`,
-                    count: u1Stats.totalContributions.toLocaleString()
+                    count: u1Stats.totalContributions.toLocaleString(),
                   })}
                 </span>
                 <span className="flex items-center gap-1.5 text-indigo-600 dark:text-indigo-400 font-semibold">
                   <span className="w-2.5 h-2.5 bg-indigo-500 rounded-sm inline-block" />
                   {t('dashboard.compare.contribution_comparison.user_total', {
                     name: `@${u2Profile.username}`,
-                    count: u2Stats.totalContributions.toLocaleString()
+                    count: u2Stats.totalContributions.toLocaleString(),
                   })}
                 </span>
               </div>
@@ -792,10 +843,38 @@ export default function ProfileComparisonAnalytics({
               if (!repo1 && !repo2) return null;
 
               // Highlighting winners for individual stats
-              const scoreWinner = repo1 && repo2 ? (repo1.score > repo2.score ? 'user1' : repo1.score < repo2.score ? 'user2' : 'tie') : null;
-              const commitsWinner = repo1 && repo2 ? (repo1.commits > repo2.commits ? 'user1' : repo1.commits < repo2.commits ? 'user2' : 'tie') : null;
-              const starsWinner = repo1 && repo2 ? (repo1.stars > repo2.stars ? 'user1' : repo1.stars < repo2.stars ? 'user2' : 'tie') : null;
-              const forksWinner = repo1 && repo2 ? (repo1.forks > repo2.forks ? 'user1' : repo1.forks < repo2.forks ? 'user2' : 'tie') : null;
+              const scoreWinner =
+                repo1 && repo2
+                  ? repo1.score > repo2.score
+                    ? 'user1'
+                    : repo1.score < repo2.score
+                      ? 'user2'
+                      : 'tie'
+                  : null;
+              const commitsWinner =
+                repo1 && repo2
+                  ? repo1.commits > repo2.commits
+                    ? 'user1'
+                    : repo1.commits < repo2.commits
+                      ? 'user2'
+                      : 'tie'
+                  : null;
+              const starsWinner =
+                repo1 && repo2
+                  ? repo1.stars > repo2.stars
+                    ? 'user1'
+                    : repo1.stars < repo2.stars
+                      ? 'user2'
+                      : 'tie'
+                  : null;
+              const forksWinner =
+                repo1 && repo2
+                  ? repo1.forks > repo2.forks
+                    ? 'user1'
+                    : repo1.forks < repo2.forks
+                      ? 'user2'
+                      : 'tie'
+                  : null;
 
               return (
                 <div
@@ -816,7 +895,7 @@ export default function ProfileComparisonAnalytics({
                               style={{
                                 color: repo1.language.color,
                                 borderColor: `${repo1.language.color}33`,
-                                backgroundColor: `${repo1.language.color}11`
+                                backgroundColor: `${repo1.language.color}11`,
                               }}
                             >
                               <span
@@ -844,26 +923,42 @@ export default function ProfileComparisonAnalytics({
 
                         <div className="grid grid-cols-4 gap-1.5 mt-3 pt-3 border-t border-black/5 dark:border-white/5 text-center">
                           <div>
-                            <span className="text-[10px] text-[#A1A1AA] block">{t('dashboard.compare.repository_comparison.commits')}</span>
-                            <span className={`text-[11px] font-bold ${commitsWinner === 'user1' ? 'text-emerald-500 font-extrabold' : 'text-gray-700 dark:text-zinc-300'}`}>
+                            <span className="text-[10px] text-[#A1A1AA] block">
+                              {t('dashboard.compare.repository_comparison.commits')}
+                            </span>
+                            <span
+                              className={`text-[11px] font-bold ${commitsWinner === 'user1' ? 'text-emerald-500 font-extrabold' : 'text-gray-700 dark:text-zinc-300'}`}
+                            >
                               {repo1.commits}
                             </span>
                           </div>
                           <div>
-                            <span className="text-[10px] text-[#A1A1AA] block">{t('dashboard.compare.repository_comparison.stars')}</span>
-                            <span className={`text-[11px] font-bold ${starsWinner === 'user1' ? 'text-emerald-500 font-extrabold' : 'text-gray-700 dark:text-zinc-300'}`}>
+                            <span className="text-[10px] text-[#A1A1AA] block">
+                              {t('dashboard.compare.repository_comparison.stars')}
+                            </span>
+                            <span
+                              className={`text-[11px] font-bold ${starsWinner === 'user1' ? 'text-emerald-500 font-extrabold' : 'text-gray-700 dark:text-zinc-300'}`}
+                            >
                               {repo1.stars}
                             </span>
                           </div>
                           <div>
-                            <span className="text-[10px] text-[#A1A1AA] block">{t('dashboard.compare.repository_comparison.forks')}</span>
-                            <span className={`text-[11px] font-bold ${forksWinner === 'user1' ? 'text-emerald-500 font-extrabold' : 'text-gray-700 dark:text-zinc-300'}`}>
+                            <span className="text-[10px] text-[#A1A1AA] block">
+                              {t('dashboard.compare.repository_comparison.forks')}
+                            </span>
+                            <span
+                              className={`text-[11px] font-bold ${forksWinner === 'user1' ? 'text-emerald-500 font-extrabold' : 'text-gray-700 dark:text-zinc-300'}`}
+                            >
                               {repo1.forks}
                             </span>
                           </div>
                           <div>
-                            <span className="text-[10px] text-[#A1A1AA] block">{t('dashboard.compare.repository_comparison.impact_score')}</span>
-                            <span className={`text-[11px] font-extrabold ${scoreWinner === 'user1' ? 'text-emerald-500' : 'text-zinc-800 dark:text-zinc-200'}`}>
+                            <span className="text-[10px] text-[#A1A1AA] block">
+                              {t('dashboard.compare.repository_comparison.impact_score')}
+                            </span>
+                            <span
+                              className={`text-[11px] font-extrabold ${scoreWinner === 'user1' ? 'text-emerald-500' : 'text-zinc-800 dark:text-zinc-200'}`}
+                            >
                               {repo1.score}
                             </span>
                           </div>
@@ -906,7 +1001,7 @@ export default function ProfileComparisonAnalytics({
                               style={{
                                 color: repo2.language.color,
                                 borderColor: `${repo2.language.color}33`,
-                                backgroundColor: `${repo2.language.color}11`
+                                backgroundColor: `${repo2.language.color}11`,
                               }}
                             >
                               <span
@@ -928,26 +1023,42 @@ export default function ProfileComparisonAnalytics({
 
                         <div className="grid grid-cols-4 gap-1.5 mt-3 pt-3 border-t border-black/5 dark:border-white/5 text-center">
                           <div>
-                            <span className="text-[10px] text-[#A1A1AA] block">{t('dashboard.compare.repository_comparison.commits')}</span>
-                            <span className={`text-[11px] font-bold ${commitsWinner === 'user2' ? 'text-indigo-500 font-extrabold' : 'text-gray-700 dark:text-zinc-300'}`}>
+                            <span className="text-[10px] text-[#A1A1AA] block">
+                              {t('dashboard.compare.repository_comparison.commits')}
+                            </span>
+                            <span
+                              className={`text-[11px] font-bold ${commitsWinner === 'user2' ? 'text-indigo-500 font-extrabold' : 'text-gray-700 dark:text-zinc-300'}`}
+                            >
                               {repo2.commits}
                             </span>
                           </div>
                           <div>
-                            <span className="text-[10px] text-[#A1A1AA] block">{t('dashboard.compare.repository_comparison.stars')}</span>
-                            <span className={`text-[11px] font-bold ${starsWinner === 'user2' ? 'text-indigo-500 font-extrabold' : 'text-gray-700 dark:text-zinc-300'}`}>
+                            <span className="text-[10px] text-[#A1A1AA] block">
+                              {t('dashboard.compare.repository_comparison.stars')}
+                            </span>
+                            <span
+                              className={`text-[11px] font-bold ${starsWinner === 'user2' ? 'text-indigo-500 font-extrabold' : 'text-gray-700 dark:text-zinc-300'}`}
+                            >
                               {repo2.stars}
                             </span>
                           </div>
                           <div>
-                            <span className="text-[10px] text-[#A1A1AA] block">{t('dashboard.compare.repository_comparison.forks')}</span>
-                            <span className={`text-[11px] font-bold ${forksWinner === 'user2' ? 'text-indigo-500 font-extrabold' : 'text-gray-700 dark:text-zinc-300'}`}>
+                            <span className="text-[10px] text-[#A1A1AA] block">
+                              {t('dashboard.compare.repository_comparison.forks')}
+                            </span>
+                            <span
+                              className={`text-[11px] font-bold ${forksWinner === 'user2' ? 'text-indigo-500 font-extrabold' : 'text-gray-700 dark:text-zinc-300'}`}
+                            >
                               {repo2.forks}
                             </span>
                           </div>
                           <div>
-                            <span className="text-[10px] text-[#A1A1AA] block">{t('dashboard.compare.repository_comparison.impact_score')}</span>
-                            <span className={`text-[11px] font-extrabold ${scoreWinner === 'user2' ? 'text-indigo-500' : 'text-zinc-800 dark:text-zinc-200'}`}>
+                            <span className="text-[10px] text-[#A1A1AA] block">
+                              {t('dashboard.compare.repository_comparison.impact_score')}
+                            </span>
+                            <span
+                              className={`text-[11px] font-extrabold ${scoreWinner === 'user2' ? 'text-indigo-500' : 'text-zinc-800 dark:text-zinc-200'}`}
+                            >
                               {repo2.score}
                             </span>
                           </div>
