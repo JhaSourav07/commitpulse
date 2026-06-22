@@ -102,21 +102,22 @@ export async function fetchWithRetry(
 
   if (isGitHubRequest) {
     try {
-      currentToken = getGitHubToken();
-      // Ensure your headers instantiation copies existing layout keys safely
-      options.headers = {
-        ...options.headers,
+      currentToken = userToken || getGitHubToken();
+
+      const headers = {
+        ...(options.headers || {}),
         Authorization: `bearer ${currentToken}`,
       };
+
+      options = {
+        ...options,
+        headers,
+      };
     } catch (e) {
-      // Problem 3 Fix: Never swallow or compromise a structural RateLimitError instance
-      if (e instanceof RateLimitError) {
-        throw e;
-      }
+      if (e instanceof RateLimitError) throw e;
       if (attempt === 0) throw e;
     }
   }
-
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), resolvedTimeout);
   const abortRequest = () => controller.abort();
