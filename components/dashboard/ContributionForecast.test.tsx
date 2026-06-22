@@ -6,9 +6,9 @@ import type { ActivityData } from '@/types/dashboard';
 // Mock framer-motion to prevent animation issues during testing
 vi.mock('framer-motion', () => ({
   motion: {
-    div: ({ children, className, whileHover, ...props }: any) => (
-      <div className={className} {...props}>
-        {children}
+    div: ({ children, className, whileHover, ...props }: Record<string, unknown>) => (
+      <div className={className as string} {...props}>
+        {children as React.ReactNode}
       </div>
     ),
   },
