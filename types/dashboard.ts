@@ -1,6 +1,6 @@
 // types/dashboard.ts
 
-import type { ContributionCalendar } from './index';
+import type { ContributionCalendar, GraphNode, GraphLink } from './index';
 
 export interface UserProfile {
   username: string;
@@ -151,8 +151,8 @@ export interface DashboardData {
   achievements: Achievement[];
   commitClock: CommitClockData[];
   graphData: {
-    nodes: any[];
-    links: any[];
+    nodes: GraphNode[];
+    links: GraphLink[];
   };
   popularRepos?: Repository[];
   pinnedRepos?: Repository[];
