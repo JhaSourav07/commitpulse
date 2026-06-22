@@ -205,8 +205,13 @@ export class TTLCache<T> {
   set(key: string, value: T, ttlMs: number): void {
     TTLCache.assertValidKey(key);
     if (key === '') throw new Error('Cache key cannot be empty');
-    if (ttlMs <= 0) throw new RangeError(`ttlMs must be positive, got ${ttlMs}`);
-    if (Number.isNaN(ttlMs)) ttlMs = 60_000;
+    if (Number.isNaN(ttlMs)) {
+      throw new RangeError('ttlMs must be a number, got NaN');
+    }
+
+    if (ttlMs <= 0) {
+      throw new RangeError('ttlMs must be positive, got ' + ttlMs);
+    }
 
     if (key.length > 10000) {
       throw new Error('Cache key exceeds maximum allowed length to prevent memory bloat');
