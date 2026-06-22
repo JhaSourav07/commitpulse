@@ -263,6 +263,21 @@
       "cancel": "Cancel",
       "monthly_placeholder": "e.g. 50",
       "yearly_placeholder": "e.g. 1000"
+    },
+    "languagesMastery": {
+      "title": "Language Mastery Analytics",
+      "subtitle": "Track programming language evolution and momentum",
+      "overviewTab": "Overview",
+      "timelineTab": "Timeline",
+      "insightsTab": "Insights",
+      "growthScore": "Mastery Growth Score",
+      "evolution": "Technology Evolution",
+      "evolutionDesc": "Chronological journey of language adoption based on repository history",
+      "polyglotTitle": "Active Polyglot",
+      "polyglotDesc": "You regularly build in {{count}} different languages, demonstrating high flexibility.",
+      "expertTitle": "Specialized Expert",
+      "expertDesc": "You have deep expertise in {{lang}} with over {{pct}}% of total contributions.",
+      "noData": "No language statistics available"
     }
   }
 }

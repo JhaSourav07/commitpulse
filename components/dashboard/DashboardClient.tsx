@@ -42,6 +42,7 @@ import CIAnalyticsClient from './CIAnalytics/CIAnalyticsClient';
 import DeploymentTracker from './DeploymentTracker';
 import ArchitectureVisualizer from './ArchitectureVisualizer';
 import GoalTracker from './GoalTracker';
+import LanguageMasteryAnalytics from './LanguageMasteryAnalytics';
 
 // Define the dashboard data structure
 export interface DashboardData {
@@ -718,6 +719,13 @@ export default function DashboardClient({
             <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <LanguageChart languages={initialData.languages} />
               <CommitClock data={initialData.commitClock} />
+            </section>
+
+            <section>
+              <LanguageMasteryAnalytics
+                languages={initialData.languages}
+                popularRepos={initialData.popularRepos}
+              />
             </section>
 
             <section>
