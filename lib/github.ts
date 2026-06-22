@@ -104,10 +104,9 @@ export async function fetchWithRetry(
     try {
       currentToken = userToken || getGitHubToken();
 
-      const headers = {
-        ...(options.headers || {}),
-        Authorization: `bearer ${currentToken}`,
-      };
+      const headers = new Headers(options.headers);
+
+      headers.set('Authorization', `bearer ${currentToken}`);
 
       options = {
         ...options,
