@@ -4,7 +4,7 @@ import { Review } from '@/models/Review';
 import { reviewPostSchema } from '@/lib/validations';
 import { getClientIp } from '@/utils/getClientIp';
 import { DistributedCache } from '@/lib/cache';
-import { notifyRateLimiter } from '@/lib/rate-limit';
+import { getRateLimitHeaders, notifyRateLimiter } from '@/lib/rate-limit';
 
 // Per-IP cooldown: one submission per 10 minutes to prevent spam
 const reviewWriteCache = new DistributedCache<number>(5000, 60000);
@@ -22,7 +22,7 @@ export async function POST(req: Request) {
   if (!rateLimitResult.success) {
     return NextResponse.json(
       { success: false, message: 'Too many requests, please try again later.' },
-      { status: 429 }
+      { status: 429, headers: getRateLimitHeaders(rateLimitResult) }
     );
   }
 
@@ -62,7 +62,7 @@ export async function POST(req: Request) {
         success: false,
         message: `Please wait ${remaining} second${remaining === 1 ? '' : 's'} before submitting another review.`,
       },
-      { status: 429 }
+      { status: 429, headers: { 'Retry-After': remaining.toString() } }
     );
   }
 

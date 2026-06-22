@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
-import { rateLimit } from '@/lib/rate-limit';
+import { rateLimit, getRateLimitHeaders } from '@/lib/rate-limit';
 
 const MAX_PAYLOAD_SIZE = 1024 * 1024; // 1MB
 const SIGNATURE_PREFIX = 'sha256=';
@@ -37,7 +37,10 @@ export async function POST(req: Request) {
   const ip = req.headers.get('x-forwarded-for') || 'unknown_ip';
   const limit = await rateLimit(ip, 10, 60000);
   if (!limit.success) {
-    return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+    return NextResponse.json(
+      { error: 'Too many requests' },
+      { status: 429, headers: getRateLimitHeaders(limit) }
+    );
   }
 
   const webhookSecret = getWebhookSecret();
