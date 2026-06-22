@@ -49,7 +49,7 @@ describe('POST /api/architecture', () => {
   });
 
   it('requires authentication', async () => {
-    vi.mocked(auth).mockResolvedValue(null);
+    vi.mocked(auth).mockResolvedValue(null as never);
 
     const response = await POST(makeRequest({ repoUrl: 'https://github.com/octocat/hello-world' }));
 

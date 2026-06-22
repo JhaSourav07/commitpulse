@@ -1,9 +1,31 @@
-const GITHUB_REPO_API = 'https://api.github.com/repos';
+const GITHUB_API_ORIGIN = 'https://api.github.com';
 const VERIFY_TIMEOUT_MS = 5000;
+
+const GITHUB_OWNER_PATTERN = /^[a-zA-Z0-9](?:[a-zA-Z0-9]|-(?=[a-zA-Z0-9]))*$/;
+const GITHUB_REPO_PATTERN = /^[a-zA-Z0-9._-]+$/;
 
 export type ArchitectureRepoAccessResult =
   | { ok: true; cloneToken?: string }
   | { ok: false; status: 404 | 403 | 502 };
+
+function isValidGitHubOwner(owner: string): boolean {
+  return owner.length > 0 && owner.length <= 39 && GITHUB_OWNER_PATTERN.test(owner);
+}
+
+function isValidGitHubRepoName(repo: string): boolean {
+  return repo.length > 0 && repo.length <= 100 && GITHUB_REPO_PATTERN.test(repo);
+}
+
+function buildGitHubRepoApiUrl(owner: string, repo: string): URL | null {
+  if (!isValidGitHubOwner(owner) || !isValidGitHubRepoName(repo)) {
+    return null;
+  }
+
+  return new URL(
+    `repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`,
+    `${GITHUB_API_ORIGIN}/`
+  );
+}
 
 /**
  * Verifies that a repository exists and is accessible to the caller.
@@ -16,6 +38,11 @@ export async function verifyArchitectureRepoAccess(
   repo: string,
   userToken?: string
 ): Promise<ArchitectureRepoAccessResult> {
+  const apiUrl = buildGitHubRepoApiUrl(owner, repo);
+  if (!apiUrl) {
+    return { ok: false, status: 404 };
+  }
+
   const headers: Record<string, string> = {
     Accept: 'application/vnd.github+json',
     'X-GitHub-Api-Version': '2022-11-28',
@@ -30,7 +57,7 @@ export async function verifyArchitectureRepoAccess(
   const timeoutId = setTimeout(() => controller.abort(), VERIFY_TIMEOUT_MS);
 
   try {
-    const response = await fetch(`${GITHUB_REPO_API}/${owner}/${repo}`, {
+    const response = await fetch(apiUrl.href, {
       headers,
       cache: 'no-store',
       signal: controller.signal,

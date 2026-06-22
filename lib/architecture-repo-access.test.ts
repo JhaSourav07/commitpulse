@@ -45,4 +45,19 @@ describe('verifyArchitectureRepoAccess', () => {
 
     expect(result).toEqual({ ok: false, status: 404 });
   });
+
+  it('rejects malformed owner or repo names without making a network request', async () => {
+    const fetchSpy = vi.spyOn(global, 'fetch');
+
+    await expect(verifyArchitectureRepoAccess('../evil', 'hello-world')).resolves.toEqual({
+      ok: false,
+      status: 404,
+    });
+    await expect(verifyArchitectureRepoAccess('octocat', 'hello/world')).resolves.toEqual({
+      ok: false,
+      status: 404,
+    });
+
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
 });
