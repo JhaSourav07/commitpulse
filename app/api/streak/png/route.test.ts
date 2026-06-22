@@ -39,7 +39,7 @@ describe('PNG Route', () => {
     const mockSvgResponse = new NextResponse('<svg>test</svg>', {
       status: 200,
       headers: {
-        'Content-Type': 'image/svg+xml',
+        'Content-Type': 'image/svg+xml; charset=utf-8',
         'Cache-Control': 'public, max-age=3600',
       },
     });
@@ -76,7 +76,7 @@ describe('PNG Route', () => {
     const mockSvgResponse = new NextResponse('<svg>invalid</svg>', {
       status: 200,
       headers: {
-        'Content-Type': 'image/svg+xml',
+        'Content-Type': 'image/svg+xml; charset=utf-8',
       },
     });
     vi.mocked(getStreakSvg).mockResolvedValue(mockSvgResponse);

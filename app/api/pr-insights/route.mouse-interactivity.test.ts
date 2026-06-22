@@ -39,7 +39,7 @@ describe('pr-insights mouse interactivity contract', () => {
 
     await GET(request);
 
-    expect(fetchPRInsights).toHaveBeenCalledWith('aanya');
+    expect(fetchPRInsights).toHaveBeenCalledWith('aanya', undefined);
   });
 
   it('returns fetched data on success', async () => {
@@ -70,15 +70,23 @@ describe('pr-insights mouse interactivity contract', () => {
     expect(fetchPRInsights).not.toHaveBeenCalled();
   });
 
-  it('uses a fixed endpoint bucket that cannot be rotated with usernames', async () => {
+  it('uses per-IP rate limiting so different IPs get independent buckets', async () => {
     vi.mocked(fetchPRInsights).mockResolvedValue({} as never);
     const checkSpy = vi.spyOn(RateLimiter.prototype, 'checkWithResult');
 
-    await GET(new Request('http://localhost/api/pr-insights?username=octocat'));
-    await GET(new Request('http://localhost/api/pr-insights?username=torvalds'));
+    await GET(
+      new Request('http://localhost/api/pr-insights?username=octocat', {
+        headers: { 'x-forwarded-for': '1.2.3.4' },
+      })
+    );
+    await GET(
+      new Request('http://localhost/api/pr-insights?username=torvalds', {
+        headers: { 'x-forwarded-for': '5.6.7.8' },
+      })
+    );
 
-    expect(checkSpy).toHaveBeenNthCalledWith(1, 'pr-insights');
-    expect(checkSpy).toHaveBeenNthCalledWith(2, 'pr-insights');
+    expect(checkSpy).toHaveBeenNthCalledWith(1, '127.0.0.1');
+    expect(checkSpy).toHaveBeenNthCalledWith(2, '127.0.0.1');
   });
 
   it('returns error message from thrown Error', async () => {

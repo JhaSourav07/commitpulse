@@ -4,7 +4,7 @@ import { Analytics } from '@vercel/analytics/next';
 import Navbar from './components/navbar';
 import BrandParticles from '@/components/BrandParticles';
 import ReturnToTop from '@/components/ReturnToTop';
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import ScrollRestoration from './components/ScrollRestoration';
 import { Providers } from './providers';
 import AnimatedCursor from '@/components/AnimatedCursor';
@@ -29,6 +29,15 @@ export const metadata: Metadata = {
   ],
   authors: [{ name: 'Sourav Jha', url: 'https://github.com/JhaSourav07' }],
   creator: 'Sourav Jha',
+  manifest: '/manifest.json',
+  icons: {
+    apple: '/icons/icon-192x192.png',
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'CommitPulse',
+  },
   openGraph: {
     type: 'website',
     locale: 'en_US',
@@ -66,6 +75,13 @@ export const metadata: Metadata = {
   },
 };
 
+export const viewport: Viewport = {
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
+    { media: '(prefers-color-scheme: dark)', color: '#0d0d0d' },
+  ],
+};
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning>
@@ -91,7 +107,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* Skip link — first focusable element, lets keyboard users jump past the navbar */}
         <a
           href="#main-content"
-          className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[99999] focus:px-4 focus:py-2 focus:bg-blue-600 focus:text-white focus:rounded-md focus:outline-none focus:shadow-lg"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-99999 focus:px-4 focus:py-2 focus:bg-blue-600 focus:text-white focus:rounded-md focus:outline-none focus:shadow-lg"
         >
           Skip to main content
         </a>

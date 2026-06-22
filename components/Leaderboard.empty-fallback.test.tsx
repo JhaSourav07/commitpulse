@@ -6,67 +6,120 @@ import Leaderboard, { type Contributor } from './Leaderboard';
 
 // Mock next/image
 vi.mock('next/image', () => ({
-  default: ({ alt = '', src = '', fill, ...props }: ComponentProps<'img'> & { fill?: boolean }) => (
+  default: ({ alt = '', src = '', fill, ...props }: ComponentProps<'img'> & { fill?: boolean }) => {
+    void fill;
     // eslint-disable-next-line @next/next/no-img-element
-    <img alt={alt} src={src} {...props} />
-  ),
+    return <img alt={alt} src={src} {...props} />;
+  },
 }));
 
 // Mock framer-motion
 vi.mock('framer-motion', () => ({
-  motion: new Proxy(
-    {},
-    {
-      get:
-        () =>
-        ({ children, ...props }: { children?: ReactNode }) => <div {...props}>{children}</div>,
-    }
-  ),
+  motion: {
+    div: ({
+      children,
+      whileHover,
+      whileInView,
+      ...props
+    }: {
+      children?: ReactNode;
+      whileHover?: unknown;
+      whileInView?: unknown;
+      [key: string]: unknown;
+    }) => (
+      <div
+        {...props}
+        data-while-hover={JSON.stringify(whileHover)}
+        data-while-in-view={JSON.stringify(whileInView)}
+      >
+        {children}
+      </div>
+    ),
+  },
 }));
 
-describe('Leaderboard Empty Fallback', () => {
-  const contributor: Contributor = {
-    id: 1,
-    login: 'testuser',
-    avatar_url: 'https://example.com/avatar.png',
-    contributions: 100,
-    html_url: 'https://github.com/testuser',
-  };
+describe('Leaderboard - Edge Cases & Empty/Missing Inputs Verification', () => {
+  it('renders successfully and avoids crashing when contributors is an empty array', () => {
+    expect(() => render(<Leaderboard contributors={[]} />)).not.toThrow();
 
-  it('renders without crashing when contributors array is empty', () => {
+    // Verify no podium or list members are present
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+    expect(screen.queryByText(/commits/i)).not.toBeInTheDocument();
+  });
+
+  it('renders successfully when contributors parameter is undefined/omitted', () => {
+    expect(() =>
+      render(<Leaderboard contributors={undefined as unknown as Contributor[]} />)
+    ).not.toThrow();
+    expect(() =>
+      render(<Leaderboard {...({} as unknown as ComponentProps<typeof Leaderboard>)} />)
+    ).not.toThrow();
+
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+  });
+
+  it('renders successfully when contributors parameter is null', () => {
+    expect(() =>
+      render(<Leaderboard contributors={null as unknown as Contributor[]} />)
+    ).not.toThrow();
+
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+  });
+
+  it('preserves layout structures and standard visual styles in the empty fallback state', () => {
     const { container } = render(<Leaderboard contributors={[]} />);
 
-    expect(container).toBeInTheDocument();
+    // Verify ambient glows and backdrop styling elements exist
+    const baseWrapper = container.firstChild as HTMLElement;
+    expect(baseWrapper).toBeInTheDocument();
+    expect(baseWrapper).toHaveClass('backdrop-blur-xl');
+    expect(baseWrapper).toHaveClass('rounded-[2rem]');
+
+    // Ambient background glow container
+    const glows = baseWrapper.querySelector('div.absolute');
+    expect(glows).toBeInTheDocument();
   });
 
-  it('renders no contributor names when contributors array is empty', () => {
-    render(<Leaderboard contributors={[]} />);
+  it('handles partial lists safely when contributors count is fewer than 3', () => {
+    const singleContributor: Contributor[] = [
+      {
+        id: 101,
+        login: 'solo_coder',
+        avatar_url: '/solo.png',
+        contributions: 42,
+        html_url: 'https://github.com/solo_coder',
+      },
+    ];
 
-    expect(screen.queryByText('testuser')).not.toBeInTheDocument();
-  });
+    const { unmount: unmountSingle } = render(<Leaderboard contributors={singleContributor} />);
+    expect(screen.getByText('solo_coder')).toBeInTheDocument();
+    expect(screen.queryByText('silver_dev')).not.toBeInTheDocument();
+    expect(screen.queryByText('bronze_dev')).not.toBeInTheDocument();
+    unmountSingle();
 
-  it('renders a single contributor correctly', () => {
-    render(<Leaderboard contributors={[contributor]} />);
+    const twoContributors: Contributor[] = [
+      {
+        id: 101,
+        login: 'solo_coder',
+        avatar_url: '/solo.png',
+        contributions: 42,
+        html_url: 'https://github.com/solo_coder',
+      },
+      {
+        id: 102,
+        login: 'pair_partner',
+        avatar_url: '/partner.png',
+        contributions: 31,
+        html_url: 'https://github.com/pair_partner',
+      },
+    ];
 
-    expect(screen.getByText('testuser')).toBeInTheDocument();
-    expect(screen.getByText('100')).toBeInTheDocument();
-  });
+    const { unmount: unmountTwo } = render(<Leaderboard contributors={twoContributors} />);
+    expect(screen.getByText('solo_coder')).toBeInTheDocument();
+    expect(screen.getByText('pair_partner')).toBeInTheDocument();
 
-  it('renders fallback avatar container when avatar_url is empty', () => {
-    const contributorWithoutAvatar: Contributor = {
-      ...contributor,
-      avatar_url: '',
-    };
-
-    render(<Leaderboard contributors={[contributorWithoutAvatar]} />);
-
-    expect(screen.getByText('testuser')).toBeInTheDocument();
-    expect(screen.queryByRole('img')).not.toBeInTheDocument();
-  });
-
-  it('does not render list entries when fewer than four contributors exist', () => {
-    render(<Leaderboard contributors={[contributor]} />);
-
+    // Verify list items (rank #4+) do not exist
     expect(screen.queryByText('#4')).not.toBeInTheDocument();
+    unmountTwo();
   });
 });

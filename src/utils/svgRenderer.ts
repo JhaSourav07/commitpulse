@@ -17,14 +17,24 @@ export function generateOptimizedSvg(contributionData: ContributionNode[]): stri
   // ==========================================
   // STEP 1: THE GRID MAP MATRIX SYSTEM
   // ==========================================
+  const safeData = (Array.isArray(contributionData) ? contributionData : []).filter(
+    (node) => node && typeof node === 'object'
+  );
+
+  // ==========================================
+  // STEP 2: THE GRID MAP DICTIONARY SETUP
+  // ==========================================
   const gridMap: Record<string, number> = {};
-  for (let i = 0; i < contributionData.length; i++) {
-    const node = contributionData[i];
-    gridMap[`${node.x},${node.y}`] = node.count;
+  for (let i = 0; i < safeData.length; i++) {
+    const node = safeData[i];
+    const x = typeof node.x === 'number' ? node.x : 0;
+    const y = typeof node.y === 'number' ? node.y : 0;
+    const count = typeof node.count === 'number' ? node.count : 0;
+    gridMap[`${x},${y}`] = count;
   }
 
   // ==========================================
-  // STEP 2: DEFINE THE MASTER BLUEPRINTS (<defs>)
+  // STEP 3: DEFINE THE MASTER BLUEPRINTS (<defs>)
   // ==========================================
   const svgDefs = `
   <defs>
@@ -46,28 +56,36 @@ export function generateOptimizedSvg(contributionData: ContributionNode[]): stri
   `;
 
   // Sort back-to-front based on spatial layout depth (Painter's Algorithm)
-  const sortedData = [...contributionData].sort((a, b) => a.x + a.y - (b.x + b.y));
+  const sortedData = [...safeData].sort((a, b) => {
+    const ax = typeof a.x === 'number' ? a.x : 0;
+    const ay = typeof a.y === 'number' ? a.y : 0;
+    const bx = typeof b.x === 'number' ? b.x : 0;
+    const by = typeof b.y === 'number' ? b.y : 0;
+    return ax + ay - (bx + by);
+  });
 
   let svgElements = '';
 
   // ==========================================
-  // STEPS 3, 4 & 5: ITERATE, CULL, & INSTANTIATE
+  // STEPS 4, 5 & 6: ITERATE, CULL, & INSTANTIATE
   // ==========================================
   for (const node of sortedData) {
-    const { x, y, count } = node;
+    const x = typeof node.x === 'number' ? node.x : 0;
+    const y = typeof node.y === 'number' ? node.y : 0;
+    const count = typeof node.count === 'number' ? node.count : 0;
 
     // Convert 2D matrix positions into flat pixel space mappings
     const isoX = (x - y) * (tileWidth / 2);
     const isoY = (x + y) * (tileHeight / 2);
 
-    // STEP 3: Zero-Height Pruning
+    // STEP 4: Zero-Height Pruning
     if (count === 0) {
       // Omit building blocks; just lay a completely flat ground base footprint vector
       svgElements += `<use href="#iso-top" x="${isoX}" y="${isoY}" fill="#1e293b" opacity="0.2"/>\n`;
       continue;
     }
 
-    // STEP 4: Adjacent Occlusion Culling Check
+    // STEP 5: Adjacent Occlusion Culling Check
     // Get the height of the tower directly in front of this one (x+1, y+1)
     const frontTowerHeight = gridMap[`${x + 1},${y + 1}`] || 0;
 
@@ -76,7 +94,7 @@ export function generateOptimizedSvg(contributionData: ContributionNode[]): stri
       continue;
     }
 
-    // STEP 5: Scale blueprints to custom height offsets
+    // STEP 6: Scale blueprints to custom height offsets
     const calculatedHeight = count * blockHeightUnit;
 
     svgElements += `
@@ -89,7 +107,7 @@ export function generateOptimizedSvg(contributionData: ContributionNode[]): stri
   }
 
   // ==========================================
-  // STEP 6: OUTPUT FINISHED ROOT SVG STRING
+  // STEP 7: OUTPUT FINISHED ROOT SVG STRING
   // ==========================================
   return `
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="-200 -50 800 600" width="100%" height="100%" role="img" aria-labelledby="svg-title svg-desc">

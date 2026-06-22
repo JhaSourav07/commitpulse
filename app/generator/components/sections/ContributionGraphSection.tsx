@@ -234,7 +234,7 @@ jobs:
                   type="text"
                   value={safeUsername}
                   onChange={(e) => onGithubUsernameChange(e.target.value.trim())}
-                  placeholder="e.g. OmkarArdekar12"
+                  placeholder="e.g. John"
                   maxLength={39}
                   autoComplete="off"
                   spellCheck={false}

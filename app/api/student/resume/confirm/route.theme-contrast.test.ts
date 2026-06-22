@@ -1,6 +1,14 @@
 import { describe, it, expect, vi, beforeEach, afterEach, beforeAll, afterAll } from 'vitest';
 import { POST } from './route';
 
+vi.mock('@/lib/github-owner-verification', () => ({
+  verifyGitHubOwner: vi.fn().mockResolvedValue({
+    verified: true,
+    status: 200,
+    message: 'OK',
+  }),
+}));
+
 vi.mock('@/lib/mongodb', () => ({
   default: vi.fn(),
 }));

@@ -93,4 +93,88 @@ describe('AIInsights - Massive Scaling', () => {
     // Must complete in under 5 seconds even for 5 000 items
     expect(elapsed).toBeLessThan(5000);
   });
+
+  it('renders 5000 insight cards with correct paragraph count and spot-checked text content', () => {
+    const { container } = render(<AIInsights insights={hugeInsightsList} />);
+
+    // Spot-check first, middle, and last entries by unique text
+    expect(screen.getByText(hugeInsightsList[0].text)).toBeInTheDocument();
+    expect(screen.getByText(hugeInsightsList[2499].text)).toBeInTheDocument();
+    expect(screen.getByText(hugeInsightsList[4999].text)).toBeInTheDocument();
+
+    // All 5000 paragraph elements must be present — no entries silently dropped
+    const paragraphs = container.querySelectorAll('p');
+    expect(paragraphs.length).toBe(5000);
+  });
+
+  it('handles a single insight with 10000-character text without truncation', () => {
+    const longText = 'B'.repeat(10000);
+    const insight = { id: 'single-long', icon: 'Star', text: longText };
+
+    render(<AIInsights insights={[insight]} />);
+
+    // Full string must appear unmodified in the DOM
+    expect(screen.getByText(longText)).toBeInTheDocument();
+    // Exactly one paragraph must be rendered
+    expect(document.querySelectorAll('p').length).toBe(1);
+  });
+
+  it('resolves all 7 icon types across 700 cycling entries with correct paragraph count', () => {
+    const iconKeys = ['Moon', 'Sun', 'Zap', 'Calendar', 'Flame', 'Code', 'Star'];
+    const insights = Array.from({ length: 700 }, (_, i) => ({
+      id: `cycle-${i}`,
+      icon: iconKeys[i % iconKeys.length],
+      text: `Cycle insight ${i}`,
+    }));
+
+    const { container } = render(<AIInsights insights={insights} />);
+
+    // All 700 paragraphs must render — no entries dropped across icon rotation
+    const paragraphs = container.querySelectorAll('p');
+    expect(paragraphs.length).toBe(700);
+
+    // One entry per icon type must be visible (indices 0–6 cover all 7)
+    iconKeys.forEach((_, idx) => {
+      expect(screen.getByText(`Cycle insight ${idx}`)).toBeInTheDocument();
+    });
+  });
+
+  it('renders 1000 insights within 1000ms — stricter performance limit', () => {
+    const insights = Array.from({ length: 1000 }, (_, i) => ({
+      id: `strict-perf-${i}`,
+      icon: 'Flame',
+      text: `Strict perf insight ${i}`,
+    }));
+
+    const start = performance.now();
+    const { container } = render(<AIInsights insights={insights} />);
+    const duration = performance.now() - start;
+
+    // All 1000 entries must render
+    expect(container.querySelectorAll('p').length).toBe(1000);
+    // Must complete within 1 second under normal load
+    expect(duration).toBeLessThan(1000);
+  });
+
+  it('maintains flex column container structure with all 500 insight cards correctly nested', () => {
+    const insights = Array.from({ length: 500 }, (_, i) => ({
+      id: `layout-${i}`,
+      icon: 'Code',
+      text: `Layout insight ${i}`,
+    }));
+
+    const { container } = render(<AIInsights insights={insights} />);
+
+    // Flex column container must exist in the DOM
+    const flexContainer = container.querySelector('.flex.flex-col.gap-6');
+    expect(flexContainer).toBeInTheDocument();
+
+    // All 500 cards must be direct children — no broken nesting
+    expect(flexContainer?.children.length).toBe(500);
+
+    // Every child must be a div element — no unexpected tag types
+    Array.from(flexContainer?.children ?? []).forEach((child) => {
+      expect(child.tagName).toBe('DIV');
+    });
+  });
 });

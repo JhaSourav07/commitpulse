@@ -94,9 +94,9 @@ describe('Streak API - layout parameter integration tests', () => {
   it('should return 400 Bad Request when layout parameter is invalid', async () => {
     const response = await GET(makeRequest({ user: 'octocat', layout: 'unsupported_layout_type' }));
     expect(response.status).toBe(400);
-    const body = await response.json();
-    expect(body.error).toBe('Invalid parameters');
-    expect(body.details.fieldErrors.layout[0]).toContain('Invalid layout format');
+    const body = await response.text();
+    expect(body).toContain('<svg');
+    expect(body).toContain('Invalid layout format');
   });
 
   it('should fall back to default layout when layout is empty', async () => {

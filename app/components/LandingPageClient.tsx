@@ -367,6 +367,12 @@ export default function LandingPageClient() {
   const previewUsername = instantUsername || debouncedUsername;
   const hasUsername = previewUsername.length > 0;
 
+  // Keep track of the latest previewUsername to avoid race conditions with out-of-order image callbacks
+  const latestPreviewUsernameRef = useRef(previewUsername);
+  useEffect(() => {
+    latestPreviewUsernameRef.current = previewUsername;
+  }, [previewUsername]);
+
   const badgeUrl = `/api/streak?user=${encodeURIComponent(previewUsername)}`;
   const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? 'https://commitpulse.vercel.app').replace(
     /\/$/,
@@ -456,7 +462,35 @@ export default function LandingPageClient() {
   }, [debouncedUsername, mounted]);
 
   const copyToClipboard = async () => {
-    if (trimmedUsername.length === 0) return;
+    if (trimmedUsername.length === 0) {
+      const inputField = document.querySelector('input[type="text"]') as HTMLInputElement;
+      if (inputField) {
+        inputField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        inputField.focus();
+        gsap.fromTo(
+          inputField,
+          { x: -6, boxShadow: '0 0 0px rgba(239, 68, 68, 0)', borderColor: 'inherit' },
+          {
+            x: 6,
+            borderColor: 'rgba(239, 68, 68, 0.8)',
+            boxShadow: '0 0 20px rgba(239, 68, 68, 0.3)',
+            duration: 0.08,
+            yoyo: true,
+            repeat: 5,
+            ease: 'power1.inOut',
+            onComplete: () => {
+              gsap.to(inputField, {
+                x: 0,
+                borderColor: 'rgba(255, 255, 255, 0.1)',
+                boxShadow: 'none',
+                duration: 0.4,
+              });
+            },
+          }
+        );
+      }
+      return;
+    }
 
     try {
       await navigator.clipboard.writeText(markdown);
@@ -603,7 +637,7 @@ export default function LandingPageClient() {
                     }}
                     maxLength={39}
                   />
-                  {username.length > 0 ? (
+                  {mounted && username.length > 0 ? (
                     <button
                       onClick={() => {
                         setUsername('');
@@ -707,9 +741,15 @@ export default function LandingPageClient() {
                         <Image
                           src={userDetails.avatar_url}
                           alt={userDetails.login}
-                          width={24}
-                          height={24}
+                          width={25}
+                          height={25}
                           className="w-6 h-6 rounded-full border border-emerald-500/20"
+                          unoptimized
+                          onError={(e) => {
+                            const img = e.currentTarget as HTMLImageElement;
+                            img.onerror = null;
+                            img.src = `https://github.com/${userDetails.login}.png`;
+                          }}
                         />
                         <div className="flex flex-col">
                           <span className="text-xs font-bold text-zinc-200">
@@ -763,10 +803,17 @@ export default function LandingPageClient() {
                             <Image
                               src={`https://github.com/${displayName}.png?size=40`}
                               alt={displayName}
-                              width={16}
-                              height={16}
+                              width={17}
+                              height={17}
                               className="w-4 h-4 rounded-full border border-zinc-200/20 dark:border-white/20"
+                              unoptimized
+                              onError={(e) => {
+                                const img = e.currentTarget as HTMLImageElement;
+                                img.onerror = null;
+                                img.style.display = 'none';
+                              }}
                             />
+
                             <button
                               type="button"
                               onClick={() => selectDemoUser(displayName)}
@@ -866,12 +913,16 @@ export default function LandingPageClient() {
                         animate={{ opacity: badgeLoaded ? 1 : 0, scale: badgeLoaded ? 1 : 0.95 }}
                         transition={{ duration: 0.5, ease: 'easeOut' }}
                         className="w-full max-w-[700px] h-auto drop-shadow-[0_30px_60px_rgba(0,0,0,0.15)] dark:drop-shadow-[0_30px_60px_rgba(0,0,0,0.5)]"
-                        onLoad={() =>
-                          setBadgeResult({ username: previewUsername, status: 'loaded' })
-                        }
-                        onError={() =>
-                          setBadgeResult({ username: previewUsername, status: 'error' })
-                        }
+                        onLoad={() => {
+                          if (previewUsername === latestPreviewUsernameRef.current) {
+                            setBadgeResult({ username: previewUsername, status: 'loaded' });
+                          }
+                        }}
+                        onError={() => {
+                          if (previewUsername === latestPreviewUsernameRef.current) {
+                            setBadgeResult({ username: previewUsername, status: 'error' });
+                          }
+                        }}
                       />
                       {badgeLoaded && (
                         <button
@@ -939,11 +990,11 @@ export default function LandingPageClient() {
                 <button
                   type="button"
                   onClick={copyToClipboard}
-                  disabled={!mounted || trimmedUsername.length === 0}
-                  className={`relative flex flex-1 items-center justify-center gap-2 overflow-hidden rounded-2xl border px-6 py-3.5 text-sm font-bold transition-all duration-300 active:scale-[0.98] disabled:cursor-not-allowed ${
+                  aria-disabled={!mounted || trimmedUsername.length === 0}
+                  className={`relative flex flex-1 items-center justify-center gap-2 overflow-hidden rounded-2xl border px-6 py-3.5 text-sm font-bold transition-all duration-300 active:scale-[0.98] ${
                     mounted && trimmedUsername.length > 0
                       ? 'border-emerald-500/20 bg-emerald-500/5 text-emerald-400 hover:scale-[1.02] hover:bg-emerald-500/10 hover:border-emerald-500/40 hover:shadow-[0_0_20px_rgba(16,185,129,0.15)] cursor-pointer'
-                      : 'border-black/5 bg-gray-50 text-gray-400 dark:border-white/5 dark:bg-transparent dark:text-white/55'
+                      : 'border-black/5 bg-gray-50 text-gray-400 opacity-50 dark:border-white/5 dark:bg-transparent dark:text-white/30 cursor-not-allowed hover:bg-gray-100 dark:hover:bg-white/10'
                   }`}
                 >
                   <AnimatePresence mode="wait">
@@ -981,6 +1032,44 @@ export default function LandingPageClient() {
                   onClick={(e) => {
                     if (!mounted || trimmedUsername.length === 0) {
                       e.preventDefault();
+                      const inputField = document.querySelector(
+                        'input[type="text"]'
+                      ) as HTMLInputElement;
+                      if (inputField) {
+                        // 1. Smoothly scroll to the input
+                        inputField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+                        // 2. Focus the input so user can type immediately
+                        inputField.focus();
+
+                        // 3. THE TRENDY FIX: GSAP Shake and Error Glow
+                        gsap.fromTo(
+                          inputField,
+                          {
+                            x: -6,
+                            boxShadow: '0 0 0px rgba(239, 68, 68, 0)',
+                            borderColor: 'inherit',
+                          },
+                          {
+                            x: 6,
+                            borderColor: 'rgba(239, 68, 68, 0.8)', // Subtle red border
+                            boxShadow: '0 0 20px rgba(239, 68, 68, 0.3)', // Soft red glow
+                            duration: 0.08,
+                            yoyo: true,
+                            repeat: 5,
+                            ease: 'power1.inOut',
+                            onComplete: () => {
+                              // Smoothly fade the glow out after shaking
+                              gsap.to(inputField, {
+                                x: 0,
+                                borderColor: 'rgba(255, 255, 255, 0.1)', // Default border
+                                boxShadow: 'none',
+                                duration: 0.4,
+                              });
+                            },
+                          }
+                        );
+                      }
                     } else {
                       trackUser(trimmedUsername);
                       addSearch(trimmedUsername);
@@ -989,7 +1078,7 @@ export default function LandingPageClient() {
                   className={`relative flex flex-1 items-center justify-center gap-2 overflow-hidden rounded-2xl border px-6 py-3.5 text-sm font-bold transition-all duration-300 active:scale-[0.98] ${
                     mounted && trimmedUsername.length > 0
                       ? 'border-cyan-500/20 bg-cyan-500/5 text-cyan-400 hover:scale-[1.02] hover:bg-cyan-500/10 hover:border-cyan-500/40 hover:shadow-[0_0_20px_rgba(6,182,212,0.15)] cursor-pointer'
-                      : 'border-black/5 bg-gray-50 text-gray-400 dark:border-white/5 dark:bg-transparent dark:text-white/55 cursor-not-allowed'
+                      : 'border-black/5 bg-gray-50 text-gray-400 opacity-50 dark:border-white/5 dark:bg-transparent dark:text-white/30 cursor-not-allowed'
                   }`}
                 >
                   <ExternalLink size={16} />

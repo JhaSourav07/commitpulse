@@ -73,7 +73,8 @@ export function getClientIp(
   const config = opt.proxyConfig || loadTrustedProxyConfig();
 
   // 1. NextRequest has a secure, platform-populated request.ip property on Vercel/Next.js
-  const requestIp = (request as unknown as { ip?: string }).ip;
+  const requestIp =
+    request instanceof NextRequest ? (request as NextRequest & { ip?: string }).ip : undefined;
   if (request instanceof NextRequest && requestIp) {
     const rawXff = headers.get('x-forwarded-for');
     if (rawXff) {

@@ -1,0 +1,22 @@
+{
+  "data": {
+    "user": {
+      "contributionsCollection": {
+        "contributionCalendar": {
+          "totalContributions": 142,
+          "weeks": [
+            {
+              "contributionDays": [
+                {
+                  "contributionCount": 4,
+                  "date": "2026-06-15",
+                  "color": "#216e39"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  }
+}

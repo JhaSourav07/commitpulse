@@ -5,6 +5,20 @@ interface RefreshLimitRecord {
   windowStart: number;
 }
 
+/**
+ * In-memory rate limiter for manual cache refresh operations.
+ *
+ * Limits how frequently a single IP can trigger a manual data refresh.
+ * Uses a TTL-based in-memory cache that expires entries automatically.
+ *
+ * ⚠️ Limitation: State is per-process only. In serverless deployments
+ * (Vercel, AWS Lambda), each cold start resets the limiter. This is
+ * acceptable for abuse prevention on a single instance, but not suitable
+ * for strict cross-instance rate limiting.
+ *
+ * For production deployments requiring persistent state, consider using
+ * Upstash Redis or Vercel KV by importing from '@/lib/rate-limit' instead.
+ */
 export class RefreshRateLimiter {
   private static instance: RefreshRateLimiter;
 

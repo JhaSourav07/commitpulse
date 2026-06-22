@@ -15,12 +15,12 @@ describe('Contributors loading empty fallback', () => {
     expect(() => render(<Loading />)).not.toThrow();
   });
 
-  it('shows a clear fallback loading state', () => {
+  it('shows a clear fallback loading state without persistent copy', () => {
     render(<Loading />);
 
     expect(screen.getByRole('status')).toBeTruthy();
-    expect(screen.getByText('Loading the collective...')).toBeTruthy();
-    expect(screen.getByText('Fetching contributor data from GitHub')).toBeTruthy();
+    expect(screen.queryByText('Loading the collective...')).toBeNull();
+    expect(screen.queryByText('Fetching contributor data from GitHub')).toBeNull();
   });
 
   it('keeps accessible fallback markers available', () => {
@@ -29,7 +29,8 @@ describe('Contributors loading empty fallback', () => {
     const status = screen.getByRole('status');
 
     expect(status.getAttribute('aria-live')).toBe('polite');
-    expect(status.children.length).toBeGreaterThanOrEqual(2);
+    expect(status.getAttribute('aria-label')).toBe('Loading contributors');
+    expect(status.children.length).toBe(1);
   });
 
   it('maintains default fallback layout styles', () => {

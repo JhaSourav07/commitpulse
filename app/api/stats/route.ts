@@ -1,12 +1,13 @@
 // app/api/stats/route.ts
 import { NextResponse } from 'next/server';
-import { fetchGitHubContributions } from '@/lib/github';
+import { fetchGitHubContributions, contributionsCache, cacheKey } from '@/lib/github';
 import { calculateStreak } from '@/lib/calculate';
 import { statsParamsSchema } from '@/lib/validations';
 import { getClientIp } from '@/utils/getClientIp';
 import { quotaMonitor } from '@/services/github/quota-monitor';
 import { refreshPolicy } from '@/services/github/refresh-policy';
 import { refreshRateLimiter } from '@/services/github/refresh-rate-limiter';
+import { getUserGitHubToken } from '@/lib/githubtoken';
 
 function logSecurityEvent(event: string, details: Record<string, unknown>) {
   console.warn(
@@ -117,13 +118,23 @@ export async function GET(request: Request) {
         remainingMs: refreshPolicy.getRemainingCooldown(user),
       });
       shouldBypassCache = false;
-    } else {
-      refreshPolicy.recordRefresh(user);
     }
   }
 
   try {
-    const userData = await fetchGitHubContributions(user, { bypassCache: shouldBypassCache });
+    const key = cacheKey('contributions', user);
+    const wasCachedBefore = await contributionsCache.has(key);
+
+    // Authenticated -> user's OAuth token (their quota); anonymous -> undefined (global PAT).
+    const userToken = await getUserGitHubToken();
+    const userData = await fetchGitHubContributions(user, {
+      bypassCache: shouldBypassCache,
+      token: userToken,
+    });
+    if (shouldBypassCache) {
+      refreshPolicy.recordRefresh(user);
+    }
+
     const calendar = userData.calendar;
     const stats = calculateStreak(calendar, timezone);
     const headers = new Headers({
@@ -136,7 +147,7 @@ export async function GET(request: Request) {
       headers.set('Pragma', 'no-cache');
       headers.set('Expires', '0');
     }
-    headers.set('X-Cache-Status', shouldBypassCache ? 'MISS' : 'HIT');
+    headers.set('X-Cache-Status', shouldBypassCache ? 'MISS' : wasCachedBefore ? 'HIT' : 'MISS');
     headers.set(
       'X-Refresh-Status',
       shouldBypassCache ? 'Fresh' : isRefreshRequested ? 'Cooldown-Served-Cached' : 'Cached'

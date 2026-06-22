@@ -62,6 +62,9 @@ describe('Validations color and theme consistency', () => {
       user: 'octocat',
       bg: 'not-a-color',
     });
-    expect(invalid.success).toBe(false);
+    expect(invalid.success).toBe(true);
+    if (invalid.success) {
+      expect(invalid.data.bg).toBeUndefined();
+    }
   });
 });

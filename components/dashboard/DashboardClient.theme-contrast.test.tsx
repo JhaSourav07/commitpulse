@@ -53,6 +53,10 @@ vi.mock('lucide-react', () => ({
   X: () => <span>X</span>,
   RefreshCw: () => <span>Refresh</span>,
   Share2: () => <span>Share</span>,
+  Network: () => <span>Network</span>,
+  Target: () => <span>Target</span>,
+  Edit2: () => <span>Edit2</span>,
+  Check: () => <span>Check</span>,
 }));
 
 vi.mock('./RefreshButton', () => ({

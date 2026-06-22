@@ -1,5 +1,24 @@
 // lib/calculate.ts
-import type { ContributionCalendar, ContributionDay, StreakStats, MonthlyStats } from '../types';
+import type {
+  ContributionCalendar,
+  ContributionDay,
+  ContributionWeek,
+  StreakStats,
+  MonthlyStats,
+} from '../types';
+
+/* ==========================================================================
+ * UTILITY FUNCTIONS
+ * ========================================================================== */
+
+/**
+ * Safely calculates and rounds a percentage fraction to prevent NaN or
+ * Infinity division values when the total denominator resolves to zero.
+ */
+export function calculateSafePercentage(part: number, total: number): number {
+  if (total === 0) return 0;
+  return Math.round((part / total) * 100);
+}
 
 /* ==========================================================================
  * STREAK & CALENDAR CALCULATIONS
@@ -25,6 +44,7 @@ export function convertLocalToUtc(
       minute: 'numeric',
       second: 'numeric',
       hour12: false,
+      hourCycle: 'h23',
     });
     const parts = formatter.formatToParts(utcDate);
     const partMap = Object.fromEntries(parts.map((p) => [p.type, p.value]));
@@ -84,6 +104,7 @@ export function getLocalTodayStr(now: Date, timezone: string): string {
     return now.toISOString().split('T')[0];
   }
 }
+
 export function isStreakAlive(
   today?: { contributionCount: number } | null,
   yesterday?: { contributionCount: number } | null
@@ -131,12 +152,19 @@ export function calculateStreak(
   const weeks = calendar.weeks || [];
   const days = weeks.flatMap((week) => week?.contributionDays || []).filter(Boolean);
 
+  const seen = new Set<string>();
+  const uniqueDays = days.filter((d) => {
+    if (!d || seen.has(d.date)) return false;
+    seen.add(d.date);
+    return true;
+  });
+
   let currentStreak = 0;
   let longestStreak = 0;
   let tempStreak = 0;
 
   // 1. Calculate Longest Streak (Standard loop)
-  for (const day of days) {
+  for (const day of uniqueDays) {
     if (day && day.contributionCount > 0) {
       tempStreak++;
       if (tempStreak > longestStreak) longestStreak = tempStreak;
@@ -146,10 +174,10 @@ export function calculateStreak(
   }
 
   // 2. Calculate Current Streak (Backwards loop with Grace Period)
-  let todayIndex = findTodayIndex(days, timezone, now);
+  let todayIndex = findTodayIndex(uniqueDays, timezone, now);
 
   if (todayIndex < 0) {
-    const lastIndex = days.length - 1;
+    const lastIndex = uniqueDays.length - 1;
     if (lastIndex < 0) {
       return {
         currentStreak: 0,
@@ -159,7 +187,7 @@ export function calculateStreak(
       };
     }
 
-    const lastDateStr = days[lastIndex]?.date;
+    const lastDateStr = uniqueDays[lastIndex]?.date;
 
     if (lastDateStr && localTodayStr > lastDateStr) {
       todayIndex = lastIndex;
@@ -176,14 +204,14 @@ export function calculateStreak(
   let consecutiveZeroDays = 0;
   if (todayIndex >= 0) {
     let idx = todayIndex - 1;
-    while (idx >= 0 && days[idx].contributionCount === 0) {
+    while (idx >= 0 && uniqueDays[idx].contributionCount === 0) {
       consecutiveZeroDays++;
       idx--;
     }
   }
 
-  const isActualToday = todayIndex >= 0 && days[todayIndex].date === localTodayStr;
-  const todayHasCommits = todayIndex >= 0 && days[todayIndex].contributionCount > 0;
+  const isActualToday = todayIndex >= 0 && uniqueDays[todayIndex].date === localTodayStr;
+  const todayHasCommits = todayIndex >= 0 && uniqueDays[todayIndex].contributionCount > 0;
 
   // If we are looking at the actual today, and it has no commits,
   const evaluationIndex =
@@ -194,7 +222,7 @@ export function calculateStreak(
   let isStreakAlive = false;
   for (let i = 0; i <= grace; i++) {
     const checkIndex = evaluationIndex - i;
-    if (checkIndex >= 0 && days[checkIndex] && days[checkIndex].contributionCount > 0) {
+    if (checkIndex >= 0 && uniqueDays[checkIndex] && uniqueDays[checkIndex].contributionCount > 0) {
       isStreakAlive = true;
       break;
     }
@@ -202,10 +230,15 @@ export function calculateStreak(
 
   if (isStreakAlive) {
     let i = evaluationIndex;
-    while (i >= evaluationIndex - grace && i >= 0 && days[i] && days[i].contributionCount === 0) {
+    while (
+      i >= evaluationIndex - grace &&
+      i >= 0 &&
+      uniqueDays[i] &&
+      uniqueDays[i].contributionCount === 0
+    ) {
       i--;
     }
-    while (i >= 0 && days[i] && days[i].contributionCount > 0) {
+    while (i >= 0 && uniqueDays[i] && uniqueDays[i].contributionCount > 0) {
       currentStreak++;
       i--;
     }
@@ -213,7 +246,7 @@ export function calculateStreak(
     currentStreak = 0;
   }
 
-  const todayDate = days[todayIndex]?.date ?? localTodayStr;
+  const todayDate = uniqueDays[todayIndex]?.date ?? localTodayStr;
 
   return {
     currentStreak,
@@ -374,11 +407,7 @@ export function aggregateCalendars(
     return { totalContributions: 0, weeks: [] };
   }
 
-  // Deep clone the base calendar so we don't mutate the original object.
-  // Uses structuredClone() (native in Node 18+) instead of the
-  // JSON.parse(JSON.stringify()) anti-pattern which silently drops
-  // undefined values and Date objects during serialization.
-  const aggregatedBase = structuredClone(baseCalendar);
+  const aggregatedBase: ContributionCalendar = structuredClone(baseCalendar);
 
   aggregatedBase.totalContributions = totalContributions;
 
@@ -503,7 +532,7 @@ export function calculateWrappedStats(calendar?: ContributionCalendar | null) {
     monthCounts[month] = (monthCounts[month] || 0) + count;
 
     // 3. Weekday vs Weekend grind
-    const dayOfWeek = dateObj.getUTCDay(); // 0 is Sunday, 6 is Saturday
+    const dayOfWeek = dateObj.getUTCDay(); // 0 = Sunday, 6 = Saturday (UTC)
     if (dayOfWeek === 0 || dayOfWeek === 6) {
       weekendCommits += count;
     } else {
@@ -517,14 +546,80 @@ export function calculateWrappedStats(calendar?: ContributionCalendar | null) {
       ? 'N/A'
       : Object.keys(monthCounts).reduce((a, b) => (monthCounts[a] > monthCounts[b] ? a : b));
 
+  const total = weekendCommits + weekdayCommits;
+
   return {
     totalContributions: calendar.totalContributions || 0,
     mostActiveDate: mostActiveDay.date,
     highestDailyCount: mostActiveDay.count,
     busiestMonth: busiestMonthStr,
-    weekendRatio: (() => {
-      const total = weekendCommits + weekdayCommits;
-      return total > 0 ? Math.round((weekendCommits / total) * 100) : 0;
-    })(),
+    weekendRatio: calculateSafePercentage(weekendCommits, total),
+  };
+}
+
+/**
+ * Normalizes a contribution calendar to a target timezone.
+ *
+ * This function converts each contribution day's date to the target timezone
+ * and re-groups the days by the target timezone's midnight boundaries.
+ * This is essential for accurate comparisons between users in different timezones.
+ *
+ * @param calendar - The contribution calendar to normalize
+ * @param targetTimezone - The target timezone to normalize to (e.g., 'UTC', 'America/New_York')
+ * @returns A new calendar with dates normalized to the target timezone
+ */
+export function normalizeCalendarToTimezone(
+  calendar: ContributionCalendar,
+  targetTimezone: string
+): ContributionCalendar {
+  if (!calendar || !calendar.weeks || calendar.weeks.length === 0) {
+    return calendar;
+  }
+
+  // Flatten all contribution days
+  const allDays = calendar.weeks.flatMap((week) => week.contributionDays || []);
+
+  // Group contributions by target timezone date
+  const dateMap = new Map<string, number>();
+
+  for (const day of allDays) {
+    if (!day || !day.date) continue;
+
+    const currentCount = dateMap.get(day.date) || 0;
+    dateMap.set(day.date, currentCount + (day.contributionCount || 0));
+  }
+
+  // Sort dates and create weeks
+  const sortedDates = Array.from(dateMap.entries()).sort(([a], [b]) => a.localeCompare(b));
+
+  // Group into weeks (Sunday to Saturday)
+  const weeks: ContributionWeek[] = [];
+  let currentWeek: ContributionDay[] = [];
+
+  for (const [date, contributionCount] of sortedDates) {
+    const [yearStr, monthStr, dayStr] = date.split('-');
+    const dateObj = new Date(
+      Date.UTC(parseInt(yearStr, 10), parseInt(monthStr, 10) - 1, parseInt(dayStr, 10))
+    );
+    const dayOfWeek = dateObj.getUTCDay();
+
+    // Start a new week on Sunday
+    if (dayOfWeek === 0 && currentWeek.length > 0) {
+      weeks.push({ contributionDays: currentWeek });
+      currentWeek = [];
+    }
+
+    currentWeek.push({ date, contributionCount });
+  }
+
+  // Add the last week
+  if (currentWeek.length > 0) {
+    weeks.push({ contributionDays: currentWeek });
+  }
+
+  return {
+    totalContributions: calendar.totalContributions,
+    weeks,
+    lastSyncedAt: calendar.lastSyncedAt,
   };
 }

@@ -36,6 +36,8 @@ jane.smith@gmail.com
 `;
 
     const result = await parseResume(Buffer.from(resume), 'application/pdf');
+    expect(result.name.length).toBeGreaterThan(0);
+    expect(result.name).not.toMatch(/%PDF/i);
 
     expect(result.email).toBe('jane.smith@gmail.com');
     expect(result.phone).toContain('555');

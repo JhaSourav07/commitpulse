@@ -60,7 +60,7 @@ describe('DiscordButton Massive Scaling', () => {
 
     const link = screen.getByRole('link');
 
-    expect(link).toHaveAttribute('href', 'https://discord.gg/Cb73bS79j');
+    expect(link).toHaveAttribute('href', 'https://discord.gg/f84SDraEBH');
   });
 
   it('handles hover interactions with massive content', () => {

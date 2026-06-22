@@ -63,10 +63,9 @@ describe('Streak API — tz parameter', () => {
     it('returns a JSON error body with fieldErrors for an invalid timezone', async () => {
       const response = await GET(makeRequest({ user: 'octocat', tz: 'Not/ATimezone' }));
       expect(response.status).toBe(400);
-      const body = await response.json();
-      expect(body.error).toBe('Invalid parameters');
-      expect(body.details.fieldErrors.tz).toBeDefined();
-      expect(body.details.fieldErrors.tz[0]).toContain('Invalid timezone');
+      const body = await response.text();
+      expect(body).toContain('<svg');
+      expect(body).toContain('Invalid timezone');
     });
 
     it('does not call the GitHub API when the timezone is invalid', async () => {

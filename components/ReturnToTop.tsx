@@ -30,16 +30,13 @@ export default function ReturnToTop() {
 
   useEffect(() => {
     const updateVisibility = () => {
+      const scrolled = window.scrollY + window.innerHeight;
+      const total = document.documentElement.scrollHeight;
       setIsVisible(window.scrollY > 300);
     };
-
     updateVisibility();
-
     window.addEventListener('scroll', updateVisibility, { passive: true });
-
-    return () => {
-      window.removeEventListener('scroll', updateVisibility);
-    };
+    return () => window.removeEventListener('scroll', updateVisibility);
   }, []);
 
   const scrollToTop = () => {
@@ -57,7 +54,7 @@ export default function ReturnToTop() {
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 18, scale: 0.96 }}
           transition={{ duration: 0.22, ease: 'easeOut' }}
-          className="fixed bottom-6 right-6 z-50 sm:bottom-8 sm:right-8"
+          className="fixed bottom-24 right-6 z-50"
         >
           <motion.button
             type="button"

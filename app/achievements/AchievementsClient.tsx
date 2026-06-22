@@ -358,9 +358,15 @@ export default function AchievementsClient() {
   const [activeCategory, setActiveCategory] = useState<AchievementCategory | null>(null);
   const [celebrated, setCelebrated] = useState<AchievementData | null>(null);
 
+  // Local Search & Filter State
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'unlocked' | 'locked'>('all');
+
   const fetchAchievements = useCallback(async (user: string) => {
     setLoading(true);
     setError(null);
+    setSearchQuery('');
+    setStatusFilter('all');
     try {
       const res = await fetch(`/api/achievements?username=${encodeURIComponent(user)}`);
       if (!res.ok) {
@@ -375,6 +381,45 @@ export default function AchievementsClient() {
       setLoading(false);
     }
   }, []);
+
+  // Filter achievements per category and dynamically calculate counts
+  const filteredCategories = useMemo(() => {
+    if (!data) return [];
+
+    return data.categories.map((cat) => {
+      const filteredAchievements = cat.achievements.filter((ach) => {
+        // Text Search (match name or description)
+        const query = searchQuery.trim().toLowerCase();
+        const matchesSearch =
+          !query ||
+          ach.def.name.toLowerCase().includes(query) ||
+          ach.def.description.toLowerCase().includes(query);
+
+        // Status Filter
+        const matchesStatus =
+          statusFilter === 'all' ||
+          (statusFilter === 'unlocked' && ach.state.unlocked) ||
+          (statusFilter === 'locked' && !ach.state.unlocked);
+
+        return matchesSearch && matchesStatus;
+      });
+
+      const unlockedCount = filteredAchievements.filter((ach) => ach.state.unlocked).length;
+
+      return {
+        ...cat,
+        achievements: filteredAchievements,
+        unlockedCount,
+        totalCount: filteredAchievements.length,
+      };
+    });
+  }, [data, searchQuery, statusFilter]);
+
+  const hasFilteredAchievements = useMemo(() => {
+    return filteredCategories
+      .filter((cat) => !activeCategory || cat.category === activeCategory)
+      .some((cat) => cat.achievements.length > 0);
+  }, [filteredCategories, activeCategory]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -596,6 +641,45 @@ export default function AchievementsClient() {
               </div>
             </motion.div>
 
+            {/* Search and Status Filters */}
+            <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              {/* Local Achievements Search */}
+              <div className="relative flex-1 max-w-md">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search achievements by name or description..."
+                  className="w-full rounded-xl border border-white/10 bg-white/5 py-2.5 pl-10 pr-4 text-sm text-white placeholder-white/40 backdrop-blur-xl transition-all duration-300 focus:border-emerald-500/50 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                />
+              </div>
+
+              {/* Status Tabs */}
+              <div className="flex rounded-xl bg-white/5 p-1 border border-white/10 self-start sm:self-auto relative">
+                {(['all', 'unlocked', 'locked'] as const).map((filter) => (
+                  <button
+                    key={filter}
+                    onClick={() => setStatusFilter(filter)}
+                    className={`relative rounded-lg px-4 py-1.5 text-xs font-semibold uppercase tracking-wider transition-all duration-300 ${
+                      statusFilter === filter
+                        ? 'text-black z-10 font-bold'
+                        : 'text-white/60 hover:text-white hover:bg-white/5'
+                    }`}
+                  >
+                    {statusFilter === filter && (
+                      <motion.div
+                        layoutId="activeFilterPill"
+                        className="absolute inset-0 rounded-lg bg-emerald-500"
+                        transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                      />
+                    )}
+                    <span className="relative z-20">{filter}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* Category Navigation */}
             <div className="mb-8 flex flex-wrap gap-2">
               <button
@@ -608,7 +692,7 @@ export default function AchievementsClient() {
               >
                 All
               </button>
-              {data.categories.map((cat) => (
+              {filteredCategories.map((cat) => (
                 <button
                   key={cat.category}
                   onClick={() =>
@@ -629,31 +713,57 @@ export default function AchievementsClient() {
             </div>
 
             {/* Achievement Categories */}
-            {data.categories
-              .filter((cat) => !activeCategory || cat.category === activeCategory)
-              .map((category, ci) => (
-                <motion.section
-                  key={category.category}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: ci * 0.1 }}
-                  className="mb-10"
-                >
-                  <div className="mb-4 flex items-center gap-3">
-                    <span className="text-2xl">{category.icon}</span>
-                    <h2 className="text-lg font-bold text-white/80">{category.label}</h2>
-                    <span className="text-xs text-white/30">
-                      {category.unlockedCount} / {category.totalCount}
-                    </span>
-                  </div>
+            {hasFilteredAchievements ? (
+              filteredCategories
+                .filter((cat) => !activeCategory || cat.category === activeCategory)
+                .filter((cat) => cat.achievements.length > 0)
+                .map((category, ci) => (
+                  <motion.section
+                    key={category.category}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: ci * 0.1 }}
+                    className="mb-10"
+                  >
+                    <div className="mb-4 flex items-center gap-3">
+                      <span className="text-2xl">{category.icon}</span>
+                      <h2 className="text-lg font-bold text-white/80">{category.label}</h2>
+                      <span className="text-xs text-white/30">
+                        {category.unlockedCount} / {category.totalCount}
+                      </span>
+                    </div>
 
-                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    {category.achievements.map((ach, i) => (
-                      <AchievementCard key={ach.def.id} data={ach} index={i} />
-                    ))}
-                  </div>
-                </motion.section>
-              ))}
+                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                      {category.achievements.map((ach, i) => (
+                        <AchievementCard key={ach.def.id} data={ach} index={i} />
+                      ))}
+                    </div>
+                  </motion.section>
+                ))
+            ) : (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex flex-col items-center justify-center py-20 text-center"
+              >
+                <div className="mb-4 text-5xl">🔍</div>
+                <h3 className="mb-2 text-lg font-bold text-white">
+                  No achievements match your criteria
+                </h3>
+                <p className="mb-6 max-w-sm text-sm text-white/40">
+                  Try adjusting your text search or status filter to find achievements.
+                </p>
+                <button
+                  onClick={() => {
+                    setSearchQuery('');
+                    setStatusFilter('all');
+                  }}
+                  className="rounded-xl border border-white/10 bg-white/5 px-6 py-2.5 text-sm font-medium text-white/60 transition-colors hover:bg-white/10 hover:text-white"
+                >
+                  Clear Filters
+                </button>
+              </motion.div>
+            )}
 
             <div className="mt-12 text-center text-xs text-white/20">
               Achievements calculated from real-time GitHub data

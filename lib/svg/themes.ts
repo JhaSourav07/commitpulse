@@ -12,6 +12,7 @@ function makeTheme(bg: string, text: string, accent: string, negative?: string):
 }
 
 export const themes: Record<string, BadgeTheme> = {
+  default: makeTheme('0d1117', 'ffffff', '2da44e', 'f85149'),
   dark: makeTheme('0d1117', 'c9d1d9', '58a6ff', 'f85149'),
   light: makeTheme('ffffff', '24292f', '0969da', 'cf222e'),
   neon: makeTheme('000000', '00ffcc', 'ff00ff', 'ff0055'),
@@ -32,12 +33,14 @@ export const themes: Record<string, BadgeTheme> = {
   nord_light: makeTheme('eceff4', '2e3440', '5e81ac', 'bf616a'),
   obsidian: makeTheme('1a1a2e', 'e2e8f0', 'f59e0b'),
   'cyber-pulse': makeTheme('000000', 'ffffff', '00ffee', 'ff0055'),
+  'retro-terminal': makeTheme('000000', '00ff41', '00ff41', '00aa2b'),
   glacier: makeTheme('e0f2fe', '0369a1', '06b6d4', 'ef4444'),
   lumos: makeTheme('0a0a0a', 'a7f3d0', 'fbbf24', 'ef4444'),
   tokyonight: makeTheme('1a1b26', 'c0caf5', 'f7768e'),
   cyberpunk: makeTheme('fce22a', '111111', 'ff003c'),
   tokyo_night: makeTheme('1a1b26', 'c0caf5', '7aa2f7'),
   monokai: makeTheme('272822', 'f8f8f2', 'a6e22e', 'f92672'),
+  midnight_ocean: makeTheme('020c1b', 'ccd6f6', '0af5ff', 'ff4d6d'),
 };
 
 // Auto-theme pairs: the SVG switches between these two palettes
@@ -45,3 +48,16 @@ export const themes: Record<string, BadgeTheme> = {
 // viewer's OS-level light/dark setting without any JavaScript.
 export const AUTO_THEME_LIGHT: BadgeTheme = themes.light;
 export const AUTO_THEME_DARK: BadgeTheme = themes.dark;
+
+/**
+ * Resolves a theme case-insensitively by matching the normalized user input
+ * against the normalized theme registry keys. Returns the standard theme key.
+ */
+export function getNormalizedThemeKey(themeInput: string | undefined | null): string {
+  if (!themeInput) return 'default'; // fallback key
+
+  const target = themeInput.toLowerCase();
+  const matchedKey = Object.keys(themes).find((key) => key.toLowerCase() === target);
+
+  return matchedKey || 'default';
+}

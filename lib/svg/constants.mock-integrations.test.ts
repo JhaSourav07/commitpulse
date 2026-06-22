@@ -17,9 +17,9 @@ describe('lib/svg/constants', () => {
 
   it('should expose expected rendering scale constants', () => {
     expect(GHOST_HEIGHT_PX).toBe(4);
-    expect(LOG_SCALE_MULTIPLIER).toBe(12);
+    expect(LOG_SCALE_MULTIPLIER).toBe(15);
     expect(LINEAR_SCALE_MULTIPLIER).toBe(5);
-    expect(MAX_LOG_HEIGHT).toBe(80);
+    expect(MAX_LOG_HEIGHT).toBe(50);
     expect(MAX_LINEAR_HEIGHT).toBe(50);
   });
 

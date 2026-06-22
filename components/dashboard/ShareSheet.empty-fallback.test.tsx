@@ -28,6 +28,7 @@ vi.mock('@/hooks/useShareActions', () => ({
     handleDownloadSVG: vi.fn(),
     handleCopyMarkdown: vi.fn(),
     handleDownloadJSON: vi.fn(),
+    handleDownloadSTL: vi.fn(),
     handleNativeShare: vi.fn(),
   }),
 }));

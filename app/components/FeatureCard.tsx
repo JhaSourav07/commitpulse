@@ -10,9 +10,10 @@ type FeatureCardProps = {
   accent: string;
 };
 
-export function FeatureCard({ icon, title, desc, accent }: FeatureCardProps) {
-  const descId = `feature-desc-${title.replace(/\s+/g, '-').toLowerCase()}`;
-  const titleId = `feature-title-${title.replace(/\s+/g, '-').toLowerCase()}`;
+export function FeatureCard({ icon, title = '', desc = '', accent = '' }: FeatureCardProps) {
+  const safeTitle = title || '';
+  const descId = `feature-desc-${safeTitle.replace(/\s+/g, '-').toLowerCase()}`;
+  const titleId = `feature-title-${safeTitle.replace(/\s+/g, '-').toLowerCase()}`;
 
   return (
     <motion.div

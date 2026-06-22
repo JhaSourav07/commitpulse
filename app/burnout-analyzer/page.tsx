@@ -9,6 +9,7 @@ import DependencyRiskCard from '@/components/burnout/DependencyRiskCard';
 import BurnoutRiskTable from '@/components/burnout/BurnoutRiskTable';
 import InactivityDetector from '@/components/burnout/InactivityDetector';
 import RecommendationsCard from '@/components/burnout/RecommendationsCard';
+import BurnoutRiskAssessmentSection from '@/components/burnout/BurnoutRiskAssessmentSection';
 import type { ContributorMetric } from '@/services/github/burnout-analyzer';
 
 const BurnoutChart = dynamic(() => import('@/components/burnout/BurnoutChart'), { ssr: false });
@@ -223,6 +224,7 @@ export default function BurnoutAnalyzerPage() {
               sustainabilityScore={report.sustainabilityScore}
               onRefresh={handleRefresh}
               isRefreshing={isRefreshing}
+              report={report}
             />
 
             {error && (
@@ -255,6 +257,9 @@ export default function BurnoutAnalyzerPage() {
                 </div>
               </div>
             </div>
+
+            {/* Burnout Risk Assessment Section */}
+            <BurnoutRiskAssessmentSection report={report} />
           </motion.div>
         )}
       </AnimatePresence>
