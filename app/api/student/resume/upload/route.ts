@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { parseResume, ALLOWED_MIME_TYPES, MAX_FILE_SIZE } from '@/lib/resume-parser';
-import { RateLimiter } from '@/lib/rate-limit';
+import { getRateLimitHeaders, RateLimiter } from '@/lib/rate-limit';
 import { getClientIp } from '@/utils/getClientIp';
 
 const uploadLimiter = new RateLimiter(10, 60000);
@@ -8,10 +8,11 @@ const uploadLimiter = new RateLimiter(10, 60000);
 export async function POST(req: Request) {
   const ip = getClientIp(req);
 
-  if (!(await uploadLimiter.check(ip))) {
+  const rateLimitResult = await uploadLimiter.checkWithResult(ip);
+  if (!rateLimitResult.success) {
     return NextResponse.json(
       { success: false, error: 'Too many requests, please try again later.' },
-      { status: 429 }
+      { status: 429, headers: getRateLimitHeaders(rateLimitResult) }
     );
   }
 

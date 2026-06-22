@@ -14,10 +14,19 @@ vi.mock('@/models/StudentProfile', () => ({
 
 vi.mock('@/lib/rate-limit', () => {
   class MockRateLimiter {
+    checkWithResult = vi
+      .fn()
+      .mockResolvedValue({ success: true, limit: 10, remaining: 9, reset: Date.now() + 60000 });
     check = vi.fn().mockResolvedValue(true);
   }
 
   return {
+    getRateLimitHeaders: vi.fn((result) => ({
+      'X-RateLimit-Limit': result.limit.toString(),
+      'X-RateLimit-Remaining': result.remaining.toString(),
+      'X-RateLimit-Reset': result.reset.toString(),
+      'Retry-After': Math.max(0, Math.ceil((result.reset - Date.now()) / 1000)).toString(),
+    })),
     RateLimiter: MockRateLimiter,
   };
 });

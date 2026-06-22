@@ -5,7 +5,16 @@ import dbConnect from '@/lib/mongodb';
 
 // Mock dependencies
 vi.mock('@/lib/rate-limit', () => ({
+  getRateLimitHeaders: vi.fn((result) => ({
+    'X-RateLimit-Limit': result.limit.toString(),
+    'X-RateLimit-Remaining': result.remaining.toString(),
+    'X-RateLimit-Reset': result.reset.toString(),
+    'Retry-After': Math.max(0, Math.ceil((result.reset - Date.now()) / 1000)).toString(),
+  })),
   trackUserRateLimiter: {
+    checkWithResult: vi
+      .fn()
+      .mockResolvedValue({ success: true, limit: 5, remaining: 4, reset: Date.now() + 60000 }),
     check: vi.fn().mockResolvedValue(true),
   },
 }));

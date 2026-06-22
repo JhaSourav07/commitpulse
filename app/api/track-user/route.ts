@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import { User } from '@/models/User';
-import { trackUserRateLimiter } from '@/lib/rate-limit';
+import { getRateLimitHeaders, trackUserRateLimiter } from '@/lib/rate-limit';
 import { getClientIp } from '@/utils/getClientIp';
 import { trackUserProtection } from '@/services/security/track-user-protection';
 
@@ -9,11 +9,14 @@ export async function POST(req: Request) {
   // Get IP for rate limiting securely
   const ip = getClientIp(req);
 
-  if (ip !== '127.0.0.1' && ip !== 'unknown' && !(await trackUserRateLimiter.check(ip))) {
-    return NextResponse.json(
-      { success: false, error: 'Too many requests, please try again later.' },
-      { status: 429 }
-    );
+  if (ip !== '127.0.0.1' && ip !== 'unknown') {
+    const rateLimitResult = await trackUserRateLimiter.checkWithResult(ip);
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        { success: false, error: 'Too many requests, please try again later.' },
+        { status: 429, headers: getRateLimitHeaders(rateLimitResult) }
+      );
+    }
   }
 
   let body: unknown;

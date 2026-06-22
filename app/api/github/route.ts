@@ -6,6 +6,7 @@ import { githubParamsSchema } from '@/lib/validations';
 import { getClientIp } from '@/utils/getClientIp';
 import { quotaMonitor } from '@/services/github/quota-monitor';
 import { refreshPolicy } from '@/services/github/refresh-policy';
+import { getRateLimitHeaders } from '@/lib/rate-limit';
 import { refreshRateLimiter } from '@/services/github/refresh-rate-limiter';
 import { backgroundRefresh } from '@/services/github/background-refresh';
 
@@ -78,11 +79,7 @@ export async function GET(request: Request) {
         { error: 'Refresh rate limit exceeded. Please try again later.' },
         {
           status: 429,
-          headers: {
-            'X-RateLimit-Limit': rateLimitCheck.limit.toString(),
-            'X-RateLimit-Remaining': rateLimitCheck.remaining.toString(),
-            'X-RateLimit-Reset': rateLimitCheck.reset.toString(),
-          },
+          headers: getRateLimitHeaders(rateLimitCheck),
         }
       );
     }

@@ -3,7 +3,7 @@ import dbConnect from '@/lib/mongodb';
 import { Notification } from '@/models/Notification';
 import { NotificationResponse } from '@/types/index';
 import { notifyPostSchema, notifyGetSchema } from '@/lib/validations';
-import { notifyRateLimiter } from '@/lib/rate-limit';
+import { getRateLimitHeaders, notifyRateLimiter } from '@/lib/rate-limit';
 import { getClientIp } from '@/utils/getClientIp';
 
 /**
@@ -37,11 +37,14 @@ export async function POST(req: NextRequest): Promise<NextResponse<NotificationR
   // Rate limiting
   const ip = getClientIp(req);
 
-  if (ip !== 'unknown' && !(await notifyRateLimiter.check(ip))) {
-    return NextResponse.json(
-      { success: false, message: 'Too many requests, please try again later.' },
-      { status: 429 }
-    );
+  if (ip !== 'unknown') {
+    const rateLimitResult = await notifyRateLimiter.checkWithResult(ip);
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        { success: false, message: 'Too many requests, please try again later.' },
+        { status: 429, headers: getRateLimitHeaders(rateLimitResult) }
+      );
+    }
   }
 
   // Parse JSON body safely
@@ -139,11 +142,14 @@ export async function GET(req: NextRequest): Promise<NextResponse<NotificationRe
   // Rate limiting
   const ip = getClientIp(req);
 
-  if (ip !== 'unknown' && !(await notifyRateLimiter.check(ip))) {
-    return NextResponse.json(
-      { success: false, message: 'Too many requests, please try again later.' },
-      { status: 429 }
-    );
+  if (ip !== 'unknown') {
+    const rateLimitResult = await notifyRateLimiter.checkWithResult(ip);
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        { success: false, message: 'Too many requests, please try again later.' },
+        { status: 429, headers: getRateLimitHeaders(rateLimitResult) }
+      );
+    }
   }
 
   // Validate query params with Zod

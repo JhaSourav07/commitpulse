@@ -12,7 +12,16 @@ vi.mock('@/models/Notification', () => ({
   },
 }));
 vi.mock('@/lib/rate-limit', () => ({
+  getRateLimitHeaders: vi.fn((result) => ({
+    'X-RateLimit-Limit': result.limit.toString(),
+    'X-RateLimit-Remaining': result.remaining.toString(),
+    'X-RateLimit-Reset': result.reset.toString(),
+    'Retry-After': Math.max(0, Math.ceil((result.reset - Date.now()) / 1000)).toString(),
+  })),
   notifyRateLimiter: {
+    checkWithResult: vi
+      .fn()
+      .mockResolvedValue({ success: true, limit: 5, remaining: 4, reset: Date.now() + 60000 }),
     check: vi.fn().mockResolvedValue(true),
   },
 }));
@@ -35,7 +44,12 @@ describe('POST /api/notify', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     process.env = { ...originalEnv, MONGODB_URI: 'mongodb://localhost/test' };
-    vi.mocked(notifyRateLimiter.check).mockResolvedValue(true);
+    vi.mocked(notifyRateLimiter.checkWithResult).mockResolvedValue({
+      success: true,
+      limit: 5,
+      remaining: 4,
+      reset: Date.now() + 60000,
+    });
   });
 
   afterEach(() => {
@@ -95,7 +109,12 @@ describe('POST /api/notify', () => {
   // ── Rate limiting ────────────────────────────────────────────────────────
 
   it('returns 429 when rate limited', async () => {
-    vi.mocked(notifyRateLimiter.check).mockResolvedValue(false);
+    vi.mocked(notifyRateLimiter.checkWithResult).mockResolvedValue({
+      success: false,
+      limit: 5,
+      remaining: 0,
+      reset: Date.now() + 60000,
+    });
     const res = await POST(makeRequest('POST', { username: 'testuser', email: 'a@b.com' }));
     expect(res.status).toBe(429);
   });
@@ -168,7 +187,12 @@ describe('GET /api/notify', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     process.env = { ...originalEnv, MONGODB_URI: 'mongodb://localhost/test' };
-    vi.mocked(notifyRateLimiter.check).mockResolvedValue(true);
+    vi.mocked(notifyRateLimiter.checkWithResult).mockResolvedValue({
+      success: true,
+      limit: 5,
+      remaining: 4,
+      reset: Date.now() + 60000,
+    });
   });
 
   afterEach(() => {
@@ -192,7 +216,12 @@ describe('GET /api/notify', () => {
   // ── Rate limiting ────────────────────────────────────────────────────────
 
   it('returns 429 when rate limited', async () => {
-    vi.mocked(notifyRateLimiter.check).mockResolvedValue(false);
+    vi.mocked(notifyRateLimiter.checkWithResult).mockResolvedValue({
+      success: false,
+      limit: 5,
+      remaining: 0,
+      reset: Date.now() + 60000,
+    });
     const res = await GET(makeRequest('GET', undefined, 'user=testuser'));
     expect(res.status).toBe(429);
   });
