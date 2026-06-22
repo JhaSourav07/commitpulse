@@ -42,6 +42,7 @@ import CIAnalyticsClient from './CIAnalytics/CIAnalyticsClient';
 import DeploymentTracker from './DeploymentTracker';
 import ArchitectureVisualizer from './ArchitectureVisualizer';
 import GoalTracker from './GoalTracker';
+import OpenSourceImpactScore from './OpenSourceImpactScore';
 
 // Define the dashboard data structure
 export interface DashboardData {
@@ -713,6 +714,13 @@ export default function DashboardClient({
 
             <section>
               <GoalTracker username={username} activity={initialData.activity} />
+            </section>
+
+            <section>
+              <OpenSourceImpactScore
+                repositories={initialData.popularRepos}
+                totalContributions={initialData.stats.totalContributions}
+              />
             </section>
 
             <section className="grid grid-cols-1 md:grid-cols-2 gap-6">

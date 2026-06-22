@@ -263,6 +263,15 @@
       "cancel": "Cancel",
       "monthly_placeholder": "e.g. 50",
       "yearly_placeholder": "e.g. 1000"
+    },
+    "openSourceImpact": {
+      "title": "Open Source Impact Score",
+      "subtitle": "Measure overall community contribution impact and influence footprint",
+      "influenceScore": "Influence Score",
+      "rank": "Global Impact Rank",
+      "stars": "Stars",
+      "forks": "Forks",
+      "noData": "No open source impact data available"
     }
   }
 }
