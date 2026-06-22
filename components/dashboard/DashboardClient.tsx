@@ -31,6 +31,86 @@ import GoalTracker from './GoalTracker';
 import RepositoryImpactAnalyzer from './RepositoryImpactAnalyzer';
 import ContributionForecast from './ContributionForecast';
 
+export type { DashboardData } from '@/types/dashboard';
+
+export interface ProfileMetrics {
+  currentStreak: number;
+  commitClock: { day: string; commits: number }[]; // e.g., Sun-Sat daily totals
+}
+
+export interface CoderProfile {
+  peakHourStart: number;
+  peakHourEnd: number;
+  profileName: 'Early Builder ☀' | 'Weekend Warrior 🚀' | 'Consistent Runner 🏃‍♂️';
+  hourlyDistribution: number[];
+  activeWeekdays: string[];
+}
+
+/**
+ * Generates a coder profile based on available metrics.
+ */
+export function generateCoderProfile(metrics: ProfileMetrics): CoderProfile {
+  const { currentStreak, commitClock } = metrics;
+
+  let profileName: CoderProfile['profileName'] = 'Early Builder ☀';
+
+  // 1. Analyze Commit Clock for Weekend Warrior
+  let isWeekendWarrior = false;
+  if (commitClock && commitClock.length === 7) {
+    const weekendCommits = commitClock[0].commits + commitClock[6].commits; // Sunday(0) + Saturday(6)
+    const totalCommits = commitClock.reduce((sum, d) => sum + d.commits, 0);
+    if (totalCommits > 0 && weekendCommits / totalCommits > 0.35) {
+      isWeekendWarrior = true;
+    }
+  }
+
+  // 2. Determine Final Profile Type
+  if (currentStreak >= 10) {
+    profileName = 'Consistent Runner 🏃‍♂️';
+  } else if (isWeekendWarrior) {
+    profileName = 'Weekend Warrior 🚀';
+  }
+
+  // 3. Populate UI properties based on the derived profile.
+  let peakHourStart = 9;
+  let peakHourEnd = 17;
+  let hourlyDistribution = new Array(24).fill(0);
+  let activeWeekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+
+  if (profileName === 'Early Builder ☀') {
+    peakHourStart = 6;
+    peakHourEnd = 10;
+    hourlyDistribution = Array.from({ length: 24 }, (_, h) => {
+      const distFromEight = Math.abs(h - 8);
+      return Math.max(6, Math.round(100 - distFromEight * 10));
+    });
+    activeWeekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+  } else if (profileName === 'Weekend Warrior 🚀') {
+    peakHourStart = 10;
+    peakHourEnd = 16;
+    hourlyDistribution = Array.from({ length: 24 }, (_, h) => {
+      const distFromMidday = Math.abs(h - 13);
+      return Math.max(8, Math.round(100 - distFromMidday * 8.5));
+    });
+    activeWeekdays = ['Sat', 'Sun'];
+  } else if (profileName === 'Consistent Runner 🏃‍♂️') {
+    peakHourStart = 13;
+    peakHourEnd = 17;
+    hourlyDistribution = Array.from({ length: 24 }, (_, h) => {
+      const distFromThree = Math.abs(h - 15);
+      return Math.max(12, Math.round(100 - distFromThree * 7));
+    });
+    activeWeekdays = ['Mon', 'Wed', 'Fri', 'Sat'];
+  }
+
+  return {
+    peakHourStart,
+    peakHourEnd,
+    profileName,
+    hourlyDistribution,
+    activeWeekdays,
+  };
+}
 
 interface DashboardClientProps {
   initialData: DashboardData;
