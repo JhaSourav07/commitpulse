@@ -16,8 +16,12 @@ export async function middleware(request: NextRequest) {
     request.nextUrl.searchParams.get('bypassCache') === 'true';
 
   let result;
+  const pathname = request.nextUrl.pathname;
 
-  if (isRefreshRequest) {
+  if (pathname.startsWith('/api/architecture')) {
+    // Architecture analysis runs git clone + AST parsing — keep a tight global budget.
+    result = await rateLimit(`architecture:${ip}`, 3, 600000);
+  } else if (isRefreshRequest) {
     // Strict rate limit for explicit refresh requests: 3 requests per 10 minutes (600,000ms)
     result = await rateLimit(`refresh_limiter:${ip}`, 3, 600000);
   } else {

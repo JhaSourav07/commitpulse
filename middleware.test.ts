@@ -136,4 +136,20 @@ describe('middleware', () => {
 
     expect(rateLimit).toHaveBeenCalledWith('127.0.0.1', 60, 60000);
   });
+
+  it('applies a strict rate limit to architecture analysis requests', async () => {
+    vi.mocked(rateLimit).mockResolvedValue({
+      success: true,
+      limit: 3,
+      remaining: 2,
+      reset: 123456789,
+    });
+
+    const request = new NextRequest('http://localhost:3000/api/architecture');
+    Object.defineProperty(request, 'ip', { value: '203.0.113.10', writable: true });
+
+    await middleware(request);
+
+    expect(rateLimit).toHaveBeenCalledWith('architecture:203.0.113.10', 3, 600000);
+  });
 });

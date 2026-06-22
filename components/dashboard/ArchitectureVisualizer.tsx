@@ -341,8 +341,13 @@ export default function ArchitectureVisualizer({ onClose }: ArchitectureVisualiz
       const response = await fetch('/api/architecture', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
         body: JSON.stringify({ repoUrl: repoUrl.trim() }),
       });
+
+      if (response.status === 401) {
+        throw new Error('Sign in with GitHub to analyze repository architecture.');
+      }
 
       if (!response.ok) {
         const errJson = await response.json().catch(() => ({}));

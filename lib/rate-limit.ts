@@ -228,6 +228,9 @@ export const trackUserRateLimiter = new RateLimiter(5, 60000);
 // Global instance for notify endpoint (5 requests per IP per minute)
 export const notifyRateLimiter = new RateLimiter(5, 60000);
 
+// Architecture analysis is expensive (git clone + AST parsing): 3 requests per 10 minutes
+export const architectureRateLimiter = new RateLimiter(3, 600_000, 1_000);
+
 /**
  * Distributed rate limiter for Next.js Edge Middleware.
  *

@@ -6,7 +6,11 @@ import path from 'path';
 import os from 'os';
 import * as ts from 'typescript';
 import pLimit from 'p-limit';
-import { getGitHubTokens } from '@/lib/github';
+import { auth } from '@/auth';
+import { verifyArchitectureRepoAccess } from '@/lib/architecture-repo-access';
+import { getUserGitHubToken } from '@/lib/githubtoken';
+import { architectureRateLimiter, getRateLimitHeaders } from '@/lib/rate-limit';
+import { getClientIp } from '@/utils/getClientIp';
 
 const execFilePromise = promisify(execFile);
 
@@ -266,9 +270,54 @@ function resolveImportPath(
   return null;
 }
 
+const REPO_ACCESS_DENIED = 'Repository not found or you do not have permission to analyze it.';
+
+/**
+ * Shallow-clones a repository without embedding credentials in the clone URL.
+ */
+async function cloneRepository(
+  owner: string,
+  repo: string,
+  destDir: string,
+  token?: string
+): Promise<void> {
+  const cloneUrl = `https://github.com/${owner}/${repo}.git`;
+  const baseArgs = ['clone', '--depth', '1', '--', cloneUrl, destDir];
+  const gitEnv = { ...process.env, GIT_TERMINAL_PROMPT: '0' };
+
+  if (token) {
+    await execFilePromise(
+      'git',
+      ['-c', `http.extraHeader=Authorization: Bearer ${token}`, ...baseArgs],
+      { env: gitEnv }
+    );
+    return;
+  }
+
+  await execFilePromise('git', baseArgs, { env: gitEnv });
+}
+
 export async function POST(req: NextRequest) {
   let tempDir = '';
   try {
+    const session = await auth();
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
+    }
+
+    const ip = getClientIp(req);
+    const rateLimitKey =
+      session.user.email ??
+      (ip && ip !== 'unknown' ? ip : `unknown:${req.headers.get('user-agent') ?? 'no-agent'}`);
+
+    const rateLimitResult = await architectureRateLimiter.checkWithResult(rateLimitKey);
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        { error: 'Too many architecture analysis requests. Please try again later.' },
+        { status: 429, headers: getRateLimitHeaders(rateLimitResult) }
+      );
+    }
+
     const { repoUrl } = await req.json();
 
     if (!repoUrl) {
@@ -281,41 +330,28 @@ export async function POST(req: NextRequest) {
     }
 
     const { owner, repo } = repoDetails;
+    const userToken = await getUserGitHubToken();
+    const access = await verifyArchitectureRepoAccess(owner, repo, userToken);
 
-    // Construct clone URL — never embed credentials in the URL string.
-    // If a token is available, use GIT_ASKPASS to provide it securely so it
-    // never appears in process arguments, shell history, or error output.
-    const tokens = getGitHubTokens();
-    const token = tokens.length > 0 ? tokens[0] : null;
-    const cloneUrl = `https://github.com/${owner}/${repo}.git`;
+    if (!access.ok) {
+      const status = access.status === 502 ? 502 : 404;
+      const message =
+        access.status === 502
+          ? 'Unable to verify repository access. Please try again later.'
+          : REPO_ACCESS_DENIED;
+      return NextResponse.json({ error: message }, { status });
+    }
 
-    // Create a temporary directory
     tempDir = fs.mkdtempSync(path.join(os.tmpdir(), `commitpulse-arch-${owner}-${repo}-`));
 
-    // Shallow clone the repository
     try {
-      const env = { ...process.env } as NodeJS.ProcessEnv;
-      if (token) {
-        // GIT_ASKPASS points to a script that echoes the token when git asks
-        // for credentials, keeping the token out of process arguments.
-        const askpassScript = path.join(tempDir, '.git-askpass.sh');
-        fs.writeFileSync(askpassScript, `#!/bin/sh\necho "${token}"`, { mode: 0o700 });
-        env.GIT_ASKPASS = askpassScript;
-        env.GIT_TERMINAL_PROMPT = '0';
-      }
-      await execFilePromise('git', ['clone', '--depth', '1', '--', cloneUrl, tempDir], { env });
+      await cloneRepository(owner, repo, tempDir, access.cloneToken);
     } catch (err) {
-      console.error('Cloning failed for repository:', repoUrl, sanitizeError(err));
-      // Clean up tempDir if it was created
+      console.error('Cloning failed for repository:', `${owner}/${repo}`, sanitizeError(err));
       if (tempDir && fs.existsSync(tempDir)) {
         fs.rmSync(tempDir, { recursive: true, force: true });
       }
-      return NextResponse.json(
-        {
-          error: 'Failed to clone repository. Make sure the repository exists and is accessible.',
-        },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: REPO_ACCESS_DENIED }, { status: 404 });
     }
 
     // Traverse directory structure
