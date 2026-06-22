@@ -42,6 +42,7 @@ import CIAnalyticsClient from './CIAnalytics/CIAnalyticsClient';
 import DeploymentTracker from './DeploymentTracker';
 import ArchitectureVisualizer from './ArchitectureVisualizer';
 import GoalTracker from './GoalTracker';
+import DeveloperJourneyTimeline from './DeveloperJourneyTimeline';
 
 // Define the dashboard data structure
 export interface DashboardData {
@@ -725,6 +726,13 @@ export default function DashboardClient({
                 activity={initialData.activity}
                 username={username}
                 period={period}
+              />
+            </section>
+
+            <section>
+              <DeveloperJourneyTimeline
+                activity={initialData.activity}
+                achievements={initialData.achievements}
               />
             </section>
           </div>
