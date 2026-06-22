@@ -149,10 +149,14 @@ export async function fetchWithRetry(
   if (isGitHubRequest) {
     try {
       currentToken = userToken || getGitHubToken();
-      // Ensure your headers instantiation copies existing layout keys safely
-      options.headers = {
-        ...options.headers,
-        Authorization: `bearer ${currentToken}`,
+
+      const headers = new Headers(options.headers);
+
+      headers.set('Authorization', `bearer ${currentToken}`);
+
+      options = {
+        ...options,
+        headers,
       };
     } catch (e) {
       // Problem 3 Fix: Never swallow or compromise a structural RateLimitError instance
