@@ -434,7 +434,7 @@ describe('GET /api/streak', () => {
     it('caches until UTC midnight by default, using the value from getSecondsUntilUTCMidnight', async () => {
       const response = await GET(makeRequest({ user: 'octocat' }));
       expect(response.headers.get('Cache-Control')).toBe(
-        'public, max-age=14400, s-maxage=3600, stale-while-revalidate=7200'
+        'public, max-age=60, s-maxage=3600, stale-while-revalidate=60'
       );
     });
 
@@ -442,7 +442,7 @@ describe('GET /api/streak', () => {
       vi.mocked(getSecondsUntilUTCMidnight).mockReturnValue(7200);
       const response = await GET(makeRequest({ user: 'octocat' }));
       expect(response.headers.get('Cache-Control')).toBe(
-        'public, max-age=14400, s-maxage=7200, stale-while-revalidate=7200'
+        'public, max-age=60, s-maxage=7200, stale-while-revalidate=60'
       );
     });
 
@@ -977,7 +977,7 @@ describe('GET /api/streak', () => {
       const response = await GET(makeRequest({ user: 'octocat', tz: 'America/New_York' }));
 
       expect(response.headers.get('Cache-Control')).toBe(
-        'public, max-age=14400, s-maxage=7200, stale-while-revalidate=7200'
+        'public, max-age=60, s-maxage=7200, stale-while-revalidate=60'
       );
       expect(getSecondsUntilMidnightInTimezone).toHaveBeenCalledWith('America/New_York');
       expect(getSecondsUntilUTCMidnight).not.toHaveBeenCalled();
@@ -1311,7 +1311,7 @@ describe('GET /api/streak', () => {
     it('returns no-cache header when ?theme=random is given', async () => {
       const response = await GET(makeRequest({ user: 'octocat', theme: 'random' }));
 
-      expect(response.headers.get('Cache-Control')).toMatch(/public, max-age=14400, s-maxage=/);
+      expect(response.headers.get('Cache-Control')).toMatch(/public, max-age=60, s-maxage=/);
     });
   });
 
@@ -1500,16 +1500,16 @@ describe('GET /api/streak', () => {
   });
 
   describe('stale-while-revalidate cache header', () => {
-    it('contains stale-while-revalidate=7200 for normal request', async () => {
+    it('contains stale-while-revalidate=60 for normal request', async () => {
       const response = await GET(makeRequest({ user: 'octocat' }));
 
-      expect(response.headers.get('Cache-Control')).toContain('stale-while-revalidate=7200');
+      expect(response.headers.get('Cache-Control')).toContain('stale-while-revalidate=60');
     });
 
     it('does NOT contain stale-while-revalidate when ?refresh=true', async () => {
       const response = await GET(makeRequest({ user: 'octocat', refresh: 'true' }));
 
-      expect(response.headers.get('Cache-Control')).not.toContain('stale-while-revalidate=7200');
+      expect(response.headers.get('Cache-Control')).not.toContain('stale-while-revalidate=60');
     });
   });
 

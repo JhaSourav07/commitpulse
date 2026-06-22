@@ -324,10 +324,12 @@ export class DistributedCache<T> {
     this.localCache = new TTLCache<T>(maxSize, cleanupIntervalMs);
     const url = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
     const token = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
-    this.useRedis = Boolean(url && token);
-    if (this.useRedis) {
-      this.redisUrl = url!.replace(/\/$/, ''); // Remove trailing slash
-      this.redisToken = token!;
+    if (url && token) {
+      this.useRedis = true;
+      this.redisUrl = url.replace(/\/$/, ''); // Remove trailing slash
+      this.redisToken = token;
+    } else {
+      this.useRedis = false;
     }
   }
 

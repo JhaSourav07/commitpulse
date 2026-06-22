@@ -98,7 +98,7 @@ describe('GET /api/streak — languages (lang) parameter', () => {
   it('sets Cache-Control and Content-Security-Policy headers for a valid lang parameter', async () => {
     const response = await GET(makeRequest({ user: 'octocat', lang: 'de' }));
 
-    expect(response.headers.get('Cache-Control')).toMatch(/public, max-age=14400, s-maxage=\d+/);
+    expect(response.headers.get('Cache-Control')).toMatch(/public, max-age=60, s-maxage=\d+/);
     const csp = response.headers.get('Content-Security-Policy');
     expect(csp).toContain("default-src 'none'");
     expect(csp).toContain("style-src 'unsafe-inline'");

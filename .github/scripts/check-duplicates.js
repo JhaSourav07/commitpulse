@@ -1,3 +1,5 @@
+const fs = require('fs');
+const path = require('path');
 const github = require('@actions/github');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
@@ -75,16 +77,39 @@ async function run() {
     model: 'gemini-embedding-001',
   });
 
-  console.log(`Generating embedding for Issue #${currentIssue.number}...`);
+  const cacheDir = path.join(__dirname, '.cache');
+  const cacheFile = path.join(cacheDir, 'embeddings-cache.json');
+  let cache = {};
+
+  if (fs.existsSync(cacheFile)) {
+    try {
+      cache = JSON.parse(fs.readFileSync(cacheFile, 'utf8'));
+      console.log(`Loaded ${Object.keys(cache).length} cached embeddings.`);
+    } catch (error) {
+      console.warn('⚠️ Failed to parse embeddings cache, starting fresh:', error.message);
+    }
+  }
 
   const currentText = `Title: ${currentIssue.title}\nBody: ${currentIssue.body || ''}`.slice(
     0,
     3000
   );
 
-  const currentResult = await model.embedContent(currentText);
+  let currentEmbedding;
+  const currentCacheKey = String(currentIssue.number);
 
-  const currentEmbedding = currentResult.embedding.values;
+  if (cache[currentCacheKey] && cache[currentCacheKey].updated_at === currentIssue.updated_at) {
+    console.log(`Using cached embedding for current Issue #${currentIssue.number}`);
+    currentEmbedding = cache[currentCacheKey].embedding;
+  } else {
+    console.log(`Generating embedding for current Issue #${currentIssue.number}...`);
+    const currentResult = await model.embedContent(currentText);
+    currentEmbedding = currentResult.embedding.values;
+    cache[currentCacheKey] = {
+      updated_at: currentIssue.updated_at,
+      embedding: currentEmbedding,
+    };
+  }
 
   const { data: existingComments } = await octokit.rest.issues.listComments({
     owner,
@@ -99,21 +124,31 @@ async function run() {
   let duplicatesCount = 0;
 
   for (const candidateIssue of candidateIssues) {
+    const candKey = String(candidateIssue.number);
     const candidateText =
       `Title: ${candidateIssue.title}\nBody: ${candidateIssue.body || ''}`.slice(0, 3000);
 
     let candidateEmbedding;
 
-    try {
-      const candidateResult = await model.embedContent(candidateText);
-
-      candidateEmbedding = candidateResult.embedding.values;
-    } catch (error) {
-      console.warn(
-        `⚠️ Failed to generate embedding for Issue #${candidateIssue.number}:`,
-        error.message
-      );
-      continue;
+    if (cache[candKey] && cache[candKey].updated_at === candidateIssue.updated_at) {
+      console.log(`Using cached embedding for Issue #${candidateIssue.number}`);
+      candidateEmbedding = cache[candKey].embedding;
+    } else {
+      console.log(`Generating embedding for Issue #${candidateIssue.number}...`);
+      try {
+        const candidateResult = await model.embedContent(candidateText);
+        candidateEmbedding = candidateResult.embedding.values;
+        cache[candKey] = {
+          updated_at: candidateIssue.updated_at,
+          embedding: candidateEmbedding,
+        };
+      } catch (error) {
+        console.warn(
+          `⚠️ Failed to generate embedding for Issue #${candidateIssue.number}:`,
+          error.message
+        );
+        continue;
+      }
     }
 
     const similarity = cosineSimilarity(currentEmbedding, candidateEmbedding);
@@ -167,6 +202,17 @@ async function run() {
   console.log(
     `🎉 Semantic duplicate scan complete! Flagged ${duplicatesCount} potential duplicates.`
   );
+
+  // Save cache back to file
+  try {
+    if (!fs.existsSync(cacheDir)) {
+      fs.mkdirSync(cacheDir, { recursive: true });
+    }
+    fs.writeFileSync(cacheFile, JSON.stringify(cache, null, 2), 'utf8');
+    console.log(`Saved ${Object.keys(cache).length} embeddings to cache.`);
+  } catch (error) {
+    console.warn('⚠️ Failed to save embeddings cache:', error.message);
+  }
 }
 
 run().catch((error) => {

@@ -64,14 +64,14 @@ export default function ComparisonStatsCard({
     >
       {/* Title & Icon Header */}
       <div className="flex justify-between items-center mb-6">
-        <p className="text-xs text-[#A1A1AA] uppercase tracking-widest font-medium">{title}</p>
+        <p className="text-xs text-gray-500 uppercase tracking-widest font-medium">{title}</p>
         <div
           className="p-2 rounded-lg bg-gray-100 dark:bg-[#111] border border-black/10 dark:border-[rgba(255,255,255,0.06)] group-hover:border-[rgba(16,185,129,0.2)] transition-colors duration-200"
           aria-hidden="true"
         >
           <IconComponent
             size={18}
-            className="text-[#A1A1AA] group-hover:text-black dark:group-hover:text-white transition-colors duration-200"
+            className="text-gray-500 group-hover:text-black dark:group-hover:text-white transition-colors duration-200"
           />
         </div>
       </div>
@@ -80,7 +80,7 @@ export default function ComparisonStatsCard({
       <div className="grid grid-cols-2 gap-4 items-center mb-6 relative">
         {/* User A Side */}
         <div className={`text-left pr-4 ${isWinnerA ? 'border-r border-emerald-500/10' : ''}`}>
-          <p id={idA} className="text-xs text-[#A1A1AA] truncate mb-1" title={labelA}>
+          <p id={idA} className="text-xs text-gray-500 truncate mb-1" title={labelA}>
             {labelA}
           </p>
           <div className="flex items-baseline gap-2">
@@ -108,7 +108,7 @@ export default function ComparisonStatsCard({
 
         {/* User B Side */}
         <div className="text-right pl-4">
-          <p id={idB} className="text-xs text-[#A1A1AA] truncate mb-1" title={labelB}>
+          <p id={idB} className="text-xs text-gray-500 truncate mb-1" title={labelB}>
             {labelB}
           </p>
           <div className="flex items-baseline justify-end gap-2">

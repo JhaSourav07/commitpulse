@@ -234,6 +234,20 @@
       "json_downloaded": "JSON डाउनलोड किया गया!",
       "failed": "विफल — पुनः प्रयास करें",
       "download_stl": "प्रिंट करने योग्य 3D STL मोनोलिथ डाउनलोड करें"
+    },
+    "goals": {
+      "title": "Contribution Goals",
+      "monthly": "Monthly Target",
+      "yearly": "Yearly Target",
+      "target": "Target",
+      "progress": "Progress",
+      "remaining": "{{count}} commits remaining",
+      "completed": "Goal Achieved! 🎉",
+      "edit": "Edit Goals",
+      "save": "Save Changes",
+      "cancel": "Cancel",
+      "monthly_placeholder": "e.g. 50",
+      "yearly_placeholder": "e.g. 1000"
     }
   }
 }

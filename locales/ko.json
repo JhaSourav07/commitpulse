@@ -224,6 +224,20 @@
       "json_downloaded": "JSON이 다운로드되었습니다!",
       "failed": "실패 — 다시 시도하세요",
       "download_stl": "인쇄 가능한 3D STL 모놀리스 다운로드"
+    },
+    "goals": {
+      "title": "Contribution Goals",
+      "monthly": "Monthly Target",
+      "yearly": "Yearly Target",
+      "target": "Target",
+      "progress": "Progress",
+      "remaining": "{{count}} commits remaining",
+      "completed": "Goal Achieved! 🎉",
+      "edit": "Edit Goals",
+      "save": "Save Changes",
+      "cancel": "Cancel",
+      "monthly_placeholder": "e.g. 50",
+      "yearly_placeholder": "e.g. 1000"
     }
   }
 }

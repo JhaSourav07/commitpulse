@@ -60,6 +60,7 @@ export interface PRInsightData {
     fastestMerged?: { title: string; url: string; time: number }; // time in hours
     largest?: { title: string; url: string; additions: number; deletions: number };
   };
+  prs: { title: string; url: string; state: string; createdAt: string; repo: string }[];
 }
 
 const prInsightsCache = new DistributedCache<PRInsightData>(500);
@@ -349,6 +350,13 @@ async function fetchPRInsightsUncached(
       fastestMerged: fastestMerged.time !== Infinity ? fastestMerged : undefined,
       largest: largest.additions >= 0 ? largest : undefined,
     },
+    prs: authoredPRs.map((pr) => ({
+      title: pr.title,
+      url: pr.url,
+      state: pr.state,
+      createdAt: pr.createdAt,
+      repo: pr.repository?.nameWithOwner ?? 'Unknown',
+    })),
   };
 }
 

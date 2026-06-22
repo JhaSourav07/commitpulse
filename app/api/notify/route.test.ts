@@ -47,13 +47,19 @@ import { gitHubUserValidator } from '@/services/github/validate-user';
 import { getClientIp } from '@/utils/getClientIp';
 import { verifyGitHubOwner } from '@/lib/github-owner-verification';
 
-const makeRequest = (method: string, body?: object, search?: string) => {
+const makeRequest = (
+  method: string,
+  body?: object,
+  search?: string,
+  headers?: Record<string, string>
+) => {
   const url = `http://localhost:3000/api/notify${search ? '?' + search : ''}`;
   return new NextRequest(url, {
     method,
     headers: {
       'x-forwarded-for': '127.0.0.1',
       Authorization: 'Bearer test-owner-token',
+      ...headers,
     },
     body: body ? JSON.stringify(body) : undefined,
   });
@@ -593,7 +599,9 @@ describe('DELETE /api/notify', () => {
     vi.mocked(Notification.deleteOne).mockResolvedValue({ deletedCount: 1 } as never);
 
     const res = await DELETE(
-      makeRequest('DELETE', undefined, `user=testuser&managementToken=${managementToken}`)
+      makeRequest('DELETE', undefined, 'user=testuser', {
+        'x-notification-token': managementToken,
+      })
     );
     const data = await res.json();
 

@@ -238,6 +238,20 @@
       "json_downloaded": "¡JSON descargado!",
       "failed": "Error — intenta de nuevo",
       "download_stl": "Descargar monolito 3D imprimible STL"
+    },
+    "goals": {
+      "title": "Contribution Goals",
+      "monthly": "Monthly Target",
+      "yearly": "Yearly Target",
+      "target": "Target",
+      "progress": "Progress",
+      "remaining": "{{count}} commits remaining",
+      "completed": "Goal Achieved! 🎉",
+      "edit": "Edit Goals",
+      "save": "Save Changes",
+      "cancel": "Cancel",
+      "monthly_placeholder": "e.g. 50",
+      "yearly_placeholder": "e.g. 1000"
     }
   }
 }

@@ -249,6 +249,20 @@
       "github_wrapped": "Retrospectiva GitHub",
       "download_webp": "Baixar WebP Otimizado",
       "download_stl": "Baixar STL 3D para Impressão"
+    },
+    "goals": {
+      "title": "Contribution Goals",
+      "monthly": "Monthly Target",
+      "yearly": "Yearly Target",
+      "target": "Target",
+      "progress": "Progress",
+      "remaining": "{{count}} commits remaining",
+      "completed": "Goal Achieved! 🎉",
+      "edit": "Edit Goals",
+      "save": "Save Changes",
+      "cancel": "Cancel",
+      "monthly_placeholder": "e.g. 50",
+      "yearly_placeholder": "e.g. 1000"
     }
   }
 }

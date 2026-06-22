@@ -40,7 +40,7 @@ async function dbConnect() {
           cached.conn.connection.getClient() as unknown as MongoClient
         );
       } else {
-        globalThis._mongoClientPromise = Promise.resolve({} as unknown as MongoClient);
+        globalThis._mongoClientPromise = Promise.resolve(undefined as unknown as MongoClient);
       }
     }
     return cached.conn;
@@ -75,7 +75,7 @@ async function dbConnect() {
         if (m && m.connection && typeof m.connection.getClient === 'function') {
           return m.connection.getClient() as unknown as MongoClient;
         }
-        return {} as unknown as MongoClient;
+        return undefined as unknown as MongoClient;
       })
       .catch(() => {
         return undefined as unknown as MongoClient;

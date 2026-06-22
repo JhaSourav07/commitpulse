@@ -105,6 +105,19 @@ if (typeof window !== 'undefined' && typeof window.Storage !== 'undefined') {
     writable: true,
     configurable: true,
   });
+
+  // Mock IntersectionObserver for Framer Motion / JSDOM compatibility
+  class MockIntersectionObserver {
+    disconnect = vi.fn();
+    observe = vi.fn();
+    takeRecords = vi.fn(() => []);
+    unobserve = vi.fn();
+  }
+  Object.defineProperty(globalThis, 'IntersectionObserver', {
+    writable: true,
+    configurable: true,
+    value: MockIntersectionObserver,
+  });
 }
 
 if (typeof globalThis.fetch !== 'undefined') {

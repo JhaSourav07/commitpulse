@@ -8,6 +8,19 @@ import type {
 } from '../types';
 
 /* ==========================================================================
+ * UTILITY FUNCTIONS
+ * ========================================================================== */
+
+/**
+ * Safely calculates and rounds a percentage fraction to prevent NaN or
+ * Infinity division values when the total denominator resolves to zero.
+ */
+export function calculateSafePercentage(part: number, total: number): number {
+  if (total === 0) return 0;
+  return Math.round((part / total) * 100);
+}
+
+/* ==========================================================================
  * STREAK & CALENDAR CALCULATIONS
  * ========================================================================== */
 
@@ -91,6 +104,7 @@ export function getLocalTodayStr(now: Date, timezone: string): string {
     return now.toISOString().split('T')[0];
   }
 }
+
 export function isStreakAlive(
   today?: { contributionCount: number } | null,
   yesterday?: { contributionCount: number } | null
@@ -518,7 +532,7 @@ export function calculateWrappedStats(calendar?: ContributionCalendar | null) {
     monthCounts[month] = (monthCounts[month] || 0) + count;
 
     // 3. Weekday vs Weekend grind
-    const dayOfWeek = dateObj.getUTCDay(); // 0 is Sunday, 6 is Saturday
+    const dayOfWeek = dateObj.getUTCDay(); // 0 = Sunday, 6 = Saturday (UTC)
     if (dayOfWeek === 0 || dayOfWeek === 6) {
       weekendCommits += count;
     } else {
@@ -532,15 +546,14 @@ export function calculateWrappedStats(calendar?: ContributionCalendar | null) {
       ? 'N/A'
       : Object.keys(monthCounts).reduce((a, b) => (monthCounts[a] > monthCounts[b] ? a : b));
 
+  const total = weekendCommits + weekdayCommits;
+
   return {
     totalContributions: calendar.totalContributions || 0,
     mostActiveDate: mostActiveDay.date,
     highestDailyCount: mostActiveDay.count,
     busiestMonth: busiestMonthStr,
-    weekendRatio: (() => {
-      const total = weekendCommits + weekdayCommits;
-      return total > 0 ? Math.round((weekendCommits / total) * 100) : 0;
-    })(),
+    weekendRatio: calculateSafePercentage(weekendCommits, total),
   };
 }
 

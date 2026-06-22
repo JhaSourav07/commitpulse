@@ -3,7 +3,7 @@
 import { useState, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { GitFork, Search } from 'lucide-react';
+import { GitFork, Search, X } from 'lucide-react';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
 
 interface Contributor {
@@ -89,32 +89,40 @@ export default function ContributorsSearch({
   return (
     <>
       {/* SEARCH BAR */}
-      <div className="mx-auto mb-16 max-w-2xl" id="contributors">
+      <div className="mx-auto mb-16 max-w-xl" id="contributors">
         <div className="relative group">
-          {/* Animated gradient border */}
-          <div className="absolute -inset-[1px] rounded-2xl bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-500 opacity-30 blur-sm group-focus-within:opacity-70 transition-opacity duration-500" />
-          <div className="relative flex items-center rounded-2xl bg-white dark:bg-[#0a0a0a] border border-black/10 dark:border-white/10">
-            <Search className="ml-5 h-5 w-5 text-zinc-500" />
+          {/* Hover/focus glow ring */}
+          <div className="absolute -inset-[2px] rounded-2xl bg-gradient-to-r from-cyan-500/40 via-blue-500/40 to-purple-500/40 opacity-0 group-focus-within:opacity-100 transition-all duration-500 blur-md" />
+          <div className="relative flex items-center rounded-2xl bg-white dark:bg-[#0a0a0a] border border-black/10 dark:border-white/10 shadow-sm dark:shadow-none shadow-black/5 transition-all duration-300 group-focus-within:border-cyan-500/40 dark:group-focus-within:border-cyan-400/40 group-focus-within:shadow-md group-focus-within:shadow-cyan-500/10 dark:group-focus-within:shadow-cyan-400/5">
+            <div className="ml-5 flex h-9 w-9 items-center justify-center rounded-lg bg-black/5 dark:bg-white/5">
+              <Search className="h-4 w-4 text-zinc-500 dark:text-zinc-400" />
+            </div>
             <input
               type="text"
               placeholder="Search the collective..."
               aria-label="Search contributors by name"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-transparent px-4 py-5 text-lg text-black dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-600 outline-none font-light"
+              className="w-full bg-transparent px-4 py-3.5 text-base text-black dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-500 outline-none focus-visible:outline-none font-medium tracking-wide"
             />
             {search && (
               <button
                 onClick={() => setSearch('')}
-                className="mr-4 text-zinc-500 hover:text-black dark:hover:text-white transition-colors text-sm"
+                className="mr-3 flex h-7 w-7 items-center justify-center rounded-full text-zinc-400 hover:text-black dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-all"
+                aria-label="Clear search"
               >
-                Clear
+                <X className="h-4 w-4" />
               </button>
             )}
           </div>
         </div>
-        <div className="mt-3 text-center text-sm text-zinc-600">
-          {filtered.length} of {contributors.length} contributors
+        <div className="mt-4 text-center">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-black/5 dark:bg-white/5 px-3.5 py-1.5 text-xs font-semibold text-zinc-500 dark:text-zinc-400">
+            <span className="text-cyan-500 dark:text-cyan-400">{filtered.length}</span>
+            <span>/</span>
+            <span>{contributors.length}</span>
+            <span className="text-zinc-400 dark:text-zinc-500">contributors</span>
+          </span>
         </div>
       </div>
 

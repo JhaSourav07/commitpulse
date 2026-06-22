@@ -367,6 +367,12 @@ export default function LandingPageClient() {
   const previewUsername = instantUsername || debouncedUsername;
   const hasUsername = previewUsername.length > 0;
 
+  // Keep track of the latest previewUsername to avoid race conditions with out-of-order image callbacks
+  const latestPreviewUsernameRef = useRef(previewUsername);
+  useEffect(() => {
+    latestPreviewUsernameRef.current = previewUsername;
+  }, [previewUsername]);
+
   const badgeUrl = `/api/streak?user=${encodeURIComponent(previewUsername)}`;
   const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? 'https://commitpulse.vercel.app').replace(
     /\/$/,
@@ -499,8 +505,8 @@ export default function LandingPageClient() {
     scrollTimeoutRef.current = setTimeout(() => {
       guideRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 80);
-    //if (copiedTimeoutRef.current) clearTimeout(copiedTimeoutRef.current);
-    //copiedTimeoutRef.current = setTimeout(() => setCopied(false), 3000);
+    if (copiedTimeoutRef.current) clearTimeout(copiedTimeoutRef.current);
+    copiedTimeoutRef.current = setTimeout(() => setCopied(false), 3000);
   };
 
   useEffect(() => {
@@ -631,7 +637,7 @@ export default function LandingPageClient() {
                     }}
                     maxLength={39}
                   />
-                  {username.length > 0 ? (
+                  {mounted && username.length > 0 ? (
                     <button
                       onClick={() => {
                         setUsername('');
@@ -735,9 +741,15 @@ export default function LandingPageClient() {
                         <Image
                           src={userDetails.avatar_url}
                           alt={userDetails.login}
-                          width={24}
-                          height={24}
+                          width={25}
+                          height={25}
                           className="w-6 h-6 rounded-full border border-emerald-500/20"
+                          unoptimized
+                          onError={(e) => {
+                            const img = e.currentTarget as HTMLImageElement;
+                            img.onerror = null;
+                            img.src = `https://github.com/${userDetails.login}.png`;
+                          }}
                         />
                         <div className="flex flex-col">
                           <span className="text-xs font-bold text-zinc-200">
@@ -791,10 +803,17 @@ export default function LandingPageClient() {
                             <Image
                               src={`https://github.com/${displayName}.png?size=40`}
                               alt={displayName}
-                              width={16}
-                              height={16}
+                              width={17}
+                              height={17}
                               className="w-4 h-4 rounded-full border border-zinc-200/20 dark:border-white/20"
+                              unoptimized
+                              onError={(e) => {
+                                const img = e.currentTarget as HTMLImageElement;
+                                img.onerror = null;
+                                img.style.display = 'none';
+                              }}
                             />
+
                             <button
                               type="button"
                               onClick={() => selectDemoUser(displayName)}
@@ -894,12 +913,16 @@ export default function LandingPageClient() {
                         animate={{ opacity: badgeLoaded ? 1 : 0, scale: badgeLoaded ? 1 : 0.95 }}
                         transition={{ duration: 0.5, ease: 'easeOut' }}
                         className="w-full max-w-[700px] h-auto drop-shadow-[0_30px_60px_rgba(0,0,0,0.15)] dark:drop-shadow-[0_30px_60px_rgba(0,0,0,0.5)]"
-                        onLoad={() =>
-                          setBadgeResult({ username: previewUsername, status: 'loaded' })
-                        }
-                        onError={() =>
-                          setBadgeResult({ username: previewUsername, status: 'error' })
-                        }
+                        onLoad={() => {
+                          if (previewUsername === latestPreviewUsernameRef.current) {
+                            setBadgeResult({ username: previewUsername, status: 'loaded' });
+                          }
+                        }}
+                        onError={() => {
+                          if (previewUsername === latestPreviewUsernameRef.current) {
+                            setBadgeResult({ username: previewUsername, status: 'error' });
+                          }
+                        }}
                       />
                       {badgeLoaded && (
                         <button

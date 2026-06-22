@@ -1,5 +1,6 @@
 import { defineConfig } from 'vitest/config';
 import path from 'path';
+import os from 'os';
 
 export default defineConfig({
   test: {
@@ -26,7 +27,7 @@ export default defineConfig({
         ? []
         : ['**/*.massive-scaling.test.ts', '**/*.massive-scaling.test.tsx']),
     ],
-    maxWorkers: process.env.CI ? 2 : 4,
+    maxWorkers: process.env.CI ? 2 : Math.max(1, Math.floor(os.cpus().length / 2)),
     testTimeout: 30000,
     pool: 'forks',
     coverage: {

@@ -41,6 +41,7 @@ import PRInsightsClient from './PRInsights/PRInsightsClient';
 import CIAnalyticsClient from './CIAnalytics/CIAnalyticsClient';
 import DeploymentTracker from './DeploymentTracker';
 import ArchitectureVisualizer from './ArchitectureVisualizer';
+import GoalTracker from './GoalTracker';
 
 // Define the dashboard data structure
 export interface DashboardData {
@@ -708,6 +709,10 @@ export default function DashboardClient({
           <div className="flex flex-col gap-6 lg:gap-8 min-w-0">
             <section>
               <ActivityLandscape data={initialData.activity} />
+            </section>
+
+            <section>
+              <GoalTracker username={username} activity={initialData.activity} />
             </section>
 
             <section className="grid grid-cols-1 md:grid-cols-2 gap-6">

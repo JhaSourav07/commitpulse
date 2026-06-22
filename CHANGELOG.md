@@ -12,6 +12,7 @@ recorded under named sections that reflect the project's public development phas
 
 ### Added
 
+- `?theme=midnight_ocean` preset — deep navy bioluminescent theme (bg: `020c1b`, accent: `0af5ff`, text: `ccd6f6`, negative: `ff4d6d`); includes WCAG contrast test in `lib/svg/themes/midnight_ocean.test.ts`
 - `?year=` URL parameter to render contribution monoliths for past calendar years (PR #94)
 - `?font=` URL parameter to load any Google Font family dynamically into the SVG (PR #96, Issue #81)
 - `?theme=auto` preset that switches between light and dark palettes using CSS `@media (prefers-color-scheme)` — no JavaScript required (PR #102, Issue #75)

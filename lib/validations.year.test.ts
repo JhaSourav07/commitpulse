@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { streakParamsSchema, wrappedParamsSchema } from './validations';
 
-const CURRENT_YEAR = new Date().getFullYear();
+const CURRENT_YEAR = new Date().getUTCFullYear();
 const EXPECTED_ERROR = 'GitHub was founded in 2008. Please provide a year of 2008 or later.';
 
 function getYearError(result: {

@@ -224,6 +224,20 @@
       "json_downloaded": "JSON 已下载！",
       "failed": "操作失败 — 请重试",
       "download_stl": "下载可打印的 3D STL 整体结构"
+    },
+    "goals": {
+      "title": "Contribution Goals",
+      "monthly": "Monthly Target",
+      "yearly": "Yearly Target",
+      "target": "Target",
+      "progress": "Progress",
+      "remaining": "{{count}} commits remaining",
+      "completed": "Goal Achieved! 🎉",
+      "edit": "Edit Goals",
+      "save": "Save Changes",
+      "cancel": "Cancel",
+      "monthly_placeholder": "e.g. 50",
+      "yearly_placeholder": "e.g. 1000"
     }
   }
 }

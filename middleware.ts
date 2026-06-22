@@ -63,5 +63,6 @@ export const config = {
     '/api/wrapped/:path*',
     '/api/student/:path*',
     '/api/pr-insights/:path*',
+    '/api/architecture/:path*',
   ],
 };

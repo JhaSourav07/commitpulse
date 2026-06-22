@@ -76,6 +76,7 @@ export default function ActivityLandscape({ data }: { data: ActivityData[] }) {
   const [mode, setMode] = useState<'commits' | 'loc'>('commits');
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
   const [is3D, setIs3D] = useState(false);
+  const [timeLapseMode, setTimeLapseMode] = useState(false);
   const { t } = useTranslation();
   const theme3D = use3DTheme();
 
@@ -190,7 +191,10 @@ export default function ActivityLandscape({ data }: { data: ActivityData[] }) {
 
             {/* ── 3D City View toggle ── */}
             <button
-              onClick={() => setIs3D((v) => !v)}
+              onClick={() => {
+                if (is3D) setTimeLapseMode(false);
+                setIs3D((v) => !v);
+              }}
               aria-pressed={is3D}
               title={is3D ? 'Switch to flat view' : 'Switch to 3D City view'}
               className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-all duration-200 ${
@@ -217,6 +221,40 @@ export default function ActivityLandscape({ data }: { data: ActivityData[] }) {
               </svg>
               3D City
             </button>
+
+            {/* ── Time Lapse View toggle ── */}
+            <AnimatePresence>
+              {is3D && (
+                <motion.button
+                  initial={{ opacity: 0, scale: 0.9, width: 0 }}
+                  animate={{ opacity: 1, scale: 1, width: 'auto' }}
+                  exit={{ opacity: 0, scale: 0.9, width: 0 }}
+                  onClick={() => setTimeLapseMode((v) => !v)}
+                  aria-pressed={timeLapseMode}
+                  title={timeLapseMode ? 'Turn off Time-Lapse' : 'Turn on Time-Lapse'}
+                  className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-all duration-200 overflow-hidden whitespace-nowrap ${
+                    timeLapseMode
+                      ? 'border-emerald-400/40 bg-emerald-500/15 text-emerald-500 dark:border-emerald-400/30 dark:bg-emerald-500/10'
+                      : 'border-black/10 bg-transparent text-gray-500 hover:border-black/20 hover:text-black dark:border-white/10 dark:hover:border-white/20 dark:hover:text-white'
+                  }`}
+                >
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden
+                  >
+                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                  </svg>
+                  Time-Lapse
+                </motion.button>
+              )}
+            </AnimatePresence>
           </div>
         </div>
 
@@ -233,7 +271,7 @@ export default function ActivityLandscape({ data }: { data: ActivityData[] }) {
                 </div>
               }
             >
-              <ContributionCity3D data={data} theme={theme3D} />
+              <ContributionCity3D data={data} theme={theme3D} timeLapseMode={timeLapseMode} />
             </Suspense>
           </div>
         )}
