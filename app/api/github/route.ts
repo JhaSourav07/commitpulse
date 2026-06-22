@@ -162,18 +162,14 @@ export async function GET(request: Request) {
 
     if (status === 401) {
       return NextResponse.json(
-        {
-          error: 'GitHub token is invalid or missing. Please configure GITHUB_TOKEN.',
-        },
+        { error: 'GitHub authentication failed. Please try again later.' },
         { status: 401 }
       );
     }
 
     if (status === 403) {
       return NextResponse.json(
-        {
-          error: 'GitHub API rate limit reached. Please configure GITHUB_TOKEN.',
-        },
+        { error: 'GitHub API rate limit reached. Please configure GITHUB_TOKEN.' },
         { status: 403 }
       );
     }
@@ -196,21 +192,9 @@ export async function GET(request: Request) {
       );
     }
 
-    // Sanitized fallback:
-    // Log full error internally but do not expose details to clients
-    console.error('GitHub API internal error:', {
-      error,
-      username,
-      ip,
-    });
+    // Default fallback
+    const errMessage = error instanceof Error ? error.message : 'Internal Server Error';
 
-    return NextResponse.json(
-      {
-        error: 'An internal error occurred',
-      },
-      {
-        status: 500,
-      }
-    );
+    return NextResponse.json({ error: errMessage }, { status: 500 });
   }
 }

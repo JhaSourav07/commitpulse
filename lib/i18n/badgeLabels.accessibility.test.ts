@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { describe, expect, it } from 'vitest';
 import { getLabels, labels, supportedLanguages } from './badgeLabels';
 
 describe('badgeLabels accessibility compliance', () => {
