@@ -13,11 +13,13 @@ Object.defineProperty(globalThis, 'IntersectionObserver', {
   configurable: true,
   value: MockIntersectionObserver,
 });
-Object.defineProperty(window, 'IntersectionObserver', {
-  writable: true,
-  configurable: true,
-  value: MockIntersectionObserver,
-});
+if (typeof window !== 'undefined') {
+  Object.defineProperty(window, 'IntersectionObserver', {
+    writable: true,
+    configurable: true,
+    value: MockIntersectionObserver,
+  });
+}
 
 // 1. Next-Auth ko crash hone se bachane ke liye env variables defaults set karo
 process.env.AUTH_SECRET = 'a-super-secret-32-character-dummy-string-for-tests';
