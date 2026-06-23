@@ -2829,8 +2829,7 @@ describe('RFC 7235 Bearer casing compliance', () => {
     const capturedHeaders: string[] = [];
 
     vi.mocked(fetch).mockImplementation(async (url: RequestInfo | URL, init?: RequestInit) => {
-      const authHeader =
-        (init?.headers as Record<string, string>)?.Authorization ?? '';
+      const authHeader = (init?.headers as Record<string, string>)?.Authorization ?? '';
       if (authHeader) capturedHeaders.push(authHeader);
 
       const urlStr = typeof url === 'string' ? url : (url?.toString() ?? '');
