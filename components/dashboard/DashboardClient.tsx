@@ -46,6 +46,10 @@ import ContributionForecast from './ContributionForecast';
 import ProfileComparisonAnalytics from './ProfileComparisonAnalytics';
 import ContributionReplay from './ContributionReplay';
 import GoalTracker from './GoalTracker';
+import ActivityHeatmapPro from './ActivityHeatmapPro';
+import DeveloperSkillEvolution from './DeveloperSkillEvolution';
+import ContributionImpactAnalyzer from './ContributionImpactAnalyzer';
+import AchievementCenter from './AchievementCenter';
 
 // Define the dashboard data structure
 export interface DashboardData {
@@ -752,12 +756,26 @@ export default function DashboardClient({
             </section>
 
             <section>
+              <ActivityHeatmapPro
+                activity={initialData.activity}
+                commitClock={initialData.commitClock}
+              />
+            </section>
+
+            <section>
               <GoalTracker username={username} activity={initialData.activity} />
             </section>
 
             <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <LanguageChart languages={initialData.languages} />
               <CommitClock data={initialData.commitClock} />
+            </section>
+
+            <section>
+              <DeveloperSkillEvolution
+                languages={initialData.languages}
+                activity={initialData.activity}
+              />
             </section>
 
             <section>
@@ -774,6 +792,14 @@ export default function DashboardClient({
 
             <section>
               <RepositoryImpactAnalyzer repositories={deduplicatedRepos} />
+            </section>
+
+            <section>
+              <ContributionImpactAnalyzer data={initialData} />
+            </section>
+
+            <section>
+              <AchievementCenter data={initialData} />
             </section>
           </div>
 

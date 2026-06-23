@@ -386,6 +386,42 @@
       "cancel": "Cancel",
       "monthly_placeholder": "e.g. 50",
       "yearly_placeholder": "e.g. 1000"
+    },
+    "skill_evolution": {
+      "title": "Evolução de Habilidades do Desenvolvedor",
+      "subtitle": "Analise tendências de adoção de tecnologia e métricas de progressão."
+    },
+    "impact_analyzer": {
+      "title": "Analisador de Impacto de Contribuição",
+      "subtitle": "Quantifique o impacto geral do seu código e influência na comunidade.",
+      "score": "Pontuação de Impacto",
+      "grade": "Grau de Contribuição",
+      "breakdown": "Detalhamento do Impacto",
+      "code_footprint": "Pegada de Código",
+      "issue_resolution": "Atividade de Issues/PR",
+      "collaboration": "Densidade de Colaboração",
+      "community_influence": "Influência na Comunidade"
+    },
+    "achievement_center": {
+      "title": "Centro de Conquistas Open Source",
+      "subtitle": "Celebre marcos, desbloqueie emblemas e acompanhe seus marcos de OSS.",
+      "unlocked": "Conquistas Desbloqueadas",
+      "progress": "Progresso do Marco",
+      "upcoming": "Próximos Marcos",
+      "unlocked_badges": "Emblemas Desbloqueados",
+      "streak_master": "Mestre de Sequência",
+      "code_machine": "Máquina de Código",
+      "collaborator": "Colaborador Principal",
+      "legend": "Lenda do Open Source"
+    },
+    "legacy": {
+      "title": "Painel de Legado do Desenvolvedor",
+      "subtitle": "Veja o seu impacto de contribuição de longo prazo, arquivo e histórico de organização.",
+      "lifetime_commits": "Commits Vitalícios",
+      "org_footprint": "Organizações Engajadas",
+      "community_stars": "Estrelas da Comunidade Influenciadas",
+      "active_years": "Anos Ativos",
+      "archive_history": "Arquivo Histórico"
     }
   }
 }

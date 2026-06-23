@@ -386,6 +386,42 @@
       "cancel": "Cancel",
       "monthly_placeholder": "e.g. 50",
       "yearly_placeholder": "e.g. 1000"
+    },
+    "skill_evolution": {
+      "title": "Entwickler-Skill-Evolution",
+      "subtitle": "Analysiere Technologieförderungs-Trends und Entwicklungsmetriken."
+    },
+    "impact_analyzer": {
+      "title": "Beitrags-Einfluss-Analysator",
+      "subtitle": "Quantifiziere deinen gesamten Code- und Community-Einfluss.",
+      "score": "Einfluss-Score",
+      "grade": "Beitrags-Note",
+      "breakdown": "Einfluss-Aufschlüsselung",
+      "code_footprint": "Code-Fußabdruck",
+      "issue_resolution": "Issue/PR-Aktivität",
+      "collaboration": "Kollaborationsdichte",
+      "community_influence": "Community-Einfluss"
+    },
+    "achievement_center": {
+      "title": "Open-Source-Erfolgszentrum",
+      "subtitle": "Feiere Meilensteine, schalte Badges frei und verfolge deine OSS-Meilensteine.",
+      "unlocked": "Freigeschaltete Erfolge",
+      "progress": "Meilenstein-Fortschritt",
+      "upcoming": "Kommende Meilensteine",
+      "unlocked_badges": "Freigeschaltete Badges",
+      "streak_master": "Streak-Meister",
+      "code_machine": "Code-Maschine",
+      "collaborator": "Core-Kollaborateur",
+      "legend": "Open-Source-Legende"
+    },
+    "legacy": {
+      "title": "Entwickler-Legacy-Dashboard",
+      "subtitle": "Sieh dir deinen langfristigen Beitragsfußabdruck, dein Archiv und deinen Organisationsverlauf an.",
+      "lifetime_commits": "Lebenslange Commits",
+      "org_footprint": "Beteiligte Organisationen",
+      "community_stars": "Beeinflusste Community-Sterne",
+      "active_years": "Aktive Jahre",
+      "archive_history": "Historisches Archiv"
     }
   }
 }

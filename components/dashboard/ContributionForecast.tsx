@@ -15,6 +15,8 @@ import {
 } from 'lucide-react';
 import type { ActivityData } from '@/types/dashboard';
 import { useTranslation } from '@/context/TranslationContext';
+import { calculateForecast } from '@/utils/ForecastEngine';
+import ForecastInsights from './ForecastInsights';
 
 interface ContributionForecastProps {
   activity: ActivityData[];
@@ -28,124 +30,7 @@ export default function ContributionForecast({
   const { t } = useTranslation();
 
   const calculations = useMemo(() => {
-    if (!activity || activity.length === 0) {
-      return {
-        weeklyVelocity: 0,
-        monthlyVelocity: 0,
-        projectedMonthEndTotal: totalContributions || 0,
-        projectedYearEndTotal: totalContributions || 0,
-        consistencyScore: 0,
-        consistencyLevel: 'inactive',
-        slope: 0,
-        trendType: 'stable',
-        hasActivity: false,
-      };
-    }
-
-    const N = activity.length;
-    const currentTotal =
-      totalContributions !== undefined
-        ? totalContributions
-        : activity.reduce((sum, d) => sum + d.count, 0);
-
-    // 1. Average Daily, Weekly, Monthly Velocity
-    const totalActivityCommits = activity.reduce((sum, d) => sum + d.count, 0);
-    const avgDaily = totalActivityCommits / N;
-    const weeklyVelocity = avgDaily * 7;
-    const monthlyVelocity = avgDaily * 30;
-
-    // 2. Linear Regression (slope m and intercept c)
-    // x_i = i, y_i = activity[i].count
-    const meanX = (N - 1) / 2;
-    const meanY = totalActivityCommits / N;
-
-    let num = 0;
-    let den = 0;
-    for (let i = 0; i < N; i++) {
-      const xDiff = i - meanX;
-      num += xDiff * (activity[i].count - meanY);
-      den += xDiff * xDiff;
-    }
-
-    const slope = den !== 0 ? num / den : 0;
-    const intercept = meanY - slope * meanX;
-
-    // 3. Date Projections
-    // Use the date of the last entry in activity as "current date", fallback to new Date()
-    const lastEntryDateStr = activity[N - 1].date;
-    let currentDate = new Date(lastEntryDateStr);
-    if (isNaN(currentDate.getTime())) {
-      currentDate = new Date();
-    }
-
-    // End of Month
-    const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
-    const timeDiffMonth = endOfMonth.getTime() - currentDate.getTime();
-    const daysRemainingInMonth = Math.max(0, Math.ceil(timeDiffMonth / (1000 * 60 * 60 * 24)));
-
-    // End of Year
-    const endOfYear = new Date(currentDate.getFullYear(), 11, 31);
-    const timeDiffYear = endOfYear.getTime() - currentDate.getTime();
-    const daysRemainingInYear = Math.max(0, Math.ceil(timeDiffYear / (1000 * 60 * 60 * 24)));
-
-    // Loop to sum predicted future daily commits (guaranteed non-negative)
-    let projectedMonthExtra = 0;
-    for (let d = 1; d <= daysRemainingInMonth; d++) {
-      // day index for future day is N - 1 + d
-      const projectedDaily = slope * (N - 1 + d) + intercept;
-      projectedMonthExtra += Math.max(0, projectedDaily);
-    }
-    const projectedMonthEndTotal = Math.round(currentTotal + projectedMonthExtra);
-
-    let projectedYearExtra = 0;
-    for (let d = 1; d <= daysRemainingInYear; d++) {
-      const projectedDaily = slope * (N - 1 + d) + intercept;
-      projectedYearExtra += Math.max(0, projectedDaily);
-    }
-    const projectedYearEndTotal = Math.round(currentTotal + projectedYearExtra);
-
-    // 4. Consistency Score
-    // Active days (days with count > 0)
-    const activeDays = activity.filter((d) => d.count > 0).length;
-    const activeRatio = activeDays / N;
-    const consistencyScore = Math.min(100, Math.round(activeRatio * 100));
-
-    let consistencyLevel: 'elite' | 'consistent' | 'occasional' | 'sporadic' | 'inactive' =
-      'inactive';
-    if (consistencyScore >= 85) {
-      consistencyLevel = 'elite';
-    } else if (consistencyScore >= 60) {
-      consistencyLevel = 'consistent';
-    } else if (consistencyScore >= 30) {
-      consistencyLevel = 'occasional';
-    } else if (consistencyScore > 0) {
-      consistencyLevel = 'sporadic';
-    }
-
-    // 5. Trend slope categorization
-    let trendType: 'strong_growth' | 'moderate_growth' | 'stable' | 'cooling' | 'decline' =
-      'stable';
-    if (slope > 0.02) {
-      trendType = 'strong_growth';
-    } else if (slope > 0.005) {
-      trendType = 'moderate_growth';
-    } else if (slope < -0.02) {
-      trendType = 'decline';
-    } else if (slope < -0.005) {
-      trendType = 'cooling';
-    }
-
-    return {
-      weeklyVelocity,
-      monthlyVelocity,
-      projectedMonthEndTotal,
-      projectedYearEndTotal,
-      consistencyScore,
-      consistencyLevel,
-      slope,
-      trendType,
-      hasActivity: true,
-    };
+    return calculateForecast(activity, totalContributions);
   }, [activity, totalContributions]);
 
   const {
@@ -157,6 +42,8 @@ export default function ContributionForecast({
     consistencyLevel,
     slope,
     trendType,
+    confidenceLower,
+    confidenceUpper,
     hasActivity,
   } = calculations;
 
@@ -275,6 +162,9 @@ export default function ContributionForecast({
               <div className="text-lg md:text-xl font-bold text-zinc-900 dark:text-white">
                 {t('dashboard.forecast.commits', { count: String(projectedYearEndTotal) })}
               </div>
+              <div className="text-[9px] text-zinc-400 dark:text-[#777] mt-0.5">
+                Range: {confidenceLower} - {confidenceUpper}
+              </div>
             </motion.div>
           </div>
 
@@ -319,6 +209,9 @@ export default function ContributionForecast({
               <div className="p-2 rounded-full bg-black/5 dark:bg-white/5">{getTrendIcon()}</div>
             </div>
           </div>
+
+          {/* AI Insights panel */}
+          <ForecastInsights forecast={calculations} />
         </>
       )}
     </motion.div>

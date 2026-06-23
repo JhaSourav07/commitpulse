@@ -85,12 +85,28 @@ vi.mock('./ActivityLandscape', () => ({
   default: () => <div data-testid="activity-landscape" />,
 }));
 
+vi.mock('./ActivityHeatmapPro', () => ({
+  default: () => <div data-testid="activity-heatmap-pro" />,
+}));
+
 vi.mock('./LanguageChart', () => ({
   default: () => <div data-testid="language-chart" />,
 }));
 
+vi.mock('./DeveloperSkillEvolution', () => ({
+  default: () => <div data-testid="developer-skill-evolution" />,
+}));
+
 vi.mock('./CommitClock', () => ({
   default: () => <div data-testid="commit-clock" />,
+}));
+
+vi.mock('./ContributionImpactAnalyzer', () => ({
+  default: () => <div data-testid="contribution-impact-analyzer" />,
+}));
+
+vi.mock('./AchievementCenter', () => ({
+  default: () => <div data-testid="achievement-center" />,
 }));
 
 vi.mock('./Heatmap', () => ({
@@ -271,8 +287,12 @@ describe('DashboardClient', () => {
     expect(screen.getByTestId('profile-card')).toBeDefined();
     expect(screen.getByTestId('achievements')).toBeDefined();
     expect(screen.getByTestId('activity-landscape')).toBeDefined();
+    expect(screen.getByTestId('activity-heatmap-pro')).toBeDefined();
     expect(screen.getByTestId('language-chart')).toBeDefined();
+    expect(screen.getByTestId('developer-skill-evolution')).toBeDefined();
     expect(screen.getByTestId('historical-trend-view')).toBeDefined();
+    expect(screen.getByTestId('contribution-impact-analyzer')).toBeDefined();
+    expect(screen.getByTestId('achievement-center')).toBeDefined();
   });
 
   it('opens and closes the compare profile modal', async () => {

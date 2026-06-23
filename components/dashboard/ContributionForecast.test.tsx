@@ -6,7 +6,7 @@ import type { ActivityData } from '@/types/dashboard';
 // Mock framer-motion to prevent animation issues during testing
 vi.mock('framer-motion', () => ({
   motion: {
-    div: ({ children, className, whileHover, ...props }: Record<string, unknown>) => (
+    div: ({ children, className, whileHover: _whileHover, ...props }: Record<string, unknown>) => (
       <div className={className as string} {...props}>
         {children as React.ReactNode}
       </div>
@@ -25,6 +25,7 @@ vi.mock('lucide-react', () => ({
   LineChart: () => <div data-testid="line-chart" />,
   Activity: () => <div data-testid="activity" />,
   Target: () => <div data-testid="target" />,
+  ArrowRight: () => <div data-testid="arrow-right" />,
 }));
 
 describe('ContributionForecast', () => {

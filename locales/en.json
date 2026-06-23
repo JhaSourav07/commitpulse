@@ -386,6 +386,42 @@
       "cancel": "Cancel",
       "monthly_placeholder": "e.g. 50",
       "yearly_placeholder": "e.g. 1000"
+    },
+    "skill_evolution": {
+      "title": "Developer Skill Evolution",
+      "subtitle": "Analyze technology adoption trends and progression metrics."
+    },
+    "impact_analyzer": {
+      "title": "Contribution Impact Analyzer",
+      "subtitle": "Quantify your overall code and community influence.",
+      "score": "Impact Score",
+      "grade": "Contribution Grade",
+      "breakdown": "Impact Breakdown",
+      "code_footprint": "Code Footprint",
+      "issue_resolution": "Issue/PR Activity",
+      "collaboration": "Collaboration Density",
+      "community_influence": "Community Influence"
+    },
+    "achievement_center": {
+      "title": "Open Source Achievement Center",
+      "subtitle": "Celebrate milestones, unlock badges, and track your OSS milestones.",
+      "unlocked": "Unlocked Achievements",
+      "progress": "Milestone Progress",
+      "upcoming": "Upcoming Milestones",
+      "unlocked_badges": "Unlocked Badges",
+      "streak_master": "Streak Master",
+      "code_machine": "Code Machine",
+      "collaborator": "Core Collaborator",
+      "legend": "Open Source Legend"
+    },
+    "legacy": {
+      "title": "Developer Legacy Dashboard",
+      "subtitle": "View your long-term contribution footprint, archive, and organization history.",
+      "lifetime_commits": "Lifetime Commits",
+      "org_footprint": "Organizations Engaged",
+      "community_stars": "Community Stars Influenced",
+      "active_years": "Active Years",
+      "archive_history": "Historical Archive"
     }
   }
 }
