@@ -6,6 +6,16 @@ vi.mock('@/lib/github', () => ({
   getFullDashboardData: vi.fn(),
 }));
 
+vi.mock('@/lib/rate-limit', () => ({
+  rateLimit: vi.fn().mockResolvedValue({
+    success: true,
+  }),
+}));
+
+vi.mock('@/lib/githubtoken', () => ({
+  getUserGitHubToken: vi.fn().mockResolvedValue(undefined),
+}));
+
 function makeRequest(params: Record<string, string> = {}): Request {
   const url = new URL('http://localhost/api/compare');
   for (const [key, value] of Object.entries(params)) {

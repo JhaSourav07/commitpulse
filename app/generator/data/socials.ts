@@ -471,6 +471,16 @@ export const SOCIALS: Social[] = [
     baseUrl: 'https://',
     placeholder: 'e.g. https://yourwebsite.com',
   },
+  {
+    id: 'substack',
+    name: 'Substack',
+    category: 'Portfolio',
+    iconUrl: SI('substack'),
+    type: 'simpleicon',
+    siSlug: 'substack',
+    baseUrl: 'https://substack.com/@',
+    placeholder: 'e.g. https://substack.com/@yourusername',
+  },
 
   {
     id: 'buymeacoffee',

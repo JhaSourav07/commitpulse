@@ -386,6 +386,33 @@
       "cancel": "Cancel",
       "monthly_placeholder": "e.g. 50",
       "yearly_placeholder": "e.g. 1000"
+    },
+    "journey": {
+      "title": "Developer Journey Timeline",
+      "subtitle": "Visualize complete developer evolution history",
+      "milestoneExplorer": "Milestone Explorer",
+      "milestoneExplorerSubtitle": "Examine key achievements and growth events",
+      "growthEvents": "Growth Events",
+      "growthEventsSubtitle": "Chronological history of major achievements and growth milestones",
+      "firstCommit": "First Commit",
+      "firstCommitDesc": "Journey began with the first commit on {{date}}",
+      "peakDay": "Peak Day",
+      "peakDayDesc": "Highest daily contribution of {{count}} commits on {{date}}",
+      "milestone50": "Bronze Contributor",
+      "milestone50Desc": "Reached 50 total contributions on {{date}}",
+      "milestone100": "Silver Contributor",
+      "milestone100Desc": "Reached 100 total contributions on {{date}}",
+      "milestone500": "Gold Contributor",
+      "milestone500Desc": "Reached 500 total contributions on {{date}}",
+      "milestone1000": "Diamond Contributor",
+      "milestone1000Desc": "Reached 1,000 total contributions on {{date}}",
+      "commits": "{{count}} commits",
+      "date": "Date",
+      "noActivity": "No activity recorded yet for this journey",
+      "milestoneTitle": "Milestone Achieved",
+      "viewMilestone": "View details",
+      "totalMilestones": "Total Milestones",
+      "explore": "Explore Timeline"
     }
   }
 }

@@ -18,6 +18,39 @@ function makeRun(overrides: Partial<CIWorkflowRun>): CIWorkflowRun {
     ...overrides,
   };
 }
+import { vi, beforeEach } from 'vitest';
+
+vi.mock('@/lib/github', () => ({
+  fetchWithRetry: vi.fn(),
+  getGitHubTokens: vi.fn(() => ['shared-pool-token']),
+}));
+
+import { fetchWithRetry } from '@/lib/github';
+import { fetchCIAnalytics } from './ci-analytics';
+
+describe('fetchCIAnalytics token forwarding', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('forwards the per-user token to fetchWithRetry as its 5th argument', async () => {
+    vi.mocked(fetchWithRetry).mockImplementation(async (_url, _opts) => {
+      return {
+        ok: true,
+        json: async () => [],
+      } as unknown as Response;
+    });
+
+    const userToken = 'user-personal-oauth-token';
+    await fetchCIAnalytics('octocat', userToken);
+
+    expect(fetchWithRetry).toHaveBeenCalled();
+    for (const call of vi.mocked(fetchWithRetry).mock.calls) {
+      const forwardedToken = call[4];
+      expect(forwardedToken).toBe(userToken);
+    }
+  });
+});
 
 describe('processRuns', () => {
   it('returns a 0 success rate (never NaN) when no run has a success or failure conclusion', () => {

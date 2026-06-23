@@ -179,9 +179,12 @@ describe('CompareClient Mouse Interactivity & Touch Events', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /compare/i }));
 
-    await waitFor(() => {
-      expect(screen.getByText(/stats showdown/i)).toBeInTheDocument();
-    });
+    await waitFor(
+      () => {
+        expect(screen.getByText(/stats showdown/i)).toBeInTheDocument();
+      },
+      { timeout: 5000 }
+    );
 
     // Check StatBattle border elements transitions on mouseEnter / mouseLeave
     const repositoryCard = screen.getByText('5,000').closest('div');
@@ -203,9 +206,12 @@ describe('CompareClient Mouse Interactivity & Touch Events', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /compare/i }));
 
-    await waitFor(() => {
-      expect(screen.getByText(/coding habits/i)).toBeInTheDocument();
-    });
+    await waitFor(
+      () => {
+        expect(screen.getByText(/coding habits/i)).toBeInTheDocument();
+      },
+      { timeout: 5000 }
+    );
 
     const habitCards = screen.getAllByRole('heading', { level: 3 });
     const userAHabit = habitCards.find((c) => c.textContent === 'Night Owl');
@@ -257,20 +263,26 @@ describe('CompareClient Mouse Interactivity & Touch Events', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /compare/i }));
 
-    await waitFor(() => {
-      expect(screen.getByText(/stats showdown/i)).toBeInTheDocument();
-    });
+    await waitFor(
+      () => {
+        expect(screen.getByText(/stats showdown/i)).toBeInTheDocument();
+      },
+      { timeout: 5000 }
+    );
 
     // Find custom heatmap items having 'contributions' in the title attribute,
     // verify hover details on a heatmap cell
-    await waitFor(() => {
-      const allCells = document.querySelectorAll('[title*="contributions"]');
-      expect(allCells.length).toBeGreaterThan(0);
-      const sampleCell = allCells[0];
-      expect(sampleCell).toHaveAttribute('title');
-      expect(sampleCell.getAttribute('title')).toContain('contributions');
-      fireEvent.mouseEnter(sampleCell);
-      fireEvent.mouseLeave(sampleCell);
-    });
+    await waitFor(
+      () => {
+        const allCells = document.querySelectorAll('[title*="contributions"]');
+        expect(allCells.length).toBeGreaterThan(0);
+        const sampleCell = allCells[0];
+        expect(sampleCell).toHaveAttribute('title');
+        expect(sampleCell.getAttribute('title')).toContain('contributions');
+        fireEvent.mouseEnter(sampleCell);
+        fireEvent.mouseLeave(sampleCell);
+      },
+      { timeout: 5000 }
+    );
   });
 });

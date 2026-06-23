@@ -438,10 +438,14 @@ async function generateRecommendationsWithGemini(
   Do not return any markdown formatting outside of JSON, do not include HTML tags, and do not wrap in a code block.
   `;
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent`;
   const res = await fetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      // Securely pass the API key via headers
+      'x-goog-api-key': process.env.GEMINI_API_KEY || '',
+    },
     body: JSON.stringify({
       contents: [{ parts: [{ text: prompt }] }],
       generationConfig: { responseMimeType: 'application/json' },

@@ -166,6 +166,13 @@ describe('SVG Sanitizer Utilities', () => {
       expect(sanitizeSpeed('20s', '5s')).toBe('20s');
     });
 
+    it('accepts decimal speed values within valid range', () => {
+      expect(sanitizeSpeed('8.0s', '5s')).toBe('8.0s');
+      expect(sanitizeSpeed('2.0s', '5s')).toBe('2.0s');
+      expect(sanitizeSpeed('20.0s', '5s')).toBe('20.0s');
+      expect(sanitizeSpeed('2.1s', '5s')).toBe('2.1s');
+    });
+
     it('returns fallback for speed outside 2s-20s range', () => {
       expect(sanitizeSpeed('1.5s', '5s')).toBe('5s');
       expect(sanitizeSpeed('21s', '5s')).toBe('5s');

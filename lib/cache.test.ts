@@ -938,6 +938,97 @@ describe('DistributedCache', () => {
 
     cache.destroy();
   });
+
+  describe('localLocks memory leak prevention', () => {
+    it('Behavior 1: Immediate Cleanup on Success/Failure', async () => {
+      const cache = new DistributedCache<string>();
+
+      let resolvePromise: (val: string) => void;
+      const loadFn = vi.fn().mockImplementation(
+        () =>
+          new Promise<string>((r) => {
+            resolvePromise = r;
+          })
+      );
+
+      const p = cache.getOrSet('test-key', loadFn, 60000);
+
+      // Wait for the internal await this.get() to complete
+      await new Promise((r) => setImmediate(r));
+
+      // While pending, localLocks should have it
+      expect(cache['localLocks'].has('test-key')).toBe(true);
+
+      resolvePromise!('success');
+      await p;
+
+      // After resolution, it should be deleted
+      expect(cache['localLocks'].has('test-key')).toBe(false);
+      cache.destroy();
+    });
+
+    it('Behavior 2: Lock Persistence During Normal Execution', async () => {
+      const cache = new DistributedCache<string>();
+
+      let resolvePromise: (val: string) => void;
+      const loadFn = vi.fn().mockImplementation(
+        () =>
+          new Promise<string>((r) => {
+            resolvePromise = r;
+          })
+      );
+
+      const p1 = cache.getOrSet('test-key', loadFn, 60000);
+      const p2 = cache.getOrSet('test-key', loadFn, 60000);
+
+      // Wait for internal awaits
+      await new Promise((r) => setImmediate(r));
+
+      expect(loadFn).toHaveBeenCalledTimes(1);
+
+      resolvePromise!('success');
+      await Promise.all([p1, p2]);
+      cache.destroy();
+    });
+
+    it('Behavior 3: Safety Eviction (Fixes #6177)', async () => {
+      vi.useFakeTimers();
+      const cache = new DistributedCache<string>();
+
+      // A promise that hangs indefinitely
+      const hangingLoadFn = vi.fn().mockImplementation(() => new Promise<string>(() => {}));
+
+      const p1 = cache.getOrSet('hang-key', hangingLoadFn, 60000);
+      expect(p1).toBeDefined(); // Use p1 to fix eslint warning
+
+      // Wait for microtasks so lock is established
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      // While pending, localLocks should have it
+      expect(cache['localLocks'].has('hang-key')).toBe(true);
+
+      // Advance by 30 seconds - should still be locked
+      vi.advanceTimersByTime(30000);
+      expect(cache['localLocks'].has('hang-key')).toBe(true);
+
+      // Advance past 60 seconds
+      vi.advanceTimersByTime(31000);
+
+      // Lock should have been forcefully evicted
+      expect(cache['localLocks'].has('hang-key')).toBe(false);
+
+      // A new call should trigger loadFn again because lock was evicted
+      const newLoadFn = vi.fn().mockResolvedValue('recovered');
+      const p2 = cache.getOrSet('hang-key', newLoadFn, 60000);
+
+      await expect(p2).resolves.toBe('recovered');
+      expect(newLoadFn).toHaveBeenCalledTimes(1);
+
+      cache.destroy();
+    });
+  });
 });
 
 describe('TTLCache with infinite TTL', () => {

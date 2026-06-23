@@ -255,10 +255,17 @@ export default function ProfileComparisonAnalytics({
     if (!Array.isArray(repos)) return [];
     return repos
       .map((repo) => {
-        const repoObj = repo as unknown as Record<string, unknown>;
-        const commits = (repoObj.commits ?? repoObj.commitCount ?? 0) as number;
-        const stars = repo.stargazerCount ?? ((repoObj.stars ?? 0) as number);
-        const forks = repo.forkCount ?? ((repoObj.forks ?? 0) as number);
+        // Resolve keys — repo may optionally carry commits/commitCount from API
+        type RepoWithCommits = Repository & {
+          commits?: number;
+          commitCount?: number;
+          stars?: number;
+          forks?: number;
+        };
+        const extRepo = repo as RepoWithCommits;
+        const commits = extRepo.commits ?? extRepo.commitCount ?? 0;
+        const stars = extRepo.stargazerCount ?? extRepo.stars ?? 0;
+        const forks = extRepo.forkCount ?? extRepo.forks ?? 0;
 
         // Impact Score: (commits * 3) + (stars * 5) + (forks * 10)
         const score = commits * 3 + stars * 5 + forks * 10;

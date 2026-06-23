@@ -5,6 +5,14 @@ import { getFullDashboardData } from '@/lib/github';
 vi.mock('@/lib/github', () => ({
   getFullDashboardData: vi.fn(),
 }));
+vi.mock('@/lib/rate-limit', () => ({
+  rateLimit: vi.fn().mockResolvedValue({
+    success: true,
+  }),
+}));
+vi.mock('@/lib/githubtoken', () => ({
+  getUserGitHubToken: vi.fn().mockResolvedValue(undefined),
+}));
 
 describe('ApiCompareRoute – Dark and Light Prefers-Color-Scheme Visual Cohesion', () => {
   let consoleErrorSpy: ReturnType<typeof vi.spyOn>;

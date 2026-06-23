@@ -1,5 +1,4 @@
 'use client';
-import Image from 'next/image';
 import { trackUser } from '@/utils/tracking';
 import { useTranslation } from '@/context/TranslationContext';
 import { renderHeroTitle } from './heroTitle';
@@ -25,7 +24,6 @@ import {
 } from 'lucide-react';
 
 import { X } from 'lucide-react';
-import useLocalStorage from '@/hooks/useLocalStorage';
 
 import { CommitPulseLogo } from '@/components/commitpulse-logo';
 import { CustomizeCTA } from './CustomizeCTA';
@@ -308,7 +306,7 @@ export default function LandingPageClient() {
     return name;
   };
 
-  const [username, setUsername] = useLocalStorage('commitpulse:last-user', '');
+  const [username, setUsername] = useState('');
   const [instantUsername, setInstantUsername] = useState('');
   const [copied, setCopied] = useState(false);
 
@@ -415,7 +413,14 @@ export default function LandingPageClient() {
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
 
-      await pdf.svg(svgElement, {
+      await (
+        pdf as jsPDF & {
+          svg: (
+            element: SVGElement,
+            options: { x: number; y: number; width: number; height: number }
+          ) => Promise<void>;
+        }
+      ).svg(svgElement, {
         x: 10,
         y: 10,
         width: pageWidth - 20,

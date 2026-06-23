@@ -3,6 +3,8 @@ import { getFullDashboardData } from '@/lib/github';
 import { getUserGitHubToken } from '@/lib/githubtoken';
 import { compareParamsSchema, coerceQueryParams } from '@/lib/validations';
 import crypto from 'crypto';
+import { rateLimit } from '@/lib/rate-limit';
+import { getClientIp } from '@/utils/getClientIp';
 
 export const revalidate = 3600;
 
@@ -51,6 +53,14 @@ function buildCompareFetchErrorResponse(user: string, reason: unknown): NextResp
 }
 
 export async function GET(request: Request) {
+  const ip = getClientIp(request);
+
+  const limit = await rateLimit(ip, 5, 30000);
+
+  if (!limit.success) {
+    return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+  }
+
   const { searchParams } = new URL(request.url);
 
   const parseResult = compareParamsSchema.safeParse(coerceQueryParams(searchParams));

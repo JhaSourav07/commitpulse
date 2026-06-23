@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import AdvancedColorPicker from '@/components/AdvancedColorPicker';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -115,6 +116,41 @@ function LivePreview({ form }: { form: FormState }) {
   );
 }
 
+function buildTestimonialIssueUrl(form: FormState): string {
+  const issueUrl = new URL('https://github.com/JhaSourav07/commitpulse/issues/new');
+  issueUrl.searchParams.set(
+    'title',
+    `Testimonial: ${form.name.trim()} shared CommitPulse feedback`
+  );
+
+  // Format handle with @ prefix
+  const handleWithAt = form.handle.trim().startsWith('@')
+    ? form.handle.trim()
+    : `@${form.handle.trim()}`;
+
+  issueUrl.searchParams.set(
+    'body',
+    [
+      '## Testimonial Submission',
+      '',
+      `**Name:** ${form.name.trim()}`,
+      `**GitHub or social handle:** ${handleWithAt}`,
+      `**Platform:** ${form.platform}`,
+      `**Accent Color:** ${form.accentColor}`,
+      '',
+      '## Feedback',
+      '',
+      form.message.trim(),
+      '',
+      '---',
+      'Submitted from the CommitPulse review form.',
+    ].join('\n')
+  );
+  issueUrl.searchParams.set('labels', 'testimonial');
+
+  return issueUrl.toString();
+}
+
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function ReviewFormPage() {
   const [form, setForm] = useState<FormState>({
@@ -126,9 +162,6 @@ export default function ReviewFormPage() {
   });
 
   const [errors, setErrors] = useState<Partial<Record<keyof FormState, string>>>({});
-  const [isLoading, setIsLoading] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
-  const [serverError, setServerError] = useState('');
 
   const msgLen = form.message.length;
 
@@ -168,301 +201,193 @@ export default function ReviewFormPage() {
     if (errors[key]) setErrors((prev) => ({ ...prev, [key]: undefined }));
   }
 
-  async function handleSubmit() {
-    setServerError('');
+  function handleSubmit() {
     if (!validate()) return;
-
-    setIsLoading(true);
-    try {
-      const res = await fetch('/api/reviews', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: form.name.trim(),
-          handle: form.handle.trim(),
-          platform: form.platform,
-          message: form.message.trim(),
-          accentColor: form.accentColor,
-        }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        setServerError(data.message || 'Something went wrong. Please try again.');
-        return;
-      }
-
-      setIsSuccess(true);
-    } catch {
-      setServerError('Network error. Please check your connection and try again.');
-    } finally {
-      setIsLoading(false);
-    }
-  }
-
-  // ── Success screen ──────────────────────────────────────────────────────────
-  if (isSuccess) {
-    return (
-      <main className="min-h-screen flex items-center justify-center px-4">
-        <div className="w-full max-w-md text-center space-y-5 p-8 rounded-2xl border border-slate-200 dark:border-slate-700/60 bg-white dark:bg-[#161b22] shadow-xl">
-          <div
-            className="mx-auto w-16 h-16 rounded-full flex items-center justify-center"
-            style={{ backgroundColor: `${form.accentColor}20` }}
-          >
-            <svg
-              className="w-8 h-8"
-              style={{ color: form.accentColor }}
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2.5}
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-            </svg>
-          </div>
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-            Thank you for your feedback!
-          </h2>
-          <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed">
-            Your testimonial has been received. It will be reviewed and featured on the Wall of Love
-            soon.
-          </p>
-          <button
-            onClick={() => {
-              setIsSuccess(false);
-              setForm({
-                name: '',
-                handle: '',
-                platform: 'github',
-                message: '',
-                accentColor: '#10b981',
-              });
-              setErrors({});
-            }}
-            className="text-sm underline underline-offset-4 transition-colors"
-            style={{ color: form.accentColor }}
-          >
-            Submit another review
-          </button>
-        </div>
-      </main>
-    );
+    window.location.href = buildTestimonialIssueUrl(form);
   }
 
   // ── Form screen ─────────────────────────────────────────────────────────────
   return (
-    <main className="min-h-screen flex items-center justify-center px-4 py-16">
-      <div className="w-full max-w-lg space-y-8">
-        {/* Header */}
-        <div className="text-center space-y-2">
-          <span className="inline-block text-xs font-semibold tracking-widest uppercase text-blue-500 dark:text-blue-400">
-            Wall of Love
-          </span>
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
-            Share Your Experience
-          </h1>
-          <p className="text-slate-500 dark:text-slate-400 text-sm">
-            Loving CommitPulse? Tell the world — your testimonial may be featured on the homepage.
-          </p>
-        </div>
+    <main className="min-h-screen overflow-hidden bg-white px-6 py-16 text-gray-950 dark:bg-[#030712] dark:text-white">
+      <div className="pointer-events-none fixed inset-0 -z-10">
+        <div className="absolute left-1/2 top-0 h-[420px] w-[420px] -translate-x-1/2 rounded-full bg-emerald-500/10 blur-[120px]" />
+        <div className="absolute bottom-10 right-0 h-[360px] w-[360px] rounded-full bg-purple-500/10 blur-[120px]" />
+      </div>
 
-        {/* Card */}
-        <div className="rounded-2xl border border-slate-200 dark:border-slate-700/60 bg-white dark:bg-[#161b22] shadow-xl divide-y divide-slate-100 dark:divide-slate-700/60">
-          {/* Section 1 — Identity */}
-          <div className="p-6 space-y-4">
-            <h2 className="text-xs font-semibold tracking-widest uppercase text-slate-400 dark:text-slate-500">
-              Your Identity
-            </h2>
+      <div className="mx-auto flex w-full max-w-3xl flex-col gap-10">
+        <Link
+          href="/"
+          className="w-fit text-sm font-semibold text-emerald-700 transition-colors hover:text-emerald-600 dark:text-emerald-300"
+        >
+          Back to homepage
+        </Link>
 
-            {/* Name */}
-            <div className="space-y-1.5">
-              <label
-                htmlFor="name"
-                className="block text-sm font-medium text-slate-700 dark:text-slate-300"
-              >
-                Display Name
-              </label>
-              <input
-                id="name"
-                type="text"
-                value={form.name}
-                onChange={(e) => update('name', e.target.value)}
-                placeholder="Sourav Jha"
-                maxLength={100}
-                className={`w-full px-4 py-2.5 rounded-lg text-sm
-                  bg-slate-50 dark:bg-[#0d1117]
-                  border ${errors.name ? 'border-red-400 dark:border-red-500' : 'border-slate-300 dark:border-slate-600'}
-                  text-slate-900 dark:text-slate-100
-                  placeholder:text-slate-400 dark:placeholder:text-slate-600
-                  focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400
-                  focus:border-transparent transition-all duration-200`}
-              />
-              {errors.name && (
-                <p className="text-xs text-red-500 dark:text-red-400">{errors.name}</p>
-              )}
+        <section className="rounded-[2rem] border border-black/10 bg-white/85 p-6 shadow-2xl shadow-black/10 backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.04] dark:shadow-black/40 sm:p-10">
+          <div className="mb-8 space-y-4">
+            <p className="inline-flex rounded-full border border-emerald-500/20 bg-emerald-500/10 px-4 py-1.5 text-xs font-bold uppercase tracking-[0.2em] text-emerald-700 dark:text-emerald-300">
+              Wall of Love
+            </p>
+            <div className="space-y-3">
+              <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl">
+                Share Your Experience
+              </h1>
+              <p className="max-w-2xl text-base leading-7 text-gray-600 dark:text-white/65">
+                Tell us how CommitPulse helped your GitHub profile stand out. Submitting this form
+                opens a prefilled GitHub issue so maintainers can review and publish your
+                testimonial.
+              </p>
             </div>
+          </div>
 
-            {/* Platform toggle + Handle */}
-            <div className="space-y-1.5">
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-                Platform & Handle
-              </label>
-              <PlatformToggle value={form.platform} onChange={(p) => update('platform', p)} />
-              <div className="relative mt-2">
-                <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400 dark:text-slate-500 pointer-events-none select-none text-sm">
-                  @
-                </span>
+          <div className="grid gap-8 lg:grid-cols-2">
+            {/* Form Fields */}
+            <div className="space-y-6">
+              {/* Display Name */}
+              <div className="space-y-1.5">
+                <label
+                  htmlFor="name"
+                  className="block text-sm font-medium text-slate-700 dark:text-slate-300"
+                >
+                  Display Name
+                </label>
                 <input
-                  id="handle"
+                  id="name"
                   type="text"
-                  value={form.handle}
-                  onChange={(e) => update('handle', e.target.value)}
-                  placeholder={
-                    form.platform === 'github' ? 'your-github-handle' : 'your-twitter-handle'
-                  }
-                  maxLength={50}
-                  autoComplete="off"
-                  spellCheck={false}
-                  className={`w-full pl-8 pr-4 py-2.5 rounded-lg text-sm
+                  value={form.name}
+                  onChange={(e) => update('name', e.target.value)}
+                  placeholder="Sourav Jha"
+                  maxLength={100}
+                  className={`w-full px-4 py-2.5 rounded-lg text-sm
                     bg-slate-50 dark:bg-[#0d1117]
-                    border ${errors.handle ? 'border-red-400 dark:border-red-500' : 'border-slate-300 dark:border-slate-600'}
+                    border ${errors.name ? 'border-red-400 dark:border-red-500' : 'border-slate-300 dark:border-slate-600'}
                     text-slate-900 dark:text-slate-100
                     placeholder:text-slate-400 dark:placeholder:text-slate-600
                     focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400
                     focus:border-transparent transition-all duration-200`}
                 />
-              </div>
-              {errors.handle && (
-                <p className="text-xs text-red-500 dark:text-red-400">{errors.handle}</p>
-              )}
-            </div>
-          </div>
-
-          {/* Section 2 — Message */}
-          <div className="p-6 space-y-4">
-            <h2 className="text-xs font-semibold tracking-widest uppercase text-slate-400 dark:text-slate-500">
-              Your Testimonial
-            </h2>
-            <div className="space-y-1.5">
-              <textarea
-                id="message"
-                value={form.message}
-                onChange={(e) => {
-                  if (e.target.value.length <= 1000) update('message', e.target.value);
-                }}
-                rows={5}
-                placeholder="CommitPulse completely transformed my GitHub profile. The isometric 3D view is unlike anything I've seen..."
-                className={`w-full px-4 py-3 rounded-lg text-sm resize-none
-                  bg-slate-50 dark:bg-[#0d1117]
-                  border ${errors.message ? 'border-red-400 dark:border-red-500' : 'border-slate-300 dark:border-slate-600'}
-                  text-slate-900 dark:text-slate-100
-                  placeholder:text-slate-400 dark:placeholder:text-slate-600
-                  focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400
-                  focus:border-transparent transition-all duration-200`}
-              />
-              <div className="flex items-center justify-between">
-                {errors.message ? (
-                  <p className="text-xs text-red-500 dark:text-red-400">{errors.message}</p>
-                ) : (
-                  <span className="text-xs text-slate-400">Min 10 characters</span>
+                {errors.name && (
+                  <p className="text-xs text-red-500 dark:text-red-400">{errors.name}</p>
                 )}
-                <span
-                  className={`text-xs ml-auto transition-colors ${msgLen > 900 ? 'text-amber-500 dark:text-amber-400' : 'text-slate-400 dark:text-slate-500'}`}
+              </div>
+
+              {/* Platform & Handle */}
+              <div className="space-y-1.5">
+                <label
+                  htmlFor="handle"
+                  className="block text-sm font-medium text-slate-700 dark:text-slate-300"
                 >
-                  {msgLen}/1000
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Section 3 — Accent color */}
-          <div className="p-6 space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xs font-semibold tracking-widest uppercase text-slate-400 dark:text-slate-500">
-                Card Accent Color
-              </h2>
-              <div
-                className="h-1 w-20 rounded-full transition-colors duration-300"
-                style={{ backgroundColor: form.accentColor }}
-              />
-            </div>
-            <AdvancedColorPicker
-              value={form.accentColor}
-              onChange={(c) => update('accentColor', c)}
-              presets={ACCENT_PRESETS}
-            />
-            {errors.accentColor && (
-              <p className="text-xs text-red-500 dark:text-red-400">{errors.accentColor}</p>
-            )}
-            <p className="text-xs text-slate-400 dark:text-slate-500">
-              This color will be used to style your testimonial card on the Wall of Love.
-            </p>
-            <LivePreview form={form} />
-          </div>
-
-          {/* Submit */}
-          <div className="p-6 space-y-4">
-            {serverError && (
-              <div
-                role="alert"
-                className="flex items-start gap-2.5 rounded-lg px-4 py-3 text-sm
-                  bg-red-50 dark:bg-red-900/20
-                  border border-red-200 dark:border-red-800/50
-                  text-red-700 dark:text-red-400"
-              >
-                <svg className="w-4 h-4 mt-0.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                  <path
-                    fillRule="evenodd"
-                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                    clipRule="evenodd"
+                  Platform & Handle
+                </label>
+                <PlatformToggle value={form.platform} onChange={(p) => update('platform', p)} />
+                <div className="relative mt-2">
+                  <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400 dark:text-slate-500 pointer-events-none select-none text-sm">
+                    @
+                  </span>
+                  <input
+                    id="handle"
+                    type="text"
+                    value={form.handle}
+                    onChange={(e) => update('handle', e.target.value)}
+                    placeholder={
+                      form.platform === 'github' ? 'your-github-handle' : 'your-twitter-handle'
+                    }
+                    maxLength={50}
+                    autoComplete="off"
+                    spellCheck={false}
+                    className={`w-full pl-8 pr-4 py-2.5 rounded-lg text-sm
+                      bg-slate-50 dark:bg-[#0d1117]
+                      border ${errors.handle ? 'border-red-400 dark:border-red-500' : 'border-slate-300 dark:border-slate-600'}
+                      text-slate-900 dark:text-slate-100
+                      placeholder:text-slate-400 dark:placeholder:text-slate-600
+                      focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400
+                      focus:border-transparent transition-all duration-200`}
                   />
-                </svg>
-                {serverError}
+                </div>
+                {errors.handle && (
+                  <p className="text-xs text-red-500 dark:text-red-400">{errors.handle}</p>
+                )}
               </div>
-            )}
 
-            <button
-              onClick={handleSubmit}
-              disabled={isLoading}
-              className="w-full py-3 px-6 rounded-lg text-sm font-semibold
-                text-white
-                disabled:opacity-50 disabled:cursor-not-allowed
-                transition-all duration-200
-                focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500
-                dark:focus:ring-offset-[#161b22]
-                shadow-lg"
-              style={{ backgroundColor: form.accentColor }}
-            >
-              {isLoading ? (
-                <span className="flex items-center justify-center gap-2">
-                  <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    />
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                    />
-                  </svg>
-                  Submitting…
-                </span>
-              ) : (
-                'Submit Testimonial →'
-              )}
-            </button>
+              {/* Testimonial Message */}
+              <div className="space-y-1.5">
+                <label
+                  htmlFor="message"
+                  className="block text-sm font-medium text-slate-700 dark:text-slate-300"
+                >
+                  Your testimonial
+                </label>
+                <textarea
+                  id="message"
+                  value={form.message}
+                  onChange={(e) => {
+                    if (e.target.value.length <= 1000) update('message', e.target.value);
+                  }}
+                  rows={5}
+                  placeholder="CommitPulse made my README feel polished because..."
+                  className={`w-full px-4 py-3 rounded-lg text-sm resize-none
+                    bg-slate-50 dark:bg-[#0d1117]
+                    border ${errors.message ? 'border-red-400 dark:border-red-500' : 'border-slate-300 dark:border-slate-600'}
+                    text-slate-900 dark:text-slate-100
+                    placeholder:text-slate-400 dark:placeholder:text-slate-600
+                    focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400
+                    focus:border-transparent transition-all duration-200`}
+                />
+                <div className="flex items-center justify-between">
+                  {errors.message ? (
+                    <p className="text-xs text-red-500 dark:text-red-400">{errors.message}</p>
+                  ) : (
+                    <span className="text-xs text-slate-400">Min 10 characters</span>
+                  )}
+                  <span
+                    className={`text-xs ml-auto transition-colors ${msgLen > 900 ? 'text-amber-500 dark:text-amber-400' : 'text-slate-400 dark:text-slate-500'}`}
+                  >
+                    {msgLen}/1000
+                  </span>
+                </div>
+              </div>
 
-            <p className="text-center text-xs text-slate-400 dark:text-slate-600">
-              All testimonials are reviewed before appearing on the homepage.
-            </p>
+              {/* Submit Button */}
+              <button
+                onClick={handleSubmit}
+                className="w-full py-3 px-6 rounded-lg text-sm font-bold
+                  text-white transition-all duration-200
+                  hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500
+                  dark:focus:ring-offset-[#161b22] shadow-lg shadow-emerald-500/25"
+                style={{ backgroundColor: form.accentColor }}
+              >
+                Submit Testimonial →
+              </button>
+            </div>
+
+            {/* Customization & Preview */}
+            <div className="space-y-6">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xs font-semibold tracking-widest uppercase text-slate-400 dark:text-slate-500">
+                    Card Accent Color
+                  </h2>
+                  <div
+                    className="h-1.5 w-20 rounded-full transition-colors duration-300"
+                    style={{ backgroundColor: form.accentColor }}
+                  />
+                </div>
+                <AdvancedColorPicker
+                  value={form.accentColor}
+                  onChange={(c) => update('accentColor', c)}
+                  presets={ACCENT_PRESETS}
+                />
+                {errors.accentColor && (
+                  <p className="text-xs text-red-500 dark:text-red-400">{errors.accentColor}</p>
+                )}
+                <p className="text-xs text-slate-400 dark:text-slate-500">
+                  This color will be used to style your testimonial card on the Wall of Love.
+                </p>
+              </div>
+
+              <LivePreview form={form} />
+            </div>
           </div>
-        </div>
+        </section>
       </div>
     </main>
   );

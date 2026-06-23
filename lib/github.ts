@@ -1,3 +1,4 @@
+// Resolves Issue #6105 (Intelligent API Resilience)
 import type {
   ContributionCalendar,
   ContributionDay,
@@ -217,7 +218,7 @@ export async function fetchWithRetry(
   if (!res) throw new Error('GitHub API request failed without a response');
 
   try {
-    quotaMonitor.updateQuotaFromHeaders(res.headers);
+    quotaMonitor.updateQuotaFromHeaders(res.headers, currentToken);
   } catch (err) {
     logger.error('Failed to update quota monitor', {
       component: 'GitHub',

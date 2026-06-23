@@ -135,8 +135,11 @@ export default function SubmitReviewPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Name */}
               <div>
-                <label className="block text-sm font-medium text-zinc-400 mb-2">Full Name</label>
+                <label htmlFor="name" className="block text-sm font-medium text-zinc-400 mb-2">
+                  Full Name
+                </label>
                 <input
+                  id="name"
                   type="text"
                   required
                   maxLength={100}
@@ -149,10 +152,11 @@ export default function SubmitReviewPage() {
 
               {/* Handle */}
               <div>
-                <label className="block text-sm font-medium text-zinc-400 mb-2">
+                <label htmlFor="handle" className="block text-sm font-medium text-zinc-400 mb-2">
                   Handle (@username)
                 </label>
                 <input
+                  id="handle"
                   type="text"
                   required
                   maxLength={50}

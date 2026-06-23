@@ -41,15 +41,16 @@ describe('AIInsightsSkeleton Accessibility', () => {
   // 3. Screen Reader Labels
   // Verify that assistive technologies do not receive inappropriate semantic roles or labels.
   it('does not expose interactive roles or semantic elements to assistive technologies', () => {
-    render(<AIInsightsSkeleton />);
+    const { container } = render(<AIInsightsSkeleton />);
 
     // Since the component only has placeholders, there shouldn't be any buttons, links, or inputs.
     expect(screen.queryByRole('button')).toBeNull();
     expect(screen.queryByRole('link')).toBeNull();
     expect(screen.queryByRole('textbox')).toBeNull();
 
-    // TODO: Expose a visually hidden label or description (e.g. using aria-describedby or aria-label)
-    // such as "Loading insights..." so screen readers understand what this skeleton represents.
+    // Ensure that the skeleton wrapper exposes a descriptive aria-label.
+    const wrapper = container.firstChild as HTMLElement;
+    expect(wrapper).toHaveAttribute('aria-label', 'Loading AI Insights');
   });
 
   // 4. Keyboard Navigation Flow

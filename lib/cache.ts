@@ -511,6 +511,17 @@ export class DistributedCache<T> {
    */
   async incr(key: string, ttlMs: number): Promise<number> {
     if (!this.useRedis) {
+      // Fail closed — no shared state means no reliable distributed rate limiting.
+      // In serverless (Vercel, AWS Lambda, etc.) each cold start resets the in-memory
+      // counter, so an in-memory fallback would silently reset the limit and enable
+      // Denial-of-Wallet attacks on the shared GitHub token pool.
+      if (process.env.NODE_ENV === 'production') {
+        logger.error('Redis not configured in production — rate limiting disabled (fail-closed)', {
+          component: 'DistributedCache',
+          key,
+        });
+        return Number.MAX_SAFE_INTEGER;
+      }
       const current = (this.localCache.get(key) as unknown as number) || 0;
       const next = current + 1;
       if (current === 0) {
@@ -773,11 +784,30 @@ return c`;
       return finalFallback;
     };
 
+    let timeoutTimer: ReturnType<typeof setTimeout> | null = null;
+
     const promise = executeAndLock().finally(() => {
+      if (timeoutTimer) clearTimeout(timeoutTimer);
       this.localLocks.delete(key);
     });
 
     this.localLocks.set(key, promise);
+
+    // Safety Eviction: Forcefully evict locks that hang longer than 60s
+    // to prevent memory leaks (fixes Issue #6177).
+    timeoutTimer = setTimeout(() => {
+      if (this.localLocks.get(key) === promise) {
+        this.localLocks.delete(key);
+        logger.error('Safety eviction triggered for hanging lock', {
+          component: 'DistributedCache',
+          key,
+        });
+      }
+    }, 60000);
+
+    if (timeoutTimer && typeof timeoutTimer.unref === 'function') {
+      timeoutTimer.unref();
+    }
 
     return promise;
   }
