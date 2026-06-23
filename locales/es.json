@@ -413,6 +413,15 @@
       "viewMilestone": "View details",
       "totalMilestones": "Total Milestones",
       "explore": "Explore Timeline"
+    },
+    "achievement_center": {
+      "title": "Open Source Achievement Center",
+      "subtitle": "Celebrate milestones and track rewards.",
+      "streak_master": "Streak Master",
+      "code_machine": "Code Machine",
+      "collaborator": "Core Collaborator",
+      "legend": "Open Source Legend",
+      "progress": "Milestone Progress"
     }
   }
 }
