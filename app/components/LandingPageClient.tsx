@@ -101,12 +101,8 @@ function CountUp({ value, duration = 1000 }: { value: number; duration?: number 
     const start = 0;
     const end = value;
     if (start === end) {
-      // Safe: early-exit guard when the value hasn't changed — avoids scheduling
-      // a setInterval just to immediately clear it. No stale-dependency risk
-      // because `value` is the only dep and this path reads it synchronously.
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setCount(end);
-      return;
+      const frame = requestAnimationFrame(() => setCount(end));
+      return () => cancelAnimationFrame(frame);
     }
 
     const totalMilliseconds = duration;

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { Menu, X, Activity, Moon, Sun, Globe } from 'lucide-react';
 import { useGlowEffect } from '@/hooks/useGlowEffect';
@@ -50,15 +50,13 @@ const NAV_LINKS = [
   },
 ];
 
-const emptySubscribe = () => () => {};
-
 function LanguageSelector() {
   const { language, changeLanguage, isPending } = useTranslation();
-  const mounted = useSyncExternalStore(
-    emptySubscribe,
-    () => true,
-    () => false
-  );
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    const timer = setTimeout(() => setMounted(true), 0);
+    return () => clearTimeout(timer);
+  }, []);
 
   if (!mounted) {
     return (
