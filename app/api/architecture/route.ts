@@ -347,26 +347,7 @@ export async function POST(req: NextRequest) {
     tempDir = fs.mkdtempSync(path.join(os.tmpdir(), `commitpulse-arch-${owner}-${repo}-`));
 
     try {
-
       await cloneRepository(owner, repo, tempDir, access.cloneToken);
-
-      const env = { ...process.env } as NodeJS.ProcessEnv;
-      if (token) {
-        // GIT_ASKPASS points to a script that reads the token from an environment
-        // variable instead of embedding it in the script body. This prevents the
-        // token from persisting on disk if the process crashes.
-        const askpassScript = path.join(tempDir, '.git-askpass.sh');
-        fs.writeFileSync(
-          askpassScript,
-          '#!/bin/sh\nif [ -n "$GIT_TOKEN" ]; then\necho "$GIT_TOKEN"\nelse\nexit 1\nfi',
-          { mode: 0o700 }
-        );
-        env.GIT_ASKPASS = askpassScript;
-        env.GIT_TOKEN = token;
-        env.GIT_TERMINAL_PROMPT = '0';
-      }
-      await execFilePromise('git', ['clone', '--depth', '1', '--', cloneUrl, tempDir], { env });
-main
     } catch (err) {
       console.error('Cloning failed for repository:', `${owner}/${repo}`, sanitizeError(err));
       if (tempDir && fs.existsSync(tempDir)) {
