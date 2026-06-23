@@ -1,13 +1,15 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { NextRequest } from 'next/server';
 import crypto from 'crypto';
-import { getClientIp } from '@/utils/getClientIp';
 
 // Mock getClientIp before importing the route so we control the IP per test
 let mockIp = '127.0.0.1';
 vi.mock('@/utils/getClientIp', () => ({
   getClientIp: vi.fn(() => mockIp),
 }));
+
+const { getClientIp } = await import('@/utils/getClientIp');
+const mockedGetClientIp = vi.mocked(getClientIp);
 
 const { POST } = await import('./route');
 
@@ -233,6 +235,51 @@ describe('POST /api/webhook', () => {
 
     await POST(req);
 
-    expect(getClientIp).toHaveBeenCalledWith(req);
+    expect(mockedGetClientIp).toHaveBeenCalledWith(req);
+  });
+
+  it('does not allow spoofed X-Forwarded-For values to bypass webhook rate limiting', async () => {
+    const secret = 'secret_key';
+    process.env.GITHUB_WEBHOOK_SECRET = secret;
+
+    // Keep the resolved client IP stable while rotating spoofed forwarded headers.
+    // If the route used raw X-Forwarded-For, these requests would bypass the limiter.
+    mockIp = '10.61.74.1';
+
+    const payload = '{"test":"data"}';
+    const hmac = crypto.createHmac('sha256', secret);
+    const signature = 'sha256=' + hmac.update(payload).digest('hex');
+
+    for (let i = 1; i <= 10; i++) {
+      const res = await POST(
+        makeRequest(
+          {
+            'content-length': payload.length.toString(),
+            'x-hub-signature-256': signature,
+            'x-forwarded-for': `198.51.100.${i}`,
+          },
+          payload
+        )
+      );
+
+      expect(res.status).toBe(200);
+    }
+
+    const res = await POST(
+      makeRequest(
+        {
+          'content-length': payload.length.toString(),
+          'x-hub-signature-256': signature,
+          'x-forwarded-for': '198.51.100.11',
+        },
+        payload
+      )
+    );
+
+    expect(mockedGetClientIp).toHaveBeenCalledTimes(11);
+    expect(res.status).toBe(429);
+
+    const data = await res.json();
+    expect(data.error).toBe('Too many requests');
   });
 });

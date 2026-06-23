@@ -62,7 +62,7 @@ describe('GET /api/streak dateRange parameter', () => {
     expect(res.headers.get('Content-Security-Policy')).toContain("default-src 'none'");
 
     const body = await res.text();
-    expect(body).toContain('CURRENT_STREAK');
+    expect(body).toContain('Current Streak');
   });
 
   it('applies custom dateRange and affects rendered month labels (body content changes)', async () => {
@@ -102,7 +102,7 @@ describe('GET /api/streak dateRange parameter', () => {
     expect(res.status).toBe(200);
 
     const body = await res.text();
-    expect(body).toContain('CURRENT_STREAK');
+    expect(body).toContain('Current Streak');
   });
 
   it('invalid dateRange formats return a validation error without crashing', async () => {

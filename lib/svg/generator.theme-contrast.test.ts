@@ -42,9 +42,9 @@ describe('generateSVG', () => {
   it('renders streak labels and statistics', () => {
     const svg = generateSVG(stats, params, calendar);
 
-    expect(svg).toContain('CURRENT_STREAK');
-    expect(svg).toContain('PEAK_STREAK');
-    expect(svg).toContain('ANNUAL_SYNC_TOTAL');
+    expect(svg).toContain('Current Streak');
+    expect(svg).toContain('Peak Streak');
+    expect(svg).toContain('Annual Total');
 
     expect(svg).toContain('5');
     expect(svg).toContain('10');
