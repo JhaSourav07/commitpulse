@@ -1,5 +1,6 @@
 // app/api/stats/route.ts
 import { NextResponse } from 'next/server';
+import logger from '@/lib/logger';
 import { fetchGitHubContributions, contributionsCache, cacheKey } from '@/lib/github';
 import { calculateStreak } from '@/lib/calculate';
 import { statsParamsSchema, coerceQueryParams } from '@/lib/validations';
@@ -10,14 +11,11 @@ import { refreshRateLimiter } from '@/services/github/refresh-rate-limiter';
 import { getUserGitHubToken } from '@/lib/githubtoken';
 
 function logSecurityEvent(event: string, details: Record<string, unknown>) {
-  console.warn(
-    JSON.stringify({
-      timestamp: new Date().toISOString(),
-      type: 'SECURITY_EVENT',
-      event,
-      ...details,
-    })
-  );
+  logger.warn(`SECURITY_EVENT: ${event}`, {
+    type: 'SECURITY_EVENT',
+    event,
+    ...details,
+  });
 }
 
 /**

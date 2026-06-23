@@ -1,4 +1,5 @@
 import type { ParsedResume, Education, Experience } from '@/types/student';
+import logger from '@/lib/logger';
 
 // Polyfill DOMMatrix for server-side/test environments to prevent pdfjs-dist crash
 if (typeof globalThis !== 'undefined' && !('DOMMatrix' in globalThis)) {
@@ -139,7 +140,7 @@ async function extractTextFromBuffer(buffer: Buffer, mimeType: string): Promise<
       if (buffer.toString('utf-8', 0, 4) === '%PDF') {
         const pdfModule = (await import('pdf-parse')) as Record<string, unknown>;
 
-        console.debug('pdf-parse exports:', Object.keys(pdfModule));
+        logger.debug('pdf-parse exports', { keys: Object.keys(pdfModule) });
 
         type PdfParser = (dataBuffer: Buffer, options?: unknown) => Promise<{ text: string }>;
 
@@ -169,7 +170,7 @@ async function extractTextFromBuffer(buffer: Buffer, mimeType: string): Promise<
         rawText = buffer.toString('utf-8');
       }
     } catch (error) {
-      console.warn('Failed to parse PDF using pdf-parse, falling back to UTF-8 decoding:', error);
+      logger.warn('Failed to parse PDF using pdf-parse, falling back to UTF-8 decoding', { error });
       rawText = buffer.toString('utf-8');
     }
   } else if (
@@ -186,7 +187,7 @@ async function extractTextFromBuffer(buffer: Buffer, mimeType: string): Promise<
         rawText = buffer.toString('utf-8');
       }
     } catch (error) {
-      console.warn('Failed to parse DOCX using mammoth, falling back to UTF-8 decoding:', error);
+      logger.warn('Failed to parse DOCX using mammoth, falling back to UTF-8 decoding', { error });
       rawText = buffer.toString('utf-8');
     }
   } else {

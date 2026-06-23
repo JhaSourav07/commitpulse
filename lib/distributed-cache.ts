@@ -5,6 +5,8 @@
  * Prevents data inconsistency in distributed deployments.
  */
 
+import logger from '@/lib/logger';
+
 export interface CacheEntry<T> {
   data: T;
   expiresAt: number;
@@ -46,7 +48,7 @@ export class DistributedCache {
 
       return entry.data;
     } catch (error) {
-      console.error(`Cache get error for ${key}:`, error);
+      logger.error(`Cache get error for ${key}:`, { error });
       return null;
     }
   }
@@ -66,7 +68,7 @@ export class DistributedCache {
 
       await this.redisClient.setex(key, Math.ceil(expiryTime / 1000), JSON.stringify(entry));
     } catch (error) {
-      console.error(`Cache set error for ${key}:`, error);
+      logger.error(`Cache set error for ${key}:`, { error });
     }
   }
 
@@ -78,7 +80,7 @@ export class DistributedCache {
     try {
       await this.redisClient.del(key);
     } catch (error) {
-      console.error(`Cache delete error for ${key}:`, error);
+      logger.error(`Cache delete error for ${key}:`, { error });
     }
   }
 
@@ -90,7 +92,7 @@ export class DistributedCache {
     try {
       await this.redisClient.flushdb();
     } catch (error) {
-      console.error('Cache clear error:', error);
+      logger.error('Cache clear error:', { error });
     }
   }
 }

@@ -1,5 +1,6 @@
 import { getGitHubTokens } from '@/lib/github';
 import { DistributedCache } from '@/lib/cache';
+import logger from '@/lib/logger';
 
 interface ContributorWeekData {
   w: number; // week timestamp (Unix)
@@ -385,9 +386,9 @@ async function analyzeRepositoryUncached(
         recommendations.unshift(...improvedRecs);
       }
     } catch (err) {
-      console.warn(
+      logger.warn(
         'Gemini recommendation generation failed. Falling back to rules-based analyzer.',
-        err
+        { error: err }
       );
     }
   }
@@ -465,7 +466,7 @@ async function generateRecommendationsWithGemini(
         return parsed.map((item) => `[AI Recommendation] ${item}`);
       }
     } catch {
-      console.warn('Gemini returned malformed JSON, skipping AI recommendations.');
+      logger.warn('Gemini returned malformed JSON, skipping AI recommendations.');
     }
   }
   return [];

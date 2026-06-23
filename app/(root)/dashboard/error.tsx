@@ -13,7 +13,7 @@ export default function DashboardError({
 }) {
   useEffect(() => {
     if (error) {
-      console.error(error);
+      // logger.error is called below
     }
     logger.error('Dashboard error', {
       error,

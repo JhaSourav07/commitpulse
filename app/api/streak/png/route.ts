@@ -1,6 +1,7 @@
 import { GET as getStreakSvg } from '../route';
 import { Resvg } from '@resvg/resvg-js';
 import { NextResponse } from 'next/server';
+import logger from '@/lib/logger';
 
 export async function GET(request: Request) {
   // Call the original endpoint which returns the SVG text
@@ -40,7 +41,7 @@ export async function GET(request: Request) {
       headers,
     });
   } catch (err) {
-    console.error('[streak/png] Failed to convert SVG to PNG:', err);
+    logger.error('[streak/png] Failed to convert SVG to PNG', { error: err });
     return NextResponse.json(
       { error: 'Failed to convert SVG to PNG' },
       { status: 500, headers: { 'Cache-Control': 'no-store' } }

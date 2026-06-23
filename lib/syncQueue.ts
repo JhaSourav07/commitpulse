@@ -3,6 +3,8 @@
  * This prevents the application from making too many concurrent requests to the GitHub API,
  * which could lead to rate limit exhaustion.
  */
+import logger from '@/lib/logger';
+
 export class SyncQueue {
   private queue: (() => Promise<void>)[] = [];
   private isProcessing = false;
@@ -35,7 +37,7 @@ export class SyncQueue {
       try {
         await task();
       } catch (error) {
-        console.error('[SyncQueue] Task failed:', error);
+        logger.error('[SyncQueue] Task failed', { error });
       }
     }
 

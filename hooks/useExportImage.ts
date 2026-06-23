@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react';
+import logger from '@/lib/logger';
 
 export type ExportFormat = 'png' | 'svg';
 
@@ -43,7 +44,7 @@ export function useExportImage({
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Export failed. Please try again.';
         setError(message);
-        console.error('[useExportImage]', err);
+        logger.error('[useExportImage]', { error: err });
       } finally {
         setIsExporting(false);
       }

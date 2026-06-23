@@ -1,5 +1,6 @@
 import { getFullDashboardData } from '../../lib/github';
 import { syncQueue } from '../../lib/syncQueue';
+import logger from '@/lib/logger';
 
 // Cache is considered stale and candidate for background refresh after 10 minutes
 const STALE_THRESHOLD_MS = 10 * 60 * 1000;
@@ -96,22 +97,24 @@ export class BackgroundRefresh {
     const acquired = this.acquireLock(sanitized);
 
     if (!acquired) {
-      console.info(`[BackgroundRefresh] Refresh already active for: ${sanitized}`);
+      logger.info(`[BackgroundRefresh] Refresh already active for: ${sanitized}`);
 
       return;
     }
 
-    console.info(`[BackgroundRefresh] Queuing background refresh for: ${sanitized}`);
+    logger.info(`[BackgroundRefresh] Queuing background refresh for: ${sanitized}`);
 
     return new Promise((resolve) => {
       syncQueue.enqueue(async () => {
         try {
           await getFullDashboardData(username, { forceRefresh: true });
-          console.info(
+          logger.info(
             `[BackgroundRefresh] Successfully completed background refresh for: ${sanitized}`
           );
         } catch (err) {
-          console.error(`[BackgroundRefresh] Background refresh failed for: ${sanitized}`, err);
+          logger.error(`[BackgroundRefresh] Background refresh failed for: ${sanitized}`, {
+            error: err,
+          });
         } finally {
           this.releaseLock(sanitized);
           resolve();

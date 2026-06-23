@@ -4,6 +4,7 @@ import { getUserGitHubToken } from '@/lib/githubtoken';
 import { validateGitHubUsername } from '@/lib/validations';
 import { RateLimiter } from '@/lib/rate-limit';
 import { getClientIp } from '@/utils/getClientIp';
+import logger from '@/lib/logger';
 
 const ciAnalyticsLimiter = new RateLimiter(10, 60_000, 10_000);
 
@@ -32,7 +33,7 @@ export async function GET(request: Request) {
     const data = await fetchCIAnalytics(username, userToken);
     return NextResponse.json(data);
   } catch (error: unknown) {
-    console.error('Error fetching CI analytics:', error);
+    logger.error('Error fetching CI analytics', { error });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to fetch CI analytics' },
       { status: 500 }

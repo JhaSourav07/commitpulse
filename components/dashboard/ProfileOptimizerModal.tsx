@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import logger from '@/lib/logger';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X, Download, Copy, CheckCircle, TrendingUp, AlertCircle } from 'lucide-react';
 
@@ -64,7 +65,7 @@ export default function ProfileOptimizerModal({
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (e) {
-      console.error('Failed to copy text', e);
+      logger.error('Failed to copy text', { error: e });
     }
   };
 

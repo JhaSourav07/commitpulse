@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import TopRivalriesTicker from '@/components/TopRivalriesTicker';
+import logger from '@/lib/logger';
 import DeveloperArena from '@/components/DeveloperArena';
 import {
   Radar,
@@ -1070,7 +1071,7 @@ export default function CompareClient() {
       link.download = `commitpulse-battle-${data.user1.profile.username}-vs-${data.user2.profile.username}.png`;
       link.click();
     } catch (err) {
-      console.error('Failed to export image', err);
+      logger.error('Failed to export image', { error: err });
     } finally {
       setIsExporting(false);
     }

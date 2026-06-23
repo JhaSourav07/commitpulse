@@ -9,6 +9,7 @@ import pLimit from 'p-limit';
 import { getGitHubTokens } from '@/lib/github';
 import { auth } from '@/auth';
 import { getClientIp } from '@/utils/getClientIp';
+import logger from '@/lib/logger';
 
 const execFilePromise = promisify(execFile);
 
@@ -244,7 +245,7 @@ function parseFileImportsAndExports(filePath: string, fileContent: string) {
 
     traverse(sourceFile);
   } catch (err) {
-    console.error('Error AST parsing file:', filePath, err);
+    logger.error('Error AST parsing file', { filePath, error: err });
   }
 
   return {
@@ -377,7 +378,7 @@ export async function POST(req: NextRequest) {
       }
       await execFilePromise('git', ['clone', '--depth', '1', '--', cloneUrl, tempDir], { env });
     } catch (err) {
-      console.error('Cloning failed for repository:', repoUrl, sanitizeError(err));
+      logger.error('Cloning failed for repository', { repoUrl, error: sanitizeError(err) });
       // Clean up tempDir if it was created
       if (tempDir && fs.existsSync(tempDir)) {
         fs.rmSync(tempDir, { recursive: true, force: true });
@@ -722,7 +723,9 @@ export async function POST(req: NextRequest) {
           clearTimeout(timeoutId);
         }
       } catch (err) {
-        console.warn('Gemini summary generation failed. Falling back to rules-based summary.', err);
+        logger.warn('Gemini summary generation failed. Falling back to rules-based summary.', {
+          error: err,
+        });
       }
     }
 
@@ -746,7 +749,7 @@ export async function POST(req: NextRequest) {
       summary,
     });
   } catch (error) {
-    console.error('Architecture visualizer route crashed:', error);
+    logger.error('Architecture visualizer route crashed', { error });
     return NextResponse.json(
       { error: 'Failed to analyze repository. Please try again later.' },
       { status: 500 }
@@ -757,7 +760,7 @@ export async function POST(req: NextRequest) {
       try {
         fs.rmSync(tempDir, { recursive: true, force: true });
       } catch (cleanupErr) {
-        console.error('Failed to cleanup temp clone directory:', cleanupErr);
+        logger.error('Failed to cleanup temp clone directory', { error: cleanupErr });
       }
     }
     // Decrement concurrent clone counter

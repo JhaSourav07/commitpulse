@@ -45,6 +45,7 @@ vi.mock('@/lib/github', () => ({
 import { fetchUserProfile } from '@/lib/github';
 import { trackUserProtection } from '@/services/security/track-user-protection';
 import { gitHubUserValidator } from '@/services/github/validate-user';
+import logger from '@/lib/logger';
 
 function makeRequest(body: Record<string, unknown>, headers?: HeadersInit): Request {
   return new Request('http://localhost/api/track-user', {
@@ -205,8 +206,8 @@ describe('POST /api/track-user', () => {
     it('returns 200 and bypassed flag when MONGODB_URI is undefined', async () => {
       delete process.env.MONGODB_URI;
 
-      // Spy on console.warn
-      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      // Spy on logger.warn
+      const consoleSpy = vi.spyOn(logger, 'warn').mockImplementation(() => {});
 
       const response = await POST(makeRequest({ username: 'octocat' }));
 
@@ -251,7 +252,7 @@ describe('POST /api/track-user', () => {
     });
 
     it('bypasses user tracking gracefully when database connection fails', async () => {
-      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const consoleWarnSpy = vi.spyOn(logger, 'warn').mockImplementation(() => {});
       vi.mocked(dbConnect).mockRejectedValueOnce(new Error('DB Down'));
 
       const response = await POST(makeRequest({ username: 'octocat' }));
@@ -261,8 +262,8 @@ describe('POST /api/track-user', () => {
       expect(data.success).toBe(true);
 
       expect(consoleWarnSpy).toHaveBeenCalledWith(
-        'Database operation failed or timed out. Bypassing user tracking:',
-        expect.any(Error)
+        'Database operation failed or timed out. Bypassing user tracking',
+        { error: expect.any(Error) }
       );
 
       consoleWarnSpy.mockRestore();

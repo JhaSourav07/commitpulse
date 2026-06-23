@@ -292,8 +292,9 @@ export async function DELETE(req: NextRequest) {
     // Graceful MONGODB_URI handling
     if (!process.env.MONGODB_URI) {
       if (process.env.NODE_ENV === 'production') {
-        console.error(
-          'CRITICAL: MONGODB_URI is not set in production environment. Notification deletion is disabled.'
+        logger.error(
+          'CRITICAL: MONGODB_URI is not set in production environment. Notification deletion is disabled.',
+          { environment: process.env.NODE_ENV }
         );
         return NextResponse.json(
           { success: false, message: 'Database configuration error.' },
@@ -301,8 +302,9 @@ export async function DELETE(req: NextRequest) {
         );
       }
 
-      console.warn(
-        'MONGODB_URI is not set. Bypassing notification deletion for local development.'
+      logger.warn(
+        'MONGODB_URI is not set. Bypassing notification deletion for local development.',
+        { environment: process.env.NODE_ENV }
       );
       return NextResponse.json({
         success: true,
@@ -346,7 +348,7 @@ export async function DELETE(req: NextRequest) {
       { status: 200 }
     );
   } catch (error) {
-    console.error('[/api/notify] Error deleting notification preferences:', error);
+    logger.error('Error deleting notification preferences', { route: '/api/notify', error });
     return NextResponse.json(
       { success: false, message: 'Internal server error.' },
       { status: 500 }

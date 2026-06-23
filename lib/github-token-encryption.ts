@@ -1,4 +1,5 @@
 import crypto from 'node:crypto';
+import logger from '@/lib/logger';
 
 export interface DecryptedToken {
   token: string;
@@ -25,7 +26,7 @@ export function encryptGitHubToken(token: string): string {
     const key = process.env.GITHUB_TOKEN_ENCRYPTION_KEY;
 
     if (!key) {
-      console.warn(
+      logger.warn(
         'GITHUB_TOKEN_ENCRYPTION_KEY not configured. ' +
           'GitHub tokens should be encrypted in production.'
       );
@@ -108,7 +109,7 @@ export function parseAndEncryptTokens(tokenString: string): EncryptedTokenData[]
   // Validate token format (should start with ghp_ or ghu_)
   for (const token of tokens) {
     if (!token.startsWith('ghp_') && !token.startsWith('ghu_')) {
-      console.warn(`Token does not appear to be valid GitHub PAT: ${token.substring(0, 5)}...`);
+      logger.warn(`Token does not appear to be valid GitHub PAT: ${token.substring(0, 5)}...`);
     }
   }
 

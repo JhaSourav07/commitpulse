@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { GetClientIpOptions } from '../types/network';
 import { isTrustedProxy, loadTrustedProxyConfig } from './trustedProxy';
+import logger from '@/lib/logger';
 
 /**
  * Tracks recently logged wildcard events to prevent I/O flooding
@@ -38,14 +39,10 @@ function logSecurityEvent(event: string, details: Record<string, unknown>) {
   // Automatically clear the cache entry after a short window to keep memory footprint minimal
   setTimeout(() => recentLogsCache.delete(cacheKey), 5000).unref?.();
 
-  console.warn(
-    JSON.stringify({
-      timestamp: new Date().toISOString(),
-      type: 'SECURITY_EVENT',
-      event,
-      ...details,
-    })
-  );
+  logger.warn('SECURITY_EVENT', {
+    event,
+    ...details,
+  });
 }
 
 /**

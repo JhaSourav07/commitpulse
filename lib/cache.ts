@@ -665,11 +665,9 @@ return c`;
             if (r < releaseRetries) {
               await new Promise((resolve) => setTimeout(resolve, 100));
             } else {
-              console.error(
-                '[DistributedCache] Lock release failed for key "%s" after %d attempts:',
-                key,
-                releaseRetries + 1,
-                e
+              logger.error(
+                `[DistributedCache] Lock release failed for key "${key}" after ${releaseRetries + 1} attempts`,
+                { error: e }
               );
             }
           }

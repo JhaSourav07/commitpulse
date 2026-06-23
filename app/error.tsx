@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
+import logger from '@/lib/logger';
 
 export default function ErrorBoundary({
   error,
@@ -12,7 +13,7 @@ export default function ErrorBoundary({
 }) {
   useEffect(() => {
     if (error) {
-      console.error(error);
+      logger.error('Unhandled app error', { error });
     }
   }, [error]);
 

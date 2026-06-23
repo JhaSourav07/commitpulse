@@ -24,6 +24,8 @@ function getTrackUserUrl(): string {
   return normalizedBase ? `${normalizedBase}/api/track-user` : '/api/track-user';
 }
 
+import logger from '@/lib/logger';
+
 export function trackUser(username: string) {
   if (typeof navigator === 'undefined' || typeof window === 'undefined') return;
   if (!username) return;
@@ -32,7 +34,7 @@ export function trackUser(username: string) {
   try {
     payload = JSON.stringify({ username });
   } catch (error) {
-    console.error('Failed to format tracking payload', error);
+    logger.error('Failed to format tracking payload', { error });
     return;
   }
 
@@ -47,6 +49,6 @@ export function trackUser(username: string) {
       headers: { 'Content-Type': 'application/json' },
       body: payload,
       keepalive: true,
-    }).catch(console.error);
+    }).catch((error) => logger.error('Failed to send tracking payload', { error }));
   }
 }

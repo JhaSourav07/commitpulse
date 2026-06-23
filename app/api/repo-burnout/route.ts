@@ -5,6 +5,7 @@ import { fetchBurnoutAnalysis } from '@/services/github/burnout-analyzer';
 import { quotaMonitor } from '@/services/github/quota-monitor';
 import { getClientIp } from '@/utils/getClientIp';
 import { getUserGitHubToken } from '@/lib/githubtoken';
+import logger from '@/lib/logger';
 
 import { refreshPolicy } from '@/services/github/refresh-policy';
 import { refreshRateLimiter } from '@/services/github/refresh-rate-limiter';
@@ -54,7 +55,7 @@ export async function GET(request: Request) {
 
   // 1. Quota awareness check - block manual refreshes if GitHub API quota is low
   if (isRefreshRequested && quotaMonitor.isQuotaLow()) {
-    console.warn(`[Quota Low] Blocked manual refresh from IP ${ip} for ${owner}/${repo}`);
+    logger.warn(`[Quota Low] Blocked manual refresh from IP ${ip} for ${owner}/${repo}`);
     return NextResponse.json(
       { error: 'GitHub API quota is low. Cache refresh temporarily disabled.' },
       { status: 429 }
@@ -64,7 +65,7 @@ export async function GET(request: Request) {
   if (isRefreshRequested) {
     const rateLimitCheck = refreshRateLimiter.checkLimit(ip);
     if (!rateLimitCheck.success) {
-      console.warn(
+      logger.warn(
         `[Rate Limit Exceeded] Blocked manual refresh from IP ${ip} for ${owner}/${repo}`
       );
       return NextResponse.json(
@@ -110,7 +111,7 @@ export async function GET(request: Request) {
       },
     });
   } catch (error: unknown) {
-    console.error(`Error in /api/repo-burnout for ${owner}/${repo}:`, error);
+    logger.error(`Error in /api/repo-burnout for ${owner}/${repo}`, { error });
 
     const message = error instanceof Error ? error.message : 'Internal Server Error';
     const status = message.includes('not found') ? 404 : 500;

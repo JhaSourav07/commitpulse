@@ -5,6 +5,7 @@ import { reviewPostSchema } from '@/lib/validations';
 import { getClientIp } from '@/utils/getClientIp';
 import { DistributedCache } from '@/lib/cache';
 import { notifyRateLimiter } from '@/lib/rate-limit';
+import logger from '@/lib/logger';
 
 // Per-IP cooldown: one submission per 10 minutes to prevent spam
 const reviewWriteCache = new DistributedCache<number>(5000, 60000);
@@ -70,7 +71,7 @@ export async function POST(req: Request) {
     // Graceful MONGODB_URI handling
     if (!process.env.MONGODB_URI) {
       if (process.env.NODE_ENV === 'production') {
-        console.error(
+        logger.error(
           'CRITICAL: MONGODB_URI is not set in production environment. Review submission is disabled.'
         );
         return NextResponse.json(
@@ -79,7 +80,7 @@ export async function POST(req: Request) {
         );
       }
 
-      console.warn('MONGODB_URI is not set. Bypassing review submission for local development.');
+      logger.warn('MONGODB_URI is not set. Bypassing review submission for local development.');
       return NextResponse.json({
         success: true,
         message: 'Review submission bypassed (no database configured).',
@@ -111,7 +112,7 @@ export async function POST(req: Request) {
       { status: 201 }
     );
   } catch (error) {
-    console.error('[/api/reviews] Error saving review:', error);
+    logger.error('[/api/reviews] Error saving review', { error });
     return NextResponse.json(
       { success: false, message: 'Internal server error.' },
       { status: 500 }

@@ -5,6 +5,7 @@ import type { ExportFormat } from '../types';
 import { getPlaceholderSnippet } from '../utils';
 import { useTranslation } from '@/context/TranslationContext';
 import { Copy, Check } from 'lucide-react';
+import logger from '@/lib/logger';
 
 const EXPORT_FORMATS: { value: ExportFormat; labelKey: string }[] = [
   { value: 'markdown', labelKey: 'markdown' },
@@ -80,7 +81,7 @@ export function ExportPanel({
       let targetUrl = urlMatch ? urlMatch[1] : '';
 
       if (!targetUrl) {
-        console.error('Could not parse the live API badge target URL from snippet.');
+        logger.error('Could not parse the live API badge target URL from snippet.');
         return;
       }
 
@@ -150,7 +151,7 @@ export function ExportPanel({
       toast.success('Badge vector asset saved successfully!');
     } catch (err) {
       setIsDownloading(false);
-      console.error(err);
+      logger.error('Export download failed', { error: err });
       toast.error('Failed to retrieve the latest badge asset. Please try again.');
     }
   };
@@ -228,7 +229,7 @@ export function ExportPanel({
 
       img.src = svgUrl;
     } catch (error) {
-      console.error(error);
+      logger.error('Failed to download PNG badge', { error });
       toast.error('Failed to download PNG badge.');
     } finally {
       setIsDownloading(false);

@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { trackUser } from './tracking';
+import logger from '../lib/logger';
 
 const originalSendBeacon = navigator.sendBeacon;
 
@@ -120,7 +121,7 @@ describe('trackUser', () => {
   });
 
   it('reports format error for non-serializable JSON payload', () => {
-    const consoleErrorMock = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const consoleErrorMock = vi.spyOn(logger, 'error').mockImplementation(() => {});
     const fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
 
@@ -129,10 +130,9 @@ describe('trackUser', () => {
 
     trackUser(payload as unknown as string);
 
-    expect(consoleErrorMock).toHaveBeenCalledWith(
-      'Failed to format tracking payload',
-      expect.any(TypeError)
-    );
+    expect(consoleErrorMock).toHaveBeenCalledWith('Failed to format tracking payload', {
+      error: expect.any(TypeError),
+    });
 
     expect(fetchMock).not.toHaveBeenCalled();
   });
@@ -197,7 +197,7 @@ describe('trackUser', () => {
 
 describe('JSON response serializer — boundary robustness (Variation 2)', () => {
   it('reports format error for non-serializable JSON payloads like objects, sets, functions, bytes, NaN, Infinity, custom classes', () => {
-    const consoleErrorMock = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const consoleErrorMock = vi.spyOn(logger, 'error').mockImplementation(() => {});
 
     class CustomClass {}
 
@@ -223,10 +223,9 @@ describe('JSON response serializer — boundary robustness (Variation 2)', () =>
 
       expect(() => trackUser(payload as unknown as string)).not.toThrow();
 
-      expect(consoleErrorMock).toHaveBeenCalledWith(
-        'Failed to format tracking payload',
-        expect.any(TypeError)
-      );
+      expect(consoleErrorMock).toHaveBeenCalledWith('Failed to format tracking payload', {
+        error: expect.any(TypeError),
+      });
 
       JSON.stringify = originalStringify;
     });

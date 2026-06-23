@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { BackgroundRefresh } from './background-refresh';
 import { getFullDashboardData } from '../../lib/github';
+import logger from '../../lib/logger';
 
 vi.mock('../../lib/github', () => ({
   getFullDashboardData: vi.fn(),
@@ -62,7 +63,7 @@ describe('BackgroundRefresh Mock Integrations', () => {
   });
 
   it('verifies correct fallback procedures during fake endpoint timeout blocks', async () => {
-    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const consoleErrorSpy = vi.spyOn(logger, 'error').mockImplementation(() => {});
     vi.mocked(getFullDashboardData).mockRejectedValue(new Error('timeout'));
 
     service.triggerRefresh('timeout_user');
@@ -77,7 +78,7 @@ describe('BackgroundRefresh Mock Integrations', () => {
   });
 
   it('asserts complete cache sync is written on success callbacks', async () => {
-    const consoleInfoSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
+    const consoleInfoSpy = vi.spyOn(logger, 'info').mockImplementation(() => {});
     vi.mocked(getFullDashboardData).mockResolvedValue({ success: true } as unknown as Awaited<
       ReturnType<typeof getFullDashboardData>
     >);

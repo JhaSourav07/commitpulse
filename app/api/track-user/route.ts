@@ -179,7 +179,9 @@ export async function POST(req: Request) {
         }
       }
 
-      console.warn('Database operation failed or timed out. Bypassing user tracking:', upsertError);
+      logger.warn('Database operation failed or timed out. Bypassing user tracking', {
+        error: upsertError,
+      });
       return NextResponse.json({ success: true });
     }
 

@@ -1,4 +1,5 @@
 import { DistributedCache } from './cache';
+import logger from '@/lib/logger';
 
 interface RateLimitResult {
   success: boolean;
@@ -125,7 +126,7 @@ export class RateLimiter {
           }
         }
       } catch (error) {
-        console.error('RateLimiter KV error, falling back to memory:', error);
+        logger.error('RateLimiter KV error, falling back to memory', { error });
       }
     }
 
@@ -177,7 +178,7 @@ export class RateLimiter {
           body: JSON.stringify([['DEL', `ratelimit_class:${ip}`]]),
         });
       } catch (error) {
-        console.error('RateLimiter KV reset error:', error);
+        logger.error('RateLimiter KV reset error', { error });
       }
     }
 
@@ -291,7 +292,7 @@ export async function rateLimit(
         };
       }
     } catch (error) {
-      console.error('Rate limit KV error, falling back to memory:', error);
+      logger.error('Rate limit KV error, falling back to memory', { error });
     }
   }
 

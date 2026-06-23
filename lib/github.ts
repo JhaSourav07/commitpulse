@@ -878,9 +878,9 @@ export async function fetchGitHubContributions(
       if (shouldFallbackOnError(err)) {
         const staleData = await contributionsCache.get(key);
         if (staleData) {
-          console.warn(
+          logger.warn(
             `[GitHub API] Fetch failed or timed out for "${username}", falling back to stale cache:`,
-            err
+            { error: err }
           );
           return {
             ...staleData,
@@ -1010,7 +1010,7 @@ async function fetchContributionsUncached(
   // 🔽 CHANGE THIS SECTION 🔽
   let repoContributions = data.data.user.contributionsCollection?.commitContributionsByRepository;
   if (!repoContributions || !Array.isArray(repoContributions)) {
-    console.warn(
+    logger.warn(
       `[CommitPulse API] Empty profile or null repository nodes discovered for user "${username}". Falling back to baseline collection.`
     );
     repoContributions = [];

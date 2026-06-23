@@ -4,6 +4,7 @@ import { toPng, toCanvas } from 'html-to-image';
 import type { DashboardExportData } from '@/types/dashboard';
 import { getDashboardUrl, getOrigin } from '@/utils/urls';
 import { activityToTowers, generateMonolithSTL } from '@/lib/export3d';
+import logger from '@/lib/logger';
 
 type OptionState = 'idle' | 'loading' | 'success' | 'error';
 
@@ -425,21 +426,21 @@ export function useShareActions(
           downloadTextFile(stl, `commitpulse-${username}-monolith.stl`, 'text/plain;charset=utf-8');
           setOptionState('stl', 'success');
         } else {
-          console.error('Worker failed to generate STL:', error);
+          logger.error('Worker failed to generate STL', { error });
           runStlSync();
         }
         worker.terminate();
       };
 
       worker.onerror = (err) => {
-        console.error('Worker error:', err);
+        logger.error('Worker error', { error: err });
         runStlSync();
         worker.terminate();
       };
 
       worker.postMessage({ activity });
     } catch (err) {
-      console.warn('Could not initialize worker, running synchronously:', err);
+      logger.warn('Could not initialize worker, running synchronously', { error: err });
       runStlSync();
     }
 
@@ -450,7 +451,7 @@ export function useShareActions(
         downloadTextFile(stl, `commitpulse-${username}-monolith.stl`, 'text/plain;charset=utf-8');
         setOptionState('stl', 'success');
       } catch (e) {
-        console.error('Synchronous STL generation failed:', e);
+        logger.error('Synchronous STL generation failed', { error: e });
         setOptionState('stl', 'error');
       }
     }

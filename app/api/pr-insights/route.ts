@@ -4,6 +4,7 @@ import { validateGitHubUsername } from '@/lib/validations';
 import { getRateLimitHeaders, RateLimiter } from '@/lib/rate-limit';
 import { getUserGitHubToken } from '@/lib/githubtoken';
 import { getClientIp } from '@/utils/getClientIp';
+import logger from '@/lib/logger';
 
 const prInsightsLimiter = new RateLimiter(10, 60_000, 10_000);
 
@@ -38,7 +39,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json(data);
   } catch (error: unknown) {
-    console.error('Error fetching PR insights:', error);
+    logger.error('Error fetching PR insights', { error });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to fetch PR insights' },
       { status: 500 }
