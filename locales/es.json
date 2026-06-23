@@ -413,6 +413,21 @@
       "viewMilestone": "View details",
       "totalMilestones": "Total Milestones",
       "explore": "Explore Timeline"
+    },
+    "consistency": {
+      "title": "Contribution Consistency Tracker",
+      "subtitle": "Track your commit streaks, weekday activity bias, and yearly stability trends.",
+      "no_data": "No consistency data available.",
+      "active_streak": "Active Streak",
+      "peak_streak": "Peak Streak",
+      "weekday_bias": "Activity Bias",
+      "weekday_value": "Weekdays",
+      "weekend_value": "Weekends",
+      "days": "Days",
+      "stability": "Stability Index",
+      "bias_warrior": "Weekday Warrior",
+      "bias_builder": "Weekend Builder",
+      "bias_balanced": "Balanced Coder"
     }
   }
 }
