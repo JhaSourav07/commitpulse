@@ -32,7 +32,7 @@ export async function POST(req: Request) {
   const origin = req.headers.get('origin');
   const corsHeaders = getCorsHeaders(origin);
 
-  if (req.method === 'POST' && origin && !ALLOWED_ORIGINS.includes(origin)) {
+  if (!origin || !ALLOWED_ORIGINS.includes(origin)) {
     return NextResponse.json(
       { success: false, error: 'Origin not allowed' },
       { status: 403, headers: corsHeaders }

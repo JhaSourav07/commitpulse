@@ -19,6 +19,15 @@ import logger from '@/lib/logger';
 const notifyWriteCache = new DistributedCache<number>(5000, 60000);
 const NOTIFY_WRITE_COOLDOWN_MS = 5 * 60 * 1000;
 
+const ALLOWED_ORIGINS = [
+  process.env.NEXT_PUBLIC_APP_URL || 'https://commitpulse.vercel.app',
+  'https://commitpulse.vercel.app',
+];
+
+function isOriginAllowed(origin: string | null): boolean {
+  return !!origin && ALLOWED_ORIGINS.includes(origin);
+}
+
 /**
  * Masks an email address to prevent PII exposure in unauthenticated responses.
  * Example: "john.doe@gmail.com" → "jo***@gm***.com"
@@ -92,6 +101,12 @@ async function authorizeNotificationMutation(
 // ─── POST /api/notify ────────────────────────────────────────────────────────
 // Register or update email notification preferences for a user
 export async function POST(req: Request) {
+  // CSRF protection — require a valid Origin header for state-changing requests
+  const origin = req.headers.get('origin');
+  if (!isOriginAllowed(origin)) {
+    return NextResponse.json({ success: false, message: 'Origin not allowed.' }, { status: 403 });
+  }
+
   // Rate limiting
   const ip = getClientIp(req);
 
@@ -257,6 +272,12 @@ export async function POST(req: Request) {
 // ─── DELETE /api/notify ──────────────────────────────────────────────────────
 // Remove notification preferences for a user (unsubscribe / right to erasure)
 export async function DELETE(req: NextRequest) {
+  // CSRF protection — require a valid Origin header for state-changing requests
+  const origin = req.headers.get('origin');
+  if (!isOriginAllowed(origin)) {
+    return NextResponse.json({ success: false, message: 'Origin not allowed.' }, { status: 403 });
+  }
+
   // Rate limiting
   const ip = getClientIp(req);
 
