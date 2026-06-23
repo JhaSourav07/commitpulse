@@ -51,59 +51,48 @@ vi.mock('gsap/ScrollTrigger', () => ({
   },
 }));
 
-vi.mock('framer-motion', () => ({
-  motion: {
-    div: ({ children, ...props }: HTMLAttributes<HTMLDivElement> & { children?: ReactNode }) => (
-      <div {...props}>{children}</div>
-    ),
-    span: ({ children, ...props }: HTMLAttributes<HTMLSpanElement> & { children?: ReactNode }) => (
-      <span {...props}>{children}</span>
-    ),
-    p: ({
-      children,
-      ...props
-    }: HTMLAttributes<HTMLParagraphElement> & { children?: ReactNode }) => (
-      <p {...props}>{children}</p>
-    ),
-    h1: ({ children, ...props }: HTMLAttributes<HTMLHeadingElement> & { children?: ReactNode }) => (
-      <h1 {...props}>{children}</h1>
-    ),
-    h2: ({ children, ...props }: HTMLAttributes<HTMLHeadingElement> & { children?: ReactNode }) => (
-      <h2 {...props}>{children}</h2>
-    ),
-    h3: ({ children, ...props }: HTMLAttributes<HTMLHeadingElement> & { children?: ReactNode }) => (
-      <h3 {...props}>{children}</h3>
-    ),
-    h4: ({ children, ...props }: HTMLAttributes<HTMLHeadingElement> & { children?: ReactNode }) => (
-      <h4 {...props}>{children}</h4>
-    ),
-    h5: ({ children, ...props }: HTMLAttributes<HTMLHeadingElement> & { children?: ReactNode }) => (
-      <h5 {...props}>{children}</h5>
-    ),
-    h6: ({ children, ...props }: HTMLAttributes<HTMLHeadingElement> & { children?: ReactNode }) => (
-      <h6 {...props}>{children}</h6>
-    ),
-    section: ({ children, ...props }: HTMLAttributes<HTMLElement> & { children?: ReactNode }) => (
-      <section {...props}>{children}</section>
-    ),
-    a: ({ children, ...props }: HTMLAttributes<HTMLAnchorElement> & { children?: ReactNode }) => (
-      <a {...props}>{children}</a>
-    ),
-    button: ({
-      children,
-      ...props
-    }: HTMLAttributes<HTMLButtonElement> & { children?: ReactNode }) => (
-      <button {...props}>{children}</button>
-    ),
-    img: (props: React.ImgHTMLAttributes<HTMLImageElement>) => (
-      <img {...props} alt={props.alt || ''} />
-    ),
-  },
-  AnimatePresence: ({ children }: { children: ReactNode }) => <>{children}</>,
-  useMotionValue: (initial: number) => ({ current: initial, set: vi.fn() }),
-  useSpring: (value: { current: number }) => value,
-  useTransform: (value: { current: number }, fn: (v: number) => number) => fn(value.current),
-}));
+vi.mock('framer-motion', () => {
+  const cleanProps = (props: any) => {
+    const {
+      whileHover,
+      whileInView,
+      whileTap,
+      whileDrag,
+      layout,
+      initial,
+      animate,
+      exit,
+      transition,
+      viewport,
+      ...rest
+    } = props;
+    return rest;
+  };
+
+  return {
+    motion: {
+      div: ({ children, ...props }: any) => <div {...cleanProps(props)}>{children}</div>,
+      span: ({ children, ...props }: any) => <span {...cleanProps(props)}>{children}</span>,
+      p: ({ children, ...props }: any) => <p {...cleanProps(props)}>{children}</p>,
+      h1: ({ children, ...props }: any) => <h1 {...cleanProps(props)}>{children}</h1>,
+      h2: ({ children, ...props }: any) => <h2 {...cleanProps(props)}>{children}</h2>,
+      h3: ({ children, ...props }: any) => <h3 {...cleanProps(props)}>{children}</h3>,
+      h4: ({ children, ...props }: any) => <h4 {...cleanProps(props)}>{children}</h4>,
+      h5: ({ children, ...props }: any) => <h5 {...cleanProps(props)}>{children}</h5>,
+      h6: ({ children, ...props }: any) => <h6 {...cleanProps(props)}>{children}</h6>,
+      section: ({ children, ...props }: any) => (
+        <section {...cleanProps(props)}>{children}</section>
+      ),
+      a: ({ children, ...props }: any) => <a {...cleanProps(props)}>{children}</a>,
+      button: ({ children, ...props }: any) => <button {...cleanProps(props)}>{children}</button>,
+      img: (props: any) => <img alt="" {...cleanProps(props)} />,
+    },
+    AnimatePresence: ({ children }: { children: ReactNode }) => <>{children}</>,
+    useMotionValue: (initial: number) => ({ current: initial, set: vi.fn() }),
+    useSpring: (value: { current: number }) => value,
+    useTransform: (value: { current: number }, fn: (v: number) => number) => fn(value.current),
+  };
+});
 
 describe('ContributorsPage - Responsive Breakpoints', () => {
   beforeEach(() => {

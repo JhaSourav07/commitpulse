@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Star } from 'lucide-react';
 
 interface Repository {
   name: string;
@@ -18,15 +18,22 @@ interface Repository {
 interface UniversalReposProps {
   popularRepos?: Repository[];
   pinnedRepos?: Repository[];
+  starredRepos?: Repository[];
 }
 
-export function PopularRepos({ popularRepos = [], pinnedRepos = [] }: UniversalReposProps) {
-  const [viewType, setViewType] = useState<'popular' | 'pinned'>('popular');
-  const [dropdownOpen, setDropdownOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-
+export function PopularRepos({
+  popularRepos = [],
+  pinnedRepos = [],
+  starredRepos = [],
+}: UniversalReposProps) {
   const hasPopular = popularRepos.length > 0;
   const hasPinned = pinnedRepos.length > 0;
+  const hasStarred = starredRepos.length > 0;
+
+  const [viewType, setViewType] = useState<'popular' | 'pinned' | 'starred'>('popular');
+
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -39,10 +46,22 @@ export function PopularRepos({ popularRepos = [], pinnedRepos = [] }: UniversalR
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  if (!hasPopular && !hasPinned) return null;
+  if (!hasPopular && !hasPinned && !hasStarred) return null;
 
-  const activeRepos = viewType === 'popular' ? popularRepos : pinnedRepos;
-  const viewLabel = viewType === 'popular' ? 'Popular' : 'Pinned';
+  // Resolve current active array mapping
+  const activeRepos =
+    viewType === 'popular' ? popularRepos : viewType === 'pinned' ? pinnedRepos : starredRepos;
+
+  // Map active labels cleanly
+  const viewLabel =
+    viewType === 'popular' ? 'Popular' : viewType === 'pinned' ? 'Pinned' : 'Starred';
+
+  // Compute dynamic lists to support rendering dropdown selections
+  const availableViews = [
+    ...(hasPopular ? [{ id: 'popular', label: 'Popular' } as const] : []),
+    ...(hasPinned ? [{ id: 'pinned', label: 'Pinned' } as const] : []),
+    ...(hasStarred ? [{ id: 'starred', label: 'Starred' } as const] : []),
+  ];
 
   return (
     <div className="w-full max-w-7xl mx-auto">
@@ -51,25 +70,31 @@ export function PopularRepos({ popularRepos = [], pinnedRepos = [] }: UniversalR
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center space-x-2">
             <div className="flex-shrink-0">
-              <svg
-                className="w-5 h-5 transition-colors"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth={3}
-                style={{ stroke: '#9333ea' }}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
-                />
-              </svg>
+              {viewType === 'starred' ? (
+                <Star className="w-5 h-5 text-amber-500 fill-amber-500/10" strokeWidth={2.5} />
+              ) : (
+                <svg
+                  className="w-5 h-5 transition-colors"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={3}
+                  style={{ stroke: '#9333ea' }}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+                  />
+                </svg>
+              )}
             </div>
-            <h3 className="text-sm font-bold text-foreground">{viewLabel} Repositories</h3>
+            <h3 className="text-sm font-bold text-foreground" data-testid="repo-header-title">
+              {viewLabel} Repositories
+            </h3>
           </div>
 
-          {/* Dropdown toggle — only shown when both lists have data */}
-          {hasPopular && hasPinned && (
+          {/* Dynamic Dropdown toggle — only shown when at least two lists have data */}
+          {availableViews.length > 1 && (
             <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => setDropdownOpen((prev) => !prev)}
@@ -80,6 +105,7 @@ export function PopularRepos({ popularRepos = [], pinnedRepos = [] }: UniversalR
                 {viewLabel}
                 <ChevronDown
                   size={12}
+                  data-testid="chevron-icon"
                   className={`transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`}
                 />
               </button>
@@ -89,22 +115,22 @@ export function PopularRepos({ popularRepos = [], pinnedRepos = [] }: UniversalR
                   role="listbox"
                   className="absolute right-0 top-full mt-1.5 w-32 rounded-xl border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 shadow-lg z-10 overflow-hidden"
                 >
-                  {(['popular', 'pinned'] as const).map((type) => (
+                  {availableViews.map((view) => (
                     <button
-                      key={type}
+                      key={view.id}
                       role="option"
-                      aria-selected={viewType === type}
+                      aria-selected={viewType === view.id}
                       onClick={() => {
-                        setViewType(type);
+                        setViewType(view.id);
                         setDropdownOpen(false);
                       }}
                       className={`w-full text-left px-3 py-2 text-xs font-medium transition-colors ${
-                        viewType === type
+                        viewType === view.id
                           ? 'bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400'
                           : 'text-gray-700 dark:text-zinc-300 hover:bg-gray-50 dark:hover:bg-neutral-800'
                       }`}
                     >
-                      {type === 'popular' ? 'Popular' : 'Pinned'}
+                      {view.label}
                     </button>
                   ))}
                 </div>
@@ -115,7 +141,7 @@ export function PopularRepos({ popularRepos = [], pinnedRepos = [] }: UniversalR
 
         {activeRepos.length === 0 ? (
           <p className="text-xs text-muted-foreground py-4 text-center">
-            No {viewLabel.toLowerCase()} repositories found on this profile.
+            <span>No {viewLabel.toLowerCase()} repositories found on this profile.</span>
           </p>
         ) : (
           <div className="flex flex-col gap-2.5">

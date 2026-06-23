@@ -114,9 +114,9 @@ describe('calculateStreak — year boundary transition timeline (Variation 4)', 
     expect(resultGrace1.currentStreak).toBe(3); // Dec 29, Dec 30, Dec 31
     expect(resultGrace1.todayDate).toBe('2025-01-01');
 
-    // Grace period of 0 should reset current streak on Jan 1
+    // Grace period of 0 should keep current streak active on Jan 1 since it is not over yet
     const resultGrace0 = calculateStreak(calendar, 'UTC', new Date('2025-01-01T12:00:00Z'), 0);
-    expect(resultGrace0.currentStreak).toBe(0);
+    expect(resultGrace0.currentStreak).toBe(3);
   });
 
   it('evaluates current streak correctly when today is in the new year but contributions end on Dec 31 (stale calendar)', () => {

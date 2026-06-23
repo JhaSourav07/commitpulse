@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type SyntheticEvent } from 'react';
+import { useState, lazy, Suspense, type SyntheticEvent } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import type { ActivityData } from '@/types/dashboard';
 import VisualizationTooltip from './VisualizationTooltip';
@@ -11,6 +11,10 @@ import {
   getContributionLabel,
 } from './tooltipUtils';
 import { useTranslation } from '@/context/TranslationContext';
+import { use3DTheme } from '@/hooks/use3dtheme';
+
+// Lazy-load the 3D city so it never increases the initial JS bundle
+const ContributionCity3D = lazy(() => import('./ContributionCity3D'));
 
 const tabs = ['1W', '1M', '3M', '1Y'];
 
@@ -71,7 +75,10 @@ export default function ActivityLandscape({ data }: { data: ActivityData[] }) {
   const [activeTab, setActiveTab] = useState('3M');
   const [mode, setMode] = useState<'commits' | 'loc'>('commits');
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
+  const [is3D, setIs3D] = useState(false);
+  const [timeLapseMode, setTimeLapseMode] = useState(false);
   const { t } = useTranslation();
+  const theme3D = use3DTheme();
 
   const displayData = getFilteredData(data, activeTab);
 
@@ -181,80 +188,170 @@ export default function ActivityLandscape({ data }: { data: ActivityData[] }) {
                 </button>
               ))}
             </div>
+
+            {/* ── 3D City View toggle ── */}
+            <button
+              onClick={() => {
+                if (is3D) setTimeLapseMode(false);
+                setIs3D((v) => !v);
+              }}
+              aria-pressed={is3D}
+              title={is3D ? 'Switch to flat view' : 'Switch to 3D City view'}
+              className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-all duration-200 ${
+                is3D
+                  ? 'border-indigo-400/40 bg-indigo-500/15 text-indigo-400 dark:border-indigo-400/30 dark:bg-indigo-500/10'
+                  : 'border-black/10 bg-transparent text-gray-500 hover:border-black/20 hover:text-black dark:border-white/10 dark:hover:border-white/20 dark:hover:text-white'
+              }`}
+            >
+              {/* Cube icon */}
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden>
+                <path
+                  d="M7 1.5 L12.5 4.5 V9.5 L7 12.5 L1.5 9.5 V4.5 Z"
+                  stroke="currentColor"
+                  strokeWidth="1.2"
+                  fill="none"
+                />
+                <path
+                  d="M7 1.5 V12.5 M1.5 4.5 L12.5 4.5"
+                  stroke="currentColor"
+                  strokeWidth="0.8"
+                  strokeDasharray="2 1.5"
+                  opacity="0.5"
+                />
+              </svg>
+              3D City
+            </button>
+
+            {/* ── Time Lapse View toggle ── */}
+            <AnimatePresence>
+              {is3D && (
+                <motion.button
+                  initial={{ opacity: 0, scale: 0.9, width: 0 }}
+                  animate={{ opacity: 1, scale: 1, width: 'auto' }}
+                  exit={{ opacity: 0, scale: 0.9, width: 0 }}
+                  onClick={() => setTimeLapseMode((v) => !v)}
+                  aria-pressed={timeLapseMode}
+                  title={timeLapseMode ? 'Turn off Time-Lapse' : 'Turn on Time-Lapse'}
+                  className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-all duration-200 overflow-hidden whitespace-nowrap ${
+                    timeLapseMode
+                      ? 'border-emerald-400/40 bg-emerald-500/15 text-emerald-500 dark:border-emerald-400/30 dark:bg-emerald-500/10'
+                      : 'border-black/10 bg-transparent text-gray-500 hover:border-black/20 hover:text-black dark:border-white/10 dark:hover:border-white/20 dark:hover:text-white'
+                  }`}
+                >
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden
+                  >
+                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                  </svg>
+                  Time-Lapse
+                </motion.button>
+              )}
+            </AnimatePresence>
           </div>
         </div>
 
-        {/* Graph */}
-        <div
-          className="relative flex h-[200px] w-full items-end justify-between gap-0.5"
-          role="img"
-          aria-label="Activity chart showing contribution frequency over time"
-        >
-          {displayData.map((day, i) => {
-            const val = getValue(day);
-            const heightPercent = Math.max((val / maxCount) * 100, 3);
+        {/* ── 3D City view (conditionally rendered) ── */}
+        {is3D && (
+          <div className="mb-6">
+            <Suspense
+              fallback={
+                <div className="flex h-[360px] w-full items-center justify-center rounded-xl bg-black/5 dark:bg-white/5">
+                  <div className="flex flex-col items-center gap-3">
+                    <div className="h-7 w-7 animate-spin rounded-full border-2 border-indigo-400/30 border-t-indigo-400" />
+                    <span className="text-xs text-gray-400">Rendering city…</span>
+                  </div>
+                </div>
+              }
+            >
+              <ContributionCity3D data={data} theme={theme3D} timeLapseMode={timeLapseMode} />
+            </Suspense>
+          </div>
+        )}
 
-            // Recalculate intensity for LoC mode visually
-            const isHigh = mode === 'loc' ? val > maxCount * 0.7 : day.intensity >= 3;
-            const isMedium = mode === 'loc' ? val > 0 : day.intensity > 0;
+        {/* Graph (hidden while 3D view is active) */}
+        {!is3D && (
+          <>
+            {/* Graph */}
+            <div
+              className="relative flex h-[200px] w-full items-end justify-between gap-0.5"
+              role="img"
+              aria-label="Activity chart showing contribution frequency over time"
+            >
+              {displayData.map((day, i) => {
+                const val = getValue(day);
+                const heightPercent = Math.max((val / maxCount) * 100, 3);
 
-            return (
-              <div
-                key={`${day.date}-${i}`}
-                className="group/bar relative flex h-full flex-1 cursor-pointer items-end outline-none"
-                aria-label={`${
-                  mode === 'loc'
-                    ? t('dashboard.activity.lines_modified', {
-                        count: val.toString(),
-                        defaultValue: `${val} lines modified`,
-                      })
-                    : getContributionLabel(day.count, t)
-                } ${
-                  day.startDate && day.startDate !== day.date
-                    ? t('dashboard.activity.aria_range', {
-                        start: formatTooltipDate(day.startDate),
-                        end: formatTooltipDate(day.date),
-                        defaultValue: `from ${formatTooltipDate(day.startDate)} to ${formatTooltipDate(day.date)}`,
-                      })
-                    : t('dashboard.activity.aria_single', {
-                        date: formatTooltipDate(day.date),
-                        defaultValue: `on ${formatTooltipDate(day.date)}`,
-                      })
-                }`}
-                tabIndex={0}
-                onMouseEnter={(e) => showTooltip(e, day, val)}
-                onFocus={(e) => showTooltip(e, day, val)}
-                onMouseLeave={hideTooltip}
-                onBlur={hideTooltip}
-              >
-                {/* Bar */}
-                <motion.div
-                  initial={{ height: 0 }}
-                  animate={{ height: `${heightPercent}%` }}
-                  transition={{
-                    duration: 0.6,
-                    delay: i * 0.008,
-                    ease: [0.16, 1, 0.3, 1],
-                  }}
-                  className={`w-full rounded-t-[2px] transition-all duration-200 ${
-                    isHigh
-                      ? mode === 'loc'
-                        ? 'bg-indigo-500 dark:bg-indigo-400'
-                        : 'bg-black dark:bg-white'
-                      : isMedium
-                        ? mode === 'loc'
-                          ? 'bg-indigo-300 hover:bg-indigo-400 dark:bg-indigo-500/50'
-                          : 'bg-zinc-500 hover:bg-zinc-700 dark:bg-zinc-600 dark:hover:bg-zinc-400'
-                        : 'bg-gray-200 hover:bg-gray-300 dark:bg-zinc-800 dark:hover:bg-zinc-700'
-                  }`}
-                />
-              </div>
-            );
-          })}
-        </div>
+                // Recalculate intensity for LoC mode visually
+                const isHigh = mode === 'loc' ? val > maxCount * 0.7 : day.intensity >= 3;
+                const isMedium = mode === 'loc' ? val > 0 : day.intensity > 0;
 
-        {/* X axis */}
-        <div className="mt-3 h-px w-full bg-black/10 dark:bg-[rgba(255,255,255,0.06)]" />
+                return (
+                  <div
+                    key={`${day.date}-${i}`}
+                    className="group/bar relative flex h-full flex-1 cursor-pointer items-end outline-none"
+                    aria-label={`${
+                      mode === 'loc'
+                        ? t('dashboard.activity.lines_modified', {
+                            count: val.toString(),
+                            defaultValue: `${val} lines modified`,
+                          })
+                        : getContributionLabel(day.count, t)
+                    } ${
+                      day.startDate && day.startDate !== day.date
+                        ? t('dashboard.activity.aria_range', {
+                            start: formatTooltipDate(day.startDate),
+                            end: formatTooltipDate(day.date),
+                            defaultValue: `from ${formatTooltipDate(day.startDate)} to ${formatTooltipDate(day.date)}`,
+                          })
+                        : t('dashboard.activity.aria_single', {
+                            date: formatTooltipDate(day.date),
+                            defaultValue: `on ${formatTooltipDate(day.date)}`,
+                          })
+                    }`}
+                    tabIndex={0}
+                    onMouseEnter={(e) => showTooltip(e, day, val)}
+                    onFocus={(e) => showTooltip(e, day, val)}
+                    onMouseLeave={hideTooltip}
+                    onBlur={hideTooltip}
+                  >
+                    {/* Bar */}
+                    <motion.div
+                      initial={{ height: 0 }}
+                      animate={{ height: `${heightPercent}%` }}
+                      transition={{
+                        duration: 0.6,
+                        delay: i * 0.008,
+                        ease: [0.16, 1, 0.3, 1],
+                      }}
+                      className={`w-full rounded-t-[2px] transition-all duration-200 ${
+                        isHigh
+                          ? mode === 'loc'
+                            ? 'bg-indigo-500 dark:bg-indigo-400'
+                            : 'bg-black dark:bg-white'
+                          : isMedium
+                            ? mode === 'loc'
+                              ? 'bg-indigo-300 hover:bg-indigo-400 dark:bg-indigo-500/50'
+                              : 'bg-zinc-500 hover:bg-zinc-700 dark:bg-zinc-600 dark:hover:bg-zinc-400'
+                            : 'bg-gray-200 hover:bg-gray-300 dark:bg-zinc-800 dark:hover:bg-zinc-700'
+                      }`}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* X axis */}
+            <div className="mt-3 h-px w-full bg-black/10 dark:bg-[rgba(255,255,255,0.06)]" />
+          </>
+        )}
       </motion.div>
 
       <AnimatePresence>

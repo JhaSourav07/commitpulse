@@ -25,13 +25,29 @@ const MOCK_RIVALRIES = [
   },
 ];
 
-export default function TopRivalriesTicker() {
+export interface RivalryItem {
+  u1: string;
+  u2: string;
+  label: string;
+  icon: React.ComponentType<{ size?: number; className?: string }>;
+  color: string;
+}
+
+export interface TopRivalriesTickerProps {
+  rivalries?: RivalryItem[] | null;
+}
+
+export default function TopRivalriesTicker({
+  rivalries = MOCK_RIVALRIES,
+}: TopRivalriesTickerProps = {}) {
   const router = useRouter();
 
   const handleRivalryClick = (u1: string, u2: string) => {
     // Navigate to comparison and reload data
     router.push(`/compare?user1=${encodeURIComponent(u1)}&user2=${encodeURIComponent(u2)}`);
   };
+
+  const items = rivalries || [];
 
   return (
     <div className="w-full overflow-hidden py-3 bg-zinc-50 dark:bg-[#050505] border-b border-black/5 dark:border-white/5 relative flex items-center">
@@ -50,35 +66,41 @@ export default function TopRivalriesTicker() {
         }}
       >
         {/* We map twice to create the infinite seamless loop effect */}
-        {[...MOCK_RIVALRIES, ...MOCK_RIVALRIES].map((rivalry, idx) => {
-          const Icon = rivalry.icon;
-          return (
-            <div
-              key={idx}
-              onClick={() => handleRivalryClick(rivalry.u1, rivalry.u2)}
-              className="group flex items-center gap-3 px-6 cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 rounded-full transition-colors mx-2 py-1.5"
-            >
-              <Icon
-                size={14}
-                className={`${rivalry.color} opacity-70 group-hover:opacity-100 transition-opacity`}
-              />
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold text-zinc-700 dark:text-zinc-300 group-hover:text-black dark:group-hover:text-white transition-colors">
-                  {rivalry.u1}
-                </span>
-                <span className="text-[10px] font-black text-zinc-400 dark:text-zinc-600 tracking-widest uppercase">
-                  VS
-                </span>
-                <span className="text-sm font-semibold text-zinc-700 dark:text-zinc-300 group-hover:text-black dark:group-hover:text-white transition-colors">
-                  {rivalry.u2}
+        {items.length === 0 ? (
+          <div className="flex items-center justify-center w-full px-6 py-1.5 text-xs text-zinc-400 dark:text-zinc-500 font-medium">
+            No active rivalries
+          </div>
+        ) : (
+          [...items, ...items].map((rivalry, idx) => {
+            const Icon = rivalry.icon;
+            return (
+              <div
+                key={idx}
+                onClick={() => handleRivalryClick(rivalry.u1, rivalry.u2)}
+                className="group flex items-center gap-3 px-6 cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 rounded-full transition-colors mx-2 py-1.5"
+              >
+                <Icon
+                  size={14}
+                  className={`${rivalry.color} opacity-70 group-hover:opacity-100 transition-opacity`}
+                />
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-semibold text-zinc-700 dark:text-zinc-300 group-hover:text-black dark:group-hover:text-white transition-colors">
+                    {rivalry.u1}
+                  </span>
+                  <span className="text-[10px] font-black text-zinc-400 dark:text-zinc-600 tracking-widest uppercase">
+                    VS
+                  </span>
+                  <span className="text-sm font-semibold text-zinc-700 dark:text-zinc-300 group-hover:text-black dark:group-hover:text-white transition-colors">
+                    {rivalry.u2}
+                  </span>
+                </div>
+                <span className="text-[10px] text-zinc-400 dark:text-zinc-500 font-medium px-2 py-0.5 rounded-md border border-black/5 dark:border-white/10 bg-white dark:bg-black/20">
+                  {rivalry.label}
                 </span>
               </div>
-              <span className="text-[10px] text-zinc-400 dark:text-zinc-500 font-medium px-2 py-0.5 rounded-md border border-black/5 dark:border-white/10 bg-white dark:bg-black/20">
-                {rivalry.label}
-              </span>
-            </div>
-          );
-        })}
+            );
+          })
+        )}
       </motion.div>
     </div>
   );

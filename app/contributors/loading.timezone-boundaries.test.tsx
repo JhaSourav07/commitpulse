@@ -22,7 +22,7 @@ describe('ContributorsLoading - Timezone Boundaries & Calendar Alignment', () =>
 
       // Ensure layout elements are present and unchanged
       expect(screen.getByRole('status')).toBeInTheDocument();
-      expect(screen.getByText('Loading the collective...')).toBeInTheDocument();
+      expect(screen.queryByText('Loading the collective...')).not.toBeInTheDocument();
       expect(container.querySelector('.animate-spin')).toBeInTheDocument();
 
       // Clean up DOM and mocks between iterations
@@ -49,7 +49,7 @@ describe('ContributorsLoading - Timezone Boundaries & Calendar Alignment', () =>
     vi.setSystemTime(new Date('2026-03-08T02:00:00Z'));
 
     render(<Loading />);
-    expect(screen.getByText('Loading the collective...')).toBeInTheDocument();
+    expect(screen.queryByText('Loading the collective...')).not.toBeInTheDocument();
 
     vi.useRealTimers();
   });
@@ -72,7 +72,7 @@ describe('ContributorsLoading - Timezone Boundaries & Calendar Alignment', () =>
 
     render(<Loading />);
     expect(screen.getByRole('status')).toBeInTheDocument();
-    expect(screen.getByText('Fetching contributor data from GitHub')).toBeInTheDocument();
+    expect(screen.queryByText('Fetching contributor data from GitHub')).not.toBeInTheDocument();
 
     vi.unstubAllGlobals();
   });

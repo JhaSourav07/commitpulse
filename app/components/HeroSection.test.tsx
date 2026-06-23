@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { HeroSection } from './HeroSection';
 
 vi.mock('framer-motion', () => ({
@@ -109,3 +109,82 @@ describe('HeroSection responsive rendering and typography (Variation 3)', () => 
 });
 
 // Variation 2 assertions merged into 'HeroSection responsive breakpoints' above.
+
+describe('HeroSection — responsive rendering and elements (Variation 1)', () => {
+  const setupMatchMedia = (width: number) => {
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn().mockImplementation((query: string) => {
+        const minMatch = query.match(/\(min-width:\s*(\d+)px\)/);
+        const maxMatch = query.match(/\(max-width:\s*(\d+)px\)/);
+        // Evaluate both constraints independently so compound queries like
+        // "(min-width: 768px) and (max-width: 1023px)" resolve correctly.
+        let matches = true;
+        if (minMatch) matches = matches && width >= Number(minMatch[1]);
+        if (maxMatch) matches = matches && width <= Number(maxMatch[1]);
+        if (!minMatch && !maxMatch) matches = false;
+        return {
+          matches,
+          media: query,
+          onchange: null,
+          addListener: vi.fn(),
+          removeListener: vi.fn(),
+          addEventListener: vi.fn(),
+          removeEventListener: vi.fn(),
+          dispatchEvent: vi.fn(),
+        };
+      })
+    );
+  };
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('outer container carries the hero region role and aria-label with high-contrast background class', () => {
+    setupMatchMedia(1280);
+    render(<HeroSection />);
+    const region = screen.getByRole('region', { name: /hero section/i });
+    expect(region).toBeInTheDocument();
+    expect(region.className).toContain('bg-[radial-gradient');
+  });
+
+  it('heading has gradient typography classes at desktop width (1280 px)', () => {
+    setupMatchMedia(1280);
+    render(<HeroSection />);
+    const h1 = screen.getByRole('heading', { level: 1 });
+    expect(h1.className).toContain('text-5xl');
+    expect(h1.className).toContain('md:text-8xl');
+    expect(h1.className).toContain('font-extrabold');
+    expect(h1.className).toContain('bg-clip-text');
+    expect(h1.className).toContain('text-transparent');
+    expect(h1.className).toContain('from-green-500');
+    expect(h1.className).toContain('to-purple-600');
+  });
+
+  it('heading has gradient typography classes at mobile width (375 px)', () => {
+    setupMatchMedia(375);
+    render(<HeroSection />);
+    const h1 = screen.getByRole('heading', { level: 1 });
+    expect(h1.className).toContain('text-5xl');
+    expect(h1.className).toContain('font-extrabold');
+    expect(h1.className).toContain('bg-clip-text');
+    expect(h1.className).toContain('text-transparent');
+  });
+
+  it('dark-mode gradient stops are present alongside light-mode stops in the heading', () => {
+    setupMatchMedia(768);
+    render(<HeroSection />);
+    const h1 = screen.getByRole('heading', { level: 1 });
+    expect(h1.className).toContain('dark:from-green-400');
+    expect(h1.className).toContain('dark:via-cyan-400');
+    expect(h1.className).toContain('dark:to-purple-500');
+  });
+
+  it('renders username textbox and at least two action buttons', () => {
+    setupMatchMedia(1280);
+    render(<HeroSection />);
+    expect(screen.getByRole('textbox', { name: /github username/i })).toBeInTheDocument();
+    expect(screen.getAllByRole('button').length).toBeGreaterThanOrEqual(2);
+  });
+});

@@ -60,13 +60,30 @@ function extractSection(text: string, headers: RegExp): string[] {
   return sectionLines;
 }
 
+function isValidSkill(skill: string): boolean {
+  const cleaned = skill.trim();
+
+  const shortSkills = new Set(['C', 'R', 'Go', 'AI', 'ML', 'JS', 'TS', 'C++', 'C#', '.NET']);
+
+  if (shortSkills.has(cleaned)) {
+    return true;
+  }
+
+  return (
+    cleaned.length >= 2 &&
+    cleaned.length < 50 &&
+    /^[a-zA-Z0-9.+#\s-]+$/.test(cleaned) &&
+    !/[?~<>]/.test(cleaned) &&
+    !/^[A-Za-z]\s+[A-Za-z]$/.test(cleaned)
+  );
+}
+
 function extractSkills(text: string): string[] {
   const section = extractSection(text, SKILL_SECTION_HEADERS);
-  const allText = section.join(' ');
-  const skills = allText
-    .split(/[,•·\-|/\n]+/)
+  const skills = section
+    .flatMap((line) => line.split(/[,•·|/]+/))
     .map((s) => s.trim())
-    .filter((s) => s.length > 0 && s.length < 50);
+    .filter(isValidSkill);
   return [...new Set(skills)];
 }
 
@@ -120,11 +137,32 @@ async function extractTextFromBuffer(buffer: Buffer, mimeType: string): Promise<
   if (mimeType === 'application/pdf') {
     try {
       if (buffer.toString('utf-8', 0, 4) === '%PDF') {
-        const pdf = await import('pdf-parse');
-        const pdfParser = ((pdf as unknown as { default?: unknown }).default || pdf) as (
-          dataBuffer: Buffer,
-          options?: unknown
-        ) => Promise<{ text: string }>;
+        const pdfModule = (await import('pdf-parse')) as Record<string, unknown>;
+
+        console.debug('pdf-parse exports:', Object.keys(pdfModule));
+
+        type PdfParser = (dataBuffer: Buffer, options?: unknown) => Promise<{ text: string }>;
+
+        let pdfParser: PdfParser | null = null;
+
+        if (typeof pdfModule.default === 'function') {
+          pdfParser = pdfModule.default as PdfParser;
+        } else if (typeof (pdfModule as unknown) === 'function') {
+          pdfParser = pdfModule as unknown as PdfParser;
+        } else {
+          const nestedDefault = (pdfModule.default as Record<string, unknown> | undefined)?.default;
+
+          if (typeof nestedDefault === 'function') {
+            pdfParser = nestedDefault as PdfParser;
+          }
+        }
+
+        if (!pdfParser) {
+          throw new TypeError(
+            `Unable to resolve pdf-parse export. Available keys: ${Object.keys(pdfModule).join(', ')}`
+          );
+        }
+
         const data = await pdfParser(buffer);
         rawText = data.text;
       } else {

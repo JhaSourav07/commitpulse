@@ -30,7 +30,7 @@ async function handleClaim({ github, context }) {
 
   const issueAuthor = context.payload.issue.user.login;
 
-  const MAINTAINERS = ['jhasourav07', 'aamod007', 'souravjhahind'];
+  const MAINTAINERS = ['jhasourav07', 'aamod-dev', 'souravjhahind'];
   const isOpenedByMaintainer = MAINTAINERS.includes(issueAuthor.toLowerCase());
 
   if (!isOpenedByMaintainer && commenter.toLowerCase() !== issueAuthor.toLowerCase()) {

@@ -72,6 +72,25 @@ export class RefreshPolicy {
   }
 
   /**
+   * Atomically checks whether a refresh is allowed and, if so, records it.
+   *
+   * This eliminates the TOCTOU race condition between `isRefreshAllowed()`
+   * and `recordRefresh()` where concurrent requests could all pass the
+   * cooldown check before any of them recorded the refresh.
+   *
+   * @returns `true` if the refresh was allowed and recorded; `false` if blocked.
+   */
+  public tryAcquire(username: string): boolean {
+    if (!this.isRefreshAllowed(username)) {
+      return false;
+    }
+
+    // Record immediately to close the race window
+    this.recordRefresh(username);
+    return true;
+  }
+
+  /**
    * Records a successful refresh event for the username.
    */
   public recordRefresh(username: string): void {

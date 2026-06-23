@@ -24,12 +24,14 @@ describe('QuotaMonitor Type Compiler Validation', () => {
 
   it('accepts valid updateQuotaFromHeaders parameter types', () => {
     expectTypeOf(quotaMonitor.updateQuotaFromHeaders).parameters.toMatchTypeOf<
-      [Headers | Record<string, string>]
+      [Headers | Record<string, string>, string?]
     >();
   });
 
   it('accepts numeric parameters for setQuota', () => {
-    expectTypeOf(quotaMonitor.setQuota).parameters.toEqualTypeOf<[number, number, number]>();
+    expectTypeOf(quotaMonitor.setQuota).parameters.toEqualTypeOf<
+      [number, number, number, string?]
+    >();
   });
 
   it('maintains singleton instance typing', () => {

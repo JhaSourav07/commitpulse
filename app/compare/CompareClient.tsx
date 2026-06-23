@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import TopRivalriesTicker from '@/components/TopRivalriesTicker';
+import DeveloperArena from '@/components/DeveloperArena';
 import {
   Radar,
   RadarChart,
@@ -43,9 +44,11 @@ import {
   Tent,
   Camera,
 } from 'lucide-react';
-import html2canvas from 'html2canvas';
 import { validateGitHubUsername } from '@/lib/validations';
-import { toPng } from 'html-to-image';
+
+// Reuse the existing recent-search infrastructure so users can quickly
+// access previously compared GitHub usernames.
+import { useRecentSearches } from '@/hooks/useRecentSearches';
 
 /* ── types ────────────────────────────────────────────────────────────── */
 
@@ -376,15 +379,15 @@ function CompareProfileCard({ user, side }: { user: CompareUserData; side: 'left
         {/* Avatar */}
         <div className="relative mb-4">
           <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-black/10 dark:border-[rgba(255,255,255,0.12)]">
-            <Image
+            <img
               src={
                 profile.avatarUrl.startsWith('http')
                   ? `${profile.avatarUrl}${profile.avatarUrl.includes('?') ? '&' : '?'}s=120`
                   : profile.avatarUrl
               }
               alt={profile.name}
-              width={80}
-              height={80}
+              width="80"
+              height="80"
               className="w-full h-full object-cover"
             />
           </div>
@@ -890,7 +893,7 @@ function DeveloperSkillsRadar({
         <Trophy size={14} className="text-amber-400" />
         Developer Skills Radar
       </h2>
-      <div className="p-6 rounded-xl bg-white dark:bg-[#0a0a0a] border border-black/10 dark:border-[rgba(255,255,255,0.08)]">
+      <div className="p-6 rounded-xl bg-white dark:bg-[#0a0a0a] border border-black/10 dark:border-[rgba(255,255,255,0.08)] text-[#A1A1AA] dark:text-white/35">
         {/* Legend */}
         <div className="flex justify-center gap-6 mb-4">
           <div className="flex items-center gap-2">
@@ -909,7 +912,7 @@ function DeveloperSkillsRadar({
             <PolarAngleAxis
               dataKey="skill"
               tick={{
-                fill: '#A1A1AA',
+                fill: 'currentColor',
                 fontSize: 11,
                 fontWeight: 600,
               }}
@@ -939,14 +942,14 @@ function DeveloperSkillsRadar({
             />
             <Tooltip
               contentStyle={{
-                backgroundColor: '#0a0a0a',
-                border: '1px solid rgba(255,255,255,0.1)',
+                backgroundColor: 'var(--recharts-tooltip-bg)',
+                border: '1px solid rgba(255,255,255,0.06)',
                 borderRadius: '10px',
                 padding: '10px 14px',
                 fontSize: '12px',
-                color: '#fff',
+                color: 'var(--recharts-tooltip-color)',
               }}
-              itemStyle={{ color: '#e4e4e7', fontSize: '11px' }}
+              itemStyle={{ color: 'var(--recharts-tooltip-color)', fontSize: '11px' }}
             />
           </RadarChart>
         </ResponsiveContainer>
@@ -969,7 +972,40 @@ export default function CompareClient() {
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<CompareResponse | null>(null);
   const [isExporting, setIsExporting] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [monolithKey, setMonolithKey] = useState(0);
+  // Persist and manage recently compared GitHub usernames.
+  // The hook handles localStorage persistence, deduplication,
+  // and limits the history size automatically.
+  const { searches, addSearch, clearSearches, removeSearch } = useRecentSearches();
+  const lastComparedRef = useRef({ user1: '', user2: '' });
+  const dataRef = useRef(data);
+  useEffect(() => {
+    dataRef.current = data;
+  }, [data]);
+
+  const handleShareBattle = () => {
+    const url = window.location.href;
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
+  const handleTwitterShare = () => {
+    if (!d1 || !d2) return;
+    const text = encodeURIComponent(
+      `🔥 GitHub Battle: @${d1.profile.username} vs @${d2.profile.username}\n` +
+        `${winner === 'tie' ? "It's a tie! 🤝" : `🏆 @${winner} wins the showdown!`}\n\n` +
+        `Check it out 👇\n${window.location.href}\n\n#GitHub #CommitPulse #GSSoC`
+    );
+    window.open(`https://twitter.com/intent/tweet?text=${text}`, '_blank');
+  };
+
+  const handleLinkedInShare = () => {
+    const url = encodeURIComponent(window.location.href);
+    window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${url}`, '_blank');
+  };
 
   const captureRef = useRef<HTMLDivElement>(null);
 
@@ -1006,6 +1042,8 @@ export default function CompareClient() {
         })
       );
 
+      const { toPng } = await import('html-to-image');
+
       const image = await toPng(captureRef.current, {
         pixelRatio: 2,
         cacheBust: true,
@@ -1038,9 +1076,6 @@ export default function CompareClient() {
     }
   };
 
-  const BASE_URL =
-    typeof window !== 'undefined' ? window.location.origin : 'https://commitpulse.vercel.app';
-
   const handleCompare = useCallback(
     async (u1: string, u2: string) => {
       const trimmedUser1 = u1.trim();
@@ -1071,6 +1106,15 @@ export default function CompareClient() {
         return;
       }
 
+      if (
+        lastComparedRef.current.user1.toLowerCase() === trimmedUser1.toLowerCase() &&
+        lastComparedRef.current.user2.toLowerCase() === trimmedUser2.toLowerCase() &&
+        dataRef.current !== null
+      ) {
+        return;
+      }
+
+      lastComparedRef.current = { user1: trimmedUser1, user2: trimmedUser2 };
       setLoading(true);
       setData(null);
 
@@ -1081,8 +1125,13 @@ export default function CompareClient() {
 
       try {
         const cached = await readCompareCache(u1, u2);
+
         if (cached) {
           setData(cached);
+
+          // Store successful comparison pairs even when served from cache.
+          addSearch(`${trimmedUser1} vs ${trimmedUser2}`);
+
           return;
         }
 
@@ -1098,6 +1147,11 @@ export default function CompareClient() {
         }
 
         setData(json);
+
+        // Store successful comparison pairs so users can quickly
+        // revisit previously compared developers.
+        addSearch(`${trimmedUser1} vs ${trimmedUser2}`);
+
         await writeCompareCache(u1, u2, json);
         setMonolithKey((k) => k + 1);
       } catch {
@@ -1106,22 +1160,21 @@ export default function CompareClient() {
         setLoading(false);
       }
     },
-    [router]
+    [router, addSearch]
   );
 
-  // Auto-compare if URL has params on mount
+  // Auto-compare if URL has params on mount or param changes
   useEffect(() => {
     const u1 = searchParams.get('user1');
     const u2 = searchParams.get('user2');
     if (u1 && u2) {
-      // Intentional: this is a one-time mount-only fetch trigger, not a
-      // setState call. The disable is misidentified by the rule — handleCompare
-      // is an async function that internally calls setLoading/setData/setError.
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setUser1(u1); // eslint-disable-line react-hooks/set-state-in-effect -- syncing URL params to input state
+      setUser2(u2);
       handleCompare(u1, u2);
+    } else {
+      setData(null);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [searchParams, handleCompare]);
 
   const d1 = data?.user1;
   const d2 = data?.user2;
@@ -1192,6 +1245,7 @@ export default function CompareClient() {
                 <input
                   id="compare-user1-input"
                   type="text"
+                  suppressHydrationWarning
                   placeholder="GitHub username #1"
                   aria-label="Enter first GitHub username to compare"
                   value={user1}
@@ -1220,6 +1274,7 @@ export default function CompareClient() {
                 <input
                   id="compare-user2-input"
                   type="text"
+                  suppressHydrationWarning
                   placeholder="GitHub username #2"
                   aria-label="Enter second GitHub username to compare"
                   value={user2}
@@ -1251,6 +1306,58 @@ export default function CompareClient() {
             </div>
           </motion.div>
 
+          {/* Recent Comparision History */}
+          {searches.length > 0 && (
+            <div className="max-w-2xl mx-auto mb-8">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs font-medium text-[#A1A1AA] uppercase tracking-wide">
+                  Recent Comparisions
+                </span>
+
+                <button
+                  onClick={clearSearches}
+                  className="text-xs text-red-500 hover:text-red-600 transition-colors"
+                >
+                  Clear All
+                </button>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                {searches.map((search) => (
+                  <div
+                    key={search}
+                    className="flex items-center gap-1 px-3 py-1 rounded-full border border-black/10 dark:border-white/10 bg-white dark:bg-[#0a0a0a]"
+                  >
+                    <button
+                      onClick={() => {
+                        const [left, right] = search.split(' vs ');
+
+                        if (left && right) {
+                          setUser1(left);
+                          setUser2(right);
+
+                          // Auto-run comparision from history
+                          handleCompare(left, right);
+                        }
+                      }}
+                      className="text-xs text-gray-700 dark:text-gray-300 hover:text-emerald-500 transition-colors"
+                    >
+                      {search}
+                    </button>
+
+                    <button
+                      onClick={() => removeSearch(search)}
+                      className="text-xs text-red-400 hover:text-red-600"
+                      aria-label={`Remove ${search} from recent comparisions`}
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Error */}
           <AnimatePresence>
             {error && (
@@ -1267,6 +1374,24 @@ export default function CompareClient() {
 
           {/* Loading */}
           {loading && <CompareSkeleton />}
+
+          {/* Pre-comparison Arena */}
+          {!data && !loading && (
+            <motion.div
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.4 }}
+            >
+              <DeveloperArena
+                onSelectBattle={(u1, u2) => {
+                  setUser1(u1);
+                  setUser2(u2);
+                  handleCompare(u1, u2);
+                }}
+              />
+            </motion.div>
+          )}
 
           {/* Results */}
           <AnimatePresence>
@@ -1437,9 +1562,11 @@ export default function CompareClient() {
                           <img
                             data-monolith-img="true"
                             key={`${user.profile.username}-${monolithKey}`}
-                            src={`${BASE_URL}/api/streak?user=${encodeURIComponent(user.profile.username)}&theme=neon&entrance=none&_k=${monolithKey}`}
+                            src={`/api/streak?user=${encodeURIComponent(user.profile.username)}&theme=neon&entrance=none&_k=${monolithKey}`}
                             alt={`${user.profile.username}'s CommitPulse monolith`}
-                            className="w-full"
+                            width="300"
+                            height="400"
+                            className="w-full h-auto"
                           />
                         </motion.div>
                       ))}
@@ -1447,14 +1574,105 @@ export default function CompareClient() {
                   </div>
                 </div>
 
-                {/* Floating Share Button */}
+                {/* Floating Action Buttons */}
+                {/* Floating Action Buttons */}
                 <motion.div
                   id="compare-share-button"
                   initial={{ opacity: 0, y: 50 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ type: 'spring', bounce: 0.5, delay: 1 }}
-                  className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50"
+                  className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3"
                 >
+                  {/* Share Battle — copy link */}
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={handleShareBattle}
+                    title="Copy battle link"
+                    className="flex items-center gap-2 px-5 py-4 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 text-white font-bold shadow-[0_0_20px_rgba(255,255,255,0.1)] transition-colors"
+                  >
+                    {copied ? (
+                      <>
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="18"
+                          height="18"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                        <span>Copied!</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="18"
+                          height="18"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+                          <polyline points="16 6 12 2 8 6" />
+                          <line x1="12" y1="2" x2="12" y2="15" />
+                        </svg>
+                        <span>Share Battle</span>
+                      </>
+                    )}
+                  </motion.button>
+
+                  {/* Twitter / X share */}
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={handleTwitterShare}
+                    title="Share on X (Twitter)"
+                    className="flex items-center gap-2 px-5 py-4 rounded-full bg-black hover:bg-zinc-800 backdrop-blur-md border border-white/20 text-white font-bold shadow-[0_0_20px_rgba(0,0,0,0.4)] transition-colors"
+                  >
+                    {/* X logo */}
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                    >
+                      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.261 5.632 5.903-5.632Zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                    </svg>
+                    <span>Post on X</span>
+                  </motion.button>
+
+                  {/* LinkedIn share */}
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={handleLinkedInShare}
+                    title="Share on LinkedIn"
+                    className="flex items-center gap-2 px-5 py-4 rounded-full bg-[#0A66C2] hover:bg-[#0958a8] backdrop-blur-md border border-[#0A66C2]/50 text-white font-bold shadow-[0_0_20px_rgba(10,102,194,0.4)] transition-colors"
+                  >
+                    {/* LinkedIn logo */}
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                    >
+                      <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+                    </svg>
+                    <span>Share on LinkedIn</span>
+                  </motion.button>
+
+                  {/* Export Wrapped Card */}
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
@@ -1469,8 +1687,6 @@ export default function CompareClient() {
                       {isExporting ? <Loader2 size={20} /> : <Camera size={20} />}
                     </motion.div>
                     <span>{isExporting ? 'Generating Epic Card...' : 'Export Wrapped Card'}</span>
-
-                    {/* Subtle glare effect on hover */}
                     <div className="absolute top-0 -inset-full h-full w-1/2 z-5 block transform -skew-x-12 bg-gradient-to-r from-transparent to-white opacity-20 group-hover:animate-shine" />
                   </motion.button>
                 </motion.div>

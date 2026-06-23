@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { DistributedCache } from './cache';
 import { rateLimit, RateLimiter } from './rate-limit';
 
 beforeEach(() => {
@@ -175,6 +176,23 @@ describe('rateLimit', () => {
       expect((await rateLimit('9.9.9.2', limit, 60000)).success).toBe(false);
     });
   });
+
+  it('uses atomic incr to avoid TOCTOU race condition', async () => {
+    vi.setSystemTime(1000);
+    const incrSpy = vi.spyOn(DistributedCache.prototype, 'incr').mockResolvedValueOnce(1);
+
+    const result = await rateLimit('atomic-test-function', 5, 60000);
+
+    expect(result).toEqual({
+      success: true,
+      limit: 5,
+      remaining: 4,
+      reset: 61000,
+    });
+    expect(incrSpy).toHaveBeenCalledWith('ratelimit:atomic-test-function', 60000);
+
+    incrSpy.mockRestore();
+  });
 });
 
 it('keys expire exactly at the window limit with sliding time advances', async () => {
@@ -295,6 +313,30 @@ describe('RateLimiter', () => {
 
     // Window should have expired — count resets, request is allowed
     expect(await limiter.check(ip)).toBe(true);
+  });
+
+  it('uses atomic incr to avoid TOCTOU race condition', async () => {
+    vi.setSystemTime(1000);
+    const limiter = new RateLimiter(5, 60000);
+    const cache = (
+      limiter as unknown as {
+        cache: DistributedCache<{ count: number; resetAt: number }>;
+      }
+    ).cache;
+
+    const incrSpy = vi.spyOn(cache, 'incr').mockResolvedValueOnce(1);
+
+    const result = await limiter.checkWithResult('atomic-test-class');
+
+    expect(result).toEqual({
+      success: true,
+      limit: 5,
+      remaining: 4,
+      reset: 61000,
+    });
+    expect(incrSpy).toHaveBeenCalledWith('ratelimit:atomic-test-class', 60000);
+
+    incrSpy.mockRestore();
   });
 
   it('reset() clears the counter and restores the full request allowance', async () => {

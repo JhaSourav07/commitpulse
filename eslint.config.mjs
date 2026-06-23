@@ -7,7 +7,20 @@ const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
   eslintConfigPrettier,
-  globalIgnores(['.next/**', 'out/**', 'build/**', 'next-env.d.ts', 'coverage/**', '.github/**']),
+  globalIgnores([
+    '.next/**',
+    'out/**',
+    'build/**',
+    'next-env.d.ts',
+    'coverage/**',
+    '.github/**',
+    'public/sw.js',
+    'public/sw.js.map',
+    'public/swe-*.js',
+    'public/swe-*.js.map',
+    'public/workbox-*.js',
+    'public/workbox-*.js.map',
+  ]),
   {
     rules: {
       'no-console': ['warn', { allow: ['warn', 'error', 'info'] }],

@@ -236,7 +236,20 @@ describe('JSON response serializer — boundary robustness (Variation 2)', () =>
 });
 
 describe('JSON response serializer — boundary robustness (Variation 3)', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
   it('verifies the utility catches the exception and reports format errors when passed non-serializable JSON payloads', () => {
+    const sendBeaconMock = vi.fn().mockReturnValue(false);
+    Object.defineProperty(navigator, 'sendBeacon', {
+      value: sendBeaconMock,
+      configurable: true,
+    });
+    const fetchMock = vi.fn().mockResolvedValue({});
+    vi.stubGlobal('fetch', fetchMock);
+
     // Arrange: Create a non-serializable payload using a circular reference
     const circularStructure: Record<string, unknown> = {};
     circularStructure['self'] = circularStructure;

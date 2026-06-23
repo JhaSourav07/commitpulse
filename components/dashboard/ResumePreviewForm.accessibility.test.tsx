@@ -12,13 +12,6 @@ vi.mock('framer-motion', () => ({
   },
 }));
 
-vi.mock('sonner', () => ({
-  toast: {
-    error: vi.fn(),
-    success: vi.fn(),
-  },
-}));
-
 const parsed = {
   name: 'John Doe',
   email: 'john@example.com',
@@ -62,6 +55,7 @@ describe('ResumePreviewForm - Accessibility compliance', () => {
     );
 
     const nameInput = screen.getByDisplayValue('John Doe');
+
     expect(nameInput).toHaveClass('focus:ring-2');
     expect(nameInput).toHaveClass('focus:ring-emerald-500');
     expect(nameInput).toHaveClass('outline-none');
@@ -79,6 +73,7 @@ describe('ResumePreviewForm - Accessibility compliance', () => {
     );
 
     const saveButton = screen.getByRole('button', { name: /Save Profile/i });
+
     expect(saveButton).not.toBeDisabled();
   });
 
@@ -93,8 +88,8 @@ describe('ResumePreviewForm - Accessibility compliance', () => {
       />
     );
 
-    // h3 heading must be present and readable by screen readers
     const heading = screen.getByRole('heading', { level: 3 });
+
     expect(heading).toBeInTheDocument();
     expect(heading.textContent).toContain('Review Parsed Data');
   });
@@ -113,7 +108,6 @@ describe('ResumePreviewForm - Accessibility compliance', () => {
     const backButton = screen.getByRole('button', { name: /back/i });
     const saveButton = screen.getByRole('button', { name: /save profile/i });
 
-    // Both buttons must be keyboard focusable
     backButton.focus();
     expect(document.activeElement).toBe(backButton);
 

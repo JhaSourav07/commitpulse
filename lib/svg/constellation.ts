@@ -1,7 +1,8 @@
 // lib/svg/constellation.ts
 
 import type { BadgeParams, ContributionCalendar, StreakStats } from '../../types';
-import { deterministicRandom, escapeXML, truncateUsername } from './generator';
+import { deterministicRandom, truncateUsername, getSizeScale } from './generator';
+import { escapeXML } from './sanitizer';
 import {
   CONSTELLATION_SVG_WIDTH,
   CONSTELLATION_SVG_HEIGHT,
@@ -302,6 +303,7 @@ export function generateConstellationSVG(
   params: BadgeParams,
   calendar: ContributionCalendar
 ): string {
+  const sf = getSizeScale(params.size);
   const safeUser = escapeXML(truncateUsername(params.user));
   const bgColor = params.bg || '0d1117';
   const textColor = params.text || 'c9d1d9';
@@ -383,7 +385,7 @@ export function generateConstellationSVG(
   const milkyWayGradientDef = buildMilkyWayGradientDef();
 
   // ── Assemble final SVG ─────────────────────────────────────────────────
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${CONSTELLATION_SVG_WIDTH}" height="${CONSTELLATION_SVG_HEIGHT}" viewBox="0 0 ${CONSTELLATION_SVG_WIDTH} ${CONSTELLATION_SVG_HEIGHT}" role="img" aria-labelledby="cp-constellation-title cp-constellation-desc">
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${Math.round(CONSTELLATION_SVG_WIDTH * sf)}" height="${Math.round(CONSTELLATION_SVG_HEIGHT * sf)}" viewBox="0 0 ${CONSTELLATION_SVG_WIDTH} ${CONSTELLATION_SVG_HEIGHT}" role="img" aria-labelledby="cp-constellation-title cp-constellation-desc">
   <title id="cp-constellation-title">CommitPulse Constellation Map for ${safeUser}</title>
   <desc id="cp-constellation-desc">A celestial star-map visualization of ${safeUser}'s GitHub contributions in ${year}. Each star represents a day with contributions; brighter stars indicate more commits. Constellation lines connect the brightest stars within each month.</desc>
   <defs>
@@ -395,52 +397,40 @@ export function generateConstellationSVG(
     </filter>
   </defs>
 
-  <!-- Background -->
   <rect width="${CONSTELLATION_SVG_WIDTH}" height="${CONSTELLATION_SVG_HEIGHT}" fill="#${bgColor}" rx="8" />
 
-  <!-- Milky Way gradient band -->
   <rect x="0" y="0" width="${CONSTELLATION_SVG_WIDTH}" height="${CONSTELLATION_SVG_HEIGHT}" fill="url(#${CSS_PREFIX}-milkyway)" />
 
-  <!-- Background starfield -->
   <g id="${CSS_PREFIX}-bg-stars">
     ${bgStarsSVG}
   </g>
 
-  <!-- Zodiac ring -->
   <g id="${CSS_PREFIX}-zodiac-ring">
     ${ringSVG}
   </g>
 
-  <!-- Month labels on ring -->
   <g id="${CSS_PREFIX}-month-labels">
     ${monthLabelsSVG}
   </g>
 
-  <!-- Constellation lines -->
   <g id="${CSS_PREFIX}-constellation-lines" filter="url(#${CSS_PREFIX}-glow)">
     ${linesSVG}
   </g>
 
-  <!-- Constellation month labels -->
   <g id="${CSS_PREFIX}-constellation-labels">
     ${constLabelsSVG}
   </g>
 
-  <!-- Contribution stars -->
   <g id="${CSS_PREFIX}-contrib-stars" filter="url(#${CSS_PREFIX}-glow)">
     ${contribStarsSVG}
   </g>
 
-  <!-- Username label -->
   <text x="${USERNAME_LABEL_X}" y="${USERNAME_LABEL_Y}" fill="#${textColor}" font-family="'Inter', 'Space Grotesk', sans-serif" font-size="18" font-weight="700">${safeUser}</text>
 
-  <!-- Year label -->
   <text x="${YEAR_LABEL_X}" y="${YEAR_LABEL_Y}" text-anchor="end" fill="#${textColor}" font-family="'Inter', 'Space Grotesk', sans-serif" font-size="18" font-weight="700" opacity="0.7">${year}</text>
 
-  <!-- Subtitle -->
   <text x="${SUBTITLE_X}" y="${SUBTITLE_Y}" text-anchor="middle" fill="#${textColor}" font-family="'Inter', sans-serif" font-size="11" opacity="0.4">Constellation Map</text>
 
-  <!-- Legend -->
   ${legendSVG}
 </svg>`;
 

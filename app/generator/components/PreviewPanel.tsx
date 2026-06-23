@@ -77,11 +77,19 @@ export function PreviewPanel({ markdown }: PreviewPanelProps) {
   return (
     <div className="flex flex-col h-full rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-[#111111] overflow-hidden shadow-sm">
       <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100 dark:border-white/8">
-        <div className="flex rounded-xl bg-gray-100 dark:bg-white/5 p-1 gap-1">
+        <div
+          role="tablist"
+          aria-label="View mode selection"
+          className="flex rounded-xl bg-gray-100 dark:bg-white/5 p-1 gap-1"
+        >
           <button
             type="button"
+            role="tab"
+            id="tab-preview"
+            aria-selected={tab === 'preview'}
+            aria-controls="panel-preview"
             onClick={() => setTab('preview')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#111111] ${
               tab === 'preview'
                 ? 'bg-white dark:bg-white/10 text-gray-900 dark:text-white shadow-sm'
                 : 'text-gray-500 dark:text-white/40 hover:text-gray-700 dark:hover:text-white/60'
@@ -92,8 +100,12 @@ export function PreviewPanel({ markdown }: PreviewPanelProps) {
           </button>
           <button
             type="button"
+            role="tab"
+            id="tab-raw"
+            aria-selected={tab === 'raw'}
+            aria-controls="panel-raw"
             onClick={() => setTab('raw')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#111111] ${
               tab === 'raw'
                 ? 'bg-white dark:bg-white/10 text-gray-900 dark:text-white shadow-sm'
                 : 'text-gray-500 dark:text-white/40 hover:text-gray-700 dark:hover:text-white/60'
@@ -109,7 +121,8 @@ export function PreviewPanel({ markdown }: PreviewPanelProps) {
             type="button"
             onClick={handleDownload}
             title="Download README.md"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-xs font-medium text-gray-600 dark:text-white/60 hover:bg-gray-100 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white transition-colors"
+            aria-label="Download README.md"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-xs font-medium text-gray-600 dark:text-white/60 hover:bg-gray-100 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#111111]"
           >
             <Download size={12} />
             <span className="hidden sm:inline">Download</span>
@@ -117,7 +130,11 @@ export function PreviewPanel({ markdown }: PreviewPanelProps) {
           <button
             type="button"
             onClick={handleCopy}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+            aria-label={
+              copied ? 'Copied markdown text to clipboard' : 'Copy markdown text to clipboard'
+            }
+            aria-live="polite"
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#111111] ${
               copied
                 ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
                 : 'bg-emerald-500 hover:bg-emerald-400 text-white border border-emerald-500'
@@ -131,7 +148,12 @@ export function PreviewPanel({ markdown }: PreviewPanelProps) {
 
       <div className="flex-1 overflow-auto">
         {tab === 'preview' ? (
-          <div className="p-6 min-h-full">
+          <div
+            id="panel-preview"
+            role="tabpanel"
+            aria-labelledby="tab-preview"
+            className="p-6 min-h-full"
+          >
             <div className="rounded-xl border border-gray-200 dark:border-white/8 bg-white dark:bg-[#0d1117] p-6 min-h-[200px]">
               <div
                 className="readme-preview text-gray-800 dark:text-[#e6edf3] text-sm leading-relaxed wrap-break-word"
@@ -140,7 +162,7 @@ export function PreviewPanel({ markdown }: PreviewPanelProps) {
             </div>
           </div>
         ) : (
-          <div className="relative h-full">
+          <div id="panel-raw" role="tabpanel" aria-labelledby="tab-raw" className="relative h-full">
             <pre
               className="p-5 text-xs font-mono leading-relaxed text-gray-700 dark:text-white/70 whitespace-pre-wrap overflow-auto h-full select-all"
               style={{

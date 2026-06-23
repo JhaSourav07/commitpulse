@@ -1,6 +1,47 @@
-import { expect, it, describe, vi, beforeEach, beforeAll } from 'vitest';
+import { expect, it, describe, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import React, { Component, ErrorInfo, ReactNode } from 'react';
+
+vi.mock('gsap', () => ({
+  default: {
+    registerPlugin: vi.fn(),
+    context: vi.fn((cb) => {
+      cb();
+      return {
+        revert: vi.fn(),
+      };
+    }),
+    timeline: vi.fn(() => ({
+      fromTo: vi.fn(),
+      to: vi.fn(),
+      kill: vi.fn(),
+    })),
+    set: vi.fn(),
+    to: vi.fn(),
+  },
+}));
+vi.mock('gsap/ScrollTrigger', () => ({
+  ScrollTrigger: {},
+}));
+
+if (typeof window !== 'undefined') {
+  Object.defineProperty(window, 'matchMedia', {
+    writable: true,
+    value: vi.fn().mockImplementation((query) => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    })),
+  });
+}
+
+import { WallOfLove } from './WallOfLove';
+const WallOfLoveModule = WallOfLove;
 
 const mockTelemetry = {
   trackException: vi.fn(),
@@ -51,41 +92,20 @@ class TestErrorBoundary extends Component<Props, State> {
 }
 
 describe('WallOfLove Error Resilience', () => {
-  let WallOfLoveModule: React.ComponentType<{ tweets: unknown[] }>;
-
-  beforeAll(async () => {
-    Object.defineProperty(window, 'matchMedia', {
-      writable: true,
-      value: vi.fn().mockImplementation((query) => ({
-        matches: false,
-        media: query,
-        onchange: null,
-        addListener: vi.fn(),
-        removeListener: vi.fn(),
-        addEventListener: vi.fn(),
-        removeEventListener: vi.fn(),
-        dispatchEvent: vi.fn(),
-      })),
-    });
-
-    const mod = await import('./WallOfLove');
-    WallOfLoveModule = mod.WallOfLove;
-  });
-
   beforeEach(() => {
     vi.clearAllMocks();
     vi.spyOn(console, 'error').mockImplementation(() => {});
   });
 
   it('should maintain hydration stability when initial data is missing', () => {
-    const { container } = render(<WallOfLoveModule tweets={[]} />);
+    const { container } = render(<WallOfLoveModule />);
     expect(container).toBeDefined();
   });
 
   it('should render error recovery UI when runtime exception occurs', () => {
     render(
       <TestErrorBoundary forceError={true}>
-        <WallOfLoveModule tweets={[]} />
+        <WallOfLoveModule />
       </TestErrorBoundary>
     );
 
@@ -96,7 +116,7 @@ describe('WallOfLove Error Resilience', () => {
   it('should log exception to dev-telemetry tracker on failure', () => {
     render(
       <TestErrorBoundary forceError={true}>
-        <WallOfLoveModule tweets={[]} />
+        <WallOfLoveModule />
       </TestErrorBoundary>
     );
 
@@ -108,7 +128,7 @@ describe('WallOfLove Error Resilience', () => {
       <div>
         <header data-testid="app-header">App Header</header>
         <TestErrorBoundary forceError={true}>
-          <WallOfLoveModule tweets={[]} />
+          <WallOfLoveModule />
         </TestErrorBoundary>
       </div>
     );
@@ -118,7 +138,7 @@ describe('WallOfLove Error Resilience', () => {
   it('should trigger user reset or reload path on recovery panel click', () => {
     render(
       <TestErrorBoundary forceError={true}>
-        <WallOfLoveModule tweets={[]} />
+        <WallOfLoveModule />
       </TestErrorBoundary>
     );
 

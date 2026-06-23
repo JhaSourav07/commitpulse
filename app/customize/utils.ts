@@ -245,6 +245,14 @@ export function buildQueryParams(options: CustomizeOptions): string {
       params.set('theme', options.theme);
     }
     if (hasValidBg) params.set('bg', stripHash(options.bgHex));
+    if (options.bgType && options.bgType !== 'solid') {
+      params.set('bgType', options.bgType);
+      if (isValidHex(options.bgStart)) params.set('bgStart', stripHash(options.bgStart));
+      if (isValidHex(options.bgEnd)) params.set('bgEnd', stripHash(options.bgEnd));
+      if (options.bgType === 'linear' && options.bgAngle !== undefined && options.bgAngle !== 90) {
+        params.set('bgAngle', options.bgAngle.toString());
+      }
+    }
     if (hasValidAccent) params.set('accent', stripHash(options.accentHex));
     if (hasValidText) params.set('text', stripHash(options.textHex));
   }

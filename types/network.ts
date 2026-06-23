@@ -23,4 +23,10 @@ export interface GetClientIpOptions {
    * E.g., ['x-vercel-forwarded-for', 'cf-connecting-ip', 'x-real-ip']
    */
   headersPriority?: string[];
+
+  /**
+   * IP address of the peer that connected directly to the application.
+   * Forwarded headers are trusted only when this peer is a configured proxy.
+   */
+  directIp?: string;
 }

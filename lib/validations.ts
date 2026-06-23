@@ -1,6 +1,7 @@
 // lib/validations.ts
 import { supportedLanguages } from './i18n/badgeLabels';
 import { z } from 'zod';
+import type { HexColor } from '../types/index';
 import {
   isValidHex,
   sanitizeHexColor,
@@ -9,6 +10,32 @@ import {
   sanitizeFont,
 } from './svg/sanitizer';
 import { themes } from './svg/themes';
+
+export function coerceQueryParams(
+  params: URLSearchParams | Record<string, string | string[] | undefined>
+): Record<string, string | undefined> {
+  const coerced: Record<string, string | undefined> = {};
+
+  if (params instanceof URLSearchParams) {
+    for (const [key, value] of params.entries()) {
+      if (coerced[key] === undefined) {
+        coerced[key] = value;
+      }
+    }
+  } else if (params && typeof params === 'object') {
+    for (const [key, value] of Object.entries(params)) {
+      if (Array.isArray(value)) {
+        coerced[key] = value[0];
+      } else if (typeof value === 'string') {
+        coerced[key] = value;
+      } else {
+        coerced[key] = undefined;
+      }
+    }
+  }
+
+  return coerced;
+}
 
 export function toBooleanFlag(val?: string): boolean {
   return val === 'true' || val === '1';
@@ -38,7 +65,7 @@ export function toValidTheme(val?: string): string | undefined {
 }
 
 export function toValidHexColor(defaultColor: string) {
-  return (val?: string): string | undefined =>
+  return (val?: string): HexColor | undefined =>
     val && isValidHex(val) ? sanitizeHexColor(val, defaultColor) : undefined;
 }
 
@@ -66,7 +93,47 @@ export function toDimensionValue(val?: string): number | undefined {
 }
 
 export function validateGitHubUsername(username: string): boolean {
+  if (!username || typeof username !== 'string') return false;
   return /^[a-z\d](?:[a-z\d]|-(?=[a-z\d])){0,38}$/i.test(username);
+}
+
+/**
+ * Strict ISO date validation for date-only inputs (YYYY-MM-DD).
+ * Validates that the date is a real calendar date by checking:
+ * 1. Format matches YYYY-MM-DD
+ * 2. Year, month, day are valid ranges
+ * 3. Date round-trips correctly (serialization matches input)
+ *
+ * For non-YYYY-MM-DD formats, falls back to Date.parse validation.
+ */
+export function validateStrictISODate(dateStr: string): boolean {
+  if (!dateStr || typeof dateStr !== 'string') return false;
+  // Check if it matches YYYY-MM-DD format
+  const match = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+
+  if (match) {
+    // Strict validation for YYYY-MM-DD format
+    const [, yearStr, monthStr, dayStr] = match;
+    const year = parseInt(yearStr, 10);
+    const month = parseInt(monthStr, 10);
+    const day = parseInt(dayStr, 10);
+
+    // Basic range checks
+    if (month < 1 || month > 12) return false;
+    if (day < 1 || day > 31) return false;
+    if (year < 2008) return false;
+
+    // Create UTC date and verify it round-trips
+    const date = new Date(Date.UTC(year, month - 1, day));
+    const serialized = date.toISOString().split('T')[0];
+
+    // Check that the serialized date matches the input
+    // This catches invalid dates like Feb 31, Apr 31, etc.
+    return serialized === dateStr;
+  }
+
+  // For non-YYYY-MM-DD formats, fall back to Date.parse validation
+  return !isNaN(Date.parse(dateStr));
 }
 
 function dimensionParam(name: string, min: number, max: number) {
@@ -86,11 +153,53 @@ function dimensionParam(name: string, min: number, max: number) {
     .transform(toDimensionValue);
 }
 
+/**
+ * Maps raw GMT/UTC offset strings (e.g. "GMT+5", "UTC-3") to the
+ * Etc/GMT±N format that Intl.DateTimeFormat accepts.
+ *
+ * Note: The Etc/GMT sign convention is *inverted* relative to the
+ * common GMT± notation — Etc/GMT+5 means UTC−5. This function
+ * performs that inversion automatically.
+ *
+ * Returns the original string unchanged if it doesn't match a raw
+ * offset pattern, so callers can pass any timezone string through.
+ */
+export function normalizeTimezone(tz: string): string {
+  // Match patterns: GMT+N, GMT-N, UTC+N, UTC-N (whole hours 0-14)
+  const match = tz.match(/^(?:GMT|UTC)([+-])(\d{1,2})$/i);
+  if (!match) return tz;
+
+  const sign = match[1];
+  const offset = parseInt(match[2], 10);
+
+  // Validate offset range: UTC-12 to UTC+14
+  if (offset > 14 || (sign === '-' && offset > 12)) return tz;
+
+  // GMT+0 / UTC+0 → UTC (avoids the Etc/GMT-0 / Etc/GMT+0 ambiguity)
+  if (offset === 0) return 'UTC';
+
+  // Invert sign for Etc/GMT convention: GMT+5 → Etc/GMT-5
+  const invertedSign = sign === '+' ? '-' : '+';
+  return `Etc/GMT${invertedSign}${offset}`;
+}
+
 function isValidTimeZone(tz?: string): boolean {
   if (!tz) return true;
 
+  // First try the timezone as-is (covers IANA names and Etc/GMT±N)
   try {
     Intl.DateTimeFormat(undefined, { timeZone: tz });
+    return true;
+  } catch {
+    // Fall through to normalization
+  }
+
+  // Try normalizing raw GMT/UTC offsets to Etc/GMT format
+  const normalized = normalizeTimezone(tz);
+  if (normalized === tz) return false; // No normalization happened, it's invalid
+
+  try {
+    Intl.DateTimeFormat(undefined, { timeZone: normalized });
     return true;
   } catch {
     return false;
@@ -103,6 +212,15 @@ const timeZoneParam = z
   .refine(isValidTimeZone, { message: 'Invalid timezone' });
 
 export const GITHUB_USERNAME_REGEX = /^[a-zA-Z0-9](?:[a-zA-Z0-9]|-(?=[a-zA-Z0-9]))*$/;
+
+export const githubUsernameSchema = z
+  .string({ error: 'Invalid GitHub username' })
+  .trim()
+  .min(1, { message: 'Invalid GitHub username' })
+  .max(39, { message: 'Invalid GitHub username' })
+  .regex(GITHUB_USERNAME_REGEX, {
+    message: 'Invalid GitHub username',
+  });
 
 const baseStreakParamsSchema = z.object({
   // Required — missing user surfaces as "Missing" to match existing tests
@@ -172,44 +290,72 @@ const baseStreakParamsSchema = z.object({
   bg: z
     .string()
     .optional()
-    .refine((val) => !val || /^[0-9a-fA-F]{3,4}$|^[0-9a-fA-F]{6,8}$/.test(val.replace('#', '')), {
-      message: 'bg must be a valid hex color (with or without #)',
-    })
-    .transform((val) => (val ? sanitizeHexColor(val, '0d1117') : undefined)),
-  text: z
+    .transform((val) => {
+      if (!val) return undefined;
+      const cleanVal = val.trim().replace(/^#+/, '');
+      if (/^([0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(cleanVal)) {
+        return cleanVal as HexColor;
+      }
+      return undefined;
+    }),
+  bgType: z.enum(['solid', 'linear', 'radial']).catch('solid').default('solid'),
+  bgStart: z
     .string()
     .optional()
     .refine((val) => !val || /^[0-9a-fA-F]{3,4}$|^[0-9a-fA-F]{6,8}$/.test(val.replace('#', '')), {
-      message: 'text must be a valid hex color (with or without #)',
+      message: 'bgStart must be a valid hex color',
     })
-    .transform((val) => (val ? sanitizeHexColor(val, 'ffffff') : undefined)),
-  accent: z
+    .transform((val) => (val ? sanitizeHexColor(val, '0d1117') : undefined)),
+  bgEnd: z
+    .string()
+    .optional()
+    .refine((val) => !val || /^[0-9a-fA-F]{3,4}$|^[0-9a-fA-F]{6,8}$/.test(val.replace('#', '')), {
+      message: 'bgEnd must be a valid hex color',
+    })
+    .transform((val) => (val ? sanitizeHexColor(val, '0d1117') : undefined)),
+  bgAngle: z
     .string()
     .optional()
     .refine(
       (val) => {
-        if (!val) return true;
-        const parts = val.includes(',') ? val.split(',') : [val];
-        return parts.every((p) =>
-          /^[0-9a-fA-F]{3,4}$|^[0-9a-fA-F]{6,8}$/.test(p.trim().replace('#', ''))
-        );
+        if (val === undefined || val === '') return true;
+        const num = Number(val);
+        return !isNaN(num) && num >= 0 && num <= 360;
       },
-      {
-        message:
-          'accent must be a valid hex color (with or without #), or a comma-separated list of them',
-      }
+      { message: 'bgAngle must be a number between 0 and 360' }
     )
+    .transform((val) => (val === undefined || val === '' ? undefined : Number(val))),
+  text: z
+    .string()
+    .optional()
+    .transform((val) => {
+      if (!val) return undefined;
+      const cleanVal = val.trim().replace(/^#+/, '');
+      if (/^([0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(cleanVal)) {
+        return cleanVal as HexColor;
+      }
+      return undefined;
+    }),
+  accent: z
+    .string()
+    .optional()
     .transform((val) => {
       if (!val) return undefined;
       if (val.includes(',')) {
-        return val
+        const parts = val
           .split(',')
-          .map((c) => c.trim())
+          .map((c) => c.trim().replace(/^#+/, ''))
           .filter((c) => c.length > 0)
-          .slice(0, 4)
-          .map((c) => sanitizeHexColor(c, '00ffaa'));
+          .filter((c) => /^([0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(c))
+          .map((c) => c as HexColor)
+          .slice(0, 4);
+        return parts.length > 0 ? parts : undefined;
       }
-      return sanitizeHexColor(val, '00ffaa');
+      const cleanVal = val.trim().replace(/^#+/, '');
+      if (/^([0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(cleanVal)) {
+        return cleanVal as HexColor;
+      }
+      return undefined;
     }),
 
   // Silently fall back to 'linear' for unknown values (matches old behavior)
@@ -243,7 +389,7 @@ const baseStreakParamsSchema = z.object({
       (val) => {
         if (!val) return true;
         const yearNum = parseInt(val, 10);
-        const currentYear = new Date().getFullYear();
+        const currentYear = new Date().getUTCFullYear();
         return /^\d{4}$/.test(val) && yearNum >= 2008 && yearNum <= currentYear;
       },
       {
@@ -256,7 +402,7 @@ const baseStreakParamsSchema = z.object({
     .refine(
       (val) => {
         if (!val) return true;
-        return !isNaN(Date.parse(val));
+        return validateStrictISODate(val);
       },
       { message: 'Invalid "from" date format. Use ISO 8601 (e.g. 2023-01-01).' }
     ),
@@ -266,7 +412,7 @@ const baseStreakParamsSchema = z.object({
     .refine(
       (val) => {
         if (!val) return true;
-        return !isNaN(Date.parse(val));
+        return validateStrictISODate(val);
       },
       { message: 'Invalid "to" date format. Use ISO 8601 (e.g. 2023-12-31).' }
     ),
@@ -276,20 +422,34 @@ const baseStreakParamsSchema = z.object({
     .refine(
       (val) => {
         if (!val) return true;
-        return !isNaN(Date.parse(val));
+        return validateStrictISODate(val);
       },
       { message: 'Invalid "date" format. Use ISO 8601.' }
     ),
   refresh: z.string().optional().transform(toRefreshFlag),
   bypassCache: z.string().optional().transform(toRefreshFlag),
   hide_title: z.string().optional().transform(toBooleanFlag),
+  custom_title: z.string().optional(),
+  custom_subtitle: z.string().optional(),
   hide_background: z.string().optional().transform(toBooleanFlag),
   hide_stats: z.string().optional().transform(toBooleanFlag),
   lang: z.enum(supportedLanguages).catch('en').default('en'),
   tz: timeZoneParam,
   // Unknown view values fall back to the default dashboard view.
   view: z
-    .enum(['default', 'monthly', 'heatmap', 'pulse', 'languages', 'constellation'])
+    .enum([
+      'default',
+      'monthly',
+      'heatmap',
+      'pulse',
+      'skyline',
+      'languages',
+      'constellation',
+      'radar',
+      'doughnut',
+      'pie',
+      'activity_graph',
+    ])
     .catch('default')
     .default('default'),
   // Invalid delta formats fall back to percentage mode.
@@ -299,14 +459,12 @@ const baseStreakParamsSchema = z.object({
   grace: z
     .string()
     .optional()
-    .refine(
-      (val) => {
-        if (val === undefined || val === '') return true;
-        return /^\d+$/.test(val) && Number(val) >= 0 && Number(val) <= 7;
-      },
-      { message: 'grace must be an integer between 0 and 7' }
-    )
-    .transform((val) => (val === undefined || val === '' ? 1 : Number(val)))
+    .transform((val) => {
+      if (val === undefined || val === '') return 1;
+      const n = Number(val);
+      if (isNaN(n) || !Number.isInteger(n)) return 1;
+      return Math.min(7, Math.max(0, n));
+    })
     .default(1),
 
   mode: z.enum(['commits', 'loc']).catch('commits').default('commits'),
@@ -366,12 +524,41 @@ const baseStreakParamsSchema = z.object({
   // Glow effect — on by default. Accepts 'true'/'1' (true) or 'false' (false).
   glow: z.string().optional().transform(toGlowFlag).default(true),
   opacity: z.string().optional().transform(toOpacityValue),
-  entrance: z.enum(['rise', 'fade', 'slide', 'none']).catch('rise').default('rise'),
+  entrance: z
+    .enum(['rise', 'fade', 'slide', 'wave', 'bounce', 'none'])
+    .catch('rise')
+    .default('rise'),
   badges: z.string().optional().transform(toBooleanFlag).default(false),
 
-  // Output format: 'svg' (default) or 'json' for programmatic access.
+  // Output format: 'svg' (default), 'json', or 'png' for image export.
   // Invalid values silently fall back to 'svg'.
-  format: z.enum(['svg', 'json']).catch('svg').default('svg'),
+  format: z.enum(['svg', 'json', 'png']).catch('svg').default('svg'),
+
+  theta: z
+    .string()
+    .optional()
+    .refine(
+      (val) => {
+        if (val === undefined || val === '') return true;
+        const num = Number(val);
+        return !isNaN(num) && num >= 0 && num <= 360;
+      },
+      { message: 'theta must be a number between 0 and 360' }
+    )
+    .transform((val) => (val === undefined || val === '' ? undefined : Number(val))),
+
+  phi: z
+    .string()
+    .optional()
+    .refine(
+      (val) => {
+        if (val === undefined || val === '') return true;
+        const num = Number(val);
+        return !isNaN(num) && num >= 0 && num <= 90;
+      },
+      { message: 'phi must be a number between 0 and 90' }
+    )
+    .transform((val) => (val === undefined || val === '' ? undefined : Number(val))),
 
   // layout parameter: strictly validated — unsupported values return a 400 Bad Request.
   layout: z
@@ -385,6 +572,23 @@ const baseStreakParamsSchema = z.object({
       { message: 'Invalid layout format. Supported values: default, compact, full.' }
     )
     .transform((val) => (!val ? undefined : val)),
+
+  // border parameter: optional hex color for SVG badge border stroke
+  border: z
+    .string()
+    .optional()
+    .refine(
+      (val) => {
+        if (val === undefined || val === '') return true;
+        const cleanVal = val.replace(/^#/, '');
+        return /^[0-9a-fA-F]{3,4}$|^[0-9a-fA-F]{6,8}$/.test(cleanVal);
+      },
+      { message: 'border must be a valid hex color (with or without #)' }
+    )
+    .transform((val) => {
+      if (!val) return undefined;
+      return sanitizeHexColor(val, '58a6ff');
+    }),
 });
 
 export const streakParamsSchema = baseStreakParamsSchema.refine(
@@ -395,17 +599,59 @@ export const streakParamsSchema = baseStreakParamsSchema.refine(
   }
 );
 
+const HEX_REGEX = /^([A-Fa-f0-9]{3,4}|[A-Fa-f0-9]{6}|[A-Fa-f0-9]{8})$/;
+
 export const githubParamsSchema = z.object({
-  username: z
-    .string({ error: 'Missing "username" parameter' })
-    .trim()
-    .min(1, { message: 'Username is required' })
-    .max(39, { message: 'GitHub username cannot exceed 39 characters' })
-    .regex(GITHUB_USERNAME_REGEX, {
-      message: 'Invalid GitHub username',
-    }),
-  refresh: z.string().optional().transform(toRefreshFlag),
-  bypassCache: z.string().optional().transform(toRefreshFlag),
+  // Preprocess leaves undefined untouched so we can distinguish missing vs empty string
+  username: z.preprocess(
+    (val) => (typeof val === 'string' ? val.trim() : val),
+    z
+      .custom<string>()
+      .refine((val) => val !== undefined && val !== null, {
+        message: 'Missing "username" parameter',
+      })
+      .transform((val) => String(val))
+      .refine((val) => val.length > 0, {
+        message: 'Username is required',
+      })
+      .refine((val) => val.length <= 39, {
+        message: 'GitHub username cannot exceed 39 characters',
+      })
+      .refine((val) => validateGitHubUsername(val), {
+        message: 'Invalid GitHub username',
+      })
+  ),
+
+  bg: z
+    .string()
+    .optional()
+    .transform((val) => val?.replace('#', '') || 'ffffff')
+    .refine((val) => HEX_REGEX.test(val))
+    .catch('ffffff'),
+
+  accent: z
+    .string()
+    .optional()
+    .transform((val) => val?.replace('#', '') || 'ff6b35')
+    .refine((val) => HEX_REGEX.test(val))
+    .catch('ff6b35'),
+
+  width: z
+    .string()
+    .optional()
+    .transform((val) => (val ? parseInt(val, 10) : 400))
+    .refine((val) => !isNaN(val) && val >= 100 && val <= 2000)
+    .catch(400),
+
+  height: z
+    .string()
+    .optional()
+    .transform((val) => (val ? parseInt(val, 10) : 150))
+    .refine((val) => !isNaN(val) && val >= 100 && val <= 2000)
+    .catch(150),
+
+  refresh: z.preprocess((val) => val === 'true', z.boolean()).default(false),
+  bypassCache: z.preprocess((val) => val === 'true', z.boolean()).default(false),
 });
 
 export const compareParamsSchema = z
@@ -496,7 +742,7 @@ export const wrappedParamsSchema = z.object({
       (val) => {
         if (!val) return true;
         const yearNum = parseInt(val, 10);
-        const currentYear = new Date().getFullYear();
+        const currentYear = new Date().getUTCFullYear();
         return /^\d{4}$/.test(val) && yearNum >= 2008 && yearNum <= currentYear;
       },
       {
@@ -564,6 +810,7 @@ export const wrappedParamsSchema = z.object({
   hide_background: z.string().optional().transform(toBooleanFlag), // ✅ Fixed: was toRefreshFlag
   width: dimensionParam('width', 100, 1200),
   height: dimensionParam('height', 80, 800),
+  tz: timeZoneParam,
 });
 
 export const notifyPostSchema = z.object({
@@ -596,6 +843,16 @@ export const notifyPostSchema = z.object({
       notifyOnStreak: true,
       notifyOnMilestone: true,
     }),
+  managementToken: z
+    .string()
+    .trim()
+    .min(16)
+    .max(256)
+    .regex(
+      /^cpn_[A-Za-z0-9_-]+$/,
+      'Invalid management token format — must start with "cpn_" and be base64url-encoded'
+    )
+    .optional(),
 });
 
 export const notifyGetSchema = z.object({
@@ -615,12 +872,12 @@ export const resumeConfirmDataSchema = z.object({
   name: z
     .string()
     .trim()
-    .min(1, { message: 'Name and email are required' })
+    .min(2, { message: 'Name must be at least 2 characters' })
     .max(100, { message: 'Name must be at most 100 characters' }),
   email: z
     .string()
     .trim()
-    .min(1, { message: 'Name and email are required' })
+    .min(1, { message: 'A valid email address is required' })
     .max(254, { message: 'Email must be at most 254 characters' })
     .email({ message: 'Invalid email address' }),
   phone: z.string().trim().max(40, { message: 'Phone must be at most 40 characters' }).default(''),
@@ -642,7 +899,14 @@ export const resumeConfirmDataSchema = z.object({
     .max(50, { message: 'Too many education entries (max 50)' })
     .default([])
     .transform((items) =>
-      items.filter((e) => e.institution || e.degree || e.field || e.startDate || e.endDate)
+      items.filter(
+        (e) =>
+          e.institution.length > 0 &&
+          e.degree.length > 0 &&
+          e.field.length > 0 &&
+          e.startDate.length > 0 &&
+          e.endDate.length > 0
+      )
     ),
   experience: z
     .array(
@@ -657,7 +921,13 @@ export const resumeConfirmDataSchema = z.object({
     .max(50, { message: 'Too many experience entries (max 50)' })
     .default([])
     .transform((items) =>
-      items.filter((x) => x.company || x.role || x.startDate || x.endDate || x.description)
+      items.filter(
+        (x) =>
+          x.company.length > 0 &&
+          x.role.length > 0 &&
+          x.startDate.length > 0 &&
+          x.endDate.length > 0
+      )
     ),
 });
 

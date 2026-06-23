@@ -1,21 +1,22 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
-  <!-- Solid black background — fills the full square, no transparent corners -->
-  <rect width="1024" height="1024" fill="#0d0d0d"/>
+  <!-- White rounded-rectangle background -->
+  <rect width="1024" height="1024" rx="200" ry="200" fill="#f5f5f7"/>
+  <!-- Subtle border/shadow for depth -->
+  <rect width="1024" height="1024" rx="200" ry="200" fill="none" stroke="#e0e0e0" stroke-width="4"/>
   <!-- Pulse / heartbeat waveform path -->
   <path
-    d="M 130 512
+    d="M 200 512
        L 350 512
-       L 400 420
-       L 470 270
-       L 540 730
-       L 610 512
-       L 660 512
-       L 720 400
-       L 790 590
-       L 894 512"
+       L 420 380
+       L 490 260
+       L 560 740
+       L 630 512
+       L 700 512
+       L 760 400
+       L 824 512"
     fill="none"
-    stroke="white"
-    stroke-width="62"
+    stroke="#1d1d1f"
+    stroke-width="58"
     stroke-linecap="round"
     stroke-linejoin="round"
   />

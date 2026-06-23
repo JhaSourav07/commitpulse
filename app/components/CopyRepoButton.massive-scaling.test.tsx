@@ -105,7 +105,7 @@ describe('CopyRepoButton Massive Scaling', () => {
     expect(
       screen.getAllByText((content, element) => {
         return element?.textContent?.includes('Copy failed') ?? false;
-      })[0]
-    ).toBeDefined();
+      }).length
+    ).toBeGreaterThanOrEqual(1);
   });
 });

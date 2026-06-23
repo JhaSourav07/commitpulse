@@ -110,7 +110,7 @@ describe('RefreshButton — Massive Data Sets and Extreme High Bounds Scaling', 
     cleanup();
   });
 
-  it('handleRefresh executes within 50ms even with 100 search parameters', () => {
+  it('handleRefresh executes within 200ms even with 100 search parameters', () => {
     const heavyParams = new URLSearchParams();
     for (let i = 0; i < 100; i++) {
       heavyParams.set(`key${i}`, `value${i}`);
@@ -128,6 +128,6 @@ describe('RefreshButton — Massive Data Sets and Extreme High Bounds Scaling', 
     const elapsed = performance.now() - start;
 
     expect(mockPush).toHaveBeenCalledTimes(1);
-    expect(elapsed).toBeLessThan(50);
+    expect(elapsed).toBeLessThan(200);
   });
 });

@@ -17,9 +17,10 @@ interface LeaderboardProps {
   contributors: Contributor[];
 }
 
-export default function Leaderboard({ contributors }: LeaderboardProps) {
-  const top3 = contributors.slice(0, 3);
-  const listEntries = contributors.slice(3);
+export default function Leaderboard({ contributors = [] }: LeaderboardProps) {
+  const safeContributors = contributors || [];
+  const top3 = safeContributors.slice(0, 3);
+  const listEntries = safeContributors.slice(3);
 
   const rank1 = top3[0];
   const rank2 = top3[1];
@@ -107,11 +108,10 @@ export default function Leaderboard({ contributors }: LeaderboardProps) {
               {/* Avatar */}
               <div className="relative w-10 h-10 rounded-full overflow-hidden border border-black/10 dark:border-white/10 group-hover:border-cyan-400/40 transition-colors">
                 {contributor.avatar_url ? (
-                  <Image
+                  <img
                     src={contributor.avatar_url}
                     alt={contributor.login}
-                    fill
-                    className="object-cover"
+                    className="w-full h-full object-cover"
                   />
                 ) : (
                   <div className="w-full h-full bg-zinc-200 dark:bg-white/10" />
@@ -222,11 +222,10 @@ function PodiumItem({ contributor, height, variant, delay, isFirst }: PodiumItem
             style={{ width: isFirst ? 88 : 72, height: isFirst ? 88 : 72 }}
           >
             {contributor.avatar_url ? (
-              <Image
+              <img
                 src={contributor.avatar_url}
                 alt={contributor.login}
-                fill
-                className="rounded-full object-cover"
+                className="rounded-full object-cover w-full h-full"
               />
             ) : (
               <div className="w-full h-full rounded-full bg-zinc-200 dark:bg-white/10" />

@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server';
 import { getFullDashboardData } from '@/lib/github';
-import { compareParamsSchema } from '@/lib/validations';
+import { getUserGitHubToken } from '@/lib/githubtoken';
+import { compareParamsSchema, coerceQueryParams } from '@/lib/validations';
+import crypto from 'crypto';
+import { rateLimit } from '@/lib/rate-limit';
+import { getClientIp } from '@/utils/getClientIp';
 
 export const revalidate = 3600;
 
@@ -49,9 +53,17 @@ function buildCompareFetchErrorResponse(user: string, reason: unknown): NextResp
 }
 
 export async function GET(request: Request) {
+  const ip = getClientIp(request);
+
+  const limit = await rateLimit(ip, 5, 30000);
+
+  if (!limit.success) {
+    return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+  }
+
   const { searchParams } = new URL(request.url);
 
-  const parseResult = compareParamsSchema.safeParse(Object.fromEntries(searchParams.entries()));
+  const parseResult = compareParamsSchema.safeParse(coerceQueryParams(searchParams));
 
   if (!parseResult.success) {
     const fieldErrors = parseResult.error.flatten();
@@ -64,9 +76,10 @@ export async function GET(request: Request) {
   const { user1, user2 } = parseResult.data;
 
   try {
+    const userToken = await getUserGitHubToken();
     const [result1, result2] = await Promise.allSettled([
-      getFullDashboardData(user1),
-      getFullDashboardData(user2),
+      getFullDashboardData(user1, { token: userToken }),
+      getFullDashboardData(user2, { token: userToken }),
     ]);
 
     if (result1.status === 'rejected') {
@@ -77,9 +90,35 @@ export async function GET(request: Request) {
       return buildCompareFetchErrorResponse(user2, result2.reason);
     }
 
-    return NextResponse.json({
+    const jsonPayload = JSON.stringify({
       user1: result1.value,
       user2: result2.value,
+    });
+
+    const etag = crypto.createHash('sha1').update(jsonPayload).digest('hex');
+    const weakEtag = `W/"${etag}"`;
+    const ifNoneMatch = request.headers.get('if-none-match');
+    const cacheControl = 'public, s-maxage=3600';
+
+    if (ifNoneMatch) {
+      const etags = ifNoneMatch.split(',').map((e) => e.trim());
+      if (etags.includes(weakEtag) || etags.includes(`"${etag}"`)) {
+        return new NextResponse(null, {
+          status: 304,
+          headers: {
+            'Cache-Control': cacheControl,
+            ETag: weakEtag,
+          },
+        });
+      }
+    }
+
+    return new NextResponse(jsonPayload, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': cacheControl,
+        ETag: weakEtag,
+      },
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Internal server error';

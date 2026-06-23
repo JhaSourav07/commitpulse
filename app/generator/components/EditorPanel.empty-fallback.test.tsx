@@ -33,6 +33,9 @@ const makeState = (overrides: Partial<GeneratorState> = {}): GeneratorState => (
   githubUsername: '',
   showCommitPulse: false,
   commitPulseAccent: '',
+  showSnakeGraph: false,
+  showPacmanGraph: false,
+  graphPlacement: 'bottom',
   ...overrides,
 });
 

@@ -5,6 +5,9 @@ import { NextRequest } from 'next/server';
 vi.mock('@/lib/github', () => ({
   getFullDashboardData: vi.fn(),
 }));
+vi.mock('@/lib/githubtoken', () => ({
+  getUserGitHubToken: vi.fn().mockResolvedValue(undefined),
+}));
 
 import { getFullDashboardData } from '@/lib/github';
 

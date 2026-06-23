@@ -1,12 +1,13 @@
 'use client';
 
-import { useEffect, useState, useSyncExternalStore } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { Menu, X, Activity, Moon, Sun, Globe } from 'lucide-react';
 import { useGlowEffect } from '@/hooks/useGlowEffect';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useThemeToggle } from './theme-switch';
 import { useTranslation, LANGUAGE_LABELS, type Language } from '@/context/TranslationContext';
+import NavbarSearch from '@/components/NavbarSearch';
 
 function GithubMark() {
   return (
@@ -30,6 +31,12 @@ const NAV_LINKS = [
     isPrimary: false,
   },
   {
+    label: 'Burnout Radar',
+    href: '/burnout-analyzer',
+    isExternal: false,
+    isPrimary: false,
+  },
+  {
     label: 'Customization Studio',
     href: '/#customization-studio',
     isExternal: false,
@@ -43,15 +50,13 @@ const NAV_LINKS = [
   },
 ];
 
-const emptySubscribe = () => () => {};
-
 function LanguageSelector() {
   const { language, changeLanguage, isPending } = useTranslation();
-  const mounted = useSyncExternalStore(
-    emptySubscribe,
-    () => true,
-    () => false
-  );
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    const timer = setTimeout(() => setMounted(true), 0);
+    return () => clearTimeout(timer);
+  }, []);
 
   if (!mounted) {
     return (
@@ -86,7 +91,9 @@ function LanguageSelector() {
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
+  const [isHidden, setIsHidden] = useState(false);
   const { t } = useTranslation();
+  const lastScrollYRef = useRef(0);
 
   useKeyboardShortcuts();
 
@@ -120,6 +127,34 @@ export default function Navbar() {
     };
   }, []);
 
+  useEffect(() => {
+    const threshold = 8;
+    const currentScrollY = window.scrollY;
+    lastScrollYRef.current = currentScrollY;
+
+    const handleScroll = () => {
+      const nextScrollY = window.scrollY;
+      const delta = nextScrollY - lastScrollYRef.current;
+
+      if (nextScrollY <= 0) {
+        setIsHidden(false);
+      } else if (delta > threshold && nextScrollY > 72) {
+        setIsHidden(true);
+        setOpen(false);
+      } else if (delta < -threshold) {
+        setIsHidden(false);
+      }
+
+      lastScrollYRef.current = nextScrollY;
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
+
   const handleLogoClick = () => {
     setOpen(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -128,13 +163,18 @@ export default function Navbar() {
   const getTranslatedLabel = (label: string) => {
     if (label === 'GitHub Repo') return t('navbar.repo');
     if (label === 'Compare') return t('navbar.compare');
+    if (label === 'Burnout Radar') return t('navbar.burnout_radar');
     if (label === 'Customization Studio') return t('navbar.customization_studio');
     if (label === 'Generator') return t('navbar.generator');
     return label;
   };
 
   return (
-    <header className="relative z-10 px-4 pt-4 sm:px-6 w-full">
+    <header
+      className={`sticky top-0 z-50 px-4 pt-4 sm:px-6 w-full transform-gpu transition-[transform,opacity] duration-300 ease-out ${
+        isHidden ? '-translate-y-full opacity-0 pointer-events-none' : 'translate-y-0 opacity-100'
+      }`}
+    >
       <div className="mx-auto max-w-6xl">
         <div
           ref={shellRef}
@@ -186,6 +226,7 @@ export default function Navbar() {
             </Link>
 
             <div className="hidden items-center gap-2 md:flex">
+              <NavbarSearch />
               <LanguageSelector />
               {NAV_LINKS.map((link) => (
                 <a
@@ -280,6 +321,9 @@ export default function Navbar() {
           {open ? (
             <div className="border-t border-gray-100 dark:border-white/10 px-4 py-4 md:hidden">
               <ul className="space-y-1">
+                <li className="mb-2">
+                  <NavbarSearch variant="mobile" onNavigate={() => setOpen(false)} />
+                </li>
                 <li className="flex items-center justify-between px-4 py-2 border-b border-gray-100 dark:border-white/10 mb-2">
                   <span className="text-sm font-medium text-black/60 dark:text-white/60">
                     Language / Bhasha

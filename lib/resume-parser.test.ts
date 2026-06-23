@@ -36,6 +36,8 @@ jane.smith@gmail.com
 `;
 
     const result = await parseResume(Buffer.from(resume), 'application/pdf');
+    expect(result.name.length).toBeGreaterThan(0);
+    expect(result.name).not.toMatch(/%PDF/i);
 
     expect(result.email).toBe('jane.smith@gmail.com');
     expect(result.phone).toContain('555');
@@ -99,6 +101,43 @@ Random text without any section headers.
     expect(result.skills).toEqual([]);
     expect(result.education).toEqual([]);
     expect(result.experience).toEqual([]);
+  });
+
+  it('filters corrupted skill tokens', async () => {
+    const resume = `
+John Doe
+john@example.com
+
+Skills
+React, TypeScript, Node.js
+?~ L8c n 7 ? ?
+. ~ C _ 0o> ?
+I f
+m
+
+Education
+B.Tech 2020-2024
+`;
+
+    const result = await parseResume(Buffer.from(resume), 'text/plain');
+
+    expect(result.skills).toEqual(['React', 'TypeScript', 'Node.js']);
+  });
+
+  it('preserves short valid skills', async () => {
+    const resume = `
+Skills
+
+C, R, Go, AI, ML, Node.js, C++, C#, .NET
+
+Education
+
+B.Tech 2020-2024
+`;
+
+    const result = await parseResume(Buffer.from(resume), 'text/plain');
+
+    expect(result.skills).toEqual(['C', 'R', 'Go', 'AI', 'ML', 'Node.js', 'C++', 'C#', '.NET']);
   });
 });
 

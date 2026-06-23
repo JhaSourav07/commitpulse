@@ -127,8 +127,8 @@ function ConfettiPiece({ data }: { data: ConfettiPieceData }) {
 
 /* ── pre-compute all random data ──────────────────────────────────────── */
 
-function generateMatrixDrops(): MatrixDropData[] {
-  return Array.from({ length: MATRIX_CHAR_COUNT }, (_, i) => {
+function generateMatrixDrops(count: number = MATRIX_CHAR_COUNT): MatrixDropData[] {
+  return Array.from({ length: count }, (_, i) => {
     const len = Math.floor(rand(8, 22));
     return {
       id: i,
@@ -143,8 +143,8 @@ function generateMatrixDrops(): MatrixDropData[] {
   });
 }
 
-function generateConfettiPieces(): ConfettiPieceData[] {
-  return Array.from({ length: CONFETTI_COUNT }, (_, i) => {
+function generateConfettiPieces(count: number = CONFETTI_COUNT): ConfettiPieceData[] {
+  return Array.from({ length: count }, (_, i) => {
     const startX = rand(20, 80);
     const startY = rand(30, 50);
     return {
@@ -165,13 +165,30 @@ function generateConfettiPieces(): ConfettiPieceData[] {
 
 /* ── main component ───────────────────────────────────────────────────── */
 
-export default function KonamiEasterEgg() {
+export interface KonamiEasterEggProps {
+  secretCode?: string | null;
+  displayDuration?: number | null;
+  matrixCharCount?: number | null;
+  confettiCount?: number | null;
+}
+
+export default function KonamiEasterEgg({
+  secretCode = SECRET_CODE,
+  displayDuration = DISPLAY_DURATION,
+  matrixCharCount = MATRIX_CHAR_COUNT,
+  confettiCount = CONFETTI_COUNT,
+}: KonamiEasterEggProps = {}) {
   const [triggered, setTriggered] = useState(false);
   const [buffer, setBuffer] = useState('');
 
+  const code = secretCode || SECRET_CODE;
+  const duration = displayDuration || DISPLAY_DURATION;
+  const charCount = matrixCharCount === null ? 0 : (matrixCharCount ?? MATRIX_CHAR_COUNT);
+  const piecesCount = confettiCount === null ? 0 : (confettiCount ?? CONFETTI_COUNT);
+
   // Pre-compute all random data ONCE inside useMemo (called at mount, not during render of children)
-  const matrixDrops = useMemo(() => generateMatrixDrops(), []);
-  const confettiPieces = useMemo(() => generateConfettiPieces(), []);
+  const matrixDrops = useMemo(() => generateMatrixDrops(charCount), [charCount]);
+  const confettiPieces = useMemo(() => generateConfettiPieces(piecesCount), [piecesCount]);
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
@@ -180,16 +197,16 @@ export default function KonamiEasterEgg() {
       const tag = (e.target as HTMLElement)?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
 
-      const next = (buffer + e.key.toLowerCase()).slice(-SECRET_CODE.length);
+      const next = (buffer + e.key.toLowerCase()).slice(-code.length);
       setBuffer(next);
 
-      if (next === SECRET_CODE) {
+      if (next === code) {
         setTriggered(true);
         setBuffer('');
-        setTimeout(() => setTriggered(false), DISPLAY_DURATION);
+        setTimeout(() => setTriggered(false), duration);
       }
     },
-    [buffer, triggered]
+    [buffer, triggered, code, duration]
   );
 
   useEffect(() => {

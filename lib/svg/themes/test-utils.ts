@@ -1,4 +1,7 @@
 export function hexToRgb(hex: string): { r: number; g: number; b: number } {
+  if (hex === undefined || hex === null || typeof hex !== 'string' || hex === '') {
+    return { r: 0, g: 0, b: 0 };
+  }
   const normalized = hex.replace(/^#/, '');
   if (!/^[0-9a-fA-F]{6}$/.test(normalized)) {
     throw new Error(

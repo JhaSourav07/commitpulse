@@ -1,10 +1,20 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { GET } from './route';
 
 vi.mock('@/lib/github', () => ({
   getFullDashboardData: vi.fn(),
 }));
 
+vi.mock('@/lib/githubtoken', () => ({
+  getUserGitHubToken: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock('@/lib/rate-limit', () => ({
+  rateLimit: vi.fn().mockResolvedValue({
+    success: true,
+  }),
+}));
+
+import { GET } from './route';
 import { getFullDashboardData } from '@/lib/github';
 
 const makeRequest = (search: string) => new Request(`http://localhost:3000/api/compare?${search}`);
@@ -159,5 +169,49 @@ describe('GET /api/compare', () => {
     const res = await GET(makeRequest('user1=octocat&user2=torvalds'));
 
     expect(res.status).toBe(500);
+  });
+
+  // ── ETag & Caching ─────────────────────────────────────────────────────────
+
+  it('adds ETag and Cache-Control headers to 200 response', async () => {
+    const res = await GET(makeRequest('user1=alice&user2=bob'));
+    expect(res.status).toBe(200);
+    expect(res.headers.get('ETag')).toBeTruthy();
+    expect(res.headers.get('Cache-Control')).toBe('public, s-maxage=3600');
+  });
+
+  it('returns 304 Not Modified when If-None-Match matches weak ETag', async () => {
+    const res1 = await GET(makeRequest('user1=alice&user2=bob'));
+    const etag = res1.headers.get('ETag');
+    expect(etag).toBeTruthy();
+
+    const requestWithEtag = new Request('http://localhost:3000/api/compare?user1=alice&user2=bob', {
+      headers: {
+        'if-none-match': etag!,
+      },
+    });
+
+    const res2 = await GET(requestWithEtag);
+    expect(res2.status).toBe(304);
+    expect(res2.body).toBeNull();
+    expect(res2.headers.get('ETag')).toBe(etag);
+    expect(res2.headers.get('Cache-Control')).toBe('public, s-maxage=3600');
+  });
+
+  it('returns 304 Not Modified when If-None-Match matches strong ETag', async () => {
+    const res1 = await GET(makeRequest('user1=alice&user2=bob'));
+    const etag = res1.headers.get('ETag');
+    expect(etag).toBeTruthy();
+
+    const strongEtag = etag!.replace(/^W\//, '');
+
+    const requestWithEtag = new Request('http://localhost:3000/api/compare?user1=alice&user2=bob', {
+      headers: {
+        'if-none-match': strongEtag,
+      },
+    });
+
+    const res2 = await GET(requestWithEtag);
+    expect(res2.status).toBe(304);
   });
 });

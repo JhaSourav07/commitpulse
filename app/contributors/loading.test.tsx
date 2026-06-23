@@ -10,12 +10,11 @@ describe('Contributors Loading', () => {
     expect(screen.getByRole('status')).toBeInTheDocument();
   });
 
-  it('renders loading messages correctly', () => {
+  it('does not render persistent loading copy', () => {
     render(<Loading />);
 
-    expect(screen.getByText(/loading the collective/i)).toBeInTheDocument();
-
-    expect(screen.getByText(/fetching contributor data from github/i)).toBeInTheDocument();
+    expect(screen.queryByText(/loading the collective/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/fetching contributor data from github/i)).not.toBeInTheDocument();
   });
 
   it('contains animated loader elements', () => {
@@ -44,5 +43,6 @@ describe('Contributors Loading', () => {
     const status = screen.getByRole('status');
 
     expect(status).toHaveAttribute('aria-live', 'polite');
+    expect(status).toHaveAttribute('aria-label', 'Loading contributors');
   });
 });

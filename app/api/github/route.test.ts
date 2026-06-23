@@ -181,5 +181,52 @@ describe('GET /api/github', () => {
       expect(response.status).toBe(404);
       expect(body.error).toContain('User not found');
     });
+
+    it('returns 404 when getFullDashboardData throws a wrapped User not found error', async () => {
+      const underlyingError = new Error('User not found');
+      const wrappedError = new Error('[GitHub API] Failed to fetch profile for user "octocat"', {
+        cause: underlyingError,
+      });
+      vi.mocked(getFullDashboardData).mockRejectedValue(wrappedError);
+
+      const response = await GET(makeRequest({ username: 'octocat' }));
+      const body = await response.json();
+
+      expect(response.status).toBe(404);
+      expect(body.error).toContain('User not found');
+    });
+
+    it('returns 500 when getFullDashboardData throws a generic internal error', async () => {
+      vi.mocked(getFullDashboardData).mockRejectedValue(new Error('Database offline'));
+
+      const response = await GET(makeRequest({ username: 'octocat' }));
+      const body = await response.json();
+
+      expect(response.status).toBe(500);
+      expect(body.error).toContain('Database offline');
+    });
+
+    it('returns 500 instead of hanging when an error cause chain is circular', async () => {
+      const firstError = new Error('Circular cause root');
+      const secondError = new Error('Circular cause child');
+
+      Object.defineProperty(firstError, 'cause', {
+        value: secondError,
+        configurable: true,
+      });
+
+      Object.defineProperty(secondError, 'cause', {
+        value: firstError,
+        configurable: true,
+      });
+
+      vi.mocked(getFullDashboardData).mockRejectedValue(firstError);
+
+      const response = await GET(makeRequest({ username: 'octocat' }));
+      const body = await response.json();
+
+      expect(response.status).toBe(500);
+      expect(body.error).toBe('Circular cause root');
+    });
   });
 });

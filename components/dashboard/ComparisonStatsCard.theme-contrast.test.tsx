@@ -56,7 +56,7 @@ describe('ComparisonStatsCard — Theme & Color Cohesion', () => {
 
     expect(container.innerHTML).toContain('text-gray-900');
     expect(container.innerHTML).toContain('dark:text-white');
-    expect(container.innerHTML).toContain('text-[#A1A1AA]');
+    expect(container.innerHTML).toContain('text-gray-500');
   });
 
   it('foreground content remains visible inside overflow-hidden container', () => {

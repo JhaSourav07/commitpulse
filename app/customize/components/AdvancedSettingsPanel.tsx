@@ -9,19 +9,25 @@ import {
   type Language,
   type Timezone,
 } from '../types';
-import { SectionLabel } from './SectionLabel';
 import { StyledSelect } from './ThemeSelector';
 
 function ControlRow({
   label,
   children,
+  htmlFor,
 }: {
   label: string;
   children: React.ReactNode;
+  htmlFor?: string;
 }): ReactElement {
   return (
     <div className="flex flex-col gap-1.5">
-      <SectionLabel>{label}</SectionLabel>
+      <label
+        htmlFor={htmlFor}
+        className="block text-[10px] font-bold uppercase tracking-[0.22em] text-gray-600 dark:text-white/60 mb-2 cursor-pointer"
+      >
+        {label}
+      </label>
       {children}
     </div>
   );
@@ -71,7 +77,7 @@ export function AdvancedSettingsPanel({
   onTimezoneChange: (value: Timezone) => void;
 }): ReactElement {
   return (
-    <div>
+    <section role="region" aria-label="Advanced Settings Configuration">
       <p className="text-xs font-bold uppercase tracking-[0.22em] text-emerald-600 dark:text-emerald-400 mb-4">
         Advanced Settings
       </p>
@@ -80,8 +86,12 @@ export function AdvancedSettingsPanel({
         {/* Visibility Toggles */}
         <ControlRow label="Visibility Options">
           <div className="flex flex-col gap-2">
-            <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-700 dark:text-white/70">
+            <label
+              htmlFor="hide-title-checkbox"
+              className="flex items-center gap-2 cursor-pointer text-sm text-gray-700 dark:text-white/70"
+            >
               <input
+                id="hide-title-checkbox"
                 type="checkbox"
                 checked={hideTitle}
                 onChange={(e) => onHideTitleChange(e.target.checked)}
@@ -89,8 +99,12 @@ export function AdvancedSettingsPanel({
               />
               Hide Title
             </label>
-            <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-700 dark:text-white/70">
+            <label
+              htmlFor="hide-bg-checkbox"
+              className="flex items-center gap-2 cursor-pointer text-sm text-gray-700 dark:text-white/70"
+            >
               <input
+                id="hide-bg-checkbox"
                 type="checkbox"
                 checked={hideBackground}
                 onChange={(e) => onHideBackgroundChange(e.target.checked)}
@@ -98,8 +112,12 @@ export function AdvancedSettingsPanel({
               />
               Hide Background
             </label>
-            <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-700 dark:text-white/70">
+            <label
+              htmlFor="hide-stats-checkbox"
+              className="flex items-center gap-2 cursor-pointer text-sm text-gray-700 dark:text-white/70"
+            >
               <input
+                id="hide-stats-checkbox"
                 type="checkbox"
                 checked={hideStats}
                 onChange={(e) => onHideStatsChange(e.target.checked)}
@@ -113,7 +131,7 @@ export function AdvancedSettingsPanel({
         <div className="h-px bg-black/5 dark:bg-white/5" />
 
         {/* Layout Options */}
-        <ControlRow label="View Layout">
+        <ControlRow label="View Layout" htmlFor="view-select">
           <div className="relative">
             <StyledSelect
               id="view-select"
@@ -129,7 +147,7 @@ export function AdvancedSettingsPanel({
           </div>
         </ControlRow>
 
-        <ControlRow label="Delta Format">
+        <ControlRow label="Delta Format" htmlFor="delta-select">
           <div className="relative">
             <StyledSelect
               id="delta-select"
@@ -149,8 +167,9 @@ export function AdvancedSettingsPanel({
 
         {/* Dimensions */}
         <div className="grid grid-cols-2 gap-4">
-          <ControlRow label="Width">
+          <ControlRow label="Width" htmlFor="width-input">
             <input
+              id="width-input"
               type="number"
               min="100"
               max="1200"
@@ -163,8 +182,9 @@ export function AdvancedSettingsPanel({
               className="w-full min-w-0 bg-white/60 backdrop-blur-md border border-black/10 dark:bg-black/40 dark:border-white/10 rounded-xl px-3 py-2 text-sm font-mono text-black dark:text-emerald-300 placeholder:text-gray-400 dark:placeholder:text-white/20 outline-none focus:border-emerald-500/50 transition-colors"
             />
           </ControlRow>
-          <ControlRow label="Height">
+          <ControlRow label="Height" htmlFor="height-input">
             <input
+              id="height-input"
               type="number"
               min="80"
               max="800"
@@ -182,15 +202,19 @@ export function AdvancedSettingsPanel({
         <div className="h-px bg-black/5 dark:bg-white/5" />
 
         {/* Grace and Localization */}
-        <ControlRow label="Grace Days">
+        <ControlRow label="Grace Days" htmlFor="grace-input">
           <div className="relative flex items-center">
             <div className="absolute inset-x-0 h-1 rounded-full bg-gray-300 dark:bg-white/6" />
             <input
+              id="grace-input"
               type="range"
               min="0"
               max="7"
               step="1"
               value={grace}
+              aria-valuemin={0}
+              aria-valuemax={7}
+              aria-valuenow={grace}
               onChange={(e) => onGraceChange(Number(e.target.value))}
               className="w-full relative bg-transparent appearance-none outline-none slider"
             />
@@ -204,7 +228,7 @@ export function AdvancedSettingsPanel({
           </div>
         </ControlRow>
 
-        <ControlRow label="Language">
+        <ControlRow label="Language" htmlFor="lang-select">
           <div className="relative">
             <StyledSelect
               id="lang-select"
@@ -220,7 +244,7 @@ export function AdvancedSettingsPanel({
           </div>
         </ControlRow>
 
-        <ControlRow label="Timezone">
+        <ControlRow label="Timezone" htmlFor="timezone-select">
           <div className="relative">
             <StyledSelect
               id="timezone-select"
@@ -237,6 +261,6 @@ export function AdvancedSettingsPanel({
           </div>
         </ControlRow>
       </div>
-    </div>
+    </section>
   );
 }
