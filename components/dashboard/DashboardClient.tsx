@@ -46,6 +46,7 @@ import ContributionForecast from './ContributionForecast';
 import ProfileComparisonAnalytics from './ProfileComparisonAnalytics';
 import ContributionReplay from './ContributionReplay';
 import GoalTracker from './GoalTracker';
+import ContributionMilestoneCenter from './ContributionMilestoneCenter';
 
 // Define the dashboard data structure
 export interface DashboardData {
@@ -753,6 +754,18 @@ export default function DashboardClient({
 
             <section>
               <GoalTracker username={username} activity={initialData.activity} />
+            </section>
+
+            <section>
+              <ContributionMilestoneCenter
+                totalContributions={initialData.stats.totalContributions}
+                currentStreak={initialData.stats.currentStreak}
+                peakStreak={initialData.stats.peakStreak}
+                repositories={initialData.profile.stats.repositories}
+                stars={initialData.profile.stats.stars}
+                followers={initialData.profile.stats.followers}
+                activity={initialData.activity}
+              />
             </section>
 
             <section className="grid grid-cols-1 md:grid-cols-2 gap-6">

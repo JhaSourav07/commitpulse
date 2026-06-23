@@ -386,6 +386,21 @@
       "cancel": "Cancel",
       "monthly_placeholder": "e.g. 50",
       "yearly_placeholder": "e.g. 1000"
+    },
+    "milestones": {
+      "title": "Milestone Center",
+      "achieved": "Achieved",
+      "inProgress": "In Progress",
+      "nextMilestone": "Next Milestone",
+      "complete": "Complete",
+      "noMilestones": "No milestones in this category",
+      "allFilter": "All",
+      "contributions": "Contributions",
+      "streak": "Streak",
+      "repos": "Repositories",
+      "stars": "Stars",
+      "community": "Community",
+      "description": "{{achieved}} of {{total}} milestones achieved"
     }
   }
 }

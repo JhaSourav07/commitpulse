@@ -4,10 +4,26 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import CompareClient from './CompareClient';
 import React, { type ReactNode } from 'react';
 
-const { mockRouter, mockSearchParams } = vi.hoisted(() => ({
-  mockRouter: { replace: vi.fn() },
-  mockSearchParams: { get: vi.fn(() => null) },
-}));
+// Mirror Next.js: router.replace updates the URL, and useSearchParams reflects it.
+// Without this, the auto-compare effect (which calls setData(null) when the URL has
+// no user params) races with the manual compare's setData(json) and wipes the
+// just-rendered result, making the heatmap/habit assertions flaky.
+const { mockRouter, mockSearchParams, resetSearchParams } = vi.hoisted(() => {
+  const params = new Map<string, string>();
+  return {
+    mockRouter: {
+      replace: vi.fn((url: string) => {
+        params.clear();
+        const query = String(url).split('?')[1] ?? '';
+        for (const [key, value] of new URLSearchParams(query)) {
+          params.set(key, value);
+        }
+      }),
+    },
+    mockSearchParams: { get: vi.fn((key: string) => params.get(key) ?? null) },
+    resetSearchParams: () => params.clear(),
+  };
+});
 
 vi.mock('next/navigation', () => ({
   useRouter: () => mockRouter,
@@ -134,6 +150,7 @@ describe('CompareClient Mouse Interactivity & Touch Events', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    resetSearchParams();
     window.localStorage.clear();
 
     global.fetch = vi.fn(
