@@ -205,5 +205,28 @@ describe('GET /api/github', () => {
       expect(response.status).toBe(500);
       expect(body.error).toContain('Database offline');
     });
+
+    it('returns 500 instead of hanging when an error cause chain is circular', async () => {
+      const firstError = new Error('Circular cause root');
+      const secondError = new Error('Circular cause child');
+
+      Object.defineProperty(firstError, 'cause', {
+        value: secondError,
+        configurable: true,
+      });
+
+      Object.defineProperty(secondError, 'cause', {
+        value: firstError,
+        configurable: true,
+      });
+
+      vi.mocked(getFullDashboardData).mockRejectedValue(firstError);
+
+      const response = await GET(makeRequest({ username: 'octocat' }));
+      const body = await response.json();
+
+      expect(response.status).toBe(500);
+      expect(body.error).toBe('Circular cause root');
+    });
   });
 });

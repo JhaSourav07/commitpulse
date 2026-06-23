@@ -75,12 +75,10 @@ export default function InactivityDetector({ alerts }: InactivityDetectorProps) 
               rel="noopener noreferrer"
               className="relative w-9 h-9 rounded-full overflow-hidden border border-black/10 dark:border-white/10 shrink-0 cursor-pointer"
             >
-              <Image
+              <img
                 src={alert.avatarUrl}
                 alt={alert.username}
-                fill
-                sizes="36px"
-                className="object-cover"
+                className="w-full h-full object-cover"
               />
             </a>
 

@@ -49,15 +49,19 @@ vi.mock('sonner', () => ({
   },
 }));
 
-vi.mock('lucide-react', () => ({
-  X: () => <span>X</span>,
-  RefreshCw: () => <span>Refresh</span>,
-  Share2: () => <span>Share</span>,
-  Network: () => <span>Network</span>,
-  Target: () => <span>Target</span>,
-  Edit2: () => <span>Edit2</span>,
-  Check: () => <span>Check</span>,
-}));
+vi.mock('lucide-react', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('lucide-react')>();
+  return {
+    ...actual,
+    X: () => <span>X</span>,
+    RefreshCw: () => <span>Refresh</span>,
+    Share2: () => <span>Share</span>,
+    Network: () => <span>Network</span>,
+    Target: () => <span>Target</span>,
+    Edit2: () => <span>Edit2</span>,
+    Check: () => <span>Check</span>,
+  };
+});
 
 vi.mock('./RefreshButton', () => ({
   default: () => <div data-testid="refresh-button" />,

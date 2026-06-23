@@ -1,6 +1,13 @@
 import NextAuth from 'next-auth';
+import type { Session } from 'next-auth';
 import GitHub from 'next-auth/providers/github';
 import { encryptToken } from '@/lib/crypto';
+
+/** Shapes the session payload returned to clients — never includes token material. */
+export function buildClientSession(session: Session, token: { ghToken?: unknown }): Session {
+  session.hasGitHubToken = Boolean(token.ghToken);
+  return session;
+}
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [
@@ -19,9 +26,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return token;
     },
     async session({ session, token }) {
-      session.hasGitHubToken = Boolean(token.ghToken);
-      session.ghToken = token.ghToken as string | undefined;
-      return session;
+      return buildClientSession(session, token);
     },
   },
 });

@@ -2,7 +2,7 @@
 
 import type { BadgeParams, ContributionCalendar, StreakStats } from '../../types';
 import { truncateUsername, getSizeScale } from './generator';
-import { sanitizeHexColor, escapeXML } from './sanitizer';
+import { escapeXML } from './sanitizer';
 import { calculateWrappedStats, calculateMonthlyStats } from '../calculate';
 import {
   RADAR_SVG_WIDTH,
@@ -148,10 +148,8 @@ export function generateRadarSVG(
     </filter>
   </defs>
 
-  <!-- Background -->
   <rect width="${RADAR_SVG_WIDTH}" height="${RADAR_SVG_HEIGHT}" fill="#${bgColor}" rx="8" />
   
-  <!-- Radar Grid -->
   <g id="${CSS_PREFIX}-levels">
 ${levelsSVG}  </g>
   <g id="${CSS_PREFIX}-axes">
@@ -159,12 +157,10 @@ ${axesSVG}  </g>
   <g id="${CSS_PREFIX}-labels">
 ${labelsSVG}  </g>
   
-  <!-- Radar Data -->
   <g id="${CSS_PREFIX}-data">
 ${dataPolygonSVG}
   </g>
   
-  <!-- User Info -->
   <text x="${USERNAME_LABEL_X}" y="${USERNAME_LABEL_Y}" fill="#${textColor}" font-family="'Inter', 'Space Grotesk', sans-serif" font-size="18" font-weight="700">${safeUser}</text>
   <text x="${SUBTITLE_X}" y="${SUBTITLE_Y}" fill="#${textColor}" font-family="'Inter', sans-serif" font-size="12" opacity="0.5">Contribution Radar</text>
 </svg>`;

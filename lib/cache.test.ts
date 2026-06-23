@@ -885,6 +885,29 @@ describe('DistributedCache', () => {
     cache.destroy();
   });
 
+  it('fails closed on incr() when Redis errors, instead of using an unsynced local counter', async () => {
+    process.env.KV_REST_API_URL = 'https://mock-redis.upstash.io';
+    process.env.KV_REST_API_TOKEN = 'mock-token';
+
+    vi.mocked(fetch).mockRejectedValue(new Error('Redis network failure'));
+
+    const cacheA = new DistributedCache<number>();
+    const cacheB = new DistributedCache<number>();
+
+    // Simulate two separate serverless instances incrementing the same
+    // distributed counter while Redis is down.
+    const resultA = await cacheA.incr('ratelimit:1.2.3.4', 60_000);
+    const resultB = await cacheB.incr('ratelimit:1.2.3.4', 60_000);
+
+    // Both must fail closed (a value that exceeds any realistic rate limit)
+    // rather than each silently starting its own local counter at 1.
+    expect(resultA).toBe(Number.MAX_SAFE_INTEGER);
+    expect(resultB).toBe(Number.MAX_SAFE_INTEGER);
+
+    cacheA.destroy();
+    cacheB.destroy();
+  });
+
   it('evicts stale local state when a Redis update loses an expiry race', async () => {
     process.env.KV_REST_API_URL = 'https://mock-redis.upstash.io';
     process.env.KV_REST_API_TOKEN = 'mock-token';

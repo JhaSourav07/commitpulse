@@ -8,7 +8,8 @@
     "menu_close": "关闭菜单",
     "compare": "对比",
     "customization_studio": "自定义工作室",
-    "generator": "生成器"
+    "generator": "生成器",
+    "burnout_radar": "Burnout Radar"
   },
   "footer": {
     "tagline": "专为精英开发者社区设计。",
@@ -32,6 +33,8 @@
     "generator": "生成器"
   },
   "landing": {
+    "empty_username_warning": "Please enter a GitHub username to copy your badge link.",
+    "max_length_warning": "GitHub username limit reached (39 characters maximum)",
     "title": "提升您的\n{贡献}故事。",
     "subtitle": "别再满足于扁平的网格。生成高保真的 3D 等距柱状图，以专业的精度可视化您的编码节奏。",
     "watch_dashboard": "查看仪表盘",
@@ -53,7 +56,9 @@
       "sync_title": "实时同步",
       "sync_desc": "直接从 GitHub GraphQL API 获取。您的连续提交天数与代码推送速度保持同步。",
       "theme_title": "主题引擎",
-      "theme_desc": "通过简单的 URL 管理在 Neon、Dracula 或自定义十六进制 (HEX) 模式之间进行切换。"
+      "theme_desc": "通过简单的 URL 管理在 Neon、Dracula 或自定义十六进制 (HEX) 模式之间进行切换。",
+      "isometric_title": "Isometric Math",
+      "isometric_desc": "Sophisticated 3D projection formulas turn 2D data into digital architecture."
     },
     "generate_badge": "生成徽章",
     "verified_profile": "已验证的个人资料",
@@ -61,11 +66,13 @@
     "preview_monolith": "预览单体",
     "interactive_preview_title": "交互式单体预览",
     "interactive_preview_desc": "CommitPulse 将您的公开 GitHub 贡甮历史编译成一个可定制的 3D 城市。塔越高，代表您那天的提交越多。在上方输入 GitHub 用户名即可立即生成您皅连续提交徽章。",
-    "input_aria_label": "输入 GitHub 用户名以生成徽章"
+    "input_aria_label": "输入 GitHub 用户名以生成徽章",
+    "unable_to_load_stats": "Unable to load stats"
   },
   "success_guide": {
     "title": "您的柱状图已准备就绪 - 仅需 4 步即可部署",
     "markdown_copied": "Markdown 已复制",
+    "dismiss_aria": "Dismiss guide",
     "step_1_title": "打开您的个人主页仓库",
     "step_1_body": "前往 github.com/您的用户名/您的用户名 - 您的专属个人资料仓库。",
     "step_2_title": "编辑 README.md",
@@ -108,19 +115,29 @@
       "sync_year": "同步年份",
       "clear_custom": "清空自定义颜色",
       "theme_presets": "主题预设",
-      "color_overrides": "自定义颜色覆盖"
+      "color_overrides": "自定义颜色覆盖",
+      "font": "Font",
+      "custom_font_option": "Custom Google Font...",
+      "custom_font_placeholder": "e.g. Orbitron, Space Mono, Inter"
     },
     "export": {
       "snippet_title": "导出片段",
       "snippet_desc": "在不改变实时徽章配置的情况下切换导出格式。",
       "markdown": "Markdown",
       "html": "HTML",
+      "action": "GitHub Action",
+      "download_badge": "Download Badge",
+      "downloading": "Downloading...",
+      "download_not_available": "Download Not Available",
+      "copy_workflow": "Copy workflow",
       "copy_format": "复制 {{format}}",
       "copied": "已复制！",
       "copy_aria_disabled": "添加 GitHub 用户名以复制 {{format}} 导出片段",
       "copy_aria_enabled": "将 {{format}} 导出片段复制到剪贴板",
       "footer_tip": "将此片段粘贴到您的 GitHub 个人主页 README.md 文件中。徽章由服务器端渲染，无需任何脚本。",
-      "tsx": "React TSX"
+      "tsx": "React TSX",
+      "download_svg": "Download SVG",
+      "download_png": "Download PNG"
     }
   },
   "dashboard": {
@@ -135,7 +152,9 @@
       "following": "关注数量",
       "stars": "收获星标",
       "joined": "加入时间",
-      "pro_badge": "PRO"
+      "pro_badge": "PRO",
+      "pro": "PRO",
+      "share": "Share Your Pulse"
     },
     "achievements": {
       "title": "个人成就",
@@ -152,7 +171,9 @@
       "loc": "代码行数",
       "loc_desc": "随时间变化修改的代码行数",
       "commits_desc": "随时间变化皅提交频率",
-      "lines_modified": "已修改 {{count}} 行代码"
+      "lines_modified": "已修改 {{count}} 行代码",
+      "aria_range": "from {{start}} to {{end}}",
+      "aria_single": "on {{date}}"
     },
     "languages": {
       "title": "热门语言",
@@ -223,7 +244,134 @@
       "svg_downloaded": "SVG 已下载！",
       "json_downloaded": "JSON 已下载！",
       "failed": "操作失败 — 请重试",
+      "social_channels": "Social Channels",
+      "export_options": "Export Options",
+      "github_wrapped": "GitHub Wrapped",
+      "download_webp": "Download Optimized WebP",
       "download_stl": "下载可打印的 3D STL 整体结构"
+    },
+    "impact": {
+      "title": "Repository Impact Analyzer",
+      "ranking": "Repository Ranking",
+      "languages": "Language Contribution",
+      "growth": "Growth Metrics",
+      "commits": "Commits",
+      "stars": "Stars",
+      "forks": "Forks",
+      "score": "Impact Score",
+      "age": "Repository Age",
+      "avg_stars": "Avg. Stars / Month",
+      "avg_forks": "Avg. Forks / Month",
+      "months": "months",
+      "years": "years",
+      "top_repos": "Top 5 Repositories",
+      "contribution_commits": "commits",
+      "no_data": "No repository data available."
+    },
+    "forecast": {
+      "title": "贡献预测",
+      "subtitle": "基于您的代码提交速度和趋势斜率预测未来的增长趋势。",
+      "weekly_velocity": "周平均速度",
+      "monthly_velocity": "月平均速度",
+      "projected_month": "预测月末总计",
+      "projected_year": "预测年末总计",
+      "consistency_rating": "稳定性评级",
+      "trend_direction": "趋势",
+      "commits_per_week": "{{count}} 次提交/周",
+      "commits_per_month": "{{count}} 次提交/月",
+      "commits": "{{count}} 次提交",
+      "growth_rate": "增长率: {{rate}} 次提交/天²",
+      "consistency_level": {
+        "elite": "极佳 (非常稳定)",
+        "consistent": "高 (稳定)",
+        "occasional": "中 (偶尔)",
+        "sporadic": "低 (零星)",
+        "inactive": "未活跃"
+      },
+      "trends": {
+        "strong_growth": "强劲增长",
+        "moderate_growth": "温和增长",
+        "stable": "稳定节奏",
+        "cooling": "有所放缓",
+        "decline": "显著下降"
+      },
+      "no_activity": "暂无过去的历史活动数据以生成预测。"
+    },
+    "replay": {
+      "title": "Contribution Replay Timeline",
+      "subtitle": "Animate your coding journey and watch commits accumulate month-by-month",
+      "play": "Play Replay",
+      "pause": "Pause Replay",
+      "reset": "Reset Replay",
+      "speed": "Playback Speed",
+      "speed_value": "{{speed}}x",
+      "accumulated": "Accumulated Commits",
+      "monthly_total": "Monthly Commits",
+      "peak_activity": "Peak Activity",
+      "peak_commits": "{{count}} commits",
+      "peak_date": "on {{date}}",
+      "no_activity": "No contribution activity data available for replay.",
+      "aria_scrub": "Scrub timeline months",
+      "aria_speed": "Select playback speed multiplier",
+      "aria_month": "Jump to {{month}}",
+      "active_month": "Active Month",
+      "intensity_breakdown": "Intensity Breakdown",
+      "intensity_low": "Low Intensity Days",
+      "intensity_medium": "Medium Intensity Days",
+      "intensity_high": "High Intensity Days"
+    },
+    "compare": {
+      "title": "Profile Comparison Analytics",
+      "subtitle": "Compare developer activity, language breakdown, achievements, and repository impact head-to-head.",
+      "vs": "VS",
+      "developer_score": "Developer Score",
+      "contributions": "Contributions",
+      "streak": "Streak",
+      "months": {
+        "jan": "Jan",
+        "feb": "Feb",
+        "mar": "Mar",
+        "apr": "Apr",
+        "may": "May",
+        "jun": "Jun",
+        "jul": "Jul",
+        "aug": "Aug",
+        "sep": "Sep",
+        "oct": "Oct",
+        "nov": "Nov",
+        "dec": "Dec"
+      },
+      "contribution_comparison": {
+        "title": "Contribution Comparison",
+        "subtitle": "Month-by-month developer activity level",
+        "user_total": "{{name}}'s Total: {{count}} contributions",
+        "no_data": "No activity data available"
+      },
+      "language_comparison": {
+        "title": "Language Comparison",
+        "subtitle": "Side-by-side programming languages breakdown",
+        "no_data": "No language data found"
+      },
+      "achievement_comparison": {
+        "title": "Achievement Comparison",
+        "subtitle": "Key achievements unlocked head-to-head",
+        "unlocked_by": "Unlocked by",
+        "both": "Both",
+        "neither": "Neither",
+        "unlocked": "Unlocked",
+        "locked": "Locked",
+        "no_data": "No achievements found"
+      },
+      "repository_comparison": {
+        "title": "Repository Comparison",
+        "subtitle": "Head-to-head comparison of top 3 repositories",
+        "commits": "Commits",
+        "stars": "Stars",
+        "forks": "Forks",
+        "impact_score": "Impact Score",
+        "no_data": "No repository data found",
+        "rank": "Rank"
+      }
     },
     "goals": {
       "title": "Contribution Goals",

@@ -57,6 +57,7 @@
     "server-only": "^0.0.1",
     "serwist": "^9.5.11",
     "sonner": "^2.0.7",
+    "svg2pdf.js": "^2.7.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {

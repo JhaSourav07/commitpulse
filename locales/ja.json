@@ -8,7 +8,8 @@
     "menu_close": "メニューを閉じる",
     "compare": "比較する",
     "customization_studio": "カスタマイズスタジオ",
-    "generator": "ジェネレーター"
+    "generator": "ジェネレーター",
+    "burnout_radar": "Burnout Radar"
   },
   "footer": {
     "tagline": "エリートビルダーコミュニティ向けに設計されています。",
@@ -32,6 +33,8 @@
     "generator": "ジェネレーター"
   },
   "landing": {
+    "empty_username_warning": "Please enter a GitHub username to copy your badge link.",
+    "max_length_warning": "GitHub username limit reached (39 characters maximum)",
     "title": "あなたの{開発の軌跡}を\n立体的に表現する。",
     "subtitle": "平面的なグリッドだけで満足していませんか？ あなたのコーディングのリズムをプロフェッショナルな精度で可視化する、高精度な3Dアイソメトリックモノリスを作成しましょう。",
     "watch_dashboard": "ダッシュボードを見る",
@@ -53,7 +56,9 @@
       "sync_title": "リアルタイム同期",
       "sync_desc": "GitHub GraphQL APIから直接取得。あなたの開発ストリークは、コードのプッシュに合わせて即座に更新されます。",
       "theme_title": "テーマエンジン",
-      "theme_desc": "シンプルなURLパラメータ管理で、Neon、Dracula、またはカスタムHEXモードを切り替えることができます。"
+      "theme_desc": "シンプルなURLパラメータ管理で、Neon、Dracula、またはカスタムHEXモードを切り替えることができます。",
+      "isometric_title": "Isometric Math",
+      "isometric_desc": "Sophisticated 3D projection formulas turn 2D data into digital architecture."
     },
     "generate_badge": "バッジを生成",
     "verified_profile": "確認済みプロファイル",
@@ -61,11 +66,13 @@
     "preview_monolith": "モノリスプレビュー",
     "interactive_preview_title": "インタラクティブなモノリスプレビュー",
     "interactive_preview_desc": "CommitPulseは、公開されているGitHubのコントリビューション履歴を、カスタマイズ可能な3D都市にコンパイルします。タワーが高いほど、その日のコミット数が多いことを示します。上にGitHubのユーザー名を入力して、今すぐストリークバッジを生成してください。",
-    "input_aria_label": "バッジを生成するにはGitHubユーザー名を入力してください"
+    "input_aria_label": "バッジを生成するにはGitHubユーザー名を入力してください",
+    "unable_to_load_stats": "Unable to load stats"
   },
   "success_guide": {
     "title": "モノリスの準備ができました - 4つのステップで配置しましょう",
     "markdown_copied": "Markdownがコピーされました",
+    "dismiss_aria": "Dismiss guide",
     "step_1_title": "プロフィールリポジトリを開く",
     "step_1_body": "github.com/あなたのユーザー名/あなたのユーザー名 - あなたの特別なプロフィールリポジトリに移動します。",
     "step_2_title": "README.mdを編集する",
@@ -108,19 +115,29 @@
       "sync_year": "同期対象年",
       "clear_custom": "カスタムカラーをクリア",
       "theme_presets": "テーマプリセット",
-      "color_overrides": "カスタムカラー上書き"
+      "color_overrides": "カスタムカラー上書き",
+      "font": "Font",
+      "custom_font_option": "Custom Google Font...",
+      "custom_font_placeholder": "e.g. Orbitron, Space Mono, Inter"
     },
     "export": {
       "snippet_title": "エクスポートスニペット",
       "snippet_desc": "バッジのライブ設定を変更することなく、エクスポート形式を切り替えることができます。",
       "markdown": "Markdown",
       "html": "HTML",
+      "action": "GitHub Action",
+      "download_badge": "Download Badge",
+      "downloading": "Downloading...",
+      "download_not_available": "Download Not Available",
+      "copy_workflow": "Copy workflow",
       "copy_format": "{{format}}をコピー",
       "copied": "コピーされました！",
       "copy_aria_disabled": "GitHubユーザー名を追加して{{format}}エクスポートスニペットをコピー",
       "copy_aria_enabled": "{{format}}エクスポートスニペットをクリップボードにコピー",
       "footer_tip": "これをGitHubプロフィールのREADME.mdに貼り付けます。バッジはサーバーサイドでレンダリングされるため、スクリプトは不要です。",
-      "tsx": "React TSX"
+      "tsx": "React TSX",
+      "download_svg": "Download SVG",
+      "download_png": "Download PNG"
     }
   },
   "dashboard": {
@@ -135,7 +152,9 @@
       "following": "フォロー数",
       "stars": "スター獲得数",
       "joined": "登録日",
-      "pro_badge": "PRO"
+      "pro_badge": "PRO",
+      "pro": "PRO",
+      "share": "Share Your Pulse"
     },
     "achievements": {
       "title": "実績",
@@ -152,7 +171,9 @@
       "loc": "コード行数",
       "loc_desc": "期間中に変更されたコード行数",
       "commits_desc": "期間中のコミット颻度",
-      "lines_modified": "{{count}} 行変更"
+      "lines_modified": "{{count}} 行変更",
+      "aria_range": "from {{start}} to {{end}}",
+      "aria_single": "on {{date}}"
     },
     "languages": {
       "title": "主な言語",
@@ -223,7 +244,134 @@
       "svg_downloaded": "SVGがダウンロードされました！",
       "json_downloaded": "JSONがダウンロードされました！",
       "failed": "失敗しました — 再試行してください",
+      "social_channels": "Social Channels",
+      "export_options": "Export Options",
+      "github_wrapped": "GitHub Wrapped",
+      "download_webp": "Download Optimized WebP",
       "download_stl": "印刷可能な3D STLモノリスのダウンロード"
+    },
+    "impact": {
+      "title": "Repository Impact Analyzer",
+      "ranking": "Repository Ranking",
+      "languages": "Language Contribution",
+      "growth": "Growth Metrics",
+      "commits": "Commits",
+      "stars": "Stars",
+      "forks": "Forks",
+      "score": "Impact Score",
+      "age": "Repository Age",
+      "avg_stars": "Avg. Stars / Month",
+      "avg_forks": "Avg. Forks / Month",
+      "months": "months",
+      "years": "years",
+      "top_repos": "Top 5 Repositories",
+      "contribution_commits": "commits",
+      "no_data": "No repository data available."
+    },
+    "forecast": {
+      "title": "貢献予測",
+      "subtitle": "コーディング速度とトレンドの傾きに基づいて将来의成長を予測します。",
+      "weekly_velocity": "週平均ベロシティ",
+      "monthly_velocity": "月平均ベロシティ",
+      "projected_month": "月末の予測値",
+      "projected_year": "年末の予測値",
+      "consistency_rating": "継続性評価",
+      "trend_direction": "トレンド",
+      "commits_per_week": "{{count}} コミット/週",
+      "commits_per_month": "{{count}} コミット/月",
+      "commits": "{{count}} コミット",
+      "growth_rate": "成長率: {{rate}} コミット/日²",
+      "consistency_level": {
+        "elite": "エリート (非常に安定)",
+        "consistent": "高い (安定)",
+        "occasional": "適度 (時々)",
+        "sporadic": "低い (散発的)",
+        "inactive": "非アクティブ"
+      },
+      "trends": {
+        "strong_growth": "強い成長",
+        "moderate_growth": "緩やかな成長",
+        "stable": "安定したリズム",
+        "cooling": "減速中",
+        "decline": "大幅な低下"
+      },
+      "no_activity": "予測を生成するための過去のアクティビティデータがありません。"
+    },
+    "replay": {
+      "title": "Contribution Replay Timeline",
+      "subtitle": "Animate your coding journey and watch commits accumulate month-by-month",
+      "play": "Play Replay",
+      "pause": "Pause Replay",
+      "reset": "Reset Replay",
+      "speed": "Playback Speed",
+      "speed_value": "{{speed}}x",
+      "accumulated": "Accumulated Commits",
+      "monthly_total": "Monthly Commits",
+      "peak_activity": "Peak Activity",
+      "peak_commits": "{{count}} commits",
+      "peak_date": "on {{date}}",
+      "no_activity": "No contribution activity data available for replay.",
+      "aria_scrub": "Scrub timeline months",
+      "aria_speed": "Select playback speed multiplier",
+      "aria_month": "Jump to {{month}}",
+      "active_month": "Active Month",
+      "intensity_breakdown": "Intensity Breakdown",
+      "intensity_low": "Low Intensity Days",
+      "intensity_medium": "Medium Intensity Days",
+      "intensity_high": "High Intensity Days"
+    },
+    "compare": {
+      "title": "Profile Comparison Analytics",
+      "subtitle": "Compare developer activity, language breakdown, achievements, and repository impact head-to-head.",
+      "vs": "VS",
+      "developer_score": "Developer Score",
+      "contributions": "Contributions",
+      "streak": "Streak",
+      "months": {
+        "jan": "Jan",
+        "feb": "Feb",
+        "mar": "Mar",
+        "apr": "Apr",
+        "may": "May",
+        "jun": "Jun",
+        "jul": "Jul",
+        "aug": "Aug",
+        "sep": "Sep",
+        "oct": "Oct",
+        "nov": "Nov",
+        "dec": "Dec"
+      },
+      "contribution_comparison": {
+        "title": "Contribution Comparison",
+        "subtitle": "Month-by-month developer activity level",
+        "user_total": "{{name}}'s Total: {{count}} contributions",
+        "no_data": "No activity data available"
+      },
+      "language_comparison": {
+        "title": "Language Comparison",
+        "subtitle": "Side-by-side programming languages breakdown",
+        "no_data": "No language data found"
+      },
+      "achievement_comparison": {
+        "title": "Achievement Comparison",
+        "subtitle": "Key achievements unlocked head-to-head",
+        "unlocked_by": "Unlocked by",
+        "both": "Both",
+        "neither": "Neither",
+        "unlocked": "Unlocked",
+        "locked": "Locked",
+        "no_data": "No achievements found"
+      },
+      "repository_comparison": {
+        "title": "Repository Comparison",
+        "subtitle": "Head-to-head comparison of top 3 repositories",
+        "commits": "Commits",
+        "stars": "Stars",
+        "forks": "Forks",
+        "impact_score": "Impact Score",
+        "no_data": "No repository data found",
+        "rank": "Rank"
+      }
     },
     "goals": {
       "title": "Contribution Goals",

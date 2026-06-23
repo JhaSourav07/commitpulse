@@ -201,3 +201,12 @@ export function escapeXML(str: string): string {
     .replace(/'/g, '&#39;')
     .replace(/`/g, '&#96;');
 }
+
+/**
+ * Sanitizes input string to prevent XML injection/XSS.
+ * Removes/escapes any characters that could break out of SVG tags/attributes.
+ */
+export function sanitizeCustomText(text: string | undefined | null): string {
+  if (!text) return '';
+  return escapeXML(text);
+}

@@ -2,6 +2,25 @@ import '@testing-library/jest-dom';
 import { afterEach } from 'vitest';
 import { vi } from 'vitest';
 
+// Mock IntersectionObserver globally for Framer Motion tests
+class MockIntersectionObserver {
+  observe = vi.fn();
+  disconnect = vi.fn();
+  unobserve = vi.fn();
+}
+Object.defineProperty(globalThis, 'IntersectionObserver', {
+  writable: true,
+  configurable: true,
+  value: MockIntersectionObserver,
+});
+if (typeof window !== 'undefined') {
+  Object.defineProperty(window, 'IntersectionObserver', {
+    writable: true,
+    configurable: true,
+    value: MockIntersectionObserver,
+  });
+}
+
 // 1. Next-Auth ko crash hone se bachane ke liye env variables defaults set karo
 process.env.AUTH_SECRET = 'a-super-secret-32-character-dummy-string-for-tests';
 process.env.NEXTAUTH_SECRET = 'a-super-secret-32-character-dummy-string-for-tests';

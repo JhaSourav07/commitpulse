@@ -89,9 +89,9 @@ export default async function ContributorsPage() {
     0
   );
 
-  const topContributors = contributors
-    .slice(0, 6)
-    .sort((a, b) => b.contributions - a.contributions);
+  const topContributors = [...contributors]
+    .sort((a, b) => b.contributions - a.contributions)
+    .slice(0, 6);
 
   return (
     <ContributorsClient

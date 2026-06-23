@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server';
 import { getWrappedData, getCircuitTelemetry } from '@/lib/github';
 import { generateWrappedSVG, generateNotFoundSVG, generateRateLimitSVG } from '@/lib/svg/generator';
 import { escapeXML } from '@/lib/svg/sanitizer';
-import { wrappedParamsSchema } from '@/lib/validations';
+import { wrappedParamsSchema, coerceQueryParams } from '@/lib/validations';
 import type { BadgeParams } from '@/types';
 import { themes } from '@/lib/svg/themes';
 import { getClientIp } from '@/utils/getClientIp';
@@ -21,7 +21,7 @@ const SVG_CSP_HEADER =
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
 
-  const parseResult = wrappedParamsSchema.safeParse(Object.fromEntries(searchParams.entries()));
+  const parseResult = wrappedParamsSchema.safeParse(coerceQueryParams(searchParams));
   try {
     if (!parseResult.success) {
       const fieldErrors = parseResult.error.flatten();

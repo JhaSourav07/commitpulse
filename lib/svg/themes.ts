@@ -1,6 +1,27 @@
-// lib/svg/themes.ts
+import { z } from 'zod';
 import { BadgeTheme } from '../../types';
 import { hexColor } from './sanitizer';
+
+const HEX_COLOR_REGEX = /^[0-9a-fA-F]{3,4}$|^[0-9a-fA-F]{6,8}$/;
+
+export const badgeThemeSchema = z.object({
+  bg: z.string().regex(HEX_COLOR_REGEX, { message: 'Invalid bg color format' }),
+  text: z.string().regex(HEX_COLOR_REGEX, { message: 'Invalid text color format' }),
+  accent: z.string().regex(HEX_COLOR_REGEX, { message: 'Invalid accent color format' }),
+  negative: z
+    .string()
+    .regex(HEX_COLOR_REGEX, { message: 'Invalid negative color format' })
+    .optional(),
+});
+
+export function validateThemes(themesMap: Record<string, unknown>): void {
+  for (const [name, theme] of Object.entries(themesMap)) {
+    const result = badgeThemeSchema.safeParse(theme);
+    if (!result.success) {
+      throw new Error(`Theme validation failed for "${name}": ${result.error.message}`);
+    }
+  }
+}
 
 function makeTheme(bg: string, text: string, accent: string, negative?: string): BadgeTheme {
   return {
@@ -37,7 +58,7 @@ export const themes: Record<string, BadgeTheme> = {
   glacier: makeTheme('e0f2fe', '0369a1', '06b6d4', 'ef4444'),
   lumos: makeTheme('0a0a0a', 'a7f3d0', 'fbbf24', 'ef4444'),
   tokyonight: makeTheme('1a1b26', 'c0caf5', 'f7768e'),
-  cyberpunk: makeTheme('fce22a', '111111', 'ff003c'),
+  cyberpunk: makeTheme('fce22a', '111111', 'ff003c', '2d0000'),
   tokyo_night: makeTheme('1a1b26', 'c0caf5', '7aa2f7'),
   monokai: makeTheme('272822', 'f8f8f2', 'a6e22e', 'f92672'),
   midnight_ocean: makeTheme('020c1b', 'ccd6f6', '0af5ff', 'ff4d6d'),
@@ -61,3 +82,5 @@ export function getNormalizedThemeKey(themeInput: string | undefined | null): st
 
   return matchedKey || 'default';
 }
+
+validateThemes(themes);

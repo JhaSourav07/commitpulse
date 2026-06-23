@@ -8,7 +8,8 @@
     "menu_close": "Fermer le menu",
     "compare": "Comparer",
     "customization_studio": "Studio de Personnalisation",
-    "generator": "Générateur"
+    "generator": "Générateur",
+    "burnout_radar": "Burnout Radar"
   },
   "footer": {
     "tagline": "Conçu pour la communauté des développeurs d'élite.",
@@ -32,6 +33,8 @@
     "generator": "Générateur"
   },
   "landing": {
+    "empty_username_warning": "Please enter a GitHub username to copy your badge link.",
+    "max_length_warning": "GitHub username limit reached (39 characters maximum)",
     "title": "Sublimez Votre\nHistoire de {Contributions}.",
     "subtitle": "Ne vous contentez plus de grilles plates. Générez des monolithes 3D isométriques haute fidélité qui visualisent votre rythme de codage avec une précision professionnelle.",
     "watch_dashboard": "Voir le tableau de bord",
@@ -53,7 +56,9 @@
       "sync_title": "Synchronisation en temps réel",
       "sync_desc": "Extrait directement de l'API GraphQL de GitHub. Votre série de commits se met à jour aussi vite que vous poussez votre code.",
       "theme_title": "Moteur de Thèmes",
-      "theme_desc": "Basculez entre les modes Néon, Dracula ou HEX personnalisés via une gestion simple des URL."
+      "theme_desc": "Basculez entre les modes Néon, Dracula ou HEX personnalisés via une gestion simple des URL.",
+      "isometric_title": "Isometric Math",
+      "isometric_desc": "Sophisticated 3D projection formulas turn 2D data into digital architecture."
     },
     "generate_badge": "Générer le badge",
     "verified_profile": "Profil vérifié",
@@ -61,11 +66,13 @@
     "preview_monolith": "APERCU DU MONOLITHE",
     "interactive_preview_title": "Aperçu interactif du monolithe",
     "interactive_preview_desc": "CommitPulse compile votre historique de contributions GitHub publiques dans une ville 3D personnalisable. Plus les tours sont hautes, plus vous avez contribué ce jour-là. Entrez un nom d'utilisateur GitHub ci-dessus pour générer instantanément votre badge de streak.",
-    "input_aria_label": "Entrez le nom d'utilisateur GitHub pour générer le badge"
+    "input_aria_label": "Entrez le nom d'utilisateur GitHub pour générer le badge",
+    "unable_to_load_stats": "Unable to load stats"
   },
   "success_guide": {
     "title": "Votre Monolithe est Prêt - Déployez-le en 4 étapes",
     "markdown_copied": "Markdown copié",
+    "dismiss_aria": "Dismiss guide",
     "step_1_title": "Ouvrez le dépôt de votre profil",
     "step_1_body": "Rendez-vous sur github.com/VOTRE_PSEUDO/VOTRE_PSEUDO - votre dépôt de profil spécial.",
     "step_2_title": "Modifiez le fichier README.md",
@@ -108,19 +115,29 @@
       "sync_year": "Année de synchronisation",
       "clear_custom": "Effacer les couleurs personnalisées",
       "theme_presets": "Préréglage de thème",
-      "color_overrides": "Surcharges de couleurs personnalisées"
+      "color_overrides": "Surcharges de couleurs personnalisées",
+      "font": "Font",
+      "custom_font_option": "Custom Google Font...",
+      "custom_font_placeholder": "e.g. Orbitron, Space Mono, Inter"
     },
     "export": {
       "snippet_title": "Extrait d'exportation",
       "snippet_desc": "Basculez entre les formats sans modifier la configuration du badge en direct.",
       "markdown": "Markdown",
       "html": "HTML",
+      "action": "GitHub Action",
+      "download_badge": "Download Badge",
+      "downloading": "Downloading...",
+      "download_not_available": "Download Not Available",
+      "copy_workflow": "Copy workflow",
       "copy_format": "Copier le {{format}}",
       "copied": "Copié !",
       "copy_aria_disabled": "Ajoutez un nom d'utilisateur GitHub pour activer la copie de l'extrait d'exportation {{format}}",
       "copy_aria_enabled": "Copier l'extrait d'exportation {{format}} dans le presse-papiers",
       "footer_tip": "Collez ceci dans le fichier README.md de votre profil GitHub. Le badge est généré côté serveur, aucun script n'est requis.",
-      "tsx": "React TSX"
+      "tsx": "React TSX",
+      "download_svg": "Download SVG",
+      "download_png": "Download PNG"
     }
   },
   "dashboard": {
@@ -135,7 +152,9 @@
       "following": "Abonnements",
       "stars": "Étoiles",
       "joined": "Rejoint en",
-      "pro_badge": "PRO"
+      "pro_badge": "PRO",
+      "pro": "PRO",
+      "share": "Share Your Pulse"
     },
     "achievements": {
       "title": "Succès",
@@ -152,7 +171,9 @@
       "loc": "Lignes de code",
       "loc_desc": "Lignes de code modifiées au fil du temps",
       "commits_desc": "Fréquence des commits au fil du temps",
-      "lines_modified": "{{count}} lignes modifiées"
+      "lines_modified": "{{count}} lignes modifiées",
+      "aria_range": "from {{start}} to {{end}}",
+      "aria_single": "on {{date}}"
     },
     "languages": {
       "title": "Principales langues",
@@ -223,7 +244,134 @@
       "svg_downloaded": "SVG téléchargé !",
       "json_downloaded": "JSON téléchargé !",
       "failed": "Échec — réessayez",
+      "social_channels": "Social Channels",
+      "export_options": "Export Options",
+      "github_wrapped": "GitHub Wrapped",
+      "download_webp": "Download Optimized WebP",
       "download_stl": "Télécharger le monolithe STL 3D imprimable"
+    },
+    "impact": {
+      "title": "Repository Impact Analyzer",
+      "ranking": "Repository Ranking",
+      "languages": "Language Contribution",
+      "growth": "Growth Metrics",
+      "commits": "Commits",
+      "stars": "Stars",
+      "forks": "Forks",
+      "score": "Impact Score",
+      "age": "Repository Age",
+      "avg_stars": "Avg. Stars / Month",
+      "avg_forks": "Avg. Forks / Month",
+      "months": "months",
+      "years": "years",
+      "top_repos": "Top 5 Repositories",
+      "contribution_commits": "commits",
+      "no_data": "No repository data available."
+    },
+    "forecast": {
+      "title": "Prévisions de Contribution",
+      "subtitle": "Prédisez la croissance future en fonction de votre vitesse de codage et des pentes de tendance.",
+      "weekly_velocity": "Vitesse Hebdomadaire",
+      "monthly_velocity": "Vitesse Mensuelle",
+      "projected_month": "Fin de Mois Projetée",
+      "projected_year": "Fin d'Année Projetée",
+      "consistency_rating": "Indice de Cohérence",
+      "trend_direction": "Tendance",
+      "commits_per_week": "{{count}} commits/semaine",
+      "commits_per_month": "{{count}} commits/mois",
+      "commits": "{{count}} commits",
+      "growth_rate": "Taux de Croissance: {{rate}} commits/jour²",
+      "consistency_level": {
+        "elite": "Élite (Très Cohérent)",
+        "consistent": "Élevé (Cohérent)",
+        "occasional": "Modéré (Occasionnel)",
+        "sporadic": "Faible (Sporadique)",
+        "inactive": "Inactif"
+      },
+      "trends": {
+        "strong_growth": "Forte Croissance",
+        "moderate_growth": "Croissance Modérée",
+        "stable": "Rythme Stable",
+        "cooling": "Ralentissement",
+        "decline": "Baisse Significative"
+      },
+      "no_activity": "Aucune donnée d'activité passée disponible pour générer des prévisions."
+    },
+    "replay": {
+      "title": "Contribution Replay Timeline",
+      "subtitle": "Animate your coding journey and watch commits accumulate month-by-month",
+      "play": "Play Replay",
+      "pause": "Pause Replay",
+      "reset": "Reset Replay",
+      "speed": "Playback Speed",
+      "speed_value": "{{speed}}x",
+      "accumulated": "Accumulated Commits",
+      "monthly_total": "Monthly Commits",
+      "peak_activity": "Peak Activity",
+      "peak_commits": "{{count}} commits",
+      "peak_date": "on {{date}}",
+      "no_activity": "No contribution activity data available for replay.",
+      "aria_scrub": "Scrub timeline months",
+      "aria_speed": "Select playback speed multiplier",
+      "aria_month": "Jump to {{month}}",
+      "active_month": "Active Month",
+      "intensity_breakdown": "Intensity Breakdown",
+      "intensity_low": "Low Intensity Days",
+      "intensity_medium": "Medium Intensity Days",
+      "intensity_high": "High Intensity Days"
+    },
+    "compare": {
+      "title": "Profile Comparison Analytics",
+      "subtitle": "Compare developer activity, language breakdown, achievements, and repository impact head-to-head.",
+      "vs": "VS",
+      "developer_score": "Developer Score",
+      "contributions": "Contributions",
+      "streak": "Streak",
+      "months": {
+        "jan": "Jan",
+        "feb": "Feb",
+        "mar": "Mar",
+        "apr": "Apr",
+        "may": "May",
+        "jun": "Jun",
+        "jul": "Jul",
+        "aug": "Aug",
+        "sep": "Sep",
+        "oct": "Oct",
+        "nov": "Nov",
+        "dec": "Dec"
+      },
+      "contribution_comparison": {
+        "title": "Contribution Comparison",
+        "subtitle": "Month-by-month developer activity level",
+        "user_total": "{{name}}'s Total: {{count}} contributions",
+        "no_data": "No activity data available"
+      },
+      "language_comparison": {
+        "title": "Language Comparison",
+        "subtitle": "Side-by-side programming languages breakdown",
+        "no_data": "No language data found"
+      },
+      "achievement_comparison": {
+        "title": "Achievement Comparison",
+        "subtitle": "Key achievements unlocked head-to-head",
+        "unlocked_by": "Unlocked by",
+        "both": "Both",
+        "neither": "Neither",
+        "unlocked": "Unlocked",
+        "locked": "Locked",
+        "no_data": "No achievements found"
+      },
+      "repository_comparison": {
+        "title": "Repository Comparison",
+        "subtitle": "Head-to-head comparison of top 3 repositories",
+        "commits": "Commits",
+        "stars": "Stars",
+        "forks": "Forks",
+        "impact_score": "Impact Score",
+        "no_data": "No repository data found",
+        "rank": "Rank"
+      }
     },
     "goals": {
       "title": "Contribution Goals",

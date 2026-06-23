@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
+import { coerceQueryParams } from '@/lib/validations';
 import { fetchBurnoutAnalysis } from '@/services/github/burnout-analyzer';
 import { quotaMonitor } from '@/services/github/quota-monitor';
 import { getClientIp } from '@/utils/getClientIp';
@@ -37,7 +38,7 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const ip = getClientIp(request);
 
-  const parseResult = repoBurnoutParamsSchema.safeParse(Object.fromEntries(searchParams.entries()));
+  const parseResult = repoBurnoutParamsSchema.safeParse(coerceQueryParams(searchParams));
 
   if (!parseResult.success) {
     return NextResponse.json(

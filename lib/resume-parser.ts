@@ -60,13 +60,30 @@ function extractSection(text: string, headers: RegExp): string[] {
   return sectionLines;
 }
 
+function isValidSkill(skill: string): boolean {
+  const cleaned = skill.trim();
+
+  const shortSkills = new Set(['C', 'R', 'Go', 'AI', 'ML', 'JS', 'TS', 'C++', 'C#', '.NET']);
+
+  if (shortSkills.has(cleaned)) {
+    return true;
+  }
+
+  return (
+    cleaned.length >= 2 &&
+    cleaned.length < 50 &&
+    /^[a-zA-Z0-9.+#\s-]+$/.test(cleaned) &&
+    !/[?~<>]/.test(cleaned) &&
+    !/^[A-Za-z]\s+[A-Za-z]$/.test(cleaned)
+  );
+}
+
 function extractSkills(text: string): string[] {
   const section = extractSection(text, SKILL_SECTION_HEADERS);
-  const allText = section.join(' ');
-  const skills = allText
-    .split(/[,•·\-|/\n]+/)
+  const skills = section
+    .flatMap((line) => line.split(/[,•·|/]+/))
     .map((s) => s.trim())
-    .filter((s) => s.length > 0 && s.length < 50);
+    .filter(isValidSkill);
   return [...new Set(skills)];
 }
 

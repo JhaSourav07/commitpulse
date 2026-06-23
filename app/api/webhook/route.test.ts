@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { NextRequest } from 'next/server';
 import crypto from 'crypto';
+import { getClientIp } from '@/utils/getClientIp';
 
 // Mock getClientIp before importing the route so we control the IP per test
 let mockIp = '127.0.0.1';
@@ -210,5 +211,28 @@ describe('POST /api/webhook', () => {
     expect(res.status).toBe(400);
     const data = await res.json();
     expect(data.error).toBe('Invalid JSON');
+  });
+
+  it('uses getClientIp instead of raw x-forwarded-for header to prevent IP spoofing', async () => {
+    const secret = 'secret_key';
+    process.env.GITHUB_WEBHOOK_SECRET = secret;
+    mockIp = 'trusted-client-ip';
+
+    const payload = '{"test":"data"}';
+    const hmac = crypto.createHmac('sha256', secret);
+    const signature = 'sha256=' + hmac.update(payload).digest('hex');
+
+    const req = makeRequest(
+      {
+        'content-length': payload.length.toString(),
+        'x-hub-signature-256': signature,
+        'x-forwarded-for': '1.2.3.4',
+      },
+      payload
+    );
+
+    await POST(req);
+
+    expect(getClientIp).toHaveBeenCalledWith(req);
   });
 });

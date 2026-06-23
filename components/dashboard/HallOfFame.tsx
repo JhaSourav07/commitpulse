@@ -93,13 +93,12 @@ export default function HallOfFame({ data }: HallOfFameProps) {
                 {/* Middle/Bottom: Repo Name & Avatar */}
                 <div className="group flex items-center gap-4 p-4 bg-gray-100 dark:bg-[#111] rounded-xl border border-black/10 dark:border-[rgba(255,255,255,0.05)]">
                   {award.repoAvatar ? (
-                    <Image
+                    <img
                       src={award.repoAvatar}
                       alt={award.repoName}
-                      width={40}
-                      height={40}
-                      className="rounded-full shadow-md bg-white border border-black/10 dark:border-white/10"
-                      unoptimized
+                      width="40"
+                      height="40"
+                      className="rounded-full shadow-md bg-white border border-black/10 dark:border-white/10 object-cover"
                     />
                   ) : (
                     <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-[#111] border border-black/10 dark:border-white/10 flex items-center justify-center">

@@ -28,7 +28,7 @@ import { generateDoughnutSVG } from '@/lib/svg/doughnut';
 import { getSecondsUntilUTCMidnight, getSecondsUntilMidnightInTimezone } from '@/utils/time';
 import type { BadgeParams, RepoContribution, ExtendedContributionData } from '@/types';
 import { getNormalizedThemeKey, themes } from '@/lib/svg/themes';
-import { streakParamsSchema } from '@/lib/validations';
+import { streakParamsSchema, coerceQueryParams } from '@/lib/validations';
 import { sanitizeHexColor, sanitizeRadius, escapeXML } from '@/lib/svg/sanitizer';
 import { getClientIp } from '@/utils/getClientIp';
 import { quotaMonitor } from '@/services/github/quota-monitor';
@@ -89,7 +89,7 @@ export async function GET(request: Request) {
 
   const cacheKey = searchParams.toString();
   const parseResult = cachedValidation(cacheKey, () =>
-    streakParamsSchema.safeParse(Object.fromEntries(searchParams.entries()))
+    streakParamsSchema.safeParse(coerceQueryParams(searchParams))
   );
   try {
     if (!parseResult.success) {
@@ -131,6 +131,8 @@ export async function GET(request: Request) {
       refresh,
       bypassCache: bypassCacheParam,
       hide_title,
+      custom_title,
+      custom_subtitle,
       hide_background,
       hide_stats,
       lang,
@@ -337,6 +339,8 @@ export async function GET(request: Request) {
       font,
       autoTheme: isAutoTheme,
       hide_title,
+      custom_title,
+      custom_subtitle,
       hideBackground: hide_background,
       hide_stats,
       lang,

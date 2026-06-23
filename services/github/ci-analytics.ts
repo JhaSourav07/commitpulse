@@ -199,7 +199,7 @@ function calculateDurationFallback(startedAt: string, finishedAt: string): numbe
   }
 }
 
-function processRuns(runs: CIWorkflowRun[]) {
+export function processRuns(runs: CIWorkflowRun[]) {
   const totalRuns = runs.length;
   const successfulRuns = runs.filter((r) => r.conclusion === 'success').length;
   const failedRuns = runs.filter((r) => r.conclusion === 'failure').length;
@@ -211,10 +211,10 @@ function processRuns(runs: CIWorkflowRun[]) {
       r.status === 'pending' ||
       r.status === 'waiting'
   ).length;
-  const successRate =
-    totalRuns > 0 ? Math.round((successfulRuns / (successfulRuns + failedRuns)) * 100) : 0;
+  const decidedRuns = successfulRuns + failedRuns;
+  const successRate = decidedRuns > 0 ? Math.round((successfulRuns / decidedRuns) * 100) : 0;
 
-  const completedRuns = runs.filter((r) => r.conclusion !== null);
+  const completedRuns = runs.filter((r) => r.conclusion !== null && r.duration > 0);
   const totalDuration = completedRuns.reduce((sum, r) => sum + r.duration, 0);
   const avgBuildDuration =
     completedRuns.length > 0 ? Math.round(totalDuration / completedRuns.length) : 0;

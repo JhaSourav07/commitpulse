@@ -10,6 +10,8 @@ import { getGitHubTokens } from '@/lib/github';
 
 const execFilePromise = promisify(execFile);
 
+const REST_TIMEOUT_MS = 5000; // 5s timeout for external API requests
+
 /**
  * Strips credentials (x-access-token:...@) from error messages to prevent
  * leaking tokens into server logs.
@@ -296,11 +298,17 @@ export async function POST(req: NextRequest) {
     try {
       const env = { ...process.env } as NodeJS.ProcessEnv;
       if (token) {
-        // GIT_ASKPASS points to a script that echoes the token when git asks
-        // for credentials, keeping the token out of process arguments.
+        // GIT_ASKPASS points to a script that reads the token from an environment
+        // variable instead of embedding it in the script body. This prevents the
+        // token from persisting on disk if the process crashes.
         const askpassScript = path.join(tempDir, '.git-askpass.sh');
-        fs.writeFileSync(askpassScript, `#!/bin/sh\necho "${token}"`, { mode: 0o700 });
+        fs.writeFileSync(
+          askpassScript,
+          '#!/bin/sh\nif [ -n "$GIT_TOKEN" ]; then\necho "$GIT_TOKEN"\nelse\nexit 1\nfi',
+          { mode: 0o700 }
+        );
         env.GIT_ASKPASS = askpassScript;
+        env.GIT_TOKEN = token;
         env.GIT_TERMINAL_PROMPT = '0';
       }
       await execFilePromise('git', ['clone', '--depth', '1', '--', cloneUrl, tempDir], { env });
@@ -612,24 +620,32 @@ export async function POST(req: NextRequest) {
         `;
 
         const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent`;
-        const response = await fetch(geminiUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-goog-api-key': geminiApiKey,
-          },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: { responseMaxOutputTokens: 500 },
-          }),
-        });
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), REST_TIMEOUT_MS);
 
-        if (response.ok) {
-          const resJson = await response.json();
-          const text = resJson?.candidates?.[0]?.content?.parts?.[0]?.text;
-          if (text) {
-            summary = text.trim();
+        try {
+          const response = await fetch(geminiUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-goog-api-key': geminiApiKey,
+            },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: prompt }] }],
+              generationConfig: { responseMaxOutputTokens: 500 },
+            }),
+            signal: controller.signal,
+          });
+
+          if (response.ok) {
+            const resJson = await response.json();
+            const text = resJson?.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (text) {
+              summary = text.trim();
+            }
           }
+        } finally {
+          clearTimeout(timeoutId);
         }
       } catch (err) {
         console.warn('Gemini summary generation failed. Falling back to rules-based summary.', err);
