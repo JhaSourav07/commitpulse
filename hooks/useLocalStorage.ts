@@ -18,11 +18,7 @@ function readFromStorage<T>(key: string, initialValue: T): T {
 }
 
 export function useLocalStorage<T>(key: string, initialValue: T): readonly [T, (value: T) => void] {
-  // Lazy initializer reads from localStorage synchronously on first render
-  // instead of deferring to a useEffect — eliminates the stale initialValue
-  // flash on mount and prevents setValue from overwriting stored data before
-  // the deferred read had a chance to run.
-  const [storedValue, setStoredValue] = useState<T>(() => readFromStorage(key, initialValue));
+  const [storedValue, setStoredValue] = useState<T>(initialValue);
 
   // Re-sync when the key changes (e.g. component reused with a different key).
   // setState inside an effect is intentional here — we are synchronising React
