@@ -177,7 +177,7 @@ describe('fetchGitHubContributions', () => {
     expect(url).toBe('https://api.github.com/graphql');
     expect(options?.method).toBe('POST');
     expect(options?.headers).toMatchObject({
-      Authorization: 'bearer test-token',
+      Authorization: 'Bearer test-token',
       'Content-Type': 'application/json',
     });
 
@@ -206,7 +206,7 @@ describe('fetchGitHubContributions', () => {
 
     const [, options] = vi.mocked(fetch).mock.calls[0];
     expect(options?.headers).toMatchObject({
-      Authorization: 'bearer actions-token',
+      Authorization: 'Bearer actions-token',
     });
   });
 
@@ -230,7 +230,7 @@ describe('fetchGitHubContributions', () => {
 
     const [, options] = vi.mocked(fetch).mock.calls[0];
     expect(options?.headers).toMatchObject({
-      Authorization: 'bearer my-actions-token',
+      Authorization: 'Bearer my-actions-token',
     });
   });
 
@@ -1269,7 +1269,8 @@ describe('getFullDashboardData', () => {
 
     expect(capturedAuthHeaders.length).toBeGreaterThan(0);
     for (const authHeader of capturedAuthHeaders) {
-      expect(authHeader).toBe(`bearer ${userToken}`);
+      // RFC 7235 compliance: scheme must be title-case "Bearer", not "bearer"
+      expect(authHeader).toBe(`Bearer ${userToken}`);
     }
   });
   it('caps developerScore at 100 for extreme profile metrics', async () => {
@@ -2720,5 +2721,168 @@ describe('getWrappedData weekendRatio', () => {
     });
     const result = await getWrappedData('octocat', '2024');
     expect(result.weekendRatio).toBe(0);
+  });
+});
+
+// ─── RFC 7235 Bearer casing compliance (Issue #6204) ─────────────────────────
+// RFC 7235 §2.1 defines the authentication scheme as case-insensitive in
+// theory. In practice, picky HTTP proxies, CDN edge configs, and API gateways
+// perform case-sensitive matching and reject lowercase "bearer", causing silent
+// 401 Unauthorized failures in production deployments. All Authorization
+// headers in lib/github.ts must use title-case "Bearer".
+describe('RFC 7235 Bearer casing compliance', () => {
+  beforeEach(() => {
+    vi.spyOn(global, 'fetch');
+    process.env.GITHUB_PAT = 'test-token';
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    process.env.GITHUB_PAT = 'test-token';
+    delete process.env.GITHUB_TOKEN;
+  });
+
+  it('uses title-case "Bearer" (not lowercase "bearer") in the Authorization header sent to the GraphQL endpoint', async () => {
+    // Picky API gateways and CDN edges perform case-sensitive scheme matching.
+    // Lowercase "bearer" causes 401s in those deployments even though RFC 7235
+    // says the scheme is case-insensitive in theory.
+    vi.mocked(fetch).mockResolvedValue(
+      mockResponse({
+        data: {
+          user: {
+            contributionsCollection: {
+              contributionCalendar: mockCalendar,
+              commitContributionsByRepository: [],
+            },
+          },
+        },
+      })
+    );
+
+    await fetchGitHubContributions('octocat');
+
+    const [, options] = vi.mocked(fetch).mock.calls[0];
+    const authHeader = (options?.headers as Record<string, string>)?.Authorization ?? '';
+
+    expect(authHeader).toMatch(/^Bearer /);
+    expect(authHeader).not.toMatch(/^bearer /);
+  });
+
+  it('uses title-case "Bearer" when GITHUB_PAT is absent and the call falls back to GITHUB_TOKEN', async () => {
+    // Ensures both the GITHUB_PAT and GITHUB_TOKEN code paths in getHeaders()
+    // produce the correctly-cased scheme — not just the happy-path branch.
+    delete process.env.GITHUB_PAT;
+    process.env.GITHUB_TOKEN = 'fallback-actions-token';
+
+    vi.mocked(fetch).mockResolvedValue(
+      mockResponse({
+        data: {
+          user: {
+            contributionsCollection: {
+              contributionCalendar: mockCalendar,
+              commitContributionsByRepository: [],
+            },
+          },
+        },
+      })
+    );
+
+    await fetchGitHubContributions('octocat');
+
+    const [, options] = vi.mocked(fetch).mock.calls[0];
+    const authHeader = (options?.headers as Record<string, string>)?.Authorization ?? '';
+
+    expect(authHeader).toBe('Bearer fallback-actions-token');
+  });
+
+  it('preserves the exact token value after the "Bearer " prefix — no truncation or mutation', async () => {
+    // Guards against a regression where a string-transform bug could silently
+    // corrupt the token after fixing the casing (e.g. wrong slice index).
+    const sensitiveToken = 'ghp_AbCdEf1234567890XyZ';
+    process.env.GITHUB_PAT = sensitiveToken;
+
+    vi.mocked(fetch).mockResolvedValue(
+      mockResponse({
+        data: {
+          user: {
+            contributionsCollection: {
+              contributionCalendar: mockCalendar,
+              commitContributionsByRepository: [],
+            },
+          },
+        },
+      })
+    );
+
+    await fetchGitHubContributions('octocat');
+
+    const [, options] = vi.mocked(fetch).mock.calls[0];
+    const authHeader = (options?.headers as Record<string, string>)?.Authorization ?? '';
+
+    expect(authHeader).toBe(`Bearer ${sensitiveToken}`);
+  });
+
+  it('uses title-case "Bearer" across every fetch call made during a full dashboard data load', async () => {
+    // getFullDashboardData fans out to REST + GraphQL endpoints via the same
+    // getHeaders() helper. This test verifies the fix is not silently bypassed
+    // by any call site that constructs its own header object inline.
+    const capturedHeaders: string[] = [];
+
+    vi.mocked(fetch).mockImplementation(async (url: RequestInfo | URL, init?: RequestInit) => {
+      const authHeader =
+        (init?.headers as Record<string, string>)?.Authorization ?? '';
+      if (authHeader) capturedHeaders.push(authHeader);
+
+      const urlStr = typeof url === 'string' ? url : (url?.toString() ?? '');
+
+      if (urlStr.includes('/users/octocat/repos')) {
+        return mockResponse([
+          {
+            name: 'my-repo',
+            stargazers_count: 5,
+            language: 'TypeScript',
+            fork: false,
+            owner: { login: 'octocat' },
+          },
+        ]);
+      }
+      if (urlStr.includes('/users/octocat')) {
+        return mockResponse({
+          login: 'octocat',
+          name: 'The Octocat',
+          avatar_url: 'avatar.png',
+          public_repos: 1,
+          followers: 0,
+          following: 0,
+          created_at: '2020-01-01T00:00:00Z',
+          bio: null,
+          location: null,
+        });
+      }
+      if (urlStr.includes('/actions/runs') || urlStr.includes('/deployments')) {
+        return urlStr.includes('/actions/runs')
+          ? mockResponse({ workflow_runs: [] })
+          : mockResponse([]);
+      }
+      return mockResponse({
+        data: {
+          user: {
+            contributionsCollection: {
+              contributionCalendar: mockCalendar,
+              commitContributionsByRepository: [],
+            },
+          },
+        },
+      });
+    });
+
+    await getFullDashboardData('octocat');
+
+    expect(capturedHeaders.length).toBeGreaterThan(0);
+    for (const header of capturedHeaders) {
+      // Every outbound call must use title-case "Bearer", not lowercase "bearer".
+      expect(header).toMatch(/^Bearer /);
+      expect(header).not.toMatch(/^bearer /);
+    }
   });
 });
