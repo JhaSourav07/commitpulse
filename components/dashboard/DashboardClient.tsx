@@ -43,6 +43,7 @@ import DeploymentTracker from './DeploymentTracker';
 import ArchitectureVisualizer from './ArchitectureVisualizer';
 import GoalTracker from './GoalTracker';
 import DeveloperJourneyTimeline from './DeveloperJourneyTimeline';
+import DeveloperProductivity from './DeveloperProductivity';
 
 // Define the dashboard data structure
 export interface DashboardData {
@@ -714,6 +715,14 @@ export default function DashboardClient({
 
             <section>
               <GoalTracker username={username} activity={initialData.activity} />
+            </section>
+
+            <section>
+              <DeveloperProductivity
+                username={username}
+                activity={initialData.activity}
+                commitClock={initialData.commitClock}
+              />
             </section>
 
             <section className="grid grid-cols-1 md:grid-cols-2 gap-6">

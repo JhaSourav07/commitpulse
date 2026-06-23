@@ -413,6 +413,54 @@
       "viewMilestone": "View details",
       "totalMilestones": "Total Milestones",
       "explore": "Explore Timeline"
+    },
+    "productivity": {
+      "title": "Developer Productivity Intelligence",
+      "subtitle": "Analyze your coding rhythm, active hours, and weekly velocity patterns.",
+      "tabs": {
+        "rhythm": "Rhythm",
+        "hours": "Active Hours",
+        "weekly": "Weekly Velocity"
+      },
+      "metrics": {
+        "rhythm_score": "Rhythm Score",
+        "rhythm_score_desc": "Combined efficiency based on commits velocity and daily consistency ratio.",
+        "rhythm_type": "Coding Style",
+        "variance": "Activity variance",
+        "consistency": "Consistency Metrics",
+        "active_days": "Active Days",
+        "commits_active_day": "Avg Commits / Active Day",
+        "active_days_ratio_desc": "Days with contributions normalized over total tracking period."
+      },
+      "chronotypes": {
+        "night_owl": {
+          "title": "Night Owl",
+          "desc": "Peak productivity peaks during late evening and night hours (8 PM - 2 AM)."
+        },
+        "early_bird": {
+          "title": "Early Bird",
+          "desc": "Peak productivity peaks during early morning hours (5 AM - 11 AM)."
+        },
+        "standard": {
+          "title": "Standard Developer",
+          "desc": "Peak productivity follows standard daytime working hours (9 AM - 5 PM)."
+        }
+      },
+      "rhythm": {
+        "steady_builder": {
+          "title": "Steady Builder",
+          "desc": "Shows steady daily commits with low variance, building habits."
+        },
+        "sprint_coder": {
+          "title": "Sprint Coder",
+          "desc": "Prefers high-intensity coding bursts followed by rest cycles."
+        }
+      },
+      "weekly": {
+        "title": "12-Week Coding Rhythm",
+        "peak": "Peak Week",
+        "commits": "commits"
+      }
     }
   }
 }
