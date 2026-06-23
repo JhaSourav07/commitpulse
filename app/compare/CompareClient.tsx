@@ -46,6 +46,10 @@ import {
 } from 'lucide-react';
 import { validateGitHubUsername } from '@/lib/validations';
 
+// Reuse the existing recent-search infrastructure so users can quickly
+// access previously compared GitHub usernames.
+import { useRecentSearches } from '@/hooks/useRecentSearches';
+
 /* ── types ────────────────────────────────────────────────────────────── */
 
 export interface UserProfile {
@@ -375,15 +379,15 @@ function CompareProfileCard({ user, side }: { user: CompareUserData; side: 'left
         {/* Avatar */}
         <div className="relative mb-4">
           <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-black/10 dark:border-[rgba(255,255,255,0.12)]">
-            <Image
+            <img
               src={
                 profile.avatarUrl.startsWith('http')
                   ? `${profile.avatarUrl}${profile.avatarUrl.includes('?') ? '&' : '?'}s=120`
                   : profile.avatarUrl
               }
               alt={profile.name}
-              width={80}
-              height={80}
+              width="80"
+              height="80"
               className="w-full h-full object-cover"
             />
           </div>
@@ -970,6 +974,10 @@ export default function CompareClient() {
   const [isExporting, setIsExporting] = useState(false);
   const [copied, setCopied] = useState(false);
   const [monolithKey, setMonolithKey] = useState(0);
+  // Persist and manage recently compared GitHub usernames.
+  // The hook handles localStorage persistence, deduplication,
+  // and limits the history size automatically.
+  const { searches, addSearch, clearSearches, removeSearch } = useRecentSearches();
   const lastComparedRef = useRef({ user1: '', user2: '' });
   const dataRef = useRef(data);
   useEffect(() => {
@@ -1117,8 +1125,13 @@ export default function CompareClient() {
 
       try {
         const cached = await readCompareCache(u1, u2);
+
         if (cached) {
           setData(cached);
+
+          // Store successful comparison pairs even when served from cache.
+          addSearch(`${trimmedUser1} vs ${trimmedUser2}`);
+
           return;
         }
 
@@ -1134,6 +1147,11 @@ export default function CompareClient() {
         }
 
         setData(json);
+
+        // Store successful comparison pairs so users can quickly
+        // revisit previously compared developers.
+        addSearch(`${trimmedUser1} vs ${trimmedUser2}`);
+
         await writeCompareCache(u1, u2, json);
         setMonolithKey((k) => k + 1);
       } catch {
@@ -1142,7 +1160,7 @@ export default function CompareClient() {
         setLoading(false);
       }
     },
-    [router]
+    [router, addSearch]
   );
 
   // Auto-compare if URL has params on mount or param changes
@@ -1287,6 +1305,58 @@ export default function CompareClient() {
               </motion.button>
             </div>
           </motion.div>
+
+          {/* Recent Comparision History */}
+          {searches.length > 0 && (
+            <div className="max-w-2xl mx-auto mb-8">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs font-medium text-[#A1A1AA] uppercase tracking-wide">
+                  Recent Comparisions
+                </span>
+
+                <button
+                  onClick={clearSearches}
+                  className="text-xs text-red-500 hover:text-red-600 transition-colors"
+                >
+                  Clear All
+                </button>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                {searches.map((search) => (
+                  <div
+                    key={search}
+                    className="flex items-center gap-1 px-3 py-1 rounded-full border border-black/10 dark:border-white/10 bg-white dark:bg-[#0a0a0a]"
+                  >
+                    <button
+                      onClick={() => {
+                        const [left, right] = search.split(' vs ');
+
+                        if (left && right) {
+                          setUser1(left);
+                          setUser2(right);
+
+                          // Auto-run comparision from history
+                          handleCompare(left, right);
+                        }
+                      }}
+                      className="text-xs text-gray-700 dark:text-gray-300 hover:text-emerald-500 transition-colors"
+                    >
+                      {search}
+                    </button>
+
+                    <button
+                      onClick={() => removeSearch(search)}
+                      className="text-xs text-red-400 hover:text-red-600"
+                      aria-label={`Remove ${search} from recent comparisions`}
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Error */}
           <AnimatePresence>
@@ -1489,15 +1559,14 @@ export default function CompareClient() {
                               @{user.profile.username}
                             </span>
                           </div>
-                          <Image
+                          <img
                             data-monolith-img="true"
                             key={`${user.profile.username}-${monolithKey}`}
                             src={`/api/streak?user=${encodeURIComponent(user.profile.username)}&theme=neon&entrance=none&_k=${monolithKey}`}
                             alt={`${user.profile.username}'s CommitPulse monolith`}
-                            width={300}
-                            height={400}
+                            width="300"
+                            height="400"
                             className="w-full h-auto"
-                            unoptimized
                           />
                         </motion.div>
                       ))}

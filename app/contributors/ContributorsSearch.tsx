@@ -180,12 +180,12 @@ export default function ContributorsSearch({
                   {/* AVATAR */}
                   <div className="relative mb-5">
                     <div className="absolute inset-0 rounded-full bg-cyan-500/30 blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-700 scale-[2]" />
-                    <Image
+                    <img
                       src={contributor.avatar_url}
                       alt={contributor.login}
-                      width={90}
-                      height={90}
-                      className="relative rounded-full border-2 border-black/10 dark:border-white/10 transition-all duration-500 group-hover:border-cyan-500/50 dark:group-hover:border-cyan-400/50 group-hover:scale-105"
+                      width="90"
+                      height="90"
+                      className="relative rounded-full border-2 border-black/10 dark:border-white/10 transition-all duration-500 group-hover:border-cyan-500/50 dark:group-hover:border-cyan-400/50 group-hover:scale-105 object-cover"
                     />
                     {/* Online indicator */}
                     <div className="absolute bottom-1 right-1 w-4 h-4 rounded-full bg-emerald-500 border-2 border-[#0a0a0a] opacity-0 group-hover:opacity-100 transition-opacity" />

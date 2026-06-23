@@ -298,12 +298,12 @@ export function CommitPulseSection({
                   )
                 ) : userDetails ? (
                   <div className="flex items-center gap-2.5 rounded-xl bg-emerald-500/5 border border-emerald-500/15 px-3 py-2">
-                    <Image
+                    <img
                       src={userDetails.avatar_url}
                       alt={`@${userDetails.login}`}
-                      width={22}
-                      height={22}
-                      className="rounded-full border border-emerald-500/20 flex-shrink-0"
+                      width="22"
+                      height="22"
+                      className="rounded-full border border-emerald-500/20 flex-shrink-0 object-cover"
                     />
                     <div className="flex flex-col min-w-0">
                       <span className="text-xs font-semibold text-gray-900 dark:text-white truncate">

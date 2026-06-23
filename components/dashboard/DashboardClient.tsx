@@ -41,6 +41,10 @@ import PRInsightsClient from './PRInsights/PRInsightsClient';
 import CIAnalyticsClient from './CIAnalytics/CIAnalyticsClient';
 import DeploymentTracker from './DeploymentTracker';
 import ArchitectureVisualizer from './ArchitectureVisualizer';
+import RepositoryImpactAnalyzer from './RepositoryImpactAnalyzer';
+import ContributionForecast from './ContributionForecast';
+import ProfileComparisonAnalytics from './ProfileComparisonAnalytics';
+import ContributionReplay from './ContributionReplay';
 import GoalTracker from './GoalTracker';
 
 // Define the dashboard data structure
@@ -348,6 +352,42 @@ export default function DashboardClient({
   const modalRef = useRef<HTMLDivElement>(null);
   const compareInputRef = useRef<HTMLInputElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
+
+  const allRepos = [
+    ...(initialData.popularRepos || []),
+    ...(initialData.pinnedRepos || []),
+    ...(initialData.starredRepos || []),
+  ];
+  const deduplicatedRepos = Array.from(new Map(allRepos.map((repo) => [repo.name, repo])).values());
+
+  const compareUser1 = {
+    profile: initialData.profile,
+    stats: initialData.stats,
+    languages: initialData.languages,
+    activity: initialData.activity,
+    achievements: initialData.achievements,
+    popularRepos: deduplicatedRepos,
+  };
+
+  const compareUser2 = secondUserData
+    ? {
+        profile: secondUserData.profile,
+        stats: secondUserData.stats,
+        languages: secondUserData.languages,
+        activity: secondUserData.activity,
+        achievements: secondUserData.achievements,
+        popularRepos: [
+          ...(secondUserData.popularRepos || []),
+          ...(secondUserData.pinnedRepos || []),
+          ...(secondUserData.starredRepos || []),
+        ].reduce((acc: Repository[], repo) => {
+          if (!acc.some((r) => r.name === repo.name)) {
+            acc.push(repo);
+          }
+          return acc;
+        }, []),
+      }
+    : null;
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -727,6 +767,14 @@ export default function DashboardClient({
                 period={period}
               />
             </section>
+
+            <section>
+              <ContributionReplay activity={initialData.activity} />
+            </section>
+
+            <section>
+              <RepositoryImpactAnalyzer repositories={deduplicatedRepos} />
+            </section>
           </div>
 
           <aside className="flex flex-col gap-6">
@@ -756,6 +804,11 @@ export default function DashboardClient({
             </div>
 
             <AIInsights insights={initialData.insights} />
+
+            <ContributionForecast
+              activity={initialData.activity}
+              totalContributions={initialData.stats.totalContributions}
+            />
 
             <PopularRepos
               popularRepos={initialData.popularRepos || []}
@@ -819,6 +872,8 @@ export default function DashboardClient({
               </div>
             </div>
           </div>
+
+          <ProfileComparisonAnalytics user1={compareUser1} user2={compareUser2!} />
 
           <div>
             <h3 className="text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-widest mb-6">

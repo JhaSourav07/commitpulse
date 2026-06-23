@@ -22,6 +22,7 @@ import {
   getGradientCoordinates,
   escapeXML,
   sanitizeSpeed,
+  sanitizeCustomText,
 } from './sanitizer';
 
 import { GRID_ORIGIN_X, GRID_ORIGIN_Y, TILE_HEIGHT_HALF, TILE_WIDTH_HALF } from './layoutConstants';
@@ -389,6 +390,7 @@ function renderStyle(
     to { transform: translateY(var(--scan-end, ${fs(240)}px)); }
   }
   .title { font-family: ${selectedFont || '"Syncopate", sans-serif'}; fill: ${text}; font-size: ${fs(18)}px; letter-spacing: ${fs(6)}px; font-weight: 400; opacity: 0.8; }
+  .subtitle { font-family: "Roboto", sans-serif; fill: ${labelFill}; font-size: ${fs(10)}px; letter-spacing: ${fs(2)}px; font-weight: 400; opacity: ${labelOpacity - 0.1}; }
   .stats { font-family: ${statsFont}; fill: ${text}; font-size: ${fs(42)}px; font-weight: 500; letter-spacing: 0; }
   .total-val { font-family: ${statsFont}; fill: ${accent}; font-size: ${fs(24)}px; font-weight: 500; }
   .label { font-family: "Roboto", sans-serif; fill: ${labelFill}; font-size: ${fs(11)}px; font-weight: 400; letter-spacing: ${fs(2)}px; opacity: ${labelOpacity}; }
@@ -654,20 +656,33 @@ function renderFooter(
     ? 'class="cp-accent-fill scan-line"'
     : `fill="${accent}" class="cp-accent-fill scan-line"`;
 
-  const titleText = `${truncateUsername(safeUser).toUpperCase()}${isWinner ? ' 👑' : ''}${
+  const displayTitle = params.custom_title
+    ? sanitizeCustomText(params.custom_title)
+    : `${truncateUsername(safeUser).toUpperCase()}${isWinner ? ' 👑' : ''}`;
+
+  const titleText = `${displayTitle}${
     params.isOfflineFallback
       ? '<tspan fill="#ff9f43" font-size="10px" font-weight="bold"> [STALE CACHE]</tspan>'
       : ''
   }`;
+
+  const titleFontSize = getUsernameFontSize(params.custom_title || truncateUsername(safeUser));
+
+  let subtitleElement = '';
+  if (params.custom_subtitle && !params.hide_title && params.label !== false) {
+    const safeSubtitle = sanitizeCustomText(params.custom_subtitle);
+    subtitleElement = `\n  <text x="${s(300)}" y="${s(68)}" text-anchor="middle" class="subtitle">${safeSubtitle}</text>`;
+  }
 
   return `
   ${!params.hide_stats ? renderStatsSection(stats, labels, s, params, statsOffset) : ''}
 
   ${
     !params.hide_title && params.label !== false
-      ? `<text x="${s(300)}" y="${s(50)}" text-anchor="middle" class="title" font-size="${fs(getUsernameFontSize(truncateUsername(safeUser)))}" style="font-size: ${fs(getUsernameFontSize(truncateUsername(safeUser)))}px;">${titleText}</text>`
+      ? `<text x="${s(300)}" y="${s(50)}" text-anchor="middle" class="title" font-size="${fs(titleFontSize)}" style="font-size: ${fs(titleFontSize)}px;">${titleText}</text>`
       : ''
   }
+  ${subtitleElement}
   <rect
     x="${s(100)}"
     y="${s(80 + statsOffset)}"
@@ -964,6 +979,24 @@ function generateAutoThemeSVG(
 
   const safeId = safeUser.replace(/[^a-zA-Z0-9-]/g, '_').toLowerCase();
 
+  const displayTitle = params.custom_title
+    ? sanitizeCustomText(params.custom_title)
+    : truncateUsername(safeUser).toUpperCase();
+
+  const titleText = `${displayTitle}${
+    params.isOfflineFallback
+      ? '<tspan fill="#ff9f43" font-size="10px" font-weight="bold"> [STALE CACHE]</tspan>'
+      : ''
+  }`;
+
+  const titleFontSize = getUsernameFontSize(params.custom_title || truncateUsername(safeUser));
+
+  let subtitleElement = '';
+  if (params.custom_subtitle && !params.hide_title && params.label !== false) {
+    const safeSubtitle = sanitizeCustomText(params.custom_subtitle);
+    subtitleElement = `\n  <text x="${s(300)}" y="${s(68)}" text-anchor="middle" class="subtitle">${safeSubtitle}</text>`;
+  }
+
   return `
 <svg
   xmlns="http://www.w3.org/2000/svg"
@@ -994,6 +1027,7 @@ function generateAutoThemeSVG(
     to { transform: translateY(var(--scan-end, ${s(240)}px)); }
   }
   .title { font-family: ${selectedFont || '"Syncopate", sans-serif'}; fill: var(--cp-text); font-size: ${fs(18)}px; letter-spacing: ${fs(6)}px; font-weight: 400; opacity: 0.8; }
+  .subtitle { font-family: "Roboto", sans-serif; fill: var(--cp-label-fill); font-size: ${fs(10)}px; font-weight: 400; letter-spacing: ${fs(2)}px; opacity: calc(var(--cp-label-opacity) - 0.1); }
   .stats { font-family: ${statsFont}; fill: var(--cp-text); font-size: ${fs(42)}px; font-weight: 500; letter-spacing: 0; }
   .total-val { font-family: ${statsFont}; fill: var(--cp-accent); font-size: ${fs(24)}px; font-weight: 500; }
   .label { font-family: "Roboto", sans-serif; fill: var(--cp-label-fill); font-size: ${fs(11)}px; font-weight: 400; letter-spacing: ${fs(2)}px; opacity: var(--cp-label-opacity); }
@@ -1021,9 +1055,10 @@ function generateAutoThemeSVG(
   ${!params.hide_stats ? renderStatsSection(stats, labels, s, params) : ''}
 ${
   !params.hide_title && params.label !== false
-    ? `<text x="${s(300)}" y="${s(50)}" text-anchor="middle" class="title" font-size="${fs(getUsernameFontSize(truncateUsername(safeUser)))}" style="font-size: ${fs(getUsernameFontSize(truncateUsername(safeUser)))}px;">${truncateUsername(safeUser).toUpperCase()}${params.isOfflineFallback ? '<tspan fill="#ff9f43" font-size="10px" font-weight="bold"> [STALE CACHE]</tspan>' : ''}</text>`
+    ? `<text x="${s(300)}" y="${s(50)}" text-anchor="middle" class="title" font-size="${fs(titleFontSize)}" style="font-size: ${fs(titleFontSize)}px;">${titleText}</text>`
     : ''
 }
+${subtitleElement}
 ${renderRadarScan(params.speed, sf, '', true)}
 ${renderMilestoneBadges(stats, params, sf)}
 </svg>

@@ -269,6 +269,12 @@ export interface BadgeParams {
   /** When true, hides the username title from the badge. */
   hide_title?: boolean;
 
+  /** Custom text to display as the title. */
+  custom_title?: string;
+
+  /** Custom text to display as the subtitle. */
+  custom_subtitle?: string;
+
   /** When true, renders the badge without a background card. */
   hideBackground?: boolean;
 

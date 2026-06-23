@@ -114,6 +114,7 @@ export function GitHubImportModal({ isOpen, onClose, onApply }: GitHubImportModa
             Import from GitHub
           </h2>
           <button
+            type="button"
             onClick={handleClose}
             className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-white transition-colors rounded-lg hover:bg-gray-100 dark:hover:bg-white/10"
             aria-label="Close modal"
@@ -155,12 +156,14 @@ export function GitHubImportModal({ isOpen, onClose, onApply }: GitHubImportModa
 
               <div className="pt-2 flex justify-end gap-3">
                 <button
+                  type="button"
                   onClick={handleClose}
                   className="px-4 py-2 rounded-xl text-sm font-medium text-gray-600 dark:text-white/70 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
+                  type="button"
                   onClick={handleFetch}
                   disabled={!username.trim() || status === 'loading'}
                   className="px-5 py-2 rounded-xl text-sm font-bold bg-gray-900 dark:bg-white text-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-colors"
@@ -259,12 +262,14 @@ export function GitHubImportModal({ isOpen, onClose, onApply }: GitHubImportModa
 
               <div className="pt-2 flex justify-end gap-3">
                 <button
+                  type="button"
                   onClick={() => setStatus('idle')}
                   className="px-4 py-2 rounded-xl text-sm font-medium text-gray-600 dark:text-white/70 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
                 >
                   Back
                 </button>
                 <button
+                  type="button"
                   onClick={handleApply}
                   className="px-5 py-2 rounded-xl text-sm font-bold bg-emerald-500 text-white hover:bg-emerald-600 transition-colors"
                 >

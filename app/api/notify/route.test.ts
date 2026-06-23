@@ -301,7 +301,7 @@ describe('POST /api/notify', () => {
   });
 
   it('allows updates with a valid notification management token', async () => {
-    const managementToken = 'valid-management-token';
+    const managementToken = 'cpn_valid-management-token';
     vi.mocked(Notification.findOne).mockResolvedValue({
       username: 'tokenuser',
       email: 'old@example.com',

@@ -1,19 +1,22 @@
-/**
- * lib/github-token-encryption.js
- *
- * Secure GitHub token storage and retrieval.
- * Prevents exposure of GitHub Personal Access Tokens (PATs) from env file leaks.
- * Tokens are encrypted before being used or cached.
- */
+import crypto from 'node:crypto';
 
-import { randomBytes, createCipheriv, createDecipheriv } from 'crypto';
+export interface DecryptedToken {
+  token: string;
+  nextIndex: number;
+}
+
+export interface EncryptedTokenData {
+  token: string;
+  encryptedToken: string;
+  rotationIndex: number;
+}
 
 /**
  * Encrypt GitHub token for storage.
- * @param {string} token - GitHub PAT or token
- * @returns {string} Encrypted token in hex format
+ * @param token - GitHub PAT or token
+ * @returns Encrypted token in hex format
  */
-export function encryptGitHubToken(token) {
+export function encryptGitHubToken(token: string): string {
   if (!token || typeof token !== 'string') {
     throw new Error('Invalid GitHub token');
   }
@@ -34,25 +37,26 @@ export function encryptGitHubToken(token) {
       throw new Error('Encryption key must be 32 bytes');
     }
 
-    const iv = randomBytes(16);
-    const cipher = createCipheriv('aes-256-cbc', keyBuffer, iv);
+    const iv = crypto.randomBytes(16);
+    const cipher = crypto.createCipheriv('aes-256-cbc', keyBuffer, iv);
 
     let encrypted = cipher.update(token, 'utf8', 'hex');
     encrypted += cipher.final('hex');
 
     // Combine IV + encrypted token
     return iv.toString('hex') + ':' + encrypted;
-  } catch (error) {
-    throw new Error(`Token encryption failed: ${error.message}`);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`Token encryption failed: ${message}`);
   }
 }
 
 /**
  * Decrypt GitHub token for use.
- * @param {string} encryptedToken - Encrypted token in hex format
- * @returns {string} Decrypted GitHub token
+ * @param encryptedToken - Encrypted token in hex format
+ * @returns Decrypted GitHub token
  */
-export function decryptGitHubToken(encryptedToken) {
+export function decryptGitHubToken(encryptedToken: string): string {
   try {
     const key = process.env.GITHUB_TOKEN_ENCRYPTION_KEY;
 
@@ -69,24 +73,25 @@ export function decryptGitHubToken(encryptedToken) {
     }
 
     const iv = Buffer.from(ivHex, 'hex');
-    const decipher = createDecipheriv('aes-256-cbc', keyBuffer, iv);
+    const decipher = crypto.createDecipheriv('aes-256-cbc', keyBuffer, iv);
 
     let decrypted = decipher.update(encryptedHex, 'hex', 'utf8');
     decrypted += decipher.final('utf8');
 
     return decrypted;
-  } catch (error) {
-    throw new Error(`Token decryption failed: ${error.message}`);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`Token decryption failed: ${message}`);
   }
 }
 
 /**
  * Parse comma-separated tokens and return encrypted array.
  * Handles legacy comma-separated format and encrypts each token.
- * @param {string} tokenString - Comma-separated tokens or single token
- * @returns {Array<Object>} Array of {token: string, encryptedToken: string}
+ * @param tokenString - Comma-separated tokens or single token
+ * @returns Array of {token: string, encryptedToken: string}
  */
-export function parseAndEncryptTokens(tokenString) {
+export function parseAndEncryptTokens(tokenString: string): EncryptedTokenData[] {
   if (!tokenString || typeof tokenString !== 'string') {
     throw new Error('Token string is required');
   }
@@ -118,11 +123,11 @@ export function parseAndEncryptTokens(tokenString) {
 /**
  * Get next GitHub token from encrypted rotation list.
  * Used to rotate tokens and distribute rate limits.
- * @param {Array<string>} encryptedTokens - Array of encrypted tokens
- * @param {number} currentIndex - Current rotation index
- * @returns {Object} {token: string, nextIndex: number}
+ * @param encryptedTokens - Array of encrypted tokens
+ * @param currentIndex - Current rotation index
+ * @returns {token: string, nextIndex: number}
  */
-export function getNextToken(encryptedTokens, currentIndex = 0) {
+export function getNextToken(encryptedTokens: string[], currentIndex = 0): DecryptedToken {
   if (!Array.isArray(encryptedTokens) || encryptedTokens.length === 0) {
     throw new Error('No encrypted tokens available');
   }
@@ -138,10 +143,10 @@ export function getNextToken(encryptedTokens, currentIndex = 0) {
 
 /**
  * Validate that a token is properly encrypted.
- * @param {string} encryptedToken - Token to validate
- * @returns {boolean} True if token appears to be encrypted
+ * @param encryptedToken - Token to validate
+ * @returns True if token appears to be encrypted
  */
-export function isEncryptedToken(encryptedToken) {
+export function isEncryptedToken(encryptedToken: string | null | undefined): boolean {
   if (!encryptedToken || typeof encryptedToken !== 'string') {
     return false;
   }
@@ -165,10 +170,10 @@ export function isEncryptedToken(encryptedToken) {
 /**
  * CRITICAL: Never log or expose full GitHub tokens.
  * Logging utility that safely redacts tokens.
- * @param {string} token - Token to redact for logging
- * @returns {string} Redacted token for safe logging
+ * @param token - Token to redact for logging
+ * @returns Redacted token for safe logging
  */
-export function redactToken(token) {
+export function redactToken(token: string | null | undefined): string {
   if (!token || token.length < 10) {
     return '***';
   }

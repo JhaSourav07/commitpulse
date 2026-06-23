@@ -9,6 +9,7 @@ import {
   sanitizeGoogleFontUrl,
   parseGradientStops,
   MAX_GRADIENT_STOPS,
+  sanitizeCustomText,
 } from './sanitizer';
 
 describe('SVG Sanitizer Utilities', () => {
@@ -359,5 +360,20 @@ describe('parseGradientStops', () => {
     const colors = Array.from({ length: 12 }, () => 'aabbcc').join(',');
     const result = parseGradientStops(colors);
     expect(result.length).toBe(MAX_GRADIENT_STOPS);
+  });
+});
+
+describe('sanitizeCustomText', () => {
+  it('escapes XML reserved characters', () => {
+    expect(sanitizeCustomText('hello & welcome <here>')).toBe('hello &amp; welcome &lt;here&gt;');
+    expect(sanitizeCustomText('"" onclick="alert(1)"')).toBe(
+      '&quot;&quot; onclick=&quot;alert(1)&quot;'
+    );
+  });
+
+  it('returns empty string for undefined or null or empty input', () => {
+    expect(sanitizeCustomText(undefined)).toBe('');
+    expect(sanitizeCustomText(null)).toBe('');
+    expect(sanitizeCustomText('')).toBe('');
   });
 });

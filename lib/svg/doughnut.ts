@@ -156,18 +156,15 @@ export function generateDoughnutSVG(
 ${slicesSVG}
   </g>
   
-  <!-- Info Box -->
   <g transform="translate(240, 60)">
     <text x="0" y="0" class="title">${safeUser}</text>
     <text x="0" y="16" class="subtitle">Weekday vs Weekend</text>
     
-    <!-- Weekday Legend -->
     <rect x="0" y="40" width="12" height="12" rx="2" fill="#${colorWeekday}" />
     <text x="20" y="50" class="legend-text">Weekday</text>
     <text x="140" y="50" class="legend-text" text-anchor="end">${weekdayStr}</text>
     <text x="20" y="66" class="legend-sub">${weekdayCommits.toLocaleString()} commits</text>
     
-    <!-- Weekend Legend -->
     <rect x="0" y="86" width="12" height="12" rx="2" fill="#${colorWeekend}" />
     <text x="20" y="96" class="legend-text">Weekend</text>
     <text x="140" y="96" class="legend-text" text-anchor="end">${weekendStr}</text>

@@ -16,6 +16,8 @@ vi.mock('lucide-react', () => ({
   Globe: () => <div>GlobeIcon</div>,
   Sun: () => <div>SunIcon</div>,
   Moon: () => <div>MoonIcon</div>,
+  Search: () => <div>SearchIcon</div>,
+  ArrowRight: () => <div>ArrowRightIcon</div>,
 }));
 
 vi.mock('@/context/TranslationContext', () => ({

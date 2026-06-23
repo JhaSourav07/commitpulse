@@ -271,30 +271,48 @@ body {
   }
 }
 
+/* Light mode scrollbar */
 ::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: rgb(120 120 120 / 35%);
+  background: #f4f4f5;
   border-radius: 999px;
 }
 
-.dark ::-webkit-scrollbar-thumb {
-  background: rgb(255 255 255 / 18%);
+::-webkit-scrollbar-thumb {
+  background: rgb(52 211 153 / 40%);
+  border-radius: 999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgb(120 120 120 / 55%);
+  background: rgb(52 211 153 / 70%);
+}
+
+/* Dark mode scrollbar */
+.dark ::-webkit-scrollbar-track {
+  background: #0a0a0a;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: rgb(52 211 153 / 35%);
+  border-radius: 999px;
 }
 
 .dark ::-webkit-scrollbar-thumb:hover {
-  background: rgb(255 255 255 / 30%);
+  background: rgb(52 211 153 / 60%);
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(52 211 153 / 40%) transparent;
+}
+
+.dark * {
+  scrollbar-color: rgb(52 211 153 / 35%) #0a0a0a;
 }
 
 /* Custom text selection color to match site theme */

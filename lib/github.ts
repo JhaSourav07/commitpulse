@@ -14,6 +14,7 @@ import { CONTRIBUTION_MILESTONES, STREAK_MILESTONES } from './svg/constants';
 import { quotaMonitor } from '@/services/github/quota-monitor';
 import pLimit from 'p-limit';
 import logger from '@/lib/logger';
+import { decryptGitHubToken, isEncryptedToken } from '@/lib/github-token-encryption';
 
 interface GitHubRepo {
   name: string;
@@ -76,6 +77,8 @@ export function shouldFallbackOnError(err: unknown): boolean {
 const GRAPHQL_TIMEOUT_MS = 8000; // 8s for GraphQL endpoint
 const REST_TIMEOUT_MS = 5000; // 5s for REST endpoints
 const ORG_MEMBER_LIMIT = 100;
+const GRAPHQL_REPOSITORY_PAGE_SIZE = 100;
+const MAX_GRAPHQL_REPOSITORY_RESULTS = 500;
 
 let currentTokenIndex = 0;
 const rateLimitedTokens = new Map<string, number>();
@@ -108,7 +111,19 @@ export function getGitHubTokens(): string[] {
   return envToken
     .split(',')
     .map((t) => t.trim())
-    .filter((t) => t !== '');
+    .filter((t) => t !== '')
+    .map((token) => {
+      if (isEncryptedToken(token)) {
+        try {
+          return decryptGitHubToken(token);
+        } catch (error: unknown) {
+          const message = error instanceof Error ? error.message : String(error);
+          logger.warn(`Failed to decrypt GitHub token: ${message}`);
+          return token;
+        }
+      }
+      return token;
+    });
 }
 
 function isAbortError(error: unknown): boolean {
@@ -457,6 +472,21 @@ interface GitHubGraphQLResponse {
         contributionCalendar: ContributionCalendar;
         commitContributionsByRepository: RepoContribution[];
       };
+    } | null;
+  };
+  errors?: unknown;
+}
+
+interface GitHubContributedReposResponse {
+  data?: {
+    user: {
+      repositoriesContributedTo: {
+        nodes: ContributedRepo[];
+        pageInfo: {
+          hasNextPage: boolean;
+          endCursor: string | null;
+        };
+      } | null;
     } | null;
   };
   errors?: unknown;
@@ -1277,7 +1307,10 @@ export async function fetchOrgMembers(orgName: string, userToken?: string): Prom
         cache: 'no-store',
       }
     );
-    if (!res.ok) throw new Error(`Failed to fetch members for org ${orgName}`);
+    if (!res.ok) {
+      throwIfRateLimited(res);
+      throw new Error(`Failed to fetch members for org ${orgName}`);
+    }
     const members = (await res.json()) as { login: string }[];
     if (members.length === 0) break;
 
@@ -1547,63 +1580,92 @@ export async function fetchContributedRepos(
 
   const load = async () => {
     const query = `
-      query($login: String!) {
-        user(login: $login) {
-          repositoriesContributedTo(first: 100, contributionTypes: [COMMIT, ISSUE, PULL_REQUEST, REPOSITORY], orderBy: {field: UPDATED_AT, direction: DESC}) {
-            nodes {
-              name
-              nameWithOwner
-              owner { login }
-              stargazerCount
-              forkCount
-              primaryLanguage { name }
-              updatedAt
-            }
+    query($login: String!, $after: String) {
+      user(login: $login) {
+        repositoriesContributedTo(first: ${GRAPHQL_REPOSITORY_PAGE_SIZE}, after: $after, contributionTypes: [COMMIT, ISSUE, PULL_REQUEST, REPOSITORY], orderBy: {field: UPDATED_AT, direction: DESC}) {
+          nodes {
+            name
+            nameWithOwner
+            owner { login }
+            stargazerCount
+            forkCount
+            primaryLanguage { name }
+            updatedAt
+          }
+          pageInfo {
+            hasNextPage
+            endCursor
           }
         }
       }
-    `;
+    }
+  `;
 
-    const res = await fetchGraphQLWithRetry(
-      GITHUB_GRAPHQL_URL,
-      {
-        method: 'POST',
-        headers: getHeaders(options.token),
-        body: JSON.stringify({
-          query,
-          variables: { login: username },
-        }),
-        cache: 'no-store',
-        signal: options.signal,
-      },
-      0,
-      undefined,
-      options.token
-    );
+    const allRepos: ContributedRepo[] = [];
+    let after: string | null = null;
+    let hasNextPage = true;
 
-    if (!res.ok) {
-      throwIfRateLimited(res);
-      throw new Error(
-        `GitHub GraphQL API returned status ${res.status} after ${MAX_RETRIES} retries`
+    while (hasNextPage && allRepos.length < MAX_GRAPHQL_REPOSITORY_RESULTS) {
+      const res = await fetchGraphQLWithRetry(
+        GITHUB_GRAPHQL_URL,
+        {
+          method: 'POST',
+          headers: getHeaders(options.token),
+          body: JSON.stringify({
+            query,
+            variables: { login: username, after },
+          }),
+          cache: 'no-store',
+          signal: options.signal,
+        },
+        0,
+        undefined,
+        options.token
       );
-    }
 
-    const data = await res.json();
-
-    if (data?.errors !== undefined) {
-      if (Array.isArray(data.errors)) {
-        const isRateLimit = data.errors.some((e: unknown) => {
-          const err = e as { message?: string; type?: string };
-          return err?.message?.toLowerCase().includes('rate limit') || err?.type === 'RATE_LIMITED';
-        });
-        if (isRateLimit) {
-          throw new Error('API Rate Limit Exceeded');
-        }
+      if (!res.ok) {
+        throwIfRateLimited(res);
+        throw new Error(
+          `GitHub GraphQL API returned status ${res.status} after ${MAX_RETRIES} retries`
+        );
       }
-      throw new Error(getGraphQLErrorMessage(data.errors));
+
+      const data = (await res.json()) as GitHubContributedReposResponse;
+
+      if (data?.errors !== undefined) {
+        if (Array.isArray(data.errors)) {
+          const isRateLimit = data.errors.some((e: unknown) => {
+            const err = e as { message?: string; type?: string };
+            return (
+              err?.message?.toLowerCase().includes('rate limit') || err?.type === 'RATE_LIMITED'
+            );
+          });
+          if (isRateLimit) {
+            throw new Error('API Rate Limit Exceeded');
+          }
+        }
+        throw new Error(getGraphQLErrorMessage(data.errors));
+      }
+
+      const connection = data?.data?.user?.repositoriesContributedTo;
+      const nodes = connection?.nodes ?? [];
+
+      allRepos.push(...nodes);
+
+      const pageInfo = connection?.pageInfo;
+
+      after = pageInfo?.endCursor ?? null;
+      hasNextPage =
+        Boolean(pageInfo?.hasNextPage) &&
+        after !== null &&
+        allRepos.length < MAX_GRAPHQL_REPOSITORY_RESULTS;
+
+      if (nodes.length === 0) {
+        break;
+      }
     }
 
-    return data?.data?.user?.repositoriesContributedTo?.nodes || [];
+    return allRepos.slice(0, MAX_GRAPHQL_REPOSITORY_RESULTS);
   };
 
   if (options.bypassCache || options.forceRefresh) {

@@ -11,6 +11,32 @@ import {
 } from './svg/sanitizer';
 import { themes } from './svg/themes';
 
+export function coerceQueryParams(
+  params: URLSearchParams | Record<string, string | string[] | undefined>
+): Record<string, string | undefined> {
+  const coerced: Record<string, string | undefined> = {};
+
+  if (params instanceof URLSearchParams) {
+    for (const [key, value] of params.entries()) {
+      if (coerced[key] === undefined) {
+        coerced[key] = value;
+      }
+    }
+  } else if (params && typeof params === 'object') {
+    for (const [key, value] of Object.entries(params)) {
+      if (Array.isArray(value)) {
+        coerced[key] = value[0];
+      } else if (typeof value === 'string') {
+        coerced[key] = value;
+      } else {
+        coerced[key] = undefined;
+      }
+    }
+  }
+
+  return coerced;
+}
+
 export function toBooleanFlag(val?: string): boolean {
   return val === 'true' || val === '1';
 }
@@ -403,6 +429,8 @@ const baseStreakParamsSchema = z.object({
   refresh: z.string().optional().transform(toRefreshFlag),
   bypassCache: z.string().optional().transform(toRefreshFlag),
   hide_title: z.string().optional().transform(toBooleanFlag),
+  custom_title: z.string().optional(),
+  custom_subtitle: z.string().optional(),
   hide_background: z.string().optional().transform(toBooleanFlag),
   hide_stats: z.string().optional().transform(toBooleanFlag),
   lang: z.enum(supportedLanguages).catch('en').default('en'),
@@ -815,7 +843,16 @@ export const notifyPostSchema = z.object({
       notifyOnStreak: true,
       notifyOnMilestone: true,
     }),
-  managementToken: z.string().trim().min(16).max(256).optional(),
+  managementToken: z
+    .string()
+    .trim()
+    .min(16)
+    .max(256)
+    .regex(
+      /^cpn_[A-Za-z0-9_-]+$/,
+      'Invalid management token format — must start with "cpn_" and be base64url-encoded'
+    )
+    .optional(),
 });
 
 export const notifyGetSchema = z.object({

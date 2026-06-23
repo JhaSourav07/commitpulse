@@ -50,16 +50,16 @@ export default function GithubWrapped({ profile, wrappedData }: GithubWrappedPro
         {/* Header */}
         <motion.div variants={itemVariants} className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Image
+            <img
               src={
                 profile.avatarUrl.startsWith('http') || profile.avatarUrl.startsWith('/')
                   ? profile.avatarUrl
                   : `/${profile.avatarUrl}`
               }
               alt={profile.name || 'GitHub profile avatar'}
-              width={64}
-              height={64}
-              className="w-16 h-16 rounded-full border-2 border-white/20"
+              width="64"
+              height="64"
+              className="w-16 h-16 rounded-full border-2 border-white/20 object-cover"
             />
             <div>
               <h2 className="text-2xl font-bold tracking-tight">{profile.name}</h2>
