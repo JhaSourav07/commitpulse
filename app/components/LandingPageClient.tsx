@@ -1,5 +1,4 @@
 'use client';
-import Image from 'next/image';
 import { trackUser } from '@/utils/tracking';
 import { useTranslation } from '@/context/TranslationContext';
 import { renderHeroTitle } from './heroTitle';
@@ -419,7 +418,14 @@ export default function LandingPageClient() {
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
 
-      await pdf.svg(svgElement, {
+      await (
+        pdf as jsPDF & {
+          svg: (
+            element: SVGElement,
+            options: { x: number; y: number; width: number; height: number }
+          ) => Promise<void>;
+        }
+      ).svg(svgElement, {
         x: 10,
         y: 10,
         width: pageWidth - 20,
