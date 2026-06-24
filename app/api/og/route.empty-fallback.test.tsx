@@ -13,13 +13,11 @@ vi.mock('@/lib/calculate', () => ({
 import { fetchGitHubContributions } from '@/lib/github';
 import { calculateStreak } from '@/lib/calculate';
 
-describe('OG Route Empty/Missing Inputs Verification', () => {
-  let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
+import logger from '@/lib/logger';
 
+describe('OG Route Empty/Missing Inputs Verification', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-
-    consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     vi.mocked(fetchGitHubContributions).mockResolvedValue({} as never);
 
@@ -29,10 +27,6 @@ describe('OG Route Empty/Missing Inputs Verification', () => {
       currentStreak: 0,
       todayDate: '2026-06-14',
     });
-  });
-
-  afterEach(() => {
-    consoleErrorSpy.mockRestore();
   });
 
   it('falls back to the default user when user parameter is provided as an empty string', async () => {
@@ -67,7 +61,7 @@ describe('OG Route Empty/Missing Inputs Verification', () => {
     const response = await GET(request);
 
     expect(response.status).toBe(200);
-    expect(consoleErrorSpy).toHaveBeenCalled();
+    expect(logger.error).toHaveBeenCalled();
   });
 
   it('handles completely empty optional query values without throwing runtime errors', async () => {

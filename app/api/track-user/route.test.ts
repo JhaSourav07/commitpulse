@@ -45,6 +45,7 @@ vi.mock('@/lib/github', () => ({
 import { fetchUserProfile } from '@/lib/github';
 import { trackUserProtection } from '@/services/security/track-user-protection';
 import { gitHubUserValidator } from '@/services/github/validate-user';
+import logger from '@/lib/logger';
 
 function makeRequest(body: Record<string, unknown>, headers?: HeadersInit): Request {
   return new Request('http://localhost/api/track-user', {
@@ -205,9 +206,6 @@ describe('POST /api/track-user', () => {
     it('returns 200 and bypassed flag when MONGODB_URI is undefined', async () => {
       delete process.env.MONGODB_URI;
 
-      // Spy on console.warn
-      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-
       const response = await POST(makeRequest({ username: 'octocat' }));
 
       expect(response.status).toBe(200);
@@ -215,11 +213,9 @@ describe('POST /api/track-user', () => {
       expect(data.success).toBe(true);
       expect(data.bypassed).toBe(true);
 
-      expect(consoleSpy).toHaveBeenCalled();
-      expect(consoleSpy.mock.calls[0][0]).toContain('User tracking bypassed');
+      expect(logger.warn).toHaveBeenCalled();
+      expect(vi.mocked(logger.warn).mock.calls[0][0]).toContain('User tracking bypassed');
       expect(dbConnect).not.toHaveBeenCalled();
-
-      consoleSpy.mockRestore();
     });
   });
 
@@ -251,7 +247,6 @@ describe('POST /api/track-user', () => {
     });
 
     it('bypasses user tracking gracefully when database connection fails', async () => {
-      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
       vi.mocked(dbConnect).mockRejectedValueOnce(new Error('DB Down'));
 
       const response = await POST(makeRequest({ username: 'octocat' }));
@@ -260,12 +255,10 @@ describe('POST /api/track-user', () => {
       const data = await response.json();
       expect(data.success).toBe(true);
 
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
+      expect(logger.warn).toHaveBeenCalledWith(
         'Database operation failed or timed out. Bypassing user tracking:',
-        expect.any(Error)
+        { error: expect.any(Error) }
       );
-
-      consoleWarnSpy.mockRestore();
     });
   });
 

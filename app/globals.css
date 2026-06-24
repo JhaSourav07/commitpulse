@@ -144,6 +144,14 @@ html {
   animation: shimmer 1.5s infinite;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .shimmer {
+    animation: none !important;
+    background-image: none;
+    opacity: 0.6;
+  }
+}
+
 :root {
   /* Vercel-inspired token set */
   --color-surface-0: #000;

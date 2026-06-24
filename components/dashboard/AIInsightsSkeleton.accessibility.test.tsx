@@ -21,8 +21,10 @@ describe('AIInsightsSkeleton Accessibility', () => {
       expect(div.getAttribute('role')).toBeNull();
     });
 
-    // TODO: Ensure relationships like aria-labelledby or aria-describedby are added
-    // if the skeleton is updated to have a header or label.
+    // Concrete assertion: Ensure the skeleton uses an explicit aria-label
+    // rather than aria-labelledby, as it contains no readable text content to reference.
+    expect(wrapper).not.toHaveAttribute('aria-labelledby');
+    expect(wrapper).not.toHaveAttribute('aria-describedby');
   });
 
   // 2. Keyboard Focus
@@ -82,12 +84,28 @@ describe('AIInsightsSkeleton Accessibility', () => {
   // 5. Heading Hierarchy
   // Ensure that the skeleton does not introduce out-of-order headings before actual data loads.
   it('renders no heading elements ensuring heading hierarchy is not disrupted', () => {
-    render(<AIInsightsSkeleton />);
+    const { container } = render(<AIInsightsSkeleton />);
 
     // There should be no heading elements within the loading skeleton.
     expect(screen.queryByRole('heading')).toBeNull();
 
-    // TODO: When the loaded state (AIInsights) is implemented/rendered, ensure its headings
-    // follow a logical order relative to the page container layout (e.g., an H3 tag).
+    // Concrete assertion: Ensure heading hierarchy is not disrupted by the skeleton.
+    // The skeleton must NOT render any H1-H6 tags before actual data is loaded.
+    const headings = container.querySelectorAll('h1, h2, h3, h4, h5, h6');
+    expect(headings.length).toBe(0);
+  });
+
+  // 6. Reduced Motion Preference
+  // While JSDOM does not natively process CSS media queries, we assert that the component
+  // structure allows the global CSS (prefers-reduced-motion) to override the animation.
+  it('relies on the global .shimmer class to handle prefers-reduced-motion overrides', () => {
+    const { container } = render(<AIInsightsSkeleton />);
+
+    // Select an element that uses the shimmer animation
+    const shimmerElement = container.querySelector('.shimmer');
+    expect(shimmerElement).toBeInTheDocument();
+
+    // We document that standard `.shimmer` class is responsible for the fallback.
+    // CSS ensures that `.shimmer` sets `animation: none` on `prefers-reduced-motion: reduce`.
   });
 });

@@ -187,11 +187,12 @@ describe('CompareClient Mouse Interactivity & Touch Events', () => {
     );
 
     // Check StatBattle border elements transitions on mouseEnter / mouseLeave
-    const repositoryCard = screen.getByText('5,000').closest('div');
-    expect(repositoryCard).toBeInTheDocument();
+    const repositoryCard = await screen.findByText('5,000', {}, { timeout: 5000 });
+    const container = repositoryCard.closest('div');
+    expect(container).toBeInTheDocument();
 
-    fireEvent.mouseEnter(repositoryCard!);
-    fireEvent.mouseLeave(repositoryCard!);
+    fireEvent.mouseEnter(container!);
+    fireEvent.mouseLeave(container!);
   });
 
   it('triggers mouse hover interactions on coding habits cards', async () => {
@@ -213,9 +214,8 @@ describe('CompareClient Mouse Interactivity & Touch Events', () => {
       { timeout: 5000 }
     );
 
-    const habitCards = screen.getAllByRole('heading', { level: 3 });
-    const userAHabit = habitCards.find((c) => c.textContent === 'Night Owl');
-    const userBHabit = habitCards.find((c) => c.textContent === 'Early Bird');
+    const userAHabit = await screen.findByText('Night Owl', {}, { timeout: 5000 });
+    const userBHabit = await screen.findByText('Early Bird', {}, { timeout: 5000 });
 
     expect(userAHabit).toBeInTheDocument();
     expect(userBHabit).toBeInTheDocument();
