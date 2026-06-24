@@ -26,6 +26,8 @@ import Heatmap from './Heatmap';
 import HistoricalTrendView from './HistoricalTrendView';
 import AIInsights from './AIInsights';
 import StatsCard from './StatsCard';
+import RepositoryContributionExplorer from './RepositoryContributionExplorer';
+import DeveloperGrowthForecast from './DeveloperGrowthForecast';
 import RepositoryGraph from './RepositoryGraph';
 import HallOfFame from './HallOfFame';
 import ComparisonStatsCard from './ComparisonStatsCard';
@@ -726,6 +728,20 @@ export default function DashboardClient({
                 activity={initialData.activity}
                 username={username}
                 period={period}
+              />
+            </section>
+
+            <section>
+              <RepositoryContributionExplorer
+                repos={initialData.popularRepos}
+                username={initialData.profile.username}
+              />
+            </section>
+
+            <section>
+              <DeveloperGrowthForecast
+                stats={initialData.stats}
+                joinedDate={initialData.profile.joinedDate}
               />
             </section>
 
