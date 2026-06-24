@@ -49,7 +49,7 @@ describe('Footer Component', () => {
     render(<Footer />);
 
     const creatorLink = screen.getByRole('link', {
-      name: /Creator Sourav Jha on GitHub/i,
+      name: /Creator on GitHub/i,
     });
 
     expect(creatorLink).toHaveAttribute('href', 'https://github.com/jhasourav07');
@@ -68,7 +68,6 @@ describe('Footer Component', () => {
   it('exposes the footer as a semantic contentinfo landmark for screen readers', () => {
     render(<Footer />);
 
-    // A semantic <footer> is exposed to assistive technology as the contentinfo landmark.
     const footer = screen.getByRole('contentinfo');
 
     expect(footer).toBeInTheDocument();
@@ -81,19 +80,9 @@ describe('Footer Component', () => {
     const navigationHeading = screen.getByRole('heading', { name: /Navigation/i });
     expect(navigationHeading).toBeInTheDocument();
 
-    // Check that navigation links are present
     expect(screen.getByRole('link', { name: /Home/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Compare/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Customization/i })).toBeInTheDocument();
-  });
-
-  it('includes Resources section with documentation and repository links', () => {
-    render(<Footer />);
-
-    const resourcesHeading = screen.getByRole('heading', { name: /Resources/i });
-    expect(resourcesHeading).toBeInTheDocument();
-
-    expect(screen.getByRole('link', { name: /GitHub Repository/i })).toBeInTheDocument();
   });
 
   it('includes Connect section with social media links', () => {
@@ -102,17 +91,22 @@ describe('Footer Component', () => {
     const connectHeading = screen.getByRole('heading', { name: /Connect/i });
     expect(connectHeading).toBeInTheDocument();
 
-    // Check for social links
-    expect(screen.getByRole('link', { name: /Creator on X/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Twitter/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /LinkedIn/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Discord/i })).toBeInTheDocument();
+  });
+
+  it('includes Resources section at the bottom', () => {
+    render(<Footer />);
+
+    expect(screen.getByRole('link', { name: /GitHub Repository/i })).toBeInTheDocument();
   });
 
   it('has proper responsive layout classes', () => {
     render(<Footer />);
 
     const footer = screen.getByRole('contentinfo');
-    const mainContent = footer.querySelector('.grid.grid-cols-2.md\\:grid-cols-2.lg\\:grid-cols-4');
+    const mainContent = footer.querySelector('.grid.grid-cols-1.md\\:grid-cols-3');
     expect(mainContent).toBeInTheDocument();
   });
 

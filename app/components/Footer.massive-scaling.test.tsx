@@ -19,8 +19,6 @@ describe('Footer Massive Scaling', () => {
 
     expect(screen.getByRole('heading', { name: /Navigation/i })).toBeInTheDocument();
 
-    expect(screen.getByRole('heading', { name: /Resources/i })).toBeInTheDocument();
-
     expect(screen.getByRole('heading', { name: /Connect/i })).toBeInTheDocument();
   });
 
@@ -37,7 +35,7 @@ describe('Footer Massive Scaling', () => {
 
     const footer = screen.getByRole('contentinfo');
 
-    const grid = footer.querySelector('.grid.grid-cols-2.md\\:grid-cols-2.lg\\:grid-cols-4');
+    const grid = footer.querySelector('.grid.grid-cols-1.md\\:grid-cols-3');
 
     expect(grid).toBeInTheDocument();
   });

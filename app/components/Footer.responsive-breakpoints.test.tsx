@@ -42,13 +42,12 @@ describe('Footer Responsive Breakpoints', () => {
     });
   });
 
-  it('renders all four grid sections on mobile viewport', () => {
+  it('renders grid sections on mobile viewport', () => {
     render(<Footer />);
 
     expect(screen.getByText('CommitPulse')).toBeInTheDocument();
     expect(screen.getByText('Track your open-source journey.')).toBeInTheDocument();
     expect(screen.getByText('Navigation')).toBeInTheDocument();
-    expect(screen.getByText('Resources')).toBeInTheDocument();
     expect(screen.getByText('Connect')).toBeInTheDocument();
   });
 
@@ -66,7 +65,7 @@ describe('Footer Responsive Breakpoints', () => {
   it('renders external resource links with correct attributes', () => {
     render(<Footer />);
 
-    const githubRepo = screen.getByText('GitHub Repo').closest('a');
+    const githubRepo = screen.getByText('GitHub Repository').closest('a');
     expect(githubRepo).toHaveAttribute('target', '_blank');
     expect(githubRepo).toHaveAttribute('rel', 'noopener noreferrer');
 
@@ -77,10 +76,9 @@ describe('Footer Responsive Breakpoints', () => {
   it('applies responsive grid classes to the main container', () => {
     const { container } = render(<Footer />);
 
-    const grid = container.querySelector('.grid.grid-cols-2');
+    const grid = container.querySelector('.grid.grid-cols-1');
     expect(grid).toBeInTheDocument();
-    expect(grid).toHaveClass('md:grid-cols-2');
-    expect(grid).toHaveClass('lg:grid-cols-4');
+    expect(grid).toHaveClass('md:grid-cols-3');
   });
 
   it('applies responsive padding and layout classes to footer element', () => {
@@ -96,7 +94,7 @@ describe('Footer Responsive Breakpoints', () => {
   it('renders copyright and made-with texts in the bottom section', () => {
     render(<Footer />);
 
-    expect(screen.getByText('© 2026 CommitPulse')).toBeInTheDocument();
+    expect(screen.getByText('© 2026 CommitPulse. All rights reserved.')).toBeInTheDocument();
     expect(screen.getByText('Made with love')).toBeInTheDocument();
   });
 });
