@@ -5,47 +5,47 @@ describe('getLabels', () => {
   describe('supported locales', () => {
     it('returns English labels for en', () => {
       const labels = getLabels('en');
-      expect(labels.CURRENT_STREAK).toBe('CURRENT_STREAK');
-      expect(labels.ANNUAL_SYNC_TOTAL).toBe('ANNUAL_SYNC_TOTAL');
-      expect(labels.PEAK_STREAK).toBe('PEAK_STREAK');
+      expect(labels.CURRENT_STREAK).toBe('Current Streak');
+      expect(labels.ANNUAL_SYNC_TOTAL).toBe('Annual Total');
+      expect(labels.PEAK_STREAK).toBe('Peak Streak');
     });
 
     it('returns Spanish labels for es', () => {
       const labels = getLabels('es');
-      expect(labels.CURRENT_STREAK).toBe('RACHA_ACTUAL');
-      expect(labels.ANNUAL_SYNC_TOTAL).toBe('TOTAL_ANUAL');
-      expect(labels.PEAK_STREAK).toBe('RACHA_MÁXIMA');
+      expect(labels.CURRENT_STREAK).toBe('Racha Actual');
+      expect(labels.ANNUAL_SYNC_TOTAL).toBe('Total Anual');
+      expect(labels.PEAK_STREAK).toBe('Racha Máxima');
     });
 
     it('returns Hindi labels for hi', () => {
       const labels = getLabels('hi');
-      expect(labels.CURRENT_STREAK).toBe('वर्तमान_स्ट्रीक');
-      expect(labels.ANNUAL_SYNC_TOTAL).toBe('वार्षिक_कुल');
-      expect(labels.PEAK_STREAK).toBe('अधिकतम_स्ट्रीक');
+      expect(labels.CURRENT_STREAK).toBe('वर्तमान स्ट्रीक');
+      expect(labels.ANNUAL_SYNC_TOTAL).toBe('वार्षिक कुल');
+      expect(labels.PEAK_STREAK).toBe('अधिकतम स्ट्रीक');
     });
 
     it('returns French labels for fr', () => {
       const labels = getLabels('fr');
-      expect(labels.CURRENT_STREAK).toBe('SÉRIE_ACTUELLE');
-      expect(labels.ANNUAL_SYNC_TOTAL).toBe('TOTAL_ANNUEL');
-      expect(labels.PEAK_STREAK).toBe('SÉRIE_MAXIMALE');
+      expect(labels.CURRENT_STREAK).toBe('Série Actuelle');
+      expect(labels.ANNUAL_SYNC_TOTAL).toBe('Total Annuel');
+      expect(labels.PEAK_STREAK).toBe('Série Maximale');
     });
   });
 
   describe('fallback behavior', () => {
     it('returns English labels when locale is undefined', () => {
       const labels = getLabels(undefined);
-      expect(labels.CURRENT_STREAK).toBe('CURRENT_STREAK');
+      expect(labels.CURRENT_STREAK).toBe('Current Streak');
     });
 
     it('returns English labels for UNKNOWN_LOCALE', () => {
       const labels = getLabels('UNKNOWN_LOCALE');
-      expect(labels.CURRENT_STREAK).toBe('CURRENT_STREAK');
+      expect(labels.CURRENT_STREAK).toBe('Current Streak');
     });
 
     it('returns English labels for empty string', () => {
       const labels = getLabels('');
-      expect(labels.CURRENT_STREAK).toBe('CURRENT_STREAK');
+      expect(labels.CURRENT_STREAK).toBe('Current Streak');
     });
   });
 

@@ -2,7 +2,7 @@
 
 import { ImageResponse } from 'next/og';
 import { NextRequest } from 'next/server';
-import { ogParamsSchema } from '@/lib/validations';
+import { ogParamsSchema, coerceQueryParams } from '@/lib/validations';
 import { themes } from '@/lib/svg/themes';
 import { fetchGitHubContributions } from '@/lib/github';
 import { calculateStreak } from '@/lib/calculate';
@@ -55,7 +55,7 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = new URL(req.url);
 
-  const parseResult = ogParamsSchema.safeParse(Object.fromEntries(searchParams.entries()));
+  const parseResult = ogParamsSchema.safeParse(coerceQueryParams(searchParams));
 
   if (!parseResult.success) {
     return new Response(

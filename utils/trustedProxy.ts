@@ -19,6 +19,7 @@ interface ParsedProxyConfig {
   wildcard: boolean;
   exactSet: Set<string>;
   cidrList: ParsedCidr[];
+  cidr6List: ParsedCidr6[];
   trustPrivateRanges: boolean;
 }
 
@@ -49,6 +50,73 @@ function parseCidr(cidr: string): ParsedCidr | null {
     const rangeInt = ip4ToInt(range);
     const mask = bits === 0 ? 0 : bits === 32 ? 0xffffffff : ~((1 << (32 - bits)) - 1) >>> 0;
     return { rangeInt, mask };
+  } catch {
+    return null;
+  }
+}
+
+export interface ParsedCidr6 {
+  rangeBigInt: bigint;
+  mask: bigint;
+}
+
+/**
+ * Converts an IPv6 address to its 128-bit BigInt representation.
+ */
+export function ip6ToBigInt(ip: string): bigint | null {
+  const cleanIp = ip.split('/')[0].trim();
+  if (!cleanIp.includes(':')) return null;
+
+  let parts = cleanIp.split(':');
+
+  const emptyIndex = parts.indexOf('');
+  if (emptyIndex !== -1) {
+    const validBlocks = parts.filter((p) => p.length > 0);
+    const missing = 8 - validBlocks.length;
+
+    const expanded: string[] = [];
+    let expandedZeroes = false;
+    for (let i = 0; i < parts.length; i++) {
+      if (parts[i] === '') {
+        if (!expandedZeroes) {
+          for (let j = 0; j < missing; j++) expanded.push('0');
+          expandedZeroes = true;
+        }
+      } else {
+        expanded.push(parts[i]);
+      }
+    }
+    parts = expanded;
+  }
+
+  if (parts.length !== 8) return null;
+
+  let intValue = BigInt(0);
+  for (const part of parts) {
+    const num = parseInt(part, 16);
+    if (isNaN(num) || num < 0 || num > 0xffff) return null;
+    intValue = (intValue << BigInt(16)) + BigInt(num);
+  }
+
+  return intValue;
+}
+
+/**
+ * Parses an IPv6 CIDR string into a cached mask and range BigInt.
+ */
+export function parseCidr6(cidr: string): ParsedCidr6 | null {
+  try {
+    const [range, bitsStr] = cidr.split('/');
+    if (!bitsStr) return null;
+    const bits = parseInt(bitsStr, 10);
+    if (isNaN(bits) || bits < 0 || bits > 128) return null;
+    const rangeBigInt = ip6ToBigInt(range);
+    if (rangeBigInt === null) return null;
+
+    const shift = BigInt(128 - bits);
+    const mask = bits === 0 ? BigInt(0) : ((BigInt(1) << BigInt(bits)) - BigInt(1)) << shift;
+
+    return { rangeBigInt, mask };
   } catch {
     return null;
   }
@@ -88,17 +156,24 @@ export function isIPv4(ip: string): boolean {
  * Pre-processes a TrustedProxyConfig into a ParsedProxyConfig
  * separating wildcards, exact IPs, and CIDR ranges for faster lookup.
  */
+const parsedProxyConfigCache = new WeakMap<TrustedProxyConfig, ParsedProxyConfig>();
 export function buildProxyConfig(config: TrustedProxyConfig): ParsedProxyConfig {
   const exactSet = new Set<string>();
   const cidrList: ParsedCidr[] = [];
+  const cidr6List: ParsedCidr6[] = [];
   let wildcard = false;
 
   for (const entry of config.trustedProxies) {
     if (entry === '*') {
       wildcard = true;
     } else if (entry.includes('/')) {
-      const parsed = parseCidr(entry);
-      if (parsed) cidrList.push(parsed);
+      if (entry.includes(':')) {
+        const parsed = parseCidr6(entry);
+        if (parsed) cidr6List.push(parsed);
+      } else {
+        const parsed = parseCidr(entry);
+        if (parsed) cidrList.push(parsed);
+      }
     } else {
       exactSet.add(entry.trim());
     }
@@ -108,6 +183,7 @@ export function buildProxyConfig(config: TrustedProxyConfig): ParsedProxyConfig 
     wildcard,
     exactSet,
     cidrList,
+    cidr6List,
     trustPrivateRanges: config.trustPrivateRanges ?? false,
   };
 }
@@ -118,7 +194,12 @@ export function buildProxyConfig(config: TrustedProxyConfig): ParsedProxyConfig 
  */
 export function isTrustedProxy(ip: string, config: TrustedProxyConfig): boolean {
   const sanitizedIp = ip.trim();
-  const parsed = buildProxyConfig(config);
+  let parsed = parsedProxyConfigCache.get(config);
+
+  if (!parsed) {
+    parsed = buildProxyConfig(config);
+    parsedProxyConfigCache.set(config, parsed);
+  }
 
   if (parsed.wildcard) return true;
   if (parsed.exactSet.has(sanitizedIp)) return true;
@@ -136,6 +217,13 @@ export function isTrustedProxy(ip: string, config: TrustedProxyConfig): boolean 
       }
     }
   } else {
+    const ipBigInt = ip6ToBigInt(sanitizedIp);
+    if (ipBigInt !== null) {
+      for (const { rangeBigInt, mask } of parsed.cidr6List) {
+        if (mask === BigInt(0) || (ipBigInt & mask) === (rangeBigInt & mask)) return true;
+      }
+    }
+
     if (parsed.trustPrivateRanges) {
       if (sanitizedIp === '::1' || sanitizedIp === '0:0:0:0:0:0:0:1') return true;
       const lowerIp = sanitizedIp.toLowerCase();

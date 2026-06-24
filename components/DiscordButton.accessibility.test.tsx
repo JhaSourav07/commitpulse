@@ -30,7 +30,7 @@ describe('DiscordButton accessibility behavior', () => {
   it('uses the correct Discord invite href', () => {
     render(<DiscordButton />);
 
-    expect(screen.getByRole('link').getAttribute('href')).toBe('https://discord.gg/Cb73bS79j');
+    expect(screen.getByRole('link').getAttribute('href')).toBe('https://discord.gg/f84SDraEBH');
   });
 
   it('opens external Discord link safely in a new tab', () => {

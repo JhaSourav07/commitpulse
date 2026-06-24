@@ -1,3 +1,4 @@
+import 'server-only';
 import { fetchUserProfile } from '../../lib/github';
 import { TTLCache } from '../../lib/cache';
 

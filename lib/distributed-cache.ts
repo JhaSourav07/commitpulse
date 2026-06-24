@@ -1,3 +1,5 @@
+import 'server-only';
+
 /**
  * lib/distributed-cache.ts
  *

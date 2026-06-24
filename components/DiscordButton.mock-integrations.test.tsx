@@ -115,6 +115,6 @@ describe('DiscordButton - mock integrations', () => {
   it('points to correct integration discord url', () => {
     render(<DiscordButton />);
     const link = screen.getByRole('link');
-    expect(link).toHaveAttribute('href', 'https://discord.gg/Cb73bS79j');
+    expect(link).toHaveAttribute('href', 'https://discord.gg/f84SDraEBH');
   });
 });

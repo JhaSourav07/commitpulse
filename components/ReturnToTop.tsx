@@ -28,14 +28,11 @@ export default function ReturnToTop() {
 
   const strokeDashoffset = useTransform(smoothScrollProgress, [0, 1], [circumference, 0]);
 
-  const [atBottom, setAtBottom] = useState(false);
-
   useEffect(() => {
     const updateVisibility = () => {
       const scrolled = window.scrollY + window.innerHeight;
       const total = document.documentElement.scrollHeight;
       setIsVisible(window.scrollY > 300);
-      setAtBottom(scrolled >= total - 40);
     };
     updateVisibility();
     window.addEventListener('scroll', updateVisibility, { passive: true });
@@ -57,7 +54,7 @@ export default function ReturnToTop() {
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 18, scale: 0.96 }}
           transition={{ duration: 0.22, ease: 'easeOut' }}
-          className={`fixed ${atBottom ? 'bottom-6' : 'bottom-24'} right-6 z-50`}
+          className="fixed bottom-24 right-6 z-50"
         >
           <motion.button
             type="button"

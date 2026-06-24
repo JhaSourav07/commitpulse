@@ -75,6 +75,10 @@ vi.mock('./GrowthTrendChart', () => ({
 vi.mock('./ComparisonStatsCard', () => ({
   default: () => <div>ComparisonStatsCard</div>,
 }));
+
+vi.mock('./DeveloperJourneyTimeline', () => ({
+  default: () => <div>DeveloperJourneyTimeline</div>,
+}));
 vi.mock('sonner', () => ({
   toast: {
     success: vi.fn(),

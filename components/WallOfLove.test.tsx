@@ -85,4 +85,13 @@ describe('WallOfLove', () => {
     expect(screen.getByText('Badges Generated')).toBeInTheDocument();
     expect(screen.getByText('Average Rating')).toBeInTheDocument();
   });
+
+  it('links the testimonial CTA to the review form route', () => {
+    render(<WallOfLove />);
+
+    expect(screen.getByRole('link', { name: /share your experience/i })).toHaveAttribute(
+      'href',
+      '/reviewform'
+    );
+  });
 });

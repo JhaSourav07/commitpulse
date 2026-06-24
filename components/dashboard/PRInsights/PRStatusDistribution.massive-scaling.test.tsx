@@ -5,7 +5,21 @@ import PRStatusDistribution from './PRStatusDistribution';
 import type { PRInsightData } from '@/services/github/pr-insights';
 
 vi.mock('framer-motion', () => ({
+  AnimatePresence: ({ children }: { children: ReactNode }) => <>{children}</>,
   motion: {
+    span: ({
+      children,
+      className,
+      style,
+    }: {
+      children: ReactNode;
+      className?: string;
+      style?: React.CSSProperties;
+    }) => (
+      <span className={className} style={style}>
+        {children}
+      </span>
+    ),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     div: ({ children, className, ...props }: any) => {
       const validProps = Object.keys(props).reduce(
@@ -82,6 +96,7 @@ function buildMassiveData(overrides: Partial<PRInsightData> = {}): PRInsightData
       fastestMerged: undefined,
       largest: undefined,
     },
+    prs: [],
     ...overrides,
   };
 }

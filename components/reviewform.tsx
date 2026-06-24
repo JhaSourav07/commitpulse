@@ -3,6 +3,18 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
+import AdvancedColorPicker from './AdvancedColorPicker';
+
+const ACCENT_PRESETS = [
+  { hex: '#10b981', label: 'Emerald' },
+  { hex: '#8b5cf6', label: 'Purple' },
+  { hex: '#06b6d4', label: 'Cyan' },
+  { hex: '#f43f5e', label: 'Rose' },
+  { hex: '#f59e0b', label: 'Amber' },
+  { hex: '#3b82f6', label: 'Blue' },
+  { hex: '#ec4899', label: 'Pink' },
+  { hex: '#14b8a6', label: 'Teal' },
+];
 
 export default function SubmitReviewPage() {
   const [formData, setFormData] = useState({
@@ -85,17 +97,6 @@ export default function SubmitReviewPage() {
     }
   };
 
-  const accentColors = [
-    '#10b981',
-    '#8b5cf6',
-    '#06b6d4',
-    '#f43f5e',
-    '#f59e0b',
-    '#3b82f6',
-    '#ec4899',
-    '#14b8a6',
-  ];
-
   return (
     <div className="min-h-screen bg-zinc-950 text-white py-20 px-6">
       <div className="max-w-2xl mx-auto">
@@ -134,8 +135,11 @@ export default function SubmitReviewPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Name */}
               <div>
-                <label className="block text-sm font-medium text-zinc-400 mb-2">Full Name</label>
+                <label htmlFor="name" className="block text-sm font-medium text-zinc-400 mb-2">
+                  Full Name
+                </label>
                 <input
+                  id="name"
                   type="text"
                   required
                   maxLength={100}
@@ -148,10 +152,11 @@ export default function SubmitReviewPage() {
 
               {/* Handle */}
               <div>
-                <label className="block text-sm font-medium text-zinc-400 mb-2">
+                <label htmlFor="handle" className="block text-sm font-medium text-zinc-400 mb-2">
                   Handle (@username)
                 </label>
                 <input
+                  id="handle"
                   type="text"
                   required
                   maxLength={50}
@@ -198,20 +203,65 @@ export default function SubmitReviewPage() {
             {/* Accent Color */}
             <div>
               <label className="block text-sm font-medium text-zinc-400 mb-3">Accent Color</label>
-              <div className="flex gap-3 flex-wrap">
-                {accentColors.map((color) => (
-                  <button
-                    key={color}
-                    type="button"
-                    onClick={() => setFormData({ ...formData, accentColor: color })}
-                    className={`w-10 h-10 rounded-full border-2 transition-all ${
-                      formData.accentColor === color
-                        ? 'border-white scale-110'
-                        : 'border-transparent'
-                    }`}
-                    style={{ backgroundColor: color }}
+              <AdvancedColorPicker
+                value={formData.accentColor}
+                onChange={(color) => setFormData({ ...formData, accentColor: color })}
+                presets={ACCENT_PRESETS}
+              />
+
+              {/* Live Preview */}
+              <div className="mt-4 rounded-2xl border border-zinc-800 bg-zinc-900/50 p-4">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500 mb-3">
+                  Card Preview
+                </p>
+                <div className="relative overflow-hidden rounded-xl border border-black/10 bg-white/70 p-4 shadow-lg backdrop-blur-xl dark:border-white/[0.08] dark:bg-[#0c0c0c]/90">
+                  <div
+                    className="absolute top-0 left-[10%] right-[10%] h-[2px] rounded-full"
+                    style={{
+                      background: `linear-gradient(90deg, transparent, ${formData.accentColor}, transparent)`,
+                    }}
                   />
-                ))}
+                  <div className="relative z-10">
+                    <div className="flex items-start gap-3 mb-3">
+                      <div className="h-10 w-10 rounded-full border border-black/5 bg-zinc-700 dark:border-white/10 shadow-sm flex items-center justify-center text-xs text-zinc-400">
+                        {formData.name ? formData.name.charAt(0).toUpperCase() : '?'}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-bold text-gray-900 dark:text-white truncate">
+                            {formData.name || 'Your Name'}
+                          </p>
+                          <svg
+                            width="14"
+                            height="14"
+                            viewBox="0 0 24 24"
+                            fill={formData.accentColor}
+                          >
+                            <path d="M9 12l2 2 4-4m6 2a8 8 0 11-16 0 8 8 0 0116 0z" />
+                            <path
+                              d="M9 12l2 2 4-4"
+                              fill="none"
+                              stroke="white"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
+                        </div>
+                        <p className="text-xs text-gray-500 dark:text-gray-500">
+                          @{formData.handle || 'handle'}
+                        </p>
+                      </div>
+                    </div>
+                    <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed line-clamp-3">
+                      {formData.message || 'Your testimonial message will appear here...'}
+                    </p>
+                  </div>
+                  <div
+                    className="absolute -right-10 -top-10 h-24 w-24 rounded-full blur-3xl opacity-60"
+                    style={{ background: `${formData.accentColor}15` }}
+                  />
+                </div>
               </div>
             </div>
 

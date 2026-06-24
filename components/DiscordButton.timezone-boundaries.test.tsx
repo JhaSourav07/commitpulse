@@ -35,7 +35,7 @@ describe('DiscordButton - timezone boundaries', () => {
 
   it('maintains boundary href reference', () => {
     render(<DiscordButton />);
-    expect(screen.getByRole('link')).toHaveAttribute('href', 'https://discord.gg/Cb73bS79j');
+    expect(screen.getByRole('link')).toHaveAttribute('href', 'https://discord.gg/f84SDraEBH');
   });
 
   it('supports boundary external linking', () => {

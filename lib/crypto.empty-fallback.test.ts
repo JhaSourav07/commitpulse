@@ -15,13 +15,13 @@ describe('crypto empty / missing inputs verification', () => {
     const encrypted = encryptToken(plain);
     expect(encrypted).toBeDefined();
     expect(encrypted).not.toBe(plain);
-    expect(encrypted.split('.')).toHaveLength(3);
+    expect(encrypted.split('.')).toHaveLength(4);
     expect(decryptToken(encrypted)).toBe(plain);
   });
 
   it('handles empty string encryption and decryption', () => {
     const encrypted = encryptToken('');
-    expect(encrypted.split('.')).toHaveLength(3);
+    expect(encrypted.split('.')).toHaveLength(4);
     expect(decryptToken(encrypted)).toBe('');
   });
 

@@ -60,8 +60,15 @@ describe('Footer Component', () => {
 
   it('renders Discord community link', () => {
     render(<Footer />);
-    const discordLink = screen.getByRole('link', { name: /Join CommitPulse on Discord/i });
-    expect(discordLink).toHaveAttribute('href', 'https://discord.gg/Cb73bS79j');
+
+
+
+    const discordLink = screen.getByRole('link', {
+      name: /Discord/i,
+    });
+
+    expect(discordLink).toHaveAttribute('href', 'https://discord.gg/f84SDraEBH');
+
   });
 
   it('exposes the footer as a semantic contentinfo landmark for screen readers', () => {

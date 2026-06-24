@@ -1,10 +1,20 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { GET } from './route';
 
 vi.mock('@/lib/github', () => ({
   getFullDashboardData: vi.fn(),
 }));
 
+vi.mock('@/lib/githubtoken', () => ({
+  getUserGitHubToken: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock('@/lib/rate-limit', () => ({
+  rateLimit: vi.fn().mockResolvedValue({
+    success: true,
+  }),
+}));
+
+import { GET } from './route';
 import { getFullDashboardData } from '@/lib/github';
 
 const makeRequest = (search: string) => new Request(`http://localhost:3000/api/compare?${search}`);

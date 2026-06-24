@@ -27,6 +27,7 @@ const mockInsights: PRInsightData = {
   repoPerformance: [
     { name: 'org/repo', totalPRs: 10, mergeRate: 70, reviewCount: 4, avgReviewTime: 6 },
   ],
+  prs: [],
   highlights: {
     mostDiscussed: { title: 'Big PR', url: 'https://github.com/org/repo/pull/1', comments: 12 },
     fastestMerged: { title: 'Quick fix', url: 'https://github.com/org/repo/pull/2', time: 0.5 },

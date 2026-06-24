@@ -26,6 +26,17 @@ export async function generateMetadata({
   const { username } = await params;
   const resolvedSearchParams = await searchParams;
 
+  // Fetch real name from GitHub profile for better page title
+  let displayName = username;
+  try {
+    const profile = await fetchUserProfile(username, {});
+    if (profile?.name && profile.name.trim() !== '') {
+      displayName = profile.name.trim();
+    }
+  } catch {
+    // fall back to username if profile fetch fails
+  }
+
   const queryParams = new URLSearchParams({ user: username });
   if (typeof resolvedSearchParams?.theme === 'string')
     queryParams.set('theme', resolvedSearchParams.theme);
@@ -41,12 +52,12 @@ export async function generateMetadata({
   const title =
     typeof compareUsername === 'string' && compareUsername
       ? `Compare: ${username} vs ${compareUsername} | CommitPulse`
-      : `${username}'s Commit Pulse`;
+      : `${displayName}'s Commit Pulse`;
 
   const description =
     typeof compareUsername === 'string' && compareUsername
       ? `Comparing ${username} and ${compareUsername}'s GitHub contribution pulse on CommitPulse.`
-      : `Check out ${username}'s GitHub contribution pulse — streaks, insights, and more on CommitPulse.`;
+      : `Check out ${displayName}'s GitHub contribution pulse — streaks, insights, and more on CommitPulse.`;
 
   return {
     title,

@@ -2,6 +2,20 @@
 
 import Link from 'next/link';
 import { useTranslation } from '@/context/TranslationContext';
+import {
+  GitFork,
+  GitBranch,
+  MessageCircle,
+  User,
+  Home,
+  Zap,
+  GitCompare,
+  Sliders,
+  Users,
+  BookOpen,
+  HelpCircle, // ← Added for FAQ
+} from 'lucide-react';
+import { FaGithub, FaDiscord, FaTwitter, FaLinkedin } from 'react-icons/fa';
 
 interface FooterLink {
   label: string;
@@ -58,6 +72,30 @@ function LinkComponent({
   );
 }
 
+const SOCIAL_ICON_MAP: Record<string, React.ReactNode> = {
+  github: <FaGithub size={15} className="shrink-0" />,
+  creator: <User size={15} className="shrink-0" />,
+  discord: <FaDiscord size={15} className="shrink-0" />,
+  twitter: <FaTwitter size={15} className="shrink-0" />,
+  linkedin: <FaLinkedin size={15} className="shrink-0" />,
+};
+
+const NAV_ICON_MAP: Record<string, React.ReactNode> = {
+  '/': <Home size={15} className="shrink-0" />,
+  '/generator': <Zap size={15} className="shrink-0" />,
+  '/compare': <GitCompare size={15} className="shrink-0" />,
+  '/customize': <Sliders size={15} className="shrink-0" />,
+  '/contributors': <Users size={15} className="shrink-0" />,
+  '/support': <MessageCircle size={15} className="shrink-0" />,
+};
+
+const RESOURCE_ICON_MAP: Record<string, React.ReactNode> = {
+  documentation: <BookOpen size={15} className="shrink-0" />,
+  github_repo: <GitBranch size={15} className="shrink-0" />,
+  guidelines: <BookOpen size={15} className="shrink-0" />,
+  faq: <HelpCircle size={15} className="shrink-0" />, // Added
+};
+
 export function Footer() {
   const { t } = useTranslation();
   const currentYear = new Date().getFullYear();
@@ -68,6 +106,7 @@ export function Footer() {
     { label: t('footer.compare'), href: '/compare', isExternal: false },
     { label: t('footer.customization'), href: '/customize', isExternal: false },
     { label: t('footer.contributors'), href: '/contributors', isExternal: false },
+    { label: t('footer.support'), href: '/support', isExternal: false },
   ];
 
   const resourceLinks: FooterLink[] = [
@@ -80,6 +119,16 @@ export function Footer() {
       label: t('footer.github_repo'),
       href: 'https://github.com/JhaSourav07/commitpulse',
       isExternal: true,
+    },
+    {
+      label: t('footer.guidelines'),
+      href: '/guidelines',
+      isExternal: false,
+    },
+    {
+      label: t('footer.faq'), // ← Added
+      href: '/faq',
+      isExternal: false,
     },
   ];
 
@@ -108,7 +157,7 @@ export function Footer() {
     },
     {
       label: t('footer.discord'),
-      href: 'https://discord.gg/Cb73bS79j',
+      href: 'https://discord.gg/f84SDraEBH',
       ariaLabel: 'Join CommitPulse on Discord',
       iconPath: (
         <path
@@ -157,8 +206,12 @@ export function Footer() {
             </p>
           </div>
 
-          <div className="flex flex-col items-center sm:items-start lg:pl-16">
-            <h3 className="font-semibold text-sm text-black dark:text-white mb-3 border-b border-black/20 dark:border-white/20 pb-1 w-fit">
+
+          {/* Navigation Section */}
+          <div className="flex flex-col items-center sm:items-start">
+            <h3 className="font-semibold text-sm text-black dark:text-white mb-3">
+
+              
               {t('footer.navigation')}
             </h3>
             <nav className="flex flex-col gap-2 text-center sm:text-left">
@@ -169,14 +222,20 @@ export function Footer() {
                   isExternal={link.isExternal}
                   className="text-sm text-zinc-600 dark:text-zinc-400"
                 >
-                  {link.label}
+                  <span className="flex items-center gap-2">
+                    {NAV_ICON_MAP[link.href]}
+                    {link.label}
+                  </span>
                 </LinkComponent>
               ))}
             </nav>
           </div>
 
-          <div className="flex flex-col items-center sm:items-start lg:pl-10">
-            <h3 className="font-semibold text-sm text-black dark:text-white mb-3 border-b border-black/20 dark:border-white/20 pb-1 w-fit">
+
+          {/* Resources Section */}
+          <div className="flex flex-col items-center sm:items-start">
+            <h3 className="font-semibold text-sm text-black dark:text-white mb-3">
+
               {t('footer.resources')}
             </h3>
             <nav className="flex flex-col gap-2 text-center sm:text-left">
@@ -187,14 +246,30 @@ export function Footer() {
                   isExternal={link.isExternal}
                   className="text-sm text-zinc-600 dark:text-zinc-400"
                 >
-                  {link.label}
+                  <span className="flex items-center gap-2">
+                    {
+                      RESOURCE_ICON_MAP[
+                        link.href.includes('README')
+                          ? 'documentation'
+                          : link.href.includes('guidelines')
+                            ? 'guidelines'
+                            : link.href.includes('faq')
+                              ? 'faq'
+                              : 'github_repo'
+                      ]
+                    }
+                    {link.label}
+                  </span>
                 </LinkComponent>
               ))}
             </nav>
           </div>
 
-          <div className="flex flex-col items-center sm:items-start lg:pl-10">
-            <h3 className="font-semibold text-sm text-black dark:text-white mb-3 border-b border-black/20 dark:border-white/20 pb-1 w-fit">
+
+          {/* Connect Section */}
+          <div className="flex flex-col items-center sm:items-start">
+            <h3 className="font-semibold text-sm text-black dark:text-white mb-3">
+
               {t('footer.connect')}
             </h3>
             <div className="flex flex-col gap-2.5 text-center sm:text-left">
@@ -206,16 +281,11 @@ export function Footer() {
                   ariaLabel={link.ariaLabel}
                   className="text-sm text-zinc-600 dark:text-zinc-400 group/item"
                 >
-                  <span className="flex items-center gap-2.5">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      className="w-5 h-5 text-zinc-500 transition-colors duration-300 group-hover/item:text-teal-600 dark:group-hover/item:text-violet-400 block shrink-0"
-                    >
-                      {link.iconPath}
-                    </svg>
-                    <span>{link.label}</span>
+
+                  <span className="flex items-center gap-2">
+                    {SOCIAL_ICON_MAP[link.icon]}
+                    {link.label}
+
                   </span>
                 </LinkComponent>
               ))}

@@ -434,7 +434,7 @@ describe('GET /api/streak', () => {
     it('caches until UTC midnight by default, using the value from getSecondsUntilUTCMidnight', async () => {
       const response = await GET(makeRequest({ user: 'octocat' }));
       expect(response.headers.get('Cache-Control')).toBe(
-        'public, max-age=14400, s-maxage=3600, stale-while-revalidate=7200'
+        'public, max-age=60, s-maxage=3600, stale-while-revalidate=60'
       );
     });
 
@@ -442,7 +442,7 @@ describe('GET /api/streak', () => {
       vi.mocked(getSecondsUntilUTCMidnight).mockReturnValue(7200);
       const response = await GET(makeRequest({ user: 'octocat' }));
       expect(response.headers.get('Cache-Control')).toBe(
-        'public, max-age=14400, s-maxage=7200, stale-while-revalidate=7200'
+        'public, max-age=60, s-maxage=7200, stale-while-revalidate=60'
       );
     });
 
@@ -856,14 +856,14 @@ describe('GET /api/streak', () => {
       const response = await GET(makeRequest({ user: 'octocat', hide_stats: 'true' }));
       const body = await response.text();
 
-      expect(body).not.toContain('CURRENT_STREAK');
+      expect(body).not.toContain('Current Streak');
     });
 
     it('keeps the stats section when hide_stats=false', async () => {
       const response = await GET(makeRequest({ user: 'octocat', hide_stats: 'false' }));
       const body = await response.text();
 
-      expect(body).toContain('CURRENT_STREAK');
+      expect(body).toContain('Current Streak');
     });
   });
 
@@ -977,7 +977,7 @@ describe('GET /api/streak', () => {
       const response = await GET(makeRequest({ user: 'octocat', tz: 'America/New_York' }));
 
       expect(response.headers.get('Cache-Control')).toBe(
-        'public, max-age=14400, s-maxage=7200, stale-while-revalidate=7200'
+        'public, max-age=60, s-maxage=7200, stale-while-revalidate=60'
       );
       expect(getSecondsUntilMidnightInTimezone).toHaveBeenCalledWith('America/New_York');
       expect(getSecondsUntilUTCMidnight).not.toHaveBeenCalled();
@@ -1094,7 +1094,7 @@ describe('GET /api/streak', () => {
 
       expect(response.status).toBe(200);
       const body = await response.text();
-      expect(body).toContain('COMMITS THIS MONTH');
+      expect(body).toContain('Commits This Month');
     });
 
     it('automatically overrides or widens the query bounds to encompass the start of the previous month when view=monthly is requested with custom from/to params', async () => {
@@ -1197,7 +1197,7 @@ describe('GET /api/streak', () => {
 
       expect(response.status).toBe(200);
       const body = await response.text();
-      expect(body).toContain('CURRENT_STREAK');
+      expect(body).toContain('Current Streak');
     });
 
     it('returns streak view when view=streak is given', async () => {
@@ -1205,7 +1205,7 @@ describe('GET /api/streak', () => {
       const body = await response.text();
 
       expect(response.status).toBe(200);
-      expect(body).toContain('CURRENT_STREAK');
+      expect(body).toContain('Current Streak');
     });
 
     it('applies custom width and height parameters to the monthly SVG', async () => {
@@ -1311,7 +1311,7 @@ describe('GET /api/streak', () => {
     it('returns no-cache header when ?theme=random is given', async () => {
       const response = await GET(makeRequest({ user: 'octocat', theme: 'random' }));
 
-      expect(response.headers.get('Cache-Control')).toMatch(/public, max-age=14400, s-maxage=/);
+      expect(response.headers.get('Cache-Control')).toMatch(/public, max-age=60, s-maxage=/);
     });
   });
 
@@ -1342,33 +1342,33 @@ describe('GET /api/streak', () => {
     it('returns Spanish translations when ?lang=es is given', async () => {
       const response = await GET(makeRequest({ user: 'octocat', lang: 'es' }));
       const body = await response.text();
-      expect(body).toContain('RACHA_ACTUAL');
-      expect(body).toContain('TOTAL_ANUAL');
-      expect(body).toContain('RACHA_MÁXIMA');
+      expect(body).toContain('Racha Actual');
+      expect(body).toContain('Total Anual');
+      expect(body).toContain('Racha Máxima');
     });
 
     it('returns Hindi translations when ?lang=hi is given', async () => {
       const response = await GET(makeRequest({ user: 'octocat', lang: 'hi' }));
       const body = await response.text();
-      expect(body).toContain('वर्तमान_स्ट्रीक');
-      expect(body).toContain('वार्षिक_कुल');
-      expect(body).toContain('अधिकतम_स्ट्रीक');
+      expect(body).toContain('वर्तमान स्ट्रीक');
+      expect(body).toContain('वार्षिक कुल');
+      expect(body).toContain('अधिकतम स्ट्रीक');
     });
 
     it('returns French translations when ?lang=fr is given', async () => {
       const response = await GET(makeRequest({ user: 'octocat', lang: 'fr' }));
       const body = await response.text();
-      expect(body).toContain('SÉRIE_ACTUELLE');
-      expect(body).toContain('TOTAL_ANNUEL');
-      expect(body).toContain('SÉRIE_MAXIMALE');
+      expect(body).toContain('Série Actuelle');
+      expect(body).toContain('Total Annuel');
+      expect(body).toContain('Série Maximale');
     });
 
     it('falls back to English when an unknown ?lang=xx is given', async () => {
       const response = await GET(makeRequest({ user: 'octocat', lang: 'xx' }));
       const body = await response.text();
-      expect(body).toContain('CURRENT_STREAK');
-      expect(body).toContain('ANNUAL_SYNC_TOTAL');
-      expect(body).toContain('PEAK_STREAK');
+      expect(body).toContain('Current Streak');
+      expect(body).toContain('Annual Total');
+      expect(body).toContain('Peak Streak');
     });
   });
 
@@ -1500,16 +1500,16 @@ describe('GET /api/streak', () => {
   });
 
   describe('stale-while-revalidate cache header', () => {
-    it('contains stale-while-revalidate=7200 for normal request', async () => {
+    it('contains stale-while-revalidate=60 for normal request', async () => {
       const response = await GET(makeRequest({ user: 'octocat' }));
 
-      expect(response.headers.get('Cache-Control')).toContain('stale-while-revalidate=7200');
+      expect(response.headers.get('Cache-Control')).toContain('stale-while-revalidate=60');
     });
 
     it('does NOT contain stale-while-revalidate when ?refresh=true', async () => {
       const response = await GET(makeRequest({ user: 'octocat', refresh: 'true' }));
 
-      expect(response.headers.get('Cache-Control')).not.toContain('stale-while-revalidate=7200');
+      expect(response.headers.get('Cache-Control')).not.toContain('stale-while-revalidate=60');
     });
   });
 

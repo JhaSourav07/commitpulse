@@ -123,13 +123,12 @@ function GitHubAvatar({ username }: { username: string }) {
 
   if (src) {
     return (
-      <NextImage
+      <img
         src={src}
         alt={username}
-        width={36}
-        height={36}
+        width="36"
+        height="36"
         className="w-9 h-9 rounded-full ring-2 ring-zinc-200 dark:ring-zinc-700 object-cover shrink-0"
-        unoptimized
       />
     );
   }

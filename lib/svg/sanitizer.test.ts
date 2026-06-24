@@ -9,6 +9,7 @@ import {
   sanitizeGoogleFontUrl,
   parseGradientStops,
   MAX_GRADIENT_STOPS,
+  sanitizeCustomText,
 } from './sanitizer';
 
 describe('SVG Sanitizer Utilities', () => {
@@ -163,6 +164,13 @@ describe('SVG Sanitizer Utilities', () => {
       expect(sanitizeSpeed('8s', '5s')).toBe('8s');
       expect(sanitizeSpeed('2s', '5s')).toBe('2s');
       expect(sanitizeSpeed('20s', '5s')).toBe('20s');
+    });
+
+    it('accepts decimal speed values within valid range', () => {
+      expect(sanitizeSpeed('8.0s', '5s')).toBe('8.0s');
+      expect(sanitizeSpeed('2.0s', '5s')).toBe('2.0s');
+      expect(sanitizeSpeed('20.0s', '5s')).toBe('20.0s');
+      expect(sanitizeSpeed('2.1s', '5s')).toBe('2.1s');
     });
 
     it('returns fallback for speed outside 2s-20s range', () => {
@@ -359,5 +367,20 @@ describe('parseGradientStops', () => {
     const colors = Array.from({ length: 12 }, () => 'aabbcc').join(',');
     const result = parseGradientStops(colors);
     expect(result.length).toBe(MAX_GRADIENT_STOPS);
+  });
+});
+
+describe('sanitizeCustomText', () => {
+  it('escapes XML reserved characters', () => {
+    expect(sanitizeCustomText('hello & welcome <here>')).toBe('hello &amp; welcome &lt;here&gt;');
+    expect(sanitizeCustomText('"" onclick="alert(1)"')).toBe(
+      '&quot;&quot; onclick=&quot;alert(1)&quot;'
+    );
+  });
+
+  it('returns empty string for undefined or null or empty input', () => {
+    expect(sanitizeCustomText(undefined)).toBe('');
+    expect(sanitizeCustomText(null)).toBe('');
+    expect(sanitizeCustomText('')).toBe('');
   });
 });

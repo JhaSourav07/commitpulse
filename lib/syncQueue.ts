@@ -1,3 +1,5 @@
+import 'server-only';
+
 /**
  * A queue to stagger incoming sync tasks across the available hourly quota.
  * This prevents the application from making too many concurrent requests to the GitHub API,
