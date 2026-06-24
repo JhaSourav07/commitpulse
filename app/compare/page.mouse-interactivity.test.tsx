@@ -4,10 +4,24 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import CompareClient from './CompareClient';
 import React, { type ReactNode } from 'react';
 
-const { mockRouter, mockSearchParams } = vi.hoisted(() => ({
-  mockRouter: { replace: vi.fn() },
-  mockSearchParams: { get: vi.fn(() => null) },
-}));
+const { mockRouter, mockSearchParams } = vi.hoisted(() => {
+  let params = new URLSearchParams();
+  return {
+    mockRouter: {
+      replace: vi.fn((url: string) => {
+        const qs = url.split('?')[1];
+        if (qs) params = new URLSearchParams(qs);
+      }),
+      push: vi.fn((url: string) => {
+        const qs = url.split('?')[1];
+        if (qs) params = new URLSearchParams(qs);
+      }),
+    },
+    mockSearchParams: {
+      get: vi.fn((key: string) => params.get(key)),
+    },
+  };
+});
 
 vi.mock('next/navigation', () => ({
   useRouter: () => mockRouter,
@@ -186,9 +200,11 @@ describe('CompareClient Mouse Interactivity & Touch Events', () => {
       { timeout: 5000 }
     );
 
-    // Check StatBattle border elements transitions on mouseEnter / mouseLeave
     const repositoryCard = await screen.findByText('5,000', {}, { timeout: 5000 });
+
+    // Check StatBattle border elements transitions on mouseEnter / mouseLeave
     const container = repositoryCard.closest('div');
+
     expect(container).toBeInTheDocument();
 
     fireEvent.mouseEnter(container!);
