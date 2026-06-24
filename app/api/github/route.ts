@@ -2,13 +2,52 @@
 
 import { NextResponse, after } from 'next/server';
 import { getFullDashboardData } from '@/lib/github';
-import { githubParamsSchema } from '@/lib/validations';
+import { githubParamsSchema, coerceQueryParams } from '@/lib/validations';
 import { getClientIp } from '@/utils/getClientIp';
 import { quotaMonitor } from '@/services/github/quota-monitor';
 import { refreshPolicy } from '@/services/github/refresh-policy';
 import { refreshRateLimiter } from '@/services/github/refresh-rate-limiter';
 import { backgroundRefresh } from '@/services/github/background-refresh';
 import { logger } from '@/lib/logger';
+
+const MAX_ERROR_CAUSE_DEPTH = 10;
+
+function getSafeRootCause(error: unknown): unknown {
+  let currentErr: unknown = error;
+  const visitedErrors = new WeakSet<object>();
+  let depth = 0;
+
+  while (
+    currentErr &&
+    typeof currentErr === 'object' &&
+    'cause' in currentErr &&
+    depth < MAX_ERROR_CAUSE_DEPTH
+  ) {
+    if (visitedErrors.has(currentErr)) {
+      return currentErr;
+    }
+
+    visitedErrors.add(currentErr);
+    currentErr = (currentErr as { cause?: unknown }).cause;
+    depth += 1;
+  }
+
+  return currentErr;
+}
+
+function getSafeErrorMessage(error: unknown): string {
+  const rootCause = getSafeRootCause(error);
+
+  if (rootCause instanceof Error && rootCause.message) {
+    return rootCause.message;
+  }
+
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  return 'Unknown error';
+}
 
 function logSecurityEvent(event: string, details: Record<string, unknown>) {
   logger.warn('Security event', {
@@ -39,7 +78,7 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const ip = getClientIp(request);
 
-  const parseResult = githubParamsSchema.safeParse(Object.fromEntries(searchParams.entries()));
+  const parseResult = githubParamsSchema.safeParse(coerceQueryParams(searchParams));
 
   if (!parseResult.success) {
     return NextResponse.json(
@@ -135,20 +174,15 @@ export async function GET(request: Request) {
       },
     });
   } catch (error: unknown) {
-    let currentErr: unknown = error;
-    // Walk down the cause chain to find the underlying error if wrapped (e.g. in getFullDashboardData)
-    while (currentErr && typeof currentErr === 'object' && 'cause' in currentErr) {
-      currentErr = (currentErr as { cause: unknown }).cause;
-    }
+    const rootCause = getSafeRootCause(error);
 
-    const err = (currentErr || error) as {
+    const err = (rootCause || error) as {
       status?: number;
       response?: { status?: number };
       message?: string;
     };
 
     const status = err.status || err.response?.status || undefined;
-
     const message = err.message || '';
 
     // 404 - User not found (status-first; exact message match as fallback for GraphQL paths
@@ -191,7 +225,7 @@ export async function GET(request: Request) {
     }
 
     // Default fallback
-    const errMessage = error instanceof Error ? error.message : 'Internal Server Error';
+    const errMessage = getSafeErrorMessage(error);
 
     return NextResponse.json({ error: errMessage }, { status: 500 });
   }

@@ -27,8 +27,8 @@ import { generateRadarSVG } from '@/lib/svg/radar';
 import { generateDoughnutSVG } from '@/lib/svg/doughnut';
 import { getSecondsUntilUTCMidnight, getSecondsUntilMidnightInTimezone } from '@/utils/time';
 import type { BadgeParams, RepoContribution, ExtendedContributionData } from '@/types';
-import { themes } from '@/lib/svg/themes';
-import { streakParamsSchema } from '@/lib/validations';
+import { getNormalizedThemeKey, themes } from '@/lib/svg/themes';
+import { streakParamsSchema, coerceQueryParams } from '@/lib/validations';
 import { sanitizeHexColor, sanitizeRadius, escapeXML } from '@/lib/svg/sanitizer';
 import { getClientIp } from '@/utils/getClientIp';
 import { quotaMonitor } from '@/services/github/quota-monitor';
@@ -89,7 +89,7 @@ export async function GET(request: Request) {
 
   const cacheKey = searchParams.toString();
   const parseResult = cachedValidation(cacheKey, () =>
-    streakParamsSchema.safeParse(Object.fromEntries(searchParams.entries()))
+    streakParamsSchema.safeParse(coerceQueryParams(searchParams))
   );
   try {
     if (!parseResult.success) {
@@ -131,6 +131,8 @@ export async function GET(request: Request) {
       refresh,
       bypassCache: bypassCacheParam,
       hide_title,
+      custom_title,
+      custom_subtitle,
       hide_background,
       hide_stats,
       lang,
@@ -160,6 +162,7 @@ export async function GET(request: Request) {
       entrance,
       theta,
       phi,
+      border,
     } = parseResult.data;
     const normalizedView = view as
       | 'default'
@@ -173,7 +176,9 @@ export async function GET(request: Request) {
       | 'doughnut'
       | 'pie'
       | 'activity_graph';
-    const themeName = theme || 'dark';
+
+    const themeKey = getNormalizedThemeKey(theme);
+    const themeName = themeKey === 'default' && theme ? theme : themeKey;
 
     const ip = getClientIp(request);
 
@@ -285,8 +290,8 @@ export async function GET(request: Request) {
     const currentYear = new Date().getUTCFullYear();
     const isHistoricalYear = !!year && Number(year) < currentYear;
 
-    const isAutoTheme = themeName === 'auto';
-    const isRandomTheme = themeName === 'random';
+    const isAutoTheme = themeName.toLowerCase() === 'auto';
+    const isRandomTheme = themeName.toLowerCase() === 'random';
     const selectedTheme = (() => {
       if (isAutoTheme) return themes.light;
       if (isRandomTheme) {
@@ -295,7 +300,7 @@ export async function GET(request: Request) {
         const stableKey = keys[hash % keys.length];
         return themes[stableKey] || themes.dark;
       }
-      return themes[theme] || themes.dark;
+      return themes[themeKey] || themes.dark;
     })();
 
     // If 'org' is provided, we use it as the display user
@@ -308,9 +313,8 @@ export async function GET(request: Request) {
             .slice(0, 2)
             .join(' + ')
         : user);
-    const borderParam = searchParams.get('border');
-    const sanitizedBorder = borderParam ? borderParam.replace(/[^a-fA-F0-9]/g, '') : undefined;
     const animate = searchParams.get('animate') !== 'false';
+    const compact = searchParams.get('compact') === 'true';
     // Validate and clamp the speed param to prevent broken SVG animation
     const rawSpeedNum = speed ? parseFloat(String(speed)) : NaN;
     const validatedSpeed = (
@@ -328,13 +332,15 @@ export async function GET(request: Request) {
       bgAngle,
       text: isAutoTheme ? selectedTheme.text : text || selectedTheme.text,
       accent: isAutoTheme ? selectedTheme.accent : accent || selectedTheme.accent,
-      border: sanitizedBorder,
+      border,
       radius,
       speed: validatedSpeed,
       scale,
       font,
       autoTheme: isAutoTheme,
       hide_title,
+      custom_title,
+      custom_subtitle,
       hideBackground: hide_background,
       hide_stats,
       lang,
@@ -373,6 +379,7 @@ export async function GET(request: Request) {
       entrance,
       theta,
       phi,
+      compact,
     };
 
     let calendar;

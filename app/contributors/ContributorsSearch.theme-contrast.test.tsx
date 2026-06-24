@@ -62,7 +62,7 @@ describe('ContributorsSearch Theme Contrast Tests', () => {
 
     expect(input.className).toContain('dark:text-white');
 
-    expect(input.className).toContain('dark:placeholder:text-zinc-600');
+    expect(input.className).toContain('dark:placeholder:text-zinc-500');
   });
 
   it('applies dark and light border styling on contributor cards', () => {

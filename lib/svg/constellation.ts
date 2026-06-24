@@ -397,52 +397,40 @@ export function generateConstellationSVG(
     </filter>
   </defs>
 
-  <!-- Background -->
   <rect width="${CONSTELLATION_SVG_WIDTH}" height="${CONSTELLATION_SVG_HEIGHT}" fill="#${bgColor}" rx="8" />
 
-  <!-- Milky Way gradient band -->
   <rect x="0" y="0" width="${CONSTELLATION_SVG_WIDTH}" height="${CONSTELLATION_SVG_HEIGHT}" fill="url(#${CSS_PREFIX}-milkyway)" />
 
-  <!-- Background starfield -->
   <g id="${CSS_PREFIX}-bg-stars">
     ${bgStarsSVG}
   </g>
 
-  <!-- Zodiac ring -->
   <g id="${CSS_PREFIX}-zodiac-ring">
     ${ringSVG}
   </g>
 
-  <!-- Month labels on ring -->
   <g id="${CSS_PREFIX}-month-labels">
     ${monthLabelsSVG}
   </g>
 
-  <!-- Constellation lines -->
   <g id="${CSS_PREFIX}-constellation-lines" filter="url(#${CSS_PREFIX}-glow)">
     ${linesSVG}
   </g>
 
-  <!-- Constellation month labels -->
   <g id="${CSS_PREFIX}-constellation-labels">
     ${constLabelsSVG}
   </g>
 
-  <!-- Contribution stars -->
   <g id="${CSS_PREFIX}-contrib-stars" filter="url(#${CSS_PREFIX}-glow)">
     ${contribStarsSVG}
   </g>
 
-  <!-- Username label -->
   <text x="${USERNAME_LABEL_X}" y="${USERNAME_LABEL_Y}" fill="#${textColor}" font-family="'Inter', 'Space Grotesk', sans-serif" font-size="18" font-weight="700">${safeUser}</text>
 
-  <!-- Year label -->
   <text x="${YEAR_LABEL_X}" y="${YEAR_LABEL_Y}" text-anchor="end" fill="#${textColor}" font-family="'Inter', 'Space Grotesk', sans-serif" font-size="18" font-weight="700" opacity="0.7">${year}</text>
 
-  <!-- Subtitle -->
   <text x="${SUBTITLE_X}" y="${SUBTITLE_Y}" text-anchor="middle" fill="#${textColor}" font-family="'Inter', sans-serif" font-size="11" opacity="0.4">Constellation Map</text>
 
-  <!-- Legend -->
   ${legendSVG}
 </svg>`;
 

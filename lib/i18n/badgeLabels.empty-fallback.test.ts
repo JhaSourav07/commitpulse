@@ -43,12 +43,12 @@ const BadgeLabelsFallbackWrapper = ({ lang, badges, configOverride }: WrapperPro
 describe('badgeLabels Empty & Fallback Verification', () => {
   it('Case 1: Pass null/undefined configuration records and verify the fallback engine returns safe default string labels', () => {
     const fallbackLabels = getLabels(undefined);
-    expect(fallbackLabels.CURRENT_STREAK).toBe('CURRENT_STREAK');
-    expect(fallbackLabels.ANNUAL_SYNC_TOTAL).toBe('ANNUAL_SYNC_TOTAL');
+    expect(fallbackLabels.CURRENT_STREAK).toBe('Current Streak');
+    expect(fallbackLabels.ANNUAL_SYNC_TOTAL).toBe('Annual Total');
 
     render(React.createElement(BadgeLabelsFallbackWrapper, { configOverride: null }));
     const streakLabel = screen.getByTestId('label-streak');
-    expect(streakLabel).toHaveTextContent('CURRENT_STREAK');
+    expect(streakLabel).toHaveTextContent('Current Streak');
   });
 
   it('Case 2: Pass empty arrays for local badge datasets and verify that a non-breaking, clean fallback text marker or structure is rendered', () => {
@@ -90,7 +90,7 @@ describe('badgeLabels Empty & Fallback Verification', () => {
     expect(executeTest).not.toThrow();
     const result = executeTest();
     expect(result.loopResultLength).toBe(0);
-    expect(result.resultLabels.CURRENT_STREAK).toBe('CURRENT_STREAK');
+    expect(result.resultLabels.CURRENT_STREAK).toBe('Current Streak');
   });
 
   it('Case 5: Inspect key DOM nodes to ensure fallback structural empty text markers exist cleanly in the document layout tree', () => {

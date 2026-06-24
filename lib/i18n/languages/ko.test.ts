@@ -10,9 +10,9 @@ const requiredKeys = [
 ] as const;
 
 const expectedKoreanLabels = {
-  CURRENT_STREAK: '현재_연속',
-  ANNUAL_SYNC_TOTAL: '연간_총계',
-  PEAK_STREAK: '최고_연속',
+  CURRENT_STREAK: '현재 연속',
+  ANNUAL_SYNC_TOTAL: '연간 총계',
+  PEAK_STREAK: '최고 연속',
   COMMITS_THIS_MONTH: '이번 달 커밋',
   VS_LAST_MONTH: '지난달 대비',
 };

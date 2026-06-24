@@ -35,7 +35,7 @@ describe('DiscordButton - Edge Cases & Empty/Missing Inputs', () => {
   it('renders with correct Discord href in empty/default state', () => {
     const { container } = render(<DiscordButton />);
     const anchor = container.querySelector('a');
-    expect(anchor?.getAttribute('href')).toBe('https://discord.gg/Cb73bS79j');
+    expect(anchor?.getAttribute('href')).toBe('https://discord.gg/f84SDraEBH');
   });
 
   it('renders the join text in default empty layout state', () => {

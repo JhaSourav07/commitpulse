@@ -269,6 +269,12 @@ export interface BadgeParams {
   /** When true, hides the username title from the badge. */
   hide_title?: boolean;
 
+  /** Custom text to display as the title. */
+  custom_title?: string;
+
+  /** Custom text to display as the subtitle. */
+  custom_subtitle?: string;
+
   /** When true, renders the badge without a background card. */
   hideBackground?: boolean;
 
@@ -359,6 +365,9 @@ export interface BadgeParams {
 
   /** Projection tilt angle around the X-axis in degrees (0-90). */
   phi?: number;
+
+  /** When true, renders a compact single-row card (~100px tall) with only username, avatar, and streak count. Skips the full isometric grid. */
+  compact?: boolean;
 
   /** @internal Temporary property to track custom gradient ID during SVG generation. */
   __customGradientId?: string;

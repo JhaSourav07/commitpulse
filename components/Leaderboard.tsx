@@ -108,12 +108,10 @@ export default function Leaderboard({ contributors = [] }: LeaderboardProps) {
               {/* Avatar */}
               <div className="relative w-10 h-10 rounded-full overflow-hidden border border-black/10 dark:border-white/10 group-hover:border-cyan-400/40 transition-colors">
                 {contributor.avatar_url ? (
-                  <Image
+                  <img
                     src={contributor.avatar_url}
                     alt={contributor.login}
-                    fill
-                    unoptimized
-                    className="object-cover"
+                    className="w-full h-full object-cover"
                   />
                 ) : (
                   <div className="w-full h-full bg-zinc-200 dark:bg-white/10" />
@@ -224,12 +222,10 @@ function PodiumItem({ contributor, height, variant, delay, isFirst }: PodiumItem
             style={{ width: isFirst ? 88 : 72, height: isFirst ? 88 : 72 }}
           >
             {contributor.avatar_url ? (
-              <Image
+              <img
                 src={contributor.avatar_url}
                 alt={contributor.login}
-                fill
-                unoptimized
-                className="rounded-full object-cover"
+                className="rounded-full object-cover w-full h-full"
               />
             ) : (
               <div className="w-full h-full rounded-full bg-zinc-200 dark:bg-white/10" />

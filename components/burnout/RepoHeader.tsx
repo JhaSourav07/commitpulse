@@ -56,7 +56,7 @@ export default function RepoHeader({
   const rating = getRating(sustainabilityScore);
 
   return (
-    <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between p-6 rounded-2xl border border-black/10 dark:border-white/10 bg-white/70 dark:bg-[#0a0a0a]/70 backdrop-blur-xl shadow-sm">
+    <div className="z-30 flex flex-col gap-6 md:flex-row md:items-center md:justify-between p-6 rounded-2xl border border-black/10 dark:border-white/10 bg-white/70 dark:bg-[#0a0a0a]/70 backdrop-blur-xl shadow-sm">
       <div className="flex flex-col gap-4">
         <Link
           href="/burnout-analyzer"

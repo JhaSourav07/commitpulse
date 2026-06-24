@@ -535,7 +535,7 @@ Fixes # (issue number)
 - [ ] (Recommended) I joined the CommitPulse Discord server for faster collaboration, mentorship, and PR support.
 ```
 
-[![Join CommitPulse Discord](https://img.shields.io/badge/Join-CommitPulse%20Discord-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/Cb73bS79j)
+[![Join CommitPulse Discord](https://img.shields.io/badge/Join-CommitPulse%20Discord-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/f84SDraEBH)
 
 > **PRs without a visual preview for any SVG-touching changes will be asked for one before review.**
 

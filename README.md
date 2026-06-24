@@ -32,7 +32,7 @@
 
 ![CommitPulse Live Demo](https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=neon)
 
-[![Join CommitPulse Discord](https://img.shields.io/badge/Join-CommitPulse%20Discord-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/Cb73bS79j)
+[![Join CommitPulse Discord](https://img.shields.io/badge/Join-CommitPulse%20Discord-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/f84SDraEBH)
 
 ```md
 ![CommitPulse](https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME)
@@ -137,6 +137,7 @@ Transform your GitHub contribution history into a cinematic 3D monolith.
 | `lumos`            | Void black & mint gold       | `0a0a0a` | `fbbf24` | `a7f3d0` |
 | `tokyo_night`      | Deep navy & soft pastel blue | `1a1b26` | `7aa2f7` | `c0caf5` |
 | `monokai`          | Classic vibrant dark         | `272822` | `a6e22e` | `f8f8f2` |
+| `midnight_ocean`   | Deep navy bioluminescent     | `020c1b` | `0af5ff` | `ccd6f6` |
 
 > **`auto` uses CSS `@media (prefers-color-scheme)`** inside the SVG so the badge switches between the `light` and `dark` palettes based on the viewer's OS setting — no JavaScript required. This is ideal for GitHub profile READMEs where visitors may use either mode.
 
@@ -219,7 +220,7 @@ This project is licensed under the MIT License. See [LICENSE](LICENSE) for detai
 ## 👥 Maintainers
 
 - **Sourav Jha** ([@jhasourav07](https://github.com/jhasourav07)) - [LinkedIn](https://linkedin.com/in/souravjhahind)
-- **Aamod Kumar** ([@Aamod007](https://github.com/Aamod007)) - [LinkedIn](https://linkedin.com/in/aamod-kumar/)
+- **Aamod Kumar** ([@Aamod-Dev](https://github.com/Aamod-Dev)) - [LinkedIn](https://linkedin.com/in/aamod-kumar/)
 
 For details on the project leads and roles, please see [MAINTAINER.md](MAINTAINER.md).
 

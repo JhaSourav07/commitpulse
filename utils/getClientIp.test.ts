@@ -161,4 +161,21 @@ describe('getClientIp', () => {
     });
     expect(getClientIp(reqMalformed)).toBe('127.0.0.1');
   });
+  it('does not return a trusted proxy as the client IP when it is the only hop in the chain', () => {
+    const req = new Request('http://localhost:3000/api/streak', {
+      headers: {
+        'x-forwarded-for': '203.0.113.5',
+      },
+    });
+
+    const ip = getClientIp(req, {
+      proxyConfig: {
+        trustedProxies: ['203.0.113.5'],
+        trustPrivateRanges: false,
+      },
+      directIp: '203.0.113.5',
+    });
+
+    expect(ip).toBe('127.0.0.1');
+  });
 });

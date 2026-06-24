@@ -5,6 +5,9 @@ import { getFullDashboardData } from '../../../lib/github';
 vi.mock('../../../lib/github', () => ({
   getFullDashboardData: vi.fn(),
 }));
+vi.mock('@/lib/githubtoken', () => ({
+  getUserGitHubToken: vi.fn().mockResolvedValue(undefined),
+}));
 
 function makeRequest(user1?: string, user2?: string): Request {
   const url = new URL('http://localhost/api/compare');

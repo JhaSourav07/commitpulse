@@ -29,10 +29,12 @@ export function getRecommendations(selectedIds: string[]): RecommendedTechnology
         continue; // Exclude already selected technologies
       }
 
-      if (!candidatesMap.has(edge.targetId)) {
-        candidatesMap.set(edge.targetId, { edges: [] });
+      let candidate = candidatesMap.get(edge.targetId);
+      if (!candidate) {
+        candidate = { edges: [] };
+        candidatesMap.set(edge.targetId, candidate);
       }
-      candidatesMap.get(edge.targetId)!.edges.push(edge);
+      candidate.edges.push(edge);
     }
   }
 

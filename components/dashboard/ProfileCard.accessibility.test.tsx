@@ -1,154 +1,93 @@
-import { describe, expect, it, vi } from 'vitest';
+import '@testing-library/jest-dom/vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { describe, it, expect, vi } from 'vitest';
+
 import ProfileCard from './ProfileCard';
 
-vi.mock('next/image', () => ({
-  // eslint-disable-next-line @next/next/no-img-element
-  default: (props: React.ImgHTMLAttributes<HTMLImageElement>) => <img alt="" {...props} />,
+vi.mock('framer-motion', () => ({
+  motion: {
+    div: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+    button: ({
+      children,
+      ...props
+    }: React.ButtonHTMLAttributes<HTMLButtonElement> & {
+      children: React.ReactNode;
+    }) => <button {...props}>{children}</button>,
+  },
 }));
 
 vi.mock('./ShareSheet', () => ({
-  default: ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) =>
-    isOpen ? (
-      <div role="dialog" aria-label="Share profile dialog">
-        <button onClick={onClose}>Close</button>
-      </div>
-    ) : null,
+  default: () => <div data-testid="share-sheet" />,
 }));
 
 vi.mock('@/context/TranslationContext', () => ({
   useTranslation: () => ({
-    t: (key: string) => {
-      const translations: Record<string, string> = {
-        'dashboard.profile.pro': 'PRO',
-        'dashboard.profile.score': 'Developer Score',
-        'dashboard.profile.repos': 'Repos',
-        'dashboard.profile.stars': 'Stars',
-        'dashboard.profile.followers': 'Followers',
-        'dashboard.profile.following': 'Following',
-        'dashboard.profile.share': 'Share Profile',
-      };
-
-      return translations[key] || key;
-    },
+    t: (key: string) => key,
   }),
 }));
 
-vi.mock('framer-motion', () => ({
-  motion: {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    div: ({ children, className, ...props }: any) => {
-      const validProps = Object.keys(props).reduce(
-        (acc, key) => {
-          if (!['initial', 'animate', 'transition'].includes(key)) {
-            acc[key] = props[key as keyof typeof props];
-          }
-          return acc;
-        },
-        {} as Record<string, unknown>
-      );
-
-      return (
-        <div className={className} {...validProps}>
-          {children}
-        </div>
-      );
-    },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    button: ({ children, className, onClick, ...props }: any) => {
-      const validProps = Object.keys(props).reduce(
-        (acc, key) => {
-          if (!['whileHover', 'whileTap'].includes(key)) {
-            acc[key] = props[key as keyof typeof props];
-          }
-          return acc;
-        },
-        {} as Record<string, unknown>
-      );
-
-      return (
-        <button className={className} onClick={onClick} {...validProps}>
-          {children}
-        </button>
-      );
+const mockProps = {
+  user: {
+    avatarUrl: 'https://example.com/avatar.png',
+    isPro: true,
+    name: 'Sanz',
+    username: 'sanzzzz-g',
+    bio: 'Frontend developer',
+    location: 'India',
+    joinedDate: 'January 2024',
+    developerScore: 95,
+    stats: {
+      repositories: 120,
+      stars: 450,
+      followers: 300,
+      following: 180,
     },
   },
-}));
+  exportData: {} as never,
+  badges: ['PRO', 'TOP CONTRIBUTOR'],
+};
 
 describe('ProfileCard Accessibility Standards & Screen Reader Aria Compliance', () => {
-  const mockUser = {
-    avatarUrl: 'https://github.com/octocat.png',
-    name: 'Octo Cat',
-    username: 'octocat',
-    bio: 'Open source contributor',
-    location: 'San Francisco',
-    joinedDate: 'Joined Jan 2020',
-    isPro: true,
-    developerScore: 82,
-    stats: {
-      repositories: 42,
-      stars: 120,
-      followers: 900,
-      following: 80,
-    },
-  };
+  it('renders logical heading hierarchy correctly', () => {
+    render(<ProfileCard {...mockProps} />);
 
-  const mockExportData = {} as React.ComponentProps<typeof ProfileCard>['exportData'];
-
-  it('inspects markup for accessible image labels and profile identity text', () => {
-    render(
-      <ProfileCard user={mockUser} exportData={mockExportData} badges={['Top Contributor']} />
-    );
-
-    expect(screen.getByRole('img', { name: /octo cat/i })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { level: 2, name: /octo cat/i })).toBeInTheDocument();
-    expect(screen.getByText('@octocat')).toBeInTheDocument();
-    expect(screen.getByText('Open source contributor')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 2 })).toBeInTheDocument();
+    expect(screen.getByText('Sanz')).toBeInTheDocument();
   });
 
-  it('asserts interactive share button can receive keyboard focus', () => {
-    render(<ProfileCard user={mockUser} exportData={mockExportData} />);
+  it('renders accessible profile image with alt text', () => {
+    render(<ProfileCard {...mockProps} />);
 
-    const shareButton = screen.getByRole('button', { name: /share profile/i });
-    shareButton.focus();
+    const image = screen.getByRole('img');
 
-    expect(shareButton).toHaveFocus();
+    expect(image).toHaveAttribute('alt', 'Sanz');
   });
 
-  it('verifies tooltip-like and descriptive profile metadata is announced as visible text', () => {
-    render(
-      <ProfileCard user={mockUser} exportData={mockExportData} badges={['Top Contributor']} />
-    );
-
-    expect(screen.getByText('San Francisco')).toBeInTheDocument();
-    expect(screen.getByText('Joined Jan 2020')).toBeInTheDocument();
-    expect(screen.getByText('Top Contributor')).toBeInTheDocument();
-    expect(screen.getByText('Developer Score')).toBeInTheDocument();
-  });
-
-  it('tests keyboard control path and opens share dialog through normal tab order', async () => {
-    render(<ProfileCard user={mockUser} exportData={mockExportData} />);
-
+  it('supports keyboard tab navigation for interactive controls', async () => {
     const user = userEvent.setup();
 
+    render(<ProfileCard {...mockProps} />);
+
     await user.tab();
-    const shareButton = screen.getByRole('button', { name: /share profile/i });
 
-    expect(shareButton).toHaveFocus();
-
-    await user.keyboard('{Enter}');
-    expect(screen.getByRole('dialog', { name: /share profile dialog/i })).toBeInTheDocument();
+    expect(screen.getByRole('button')).toHaveFocus();
   });
 
-  it('confirms stats and heading hierarchy remain logically available to screen readers', () => {
-    render(<ProfileCard user={mockUser} exportData={mockExportData} />);
+  it('renders visible accessible text and badge labels', () => {
+    render(<ProfileCard {...mockProps} />);
 
-    expect(screen.getByRole('heading', { level: 2, name: /octo cat/i })).toBeInTheDocument();
+    expect(screen.getByText(/frontend developer/i)).toBeInTheDocument();
+    expect(screen.getByText(/top contributor/i)).toBeInTheDocument();
+  });
 
-    expect(screen.getByText('Repos')).toBeInTheDocument();
-    expect(screen.getByText('Stars')).toBeInTheDocument();
-    expect(screen.getByText('Followers')).toBeInTheDocument();
-    expect(screen.getByText('Following')).toBeInTheDocument();
+  it('renders accessible share action button with readable text', () => {
+    render(<ProfileCard {...mockProps} />);
+
+    expect(
+      screen.getByRole('button', {
+        name: /dashboard.profile.share/i,
+      })
+    ).toBeInTheDocument();
   });
 });

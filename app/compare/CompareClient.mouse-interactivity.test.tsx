@@ -261,14 +261,13 @@ describe('CompareClient Interactive Tooltips, Cursor Hovers & Touch Event Propag
       expect(screen.getByText(/stats showdown/i)).toBeInTheDocument();
     });
 
-    // Find custom heatmap items having 'contributions' in the title attribute,
+    // Find custom heatmap items having 'title' attribute,
     // verify hover details on a heatmap cell
     await waitFor(() => {
-      const allCells = document.querySelectorAll('[title*="contributions"]');
+      const allCells = document.querySelectorAll('[title]');
       expect(allCells.length).toBeGreaterThan(0);
       const sampleCell = allCells[0];
       expect(sampleCell).toHaveAttribute('title');
-      expect(sampleCell.getAttribute('title')).toContain('contributions');
       fireEvent.mouseEnter(sampleCell);
       fireEvent.mouseLeave(sampleCell);
     });

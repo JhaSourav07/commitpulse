@@ -52,7 +52,7 @@ describe('DiscordButton - Responsive Breakpoints & Mobile Layouts', () => {
     // Verify link is still accessible on mobile
     const link = container.querySelector('a');
     expect(link).toBeInTheDocument();
-    expect(link).toHaveAttribute('href', 'https://discord.gg/Cb73bS79j');
+    expect(link).toHaveAttribute('href', 'https://discord.gg/f84SDraEBH');
   });
 
   it('Responsive Column Reflow: maintains inline-flex layout with responsive gap spacing on mobile', () => {

@@ -283,10 +283,12 @@ describe('fetchGitHubContributions', () => {
     );
   });
 
-  it('throws when fetch itself rejects due to a network failure', async () => {
+  it('falls back to empty calendar when fetch itself rejects due to a network failure', async () => {
     vi.mocked(fetch).mockRejectedValue(new Error('Failed to fetch'));
 
-    await expect(fetchGitHubContributions('octocat')).rejects.toThrow('Failed to fetch');
+    const result = await fetchGitHubContributions('octocat');
+    expect(result.calendar.totalContributions).toBe(0);
+    expect(result.isOfflineFallback).toBe(true);
   });
 
   it('throws the first GraphQL error when the API returns an errors array', async () => {
@@ -352,15 +354,16 @@ describe('fetchGitHubContributions', () => {
       expect(fetch).toHaveBeenCalledTimes(2);
     });
 
-    it('throws after exhausting all retries on repeated body-level RATE_LIMITED errors', async () => {
+    it('falls back to empty calendar after exhausting all retries on repeated body-level RATE_LIMITED errors', async () => {
       vi.mocked(fetch).mockResolvedValue(
         mockResponse({ errors: [{ type: 'RATE_LIMITED', message: 'API rate limit exceeded' }] })
       );
 
       const promise = fetchGitHubContributions('octocat');
-      const assertion = expect(promise).rejects.toThrow('API Rate Limit Exceeded');
       await vi.advanceTimersByTimeAsync(3500);
-      await assertion;
+      const result = await promise;
+      expect(result.calendar.totalContributions).toBe(0);
+      expect(result.isOfflineFallback).toBe(true);
       expect(fetch).toHaveBeenCalledTimes(4);
     });
   });
@@ -790,15 +793,15 @@ describe('fetchContributedRepos', () => {
     await assertion;
   });
 
-  it('throws on a rate-limited GraphQL 200 response instead of returning []', async () => {
+  it('falls back to [] on a rate-limited GraphQL 200 response', async () => {
     vi.mocked(fetch).mockResolvedValue(
       mockResponse({ errors: [{ type: 'RATE_LIMITED', message: 'API rate limit exceeded' }] })
     );
 
     const promise = fetchContributedRepos('octocat');
-    const assertion = expect(promise).rejects.toThrow('API Rate Limit Exceeded');
     await vi.advanceTimersByTimeAsync(3500);
-    await assertion;
+    const result = await promise;
+    expect(result).toEqual([]);
   });
 
   it('does not cache the failure: a later call refetches and can succeed', async () => {
@@ -1211,7 +1214,64 @@ describe('getFullDashboardData', () => {
     ]);
     expect(result.insights).toBeDefined();
   });
+  it('forwards the per-user token to deployment tracker requests instead of using the shared pool', async () => {
+    const capturedAuthHeaders: string[] = [];
 
+    vi.mocked(fetch).mockImplementation(async (url: RequestInfo | URL, init?: RequestInit) => {
+      const urlStr = typeof url === 'string' ? url : (url?.toString() ?? '');
+
+      if (urlStr.includes('/actions/runs') || urlStr.includes('/deployments')) {
+        const headers = init?.headers as Record<string, string> | undefined;
+        capturedAuthHeaders.push(headers?.Authorization ?? '');
+        if (urlStr.includes('/actions/runs')) {
+          return mockResponse({ workflow_runs: [] });
+        }
+        return mockResponse([]);
+      }
+      if (urlStr.includes('/users/octocat/repos')) {
+        return mockResponse([
+          {
+            name: 'repo1',
+            stargazers_count: 10,
+            language: 'TypeScript',
+            fork: false,
+            owner: { login: 'octocat' },
+          },
+        ]);
+      }
+      if (urlStr.includes('/users/octocat')) {
+        return mockResponse({
+          login: 'octocat',
+          name: 'The Octocat',
+          avatar_url: 'avatar.png',
+          public_repos: 1,
+          followers: 1,
+          following: 1,
+          created_at: '2020-01-01T00:00:00Z',
+          bio: null,
+          location: null,
+        });
+      }
+      return mockResponse({
+        data: {
+          user: {
+            contributionsCollection: {
+              contributionCalendar: mockCalendar,
+              commitContributionsByRepository: [],
+            },
+          },
+        },
+      });
+    });
+
+    const userToken = 'user-personal-oauth-token';
+    await getFullDashboardData('octocat', { token: userToken });
+
+    expect(capturedAuthHeaders.length).toBeGreaterThan(0);
+    for (const authHeader of capturedAuthHeaders) {
+      expect(authHeader).toBe(`bearer ${userToken}`);
+    }
+  });
   it('caps developerScore at 100 for extreme profile metrics', async () => {
     const saturatedCalendar: ContributionCalendar = {
       totalContributions: 500,

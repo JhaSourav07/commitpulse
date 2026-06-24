@@ -1,6 +1,9 @@
 export default function AIInsightsSkeleton() {
   return (
-    <div className="p-6 rounded-xl bg-[#0a0a0a] border border-[rgba(255,255,255,0.08)]">
+    <div
+      aria-label="Loading AI Insights"
+      className="p-6 rounded-xl bg-[#0a0a0a] border border-[rgba(255,255,255,0.08)]"
+    >
       {/* Header */}
       <div className="flex items-center gap-2.5 mb-5">
         <div className="w-4 h-4 shimmer rounded-full opacity-80" />

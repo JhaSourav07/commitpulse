@@ -1,13 +1,15 @@
 'use client';
-import Image from 'next/image';
 import { trackUser } from '@/utils/tracking';
 import { useTranslation } from '@/context/TranslationContext';
+import { renderHeroTitle } from './heroTitle';
 
 import Link from 'next/link';
 import { useRef, useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { gsap } from 'gsap';
 import { useGSAP } from '@gsap/react';
+import { jsPDF } from 'jspdf';
+import 'svg2pdf.js';
 
 import {
   Flame,
@@ -22,7 +24,6 @@ import {
 } from 'lucide-react';
 
 import { X } from 'lucide-react';
-import useLocalStorage from '@/hooks/useLocalStorage';
 
 import { CommitPulseLogo } from '@/components/commitpulse-logo';
 import { CustomizeCTA } from './CustomizeCTA';
@@ -98,12 +99,8 @@ function CountUp({ value, duration = 1000 }: { value: number; duration?: number 
     const start = 0;
     const end = value;
     if (start === end) {
-      // Safe: early-exit guard when the value hasn't changed — avoids scheduling
-      // a setInterval just to immediately clear it. No stale-dependency risk
-      // because `value` is the only dep and this path reads it synchronously.
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setCount(end);
-      return;
+      const frame = requestAnimationFrame(() => setCount(end));
+      return () => cancelAnimationFrame(frame);
     }
 
     const totalMilliseconds = duration;
@@ -309,7 +306,7 @@ export default function LandingPageClient() {
     return name;
   };
 
-  const [username, setUsername] = useLocalStorage('commitpulse:last-user', '');
+  const [username, setUsername] = useState('');
   const [instantUsername, setInstantUsername] = useState('');
   const [copied, setCopied] = useState(false);
 
@@ -386,6 +383,55 @@ export default function LandingPageClient() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+
+  const DownloadPDF = async () => {
+    try {
+      const response = await fetch(badgeUrl);
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch SVG');
+      }
+
+      const svgText = await response.text();
+
+      const container = document.createElement('div');
+      container.innerHTML = svgText;
+
+      const svgElement = container.querySelector('svg');
+
+      if (!svgElement) {
+        throw new Error('SVG element not found');
+      }
+
+      const pdf = new jsPDF({
+        orientation: 'landscape',
+        unit: 'pt',
+        format: 'a4',
+      });
+
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+
+      await (
+        pdf as jsPDF & {
+          svg: (
+            element: SVGElement,
+            options: { x: number; y: number; width: number; height: number }
+          ) => Promise<void>;
+        }
+      ).svg(svgElement, {
+        x: 10,
+        y: 10,
+        width: pageWidth - 20,
+        height: pageHeight - 20,
+      });
+
+      pdf.save(`${previewUsername}-commitpulse.pdf`);
+    } catch (error) {
+      console.error('PDF export failed:', error);
+      alert('Failed to generate PDF');
+    }
   };
 
   const badgeLoaded = badgeResult?.username === previewUsername && badgeResult?.status === 'loaded';
@@ -505,8 +551,8 @@ export default function LandingPageClient() {
     scrollTimeoutRef.current = setTimeout(() => {
       guideRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 80);
-    //if (copiedTimeoutRef.current) clearTimeout(copiedTimeoutRef.current);
-    //copiedTimeoutRef.current = setTimeout(() => setCopied(false), 3000);
+    if (copiedTimeoutRef.current) clearTimeout(copiedTimeoutRef.current);
+    copiedTimeoutRef.current = setTimeout(() => setCopied(false), 3000);
   };
 
   useEffect(() => {
@@ -581,11 +627,9 @@ export default function LandingPageClient() {
 
           <div ref={heroRef}>
             <h1 className="hero-text opacity-0 translate-y-10 mb-8 bg-gradient-to-br from-gray-900 via-black to-gray-600 dark:from-white dark:via-gray-100 dark:to-gray-500 bg-clip-text text-transparent text-5xl font-black tracking-tighter md:text-8xl pb-2">
-              Elevate Your <br />{' '}
-              <span className="contribution-text inline-block bg-[length:300%_300%] bg-gradient-to-r from-emerald-400 via-cyan-500 to-purple-500 bg-clip-text text-transparent drop-shadow-sm">
-                Contribution
-              </span>{' '}
-              Story.
+              {renderHeroTitle(
+                t('landing.title', { defaultValue: 'Elevate Your\n{Contribution} Story.' })
+              )}
             </h1>
           </div>
 
@@ -738,13 +782,12 @@ export default function LandingPageClient() {
                         exit={{ opacity: 0 }}
                         className="flex items-center gap-3 bg-emerald-500/5 border border-emerald-500/10 rounded-xl px-3 py-2"
                       >
-                        <Image
+                        <img
                           src={userDetails.avatar_url}
                           alt={userDetails.login}
-                          width={25}
-                          height={25}
-                          className="w-6 h-6 rounded-full border border-emerald-500/20"
-                          unoptimized
+                          width="25"
+                          height="25"
+                          className="w-6 h-6 rounded-full border border-emerald-500/20 object-cover"
                           onError={(e) => {
                             const img = e.currentTarget as HTMLImageElement;
                             img.onerror = null;
@@ -800,13 +843,12 @@ export default function LandingPageClient() {
                             key={s}
                             className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200/10 bg-zinc-200/5 dark:border-white/5 dark:bg-[#111] pl-2 pr-1.5 py-1 text-xs text-zinc-700 dark:text-white/70 transition-all duration-300 hover:border-emerald-500/30 hover:bg-zinc-200/10 dark:hover:bg-white/10 dark:hover:text-white select-none group/pill"
                           >
-                            <Image
+                            <img
                               src={`https://github.com/${displayName}.png?size=40`}
                               alt={displayName}
-                              width={17}
-                              height={17}
-                              className="w-4 h-4 rounded-full border border-zinc-200/20 dark:border-white/20"
-                              unoptimized
+                              width="17"
+                              height="17"
+                              className="w-4 h-4 rounded-full border border-zinc-200/20 dark:border-white/20 object-cover"
                               onError={(e) => {
                                 const img = e.currentTarget as HTMLImageElement;
                                 img.onerror = null;
@@ -925,12 +967,23 @@ export default function LandingPageClient() {
                         }}
                       />
                       {badgeLoaded && (
-                        <button
-                          onClick={DownloadSVG}
-                          className="mt-6 px-4 py-2 rounded-lg bg-sky-600 text-sm font-medium text-white hover:bg-sky-800 transition-colors"
-                        >
-                          {t('customize.export.download_svg', { defaultValue: 'Download SVG' })}
-                        </button>
+                        <div className="mt-6 flex gap-3 justify-center">
+                          <button
+                            onClick={DownloadSVG}
+                            className="px-4 py-2 rounded-lg bg-sky-600 text-sm font-medium text-white hover:bg-sky-800 transition-colors"
+                          >
+                            {t('customize.export.download_svg', {
+                              defaultValue: 'Download SVG',
+                            })}
+                          </button>
+
+                          <button
+                            onClick={DownloadPDF}
+                            className="px-4 py-2 rounded-lg bg-emerald-600 text-sm font-medium text-white hover:bg-emerald-800 transition-colors"
+                          >
+                            Download PDF
+                          </button>
+                        </div>
                       )}
                     </>
                   )}

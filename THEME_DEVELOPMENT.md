@@ -468,7 +468,7 @@ You've learned the principles, created your theme, tested it locally, and prepar
 - 📖 Read [CONTRIBUTING.md](CONTRIBUTING.md) for general contribution guidelines
 - 🐙 Check [lib/svg/generator.ts](lib/svg/generator.ts) to see how themes are applied
 - 🔌 Explore [app/api/streak/route.ts](app/api/streak/route.ts) to understand the API integration
-- 💬 Join the [CommitPulse Discord](https://discord.gg/Cb73bS79j) for real-time questions
+- 💬 Join the [CommitPulse Discord](https://discord.gg/f84SDraEBH) for real-time questions
 
 ---
 

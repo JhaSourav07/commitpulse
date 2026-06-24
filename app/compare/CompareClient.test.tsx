@@ -114,8 +114,14 @@ const mockResponse = {
 };
 
 describe('CompareClient', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
+    localStorage.clear();
+
+    const maybeCaches = (global as unknown as { caches?: CacheStorage }).caches;
+    if (maybeCaches && typeof maybeCaches.delete === 'function') {
+      await maybeCaches.delete('commitpulse-compare');
+    }
 
     global.fetch = vi.fn(
       async () =>
@@ -171,8 +177,8 @@ describe('CompareClient', () => {
       expect(screen.getByText(/stats showdown/i)).toBeInTheDocument();
     });
 
-    expect(screen.getByText((5000).toLocaleString())).toBeInTheDocument();
-    expect(screen.getByText((3000).toLocaleString())).toBeInTheDocument();
+    expect(screen.getByText(/5[,\s ]?000/)).toBeInTheDocument();
+    expect(screen.getByText(/3[,\s ]?000/)).toBeInTheDocument();
   });
 
   it('updates route when compare button is clicked', async () => {

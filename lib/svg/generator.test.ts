@@ -64,9 +64,9 @@ describe('generateSVG', () => {
 
     assertValidSVG(svg);
 
-    expect(svg).not.toContain('CURRENT_STREAK');
-    expect(svg).not.toContain('ANNUAL_SYNC_TOTAL');
-    expect(svg).not.toContain('PEAK_STREAK');
+    expect(svg).not.toContain('Current Streak');
+    expect(svg).not.toContain('Annual Total');
+    expect(svg).not.toContain('Peak Streak');
   });
 
   it('gives the scan line an explicit fill on static themes so it stays visible', () => {
@@ -106,9 +106,9 @@ describe('generateSVG', () => {
 
     assertValidSVG(svg);
 
-    expect(svg).toContain('CURRENT_STREAK');
-    expect(svg).toContain('ANNUAL_SYNC_TOTAL');
-    expect(svg).toContain('PEAK_STREAK');
+    expect(svg).toContain('Current Streak');
+    expect(svg).toContain('Annual Total');
+    expect(svg).toContain('Peak Streak');
   });
 
   it('uses default typography when no font is passed', () => {
@@ -397,7 +397,7 @@ describe('generateSVG', () => {
 
   it('uses English labels by default', () => {
     const svg = generateSVG(mockStats, { user: 'avi' } as unknown as BadgeParams, mockCalendar);
-    expect(svg).toContain('CURRENT_STREAK');
+    expect(svg).toContain('Current Streak');
   });
 
   it('uses Spanish labels when lang=es', () => {
@@ -406,7 +406,7 @@ describe('generateSVG', () => {
       { user: 'avi', lang: 'es' } as unknown as BadgeParams,
       mockCalendar
     );
-    expect(svg).toContain('RACHA_ACTUAL');
+    expect(svg).toContain('Racha Actual');
   });
 
   it('falls back to English labels for unknown language', () => {
@@ -415,7 +415,7 @@ describe('generateSVG', () => {
       { user: 'avi', lang: 'unknown' } as unknown as BadgeParams,
       mockCalendar
     );
-    expect(svg).toContain('CURRENT_STREAK');
+    expect(svg).toContain('Current Streak');
   });
 
   describe('LoC Mode', () => {
@@ -1038,7 +1038,7 @@ describe('generateSVG', () => {
       const svg = generateSVG(mockStats, extendedParams, mockCalendar);
 
       expect(extendedLongUsername.length).toBeGreaterThan(30);
-      expect(svg).toContain('ABCDEFGHIJKL...');
+      expect(svg).toContain('ABCDEFGHIJKLMNOPQRST...');
       expect(svg).not.toContain('ABCDEFGHIJKLMNOPQRSTUVWXYZ');
     });
   });
@@ -1219,7 +1219,7 @@ describe('generateMonthlySVG', () => {
       user: 'octocat',
     } as unknown as BadgeParams);
 
-    expect(svg).toContain('COMMITS THIS MONTH');
+    expect(svg).toContain('Commits This Month');
   });
 
   it('renders monthly stats correctly with null deltaPercentage for delta_format percent', () => {
@@ -1737,7 +1737,7 @@ describe('Radar Scan Line Animation Alignment', () => {
     // 1. Arrange: Create usernames (one short baseline, one strictly > 30 chars)
     const shortUsername = 'avi';
     const longUsername = 'ThisIsAVeryLongUsernameThatExceedsThirtyCharacters';
-    const expectedTruncated = longUsername.slice(0, 12) + '...';
+    const expectedTruncated = longUsername.slice(0, 20) + '...';
 
     const paramsBaseline = {
       user: shortUsername,
@@ -1782,9 +1782,9 @@ describe('Radar Scan Line Animation Alignment', () => {
     expect(geometryLong).toEqual(geometryBaseline);
   });
 
-  it('truncates usernames longer than 12 characters and adds an ellipsis in generateSVG', () => {
-    const longUsername = 'averylongusernamethatexceeds20chars'; // 36 characters
-    const expectedTruncated = 'AVERYLONGUSE...'; // 12 characters + '...' (in uppercase)
+  it('truncates usernames longer than 20 characters and adds an ellipsis in generateSVG', () => {
+    const longUsername = 'averylongusernamethatexceeds20chars'; // 35 characters
+    const expectedTruncated = 'AVERYLONGUSERNAMETHA...'; // 20 characters + '...' (in uppercase)
 
     const svg = generateSVG(
       mockStats,
@@ -2520,6 +2520,90 @@ describe('XML Validation - All Generator Outputs', () => {
   it('generateSVG with label=true produces valid XML', () => {
     const svg = generateSVG(mockStats, { ...baseParams, label: true }, mockCalendar);
     assertValidSVG(svg);
+  });
+
+  describe('custom_title and custom_subtitle parameters', () => {
+    it('renders custom_title instead of the uppercase username when custom_title is supplied', () => {
+      const svg = generateSVG(
+        mockStats,
+        {
+          user: 'avi',
+          bg: hexColor('0d1117'),
+          text: hexColor('c9d1d9'),
+          accent: hexColor('58a6ff'),
+          speed: '8s',
+          scale: 'linear',
+          custom_title: 'My Custom Title',
+        },
+        mockCalendar
+      );
+
+      assertValidSVG(svg);
+      expect(svg).toContain('My Custom Title');
+      expect(svg).not.toContain('AVI');
+    });
+
+    it('renders custom_subtitle below the title when custom_subtitle is supplied', () => {
+      const svg = generateSVG(
+        mockStats,
+        {
+          user: 'avi',
+          bg: hexColor('0d1117'),
+          text: hexColor('c9d1d9'),
+          accent: hexColor('58a6ff'),
+          speed: '8s',
+          scale: 'linear',
+          custom_title: 'My Title',
+          custom_subtitle: 'My Subtitle',
+        },
+        mockCalendar
+      );
+
+      assertValidSVG(svg);
+      expect(svg).toContain('My Title');
+      expect(svg).toContain('My Subtitle');
+      expect(svg).toContain('class="subtitle"');
+    });
+
+    it('sanitizes custom_title and custom_subtitle to prevent XSS / XML Injection', () => {
+      const svg = generateSVG(
+        mockStats,
+        {
+          user: 'avi',
+          bg: hexColor('0d1117'),
+          text: hexColor('c9d1d9'),
+          accent: hexColor('58a6ff'),
+          speed: '8s',
+          scale: 'linear',
+          custom_title: '<script>alert(1)</script>',
+          custom_subtitle: '"" onclick="alert(2)"',
+        },
+        mockCalendar
+      );
+
+      assertValidSVG(svg);
+      expect(svg).not.toContain('<script>');
+      expect(svg).toContain('&lt;script&gt;alert(1)&lt;/script&gt;');
+      expect(svg).toContain('&quot;&quot; onclick=&quot;alert(2)&quot;');
+    });
+
+    it('works correctly in auto-theme mode', () => {
+      const svg = generateSVG(
+        mockStats,
+        {
+          user: 'avi',
+          autoTheme: true,
+          custom_title: 'Auto Title',
+          custom_subtitle: 'Auto Subtitle',
+        } as unknown as BadgeParams,
+        mockCalendar
+      );
+
+      assertValidSVG(svg);
+      expect(svg).toContain('Auto Title');
+      expect(svg).toContain('Auto Subtitle');
+      expect(svg).toContain('class="subtitle"');
+    });
   });
 
   function assertValidSVG(svgString: string): void {

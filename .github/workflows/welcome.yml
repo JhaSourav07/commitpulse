@@ -31,7 +31,7 @@ jobs:
 
             Before diving in, please take a moment to:
             - 📖 Read the [**CONTRIBUTING.md**](https://github.com/${context.repo.owner}/${context.repo.repo}/blob/main/CONTRIBUTING.md) guide
-            - 💬 Join our [**Discord community**](https://discord.gg/Cb73bS79j) for faster support and collaboration
+            - 💬 Join our [**Discord community**](https://discord.gg/f84SDraEBH) for faster support and collaboration
             - 🏷️ Comment \`/claim\` on any open, unassigned issue you'd like to work on
 
             A maintainer will review your issue shortly. Happy contributing! 🚀`
@@ -56,7 +56,7 @@ jobs:
             - ✅ You've read the [**CONTRIBUTING.md**](https://github.com/${context.repo.owner}/${context.repo.repo}/blob/main/CONTRIBUTING.md) checklist
             - ✅ \`npm run lint\`, \`npm run format\`, and \`npm run test\` all pass locally
             - ✅ Your PR has a visual preview if it touches any SVG output
-            - 💬 You've joined our [**Discord**](https://discord.gg/Cb73bS79j) for faster PR feedback
+            - 💬 You've joined our [**Discord**](https://discord.gg/f84SDraEBH) for faster PR feedback
 
             A maintainer will review your PR shortly. Hang tight! 🚀`
             });
