@@ -26,6 +26,7 @@ import Heatmap from './Heatmap';
 import HistoricalTrendView from './HistoricalTrendView';
 import AIInsights from './AIInsights';
 import StatsCard from './StatsCard';
+import PersonalAnalyticsWorkspace from './PersonalAnalyticsWorkspace';
 import RepositoryGraph from './RepositoryGraph';
 import HallOfFame from './HallOfFame';
 import ComparisonStatsCard from './ComparisonStatsCard';
@@ -708,6 +709,10 @@ export default function DashboardClient({
           </aside>
 
           <div className="flex flex-col gap-6 lg:gap-8 min-w-0">
+            <section>
+              <PersonalAnalyticsWorkspace />
+            </section>
+
             <section>
               <ActivityLandscape data={initialData.activity} />
             </section>
