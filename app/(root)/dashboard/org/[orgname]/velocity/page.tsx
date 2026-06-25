@@ -11,10 +11,11 @@ export default function VelocityIntelligencePage() {
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-2">Engineering Velocity Intelligence</h1>
         <p className="text-muted-foreground">
-          Comprehensive velocity metrics, sprint analytics, and productivity insights for engineering teams
+          Comprehensive velocity metrics, sprint analytics, and productivity insights for
+          engineering teams
         </p>
       </div>
-      
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <div className="p-6 rounded-lg border bg-card">
           <h3 className="text-sm text-muted-foreground mb-1">Velocity Score</h3>
@@ -33,7 +34,7 @@ export default function VelocityIntelligencePage() {
           <p className="text-3xl font-bold">92%</p>
         </div>
       </div>
-      
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="p-6 rounded-lg border bg-card">
           <h2 className="text-xl font-semibold mb-4">Velocity Trends</h2>
