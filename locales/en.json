@@ -465,6 +465,40 @@
       "reviews_header": "Reviews",
       "avg_review_header": "Avg Review Time",
       "no_repos": "No repository data available."
+    },
+    "velocity": {
+      "title": "Engineering Velocity Intelligence",
+      "subtitle": "Track your development velocity and productivity metrics",
+      "kpis": {
+        "commits": "Commits",
+        "prs": "Pull Requests",
+        "reviews": "Reviews",
+        "issues": "Issues Closed",
+        "cycle_time": "Avg Cycle Time",
+        "hours": "{{hours}}h",
+        "per_week": "/week"
+      },
+      "trends": {
+        "title": "Velocity Trends",
+        "commits": "Commits",
+        "prs": "PRs Merged",
+        "reviews": "Reviews",
+        "issues": "Issues"
+      },
+      "sprint": {
+        "title": "Sprint Metrics",
+        "current": "Current Sprint",
+        "velocity": "Velocity",
+        "previous": "Previous"
+      },
+      "insights": {
+        "title": "Productivity Insights",
+        "positive": "Positive",
+        "negative": "Needs Attention",
+        "neutral": "Neutral",
+        "improvement": "{{value}}% improvement",
+        "decline": "{{value}}% decline"
+      }
     }
   }
 }
