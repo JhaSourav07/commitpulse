@@ -465,6 +465,14 @@
       "reviews_header": "Reviews",
       "avg_review_header": "Avg Review Time",
       "no_repos": "No repository data available."
+    },
+    "executive": {
+      "title": "AI Engineering Executive Dashboard",
+      "health": "Engineering Health",
+      "metrics": "Key Metrics",
+      "teams": "Team Capacity",
+      "initiatives": "Strategic Initiatives",
+      "dora": "DORA Metrics"
     }
   }
 }
