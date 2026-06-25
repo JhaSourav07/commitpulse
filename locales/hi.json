@@ -465,6 +465,7 @@
       "reviews_header": "Reviews",
       "avg_review_header": "Avg Review Time",
       "no_repos": "No repository data available."
-    }
+    },
+    "executive": {}
   }
 }
