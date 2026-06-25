@@ -415,7 +415,8 @@
       "noActivity": "No activity recorded yet for this journey",
       "milestoneTitle": "Milestone Achieved",
       "viewMilestone": "View details",
-      "totalMilestones": "Total Milestones"
+      "totalMilestones": "Total Milestones",
+      "explore": "Explore Timeline"
     },
     "prInsights": {
       "showing_filtered": "Showing: {{label}} PRs — click again to reset",
@@ -465,6 +466,23 @@
       "reviews_header": "Reviews",
       "avg_review_header": "Avg Review Time",
       "no_repos": "No repository data available."
+    },
+    "streak": {
+      "title": "GitHub Streak Intelligence",
+      "subtitle": "Predictive modeling, survival rates, and recovery recommendations.",
+      "probability_label": "Survival Probability",
+      "probability_desc": "Calculated using recent active days ratios and commit intervals.",
+      "recovery_label": "Recovery Insights",
+      "avg_gap_label": "Average gap",
+      "milestone_label": "Upcoming Streak Milestone",
+      "days": "Days",
+      "milestone_desc": "{{days}} days remaining until you reach this target.",
+      "recs": {
+        "standard": "Keep a consistent daily schedule to build muscle memory.",
+        "critical": "Your streak is at risk! Commit before midnight UTC to prevent resets.",
+        "elite": "Elite coding patterns detected. Make sure to schedule rest days to prevent burnout.",
+        "gap": "Longer commit gaps detected. Try setting a daily reminder or booking focus slots."
+      }
     }
   }
 }

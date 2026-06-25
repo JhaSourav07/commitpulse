@@ -46,6 +46,7 @@ import GoalTracker from './GoalTracker';
 import ActivityHeatmapPro from './ActivityHeatmapPro';
 import DeveloperJourneyTimeline from './DeveloperJourneyTimeline';
 import RepositoryContributionExplorer from './RepositoryContributionExplorer';
+import StreakIntelligence from './StreakIntelligence';
 
 // Define the dashboard data structure
 export interface DashboardData {
@@ -728,6 +729,10 @@ export default function DashboardClient({
 
             <section>
               <GoalTracker username={username} activity={initialData.activity} />
+            </section>
+
+            <section>
+              <StreakIntelligence activity={initialData.activity} stats={initialData.stats} />
             </section>
 
             <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
