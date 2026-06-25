@@ -1,7 +1,6 @@
 'use client';
 import { useRef, useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import gsap from 'gsap';
+import { motion, animate } from 'framer-motion';
 import { useTranslation } from '@/context/TranslationContext';
 
 export function DiscordButton() {
@@ -20,27 +19,37 @@ export function DiscordButton() {
       const x = e.clientX - rect.left - rect.width / 2;
       const y = e.clientY - rect.top - rect.height / 2;
 
-      gsap.to(button, {
-        x: x * 0.2, // move 20% towards the mouse
-        y: y * 0.2,
-        rotationX: -y * 0.1,
-        rotationY: x * 0.1,
-        duration: 0.4,
-        ease: 'power2.out',
-        transformPerspective: 500,
-      });
+      animate(
+        button,
+        {
+          x: x * 0.2,
+          y: y * 0.2,
+          rotateX: -y * 0.1,
+          rotateY: x * 0.1,
+        },
+        {
+          duration: 0.4,
+          ease: 'easeOut',
+        }
+      );
     };
 
     const handleMouseLeave = () => {
       setIsHovered(false);
-      gsap.to(button, {
-        x: 0,
-        y: 0,
-        rotationX: 0,
-        rotationY: 0,
-        duration: 0.7,
-        ease: 'elastic.out(1, 0.3)',
-      });
+      animate(
+        button,
+        {
+          x: 0,
+          y: 0,
+          rotateX: 0,
+          rotateY: 0,
+        },
+        {
+          duration: 0.7,
+          type: 'spring',
+          bounce: 0.3,
+        }
+      );
     };
 
     button.addEventListener('mousemove', handleMouseMove);

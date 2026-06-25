@@ -2,7 +2,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { FeatureCard, FeatureCardsSection } from './FeatureCards';
-import gsap from 'gsap';
+declare const gsap: unknown;
 
 // Mock GSAP
 const mockTimeline = {

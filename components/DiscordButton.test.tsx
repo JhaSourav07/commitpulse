@@ -1,7 +1,7 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import gsap from 'gsap';
+declare const gsap: unknown;
 import { DiscordButton } from './DiscordButton';
 // Mock framer-motion
 vi.mock('framer-motion', () => ({

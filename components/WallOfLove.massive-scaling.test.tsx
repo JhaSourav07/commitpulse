@@ -16,7 +16,7 @@ vi.mock('framer-motion', () => {
       {},
       {
         get: (_, element) =>
-          React.forwardRef((props, ref) => {
+          React.forwardRef((props: unknown, ref: unknown) => {
             const {
               initial,
               animate,
@@ -34,10 +34,10 @@ vi.mock('framer-motion', () => {
           }),
       }
     ),
-    AnimatePresence: ({ children }) => children,
-    useMotionValue: (v) => ({ get: () => v, set: () => {} }),
-    useSpring: (v) => v,
-    useTransform: (v) => v,
+    AnimatePresence: ({ children }: { children: React.ReactNode }) => children,
+    useMotionValue: (v: unknown) => ({ get: () => v, set: () => {} }),
+    useSpring: (v: unknown) => v,
+    useTransform: (v: unknown) => v,
     useReducedMotion: () => false,
   };
 });

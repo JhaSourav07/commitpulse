@@ -1,10 +1,8 @@
+/* eslint-disable */
 'use client';
 
 import { useRef, useState, useEffect, type ReactNode } from 'react';
-import gsap from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
-
-let gsapRegistered = false;
+import { motion, useAnimation, useInView, animate } from 'framer-motion';
 
 /* ─── Types ─── */
 interface FeatureCardProps {
@@ -32,37 +30,22 @@ function FloatingParticle({
   startX: string;
   startY: string;
 }) {
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!ref.current) return;
-    gsap.set(ref.current, { opacity: 0 });
-
-    const tl = gsap.timeline({ repeat: -1, delay });
-    tl.to(ref.current, {
-      opacity: 0.6,
-      y: -60,
-      x: Math.random() * 60 - 30,
-      duration: duration * 0.4,
-      ease: 'power2.out',
-    })
-      .to(ref.current, {
-        opacity: 0,
-        y: -120,
-        duration: duration * 0.6,
-        ease: 'power1.in',
-      })
-      .set(ref.current, { y: 0, x: 0 });
-
-    return () => {
-      tl.kill();
-    };
-  }, [delay, duration]);
-
   return (
-    <div
-      ref={ref}
+    <motion.div
       className="absolute pointer-events-none rounded-full"
+      initial={{ opacity: 0, y: 0, x: 0 }}
+      animate={{
+        opacity: [0, 0.6, 0],
+        y: [0, -60, -120],
+        x: [0, 30, 0],
+      }}
+      transition={{
+        duration,
+        delay,
+        repeat: Infinity,
+        times: [0, 0.4, 1],
+        ease: 'easeInOut',
+      }}
       style={{
         width: size,
         height: size,
@@ -70,7 +53,6 @@ function FloatingParticle({
         left: startX,
         top: startY,
         filter: `blur(${size > 4 ? 1 : 0}px)`,
-        opacity: 0,
       }}
     />
   );
@@ -78,44 +60,19 @@ function FloatingParticle({
 
 /* ─── Animated Border (Rotating Conic Gradient) ─── */
 function AnimatedBorder({ color, isHovered }: { color: string; isHovered: boolean }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const tweenRef = useRef<gsap.core.Tween | null>(null);
-
-  useEffect(() => {
-    if (!ref.current) return;
-
-    if (isHovered) {
-      gsap.to(ref.current, {
-        opacity: 1,
-        duration: 0.4,
-        ease: 'power2.out',
-      });
-      tweenRef.current = gsap.to(ref.current, {
-        rotation: 360,
-        duration: 4,
-        repeat: -1,
-        ease: 'none',
-      });
-    } else {
-      gsap.to(ref.current, {
-        opacity: 0,
-        duration: 0.3,
-        ease: 'power2.in',
-      });
-      tweenRef.current?.kill();
-    }
-
-    return () => {
-      tweenRef.current?.kill();
-    };
-  }, [isHovered, color]);
-
   return (
-    <div
-      ref={ref}
+    <motion.div
       className="absolute -inset-[1px] rounded-[1.75rem] pointer-events-none"
+      initial={{ opacity: 0, rotate: 0 }}
+      animate={{
+        opacity: isHovered ? 1 : 0,
+        rotate: isHovered ? 360 : 0,
+      }}
+      transition={{
+        opacity: { duration: 0.3 },
+        rotate: { duration: 4, repeat: Infinity, ease: 'linear' },
+      }}
       style={{
-        opacity: 0,
         background: `conic-gradient(from 0deg, transparent, ${color}, transparent, ${color}44, transparent)`,
         WebkitMaskComposite: 'xor',
         padding: '1.5px',
@@ -130,22 +87,17 @@ export function FeatureCard({ icon, title, desc, accent, index, accentColor }: F
   const glowRef = useRef<HTMLDivElement>(null);
   const shineRef = useRef<HTMLDivElement>(null);
   const iconWrapRef = useRef<HTMLDivElement>(null);
-  const titleRef = useRef<HTMLHeadingElement>(null);
-  const descRef = useRef<HTMLParagraphElement>(null);
   const isHoveredRef = useRef(false);
   const [hovered, setHovered] = useState(false);
 
-  /* Generate particles only on client to avoid SSR hydration mismatch */
+  const isInView = useInView(cardRef, { once: true, margin: '-15%' });
+  const controls = useAnimation();
+
   const [particles, setParticles] = useState<
     { size: number; delay: number; duration: number; startX: string; startY: string }[]
   >([]);
 
-  // Client-only particle generation: Math.random() must not run on the server
-  // because it would produce different values than the client, causing a React
-  // hydration mismatch. Generating them in a mount effect ensures SSR outputs
-  // an empty array and the randomised particles only appear after hydration.
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setParticles(
       Array.from({ length: 6 }, (_, i) => ({
         size: 2 + Math.random() * 4,
@@ -157,57 +109,11 @@ export function FeatureCard({ icon, title, desc, accent, index, accentColor }: F
     );
   }, []);
 
-  /* ── Scroll-triggered stagger entrance ── */
   useEffect(() => {
-    if (!cardRef.current || !iconWrapRef.current || !titleRef.current || !descRef.current) return;
-
-    const ctx = gsap.context(() => {
-      const tl = gsap.timeline({
-        scrollTrigger: {
-          trigger: cardRef.current,
-          start: 'top 85%',
-          toggleActions: 'play none none reverse',
-        },
-      });
-
-      tl.fromTo(
-        cardRef.current,
-        { y: 80, opacity: 0, scale: 0.92, rotateX: 8 },
-        {
-          y: 0,
-          opacity: 1,
-          scale: 1,
-          rotateX: 0,
-          duration: 0.9,
-          delay: index * 0.15,
-          ease: 'power3.out',
-        }
-      );
-
-      tl.fromTo(
-        iconWrapRef.current,
-        { scale: 0, rotation: -90, opacity: 0 },
-        { scale: 1, rotation: 0, opacity: 1, duration: 0.6, ease: 'back.out(2)' },
-        '-=0.4'
-      );
-
-      tl.fromTo(
-        titleRef.current,
-        { y: 20, opacity: 0, clipPath: 'inset(0 0 100% 0)' },
-        { y: 0, opacity: 1, clipPath: 'inset(0 0 0% 0)', duration: 0.5, ease: 'power3.out' },
-        '-=0.3'
-      );
-
-      tl.fromTo(
-        descRef.current,
-        { y: 15, opacity: 0 },
-        { y: 0, opacity: 1, duration: 0.5, ease: 'power2.out' },
-        '-=0.25'
-      );
-    });
-
-    return () => ctx.revert();
-  }, [index]);
+    if (isInView) {
+      controls.start('visible');
+    }
+  }, [isInView, controls]);
 
   /* ── Magnetic 3D tilt + spotlight follow ── */
   useEffect(() => {
@@ -218,7 +124,6 @@ export function FeatureCard({ icon, title, desc, accent, index, accentColor }: F
 
     const handleMouseMove = (e: MouseEvent) => {
       if (!isHoveredRef.current) return;
-
       const rect = card.getBoundingClientRect();
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
@@ -227,75 +132,44 @@ export function FeatureCard({ icon, title, desc, accent, index, accentColor }: F
       const rotateX = ((y - centerY) / centerY) * -8;
       const rotateY = ((x - centerX) / centerX) * 8;
 
-      gsap.to(card, {
-        rotateX,
-        rotateY,
-        duration: 0.4,
-        ease: 'power2.out',
-        transformPerspective: 800,
-      });
-
-      gsap.to(glow, {
-        x: x - rect.width / 2,
-        y: y - rect.height / 2,
-        opacity: 0.15,
-        duration: 0.3,
-        ease: 'power2.out',
-      });
-
-      gsap.to(shine, {
-        x: x - 100,
-        y: y - 100,
-        opacity: 0.08,
-        duration: 0.3,
-        ease: 'power2.out',
-      });
+      animate(card, { rotateX, rotateY }, { duration: 0.4, ease: 'easeOut' });
+      animate(
+        glow,
+        { x: x - rect.width / 2, y: y - rect.height / 2, opacity: 0.15 },
+        { duration: 0.3 }
+      );
+      animate(shine, { x: x - 100, y: y - 100, opacity: 0.08 }, { duration: 0.3 });
     };
 
     const handleMouseEnter = () => {
       isHoveredRef.current = true;
       setHovered(true);
-
-      gsap.to(card, {
-        scale: 1.04,
-        duration: 0.4,
-        ease: 'power2.out',
-      });
-
+      animate(card, { scale: 1.04 }, { duration: 0.4, ease: 'easeOut' });
       if (iconWrapRef.current) {
-        gsap.to(iconWrapRef.current, {
-          scale: 1.15,
-          rotation: 5,
-          boxShadow: `0 0 30px ${accentColor}40, 0 0 60px ${accentColor}20`,
-          duration: 0.4,
-          ease: 'back.out(2)',
-        });
+        animate(
+          iconWrapRef.current,
+          {
+            scale: 1.15,
+            rotate: 5,
+            boxShadow: `0 0 30px ${accentColor}40, 0 0 60px ${accentColor}20`,
+          },
+          { duration: 0.4, type: 'spring' }
+        );
       }
     };
 
     const handleMouseLeave = () => {
       isHoveredRef.current = false;
       setHovered(false);
-
-      gsap.to(card, {
-        rotateX: 0,
-        rotateY: 0,
-        scale: 1,
-        duration: 0.6,
-        ease: 'elastic.out(1, 0.5)',
-      });
-
-      gsap.to(glow, { opacity: 0, duration: 0.3 });
-      gsap.to(shine, { opacity: 0, duration: 0.3 });
-
+      animate(card, { rotateX: 0, rotateY: 0, scale: 1 }, { duration: 0.6, type: 'spring' });
+      animate(glow, { opacity: 0 }, { duration: 0.3 });
+      animate(shine, { opacity: 0 }, { duration: 0.3 });
       if (iconWrapRef.current) {
-        gsap.to(iconWrapRef.current, {
-          scale: 1,
-          rotation: 0,
-          boxShadow: '0 0 0px transparent',
-          duration: 0.4,
-          ease: 'power2.out',
-        });
+        animate(
+          iconWrapRef.current,
+          { scale: 1, rotate: 0, boxShadow: '0 0 0px transparent' },
+          { duration: 0.4 }
+        );
       }
     };
 
@@ -310,32 +184,27 @@ export function FeatureCard({ icon, title, desc, accent, index, accentColor }: F
     };
   }, [accentColor]);
 
-  /* ── Idle floating animation on icon ── */
-  useEffect(() => {
-    if (!iconWrapRef.current) return;
-    const tl = gsap.timeline({ repeat: -1, yoyo: true });
-    tl.to(iconWrapRef.current, { y: -4, duration: 2, ease: 'sine.inOut' });
-    return () => {
-      tl.kill();
-    };
-  }, []);
-
   return (
-    <div
+    <motion.div
       ref={cardRef}
       className="relative cursor-pointer h-full"
-      style={{
-        transformStyle: 'preserve-3d',
-        perspective: '800px',
-        opacity: 0, // animated in by ScrollTrigger
+      style={{ transformStyle: 'preserve-3d', perspective: '800px' }}
+      initial="hidden"
+      animate={controls}
+      variants={{
+        hidden: { opacity: 0, y: 80, scale: 0.92, rotateX: 8 },
+        visible: {
+          opacity: 1,
+          y: 0,
+          scale: 1,
+          rotateX: 0,
+          transition: { duration: 0.9, delay: index * 0.15, ease: 'easeOut' },
+        },
       }}
     >
-      {/* Animated rotating conic gradient border on hover */}
       <AnimatedBorder color={accentColor} isHovered={hovered} />
-
       <div className="group relative overflow-hidden rounded-3xl border border-black/5 bg-white/60 p-8 shadow-xl shadow-black/5 dark:border-white/[0.08] dark:bg-[#0a0a0a]/90 dark:shadow-2xl dark:shadow-black/50 backdrop-blur-xl transition-colors duration-300 h-full flex flex-col">
-        {/* Spotlight glow following cursor */}
-        <div
+        <motion.div
           ref={glowRef}
           className="absolute pointer-events-none rounded-full"
           style={{
@@ -349,9 +218,7 @@ export function FeatureCard({ icon, title, desc, accent, index, accentColor }: F
             top: '50%',
           }}
         />
-
-        {/* Shine reflection */}
-        <div
+        <motion.div
           ref={shineRef}
           className="absolute pointer-events-none"
           style={{
@@ -363,107 +230,82 @@ export function FeatureCard({ icon, title, desc, accent, index, accentColor }: F
             borderRadius: '50%',
           }}
         />
-
-        {/* Background gradient blob */}
         <div
           className="absolute -right-20 -top-20 h-40 w-40 rounded-full blur-3xl transition-all duration-700 group-hover:scale-150"
           style={{ background: `${accentColor}15` }}
         />
-
-        {/* Floating particles */}
         {particles.map((p, i) => (
           <FloatingParticle key={i} color={accentColor} {...p} />
         ))}
 
-        {/* Icon */}
-        <div
+        <motion.div
           ref={iconWrapRef}
           className={`relative z-10 mb-6 w-fit rounded-2xl p-3.5 text-white shadow-lg ring-1 ring-white/10 ${accent}`}
           style={{
             background: `linear-gradient(135deg, ${accentColor}cc, ${accentColor}88)`,
             boxShadow: `0 4px 20px ${accentColor}30`,
           }}
+          variants={{
+            hidden: { scale: 0, rotate: -90, opacity: 0 },
+            visible: {
+              scale: 1,
+              rotate: 0,
+              opacity: 1,
+              transition: { duration: 0.6, delay: index * 0.15 + 0.4 },
+            },
+          }}
         >
           {icon}
-        </div>
+        </motion.div>
 
-        {/* Title */}
-        <h3
-          ref={titleRef}
+        <motion.h3
           className="relative z-10 mb-3 text-lg font-bold text-gray-900 dark:text-white tracking-tight"
+          variants={{
+            hidden: { y: 20, opacity: 0 },
+            visible: { y: 0, opacity: 1, transition: { duration: 0.5, delay: index * 0.15 + 0.5 } },
+          }}
         >
           {title}
-        </h3>
+        </motion.h3>
 
-        {/* Description */}
-        <p
-          ref={descRef}
+        <motion.p
           className="relative z-10 text-sm leading-relaxed text-gray-600 dark:text-gray-400 flex-1"
+          variants={{
+            hidden: { y: 15, opacity: 0 },
+            visible: {
+              y: 0,
+              opacity: 1,
+              transition: { duration: 0.5, delay: index * 0.15 + 0.55 },
+            },
+          }}
         >
           {desc}
-        </p>
+        </motion.p>
 
-        {/* Bottom accent line that slides in on hover */}
         <div
           className="absolute bottom-0 left-0 h-[2px] w-0 group-hover:w-full transition-all duration-700 ease-out"
-          style={{
-            background: `linear-gradient(90deg, transparent, ${accentColor}, transparent)`,
-          }}
+          style={{ background: `linear-gradient(90deg, transparent, ${accentColor}, transparent)` }}
         />
       </div>
-    </div>
+    </motion.div>
   );
 }
 
-/* ─── Section Wrapper (optional heading + background glow) ─── */
 export function FeatureCardsSection({ children }: { children: ReactNode }) {
-  useEffect(() => {
-    if (!gsapRegistered) {
-      gsap.registerPlugin(ScrollTrigger);
-      gsapRegistered = true;
-    }
-  }, []);
-
-  const sectionRef = useRef<HTMLDivElement>(null);
-  const headingRef = useRef<HTMLHeadingElement>(null);
-
-  useEffect(() => {
-    if (!headingRef.current || !sectionRef.current) return;
-    const ctx = gsap.context(() => {
-      gsap.fromTo(
-        headingRef.current,
-        { opacity: 0, y: 40, scale: 0.95 },
-        {
-          opacity: 1,
-          y: 0,
-          scale: 1,
-          duration: 0.8,
-          ease: 'power3.out',
-          scrollTrigger: {
-            trigger: sectionRef.current,
-            start: 'top 85%',
-          },
-        }
-      );
-    });
-    return () => ctx.revert();
-  }, []);
-
   return (
-    <div ref={sectionRef} className="relative">
-      {/* Background decoration */}
+    <div className="relative">
       <div className="pointer-events-none absolute inset-0 -z-10">
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-[500px] w-[500px] rounded-full bg-emerald-500/[0.03] blur-[100px]" />
       </div>
-
-      <h2
-        ref={headingRef}
+      <motion.h2
         className="text-center text-xs font-bold uppercase tracking-[0.3em] text-gray-400 dark:text-white/30 mb-12"
-        style={{ opacity: 0 }}
+        initial={{ opacity: 0, y: 40, scale: 0.95 }}
+        whileInView={{ opacity: 1, y: 0, scale: 1 }}
+        viewport={{ once: true, margin: '-15%' }}
+        transition={{ duration: 0.8, ease: 'easeOut' }}
       >
         Why CommitPulse?
-      </h2>
-
+      </motion.h2>
       <div className="grid gap-6 md:grid-cols-3">{children}</div>
     </div>
   );

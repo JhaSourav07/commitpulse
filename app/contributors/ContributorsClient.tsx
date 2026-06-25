@@ -4,8 +4,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { Globe, Sparkles, Users, GitPullRequest, ArrowRight, GitFork } from 'lucide-react';
 import { motion, useSpring, useTransform, useMotionValue } from 'framer-motion';
-import gsap from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
 import ContributorsSearch from './ContributorsSearch';
 import Leaderboard from '@/components/Leaderboard';
@@ -117,43 +115,6 @@ export default function ContributorsClient({
   }, []);
 
   // GSAP ScrollTrigger Logic
-  useEffect(() => {
-    gsap.registerPlugin(ScrollTrigger);
-
-    // Smooth reveal for stats
-    gsap.fromTo(
-      '.stat-item',
-      { opacity: 0, y: 100, rotationX: -30 },
-      {
-        opacity: 1,
-        y: 0,
-        rotationX: 0,
-        duration: 1.2,
-        stagger: 0.15,
-        ease: 'power4.out',
-        scrollTrigger: {
-          trigger: statsRef.current,
-          start: 'top 80%',
-        },
-      }
-    );
-
-    // Parallax background grid
-    gsap.to('.bg-grid', {
-      y: '30%',
-      ease: 'none',
-      scrollTrigger: {
-        trigger: containerRef.current,
-        start: 'top top',
-        end: 'bottom top',
-        scrub: true,
-      },
-    });
-
-    return () => {
-      ScrollTrigger.getAll().forEach((t) => t.kill());
-    };
-  }, []);
 
   return (
     <div

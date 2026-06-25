@@ -333,28 +333,6 @@ export default function LandingPageClient() {
     setMounted(true);
   }, []);
 
-  useGSAP(
-    () => {
-      if (!heroRef.current) return;
-
-      gsap.to('.hero-text', {
-        y: 0,
-        opacity: 1,
-        duration: 1.2,
-        ease: 'expo.out',
-        delay: 0.15,
-      });
-
-      gsap.to('.contribution-text', {
-        backgroundPosition: '300% 50%',
-        duration: 8,
-        ease: 'none',
-        repeat: -1,
-      });
-    },
-    { scope: heroRef }
-  );
-
   const trimmedUsername = username.trim();
   const debouncedUsername = useDebounce(trimmedUsername, 500);
 
@@ -511,27 +489,11 @@ export default function LandingPageClient() {
       if (inputField) {
         inputField.scrollIntoView({ behavior: 'smooth', block: 'center' });
         inputField.focus();
-        gsap.fromTo(
-          inputField,
-          { x: -6, boxShadow: '0 0 0px rgba(239, 68, 68, 0)', borderColor: 'inherit' },
-          {
-            x: 6,
-            borderColor: 'rgba(239, 68, 68, 0.8)',
-            boxShadow: '0 0 20px rgba(239, 68, 68, 0.3)',
-            duration: 0.08,
-            yoyo: true,
-            repeat: 5,
-            ease: 'power1.inOut',
-            onComplete: () => {
-              gsap.to(inputField, {
-                x: 0,
-                borderColor: 'rgba(255, 255, 255, 0.1)',
-                boxShadow: 'none',
-                duration: 0.4,
-              });
-            },
-          }
-        );
+
+        // @ts-expect-error: dynamic import
+        import('framer-motion').then(({ animate }) => {
+          animate(inputField, { x: [-6, 6, -6, 6, -6, 6, 0] }, { duration: 0.4 });
+        });
       }
       return;
     }
@@ -624,11 +586,16 @@ export default function LandingPageClient() {
           <DiscordButton />
 
           <div ref={heroRef}>
-            <h1 className="hero-text opacity-0 translate-y-10 mb-8 bg-gradient-to-br from-gray-900 via-black to-gray-600 dark:from-white dark:via-gray-100 dark:to-gray-500 bg-clip-text text-transparent text-5xl font-black tracking-tighter md:text-8xl pb-2">
+            <motion.h1
+              initial={{ y: 40, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ duration: 1.2, ease: 'easeOut', delay: 0.15 }}
+              className=" mb-8 bg-gradient-to-br from-gray-900 via-black to-gray-600 dark:from-white dark:via-gray-100 dark:to-gray-500 bg-clip-text text-transparent text-5xl font-black tracking-tighter md:text-8xl pb-2"
+            >
               {renderHeroTitle(
                 t('landing.title', { defaultValue: 'Elevate Your\n{Contribution} Story.' })
               )}
-            </h1>
+            </motion.h1>
           </div>
 
           <motion.p
@@ -1094,32 +1061,11 @@ export default function LandingPageClient() {
                         inputField.focus();
 
                         // 3. THE TRENDY FIX: GSAP Shake and Error Glow
-                        gsap.fromTo(
-                          inputField,
-                          {
-                            x: -6,
-                            boxShadow: '0 0 0px rgba(239, 68, 68, 0)',
-                            borderColor: 'inherit',
-                          },
-                          {
-                            x: 6,
-                            borderColor: 'rgba(239, 68, 68, 0.8)', // Subtle red border
-                            boxShadow: '0 0 20px rgba(239, 68, 68, 0.3)', // Soft red glow
-                            duration: 0.08,
-                            yoyo: true,
-                            repeat: 5,
-                            ease: 'power1.inOut',
-                            onComplete: () => {
-                              // Smoothly fade the glow out after shaking
-                              gsap.to(inputField, {
-                                x: 0,
-                                borderColor: 'rgba(255, 255, 255, 0.1)', // Default border
-                                boxShadow: 'none',
-                                duration: 0.4,
-                              });
-                            },
-                          }
-                        );
+
+                        // @ts-expect-error: dynamic import
+                        import('framer-motion').then(({ animate }) => {
+                          animate(inputField, { x: [-6, 6, -6, 6, -6, 6, 0] }, { duration: 0.4 });
+                        });
                       }
                     } else {
                       trackUser(trimmedUsername);

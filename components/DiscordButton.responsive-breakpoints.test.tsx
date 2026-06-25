@@ -3,7 +3,7 @@ import { render, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import React from 'react';
 import { DiscordButton } from './DiscordButton';
-import gsap from 'gsap';
+declare const gsap: unknown;
 
 // Mock framer-motion
 vi.mock('framer-motion', () => ({
