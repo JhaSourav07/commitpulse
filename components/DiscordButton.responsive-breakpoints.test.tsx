@@ -8,7 +8,6 @@ import { DiscordButton } from './DiscordButton';
 // Mock framer-motion
 vi.mock('framer-motion', () => ({
   animate: vi.fn(),
-  animate: vi.fn(),
   motion: {
     div: (props: React.ComponentProps<'div'>) => <div {...props} />,
     a: (props: React.ComponentProps<'a'>) => <a {...props} />,

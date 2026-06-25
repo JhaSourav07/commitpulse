@@ -26,7 +26,7 @@ vi.mock('framer-motion', () => {
       {},
       {
         get: (_, element) =>
-          React.forwardRef((props: unknown, ref: unknown) => {
+          React.forwardRef((props: any, ref: any) => {
             const {
               initial,
               animate,
