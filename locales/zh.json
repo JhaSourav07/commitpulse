@@ -466,6 +466,12 @@
       "avg_review_header": "Avg Review Time",
       "no_repos": "No repository data available."
     },
-    "executive": {}
+    "opensource": {
+      "title": "Open Source Productivity Intelligence",
+      "health_score": "Health Score",
+      "community": "Community",
+      "issues": "Issue Metrics",
+      "releases": "Release Metrics"
+    }
   }
 }
