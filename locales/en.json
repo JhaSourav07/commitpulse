@@ -465,6 +465,30 @@
       "reviews_header": "Reviews",
       "avg_review_header": "Avg Review Time",
       "no_repos": "No repository data available."
+    },
+    "dependency": {
+      "title": "Repository Dependency Intelligence",
+      "subtitle": "Analyze dependencies, risks, and package health",
+      "graph": "Dependency Graph",
+      "risk_analysis": "Risk Analysis",
+      "no_risks": "All dependencies are healthy! No risks detected.",
+      "no_dependencies": "No dependencies found for this repository.",
+      "recommendation": "Recommendation",
+      "root": "Root Project",
+      "low_risk": "Low Risk",
+      "medium_risk": "Medium Risk",
+      "high_risk": "High Risk",
+      "view_table": "View data table",
+      "package": "Package",
+      "version": "Version",
+      "type": "Type",
+      "health": "Health",
+      "total": "Total",
+      "direct": "Direct",
+      "transitive": "Transitive",
+      "outdated": "Outdated",
+      "vulnerable": "Vulnerable",
+      "healthy": "Healthy"
     }
   }
 }
