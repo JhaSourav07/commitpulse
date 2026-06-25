@@ -466,6 +466,21 @@
       "avg_review_header": "Avg Review Time",
       "no_repos": "No repository data available."
     },
-    "executive": {}
+    "risk": {
+      "title": "Repository Risk Intelligence",
+      "overall_score": "Overall Risk Score",
+      "category_breakdown": "Risk Categories",
+      "risk_factors": "Risk Factors",
+      "recommendations": "Recommendations",
+      "technical": "Technical",
+      "security": "Security",
+      "operational": "Operational",
+      "compliance": "Compliance",
+      "critical": "Critical",
+      "high": "High",
+      "medium": "Medium",
+      "low": "Low",
+      "view_details": "View Details"
+    }
   }
 }
