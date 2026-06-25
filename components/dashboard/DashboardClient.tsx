@@ -46,6 +46,7 @@ import GoalTracker from './GoalTracker';
 import ActivityHeatmapPro from './ActivityHeatmapPro';
 import DeveloperJourneyTimeline from './DeveloperJourneyTimeline';
 import RepositoryContributionExplorer from './RepositoryContributionExplorer';
+import RepositoryHealthMonitor from './RepositoryHealthMonitor';
 
 // Define the dashboard data structure
 export interface DashboardData {
@@ -747,6 +748,11 @@ export default function DashboardClient({
               <DeveloperJourneyTimeline
                 activity={initialData.activity}
                 achievements={initialData.achievements}
+              />
+            </section>
+            <section>
+              <RepositoryHealthMonitor
+                repositories={initialData.popularRepos || initialData.pinnedRepos || []}
               />
             </section>
 

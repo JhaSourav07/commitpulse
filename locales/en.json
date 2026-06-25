@@ -415,7 +415,8 @@
       "noActivity": "No activity recorded yet for this journey",
       "milestoneTitle": "Milestone Achieved",
       "viewMilestone": "View details",
-      "totalMilestones": "Total Milestones"
+      "totalMilestones": "Total Milestones",
+      "explore": "Explore Timeline"
     },
     "prInsights": {
       "showing_filtered": "Showing: {{label}} PRs — click again to reset",
@@ -465,6 +466,31 @@
       "reviews_header": "Reviews",
       "avg_review_header": "Avg Review Time",
       "no_repos": "No repository data available."
+    },
+    "health": {
+      "title": "Repository Health Monitor",
+      "subtitle": "Automated health grading and growth analytics for your repositories.",
+      "no_data": "No repository data available.",
+      "filter": {
+        "all": "All",
+        "healthy": "Healthy (A/B)",
+        "growth": "High Growth",
+        "at_risk": "Archive Candidate"
+      },
+      "columns": {
+        "repo": "Repository",
+        "grade": "Health Grade",
+        "score": "Score",
+        "status": "Signal",
+        "stars": "Stars",
+        "forks": "Forks",
+        "commits": "Commits"
+      },
+      "signals": {
+        "growth": "High Growth",
+        "stable": "Healthy",
+        "risk": "Archive Candidate"
+      }
     }
   }
 }
