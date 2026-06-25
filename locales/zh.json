@@ -466,6 +466,16 @@
       "avg_review_header": "Avg Review Time",
       "no_repos": "No repository data available."
     },
-    "executive": {}
+    "collaboration": {
+      "title": "Developer Collaboration Intelligence Hub",
+      "top_collaborators": "Top Collaborators",
+      "review_metrics": "Review Metrics",
+      "total_collaborators": "Total Collaborators",
+      "active_collaborators": "Active Collaborators",
+      "avg_interactions": "Avg. Interactions",
+      "diversity_score": "Diversity Score",
+      "bus_factor": "Bus Factor Risk",
+      "team_connectivity": "Team Connectivity"
+    }
   }
 }
