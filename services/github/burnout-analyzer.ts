@@ -1,3 +1,4 @@
+import 'server-only';
 import { getGitHubTokens } from '@/lib/github';
 import { DistributedCache } from '@/lib/cache';
 

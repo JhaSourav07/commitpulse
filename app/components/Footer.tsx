@@ -13,6 +13,7 @@ import {
   Sliders,
   Users,
   BookOpen,
+  HelpCircle, // ← Added for FAQ
 } from 'lucide-react';
 import { FaGithub, FaDiscord, FaTwitter, FaLinkedin } from 'react-icons/fa';
 
@@ -91,7 +92,8 @@ const NAV_ICON_MAP: Record<string, React.ReactNode> = {
 const RESOURCE_ICON_MAP: Record<string, React.ReactNode> = {
   documentation: <BookOpen size={15} className="shrink-0" />,
   github_repo: <GitBranch size={15} className="shrink-0" />,
-  guidelines: <BookOpen size={15} className="shrink-0" />, // Added
+  guidelines: <BookOpen size={15} className="shrink-0" />,
+  faq: <HelpCircle size={15} className="shrink-0" />, // Added
 };
 
 export function Footer() {
@@ -119,8 +121,13 @@ export function Footer() {
       isExternal: true,
     },
     {
-      label: t('footer.guidelines'), // Added
+      label: t('footer.guidelines'),
       href: '/guidelines',
+      isExternal: false,
+    },
+    {
+      label: t('footer.faq'), // ← Added
+      href: '/faq',
       isExternal: false,
     },
   ];
@@ -211,7 +218,9 @@ export function Footer() {
                           ? 'documentation'
                           : link.href.includes('guidelines')
                             ? 'guidelines'
-                            : 'github_repo'
+                            : link.href.includes('faq')
+                              ? 'faq'
+                              : 'github_repo'
                       ]
                     }
                     {link.label}

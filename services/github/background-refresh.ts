@@ -1,3 +1,4 @@
+import 'server-only';
 import { getFullDashboardData } from '../../lib/github';
 import { syncQueue } from '../../lib/syncQueue';
 

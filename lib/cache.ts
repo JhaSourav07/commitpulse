@@ -1,3 +1,4 @@
+import 'server-only';
 import { randomUUID } from 'crypto';
 import { brotliCompressSync, brotliDecompressSync } from 'zlib';
 import logger from '@/lib/logger';

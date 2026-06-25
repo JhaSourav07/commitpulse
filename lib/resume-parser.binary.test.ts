@@ -2,12 +2,24 @@ import { describe, it, expect, vi } from 'vitest';
 import { parseResume } from './resume-parser';
 
 vi.mock('pdf-parse', () => {
-  const mockFn = vi.fn().mockResolvedValue({
-    text: `John Doe\njohn.doe@example.com\n+1 234-567-8901\nSkills\nTypeScript, React, Node.js\nEducation\nB.Tech Computer Science 2020-2024\nExperience\nSoftware Engineer at ABC Corp 2022-2024`,
-  });
   return {
-    default: mockFn,
-    __esModule: true,
+    PDFParse: class {
+      async getText() {
+        return {
+          text: `John Doe
+john.doe@example.com
++1 234-567-8901
+Skills
+TypeScript, React, Node.js
+Education
+B.Tech Computer Science 2020-2024
+Experience
+Software Engineer at ABC Corp 2022-2024`,
+        };
+      }
+
+      async destroy() {}
+    },
   };
 });
 
@@ -15,7 +27,15 @@ vi.mock('mammoth', () => {
   return {
     default: {
       extractRawText: vi.fn().mockResolvedValue({
-        value: `Jane Smith\njane.smith@gmail.com\n(555) 123-4567\nSkills\nPython, Docker, AWS\nEducation\nBS Mathematics 2018-2022\nExperience\nDevOps Engineer at XYZ 2022-2024`,
+        value: `Jane Smith
+jane.smith@gmail.com
+(555) 123-4567
+Skills
+Python, Docker, AWS
+Education
+BS Mathematics 2018-2022
+Experience
+DevOps Engineer at XYZ 2022-2024`,
       }),
     },
   };

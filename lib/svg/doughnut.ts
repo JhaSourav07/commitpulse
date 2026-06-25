@@ -2,7 +2,7 @@
 
 import type { BadgeParams, ContributionCalendar, StreakStats } from '../../types';
 import { truncateUsername, getSizeScale } from './generator';
-import { escapeXML } from './sanitizer';
+import { escapeXML, sanitizeRadius } from './sanitizer';
 
 const DOUGHNUT_SVG_WIDTH = 400;
 const DOUGHNUT_SVG_HEIGHT = 200;
@@ -138,6 +138,9 @@ export function generateDoughnutSVG(
   const weekendStr = (weekendPercent * 100).toFixed(1) + '%';
   const weekdayStr = (weekdayPercent * 100).toFixed(1) + '%';
 
+  // Validate the corner radius before interpolation into SVG attributes
+  const safeRadius = sanitizeRadius(params.radius, 8);
+
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${Math.round(DOUGHNUT_SVG_WIDTH * sf)}" height="${Math.round(DOUGHNUT_SVG_HEIGHT * sf)}" viewBox="0 0 ${DOUGHNUT_SVG_WIDTH} ${DOUGHNUT_SVG_HEIGHT}" role="img" aria-labelledby="cp-doughnut-title cp-doughnut-desc">
   <title id="cp-doughnut-title">CommitPulse ${viewTitle} for ${safeUser}</title>
   <desc id="cp-doughnut-desc">A ${viewTitle.toLowerCase()} showing weekday vs weekend commits for ${safeUser}.</desc>
@@ -150,7 +153,7 @@ export function generateDoughnutSVG(
     </style>
   </defs>
 
-  <rect width="${DOUGHNUT_SVG_WIDTH}" height="${DOUGHNUT_SVG_HEIGHT}" fill="#${bgColor}" rx="${params.radius ?? 8}" />
+  <rect width="${DOUGHNUT_SVG_WIDTH}" height="${DOUGHNUT_SVG_HEIGHT}" fill="#${bgColor}" rx="${safeRadius}" />
   
   <g id="chart">
 ${slicesSVG}

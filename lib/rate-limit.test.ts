@@ -137,6 +137,23 @@ describe('rateLimit', () => {
     expect((await rateLimit(ip2, 60, 60000)).success).toBe(true);
   });
 
+  it('isolates rate limits across different namespaces', async () => {
+    const ip = '55.55.55.55';
+    const limit = 3;
+
+    // Exhaust the limit in namespace 'api'
+    for (let i = 0; i < limit; i++) {
+      expect((await rateLimit(ip, limit, 60000, 'api')).success).toBe(true);
+    }
+    expect((await rateLimit(ip, limit, 60000, 'api')).success).toBe(false);
+
+    // Namespace 'webhook' should still be allowed — independent counter
+    expect((await rateLimit(ip, limit, 60000, 'webhook')).success).toBe(true);
+
+    // Default namespace should also be allowed
+    expect((await rateLimit(ip, limit, 60000, 'default')).success).toBe(true);
+  });
+
   describe('Redis/KV integration', () => {
     it('queries Redis/KV and returns success if count is within limit', async () => {
       const mock = setupMockKV([{ result: 10 }]);
@@ -148,7 +165,7 @@ describe('rateLimit', () => {
         expect.objectContaining({
           method: 'POST',
           headers: expect.objectContaining({ Authorization: 'Bearer mock-token' }),
-          body: expect.stringContaining('"ratelimit:127.0.0.1"'),
+          body: expect.stringContaining('"ratelimit:default:127.0.0.1"'),
         })
       );
     });
@@ -189,7 +206,7 @@ describe('rateLimit', () => {
       remaining: 4,
       reset: 61000,
     });
-    expect(incrSpy).toHaveBeenCalledWith('ratelimit:atomic-test-function', 60000);
+    expect(incrSpy).toHaveBeenCalledWith('ratelimit:default:atomic-test-function', 60000);
 
     incrSpy.mockRestore();
   });

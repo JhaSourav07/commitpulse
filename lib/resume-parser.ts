@@ -1,3 +1,4 @@
+import 'server-only';
 import type { ParsedResume, Education, Experience } from '@/types/student';
 
 // Polyfill DOMMatrix for server-side/test environments to prevent pdfjs-dist crash
@@ -137,34 +138,13 @@ async function extractTextFromBuffer(buffer: Buffer, mimeType: string): Promise<
   if (mimeType === 'application/pdf') {
     try {
       if (buffer.toString('utf-8', 0, 4) === '%PDF') {
-        const pdfModule = (await import('pdf-parse')) as Record<string, unknown>;
+        const { PDFParse } = await import('pdf-parse');
 
-        console.debug('pdf-parse exports:', Object.keys(pdfModule));
+        const parser = new PDFParse({ data: buffer });
+        const result = await parser.getText();
+        await parser.destroy();
 
-        type PdfParser = (dataBuffer: Buffer, options?: unknown) => Promise<{ text: string }>;
-
-        let pdfParser: PdfParser | null = null;
-
-        if (typeof pdfModule.default === 'function') {
-          pdfParser = pdfModule.default as PdfParser;
-        } else if (typeof (pdfModule as unknown) === 'function') {
-          pdfParser = pdfModule as unknown as PdfParser;
-        } else {
-          const nestedDefault = (pdfModule.default as Record<string, unknown> | undefined)?.default;
-
-          if (typeof nestedDefault === 'function') {
-            pdfParser = nestedDefault as PdfParser;
-          }
-        }
-
-        if (!pdfParser) {
-          throw new TypeError(
-            `Unable to resolve pdf-parse export. Available keys: ${Object.keys(pdfModule).join(', ')}`
-          );
-        }
-
-        const data = await pdfParser(buffer);
-        rawText = data.text;
+        rawText = result.text;
       } else {
         rawText = buffer.toString('utf-8');
       }

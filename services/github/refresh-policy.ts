@@ -1,3 +1,4 @@
+import 'server-only';
 import { quotaMonitor } from './quota-monitor';
 import { TTLCache } from '../../lib/cache';
 

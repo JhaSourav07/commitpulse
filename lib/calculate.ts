@@ -1,3 +1,5 @@
+import 'server-only';
+
 // lib/calculate.ts
 import type {
   ContributionCalendar,

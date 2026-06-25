@@ -1,3 +1,4 @@
+import 'server-only';
 import { DistributedCache } from './cache';
 
 interface RateLimitResult {
@@ -247,10 +248,13 @@ const trackers = new DistributedCache<{ count: number; resetAt: number }>(2000, 
  * @param ip - The IP address to track.
  * @param limit - Maximum number of requests allowed in the window. Defaults to 60.
  * @param windowMs - Time window in milliseconds. Defaults to 60000 (1 minute).
+ * @param namespace - Isolation namespace for the cache key. Different namespaces
+ *   use independent counters, preventing cross-route interference.
+ *   Defaults to `'default'`.
  * @returns A {@link RateLimitResult} containing success status, limit, remaining count, and reset time.
  *
  * @example
- * const result = rateLimit(ip);
+ * const result = rateLimit(ip, 60, 60000, 'api');
  * if (!result.success) {
  *   return new Response("Too Many Requests", { status: 429 });
  * }
@@ -258,12 +262,14 @@ const trackers = new DistributedCache<{ count: number; resetAt: number }>(2000, 
 export async function rateLimit(
   ip: string,
   limit: number = 60,
-  windowMs: number = 60000
+  windowMs: number = 60000,
+  namespace: string = 'default'
 ): Promise<RateLimitResult> {
   if (!ip || ip.trim().length === 0) {
     throw new TypeError('Cache key cannot be empty');
   }
 
+  const cacheKey = `ratelimit:${namespace}:${ip}`;
   const now = Date.now();
   const url = process.env.KV_REST_API_URL;
   const token = process.env.KV_REST_API_TOKEN;
@@ -278,8 +284,8 @@ export async function rateLimit(
           'Content-Type': 'application/json',
         },
         body: JSON.stringify([
-          ['INCR', `ratelimit:${ip}`],
-          ['EXPIRE', `ratelimit:${ip}`, Math.floor(windowMs / 1000), 'NX'],
+          ['INCR', cacheKey],
+          ['EXPIRE', cacheKey, Math.floor(windowMs / 1000), 'NX'],
         ]),
       });
 
@@ -300,7 +306,7 @@ export async function rateLimit(
 
   // Atomic increment to avoid TOCTOU race condition where concurrent requests
   // all read count=0 and all proceed past the limit check.
-  const count = await trackers.incr(`ratelimit:${ip}`, windowMs);
+  const count = await trackers.incr(cacheKey, windowMs);
   const resetAt = now + windowMs;
 
   return {

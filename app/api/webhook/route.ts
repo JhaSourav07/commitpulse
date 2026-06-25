@@ -76,9 +76,9 @@ async function readBodyWithLimit(
 }
 
 export async function POST(req: Request) {
-  // 1. Rate Limiting
+  // 1. Rate Limiting — isolated namespace prevents cross-route interference
   const ip = getClientIp(req);
-  const limit = await rateLimit(ip, 10, 60000);
+  const limit = await rateLimit(ip, 10, 60000, 'webhook');
   if (!limit.success) {
     return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
   }

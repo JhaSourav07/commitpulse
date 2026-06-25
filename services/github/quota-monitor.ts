@@ -1,3 +1,4 @@
+import 'server-only';
 interface TokenQuotaState {
   limit: number;
   remaining: number;
