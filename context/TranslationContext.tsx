@@ -115,12 +115,23 @@ export function TranslationProvider({ children }: { children: ReactNode }) {
 
     if (value === undefined) {
       value = getNestedValue(translations.en as Record<string, unknown>, path);
+
+      if (process.env.NODE_ENV === 'development' && currentLang !== 'en') {
+        console.warn(
+          `[i18n] Missing translation for "${path}" in "${currentLang}", falling back to English.`
+        );
+      }
     }
 
     if (value === undefined) {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn(`[i18n] Missing translation key "${path}" in all locales.`);
+      }
+
       if (params && 'defaultValue' in params) {
         return params.defaultValue;
       }
+
       return path;
     }
 
@@ -151,9 +162,14 @@ export function useTranslation() {
       t: (path: string, params?: Record<string, string>): string => {
         const value = getNestedValue(en, path);
         if (value === undefined) {
+          if (process.env.NODE_ENV === 'development') {
+            console.warn(`[i18n] Missing translation key "${path}" in English locale.`);
+          }
+
           if (params && 'defaultValue' in params) {
             return params.defaultValue;
           }
+
           return path;
         }
         if (params) {
