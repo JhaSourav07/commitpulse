@@ -490,7 +490,6 @@ export default function LandingPageClient() {
         inputField.scrollIntoView({ behavior: 'smooth', block: 'center' });
         inputField.focus();
 
-        // @ts-expect-error: dynamic import
         import('framer-motion').then(({ animate }) => {
           animate(inputField, { x: [-6, 6, -6, 6, -6, 6, 0] }, { duration: 0.4 });
         });
@@ -1062,7 +1061,6 @@ export default function LandingPageClient() {
 
                         // 3. THE TRENDY FIX: GSAP Shake and Error Glow
 
-                        // @ts-expect-error: dynamic import
                         import('framer-motion').then(({ animate }) => {
                           animate(inputField, { x: [-6, 6, -6, 6, -6, 6, 0] }, { duration: 0.4 });
                         });

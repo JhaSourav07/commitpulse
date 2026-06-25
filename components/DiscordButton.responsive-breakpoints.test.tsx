@@ -1,22 +1,17 @@
+import { animate } from 'framer-motion';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import React from 'react';
 import { DiscordButton } from './DiscordButton';
-declare const gsap: unknown;
 
 // Mock framer-motion
 vi.mock('framer-motion', () => ({
+  animate: vi.fn(),
+  animate: vi.fn(),
   motion: {
     div: (props: React.ComponentProps<'div'>) => <div {...props} />,
     a: (props: React.ComponentProps<'a'>) => <a {...props} />,
-  },
-}));
-
-// Mock gsap
-vi.mock('gsap', () => ({
-  default: {
-    to: vi.fn(),
   },
 }));
 
@@ -140,7 +135,7 @@ describe('DiscordButton - Responsive Breakpoints & Mobile Layouts', () => {
     });
 
     // Verify GSAP animation was triggered for hover effect on mobile viewport
-    expect(gsap.to).toHaveBeenCalled();
+    expect(animate).toHaveBeenCalled();
 
     // Clear mocks to verify the leave event
     vi.clearAllMocks();
@@ -149,13 +144,13 @@ describe('DiscordButton - Responsive Breakpoints & Mobile Layouts', () => {
     fireEvent.mouseLeave(link as Element);
 
     // Verify GSAP resets transforms on leave within mobile viewport
-    expect(gsap.to).toHaveBeenCalledWith(
+    expect(animate).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
         x: 0,
         y: 0,
-        rotationX: 0,
-        rotationY: 0,
+        rotateX: 0,
+        rotateY: 0,
       })
     );
   });

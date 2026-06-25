@@ -1,10 +1,12 @@
+import { animate } from 'framer-motion';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-declare const gsap: unknown;
 import { DiscordButton } from './DiscordButton';
 // Mock framer-motion
 vi.mock('framer-motion', () => ({
+  animate: vi.fn(),
+  animate: vi.fn(),
   motion: {
     div: (props: React.ComponentProps<'div'>) => <div {...props} />,
     a: (props: React.ComponentProps<'a'>) => <a {...props} />,
@@ -87,7 +89,7 @@ describe('DiscordButton mouse interactivity', () => {
       clientY: 50,
     });
 
-    expect(gsap.to).toHaveBeenCalled();
+    expect(animate).toHaveBeenCalled();
   });
 
   it('resets gsap transforms on mouse leave', () => {
@@ -98,13 +100,13 @@ describe('DiscordButton mouse interactivity', () => {
     fireEvent.mouseEnter(link);
     fireEvent.mouseLeave(link);
 
-    expect(gsap.to).toHaveBeenCalledWith(
+    expect(animate).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
         x: 0,
         y: 0,
-        rotationX: 0,
-        rotationY: 0,
+        rotateX: 0,
+        rotateY: 0,
       })
     );
   });

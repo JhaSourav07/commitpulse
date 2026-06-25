@@ -1,8 +1,8 @@
+import { animate } from 'framer-motion';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { FeatureCard, FeatureCardsSection } from './FeatureCards';
-declare const gsap: unknown;
 
 // Mock GSAP
 const mockTimeline = {
@@ -84,19 +84,19 @@ describe('FeatureCards Component Suite', () => {
 
       // Mouse enter triggers hover state
       fireEvent.mouseEnter(card);
-      expect(gsap.to).toHaveBeenCalled();
+      expect(animate).toHaveBeenCalled();
 
       vi.clearAllMocks();
 
       // Mouse move triggers magnetic movement recalculations
       fireEvent.mouseMove(card, { clientX: 100, clientY: 100 });
-      expect(gsap.to).toHaveBeenCalled();
+      expect(animate).toHaveBeenCalled();
 
       vi.clearAllMocks();
 
       // Mouse leave resets magnetic coordinates
       fireEvent.mouseLeave(card);
-      expect(gsap.to).toHaveBeenCalled();
+      expect(animate).toHaveBeenCalled();
     });
   });
 
