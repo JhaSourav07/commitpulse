@@ -107,7 +107,8 @@ describe('DiscordButton mouse interactivity', () => {
         y: 0,
         rotateX: 0,
         rotateY: 0,
-      })
+      }),
+      expect.anything()
     );
   });
 });

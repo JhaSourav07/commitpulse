@@ -2,6 +2,20 @@ import { animate } from 'framer-motion';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
+
+vi.mock('framer-motion', () => ({
+  animate: vi.fn(),
+  motion: {
+    div: (props: React.ComponentProps<'div'>) => <div {...props} />,
+    section: (props: React.ComponentProps<'section'>) => <section {...props} />,
+    h2: (props: React.ComponentProps<'h2'>) => <h2 {...props} />,
+    h3: (props: React.ComponentProps<'h3'>) => <h3 {...props} />,
+    p: (props: React.ComponentProps<'p'>) => <p {...props} />,
+    a: (props: React.ComponentProps<'a'>) => <a {...props} />,
+  },
+  useAnimation: () => ({ start: vi.fn() }),
+  useInView: () => true,
+}));
 import { FeatureCard, FeatureCardsSection } from './FeatureCards';
 
 // Mock GSAP

@@ -151,7 +151,8 @@ describe('DiscordButton - Responsive Breakpoints & Mobile Layouts', () => {
         y: 0,
         rotateX: 0,
         rotateY: 0,
-      })
+      }),
+      expect.anything()
     );
   });
 });
