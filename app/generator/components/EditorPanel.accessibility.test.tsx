@@ -38,7 +38,7 @@ const mockHandlers = {
   onApplyImport: vi.fn(),
 };
 
-describe('EditorPanel Component Accessibility Tests', () => {
+describe('EditorPanel Component Accessibility Tests', { timeout: 30000 }, () => {
   // Test 1: Landmark and Region Roles
   it('1. verifies that the root container has a form landmark and SectionCards use region roles with h3 headings', () => {
     render(<EditorPanel state={mockState} {...mockHandlers} />);

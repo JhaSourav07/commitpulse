@@ -1,14 +1,8 @@
 'use client';
 
 import { useRef, useState, useEffect } from 'react';
-import gsap from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { motion, useReducedMotion } from 'framer-motion';
+import { motion, useMotionValue, useSpring, useTransform, useReducedMotion } from 'framer-motion';
 import Link from 'next/link';
-
-if (typeof window !== 'undefined') {
-  gsap.registerPlugin(ScrollTrigger);
-}
 
 /* ─── Testimonial Data ─── */
 export interface Testimonial {
@@ -181,110 +175,85 @@ function StarRating() {
 /* ─── Single Testimonial Card ─── */
 function TestimonialCard({ testimonial }: { testimonial: Testimonial }) {
   const cardRef = useRef<HTMLDivElement>(null);
-  const glowRef = useRef<HTMLDivElement>(null);
-  const isHoveredRef = useRef(false);
+  const [isHovered, setIsHovered] = useState(false);
 
-  /* Magnetic 3D tilt + cursor spotlight on hover */
-  useEffect(() => {
-    const card = cardRef.current;
-    const glow = glowRef.current;
-    if (!card || !glow) return;
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
 
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!isHoveredRef.current) return;
-      const rect = card.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-      const centerX = rect.width / 2;
-      const centerY = rect.height / 2;
-      const rotateX = ((y - centerY) / centerY) * -6;
-      const rotateY = ((x - centerX) / centerX) * 6;
+  // Magnetic 3D tilt
+  const rotateX = useSpring(useTransform(mouseY, [-0.5, 0.5], [6, -6]), {
+    stiffness: 150,
+    damping: 20,
+  });
+  const rotateY = useSpring(useTransform(mouseX, [-0.5, 0.5], [-6, 6]), {
+    stiffness: 150,
+    damping: 20,
+  });
 
-      gsap.to(card, {
-        rotateX,
-        rotateY,
-        duration: 0.4,
-        ease: 'power2.out',
-        transformPerspective: 600,
-      });
+  // Spotlight position
+  const glowX = useSpring(0, { stiffness: 150, damping: 20 });
+  const glowY = useSpring(0, { stiffness: 150, damping: 20 });
 
-      gsap.to(glow, {
-        x: x - rect.width / 2,
-        y: y - rect.height / 2,
-        opacity: 0.12,
-        duration: 0.3,
-        ease: 'power2.out',
-      });
-    };
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!cardRef.current) return;
+    const rect = cardRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
 
-    const handleMouseEnter = () => {
-      isHoveredRef.current = true;
-      gsap.to(card, { scale: 1.03, duration: 0.4, ease: 'power2.out' });
-    };
+    mouseX.set(x / rect.width - 0.5);
+    mouseY.set(y / rect.height - 0.5);
+    glowX.set(x - rect.width / 2);
+    glowY.set(y - rect.height / 2);
+  };
 
-    const handleMouseLeave = () => {
-      isHoveredRef.current = false;
-      gsap.to(card, {
-        rotateX: 0,
-        rotateY: 0,
-        scale: 1,
-        duration: 0.6,
-        ease: 'elastic.out(1, 0.5)',
-      });
-      gsap.to(glow, { opacity: 0, duration: 0.3 });
-    };
-
-    card.addEventListener('mousemove', handleMouseMove);
-    card.addEventListener('mouseenter', handleMouseEnter);
-    card.addEventListener('mouseleave', handleMouseLeave);
-
-    return () => {
-      card.removeEventListener('mousemove', handleMouseMove);
-      card.removeEventListener('mouseenter', handleMouseEnter);
-      card.removeEventListener('mouseleave', handleMouseLeave);
-    };
-  }, []);
+  const handleMouseLeave = () => {
+    setIsHovered(false);
+    mouseX.set(0);
+    mouseY.set(0);
+  };
 
   return (
-    <div
+    <motion.div
       ref={cardRef}
       className="relative flex-shrink-0 w-[340px] cursor-pointer select-none"
-      style={{ transformStyle: 'preserve-3d' }}
+      style={{ rotateX, rotateY, transformPerspective: 600 }}
+      animate={{ scale: isHovered ? 1.03 : 1 }}
+      transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+      onMouseMove={handleMouseMove}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={handleMouseLeave}
     >
-      {/* Hover glow accent line at top */}
       <div
-        className="absolute top-0 left-[10%] right-[10%] h-[2px] rounded-full opacity-0 transition-opacity duration-500"
+        className={`absolute top-0 left-[10%] right-[10%] h-[2px] rounded-full transition-opacity duration-500 ${isHovered ? 'opacity-100' : 'opacity-0'}`}
         style={{
           background: `linear-gradient(90deg, transparent, ${testimonial.accentColor}, transparent)`,
         }}
       />
 
-      <div className="group relative overflow-hidden rounded-2xl border border-black/5 bg-white/70 p-6 shadow-lg shadow-black/5 backdrop-blur-xl dark:border-white/[0.08] dark:bg-[#0c0c0c]/90 dark:shadow-2xl dark:shadow-black/40 transition-all duration-300 hover:border-black/10 dark:hover:border-white/15">
-        {/* Spotlight glow */}
-        <div
-          ref={glowRef}
+      <div className="group relative overflow-hidden rounded-2xl border border-black/5 bg-white/70 p-6 shadow-lg shadow-black/5 backdrop-blur-xl dark:border-white/[0.08] dark:bg-[#0c0c0c]/90 dark:shadow-2xl dark:shadow-black/40 transition-colors duration-300 hover:border-black/10 dark:hover:border-white/15">
+        <motion.div
           className="absolute pointer-events-none rounded-full"
           style={{
             width: 250,
             height: 250,
             background: `radial-gradient(circle, ${testimonial.accentColor}30, transparent 70%)`,
-            opacity: 0,
             filter: 'blur(40px)',
-            transform: 'translate(-50%, -50%)',
             left: '50%',
             top: '50%',
+            marginLeft: -125,
+            marginTop: -125,
+            x: glowX,
+            y: glowY,
           }}
+          animate={{ opacity: isHovered ? 0.12 : 0 }}
         />
 
-        {/* Background gradient blob */}
         <div
-          className="absolute -right-16 -top-16 h-32 w-32 rounded-full blur-3xl transition-all duration-700 group-hover:scale-150"
+          className="absolute -right-16 -top-16 h-32 w-32 rounded-full blur-3xl transition-transform duration-700 group-hover:scale-150"
           style={{ background: `${testimonial.accentColor}10` }}
         />
 
-        {/* Header: Avatar + Name + Handle */}
         <div className="relative z-10 flex items-start gap-3.5 mb-4">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={testimonial.avatar}
             alt={testimonial.name}
@@ -295,7 +264,6 @@ function TestimonialCard({ testimonial }: { testimonial: Testimonial }) {
               <p className="text-sm font-bold text-gray-900 dark:text-white truncate">
                 {testimonial.name}
               </p>
-              {/* Verified badge */}
               <svg
                 width="14"
                 height="14"
@@ -321,25 +289,14 @@ function TestimonialCard({ testimonial }: { testimonial: Testimonial }) {
           </div>
         </div>
 
-        {/* Stars */}
         <div className="relative z-10 mb-3">
           <StarRating />
         </div>
-
-        {/* Message */}
         <p className="relative z-10 text-sm leading-relaxed text-gray-600 dark:text-gray-400">
           &ldquo;{testimonial.message}&rdquo;
         </p>
-
-        {/* Bottom accent line */}
-        <div
-          className="absolute bottom-0 left-0 h-[2px] w-0 group-hover:w-full transition-all duration-700 ease-out"
-          style={{
-            background: `linear-gradient(90deg, transparent, ${testimonial.accentColor}, transparent)`,
-          }}
-        />
       </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -353,67 +310,23 @@ function MarqueeRow({
   direction?: 'left' | 'right';
   speed?: number;
 }) {
-  const trackRef = useRef<HTMLDivElement>(null);
-  const tweenRef = useRef<gsap.core.Tween | null>(null);
   const shouldReduceMotion = useReducedMotion();
-
-  useEffect(() => {
-    if (shouldReduceMotion) return;
-
-    const track = trackRef.current;
-    if (!track) return;
-
-    // Wait for fonts / images to settle
-    const timeoutId = setTimeout(() => {
-      const totalWidth = track.scrollWidth / 2; // we duplicated the content
-
-      gsap.set(track, { x: direction === 'left' ? 0 : -totalWidth });
-
-      tweenRef.current = gsap.to(track, {
-        x: direction === 'left' ? -totalWidth : 0,
-        duration: speed,
-        ease: 'none',
-        repeat: -1,
-      });
-    }, 100);
-
-    return () => {
-      clearTimeout(timeoutId);
-      tweenRef.current?.kill();
-    };
-  }, [direction, speed, shouldReduceMotion]);
-
-  /* Pause on hover for readability */
-  const handleMouseEnter = () => {
-    if (tweenRef.current) {
-      gsap.to(tweenRef.current, { timeScale: 0, duration: 0.5, ease: 'power2.out' });
-    }
-  };
-
-  const handleMouseLeave = () => {
-    if (tweenRef.current) {
-      gsap.to(tweenRef.current, { timeScale: 1, duration: 0.5, ease: 'power2.out' });
-    }
-  };
-
-  // Duplicate cards for seamless infinite loop
   const cards = [...testimonials, ...testimonials];
 
   return (
-    <div
-      className="relative overflow-hidden"
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
-    >
-      {/* Fade edges */}
+    <div className="relative overflow-hidden">
       <div className="pointer-events-none absolute left-0 top-0 bottom-0 z-10 w-24 bg-gradient-to-r from-white dark:from-[#050505] to-transparent" />
       <div className="pointer-events-none absolute right-0 top-0 bottom-0 z-10 w-24 bg-gradient-to-l from-white dark:from-[#050505] to-transparent" />
 
-      <div ref={trackRef} className="flex gap-5 py-2" style={{ width: 'max-content' }}>
+      <motion.div
+        className="flex gap-5 py-2 w-max"
+        animate={shouldReduceMotion ? {} : { x: direction === 'left' ? [0, '-50%'] : ['-50%', 0] }}
+        transition={{ repeat: Infinity, ease: 'linear', duration: speed }}
+      >
         {cards.map((t, i) => (
           <TestimonialCard key={`${t.handle}-${i}`} testimonial={t} />
         ))}
-      </div>
+      </motion.div>
     </div>
   );
 }
@@ -432,31 +345,8 @@ function FloatingOrb({
   top: string;
   delay: number;
 }) {
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!ref.current) return;
-    const tl = gsap.timeline({ repeat: -1, yoyo: true, delay });
-    tl.to(ref.current, {
-      y: 'random(-40, 40)',
-      x: 'random(-30, 30)',
-      scale: 'random(0.8, 1.3)',
-      opacity: 'random(0.3, 0.7)',
-      duration: 'random(4, 7)',
-      ease: 'sine.inOut',
-    });
-    return () => {
-      try {
-        tl?.kill?.();
-      } catch {
-        // ignore cleanup errors in test environment
-      }
-    };
-  }, [delay]);
-
   return (
-    <div
-      ref={ref}
+    <motion.div
       className="absolute pointer-events-none rounded-full"
       style={{
         width: size,
@@ -467,117 +357,39 @@ function FloatingOrb({
         top,
         opacity: 0.4,
       }}
+      animate={{
+        y: [-20, 20, -20],
+        x: [-15, 15, -15],
+        scale: [0.9, 1.1, 0.9],
+        opacity: [0.4, 0.6, 0.4],
+      }}
+      transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut', delay }}
     />
   );
 }
 
 /* ─── Main Wall of Love Section ─── */
 export function WallOfLove() {
-  const sectionRef = useRef<HTMLDivElement>(null);
-  const headingRef = useRef<HTMLDivElement>(null);
-  const subheadingRef = useRef<HTMLParagraphElement>(null);
-  const badgeRef = useRef<HTMLDivElement>(null);
-  const row1Ref = useRef<HTMLDivElement>(null);
-  const row2Ref = useRef<HTMLDivElement>(null);
-  const statsRef = useRef<HTMLDivElement>(null);
-
-  /* ── GSAP scroll-triggered entrance animations ── */
-  useEffect(() => {
-    if (
-      !sectionRef.current ||
-      !headingRef.current ||
-      !subheadingRef.current ||
-      !badgeRef.current ||
-      !row1Ref.current ||
-      !row2Ref.current ||
-      !statsRef.current
-    )
-      return;
-
-    const ctx = gsap.context(() => {
-      const tl = gsap.timeline({
-        scrollTrigger: {
-          trigger: sectionRef.current,
-          start: 'top 80%',
-          toggleActions: 'play none none reverse',
-        },
-      });
-
-      // Badge entrance
-      tl.fromTo(
-        badgeRef.current,
-        { y: 30, opacity: 0, scale: 0.8 },
-        { y: 0, opacity: 1, scale: 1, duration: 0.6, ease: 'back.out(2)' }
-      );
-
-      // Heading entrance with text reveal
-      tl.fromTo(
-        headingRef.current,
-        { y: 50, opacity: 0, clipPath: 'inset(0 0 100% 0)' },
-        {
-          y: 0,
-          opacity: 1,
-          clipPath: 'inset(0 0 0% 0)',
-          duration: 0.8,
-          ease: 'power3.out',
-        },
-        '-=0.3'
-      );
-
-      // Subheading fade in
-      tl.fromTo(
-        subheadingRef.current,
-        { y: 20, opacity: 0 },
-        { y: 0, opacity: 1, duration: 0.6, ease: 'power2.out' },
-        '-=0.4'
-      );
-
-      // Row 1 slide in
-      tl.fromTo(
-        row1Ref.current,
-        { y: 60, opacity: 0 },
-        { y: 0, opacity: 1, duration: 0.8, ease: 'power3.out' },
-        '-=0.3'
-      );
-
-      // Row 2 slide in
-      tl.fromTo(
-        row2Ref.current,
-        { y: 60, opacity: 0 },
-        { y: 0, opacity: 1, duration: 0.8, ease: 'power3.out' },
-        '-=0.5'
-      );
-
-      // Stats counter entrance
-      tl.fromTo(
-        statsRef.current,
-        { y: 30, opacity: 0, scale: 0.95 },
-        { y: 0, opacity: 1, scale: 1, duration: 0.6, ease: 'power3.out' },
-        '-=0.4'
-      );
-    });
-
-    return () => ctx.revert();
-  }, []);
-
   return (
-    <section ref={sectionRef} className="relative py-24 -mx-6 overflow-hidden">
-      {/* ── Background Decorations ── */}
+    <section className="relative py-24 -mx-6 overflow-hidden">
       <div className="pointer-events-none absolute inset-0 -z-10">
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-[600px] w-[600px] rounded-full bg-emerald-500/[0.03] blur-[120px]" />
         <div className="absolute -left-[5%] top-[20%] h-[300px] w-[300px] rounded-full bg-purple-500/[0.03] blur-[100px]" />
         <div className="absolute -right-[5%] bottom-[10%] h-[350px] w-[350px] rounded-full bg-cyan-500/[0.03] blur-[100px]" />
       </div>
 
-      {/* Floating orbs */}
       <FloatingOrb color="#10b981" size={200} left="5%" top="15%" delay={0} />
       <FloatingOrb color="#8b5cf6" size={160} left="80%" top="25%" delay={1.5} />
       <FloatingOrb color="#06b6d4" size={180} left="50%" top="70%" delay={3} />
 
-      {/* ── Section Header ── */}
       <div className="text-center mb-16 px-6">
-        {/* Badge */}
-        <div ref={badgeRef} className="inline-block mb-6" style={{ opacity: 0 }}>
+        <motion.div
+          className="inline-block mb-6"
+          initial={{ y: 30, opacity: 0, scale: 0.8 }}
+          whileInView={{ y: 0, opacity: 1, scale: 1 }}
+          viewport={{ once: true, margin: '-10%' }}
+          transition={{ duration: 0.6, type: 'spring' }}
+        >
           <div className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/80 backdrop-blur-md px-4 py-1.5 text-xs font-semibold text-gray-600 shadow-sm dark:border-white/10 dark:bg-[#0a0a0a]/80 dark:text-white/70">
             <span className="relative flex h-1.5 w-1.5">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
@@ -585,10 +397,14 @@ export function WallOfLove() {
             </span>
             Loved by developers worldwide
           </div>
-        </div>
+        </motion.div>
 
-        {/* Heading */}
-        <div ref={headingRef} style={{ opacity: 0 }}>
+        <motion.div
+          initial={{ y: 50, opacity: 0, clipPath: 'inset(0 0 100% 0)' }}
+          whileInView={{ y: 0, opacity: 1, clipPath: 'inset(0 0 0% 0)' }}
+          viewport={{ once: true, margin: '-10%' }}
+          transition={{ duration: 0.8, ease: 'easeOut' }}
+        >
           <h2 className="text-4xl md:text-6xl font-extrabold tracking-tight mb-4">
             <span className="bg-gradient-to-br from-gray-900 via-black to-gray-600 dark:from-white dark:via-gray-100 dark:to-gray-500 bg-clip-text text-transparent">
               Wall of{' '}
@@ -598,31 +414,46 @@ export function WallOfLove() {
             </span>
             <span className="inline-block ml-2 text-4xl md:text-6xl animate-pulse">💜</span>
           </h2>
-        </div>
+        </motion.div>
 
-        {/* Subheading */}
-        <p
-          ref={subheadingRef}
+        <motion.p
           className="mx-auto max-w-xl text-sm sm:text-base leading-relaxed text-gray-500 dark:text-white/55"
-          style={{ opacity: 0 }}
+          initial={{ y: 20, opacity: 0 }}
+          whileInView={{ y: 0, opacity: 1 }}
+          viewport={{ once: true, margin: '-10%' }}
+          transition={{ duration: 0.6, delay: 0.2 }}
         >
           See what developers are saying about CommitPulse. Real feedback from real builders who
           elevated their GitHub profiles.
-        </p>
+        </motion.p>
       </div>
 
-      {/* ── Marquee Rows ── */}
       <div className="space-y-5">
-        <div ref={row1Ref} style={{ opacity: 0 }}>
+        <motion.div
+          initial={{ y: 60, opacity: 0 }}
+          whileInView={{ y: 0, opacity: 1 }}
+          viewport={{ once: true, margin: '-10%' }}
+          transition={{ duration: 0.8, delay: 0.1 }}
+        >
           <MarqueeRow testimonials={TESTIMONIALS_ROW_1} direction="left" speed={40} />
-        </div>
-        <div ref={row2Ref} style={{ opacity: 0 }}>
+        </motion.div>
+        <motion.div
+          initial={{ y: 60, opacity: 0 }}
+          whileInView={{ y: 0, opacity: 1 }}
+          viewport={{ once: true, margin: '-10%' }}
+          transition={{ duration: 0.8, delay: 0.3 }}
+        >
           <MarqueeRow testimonials={TESTIMONIALS_ROW_2} direction="right" speed={45} />
-        </div>
+        </motion.div>
       </div>
 
-      {/* ── Stats Bar ── */}
-      <div ref={statsRef} className="mt-16 px-6" style={{ opacity: 0 }}>
+      <motion.div
+        className="mt-16 px-6"
+        initial={{ y: 30, opacity: 0, scale: 0.95 }}
+        whileInView={{ y: 0, opacity: 1, scale: 1 }}
+        viewport={{ once: true, margin: '-10%' }}
+        transition={{ duration: 0.6, delay: 0.4 }}
+      >
         <div className="mx-auto max-w-3xl">
           <div className="rounded-2xl border border-black/5 bg-white/60 backdrop-blur-xl shadow-lg shadow-black/5 dark:border-white/[0.08] dark:bg-[#0a0a0a]/80 dark:shadow-2xl dark:shadow-black/40">
             <div className="grid grid-cols-3 divide-x divide-black/5 dark:divide-white/[0.06]">
@@ -632,9 +463,8 @@ export function WallOfLove() {
             </div>
           </div>
         </div>
-      </div>
+      </motion.div>
 
-      {/* ── CTA Button for Review Form ── */}
       <div className="mt-16 flex justify-center px-6">
         <Link
           href="/reviewform"
@@ -651,38 +481,19 @@ export function WallOfLove() {
 
 /* ─── Stat Item ─── */
 function StatItem({ value, label, color }: { value: string; label: string; color: string }) {
-  const valueRef = useRef<HTMLParagraphElement>(null);
   const [isVisible, setIsVisible] = useState(false);
 
-  useEffect(() => {
-    if (!valueRef.current || typeof window === 'undefined' || !('IntersectionObserver' in window)) {
-      setIsVisible(true); // fallback: show immediately in test/SSR env
-      return;
-    }
-
-    const observer = new IntersectionObserver((entries, obs) => {
-      if (entries[0].isIntersecting) {
-        setIsVisible(true);
-        obs.disconnect();
-      }
-    });
-
-    observer.observe(valueRef.current);
-    return () => observer.disconnect();
-  }, []);
-
   return (
-    <div className="group relative px-4 py-6 text-center transition-colors duration-300 hover:bg-black/[0.02] dark:hover:bg-white/[0.02]">
-      {/* Glow on hover */}
+    <motion.div
+      className="group relative px-4 py-6 text-center transition-colors duration-300 hover:bg-black/[0.02] dark:hover:bg-white/[0.02]"
+      onViewportEnter={() => setIsVisible(true)}
+      viewport={{ once: true }}
+    >
       <div
         className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
-        style={{
-          background: `radial-gradient(circle at 50% 100%, ${color}10, transparent 70%)`,
-        }}
+        style={{ background: `radial-gradient(circle at 50% 100%, ${color}10, transparent 70%)` }}
       />
-
       <motion.p
-        ref={valueRef}
         className="relative z-10 text-2xl md:text-3xl font-extrabold tracking-tight mb-1"
         style={{ color }}
         initial={{ opacity: 0, y: 20 }}
@@ -699,6 +510,6 @@ function StatItem({ value, label, color }: { value: string; label: string; color
       >
         {label}
       </motion.p>
-    </div>
+    </motion.div>
   );
 }

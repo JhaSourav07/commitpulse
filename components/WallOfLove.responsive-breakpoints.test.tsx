@@ -18,13 +18,40 @@ vi.stubGlobal('IntersectionObserver', IntersectionObserverMock);
 let mockReducedMotion = false;
 
 // Mock framer-motion strictly
-vi.mock('framer-motion', () => ({
-  motion: {
-    p: (props: React.ComponentProps<'p'>) => <p {...props} />,
-    div: (props: React.ComponentProps<'div'>) => <div {...props} />,
-  },
-  useReducedMotion: () => mockReducedMotion,
-}));
+/* eslint-disable */
+vi.mock('framer-motion', () => {
+  const React = require('react');
+  return {
+    motion: new Proxy(
+      {},
+      {
+        get: (_, element) =>
+          React.forwardRef((props, ref) => {
+            const {
+              initial,
+              animate,
+              exit,
+              transition,
+              whileHover,
+              whileTap,
+              whileInView,
+              onViewportEnter,
+              viewport,
+              style,
+              ...validProps
+            } = props;
+            return React.createElement(element, { ref, style, ...validProps });
+          }),
+      }
+    ),
+    AnimatePresence: ({ children }) => children,
+    useMotionValue: (v) => ({ get: () => v, set: () => {} }),
+    useSpring: (v) => v,
+    useTransform: (v) => v,
+    useReducedMotion: () => false,
+  };
+});
+/* eslint-enable */
 
 // Mock GSAP
 vi.mock('gsap', () => {

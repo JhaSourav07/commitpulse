@@ -6,8 +6,6 @@ import { renderHeroTitle } from './heroTitle';
 import Link from 'next/link';
 import { useRef, useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { gsap } from 'gsap';
-import { useGSAP } from '@gsap/react';
 import { jsPDF } from 'jspdf';
 import 'svg2pdf.js';
 

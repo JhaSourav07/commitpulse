@@ -3,12 +3,40 @@ import '@testing-library/jest-dom/vitest';
 import { describe, expect, it, vi } from 'vitest';
 import { WallOfLove } from './WallOfLove';
 
-vi.mock('framer-motion', () => ({
-  motion: {
-    p: (props: React.ComponentProps<'p'>) => <p {...props} />,
-  },
-  useReducedMotion: () => true,
-}));
+/* eslint-disable */
+vi.mock('framer-motion', () => {
+  const React = require('react');
+  return {
+    motion: new Proxy(
+      {},
+      {
+        get: (_, element) =>
+          React.forwardRef((props, ref) => {
+            const {
+              initial,
+              animate,
+              exit,
+              transition,
+              whileHover,
+              whileTap,
+              whileInView,
+              onViewportEnter,
+              viewport,
+              style,
+              ...validProps
+            } = props;
+            return React.createElement(element, { ref, style, ...validProps });
+          }),
+      }
+    ),
+    AnimatePresence: ({ children }) => children,
+    useMotionValue: (v) => ({ get: () => v, set: () => {} }),
+    useSpring: (v) => v,
+    useTransform: (v) => v,
+    useReducedMotion: () => false,
+  };
+});
+/* eslint-enable */
 
 vi.mock('gsap', () => ({
   default: {

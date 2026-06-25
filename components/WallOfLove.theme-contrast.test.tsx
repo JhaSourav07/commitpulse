@@ -27,13 +27,40 @@ vi.mock('gsap/ScrollTrigger', () => ({
   ScrollTrigger: {},
 }));
 
-vi.mock('framer-motion', () => ({
-  motion: {
-    div: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-    p: ({ children }: { children: React.ReactNode }) => <p>{children}</p>,
-  },
-  useReducedMotion: () => false,
-}));
+/* eslint-disable */
+vi.mock('framer-motion', () => {
+  const React = require('react');
+  return {
+    motion: new Proxy(
+      {},
+      {
+        get: (_, element) =>
+          React.forwardRef((props, ref) => {
+            const {
+              initial,
+              animate,
+              exit,
+              transition,
+              whileHover,
+              whileTap,
+              whileInView,
+              onViewportEnter,
+              viewport,
+              style,
+              ...validProps
+            } = props;
+            return React.createElement(element, { ref, style, ...validProps });
+          }),
+      }
+    ),
+    AnimatePresence: ({ children }) => children,
+    useMotionValue: (v) => ({ get: () => v, set: () => {} }),
+    useSpring: (v) => v,
+    useTransform: (v) => v,
+    useReducedMotion: () => false,
+  };
+});
+/* eslint-enable */
 
 describe('WallOfLove Theme Contrast', () => {
   it('renders Wall Of Love heading', () => {
