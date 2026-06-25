@@ -18,7 +18,7 @@ import type { GraphNode, GraphLink } from '@/types';
 
 import RefreshButton from './RefreshButton';
 import ProfileCard from './ProfileCard';
-import Achievements from './Achievements';
+import AchievementCenter from './AchievementCenter';
 import ActivityLandscape from './ActivityLandscape';
 import LanguageChart from './LanguageChart';
 import CommitClock from './CommitClock';
@@ -705,7 +705,7 @@ export default function DashboardClient({
                 activity: initialData.activity,
               }}
             />
-            <Achievements achievements={initialData.achievements} />
+            <AchievementCenter data={initialData} />
             <ResumeProfileSection githubUsername={username} />
             <DeploymentTracker data={initialData.deployments} />
           </aside>
