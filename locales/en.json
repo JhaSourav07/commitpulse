@@ -465,6 +465,25 @@
       "reviews_header": "Reviews",
       "avg_review_header": "Avg Review Time",
       "no_repos": "No repository data available."
+    },
+    "productivity": {
+      "title": "Developer Productivity Intelligence",
+      "subtitle": "Track your coding productivity and contribution quality",
+      "commits": "Commits",
+      "prs": "Pull Requests",
+      "reviews": "Reviews",
+      "discussions": "Discussions",
+      "response_time": "Avg Response",
+      "score": "Score",
+      "quality_metrics": "Quality Metrics",
+      "code_review_quality": "Code Review Quality",
+      "test_coverage": "Test Coverage",
+      "documentation": "Documentation",
+      "overall_quality": "Overall Quality",
+      "weekly_trends": "Weekly Trends",
+      "week": "Week",
+      "activity_timeline": "Activity Timeline",
+      "no_activity": "No recent activity to display"
     }
   }
 }
