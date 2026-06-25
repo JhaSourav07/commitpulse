@@ -243,6 +243,12 @@ describe('getNormalizedThemeKey', () => {
     expect(getNormalizedThemeKey('DRACULA')).toBe('dracula');
   });
 
+  it('matches keys when user provides padded whitespace inputs', () => {
+    expect(getNormalizedThemeKey('  dark  ')).toBe('dark');
+    expect(getNormalizedThemeKey('\tneon\n')).toBe('neon');
+    expect(getNormalizedThemeKey(' DARK ')).toBe('dark');
+  });
+
   it('returns default fallback when theme name does not exist', () => {
     expect(getNormalizedThemeKey('invalidThemeNonexistent')).toBe('default');
   });

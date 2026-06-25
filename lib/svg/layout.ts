@@ -10,6 +10,7 @@ import {
   LINEAR_SCALE_MULTIPLIER,
   MAX_LOG_HEIGHT,
   MAX_LINEAR_HEIGHT,
+  MAX_SQRT_HEIGHT,
   TILE_HEIGHT_HALF,
   TILE_WIDTH_HALF,
 } from './layoutConstants';
@@ -68,14 +69,20 @@ export function isGhostCity(weeks: MinimalWeek[]): boolean {
 
 export function computeTowerHeight(
   count: number,
-  scale: 'linear' | 'log',
-  shouldShowGhostCity: boolean
+  scale: 'linear' | 'log' | 'sqrt',
+  shouldShowGhostCity: boolean,
+  maxCommits?: number
 ): number {
   if (count === 0 && shouldShowGhostCity) return GHOST_HEIGHT_PX;
   if (count === 0) return 0;
-  return scale === 'log'
-    ? Math.min(Math.log2(count + 1) * LOG_SCALE_MULTIPLIER, MAX_LOG_HEIGHT)
-    : Math.min(count * LINEAR_SCALE_MULTIPLIER, MAX_LINEAR_HEIGHT);
+  if (scale === 'log') {
+    return Math.min(Math.log2(count + 1) * LOG_SCALE_MULTIPLIER, MAX_LOG_HEIGHT);
+  }
+  if (scale === 'sqrt') {
+    const divisor = maxCommits || count || 1;
+    return Math.min(Math.sqrt(count / divisor) * MAX_SQRT_HEIGHT, MAX_SQRT_HEIGHT);
+  }
+  return Math.min(count * LINEAR_SCALE_MULTIPLIER, MAX_LINEAR_HEIGHT);
 }
 
 export function computeFaceOpacity(count: number, isGhostCityMode: boolean): FaceOpacity {
@@ -119,7 +126,7 @@ export function projectIsometric(weekIndex: number, dayIndex: number): { x: numb
  */
 export function computeTowers(
   calendar: ContributionCalendar,
-  scale: 'linear' | 'log' = 'linear',
+  scale: 'linear' | 'log' | 'sqrt' = 'linear',
   todayDate: string = '',
   mode: 'commits' | 'loc' = 'commits'
 ): TowerData[] {
@@ -209,7 +216,7 @@ export function computeTowers(
       towers.push({
         x: coords.x,
         y: coords.y,
-        h: computeTowerHeight(count, scale, shouldShowGhostCity),
+        h: computeTowerHeight(count, scale, shouldShowGhostCity, maxCommits),
         hasCommits,
         isGhost,
         isToday,

@@ -174,3 +174,46 @@ if (typeof globalThis.fetch !== 'undefined') {
     globalThis.fetch = guardedFetch;
   });
 }
+
+import enTranslations from './locales/en.json';
+
+// Global Translation Context Mock
+vi.mock('@/context/TranslationContext', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/context/TranslationContext')>();
+
+  const getNestedValue = (obj: Record<string, unknown>, path: string): unknown => {
+    return path.split('.').reduce((acc: unknown, part) => {
+      if (acc && typeof acc === 'object') {
+        return (acc as Record<string, unknown>)[part];
+      }
+      return undefined;
+    }, obj);
+  };
+
+  return {
+    ...actual,
+    useTranslation: () => ({
+      t: (key: string, options?: Record<string, string | number> & { defaultValue?: string }) => {
+        let val = getNestedValue(enTranslations as Record<string, unknown>, key) as string;
+
+        if (!val) {
+          if (options && typeof options.defaultValue === 'string') {
+            val = options.defaultValue;
+          } else {
+            const parts = key.split('.');
+            val = parts[parts.length - 1];
+          }
+        }
+
+        if (options && typeof val === 'string') {
+          Object.keys(options).forEach((k) => {
+            if (k !== 'defaultValue') {
+              val = val.replace(`{{${k}}}`, String(options[k]));
+            }
+          });
+        }
+        return val;
+      },
+    }),
+  };
+});

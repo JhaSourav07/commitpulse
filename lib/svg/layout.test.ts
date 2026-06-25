@@ -13,6 +13,7 @@ import {
   LINEAR_SCALE_MULTIPLIER,
   MAX_LOG_HEIGHT,
   MAX_LINEAR_HEIGHT,
+  MAX_SQRT_HEIGHT,
 } from './layoutConstants';
 
 describe('computeTowers edge cases', () => {
@@ -375,6 +376,22 @@ describe('computeTowerHeight', () => {
 
   it('caps logarithmic scale height at maximum', () => {
     expect(computeTowerHeight(999999, 'log', false)).toBe(MAX_LOG_HEIGHT);
+  });
+
+  it('computes square root scale height correctly', () => {
+    // formula: h_scaled = MAX_SQRT_HEIGHT * sqrt(commits / maxCommits)
+    // with count=4, maxCommits=16, height should be 50 * sqrt(4/16) = 50 * 0.5 = 25
+    expect(computeTowerHeight(4, 'sqrt', false, 16)).toBe(25);
+  });
+
+  it('caps square root scale height at maximum', () => {
+    expect(computeTowerHeight(20, 'sqrt', false, 10)).toBe(50);
+  });
+
+  it('handles empty maxCommits fallback correctly', () => {
+    // fallback divisor is count
+    // count=4, maxCommits=undefined -> divisor=4 -> sqrt(4/4)*50 = 50
+    expect(computeTowerHeight(4, 'sqrt', false)).toBe(50);
   });
 });
 

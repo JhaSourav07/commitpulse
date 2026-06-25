@@ -5,6 +5,7 @@ import { reviewPostSchema } from '@/lib/validations';
 import { getClientIp } from '@/utils/getClientIp';
 import { DistributedCache } from '@/lib/cache';
 import { notifyRateLimiter } from '@/lib/rate-limit';
+import { validateCSRF } from '@/lib/security/csrf';
 
 // Per-IP cooldown: one submission per 10 minutes to prevent spam
 const reviewWriteCache = new DistributedCache<number>(5000, 60000);
@@ -13,6 +14,8 @@ const REVIEW_WRITE_COOLDOWN_MS = 10 * 60 * 1000;
 // ─── POST /api/reviews ────────────────────────────────────────────────────────
 // Submit a testimonial review for the Wall of Love
 export async function POST(req: Request) {
+  const csrfError = validateCSRF(req);
+  if (csrfError) return csrfError;
   // Rate limiting — always applied with user-agent fallback for unknown IPs
   const ip = getClientIp(req);
   const rateLimitKey =

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { describe, it, expect, vi } from 'vitest';
@@ -11,7 +12,23 @@ type MockMotionProps = {
 
 vi.mock('framer-motion', () => ({
   motion: {
-    div: ({ children, ...props }: MockMotionProps) => <div {...props}>{children}</div>,
+    div: ({
+      children,
+      className,
+      style,
+      whileInView,
+      whileHover,
+      whileTap,
+      initial,
+      animate,
+      transition,
+      viewport,
+      ...rest
+    }: any) => (
+      <div className={className} style={style} {...rest}>
+        {children}
+      </div>
+    ),
   },
 }));
 
@@ -23,20 +40,16 @@ const baseProps = {
 };
 
 describe('ComparisonStatsCard — Edge Cases & Empty/Missing Inputs', () => {
-  it('renders without crashing when both values are zero', () => {
-    render(<ComparisonStatsCard {...baseProps} valueA={0} valueB={0} />);
+  it('renders neutral progress bar when both values are zero', () => {
+    const { container } = render(<ComparisonStatsCard {...baseProps} valueA={0} valueB={0} />);
+
     expect(screen.getByText('userA')).toBeInTheDocument();
     expect(screen.getByText('userB')).toBeInTheDocument();
-  });
 
-  it('renders fallback gray bar when both values are zero', () => {
-    const { container } = render(<ComparisonStatsCard {...baseProps} valueA={0} valueB={0} />);
-    const fallback = container.querySelector('.bg-zinc-300, .bg-zinc-800');
+    const fallback = container.querySelector('.bg-zinc-300.dark\\:bg-zinc-800');
     expect(fallback).toBeInTheDocument();
 
-    const progressBar = container.querySelector('.w-full.h-2');
-    expect(progressBar).toBeInTheDocument();
-    expect(progressBar).toHaveClass('rounded-full');
+    expect(screen.queryByText('Winner')).not.toBeInTheDocument();
   });
 
   it('renders title correctly when title is an empty string', () => {

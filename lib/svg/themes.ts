@@ -78,7 +78,7 @@ export const AUTO_THEME_DARK: BadgeTheme = themes.dark;
 export function getNormalizedThemeKey(themeInput: string | undefined | null): string {
   if (!themeInput) return 'default'; // fallback key
 
-  const target = themeInput.toLowerCase();
+  const target = themeInput.trim().toLowerCase();
   const matchedKey = Object.keys(themes).find((key) => key.toLowerCase() === target);
 
   return matchedKey || 'default';

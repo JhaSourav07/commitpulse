@@ -46,6 +46,11 @@ export function toGlowFlag(val?: string): boolean {
   return val === 'true' || val === '1';
 }
 
+export function toMinifyFlag(val?: string): boolean {
+  if (val === undefined) return true;
+  return val === 'true' || val === '1';
+}
+
 export function toRefreshFlag(val?: string): boolean {
   return val === 'true';
 }
@@ -94,7 +99,7 @@ export function toDimensionValue(val?: string): number | undefined {
 
 export function validateGitHubUsername(username: string): boolean {
   if (!username || typeof username !== 'string') return false;
-  return /^[a-z\d](?:[a-z\d]|-(?=[a-z\d])){0,38}$/i.test(username);
+  return GITHUB_USERNAME_REGEX.test(username);
 }
 
 /**
@@ -211,7 +216,7 @@ const timeZoneParam = z
   .optional()
   .refine(isValidTimeZone, { message: 'Invalid timezone' });
 
-export const GITHUB_USERNAME_REGEX = /^[a-zA-Z0-9](?:[a-zA-Z0-9]|-(?=[a-zA-Z0-9]))*$/;
+export const GITHUB_USERNAME_REGEX = /^[a-z\d](?:[a-z\d]|-(?=[a-z\d])){0,38}$/i;
 
 export const githubUsernameSchema = z
   .string({ error: 'Invalid GitHub username' })
@@ -359,7 +364,7 @@ const baseStreakParamsSchema = z.object({
     }),
 
   // Silently fall back to 'linear' for unknown values (matches old behavior)
-  scale: z.enum(['linear', 'log']).catch('linear').default('linear'),
+  scale: z.enum(['linear', 'log', 'sqrt']).catch('linear').default('linear'),
 
   // Invalid size values fall back to 'medium' to preserve badge rendering.
   size: z.enum(['small', 'medium', 'large']).catch('medium').default('medium'),
@@ -514,6 +519,9 @@ const baseStreakParamsSchema = z.object({
     .max(200, {
       message: 'gradient_stops cannot exceed 200 characters',
     })
+    .refine((val) => !val || /^[0-9a-fA-F#, ]+$/.test(val), {
+      message: 'gradient_stops contains invalid characters',
+    })
     .optional(),
   gradient_dir: z.enum(['vertical', 'horizontal', 'diagonal']).catch('vertical').optional(),
   disable_particles: z
@@ -523,6 +531,9 @@ const baseStreakParamsSchema = z.object({
 
   // Glow effect — on by default. Accepts 'true'/'1' (true) or 'false' (false).
   glow: z.string().optional().transform(toGlowFlag).default(true),
+
+  // SVG optimization — on by default. Accepts 'true'/'1' (true) or 'false' (false).
+  minify: z.string().optional().transform(toMinifyFlag).default(true),
   opacity: z.string().optional().transform(toOpacityValue),
   entrance: z
     .enum(['rise', 'fade', 'slide', 'wave', 'bounce', 'none'])

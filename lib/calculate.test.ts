@@ -827,6 +827,42 @@ describe('calculateStreak', () => {
     expect(resultLeapGap.currentStreak).toBe(1);
     expect(resultLeapGap.longestStreak).toBe(2);
   });
+  it('verify streak formulas for year boundary transition timeline (Variation 3)', () => {
+    const buildCustomCalendar = (
+      daysData: { date: string; count: number }[]
+    ): ContributionCalendar => {
+      const weeks = [];
+
+      for (let i = 0; i < daysData.length; i += 7) {
+        const slice = daysData.slice(i, i + 7);
+
+        weeks.push({
+          contributionDays: slice.map((day) => ({
+            contributionCount: day.count,
+            date: day.date,
+          })),
+        });
+      }
+
+      return {
+        totalContributions: daysData.reduce((sum, d) => sum + d.count, 0),
+        weeks,
+      };
+    };
+
+    const calendar = buildCustomCalendar([
+      { date: '2024-12-30', count: 1 },
+      { date: '2024-12-31', count: 1 },
+      { date: '2025-01-01', count: 1 },
+      { date: '2025-01-02', count: 1 },
+    ]);
+
+    const result = calculateStreak(calendar, 'UTC', new Date('2025-01-02T12:00:00Z'));
+
+    expect(result.currentStreak).toBe(4);
+    expect(result.longestStreak).toBe(4);
+    expect(result.totalContributions).toBe(4);
+  });
   it('verify streak formulas for leap year transition timeline (Variation 2)', () => {
     const buildCustomCalendar = (
       daysData: { date: string; count: number }[]
@@ -2002,6 +2038,102 @@ describe('aggregateCalendars', () => {
 
     expect(dates).toContain('2024-01-01');
     expect(dates).toContain('2024-03-01');
+  });
+});
+
+describe('aggregateCalendars - week structure preservation', () => {
+  it('preserves original week boundaries when aggregating calendars', () => {
+    const cal1 = {
+      totalContributions: 3,
+      weeks: [
+        {
+          contributionDays: [
+            { date: '2024-01-01', contributionCount: 1 },
+            { date: '2024-01-02', contributionCount: 2 },
+          ],
+        },
+        {
+          contributionDays: [{ date: '2024-01-08', contributionCount: 3 }],
+        },
+      ],
+    };
+
+    const cal2 = {
+      totalContributions: 2,
+      weeks: [
+        {
+          contributionDays: [{ date: '2024-01-01', contributionCount: 1 }],
+        },
+        {
+          contributionDays: [{ date: '2024-01-08', contributionCount: 1 }],
+        },
+      ],
+    };
+
+    const result = aggregateCalendars([cal1, cal2]);
+
+    expect(result.weeks).toHaveLength(2);
+
+    expect(result.weeks[0].contributionDays.map((d) => d.date)).toEqual([
+      '2024-01-01',
+      '2024-01-02',
+    ]);
+
+    expect(result.weeks[1].contributionDays.map((d) => d.date)).toEqual(['2024-01-08']);
+  });
+
+  it('aggregates contribution counts without moving days between weeks', () => {
+    const cal1 = {
+      totalContributions: 5,
+      weeks: [
+        {
+          contributionDays: [{ date: '2024-02-01', contributionCount: 2 }],
+        },
+        {
+          contributionDays: [{ date: '2024-02-08', contributionCount: 3 }],
+        },
+      ],
+    };
+
+    const cal2 = {
+      totalContributions: 4,
+      weeks: [
+        {
+          contributionDays: [{ date: '2024-02-01', contributionCount: 1 }],
+        },
+        {
+          contributionDays: [{ date: '2024-02-08', contributionCount: 3 }],
+        },
+      ],
+    };
+
+    const result = aggregateCalendars([cal1, cal2]);
+
+    expect(result.weeks[0].contributionDays[0].contributionCount).toBe(3);
+    expect(result.weeks[1].contributionDays[0].contributionCount).toBe(6);
+  });
+
+  it('preserves optional ContributionDay fields during aggregation', () => {
+    const cal1 = {
+      totalContributions: 1,
+      weeks: [
+        {
+          contributionDays: [
+            {
+              date: '2024-03-01',
+              contributionCount: 1,
+              locAdditions: 500,
+              locDeletions: 200,
+            },
+          ],
+        },
+      ],
+    };
+
+    const result = aggregateCalendars([cal1]);
+
+    expect(result.weeks[0].contributionDays[0].locAdditions).toBe(500);
+    expect(result.weeks[0].contributionDays[0].locDeletions).toBe(200);
   });
 });
 

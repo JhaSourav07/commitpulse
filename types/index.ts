@@ -7,7 +7,7 @@
  */
 export type HexColor = string & { __brand: 'HexColor' };
 
-export type Scale = 'linear' | 'log';
+export type Scale = 'linear' | 'log' | 'sqrt';
 
 export type BadgeSize = 'small' | 'medium' | 'large';
 

@@ -61,20 +61,14 @@ describe('ContributionCity3D - Empty/Fallback Safety Tests', () => {
     expect(() => render(<ContributionCity3D data={[]} />)).not.toThrow();
   });
 
-  it('still mounts a canvas element when there is no contribution data', () => {
+  it('renders the EmptyState component when there is no contribution data', () => {
+    render(<ContributionCity3D data={[]} theme="dark" />);
+    expect(screen.getByText(/no activity found for this timeframe/i)).toBeTruthy();
+  });
+
+  it('does not mount a canvas element when there is no contribution data', () => {
     const { container } = render(<ContributionCity3D data={[]} theme="dark" />);
-    expect(container.querySelector('canvas')).toBeTruthy();
-  });
-
-  it('still shows the drag-to-rotate hint with no data', () => {
-    render(<ContributionCity3D data={[]} theme="dark" />);
-    expect(screen.getByText(/drag to rotate/i)).toBeTruthy();
-  });
-
-  it('calls clearRect on draw even with an empty data array (canvas still renders)', () => {
-    render(<ContributionCity3D data={[]} theme="dark" />);
-    // ResizeObserver fires immediately, triggering draw() → clearRect
-    expect(mockCtx.clearRect).toHaveBeenCalled();
+    expect(container.querySelector('canvas')).toBeNull();
   });
 
   it('does not crash when every day in range has zero contributions', () => {
@@ -108,7 +102,8 @@ describe('ContributionCity3D - Empty/Fallback Safety Tests', () => {
   });
 
   it('falls back to the default 98-day window when no "days" prop is given', () => {
-    const { container } = render(<ContributionCity3D data={[]} />);
+    const data: ActivityData[] = [{ date: '2026-06-17', count: 1, intensity: 1 }];
+    const { container } = render(<ContributionCity3D data={data} />);
     expect(container.querySelector('canvas')).toBeTruthy();
   });
 });

@@ -155,8 +155,11 @@ export function PopularRepos({
               >
                 <div className="flex-1 min-w-0 h-full flex flex-col justify-between">
                   <div className="min-w-0 space-y-0.5">
-                    <h4 className="font-semibold text-foreground text-sm group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors truncate">
-                      {repo.name}
+                    <h4
+                      className="font-semibold text-foreground text-sm group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors truncate"
+                      title={repo.name}
+                    >
+                      {repo.name.length > 20 ? `${repo.name.substring(0, 17)}...` : repo.name}
                     </h4>
                     <p className="text-xs text-muted-foreground line-clamp-2 leading-normal">
                       {repo.description || 'No description provided.'}

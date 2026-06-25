@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 
 const SHORTCUT_ROUTES: Record<string, string> = {
   d: '/',
@@ -22,7 +23,10 @@ function isTypingTarget(target: EventTarget | null): boolean {
   );
 }
 
+// Global "g then key" quick-nav shortcuts. Navigates via the App Router, so it
+// must be mounted within a Next.js App Router context (useRouter throws otherwise).
 export function useKeyboardShortcuts() {
+  const router = useRouter();
   const waitingForSecondKey = useRef(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -59,7 +63,7 @@ export function useKeyboardShortcuts() {
 
       if (route) {
         event.preventDefault();
-        window.location.assign(route);
+        router.push(route);
       }
 
       resetShortcut();
@@ -71,5 +75,5 @@ export function useKeyboardShortcuts() {
       resetShortcut();
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, []);
+  }, [router]);
 }

@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 import { NextRequest, NextResponse } from 'next/server';
 import { timingSafeEqual } from 'crypto';
 import { setAlertConfig } from '@/services/github/webhook-handler';
@@ -21,7 +22,9 @@ function verifyAuthToken(request: NextRequest): boolean {
   const expectedToken = process.env.CICD_ALERTS_SECRET || '';
 
   if (!expectedToken) {
-    console.warn('CICD_ALERTS_SECRET not configured');
+    logger.warn('CICD alerts auth rejected: CICD_ALERTS_SECRET is not configured', {
+      route: '/api/cicd/alerts',
+    });
     return false;
   }
 

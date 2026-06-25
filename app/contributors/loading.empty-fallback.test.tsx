@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import Loading from './loading';
+import { LOADING_ROOT_CLASSES, LOADING_SPINNER_CLASSES } from './loadingClasses';
 
 function hasClasses(element: Element | null, classes: string[]) {
   expect(element).not.toBeNull();
@@ -39,14 +40,7 @@ describe('Contributors loading empty fallback', () => {
     const status = screen.getByRole('status');
     const page = status.parentElement;
 
-    hasClasses(page, [
-      'flex',
-      'min-h-screen',
-      'items-center',
-      'justify-center',
-      'bg-[#050505]',
-      'text-white',
-    ]);
+    hasClasses(page, LOADING_ROOT_CLASSES);
 
     hasClasses(status, ['flex', 'flex-col', 'items-center', 'gap-6']);
   });
@@ -61,15 +55,7 @@ describe('Contributors loading empty fallback', () => {
 
     hasClasses(spinnerWrapper, ['relative']);
 
-    hasClasses(spinner, [
-      'h-16',
-      'w-16',
-      'animate-spin',
-      'rounded-full',
-      'border-2',
-      'border-white/10',
-      'border-t-cyan-400',
-    ]);
+    hasClasses(spinner, LOADING_SPINNER_CLASSES);
 
     hasClasses(glowOverlay, [
       'absolute',

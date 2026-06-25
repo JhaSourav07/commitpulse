@@ -32,9 +32,12 @@ export async function GET(request: Request) {
     );
   }
 
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000);
+
   try {
     const userToken = await getUserGitHubToken();
-    const data = await fetchPRInsights(trimmed, userToken);
+    const data = await fetchPRInsights(trimmed, userToken, controller.signal);
 
     return NextResponse.json(data);
   } catch (error: unknown) {
@@ -43,5 +46,7 @@ export async function GET(request: Request) {
       { error: error instanceof Error ? error.message : 'Failed to fetch PR insights' },
       { status: 500 }
     );
+  } finally {
+    clearTimeout(timeoutId);
   }
 }

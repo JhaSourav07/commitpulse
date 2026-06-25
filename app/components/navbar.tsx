@@ -94,6 +94,13 @@ export default function Navbar() {
   const [isHidden, setIsHidden] = useState(false);
   const { t } = useTranslation();
   const lastScrollYRef = useRef(0);
+  // Ref so the scroll handler (stale closure) can always read the current open state.
+  const openRef = useRef(false);
+
+  // Keep openRef in sync with open state.
+  useEffect(() => {
+    openRef.current = open;
+  }, [open]);
 
   useKeyboardShortcuts();
 
@@ -139,8 +146,12 @@ export default function Navbar() {
       if (nextScrollY <= 0) {
         setIsHidden(false);
       } else if (delta > threshold && nextScrollY > 72) {
-        setIsHidden(true);
-        setOpen(false);
+        // Do not hide the navbar while the mobile menu is open — the menu
+        // is a child of the header, so hiding it would yank the open dropdown
+        // off-screen and confuse the user.
+        if (!openRef.current) {
+          setIsHidden(true);
+        }
       } else if (delta < -threshold) {
         setIsHidden(false);
       }
@@ -172,7 +183,7 @@ export default function Navbar() {
   return (
     <header
       className={`sticky top-0 z-50 px-4 pt-4 sm:px-6 w-full transform-gpu transition-[transform,opacity] duration-300 ease-out ${
-        isHidden ? '-translate-y-full opacity-0 pointer-events-none' : 'translate-y-0 opacity-100'
+        isHidden ? '-translate-y-full opacity-0' : 'translate-y-0 opacity-100'
       }`}
     >
       <div className="mx-auto max-w-6xl">
@@ -306,7 +317,15 @@ export default function Navbar() {
                 className="md:hidden inline-flex items-center justify-center rounded-xl p-2 text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-white"
                 aria-label={open ? t('navbar.menu_close') : t('navbar.menu_open')}
                 aria-expanded={open}
-                onClick={() => setOpen((prev) => !prev)}
+                onClick={() => {
+                  const opening = !open;
+                  if (opening) {
+                    // Snap the navbar into view so the dropdown is immediately
+                    // visible and stays visible while the menu is open.
+                    setIsHidden(false);
+                  }
+                  setOpen(opening);
+                }}
               >
                 {open ? (
                   <X size={20} className="transition-transform duration-300 rotate-90 scale-110" />

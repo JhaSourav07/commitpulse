@@ -133,6 +133,12 @@ export function findTodayIndex(
 
   return localTodayIndex !== -1 ? localTodayIndex : -1;
 }
+function getDayDifference(fromDate: string, toDate: string): number {
+  const from = new Date(`${fromDate}T00:00:00Z`);
+  const to = new Date(`${toDate}T00:00:00Z`);
+
+  return Math.floor((to.getTime() - from.getTime()) / (24 * 60 * 60 * 1000));
+}
 
 export function calculateStreak(
   calendar?: ContributionCalendar | null,
@@ -180,6 +186,7 @@ export function calculateStreak(
 
   if (todayIndex < 0) {
     const lastIndex = uniqueDays.length - 1;
+
     if (lastIndex < 0) {
       return {
         currentStreak: 0,
@@ -192,6 +199,18 @@ export function calculateStreak(
     const lastDateStr = uniqueDays[lastIndex]?.date;
 
     if (lastDateStr && localTodayStr > lastDateStr) {
+      const gapDays = Math.floor(
+        (new Date(localTodayStr).getTime() - new Date(lastDateStr).getTime()) / 86400000
+      );
+
+      // Issue #6171:
+      // only reject when today is missing AND gap > grace
+      if (gapDays > Math.max(1, grace)) {
+        todayIndex = -1;
+      } else {
+        todayIndex = lastIndex;
+      }
+
       todayIndex = lastIndex;
     } else {
       return {
@@ -377,7 +396,6 @@ export function aggregateCalendars(
     return { totalContributions: 0, weeks: [] };
   }
 
-  // Calculate total contributions across all calendars
   const totalContributions = calendars.reduce(
     (sum, cal) => sum + (cal?.totalContributions || 0),
     0
@@ -386,74 +404,73 @@ export function aggregateCalendars(
   // Use a Map keyed by the date string 'YYYY-MM-DD' to safely aggregate daily counts
   const dateMap = new Map<string, number>();
 
-  // Find the calendar with the most weeks to serve as our structural base
-  let baseCalendar = calendars[0];
   for (const cal of calendars) {
-    if (!cal) continue;
-    if ((cal.weeks?.length || 0) > (baseCalendar?.weeks?.length || 0)) {
-      baseCalendar = cal;
-    }
+    if (!cal?.weeks) continue;
 
-    // Populate the Map with all contributions from all calendars
-    (cal.weeks || []).forEach((week) => {
-      (week?.contributionDays || []).forEach((day) => {
-        if (day && day.date) {
-          const currentCount = dateMap.get(day.date) || 0;
-          dateMap.set(day.date, currentCount + (day.contributionCount || 0));
-        }
-      });
-    });
+    for (const week of cal.weeks) {
+      for (const day of week?.contributionDays || []) {
+        if (!day?.date) continue;
+
+        dateMap.set(day.date, (dateMap.get(day.date) || 0) + (day.contributionCount || 0));
+      }
+    }
   }
+
+  // pick structural base
+  const baseCalendar = calendars.find((c) => c?.weeks?.length)?.weeks
+    ? calendars.find((c) => c?.weeks?.length)!
+    : calendars[0];
 
   if (!baseCalendar) {
     return { totalContributions: 0, weeks: [] };
   }
 
-  const aggregatedBase: ContributionCalendar = structuredClone(baseCalendar);
-
-  aggregatedBase.totalContributions = totalContributions;
-
-  // Re-map the structural base using our aggregated date map
-  (aggregatedBase.weeks || []).forEach((week) => {
-    (week?.contributionDays || []).forEach((day) => {
-      if (day && day.date) {
-        day.contributionCount = dateMap.get(day.date) || 0;
-      }
-    });
-  });
+  const result: ContributionCalendar = structuredClone(baseCalendar);
+  result.totalContributions = totalContributions;
 
   const existingDates = new Set<string>();
 
-  (aggregatedBase.weeks || []).forEach((week) => {
-    (week?.contributionDays || []).forEach((day) => {
-      if (day && day.date) {
-        existingDates.add(day.date);
-      }
-    });
-  });
+  // update existing structure + preserve optional fields
+  for (const week of result.weeks) {
+    for (const day of week.contributionDays) {
+      if (!day?.date) continue;
 
+      existingDates.add(day.date);
+
+      // only override contributionCount, KEEP other fields
+      day.contributionCount = dateMap.get(day.date) ?? 0;
+    }
+  }
+
+  // inject missing days into correct week (NOT new fake weeks)
   const missingDays: ContributionDay[] = [];
 
-  for (const [date, contributionCount] of dateMap.entries()) {
+  for (const [date, count] of dateMap.entries()) {
     if (!existingDates.has(date)) {
       missingDays.push({
         date,
-        contributionCount,
-      });
+        contributionCount: count,
+      } as ContributionDay);
     }
   }
 
   missingDays.sort((a, b) => a.date.localeCompare(b.date));
 
-  if (!aggregatedBase.weeks) {
-    aggregatedBase.weeks = [];
+  // append missing days into last week (or correct week placement)
+  if (missingDays.length > 0) {
+    let lastWeek = result.weeks[result.weeks.length - 1];
+
+    for (const day of missingDays) {
+      if (!lastWeek || lastWeek.contributionDays.length >= 7) {
+        lastWeek = { contributionDays: [] };
+        result.weeks.push(lastWeek);
+      }
+
+      lastWeek.contributionDays.push(day);
+    }
   }
-  for (const day of missingDays) {
-    aggregatedBase.weeks.push({
-      contributionDays: [day],
-    });
-  }
-  return aggregatedBase;
+
+  return result;
 }
 
 /**
@@ -560,19 +577,24 @@ export function calculateWrappedStats(calendar?: ContributionCalendar | null) {
 }
 
 /**
- * Normalizes a contribution calendar to a target timezone.
+ * Normalizes the structural layout of a contribution calendar.
  *
- * This function converts each contribution day's date to the target timezone
- * and re-groups the days by the target timezone's midnight boundaries.
- * This is essential for accurate comparisons between users in different timezones.
+ * This function aggregates duplicate calendar dates, sorts them
+ * chronologically, and re-groups them into Sunday-Saturday week buckets.
  *
- * @param calendar - The contribution calendar to normalize
- * @param targetTimezone - The target timezone to normalize to (e.g., 'UTC', 'America/New_York')
- * @returns A new calendar with dates normalized to the target timezone
+ * NOTE:
+ * ContributionDay entries only contain date strings (YYYY-MM-DD)
+ * and do not include timestamps or timezone information.
+ * Therefore, no actual timezone conversion is performed.
+ *
+ * @param calendar The contribution calendar to normalize
+ * @param _targetTimezone Reserved for future use. Currently unused because
+ * date-only contribution data cannot be shifted across timezone boundaries.
+ * @returns A calendar with normalized week structure
  */
 export function normalizeCalendarToTimezone(
   calendar: ContributionCalendar,
-  targetTimezone: string
+  _targetTimezone: string // retained for backward compatibility with existing callers
 ): ContributionCalendar {
   if (!calendar || !calendar.weeks || calendar.weeks.length === 0) {
     return calendar;

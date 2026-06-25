@@ -128,7 +128,7 @@ export async function POST(req: Request) {
     // Connect to database and perform upsert with 1.5s timeout
     try {
       let timer: NodeJS.Timeout | undefined;
-      const timeoutPromise = new Promise<{ success: boolean; error?: unknown }>((_, reject) => {
+      const timeoutPromise: Promise<never> = new Promise((_, reject) => {
         timer = setTimeout(() => reject(new Error('Database operation timed out')), 1500);
       });
 

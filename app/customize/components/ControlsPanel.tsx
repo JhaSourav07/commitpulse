@@ -304,8 +304,8 @@ export function ControlsPanel({
         <div className="h-px bg-black/5 dark:bg-white/5" />
 
         <ControlRow label={t('customize.controls.log_scaling')}>
-          <div className="grid grid-cols-2 gap-2">
-            {(['linear', 'log'] as Scale[]).map((currentScale) => (
+          <div className="grid grid-cols-3 gap-2">
+            {(['linear', 'log', 'sqrt'] as Scale[]).map((currentScale) => (
               <button
                 key={currentScale}
                 id={`scale-${currentScale}-btn`}
@@ -316,14 +316,20 @@ export function ControlsPanel({
                     : 'bg-gray-100/80 backdrop-blur-md border border-black/10 text-gray-700 dark:bg-white/[0.03] dark:border-white/8 dark:text-white/60 hover:bg-gray-200/70 hover:text-black hover:border-black/20 dark:hover:text-white/70 dark:hover:border-white/20'
                 }`}
               >
-                {currentScale === 'linear' ? 'Linear' : 'Logarithmic'}
+                {currentScale === 'linear'
+                  ? 'Linear'
+                  : currentScale === 'log'
+                    ? 'Logarithmic'
+                    : 'Square Root'}
               </button>
             ))}
           </div>
           <p className="text-[11px] text-gray-600 dark:text-white/60 mt-1.5 leading-relaxed">
             {scale === 'log'
               ? 'Log mode compresses extreme outliers. Great for power committers.'
-              : 'Linear mode shows raw commit counts as tower heights.'}
+              : scale === 'sqrt'
+                ? 'Square Root mode provides a balanced visual variance for low-to-medium activity.'
+                : 'Linear mode shows raw commit counts as tower heights.'}
           </p>
         </ControlRow>
 

@@ -76,20 +76,21 @@ export class RateLimiter {
 
     if (url && token) {
       try {
-        const getRes = await fetch(`${url}/pipeline`, {
+        const res = await fetch(`${url}/pipeline`, {
           method: 'POST',
           headers: {
             Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify([
-            ['GET', `ratelimit_class:${ip}`],
+            ['INCR', `ratelimit_class:${ip}`],
+            ['EXPIRE', `ratelimit_class:${ip}`, Math.floor(this.windowMs / 1000), 'NX'],
             ['TTL', `ratelimit_class:${ip}`],
           ]),
         });
 
-        if (getRes.ok) {
-          const getData = await getRes.json();
+        if (res.ok) {
+          const getData = await res.json();
           const currentCount = parseInt(getData[0].result ?? '0', 10);
           const ttl = getData[1].result as number;
 
@@ -200,7 +201,33 @@ export class RateLimiter {
    * console.log(`You have ${left} requests left.`);
    */
   async remaining(ip: string): Promise<number> {
-    const count = ((await this.cache.get(`ratelimit:${ip}`)) as unknown as number) ?? 0;
+    const url = process.env.KV_REST_API_URL;
+    const token = process.env.KV_REST_API_TOKEN;
+
+    if (url && token) {
+      try {
+        const res = await fetch(`${url}/get/ratelimit_class:${ip}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+
+          const count = Number(data.result ?? 0);
+
+          return Math.max(0, this.limit - count);
+        }
+      } catch (error) {
+        console.error('RateLimiter KV remaining error:', error);
+      }
+    }
+
+    const cached = await this.cache.get(`ratelimit:${ip}`);
+
+    const count = typeof cached === 'number' ? cached : (cached?.count ?? 0);
+
     return Math.max(0, this.limit - count);
   }
 
@@ -315,9 +342,12 @@ export async function rateLimit(
 }
 
 export function getRateLimitHeaders(result: RateLimitResult) {
+  const retryAfter = Math.max(0, Math.ceil((result.reset - Date.now()) / 1000));
+
   return {
     'X-RateLimit-Limit': result.limit.toString(),
     'X-RateLimit-Remaining': result.remaining.toString(),
     'X-RateLimit-Reset': result.reset.toString(),
+    'Retry-After': retryAfter.toString(),
   };
 }

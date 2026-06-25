@@ -125,7 +125,9 @@ describe('useShareActions', () => {
     const { result } = renderHook(() => useShareActions(mockUsername, mockExportData, mockClose));
 
     await act(async () => {
-      await result.current.handleCopyImage();
+      const promise = result.current.handleCopyImage();
+      await vi.advanceTimersByTimeAsync(150);
+      await promise;
     });
 
     expect(writeMock).toHaveBeenCalled();

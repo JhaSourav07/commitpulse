@@ -143,8 +143,14 @@ export async function GET(request: Request) {
     }
   }
 
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000);
+
   try {
-    const data = await getFullDashboardData(username, { bypassCache: shouldBypassCache });
+    const data = await getFullDashboardData(username, {
+      bypassCache: shouldBypassCache,
+      signal: controller.signal,
+    });
 
     // 4. Stale-While-Revalidate background refresh for normal cached requests
     if (!shouldBypassCache) {
@@ -228,5 +234,7 @@ export async function GET(request: Request) {
     const errMessage = getSafeErrorMessage(error);
 
     return NextResponse.json({ error: errMessage }, { status: 500 });
+  } finally {
+    clearTimeout(timeoutId);
   }
 }

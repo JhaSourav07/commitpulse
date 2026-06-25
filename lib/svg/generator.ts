@@ -10,7 +10,7 @@ import type {
 import { getLabels, type BadgeLabels } from '../i18n/badgeLabels';
 import { AUTO_THEME_DARK, AUTO_THEME_LIGHT, themes } from './themes';
 import { getTowerAnimationCSS } from './animations';
-import { computeTowers, type TowerData } from './layout';
+import { computeTowers, computeTowerHeight, type TowerData } from './layout';
 import { LANGUAGE_COLORS } from './languageColors';
 import {
   sanitizeFont,
@@ -25,7 +25,15 @@ import {
   sanitizeCustomText,
 } from './sanitizer';
 
-import { GRID_ORIGIN_X, GRID_ORIGIN_Y, TILE_HEIGHT_HALF, TILE_WIDTH_HALF } from './layoutConstants';
+import {
+  GRID_ORIGIN_X,
+  GRID_ORIGIN_Y,
+  TILE_HEIGHT_HALF,
+  TILE_WIDTH_HALF,
+  MAX_LOG_HEIGHT,
+  MAX_LINEAR_HEIGHT,
+  MAX_SQRT_HEIGHT,
+} from './layoutConstants';
 
 import { SVG_WIDTH, SVG_HEIGHT, MAX_USERNAME_DISPLAY_LENGTH } from './generatorConstants';
 
@@ -158,17 +166,17 @@ function generateParticles(
     const fillAttr = autoTheme ? 'class="cp-accent-fill"' : `fill="${color}"`;
 
     particles += `
-       <circle ${fillAttr} cx="${x + offsetX}" cy="${y - height}" r="${1.5 * sf}" opacity="1" pointer-events="none">
-       ${
-         animate
-           ? `
-         <animate attributeName="cy" from="${y - height}" to="${y - height - Math.round(20 * sf)}" dur="1.5s" begin="${delay}s" repeatCount="indefinite" />
-         <animate attributeName="opacity" from="1" to="0" dur="1.5s" begin="${delay}s" repeatCount="indefinite" />
-       `
-           : ''
-       }
-       </circle>
-     `;
+        <circle ${fillAttr} cx="${x + offsetX}" cy="${y - height}" r="${1.5 * sf}" opacity="1" pointer-events="none">
+        ${
+          animate
+            ? `
+          <animate attributeName="cy" from="${y - height}" to="${y - height - Math.round(20 * sf)}" dur="1.5s" begin="${delay}s" repeatCount="indefinite" />
+          <animate attributeName="opacity" from="1" to="0" dur="1.5s" begin="${delay}s" repeatCount="indefinite" />
+        `
+            : ''
+        }
+        </circle>
+      `;
   }
   return `<g class="heat-particles" pointer-events="none">${particles}</g>`;
 }
@@ -227,13 +235,13 @@ function generateCustomGradients(params: BadgeParams): { gradients: string; grad
 
       const colorHex = color.startsWith('#') ? color : `#${color}`;
       stopElements += `
-         <stop offset="${offset}%" stop-color="${colorHex}" stop-opacity="${stopOpacity}" />`;
+          <stop offset="${offset}%" stop-color="${colorHex}" stop-opacity="${stopOpacity}" />`;
     });
 
     gradients += `
-       <linearGradient id="${levelId}" x1="${coords.x1}" y1="${coords.y1}" x2="${coords.x2}" y2="${coords.y2}">
+        <linearGradient id="${levelId}" x1="${coords.x1}" y1="${coords.y1}" x2="${coords.x2}" y2="${coords.y2}">
 ${stopElements}
-       </linearGradient>`;
+        </linearGradient>`;
   }
 
   params.__customGradientId = gradientId;
@@ -256,10 +264,10 @@ function renderDefs(sf: number, params: BadgeParams): string {
         for (let i = 0; i < 4; i++) {
           const level = i + 1;
           gradients += `
-       <linearGradient id="tower-grad-level-${level}" x1="0" y1="1" x2="0" y2="0">
-         <stop offset="0%" stop-color="var(--cp-bg)" stop-opacity="0.1" />
-         <stop offset="100%" stop-color="var(--cp-accent)" stop-opacity="${0.4 + i * 0.2}" />
-       </linearGradient>`;
+        <linearGradient id="tower-grad-level-${level}" x1="0" y1="1" x2="0" y2="0">
+          <stop offset="0%" stop-color="var(--cp-bg)" stop-opacity="0.1" />
+          <stop offset="100%" stop-color="var(--cp-accent)" stop-opacity="${0.4 + i * 0.2}" />
+        </linearGradient>`;
         }
       } else {
         const accent = params.accent;
@@ -276,10 +284,10 @@ function renderDefs(sf: number, params: BadgeParams): string {
         colors.forEach((c, idx) => {
           const level = idx + 1;
           gradients += `
-       <linearGradient id="tower-grad-level-${level}" x1="0" y1="1" x2="0" y2="0">
-         <stop offset="0%" stop-color="${bgHex}" stop-opacity="0.1" />
-         <stop offset="100%" stop-color="${c}" stop-opacity="${0.4 + idx * 0.2}" />
-       </linearGradient>`;
+        <linearGradient id="tower-grad-level-${level}" x1="0" y1="1" x2="0" y2="0">
+          <stop offset="0%" stop-color="${bgHex}" stop-opacity="0.1" />
+          <stop offset="100%" stop-color="${c}" stop-opacity="${0.4 + idx * 0.2}" />
+        </linearGradient>`;
         });
       }
     }
@@ -312,24 +320,24 @@ function renderDefs(sf: number, params: BadgeParams): string {
       const x2 = Math.round(50 + Math.cos(angleRad) * 50) + '%';
       const y2 = Math.round(50 + Math.sin(angleRad) * 50) + '%';
       canvasGradient = `
-       <linearGradient id="canvas-gradient" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}">
-         <stop offset="0%" stop-color="${bgStart}" />
-         <stop offset="100%" stop-color="${bgEnd}" />
-       </linearGradient>`;
+        <linearGradient id="canvas-gradient" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}">
+          <stop offset="0%" stop-color="${bgStart}" />
+          <stop offset="100%" stop-color="${bgEnd}" />
+        </linearGradient>`;
     } else {
       canvasGradient = `
-       <radialGradient id="canvas-gradient" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
-         <stop offset="0%" stop-color="${bgStart}" />
-         <stop offset="100%" stop-color="${bgEnd}" />
-       </radialGradient>`;
+        <radialGradient id="canvas-gradient" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
+          <stop offset="0%" stop-color="${bgStart}" />
+          <stop offset="100%" stop-color="${bgEnd}" />
+        </radialGradient>`;
     }
   }
 
   return `<defs>
-     ${filterGlow}
-     ${gradients}
-     ${canvasGradient}
-   </defs>`;
+      ${filterGlow}
+      ${gradients}
+      ${canvasGradient}
+    </defs>`;
 }
 
 function renderStatsSection(
@@ -574,8 +582,19 @@ function renderTowers(
       top: `M${ax_sf} ${rnd(ay_sf - hOffset)} L${bx_sf} ${rnd(by_sf - hOffset)} L${cx_sf} ${rnd(cy_sf - hOffset)} L${dx_sf} ${rnd(dy_sf - hOffset)} Z`,
     };
 
+    let shadowMarkup = '';
+    if (!isGhost && hOffset > 0) {
+      const vx = rnd(-hOffset * 0.7);
+      const vy = rnd(-hOffset * 0.35);
+      const shadowPath = `M${cx_sf} ${cy_sf} L${bx_sf} ${by_sf} L${rnd(bx_sf + vx)} ${rnd(by_sf + vy)} L${rnd(ax_sf + vx)} ${rnd(ay_sf + vy)} L${rnd(dx_sf + vx)} ${rnd(dy_sf + vy)} L${dx_sf} ${dy_sf} Z`;
+      const shadowColor = isAutoTheme ? 'var(--cp-negative, #000000)' : '#000000';
+      const shadowOpacity = parseFloat((0.15 * opacity).toFixed(2));
+      shadowMarkup = `<path d="${shadowPath}" fill="${shadowColor}" fill-opacity="${shadowOpacity}" />`;
+    }
+
     towers += `
         <g transform="translate(${towerX}, ${towerY})"${dimAttr}>
+          ${shadowMarkup}
           <g class="cp-tower interactive-tower" data-date="${escapeXML(t.date)}" data-count="${t.contributionCount}" data-metric="${escapeXML(metric)}" style="animation-delay: ${delay}s;">
             ${animate && t.isToday ? '<animate attributeName="opacity" values="1;0.4;1" dur="1.5s" repeatCount="indefinite" />' : ''}
             <title>${escapeXML(t.tooltip)}</title>
@@ -1692,6 +1711,7 @@ export function generateHeatmapSVG(
   if (params.autoTheme) return generateAutoThemeHeatmapSVG(stats, params, calendar);
 
   const safeUser = escapeXML(params.user || 'GitHub User');
+  const safeId = safeUser.replace(/[^a-zA-Z0-9-]/g, '_').toLowerCase();
   const bg = `#${sanitizeHexColor(params.bg, '0d1117')}`;
   const bgFill =
     params.bgType === 'linear' || params.bgType === 'radial' ? 'url(#canvas-gradient)' : bg;
@@ -1750,9 +1770,9 @@ export function generateHeatmapSVG(
       : '';
 
   return `
-<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" fill="none" role="img">
-  <title>CommitPulse Heatmap for ${safeUser}</title>
-  <desc>${safeUser} has ${stats.totalContributions} ${unit} and a longest streak of ${stats.longestStreak} days.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" fill="none" role="img" aria-labelledby="cp-title-${safeId}" aria-describedby="cp-desc-${safeId}">
+  <title id="cp-title-${safeId}">CommitPulse Heatmap for ${safeUser}</title>
+  <desc id="cp-desc-${safeId}">${safeUser} has ${stats.totalContributions} ${unit} and a longest streak of ${stats.longestStreak} days.</desc>
 
   <defs>
     ${filterGlow}
@@ -1838,6 +1858,7 @@ function generateAutoThemeHeatmapSVG(
   const light = AUTO_THEME_LIGHT;
   const dark = AUTO_THEME_DARK;
   const safeUser = escapeXML(params.user || 'GitHub User');
+  const safeId = safeUser.replace(/[^a-zA-Z0-9-]/g, '_').toLowerCase();
 
   const sanitizedFont = sanitizeFont(params.font);
   const selectedFont = resolveFont(sanitizedFont);
@@ -1877,9 +1898,9 @@ function generateAutoThemeHeatmapSVG(
       : '';
 
   return `
-<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" fill="none" role="img">
-  <title>CommitPulse Heatmap for ${safeUser}</title>
-  <desc>${safeUser} has ${stats.totalContributions} ${unit} and a longest streak of ${stats.longestStreak} days.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" fill="none" role="img" aria-labelledby="cp-title-${safeId}" aria-describedby="cp-desc-${safeId}">
+  <title id="cp-title-${safeId}">CommitPulse Heatmap for ${safeUser}</title>
+  <desc id="cp-desc-${safeId}">${safeUser} has ${stats.totalContributions} ${unit} and a longest streak of ${stats.longestStreak} days.</desc>
 
   <defs>
     ${filterGlow}
@@ -2038,6 +2059,28 @@ function renderGhostTowers(
   return `<g class="ghost-towers">${ghostTowers}</g>`;
 }
 
+/**
+ * Renders the shared SVG definitions (filters and gradients)
+ * used by both NotFound and RateLimit ghost SVGs.
+ * * @param bg - The background color string to match the ghost fade gradient.
+ */
+export function renderGhostDefs(bg: string): string {
+  return `
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="5" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+    <filter id="softglow" x="-80%" y="-80%" width="360%" height="360%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+    <linearGradient id="ghostFade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="30%" stop-color="${bg}" stop-opacity="0"/>
+      <stop offset="100%" stop-color="${bg}" stop-opacity="1"/>
+    </linearGradient>
+  `;
+}
+
 export function generateNotFoundSVG(
   username: string,
   bg: string,
@@ -2065,18 +2108,7 @@ export function generateNotFoundSVG(
   <title id="cp-title-${safeId}">User not found — ${safeName}</title>
   <desc id="cp-desc-${safeId}">The GitHub user ${safeName} was not found or has no contribution data.</desc>
   <defs>
-    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-      <feGaussianBlur stdDeviation="5" result="blur"/>
-      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
-    </filter>
-    <filter id="softglow" x="-80%" y="-80%" width="360%" height="360%">
-      <feGaussianBlur stdDeviation="8" result="blur"/>
-      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
-    </filter>
-    <linearGradient id="ghostFade" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="30%" stop-color="${bg}" stop-opacity="0"/>
-      <stop offset="100%" stop-color="${bg}" stop-opacity="1"/>
-    </linearGradient>
+    ${renderGhostDefs(bg)}
   </defs>
 
   <style>
@@ -2818,17 +2850,24 @@ function renderSkylineSVG(
     ? params.accent.map((c) => `#${sanitizeHexColor(c, '00ffaa')}`)
     : [accent];
 
+  const scaleParam: 'linear' | 'log' | 'sqrt' =
+    params.scale === 'log' || params.scale === 'sqrt' ? params.scale : 'linear';
+
+  const maxPossibleHeight =
+    scaleParam === 'log'
+      ? MAX_LOG_HEIGHT
+      : scaleParam === 'sqrt'
+        ? MAX_SQRT_HEIGHT
+        : MAX_LINEAR_HEIGHT;
+
   weeklyContributions.forEach((count, i) => {
     const x = paddingX + i * stepX;
 
     let normalized = 0;
     if (count > 0) {
-      if (params.scale === 'log') {
-        const logMax = Math.log2(maxWeeklyCount + 1) || 1;
-        normalized = Math.log2(count + 1) / logMax;
-      } else {
-        normalized = count / maxWeeklyCount;
-      }
+      const divisor = maxWeeklyCount || 1;
+      const towerHeight = computeTowerHeight(count, scaleParam, false, divisor);
+      normalized = towerHeight / maxPossibleHeight;
     }
 
     let h = normalized * graphHeight;
@@ -3136,31 +3175,20 @@ export function generateRateLimitSVG(
   <title id="cp-title-${safeId}">Rate Limit Exceeded</title>
   <desc id="cp-desc-${safeId}">GitHub API rate limit exceeded. Please try again later.</desc>
   <defs>
-    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-      <feGaussianBlur stdDeviation="5" result="blur"/>
-      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
-    </filter>
-    <filter id="softglow" x="-80%" y="-80%" width="360%" height="360%">
-      <feGaussianBlur stdDeviation="8" result="blur"/>
-      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
-    </filter>
-    <linearGradient id="ghostFade" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="30%" stop-color="${bg}" stop-opacity="0"/>
-      <stop offset="100%" stop-color="${bg}" stop-opacity="1"/>
-    </linearGradient>
+    ${renderGhostDefs(bg)}
   </defs>
 
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600&amp;display=swap');
-    .title  { font-family: "Syncopate", sans-serif; fill: ${text}; font-size: 18px; letter-spacing: 6px; font-weight: 400; opacity: 0.5; }
-    .label  { font-family: "Roboto", sans-serif; fill: ${accent}; font-size: 11px; letter-spacing: 2px; opacity: 0.4; }
-    .stats  { font-family: "Space Grotesk", sans-serif; fill: ${text}; font-size: 42px; font-weight: 500; opacity: 0.2; }
-    .ghost-pulse { animation: gp 2.6s ease-in-out infinite; }
-    @keyframes gp { 0%,100%{opacity:.55} 50%{opacity:1} }
-    @media (prefers-reduced-motion: reduce) {
-      .ghost-pulse { animation: none; }
-      .rate-limit-scan animate { display: none; }
-    }
+     @import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600&amp;display=swap');
+     .title  { font-family: "Syncopate", sans-serif; fill: ${text}; font-size: 18px; letter-spacing: 6px; font-weight: 400; opacity: 0.5; }
+     .label  { font-family: "Roboto", sans-serif; fill: ${accent}; font-size: 11px; letter-spacing: 2px; opacity: 0.4; }
+     .stats  { font-family: "Space Grotesk", sans-serif; fill: ${text}; font-size: 42px; font-weight: 500; opacity: 0.2; }
+     .ghost-pulse { animation: gp 2.6s ease-in-out infinite; }
+     @keyframes gp { 0%,100%{opacity:.55} 50%{opacity:1} }
+     @media (prefers-reduced-motion: reduce) {
+       .ghost-pulse { animation: none; }
+       .rate-limit-scan animate { display: none; }
+     }
   </style>
 
   <rect width="${SVG_WIDTH}" height="${SVG_HEIGHT}" rx="${radius}" fill="${bg}"/>
@@ -3259,7 +3287,7 @@ export function generateLanguagesSVG(
 
   if (total === 0) {
     return `
-<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" fill="none" role="img" aria-labelledby="cp-title-${safeId}">
+<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" fill="none" role="img" aria-labelledby="cp-title-${safeId}" aria-describedby="cp-desc-${safeId}">
   ${renderHeader(safeUser, stats, sf, params, safeId)}
   ${renderStyle(selectedFont, statsFont, googleFontsImport, text, accent, sf, bg, params.entrance || 'rise')}
   <rect width="${W}" height="${H}" rx="${radius}" fill="${params.hideBackground ? 'transparent' : bg}" ${borderAttr} />
@@ -3391,17 +3419,14 @@ export function generateActivityGraphSVG(
 >
   <title id="cp-title-${safeId}">Activity Graph for ${safeUser}</title>
   <desc id="cp-desc-${safeId}">Contribution activity graph for ${safeUser} over ${days} days, totalling ${totalCount} ${unit.toLowerCase()}.</desc>
-  &lt;!--_renderActivityGraphDefs(accent, bg, params)--&gt;
   <style>
   @import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');
   ${googleFontsImport}
-  &lt;!--_activityGraphCSS(selectedFont, statsFont, text, accent, false)--&gt;
   </style>
   <rect width="${width}" height="${height}" rx="${radius}" fill="${params.hideBackground ? 'transparent' : bgFill}" />
   <path class="ag-area" d="${areaPathD}" />
   <path class="ag-trend" d="${trendPathD}" stroke="${accent}" />
   <path class="ag-line" d="${pathD}" stroke="${accent}" />
-  &lt;!--_renderPeakAnnotation(peakX, peakY, peakCount, peakDate, accent, text, statsFont, false)--&gt;
   ${!params.hide_title ? `<text x="24" y="28" class="ag-title">${safeUser.toUpperCase()}${params.isOfflineFallback ? '<tspan fill="#ff9f43" font-size="10px" font-weight="bold"> [STALE CACHE]</tspan>' : ''}</text>` : ''}
   ${!params.hide_stats ? `<text x="${width - 24}" y="28" text-anchor="end" class="ag-total">${totalCount} ${unit}</text>` : ''}
 </svg>
@@ -3468,13 +3493,11 @@ function generateAutoThemeActivityGraphSVG(
   :root { --cp-bg: #${light.bg}; --cp-text: #${light.text}; --cp-accent: #${light.accent}; }
   @media (prefers-color-scheme: dark) { :root { --cp-bg: #${dark.bg}; --cp-text: #${dark.text}; --cp-accent: #${dark.accent}; } }
   .cp-bg-fill { fill: var(--cp-bg); }
-  &lt;!--_activityGraphCSS(selectedFont, statsFont, 'var(--cp-text)', 'var(--cp-accent)', true)--&gt;
   </style>
   <rect width="${width}" height="${height}" rx="${radius}" ${params.hideBackground ? 'fill="transparent"' : 'class="cp-bg-fill"'} />
   <path class="ag-area" d="${areaPathD}" />
   <path class="ag-trend" d="${trendPathD}" stroke="var(--cp-accent)" />
   <path class="ag-line" d="${pathD}" stroke="var(--cp-accent)" />
-  &lt;!--_renderPeakAnnotation(peakX, peakY, peakCount, peakDate, 'var(--cp-accent)', 'var(--cp-text)', statsFont, true)--&gt;
   ${!params.hide_title ? `<text x="24" y="28" class="ag-title">${safeUser.toUpperCase()}${params.isOfflineFallback ? '<tspan fill="#ff9f43" font-size="10px" font-weight="bold"> [STALE CACHE]</tspan>' : ''}</text>` : ''}
   ${!params.hide_stats ? `<text x="${width - 24}" y="28" text-anchor="end" class="ag-total">${totalCount} ${unit}</text>` : ''}
 </svg>

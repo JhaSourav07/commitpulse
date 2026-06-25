@@ -318,7 +318,10 @@ describe('GET /api/streak', () => {
 
     it('forwards the username to fetchGitHubContributions', async () => {
       await GET(makeRequest({ user: 'octocat' }));
-      expect(fetchGitHubContributions).toHaveBeenCalledWith('octocat', { bypassCache: false });
+      expect(fetchGitHubContributions).toHaveBeenCalledWith(
+        'octocat',
+        expect.objectContaining({ bypassCache: false })
+      );
     });
 
     it('forwards grace parameter to fetchGitHubContributions', async () => {
@@ -453,7 +456,10 @@ describe('GET /api/streak', () => {
 
     it('passes bypassCache=true when refresh=true', async () => {
       await GET(makeRequest({ user: 'octocat', refresh: 'true' }));
-      expect(fetchGitHubContributions).toHaveBeenCalledWith('octocat', { bypassCache: true });
+      expect(fetchGitHubContributions).toHaveBeenCalledWith(
+        'octocat',
+        expect.objectContaining({ bypassCache: true })
+      );
     });
 
     it('keeps normal caching when refresh is "false"', async () => {
@@ -597,20 +603,26 @@ describe('GET /api/streak', () => {
 
     it('passes correct from/to range when ?year=2023 is provided', async () => {
       await GET(makeRequest({ user: 'octocat', year: '2023' }));
-      expect(fetchGitHubContributions).toHaveBeenCalledWith('octocat', {
-        bypassCache: false,
-        from: '2023-01-01T00:00:00Z',
-        to: '2023-12-31T23:59:59Z',
-      });
+      expect(fetchGitHubContributions).toHaveBeenCalledWith(
+        'octocat',
+        expect.objectContaining({
+          bypassCache: false,
+          from: '2023-01-01T00:00:00Z',
+          to: '2023-12-31T23:59:59Z',
+        })
+      );
     });
 
     it('passes correct from/to range when ?year=2008 is provided', async () => {
       await GET(makeRequest({ user: 'octocat', year: '2008' }));
-      expect(fetchGitHubContributions).toHaveBeenCalledWith('octocat', {
-        bypassCache: false,
-        from: '2008-01-01T00:00:00Z',
-        to: '2008-12-31T23:59:59Z',
-      });
+      expect(fetchGitHubContributions).toHaveBeenCalledWith(
+        'octocat',
+        expect.objectContaining({
+          bypassCache: false,
+          from: '2008-01-01T00:00:00Z',
+          to: '2008-12-31T23:59:59Z',
+        })
+      );
     });
 
     it('returns 400 when custom from date is after custom to date', async () => {
@@ -769,6 +781,24 @@ describe('GET /api/streak', () => {
       const body = await response.text();
       expect(body).toContain('<svg');
       expect(body).toContain('Invalid theme. Supported themes:');
+    });
+
+    it('returns 400 when theme parameter contains only whitespace', async () => {
+      const response = await GET(
+        makeRequest({
+          user: 'octocat',
+          theme: '   ',
+        })
+      );
+
+      expect(response.status).toBe(400);
+
+      const body = await response.text();
+      expect(body).toContain('<svg');
+      expect(body).toContain('Invalid theme');
+      expect(body).toContain('Supported themes:');
+
+      expect(fetchGitHubContributions).not.toHaveBeenCalled();
     });
 
     it('accepts capitalized or mixed-case theme parameter like "NEON" and maps it correctly', async () => {
@@ -1089,12 +1119,17 @@ describe('GET /api/streak', () => {
   });
 
   describe('monthly view parameter', () => {
-    it('returns 200 when view=monthly is given', async () => {
+    it('returns a valid monthly SVG response when view=monthly is given', async () => {
       const response = await GET(makeRequest({ user: 'octocat', view: 'monthly' }));
 
       expect(response.status).toBe(200);
+      expect(response.headers.get('Content-Type')).toBe('image/svg+xml; charset=utf-8');
+
       const body = await response.text();
-      expect(body).toContain('Commits This Month');
+
+      expect(body).toContain('<svg');
+      expect(body).toMatch(/commits this month/i);
+      expect(body).not.toContain('@keyframes grow-up');
     });
 
     it('automatically overrides or widens the query bounds to encompass the start of the previous month when view=monthly is requested with custom from/to params', async () => {
@@ -1127,11 +1162,14 @@ describe('GET /api/streak', () => {
         // The expected prev month (May 2026) start is 2026-05-01.
         // So 'from' should be widened to 2026-05-01T00:00:00Z.
         // 'to' should be today's date in ISO: 2026-06-02T12:00:00.000Z.
-        expect(fetchGitHubContributions).toHaveBeenCalledWith('octocat', {
-          bypassCache: false,
-          from: '2026-05-01T00:00:00Z',
-          to: '2026-06-02T12:00:00.000Z',
-        });
+        expect(fetchGitHubContributions).toHaveBeenCalledWith(
+          'octocat',
+          expect.objectContaining({
+            bypassCache: false,
+            from: '2026-05-01T00:00:00Z',
+            to: '2026-06-02T12:00:00.000Z',
+          })
+        );
       } finally {
         vi.useRealTimers();
       }
@@ -1164,11 +1202,14 @@ describe('GET /api/streak', () => {
         );
 
         expect(response.status).toBe(200);
-        expect(fetchGitHubContributions).toHaveBeenCalledWith('octocat', {
-          bypassCache: false,
-          from: '2024-01-01T00:00:00Z',
-          to: '2024-12-31T23:59:59Z',
-        });
+        expect(fetchGitHubContributions).toHaveBeenCalledWith(
+          'octocat',
+          expect.objectContaining({
+            bypassCache: false,
+            from: '2024-01-01T00:00:00Z',
+            to: '2024-12-31T23:59:59Z',
+          })
+        );
 
         const body = await response.text();
         expect(body).toContain('DECEMBER');
@@ -1596,13 +1637,19 @@ describe('GET /api/streak', () => {
     it('returns 200 and accepts grace=0 (minimum boundary)', async () => {
       const response = await GET(makeRequest({ user: 'octocat', grace: '0' }));
       expect(response.status).toBe(200);
-      expect(fetchGitHubContributions).toHaveBeenCalledWith('octocat', { bypassCache: false });
+      expect(fetchGitHubContributions).toHaveBeenCalledWith(
+        'octocat',
+        expect.objectContaining({ bypassCache: false })
+      );
     });
 
     it('returns 200 and accepts grace=7 (maximum boundary)', async () => {
       const response = await GET(makeRequest({ user: 'octocat', grace: '7' }));
       expect(response.status).toBe(200);
-      expect(fetchGitHubContributions).toHaveBeenCalledWith('octocat', { bypassCache: false });
+      expect(fetchGitHubContributions).toHaveBeenCalledWith(
+        'octocat',
+        expect.objectContaining({ bypassCache: false })
+      );
     });
 
     it('clamps grace=8 to 7', async () => {
@@ -1870,6 +1917,34 @@ describe('GET /api/streak', () => {
       const body = await response.text();
       expect(body).toContain('<svg');
       expect(body).toContain('cannot exceed 39 characters');
+    });
+  });
+
+  describe('minify parameter', () => {
+    it('minifies the SVG by default (minify=true)', async () => {
+      const responseDefault = await GET(makeRequest({ user: 'octocat' }));
+      expect(responseDefault.status).toBe(200);
+      const bodyDefault = await responseDefault.text();
+
+      const responseMinified = await GET(makeRequest({ user: 'octocat', minify: 'true' }));
+      expect(responseMinified.status).toBe(200);
+      const bodyMinified = await responseMinified.text();
+
+      expect(bodyDefault).toBe(bodyMinified);
+      expect(bodyMinified).not.toContain('  <rect');
+    });
+
+    it('does not minify the SVG when minify=false', async () => {
+      const responseNormal = await GET(makeRequest({ user: 'octocat', minify: 'false' }));
+      expect(responseNormal.status).toBe(200);
+      const bodyNormal = await responseNormal.text();
+
+      const responseMinified = await GET(makeRequest({ user: 'octocat', minify: 'true' }));
+      expect(responseMinified.status).toBe(200);
+      const bodyMinified = await responseMinified.text();
+
+      expect(bodyNormal.length).toBeGreaterThan(bodyMinified.length);
+      expect(bodyNormal).toContain('  <rect');
     });
   });
 });

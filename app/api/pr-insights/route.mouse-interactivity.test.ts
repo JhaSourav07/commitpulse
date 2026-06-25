@@ -39,7 +39,7 @@ describe('pr-insights mouse interactivity contract', () => {
 
     await GET(request);
 
-    expect(fetchPRInsights).toHaveBeenCalledWith('aanya', undefined);
+    expect(fetchPRInsights).toHaveBeenCalledWith('aanya', undefined, expect.any(AbortSignal));
   });
 
   it('returns fetched data on success', async () => {

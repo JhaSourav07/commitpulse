@@ -3,6 +3,10 @@ import { act, render, screen, fireEvent } from '@testing-library/react';
 import Navbar from './navbar';
 import type { ReactNode } from 'react';
 
+vi.mock('@/hooks/useKeyboardShortcuts', () => ({
+  useKeyboardShortcuts: vi.fn(),
+}));
+
 const originalLocalStorage = window.localStorage;
 
 afterAll(() => {

@@ -15,6 +15,7 @@ import {
 } from '@/lib/notification-management-token';
 import type { INotification } from '@/models/Notification';
 import logger from '@/lib/logger';
+import { validateCSRF } from '@/lib/security/csrf';
 
 const notifyWriteCache = new DistributedCache<number>(5000, 60000);
 const NOTIFY_WRITE_COOLDOWN_MS = 5 * 60 * 1000;
@@ -92,6 +93,8 @@ async function authorizeNotificationMutation(
 // ─── POST /api/notify ────────────────────────────────────────────────────────
 // Register or update email notification preferences for a user
 export async function POST(req: Request) {
+  const csrfError = validateCSRF(req);
+  if (csrfError) return csrfError;
   // Rate limiting
   const ip = getClientIp(req);
 
@@ -257,16 +260,19 @@ export async function POST(req: Request) {
 // ─── DELETE /api/notify ──────────────────────────────────────────────────────
 // Remove notification preferences for a user (unsubscribe / right to erasure)
 export async function DELETE(req: NextRequest) {
+  const csrfError = validateCSRF(req);
+  if (csrfError) return csrfError;
   // Rate limiting
   const ip = getClientIp(req);
 
   const rateLimitKey =
     ip && ip !== 'unknown' ? ip : `unknown:${req.headers.get('user-agent') ?? 'no-agent'}`;
+  const rateLimitResult = await notifyRateLimiter.checkWithResult(rateLimitKey);
 
-  if (!(await notifyRateLimiter.check(rateLimitKey))) {
+  if (!rateLimitResult.success) {
     return NextResponse.json(
       { success: false, message: 'Too many requests, please try again later.' },
-      { status: 429 }
+      { status: 429, headers: getRateLimitHeaders(rateLimitResult) }
     );
   }
 

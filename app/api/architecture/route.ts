@@ -705,7 +705,7 @@ export async function POST(req: NextRequest) {
         // Pass Gemini API key cleanly via headers rather than query parameters to protect telemetry leaks
         const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent`;
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), REST_TIMEOUT_MS);
+        const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout for Gemini
 
         try {
           const response = await fetch(geminiUrl, {

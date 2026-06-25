@@ -7,6 +7,10 @@ on:
     branches: [main, dev]
   merge_group: # Run CI on the merged commit before it lands on main
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   quality:
     name: Format · Lint · Typecheck · Test

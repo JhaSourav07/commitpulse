@@ -55,6 +55,6 @@ describe('GET /api/ci-analytics', () => {
     const response = await GET(new Request('http://localhost/api/ci-analytics?username=octocat'));
 
     expect(response.status).toBe(200);
-    expect(fetchCIAnalytics).toHaveBeenCalledWith('octocat', undefined);
+    expect(fetchCIAnalytics).toHaveBeenCalledWith('octocat', undefined, expect.any(AbortSignal));
   });
 });

@@ -10,8 +10,10 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import type { PRInsightData } from '@/services/github/pr-insights';
+import { useTranslation } from '@/context/TranslationContext';
 
 export default function PRTrendChart({ data }: { data: PRInsightData }) {
+  const { t } = useTranslation();
   const [view, setView] = useState<'weekly' | 'monthly'>('monthly');
 
   const chartData = view === 'weekly' ? data.weeklyActivity : data.monthlyActivity;
@@ -25,21 +27,23 @@ export default function PRTrendChart({ data }: { data: PRInsightData }) {
     >
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white">Activity Trends</h2>
-          <p className="text-sm text-gray-500">Pull requests over time</p>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+            {t('dashboard.prInsights.trend_title')}
+          </h2>
+          <p className="text-sm text-gray-500">{t('dashboard.prInsights.trend_subtitle')}</p>
         </div>
         <div className="flex bg-gray-100 dark:bg-zinc-800 p-1 rounded-xl">
           <button
             onClick={() => setView('weekly')}
             className={`cursor-pointer px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${view === 'weekly' ? 'bg-white dark:bg-zinc-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'}`}
           >
-            Weekly
+            {t('dashboard.prInsights.weekly')}
           </button>
           <button
             onClick={() => setView('monthly')}
             className={`cursor-pointer px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${view === 'monthly' ? 'bg-white dark:bg-zinc-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'}`}
           >
-            Monthly
+            {t('dashboard.prInsights.monthly')}
           </button>
         </div>
       </div>
@@ -82,6 +86,7 @@ export default function PRTrendChart({ data }: { data: PRInsightData }) {
             <Area
               type="monotone"
               dataKey="prs"
+              name={t('dashboard.prInsights.prs')}
               stroke="#06b6d4"
               strokeWidth={3}
               fillOpacity={1}

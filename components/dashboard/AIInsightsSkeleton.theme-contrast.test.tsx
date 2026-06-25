@@ -3,14 +3,16 @@ import { describe, expect, it } from 'vitest';
 import AIInsightsSkeleton from './AIInsightsSkeleton';
 
 describe('AIInsightsSkeleton theme contrast', () => {
-  it('renders the skeleton container in dark theme environment', () => {
+  it('renders the skeleton container with theme-aware styles', () => {
     document.documentElement.classList.add('dark');
 
     const { container } = render(<AIInsightsSkeleton />);
     const root = container.firstElementChild;
 
-    expect(root).toHaveClass('bg-[#0a0a0a]');
-    expect(root).toHaveClass('border-[rgba(255,255,255,0.08)]');
+    expect(root).toHaveClass('bg-white');
+    expect(root).toHaveClass('dark:bg-[#0a0a0a]');
+    expect(root).toHaveClass('border-black/10');
+    expect(root).toHaveClass('dark:border-[rgba(255,255,255,0.08)]');
     expect(document.documentElement).toHaveClass('dark');
   });
 
@@ -37,7 +39,7 @@ describe('AIInsightsSkeleton theme contrast', () => {
   it('renders all insight rows with contrast-safe surfaces', () => {
     const { container } = render(<AIInsightsSkeleton />);
     const rows = container.querySelectorAll(
-      '.bg-\\[\\#111\\].border-\\[rgba\\(255\\,255\\,255\\,0\\.05\\)\\]'
+      `[class*="bg-gray-300"][class*="dark:bg-[#111]"][class*="border-[rgba(255,255,255,0.05)]"]`
     );
 
     expect(rows).toHaveLength(3);

@@ -52,6 +52,15 @@ export default function ProfileOptimizerModal({
     }
   }, [isOpen, loadingSteps.length]);
 
+  //prevents background scrolling while the modal is open
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, []);
+
   const handleCopy = async () => {
     const text = recommendations
       .map(
@@ -418,34 +427,25 @@ export default function ProfileOptimizerModal({
               {/* Score Card */}
               <div className="flex flex-col md:flex-row gap-6 p-6 rounded-xl bg-gray-50 dark:bg-white/5 border border-black/5 dark:border-white/5">
                 <div className="flex flex-col items-center justify-center shrink-0">
-                  <div className="relative w-32 h-32 flex items-center justify-center rounded-full border-4 border-emerald-500/20">
-                    <svg className="absolute inset-0 w-full h-full -rotate-90">
+                  <div className="relative w-30 h-30 flex items-center justify-center rounded-full border-4 border-emerald-500/50 dark:border-emerald-500/20">
+                    <svg className="flex items-center justify-center absolute inset-0 w-full h-full -rotate-90">
                       <circle
-                        cx="64"
-                        cy="64"
-                        r="60"
+                        cx="56"
+                        cy="56"
+                        r="52"
                         fill="none"
                         stroke="currentColor"
-                        strokeWidth="8"
-                        className="text-transparent"
-                      />
-                      <circle
-                        cx="64"
-                        cy="64"
-                        r="60"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="8"
+                        strokeWidth="6"
                         strokeDasharray="377"
                         strokeDashoffset={377 - (377 * overallScore) / 100}
                         className="text-emerald-500 transition-all duration-1000 ease-out"
                       />
                     </svg>
                     <div className="text-center">
-                      <span className="text-4xl font-bold text-gray-900 dark:text-white">
+                      <span className="text-2xl font-semibold text-gray-900 dark:text-white">
                         {overallScore}
                       </span>
-                      <span className="block text-xs text-gray-500 font-semibold mt-1">
+                      <span className="block text-xs text-gray-500 font-normal mt-1">
                         Grade: {grade}
                       </span>
                     </div>
@@ -516,24 +516,24 @@ export default function ProfileOptimizerModal({
                           {rec.issue}
                         </h4>
                         <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                          <div className="p-3 bg-emerald-50 dark:bg-emerald-500/5 rounded-lg border border-emerald-100 dark:border-emerald-500/10">
-                            <span className="text-emerald-700 dark:text-emerald-400 font-semibold block mb-1">
+                          <div className="p-3 bg-gray-100 dark:bg-[#111] rounded-lg border border-black/10 dark:border-[rgba(255,255,255,0.05)]">
+                            <span className="text-gray-900 dark:text-white font-semibold block mb-1">
                               Recommendation
                             </span>
-                            <span className="text-gray-700 dark:text-gray-300">
+                            <span className="text-gray-500 dark:text-white/50">
                               {rec.recommendation}
                             </span>
                           </div>
-                          <div className="p-3 bg-blue-50 dark:bg-blue-500/5 rounded-lg border border-blue-100 dark:border-blue-500/10">
-                            <span className="text-blue-700 dark:text-blue-400 font-semibold block mb-1">
+                          <div className="p-3 bg-gray-100 dark:bg-[#111] rounded-lg border border-black/10 dark:border-[rgba(255,255,255,0.05)]">
+                            <span className="text-gray-900 dark:text-white font-semibold block mb-1">
                               Why it matters
                             </span>
-                            <span className="text-gray-700 dark:text-gray-300">{rec.impact}</span>
+                            <span className="text-gray-500 dark:text-white/50">{rec.impact}</span>
                           </div>
                         </div>
                         <div className="mt-4 p-3 bg-gray-50 dark:bg-white/5 rounded-lg flex items-center gap-3">
                           <CheckCircle className="w-5 h-5 text-gray-400 shrink-0" />
-                          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                          <span className="text-sm font-medium text-gray-500 dark:text-white/50">
                             <strong className="text-gray-900 dark:text-white">
                               Example Action:
                             </strong>{' '}

@@ -14,6 +14,7 @@ import {
   truncateUsername,
   deterministicRandom,
   buildTowerPaths,
+  generateSkylineSVG,
 } from './generator';
 import { escapeXML } from './sanitizer';
 import type { BadgeParams, ContributionCalendar, StreakStats, MonthlyStats } from '../../types';
@@ -151,6 +152,46 @@ describe('generateSVG', () => {
       mockCalendar
     );
     expect(svg).toContain('svg');
+  });
+
+  it('handles sqrt scale parameter correctly', () => {
+    const svg = generateSVG(
+      mockStats,
+      { user: 'avi', scale: 'sqrt' } as unknown as BadgeParams,
+      mockCalendar
+    );
+    expect(svg).toContain('svg');
+  });
+
+  it('handles generateSkylineSVG with sqrt scale correctly', () => {
+    const svg = generateSkylineSVG(
+      mockStats,
+      { user: 'avi', scale: 'sqrt' } as unknown as BadgeParams,
+      mockCalendar
+    );
+    expect(svg).toContain('svg');
+    expect(svg).not.toContain('NaN');
+  });
+
+  it('handles generateSkylineSVG with all zero contributions (no NaN)', () => {
+    const emptyCalendar = {
+      totalContributions: 0,
+      weeks: [
+        {
+          contributionDays: [
+            { contributionCount: 0, date: '2024-06-10' },
+            { contributionCount: 0, date: '2024-06-11' },
+          ],
+        },
+      ],
+    } as unknown as ContributionCalendar;
+    const svg = generateSkylineSVG(
+      mockStats,
+      { user: 'avi', scale: 'sqrt' } as unknown as BadgeParams,
+      emptyCalendar
+    );
+    expect(svg).toContain('svg');
+    expect(svg).not.toContain('NaN');
   });
 
   it('uses transparent background when hideBackground is true', () => {

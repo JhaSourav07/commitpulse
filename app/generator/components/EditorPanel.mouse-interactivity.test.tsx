@@ -30,6 +30,17 @@ describe('EditorPanel Component Interactivity Tests', () => {
     vi.useFakeTimers();
     vi.clearAllMocks();
 
+    // ContributionGraphSection (rendered inside EditorPanel) calls
+    // /api/github-username-check via useGitHubUserExists whenever a
+    // format-valid username is present. Mock fetch so that effect resolves
+    // harmlessly instead of hitting the real network guard.
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({
+        json: async () => ({ exists: false, reason: 'unverifiable' }),
+      }))
+    );
+
     mockState = {
       name: 'John Doe',
       description: 'Full Stack Developer',
@@ -49,6 +60,7 @@ describe('EditorPanel Component Interactivity Tests', () => {
     vi.clearAllTimers();
     vi.useRealTimers();
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
 
   const renderEditorPanel = async () => {

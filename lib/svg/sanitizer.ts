@@ -86,7 +86,7 @@ export function sanitizeFont(font: string | undefined | null): string | null {
   if (!font) return null;
   const trimmed = font.trim();
   if (!trimmed) return null;
-  const cleaned = trimmed.replace(/[^a-zA-Z0-9\s\-']/g, '').trim();
+  const cleaned = trimmed.replace(/[^a-zA-Z0-9\s\-]/g, '').trim();
   return cleaned || null;
 }
 

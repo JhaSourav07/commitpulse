@@ -7,20 +7,20 @@ import AIInsightsSkeleton from './AIInsightsSkeleton';
 
 describe('AIInsightsSkeleton Accessibility', () => {
   // 1. ARIA & Accessible Markup
-  // Verify that the skeleton does not expose incorrect roles or attributes.
-  // Since it is a loading placeholder, we document the missing ARIA attributes as TODOs.
-  it('does not expose incorrect roles or accessibility names during loading state', () => {
+  // Verify that the skeleton correctly exposes the status role.
+  it('exposes correct roles and accessibility names during loading state', () => {
     const { container } = render(<AIInsightsSkeleton />);
 
-    // Ensure the container or inner divs do not carry inappropriate roles.
-    const divs = container.querySelectorAll('div');
-    divs.forEach((div) => {
+    const wrapper = container.firstChild as HTMLElement;
+    expect(wrapper).toHaveAttribute('role', 'status');
+    expect(wrapper).toHaveAttribute('aria-busy', 'true');
+
+    // Ensure the inner divs do not carry inappropriate roles.
+    const innerDivs = Array.from(container.querySelectorAll('div')).slice(1);
+    innerDivs.forEach((div) => {
       expect(div.getAttribute('role')).toBeNull();
     });
 
-    // TODO: Add `aria-busy="true"` and `role="status"` to the outer wrapper container
-    // in the production AIInsightsSkeleton component to explicitly announce to screen
-    // readers that content is loading.
     // TODO: Ensure relationships like aria-labelledby or aria-describedby are added
     // if the skeleton is updated to have a header or label.
   });
@@ -89,5 +89,19 @@ describe('AIInsightsSkeleton Accessibility', () => {
 
     // TODO: When the loaded state (AIInsights) is implemented/rendered, ensure its headings
     // follow a logical order relative to the page container layout (e.g., an H3 tag).
+  });
+
+  // 6. Reduced Motion Preference
+  // While JSDOM does not natively process CSS media queries, we assert that the component
+  // structure allows the global CSS (prefers-reduced-motion) to override the animation.
+  it('relies on the global .shimmer class to handle prefers-reduced-motion overrides', () => {
+    const { container } = render(<AIInsightsSkeleton />);
+
+    // Select an element that uses the shimmer animation
+    const shimmerElement = container.querySelector('.shimmer');
+    expect(shimmerElement).toBeInTheDocument();
+
+    // We document that standard `.shimmer` class is responsible for the fallback.
+    // CSS ensures that `.shimmer` sets `animation: none` on `prefers-reduced-motion: reduce`.
   });
 });

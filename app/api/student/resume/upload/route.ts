@@ -8,10 +8,13 @@ import {
 import { RateLimiter } from '@/lib/rate-limit';
 import { getClientIp } from '@/utils/getClientIp';
 import logger from '@/lib/logger';
+import { validateCSRF } from '@/lib/security/csrf';
 
 const uploadLimiter = new RateLimiter(10, 60000);
 
 export async function POST(req: Request) {
+  const csrfError = validateCSRF(req);
+  if (csrfError) return csrfError;
   const ip = getClientIp(req);
 
   if (!(await uploadLimiter.check(ip))) {

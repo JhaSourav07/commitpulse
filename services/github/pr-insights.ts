@@ -83,7 +83,8 @@ function getHeaders(userToken?: string) {
 
 export async function fetchPRInsights(
   username: string,
-  userToken?: string
+  userToken?: string,
+  signal?: AbortSignal
 ): Promise<PRInsightData> {
   const cacheKey = `pr-insights:${username.toLowerCase()}`;
   const CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutes cache
@@ -91,7 +92,7 @@ export async function fetchPRInsights(
   return prInsightsCache.getOrSet(
     cacheKey,
     async () => {
-      return fetchPRInsightsUncached(username, userToken);
+      return fetchPRInsightsUncached(username, userToken, signal);
     },
     CACHE_TTL_MS
   );
@@ -99,7 +100,8 @@ export async function fetchPRInsights(
 
 async function fetchPRInsightsUncached(
   username: string,
-  userToken?: string
+  userToken?: string,
+  signal?: AbortSignal
 ): Promise<PRInsightData> {
   // We use the GraphQL search API to get PRs authored by the user and PRs reviewed by the user.
   // This is more efficient than iterating through user.pullRequests.
@@ -169,6 +171,7 @@ async function fetchPRInsightsUncached(
       headers: getHeaders(userToken),
       body: JSON.stringify({ query, variables: { ...variables, after } }),
       cache: 'no-store',
+      signal,
     });
 
     if (!res.ok) {

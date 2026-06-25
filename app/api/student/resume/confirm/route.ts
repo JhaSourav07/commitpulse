@@ -6,10 +6,13 @@ import { getClientIp } from '@/utils/getClientIp';
 import { resumeConfirmDataSchema, GITHUB_USERNAME_REGEX } from '@/lib/validations';
 import { verifyGitHubOwner } from '@/lib/github-owner-verification';
 import { logger } from '@/lib/logger';
+import { validateCSRF } from '@/lib/security/csrf';
 
 const confirmLimiter = new RateLimiter(10, 60000);
 
 export async function POST(req: Request) {
+  const csrfError = validateCSRF(req);
+  if (csrfError) return csrfError;
   const ip = getClientIp(req);
 
   if (!(await confirmLimiter.check(ip))) {
