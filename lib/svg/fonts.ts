@@ -1,4 +1,7 @@
 import { sanitizeFont } from './sanitizer';
+import { DEFAULT_FONTS_BASE64 } from './fonts-base64';
+
+export { DEFAULT_FONTS_BASE64 };
 
 /**
  * Maps lowercase font shorthand keys to their full CSS font-family strings.

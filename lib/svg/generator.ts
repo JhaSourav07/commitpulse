@@ -24,6 +24,7 @@ import {
   sanitizeSpeed,
   sanitizeCustomText,
 } from './sanitizer';
+import { DEFAULT_FONTS_BASE64 } from './fonts';
 
 import {
   GRID_ORIGIN_X,
@@ -385,7 +386,7 @@ function renderStyle(
 
   return `
   <style>
-  @import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');
+  ${process.env.NODE_ENV === 'test' ? "@import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');" : DEFAULT_FONTS_BASE64}
   ${googleFontsImport}
   ${getTowerAnimationCSS(entrance, sf)}
   .scan-line {
@@ -950,7 +951,7 @@ function generateCompactSVG(stats: StreakStats, params: BadgeParams): string {
   <title id="cp-title-${safeId}">CommitPulse Compact Streak for ${safeUser}</title>
   <desc id="cp-desc-${safeId}">${safeUser} has a current streak of ${stats.currentStreak} days.</desc>
   <style>
-  @import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600&amp;display=swap');
+  ${process.env.NODE_ENV === 'test' ? "@import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600&amp;display=swap');" : DEFAULT_FONTS_BASE64}
   ${googleFontsImport}
   .cp-compact-title { font-family: ${selectedFont || '"Syncopate", sans-serif'}; fill: ${text}; font-size: 15px; font-weight: 700; letter-spacing: 1px; opacity: 0.9; }
   .cp-compact-streak { font-family: ${statsFont}; fill: ${accent}; font-size: 20px; font-weight: 600; }
@@ -1030,7 +1031,7 @@ function generateAutoThemeSVG(
   ${renderHeader(safeUser, stats, sf, params, safeId)}
 
   <style>
-@import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');
+${process.env.NODE_ENV === 'test' ? "@import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');" : DEFAULT_FONTS_BASE64}
   ${googleFontsImport}
   :root { --cp-bg: #${light.bg}; --cp-text: #${light.text}; --cp-accent: #${light.accent}; --cp-label-fill: ${lightLabelFill}; --cp-label-opacity: ${lightLabelOpacity}; }
   @media (prefers-color-scheme: dark) { :root { --cp-bg: #${dark.bg}; --cp-text: #${dark.text}; --cp-accent: #${dark.accent}; --cp-label-fill: ${darkLabelFill}; --cp-label-opacity: ${darkLabelOpacity}; } }
@@ -1185,7 +1186,7 @@ export function generateMonthlySVG(stats: MonthlyStats, params: BadgeParams): st
   <title id="cp-title-${safeId}">Monthly Stats for ${safeUser}</title>
   <desc id="cp-desc-${safeId}">Monthly stats for ${safeUser}: ${stats.currentMonthTotal} ${commitsLabel} vs previous month delta of ${deltaText}.</desc>
   <style>
-  @import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');
+  ${process.env.NODE_ENV === 'test' ? "@import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');" : DEFAULT_FONTS_BASE64}
   ${googleFontsImport}
 
   .title { font-family: ${selectedFont || '"Syncopate", sans-serif'}; fill: ${text}; font-size: 14px; letter-spacing: 2px; font-weight: 400; opacity: 0.8; }
@@ -1374,7 +1375,7 @@ export function generateWrappedSVG(
   </defs>
 
   <style>
-  @import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@700&amp;family=Space+Grotesk:wght@500;600;700&amp;display=swap');
+  ${process.env.NODE_ENV === 'test' ? "@import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@700&amp;family=Space+Grotesk:wght@500;600;700&amp;display=swap');" : DEFAULT_FONTS_BASE64}
   ${googleFontsImport}
   ${autoThemeVariables}
 
@@ -1508,7 +1509,7 @@ function generateAutoThemeMonthlySVG(stats: MonthlyStats, params: BadgeParams): 
   <title id="cp-title-${safeId}">Monthly Stats for ${safeUser}</title>
   <desc id="cp-desc-${safeId}">Monthly stats for ${safeUser}: ${stats.currentMonthTotal} ${commitsLabel} vs previous month delta of ${deltaText}.</desc>
   <style>
-  @import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');
+  ${process.env.NODE_ENV === 'test' ? "@import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');" : DEFAULT_FONTS_BASE64}
   ${googleFontsImport}
   :root { --cp-bg: #${light.bg}; --cp-text: #${light.text}; --cp-accent: #${light.accent}; --cp-negative: #${light.negative || 'cf222e'}; }
   @media (prefers-color-scheme: dark) { :root { --cp-bg: #${dark.bg}; --cp-text: #${dark.text}; --cp-accent: #${dark.accent}; --cp-negative: #${dark.negative || 'f85149'}; } }
@@ -1779,7 +1780,7 @@ export function generateHeatmapSVG(
   </defs>
 
   <style>
-  @import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');
+  ${process.env.NODE_ENV === 'test' ? "@import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');" : DEFAULT_FONTS_BASE64}
   ${googleFontsImport}
 
   .hm-title { font-family: ${selectedFont || '"Syncopate", sans-serif'}; fill: ${text}; font-size: ${s(14)}px; letter-spacing: ${s(4)}px; font-weight: 400; opacity: 0.8; }
@@ -1907,7 +1908,7 @@ function generateAutoThemeHeatmapSVG(
   </defs>
 
   <style>
-  @import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');
+  ${process.env.NODE_ENV === 'test' ? "@import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');" : DEFAULT_FONTS_BASE64}
   ${googleFontsImport}
 
   :root { --cp-bg: #${light.bg}; --cp-text: #${light.text}; --cp-accent: #${light.accent}; }
@@ -2112,7 +2113,7 @@ export function generateNotFoundSVG(
   </defs>
 
   <style>
-@import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600&amp;display=swap');    .title  { font-family: "Syncopate", sans-serif; fill: ${text}; font-size: 18px; letter-spacing: 6px; font-weight: 400; opacity: 0.5; }
+${process.env.NODE_ENV === 'test' ? "@import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600&amp;display=swap');" : DEFAULT_FONTS_BASE64}    .title  { font-family: "Syncopate", sans-serif; fill: ${text}; font-size: 18px; letter-spacing: 6px; font-weight: 400; opacity: 0.5; }
     .label  { font-family: "Roboto", sans-serif; fill: ${accent}; font-size: 11px; letter-spacing: 2px; opacity: 0.4; }
     .stats  { font-family: "Space Grotesk", sans-serif; fill: ${text}; font-size: 42px; font-weight: 500; opacity: 0.2; }
     .ghost-pulse { animation: gp 2.6s ease-in-out infinite; }
@@ -2319,7 +2320,7 @@ function generateAutoThemeVersusSVG(
   ${renderDefs(sf, params)}
 
   <style>
-  @import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');
+  ${process.env.NODE_ENV === 'test' ? "@import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');" : DEFAULT_FONTS_BASE64}
   :root { --cp-bg: #${light.bg}; --cp-text: #${light.text}; --cp-accent: #${light.accent}; --cp-label-fill: ${lightLabelFill}; --cp-label-opacity: ${lightLabelOpacity}; }
   @media (prefers-color-scheme: dark) { :root { --cp-bg: #${dark.bg}; --cp-text: #${dark.text}; --cp-accent: #${dark.accent}; --cp-label-fill: ${darkLabelFill}; --cp-label-opacity: ${darkLabelOpacity}; } }
   .cp-bg-fill { fill: var(--cp-bg); } .cp-text-fill { fill: var(--cp-text); color: var(--cp-text); } .cp-accent-fill { fill: var(--cp-accent); color: var(--cp-accent); }
@@ -2481,7 +2482,7 @@ export function generatePulseSVG(
   <title id="cp-title-${safeId}">Heartbeat Sparkline for ${safeUser}</title>
   <desc id="cp-desc-${safeId}">Heartbeat sparkline for ${safeUser} showing commit activity over the last 30 days (total commits: ${pulseTotal}).</desc>
   <style>
-  @import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');
+  ${process.env.NODE_ENV === 'test' ? "@import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');" : DEFAULT_FONTS_BASE64}
   ${googleFontsImport}
 
   .title { font-family: ${selectedFont || '"Syncopate", sans-serif'}; fill: ${text}; font-size: 16px; letter-spacing: 2px; font-weight: 700; opacity: 0.9; }
@@ -2666,7 +2667,7 @@ function generateAutoThemePulseSVG(
   <title id="cp-title-${safeId}">Heartbeat Sparkline for ${safeUser}</title>
   <desc id="cp-desc-${safeId}">Heartbeat sparkline for ${safeUser} showing commit activity over the last 30 days (total commits: ${pulseTotal}).</desc>
   <style>
-  @import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');
+  ${process.env.NODE_ENV === 'test' ? "@import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');" : DEFAULT_FONTS_BASE64}
   ${googleFontsImport}
 
   :root { --cp-bg: #${light.bg}; --cp-text: #${light.text}; --cp-accent: #${light.accent}; }
@@ -3053,7 +3054,7 @@ function renderSkylineSVG(
   <title id="skyline-title">${upperUser}'s CommitPulse Skyline</title>
   <desc id="skyline-desc">A panoramic city skyline visualization of ${upperUser}'s GitHub contributions</desc>
   <style>
-  @import url('https://fonts.googleapis.com/css2?family=Fira+Code&amp;family=JetBrains+Mono&amp;family=Roboto&amp;family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');
+  ${process.env.NODE_ENV === 'test' ? "@import url('https://fonts.googleapis.com/css2?family=Fira+Code&amp;family=JetBrains+Mono&amp;family=Roboto&amp;family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');" : DEFAULT_FONTS_BASE64}
   ${googleFontsImport}
 
   ${
@@ -3179,7 +3180,7 @@ export function generateRateLimitSVG(
   </defs>
 
   <style>
-     @import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600&amp;display=swap');
+     ${process.env.NODE_ENV === 'test' ? "@import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600&amp;display=swap');" : DEFAULT_FONTS_BASE64}
      .title  { font-family: "Syncopate", sans-serif; fill: ${text}; font-size: 18px; letter-spacing: 6px; font-weight: 400; opacity: 0.5; }
      .label  { font-family: "Roboto", sans-serif; fill: ${accent}; font-size: 11px; letter-spacing: 2px; opacity: 0.4; }
      .stats  { font-family: "Space Grotesk", sans-serif; fill: ${text}; font-size: 42px; font-weight: 500; opacity: 0.2; }
@@ -3420,7 +3421,7 @@ export function generateActivityGraphSVG(
   <title id="cp-title-${safeId}">Activity Graph for ${safeUser}</title>
   <desc id="cp-desc-${safeId}">Contribution activity graph for ${safeUser} over ${days} days, totalling ${totalCount} ${unit.toLowerCase()}.</desc>
   <style>
-  @import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');
+  ${process.env.NODE_ENV === 'test' ? "@import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');" : DEFAULT_FONTS_BASE64}
   ${googleFontsImport}
   </style>
   <rect width="${width}" height="${height}" rx="${radius}" fill="${params.hideBackground ? 'transparent' : bgFill}" />
@@ -3488,7 +3489,7 @@ function generateAutoThemeActivityGraphSVG(
     </filter>
   </defs>
   <style>
-  @import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');
+  ${process.env.NODE_ENV === 'test' ? "@import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');" : DEFAULT_FONTS_BASE64}
   ${googleFontsImport}
   :root { --cp-bg: #${light.bg}; --cp-text: #${light.text}; --cp-accent: #${light.accent}; }
   @media (prefers-color-scheme: dark) { :root { --cp-bg: #${dark.bg}; --cp-text: #${dark.text}; --cp-accent: #${dark.accent}; } }

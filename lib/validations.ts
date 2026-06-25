@@ -370,7 +370,7 @@ const baseStreakParamsSchema = z.object({
   size: z.enum(['small', 'medium', 'large']).catch('medium').default('medium'),
 
   // to fetch N days contributions
-  days: z.coerce.number().int().positive().max(365).optional(),
+  days: z.coerce.number().int().positive().max(366).optional(),
 
   // Silently fall back to '8s' for invalid format (matches old behavior)
   speed: z

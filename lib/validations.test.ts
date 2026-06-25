@@ -1675,3 +1675,28 @@ describe('githubUsernameSchema regression tests', () => {
     }
   });
 });
+
+describe('streakParamsSchema — days parameter (leap year support)', () => {
+  it('accepts 365 as a valid days value', () => {
+    const result = streakParamsSchema.safeParse({ user: 'octocat', days: '365' });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.days).toBe(365);
+  });
+
+  it('accepts 366 as a valid days value for leap years', () => {
+    const result = streakParamsSchema.safeParse({ user: 'octocat', days: '366' });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.days).toBe(366);
+  });
+
+  it('rejects 367 as exceeding the maximum', () => {
+    const result = streakParamsSchema.safeParse({ user: 'octocat', days: '367' });
+    expect(result.success).toBe(false);
+  });
+
+  it('omits days when not provided', () => {
+    const result = streakParamsSchema.safeParse({ user: 'octocat' });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.days).toBeUndefined();
+  });
+});
