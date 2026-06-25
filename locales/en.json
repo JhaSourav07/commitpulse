@@ -16,11 +16,11 @@
     "contributors": "Contributors",
     "documentation": "Documentation",
     "creator": "Creator",
-    "copyright": "© {{year}} CommitPulse. All rights reserved.",
+    "copyright": "\u00a9 {{year}} CommitPulse. All rights reserved.",
     "navigation": "Navigation",
     "resources": "Resources",
     "connect": "Connect",
-    "made_with": "Made with ❤️ for developers",
+    "made_with": "Made with \u2764\ufe0f for developers",
     "home": "Home",
     "compare": "Compare",
     "customization": "Customization",
@@ -89,7 +89,7 @@
   "customize_cta": {
     "studio_badge": "Customization Studio",
     "title": "Want to fine-tune your monolith?",
-    "desc": "Dial in every pixel — swap accent colors, try a dark or neon theme, toggle logarithmic height scaling, and preview changes live before you paste a single line.",
+    "desc": "Dial in every pixel \u2014 swap accent colors, try a dark or neon theme, toggle logarithmic height scaling, and preview changes live before you paste a single line.",
     "btn": "Open Customization Studio"
   },
   "customize": {
@@ -247,7 +247,7 @@
       "downloaded": "Saved Asset!",
       "svg_downloaded": "SVG Downloaded!",
       "json_downloaded": "JSON Downloaded!",
-      "failed": "Failed — try again",
+      "failed": "Failed \u2014 try again",
       "social_channels": "Social Channels",
       "export_options": "Export Options",
       "github_wrapped": "GitHub Wrapped",
@@ -284,7 +284,7 @@
       "commits_per_week": "{{count}} Commits/Week",
       "commits_per_month": "{{count}} Commits/Month",
       "commits": "{{count}} Commits",
-      "growth_rate": "Growth Rate: {{rate}} Commits/Day²",
+      "growth_rate": "Growth Rate: {{rate}} Commits/Day\u00b2",
       "consistency_level": {
         "elite": "Elite (Very Consistent)",
         "consistent": "High (Consistent)",
@@ -384,7 +384,7 @@
       "target": "Target",
       "progress": "Progress",
       "remaining": "{{count}} commits remaining",
-      "completed": "Goal Achieved! 🎉",
+      "completed": "Goal Achieved! \ud83c\udf89",
       "edit": "Edit Goals",
       "save": "Save Changes",
       "cancel": "Cancel",
@@ -418,7 +418,7 @@
       "totalMilestones": "Total Milestones"
     },
     "prInsights": {
-      "showing_filtered": "Showing: {{label}} PRs — click again to reset",
+      "showing_filtered": "Showing: {{label}} PRs \u2014 click again to reset",
       "total": "Total",
       "loader": "Crunching your pull requests...",
       "error": "Error loading insights: {{error}}",
@@ -465,6 +465,36 @@
       "reviews_header": "Reviews",
       "avg_review_header": "Avg Review Time",
       "no_repos": "No repository data available."
+    },
+    "executive": {
+      "title": "Executive OSS Intelligence",
+      "subtitle": "Organization-wide open source metrics and insights",
+      "total_repos": "Total Repos",
+      "total_contributors": "Contributors",
+      "total_stars": "Stars",
+      "total_forks": "Forks",
+      "avg_health": "Avg Health",
+      "oss_score": "OSS Score",
+      "scorecard": "Engineering Scorecard",
+      "code_quality": "Code Quality",
+      "documentation": "Documentation",
+      "community": "Community",
+      "security": "Security",
+      "overall": "Overall",
+      "repo_health": "Repository Health",
+      "repo": "Repository",
+      "health": "Health",
+      "issues": "Issues",
+      "last_commit": "Last Commit",
+      "insights": "Executive Insights"
+    },
+    "recommendation": {
+      "title": "AI Repository Recommendations",
+      "subtitle": "Discover repositories and issues tailored for you",
+      "repositories": "Repositories",
+      "issues": "Good First Issues",
+      "technologies": "Technologies",
+      "match_score": "Match Score"
     }
   }
 }
