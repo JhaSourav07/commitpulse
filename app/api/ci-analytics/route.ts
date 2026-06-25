@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { fetchCIAnalytics } from '@/services/github/ci-analytics';
 import { getUserGitHubToken } from '@/lib/githubtoken';
 import { validateGitHubUsername } from '@/lib/validations';
-import { RateLimiter } from '@/lib/rate-limit';
+import { RateLimiter, getRateLimitHeaders } from '@/lib/rate-limit';
 import { getClientIp } from '@/utils/getClientIp';
 
 const ciAnalyticsLimiter = new RateLimiter(10, 60_000, 10_000);
@@ -10,10 +10,11 @@ const ciAnalyticsLimiter = new RateLimiter(10, 60_000, 10_000);
 export async function GET(request: Request) {
   const ip = getClientIp(request);
 
-  if (!(await ciAnalyticsLimiter.check(ip))) {
+  const result = await ciAnalyticsLimiter.checkWithResult(ip);
+  if (!result.success) {
     return NextResponse.json(
       { error: 'Too many requests. Please try again later.' },
-      { status: 429 }
+      { status: 429, headers: getRateLimitHeaders(result) }
     );
   }
   const { searchParams } = new URL(request.url);

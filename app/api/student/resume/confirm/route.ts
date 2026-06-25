@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import { StudentProfile } from '@/models/StudentProfile';
-import { RateLimiter } from '@/lib/rate-limit';
+import { getRateLimitHeaders, RateLimiter } from '@/lib/rate-limit';
 import { getClientIp } from '@/utils/getClientIp';
 import { resumeConfirmDataSchema, GITHUB_USERNAME_REGEX } from '@/lib/validations';
 import { verifyGitHubOwner } from '@/lib/github-owner-verification';
@@ -15,10 +15,11 @@ export async function POST(req: Request) {
   if (csrfError) return csrfError;
   const ip = getClientIp(req);
 
-  if (!(await confirmLimiter.check(ip))) {
+  const rateLimitResult = await confirmLimiter.checkWithResult(ip);
+  if (!rateLimitResult.success) {
     return NextResponse.json(
       { success: false, error: 'Too many requests, please try again later.' },
-      { status: 429 }
+      { status: 429, headers: getRateLimitHeaders(rateLimitResult) }
     );
   }
 

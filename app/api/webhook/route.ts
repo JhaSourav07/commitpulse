@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
-import { rateLimit } from '@/lib/rate-limit';
+import { rateLimit, getRateLimitHeaders } from '@/lib/rate-limit';
 import { getClientIp } from '@/utils/getClientIp';
 import { logger } from '@/lib/logger';
 
@@ -80,7 +80,10 @@ export async function POST(req: Request) {
   const ip = getClientIp(req);
   const limit = await rateLimit(ip, 10, 60000, 'webhook');
   if (!limit.success) {
-    return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+    return NextResponse.json(
+      { error: 'Too many requests' },
+      { status: 429, headers: getRateLimitHeaders(limit) }
+    );
   }
 
   const webhookSecret = getWebhookSecret();

@@ -183,7 +183,7 @@ export async function POST(req: Request) {
           success: false,
           message: `Please wait ${remaining} second${remaining === 1 ? '' : 's'} before updating notification preferences again.`,
         },
-        { status: 429 }
+        { status: 429, headers: { 'Retry-After': remaining.toString() } }
       );
     }
 
@@ -267,12 +267,12 @@ export async function DELETE(req: NextRequest) {
 
   const rateLimitKey =
     ip && ip !== 'unknown' ? ip : `unknown:${req.headers.get('user-agent') ?? 'no-agent'}`;
-  const rateLimitResult = await notifyRateLimiter.checkWithResult(rateLimitKey);
 
-  if (!rateLimitResult.success) {
+  const deleteRateLimitResult = await notifyRateLimiter.checkWithResult(rateLimitKey);
+  if (!deleteRateLimitResult.success) {
     return NextResponse.json(
       { success: false, message: 'Too many requests, please try again later.' },
-      { status: 429, headers: getRateLimitHeaders(rateLimitResult) }
+      { status: 429, headers: getRateLimitHeaders(deleteRateLimitResult) }
     );
   }
 

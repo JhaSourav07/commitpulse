@@ -194,6 +194,7 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
       'Content-Security-Policy': SVG_CSP_HEADER,
     };
 
+    headers['Retry-After'] = '60';
     if (isCircuitOpen) {
       headers['X-CommitPulse-Circuit-Status'] = 'Open';
       headers['X-CommitPulse-Circuit-Reset-In'] = String(telemetry.resetInMs);

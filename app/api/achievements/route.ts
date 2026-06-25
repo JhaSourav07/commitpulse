@@ -737,7 +737,7 @@ export async function GET(request: Request) {
     if (message.toLowerCase().includes('rate limit') || message.includes('API limit reached')) {
       return NextResponse.json(
         { error: 'GitHub API rate limit reached. Please try again later.' },
-        { status: 429 }
+        { status: 429, headers: { 'Retry-After': '60' } }
       );
     }
 

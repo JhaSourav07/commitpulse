@@ -688,14 +688,18 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
       message.toLowerCase().includes('strictly for organizations');
 
     const status = isRateLimit ? 429 : isNotFound ? 404 : isValidationError ? 400 : 500;
+    const jsonErrorHeaders: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'Cache-Control': 'no-store',
+    };
+    if (isRateLimit) {
+      jsonErrorHeaders['Retry-After'] = '60';
+    }
     return NextResponse.json(
       { error: message },
       {
         status,
-        headers: {
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-store',
-        },
+        headers: jsonErrorHeaders,
       }
     );
   }
@@ -735,6 +739,7 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
       'Content-Security-Policy': SVG_CSP_HEADER,
     };
 
+    headers['Retry-After'] = '60';
     if (isCircuitOpen) {
       headers['X-CommitPulse-Circuit-Status'] = 'Open';
       headers['X-CommitPulse-Circuit-Reset-In'] = String(telemetry.resetInMs);

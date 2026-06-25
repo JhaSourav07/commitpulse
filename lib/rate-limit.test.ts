@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { DistributedCache } from './cache';
-import { rateLimit, RateLimiter } from './rate-limit';
+import { rateLimit, RateLimiter, getRateLimitHeaders } from './rate-limit';
 
 beforeEach(() => {
   delete process.env.KV_REST_API_URL;
@@ -156,7 +156,7 @@ describe('rateLimit', () => {
 
   describe('Redis/KV integration', () => {
     it('queries Redis/KV and returns success if count is within limit', async () => {
-      const mock = setupMockKV([{ result: 10 }]);
+      const mock = setupMockKV([{ result: [1, 10, 300] }]);
       const res = await rateLimit('127.0.0.1', 60, 60000);
       expect(res.success).toBe(true);
       expect(res.remaining).toBe(50);
@@ -171,7 +171,7 @@ describe('rateLimit', () => {
     });
 
     it('queries Redis/KV and returns false if count exceeds limit', async () => {
-      setupMockKV([{ result: 61 }]);
+      setupMockKV([{ result: [0, 61, 300] }]);
       const res = await rateLimit('127.0.0.1', 60, 60000);
       expect(res.success).toBe(false);
       expect(res.remaining).toBe(0);
@@ -405,5 +405,94 @@ describe('RateLimiter', () => {
     delete process.env.KV_REST_API_URL;
     delete process.env.KV_REST_API_TOKEN;
     vi.unstubAllGlobals();
+  });
+});
+
+describe('getRateLimitHeaders', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  it('includes a Retry-After header in seconds, derived from reset', async () => {
+    vi.setSystemTime(0);
+    const result = {
+      success: false,
+      limit: 5,
+      remaining: 0,
+      reset: 30000, // 30s in the future
+    };
+
+    const headers = getRateLimitHeaders(result);
+
+    expect(headers['Retry-After']).toBe('30');
+    expect(headers['X-RateLimit-Limit']).toBe('5');
+    expect(headers['X-RateLimit-Remaining']).toBe('0');
+    expect(headers['X-RateLimit-Reset']).toBe('30000');
+  });
+
+  it('rounds up to the nearest second rather than truncating', async () => {
+    vi.setSystemTime(0);
+    const result = {
+      success: false,
+      limit: 5,
+      remaining: 0,
+      reset: 30500, // 30.5s in the future
+    };
+
+    const headers = getRateLimitHeaders(result);
+
+    // Must round up — a client retrying at 30s would still be rejected
+    expect(headers['Retry-After']).toBe('31');
+  });
+
+  it('clamps Retry-After to 0 when reset is already in the past', async () => {
+    vi.setSystemTime(10000);
+    const result = {
+      success: false,
+      limit: 5,
+      remaining: 0,
+      reset: 5000, // 5s in the past relative to "now"
+    };
+
+    const headers = getRateLimitHeaders(result);
+
+    expect(headers['Retry-After']).toBe('0');
+  });
+
+  it('returns Retry-After even on successful (non-429) results', async () => {
+    // getRateLimitHeaders doesn't know the HTTP status — callers decide
+    // whether to attach Retry-After only on 429s. This just verifies the
+    // helper itself always computes a valid, non-negative value.
+    vi.setSystemTime(0);
+    const result = {
+      success: true,
+      limit: 5,
+      remaining: 3,
+      reset: 45000,
+    };
+
+    const headers = getRateLimitHeaders(result);
+
+    expect(headers['Retry-After']).toBe('45');
+  });
+
+  it('matches the real reset value produced by rateLimit() on a blocked request', async () => {
+    vi.setSystemTime(0);
+    const ip = 'retry-after-integration';
+    const windowMs = 60000;
+    const limit = 2;
+
+    await rateLimit(ip, limit, windowMs);
+    await rateLimit(ip, limit, windowMs);
+    const blocked = await rateLimit(ip, limit, windowMs); // 3rd request, exceeds limit
+
+    expect(blocked.success).toBe(false);
+
+    vi.advanceTimersByTime(15000); // 15s later, still within window
+
+    const headers = getRateLimitHeaders(blocked);
+
+    // 60s window, 15s elapsed since the window opened at t=0 -> 45s left
+    expect(headers['Retry-After']).toBe('45');
   });
 });

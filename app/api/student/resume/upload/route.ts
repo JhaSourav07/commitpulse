@@ -5,7 +5,7 @@ import {
   MAX_FILE_SIZE,
   hasValidFileSignature,
 } from '@/lib/resume-parser';
-import { RateLimiter } from '@/lib/rate-limit';
+import { getRateLimitHeaders, RateLimiter } from '@/lib/rate-limit';
 import { getClientIp } from '@/utils/getClientIp';
 import logger from '@/lib/logger';
 import { validateCSRF } from '@/lib/security/csrf';
@@ -17,10 +17,11 @@ export async function POST(req: Request) {
   if (csrfError) return csrfError;
   const ip = getClientIp(req);
 
-  if (!(await uploadLimiter.check(ip))) {
+  const rateLimitResult = await uploadLimiter.checkWithResult(ip);
+  if (!rateLimitResult.success) {
     return NextResponse.json(
       { success: false, error: 'Too many requests, please try again later.' },
-      { status: 429 }
+      { status: 429, headers: getRateLimitHeaders(rateLimitResult) }
     );
   }
 

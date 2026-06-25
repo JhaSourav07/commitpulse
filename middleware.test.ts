@@ -5,6 +5,7 @@ import { rateLimit } from '@/lib/rate-limit';
 
 vi.mock('@/lib/rate-limit', () => ({
   rateLimit: vi.fn(),
+  getRateLimitHeaders: vi.fn(() => ({})),
 }));
 
 describe('middleware', () => {

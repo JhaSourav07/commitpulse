@@ -4,8 +4,21 @@ import { POST } from './route';
 vi.mock('@/lib/rate-limit', () => {
   class MockRateLimiter {
     check = vi.fn().mockResolvedValue(true);
+    checkWithResult = vi.fn().mockResolvedValue({
+      success: true,
+      limit: 5,
+      remaining: 4,
+      reset: Date.now() + 60000,
+    });
   }
-  return { RateLimiter: MockRateLimiter };
+  return {
+    RateLimiter: MockRateLimiter,
+    getRateLimitHeaders: vi.fn(() => ({
+      'X-RateLimit-Limit': '5',
+      'X-RateLimit-Remaining': '4',
+      'X-RateLimit-Reset': Date.now().toString(),
+    })),
+  };
 });
 
 vi.mock('@/utils/getClientIp', () => ({

@@ -15,12 +15,22 @@ vi.mock('@/utils/getClientIp', () => ({
 describe('GET /api/ci-analytics', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.spyOn(RateLimiter.prototype, 'check').mockResolvedValue(true);
+    vi.spyOn(RateLimiter.prototype, 'checkWithResult').mockResolvedValue({
+      success: true,
+      limit: 10,
+      remaining: 9,
+      reset: Date.now() + 60000,
+    });
     vi.mocked(getClientIp).mockReturnValue('127.0.0.1');
   });
 
   it('rejects requests when the endpoint abuse budget is exhausted', async () => {
-    vi.spyOn(RateLimiter.prototype, 'check').mockResolvedValueOnce(false);
+    vi.spyOn(RateLimiter.prototype, 'checkWithResult').mockResolvedValueOnce({
+      success: false,
+      limit: 10,
+      remaining: 0,
+      reset: Date.now() + 60000,
+    });
 
     const response = await GET(new Request('http://localhost/api/ci-analytics?username=octocat'));
 
@@ -30,7 +40,12 @@ describe('GET /api/ci-analytics', () => {
 
   it('uses per-IP rate limiting so different IPs get independent buckets', async () => {
     vi.mocked(fetchCIAnalytics).mockResolvedValue({} as never);
-    const checkSpy = vi.spyOn(RateLimiter.prototype, 'check').mockResolvedValue(true);
+    const checkSpy = vi.spyOn(RateLimiter.prototype, 'checkWithResult').mockResolvedValue({
+      success: true,
+      limit: 10,
+      remaining: 9,
+      reset: Date.now() + 60000,
+    });
 
     vi.mocked(getClientIp).mockReturnValueOnce('1.2.3.4').mockReturnValueOnce('5.6.7.8');
 

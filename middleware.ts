@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { rateLimit } from './lib/rate-limit';
+import { rateLimit, getRateLimitHeaders } from './lib/rate-limit';
 import { getClientIp } from './utils/getClientIp';
 
 const securityHeaders = {
@@ -42,9 +42,7 @@ export async function middleware(request: NextRequest) {
         status: 429,
         headers: {
           'Content-Type': 'application/json',
-          'X-RateLimit-Limit': result.limit.toString(),
-          'X-RateLimit-Remaining': result.remaining.toString(),
-          'X-RateLimit-Reset': result.reset.toString(),
+          ...getRateLimitHeaders(result),
           ...securityHeaders,
         },
       }
