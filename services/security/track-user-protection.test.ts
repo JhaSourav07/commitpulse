@@ -142,4 +142,50 @@ describe('TrackUserProtection', () => {
       expect(instanceA).toBe(instanceB);
     });
   });
+
+  describe('Username normalization', () => {
+    it('ignores leading and trailing whitespace in validateFormat', () => {
+      expect(trackUserProtection.validateFormat('  octocat  ')).toBe(true);
+      expect(trackUserProtection.validateFormat('\toctocat\n')).toBe(true);
+    });
+
+    it('treats usernames case-insensitively and ignores whitespace in recordWrite and isWriteAllowed', () => {
+      trackUserProtection.recordWrite('  OctoCat  ');
+
+      expect(trackUserProtection.isWriteAllowed('  OctoCat  ')).toBe(false);
+      expect(trackUserProtection.isWriteAllowed('octocat')).toBe(false);
+      expect(trackUserProtection.isWriteAllowed('OCTOCAT')).toBe(false);
+      expect(trackUserProtection.isWriteAllowed('  octocat  ')).toBe(false);
+    });
+
+    it('behaves consistently across verifyAndDeduplicate for equivalent usernames', async () => {
+      vi.mocked(gitHubUserValidator.validateUser).mockResolvedValue(true);
+
+      const firstResult = await trackUserProtection.verifyAndDeduplicate('  OctoCat  ');
+      expect(firstResult.allowed).toBe(true);
+
+      // Record a write for the first user to activate cooldown
+      trackUserProtection.recordWrite('  OctoCat  ');
+
+      // Subsequent check for equivalent username should trigger cooldown
+      const secondResult = await trackUserProtection.verifyAndDeduplicate('OCTOCAT');
+      expect(secondResult.allowed).toBe(false);
+      expect(secondResult.reason).toBe('COOLDOWN_ACTIVE');
+
+      const thirdResult = await trackUserProtection.verifyAndDeduplicate('  octocat  ');
+      expect(thirdResult.allowed).toBe(false);
+      expect(thirdResult.reason).toBe('COOLDOWN_ACTIVE');
+    });
+
+    it('references the same internal entry for equivalent usernames', () => {
+      trackUserProtection.recordWrite('OctoCat');
+      expect(trackUserProtection.isWriteAllowed('octocat')).toBe(false);
+
+      trackUserProtection.reset();
+      expect(trackUserProtection.isWriteAllowed('octocat')).toBe(true);
+
+      trackUserProtection.recordWrite('  octocat  ');
+      expect(trackUserProtection.isWriteAllowed('OCTOCAT')).toBe(false);
+    });
+  });
 });
