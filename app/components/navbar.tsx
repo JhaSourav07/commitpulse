@@ -70,6 +70,8 @@ function LanguageSelector() {
     >
       <Globe size={14} className="text-zinc-500 dark:text-white/40" />
       <select
+        id="language-selector"
+        name="language"
         value={language}
         onChange={(e) => changeLanguage(e.target.value as Language)}
         className="bg-transparent text-xs font-semibold focus:outline-none cursor-pointer pr-1"
