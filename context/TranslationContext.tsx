@@ -101,6 +101,26 @@ export function TranslationProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  useEffect(() => {
+    const handleStorageChange = (event: StorageEvent) => {
+      const { key, newValue } = event;
+      if (key === 'language' && newValue) {
+        const supportedLangs = Object.keys(translations) as Language[];
+        if (supportedLangs.includes(newValue as Language)) {
+          startTransition(() => {
+            setLanguage(newValue as Language);
+            document.documentElement.lang = newValue;
+          });
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
+
   const changeLanguage = (lang: Language) => {
     startTransition(() => {
       setLanguage(lang);
