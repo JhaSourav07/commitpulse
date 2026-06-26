@@ -33,13 +33,21 @@ export default function NotFound() {
       </div>
 
       <div className="relative z-10 flex flex-col items-center justify-start gap-6 max-w-lg w-full text-center px-4">
-        {/* OOPS Header */}
+        {/* ✅ UPDATED OOPS HEADER WITH SMOOTH 404 ANIMATION */}
         <div className="relative select-none w-full mt-4">
-          <span className="text-[7rem] sm:text-[9rem] font-sans leading-none tracking-tighter text-white/5 absolute inset-0 flex items-center justify-center [WebkitTextStroke:1px_rgba(139,92,246,0.3)]">
-            𝒐𝒐𝒑𝒔
+          {/* glow layer */}
+          <span className="absolute inset-0 flex items-center justify-center text-[7rem] sm:text-[9rem] font-black leading-none tracking-tighter text-violet-400/10 blur-xl animate-pulse">
+            404
           </span>
-          <span className="text-[7rem] sm:text-[9rem] font-black leading-none tracking-tighter relative bg-[linear-gradient(135deg,_#a78bfa_0%,_#38bdf8_50%,_#a78bfa_100%)] bg-clip-text text-transparent drop-shadow-[0_0_40px_rgba(139,92,246,0.4)]">
-            𝒐𝒐𝒑𝒔
+
+          {/* stroke layer */}
+          <span className="absolute inset-0 flex items-center justify-center text-[7rem] sm:text-[9rem] font-sans leading-none tracking-tighter text-white/5 [WebkitTextStroke:1px_rgba(139,92,246,0.3)] animate-pulse">
+            404
+          </span>
+
+          {/* main gradient layer */}
+          <span className="relative flex items-center justify-center text-[7rem] sm:text-[9rem] font-black leading-none tracking-tighter bg-[linear-gradient(135deg,_#a78bfa_0%,_#38bdf8_50%,_#a78bfa_100%)] bg-clip-text text-transparent drop-shadow-[0_0_40px_rgba(139,92,246,0.4)] animate-[pulse_2s_ease-in-out_infinite]">
+            404
           </span>
         </div>
 

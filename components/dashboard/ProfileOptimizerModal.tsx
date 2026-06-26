@@ -54,12 +54,13 @@ export default function ProfileOptimizerModal({
 
   //prevents background scrolling while the modal is open
   useEffect(() => {
+    if (!isOpen) return;
     document.body.style.overflow = 'hidden';
 
     return () => {
       document.body.style.overflow = '';
     };
-  }, []);
+  }, [isOpen]);
 
   const handleCopy = async () => {
     const text = recommendations
@@ -164,6 +165,10 @@ export default function ProfileOptimizerModal({
   };
 
   if (!isOpen) return null;
+
+  //score ring
+  const radius = 52;
+  const circumference = 2 * Math.PI * radius;
 
   // Mocked Dynamic Data derived from userData
   const overallScore = userData ? Math.min(100, 40 + (userData.profile?.developerScore || 30)) : 72;
@@ -432,12 +437,12 @@ export default function ProfileOptimizerModal({
                       <circle
                         cx="56"
                         cy="56"
-                        r="52"
+                        r={radius}
                         fill="none"
                         stroke="currentColor"
                         strokeWidth="6"
-                        strokeDasharray="377"
-                        strokeDashoffset={377 - (377 * overallScore) / 100}
+                        strokeDasharray={circumference}
+                        strokeDashoffset={circumference - (circumference * overallScore) / 100}
                         className="text-emerald-500 transition-all duration-1000 ease-out"
                       />
                     </svg>

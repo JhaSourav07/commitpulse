@@ -108,7 +108,7 @@ describe('NotFound Theme Contrast & Visual Cohesion', () => {
   it('preserves gradient and visual styling elements required for cohesion', () => {
     const { container } = render(<NotFound />);
 
-    const gradientText = screen.getAllByText('𝒐𝒐𝒑𝒔')[1];
+    const gradientText = screen.getAllByText('404')[2];
 
     expect(gradientText.className).toContain('bg-clip-text');
     expect(gradientText.className).toContain('text-transparent');

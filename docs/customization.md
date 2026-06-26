@@ -133,6 +133,7 @@ URL Parameter > Theme Default > System Fallback
 | `random`           | Surprise theme on reload    | _varies_ | _varies_ | _varies_ |
 | `highcontrast`     | Accessibility high contrast | `0a0a0a` | `ff4500` | `ffffff` |
 | `cyber-pulse`      | AMOLED true-black & cyan    | `000000` | `00ffee` | `ffffff` |
+| `retro-terminal`   | Classic CRT terminal        | `000000` | `00ff41` | `00ff41` |
 | `obsidian`         | Deep charcoal & amber gold  | `1a1a2e` | `f59e0b` | `e2e8f0` |
 | `glacier`          | Icy sky blue & cyan         | `e0f2fe` | `06b6d4` | `0369a1` |
 | `lumos`            | Void black & mint gold      | `0a0a0a` | `fbbf24` | `a7f3d0` |

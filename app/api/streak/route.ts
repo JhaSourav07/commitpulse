@@ -2,7 +2,12 @@
 
 import crypto from 'crypto';
 import { NextResponse } from 'next/server';
-import { fetchGitHubContributions, getOrgDashboardData, getCircuitTelemetry } from '@/lib/github';
+import {
+  fetchGitHubContributions,
+  getOrgDashboardData,
+  getCircuitTelemetry,
+  fetchCommitHourDistribution,
+} from '@/lib/github';
 import {
   calculateStreak,
   calculateMonthlyStats,
@@ -25,6 +30,7 @@ import {
 import { generateConstellationSVG } from '@/lib/svg/constellation';
 import { generateRadarSVG } from '@/lib/svg/radar';
 import { generateDoughnutSVG } from '@/lib/svg/doughnut';
+import { generateCommitClockSVG } from '@/lib/svg/commitClock';
 import { optimizeSVG } from '@/lib/svg/optimizer';
 import { getSecondsUntilUTCMidnight, getSecondsUntilMidnightInTimezone } from '@/utils/time';
 import type { BadgeParams, RepoContribution, ExtendedContributionData } from '@/types';
@@ -177,8 +183,8 @@ export async function GET(request: Request) {
       | 'radar'
       | 'doughnut'
       | 'pie'
-      | 'activity_graph';
-
+      | 'activity_graph'
+      | 'commit_clock';
     const themeKey = getNormalizedThemeKey(theme);
     const themeName = themeKey === 'default' && theme ? theme : themeKey;
 
@@ -581,6 +587,10 @@ export async function GET(request: Request) {
     } else if (normalizedView === 'activity_graph') {
       const stats = calculateStreak(calendar, timezone, undefined, grace);
       svg = generateActivityGraphSVG(stats, params, calendar);
+    } else if (normalizedView === 'commit_clock') {
+      const stats = calculateStreak(calendar, timezone, undefined, grace);
+      const hourCounts = await fetchCommitHourDistribution(user).catch(() => new Array(24).fill(0));
+      svg = generateCommitClockSVG(hourCounts, stats, params);
     } else if (versus && versusCalendar) {
       // Normalize both calendars to the target timezone for accurate comparison
       const normalizedCalendar = normalizeCalendarToTimezone(calendar, timezone);
