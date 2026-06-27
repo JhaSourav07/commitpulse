@@ -69,8 +69,16 @@ vi.mock('lucide-react', () => ({
   Globe: () => <div>GlobeIcon</div>,
   Sun: () => <div>SunIcon</div>,
   Moon: () => <div>MoonIcon</div>,
+
   Search: () => <div>SearchIcon</div>,
   ArrowRight: () => <div>ArrowRightIcon</div>,
+
+  ChevronDown: () => <div>ChevronDownIcon</div>,
+  Check: () => <div>CheckIcon</div>,
+}));
+
+vi.mock('next/navigation', () => ({
+  usePathname: () => '/',
 }));
 
 describe('Navbar mobile menu', () => {

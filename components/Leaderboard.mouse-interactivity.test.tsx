@@ -63,7 +63,7 @@ describe('Leaderboard - Mouse Interactivity & Touch Events (Issue #2757 Equivale
     const { container } = render(<Leaderboard contributors={mockData} />);
 
     // Check podiums
-    const podiums = container.querySelectorAll('.w-28.sm\\:w-36.cursor-pointer');
+    const podiums = container.querySelectorAll('.w-24.sm\\:w-36.cursor-pointer');
     expect(podiums.length).toBeGreaterThan(0);
 
     // Check list entries

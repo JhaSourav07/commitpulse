@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { FONT_MAP, resolveFont, isPredefinedFontKey } from './fonts';
+import { FONT_MAP, resolveFontFamily, isPredefinedFontKey } from './fonts';
 
 describe('fonts Accessibility Standards & Screen Reader Aria Compliance', () => {
   it('exports readable predefined font mappings', () => {
@@ -12,13 +12,13 @@ describe('fonts Accessibility Standards & Screen Reader Aria Compliance', () => 
   });
 
   it('resolves predefined fonts accessibly', () => {
-    expect(resolveFont('jetbrains')).toBe('"JetBrains Mono", monospace');
+    expect(resolveFontFamily('jetbrains')).toBe('"JetBrains Mono", monospace');
 
-    expect(resolveFont('spacegrotesk')).toBe('"Space Grotesk", sans-serif');
+    expect(resolveFontFamily('spacegrotesk')).toBe('"Space Grotesk", sans-serif');
   });
 
   it('resolves custom fonts into readable font-family strings', () => {
-    expect(resolveFont('Inter')).toBe('"Inter", sans-serif');
+    expect(resolveFontFamily('Inter')).toBe('"Inter", sans-serif');
   });
 
   it('detects predefined font keys correctly', () => {
@@ -30,9 +30,9 @@ describe('fonts Accessibility Standards & Screen Reader Aria Compliance', () => 
   });
 
   it('returns null or false for invalid accessibility inputs', () => {
-    expect(resolveFont(undefined)).toBeNull();
+    expect(resolveFontFamily(undefined)).toBeNull();
 
-    expect(resolveFont('')).toBeNull();
+    expect(resolveFontFamily('')).toBeNull();
 
     expect(isPredefinedFontKey(undefined)).toBe(false);
   });

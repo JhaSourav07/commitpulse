@@ -161,11 +161,13 @@ export function calculateStreak(
   const days = weeks.flatMap((week) => week?.contributionDays || []).filter(Boolean);
 
   const seen = new Set<string>();
-  const uniqueDays = days.filter((d) => {
-    if (!d || seen.has(d.date)) return false;
-    seen.add(d.date);
-    return true;
-  });
+  const uniqueDays = days
+    .filter((d) => {
+      if (!d || seen.has(d.date)) return false;
+      seen.add(d.date);
+      return true;
+    })
+    .sort((a, b) => a.date.localeCompare(b.date));
 
   let currentStreak = 0;
   let longestStreak = 0;

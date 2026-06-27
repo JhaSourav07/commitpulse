@@ -512,16 +512,22 @@ export class DistributedCache<T> {
    */
   async incr(key: string, ttlMs: number): Promise<number> {
     if (!this.useRedis) {
-      // Fail closed — no shared state means no reliable distributed rate limiting.
-      // In serverless (Vercel, AWS Lambda, etc.) each cold start resets the in-memory
-      // counter, so an in-memory fallback would silently reset the limit and enable
-      // Denial-of-Wallet attacks on the shared GitHub token pool.
+      // No Redis configured — fall back to the per-instance in-memory counter.
+      //
+      // In serverless environments each cold-start resets the counter, so this
+      // does NOT provide hard cross-instance guarantees. However it is far better
+      // than the previous "fail-closed" behaviour (returning MAX_SAFE_INTEGER),
+      // which blocked every request in production when Redis was not set up.
+      //
+      // Add KV_REST_API_URL + KV_REST_API_TOKEN (Vercel KV) or
+      // UPSTASH_REDIS_REST_URL + UPSTASH_REDIS_REST_TOKEN (Upstash) to your
+      // environment variables to enable proper distributed rate limiting.
       if (process.env.NODE_ENV === 'production') {
-        logger.error('Redis not configured in production — rate limiting disabled (fail-closed)', {
-          component: 'DistributedCache',
-          key,
-        });
-        return Number.MAX_SAFE_INTEGER;
+        logger.warn(
+          'Redis not configured — rate limiting is per-instance only. ' +
+            'Add KV_REST_API_URL + KV_REST_API_TOKEN for distributed rate limiting.',
+          { component: 'DistributedCache', key }
+        );
       }
       const current = (this.localCache.get(key) as unknown as number) || 0;
       const next = current + 1;
