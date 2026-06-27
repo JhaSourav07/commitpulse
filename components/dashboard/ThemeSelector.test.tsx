@@ -66,6 +66,7 @@ describe('ThemeSelector (ThemeQuickPresets)', () => {
     expect(screen.getByLabelText(/apply dracula theme/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/apply neon theme/i)).toBeInTheDocument();
   });
+
   it('renders accessible theme controls consistently after rerender', () => {
     const { rerender } = render(
       <ThemeQuickPresets theme="dracula" onThemeChange={mockOnThemeChange} />
@@ -83,5 +84,60 @@ describe('ThemeSelector (ThemeQuickPresets)', () => {
     });
 
     expect(screen.getByLabelText(/apply neon theme/i)).toBeInTheDocument();
+  });
+
+  // ----------------------------
+  // Variation 3 — Responsive breakpoints
+  // ----------------------------
+  it('renders all preset buttons as visible elements', () => {
+    renderComponent();
+
+    const buttons = screen.getAllByRole('button');
+
+    expect(buttons.length).toBeGreaterThanOrEqual(2);
+    buttons.forEach((btn) => {
+      expect(btn).toBeVisible();
+    });
+  });
+
+  it('active theme button reflects selected theme', () => {
+    render(<ThemeQuickPresets theme="neon" onThemeChange={mockOnThemeChange} />);
+
+    const neonBtn = screen.getByLabelText(/apply neon theme/i);
+    expect(neonBtn).toBeInTheDocument();
+  });
+
+  it('switches from dracula to neon and updates callback correctly', () => {
+    renderComponent();
+
+    fireEvent.click(screen.getByLabelText(/apply neon theme/i));
+    expect(mockOnThemeChange).toHaveBeenCalledWith('neon');
+
+    fireEvent.click(screen.getByLabelText(/apply dracula theme/i));
+    expect(mockOnThemeChange).toHaveBeenCalledWith('dracula');
+
+    expect(mockOnThemeChange).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not call onThemeChange before any interaction', () => {
+    renderComponent();
+
+    expect(mockOnThemeChange).not.toHaveBeenCalled();
+  });
+
+  it('renders preset buttons inside a container element', () => {
+    const { container } = renderComponent();
+
+    expect(container.firstChild).toBeTruthy();
+    expect(container.querySelectorAll('button').length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('each button has a valid accessible name', () => {
+    renderComponent();
+
+    const buttons = screen.getAllByRole('button');
+    buttons.forEach((btn) => {
+      expect(btn.getAttribute('aria-label')).toBeTruthy();
+    });
   });
 });

@@ -309,6 +309,39 @@ describe('InteractiveViewer', () => {
     expect(contentDiv.style.transform).toContain('translate(20px, 20px) scale(1)');
   });
 
+  it('shows a tooltip with the formatted date when hovering a tower and updates it across towers', () => {
+    render(
+      <InteractiveViewer>
+        <div
+          className="interactive-tower"
+          data-date="2025-06-15"
+          data-count="42"
+          data-metric="commits"
+          data-testid="tower-a"
+        >
+          Tower A
+        </div>
+        <div
+          className="interactive-tower"
+          data-date="2025-01-01"
+          data-count="7"
+          data-metric="commits"
+          data-testid="tower-b"
+        >
+          Tower B
+        </div>
+      </InteractiveViewer>
+    );
+
+    fireEvent.pointerMove(screen.getByTestId('tower-a'), { clientX: 100, clientY: 100 });
+    expect(screen.getByRole('tooltip')).toBeTruthy();
+    expect(screen.getByText('Jun 15, 2025')).toBeTruthy();
+
+    fireEvent.pointerMove(screen.getByTestId('tower-b'), { clientX: 200, clientY: 100 });
+    expect(screen.getByText('Jan 1, 2025')).toBeTruthy();
+    expect(screen.queryByText('Jun 15, 2025')).toBeNull();
+  });
+
   it('updates mousePos and particle shifts on pointerMove when not dragging', () => {
     const { container } = render(
       <InteractiveViewer>
@@ -598,6 +631,94 @@ describe('InteractiveViewer', () => {
 
       expect(screen.getByTestId('desktop-content')).toBeTruthy();
       expect(glowLayer).toBeTruthy();
+    });
+  });
+
+  // ── 3D Keyboard Rotation Tests ──────────────────────────────────────────────
+  describe('3D mode keyboard rotation', () => {
+    it('calls onRotate3D with arrow keys instead of panning in 3D mode', () => {
+      const onRotate3D = vi.fn();
+      const { container } = render(
+        <InteractiveViewer is3DMode onRotate3D={onRotate3D}>
+          <div>Content</div>
+        </InteractiveViewer>
+      );
+      const viewerContainer = container.firstChild as HTMLElement;
+      const contentDiv = viewerContainer.children[1] as HTMLElement;
+
+      fireEvent.keyDown(viewerContainer, { key: 'ArrowUp' });
+      expect(onRotate3D).toHaveBeenCalledWith(0, -10);
+
+      fireEvent.keyDown(viewerContainer, { key: 'ArrowDown' });
+      expect(onRotate3D).toHaveBeenCalledWith(0, 10);
+
+      fireEvent.keyDown(viewerContainer, { key: 'ArrowLeft' });
+      expect(onRotate3D).toHaveBeenCalledWith(-10, 0);
+
+      fireEvent.keyDown(viewerContainer, { key: 'ArrowRight' });
+      expect(onRotate3D).toHaveBeenCalledWith(10, 0);
+
+      expect(onRotate3D).toHaveBeenCalledTimes(4);
+
+      // Pan should NOT have changed — arrow keys went to rotation
+      expect(contentDiv.style.transform).toContain('translate(0px, 0px) scale(1)');
+    });
+
+    it('still pans with WASD keys even in 3D mode', () => {
+      const onRotate3D = vi.fn();
+      const { container } = render(
+        <InteractiveViewer is3DMode onRotate3D={onRotate3D}>
+          <div>Content</div>
+        </InteractiveViewer>
+      );
+      const viewerContainer = container.firstChild as HTMLElement;
+      const contentDiv = viewerContainer.children[1] as HTMLElement;
+
+      fireEvent.keyDown(viewerContainer, { key: 'w' });
+      expect(contentDiv.style.transform).toContain('translate(0px, 30px)');
+
+      // onRotate3D should NOT have been called for WASD
+      expect(onRotate3D).not.toHaveBeenCalled();
+    });
+
+    it('falls back to panning with arrow keys when not in 3D mode', () => {
+      const { container } = render(
+        <InteractiveViewer>
+          <div>Content</div>
+        </InteractiveViewer>
+      );
+      const viewerContainer = container.firstChild as HTMLElement;
+      const contentDiv = viewerContainer.children[1] as HTMLElement;
+
+      fireEvent.keyDown(viewerContainer, { key: 'ArrowUp' });
+      expect(contentDiv.style.transform).toContain('translate(0px, 30px) scale(1)');
+    });
+  });
+
+  // ── ARIA Label Tests ────────────────────────────────────────────────────────
+  describe('aria-label accessibility', () => {
+    it('sets the default aria-label for non-3D mode', () => {
+      const { container } = render(
+        <InteractiveViewer>
+          <div>Content</div>
+        </InteractiveViewer>
+      );
+      const viewerContainer = container.firstChild as HTMLElement;
+      expect(viewerContainer.getAttribute('aria-label')).toBe(
+        'Interactive viewer. Use Arrow keys or W A S D to pan, plus and minus to zoom, R to reset.'
+      );
+    });
+
+    it('sets the 3D aria-label when is3DMode is true', () => {
+      const { container } = render(
+        <InteractiveViewer is3DMode>
+          <div>Content</div>
+        </InteractiveViewer>
+      );
+      const viewerContainer = container.firstChild as HTMLElement;
+      expect(viewerContainer.getAttribute('aria-label')).toBe(
+        'Interactive 3D viewer. Use Arrow keys to rotate, W A S D to pan, plus and minus to zoom, R to reset.'
+      );
     });
   });
 });

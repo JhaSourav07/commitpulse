@@ -1,8 +1,25 @@
+import 'server-only';
+import { TTLCache } from '../../lib/cache';
+
 interface RefreshLimitRecord {
   count: number;
   windowStart: number;
 }
 
+/**
+ * In-memory rate limiter for manual cache refresh operations.
+ *
+ * Limits how frequently a single IP can trigger a manual data refresh.
+ * Uses a TTL-based in-memory cache that expires entries automatically.
+ *
+ * ⚠️ Limitation: State is per-process only. In serverless deployments
+ * (Vercel, AWS Lambda), each cold start resets the limiter. This is
+ * acceptable for abuse prevention on a single instance, but not suitable
+ * for strict cross-instance rate limiting.
+ *
+ * For production deployments requiring persistent state, consider using
+ * Upstash Redis or Vercel KV by importing from '@/lib/rate-limit' instead.
+ */
 export class RefreshRateLimiter {
   private static instance: RefreshRateLimiter;
 
@@ -10,7 +27,7 @@ export class RefreshRateLimiter {
   private limit = 3;
   private windowMs = 60 * 60 * 1000; // 1 hour
 
-  private tracker = new Map<string, RefreshLimitRecord>();
+  private tracker = new TTLCache<RefreshLimitRecord>(100000, 60 * 60 * 1000);
 
   private constructor() {
     this.loadLimitFromEnv();
@@ -52,7 +69,7 @@ export class RefreshRateLimiter {
   } {
     this.loadLimitFromEnv(); // Ensure latest env config is applied
     const now = Date.now();
-    const clientKey = ip.trim();
+    const clientKey = ip.trim() || '__unknown__';
 
     let record = this.tracker.get(clientKey);
 
@@ -62,7 +79,7 @@ export class RefreshRateLimiter {
         count: 0,
         windowStart: now,
       };
-      this.tracker.set(clientKey, record);
+      this.tracker.set(clientKey, record, this.windowMs);
     }
 
     const resetTime = record.windowStart + this.windowMs;
@@ -78,6 +95,7 @@ export class RefreshRateLimiter {
 
     // Increment count on checking (optimistic allocation)
     record.count++;
+    this.tracker.update(clientKey, record);
 
     return {
       success: true,

@@ -1,8 +1,25 @@
 // app/api/stats/route.ts
 import { NextResponse } from 'next/server';
-import { fetchGitHubContributions } from '@/lib/github';
+import { fetchGitHubContributions, contributionsCache, cacheKey } from '@/lib/github';
 import { calculateStreak } from '@/lib/calculate';
-import { statsParamsSchema } from '@/lib/validations';
+import { statsParamsSchema, coerceQueryParams } from '@/lib/validations';
+import { getClientIp } from '@/utils/getClientIp';
+import { quotaMonitor } from '@/services/github/quota-monitor';
+import { refreshPolicy } from '@/services/github/refresh-policy';
+import { getRateLimitHeaders } from '@/lib/rate-limit';
+import { refreshRateLimiter } from '@/services/github/refresh-rate-limiter';
+import { getUserGitHubToken } from '@/lib/githubtoken';
+
+function logSecurityEvent(event: string, details: Record<string, unknown>) {
+  console.warn(
+    JSON.stringify({
+      timestamp: new Date().toISOString(),
+      type: 'SECURITY_EVENT',
+      event,
+      ...details,
+    })
+  );
+}
 
 /**
  * GET /api/stats?user=<username>[&refresh=true][&tz=<IANA timezone>]
@@ -20,8 +37,9 @@ import { statsParamsSchema } from '@/lib/validations';
  */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
+  const ip = getClientIp(request);
 
-  const parseResult = statsParamsSchema.safeParse(Object.fromEntries(searchParams.entries()));
+  const parseResult = statsParamsSchema.safeParse(coerceQueryParams(searchParams));
 
   if (!parseResult.success) {
     const details = parseResult.error.flatten();
@@ -45,21 +63,72 @@ export async function GET(request: Request) {
     );
   }
 
-  const { user, refresh, tz } = parseResult.data;
+  const { user, refresh, bypassCache: bypassCacheParam, tz } = parseResult.data;
+  // Treat either ?refresh=true or ?bypassCache=true as a cache-bypass request
+  const isRefreshRequested = refresh || bypassCacheParam;
 
-  // Validate the optional IANA timezone early so callers get a clear 400
-  // rather than a silent fallback or a 500.
-  let timezone = 'UTC';
-  if (tz) {
-    try {
-      timezone = new Intl.DateTimeFormat(undefined, { timeZone: tz }).resolvedOptions().timeZone;
-    } catch {
-      return NextResponse.json({ error: `Invalid "tz" parameter: "${tz}"` }, { status: 400 });
+  let timezone: string;
+  try {
+    timezone = tz
+      ? new Intl.DateTimeFormat(undefined, { timeZone: tz }).resolvedOptions().timeZone
+      : 'UTC';
+  } catch {
+    return NextResponse.json({ error: `Invalid "tz" parameter: "${tz}"` }, { status: 400 });
+  }
+
+  if (isRefreshRequested && quotaMonitor.isQuotaLow()) {
+    logSecurityEvent('LOW_QUOTA_STATS_REFRESH_BLOCKED', {
+      user,
+      ip,
+      remainingQuota: quotaMonitor.getQuota().remaining,
+    });
+    return NextResponse.json(
+      { error: 'GitHub API quota is low. Stats refresh temporarily disabled.' },
+      { status: 429, headers: { 'Retry-After': '60' } }
+    );
+  }
+
+  if (isRefreshRequested) {
+    const rateLimitCheck = refreshRateLimiter.checkLimit(ip);
+    if (!rateLimitCheck.success) {
+      logSecurityEvent('STATS_REFRESH_RATE_LIMIT_EXCEEDED', {
+        user,
+        ip,
+        limit: rateLimitCheck.limit,
+      });
+      return NextResponse.json(
+        { error: 'Refresh rate limit exceeded. Please try again later.' },
+        {
+          status: 429,
+          headers: getRateLimitHeaders(rateLimitCheck),
+        }
+      );
+    }
+  }
+
+  let shouldBypassCache = isRefreshRequested;
+  if (isRefreshRequested) {
+    if (!refreshPolicy.tryAcquire(user)) {
+      logSecurityEvent('STATS_REFRESH_COOLDOWN_VIOLATION', {
+        user,
+        ip,
+        remainingMs: refreshPolicy.getRemainingCooldown(user),
+      });
+      shouldBypassCache = false;
     }
   }
 
   try {
-    const userData = await fetchGitHubContributions(user, { bypassCache: refresh });
+    const key = cacheKey('contributions', user);
+    const wasCachedBefore = await contributionsCache.has(key);
+
+    // Authenticated -> user's OAuth token (their quota); anonymous -> undefined (global PAT).
+    const userToken = await getUserGitHubToken();
+    const userData = await fetchGitHubContributions(user, {
+      bypassCache: shouldBypassCache,
+      token: userToken,
+    });
+
     const calendar = userData.calendar;
     const stats = calculateStreak(calendar, timezone);
     const headers = new Headers({
@@ -67,11 +136,16 @@ export async function GET(request: Request) {
       'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
     });
 
-    if (refresh) {
+    if (shouldBypassCache) {
       headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
       headers.set('Pragma', 'no-cache');
       headers.set('Expires', '0');
     }
+    headers.set('X-Cache-Status', shouldBypassCache ? 'MISS' : wasCachedBefore ? 'HIT' : 'MISS');
+    headers.set(
+      'X-Refresh-Status',
+      shouldBypassCache ? 'Fresh' : isRefreshRequested ? 'Cooldown-Served-Cached' : 'Cached'
+    );
 
     return NextResponse.json(
       {
@@ -98,7 +172,7 @@ export async function GET(request: Request) {
     ) {
       return NextResponse.json(
         { error: 'GitHub API rate limit reached. Please try again later.' },
-        { status: 429 }
+        { status: 429, headers: { 'Retry-After': '60' } }
       );
     }
 

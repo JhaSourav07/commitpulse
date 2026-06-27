@@ -1,30 +1,65 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { NextRequest } from 'next/server';
-import { GET, POST } from './route';
+import { DELETE, GET, POST } from './route';
 import dbConnect from '@/lib/mongodb';
+import { hashNotificationManagementToken } from '@/lib/notification-management-token';
 
 // Mock dependencies
 vi.mock('@/lib/mongodb', () => ({ default: vi.fn() }));
 vi.mock('@/models/Notification', () => ({
   Notification: {
+    deleteOne: vi.fn(),
     findOneAndUpdate: vi.fn(),
     findOne: vi.fn(),
   },
 }));
 vi.mock('@/lib/rate-limit', () => ({
+  getRateLimitHeaders: vi.fn((result) => ({
+    'X-RateLimit-Limit': result.limit.toString(),
+    'X-RateLimit-Remaining': result.remaining.toString(),
+    'X-RateLimit-Reset': result.reset.toString(),
+  })),
   notifyRateLimiter: {
-    check: vi.fn().mockResolvedValue(true),
+    checkWithResult: vi.fn().mockResolvedValue({
+      success: true,
+      limit: 5,
+      remaining: 4,
+      reset: Date.now() + 60000,
+    }),
   },
+}));
+vi.mock('@/utils/getClientIp', () => ({
+  getClientIp: vi.fn().mockReturnValue('127.0.0.1'),
+}));
+vi.mock('@/services/github/validate-user', () => ({
+  gitHubUserValidator: {
+    validateUser: vi.fn().mockResolvedValue(true),
+  },
+}));
+vi.mock('@/lib/github-owner-verification', () => ({
+  verifyGitHubOwner: vi.fn().mockResolvedValue({ verified: true }),
 }));
 
 import { Notification } from '@/models/Notification';
 import { notifyRateLimiter } from '@/lib/rate-limit';
+import { gitHubUserValidator } from '@/services/github/validate-user';
+import { getClientIp } from '@/utils/getClientIp';
+import { verifyGitHubOwner } from '@/lib/github-owner-verification';
 
-const makeRequest = (method: string, body?: object, search?: string) => {
+const makeRequest = (
+  method: string,
+  body?: object,
+  search?: string,
+  headers?: Record<string, string>
+) => {
   const url = `http://localhost:3000/api/notify${search ? '?' + search : ''}`;
   return new NextRequest(url, {
     method,
-    headers: { 'x-forwarded-for': '127.0.0.1' },
+    headers: {
+      'x-forwarded-for': '127.0.0.1',
+      Authorization: 'Bearer test-owner-token',
+      ...headers,
+    },
     body: body ? JSON.stringify(body) : undefined,
   });
 };
@@ -35,7 +70,15 @@ describe('POST /api/notify', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     process.env = { ...originalEnv, MONGODB_URI: 'mongodb://localhost/test' };
-    vi.mocked(notifyRateLimiter.check).mockResolvedValue(true);
+    vi.mocked(notifyRateLimiter.checkWithResult).mockResolvedValue({
+      success: true,
+      limit: 60,
+      remaining: 59,
+      reset: Date.now() + 60000,
+    });
+    vi.mocked(gitHubUserValidator.validateUser).mockResolvedValue(true);
+    vi.mocked(verifyGitHubOwner).mockResolvedValue({ verified: true });
+    vi.mocked(Notification.findOne).mockResolvedValue(null);
   });
 
   afterEach(() => {
@@ -95,9 +138,77 @@ describe('POST /api/notify', () => {
   // ── Rate limiting ────────────────────────────────────────────────────────
 
   it('returns 429 when rate limited', async () => {
-    vi.mocked(notifyRateLimiter.check).mockResolvedValue(false);
+    const reset = Date.now() + 60000;
+    vi.mocked(notifyRateLimiter.checkWithResult).mockResolvedValueOnce({
+      success: false,
+      limit: 5,
+      remaining: 0,
+      reset,
+    });
     const res = await POST(makeRequest('POST', { username: 'testuser', email: 'a@b.com' }));
     expect(res.status).toBe(429);
+    expect(res.headers.get('x-ratelimit-limit')).toBe('5');
+    expect(res.headers.get('x-ratelimit-remaining')).toBe('0');
+    expect(res.headers.get('x-ratelimit-reset')).toBe(reset.toString());
+  });
+
+  it('returns 401 when GitHub authentication is missing or invalid', async () => {
+    vi.mocked(verifyGitHubOwner).mockResolvedValueOnce({
+      verified: false,
+      status: 401,
+      message: 'GitHub authentication is required.',
+    });
+
+    const res = await POST(makeRequest('POST', { username: 'testuser', email: 'a@b.com' }));
+
+    expect(res.status).toBe(401);
+    expect(Notification.findOneAndUpdate).not.toHaveBeenCalled();
+  });
+
+  it('returns 403 when the authenticated GitHub account does not own the username', async () => {
+    vi.mocked(verifyGitHubOwner).mockResolvedValueOnce({
+      verified: false,
+      status: 403,
+      message: 'The authenticated GitHub account does not own this username.',
+    });
+
+    const res = await POST(makeRequest('POST', { username: 'victim', email: 'a@b.com' }));
+
+    expect(res.status).toBe(403);
+    expect(verifyGitHubOwner).toHaveBeenCalledWith(expect.any(Request), 'victim');
+    expect(Notification.findOneAndUpdate).not.toHaveBeenCalled();
+  });
+
+  // ── Per-username write cooldown ───────────────────────────────────────────
+
+  it('returns 429 when same username is written within cooldown period', async () => {
+    vi.mocked(Notification.findOneAndUpdate).mockResolvedValue({
+      username: 'cooldownuser',
+      email: 'a@b.com',
+      frequency: 'daily',
+      notifyOnCommit: true,
+      notifyOnStreak: true,
+      notifyOnMilestone: true,
+    } as never);
+
+    const body = { username: 'cooldownuser', email: 'a@b.com' };
+    const first = await POST(makeRequest('POST', body));
+    expect(first.status).toBe(200);
+
+    const second = await POST(makeRequest('POST', body));
+    expect(second.status).toBe(429);
+    const data = await second.json();
+    expect(data.message).toMatch(/Please wait \d+ seconds? before updating/);
+  });
+
+  // ── GitHub user existence check ──────────────────────────────────────────
+
+  it('returns 404 when GitHub username does not exist', async () => {
+    vi.mocked(gitHubUserValidator.validateUser).mockResolvedValue(false);
+    const res = await POST(makeRequest('POST', { username: 'nonexistent', email: 'a@b.com' }));
+    expect(res.status).toBe(404);
+    const data = await res.json();
+    expect(data.message).toContain('GitHub user not found');
   });
 
   // ── MONGODB_URI handling ──────────────────────────────────────────────────
@@ -145,11 +256,13 @@ describe('POST /api/notify', () => {
     const data = await res.json();
     expect(data.success).toBe(true);
     expect(data.data.username).toBe('testuser');
+    expect(data.data.email).toBe('a***@b***.com');
+    expect(data.managementToken).toMatch(/^cpn_/);
   });
 
   it('defaults frequency to daily and preferences to true when omitted', async () => {
     vi.mocked(Notification.findOneAndUpdate).mockResolvedValue({
-      username: 'testuser',
+      username: 'defaultuser',
       email: 'a@b.com',
       frequency: 'daily',
       notifyOnCommit: true,
@@ -157,8 +270,134 @@ describe('POST /api/notify', () => {
       notifyOnMilestone: true,
     } as never);
 
-    const res = await POST(makeRequest('POST', { username: 'testuser', email: 'a@b.com' }));
+    const res = await POST(makeRequest('POST', { username: 'defaultuser', email: 'a@b.com' }));
     expect(res.status).toBe(200);
+  });
+
+  it('rejects attempts to overwrite an existing subscription without ownership proof', async () => {
+    vi.mocked(Notification.findOne).mockResolvedValue({
+      username: 'victim',
+      email: 'victim@example.com',
+      managementTokenHash: hashNotificationManagementToken('real-management-token'),
+      frequency: 'daily',
+      notifyOnCommit: true,
+      notifyOnStreak: true,
+      notifyOnMilestone: true,
+    } as never);
+    vi.mocked(verifyGitHubOwner).mockResolvedValueOnce({
+      verified: false,
+      status: 401,
+      message: 'GitHub authentication is required.',
+    });
+
+    const res = await POST(
+      makeRequest('POST', {
+        username: 'victim',
+        email: 'attacker@example.com',
+        frequency: 'weekly',
+      })
+    );
+    const data = await res.json();
+
+    expect(res.status).toBe(401);
+    expect(data.message).toContain('management token');
+    expect(Notification.findOneAndUpdate).not.toHaveBeenCalled();
+  });
+
+  it('allows updates with a valid notification management token', async () => {
+    const managementToken = 'cpn_valid-management-token';
+    vi.mocked(Notification.findOne).mockResolvedValue({
+      username: 'tokenuser',
+      email: 'old@example.com',
+      managementTokenHash: hashNotificationManagementToken(managementToken),
+      frequency: 'daily',
+      notifyOnCommit: true,
+      notifyOnStreak: true,
+      notifyOnMilestone: true,
+    } as never);
+    vi.mocked(Notification.findOneAndUpdate).mockResolvedValue({
+      username: 'tokenuser',
+      email: 'new@example.com',
+      frequency: 'weekly',
+      notifyOnCommit: true,
+      notifyOnStreak: false,
+      notifyOnMilestone: true,
+    } as never);
+
+    const res = await POST(
+      makeRequest('POST', {
+        username: 'tokenuser',
+        email: 'new@example.com',
+        frequency: 'weekly',
+        managementToken,
+        preferences: { notifyOnCommit: true, notifyOnStreak: false, notifyOnMilestone: true },
+      })
+    );
+    const data = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(data.data.email).toBe('ne***@ex***.com');
+    expect(data.managementToken).toBeUndefined();
+    expect(verifyGitHubOwner).not.toHaveBeenCalled();
+  });
+});
+
+describe('DELETE /api/notify', () => {
+  const originalEnv = process.env;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    process.env = { ...originalEnv, MONGODB_URI: 'mongodb://localhost/test' };
+    vi.mocked(notifyRateLimiter.checkWithResult).mockResolvedValue({
+      success: true,
+      limit: 60,
+      remaining: 59,
+      reset: Date.now() + 60000,
+    });
+    vi.mocked(verifyGitHubOwner).mockResolvedValue({ verified: true });
+  });
+
+  afterEach(() => {
+    process.env = originalEnv;
+  });
+
+  it('rejects deletion when the authenticated account does not own the username', async () => {
+    vi.mocked(Notification.findOne).mockResolvedValue({
+      username: 'victim',
+      email: 'victim@example.com',
+      frequency: 'daily',
+      notifyOnCommit: true,
+      notifyOnStreak: true,
+      notifyOnMilestone: true,
+    } as never);
+    vi.mocked(verifyGitHubOwner).mockResolvedValueOnce({
+      verified: false,
+      status: 403,
+      message: 'The authenticated GitHub account does not own this username.',
+    });
+
+    const res = await DELETE(makeRequest('DELETE', undefined, 'user=victim'));
+
+    expect(res.status).toBe(403);
+    expect(Notification.deleteOne).not.toHaveBeenCalled();
+  });
+
+  it('deletes preferences after ownership is verified', async () => {
+    vi.mocked(Notification.findOne).mockResolvedValue({
+      username: 'testuser',
+      email: 'test@example.com',
+      frequency: 'daily',
+      notifyOnCommit: true,
+      notifyOnStreak: true,
+      notifyOnMilestone: true,
+    } as never);
+    vi.mocked(Notification.deleteOne).mockResolvedValue({ deletedCount: 1 } as never);
+
+    const res = await DELETE(makeRequest('DELETE', undefined, 'user=testuser'));
+
+    expect(res.status).toBe(200);
+    expect(verifyGitHubOwner).toHaveBeenCalledWith(expect.any(Request), 'testuser');
+    expect(Notification.deleteOne).toHaveBeenCalledWith({ username: 'testuser' });
   });
 });
 
@@ -168,7 +407,13 @@ describe('GET /api/notify', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     process.env = { ...originalEnv, MONGODB_URI: 'mongodb://localhost/test' };
-    vi.mocked(notifyRateLimiter.check).mockResolvedValue(true);
+    vi.mocked(notifyRateLimiter.checkWithResult).mockResolvedValue({
+      success: true,
+      limit: 60,
+      remaining: 59,
+      reset: Date.now() + 60000,
+    });
+    vi.mocked(Notification.findOne).mockReset();
   });
 
   afterEach(() => {
@@ -192,9 +437,45 @@ describe('GET /api/notify', () => {
   // ── Rate limiting ────────────────────────────────────────────────────────
 
   it('returns 429 when rate limited', async () => {
-    vi.mocked(notifyRateLimiter.check).mockResolvedValue(false);
+    const reset = Date.now() + 60000;
+    vi.mocked(notifyRateLimiter.checkWithResult).mockResolvedValueOnce({
+      success: false,
+      limit: 5,
+      remaining: 0,
+      reset,
+    });
     const res = await GET(makeRequest('GET', undefined, 'user=testuser'));
     expect(res.status).toBe(429);
+    expect(res.headers.get('x-ratelimit-limit')).toBe('5');
+    expect(res.headers.get('x-ratelimit-remaining')).toBe('0');
+    expect(res.headers.get('x-ratelimit-reset')).toBe(reset.toString());
+  });
+
+  it('applies rate limiting via user-agent fallback when IP is unknown', async () => {
+    // Simulates a client behind a misconfigured proxy where getClientIp returns 'unknown'.
+    // Previously the entire rate-limit block was skipped for these clients.
+    vi.mocked(getClientIp).mockReturnValueOnce('unknown');
+
+    const reset = Date.now() + 60000;
+    vi.mocked(notifyRateLimiter.checkWithResult).mockResolvedValueOnce({
+      success: false,
+      limit: 5,
+      remaining: 0,
+      reset,
+    });
+
+    const url = 'http://localhost:3000/api/notify?user=testuser';
+    const req = new NextRequest(url, {
+      method: 'GET',
+      headers: { 'user-agent': 'test-agent' },
+    });
+
+    const res = await GET(req);
+
+    // Must be rate limited even without a resolvable IP
+    expect(res.status).toBe(429);
+    // Verify checkWithResult was called with the user-agent fallback key
+    expect(notifyRateLimiter.checkWithResult).toHaveBeenCalledWith('unknown:test-agent');
   });
 
   // ── MONGODB_URI handling ──────────────────────────────────────────────────
@@ -277,5 +558,75 @@ describe('GET /api/notify', () => {
     expect(body.data.email).toBe('ad***@lo***');
     // Must not have a trailing dot
     expect(body.data.email.endsWith('.')).toBe(false);
+  });
+});
+
+describe('DELETE /api/notify', () => {
+  const originalEnv = process.env;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    process.env = { ...originalEnv, MONGODB_URI: 'mongodb://localhost/test' };
+    vi.mocked(notifyRateLimiter.checkWithResult).mockResolvedValue({
+      success: true,
+      limit: 60,
+      remaining: 59,
+      reset: Date.now() + 60000,
+    });
+    vi.mocked(verifyGitHubOwner).mockResolvedValue({ verified: true });
+  });
+
+  afterEach(() => {
+    process.env = originalEnv;
+  });
+
+  it('rejects username-only deletion without a management token or matching GitHub owner', async () => {
+    vi.mocked(Notification.findOne).mockResolvedValue({
+      username: 'victim',
+      email: 'victim@example.com',
+      managementTokenHash: hashNotificationManagementToken('real-management-token'),
+      frequency: 'daily',
+      notifyOnCommit: true,
+      notifyOnStreak: true,
+      notifyOnMilestone: true,
+    } as never);
+    vi.mocked(verifyGitHubOwner).mockResolvedValueOnce({
+      verified: false,
+      status: 401,
+      message: 'GitHub authentication is required.',
+    });
+
+    const res = await DELETE(makeRequest('DELETE', undefined, 'user=victim'));
+    const data = await res.json();
+
+    expect(res.status).toBe(401);
+    expect(data.message).toContain('management token');
+    expect(Notification.deleteOne).not.toHaveBeenCalled();
+  });
+
+  it('deletes preferences when a valid management token is supplied', async () => {
+    const managementToken = 'delete-management-token';
+    vi.mocked(Notification.findOne).mockResolvedValue({
+      username: 'testuser',
+      email: 'test@example.com',
+      managementTokenHash: hashNotificationManagementToken(managementToken),
+      frequency: 'daily',
+      notifyOnCommit: true,
+      notifyOnStreak: true,
+      notifyOnMilestone: true,
+    } as never);
+    vi.mocked(Notification.deleteOne).mockResolvedValue({ deletedCount: 1 } as never);
+
+    const res = await DELETE(
+      makeRequest('DELETE', undefined, 'user=testuser', {
+        'x-notification-token': managementToken,
+      })
+    );
+    const data = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(data.success).toBe(true);
+    expect(Notification.deleteOne).toHaveBeenCalledWith({ username: 'testuser' });
+    expect(verifyGitHubOwner).not.toHaveBeenCalled();
   });
 });

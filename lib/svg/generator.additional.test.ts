@@ -1,6 +1,6 @@
-// lib/svg/generator.test.new.ts
+// lib/svg/generator.additional.test.ts
 // New tests covering gaps in existing generator.test.ts coverage.
-// Covers: generateVersusSVG, neon theme bg, accent override, border param, org/repo title entity.
+// Covers: renderGhostDefs consistency, generateVersusSVG, neon theme bg, accent override, border param, org/repo title entity.
 
 import { describe, it, expect } from 'vitest';
 import {
@@ -11,6 +11,135 @@ import {
 } from './generator';
 import type { BadgeParams, ContributionCalendar, StreakStats } from '../../types';
 import { hexColor } from './sanitizer';
+
+// ─── renderGhostDefs refactor — consistency tests ─────────────────────────────
+// Verifies that after extracting renderGhostDefs(), both generateNotFoundSVG
+// and generateRateLimitSVG produce identical SVG filter definitions.
+// Any divergence between the two functions is a regression.
+
+describe('[Refactor] renderGhostDefs — shared defs helper consistency', () => {
+  // ── generateNotFoundSVG defs ──────────────────────────────────────────────
+
+  it('generateNotFoundSVG contains filter id="glow"', () => {
+    const svg = generateNotFoundSVG('octocat', '#0d1117', '#00ffaa', '#ffffff', 8);
+    expect(svg).toContain('id="glow"');
+  });
+
+  it('generateNotFoundSVG contains filter id="softglow"', () => {
+    const svg = generateNotFoundSVG('octocat', '#0d1117', '#00ffaa', '#ffffff', 8);
+    expect(svg).toContain('id="softglow"');
+  });
+
+  it('generateNotFoundSVG contains linearGradient id="ghostFade"', () => {
+    const svg = generateNotFoundSVG('octocat', '#0d1117', '#00ffaa', '#ffffff', 8);
+    expect(svg).toContain('id="ghostFade"');
+  });
+
+  it('generateNotFoundSVG glow filter uses stdDeviation="5"', () => {
+    const svg = generateNotFoundSVG('octocat', '#0d1117', '#00ffaa', '#ffffff', 8);
+    expect(svg).toContain('stdDeviation="5"');
+  });
+
+  it('generateNotFoundSVG softglow filter uses stdDeviation="8"', () => {
+    const svg = generateNotFoundSVG('octocat', '#0d1117', '#00ffaa', '#ffffff', 8);
+    expect(svg).toContain('stdDeviation="8"');
+  });
+
+  it('generateNotFoundSVG ghostFade gradient uses bg color', () => {
+    const bg = '#1a1a2e';
+    const svg = generateNotFoundSVG('octocat', bg, '#00ffaa', '#ffffff', 8);
+    expect(svg).toContain(`stop-color="${bg}"`);
+  });
+
+  // ── generateRateLimitSVG defs ─────────────────────────────────────────────
+
+  it('generateRateLimitSVG contains filter id="glow"', () => {
+    const svg = generateRateLimitSVG('#0d1117', '#00ffaa', '#ffffff', 8, '8s');
+    expect(svg).toContain('id="glow"');
+  });
+
+  it('generateRateLimitSVG contains filter id="softglow"', () => {
+    const svg = generateRateLimitSVG('#0d1117', '#00ffaa', '#ffffff', 8, '8s');
+    expect(svg).toContain('id="softglow"');
+  });
+
+  it('generateRateLimitSVG contains linearGradient id="ghostFade"', () => {
+    const svg = generateRateLimitSVG('#0d1117', '#00ffaa', '#ffffff', 8, '8s');
+    expect(svg).toContain('id="ghostFade"');
+  });
+
+  it('generateRateLimitSVG glow filter uses stdDeviation="5"', () => {
+    const svg = generateRateLimitSVG('#0d1117', '#00ffaa', '#ffffff', 8, '8s');
+    expect(svg).toContain('stdDeviation="5"');
+  });
+
+  it('generateRateLimitSVG softglow filter uses stdDeviation="8"', () => {
+    const svg = generateRateLimitSVG('#0d1117', '#00ffaa', '#ffffff', 8, '8s');
+    expect(svg).toContain('stdDeviation="8"');
+  });
+
+  it('generateRateLimitSVG ghostFade gradient uses bg color', () => {
+    const bg = '#1a1a2e';
+    const svg = generateRateLimitSVG(bg, '#00ffaa', '#ffffff', 8, '8s');
+    expect(svg).toContain(`stop-color="${bg}"`);
+  });
+
+  // ── Cross-function consistency — the key regression guards ────────────────
+
+  it('both functions contain identical filter IDs', () => {
+    const notFoundSvg = generateNotFoundSVG('octocat', '#0d1117', '#00ffaa', '#ffffff', 8);
+    const rateLimitSvg = generateRateLimitSVG('#0d1117', '#00ffaa', '#ffffff', 8, '8s');
+
+    const extractFilterIds = (svg: string): string[] =>
+      [...svg.matchAll(/id="([^"]+)"/g)]
+        .map((m) => m[1])
+        .filter((id) => ['glow', 'softglow', 'ghostFade'].includes(id))
+        .sort();
+
+    expect(extractFilterIds(notFoundSvg)).toEqual(extractFilterIds(rateLimitSvg));
+  });
+
+  it('both functions use identical glow stdDeviation values', () => {
+    const notFoundSvg = generateNotFoundSVG('octocat', '#0d1117', '#00ffaa', '#ffffff', 8);
+    const rateLimitSvg = generateRateLimitSVG('#0d1117', '#00ffaa', '#ffffff', 8, '8s');
+
+    const extractStdDeviations = (svg: string): string[] =>
+      [...svg.matchAll(/stdDeviation="([\d.]+)"/g)].map((m) => m[1]).sort();
+
+    expect(extractStdDeviations(notFoundSvg)).toEqual(extractStdDeviations(rateLimitSvg));
+  });
+
+  it('ghostFade gradient stop offsets are consistent across both functions', () => {
+    const notFoundSvg = generateNotFoundSVG('octocat', '#0d1117', '#00ffaa', '#ffffff', 8);
+    const rateLimitSvg = generateRateLimitSVG('#0d1117', '#00ffaa', '#ffffff', 8, '8s');
+
+    // Both should have ghostFade with 30% and 100% stops
+    expect(notFoundSvg).toContain('offset="30%"');
+    expect(notFoundSvg).toContain('offset="100%"');
+    expect(rateLimitSvg).toContain('offset="30%"');
+    expect(rateLimitSvg).toContain('offset="100%"');
+  });
+
+  it('both functions remain valid SVGs after refactor', () => {
+    const notFoundSvg = generateNotFoundSVG('octocat', '#0d1117', '#00ffaa', '#ffffff', 8);
+    const rateLimitSvg = generateRateLimitSVG('#0d1117', '#00ffaa', '#ffffff', 8, '8s');
+
+    expect(notFoundSvg).toContain('<svg');
+    expect(notFoundSvg).toContain('</svg>');
+    expect(rateLimitSvg).toContain('<svg');
+    expect(rateLimitSvg).toContain('</svg>');
+  });
+
+  it('custom bg color is reflected in ghostFade gradient for both functions', () => {
+    const customBg = '#ff0066';
+
+    const notFoundSvg = generateNotFoundSVG('octocat', customBg, '#00ffaa', '#ffffff', 8);
+    const rateLimitSvg = generateRateLimitSVG(customBg, '#00ffaa', '#ffffff', 8, '8s');
+
+    expect(notFoundSvg).toContain(`stop-color="${customBg}"`);
+    expect(rateLimitSvg).toContain(`stop-color="${customBg}"`);
+  });
+});
 
 // ─── Shared fixtures ──────────────────────────────────────────────────────────
 
@@ -38,23 +167,20 @@ const baseCalendar: ContributionCalendar = {
 
 describe('[Issue] neon theme bg color in SVG output', () => {
   it('renders #000000 background when theme=neon bg is passed directly', () => {
-    // The neon theme has bg: '000000' — pass it as the bg param
     const svg = generateSVG(
       baseStats,
       {
         user: 'chetan',
-        bg: hexColor('000000'), // neon theme bg
-        text: hexColor('00ffcc'), // neon theme text
-        accent: hexColor('ff00ff'), // neon theme accent
+        bg: hexColor('000000'),
+        text: hexColor('00ffcc'),
+        accent: hexColor('ff00ff'),
         speed: '8s',
         scale: 'linear',
       } satisfies BadgeParams,
       baseCalendar
     );
 
-    // Background rect must use the neon bg color
     expect(svg).toContain('fill="#000000"');
-    // Accent color must appear on tower fills
     expect(svg).toContain('#ff00ff');
   });
 
@@ -72,7 +198,6 @@ describe('[Issue] neon theme bg color in SVG output', () => {
       baseCalendar
     );
 
-    // The rect background fill should be the neon bg
     const match = svg.match(/fill="#000000"/);
     expect(match).not.toBeNull();
   });
@@ -82,7 +207,7 @@ describe('[Issue] neon theme bg color in SVG output', () => {
 
 describe('[Issue] custom accent param overrides tower fill color', () => {
   it('uses custom accent hex in tower fill attributes', () => {
-    const customAccent = 'ff4500'; // custom orange, not any theme default
+    const customAccent = 'ff4500';
 
     const svg = generateSVG(
       baseStats,
@@ -97,7 +222,6 @@ describe('[Issue] custom accent param overrides tower fill color', () => {
       baseCalendar
     );
 
-    // The custom accent color should appear in the SVG as tower fill
     expect(svg).toContain(`#${customAccent}`);
   });
 
@@ -128,10 +252,8 @@ describe('[Issue] custom accent param overrides tower fill color', () => {
       baseCalendar
     );
 
-    // Both SVGs should contain their respective accent colors
     expect(svgBlue).toContain('#0000ff');
     expect(svgRed).toContain('#ff0000');
-    // And must NOT contain each other's accent
     expect(svgBlue).not.toContain('#ff0000');
     expect(svgRed).not.toContain('#0000ff');
   });
@@ -148,7 +270,7 @@ describe('[Issue] border parameter produces stroke attribute in SVG', () => {
         bg: hexColor('0d1117'),
         text: hexColor('ffffff'),
         accent: hexColor('58a6ff'),
-        border: hexColor('ff00ff'), // neon pink border
+        border: hexColor('ff00ff'),
         speed: '8s',
         scale: 'linear',
       } satisfies BadgeParams,
@@ -173,7 +295,6 @@ describe('[Issue] border parameter produces stroke attribute in SVG', () => {
       baseCalendar
     );
 
-    // No border param means no stroke on the background rect
     expect(svg).not.toContain('stroke="#');
   });
 });
@@ -290,14 +411,14 @@ describe('[Issue] generateVersusSVG — zero existing test coverage', () => {
 
   it('renders a dividing line between the two user panels', () => {
     const svg = generateVersusSVG(stats1, stats2, versusParams, calendar1, calendar2);
-    // The dashed vertical divider line
     expect(svg).toContain('stroke-dasharray="4 4"');
   });
 
   it('total width viewBox is double the single card width for medium size', () => {
     const svg = generateVersusSVG(stats1, stats2, versusParams, calendar1, calendar2);
     expect(svg).toContain('viewBox="0 0 1200 420"');
-    expect(svg).toContain('width="100%"');
+    expect(svg).toContain('width="1200"');
+    expect(svg).toContain('height="420"');
   });
 
   it('renders correct viewBox for small size in versus SVG', () => {
@@ -380,7 +501,6 @@ describe('[Feature] custom gradient_stops and gradient_dir', () => {
       baseCalendar
     );
 
-    // Should use default tower-grad-level-* IDs
     expect(svg).toContain('tower-grad-level-1');
     expect(svg).toContain('tower-grad-level-2');
   });
@@ -401,11 +521,9 @@ describe('[Feature] custom gradient_stops and gradient_dir', () => {
       baseCalendar
     );
 
-    // Should contain custom gradient colors
     expect(svg).toContain('#ff6b35');
     expect(svg).toContain('#ff007f');
     expect(svg).toContain('#7000ff');
-    // Should have custom gradient IDs, not default tower-grad-level-*
     expect(svg).toContain('custom-grad-');
   });
 
@@ -425,7 +543,6 @@ describe('[Feature] custom gradient_stops and gradient_dir', () => {
       baseCalendar
     );
 
-    // Should normalize and use the colors
     expect(svg).toContain('#ff6b35');
     expect(svg).toContain('#ff007f');
     expect(svg).toContain('#7000ff');
@@ -447,7 +564,6 @@ describe('[Feature] custom gradient_stops and gradient_dir', () => {
       baseCalendar
     );
 
-    // Should fallback to default gradient (tower-grad-level-*)
     expect(svg).toContain('tower-grad-level-1');
     expect(svg).not.toContain('custom-grad-');
   });
@@ -468,7 +584,6 @@ describe('[Feature] custom gradient_stops and gradient_dir', () => {
       baseCalendar
     );
 
-    // Should fallback to default gradient
     expect(svg).toContain('tower-grad-level-1');
     expect(svg).not.toContain('custom-grad-');
   });
@@ -490,7 +605,6 @@ describe('[Feature] custom gradient_stops and gradient_dir', () => {
       baseCalendar
     );
 
-    // Vertical gradient should have y1 and y2 different (0% to 100%)
     expect(svg).toMatch(/x1="0%"\s+y1="0%"\s+x2="0%"\s+y2="100%"/);
   });
 
@@ -511,7 +625,6 @@ describe('[Feature] custom gradient_stops and gradient_dir', () => {
       baseCalendar
     );
 
-    // Horizontal gradient should have x1 and x2 different (0% to 100%)
     expect(svg).toMatch(/x1="0%"\s+y1="0%"\s+x2="100%"\s+y2="0%"/);
   });
 
@@ -532,7 +645,6 @@ describe('[Feature] custom gradient_stops and gradient_dir', () => {
       baseCalendar
     );
 
-    // Diagonal gradient should have both x and y varying
     expect(svg).toMatch(/x1="0%"\s+y1="0%"\s+x2="100%"\s+y2="100%"/);
   });
 
@@ -554,7 +666,6 @@ describe('[Feature] custom gradient_stops and gradient_dir', () => {
       baseCalendar
     );
 
-    // Should fallback to vertical
     expect(svg).toMatch(/x1="0%"\s+y1="0%"\s+x2="0%"\s+y2="100%"/);
   });
 
@@ -574,7 +685,6 @@ describe('[Feature] custom gradient_stops and gradient_dir', () => {
       baseCalendar
     );
 
-    // Should use the 2 valid colors and ignore invalid
     expect(svg).toContain('#ff6b35');
     expect(svg).toContain('#7000ff');
     expect(svg).toContain('custom-grad-');
@@ -597,7 +707,6 @@ describe('[Feature] custom gradient_stops and gradient_dir', () => {
       baseCalendar
     );
 
-    // Should not contain any gradient definitions
     expect(svg).not.toContain('linearGradient');
     expect(svg).not.toContain('custom-grad-');
     expect(svg).not.toContain('tower-grad-level-');
@@ -685,8 +794,6 @@ describe('[Refactor] renderGhostTowers — shared helper consistency', () => {
   });
 
   // ── Cross-function consistency ─────────────────────────────────────────────
-  // These are the most important tests — they verify the two functions use
-  // identical geometry by comparing their opacity attribute sets directly.
 
   const extractGhostTowerSvg = (svg: string) => {
     const match = svg.match(/<g[^>]+class="ghost-towers"[^>]*>([\s\S]*?)<\/g>/);
@@ -760,5 +867,161 @@ describe('[Refactor] renderGhostTowers — shared helper consistency', () => {
     expect(notFoundSvg).toContain('</svg>');
     expect(rateLimitSvg).toContain('<svg');
     expect(rateLimitSvg).toContain('</svg>');
+  });
+});
+
+// ─── 6. Customizable 3D projection angles (theta and phi) ─────────────────────
+
+describe('[Feature] Customizable 3D projection angles (theta and phi)', () => {
+  it('renders SVG with default angles (45 degrees, arcsin(10/16)) when params are absent', () => {
+    const svg = generateSVG(
+      baseStats,
+      {
+        user: 'chetan',
+        bg: hexColor('0d1117'),
+        text: hexColor('ffffff'),
+        accent: hexColor('58a6ff'),
+        speed: '8s',
+        scale: 'linear',
+      } satisfies BadgeParams,
+      baseCalendar
+    );
+
+    expect(svg).toContain('translate(284, 130)');
+  });
+
+  it('translates tower coordinates differently when custom theta and phi are passed', () => {
+    const svgCustom = generateSVG(
+      baseStats,
+      {
+        user: 'chetan',
+        bg: hexColor('0d1117'),
+        text: hexColor('ffffff'),
+        accent: hexColor('58a6ff'),
+        speed: '8s',
+        scale: 'linear',
+        theta: 90,
+        phi: 45,
+      } satisfies BadgeParams,
+      baseCalendar
+    );
+
+    expect(svgCustom).toContain('translate(277, 120)');
+    expect(svgCustom).not.toContain('translate(284, 130)');
+  });
+});
+
+// ─── generateAutoThemeVersusSVG refactor — renderTowers consistency ──────────
+
+describe('[Refactor] generateAutoThemeVersusSVG — uses renderTowers consistency', () => {
+  const stats1: StreakStats = {
+    currentStreak: 5,
+    longestStreak: 10,
+    totalContributions: 120,
+    todayDate: '2024-06-12',
+  };
+
+  const stats2: StreakStats = {
+    currentStreak: 3,
+    longestStreak: 8,
+    totalContributions: 80,
+    todayDate: '2024-06-12',
+  };
+
+  const calendar1: ContributionCalendar = {
+    totalContributions: 120,
+    weeks: [
+      {
+        contributionDays: [
+          { contributionCount: 0, date: '2024-06-09' },
+          { contributionCount: 5, date: '2024-06-10' },
+          { contributionCount: 11, date: '2024-06-11' },
+          { contributionCount: 6, date: '2024-06-12' },
+        ],
+      },
+    ],
+  };
+
+  const calendar2: ContributionCalendar = {
+    totalContributions: 80,
+    weeks: [
+      {
+        contributionDays: [
+          { contributionCount: 0, date: '2024-06-09' },
+          { contributionCount: 3, date: '2024-06-10' },
+          { contributionCount: 12, date: '2024-06-11' },
+          { contributionCount: 2, date: '2024-06-12' },
+        ],
+      },
+    ],
+  };
+
+  const autoVersusParams: BadgeParams = {
+    user: 'chetan',
+    versus: 'rival',
+    bg: hexColor('0d1117'),
+    text: hexColor('ffffff'),
+    accent: hexColor('58a6ff'),
+    speed: '8s',
+    scale: 'linear',
+    autoTheme: true,
+  };
+
+  it('auto-theme versus SVG contains cp-accent-fill class for active towers', () => {
+    const svg = generateVersusSVG(stats1, stats2, autoVersusParams, calendar1, calendar2);
+    expect(svg).toContain('class="cp-accent-fill"');
+  });
+
+  it('auto-theme versus SVG contains cp-text-fill class for ghost towers', () => {
+    const ghostCalendar: ContributionCalendar = {
+      totalContributions: 0,
+      weeks: [{ contributionDays: [{ contributionCount: 0, date: '2024-06-12' }] }],
+    };
+    const svg = generateVersusSVG(stats1, stats2, autoVersusParams, ghostCalendar, ghostCalendar);
+    expect(svg).toContain('class="cp-text-fill"');
+  });
+
+  it('auto-theme versus SVG contains cp-bg CSS variable (from auto-theme style block)', () => {
+    const svg = generateVersusSVG(stats1, stats2, autoVersusParams, calendar1, calendar2);
+    expect(svg).toContain('--cp-bg');
+    expect(svg).toContain('--cp-accent');
+    expect(svg).toContain('prefers-color-scheme: dark');
+  });
+
+  it('auto-theme versus SVG has heat particles for high-contribution days', () => {
+    const svg = generateVersusSVG(stats1, stats2, autoVersusParams, calendar1, calendar2);
+    expect(svg).toContain('class="heat-particles"');
+  });
+
+  it('auto-theme versus SVG has today pulse animation', () => {
+    const svg = generateVersusSVG(stats1, stats2, autoVersusParams, calendar1, calendar2);
+    expect(svg).toContain('attributeName="opacity" values="1;0.4;1"');
+  });
+
+  it('auto-theme versus SVG has staggered tower animation delays', () => {
+    const svg = generateVersusSVG(stats1, stats2, autoVersusParams, calendar1, calendar2);
+    expect(svg).toMatch(/style="animation-delay: \d+\.\d+s;"/);
+  });
+
+  it('auto-theme versus and static versus produce same structural tower count', () => {
+    const staticParams: BadgeParams = {
+      ...autoVersusParams,
+      autoTheme: false,
+    };
+    const autoSvg = generateVersusSVG(stats1, stats2, autoVersusParams, calendar1, calendar2);
+    const staticSvg = generateVersusSVG(stats1, stats2, staticParams, calendar1, calendar2);
+
+    const autoTowers = [...autoSvg.matchAll(/class="cp-tower"/g)].length;
+    const staticTowers = [...staticSvg.matchAll(/class="cp-tower"/g)].length;
+    expect(autoTowers).toBe(staticTowers);
+  });
+
+  it('auto-theme versus does not contain inline hex fill colors on tower paths', () => {
+    const svg = generateVersusSVG(stats1, stats2, autoVersusParams, calendar1, calendar2);
+
+    const towerSection = svg.match(/class="cp-tower"[\s\S]*?<\/g>/g) || [];
+    for (const tower of towerSection) {
+      expect(tower).not.toMatch(/fill="#[0-9a-fA-F]{6}"/);
+    }
   });
 });

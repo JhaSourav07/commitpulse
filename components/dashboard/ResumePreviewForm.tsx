@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Check, X, Loader2, Plus, Trash2 } from 'lucide-react';
+import { Check, Loader2, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import type { ParsedResume, Education, Experience } from '@/types/student';
 
@@ -194,7 +194,21 @@ export default function ResumePreviewForm({
                   className="w-24 bg-transparent text-sm text-gray-900 outline-none dark:text-white"
                 />
                 <button onClick={() => removeSkill(i)} className="text-red-400 hover:text-red-500">
-                  <X size={12} />
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="12"
+                    height="12"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="lucide lucide-x"
+                  >
+                    <path d="M18 6 6 18" />
+                    <path d="m6 6 12 12" />
+                  </svg>
                 </button>
               </div>
             ))}
@@ -224,7 +238,24 @@ export default function ResumePreviewForm({
                     onClick={() => removeEducation(i)}
                     className="text-red-400 hover:text-red-500"
                   >
-                    <Trash2 size={14} />
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="lucide lucide-trash-2"
+                    >
+                      <path d="M3 6h18" />
+                      <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                      <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                      <line x1="10" x2="10" y1="11" y2="17" />
+                      <line x1="14" x2="14" y1="11" y2="17" />
+                    </svg>
                   </button>
                 </div>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -294,7 +325,24 @@ export default function ResumePreviewForm({
                     onClick={() => removeExperience(i)}
                     className="text-red-400 hover:text-red-500"
                   >
-                    <Trash2 size={14} />
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="lucide lucide-trash-2"
+                    >
+                      <path d="M3 6h18" />
+                      <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                      <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                      <line x1="10" x2="10" y1="11" y2="17" />
+                      <line x1="14" x2="14" y1="11" y2="17" />
+                    </svg>
                   </button>
                 </div>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">

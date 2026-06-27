@@ -124,7 +124,20 @@ export default function RepositoryGraph({ data }: RepositoryGraphProps) {
   }
 
   return (
-    <div className="flex flex-col gap-6" id="repository-graph">
+    <div
+      className="flex flex-col gap-6"
+      id="repository-graph"
+      role="region"
+      aria-label="Repository relationship graph"
+      aria-describedby="repository-graph-description repository-graph-summary"
+    >
+      <p id="repository-graph-description" className="sr-only">
+        Interactive repository relationship graph showing repositories, contributions and forks.
+      </p>
+
+      <p id="repository-graph-summary" className="sr-only">
+        Graph contains {graphData.nodes.length} nodes and {graphData.links.length} relationships.
+      </p>
       {/* Header & Filters */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
@@ -140,8 +153,10 @@ export default function RepositoryGraph({ data }: RepositoryGraphProps) {
           {Object.entries(filters).map(([key, value]) => (
             <button
               key={key}
+              aria-label={`Toggle ${key} repositories`}
+              aria-pressed={value}
               onClick={() => toggleFilter(key as keyof typeof filters)}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-full border transition-all ${
+              className={`px-3 py-1.5 text-xs font-semibold rounded-full border transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 ${
                 value
                   ? 'text-black border-transparent shadow-sm'
                   : 'bg-transparent text-gray-500 border-gray-300 dark:border-zinc-700 hover:border-gray-500'
@@ -163,6 +178,9 @@ export default function RepositoryGraph({ data }: RepositoryGraphProps) {
         {/* Graph Container */}
         <div
           ref={containerRef}
+          tabIndex={0}
+          data-testid="repository-graph-container"
+          aria-label="Interactive repository graph canvas"
           className="flex-grow bg-white dark:bg-[#0a0a0a] border border-black/10 dark:border-[rgba(255,255,255,0.08)] rounded-xl overflow-hidden relative shadow-sm"
           style={{ height: dimensions.height }}
         >

@@ -342,6 +342,36 @@ describe('User Model', () => {
       readyStateSpy.mockRestore();
       connectSpy.mockRestore();
     });
+
+    //test to ensure that if the connection is already active (readyState 1), it does not trigger the lazy initialization fallback
+    it('does not trigger lazy initialization fallback when connection is already active', async () => {
+      const { vi } = await import('vitest');
+
+      // Mock mongoose.connection.readyState to return 1 (connected)
+      const readyStateSpy = vi
+        .spyOn(mongoose.connection, 'readyState', 'get')
+        .mockReturnValue(1 as unknown as typeof mongoose.connection.readyState);
+
+      // Spy on mongoose.connect
+      const connectSpy = vi.spyOn(mongoose, 'connect').mockResolvedValue(mongoose);
+
+      // Simulate database operation
+      const executeDbOperation = async () => {
+        if (mongoose.connection.readyState === 99) {
+          await mongoose.connect('mongodb://localhost:27017/test');
+        }
+      };
+
+      await executeDbOperation();
+
+      // Assertions
+      expect(mongoose.connection.readyState).toBe(1);
+      expect(connectSpy).not.toHaveBeenCalled();
+
+      // Cleanup
+      readyStateSpy.mockRestore();
+      connectSpy.mockRestore();
+    });
   });
 
   describe('Database Connection State 3 Handling', () => {

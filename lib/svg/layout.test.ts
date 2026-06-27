@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { isGhostCity, computeTowers, computeFaceOpacity, computeTowerHeight } from './layout';
+import {
+  isGhostCity,
+  computeTowers,
+  computeFaceOpacity,
+  computeTowerHeight,
+  projectIsometric,
+} from './layout';
 import type { ContributionCalendar } from '../../types';
 import {
   GHOST_HEIGHT_PX,
@@ -7,6 +13,7 @@ import {
   LINEAR_SCALE_MULTIPLIER,
   MAX_LOG_HEIGHT,
   MAX_LINEAR_HEIGHT,
+  MAX_SQRT_HEIGHT,
 } from './layoutConstants';
 
 describe('computeTowers edge cases', () => {
@@ -116,7 +123,7 @@ describe('computeTowers edge cases', () => {
     } as unknown as ContributionCalendar;
     const towers = computeTowers(calendar, 'linear', '2024-06-10');
     expect(towers[0].isGhost).toBe(true);
-    expect(towers[0].h).toBe(GHOST_HEIGHT_PX); // GHOST_HEIGHT_PX
+    expect(towers[0].h).toBe(GHOST_HEIGHT_PX);
     expect(towers[0].strokeOpacity).toBe(0.3);
     expect(towers[0].strokeWidth).toBe(0.5);
     expect(towers[0].faceOpacity.top).toBe(0.08);
@@ -144,7 +151,7 @@ describe('computeTowers edge cases', () => {
 
     towers.forEach((tower) => {
       expect(tower.isGhost).toBe(true);
-      expect(tower.h).toBe(GHOST_HEIGHT_PX); // GHOST_HEIGHT_PX
+      expect(tower.h).toBe(GHOST_HEIGHT_PX);
       expect(tower.faceOpacity.top).toBe(0.08);
     });
   });
@@ -164,7 +171,7 @@ describe('computeTowers edge cases', () => {
     const towers = computeTowers(calendar, 'linear', '2024-06-10');
     expect(towers.every((tower) => tower.isGhost === false)).toBe(true);
     expect(towers[0].isGhost).toBe(false);
-    expect(towers[0].h).toBe(0); // 0 count non-ghost = 0 height
+    expect(towers[0].h).toBe(0);
     expect(towers[0].strokeOpacity).toBe(0);
     expect(towers[0].strokeWidth).toBe(0);
     expect(towers[0].faceOpacity.top).toBe(0.08);
@@ -179,8 +186,10 @@ describe('computeTowers edge cases', () => {
       weeks: [{ contributionDays: [{ contributionCount: 3, date: '2024-06-10' }] }],
     } as unknown as ContributionCalendar;
     const towers = computeTowers(calendar, 'log', '2024-06-10');
-    // Math.log2(3 + 1) * 12 = 2 * 12 = 24
-    expect(towers[0].h).toBe(24);
+
+    // Math.log2(3 + 1) * LOG_SCALE_MULTIPLIER = 2 * LOG_SCALE_MULTIPLIER
+    const expectedHeight = 2 * LOG_SCALE_MULTIPLIER;
+    expect(towers[0].h).toBe(expectedHeight);
   });
 
   // =========================================================================
@@ -204,17 +213,14 @@ describe('computeTowers edge cases', () => {
       ],
     } as unknown as ContributionCalendar;
 
-    // Call computeTowers with 'loc' mode parameter
     const towers = computeTowers(calendar, 'linear', todayDate, 'loc');
     const testTower = towers[0];
 
-    // Assert the computed count is 60 (50 + 10)
     expect(testTower.contributionCount).toBe(60);
-    // Assert h > 0 (not ghost despite 0 normal contributions)
     expect(testTower.h).toBeGreaterThan(0);
-    // Assert intensityLevel is calculated correctly based on lines of code (60/60 = 100%, so intensity 4)
     expect(testTower.intensityLevel).toBe(4);
   });
+
   it('ensures all tower heights are non-negative', () => {
     const calendar = {
       totalContributions: 26,
@@ -236,72 +242,112 @@ describe('computeTowers edge cases', () => {
       expect(tower.h).toBeGreaterThanOrEqual(0);
     });
   });
+
+  it('assigns correct row and col values based on week/day position', () => {
+    const calendar = {
+      totalContributions: 0,
+      weeks: [
+        {
+          contributionDays: [
+            { contributionCount: 1, date: '2024-06-09' },
+            { contributionCount: 1, date: '2024-06-10' },
+            { contributionCount: 1, date: '2024-06-11' },
+          ],
+        },
+        {
+          contributionDays: [
+            { contributionCount: 1, date: '2024-06-16' },
+            { contributionCount: 1, date: '2024-06-17' },
+            { contributionCount: 1, date: '2024-06-18' },
+          ],
+        },
+      ],
+    } as unknown as ContributionCalendar;
+
+    const towers = computeTowers(calendar, 'linear', '2024-06-18');
+
+    expect(towers[0].row).toBe(0);
+    expect(towers[0].col).toBe(0);
+
+    expect(towers[1].row).toBe(0);
+    expect(towers[1].col).toBe(1);
+
+    expect(towers[3].row).toBe(1);
+    expect(towers[3].col).toBe(0);
+  });
 });
 
-it('assigns correct row and col values based on week/day position', () => {
-  const calendar = {
-    totalContributions: 0,
-    weeks: [
-      {
-        contributionDays: [
-          { contributionCount: 1, date: '2024-06-09' },
-          { contributionCount: 1, date: '2024-06-10' },
-          { contributionCount: 1, date: '2024-06-11' },
-        ],
-      },
-      {
-        contributionDays: [
-          { contributionCount: 1, date: '2024-06-16' },
-          { contributionCount: 1, date: '2024-06-17' },
-          { contributionCount: 1, date: '2024-06-18' },
-        ],
-      },
-    ],
-  } as unknown as ContributionCalendar;
-
-  const towers = computeTowers(calendar, 'linear', '2024-06-18');
-
-  expect(towers[0].row).toBe(0);
-  expect(towers[0].col).toBe(0);
-
-  expect(towers[1].row).toBe(0);
-  expect(towers[1].col).toBe(1);
-
-  expect(towers[3].row).toBe(1);
-  expect(towers[3].col).toBe(0);
-});
-
+// ── computeFaceOpacity tests ──────────────────────────────────────────────────
 describe('computeFaceOpacity', () => {
-  it('returns ghost opacity in ghost city mode', () => {
-    expect(computeFaceOpacity(10, true)).toEqual({
-      left: 0,
-      right: 0,
-      top: 0.08,
-    });
+  it('returns fully transparent sides and ghost top for ghost city mode', () => {
+    const result = computeFaceOpacity(0, true);
+    expect(result.left).toBe(0);
+    expect(result.right).toBe(0);
+    expect(result.top).toBe(0.08);
   });
 
-  it('returns ghost opacity for zero contributions', () => {
-    expect(computeFaceOpacity(0, false)).toEqual({
-      left: 0,
-      right: 0,
-      top: 0.08,
-    });
+  it('ghost city mode returns same opacity regardless of count value', () => {
+    const resultZero = computeFaceOpacity(0, true);
+    const resultFive = computeFaceOpacity(5, true);
+    expect(resultZero).toEqual(resultFive);
   });
 
-  it('returns active opacity for low contribution count', () => {
-    expect(computeFaceOpacity(1, false)).toEqual({
-      left: 0.35,
-      right: 0.21,
-      top: 0.7,
-    });
+  it('returns fully transparent sides and ghost top for count===0 in active calendar', () => {
+    const result = computeFaceOpacity(0, false);
+    expect(result.left).toBe(0);
+    expect(result.right).toBe(0);
+    expect(result.top).toBe(0.08);
   });
 
-  it('returns active opacity for high contribution count', () => {
-    expect(computeFaceOpacity(999, false)).toEqual({
-      left: 0.35,
-      right: 0.21,
-      top: 0.7,
-    });
+  it('count===0 non-ghost and ghost mode produce identical FaceOpacity', () => {
+    const ghost = computeFaceOpacity(0, true);
+    const emptyActive = computeFaceOpacity(0, false);
+    expect(ghost).toEqual(emptyActive);
+  });
+
+  it('returns full active opacity for count > 0 in non-ghost mode', () => {
+    const result = computeFaceOpacity(5, false);
+    expect(result.left).toBe(0.35);
+    expect(result.right).toBe(0.21);
+    expect(result.top).toBe(0.7);
+  });
+
+  it('active opacity applies regardless of contribution count magnitude', () => {
+    const resultOne = computeFaceOpacity(1, false);
+    const resultHundred = computeFaceOpacity(100, false);
+    expect(resultOne).toEqual(resultHundred);
+    expect(resultOne.left).toBe(0.35);
+    expect(resultOne.right).toBe(0.21);
+    expect(resultOne.top).toBe(0.7);
+  });
+
+  it('left face opacity is always 0 for empty or ghost towers', () => {
+    expect(computeFaceOpacity(0, true).left).toBe(0);
+    expect(computeFaceOpacity(0, false).left).toBe(0);
+  });
+
+  it('right face opacity is always 0 for empty or ghost towers', () => {
+    expect(computeFaceOpacity(0, true).right).toBe(0);
+    expect(computeFaceOpacity(0, false).right).toBe(0);
+  });
+
+  it('top face opacity is 0.08 for ghost/empty and 0.7 for active', () => {
+    expect(computeFaceOpacity(0, true).top).toBe(0.08);
+    expect(computeFaceOpacity(0, false).top).toBe(0.08);
+    expect(computeFaceOpacity(1, false).top).toBe(0.7);
+  });
+
+  it('active tower has higher opacity than ghost/empty on all faces', () => {
+    const active = computeFaceOpacity(10, false);
+    const ghost = computeFaceOpacity(0, true);
+    expect(active.left).toBeGreaterThan(ghost.left);
+    expect(active.right).toBeGreaterThan(ghost.right);
+    expect(active.top).toBeGreaterThan(ghost.top);
+  });
+
+  it('returns a plain object with exactly left, right, top keys', () => {
+    const result = computeFaceOpacity(5, false);
+    expect(Object.keys(result).sort()).toEqual(['left', 'right', 'top']);
   });
 });
 
@@ -316,7 +362,6 @@ describe('computeTowerHeight', () => {
 
   it('computes linear scale height correctly', () => {
     const expected = Math.min(5 * LINEAR_SCALE_MULTIPLIER, MAX_LINEAR_HEIGHT);
-
     expect(computeTowerHeight(5, 'linear', false)).toBe(expected);
   });
 
@@ -326,12 +371,27 @@ describe('computeTowerHeight', () => {
 
   it('computes logarithmic scale height correctly', () => {
     const expected = Math.min(Math.log2(8 + 1) * LOG_SCALE_MULTIPLIER, MAX_LOG_HEIGHT);
-
     expect(computeTowerHeight(8, 'log', false)).toBeCloseTo(expected);
   });
 
   it('caps logarithmic scale height at maximum', () => {
     expect(computeTowerHeight(999999, 'log', false)).toBe(MAX_LOG_HEIGHT);
+  });
+
+  it('computes square root scale height correctly', () => {
+    // formula: h_scaled = MAX_SQRT_HEIGHT * sqrt(commits / maxCommits)
+    // with count=4, maxCommits=16, height should be 50 * sqrt(4/16) = 50 * 0.5 = 25
+    expect(computeTowerHeight(4, 'sqrt', false, 16)).toBe(25);
+  });
+
+  it('caps square root scale height at maximum', () => {
+    expect(computeTowerHeight(20, 'sqrt', false, 10)).toBe(50);
+  });
+
+  it('handles empty maxCommits fallback correctly', () => {
+    // fallback divisor is count
+    // count=4, maxCommits=undefined -> divisor=4 -> sqrt(4/4)*50 = 50
+    expect(computeTowerHeight(4, 'sqrt', false)).toBe(50);
   });
 });
 
@@ -370,5 +430,51 @@ describe('isGhostCity', () => {
       },
     ];
     expect(isGhostCity(locOnlyCalendarWeeks)).toBe(false);
+  });
+});
+
+// ── NEW: Issue 28 — projectIsometric regression tests ────────────────────────
+describe('projectIsometric — uses shared layoutConstants grid values', () => {
+  it('uses GRID_ORIGIN_X=300 as x origin', () => {
+    const result = projectIsometric(5, 5);
+    expect(result.x).toBe(300);
+  });
+
+  it('uses GRID_ORIGIN_Y=120 as y origin', () => {
+    const result = projectIsometric(0, 0);
+    expect(result.y).toBe(120);
+  });
+
+  it('uses TILE_WIDTH_HALF=16 for x step', () => {
+    const r0 = projectIsometric(0, 0);
+    const r1 = projectIsometric(1, 0);
+    expect(r1.x - r0.x).toBe(16);
+  });
+
+  it('uses TILE_HEIGHT_HALF=10 for y step — not 9', () => {
+    const r0 = projectIsometric(0, 0);
+    const r1 = projectIsometric(1, 0);
+    expect(r1.y - r0.y).toBe(10);
+    expect(r1.y - r0.y).not.toBe(9);
+  });
+
+  it('x decreases as dayIndex increases (isometric left-lean)', () => {
+    const r0 = projectIsometric(0, 0);
+    const r1 = projectIsometric(0, 1);
+    expect(r1.x).toBeLessThan(r0.x);
+    expect(r0.x - r1.x).toBe(16);
+  });
+
+  it('y increases as both weekIndex and dayIndex increase', () => {
+    const r0 = projectIsometric(0, 0);
+    const r1 = projectIsometric(1, 1);
+    expect(r1.y - r0.y).toBe(20);
+  });
+
+  it('grid coordinates are consistent with TILE_HEIGHT_HALF=10 across 14 columns', () => {
+    const col0 = projectIsometric(0, 0);
+    const col14 = projectIsometric(14, 0);
+    expect(col14.y - col0.y).toBe(140);
+    expect(col14.y - col0.y).not.toBe(126);
   });
 });

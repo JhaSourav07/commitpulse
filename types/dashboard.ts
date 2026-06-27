@@ -1,6 +1,6 @@
 // types/dashboard.ts
 
-import type { ContributionCalendar } from './index';
+import type { ContributionCalendar, GraphNode, GraphLink } from './index';
 
 export interface UserProfile {
   username: string;
@@ -61,6 +61,22 @@ export interface Achievement {
   progress: number; // 0–100
 }
 
+export interface HallOfFameAward {
+  category: 'active' | 'growing' | 'collaborative' | 'popular' | 'contributed';
+  title: string;
+  repoName: string;
+  repoAvatar?: string;
+  description: string;
+
+  centerpieceLabel: string;
+  centerpieceValue: string | number;
+  bottomStats: string;
+
+  explanation: string;
+  icon: string;
+  url: string;
+}
+
 export interface CommitClockData {
   day: string; // 'Sun' | 'Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri' | 'Sat'
   commits: number;
@@ -83,10 +99,64 @@ export interface WrappedStats {
   busiestMonth: string;
   weekendRatio: number;
   topLanguage: string;
+  calendar: ContributionCalendar;
 }
 
 export interface OrgDashboardData {
   profile: UserProfile;
   stats: UserStats;
   calendar: ContributionCalendar;
+}
+
+export interface Repository {
+  name: string;
+  description: string | null;
+  stargazerCount: number;
+  forkCount: number;
+  url: string;
+  primaryLanguage: {
+    name: string;
+    color: string;
+  } | null;
+}
+
+export interface RepoActivityInfo {
+  name: string;
+  url: string;
+  pushedAt: string | null;
+}
+
+/* ==========================================================================
+ * PRODUCTION DEPLOYMENTS FEATURE
+ * ========================================================================== */
+
+export type WorkflowStatus = 'success' | 'failure' | 'in_progress' | 'unknown';
+
+export interface DeploymentData {
+  repoName: string;
+  repoUrl: string;
+  liveUrl: string | null;
+  status: WorkflowStatus;
+  deployedAt: string | null; // ISO timestamp of the deployment
+  environment: string; // e.g. "production"
+  workflowName: string | null; // e.g. "Vercel Production Deployment"
+}
+
+export interface DashboardData {
+  profile: UserProfile;
+  stats: UserStats;
+  languages: LanguageData[];
+  activity: ActivityData[];
+  insights: AIInsight[];
+  achievements: Achievement[];
+  commitClock: CommitClockData[];
+  graphData: {
+    nodes: GraphNode[];
+    links: GraphLink[];
+  };
+  popularRepos?: Repository[];
+  pinnedRepos?: Repository[];
+  starredRepos?: Repository[];
+  deployments?: DeploymentData[];
+  hallOfFame?: HallOfFameAward[];
 }

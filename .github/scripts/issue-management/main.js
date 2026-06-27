@@ -68,7 +68,7 @@ module.exports = async ({ github, context, core }) => {
         owner,
         repo,
         issue_number: issueNumber,
-        body: `⚠️ An unexpected error occurred while processing your command. Please try again or contact a maintainer.\n\n> \`${error.message}\``,
+        body: `⚠️ An unexpected error occurred while processing your command. Please try again or contact a maintainer.`,
       });
     } catch (_) {}
     core.setFailed(error.message);

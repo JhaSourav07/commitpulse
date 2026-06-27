@@ -52,6 +52,11 @@ export function useRecentSearches() {
   // setState calls inside an effect body.
   const [state, setState] = useState<State>({ searches: [], mounted: false });
 
+  // SSR hydration guard + localStorage sync in a single batched update.
+  // Starting with { searches: [], mounted: false } ensures the server and
+  // client initial renders match (no hydration mismatch). This mount effect
+  // reads localStorage — a browser-only API — and flips mounted:true in one
+  // setState call so there is no intermediate render with stale state.
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setState({ searches: loadFromStorage(), mounted: true });

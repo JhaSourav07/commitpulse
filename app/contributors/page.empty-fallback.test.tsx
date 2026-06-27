@@ -1,11 +1,16 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @next/next/no-img-element, jsx-a11y/alt-text */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import ContributorsPage from './page';
 
 vi.mock('next/image', () => ({
   __esModule: true,
-  default: (props: any) => <img {...props} />,
+  default: (props: any) => {
+    const { fill, ...rest } = props || {};
+    return <img {...rest} />;
+  },
 }));
 
 vi.mock('next/link', () => ({
@@ -83,10 +88,10 @@ describe('ContributorsPage empty fallback', () => {
 
   it('renders fallback UI when contributors are empty', async () => {
     const element = await ContributorsPage();
-    render(element);
+    const { container } = render(element);
 
     expect(screen.getByText(/No architects found/i)).toBeTruthy();
-    expect(screen.getByText(/0 of 0 contributors/i)).toBeTruthy();
+    expect(container.textContent?.replace(/\s+/g, '')).toContain('0/0contributors');
     expect(screen.getByRole('heading', { name: /THE COLLECTIVE/i })).toBeTruthy();
     expect(screen.getByText(/READY TO BUILD\?/i)).toBeTruthy();
   });
@@ -104,10 +109,10 @@ describe('ContributorsPage empty fallback', () => {
   it('handles fetch failures gracefully and still renders fallback state', async () => {
     global.fetch = vi.fn(() => Promise.reject(new Error('Network failure'))) as any;
     const element = await ContributorsPage();
-    render(element);
+    const { container } = render(element);
 
     expect(screen.getByText(/No architects found/i)).toBeTruthy();
-    expect(screen.getByText(/0 of 0 contributors/i)).toBeTruthy();
+    expect(container.textContent?.replace(/\s+/g, '')).toContain('0/0contributors');
   });
 
   it('handles non-ok API responses without breaking the page', async () => {
@@ -121,10 +126,10 @@ describe('ContributorsPage empty fallback', () => {
     ) as any;
 
     const element = await ContributorsPage();
-    render(element);
+    const { container } = render(element);
 
     expect(screen.getByText(/No architects found/i)).toBeTruthy();
-    expect(screen.getByText(/0 of 0 contributors/i)).toBeTruthy();
+    expect(container.textContent?.replace(/\s+/g, '')).toContain('0/0contributors');
   });
 
   it('does not emit console errors when the fallback page renders', async () => {

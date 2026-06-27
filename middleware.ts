@@ -1,28 +1,39 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { rateLimit } from './lib/rate-limit';
+import { rateLimit, getRateLimitHeaders } from './lib/rate-limit';
 import { getClientIp } from './utils/getClientIp';
+
+const securityHeaders = {
+  'Content-Security-Policy':
+    "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; font-src 'self' data:; connect-src 'self' https:;",
+  'X-Content-Type-Options': 'nosniff',
+  'X-Frame-Options': 'DENY',
+  'Strict-Transport-Security': 'max-age=63072000; includeSubDomains; preload',
+  'Referrer-Policy': 'strict-origin-when-cross-origin',
+  'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+};
 
 /**
  * Middleware to enforce rate limiting on specific API routes.
- *
- * Protected Routes:
- * - /api/streak
- * - /api/github
- * - /api/track-user
- * - /api/stats
- * - /api/og
- * - /api/notify
- *
- * Limit: 60 requests per minute per IP.
  */
 export async function middleware(request: NextRequest) {
-  // Secure client IP extraction
+  // Extract client IP securely using the getClientIp helper
   const ip = getClientIp(request);
 
-  // Apply rate limiting
-  // 60 requests per 60,000ms (1 minute)
-  const result = await rateLimit(ip, 60, 60000);
+  // Determine if this is a hard-refresh request (bypasses cache/hits GitHub API)
+  const isRefreshRequest =
+    request.nextUrl.searchParams.get('refresh') === 'true' ||
+    request.nextUrl.searchParams.get('bypassCache') === 'true';
+
+  let result;
+
+  if (isRefreshRequest) {
+    // Strict rate limit for explicit refresh requests: 3 requests per 10 minutes (600,000ms)
+    result = await rateLimit(`refresh_limiter:${ip}`, 3, 600000, 'api');
+  } else {
+    // Standard rate limit: 60 requests per 1 minute (60,000ms)
+    result = await rateLimit(ip, 60, 60000, 'api');
+  }
 
   if (!result.success) {
     return NextResponse.json(
@@ -31,26 +42,30 @@ export async function middleware(request: NextRequest) {
         status: 429,
         headers: {
           'Content-Type': 'application/json',
-          'X-RateLimit-Limit': result.limit.toString(),
-          'X-RateLimit-Remaining': result.remaining.toString(),
-          'X-RateLimit-Reset': result.reset.toString(),
+          ...getRateLimitHeaders(result),
+          ...securityHeaders,
         },
       }
     );
   }
 
-  // Add rate limit headers to the response for successful requests
   const response = NextResponse.next();
+
+  // Apply Rate Limit Headers
   response.headers.set('X-RateLimit-Limit', result.limit.toString());
   response.headers.set('X-RateLimit-Remaining', result.remaining.toString());
   response.headers.set('X-RateLimit-Reset', result.reset.toString());
+
+  // Apply Global Security Headers
+  Object.entries(securityHeaders).forEach(([key, value]) => {
+    response.headers.set(key, value);
+  });
 
   return response;
 }
 
 /**
- * Configure which routes should trigger this middleware.
- * Using a matcher is more efficient than checking pathnames inside the middleware.
+ * Configure which routes should trigger this proxy.
  */
 export const config = {
   matcher: [
@@ -61,5 +76,9 @@ export const config = {
     '/api/og/:path*',
     '/api/notify/:path*',
     '/api/compare/:path*',
+    '/api/wrapped/:path*',
+    '/api/student/:path*',
+    '/api/pr-insights/:path*',
+    '/api/architecture/:path*',
   ],
 };

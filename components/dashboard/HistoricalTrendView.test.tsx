@@ -90,4 +90,48 @@ describe('HistoricalTrendView', () => {
 
     expect(screen.getByRole('button', { name: /next/i })).toBeInTheDocument();
   });
+
+  it('labels the streak Current/Ending/Upcoming based on where the window sits relative to today', () => {
+    const currentPeriod: DashboardPeriod = {
+      kind: 'range',
+      label: 'All time',
+      from: '2000-01-01T00:00:00.000Z',
+      to: '2999-12-31T23:59:59.999Z',
+    };
+    const { unmount: unmountCurrent } = render(
+      <HistoricalTrendView username="kanishka" activity={mockActivity} period={currentPeriod} />
+    );
+    expect(screen.getByText('Current Streak')).toBeInTheDocument();
+    expect(screen.queryByText('Ending Streak')).toBeNull();
+    expect(screen.queryByText('Upcoming Streak')).toBeNull();
+    unmountCurrent();
+
+    const pastPeriod: DashboardPeriod = {
+      kind: 'month',
+      month: '2020-01',
+      label: 'Jan 2020',
+      from: '2020-01-01T00:00:00.000Z',
+      to: '2020-01-31T23:59:59.999Z',
+    };
+    const { unmount: unmountPast } = render(
+      <HistoricalTrendView username="kanishka" activity={mockActivity} period={pastPeriod} />
+    );
+    expect(screen.getByText('Ending Streak')).toBeInTheDocument();
+    expect(screen.queryByText('Current Streak')).toBeNull();
+    unmountPast();
+
+    const futurePeriod: DashboardPeriod = {
+      kind: 'month',
+      month: '2999-01',
+      label: 'Jan 2999',
+      from: '2999-01-01T00:00:00.000Z',
+      to: '2999-01-31T23:59:59.999Z',
+    };
+    render(
+      <HistoricalTrendView username="kanishka" activity={mockActivity} period={futurePeriod} />
+    );
+    expect(screen.getByText('Upcoming Streak')).toBeInTheDocument();
+    expect(screen.queryByText('Current Streak')).toBeNull();
+    expect(screen.queryByText('Ending Streak')).toBeNull();
+  });
 });

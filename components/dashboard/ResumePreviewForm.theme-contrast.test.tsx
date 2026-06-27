@@ -108,4 +108,21 @@ describe('ResumePreviewForm - Theme Contrast & Visual Cohesion', () => {
     expect(addSkillBtn).toHaveClass('text-emerald-600');
     expect(addSkillBtn).toHaveClass('dark:text-emerald-400');
   });
+
+  it('verifies save button maintains accessible contrast styling', () => {
+    const { getByText } = render(
+      <ResumePreviewForm
+        githubUsername="john"
+        parsed={parsed}
+        fileName="resume.pdf"
+        onBack={onBack}
+        onComplete={onComplete}
+      />
+    );
+
+    const saveButton = getByText('Save Profile');
+
+    expect(saveButton).toHaveClass('bg-emerald-600');
+    expect(saveButton).toHaveClass('text-white');
+  });
 });

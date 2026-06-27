@@ -7,6 +7,10 @@ on:
     branches: [main, dev]
   merge_group: # Run CI on the merged commit before it lands on main
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   quality:
     name: Format · Lint · Typecheck · Test
@@ -25,8 +29,14 @@ jobs:
       - name: Install Dependencies
         run: npm ci
 
+      - name: Run NPM Audit Security Check
+        run: npm audit --audit-level=high || true
+
       - name: Check Prettier Formatting
         run: npm run format:check
+
+      - name: Run Stylelint
+        run: npm run lint:css
 
       - name: Run ESLint
         run: npm run lint
@@ -58,3 +68,15 @@ jobs:
         run: npm run build
         env:
           CI: false
+
+      - name: Measure Bundle Size
+        run: node scripts/measure-bundle-size.js bundle-sizes.json
+
+      - name: Upload Bundle Sizes
+        uses: actions/upload-artifact@v4
+        with:
+          name: bundle-sizes
+          path: |
+            bundle-sizes.json
+            scripts/measure-bundle-size.js
+            scripts/compare-bundle-sizes.js

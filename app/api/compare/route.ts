@@ -1,11 +1,22 @@
 import { NextResponse } from 'next/server';
 import { getFullDashboardData } from '@/lib/github';
-import { compareParamsSchema } from '@/lib/validations';
+import { getUserGitHubToken } from '@/lib/githubtoken';
+import { compareParamsSchema, coerceQueryParams } from '@/lib/validations';
+import crypto from 'crypto';
+import { getClientIp } from '@/utils/getClientIp';
+import { RateLimiter } from '@/lib/rate-limit';
+
+const compareLimiter = new RateLimiter(5, 60_000, 1);
 
 export const revalidate = 3600;
 
 function buildCompareFetchErrorResponse(user: string, reason: unknown): NextResponse {
-  const message = reason instanceof Error ? reason.message : 'Unknown error';
+  // Unwrap wrapped errors so the underlying cause (not found, rate limit, timeout) drives the status.
+  let err: unknown = reason;
+  while (err instanceof Error && err.cause instanceof Error) {
+    err = err.cause;
+  }
+  const message = err instanceof Error ? err.message : 'Unknown error';
   const lowerMessage = message.toLowerCase();
 
   if (lowerMessage.includes('not found') || lowerMessage.includes('could not resolve')) {
@@ -28,7 +39,7 @@ function buildCompareFetchErrorResponse(user: string, reason: unknown): NextResp
     );
   }
 
-  if (lowerMessage.includes('timeout')) {
+  if (lowerMessage.includes('timeout') || lowerMessage.includes('timed out')) {
     return NextResponse.json(
       { error: `Connection timeout. Unable to fetch GitHub data for "${user}".` },
       { status: 500 }
@@ -44,9 +55,20 @@ function buildCompareFetchErrorResponse(user: string, reason: unknown): NextResp
 }
 
 export async function GET(request: Request) {
+  const ip = getClientIp(request);
+  const rateLimitKey =
+    ip && ip !== 'unknown' ? ip : `unknown:${request.headers.get('user-agent') ?? 'no-agent'}`;
+
+  if (!(await compareLimiter.check(rateLimitKey))) {
+    return NextResponse.json(
+      { error: 'Too many requests. Please try again later.' },
+      { status: 429 }
+    );
+  }
+
   const { searchParams } = new URL(request.url);
 
-  const parseResult = compareParamsSchema.safeParse(Object.fromEntries(searchParams.entries()));
+  const parseResult = compareParamsSchema.safeParse(coerceQueryParams(searchParams));
 
   if (!parseResult.success) {
     const fieldErrors = parseResult.error.flatten();
@@ -59,9 +81,10 @@ export async function GET(request: Request) {
   const { user1, user2 } = parseResult.data;
 
   try {
+    const userToken = await getUserGitHubToken();
     const [result1, result2] = await Promise.allSettled([
-      getFullDashboardData(user1),
-      getFullDashboardData(user2),
+      getFullDashboardData(user1, { token: userToken }),
+      getFullDashboardData(user2, { token: userToken }),
     ]);
 
     if (result1.status === 'rejected') {
@@ -72,9 +95,35 @@ export async function GET(request: Request) {
       return buildCompareFetchErrorResponse(user2, result2.reason);
     }
 
-    return NextResponse.json({
+    const jsonPayload = JSON.stringify({
       user1: result1.value,
       user2: result2.value,
+    });
+
+    const etag = crypto.createHash('sha1').update(jsonPayload).digest('hex');
+    const weakEtag = `W/"${etag}"`;
+    const ifNoneMatch = request.headers.get('if-none-match');
+    const cacheControl = 'public, s-maxage=3600';
+
+    if (ifNoneMatch) {
+      const etags = ifNoneMatch.split(',').map((e) => e.trim());
+      if (etags.includes(weakEtag) || etags.includes(`"${etag}"`)) {
+        return new NextResponse(null, {
+          status: 304,
+          headers: {
+            'Cache-Control': cacheControl,
+            ETag: weakEtag,
+          },
+        });
+      }
+    }
+
+    return new NextResponse(jsonPayload, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': cacheControl,
+        ETag: weakEtag,
+      },
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Internal server error';

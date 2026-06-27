@@ -1,6 +1,72 @@
 // lib/export3d.ts
 
 import type { TowerData } from './svg/layout';
+import type { ActivityData } from '@/types/dashboard';
+
+/**
+ * Converts a flat ActivityData array (as stored in DashboardExportData) into the
+ * TowerData grid that generateMonolithSTL expects.
+ *
+ * Layout strategy: dates are sorted chronologically and arranged into columns of 7
+ * (one per day-of-week), mirroring how the contribution calendar is rendered on
+ * the dashboard. The contribution count is mapped to a tower height in millimetres
+ * using a clamped linear scale identical to the SVG renderer's LINEAR scale.
+ *
+ * @param activity Flat array of daily contribution data from DashboardExportData.activity
+ * @returns TowerData[] ready to be fed into generateMonolithSTL
+ */
+export function activityToTowers(activity: ActivityData[]): TowerData[] {
+  if (!activity || activity.length === 0) return [];
+
+  // Sort ascending so column/row assignment is deterministic
+  const sorted = [...activity].sort((a, b) => a.date.localeCompare(b.date));
+
+  // Find the maximum contribution count to normalise heights (avoid division by zero)
+  const maxCount = sorted.reduce((m, d) => Math.max(m, d.count), 0);
+
+  // Tower height constants – match the SVG renderer's linear scale
+  const MAX_HEIGHT_MM = 30; // tallest tower in mm
+  const MIN_BUMP_MM = 1; // minimum visible bump for days with ≥1 contribution
+
+  const towers = sorted.map((day, idx) => {
+    const col = Math.floor(idx / 7); // week column
+    const row = idx % 7; // day-of-week row
+
+    // Linear scale: proportional height clamped to MAX_HEIGHT_MM
+    const heightMM =
+      day.count === 0
+        ? 0
+        : Math.max(MIN_BUMP_MM, Math.round((day.count / Math.max(maxCount, 1)) * MAX_HEIGHT_MM));
+
+    const intensityLevel =
+      day.count === 0
+        ? 0
+        : day.intensity !== undefined
+          ? day.intensity
+          : Math.ceil((day.count / Math.max(maxCount, 1)) * 4);
+
+    return {
+      x: col * 12, // positional x (px) – not used by STL generator but required by type
+      y: row * 12, // positional y (px)
+      h: heightMM,
+      row,
+      col,
+      hasCommits: day.count > 0,
+      isGhost: false,
+      isToday: false,
+      isTodayWithCommits: false,
+      tooltip: `${day.date}: ${day.count} contributions`,
+      date: day.date,
+      contributionCount: day.count,
+      faceOpacity: { left: 1, right: 1, top: 1 },
+      strokeOpacity: 1,
+      strokeWidth: 1,
+      intensityLevel,
+    };
+  });
+
+  return towers;
+}
 
 /**
  * Generates an ASCII STL (STereoLithography) file string from the 2D isometric tower data.

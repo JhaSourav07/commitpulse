@@ -2,11 +2,14 @@ import { describe, it, expect } from 'vitest';
 import {
   calculateStreak,
   calculateMonthlyStats,
+  calculateSafePercentage,
   calculateWrappedStats,
   aggregateCalendars,
   isStreakAlive,
+  chunkDaysIntoWeeks,
+  normalizeCalendarToTimezone,
 } from './calculate';
-import type { ContributionCalendar } from '../types';
+import type { ContributionCalendar, ContributionDay } from '../types';
 
 // Turns a flat array of daily counts into the ContributionCalendar shape,
 // grouping every 7 values into a "week" — the same way GitHub's API returns data.
@@ -76,21 +79,108 @@ describe('calculateStreak', () => {
     expect(result.totalContributions).toBe(141);
   });
 
-  it('handles multiple weeks of zero contributions separating active streaks', () => {
+  it('verify streak formulas for multiple weeks gaps timeline (Variation 1)', () => {
+    // Pattern: Active week, followed by 2 gap weeks, followed by an active week.
+    // 2024-01-01 is a Monday
+    // Week 1: 7 days active
+    // Week 2: 0 days active (Gap)
+    // Week 3: 0 days active (Gap)
+    // Week 4: 7 days active
     const calendar = buildCalendar([
-      1, 1, 1, 1, 1, 1, 1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1, // Week 1 (Jan 1 - Jan 7)
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0, // Week 2 (Jan 8 - Jan 14)
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0, // Week 3 (Jan 15 - Jan 21)
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1, // Week 4 (Jan 22 - Jan 28)
+    ]);
 
-      0, 0, 0, 0, 0, 0, 0,
+    // Test 1: Evaluate on the last day of Week 4 (Sunday, Jan 28)
+    // Current streak should be exactly 7 (Week 4)
+    // Longest streak should be 7 (Week 1 or Week 4)
+    const resultEndOfWeek4 = calculateStreak(calendar, 'UTC', new Date('2024-01-28T12:00:00Z'));
+    expect(resultEndOfWeek4.currentStreak).toBe(7);
+    expect(resultEndOfWeek4.longestStreak).toBe(7);
+    expect(resultEndOfWeek4.totalContributions).toBe(14);
 
-      0, 0, 0, 0, 0, 0, 0,
+    // Test 2: Evaluate on Wednesday of Week 4 (Jan 24)
+    // Current streak should be 3 (Monday-Wednesday of Week 4)
+    // Longest streak should still be 7 (from Week 1)
+    const resultWedWeek4 = calculateStreak(calendar, 'UTC', new Date('2024-01-24T12:00:00Z'));
+    expect(resultWedWeek4.currentStreak).toBe(3);
+    expect(resultWedWeek4.longestStreak).toBe(7);
 
-      1, 1, 1, 1, 1, 1, 1,
+    // Test 3: Evaluate in the middle of the gap (Wednesday, Jan 10 of Week 2)
+    // Current streak should be 0 because the grace period has expired
+    // Longest streak should still be 7 (from Week 1)
+    const resultGap = calculateStreak(calendar, 'UTC', new Date('2024-01-10T12:00:00Z'));
+    expect(resultGap.currentStreak).toBe(0);
+    expect(resultGap.longestStreak).toBe(7);
+  });
+  it('verify streak formulas for multiple weeks gaps timeline (Variation 2)', () => {
+    // Streak 1: 5 days
+    // Gap: 14 days (2 full weeks)
+    // Streak 2: 9 days (current + longest)
+
+    const calendar = buildCalendar([
+      1,
+      1,
+      1,
+      1,
+      1, // Streak 1
+
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0, // Gap week 1
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0, // Gap week 2
+
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1, // Streak 2
     ]);
 
     const result = calculateStreak(calendar);
 
-    expect(result.currentStreak).toBe(7);
-    expect(result.longestStreak).toBe(7);
+    expect(result.currentStreak).toBe(9);
+    expect(result.longestStreak).toBe(9);
     expect(result.totalContributions).toBe(14);
   });
 
@@ -737,6 +827,78 @@ describe('calculateStreak', () => {
     expect(resultLeapGap.currentStreak).toBe(1);
     expect(resultLeapGap.longestStreak).toBe(2);
   });
+  it('verify streak formulas for year boundary transition timeline (Variation 3)', () => {
+    const buildCustomCalendar = (
+      daysData: { date: string; count: number }[]
+    ): ContributionCalendar => {
+      const weeks = [];
+
+      for (let i = 0; i < daysData.length; i += 7) {
+        const slice = daysData.slice(i, i + 7);
+
+        weeks.push({
+          contributionDays: slice.map((day) => ({
+            contributionCount: day.count,
+            date: day.date,
+          })),
+        });
+      }
+
+      return {
+        totalContributions: daysData.reduce((sum, d) => sum + d.count, 0),
+        weeks,
+      };
+    };
+
+    const calendar = buildCustomCalendar([
+      { date: '2024-12-30', count: 1 },
+      { date: '2024-12-31', count: 1 },
+      { date: '2025-01-01', count: 1 },
+      { date: '2025-01-02', count: 1 },
+    ]);
+
+    const result = calculateStreak(calendar, 'UTC', new Date('2025-01-02T12:00:00Z'));
+
+    expect(result.currentStreak).toBe(4);
+    expect(result.longestStreak).toBe(4);
+    expect(result.totalContributions).toBe(4);
+  });
+  it('verify streak formulas for leap year transition timeline (Variation 2)', () => {
+    const buildCustomCalendar = (
+      daysData: { date: string; count: number }[]
+    ): ContributionCalendar => {
+      const weeks = [];
+
+      for (let i = 0; i < daysData.length; i += 7) {
+        const slice = daysData.slice(i, i + 7);
+
+        weeks.push({
+          contributionDays: slice.map((day) => ({
+            contributionCount: day.count,
+            date: day.date,
+          })),
+        });
+      }
+
+      return {
+        totalContributions: daysData.reduce((sum, d) => sum + d.count, 0),
+        weeks,
+      };
+    };
+
+    const calendar = buildCustomCalendar([
+      { date: '2024-02-27', count: 1 },
+      { date: '2024-02-28', count: 1 },
+      { date: '2024-02-29', count: 1 },
+      { date: '2024-03-01', count: 1 },
+    ]);
+
+    const result = calculateStreak(calendar, 'UTC', new Date('2024-03-01T12:00:00Z'));
+
+    expect(result.currentStreak).toBe(4);
+    expect(result.longestStreak).toBe(4);
+    expect(result.totalContributions).toBe(4);
+  });
 
   it('correctly calculates current and longest streaks when commits are made exclusively on Saturdays and Sundays', () => {
     // 2024-01-01 is a Monday.
@@ -978,6 +1140,36 @@ describe('calculateStreak', () => {
     expect(result.currentStreak).toBe(3);
   });
 
+  it('verify streak formulas for single day contribution timeline (Variation 2)', () => {
+    // Simulating 1 day of commits followed by empty weeks.
+
+    const calendar = buildCalendar([
+      1, // Single contribution day
+
+      // Empty days afterwards
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+    ]);
+
+    const result = calculateStreak(calendar);
+
+    expect(result.longestStreak).toBe(1);
+    expect(result.currentStreak).toBe(0);
+    expect(result.totalContributions).toBe(1);
+  });
+
   it('verify streak formulas for single day contribution timeline (Variation 3)', () => {
     // Simulating 1 day of commits, preceded and followed by empty weeks.
     // 7 empty days (1 week), 1 day of commits (1 contribution), 7 empty days (1 week)
@@ -989,18 +1181,19 @@ describe('calculateStreak', () => {
       0,
       0,
       0, // Week 1: Empty week
-      1, // 1 day of commits
+      1, // Day 8: 1 isolated day of commits
       0,
       0,
       0,
       0,
       0,
       0,
-      0, // Week 2: Empty week
+      0, // Following 7 days: Empty week gap
     ]);
 
     const result = calculateStreak(calendar);
 
+    // Assertions ensuring calculations handle index transitions gracefully
     expect(result.currentStreak).toBe(0);
     expect(result.longestStreak).toBe(1);
     expect(result.totalContributions).toBe(1);
@@ -1319,6 +1512,71 @@ describe('calculateStreak — timezone awareness', () => {
     const result = calculateStreak(tzCalendar, 'UTC', nowUTC);
     expect(result.todayDate).toBe('2024-06-16');
   });
+
+  it('handles timezone boundary alignment between UTC, IST and JST', () => {
+    const calendar = {
+      totalContributions: 2,
+      weeks: [
+        {
+          contributionDays: [
+            { contributionCount: 1, date: '2024-06-14' },
+            { contributionCount: 1, date: '2024-06-15' },
+          ],
+        },
+      ],
+    };
+
+    const now = new Date('2024-06-14T20:00:00Z');
+
+    const utcResult = calculateStreak(calendar, 'UTC', now);
+    const istResult = calculateStreak(calendar, 'Asia/Kolkata', now);
+    const jstResult = calculateStreak(calendar, 'Asia/Tokyo', now);
+
+    expect(utcResult.todayDate).toBe('2024-06-14');
+    expect(istResult.todayDate).toBe('2024-06-15');
+    expect(jstResult.todayDate).toBe('2024-06-15');
+  });
+
+  it('credits contribution at exactly local midnight to the correct day (Issue #5258)', () => {
+    const calendar = {
+      totalContributions: 1,
+      weeks: [
+        {
+          contributionDays: [
+            { contributionCount: 0, date: '2026-06-10' },
+            { contributionCount: 1, date: '2026-06-11' },
+            { contributionCount: 0, date: '2026-06-12' },
+          ],
+        },
+      ],
+    };
+    // 2026-06-11T00:00:00.000+05:30 is 2026-06-10T18:30:00.000Z
+    const nowInKolkataMidnight = new Date('2026-06-10T18:30:00.000Z');
+    const result = calculateStreak(calendar, 'Asia/Kolkata', nowInKolkataMidnight);
+    expect(result.todayDate).toBe('2026-06-11');
+    expect(result.currentStreak).toBe(1);
+  });
+
+  it('keeps streak active during the current day before any contributions are made (Issue #5260)', () => {
+    const calendar = {
+      totalContributions: 2,
+      weeks: [
+        {
+          contributionDays: [
+            { contributionCount: 1, date: '2026-06-10' },
+            { contributionCount: 1, date: '2026-06-11' },
+            { contributionCount: 0, date: '2026-06-12' },
+          ],
+        },
+      ],
+    };
+    // At 09:00 AM local time on 2026-06-12, the user has not committed yet today.
+    // The streak should still be 2.
+    const now = new Date('2026-06-12T09:00:00.000Z');
+    const result = calculateStreak(calendar, 'UTC', now, 0); // grace = 0
+    expect(result.todayDate).toBe('2026-06-12');
+    expect(result.currentStreak).toBe(2);
+  });
 });
 
 describe('isStreakAlive', () => {
@@ -1350,8 +1608,10 @@ describe('calculateMonthlyStats', () => {
       weeks: [
         {
           contributionDays: [
+            { contributionCount: 0, date: '2024-05-01' },
             { contributionCount: 5, date: '2024-05-15' },
             { contributionCount: 10, date: '2024-06-10' },
+            { contributionCount: 0, date: '2024-06-15' },
           ],
         },
       ],
@@ -1371,7 +1631,11 @@ describe('calculateMonthlyStats', () => {
       totalContributions: 10,
       weeks: [
         {
-          contributionDays: [{ contributionCount: 10, date: '2024-06-10' }],
+          contributionDays: [
+            { contributionCount: 0, date: '2024-05-01' },
+            { contributionCount: 10, date: '2024-06-10' },
+            { contributionCount: 0, date: '2024-06-15' },
+          ],
         },
       ],
     };
@@ -1388,7 +1652,11 @@ describe('calculateMonthlyStats', () => {
       totalContributions: 5,
       weeks: [
         {
-          contributionDays: [{ contributionCount: 5, date: '2024-05-10' }],
+          contributionDays: [
+            { contributionCount: 0, date: '2024-05-01' },
+            { contributionCount: 5, date: '2024-05-10' },
+            { contributionCount: 0, date: '2024-06-15' },
+          ],
         },
       ],
     };
@@ -1406,8 +1674,10 @@ describe('calculateMonthlyStats', () => {
       weeks: [
         {
           contributionDays: [
+            { contributionCount: 0, date: '2024-05-01' },
             { contributionCount: 10, date: '2024-05-10' },
             { contributionCount: 5, date: '2024-06-10' },
+            { contributionCount: 0, date: '2024-06-15' },
           ],
         },
       ],
@@ -1427,6 +1697,7 @@ describe('calculateMonthlyStats', () => {
       weeks: [
         {
           contributionDays: [
+            { contributionCount: 0, date: '2023-12-01' },
             { contributionCount: 10, date: '2023-12-15' },
             { contributionCount: 5, date: '2024-01-15' },
           ],
@@ -1447,8 +1718,10 @@ describe('calculateMonthlyStats', () => {
       weeks: [
         {
           contributionDays: [
+            { contributionCount: 0, date: '2023-12-01' },
             { contributionCount: 10, date: '2023-12-15' },
             { contributionCount: 5, date: '2024-01-15' },
+            { contributionCount: 0, date: '2024-01-20' },
           ],
         },
       ],
@@ -1461,9 +1734,7 @@ describe('calculateMonthlyStats', () => {
     expect(result.previousMonthTotal).toBe(10);
     expect(result.currentMonthName).toBe('January');
   });
-  // ==================================================================
-  // ISSUE OBJECTIVE: Empty calendar passed to calculateMonthlyStats
-  // ==================================================================
+
   it('returns zeros and does not crash when given an empty calendar', () => {
     const emptyCalendar = {
       totalContributions: 0,
@@ -1483,6 +1754,48 @@ describe('calculateMonthlyStats', () => {
 
     // 3. Assert previousMonthTotal === 0
     expect(result!.previousMonthTotal).toBe(0);
+  });
+
+  it('returns null for deltaPercentage if the previous month data is incomplete', () => {
+    const calendar = {
+      totalContributions: 15,
+      weeks: [
+        {
+          contributionDays: [
+            { contributionCount: 5, date: '2024-05-15' }, // starts after 2024-05-01
+            { contributionCount: 10, date: '2024-06-10' },
+            { contributionCount: 0, date: '2024-06-15' },
+          ],
+        },
+      ],
+    };
+    const now = new Date('2024-06-15T12:00:00Z');
+    const result = calculateMonthlyStats(calendar, 'UTC', now);
+
+    expect(result.previousMonthTotal).toBe(5);
+    expect(result.currentMonthTotal).toBe(10);
+    expect(result.deltaPercentage).toBeNull();
+  });
+
+  it('returns null for deltaPercentage if the current month data is incomplete', () => {
+    const calendar = {
+      totalContributions: 15,
+      weeks: [
+        {
+          contributionDays: [
+            { contributionCount: 0, date: '2024-05-01' },
+            { contributionCount: 5, date: '2024-05-15' },
+            { contributionCount: 10, date: '2024-06-10' }, // ends before 2024-06-15
+          ],
+        },
+      ],
+    };
+    const now = new Date('2024-06-15T12:00:00Z');
+    const result = calculateMonthlyStats(calendar, 'UTC', now);
+
+    expect(result.previousMonthTotal).toBe(5);
+    expect(result.currentMonthTotal).toBe(10);
+    expect(result.deltaPercentage).toBeNull();
   });
 });
 
@@ -1681,9 +1994,273 @@ describe('aggregateCalendars', () => {
     expect(result.weeks[0].contributionDays[1].contributionCount).toBe(3); // 0 + 3
     expect(result.weeks[0].contributionDays[2].contributionCount).toBe(3); // 2 + 1
   });
+
+  it('preserves dates that exist only in non-base calendars', () => {
+    const cal1 = {
+      totalContributions: 1,
+      weeks: [
+        {
+          contributionDays: [
+            {
+              date: '2024-03-01',
+              contributionCount: 1,
+            },
+          ],
+        },
+        {
+          contributionDays: [
+            {
+              date: '2024-03-08',
+              contributionCount: 0,
+            },
+          ],
+        },
+      ],
+    };
+
+    const cal2 = {
+      totalContributions: 5,
+      weeks: [
+        {
+          contributionDays: [
+            {
+              date: '2024-01-01',
+              contributionCount: 5,
+            },
+          ],
+        },
+      ],
+    };
+
+    const result = aggregateCalendars([cal1, cal2]);
+
+    const dates = result.weeks.flatMap((week) => week.contributionDays.map((day) => day.date));
+
+    expect(dates).toContain('2024-01-01');
+    expect(dates).toContain('2024-03-01');
+  });
+});
+
+describe('aggregateCalendars - week structure preservation', () => {
+  it('preserves original week boundaries when aggregating calendars', () => {
+    const cal1 = {
+      totalContributions: 3,
+      weeks: [
+        {
+          contributionDays: [
+            { date: '2024-01-01', contributionCount: 1 },
+            { date: '2024-01-02', contributionCount: 2 },
+          ],
+        },
+        {
+          contributionDays: [{ date: '2024-01-08', contributionCount: 3 }],
+        },
+      ],
+    };
+
+    const cal2 = {
+      totalContributions: 2,
+      weeks: [
+        {
+          contributionDays: [{ date: '2024-01-01', contributionCount: 1 }],
+        },
+        {
+          contributionDays: [{ date: '2024-01-08', contributionCount: 1 }],
+        },
+      ],
+    };
+
+    const result = aggregateCalendars([cal1, cal2]);
+
+    expect(result.weeks).toHaveLength(2);
+
+    expect(result.weeks[0].contributionDays.map((d) => d.date)).toEqual([
+      '2024-01-01',
+      '2024-01-02',
+    ]);
+
+    expect(result.weeks[1].contributionDays.map((d) => d.date)).toEqual(['2024-01-08']);
+  });
+
+  it('aggregates contribution counts without moving days between weeks', () => {
+    const cal1 = {
+      totalContributions: 5,
+      weeks: [
+        {
+          contributionDays: [{ date: '2024-02-01', contributionCount: 2 }],
+        },
+        {
+          contributionDays: [{ date: '2024-02-08', contributionCount: 3 }],
+        },
+      ],
+    };
+
+    const cal2 = {
+      totalContributions: 4,
+      weeks: [
+        {
+          contributionDays: [{ date: '2024-02-01', contributionCount: 1 }],
+        },
+        {
+          contributionDays: [{ date: '2024-02-08', contributionCount: 3 }],
+        },
+      ],
+    };
+
+    const result = aggregateCalendars([cal1, cal2]);
+
+    expect(result.weeks[0].contributionDays[0].contributionCount).toBe(3);
+    expect(result.weeks[1].contributionDays[0].contributionCount).toBe(6);
+  });
+
+  it('preserves optional ContributionDay fields during aggregation', () => {
+    const cal1 = {
+      totalContributions: 1,
+      weeks: [
+        {
+          contributionDays: [
+            {
+              date: '2024-03-01',
+              contributionCount: 1,
+              locAdditions: 500,
+              locDeletions: 200,
+            },
+          ],
+        },
+      ],
+    };
+
+    const result = aggregateCalendars([cal1]);
+
+    expect(result.weeks[0].contributionDays[0].locAdditions).toBe(500);
+    expect(result.weeks[0].contributionDays[0].locDeletions).toBe(200);
+  });
 });
 
 describe('calculateWrappedStats', () => {
+  // ── getUTCDay() regression guard tests ───────────────────────────────────
+  // These tests pin specific calendar dates to their known UTC day-of-week.
+  // If getUTCDay() is ever changed to getDay(), these tests will fail on
+  // non-UTC CI environments — making the regression detectable immediately.
+  describe('weekendRatio — getUTCDay() UTC day-of-week correctness', () => {
+    it('correctly classifies 2026-06-06 (Saturday UTC) as weekend', () => {
+      // 2026-06-06 is a Saturday. Verify with: new Date('2026-06-06').getUTCDay() === 6
+      const calendar = {
+        totalContributions: 10,
+        weeks: [
+          {
+            contributionDays: [
+              { contributionCount: 10, date: '2026-06-06' }, // Saturday
+            ],
+          },
+        ],
+      };
+      const result = calculateWrappedStats(calendar);
+      expect(result.weekendRatio).toBe(100);
+    });
+    it('correctly classifies 2026-06-07 (Sunday UTC) as weekend', () => {
+      // 2026-06-07 is a Sunday. Verify: new Date('2026-06-07').getUTCDay() === 0
+      const calendar = {
+        totalContributions: 5,
+        weeks: [
+          {
+            contributionDays: [
+              { contributionCount: 5, date: '2026-06-07' }, // Sunday
+            ],
+          },
+        ],
+      };
+      const result = calculateWrappedStats(calendar);
+      expect(result.weekendRatio).toBe(100);
+    });
+    it('correctly classifies 2026-06-08 (Monday UTC) as weekday', () => {
+      // 2026-06-08 is a Monday. Verify: new Date('2026-06-08').getUTCDay() === 1
+      const calendar = {
+        totalContributions: 8,
+        weeks: [
+          {
+            contributionDays: [
+              { contributionCount: 8, date: '2026-06-08' }, // Monday
+            ],
+          },
+        ],
+      };
+      const result = calculateWrappedStats(calendar);
+      expect(result.weekendRatio).toBe(0);
+    });
+    it('correctly classifies 2026-06-12 (Friday UTC) as weekday', () => {
+      // 2026-06-12 is a Friday. Verify: new Date('2026-06-12').getUTCDay() === 5
+      const calendar = {
+        totalContributions: 15,
+        weeks: [
+          {
+            contributionDays: [
+              { contributionCount: 15, date: '2026-06-12' }, // Friday
+            ],
+          },
+        ],
+      };
+      const result = calculateWrappedStats(calendar);
+      expect(result.weekendRatio).toBe(0);
+    });
+    it('correctly splits mixed weekend and weekday contributions', () => {
+      // Saturday (10) + Sunday (5) = 15 weekend, Monday (5) = 5 weekday
+      // weekendRatio = round(15 / (15 + 5) * 100) = 75
+      const calendar = {
+        totalContributions: 20,
+        weeks: [
+          {
+            contributionDays: [
+              { contributionCount: 10, date: '2026-06-06' }, // Saturday
+              { contributionCount: 5, date: '2026-06-07' }, // Sunday
+              { contributionCount: 5, date: '2026-06-08' }, // Monday
+            ],
+          },
+        ],
+      };
+      const result = calculateWrappedStats(calendar);
+      expect(result.weekendRatio).toBe(75);
+    });
+    it('getUTCDay regression: weekendRatio is 100 for a pure-Saturday calendar', () => {
+      // If this test ever fails, it means getUTCDay() was changed to getDay()
+      // and the server is in a non-UTC timezone shifting Saturday to another day.
+      // This is the primary regression guard for the UTC dependency.
+      const saturdayCalendar = {
+        totalContributions: 30,
+        weeks: [
+          {
+            contributionDays: [
+              { contributionCount: 10, date: '2026-05-30' }, // Saturday
+              { contributionCount: 10, date: '2026-06-06' }, // Saturday
+              { contributionCount: 10, date: '2026-06-13' }, // Saturday
+            ],
+          },
+        ],
+      };
+      const result = calculateWrappedStats(saturdayCalendar);
+      expect(result.weekendRatio).toBe(100);
+      expect(result.weekendRatio).not.toBe(0); // would fail if getDay() shifts day
+    });
+    it('weekendRatio is 0 for a pure-Monday through Friday calendar', () => {
+      const weekdayCalendar = {
+        totalContributions: 25,
+        weeks: [
+          {
+            contributionDays: [
+              { contributionCount: 5, date: '2026-06-08' }, // Monday
+              { contributionCount: 5, date: '2026-06-09' }, // Tuesday
+              { contributionCount: 5, date: '2026-06-10' }, // Wednesday
+              { contributionCount: 5, date: '2026-06-11' }, // Thursday
+              { contributionCount: 5, date: '2026-06-12' }, // Friday
+            ],
+          },
+        ],
+      };
+      const result = calculateWrappedStats(weekdayCalendar);
+      expect(result.weekendRatio).toBe(0);
+    });
+  });
+
   it('returns weekendRatio as 0 when all contributions occur on weekdays', () => {
     const calendar = {
       totalContributions: 25,
@@ -1720,20 +2297,69 @@ describe('calculateWrappedStats', () => {
 
   // ISSUE OBJECTIVE #1056: Verify empty calendar returns safe zero values
   it('verify empty calendar returns safe zero values', () => {
-    // 1. Call calculateWrappedStats with empty data
     expect(() => calculateWrappedStats({ totalContributions: 0, weeks: [] })).not.toThrow();
-
-    // 2. Actually get the result to test its properties
     const result = calculateWrappedStats({ totalContributions: 0, weeks: [] });
 
-    // 3. Assert weekendRatio === 0 (and specifically not NaN)
+    // weekendRatio must be 0 and not NaN
     expect(result.weekendRatio).toBe(0);
 
-    // 4. Assert highestDailyCount === 0
+    // highestDailyCount must be 0
     expect(result.highestDailyCount).toBe(0);
 
+    // busiestMonth must be 'N/A' — not '' (fixed in PR #2264)
     expect(result.busiestMonth).toBe('N/A');
     expect(result.busiestMonth).not.toBe('');
+
+    // mostActiveDate must be 'N/A' — not '' (this fix)
+    // Regression guard: initialising to { date: '' } silently returns ''
+    // for empty calendars. 'N/A' is the correct explicit fallback.
+    expect(result.mostActiveDate).toBe('N/A');
+    expect(result.mostActiveDate).not.toBe('');
+  });
+
+  it('mostActiveDate is never an empty string regardless of calendar input', () => {
+    // Empty calendar
+    const emptyResult = calculateWrappedStats({ totalContributions: 0, weeks: [] });
+    expect(emptyResult.mostActiveDate).not.toBe('');
+
+    // Active calendar — mostActiveDate should be a real YYYY-MM-DD date
+    const activeResult = calculateWrappedStats({
+      totalContributions: 15,
+      weeks: [
+        {
+          contributionDays: [
+            { contributionCount: 5, date: '2024-06-10' },
+            { contributionCount: 15, date: '2024-06-11' },
+            { contributionCount: 3, date: '2024-06-12' },
+          ],
+        },
+      ],
+    });
+    expect(activeResult.mostActiveDate).toBe('2024-06-11');
+    expect(activeResult.mostActiveDate).not.toBe('');
+    expect(activeResult.mostActiveDate).not.toBe('N/A');
+  });
+
+  it('mostActiveDate returns N/A for empty weeks but real date for active calendar', () => {
+    const emptyResult = calculateWrappedStats({ totalContributions: 0, weeks: [] });
+    expect(emptyResult.mostActiveDate).toBe('N/A');
+
+    // A calendar with all-zero contribution days — loop runs but never
+    // overwrites the initial value since 0 > 0 is false.
+    // mostActiveDate should still be 'N/A' (the initial fallback)
+    const allZeroResult = calculateWrappedStats({
+      totalContributions: 0,
+      weeks: [
+        {
+          contributionDays: [
+            { contributionCount: 0, date: '2024-06-10' },
+            { contributionCount: 0, date: '2024-06-11' },
+          ],
+        },
+      ],
+    });
+    expect(allZeroResult.mostActiveDate).toBe('N/A');
+    expect(allZeroResult.mostActiveDate).not.toBe('');
   });
 
   it('returns busiestMonth as "N/A" for a calendar with all-zero contribution days', () => {
@@ -1835,140 +2461,15 @@ describe('calculateWrappedStats', () => {
     expect(resultUTCPlus5.currentStreak).toBe(2);
     expect(resultUTCPlus5.todayDate).toBe('2024-01-15');
   });
-});
-const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 
-it('todayDate matches YYYY-MM-DD for a normal calendar', () => {
-  // A typical calendar with contributions — todayDate must always be a valid date string
-  // regardless of the contribution data, so the SVG pulse animation targets the right tower.
-  const calendar = buildCalendar([1, 0, 1, 1, 0, 1, 1]);
-  const fixedNow = new Date('2024-01-07T12:00:00Z');
-  const result = calculateStreak(calendar, 'UTC', fixedNow);
-  expect(result.todayDate).toMatch(DATE_REGEX);
-});
-
-it('todayDate matches YYYY-MM-DD for an empty calendar', () => {
-  // An empty calendar has no days to fall back on, so todayDate is derived
-  // purely from the current date — it must still be a valid YYYY-MM-DD string.
-  const emptyCalendar = buildCalendar([]);
-  const fixedNow = new Date('2024-03-15T00:00:00Z');
-  const result = calculateStreak(emptyCalendar, 'UTC', fixedNow);
-  expect(result.todayDate).toMatch(DATE_REGEX);
-});
-
-it('todayDate matches YYYY-MM-DD when a non-UTC timezone shifts the local date', () => {
-  // When the caller passes a timezone like Asia/Kolkata, the local date can differ
-  // from UTC (e.g. UTC is still Jan 14 but IST is already Jan 15).
-  // The format must remain YYYY-MM-DD regardless of which day the timezone lands on.
-  const calendar = buildCalendar([1, 1, 1, 1, 1, 1, 1]);
-  const fixedNow = new Date('2024-01-07T20:00:00Z'); // 01:30 Jan 8 in IST (UTC+5:30)
-  const result = calculateStreak(calendar, 'Asia/Kolkata', fixedNow);
-  expect(result.todayDate).toMatch(DATE_REGEX);
-});
-
-describe('calculateStreak — year boundary transition (Dec 31 → Jan 1)', () => {
-  // Streak math relies on the flattened day array being chronologically ordered,
-  // so a run that crosses from December into January must be counted as a single
-  // continuous streak. This guards against off-by-one bugs where the calendar
-  // year rollover (e.g. 2024-12-31 → 2025-01-01) is mistakenly treated as a gap.
-  it('counts a streak that spans the Dec 31 → Jan 1 boundary as one continuous run', () => {
-    const calendar: ContributionCalendar = {
-      totalContributions: 7,
-      weeks: [
-        {
-          contributionDays: [
-            { contributionCount: 0, date: '2024-12-26' }, // gap before the streak begins
-            { contributionCount: 1, date: '2024-12-27' },
-            { contributionCount: 1, date: '2024-12-28' },
-            { contributionCount: 1, date: '2024-12-29' },
-            { contributionCount: 1, date: '2024-12-30' },
-            { contributionCount: 1, date: '2024-12-31' }, // last day of the year
-            { contributionCount: 1, date: '2025-01-01' }, // first day of the new year
-          ],
-        },
-        {
-          contributionDays: [
-            { contributionCount: 1, date: '2025-01-02' }, // "today"
-          ],
-        },
-      ],
-    };
-
-    // Pin "now" to Jan 2 so the final day is treated as today and the streak is live.
-    const now = new Date('2025-01-02T12:00:00Z');
-    const result = calculateStreak(calendar, 'UTC', now);
-
-    // The 7-day run (Dec 27 → Jan 2) must not be split by the year rollover.
-    expect(result.currentStreak).toBe(7);
-    expect(result.longestStreak).toBe(7);
-    expect(result.totalContributions).toBe(7);
-    expect(result.todayDate).toBe('2025-01-02');
-  });
-});
-
-// ---------- EPIC ENHANCEMENT TESTS ----------
-
-describe('aggregateCalendars', () => {
-  it('handles calendars with different numbers of weeks', () => {
-    const cal1 = {
-      totalContributions: 15,
-      weeks: [
-        {
-          contributionDays: [{ date: '2024-01-01', contributionCount: 5 }],
-        },
-        {
-          contributionDays: [{ date: '2024-01-08', contributionCount: 10 }],
-        },
-      ],
-    };
-
-    const cal2 = {
-      totalContributions: 3,
-      weeks: [
-        {
-          contributionDays: [{ date: '2024-01-01', contributionCount: 3 }],
-        },
-      ],
-    };
-
-    const result = aggregateCalendars([cal1, cal2]);
-
-    expect(result.weeks).toHaveLength(2);
-    expect(result.weeks[0].contributionDays[0].contributionCount).toBe(8);
-    expect(result.weeks[1].contributionDays[0].contributionCount).toBe(10);
-  });
-
-  it('returns an empty calendar if no calendars are provided', () => {
-    const result = aggregateCalendars([]);
-    expect(result.totalContributions).toBe(0);
-    expect(result.weeks).toEqual([]);
-  });
-
-  it('aggregates multiple calendars correctly for orgs', () => {
-    const cal1 = buildCalendar([1, 0, 2]); // total: 3
-    const cal2 = buildCalendar([0, 3, 1]); // total: 4
-
-    const result = aggregateCalendars([cal1, cal2]);
-
-    expect(result.totalContributions).toBe(7);
-    expect(result.weeks[0].contributionDays[0].contributionCount).toBe(1); // 1 + 0
-    expect(result.weeks[0].contributionDays[1].contributionCount).toBe(3); // 0 + 3
-    expect(result.weeks[0].contributionDays[2].contributionCount).toBe(3); // 2 + 1
-  });
-});
-
-describe('calculateWrappedStats', () => {
-  it('returns weekendRatio as 0 when all contributions occur on weekdays', () => {
+  it('does not return NaN when total contributions are zero', () => {
     const calendar = {
-      totalContributions: 25,
+      totalContributions: 0,
       weeks: [
         {
           contributionDays: [
-            { date: '2024-01-01', contributionCount: 5 }, // Mon
-            { date: '2024-01-02', contributionCount: 5 }, // Tue
-            { date: '2024-01-03', contributionCount: 5 }, // Wed
-            { date: '2024-01-04', contributionCount: 5 }, // Thu
-            { date: '2024-01-05', contributionCount: 5 }, // Fri
+            { date: '2024-06-01', contributionCount: 0 },
+            { date: '2024-06-02', contributionCount: 0 },
           ],
         },
       ],
@@ -1977,56 +2478,492 @@ describe('calculateWrappedStats', () => {
     const result = calculateWrappedStats(calendar);
 
     expect(result.weekendRatio).toBe(0);
+    expect(Number.isNaN(result.weekendRatio)).toBe(false);
+  });
+});
+
+const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
+
+describe('aggregateCalendars — missing days chronological order', () => {
+  it('appends missing days in ascending date order at the end of weeks', () => {
+    // cal1 covers 2024-01-01 to 2024-01-07 (one week)
+    const cal1: ContributionCalendar = {
+      totalContributions: 3,
+      weeks: [
+        {
+          contributionDays: [
+            { date: '2024-01-01', contributionCount: 1 },
+            { date: '2024-01-02', contributionCount: 1 },
+            { date: '2024-01-03', contributionCount: 1 },
+          ],
+        },
+      ],
+    };
+
+    // cal2 has dates that are NOT in cal1 — these become "missing days"
+    // and should be appended in chronological (ascending) order.
+    const cal2: ContributionCalendar = {
+      totalContributions: 2,
+      weeks: [
+        {
+          contributionDays: [
+            { date: '2024-01-05', contributionCount: 1 },
+            { date: '2024-01-06', contributionCount: 1 },
+          ],
+        },
+      ],
+    };
+
+    const result = aggregateCalendars([cal1, cal2]);
+
+    // Flatten all dates in the order they appear in the weeks array
+    const dates = result.weeks.flatMap((w) => w.contributionDays.map((d) => d.date));
+
+    // The base calendar dates come first (2024-01-01 to 2024-01-03),
+    // followed by the missing days (2024-01-05 and 2024-01-06) in ascending order.
+    // Before the fix, unshift reversed the sort so missing days appeared newest-first.
+    expect(dates).toEqual(['2024-01-01', '2024-01-02', '2024-01-03', '2024-01-05', '2024-01-06']);
   });
 
-  it('calculates GitHub Wrapped stats accurately', () => {
-    // 2024-01-01 was a Monday. Indices 5 (Sat) and 6 (Sun) are the weekend.
-    const cal = buildCalendar([0, 0, 0, 0, 0, 5, 15]);
+  it('preserves chronological order across the full flattened days array after aggregation', () => {
+    // Three calendars with non-overlapping date ranges to maximise missing-day injection
+    const cal1: ContributionCalendar = {
+      totalContributions: 1,
+      weeks: [{ contributionDays: [{ date: '2024-03-01', contributionCount: 1 }] }],
+    };
+    const cal2: ContributionCalendar = {
+      totalContributions: 1,
+      weeks: [{ contributionDays: [{ date: '2024-03-03', contributionCount: 1 }] }],
+    };
+    const cal3: ContributionCalendar = {
+      totalContributions: 1,
+      weeks: [{ contributionDays: [{ date: '2024-03-02', contributionCount: 1 }] }],
+    };
 
-    const result = calculateWrappedStats(cal);
+    const result = aggregateCalendars([cal1, cal2, cal3]);
+    const dates = result.weeks.flatMap((w) => w.contributionDays.map((d) => d.date));
 
-    expect(result.totalContributions).toBe(20);
-    expect(result.highestDailyCount).toBe(15);
-    expect(result.mostActiveDate).toBe('2024-01-07');
-    expect(result.busiestMonth).toBe('2024-01');
-    expect(result.weekendRatio).toBe(100);
+    // All dates must appear in ascending order — no newest-first reversal
+    const sorted = [...dates].sort();
+    expect(dates).toEqual(sorted);
   });
 
-  // ISSUE OBJECTIVE #1056: Verify empty calendar returns safe zero values
-  it('verify empty calendar returns safe zero values', () => {
-    // 1. Call calculateWrappedStats with empty data
-    expect(() => calculateWrappedStats({ totalContributions: 0, weeks: [] })).not.toThrow();
+  it('missing days have correct aggregated contribution counts after fix', () => {
+    const cal1: ContributionCalendar = {
+      totalContributions: 5,
+      weeks: [{ contributionDays: [{ date: '2024-06-01', contributionCount: 5 }] }],
+    };
+    const cal2: ContributionCalendar = {
+      totalContributions: 3,
+      weeks: [{ contributionDays: [{ date: '2024-06-03', contributionCount: 3 }] }],
+    };
 
-    // 2. Actually get the result to test its properties
-    const result = calculateWrappedStats({ totalContributions: 0, weeks: [] });
+    const result = aggregateCalendars([cal1, cal2]);
+    const days = result.weeks.flatMap((w) => w.contributionDays);
 
-    // 3. Assert weekendRatio === 0 (and specifically not NaN)
-    expect(result.weekendRatio).toBe(0);
+    // 2024-06-01 is the base calendar date, 2024-06-03 is a missing day
+    const jun1 = days.find((d) => d.date === '2024-06-01');
+    const jun3 = days.find((d) => d.date === '2024-06-03');
 
-    // 4. Assert highestDailyCount === 0
-    expect(result.highestDailyCount).toBe(0);
+    expect(jun1?.contributionCount).toBe(5);
+    expect(jun3?.contributionCount).toBe(3);
+    expect(result.totalContributions).toBe(8);
   });
 
-  // ISSUE OBJECTIVE: Verify weekendRatio is 100 when all commits are on weekends
-  // =========================================================================
-  it('returns weekendRatio === 100 when all contributions are on weekends', () => {
-    // Note: 2026-05-02 is a Saturday, 2026-05-03 is a Sunday, 2026-05-04 is a Monday
-    const weekendCalendar = {
+  // ── structuredClone correctness tests ────────────────────────────────────
+  // These tests verify that the deep clone in aggregateCalendars()
+  // does not mutate the original calendar objects — the core contract
+  // that structuredClone() (replacing JSON.parse/stringify) must uphold.
+
+  it('does not mutate the original calendar objects after aggregation', () => {
+    const cal1 = {
+      totalContributions: 10,
+      weeks: [
+        {
+          contributionDays: [{ date: '2024-01-01', contributionCount: 10 }],
+        },
+      ],
+    };
+    const cal2 = {
+      totalContributions: 5,
+      weeks: [
+        {
+          contributionDays: [{ date: '2024-01-01', contributionCount: 5 }],
+        },
+      ],
+    };
+
+    // Capture originals before aggregation
+    const original1Count = cal1.weeks[0].contributionDays[0].contributionCount;
+    const original2Count = cal2.weeks[0].contributionDays[0].contributionCount;
+
+    aggregateCalendars([cal1, cal2]);
+
+    // Originals must be unchanged — structuredClone creates a true deep copy
+    expect(cal1.weeks[0].contributionDays[0].contributionCount).toBe(original1Count);
+    expect(cal2.weeks[0].contributionDays[0].contributionCount).toBe(original2Count);
+    expect(cal1.totalContributions).toBe(10);
+    expect(cal2.totalContributions).toBe(5);
+  });
+
+  it('aggregated result is a new object — not a reference to the original', () => {
+    const cal1 = {
+      totalContributions: 5,
+      weeks: [
+        {
+          contributionDays: [{ date: '2024-01-01', contributionCount: 5 }],
+        },
+      ],
+    };
+
+    const result = aggregateCalendars([cal1]);
+
+    // Result must be a different object reference
+    expect(result).not.toBe(cal1);
+    expect(result.weeks).not.toBe(cal1.weeks);
+    expect(result.weeks[0]).not.toBe(cal1.weeks[0]);
+    expect(result.weeks[0].contributionDays[0]).not.toBe(cal1.weeks[0].contributionDays[0]);
+  });
+
+  it('mutating the result does not affect the original calendar', () => {
+    const cal = {
+      totalContributions: 7,
+      weeks: [
+        {
+          contributionDays: [{ date: '2024-01-01', contributionCount: 7 }],
+        },
+      ],
+    };
+
+    const result = aggregateCalendars([cal]);
+
+    // Mutate the result
+    result.weeks[0].contributionDays[0].contributionCount = 999;
+    result.totalContributions = 999;
+
+    // Original must be completely unaffected
+    expect(cal.weeks[0].contributionDays[0].contributionCount).toBe(7);
+    expect(cal.totalContributions).toBe(7);
+  });
+
+  it('preserves optional fields on ContributionDay through the deep clone', () => {
+    const calWithOptionals = {
+      totalContributions: 100,
+      weeks: [
+        {
+          contributionDays: [
+            {
+              date: '2024-01-01',
+              contributionCount: 10,
+              locAdditions: 500,
+              locDeletions: 200,
+            },
+          ],
+        },
+      ],
+    };
+
+    const result = aggregateCalendars([calWithOptionals]);
+
+    // structuredClone preserves optional fields — JSON.parse/stringify
+    // would also preserve these since they are numbers not undefined,
+    // but this test documents the contract explicitly
+    expect(result.weeks[0].contributionDays[0].locAdditions).toBe(500);
+    expect(result.weeks[0].contributionDays[0].locDeletions).toBe(200);
+  });
+
+  it('aggregation result has correct total after structuredClone refactor', () => {
+    const cal1 = buildCalendar([3, 5, 2]);
+    const cal2 = buildCalendar([1, 4, 6]);
+
+    const result = aggregateCalendars([cal1, cal2]);
+
+    // 3+1=4, 5+4=9, 2+6=8 → total = 21
+    expect(result.totalContributions).toBe(21);
+    expect(result.weeks[0].contributionDays[0].contributionCount).toBe(4);
+    expect(result.weeks[0].contributionDays[1].contributionCount).toBe(9);
+    expect(result.weeks[0].contributionDays[2].contributionCount).toBe(8);
+  });
+
+  it('handles undefined contribution days safely', () => {
+    const result = aggregateCalendars([{ totalContributions: 0, weeks: [] }]);
+
+    expect(result.totalContributions).toBe(0);
+    expect(result.weeks).toEqual([]);
+  });
+});
+
+describe('chunkDaysIntoWeeks', () => {
+  // 30 consecutive days starting Mon 2024-01-01.
+  const days: ContributionDay[] = Array.from({ length: 30 }, (_, i) => ({
+    date: new Date(Date.UTC(2024, 0, 1 + i)).toISOString().slice(0, 10),
+    contributionCount: i,
+  }));
+
+  it('splits consecutive days into multiple weekday-aligned weeks (no single-column collapse)', () => {
+    const weeks = chunkDaysIntoWeeks(days);
+
+    // More than one week, so towers/heatmap are not all crammed into a single column.
+    expect(weeks.length).toBeGreaterThan(1);
+    // No week exceeds 7 days, so heatmap rows never overflow the canvas.
+    expect(weeks.every((w) => w.contributionDays.length <= 7)).toBe(true);
+    // Every day is preserved exactly once, in order.
+    const flattened = weeks.flatMap((w) => w.contributionDays);
+    expect(flattened).toHaveLength(30);
+    expect(flattened.map((d) => d.date)).toEqual(days.map((d) => d.date));
+  });
+
+  it('starts every week after the first on a Sunday', () => {
+    const weeks = chunkDaysIntoWeeks(days);
+    weeks.slice(1).forEach((week) => {
+      expect(new Date(week.contributionDays[0].date).getUTCDay()).toBe(0);
+    });
+  });
+
+  it('returns an empty array when given no days', () => {
+    expect(chunkDaysIntoWeeks([])).toEqual([]);
+  });
+});
+
+describe('normalizeCalendarToTimezone', () => {
+  it('normalizes calendar dates to the target timezone', () => {
+    // Create a calendar with dates in UTC
+    const calendar: ContributionCalendar = {
       totalContributions: 10,
       weeks: [
         {
           contributionDays: [
-            { date: '2026-05-02', contributionCount: 5 }, // Saturday (Weekend)
-            { date: '2026-05-03', contributionCount: 5 }, // Sunday (Weekend)
-            { date: '2026-05-04', contributionCount: 0 }, // Monday (Weekday - 0 commits)
+            { contributionCount: 5, date: '2024-01-01' }, // UTC Monday
+            { contributionCount: 3, date: '2024-01-02' }, // UTC Tuesday
+            { contributionCount: 2, date: '2024-01-03' }, // UTC Wednesday
           ],
         },
       ],
-    } as Parameters<typeof calculateWrappedStats>[0]; // Safely infers the exact type the function expects!
+    };
 
-    const result = calculateWrappedStats(weekendCalendar);
+    // Normalize to UTC (should not change dates)
+    const normalized = normalizeCalendarToTimezone(calendar, 'UTC');
+    expect(normalized.totalContributions).toBe(10);
+    expect(normalized.weeks).toHaveLength(1);
+    expect(normalized.weeks[0].contributionDays).toHaveLength(3);
+    expect(normalized.weeks[0].contributionDays[0].date).toBe('2024-01-01');
+    expect(normalized.weeks[0].contributionDays[0].contributionCount).toBe(5);
+  });
 
-    // Assert the ratio is exactly 100%
-    expect(result.weekendRatio).toBe(100);
+  it('handles empty calendar', () => {
+    const calendar: ContributionCalendar = {
+      totalContributions: 0,
+      weeks: [],
+    };
+
+    const normalized = normalizeCalendarToTimezone(calendar, 'UTC');
+    expect(normalized.totalContributions).toBe(0);
+    expect(normalized.weeks).toHaveLength(0);
+  });
+
+  it('handles null/undefined calendar', () => {
+    expect(normalizeCalendarToTimezone(null as unknown as ContributionCalendar, 'UTC')).toEqual(
+      null
+    );
+    expect(
+      normalizeCalendarToTimezone(undefined as unknown as ContributionCalendar, 'UTC')
+    ).toEqual(undefined);
+  });
+
+  it('groups contributions by target timezone date', () => {
+    // Create a calendar with dates that might span multiple days in different timezones
+    const calendar: ContributionCalendar = {
+      totalContributions: 15,
+      weeks: [
+        {
+          contributionDays: [
+            { contributionCount: 5, date: '2024-01-01' },
+            { contributionCount: 3, date: '2024-01-02' },
+            { contributionCount: 2, date: '2024-01-03' },
+            { contributionCount: 5, date: '2024-01-04' },
+          ],
+        },
+      ],
+    };
+
+    // Normalize to UTC (should preserve all dates)
+    const normalized = normalizeCalendarToTimezone(calendar, 'UTC');
+    expect(normalized.totalContributions).toBe(15);
+    expect(normalized.weeks).toHaveLength(1);
+    expect(normalized.weeks[0].contributionDays).toHaveLength(4);
+  });
+
+  it('preserves contribution counts when normalizing', () => {
+    const calendar: ContributionCalendar = {
+      totalContributions: 20,
+      weeks: [
+        {
+          contributionDays: [
+            { contributionCount: 10, date: '2024-06-15' },
+            { contributionCount: 10, date: '2024-06-16' },
+          ],
+        },
+      ],
+    };
+
+    /* eslint-disable @typescript-eslint/no-explicit-any */
+    const normalized = normalizeCalendarToTimezone(calendar, 'UTC');
+    expect(normalized.totalContributions).toBe(20);
+    // Count total contributions across all days
+    const totalContributions = normalized.weeks.reduce(
+      (sum: any, week: any) =>
+        sum +
+        week.contributionDays.reduce((daySum: any, day: any) => daySum + day.contributionCount, 0),
+      0
+    );
+    expect(totalContributions).toBe(20);
+  });
+
+  it('does not shift dates for users in UTC-5 (regression: timezone date shift bug)', () => {
+    const calendar: ContributionCalendar = {
+      totalContributions: 10,
+      weeks: [
+        {
+          contributionDays: [
+            { contributionCount: 4, date: '2024-01-01' },
+            { contributionCount: 6, date: '2024-01-02' },
+          ],
+        },
+      ],
+    };
+
+    const normalized = normalizeCalendarToTimezone(calendar, 'America/New_York');
+    const allDays = normalized.weeks.flatMap((w: any) => w.contributionDays);
+    const dates = allDays.map((d: any) => d.date);
+
+    expect(dates).toContain('2024-01-01');
+    expect(dates).toContain('2024-01-02');
+    expect(dates).not.toContain('2023-12-31'); // ghost date from the old bug
+  });
+
+  it('does not shift dates for users in UTC+9 (Tokyo)', () => {
+    const calendar: ContributionCalendar = {
+      totalContributions: 5,
+      weeks: [
+        {
+          contributionDays: [{ contributionCount: 5, date: '2024-03-15' }],
+        },
+      ],
+    };
+
+    const normalized = normalizeCalendarToTimezone(calendar, 'Asia/Tokyo');
+    const allDays = normalized.weeks.flatMap((w: any) => w.contributionDays);
+
+    expect(allDays[0].date).toBe('2024-03-15');
+    expect(allDays[0].contributionCount).toBe(5);
+  });
+
+  it('accumulates duplicate dates from multi-user data without shifting', () => {
+    const calendar: ContributionCalendar = {
+      totalContributions: 12,
+      weeks: [
+        {
+          contributionDays: [
+            { contributionCount: 7, date: '2024-06-10' },
+            { contributionCount: 5, date: '2024-06-10' },
+          ],
+        },
+      ],
+    };
+
+    const normalized = normalizeCalendarToTimezone(calendar, 'America/Los_Angeles');
+    const allDays = normalized.weeks.flatMap((w: any) => w.contributionDays);
+
+    expect(allDays).toHaveLength(1);
+    expect(allDays[0].date).toBe('2024-06-10');
+    expect(allDays[0].contributionCount).toBe(12);
+  });
+});
+
+describe('DST transition boundary handling', () => {
+  it('maps contribution days to absolute date strings during spring-forward DST', () => {
+    const calendar: ContributionCalendar = {
+      totalContributions: 3,
+      weeks: [
+        {
+          contributionDays: [
+            { contributionCount: 1, date: '2024-03-09' },
+            { contributionCount: 1, date: '2024-03-10' },
+            { contributionCount: 1, date: '2024-03-11' },
+          ],
+        },
+      ],
+    };
+
+    const result = calculateStreak(calendar, 'America/New_York', new Date('2024-03-11T12:00:00Z'));
+    expect(result.currentStreak).toBe(3);
+    expect(result.longestStreak).toBe(3);
+  });
+
+  it('maps contribution days to absolute date strings during fall-back DST', () => {
+    const calendar: ContributionCalendar = {
+      totalContributions: 3,
+      weeks: [
+        {
+          contributionDays: [
+            { contributionCount: 1, date: '2024-11-02' },
+            { contributionCount: 1, date: '2024-11-03' },
+            { contributionCount: 1, date: '2024-11-04' },
+          ],
+        },
+      ],
+    };
+
+    const result = calculateStreak(calendar, 'America/New_York', new Date('2024-11-04T12:00:00Z'));
+    expect(result.currentStreak).toBe(3);
+    expect(result.longestStreak).toBe(3);
+  });
+
+  it('correctly identifies today during spring-forward DST', () => {
+    const calendar: ContributionCalendar = {
+      totalContributions: 2,
+      weeks: [
+        {
+          contributionDays: [
+            { contributionCount: 1, date: '2024-03-10' },
+            { contributionCount: 1, date: '2024-03-11' },
+          ],
+        },
+      ],
+    };
+
+    const result = calculateStreak(calendar, 'America/New_York', new Date('2024-03-11T14:00:00Z'));
+    expect(result.todayDate).toBe('2024-03-11');
+  });
+
+  it('does not shift contributions across DST boundaries', () => {
+    const calendar: ContributionCalendar = {
+      totalContributions: 5,
+      weeks: [
+        {
+          contributionDays: [
+            { contributionCount: 0, date: '2024-03-08' },
+            { contributionCount: 2, date: '2024-03-09' },
+            { contributionCount: 0, date: '2024-03-10' },
+            { contributionCount: 3, date: '2024-03-11' },
+          ],
+        },
+      ],
+    };
+
+    const result = calculateStreak(calendar, 'America/New_York', new Date('2024-03-11T12:00:00Z'));
+    expect(result.longestStreak).toBe(1);
+    expect(result.currentStreak).toBe(1);
+  });
+});
+
+describe('calculateSafePercentage utility metric verification', () => {
+  it('safely yields 0 when denominator total is 0', () => {
+    expect(calculateSafePercentage(10, 0)).toBe(0);
+  });
+
+  it('correctly rounds regular integer percentages', () => {
+    expect(calculateSafePercentage(1, 3)).toBe(33); // 33.333... rounds to 33
+    expect(calculateSafePercentage(2, 3)).toBe(67); // 66.666... rounds to 67
   });
 });

@@ -93,15 +93,44 @@ jobs:
                 return;
               }
             } else {
-              console.log('🔍 Fetching all pull requests (open & closed/merged) in repository...');
+              console.log('🔍 Fetching pull requests updated in the last 2 days...');
               try {
-                prs = await github.paginate(github.rest.pulls.list, {
-                  owner,
-                  repo,
-                  state: 'all',
-                  per_page: 100
-                });
-                console.log(`  Found ${prs.length} total PR(s) to analyze.`);
+                const twoDaysAgo = new Date();
+                twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+                console.log(`   Filter cutoff (updated_at >=): ${twoDaysAgo.toISOString()}`);
+
+                let page = 1;
+                let hasMore = true;
+
+                while (hasMore) {
+                  const response = await github.rest.pulls.list({
+                    owner,
+                    repo,
+                    state: 'all',
+                    sort: 'updated',
+                    direction: 'desc',
+                    per_page: 100,
+                    page
+                  });
+
+                  const pagePrs = response.data;
+                  if (pagePrs.length === 0) {
+                    break;
+                  }
+
+                  for (const pr of pagePrs) {
+                    const updatedAt = new Date(pr.updated_at);
+                    if (updatedAt >= twoDaysAgo) {
+                      prs.push(pr);
+                    } else {
+                      hasMore = false;
+                      break;
+                    }
+                  }
+
+                  page++;
+                }
+                console.log(`  Found ${prs.length} PR(s) updated in the last 2 days.`);
               } catch (err) {
                 core.setFailed(`Failed to fetch PRs: ${err.message}`);
                 return;

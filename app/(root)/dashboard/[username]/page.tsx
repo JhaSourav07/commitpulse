@@ -1,10 +1,14 @@
-// app/(root)/dashboard/[username]/page.tsx
-
 import type { Metadata } from 'next';
+import { Suspense } from 'react';
 import DashboardClient from '@/components/dashboard/DashboardClient';
-import { getFullDashboardData, fetchUserProfile } from '@/lib/github';
+import DashboardSkeleton from '@/components/dashboard/DashboardSkeleton';
+import { getFullDashboardData, fetchUserProfile, fetchUserRepos } from '@/lib/github';
+import { getUserGitHubToken } from '@/lib/githubtoken';
+
+import type { RepoActivityInfo } from '@/types/dashboard';
 import { notFound, redirect } from 'next/navigation';
 import { resolveDashboardPeriod } from '@/utils/dashboardPeriod';
+import DashboardPageWrapper from '../DashboardPageWrapper';
 
 export const revalidate = 3600; // Cache for 1 hour
 
@@ -22,6 +26,17 @@ export async function generateMetadata({
   const { username } = await params;
   const resolvedSearchParams = await searchParams;
 
+  // Fetch real name from GitHub profile for better page title
+  let displayName = username;
+  try {
+    const profile = await fetchUserProfile(username, {});
+    if (profile?.name && profile.name.trim() !== '') {
+      displayName = profile.name.trim();
+    }
+  } catch {
+    // fall back to username if profile fetch fails
+  }
+
   const queryParams = new URLSearchParams({ user: username });
   if (typeof resolvedSearchParams?.theme === 'string')
     queryParams.set('theme', resolvedSearchParams.theme);
@@ -32,8 +47,17 @@ export async function generateMetadata({
     queryParams.set('accent', resolvedSearchParams.accent);
 
   const ogImage = `${BASE_URL}/api/og?${queryParams.toString()}`;
-  const title = `${username}'s Commit Pulse`;
-  const description = `Check out ${username}'s GitHub contribution pulse — streaks, insights, and more on CommitPulse.`;
+
+  const compareUsername = resolvedSearchParams?.compare;
+  const title =
+    typeof compareUsername === 'string' && compareUsername
+      ? `Compare: ${username} vs ${compareUsername} | CommitPulse`
+      : `${displayName}'s Commit Pulse`;
+
+  const description =
+    typeof compareUsername === 'string' && compareUsername
+      ? `Comparing ${username} and ${compareUsername}'s GitHub contribution pulse on CommitPulse.`
+      : `Check out ${displayName}'s GitHub contribution pulse — streaks, insights, and more on CommitPulse.`;
 
   return {
     title,
@@ -72,14 +96,37 @@ export default async function DashboardPage({
 }) {
   const { username } = await params;
   const resolvedSearchParams = await searchParams;
-  const bypassCache = resolvedSearchParams?.refresh === 'true';
-  const compareUsername = resolvedSearchParams?.compare;
+
+  return (
+    <Suspense fallback={<DashboardSkeleton />}>
+      <DashboardContent username={username} searchParams={resolvedSearchParams} />
+    </Suspense>
+  );
+}
+
+async function DashboardContent({
+  username,
+  searchParams,
+}: {
+  username: string;
+  searchParams: {
+    refresh?: string;
+    compare?: string;
+    year?: string;
+    month?: string;
+    from?: string;
+    to?: string;
+  };
+}) {
+  const bypassCache = searchParams?.refresh === 'true';
+  const compareUsername = searchParams?.compare;
   const period = resolveDashboardPeriod({
-    year: resolvedSearchParams?.year,
-    month: resolvedSearchParams?.month,
-    from: resolvedSearchParams?.from,
-    to: resolvedSearchParams?.to,
+    year: searchParams?.year,
+    month: searchParams?.month,
+    from: searchParams?.from,
+    to: searchParams?.to,
   });
+  const userToken = await getUserGitHubToken();
 
   let data;
 
@@ -89,6 +136,7 @@ export default async function DashboardPage({
       from: period.from,
       to: period.to,
       rangeLabel: period.label,
+      token: userToken,
     });
   } catch (error) {
     if (error instanceof Error && error.message.includes('not found')) {
@@ -96,6 +144,7 @@ export default async function DashboardPage({
       try {
         fallbackProfile = await fetchUserProfile(username, {
           bypassCache,
+          token: userToken,
         });
       } catch {
         return notFound();
@@ -108,12 +157,25 @@ export default async function DashboardPage({
     throw error;
   }
 
+  let allRepos: RepoActivityInfo[] = [];
+  try {
+    const reposData = await fetchUserRepos(username, { bypassCache, token: userToken });
+    allRepos = reposData.map((r) => ({
+      name: r.name,
+      url: `https://github.com/${username}/${r.name}`,
+      pushedAt: r.pushed_at ?? r.updated_at ?? null,
+    }));
+  } catch {
+    allRepos = [];
+  }
+
   let compareData = null;
 
   if (compareUsername && compareUsername.toLowerCase() !== username.toLowerCase()) {
     try {
       compareData = await getFullDashboardData(compareUsername, {
         bypassCache,
+        token: userToken,
       });
     } catch {
       compareData = null;
@@ -121,11 +183,14 @@ export default async function DashboardPage({
   }
 
   return (
-    <DashboardClient
-      initialData={data}
-      username={username}
-      compareData={compareData}
-      period={period}
-    />
+    <DashboardPageWrapper>
+      <DashboardClient
+        initialData={data}
+        allRepoActivity={allRepos}
+        username={username}
+        compareData={compareData}
+        period={period}
+      />
+    </DashboardPageWrapper>
   );
 }

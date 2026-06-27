@@ -3,10 +3,13 @@
 import { motion } from 'framer-motion';
 import { Sparkles, Moon, Sun, Zap, Calendar, Flame, Code, Star, LucideIcon } from 'lucide-react';
 import { AIInsight } from '@/types/dashboard';
+import { useTranslation } from '@/context/TranslationContext';
 
 const iconMap: Record<string, LucideIcon> = { Moon, Sun, Zap, Calendar, Flame, Code, Star };
 
 export default function AIInsights({ insights }: { insights: AIInsight[] }) {
+  const { t } = useTranslation();
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
@@ -18,12 +21,12 @@ export default function AIInsights({ insights }: { insights: AIInsight[] }) {
       <div className="flex items-center gap-2.5 mb-5">
         <Sparkles size={15} className="text-[#A1A1AA]" />
         <h3 className="text-sm font-semibold text-gray-900 dark:text-white tracking-tight">
-          AI Insights
+          {t('dashboard.insights.title')}
         </h3>
       </div>
 
       <div className="flex flex-col gap-6">
-        {insights.map((insight, i) => {
+        {(insights ?? []).map((insight, i) => {
           const Icon = iconMap[insight.icon] || Sparkles;
 
           return (

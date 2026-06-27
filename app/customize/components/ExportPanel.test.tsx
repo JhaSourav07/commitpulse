@@ -39,6 +39,12 @@ describe('ExportPanel', () => {
     expect(screen.getByRole('button', { name: 'HTML' })).toBeDefined();
   });
 
+  it("renders 'React TSX' button", () => {
+    renderPanel();
+
+    expect(screen.getByRole('button', { name: 'React TSX' })).toBeDefined();
+  });
+
   it("calls onFormatChange with 'html' when HTML button is clicked", () => {
     const { onFormatChange } = renderPanel();
 
@@ -46,6 +52,15 @@ describe('ExportPanel', () => {
 
     expect(onFormatChange).toHaveBeenCalledTimes(1);
     expect(onFormatChange).toHaveBeenCalledWith('html');
+  });
+
+  it("calls onFormatChange with 'tsx' when React TSX button is clicked", () => {
+    const { onFormatChange } = renderPanel();
+
+    fireEvent.click(screen.getByRole('button', { name: 'React TSX' }));
+
+    expect(onFormatChange).toHaveBeenCalledTimes(1);
+    expect(onFormatChange).toHaveBeenCalledWith('tsx');
   });
 
   it('disables the copy button when hasUsername is false', () => {
@@ -94,5 +109,23 @@ describe('ExportPanel', () => {
     renderPanel({ snippet });
 
     expect(screen.getByText(snippet).textContent).toBe(snippet);
+  });
+
+  it('announces copy success through a polite live region', () => {
+    const { onCopy } = renderPanel({
+      copied: true,
+      copyStatusMessage: 'Markdown snippet copied to clipboard.',
+    });
+
+    const copyButton = screen.getByRole('button', {
+      name: /copy markdown export snippet to clipboard/i,
+    });
+
+    fireEvent.click(copyButton);
+
+    expect(onCopy).toHaveBeenCalledTimes(1);
+    expect(copyButton.getAttribute('aria-describedby')).toBe('export-copy-status');
+    expect(screen.getByRole('status').textContent).toBe('Markdown snippet copied to clipboard.');
+    expect(screen.getByText('Copied!')).toBeDefined();
   });
 });

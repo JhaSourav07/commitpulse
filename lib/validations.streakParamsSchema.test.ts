@@ -91,23 +91,28 @@ describe('streakParamsSchema', () => {
     expect(result.success).toBe(false);
   });
 
-  it('fails for invalid bg hex color', () => {
+  it('strips an invalid hex color like "zzzzzz" for bg and falls back gracefully', () => {
     const result = streakParamsSchema.safeParse({ user: 'octocat', bg: 'zzzzzz' });
-    expect(result.success).toBe(false);
-  });
-
-  it('fails when grace is out of range (> 7)', () => {
-    const result = streakParamsSchema.safeParse({ user: 'octocat', grace: '8' });
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      const messages = result.error.issues.map((i) => i.message);
-      expect(messages.some((m) => m.includes('grace'))).toBe(true);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.bg).toBeUndefined();
     }
   });
 
-  it('fails when grace is negative', () => {
+  it('clamps grace to 7 when out of range (> 7)', () => {
+    const result = streakParamsSchema.safeParse({ user: 'octocat', grace: '8' });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.grace).toBe(7);
+    }
+  });
+
+  it('clamps grace to 0 when negative', () => {
     const result = streakParamsSchema.safeParse({ user: 'octocat', grace: '-1' });
-    expect(result.success).toBe(false);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.grace).toBe(0);
+    }
   });
 
   it('fails when "to" date is before "from" date', () => {
@@ -185,5 +190,23 @@ describe('streakParamsSchema', () => {
     if (result.success) {
       expect(result.data.hide_background).toBe(true);
     }
+  });
+
+  it('accepts a valid versus username', () => {
+    const result = streakParamsSchema.safeParse({ user: 'octocat', versus: 'torvalds' });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.versus).toBe('torvalds');
+    }
+  });
+
+  it('rejects a versus username longer than 39 characters', () => {
+    const result = streakParamsSchema.safeParse({ user: 'octocat', versus: 'a'.repeat(40) });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects a versus username with invalid characters', () => {
+    const result = streakParamsSchema.safeParse({ user: 'octocat', versus: 'bad user!' });
+    expect(result.success).toBe(false);
   });
 });

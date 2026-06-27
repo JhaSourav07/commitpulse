@@ -29,9 +29,8 @@ function endOfMonthUtc(year: number, monthIndex: number): Date {
 }
 
 function addMonthsUtc(date: Date, offset: number): Date {
-  return new Date(
-    Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + offset, date.getUTCDate(), 0, 0, 0, 0)
-  );
+  // Anchor on the first of the month so shifting never overflows (e.g. Jan 31 + 1mo -> Mar 3).
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + offset, 1, 0, 0, 0, 0));
 }
 
 function addDaysUtc(date: Date, offset: number): Date {
@@ -74,6 +73,19 @@ function formatRollingLabel(start: Date, end: Date): string {
   return `${formatter.format(start)} to ${formatter.format(end)}`;
 }
 
+/**
+ * Resolves a {@link DashboardPeriod} from a loose set of URL search-param inputs.
+ *
+ * Resolution priority (first match wins):
+ * 1. **Custom range** — both `input.from` and `input.to` are valid ISO date strings.
+ * 2. **Month** — `input.month` matches `YYYY-MM` and represents a valid calendar month.
+ * 3. **Year** — `input.year` matches `YYYY` and falls within the range 2008–(now+5).
+ * 4. **Rolling 12 months** — default fallback when none of the above match.
+ *
+ * @param {DashboardPeriodInput} input - Raw query-string values (year, month, from, to).
+ * @param {Date} [now=new Date()] - Reference date used for the rolling-window default and year validation.
+ * @returns {DashboardPeriod} A fully resolved period object with `kind`, `label`, `from`, and `to`.
+ */
 export function resolveDashboardPeriod(
   input: DashboardPeriodInput,
   now: Date = new Date()
@@ -145,6 +157,22 @@ export function resolveDashboardPeriod(
   };
 }
 
+/**
+ * Shifts a {@link DashboardPeriod} one step forwards or backwards.
+ *
+ * Shift semantics vary by period kind:
+ * - **month** — moves to the previous or next calendar month.
+ * - **year** — moves to the previous or next calendar year.
+ * - **range** — shifts by the exact number of days spanned by the current range.
+ * - **rolling** — shifts the 12-month window by one month in the requested direction.
+ *
+ * The function always delegates to {@link resolveDashboardPeriod} so that the returned
+ * period is normalised and fully hydrated.
+ *
+ * @param {DashboardPeriod} period - The currently active period.
+ * @param {'prev' | 'next'} direction - Direction to shift: `'prev'` for earlier, `'next'` for later.
+ * @returns {DashboardPeriod} The shifted, fully resolved period.
+ */
 export function shiftDashboardPeriod(
   period: DashboardPeriod,
   direction: 'prev' | 'next'
@@ -176,13 +204,30 @@ export function shiftDashboardPeriod(
     return resolveDashboardPeriod({ from: shiftedFrom.toISOString(), to: shiftedTo.toISOString() });
   }
 
-  const from = new Date(period.from);
-  const to = new Date(period.to);
-  const shiftedFrom = addMonthsUtc(from, offset);
-  const shiftedTo = addMonthsUtc(to, offset);
-  return resolveDashboardPeriod({ from: shiftedFrom.toISOString(), to: shiftedTo.toISOString() });
+  // Rolling window: shift by whole months and re-derive month boundaries so the end stays a
+  // valid month-end (avoids day-of-month overflow that would produce a misaligned >1-year range).
+  const fromBase = new Date(period.from);
+  const toBase = new Date(period.to);
+  const shiftedStart = startOfMonthUtc(fromBase.getUTCFullYear(), fromBase.getUTCMonth() + offset);
+  const shiftedEnd = endOfMonthUtc(toBase.getUTCFullYear(), toBase.getUTCMonth() + offset);
+  return resolveDashboardPeriod({
+    from: shiftedStart.toISOString(),
+    to: shiftedEnd.toISOString(),
+  });
 }
 
+/**
+ * Serialises a {@link DashboardPeriod} into a `URLSearchParams` instance suitable for
+ * appending to a dashboard URL.
+ *
+ * Serialisation strategy:
+ * - **month** — emits a single `month=YYYY-MM` param.
+ * - **year** — emits a single `year=YYYY` param.
+ * - **range / rolling** — emits `from` and `to` ISO timestamp params.
+ *
+ * @param {DashboardPeriod} period - The period to serialise.
+ * @returns {URLSearchParams} The query-string representation of the period.
+ */
 export function dashboardPeriodToSearchParams(period: DashboardPeriod): URLSearchParams {
   const params = new URLSearchParams();
 

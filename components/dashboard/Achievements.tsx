@@ -4,10 +4,11 @@ import { motion } from 'framer-motion';
 import { useState } from 'react';
 import { Trophy, Flame, Sparkles } from 'lucide-react';
 import { Achievement } from '@/types/dashboard';
+import { useTranslation } from '@/context/TranslationContext';
 
 /** Map achievement type to the matching Lucide icon component. */
 function AchievementIcon({ type, isUnlocked }: { type: Achievement['type']; isUnlocked: boolean }) {
-  const cls = `mb-2.5 ${isUnlocked ? 'text-[#A1A1AA]' : 'text-[#555]'}`;
+  const cls = `mb-2.5 ${isUnlocked ? 'text-zinc-500 dark:text-[#A1A1AA]' : 'text-zinc-300 dark:text-[#555]'}`;
   if (type === 'streak') return <Flame size={18} className={cls} />;
   if (type === 'behavior') return <Sparkles size={18} className={cls} />;
   return <Trophy size={18} className={cls} />;
@@ -15,6 +16,7 @@ function AchievementIcon({ type, isUnlocked }: { type: Achievement['type']; isUn
 
 export default function Achievements({ achievements }: { achievements: Achievement[] }) {
   const [showAll, setShowAll] = useState(false);
+  const { t } = useTranslation();
   const visibleAchievements = showAll ? achievements : achievements.slice(0, 4);
 
   return (
@@ -23,12 +25,12 @@ export default function Achievements({ achievements }: { achievements: Achieveme
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ duration: 0.3, delay: 0.1 }}
-      className="p-6 rounded-xl bg-white dark:bg-[#0a0a0a] border border-black/10 dark:border-[rgba(255,255,255,0.08)]"
+      className="p-6 rounded-xl bg-white dark:bg-[#0a0a0a] border border-black/10 dark:border-[rgba(255,255,255,0.08)] shadow-sm"
     >
       <div className="flex items-center gap-2.5 mb-5">
-        <Trophy size={15} className="text-[#A1A1AA]" />
-        <h3 className="text-sm font-semibold text-gray-900 dark:text-white tracking-tight">
-          Achievements
+        <Trophy size={15} className="text-zinc-500 dark:text-[#A1A1AA]" />
+        <h3 className="text-sm font-semibold text-zinc-900 dark:text-white tracking-tight">
+          {t('dashboard.achievements.title')}
         </h3>
       </div>
 
@@ -47,10 +49,10 @@ export default function Achievements({ achievements }: { achievements: Achieveme
             }`}
           >
             <AchievementIcon type={achievement.type} isUnlocked={achievement.isUnlocked} />
-            <h4 className="text-[11px] font-semibold text-gray-900 dark:text-white mb-1 text-center w-full leading-snug">
+            <h4 className="text-[11px] font-semibold text-zinc-900 dark:text-white mb-1 text-center w-full leading-snug">
               {achievement.title}
             </h4>
-            <p className="text-[10px] text-[#A1A1AA] line-clamp-2 w-full leading-relaxed">
+            <p className="text-[10px] text-zinc-500 dark:text-[#A1A1AA] line-clamp-2 w-full leading-relaxed">
               {achievement.description}
             </p>
 
@@ -77,7 +79,7 @@ export default function Achievements({ achievements }: { achievements: Achieveme
           onClick={() => setShowAll(!showAll)}
           className="mt-4 w-full rounded-lg border border-black/10 dark:border-[rgba(255,255,255,0.08)] bg-black dark:bg-white py-2 text-xs font-medium text-white dark:text-black cursor-pointer transition-all duration-300 ease-in-out hover:bg-zinc-800 dark:hover:bg-zinc-100 hover:opacity-90 hover:scale-[1.02] hover:shadow-md"
         >
-          {showAll ? 'Show Less' : 'See All Achievements'}
+          {showAll ? t('dashboard.achievements.show_less') : t('dashboard.achievements.see_all')}
         </button>
       )}
     </motion.div>

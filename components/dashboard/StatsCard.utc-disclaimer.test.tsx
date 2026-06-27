@@ -34,7 +34,7 @@ describe('StatsCard UTC disclaimer', () => {
       />
     );
 
-    expect(container.textContent).toContain('â„¹');
+    expect(container.textContent).toContain('ℹ');
     expect(container.textContent).not.toContain('\u00E2\u20AC\u2039');
     expect(container.textContent).toContain('UTC Date: 2026-06-01');
   });

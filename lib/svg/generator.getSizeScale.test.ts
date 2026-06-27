@@ -1,27 +1,30 @@
-import { describe, expect, it } from 'vitest';
-
-import { SVG_WIDTH } from './generatorConstants';
+import { describe, it, expect } from 'vitest';
 import { getSizeScale } from './generator';
+import { SVG_WIDTH } from './generatorConstants';
 
 describe('getSizeScale', () => {
-  it('returns small scale factor for size=small', () => {
+  it('returns the correct scale for "small"', () => {
     expect(getSizeScale('small')).toBe(400 / SVG_WIDTH);
   });
 
-  it('returns default scale factor for size=medium', () => {
-    expect(getSizeScale('medium')).toBe(1);
-  });
-
-  it('returns large scale factor for size=large', () => {
+  it('returns the correct scale for "large"', () => {
     expect(getSizeScale('large')).toBe(800 / SVG_WIDTH);
   });
 
-  it('returns default scale factor when size is undefined', () => {
-    expect(getSizeScale()).toBe(1);
+  it('returns 1 for "medium"', () => {
+    expect(getSizeScale('medium')).toBe(1);
   });
 
-  it('falls back to default scale factor for unknown values', () => {
-    expect(getSizeScale('' as unknown as 'small')).toBe(1);
-    expect(getSizeScale('xlarge' as unknown as 'small')).toBe(1);
+  it('returns 1 when size is undefined', () => {
+    expect(getSizeScale(undefined)).toBe(1);
+  });
+
+  it('returns 1 for out-of-bounds or invalid string parameters', () => {
+    // @ts-expect-error testing invalid parameter
+    expect(getSizeScale('extra-large')).toBe(1);
+    // @ts-expect-error testing invalid parameter
+    expect(getSizeScale('')).toBe(1);
+    // @ts-expect-error testing invalid parameter
+    expect(getSizeScale(null)).toBe(1);
   });
 });

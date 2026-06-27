@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { ActivityData } from '@/types/dashboard';
 import {
   formatTooltipDate,
+  formatTooltipRange,
   getActivityInsight,
   getContributionLabel,
   getLocalActiveStreak,
@@ -21,6 +22,10 @@ describe('tooltipUtils', () => {
 
   it('returns original value for invalid date strings', () => {
     expect(formatTooltipDate('invalid-date')).toBe('invalid-date');
+  });
+
+  it('formats a date range from a start and end date', () => {
+    expect(formatTooltipRange('2024-01-01', '2024-01-07')).toBe('Jan 1, 2024 - Jan 7, 2024');
   });
 
   it('returns activity insights based on count and intensity', () => {

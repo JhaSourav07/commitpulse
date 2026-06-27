@@ -1,9 +1,13 @@
 // lib/svg/generator.escapeXML.test.ts
 
 import { describe, it, expect } from 'vitest';
-import { escapeXML } from './generator';
+import { escapeXML } from './sanitizer';
 
 describe('escapeXML', () => {
+  it('escapes script-like XML boundary characters safely', () => {
+    expect(escapeXML('<script>&"')).toBe('&lt;script&gt;&amp;&quot;');
+  });
+
   it('should escape all five special XML characters', () => {
     expect(escapeXML('a & b < c > d " e \' f')).toBe('a &amp; b &lt; c &gt; d &quot; e &#39; f');
   });

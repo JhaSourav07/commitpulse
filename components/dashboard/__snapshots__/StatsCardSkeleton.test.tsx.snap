@@ -25,7 +25,7 @@ exports[`StatsCardSkeleton > matches snapshot without random variation 1`] = `
     />
   </div>
   <div
-    class="w-full h-8 flex items-end justify-between gap-px opacity-30"
+    class="w-full h-8 flex items-end justify-between gap-px opacity-80"
   >
     <div
       class="flex-1 shimmer rounded-t-[1px]"

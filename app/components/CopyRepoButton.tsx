@@ -3,14 +3,14 @@
 import { useState } from 'react';
 import { Copy } from 'lucide-react';
 
+export const REPO_URL = 'https://github.com/JhaSourav07/commitpulse';
+
 export default function CopyRepoButton() {
   const [copyState, setCopyState] = useState<'idle' | 'copied' | 'error'>('idle');
 
-  const repoUrl = 'https://github.com/JhaSourav07/commitpulse';
-
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(repoUrl);
+      await navigator.clipboard.writeText(REPO_URL);
       setCopyState('copied');
     } catch {
       setCopyState('error');

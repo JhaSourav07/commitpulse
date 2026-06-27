@@ -3,31 +3,34 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import ErrorPage from './error';
 
-import type { ReactNode } from 'react';
-
 vi.mock('next/link', () => ({
-  default: ({ children, href }: { children: ReactNode; href: string }) => (
-    <a href={href}>{children}</a>
+  default: ({
+    children,
+    ...props
+  }: React.AnchorHTMLAttributes<HTMLAnchorElement> & { children: React.ReactNode }) => (
+    <a {...props}>{children}</a>
   ),
 }));
 
 describe('Dashboard Error Page', () => {
-  it('renders API limit UI', () => {
+  it('renders the API limit emoji for API limit reached errors', () => {
     render(<ErrorPage error={new Error('API limit reached')} reset={vi.fn()} />);
 
     expect(screen.getByRole('heading', { name: 'API Limit Reached' })).toBeInTheDocument();
+    expect(screen.getByText('⏳')).toBeInTheDocument();
   });
 
-  it('renders not found UI', () => {
-    render(<ErrorPage error={new Error('not found')} reset={vi.fn()} />);
+  it('renders the not found emoji for User not found errors', () => {
+    render(<ErrorPage error={new Error('User not found')} reset={vi.fn()} />);
 
     expect(screen.getByText(/not found/i)).toBeInTheDocument();
+    expect(screen.getByText('🕵️‍♂️')).toBeInTheDocument();
   });
 
-  it('renders generic error UI', () => {
-    render(<ErrorPage error={new Error('something went wrong')} reset={vi.fn()} />);
+  it('renders the generic error emoji for other errors', () => {
+    render(<ErrorPage error={new Error('Something went wrong')} reset={vi.fn()} />);
 
-    expect(screen.getByRole('button', { name: /try again/i })).toBeInTheDocument();
+    expect(screen.getByText('⚠️')).toBeInTheDocument();
   });
 
   it('shows Try again button', () => {

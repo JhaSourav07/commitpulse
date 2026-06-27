@@ -5,7 +5,7 @@ import { Upload, FileText, X, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { ParsedResume, ResumeUploadResponse } from '@/types/student';
 
-interface ResumeUploadProps {
+export interface ResumeUploadProps {
   onParsed: (data: ParsedResume, fileName: string) => void;
   onError: (error: string) => void;
 }
@@ -13,7 +13,6 @@ interface ResumeUploadProps {
 const ALLOWED_TYPES = [
   'application/pdf',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  'application/msword',
 ];
 
 const MAX_SIZE = 5 * 1024 * 1024;
@@ -94,6 +93,14 @@ export default function ResumeUpload({ onParsed, onError }: ResumeUploadProps) {
     if (inputRef.current) inputRef.current.value = '';
   }
 
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if (isUploading) return;
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      inputRef.current?.click();
+    }
+  }
+
   return (
     <div className="w-full">
       <div
@@ -102,6 +109,10 @@ export default function ResumeUpload({ onParsed, onError }: ResumeUploadProps) {
         onDragOver={handleDrag}
         onDrop={handleDrop}
         onClick={() => !isUploading && inputRef.current?.click()}
+        onKeyDown={handleKeyDown}
+        role="button"
+        tabIndex={isUploading ? -1 : 0}
+        aria-disabled={isUploading}
         className={`
           relative cursor-pointer rounded-xl border-2 border-dashed p-8 text-center transition-all duration-200
           ${
@@ -115,7 +126,7 @@ export default function ResumeUpload({ onParsed, onError }: ResumeUploadProps) {
         <input
           ref={inputRef}
           type="file"
-          accept=".pdf,.docx,.doc"
+          accept=".pdf,.docx"
           onChange={handleFileSelect}
           className="hidden"
           aria-label="Upload resume"

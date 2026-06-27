@@ -5,7 +5,7 @@ on:
     types: [created]
 
 concurrency:
-  group: issue-management-${{ github.event.issue.number }}
+  group: issue-cmd-${{ github.event.comment.user.login }}
   cancel-in-progress: false
 
 permissions:

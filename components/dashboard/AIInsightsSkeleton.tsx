@@ -1,6 +1,11 @@
 export default function AIInsightsSkeleton() {
   return (
-    <div className="p-6 rounded-xl bg-[#0a0a0a] border border-[rgba(255,255,255,0.08)]">
+    <div
+      role="status"
+      aria-busy="true"
+      aria-label="Loading AI Insights"
+      className="p-6 rounded-xl bg-white dark:bg-[#0a0a0a] border border-black/10 dark:border-[rgba(255,255,255,0.08)] overflow-hidden"
+    >
       {/* Header */}
       <div className="flex items-center gap-2.5 mb-5">
         <div className="w-4 h-4 shimmer rounded-full opacity-80" />
@@ -12,7 +17,7 @@ export default function AIInsightsSkeleton() {
         {[...Array(3)].map((_, i) => (
           <div
             key={i}
-            className="flex items-start gap-3 p-3 rounded-lg bg-[#111] border border-[rgba(255,255,255,0.05)]"
+            className="flex items-start gap-3 p-3 rounded-lg bg-gray-300 dark:bg-[#111] border border-[rgba(255,255,255,0.05)]"
           >
             {/* Icon */}
             <div className="w-4 h-4 shimmer rounded-full mt-1 shrink-0 opacity-80" />

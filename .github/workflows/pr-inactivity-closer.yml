@@ -19,11 +19,11 @@ jobs:
         with:
           script: |
             const label = 'inactive';
-            const daysThreshold = 5;
-            const cutoffDate = new Date();
-            cutoffDate.setDate(cutoffDate.getDate() - daysThreshold);
+            const closeAfterDays = 5;
+            const warnAfterDays = 3;
+            const now = new Date();
 
-            core.info(`Cutoff date for 5 days of inactivity: ${cutoffDate.toISOString()}`);
+            core.info(`Checking PRs for inactivity. Warn after ${warnAfterDays} days, close after ${closeAfterDays} days.`);
 
             // Ensure the inactivity label exists in the repository
             try {
@@ -53,25 +53,60 @@ jobs:
 
             core.info(`Scanning ${openPRs.length} open pull requests...`);
 
+            const skipLabels = ['wip', 'blocked', 'do-not-merge'];
+
             for (const pr of openPRs) {
+              // Draft PRs are intentionally long-lived
+              if (pr.draft) {
+                core.info(`PR #${pr.number} is a draft. Skipping.`);
+                continue;
+              }
+
+              // Maintainer and collaborator PRs should not be auto-closed
+              if (['COLLABORATOR', 'MEMBER', 'OWNER'].includes(pr.author_association)) {
+                core.info(`PR #${pr.number} is from a maintainer (@${pr.user.login}). Skipping.`);
+                continue;
+              }
+
+              // PRs carrying exclusion labels
+              const prLabelNames = (pr.labels || []).map(l => l.name.toLowerCase());
+              if (prLabelNames.some(l => skipLabels.includes(l))) {
+                core.info(`PR #${pr.number} has a wip/blocked/do-not-merge label. Skipping.`);
+                continue;
+              }
+
               const updatedAt = new Date(pr.updated_at);
-              if (updatedAt < cutoffDate) {
+              const daysSinceUpdate = Math.floor((now.getTime() - updatedAt.getTime()) / (1000 * 60 * 60 * 24));
+
+              if (daysSinceUpdate >= closeAfterDays) {
                 core.info(`PR #${pr.number} (@${pr.user.login}) is inactive. Last updated: ${pr.updated_at}. Closing...`);
 
-                // 1. Add inactivity label
+                // Check for existing close comment to avoid duplicates
+                const { data: existingComments } = await github.rest.issues.listComments({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: pr.number,
+                  per_page: 10,
+                });
+
+                if (existingComments.some(c => c.body && c.body.includes('<!-- inactivity-close -->'))) {
+                  core.info(`PR #${pr.number} already has a close comment. Closing without duplicate comment.`);
+                } else {
+                  // 1. Post explanatory comment before closing
+                  await github.rest.issues.createComment({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: pr.number,
+                    body: `🤖 Hey @${pr.user.login}, this pull request has been automatically closed because it has been inactive for ${closeAfterDays} days.\n\n**Why was this PR closed?**\nTo keep the repository manageable, we automatically close pull requests that have had no activity for ${closeAfterDays} days.\n\n**How to reopen this PR:**\n1. Pull the latest changes from the upstream repository\n2. Resolve any merge conflicts\n3. Address any review feedback\n4. Push your changes to your branch\n5. Reopen this PR by commenting \`/reopen\` or creating a new PR\n\nWe appreciate your contribution and would love to review your work when it's ready! Thank you! ❤️\n\n<!-- inactivity-close -->`,
+                  });
+                }
+
+                // 2. Add inactivity label
                 await github.rest.issues.addLabels({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
                   issue_number: pr.number,
                   labels: [label],
-                });
-
-                // 2. Post explanatory comment
-                await github.rest.issues.createComment({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  issue_number: pr.number,
-                  body: `🤖 Hey @${pr.user.login}, this pull request has been automatically closed because it has been inactive for 5 days.\n\nIf you are still interested in fixing the issue and contributing, please feel free to pull the latest changes, resolve any conflicts, and reopen this PR at any time! We'd love to review your work. Thank you! ❤️`,
                 });
 
                 // 3. Close the PR
@@ -83,6 +118,30 @@ jobs:
                 });
 
                 core.info(`Successfully closed PR #${pr.number}.`);
+              } else if (daysSinceUpdate >= warnAfterDays) {
+                // Avoid posting multiple warnings on consecutive runs
+                const { data: existingComments } = await github.rest.issues.listComments({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: pr.number,
+                  per_page: 10,
+                });
+
+                if (existingComments.some(c => c.body && c.body.includes('<!-- inactivity-warning -->'))) {
+                  core.info(`PR #${pr.number} already has a warning. Skipping.`);
+                  continue;
+                }
+
+                core.info(`PR #${pr.number} (@${pr.user.login}) has been inactive for ${daysSinceUpdate} days. Posting warning...`);
+
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: pr.number,
+                  body: `⚠️ Hey @${pr.user.login}, this pull request has been inactive for ${daysSinceUpdate} days. It will be automatically closed in ${closeAfterDays - daysSinceUpdate} days if no further activity occurs.\n\nIf you are still working on this, please push your latest changes or leave a comment to keep it active.\n\n<!-- inactivity-warning -->`,
+                });
+
+                core.info(`Warning posted on PR #${pr.number}.`);
               } else {
                 core.info(`PR #${pr.number} is active. Last updated: ${pr.updated_at}. Skipping.`);
               }

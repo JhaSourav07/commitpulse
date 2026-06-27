@@ -125,7 +125,10 @@ export default function GrowthTrendChart({
       </div>
 
       {/* SVG Line Chart */}
-      <div className="relative w-full h-[180px] overflow-hidden">
+      <div
+        data-testid="growth-trend-chart-container"
+        className="relative w-full h-[180px] overflow-hidden"
+      >
         <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-full overflow-visible">
           <defs>
             <linearGradient id={`${instanceId}-gradient-area-a`} x1="0" y1="0" x2="0" y2="1">

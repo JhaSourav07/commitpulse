@@ -26,7 +26,15 @@ jobs:
       - name: Install Dependencies
         run: |
           cd .github/scripts
-          npm install
+          npm ci
+
+      - name: Cache embeddings
+        uses: actions/cache@v4
+        with:
+          path: .github/scripts/.cache
+          key: ${{ runner.os }}-embeddings-cache-${{ github.run_id }}
+          restore-keys: |
+            ${{ runner.os }}-embeddings-cache-
 
       - name: Run Duplicate Scan
         env:

@@ -1,0 +1,107 @@
+import * as React from 'react';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { describe, expect, it } from 'vitest';
+import '@testing-library/jest-dom';
+import AIInsightsSkeleton from './AIInsightsSkeleton';
+
+describe('AIInsightsSkeleton Accessibility', () => {
+  // 1. ARIA & Accessible Markup
+  // Verify that the skeleton correctly exposes the status role.
+  it('exposes correct roles and accessibility names during loading state', () => {
+    const { container } = render(<AIInsightsSkeleton />);
+
+    const wrapper = container.firstChild as HTMLElement;
+    expect(wrapper).toHaveAttribute('role', 'status');
+    expect(wrapper).toHaveAttribute('aria-busy', 'true');
+
+    // Ensure the inner divs do not carry inappropriate roles.
+    const innerDivs = Array.from(container.querySelectorAll('div')).slice(1);
+    innerDivs.forEach((div) => {
+      expect(div.getAttribute('role')).toBeNull();
+    });
+
+    // TODO: Ensure relationships like aria-labelledby or aria-describedby are added
+    // if the skeleton is updated to have a header or label.
+  });
+
+  // 2. Keyboard Focus
+  // Ensure that no element inside the skeleton is focusable. Focus should never be trapped.
+  it('does not receive focus or trap keyboard navigation', async () => {
+    const user = userEvent.setup();
+    render(<AIInsightsSkeleton />);
+
+    // Try to tab through the document.
+    await user.tab();
+
+    // Since there are no focusable elements, focus should remain on the document body.
+    expect(document.body).toHaveFocus();
+  });
+
+  // 3. Screen Reader Labels
+  // Verify that assistive technologies do not receive inappropriate semantic roles or labels.
+  it('does not expose interactive roles or semantic elements to assistive technologies', () => {
+    const { container } = render(<AIInsightsSkeleton />);
+
+    // Since the component only has placeholders, there shouldn't be any buttons, links, or inputs.
+    expect(screen.queryByRole('button')).toBeNull();
+    expect(screen.queryByRole('link')).toBeNull();
+    expect(screen.queryByRole('textbox')).toBeNull();
+
+    // Ensure that the skeleton wrapper exposes a descriptive aria-label.
+    const wrapper = container.firstChild as HTMLElement;
+    expect(wrapper).toHaveAttribute('aria-label', 'Loading AI Insights');
+  });
+
+  // 4. Keyboard Navigation Flow
+  // Verify that tabbing sequentially flows correctly past the skeleton without getting stuck.
+  it('allows sequential keyboard tab navigation to bypass the skeleton entirely', async () => {
+    const user = userEvent.setup();
+
+    // Render interactive buttons before and after the skeleton to verify navigation flow.
+    render(
+      <div>
+        <button id="before-btn">Before Button</button>
+        <AIInsightsSkeleton />
+        <button id="after-btn">After Button</button>
+      </div>
+    );
+
+    const beforeBtn = screen.getByRole('button', { name: /before button/i });
+    const afterBtn = screen.getByRole('button', { name: /after button/i });
+
+    // Focus the first button.
+    beforeBtn.focus();
+    expect(beforeBtn).toHaveFocus();
+
+    // Tab once: should skip the skeleton and focus the second button.
+    await user.tab();
+    expect(afterBtn).toHaveFocus();
+  });
+
+  // 5. Heading Hierarchy
+  // Ensure that the skeleton does not introduce out-of-order headings before actual data loads.
+  it('renders no heading elements ensuring heading hierarchy is not disrupted', () => {
+    render(<AIInsightsSkeleton />);
+
+    // There should be no heading elements within the loading skeleton.
+    expect(screen.queryByRole('heading')).toBeNull();
+
+    // TODO: When the loaded state (AIInsights) is implemented/rendered, ensure its headings
+    // follow a logical order relative to the page container layout (e.g., an H3 tag).
+  });
+
+  // 6. Reduced Motion Preference
+  // While JSDOM does not natively process CSS media queries, we assert that the component
+  // structure allows the global CSS (prefers-reduced-motion) to override the animation.
+  it('relies on the global .shimmer class to handle prefers-reduced-motion overrides', () => {
+    const { container } = render(<AIInsightsSkeleton />);
+
+    // Select an element that uses the shimmer animation
+    const shimmerElement = container.querySelector('.shimmer');
+    expect(shimmerElement).toBeInTheDocument();
+
+    // We document that standard `.shimmer` class is responsible for the fallback.
+    // CSS ensures that `.shimmer` sets `animation: none` on `prefers-reduced-motion: reduce`.
+  });
+});

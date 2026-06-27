@@ -72,6 +72,38 @@ describe('OG Route', () => {
     expect(res.status).toBe(200);
   });
 
+  it('supports auto theme values without crashing', async () => {
+    vi.mocked(fetchGitHubContributions).mockResolvedValue({} as never);
+    vi.mocked(calculateStreak).mockReturnValue({
+      totalContributions: 120,
+      longestStreak: 20,
+      currentStreak: 5,
+      todayDate: '2026-05-27',
+    });
+
+    const req = new NextRequest('http://localhost:3000/api/og?user=testuser&theme=auto');
+    const res = await GET(req as never);
+
+    expect(res).toBeDefined();
+    expect(res.status).toBe(200);
+  });
+
+  it('supports random theme values without crashing', async () => {
+    vi.mocked(fetchGitHubContributions).mockResolvedValue({} as never);
+    vi.mocked(calculateStreak).mockReturnValue({
+      totalContributions: 120,
+      longestStreak: 20,
+      currentStreak: 5,
+      todayDate: '2026-05-27',
+    });
+
+    const req = new NextRequest('http://localhost:3000/api/og?user=testuser&theme=random');
+    const res = await GET(req as never);
+
+    expect(res).toBeDefined();
+    expect(res.status).toBe(200);
+  });
+
   it('handles invalid custom themes and invalid colors gracefully with fallbacks', async () => {
     vi.mocked(fetchGitHubContributions).mockResolvedValue({} as never);
     vi.mocked(calculateStreak).mockReturnValue({
@@ -89,5 +121,23 @@ describe('OG Route', () => {
 
     expect(res).toBeDefined();
     expect(res.status).toBe(200);
+  });
+  it('returns 429 when rate limit is exceeded', async () => {
+    const { RateLimiter } = await import('@/lib/rate-limit');
+    vi.spyOn(RateLimiter.prototype, 'checkWithResult').mockResolvedValueOnce({
+      success: false,
+      limit: 30,
+      remaining: 0,
+      reset: Date.now() + 60000,
+    });
+
+    const req = new NextRequest('http://localhost/api/og?user=octocat', {
+      headers: { 'x-forwarded-for': '1.2.3.4' },
+    });
+
+    const res = await GET(req);
+    expect(res.status).toBe(429);
+    const data = await res.json();
+    expect(data.error).toBe('Too many requests. Please try again later.');
   });
 });

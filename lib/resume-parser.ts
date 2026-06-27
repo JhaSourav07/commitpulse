@@ -1,4 +1,11 @@
+import 'server-only';
 import type { ParsedResume, Education, Experience } from '@/types/student';
+
+// Polyfill DOMMatrix for server-side/test environments to prevent pdfjs-dist crash
+if (typeof globalThis !== 'undefined' && !('DOMMatrix' in globalThis)) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (globalThis as any).DOMMatrix = class DOMMatrix {};
+}
 
 const EMAIL_REGEX = /[\w.-]+@[\w.-]+\.\w+/;
 const NAME_LINE_REGEX = /^([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)/;
@@ -54,13 +61,30 @@ function extractSection(text: string, headers: RegExp): string[] {
   return sectionLines;
 }
 
+function isValidSkill(skill: string): boolean {
+  const cleaned = skill.trim();
+
+  const shortSkills = new Set(['C', 'R', 'Go', 'AI', 'ML', 'JS', 'TS', 'C++', 'C#', '.NET']);
+
+  if (shortSkills.has(cleaned)) {
+    return true;
+  }
+
+  return (
+    cleaned.length >= 2 &&
+    cleaned.length < 50 &&
+    /^[a-zA-Z0-9.+#\s-]+$/.test(cleaned) &&
+    !/[?~<>]/.test(cleaned) &&
+    !/^[A-Za-z]\s+[A-Za-z]$/.test(cleaned)
+  );
+}
+
 function extractSkills(text: string): string[] {
   const section = extractSection(text, SKILL_SECTION_HEADERS);
-  const allText = section.join(' ');
-  const skills = allText
-    .split(/[,•·\-|/\n]+/)
+  const skills = section
+    .flatMap((line) => line.split(/[,•·|/]+/))
     .map((s) => s.trim())
-    .filter((s) => s.length > 0 && s.length < 50);
+    .filter(isValidSkill);
   return [...new Set(skills)];
 }
 
@@ -108,10 +132,48 @@ function extractExperience(text: string): Experience[] {
   return experience;
 }
 
-function extractTextFromBuffer(buffer: Buffer, _mimeType: string): string {
-  void _mimeType;
-  const text = buffer.toString('utf-8');
-  const printable = text
+async function extractTextFromBuffer(buffer: Buffer, mimeType: string): Promise<string> {
+  let rawText = '';
+
+  if (mimeType === 'application/pdf') {
+    try {
+      if (buffer.toString('utf-8', 0, 4) === '%PDF') {
+        const { PDFParse } = await import('pdf-parse');
+
+        const parser = new PDFParse({ data: buffer });
+        const result = await parser.getText();
+        await parser.destroy();
+
+        rawText = result.text;
+      } else {
+        rawText = buffer.toString('utf-8');
+      }
+    } catch (error) {
+      console.warn('Failed to parse PDF using pdf-parse, falling back to UTF-8 decoding:', error);
+      rawText = buffer.toString('utf-8');
+    }
+  } else if (
+    mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+  ) {
+    try {
+      if (buffer.toString('utf-8', 0, 2) === 'PK') {
+        const mammothModule = await import('mammoth');
+        const mammothParser = ((mammothModule as unknown as { default?: unknown }).default ||
+          mammothModule) as typeof mammothModule;
+        const result = await mammothParser.extractRawText({ buffer });
+        rawText = result.value;
+      } else {
+        rawText = buffer.toString('utf-8');
+      }
+    } catch (error) {
+      console.warn('Failed to parse DOCX using mammoth, falling back to UTF-8 decoding:', error);
+      rawText = buffer.toString('utf-8');
+    }
+  } else {
+    rawText = buffer.toString('utf-8');
+  }
+
+  const printable = rawText
     .replace(/[^\x20-\x7E\n\r]/g, ' ')
     .replace(/[ \t]+/g, ' ')
     .replace(/\r/g, '')
@@ -137,7 +199,7 @@ function extractPhone(text: string): string {
 }
 
 export async function parseResume(buffer: Buffer, mimeType: string): Promise<ParsedResume> {
-  const rawText = extractTextFromBuffer(buffer, mimeType);
+  const rawText = await extractTextFromBuffer(buffer, mimeType);
 
   return {
     name: extractName(rawText),
@@ -152,7 +214,24 @@ export async function parseResume(buffer: Buffer, mimeType: string): Promise<Par
 export const ALLOWED_MIME_TYPES = [
   'application/pdf',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  'application/msword',
 ];
 
 export const MAX_FILE_SIZE = 5 * 1024 * 1024;
+
+// Leading-byte signatures used to reject content that does not match its declared MIME type.
+const FILE_SIGNATURES: Record<string, number[][]> = {
+  'application/pdf': [[0x25, 0x50, 0x44, 0x46, 0x2d]],
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': [
+    [0x50, 0x4b, 0x03, 0x04],
+    [0x50, 0x4b, 0x05, 0x06],
+    [0x50, 0x4b, 0x07, 0x08],
+  ],
+};
+
+export function hasValidFileSignature(buffer: Buffer, mimeType: string): boolean {
+  const signatures = FILE_SIGNATURES[mimeType];
+  if (!signatures) return false;
+  return signatures.some(
+    (sig) => buffer.length >= sig.length && sig.every((byte, index) => buffer[index] === byte)
+  );
+}

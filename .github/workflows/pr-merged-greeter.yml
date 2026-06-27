@@ -18,7 +18,7 @@ jobs:
         with:
           script: |
             const creator = context.payload.pull_request.user.login;
-            const message = `🎉 **Congratulations @${creator}! Your PR has been successfully merged.** 🚀\n\nThank you for contributing to **CommitPulse**. Your work helps us build a better tool for the community.\n\n⚠️ **Important for GSSoC Contributors:**\nYou are strictly advised to join our [Discord Server](https://discord.gg/Cb73bS79j) as it is **mandatory** for all GSSoC participants. All important announcements, point claims, and community discussions happen there.\n\nKeep building! 💻✨`;
+            const message = `🎉 **Congratulations @${creator}! Your PR has been successfully merged.** 🚀\n\nThank you for contributing to **CommitPulse**. Your work helps us build a better tool for the community.\n\n⚠️ **Important for GSSoC Contributors:**\nYou are strictly advised to join our [Discord Server](https://discord.gg/f84SDraEBH) as it is **mandatory** for all GSSoC participants. All important announcements, point claims, and community discussions happen there.\n\nKeep building! 💻✨`;
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
