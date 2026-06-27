@@ -31,6 +31,26 @@ interface GitHubRepo {
   homepage?: string | null;
 }
 
+// Centralized constants
+const CACHE_TTL = {
+  STANDARD: Number(process.env.GITHUB_CACHE_TTL_MS ?? String(5 * 60 * 1000)),
+  LONG: Number(process.env.GITHUB_LONG_CACHE_TTL_MS ?? String(7 * 24 * 60 * 60 * 1000)),
+} as const;
+
+const TIMEOUTS = {
+  GRAPHQL: Number(process.env.GITHUB_GRAPHQL_TIMEOUT_MS ?? '8000'),
+  REST: Number(process.env.GITHUB_REST_TIMEOUT_MS ?? '5000'),
+  FETCH: Number(process.env.GITHUB_FETCH_TIMEOUT_MS ?? '4000'),
+  PROMISE_CLEANUP: 30000,
+} as const;
+
+const LIMITS = {
+  ORG_MEMBER: Number(process.env.GITHUB_ORG_MEMBER_LIMIT ?? '100'),
+  GRAPHQL_REPOSITORY_PAGE_SIZE: 100,
+  MAX_GRAPHQL_REPOSITORY_RESULTS: 500,
+  MAX_REPOSITORIES_IN_CONTRIBUTION_QUERY: 25,
+} as const;
+
 const MAX_RETRIES = Number(process.env.GITHUB_MAX_RETRIES ?? '3');
 const BASE_DELAY_MS = Number(process.env.GITHUB_BASE_DELAY_MS ?? '500');
 const MAX_RETRY_DELAY_MS = Number(process.env.GITHUB_MAX_RETRY_DELAY_MS ?? '5000');
@@ -75,12 +95,6 @@ export function shouldFallbackOnError(err: unknown): boolean {
 
   return false;
 }
-
-const GRAPHQL_TIMEOUT_MS = Number(process.env.GITHUB_GRAPHQL_TIMEOUT_MS ?? '8000');
-const REST_TIMEOUT_MS = Number(process.env.GITHUB_REST_TIMEOUT_MS ?? '5000');
-const ORG_MEMBER_LIMIT = Number(process.env.GITHUB_ORG_MEMBER_LIMIT ?? '100');
-const GRAPHQL_REPOSITORY_PAGE_SIZE = 100;
-const MAX_GRAPHQL_REPOSITORY_RESULTS = 500;
 
 let currentTokenIndex = 0;
 const rateLimitedTokens = new Map<string, number>();
@@ -155,7 +169,7 @@ export async function fetchWithRetry(
   }
 
   const resolvedTimeout =
-    timeoutMs ?? (url.toString().includes('graphql') ? GRAPHQL_TIMEOUT_MS : REST_TIMEOUT_MS);
+    timeoutMs ?? (url.toString().includes('graphql') ? TIMEOUTS.GRAPHQL : TIMEOUTS.REST);
 
   if (options.signal?.aborted) throw new Error('AbortError');
 
@@ -182,10 +196,10 @@ export async function fetchWithRetry(
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), resolvedTimeout);
-  const abortRequest = () => controller.abort();
+  const abortHandler = () => controller.abort();
 
   if (options.signal) {
-    options.signal.addEventListener('abort', abortRequest, { once: true });
+    options.signal.addEventListener('abort', abortHandler, { once: true });
   }
 
   let res: Response | null = null;
@@ -199,7 +213,7 @@ export async function fetchWithRetry(
     didThrow = true;
   } finally {
     clearTimeout(timeoutId);
-    options.signal?.removeEventListener('abort', abortRequest);
+    options.signal?.removeEventListener('abort', abortHandler);
   }
 
   if (didThrow) {
@@ -520,8 +534,6 @@ type FetchOptions = {
   token?: string;
 };
 
-export const GITHUB_CACHE_TTL_MS = Number(process.env.GITHUB_CACHE_TTL_MS ?? String(5 * 60 * 1000));
-
 export const contributionsCache = new DistributedCache<ExtendedContributionData>(1000);
 const profileCache = new DistributedCache<GitHubUserProfile>(1000);
 const reposCache = new DistributedCache<GitHubRepo[]>(500);
@@ -733,7 +745,6 @@ export function getCircuitTelemetry() {
  * DATA FETCHING
  * ========================================================================== */
 
-const FETCH_TIMEOUT_MS = Number(process.env.GITHUB_FETCH_TIMEOUT_MS ?? '4000');
 const activeContributionsPromises = new Map<string, Promise<ExtendedContributionData>>();
 
 export function getMockContributions(): ExtendedContributionData {
@@ -751,19 +762,60 @@ export function getMockContributions(): ExtendedContributionData {
   };
 }
 
+/**
+ * Generic fallback handler for GitHub API failures.
+ * Attempts to return stale cache data, falling back to mock data if unavailable.
+ */
+async function recoverFromGitHubFailure<T>(
+  err: unknown,
+  cache: DistributedCache<T>,
+  key: string,
+  username: string,
+  mockData: T,
+  dataType: string,
+  isOfflineFallbackProp?: string
+): Promise<T & { isOfflineFallback?: boolean }> {
+  if (!shouldFallbackOnError(err)) throw err;
+
+  const staleData = await cache.get(key);
+  if (staleData) {
+    logger.warn(`GitHub API ${dataType} fetch failed, falling back to stale cache`, {
+      component: 'GitHub API',
+      username,
+      error: err,
+    });
+    return { ...staleData, isOfflineFallback: true } as T & { isOfflineFallback: boolean };
+  }
+
+  logger.warn(`GitHub API ${dataType} fetch failed, returning mock data`, {
+    component: 'GitHub API',
+    username,
+    error: err,
+  });
+  return { ...mockData, isOfflineFallback: true } as T & { isOfflineFallback: boolean };
+}
+
+function validateUsername(username: string): void {
+  if (!username || !username.trim()) {
+    throw new Error('Username is required');
+  }
+  // GitHub usernames can only contain alphanumeric chars and hyphens
+  if (!/^[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?$/.test(username.trim())) {
+    throw new Error(`Invalid GitHub username format: "${username}"`);
+  }
+}
+
 export async function fetchGitHubContributions(
   username: string,
   options: FetchOptions = {}
 ): Promise<ExtendedContributionData> {
+  validateUsername(username);
   const key = cacheKey('contributions', username, options.from, options.to);
-  const LONG_CACHE_TTL = Number(
-    process.env.GITHUB_LONG_CACHE_TTL_MS ?? String(7 * 24 * 60 * 60 * 1000)
-  );
 
   const shouldFetch = (cached: ExtendedContributionData) => {
     const now = Date.now();
     return cached?.calendar.lastSyncedAt
-      ? now - new Date(cached.calendar.lastSyncedAt).getTime() > GITHUB_CACHE_TTL_MS
+      ? now - new Date(cached.calendar.lastSyncedAt).getTime() > CACHE_TTL.STANDARD
       : true;
   };
 
@@ -773,16 +825,20 @@ export async function fetchGitHubContributions(
       if (options.signal.aborted) {
         controller.abort();
       } else {
-        options.signal.addEventListener('abort', () => controller.abort(), { once: true });
+        const abortHandler = () => controller.abort();
+        options.signal.addEventListener('abort', abortHandler, { once: true });
+        // Clean up the listener when we're done
+        const cleanup = () => options.signal?.removeEventListener('abort', abortHandler);
+        setTimeout(cleanup, TIMEOUTS.PROMISE_CLEANUP);
       }
     }
 
-    let timerId = null;
+    let timerId: ReturnType<typeof setTimeout> | null = null;
     const timeoutPromise = new Promise<never>((_, reject) => {
       timerId = setTimeout(() => {
         controller.abort();
-        reject(new Error(`GitHub API request timed out after ${FETCH_TIMEOUT_MS / 1000}s`));
-      }, FETCH_TIMEOUT_MS);
+        reject(new Error(`GitHub API request timed out after ${TIMEOUTS.FETCH / 1000}s`));
+      }, TIMEOUTS.FETCH);
       if (timerId && typeof timerId.unref === 'function') {
         timerId.unref();
       }
@@ -810,13 +866,6 @@ export async function fetchGitHubContributions(
         activeContributionsPromises.delete(key);
       });
       activeContributionsPromises.set(key, pending);
-      // Safety max-age cleanup: remove from promise map after 30 seconds anyway
-      const timer = setTimeout(() => {
-        activeContributionsPromises.delete(key);
-      }, 30000);
-      if (timer && typeof timer.unref === 'function') {
-        timer.unref();
-      }
     }
     return pending;
   };
@@ -826,22 +875,14 @@ export async function fetchGitHubContributions(
       try {
         return await loadWithTimeout();
       } catch (err: unknown) {
-        if (shouldFallbackOnError(err)) {
-          const staleData = await contributionsCache.get(key);
-          if (staleData) {
-            logger.warn('GitHub API fetch failed, falling back to stale cache', {
-              component: 'GitHub API',
-              username,
-              error: err,
-            });
-            return {
-              ...staleData,
-              isOfflineFallback: true,
-            };
-          }
-          return getMockContributions();
-        }
-        throw err;
+        return recoverFromGitHubFailure(
+          err,
+          contributionsCache,
+          key,
+          username,
+          getMockContributions(),
+          'contributions'
+        );
       }
     }
     const cached = await contributionsCache.get(key);
@@ -851,22 +892,14 @@ export async function fetchGitHubContributions(
     try {
       return await loadWithTimeout();
     } catch (err: unknown) {
-      if (shouldFallbackOnError(err)) {
-        const staleData = await contributionsCache.get(key);
-        if (staleData) {
-          logger.warn('GitHub API fetch failed, falling back to stale cache', {
-            component: 'GitHub API',
-            username,
-            error: err,
-          });
-          return {
-            ...staleData,
-            isOfflineFallback: true,
-          };
-        }
-        return getMockContributions();
-      }
-      throw err;
+      return recoverFromGitHubFailure(
+        err,
+        contributionsCache,
+        key,
+        username,
+        getMockContributions(),
+        'contributions'
+      );
     }
   }
 
@@ -874,47 +907,32 @@ export async function fetchGitHubContributions(
     try {
       const result = await coalescedLoad();
       if (options.forceRefresh) {
-        await contributionsCache.set(key, result, LONG_CACHE_TTL);
+        await contributionsCache.set(key, result, CACHE_TTL.LONG);
       }
       return result;
     } catch (err: unknown) {
-      if (shouldFallbackOnError(err)) {
-        const staleData = await contributionsCache.get(key);
-        if (staleData) {
-          console.warn(
-            `[GitHub API] Fetch failed or timed out for "${username}", falling back to stale cache:`,
-            err
-          );
-          return {
-            ...staleData,
-            isOfflineFallback: true,
-          };
-        }
-        return getMockContributions();
-      }
-      throw err;
+      return recoverFromGitHubFailure(
+        err,
+        contributionsCache,
+        key,
+        username,
+        getMockContributions(),
+        'contributions'
+      );
     }
   }
 
   try {
-    return await contributionsCache.getOrSet(key, coalescedLoad, LONG_CACHE_TTL, shouldFetch);
+    return await contributionsCache.getOrSet(key, coalescedLoad, CACHE_TTL.LONG, shouldFetch);
   } catch (err: unknown) {
-    if (shouldFallbackOnError(err)) {
-      const staleData = await contributionsCache.get(key);
-      if (staleData) {
-        logger.warn('GitHub API fetch failed, falling back to stale cache', {
-          component: 'GitHub API',
-          username,
-          error: err,
-        });
-        return {
-          ...staleData,
-          isOfflineFallback: true,
-        };
-      }
-      return getMockContributions();
-    }
-    throw err;
+    return recoverFromGitHubFailure(
+      err,
+      contributionsCache,
+      key,
+      username,
+      getMockContributions(),
+      'contributions'
+    );
   }
 }
 
@@ -940,7 +958,7 @@ async function fetchContributionsUncached(
                 }
               }
             }
-            commitContributionsByRepository(maxRepositories: 100) {
+            commitContributionsByRepository(maxRepositories: ${LIMITS.MAX_REPOSITORIES_IN_CONTRIBUTION_QUERY}) {
               repository {
                 name
                 nameWithOwner
@@ -1010,7 +1028,6 @@ async function fetchContributionsUncached(
 
   let calendar = data.data.user.contributionsCollection?.contributionCalendar;
 
-  // 🔽 CHANGE THIS SECTION 🔽
   let repoContributions = data.data.user.contributionsCollection?.commitContributionsByRepository;
   if (!repoContributions || !Array.isArray(repoContributions)) {
     console.warn(
@@ -1018,7 +1035,6 @@ async function fetchContributionsUncached(
     );
     repoContributions = [];
   }
-  // 🔼 END OF CHANGE 🔼
 
   if (!calendar || !calendar.weeks) {
     calendar = {
@@ -1087,8 +1103,9 @@ export async function fetchUserProfile(
   username: string,
   options: FetchOptions = {}
 ): Promise<GitHubUserProfile> {
+  validateUsername(username);
   const key = cacheKey('profile', username);
-  const encodedUsername = encodeURIComponent(username);
+  const encodedUsername = encodeURIComponent(username.toLowerCase());
 
   const load = async () => {
     return fetchProfileUncached(encodedUsername, key, options);
@@ -1098,36 +1115,28 @@ export async function fetchUserProfile(
     try {
       return await load();
     } catch (err) {
-      if (shouldFallbackOnError(err)) {
-        const stale = await profileCache.get(key);
-        if (stale) {
-          logger.warn('GitHub API profile fetch failed, returning stale cache data', {
-            username,
-            error: err,
-          });
-          return { ...stale, isOfflineFallback: true };
-        }
-        return getMockProfile(username);
-      }
-      throw err;
+      return recoverFromGitHubFailure(
+        err,
+        profileCache,
+        key,
+        username,
+        getMockProfile(username),
+        'profile'
+      );
     }
   }
 
   try {
-    return await profileCache.getOrSet(key, load, GITHUB_CACHE_TTL_MS);
+    return await profileCache.getOrSet(key, load, CACHE_TTL.STANDARD);
   } catch (err) {
-    if (shouldFallbackOnError(err)) {
-      const stale = await profileCache.get(key);
-      if (stale) {
-        logger.warn('GitHub API profile fetch failed, returning stale cache data', {
-          username,
-          error: err,
-        });
-        return { ...stale, isOfflineFallback: true };
-      }
-      return getMockProfile(username);
-    }
-    throw err;
+    return recoverFromGitHubFailure(
+      err,
+      profileCache,
+      key,
+      username,
+      getMockProfile(username),
+      'profile'
+    );
   }
 }
 
@@ -1162,7 +1171,7 @@ async function fetchProfileUncached(
 
   const profile = (await res.json()) as GitHubUserProfile;
   const sanitizedProfile = sanitizeUserProfile(profile);
-  if (!options.bypassCache) await profileCache.set(key, sanitizedProfile, GITHUB_CACHE_TTL_MS);
+  if (!options.bypassCache) await profileCache.set(key, sanitizedProfile, CACHE_TTL.STANDARD);
   return sanitizedProfile;
 }
 
@@ -1170,8 +1179,8 @@ export async function fetchUserRepos(
   username: string,
   options: FetchOptions = {}
 ): Promise<GitHubRepo[]> {
-  // 1. Lowercase and encode the username parameter right away to pass the case-insensitive test spec
-  const encodedUsername = encodeURIComponent(username);
+  validateUsername(username);
+  const encodedUsername = encodeURIComponent(username.toLowerCase());
   const key = cacheKey('repos', encodedUsername);
 
   const load = async () => {
@@ -1182,36 +1191,14 @@ export async function fetchUserRepos(
     try {
       return await load();
     } catch (err) {
-      if (shouldFallbackOnError(err)) {
-        const stale = await reposCache.get(key);
-        if (stale) {
-          logger.warn('GitHub API repos fetch failed, returning stale cache data', {
-            username,
-            error: err,
-          });
-          return stale;
-        }
-        return [];
-      }
-      throw err;
+      return recoverFromGitHubFailure(err, reposCache, key, username, [], 'repos');
     }
   }
 
   try {
-    return await reposCache.getOrSet(key, load, GITHUB_CACHE_TTL_MS);
+    return await reposCache.getOrSet(key, load, CACHE_TTL.STANDARD);
   } catch (err) {
-    if (shouldFallbackOnError(err)) {
-      const stale = await reposCache.get(key);
-      if (stale) {
-        logger.warn('GitHub API repos fetch failed, returning stale cache data', {
-          username,
-          error: err,
-        });
-        return stale;
-      }
-      return [];
-    }
-    throw err;
+    return recoverFromGitHubFailure(err, reposCache, key, username, [], 'repos');
   }
 }
 
@@ -1278,7 +1265,7 @@ async function fetchReposUncached(
     }
   }
 
-  if (!options.bypassCache) await reposCache.set(key, allRepos, GITHUB_CACHE_TTL_MS);
+  if (!options.bypassCache) await reposCache.set(key, allRepos, CACHE_TTL.STANDARD);
   return allRepos;
 }
 
@@ -1316,6 +1303,7 @@ export async function fetchOrgMembers(orgName: string, userToken?: string): Prom
 
   return allMembers;
 }
+
 export type OrgDashboardData = {
   profile: ReturnType<typeof buildProfileData> & {
     bio: string;
@@ -1336,6 +1324,8 @@ export type OrgDashboardData = {
   calendar: ContributionCalendar;
   repoContributions: RepoContribution[];
   isPartial: boolean;
+  processedMembers: number;
+  totalMembers: number;
 };
 
 export async function getOrgDashboardData(
@@ -1355,7 +1345,7 @@ export async function getOrgDashboardData(
   const members = membersOrError;
 
   // Limit active members to protect shared token rate limit and improve response times
-  const activeMembers = members.slice(0, ORG_MEMBER_LIMIT);
+  const activeMembers = members.slice(0, LIMITS.ORG_MEMBER);
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 7000);
@@ -1382,8 +1372,7 @@ export async function getOrgDashboardData(
     clearTimeout(timeoutId);
   }
 
-  const isPartial =
-    members.length > activeMembers.length || calendars.length < activeMembers.length;
+  const isPartial = members.length > activeMembers.length;
 
   // Create the Mega-City
   const aggregatedCalendar = aggregateCalendars(calendars);
@@ -1413,8 +1402,11 @@ export async function getOrgDashboardData(
     calendar: aggregatedCalendar,
     repoContributions,
     isPartial,
+    processedMembers: activeMembers.length,
+    totalMembers: members.length,
   };
 }
+
 export function generateAchievements(
   totalContributions: number,
   currentStreak: number,
@@ -1507,6 +1499,7 @@ export function generateAchievements(
 
   return achievements;
 }
+
 type StreakStats = {
   totalContributions: number;
   currentStreak: number;
@@ -1570,13 +1563,14 @@ export async function fetchContributedRepos(
   username: string,
   options: FetchOptions = {}
 ): Promise<ContributedRepo[]> {
+  validateUsername(username);
   const key = cacheKey('repos:contributed', username);
 
   const load = async () => {
     const query = `
     query($login: String!, $after: String) {
       user(login: $login) {
-        repositoriesContributedTo(first: ${GRAPHQL_REPOSITORY_PAGE_SIZE}, after: $after, contributionTypes: [COMMIT, ISSUE, PULL_REQUEST, REPOSITORY], orderBy: {field: UPDATED_AT, direction: DESC}) {
+        repositoriesContributedTo(first: ${LIMITS.GRAPHQL_REPOSITORY_PAGE_SIZE}, after: $after, contributionTypes: [COMMIT, ISSUE, PULL_REQUEST, REPOSITORY], orderBy: {field: UPDATED_AT, direction: DESC}) {
           nodes {
             name
             nameWithOwner
@@ -1599,7 +1593,7 @@ export async function fetchContributedRepos(
     let after: string | null = null;
     let hasNextPage = true;
 
-    while (hasNextPage && allRepos.length < MAX_GRAPHQL_REPOSITORY_RESULTS) {
+    while (hasNextPage && allRepos.length < LIMITS.MAX_GRAPHQL_REPOSITORY_RESULTS) {
       const res = await fetchGraphQLWithRetry(
         GITHUB_GRAPHQL_URL,
         {
@@ -1652,54 +1646,46 @@ export async function fetchContributedRepos(
       hasNextPage =
         Boolean(pageInfo?.hasNextPage) &&
         after !== null &&
-        allRepos.length < MAX_GRAPHQL_REPOSITORY_RESULTS;
+        allRepos.length < LIMITS.MAX_GRAPHQL_REPOSITORY_RESULTS;
 
       if (nodes.length === 0) {
         break;
       }
     }
 
-    return allRepos.slice(0, MAX_GRAPHQL_REPOSITORY_RESULTS);
+    return allRepos.slice(0, LIMITS.MAX_GRAPHQL_REPOSITORY_RESULTS);
   };
 
   if (options.bypassCache || options.forceRefresh) {
     try {
       const fresh = await load();
       if (options.forceRefresh) {
-        await contributedReposCache.set(key, fresh, GITHUB_CACHE_TTL_MS);
+        await contributedReposCache.set(key, fresh, CACHE_TTL.STANDARD);
       }
       return fresh;
     } catch (err) {
-      if (shouldFallbackOnError(err)) {
-        const stale = await contributedReposCache.get(key);
-        if (stale) {
-          logger.warn('GitHub API contributed repos fetch failed, returning stale cache data', {
-            username,
-            error: err,
-          });
-          return stale;
-        }
-        return [];
-      }
-      throw err;
+      return recoverFromGitHubFailure(
+        err,
+        contributedReposCache,
+        key,
+        username,
+        [],
+        'contributed repos'
+      );
     }
   }
 
   try {
-    return await contributedReposCache.getOrSet(key, load, GITHUB_CACHE_TTL_MS);
+    return await contributedReposCache.getOrSet(key, load, CACHE_TTL.STANDARD);
   } catch (err) {
-    if (shouldFallbackOnError(err)) {
-      const stale = await contributedReposCache.get(key);
-      if (stale) {
-        logger.warn('GitHub API contributed repos fetch failed, returning stale cache data', {
-          username,
-          error: err,
-        });
-        return stale;
-      }
-      return [];
-    }
-    throw err;
+    return recoverFromGitHubFailure(
+      err,
+      contributedReposCache,
+      key,
+      username,
+      [],
+      'contributed repos'
+    );
   }
 }
 
@@ -1808,6 +1794,38 @@ export interface PopularRepo {
   primaryLanguage: { name: string; color: string } | null;
 }
 
+/**
+ * Reusable function for fetching repository collections via GraphQL
+ */
+async function fetchRepositoryCollection(
+  query: string,
+  variables: Record<string, unknown>,
+  token?: string
+): Promise<PopularRepo[]> {
+  try {
+    const res = await fetchWithRetry(
+      GITHUB_GRAPHQL_URL,
+      {
+        method: 'POST',
+        headers: getHeaders(token),
+        body: JSON.stringify({ query, variables }),
+        cache: 'no-store',
+      },
+      0,
+      undefined,
+      token
+    );
+    if (!res.ok) return [];
+    const data = await res.json();
+    return (data?.data?.user?.pinnedItems?.nodes ??
+      data?.data?.user?.repositories?.nodes ??
+      data?.data?.user?.starredRepositories?.nodes ??
+      []) as PopularRepo[];
+  } catch {
+    return [];
+  }
+}
+
 export async function fetchPinnedRepos(username: string, token?: string): Promise<PopularRepo[]> {
   const query = `
     query($login: String!) {
@@ -1831,25 +1849,7 @@ export async function fetchPinnedRepos(username: string, token?: string): Promis
       }
     }
   `;
-  try {
-    const res = await fetchWithRetry(
-      GITHUB_GRAPHQL_URL,
-      {
-        method: 'POST',
-        headers: getHeaders(token),
-        body: JSON.stringify({ query, variables: { login: username } }),
-        cache: 'no-store',
-      },
-      0,
-      undefined,
-      token
-    );
-    if (!res.ok) return [];
-    const data = await res.json();
-    return (data?.data?.user?.pinnedItems?.nodes ?? []) as PopularRepo[];
-  } catch {
-    return [];
-  }
+  return fetchRepositoryCollection(query, { login: username }, token);
 }
 
 async function fetchPopularRepos(username: string, token?: string): Promise<PopularRepo[]> {
@@ -1873,25 +1873,7 @@ async function fetchPopularRepos(username: string, token?: string): Promise<Popu
       }
     }
   `;
-  try {
-    const res = await fetchWithRetry(
-      GITHUB_GRAPHQL_URL,
-      {
-        method: 'POST',
-        headers: getHeaders(token),
-        body: JSON.stringify({ query, variables: { login: username } }),
-        cache: 'no-store',
-      },
-      0,
-      undefined,
-      token
-    );
-    if (!res.ok) return [];
-    const data = await res.json();
-    return (data?.data?.user?.repositories?.nodes ?? []) as PopularRepo[];
-  } catch {
-    return [];
-  }
+  return fetchRepositoryCollection(query, { login: username }, token);
 }
 
 async function fetchStarredRepos(username: string, token?: string): Promise<PopularRepo[]> {
@@ -1915,25 +1897,7 @@ async function fetchStarredRepos(username: string, token?: string): Promise<Popu
       }
     }
   `;
-  try {
-    const res = await fetchWithRetry(
-      GITHUB_GRAPHQL_URL,
-      {
-        method: 'POST',
-        headers: getHeaders(token),
-        body: JSON.stringify({ query, variables: { login: username } }),
-        cache: 'no-store',
-      },
-      0,
-      undefined,
-      token
-    );
-    if (!res.ok) return [];
-    const data = await res.json();
-    return (data?.data?.user?.starredRepositories?.nodes ?? []) as PopularRepo[];
-  } catch {
-    return [];
-  }
+  return fetchRepositoryCollection(query, { login: username }, token);
 }
 
 /* ==========================================================================
@@ -1987,7 +1951,7 @@ async function fetchLatestWorkflowRun(
         cache: 'no-store',
       },
       0,
-      REST_TIMEOUT_MS,
+      TIMEOUTS.REST,
       token
     );
     if (!res.ok) return null;
@@ -2016,7 +1980,7 @@ async function fetchLatestDeployment(
         cache: 'no-store',
       },
       0,
-      REST_TIMEOUT_MS,
+      TIMEOUTS.REST,
       token
     );
     if (!res.ok) return null;
@@ -2031,7 +1995,7 @@ async function fetchLatestDeployment(
         cache: 'no-store',
       },
       0,
-      REST_TIMEOUT_MS,
+      TIMEOUTS.REST,
       token
     );
     const statuses = statusRes.ok ? ((await statusRes.json()) as GitHubDeploymentStatus[]) : [];
@@ -2060,8 +2024,11 @@ async function fetchDeploymentTrackerData(
   const candidates = reposData.filter((r) => !r.fork).slice(0, limit * 4);
   if (candidates.length === 0) return [];
 
-  const results = await Promise.all(
-    candidates.map(async (repo) => {
+  // Use concurrency control to avoid rate limiting with 36+ simultaneous requests
+  const results = await runCappedConcurrency(
+    candidates,
+    3, // Limit to 3 concurrent repo checks
+    async (repo) => {
       const owner = repo.owner?.login || username;
       const [workflowRun, deploymentInfo] = await Promise.all([
         fetchLatestWorkflowRun(owner, repo.name, token),
@@ -2103,7 +2070,7 @@ async function fetchDeploymentTrackerData(
         workflowName: workflowRun?.name || null,
       };
       return deployment;
-    })
+    }
   );
 
   return results
@@ -2116,7 +2083,297 @@ async function fetchDeploymentTrackerData(
     .slice(0, limit);
 }
 
+/* ==========================================================================
+ * HALL OF FAME — Extracted award generation logic
+ * ========================================================================== */
+
+interface HallOfFameInput {
+  reposData: GitHubRepo[];
+  repoContributions: RepoContribution[];
+  profileData: GitHubUserProfile;
+}
+
+function buildPopularAward(reposData: GitHubRepo[], profileData: GitHubUserProfile) {
+  if (reposData.length === 0) return null;
+
+  const mostPopular = reposData.reduce(
+    (prev, current) => (current.stargazers_count > prev.stargazers_count ? current : prev),
+    reposData[0]
+  );
+  if (!mostPopular || mostPopular.stargazers_count === 0) return null;
+
+  return {
+    category: 'popular',
+    title: 'Most Popular',
+    repoName: mostPopular.name,
+    repoAvatar: `https://github.com/${mostPopular.owner?.login || profileData.login}.png?size=64`,
+    description: 'Highest community engagement and stars.',
+    centerpieceLabel: 'Total Stars',
+    centerpieceValue: mostPopular.stargazers_count,
+    bottomStats: `${mostPopular.forks_count || 0} Forks`,
+    explanation: `Earned for being your most starred repository.`,
+    icon: '⭐',
+    url: `https://github.com/${mostPopular.owner?.login || profileData.login}/${mostPopular.name}`,
+  };
+}
+
+function buildGrowthAward(reposData: GitHubRepo[], profileData: GitHubUserProfile) {
+  if (reposData.length === 0) return null;
+
+  const fastestGrowing = reposData.reduce((prev, current) => {
+    const getRate = (r: GitHubRepo) => {
+      if (!r.created_at) return 0;
+      const daysAge = Math.max(
+        1,
+        (Date.now() - new Date(r.created_at).getTime()) / (1000 * 60 * 60 * 24)
+      );
+      return r.stargazers_count / daysAge;
+    };
+    return getRate(current) > getRate(prev) ? current : prev;
+  }, reposData[0]);
+
+  if (!fastestGrowing || fastestGrowing.stargazers_count === 0) return null;
+
+  const growthScore =
+    Math.round(
+      (fastestGrowing.stargazers_count /
+        Math.max(
+          1,
+          (Date.now() - new Date(fastestGrowing.created_at || Date.now()).getTime()) /
+            (1000 * 60 * 60 * 24)
+        )) *
+        100
+    ) / 100;
+
+  return {
+    category: 'growing',
+    title: 'Fastest Growing',
+    repoName: fastestGrowing.name,
+    repoAvatar: `https://github.com/${fastestGrowing.owner?.login || profileData.login}.png?size=64`,
+    description: 'Largest growth in stars relative to its age.',
+    centerpieceLabel: 'Growth Score',
+    centerpieceValue: growthScore,
+    bottomStats: `${fastestGrowing.stargazers_count} Stars`,
+    explanation: 'Earning stars at the fastest rate among your projects.',
+    icon: '🚀',
+    url: `https://github.com/${fastestGrowing.owner?.login || profileData.login}/${fastestGrowing.name}`,
+  };
+}
+
+function buildCollaborativeAward(reposData: GitHubRepo[], profileData: GitHubUserProfile) {
+  if (reposData.length === 0) return null;
+
+  const mostCollaborative = reposData.reduce(
+    (prev, current) => ((current.forks_count || 0) > (prev.forks_count || 0) ? current : prev),
+    reposData[0]
+  );
+
+  if (!mostCollaborative || (mostCollaborative.forks_count || 0) === 0) return null;
+
+  return {
+    category: 'collaborative',
+    title: 'Most Collaborative',
+    repoName: mostCollaborative.name,
+    repoAvatar: `https://github.com/${mostCollaborative.owner?.login || profileData.login}.png?size=64`,
+    description: 'Highest number of forks indicating community collaboration.',
+    centerpieceLabel: 'Total Forks',
+    centerpieceValue: mostCollaborative.forks_count || 0,
+    bottomStats: 'Community-driven project',
+    explanation: 'Your most forked and community-driven project.',
+    icon: '🤝',
+    url: `https://github.com/${mostCollaborative.owner?.login || profileData.login}/${mostCollaborative.name}`,
+  };
+}
+
+function buildRisingStarAward(
+  reposData: GitHubRepo[],
+  repoContributions: RepoContribution[],
+  profileData: GitHubUserProfile
+) {
+  const cutoffDate = new Date();
+  cutoffDate.setMonth(cutoffDate.getMonth() - 18);
+  const recentRepos = reposData.filter((r) => r.created_at && new Date(r.created_at) > cutoffDate);
+
+  if (recentRepos.length === 0) return null;
+
+  const risingStarRepo = recentRepos.reduce((prev, current) => {
+    const getScore = (r: GitHubRepo) => {
+      const rc = repoContributions.find((c) => c.repository.name === r.name);
+      const commits = rc ? rc.contributions.totalCount : 0;
+      return r.stargazers_count * 2 + commits + (r.forks_count || 0);
+    };
+    return getScore(current) > getScore(prev) ? current : prev;
+  }, recentRepos[0]);
+
+  const risingScore =
+    risingStarRepo.stargazers_count * 2 +
+    (repoContributions.find((c) => c.repository.name === risingStarRepo.name)?.contributions
+      .totalCount || 0) +
+    (risingStarRepo.forks_count || 0);
+
+  if (risingScore === 0) return null;
+
+  return {
+    category: 'growing',
+    title: 'Rising Star',
+    repoName: risingStarRepo.name,
+    repoAvatar: `https://github.com/${risingStarRepo.owner?.login || profileData.login}.png?size=64`,
+    description: 'Newest repository showing the fastest traction.',
+    centerpieceLabel: 'Impact Score',
+    centerpieceValue: risingScore,
+    bottomStats: `${risingStarRepo.stargazers_count} Stars • ${risingStarRepo.forks_count || 0} Forks`,
+    explanation: 'Your newest project gaining the most momentum.',
+    icon: '⚡',
+    url: `https://github.com/${risingStarRepo.owner?.login || profileData.login}/${risingStarRepo.name}`,
+  };
+}
+
+function buildConsistencyAward(reposData: GitHubRepo[], profileData: GitHubUserProfile) {
+  const ownedRepos = reposData.filter((r) => !r.fork && r.created_at && r.updated_at);
+  if (ownedRepos.length === 0) return null;
+
+  const mostConsistent = ownedRepos.reduce((prev, current) => {
+    const getAge = (r: GitHubRepo) => {
+      if (!r.created_at || !r.updated_at) return 0;
+      const ageDays = (Date.now() - new Date(r.created_at).getTime()) / (1000 * 60 * 60 * 24);
+      const daysSinceUpdate =
+        (Date.now() - new Date(r.updated_at).getTime()) / (1000 * 60 * 60 * 24);
+      const recencyFactor = daysSinceUpdate < 180 ? 1 : 0.3;
+      return ageDays * recencyFactor;
+    };
+    return getAge(current) > getAge(prev) ? current : prev;
+  }, ownedRepos[0]);
+
+  const consistencyScore = Math.round(
+    (Date.now() - new Date(mostConsistent.created_at!).getTime()) / (1000 * 60 * 60 * 24 * 30)
+  );
+
+  if (consistencyScore <= 1) return null;
+
+  return {
+    category: 'active',
+    title: 'Most Consistent',
+    repoName: mostConsistent.name,
+    repoAvatar: `https://github.com/${mostConsistent.owner?.login || profileData.login}.png?size=64`,
+    description: 'Longest sustained development effort.',
+    centerpieceLabel: 'Age (Months)',
+    centerpieceValue: consistencyScore,
+    bottomStats: `Still actively maintained`,
+    explanation: 'Your longest-running actively maintained project.',
+    icon: '🎯',
+    url: `https://github.com/${mostConsistent.owner?.login || profileData.login}/${mostConsistent.name}`,
+  };
+}
+
+function buildContributionAward(
+  repoContributions: RepoContribution[],
+  profileData: GitHubUserProfile
+) {
+  if (repoContributions.length === 0) return null;
+
+  const mostContributed = repoContributions.reduce(
+    (prev, current) =>
+      current.contributions.totalCount > prev.contributions.totalCount ? current : prev,
+    repoContributions[0]
+  );
+
+  if (!mostContributed || mostContributed.contributions.totalCount === 0) return null;
+
+  const repoNameStr = mostContributed.repository.nameWithOwner || mostContributed.repository.name;
+  const ownerStr = mostContributed.repository.nameWithOwner
+    ? mostContributed.repository.nameWithOwner.split('/')[0]
+    : profileData.login;
+
+  return {
+    category: 'contributed',
+    title: 'Most Contributed',
+    repoName: repoNameStr,
+    repoAvatar: `https://github.com/${ownerStr}.png?size=64`,
+    description: 'Highest contribution volume over the past year.',
+    centerpieceLabel: 'Contributions',
+    centerpieceValue: mostContributed.contributions.totalCount,
+    bottomStats: 'Over the past year',
+    explanation: 'The project you have committed to the most recently.',
+    icon: '🔥',
+    url: `https://github.com/${repoNameStr}`,
+  };
+}
+
+function buildActiveAward(
+  reposData: GitHubRepo[],
+  repoContributions: RepoContribution[],
+  profileData: GitHubUserProfile
+) {
+  if (repoContributions.length === 0 || reposData.length === 0) return null;
+
+  const mostActive = reposData.reduce((prev, current) => {
+    const getScore = (r: GitHubRepo) => {
+      const rc = repoContributions.find((c) => c.repository.name === r.name);
+      const commits = rc ? rc.contributions.totalCount : 0;
+      const daysSinceUpdate = r.updated_at
+        ? Math.max(1, (Date.now() - new Date(r.updated_at).getTime()) / (1000 * 60 * 60 * 24))
+        : 100;
+      return commits + 30 / daysSinceUpdate;
+    };
+    return getScore(current) > getScore(prev) ? current : prev;
+  }, reposData[0]);
+
+  if (!mostActive) return null;
+
+  const activeScore = Math.round(
+    (repoContributions.find((c) => c.repository.name === mostActive.name)?.contributions
+      .totalCount || 0) +
+      30 /
+        Math.max(
+          1,
+          (Date.now() - new Date(mostActive.updated_at || Date.now()).getTime()) /
+            (1000 * 60 * 60 * 24)
+        )
+  );
+
+  return {
+    category: 'active',
+    title: 'Most Active',
+    repoName: mostActive.name,
+    repoAvatar: `https://github.com/${mostActive.owner?.login || profileData.login}.png?size=64`,
+    description: 'Highest overall recent activity.',
+    centerpieceLabel: 'Activity Score',
+    centerpieceValue: activeScore,
+    bottomStats: 'Recent commits & updates',
+    explanation: 'Your most actively maintained repository based on commits and updates.',
+    icon: '🏆',
+    url: `https://github.com/${mostActive.owner?.login || profileData.login}/${mostActive.name}`,
+  };
+}
+
+function buildHallOfFame(input: HallOfFameInput) {
+  const { reposData, repoContributions, profileData } = input;
+  const awards: (ReturnType<typeof buildPopularAward> | null)[] = [];
+
+  awards.push(buildPopularAward(reposData, profileData));
+  awards.push(buildGrowthAward(reposData, profileData));
+  awards.push(buildCollaborativeAward(reposData, profileData));
+  awards.push(buildRisingStarAward(reposData, repoContributions, profileData));
+  awards.push(buildConsistencyAward(reposData, profileData));
+  awards.push(buildContributionAward(repoContributions, profileData));
+  awards.push(buildActiveAward(reposData, repoContributions, profileData));
+
+  // Deduplicate by category and title
+  const seenTitles = new Set<string>();
+  return awards
+    .filter((award): award is NonNullable<typeof award> => {
+      if (!award) return false;
+      const key = `${award.category}-${award.title}`;
+      if (seenTitles.has(key)) return false;
+      seenTitles.add(key);
+      return true;
+    })
+    .slice(0, 6);
+}
+
 export async function getFullDashboardData(username: string, options: FetchOptions = {}) {
+  validateUsername(username);
+
   const [
     profileResult,
     reposResult,
@@ -2236,233 +2493,11 @@ export async function getFullDashboardData(username: string, options: FetchOptio
     links.push({ source: profileData.login, target: r.nameWithOwner });
   });
 
-  const hallOfFame: import('../types/dashboard').HallOfFameAward[] = [];
-
-  if (reposData.length > 0) {
-    const mostPopular = reposData.reduce(
-      (prev, current) => (current.stargazers_count > prev.stargazers_count ? current : prev),
-      reposData[0]
-    );
-    if (mostPopular && mostPopular.stargazers_count > 0) {
-      hallOfFame.push({
-        category: 'popular',
-        title: 'Most Popular',
-        repoName: mostPopular.name,
-        repoAvatar: `https://github.com/${mostPopular.owner?.login || profileData.login}.png?size=64`,
-        description: 'Highest community engagement and stars.',
-        centerpieceLabel: 'Total Stars',
-        centerpieceValue: mostPopular.stargazers_count,
-        bottomStats: `${mostPopular.forks_count || 0} Forks`,
-        explanation: `Earned for being your most starred repository.`,
-        icon: '⭐',
-        url: `https://github.com/${mostPopular.owner?.login || profileData.login}/${mostPopular.name}`,
-      });
-    }
-
-    const fastestGrowing = reposData.reduce((prev, current) => {
-      const getRate = (r: GitHubRepo) => {
-        if (!r.created_at) return 0;
-        const daysAge = Math.max(
-          1,
-          (Date.now() - new Date(r.created_at).getTime()) / (1000 * 60 * 60 * 24)
-        );
-        return r.stargazers_count / daysAge;
-      };
-      return getRate(current) > getRate(prev) ? current : prev;
-    }, reposData[0]);
-    if (fastestGrowing && fastestGrowing.stargazers_count > 0) {
-      const growthScore =
-        Math.round(
-          (fastestGrowing.stargazers_count /
-            Math.max(
-              1,
-              (Date.now() - new Date(fastestGrowing.created_at || Date.now()).getTime()) /
-                (1000 * 60 * 60 * 24)
-            )) *
-            100
-        ) / 100;
-      hallOfFame.push({
-        category: 'growing',
-        title: 'Fastest Growing',
-        repoName: fastestGrowing.name,
-        repoAvatar: `https://github.com/${fastestGrowing.owner?.login || profileData.login}.png?size=64`,
-        description: 'Largest growth in stars relative to its age.',
-        centerpieceLabel: 'Growth Score',
-        centerpieceValue: growthScore,
-        bottomStats: `${fastestGrowing.stargazers_count} Stars`,
-        explanation: 'Earning stars at the fastest rate among your projects.',
-        icon: '🚀',
-        url: `https://github.com/${fastestGrowing.owner?.login || profileData.login}/${fastestGrowing.name}`,
-      });
-    }
-
-    const mostCollaborative = reposData.reduce(
-      (prev, current) => ((current.forks_count || 0) > (prev.forks_count || 0) ? current : prev),
-      reposData[0]
-    );
-    if (mostCollaborative && (mostCollaborative.forks_count || 0) > 0) {
-      hallOfFame.push({
-        category: 'collaborative',
-        title: 'Most Collaborative',
-        repoName: mostCollaborative.name,
-        repoAvatar: `https://github.com/${mostCollaborative.owner?.login || profileData.login}.png?size=64`,
-        description: 'Highest number of forks indicating community collaboration.',
-        centerpieceLabel: 'Total Forks',
-        centerpieceValue: mostCollaborative.forks_count || 0,
-        bottomStats: 'Community-driven project',
-        explanation: 'Your most forked and community-driven project.',
-        icon: '🤝',
-        url: `https://github.com/${mostCollaborative.owner?.login || profileData.login}/${mostCollaborative.name}`,
-      });
-    }
-
-    const cutoffDate = new Date();
-    cutoffDate.setMonth(cutoffDate.getMonth() - 18);
-    const recentRepos = reposData.filter(
-      (r) => r.created_at && new Date(r.created_at) > cutoffDate
-    );
-    if (recentRepos.length > 0) {
-      const risingStarRepo = recentRepos.reduce((prev, current) => {
-        const getScore = (r: GitHubRepo) => {
-          const rc = repoContributions.find((c) => c.repository.name === r.name);
-          const commits = rc ? rc.contributions.totalCount : 0;
-          return r.stargazers_count * 2 + commits + (r.forks_count || 0);
-        };
-        return getScore(current) > getScore(prev) ? current : prev;
-      }, recentRepos[0]);
-      const risingScore =
-        risingStarRepo.stargazers_count * 2 +
-        (repoContributions.find((c) => c.repository.name === risingStarRepo.name)?.contributions
-          .totalCount || 0) +
-        (risingStarRepo.forks_count || 0);
-      if (risingScore > 0) {
-        hallOfFame.push({
-          category: 'growing',
-          title: 'Rising Star',
-          repoName: risingStarRepo.name,
-          repoAvatar: `https://github.com/${risingStarRepo.owner?.login || profileData.login}.png?size=64`,
-          description: 'Newest repository showing the fastest traction.',
-          centerpieceLabel: 'Impact Score',
-          centerpieceValue: risingScore,
-          bottomStats: `${risingStarRepo.stargazers_count} Stars • ${risingStarRepo.forks_count || 0} Forks`,
-          explanation: 'Your newest project gaining the most momentum.',
-          icon: '⚡',
-          url: `https://github.com/${risingStarRepo.owner?.login || profileData.login}/${risingStarRepo.name}`,
-        });
-      }
-    }
-
-    const ownedRepos = reposData.filter((r) => !r.fork && r.created_at && r.updated_at);
-    if (ownedRepos.length > 0) {
-      const mostConsistent = ownedRepos.reduce((prev, current) => {
-        const getAge = (r: GitHubRepo) => {
-          if (!r.created_at || !r.updated_at) return 0;
-          const ageDays = (Date.now() - new Date(r.created_at).getTime()) / (1000 * 60 * 60 * 24);
-          const daysSinceUpdate =
-            (Date.now() - new Date(r.updated_at).getTime()) / (1000 * 60 * 60 * 24);
-          const recencyFactor = daysSinceUpdate < 180 ? 1 : 0.3;
-          return ageDays * recencyFactor;
-        };
-        return getAge(current) > getAge(prev) ? current : prev;
-      }, ownedRepos[0]);
-      const consistencyScore = Math.round(
-        (Date.now() - new Date(mostConsistent.created_at!).getTime()) / (1000 * 60 * 60 * 24 * 30)
-      );
-      if (consistencyScore > 1) {
-        hallOfFame.push({
-          category: 'active',
-          title: 'Most Consistent',
-          repoName: mostConsistent.name,
-          repoAvatar: `https://github.com/${mostConsistent.owner?.login || profileData.login}.png?size=64`,
-          description: 'Longest sustained development effort.',
-          centerpieceLabel: 'Age (Months)',
-          centerpieceValue: consistencyScore,
-          bottomStats: `Still actively maintained`,
-          explanation: 'Your longest-running actively maintained project.',
-          icon: '🎯',
-          url: `https://github.com/${mostConsistent.owner?.login || profileData.login}/${mostConsistent.name}`,
-        });
-      }
-    }
-  }
-
-  if (repoContributions.length > 0) {
-    const mostContributed = repoContributions.reduce(
-      (prev, current) =>
-        current.contributions.totalCount > prev.contributions.totalCount ? current : prev,
-      repoContributions[0]
-    );
-    if (mostContributed && mostContributed.contributions.totalCount > 0) {
-      const repoNameStr =
-        mostContributed.repository.nameWithOwner || mostContributed.repository.name;
-      const ownerStr = mostContributed.repository.nameWithOwner
-        ? mostContributed.repository.nameWithOwner.split('/')[0]
-        : profileData.login;
-      hallOfFame.push({
-        category: 'contributed',
-        title: 'Most Contributed',
-        repoName: repoNameStr,
-        repoAvatar: `https://github.com/${ownerStr}.png?size=64`,
-        description: 'Highest contribution volume over the past year.',
-        centerpieceLabel: 'Contributions',
-        centerpieceValue: mostContributed.contributions.totalCount,
-        bottomStats: 'Over the past year',
-        explanation: 'The project you have committed to the most recently.',
-        icon: '🔥',
-        url: `https://github.com/${repoNameStr}`,
-      });
-    }
-  }
-
-  if (repoContributions.length > 0 && reposData.length > 0) {
-    const mostActive = reposData.reduce((prev, current) => {
-      const getScore = (r: GitHubRepo) => {
-        const rc = repoContributions.find((c) => c.repository.name === r.name);
-        const commits = rc ? rc.contributions.totalCount : 0;
-        const daysSinceUpdate = r.updated_at
-          ? Math.max(1, (Date.now() - new Date(r.updated_at).getTime()) / (1000 * 60 * 60 * 24))
-          : 100;
-        return commits + 30 / daysSinceUpdate;
-      };
-      return getScore(current) > getScore(prev) ? current : prev;
-    }, reposData[0]);
-
-    if (mostActive) {
-      const activeScore = Math.round(
-        (repoContributions.find((c) => c.repository.name === mostActive.name)?.contributions
-          .totalCount || 0) +
-          30 /
-            Math.max(
-              1,
-              (Date.now() - new Date(mostActive.updated_at || Date.now()).getTime()) /
-                (1000 * 60 * 60 * 24)
-            )
-      );
-      hallOfFame.push({
-        category: 'active',
-        title: 'Most Active',
-        repoName: mostActive.name,
-        repoAvatar: `https://github.com/${mostActive.owner?.login || profileData.login}.png?size=64`,
-        description: 'Highest overall recent activity.',
-        centerpieceLabel: 'Activity Score',
-        centerpieceValue: activeScore,
-        bottomStats: 'Recent commits & updates',
-        explanation: 'Your most actively maintained repository based on commits and updates.',
-        icon: '🏆',
-        url: `https://github.com/${mostActive.owner?.login || profileData.login}/${mostActive.name}`,
-      });
-    }
-  }
-
-  const seenTitles = new Set<string>();
-  const finalHallOfFame = hallOfFame
-    .filter((award) => {
-      const key = `${award.category}-${award.title}`;
-      if (seenTitles.has(key)) return false;
-      seenTitles.add(key);
-      return true;
-    })
-    .slice(0, 6);
+  const hallOfFame = buildHallOfFame({
+    reposData,
+    repoContributions,
+    profileData,
+  });
 
   return {
     profile: buildProfileData(profileData, totalStars, score),
@@ -2492,7 +2527,7 @@ export async function getFullDashboardData(username: string, options: FetchOptio
     pinnedRepos,
     starredRepos,
     deployments,
-    hallOfFame: finalHallOfFame,
+    hallOfFame,
     graphData: { nodes, links },
     lastSyncedAt: calendarData.lastSyncedAt,
   };
@@ -2504,6 +2539,8 @@ export async function getWrappedData(
   options?: FetchOptions,
   timezone: string = 'UTC'
 ): Promise<import('../types/dashboard').WrappedStats> {
+  validateUsername(username);
+
   const trimmedYear = typeof year === 'string' ? year.trim() : '';
   const fallbackYear = new Date().getFullYear().toString();
   const normalizedYear = /^\d{4}$/.test(trimmedYear) ? trimmedYear : fallbackYear;
