@@ -85,6 +85,7 @@ interface InteractiveViewerProps {
   is3DMode?: boolean;
   onRotate3D?: (dx: number, dy: number) => void;
   onReset3D?: () => void;
+  disableCustomCursor?: boolean;
 }
 
 export default function InteractiveViewer({
@@ -93,6 +94,7 @@ export default function InteractiveViewer({
   is3DMode = false,
   onRotate3D,
   onReset3D,
+  disableCustomCursor = false,
 }: InteractiveViewerProps): ReactElement {
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
@@ -309,7 +311,7 @@ export default function InteractiveViewer({
     <div
       ref={containerRef}
       tabIndex={0}
-      className={`relative overflow-hidden touch-none cursor-grab active:cursor-grabbing select-none focus:outline-none ${className}`}
+      className={`relative overflow-hidden touch-none ${disableCustomCursor ? 'cursor-default' : 'cursor-grab active:cursor-grabbing'} select-none focus:outline-none ${className}`}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}

@@ -10,6 +10,7 @@ import { AdvancedSettingsPanel } from './components/AdvancedSettingsPanel';
 import { ExportPanel } from './components/ExportPanel';
 import InteractiveViewer from '@/components/InteractiveViewer';
 import DOMPurify from 'dompurify';
+import { useCustomCursor } from '@/hooks/useCustomCursor';
 import type {
   ExportFormat,
   Font,
@@ -61,6 +62,7 @@ function CustomizePageInner(): ReactElement {
 
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { disableCustomCursor } = useCustomCursor();
 
   // On mount: initialize state from URL search params
   /* eslint-disable react-hooks/set-state-in-effect */
@@ -483,7 +485,10 @@ function CustomizePageInner(): ReactElement {
                 {/* Glow ring */}
                 <div className="absolute -inset-px bg-gradient-to-br from-emerald-500/20 to-purple-500/20 rounded-[1.5rem] opacity-0 group-hover:opacity-100 transition-opacity duration-700 blur-lg pointer-events-none" />
 
-                <InteractiveViewer className="relative bg-white/60 backdrop-blur-md border border-black/10 dark:bg-black/40 dark:border-white/10 rounded-[1.25rem] flex items-center justify-center p-6 min-h-[280px]">
+                <InteractiveViewer
+                  disableCustomCursor={disableCustomCursor}
+                  className="relative bg-white/60 backdrop-blur-md border border-black/10 dark:bg-black/40 dark:border-white/10 rounded-[1.25rem] flex items-center justify-center p-6 min-h-[280px]"
+                >
                   {/* Scanning line effect behind image */}
                   <div className="absolute inset-0 bg-gradient-to-b from-transparent via-emerald-500/3 to-transparent animate-[pulse_3s_ease-in-out_infinite] pointer-events-none" />
 

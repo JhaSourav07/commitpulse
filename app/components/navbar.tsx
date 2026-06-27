@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Menu, X, Activity, Moon, Sun } from 'lucide-react';
 import { useGlowEffect } from '@/hooks/useGlowEffect';
 import { useThemeToggle } from './theme-switch';
+import { useCustomCursor } from '@/hooks/useCustomCursor';
 
 function GithubMark() {
   return (
@@ -44,6 +45,7 @@ export default function Navbar() {
     variant: 'circle',
     start: 'top-right',
   });
+  const { disableCustomCursor, toggle } = useCustomCursor();
 
   useEffect(() => {
     const mediaQuery = window.matchMedia('(min-width: 768px)');
@@ -167,6 +169,29 @@ export default function Navbar() {
                 ) : (
                   <span className="w-[18px] h-[18px]" />
                 )}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const current = localStorage.getItem('disableCustomCursor') === 'true';
+                  toggle(!current);
+                }}
+                className="group inline-flex h-10 w-10 items-center justify-center rounded-xl text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2 dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-white dark:focus-visible:ring-gray-400 dark:focus-visible:ring-offset-[#0a0a0a]"
+                aria-label="Toggle custom cursor"
+                title={disableCustomCursor ? 'Enable custom cursor' : 'Disable custom cursor'}
+              >
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M4 4l7 18 3-7 7-3z" />
+                </svg>
               </button>
             </div>
 
