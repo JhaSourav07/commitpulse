@@ -1674,4 +1674,56 @@ describe('githubUsernameSchema regression tests', () => {
       }
     }
   });
+  describe('streakParamsSchema — custom_title and custom_subtitle length validation', () => {
+    it('rejects custom_title longer than 60 characters', () => {
+      const result = streakParamsSchema.safeParse({
+        user: 'octocat',
+        custom_title: 'A'.repeat(61),
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        const msg = result.error.flatten().fieldErrors.custom_title?.[0];
+        expect(msg).toBe('custom_title cannot exceed 60 characters');
+      }
+    });
+
+    it('accepts custom_title exactly at 60 characters', () => {
+      const result = streakParamsSchema.safeParse({
+        user: 'octocat',
+        custom_title: 'A'.repeat(60),
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('rejects custom_subtitle longer than 80 characters', () => {
+      const result = streakParamsSchema.safeParse({
+        user: 'octocat',
+        custom_subtitle: 'A'.repeat(81),
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        const msg = result.error.flatten().fieldErrors.custom_subtitle?.[0];
+        expect(msg).toBe('custom_subtitle cannot exceed 80 characters');
+      }
+    });
+
+    it('accepts custom_subtitle exactly at 80 characters', () => {
+      const result = streakParamsSchema.safeParse({
+        user: 'octocat',
+        custom_subtitle: 'A'.repeat(80),
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('trims whitespace-only custom_title to empty string', () => {
+      const result = streakParamsSchema.safeParse({
+        user: 'octocat',
+        custom_title: '   ',
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.custom_title).toBe('');
+      }
+    });
+  });
 });
