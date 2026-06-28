@@ -7,7 +7,6 @@ import {
   generateRateLimitSVG,
   generateHeatmapSVG,
   generatePulseSVG,
-  resolveFont,
   generateVersusSVG,
   particleCount,
   getSizeScale,

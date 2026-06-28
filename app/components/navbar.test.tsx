@@ -72,9 +72,9 @@ vi.mock('lucide-react', () => ({
 
   Search: () => <div>SearchIcon</div>,
   ArrowRight: () => <div>ArrowRightIcon</div>,
-
   ChevronDown: () => <div>ChevronDownIcon</div>,
   Check: () => <div>CheckIcon</div>,
+  Keyboard: () => <div>KeyboardIcon</div>,
 }));
 
 vi.mock('next/navigation', () => ({

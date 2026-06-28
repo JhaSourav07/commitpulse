@@ -1,3 +1,4 @@
+import { validateCSRF } from '@/lib/security/csrf';
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import { User } from '@/models/User';
@@ -56,6 +57,10 @@ export async function POST(req: Request) {
   let body: unknown;
 
   try {
+    const csrfError = validateCSRF(req);
+    if (csrfError) {
+      return NextResponse.json({ success: false, error: 'Origin not allowed' }, { status: 403 });
+    }
     body = await req.json();
   } catch {
     return NextResponse.json(

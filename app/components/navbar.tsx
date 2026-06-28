@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Menu, X, Activity, Moon, Sun, Globe, ChevronDown, Check } from 'lucide-react';
+import { Menu, X, Activity, Moon, Sun, Globe, ChevronDown, Check, Keyboard } from 'lucide-react';
 import { useGlowEffect } from '@/hooks/useGlowEffect';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
+import KeyboardShortcutsModal from '@/components/KeyboardShortcutsModal';
 import { useThemeToggle } from './theme-switch';
 import { useCustomCursor } from '@/hooks/useCustomCursor';
 import { useTranslation, LANGUAGE_LABELS, type Language } from '@/context/TranslationContext';
@@ -167,9 +168,8 @@ export default function Navbar() {
   const [open, setOpen] = useState(false);
 
   const [isHidden, setIsHidden] = useState(false);
-
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const pathname = usePathname();
-
   const { t } = useTranslation();
   const lastScrollYRef = useRef(0);
   // Ref so the scroll handler (stale closure) can always read the current open state.
@@ -180,7 +180,8 @@ export default function Navbar() {
     openRef.current = open;
   }, [open]);
 
-  useKeyboardShortcuts();
+  const handleOpenShortcuts = useCallback(() => setShortcutsOpen(true), []);
+  useKeyboardShortcuts({ onOpenShortcuts: handleOpenShortcuts });
 
   const { shellRef, shellVars, handleMouseEnter, handleMouseMove, handleMouseLeave } =
     useGlowEffect();
@@ -363,6 +364,18 @@ export default function Navbar() {
 
               {/* Separator line between links and theme toggle */}
               <div className="mx-2 h-6 w-px bg-gray-200 dark:bg-white/15" />
+
+              <button
+                type="button"
+                onClick={() => setShortcutsOpen(true)}
+                aria-label="Show keyboard shortcuts"
+                className="group inline-flex h-10 w-10 items-center justify-center rounded-xl text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2 dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-white dark:focus-visible:ring-gray-400 dark:focus-visible:ring-offset-[#0a0a0a]"
+              >
+                <Keyboard
+                  size={18}
+                  className="transition-transform duration-300 group-hover:scale-110"
+                />
+              </button>
 
               <button
                 type="button"

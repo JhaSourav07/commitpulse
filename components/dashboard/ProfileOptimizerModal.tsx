@@ -1,5 +1,6 @@
 'use client';
 
+import type { DashboardData } from '@/types/dashboard';
 import React, { useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X, Download, Copy, CheckCircle, TrendingUp, AlertCircle } from 'lucide-react';
@@ -7,8 +8,21 @@ import { X, Download, Copy, CheckCircle, TrendingUp, AlertCircle } from 'lucide-
 interface ProfileOptimizerModalProps {
   isOpen: boolean;
   onClose: () => void;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  userData: any;
+  userData: {
+    profile?: {
+      bio?: string;
+      developerScore?: number;
+      stats?: {
+        repositories?: number;
+        followers?: number;
+      };
+    };
+    languages?: unknown[];
+    stats?: {
+      totalContributions?: number;
+      [key: string]: unknown;
+    };
+  } | null;
 }
 
 export default function ProfileOptimizerModal({

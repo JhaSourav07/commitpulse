@@ -112,10 +112,9 @@ export async function POST(req: Request) {
   }
 
   // Valid payload, proceed...
-  let payload;
   try {
-    payload = JSON.parse(bodyText);
-  } catch (error) {
+    JSON.parse(bodyText);
+  } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 

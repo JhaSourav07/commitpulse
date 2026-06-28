@@ -5,7 +5,8 @@ import Leaderboard, { Contributor } from './Leaderboard';
 
 // Mock Next.js Image
 vi.mock('next/image', () => ({
-  default: ({ fill, ...props }: React.ImgHTMLAttributes<HTMLImageElement> & { fill?: boolean }) => (
+  default: ({ ...props }: React.ImgHTMLAttributes<HTMLImageElement>) => (
+    /* eslint-disable @next/next/no-img-element */
     <img alt="mock" {...props} />
   ),
 }));
@@ -21,23 +22,11 @@ vi.mock('framer-motion', async () => {
         className,
         onClick,
         style,
-        whileHover,
-        whileInView,
-        initial,
-        viewport,
-        transition,
-        animate,
       }: {
         children?: React.ReactNode;
         className?: string;
         onClick?: React.MouseEventHandler<HTMLDivElement>;
         style?: React.CSSProperties;
-        whileHover?: unknown;
-        whileInView?: unknown;
-        initial?: unknown;
-        viewport?: unknown;
-        transition?: unknown;
-        animate?: unknown;
       }) => (
         <div className={className} onClick={onClick} style={style} data-testid="motion-div">
           {children}

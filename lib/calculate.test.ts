@@ -8,6 +8,8 @@ import {
   isStreakAlive,
   chunkDaysIntoWeeks,
   normalizeCalendarToTimezone,
+  isLeapYear,
+  daysInYear,
 } from './calculate';
 import type { ContributionCalendar, ContributionDay } from '../types';
 
@@ -2965,5 +2967,31 @@ describe('calculateSafePercentage utility metric verification', () => {
   it('correctly rounds regular integer percentages', () => {
     expect(calculateSafePercentage(1, 3)).toBe(33); // 33.333... rounds to 33
     expect(calculateSafePercentage(2, 3)).toBe(67); // 66.666... rounds to 67
+  });
+});
+
+describe('isLeapYear and daysInYear utility', () => {
+  it('identifies 2024 as a leap year', () => {
+    expect(isLeapYear(2024)).toBe(true);
+  });
+
+  it('identifies 2023 as a non-leap year', () => {
+    expect(isLeapYear(2023)).toBe(false);
+  });
+
+  it('identifies 2000 as a leap year (divisible by 400)', () => {
+    expect(isLeapYear(2000)).toBe(true);
+  });
+
+  it('identifies 1900 as a non-leap year (divisible by 100 but not 400)', () => {
+    expect(isLeapYear(1900)).toBe(false);
+  });
+
+  it('returns 366 days for leap year 2024', () => {
+    expect(daysInYear(2024)).toBe(366);
+  });
+
+  it('returns 365 days for non-leap year 2023', () => {
+    expect(daysInYear(2023)).toBe(365);
   });
 });

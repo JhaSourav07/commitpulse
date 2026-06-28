@@ -12,8 +12,11 @@ import {
   calculateStreak,
   calculateMonthlyStats,
   aggregateCalendars,
+  convertLocalToUtc,
   chunkDaysIntoWeeks,
   normalizeCalendarToTimezone,
+  isLeapYear,
+  daysInYear,
 } from '@/lib/calculate';
 import {
   generateNotFoundSVG,
@@ -135,6 +138,8 @@ export async function GET(request: Request) {
       year,
       from: customFrom,
       to: customTo,
+      start_date,
+      end_date,
       refresh,
       bypassCache: bypassCacheParam,
       hide_title,
@@ -264,9 +269,28 @@ export async function GET(request: Request) {
       return date.toISOString();
     };
 
-    let from = parseDate(customFrom) ?? (year ? `${year}-01-01T00:00:00Z` : undefined);
+    const finalFrom = parseDate(start_date) ?? parseDate(customFrom);
+    const finalTo = parseDate(end_date) ?? parseDate(customTo);
 
-    let to = parseDate(customTo) ?? (year ? `${year}-12-31T23:59:59Z` : undefined);
+    let from = finalFrom ?? (year ? `${year}-01-01T00:00:00Z` : undefined);
+    let to = finalTo ?? (year ? `${year}-12-31T23:59:59Z` : undefined);
+
+    let autoSubtitle = custom_subtitle;
+    if (!autoSubtitle && (start_date || end_date)) {
+      const formatOpts: Intl.DateTimeFormatOptions = {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        timeZone: timezone,
+      };
+      const startStr = start_date
+        ? new Intl.DateTimeFormat('en-US', formatOpts).format(new Date(start_date))
+        : 'Start';
+      const endStr = end_date
+        ? new Intl.DateTimeFormat('en-US', formatOpts).format(new Date(end_date))
+        : 'Present';
+      autoSubtitle = `${startStr} - ${endStr}`;
+    }
 
     if (normalizedView === 'monthly') {
       const referenceDate = getMonthlyReferenceDate(year, timezone) || new Date();
@@ -348,7 +372,7 @@ export async function GET(request: Request) {
       autoTheme: isAutoTheme,
       hide_title,
       custom_title,
-      custom_subtitle,
+      custom_subtitle: autoSubtitle,
       hideBackground: hide_background,
       hide_stats,
       lang,
@@ -484,15 +508,24 @@ export async function GET(request: Request) {
       clearTimeout(timeoutId);
     }
 
-    if (days && normalizedView !== 'monthly') {
-      const allDays = calendar.weeks.flatMap((w) => w.contributionDays);
+    if (normalizedView !== 'monthly') {
+      let effectiveDays = days;
 
-      const filteredDays = allDays.slice(-days);
+      if (!effectiveDays && year) {
+        const yearNum = parseInt(year, 10);
+        if (!isNaN(yearNum)) {
+          effectiveDays = daysInYear(yearNum);
+        }
+      }
 
-      calendar = {
-        totalContributions: filteredDays.reduce((sum, d) => sum + d.contributionCount, 0),
-        weeks: chunkDaysIntoWeeks(filteredDays),
-      };
+      if (effectiveDays) {
+        const allDays = calendar.weeks.flatMap((w) => w.contributionDays);
+        const filteredDays = allDays.slice(-effectiveDays);
+        calendar = {
+          totalContributions: filteredDays.reduce((sum, d) => sum + d.contributionCount, 0),
+          weeks: chunkDaysIntoWeeks(filteredDays),
+        };
+      }
     }
 
     // ─── JSON output mode ──────────────────────────────────────────────────

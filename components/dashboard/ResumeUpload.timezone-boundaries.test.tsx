@@ -200,9 +200,9 @@ describe('ResumeUpload - Timezone Normalization & Calendar Data Boundary Alignme
     utcDate.setUTCHours(23, 0, 0, 0);
 
     // Simulate dates as they would appear in different timezone contexts
-    const istStartDate = convertToTimezoneDate(utcDate, TIMEZONE_OFFSETS.IST); // Should be 2024-06-16
-    const estStartDate = convertToTimezoneDate(utcDate, TIMEZONE_OFFSETS.EST); // Should be 2024-06-15
-    const jstStartDate = convertToTimezoneDate(utcDate, TIMEZONE_OFFSETS.JST); // Should be 2024-06-16
+    convertToTimezoneDate(utcDate, TIMEZONE_OFFSETS.IST); // Should be 2024-06-16
+    convertToTimezoneDate(utcDate, TIMEZONE_OFFSETS.EST); // Should be 2024-06-15
+    convertToTimezoneDate(utcDate, TIMEZONE_OFFSETS.JST); // Should be 2024-06-16
 
     // Create resumedata with the EST date (safe midnight-UTC approach)
     const safeDate = '2024-06-15';

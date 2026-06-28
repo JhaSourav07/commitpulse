@@ -364,7 +364,10 @@ function renderStatsSection(
 
   <g transform="translate(${s(500)}, ${s(340 + yOffset)})" text-anchor="middle">
     <text class="label">${labels.PEAK_STREAK}</text>
-    <text y="${s(40)}" class="stats">${stats.longestStreak}</text>
+    <g>
+      <text y="${s(40)}" class="stats">${stats.longestStreak}</text>
+      ${getInlineMilestoneBadge(stats.longestStreak, s, Math.max(25, stats.longestStreak.toString().length * 10 + 5), 26)}
+    </g>
   </g>`;
 }
 
@@ -795,6 +798,38 @@ function renderIsometricLabels(
   });
 
   return `<g class="isometric-labels">${elements}</g>`;
+}
+
+function getInlineMilestoneBadge(
+  streak: number,
+  s: (n: number) => number,
+  cx: number,
+  cy: number
+): string {
+  let color = '';
+  let path = '';
+  if (streak >= 365) {
+    color = '#FFD700';
+    path =
+      '<path d="M12 2c0 0-4.5 4.5-4.5 8.5C7.5 13.5 10 16 12 16c2 0 4.5-2.5 4.5-5.5C16.5 6.5 12 2 12 2z" fill="currentColor"/>';
+  } else if (streak >= 100) {
+    color = '#C0C0C0';
+    path =
+      '<path d="M12 2l2.4 7.4h7.6l-6 4.6 2.3 7.4-6.3-4.8-6.3 4.8 2.3-7.4-6-4.6h7.6z" fill="currentColor"/>';
+  } else if (streak >= 30) {
+    color = '#CD7F32';
+    path =
+      '<path d="M12 2L3 6v5.5c0 5 3.8 9.6 9 10.5 5.2-.9 9-5.5 9-10.5V6l-9-4z" fill="currentColor"/>';
+  } else {
+    return '';
+  }
+  return `
+    <g transform="translate(${s(cx)}, ${s(cy)})" color="${color}" class="milestone-inline-badge">
+      <svg x="0" y="0" width="${s(14)}" height="${s(14)}" viewBox="0 0 24 24">
+        ${path}
+      </svg>
+    </g>
+  `;
 }
 
 function renderMilestoneBadges(stats: StreakStats, params: BadgeParams, sf: number): string {
@@ -1840,7 +1875,10 @@ export function generateHeatmapSVG(
     </g>
     <g transform="translate(${s(360)}, 0)">
       <text class="hm-label">${labels.PEAK_STREAK}</text>
-      <text y="${s(22)}" class="hm-stats-val">${stats.longestStreak}</text>
+      <g>
+        <text y="${s(22)}" class="hm-stats-val">${stats.longestStreak}</text>
+        ${getInlineMilestoneBadge(stats.longestStreak, s, Math.max(22, stats.longestStreak.toString().length * 9 + 5), 10)}
+      </g>
     </g>
   </g>`
       : ''
@@ -1974,7 +2012,10 @@ function generateAutoThemeHeatmapSVG(
     </g>
     <g transform="translate(${s(360)}, 0)">
       <text class="hm-label">${labels.PEAK_STREAK}</text>
-      <text y="${s(22)}" class="hm-stats-val">${stats.longestStreak}</text>
+      <g>
+        <text y="${s(22)}" class="hm-stats-val">${stats.longestStreak}</text>
+        ${getInlineMilestoneBadge(stats.longestStreak, s, Math.max(22, stats.longestStreak.toString().length * 9 + 5), 10)}
+      </g>
     </g>
   </g>`
       : ''

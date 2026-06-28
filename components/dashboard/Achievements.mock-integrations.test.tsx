@@ -6,24 +6,11 @@ import type { Achievement } from '@/types/dashboard';
 
 type MotionDivProps = ComponentProps<'div'> & {
   children?: ReactNode;
-  whileInView?: unknown;
-  viewport?: unknown;
-  initial?: unknown;
-  animate?: unknown;
-  transition?: unknown;
 };
 
 vi.mock('framer-motion', () => ({
   motion: {
-    div: ({
-      children,
-      whileInView,
-      viewport,
-      initial,
-      animate,
-      transition,
-      ...props
-    }: MotionDivProps) => <div {...props}>{children}</div>,
+    div: ({ children, ...props }: MotionDivProps) => <div {...props}>{children}</div>,
   },
 }));
 

@@ -19,6 +19,7 @@ describe('PreviewPanel Security', () => {
   });
 
   it('removes inline event handlers', () => {
+    /* eslint-disable @next/next/no-img-element */
     render(<img src="test.png" alt="test" onError={() => {}} />);
 
     const image = document.querySelector('img');

@@ -133,7 +133,7 @@ export default function CIWorkflowTable({ runs }: { runs: CIWorkflowRun[] }) {
             </tr>
           </thead>
           <tbody>
-            {runs.slice(0, 20).map((run, idx) => {
+            {runs.slice(0, 20).map((run) => {
               const badge = getStatusBadge(run);
               return (
                 <tr

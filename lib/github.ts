@@ -109,7 +109,8 @@ export class RateLimitError extends Error {
 let globalCircuitBreakerOpenUntil = 0;
 
 export function getGitHubTokens(): string[] {
-  const envToken = process.env.GITHUB_PAT || process.env.GITHUB_TOKEN || '';
+  const envToken =
+    process.env.GITHUB_TOKENS || process.env.GITHUB_PAT || process.env.GITHUB_TOKEN || '';
   return envToken
     .split(',')
     .map((t) => t.trim())

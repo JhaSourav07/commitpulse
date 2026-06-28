@@ -28,7 +28,7 @@ class MockResizeObserver {
   constructor(cb: ResizeObserverCallback) {
     this.cb = cb;
   }
-  observe(target: Element) {
+  observe() {
     // Fire callback immediately so useEffect canvas sizing runs
     this.cb(
       [{ contentRect: { width: 800, height: 400 } } as ResizeObserverEntry],

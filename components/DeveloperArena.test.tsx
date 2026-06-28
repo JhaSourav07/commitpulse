@@ -14,6 +14,14 @@ vi.mock('next/image', () => ({
   },
 }));
 
+// Mock framer-motion to bypass animation delays in JSDOM
+vi.mock('framer-motion', () => ({
+  motion: {
+    div: ({ children, whileHover, ...props }: any) => <div {...props}>{children}</div>,
+  },
+  AnimatePresence: ({ children }: any) => <>{children}</>,
+}));
+
 describe('DeveloperArena', () => {
   it('renders correctly with sections and headings', () => {
     const handleSelectBattle = vi.fn();
