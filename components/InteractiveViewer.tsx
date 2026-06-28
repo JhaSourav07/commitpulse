@@ -347,7 +347,7 @@ export default function InteractiveViewer({
           ? 'Interactive 3D viewer. Use Arrow keys to rotate, W A S D to pan, plus and minus to zoom, R to reset.'
           : 'Interactive viewer. Use Arrow keys or W A S D to pan, plus and minus to zoom, R to reset.'
       }
-      className={`relative overflow-hidden touch-none ${disableCustomCursor ? 'cursor-default' : 'cursor-grab active:cursor-grabbing'} select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${className}`}
+      className={`relative overflow-hidden touch-none ${disableCustomCursor ? 'cursor-default' : 'cursor-grab active:cursor-grabbing'} select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 ${className}`}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
