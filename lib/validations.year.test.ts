@@ -2,7 +2,11 @@ import { describe, it, expect } from 'vitest';
 import { streakParamsSchema, wrappedParamsSchema } from './validations';
 
 const CURRENT_YEAR = new Date().getUTCFullYear();
-const EXPECTED_ERROR = 'GitHub was founded in 2008. Please provide a year of 2008 or later.';
+const EXPECTED_ERROR_PRE_2008 = (year: number) =>
+  `Year ${year} is before GitHub was founded in 2008. Please provide a year of 2008 or later.`;
+const EXPECTED_ERROR_FUTURE = (year: number) =>
+  `Year ${year} is in the future. Please provide a year up to ${CURRENT_YEAR}.`;
+const EXPECTED_ERROR_FORMAT = 'Invalid year parameter. Must be a 4-digit year (e.g., 2023).';
 
 function getYearError(result: {
   success: false;
@@ -51,7 +55,7 @@ describe('streakParamsSchema — year validation boundaries', () => {
     const result = streakParamsSchema.safeParse({ user: 'octocat', year: '2007' });
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(getYearError(result)).toBe(EXPECTED_ERROR);
+      expect(getYearError(result)).toBe(EXPECTED_ERROR_PRE_2008(2007));
     }
   });
 
@@ -59,7 +63,7 @@ describe('streakParamsSchema — year validation boundaries', () => {
     const result = streakParamsSchema.safeParse({ user: 'octocat', year: '2000' });
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(getYearError(result)).toBe(EXPECTED_ERROR);
+      expect(getYearError(result)).toBe(EXPECTED_ERROR_PRE_2008(2000));
     }
   });
 
@@ -67,7 +71,7 @@ describe('streakParamsSchema — year validation boundaries', () => {
     const result = streakParamsSchema.safeParse({ user: 'octocat', year: '0001' });
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(getYearError(result)).toBe(EXPECTED_ERROR);
+      expect(getYearError(result)).toBe(EXPECTED_ERROR_PRE_2008(1));
     }
   });
 
@@ -78,7 +82,7 @@ describe('streakParamsSchema — year validation boundaries', () => {
     });
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(getYearError(result)).toBe(EXPECTED_ERROR);
+      expect(getYearError(result)).toBe(EXPECTED_ERROR_FUTURE(CURRENT_YEAR + 1));
     }
   });
 
@@ -89,7 +93,7 @@ describe('streakParamsSchema — year validation boundaries', () => {
     });
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(getYearError(result)).toBe(EXPECTED_ERROR);
+      expect(getYearError(result)).toBe(EXPECTED_ERROR_FUTURE(CURRENT_YEAR + 10));
     }
   });
 
@@ -97,7 +101,7 @@ describe('streakParamsSchema — year validation boundaries', () => {
     const result = streakParamsSchema.safeParse({ user: 'octocat', year: 'abcd' });
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(getYearError(result)).toBe(EXPECTED_ERROR);
+      expect(getYearError(result)).toBe(EXPECTED_ERROR_FORMAT);
     }
   });
 
@@ -105,7 +109,7 @@ describe('streakParamsSchema — year validation boundaries', () => {
     const result = streakParamsSchema.safeParse({ user: 'octocat', year: '999' });
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(getYearError(result)).toBe(EXPECTED_ERROR);
+      expect(getYearError(result)).toBe(EXPECTED_ERROR_FORMAT);
     }
   });
 
@@ -113,7 +117,7 @@ describe('streakParamsSchema — year validation boundaries', () => {
     const result = streakParamsSchema.safeParse({ user: 'octocat', year: '20008' });
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(getYearError(result)).toBe(EXPECTED_ERROR);
+      expect(getYearError(result)).toBe(EXPECTED_ERROR_FORMAT);
     }
   });
 
@@ -121,7 +125,7 @@ describe('streakParamsSchema — year validation boundaries', () => {
     const result = streakParamsSchema.safeParse({ user: 'octocat', year: '-2020' });
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(getYearError(result)).toBe(EXPECTED_ERROR);
+      expect(getYearError(result)).toBe(EXPECTED_ERROR_FORMAT);
     }
   });
 
@@ -129,7 +133,7 @@ describe('streakParamsSchema — year validation boundaries', () => {
     const result = streakParamsSchema.safeParse({ user: 'octocat', year: '2020.5' });
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(getYearError(result)).toBe(EXPECTED_ERROR);
+      expect(getYearError(result)).toBe(EXPECTED_ERROR_FORMAT);
     }
   });
 
@@ -137,7 +141,7 @@ describe('streakParamsSchema — year validation boundaries', () => {
     const result = streakParamsSchema.safeParse({ user: 'octocat', year: ' 2020 ' });
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(getYearError(result)).toBe(EXPECTED_ERROR);
+      expect(getYearError(result)).toBe(EXPECTED_ERROR_FORMAT);
     }
   });
 });
@@ -174,7 +178,7 @@ describe('wrappedParamsSchema — year validation boundaries', () => {
     const result = wrappedParamsSchema.safeParse({ user: 'octocat', year: '2007' });
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(getYearError(result)).toBe(EXPECTED_ERROR);
+      expect(getYearError(result)).toBe(EXPECTED_ERROR_PRE_2008(2007));
     }
   });
 
@@ -185,7 +189,7 @@ describe('wrappedParamsSchema — year validation boundaries', () => {
     });
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(getYearError(result)).toBe(EXPECTED_ERROR);
+      expect(getYearError(result)).toBe(EXPECTED_ERROR_FUTURE(CURRENT_YEAR + 1));
     }
   });
 
@@ -193,7 +197,7 @@ describe('wrappedParamsSchema — year validation boundaries', () => {
     const result = wrappedParamsSchema.safeParse({ user: 'octocat', year: 'abcd' });
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(getYearError(result)).toBe(EXPECTED_ERROR);
+      expect(getYearError(result)).toBe(EXPECTED_ERROR_FORMAT);
     }
   });
 
@@ -201,7 +205,7 @@ describe('wrappedParamsSchema — year validation boundaries', () => {
     const result = wrappedParamsSchema.safeParse({ user: 'octocat', year: '999' });
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(getYearError(result)).toBe(EXPECTED_ERROR);
+      expect(getYearError(result)).toBe(EXPECTED_ERROR_FORMAT);
     }
   });
 
@@ -209,7 +213,7 @@ describe('wrappedParamsSchema — year validation boundaries', () => {
     const result = wrappedParamsSchema.safeParse({ user: 'octocat', year: '-2020' });
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(getYearError(result)).toBe(EXPECTED_ERROR);
+      expect(getYearError(result)).toBe(EXPECTED_ERROR_FORMAT);
     }
   });
 
@@ -217,7 +221,7 @@ describe('wrappedParamsSchema — year validation boundaries', () => {
     const result = wrappedParamsSchema.safeParse({ user: 'octocat', year: '2020.5' });
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(getYearError(result)).toBe(EXPECTED_ERROR);
+      expect(getYearError(result)).toBe(EXPECTED_ERROR_FORMAT);
     }
   });
 });
