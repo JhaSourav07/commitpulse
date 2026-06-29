@@ -27,11 +27,6 @@ describe('app/api/track-user/route — Massive Data Sets and Extreme High Bounds
   ): MockTrackingResponseState => {
     const startTime = performance.now();
 
-    let calculatedWeight = 0;
-    actionsQueue.forEach((action) => {
-      calculatedWeight += action.metricPayloadSize;
-    });
-
     const endTime = performance.now();
     const processingDuration = endTime - startTime;
 

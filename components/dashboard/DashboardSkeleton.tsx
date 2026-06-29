@@ -11,7 +11,7 @@ export default function DashboardSkeleton() {
         <div className="h-64 rounded-2xl shimmer border border-white/10" />
 
         {/* Achievements */}
-        <div className="p-6 rounded-xl bg-[#0a0a0a] border border-[rgba(255,255,255,0.08)]">
+        <div className="p-6 rounded-xl bg-white dark:bg-[#0a0a0a] border border-black/10 dark:border-[rgba(255,255,255,0.08)] overflow-hidden">
           <div className="flex items-center gap-2.5 mb-5">
             <div className="w-4 h-4 shimmer rounded" />
             <div className="w-24 h-4 shimmer rounded" />

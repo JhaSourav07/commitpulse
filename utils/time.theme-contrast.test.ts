@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { getSecondsUntilUTCMidnight, getSecondsUntilMidnightInTimezone } from './time';
 
 describe('time theme contrast', () => {

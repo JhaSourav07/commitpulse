@@ -76,7 +76,7 @@ describe('Heatmap Theme Contrast', () => {
   });
 
   it('applies theme-aware empty-state styling', () => {
-    const { container } = render(<Heatmap data={[]} />);
+    render(<Heatmap data={[]} />);
 
     expect(screen.getByText(/no recent activity to display/i)).toBeInTheDocument();
 

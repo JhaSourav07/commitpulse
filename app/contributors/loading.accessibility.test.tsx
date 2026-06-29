@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import Loading from './loading';
+import { LOADING_ROOT_CLASSES } from './loadingClasses';
 
 function hasClasses(element: Element | null, classes: string[]) {
   expect(element).not.toBeNull();
@@ -41,14 +42,7 @@ describe('Contributors loading accessibility', () => {
     const status = screen.getByRole('status');
     const page = status.parentElement;
 
-    hasClasses(page, [
-      'flex',
-      'min-h-screen',
-      'items-center',
-      'justify-center',
-      'bg-[#050505]',
-      'text-white',
-    ]);
+    hasClasses(page, LOADING_ROOT_CLASSES);
 
     expect(status.classList.contains('sr-only')).toBe(false);
     expect(status.classList.contains('hidden')).toBe(false);

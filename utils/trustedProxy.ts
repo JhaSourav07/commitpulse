@@ -239,10 +239,15 @@ export function isTrustedProxy(ip: string, config: TrustedProxyConfig): boolean 
 /**
  * Loads trusted proxy configuration from environment variables.
  * Memoized — re-parses only when env vars change.
+ *
+ * TRUSTED_PROXIES is optional. When running on Vercel (VERCEL=1 is always set),
+ * the network layer is automatically trusted — Vercel controls the load balancer
+ * that appends the true client IP to x-forwarded-for, so it cannot be spoofed.
  */
 export function loadTrustedProxyConfig(): TrustedProxyConfig {
   const envProxies = process.env.TRUSTED_PROXIES ?? '';
-  const envKey = `${envProxies}|${process.env.NODE_ENV}|${process.env.TRUST_PRIVATE_PROXIES}`;
+  const vercelEnv = process.env.VERCEL ?? '';
+  const envKey = `${envProxies}|${process.env.NODE_ENV}|${process.env.TRUST_PRIVATE_PROXIES}|${vercelEnv}`;
 
   if (cachedConfig && cachedEnvKey === envKey) {
     return cachedConfig;
@@ -256,6 +261,13 @@ export function loadTrustedProxyConfig(): TrustedProxyConfig {
         .map((s) => s.trim())
         .filter(Boolean)
     );
+  }
+
+  // Auto-trust Vercel's network layer when no explicit TRUSTED_PROXIES are configured.
+  // Vercel (VERCEL=1) controls the load balancer that appends the real client IP to
+  // x-forwarded-for, so the header value cannot be spoofed by end users.
+  if (vercelEnv && !trustedProxies.length) {
+    trustedProxies.push('*');
   }
 
   const isDev = process.env.NODE_ENV !== 'production';

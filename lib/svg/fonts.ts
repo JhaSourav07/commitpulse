@@ -35,7 +35,7 @@ export const FONT_MAP = {
  * - If `font` is a valid custom font name, returns `"<Font>", sans-serif`.
  * - Otherwise returns `null`.
  */
-export function resolveFont(font?: string | null): string | null {
+export function resolveFontFamily(font?: string | null): string | null {
   const sanitized = sanitizeFont(font ?? undefined);
   if (!sanitized) return null;
 

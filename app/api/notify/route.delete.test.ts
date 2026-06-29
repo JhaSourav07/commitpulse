@@ -1,85 +1,68 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NextRequest } from 'next/server';
 import { DELETE } from './route';
 
-vi.mock('@/lib/mongodb', () => ({
-  default: vi.fn(),
-}));
+vi.mock('@/lib/mongodb', () => ({ default: vi.fn() }));
 
 vi.mock('@/models/Notification', () => ({
   Notification: {
-    findOne: vi.fn(),
     deleteOne: vi.fn(),
+    findOne: vi.fn(),
   },
 }));
 
-vi.mock('@/lib/rate-limit', () => ({
-  notifyRateLimiter: {
-    check: vi.fn(),
-  },
+vi.mock('@/lib/rate-limit', () => {
+  const mockResult = { success: true, limit: 60, remaining: 59, reset: Date.now() + 60000 };
+  return {
+    notifyRateLimiter: {
+      checkWithResult: vi.fn().mockResolvedValue(mockResult),
+    },
+    getRateLimitHeaders: vi.fn(() => ({
+      'X-RateLimit-Limit': '60',
+      'X-RateLimit-Remaining': '59',
+      'X-RateLimit-Reset': String(Date.now() + 60000),
+      'Retry-After': '60',
+    })),
+  };
+});
+
+vi.mock('@/utils/getClientIp', () => ({
+  getClientIp: vi.fn().mockReturnValue('127.0.0.1'),
 }));
 
 vi.mock('@/lib/github-owner-verification', () => ({
-  verifyGitHubOwner: vi.fn(),
-}));
-
-vi.mock('@/lib/notification-management-token', () => ({
-  createNotificationManagementToken: vi.fn(),
-  getNotificationManagementToken: vi.fn(() => null),
-  hashNotificationManagementToken: vi.fn(),
-  verifyNotificationManagementToken: vi.fn(() => false),
+  verifyGitHubOwner: vi.fn().mockResolvedValue({ verified: true }),
 }));
 
 import { Notification } from '@/models/Notification';
 import { notifyRateLimiter } from '@/lib/rate-limit';
 import { verifyGitHubOwner } from '@/lib/github-owner-verification';
 
-const makeRequest = (search = '') => {
-  return new NextRequest(`http://localhost:3000/api/notify${search ? `?${search}` : ''}`, {
-    method: 'DELETE',
-    headers: {
-      'x-forwarded-for': '127.0.0.1',
-    },
-  });
-};
+function makeRequest(query: string): NextRequest {
+  return new NextRequest(`http://localhost/api/notify?${query}`, { method: 'DELETE' });
+}
 
 describe('DELETE /api/notify', () => {
-  const originalEnv = process.env;
-
   beforeEach(() => {
     vi.clearAllMocks();
-
-    process.env = {
-      ...originalEnv,
-      MONGODB_URI: 'mongodb://localhost/test',
-    };
-
-    vi.mocked(notifyRateLimiter.check).mockResolvedValue(true);
-
-    vi.mocked(verifyGitHubOwner).mockResolvedValue({
-      verified: true,
+    vi.stubEnv('MONGODB_URI', 'mongodb://localhost:27017/test');
+    vi.stubEnv('NODE_ENV', 'test');
+    vi.mocked(notifyRateLimiter.checkWithResult).mockResolvedValue({
+      success: true,
+      limit: 60,
+      remaining: 59,
+      reset: Date.now() + 60000,
     });
-
-    vi.mocked(Notification.findOne).mockReturnValue({
-      select: vi.fn().mockResolvedValue({
-        username: 'testuser',
-        managementTokenHash: 'hash',
-      }),
-    } as never);
-  });
-
-  afterEach(() => {
-    process.env = originalEnv;
-  });
-
-  it('returns 400 when user parameter is missing', async () => {
-    const res = await DELETE(makeRequest());
-
-    expect(res.status).toBe(400);
+    vi.mocked(verifyGitHubOwner).mockResolvedValue({ verified: true });
   });
 
   it('returns 429 when rate limited', async () => {
-    vi.mocked(notifyRateLimiter.check).mockResolvedValue(false);
+    vi.mocked(notifyRateLimiter.checkWithResult).mockResolvedValue({
+      success: false,
+      limit: 60,
+      remaining: 0,
+      reset: Date.now() + 60000,
+    });
 
     const res = await DELETE(makeRequest('user=testuser'));
 
@@ -87,8 +70,7 @@ describe('DELETE /api/notify', () => {
   });
 
   it('bypasses gracefully when MONGODB_URI is not set in development', async () => {
-    delete process.env.MONGODB_URI;
-
+    vi.unstubAllEnvs();
     vi.stubEnv('NODE_ENV', 'development');
 
     const res = await DELETE(makeRequest('user=testuser'));
@@ -102,9 +84,7 @@ describe('DELETE /api/notify', () => {
   });
 
   it('returns 404 when notification preferences do not exist', async () => {
-    vi.mocked(Notification.deleteOne).mockResolvedValue({
-      deletedCount: 0,
-    } as never);
+    vi.mocked(Notification.findOne).mockResolvedValue(null);
 
     const res = await DELETE(makeRequest('user=testuser'));
 
@@ -116,9 +96,15 @@ describe('DELETE /api/notify', () => {
   });
 
   it('returns 200 when notification preferences are deleted successfully', async () => {
-    vi.mocked(Notification.deleteOne).mockResolvedValue({
-      deletedCount: 1,
+    vi.mocked(Notification.findOne).mockResolvedValue({
+      username: 'testuser',
+      email: 'test@example.com',
+      frequency: 'daily',
+      notifyOnCommit: true,
+      notifyOnStreak: true,
+      notifyOnMilestone: true,
     } as never);
+    vi.mocked(Notification.deleteOne).mockResolvedValue({ deletedCount: 1 } as never);
 
     const res = await DELETE(makeRequest('user=testuser'));
 

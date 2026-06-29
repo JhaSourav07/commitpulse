@@ -124,7 +124,12 @@ describe('OG Route', () => {
   });
   it('returns 429 when rate limit is exceeded', async () => {
     const { RateLimiter } = await import('@/lib/rate-limit');
-    vi.spyOn(RateLimiter.prototype, 'check').mockResolvedValueOnce(false);
+    vi.spyOn(RateLimiter.prototype, 'checkWithResult').mockResolvedValueOnce({
+      success: false,
+      limit: 30,
+      remaining: 0,
+      reset: Date.now() + 60000,
+    });
 
     const req = new NextRequest('http://localhost/api/og?user=octocat', {
       headers: { 'x-forwarded-for': '1.2.3.4' },

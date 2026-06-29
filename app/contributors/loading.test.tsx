@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { describe, it, expect } from 'vitest';
 import Loading from './loading';
+import { LOADING_ROOT_CLASSES } from './loadingClasses';
 
 describe('Contributors Loading', () => {
   it('renders loading fallback component', () => {
@@ -30,11 +31,7 @@ describe('Contributors Loading', () => {
 
     const wrapper = container.firstChild as HTMLElement;
 
-    expect(wrapper).toHaveClass('flex');
-    expect(wrapper).toHaveClass('min-h-screen');
-    expect(wrapper).toHaveClass('items-center');
-    expect(wrapper).toHaveClass('justify-center');
-    expect(wrapper).toHaveClass('bg-[#050505]');
+    expect(wrapper).toHaveClass(...LOADING_ROOT_CLASSES);
   });
 
   it('renders loader container with accessibility attributes', () => {

@@ -18,7 +18,20 @@ vi.mock('@/lib/rate-limit', () => {
       check() {
         return Promise.resolve(true);
       }
+      checkWithResult() {
+        return Promise.resolve({
+          success: true,
+          limit: 5,
+          remaining: 4,
+          reset: Date.now() + 60000,
+        });
+      }
     },
+    getRateLimitHeaders: vi.fn(() => ({
+      'X-RateLimit-Limit': '5',
+      'X-RateLimit-Remaining': '4',
+      'X-RateLimit-Reset': Date.now().toString(),
+    })),
   };
 });
 

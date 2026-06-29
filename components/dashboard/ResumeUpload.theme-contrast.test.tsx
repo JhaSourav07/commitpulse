@@ -143,7 +143,7 @@ describe('ResumeUpload Theme Contrast', () => {
   it('keeps the drag‑active overlay translucent so foreground content remains visible', () => {
     mockThemeEnvironment('dark');
 
-    const { container } = render(<ResumeUpload {...sharedProps} />);
+    render(<ResumeUpload {...sharedProps} />);
     const dropzone = screen.getByRole('button', { name: /drop your resume here/i });
 
     // Simulate drag‑enter to activate the overlay

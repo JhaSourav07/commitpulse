@@ -16,7 +16,7 @@ export default function StatsCardSkeleton() {
       </div>
 
       {/* Micro chart skeleton with deterministic heights */}
-      <div className="w-full h-8 flex items-end justify-between gap-px opacity-30">
+      <div className="w-full h-8 flex items-end justify-between gap-px opacity-80">
         {heights.map((h, i) => (
           <div key={i} className="flex-1 shimmer rounded-t-[1px]" style={{ height: `${h}%` }} />
         ))}

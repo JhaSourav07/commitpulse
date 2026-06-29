@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import React from 'react';
 import Loading from './loading';
+import { LOADING_ROOT_CLASSES } from './loadingClasses';
 
 // Test wrapper that integrates the real Loading component within an interactive tracking layer
 const InteractiveLoadingHarness: React.FC = () => {
@@ -148,11 +149,7 @@ describe('Contributors Loading — structure & accessibility', () => {
   it('outermost wrapper uses full-viewport dark background layout', () => {
     const { container } = render(<Loading />);
     const root = container.firstChild as HTMLElement;
-    expect(root).toHaveClass('min-h-screen');
-    expect(root).toHaveClass('bg-[#050505]');
-    expect(root).toHaveClass('flex');
-    expect(root).toHaveClass('items-center');
-    expect(root).toHaveClass('justify-center');
+    expect(root).toHaveClass(...LOADING_ROOT_CLASSES);
   });
 
   it('component contains no focusable interactive elements (purely informational)', () => {

@@ -85,6 +85,6 @@ describe('PR Insights Route Empty/Missing Inputs Verification', () => {
     const response = await GET(request);
 
     expect(response.status).toBe(200);
-    expect(fetchPRInsights).toHaveBeenCalledWith('octocat', undefined);
+    expect(fetchPRInsights).toHaveBeenCalledWith('octocat', undefined, expect.any(AbortSignal));
   });
 });

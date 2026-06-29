@@ -101,13 +101,7 @@ export default function CIAnalyticsClient({ username }: { username: string }) {
       transition={{ duration: 0.5 }}
       className="flex flex-col gap-8 w-full max-w-full"
     >
-      <CIFilters
-        filters={filters}
-        onChange={setFilters}
-        repos={data.repos}
-        branches={data.branches}
-        workflows={data.workflows.map((w) => w.name)}
-      />
+      <CIFilters filters={filters} onChange={setFilters} />
 
       <CIMetricsRow data={filteredData || data} />
 

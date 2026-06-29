@@ -86,8 +86,8 @@ export function generateOptimizedSvg(contributionData: ContributionNode[]): stri
     }
 
     // STEP 5: Adjacent Occlusion Culling Check
-    // Get the height of the tower directly in front of this one (x+1, y+1)
-    const frontTowerHeight = gridMap[`${x + 1},${y + 1}`] || 0;
+    // Get the height of the tower directly in front of this one (x-1, y-1)
+    const frontTowerHeight = gridMap[`${x - 1},${y - 1}`] || 0;
 
     // If the element in front completely buries this tower's apex, skip it!
     if (frontTowerHeight >= count + 2) {

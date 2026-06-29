@@ -29,7 +29,15 @@ vi.mock('@/lib/rate-limit', () => ({
     async check() {
       return true;
     }
+    async checkWithResult() {
+      return { success: true, limit: 5, remaining: 4, reset: Date.now() + 60000 };
+    }
   },
+  getRateLimitHeaders: vi.fn(() => ({
+    'X-RateLimit-Limit': '5',
+    'X-RateLimit-Remaining': '4',
+    'X-RateLimit-Reset': Date.now().toString(),
+  })),
 }));
 
 function makeRequest(body: string | Record<string, unknown>): Request {

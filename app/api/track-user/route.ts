@@ -1,3 +1,4 @@
+import { validateCSRF } from '@/lib/security/csrf';
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import { User } from '@/models/User';
@@ -56,6 +57,10 @@ export async function POST(req: Request) {
   let body: unknown;
 
   try {
+    const csrfError = validateCSRF(req);
+    if (csrfError) {
+      return NextResponse.json({ success: false, error: 'Origin not allowed' }, { status: 403 });
+    }
     body = await req.json();
   } catch {
     return NextResponse.json(
@@ -128,7 +133,7 @@ export async function POST(req: Request) {
     // Connect to database and perform upsert with 1.5s timeout
     try {
       let timer: NodeJS.Timeout | undefined;
-      const timeoutPromise = new Promise<{ success: boolean; error?: unknown }>((_, reject) => {
+      const timeoutPromise: Promise<never> = new Promise((_, reject) => {
         timer = setTimeout(() => reject(new Error('Database operation timed out')), 1500);
       });
 

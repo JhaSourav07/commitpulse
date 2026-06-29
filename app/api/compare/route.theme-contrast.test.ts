@@ -6,8 +6,8 @@ vi.mock('@/lib/github', () => ({
   getFullDashboardData: vi.fn(),
 }));
 vi.mock('@/lib/rate-limit', () => ({
-  rateLimit: vi.fn().mockResolvedValue({
-    success: true,
+  RateLimiter: vi.fn().mockImplementation(function () {
+    return { check: vi.fn().mockResolvedValue(true) };
   }),
 }));
 vi.mock('@/lib/githubtoken', () => ({

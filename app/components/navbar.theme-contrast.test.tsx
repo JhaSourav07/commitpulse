@@ -2,6 +2,10 @@ import { render, screen } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import Navbar from './navbar';
 
+vi.mock('@/hooks/useKeyboardShortcuts', () => ({
+  useKeyboardShortcuts: vi.fn(),
+}));
+
 vi.mock('./theme-switch', () => ({
   useThemeToggle: vi.fn(),
 }));

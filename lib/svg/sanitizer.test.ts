@@ -7,6 +7,7 @@ import {
   sanitizeRadius,
   sanitizeFont,
   sanitizeGoogleFontUrl,
+  normalizeHexColor,
   parseGradientStops,
   MAX_GRADIENT_STOPS,
   sanitizeCustomText,
@@ -33,10 +34,11 @@ describe('SVG Sanitizer Utilities', () => {
       expect(isValidHex('ff00ff"')).toBe(false);
     });
 
-    it('returns false for invalid length', () => {
+    it('returns false for invalid lengths', () => {
       expect(isValidHex('f')).toBe(false);
       expect(isValidHex('ff')).toBe(false);
       expect(isValidHex('fffff')).toBe(false);
+      expect(isValidHex('fffffff')).toBe(false);
     });
 
     it('returns false for undefined, null, or empty string', () => {
@@ -45,20 +47,8 @@ describe('SVG Sanitizer Utilities', () => {
       expect(isValidHex('')).toBe(false);
     });
 
-    it('returns false for an empty string', () => {
-      expect(isValidHex('')).toBe(false);
-    });
-
     it('returns false for just a hash symbol', () => {
       expect(isValidHex('#')).toBe(false);
-    });
-
-    it('returns false for undefined input', () => {
-      expect(isValidHex(undefined)).toBe(false);
-    });
-
-    it('returns false for invalid length (7 characters)', () => {
-      expect(isValidHex('fffffff')).toBe(false);
     });
   });
 
@@ -225,6 +215,10 @@ describe('SVG Sanitizer Utilities', () => {
       expect(sanitizeFont('Open Sans"')).toBe('Open Sans');
     });
 
+    it('strips single quotes to prevent SVG attribute injection (Fixes #6157)', () => {
+      expect(sanitizeFont("Test' onload='alert(1)")).toBe('Test onloadalert1');
+    });
+
     it('returns null for completely invalid font', () => {
       expect(sanitizeFont('!!!')).toBe(null);
     });
@@ -315,6 +309,42 @@ describe('SVG Sanitizer Utilities', () => {
   });
 });
 
+describe('normalizeHexColor', () => {
+  it('normalizes valid 6-digit hex colors', () => {
+    expect(normalizeHexColor('ffffff')).toBe('ffffff');
+    expect(normalizeHexColor('#ffffff')).toBe('ffffff');
+  });
+
+  it('normalizes valid 3-digit hex colors', () => {
+    expect(normalizeHexColor('abc')).toBe('abc');
+    expect(normalizeHexColor('#abc')).toBe('abc');
+  });
+
+  it('normalizes valid 4-digit hex colors', () => {
+    expect(normalizeHexColor('f0f0')).toBe('f0f0');
+    expect(normalizeHexColor('#f0f0')).toBe('f0f0');
+  });
+
+  it('normalizes valid 8-digit hex colors', () => {
+    expect(normalizeHexColor('ff00ff00')).toBe('ff00ff00');
+    expect(normalizeHexColor('#ff00ff00')).toBe('ff00ff00');
+  });
+
+  it('trims surrounding whitespace', () => {
+    expect(normalizeHexColor('  #ffffff  ')).toBe('ffffff');
+  });
+
+  it('returns null for invalid values', () => {
+    expect(normalizeHexColor('invalid')).toBeNull();
+    expect(normalizeHexColor('zzzzzz')).toBeNull();
+    expect(normalizeHexColor('')).toBeNull();
+  });
+
+  it('returns null for hash-only input', () => {
+    expect(normalizeHexColor('#')).toBeNull();
+  });
+});
+
 describe('parseGradientStops', () => {
   it('returns empty array for undefined input', () => {
     expect(parseGradientStops(undefined)).toEqual([]);
@@ -367,6 +397,26 @@ describe('parseGradientStops', () => {
     const colors = Array.from({ length: 12 }, () => 'aabbcc').join(',');
     const result = parseGradientStops(colors);
     expect(result.length).toBe(MAX_GRADIENT_STOPS);
+  });
+
+  it('trims whitespace around color values', () => {
+    expect(parseGradientStops('  #ff6b35 ,  #7000ff  ')).toEqual(['ff6b35', '7000ff']);
+  });
+
+  it('handles whitespace with mixed valid and invalid colors', () => {
+    expect(parseGradientStops('  #ff6b35 , invalid , #7000ff ')).toEqual(['ff6b35', '7000ff']);
+  });
+
+  it('ignores empty tokens', () => {
+    expect(parseGradientStops('ff6b35,,7000ff,,,')).toEqual(['ff6b35', '7000ff']);
+  });
+
+  it('handles leading and trailing commas', () => {
+    expect(parseGradientStops(',ff6b35,7000ff,')).toEqual(['ff6b35', '7000ff']);
+  });
+
+  it('preserves uppercase hex colors', () => {
+    expect(parseGradientStops('FF6B35,7000FF')).toEqual(['FF6B35', '7000FF']);
   });
 });
 

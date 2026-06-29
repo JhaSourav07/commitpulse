@@ -103,7 +103,12 @@ describe('GET /api/user-details', () => {
   });
   it('returns 429 when rate limit is exceeded', async () => {
     const { RateLimiter } = await import('@/lib/rate-limit');
-    vi.spyOn(RateLimiter.prototype, 'check').mockResolvedValueOnce(false);
+    vi.spyOn(RateLimiter.prototype, 'checkWithResult').mockResolvedValueOnce({
+      success: false,
+      limit: 20,
+      remaining: 0,
+      reset: Date.now() + 60000,
+    });
 
     const response = await GET(makeRequest({ username: 'testuser' }));
     expect(response.status).toBe(429);

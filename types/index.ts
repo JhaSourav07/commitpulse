@@ -7,7 +7,7 @@
  */
 export type HexColor = string & { __brand: 'HexColor' };
 
-export type Scale = 'linear' | 'log';
+export type Scale = 'linear' | 'log' | 'sqrt';
 
 export type BadgeSize = 'small' | 'medium' | 'large';
 
@@ -296,7 +296,8 @@ export interface BadgeParams {
     | 'radar'
     | 'doughnut'
     | 'pie'
-    | 'activity_graph';
+    | 'activity_graph'
+    | 'commit_clock';
 
   /** Format for the monthly delta indicator. 'percent' shows %, 'absolute' shows raw count, 'both' shows both. */
   delta_format?: 'percent' | 'absolute' | 'both';

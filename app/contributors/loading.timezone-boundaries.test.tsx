@@ -1,6 +1,7 @@
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, cleanup } from '@testing-library/react';
 import Loading from './loading';
+import { LOADING_ROOT_CLASSES } from './loadingClasses';
 import '@testing-library/jest-dom';
 
 describe('ContributorsLoading - Timezone Boundaries & Calendar Alignment', () => {
@@ -84,8 +85,6 @@ describe('ContributorsLoading - Timezone Boundaries & Calendar Alignment', () =>
     const { container } = render(<Loading />);
 
     const layoutWrapper = container.firstChild as HTMLElement;
-    expect(layoutWrapper).toHaveClass('flex');
-    expect(layoutWrapper).toHaveClass('min-h-screen');
-    expect(layoutWrapper).toHaveClass('bg-[#050505]');
+    expect(layoutWrapper).toHaveClass(...LOADING_ROOT_CLASSES);
   });
 });

@@ -63,7 +63,6 @@ vi.mock('@/lib/rate-limit', () => ({
         reset: Date.now(),
       })
     ),
-    check: vi.fn(() => Promise.resolve(true)),
   },
   getRateLimitHeaders: () => ({
     'X-RateLimit-Limit': '100',

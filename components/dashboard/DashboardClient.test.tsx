@@ -578,6 +578,58 @@ describe('DashboardClient', () => {
     const tags = screen.getAllByText(/Consistency Beast/i);
     expect(tags).toHaveLength(2);
   });
+
+  it('renders repository count truncation warning banner when repositories count > fetched repos count', () => {
+    const mockRepoActivity = [
+      { name: 'repo1', lastActive: '2026-05-01' },
+      { name: 'repo2', lastActive: '2026-05-02' },
+    ] as any;
+    // mockInitialData has stats.repositories = 30
+    render(
+      <DashboardClient
+        initialData={mockInitialData}
+        username="Shivangi1515"
+        period={mockPeriod}
+        allRepoActivity={mockRepoActivity}
+      />
+    );
+
+    const warningBanner = screen.getByTestId('repo-truncation-warning');
+    expect(warningBanner).toBeDefined();
+    expect(warningBanner.textContent).toContain('Showing data for 2 of your 30 repositories');
+  });
+
+  it('does not render warning banner when total repositories matches or is less than fetched repos count', () => {
+    const mockRepoActivity = Array.from({ length: 30 }, (_, i) => ({
+      name: `repo${i}`,
+      lastActive: '2026-05-01',
+    })) as any;
+    render(
+      <DashboardClient
+        initialData={mockInitialData}
+        username="Shivangi1515"
+        period={mockPeriod}
+        allRepoActivity={mockRepoActivity}
+      />
+    );
+
+    const warningBanner = screen.queryByTestId('repo-truncation-warning');
+    expect(warningBanner).toBeNull();
+  });
+
+  it('does not render warning banner when allRepoActivity is empty', () => {
+    render(
+      <DashboardClient
+        initialData={mockInitialData}
+        username="Shivangi1515"
+        period={mockPeriod}
+        allRepoActivity={[]}
+      />
+    );
+
+    const warningBanner = screen.queryByTestId('repo-truncation-warning');
+    expect(warningBanner).toBeNull();
+  });
 });
 it('shows Most Consistent badge for profile with higher peak streak in compare mode', async () => {
   const mockFetch = vi.fn().mockResolvedValue({

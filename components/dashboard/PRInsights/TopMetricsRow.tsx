@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { GitPullRequest, GitMerge, Clock, Activity } from 'lucide-react';
 import type { PRInsightData } from '@/services/github/pr-insights';
 import AnimatedMetricIcon from './AnimatedMetricIcon';
+import { useTranslation } from '@/context/TranslationContext';
 
 interface MetricCardProps {
   title: string;
@@ -65,22 +66,26 @@ const MetricCard = ({
 };
 
 export default function TopMetricsRow({ data }: { data: PRInsightData }) {
+  const { t } = useTranslation();
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
       <MetricCard
-        title="Total PRs"
+        title={t('dashboard.prInsights.total_prs')}
         value={data.totalPRs}
         icon={GitPullRequest}
         trend={
           data.weeklyActivity?.length > 0
-            ? `+${data.weeklyActivity[data.weeklyActivity.length - 1].prs} this week`
+            ? t('dashboard.prInsights.this_week', {
+                count: data.weeklyActivity[data.weeklyActivity.length - 1].prs.toString(),
+              })
             : undefined
         }
         delay={0.1}
       />
 
       <MetricCard
-        title="Merge Rate"
+        title={t('dashboard.prInsights.merge_rate')}
         value={data.mergeRate.toFixed(1)}
         suffix="%"
         icon={GitMerge}
@@ -88,17 +93,17 @@ export default function TopMetricsRow({ data }: { data: PRInsightData }) {
       />
 
       <MetricCard
-        title="Avg Cycle Time"
+        title={t('dashboard.prInsights.avg_cycle_time')}
         value={data.avgCycleTime.toFixed(1)}
-        suffix="hrs"
+        suffix={t('dashboard.prInsights.hrs')}
         icon={Clock}
         delay={0.3}
       />
 
       <MetricCard
-        title="First Review"
+        title={t('dashboard.prInsights.first_review')}
         value={data.avgTimeToFirstReview.toFixed(1)}
-        suffix="hrs"
+        suffix={t('dashboard.prInsights.hrs')}
         icon={Activity}
         delay={0.4}
       />

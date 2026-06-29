@@ -15,6 +15,7 @@ vi.mock('next/link', () => ({
 }));
 
 vi.mock('next/image', () => ({
+  /* eslint-disable @next/next/no-img-element */
   default: (props: React.ImgHTMLAttributes<HTMLImageElement>) => <img {...props} alt={props.alt} />,
 }));
 

@@ -5,22 +5,39 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import { ExternalLink } from 'lucide-react';
 import type { PRInsightData } from '@/services/github/pr-insights';
+import { useTranslation } from '@/context/TranslationContext';
 
 type FilterState = 'MERGED' | 'OPEN' | 'CLOSED' | null;
 
-const STATE_META: Record<string, { label: string; color: string }> = {
-  MERGED: { label: 'Merged', color: '#10b981' },
-  OPEN: { label: 'Open', color: '#3b82f6' },
-  CLOSED: { label: 'Closed', color: '#ef4444' },
-};
-
 export default function PRStatusDistribution({ data }: { data: PRInsightData }) {
+  const { t } = useTranslation();
   const [activeFilter, setActiveFilter] = useState<FilterState>(null);
 
+  const STATE_META: Record<string, { label: string; color: string }> = {
+    MERGED: { label: t('dashboard.prInsights.merged'), color: '#10b981' },
+    OPEN: { label: t('dashboard.prInsights.open'), color: '#3b82f6' },
+    CLOSED: { label: t('dashboard.prInsights.closed'), color: '#ef4444' },
+  };
+
   const baseData = [
-    { name: 'Merged', state: 'MERGED', value: data?.mergedPRs ?? 0, color: '#10b981' },
-    { name: 'Open', state: 'OPEN', value: data?.openPRs ?? 0, color: '#3b82f6' },
-    { name: 'Closed', state: 'CLOSED', value: data?.closedPRs ?? 0, color: '#ef4444' },
+    {
+      name: t('dashboard.prInsights.merged'),
+      state: 'MERGED',
+      value: data?.mergedPRs ?? 0,
+      color: '#10b981',
+    },
+    {
+      name: t('dashboard.prInsights.open'),
+      state: 'OPEN',
+      value: data?.openPRs ?? 0,
+      color: '#3b82f6',
+    },
+    {
+      name: t('dashboard.prInsights.closed'),
+      state: 'CLOSED',
+      value: data?.closedPRs ?? 0,
+      color: '#ef4444',
+    },
   ];
 
   const totalCount = (data?.mergedPRs ?? 0) + (data?.openPRs ?? 0) + (data?.closedPRs ?? 0);
@@ -32,7 +49,7 @@ export default function PRStatusDistribution({ data }: { data: PRInsightData }) 
   const centerValue = activeMeta
     ? (baseData.find((d) => d.state === activeFilter)?.value ?? data?.totalPRs ?? 0)
     : (data?.totalPRs ?? 0);
-  const centerLabel = activeMeta ? activeMeta.label : 'Total';
+  const centerLabel = activeMeta ? activeMeta.label : t('dashboard.prInsights.total');
   const centerColor = activeMeta ? activeMeta.color : undefined;
 
   const filteredPRs =
@@ -51,11 +68,13 @@ export default function PRStatusDistribution({ data }: { data: PRInsightData }) 
       className="bg-white dark:bg-zinc-900/50 border border-black/10 dark:border-white/10 rounded-3xl p-6 h-full flex flex-col"
     >
       <div className="mb-2">
-        <h2 className="text-xl font-bold text-gray-900 dark:text-white">Status Distribution</h2>
+        <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+          {t('dashboard.prInsights.status_title')}
+        </h2>
         <p className="text-sm text-gray-500">
           {activeFilter
-            ? `Showing: ${activeMeta?.label} PRs — click again to reset`
-            : 'Breakdown of PR states'}
+            ? t('dashboard.prInsights.showing_filtered', { label: activeMeta?.label || '' })
+            : t('dashboard.prInsights.status_subtitle')}
         </p>
       </div>
 

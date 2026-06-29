@@ -155,15 +155,7 @@ export function ReadmeInsightsPanel({ state }: ReadmeInsightsPanelProps) {
     const grade = getGrade(score);
     const tips = generateTips(state);
     return { score, grade, tips };
-  }, [
-    state.name,
-    state.description,
-    state.selectedTechs,
-    state.selectedSocials,
-    state.socialLinks,
-    state.showCommitPulse,
-    state.githubUsername,
-  ]);
+  }, [state]);
 
   return (
     <div

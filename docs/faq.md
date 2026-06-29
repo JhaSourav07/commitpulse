@@ -12,7 +12,7 @@ For deep technical details, check the [Real-Time Accuracy & Caching Architecture
 
 ### Why are my latest commits not visible immediately?
 
-Data is cached for performance. Use `&refresh=true` to force fresh data.
+Data is cached for performance. Use `&refresh=true` to force fresh data. If you are viewing the SVG image on GitHub (e.g. in your profile README), GitHub uses a proxy called Camo to cache images. To bypass GitHub's camo cache, you may need to append a cache-busting query parameter like `&camo=1` or `&refresh=true` directly to the SVG URL.
 
 ### Can I use my local timezone?
 

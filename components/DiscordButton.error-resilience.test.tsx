@@ -24,7 +24,7 @@ describe('DiscordButton error resilience', () => {
   it('renders without crashing', () => {
     render(<DiscordButton />);
 
-    expect(screen.getByText('Join the core community on Discord')).toBeTruthy();
+    expect(screen.getByText(/join the core community on discord/i)).toBeTruthy();
   });
 
   it('renders the discord link even when animations are mocked', () => {
@@ -59,6 +59,6 @@ describe('DiscordButton error resilience', () => {
   it('keeps button content visible after render', () => {
     render(<DiscordButton />);
 
-    expect(screen.getByText('Join the core community on Discord')).toBeTruthy();
+    expect(screen.getByText(/join the core community on discord/i)).toBeTruthy();
   });
 });

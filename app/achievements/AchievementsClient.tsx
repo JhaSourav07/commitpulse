@@ -465,6 +465,7 @@ export default function AchievementsClient() {
           <input
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
+            aria-label="Search GitHub username"
             placeholder="e.g. jhasourav07"
             className="w-full rounded-2xl border border-white/10 bg-white/5 py-4 pl-12 pr-4 text-white placeholder-white/30 backdrop-blur-xl transition-all duration-300 focus:border-emerald-500/50 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
           />
@@ -530,6 +531,7 @@ export default function AchievementsClient() {
             <input
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
+              aria-label="Search GitHub username"
               placeholder="Search user..."
               className="w-full rounded-xl border border-white/10 bg-white/5 py-2.5 pl-10 pr-3 text-sm text-white placeholder-white/20 backdrop-blur-xl transition-all focus:border-emerald-500/50 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
             />
@@ -650,6 +652,7 @@ export default function AchievementsClient() {
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
+                  aria-label="Search achievements"
                   placeholder="Search achievements by name or description..."
                   className="w-full rounded-xl border border-white/10 bg-white/5 py-2.5 pl-10 pr-4 text-sm text-white placeholder-white/40 backdrop-blur-xl transition-all duration-300 focus:border-emerald-500/50 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
                 />

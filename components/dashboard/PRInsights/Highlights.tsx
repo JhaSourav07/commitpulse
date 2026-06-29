@@ -2,32 +2,39 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { MessageSquare, Zap, HardDrive, ArrowRight } from 'lucide-react';
 import type { PRInsightData } from '@/services/github/pr-insights';
+import { useTranslation } from '@/context/TranslationContext';
 
 export default function Highlights({ highlights }: { highlights: PRInsightData['highlights'] }) {
+  const { t } = useTranslation();
+
   const cards = [
     {
       id: 'fastest',
-      title: 'Fastest Merged PR',
+      title: t('dashboard.prInsights.fastest_merged'),
       data: highlights.fastestMerged,
       icon: Zap,
       color: 'text-amber-500',
       bg: 'bg-amber-500/10',
-      value: highlights.fastestMerged ? `${highlights.fastestMerged.time.toFixed(1)} hrs` : 'N/A',
+      value: highlights.fastestMerged
+        ? `${highlights.fastestMerged.time.toFixed(1)} ${t('dashboard.prInsights.hrs')}`
+        : 'N/A',
       desc: highlights.fastestMerged?.title,
     },
     {
       id: 'discussed',
-      title: 'Most Discussed',
+      title: t('dashboard.prInsights.most_discussed'),
       data: highlights.mostDiscussed,
       icon: MessageSquare,
       color: 'text-blue-500',
       bg: 'bg-blue-500/10',
-      value: highlights.mostDiscussed ? `${highlights.mostDiscussed.comments} comments` : 'N/A',
+      value: highlights.mostDiscussed
+        ? `${highlights.mostDiscussed.comments} ${t('dashboard.prInsights.comments')}`
+        : 'N/A',
       desc: highlights.mostDiscussed?.title,
     },
     {
       id: 'largest',
-      title: 'Largest Impact',
+      title: t('dashboard.prInsights.largest_pr'),
       data: highlights.largest,
       icon: HardDrive,
       color: 'text-purple-500',
@@ -70,7 +77,7 @@ export default function Highlights({ highlights }: { highlights: PRInsightData['
             </h3>
             <div className="text-xl font-bold text-gray-900 dark:text-white mb-2">{card.value}</div>
             <p className="text-sm text-gray-600 dark:text-gray-300 line-clamp-2 font-medium">
-              {card.desc || 'No data available'}
+              {card.desc || t('dashboard.prInsights.no_highlights')}
             </p>
           </div>
         </motion.a>
