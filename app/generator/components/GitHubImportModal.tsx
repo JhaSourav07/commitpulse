@@ -136,6 +136,8 @@ export function GitHubImportModal({ isOpen, onClose, onApply }: GitHubImportModa
                   <FaGithub className="w-4 h-4" />
                 </div>
                 <input
+                  id="username"
+                  name="username"
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
