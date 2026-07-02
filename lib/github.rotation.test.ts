@@ -8,6 +8,12 @@ import {
 } from './github';
 import { encryptGitHubToken } from './github-token-encryption';
 
+const MOCK_TOKEN_1 = 'ghp_token1AAAAAAAAAAAAAAAAAAAAAAAAAAAA';
+const MOCK_TOKEN_2 = 'ghp_token2AAAAAAAAAAAAAAAAAAAAAAAAAAAA';
+const MOCK_TOKEN_3 = 'ghp_token3AAAAAAAAAAAAAAAAAAAAAAAAAAAA';
+const MOCK_BAD_TOKEN = 'ghp_badtokenAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
+const MOCK_GOOD_TOKEN = 'ghp_goodtokenAAAAAAAAAAAAAAAAAAAAAAAAAAA';
+
 describe('GitHub Multi-Token Rotation & Fallback', () => {
   const originalGitHubPat = process.env.GITHUB_PAT;
   const originalGitHubToken = process.env.GITHUB_TOKEN;
@@ -26,15 +32,15 @@ describe('GitHub Multi-Token Rotation & Fallback', () => {
   });
 
   it('correctly parses multiple comma-separated tokens', () => {
-    process.env.GITHUB_PAT = ' token1, token2,  token3 ';
+    process.env.GITHUB_PAT = ` ${MOCK_TOKEN_1}, ${MOCK_TOKEN_2},  ${MOCK_TOKEN_3} `;
     delete process.env.GITHUB_TOKEN;
 
     const tokens = getGitHubTokens();
-    expect(tokens).toEqual(['token1', 'token2', 'token3']);
+    expect(tokens).toEqual([MOCK_TOKEN_1, MOCK_TOKEN_2, MOCK_TOKEN_3]);
   });
 
   it('rotates to the next token on HTTP 429 rate limiting', async () => {
-    process.env.GITHUB_PAT = 'token1,token2';
+    process.env.GITHUB_PAT = `${MOCK_TOKEN_1},${MOCK_TOKEN_2}`;
     delete process.env.GITHUB_TOKEN;
 
     fetchMock.mockResolvedValueOnce({
@@ -61,14 +67,14 @@ describe('GitHub Multi-Token Rotation & Fallback', () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
 
     const firstCallHeaders = fetchMock.mock.calls[0][1].headers;
-    expect(firstCallHeaders.Authorization).toBe('bearer token1');
+    expect(firstCallHeaders.Authorization).toBe(`bearer ${MOCK_TOKEN_1}`);
 
     const secondCallHeaders = fetchMock.mock.calls[1][1].headers;
-    expect(secondCallHeaders.Authorization).toBe('bearer token2');
+    expect(secondCallHeaders.Authorization).toBe(`bearer ${MOCK_TOKEN_2}`);
   });
 
   it('rotates to the next token on HTTP 401 unauthorized and excludes the bad token for 24h', async () => {
-    process.env.GITHUB_PAT = 'bad_token,good_token';
+    process.env.GITHUB_PAT = `${MOCK_BAD_TOKEN},${MOCK_GOOD_TOKEN}`;
     delete process.env.GITHUB_TOKEN;
 
     fetchMock.mockResolvedValueOnce({
@@ -90,8 +96,8 @@ describe('GitHub Multi-Token Rotation & Fallback', () => {
 
     expect(res.status).toBe(200);
     expect(fetchMock).toHaveBeenCalledTimes(2);
-    expect(fetchMock.mock.calls[0][1].headers.Authorization).toBe('bearer bad_token');
-    expect(fetchMock.mock.calls[1][1].headers.Authorization).toBe('bearer good_token');
+    expect(fetchMock.mock.calls[0][1].headers.Authorization).toBe(`bearer ${MOCK_BAD_TOKEN}`);
+    expect(fetchMock.mock.calls[1][1].headers.Authorization).toBe(`bearer ${MOCK_GOOD_TOKEN}`);
 
     fetchMock.mockResolvedValueOnce({
       status: 200,
@@ -105,11 +111,11 @@ describe('GitHub Multi-Token Rotation & Fallback', () => {
     });
     expect(res2.status).toBe(200);
     expect(fetchMock).toHaveBeenCalledTimes(3);
-    expect(fetchMock.mock.calls[2][1].headers.Authorization).toBe('bearer good_token');
+    expect(fetchMock.mock.calls[2][1].headers.Authorization).toBe(`bearer ${MOCK_GOOD_TOKEN}`);
   });
 
   it('prioritizes token with highest remaining quota', async () => {
-    process.env.GITHUB_PAT = 'token1,token2';
+    process.env.GITHUB_PAT = `${MOCK_TOKEN_1},${MOCK_TOKEN_2}`;
     delete process.env.GITHUB_TOKEN;
 
     fetchMock.mockResolvedValueOnce({
@@ -147,21 +153,21 @@ describe('GitHub Multi-Token Rotation & Fallback', () => {
     await fetchWithRetry('https://api.github.com/graphql', { headers: {} });
 
     expect(fetchMock).toHaveBeenCalledTimes(3);
-    expect(fetchMock.mock.calls[0][1].headers.Authorization).toBe('bearer token1');
-    expect(fetchMock.mock.calls[1][1].headers.Authorization).toBe('bearer token2');
-    expect(fetchMock.mock.calls[2][1].headers.Authorization).toBe('bearer token2');
+    expect(fetchMock.mock.calls[0][1].headers.Authorization).toBe(`bearer ${MOCK_TOKEN_1}`);
+    expect(fetchMock.mock.calls[1][1].headers.Authorization).toBe(`bearer ${MOCK_TOKEN_2}`);
+    expect(fetchMock.mock.calls[2][1].headers.Authorization).toBe(`bearer ${MOCK_TOKEN_2}`);
   });
 
   it('correctly sets global circuit breaker to the earliest reset time when all tokens are rate-limited', async () => {
-    process.env.GITHUB_PAT = 'token1,token2';
+    process.env.GITHUB_PAT = `${MOCK_TOKEN_1},${MOCK_TOKEN_2}`;
     delete process.env.GITHUB_TOKEN;
 
     const resetTime1 = Date.now() + 5000;
     const resetTime2 = Date.now() + 10000;
 
     const tokenStats = getTokenStatsForTests();
-    tokenStats.set('token1', { remaining: 0, resetTime: resetTime1 });
-    tokenStats.set('token2', { remaining: 0, resetTime: resetTime2 });
+    tokenStats.set(MOCK_TOKEN_1, { remaining: 0, resetTime: resetTime1 });
+    tokenStats.set(MOCK_TOKEN_2, { remaining: 0, resetTime: resetTime2 });
 
     await expect(fetchWithRetry('https://api.github.com/graphql', { headers: {} })).rejects.toThrow(
       'API Rate Limit Exceeded'
@@ -176,22 +182,23 @@ describe('GitHub Multi-Token Rotation & Fallback', () => {
     process.env.ENCRYPTION_KEY = 'abcdefghijklmnopqrstuvwxyz123456';
 
     try {
-      const rawToken = 'ghp_myRealGitHubToken';
+      const rawToken = 'ghp_myRealGitHubTokenAAAAAAAAAAAAAAAA';
       const encrypted = encryptGitHubToken(rawToken);
 
       expect(encrypted.split('.')).toHaveLength(4);
 
-      process.env.GITHUB_PAT = `${encrypted}, ghp_anotherPlaintextToken`;
+      const plaintextToken = 'ghp_anotherPlaintextTokenAAAAAAAAAAAA';
+      process.env.GITHUB_PAT = `${encrypted}, ${plaintextToken}`;
       delete process.env.GITHUB_TOKEN;
 
       const tokens = getGitHubTokens();
-      expect(tokens).toEqual([rawToken, 'ghp_anotherPlaintextToken']);
+      expect(tokens).toEqual([rawToken, plaintextToken]);
     } finally {
       process.env.ENCRYPTION_KEY = originalKey;
     }
   });
 
-  it('gracefully falls back to raw token on decryption failure', () => {
+  it('discards an undecryptable token instead of forwarding a malformed credential', () => {
     const originalKey = process.env.ENCRYPTION_KEY;
     process.env.ENCRYPTION_KEY = 'abcdefghijklmnopqrstuvwxyz123456';
 
@@ -200,8 +207,11 @@ describe('GitHub Multi-Token Rotation & Fallback', () => {
       process.env.GITHUB_PAT = fakeEncryptedToken;
       delete process.env.GITHUB_TOKEN;
 
+      // The token fails to decrypt and the raw ciphertext does not match a
+      // valid GitHub token format either, so it must be dropped rather than
+      // sent to the API where it would only produce a cryptic 401.
       const tokens = getGitHubTokens();
-      expect(tokens).toEqual([fakeEncryptedToken]);
+      expect(tokens).toEqual([]);
     } finally {
       process.env.ENCRYPTION_KEY = originalKey;
     }

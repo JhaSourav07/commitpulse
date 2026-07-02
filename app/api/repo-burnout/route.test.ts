@@ -188,4 +188,29 @@ describe('GET /api/repo-burnout', () => {
     );
     expect(response3.status).toBe(429);
   });
+
+  it('returns 404 when repository is not found', async () => {
+    vi.mocked(fetchBurnoutAnalysis).mockRejectedValue(new Error('not found'));
+    const response = await GET(makeRequest({ owner: 'octocat', repo: 'nonexistent' }));
+    expect(response.status).toBe(404);
+    const data = await response.json();
+    expect(data.error).toBe('Repository not found');
+  });
+
+  it('returns 500 with generic error message for unexpected errors', async () => {
+    vi.mocked(fetchBurnoutAnalysis).mockRejectedValue(new Error('Database connection failed'));
+    const response = await GET(makeRequest({ owner: 'octocat', repo: 'hello-world' }));
+    expect(response.status).toBe(500);
+    const data = await response.json();
+    expect(data.error).toBe('Internal server error');
+    expect(data.error).not.toContain('Database');
+  });
+
+  it('returns 500 with generic error message for non-Error thrown values', async () => {
+    vi.mocked(fetchBurnoutAnalysis).mockRejectedValue('unexpected failure');
+    const response = await GET(makeRequest({ owner: 'octocat', repo: 'hello-world' }));
+    expect(response.status).toBe(500);
+    const data = await response.json();
+    expect(data.error).toBe('Internal server error');
+  });
 });

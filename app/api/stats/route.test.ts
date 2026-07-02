@@ -210,7 +210,7 @@ describe('GET /api/stats', () => {
     const response = await GET(makeRequest({ user: 'testuser' }));
     expect(response.status).toBe(500);
     const body = await response.json();
-    expect(body.error).toBe('GitHub API error');
+    expect(body.error).toBe('Internal server error');
   });
 
   it('returns 404 when GitHub reports that the user does not exist', async () => {
@@ -240,6 +240,6 @@ describe('GET /api/stats', () => {
     const response = await GET(makeRequest({ user: 'testuser' }));
     expect(response.status).toBe(500);
     const body = await response.json();
-    expect(body.error).toBe('Unknown error');
+    expect(body.error).toBe('Internal server error');
   });
 });

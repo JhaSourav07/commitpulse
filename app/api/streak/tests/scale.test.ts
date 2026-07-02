@@ -4,8 +4,8 @@ import { GET } from '../route';
 describe('Integration Test: API Streak Scale Parameter Group', () => {
   beforeEach(() => {
     // 1. Safely stub the environment variables
-    vi.stubEnv('GITHUB_TOKEN', 'mock_test_token_123');
-    vi.stubEnv('GITHUB_PAT', 'mock_test_token_123');
+    vi.stubEnv('GITHUB_TOKEN', 'ghp_testtokenAAAAAAAAAAAAAAAAAAAAAAAAAAAA');
+    vi.stubEnv('GITHUB_PAT', 'ghp_testtokenAAAAAAAAAAAAAAAAAAAAAAAAAAAA');
 
     // 2. Intercept the network request and return a true native Web Response
     // We mix low and high counts to ensure log vs linear output drastically differs.
