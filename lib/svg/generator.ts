@@ -364,7 +364,10 @@ function renderStatsSection(
 
   <g transform="translate(${s(500)}, ${s(340 + yOffset)})" text-anchor="middle">
     <text class="label">${labels.PEAK_STREAK}</text>
-    <text y="${s(40)}" class="stats">${stats.longestStreak}</text>
+    <g>
+      <text y="${s(40)}" class="stats">${stats.longestStreak}</text>
+      ${getInlineMilestoneBadge(stats.longestStreak, s, Math.max(25, stats.longestStreak.toString().length * 10 + 5), 26)}
+    </g>
   </g>`;
 }
 
@@ -795,6 +798,38 @@ function renderIsometricLabels(
   });
 
   return `<g class="isometric-labels">${elements}</g>`;
+}
+
+function getInlineMilestoneBadge(
+  streak: number,
+  s: (n: number) => number,
+  cx: number,
+  cy: number
+): string {
+  let color = '';
+  let path = '';
+  if (streak >= 365) {
+    color = '#FFD700';
+    path =
+      '<path d="M12 2c0 0-4.5 4.5-4.5 8.5C7.5 13.5 10 16 12 16c2 0 4.5-2.5 4.5-5.5C16.5 6.5 12 2 12 2z" fill="currentColor"/>';
+  } else if (streak >= 100) {
+    color = '#C0C0C0';
+    path =
+      '<path d="M12 2l2.4 7.4h7.6l-6 4.6 2.3 7.4-6.3-4.8-6.3 4.8 2.3-7.4-6-4.6h7.6z" fill="currentColor"/>';
+  } else if (streak >= 30) {
+    color = '#CD7F32';
+    path =
+      '<path d="M12 2L3 6v5.5c0 5 3.8 9.6 9 10.5 5.2-.9 9-5.5 9-10.5V6l-9-4z" fill="currentColor"/>';
+  } else {
+    return '';
+  }
+  return `
+    <g transform="translate(${s(cx)}, ${s(cy)})" color="${color}" class="milestone-inline-badge">
+      <svg x="0" y="0" width="${s(14)}" height="${s(14)}" viewBox="0 0 24 24">
+        ${path}
+      </svg>
+    </g>
+  `;
 }
 
 function renderMilestoneBadges(stats: StreakStats, params: BadgeParams, sf: number): string {
@@ -1840,7 +1875,10 @@ export function generateHeatmapSVG(
     </g>
     <g transform="translate(${s(360)}, 0)">
       <text class="hm-label">${labels.PEAK_STREAK}</text>
-      <text y="${s(22)}" class="hm-stats-val">${stats.longestStreak}</text>
+      <g>
+        <text y="${s(22)}" class="hm-stats-val">${stats.longestStreak}</text>
+        ${getInlineMilestoneBadge(stats.longestStreak, s, Math.max(22, stats.longestStreak.toString().length * 9 + 5), 10)}
+      </g>
     </g>
   </g>`
       : ''
@@ -1974,7 +2012,10 @@ function generateAutoThemeHeatmapSVG(
     </g>
     <g transform="translate(${s(360)}, 0)">
       <text class="hm-label">${labels.PEAK_STREAK}</text>
-      <text y="${s(22)}" class="hm-stats-val">${stats.longestStreak}</text>
+      <g>
+        <text y="${s(22)}" class="hm-stats-val">${stats.longestStreak}</text>
+        ${getInlineMilestoneBadge(stats.longestStreak, s, Math.max(22, stats.longestStreak.toString().length * 9 + 5), 10)}
+      </g>
     </g>
   </g>`
       : ''
@@ -3334,17 +3375,17 @@ export function generateLanguagesSVG(
 
     const hexColor = lang.color.startsWith('#') ? lang.color : `#${lang.color}`;
     const delay = (idx * 0.15).toFixed(3);
-    const tooltip = `${lang.name}: ${lang.percentage}%`;
+    const tooltip = `${escapeXML(lang.name)}: ${lang.percentage}%`;
 
     towersHtml += `
         <g transform="translate(${scaledX}, ${scaledY})">
           <g class="cp-tower interactive-tower" style="animation-delay: ${delay}s;">
-            <title>${escapeXML(tooltip)}</title>
+            <title>${tooltip}</title>
             <path d="${paths.left}" fill="${hexColor}" fill-opacity="0.85" />
             <path d="${paths.right}" fill="${hexColor}" fill-opacity="0.65" />
             <path d="${paths.top}" fill="${hexColor}" fill-opacity="1.0" />
             
-            <text x="0" y="${-h - 18 * sf}" text-anchor="middle" font-family='${statsFont}' font-size="${14 * sf}px" fill="${text}" font-weight="bold">${lang.name}</text>
+            <text x="0" y="${-h - 18 * sf}" text-anchor="middle" font-family='${statsFont}' font-size="${14 * sf}px" fill="${text}" font-weight="bold">${escapeXML(lang.name)}</text>
             <text x="0" y="${-h - 4 * sf}" text-anchor="middle" font-family='${statsFont}' font-size="${12 * sf}px" fill="${text}" opacity="0.6">${lang.percentage}%</text>
           </g>
         </g>`;
@@ -3419,14 +3460,17 @@ export function generateActivityGraphSVG(
 >
   <title id="cp-title-${safeId}">Activity Graph for ${safeUser}</title>
   <desc id="cp-desc-${safeId}">Contribution activity graph for ${safeUser} over ${days} days, totalling ${totalCount} ${unit.toLowerCase()}.</desc>
+  ${_renderActivityGraphDefs(accent, bg, params)}
   <style>
   @import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');
   ${googleFontsImport}
+  ${_activityGraphCSS(selectedFont, statsFont, text, accent, false)}
   </style>
   <rect width="${width}" height="${height}" rx="${radius}" fill="${params.hideBackground ? 'transparent' : bgFill}" />
   <path class="ag-area" d="${areaPathD}" />
   <path class="ag-trend" d="${trendPathD}" stroke="${accent}" />
   <path class="ag-line" d="${pathD}" stroke="${accent}" />
+  ${_renderPeakAnnotation(peakX, peakY, peakCount, peakDate, accent, text, statsFont, false)}
   ${!params.hide_title ? `<text x="24" y="28" class="ag-title">${safeUser.toUpperCase()}${params.isOfflineFallback ? '<tspan fill="#ff9f43" font-size="10px" font-weight="bold"> [STALE CACHE]</tspan>' : ''}</text>` : ''}
   ${!params.hide_stats ? `<text x="${width - 24}" y="28" text-anchor="end" class="ag-total">${totalCount} ${unit}</text>` : ''}
 </svg>
@@ -3493,11 +3537,13 @@ function generateAutoThemeActivityGraphSVG(
   :root { --cp-bg: #${light.bg}; --cp-text: #${light.text}; --cp-accent: #${light.accent}; }
   @media (prefers-color-scheme: dark) { :root { --cp-bg: #${dark.bg}; --cp-text: #${dark.text}; --cp-accent: #${dark.accent}; } }
   .cp-bg-fill { fill: var(--cp-bg); }
+  ${_activityGraphCSS(selectedFont, statsFont, 'var(--cp-text)', 'var(--cp-accent)', true)}
   </style>
   <rect width="${width}" height="${height}" rx="${radius}" ${params.hideBackground ? 'fill="transparent"' : 'class="cp-bg-fill"'} />
   <path class="ag-area" d="${areaPathD}" />
   <path class="ag-trend" d="${trendPathD}" stroke="var(--cp-accent)" />
   <path class="ag-line" d="${pathD}" stroke="var(--cp-accent)" />
+  ${_renderPeakAnnotation(peakX, peakY, peakCount, peakDate, 'var(--cp-accent)', 'var(--cp-text)', statsFont, true)}
   ${!params.hide_title ? `<text x="24" y="28" class="ag-title">${safeUser.toUpperCase()}${params.isOfflineFallback ? '<tspan fill="#ff9f43" font-size="10px" font-weight="bold"> [STALE CACHE]</tspan>' : ''}</text>` : ''}
   ${!params.hide_stats ? `<text x="${width - 24}" y="28" text-anchor="end" class="ag-total">${totalCount} ${unit}</text>` : ''}
 </svg>

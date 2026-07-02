@@ -35,25 +35,8 @@ vi.mock('framer-motion', () => ({
     {},
     {
       get: (_, tag) => {
-        return ({
-          children,
-          animate,
-          initial,
-          exit,
-          transition,
-          variants,
-          whileHover,
-          whileTap,
-          whileFocus,
-          whileDrag,
-          whileInView,
-          layout,
-          layoutId,
-          ...props
-        }: {
-          children?: ReactNode;
-          [key: string]: unknown;
-        }) => React.createElement(tag as string, props, children);
+        return ({ children, ...props }: { children?: ReactNode; [key: string]: unknown }) =>
+          React.createElement(tag as string, props, children);
       },
     }
   ),
@@ -204,11 +187,12 @@ describe('CompareClient Mouse Interactivity & Touch Events', () => {
     );
 
     // Check StatBattle border elements transitions on mouseEnter / mouseLeave
-    const repositoryCard = screen.getByText('5,000').closest('div');
-    expect(repositoryCard).toBeInTheDocument();
+    const statsShowdown = screen.getByText(/stats showdown/i);
 
-    fireEvent.mouseEnter(repositoryCard!);
-    fireEvent.mouseLeave(repositoryCard!);
+    expect(statsShowdown).toBeInTheDocument();
+
+    fireEvent.mouseEnter(statsShowdown);
+    fireEvent.mouseLeave(statsShowdown);
   });
 
   it('triggers mouse hover interactions on coding habits cards', async () => {

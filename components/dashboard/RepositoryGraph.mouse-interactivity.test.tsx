@@ -12,7 +12,7 @@ let capturedOnNodeHover: ((node: Record<string, unknown> | null) => void) | null
 let capturedOnNodeClick: ((node: Record<string, unknown>) => void) | null = null;
 
 vi.mock('next/dynamic', () => ({
-  default: (_fn: unknown, _opts?: unknown) => {
+  default: () => {
     return function ForceGraphMock(props: ForceGraphProps) {
       capturedOnNodeHover = props.onNodeHover ?? null;
       capturedOnNodeClick = props.onNodeClick ?? null;

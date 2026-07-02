@@ -33,26 +33,26 @@ describe('ShareSheet Type Compiler Validation', () => {
 
 // Compile-time validation checks
 
-const invalidUsername: ShareSheetProps = {
+void ({
   // @ts-expect-error username must be string
   username: 123,
   isOpen: true,
   onClose: () => {},
   exportData: {} as DashboardExportData,
-};
+} satisfies ShareSheetProps);
 
-const invalidIsOpen: ShareSheetProps = {
+void ({
   username: 'octocat',
   // @ts-expect-error isOpen must be boolean
   isOpen: 'true',
   onClose: () => {},
   exportData: {} as DashboardExportData,
-};
+} satisfies ShareSheetProps);
 
-const invalidOnClose: ShareSheetProps = {
+void ({
   username: 'octocat',
   isOpen: true,
   // @ts-expect-error onClose must be function
   onClose: 'close',
   exportData: {} as DashboardExportData,
-};
+} satisfies ShareSheetProps);

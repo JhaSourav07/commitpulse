@@ -370,7 +370,7 @@ const baseStreakParamsSchema = z.object({
   size: z.enum(['small', 'medium', 'large']).catch('medium').default('medium'),
 
   // to fetch N days contributions
-  days: z.coerce.number().int().positive().max(365).optional(),
+  days: z.coerce.number().int().positive().max(366).optional(),
 
   // Silently fall back to '8s' for invalid format (matches old behavior)
   speed: z
@@ -421,6 +421,26 @@ const baseStreakParamsSchema = z.object({
       },
       { message: 'Invalid "to" date format. Use ISO 8601 (e.g. 2023-12-31).' }
     ),
+  start_date: z
+    .string()
+    .optional()
+    .refine(
+      (val) => {
+        if (!val) return true;
+        return validateStrictISODate(val);
+      },
+      { message: 'Invalid "start_date" format. Use ISO 8601 (e.g. 2023-01-01).' }
+    ),
+  end_date: z
+    .string()
+    .optional()
+    .refine(
+      (val) => {
+        if (!val) return true;
+        return validateStrictISODate(val);
+      },
+      { message: 'Invalid "end_date" format. Use ISO 8601 (e.g. 2023-12-31).' }
+    ),
   date: z
     .string()
     .optional()
@@ -453,6 +473,8 @@ const baseStreakParamsSchema = z.object({
       'radar',
       'doughnut',
       'pie',
+      'activity_graph',
+      'commit_clock',
       'activity_graph',
     ])
     .catch('default')

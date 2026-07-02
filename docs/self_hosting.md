@@ -30,6 +30,13 @@ npm run dev
 
 Then visit: `http://localhost:3000/api/streak?user=YOUR_USERNAME`
 
+> [!TIP]
+> If port 3000 is already in use by another application, you can start the development server on a custom port using:
+>
+> ```bash
+> npm run dev -- -p 3001
+> ```
+
 ---
 
 ## 🗄️ Optional: MongoDB User Tracking

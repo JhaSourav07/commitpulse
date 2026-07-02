@@ -1538,6 +1538,30 @@ describe('GET /api/streak', () => {
       expect(body).toContain('family=Inter&amp;display=swap');
       expect(body).toContain('"Inter", sans-serif');
     });
+
+    it('route-level: ?font=jetbrains returns SVG containing JetBrains Mono', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', font: 'jetbrains' }));
+      const body = await response.text();
+
+      expect(response.status).toBe(200);
+      expect(body).toContain('JetBrains Mono');
+    });
+
+    it('route-level: ?font=Inter returns SVG containing Google Fonts import URL', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', font: 'Inter' }));
+      const body = await response.text();
+
+      expect(response.status).toBe(200);
+      expect(body).toContain('family=Inter');
+    });
+
+    it('route-level: empty ?font falls back to default font', async () => {
+      const response = await GET(makeRequest({ user: 'octocat', font: '' }));
+      const body = await response.text();
+
+      expect(response.status).toBe(200);
+      expect(body).toContain('Space Grotesk');
+    });
   });
 
   describe('stale-while-revalidate cache header', () => {

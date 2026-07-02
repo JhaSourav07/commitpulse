@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { motion, useMotionValue, useSpring, useTransform, AnimatePresence } from 'framer-motion';
 import { Search, Trophy, Sparkles, Lock, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
@@ -16,6 +16,7 @@ import {
   ACHIEVEMENT_TIER_LABELS,
   ACHIEVEMENT_TIER_COLORS,
 } from '@/types/achievements';
+import { consumeUnlockCelebration } from './celebration';
 
 function AnimatedCounter({ value, suffix = '' }: { value: number; suffix?: string }) {
   const motionValue = useMotionValue(0);
@@ -220,13 +221,54 @@ function AchievementCard({ data, index }: { data: AchievementData; index: number
   );
 }
 
-function UnlockCelebration({
+export function UnlockCelebration({
   data,
   onClose,
 }: {
   data: AchievementData | null;
   onClose: () => void;
 }) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!data) return;
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onClose();
+        return;
+      }
+      if (event.key !== 'Tab') return;
+      const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      if (!focusable || focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    // Defer focus to the next frame so it runs after the dialog has mounted and
+    // painted (the dialog animates in), rather than during the same commit.
+    const focusFrame = requestAnimationFrame(() => dialogRef.current?.focus());
+
+    return () => {
+      cancelAnimationFrame(focusFrame);
+      document.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = previousOverflow;
+      previouslyFocused?.focus?.();
+    };
+  }, [data, onClose]);
   const particles = useMemo(
     () =>
       Array.from({ length: 20 }).map((_, i) => ({
@@ -261,11 +303,16 @@ function UnlockCelebration({
         onClick={onClose}
       >
         <motion.div
+          ref={dialogRef}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="achievement-unlock-title"
+          tabIndex={-1}
           initial={{ scale: 0.5, opacity: 0, rotate: -10 }}
           animate={{ scale: 1, opacity: 1, rotate: 0 }}
           exit={{ scale: 0.5, opacity: 0, rotate: 10 }}
           transition={{ type: 'spring', damping: 15, stiffness: 200 }}
-          className="relative mx-4 max-w-md rounded-3xl border border-white/20 bg-gradient-to-b from-white/10 to-white/5 p-8 text-center backdrop-blur-2xl"
+          className="relative mx-4 max-w-md rounded-3xl border border-white/20 bg-gradient-to-b from-white/10 to-white/5 p-8 text-center backdrop-blur-2xl focus:outline-none"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Confetti-like particles */}
@@ -297,6 +344,7 @@ function UnlockCelebration({
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
+            id="achievement-unlock-title"
             className="mb-1 text-2xl font-bold text-white"
           >
             Achievement Unlocked!
@@ -375,6 +423,9 @@ export default function AchievementsClient() {
       }
       const json: AchievementsResponse = await res.json();
       setData(json);
+
+      const toCelebrate = consumeUnlockCelebration(user, json.recentUnlocks);
+      if (toCelebrate) setCelebrated(toCelebrate);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Unknown error');
     } finally {

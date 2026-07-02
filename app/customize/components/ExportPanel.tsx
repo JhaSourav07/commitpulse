@@ -176,57 +176,30 @@ export function ExportPanel({
         targetUrl = targetUrl.replace('https://commitpulse.vercel.app', window.location.origin);
       }
 
+      if (targetUrl.includes('?')) {
+        targetUrl += '&format=png';
+      } else {
+        targetUrl += '?format=png';
+      }
+
       const response = await fetch(targetUrl);
 
       if (!response.ok) {
-        throw new Error('Failed to fetch SVG');
+        throw new Error('Failed to fetch PNG from backend');
       }
 
-      const svgText = await response.text();
+      const blob = await response.blob();
+      const pngUrl = URL.createObjectURL(blob);
 
-      const svgBlob = new Blob([svgText], {
-        type: 'image/svg+xml;charset=utf-8',
-      });
+      const link = document.createElement('a');
+      link.href = pngUrl;
+      link.download = `commitpulse-${username || 'badge'}.png`;
 
-      const svgUrl = URL.createObjectURL(svgBlob);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
 
-      const img = new Image();
-
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-
-        canvas.width = img.width || 1200;
-        canvas.height = img.height || 630;
-
-        const ctx = canvas.getContext('2d');
-
-        if (!ctx) {
-          URL.revokeObjectURL(svgUrl);
-          return;
-        }
-
-        ctx.drawImage(img, 0, 0);
-
-        canvas.toBlob((blob) => {
-          if (!blob) return;
-
-          const pngUrl = URL.createObjectURL(blob);
-
-          const link = document.createElement('a');
-          link.href = pngUrl;
-          link.download = `commitpulse-${username || 'badge'}.png`;
-
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-
-          URL.revokeObjectURL(pngUrl);
-        }, 'image/png');
-
-        URL.revokeObjectURL(svgUrl);
-      };
-
-      img.src = svgUrl;
+      URL.revokeObjectURL(pngUrl);
     } catch (error) {
       console.error(error);
       toast.error('Failed to download PNG badge.');

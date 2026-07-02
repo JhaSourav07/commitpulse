@@ -9,7 +9,7 @@
     "compare": "तुलना करें",
     "customization_studio": "कस्टमाइजेशन स्टूडियो",
     "generator": "जनरेटर",
-    "burnout_radar": "Burnout Radar"
+    "burnout_radar": "बर्नआउट रडार"
   },
   "footer": {
     "tagline": "उत्कृष्ट डेवलपर समुदाय के लिए डिज़ाइन किया गया।",
@@ -465,6 +465,26 @@
       "reviews_header": "Reviews",
       "avg_review_header": "Avg Review Time",
       "no_repos": "No repository data available."
+    },
+    "enterprise": {
+      "title": "Enterprise Engineering Health Dashboard",
+      "health_score": "Health Score",
+      "team_metrics": "Team Metrics",
+      "sprint_progress": "Sprint Progress",
+      "burnout_risk": "Burnout Risk",
+      "velocity_trends": "Velocity Trends",
+      "total_members": "Total Members",
+      "active_members": "Active",
+      "combined_streak": "Combined Streak",
+      "total_contributions": "Total Contributions",
+      "productivity": "Productivity",
+      "sustainability": "Sustainability",
+      "collaboration": "Collaboration",
+      "contributions": "contributions",
+      "indicators": "Indicators",
+      "recommendations": "Recommendations",
+      "expand": "Expand",
+      "collapse": "Collapse"
     }
   }
 }

@@ -3,9 +3,7 @@ import { validateGitHubUsername } from '@/lib/validations';
 import { getFullDashboardData } from '@/lib/github';
 import type {
   AchievementDef,
-  AchievementLevelDef,
   AchievementCategory,
-  AchievementRarity,
   AchievementState,
   AchievementData,
   AchievementsResponse,
@@ -628,7 +626,6 @@ export async function GET(request: Request) {
     const totalEngagement = totalStars + totalForks + stats.totalIssues + stats.totalPRs;
 
     const totalContributions = stats.totalContributions;
-    const currentStreak = stats.currentStreak;
     const longestStreak = stats.peakStreak;
 
     const allCategories: AchievementCategory[] = [

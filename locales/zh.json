@@ -9,7 +9,7 @@
     "compare": "对比",
     "customization_studio": "自定义工作室",
     "generator": "生成器",
-    "burnout_radar": "Burnout Radar"
+    "burnout_radar": "倦怠雷达"
   },
   "footer": {
     "tagline": "专为精英开发者社区设计。",
@@ -465,6 +465,26 @@
       "reviews_header": "Reviews",
       "avg_review_header": "Avg Review Time",
       "no_repos": "No repository data available."
+    },
+    "enterprise": {
+      "title": "Enterprise Engineering Health Dashboard",
+      "health_score": "Health Score",
+      "team_metrics": "Team Metrics",
+      "sprint_progress": "Sprint Progress",
+      "burnout_risk": "Burnout Risk",
+      "velocity_trends": "Velocity Trends",
+      "total_members": "Total Members",
+      "active_members": "Active",
+      "combined_streak": "Combined Streak",
+      "total_contributions": "Total Contributions",
+      "productivity": "Productivity",
+      "sustainability": "Sustainability",
+      "collaboration": "Collaboration",
+      "contributions": "contributions",
+      "indicators": "Indicators",
+      "recommendations": "Recommendations",
+      "expand": "Expand",
+      "collapse": "Collapse"
     }
   }
 }

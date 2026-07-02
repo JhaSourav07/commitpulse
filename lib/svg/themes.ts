@@ -63,6 +63,7 @@ export const themes: Record<string, BadgeTheme> = {
   tokyo_night: makeTheme('1a1b26', 'c0caf5', '7aa2f7'),
   monokai: makeTheme('272822', 'f8f8f2', 'a6e22e', 'f92672'),
   midnight_ocean: makeTheme('020c1b', 'ccd6f6', '0af5ff', 'ff4d6d'),
+  enterprise: makeTheme('1a1a2e', 'e2e8f0', '6366f1', '8b5cf6'),
 };
 
 // Auto-theme pairs: the SVG switches between these two palettes

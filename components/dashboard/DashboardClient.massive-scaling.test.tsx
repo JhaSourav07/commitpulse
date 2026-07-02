@@ -13,7 +13,7 @@ global.IntersectionObserver = class IntersectionObserver {
   unobserve = vi.fn();
   disconnect = vi.fn();
   takeRecords = vi.fn(() => []);
-  constructor(callback: IntersectionObserverCallback, options?: IntersectionObserverInit) {}
+  constructor() {}
 } as unknown as typeof IntersectionObserver;
 
 // Mock the useRouter and useSearchParams hooks from Next.js navigation
@@ -22,7 +22,7 @@ vi.mock('next/navigation', () => ({
     replace: vi.fn(),
   }),
   useSearchParams: () => ({
-    get: vi.fn((key: string) => null),
+    get: vi.fn(() => null),
     entries: vi.fn(() => []),
   }),
 }));

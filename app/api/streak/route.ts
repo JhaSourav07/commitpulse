@@ -2,13 +2,21 @@
 
 import crypto from 'crypto';
 import { NextResponse } from 'next/server';
-import { fetchGitHubContributions, getOrgDashboardData, getCircuitTelemetry } from '@/lib/github';
+import {
+  fetchGitHubContributions,
+  getOrgDashboardData,
+  getCircuitTelemetry,
+  fetchCommitHourDistribution,
+} from '@/lib/github';
 import {
   calculateStreak,
   calculateMonthlyStats,
   aggregateCalendars,
+  convertLocalToUtc,
   chunkDaysIntoWeeks,
   normalizeCalendarToTimezone,
+  isLeapYear,
+  daysInYear,
 } from '@/lib/calculate';
 import {
   generateNotFoundSVG,
@@ -25,6 +33,7 @@ import {
 import { generateConstellationSVG } from '@/lib/svg/constellation';
 import { generateRadarSVG } from '@/lib/svg/radar';
 import { generateDoughnutSVG } from '@/lib/svg/doughnut';
+import { generateCommitClockSVG } from '@/lib/svg/commitClock';
 import { optimizeSVG } from '@/lib/svg/optimizer';
 import { getSecondsUntilUTCMidnight, getSecondsUntilMidnightInTimezone } from '@/utils/time';
 import type { BadgeParams, RepoContribution, ExtendedContributionData } from '@/types';
@@ -129,6 +138,8 @@ export async function GET(request: Request) {
       year,
       from: customFrom,
       to: customTo,
+      start_date,
+      end_date,
       refresh,
       bypassCache: bypassCacheParam,
       hide_title,
@@ -177,8 +188,8 @@ export async function GET(request: Request) {
       | 'radar'
       | 'doughnut'
       | 'pie'
-      | 'activity_graph';
-
+      | 'activity_graph'
+      | 'commit_clock';
     const themeKey = getNormalizedThemeKey(theme);
     const themeName = themeKey === 'default' && theme ? theme : themeKey;
 
@@ -258,9 +269,28 @@ export async function GET(request: Request) {
       return date.toISOString();
     };
 
-    let from = parseDate(customFrom) ?? (year ? `${year}-01-01T00:00:00Z` : undefined);
+    const finalFrom = parseDate(start_date) ?? parseDate(customFrom);
+    const finalTo = parseDate(end_date) ?? parseDate(customTo);
 
-    let to = parseDate(customTo) ?? (year ? `${year}-12-31T23:59:59Z` : undefined);
+    let from = finalFrom ?? (year ? `${year}-01-01T00:00:00Z` : undefined);
+    let to = finalTo ?? (year ? `${year}-12-31T23:59:59Z` : undefined);
+
+    let autoSubtitle = custom_subtitle;
+    if (!autoSubtitle && (start_date || end_date)) {
+      const formatOpts: Intl.DateTimeFormatOptions = {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        timeZone: timezone,
+      };
+      const startStr = start_date
+        ? new Intl.DateTimeFormat('en-US', formatOpts).format(new Date(start_date))
+        : 'Start';
+      const endStr = end_date
+        ? new Intl.DateTimeFormat('en-US', formatOpts).format(new Date(end_date))
+        : 'Present';
+      autoSubtitle = `${startStr} - ${endStr}`;
+    }
 
     if (normalizedView === 'monthly') {
       const referenceDate = getMonthlyReferenceDate(year, timezone) || new Date();
@@ -342,7 +372,7 @@ export async function GET(request: Request) {
       autoTheme: isAutoTheme,
       hide_title,
       custom_title,
-      custom_subtitle,
+      custom_subtitle: autoSubtitle,
       hideBackground: hide_background,
       hide_stats,
       lang,
@@ -478,15 +508,24 @@ export async function GET(request: Request) {
       clearTimeout(timeoutId);
     }
 
-    if (days && normalizedView !== 'monthly') {
-      const allDays = calendar.weeks.flatMap((w) => w.contributionDays);
+    if (normalizedView !== 'monthly') {
+      let effectiveDays = days;
 
-      const filteredDays = allDays.slice(-days);
+      if (!effectiveDays && year) {
+        const yearNum = parseInt(year, 10);
+        if (!isNaN(yearNum)) {
+          effectiveDays = daysInYear(yearNum);
+        }
+      }
 
-      calendar = {
-        totalContributions: filteredDays.reduce((sum, d) => sum + d.contributionCount, 0),
-        weeks: chunkDaysIntoWeeks(filteredDays),
-      };
+      if (effectiveDays) {
+        const allDays = calendar.weeks.flatMap((w) => w.contributionDays);
+        const filteredDays = allDays.slice(-effectiveDays);
+        calendar = {
+          totalContributions: filteredDays.reduce((sum, d) => sum + d.contributionCount, 0),
+          weeks: chunkDaysIntoWeeks(filteredDays),
+        };
+      }
     }
 
     // ─── JSON output mode ──────────────────────────────────────────────────
@@ -581,6 +620,10 @@ export async function GET(request: Request) {
     } else if (normalizedView === 'activity_graph') {
       const stats = calculateStreak(calendar, timezone, undefined, grace);
       svg = generateActivityGraphSVG(stats, params, calendar);
+    } else if (normalizedView === 'commit_clock') {
+      const stats = calculateStreak(calendar, timezone, undefined, grace);
+      const hourCounts = await fetchCommitHourDistribution(user).catch(() => new Array(24).fill(0));
+      svg = generateCommitClockSVG(hourCounts, stats, params);
     } else if (versus && versusCalendar) {
       // Normalize both calendars to the target timezone for accurate comparison
       const normalizedCalendar = normalizeCalendarToTimezone(calendar, timezone);

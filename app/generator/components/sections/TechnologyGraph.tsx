@@ -49,7 +49,7 @@ const GRAPH_EDGES = [
 ];
 
 export function TechnologyGraph({ selected, onToggle }: TechnologyGraphProps) {
-  const safeSelected = Array.isArray(selected) ? selected : [];
+  const safeSelected = useMemo(() => (Array.isArray(selected) ? selected : []), [selected]);
   const containerRef = useRef<HTMLDivElement>(null);
   const requestRef = useRef<number | null>(null);
 
@@ -81,6 +81,7 @@ export function TechnologyGraph({ selected, onToggle }: TechnologyGraphProps) {
   const [nodes, setNodes] = useState<NodeState[]>([]);
   const [draggedNode, setDraggedNode] = useState<string | null>(null);
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
+  const [focusedNode, setFocusedNode] = useState<string | null>(null);
 
   // Pan and Zoom
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -285,12 +286,13 @@ export function TechnologyGraph({ selected, onToggle }: TechnologyGraphProps) {
   const activeAndHoveredConnections = useMemo(() => {
     const activeIds = new Set<string>();
 
-    // If a node is hovered, highlight its immediate connections
-    if (hoveredNode) {
-      activeIds.add(hoveredNode);
+    // If a node is hovered or focused, highlight its immediate connections
+    const highlightedNode = hoveredNode || focusedNode;
+    if (highlightedNode) {
+      activeIds.add(highlightedNode);
       GRAPH_EDGES.forEach((edge) => {
-        if (edge.source === hoveredNode) activeIds.add(edge.target);
-        if (edge.target === hoveredNode) activeIds.add(edge.source);
+        if (edge.source === highlightedNode) activeIds.add(edge.target);
+        if (edge.target === highlightedNode) activeIds.add(edge.source);
       });
     }
 
@@ -304,10 +306,10 @@ export function TechnologyGraph({ selected, onToggle }: TechnologyGraphProps) {
     });
 
     return activeIds;
-  }, [safeSelected, hoveredNode]);
+  }, [safeSelected, hoveredNode, focusedNode]);
 
   const isNodeHighlighted = (id: string) => {
-    if (safeSelected.length === 0 && !hoveredNode) return true; // Show full color initially
+    if (safeSelected.length === 0 && !hoveredNode && !focusedNode) return true; // Show full color initially
     return activeAndHoveredConnections.has(id);
   };
 
@@ -511,12 +513,36 @@ export function TechnologyGraph({ selected, onToggle }: TechnologyGraphProps) {
                 <g
                   key={node.id}
                   transform={`translate(${node.x}, ${node.y})`}
-                  className="cursor-pointer"
+                  className="cursor-pointer focus-visible:outline-none"
+                  tabIndex={0}
+                  role="button"
+                  aria-pressed={isSelected}
+                  aria-label={`${node.name} (${node.category})`}
                   onMouseDown={(e) => handleNodeMouseDown(node.id, e)}
                   onClick={(e) => handleNodeClick(node.id, e)}
                   onMouseEnter={() => setHoveredNode(node.id)}
                   onMouseLeave={() => setHoveredNode(null)}
+                  onFocus={() => setFocusedNode(node.id)}
+                  onBlur={() => setFocusedNode(null)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      onToggle(node.id);
+                    }
+                  }}
                 >
+                  {/* Keyboard focus ring */}
+                  {focusedNode === node.id && (
+                    <circle
+                      r={radius + 6}
+                      fill="none"
+                      stroke="#10b981"
+                      strokeWidth={2}
+                      strokeDasharray="4 2"
+                      strokeOpacity={0.8}
+                    />
+                  )}
+
                   {/* Outer selection ring animation */}
                   {isSelected && (
                     <circle

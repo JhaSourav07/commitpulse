@@ -12,7 +12,7 @@
  *  ✓ Edge cases (zero values, large values)
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { render, screen, act } from '@testing-library/react';
 import { describe, expect, it, vi, afterEach } from 'vitest';
 import ComparisonStatsCard from './ComparisonStatsCard';
@@ -21,18 +21,7 @@ import ComparisonStatsCard from './ComparisonStatsCard';
 // Strips motion-specific props so they don't leak into the DOM.
 vi.mock('framer-motion', () => ({
   motion: {
-    div: ({
-      children,
-      className,
-      style,
-      whileInView,
-      whileHover,
-      whileTap,
-      initial,
-      animate,
-      transition,
-      ...rest
-    }: any) => (
+    div: ({ children, className, style, ...rest }: any) => (
       <div className={className} style={style} {...rest}>
         {children}
       </div>

@@ -310,7 +310,7 @@ function CustomizePageInner(): ReactElement {
 
     return () => controller.abort();
     // By changing this list, useEffect only runs when previewSrc finishes debouncing
-  }, [previewSrc, hasUsername, trimmedUsername]);
+  }, [previewSrc, hasUsername, trimmedUsername, svgCache]);
 
   const exportSnippet = getExportSnippet(exportFormat, queryString);
 
