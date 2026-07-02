@@ -66,6 +66,7 @@ export function ExportPanel({
 
   // Track async server download states
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isDownloadingTimeLapse, setIsDownloadingTimeLapse] = useState(false);
   const [filePathCopied, setFilePathCopied] = useState(false);
   const [markdownCopied, setMarkdownCopied] = useState(false);
 
@@ -152,6 +153,118 @@ export function ExportPanel({
       setIsDownloading(false);
       console.error(err);
       toast.error('Failed to retrieve the latest badge asset. Please try again.');
+    }
+  };
+
+  const handleDownloadTimeLapse = async () => {
+    if (!hasUsername || !snippet) return;
+    try {
+      setIsDownloadingTimeLapse(true);
+      const urlMatch = snippet.match(/\((https?:\/\/[^)]+)\)/) || snippet.match(/src="([^"]+)"/);
+      let targetUrl = urlMatch ? urlMatch[1] : '';
+      if (!targetUrl) return;
+      targetUrl = targetUrl.replace(/&amp;/g, '&');
+      if (targetUrl.includes('https://commitpulse.vercel.app')) {
+        targetUrl = targetUrl.replace('https://commitpulse.vercel.app', window.location.origin);
+      }
+      targetUrl += targetUrl.includes('?') ? '&refresh=true' : '?refresh=true';
+
+      const response = await fetch(targetUrl);
+      const svgText = await response.text();
+
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(svgText, 'image/svg+xml');
+      const towers = Array.from(doc.querySelectorAll('.cp-tower'));
+
+      towers.sort((a, b) => {
+        const da = a.getAttribute('data-date') || '';
+        const db = b.getAttribute('data-date') || '';
+        return da.localeCompare(db);
+      });
+
+      towers.forEach((t) => {
+        t.setAttribute('opacity', '0');
+        (t as HTMLElement).style.animation = 'none';
+        (t as HTMLElement).style.transition = 'none';
+      });
+
+      // Hide animations from root
+      const styles = doc.querySelectorAll('style');
+      styles.forEach((s) => {
+        s.textContent += ' * { animation: none !important; transition: none !important; }';
+      });
+
+      const framesCount = 90; // 3 seconds at 30fps
+      const frames: ImageData[] = [];
+      const canvas = document.createElement('canvas');
+      canvas.width = parseInt(doc.documentElement.getAttribute('width') || '1000');
+      canvas.height = parseInt(doc.documentElement.getAttribute('height') || '1000');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('No 2d context');
+
+      for (let i = 0; i <= framesCount; i++) {
+        const progress = i / framesCount;
+        const visibleCount = Math.floor(progress * towers.length);
+
+        for (let j = 0; j < towers.length; j++) {
+          towers[j].setAttribute('opacity', j < visibleCount ? '1' : '0');
+        }
+
+        const frameSvgText = new XMLSerializer().serializeToString(doc);
+        const blob = new Blob([frameSvgText], { type: 'image/svg+xml;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+
+        await new Promise((resolve) => {
+          const img = new Image();
+          img.onload = () => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0);
+            frames.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
+            URL.revokeObjectURL(url);
+            resolve(null);
+          };
+          img.src = url;
+        });
+      }
+
+      const streamCanvas = document.createElement('canvas');
+      streamCanvas.width = canvas.width;
+      streamCanvas.height = canvas.height;
+      const streamCtx = streamCanvas.getContext('2d');
+      if (!streamCtx) throw new Error('No 2d context');
+
+      const stream = streamCanvas.captureStream(30);
+      const mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+      const chunks: BlobPart[] = [];
+      mediaRecorder.ondataavailable = (e) => chunks.push(e.data);
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(chunks, { type: 'video/webm' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `commitpulse-${username}-timelapse.webm`;
+        a.click();
+        setIsDownloadingTimeLapse(false);
+        toast.success('Time-lapse generated!');
+      };
+
+      mediaRecorder.start();
+
+      let frameIdx = 0;
+      const playNextFrame = () => {
+        if (frameIdx < frames.length) {
+          streamCtx.putImageData(frames[frameIdx], 0, 0);
+          frameIdx++;
+          setTimeout(playNextFrame, 1000 / 30);
+        } else {
+          setTimeout(() => mediaRecorder.stop(), 500);
+        }
+      };
+      playNextFrame();
+    } catch (err) {
+      console.error(err);
+      setIsDownloadingTimeLapse(false);
+      toast.error('Failed to generate time-lapse.');
     }
   };
 
@@ -331,6 +444,22 @@ export function ExportPanel({
               <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
             </svg>
             {t('customize.export.share_config', { defaultValue: 'Share Config' })}
+          </button>
+
+          {/* Export Time-Lapse Button */}
+          <button
+            type="button"
+            onClick={handleDownloadTimeLapse}
+            disabled={!hasUsername || isDownloadingTimeLapse || format === 'action'}
+            className={`relative inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 ${
+              !hasUsername || isDownloadingTimeLapse || format === 'action'
+                ? 'bg-gray-200/90 border border-black/10 text-gray-500 cursor-not-allowed dark:bg-white/10 dark:border-white/10 dark:text-white/35'
+                : 'bg-purple-500/10 border border-purple-500/30 text-purple-500 hover:bg-purple-500/20 hover:scale-[1.03] active:scale-[0.97]'
+            }`}
+          >
+            {isDownloadingTimeLapse
+              ? t('customize.export.downloading', { defaultValue: 'Generating...' })
+              : 'Export Time-Lapse (WebM)'}
           </button>
 
           {/* Clipboard Copy Button */}
