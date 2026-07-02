@@ -101,7 +101,7 @@ describe('Achievements Route Accessibility', () => {
     const body = await response.json();
 
     expect(response.status).toBe(500);
-    expect(body.error).toBe('Unknown error');
+    expect(body.error).toBe('Internal server error');
     expect(body.error).not.toContain('undefined');
     expect(body.error).not.toContain('null');
     expect(body.error).not.toMatch(/at\s+\w+\s+\(/);
