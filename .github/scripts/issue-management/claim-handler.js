@@ -12,6 +12,9 @@ async function findExistingAssignments(github, owner, repo, username, currentIss
 
 const MAX_ASSIGNED_ISSUES = 5;
 
+// Toggle this to control whether community members can claim issues
+const ALLOW_COMMUNITY_CLAIMS = true;
+
 async function handleClaim({ github, context }) {
   const { owner, repo } = context.repo;
   const issueNumber = context.payload.issue.number;
@@ -28,19 +31,22 @@ async function handleClaim({ github, context }) {
     return;
   }
 
-  const issueAuthor = context.payload.issue.user.login;
+  // Restrict claiming only when community claims are disabled
+  if (!ALLOW_COMMUNITY_CLAIMS) {
+    const issueAuthor = context.payload.issue.user.login;
 
-  const MAINTAINERS = ['jhasourav07', 'aamod-dev', 'souravjhahind'];
-  const isOpenedByMaintainer = MAINTAINERS.includes(issueAuthor.toLowerCase());
+    const MAINTAINERS = ['jhasourav07', 'aamod-dev', 'souravjhahind'];
+    const isOpenedByMaintainer = MAINTAINERS.includes(issueAuthor.toLowerCase());
 
-  if (!isOpenedByMaintainer && commenter.toLowerCase() !== issueAuthor.toLowerCase()) {
-    await github.rest.issues.createComment({
-      owner,
-      repo,
-      issue_number: issueNumber,
-      body: `❌ Only the author of this issue (@${issueAuthor}) can claim it.`,
-    });
-    return;
+    if (!isOpenedByMaintainer && commenter.toLowerCase() !== issueAuthor.toLowerCase()) {
+      await github.rest.issues.createComment({
+        owner,
+        repo,
+        issue_number: issueNumber,
+        body: `❌ Only the author of this issue (@${issueAuthor}) can claim it.`,
+      });
+      return;
+    }
   }
 
   // Re-fetch to avoid stale assignee data from the webhook payload
@@ -49,7 +55,10 @@ async function handleClaim({ github, context }) {
     repo,
     issue_number: issueNumber,
   });
-  const currentAssignees = freshIssue.assignees.map((a) => a.login.toLowerCase());
+
+  const currentAssignees = freshIssue.assignees.map((a) =>
+    a.login.toLowerCase()
+  );
 
   if (currentAssignees.length > 0) {
     if (currentAssignees.includes(commenter.toLowerCase())) {
@@ -61,7 +70,9 @@ async function handleClaim({ github, context }) {
       });
       return;
     }
+
     const assigneeList = currentAssignees.map((a) => `@${a}`).join(', ');
+
     await github.rest.issues.createComment({
       owner,
       repo,
@@ -71,11 +82,19 @@ async function handleClaim({ github, context }) {
     return;
   }
 
-  const existingIssues = await findExistingAssignments(github, owner, repo, commenter, issueNumber);
+  const existingIssues = await findExistingAssignments(
+    github,
+    owner,
+    repo,
+    commenter,
+    issueNumber
+  );
+
   if (existingIssues.length >= MAX_ASSIGNED_ISSUES) {
     const issueList = existingIssues
       .map((i) => `> 📋 [#${i.number} — ${i.title}](${i.html_url})`)
       .join('\n');
+
     await github.rest.issues.createComment({
       owner,
       repo,
