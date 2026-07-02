@@ -18,7 +18,7 @@ describe('GitHub API Failure Recovery (Phase 3)', () => {
   beforeEach(() => {
     clearGitHubApiCacheForTests();
     vi.spyOn(global, 'fetch');
-    process.env.GITHUB_PAT = 'test-token';
+    process.env.GITHUB_PAT = 'ghp_testtokenAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
   });
 
   afterEach(() => {
