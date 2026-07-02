@@ -1,0 +1,13 @@
+C:\Users\USER\commitpulse\__copy_files.txt
+C:\Users\USER\commitpulse\app\components\CopyRepoButton.accessibility.test.tsx
+C:\Users\USER\commitpulse\app\components\CopyRepoButton.empty-fallback.test.tsx
+C:\Users\USER\commitpulse\app\components\CopyRepoButton.error-resilience.test.tsx
+C:\Users\USER\commitpulse\app\components\CopyRepoButton.massive-scaling.test.tsx
+C:\Users\USER\commitpulse\app\components\CopyRepoButton.mock-integrations.test.tsx
+C:\Users\USER\commitpulse\app\components\CopyRepoButton.mouse-interactivity.test.tsx
+C:\Users\USER\commitpulse\app\components\CopyRepoButton.responsive-breakpoints.test.tsx
+C:\Users\USER\commitpulse\app\components\CopyRepoButton.test.tsx
+C:\Users\USER\commitpulse\app\components\CopyRepoButton.theme-contrast.test.tsx
+C:\Users\USER\commitpulse\app\components\CopyRepoButton.timezone-boundaries.test.tsx
+C:\Users\USER\commitpulse\app\components\CopyRepoButton.tsx
+C:\Users\USER\commitpulse\app\components\CopyRepoButton.type-compiler.test.tsx

@@ -34,6 +34,19 @@ export function CodeBlock({ code }: CodeBlockProps) {
 
   return (
     <div className="group relative">
+      <div
+        aria-live="polite"
+        aria-atomic="true"
+        className="pointer-events-none fixed inset-x-0 bottom-6 z-[100] flex justify-center"
+      >
+        {copied ? (
+          <div className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/90 px-4 py-2 text-xs font-semibold text-gray-900 shadow-[0_20px_60px_rgba(0,0,0,0.25)] backdrop-blur dark:border-white/10 dark:bg-black/70 dark:text-white/80">
+            <span aria-hidden="true">✅</span>
+            Copied to clipboard!
+          </div>
+        ) : null}
+      </div>
+
       <button
         type="button"
         onClick={copyToClipboard}
