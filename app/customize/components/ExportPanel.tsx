@@ -89,7 +89,10 @@ export function ExportPanel({
       targetUrl = targetUrl.replace(/&amp;/g, '&');
 
       // 3. SECURE LOCAL WORKSPACE TESTING: Redirect backend calls to your local server instance
-      if (targetUrl.includes('https://commitpulse.vercel.app')) {
+      if (
+        targetUrl.startsWith('https://commitpulse.vercel.app/') ||
+        targetUrl === 'https://commitpulse.vercel.app'
+      ) {
         targetUrl = targetUrl.replace('https://commitpulse.vercel.app', window.location.origin);
       }
 
@@ -164,7 +167,10 @@ export function ExportPanel({
       let targetUrl = urlMatch ? urlMatch[1] : '';
       if (!targetUrl) return;
       targetUrl = targetUrl.replace(/&amp;/g, '&');
-      if (targetUrl.includes('https://commitpulse.vercel.app')) {
+      if (
+        targetUrl.startsWith('https://commitpulse.vercel.app/') ||
+        targetUrl === 'https://commitpulse.vercel.app'
+      ) {
         targetUrl = targetUrl.replace('https://commitpulse.vercel.app', window.location.origin);
       }
       targetUrl += targetUrl.includes('?') ? '&refresh=true' : '?refresh=true';
@@ -285,7 +291,10 @@ export function ExportPanel({
 
       targetUrl = targetUrl.replace(/&amp;/g, '&');
 
-      if (targetUrl.includes('https://commitpulse.vercel.app')) {
+      if (
+        targetUrl.startsWith('https://commitpulse.vercel.app/') ||
+        targetUrl === 'https://commitpulse.vercel.app'
+      ) {
         targetUrl = targetUrl.replace('https://commitpulse.vercel.app', window.location.origin);
       }
 
