@@ -56,9 +56,7 @@ async function handleClaim({ github, context }) {
     issue_number: issueNumber,
   });
 
-  const currentAssignees = freshIssue.assignees.map((a) =>
-    a.login.toLowerCase()
-  );
+  const currentAssignees = freshIssue.assignees.map((a) => a.login.toLowerCase());
 
   if (currentAssignees.length > 0) {
     if (currentAssignees.includes(commenter.toLowerCase())) {
@@ -82,13 +80,7 @@ async function handleClaim({ github, context }) {
     return;
   }
 
-  const existingIssues = await findExistingAssignments(
-    github,
-    owner,
-    repo,
-    commenter,
-    issueNumber
-  );
+  const existingIssues = await findExistingAssignments(github, owner, repo, commenter, issueNumber);
 
   if (existingIssues.length >= MAX_ASSIGNED_ISSUES) {
     const issueList = existingIssues
