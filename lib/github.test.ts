@@ -52,7 +52,7 @@ function mockResponse(body: unknown, status = 200): Response {
 
 beforeEach(() => {
   clearGitHubApiCacheForTests();
-  process.env.GITHUB_PAT = 'test-token';
+  process.env.GITHUB_PAT = 'ghp_testTokenAAAAAAAAAAAAAAAAAAAAAAAA';
   delete process.env.GITHUB_TOKEN;
 });
 
@@ -177,7 +177,7 @@ describe('fetchGitHubContributions', () => {
     expect(url).toBe('https://api.github.com/graphql');
     expect(options?.method).toBe('POST');
     expect(options?.headers).toMatchObject({
-      Authorization: 'bearer test-token',
+      Authorization: 'bearer ghp_testTokenAAAAAAAAAAAAAAAAAAAAAAAA',
       'Content-Type': 'application/json',
     });
 
@@ -188,7 +188,7 @@ describe('fetchGitHubContributions', () => {
 
   it('uses GITHUB_TOKEN when GITHUB_PAT is not configured', async () => {
     delete process.env.GITHUB_PAT;
-    process.env.GITHUB_TOKEN = 'actions-token';
+    process.env.GITHUB_TOKEN = 'ghp_actionsTokenAAAAAAAAAAAAAAAAAAAAA';
     vi.mocked(fetch).mockResolvedValue(
       mockResponse({
         data: {
@@ -206,13 +206,13 @@ describe('fetchGitHubContributions', () => {
 
     const [, options] = vi.mocked(fetch).mock.calls[0];
     expect(options?.headers).toMatchObject({
-      Authorization: 'bearer actions-token',
+      Authorization: 'bearer ghp_actionsTokenAAAAAAAAAAAAAAAAAAAAA',
     });
   });
 
   it('verifies Authorization header uses GITHUB_TOKEN value in fallback path', async () => {
     delete process.env.GITHUB_PAT;
-    process.env.GITHUB_TOKEN = 'my-actions-token';
+    process.env.GITHUB_TOKEN = 'ghp_myActionsTokenAAAAAAAAAAAAAAAAAAA';
     vi.mocked(fetch).mockResolvedValue(
       mockResponse({
         data: {
@@ -230,7 +230,7 @@ describe('fetchGitHubContributions', () => {
 
     const [, options] = vi.mocked(fetch).mock.calls[0];
     expect(options?.headers).toMatchObject({
-      Authorization: 'bearer my-actions-token',
+      Authorization: 'bearer ghp_myActionsTokenAAAAAAAAAAAAAAAAAAA',
     });
   });
 
