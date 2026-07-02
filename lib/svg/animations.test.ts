@@ -24,6 +24,18 @@ describe('getTowerAnimationCSS', () => {
     expect(css).toContain('transform: translateY(-20px)');
   });
 
+  it('returns wave animation when requested', () => {
+    const css = getTowerAnimationCSS('wave');
+    expect(css).toContain('@keyframes wave-up');
+    expect(css).toContain('transform: scaleY(1.15)');
+  });
+
+  it('returns bounce animation when requested', () => {
+    const css = getTowerAnimationCSS('bounce');
+    expect(css).toContain('@keyframes bounce-in');
+    expect(css).toContain('transform: translateY(-40px)');
+  });
+
   it('returns static render when entrance is none', () => {
     const css = getTowerAnimationCSS('none');
     expect(css).toContain('transform: scaleY(1)');

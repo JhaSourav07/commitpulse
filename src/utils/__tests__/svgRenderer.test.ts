@@ -29,4 +29,19 @@ describe('generateOptimizedSvg', () => {
     const result = generateOptimizedSvg(mockData);
     expect(result).toMatchSnapshot();
   });
+
+  // Occlusion Culling Test
+  it('should not incorrectly cull a background tile when a taller tower is in front of it', () => {
+    const cullingTestData: ContributionNode[] = [
+      { date: '2026-01-01', count: 1, x: 2, y: 2 }, // Background tile (should be kept)
+      { date: '2026-01-02', count: 20, x: 3, y: 3 }, // Taller foreground tile
+    ];
+
+    const result = generateOptimizedSvg(cullingTestData);
+
+    // Calculate the expected translation mapping for tile (2,2)
+    // isoX = (2 - 2) * 8 = 0
+    // isoY = (2 + 2) * 4 = 16
+    expect(result).toContain('transform="translate(0, 16)"');
+  });
 });

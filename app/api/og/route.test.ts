@@ -122,4 +122,22 @@ describe('OG Route', () => {
     expect(res).toBeDefined();
     expect(res.status).toBe(200);
   });
+  it('returns 429 when rate limit is exceeded', async () => {
+    const { RateLimiter } = await import('@/lib/rate-limit');
+    vi.spyOn(RateLimiter.prototype, 'checkWithResult').mockResolvedValueOnce({
+      success: false,
+      limit: 30,
+      remaining: 0,
+      reset: Date.now() + 60000,
+    });
+
+    const req = new NextRequest('http://localhost/api/og?user=octocat', {
+      headers: { 'x-forwarded-for': '1.2.3.4' },
+    });
+
+    const res = await GET(req);
+    expect(res.status).toBe(429);
+    const data = await res.json();
+    expect(data.error).toBe('Too many requests. Please try again later.');
+  });
 });

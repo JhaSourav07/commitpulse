@@ -1,3 +1,5 @@
+import 'server-only';
+
 const GITHUB_USER_API_URL = 'https://api.github.com/user';
 const VERIFY_TIMEOUT_MS = 5000;
 

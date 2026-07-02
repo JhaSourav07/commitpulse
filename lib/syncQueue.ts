@@ -1,3 +1,5 @@
+import 'server-only';
+
 /**
  * A queue to stagger incoming sync tasks across the available hourly quota.
  * This prevents the application from making too many concurrent requests to the GitHub API,
@@ -15,8 +17,10 @@ export class SyncQueue {
    */
   public enqueue(task: () => Promise<void>): void {
     if (process.env.NODE_ENV === 'test') {
-      // Bypass queue in test environments to preserve synchronous mock assertions
-      task().catch(() => {});
+      void task().catch((error) => {
+        console.error('[SyncQueue] Task failed during test:', error);
+      });
+
       return;
     }
 

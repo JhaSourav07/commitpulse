@@ -4,10 +4,26 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import CompareClient from './CompareClient';
 import React, { type ReactNode } from 'react';
 
-const { mockRouter, mockSearchParams } = vi.hoisted(() => ({
-  mockRouter: { replace: vi.fn() },
-  mockSearchParams: { get: vi.fn(() => null) },
-}));
+// Mirror Next.js: router.replace updates the URL, and useSearchParams reflects it.
+// Without this, the auto-compare effect (which calls setData(null) when the URL has
+// no user params) races with the manual compare's setData(json) and wipes the
+// just-rendered result, making the heatmap/habit assertions flaky.
+const { mockRouter, mockSearchParams, resetSearchParams } = vi.hoisted(() => {
+  const params = new Map<string, string>();
+  return {
+    mockRouter: {
+      replace: vi.fn((url: string) => {
+        params.clear();
+        const query = String(url).split('?')[1] ?? '';
+        for (const [key, value] of new URLSearchParams(query)) {
+          params.set(key, value);
+        }
+      }),
+    },
+    mockSearchParams: { get: vi.fn((key: string) => params.get(key) ?? null) },
+    resetSearchParams: () => params.clear(),
+  };
+});
 
 vi.mock('next/navigation', () => ({
   useRouter: () => mockRouter,
@@ -19,25 +35,8 @@ vi.mock('framer-motion', () => ({
     {},
     {
       get: (_, tag) => {
-        return ({
-          children,
-          animate,
-          initial,
-          exit,
-          transition,
-          variants,
-          whileHover,
-          whileTap,
-          whileFocus,
-          whileDrag,
-          whileInView,
-          layout,
-          layoutId,
-          ...props
-        }: {
-          children?: ReactNode;
-          [key: string]: unknown;
-        }) => React.createElement(tag as string, props, children);
+        return ({ children, ...props }: { children?: ReactNode; [key: string]: unknown }) =>
+          React.createElement(tag as string, props, children);
       },
     }
   ),
@@ -134,6 +133,7 @@ describe('CompareClient Mouse Interactivity & Touch Events', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    resetSearchParams();
     window.localStorage.clear();
 
     global.fetch = vi.fn(
@@ -179,16 +179,20 @@ describe('CompareClient Mouse Interactivity & Touch Events', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /compare/i }));
 
-    await waitFor(() => {
-      expect(screen.getByText(/stats showdown/i)).toBeInTheDocument();
-    });
+    await waitFor(
+      () => {
+        expect(screen.getByText(/stats showdown/i)).toBeInTheDocument();
+      },
+      { timeout: 5000 }
+    );
 
     // Check StatBattle border elements transitions on mouseEnter / mouseLeave
-    const repositoryCard = screen.getByText('5,000').closest('div');
-    expect(repositoryCard).toBeInTheDocument();
+    const statsShowdown = screen.getByText(/stats showdown/i);
 
-    fireEvent.mouseEnter(repositoryCard!);
-    fireEvent.mouseLeave(repositoryCard!);
+    expect(statsShowdown).toBeInTheDocument();
+
+    fireEvent.mouseEnter(statsShowdown);
+    fireEvent.mouseLeave(statsShowdown);
   });
 
   it('triggers mouse hover interactions on coding habits cards', async () => {
@@ -203,9 +207,12 @@ describe('CompareClient Mouse Interactivity & Touch Events', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /compare/i }));
 
-    await waitFor(() => {
-      expect(screen.getByText(/coding habits/i)).toBeInTheDocument();
-    });
+    await waitFor(
+      () => {
+        expect(screen.getByText(/coding habits/i)).toBeInTheDocument();
+      },
+      { timeout: 5000 }
+    );
 
     const habitCards = screen.getAllByRole('heading', { level: 3 });
     const userAHabit = habitCards.find((c) => c.textContent === 'Night Owl');
@@ -257,20 +264,26 @@ describe('CompareClient Mouse Interactivity & Touch Events', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /compare/i }));
 
-    await waitFor(() => {
-      expect(screen.getByText(/stats showdown/i)).toBeInTheDocument();
-    });
+    await waitFor(
+      () => {
+        expect(screen.getByText(/stats showdown/i)).toBeInTheDocument();
+      },
+      { timeout: 5000 }
+    );
 
     // Find custom heatmap items having 'contributions' in the title attribute,
     // verify hover details on a heatmap cell
-    await waitFor(() => {
-      const allCells = document.querySelectorAll('[title*="contributions"]');
-      expect(allCells.length).toBeGreaterThan(0);
-      const sampleCell = allCells[0];
-      expect(sampleCell).toHaveAttribute('title');
-      expect(sampleCell.getAttribute('title')).toContain('contributions');
-      fireEvent.mouseEnter(sampleCell);
-      fireEvent.mouseLeave(sampleCell);
-    });
+    await waitFor(
+      () => {
+        const allCells = document.querySelectorAll('[title*="contributions"]');
+        expect(allCells.length).toBeGreaterThan(0);
+        const sampleCell = allCells[0];
+        expect(sampleCell).toHaveAttribute('title');
+        expect(sampleCell.getAttribute('title')).toContain('contributions');
+        fireEvent.mouseEnter(sampleCell);
+        fireEvent.mouseLeave(sampleCell);
+      },
+      { timeout: 5000 }
+    );
   });
 });

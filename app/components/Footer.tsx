@@ -2,7 +2,19 @@
 
 import Link from 'next/link';
 import { useTranslation } from '@/context/TranslationContext';
-
+import {
+  Home,
+  Zap,
+  GitCompare,
+  Sliders,
+  Users,
+  MessageCircle,
+  BookOpen,
+  GitBranch,
+  HelpCircle,
+} from 'lucide-react';
+import { FaGithub, FaDiscord, FaLinkedin } from 'react-icons/fa';
+import { FaXTwitter } from 'react-icons/fa6';
 interface FooterLink {
   label: string;
   href: string;
@@ -58,6 +70,30 @@ function LinkComponent({
   );
 }
 
+const SOCIAL_ICON_MAP: Record<string, React.ReactNode> = {
+  github: <FaGithub size={15} className="shrink-0" />,
+  creator: <FaGithub size={15} className="shrink-0" />,
+  discord: <FaDiscord size={15} className="shrink-0" />,
+  twitter: <FaXTwitter size={15} className="shrink-0" />,
+  linkedin: <FaLinkedin size={15} className="shrink-0" />,
+};
+
+const NAV_ICON_MAP: Record<string, React.ReactNode> = {
+  '/': <Home size={15} className="shrink-0" />,
+  '/generator': <Zap size={15} className="shrink-0" />,
+  '/compare': <GitCompare size={15} className="shrink-0" />,
+  '/customize': <Sliders size={15} className="shrink-0" />,
+  '/contributors': <Users size={15} className="shrink-0" />,
+  '/support': <MessageCircle size={15} className="shrink-0" />,
+};
+
+const RESOURCE_ICON_MAP: Record<string, React.ReactNode> = {
+  documentation: <BookOpen size={15} className="shrink-0" />,
+  github_repo: <GitBranch size={15} className="shrink-0" />,
+  guidelines: <BookOpen size={15} className="shrink-0" />,
+  faq: <HelpCircle size={15} className="shrink-0" />,
+};
+
 export function Footer() {
   const { t } = useTranslation();
   const currentYear = new Date().getFullYear();
@@ -68,6 +104,7 @@ export function Footer() {
     { label: t('footer.compare'), href: '/compare', isExternal: false },
     { label: t('footer.customization'), href: '/customize', isExternal: false },
     { label: t('footer.contributors'), href: '/contributors', isExternal: false },
+    { label: t('footer.support'), href: '/support', isExternal: false },
   ];
 
   const resourceLinks: FooterLink[] = [
@@ -80,6 +117,16 @@ export function Footer() {
       label: t('footer.github_repo'),
       href: 'https://github.com/JhaSourav07/commitpulse',
       isExternal: true,
+    },
+    {
+      label: t('footer.guidelines'),
+      href: 'https://github.com/JhaSourav07/commitpulse/blob/main/CODE_OF_CONDUCT.md',
+      isExternal: true,
+    },
+    {
+      label: t('footer.faq'),
+      href: '/support',
+      isExternal: false,
     },
   ];
 
@@ -98,7 +145,7 @@ export function Footer() {
     },
     {
       label: t('footer.discord'),
-      href: 'https://discord.gg/Cb73bS79j',
+      href: 'https://discord.gg/f84SDraEBH',
       ariaLabel: 'Join CommitPulse on Discord',
       icon: 'discord',
     },
@@ -128,7 +175,6 @@ export function Footer() {
           </div>
 
           {/* Navigation Section */}
-
           <div className="flex flex-col items-center sm:items-start">
             <h3 className="font-semibold text-sm text-black dark:text-white mb-3">
               {t('footer.navigation')}
@@ -141,34 +187,47 @@ export function Footer() {
                   isExternal={link.isExternal}
                   className="text-sm text-zinc-600 dark:text-zinc-400"
                 >
-                  {link.label}
+                  <span className="flex items-center gap-2">
+                    {NAV_ICON_MAP[link.href as keyof typeof NAV_ICON_MAP]}
+                    {link.label}
+                  </span>
                 </LinkComponent>
               ))}
             </nav>
           </div>
 
           {/* Resources Section */}
-
           <div className="flex flex-col items-center sm:items-start">
             <h3 className="font-semibold text-sm text-black dark:text-white mb-3">
               {t('footer.resources')}
             </h3>
             <nav className="flex flex-col gap-2 text-center sm:text-left">
-              {resourceLinks.map((link) => (
-                <LinkComponent
-                  key={link.href}
-                  href={link.href}
-                  isExternal={link.isExternal}
-                  className="text-sm text-zinc-600 dark:text-zinc-400"
-                >
-                  {link.label}
-                </LinkComponent>
-              ))}
+              {resourceLinks.map((link) => {
+                let iconKey: keyof typeof RESOURCE_ICON_MAP = 'github_repo';
+                if (link.href.includes('README')) iconKey = 'documentation';
+                else if (link.href.includes('CODE_OF_CONDUCT') || link.href.includes('guidelines'))
+                  iconKey = 'guidelines';
+                else if (link.href.includes('support') || link.href.includes('faq'))
+                  iconKey = 'faq';
+
+                return (
+                  <LinkComponent
+                    key={link.href}
+                    href={link.href}
+                    isExternal={link.isExternal}
+                    className="text-sm text-zinc-600 dark:text-zinc-400"
+                  >
+                    <span className="flex items-center gap-2">
+                      {RESOURCE_ICON_MAP[iconKey]}
+                      {link.label}
+                    </span>
+                  </LinkComponent>
+                );
+              })}
             </nav>
           </div>
 
           {/* Connect Section */}
-
           <div className="flex flex-col items-center sm:items-start">
             <h3 className="font-semibold text-sm text-black dark:text-white mb-3">
               {t('footer.connect')}
@@ -182,7 +241,10 @@ export function Footer() {
                   ariaLabel={link.ariaLabel}
                   className="text-sm text-zinc-600 dark:text-zinc-400"
                 >
-                  {link.label}
+                  <span className="flex items-center gap-2">
+                    {SOCIAL_ICON_MAP[link.icon as keyof typeof SOCIAL_ICON_MAP]}
+                    {link.label}
+                  </span>
                 </LinkComponent>
               ))}
             </div>

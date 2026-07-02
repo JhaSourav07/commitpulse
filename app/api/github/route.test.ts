@@ -65,7 +65,10 @@ describe('GET /api/github', () => {
 
       const response = await GET(makeRequest({ username: 'torvalds' }));
       expect(response.status).toBe(200);
-      expect(getFullDashboardData).toHaveBeenCalledWith('torvalds', { bypassCache: false });
+      expect(getFullDashboardData).toHaveBeenCalledWith(
+        'torvalds',
+        expect.objectContaining({ bypassCache: false })
+      );
       expect(triggerSpy).toHaveBeenCalledWith('torvalds');
     });
 
@@ -74,7 +77,10 @@ describe('GET /api/github', () => {
       const response = await GET(makeRequest({ username: 'torvalds', refresh: 'true' }));
 
       expect(response.status).toBe(200);
-      expect(getFullDashboardData).toHaveBeenCalledWith('torvalds', { bypassCache: true });
+      expect(getFullDashboardData).toHaveBeenCalledWith(
+        'torvalds',
+        expect.objectContaining({ bypassCache: true })
+      );
       expect(response.headers.get('X-Refresh-Status')).toBe('Fresh');
     });
 
@@ -82,14 +88,20 @@ describe('GET /api/github', () => {
     it('Scenario 3: serves cached response for repeated refresh requests within cooldown', async () => {
       // First refresh is allowed
       await GET(makeRequest({ username: 'torvalds', refresh: 'true' }));
-      expect(getFullDashboardData).toHaveBeenLastCalledWith('torvalds', { bypassCache: true });
+      expect(getFullDashboardData).toHaveBeenLastCalledWith(
+        'torvalds',
+        expect.objectContaining({ bypassCache: true })
+      );
 
       // Second refresh within cooldown (5 minutes)
       const response = await GET(makeRequest({ username: 'torvalds', refresh: 'true' }));
 
       expect(response.status).toBe(200);
       // Cooldown fallback triggers cached read
-      expect(getFullDashboardData).toHaveBeenLastCalledWith('torvalds', { bypassCache: false });
+      expect(getFullDashboardData).toHaveBeenLastCalledWith(
+        'torvalds',
+        expect.objectContaining({ bypassCache: false })
+      );
       expect(response.headers.get('X-Refresh-Status')).toBe('Cooldown-Served-Cached');
     });
 
@@ -204,6 +216,29 @@ describe('GET /api/github', () => {
 
       expect(response.status).toBe(500);
       expect(body.error).toContain('Database offline');
+    });
+
+    it('returns 500 instead of hanging when an error cause chain is circular', async () => {
+      const firstError = new Error('Circular cause root');
+      const secondError = new Error('Circular cause child');
+
+      Object.defineProperty(firstError, 'cause', {
+        value: secondError,
+        configurable: true,
+      });
+
+      Object.defineProperty(secondError, 'cause', {
+        value: firstError,
+        configurable: true,
+      });
+
+      vi.mocked(getFullDashboardData).mockRejectedValue(firstError);
+
+      const response = await GET(makeRequest({ username: 'octocat' }));
+      const body = await response.json();
+
+      expect(response.status).toBe(500);
+      expect(body.error).toBe('Circular cause root');
     });
   });
 });

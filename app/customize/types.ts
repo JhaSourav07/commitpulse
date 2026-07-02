@@ -1,6 +1,6 @@
 import { themes } from '../../lib/svg/themes';
 
-export type Scale = 'linear' | 'log';
+export type Scale = 'linear' | 'log' | 'sqrt';
 
 export type ExportFormat = 'markdown' | 'html' | 'action' | 'tsx';
 

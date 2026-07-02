@@ -1,9 +1,13 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
+import { coerceQueryParams } from '@/lib/validations';
 import { fetchBurnoutAnalysis } from '@/services/github/burnout-analyzer';
 import { quotaMonitor } from '@/services/github/quota-monitor';
 import { getClientIp } from '@/utils/getClientIp';
+import { getUserGitHubToken } from '@/lib/githubtoken';
+
 import { refreshPolicy } from '@/services/github/refresh-policy';
+import { getRateLimitHeaders } from '@/lib/rate-limit';
 import { refreshRateLimiter } from '@/services/github/refresh-rate-limiter';
 
 function toRefreshFlag(val?: string): boolean {
@@ -35,7 +39,7 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const ip = getClientIp(request);
 
-  const parseResult = repoBurnoutParamsSchema.safeParse(Object.fromEntries(searchParams.entries()));
+  const parseResult = repoBurnoutParamsSchema.safeParse(coerceQueryParams(searchParams));
 
   if (!parseResult.success) {
     return NextResponse.json(
@@ -54,7 +58,7 @@ export async function GET(request: Request) {
     console.warn(`[Quota Low] Blocked manual refresh from IP ${ip} for ${owner}/${repo}`);
     return NextResponse.json(
       { error: 'GitHub API quota is low. Cache refresh temporarily disabled.' },
-      { status: 429 }
+      { status: 429, headers: { 'Retry-After': '60' } }
     );
   }
 
@@ -68,11 +72,7 @@ export async function GET(request: Request) {
         { error: 'Refresh rate limit exceeded. Please try again later.' },
         {
           status: 429,
-          headers: {
-            'X-RateLimit-Limit': rateLimitCheck.limit.toString(),
-            'X-RateLimit-Remaining': rateLimitCheck.remaining.toString(),
-            'X-RateLimit-Reset': rateLimitCheck.reset.toString(),
-          },
+          headers: getRateLimitHeaders(rateLimitCheck),
         }
       );
     }
@@ -89,7 +89,11 @@ export async function GET(request: Request) {
   }
 
   try {
-    const data = await fetchBurnoutAnalysis(owner, repo, { bypassCache: shouldBypassCache });
+    const userToken = await getUserGitHubToken();
+    const data = await fetchBurnoutAnalysis(owner, repo, {
+      bypassCache: refresh,
+      token: userToken,
+    });
 
     const cacheControl = shouldBypassCache
       ? 'no-cache, no-store, must-revalidate'
@@ -108,6 +112,9 @@ export async function GET(request: Request) {
     const message = error instanceof Error ? error.message : 'Internal Server Error';
     const status = message.includes('not found') ? 404 : 500;
 
-    return NextResponse.json({ error: message }, { status });
+    return NextResponse.json(
+      { error: status === 404 ? 'Repository not found' : 'Internal server error' },
+      { status }
+    );
   }
 }

@@ -1,11 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import {
-  resolveFont,
-  deterministicRandom,
-  particleCount,
-  escapeXML,
-  getSizeScale,
-} from './generator';
+import { resolveFont, deterministicRandom, particleCount, getSizeScale } from './generator';
+import { escapeXML } from './sanitizer';
 
 describe('generator Edge Cases & Empty/Missing Inputs Verification', () => {
   it('Case 1: resolves missing font input safely', () => {

@@ -85,11 +85,14 @@ export function HeroSection() {
         className="relative mt-12 max-w-3xl mx-auto flex flex-col sm:flex-row items-center gap-3 p-2 rounded-2xl border border-gray-200 bg-white/70 shadow-sm backdrop-blur-md dark:border-white/10 dark:bg-white/5 dark:shadow-none"
       >
         <input
+          id="github-username"
+          name="githubUsername"
           type="text"
           placeholder="Enter GitHub Username"
           aria-label="GitHub username"
           className="flex-1 w-full bg-transparent border-none px-4 py-3 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-0 dark:text-white dark:placeholder-white/60"
         />
+
         <button className="flex items-center gap-2 px-6 py-3 rounded-xl border border-gray-200 bg-gray-50 text-gray-700 font-medium transition hover:bg-gray-100 dark:border-white/20 dark:bg-white/10 dark:text-white dark:hover:bg-white/20">
           <Copy size={18} />
           Copy Link

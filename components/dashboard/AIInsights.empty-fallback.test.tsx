@@ -7,19 +7,7 @@ import type { AIInsight } from '@/types/dashboard';
 // Mock framer-motion
 vi.mock('framer-motion', () => ({
   motion: {
-    div: ({
-      children,
-      whileHover,
-      whileTap,
-      whileInView,
-      initial,
-      animate,
-      exit,
-      transition,
-      viewport,
-      layoutId,
-      ...props
-    }: any) => (
+    div: ({ children, ...props }: any) => (
       <div {...props} data-testid="motion-div">
         {children}
       </div>

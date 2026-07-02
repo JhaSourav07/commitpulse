@@ -102,6 +102,43 @@ Random text without any section headers.
     expect(result.education).toEqual([]);
     expect(result.experience).toEqual([]);
   });
+
+  it('filters corrupted skill tokens', async () => {
+    const resume = `
+John Doe
+john@example.com
+
+Skills
+React, TypeScript, Node.js
+?~ L8c n 7 ? ?
+. ~ C _ 0o> ?
+I f
+m
+
+Education
+B.Tech 2020-2024
+`;
+
+    const result = await parseResume(Buffer.from(resume), 'text/plain');
+
+    expect(result.skills).toEqual(['React', 'TypeScript', 'Node.js']);
+  });
+
+  it('preserves short valid skills', async () => {
+    const resume = `
+Skills
+
+C, R, Go, AI, ML, Node.js, C++, C#, .NET
+
+Education
+
+B.Tech 2020-2024
+`;
+
+    const result = await parseResume(Buffer.from(resume), 'text/plain');
+
+    expect(result.skills).toEqual(['C', 'R', 'Go', 'AI', 'ML', 'Node.js', 'C++', 'C#', '.NET']);
+  });
 });
 
 describe('parser constants', () => {

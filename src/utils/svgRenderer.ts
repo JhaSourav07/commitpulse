@@ -22,7 +22,7 @@ export function generateOptimizedSvg(contributionData: ContributionNode[]): stri
   );
 
   // ==========================================
-  // STEP 1: THE GRID MAP MATRIX SYSTEM
+  // STEP 2: THE GRID MAP DICTIONARY SETUP
   // ==========================================
   const gridMap: Record<string, number> = {};
   for (let i = 0; i < safeData.length; i++) {
@@ -34,7 +34,7 @@ export function generateOptimizedSvg(contributionData: ContributionNode[]): stri
   }
 
   // ==========================================
-  // STEP 2: DEFINE THE MASTER BLUEPRINTS (<defs>)
+  // STEP 3: DEFINE THE MASTER BLUEPRINTS (<defs>)
   // ==========================================
   const svgDefs = `
   <defs>
@@ -67,7 +67,7 @@ export function generateOptimizedSvg(contributionData: ContributionNode[]): stri
   let svgElements = '';
 
   // ==========================================
-  // STEPS 3, 4 & 5: ITERATE, CULL, & INSTANTIATE
+  // STEPS 4, 5 & 6: ITERATE, CULL, & INSTANTIATE
   // ==========================================
   for (const node of sortedData) {
     const x = typeof node.x === 'number' ? node.x : 0;
@@ -78,23 +78,23 @@ export function generateOptimizedSvg(contributionData: ContributionNode[]): stri
     const isoX = (x - y) * (tileWidth / 2);
     const isoY = (x + y) * (tileHeight / 2);
 
-    // STEP 3: Zero-Height Pruning
+    // STEP 4: Zero-Height Pruning
     if (count === 0) {
       // Omit building blocks; just lay a completely flat ground base footprint vector
       svgElements += `<use href="#iso-top" x="${isoX}" y="${isoY}" fill="#1e293b" opacity="0.2"/>\n`;
       continue;
     }
 
-    // STEP 4: Adjacent Occlusion Culling Check
-    // Get the height of the tower directly in front of this one (x+1, y+1)
-    const frontTowerHeight = gridMap[`${x + 1},${y + 1}`] || 0;
+    // STEP 5: Adjacent Occlusion Culling Check
+    // Get the height of the tower directly in front of this one (x-1, y-1)
+    const frontTowerHeight = gridMap[`${x - 1},${y - 1}`] || 0;
 
     // If the element in front completely buries this tower's apex, skip it!
     if (frontTowerHeight >= count + 2) {
       continue;
     }
 
-    // STEP 5: Scale blueprints to custom height offsets
+    // STEP 6: Scale blueprints to custom height offsets
     const calculatedHeight = count * blockHeightUnit;
 
     svgElements += `
@@ -107,7 +107,7 @@ export function generateOptimizedSvg(contributionData: ContributionNode[]): stri
   }
 
   // ==========================================
-  // STEP 6: OUTPUT FINISHED ROOT SVG STRING
+  // STEP 7: OUTPUT FINISHED ROOT SVG STRING
   // ==========================================
   return `
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="-200 -50 800 600" width="100%" height="100%" role="img" aria-labelledby="svg-title svg-desc">

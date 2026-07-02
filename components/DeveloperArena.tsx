@@ -521,11 +521,10 @@ export default function DeveloperArena({ onSelectBattle }: DeveloperArenaProps) 
                     className="flex items-start gap-4"
                   >
                     <div className="relative w-16 h-16 rounded-xl overflow-hidden border border-white/10 shrink-0">
-                      <Image
+                      <img
                         src={`https://github.com/${currentChallenge.username}.png`}
                         alt={currentChallenge.name}
-                        fill
-                        className="object-cover"
+                        className="w-full h-full object-cover"
                       />
                     </div>
                     <div className="space-y-1">
@@ -723,11 +722,10 @@ export default function DeveloperArena({ onSelectBattle }: DeveloperArenaProps) 
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="relative w-12 h-12 rounded-full overflow-hidden border border-white/10 bg-zinc-800 shrink-0">
-                      <Image
+                      <img
                         src={`https://github.com/${legend.username}.png`}
                         alt={legend.name}
-                        fill
-                        className="object-cover"
+                        className="w-full h-full object-cover"
                       />
                     </div>
                     <div className="space-y-0.5">

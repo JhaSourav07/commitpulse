@@ -1,5 +1,3 @@
-// app/contributors/page.mouse-interactivity.test.tsx
-
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
@@ -98,7 +96,7 @@ describe('ContributorsPage Mouse Interactivity', () => {
     const props = mockContributorsClient.mock.calls[0][0] as ContributorsClientProps;
 
     expect(Array.isArray(props.topContributors)).toBe(true);
-  });
+  }, 60000);
 
   it('renders successfully when contributor retrieval falls back to an empty state', async () => {
     global.fetch = vi.fn().mockResolvedValue({

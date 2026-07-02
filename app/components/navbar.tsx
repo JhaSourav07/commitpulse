@@ -1,12 +1,15 @@
 'use client';
 
-import { useEffect, useState, useSyncExternalStore } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import Link from 'next/link';
-import { Menu, X, Activity, Moon, Sun, Globe } from 'lucide-react';
+import { usePathname } from 'next/navigation';
+import { Menu, X, Activity, Moon, Sun, Globe, ChevronDown, Check, Keyboard } from 'lucide-react';
 import { useGlowEffect } from '@/hooks/useGlowEffect';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
+import KeyboardShortcutsModal from '@/components/KeyboardShortcutsModal';
 import { useThemeToggle } from './theme-switch';
 import { useTranslation, LANGUAGE_LABELS, type Language } from '@/context/TranslationContext';
+import NavbarSearch from '@/components/NavbarSearch';
 
 function GithubMark() {
   return (
@@ -49,52 +52,135 @@ const NAV_LINKS = [
   },
 ];
 
-const emptySubscribe = () => () => {};
-
 function LanguageSelector() {
   const { language, changeLanguage, isPending } = useTranslation();
-  const mounted = useSyncExternalStore(
-    emptySubscribe,
-    () => true,
-    () => false
-  );
+
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    const timer = setTimeout(() => setMounted(true), 0);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const handleLanguageClick = (lang: Language) => {
+    changeLanguage(lang);
+    setIsOpen(false);
+  };
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleClickOutside = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen]);
 
   if (!mounted) {
     return (
-      <div className="w-24 h-9 rounded-xl border border-black/10 dark:border-white/15 bg-black/5 dark:bg-white/5" />
+      <div className="inline-flex items-center gap-1.5 rounded-xl border border-black/10 dark:border-white/15 bg-black/5 dark:bg-white/5 px-2.5 py-1.5 text-xs font-semibold text-black/90 dark:text-white/90 opacity-50 select-none">
+        <Globe size={14} className="text-zinc-500 dark:text-white/40" />
+        <span>English</span>
+        <ChevronDown size={12} className="text-zinc-500 dark:text-white/40" />
+      </div>
     );
   }
 
+  const currentLabel = LANGUAGE_LABELS[language];
+  const isLongLang = currentLabel.length > 6;
+
   return (
     <div
-      className={`relative inline-flex items-center gap-1.5 rounded-xl border border-black/10 dark:border-white/15 bg-black/5 dark:bg-white/5 px-2.5 py-1.5 text-black/90 dark:text-white/90 hover:bg-black/10 dark:hover:bg-white/10 transition-colors ${isPending ? 'opacity-50' : ''}`}
+      ref={containerRef}
+      className={`relative inline-flex ${isPending ? 'opacity-50 pointer-events-none' : ''}`}
     >
-      <Globe size={14} className="text-zinc-500 dark:text-white/40" />
-      <select
-        value={language}
-        onChange={(e) => changeLanguage(e.target.value as Language)}
-        className="bg-transparent text-xs font-semibold focus:outline-none cursor-pointer pr-1"
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className={`inline-flex items-center rounded-xl border border-black/10 dark:border-white/15 bg-black/5 dark:bg-white/5 py-1.5 font-semibold text-black/90 dark:text-white/90 hover:bg-black/10 dark:hover:bg-white/10 transition-all duration-200 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 dark:focus-visible:ring-gray-300 ${
+          isLongLang ? 'gap-1 px-2 text-[11px]' : 'gap-1.5 px-2.5 text-xs'
+        }`}
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
         aria-label="Select Language"
       >
-        {Object.entries(LANGUAGE_LABELS).map(([code, label]) => (
-          <option
-            key={code}
-            value={code}
-            className="bg-white dark:bg-black text-black dark:text-white"
-          >
-            {label}
-          </option>
-        ))}
-      </select>
+        <Globe size={14} className="text-zinc-500 dark:text-white/40 animate-none" />
+        <span>{currentLabel}</span>
+        <ChevronDown
+          size={12}
+          className={`text-zinc-500 dark:text-white/40 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+        />
+      </button>
+
+      {isOpen && (
+        <ul
+          role="listbox"
+          aria-label="Language options"
+          className="absolute right-0 top-full mt-1.5 z-50 min-w-[130px] rounded-xl border border-black/10 dark:border-white/10 bg-white/95 dark:bg-[#0c0c0c]/90 backdrop-blur-md p-1 shadow-lg dark:shadow-[0_8px_30px_rgba(0,0,0,0.5)] focus:outline-none animate-in fade-in slide-in-from-top-1 duration-100"
+        >
+          {Object.entries(LANGUAGE_LABELS).map(([code, label]) => {
+            const isSelected = language === code;
+            return (
+              <li key={code} role="presentation">
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={isSelected}
+                  onClick={() => {
+                    changeLanguage(code as Language);
+                    setIsOpen(false);
+                  }}
+                  className={`flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-left text-xs font-semibold transition-colors cursor-pointer focus:outline-none ${
+                    isSelected
+                      ? 'bg-black/5 dark:bg-white/10 text-black dark:text-white'
+                      : 'text-black/70 dark:text-white/70 hover:bg-black/5 dark:hover:bg-white/5 hover:text-black dark:hover:text-white'
+                  }`}
+                >
+                  <span>{label}</span>
+                  {isSelected && (
+                    <Check size={12} className="text-black dark:text-white ml-2 shrink-0" />
+                  )}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </div>
   );
 }
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
-  const { t } = useTranslation();
 
-  useKeyboardShortcuts();
+  const [isHidden, setIsHidden] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const pathname = usePathname();
+  const { t } = useTranslation();
+  const lastScrollYRef = useRef(0);
+  // Ref so the scroll handler (stale closure) can always read the current open state.
+  const openRef = useRef(false);
+
+  // Keep openRef in sync with open state.
+  useEffect(() => {
+    openRef.current = open;
+  }, [open]);
+
+  const handleOpenShortcuts = useCallback(() => setShortcutsOpen(true), []);
+  useKeyboardShortcuts({ onOpenShortcuts: handleOpenShortcuts });
 
   const { shellRef, shellVars, handleMouseEnter, handleMouseMove, handleMouseLeave } =
     useGlowEffect();
@@ -126,6 +212,38 @@ export default function Navbar() {
     };
   }, []);
 
+  useEffect(() => {
+    const threshold = 8;
+    const currentScrollY = window.scrollY;
+    lastScrollYRef.current = currentScrollY;
+
+    const handleScroll = () => {
+      const nextScrollY = window.scrollY;
+      const delta = nextScrollY - lastScrollYRef.current;
+
+      if (nextScrollY <= 0) {
+        setIsHidden(false);
+      } else if (delta > threshold && nextScrollY > 72) {
+        // Do not hide the navbar while the mobile menu is open — the menu
+        // is a child of the header, so hiding it would yank the open dropdown
+        // off-screen and confuse the user.
+        if (!openRef.current) {
+          setIsHidden(true);
+        }
+      } else if (delta < -threshold) {
+        setIsHidden(false);
+      }
+
+      lastScrollYRef.current = nextScrollY;
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
+
   const handleLogoClick = () => {
     setOpen(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -141,11 +259,15 @@ export default function Navbar() {
   };
 
   return (
-    <header className="sticky top-0 z-50 px-4 pt-4 sm:px-6 w-full">
+    <header
+      className={`sticky top-0 z-50 px-4 pt-4 sm:px-6 w-full transform-gpu transition-[transform,opacity] duration-300 ease-out ${
+        isHidden ? '-translate-y-full opacity-0' : 'translate-y-0 opacity-100'
+      }`}
+    >
       <div className="mx-auto max-w-6xl">
         <div
           ref={shellRef}
-          className="relative overflow-hidden rounded-2xl border border-gray-200/80 bg-white/80 dark:border-white/20 dark:bg-[#0a0a0a]/60 backdrop-blur-xl shadow-sm dark:shadow-[0_8px_30px_rgba(0,0,0,0.8)] transition-all duration-300"
+          className="relative overflow-visible rounded-2xl border border-gray-200/80 bg-white/80 dark:border-white/20 dark:bg-[#0a0a0a]/60 backdrop-blur-xl shadow-sm dark:shadow-[0_8px_30px_rgba(0,0,0,0.8)] transition-all duration-300"
           style={shellVars}
           onMouseEnter={handleMouseEnter}
           onMouseMove={handleMouseMove}
@@ -153,7 +275,7 @@ export default function Navbar() {
         >
           {/* Glow effects remain untouched */}
           <div
-            className="pointer-events-none absolute inset-0 transition-opacity duration-300 ease-out hidden dark:block"
+            className="pointer-events-none absolute inset-0 transition-opacity duration-300 ease-out hidden dark:block rounded-2xl overflow-hidden"
             style={{
               opacity: 'var(--glow-opacity)',
               background:
@@ -193,30 +315,65 @@ export default function Navbar() {
             </Link>
 
             <div className="hidden items-center gap-2 md:flex">
+              <NavbarSearch />
               <LanguageSelector />
-              {NAV_LINKS.map((link) => (
-                <a
-                  key={link.href}
-                  href={link.href}
-                  target={link.isExternal ? '_blank' : undefined}
-                  rel={link.isExternal ? 'noopener noreferrer' : undefined}
-                  className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#0a0a0a] ${
-                    link.isPrimary
-                      ? 'rounded-xl bg-gray-900 text-white shadow-md hover:bg-gray-800 hover:-translate-y-0.5 hover:shadow-lg dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200 dark:hover:shadow-[0_4px_20px_rgba(255,255,255,0.2)] focus-visible:ring-gray-900 dark:focus-visible:ring-white ml-2'
-                      : 'rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100/80 dark:text-gray-300 dark:hover:text-white dark:hover:bg-white/10 focus-visible:ring-gray-400 dark:focus-visible:ring-gray-500'
-                  }`}
-                >
-                  {link.isExternal && <GithubMark />}
-                  {link.label === 'GitHub Repo' ? (
-                    <span className="hidden lg:inline">{getTranslatedLabel(link.label)}</span>
-                  ) : (
-                    <span>{getTranslatedLabel(link.label)}</span>
-                  )}
-                </a>
-              ))}
+              {NAV_LINKS.map((link) => {
+                const LinkComponent = link.isExternal ? 'a' : Link;
+                const isActive =
+                  pathname === link.href || (link.href.startsWith('/#') && pathname === '/');
+                const translatedLabel = getTranslatedLabel(link.label);
+                const isLong = translatedLabel.length > 12;
+                return (
+                  <LinkComponent
+                    key={link.href}
+                    href={link.href}
+                    target={link.isExternal ? '_blank' : undefined}
+                    rel={link.isExternal ? 'noopener noreferrer' : undefined}
+                    className={`relative inline-flex items-center gap-1.5 py-2 font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#0a0a0a] whitespace-nowrap shrink-0 ${
+                      link.isPrimary
+                        ? `rounded-xl bg-gray-900 text-white shadow-md hover:bg-gray-800 hover:-translate-y-0.5 hover:shadow-lg dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200 dark:hover:shadow-[0_4px_20px_rgba(255,255,255,0.2)] focus-visible:ring-gray-950 dark:focus-visible:ring-white ml-2 ${
+                            isLong ? 'px-3 text-xs' : 'px-4 text-sm'
+                          }`
+                        : `rounded-lg focus-visible:ring-gray-400 dark:focus-visible:ring-gray-500 ${
+                            isLong ? 'px-2 text-[11px] lg:text-xs' : 'px-3 text-xs lg:text-sm'
+                          } ${
+                            isActive
+                              ? 'text-gray-900 dark:text-white font-semibold'
+                              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100/80 dark:text-gray-300 dark:hover:text-white dark:hover:bg-white/10'
+                          }`
+                    }`}
+                  >
+                    {link.isExternal && <GithubMark />}
+                    {link.label === 'GitHub Repo' ? (
+                      <span className="hidden lg:inline">{translatedLabel}</span>
+                    ) : (
+                      <span>{translatedLabel}</span>
+                    )}
+                    {isActive && !link.isPrimary && (
+                      <span
+                        className={`absolute bottom-0 h-0.5 bg-gray-900 dark:bg-white rounded-full animate-in fade-in slide-in-from-bottom-1 duration-250 ${
+                          isLong ? 'left-2 right-2' : 'left-3 right-3'
+                        }`}
+                      />
+                    )}
+                  </LinkComponent>
+                );
+              })}
 
               {/* Separator line between links and theme toggle */}
               <div className="mx-2 h-6 w-px bg-gray-200 dark:bg-white/15" />
+
+              <button
+                type="button"
+                onClick={() => setShortcutsOpen(true)}
+                aria-label="Show keyboard shortcuts"
+                className="group inline-flex h-10 w-10 items-center justify-center rounded-xl text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2 dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-white dark:focus-visible:ring-gray-400 dark:focus-visible:ring-offset-[#0a0a0a]"
+              >
+                <Keyboard
+                  size={18}
+                  className="transition-transform duration-300 group-hover:scale-110"
+                />
+              </button>
 
               <button
                 type="button"
@@ -272,7 +429,15 @@ export default function Navbar() {
                 className="md:hidden inline-flex items-center justify-center rounded-xl p-2 text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-white"
                 aria-label={open ? t('navbar.menu_close') : t('navbar.menu_open')}
                 aria-expanded={open}
-                onClick={() => setOpen((prev) => !prev)}
+                onClick={() => {
+                  const opening = !open;
+                  if (opening) {
+                    // Snap the navbar into view so the dropdown is immediately
+                    // visible and stays visible while the menu is open.
+                    setIsHidden(false);
+                  }
+                  setOpen(opening);
+                }}
               >
                 {open ? (
                   <X size={20} className="transition-transform duration-300 rotate-90 scale-110" />
@@ -287,30 +452,45 @@ export default function Navbar() {
           {open ? (
             <div className="border-t border-gray-100 dark:border-white/10 px-4 py-4 md:hidden">
               <ul className="space-y-1">
+                <li className="mb-2">
+                  <NavbarSearch variant="mobile" onNavigate={() => setOpen(false)} />
+                </li>
                 <li className="flex items-center justify-between px-4 py-2 border-b border-gray-100 dark:border-white/10 mb-2">
                   <span className="text-sm font-medium text-black/60 dark:text-white/60">
                     Language / Bhasha
                   </span>
                   <LanguageSelector />
                 </li>
-                {NAV_LINKS.map((link) => (
-                  <li key={link.href}>
-                    <a
-                      href={link.href}
-                      target={link.isExternal ? '_blank' : undefined}
-                      rel={link.isExternal ? 'noopener noreferrer' : undefined}
-                      onClick={() => setOpen(false)}
-                      className={`inline-flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 dark:focus-visible:ring-offset-[#0a0a0a] ${
-                        link.isPrimary
-                          ? 'mt-2 bg-gray-900 text-white shadow-md hover:bg-gray-800 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200 focus-visible:ring-gray-900 dark:focus-visible:ring-white justify-center'
-                          : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100/80 dark:text-gray-300 dark:hover:text-white dark:hover:bg-white/10 focus-visible:ring-gray-400 dark:focus-visible:ring-gray-500'
-                      }`}
-                    >
-                      {link.isExternal && <GithubMark />}
-                      {getTranslatedLabel(link.label)}
-                    </a>
-                  </li>
-                ))}
+                {NAV_LINKS.map((link) => {
+                  const LinkComponent = link.isExternal ? 'a' : Link;
+                  const isActive =
+                    pathname === link.href || (link.href.startsWith('/#') && pathname === '/');
+                  return (
+                    <li key={link.href}>
+                      <LinkComponent
+                        href={link.href}
+                        target={link.isExternal ? '_blank' : undefined}
+                        rel={link.isExternal ? 'noopener noreferrer' : undefined}
+                        onClick={() => setOpen(false)}
+                        className={`relative inline-flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 dark:focus-visible:ring-offset-[#0a0a0a] ${
+                          link.isPrimary
+                            ? 'mt-2 bg-gray-900 text-white shadow-md hover:bg-gray-800 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200 focus-visible:ring-gray-900 dark:focus-visible:ring-white justify-center'
+                            : `focus-visible:ring-gray-400 dark:focus-visible:ring-gray-500 ${
+                                isActive
+                                  ? 'text-gray-950 dark:text-white bg-black/5 dark:bg-white/10 font-semibold'
+                                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100/80 dark:text-gray-300 dark:hover:text-white dark:hover:bg-white/10'
+                              }`
+                        }`}
+                      >
+                        {link.isExternal && <GithubMark />}
+                        {getTranslatedLabel(link.label)}
+                        {isActive && !link.isPrimary && (
+                          <span className="absolute left-2 top-3 bottom-3 w-1 bg-gray-950 dark:bg-white rounded-full animate-in fade-in duration-200" />
+                        )}
+                      </LinkComponent>
+                    </li>
+                  );
+                })}
 
                 <li className="sm:hidden pt-3 mt-3 border-t border-gray-100 dark:border-white/10">
                   <button

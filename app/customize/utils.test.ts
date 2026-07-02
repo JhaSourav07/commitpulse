@@ -165,13 +165,14 @@ describe('Export Snippet utilities', () => {
 
     it('returns minimal params with default values', () => {
       const result = buildQueryParams(defaultOptions);
-      expect(result).toBe('user=testuser&theme=dark&font=Inter');
+      // font=Inter is the default and is omitted (consistent with scale, speed, radius, etc.)
+      expect(result).toBe('user=testuser&theme=dark');
     });
 
     it('applies custom theme values', () => {
       const options = { ...defaultOptions, theme: 'light' };
       const result = buildQueryParams(options);
-      expect(result).toBe('user=testuser&theme=light&font=Inter');
+      expect(result).toBe('user=testuser&theme=light');
     });
 
     it('applies custom color overrides and omits theme', () => {
@@ -183,7 +184,7 @@ describe('Export Snippet utilities', () => {
         textHex: '#000000',
       };
       const result = buildQueryParams(options);
-      expect(result).toBe('user=testuser&bg=ffffff&accent=ff0000&text=000000&font=Inter');
+      expect(result).toBe('user=testuser&bg=ffffff&accent=ff0000&text=000000');
     });
 
     it('omits partial or invalid hex colors and falls back to theme', () => {
@@ -191,7 +192,7 @@ describe('Export Snippet utilities', () => {
       for (const partial of ['f', 'ff', 'ffaab']) {
         const options = { ...defaultOptions, theme: 'dark', bgHex: partial };
         const result = buildQueryParams(options);
-        expect(result).toBe('user=testuser&theme=dark&font=Inter');
+        expect(result).toBe('user=testuser&theme=dark');
         expect(result).not.toContain('bg=');
       }
     });
@@ -205,7 +206,7 @@ describe('Export Snippet utilities', () => {
         textHex: '',
       };
       const result = buildQueryParams(options);
-      expect(result).toBe('user=testuser&bg=ffffff&font=Inter');
+      expect(result).toBe('user=testuser&bg=ffffff');
       expect(result).not.toContain('accent=');
       expect(result).not.toContain('theme=');
     });
@@ -217,7 +218,7 @@ describe('Export Snippet utilities', () => {
         bgHex: 'ffffff',
       };
       const resultAuto = buildQueryParams(optionsAuto);
-      expect(resultAuto).toBe('user=testuser&theme=auto&font=Inter');
+      expect(resultAuto).toBe('user=testuser&theme=auto');
 
       const optionsRandom = {
         ...defaultOptions,
@@ -225,13 +226,13 @@ describe('Export Snippet utilities', () => {
         accentHex: 'ff0000',
       };
       const resultRandom = buildQueryParams(optionsRandom);
-      expect(resultRandom).toBe('user=testuser&theme=random&font=Inter');
+      expect(resultRandom).toBe('user=testuser&theme=random');
     });
 
     it('handles empty username gracefully', () => {
       const options = { ...defaultOptions, username: '   ' };
       const result = buildQueryParams(options);
-      expect(result).toBe('theme=dark&font=Inter');
+      expect(result).toBe('theme=dark');
     });
 
     it('includes all customized options', () => {

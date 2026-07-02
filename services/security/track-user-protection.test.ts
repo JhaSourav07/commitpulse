@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { TrackUserProtection, trackUserProtection } from './track-user-protection';
 import { gitHubUserValidator } from '../github/validate-user';
 
@@ -140,6 +140,31 @@ describe('TrackUserProtection', () => {
       const instanceA = TrackUserProtection.getInstance();
       const instanceB = TrackUserProtection.getInstance();
       expect(instanceA).toBe(instanceB);
+    });
+  });
+
+  describe('Cooldown expiration via fake timers', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('blocks writes initially but allows them after cooldown expires naturally', () => {
+      const username = 'octocat';
+      trackUserProtection.recordWrite(username);
+      expect(trackUserProtection.isWriteAllowed(username)).toBe(false);
+
+      // Cooldown is 5 minutes (300,000 ms).
+      // Advance by 4 minutes and 59 seconds (299,000 ms)
+      vi.advanceTimersByTime(5 * 60 * 1000 - 1000);
+      expect(trackUserProtection.isWriteAllowed(username)).toBe(false);
+
+      // Advance past the 5 minute mark
+      vi.advanceTimersByTime(2000);
+      expect(trackUserProtection.isWriteAllowed(username)).toBe(true);
     });
   });
 });

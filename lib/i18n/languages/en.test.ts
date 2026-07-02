@@ -23,10 +23,10 @@ describe('English language translations', () => {
   it('matches the expected English translations', () => {
     const en = labels.en;
 
-    expect(en.CURRENT_STREAK).toBe('CURRENT_STREAK');
-    expect(en.ANNUAL_SYNC_TOTAL).toBe('ANNUAL_SYNC_TOTAL');
-    expect(en.PEAK_STREAK).toBe('PEAK_STREAK');
-    expect(en.COMMITS_THIS_MONTH).toBe('COMMITS THIS MONTH');
+    expect(en.CURRENT_STREAK).toBe('Current Streak');
+    expect(en.ANNUAL_SYNC_TOTAL).toBe('Annual Total');
+    expect(en.PEAK_STREAK).toBe('Peak Streak');
+    expect(en.COMMITS_THIS_MONTH).toBe('Commits This Month');
     expect(en.VS_LAST_MONTH).toBe('vs last month');
   });
 

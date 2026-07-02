@@ -33,6 +33,7 @@ describe('LibSvgLayout Edge Cases & Empty/Missing Inputs Verification', () => {
 
     // When count is 0 and showGhostCity is false, it safely returns 0
     expect(computeTowerHeight(0, 'log', false)).toBe(0);
+    expect(computeTowerHeight(0, 'sqrt', false)).toBe(0);
   });
 
   it('3. computeFaceOpacity generates transparent blueprints in empty states', () => {

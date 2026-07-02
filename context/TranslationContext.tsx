@@ -17,8 +17,9 @@ import zh from '@/locales/zh.json';
 import ja from '@/locales/ja.json';
 import ko from '@/locales/ko.json';
 import de from '@/locales/de.json';
+import pt from '@/locales/pt.json';
 
-export type Language = 'en' | 'es' | 'hi' | 'fr' | 'zh' | 'ja' | 'ko' | 'de';
+export type Language = 'en' | 'es' | 'hi' | 'fr' | 'zh' | 'ja' | 'ko' | 'de' | 'pt';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const translations: Record<Language, any> = {
@@ -30,6 +31,7 @@ const translations: Record<Language, any> = {
   ja,
   ko,
   de,
+  pt,
 };
 
 export const LANGUAGE_LABELS: Record<Language, string> = {
@@ -41,6 +43,7 @@ export const LANGUAGE_LABELS: Record<Language, string> = {
   ja: '\u65e5\u672c\u8a9e',
   ko: '\ud55c\uad6d\uc5b4',
   de: 'Deutsch',
+  pt: 'Português',
 };
 
 interface TranslationContextType {
@@ -81,15 +84,15 @@ export function TranslationProvider({ children }: { children: ReactNode }) {
     // English text on first load.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
-    const storedLang = localStorage.getItem('language') as Language;
+    const storedLang = localStorage.getItem('language');
     const supportedLangs = Object.keys(translations) as Language[];
 
-    if (storedLang && supportedLangs.includes(storedLang)) {
-      setLanguage(storedLang);
+    if (storedLang && supportedLangs.includes(storedLang as Language)) {
+      setLanguage(storedLang as Language);
     } else {
-      const browserLang = navigator.language.split('-')[0] as Language;
-      if (supportedLangs.includes(browserLang)) {
-        setLanguage(browserLang);
+      const browserLang = navigator.language.split('-')[0];
+      if (supportedLangs.includes(browserLang as Language)) {
+        setLanguage(browserLang as Language);
         localStorage.setItem('language', browserLang);
       } else {
         setLanguage('en');
@@ -125,6 +128,7 @@ export function TranslationProvider({ children }: { children: ReactNode }) {
 
     if (value === undefined) {
       if (process.env.NODE_ENV === 'development') {
+
         console.warn(`[i18n] Missing translation key "${path}" in all locales.`);
       }
 
@@ -163,9 +167,9 @@ export function useTranslation() {
         const value = getNestedValue(en, path);
         if (value === undefined) {
           if (process.env.NODE_ENV === 'development') {
+
             console.warn(`[i18n] Missing translation key "${path}" in English locale.`);
           }
-
           if (params && 'defaultValue' in params) {
             return params.defaultValue;
           }

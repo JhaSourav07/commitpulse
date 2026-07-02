@@ -1,5 +1,39 @@
+import 'server-only';
 import { randomUUID } from 'crypto';
 import { brotliCompressSync, brotliDecompressSync } from 'zlib';
+import logger from '@/lib/logger';
+
+/**
+ * Configuration options for the distributed mutex lock used by {@link DistributedCache.getOrSet}.
+ */
+export interface LockConfig {
+  /**
+   * TTL for the Redis lock key (milliseconds). The lock auto-releases after this duration.
+   * Must be long enough to cover the expected execution time of `loadFn`.
+   * @default 10000
+   */
+  lockTtlMs?: number;
+
+  /**
+   * Maximum time to spend polling for the lock (milliseconds).
+   * After this duration, `getOrSet` falls back to executing `loadFn` directly.
+   * @default 8000
+   */
+  maxPollTimeMs?: number;
+
+  /**
+   * When `true`, a background heartbeat extends the lock TTL while `loadFn` is executing,
+   * preventing premature lock expiry for long-running operations.
+   * @default true
+   */
+  enableLockExtension?: boolean;
+
+  /**
+   * Number of times to retry a failed lock release before giving up.
+   * @default 2
+   */
+  releaseRetries?: number;
+}
 
 /**
  * Represents a cached item with its expiration timestamp.
@@ -291,10 +325,12 @@ export class DistributedCache<T> {
     this.localCache = new TTLCache<T>(maxSize, cleanupIntervalMs);
     const url = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
     const token = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
-    this.useRedis = Boolean(url && token);
-    if (this.useRedis) {
-      this.redisUrl = url!.replace(/\/$/, ''); // Remove trailing slash
-      this.redisToken = token!;
+    if (url && token) {
+      this.useRedis = true;
+      this.redisUrl = url.replace(/\/$/, ''); // Remove trailing slash
+      this.redisToken = token;
+    } else {
+      this.useRedis = false;
     }
   }
 
@@ -333,7 +369,11 @@ export class DistributedCache<T> {
       this.localCache.set(key, parsed, localTtlMs);
       return parsed;
     } catch (err) {
-      console.error(`[DistributedCache] GET failed for key "${key}":`, err);
+      logger.error('Cache GET failed', {
+        component: 'DistributedCache',
+        key,
+        error: err,
+      });
       return this.localCache.get(key);
     }
   }
@@ -361,7 +401,11 @@ export class DistributedCache<T> {
         throw new Error(`Redis HTTP error: ${res.status}`);
       }
     } catch (err) {
-      console.error(`[DistributedCache] SET failed for key "${key}":`, err);
+      logger.error('Cache SET failed', {
+        component: 'DistributedCache',
+        key,
+        error: err,
+      });
     }
   }
 
@@ -388,7 +432,11 @@ export class DistributedCache<T> {
       const data = await res.json();
       return Boolean(data.result);
     } catch (err) {
-      console.error(`[DistributedCache] DELETE failed for key "${key}":`, err);
+      logger.error('Cache DELETE failed', {
+        component: 'DistributedCache',
+        key,
+        error: err,
+      });
       return localDeleted;
     }
   }
@@ -439,7 +487,11 @@ export class DistributedCache<T> {
 
       return updated;
     } catch (err) {
-      console.error(`[DistributedCache] UPDATE failed for key "${key}":`, err);
+      logger.error('Cache UPDATE failed', {
+        component: 'DistributedCache',
+        key,
+        error: err,
+      });
       return false;
     }
   }
@@ -460,6 +512,23 @@ export class DistributedCache<T> {
    */
   async incr(key: string, ttlMs: number): Promise<number> {
     if (!this.useRedis) {
+      // No Redis configured — fall back to the per-instance in-memory counter.
+      //
+      // In serverless environments each cold-start resets the counter, so this
+      // does NOT provide hard cross-instance guarantees. However it is far better
+      // than the previous "fail-closed" behaviour (returning MAX_SAFE_INTEGER),
+      // which blocked every request in production when Redis was not set up.
+      //
+      // Add KV_REST_API_URL + KV_REST_API_TOKEN (Vercel KV) or
+      // UPSTASH_REDIS_REST_URL + UPSTASH_REDIS_REST_TOKEN (Upstash) to your
+      // environment variables to enable proper distributed rate limiting.
+      if (process.env.NODE_ENV === 'production') {
+        logger.warn(
+          'Redis not configured — rate limiting is per-instance only. ' +
+            'Add KV_REST_API_URL + KV_REST_API_TOKEN for distributed rate limiting.',
+          { component: 'DistributedCache', key }
+        );
+      }
       const current = (this.localCache.get(key) as unknown as number) || 0;
       const next = current + 1;
       if (current === 0) {
@@ -497,15 +566,22 @@ return c`;
       this.localCache.set(key, count as unknown as T, ttlMs);
       return count;
     } catch (err) {
-      console.error(`[DistributedCache] INCR failed for key "${key}":`, err);
-      const current = (this.localCache.get(key) as unknown as number) || 0;
-      const next = current + 1;
-      if (current === 0) {
-        this.localCache.set(key, next as unknown as T, ttlMs);
-      } else {
-        this.localCache.update(key, next as unknown as T);
-      }
-      return next;
+      logger.error(
+        'Cache INCR failed — failing closed to avoid bypassing distributed rate limits',
+        {
+          component: 'DistributedCache',
+          key,
+          error: err,
+        }
+      );
+      // Do NOT fall back to a per-instance local counter here. Serverless
+      // instances don't share memory, so a local fallback would let each
+      // instance maintain its own disconnected counter — silently multiplying
+      // the effective rate limit by the number of active instances during
+      // any Redis blip. Failing closed (returning a large value that exceeds
+      // any realistic limit) ensures callers treat this as "limit exceeded"
+      // rather than "limit reset," which is the safer default during an outage.
+      return Number.MAX_SAFE_INTEGER;
     }
   }
 
@@ -527,12 +603,14 @@ return c`;
    * @param loadFn - Async function used to load fresh data.
    * @param ttlMs - Cache expiration time in milliseconds.
    * @param shouldFetch - Optional predicate that forces refresh even on cache hits.
+   * @param lockConfig - Optional distributed lock tuning.
    */
   async getOrSet(
     key: string,
     loadFn: (cached: T | null) => Promise<T>,
     ttlMs: number,
-    shouldFetch?: (cached: T) => boolean
+    shouldFetch?: (cached: T) => boolean,
+    lockConfig?: LockConfig
   ): Promise<T> {
     // Join an existing in-flight request before any async operation to avoid
     // concurrent loadFn execution for the same key.
@@ -552,7 +630,6 @@ return c`;
 
     const executeAndLock = async () => {
       if (!this.useRedis) {
-        // Fallback: Local execution only
         const data = await loadFn(cached);
         await this.set(key, data, ttlMs);
         return data;
@@ -560,7 +637,10 @@ return c`;
 
       const lockKey = `lock:${key}`;
       const lockToken = randomUUID();
-      const maxPollTime = 8000;
+      const lockTtlMs = lockConfig?.lockTtlMs ?? 10000;
+      const maxPollTime = lockConfig?.maxPollTimeMs ?? 8000;
+      const enableLockExtension = lockConfig?.enableLockExtension ?? true;
+      const releaseRetries = lockConfig?.releaseRetries ?? 2;
       const BASE_POLL_MS = 100;
       const MAX_POLL_MS = 1600;
       const start = Date.now();
@@ -577,82 +657,164 @@ return c`;
       `;
 
       const releaseLock = async (): Promise<void> => {
-        await fetch(`${this.redisUrl}/`, {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${this.redisToken}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(['EVAL', luaRelease, 1, lockKey, lockToken]),
-        }).catch((e) => {
-          console.error(`[DistributedCache] Lock release failed for "${key}":`, e);
-        });
+        for (let r = 0; r <= releaseRetries; r++) {
+          try {
+            await fetch(`${this.redisUrl}/`, {
+              method: 'POST',
+              headers: {
+                Authorization: `Bearer ${this.redisToken}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(['EVAL', luaRelease, 1, lockKey, lockToken]),
+            });
+            return;
+          } catch (e) {
+            if (r < releaseRetries) {
+              await new Promise((resolve) => setTimeout(resolve, 100));
+            } else {
+              console.error(
+                '[DistributedCache] Lock release failed for key "%s" after %d attempts:',
+                key,
+                releaseRetries + 1,
+                e
+              );
+            }
+          }
+        }
       };
 
       while (Date.now() - start < maxPollTime) {
+        let acquired = false;
+
         try {
           // NX: acquire only if lock doesn't already exist.
-          // PX 10000: auto-expire lock after 10 seconds to avoid deadlocks.
+          // PX: auto-expire lock to avoid deadlocks.
           const lockRes = await fetch(`${this.redisUrl}/`, {
             method: 'POST',
             headers: {
               Authorization: `Bearer ${this.redisToken}`,
               'Content-Type': 'application/json',
             },
-            body: JSON.stringify(['SET', lockKey, lockToken, 'NX', 'PX', 10000]),
+            body: JSON.stringify(['SET', lockKey, lockToken, 'NX', 'PX', lockTtlMs]),
           });
 
           if (lockRes.ok) {
             const lockData = await lockRes.json();
-            if (lockData.result === 'OK') {
-              try {
-                const freshData = await loadFn(cached);
-                await this.set(key, freshData, ttlMs);
-
-                // Release immediately so other instances can continue sooner.
-                await releaseLock();
-
-                return freshData;
-              } catch (err) {
-                // Remove lock even on failure so other instances don't wait
-                // for the full lock timeout period.
-                await releaseLock();
-                throw err;
-              }
-            }
+            acquired = lockData.result === 'OK';
+          } else {
+            throw new Error(`Redis lock HTTP error: ${lockRes.status}`);
           }
         } catch (err) {
           // Redis network error during locking. Fallback to direct execution.
-          console.error(`[DistributedCache] Lock error for "${key}":`, err);
+          logger.error('Cache lock failed', {
+            component: 'DistributedCache',
+            key,
+            error: err,
+          });
           const fallbackData = await loadFn(cached);
           await this.set(key, fallbackData, ttlMs);
           return fallbackData;
         }
 
-        // Exponential backoff reduces Redis round-trips under load compared to a fixed interval.
-        const backoffMs = Math.min(BASE_POLL_MS * 2 ** attempt, MAX_POLL_MS);
+        if (acquired) {
+          let extensionTimer: ReturnType<typeof setInterval> | null = null;
+
+          if (enableLockExtension) {
+            // Heartbeat fires at 60% of lockTtlMs so there is always time before expiry.
+            // When lockTtlMs is small (<1667ms), clamp to lockTtlMs/2 but with at least
+            // 100ms of headroom so the heartbeat always fires before the lock expires.
+            const rawInterval = Math.floor(lockTtlMs * 0.6);
+            const minInterval = Math.min(1000, Math.max(100, lockTtlMs - 100));
+            const extensionInterval = Math.max(minInterval, rawInterval);
+
+            extensionTimer = setInterval(async () => {
+              try {
+                // Atomically extend only if we still own the lock (token matches).
+                // Using SET XX without a token check would let us extend a lock that
+                // another instance acquired after ours expired — do not use SET XX alone.
+                const luaExtend = `
+                  if redis.call("GET", KEYS[1]) == ARGV[1] then
+                    redis.call("PEXPIRE", KEYS[1], ARGV[2])
+                  end
+                `;
+                await fetch(`${this.redisUrl}/`, {
+                  method: 'POST',
+                  headers: {
+                    Authorization: `Bearer ${this.redisToken}`,
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify([
+                    'EVAL',
+                    luaExtend,
+                    1,
+                    lockKey,
+                    lockToken,
+                    String(lockTtlMs),
+                  ]),
+                });
+              } catch {
+                // Silently ignore extension failures — the lock will expire naturally.
+              }
+            }, extensionInterval);
+            if (typeof extensionTimer === 'object' && typeof extensionTimer.unref === 'function') {
+              extensionTimer.unref();
+            }
+          }
+
+          try {
+            const freshData = await loadFn(cached);
+            await this.set(key, freshData, ttlMs);
+            return freshData;
+          } finally {
+            if (extensionTimer) clearInterval(extensionTimer);
+            await releaseLock();
+          }
+        }
+
+        // Exponential backoff with jitter to prevent thundering herd
+        // when multiple instances contend for the same lock.
+        const baseBackoff = Math.min(BASE_POLL_MS * 2 ** attempt, MAX_POLL_MS);
+        const jitter = 0.5 + Math.random() * 0.5;
+        const backoffMs = Math.round(baseBackoff * jitter);
         await new Promise((resolve) => setTimeout(resolve, backoffMs));
         attempt++;
         const doubleCheck = await this.get(key, ttlMs);
 
-        // Another instance may have already populated the cache while waiting.
         if (doubleCheck !== null && (!shouldFetch || !shouldFetch(doubleCheck))) {
           return doubleCheck;
         }
       }
 
-      // Timed out waiting for lock. Fallback to direct execution to avoid hanging the client.
+      // Timed out waiting for lock. Fallback to direct execution.
       const finalFallback = await loadFn(cached);
       await this.set(key, finalFallback, ttlMs);
       return finalFallback;
     };
 
-    // Ensure local lock cleanup even if request execution fails.
+    let timeoutTimer: ReturnType<typeof setTimeout> | null = null;
+
     const promise = executeAndLock().finally(() => {
+      if (timeoutTimer) clearTimeout(timeoutTimer);
       this.localLocks.delete(key);
     });
 
     this.localLocks.set(key, promise);
+
+    // Safety Eviction: Forcefully evict locks that hang longer than 60s
+    // to prevent memory leaks (fixes Issue #6177).
+    timeoutTimer = setTimeout(() => {
+      if (this.localLocks.get(key) === promise) {
+        this.localLocks.delete(key);
+        logger.error('Safety eviction triggered for hanging lock', {
+          component: 'DistributedCache',
+          key,
+        });
+      }
+    }, 60000);
+
+    if (timeoutTimer && typeof timeoutTimer.unref === 'function') {
+      timeoutTimer.unref();
+    }
 
     return promise;
   }

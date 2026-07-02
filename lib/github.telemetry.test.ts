@@ -26,15 +26,17 @@ describe('GitHub Circuit Breaker Telemetry', () => {
   });
 
   it('reports open circuit with reset time when all tokens are exhausted', async () => {
-    process.env.GITHUB_PAT = 'token1,token2';
+    const mockToken1 = 'ghp_telemetryToken1AAAAAAAAAAAAAAAAAA';
+    const mockToken2 = 'ghp_telemetryToken2AAAAAAAAAAAAAAAAAA';
+    process.env.GITHUB_PAT = `${mockToken1},${mockToken2}`;
     delete process.env.GITHUB_TOKEN;
 
     const resetTime1 = Date.now() + 5000;
     const resetTime2 = Date.now() + 10000;
 
     const tokenStats = getTokenStatsForTests();
-    tokenStats.set('token1', { remaining: 0, resetTime: resetTime1 });
-    tokenStats.set('token2', { remaining: 0, resetTime: resetTime2 });
+    tokenStats.set(mockToken1, { remaining: 0, resetTime: resetTime1 });
+    tokenStats.set(mockToken2, { remaining: 0, resetTime: resetTime2 });
 
     await expect(fetchWithRetry('https://api.github.com/graphql', { headers: {} })).rejects.toThrow(
       'API Rate Limit Exceeded'

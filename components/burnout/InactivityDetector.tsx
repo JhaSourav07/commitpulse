@@ -69,20 +69,28 @@ export default function InactivityDetector({ alerts }: InactivityDetectorProps) 
               }`}
             />
 
-            <div className="relative w-9 h-9 rounded-full overflow-hidden border border-black/10 dark:border-white/10 shrink-0">
-              <Image
+            <a
+              href={`https://github.com/${alert.username}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="relative w-9 h-9 rounded-full overflow-hidden border border-black/10 dark:border-white/10 shrink-0 cursor-pointer"
+            >
+              <img
                 src={alert.avatarUrl}
                 alt={alert.username}
-                fill
-                sizes="36px"
-                className="object-cover"
+                className="w-full h-full object-cover"
               />
-            </div>
+            </a>
 
             <div className="flex flex-col min-w-0">
-              <span className="font-semibold text-sm text-gray-900 dark:text-white truncate">
+              <a
+                href={`https://github.com/${alert.username}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-semibold text-sm text-gray-900 dark:text-white truncate hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors cursor-pointer"
+              >
                 @{alert.username}
-              </span>
+              </a>
               <span className="text-xs text-gray-500 dark:text-zinc-400 mt-1 flex items-center gap-1">
                 <Calendar size={12} className="shrink-0" />
                 Silent for{' '}

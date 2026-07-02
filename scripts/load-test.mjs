@@ -5,8 +5,8 @@ const TARGET_URL = process.env.TARGET_URL || 'http://localhost:3000/api/streak?u
 const CONCURRENCY = 50;
 const DURATION_MS = 10000; // 10 seconds
 
-console.log(`Starting native load test against ${TARGET_URL}...`);
-console.log(`Concurrency: ${CONCURRENCY}, Duration: ${DURATION_MS / 1000}s\n`);
+console.info(`Starting native load test against ${TARGET_URL}...`);
+console.info(`Concurrency: ${CONCURRENCY}, Duration: ${DURATION_MS / 1000}s\n`);
 
 let totalRequests = 0;
 let errors = 0;
@@ -29,7 +29,7 @@ async function worker() {
         errors++;
       }
       totalRequests++;
-    } catch (e) {
+    } catch {
       errors++;
       totalRequests++;
     }
@@ -47,16 +47,16 @@ async function run() {
   const durationSec = (Date.now() - startTime) / 1000;
   const requestsPerSec = (totalRequests / durationSec).toFixed(2);
 
-  console.log('--- Load Test Results ---');
-  console.log(`Total Requests: ${totalRequests}`);
-  console.log(`Requests/sec:   ${requestsPerSec}`);
-  console.log(`Errors:         ${errors}`);
+  console.info('--- Load Test Results ---');
+  console.info(`Total Requests: ${totalRequests}`);
+  console.info(`Requests/sec:   ${requestsPerSec}`);
+  console.info(`Errors:         ${errors}`);
   
   if (errors > 0) {
     console.error('\nTest resulted in errors! The endpoint may be failing under load.');
     process.exit(1);
   } else {
-    console.log('\nSuccess! Endpoint handled the massive scaling test without errors.');
+    console.info('\nSuccess! Endpoint handled the massive scaling test without errors.');
   }
 }
 

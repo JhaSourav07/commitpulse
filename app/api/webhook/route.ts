@@ -1,29 +1,13 @@
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
+import { rateLimit, getRateLimitHeaders } from '@/lib/rate-limit';
+import { getClientIp } from '@/utils/getClientIp';
+import { logger } from '@/lib/logger';
 
 const MAX_PAYLOAD_SIZE = 1024 * 1024; // 1MB
 const SIGNATURE_PREFIX = 'sha256=';
 const SHA256_HEX_LENGTH = 64;
-
-// In-memory rate limiting map: ip -> { count, resetTime }
-const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
-const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
-const MAX_REQUESTS_PER_WINDOW = 10;
-
-function checkRateLimit(ip: string): boolean {
-  const now = Date.now();
-  let record = rateLimitMap.get(ip);
-  if (!record || now > record.resetTime) {
-    record = { count: 1, resetTime: now + RATE_LIMIT_WINDOW };
-    rateLimitMap.set(ip, record);
-    return true;
-  }
-  record.count++;
-  if (record.count > MAX_REQUESTS_PER_WINDOW) {
-    return false;
-  }
-  return true;
-}
+const READ_CHUNK_SIZE = 64 * 1024; // 64KB chunks
 
 function getWebhookSecret(): string | null {
   const secret = process.env.GITHUB_WEBHOOK_SECRET?.trim();
@@ -51,36 +35,71 @@ function verifyWebhookSignature(bodyText: string, signature: string, secret: str
   );
 }
 
+async function readBodyWithLimit(
+  body: ReadableStream<Uint8Array> | null,
+  maxBytes: number
+): Promise<{ ok: true; body: string } | { ok: false; status: number; error: string }> {
+  if (!body) {
+    return { ok: false, status: 400, error: 'Empty request body' };
+  }
+
+  const reader = body.getReader();
+  const chunks: Uint8Array[] = [];
+  let totalBytes = 0;
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      totalBytes += value.length;
+      if (totalBytes > maxBytes) {
+        reader.cancel();
+        return { ok: false, status: 413, error: 'Payload too large' };
+      }
+      chunks.push(value);
+    }
+  } catch {
+    reader.cancel();
+    return { ok: false, status: 400, error: 'Invalid payload' };
+  }
+
+  const totalLength = chunks.reduce((acc, chunk) => acc + chunk.length, 0);
+  const merged = new Uint8Array(totalLength);
+  let offset = 0;
+  for (const chunk of chunks) {
+    merged.set(chunk, offset);
+    offset += chunk.length;
+  }
+
+  return { ok: true, body: new TextDecoder().decode(merged) };
+}
+
 export async function POST(req: Request) {
-  // 1. Rate Limiting
-  const ip = req.headers.get('x-forwarded-for') || 'unknown_ip';
-  if (!checkRateLimit(ip)) {
-    return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+  // 1. Rate Limiting — isolated namespace prevents cross-route interference
+  const ip = getClientIp(req);
+  const limit = await rateLimit(ip, 10, 60000, 'webhook');
+  if (!limit.success) {
+    return NextResponse.json(
+      { error: 'Too many requests' },
+      { status: 429, headers: getRateLimitHeaders(limit) }
+    );
   }
 
   const webhookSecret = getWebhookSecret();
   if (!webhookSecret) {
-    console.error('CRITICAL: GITHUB_WEBHOOK_SECRET is not configured. Webhook rejected.');
+    logger.error('Webhook rejected: GITHUB_WEBHOOK_SECRET is not configured', {
+      route: '/api/webhook',
+    });
     return NextResponse.json({ error: 'Webhook secret is not configured' }, { status: 500 });
   }
 
-  // 2. Payload Validation
-  const contentLength = Number(req.headers.get('content-length') || '0');
-  if (contentLength > MAX_PAYLOAD_SIZE) {
-    return NextResponse.json({ error: 'Payload too large' }, { status: 413 });
+  // 2. Payload Validation — streaming read with enforced size limit
+  const bodyResult = await readBodyWithLimit(req.body, MAX_PAYLOAD_SIZE);
+  if (!bodyResult.ok) {
+    return NextResponse.json({ error: bodyResult.error }, { status: bodyResult.status });
   }
-
-  let bodyText: string;
-  try {
-    bodyText = await req.text();
-  } catch (error) {
-    return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });
-  }
-
-  // Ensure it's not larger than 1MB even after reading
-  if (Buffer.byteLength(bodyText, 'utf8') > MAX_PAYLOAD_SIZE) {
-    return NextResponse.json({ error: 'Payload too large' }, { status: 413 });
-  }
+  const bodyText = bodyResult.body;
 
   // 3. Signature Verification
   const signature = req.headers.get('x-hub-signature-256');
@@ -93,10 +112,9 @@ export async function POST(req: Request) {
   }
 
   // Valid payload, proceed...
-  let payload;
   try {
-    payload = JSON.parse(bodyText);
-  } catch (error) {
+    JSON.parse(bodyText);
+  } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 

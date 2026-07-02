@@ -207,6 +207,10 @@ function CustomizePageInner(): ReactElement {
   // On change sync state to URL
   useEffect(() => {
     if (!queryString) return;
+    // Guard: skip router.replace when the URL already matches the computed params.
+    // Without this, router.replace fires on every mount (including remounts caused by
+    // template.tsx), creating an infinite reload loop in production.
+    if (window.location.search === `?${queryString}`) return;
     router.replace(`/customize?${queryString}`, { scroll: false });
   }, [queryString, router]);
 
@@ -306,7 +310,7 @@ function CustomizePageInner(): ReactElement {
 
     return () => controller.abort();
     // By changing this list, useEffect only runs when previewSrc finishes debouncing
-  }, [previewSrc, hasUsername, trimmedUsername]);
+  }, [previewSrc, hasUsername, trimmedUsername, svgCache]);
 
   const exportSnippet = getExportSnippet(exportFormat, queryString);
 
@@ -593,6 +597,7 @@ function CustomizePageInner(): ReactElement {
                         )}
                       {svgState === 'loaded' && svgContent && (
                         <motion.div
+                          id="export-container"
                           initial={{ opacity: 0, scale: 0.95 }}
                           animate={{ opacity: 1, scale: 1 }}
                           transition={{ duration: 0.5, ease: 'easeOut' }}

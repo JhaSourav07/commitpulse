@@ -3,9 +3,14 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import Navbar from './navbar';
 
+vi.mock('@/hooks/useKeyboardShortcuts', () => ({
+  useKeyboardShortcuts: vi.fn(),
+}));
+
 type MatchMediaChangeListener = (event: MediaQueryListEvent) => void;
 
 const animationFrames: FrameRequestCallback[] = [];
+let scrollY = 0;
 
 // Navbar closes the mobile menu at the desktop breakpoint, so tests need a
 // controllable media query object instead of relying on jsdom defaults.
@@ -70,10 +75,16 @@ function getGlowShell(container: HTMLElement) {
 describe('Navbar - Mouse Interactivity, Hovers & Touch Propagation', () => {
   beforeEach(() => {
     animationFrames.length = 0;
+    scrollY = 0;
     mockMatchMedia(false);
     window.localStorage.clear();
     document.documentElement.className = '';
     document.documentElement.style.colorScheme = '';
+
+    Object.defineProperty(window, 'scrollY', {
+      configurable: true,
+      get: () => scrollY,
+    });
 
     vi.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
       animationFrames.push(callback);
@@ -202,5 +213,25 @@ describe('Navbar - Mouse Interactivity, Hovers & Touch Propagation', () => {
 
     expect(shell.style.getPropertyValue('--glow-opacity')).toBe('0');
     expect(shell.style.getPropertyValue('--border-opacity')).toBe('0');
+  });
+
+  it('hides the navbar while scrolling down and reveals it while scrolling up', () => {
+    const { container } = render(<Navbar />);
+    const header = container.querySelector('header') as HTMLElement;
+
+    expect(header.className).toContain('translate-y-0');
+    expect(header.className).toContain('opacity-100');
+
+    scrollY = 180;
+    fireEvent.scroll(window);
+
+    expect(header.className).toContain('-translate-y-full');
+    expect(header.className).toContain('opacity-0');
+
+    scrollY = 120;
+    fireEvent.scroll(window);
+
+    expect(header.className).toContain('translate-y-0');
+    expect(header.className).toContain('opacity-100');
   });
 });

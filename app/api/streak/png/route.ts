@@ -6,7 +6,7 @@ export async function GET(request: Request) {
   // Call the original endpoint which returns the SVG text
   const response = await getStreakSvg(request);
 
-  if (!response.ok || response.headers.get('Content-Type') !== 'image/svg+xml') {
+  if (!response.ok || !response.headers.get('Content-Type')?.includes('image/svg+xml')) {
     // Return errors as is
     return response;
   }

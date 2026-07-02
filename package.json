@@ -27,8 +27,10 @@
   "dependencies": {
     "@gsap/react": "^2.1.2",
     "@resvg/resvg-js": "^2.6.2",
+    "@serwist/next": "^9.5.11",
     "@tailwindcss/postcss": "^4.2.2",
     "@vercel/analytics": "^1.6.1",
+    "@xyflow/react": "^12.11.0",
     "dompurify": "^3.4.7",
     "framer-motion": "^12.38.0",
     "gsap": "^3.15.0",
@@ -40,7 +42,8 @@
     "mammoth": "^1.12.0",
     "mongodb": "^7.2.0",
     "mongoose": "^9.6.2",
-    "next": "^16.2.3",
+    "next": "^16.2.9",
+    "next-auth": "^5.0.0-beta.31",
     "p-limit": "^3.1.0",
     "pdf-parse": "^2.4.5",
     "react": "19.2.4",
@@ -52,7 +55,9 @@
     "react-qr-code": "^2.0.21",
     "recharts": "^3.8.1",
     "server-only": "^0.0.1",
+    "serwist": "^9.5.11",
     "sonner": "^2.0.7",
+    "svg2pdf.js": "^2.7.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {

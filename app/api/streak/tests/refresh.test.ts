@@ -5,6 +5,7 @@ import { GET } from '../route';
 vi.mock('../../../../lib/github', () => ({
   fetchGitHubContributions: vi.fn(),
   getOrgDashboardData: vi.fn(),
+  getCircuitTelemetry: vi.fn().mockReturnValue({ isOpen: false, resetInMs: 0 }),
 }));
 
 vi.mock('../../../../utils/time', () => ({
@@ -12,7 +13,7 @@ vi.mock('../../../../utils/time', () => ({
   getSecondsUntilMidnightInTimezone: vi.fn(),
 }));
 
-import { fetchGitHubContributions } from '../../../../lib/github';
+import { fetchGitHubContributions, getCircuitTelemetry } from '../../../../lib/github';
 import { getSecondsUntilUTCMidnight } from '../../../../utils/time';
 import type { ExtendedContributionData } from '../../../../types';
 import { refreshPolicy } from '../../../../services/github/refresh-policy';
@@ -35,6 +36,7 @@ describe('GET /api/streak - refresh parameter group', () => {
       repoContributions: [],
     } as unknown as ExtendedContributionData);
     vi.mocked(getSecondsUntilUTCMidnight).mockReturnValue(3600);
+    vi.mocked(getCircuitTelemetry).mockReturnValue({ isOpen: false, resetInMs: 0 });
   });
 
   it('returns status 200 for valid requests with custom refresh values', async () => {
@@ -99,7 +101,7 @@ describe('GET /api/streak - refresh parameter group', () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get('Cache-Control')).toBe(
-      'public, s-maxage=3600, stale-while-revalidate=86400'
+      'public, max-age=60, s-maxage=3600, stale-while-revalidate=60'
     );
     expect(response.headers.get('X-Cache-Status')).toBe('HIT');
   });

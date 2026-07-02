@@ -79,7 +79,7 @@ export function DiscordButton() {
       >
         <motion.a
           ref={buttonRef}
-          href="https://discord.gg/Cb73bS79j"
+          href="https://discord.gg/f84SDraEBH"
           target="_blank"
           rel="noopener noreferrer"
           onMouseEnter={() => setIsHovered(true)}

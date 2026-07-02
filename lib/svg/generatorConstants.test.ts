@@ -1,8 +1,13 @@
 import { describe, it, expect } from 'vitest';
-import { SVG_WIDTH, SVG_HEIGHT, isFontKey } from './generatorConstants';
-import { FONT_MAP } from './fonts';
 import { generateSVG } from './generator';
 import type { BadgeParams } from '../../types';
+import {
+  MAX_USERNAME_DISPLAY_LENGTH,
+  SVG_WIDTH,
+  SVG_HEIGHT,
+  isFontKey,
+} from './generatorConstants';
+import { FONT_MAP } from './fonts';
 
 describe('generatorConstants', () => {
   it('SVG_WIDTH equals 600', () => {
@@ -185,5 +190,90 @@ describe('FONT_MAP — SVG output regression: no duplicate @import for bundled f
     );
 
     expect(svg).toContain('font-family: "Space Grotesk", sans-serif');
+  });
+});
+
+describe('MAX_USERNAME_DISPLAY_LENGTH', () => {
+  it('is defined and is a positive integer', () => {
+    expect(MAX_USERNAME_DISPLAY_LENGTH).toBeDefined();
+    expect(typeof MAX_USERNAME_DISPLAY_LENGTH).toBe('number');
+    expect(MAX_USERNAME_DISPLAY_LENGTH).toBeGreaterThan(0);
+    expect(Number.isInteger(MAX_USERNAME_DISPLAY_LENGTH)).toBe(true);
+  });
+
+  it('equals 20 — the increased value supporting longer usernames', () => {
+    expect(MAX_USERNAME_DISPLAY_LENGTH).toBe(20);
+  });
+
+  it('is less than GitHub max username length of 39 characters', () => {
+    // Sanity: display truncation must be shorter than the max possible username
+    expect(MAX_USERNAME_DISPLAY_LENGTH).toBeLessThan(39);
+  });
+
+  it('is coordinated with SVG_WIDTH — truncation prevents title overflow', () => {
+    // At Syncopate 18px with letter-spacing 6px, each character is ~24px wide.
+    // MAX_USERNAME_DISPLAY_LENGTH * 24 should be safely within SVG_WIDTH.
+    const estimatedTextWidth = MAX_USERNAME_DISPLAY_LENGTH * 24;
+    expect(estimatedTextWidth).toBeLessThan(SVG_WIDTH);
+  });
+});
+
+// ── truncateUsername behavior via SVG output ──────────────────────────────────
+// These tests verify truncateUsername() uses MAX_USERNAME_DISPLAY_LENGTH
+// correctly by checking the SVG output, not the private function directly.
+describe('truncateUsername — uses MAX_USERNAME_DISPLAY_LENGTH constant', () => {
+  const mockStats = {
+    currentStreak: 5,
+    longestStreak: 10,
+    totalContributions: 100,
+    todayDate: '2024-06-12',
+  };
+
+  const mockCalendar = {
+    totalContributions: 100,
+    weeks: [
+      {
+        contributionDays: [{ contributionCount: 5, date: '2024-06-12' }],
+      },
+    ],
+  };
+
+  it('username exactly at MAX_USERNAME_DISPLAY_LENGTH is not truncated', () => {
+    const exactLengthUser = 'a'.repeat(MAX_USERNAME_DISPLAY_LENGTH); // 'aaaaaaaaaaaa'
+    const svg = generateSVG(
+      mockStats,
+      { user: exactLengthUser } as unknown as BadgeParams,
+      mockCalendar
+    );
+    expect(svg).toContain(exactLengthUser.toUpperCase());
+    expect(svg).not.toContain('...');
+  });
+
+  it('username one character over MAX_USERNAME_DISPLAY_LENGTH is truncated with ...', () => {
+    const longUser = 'a'.repeat(MAX_USERNAME_DISPLAY_LENGTH + 1); // 13 chars
+    const svg = generateSVG(mockStats, { user: longUser } as unknown as BadgeParams, mockCalendar);
+    expect(svg).toContain('...');
+    // The displayed portion should be exactly MAX_USERNAME_DISPLAY_LENGTH chars
+    const truncated = 'A'.repeat(MAX_USERNAME_DISPLAY_LENGTH) + '...';
+    expect(svg).toContain(truncated);
+  });
+
+  it('very long GitHub username (39 chars) is truncated to MAX_USERNAME_DISPLAY_LENGTH', () => {
+    const maxGitHubUser = 'a'.repeat(39);
+    const svg = generateSVG(
+      mockStats,
+      { user: maxGitHubUser } as unknown as BadgeParams,
+      mockCalendar
+    );
+    expect(svg).toContain('...');
+    // Should show exactly 12 chars + '...'
+    expect(svg).toContain('A'.repeat(MAX_USERNAME_DISPLAY_LENGTH) + '...');
+  });
+
+  it('short username (under MAX_USERNAME_DISPLAY_LENGTH) is never truncated', () => {
+    const shortUser = 'chetan';
+    const svg = generateSVG(mockStats, { user: shortUser } as unknown as BadgeParams, mockCalendar);
+    expect(svg).toContain('CHETAN');
+    expect(svg).not.toContain('CHETAN...');
   });
 });

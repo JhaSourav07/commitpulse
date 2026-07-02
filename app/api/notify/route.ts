@@ -14,6 +14,8 @@ import {
   verifyNotificationManagementToken,
 } from '@/lib/notification-management-token';
 import type { INotification } from '@/models/Notification';
+import logger from '@/lib/logger';
+import { validateCSRF } from '@/lib/security/csrf';
 
 const notifyWriteCache = new DistributedCache<number>(5000, 60000);
 const NOTIFY_WRITE_COOLDOWN_MS = 5 * 60 * 1000;
@@ -91,6 +93,8 @@ async function authorizeNotificationMutation(
 // ─── POST /api/notify ────────────────────────────────────────────────────────
 // Register or update email notification preferences for a user
 export async function POST(req: Request) {
+  const csrfError = validateCSRF(req);
+  if (csrfError) return csrfError;
   // Rate limiting
   const ip = getClientIp(req);
 
@@ -136,18 +140,18 @@ export async function POST(req: Request) {
     // Graceful MONGODB_URI handling
     if (!process.env.MONGODB_URI) {
       if (process.env.NODE_ENV === 'production') {
-        console.error(
-          'CRITICAL: MONGODB_URI is not set in production environment. Notification registration is disabled.'
-        );
+        logger.error('Notification registration disabled: MONGODB_URI is not set', {
+          environment: process.env.NODE_ENV,
+        });
         return NextResponse.json(
           { success: false, message: 'Database configuration error.' },
           { status: 500 }
         );
       }
 
-      console.warn(
-        'MONGODB_URI is not set. Bypassing notification registration for local development.'
-      );
+      logger.warn('Notification registration bypassed: MONGODB_URI is not set', {
+        environment: process.env.NODE_ENV,
+      });
       return NextResponse.json({
         success: true,
         message: 'Notification registration bypassed (no database configured).',
@@ -179,7 +183,7 @@ export async function POST(req: Request) {
           success: false,
           message: `Please wait ${remaining} second${remaining === 1 ? '' : 's'} before updating notification preferences again.`,
         },
-        { status: 429 }
+        { status: 429, headers: { 'Retry-After': remaining.toString() } }
       );
     }
 
@@ -242,7 +246,10 @@ export async function POST(req: Request) {
       { status: 200 }
     );
   } catch (error) {
-    console.error('[/api/notify] Error saving notification preferences:', error);
+    logger.error('Failed to save notification preferences', {
+      route: '/api/notify',
+      error,
+    });
     return NextResponse.json(
       { success: false, message: 'Internal server error.' },
       { status: 500 }
@@ -253,16 +260,19 @@ export async function POST(req: Request) {
 // ─── DELETE /api/notify ──────────────────────────────────────────────────────
 // Remove notification preferences for a user (unsubscribe / right to erasure)
 export async function DELETE(req: NextRequest) {
+  const csrfError = validateCSRF(req);
+  if (csrfError) return csrfError;
   // Rate limiting
   const ip = getClientIp(req);
 
   const rateLimitKey =
     ip && ip !== 'unknown' ? ip : `unknown:${req.headers.get('user-agent') ?? 'no-agent'}`;
 
-  if (!(await notifyRateLimiter.check(rateLimitKey))) {
+  const deleteRateLimitResult = await notifyRateLimiter.checkWithResult(rateLimitKey);
+  if (!deleteRateLimitResult.success) {
     return NextResponse.json(
       { success: false, message: 'Too many requests, please try again later.' },
-      { status: 429 }
+      { status: 429, headers: getRateLimitHeaders(deleteRateLimitResult) }
     );
   }
 
@@ -317,7 +327,7 @@ export async function DELETE(req: NextRequest) {
       );
     }
 
-    const providedManagementToken = getNotificationManagementToken(req, undefined, searchParams);
+    const providedManagementToken = getNotificationManagementToken(req);
     const authorization = await authorizeNotificationMutation(
       req,
       normalizedUsername,
@@ -389,23 +399,22 @@ export async function GET(req: Request) {
     // Graceful MONGODB_URI handling
     if (!process.env.MONGODB_URI) {
       if (process.env.NODE_ENV === 'production') {
-        console.error(
-          'CRITICAL: MONGODB_URI is not set in production environment. Notification lookup is disabled.'
-        );
+        logger.error('Notification lookup disabled: MONGODB_URI is not set', {
+          environment: process.env.NODE_ENV,
+        });
         return NextResponse.json(
           { success: false, message: 'Database configuration error.' },
           { status: 500 }
         );
       }
+      logger.warn('Notification lookup bypassed: MONGODB_URI is not set', {
+        environment: process.env.NODE_ENV,
+      });
 
-      console.warn('MONGODB_URI is not set. Bypassing notification lookup for local development.');
-      return NextResponse.json(
-        {
-          success: false,
-          message: 'No notification preferences found (no database configured).',
-        },
-        { status: 503 }
-      );
+      return NextResponse.json({
+        success: false,
+        message: 'No notification preferences found (no database configured).',
+      });
     }
 
     await dbConnect();
@@ -441,7 +450,10 @@ export async function GET(req: Request) {
       { status: 200 }
     );
   } catch (error) {
-    console.error('[/api/notify] Error fetching notification preferences:', error);
+    logger.error('Failed to fetch notification preferences', {
+      route: '/api/notify',
+      error,
+    });
     return NextResponse.json(
       { success: false, message: 'Internal server error.' },
       { status: 500 }

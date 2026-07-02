@@ -17,6 +17,7 @@ const OGRouteLayoutMock = () => (
     <button>Action</button>
     <input aria-label="Search" />
 
+    {/* eslint-disable-next-line @next/next/no-img-element */}
     <img src="/info.png" alt="Information Icon" aria-describedby="tooltip-desc" />
     <div id="tooltip-desc">Additional metadata</div>
   </div>

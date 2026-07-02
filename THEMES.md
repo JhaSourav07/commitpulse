@@ -1,6 +1,6 @@
 # CommitPulse Themes
 
-All 26 available themes for your CommitPulse badge. Use the `?theme=<slug>` query parameter to apply a theme.
+All 28 available themes for your CommitPulse badge. Use the `?theme=<slug>` query parameter to apply a theme.
 
 ```
 https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&theme=<slug>
@@ -35,9 +35,12 @@ https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&theme=<slug>
 | tokyonight       | `#1a1b26`  | `#c0caf5` | `#f7768e` |
 | tokyo_night      | `#1a1b26`  | `#c0caf5` | `#7aa2f7` |
 | cyberpunk        | `#fce22a`  | `#111111` | `#ff003c` |
+| cyberpunk_neon   | `#0d0d14`  | `#00f3ff` | `#ff0055` |
 | glacier          | `#e0f2fe`  | `#0369a1` | `#06b6d4` |
 | lumos            | `#0a0a0a`  | `#a7f3d0` | `#fbbf24` |
 | monokai          | `#272822`  | `#f8f8f2` | `#a6e22e` |
+| retro-terminal   | `#000000`  | `#00ff41` | `#00ff41` |
+| midnight_ocean   | `#020c1b`  | `#ccd6f6` | `#0af5ff` |
 
 ---
 
@@ -271,6 +274,18 @@ https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&theme=<slug>
 
 ---
 
+### Retro Terminal
+
+![retro-terminal](https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=retro-terminal)
+
+| Parameter | Value  |
+| --------- | ------ |
+| `bg`      | 000000 |
+| `text`    | 00ff41 |
+| `accent`  | 00ff41 |
+
+---
+
 ### Obsidian
 
 ![obsidian](https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=obsidian)
@@ -304,6 +319,18 @@ https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&theme=<slug>
 | `bg`      | fce22a |
 | `text`    | 111111 |
 | `accent`  | ff003c |
+
+---
+
+### Cyberpunk Neon
+
+![cyberpunk_neon](https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=cyberpunk_neon)
+
+| Parameter | Value  |
+| --------- | ------ |
+| `bg`      | 0d0d14 |
+| `text`    | 00f3ff |
+| `accent`  | ff0055 |
 
 ---
 
@@ -352,6 +379,18 @@ https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&theme=<slug>
 | `bg`      | 272822 |
 | `text`    | f8f8f2 |
 | `accent`  | a6e22e |
+
+---
+
+### Midnight Ocean
+
+![midnight_ocean](https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=midnight_ocean)
+
+| Parameter | Value  |
+| --------- | ------ |
+| `bg`      | 020c1b |
+| `text`    | ccd6f6 |
+| `accent`  | 0af5ff |
 
 ---
 

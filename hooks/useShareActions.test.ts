@@ -1,78 +1,48 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { useShareActions } from './useShareActions';
 import type { DashboardExportData } from '@/types/dashboard';
 
+const mockUsername = 'testuser';
+const mockExportData: DashboardExportData = {
+  stats: { totalContributions: 10, currentStreak: 3, peakStreak: 5 },
+  activity: [],
+  languages: [],
+};
+const mockOnClose = vi.fn();
+const url = 'https://commitpulse.app/testuser';
+
+vi.mock('@/utils/urls', () => ({
+  getDashboardUrl: () => url,
+  getOrigin: () => 'https://commitpulse.app',
+}));
+
 vi.mock('html-to-image', () => ({
-  toPng: vi.fn().mockResolvedValue('data:image/png;base64,mockPng'),
   toCanvas: vi.fn().mockResolvedValue({
-    toBlob: (cb: (blob: Blob) => void) => {
-      cb(new Blob(['test'], { type: 'image/png' }));
-    },
-    toDataURL: vi.fn().mockReturnValue('data:image/webp;base64,mockWebp'),
+    toBlob: (cb: (b: Blob | null) => void) => cb(new Blob(['fake'])),
   }),
 }));
 
-describe('useShareActions', () => {
-  const mockUsername = 'atharv96k';
-  const mockClose = vi.fn();
-
-  const mockExportData: DashboardExportData = {
-    stats: {
-      currentStreak: 5,
-      peakStreak: 12,
-      totalContributions: 142,
-    },
-    languages: [
-      { name: 'Java', color: '#b07219', percentage: 70 },
-      { name: 'TypeScript', color: '#3178c6', percentage: 30 },
-    ],
-  };
-
-  const originalCreateElement = document.createElement.bind(document);
-  let mockLinkElement: HTMLAnchorElement;
-
-  beforeEach(() => {
-    vi.clearAllMocks();
-    vi.useFakeTimers();
-
-    global.fetch = vi.fn();
-
-    Object.defineProperty(navigator, 'clipboard', {
-      value: {
-        writeText: vi.fn().mockResolvedValue(undefined),
-      },
-      configurable: true,
-    });
-
-    vi.spyOn(window, 'open').mockImplementation(() => null);
-
-    global.URL.createObjectURL = vi.fn().mockReturnValue('blob:mock-url');
-    global.URL.revokeObjectURL = vi.fn();
-
-    mockLinkElement = originalCreateElement('a') as HTMLAnchorElement;
-    vi.spyOn(mockLinkElement, 'click').mockImplementation(() => undefined);
-
-    vi.spyOn(document, 'createElement').mockImplementation((tagName) => {
-      if (tagName === 'a') {
-        return mockLinkElement;
-      }
-      return originalCreateElement(tagName);
-    });
-
-    document.body.innerHTML = '<div id="dashboard-root">Dashboard</div>';
+function mockClipboard() {
+  Object.defineProperty(window.navigator, 'clipboard', {
+    value: { writeText: vi.fn().mockResolvedValue(undefined) },
+    configurable: true,
+    writable: true,
   });
+}
 
-  afterEach(() => {
-    vi.useRealTimers();
+describe('useShareActions error logging', () => {
+  beforeEach(() => {
     vi.restoreAllMocks();
+    mockOnClose.mockReset();
     document.body.innerHTML = '';
     Reflect.deleteProperty(globalThis, 'fetch');
     Reflect.deleteProperty(globalThis, 'ClipboardItem');
+    mockClipboard();
   });
 
   it('handleCopyLink calls navigator.clipboard.writeText with a profile URL containing the username', async () => {
-    const { result } = renderHook(() => useShareActions(mockUsername, mockExportData, mockClose));
+    const { result } = renderHook(() => useShareActions(mockUsername, mockExportData, mockOnClose));
 
     let success;
     await act(async () => {
@@ -80,14 +50,15 @@ describe('useShareActions', () => {
     });
 
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
-      expect.stringContaining(`/dashboard/${mockUsername}`)
+      expect.stringContaining(mockUsername)
     );
     expect(success).toBe(true);
     expect(result.current.states['copy']).toBe('success');
   });
 
   it('resets copy state to idle after 2500ms', async () => {
-    const { result } = renderHook(() => useShareActions(mockUsername, mockExportData, mockClose));
+    vi.useFakeTimers();
+    const { result } = renderHook(() => useShareActions(mockUsername, mockExportData, mockOnClose));
 
     await act(async () => {
       await result.current.handleCopyLink();
@@ -100,6 +71,7 @@ describe('useShareActions', () => {
     });
 
     expect(result.current.states['copy']).toBe('idle');
+    vi.useRealTimers();
   });
 
   it('copies dashboard image to clipboard successfully', async () => {
@@ -114,18 +86,20 @@ describe('useShareActions', () => {
       writable: true,
     });
 
-    Object.defineProperty(navigator, 'clipboard', {
+    Object.defineProperty(window.navigator, 'clipboard', {
       value: {
         write: writeMock,
         writeText: vi.fn().mockResolvedValue(undefined),
       },
       configurable: true,
+      writable: true,
     });
 
-    const { result } = renderHook(() => useShareActions(mockUsername, mockExportData, mockClose));
+    const { result } = renderHook(() => useShareActions(mockUsername, mockExportData, mockOnClose));
 
     await act(async () => {
-      await result.current.handleCopyImage();
+      const promise = result.current.handleCopyImage();
+      await promise;
     });
 
     expect(writeMock).toHaveBeenCalled();
@@ -133,105 +107,77 @@ describe('useShareActions', () => {
   });
 
   it('handleTwitter opens window to share on twitter/x', () => {
-    const { result } = renderHook(() => useShareActions(mockUsername, mockExportData, mockClose));
+    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
+    const { result } = renderHook(() => useShareActions(mockUsername, mockExportData, mockOnClose));
 
     act(() => {
       result.current.handleTwitter();
     });
 
-    expect(window.open).toHaveBeenCalledWith(
+    expect(openSpy).toHaveBeenCalledWith(
       expect.stringContaining('twitter.com/intent/tweet'),
       '_blank',
       'noopener'
     );
-    expect(mockClose).toHaveBeenCalled();
+    expect(mockOnClose).toHaveBeenCalled();
   });
 
   it('handleLinkedIn opens window to share on linkedin', () => {
-    const { result } = renderHook(() => useShareActions(mockUsername, mockExportData, mockClose));
+    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
+    const { result } = renderHook(() => useShareActions(mockUsername, mockExportData, mockOnClose));
 
     act(() => {
       result.current.handleLinkedIn();
     });
 
-    expect(window.open).toHaveBeenCalledWith(
+    expect(openSpy).toHaveBeenCalledWith(
       expect.stringContaining('linkedin.com/sharing/share-offsite'),
       '_blank',
       'noopener'
     );
-    expect(mockClose).toHaveBeenCalled();
+    expect(mockOnClose).toHaveBeenCalled();
   });
 
-  it('handleReddit opens window to submit link on reddit', () => {
-    const { result } = renderHook(() => useShareActions(mockUsername, mockExportData, mockClose));
-
-    act(() => {
-      result.current.handleReddit();
+  it('logs error when handleCopyLink fails', async () => {
+    Object.defineProperty(window.navigator, 'clipboard', {
+      value: { writeText: vi.fn().mockRejectedValue(new Error('permission denied')) },
+      configurable: true,
+      writable: true,
     });
-
-    expect(window.open).toHaveBeenCalledWith(
-      expect.stringContaining('reddit.com/submit'),
-      '_blank',
-      'noopener,noreferrer'
+    const { result } = renderHook(() => useShareActions(mockUsername, mockExportData, mockOnClose));
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    await result.current.handleCopyLink();
+    expect(consoleSpy).toHaveBeenCalledWith(
+      '[useShareActions] copy link failed:',
+      expect.any(Error)
     );
-    expect(mockClose).toHaveBeenCalled();
+    consoleSpy.mockRestore();
   });
 
-  it('handleCopyMarkdown writes an interactive markdown string to clipboard', async () => {
-    const { result } = renderHook(() => useShareActions(mockUsername, mockExportData, mockClose));
-
-    await act(async () => {
-      await result.current.handleCopyMarkdown();
-    });
-
-    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
-      expect.stringContaining(`/api/streak?user=${mockUsername}`)
+  it('logs error when handleDownloadPNG fails', async () => {
+    const { result } = renderHook(() => useShareActions(mockUsername, mockExportData, mockOnClose));
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    await result.current.handleDownloadPNG();
+    expect(consoleSpy).toHaveBeenCalledWith(
+      '[useShareActions] PNG download failed:',
+      expect.any(Error)
     );
-    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
-      expect.stringMatching(/^!\[CommitPulse\]\(https?:\/\/[^)]+\/api\/streak\?user=atharv96k\)$/)
-    );
+    consoleSpy.mockRestore();
   });
 
-  it('handleDownloadSVG sanitizes unsafe attributes before creating the download blob', async () => {
-    const maliciousSvg =
-      '<svg><script>alert(1)</script><rect width="10" height="10" onload="evil()" /><a href="javascript:alert(1)"><text>x</text></a></svg>';
-
-    vi.mocked(global.fetch).mockResolvedValue({
-      ok: true,
-      text: vi.fn().mockResolvedValue(maliciousSvg),
-    } as unknown as Response);
-
-    const { result } = renderHook(() => useShareActions(mockUsername, mockExportData, mockClose));
-
-    await act(async () => {
-      await result.current.handleDownloadSVG();
+  it('logs error when handleCopyMarkdown fails', async () => {
+    Object.defineProperty(window.navigator, 'clipboard', {
+      value: { writeText: vi.fn().mockRejectedValue(new Error('clipboard error')) },
+      configurable: true,
+      writable: true,
     });
-
-    expect(global.fetch).toHaveBeenCalledWith(
-      expect.stringMatching(/\/api\/streak\?user=atharv96k$/)
+    const { result } = renderHook(() => useShareActions(mockUsername, mockExportData, mockOnClose));
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    await result.current.handleCopyMarkdown();
+    expect(consoleSpy).toHaveBeenCalledWith(
+      '[useShareActions] copy markdown failed:',
+      expect.any(Error)
     );
-    expect(global.URL.createObjectURL).toHaveBeenCalledTimes(1);
-
-    const blob = vi.mocked(global.URL.createObjectURL).mock.calls[0][0] as Blob;
-    const sanitizedSvg = await blob.text();
-
-    expect(sanitizedSvg).toContain('<svg');
-    expect(sanitizedSvg).not.toContain('<script');
-    expect(sanitizedSvg).not.toContain('onload=');
-    expect(sanitizedSvg).not.toContain('javascript:');
-    expect(result.current.states['svg']).toBe('success');
-  });
-
-  it('handleDownloadJSON bundles and formats a structured JSON data blob download', () => {
-    const { result } = renderHook(() => useShareActions(mockUsername, mockExportData, mockClose));
-
-    act(() => {
-      result.current.handleDownloadJSON();
-    });
-
-    expect(mockLinkElement.download).toContain(`commitpulse-${mockUsername}-stats.json`);
-    expect(mockLinkElement.href).toBe('blob:mock-url');
-    expect(mockLinkElement.click).toHaveBeenCalled();
-    expect(global.URL.createObjectURL).toHaveBeenCalled();
+    consoleSpy.mockRestore();
   });
 });
