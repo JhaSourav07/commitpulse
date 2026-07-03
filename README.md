@@ -138,6 +138,7 @@ Transform your GitHub contribution history into a cinematic 3D monolith.
 | `tokyo_night`      | Deep navy & soft pastel blue | `1a1b26` | `7aa2f7` | `c0caf5` |
 | `monokai`          | Classic vibrant dark         | `272822` | `a6e22e` | `f8f8f2` |
 | `midnight_ocean`   | Deep navy bioluminescent     | `020c1b` | `0af5ff` | `ccd6f6` |
+| `india`            | Saffron & India green        | `0a0a0a` | `FF9933` | `ffffff` |
 
 > **`auto` uses CSS `@media (prefers-color-scheme)`** inside the SVG so the badge switches between the `light` and `dark` palettes based on the viewer's OS setting — no JavaScript required. This is ideal for GitHub profile READMEs where visitors may use either mode.
 
@@ -175,7 +176,7 @@ To keep the repository clean and readable, technical details have been modulariz
 
 Get your own instance of CommitPulse running locally in 4 simple steps:
 
-```bash
+````bash
 # 1. Clone the repository
 git clone https://github.com/JhaSourav07/commitpulse.git && cd commitpulse
 
@@ -183,15 +184,30 @@ git clone https://github.com/JhaSourav07/commitpulse.git && cd commitpulse
 npm install
 
 # 3. Create your environment file
-cat > .env.local << 'EOF'
+
+Create a `.env.local` file in the project root:
+
+```env
 GITHUB_TOKEN=your_github_pat_here
-EOF
+````
+
+> Replace `your_github_pat_here` with your own GitHub Personal Access Token.
+
+> ⚠️ **Security Notice**
+>
+> - Never commit `.env.local` or any file containing secrets to Git.
+> - Keep your Personal Access Token private.
+> - If your token is ever exposed, revoke it immediately from your GitHub account and generate a new one.
+> - `.env.local` is intended for local development only and should remain untracked by Git.
 
 # 4. Start the development server
+
+```bash
 npm run dev
 ```
 
-> **📌 Token Scope**: Your GitHub Personal Access Token needs the `read:user` scope only. No write permissions required.
+> **📌 Token Scope**: > Your GitHub Personal Access Token only requires the `read:user` scope.
+> Avoid granting additional permissions unless absolutely necessary, following the principle of least privilege.
 
 Then visit: `http://localhost:3000/api/streak?user=YOUR_USERNAME`
 

@@ -16,6 +16,20 @@ const ACCENT_PRESETS = [
   { hex: '#14b8a6', label: 'Teal' },
 ];
 
+export interface ReviewFormData {
+  name: string;
+  handle: string;
+  platform: 'twitter' | 'github';
+  message: string;
+  accentColor: string;
+}
+
+export interface ReviewFormProps {
+  initialPlatform?: 'twitter' | 'github';
+  onSuccess?: (data: ReviewFormData) => void;
+  optionalField?: string;
+}
+
 export default function SubmitReviewPage() {
   const [formData, setFormData] = useState({
     name: '',
@@ -55,6 +69,16 @@ export default function SubmitReviewPage() {
       return;
     }
 
+    // Query local cache layer before triggering database retrieval
+    const cached = localStorage.getItem('last_review_submission');
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (parsed.handle === formData.handle.trim() && Date.now() - parsed.timestamp < 60000) {
+        setError('Please wait before submitting another review.');
+        return;
+      }
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -76,6 +100,12 @@ export default function SubmitReviewPage() {
         setError(data.message ?? 'Something went wrong. Please try again.');
         return;
       }
+
+      // Complete cache sync written on success callback
+      localStorage.setItem(
+        'last_review_submission',
+        JSON.stringify({ handle: formData.handle.trim(), timestamp: Date.now() })
+      );
 
       setSubmitted(true);
 

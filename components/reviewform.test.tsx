@@ -25,6 +25,7 @@ describe('SubmitReviewPage', () => {
   beforeEach(() => {
     globalThis.fetch = vi.fn();
     vi.clearAllMocks();
+    localStorage.clear();
   });
 
   it('renders the form correctly', () => {

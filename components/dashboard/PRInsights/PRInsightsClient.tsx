@@ -19,14 +19,40 @@ export default function PRInsightsClient({ username }: { username: string }) {
 
   useEffect(() => {
     async function fetchData() {
+      const cacheKey = `pr-insights-${username}`;
+      const cached = localStorage.getItem(cacheKey);
+
+      if (cached) {
+        try {
+          setData(JSON.parse(cached));
+          setLoading(false);
+          return; // Skip fetch if cached, or you could do SWR style and still fetch. The requirement says "before triggering database retrievals".
+        } catch (e) {
+          // ignore cache parse error
+        }
+      }
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+
       try {
         setLoading(true);
-        const res = await fetch(`/api/pr-insights?username=${encodeURIComponent(username)}`);
+        const res = await fetch(`/api/pr-insights?username=${encodeURIComponent(username)}`, {
+          signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+
         if (!res.ok) throw new Error('Failed to fetch PR insights');
         const json = await res.json();
+
+        localStorage.setItem(cacheKey, JSON.stringify(json));
         setData(json);
       } catch (err: unknown) {
-        setError(err instanceof Error ? err.message : String(err));
+        if (err instanceof Error && err.name === 'AbortError') {
+          setError('Request timed out');
+        } else {
+          setError(err instanceof Error ? err.message : String(err));
+        }
       } finally {
         setLoading(false);
       }
