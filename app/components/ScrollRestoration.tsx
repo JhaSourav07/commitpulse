@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { usePathname } from 'next/navigation';
 
 export default function ScrollRestoration() {
   const pathname = usePathname();
+  const scrollTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
     const savedPosition = sessionStorage.getItem(`scroll-position-${pathname}`);
@@ -14,13 +15,25 @@ export default function ScrollRestoration() {
     }
 
     const handleScroll = () => {
-      sessionStorage.setItem(`scroll-position-${pathname}`, window.scrollY.toString());
+      if (scrollTimeoutRef.current !== null) {
+        window.clearTimeout(scrollTimeoutRef.current);
+      }
+
+      scrollTimeoutRef.current = window.setTimeout(() => {
+        sessionStorage.setItem(`scroll-position-${pathname}`, window.scrollY.toString());
+
+        scrollTimeoutRef.current = null;
+      }, 100);
     };
 
     window.addEventListener('scroll', handleScroll);
 
     return () => {
       window.removeEventListener('scroll', handleScroll);
+
+      if (scrollTimeoutRef.current !== null) {
+        window.clearTimeout(scrollTimeoutRef.current);
+      }
     };
   }, [pathname]);
 
