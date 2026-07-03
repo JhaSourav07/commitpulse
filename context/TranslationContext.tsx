@@ -128,7 +128,6 @@ export function TranslationProvider({ children }: { children: ReactNode }) {
 
     if (value === undefined) {
       if (process.env.NODE_ENV === 'development') {
-
         console.warn(`[i18n] Missing translation key "${path}" in all locales.`);
       }
 
@@ -167,7 +166,6 @@ export function useTranslation() {
         const value = getNestedValue(en, path);
         if (value === undefined) {
           if (process.env.NODE_ENV === 'development') {
-
             console.warn(`[i18n] Missing translation key "${path}" in English locale.`);
           }
           if (params && 'defaultValue' in params) {
