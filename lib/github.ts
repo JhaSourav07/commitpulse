@@ -76,9 +76,22 @@ export function shouldFallbackOnError(err: unknown): boolean {
   return false;
 }
 
-const GRAPHQL_TIMEOUT_MS = Number(process.env.GITHUB_GRAPHQL_TIMEOUT_MS ?? '8000');
-const REST_TIMEOUT_MS = Number(process.env.GITHUB_REST_TIMEOUT_MS ?? '5000');
-const ORG_MEMBER_LIMIT = Number(process.env.GITHUB_ORG_MEMBER_LIMIT ?? '100');
+/**
+ * Read a positive integer from the environment, falling back to the
+ * default when the variable is unset, not a number, or non-positive.
+ * A value like "abc" or "-5" would otherwise produce a NaN or negative
+ * timeout and break AbortSignal scheduling at request time.
+ */
+function positiveIntFromEnv(name: string, fallback: number): number {
+  const raw = process.env[name];
+  if (raw === undefined || raw === '') return fallback;
+  const parsed = Number(raw);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+const GRAPHQL_TIMEOUT_MS = positiveIntFromEnv('GITHUB_GRAPHQL_TIMEOUT_MS', 8000);
+const REST_TIMEOUT_MS = positiveIntFromEnv('GITHUB_REST_TIMEOUT_MS', 5000);
+const ORG_MEMBER_LIMIT = positiveIntFromEnv('GITHUB_ORG_MEMBER_LIMIT', 100);
 const GRAPHQL_REPOSITORY_PAGE_SIZE = 100;
 const MAX_GRAPHQL_REPOSITORY_RESULTS = 500;
 
@@ -108,6 +121,16 @@ export class RateLimitError extends Error {
 // Global circuit state tracking
 let globalCircuitBreakerOpenUntil = 0;
 
+function isValidGitHubTokenFormat(token: string): boolean {
+  return (
+    token.length >= 36 &&
+    (token.startsWith('ghp_') ||
+      token.startsWith('ghu_') ||
+      token.startsWith('ghs_') ||
+      token.startsWith('ghr_') ||
+      token.startsWith('github_pat_'))
+  );
+}
 export function getGitHubTokens(): string[] {
   const envToken =
     process.env.GITHUB_TOKENS || process.env.GITHUB_PAT || process.env.GITHUB_TOKEN || '';
@@ -126,7 +149,8 @@ export function getGitHubTokens(): string[] {
         }
       }
       return token;
-    });
+    })
+    .filter((token) => isValidGitHubTokenFormat(token));
 }
 
 function isAbortError(error: unknown): boolean {
@@ -981,12 +1005,12 @@ async function fetchContributionsUncached(
     const bodyText = await res.text().catch(() => '');
 
     if (res.status === 401) {
-      throw new Error(`GitHub PAT is invalid or missing. Response: ${bodyText || '<empty>'}`);
+      logger.error('GitHub PAT authentication failed', { status: res.status, body: bodyText });
+      throw new Error('GitHub authentication failed');
     }
 
-    throw new Error(
-      `GitHub GraphQL API returned status ${res.status} after ${MAX_RETRIES} retries. Response: ${bodyText || '<empty>'}`
-    );
+    logger.error('GitHub GraphQL API error', { status: res.status, body: bodyText });
+    throw new Error('GitHub API error');
   }
 
   const data: GitHubGraphQLResponse = await res.json();

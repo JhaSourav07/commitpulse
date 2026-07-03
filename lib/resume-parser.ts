@@ -7,7 +7,7 @@ if (typeof globalThis !== 'undefined' && !('DOMMatrix' in globalThis)) {
   (globalThis as any).DOMMatrix = class DOMMatrix {};
 }
 
-const EMAIL_REGEX = /[\w.-]+@[\w.-]+\.\w+/;
+const EMAIL_REGEX = /[\w.+-]+@[\w.-]+\.[a-zA-Z]{2,}/i;
 const NAME_LINE_REGEX = /^([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)/;
 
 const SKILL_SECTION_HEADERS = /skills|technologies|proficiencies|tech stack|tools/i;
@@ -16,7 +16,7 @@ const EXPERIENCE_SECTION_HEADERS = /experience|work|employment|professional|care
 
 function extractEmail(text: string): string {
   const match = text.match(EMAIL_REGEX);
-  return match ? match[0] : '';
+  return match ? match[0] : 'N/A';
 }
 
 function extractName(text: string): string {
@@ -30,7 +30,7 @@ function extractName(text: string): string {
       return match[1];
     }
   }
-  return '';
+  return 'N/A';
 }
 
 function extractSection(text: string, headers: RegExp): string[] {
@@ -194,20 +194,46 @@ async function extractTextFromBuffer(buffer: Buffer, mimeType: string): Promise<
  * const phone = extractPhone(rawText);
  */
 function extractPhone(text: string): string {
-  const match = text.match(/(\+?\d{1,3}[\s.-]?)?(\(?\d{3}\)?[\s.-]?)(\d{3}[\s.-]?\d{4})/);
-  return match ? match[0].trim() : '';
+  const match = text.match(/(?:\+?\d{1,3}[\s.-]?)?\(?\d{2,4}\)?[\s.-]?\d{2,4}[\s.-]?\d{3,9}/);
+  return match ? match[0].trim() : 'N/A';
 }
 
 export async function parseResume(buffer: Buffer, mimeType: string): Promise<ParsedResume> {
+  if (!buffer) {
+    throw new TypeError('Buffer cannot be null or undefined');
+  }
   const rawText = await extractTextFromBuffer(buffer, mimeType);
 
+  const name = extractName(rawText);
+  const email = extractEmail(rawText);
+  const phone = extractPhone(rawText);
+  const skills = extractSkills(rawText);
+  const education = extractEducation(rawText);
+  const experience = extractExperience(rawText);
+
   return {
-    name: extractName(rawText),
-    email: extractEmail(rawText),
-    phone: extractPhone(rawText),
-    skills: extractSkills(rawText),
-    education: extractEducation(rawText),
-    experience: extractExperience(rawText),
+    name: name && name.trim() ? name.trim() : 'N/A',
+    email: email && email.trim() ? email.trim() : 'N/A',
+    phone: phone && phone.trim() ? phone.trim() : 'N/A',
+    skills: Array.isArray(skills) ? skills.filter(Boolean) : [],
+    education: Array.isArray(education)
+      ? education.map((edu) => ({
+          institution: edu.institution?.trim() || 'N/A',
+          degree: edu.degree?.trim() || 'N/A',
+          field: edu.field?.trim() || 'N/A',
+          startDate: edu.startDate?.trim() || 'N/A',
+          endDate: edu.endDate?.trim() || 'N/A',
+        }))
+      : [],
+    experience: Array.isArray(experience)
+      ? experience.map((exp) => ({
+          company: exp.company?.trim() || 'N/A',
+          role: exp.role?.trim() || 'N/A',
+          startDate: exp.startDate?.trim() || 'N/A',
+          endDate: exp.endDate?.trim() || 'N/A',
+          description: exp.description?.trim() || 'N/A',
+        }))
+      : [],
   };
 }
 

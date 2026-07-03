@@ -115,4 +115,21 @@ describe('GET /api/user-details', () => {
     const body = await response.json();
     expect(body.error).toBe('Too many requests. Please try again later.');
   });
+
+  it('returns 500 with generic error message for unexpected errors', async () => {
+    vi.mocked(fetchUserProfile).mockRejectedValue(new Error('Database connection failed'));
+    const response = await GET(makeRequest({ username: 'testuser' }));
+    expect(response.status).toBe(500);
+    const body = await response.json();
+    expect(body.error).toBe('Internal server error');
+    expect(body.error).not.toContain('Database');
+  });
+
+  it('returns 500 with generic error message for non-Error thrown values', async () => {
+    vi.mocked(fetchUserProfile).mockRejectedValue('unexpected failure');
+    const response = await GET(makeRequest({ username: 'testuser' }));
+    expect(response.status).toBe(500);
+    const body = await response.json();
+    expect(body.error).toBe('Internal server error');
+  });
 });

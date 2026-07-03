@@ -180,6 +180,13 @@ html {
   --chart-axis-color: #6b7280; /* gray-500 */
 
   /* indigo glow, hover only */
+
+  /* user achievements tier color */
+  --tier-bronze-rgb: 161 98 7;
+  --tier-silver-rgb: 107 114 128;
+  --tier-gold-rgb: 202 138 4;
+  --tier-platinum-rgb: 100 116 139;
+  --tier-diamond-rgb: 2 132 199;
 }
 
 body {
@@ -202,6 +209,13 @@ body {
   --recharts-tooltip-color: #fff;
   --recharts-tooltip-accent: #06b6d4;
   --chart-axis-color: #d4d4d8; /* maps to improved contrast in dark mode */
+
+  /* user achievements tier color */
+  --tier-bronze-rgb: 205 127 50;
+  --tier-silver-rgb: 192 192 192;
+  --tier-gold-rgb: 255 215 0;
+  --tier-platinum-rgb: 229 228 226;
+  --tier-diamond-rgb: 185 242 255;
 }
 
 /* Vercel-style focus ring */
