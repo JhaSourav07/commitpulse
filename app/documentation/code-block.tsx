@@ -26,7 +26,8 @@ export function CodeBlock({ code }: CodeBlockProps) {
       if (timeoutRef.current) {
         window.clearTimeout(timeoutRef.current);
       }
-      timeoutRef.current = window.setTimeout(() => setCopied(false), 2000);
+      // Hide toast after ~2–3 seconds for better UX
+      timeoutRef.current = window.setTimeout(() => setCopied(false), 2500);
     } catch {
       setCopied(false);
     }
