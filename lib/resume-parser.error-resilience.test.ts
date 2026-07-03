@@ -28,9 +28,9 @@ describe('resume-parser-error-resilience', () => {
     const result = await parseResume(binaryData, 'application/pdf');
 
     expect(result).toEqual({
-      name: '',
-      email: '',
-      phone: '',
+      name: 'N/A',
+      email: 'N/A',
+      phone: 'N/A',
       skills: [],
       education: [],
       experience: [],
@@ -62,8 +62,8 @@ MIT 2015 to 2019
     expect(result.education).toEqual([
       {
         institution: 'MIT 2015 to 2019',
-        degree: '',
-        field: '',
+        degree: 'N/A',
+        field: 'N/A',
         startDate: '2015',
         endDate: '2019',
       },
@@ -83,10 +83,10 @@ Senior Engineer at Meta 2018 - 2021
     expect(result.experience).toEqual([
       {
         company: 'Senior Engineer at Meta 2018 - 2021',
-        role: '',
+        role: 'N/A',
         startDate: '2018',
         endDate: '2021',
-        description: '',
+        description: 'N/A',
       },
     ]);
   });
