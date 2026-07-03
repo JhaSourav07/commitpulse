@@ -1,2 +1,6 @@
 :root {
+  --toast-background: #333;
+  --toast-text-color: #fff;
+  --toast-duration: 3s;
 }
+
