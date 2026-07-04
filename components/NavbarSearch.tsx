@@ -50,20 +50,28 @@ export default function NavbarSearch({ variant = 'desktop', onNavigate }: Navbar
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
         setOpen(true);
-        requestAnimationFrame(() => inputRef.current?.focus());
         return;
       }
 
       if (e.key === '/' && !isTypingTarget) {
         e.preventDefault();
         setOpen(true);
-        requestAnimationFrame(() => inputRef.current?.focus());
       }
     }
 
     window.addEventListener('keydown', handleGlobalKeyDown);
     return () => window.removeEventListener('keydown', handleGlobalKeyDown);
   }, [variant]);
+
+  // Focus input when search panel is opened
+  useEffect(() => {
+    if (open && variant === 'desktop') {
+      const timer = setTimeout(() => {
+        inputRef.current?.focus();
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [open, variant]);
 
   // Close the dropdown (desktop only) when clicking outside
   useEffect(() => {
@@ -120,51 +128,18 @@ export default function NavbarSearch({ variant = 'desktop', onNavigate }: Navbar
 
   return (
     <div ref={containerRef} className={variant === 'desktop' ? 'relative' : 'relative w-full'}>
-      {/* Desktop: icon-trigger that expands into an input */}
+      {/* Desktop: icon-trigger */}
       {variant === 'desktop' ? (
-        <div
-          className={`flex items-center overflow-hidden rounded-xl border transition-all duration-300 ${
-            open
-              ? 'w-56 border-black/10 bg-black/5 dark:border-white/15 dark:bg-white/5'
-              : 'w-10 border-transparent bg-transparent'
+        <button
+          type="button"
+          aria-label="Search domains"
+          onClick={() => setOpen((prev) => !prev)}
+          className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-white cursor-pointer ${
+            open ? 'bg-gray-100 dark:bg-white/10 text-gray-900 dark:text-white' : ''
           }`}
         >
-          <button
-            type="button"
-            aria-label="Search domains"
-            onClick={() => {
-              setOpen(true);
-              // Wait for width transition to start before focusing
-              requestAnimationFrame(() => inputRef.current?.focus());
-            }}
-            className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-white"
-          >
-            <Search size={18} />
-          </button>
-          <input
-            ref={inputRef}
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={handleKeyDown}
-            onFocus={() => setOpen(true)}
-            placeholder="Search domains..."
-            aria-label="Search domains, tools, and pages"
-            className={`h-9 flex-1 bg-transparent pr-2 text-sm text-black outline-none placeholder:text-gray-400 dark:text-white dark:placeholder:text-gray-500 transition-opacity duration-200 ${
-              open ? 'opacity-100' : 'opacity-0'
-            }`}
-          />
-          {open && hasQuery && (
-            <button
-              type="button"
-              aria-label="Clear search"
-              onClick={clear}
-              className="mr-1.5 flex-shrink-0 rounded-full p-0.5 text-gray-400 hover:text-gray-700 dark:hover:text-white"
-            >
-              <X size={14} />
-            </button>
-          )}
-        </div>
+          {open ? <X size={18} /> : <Search size={18} />}
+        </button>
       ) : (
         // Mobile: always-visible inline search field
         <div className="relative flex items-center rounded-xl border border-black/10 bg-black/5 px-3 dark:border-white/15 dark:bg-white/5">
@@ -192,14 +167,103 @@ export default function NavbarSearch({ variant = 'desktop', onNavigate }: Navbar
         </div>
       )}
 
-      {/* Results dropdown */}
-      {showDropdown && (
+      {/* Desktop Search Panel */}
+      {variant === 'desktop' && open && (
+        <div className="absolute right-0 top-full mt-2 z-50 w-80 sm:w-[450px] md:w-[520px] rounded-2xl border border-black/10 bg-white/95 p-3 shadow-2xl backdrop-blur-xl dark:border-white/10 dark:bg-[#0a0a0a]/95 animate-in fade-in slide-in-from-top-2 duration-200">
+          {/* Search Input inside the dropdown */}
+          <div className="relative flex items-center rounded-xl border border-black/10 bg-black/5 px-3 dark:border-white/15 dark:bg-white/5">
+            <Search size={16} className="flex-shrink-0 text-gray-400 dark:text-gray-500" />
+            <input
+              ref={inputRef}
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Search domains..."
+              aria-label="Search domains, tools, and pages"
+              className="h-10 w-full bg-transparent px-2 text-sm text-black outline-none placeholder:text-gray-400 dark:text-white dark:placeholder:text-gray-500"
+            />
+            {hasQuery ? (
+              <button
+                type="button"
+                aria-label="Clear search"
+                onClick={clear}
+                className="flex-shrink-0 rounded-full p-1 text-gray-400 hover:text-gray-700 dark:hover:text-white"
+              >
+                <X size={14} />
+              </button>
+            ) : (
+              <span className="hidden sm:inline-flex items-center gap-0.5 rounded border border-black/10 bg-black/5 px-1.5 py-0.5 text-[10px] font-medium text-gray-400 dark:border-white/10 dark:bg-white/5 dark:text-gray-500">
+                <span className="text-xs">⌘</span>K
+              </span>
+            )}
+          </div>
+
+          {/* Results list */}
+          <div
+            className={`max-h-64 overflow-y-auto ${hasQuery ? 'mt-2 border-t border-gray-100 pt-2 dark:border-white/10' : ''}`}
+          >
+            {hasQuery ? (
+              results.length === 0 ? (
+                <div className="px-4 py-6 text-center text-sm text-gray-500 dark:text-gray-400">
+                  No domains found for &ldquo;{query}&rdquo;
+                </div>
+              ) : (
+                results.map((result, idx) => {
+                  const { domain } = result;
+                  const isActive = idx === safeActiveIndex;
+                  return (
+                    <button
+                      key={domain.id}
+                      type="button"
+                      role="option"
+                      aria-selected={isActive}
+                      onMouseEnter={() => setActiveIndex(idx)}
+                      onClick={() => navigateTo(domain)}
+                      className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors ${
+                        isActive
+                          ? 'bg-gray-100 dark:bg-white/10'
+                          : 'hover:bg-gray-50 dark:hover:bg-white/5'
+                      }`}
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="truncate text-sm font-semibold text-gray-900 dark:text-white">
+                            {domain.title}
+                          </span>
+                          <span
+                            className={`flex-shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${CATEGORY_STYLES[domain.category]}`}
+                          >
+                            {domain.category}
+                          </span>
+                        </div>
+                        <p className="truncate text-xs text-gray-500 dark:text-gray-400">
+                          {domain.description}
+                        </p>
+                      </div>
+                      <ArrowRight
+                        size={14}
+                        className={`flex-shrink-0 text-gray-400 transition-transform ${isActive ? 'translate-x-0.5' : ''}`}
+                      />
+                    </button>
+                  );
+                })
+              )
+            ) : (
+              <div className="px-4 py-3 text-center text-xs text-gray-400 dark:text-gray-500">
+                Type to search domains, tools, and pages
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Mobile Results dropdown */}
+      {variant === 'mobile' && showDropdown && (
         <div
           role="listbox"
           aria-label="Search results"
-          className={`z-50 max-h-80 overflow-y-auto rounded-2xl border border-black/10 bg-white/95 p-1.5 shadow-xl backdrop-blur-xl dark:border-white/10 dark:bg-[#0a0a0a]/95 ${
-            variant === 'desktop' ? 'absolute right-0 mt-2 w-72' : 'mt-2 w-full'
-          }`}
+          className="z-50 max-h-80 overflow-y-auto rounded-2xl border border-black/10 bg-white/95 p-1.5 shadow-xl backdrop-blur-xl dark:border-white/10 dark:bg-[#0a0a0a]/95 mt-2 w-full"
         >
           {results.length === 0 ? (
             <div className="px-4 py-6 text-center text-sm text-gray-500 dark:text-gray-400">

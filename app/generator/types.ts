@@ -53,6 +53,8 @@ export interface GeneratorState {
   githubUsername: string;
   showCommitPulse: boolean;
   commitPulseAccent: string;
+  showRepoSpotlight: boolean;
+  spotlightRepo: string;
   showSnakeGraph: boolean;
   showPacmanGraph: boolean;
   graphPlacement: 'top' | 'middle' | 'bottom';

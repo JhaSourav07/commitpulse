@@ -181,6 +181,33 @@ export function generateReadme(state: GeneratorState): string {
     sections.push(commitPulseLines.join('\n'));
   }
 
+  // 5. Repository Spotlight Section
+  if (state.showRepoSpotlight && state.githubUsername.trim() && state.spotlightRepo) {
+    const username = state.githubUsername.trim();
+    const repo = state.spotlightRepo.trim();
+
+    const params = new URLSearchParams({ user: username, repo });
+    const cleaned = state.commitPulseAccent.replace(/^#/, '');
+    if (/^[0-9a-fA-F]{6}$/.test(cleaned)) {
+      params.set('accent', cleaned);
+    }
+    const spotlightBadgeUrl = `https://commitpulse.vercel.app/api/spotlight?${params.toString()}`;
+    const repoUrl = `https://github.com/${username}/${repo}`;
+    const altText = `Repository Spotlight: ${repo}`;
+
+    const spotlightLines = [
+      '## 🌟 Repository Spotlight',
+      '',
+      '<div align="center">',
+      '',
+      `[![${altText}](${spotlightBadgeUrl})](${repoUrl})`,
+      '',
+      '</div>',
+    ];
+
+    sections.push(spotlightLines.join('\n'));
+  }
+
   // Inject bottom graphs
   if (state.graphPlacement === 'bottom' && graphsMarkdown) {
     sections.push(graphsMarkdown);
