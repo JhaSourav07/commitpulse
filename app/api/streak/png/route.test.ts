@@ -4,12 +4,10 @@ import { GET } from './route';
 import { GET as getStreakSvg } from '../route';
 import { NextResponse } from 'next/server';
 
-// Mock the core route
 vi.mock('../route', () => ({
   GET: vi.fn(),
 }));
 
-// Mock resvg-js
 vi.mock('@resvg/resvg-js', () => {
   return {
     Resvg: class {
@@ -18,6 +16,7 @@ vi.mock('@resvg/resvg-js', () => {
           throw new Error('Resvg crash');
         }
       }
+
       render() {
         return {
           asPng: () => Buffer.from('mock-png-data'),
@@ -30,12 +29,12 @@ vi.mock('@resvg/resvg-js', () => {
 describe('PNG Route', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    (global as any).throwResvgError = false;
   });
 
   it('converts SVG to PNG successfully', async () => {
     const mockRequest = new Request('http://localhost:3000/api/streak/png?user=testuser');
 
-    // Setup mock SVG response
     const mockSvgResponse = new NextResponse('<svg>test</svg>', {
       status: 200,
       headers: {
@@ -43,6 +42,7 @@ describe('PNG Route', () => {
         'Cache-Control': 'public, max-age=3600',
       },
     });
+
     vi.mocked(getStreakSvg).mockResolvedValue(mockSvgResponse);
 
     const response = await GET(mockRequest);
@@ -51,7 +51,6 @@ describe('PNG Route', () => {
     expect(response.headers.get('Content-Type')).toBe('image/png');
     expect(response.headers.get('Cache-Control')).toBe('public, max-age=3600');
 
-    // Check if body contains buffer
     const buffer = Buffer.from(await response.arrayBuffer());
     expect(buffer.toString()).toBe('mock-png-data');
   });
@@ -60,16 +59,18 @@ describe('PNG Route', () => {
     const mockRequest = new Request('http://localhost:3000/api/streak/png');
 
     const mockErrorResponse = NextResponse.json({ error: 'Invalid parameters' }, { status: 400 });
+
     vi.mocked(getStreakSvg).mockResolvedValue(mockErrorResponse);
 
     const response = await GET(mockRequest);
 
     expect(response.status).toBe(400);
+
     const data = await response.json();
     expect(data.error).toBe('Invalid parameters');
   });
 
-  it('handles SVG conversion errors without leaking internal error details', async () => {
+  it('returns fallback SVG when SVG conversion fails', async () => {
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     const mockRequest = new Request('http://localhost:3000/api/streak/png?user=testuser');
 
@@ -79,20 +80,22 @@ describe('PNG Route', () => {
         'Content-Type': 'image/svg+xml; charset=utf-8',
       },
     });
+
     vi.mocked(getStreakSvg).mockResolvedValue(mockSvgResponse);
 
-    // Force an error in Resvg
     (global as any).throwResvgError = true;
 
     const response = await GET(mockRequest);
 
-    (global as any).throwResvgError = false;
-
-    expect(response.status).toBe(500);
-    const data = await response.json();
-    expect(data.error).toBe('Failed to convert SVG to PNG');
-    expect(data.details).toBeUndefined();
+    expect(response.status).toBe(200);
+    expect(response.headers.get('Content-Type')).toContain('image/svg+xml');
     expect(response.headers.get('Cache-Control')).toBe('no-store');
+
+    const svg = await response.text();
+
+    expect(svg).toContain('<svg');
+    expect(svg).toContain('Failed to render streak image');
+    expect(svg).not.toContain('Resvg crash');
     expect(errorSpy).toHaveBeenCalled();
 
     errorSpy.mockRestore();

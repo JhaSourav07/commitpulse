@@ -272,7 +272,7 @@ describe('GET /api/achievements', () => {
     const res = await GET(makeRequest({ username: 'octocat' }));
     expect(res.status).toBe(500);
     const data = await res.json();
-    expect(data.error).toBe('Database connection failed');
+    expect(data.error).toBe('Internal server error');
   });
 
   it('returns 500 with "Unknown error" for non-Error thrown values', async () => {
@@ -280,7 +280,7 @@ describe('GET /api/achievements', () => {
     const res = await GET(makeRequest({ username: 'octocat' }));
     expect(res.status).toBe(500);
     const data = await res.json();
-    expect(data.error).toBe('Unknown error');
+    expect(data.error).toBe('Internal server error');
   });
 
   it('returns 429 when rate limit is exceeded', async () => {

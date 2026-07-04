@@ -84,21 +84,47 @@ export function TranslationProvider({ children }: { children: ReactNode }) {
     // English text on first load.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
-    const storedLang = localStorage.getItem('language');
+
     const supportedLangs = Object.keys(translations) as Language[];
 
-    if (storedLang && supportedLangs.includes(storedLang as Language)) {
-      setLanguage(storedLang as Language);
+    const storedLang = localStorage.getItem('language') as Language;
+
+    if (storedLang && supportedLangs.includes(storedLang)) {
+      setLanguage(storedLang);
+      document.documentElement.lang = storedLang;
     } else {
-      const browserLang = navigator.language.split('-')[0];
-      if (supportedLangs.includes(browserLang as Language)) {
-        setLanguage(browserLang as Language);
+      const browserLang = navigator.language.split('-')[0] as Language;
+
+      if (supportedLangs.includes(browserLang)) {
+        setLanguage(browserLang);
+
         localStorage.setItem('language', browserLang);
+        document.documentElement.lang = browserLang;
       } else {
         setLanguage('en');
         localStorage.setItem('language', 'en');
+        document.documentElement.lang = 'en';
       }
     }
+
+    const handleStorageChange = (event: StorageEvent) => {
+      if (event.key !== 'language' || !event.newValue) {
+        return;
+      }
+
+      const newLang = event.newValue as Language;
+
+      if (supportedLangs.includes(newLang)) {
+        setLanguage(newLang);
+        document.documentElement.lang = newLang;
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, []);
 
   const changeLanguage = (lang: Language) => {

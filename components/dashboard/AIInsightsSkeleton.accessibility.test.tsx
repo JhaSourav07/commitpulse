@@ -14,15 +14,13 @@ describe('AIInsightsSkeleton Accessibility', () => {
     const wrapper = container.firstChild as HTMLElement;
     expect(wrapper).toHaveAttribute('role', 'status');
     expect(wrapper).toHaveAttribute('aria-busy', 'true');
+    expect(wrapper).toHaveAttribute('aria-live', 'polite');
 
     // Ensure the inner divs do not carry inappropriate roles.
     const innerDivs = Array.from(container.querySelectorAll('div')).slice(1);
     innerDivs.forEach((div) => {
       expect(div.getAttribute('role')).toBeNull();
     });
-
-    // TODO: Ensure relationships like aria-labelledby or aria-describedby are added
-    // if the skeleton is updated to have a header or label.
   });
 
   // 2. Keyboard Focus

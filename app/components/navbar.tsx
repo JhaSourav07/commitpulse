@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -18,8 +18,8 @@ import {
   Sliders,
 } from 'lucide-react';
 import { useGlowEffect } from '@/hooks/useGlowEffect';
-import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import KeyboardShortcutsModal from '@/components/KeyboardShortcutsModal';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useThemeToggle } from './theme-switch';
 import { useTranslation, LANGUAGE_LABELS, type Language } from '@/context/TranslationContext';
 import NavbarSearch from '@/components/NavbarSearch';
@@ -181,7 +181,9 @@ export default function Navbar() {
 
   const [isHidden, setIsHidden] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+
   const pathname = usePathname();
+
   const { t } = useTranslation();
   const lastScrollYRef = useRef(0);
   // Ref so the scroll handler (stale closure) can always read the current open state.
@@ -192,7 +194,7 @@ export default function Navbar() {
     openRef.current = open;
   }, [open]);
 
-  const handleOpenShortcuts = useCallback(() => setShortcutsOpen(true), []);
+  const handleOpenShortcuts = () => setShortcutsOpen(true);
   useKeyboardShortcuts({ onOpenShortcuts: handleOpenShortcuts });
 
   const { shellRef, shellVars, handleMouseEnter, handleMouseMove, handleMouseLeave } =
@@ -388,13 +390,38 @@ export default function Navbar() {
                     className="transition-transform duration-300 group-hover:scale-110"
                   />
                 </button>
-
                 <button
                   type="button"
                   onClick={toggleTheme}
                   className="group inline-flex h-10 w-10 items-center justify-center rounded-xl text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2 dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-white dark:focus-visible:ring-gray-400 dark:focus-visible:ring-offset-[#0a0a0a]"
                   aria-label={t('navbar.theme_toggle')}
                   suppressHydrationWarning
+                >
+                  {mounted ? (
+                    isDark ? (
+                      <Moon
+                        size={18}
+                        className="transition-transform duration-300 group-hover:-rotate-12"
+                      />
+                    ) : (
+                      <Sun
+                        size={18}
+                        className="transition-transform duration-300 group-hover:rotate-45"
+                      />
+                    )
+                  ) : (
+                    <span className="w-[18px] h-[18px]" />
+                  )}
+                </button>
+              </div>
+
+              {/* Mobile Menu Buttons */}
+              <div className="md:hidden inline-flex items-center justify-center gap-1">
+                <button
+                  type="button"
+                  onClick={toggleTheme}
+                  className="group hidden sm:inline-flex h-10 w-10 items-center justify-center rounded-xl text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-white"
+                  aria-label={t('navbar.theme_toggle')}
                 >
                   {mounted ? (
                     isDark ? (
@@ -584,6 +611,7 @@ export default function Navbar() {
           <span>Customize</span>
         </Link>
       </nav>
+      <KeyboardShortcutsModal isOpen={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
     </>
   );
 }
