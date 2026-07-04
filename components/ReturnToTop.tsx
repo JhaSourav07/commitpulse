@@ -63,7 +63,7 @@ export default function ReturnToTop() {
             whileTap={shouldReduceMotion ? undefined : { scale: 0.96 }}
             aria-label="Back to top"
             className="
-              group relative flex h-14 w-14 items-center justify-center rounded-full
+              group relative flex h-14 w-14 items-center justify-center rounded-full cursor-pointer
               border border-violet-400/45 bg-zinc-950/80 text-violet-300
               shadow-[0_0_24px_rgba(167,139,250,0.16)]
               backdrop-blur-md transition-all duration-200

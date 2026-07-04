@@ -18,7 +18,7 @@ import pLimit from 'p-limit';
 import logger from '@/lib/logger';
 import { decryptGitHubToken, isEncryptedToken } from '@/lib/github-token-encryption';
 
-interface GitHubRepo {
+export interface GitHubRepo {
   name: string;
   stargazers_count: number;
   language: string | null;
@@ -29,6 +29,8 @@ interface GitHubRepo {
   owner?: { login: string };
   created_at?: string;
   homepage?: string | null;
+  description?: string | null;
+  participation?: number[];
 }
 
 const MAX_RETRIES = Number(process.env.GITHUB_MAX_RETRIES ?? '3');
@@ -2712,4 +2714,115 @@ export async function runCappedConcurrency<T, R>(
       })
     )
   );
+}
+
+export async function fetchRepoDetails(
+  username: string,
+  repo: string,
+  options: FetchOptions = {}
+): Promise<GitHubRepo> {
+  const encodedUsername = encodeURIComponent(username);
+  const encodedRepo = encodeURIComponent(repo);
+  const repoKey = `repo:${encodedUsername}:${encodedRepo}`;
+
+  const load = async () => {
+    const res = await fetchWithRetry(
+      `${GITHUB_REST_URL}/repos/${encodedUsername}/${encodedRepo}`,
+      {
+        headers: getHeaders(options.token),
+        cache: 'no-store',
+        signal: options.signal,
+      },
+      0,
+      undefined,
+      options.token
+    );
+
+    if (!res.ok) {
+      throwIfRateLimited(res);
+      if (res.status === 404) throw new Error('Repository not found');
+      throw new Error(`GitHub REST API error: ${res.status}`);
+    }
+
+    const repoData = (await res.json()) as GitHubRepo;
+
+    // Fetch participation stats safely
+    let participation: number[] = [];
+    try {
+      const partsRes = await fetchWithRetry(
+        `${GITHUB_REST_URL}/repos/${encodedUsername}/${encodedRepo}/stats/participation`,
+        {
+          headers: getHeaders(options.token),
+          cache: 'no-store',
+          signal: options.signal,
+        },
+        0,
+        undefined,
+        options.token
+      );
+      if (partsRes.ok) {
+        const partsData = await partsRes.json();
+        if (partsData && Array.isArray(partsData.all)) {
+          participation = partsData.all;
+        }
+      }
+    } catch (err) {
+      logger.warn(`Failed to fetch participation for ${username}/${repo}`, { error: err });
+    }
+
+    const sanitizedRepo: GitHubRepo = {
+      name: repoData.name,
+      description: repoData.description,
+      stargazers_count: repoData.stargazers_count,
+      language: repoData.language,
+      fork: repoData.fork,
+      forks_count: repoData.forks_count,
+      updated_at: repoData.updated_at,
+      pushed_at: repoData.pushed_at,
+      created_at: repoData.created_at,
+      owner: repoData.owner,
+      homepage: repoData.homepage,
+      participation,
+    };
+    return sanitizedRepo;
+  };
+
+  if (options.bypassCache || options.forceRefresh) {
+    try {
+      return await load();
+    } catch (err) {
+      if (shouldFallbackOnError(err)) {
+        return getMockRepo(repo);
+      }
+      throw err;
+    }
+  }
+
+  try {
+    const cached = await reposCache.get(repoKey);
+    // Since we're reusing reposCache, we need to bypass type checks or adjust cache type if needed.
+    // For simplicity, we can just cast.
+    if (cached) return cached as unknown as GitHubRepo;
+    const fresh = await load();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await reposCache.set(repoKey, fresh as any, GITHUB_CACHE_TTL_MS);
+    return fresh;
+  } catch (err) {
+    if (shouldFallbackOnError(err)) {
+      return getMockRepo(repo);
+    }
+    throw err;
+  }
+}
+
+function getMockRepo(repoName: string): GitHubRepo {
+  return {
+    name: repoName,
+    description: 'Repository information currently unavailable',
+    stargazers_count: 0,
+    language: 'Unknown',
+    fork: false,
+    forks_count: 0,
+    participation: [],
+  };
 }

@@ -88,9 +88,15 @@ export default function ActivityLandscape({ data }: { data: ActivityData[] }) {
 
   const maxCount = Math.max(...displayData.map(getValue), 1);
 
-  const showTooltip = (e: SyntheticEvent<HTMLDivElement>, day: ActivityBar, value: number) => {
+  const showTooltip = (
+    e: SyntheticEvent<HTMLDivElement>,
+    day: ActivityBar,
+    value: number,
+    heightPercent: number
+  ) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const isRange = !!day.startDate && day.startDate !== day.date;
+    const barHeight = (heightPercent / 100) * rect.height;
 
     setTooltip({
       title:
@@ -120,7 +126,7 @@ export default function ActivityLandscape({ data }: { data: ActivityData[] }) {
                 })
             : getActivityInsight(day.count, day.intensity, t),
       x: rect.left + rect.width / 2,
-      y: rect.top - 10,
+      y: rect.bottom - barHeight - 10,
     });
   };
 
@@ -190,69 +196,89 @@ export default function ActivityLandscape({ data }: { data: ActivityData[] }) {
             </div>
 
             {/* ── 3D City View toggle ── */}
-            <button
-              onClick={() => {
-                if (is3D) setTimeLapseMode(false);
-                setIs3D((v) => !v);
-              }}
-              aria-pressed={is3D}
-              title={is3D ? 'Switch to flat view' : 'Switch to 3D City view'}
-              className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-all duration-200 ${
-                is3D
-                  ? 'border-indigo-400/40 bg-indigo-500/15 text-indigo-400 dark:border-indigo-400/30 dark:bg-indigo-500/10'
-                  : 'border-black/10 bg-transparent text-gray-500 hover:border-black/20 hover:text-black dark:border-white/10 dark:hover:border-white/20 dark:hover:text-white'
-              }`}
-            >
-              {/* Cube icon */}
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden>
-                <path
-                  d="M7 1.5 L12.5 4.5 V9.5 L7 12.5 L1.5 9.5 V4.5 Z"
-                  stroke="currentColor"
-                  strokeWidth="1.2"
-                  fill="none"
-                />
-                <path
-                  d="M7 1.5 V12.5 M1.5 4.5 L12.5 4.5"
-                  stroke="currentColor"
-                  strokeWidth="0.8"
-                  strokeDasharray="2 1.5"
-                  opacity="0.5"
-                />
-              </svg>
-              3D City
-            </button>
+            <div className="group relative flex justify-center">
+              <button
+                onClick={() => {
+                  if (is3D) setTimeLapseMode(false);
+                  setIs3D((v) => !v);
+                }}
+                aria-pressed={is3D}
+                className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-all duration-200 cursor-pointer ${
+                  is3D
+                    ? 'border-indigo-400/40 bg-indigo-500/15 text-indigo-400 dark:border-indigo-400/30 dark:bg-indigo-500/10'
+                    : 'border-black/10 bg-transparent text-gray-500 hover:border-black/20 hover:text-black dark:border-white/10 dark:hover:border-white/20 dark:hover:text-white'
+                }`}
+              >
+                {/* Cube icon */}
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden>
+                  <path
+                    d="M7 1.5 L12.5 4.5 V9.5 L7 12.5 L1.5 9.5 V4.5 Z"
+                    stroke="currentColor"
+                    strokeWidth="1.2"
+                    fill="none"
+                  />
+                  <path
+                    d="M7 1.5 V12.5 M1.5 4.5 L12.5 4.5"
+                    stroke="currentColor"
+                    strokeWidth="0.8"
+                    strokeDasharray="2 1.5"
+                    opacity="0.5"
+                  />
+                </svg>
+                3D City
+              </button>
+
+              {/* Custom Tooltip */}
+              <div className="pointer-events-none absolute top-full left-1/2 z-50 mt-2 -translate-x-1/2 flex flex-col items-center opacity-0 scale-95 transition-all duration-200 group-hover:opacity-100 group-hover:scale-100">
+                <div className="w-2 h-2 bg-gray-950 dark:bg-zinc-800 border-l border-t border-white/10 dark:border-white/5 rotate-45 -mb-1 z-10" />
+                <div className="whitespace-nowrap rounded-lg bg-gray-950 dark:bg-zinc-800 px-2.5 py-1.5 text-[11px] font-medium text-white dark:text-zinc-100 shadow-xl border border-white/10 dark:border-white/5">
+                  {is3D ? 'Switch to flat view' : 'Switch to 3D City view'}
+                </div>
+              </div>
+            </div>
 
             {/* ── Time Lapse View toggle ── */}
             <AnimatePresence>
               {is3D && (
-                <motion.button
+                <motion.div
                   initial={{ opacity: 0, scale: 0.9, width: 0 }}
                   animate={{ opacity: 1, scale: 1, width: 'auto' }}
                   exit={{ opacity: 0, scale: 0.9, width: 0 }}
-                  onClick={() => setTimeLapseMode((v) => !v)}
-                  aria-pressed={timeLapseMode}
-                  title={timeLapseMode ? 'Turn off Time-Lapse' : 'Turn on Time-Lapse'}
-                  className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-all duration-200 overflow-hidden whitespace-nowrap ${
-                    timeLapseMode
-                      ? 'border-emerald-400/40 bg-emerald-500/15 text-emerald-500 dark:border-emerald-400/30 dark:bg-emerald-500/10'
-                      : 'border-black/10 bg-transparent text-gray-500 hover:border-black/20 hover:text-black dark:border-white/10 dark:hover:border-white/20 dark:hover:text-white'
-                  }`}
+                  className="group relative flex justify-center overflow-hidden whitespace-nowrap"
                 >
-                  <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden
+                  <button
+                    onClick={() => setTimeLapseMode((v) => !v)}
+                    aria-pressed={timeLapseMode}
+                    className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-all duration-200 cursor-pointer ${
+                      timeLapseMode
+                        ? 'border-emerald-400/40 bg-emerald-500/15 text-emerald-500 dark:border-emerald-400/30 dark:bg-emerald-500/10'
+                        : 'border-black/10 bg-transparent text-gray-500 hover:border-black/20 hover:text-black dark:border-white/10 dark:hover:border-white/20 dark:hover:text-white'
+                    }`}
                   >
-                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
-                  </svg>
-                  Time-Lapse
-                </motion.button>
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden
+                    >
+                      <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                    </svg>
+                    Time-Lapse
+                  </button>
+
+                  {/* Custom Tooltip */}
+                  <div className="pointer-events-none absolute top-full left-1/2 z-50 mt-2 -translate-x-1/2 flex flex-col items-center opacity-0 scale-95 transition-all duration-200 group-hover:opacity-100 group-hover:scale-100">
+                    <div className="w-2 h-2 bg-gray-950 dark:bg-zinc-800 border-l border-t border-white/10 dark:border-white/5 rotate-45 -mb-1 z-10" />
+                    <div className="whitespace-nowrap rounded-lg bg-gray-950 dark:bg-zinc-800 px-2.5 py-1.5 text-[11px] font-medium text-white dark:text-zinc-100 shadow-xl border border-white/10 dark:border-white/5">
+                      {timeLapseMode ? 'Turn off Time-Lapse' : 'Turn on Time-Lapse'}
+                    </div>
+                  </div>
+                </motion.div>
               )}
             </AnimatePresence>
           </div>
@@ -317,8 +343,8 @@ export default function ActivityLandscape({ data }: { data: ActivityData[] }) {
                           })
                     }`}
                     tabIndex={0}
-                    onMouseEnter={(e) => showTooltip(e, day, val)}
-                    onFocus={(e) => showTooltip(e, day, val)}
+                    onMouseEnter={(e) => showTooltip(e, day, val, heightPercent)}
+                    onFocus={(e) => showTooltip(e, day, val, heightPercent)}
                     onMouseLeave={hideTooltip}
                     onBlur={hideTooltip}
                   >

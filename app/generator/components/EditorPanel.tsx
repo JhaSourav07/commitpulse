@@ -6,6 +6,7 @@ import { DescriptionSection } from './sections/DescriptionSection';
 import { TechnologiesSection } from './sections/TechnologiesSection';
 import { SocialsSection } from './sections/SocialsSection';
 import { CommitPulseSection } from './sections/CommitPulseSection';
+import { RepoSpotlightSection } from './sections/RepoSpotlightSection';
 import { ContributionGraphSection } from './sections/ContributionGraphSection';
 import { GitHubImportModal } from './GitHubImportModal';
 import { FaGithub } from 'react-icons/fa';
@@ -28,6 +29,10 @@ interface EditorPanelProps {
   onShowSnakeGraphChange?: (v: boolean) => void;
   onShowPacmanGraphChange?: (v: boolean) => void;
   onGraphPlacementChange?: (v: 'top' | 'middle' | 'bottom') => void;
+  showRepoSpotlight?: boolean;
+  spotlightRepo?: string;
+  onShowRepoSpotlightChange?: (v: boolean) => void;
+  onSpotlightRepoChange?: (v: string) => void;
   onApplyImport: (data: ImportedData) => void;
 }
 
@@ -44,6 +49,8 @@ export function EditorPanel({
   onShowSnakeGraphChange = () => {},
   onShowPacmanGraphChange = () => {},
   onGraphPlacementChange = () => {},
+  onShowRepoSpotlightChange = () => {},
+  onSpotlightRepoChange = () => {},
   onApplyImport,
 }: EditorPanelProps) {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
@@ -99,6 +106,14 @@ export function EditorPanel({
         onShowSnakeGraphChange={onShowSnakeGraphChange}
         onShowPacmanGraphChange={onShowPacmanGraphChange}
         onGraphPlacementChange={onGraphPlacementChange}
+      />
+      <RepoSpotlightSection
+        githubUsername={state.githubUsername}
+        showRepoSpotlight={state.showRepoSpotlight}
+        spotlightRepo={state.spotlightRepo}
+        commitPulseAccent={state.commitPulseAccent}
+        onShowRepoSpotlightChange={onShowRepoSpotlightChange}
+        onSpotlightRepoChange={onSpotlightRepoChange}
       />
     </form>
   );
