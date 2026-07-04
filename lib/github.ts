@@ -76,9 +76,22 @@ export function shouldFallbackOnError(err: unknown): boolean {
   return false;
 }
 
-const GRAPHQL_TIMEOUT_MS = Number(process.env.GITHUB_GRAPHQL_TIMEOUT_MS ?? '8000');
-const REST_TIMEOUT_MS = Number(process.env.GITHUB_REST_TIMEOUT_MS ?? '5000');
-const ORG_MEMBER_LIMIT = Number(process.env.GITHUB_ORG_MEMBER_LIMIT ?? '100');
+/**
+ * Read a positive integer from the environment, falling back to the
+ * default when the variable is unset, not a number, or non-positive.
+ * A value like "abc" or "-5" would otherwise produce a NaN or negative
+ * timeout and break AbortSignal scheduling at request time.
+ */
+function positiveIntFromEnv(name: string, fallback: number): number {
+  const raw = process.env[name];
+  if (raw === undefined || raw === '') return fallback;
+  const parsed = Number(raw);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+const GRAPHQL_TIMEOUT_MS = positiveIntFromEnv('GITHUB_GRAPHQL_TIMEOUT_MS', 8000);
+const REST_TIMEOUT_MS = positiveIntFromEnv('GITHUB_REST_TIMEOUT_MS', 5000);
+const ORG_MEMBER_LIMIT = positiveIntFromEnv('GITHUB_ORG_MEMBER_LIMIT', 100);
 const GRAPHQL_REPOSITORY_PAGE_SIZE = 100;
 const MAX_GRAPHQL_REPOSITORY_RESULTS = 500;
 
@@ -108,8 +121,19 @@ export class RateLimitError extends Error {
 // Global circuit state tracking
 let globalCircuitBreakerOpenUntil = 0;
 
+function isValidGitHubTokenFormat(token: string): boolean {
+  return (
+    token.length >= 36 &&
+    (token.startsWith('ghp_') ||
+      token.startsWith('ghu_') ||
+      token.startsWith('ghs_') ||
+      token.startsWith('ghr_') ||
+      token.startsWith('github_pat_'))
+  );
+}
 export function getGitHubTokens(): string[] {
-  const envToken = process.env.GITHUB_PAT || process.env.GITHUB_TOKEN || '';
+  const envToken =
+    process.env.GITHUB_TOKENS || process.env.GITHUB_PAT || process.env.GITHUB_TOKEN || '';
   return envToken
     .split(',')
     .map((t) => t.trim())
@@ -125,7 +149,8 @@ export function getGitHubTokens(): string[] {
         }
       }
       return token;
-    });
+    })
+    .filter((token) => isValidGitHubTokenFormat(token));
 }
 
 function isAbortError(error: unknown): boolean {
@@ -980,12 +1005,12 @@ async function fetchContributionsUncached(
     const bodyText = await res.text().catch(() => '');
 
     if (res.status === 401) {
-      throw new Error(`GitHub PAT is invalid or missing. Response: ${bodyText || '<empty>'}`);
+      logger.error('GitHub PAT authentication failed', { status: res.status, body: bodyText });
+      throw new Error('GitHub authentication failed');
     }
 
-    throw new Error(
-      `GitHub GraphQL API returned status ${res.status} after ${MAX_RETRIES} retries. Response: ${bodyText || '<empty>'}`
-    );
+    logger.error('GitHub GraphQL API error', { status: res.status, body: bodyText });
+    throw new Error('GitHub API error');
   }
 
   const data: GitHubGraphQLResponse = await res.json();
@@ -2565,6 +2590,109 @@ export async function getWrappedData(
     topLanguage,
     calendar,
   };
+}
+
+export async function fetchCommitHourDistribution(
+  username: string,
+  token?: string
+): Promise<number[]> {
+  const hourCounts = new Array(24).fill(0);
+
+  // Fetch top repos by contribution count
+  const query = `
+    query($login: String!) {
+      user(login: $login) {
+        contributionsCollection {
+          commitContributionsByRepository(maxRepositories: 5) {
+            repository {
+              name
+              owner { login }
+            }
+            contributions {
+              totalCount
+            }
+          }
+        }
+      }
+    }
+  `;
+
+  let topRepos: { owner: string; name: string }[] = [];
+  try {
+    const res = await fetchGraphQLWithRetry(
+      GITHUB_GRAPHQL_URL,
+      {
+        method: 'POST',
+        headers: getHeaders(token),
+        body: JSON.stringify({ query, variables: { login: username } }),
+        cache: 'no-store',
+      },
+      0,
+      undefined,
+      token
+    );
+    if (res.ok) {
+      const data = await res.json();
+      const repos =
+        data?.data?.user?.contributionsCollection?.commitContributionsByRepository ?? [];
+      topRepos = repos.map((r: { repository: { owner: { login: string }; name: string } }) => ({
+        owner: r.repository.owner.login,
+        name: r.repository.name,
+      }));
+    }
+  } catch {
+    // silent — return empty distribution
+  }
+
+  if (topRepos.length === 0) return hourCounts;
+
+  const commitQuery = `
+    query($owner: String!, $name: String!) {
+      repository(owner: $owner, name: $name) {
+        defaultBranchRef {
+          target {
+            ... on Commit {
+              history(first: 100) {
+                nodes {
+                  committedDate
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  `;
+
+  await runCappedConcurrency(topRepos, 3, async ({ owner, name }) => {
+    try {
+      const res = await fetchGraphQLWithRetry(
+        GITHUB_GRAPHQL_URL,
+        {
+          method: 'POST',
+          headers: getHeaders(token),
+          body: JSON.stringify({ query: commitQuery, variables: { owner, name } }),
+          cache: 'no-store',
+        },
+        0,
+        undefined,
+        token
+      );
+      if (!res.ok) return null;
+      const data = await res.json();
+      const nodes: { committedDate: string }[] =
+        data?.data?.repository?.defaultBranchRef?.target?.history?.nodes ?? [];
+      for (const node of nodes) {
+        const hour = new Date(node.committedDate).getUTCHours();
+        hourCounts[hour]++;
+      }
+    } catch {
+      // skip unavailable repos
+    }
+    return null;
+  });
+
+  return hourCounts;
 }
 
 export async function runCappedConcurrency<T, R>(

@@ -122,15 +122,14 @@ describe('isLocDay type guard', () => {
     expect(isLocDay(day)).toBe(false);
   });
 
-  it('returns false for a day with NaN locAdditions', () => {
+  it('returns true for a day with NaN locAdditions because NaN is still a number', () => {
     const day = {
       contributionCount: 0,
       date: '2024-06-10',
       locAdditions: NaN,
       locDeletions: 0,
     } as ContributionDay;
-    // typeof NaN === 'number' so this actually returns true — document this
-    // NaN is a valid typeof 'number' check passes — expected behavior
-    expect(typeof NaN).toBe('number');
+
+    expect(isLocDay(day)).toBe(true);
   });
 });

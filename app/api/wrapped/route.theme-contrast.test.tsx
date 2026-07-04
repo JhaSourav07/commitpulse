@@ -1,8 +1,7 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 // Import the GET method to ensure the file is linked and evaluated in coverage
-import { GET } from './route';
 
 // Create a dummy consumer component to test how the API data behaves structurally and visually
 const ApiVisualWrapper = () => {

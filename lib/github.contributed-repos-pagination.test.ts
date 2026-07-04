@@ -27,7 +27,7 @@ describe('fetchContributedRepos pagination', () => {
     vi.clearAllMocks();
 
     delete process.env.GITHUB_PAT;
-    process.env.GITHUB_TOKEN = 'test-token';
+    process.env.GITHUB_TOKEN = 'ghp_testtokenAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
 
     vi.stubGlobal('fetch', vi.fn());
   });

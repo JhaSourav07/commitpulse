@@ -112,6 +112,9 @@ export async function GET(request: Request) {
     const message = error instanceof Error ? error.message : 'Internal Server Error';
     const status = message.includes('not found') ? 404 : 500;
 
-    return NextResponse.json({ error: message }, { status });
+    return NextResponse.json(
+      { error: status === 404 ? 'Repository not found' : 'Internal server error' },
+      { status }
+    );
   }
 }

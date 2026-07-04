@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import FONT_MAP, { resolveFont, isPredefinedFontKey } from './fonts';
+import FONT_MAP, { resolveFontFamily, isPredefinedFontKey } from './fonts';
 
 describe('fonts Massive Data Sets and Extreme High Bounds Scaling', () => {
   it('resolves thousands of predefined font lookups without degradation', () => {
     const start = performance.now();
 
-    const results = Array.from({ length: 10000 }, () => resolveFont('jetbrains'));
+    const results = Array.from({ length: 10000 }, () => resolveFontFamily('jetbrains'));
 
     const duration = performance.now() - start;
 
@@ -22,7 +22,7 @@ describe('fonts Massive Data Sets and Extreme High Bounds Scaling', () => {
   it('resolves thousands of unique custom font names correctly', () => {
     const customFonts = Array.from({ length: 5000 }, (_, index) => `CustomFont${index}`);
 
-    const resolved = customFonts.map((font) => resolveFont(font));
+    const resolved = customFonts.map((font) => resolveFontFamily(font));
 
     expect(resolved).toHaveLength(5000);
 
@@ -52,7 +52,7 @@ describe('fonts Massive Data Sets and Extreme High Bounds Scaling', () => {
       return undefined;
     });
 
-    const results = inputs.map((font) => resolveFont(font));
+    const results = inputs.map((font) => resolveFontFamily(font));
 
     expect(results).toHaveLength(10000);
 
@@ -65,9 +65,9 @@ describe('fonts Massive Data Sets and Extreme High Bounds Scaling', () => {
 
   it('maintains consistent output during repeated high-volume execution cycles', () => {
     for (let cycle = 0; cycle < 100; cycle++) {
-      expect(resolveFont('spacegrotesk')).toBe('"Space Grotesk", sans-serif');
+      expect(resolveFontFamily('spacegrotesk')).toBe('"Space Grotesk", sans-serif');
 
-      expect(resolveFont('jetbrains')).toBe('"JetBrains Mono", monospace');
+      expect(resolveFontFamily('jetbrains')).toBe('"JetBrains Mono", monospace');
 
       expect(isPredefinedFontKey('spacegrotesk')).toBe(true);
 

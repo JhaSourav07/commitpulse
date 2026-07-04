@@ -16,6 +16,7 @@ import {
   sanitizeFont,
   sanitizeHexColor,
   sanitizeRadius,
+  sanitizeDimension,
   sanitizeGoogleFontUrl,
   getLuminance,
   parseGradientStops,
@@ -50,6 +51,8 @@ const FONT_MAP = {
   space: '"Space Grotesk", sans-serif',
 } as const;
 
+let currentBackgroundRectBorderAttrs = '';
+
 export function resolveFont(sanitizedFont?: string | null): string | null {
   if (!sanitizedFont) return null;
 
@@ -82,6 +85,26 @@ export function getUsernameFontSize(username: string): number {
   const len = username.length;
   if (len <= 12) return 18;
   return Math.max(10, 18 - (len - 12) * 0.5);
+}
+
+/**
+ * Renders the foundational background rectangle for all SVG cards.
+ * Maintains the 0.5px offset required for crisp SVG stroke rendering on standard DPI screens.
+ *
+ * @param bg - Background hex color string
+ * @param borderRadius - Card border radius in pixels
+ */
+function renderBackgroundRect(
+  bg: string,
+  borderRadius: number,
+  borderAttrsOverride?: string
+): string {
+  const borderAttrs = borderAttrsOverride
+    ? ` ${borderAttrsOverride}`
+    : currentBackgroundRectBorderAttrs
+      ? ` ${currentBackgroundRectBorderAttrs}`
+      : '';
+  return `<rect data-testid="card-bg" x="0.5" y="0.5" rx="${borderRadius}" width="100%" height="100%" fill="${bg}"${borderAttrs}/>`;
 }
 
 export function deterministicRandom(seed?: string | null): number {
@@ -364,7 +387,10 @@ function renderStatsSection(
 
   <g transform="translate(${s(500)}, ${s(340 + yOffset)})" text-anchor="middle">
     <text class="label">${labels.PEAK_STREAK}</text>
-    <text y="${s(40)}" class="stats">${stats.longestStreak}</text>
+    <g>
+      <text y="${s(40)}" class="stats">${stats.longestStreak}</text>
+      ${getInlineMilestoneBadge(stats.longestStreak, s, Math.max(25, stats.longestStreak.toString().length * 10 + 5), 26)}
+    </g>
   </g>`;
 }
 
@@ -797,6 +823,38 @@ function renderIsometricLabels(
   return `<g class="isometric-labels">${elements}</g>`;
 }
 
+function getInlineMilestoneBadge(
+  streak: number,
+  s: (n: number) => number,
+  cx: number,
+  cy: number
+): string {
+  let color = '';
+  let path = '';
+  if (streak >= 365) {
+    color = '#FFD700';
+    path =
+      '<path d="M12 2c0 0-4.5 4.5-4.5 8.5C7.5 13.5 10 16 12 16c2 0 4.5-2.5 4.5-5.5C16.5 6.5 12 2 12 2z" fill="currentColor"/>';
+  } else if (streak >= 100) {
+    color = '#C0C0C0';
+    path =
+      '<path d="M12 2l2.4 7.4h7.6l-6 4.6 2.3 7.4-6.3-4.8-6.3 4.8 2.3-7.4-6-4.6h7.6z" fill="currentColor"/>';
+  } else if (streak >= 30) {
+    color = '#CD7F32';
+    path =
+      '<path d="M12 2L3 6v5.5c0 5 3.8 9.6 9 10.5 5.2-.9 9-5.5 9-10.5V6l-9-4z" fill="currentColor"/>';
+  } else {
+    return '';
+  }
+  return `
+    <g transform="translate(${s(cx)}, ${s(cy)})" color="${color}" class="milestone-inline-badge">
+      <svg x="0" y="0" width="${s(14)}" height="${s(14)}" viewBox="0 0 24 24">
+        ${path}
+      </svg>
+    </g>
+  `;
+}
+
 function renderMilestoneBadges(stats: StreakStats, params: BadgeParams, sf: number): string {
   if (!params.badges) return '';
 
@@ -844,6 +902,21 @@ export function generateSVG(
   if (params.autoTheme) return generateAutoThemeSVG(stats, params, calendar);
   if (params.compact) return generateCompactSVG(stats, params);
 
+  const rawBorderWidth = String(params.border || '').trim();
+  let safeBorderWidth: string | number = 0; // Default to 0 (no border) if invalid
+
+  if (/^\d+$/.test(rawBorderWidth)) {
+    safeBorderWidth = parseInt(rawBorderWidth, 10);
+  } else if (
+    /^#[0-9a-fA-F]{3,6}$/.test(rawBorderWidth) ||
+    /^[0-9a-fA-F]{3,6}$/.test(rawBorderWidth)
+  ) {
+    // If it's a valid hex code (with or without #), consider it a valid border and give it a default thickness
+    safeBorderWidth = 2;
+  } else if (['none', 'thin', 'medium', 'thick'].includes(rawBorderWidth.toLowerCase())) {
+    safeBorderWidth = rawBorderWidth.toLowerCase();
+  }
+
   const animate = params.animate ?? true;
   const safeUser = escapeXML(params.user || 'GitHub User');
   const bg = `#${sanitizeHexColor(params.bg, '0d1117')}`;
@@ -856,8 +929,8 @@ export function generateSVG(
 
   const text = `#${sanitizeHexColor(params.text, 'ffffff')}`;
 
-  const borderAttr = params.border
-    ? `stroke="#${sanitizeHexColor(params.border, '000000')}" stroke-width="2"`
+  const borderAttr = safeBorderWidth
+    ? `stroke="#${sanitizeHexColor(params.border, '000000')}" stroke-width="${safeBorderWidth}"`
     : '';
 
   const sanitizedFont = sanitizeFont(params.font);
@@ -903,20 +976,40 @@ export function generateSVG(
 
   const safeId = safeUser.replace(/[^a-zA-Z0-9-]/g, '_').toLowerCase();
 
-  return `
+  const previousBackgroundRectBorderAttrs = currentBackgroundRectBorderAttrs;
+  currentBackgroundRectBorderAttrs = borderAttr;
+
+  try {
+    return `
 <svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" fill="none" role="img" aria-labelledby="cp-title-${safeId}" aria-describedby="cp-desc-${safeId}">
   ${renderHeader(safeUser, stats, sf, params, safeId)}
   ${renderStyle(selectedFont, statsFont, googleFontsImport, text, mainAccentHex, sf, bg, params.entrance || 'rise')}
-  <rect width="${W}" height="${H}" rx="${radius}" fill="${params.hideBackground ? 'transparent' : bgFill}" ${borderAttr} />
+  ${renderBackgroundRect(params.hideBackground ? 'transparent' : bgFill, radius)}
   <g id="cp-towers" style="transform-origin: center; transform-box: fill-box;" transform="translate(0, ${Math.round((20 + yOffset) * sf)})">${towers}</g>
   ${renderIsometricLabels(calendar, params, text, sf)}
   ${renderFooter(stats, params, labels, safeUser, mainAccentHex, sf)}
   ${renderMilestoneBadges(stats, params, sf)}
 </svg>`;
+  } finally {
+    currentBackgroundRectBorderAttrs = previousBackgroundRectBorderAttrs;
+  }
 }
 
 function generateCompactSVG(stats: StreakStats, params: BadgeParams): string {
   const safeUser = escapeXML(params.user || 'GitHub User');
+
+  const rawBorderWidth = String(params.border || '').trim();
+  let safeBorderWidth: string | number = 0; // Default to 0 (no border) if invalid
+
+  if (/^\d+$/.test(rawBorderWidth)) {
+    safeBorderWidth = parseInt(rawBorderWidth, 10);
+  } else if (/^#[0-9a-fA-F]{3,6}$/.test(rawBorderWidth)) {
+    // If it's a valid hex color code, treat it as valid and give it a default thickness of 2
+    safeBorderWidth = 2;
+  } else if (['none', 'thin', 'medium', 'thick'].includes(rawBorderWidth.toLowerCase())) {
+    safeBorderWidth = rawBorderWidth.toLowerCase();
+  }
+
   const bg = `#${sanitizeHexColor(params.bg, '0d1117')}`;
   const text = `#${sanitizeHexColor(params.text, 'ffffff')}`;
 
@@ -925,7 +1018,10 @@ function generateCompactSVG(stats: StreakStats, params: BadgeParams): string {
     : params.accent;
   const accent = `#${sanitizeHexColor(accentRaw, '00ffaa')}`;
 
-  const borderAttr = params.border ? `stroke="#${params.border}" stroke-width="2"` : '';
+  const borderAttr = safeBorderWidth
+    ? `stroke="#${sanitizeHexColor(params.border, '000000')}" stroke-width="${safeBorderWidth}"`
+    : '';
+
   const radius = sanitizeRadius(params.radius, 12);
 
   const sanitizedFont = sanitizeFont(params.font);
@@ -945,7 +1041,11 @@ function generateCompactSVG(stats: StreakStats, params: BadgeParams): string {
     params.isOfflineFallback ? ' [STALE CACHE]' : ''
   }`;
 
-  return `
+  const previousBackgroundRectBorderAttrs = currentBackgroundRectBorderAttrs;
+  currentBackgroundRectBorderAttrs = borderAttr;
+
+  try {
+    return `
 <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" fill="none" role="img" aria-labelledby="cp-title-${safeId}" aria-describedby="cp-desc-${safeId}">
   <title id="cp-title-${safeId}">CommitPulse Compact Streak for ${safeUser}</title>
   <desc id="cp-desc-${safeId}">${safeUser} has a current streak of ${stats.currentStreak} days.</desc>
@@ -955,10 +1055,13 @@ function generateCompactSVG(stats: StreakStats, params: BadgeParams): string {
   .cp-compact-title { font-family: ${selectedFont || '"Syncopate", sans-serif'}; fill: ${text}; font-size: 15px; font-weight: 700; letter-spacing: 1px; opacity: 0.9; }
   .cp-compact-streak { font-family: ${statsFont}; fill: ${accent}; font-size: 20px; font-weight: 600; }
   </style>
-  <rect width="${width}" height="${height}" rx="${radius}" fill="${params.hideBackground ? 'transparent' : bg}" ${borderAttr} />
+  ${renderBackgroundRect(params.hideBackground ? 'transparent' : bg, radius)}
   <text x="20" y="42" class="cp-compact-title">${titleText}</text>
   <text x="20" y="70" class="cp-compact-streak">${'\u{1F525}'} ${stats.currentStreak}d streak</text>
 </svg>`;
+  } finally {
+    currentBackgroundRectBorderAttrs = previousBackgroundRectBorderAttrs;
+  }
 }
 
 function generateAutoThemeSVG(
@@ -1140,8 +1243,8 @@ export function generateMonthlySVG(stats: MonthlyStats, params: BadgeParams): st
   const radius = sanitizeRadius(params.radius, 8);
   const labels = getLabels(params.lang);
 
-  const width = params.width || 300;
-  const height = params.height || 120;
+  const width = sanitizeDimension(params.width, 300, 100, 1200);
+  const height = sanitizeDimension(params.height, 120, 80, 800);
 
   const googleFontUrlPart =
     sanitizedFont && !isPredefinedFont ? sanitizeGoogleFontUrl(sanitizedFont) : null;
@@ -1222,6 +1325,19 @@ export function generateWrappedSVG(
   calendar: ContributionCalendar
 ): string {
   const safeUser = escapeXML(params.user || 'GitHub User');
+
+  const rawBorderWidth = String(params.border || '').trim();
+  let safeBorderWidth: string | number = 0; // Default fallback width
+
+  if (/^\d+$/.test(rawBorderWidth)) {
+    safeBorderWidth = parseInt(rawBorderWidth, 10);
+  } else if (/^#[0-9a-fA-F]{3,6}$/.test(rawBorderWidth)) {
+    // If it's a valid hex color code, treat it as valid and give it a default thickness of 2
+    safeBorderWidth = 2;
+  } else if (['none', 'thin', 'medium', 'thick'].includes(rawBorderWidth.toLowerCase())) {
+    safeBorderWidth = rawBorderWidth.toLowerCase();
+  }
+
   const bg = `#${sanitizeHexColor(params.bg, '0d1117')}`;
   const bgFill =
     params.bgType === 'linear' || params.bgType === 'radial' ? 'url(#canvas-gradient)' : bg;
@@ -1239,8 +1355,8 @@ export function generateWrappedSVG(
   const statsFont = selectedFont || '"Space Grotesk", sans-serif';
   const radius = sanitizeRadius(params.radius, 8);
 
-  const width = params.width || 420;
-  const height = params.height || 260;
+  const width = sanitizeDimension(params.width, 420, 100, 1200);
+  const height = sanitizeDimension(params.height, 260, 80, 800);
 
   const googleFontUrlPart =
     sanitizedFont && !isPredefinedFont ? sanitizeGoogleFontUrl(sanitizedFont) : null;
@@ -1321,9 +1437,9 @@ export function generateWrappedSVG(
         </g>`;
   }
 
-  const borderAttr = params.border
-    ? `stroke="#${sanitizeHexColor(params.border, '58a6ff')}" stroke-width="1.5"`
-    : `stroke="${accent}" stroke-opacity="0.15" stroke-width="1.5"`;
+  const borderAttr = safeBorderWidth
+    ? `stroke="#${sanitizeHexColor(params.border, '58a6ff')}" stroke-width="${safeBorderWidth}"`
+    : `stroke="${accent}" stroke-opacity="0.15" stroke-width="${safeBorderWidth || 1.5}"`;
 
   const autoThemeVariables = params.autoTheme
     ? `
@@ -1341,8 +1457,9 @@ export function generateWrappedSVG(
     : `fill="${params.hideBackground ? 'transparent' : bgFill}"`;
   const textClass = params.autoTheme ? 'class="cp-text-fill"' : `fill="${text}"`;
   const accentClass = params.autoTheme ? 'class="cp-accent-fill"' : `fill="${accent}"`;
+
   const borderStroke = params.autoTheme
-    ? 'class="cp-accent-stroke" stroke-opacity="0.15" stroke-width="1.5"'
+    ? `class="cp-accent-stroke" stroke-opacity="0.15" stroke-width="${safeBorderWidth || 1.5}"`
     : borderAttr;
 
   const safeId = safeUser.replace(/[^a-zA-Z0-9-]/g, '_').toLowerCase();
@@ -1483,8 +1600,8 @@ function generateAutoThemeMonthlySVG(stats: MonthlyStats, params: BadgeParams): 
   const radius = sanitizeRadius(params.radius, 8);
   const labels = getLabels(params.lang);
 
-  const width = params.width || 300;
-  const height = params.height || 120;
+  const width = sanitizeDimension(params.width, 300, 100, 1200);
+  const height = sanitizeDimension(params.height, 120, 80, 800);
 
   const commitsLabel =
     params.mode === 'loc' ? 'LINES THIS MONTH (EST.)' : labels.COMMITS_THIS_MONTH;
@@ -1712,6 +1829,19 @@ export function generateHeatmapSVG(
 
   const safeUser = escapeXML(params.user || 'GitHub User');
   const safeId = safeUser.replace(/[^a-zA-Z0-9-]/g, '_').toLowerCase();
+
+  const rawBorderWidth = String(params.border || '').trim();
+  let safeBorderWidth: string | number = 0; // Default fallback width
+
+  if (/^\d+$/.test(rawBorderWidth)) {
+    safeBorderWidth = parseInt(rawBorderWidth, 10);
+  } else if (/^#[0-9a-fA-F]{3,6}$/.test(rawBorderWidth)) {
+    // If it's a valid hex color code, treat it as valid and give it a default thickness of 2
+    safeBorderWidth = 2;
+  } else if (['none', 'thin', 'medium', 'thick'].includes(rawBorderWidth.toLowerCase())) {
+    safeBorderWidth = rawBorderWidth.toLowerCase();
+  }
+
   const bg = `#${sanitizeHexColor(params.bg, '0d1117')}`;
   const bgFill =
     params.bgType === 'linear' || params.bgType === 'radial' ? 'url(#canvas-gradient)' : bg;
@@ -1722,8 +1852,8 @@ export function generateHeatmapSVG(
   const accent = `#${sanitizeHexColor(rawAccent, '00ffaa')}`;
   const text = `#${sanitizeHexColor(params.text, 'ffffff')}`;
 
-  const borderAttr = params.border
-    ? `stroke="#${sanitizeHexColor(params.border, '000000')}" stroke-width="2"`
+  const borderAttr = safeBorderWidth
+    ? `stroke="#${sanitizeHexColor(params.border, '000000')}" stroke-width="${safeBorderWidth}"`
     : '';
 
   const sanitizedFont = sanitizeFont(params.font);
@@ -1813,7 +1943,7 @@ export function generateHeatmapSVG(
   }
   </style>
 
-  <rect width="${W}" height="${H}" rx="${radius}" fill="${params.hideBackground ? 'transparent' : bgFill}" ${borderAttr} />
+  ${renderBackgroundRect(params.hideBackground ? 'transparent' : bgFill, radius)}
 
   ${!params.hide_title ? `<text x="${s(60)}" y="${s(30)}" class="hm-title">${truncateUsername(safeUser).toUpperCase()}${params.isOfflineFallback ? '<tspan fill="#ff9f43" font-size="10px" font-weight="bold"> [STALE CACHE]</tspan>' : ''}</text>` : ''}
 
@@ -1840,7 +1970,10 @@ export function generateHeatmapSVG(
     </g>
     <g transform="translate(${s(360)}, 0)">
       <text class="hm-label">${labels.PEAK_STREAK}</text>
-      <text y="${s(22)}" class="hm-stats-val">${stats.longestStreak}</text>
+      <g>
+        <text y="${s(22)}" class="hm-stats-val">${stats.longestStreak}</text>
+        ${getInlineMilestoneBadge(stats.longestStreak, s, Math.max(22, stats.longestStreak.toString().length * 9 + 5), 10)}
+      </g>
     </g>
   </g>`
       : ''
@@ -1974,7 +2107,10 @@ function generateAutoThemeHeatmapSVG(
     </g>
     <g transform="translate(${s(360)}, 0)">
       <text class="hm-label">${labels.PEAK_STREAK}</text>
-      <text y="${s(22)}" class="hm-stats-val">${stats.longestStreak}</text>
+      <g>
+        <text y="${s(22)}" class="hm-stats-val">${stats.longestStreak}</text>
+        ${getInlineMilestoneBadge(stats.longestStreak, s, Math.max(22, stats.longestStreak.toString().length * 9 + 5), 10)}
+      </g>
     </g>
   </g>`
       : ''
@@ -2096,7 +2232,11 @@ export function generateNotFoundSVG(
 
   const safeId = safeName.replace(/[^a-zA-Z0-9-]/g, '_').toLowerCase();
 
-  return `<svg
+  const previousBackgroundRectBorderAttrs = currentBackgroundRectBorderAttrs;
+  currentBackgroundRectBorderAttrs = '';
+
+  try {
+    return `<svg
   xmlns="http://www.w3.org/2000/svg"
   width="100%"
   viewBox="0 0 ${SVG_WIDTH} ${SVG_HEIGHT}"
@@ -2129,7 +2269,7 @@ export function generateNotFoundSVG(
     }
   </style>
 
-  <rect width="${SVG_WIDTH}" height="${SVG_HEIGHT}" rx="${radius}" fill="${bg}"/>
+  ${renderBackgroundRect(bg, radius, 'stroke="#e4e2e2" stroke-opacity="0.2"')}
 
   <g transform="translate(0, 20)" class="ghost-pulse">
     ${ghostTowersHtml}
@@ -2177,6 +2317,9 @@ export function generateNotFoundSVG(
     <text y="40" class="stats">—</text>
   </g>
 </svg>`;
+  } finally {
+    currentBackgroundRectBorderAttrs = previousBackgroundRectBorderAttrs;
+  }
 }
 
 export function generateVersusSVG(
@@ -2403,9 +2546,8 @@ export function generatePulseSVG(
   const googleFontsImport = googleFontUrlPart
     ? `@import url('https://fonts.googleapis.com/css2?family=${googleFontUrlPart}&amp;display=swap');`
     : '';
-
-  const width = params.width || 800;
-  const height = params.height || 170;
+  const width = sanitizeDimension(params.width, 800, 100, 1200);
+  const height = sanitizeDimension(params.height, 170, 80, 800);
 
   const days: number[] = [];
   calendar.weeks.forEach((week) => {
@@ -2588,10 +2730,8 @@ function generateAutoThemePulseSVG(
   const googleFontsImport = googleFontUrlPart
     ? `@import url('https://fonts.googleapis.com/css2?family=${googleFontUrlPart}&amp;display=swap');`
     : '';
-
-  const width = params.width || 800;
-  const height = params.height || 170;
-
+  const width = sanitizeDimension(params.width, 800, 100, 1200);
+  const height = sanitizeDimension(params.height, 170, 80, 800);
   const days: number[] = [];
   calendar.weeks.forEach((week) => {
     week.contributionDays.forEach((day) => {
@@ -2813,8 +2953,8 @@ function renderSkylineSVG(
   const parsedRadius = Number(params.radius);
   const radius = Math.max(0, Math.min(Number.isNaN(parsedRadius) ? 8 : parsedRadius, 50));
 
-  const width = params.width || 800;
-  const height = params.height || 260;
+  const width = sanitizeDimension(params.width, 800, 100, 1200);
+  const height = sanitizeDimension(params.height, 260, 80, 800);
 
   const weeklyContributions: number[] = [];
   const weeks = calendar.weeks;
@@ -3163,7 +3303,11 @@ export function generateRateLimitSVG(
     ? 'Circuit breaker active. System is temporarily offline.'
     : 'Please wait a moment before trying again';
 
-  return `<svg
+  const previousBackgroundRectBorderAttrs = currentBackgroundRectBorderAttrs;
+  currentBackgroundRectBorderAttrs = '';
+
+  try {
+    return `<svg
   xmlns="http://www.w3.org/2000/svg"
   width="100%"
   viewBox="0 0 ${SVG_WIDTH} ${SVG_HEIGHT}"
@@ -3191,7 +3335,7 @@ export function generateRateLimitSVG(
      }
   </style>
 
-  <rect width="${SVG_WIDTH}" height="${SVG_HEIGHT}" rx="${radius}" fill="${bg}"/>
+  ${renderBackgroundRect(bg, radius, 'stroke="#e4e2e2" stroke-opacity="0.2"')}
 
   <g transform="translate(0, 20)" class="ghost-pulse">
     ${ghostTowersHtml}
@@ -3239,6 +3383,9 @@ export function generateRateLimitSVG(
     <text y="40" class="stats">—</text>
   </g>
 </svg>`;
+  } finally {
+    currentBackgroundRectBorderAttrs = previousBackgroundRectBorderAttrs;
+  }
 }
 
 export function generateLanguagesSVG(
@@ -3247,6 +3394,19 @@ export function generateLanguagesSVG(
   repoContributions: RepoContribution[]
 ): string {
   const safeUser = escapeXML(params.user || 'GitHub User');
+
+  const rawBorderWidth = String(params.border || '').trim();
+  let safeBorderWidth: string | number = 0; // Default fallback width
+
+  if (/^\d+$/.test(rawBorderWidth)) {
+    safeBorderWidth = parseInt(rawBorderWidth, 10);
+  } else if (/^#[0-9a-fA-F]{3,6}$/.test(rawBorderWidth)) {
+    // If it's a valid hex color code, treat it as valid and give it a default thickness of 2
+    safeBorderWidth = 2;
+  } else if (['none', 'thin', 'medium', 'thick'].includes(rawBorderWidth.toLowerCase())) {
+    safeBorderWidth = rawBorderWidth.toLowerCase();
+  }
+
   const bg = `#${sanitizeHexColor(params.bg, '0d1117')}`;
 
   const accentRaw = Array.isArray(params.accent)
@@ -3256,8 +3416,9 @@ export function generateLanguagesSVG(
   const accent = `#${sanitizeHexColor(accentStr, '00ffaa')}`;
 
   const text = `#${sanitizeHexColor(params.text, 'ffffff')}`;
-  const borderAttr = params.border
-    ? `stroke="#${sanitizeHexColor(params.border, '000000')}" stroke-width="2"`
+
+  const borderAttr = safeBorderWidth
+    ? `stroke="#${sanitizeHexColor(params.border, '000000')}" stroke-width="${safeBorderWidth}"`
     : '';
 
   const sanitizedFont = sanitizeFont(params.font);
@@ -3334,17 +3495,17 @@ export function generateLanguagesSVG(
 
     const hexColor = lang.color.startsWith('#') ? lang.color : `#${lang.color}`;
     const delay = (idx * 0.15).toFixed(3);
-    const tooltip = `${lang.name}: ${lang.percentage}%`;
+    const tooltip = `${escapeXML(lang.name)}: ${lang.percentage}%`;
 
     towersHtml += `
         <g transform="translate(${scaledX}, ${scaledY})">
           <g class="cp-tower interactive-tower" style="animation-delay: ${delay}s;">
-            <title>${escapeXML(tooltip)}</title>
+            <title>${tooltip}</title>
             <path d="${paths.left}" fill="${hexColor}" fill-opacity="0.85" />
             <path d="${paths.right}" fill="${hexColor}" fill-opacity="0.65" />
             <path d="${paths.top}" fill="${hexColor}" fill-opacity="1.0" />
             
-            <text x="0" y="${-h - 18 * sf}" text-anchor="middle" font-family='${statsFont}' font-size="${14 * sf}px" fill="${text}" font-weight="bold">${lang.name}</text>
+            <text x="0" y="${-h - 18 * sf}" text-anchor="middle" font-family='${statsFont}' font-size="${14 * sf}px" fill="${text}" font-weight="bold">${escapeXML(lang.name)}</text>
             <text x="0" y="${-h - 4 * sf}" text-anchor="middle" font-family='${statsFont}' font-size="${12 * sf}px" fill="${text}" opacity="0.6">${lang.percentage}%</text>
           </g>
         </g>`;
@@ -3397,8 +3558,8 @@ export function generateActivityGraphSVG(
   const parsedRadius = Number(params.radius);
   const radius = Math.max(0, Math.min(Number.isNaN(parsedRadius) ? 8 : parsedRadius, 50));
 
-  const width = params.width || 800;
-  const height = params.height || 220;
+  const width = sanitizeDimension(params.width, 800, 100, 1200);
+  const height = sanitizeDimension(params.height, 220, 80, 800);
 
   const { pathD, areaPathD, trendPathD, peakX, peakY, peakCount, peakDate, days, totalCount } =
     _buildActivityGraphData(calendar, params, width, height);
@@ -3419,14 +3580,17 @@ export function generateActivityGraphSVG(
 >
   <title id="cp-title-${safeId}">Activity Graph for ${safeUser}</title>
   <desc id="cp-desc-${safeId}">Contribution activity graph for ${safeUser} over ${days} days, totalling ${totalCount} ${unit.toLowerCase()}.</desc>
+  ${_renderActivityGraphDefs(accent, bg, params)}
   <style>
   @import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap');
   ${googleFontsImport}
+  ${_activityGraphCSS(selectedFont, statsFont, text, accent, false)}
   </style>
   <rect width="${width}" height="${height}" rx="${radius}" fill="${params.hideBackground ? 'transparent' : bgFill}" />
   <path class="ag-area" d="${areaPathD}" />
   <path class="ag-trend" d="${trendPathD}" stroke="${accent}" />
   <path class="ag-line" d="${pathD}" stroke="${accent}" />
+  ${_renderPeakAnnotation(peakX, peakY, peakCount, peakDate, accent, text, statsFont, false)}
   ${!params.hide_title ? `<text x="24" y="28" class="ag-title">${safeUser.toUpperCase()}${params.isOfflineFallback ? '<tspan fill="#ff9f43" font-size="10px" font-weight="bold"> [STALE CACHE]</tspan>' : ''}</text>` : ''}
   ${!params.hide_stats ? `<text x="${width - 24}" y="28" text-anchor="end" class="ag-total">${totalCount} ${unit}</text>` : ''}
 </svg>
@@ -3455,8 +3619,8 @@ function generateAutoThemeActivityGraphSVG(
   const parsedRadius = Number(params.radius);
   const radius = Math.max(0, Math.min(Number.isNaN(parsedRadius) ? 8 : parsedRadius, 50));
 
-  const width = params.width || 800;
-  const height = params.height || 220;
+  const width = sanitizeDimension(params.width, 800, 100, 1200);
+  const height = sanitizeDimension(params.height, 220, 80, 800);
 
   const { pathD, areaPathD, trendPathD, peakX, peakY, peakCount, peakDate, days, totalCount } =
     _buildActivityGraphData(calendar, params, width, height);
@@ -3493,11 +3657,13 @@ function generateAutoThemeActivityGraphSVG(
   :root { --cp-bg: #${light.bg}; --cp-text: #${light.text}; --cp-accent: #${light.accent}; }
   @media (prefers-color-scheme: dark) { :root { --cp-bg: #${dark.bg}; --cp-text: #${dark.text}; --cp-accent: #${dark.accent}; } }
   .cp-bg-fill { fill: var(--cp-bg); }
+  ${_activityGraphCSS(selectedFont, statsFont, 'var(--cp-text)', 'var(--cp-accent)', true)}
   </style>
   <rect width="${width}" height="${height}" rx="${radius}" ${params.hideBackground ? 'fill="transparent"' : 'class="cp-bg-fill"'} />
   <path class="ag-area" d="${areaPathD}" />
   <path class="ag-trend" d="${trendPathD}" stroke="var(--cp-accent)" />
   <path class="ag-line" d="${pathD}" stroke="var(--cp-accent)" />
+  ${_renderPeakAnnotation(peakX, peakY, peakCount, peakDate, 'var(--cp-accent)', 'var(--cp-text)', statsFont, true)}
   ${!params.hide_title ? `<text x="24" y="28" class="ag-title">${safeUser.toUpperCase()}${params.isOfflineFallback ? '<tspan fill="#ff9f43" font-size="10px" font-weight="bold"> [STALE CACHE]</tspan>' : ''}</text>` : ''}
   ${!params.hide_stats ? `<text x="${width - 24}" y="28" text-anchor="end" class="ag-total">${totalCount} ${unit}</text>` : ''}
 </svg>

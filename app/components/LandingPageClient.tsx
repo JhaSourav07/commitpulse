@@ -9,7 +9,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { gsap } from 'gsap';
 import { useGSAP } from '@gsap/react';
 import { jsPDF } from 'jspdf';
-import 'svg2pdf.js';
+// import 'svg2pdf.js';
 
 import {
   Flame,

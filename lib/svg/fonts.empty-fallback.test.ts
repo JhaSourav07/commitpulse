@@ -1,19 +1,19 @@
 import { describe, it, expect } from 'vitest';
-import FONT_MAP, { resolveFont, isPredefinedFontKey } from './fonts';
+import FONT_MAP, { resolveFontFamily, isPredefinedFontKey } from './fonts';
 
 describe('fonts empty and missing inputs', () => {
-  it('resolveFont returns null for undefined input without throwing', () => {
-    expect(resolveFont(undefined)).toBeNull();
+  it('resolveFontFamily returns null for undefined input without throwing', () => {
+    expect(resolveFontFamily(undefined)).toBeNull();
   });
 
-  it('resolveFont returns null for null input without throwing', () => {
-    expect(resolveFont(null)).toBeNull();
+  it('resolveFontFamily returns null for null input without throwing', () => {
+    expect(resolveFontFamily(null)).toBeNull();
   });
 
-  it('resolveFont returns null for whitespace-only string', () => {
-    expect(resolveFont('   ')).toBeNull();
-    expect(resolveFont('\t')).toBeNull();
-    expect(resolveFont('\n')).toBeNull();
+  it('resolveFontFamily returns null for whitespace-only string', () => {
+    expect(resolveFontFamily('   ')).toBeNull();
+    expect(resolveFontFamily('\t')).toBeNull();
+    expect(resolveFontFamily('\n')).toBeNull();
   });
 
   it('isPredefinedFontKey returns false for empty or missing inputs without throwing', () => {

@@ -175,34 +175,6 @@ function addCandidate(
   bucketMap.set(sourceId, sourceBucket);
 }
 
-function connectManyToMany(
-  bucketMap: Map<string, Map<string, EdgeBucket>>,
-  sources: string[],
-  targets: string[],
-  score: number,
-  reason: string
-): void {
-  for (const sourceId of sources) {
-    if (!isKnown(sourceId)) continue;
-
-    for (const targetId of targets) {
-      if (!isKnown(targetId)) continue;
-
-      const target = getTech(targetId);
-      if (!target) continue;
-
-      addCandidate(
-        bucketMap,
-        sourceId,
-        targetId,
-        score,
-        toRecommendationCategory(target.category),
-        reason
-      );
-    }
-  }
-}
-
 function connectCategoryToCategories(
   bucketMap: Map<string, Map<string, EdgeBucket>>,
   sourceCategory: TechCategory,

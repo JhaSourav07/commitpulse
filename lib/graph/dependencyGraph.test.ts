@@ -325,8 +325,8 @@ describe('DEPENDENCY_GRAPH edge case handling', () => {
 
     // Access various properties
     for (const key of originalKeys) {
-      const _node = DEPENDENCY_GRAPH[key];
-      const _edges = DEPENDENCY_GRAPH[key].edges;
+      void DEPENDENCY_GRAPH[key];
+      void DEPENDENCY_GRAPH[key];
     }
 
     const keysAfterAccess = Object.keys(DEPENDENCY_GRAPH).sort();

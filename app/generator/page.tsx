@@ -2,7 +2,6 @@ import type React from 'react';
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
 import { GeneratorClient } from './GeneratorClient';
-import { Code2, Share2, Sparkles, BarChart3 } from 'lucide-react';
 import { Footer } from '../components/Footer';
 import { HeroBadges } from './components/HeroBadges';
 

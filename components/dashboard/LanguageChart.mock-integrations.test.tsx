@@ -9,14 +9,6 @@ vi.mock('framer-motion', () => ({
     div: ({
       children,
       // Strip framer-motion-specific props so they don't reach the real DOM.
-      initial: _i,
-      animate: _a,
-      exit: _e,
-      transition: _t,
-      whileInView: _wiv,
-      whileHover: _wh,
-      whileTap: _wt,
-      viewport: _vp,
       ...rest
     }: ComponentProps<'div'> & { [key: string]: unknown }) => (
       <div {...(rest as ComponentProps<'div'>)}>{children}</div>

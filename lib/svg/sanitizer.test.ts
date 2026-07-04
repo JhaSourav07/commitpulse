@@ -5,6 +5,7 @@ import {
   sanitizeHexColor,
   sanitizeSpeed,
   sanitizeRadius,
+  sanitizeDimension,
   sanitizeFont,
   sanitizeGoogleFontUrl,
   normalizeHexColor,

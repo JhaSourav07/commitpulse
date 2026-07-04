@@ -9,6 +9,7 @@ import { refreshPolicy } from '@/services/github/refresh-policy';
 import { getRateLimitHeaders } from '@/lib/rate-limit';
 import { refreshRateLimiter } from '@/services/github/refresh-rate-limiter';
 import { getUserGitHubToken } from '@/lib/githubtoken';
+import logger from '@/lib/logger';
 
 function logSecurityEvent(event: string, details: Record<string, unknown>) {
   console.warn(
@@ -176,6 +177,7 @@ export async function GET(request: Request) {
       );
     }
 
-    return NextResponse.json({ error: message }, { status: 500 });
+    logger.error('Unhandled error in /api/stats', { error });
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

@@ -32,7 +32,7 @@ describe('fetchOrgMembers rate limit handling', () => {
     vi.clearAllMocks();
 
     delete process.env.GITHUB_PAT;
-    process.env.GITHUB_TOKEN = 'test-token';
+    process.env.GITHUB_TOKEN = 'ghp_testTokenAAAAAAAAAAAAAAAAAAAAAAAA';
 
     vi.stubGlobal('fetch', vi.fn());
   });
