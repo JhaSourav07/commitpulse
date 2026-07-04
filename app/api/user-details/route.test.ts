@@ -4,6 +4,12 @@ import { GET } from './route';
 vi.mock('@/lib/github', () => ({
   fetchUserProfile: vi.fn(),
   fetchGitHubContributions: vi.fn(),
+  RateLimitError: class RateLimitError extends Error {
+    constructor(message?: string) {
+      super(message);
+      this.name = 'RateLimitError';
+    }
+  },
 }));
 
 import { fetchUserProfile, fetchGitHubContributions } from '@/lib/github';
