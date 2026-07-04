@@ -207,12 +207,11 @@ function CustomizePageInner(): ReactElement {
   // On change sync state to URL
   useEffect(() => {
     if (!queryString) return;
-    // Guard: skip router.replace when the URL already matches the computed params.
-    // Without this, router.replace fires on every mount (including remounts caused by
-    // template.tsx), creating an infinite reload loop in production.
+    // Guard: skip if the URL already matches the computed params.
     if (window.location.search === `?${queryString}`) return;
-    router.replace(`/customize?${queryString}`, { scroll: false });
-  }, [queryString, router]);
+    const newUrl = `${window.location.pathname}?${queryString}`;
+    window.history.replaceState({ ...window.history.state, as: newUrl, url: newUrl }, '', newUrl);
+  }, [queryString]);
 
   useEffect(() => {
     // Safe: resets error state as the first synchronous step when any preview

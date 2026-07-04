@@ -7,9 +7,9 @@ describe('resume-parser-empty-fallback', () => {
     const result = await parseResume(buffer, 'application/pdf');
 
     expect(result).toEqual({
-      name: '',
-      email: '',
-      phone: '',
+      name: 'N/A',
+      email: 'N/A',
+      phone: 'N/A',
       skills: [],
       education: [],
       experience: [],
@@ -21,9 +21,9 @@ describe('resume-parser-empty-fallback', () => {
     const result = await parseResume(buffer, 'application/pdf');
 
     expect(result).toEqual({
-      name: '',
-      email: '',
-      phone: '',
+      name: 'N/A',
+      email: 'N/A',
+      phone: 'N/A',
       skills: [],
       education: [],
       experience: [],
@@ -35,7 +35,7 @@ describe('resume-parser-empty-fallback', () => {
     const buffer = Buffer.from(text);
     const result = await parseResume(buffer, 'application/pdf');
 
-    expect(result.email).toBe('');
+    expect(result.email).toBe('N/A');
   });
 
   it('should return empty email if email is malformed', async () => {
@@ -43,7 +43,7 @@ describe('resume-parser-empty-fallback', () => {
     const buffer = Buffer.from(text);
     const result = await parseResume(buffer, 'application/pdf');
 
-    expect(result.email).toBe('');
+    expect(result.email).toBe('N/A');
   });
 
   it('should return empty name if first few lines do not match name regex', async () => {
@@ -51,7 +51,7 @@ describe('resume-parser-empty-fallback', () => {
     const buffer = Buffer.from(text);
     const result = await parseResume(buffer, 'application/pdf');
 
-    expect(result.name).toBe('');
+    expect(result.name).toBe('N/A');
   });
 
   it('should return empty name if first lines have lowercase initials only', async () => {
@@ -59,7 +59,7 @@ describe('resume-parser-empty-fallback', () => {
     const buffer = Buffer.from(text);
     const result = await parseResume(buffer, 'application/pdf');
 
-    expect(result.name).toBe('');
+    expect(result.name).toBe('N/A');
   });
 
   it('should return empty phone if phone is missing or contains invalid characters', async () => {
@@ -67,7 +67,7 @@ describe('resume-parser-empty-fallback', () => {
     const buffer = Buffer.from(text);
     const result = await parseResume(buffer, 'application/pdf');
 
-    expect(result.phone).toBe('');
+    expect(result.phone).toBe('N/A');
   });
 
   it('should return empty skills if no skills section header is present', async () => {
@@ -91,8 +91,8 @@ University of Toronto 2018 - 2022
     expect(result.education).toEqual([
       {
         institution: 'University of Toronto 2018 - 2022',
-        degree: '',
-        field: '',
+        degree: 'N/A',
+        field: 'N/A',
         startDate: '2018',
         endDate: '2022',
       },

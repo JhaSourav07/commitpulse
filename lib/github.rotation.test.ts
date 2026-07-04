@@ -177,14 +177,16 @@ describe('GitHub Multi-Token Rotation & Fallback', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it('decrypts encrypted tokens if ENCRYPTION_KEY is present', () => {
-    const originalKey = process.env.ENCRYPTION_KEY;
-    process.env.ENCRYPTION_KEY = 'abcdefghijklmnopqrstuvwxyz123456';
+  it('decrypts encrypted tokens if GITHUB_TOKEN_ENCRYPTION_KEY is present', () => {
+    const validKey = 'a'.repeat(32);
+    const originalKey = process.env.GITHUB_TOKEN_ENCRYPTION_KEY;
+    process.env.GITHUB_TOKEN_ENCRYPTION_KEY = validKey;
 
     try {
       const rawToken = 'ghp_myRealGitHubTokenAAAAAAAAAAAAAAAA';
       const encrypted = encryptGitHubToken(rawToken);
 
+      expect(encrypted).toContain('.');
       expect(encrypted.split('.')).toHaveLength(4);
 
       const plaintextToken = 'ghp_anotherPlaintextTokenAAAAAAAAAAAA';
@@ -194,7 +196,23 @@ describe('GitHub Multi-Token Rotation & Fallback', () => {
       const tokens = getGitHubTokens();
       expect(tokens).toEqual([rawToken, plaintextToken]);
     } finally {
-      process.env.ENCRYPTION_KEY = originalKey;
+      process.env.GITHUB_TOKEN_ENCRYPTION_KEY = originalKey;
+    }
+  });
+
+  it('gracefully falls back to raw token on decryption failure', () => {
+    const originalKey = process.env.GITHUB_TOKEN_ENCRYPTION_KEY;
+    process.env.GITHUB_TOKEN_ENCRYPTION_KEY = 'a'.repeat(32);
+
+    try {
+      const rawToken = 'ghp_plaintextFallbackTokenAAAAAAAAAAAAAAAAAA';
+      process.env.GITHUB_PAT = rawToken;
+      delete process.env.GITHUB_TOKEN;
+
+      const tokens = getGitHubTokens();
+      expect(tokens).toEqual([rawToken]);
+    } finally {
+      process.env.GITHUB_TOKEN_ENCRYPTION_KEY = originalKey;
     }
   });
 
@@ -203,7 +221,8 @@ describe('GitHub Multi-Token Rotation & Fallback', () => {
     process.env.ENCRYPTION_KEY = 'abcdefghijklmnopqrstuvwxyz123456';
 
     try {
-      const fakeEncryptedToken = '1234567890abcdef1234567890abcdef:abcdefabcdef';
+      const fakeEncryptedToken = 'YWJj.ZGVm.YWJj.';
+
       process.env.GITHUB_PAT = fakeEncryptedToken;
       delete process.env.GITHUB_TOKEN;
 
@@ -213,7 +232,7 @@ describe('GitHub Multi-Token Rotation & Fallback', () => {
       const tokens = getGitHubTokens();
       expect(tokens).toEqual([]);
     } finally {
-      process.env.ENCRYPTION_KEY = originalKey;
+      process.env.GITHUB_TOKEN_ENCRYPTION_KEY = originalKey;
     }
   });
 });

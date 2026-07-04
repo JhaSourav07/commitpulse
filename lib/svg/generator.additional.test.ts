@@ -141,6 +141,21 @@ describe('[Refactor] renderGhostDefs — shared defs helper consistency', () => 
   });
 });
 
+describe('[Refactor] renderBackgroundRect — universal background consistency', () => {
+  it('all generator functions output the exact same background rect tag', () => {
+    const bg = '#112233';
+    const radius = 12;
+
+    const expectedRect = `<rect data-testid="card-bg" x="0.5" y="0.5" rx="${radius}" width="100%" height="100%" fill="${bg}" stroke="#e4e2e2" stroke-opacity="0.2"/>`;
+
+    const notFoundSvg = generateNotFoundSVG('octocat', bg, '#00ffaa', '#ffffff', radius);
+    const rateLimitSvg = generateRateLimitSVG(bg, '#00ffaa', '#ffffff', radius, '8s');
+
+    expect(notFoundSvg).toContain(expectedRect);
+    expect(rateLimitSvg).toContain(expectedRect);
+  });
+});
+
 // ─── Shared fixtures ──────────────────────────────────────────────────────────
 
 const baseStats: StreakStats = {
