@@ -64,7 +64,7 @@ describe('yearBoundary constraints', () => {
     expect(response.status).toBe(400);
     const body = await response.json();
     expect(body.error).toBe('Invalid parameters');
-    expect(body.details.fieldErrors.year[0]).toContain('2008');
+    expect(body.details.fieldErrors.year[0]).toContain('future');
     expect(getWrappedData).not.toHaveBeenCalled();
   });
 

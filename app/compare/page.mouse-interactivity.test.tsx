@@ -136,6 +136,14 @@ describe('CompareClient Mouse Interactivity & Touch Events', () => {
     resetSearchParams();
     window.localStorage.clear();
 
+    // Prevent the Cache API from interfering with test isolation
+    // (readCompareCache consults window.caches which may hold stale data)
+    Object.defineProperty(window, 'caches', {
+      value: undefined,
+      writable: true,
+      configurable: true,
+    });
+
     global.fetch = vi.fn(
       async () =>
         ({

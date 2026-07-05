@@ -101,8 +101,17 @@ let currentTokenIndex = 0;
 const rateLimitedTokens = new Map<string, number>();
 const tokenStats = new Map<string, { remaining: number; resetTime: number }>();
 
+// Issue #7213: Per-token pending refresh promise to deduplicate concurrent rotations.
+// When multiple concurrent requests detect an expired token, only one triggers
+// the rotation; subsequent requests await the same in-flight promise.
+const pendingRefreshPromises = new Map<string, Promise<void>>();
+
 export function getTokenStatsForTests() {
   return tokenStats;
+}
+
+export function getRateLimitedTokensForTests() {
+  return rateLimitedTokens;
 }
 
 export function getGlobalCircuitBreakerOpenUntilForTests() {
@@ -275,11 +284,11 @@ export async function fetchWithRetry(
   // Handle invalid/expired tokens (HTTP 401)
   const isInvalidToken = res.status === 401;
   if (isInvalidToken && currentToken) {
-    rateLimitedTokens.set(currentToken, Date.now() + 24 * 60 * 60 * 1000); // disable for 24h
+    // Issue #7213: Use per-token pending refresh promise to prevent
+    // concurrent duplicate rotations that skip healthy tokens
+    await handleTokenExpiration(currentToken);
+
     const tokens = getGitHubTokens();
-    if (tokens.length > 1) {
-      currentTokenIndex = (currentTokenIndex + 1) % tokens.length;
-    }
     // Retry immediately with the next token if available
     if (attempt < MAX_RETRIES && tokens.length > 1) {
       const delay = getJitteredBackoff(attempt);
@@ -632,6 +641,7 @@ export function clearGitHubApiCacheForTests(): void {
   contributedReposCache.clear();
   rateLimitedTokens.clear();
   tokenStats.clear();
+  pendingRefreshPromises.clear();
   currentTokenIndex = 0;
   globalCircuitBreakerOpenUntil = 0;
 }
@@ -735,6 +745,39 @@ function getGitHubToken(): string {
 
   // Throw RateLimitError
   throw new RateLimitError('API Rate Limit Exceeded', backoffMs);
+}
+
+/**
+ * Issue #7213: Handles token expiration with a per-token pending refresh promise pattern.
+ * When multiple concurrent requests detect an expired token, only one triggers
+ * the rotation; subsequent requests await the same in-flight promise.
+ *
+ * This prevents:
+ * - Double rotation: skipping a healthy token in the pool
+ * - Stale token use: continued use of a token that was already rotated
+ * - Lost token state: overwritten rate-limit tracking
+ */
+export async function handleTokenExpiration(token: string): Promise<void> {
+  if (pendingRefreshPromises.has(token)) {
+    await pendingRefreshPromises.get(token)!;
+    return;
+  }
+
+  const refreshPromise = (async () => {
+    rateLimitedTokens.set(token, Date.now() + 24 * 60 * 60 * 1000);
+    const tokens = getGitHubTokens();
+    if (tokens.length > 1) {
+      currentTokenIndex = (currentTokenIndex + 1) % tokens.length;
+    }
+  })();
+
+  pendingRefreshPromises.set(token, refreshPromise);
+
+  try {
+    await refreshPromise;
+  } finally {
+    pendingRefreshPromises.delete(token);
+  }
 }
 
 const getHeaders = (userToken?: string) => ({

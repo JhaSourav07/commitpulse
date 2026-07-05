@@ -15,13 +15,13 @@ import {
 } from 'lucide-react';
 import { FaGithub, FaDiscord, FaLinkedin } from 'react-icons/fa';
 import { FaXTwitter } from 'react-icons/fa6';
-interface FooterLink {
+export interface FooterLink {
   label: string;
   href: string;
   isExternal?: boolean;
 }
 
-interface SocialLink {
+export interface SocialLink {
   label: string;
   href: string;
   ariaLabel: string;

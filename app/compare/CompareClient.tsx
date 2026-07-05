@@ -45,6 +45,7 @@ import {
   Camera,
 } from 'lucide-react';
 import { validateGitHubUsername } from '@/lib/validations';
+import { toast } from 'sonner';
 
 // Reuse the existing recent-search infrastructure so users can quickly
 // access previously compared GitHub usernames.
@@ -984,12 +985,20 @@ export default function CompareClient() {
     dataRef.current = data;
   }, [data]);
 
-  const handleShareBattle = () => {
+  const handleShareBattle = async () => {
     const url = window.location.href;
-    navigator.clipboard.writeText(url).then(() => {
+
+    try {
+      await navigator.clipboard.writeText(url);
+
       setCopied(true);
+      toast.success('Comparison link copied!');
+
       setTimeout(() => setCopied(false), 2000);
-    });
+    } catch (error) {
+      console.error('Failed to copy comparison link:', error);
+      toast.error('Failed to copy comparison link');
+    }
   };
 
   const handleTwitterShare = () => {

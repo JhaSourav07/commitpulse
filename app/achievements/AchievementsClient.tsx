@@ -806,7 +806,7 @@ export default function AchievementsClient() {
               </motion.div>
             )}
 
-            <div className="mt-12 text-center text-xs text-white/20">
+            <div className="mt-12 text-center text-xs text-zinc-600 dark:text-zinc-400">
               Achievements calculated from real-time GitHub data
             </div>
           </>

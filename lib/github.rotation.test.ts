@@ -5,6 +5,8 @@ import {
   clearGitHubApiCacheForTests,
   getTokenStatsForTests,
   getGlobalCircuitBreakerOpenUntilForTests,
+  handleTokenExpiration,
+  getRateLimitedTokensForTests,
 } from './github';
 import { encryptGitHubToken } from './github-token-encryption';
 
@@ -234,5 +236,78 @@ describe('GitHub Multi-Token Rotation & Fallback', () => {
     } finally {
       process.env.GITHUB_TOKEN_ENCRYPTION_KEY = originalKey;
     }
+  });
+
+  it('deduplicates concurrent 401 rotations using the pending refresh promise pattern (Issue #7213)', async () => {
+    process.env.GITHUB_PAT = `${MOCK_BAD_TOKEN},${MOCK_GOOD_TOKEN}`;
+    delete process.env.GITHUB_TOKEN;
+    clearGitHubApiCacheForTests();
+
+    // Two concurrent requests, each needs:
+    //   1st fetch with bad token -> 401
+    //   2nd fetch (retry) with good token -> 200
+    const mkResponse = (status: number) => ({
+      status,
+      ok: status === 200,
+      headers: new Headers(),
+      json: async () => ({ data: 'success' }),
+    });
+
+    fetchMock
+      .mockResolvedValueOnce(mkResponse(401)) // req1 attempt1
+      .mockResolvedValueOnce(mkResponse(401)) // req2 attempt1
+      .mockResolvedValueOnce(mkResponse(200)) // req1 retry
+      .mockResolvedValueOnce(mkResponse(200)); // req2 retry
+
+    const [res1, res2] = await Promise.all([
+      fetchWithRetry('https://api.github.com/graphql', { headers: {} }),
+      fetchWithRetry('https://api.github.com/graphql', { headers: {} }),
+    ]);
+
+    expect(res1.status).toBe(200);
+    expect(res2.status).toBe(200);
+
+    const authHeaders = fetchMock.mock.calls
+      .map((c) => c[1]?.headers?.Authorization)
+      .filter(Boolean);
+
+    const goodTokenUsages = authHeaders.filter(
+      (h: string) => h === `bearer ${MOCK_GOOD_TOKEN}`
+    ).length;
+
+    const badTokenUsages = authHeaders.filter(
+      (h: string) => h === `bearer ${MOCK_BAD_TOKEN}`
+    ).length;
+
+    // Both started with the bad token
+    expect(badTokenUsages).toBe(2);
+    // Both retried with the good token
+    expect(goodTokenUsages).toBe(2);
+  });
+
+  it('awaiting handleTokenExpiration concurrently only runs rotation once (Issue #7213)', async () => {
+    process.env.GITHUB_PAT = `${MOCK_TOKEN_1},${MOCK_TOKEN_2}`;
+    delete process.env.GITHUB_TOKEN;
+    clearGitHubApiCacheForTests();
+
+    const rateLimited = getRateLimitedTokensForTests();
+    let rotationCounter = 0;
+    const origSet = rateLimited.set.bind(rateLimited);
+    rateLimited.set = function (key: string, value: number) {
+      if (key === MOCK_TOKEN_1) {
+        rotationCounter++;
+      }
+      return origSet(key, value);
+    };
+
+    await Promise.all([
+      handleTokenExpiration(MOCK_TOKEN_1),
+      handleTokenExpiration(MOCK_TOKEN_1),
+      handleTokenExpiration(MOCK_TOKEN_1),
+    ]);
+
+    expect(rotationCounter).toBe(1);
+
+    rateLimited.set = origSet;
   });
 });

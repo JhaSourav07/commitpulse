@@ -46,23 +46,9 @@ import { refreshPolicy } from '@/services/github/refresh-policy';
 import { refreshRateLimiter } from '@/services/github/refresh-rate-limiter';
 import { logger } from '@/lib/logger';
 
-const VALIDATION_CACHE_MAX = 256;
-const validationCache = new Map<string, ReturnType<typeof streakParamsSchema.safeParse>>();
-
-function cachedValidation(
-  key: string,
-  parseFn: () => ReturnType<typeof streakParamsSchema.safeParse>
-) {
-  let cached = validationCache.get(key);
-  if (cached !== undefined) return cached;
-  cached = parseFn();
-  if (validationCache.size >= VALIDATION_CACHE_MAX) {
-    const firstKey = validationCache.keys().next().value;
-    if (firstKey !== undefined) validationCache.delete(firstKey);
-  }
-  validationCache.set(key, cached);
-  return cached;
-}
+import { validationCache as _vc, normalizeCacheKey, cachedValidation } from './validation-cache';
+// Re-alias so existing usages in this file continue to work.
+const validationCache = _vc;
 
 const SVG_CSP_HEADER =
   "default-src 'none'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://fonts.gstatic.com;";
@@ -97,7 +83,7 @@ function getMonthlyReferenceDate(year: string | undefined, timezone: string): Da
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
 
-  const cacheKey = searchParams.toString();
+  const cacheKey = normalizeCacheKey(searchParams);
   const parseResult = cachedValidation(cacheKey, () =>
     streakParamsSchema.safeParse(coerceQueryParams(searchParams))
   );
@@ -712,7 +698,23 @@ function sanitizeErrorMessage(message: string): string {
   if (message.includes('schema') || message.includes('Schema')) {
     return 'Invalid request parameters';
   }
-  return message;
+  // Preserve user-facing validation messages — these are intentional,
+  // safe error strings thrown by route-level validation and do not
+  // expose internal implementation details.
+  const lower = message.toLowerCase();
+  if (lower.includes('strictly for organizations')) {
+    return 'This endpoint is strictly for organizations.';
+  }
+  if (lower.includes('strictly accepts a maximum of 2')) {
+    return 'The streak comparison generator strictly accepts a maximum of 2 usernames.';
+  }
+  if (lower.includes('quota is low')) {
+    return 'API rate limit quota is low. Please try again later.';
+  }
+  // Issue #7263: Return a generic message for all other errors to
+  // prevent leaking internal implementation details (auth state, cache
+  // servers, token rotation info, etc.) to the client.
+  return 'Something went wrong. Please try again later.';
 }
 
 function buildErrorResponse(error: unknown, parseResult: ParseResult): NextResponse {
@@ -721,14 +723,14 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
 
   if (parseResult.success && parseResult.data.format === 'json') {
     const isNotFound =
-      message.toLowerCase().includes('not found') ||
-      message.toLowerCase().includes('could not resolve');
-    const isRateLimit = message.toLowerCase().includes('rate limit');
+      rawMessage.toLowerCase().includes('not found') ||
+      rawMessage.toLowerCase().includes('could not resolve');
+    const isRateLimit = rawMessage.toLowerCase().includes('rate limit');
     const isValidationError =
       (error instanceof Error && error.name === 'ValidationError') ||
-      message.toLowerCase().includes('invalid') ||
-      message.toLowerCase().includes('validation') ||
-      message.toLowerCase().includes('strictly for organizations');
+      rawMessage.toLowerCase().includes('invalid') ||
+      rawMessage.toLowerCase().includes('validation') ||
+      rawMessage.toLowerCase().includes('strictly for organizations');
 
     const status = isRateLimit ? 429 : isNotFound ? 404 : isValidationError ? 400 : 500;
     const jsonErrorHeaders: Record<string, string> = {
@@ -748,16 +750,16 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
   }
 
   const isNotFound =
-    message.toLowerCase().includes('not found') ||
-    message.toLowerCase().includes('could not resolve');
-  const isRateLimit = message.toLowerCase().includes('rate limit');
+    rawMessage.toLowerCase().includes('not found') ||
+    rawMessage.toLowerCase().includes('could not resolve');
+  const isRateLimit = rawMessage.toLowerCase().includes('rate limit');
 
   // 2. Safely detect if the error was a validation/client error
   const isValidationError =
     (error instanceof Error && error.name === 'ValidationError') ||
-    message.toLowerCase().includes('invalid') ||
-    message.toLowerCase().includes('validation') ||
-    message.toLowerCase().includes('strictly for organizations');
+    rawMessage.toLowerCase().includes('invalid') ||
+    rawMessage.toLowerCase().includes('validation') ||
+    rawMessage.toLowerCase().includes('strictly for organizations');
 
   const errBg = `#${sanitizeHexColor(parseResult.success ? parseResult.data.bg : undefined, '0d1117')}`;
   const errAccentRaw =
