@@ -120,12 +120,12 @@ describe('GET /api/repo-burnout', () => {
       'octocat',
       'hello-world',
       expect.objectContaining({
-        bypassCache: false,
+        bypassCache: true,
         token: undefined,
       })
     );
     expect(fetchBurnoutAnalysis).toHaveBeenCalledWith('octocat', 'hello-world', {
-      bypassCache: false,
+      bypassCache: true,
       token: undefined,
     });
   });

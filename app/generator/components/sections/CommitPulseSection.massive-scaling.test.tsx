@@ -76,7 +76,7 @@ describe('CommitPulseSection Massive Data Sets and Extreme High Bounds Scaling',
   it('maintains stable interactive controls under extreme values', () => {
     render(<CommitPulseSection {...defaultProps} />);
 
-    expect(screen.getByRole('switch')).toBeInTheDocument();
+    expect(screen.getByRole('switch', { name: /toggle commitpulse badge/i })).toBeInTheDocument();
 
     expect(screen.getByLabelText(/Toggle CommitPulse badge/i)).toBeVisible();
   });

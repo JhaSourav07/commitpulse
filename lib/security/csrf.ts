@@ -1,3 +1,8 @@
+function normalizePort(url: URL): string {
+  if (url.port) return url.port;
+  return url.protocol === 'https:' ? '443' : '80';
+}
+
 export function validateCSRF(request: Request): Response | null {
   const origin = request.headers.get('origin');
   const referer = request.headers.get('referer');
@@ -14,7 +19,11 @@ export function validateCSRF(request: Request): Response | null {
       const url = new URL(value);
       const allowed = new URL(allowedOrigin);
 
-      return url.protocol === allowed.protocol && url.hostname === allowed.hostname;
+      return (
+        url.protocol === allowed.protocol &&
+        url.hostname === allowed.hostname &&
+        normalizePort(url) === normalizePort(allowed)
+      );
     } catch {
       return false;
     }

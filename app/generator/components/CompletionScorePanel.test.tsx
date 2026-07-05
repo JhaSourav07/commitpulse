@@ -14,6 +14,8 @@ const EMPTY_STATE: GeneratorState = {
   githubUsername: '',
   showCommitPulse: false,
   commitPulseAccent: '',
+  showRepoSpotlight: false,
+  spotlightRepo: '',
   showSnakeGraph: false,
   showPacmanGraph: false,
   graphPlacement: 'bottom',

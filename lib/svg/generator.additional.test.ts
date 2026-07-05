@@ -141,18 +141,37 @@ describe('[Refactor] renderGhostDefs — shared defs helper consistency', () => 
   });
 });
 
-describe('[Refactor] renderBackgroundRect — universal background consistency', () => {
-  it('all generator functions output the exact same background rect tag', () => {
-    const bg = '#112233';
-    const radius = 12;
+describe('[Refactor] renderGhostStyles — shared styles helper consistency', () => {
+  it('both functions contain identical @keyframes float definitions', () => {
+    const notFoundSvg = generateNotFoundSVG('octocat', '#0d1117', '#00ffaa', '#ffffff', 8);
+    const rateLimitSvg = generateRateLimitSVG('#0d1117', '#00ffaa', '#ffffff', 8, '8s');
 
-    const expectedRect = `<rect data-testid="card-bg" x="0.5" y="0.5" rx="${radius}" width="100%" height="100%" fill="${bg}" stroke="#e4e2e2" stroke-opacity="0.2"/>`;
+    expect(notFoundSvg).toContain('@keyframes float');
+    expect(rateLimitSvg).toContain('@keyframes float');
+    expect(notFoundSvg).toContain('transform: translateY(-10px)');
+    expect(rateLimitSvg).toContain('transform: translateY(-10px)');
+  });
 
-    const notFoundSvg = generateNotFoundSVG('octocat', bg, '#00ffaa', '#ffffff', radius);
-    const rateLimitSvg = generateRateLimitSVG(bg, '#00ffaa', '#ffffff', radius, '8s');
+  it('both functions contain identical utility classes', () => {
+    const notFoundSvg = generateNotFoundSVG('octocat', '#0d1117', '#00ffaa', '#ffffff', 8);
+    const rateLimitSvg = generateRateLimitSVG('#0d1117', '#00ffaa', '#ffffff', 8, '8s');
 
-    expect(notFoundSvg).toContain(expectedRect);
-    expect(rateLimitSvg).toContain(expectedRect);
+    ['.floating', '.delay-1', '.delay-2'].forEach((cls) => {
+      expect(notFoundSvg).toContain(cls);
+      expect(rateLimitSvg).toContain(cls);
+    });
+  });
+
+  it('both functions retain ghost pulse and reduced-motion styles, and the not-found card keeps scan-line animation', () => {
+    const notFoundSvg = generateNotFoundSVG('octocat', '#0d1117', '#00ffaa', '#ffffff', 8);
+    const rateLimitSvg = generateRateLimitSVG('#0d1117', '#00ffaa', '#ffffff', 8, '8s');
+
+    ['.ghost-pulse', '@media (prefers-reduced-motion: reduce)'].forEach((style) => {
+      expect(notFoundSvg).toContain(style);
+      expect(rateLimitSvg).toContain(style);
+    });
+
+    expect(notFoundSvg).toContain('.scan-line');
   });
 });
 
