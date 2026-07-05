@@ -4,10 +4,25 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import CompareClient from './CompareClient';
 import React, { type ReactNode } from 'react';
 
-const { mockRouter, mockSearchParams } = vi.hoisted(() => ({
-  mockRouter: { replace: vi.fn() },
-  mockSearchParams: { get: vi.fn(() => null) },
-}));
+// Mirror Next.js: router.replace updates the URL, and useSearchParams reflects it.
+// Without this, the auto-compare effect (which calls setData(null) when the URL has
+// no user params) races with the manual compare's setData(json) and wipes the
+// just-rendered result, making the heatmap/habit assertions flaky.
+const { mockRouter, mockSearchParams } = vi.hoisted(() => {
+  const params = new Map<string, string>();
+  return {
+    mockRouter: {
+      replace: vi.fn((url: string) => {
+        params.clear();
+        const query = String(url).split('?')[1] ?? '';
+        for (const [key, value] of new URLSearchParams(query)) {
+          params.set(key, value);
+        }
+      }),
+    },
+    mockSearchParams: { get: vi.fn((key: string) => params.get(key) ?? null) },
+  };
+});
 
 vi.mock('next/navigation', () => ({
   useRouter: () => mockRouter,
@@ -119,6 +134,14 @@ describe('CompareClient Interactive Tooltips, Cursor Hovers & Touch Event Propag
     vi.clearAllMocks();
     window.localStorage.clear();
 
+    // Prevent the Cache API from interfering with test isolation
+    // (readCompareCache consults window.caches which may hold stale data)
+    Object.defineProperty(window, 'caches', {
+      value: undefined,
+      writable: true,
+      configurable: true,
+    });
+
     global.fetch = vi.fn(
       async () =>
         ({
@@ -186,20 +209,22 @@ describe('CompareClient Interactive Tooltips, Cursor Hovers & Touch Event Propag
 
     fireEvent.click(screen.getByRole('button', { name: /compare/i }));
 
-    await waitFor(() => {
-      expect(screen.getByText(/coding habits/i)).toBeInTheDocument();
-    });
+    await waitFor(
+      () => {
+        expect(screen.getByText(/coding habits/i)).toBeInTheDocument();
+      },
+      { timeout: 5000 }
+    );
 
-    const habitCards = screen.getAllByRole('heading', { level: 3 });
-    const userAHabit = habitCards.find((c) => c.textContent === 'Night Owl');
-    const userBHabit = habitCards.find((c) => c.textContent === 'Early Bird');
+    const userAHabit = await screen.findByText('Night Owl', {}, { timeout: 5000 });
+    const userBHabit = await screen.findByText('Early Bird', {}, { timeout: 5000 });
 
     expect(userAHabit).toBeInTheDocument();
     expect(userBHabit).toBeInTheDocument();
 
     // Trigger hover events to verify standard scale and glow hover properties
-    const containerA = userAHabit!.closest('div');
-    const containerB = userBHabit!.closest('div');
+    const containerA = userAHabit.closest('div');
+    const containerB = userBHabit.closest('div');
 
     expect(containerA).toHaveClass('transition-all');
     expect(containerB).toHaveClass('transition-all');

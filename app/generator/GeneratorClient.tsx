@@ -23,6 +23,8 @@ const INITIAL_STATE: GeneratorState = {
   showSnakeGraph: false,
   showPacmanGraph: false,
   graphPlacement: 'bottom',
+  showRepoSpotlight: false,
+  spotlightRepo: '',
 };
 
 export function GeneratorClient() {
@@ -35,6 +37,7 @@ export function GeneratorClient() {
       state.selectedTechs.length > 0 ||
       state.selectedSocials.some((id) => state.socialLinks[id]?.trim()) ||
       (state.showCommitPulse && state.githubUsername.trim()) ||
+      (state.showRepoSpotlight && state.spotlightRepo.trim()) ||
       (state.showSnakeGraph && state.githubUsername.trim()) ||
       (state.showPacmanGraph && state.githubUsername.trim());
 
@@ -93,6 +96,8 @@ export function GeneratorClient() {
           onShowSnakeGraphChange={(v) => setState((s) => ({ ...s, showSnakeGraph: v }))}
           onShowPacmanGraphChange={(v) => setState((s) => ({ ...s, showPacmanGraph: v }))}
           onGraphPlacementChange={(v) => setState((s) => ({ ...s, graphPlacement: v }))}
+          onShowRepoSpotlightChange={(v) => setState((s) => ({ ...s, showRepoSpotlight: v }))}
+          onSpotlightRepoChange={(v) => setState((s) => ({ ...s, spotlightRepo: v }))}
           onApplyImport={handleApplyImport}
         />
       </div>

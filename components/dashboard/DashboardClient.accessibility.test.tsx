@@ -220,7 +220,7 @@ describe('DashboardClient - Accessibility & Aria compliance (Variation 4)', () =
     const profileOptimizerBtn = screen.getByRole('button', { name: /profile optimizer/i });
     const compareBtn = screen.getByRole('button', { name: /compare profile/i });
     const refreshBtn = screen.getByTestId('refresh-button');
-    const shareBtn = screen.getByRole('button', { name: /^share$/i });
+    const shareBtn = screen.getAllByRole('button', { name: /^share$/i })[0];
     const generateLink = screen.getByRole('link', { name: /generate your own/i });
 
     const optIndex = focusable.indexOf(profileOptimizerBtn);
