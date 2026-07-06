@@ -340,3 +340,5 @@ _Thank you for contributing. Every PR — no matter the size — makes CommitPul
 **— Sourav Jha, Maintainer**
 
 </div>
+
+# TODO: issue #6968
