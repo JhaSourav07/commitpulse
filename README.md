@@ -320,3 +320,4 @@ Thanks to all contributors who have helped make CommitPulse better!
 <a href="https://github.com/JhaSourav07/commitpulse/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=JhaSourav07/commitpulse" alt="Contributors" />
 </a>
+# TODO: test(socials-mouse-interactivity): verify interactive tooltips, cursor hovers & touch event propagation (variation 5) (#6966)
