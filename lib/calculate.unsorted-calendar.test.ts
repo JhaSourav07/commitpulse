@@ -25,8 +25,16 @@ describe('calculateStreak - unsorted calendar handling', () => {
 
     const reversed = [...ordered].reverse();
 
-    const orderedResult = calculateStreak(buildCalendar(ordered));
-    const reversedResult = calculateStreak(buildCalendar(reversed));
+    const orderedResult = calculateStreak(
+      buildCalendar(ordered),
+      'UTC',
+      new Date('2024-01-05T12:00:00Z')
+    );
+    const reversedResult = calculateStreak(
+      buildCalendar(reversed),
+      'UTC',
+      new Date('2024-01-05T12:00:00Z')
+    );
 
     expect(reversedResult.currentStreak).toBe(orderedResult.currentStreak);
     expect(reversedResult.longestStreak).toBe(orderedResult.longestStreak);

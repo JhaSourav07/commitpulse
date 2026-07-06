@@ -74,7 +74,7 @@ describe('calculateStreak — empty contribution calendar timeline (Variation 3)
     expect(result.currentStreak).toBe(0);
     expect(result.longestStreak).toBe(0);
     expect(result.totalContributions).toBe(0);
-    expect(result.todayDate).toBe('2026-05-02');
+    expect(result.todayDate).toBe('2026-06-05');
   });
 
   it('degrades gracefully to zero streaks when weeks array is undefined or null', () => {

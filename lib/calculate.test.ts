@@ -17,13 +17,18 @@ import type { ContributionCalendar, ContributionDay } from '../types';
 // grouping every 7 values into a "week" — the same way GitHub's API returns data.
 function buildCalendar(counts: number[]): ContributionCalendar {
   const weeks = [];
+  const baseDate = new Date('2024-01-01T00:00:00Z');
   for (let i = 0; i < counts.length; i += 7) {
     const slice = counts.slice(i, i + 7);
     weeks.push({
-      contributionDays: slice.map((count, j) => ({
-        contributionCount: count,
-        date: `2024-01-${String(i + j + 1).padStart(2, '0')}`,
-      })),
+      contributionDays: slice.map((count, j) => {
+        const d = new Date(baseDate);
+        d.setUTCDate(baseDate.getUTCDate() + i + j);
+        return {
+          contributionCount: count,
+          date: d.toISOString().split('T')[0],
+        };
+      }),
     });
   }
   return {
@@ -74,7 +79,7 @@ describe('calculateStreak', () => {
       1, 1, 1, 1, 1, 1, 1,
     ]);
 
-    const result = calculateStreak(calendar);
+    const result = calculateStreak(calendar, 'UTC', new Date('2024-01-28T12:00:00Z'));
 
     expect(result.currentStreak).toBe(7);
     expect(result.longestStreak).toBe(7);
@@ -179,7 +184,7 @@ describe('calculateStreak', () => {
       1, // Streak 2
     ]);
 
-    const result = calculateStreak(calendar);
+    const result = calculateStreak(calendar, 'UTC', new Date('2024-01-28T12:00:00Z'));
 
     expect(result.currentStreak).toBe(9);
     expect(result.longestStreak).toBe(9);
@@ -205,7 +210,7 @@ describe('calculateStreak', () => {
       1, // week 2 — last day is "today"
     ]);
 
-    const result = calculateStreak(calendar);
+    const result = calculateStreak(calendar, 'UTC', new Date('2024-01-14T12:00:00Z'));
 
     expect(result.currentStreak).toBe(9);
     expect(result.longestStreak).toBe(9);
@@ -259,7 +264,7 @@ describe('calculateStreak', () => {
       1, // week 2 — 6-day streak ending today
     ]);
 
-    const result = calculateStreak(calendar);
+    const result = calculateStreak(calendar, 'UTC', new Date('2024-01-14T12:00:00Z'));
 
     expect(result.longestStreak).toBe(7);
     expect(result.currentStreak).toBe(6);
@@ -454,7 +459,7 @@ describe('calculateStreak', () => {
       0, // week 2 — today=0, yesterday=1 (grace period)
     ]);
 
-    const result = calculateStreak(calendar);
+    const result = calculateStreak(calendar, 'UTC', new Date('2024-01-15T12:00:00Z'));
 
     expect(result.currentStreak).toBe(2);
     expect(result.longestStreak).toBe(2);
@@ -481,11 +486,11 @@ describe('calculateStreak', () => {
     ]);
 
     // Using default grace (1)
-    const resultGrace1 = calculateStreak(calendar, 'UTC', undefined, 1);
+    const resultGrace1 = calculateStreak(calendar, 'UTC', new Date('2024-01-15T12:00:00Z'), 1);
     expect(resultGrace1.currentStreak).toBe(0);
 
     // Using grace = 2
-    const resultGrace2 = calculateStreak(calendar, 'UTC', undefined, 2);
+    const resultGrace2 = calculateStreak(calendar, 'UTC', new Date('2024-01-15T12:00:00Z'), 2);
     expect(resultGrace2.currentStreak).toBe(1);
     expect(resultGrace2.longestStreak).toBe(1);
   });
@@ -531,7 +536,7 @@ describe('calculateStreak', () => {
   it('does not walk past the start of a 1-day calendar when grace is larger than the available days', () => {
     const calendar = buildCalendar([1]);
 
-    const result = calculateStreak(calendar, 'UTC', undefined, 7);
+    const result = calculateStreak(calendar, 'UTC', new Date('2024-01-01T12:00:00Z'), 7);
     expect(result.currentStreak).toBe(1);
   });
 
@@ -592,7 +597,7 @@ describe('calculateStreak', () => {
       1, // Week 5 — 5-day active current streak ending on the final day ("today")
     ]);
 
-    const result = calculateStreak(calendar);
+    const result = calculateStreak(calendar, 'UTC', new Date('2024-02-04T12:00:00Z'));
 
     // Assertions (Definition of Done)
     expect(result.longestStreak).toBe(10);
@@ -619,7 +624,7 @@ describe('calculateStreak', () => {
       1, // Week 2: Mon-Fri (0), Sat-Sun (1)
     ]);
 
-    const result = calculateStreak(calendar);
+    const result = calculateStreak(calendar, 'UTC', new Date('2024-01-14T12:00:00Z'));
 
     // The gap from Monday to Friday is 5 days, which far exceeds the
     // default grace period of 1. Therefore, the streak must break every week.
@@ -1040,7 +1045,7 @@ describe('calculateStreak', () => {
       1,
       1, // Week 3 (Ends Wed)
     ]);
-    const result = calculateStreak(calendar);
+    const result = calculateStreak(calendar, 'UTC', new Date('2024-01-17T12:00:00Z'));
     expect(result.currentStreak).toBe(15);
     expect(result.longestStreak).toBe(15);
   });
@@ -1071,7 +1076,7 @@ describe('calculateStreak', () => {
       1,
       1, // Week 3 (Ends Fri)
     ]);
-    const result = calculateStreak(calendar);
+    const result = calculateStreak(calendar, 'UTC', new Date('2024-01-19T12:00:00Z'));
     expect(result.currentStreak).toBe(15);
     expect(result.longestStreak).toBe(15);
   });
@@ -1137,7 +1142,7 @@ describe('calculateStreak', () => {
       1,
       1, // Streak 3 (3 days - ending on last day)
     ]);
-    const result = calculateStreak(calendar);
+    const result = calculateStreak(calendar, 'UTC', new Date('2024-02-22T12:00:00Z'));
     expect(result.longestStreak).toBe(10);
     expect(result.currentStreak).toBe(3);
   });
@@ -1867,11 +1872,18 @@ describe('calculateStreak — empty and sparse year edge cases', () => {
   it('verifies calculateStreak with a 365-day all-contribution calendar', () => {
     const calendar = buildCalendar(Array(365).fill(1));
 
-    const result = calculateStreak(calendar);
+    const result = calculateStreak(calendar, 'UTC', new Date('2024-12-30T12:00:00Z'));
 
     expect(result.currentStreak).toBe(365);
     expect(result.longestStreak).toBe(365);
     expect(result.totalContributions).toBe(365);
+  });
+
+  it('breaks the streak and returns 0 currentStreak if todayIndex is missing and gap > grace (Issue #7422)', () => {
+    const calendar = buildCalendar([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]);
+    const result = calculateStreak(calendar, 'UTC', new Date('2024-01-25T12:00:00Z'), 1);
+    expect(result.currentStreak).toBe(0);
+    expect(result.longestStreak).toBe(14);
   });
 });
 
