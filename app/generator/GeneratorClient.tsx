@@ -84,12 +84,20 @@ export function GeneratorClient() {
           onDescriptionChange={(v) => setState((s) => ({ ...s, description: v }))}
           onTechsChange={(ids) => setState((s) => ({ ...s, selectedTechs: ids }))}
           onSocialsChange={(ids) => setState((s) => ({ ...s, selectedSocials: ids }))}
-          onSocialLinkChange={(id, url) =>
-            setState((s) => ({
-              ...s,
-              socialLinks: { ...s.socialLinks, [id]: url },
-            }))
-          }
+          onSocialLinkChange={(id, url) => {
+            const sanitized = url.trim();
+            if (sanitized && !/^https?:\/\//i.test(sanitized) && !sanitized.startsWith('mailto:')) {
+              setState((s) => ({
+                ...s,
+                socialLinks: { ...s.socialLinks, [id]: 'https://' + sanitized },
+              }));
+            } else {
+              setState((s) => ({
+                ...s,
+                socialLinks: { ...s.socialLinks, [id]: sanitized },
+              }));
+            }
+          }}
           onGithubUsernameChange={(v) => setState((s) => ({ ...s, githubUsername: v }))}
           onShowCommitPulseChange={(v) => setState((s) => ({ ...s, showCommitPulse: v }))}
           onCommitPulseAccentChange={(v) => setState((s) => ({ ...s, commitPulseAccent: v }))}
