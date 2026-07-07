@@ -140,3 +140,5 @@ a.secondary {
     --button-secondary-border: #1a1a1a;
   }
 }
+
+/* fix: test(code-block-responsive-breakpoints): verify Responsive M (#6904) */
