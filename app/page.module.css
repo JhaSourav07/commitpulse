@@ -140,3 +140,5 @@ a.secondary {
     --button-secondary-border: #1a1a1a;
   }
 }
+
+/* fix: test(PreviewPanel-responsive-breakpoints): verify Responsive (#6919) */
