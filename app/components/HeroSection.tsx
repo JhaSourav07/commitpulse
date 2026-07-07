@@ -8,7 +8,8 @@ export function HeroSection() {
     <div
       role="region"
       aria-label="Hero section"
-      className="relative text-center mb-16 overflow-hidden bg-[radial-gradient(circle_at_center,rgba(34,197,94,0.04),transparent_70%)] dark:bg-[radial-gradient(circle_at_center,rgba(34,197,94,0.08),transparent_70%)] transition-colors duration-300"
+      // Added pt-12 for top spacing, updated mb-16 to mb-8
+      className="relative text-center pt-12 mb-8 overflow-hidden bg-[radial-gradient(circle_at_center,rgba(34,197,94,0.04),transparent_70%)] dark:bg-[radial-gradient(circle_at_center,rgba(34,197,94,0.08),transparent_70%)] transition-colors duration-300"
     >
       <div
         aria-hidden="true"
@@ -41,7 +42,7 @@ export function HeroSection() {
         transition={{ duration: 0.6 }}
         className="relative"
       >
-        <h1 className="text-5xl md:text-8xl font-extrabold tracking-tight mb-8 bg-gradient-to-r from-green-500 via-cyan-500 to-purple-600 dark:from-green-400 dark:via-cyan-400 dark:to-purple-500 bg-clip-text text-transparent">
+        <h1 className="text-5xl md:text-8xl font-extrabold tracking-tight mb-4 bg-gradient-to-r from-green-500 via-cyan-500 to-purple-600 dark:from-green-400 dark:via-cyan-400 dark:to-purple-500 bg-clip-text text-transparent">
           Elevate Your <br /> Contribution Story.
         </h1>
       </motion.div>
