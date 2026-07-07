@@ -14,17 +14,20 @@ export default function ScrollRestoration() {
       window.scrollTo(0, parseInt(savedPosition, 10));
     }
 
-    const handleScroll = () => {
-      if (scrollTimeoutRef.current !== null) {
-        window.clearTimeout(scrollTimeoutRef.current);
-      }
+const handleScroll = () => {
+  if (scrollTimeoutRef.current !== null) {
+    return;
+  }
 
-      scrollTimeoutRef.current = window.setTimeout(() => {
-        sessionStorage.setItem(`scroll-position-${pathname}`, window.scrollY.toString());
+  sessionStorage.setItem(
+    `scroll-position-${pathname}`,
+    window.scrollY.toString()
+  );
 
-        scrollTimeoutRef.current = null;
-      }, 100);
-    };
+  scrollTimeoutRef.current = window.setTimeout(() => {
+    scrollTimeoutRef.current = null;
+  }, 100);
+};
 
     window.addEventListener('scroll', handleScroll);
 
