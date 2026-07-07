@@ -1,14 +1,16 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import type { PRInsightData } from '@/services/github/pr-insights';
+import { useTranslation } from '@/context/TranslationContext';
 
 export default function RepoPerformanceTable({ data }: { data: PRInsightData }) {
+  const { t } = useTranslation();
   const { repoPerformance } = data;
 
   if (!repoPerformance || repoPerformance.length === 0) {
     return (
       <div className="bg-white dark:bg-zinc-900/50 border border-black/10 dark:border-white/10 rounded-3xl p-6 flex flex-col items-center justify-center text-gray-500">
-        <p>No repository data available.</p>
+        <p>{t('dashboard.prInsights.no_repos')}</p>
       </div>
     );
   }
@@ -21,20 +23,28 @@ export default function RepoPerformanceTable({ data }: { data: PRInsightData }) 
       className="bg-white dark:bg-zinc-900/50 border border-black/10 dark:border-white/10 rounded-3xl p-6 flex flex-col overflow-hidden"
     >
       <div className="mb-6">
-        <h2 className="text-xl font-bold text-gray-900 dark:text-white">Repository Performance</h2>
-        <p className="text-sm text-gray-500">PR metrics by repository</p>
+        <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+          {t('dashboard.prInsights.repo_title')}
+        </h2>
+        <p className="text-sm text-gray-500">{t('dashboard.prInsights.repo_subtitle')}</p>
       </div>
 
       <div className="flex-1 overflow-auto pr-2">
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="border-b border-gray-200 dark:border-zinc-800 text-sm font-semibold text-gray-500">
-              <th className="pb-3 pr-4 font-medium uppercase tracking-wider">Repository</th>
-              <th className="pb-3 px-4 font-medium uppercase tracking-wider text-right">PRs</th>
-              <th className="pb-3 px-4 font-medium uppercase tracking-wider text-right">
-                Merge Rate
+              <th className="pb-3 pr-4 font-medium uppercase tracking-wider">
+                {t('dashboard.prInsights.repo_header')}
               </th>
-              <th className="pb-3 pl-4 font-medium uppercase tracking-wider text-right">Reviews</th>
+              <th className="pb-3 px-4 font-medium uppercase tracking-wider text-right">
+                {t('dashboard.prInsights.prs_header')}
+              </th>
+              <th className="pb-3 px-4 font-medium uppercase tracking-wider text-right">
+                {t('dashboard.prInsights.merge_rate_header')}
+              </th>
+              <th className="pb-3 pl-4 font-medium uppercase tracking-wider text-right">
+                {t('dashboard.prInsights.reviews_header')}
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100 dark:divide-zinc-800/50">

@@ -91,9 +91,12 @@ describe('streakParamsSchema', () => {
     expect(result.success).toBe(false);
   });
 
-  it('fails for invalid bg hex color', () => {
+  it('strips an invalid hex color like "zzzzzz" for bg and falls back gracefully', () => {
     const result = streakParamsSchema.safeParse({ user: 'octocat', bg: 'zzzzzz' });
-    expect(result.success).toBe(false);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.bg).toBeUndefined();
+    }
   });
 
   it('clamps grace to 7 when out of range (> 7)', () => {

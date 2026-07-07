@@ -2,11 +2,15 @@
 
 import { ImageResponse } from 'next/og';
 import { NextRequest } from 'next/server';
-import { ogParamsSchema } from '@/lib/validations';
+import { ogParamsSchema, coerceQueryParams } from '@/lib/validations';
 import { themes } from '@/lib/svg/themes';
 import { fetchGitHubContributions } from '@/lib/github';
 import { calculateStreak } from '@/lib/calculate';
+import { logger } from '@/lib/logger';
+import { getClientIp } from '@/utils/getClientIp';
+import { getRateLimitHeaders, RateLimiter } from '@/lib/rate-limit';
 
+const ogRateLimiter = new RateLimiter(30, 60_000, 1);
 const appUrl =
   process.env.NEXT_PUBLIC_SITE_URL ||
   (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://commitpulse.vercel.app');
@@ -35,9 +39,25 @@ function getLuminance(hex: string) {
 }
 
 export async function GET(req: NextRequest) {
+  const ip = getClientIp(req);
+  const rateLimitKey =
+    ip && ip !== 'unknown' ? ip : `unknown:${req.headers.get('user-agent') ?? 'no-agent'}`;
+
+  const ogRateLimitResult = await ogRateLimiter.checkWithResult(rateLimitKey);
+  if (!ogRateLimitResult.success) {
+    return new Response(JSON.stringify({ error: 'Too many requests. Please try again later.' }), {
+      status: 429,
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-store',
+        ...getRateLimitHeaders(ogRateLimitResult),
+      },
+    });
+  }
+
   const { searchParams } = new URL(req.url);
 
-  const parseResult = ogParamsSchema.safeParse(Object.fromEntries(searchParams.entries()));
+  const parseResult = ogParamsSchema.safeParse(coerceQueryParams(searchParams));
 
   if (!parseResult.success) {
     return new Response(
@@ -99,7 +119,11 @@ export async function GET(req: NextRequest) {
     longestStreak = stats.longestStreak;
     currentStreak = stats.currentStreak;
   } catch (err) {
-    console.error('[OG] stats fetch failed:', err);
+    logger.error('Stats fetch failed', {
+      source: 'OG',
+      error: err,
+    });
+    // fallback to zeros if GitHub is unreachable
   }
 
   const cacheControl = isRefreshRequested

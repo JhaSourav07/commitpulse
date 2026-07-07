@@ -52,7 +52,27 @@ const themes = [
   },
 ];
 
+function getPercentile(times: number[], percentile: number): number {
+  if (times.length === 0) return 0;
+  const sorted = [...times].sort((a, b) => a - b);
+  const index = (percentile / 100) * (sorted.length - 1);
+  const lower = Math.floor(index);
+  const upper = Math.ceil(index);
+  const weight = index - lower;
+  return sorted[lower] * (1 - weight) + sorted[upper] * weight;
+}
+
 function benchmark(): void {
+  let iterations = 20;
+  const iterationsArg = process.argv.find((arg) => arg.startsWith('--iterations='));
+  if (iterationsArg) {
+    const valStr = iterationsArg.split('=')[1];
+    const num = Number(valStr);
+    if (Number.isInteger(num) && num > 0) {
+      iterations = num;
+    }
+  }
+
   console.log('\nSVG Benchmark Results\n');
 
   for (const theme of themes) {
@@ -70,7 +90,7 @@ function benchmark(): void {
       calendar
     );
 
-    for (let i = 0; i < 20; i++) {
+    for (let i = 0; i < iterations; i++) {
       const start = performance.now();
 
       generateSVG(
@@ -90,12 +110,18 @@ function benchmark(): void {
     }
 
     const avg = times.reduce((a, b) => a + b, 0) / times.length;
+    const p50 = getPercentile(times, 50);
+    const p95 = getPercentile(times, 95);
+    const p99 = getPercentile(times, 99);
 
     const min = Math.min(...times);
     const max = Math.max(...times);
 
     console.log(`Theme: ${theme.name}`);
     console.log(`Average: ${avg.toFixed(2)}ms`);
+    console.log(`P50: ${p50.toFixed(2)}ms`);
+    console.log(`P95: ${p95.toFixed(2)}ms`);
+    console.log(`P99: ${p99.toFixed(2)}ms`);
     console.log(`Min: ${min.toFixed(2)}ms`);
     console.log(`Max: ${max.toFixed(2)}ms`);
     console.log('--------------------------');

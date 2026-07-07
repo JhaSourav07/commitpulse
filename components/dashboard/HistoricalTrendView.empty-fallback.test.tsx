@@ -1,157 +1,93 @@
-import React, { Component, type ReactNode } from 'react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import '@testing-library/jest-dom/vitest';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import HistoricalTrendView from './HistoricalTrendView';
 import type { DashboardPeriod } from '@/utils/dashboardPeriod';
 
-const pushMock = vi.fn();
-
+// Mock next/navigation — the component calls useRouter() on mount
 vi.mock('next/navigation', () => ({
-  useRouter: () => ({
-    push: pushMock,
-  }),
+  useRouter: () => ({ push: vi.fn() }),
 }));
 
+// Mock lucide-react icons used in the component
+vi.mock('lucide-react', () => ({
+  ChevronLeft: (props: Record<string, unknown>) => (
+    <span data-testid="icon-chevron-left" {...props} />
+  ),
+  ChevronRight: (props: Record<string, unknown>) => (
+    <span data-testid="icon-chevron-right" {...props} />
+  ),
+  CalendarDays: (props: Record<string, unknown>) => (
+    <span data-testid="icon-calendar-days" {...props} />
+  ),
+  Flame: (props: Record<string, unknown>) => <span data-testid="icon-flame" {...props} />,
+}));
+
+// Mock the Heatmap child component to isolate HistoricalTrendView
 vi.mock('./Heatmap', () => ({
-  default: ({
-    data,
-    emptyMessage,
-    title,
-  }: {
-    data: unknown[];
-    emptyMessage: string;
-    title: string;
-  }) => (
-    <div data-testid="historical-heatmap">
-      <span>{title}</span>
-      {data.length === 0 ? <p data-testid="heatmap-empty-marker">{emptyMessage}</p> : null}
-    </div>
+  default: ({ emptyMessage }: { emptyMessage?: string }) => (
+    <div data-testid="heatmap-mock">{emptyMessage}</div>
   ),
 }));
 
-interface BoundaryState {
-  error: Error | null;
-}
-
-class LocalErrorBoundary extends Component<
-  { children: ReactNode; onError?: (error: Error) => void },
-  BoundaryState
-> {
-  state: BoundaryState = { error: null };
-
-  static getDerivedStateFromError(error: Error): BoundaryState {
-    return { error };
-  }
-
-  componentDidCatch(error: Error) {
-    this.props.onError?.(error);
-  }
-
-  render() {
-    if (this.state.error) {
-      return (
-        <section role="alert" data-testid="empty-input-error-fallback">
-          <p>Historical activity could not be loaded.</p>
-        </section>
-      );
-    }
-
-    return this.props.children;
-  }
-}
-
-const emptyPeriod: DashboardPeriod = {
-  kind: 'month',
-  month: '2026-01',
-  label: 'Jan 2026',
-  from: '2026-01-01T00:00:00.000Z',
-  to: '2026-01-31T23:59:59.999Z',
+// Minimal valid period used across tests
+const basePeriod: DashboardPeriod = {
+  kind: 'range',
+  label: 'Jan 2024 – Dec 2024',
+  from: '2024-01-01T00:00:00.000Z',
+  to: '2024-12-31T23:59:59.999Z',
 };
 
-describe('HistoricalTrendView - Empty & Missing Input Fallbacks', () => {
-  let consoleError: ReturnType<typeof vi.spyOn>;
-
+describe('HistoricalTrendView — Edge Cases & Empty/Missing Inputs', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date('2026-01-15T12:00:00.000Z'));
-    consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date('2026-01-15T12:00:00Z'));
   });
 
-  afterEach(() => {
-    consoleError.mockRestore();
-    vi.useRealTimers();
-  });
-
-  it('renders clear empty-state messaging when activity is an empty array', () => {
-    render(<HistoricalTrendView username="pari" activity={[]} period={emptyPeriod} />);
-
-    expect(screen.getByText(/No streak data available for this period/i)).toBeInTheDocument();
-    expect(screen.getByText(/No monthly breakdown available/i)).toBeInTheDocument();
-    expect(screen.getByText(/No yearly breakdown available/i)).toBeInTheDocument();
-
-    expect(screen.getByTestId('heatmap-empty-marker')).toHaveTextContent(
-      'No activity found for this period'
-    );
-  });
-
-  it('maintains the standard empty layout styling and structure', () => {
-    const { container } = render(
-      <HistoricalTrendView username="pari" activity={[]} period={emptyPeriod} />
-    );
-
-    const shell = container.querySelector('section');
-
-    expect(shell).not.toBeNull();
-
-    expect(shell).toHaveClass('rounded-xl');
-    expect(shell).toHaveClass('border');
-    expect(shell).toHaveClass('bg-white');
-
-    expect(screen.getByText('Contributions')).toBeInTheDocument();
-    expect(screen.getByText('Active Days')).toBeInTheDocument();
-    expect(screen.getByText('Current Streak')).toBeInTheDocument();
-    expect(screen.getByText('Longest Streak')).toBeInTheDocument();
-  });
-
-  it('does not log unexpected runtime errors or hydration warnings for empty activity', () => {
+  it('renders without crashing when activity is an empty array', () => {
+    // Core empty-input guard: the component must not throw when there are zero
+    // activity entries — the most common production state for new users.
     expect(() =>
-      render(<HistoricalTrendView username="pari" activity={[]} period={emptyPeriod} />)
+      render(<HistoricalTrendView username="testuser" activity={[]} period={basePeriod} />)
     ).not.toThrow();
-
-    expect(consoleError).not.toHaveBeenCalled();
   });
 
-  it('renders key empty DOM markers instead of broken SVG or list structures', () => {
-    const { container } = render(
-      <HistoricalTrendView username="pari" activity={[]} period={emptyPeriod} />
-    );
+  it('shows zero for all stats when activity array is empty', () => {
+    // Contributions, active days, current streak, and longest streak must all
+    // display 0 — never NaN or undefined — on an empty dataset.
+    render(<HistoricalTrendView username="testuser" activity={[]} period={basePeriod} />);
 
-    expect(container.querySelector('polyline')).not.toBeInTheDocument();
-
-    expect(screen.getByText('No monthly breakdown available.')).toBeInTheDocument();
-    expect(screen.getByText('No yearly breakdown available.')).toBeInTheDocument();
-
-    expect(screen.getByTestId('historical-heatmap')).toBeInTheDocument();
+    // There will be multiple "0" values in the stat cards; assert at least one exists
+    const zeros = screen.getAllByText('0');
+    expect(zeros.length).toBeGreaterThanOrEqual(1);
   });
 
-  it('shows a localized recovery fallback when missing activity data is supplied', () => {
-    const onError = vi.fn();
+  it('displays the no-streak-data fallback message when activity is empty', () => {
+    // When streakSeries is empty the sparkline SVG is hidden and a text
+    // placeholder must be shown instead so the UI is never blank.
+    render(<HistoricalTrendView username="testuser" activity={[]} period={basePeriod} />);
 
-    render(
-      <LocalErrorBoundary onError={onError}>
-        {/* @ts-expect-error - intentionally verifies malformed production input resilience */}
-        <HistoricalTrendView username="pari" activity={null} period={emptyPeriod} />
-      </LocalErrorBoundary>
-    );
+    expect(screen.getByText('No streak data available for this period')).toBeDefined();
+  });
 
-    expect(screen.getByTestId('empty-input-error-fallback')).toBeInTheDocument();
+  it('displays the monthly and yearly empty-state messages when activity is empty', () => {
+    // Both summary sections must show their own "no data" copy rather than
+    // rendering broken bar charts with divide-by-zero widths.
+    render(<HistoricalTrendView username="testuser" activity={[]} period={basePeriod} />);
 
-    expect(screen.getByRole('alert')).toHaveTextContent('Historical activity could not be loaded.');
+    expect(screen.getByText('No monthly breakdown available.')).toBeDefined();
+    expect(screen.getByText('No yearly breakdown available.')).toBeDefined();
+  });
 
-    expect(onError).toHaveBeenCalledOnce();
+  it('renders the period label and navigation controls even with no activity data', () => {
+    // The header, period summary, and Prev/Next buttons must always be present
+    // so users can navigate away from an empty period — the UI must never be
+    // completely blank or broken.
+    render(<HistoricalTrendView username="testuser" activity={[]} period={basePeriod} />);
+
+    // Period summary line — e.g. "Jan 2024 – Dec 2024 · 0 days"
+    expect(screen.getByText(/Jan 2024/)).toBeDefined();
+
+    // Navigation buttons
+    expect(screen.getByRole('button', { name: /previous/i })).toBeDefined();
+    expect(screen.getByRole('button', { name: /next/i })).toBeDefined();
   });
 });

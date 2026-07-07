@@ -33,15 +33,20 @@ vi.mock('@/components/dashboard/ActivityLandscape', () => ({
   default: () => <div data-testid="activity-landscape">ActivityLandscape</div>,
 }));
 
-type StatsCardProps = {
-  title: string;
-  value: string | number;
+type ContributionInsightsPanelProps = {
+  stats: {
+    currentStreak: number;
+    peakStreak: number;
+    totalContributions: number;
+  };
 };
 
-vi.mock('@/components/dashboard/StatsCard', () => ({
-  default: ({ title, value }: StatsCardProps) => (
-    <div data-testid="stats-card">
-      {title}: {value}
+vi.mock('@/components/dashboard/ContributionInsightsPanel', () => ({
+  default: ({ stats }: ContributionInsightsPanelProps) => (
+    <div data-testid="contribution-insights-panel">
+      <div>Current Streak: {stats.currentStreak}</div>
+      <div>Peak Streak: {stats.peakStreak}</div>
+      <div>Contributions: {stats.totalContributions}</div>
     </div>
   ),
 }));
@@ -147,6 +152,7 @@ describe('DashboardPage', () => {
     popularRepos: [],
     pinnedRepos: [],
     starredRepos: [],
+    deployments: [],
     hallOfFame: [],
   };
 
@@ -208,10 +214,12 @@ describe('DashboardPage', () => {
 
   describe('DashboardPage rendering', () => {
     it('renders the dashboard components with the fetched data', async () => {
-      const PageContent = await DashboardPage({
+      const SuspenseTree = await DashboardPage({
         params: Promise.resolve({ username: 'octocat' }),
         searchParams: Promise.resolve({}),
       });
+      const DashboardContent = SuspenseTree.props.children.type;
+      const PageContent = await DashboardContent(SuspenseTree.props.children.props);
 
       render(PageContent);
 
@@ -235,17 +243,19 @@ describe('DashboardPage', () => {
       expect(screen.getByTestId('historical-trend-view')).toBeDefined();
       expect(screen.getByTestId('ai-insights')).toBeDefined();
       expect(screen.getByTestId('achievements')).toBeDefined();
-      expect(screen.getAllByTestId('stats-card')).toHaveLength(3);
+      expect(screen.getByTestId('contribution-insights-panel')).toBeDefined();
       expect(screen.getByText('Current Streak: 5')).toBeDefined();
       expect(screen.getByText('Peak Streak: 15')).toBeDefined();
       expect(screen.getByText('Contributions: 500')).toBeDefined();
     });
 
     it('calls getFullDashboardData with bypassCache: true when refresh param is set', async () => {
-      const PageContent = await DashboardPage({
+      const SuspenseTree = await DashboardPage({
         params: Promise.resolve({ username: 'octocat' }),
         searchParams: Promise.resolve({ refresh: 'true' }),
       });
+      const DashboardContent = SuspenseTree.props.children.type;
+      const PageContent = await DashboardContent(SuspenseTree.props.children.props);
 
       render(PageContent);
 
@@ -261,10 +271,12 @@ describe('DashboardPage', () => {
     });
 
     it('passes a calendar-year query through to getFullDashboardData', async () => {
-      const PageContent = await DashboardPage({
+      const SuspenseTree = await DashboardPage({
         params: Promise.resolve({ username: 'octocat' }),
         searchParams: Promise.resolve({ year: '2024' }),
       });
+      const DashboardContent = SuspenseTree.props.children.type;
+      const PageContent = await DashboardContent(SuspenseTree.props.children.props);
 
       render(PageContent);
 
@@ -280,10 +292,12 @@ describe('DashboardPage', () => {
     });
 
     it('passes the correct activity data to the historical trend view', async () => {
-      const PageContent = await DashboardPage({
+      const SuspenseTree = await DashboardPage({
         params: Promise.resolve({ username: 'octocat' }),
         searchParams: Promise.resolve({}),
       });
+      const DashboardContent = SuspenseTree.props.children.type;
+      const PageContent = await DashboardContent(SuspenseTree.props.children.props);
 
       render(PageContent);
 
@@ -294,10 +308,12 @@ describe('DashboardPage', () => {
     it('calls notFound when dashboard data fetch throws an error', async () => {
       vi.mocked(getFullDashboardData).mockRejectedValueOnce(new Error('User not found'));
 
-      await DashboardPage({
+      const SuspenseTree = await DashboardPage({
         params: Promise.resolve({ username: 'missing-user' }),
         searchParams: Promise.resolve({}),
       });
+      const DashboardContent = SuspenseTree.props.children.type;
+      await DashboardContent(SuspenseTree.props.children.props);
 
       expect(mockNotFound).toHaveBeenCalledOnce();
     });

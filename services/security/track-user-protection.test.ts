@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { TrackUserProtection, trackUserProtection } from './track-user-protection';
 import { gitHubUserValidator } from '../github/validate-user';
 
@@ -135,11 +135,101 @@ describe('TrackUserProtection', () => {
     });
   });
 
+  describe('Cooldown expiration', () => {
+    it('allows writes again after the cooldown period expires', () => {
+      vi.useFakeTimers();
+
+      try {
+        trackUserProtection.recordWrite('octocat');
+
+        expect(trackUserProtection.isWriteAllowed('octocat')).toBe(false);
+
+        vi.advanceTimersByTime(5 * 60 * 1000 - 1);
+
+        expect(trackUserProtection.isWriteAllowed('octocat')).toBe(false);
+
+        vi.advanceTimersByTime(1);
+
+        expect(trackUserProtection.isWriteAllowed('octocat')).toBe(true);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+  });
+
   describe('Singleton instance', () => {
     it('returns the same instance across multiple getInstance() calls', () => {
       const instanceA = TrackUserProtection.getInstance();
       const instanceB = TrackUserProtection.getInstance();
       expect(instanceA).toBe(instanceB);
     });
+  });
+
+  describe('Cooldown expiration via fake timers', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('blocks writes initially but allows them after cooldown expires naturally', () => {
+      const username = 'octocat';
+      trackUserProtection.recordWrite(username);
+      expect(trackUserProtection.isWriteAllowed(username)).toBe(false);
+
+      // Cooldown is 5 minutes (300,000 ms).
+      // Advance by 4 minutes and 59 seconds (299,000 ms)
+      vi.advanceTimersByTime(5 * 60 * 1000 - 1000);
+      expect(trackUserProtection.isWriteAllowed(username)).toBe(false);
+
+      // Advance past the 5 minute mark
+      vi.advanceTimersByTime(2000);
+      expect(trackUserProtection.isWriteAllowed(username)).toBe(true);
+    });
+  });
+});
+describe('Username normalization', () => {
+  beforeEach(() => {
+    trackUserProtection.reset();
+    vi.clearAllMocks();
+    vi.mocked(gitHubUserValidator.validateUser).mockResolvedValue(true);
+  });
+
+  it('treats usernames with different casing as the same user', () => {
+    trackUserProtection.recordWrite('OctoCat');
+
+    expect(trackUserProtection.isWriteAllowed('octocat')).toBe(false);
+    expect(trackUserProtection.isWriteAllowed('OCTOCAT')).toBe(false);
+    expect(trackUserProtection.isWriteAllowed('OctoCat')).toBe(false);
+  });
+
+  it('ignores leading and trailing whitespace', () => {
+    trackUserProtection.recordWrite('  octocat  ');
+
+    expect(trackUserProtection.isWriteAllowed('octocat')).toBe(false);
+    expect(trackUserProtection.isWriteAllowed('  octocat')).toBe(false);
+    expect(trackUserProtection.isWriteAllowed('octocat   ')).toBe(false);
+  });
+
+  it('normalizes usernames consistently across public APIs', async () => {
+    trackUserProtection.recordWrite('  OctoCat  ');
+
+    expect(trackUserProtection.isWriteAllowed('octocat')).toBe(false);
+
+    const result = await trackUserProtection.verifyAndDeduplicate(' OCTOCAT ');
+
+    expect(result.allowed).toBe(false);
+    expect(result.reason).toBe('COOLDOWN_ACTIVE');
+  });
+
+  it('stores equivalent usernames as a single normalized entry', () => {
+    trackUserProtection.recordWrite('OctoCat');
+    trackUserProtection.recordWrite(' octocat ');
+    trackUserProtection.recordWrite('OCTOCAT');
+
+    expect(trackUserProtection.isWriteAllowed('octocat')).toBe(false);
+    expect(trackUserProtection.isWriteAllowed('OctoCat')).toBe(false);
   });
 });

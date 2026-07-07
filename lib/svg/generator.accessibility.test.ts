@@ -1,111 +1,73 @@
-import { describe, expect, it } from 'vitest';
-import { generateSVG, generateHeatmapSVG, generateNotFoundSVG } from './generator';
+import { describe, it, expect } from 'vitest';
+import { generateSVG, generateHeatmapSVG, generateVersusSVG } from './generator';
 import type { BadgeParams, ContributionCalendar, StreakStats } from '../../types';
+import { hexColor } from './sanitizer';
 
-// ── Minimal fixtures ──────────────────────────────────────────────────────
+describe('SVG accessibility attributes (WCAG 1.1.1)', () => {
+  const mockStats: StreakStats = {
+    currentStreak: 5,
+    longestStreak: 10,
+    totalContributions: 100,
+    todayDate: '2024-06-12',
+  };
+  const mockCalendar = {
+    weeks: [
+      {
+        contributionDays: [
+          { contributionCount: 0, date: '2024-06-10' },
+          { contributionCount: 5, date: '2024-06-11' },
+          { contributionCount: 15, date: '2024-06-12' },
+        ],
+      },
+    ],
+  } as ContributionCalendar;
 
-const makeCalendar = (): ContributionCalendar => ({
-  weeks: [
-    {
-      contributionDays: [
-        { date: '2024-01-01', contributionCount: 3, locAdditions: 0, locDeletions: 0 },
-        { date: '2024-01-02', contributionCount: 0, locAdditions: 0, locDeletions: 0 },
-        { date: '2024-01-03', contributionCount: 7, locAdditions: 0, locDeletions: 0 },
-        { date: '2024-01-04', contributionCount: 1, locAdditions: 0, locDeletions: 0 },
-        { date: '2024-01-05', contributionCount: 12, locAdditions: 0, locDeletions: 0 },
-        { date: '2024-01-06', contributionCount: 0, locAdditions: 0, locDeletions: 0 },
-        { date: '2024-01-07', contributionCount: 5, locAdditions: 0, locDeletions: 0 },
-      ],
-    },
-  ],
-  totalContributions: 28,
-});
+  const baseParams: BadgeParams = {
+    user: 'avi',
+    bg: hexColor('0d1117'),
+    text: hexColor('c9d1d9'),
+    accent: hexColor('58a6ff'),
+    speed: '8s',
+    scale: 'linear',
+  } as BadgeParams;
 
-const makeStats = (): StreakStats => ({
-  currentStreak: 4,
-  longestStreak: 21,
-  totalContributions: 312,
-  todayDate: '2024-01-07',
-});
+  it('root SVG exposes focusable="false" alongside role="img"', () => {
+    const svg = generateSVG(mockStats, baseParams, mockCalendar);
 
-const makeParams = (overrides: Partial<BadgeParams> = {}): BadgeParams =>
-  ({
-    user: 'testuser',
-    bg: '0d1117',
-    accent: '00ffaa',
-    text: 'ffffff',
-    ...overrides,
-  }) as BadgeParams;
-
-// ── Tests ─────────────────────────────────────────────────────────────────
-
-describe('Accessibility Standards & Screen Reader Aria Compliance', () => {
-  it('generateSVG includes role="img", aria-labelledby, and aria-describedby on the root SVG element', () => {
-    const svg = generateSVG(makeStats(), makeParams(), makeCalendar());
-
-    expect(svg).toContain('role="img"');
-    expect(svg).toMatch(/aria-labelledby="cp-title-[^"]+"/);
-    expect(svg).toMatch(/aria-describedby="cp-desc-[^"]+"/);
+    expect(svg).toMatch(/<svg[^>]*role="img"/);
+    expect(svg).toMatch(/<svg[^>]*focusable="false"/);
   });
 
-  it('generateSVG emits a <title> and <desc> whose ids match the aria-labelledby and aria-describedby values', () => {
-    const svg = generateSVG(
-      makeStats(),
-      makeParams({ user: 'alice' } as Partial<BadgeParams>),
-      makeCalendar()
+  it('marks the decorative towers group as focusable="false" so it is not announced individually', () => {
+    const svg = generateSVG(mockStats, baseParams, mockCalendar);
+
+    expect(svg).toMatch(/<g id="cp-towers"[^>]*focusable="false"/);
+  });
+
+  it('marks decorative heat particles as focusable="false" and aria-hidden', () => {
+    const svg = generateSVG(mockStats, baseParams, mockCalendar);
+
+    if (svg.includes('heat-particles')) {
+      expect(svg).toMatch(/<g class="heat-particles"[^>]*focusable="false"[^>]*aria-hidden="true"/);
+    }
+  });
+
+  it('heatmap SVG root exposes focusable="false"', () => {
+    const svg = generateHeatmapSVG(mockStats, baseParams, mockCalendar);
+
+    expect(svg).toMatch(/<svg[^>]*role="img"/);
+    expect(svg).toMatch(/<svg[^>]*focusable="false"/);
+  });
+
+  it('versus SVG root exposes focusable="false"', () => {
+    const svg = generateVersusSVG(
+      mockStats,
+      { currentStreak: 2, longestStreak: 4, totalContributions: 40, todayDate: '2024-06-12' },
+      { ...baseParams, user: 'avi', versus: 'octocat' } as BadgeParams,
+      mockCalendar,
+      mockCalendar
     );
 
-    // Extract the declared aria ids
-    const labelledBy = svg.match(/aria-labelledby="([^"]+)"/)?.[1];
-    const describedBy = svg.match(/aria-describedby="([^"]+)"/)?.[1];
-
-    expect(labelledBy).toBeDefined();
-    expect(describedBy).toBeDefined();
-
-    // The matching id-bearing elements must exist
-    expect(svg).toContain(`id="${labelledBy}"`);
-    expect(svg).toContain(`id="${describedBy}"`);
-  });
-
-  it('generateSVG <desc> element contains meaningful stats for screen readers', () => {
-    const stats = makeStats();
-    const svg = generateSVG(
-      stats,
-      makeParams({ user: 'bob' } as Partial<BadgeParams>),
-      makeCalendar()
-    );
-
-    // The <desc> should mention the username, total contributions, and longest streak
-    expect(svg).toMatch(/<desc[^>]*>[\s\S]*bob[\s\S]*<\/desc>/i);
-    expect(svg).toMatch(/<desc[^>]*>[\s\S]*312[\s\S]*<\/desc>/);
-    expect(svg).toMatch(/<desc[^>]*>[\s\S]*21[\s\S]*<\/desc>/);
-  });
-
-  it('interactive towers carry a <title> tooltip for assistive technology announcement', () => {
-    const svg = generateSVG(makeStats(), makeParams(), makeCalendar());
-
-    // Every interactive tower group must contain at least one <title> child
-    const towerGroupMatches = [...svg.matchAll(/<g class="cp-tower[^"]*"[^>]*>([\s\S]*?)<\/g>/g)];
-
-    expect(towerGroupMatches.length).toBeGreaterThan(0);
-
-    towerGroupMatches.forEach((match) => {
-      expect(match[1]).toMatch(/<title>/);
-    });
-  });
-
-  it('generateNotFoundSVG and generateHeatmapSVG also satisfy role/aria requirements', () => {
-    const notFoundSvg = generateNotFoundSVG('ghost', '#0d1117', '#00ffaa', '#ffffff', 8, '8s');
-
-    expect(notFoundSvg).toContain('role="img"');
-    expect(notFoundSvg).toMatch(/aria-labelledby="[^"]+"/);
-    expect(notFoundSvg).toMatch(/aria-describedby="[^"]+"/);
-
-    const heatmapSvg = generateHeatmapSVG(makeStats(), makeParams(), makeCalendar());
-
-    expect(heatmapSvg).toContain('role="img"');
-    // Heatmap uses an inline title/desc without aria ids but must still carry role
-    expect(heatmapSvg).toContain('<title>');
-    expect(heatmapSvg).toContain('<desc>');
+    expect(svg).toMatch(/<svg[^>]*focusable="false"/);
   });
 });

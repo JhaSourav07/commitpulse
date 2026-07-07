@@ -13,7 +13,7 @@ global.IntersectionObserver = class IntersectionObserver {
   unobserve = vi.fn();
   disconnect = vi.fn();
   takeRecords = vi.fn(() => []);
-  constructor(callback: IntersectionObserverCallback, options?: IntersectionObserverInit) {}
+  constructor() {}
 } as unknown as typeof IntersectionObserver;
 
 // Mock the useRouter and useSearchParams hooks from Next.js navigation
@@ -22,7 +22,7 @@ vi.mock('next/navigation', () => ({
     replace: vi.fn(),
   }),
   useSearchParams: () => ({
-    get: vi.fn((key: string) => null),
+    get: vi.fn(() => null),
     entries: vi.fn(() => []),
   }),
 }));
@@ -140,7 +140,9 @@ describe('DashboardClient - Massive Data Sets and Extreme High Bounds Scaling', 
   // Test Case 3: SVG Coordinate Scaling Integrity
   it('should scale mock chart attributes correctly without generating invalid NaN parameters', () => {
     const edgeCaseData = generateMassiveMockData(100);
-    edgeCaseData.commitClock = edgeCaseData.commitClock.map((d) => ({ ...d, commits: 0 }));
+    edgeCaseData.commitClock = edgeCaseData.commitClock.map(
+      (d: { day: string; commits: number }) => ({ ...d, commits: 0 })
+    );
 
     render(<DashboardClient initialData={edgeCaseData} username="testuser" period={mockPeriod} />);
 
@@ -184,5 +186,98 @@ describe('DashboardClient - Massive Data Sets and Extreme High Bounds Scaling', 
 
     // FIXED: Asserting against the registered interactive layout button shown in the DOM
     expect(screen.getByText(/Compare Profile/i)).toBeInTheDocument();
+  });
+
+  // Test Case 6: Empty Activity Boundary
+  it('should render without runtime errors when activity array is completely empty', () => {
+    const emptyActivityData = generateMassiveMockData(0);
+
+    expect(() => {
+      render(
+        <DashboardClient initialData={emptyActivityData} username="testuser" period={mockPeriod} />
+      );
+    }).not.toThrow();
+
+    // Dashboard root must still be present even with zero activity entries
+    expect(screen.getByTestId('mock-activity-landscape')).toBeInTheDocument();
+  });
+
+  // Test Case 7: Extreme Graph Node Scaling
+  it('should handle 500 graph nodes and 499 links without producing invalid SVG coordinates', () => {
+    const largeGraphData = generateMassiveMockData(10);
+    largeGraphData.graphData = {
+      nodes: Array.from({ length: 500 }, (_, i) => ({
+        id: `node-${i}`,
+        name: `Node ${i}`,
+        type: 'Repo',
+        val: i + 1,
+        color: '#ffffff',
+      })),
+      links: Array.from({ length: 499 }, (_, i) => ({
+        source: `node-${i}`,
+        target: `node-${i + 1}`,
+      })),
+    };
+
+    render(
+      <DashboardClient initialData={largeGraphData} username="testuser" period={mockPeriod} />
+    );
+
+    // SVG heatmap must not produce NaN coordinates under large graph input
+    const svgElements = screen.queryAllByTestId('mock-svg-heatmap');
+    svgElements.forEach((svg) => {
+      expect(svg.getAttribute('viewBox')).not.toContain('NaN');
+    });
+  });
+
+  // Test Case 8: Extreme Profile Statistics
+  it('should render without crash when profile stats carry extreme high bounds values', () => {
+    const extremeProfileData = generateMassiveMockData(10);
+    extremeProfileData.profile.stats = {
+      repositories: 999999,
+      followers: 9999999,
+      following: 999999,
+      stars: 99999999,
+    };
+    extremeProfileData.stats = {
+      ...extremeProfileData.stats,
+      totalContributions: 999999999,
+      currentStreak: 9999,
+      peakStreak: 9999,
+    };
+
+    expect(() => {
+      render(
+        <DashboardClient initialData={extremeProfileData} username="testuser" period={mockPeriod} />
+      );
+    }).not.toThrow();
+
+    expect(screen.getByTestId('mock-activity-landscape')).toBeInTheDocument();
+  });
+
+  // Test Case 9: Sequential Re-render Stability Under Growing Dataset
+  it('should remain stable across 5 sequential re-renders with progressively larger datasets', () => {
+    const { rerender } = render(
+      <DashboardClient
+        initialData={generateMassiveMockData(100)}
+        username="testuser"
+        period={mockPeriod}
+      />
+    );
+
+    [500, 1000, 2000, 5000, 10000].forEach((count) => {
+      expect(() => {
+        rerender(
+          <DashboardClient
+            initialData={generateMassiveMockData(count)}
+            username="testuser"
+            period={mockPeriod}
+          />
+        );
+      }).not.toThrow();
+    });
+
+    // Final render must still have the dashboard root intact
+    expect(screen.getByTestId('mock-activity-landscape')).toBeInTheDocument();
   });
 });

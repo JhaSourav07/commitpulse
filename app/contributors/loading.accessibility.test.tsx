@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import Loading from './loading';
+import { LOADING_ROOT_CLASSES } from './loadingClasses';
 
 function hasClasses(element: Element | null, classes: string[]) {
   expect(element).not.toBeNull();
@@ -17,15 +18,14 @@ describe('Contributors loading accessibility', () => {
     const status = screen.getByRole('status');
 
     expect(status.getAttribute('aria-live')).toBe('polite');
-    expect(status.textContent).toContain('Loading the collective...');
-    expect(status.textContent).toContain('Fetching contributor data from GitHub');
+    expect(status.getAttribute('aria-label')).toBe('Loading contributors');
   });
 
-  it('keeps descriptive loading text available to assistive technologies', () => {
+  it('does not keep contributor loading placeholder text in the DOM', () => {
     render(<Loading />);
 
-    expect(screen.getByText('Loading the collective...')).toBeTruthy();
-    expect(screen.getByText('Fetching contributor data from GitHub')).toBeTruthy();
+    expect(screen.queryByText('Loading the collective...')).toBeNull();
+    expect(screen.queryByText('Fetching contributor data from GitHub')).toBeNull();
   });
 
   it('does not expose decorative spinner elements as interactive controls', () => {
@@ -42,14 +42,7 @@ describe('Contributors loading accessibility', () => {
     const status = screen.getByRole('status');
     const page = status.parentElement;
 
-    hasClasses(page, [
-      'flex',
-      'min-h-screen',
-      'items-center',
-      'justify-center',
-      'bg-[#050505]',
-      'text-white',
-    ]);
+    hasClasses(page, LOADING_ROOT_CLASSES);
 
     expect(status.classList.contains('sr-only')).toBe(false);
     expect(status.classList.contains('hidden')).toBe(false);
@@ -62,9 +55,7 @@ describe('Contributors loading accessibility', () => {
     const status = screen.getByRole('status');
     const children = Array.from(status.children);
 
-    expect(children.length).toBeGreaterThanOrEqual(3);
+    expect(children).toHaveLength(1);
     expect(children[0].tagName.toLowerCase()).toBe('div');
-    expect(children[1].textContent).toBe('Loading the collective...');
-    expect(children[2].textContent).toBe('Fetching contributor data from GitHub');
   });
 });

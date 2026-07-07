@@ -1,3 +1,4 @@
+import 'server-only';
 import type { ParsedResume, Education, Experience } from '@/types/student';
 
 // Polyfill DOMMatrix for server-side/test environments to prevent pdfjs-dist crash
@@ -6,7 +7,7 @@ if (typeof globalThis !== 'undefined' && !('DOMMatrix' in globalThis)) {
   (globalThis as any).DOMMatrix = class DOMMatrix {};
 }
 
-const EMAIL_REGEX = /[\w.-]+@[\w.-]+\.\w+/;
+const EMAIL_REGEX = /[\w.+-]+@[\w.-]+\.[a-zA-Z]{2,}/i;
 const NAME_LINE_REGEX = /^([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)/;
 
 const SKILL_SECTION_HEADERS = /skills|technologies|proficiencies|tech stack|tools/i;
@@ -15,7 +16,7 @@ const EXPERIENCE_SECTION_HEADERS = /experience|work|employment|professional|care
 
 function extractEmail(text: string): string {
   const match = text.match(EMAIL_REGEX);
-  return match ? match[0] : '';
+  return match ? match[0] : 'N/A';
 }
 
 function extractName(text: string): string {
@@ -29,7 +30,7 @@ function extractName(text: string): string {
       return match[1];
     }
   }
-  return '';
+  return 'N/A';
 }
 
 function extractSection(text: string, headers: RegExp): string[] {
@@ -60,13 +61,30 @@ function extractSection(text: string, headers: RegExp): string[] {
   return sectionLines;
 }
 
+function isValidSkill(skill: string): boolean {
+  const cleaned = skill.trim();
+
+  const shortSkills = new Set(['C', 'R', 'Go', 'AI', 'ML', 'JS', 'TS', 'C++', 'C#', '.NET']);
+
+  if (shortSkills.has(cleaned)) {
+    return true;
+  }
+
+  return (
+    cleaned.length >= 2 &&
+    cleaned.length < 50 &&
+    /^[a-zA-Z0-9.+#\s-]+$/.test(cleaned) &&
+    !/[?~<>]/.test(cleaned) &&
+    !/^[A-Za-z]\s+[A-Za-z]$/.test(cleaned)
+  );
+}
+
 function extractSkills(text: string): string[] {
   const section = extractSection(text, SKILL_SECTION_HEADERS);
-  const allText = section.join(' ');
-  const skills = allText
-    .split(/[,•·\-|/\n]+/)
+  const skills = section
+    .flatMap((line) => line.split(/[,•·|/]+/))
     .map((s) => s.trim())
-    .filter((s) => s.length > 0 && s.length < 50);
+    .filter(isValidSkill);
   return [...new Set(skills)];
 }
 
@@ -120,34 +138,13 @@ async function extractTextFromBuffer(buffer: Buffer, mimeType: string): Promise<
   if (mimeType === 'application/pdf') {
     try {
       if (buffer.toString('utf-8', 0, 4) === '%PDF') {
-        const pdfModule = (await import('pdf-parse')) as Record<string, unknown>;
+        const { PDFParse } = await import('pdf-parse');
 
-        console.debug('pdf-parse exports:', Object.keys(pdfModule));
+        const parser = new PDFParse({ data: buffer });
+        const result = await parser.getText();
+        await parser.destroy();
 
-        type PdfParser = (dataBuffer: Buffer, options?: unknown) => Promise<{ text: string }>;
-
-        let pdfParser: PdfParser | null = null;
-
-        if (typeof pdfModule.default === 'function') {
-          pdfParser = pdfModule.default as PdfParser;
-        } else if (typeof (pdfModule as unknown) === 'function') {
-          pdfParser = pdfModule as unknown as PdfParser;
-        } else {
-          const nestedDefault = (pdfModule.default as Record<string, unknown> | undefined)?.default;
-
-          if (typeof nestedDefault === 'function') {
-            pdfParser = nestedDefault as PdfParser;
-          }
-        }
-
-        if (!pdfParser) {
-          throw new TypeError(
-            `Unable to resolve pdf-parse export. Available keys: ${Object.keys(pdfModule).join(', ')}`
-          );
-        }
-
-        const data = await pdfParser(buffer);
-        rawText = data.text;
+        rawText = result.text;
       } else {
         rawText = buffer.toString('utf-8');
       }
@@ -197,20 +194,46 @@ async function extractTextFromBuffer(buffer: Buffer, mimeType: string): Promise<
  * const phone = extractPhone(rawText);
  */
 function extractPhone(text: string): string {
-  const match = text.match(/(\+?\d{1,3}[\s.-]?)?(\(?\d{3}\)?[\s.-]?)(\d{3}[\s.-]?\d{4})/);
-  return match ? match[0].trim() : '';
+  const match = text.match(/(?:\+?\d{1,3}[\s.-]?)?\(?\d{2,4}\)?[\s.-]?\d{2,4}[\s.-]?\d{3,9}/);
+  return match ? match[0].trim() : 'N/A';
 }
 
 export async function parseResume(buffer: Buffer, mimeType: string): Promise<ParsedResume> {
+  if (!buffer) {
+    throw new TypeError('Buffer cannot be null or undefined');
+  }
   const rawText = await extractTextFromBuffer(buffer, mimeType);
 
+  const name = extractName(rawText);
+  const email = extractEmail(rawText);
+  const phone = extractPhone(rawText);
+  const skills = extractSkills(rawText);
+  const education = extractEducation(rawText);
+  const experience = extractExperience(rawText);
+
   return {
-    name: extractName(rawText),
-    email: extractEmail(rawText),
-    phone: extractPhone(rawText),
-    skills: extractSkills(rawText),
-    education: extractEducation(rawText),
-    experience: extractExperience(rawText),
+    name: name && name.trim() ? name.trim() : 'N/A',
+    email: email && email.trim() ? email.trim() : 'N/A',
+    phone: phone && phone.trim() ? phone.trim() : 'N/A',
+    skills: Array.isArray(skills) ? skills.filter(Boolean) : [],
+    education: Array.isArray(education)
+      ? education.map((edu) => ({
+          institution: edu.institution?.trim() || 'N/A',
+          degree: edu.degree?.trim() || 'N/A',
+          field: edu.field?.trim() || 'N/A',
+          startDate: edu.startDate?.trim() || 'N/A',
+          endDate: edu.endDate?.trim() || 'N/A',
+        }))
+      : [],
+    experience: Array.isArray(experience)
+      ? experience.map((exp) => ({
+          company: exp.company?.trim() || 'N/A',
+          role: exp.role?.trim() || 'N/A',
+          startDate: exp.startDate?.trim() || 'N/A',
+          endDate: exp.endDate?.trim() || 'N/A',
+          description: exp.description?.trim() || 'N/A',
+        }))
+      : [],
   };
 }
 

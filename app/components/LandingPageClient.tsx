@@ -1,13 +1,15 @@
 'use client';
-import Image from 'next/image';
 import { trackUser } from '@/utils/tracking';
 import { useTranslation } from '@/context/TranslationContext';
+import { renderHeroTitle } from './heroTitle';
 
 import Link from 'next/link';
 import { useRef, useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { gsap } from 'gsap';
 import { useGSAP } from '@gsap/react';
+import { jsPDF } from 'jspdf';
+// import 'svg2pdf.js';
 
 import {
   Flame,
@@ -22,7 +24,6 @@ import {
 } from 'lucide-react';
 
 import { X } from 'lucide-react';
-import useLocalStorage from '@/hooks/useLocalStorage';
 
 import { CommitPulseLogo } from '@/components/commitpulse-logo';
 import { CustomizeCTA } from './CustomizeCTA';
@@ -98,12 +99,8 @@ function CountUp({ value, duration = 1000 }: { value: number; duration?: number 
     const start = 0;
     const end = value;
     if (start === end) {
-      // Safe: early-exit guard when the value hasn't changed — avoids scheduling
-      // a setInterval just to immediately clear it. No stale-dependency risk
-      // because `value` is the only dep and this path reads it synchronously.
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setCount(end);
-      return;
+      const frame = requestAnimationFrame(() => setCount(end));
+      return () => cancelAnimationFrame(frame);
     }
 
     const totalMilliseconds = duration;
@@ -309,7 +306,7 @@ export default function LandingPageClient() {
     return name;
   };
 
-  const [username, setUsername] = useLocalStorage('commitpulse:last-user', '');
+  const [username, setUsername] = useState('');
   const [instantUsername, setInstantUsername] = useState('');
   const [copied, setCopied] = useState(false);
 
@@ -367,6 +364,12 @@ export default function LandingPageClient() {
   const previewUsername = instantUsername || debouncedUsername;
   const hasUsername = previewUsername.length > 0;
 
+  // Keep track of the latest previewUsername to avoid race conditions with out-of-order image callbacks
+  const latestPreviewUsernameRef = useRef(previewUsername);
+  useEffect(() => {
+    latestPreviewUsernameRef.current = previewUsername;
+  }, [previewUsername]);
+
   const badgeUrl = `/api/streak?user=${encodeURIComponent(previewUsername)}`;
   const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? 'https://commitpulse.vercel.app').replace(
     /\/$/,
@@ -380,6 +383,55 @@ export default function LandingPageClient() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+
+  const DownloadPDF = async () => {
+    try {
+      const response = await fetch(badgeUrl);
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch SVG');
+      }
+
+      const svgText = await response.text();
+
+      const container = document.createElement('div');
+      container.innerHTML = svgText;
+
+      const svgElement = container.querySelector('svg');
+
+      if (!svgElement) {
+        throw new Error('SVG element not found');
+      }
+
+      const pdf = new jsPDF({
+        orientation: 'landscape',
+        unit: 'pt',
+        format: 'a4',
+      });
+
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+
+      await (
+        pdf as jsPDF & {
+          svg: (
+            element: SVGElement,
+            options: { x: number; y: number; width: number; height: number }
+          ) => Promise<void>;
+        }
+      ).svg(svgElement, {
+        x: 10,
+        y: 10,
+        width: pageWidth - 20,
+        height: pageHeight - 20,
+      });
+
+      pdf.save(`${previewUsername}-commitpulse.pdf`);
+    } catch (error) {
+      console.error('PDF export failed:', error);
+      alert('Failed to generate PDF');
+    }
   };
 
   const badgeLoaded = badgeResult?.username === previewUsername && badgeResult?.status === 'loaded';
@@ -456,7 +508,35 @@ export default function LandingPageClient() {
   }, [debouncedUsername, mounted]);
 
   const copyToClipboard = async () => {
-    if (trimmedUsername.length === 0) return;
+    if (trimmedUsername.length === 0) {
+      const inputField = document.querySelector('input[type="text"]') as HTMLInputElement;
+      if (inputField) {
+        inputField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        inputField.focus();
+        gsap.fromTo(
+          inputField,
+          { x: -6, boxShadow: '0 0 0px rgba(239, 68, 68, 0)', borderColor: 'inherit' },
+          {
+            x: 6,
+            borderColor: 'rgba(239, 68, 68, 0.8)',
+            boxShadow: '0 0 20px rgba(239, 68, 68, 0.3)',
+            duration: 0.08,
+            yoyo: true,
+            repeat: 5,
+            ease: 'power1.inOut',
+            onComplete: () => {
+              gsap.to(inputField, {
+                x: 0,
+                borderColor: 'rgba(255, 255, 255, 0.1)',
+                boxShadow: 'none',
+                duration: 0.4,
+              });
+            },
+          }
+        );
+      }
+      return;
+    }
 
     try {
       await navigator.clipboard.writeText(markdown);
@@ -547,11 +627,9 @@ export default function LandingPageClient() {
 
           <div ref={heroRef}>
             <h1 className="hero-text opacity-0 translate-y-10 mb-8 bg-gradient-to-br from-gray-900 via-black to-gray-600 dark:from-white dark:via-gray-100 dark:to-gray-500 bg-clip-text text-transparent text-5xl font-black tracking-tighter md:text-8xl pb-2">
-              Elevate Your <br />{' '}
-              <span className="contribution-text inline-block bg-[length:300%_300%] bg-gradient-to-r from-emerald-400 via-cyan-500 to-purple-500 bg-clip-text text-transparent drop-shadow-sm">
-                Contribution
-              </span>{' '}
-              Story.
+              {renderHeroTitle(
+                t('landing.title', { defaultValue: 'Elevate Your\n{Contribution} Story.' })
+              )}
             </h1>
           </div>
 
@@ -603,7 +681,7 @@ export default function LandingPageClient() {
                     }}
                     maxLength={39}
                   />
-                  {username.length > 0 ? (
+                  {mounted && username.length > 0 ? (
                     <button
                       onClick={() => {
                         setUsername('');
@@ -704,12 +782,17 @@ export default function LandingPageClient() {
                         exit={{ opacity: 0 }}
                         className="flex items-center gap-3 bg-emerald-500/5 border border-emerald-500/10 rounded-xl px-3 py-2"
                       >
-                        <Image
+                        <img
                           src={userDetails.avatar_url}
                           alt={userDetails.login}
-                          width={24}
-                          height={24}
-                          className="w-6 h-6 rounded-full border border-emerald-500/20"
+                          width="25"
+                          height="25"
+                          className="w-6 h-6 rounded-full border border-emerald-500/20 object-cover"
+                          onError={(e) => {
+                            const img = e.currentTarget as HTMLImageElement;
+                            img.onerror = null;
+                            img.src = `https://github.com/${userDetails.login}.png`;
+                          }}
                         />
                         <div className="flex flex-col">
                           <span className="text-xs font-bold text-zinc-200">
@@ -760,13 +843,19 @@ export default function LandingPageClient() {
                             key={s}
                             className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200/10 bg-zinc-200/5 dark:border-white/5 dark:bg-[#111] pl-2 pr-1.5 py-1 text-xs text-zinc-700 dark:text-white/70 transition-all duration-300 hover:border-emerald-500/30 hover:bg-zinc-200/10 dark:hover:bg-white/10 dark:hover:text-white select-none group/pill"
                           >
-                            <Image
+                            <img
                               src={`https://github.com/${displayName}.png?size=40`}
                               alt={displayName}
-                              width={16}
-                              height={16}
-                              className="w-4 h-4 rounded-full border border-zinc-200/20 dark:border-white/20"
+                              width="17"
+                              height="17"
+                              className="w-4 h-4 rounded-full border border-zinc-200/20 dark:border-white/20 object-cover"
+                              onError={(e) => {
+                                const img = e.currentTarget as HTMLImageElement;
+                                img.onerror = null;
+                                img.style.display = 'none';
+                              }}
                             />
+
                             <button
                               type="button"
                               onClick={() => selectDemoUser(displayName)}
@@ -866,20 +955,35 @@ export default function LandingPageClient() {
                         animate={{ opacity: badgeLoaded ? 1 : 0, scale: badgeLoaded ? 1 : 0.95 }}
                         transition={{ duration: 0.5, ease: 'easeOut' }}
                         className="w-full max-w-[700px] h-auto drop-shadow-[0_30px_60px_rgba(0,0,0,0.15)] dark:drop-shadow-[0_30px_60px_rgba(0,0,0,0.5)]"
-                        onLoad={() =>
-                          setBadgeResult({ username: previewUsername, status: 'loaded' })
-                        }
-                        onError={() =>
-                          setBadgeResult({ username: previewUsername, status: 'error' })
-                        }
+                        onLoad={() => {
+                          if (previewUsername === latestPreviewUsernameRef.current) {
+                            setBadgeResult({ username: previewUsername, status: 'loaded' });
+                          }
+                        }}
+                        onError={() => {
+                          if (previewUsername === latestPreviewUsernameRef.current) {
+                            setBadgeResult({ username: previewUsername, status: 'error' });
+                          }
+                        }}
                       />
                       {badgeLoaded && (
-                        <button
-                          onClick={DownloadSVG}
-                          className="mt-6 px-4 py-2 rounded-lg bg-sky-600 text-sm font-medium text-white hover:bg-sky-800 transition-colors"
-                        >
-                          {t('customize.export.download_svg', { defaultValue: 'Download SVG' })}
-                        </button>
+                        <div className="mt-6 flex gap-3 justify-center">
+                          <button
+                            onClick={DownloadSVG}
+                            className="px-4 py-2 rounded-lg bg-sky-600 text-sm font-medium text-white hover:bg-sky-800 transition-colors"
+                          >
+                            {t('customize.export.download_svg', {
+                              defaultValue: 'Download SVG',
+                            })}
+                          </button>
+
+                          <button
+                            onClick={DownloadPDF}
+                            className="px-4 py-2 rounded-lg bg-emerald-600 text-sm font-medium text-white hover:bg-emerald-800 transition-colors"
+                          >
+                            Download PDF
+                          </button>
+                        </div>
                       )}
                     </>
                   )}
@@ -939,11 +1043,11 @@ export default function LandingPageClient() {
                 <button
                   type="button"
                   onClick={copyToClipboard}
-                  disabled={!mounted || trimmedUsername.length === 0}
-                  className={`relative flex flex-1 items-center justify-center gap-2 overflow-hidden rounded-2xl border px-6 py-3.5 text-sm font-bold transition-all duration-300 active:scale-[0.98] disabled:cursor-not-allowed ${
+                  aria-disabled={!mounted || trimmedUsername.length === 0}
+                  className={`relative flex flex-1 items-center justify-center gap-2 overflow-hidden rounded-2xl border px-6 py-3.5 text-sm font-bold transition-all duration-300 active:scale-[0.98] ${
                     mounted && trimmedUsername.length > 0
                       ? 'border-emerald-500/20 bg-emerald-500/5 text-emerald-400 hover:scale-[1.02] hover:bg-emerald-500/10 hover:border-emerald-500/40 hover:shadow-[0_0_20px_rgba(16,185,129,0.15)] cursor-pointer'
-                      : 'border-black/5 bg-gray-50 text-gray-400 dark:border-white/5 dark:bg-transparent dark:text-white/55'
+                      : 'border-black/5 bg-gray-50 text-gray-400 opacity-50 dark:border-white/5 dark:bg-transparent dark:text-white/30 cursor-not-allowed hover:bg-gray-100 dark:hover:bg-white/10'
                   }`}
                 >
                   <AnimatePresence mode="wait">
@@ -981,6 +1085,44 @@ export default function LandingPageClient() {
                   onClick={(e) => {
                     if (!mounted || trimmedUsername.length === 0) {
                       e.preventDefault();
+                      const inputField = document.querySelector(
+                        'input[type="text"]'
+                      ) as HTMLInputElement;
+                      if (inputField) {
+                        // 1. Smoothly scroll to the input
+                        inputField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+                        // 2. Focus the input so user can type immediately
+                        inputField.focus();
+
+                        // 3. THE TRENDY FIX: GSAP Shake and Error Glow
+                        gsap.fromTo(
+                          inputField,
+                          {
+                            x: -6,
+                            boxShadow: '0 0 0px rgba(239, 68, 68, 0)',
+                            borderColor: 'inherit',
+                          },
+                          {
+                            x: 6,
+                            borderColor: 'rgba(239, 68, 68, 0.8)', // Subtle red border
+                            boxShadow: '0 0 20px rgba(239, 68, 68, 0.3)', // Soft red glow
+                            duration: 0.08,
+                            yoyo: true,
+                            repeat: 5,
+                            ease: 'power1.inOut',
+                            onComplete: () => {
+                              // Smoothly fade the glow out after shaking
+                              gsap.to(inputField, {
+                                x: 0,
+                                borderColor: 'rgba(255, 255, 255, 0.1)', // Default border
+                                boxShadow: 'none',
+                                duration: 0.4,
+                              });
+                            },
+                          }
+                        );
+                      }
                     } else {
                       trackUser(trimmedUsername);
                       addSearch(trimmedUsername);
@@ -989,7 +1131,7 @@ export default function LandingPageClient() {
                   className={`relative flex flex-1 items-center justify-center gap-2 overflow-hidden rounded-2xl border px-6 py-3.5 text-sm font-bold transition-all duration-300 active:scale-[0.98] ${
                     mounted && trimmedUsername.length > 0
                       ? 'border-cyan-500/20 bg-cyan-500/5 text-cyan-400 hover:scale-[1.02] hover:bg-cyan-500/10 hover:border-cyan-500/40 hover:shadow-[0_0_20px_rgba(6,182,212,0.15)] cursor-pointer'
-                      : 'border-black/5 bg-gray-50 text-gray-400 dark:border-white/5 dark:bg-transparent dark:text-white/55 cursor-not-allowed'
+                      : 'border-black/5 bg-gray-50 text-gray-400 opacity-50 dark:border-white/5 dark:bg-transparent dark:text-white/30 cursor-not-allowed'
                   }`}
                 >
                   <ExternalLink size={16} />

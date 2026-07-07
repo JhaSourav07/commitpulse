@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent, within } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { EditorPanel } from './EditorPanel';
 import type { GeneratorState } from '../types';
@@ -33,6 +33,8 @@ const makeState = (overrides: Partial<GeneratorState> = {}): GeneratorState => (
   githubUsername: '',
   showCommitPulse: false,
   commitPulseAccent: '',
+  showRepoSpotlight: false,
+  spotlightRepo: '',
   showSnakeGraph: false,
   showPacmanGraph: false,
   graphPlacement: 'bottom',
@@ -176,10 +178,16 @@ describe('EditorPanel — CommitPulseSection toggle', () => {
     const { rerender } = render(
       <EditorPanel state={makeState({ showCommitPulse: false })} {...h} />
     );
-    expect(screen.getByRole('switch')).toHaveAttribute('aria-checked', 'false');
+    expect(screen.getByRole('switch', { name: /toggle commitpulse badge/i })).toHaveAttribute(
+      'aria-checked',
+      'false'
+    );
 
     rerender(<EditorPanel state={makeState({ showCommitPulse: true })} {...h} />);
-    expect(screen.getByRole('switch')).toHaveAttribute('aria-checked', 'true');
+    expect(screen.getByRole('switch', { name: /toggle commitpulse badge/i })).toHaveAttribute(
+      'aria-checked',
+      'true'
+    );
   });
 });
 

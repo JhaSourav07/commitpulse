@@ -7,7 +7,7 @@
  */
 export type HexColor = string & { __brand: 'HexColor' };
 
-export type Scale = 'linear' | 'log';
+export type Scale = 'linear' | 'log' | 'sqrt';
 
 export type BadgeSize = 'small' | 'medium' | 'large';
 
@@ -245,8 +245,8 @@ export interface BadgeParams {
   /** Duration of the radar scan line animation (e.g. '4s', '8s', '12s'). Defaults to '8s'. */
   speed: SpeedString;
 
-  /** Animation style for the isometric towers on load: 'rise' (default), 'fade', 'slide', or 'none'. */
-  entrance?: 'rise' | 'fade' | 'slide' | 'none';
+  /** Animation style for the isometric towers on load: 'rise' (default), 'fade', 'slide', 'wave', 'bounce', or 'none'. */
+  entrance?: 'rise' | 'fade' | 'slide' | 'wave' | 'bounce' | 'none';
 
   /** Tower height scaling algorithm. 'linear' scales proportionally; 'log' uses logarithmic scale for high contributors. Defaults to 'linear'. */
   scale: Scale;
@@ -263,8 +263,17 @@ export interface BadgeParams {
   /** When true, automatically selects a theme based on the viewer's system color scheme. */
   autoTheme?: boolean;
 
+  /** Predefined theme name to use for the badge color palette. Overridden by explicit bg/text/accent parameters. */
+  theme?: string;
+
   /** When true, hides the username title from the badge. */
   hide_title?: boolean;
+
+  /** Custom text to display as the title. */
+  custom_title?: string;
+
+  /** Custom text to display as the subtitle. */
+  custom_subtitle?: string;
 
   /** When true, renders the badge without a background card. */
   hideBackground?: boolean;
@@ -284,7 +293,11 @@ export interface BadgeParams {
     | 'skyline'
     | 'languages'
     | 'constellation'
-    | 'radar';
+    | 'radar'
+    | 'doughnut'
+    | 'pie'
+    | 'activity_graph'
+    | 'commit_clock';
 
   /** Format for the monthly delta indicator. 'percent' shows %, 'absolute' shows raw count, 'both' shows both. */
   delta_format?: 'percent' | 'absolute' | 'both';
@@ -353,6 +366,9 @@ export interface BadgeParams {
 
   /** Projection tilt angle around the X-axis in degrees (0-90). */
   phi?: number;
+
+  /** When true, renders a compact single-row card (~100px tall) with only username, avatar, and streak count. Skips the full isometric grid. */
+  compact?: boolean;
 
   /** @internal Temporary property to track custom gradient ID during SVG generation. */
   __customGradientId?: string;

@@ -86,8 +86,38 @@ export function sanitizeFont(font: string | undefined | null): string | null {
   if (!font) return null;
   const trimmed = font.trim();
   if (!trimmed) return null;
-  const cleaned = trimmed.replace(/[^a-zA-Z0-9\s\-']/g, '').trim();
+  const cleaned = trimmed.replace(/[^a-zA-Z0-9\s\-]/g, '').trim();
   return cleaned || null;
+}
+
+/**
+ * Sanitizes a width/height dimension destined for direct interpolation into
+ * an SVG attribute (e.g. `width="${w}"`, `viewBox="0 0 ${w} ${h}"`).
+ * ...
+ */
+export function sanitizeDimension(
+  value: string | number | undefined | null,
+  fallback: number,
+  min = 1,
+  max = 5000
+): number {
+  const safeFallback = Math.round(Math.max(min, Math.min(fallback, max)));
+
+  if (value === undefined || value === null) return safeFallback;
+
+  if (typeof value === 'number') {
+    if (!Number.isFinite(value)) return safeFallback;
+    return Math.round(Math.max(min, Math.min(value, max)));
+  }
+
+  if (typeof value === 'string' && /^\d+(\.\d+)?$/.test(value.trim())) {
+    const parsed = Number(value.trim());
+    if (Number.isFinite(parsed)) {
+      return Math.round(Math.max(min, Math.min(parsed, max)));
+    }
+  }
+
+  return safeFallback;
 }
 
 /**
@@ -172,11 +202,6 @@ export function parseGradientStops(input?: string): string[] {
   return colors;
 }
 
-/**
- * Converts a gradient direction ('vertical', 'horizontal', 'diagonal') into SVG linearGradient coordinates.
- * Returns {x1, y1, x2, y2} as percentage strings suitable for SVG linearGradient attributes.
- * Defaults to 'vertical' if direction is invalid.
- */
 export function getGradientCoordinates(dir?: string): {
   x1: string;
   y1: string;
@@ -194,4 +219,24 @@ export function getGradientCoordinates(dir?: string): {
     default:
       return { x1: '0%', y1: '0%', x2: '0%', y2: '100%' };
   }
+}
+
+export function escapeXML(str: string): string {
+  if (!str) return '';
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+    .replace(/`/g, '&#96;');
+}
+
+/**
+ * Sanitizes input string to prevent XML injection/XSS.
+ * Removes/escapes any characters that could break out of SVG tags/attributes.
+ */
+export function sanitizeCustomText(text: string | undefined | null): string {
+  if (!text) return '';
+  return escapeXML(text);
 }

@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { describe, it, expect } from 'vitest';
 import Loading from './loading';
+import { LOADING_ROOT_CLASSES } from './loadingClasses';
 
 describe('Contributors Loading', () => {
   it('renders loading fallback component', () => {
@@ -10,12 +11,11 @@ describe('Contributors Loading', () => {
     expect(screen.getByRole('status')).toBeInTheDocument();
   });
 
-  it('renders loading messages correctly', () => {
+  it('does not render persistent loading copy', () => {
     render(<Loading />);
 
-    expect(screen.getByText(/loading the collective/i)).toBeInTheDocument();
-
-    expect(screen.getByText(/fetching contributor data from github/i)).toBeInTheDocument();
+    expect(screen.queryByText(/loading the collective/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/fetching contributor data from github/i)).not.toBeInTheDocument();
   });
 
   it('contains animated loader elements', () => {
@@ -31,11 +31,7 @@ describe('Contributors Loading', () => {
 
     const wrapper = container.firstChild as HTMLElement;
 
-    expect(wrapper).toHaveClass('flex');
-    expect(wrapper).toHaveClass('min-h-screen');
-    expect(wrapper).toHaveClass('items-center');
-    expect(wrapper).toHaveClass('justify-center');
-    expect(wrapper).toHaveClass('bg-[#050505]');
+    expect(wrapper).toHaveClass(...LOADING_ROOT_CLASSES);
   });
 
   it('renders loader container with accessibility attributes', () => {
@@ -44,5 +40,6 @@ describe('Contributors Loading', () => {
     const status = screen.getByRole('status');
 
     expect(status).toHaveAttribute('aria-live', 'polite');
+    expect(status).toHaveAttribute('aria-label', 'Loading contributors');
   });
 });

@@ -77,13 +77,25 @@ Frontend Developer at XYZ 2022-2024
     const result = await parseResume(Buffer.from(''), 'application/pdf');
 
     expect(result).toEqual({
-      name: '',
-      email: '',
-      phone: '',
+      name: 'N/A',
+      email: 'N/A',
+      phone: 'N/A',
       skills: [],
       education: [],
       experience: [],
     });
+  });
+
+  it('handles international phone and plus-addressed email formatting', async () => {
+    const resume = `
+John Doe
+john.doe+filter@example.co.uk
++91 98765 43210
+`;
+    const result = await parseResume(Buffer.from(resume), 'application/pdf');
+    expect(result.name).toBe('John Doe');
+    expect(result.email).toBe('john.doe+filter@example.co.uk');
+    expect(result.phone).toBe('+91 98765 43210');
   });
 
   it('returns sensible fallbacks when sections are missing', async () => {
@@ -101,6 +113,43 @@ Random text without any section headers.
     expect(result.skills).toEqual([]);
     expect(result.education).toEqual([]);
     expect(result.experience).toEqual([]);
+  });
+
+  it('filters corrupted skill tokens', async () => {
+    const resume = `
+John Doe
+john@example.com
+
+Skills
+React, TypeScript, Node.js
+?~ L8c n 7 ? ?
+. ~ C _ 0o> ?
+I f
+m
+
+Education
+B.Tech 2020-2024
+`;
+
+    const result = await parseResume(Buffer.from(resume), 'text/plain');
+
+    expect(result.skills).toEqual(['React', 'TypeScript', 'Node.js']);
+  });
+
+  it('preserves short valid skills', async () => {
+    const resume = `
+Skills
+
+C, R, Go, AI, ML, Node.js, C++, C#, .NET
+
+Education
+
+B.Tech 2020-2024
+`;
+
+    const result = await parseResume(Buffer.from(resume), 'text/plain');
+
+    expect(result.skills).toEqual(['C', 'R', 'Go', 'AI', 'ML', 'Node.js', 'C++', 'C#', '.NET']);
   });
 });
 

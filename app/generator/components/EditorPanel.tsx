@@ -6,6 +6,7 @@ import { DescriptionSection } from './sections/DescriptionSection';
 import { TechnologiesSection } from './sections/TechnologiesSection';
 import { SocialsSection } from './sections/SocialsSection';
 import { CommitPulseSection } from './sections/CommitPulseSection';
+import { RepoSpotlightSection } from './sections/RepoSpotlightSection';
 import { ContributionGraphSection } from './sections/ContributionGraphSection';
 import { GitHubImportModal } from './GitHubImportModal';
 import { FaGithub } from 'react-icons/fa';
@@ -28,6 +29,10 @@ interface EditorPanelProps {
   onShowSnakeGraphChange?: (v: boolean) => void;
   onShowPacmanGraphChange?: (v: boolean) => void;
   onGraphPlacementChange?: (v: 'top' | 'middle' | 'bottom') => void;
+  showRepoSpotlight?: boolean;
+  spotlightRepo?: string;
+  onShowRepoSpotlightChange?: (v: boolean) => void;
+  onSpotlightRepoChange?: (v: string) => void;
   onApplyImport: (data: ImportedData) => void;
 }
 
@@ -44,13 +49,21 @@ export function EditorPanel({
   onShowSnakeGraphChange = () => {},
   onShowPacmanGraphChange = () => {},
   onGraphPlacementChange = () => {},
+  onShowRepoSpotlightChange = () => {},
+  onSpotlightRepoChange = () => {},
   onApplyImport,
 }: EditorPanelProps) {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   return (
-    <form role="form" aria-label="Readme Configuration Editor" className="flex flex-col gap-4">
+    <form
+      role="form"
+      aria-label="Readme Configuration Editor"
+      className="flex flex-col gap-4"
+      onSubmit={(e) => e.preventDefault()}
+    >
       <button
+        type="button"
         onClick={() => setIsImportModalOpen(true)}
         className="w-full group relative flex items-center justify-center gap-2.5 px-4 py-3.5 rounded-2xl bg-white dark:bg-[#111111] border border-gray-200 dark:border-white/10 hover:border-emerald-500/30 dark:hover:border-emerald-500/30 shadow-sm transition-all overflow-hidden"
       >
@@ -93,6 +106,14 @@ export function EditorPanel({
         onShowSnakeGraphChange={onShowSnakeGraphChange}
         onShowPacmanGraphChange={onShowPacmanGraphChange}
         onGraphPlacementChange={onGraphPlacementChange}
+      />
+      <RepoSpotlightSection
+        githubUsername={state.githubUsername}
+        showRepoSpotlight={state.showRepoSpotlight}
+        spotlightRepo={state.spotlightRepo}
+        commitPulseAccent={state.commitPulseAccent}
+        onShowRepoSpotlightChange={onShowRepoSpotlightChange}
+        onSpotlightRepoChange={onSpotlightRepoChange}
       />
     </form>
   );

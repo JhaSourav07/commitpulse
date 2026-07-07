@@ -15,6 +15,7 @@ vi.mock('next/link', () => ({
 }));
 
 vi.mock('next/image', () => ({
+  /* eslint-disable @next/next/no-img-element */
   default: (props: React.ImgHTMLAttributes<HTMLImageElement>) => <img {...props} alt={props.alt} />,
 }));
 
@@ -62,7 +63,7 @@ describe('ContributorsSearch Theme Contrast Tests', () => {
 
     expect(input.className).toContain('dark:text-white');
 
-    expect(input.className).toContain('dark:placeholder:text-zinc-600');
+    expect(input.className).toContain('dark:placeholder:text-zinc-500');
   });
 
   it('applies dark and light border styling on contributor cards', () => {

@@ -1,10 +1,30 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Loader2, Search, X, ExternalLink, Info, Copy, Check, ChevronDown } from 'lucide-react';
+import {
+  Loader2,
+  Search,
+  X,
+  ExternalLink,
+  Info,
+  Copy,
+  Check,
+  ChevronDown,
+  CheckCircle2,
+  AlertTriangle,
+} from 'lucide-react';
 import { SectionCard, FieldLabel } from '../SectionCard';
 import { validateGitHubUsername } from '@/lib/validations';
 import { useDebounce } from '@/hooks/useDebounce';
+import { useGitHubUserExists } from '@/hooks/useGitHubUserExists';
+import {
+  generateWorkflowYaml,
+  generateReadmeSnippet,
+  getWorkflowFilename,
+  getPlacementHint,
+  type GraphKind,
+} from '@/lib/snakeWorkflowGenerator';
+import { SNAKE_SAMPLE_PREVIEW_SRC, PACMAN_SAMPLE_PREVIEW_SRC } from '@/lib/samplePreviewGraphs';
 
 export interface ContributionGraphSectionProps {
   githubUsername: string;
@@ -34,6 +54,9 @@ export function ContributionGraphSection({
   const [showInstructions, setShowInstructions] = useState(false);
   const [instructionsTab, setInstructionsTab] = useState<'snake' | 'pacman'>('snake');
   const [copiedWorkflow, setCopiedWorkflow] = useState(false);
+  const [copiedReadme, setCopiedReadme] = useState(false);
+
+  const { status: usernameExistsStatus } = useGitHubUserExists(debouncedUsername);
 
   const [snakeLoaded, setSnakeLoaded] = useState(false);
   const [snakeError, setSnakeError] = useState(false);
@@ -59,80 +82,36 @@ export function ContributionGraphSection({
     ? `https://raw.githubusercontent.com/${debouncedUsername}/${debouncedUsername}/output/pacman-contribution-graph.svg`
     : null;
 
-  const snakeWorkflow = `name: GitHub Snake Game
+  // Fall back to a placeholder so the code blocks always render something
+  // sensible even before a valid username is entered.
+  const usernameForCode = debouncedUsername || 'your-username';
 
-on:
-  schedule:
-    - cron: "0 0 * * *"
-  workflow_dispatch:
-  push:
-    branches:
-      - main
+  const snakeWorkflow = generateWorkflowYaml('snake', usernameForCode);
+  const pacmanWorkflow = generateWorkflowYaml('pacman', usernameForCode);
+  const snakeReadmeSnippet = generateReadmeSnippet('snake', usernameForCode);
+  const pacmanReadmeSnippet = generateReadmeSnippet('pacman', usernameForCode);
 
-jobs:
-  generate:
-    permissions:
-      contents: write
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
-      - name: Generate GitHub Contributions Snake Animations
-        uses: Platane/snk@v3
-        with:
-          github_user_name: \${{ github.repository_owner }}
-          outputs: |
-            dist/github-snake.svg
-            dist/github-snake-dark.svg?palette=github-dark
-            dist/ocean.gif?color_snake=orange&color_dots=#bfd6f6,#8dbdff,#64a1f4,#4b91f1,#3c7dd9
-        env:
-          GITHUB_TOKEN: \${{ secrets.GITHUB_TOKEN }}
-
-      - name: Deploy to Output Branch
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: \${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./dist
-          publish_branch: output
-          commit_message: "Update snake animation [skip ci]"`;
-
-  const pacmanWorkflow = `name: Generate Pacman
-
-on:
-  schedule:
-    - cron: "0 */24 * * *"
-  workflow_dispatch:
-  push:
-    branches:
-      - main
-
-jobs:
-  generate:
-    permissions:
-      contents: write
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - name: Generate Pacman contribution graph SVG
-        uses: abozanona/pacman-contribution-graph@main
-        with:
-          github_user_name: \${{ github.repository_owner }}
-      - name: Push Pacman SVG to output branch
-        uses: crazy-max/ghaction-github-pages@v3.1.0
-        with:
-          target_branch: output
-          build_dir: dist
-        env:
-          GITHUB_TOKEN: \${{ secrets.GITHUB_TOKEN }}`;
+  const activeWorkflow = instructionsTab === 'snake' ? snakeWorkflow : pacmanWorkflow;
+  const activeReadmeSnippet =
+    instructionsTab === 'snake' ? snakeReadmeSnippet : pacmanReadmeSnippet;
+  const activeWorkflowFilename = getWorkflowFilename(instructionsTab as GraphKind);
+  const activePlacementHint = getPlacementHint(graphPlacement);
 
   const handleCopyWorkflow = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text);
       setCopiedWorkflow(true);
       setTimeout(() => setCopiedWorkflow(false), 2000);
+    } catch {
+      // Fallback if clipboard fails
+    }
+  };
+
+  const handleCopyReadme = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedReadme(true);
+      setTimeout(() => setCopiedReadme(false), 2000);
     } catch {
       // Fallback if clipboard fails
     }
@@ -234,29 +213,69 @@ jobs:
                   type="text"
                   value={safeUsername}
                   onChange={(e) => onGithubUsernameChange(e.target.value.trim())}
-                  placeholder="e.g. OmkarArdekar12"
+                  placeholder="e.g. John"
                   maxLength={39}
                   autoComplete="off"
                   spellCheck={false}
+                  aria-describedby="contribution-graph-username-status"
                   className="w-full rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 pl-9 pr-9 py-2.5 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/40 transition-colors"
                 />
-                {safeUsername.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => onGithubUsernameChange('')}
-                    aria-label="Clear username"
-                    className="absolute right-3 text-gray-400 hover:text-gray-700 dark:text-white/30 dark:hover:text-white/70 transition-colors"
-                  >
-                    <X size={14} />
-                  </button>
-                )}
+                <span className="absolute right-3 flex items-center">
+                  {safeUsername.length > 0 && usernameExistsStatus === 'checking' && (
+                    <Loader2
+                      size={14}
+                      className="animate-spin text-gray-400 dark:text-white/30"
+                      aria-label="Checking username"
+                    />
+                  )}
+                  {safeUsername.length > 0 && usernameExistsStatus !== 'checking' && (
+                    <button
+                      type="button"
+                      onClick={() => onGithubUsernameChange('')}
+                      aria-label="Clear username"
+                      className="text-gray-400 hover:text-gray-700 dark:text-white/30 dark:hover:text-white/70 transition-colors"
+                    >
+                      <X size={14} />
+                    </button>
+                  )}
+                </span>
               </div>
-              {trimmed.length > 0 && !validateGitHubUsername(trimmed) && (
-                <p className="mt-2 text-xs text-amber-500 dark:text-amber-400 flex items-center gap-1.5">
-                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-500 flex-shrink-0" />
-                  Invalid username format.
-                </p>
-              )}
+
+              <div id="contribution-graph-username-status">
+                {trimmed.length > 0 && !validateGitHubUsername(trimmed) && (
+                  <p className="mt-2 text-xs text-amber-500 dark:text-amber-400 flex items-center gap-1.5">
+                    <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-500 flex-shrink-0" />
+                    Invalid username format.
+                  </p>
+                )}
+
+                {trimmed.length > 0 &&
+                  validateGitHubUsername(trimmed) &&
+                  usernameExistsStatus === 'exists' && (
+                    <p className="mt-2 text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                      <CheckCircle2 size={12} className="flex-shrink-0" />
+                      GitHub user found — workflow and README snippet generated below.
+                    </p>
+                  )}
+
+                {trimmed.length > 0 &&
+                  validateGitHubUsername(trimmed) &&
+                  usernameExistsStatus === 'not_found' && (
+                    <p className="mt-2 text-xs text-red-500 dark:text-red-400 flex items-center gap-1.5">
+                      <AlertTriangle size={12} className="flex-shrink-0" />
+                      No GitHub user named &ldquo;{trimmed}&rdquo; was found.
+                    </p>
+                  )}
+
+                {trimmed.length > 0 &&
+                  validateGitHubUsername(trimmed) &&
+                  usernameExistsStatus === 'unverifiable' && (
+                    <p className="mt-2 text-xs text-gray-400 dark:text-white/40 flex items-center gap-1.5">
+                      <AlertTriangle size={12} className="flex-shrink-0" />
+                      Couldn&apos;t verify this username right now — showing generated code anyway.
+                    </p>
+                  )}
+              </div>
             </div>
 
             {/* Position Picker */}
@@ -313,7 +332,9 @@ jobs:
                         : 'text-emerald-600 dark:text-emerald-400 group-hover:text-emerald-700 dark:group-hover:text-emerald-300'
                     }`}
                   >
-                    How do I set this up on GitHub?
+                    {trimmed.length > 0
+                      ? 'Your workflow + README code is ready'
+                      : 'How do I set this up on GitHub?'}
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5">
@@ -363,9 +384,20 @@ jobs:
                     <li>
                       Create a file named{' '}
                       <code className="px-1.5 py-0.5 rounded bg-gray-200/50 dark:bg-white/10 font-mono text-[11px] text-gray-700 dark:text-white/80">
-                        contribution-graph.yml
+                        {activeWorkflowFilename}
                       </code>{' '}
                       and copy-paste the workflow configuration below.
+                    </li>
+                    <li>
+                      Push the commit, then run the workflow once manually from the
+                      &ldquo;Actions&rdquo; tab in your repo (or wait for the daily schedule).
+                    </li>
+                    <li>
+                      Paste the README snippet below into your{' '}
+                      <code className="px-1.5 py-0.5 rounded bg-gray-200/50 dark:bg-white/10 font-mono text-[11px] text-gray-700 dark:text-white/80">
+                        README.md
+                      </code>
+                      . {activePlacementHint}
                     </li>
                   </ol>
 
@@ -395,15 +427,14 @@ jobs:
                     </button>
                   </div>
 
-                  {/* Code Block */}
+                  {/* Workflow Code Block */}
+                  <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-white/30">
+                    .github/workflows/{activeWorkflowFilename}
+                  </p>
                   <div className="relative rounded-xl overflow-hidden border border-gray-200 dark:border-white/8 bg-[#0a0a0a] p-3 font-mono text-[10px] text-white/70 max-h-[220px] overflow-y-auto">
                     <button
                       type="button"
-                      onClick={() =>
-                        handleCopyWorkflow(
-                          instructionsTab === 'snake' ? snakeWorkflow : pacmanWorkflow
-                        )
-                      }
+                      onClick={() => handleCopyWorkflow(activeWorkflow)}
                       className="absolute right-2.5 top-2.5 p-1.5 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-white/60 hover:text-white transition-colors"
                       title="Copy workflow to clipboard"
                     >
@@ -413,10 +444,31 @@ jobs:
                         <Copy size={12} />
                       )}
                     </button>
-                    <pre className="whitespace-pre overflow-x-auto pr-8">
-                      {instructionsTab === 'snake' ? snakeWorkflow : pacmanWorkflow}
-                    </pre>
+                    <pre className="whitespace-pre overflow-x-auto pr-8">{activeWorkflow}</pre>
                   </div>
+
+                  {/* README Snippet Code Block */}
+                  <p className="mt-4 mb-1.5 text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-white/30">
+                    README.md snippet
+                  </p>
+                  <div className="relative rounded-xl overflow-hidden border border-gray-200 dark:border-white/8 bg-[#0a0a0a] p-3 font-mono text-[10px] text-white/70 max-h-[180px] overflow-y-auto">
+                    <button
+                      type="button"
+                      onClick={() => handleCopyReadme(activeReadmeSnippet)}
+                      className="absolute right-2.5 top-2.5 p-1.5 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-white/60 hover:text-white transition-colors"
+                      title="Copy README snippet to clipboard"
+                    >
+                      {copiedReadme ? (
+                        <Check size={12} className="text-emerald-400" />
+                      ) : (
+                        <Copy size={12} />
+                      )}
+                    </button>
+                    <pre className="whitespace-pre overflow-x-auto pr-8">{activeReadmeSnippet}</pre>
+                  </div>
+                  <p className="mt-1.5 text-[11px] text-gray-400 dark:text-white/30">
+                    {activePlacementHint}
+                  </p>
                 </div>
               </div>
             </div>
@@ -448,9 +500,22 @@ jobs:
                         </div>
                       )}
                       {snakeError && (
-                        <p className="text-[11px] text-gray-400 text-center px-4">
-                          Snake graph not found. Setup the Action in your repo to load live data.
-                        </p>
+                        <div className="flex flex-col items-center gap-2 w-full">
+                          <span className="absolute left-2 top-2 z-10 rounded-full bg-black/60 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white/70">
+                            Sample preview
+                          </span>
+                          <img
+                            src={SNAKE_SAMPLE_PREVIEW_SRC}
+                            alt="Sample illustration of a Snake Contribution Graph"
+                            className="w-full h-auto max-w-[400px] opacity-90"
+                          />
+                          <p className="text-[11px] text-gray-400 text-center px-4">
+                            This is a sample — your live graph for{' '}
+                            <strong className="text-gray-300">{debouncedUsername}</strong>{' '}
+                            isn&apos;t available yet. Set up the Action below to load your real
+                            data.
+                          </p>
+                        </div>
                       )}
                       <img
                         src={snakeUrl}
@@ -493,9 +558,22 @@ jobs:
                         </div>
                       )}
                       {pacmanError && (
-                        <p className="text-[11px] text-gray-400 text-center px-4">
-                          Pacman graph not found. Setup the Action in your repo to load live data.
-                        </p>
+                        <div className="flex flex-col items-center gap-2 w-full">
+                          <span className="absolute left-2 top-2 z-10 rounded-full bg-black/60 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white/70">
+                            Sample preview
+                          </span>
+                          <img
+                            src={PACMAN_SAMPLE_PREVIEW_SRC}
+                            alt="Sample illustration of a Pacman Contribution Graph"
+                            className="w-full h-auto max-w-[400px] opacity-90"
+                          />
+                          <p className="text-[11px] text-gray-400 text-center px-4">
+                            This is a sample — your live graph for{' '}
+                            <strong className="text-gray-300">{debouncedUsername}</strong>{' '}
+                            isn&apos;t available yet. Set up the Action below to load your real
+                            data.
+                          </p>
+                        </div>
                       )}
                       <img
                         src={pacmanUrl}

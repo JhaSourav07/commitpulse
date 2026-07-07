@@ -1,6 +1,6 @@
 // types/dashboard.ts
 
-import type { ContributionCalendar } from './index';
+import type { ContributionCalendar, GraphNode, GraphLink } from './index';
 
 export interface UserProfile {
   username: string;
@@ -124,4 +124,39 @@ export interface RepoActivityInfo {
   name: string;
   url: string;
   pushedAt: string | null;
+}
+
+/* ==========================================================================
+ * PRODUCTION DEPLOYMENTS FEATURE
+ * ========================================================================== */
+
+export type WorkflowStatus = 'success' | 'failure' | 'in_progress' | 'unknown';
+
+export interface DeploymentData {
+  repoName: string;
+  repoUrl: string;
+  liveUrl: string | null;
+  status: WorkflowStatus;
+  deployedAt: string | null; // ISO timestamp of the deployment
+  environment: string; // e.g. "production"
+  workflowName: string | null; // e.g. "Vercel Production Deployment"
+}
+
+export interface DashboardData {
+  profile: UserProfile;
+  stats: UserStats;
+  languages: LanguageData[];
+  activity: ActivityData[];
+  insights: AIInsight[];
+  achievements: Achievement[];
+  commitClock: CommitClockData[];
+  graphData: {
+    nodes: GraphNode[];
+    links: GraphLink[];
+  };
+  popularRepos?: Repository[];
+  pinnedRepos?: Repository[];
+  starredRepos?: Repository[];
+  deployments?: DeploymentData[];
+  hallOfFame?: HallOfFameAward[];
 }

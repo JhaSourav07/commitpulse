@@ -4,7 +4,7 @@
 // structure integrity, and AUTO_THEME pair safety checks.
 
 import { describe, it, expect } from 'vitest';
-import { themes, AUTO_THEME_LIGHT, AUTO_THEME_DARK } from './themes';
+import { themes, AUTO_THEME_LIGHT, AUTO_THEME_DARK, getNormalizedThemeKey } from './themes';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -41,15 +41,16 @@ describe('themes object', () => {
 // ── Theme count ───────────────────────────────────────────────────────────────
 
 describe('theme count', () => {
-  it('contains exactly 26 preset themes matching THEMES.md documentation', () => {
+  it('contains exactly 29 preset themes matching THEMES.md documentation', () => {
     // If this fails, either a theme was added to themes.ts without updating
     // THEMES.md, or a theme was removed without updating the docs.
     // Update this count when intentionally adding/removing themes.
-    expect(themeNames).toHaveLength(26);
+    expect(themeNames).toHaveLength(32);
   });
 
   it('contains all expected theme keys', () => {
     const expectedKeys = [
+      'default',
       'dark',
       'light',
       'neon',
@@ -69,13 +70,17 @@ describe('theme count', () => {
       'gruvbox_light',
       'nord_light',
       'cyber-pulse',
+      'retro-terminal',
       'obsidian',
       'glacier',
       'lumos',
       'tokyonight',
       'cyberpunk',
+      'cyberpunk_neon',
       'tokyo_night',
       'monokai',
+      'midnight_ocean',
+      'india',
     ];
     for (const key of expectedKeys) {
       expect(themeNames).toContain(key);
@@ -125,7 +130,7 @@ describe('hex validity — all theme color values must be valid 6-char hex strin
   });
 
   it('no theme has a hex value with a leading # (values must be without #)', () => {
-    for (const [name, theme] of themeEntries) {
+    for (const [, theme] of themeEntries) {
       expect(theme.bg.startsWith('#')).toBe(false);
       expect(theme.text.startsWith('#')).toBe(false);
       expect(theme.accent.startsWith('#')).toBe(false);
@@ -133,7 +138,7 @@ describe('hex validity — all theme color values must be valid 6-char hex strin
   });
 
   it('no theme has a hex value shorter than 6 characters', () => {
-    for (const [name, theme] of themeEntries) {
+    for (const [, theme] of themeEntries) {
       expect(theme.bg.length).toBeGreaterThanOrEqual(6);
       expect(theme.text.length).toBeGreaterThanOrEqual(6);
       expect(theme.accent.length).toBeGreaterThanOrEqual(6);
@@ -225,5 +230,32 @@ describe('known theme palette regression guards', () => {
     expect(themes['cyber-pulse'].bg).toBe('000000');
     expect(themes['cyber-pulse'].text).toBe('ffffff');
     expect(themes['cyber-pulse'].accent).toBe('00ffee');
+  });
+});
+
+// ── Normalization Behavior Checks ─────────────────────────────────────────────
+
+describe('getNormalizedThemeKey', () => {
+  it('matches kebab-case keys when user provides all lowercase mashed inputs', () => {
+    expect(getNormalizedThemeKey('cyber-pulse')).toBe('cyber-pulse');
+  });
+
+  it('matches keys when user provides screaming uppercase inputs', () => {
+    expect(getNormalizedThemeKey('DRACULA')).toBe('dracula');
+  });
+
+  it('matches keys when user provides padded whitespace inputs', () => {
+    expect(getNormalizedThemeKey('  dark  ')).toBe('dark');
+    expect(getNormalizedThemeKey('\tneon\n')).toBe('neon');
+    expect(getNormalizedThemeKey(' DARK ')).toBe('dark');
+  });
+
+  it('returns default fallback when theme name does not exist', () => {
+    expect(getNormalizedThemeKey('invalidThemeNonexistent')).toBe('default');
+  });
+
+  it('returns default fallback gracefully when theme parameter is undefined or null', () => {
+    expect(getNormalizedThemeKey(undefined)).toBe('default');
+    expect(getNormalizedThemeKey(null)).toBe('default');
   });
 });

@@ -6,6 +6,16 @@ vi.mock('@/lib/github', () => ({
   getFullDashboardData: vi.fn(),
 }));
 
+vi.mock('@/lib/rate-limit', () => ({
+  RateLimiter: vi.fn().mockImplementation(function () {
+    return { check: vi.fn().mockResolvedValue(true) };
+  }),
+}));
+
+vi.mock('@/lib/githubtoken', () => ({
+  getUserGitHubToken: vi.fn().mockResolvedValue(undefined),
+}));
+
 function makeRequest(params: Record<string, string> = {}): Request {
   const url = new URL('http://localhost/api/compare');
   for (const [key, value] of Object.entries(params)) {
@@ -42,8 +52,20 @@ describe('ApiCompareRoute Tests', () => {
     expect(json.user1.profile.username).toBe('testuser');
     expect(json.user2.profile.username).toBe('testuser');
     expect(getFullDashboardData).toHaveBeenCalledTimes(2);
-    expect(getFullDashboardData).toHaveBeenNthCalledWith(1, 'octocat');
-    expect(getFullDashboardData).toHaveBeenNthCalledWith(2, 'defunkt');
+    expect(getFullDashboardData).toHaveBeenNthCalledWith(
+      1,
+      'octocat',
+      expect.objectContaining({
+        token: undefined,
+      })
+    );
+    expect(getFullDashboardData).toHaveBeenNthCalledWith(
+      2,
+      'defunkt',
+      expect.objectContaining({
+        token: undefined,
+      })
+    );
   });
 
   it('returns 404 Not Found when a user does not exist on GitHub', async () => {
@@ -88,7 +110,7 @@ describe('ApiCompareRoute Tests', () => {
   it('returns 502 Bad Gateway on unexpected upstream API failures', async () => {
     vi.mocked(getFullDashboardData).mockRejectedValueOnce(new Error('Unexpected network crash'));
 
-    const request = makeRequest({ user1: 'octocat', user2: 'defunkt' });
+    const request = makeRequest({ user1: 'octocat', user2: 'defunkt', token: 'sometoken' });
     const response = await GET(request);
 
     expect(response.status).toBe(502);

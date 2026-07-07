@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import Loading from './loading';
+import { LOADING_ROOT_CLASSES, LOADING_SPINNER_CLASSES } from './loadingClasses';
 
 function hasClasses(element: Element | null, classes: string[]) {
   expect(element).not.toBeNull();
@@ -15,12 +16,12 @@ describe('Contributors loading empty fallback', () => {
     expect(() => render(<Loading />)).not.toThrow();
   });
 
-  it('shows a clear fallback loading state', () => {
+  it('shows a clear fallback loading state without persistent copy', () => {
     render(<Loading />);
 
     expect(screen.getByRole('status')).toBeTruthy();
-    expect(screen.getByText('Loading the collective...')).toBeTruthy();
-    expect(screen.getByText('Fetching contributor data from GitHub')).toBeTruthy();
+    expect(screen.queryByText('Loading the collective...')).toBeNull();
+    expect(screen.queryByText('Fetching contributor data from GitHub')).toBeNull();
   });
 
   it('keeps accessible fallback markers available', () => {
@@ -29,7 +30,8 @@ describe('Contributors loading empty fallback', () => {
     const status = screen.getByRole('status');
 
     expect(status.getAttribute('aria-live')).toBe('polite');
-    expect(status.children.length).toBeGreaterThanOrEqual(2);
+    expect(status.getAttribute('aria-label')).toBe('Loading contributors');
+    expect(status.children.length).toBe(1);
   });
 
   it('maintains default fallback layout styles', () => {
@@ -38,14 +40,7 @@ describe('Contributors loading empty fallback', () => {
     const status = screen.getByRole('status');
     const page = status.parentElement;
 
-    hasClasses(page, [
-      'flex',
-      'min-h-screen',
-      'items-center',
-      'justify-center',
-      'bg-[#050505]',
-      'text-white',
-    ]);
+    hasClasses(page, LOADING_ROOT_CLASSES);
 
     hasClasses(status, ['flex', 'flex-col', 'items-center', 'gap-6']);
   });
@@ -60,15 +55,7 @@ describe('Contributors loading empty fallback', () => {
 
     hasClasses(spinnerWrapper, ['relative']);
 
-    hasClasses(spinner, [
-      'h-16',
-      'w-16',
-      'animate-spin',
-      'rounded-full',
-      'border-2',
-      'border-white/10',
-      'border-t-cyan-400',
-    ]);
+    hasClasses(spinner, LOADING_SPINNER_CLASSES);
 
     hasClasses(glowOverlay, [
       'absolute',

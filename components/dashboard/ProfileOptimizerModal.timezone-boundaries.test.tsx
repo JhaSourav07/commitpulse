@@ -23,13 +23,7 @@ vi.mock('framer-motion', () => ({
       className,
       ...props
     }: React.ComponentProps<'div'> & Record<string, unknown>) => {
-      const {
-        initial: _initial,
-        animate: _animate,
-        exit: _exit,
-        transition: _transition,
-        ...rest
-      } = props;
+      const { ...rest } = props;
       return (
         <div className={className} {...rest}>
           {children}
@@ -37,7 +31,7 @@ vi.mock('framer-motion', () => ({
       );
     },
     p: ({ children, ...props }: React.ComponentProps<'p'> & Record<string, unknown>) => {
-      const { initial: _initial, animate: _animate, exit: _exit, ...rest } = props;
+      const { ...rest } = props;
       return <p {...rest}>{children}</p>;
     },
   },

@@ -6,7 +6,16 @@ import {
   resetCircuitBreakerForTests,
   getTokenStatsForTests,
   getGlobalCircuitBreakerOpenUntilForTests,
+  handleTokenExpiration,
+  getRateLimitedTokensForTests,
 } from './github';
+import { encryptGitHubToken } from './github-token-encryption';
+
+const MOCK_TOKEN_1 = 'ghp_token1AAAAAAAAAAAAAAAAAAAAAAAAAAAA';
+const MOCK_TOKEN_2 = 'ghp_token2AAAAAAAAAAAAAAAAAAAAAAAAAAAA';
+const MOCK_TOKEN_3 = 'ghp_token3AAAAAAAAAAAAAAAAAAAAAAAAAAAA';
+const MOCK_BAD_TOKEN = 'ghp_badtokenAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
+const MOCK_GOOD_TOKEN = 'ghp_goodtokenAAAAAAAAAAAAAAAAAAAAAAAAAAA';
 
 describe('GitHub Multi-Token Rotation & Fallback', () => {
   const originalGitHubPat = process.env.GITHUB_PAT;
@@ -29,15 +38,15 @@ describe('GitHub Multi-Token Rotation & Fallback', () => {
   });
 
   it('correctly parses multiple comma-separated tokens', () => {
-    process.env.GITHUB_PAT = ' token1, token2,  token3 ';
+    process.env.GITHUB_PAT = ` ${MOCK_TOKEN_1}, ${MOCK_TOKEN_2},  ${MOCK_TOKEN_3} `;
     delete process.env.GITHUB_TOKEN;
 
     const tokens = getGitHubTokens();
-    expect(tokens).toEqual(['token1', 'token2', 'token3']);
+    expect(tokens).toEqual([MOCK_TOKEN_1, MOCK_TOKEN_2, MOCK_TOKEN_3]);
   });
 
   it('rotates to the next token on HTTP 429 rate limiting', async () => {
-    process.env.GITHUB_PAT = 'token1,token2';
+    process.env.GITHUB_PAT = `${MOCK_TOKEN_1},${MOCK_TOKEN_2}`;
     delete process.env.GITHUB_TOKEN;
 
     fetchMock.mockResolvedValueOnce({
@@ -64,14 +73,14 @@ describe('GitHub Multi-Token Rotation & Fallback', () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
 
     const firstCallHeaders = fetchMock.mock.calls[0][1].headers;
-    expect(firstCallHeaders.Authorization).toBe('bearer token1');
+    expect(firstCallHeaders.Authorization).toBe(`bearer ${MOCK_TOKEN_1}`);
 
     const secondCallHeaders = fetchMock.mock.calls[1][1].headers;
-    expect(secondCallHeaders.Authorization).toBe('bearer token2');
+    expect(secondCallHeaders.Authorization).toBe(`bearer ${MOCK_TOKEN_2}`);
   });
 
   it('rotates to the next token on HTTP 401 unauthorized and excludes the bad token for 24h', async () => {
-    process.env.GITHUB_PAT = 'bad_token,good_token';
+    process.env.GITHUB_PAT = `${MOCK_BAD_TOKEN},${MOCK_GOOD_TOKEN}`;
     delete process.env.GITHUB_TOKEN;
 
     fetchMock.mockResolvedValueOnce({
@@ -93,8 +102,8 @@ describe('GitHub Multi-Token Rotation & Fallback', () => {
 
     expect(res.status).toBe(200);
     expect(fetchMock).toHaveBeenCalledTimes(2);
-    expect(fetchMock.mock.calls[0][1].headers.Authorization).toBe('bearer bad_token');
-    expect(fetchMock.mock.calls[1][1].headers.Authorization).toBe('bearer good_token');
+    expect(fetchMock.mock.calls[0][1].headers.Authorization).toBe(`bearer ${MOCK_BAD_TOKEN}`);
+    expect(fetchMock.mock.calls[1][1].headers.Authorization).toBe(`bearer ${MOCK_GOOD_TOKEN}`);
 
     fetchMock.mockResolvedValueOnce({
       status: 200,
@@ -108,11 +117,11 @@ describe('GitHub Multi-Token Rotation & Fallback', () => {
     });
     expect(res2.status).toBe(200);
     expect(fetchMock).toHaveBeenCalledTimes(3);
-    expect(fetchMock.mock.calls[2][1].headers.Authorization).toBe('bearer good_token');
+    expect(fetchMock.mock.calls[2][1].headers.Authorization).toBe(`bearer ${MOCK_GOOD_TOKEN}`);
   });
 
   it('prioritizes token with highest remaining quota', async () => {
-    process.env.GITHUB_PAT = 'token1,token2';
+    process.env.GITHUB_PAT = `${MOCK_TOKEN_1},${MOCK_TOKEN_2}`;
     delete process.env.GITHUB_TOKEN;
 
     fetchMock.mockResolvedValueOnce({
@@ -150,26 +159,150 @@ describe('GitHub Multi-Token Rotation & Fallback', () => {
     await fetchWithRetry('https://api.github.com/graphql', { headers: {} });
 
     expect(fetchMock).toHaveBeenCalledTimes(3);
-    expect(fetchMock.mock.calls[0][1].headers.Authorization).toBe('bearer token1');
-    expect(fetchMock.mock.calls[1][1].headers.Authorization).toBe('bearer token2');
-    expect(fetchMock.mock.calls[2][1].headers.Authorization).toBe('bearer token2');
+    expect(fetchMock.mock.calls[0][1].headers.Authorization).toBe(`bearer ${MOCK_TOKEN_1}`);
+    expect(fetchMock.mock.calls[1][1].headers.Authorization).toBe(`bearer ${MOCK_TOKEN_2}`);
+    expect(fetchMock.mock.calls[2][1].headers.Authorization).toBe(`bearer ${MOCK_TOKEN_2}`);
   });
 
   it('correctly sets global circuit breaker to the earliest reset time when all tokens are rate-limited', async () => {
-    process.env.GITHUB_PAT = 'token1,token2';
+    process.env.GITHUB_PAT = `${MOCK_TOKEN_1},${MOCK_TOKEN_2}`;
     delete process.env.GITHUB_TOKEN;
 
     const resetTime1 = Date.now() + 5000;
     const resetTime2 = Date.now() + 10000;
 
-    const stats = getTokenStatsForTests();
-    stats.set('token1', { remaining: 0, resetTime: resetTime1 });
-    stats.set('token2', { remaining: 0, resetTime: resetTime2 });
+    const tokenStats = getTokenStatsForTests();
+    tokenStats.set(MOCK_TOKEN_1, { remaining: 0, resetTime: resetTime1 });
+    tokenStats.set(MOCK_TOKEN_2, { remaining: 0, resetTime: resetTime2 });
 
     await expect(
       fetchWithRetry('https://api.github.com/graphql', { headers: {} })
     ).rejects.toThrow();
 
     expect(getGlobalCircuitBreakerOpenUntilForTests()).toBe(resetTime1);
+  });
+
+  it('decrypts encrypted tokens if GITHUB_TOKEN_ENCRYPTION_KEY is present', () => {
+    const validKey = 'a'.repeat(32);
+    const originalKey = process.env.GITHUB_TOKEN_ENCRYPTION_KEY;
+    process.env.GITHUB_TOKEN_ENCRYPTION_KEY = validKey;
+
+    try {
+      const rawToken = 'ghp_myRealGitHubTokenAAAAAAAAAAAAAAAA';
+      const encrypted = encryptGitHubToken(rawToken);
+
+      expect(encrypted).toContain('.');
+      expect(encrypted.split('.')).toHaveLength(4);
+
+      const plaintextToken = 'ghp_anotherPlaintextTokenAAAAAAAAAAAA';
+      process.env.GITHUB_PAT = `${encrypted}, ${plaintextToken}`;
+      delete process.env.GITHUB_TOKEN;
+
+      const tokens = getGitHubTokens();
+      expect(tokens).toEqual([rawToken, plaintextToken]);
+    } finally {
+      process.env.GITHUB_TOKEN_ENCRYPTION_KEY = originalKey;
+    }
+  });
+
+  it('gracefully falls back to raw token on decryption failure', () => {
+    const originalKey = process.env.GITHUB_TOKEN_ENCRYPTION_KEY;
+    process.env.GITHUB_TOKEN_ENCRYPTION_KEY = 'a'.repeat(32);
+
+    try {
+      const rawToken = 'ghp_plaintextFallbackTokenAAAAAAAAAAAAAAAAAA';
+      process.env.GITHUB_PAT = rawToken;
+      delete process.env.GITHUB_TOKEN;
+
+      const tokens = getGitHubTokens();
+      expect(tokens).toEqual([rawToken]);
+    } finally {
+      process.env.GITHUB_TOKEN_ENCRYPTION_KEY = originalKey;
+    }
+  });
+
+  it('discards an undecryptable token instead of forwarding a malformed credential', () => {
+    const originalKey = process.env.ENCRYPTION_KEY;
+    process.env.ENCRYPTION_KEY = 'abcdefghijklmnopqrstuvwxyz123456';
+
+    try {
+      const fakeEncryptedToken = 'YWJj.ZGVm.YWJj.';
+
+      process.env.GITHUB_PAT = fakeEncryptedToken;
+      delete process.env.GITHUB_TOKEN;
+
+      const tokens = getGitHubTokens();
+      expect(tokens).toEqual([]);
+    } finally {
+      process.env.GITHUB_TOKEN_ENCRYPTION_KEY = originalKey;
+    }
+  });
+
+  it('deduplicates concurrent 401 rotations using the pending refresh promise pattern (Issue #7213)', async () => {
+    process.env.GITHUB_PAT = `${MOCK_BAD_TOKEN},${MOCK_GOOD_TOKEN}`;
+    delete process.env.GITHUB_TOKEN;
+    clearGitHubApiCacheForTests();
+
+    const mkResponse = (status: number) => ({
+      status,
+      ok: status === 200,
+      headers: new Headers(),
+      json: async () => ({ data: 'success' }),
+    });
+
+    fetchMock
+      .mockResolvedValueOnce(mkResponse(401))
+      .mockResolvedValueOnce(mkResponse(401))
+      .mockResolvedValueOnce(mkResponse(200))
+      .mockResolvedValueOnce(mkResponse(200));
+
+    const [res1, res2] = await Promise.all([
+      fetchWithRetry('https://api.github.com/graphql', { headers: {} }),
+      fetchWithRetry('https://api.github.com/graphql', { headers: {} }),
+    ]);
+
+    expect(res1.status).toBe(200);
+    expect(res2.status).toBe(200);
+
+    const authHeaders = fetchMock.mock.calls
+      .map((c) => c[1]?.headers?.Authorization)
+      .filter(Boolean);
+
+    const goodTokenUsages = authHeaders.filter(
+      (h: string) => h === `bearer ${MOCK_GOOD_TOKEN}`
+    ).length;
+
+    const badTokenUsages = authHeaders.filter(
+      (h: string) => h === `bearer ${MOCK_BAD_TOKEN}`
+    ).length;
+
+    expect(badTokenUsages).toBe(2);
+    expect(goodTokenUsages).toBe(2);
+  });
+
+  it('awaiting handleTokenExpiration concurrently only runs rotation once (Issue #7213)', async () => {
+    process.env.GITHUB_PAT = `${MOCK_TOKEN_1},${MOCK_TOKEN_2}`;
+    delete process.env.GITHUB_TOKEN;
+    clearGitHubApiCacheForTests();
+
+    const rateLimited = getRateLimitedTokensForTests();
+    let rotationCounter = 0;
+    const origSet = rateLimited.set.bind(rateLimited);
+    rateLimited.set = function (key: string, value: number) {
+      if (key === MOCK_TOKEN_1) {
+        rotationCounter++;
+      }
+      return origSet(key, value);
+    };
+
+    await Promise.all([
+      handleTokenExpiration(MOCK_TOKEN_1),
+      handleTokenExpiration(MOCK_TOKEN_1),
+      handleTokenExpiration(MOCK_TOKEN_1),
+    ]);
+
+    expect(rotationCounter).toBe(1);
+
+    rateLimited.set = origSet;
   });
 });

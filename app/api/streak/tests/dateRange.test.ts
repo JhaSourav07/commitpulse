@@ -58,11 +58,11 @@ describe('GET /api/streak dateRange parameter', () => {
     const res = await GET(makeRequest({ user: 'octocat', from: '2024-06-01', to: '2024-06-30' }));
 
     expect(res.status).toBe(200);
-    expect(res.headers.get('Content-Type')).toBe('image/svg+xml');
+    expect(res.headers.get('Content-Type')).toBe('image/svg+xml; charset=utf-8');
     expect(res.headers.get('Content-Security-Policy')).toContain("default-src 'none'");
 
     const body = await res.text();
-    expect(body).toContain('CURRENT_STREAK');
+    expect(body).toContain('Current Streak');
   });
 
   it('applies custom dateRange and affects rendered month labels (body content changes)', async () => {
@@ -102,7 +102,7 @@ describe('GET /api/streak dateRange parameter', () => {
     expect(res.status).toBe(200);
 
     const body = await res.text();
-    expect(body).toContain('CURRENT_STREAK');
+    expect(body).toContain('Current Streak');
   });
 
   it('invalid dateRange formats return a validation error without crashing', async () => {
@@ -116,9 +116,9 @@ describe('GET /api/streak dateRange parameter', () => {
     const res = await GET(makeRequest({ user: 'octocat', from: '2024-06-01', to: '2024-06-30' }));
 
     expect(res.status).toBe(200);
-    expect(res.headers.get('Content-Type')).toBe('image/svg+xml');
+    expect(res.headers.get('Content-Type')).toBe('image/svg+xml; charset=utf-8');
     expect(res.headers.get('Cache-Control')).toBe(
-      'public, s-maxage=3600, stale-while-revalidate=86400'
+      'public, max-age=60, s-maxage=3600, stale-while-revalidate=60'
     );
   });
 });

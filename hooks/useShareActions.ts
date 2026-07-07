@@ -3,6 +3,7 @@ import { useState, useRef, useEffect } from 'react';
 import { toPng, toCanvas } from 'html-to-image';
 import type { DashboardExportData } from '@/types/dashboard';
 import { getDashboardUrl, getOrigin } from '@/utils/urls';
+import { activityToTowers, generateMonolithSTL } from '@/lib/export3d';
 
 type OptionState = 'idle' | 'loading' | 'success' | 'error';
 
@@ -146,7 +147,8 @@ export function useShareActions(
       setOptionState('copy', 'success');
       setTimeout(() => onClose(), 800);
       return true;
-    } catch {
+    } catch (err) {
+      console.error('[useShareActions] copy link failed:', err);
       setOptionState('copy', 'error');
       return false;
     }
@@ -178,6 +180,10 @@ export function useShareActions(
 
   const handleDownloadPNG = async () => {
     setOptionState('png', 'loading');
+
+    // Defer the heavy DOM capture to let the UI paint the loading state
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
     try {
       const node =
         document.getElementById('dashboard-root') ??
@@ -202,13 +208,18 @@ export function useShareActions(
       link.href = dataUrl;
       link.click();
       setOptionState('png', 'success');
-    } catch {
+    } catch (err) {
+      console.error('[useShareActions] PNG download failed:', err);
       setOptionState('png', 'error');
     }
   };
 
   const handleDownloadWEBP = async () => {
     setOptionState('webp', 'loading');
+
+    // Defer the heavy DOM capture to let the UI paint the loading state
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
     try {
       const node =
         document.getElementById('dashboard-root') ??
@@ -234,13 +245,17 @@ export function useShareActions(
       link.href = dataUrl;
       link.click();
       setOptionState('webp', 'success');
-    } catch {
+    } catch (err) {
+      console.error('[useShareActions] WEBP download failed:', err);
       setOptionState('webp', 'error');
     }
   };
 
   const handleCopyImage = async () => {
     setOptionState('copyImage', 'loading');
+
+    // Defer the heavy DOM capture to let the UI paint the loading state
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
     try {
       if (!navigator.clipboard || typeof ClipboardItem === 'undefined') {
@@ -283,7 +298,8 @@ export function useShareActions(
 
       setOptionState('copyImage', 'success');
       setTimeout(() => onClose(), 800);
-    } catch {
+    } catch (err) {
+      console.error('[useShareActions] copy image failed:', err);
       setOptionState('copyImage', 'error');
     }
   };
@@ -302,7 +318,8 @@ export function useShareActions(
       link.click();
       URL.revokeObjectURL(url);
       setOptionState('svg', 'success');
-    } catch {
+    } catch (err) {
+      console.error('[useShareActions] SVG download failed:', err);
       setOptionState('svg', 'error');
     }
   };
@@ -314,7 +331,8 @@ export function useShareActions(
       await navigator.clipboard.writeText(markdown);
       setOptionState('markdown', 'success');
       setTimeout(() => onClose(), 800);
-    } catch {
+    } catch (err) {
+      console.error('[useShareActions] copy markdown failed:', err);
       setOptionState('markdown', 'error');
     }
   };
@@ -366,7 +384,8 @@ export function useShareActions(
       downloadTextFile(csv, `commitpulse-${username}-stats.csv`, 'text/csv;charset=utf-8');
 
       setOptionState('csv', 'success');
-    } catch {
+    } catch (err) {
+      console.error('[useShareActions] CSV download failed:', err);
       setOptionState('csv', 'error');
     }
   };
@@ -400,8 +419,59 @@ export function useShareActions(
       );
 
       setOptionState('json', 'success');
-    } catch {
+    } catch (err) {
+      console.error('[useShareActions] JSON download failed:', err);
       setOptionState('json', 'error');
+    }
+  };
+
+  const handleDownloadSTL = () => {
+    setOptionState('stl', 'loading');
+    const activity = exportData.activity ?? [];
+
+    if (typeof window === 'undefined') {
+      setOptionState('stl', 'error');
+      return;
+    }
+
+    try {
+      // Try using a Web Worker first
+      const worker = new Worker(new URL('./stl.worker.ts', import.meta.url));
+
+      worker.onmessage = (event) => {
+        const { success, stl, error } = event.data;
+        if (success) {
+          downloadTextFile(stl, `commitpulse-${username}-monolith.stl`, 'text/plain;charset=utf-8');
+          setOptionState('stl', 'success');
+        } else {
+          console.error('Worker failed to generate STL:', error);
+          runStlSync();
+        }
+        worker.terminate();
+      };
+
+      worker.onerror = (err) => {
+        console.error('Worker error:', err);
+        runStlSync();
+        worker.terminate();
+      };
+
+      worker.postMessage({ activity });
+    } catch (err) {
+      console.warn('Could not initialize worker, running synchronously:', err);
+      runStlSync();
+    }
+
+    function runStlSync() {
+      try {
+        const towers = activityToTowers(activity);
+        const stl = generateMonolithSTL(towers);
+        downloadTextFile(stl, `commitpulse-${username}-monolith.stl`, 'text/plain;charset=utf-8');
+        setOptionState('stl', 'success');
+      } catch (e) {
+        console.error('Synchronous STL generation failed:', e);
+        setOptionState('stl', 'error');
+      }
     }
   };
 
@@ -443,6 +513,7 @@ export function useShareActions(
     handleCopyMarkdown,
     handleDownloadCSV,
     handleDownloadJSON,
+    handleDownloadSTL,
     handleNativeShare,
   };
 }

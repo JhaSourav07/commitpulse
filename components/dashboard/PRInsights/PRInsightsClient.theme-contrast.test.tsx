@@ -1,11 +1,11 @@
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { render, screen } from '@testing-library/react';
 import PRInsightsClient from './PRInsightsClient';
 import type { PRInsightData } from '@/services/github/pr-insights';
 
 vi.mock('framer-motion', () => ({
+  AnimatePresence: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   motion: new Proxy(
     {},
     {
@@ -89,6 +89,7 @@ const mockInsights: PRInsightData = {
       deletions: 80,
     },
   },
+  prs: [],
 };
 
 function mockFetchWith(data: PRInsightData = mockInsights) {
@@ -113,6 +114,7 @@ describe('PRInsightsClient Theme Contrast and Visual Cohesion', () => {
 
   afterEach(() => {
     vi.unstubAllGlobals();
+    localStorage.clear();
   });
 
   it('1. should emulate both dark and light presets', async () => {

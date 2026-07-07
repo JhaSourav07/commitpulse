@@ -95,11 +95,11 @@ describe('GET /api/streak view parameter integration', () => {
     const response = await GET(makeRequest({ user: 'octocat', view: 'default' }));
 
     expect(response.status).toBe(200);
-    expect(response.headers.get('Content-Type')).toBe('image/svg+xml');
+    expect(response.headers.get('Content-Type')).toBe('image/svg+xml; charset=utf-8');
     expect(response.headers.get('Content-Security-Policy')).toContain("default-src 'none'");
 
     const body = await response.text();
-    expect(body).toContain('CURRENT_STREAK');
+    expect(body).toContain('Current Streak');
   });
 
   it('returns 200 and renders monthly dimensions for view=monthly', async () => {
@@ -108,7 +108,7 @@ describe('GET /api/streak view parameter integration', () => {
     expect(response.status).toBe(200);
 
     const body = await response.text();
-    expect(body).toContain('COMMITS THIS MONTH');
+    expect(body).toContain('Commits This Month');
     expect(body).toContain('width="300"');
     expect(body).toContain('height="120"');
     expect(body).toContain('viewBox="0 0 300 120"');
@@ -125,8 +125,8 @@ describe('GET /api/streak view parameter integration', () => {
     expect(response.status).toBe(200);
 
     const body = await response.text();
-    expect(body).toContain('CURRENT_STREAK');
-    expect(body).not.toContain('COMMITS THIS MONTH');
+    expect(body).toContain('Current Streak');
+    expect(body).not.toContain('Commits This Month');
   });
 
   it('treats an invalid view value as default without crashing', async () => {
@@ -140,8 +140,8 @@ describe('GET /api/streak view parameter integration', () => {
     expect(response.status).toBe(200);
 
     const body = await response.text();
-    expect(body).toContain('CURRENT_STREAK');
-    expect(body).not.toContain('COMMITS THIS MONTH');
+    expect(body).toContain('Current Streak');
+    expect(body).not.toContain('Commits This Month');
   });
 
   it('returns 200 and renders radar map for view=radar', async () => {
@@ -157,9 +157,9 @@ describe('GET /api/streak view parameter integration', () => {
     const response = await GET(makeRequest({ user: 'octocat', view: 'default' }));
 
     expect(response.status).toBe(200);
-    expect(response.headers.get('Content-Type')).toBe('image/svg+xml');
+    expect(response.headers.get('Content-Type')).toBe('image/svg+xml; charset=utf-8');
     expect(response.headers.get('Cache-Control')).toBe(
-      'public, s-maxage=3600, stale-while-revalidate=86400'
+      'public, max-age=60, s-maxage=3600, stale-while-revalidate=60'
     );
     expect(response.headers.get('X-Cache-Status')).toBe('HIT');
   });

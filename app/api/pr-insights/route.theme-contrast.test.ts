@@ -27,6 +27,7 @@ const mockInsights: PRInsightData = {
   repoPerformance: [
     { name: 'org/repo', totalPRs: 10, mergeRate: 70, reviewCount: 4, avgReviewTime: 6 },
   ],
+  prs: [],
   highlights: {
     mostDiscussed: { title: 'Big PR', url: 'https://github.com/org/repo/pull/1', comments: 12 },
     fastestMerged: { title: 'Quick fix', url: 'https://github.com/org/repo/pull/2', time: 0.5 },
@@ -85,7 +86,7 @@ describe('GET /api/pr-insights', () => {
     const response = await GET(makeRequest({ username: '  octocat  ' }));
 
     expect(response.status).toBe(200);
-    expect(fetchPRInsights).toHaveBeenCalledWith('octocat');
+    expect(fetchPRInsights).toHaveBeenCalledWith('octocat', undefined, expect.any(AbortSignal));
   });
 
   it('returns the full PR insights payload on a successful fetch', async () => {
@@ -94,7 +95,7 @@ describe('GET /api/pr-insights', () => {
     expect(response.status).toBe(200);
     const body = await response.json();
     expect(body).toEqual(mockInsights);
-    expect(fetchPRInsights).toHaveBeenCalledWith('octocat');
+    expect(fetchPRInsights).toHaveBeenCalledWith('octocat', undefined, expect.any(AbortSignal));
   });
 
   it('returns 500 with the error message when fetchPRInsights throws an Error', async () => {

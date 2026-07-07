@@ -3,10 +3,13 @@ import { NextRequest } from 'next/server';
 import { middleware } from './middleware';
 
 function makeRequest(ip: string, xff?: string): NextRequest {
-  const headers: Record<string, string> = {
-    'x-forwarded-for': xff ?? ip,
-  };
-  return new NextRequest('http://localhost:3000/api/streak?user=octocat', { headers });
+  const headers: Record<string, string> = {};
+  if (xff) {
+    headers['x-forwarded-for'] = xff;
+  }
+  const request = new NextRequest('http://localhost:3000/api/streak?user=octocat', { headers });
+  Object.defineProperty(request, 'ip', { value: ip, writable: true });
+  return request;
 }
 
 describe('middleware massive-scaling: Massive Data Sets and Extreme High Bounds Scaling', () => {
@@ -49,7 +52,7 @@ describe('middleware massive-scaling: Massive Data Sets and Extreme High Bounds 
     }
   });
 
-  it('extracts only the first IP from an extremely long x-forwarded-for chain of 100 proxies', async () => {
+  it('ignores spoofed chain of 100 proxies and uses the connection IP (request.ip)', async () => {
     const chain = Array.from({ length: 100 }, (_, i) => `10.0.0.${i + 1}`).join(', ');
     const ip = '203.0.113.50';
 

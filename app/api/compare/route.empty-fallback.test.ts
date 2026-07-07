@@ -1,10 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { GET } from './route';
-
 vi.mock('@/lib/github', () => ({
   getFullDashboardData: vi.fn(),
 }));
 
+vi.mock('@/lib/githubtoken', () => ({
+  getUserGitHubToken: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock('@/lib/rate-limit', () => ({
+  RateLimiter: vi.fn().mockImplementation(function () {
+    return { check: vi.fn().mockResolvedValue(true) };
+  }),
+}));
+import { GET } from './route';
 import { getFullDashboardData } from '@/lib/github';
 
 function makeRequest(search: string, headers: Record<string, string> = {}): Request {

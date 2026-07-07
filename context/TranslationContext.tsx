@@ -17,8 +17,9 @@ import zh from '@/locales/zh.json';
 import ja from '@/locales/ja.json';
 import ko from '@/locales/ko.json';
 import de from '@/locales/de.json';
+import pt from '@/locales/pt.json';
 
-export type Language = 'en' | 'es' | 'hi' | 'fr' | 'zh' | 'ja' | 'ko' | 'de';
+export type Language = 'en' | 'es' | 'hi' | 'fr' | 'zh' | 'ja' | 'ko' | 'de' | 'pt';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const translations: Record<Language, any> = {
@@ -30,6 +31,7 @@ const translations: Record<Language, any> = {
   ja,
   ko,
   de,
+  pt,
 };
 
 export const LANGUAGE_LABELS: Record<Language, string> = {
@@ -41,6 +43,7 @@ export const LANGUAGE_LABELS: Record<Language, string> = {
   ja: '\u65e5\u672c\u8a9e',
   ko: '\ud55c\uad6d\uc5b4',
   de: 'Deutsch',
+  pt: 'Português',
 };
 
 interface TranslationContextType {
@@ -81,21 +84,47 @@ export function TranslationProvider({ children }: { children: ReactNode }) {
     // English text on first load.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
-    const storedLang = localStorage.getItem('language') as Language;
+
     const supportedLangs = Object.keys(translations) as Language[];
+
+    const storedLang = localStorage.getItem('language') as Language;
 
     if (storedLang && supportedLangs.includes(storedLang)) {
       setLanguage(storedLang);
+      document.documentElement.lang = storedLang;
     } else {
       const browserLang = navigator.language.split('-')[0] as Language;
+
       if (supportedLangs.includes(browserLang)) {
         setLanguage(browserLang);
+
         localStorage.setItem('language', browserLang);
+        document.documentElement.lang = browserLang;
       } else {
         setLanguage('en');
         localStorage.setItem('language', 'en');
+        document.documentElement.lang = 'en';
       }
     }
+
+    const handleStorageChange = (event: StorageEvent) => {
+      if (event.key !== 'language' || !event.newValue) {
+        return;
+      }
+
+      const newLang = event.newValue as Language;
+
+      if (supportedLangs.includes(newLang)) {
+        setLanguage(newLang);
+        document.documentElement.lang = newLang;
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, []);
 
   const changeLanguage = (lang: Language) => {
@@ -118,6 +147,9 @@ export function TranslationProvider({ children }: { children: ReactNode }) {
     }
 
     if (value === undefined) {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn(`⚠ Missing translation key "${path}" in locale "${currentLang}"`);
+      }
       if (params && 'defaultValue' in params) {
         return params.defaultValue;
       }
@@ -151,6 +183,9 @@ export function useTranslation() {
       t: (path: string, params?: Record<string, string>): string => {
         const value = getNestedValue(en, path);
         if (value === undefined) {
+          if (process.env.NODE_ENV === 'development') {
+            console.warn(`⚠ Missing translation key "${path}" in locale "en"`);
+          }
           if (params && 'defaultValue' in params) {
             return params.defaultValue;
           }

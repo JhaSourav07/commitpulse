@@ -11,6 +11,19 @@
  * @param {string} username - The GitHub username to record the visit for.
  * @returns {void}
  */
+/**
+ * Resolves the track-user endpoint URL against NEXT_PUBLIC_SITE_URL when set.
+ * sendBeacon always resolves relative to window.location.origin and cannot be
+ * redirected — when the API lives on a different host, relative paths silently
+ * hit the wrong origin. Using an absolute URL derived from NEXT_PUBLIC_SITE_URL
+ * ensures pings reach the correct endpoint regardless of deployment topology.
+ */
+function getTrackUserUrl(): string {
+  const base = (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_SITE_URL?.trim()) || '';
+  const normalizedBase = base.replace(/\/+$/, '');
+  return normalizedBase ? `${normalizedBase}/api/track-user` : '/api/track-user';
+}
+
 export function trackUser(username: string) {
   if (typeof navigator === 'undefined' || typeof window === 'undefined') return;
   if (!username) return;
@@ -23,12 +36,13 @@ export function trackUser(username: string) {
     return;
   }
 
+  const url = getTrackUserUrl();
   const beaconQueued = navigator.sendBeacon
-    ? navigator.sendBeacon('/api/track-user', new Blob([payload], { type: 'application/json' }))
+    ? navigator.sendBeacon(url, new Blob([payload], { type: 'application/json' }))
     : false;
 
   if (!beaconQueued) {
-    fetch('/api/track-user', {
+    fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: payload,

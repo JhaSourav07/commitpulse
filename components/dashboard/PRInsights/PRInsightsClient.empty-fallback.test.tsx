@@ -52,6 +52,7 @@ class ResizeObserverMock {
 
 const emptyInsights: PRInsightData = {
   totalPRs: 0,
+  prs: [],
   openPRs: 0,
   mergedPRs: 0,
   closedPRs: 0,
@@ -86,6 +87,7 @@ describe('PRInsightsClient - Edge Cases & Empty/Missing Inputs', () => {
   });
 
   afterEach(() => {
+    localStorage.clear();
     vi.unstubAllGlobals();
     vi.clearAllMocks();
   });

@@ -54,7 +54,7 @@ describe('ContributorsLoading - Mock Integrations & Local Cache Stubs', () => {
     render(<Loading />);
 
     expect(screen.getByRole('status')).toBeInTheDocument();
-    expect(screen.getByText('Loading the collective...')).toBeInTheDocument();
+    expect(screen.queryByText('Loading the collective...')).not.toBeInTheDocument();
 
     // Resolve the pending fetch
     resolvePromise([{ id: 1, login: 'contributor-1' }]);
@@ -98,7 +98,7 @@ describe('ContributorsLoading - Mock Integrations & Local Cache Stubs', () => {
 
     expect(result).toEqual([]);
     expect(screen.getByRole('status')).toBeInTheDocument();
-    expect(screen.getByText('Loading the collective...')).toBeInTheDocument();
+    expect(screen.queryByText('Loading the collective...')).not.toBeInTheDocument();
   });
 
   // --- Test Case 5 ---

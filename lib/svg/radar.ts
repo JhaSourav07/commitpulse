@@ -1,7 +1,8 @@
 // lib/svg/radar.ts
 
 import type { BadgeParams, ContributionCalendar, StreakStats } from '../../types';
-import { deterministicRandom, escapeXML, truncateUsername } from './generator';
+import { truncateUsername, getSizeScale } from './generator';
+import { escapeXML } from './sanitizer';
 import { calculateWrappedStats, calculateMonthlyStats } from '../calculate';
 import {
   RADAR_SVG_WIDTH,
@@ -21,11 +22,7 @@ import {
   RADAR_AXIS_OPACITY,
 } from './radarConstants';
 
-function calculateRadarMetrics(
-  stats: StreakStats,
-  calendar: ContributionCalendar,
-  seed: string
-): number[] {
+function calculateRadarMetrics(stats: StreakStats, calendar: ContributionCalendar): number[] {
   // 1. Consistency: current streak vs longest
   const consistency =
     stats.longestStreak > 0 ? Math.min(1, stats.currentStreak / stats.longestStreak) : 0;
@@ -37,8 +34,21 @@ function calculateRadarMetrics(
   const wrapped = calculateWrappedStats(calendar);
   const weekend = Math.min(1, wrapped.weekendRatio / 100);
 
-  // 4. Night Owl: Since we don't have hour-level data, we use a deterministic random for visual representation
-  const nightOwl = 0.2 + 0.6 * deterministicRandom(`${seed}:nightowl`);
+  // 4. Night Owl proxy: ratio of weeknight (Mon–Thu) contributions to all weekday contributions.
+  // GitHub's calendar has no hour data, but weeknight commits (Mon–Thu) are a real behavioral
+  // signal for late-evening coding patterns versus weekend/Friday casual commits.
+  const weeks = calendar.weeks || [];
+  const allDays = weeks.flatMap((w) => w?.contributionDays || []).filter(Boolean);
+  let weeknightCommits = 0;
+  let weekdayCommits = 0;
+  for (const day of allDays) {
+    if (!day?.date) continue;
+    const dow = new Date(day.date).getUTCDay(); // 0=Sun … 6=Sat
+    const count = day.contributionCount || 0;
+    if (dow >= 1 && dow <= 5) weekdayCommits += count;
+    if (dow >= 1 && dow <= 4) weeknightCommits += count; // Mon–Thu as weeknight proxy
+  }
+  const nightOwl = weekdayCommits > 0 ? Math.min(1, weeknightCommits / weekdayCommits) : 0;
 
   // 5. Growth: using monthly delta
   const monthly = calculateMonthlyStats(calendar, 'UTC', new Date());
@@ -47,8 +57,12 @@ function calculateRadarMetrics(
     growth = Math.min(1, Math.max(0, 0.5 + monthly.deltaPercentage / 200));
   }
 
-  // 6. Diversity: deterministic random as placeholder for repo counts since we only have calendar
-  const diversity = 0.3 + 0.7 * deterministicRandom(`${seed}:diversity`);
+  // 6. Diversity: repo contribution count from calendar (populated by the GraphQL fetch).
+  // Normalized against 20 repos as a reasonable "high diversity" ceiling.
+  const diversity =
+    typeof calendar.repoContributions === 'number' && calendar.repoContributions > 0
+      ? Math.min(1, calendar.repoContributions / 20)
+      : 0.3; // neutral fallback when repo data is unavailable
 
   return [consistency, volume, weekend, nightOwl, growth, diversity];
 }
@@ -58,17 +72,13 @@ export function generateRadarSVG(
   params: BadgeParams,
   calendar: ContributionCalendar
 ): string {
+  const sf = getSizeScale(params.size);
   const safeUser = escapeXML(truncateUsername(params.user));
   const bgColor = params.bg || '0d1117';
   const textColor = params.text || 'c9d1d9';
   const accentColor = Array.isArray(params.accent) ? params.accent[0] : params.accent || '58a6ff';
 
-  // Seed for deterministic generation
-  // We use stats instead of the raw username string to prevent CodeQL
-  // from flagging deterministicRandom as a weak cryptographic algorithm
-  // processing sensitive user data.
-  const seed = `${stats.totalContributions}:${stats.longestStreak}:${stats.currentStreak}`;
-  const metrics = calculateRadarMetrics(stats, calendar, seed);
+  const metrics = calculateRadarMetrics(stats, calendar);
 
   // Build SVG content
 
@@ -127,7 +137,7 @@ export function generateRadarSVG(
     }
   `;
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${RADAR_SVG_WIDTH}" height="${RADAR_SVG_HEIGHT}" viewBox="0 0 ${RADAR_SVG_WIDTH} ${RADAR_SVG_HEIGHT}" role="img" aria-labelledby="cp-radar-title cp-radar-desc">
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${Math.round(RADAR_SVG_WIDTH * sf)}" height="${Math.round(RADAR_SVG_HEIGHT * sf)}" viewBox="0 0 ${RADAR_SVG_WIDTH} ${RADAR_SVG_HEIGHT}" role="img" aria-labelledby="cp-radar-title cp-radar-desc">
   <title id="cp-radar-title">CommitPulse Radar Map for ${safeUser}</title>
   <desc id="cp-radar-desc">A radar chart visualization of ${safeUser}'s GitHub contributions across 6 dimensions.</desc>
   <defs>
@@ -138,10 +148,8 @@ export function generateRadarSVG(
     </filter>
   </defs>
 
-  <!-- Background -->
   <rect width="${RADAR_SVG_WIDTH}" height="${RADAR_SVG_HEIGHT}" fill="#${bgColor}" rx="8" />
   
-  <!-- Radar Grid -->
   <g id="${CSS_PREFIX}-levels">
 ${levelsSVG}  </g>
   <g id="${CSS_PREFIX}-axes">
@@ -149,12 +157,10 @@ ${axesSVG}  </g>
   <g id="${CSS_PREFIX}-labels">
 ${labelsSVG}  </g>
   
-  <!-- Radar Data -->
   <g id="${CSS_PREFIX}-data">
 ${dataPolygonSVG}
   </g>
   
-  <!-- User Info -->
   <text x="${USERNAME_LABEL_X}" y="${USERNAME_LABEL_Y}" fill="#${textColor}" font-family="'Inter', 'Space Grotesk', sans-serif" font-size="18" font-weight="700">${safeUser}</text>
   <text x="${SUBTITLE_X}" y="${SUBTITLE_Y}" fill="#${textColor}" font-family="'Inter', sans-serif" font-size="12" opacity="0.5">Contribution Radar</text>
 </svg>`;

@@ -1,13 +1,10 @@
 'use client';
 import Link from 'next/link';
-
 import { toast } from 'sonner';
+import MiniGame from '../components/MiniGame';
+
 export default function NotFound() {
-  const terminalContent = `git checkout this-page
-
- The page you're looking for has been rebased out of existence. No stash. No reflog. Just vibes.
-
- hint: Did you mean some other username?`;
+  const terminalContent = `git checkout this-page\n\nThe page you're looking for has been rebased out of existence. No stash. No reflog. Just vibes.\n\nhint: Did you mean some other username?`;
 
   const handleCopy = async () => {
     try {
@@ -19,10 +16,10 @@ export default function NotFound() {
   };
 
   return (
-    <main className="relative min-h-screen text-white overflow-hidden flex flex-col items-center font-sans">
+    <main className="relative min-h-screen text-white overflow-x-hidden flex flex-col items-center font-sans py-10">
       <div
         aria-hidden="true"
-        className="pointer-events-none fixed inset-0"
+        className="pointer-events-none fixed inset-0 z-0"
         style={{
           backgroundImage: `linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
                       linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)`,
@@ -30,22 +27,32 @@ export default function NotFound() {
         }}
       />
 
-      <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden z-0">
         <div className="absolute top-[-10%] left-[20%] h-screen w-screen rounded-full blur-[140px]" />
         <div className="absolute bottom-[-10%] right-[15%] h-screen w-screen rounded-full blur-[120px]" />
       </div>
 
-      <div className="relative z-10 flex flex-col items-center justify-start gap-8 max-w-lg w-full text-center">
-        <div className="relative select-none w-full">
-          <span className="text-[9rem] font-sans leading-none tracking-tighter text-white/5 absolute inset-0 flex items-center justify-center [WebkitTextStroke:1px_rgba(139,92,246,0.3)]">
-            𝒐𝒐𝒑𝒔
+      <div className="relative z-10 flex flex-col items-center justify-start gap-6 max-w-lg w-full text-center px-4">
+        {/* ✅ UPDATED OOPS HEADER WITH SMOOTH 404 ANIMATION */}
+        <div className="relative select-none w-full mt-4">
+          {/* glow layer */}
+          <span className="absolute inset-0 flex items-center justify-center text-[7rem] sm:text-[9rem] font-black leading-none tracking-tighter text-violet-400/10 blur-xl animate-pulse">
+            404
           </span>
-          <span className="text-[9rem] font-black leading-none tracking-tighter relative bg-[linear-gradient(135deg,_#a78bfa_0%,_#38bdf8_50%,_#a78bfa_100%)] bg-clip-text text-transparent drop-shadow-[0_0_40px_rgba(139,92,246,0.4)]">
-            𝒐𝒐𝒑𝒔
+
+          {/* stroke layer */}
+          <span className="absolute inset-0 flex items-center justify-center text-[7rem] sm:text-[9rem] font-sans leading-none tracking-tighter text-white/5 [WebkitTextStroke:1px_rgba(139,92,246,0.3)] animate-pulse">
+            404
+          </span>
+
+          {/* main gradient layer */}
+          <span className="relative flex items-center justify-center text-[7rem] sm:text-[9rem] font-black leading-none tracking-tighter bg-[linear-gradient(135deg,_#a78bfa_0%,_#38bdf8_50%,_#a78bfa_100%)] bg-clip-text text-transparent drop-shadow-[0_0_40px_rgba(139,92,246,0.4)] animate-[pulse_2s_ease-in-out_infinite]">
+            404
           </span>
         </div>
 
-        <div className="space-y-2">
+        {/* Subtitle */}
+        <div className="space-y-2 mt-2">
           <h1 className="text-sm font-bold tracking-tight">
             Looks like this commit got{' '}
             <span className="bg-linear-to-r from-violet-400 to-sky-400 bg-clip-text text-transparent">
@@ -55,9 +62,15 @@ export default function NotFound() {
           </h1>
         </div>
 
+        {/* 🎮 THE NEW ADDICTIVE MINI GAME */}
+        <div className="w-full">
+          <MiniGame />
+        </div>
+
+        {/* Terminal Block */}
         <div
           onClick={handleCopy}
-          className="w-full rounded-2xl border border-white/10 bg-white/3 backdrop-blur-md overflow-hidden cursor-pointer hover:bg-white/5 transition-all duration-200"
+          className="w-full rounded-2xl border border-white/10 bg-white/3 backdrop-blur-md overflow-hidden cursor-pointer hover:bg-white/5 transition-all duration-200 shadow-xl"
         >
           <div className="flex items-center gap-2 border-b border-white/10 bg-white/4 px-4 py-3">
             <span className="h-3 w-3 rounded-full bg-red-500/70" />
@@ -91,7 +104,8 @@ export default function NotFound() {
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-3 w-full">
+        {/* Navigation Buttons */}
+        <div className="flex flex-col sm:flex-row gap-3 w-full pb-8">
           <Link
             href="https://github.com/JhaSourav07/commitpulse"
             target="_blank"

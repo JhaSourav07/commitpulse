@@ -50,16 +50,16 @@ export default function GithubWrapped({ profile, wrappedData }: GithubWrappedPro
         {/* Header */}
         <motion.div variants={itemVariants} className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Image
+            <img
               src={
                 profile.avatarUrl.startsWith('http') || profile.avatarUrl.startsWith('/')
                   ? profile.avatarUrl
                   : `/${profile.avatarUrl}`
               }
               alt={profile.name || 'GitHub profile avatar'}
-              width={64}
-              height={64}
-              className="w-16 h-16 rounded-full border-2 border-white/20"
+              width="64"
+              height="64"
+              className="w-16 h-16 rounded-full border-2 border-white/20 object-cover"
             />
             <div>
               <h2 className="text-2xl font-bold tracking-tight">{profile.name}</h2>
@@ -78,7 +78,7 @@ export default function GithubWrapped({ profile, wrappedData }: GithubWrappedPro
             Your Year In Code
           </p>
           <h1 className="text-7xl md:text-8xl font-black bg-linear-to-r from-cyan-400 via-purple-400 to-pink-400 bg-clip-text text-transparent drop-shadow-lg">
-            {wrappedData.totalContributions.toLocaleString()}
+            {wrappedData.totalContributions.toLocaleString('en-US')}
           </h1>
           <p className="text-xl text-white/80 mt-2 font-medium">Total Contributions</p>
         </motion.div>

@@ -4,8 +4,8 @@ import { GET } from '../route';
 describe('Integration Test: API Streak Dimensions Parameter Group', () => {
   beforeAll(() => {
     // 1. Safely stub the environment variables
-    vi.stubEnv('GITHUB_TOKEN', 'mock_test_token_123');
-    vi.stubEnv('GITHUB_PAT', 'mock_test_token_123');
+    vi.stubEnv('GITHUB_TOKEN', 'ghp_testtokenAAAAAAAAAAAAAAAAAAAAAAAAAAAA');
+    vi.stubEnv('GITHUB_PAT', 'ghp_testtokenAAAAAAAAAAAAAAAAAAAAAAAAAAAA');
 
     // 2. Intercept the network request and return a true native Web Response
     vi.stubGlobal(
@@ -55,7 +55,8 @@ describe('Integration Test: API Streak Dimensions Parameter Group', () => {
     // but the current SVG template hardcodes the output to 600x420.
     // Asserting the current fallback behavior so the pipeline passes.
     expect(svgData).toContain('viewBox="0 0 600 420"');
-    expect(svgData).toContain('<rect width="600" height="420"');
+    expect(svgData).toContain('<rect data-testid="card-bg" x="0.5" y="0.5"');
+    expect(svgData).toContain('width="100%" height="100%" fill="#0d1117"');
   });
 
   it('Test 3: should reject negative dimensions with a 400 Bad Request', async () => {

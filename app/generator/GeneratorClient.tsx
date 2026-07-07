@@ -4,6 +4,9 @@ import { useState, useMemo } from 'react';
 import { EditorPanel } from './components/EditorPanel';
 import { PreviewPanel } from './components/PreviewPanel';
 import { CompletionScorePanel } from './components/CompletionScorePanel';
+import { ReadmeInsightsPanel } from './components/ReadmeInsightsPanel';
+import { ReadmeHealthBreakdown } from './components/ReadmeHealthBreakdown';
+import { ReadmeInsight } from './components/ReadmeInsight';
 import { generateReadme, getEmptyReadme } from './utils/readmeGenerator';
 import type { GeneratorState } from './types';
 import type { ImportedData } from './utils/githubMapper';
@@ -20,6 +23,8 @@ const INITIAL_STATE: GeneratorState = {
   showSnakeGraph: false,
   showPacmanGraph: false,
   graphPlacement: 'bottom',
+  showRepoSpotlight: false,
+  spotlightRepo: '',
 };
 
 export function GeneratorClient() {
@@ -32,6 +37,7 @@ export function GeneratorClient() {
       state.selectedTechs.length > 0 ||
       state.selectedSocials.some((id) => state.socialLinks[id]?.trim()) ||
       (state.showCommitPulse && state.githubUsername.trim()) ||
+      (state.showRepoSpotlight && state.spotlightRepo.trim()) ||
       (state.showSnakeGraph && state.githubUsername.trim()) ||
       (state.showPacmanGraph && state.githubUsername.trim());
 
@@ -90,6 +96,8 @@ export function GeneratorClient() {
           onShowSnakeGraphChange={(v) => setState((s) => ({ ...s, showSnakeGraph: v }))}
           onShowPacmanGraphChange={(v) => setState((s) => ({ ...s, showPacmanGraph: v }))}
           onGraphPlacementChange={(v) => setState((s) => ({ ...s, graphPlacement: v }))}
+          onShowRepoSpotlightChange={(v) => setState((s) => ({ ...s, showRepoSpotlight: v }))}
+          onSpotlightRepoChange={(v) => setState((s) => ({ ...s, spotlightRepo: v }))}
           onApplyImport={handleApplyImport}
         />
       </div>
@@ -97,6 +105,9 @@ export function GeneratorClient() {
       <div className="w-full lg:flex-1 flex flex-col gap-5 xl:gap-6">
         <PreviewPanel markdown={markdown} />
         <CompletionScorePanel state={state} />
+        <ReadmeInsightsPanel state={state} />
+        <ReadmeHealthBreakdown state={state} />
+        <ReadmeInsight state={state} />
       </div>
     </div>
   );

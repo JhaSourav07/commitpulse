@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import Link from 'next/link';
+import logger from '@/lib/logger';
 
 export default function DashboardError({
   error,
@@ -14,6 +15,9 @@ export default function DashboardError({
     if (error) {
       console.error(error);
     }
+    logger.error('Dashboard error', {
+      error,
+    });
   }, [error]);
 
   const errorMessage = error?.message || '';

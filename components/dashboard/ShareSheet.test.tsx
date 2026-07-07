@@ -13,6 +13,7 @@ const mockHandleDownloadPNG = vi.fn();
 const mockHandleDownloadWEBP = vi.fn();
 const mockHandleDownloadSVG = vi.fn();
 const mockHandleDownloadJSON = vi.fn();
+const mockHandleDownloadSTL = vi.fn();
 const mockHandleCopyMarkdown = vi.fn();
 const mockHandleNativeShare = vi.fn();
 let mockStates: Record<string, 'idle' | 'loading' | 'success' | 'error'> = {};
@@ -32,6 +33,7 @@ const mockHandlers = {
   handleDownloadWEBP: mockHandleDownloadWEBP,
   handleDownloadSVG: mockHandleDownloadSVG,
   handleDownloadJSON: mockHandleDownloadJSON,
+  handleDownloadSTL: mockHandleDownloadSTL,
   handleCopyMarkdown: mockHandleCopyMarkdown,
   handleNativeShare: mockHandleNativeShare,
 };
@@ -175,6 +177,12 @@ describe('ShareSheet', () => {
       mockStates = { ...mockStates, webp: 'loading' };
       await Promise.resolve();
       mockStates = { ...mockStates, webp: 'success' };
+    });
+
+    mockHandlers.handleDownloadSTL.mockImplementation(async () => {
+      mockStates = { ...mockStates, stl: 'loading' };
+      await Promise.resolve();
+      mockStates = { ...mockStates, stl: 'success' };
     });
 
     mockHandlers.handleDownloadSVG.mockImplementation(async () => {
@@ -396,11 +404,13 @@ describe('ShareSheet', () => {
     expect(mockHandleDownloadSVG).toHaveBeenCalled();
   });
 
-  it('renders Download Printable 3D STL as disabled', () => {
+  it('handles Download STL action', () => {
     render(<ShareSheet {...defaultProps} />);
-    const stlButton = screen.getByText('Download Printable 3D STL (Coming Soon)').closest('button');
+    const stlButton = screen.getByText('Download Printable 3D STL').closest('button');
     expect(stlButton).toBeDefined();
-    expect(stlButton?.disabled).toBe(true);
+    expect(stlButton?.disabled).toBe(false);
+    fireEvent.click(stlButton!);
+    expect(mockHandleDownloadSTL).toHaveBeenCalled();
   });
 
   // ── GitHub Wrapped ---------------------------------------------------------

@@ -25,6 +25,7 @@ class ResizeObserverMock {
 function buildMassiveInsights(overrides: Partial<PRInsightData> = {}): PRInsightData {
   return {
     totalPRs: 999999,
+    prs: [],
     openPRs: 333333,
     mergedPRs: 499999,
     closedPRs: 166667,
@@ -90,6 +91,7 @@ describe('PRInsightsClient Massive Data Sets and Extreme High Bounds Scaling', (
   });
 
   afterEach(() => {
+    localStorage.clear();
     vi.unstubAllGlobals();
   });
 
