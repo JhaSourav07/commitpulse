@@ -621,7 +621,7 @@ export default function LandingPageClient() {
         <div className="absolute -right-[10%] top-[20%] h-[30%] w-[30%] rounded-full bg-cyan-500/5 blur-[120px]" />
       </div>
 
-      <main className="relative z-10 mx-auto max-w-6xl px-6 mt-32">
+      <main className="relative z-10 mx-auto max-w-6xl px-6 mt-16">
         <div className="mb-16 text-center">
           <DiscordButton />
 
