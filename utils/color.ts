@@ -1,10 +1,27 @@
 export function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
-  const match = hex.replace('#', '').match(/^([0-9a-fA-F]{6})$/);
-  if (!match) return null;
+  const cleaned = hex.replace('#', '');
+
+  // Accept the same hex formats the rest of the app allows (see HEX_COLOR_REGEX
+  // in lib/svg/themes.ts): 3/4-digit shorthand and 6/8-digit full hex. Shorthand
+  // digits are expanded (e.g. "abc" -> "aabbcc") and any trailing alpha channel
+  // is ignored so contrast/HSL helpers work on every accepted color, not just 6-digit.
+  let normalized: string;
+  if (/^[0-9a-fA-F]{3,4}$/.test(cleaned)) {
+    normalized = cleaned
+      .slice(0, 3)
+      .split('')
+      .map((c) => c + c)
+      .join('');
+  } else if (/^[0-9a-fA-F]{6,8}$/.test(cleaned)) {
+    normalized = cleaned.slice(0, 6);
+  } else {
+    return null;
+  }
+
   return {
-    r: parseInt(match[1].slice(0, 2), 16),
-    g: parseInt(match[1].slice(2, 4), 16),
-    b: parseInt(match[1].slice(4, 6), 16),
+    r: parseInt(normalized.slice(0, 2), 16),
+    g: parseInt(normalized.slice(2, 4), 16),
+    b: parseInt(normalized.slice(4, 6), 16),
   };
 }
 

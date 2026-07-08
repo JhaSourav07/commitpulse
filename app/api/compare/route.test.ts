@@ -1,8 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-vi.mock('@/lib/github', () => ({
-  getFullDashboardData: vi.fn(),
-}));
+vi.mock('@/lib/github', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/github')>();
+  return {
+    ...actual,
+    getFullDashboardData: vi.fn(),
+  };
+});
 
 vi.mock('@/lib/githubtoken', () => ({
   getUserGitHubToken: vi.fn().mockResolvedValue(undefined),
@@ -159,7 +163,7 @@ describe('GET /api/compare', () => {
     expect(res.status).toBe(403);
   });
 
-  it('returns 500 when a timeout error is wrapped in a cause chain', async () => {
+  it('returns 504 when a timeout error is wrapped in a cause chain', async () => {
     vi.mocked(getFullDashboardData).mockRejectedValueOnce(
       new Error('[GitHub API] Failed to fetch profile for user "octocat"', {
         cause: new Error('GitHub API request timed out after 8s'),
@@ -168,7 +172,7 @@ describe('GET /api/compare', () => {
 
     const res = await GET(makeRequest('user1=octocat&user2=torvalds'));
 
-    expect(res.status).toBe(500);
+    expect(res.status).toBe(504);
   });
 
   // ── ETag & Caching ─────────────────────────────────────────────────────────

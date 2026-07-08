@@ -385,7 +385,7 @@ export function generateConstellationSVG(
   const milkyWayGradientDef = buildMilkyWayGradientDef();
 
   // ── Assemble final SVG ─────────────────────────────────────────────────
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${Math.round(CONSTELLATION_SVG_WIDTH * sf)}" height="${Math.round(CONSTELLATION_SVG_HEIGHT * sf)}" viewBox="0 0 ${CONSTELLATION_SVG_WIDTH} ${CONSTELLATION_SVG_HEIGHT}" role="img" aria-labelledby="cp-constellation-title cp-constellation-desc">
+  const svg = `<svg style="max-width: 100%; height: auto;" xmlns="http://www.w3.org/2000/svg" width="${Math.round(CONSTELLATION_SVG_WIDTH * sf)}" height="${Math.round(CONSTELLATION_SVG_HEIGHT * sf)}" viewBox="0 0 ${CONSTELLATION_SVG_WIDTH} ${CONSTELLATION_SVG_HEIGHT}" role="img" aria-labelledby="cp-constellation-title cp-constellation-desc">
   <title id="cp-constellation-title">CommitPulse Constellation Map for ${safeUser}</title>
   <desc id="cp-constellation-desc">A celestial star-map visualization of ${safeUser}'s GitHub contributions in ${year}. Each star represents a day with contributions; brighter stars indicate more commits. Constellation lines connect the brightest stars within each month.</desc>
   <defs>

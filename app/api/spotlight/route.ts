@@ -6,6 +6,7 @@ import { getNormalizedThemeKey, themes } from '@/lib/svg/themes';
 import { streakParamsSchema, coerceQueryParams } from '@/lib/validations';
 import { getClientIp } from '@/utils/getClientIp';
 import { RateLimiter, getRateLimitHeaders } from '@/lib/rate-limit';
+import { escapeXML } from '@/lib/svg/sanitizer';
 
 const spotlightLimiter = new RateLimiter(50, 60_000, 1);
 
@@ -15,8 +16,8 @@ const SVG_CSP_HEADER =
 function buildInlineErrorSVG(text: string): string {
   const MAX_LINE = 48;
   const truncated = text.length > MAX_LINE * 2 ? text.slice(0, MAX_LINE * 2 - 1) + '…' : text;
-  const line1 = truncated.slice(0, MAX_LINE);
-  const line2 = truncated.length > MAX_LINE ? truncated.slice(MAX_LINE) : null;
+  const line1 = escapeXML(truncated.slice(0, MAX_LINE));
+  const line2 = truncated.length > MAX_LINE ? escapeXML(truncated.slice(MAX_LINE)) : null;
   const textY = line2 ? '62' : '75';
   return `<svg xmlns="http://www.w3.org/2000/svg" width="450" height="160" viewBox="0 0 450 160">
   <rect width="450" height="160" fill="#2d0000" rx="8"/>
@@ -39,6 +40,7 @@ export async function GET(request: Request) {
       status: 429,
       headers: {
         'Content-Type': 'image/svg+xml; charset=utf-8',
+        'Content-Security-Policy': SVG_CSP_HEADER,
         'Cache-Control': 'no-store',
         ...getRateLimitHeaders(rateLimitResult),
       },
@@ -52,7 +54,10 @@ export async function GET(request: Request) {
   if (!repoName) {
     return new NextResponse(buildInlineErrorSVG('Missing repo parameter'), {
       status: 400,
-      headers: { 'Content-Type': 'image/svg+xml; charset=utf-8' },
+      headers: {
+        'Content-Type': 'image/svg+xml; charset=utf-8',
+        'Content-Security-Policy': SVG_CSP_HEADER,
+      },
     });
   }
 
@@ -60,7 +65,10 @@ export async function GET(request: Request) {
   if (!parseResult.success) {
     return new NextResponse(buildInlineErrorSVG('Invalid parameters'), {
       status: 400,
-      headers: { 'Content-Type': 'image/svg+xml; charset=utf-8' },
+      headers: {
+        'Content-Type': 'image/svg+xml; charset=utf-8',
+        'Content-Security-Policy': SVG_CSP_HEADER,
+      },
     });
   }
 
@@ -116,6 +124,7 @@ export async function GET(request: Request) {
       status: message.includes('not found') ? 404 : 500,
       headers: {
         'Content-Type': 'image/svg+xml; charset=utf-8',
+        'Content-Security-Policy': SVG_CSP_HEADER,
         'Cache-Control': 'no-store',
       },
     });

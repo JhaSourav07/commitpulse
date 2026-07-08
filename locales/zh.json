@@ -30,7 +30,10 @@
     "discord": "Discord",
     "twitter": "Twitter",
     "linkedin": "LinkedIn",
-    "generator": "生成器"
+    "generator": "生成器",
+    "guidelines": "指南",
+    "faq": "常见问题",
+    "support": "支持"
   },
   "landing": {
     "empty_username_warning": "Please enter a GitHub username to copy your badge link.",

@@ -9,14 +9,19 @@ import {
 describe('GitHub Circuit Breaker Telemetry', () => {
   const originalGitHubPat = process.env.GITHUB_PAT;
   const originalGitHubToken = process.env.GITHUB_TOKEN;
+  const originalGitHubTokens = process.env.GITHUB_TOKENS;
 
   beforeEach(() => {
     clearGitHubApiCacheForTests();
+    delete process.env.GITHUB_PAT;
+    delete process.env.GITHUB_TOKEN;
+    delete process.env.GITHUB_TOKENS;
   });
 
   afterEach(() => {
     process.env.GITHUB_PAT = originalGitHubPat;
     process.env.GITHUB_TOKEN = originalGitHubToken;
+    process.env.GITHUB_TOKENS = originalGitHubTokens;
   });
 
   it('reports closed circuit by default', () => {
