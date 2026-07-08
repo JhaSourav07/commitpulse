@@ -50,6 +50,8 @@ describe('EditorPanel Component Interactivity Tests', () => {
       githubUsername: 'johndoe',
       showCommitPulse: true,
       commitPulseAccent: '#10b981',
+      showRepoSpotlight: false,
+      spotlightRepo: '',
       showSnakeGraph: false,
       showPacmanGraph: false,
       graphPlacement: 'bottom',

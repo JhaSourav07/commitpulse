@@ -99,4 +99,49 @@ describe('Footer Responsive Breakpoints', () => {
     expect(screen.getByText('© 2026 CommitPulse')).toBeInTheDocument();
     expect(screen.getByText('Made with love')).toBeInTheDocument();
   });
+
+  it('stacks navigation, resources, and connect sections into vertical flex lists on mobile', () => {
+    const { container } = render(<Footer />);
+
+    const flexColContainers = container.querySelectorAll('.flex.flex-col');
+    expect(flexColContainers.length).toBe(8);
+
+    const navList = container.querySelector('nav.flex.flex-col.gap-2');
+    expect(navList).toBeInTheDocument();
+
+    const headings = ['Navigation', 'Resources', 'Connect'];
+    headings.forEach((label) => {
+      const heading = screen.getByText(label);
+      const sectionWrapper = heading.closest('.flex.flex-col.items-center.sm\\:items-start');
+      expect(sectionWrapper).toBeInTheDocument();
+    });
+  });
+
+  it('does not use fixed pixel widths that could cause horizontal overflow at 375px', () => {
+    const { container } = render(<Footer />);
+
+    const allEls = container.querySelectorAll('[class]');
+    allEls.forEach((el) => {
+      const classes = el.getAttribute('class') || '';
+      expect(classes).not.toMatch(/\bw-\[\d+px\]/);
+      expect(classes).not.toMatch(/\bmin-w-\[\d+px\]/);
+    });
+
+    const wrapper = container.querySelector('.mx-auto.max-w-6xl');
+    expect(wrapper).toBeInTheDocument();
+  });
+
+  it('renders icons with shrink-0 so they scale gracefully instead of distorting on narrow screens', () => {
+    const { container } = render(<Footer />);
+
+    const shrinkIcons = container.querySelectorAll('svg[class*="shrink-0"]');
+    expect(shrinkIcons.length).toBeGreaterThan(0);
+  });
+
+  it('centers section headings/links on narrow viewports before left-aligning at the sm breakpoint', () => {
+    const { container } = render(<Footer />);
+
+    const centeredSections = container.querySelectorAll('.items-center.sm\\:items-start');
+    expect(centeredSections.length).toBe(3);
+  });
 });

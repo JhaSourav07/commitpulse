@@ -100,7 +100,7 @@ export function generateCommitClockSVG(
 
   const rx = params.radius ?? 8;
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${Math.round(WIDTH * sf)}" height="${Math.round(HEIGHT * sf)}" viewBox="0 0 ${WIDTH} ${HEIGHT}" role="img" aria-labelledby="cp-clock-title" aria-describedby="cp-clock-desc">
+  return `<svg style="max-width: 100%; height: auto;" xmlns="http://www.w3.org/2000/svg" width="${Math.round(WIDTH * sf)}" height="${Math.round(HEIGHT * sf)}" viewBox="0 0 ${WIDTH} ${HEIGHT}" role="img" aria-labelledby="cp-clock-title" aria-describedby="cp-clock-desc">
   <title id="cp-clock-title">CommitPulse Commit Clock for ${safeUser}</title>
   <desc id="cp-clock-desc">A 24-hour polar ring showing ${safeUser}'s commit frequency by hour of day.</desc>
   <defs>

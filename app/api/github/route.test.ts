@@ -1,10 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { GET } from './route';
+import { RateLimiter } from '@/lib/rate-limit';
 
 // Replace the real GitHub API with a fake function
-vi.mock('../../../lib/github', () => ({
-  getFullDashboardData: vi.fn(),
-}));
+vi.mock('../../../lib/github', async () => {
+  const actual = await vi.importActual<typeof import('../../../lib/github')>('../../../lib/github');
+
+  return {
+    ...actual,
+    getFullDashboardData: vi.fn(),
+  };
+});
 
 // Run after() callbacks synchronously in tests (outside a request scope it is otherwise a no-op).
 vi.mock('next/server', async (importOriginal) => {
@@ -36,209 +42,207 @@ function makeRequest(
   });
 }
 
-describe('GET /api/github', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
+beforeEach(() => {
+  vi.clearAllMocks();
+  vi.spyOn(RateLimiter.prototype, 'check').mockResolvedValue(true);
+  vi.mocked(getFullDashboardData).mockResolvedValue({
+    profile: { lastSyncedAt: new Date().toISOString() },
+    calendar: {},
+    lastSyncedAt: new Date().toISOString(),
+  } as unknown as Awaited<ReturnType<typeof getFullDashboardData>>);
+  quotaMonitor.reset();
+  refreshPolicy.reset();
+  refreshRateLimiter.reset();
+  backgroundRefresh.reset();
+});
+
+describe('Unrestricted Cache Bypass & Abuse Mitigation (Issue #1978)', () => {
+  // Scenario 1: Normal cached request
+  it('Scenario 1: serves cached data and checks SWR background refresh', async () => {
+    // Mock data that is stale (15 minutes ago)
+    const staleTime = new Date(Date.now() - 15 * 60 * 1000).toISOString();
     vi.mocked(getFullDashboardData).mockResolvedValue({
-      profile: { lastSyncedAt: new Date().toISOString() },
+      profile: { lastSyncedAt: staleTime },
       calendar: {},
-      lastSyncedAt: new Date().toISOString(),
     } as unknown as Awaited<ReturnType<typeof getFullDashboardData>>);
 
-    quotaMonitor.reset();
-    refreshPolicy.reset();
-    refreshRateLimiter.reset();
-    backgroundRefresh.reset();
+    const triggerSpy = vi.spyOn(backgroundRefresh, 'triggerRefresh');
+
+    const response = await GET(makeRequest({ username: 'torvalds' }));
+    expect(response.status).toBe(200);
+    expect(getFullDashboardData).toHaveBeenCalledWith(
+      'torvalds',
+      expect.objectContaining({ bypassCache: false })
+    );
+    expect(triggerSpy).toHaveBeenCalledWith('torvalds');
   });
 
-  describe('Unrestricted Cache Bypass & Abuse Mitigation (Issue #1978)', () => {
-    // Scenario 1: Normal cached request
-    it('Scenario 1: serves cached data and checks SWR background refresh', async () => {
-      // Mock data that is stale (15 minutes ago)
-      const staleTime = new Date(Date.now() - 15 * 60 * 1000).toISOString();
-      vi.mocked(getFullDashboardData).mockResolvedValue({
-        profile: { lastSyncedAt: staleTime },
-        calendar: {},
-      } as unknown as Awaited<ReturnType<typeof getFullDashboardData>>);
+  // Scenario 2: Single refresh request allowed
+  it('Scenario 2: allows a single refresh request when limits are respected', async () => {
+    const response = await GET(makeRequest({ username: 'torvalds', refresh: 'true' }));
 
-      const triggerSpy = vi.spyOn(backgroundRefresh, 'triggerRefresh');
-
-      const response = await GET(makeRequest({ username: 'torvalds' }));
-      expect(response.status).toBe(200);
-      expect(getFullDashboardData).toHaveBeenCalledWith(
-        'torvalds',
-        expect.objectContaining({ bypassCache: false })
-      );
-      expect(triggerSpy).toHaveBeenCalledWith('torvalds');
-    });
-
-    // Scenario 2: Single refresh request allowed
-    it('Scenario 2: allows a single refresh request when limits are respected', async () => {
-      const response = await GET(makeRequest({ username: 'torvalds', refresh: 'true' }));
-
-      expect(response.status).toBe(200);
-      expect(getFullDashboardData).toHaveBeenCalledWith(
-        'torvalds',
-        expect.objectContaining({ bypassCache: true })
-      );
-      expect(response.headers.get('X-Refresh-Status')).toBe('Fresh');
-    });
-
-    // Scenario 3: Repeated refresh within cooldown served from cache
-    it('Scenario 3: serves cached response for repeated refresh requests within cooldown', async () => {
-      // First refresh is allowed
-      await GET(makeRequest({ username: 'torvalds', refresh: 'true' }));
-      expect(getFullDashboardData).toHaveBeenLastCalledWith(
-        'torvalds',
-        expect.objectContaining({ bypassCache: true })
-      );
-
-      // Second refresh within cooldown (5 minutes)
-      const response = await GET(makeRequest({ username: 'torvalds', refresh: 'true' }));
-
-      expect(response.status).toBe(200);
-      // Cooldown fallback triggers cached read
-      expect(getFullDashboardData).toHaveBeenLastCalledWith(
-        'torvalds',
-        expect.objectContaining({ bypassCache: false })
-      );
-      expect(response.headers.get('X-Refresh-Status')).toBe('Cooldown-Served-Cached');
-    });
-
-    // Scenario 4: Refresh rate limit exceeded per client IP
-    it('Scenario 4: returns 429 when client refresh rate limit is exceeded', async () => {
-      // Set rate limit to 2 per window for testing
-      refreshRateLimiter.setLimit(2);
-
-      // Refresh 1
-      await GET(
-        makeRequest({ username: 'torvalds', refresh: 'true' }, { 'x-real-ip': '203.0.113.5' })
-      );
-      // Refresh 2
-      await GET(
-        makeRequest({ username: 'octocat', refresh: 'true' }, { 'x-real-ip': '203.0.113.5' })
-      );
-
-      // Refresh 3 (exceeds limit of 2)
-      const response = await GET(
-        makeRequest({ username: 'torvalds', refresh: 'true' }, { 'x-real-ip': '203.0.113.5' })
-      );
-
-      expect(response.status).toBe(429);
-      const body = await response.json();
-      expect(body.error).toContain('Refresh rate limit exceeded');
-    });
-
-    // Scenario 5: Low GitHub quota blocks refresh
-    it('Scenario 5: blocks manual refresh when remaining GitHub quota is low (<10%)', async () => {
-      // Set global remaining quota to 400 out of 5000 (8%)
-      quotaMonitor.setQuota(5000, 400, Date.now() + 60000);
-
-      const response = await GET(makeRequest({ username: 'torvalds', refresh: 'true' }));
-
-      expect(response.status).toBe(429);
-      const body = await response.json();
-      expect(body.error).toContain('quota is low');
-      expect(getFullDashboardData).not.toHaveBeenCalled();
-    });
-
-    // Scenario 6: Background refresh execution
-    it('Scenario 6: asynchronous background refresh completes successfully', async () => {
-      const loadSpy = vi.spyOn(backgroundRefresh, 'triggerRefresh');
-
-      // Mock data that is stale
-      const staleTime = new Date(Date.now() - 15 * 60 * 1000).toISOString();
-      vi.mocked(getFullDashboardData).mockResolvedValue({
-        profile: { lastSyncedAt: staleTime },
-        calendar: {},
-      } as unknown as Awaited<ReturnType<typeof getFullDashboardData>>);
-
-      await GET(makeRequest({ username: 'torvalds' }));
-
-      expect(loadSpy).toHaveBeenCalledWith('torvalds');
-    });
+    expect(response.status).toBe(200);
+    expect(getFullDashboardData).toHaveBeenCalledWith(
+      'torvalds',
+      expect.objectContaining({ bypassCache: true })
+    );
+    expect(response.headers.get('X-Refresh-Status')).toBe('Fresh');
   });
 
-  describe('Standard route behavior', () => {
-    it('returns 400 when username contains invalid characters', async () => {
-      const response = await GET(makeRequest({ username: '@@@@@' }));
-      const body = await response.json();
+  // Scenario 3: Repeated refresh within cooldown served from cache
+  it('Scenario 3: serves cached response for repeated refresh requests within cooldown', async () => {
+    // First refresh is allowed
+    await GET(makeRequest({ username: 'torvalds', refresh: 'true' }));
+    expect(getFullDashboardData).toHaveBeenLastCalledWith(
+      'torvalds',
+      expect.objectContaining({ bypassCache: true })
+    );
 
-      expect(response.status).toBe(400);
-      expect(body.error).toContain('Invalid parameters');
+    // Second refresh within cooldown (5 minutes)
+    const response = await GET(makeRequest({ username: 'torvalds', refresh: 'true' }));
+
+    expect(response.status).toBe(200);
+    // Cooldown fallback triggers cached read
+    expect(getFullDashboardData).toHaveBeenLastCalledWith(
+      'torvalds',
+      expect.objectContaining({ bypassCache: false })
+    );
+    expect(response.headers.get('X-Refresh-Status')).toBe('Cooldown-Served-Cached');
+  });
+
+  // Scenario 4: Refresh rate limit exceeded per client IP
+  it('Scenario 4: returns 429 when client refresh rate limit is exceeded', async () => {
+    // Set rate limit to 2 per window for testing
+    refreshRateLimiter.setLimit(2);
+
+    // Refresh 1
+    await GET(
+      makeRequest({ username: 'torvalds', refresh: 'true' }, { 'x-real-ip': '203.0.113.5' })
+    );
+    // Refresh 2
+    await GET(
+      makeRequest({ username: 'octocat', refresh: 'true' }, { 'x-real-ip': '203.0.113.5' })
+    );
+
+    // Refresh 3 (exceeds limit of 2)
+    const response = await GET(
+      makeRequest({ username: 'torvalds', refresh: 'true' }, { 'x-real-ip': '203.0.113.5' })
+    );
+
+    expect(response.status).toBe(429);
+    const body = await response.json();
+    expect(body.error).toContain('Refresh rate limit exceeded');
+  });
+
+  // Scenario 5: Low GitHub quota blocks refresh
+  it('Scenario 5: blocks manual refresh when remaining GitHub quota is low (<10%)', async () => {
+    // Set global remaining quota to 400 out of 5000 (8%)
+    quotaMonitor.setQuota(5000, 400, Date.now() + 60000);
+
+    const response = await GET(makeRequest({ username: 'torvalds', refresh: 'true' }));
+
+    expect(response.status).toBe(429);
+    const body = await response.json();
+    expect(body.error).toContain('quota is low');
+    expect(getFullDashboardData).not.toHaveBeenCalled();
+  });
+
+  // Scenario 6: Background refresh execution
+  it('Scenario 6: asynchronous background refresh completes successfully', async () => {
+    const loadSpy = vi.spyOn(backgroundRefresh, 'triggerRefresh');
+
+    // Mock data that is stale
+    const staleTime = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+    vi.mocked(getFullDashboardData).mockResolvedValue({
+      profile: { lastSyncedAt: staleTime },
+      calendar: {},
+    } as unknown as Awaited<ReturnType<typeof getFullDashboardData>>);
+
+    await GET(makeRequest({ username: 'torvalds' }));
+
+    expect(loadSpy).toHaveBeenCalledWith('torvalds');
+  });
+});
+
+describe('Standard route behavior', () => {
+  it('returns 400 when username contains invalid characters', async () => {
+    const response = await GET(makeRequest({ username: '@@@@@' }));
+    const body = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(body.error).toContain('Invalid parameters');
+  });
+
+  it('returns 400 when username contains only whitespace', async () => {
+    const response = await GET(makeRequest({ username: '   ' }));
+    const body = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(body.error).toContain('Invalid parameters');
+  });
+
+  it('returns 400 when username is missing', async () => {
+    const response = await GET(makeRequest());
+    const body = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(body.error).toContain('Invalid parameters');
+  });
+
+  it('returns 404 when getFullDashboardData throws User not found', async () => {
+    vi.mocked(getFullDashboardData).mockRejectedValue(new Error('User not found'));
+
+    const response = await GET(makeRequest({ username: 'octocat' }));
+    const body = await response.json();
+
+    expect(response.status).toBe(404);
+    expect(body.error).toContain('User not found');
+  });
+
+  it('returns 404 when getFullDashboardData throws a wrapped User not found error', async () => {
+    const underlyingError = new Error('User not found');
+    const wrappedError = new Error('[GitHub API] Failed to fetch profile for user "octocat"', {
+      cause: underlyingError,
+    });
+    vi.mocked(getFullDashboardData).mockRejectedValue(wrappedError);
+
+    const response = await GET(makeRequest({ username: 'octocat' }));
+    const body = await response.json();
+
+    expect(response.status).toBe(404);
+    expect(body.error).toContain('User not found');
+  });
+
+  it('returns 500 when getFullDashboardData throws a generic internal error', async () => {
+    vi.mocked(getFullDashboardData).mockRejectedValue(new Error('Database offline'));
+
+    const response = await GET(makeRequest({ username: 'octocat' }));
+    const body = await response.json();
+
+    expect(response.status).toBe(500);
+    expect(body.error).toContain('Database offline');
+  });
+
+  it('returns 500 instead of hanging when an error cause chain is circular', async () => {
+    const firstError = new Error('Circular cause root');
+    const secondError = new Error('Circular cause child');
+
+    Object.defineProperty(firstError, 'cause', {
+      value: secondError,
+      configurable: true,
     });
 
-    it('returns 400 when username contains only whitespace', async () => {
-      const response = await GET(makeRequest({ username: '   ' }));
-      const body = await response.json();
-
-      expect(response.status).toBe(400);
-      expect(body.error).toContain('Invalid parameters');
+    Object.defineProperty(secondError, 'cause', {
+      value: firstError,
+      configurable: true,
     });
 
-    it('returns 400 when username is missing', async () => {
-      const response = await GET(makeRequest());
-      const body = await response.json();
+    vi.mocked(getFullDashboardData).mockRejectedValue(firstError);
 
-      expect(response.status).toBe(400);
-      expect(body.error).toContain('Invalid parameters');
-    });
+    const response = await GET(makeRequest({ username: 'octocat' }));
+    const body = await response.json();
 
-    it('returns 404 when getFullDashboardData throws User not found', async () => {
-      vi.mocked(getFullDashboardData).mockRejectedValue(new Error('User not found'));
-
-      const response = await GET(makeRequest({ username: 'octocat' }));
-      const body = await response.json();
-
-      expect(response.status).toBe(404);
-      expect(body.error).toContain('User not found');
-    });
-
-    it('returns 404 when getFullDashboardData throws a wrapped User not found error', async () => {
-      const underlyingError = new Error('User not found');
-      const wrappedError = new Error('[GitHub API] Failed to fetch profile for user "octocat"', {
-        cause: underlyingError,
-      });
-      vi.mocked(getFullDashboardData).mockRejectedValue(wrappedError);
-
-      const response = await GET(makeRequest({ username: 'octocat' }));
-      const body = await response.json();
-
-      expect(response.status).toBe(404);
-      expect(body.error).toContain('User not found');
-    });
-
-    it('returns 500 when getFullDashboardData throws a generic internal error', async () => {
-      vi.mocked(getFullDashboardData).mockRejectedValue(new Error('Database offline'));
-
-      const response = await GET(makeRequest({ username: 'octocat' }));
-      const body = await response.json();
-
-      expect(response.status).toBe(500);
-      expect(body.error).toContain('Database offline');
-    });
-
-    it('returns 500 instead of hanging when an error cause chain is circular', async () => {
-      const firstError = new Error('Circular cause root');
-      const secondError = new Error('Circular cause child');
-
-      Object.defineProperty(firstError, 'cause', {
-        value: secondError,
-        configurable: true,
-      });
-
-      Object.defineProperty(secondError, 'cause', {
-        value: firstError,
-        configurable: true,
-      });
-
-      vi.mocked(getFullDashboardData).mockRejectedValue(firstError);
-
-      const response = await GET(makeRequest({ username: 'octocat' }));
-      const body = await response.json();
-
-      expect(response.status).toBe(500);
-      expect(body.error).toBe('Circular cause root');
-    });
+    expect(response.status).toBe(500);
+    expect(body.error).toBe('Circular cause root');
   });
 });

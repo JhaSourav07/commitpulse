@@ -106,6 +106,7 @@ export interface OrgDashboardData {
   profile: UserProfile;
   stats: UserStats;
   calendar: ContributionCalendar;
+  individualCalendars?: { user: string; calendar: ContributionCalendar }[];
 }
 
 export interface Repository {

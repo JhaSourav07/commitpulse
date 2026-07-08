@@ -11,6 +11,8 @@ const mockState: GeneratorState = {
   githubUsername: 'johndoe',
   showCommitPulse: false,
   commitPulseAccent: '',
+  showRepoSpotlight: false,
+  spotlightRepo: '',
   showSnakeGraph: false,
   showPacmanGraph: false,
   graphPlacement: 'bottom',
@@ -47,6 +49,8 @@ describe('readmeGenerator', () => {
   it('includes both contribution graphs in top placement', () => {
     const state = {
       ...mockState,
+      showRepoSpotlight: false,
+      spotlightRepo: '',
       showSnakeGraph: true,
       showPacmanGraph: true,
       graphPlacement: 'top' as const,

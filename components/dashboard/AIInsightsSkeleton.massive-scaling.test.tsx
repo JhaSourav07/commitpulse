@@ -31,7 +31,7 @@ describe('AIInsightsSkeleton - Massive Scaling', () => {
     });
 
     // The root skeleton divs are present inside every wrapper
-    const rootDivs = container.querySelectorAll('.p-6.rounded-xl.bg-\\[\\#0a0a0a\\]');
+    const rootDivs = container.querySelectorAll('.p-6.rounded-xl.bg-white');
     expect(rootDivs.length).toBe(MASS_COUNT);
   });
 

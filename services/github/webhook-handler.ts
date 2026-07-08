@@ -1,8 +1,17 @@
 import { DistributedCache } from '@/lib/cache';
+import { redactSecrets } from '@/lib/secretScanner';
 import type { CIWorkflowRun, CIInsights } from '@/types/ci-analytics';
 
 interface WebhookPayload {
   action?: string;
+  repository?: {
+    name: string;
+    full_name: string;
+    owner: {
+      login: string;
+      type: string;
+    };
+  };
   workflow_run?: {
     id: number;
     name: string;
@@ -92,7 +101,9 @@ function extractWorkflowEvent(payload: WebhookPayload): CIEvent | null {
       runNumber: run.run_number,
       branch: run.head_branch,
       commit: run.head_commit.id.substring(0, 7),
-      message: run.head_commit.message,
+      // Commit messages can carry accidentally pasted credentials; scrub
+      // them before they reach analytics storage and dashboards.
+      message: redactSecrets(run.head_commit.message),
       author: run.head_commit.author.name,
     },
   };
@@ -102,7 +113,7 @@ function extractCheckRunEvent(payload: WebhookPayload): CIEvent | null {
   if (!payload.check_run) return null;
 
   const checkRun = payload.check_run;
-  const repo = payload.workflow_run?.repository;
+  const repo = payload.repository || payload.workflow_run?.repository;
 
   if (!repo) return null;
 

@@ -20,6 +20,8 @@ describe('GeneratorTypes Edge Cases & Empty/Missing Inputs Verification', () => 
       githubUsername: '',
       showCommitPulse: false,
       commitPulseAccent: '',
+      showRepoSpotlight: false,
+      spotlightRepo: '',
       showSnakeGraph: false,
       showPacmanGraph: false,
       graphPlacement: 'top',

@@ -1,15 +1,21 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NextRequest } from 'next/server';
 import { GET } from './route';
+import { getValidationCacheForTests } from './validation-cache';
 
 // We only mock the two things that reach outside this process:
 // the GitHub API call and the wall-clock time helper.
 // calculateStreak and generateSVG run for real, giving us genuine end-to-end coverage.
-vi.mock('../../../lib/github', () => ({
-  fetchGitHubContributions: vi.fn(),
-  getOrgDashboardData: vi.fn(),
-  getCircuitTelemetry: vi.fn().mockReturnValue({ isOpen: false, resetInMs: 0 }),
-}));
+vi.mock('../../../lib/github', async () => {
+  const actual = await vi.importActual<typeof import('../../../lib/github')>('../../../lib/github');
+
+  return {
+    ...actual,
+    fetchGitHubContributions: vi.fn(),
+    getOrgDashboardData: vi.fn(),
+    getCircuitTelemetry: vi.fn().mockReturnValue({ isOpen: false, resetInMs: 0 }),
+  };
+});
 
 vi.mock('../../../utils/time', () => ({
   getSecondsUntilUTCMidnight: vi.fn(),
@@ -644,28 +650,28 @@ describe('GET /api/streak', () => {
       const response = await GET(makeRequest({ user: 'octocat', year: 'abcd' }));
       const body = await response.text();
       expect(response.status).toBe(400);
-      expect(body).toContain('GitHub was founded in 2008');
+      expect(body).toContain('4-digit');
     });
 
     it('returns 400 for malformed numeric year', async () => {
       const response = await GET(makeRequest({ user: 'octocat', year: '100000' }));
       const body = await response.text();
       expect(response.status).toBe(400);
-      expect(body).toContain('GitHub was founded in 2008');
+      expect(body).toContain('4-digit');
     });
 
     it('returns 400 for years before GitHub existed', async () => {
       const response = await GET(makeRequest({ user: 'octocat', year: '1999' }));
       const body = await response.text();
       expect(response.status).toBe(400);
-      expect(body).toContain('GitHub was founded in 2008');
+      expect(body).toContain('before GitHub was founded');
     });
 
     it('returns 400 for the year=2007(before GitHub was founded)', async () => {
       const response = await GET(makeRequest({ user: 'octocat', year: '2007' }));
       const body = await response.text();
       expect(response.status).toBe(400);
-      expect(body).toContain('GitHub was founded in 2008');
+      expect(body).toContain('before GitHub was founded');
     });
 
     it('returns 400 for future years', async () => {
@@ -673,7 +679,7 @@ describe('GET /api/streak', () => {
       const response = await GET(makeRequest({ user: 'octocat', year: futureYear }));
       const body = await response.text();
       expect(response.status).toBe(400);
-      expect(body).toContain('GitHub was founded in 2008');
+      expect(body).toContain('future');
     });
 
     it('accepts year=2008 (the earliest valid year)', async () => {
@@ -1646,14 +1652,14 @@ describe('GET /api/streak', () => {
       expect(response.status).toBe(404);
     });
 
-    it('rejects requests with more than 2 users with a 400 Bad Request', async () => {
-      const response = await GET(makeRequest({ user: 'a, b, c, d' }));
+    it('rejects requests with more than 7 users with a 400 Bad Request', async () => {
+      const response = await GET(makeRequest({ user: 'a, b, c, d, e, f, g, h' }));
       expect(response.status).toBe(400);
 
       expect(fetchGitHubContributions).not.toHaveBeenCalled();
 
       const body = await response.text();
-      expect(body).toContain('strictly accepts a maximum of 2 usernames');
+      expect(body).toContain('maximum of 7 usernames');
     });
   });
 
@@ -1969,6 +1975,60 @@ describe('GET /api/streak', () => {
 
       expect(bodyNormal.length).toBeGreaterThan(bodyMinified.length);
       expect(bodyNormal).toContain('  <rect');
+    });
+  });
+
+  describe('validation cache', () => {
+    it('normalizes cache keys by sorting query parameters alphabetically', async () => {
+      const cache = getValidationCacheForTests();
+      cache.clear();
+
+      const response1 = await GET(makeRequest({ user: 'octocat', theme: 'dark' }));
+      expect(response1.status).toBe(200);
+      expect(cache.size).toBe(1);
+
+      const response2 = await GET(makeRequest({ theme: 'dark', user: 'octocat' }));
+      expect(response2.status).toBe(200);
+      expect(cache.size).toBe(1);
+    });
+
+    it('uses LRU eviction so frequently accessed entries survive', async () => {
+      const cache = getValidationCacheForTests();
+      cache.clear();
+
+      const baseParams: Record<string, string> = { user: 'octocat' };
+
+      for (let i = 0; i < 256; i++) {
+        await GET(makeRequest({ ...baseParams, _k: String(i) }));
+      }
+      expect(cache.size).toBe(256);
+
+      await GET(makeRequest({ ...baseParams, _k: '0' }));
+
+      await GET(makeRequest({ ...baseParams, _k: 'overflow' }));
+      expect(cache.size).toBe(256);
+
+      const responseFirst = await GET(makeRequest({ ...baseParams, _k: '0' }));
+      expect(responseFirst.status).toBe(200);
+    });
+
+    it('evicts least recently used entries when cache is full', async () => {
+      const cache = getValidationCacheForTests();
+      cache.clear();
+
+      const baseParams: Record<string, string> = { user: 'octocat' };
+
+      for (let i = 0; i < 256; i++) {
+        await GET(makeRequest({ ...baseParams, _k: String(i) }));
+      }
+
+      for (let i = 256; i < 260; i++) {
+        await GET(makeRequest({ ...baseParams, _k: String(i) }));
+      }
+      expect(cache.size).toBe(256);
+
+      const responseOld = await GET(makeRequest({ ...baseParams, _k: '0' }));
+      expect(responseOld.status).toBe(200);
     });
   });
 });

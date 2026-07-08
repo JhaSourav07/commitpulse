@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { aggregateTeamData } from '@/lib/analytics/teamHealth';
+import { requireEnterpriseAdmin } from '@/lib/enterprise-auth';
 import type { TeamMember } from '@/types/enterprise';
 import type { ContributionCalendar } from '@/types';
 
@@ -34,6 +35,9 @@ function createMockTeamMembers(usernames: string[]): TeamMember[] {
 }
 
 export async function GET(request: NextRequest) {
+  const { error } = await requireEnterpriseAdmin();
+  if (error) return error;
+
   const searchParams = request.nextUrl.searchParams;
   const teamId = searchParams.get('teamId') || 'default-team';
   const teamName = searchParams.get('teamName') || 'Engineering Team';
@@ -66,5 +70,30 @@ export async function GET(request: NextRequest) {
         'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=60',
       },
     }
+  );
+}
+
+export async function POST(request: NextRequest) {
+  const { error } = await requireEnterpriseAdmin();
+  if (error) return error;
+
+  let body: Record<string, unknown>;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+  }
+
+  if (!body || typeof body !== 'object') {
+    return NextResponse.json({ error: 'Request body must be a JSON object' }, { status: 400 });
+  }
+
+  return NextResponse.json(
+    {
+      success: true,
+      message: 'Enterprise configuration updated',
+      data: body,
+    },
+    { status: 200 }
   );
 }

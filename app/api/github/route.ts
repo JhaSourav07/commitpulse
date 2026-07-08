@@ -1,7 +1,7 @@
 // app/api/github/route.ts
 
 import { NextResponse, after } from 'next/server';
-import { getFullDashboardData } from '@/lib/github';
+import { getFullDashboardData, isAbortError } from '@/lib/github';
 import { githubParamsSchema, coerceQueryParams } from '@/lib/validations';
 import { getClientIp } from '@/utils/getClientIp';
 import { quotaMonitor } from '@/services/github/quota-monitor';
@@ -10,6 +10,9 @@ import { getRateLimitHeaders } from '@/lib/rate-limit';
 import { refreshRateLimiter } from '@/services/github/refresh-rate-limiter';
 import { backgroundRefresh } from '@/services/github/background-refresh';
 import { logger } from '@/lib/logger';
+import { RateLimiter } from '@/lib/rate-limit';
+
+const dashboardLimiter = new RateLimiter(10, 60_000, 1);
 
 const MAX_ERROR_CAUSE_DEPTH = 10;
 
@@ -76,9 +79,18 @@ function logSecurityEvent(event: string, details: Record<string, unknown>) {
  * - 500 → Internal server error
  */
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
   const ip = getClientIp(request);
+  const rateLimitKey =
+    ip && ip !== 'unknown' ? ip : `unknown:${request.headers.get('user-agent') ?? 'no-agent'}`;
 
+  if (!(await dashboardLimiter.check(rateLimitKey))) {
+    return NextResponse.json(
+      { error: 'Too many requests. Please try again later.' },
+      { status: 429 }
+    );
+  }
+
+  const { searchParams } = new URL(request.url);
   const parseResult = githubParamsSchema.safeParse(coerceQueryParams(searchParams));
 
   if (!parseResult.success) {
@@ -224,6 +236,14 @@ export async function GET(request: Request) {
       return NextResponse.json(
         { error: 'GitHub API rate limit reached. Please configure GITHUB_TOKEN.' },
         { status: 403 }
+      );
+    }
+
+    // 504 - Upstream request timeout or AbortController abort
+    if (isAbortError(rootCause || error)) {
+      return NextResponse.json(
+        { error: 'Upstream request timed out after 10 seconds.' },
+        { status: 504 }
       );
     }
 

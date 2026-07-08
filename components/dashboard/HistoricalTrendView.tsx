@@ -187,14 +187,14 @@ export default function HistoricalTrendView({
           <button
             type="button"
             onClick={() => handleShift('prev')}
-            className="inline-flex items-center gap-1 rounded-lg border border-black/10 px-3 py-2 text-xs font-semibold text-gray-900 transition hover:bg-gray-50 dark:border-[rgba(255,255,255,0.08)] dark:text-white dark:hover:bg-white/5"
+            className="inline-flex items-center gap-1 rounded-lg border border-black/10 px-3 py-2 text-xs font-semibold text-gray-900 transition hover:bg-gray-50 dark:border-[rgba(255,255,255,0.08)] dark:text-white dark:hover:bg-white/5 cursor-pointer"
           >
             <ChevronLeft size={14} /> Previous
           </button>
           <button
             type="button"
             onClick={() => handleShift('next')}
-            className="inline-flex items-center gap-1 rounded-lg border border-black/10 px-3 py-2 text-xs font-semibold text-gray-900 transition hover:bg-gray-50 dark:border-[rgba(255,255,255,0.08)] dark:text-white dark:hover:bg-white/5"
+            className="inline-flex items-center gap-1 rounded-lg border border-black/10 px-3 py-2 text-xs font-semibold text-gray-900 transition hover:bg-gray-50 dark:border-[rgba(255,255,255,0.08)] dark:text-white dark:hover:bg-white/5 cursor-pointer"
           >
             Next <ChevronRight size={14} />
           </button>
@@ -293,7 +293,7 @@ export default function HistoricalTrendView({
               />
               <button
                 type="submit"
-                className="rounded-lg bg-black px-3 py-2 text-sm font-semibold text-white transition hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-gray-100"
+                className="rounded-lg bg-black px-3 py-2 text-sm font-semibold text-white transition hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-gray-100 cursor-pointer"
               >
                 Go
               </button>
@@ -318,7 +318,7 @@ export default function HistoricalTrendView({
               />
               <button
                 type="submit"
-                className="rounded-lg bg-black px-3 py-2 text-sm font-semibold text-white transition hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-gray-100"
+                className="rounded-lg bg-black px-3 py-2 text-sm font-semibold text-white transition hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-gray-100 cursor-pointer"
               >
                 Go
               </button>
@@ -348,7 +348,7 @@ export default function HistoricalTrendView({
             </div>
             <button
               type="submit"
-              className="mt-3 w-full rounded-lg bg-black px-3 py-2 text-sm font-semibold text-white transition hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-gray-100"
+              className="mt-3 w-full rounded-lg bg-black px-3 py-2 text-sm font-semibold text-white transition hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-gray-100 cursor-pointer"
             >
               Apply Range
             </button>

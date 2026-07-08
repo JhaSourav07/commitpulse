@@ -10,6 +10,26 @@ import RepoPerformanceTable from './RepoPerformanceTable';
 import Highlights from './Highlights';
 import { Loader2 } from 'lucide-react';
 import { useTranslation } from '@/context/TranslationContext';
+import { ErrorBoundary, type FallbackProps } from 'react-error-boundary';
+import { logger } from '@/lib/logger';
+
+function PRInsightsErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
+  const message = error instanceof Error ? error.message : 'Unknown error';
+
+  return (
+    <div className="flex flex-col items-center justify-center min-h-[400px] text-gray-500 border border-dashed border-gray-300 dark:border-zinc-800 rounded-3xl gap-4">
+      <p className="font-medium text-lg">Something went wrong while loading insights.</p>
+      <p className="text-sm">{message}</p>
+      <button
+        type="button"
+        onClick={resetErrorBoundary}
+        className="px-4 py-2 rounded-xl font-semibold text-sm text-white bg-cyan-600 hover:bg-cyan-700 transition-colors"
+      >
+        Try again
+      </button>
+    </div>
+  );
+}
 
 export default function PRInsightsClient({ username }: { username: string }) {
   const { t } = useTranslation();
@@ -19,14 +39,40 @@ export default function PRInsightsClient({ username }: { username: string }) {
 
   useEffect(() => {
     async function fetchData() {
+      const cacheKey = `pr-insights-${username}`;
+      const cached = localStorage.getItem(cacheKey);
+
+      if (cached) {
+        try {
+          setData(JSON.parse(cached));
+          setLoading(false);
+          return; // Skip fetch if cached, or you could do SWR style and still fetch. The requirement says "before triggering database retrievals".
+        } catch (e) {
+          // ignore cache parse error
+        }
+      }
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+
       try {
         setLoading(true);
-        const res = await fetch(`/api/pr-insights?username=${encodeURIComponent(username)}`);
+        const res = await fetch(`/api/pr-insights?username=${encodeURIComponent(username)}`, {
+          signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+
         if (!res.ok) throw new Error('Failed to fetch PR insights');
         const json = await res.json();
+
+        localStorage.setItem(cacheKey, JSON.stringify(json));
         setData(json);
       } catch (err: unknown) {
-        setError(err instanceof Error ? err.message : String(err));
+        if (err instanceof Error && err.name === 'AbortError') {
+          setError('Request timed out');
+        } else {
+          setError(err instanceof Error ? err.message : String(err));
+        }
       } finally {
         setLoading(false);
       }
@@ -61,24 +107,34 @@ export default function PRInsightsClient({ username }: { username: string }) {
   }
 
   return (
-    <div className="flex flex-col gap-8 w-full max-w-full">
-      <TopMetricsRow data={data} />
+    <ErrorBoundary
+      FallbackComponent={PRInsightsErrorFallback}
+      onError={(caughtError, info) => {
+        logger.error('PRInsightsClient render exception', {
+          message: caughtError instanceof Error ? caughtError.message : String(caughtError),
+          componentStack: info.componentStack,
+        });
+      }}
+    >
+      <div className="flex flex-col gap-8 w-full max-w-full">
+        <TopMetricsRow data={data} />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2">
-          <PRTrendChart data={data} />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2">
+            <PRTrendChart data={data} />
+          </div>
+          <div>
+            <PRStatusDistribution data={data} />
+          </div>
         </div>
-        <div>
-          <PRStatusDistribution data={data} />
+
+        <Highlights highlights={data.highlights} />
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <ReviewAnalytics data={data} />
+          <RepoPerformanceTable data={data} />
         </div>
       </div>
-
-      <Highlights highlights={data.highlights} />
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <ReviewAnalytics data={data} />
-        <RepoPerformanceTable data={data} />
-      </div>
-    </div>
+    </ErrorBoundary>
   );
 }

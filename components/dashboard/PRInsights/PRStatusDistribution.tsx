@@ -1,17 +1,123 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
-import { ExternalLink } from 'lucide-react';
+import { ExternalLink, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 import type { PRInsightData } from '@/services/github/pr-insights';
 import { useTranslation } from '@/context/TranslationContext';
+import prService from '@/services/github/pr-service';
+
+interface PRStatusDistributionProps {
+  data?: PRInsightData;
+  username?: string;
+  timeoutMs?: number;
+}
 
 type FilterState = 'MERGED' | 'OPEN' | 'CLOSED' | null;
 
-export default function PRStatusDistribution({ data }: { data: PRInsightData }) {
+export default function PRStatusDistribution({
+  data: propData,
+  username,
+  timeoutMs = 5000,
+}: PRStatusDistributionProps) {
   const { t } = useTranslation();
+  const [fetchedData, setFetchedData] = useState<PRInsightData | null>(null);
+  const [loading, setLoading] = useState<boolean>(username ? true : false);
+  const [error, setError] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState<FilterState>(null);
+
+  const loadData = React.useCallback(async () => {
+    if (!username) return;
+    setLoading(true);
+    setError(null);
+
+    const sanitized = username.trim().toLowerCase();
+
+    // Query local cache first
+    const cached = prService.getCachedData(sanitized);
+    if (cached) {
+      setFetchedData({
+        totalPRs: cached.open + cached.closed + cached.merged,
+        openPRs: cached.open,
+        closedPRs: cached.closed,
+        mergedPRs: cached.merged,
+        prs: [],
+      } as unknown as PRInsightData);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      // Race the fetch operation against a timeout
+      const fetchPromise = prService.fetchPRStatusDistribution(sanitized);
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Request timed out')), timeoutMs)
+      );
+
+      const result = await Promise.race([fetchPromise, timeoutPromise]);
+
+      // Complete cache sync
+      prService.setCachedData(sanitized, result);
+
+      setFetchedData({
+        totalPRs: result.open + result.closed + result.merged,
+        openPRs: result.open,
+        closedPRs: result.closed,
+        mergedPRs: result.merged,
+        prs: [],
+      } as unknown as PRInsightData);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setLoading(false);
+    }
+  }, [username, timeoutMs]);
+
+  useEffect(() => {
+    if (username) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      loadData();
+    }
+  }, [loadData, username]);
+
+  if (loading) {
+    return (
+      <div
+        data-testid="pending-overlay"
+        className="flex items-center justify-center p-8 rounded-xl bg-white dark:bg-[#0a0a0a] border border-black/10 dark:border-[rgba(255,255,255,0.08)] min-h-[220px]"
+      >
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="animate-spin text-blue-500" size={24} />
+          <p className="text-sm text-gray-500 dark:text-gray-400">Loading PR distribution...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div
+        data-testid="fallback-error"
+        className="flex items-center justify-center p-8 rounded-xl bg-white dark:bg-[#0a0a0a] border border-red-500/20 min-h-[220px]"
+      >
+        <div className="flex flex-col items-center gap-3 text-center">
+          <AlertCircle className="text-red-500" size={24} />
+          <p className="text-sm text-red-500 font-medium">{error}</p>
+          <button
+            onClick={loadData}
+            className="flex items-center gap-2 px-3 py-1.5 mt-2 text-xs rounded-md bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 transition-colors"
+          >
+            <RefreshCw size={12} />
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const data = propData || fetchedData;
+  if (!data) return null;
 
   const STATE_META: Record<string, { label: string; color: string }> = {
     MERGED: { label: t('dashboard.prInsights.merged'), color: '#10b981' },
@@ -23,37 +129,37 @@ export default function PRStatusDistribution({ data }: { data: PRInsightData }) 
     {
       name: t('dashboard.prInsights.merged'),
       state: 'MERGED',
-      value: data?.mergedPRs ?? 0,
+      value: data.mergedPRs ?? 0,
       color: '#10b981',
     },
     {
       name: t('dashboard.prInsights.open'),
       state: 'OPEN',
-      value: data?.openPRs ?? 0,
+      value: data.openPRs ?? 0,
       color: '#3b82f6',
     },
     {
       name: t('dashboard.prInsights.closed'),
       state: 'CLOSED',
-      value: data?.closedPRs ?? 0,
+      value: data.closedPRs ?? 0,
       color: '#ef4444',
     },
   ];
 
-  const totalCount = (data?.mergedPRs ?? 0) + (data?.openPRs ?? 0) + (data?.closedPRs ?? 0);
+  const totalCount = (data.mergedPRs ?? 0) + (data.openPRs ?? 0) + (data.closedPRs ?? 0);
 
   // Clean filtering: if total is zero, chartData must be completely empty to satisfy fallback tests
   const chartData = totalCount > 0 ? baseData.filter((item) => item.value > 0) : [];
 
   const activeMeta = activeFilter ? STATE_META[activeFilter] : null;
   const centerValue = activeMeta
-    ? (baseData.find((d) => d.state === activeFilter)?.value ?? data?.totalPRs ?? 0)
-    : (data?.totalPRs ?? 0);
+    ? (baseData.find((d) => d.state === activeFilter)?.value ?? data.totalPRs ?? 0)
+    : (data.totalPRs ?? 0);
   const centerLabel = activeMeta ? activeMeta.label : t('dashboard.prInsights.total');
   const centerColor = activeMeta ? activeMeta.color : undefined;
 
   const filteredPRs =
-    activeFilter && data?.prs ? data.prs.filter((pr) => pr.state === activeFilter) : [];
+    activeFilter && data.prs ? data.prs.filter((pr) => pr.state === activeFilter) : [];
 
   function handleClick(entry: Record<string, unknown>) {
     const clicked = (entry?.state as FilterState) ?? null;

@@ -1105,6 +1105,31 @@ describe('generateSVG', () => {
       }
     });
   });
+
+  describe('border parameter sanitization across layouts', () => {
+    it('should sanitize border and omit stroke-width completely on malicious script payload', () => {
+      const mockParams = { user: 'testuser', border: '2" onerror="alert(1)' };
+      // @ts-expect-error - mockStats and mockCalendar are injected contextually
+      const svg = generateSVG(mockStats, mockParams, mockCalendar);
+      expect(svg).not.toContain('onerror="alert(1)"');
+      expect(svg).not.toContain('stroke-width=');
+    });
+
+    it('should sanitize border and omit stroke-width completely on SVG tag injection', () => {
+      const mockParams = { user: 'testuser', border: '5><script></script>' };
+      // @ts-expect-error - mockStats and mockCalendar are injected contextually
+      const svg = generateSVG(mockStats, mockParams, mockCalendar);
+      expect(svg).not.toContain('<script>');
+      expect(svg).not.toContain('stroke-width=');
+    });
+
+    it('should sanitize border and omit stroke-width completely on database injection text', () => {
+      const mockParams = { user: 'testuser', border: 'drop table users;' };
+      // @ts-expect-error - mockStats and mockCalendar are injected contextually
+      const svg = generateSVG(mockStats, mockParams, mockCalendar);
+      expect(svg).not.toContain('stroke-width=');
+    });
+  });
 });
 
 describe('generateMonthlySVG', () => {
@@ -1172,6 +1197,30 @@ describe('generateMonthlySVG', () => {
       bg: '1f0d14',
     } as unknown as BadgeParams);
     expect(svgRose).toContain('fill: #ff4b72');
+  });
+  it('resolves to the first-declared theme when multiple themes share the same bg color', () => {
+    // 'highcontrast' and 'lumos' both use bg '0a0a0a' but have different
+    // negative colors. 'highcontrast' is declared first in themes.ts, so
+    // the lookup (whether a linear scan or a precomputed map) must resolve
+    // to its negative color ('ff3333'), not lumos's ('ef4444').
+    expect(themes.highcontrast.bg.toLowerCase()).toBe(themes.lumos.bg.toLowerCase());
+    expect(themes.highcontrast.negative).not.toBe(themes.lumos.negative);
+
+    const negativeStats: MonthlyStats = {
+      currentMonthTotal: 5,
+      previousMonthTotal: 20,
+      deltaPercentage: -75,
+      deltaAbsolute: -15,
+      currentMonthName: 'June',
+    };
+
+    const svg = generateMonthlySVG(negativeStats, {
+      user: 'octocat',
+      bg: '0a0a0a',
+    } as unknown as BadgeParams);
+
+    expect(svg).toContain(`fill: #${themes.highcontrast.negative}`);
+    expect(svg).not.toContain(`fill: #${themes.lumos.negative}`);
   });
 
   it('renders monthly stats correctly with percentage delta', () => {

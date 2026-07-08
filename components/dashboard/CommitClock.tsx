@@ -77,9 +77,14 @@ export default function CommitClock({ data }: { data: CommitClockData[] }) {
           </p>
         </div>
 
-        <div className="relative w-[280px] h-[280px] flex items-center justify-center mt-4">
+        <div className="relative w-full max-w-[280px] aspect-square flex items-center justify-center mt-4">
           {hasData ? (
-            <svg width="280" height="280" className="overflow-visible rotate-[-90deg]">
+            <svg
+              width="280"
+              height="280"
+              viewBox="0 0 280 280"
+              className="w-full h-full overflow-visible rotate-[-90deg]"
+            >
               <defs>
                 <filter id="spoke-glow" x="-50%" y="-50%" width="200%" height="200%">
                   <feGaussianBlur stdDeviation="3" result="blur" />

@@ -33,12 +33,12 @@ html {
   }
 
   /* Increase small text sizes for better readability */
-  .text-xs {
+  .cp-text-xs {
     font-size: 0.8125rem;
     line-height: 1.5;
   }
 
-  .text-sm {
+  .cp-text-sm {
     font-size: 0.9375rem;
     line-height: 1.65;
   }
@@ -180,6 +180,13 @@ html {
   --chart-axis-color: #6b7280; /* gray-500 */
 
   /* indigo glow, hover only */
+
+  /* user achievements tier color */
+  --tier-bronze-rgb: 161 98 7;
+  --tier-silver-rgb: 107 114 128;
+  --tier-gold-rgb: 202 138 4;
+  --tier-platinum-rgb: 100 116 139;
+  --tier-diamond-rgb: 2 132 199;
 }
 
 body {
@@ -202,6 +209,13 @@ body {
   --recharts-tooltip-color: #fff;
   --recharts-tooltip-accent: #06b6d4;
   --chart-axis-color: #d4d4d8; /* maps to improved contrast in dark mode */
+
+  /* user achievements tier color */
+  --tier-bronze-rgb: 205 127 50;
+  --tier-silver-rgb: 192 192 192;
+  --tier-gold-rgb: 255 215 0;
+  --tier-platinum-rgb: 229 228 226;
+  --tier-diamond-rgb: 185 242 255;
 }
 
 /* Vercel-style focus ring */
@@ -346,17 +360,22 @@ body {
 } */
 
 /* CommitPulse dynamic SVG animation and typography optimization */
+.cp-svg-container svg {
+  max-width: 100%;
+  height: auto;
+}
+
 .cp-svg-container svg .title {
   font-family: Syncopate, sans-serif;
-  font-size: 18px;
-  letter-spacing: 6px;
+  font-size: clamp(12px, 3vw, 18px);
+  letter-spacing: clamp(2px, 1vw, 6px);
   font-weight: 400;
   opacity: 0.8;
 }
 
 .cp-svg-container svg .stats {
   font-family: 'Space Grotesk', sans-serif;
-  font-size: 42px;
+  font-size: clamp(24px, 6vw, 42px);
   font-weight: 500;
   letter-spacing: 0;
 }
@@ -368,7 +387,7 @@ body {
 
 .cp-svg-container svg .label {
   font-family: Roboto, sans-serif;
-  font-size: 11px;
+  font-size: clamp(8px, 2vw, 11px);
   font-weight: 400;
   letter-spacing: 2px;
   opacity: 0.7;

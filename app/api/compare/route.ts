@@ -42,7 +42,7 @@ function buildCompareFetchErrorResponse(user: string, reason: unknown): NextResp
   if (lowerMessage.includes('timeout') || lowerMessage.includes('timed out')) {
     return NextResponse.json(
       { error: `Connection timeout. Unable to fetch GitHub data for "${user}".` },
-      { status: 500 }
+      { status: 504 }
     );
   }
 

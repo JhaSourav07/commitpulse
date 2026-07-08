@@ -64,13 +64,15 @@ export const themes: Record<string, BadgeTheme> = {
   monokai: makeTheme('272822', 'f8f8f2', 'a6e22e', 'f92672'),
   midnight_ocean: makeTheme('020c1b', 'ccd6f6', '0af5ff', 'ff4d6d'),
   enterprise: makeTheme('1a1a2e', 'e2e8f0', '6366f1', '8b5cf6'),
+  // India theme — saffron accent (#FF9933), India green negative (#138808)
+  india: makeTheme('0a0a0a', 'ffffff', 'FF9933', '138808'),
 };
 
 // Auto-theme pairs: the SVG switches between these two palettes
 // using @media (prefers-color-scheme) so the badge adapts to the
 // viewer's OS-level light/dark setting without any JavaScript.
-export const AUTO_THEME_LIGHT: BadgeTheme = themes.light;
-export const AUTO_THEME_DARK: BadgeTheme = themes.dark;
+export const AUTO_THEME_LIGHT: BadgeTheme = themes.light ?? themes.default;
+export const AUTO_THEME_DARK: BadgeTheme = themes.dark ?? themes.default;
 
 /**
  * Resolves a theme case-insensitively by matching the normalized user input
