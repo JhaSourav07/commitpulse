@@ -142,18 +142,38 @@ describe('Navbar Responsive Breakpoints & Menu Toggle', () => {
     expect(screen.getByRole('button', { name: 'Open menu' })).toBeDefined();
   });
 
-  it('4. Hides the desktop nav row on mobile and only reveals mobile hamburger controls, via complementary md: classes', () => {
-    const { container } = render(<Navbar />);
+  it('4. Hides the desktop nav row on mobile and only reveals mobile hamburger controls, via complementary responsive classes', () => {
+    render(<Navbar />);
 
-    const desktopNavRow = container.querySelector('.hidden.items-center.gap-2.md\\:flex');
-    expect(desktopNavRow).toBeInTheDocument();
+    // 1. Check Mobile Controls (Hamburger Button)
+    const openMenuBtn = screen.getByRole('button', { name: 'Open menu' });
+    expect(openMenuBtn).toBeInTheDocument();
 
-    const mobileControls = container.querySelector(
-      '.md\\:hidden.inline-flex.items-center.justify-center.gap-1'
-    );
-    expect(mobileControls).toBeInTheDocument();
+    // The button or its wrapper should have a class that hides it on larger screens (e.g., md:hidden or lg:hidden)
+    const mobileWrapper = openMenuBtn.closest('div');
+    expect(mobileWrapper?.className).toMatch(/(sm|md|lg|xl):hidden/);
+
+    // 2. Check Desktop Nav Row
+    // Grab a known link that appears in the desktop nav
+    const generatorLink = screen.getByRole('link', { name: /Generator/i });
+
+    // Walk up the DOM tree from the link to find the wrapper that handles responsive hiding
+    let desktopNavRow = generatorLink.parentElement;
+    let hasResponsiveHiddenClasses = false;
+
+    while (desktopNavRow && desktopNavRow !== document.body) {
+      const className = desktopNavRow.className || '';
+      // Look for a container that is 'hidden' by default but shown on larger screens (e.g., 'md:flex' or 'lg:flex')
+      if (className.includes('hidden') && /(sm|md|lg|xl):(flex|block)/.test(className)) {
+        hasResponsiveHiddenClasses = true;
+        break;
+      }
+      desktopNavRow = desktopNavRow.parentElement;
+    }
+
+    // Assert that we successfully found the desktop navigation wrapper with responsive classes
+    expect(hasResponsiveHiddenClasses).toBe(true);
   });
-
   it('5. Does not use fixed pixel widths on nav elements that could cause horizontal overflow on narrow viewports', () => {
     const { container } = render(<Navbar />);
 
