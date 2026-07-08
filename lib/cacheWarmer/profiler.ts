@@ -12,12 +12,10 @@ export interface UserProfile {
 
 export class PopularUserProfiler {
   async getTopUsers(limit: number = 100): Promise<UserProfile[]> {
-    // Get all users from cache
     const keys = await cache.keys('user:requests:*');
     const users = keys.map((k) => k.replace('user:requests:', ''));
 
     if (users.length === 0) {
-      // Fallback to some popular users if no data
       return this.getDefaultUsers(limit);
     }
 
@@ -41,7 +39,8 @@ export class PopularUserProfiler {
             }),
           };
         } catch (error) {
-          console.error(`Error processing ${username}:`, error);
+          // Fix: Use string concatenation
+          console.error('Error processing ' + username + ':', error);
           return null;
         }
       })
@@ -94,7 +93,6 @@ export class PopularUserProfiler {
     data.dates.push(new Date().toISOString());
     data.lastRequest = new Date().toISOString();
 
-    // Keep only last 30 days
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - 30);
     data.dates = data.dates.filter((d: string) => new Date(d) > cutoff);

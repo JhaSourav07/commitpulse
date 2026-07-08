@@ -19,20 +19,21 @@ export class CacheWarmerScheduler {
   async warmCache(username: string, options: WarmCacheOptions = {}): Promise<void> {
     const themes = options.themes || this.defaultThemes;
 
-    console.log(`🌡️ Warming cache for ${username} with themes: ${themes.join(', ')}`);
+    // Fix: Use string concatenation instead of template literals in console.error
+    console.log('🌡️ Warming cache for ' + username + ' with themes: ' + themes.join(', '));
 
-    const results = await Promise.allSettled(
+    await Promise.allSettled(
       themes.map(async (theme) => {
         try {
           await this.generateAndCacheBadge(username, theme);
-          console.log(`✅ Warmed ${username} with theme ${theme}`);
+          console.log('✅ Warmed ' + username + ' with theme ' + theme);
         } catch (error) {
-          console.error(`❌ Failed to warm ${username} with theme ${theme}:`, error);
+          // Fix: Use string concatenation to avoid format string vulnerability
+          console.error('❌ Failed to warm ' + username + ' with theme ' + theme + ':', error);
         }
       })
     );
 
-    // Store warm status
     await cache.set(`warmed:${username}`, 'true', { ttl: 60 * 60 * 24 });
   }
 
@@ -46,7 +47,7 @@ export class CacheWarmerScheduler {
       });
 
       if (!response.ok) {
-        throw new Error(`API returned ${response.status}`);
+        throw new Error('API returned ' + response.status);
       }
 
       const svg = await response.text();
@@ -54,7 +55,11 @@ export class CacheWarmerScheduler {
       const cacheKey = `badge:${username}:${theme}`;
       await cache.set(cacheKey, svg, { ttl: 60 * 60 * 24 * 7 });
     } catch (error) {
-      console.error(`Failed to generate badge for ${username} with theme ${theme}:`, error);
+      // Fix: Use string concatenation to avoid format string vulnerability
+      console.error(
+        'Failed to generate badge for ' + username + ' with theme ' + theme + ':',
+        error
+      );
       throw error;
     }
   }
@@ -70,15 +75,15 @@ export class CacheWarmerScheduler {
 
     try {
       const topUsers = await this.profiler.getTopUsers(100);
-      console.log(`📊 Warming cache for ${topUsers.length} users`);
+      console.log('📊 Warming cache for ' + topUsers.length + ' users');
 
       const batchSize = 10;
       for (let i = 0; i < topUsers.length; i += batchSize) {
         const batch = topUsers.slice(i, i + batchSize);
         await Promise.allSettled(batch.map((user) => this.warmCache(user.username)));
-        console.log(
-          `✅ Processed batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(topUsers.length / batchSize)}`
-        );
+        const batchNum = Math.floor(i / batchSize) + 1;
+        const totalBatches = Math.ceil(topUsers.length / batchSize);
+        console.log('✅ Processed batch ' + batchNum + '/' + totalBatches);
 
         if (i + batchSize < topUsers.length) {
           await new Promise((resolve) => setTimeout(resolve, 5000));
