@@ -236,3 +236,79 @@ export function computeTowers(
 
   return towers;
 }
+export function computeTeamTowers(
+  individualCalendars: { user: string; calendar: ContributionCalendar }[],
+  scale: 'linear' | 'log' | 'sqrt' = 'linear',
+  todayDate: string = '',
+  mode: 'commits' | 'loc' = 'commits'
+): TowerData[] {
+  const towers: TowerData[] = [];
+
+  let maxCommits = 0;
+
+  const userWeeksData = individualCalendars.map(({ user, calendar }) => {
+    const weeks = calendar.weeks.slice(-14);
+    const weeklyTotals = weeks.map((week) => {
+      let count = 0;
+      week.contributionDays.forEach((day) => {
+        count +=
+          mode === 'loc' && isLocDay(day)
+            ? day.locAdditions + day.locDeletions
+            : day.contributionCount;
+      });
+      if (count > maxCommits) maxCommits = count;
+      return count;
+    });
+    return { user, weeks, weeklyTotals };
+  });
+
+  const shouldShowGhostCity = maxCommits === 0;
+
+  userWeeksData.forEach(({ user, weeks, weeklyTotals }, userIndex) => {
+    weeklyTotals.forEach((count, weekIndex) => {
+      const hasCommits = count > 0;
+      const isGhost = !hasCommits && shouldShowGhostCity;
+
+      const tooltip = `${user} (Week ${weekIndex + 1}): ${count} ${mode === 'loc' ? 'est. lines of code' : 'commits'}`;
+      const date = weeks[weekIndex]?.contributionDays[0]?.date || '';
+      const isToday = false;
+      const isTodayWithCommits = false;
+
+      const coords = projectIsometric(weekIndex, userIndex);
+
+      let intensityLevel = 0;
+      if (hasCommits) {
+        if (maxCommits <= 4) {
+          intensityLevel = Math.min(4, count);
+        } else {
+          const ratio = count / maxCommits;
+          if (ratio <= 0.25) intensityLevel = 1;
+          else if (ratio <= 0.5) intensityLevel = 2;
+          else if (ratio <= 0.75) intensityLevel = 3;
+          else intensityLevel = 4;
+        }
+      }
+
+      towers.push({
+        x: coords.x,
+        y: coords.y,
+        h: computeTowerHeight(count, scale, shouldShowGhostCity, maxCommits),
+        hasCommits,
+        isGhost,
+        isToday,
+        isTodayWithCommits,
+        tooltip,
+        date,
+        contributionCount: count,
+        faceOpacity: computeFaceOpacity(count, shouldShowGhostCity),
+        strokeOpacity: isGhost ? 0.3 : 0,
+        strokeWidth: isGhost ? 0.5 : 0,
+        row: weekIndex,
+        col: userIndex,
+        intensityLevel,
+      });
+    });
+  });
+
+  return towers;
+}

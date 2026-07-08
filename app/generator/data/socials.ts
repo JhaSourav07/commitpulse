@@ -135,6 +135,26 @@ export const SOCIALS: Social[] = [
     baseUrl: 'https://pinterest.com/',
     placeholder: 'e.g. https://pinterest.com/yourname',
   },
+  {
+    id: 'vimeo',
+    name: 'Vimeo',
+    category: 'Social Media',
+    iconUrl: SI('vimeo'),
+    type: 'simpleicon',
+    siSlug: 'vimeo',
+    baseUrl: 'https://vimeo.com/',
+    placeholder: 'e.g. https://vimeo.com/yourusername',
+  },
+  {
+    id: 'xing',
+    name: 'Xing',
+    category: 'Professional',
+    iconUrl: SI('xing'),
+    type: 'simpleicon',
+    siSlug: 'xing',
+    baseUrl: 'https://www.xing.com/profile/',
+    placeholder: 'e.g. https://www.xing.com/profile/yourname',
+  },
 
   {
     id: 'github',

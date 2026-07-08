@@ -29,6 +29,31 @@ describe('hexToRgb', () => {
     expect(hexToRgb('#000000')).toEqual({ r: 0, g: 0, b: 0 });
     expect(hexToRgb('#ffffff')).toEqual({ r: 255, g: 255, b: 255 });
   });
+
+  it('expands 3-digit shorthand hex (with and without #)', () => {
+    // "#fff" is a valid CSS color and is accepted elsewhere in the app; it must
+    // expand to full white rather than returning null.
+    expect(hexToRgb('#fff')).toEqual({ r: 255, g: 255, b: 255 });
+    expect(hexToRgb('f00')).toEqual({ r: 255, g: 0, b: 0 });
+    expect(hexToRgb('#0a0')).toEqual({ r: 0, g: 170, b: 0 });
+  });
+
+  it('parses 4-digit shorthand hex and ignores the alpha nibble', () => {
+    // "#fff0" is white with 0 alpha — the RGB channels should still resolve.
+    expect(hexToRgb('#fff0')).toEqual({ r: 255, g: 255, b: 255 });
+    expect(hexToRgb('f008')).toEqual({ r: 255, g: 0, b: 0 });
+  });
+
+  it('parses 8-digit hex and ignores the alpha byte', () => {
+    expect(hexToRgb('#10b981ff')).toEqual({ r: 16, g: 185, b: 129 });
+    expect(hexToRgb('ff000080')).toEqual({ r: 255, g: 0, b: 0 });
+  });
+
+  it('still returns null for lengths that are not valid hex formats', () => {
+    expect(hexToRgb('#12')).toBeNull(); // 2 digits
+    expect(hexToRgb('#12345')).toBeNull(); // 5 digits
+    expect(hexToRgb('#123456789')).toBeNull(); // 9 digits
+  });
 });
 
 describe('rgbToHex', () => {

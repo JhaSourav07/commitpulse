@@ -1198,6 +1198,30 @@ describe('generateMonthlySVG', () => {
     } as unknown as BadgeParams);
     expect(svgRose).toContain('fill: #ff4b72');
   });
+  it('resolves to the first-declared theme when multiple themes share the same bg color', () => {
+    // 'highcontrast' and 'lumos' both use bg '0a0a0a' but have different
+    // negative colors. 'highcontrast' is declared first in themes.ts, so
+    // the lookup (whether a linear scan or a precomputed map) must resolve
+    // to its negative color ('ff3333'), not lumos's ('ef4444').
+    expect(themes.highcontrast.bg.toLowerCase()).toBe(themes.lumos.bg.toLowerCase());
+    expect(themes.highcontrast.negative).not.toBe(themes.lumos.negative);
+
+    const negativeStats: MonthlyStats = {
+      currentMonthTotal: 5,
+      previousMonthTotal: 20,
+      deltaPercentage: -75,
+      deltaAbsolute: -15,
+      currentMonthName: 'June',
+    };
+
+    const svg = generateMonthlySVG(negativeStats, {
+      user: 'octocat',
+      bg: '0a0a0a',
+    } as unknown as BadgeParams);
+
+    expect(svg).toContain(`fill: #${themes.highcontrast.negative}`);
+    expect(svg).not.toContain(`fill: #${themes.lumos.negative}`);
+  });
 
   it('renders monthly stats correctly with percentage delta', () => {
     const svg = generateMonthlySVG(mockMonthlyStats, {

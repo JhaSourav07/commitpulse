@@ -19,7 +19,14 @@ function GithubMark() {
   );
 }
 
-const NAV_LINKS = [
+export interface NavLink {
+  label: string;
+  href: string;
+  isExternal: boolean;
+  isPrimary: boolean;
+}
+
+const NAV_LINKS: NavLink[] = [
   {
     label: 'Generator',
     href: '/generator',
@@ -187,7 +194,7 @@ export default function Navbar() {
   });
 
   useEffect(() => {
-    const mediaQuery = window.matchMedia('(min-width: 768px)');
+    const mediaQuery = window.matchMedia('(min-width: 1024px)');
 
     const handleBreakpointChange = (event: MediaQueryListEvent) => {
       if (event.matches) {
@@ -312,7 +319,7 @@ export default function Navbar() {
                 </span>
               </Link>
 
-              <div className="hidden items-center gap-2 md:flex">
+              <div className="hidden items-center gap-2 lg:flex">
                 <NavbarSearch />
                 <LanguageSelector />
                 {NAV_LINKS.map((link) => {
@@ -387,7 +394,7 @@ export default function Navbar() {
               </div>
 
               {/* Mobile Menu Buttons */}
-              <div className="md:hidden inline-flex items-center justify-center gap-1">
+              <div className="lg:hidden inline-flex items-center justify-center gap-1">
                 <button
                   type="button"
                   onClick={toggleTheme}
@@ -412,7 +419,7 @@ export default function Navbar() {
                 </button>
                 <button
                   type="button"
-                  className="md:hidden inline-flex items-center justify-center rounded-xl p-2 text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-white cursor-pointer"
+                  className="lg:hidden inline-flex items-center justify-center rounded-xl p-2 text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-white cursor-pointer"
                   aria-label={open ? t('navbar.menu_close') : t('navbar.menu_open')}
                   aria-expanded={open}
                   onClick={() => {
@@ -453,7 +460,7 @@ export default function Navbar() {
 
             {/* Mobile Dropdown Menu */}
             {open ? (
-              <div className="border-t border-gray-100 dark:border-white/10 px-4 py-4 md:hidden">
+              <div className="border-t border-gray-100 dark:border-white/10 px-4 py-4 lg:hidden">
                 <ul className="space-y-1">
                   <li className="mb-2">
                     <NavbarSearch variant="mobile" onNavigate={() => setOpen(false)} />

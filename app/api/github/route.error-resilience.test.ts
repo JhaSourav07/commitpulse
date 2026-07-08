@@ -13,9 +13,13 @@ vi.mock('next/server', async () => {
   };
 });
 
-vi.mock('@/lib/github', () => ({
-  getFullDashboardData: vi.fn(),
-}));
+vi.mock('@/lib/github', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/github')>();
+  return {
+    ...actual,
+    getFullDashboardData: vi.fn(),
+  };
+});
 
 vi.mock('@/utils/getClientIp', () => ({
   getClientIp: vi.fn(() => '127.0.0.1'),
