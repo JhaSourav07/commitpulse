@@ -8,14 +8,10 @@ import React, { useState, useEffect } from 'react';
 import { fetchTheme, updateTheme } from '@/services/themeApi';
 
 // Mock the async service module using vi.mock()
-vi.mock(
-  '@/services/themeApi',
-  () => ({
-    fetchTheme: vi.fn(),
-    updateTheme: vi.fn(),
-  }),
-  { virtual: true }
-);
+vi.mock('@/services/themeApi', () => ({
+  fetchTheme: vi.fn(),
+  updateTheme: vi.fn(),
+}));
 
 vi.mock('@/context/TranslationContext', () => ({
   useTranslation: () => ({ t: (key: string) => key }),
