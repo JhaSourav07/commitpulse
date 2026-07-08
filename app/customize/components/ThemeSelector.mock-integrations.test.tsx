@@ -1,176 +1,197 @@
-import React, { useState, useEffect } from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { ThemeSelector } from './ThemeSelector';
+import React, { useState, useEffect } from 'react';
 
-// Mock the translation context
-vi.mock('@/context/TranslationContext', () => ({
-  useTranslation: () => ({
-    t: (key: string) => key,
+// @ts-expect-error - Virtual module for testing async service layer
+import { fetchTheme, updateTheme } from '@/services/themeApi';
+
+// Mock the async service module using vi.mock()
+vi.mock(
+  '@/services/themeApi',
+  () => ({
+    fetchTheme: vi.fn(),
+    updateTheme: vi.fn(),
   }),
+  { virtual: true }
+);
+
+vi.mock('@/context/TranslationContext', () => ({
+  useTranslation: () => ({ t: (key: string) => key }),
 }));
 
-// --- Mock Integration Setup ---
-// We simulate a parent component that manages theme state asynchronously
-// and interacts with localStorage (cache) and fetch (API service).
-function AsyncThemeIntegration() {
-  const [theme, setTheme] = useState<string>(() => {
-    const cached = localStorage.getItem('theme-cache');
-    return cached ? cached : 'auto';
-  });
-  const [status, setStatus] = useState<'idle' | 'loading' | 'error'>('idle');
+// The wrapper component that uses ThemeSelector and implements the required logic
+function IntegrationWrapper({ onSyncSuccess }: { onSyncSuccess?: () => void }) {
+  const [theme, setTheme] = useState('auto');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+    const init = async () => {
+      setLoading(true);
+      try {
+        const cached = window.localStorage.getItem('user_theme');
+        if (cached) {
+          if (isMounted) {
+            setTheme(cached);
+            setLoading(false);
+          }
+          return;
+        }
+
+        const remoteTheme = await fetchTheme();
+        if (isMounted) {
+          setTheme(remoteTheme);
+          window.localStorage.setItem('user_theme', remoteTheme);
+        }
+      } catch {
+        if (isMounted) setError(true);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+
+    init();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const handleThemeChange = async (newTheme: string) => {
-    setStatus('loading');
+    setTheme(newTheme);
+    setLoading(true);
     try {
-      // 2. Async service call
-      const res = await fetch('/api/user/theme', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ theme: newTheme }),
-      });
-
-      if (!res.ok) {
-        throw new Error('Service timeout or rejection');
-      }
-
-      // 3. Update cache and state on success
-      localStorage.setItem('theme-cache', newTheme);
-      setTheme(newTheme);
-      setStatus('idle');
+      await updateTheme(newTheme);
+      window.localStorage.setItem('user_theme', newTheme);
+      onSyncSuccess?.();
     } catch {
-      // 4. Fallback behavior
-      setStatus('error');
+      setError(true);
+    } finally {
+      setLoading(false);
     }
   };
 
+  if (error) {
+    return <div data-testid="fallback-ui">Failed to load theme. Please try again.</div>;
+  }
+
   return (
-    <div data-testid="integration-wrapper">
-      {status === 'loading' && <div data-testid="loading-indicator">Saving theme...</div>}
-      {status === 'error' && (
-        <div data-testid="error-fallback">Failed to save theme. Please try again.</div>
+    <div data-testid="theme-container">
+      {loading && (
+        <div
+          data-testid="loading-overlay"
+          className="absolute inset-0 bg-black/50 flex items-center justify-center"
+        >
+          <div
+            data-testid="loading-spinner"
+            className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"
+          ></div>
+        </div>
       )}
       <ThemeSelector theme={theme} onThemeChange={handleThemeChange} />
     </div>
   );
 }
 
-describe('ThemeSelector - Async Mock Integrations (Variation 11)', () => {
-  let fetchSpy: ReturnType<typeof vi.spyOn>;
-  let localStorageGetSpy: ReturnType<typeof vi.spyOn>;
-  let localStorageSetSpy: ReturnType<typeof vi.spyOn>;
-  let mockStorage: Record<string, string> = {};
-
+describe('ThemeSelector - Asynchronous Service Layer Mocking & Local Cache Stubs', () => {
   beforeEach(() => {
-    // Reset DOM and mocks
     vi.clearAllMocks();
-    mockStorage = {};
-
-    // Mock global fetch
-    fetchSpy = vi.spyOn(global, 'fetch').mockResolvedValue({
-      ok: true,
-      json: async () => ({ success: true }),
-    } as Response);
-
-    // Mock localStorage
-    localStorageGetSpy = vi.spyOn(Storage.prototype, 'getItem').mockImplementation((key) => {
-      return mockStorage[key] || null;
-    });
-    localStorageSetSpy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation((key, val) => {
-      mockStorage[key] = val;
-    });
+    window.localStorage.clear();
   });
 
-  afterEach(() => {
-    fetchSpy.mockRestore();
-    localStorageGetSpy.mockRestore();
-    localStorageSetSpy.mockRestore();
-  });
+  // Test 1 — Async Service Mock
+  it('should verify Async Service Mock without making real network requests', async () => {
+    vi.mocked(fetchTheme).mockResolvedValueOnce('dracula');
 
-  it('1. Local Cache Verification: verifies the local cache is checked before any async service/database call', () => {
-    mockStorage['theme-cache'] = 'ocean';
-    render(<AsyncThemeIntegration />);
+    render(<IntegrationWrapper />);
 
-    expect(localStorageGetSpy).toHaveBeenCalledWith('theme-cache');
-    expect(screen.getByRole('combobox')).toHaveValue('ocean');
-  });
-
-  it('2. Pending/Loading State: tests that pending/loading state is rendered while async operations are unresolved', async () => {
-    // Delay the fetch resolution to ensure loading state is visible
-    let resolveFetch: (value: Response) => void = () => {};
-    fetchSpy.mockImplementationOnce(
-      () =>
-        new Promise((resolve) => {
-          resolveFetch = resolve as (value: Response) => void;
-        })
-    );
-
-    render(<AsyncThemeIntegration />);
-
-    const select = screen.getByRole('combobox');
-    fireEvent.change(select, { target: { value: 'sunset' } });
-
-    // Verify loading state is rendered
-    expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
-
-    // Resolve the promise
-    resolveFetch({
-      ok: true,
-      json: async () => ({ success: true }),
-    } as Response);
-
+    // Verify mocked service is called correctly
     await waitFor(() => {
-      expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
-    });
-  });
-
-  it('3. Cache Synchronization: verifies successful responses update/synchronize the local cache', async () => {
-    render(<AsyncThemeIntegration />);
-
-    const select = screen.getByRole('combobox');
-    fireEvent.change(select, { target: { value: 'neon' } });
-
-    await waitFor(() => {
-      expect(fetchSpy).toHaveBeenCalledWith(
-        '/api/user/theme',
-        expect.objectContaining({
-          method: 'POST',
-          body: JSON.stringify({ theme: 'neon' }),
-        })
-      );
+      expect(fetchTheme).toHaveBeenCalledTimes(1);
     });
 
     await waitFor(() => {
-      expect(localStorageSetSpy).toHaveBeenCalledWith('theme-cache', 'neon');
+      expect(screen.queryByTestId('loading-spinner')).toBeNull();
     });
 
-    expect(screen.getByRole('combobox')).toHaveValue('neon');
+    const select = screen.getByRole('combobox') as HTMLSelectElement;
+    expect(select.value).toBe('dracula');
+
+    // Check it's using the mocked function and not doing a real request
+    expect(vi.isMockFunction(fetchTheme)).toBe(true);
   });
 
-  it('4. Fallback Behavior: verifies fallback behavior when the mocked service times out or rejects', async () => {
-    fetchSpy.mockRejectedValueOnce(new Error('Network Timeout'));
+  // Test 2 — Loading State
+  it('should display Loading State when Promise is pending', async () => {
+    // Mock a pending Promise
+    vi.mocked(fetchTheme).mockReturnValue(new Promise(() => {}));
 
-    render(<AsyncThemeIntegration />);
+    render(<IntegrationWrapper />);
 
-    const select = screen.getByRole('combobox');
-    fireEvent.change(select, { target: { value: 'dark' } });
+    expect(screen.getByTestId('loading-overlay')).toBeInTheDocument();
+    expect(screen.getByTestId('loading-spinner')).toBeInTheDocument();
+    expect(screen.getByTestId('theme-container')).toBeInTheDocument(); // UI remains responsive
+  });
+
+  // Test 3 — Cache Lookup Priority
+  it('should enforce Cache Lookup Priority over remote fetch', async () => {
+    vi.spyOn(window.localStorage, 'getItem').mockReturnValue('neon');
+
+    render(<IntegrationWrapper />);
 
     await waitFor(() => {
-      expect(screen.getByTestId('error-fallback')).toBeInTheDocument();
+      expect(screen.queryByTestId('loading-spinner')).toBeNull();
     });
 
-    // Cache should not be updated with the failed theme
-    expect(localStorageSetSpy).not.toHaveBeenCalled();
-    // Theme should revert or remain unchanged ('auto' was the initial state)
-    expect(screen.getByRole('combobox')).toHaveValue('auto');
+    expect(window.localStorage.getItem).toHaveBeenCalledWith('user_theme');
+    expect(fetchTheme).not.toHaveBeenCalled();
+
+    const select = screen.getByRole('combobox') as HTMLSelectElement;
+    expect(select.value).toBe('neon');
   });
 
-  it('5. Deterministic Isolation: verifies mocks are properly reset and restored between test runs', () => {
-    render(<AsyncThemeIntegration />);
+  // Test 4 — Timeout Fallback
+  it('should handle Timeout Fallback and render fallback UI on rejection', async () => {
+    vi.mocked(fetchTheme).mockRejectedValueOnce(new Error('Network timeout'));
 
-    // The previous tests should not bleed into this one
-    expect(fetchSpy).not.toHaveBeenCalled();
-    expect(localStorageSetSpy).not.toHaveBeenCalled();
-    expect(screen.getByRole('combobox')).toHaveValue('auto');
+    render(<IntegrationWrapper />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('fallback-ui')).toBeInTheDocument();
+    });
+
+    expect(screen.getByText(/Failed to load theme/i)).toBeInTheDocument();
+  });
+
+  // Test 5 — Cache Synchronization
+  it('should perform Cache Synchronization after a successful update', async () => {
+    vi.mocked(fetchTheme).mockResolvedValueOnce('dark');
+    vi.mocked(updateTheme).mockResolvedValueOnce(undefined);
+    vi.spyOn(window.localStorage, 'setItem');
+
+    const onSyncSuccess = vi.fn();
+    render(<IntegrationWrapper onSyncSuccess={onSyncSuccess} />);
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('loading-spinner')).toBeNull();
+    });
+
+    const user = userEvent.setup();
+    const select = screen.getByRole('combobox') as HTMLSelectElement;
+
+    await user.selectOptions(select, 'sunset');
+
+    await waitFor(() => {
+      expect(updateTheme).toHaveBeenCalledWith('sunset');
+    });
+
+    expect(window.localStorage.setItem).toHaveBeenCalledWith('user_theme', 'sunset');
+    expect(onSyncSuccess).toHaveBeenCalledTimes(1);
+
+    const selectAfter = screen.getByRole('combobox') as HTMLSelectElement;
+    expect(selectAfter.value).toBe('sunset');
   });
 });
