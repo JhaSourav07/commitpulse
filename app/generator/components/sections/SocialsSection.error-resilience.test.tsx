@@ -82,8 +82,8 @@ describe('SocialsSection: Hydration Stability, Exception Safety & Error Fallback
   it('Test 2: should catch unexpected runtime exceptions safely within the localized boundary', () => {
     render(
       <TestErrorBoundary>
-        {/* @ts-expect-error - injecting mock prop for testing purposes */}
         <SocialsSection
+          // @ts-expect-error - injecting mock prop for testing purposes
           forceCrash={true}
           selected={[]}
           socialLinks={{}}
@@ -98,8 +98,8 @@ describe('SocialsSection: Hydration Stability, Exception Safety & Error Fallback
   it('Test 3: should render a clean error recovery UI instead of white-screening', () => {
     render(
       <TestErrorBoundary>
-        {/* @ts-expect-error - injecting mock prop for testing purposes */}
         <SocialsSection
+          // @ts-expect-error - injecting mock prop for testing purposes
           forceCrash={true}
           selected={[]}
           socialLinks={{}}
@@ -115,8 +115,8 @@ describe('SocialsSection: Hydration Stability, Exception Safety & Error Fallback
   it('Test 4: should verify exceptions are logged to dev-telemetry trackers appropriately', () => {
     render(
       <TestErrorBoundary>
-        {/* @ts-expect-error - injecting mock prop for testing purposes */}
         <SocialsSection
+          // @ts-expect-error - injecting mock prop for testing purposes
           forceCrash={true}
           selected={[]}
           socialLinks={{}}
@@ -135,8 +135,8 @@ describe('SocialsSection: Hydration Stability, Exception Safety & Error Fallback
   it('Test 5: should ensure user reset/reload paths are available on the recovery panels', () => {
     render(
       <TestErrorBoundary>
-        {/* @ts-expect-error - injecting mock prop for testing purposes */}
         <SocialsSection
+          // @ts-expect-error - injecting mock prop for testing purposes
           forceCrash={true}
           selected={[]}
           socialLinks={{}}
