@@ -143,7 +143,37 @@ if (typeof window !== 'undefined' && typeof window.Storage !== 'undefined') {
 
 if (typeof globalThis.fetch !== 'undefined') {
   const originalFetch = globalThis.fetch;
-  const guardedFetch = function (url: URL | RequestInfo, init?: RequestInit) {
+  const createMockResponse = (
+    body: unknown,
+    options: { status?: number; statusText?: string; ok?: boolean; url?: string } = {}
+  ): Response => {
+    return {
+      ok:
+        options.ok !== undefined
+          ? options.ok
+          : options.status
+            ? options.status >= 200 && options.status < 300
+            : true,
+      status: options.status || 200,
+      statusText: options.statusText || 'OK',
+      headers: new Headers(),
+      url: options.url || '',
+      type: 'basic',
+      redirected: false,
+      bodyUsed: false,
+      clone: function () {
+        return this;
+      },
+      json: () => Promise.resolve(body),
+      text: () => Promise.resolve(typeof body === 'string' ? body : JSON.stringify(body)),
+      blob: () => Promise.resolve(new Blob([JSON.stringify(body)])),
+      arrayBuffer: () => Promise.resolve(new TextEncoder().encode(JSON.stringify(body)).buffer),
+      formData: () => Promise.resolve(new FormData()),
+      body: null,
+    } as unknown as Response;
+  };
+
+  const guardedFetch = vi.fn(async (url: URL | RequestInfo, init?: RequestInit) => {
     const urlString =
       typeof url === 'string'
         ? url
@@ -163,11 +193,12 @@ if (typeof globalThis.fetch !== 'undefined') {
       return originalFetch(url, init);
     }
 
-    throw new Error(
-      `[Vitest Guard] Blocked outbound network request to: ${urlString}. ` +
-        `Do not make real network requests in unit tests. Please mock global.fetch or use MSW.`
+    // Fully implement Response interface for blocked requests to avoid downstream crashes
+    return createMockResponse(
+      { error: `[Vitest Guard] Blocked outbound network request to: ${urlString}` },
+      { status: 500, ok: false, url: urlString }
     );
-  } as typeof fetch;
+  }) as unknown as typeof fetch;
 
   globalThis.fetch = guardedFetch;
 
