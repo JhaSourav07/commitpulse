@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { GET } from './route';
 
 vi.mock('@/lib/github', () => ({
@@ -39,6 +39,8 @@ function makeRequest(params: Record<string, string> = {}): Request {
 
 describe('GET /api/user-details', () => {
   beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2024-06-12T12:00:00Z'));
     vi.clearAllMocks();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     vi.mocked(fetchUserProfile).mockResolvedValue(mockProfile as any);
@@ -48,6 +50,10 @@ describe('GET /api/user-details', () => {
       totalPRs: 0,
       totalIssues: 0,
     });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it('returns 400 when username is missing', async () => {

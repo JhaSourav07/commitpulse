@@ -38,6 +38,8 @@ function makeRequest(params: Record<string, string> = {}): Request {
 
 describe('ApiStatsRoute Tests', () => {
   beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2024-06-11T12:00:00Z'));
     vi.clearAllMocks();
     quotaMonitor.reset();
     refreshPolicy.reset();
@@ -51,6 +53,7 @@ describe('ApiStatsRoute Tests', () => {
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     vi.restoreAllMocks();
   });
 
