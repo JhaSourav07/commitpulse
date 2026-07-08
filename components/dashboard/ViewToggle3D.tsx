@@ -83,32 +83,53 @@ export default function ViewToggle3D({ data, theme = 'dark', flatViewSlot }: Vie
       {/* Toggle bar */}
       <div className="flex items-center justify-end gap-2">
         <span className="text-xs opacity-40 mr-1">View</span>
-        <button
-          onClick={() => setIs3D(false)}
-          aria-pressed={!is3D}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
-          style={{
-            background: !is3D ? `${accent}22` : 'transparent',
-            color: !is3D ? accent : 'currentColor',
-            border: `1px solid ${!is3D ? accent + '55' : 'transparent'}`,
-          }}
-        >
-          {ICON_2D}
-          <span>Flat</span>
-        </button>
-        <button
-          onClick={() => setIs3D(true)}
-          aria-pressed={is3D}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
-          style={{
-            background: is3D ? `${accent}22` : 'transparent',
-            color: is3D ? accent : 'currentColor',
-            border: `1px solid ${is3D ? accent + '55' : 'transparent'}`,
-          }}
-        >
-          {ICON_3D}
-          <span>3D City</span>
-        </button>
+        <div className="group relative flex justify-center">
+          <button
+            onClick={() => setIs3D(false)}
+            aria-pressed={!is3D}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer"
+            style={{
+              background: !is3D ? `${accent}22` : 'transparent',
+              color: !is3D ? accent : 'currentColor',
+              border: `1px solid ${!is3D ? accent + '55' : 'transparent'}`,
+            }}
+          >
+            {ICON_2D}
+            <span>Flat</span>
+          </button>
+
+          {/* Custom Tooltip */}
+          <div className="pointer-events-none absolute top-full left-1/2 z-50 mt-2 -translate-x-1/2 flex flex-col items-center opacity-0 scale-95 transition-all duration-200 group-hover:opacity-100 group-hover:scale-100">
+            <div className="w-2 h-2 bg-gray-950 dark:bg-zinc-800 border-l border-t border-white/10 dark:border-white/5 rotate-45 -mb-1 z-10" />
+            <div className="whitespace-nowrap rounded-lg bg-gray-950 dark:bg-zinc-800 px-2.5 py-1.5 text-[11px] font-medium text-white dark:text-zinc-100 shadow-xl border border-white/10 dark:border-white/5">
+              Switch to flat view
+            </div>
+          </div>
+        </div>
+
+        <div className="group relative flex justify-center">
+          <button
+            onClick={() => setIs3D(true)}
+            aria-pressed={is3D}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer"
+            style={{
+              background: is3D ? `${accent}22` : 'transparent',
+              color: is3D ? accent : 'currentColor',
+              border: `1px solid ${is3D ? accent + '55' : 'transparent'}`,
+            }}
+          >
+            {ICON_3D}
+            <span>3D City</span>
+          </button>
+
+          {/* Custom Tooltip */}
+          <div className="pointer-events-none absolute top-full left-1/2 z-50 mt-2 -translate-x-1/2 flex flex-col items-center opacity-0 scale-95 transition-all duration-200 group-hover:opacity-100 group-hover:scale-100">
+            <div className="w-2 h-2 bg-gray-950 dark:bg-zinc-800 border-l border-t border-white/10 dark:border-white/5 rotate-45 -mb-1 z-10" />
+            <div className="whitespace-nowrap rounded-lg bg-gray-950 dark:bg-zinc-800 px-2.5 py-1.5 text-[11px] font-medium text-white dark:text-zinc-100 shadow-xl border border-white/10 dark:border-white/5">
+              Switch to 3D City view
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* View area */}

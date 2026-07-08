@@ -30,7 +30,10 @@
     "discord": "Discord",
     "twitter": "Twitter",
     "linkedin": "LinkedIn",
-    "generator": "ジェネレーター"
+    "generator": "ジェネレーター",
+    "guidelines": "ガイドライン",
+    "faq": "よくある質問",
+    "support": "サポート"
   },
   "landing": {
     "empty_username_warning": "Please enter a GitHub username to copy your badge link.",

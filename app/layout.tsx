@@ -44,11 +44,11 @@ export const metadata: Metadata = {
     url: 'https://commitpulse.vercel.app/',
     title: 'CommitPulse | 3D Isometric GitHub Contribution Graph',
     description:
-      'Generate a cinematic, isometric 3D SVG of your GitHub contributions for your README. Stop being boring and visualize your grind.',
+      'Transform your GitHub contribution history into a cinematic, 3D isometric SVG monolith.',
     siteName: 'CommitPulse',
     images: [
       {
-        url: 'https://commitpulse.vercel.app/api/streak',
+        url: 'https://commitpulse.vercel.app/api/og?user=jhasourav07', // Default to maintainer
         width: 1200,
         height: 630,
         alt: 'CommitPulse 3D GitHub Contribution Graph Preview',
@@ -60,7 +60,7 @@ export const metadata: Metadata = {
     title: 'CommitPulse | Elevate Your GitHub README',
     description:
       'Generate a cinematic, isometric 3D SVG of your GitHub contributions for your README.',
-    images: ['https://commitpulse.vercel.app/api/streak'],
+    images: ['https://commitpulse.vercel.app/api/og?user=jhasourav07'], // Fixed
   },
   robots: {
     index: true,

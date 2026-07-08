@@ -297,7 +297,8 @@ export interface BadgeParams {
     | 'doughnut'
     | 'pie'
     | 'activity_graph'
-    | 'commit_clock';
+    | 'commit_clock'
+    | 'weekday';
 
   /** Format for the monthly delta indicator. 'percent' shows %, 'absolute' shows raw count, 'both' shows both. */
   delta_format?: 'percent' | 'absolute' | 'both';

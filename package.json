@@ -15,6 +15,7 @@
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage",
     "bench:svg": "tsx scripts/benchmark-svg.ts",
+    "check:api-breaking": "tsx scripts/detect-breaking-api-changes.ts",
     "prepare": "husky"
   },
   "lint-staged": {
@@ -92,7 +93,7 @@
     "tailwindcss": "^4.2.2",
     "tsx": "^4.22.2",
     "typescript": "^5",
-    "vitest": "^4.1.4"
+    "vitest": "^4.1.10"
   },
   "optionalDependencies": {
     "@resvg/resvg-js-linux-x64-gnu": "^2.6.2",

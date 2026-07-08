@@ -16,6 +16,8 @@ const eslintConfig = defineConfig([
     '.github/**',
     'public/sw.js',
     'public/sw.js.map',
+    'lib/svg/fonts.ts',
+    'scratch/**',
     'public/swe-*.js',
     'public/swe-*.js.map',
     'public/workbox-*.js',

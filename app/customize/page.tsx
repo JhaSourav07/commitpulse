@@ -380,10 +380,6 @@ function CustomizePageInner(): ReactElement {
       );
     }
   };
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleDownloadimage = () => {
-    alert('Download image functionality coming soon!');
-  };
 
   return (
     <div className="min-h-screen bg-transparent text-white font-sans overflow-x-hidden">
@@ -511,28 +507,7 @@ function CustomizePageInner(): ReactElement {
               </p>
 
               {/* ─── MOVING THE INTERACTION LISTENER DIRECTLY TO THE OUTER WRAPPER CONTAINER ROW ─── */}
-              <div
-                className="group relative"
-                onClick={(e) => {
-                  // Only trigger the focus highlight workflow if the placeholder box is actively rendering
-                  if (!hasUsername) {
-                    e.stopPropagation();
-                    const input = document.getElementById('username-input') as HTMLInputElement;
-                    if (input) {
-                      input.focus();
-                      input.style.outline = '4px solid #10b981';
-                      input.style.outlineOffset = '2px';
-                      input.style.transform = 'scale(1.02)';
-                      input.style.transition = 'all 0.3s ease';
-
-                      setTimeout(() => {
-                        input.style.outline = 'none';
-                        input.style.transform = 'scale(1)';
-                      }, 1000);
-                    }
-                  }
-                }}
-              >
+              <div className="group relative">
                 {/* Glow ring */}
                 <div className="absolute -inset-px bg-gradient-to-br from-emerald-500/20 to-purple-500/20 rounded-[1.5rem] opacity-0 group-hover:opacity-100 transition-opacity duration-700 blur-lg pointer-events-none" />
 
@@ -609,7 +584,29 @@ function CustomizePageInner(): ReactElement {
                       )}
                     </div>
                   ) : (
-                    <div className="relative z-10 flex w-full max-w-xl flex-col items-center justify-center rounded-[1.25rem] border border-dashed border-black/10 bg-gray-100/80 backdrop-blur-md dark:border-white/10 dark:bg-white/3 hover:border-black/30 dark:hover:border-white/30 transition-colors cursor-pointer px-6 py-12 text-center">
+                    <button
+                      type="button"
+                      aria-label="Enter GitHub username"
+                      onClick={() => {
+                        const input = document.getElementById(
+                          'username-input'
+                        ) as HTMLInputElement | null;
+
+                        if (input) {
+                          input.focus();
+                          input.style.outline = '4px solid #10b981';
+                          input.style.outlineOffset = '2px';
+                          input.style.transform = 'scale(1.02)';
+                          input.style.transition = 'all 0.3s ease';
+
+                          setTimeout(() => {
+                            input.style.outline = 'none';
+                            input.style.transform = 'scale(1)';
+                          }, 1000);
+                        }
+                      }}
+                      className="relative z-10 flex w-full max-w-xl flex-col items-center justify-center rounded-[1.25rem] border border-dashed border-black/10 bg-gray-100/80 backdrop-blur-md dark:border-white/10 dark:bg-white/3 hover:border-black/30 dark:hover:border-white/30 transition-colors cursor-pointer px-6 py-12 text-center"
+                    >
                       <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-black/10 bg-gray-100/80 dark:border-white/10 dark:bg-white/4 text-gray-500 dark:text-emerald-300/70">
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
@@ -632,7 +629,7 @@ function CustomizePageInner(): ReactElement {
                       <p className="mt-2 max-w-md text-sm leading-relaxed text-gray-500 dark:text-white/65">
                         {t('customize.empty_preview_desc')}
                       </p>
-                    </div>
+                    </button>
                   )}
                 </InteractiveViewer>
               </div>
