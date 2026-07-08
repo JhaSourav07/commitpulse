@@ -309,6 +309,8 @@ Study these existing themes to understand different design approaches and mood.
 | **aurora_cyberpunk** | Sci-fi, neon           | Futuristic profiles             | Purple on very dark     | 6.1:1    |
 | **highcontrast**     | Accessible, bold       | High-visibility needs           | Orange on black         | 10.8:1   |
 | **catppuccin_latte** | Light, friendly        | Light-themed systems            | Blue on cream           | 9.2:1    |
+| **catppuccin_mocha** | Warm, dark, elegant    | Modern dark setups              | Purple on dark gray     | 11.5:1   |
+| **onedark**          | Classic developer look | Atom-inspired profiles          | Blue on dark gray       | 7.6:1    |
 
 ---
 
