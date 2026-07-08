@@ -194,4 +194,29 @@ describe('ThemeSelector - Asynchronous Service Layer Mocking & Local Cache Stubs
     const selectAfter = screen.getByRole('combobox') as HTMLSelectElement;
     expect(selectAfter.value).toBe('sunset');
   });
+
+  // Test 6 — Complete Integration Flow
+  it('should prove exact strict execution order (cache miss -> async fetch -> cache update -> UI update)', async () => {
+    vi.mocked(fetchTheme).mockResolvedValueOnce('dracula');
+    const getItemSpy = vi.spyOn(window.localStorage, 'getItem').mockReturnValueOnce(null);
+    const setItemSpy = vi.spyOn(window.localStorage, 'setItem');
+
+    render(<IntegrationWrapper />);
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('loading-spinner')).toBeNull();
+    });
+
+    // Timeline verification
+    const getItemOrder = getItemSpy.mock.invocationCallOrder[0];
+    const fetchOrder = vi.mocked(fetchTheme).mock.invocationCallOrder[0];
+    const setItemOrder = setItemSpy.mock.invocationCallOrder[0];
+
+    expect(getItemOrder).toBeLessThan(fetchOrder);
+    expect(fetchOrder).toBeLessThan(setItemOrder);
+
+    // UI update verification
+    const select = screen.getByRole('combobox') as HTMLSelectElement;
+    expect(select.value).toBe('dracula');
+  });
 });
