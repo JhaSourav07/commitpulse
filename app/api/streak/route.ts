@@ -1,5 +1,7 @@
 // app/api/streak/route.ts
-
+import { cache } from '@/lib/cache';
+import { CacheMonitor } from '@/lib/cacheWarmer/monitor';
+import { PopularUserProfiler } from '@/lib/cacheWarmer/profiler';
 import crypto from 'crypto';
 import { NextResponse } from 'next/server';
 import {
@@ -83,10 +85,25 @@ function getMonthlyReferenceDate(year: string | undefined, timezone: string): Da
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
 
+  // ─── CACHE WARMER: Track this request ──────────────────────────────
+  const userParam = searchParams.get('user') || searchParams.get('org') || '';
+  const themeParam = searchParams.get('theme') || 'default';
+
+  if (userParam && !userParam.includes(',')) {
+    try {
+      const profiler = new PopularUserProfiler();
+      await profiler.trackUserRequest(userParam);
+    } catch (error) {
+      // Don't fail the request if tracking fails
+      console.warn('Cache warmer tracking failed:', error);
+    }
+  }
+
   const cacheKey = normalizeCacheKey(searchParams);
   const parseResult = cachedValidation(cacheKey, () =>
     streakParamsSchema.safeParse(coerceQueryParams(searchParams))
   );
+
   try {
     if (!parseResult.success) {
       const fieldErrors = parseResult.error.flatten();
@@ -181,6 +198,42 @@ export async function GET(request: Request) {
 
     const ip = getClientIp(request);
 
+    // ─── CACHE WARMER: Check cache for non-refresh requests ──────────
+    const authHeader = request.headers.get('authorization');
+    const isInternal = authHeader === `Bearer ${process.env.INTERNAL_API_KEY || 'dev'}`;
+
+    // Only check cache for non-internal requests
+    if (
+      !isInternal &&
+      !refresh &&
+      !bypassCacheParam &&
+      userParam &&
+      !userParam.includes(',') &&
+      !org
+    ) {
+      const cacheKey_badge = `badge:${userParam}:${themeName}`;
+      try {
+        const cached = await cache.get(cacheKey_badge);
+        if (cached) {
+          const monitor = new CacheMonitor();
+          await monitor.trackCacheHit(userParam, 0);
+
+          return new Response(cached, {
+            headers: {
+              'Content-Type': 'image/svg+xml; charset=utf-8',
+              'Cache-Control': 'public, max-age=3600, stale-while-revalidate=86400',
+              'Content-Security-Policy': SVG_CSP_HEADER,
+              'X-Cache-Status': 'HIT',
+            },
+          });
+        }
+      } catch (error) {
+        // If cache check fails, continue to generate
+        console.warn('Cache check failed:', error);
+      }
+    }
+
+    // ─── CONTINUE WITH EXISTING LOGIC ──────────────────────────────
     // Treat either ?refresh=true or ?bypassCache=true as a cache-bypass request
     const isRefreshRequested = refresh || bypassCacheParam;
 
@@ -587,8 +640,6 @@ export async function GET(request: Request) {
       const stats = calculateStreak(calendar, timezone, undefined, grace);
       svg = generateHeatmapSVG(stats, params, calendar);
     } else if (normalizedView === 'pulse') {
-      // We still use calculateStreak here to efficiently parse totalContributions for the stat display,
-      // even though the sparkline generator will extract its own daily 30-day timeline below.
       const stats = calculateStreak(calendar, timezone, undefined, grace);
       svg = generatePulseSVG(stats, params, calendar);
     } else if (normalizedView === 'skyline') {
@@ -611,7 +662,6 @@ export async function GET(request: Request) {
       const hourCounts = await fetchCommitHourDistribution(user).catch(() => new Array(24).fill(0));
       svg = generateCommitClockSVG(hourCounts, stats, params);
     } else if (versus && versusCalendar) {
-      // Normalize both calendars to the target timezone for accurate comparison
       const normalizedCalendar = normalizeCalendarToTimezone(calendar, timezone);
       const normalizedVersusCalendar = normalizeCalendarToTimezone(versusCalendar, timezone);
 
@@ -625,6 +675,21 @@ export async function GET(request: Request) {
 
     if (minify) {
       svg = optimizeSVG(svg);
+    }
+
+    // ─── CACHE WARMER: Store in cache ──────────────────────────────────
+    // Only cache if not internal request and single user
+    if (!isInternal && userParam && !userParam.includes(',') && !org) {
+      try {
+        const cacheKey_badge = `badge:${userParam}:${themeName}`;
+        await cache.set(cacheKey_badge, svg, { ttl: 60 * 60 * 24 * 7 }); // 7 days
+
+        // Track cache hit for monitoring
+        const monitor = new CacheMonitor();
+        await monitor.trackCacheHit(userParam, 0);
+      } catch (error) {
+        console.warn('Cache storage failed:', error);
+      }
     }
 
     const secondsToMidnight = tzParam
@@ -698,9 +763,6 @@ function sanitizeErrorMessage(message: string): string {
   if (message.includes('schema') || message.includes('Schema')) {
     return 'Invalid request parameters';
   }
-  // Preserve user-facing validation messages — these are intentional,
-  // safe error strings thrown by route-level validation and do not
-  // expose internal implementation details.
   const lower = message.toLowerCase();
   if (lower.includes('strictly for organizations')) {
     return 'This endpoint is strictly for organizations.';
@@ -711,9 +773,6 @@ function sanitizeErrorMessage(message: string): string {
   if (lower.includes('quota is low')) {
     return 'API rate limit quota is low. Please try again later.';
   }
-  // Issue #7263: Return a generic message for all other errors to
-  // prevent leaking internal implementation details (auth state, cache
-  // servers, token rotation info, etc.) to the client.
   return 'Something went wrong. Please try again later.';
 }
 
@@ -754,7 +813,6 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
     rawMessage.toLowerCase().includes('could not resolve');
   const isRateLimit = rawMessage.toLowerCase().includes('rate limit');
 
-  // 2. Safely detect if the error was a validation/client error
   const isValidationError =
     (error instanceof Error && error.name === 'ValidationError') ||
     rawMessage.toLowerCase().includes('invalid') ||
@@ -814,7 +872,6 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
     });
   }
 
-  // 3. Return a 400 Bad Request for Validation Errors
   if (isValidationError) {
     const validationSvg = buildInlineErrorSVG(message);
 
@@ -828,7 +885,6 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
     });
   }
 
-  // 4. Return a 500 Internal Server Error for real crashes
   logger.error('Unhandled error', {
     source: 'streak',
     message,
