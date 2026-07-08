@@ -66,7 +66,9 @@ describe('generateConstellationSVG', () => {
 
     const svg = generateConstellationSVG(stats, params, calendar);
 
-    expect(svg).toContain('<svg xmlns="http://www.w3.org/2000/svg"');
+    expect(svg).toContain(
+      '<svg style="max-width: 100%; height: auto;" xmlns="http://www.w3.org/2000/svg"'
+    );
     expect(svg).toContain('Constellation Map');
     expect(svg).toContain('testuser');
   });
@@ -103,7 +105,9 @@ describe('generateConstellationSVG', () => {
     );
 
     // Should still produce a valid SVG
-    expect(svg).toContain('<svg xmlns="http://www.w3.org/2000/svg"');
+    expect(svg).toContain(
+      '<svg style="max-width: 100%; height: auto;" xmlns="http://www.w3.org/2000/svg"'
+    );
     expect(svg).toContain('Constellation Map');
     // No contribution stars
     expect(svg).toContain('id="ck-contrib-stars"');
@@ -141,7 +145,9 @@ describe('generateConstellationSVG', () => {
       calendar
     );
 
-    expect(svg).toContain('<svg xmlns="http://www.w3.org/2000/svg"');
+    expect(svg).toContain(
+      '<svg style="max-width: 100%; height: auto;" xmlns="http://www.w3.org/2000/svg"'
+    );
     // Should have one contribution star but no constellation lines (needs 2+ stars in a month)
     expect(svg).toContain('id="ck-contrib-stars"');
   });

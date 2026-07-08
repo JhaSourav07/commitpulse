@@ -173,7 +173,7 @@ describe('ViewToggle3D', () => {
       );
     });
 
-    expect(screen.getByText(/3D City/i)).toBeTruthy();
+    expect(screen.getByRole('button', { name: /3D City/i })).toBeTruthy();
   });
 
   it('clicking 3D City hides the flat activity chart', async () => {
@@ -192,7 +192,7 @@ describe('ViewToggle3D', () => {
 
     // Click the 3D toggle
     await act(async () => {
-      fireEvent.click(screen.getByText(/3D City/i));
+      fireEvent.click(screen.getByRole('button', { name: /3D City/i }));
     });
 
     // Flat chart should now be hidden

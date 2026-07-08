@@ -41,6 +41,8 @@ describe('EditorPanel Theme Contrast', () => {
     commitPulseAccent: '',
 
     // Required GeneratorState fields
+    showRepoSpotlight: false,
+    spotlightRepo: '',
     showSnakeGraph: false,
     showPacmanGraph: false,
     graphPlacement: 'bottom',

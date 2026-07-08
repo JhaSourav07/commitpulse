@@ -91,7 +91,7 @@ export async function GET(request: Request) {
   try {
     const userToken = await getUserGitHubToken();
     const data = await fetchBurnoutAnalysis(owner, repo, {
-      bypassCache: refresh,
+      bypassCache: shouldBypassCache,
       token: userToken,
     });
 

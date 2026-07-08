@@ -24,7 +24,9 @@ if (typeof window !== 'undefined') {
 // 1. Next-Auth ko crash hone se bachane ke liye env variables defaults set karo
 process.env.AUTH_SECRET = 'a-super-secret-32-character-dummy-string-for-tests';
 process.env.NEXTAUTH_SECRET = 'a-super-secret-32-character-dummy-string-for-tests';
-process.env.GITHUB_TOKEN = 'mock-github-token-for-testing';
+// Ensure global fallback matches length and prefix requirements in github.ts
+process.env.GITHUB_TOKEN = 'ghp_mocktokenfortesting123456789012345';
+process.env.GITHUB_PAT = 'ghp_mockpatfortesting12345678901234567';
 
 // Next.js ke dynamic headers context ko mock karo taaki tests crash na hon
 vi.mock('next/headers', () => {

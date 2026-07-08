@@ -6,13 +6,19 @@ import React, { type ReactNode } from 'react';
 
 const replaceMock = vi.fn();
 
+const mockSearchParams = {
+  get: vi.fn((key) => {
+    if (key === 'user1') return 'userA';
+    if (key === 'user2') return 'userB';
+    return null;
+  }),
+  toString: vi.fn(() => 'user1=userA&user2=userB'),
+};
 vi.mock('next/navigation', () => ({
   useRouter: () => ({
     replace: replaceMock,
   }),
-  useSearchParams: () => ({
-    get: vi.fn(() => null),
-  }),
+  useSearchParams: () => mockSearchParams,
 }));
 
 vi.mock('framer-motion', () => ({
@@ -160,8 +166,8 @@ describe('CompareClient', () => {
       expect(screen.getByText(/stats showdown/i)).toBeInTheDocument();
     });
 
-    expect(screen.getByText(/5[,\s ]?000/)).toBeInTheDocument();
-    expect(screen.getByText(/3[,\s ]?000/)).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText(/5[,\s ]?000/)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText(/3[,\s ]?000/)).toBeInTheDocument());
   });
 
   it('updates route when compare button is clicked', async () => {

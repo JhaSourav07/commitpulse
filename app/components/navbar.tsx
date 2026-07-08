@@ -19,7 +19,14 @@ function GithubMark() {
   );
 }
 
-const NAV_LINKS = [
+export interface NavLink {
+  label: string;
+  href: string;
+  isExternal: boolean;
+  isPrimary: boolean;
+}
+
+const NAV_LINKS: NavLink[] = [
   {
     label: 'Generator',
     href: '/generator',
@@ -63,11 +70,6 @@ function LanguageSelector() {
 
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-
-  const handleLanguageClick = (lang: Language) => {
-    changeLanguage(lang);
-    setIsOpen(false);
-  };
 
   useEffect(() => {
     if (!isOpen) return;
@@ -192,7 +194,7 @@ export default function Navbar() {
   });
 
   useEffect(() => {
-    const mediaQuery = window.matchMedia('(min-width: 768px)');
+    const mediaQuery = window.matchMedia('(min-width: 1024px)');
 
     const handleBreakpointChange = (event: MediaQueryListEvent) => {
       if (event.matches) {
@@ -317,7 +319,7 @@ export default function Navbar() {
                 </span>
               </Link>
 
-              <div className="hidden items-center gap-2 md:flex">
+              <div className="hidden items-center gap-2 lg:flex">
                 <NavbarSearch />
                 <LanguageSelector />
                 {NAV_LINKS.map((link) => {
@@ -332,7 +334,7 @@ export default function Navbar() {
                       href={link.href}
                       target={link.isExternal ? '_blank' : undefined}
                       rel={link.isExternal ? 'noopener noreferrer' : undefined}
-                      className={`relative inline-flex items-center gap-1.5 py-2 font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#0a0a0a] whitespace-nowrap shrink-0 ${
+                      className={`relative group inline-flex items-center gap-1.5 py-2 font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#0a0a0a] whitespace-nowrap shrink-0 ${
                         link.isPrimary
                           ? `rounded-xl bg-gray-900 text-white shadow-md hover:bg-gray-800 hover:-translate-y-0.5 hover:shadow-lg dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200 dark:hover:shadow-[0_4px_20px_rgba(255,255,255,0.2)] focus-visible:ring-gray-950 dark:focus-visible:ring-white ml-2 ${
                               isLong ? 'px-3 text-xs' : 'px-4 text-sm'
@@ -352,11 +354,11 @@ export default function Navbar() {
                       ) : (
                         <span>{translatedLabel}</span>
                       )}
-                      {isActive && !link.isPrimary && (
+                      {!link.isPrimary && (
                         <span
-                          className={`absolute bottom-0 h-0.5 bg-gray-900 dark:bg-white rounded-full animate-in fade-in slide-in-from-bottom-1 duration-250 ${
+                          className={`absolute bottom-0 h-0.5 bg-gray-900 dark:bg-white rounded-full transform origin-left transition-transform duration-300 ${
                             isLong ? 'left-2 right-2' : 'left-3 right-3'
-                          }`}
+                          } ${isActive ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100'}`}
                         />
                       )}
                     </LinkComponent>
@@ -368,19 +370,8 @@ export default function Navbar() {
 
                 <button
                   type="button"
-                  onClick={() => setShortcutsOpen(true)}
-                  aria-label="Show keyboard shortcuts"
-                  className="group inline-flex h-10 w-10 items-center justify-center rounded-xl text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2 dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-white dark:focus-visible:ring-gray-400 dark:focus-visible:ring-offset-[#0a0a0a]"
-                >
-                  <Keyboard
-                    size={18}
-                    className="transition-transform duration-300 group-hover:scale-110"
-                  />
-                </button>
-                <button
-                  type="button"
                   onClick={toggleTheme}
-                  className="group inline-flex h-10 w-10 items-center justify-center rounded-xl text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2 dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-white dark:focus-visible:ring-gray-400 dark:focus-visible:ring-offset-[#0a0a0a]"
+                  className="group inline-flex h-10 w-10 items-center justify-center rounded-xl text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2 dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-white dark:focus-visible:ring-gray-400 dark:focus-visible:ring-offset-[#0a0a0a] cursor-pointer"
                   aria-label={t('navbar.theme_toggle')}
                   suppressHydrationWarning
                 >
@@ -403,11 +394,11 @@ export default function Navbar() {
               </div>
 
               {/* Mobile Menu Buttons */}
-              <div className="md:hidden inline-flex items-center justify-center gap-1">
+              <div className="lg:hidden inline-flex items-center justify-center gap-1">
                 <button
                   type="button"
                   onClick={toggleTheme}
-                  className="group hidden sm:inline-flex h-10 w-10 items-center justify-center rounded-xl text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-white"
+                  className="group hidden sm:inline-flex h-10 w-10 items-center justify-center rounded-xl text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-white cursor-pointer"
                   aria-label={t('navbar.theme_toggle')}
                 >
                   {mounted ? (
@@ -428,7 +419,7 @@ export default function Navbar() {
                 </button>
                 <button
                   type="button"
-                  className="md:hidden inline-flex items-center justify-center rounded-xl p-2 text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-white"
+                  className="lg:hidden inline-flex items-center justify-center rounded-xl p-2 text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-white cursor-pointer"
                   aria-label={open ? t('navbar.menu_close') : t('navbar.menu_open')}
                   aria-expanded={open}
                   onClick={() => {
@@ -450,12 +441,26 @@ export default function Navbar() {
                     <Menu size={20} className="transition-transform duration-300 hover:scale-110" />
                   )}
                 </button>
+
+                <div className="mx-2 h-6 w-px bg-gray-200 dark:bg-white/15" />
+
+                <button
+                  type="button"
+                  onClick={() => setShortcutsOpen(true)}
+                  aria-label="Show keyboard shortcuts"
+                  className="group inline-flex h-10 w-10 items-center justify-center rounded-xl text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2 dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-white dark:focus-visible:ring-gray-400 dark:focus-visible:ring-offset-[#0a0a0a]"
+                >
+                  <Keyboard
+                    size={18}
+                    className="transition-transform duration-300 group-hover:scale-110"
+                  />
+                </button>
               </div>
             </nav>
 
             {/* Mobile Dropdown Menu */}
             {open ? (
-              <div className="border-t border-gray-100 dark:border-white/10 px-4 py-4 md:hidden">
+              <div className="border-t border-gray-100 dark:border-white/10 px-4 py-4 lg:hidden">
                 <ul className="space-y-1">
                   <li className="mb-2">
                     <NavbarSearch variant="mobile" onNavigate={() => setOpen(false)} />

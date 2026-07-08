@@ -2,11 +2,15 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { createRequest } from 'node-mocks-http';
 import { GET } from '../route';
 
-vi.mock('../../../../lib/github', () => ({
-  fetchGitHubContributions: vi.fn(),
-  getOrgDashboardData: vi.fn(),
-  getCircuitTelemetry: vi.fn().mockReturnValue({ isOpen: false, resetInMs: 0 }),
-}));
+vi.mock('../../../../lib/github', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../../../lib/github')>();
+  return {
+    ...actual,
+    fetchGitHubContributions: vi.fn(),
+    getOrgDashboardData: vi.fn(),
+    getCircuitTelemetry: vi.fn().mockReturnValue({ isOpen: false, resetInMs: 0 }),
+  };
+});
 
 vi.mock('../../../../utils/time', () => ({
   getSecondsUntilUTCMidnight: vi.fn(),

@@ -52,12 +52,19 @@ const themes = [
   },
 ];
 
-function getPercentile(times: number[], percentile: number): number {
-  if (times.length === 0) return 0;
-  const sorted = [...times].sort((a, b) => a - b);
-  const index = (percentile / 100) * (sorted.length - 1);
+function percentile(values: number[], p: number): number {
+  if (values.length === 0) return 0;
+
+  const sorted = [...values].sort((a, b) => a - b);
+
+  const index = (p / 100) * (sorted.length - 1);
   const lower = Math.floor(index);
   const upper = Math.ceil(index);
+
+  if (lower === upper) {
+    return sorted[lower];
+  }
+
   const weight = index - lower;
   return sorted[lower] * (1 - weight) + sorted[upper] * weight;
 }
@@ -110,12 +117,12 @@ function benchmark(): void {
     }
 
     const avg = times.reduce((a, b) => a + b, 0) / times.length;
-    const p50 = getPercentile(times, 50);
-    const p95 = getPercentile(times, 95);
-    const p99 = getPercentile(times, 99);
-
     const min = Math.min(...times);
     const max = Math.max(...times);
+
+    const p50 = percentile(times, 50);
+    const p95 = percentile(times, 95);
+    const p99 = percentile(times, 99);
 
     console.log(`Theme: ${theme.name}`);
     console.log(`Average: ${avg.toFixed(2)}ms`);

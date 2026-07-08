@@ -198,6 +198,7 @@ describe('MSW: fetchGitHubContributions', () => {
   it('returns 401 for missing auth token', async () => {
     delete process.env.GITHUB_PAT;
     delete process.env.GITHUB_TOKEN;
+    delete process.env.GITHUB_TOKENS;
     await expect(fetchGitHubContributions('octocat')).rejects.toThrow();
   });
 });
