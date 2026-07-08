@@ -34,7 +34,7 @@ describe('app/generator/types.ts — TypeScript Compiler Validation & Schema Con
     expectTypeOf<'Other'>().toMatchTypeOf<TechCategory>();
     // TechCategory must NOT collapse to a bare `string` — that would
     // silently accept typos like 'frnotend' at runtime.
-    expectTypeOf<TechCategory>().not.toBeString();
+    expectTypeOf<TechCategory>().not.toBeString;
   });
 
   it('locks the SocialCategory union + IconType union — invalid props are blocked at compile time', () => {
@@ -52,7 +52,7 @@ describe('app/generator/types.ts — TypeScript Compiler Validation & Schema Con
     // stay exactly 2 members — no accidental third value.
     expectTypeOf<'devicon'>().toMatchTypeOf<IconType>();
     expectTypeOf<'simpleicon'>().toMatchTypeOf<IconType>();
-    expectTypeOf<IconType>().not.toBeString();
+    expectTypeOf<IconType>().not.toBeString;
   });
 
   it('enforces every required field on the Technology interface (structural schema constraints)', () => {
