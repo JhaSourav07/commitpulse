@@ -10,6 +10,9 @@ describe('Socials Type Compiler Validation', () => {
   it('enforces Social interface field types', () => {
     expectTypeOf<Social['id']>().toBeString();
     expectTypeOf<Social['name']>().toBeString();
+    expectTypeOf<Social['category']>().toEqualTypeOf<SocialCategory>();
+    expectTypeOf<Social['iconUrl']>().toBeString();
+    expectTypeOf<Social['type']>().toEqualTypeOf<'simpleicon' | 'devicon'>();
     expectTypeOf<Social['baseUrl']>().toBeString();
     expectTypeOf<Social['placeholder']>().toBeString();
   });
