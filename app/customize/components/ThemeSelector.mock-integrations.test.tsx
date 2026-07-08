@@ -100,7 +100,7 @@ describe('ThemeSelector - Asynchronous Service Layer Mocking & Local Cache Stubs
 
   // Test 1 — Async Service Mock
   it('should verify Async Service Mock without making real network requests', async () => {
-    vi.mocked(fetchTheme).mockResolvedValueOnce('dracula');
+    vi.mocked(fetchTheme).mockResolvedValue('dracula');
 
     render(<IntegrationWrapper />);
 
@@ -151,7 +151,7 @@ describe('ThemeSelector - Asynchronous Service Layer Mocking & Local Cache Stubs
 
   // Test 4 — Timeout Fallback
   it('should handle Timeout Fallback and render fallback UI on rejection', async () => {
-    vi.mocked(fetchTheme).mockRejectedValueOnce(new Error('Network timeout'));
+    vi.mocked(fetchTheme).mockRejectedValue(new Error('Network timeout'));
 
     render(<IntegrationWrapper />);
 
@@ -164,8 +164,8 @@ describe('ThemeSelector - Asynchronous Service Layer Mocking & Local Cache Stubs
 
   // Test 5 — Cache Synchronization
   it('should perform Cache Synchronization after a successful update', async () => {
-    vi.mocked(fetchTheme).mockResolvedValueOnce('dark');
-    vi.mocked(updateTheme).mockResolvedValueOnce(undefined);
+    vi.mocked(fetchTheme).mockResolvedValue('dark');
+    vi.mocked(updateTheme).mockResolvedValue(undefined);
     vi.spyOn(window.localStorage, 'setItem');
 
     const onSyncSuccess = vi.fn();
@@ -182,19 +182,18 @@ describe('ThemeSelector - Asynchronous Service Layer Mocking & Local Cache Stubs
 
     await waitFor(() => {
       expect(updateTheme).toHaveBeenCalledWith('sunset');
+      expect(window.localStorage.setItem).toHaveBeenCalledWith('user_theme', 'sunset');
+      expect(onSyncSuccess).toHaveBeenCalledTimes(1);
+
+      const selectAfter = screen.getByRole('combobox') as HTMLSelectElement;
+      expect(selectAfter.value).toBe('sunset');
     });
-
-    expect(window.localStorage.setItem).toHaveBeenCalledWith('user_theme', 'sunset');
-    expect(onSyncSuccess).toHaveBeenCalledTimes(1);
-
-    const selectAfter = screen.getByRole('combobox') as HTMLSelectElement;
-    expect(selectAfter.value).toBe('sunset');
   });
 
   // Test 6 — Complete Integration Flow
   it('should prove exact strict execution order (cache miss -> async fetch -> cache update -> UI update)', async () => {
-    vi.mocked(fetchTheme).mockResolvedValueOnce('dracula');
-    const getItemSpy = vi.spyOn(window.localStorage, 'getItem').mockReturnValueOnce(null);
+    vi.mocked(fetchTheme).mockResolvedValue('dracula');
+    const getItemSpy = vi.spyOn(window.localStorage, 'getItem').mockReturnValue(null);
     const setItemSpy = vi.spyOn(window.localStorage, 'setItem');
 
     render(<IntegrationWrapper />);
