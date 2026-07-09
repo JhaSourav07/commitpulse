@@ -217,7 +217,6 @@ function CustomizePageInner(): ReactElement {
     // Safe: resets error state as the first synchronous step when any preview
     // dependency changes. The reset always precedes any async fetch or early
     // return so there is no intermediate render with stale error text.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setErrorMessage(null);
     if (!hasUsername) {
       setSvgContent('');
