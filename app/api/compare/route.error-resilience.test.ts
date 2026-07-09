@@ -23,7 +23,7 @@ vi.mock('@/lib/rate-limit', () => ({
   RateLimiter: class {
     check = mocks.limiter.check;
 
-    constructor(_limit?: number, _window?: number, _maxSize?: number) {}
+    constructor() {}
   },
 }));
 
