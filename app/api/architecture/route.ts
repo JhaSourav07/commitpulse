@@ -14,7 +14,6 @@ import { getClientIp } from '@/utils/getClientIp';
 
 const execFilePromise = promisify(execFile);
 
-const REST_TIMEOUT_MS = 5000; // 5s timeout for external API requests
 
 // Per-IP concurrent clone tracking (max 3 concurrent clones per IP)
 const MAX_CONCURRENT_CLONES_PER_IP = 3;
