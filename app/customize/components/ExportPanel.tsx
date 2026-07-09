@@ -100,37 +100,8 @@ export function ExportPanel({
       }
 
       // 5. Fetch the real, server-side generated raw XML text of the SVG from your local server
-      const response = await fetch(targetUrl);
-      if (!response.ok) throw new Error('Network response failed to retrieve badge data stream.');
-
-      let svgText = await response.text();
-
-      // 6. ABSOLUTE VIEWPORT CENTERING INJECTION
-      // We attach absolute positioning properties directly into the root vector stylesheet.
-      // This forces the standalone browser view to scale up and lock dead center in the viewport grid!
-      const standaloneStyles = `
-        <style id="standalone-canvas-centering">
-          svg {
-            display: block !important;
-            margin: auto !important;
-            position: absolute !important;
-            top: 0 !important; bottom: 0 !important;
-            left: 0 !important; right: 0 !important;
-            max-width: 90vw !important;
-            max-height: 90vh !important;
-          }
-        </style>
-      `;
-
-      const closingSvgTag = '</svg>';
-      const injectionIndex = svgText.lastIndexOf(closingSvgTag);
-
-      if (injectionIndex !== -1) {
-        svgText =
-          svgText.substring(0, injectionIndex) +
-          standaloneStyles +
-          svgText.substring(injectionIndex);
-      }
+      const svgText = await getSvgText();
+      if (!svgText) return;
 
       // 7. Initialize standard file downloader
       const blob = new Blob([svgText], { type: 'image/svg+xml;charset=utf-8' });
@@ -152,6 +123,64 @@ export function ExportPanel({
       setIsDownloading(false);
       console.error(err);
       toast.error('Failed to retrieve the latest badge asset. Please try again.');
+    }
+  };
+  const getSvgText = async () => {
+    if (!hasUsername || !snippet) return null;
+
+    const urlMatch = snippet.match(/\((https?:\/\/[^)]+)\)/) || snippet.match(/src="([^"]+)"/);
+    let targetUrl = urlMatch ? urlMatch[1] : '';
+
+    if (!targetUrl) return null;
+
+    targetUrl = targetUrl.replace(/&amp;/g, '&');
+
+    if (targetUrl.includes('https://commitpulse.vercel.app')) {
+      targetUrl = targetUrl.replace('https://commitpulse.vercel.app', window.location.origin);
+    }
+
+    targetUrl += targetUrl.includes('?') ? '&refresh=true' : '?refresh=true';
+
+    const response = await fetch(targetUrl);
+    if (!response.ok) throw new Error('Failed to fetch SVG');
+
+    let svgText = await response.text();
+
+    const standaloneStyles = `
+    <style id="standalone-canvas-centering">
+      svg {
+        display:block !important;
+        margin:auto !important;
+        position:absolute !important;
+        top:0 !important;
+        bottom:0 !important;
+        left:0 !important;
+        right:0 !important;
+        max-width:90vw !important;
+        max-height:90vh !important;
+      }
+    </style>
+  `;
+
+    const index = svgText.lastIndexOf('</svg>');
+    if (index !== -1) {
+      svgText = svgText.substring(0, index) + standaloneStyles + svgText.substring(index);
+    }
+
+    return svgText;
+  };
+  const handleCopySvg = async () => {
+    if (!hasUsername) return;
+
+    try {
+      const svgText = await getSvgText();
+      if (!svgText) return;
+
+      await navigator.clipboard.writeText(svgText);
+      toast.success('SVG copied to clipboard!');
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to copy SVG.');
     }
   };
 
@@ -282,6 +311,32 @@ export function ExportPanel({
               : isDownloading
                 ? t('customize.export.downloading', { defaultValue: 'Downloading...' })
                 : t('customize.export.download_svg', { defaultValue: 'Download SVG' })}
+          </button>
+          <button
+            type="button"
+            onClick={handleCopySvg}
+            disabled={!hasUsername || isDownloading || format === 'action'}
+            className={`relative inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all duration-200 ${
+              !hasUsername || isDownloading || format === 'action'
+                ? 'bg-gray-200/90 border border-black/10 text-gray-500 cursor-not-allowed dark:bg-white/10 dark:border-white/10 dark:text-white/35'
+                : 'bg-indigo-500/10 border border-indigo-500/30 text-indigo-500 hover:bg-indigo-500/20 hover:scale-[1.03] active:scale-[0.97]'
+            }`}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="w-3.5 h-3.5"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+            </svg>
+            Copy SVG
           </button>
 
           <button
