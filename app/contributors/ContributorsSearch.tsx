@@ -2,7 +2,6 @@
 
 import { useState, useRef } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { GitFork, Search, X } from 'lucide-react';
 import { motion, AnimatePresence, Variants } from 'framer-motion';
 
