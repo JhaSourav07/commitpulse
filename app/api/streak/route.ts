@@ -13,7 +13,6 @@ import {
   calculateStreak,
   calculateMonthlyStats,
   aggregateCalendars,
-  convertLocalToUtc,
   chunkDaysIntoWeeks,
   normalizeCalendarToTimezone,
   isLeapYear,
