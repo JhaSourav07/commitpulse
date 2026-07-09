@@ -7,7 +7,6 @@ import { logger } from '@/lib/logger';
 const MAX_PAYLOAD_SIZE = 1024 * 1024; // 1MB
 const SIGNATURE_PREFIX = 'sha256=';
 const SHA256_HEX_LENGTH = 64;
-const READ_CHUNK_SIZE = 64 * 1024; // 64KB chunks
 
 function getWebhookSecret(): string | null {
   const secret = process.env.GITHUB_WEBHOOK_SECRET?.trim();
