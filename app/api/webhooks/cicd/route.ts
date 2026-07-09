@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   return NextResponse.json(
     { message: 'CI/CD Webhook endpoint. POST GitHub events here.' },
     { status: 200 }
