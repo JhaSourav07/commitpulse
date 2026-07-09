@@ -142,14 +142,14 @@ describe('Navbar Responsive Breakpoints & Menu Toggle', () => {
     expect(screen.getByRole('button', { name: 'Open menu' })).toBeDefined();
   });
 
-  it('4. Hides the desktop nav row on mobile and only reveals mobile hamburger controls, via complementary md: classes', () => {
+  it('4. Hides the desktop nav row on mobile and only reveals mobile hamburger controls, via complementary lg: classes', () => {
     const { container } = render(<Navbar />);
 
-    const desktopNavRow = container.querySelector('.hidden.items-center.gap-2.md\\:flex');
+    const desktopNavRow = container.querySelector('.hidden.items-center.gap-2.lg\\:flex');
     expect(desktopNavRow).toBeInTheDocument();
 
     const mobileControls = container.querySelector(
-      '.md\\:hidden.inline-flex.items-center.justify-center.gap-1'
+      '.lg\\:hidden.inline-flex.items-center.justify-center.gap-1'
     );
     expect(mobileControls).toBeInTheDocument();
   });
