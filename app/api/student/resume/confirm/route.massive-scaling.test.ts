@@ -231,7 +231,6 @@ describe('ApiStudentResumeConfirmRoute - Massive Data Sets and Extreme High Boun
       },
     };
 
-    const requestObj = makeRequest(bodyPayload);
 
     const startTime = performance.now();
 
