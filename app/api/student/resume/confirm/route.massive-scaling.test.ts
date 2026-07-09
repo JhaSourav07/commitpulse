@@ -2,7 +2,6 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { POST } from './route';
-import { StudentProfile } from '@/models/StudentProfile';
 import { resumeConfirmDataSchema } from '@/lib/validations';
 import { verifyGitHubOwner } from '@/lib/github-owner-verification';
 
@@ -10,8 +9,6 @@ vi.mock('@/lib/mongodb', () => ({
   default: vi.fn(),
 }));
 
-vi.mock('@/models/StudentProfile', () => ({
-  StudentProfile: {
     findOneAndUpdate: vi.fn(),
   },
 }));
