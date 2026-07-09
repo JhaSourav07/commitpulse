@@ -41,11 +41,11 @@ describe('themes object', () => {
 // ── Theme count ───────────────────────────────────────────────────────────────
 
 describe('theme count', () => {
-  it('contains exactly 29 preset themes matching THEMES.md documentation', () => {
+  it('contains exactly 34 preset themes matching THEMES.md documentation', () => {
     // If this fails, either a theme was added to themes.ts without updating
     // THEMES.md, or a theme was removed without updating the docs.
     // Update this count when intentionally adding/removing themes.
-    expect(themeNames).toHaveLength(32);
+    expect(themeNames).toHaveLength(34);
   });
 
   it('contains all expected theme keys', () => {
@@ -81,6 +81,8 @@ describe('theme count', () => {
       'monokai',
       'midnight_ocean',
       'india',
+      'catppuccin_mocha',
+      'one_dark',
     ];
     for (const key of expectedKeys) {
       expect(themeNames).toContain(key);
