@@ -1,6 +1,6 @@
 # CommitPulse Themes
 
-All 28 available themes for your CommitPulse badge. Use the `?theme=<slug>` query parameter to apply a theme.
+All 31 available themes for your CommitPulse badge. Use the `?theme=<slug>` query parameter to apply a theme.
 
 ```
 https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&theme=<slug>
@@ -41,6 +41,8 @@ https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&theme=<slug>
 | monokai          | `#272822`  | `#f8f8f2` | `#a6e22e` |
 | retro-terminal   | `#000000`  | `#00ff41` | `#00ff41` |
 | midnight_ocean   | `#020c1b`  | `#ccd6f6` | `#0af5ff` |
+| catppuccin_mocha | `#1e1e2e`  | `#cdd6f4` | `#cba6f7` |
+| one_dark         | `#282c34`  | `#abb2bf` | `#61afef` |
 
 ---
 
@@ -391,6 +393,30 @@ https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&theme=<slug>
 | `bg`      | 020c1b |
 | `text`    | ccd6f6 |
 | `accent`  | 0af5ff |
+
+---
+
+### Catppuccin Mocha
+
+![catppuccin_mocha](https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=catppuccin_mocha)
+
+| Parameter | Value  |
+| --------- | ------ |
+| `bg`      | 1e1e2e |
+| `text`    | cdd6f4 |
+| `accent`  | cba6f7 |
+
+---
+
+### One Dark
+
+![one_dark](https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=one_dark)
+
+| Parameter | Value  |
+| --------- | ------ |
+| `bg`      | 282c34 |
+| `text`    | abb2bf |
+| `accent`  | 61afef |
 
 ---
 
