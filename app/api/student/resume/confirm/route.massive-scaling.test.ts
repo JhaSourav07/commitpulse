@@ -4,7 +4,6 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { POST } from './route';
 import { StudentProfile } from '@/models/StudentProfile';
 import { resumeConfirmDataSchema } from '@/lib/validations';
-import { verifyGitHubOwner } from '@/lib/github-owner-verification';
 
 vi.mock('@/lib/mongodb', () => ({
   default: vi.fn(),
@@ -27,7 +26,6 @@ vi.mock('@/lib/rate-limit', () => {
 });
 
 vi.mock('@/lib/github-owner-verification', () => ({
-  verifyGitHubOwner: vi.fn().mockResolvedValue({ verified: true }),
 }));
 
 function makeRequest(body: string | Record<string, unknown>): Request {
