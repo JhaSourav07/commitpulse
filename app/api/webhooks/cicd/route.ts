@@ -5,8 +5,6 @@ import {
   parseWebhookEvent,
   cacheEvent,
   evaluateAlerts,
-  generateCIReport,
-  setAlertConfig,
 } from '@/services/github/webhook-handler';
 
 export const runtime = 'nodejs';
