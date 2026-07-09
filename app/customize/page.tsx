@@ -90,8 +90,7 @@ function CustomizePageInner(): ReactElement {
   const hasUsername = trimmedUsername.length > 0;
   const isRandomTheme = theme === 'random';
 
-  const router = useRouter();
-  const searchParams = useSearchParams();
+    const searchParams = useSearchParams();
 
   // On mount: initialize state from URL search params
   // Multiple setState calls are intentional here — we sync every customization
