@@ -16,7 +16,6 @@ import {
   convertLocalToUtc,
   chunkDaysIntoWeeks,
   normalizeCalendarToTimezone,
-  isLeapYear,
   daysInYear,
 } from '@/lib/calculate';
 import {
