@@ -54,6 +54,7 @@ beforeEach(() => {
   clearGitHubApiCacheForTests();
   process.env.GITHUB_PAT = 'ghp_testTokenAAAAAAAAAAAAAAAAAAAAAAAA';
   delete process.env.GITHUB_TOKEN;
+  delete process.env.GITHUB_TOKENS;
 });
 
 afterEach(() => {
@@ -237,6 +238,7 @@ describe('fetchGitHubContributions', () => {
   it('throws before fetching when no GitHub token is configured', async () => {
     delete process.env.GITHUB_PAT;
     delete process.env.GITHUB_TOKEN;
+    delete process.env.GITHUB_TOKENS;
 
     await expect(fetchGitHubContributions('octocat')).rejects.toThrow(
       'GitHub token is missing. Set GITHUB_PAT or GITHUB_TOKEN.'

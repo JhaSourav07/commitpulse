@@ -2,9 +2,13 @@
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@/lib/github', () => ({
-  getFullDashboardData: vi.fn(),
-}));
+vi.mock('@/lib/github', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/github')>();
+  return {
+    ...actual,
+    getFullDashboardData: vi.fn(),
+  };
+});
 
 vi.mock('@/services/github/quota-monitor', () => ({
   quotaMonitor: {

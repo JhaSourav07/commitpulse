@@ -21,6 +21,9 @@ describe('AIInsightsSkeleton Accessibility', () => {
     innerDivs.forEach((div) => {
       expect(div.getAttribute('role')).toBeNull();
     });
+    // Verify that conflicting labeling attributes are avoided since aria-label is present.
+    expect(wrapper).not.toHaveAttribute('aria-labelledby');
+    expect(wrapper).not.toHaveAttribute('aria-describedby');
   });
 
   // 2. Keyboard Focus
@@ -80,13 +83,14 @@ describe('AIInsightsSkeleton Accessibility', () => {
   // 5. Heading Hierarchy
   // Ensure that the skeleton does not introduce out-of-order headings before actual data loads.
   it('renders no heading elements ensuring heading hierarchy is not disrupted', () => {
-    render(<AIInsightsSkeleton />);
+    const { container } = render(<AIInsightsSkeleton />);
 
     // There should be no heading elements within the loading skeleton.
     expect(screen.queryByRole('heading')).toBeNull();
 
-    // TODO: When the loaded state (AIInsights) is implemented/rendered, ensure its headings
-    // follow a logical order relative to the page container layout (e.g., an H3 tag).
+    // Verify that the skeleton does not mistakenly use bold text elements as pseudo-headings
+    const strongElements = container.querySelectorAll('strong, b, h1, h2, h3, h4, h5, h6');
+    expect(strongElements).toHaveLength(0);
   });
 
   // 6. Reduced Motion Preference

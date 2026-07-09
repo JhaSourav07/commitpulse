@@ -6,11 +6,16 @@ import { getValidationCacheForTests } from './validation-cache';
 // We only mock the two things that reach outside this process:
 // the GitHub API call and the wall-clock time helper.
 // calculateStreak and generateSVG run for real, giving us genuine end-to-end coverage.
-vi.mock('../../../lib/github', () => ({
-  fetchGitHubContributions: vi.fn(),
-  getOrgDashboardData: vi.fn(),
-  getCircuitTelemetry: vi.fn().mockReturnValue({ isOpen: false, resetInMs: 0 }),
-}));
+vi.mock('../../../lib/github', async () => {
+  const actual = await vi.importActual<typeof import('../../../lib/github')>('../../../lib/github');
+
+  return {
+    ...actual,
+    fetchGitHubContributions: vi.fn(),
+    getOrgDashboardData: vi.fn(),
+    getCircuitTelemetry: vi.fn().mockReturnValue({ isOpen: false, resetInMs: 0 }),
+  };
+});
 
 vi.mock('../../../utils/time', () => ({
   getSecondsUntilUTCMidnight: vi.fn(),
@@ -1647,14 +1652,14 @@ describe('GET /api/streak', () => {
       expect(response.status).toBe(404);
     });
 
-    it('rejects requests with more than 2 users with a 400 Bad Request', async () => {
-      const response = await GET(makeRequest({ user: 'a, b, c, d' }));
+    it('rejects requests with more than 7 users with a 400 Bad Request', async () => {
+      const response = await GET(makeRequest({ user: 'a, b, c, d, e, f, g, h' }));
       expect(response.status).toBe(400);
 
       expect(fetchGitHubContributions).not.toHaveBeenCalled();
 
       const body = await response.text();
-      expect(body).toContain('a maximum of 2 usernames');
+      expect(body).toContain('maximum of 7 usernames');
     });
   });
 

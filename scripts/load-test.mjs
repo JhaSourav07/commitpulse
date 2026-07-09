@@ -24,7 +24,7 @@ async function worker() {
     try {
       const res = await fetch(TARGET_URL);
       // Consume the response body to avoid memory leaks
-      await res.arrayBuffer(); 
+      await res.arrayBuffer();
       if (!res.ok) {
         errors++;
       }
@@ -51,7 +51,7 @@ async function run() {
   console.info(`Total Requests: ${totalRequests}`);
   console.info(`Requests/sec:   ${requestsPerSec}`);
   console.info(`Errors:         ${errors}`);
-  
+
   if (errors > 0) {
     console.error('\nTest resulted in errors! The endpoint may be failing under load.');
     process.exit(1);

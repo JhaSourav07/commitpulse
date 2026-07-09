@@ -2,6 +2,7 @@
 
 import type {
   BadgeParams,
+  BadgeTheme,
   ContributionCalendar,
   StreakStats,
   MonthlyStats,
@@ -11,7 +12,7 @@ import { getLabels, type BadgeLabels } from '../i18n/badgeLabels';
 import { AUTO_THEME_DARK, AUTO_THEME_LIGHT, themes } from './themes';
 import { getTowerAnimationCSS } from './animations';
 import { DEFAULT_FONTS_BASE64 } from './fonts';
-import { computeTowers, computeTowerHeight, type TowerData } from './layout';
+import { computeTowers, computeTeamTowers, type TowerData, computeTowerHeight } from './layout';
 import { LANGUAGE_COLORS } from './languageColors';
 import {
   sanitizeFont,
@@ -52,7 +53,29 @@ const FONT_MAP = {
   space: '"Space Grotesk", sans-serif',
 } as const;
 
-let currentBackgroundRectBorderAttrs = '';
+/**
+ * Reverse lookup: background hex color -> theme.
+ *
+ * Built once at module load instead of re-scanning `Object.values(themes)`
+ * with `.find()` on every `generateMonthlySVG` call (this function runs on
+ * every SVG render request). Lookups are now O(1) via Map.get().
+ *
+ * Multiple themes can share the same `bg` color (e.g. 'default'/'dark'/
+ * 'github' all use '0d1117'). To exactly preserve the original
+ * `Object.values(themes).find(...)` behavior — which returns the first
+ * match in object-insertion order — we only set a key if it isn't already
+ * present, so earlier-declared themes continue to win ties.
+ */
+const THEME_BY_BG: Map<string, BadgeTheme> = (() => {
+  const map = new Map<string, BadgeTheme>();
+  for (const theme of Object.values(themes)) {
+    const key = theme.bg.toLowerCase();
+    if (!map.has(key)) {
+      map.set(key, theme);
+    }
+  }
+  return map;
+})();
 
 export function resolveFont(sanitizedFont?: string | null): string | null {
   if (!sanitizedFont) return null;
@@ -87,7 +110,7 @@ export function getUsernameFontSize(username: string): number {
   if (len <= 12) return 18;
   return Math.max(10, 18 - (len - 12) * 0.5);
 }
-
+let currentBackgroundRectBorderAttrs = '';
 /**
  * Renders the foundational background rectangle for all SVG cards.
  * Maintains the 0.5px offset required for crisp SVG stroke rendering on standard DPI screens.
@@ -453,7 +476,8 @@ function renderTowers(
   sf: number,
   isAutoTheme: boolean = false,
   opacity: number = 1.0,
-  animate: boolean = true
+  animate: boolean = true,
+  isTeamMonolith: boolean = false
 ): string {
   let towers = '';
   const opacityMultipliers = [0.4, 0.6, 0.8, 1.0];
@@ -517,7 +541,11 @@ function renderTowers(
       const textColorHex = text.startsWith('#') ? text : `#${text}`;
 
       let resolvedSolidColor = isGhost ? textColorHex : accentColorHex;
-      if (!isGhost && t.intensityLevel > 0 && Array.isArray(accent)) {
+
+      if (isTeamMonolith && Array.isArray(accent)) {
+        const userColor = accent[t.col % accent.length] || '00ffaa';
+        resolvedSolidColor = userColor.startsWith('#') ? userColor : `#${userColor}`;
+      } else if (!isGhost && t.intensityLevel > 0 && Array.isArray(accent)) {
         const quartileIdx = Math.min(t.intensityLevel - 1, accent.length - 1);
         const quartileColor = accent[quartileIdx] || accent[accent.length - 1] || '00ffaa';
         resolvedSolidColor = quartileColor.startsWith('#') ? quartileColor : `#${quartileColor}`;
@@ -824,6 +852,15 @@ function renderIsometricLabels(
   return `<g class="isometric-labels">${elements}</g>`;
 }
 
+function renderTeamIsometricLabels(
+  individualCalendars: { user: string; calendar: ContributionCalendar }[],
+  params: BadgeParams,
+  color: string,
+  sf: number
+): string {
+  return renderIsometricLabels(individualCalendars[0].calendar, params, color, sf);
+}
+
 function getInlineMilestoneBadge(
   streak: number,
   s: (n: number) => number,
@@ -898,9 +935,10 @@ function renderMilestoneBadges(stats: StreakStats, params: BadgeParams, sf: numb
 export function generateSVG(
   stats: StreakStats,
   params: BadgeParams,
-  calendar: ContributionCalendar
+  calendar: ContributionCalendar,
+  individualCalendars?: { user: string; calendar: ContributionCalendar }[]
 ): string {
-  if (params.autoTheme) return generateAutoThemeSVG(stats, params, calendar);
+  if (params.autoTheme) return generateAutoThemeSVG(stats, params, calendar, individualCalendars);
   if (params.compact) return generateCompactSVG(stats, params);
 
   const rawBorderWidth = String(params.border || '').trim();
@@ -952,8 +990,11 @@ export function generateSVG(
   const W = Math.round(SVG_WIDTH * sf);
   const H = Math.round((labelVisible ? SVG_HEIGHT : SVG_HEIGHT - 40) * sf);
   const yOffset = params.label === false ? -40 : 0;
+  const isTeamMonolith = individualCalendars && individualCalendars.length > 1;
   const towerData = scaleTowerData(
-    computeTowers(calendar, params.scale, stats.todayDate, params.mode),
+    isTeamMonolith
+      ? computeTeamTowers(individualCalendars, params.scale, stats.todayDate, params.mode)
+      : computeTowers(calendar, params.scale, stats.todayDate, params.mode),
     sf
   );
   if (params.gradient) {
@@ -967,7 +1008,8 @@ export function generateSVG(
     sf,
     false,
     params.opacity ?? 1.0,
-    animate
+    animate,
+    isTeamMonolith
   );
 
   const mainAccent = Array.isArray(accent)
@@ -982,12 +1024,16 @@ export function generateSVG(
 
   try {
     return `
-<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" fill="none" role="img" focusable="false" aria-labelledby="cp-title-${safeId}" aria-describedby="cp-desc-${safeId}">
+<svg style="max-width: 100%; height: auto;" xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" fill="none" role="img" focusable="false" aria-labelledby="cp-title-${safeId}" aria-describedby="cp-desc-${safeId}">
   ${renderHeader(safeUser, stats, sf, params, safeId)}
   ${renderStyle(selectedFont, statsFont, googleFontsImport, text, mainAccentHex, sf, bg, params.entrance || 'rise')}
   ${renderBackgroundRect(params.hideBackground ? 'transparent' : bgFill, radius)}
   <g id="cp-towers" style="transform-origin: center; transform-box: fill-box;" transform="translate(0, ${Math.round((20 + yOffset) * sf)})" focusable="false">${towers}</g>
-  ${renderIsometricLabels(calendar, params, text, sf)}
+  ${
+    isTeamMonolith && individualCalendars
+      ? renderTeamIsometricLabels(individualCalendars, params, text, sf)
+      : renderIsometricLabels(calendar, params, text, sf)
+  }
   ${renderFooter(stats, params, labels, safeUser, mainAccentHex, sf)}
   ${renderMilestoneBadges(stats, params, sf)}
 </svg>`;
@@ -1047,7 +1093,7 @@ function generateCompactSVG(stats: StreakStats, params: BadgeParams): string {
 
   try {
     return `
-<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" fill="none" role="img" focusable="false" aria-labelledby="cp-title-${safeId}" aria-describedby="cp-desc-${safeId}">
+<svg style="max-width: 100%; height: auto;" xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" fill="none" role="img" focusable="false" aria-labelledby="cp-title-${safeId}" aria-describedby="cp-desc-${safeId}">
   <title id="cp-title-${safeId}">CommitPulse Compact Streak for ${safeUser}</title>
   <desc id="cp-desc-${safeId}">${safeUser} has a current streak of ${stats.currentStreak} days.</desc>
   <style>
@@ -1068,7 +1114,8 @@ function generateCompactSVG(stats: StreakStats, params: BadgeParams): string {
 function generateAutoThemeSVG(
   stats: StreakStats,
   params: BadgeParams,
-  calendar: ContributionCalendar
+  calendar: ContributionCalendar,
+  individualCalendars?: { user: string; calendar: ContributionCalendar }[]
 ): string {
   const light = AUTO_THEME_LIGHT;
   const dark = AUTO_THEME_DARK;
@@ -1091,11 +1138,24 @@ function generateAutoThemeSVG(
   const labelVisible = params.label !== false;
   const H = Math.round((labelVisible ? SVG_HEIGHT : SVG_HEIGHT - 40) * sf);
   const yOffset = params.label === false ? -40 : 0;
+  const isTeamMonolith = individualCalendars && individualCalendars.length > 1;
   const towerData = scaleTowerData(
-    computeTowers(calendar, params.scale, stats.todayDate, params.mode),
+    isTeamMonolith
+      ? computeTeamTowers(individualCalendars, params.scale, stats.todayDate, params.mode)
+      : computeTowers(calendar, params.scale, stats.todayDate, params.mode),
     sf
   );
-  const towers = renderTowers(towerData, params, '', '', sf, true, params.opacity ?? 1.0);
+  const towers = renderTowers(
+    towerData,
+    params,
+    '',
+    '',
+    sf,
+    true,
+    params.opacity ?? 1.0,
+    true,
+    isTeamMonolith
+  );
 
   const s = createScaler(sf);
   const fs = (n: number): number => Math.round(n * sf * 10) / 10;
@@ -1174,7 +1234,11 @@ ${process.env.NODE_ENV === 'test' ? `@import url('https://fonts.googleapis.com/c
   <g id="cp-towers" style="transform-origin: center; transform-box: fill-box;" transform="translate(0, ${s(20 + yOffset)})" focusable="false">
     ${towers}
   </g>
-  ${renderIsometricLabels(calendar, params, 'var(--cp-text)', sf)}
+  ${
+    isTeamMonolith && individualCalendars
+      ? renderTeamIsometricLabels(individualCalendars, params, 'var(--cp-text)', sf)
+      : renderIsometricLabels(calendar, params, 'var(--cp-text)', sf)
+  }
   ${!params.hide_stats ? renderStatsSection(stats, labels, s, params) : ''}
 ${
   !params.hide_title && params.label !== false
@@ -1260,9 +1324,7 @@ export function generateMonthlySVG(stats: MonthlyStats, params: BadgeParams): st
   const deltaText = computeDeltaText(stats, deltaUnit, params.delta_format);
   let negativeColor = '#ff4444';
   const cleanBg = sanitizeHexColor(params.bg, '0d1117');
-  const matchedTheme = Object.values(themes).find(
-    (t) => t.bg.toLowerCase() === cleanBg.toLowerCase()
-  );
+  const matchedTheme = THEME_BY_BG.get(cleanBg.toLowerCase());
 
   if (matchedTheme && matchedTheme.negative) {
     negativeColor = `#${matchedTheme.negative}`;
@@ -1901,7 +1963,7 @@ export function generateHeatmapSVG(
       : '';
 
   return `
-<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" fill="none" role="img" focusable="false" aria-labelledby="cp-title-${safeId}" aria-describedby="cp-desc-${safeId}">
+<svg style="max-width: 100%; height: auto;" xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" fill="none" role="img" focusable="false" aria-labelledby="cp-title-${safeId}" aria-describedby="cp-desc-${safeId}">
   <title id="cp-title-${safeId}">CommitPulse Heatmap for ${safeUser}</title>
   <desc id="cp-desc-${safeId}">${safeUser} has ${stats.totalContributions} ${unit} and a longest streak of ${stats.longestStreak} days.</desc>
 
@@ -2032,7 +2094,7 @@ function generateAutoThemeHeatmapSVG(
       : '';
 
   return `
-<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" fill="none" role="img" focusable="false" aria-labelledby="cp-title-${safeId}" aria-describedby="cp-desc-${safeId}">
+<svg style="max-width: 100%; height: auto;" xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" fill="none" role="img" focusable="false" aria-labelledby="cp-title-${safeId}" aria-describedby="cp-desc-${safeId}">
   <title id="cp-title-${safeId}">CommitPulse Heatmap for ${safeUser}</title>
   <desc id="cp-desc-${safeId}">${safeUser} has ${stats.totalContributions} ${unit} and a longest streak of ${stats.longestStreak} days.</desc>
 
@@ -2403,7 +2465,7 @@ export function generateVersusSVG(
   const isWinner2 = stats2.totalContributions > stats1.totalContributions;
 
   return `
-<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" fill="none" role="img" focusable="false" aria-labelledby="cp-title-${safeId}" aria-describedby="cp-desc-${safeId}">
+<svg style="max-width: 100%; height: auto;" xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" fill="none" role="img" focusable="false" aria-labelledby="cp-title-${safeId}" aria-describedby="cp-desc-${safeId}">
   <title id="cp-title-${safeId}">CommitPulse Versus Stats: ${safeUser1} vs ${safeUser2}</title>
   <desc id="cp-desc-${safeId}">${safeUser1} has ${stats1.totalContributions} ${unit}. ${safeUser2} has ${stats2.totalContributions} ${unit}.</desc>
   ${renderDefs(sf, params)}
@@ -2479,7 +2541,7 @@ function generateAutoThemeVersusSVG(
   const isWinner2 = stats2.totalContributions > stats1.totalContributions;
 
   return `
-<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" fill="none" role="img" focusable="false" aria-labelledby="cp-title-${safeId}" aria-describedby="cp-desc-${safeId}">
+<svg style="max-width: 100%; height: auto;" xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" fill="none" role="img" focusable="false" aria-labelledby="cp-title-${safeId}" aria-describedby="cp-desc-${safeId}">
   <title id="cp-title-${safeId}">CommitPulse Versus Stats: ${safeUser1} vs ${safeUser2}</title>
   <desc id="cp-desc-${safeId}">${safeUser1} has ${stats1.totalContributions} ${unit}. ${safeUser2} has ${stats2.totalContributions} ${unit}.</desc>
   ${renderDefs(sf, params)}
@@ -3475,7 +3537,7 @@ export function generateLanguagesSVG(
 
   if (total === 0) {
     return `
-<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" fill="none" role="img" focusable="false" aria-labelledby="cp-title-${safeId}" aria-describedby="cp-desc-${safeId}">
+<svg style="max-width: 100%; height: auto;" xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" fill="none" role="img" focusable="false" aria-labelledby="cp-title-${safeId}" aria-describedby="cp-desc-${safeId}">
   ${renderHeader(safeUser, stats, sf, params, safeId)}
   ${renderStyle(selectedFont, statsFont, googleFontsImport, text, accent, sf, bg, params.entrance || 'rise')}
   <rect width="${W}" height="${H}" rx="${radius}" fill="${params.hideBackground ? 'transparent' : bg}" ${borderAttr} />
@@ -3539,7 +3601,7 @@ export function generateLanguagesSVG(
   });
 
   return `
-<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" fill="none" role="img" focusable="false" aria-labelledby="cp-title-${safeId}" aria-describedby="cp-desc-${safeId}">
+<svg style="max-width: 100%; height: auto;" xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" fill="none" role="img" focusable="false" aria-labelledby="cp-title-${safeId}" aria-describedby="cp-desc-${safeId}">
   ${renderHeader(safeUser, stats, sf, params, safeId)}
   ${renderStyle(selectedFont, statsFont, googleFontsImport, text, accent, sf, bg, params.entrance || 'rise')}
   <rect width="${W}" height="${H}" rx="${radius}" fill="${params.hideBackground ? 'transparent' : bg}" ${borderAttr} />

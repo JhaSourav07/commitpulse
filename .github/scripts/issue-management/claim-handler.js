@@ -28,27 +28,13 @@ async function handleClaim({ github, context }) {
     return;
   }
 
-  const issueAuthor = context.payload.issue.user.login;
-
-  const MAINTAINERS = ['jhasourav07', 'aamod-dev', 'souravjhahind'];
-  const isOpenedByMaintainer = MAINTAINERS.includes(issueAuthor.toLowerCase());
-
-  if (!isOpenedByMaintainer && commenter.toLowerCase() !== issueAuthor.toLowerCase()) {
-    await github.rest.issues.createComment({
-      owner,
-      repo,
-      issue_number: issueNumber,
-      body: `❌ Only the author of this issue (@${issueAuthor}) can claim it.`,
-    });
-    return;
-  }
-
-  // Re-fetch to avoid stale assignee data from the webhook payload
+  // Re-fetch to avoid stale issue/assignee/state data from the webhook payload
   const { data: freshIssue } = await github.rest.issues.get({
     owner,
     repo,
     issue_number: issueNumber,
   });
+
   const currentAssignees = freshIssue.assignees.map((a) => a.login.toLowerCase());
 
   if (currentAssignees.length > 0) {
@@ -67,6 +53,38 @@ async function handleClaim({ github, context }) {
       repo,
       issue_number: issueNumber,
       body: `❌ This issue is already assigned to ${assigneeList}`,
+    });
+    return;
+  }
+
+  const issueAuthor = freshIssue.user.login;
+  const issueAuthorLower = issueAuthor.toLowerCase();
+  const commenterLower = commenter.toLowerCase();
+
+  const MAINTAINERS = ['jhasourav07', 'aamod-dev', 'souravjhahind'];
+  const isOpenedByMaintainer = MAINTAINERS.includes(issueAuthorLower);
+
+  // Check if the issue is older than 1 week (7 days)
+  const createdAt = new Date(freshIssue.created_at);
+  const now = new Date();
+  const ageInMs = now.getTime() - createdAt.getTime();
+  const oneWeekInMs = 7 * 24 * 60 * 60 * 1000;
+  const isOlderThanOneWeek = ageInMs > oneWeekInMs;
+
+  // Check if opened by any other person other than jhasourav07 or aamod007 (and aamod-dev for safety)
+  const isOpenedByOther = !['jhasourav07', 'aamod007', 'aamod-dev'].includes(issueAuthorLower);
+
+  const isAuthor = commenterLower === issueAuthorLower;
+  const canClaimOlderIssue = isOpenedByOther && isOlderThanOneWeek;
+
+  const isAllowedToClaim = isAuthor || isOpenedByMaintainer || canClaimOlderIssue;
+
+  if (!isAllowedToClaim) {
+    await github.rest.issues.createComment({
+      owner,
+      repo,
+      issue_number: issueNumber,
+      body: `❌ Only the author of this issue (@${issueAuthor}) can claim it.`,
     });
     return;
   }

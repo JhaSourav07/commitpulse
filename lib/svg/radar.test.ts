@@ -47,7 +47,9 @@ describe('generateRadarSVG', () => {
 
     const svg = generateRadarSVG(stats, params, calendar);
 
-    expect(svg).toContain('<svg xmlns="http://www.w3.org/2000/svg"');
+    expect(svg).toContain(
+      '<svg style="max-width: 100%; height: auto;" xmlns="http://www.w3.org/2000/svg"'
+    );
     expect(svg).toContain('Contribution Radar');
     expect(svg).toContain('testuser');
   });

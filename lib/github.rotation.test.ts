@@ -19,23 +19,29 @@ const MOCK_GOOD_TOKEN = 'ghp_goodtokenAAAAAAAAAAAAAAAAAAAAAAAAAAA';
 describe('GitHub Multi-Token Rotation & Fallback', () => {
   const originalGitHubPat = process.env.GITHUB_PAT;
   const originalGitHubToken = process.env.GITHUB_TOKEN;
+  const originalGitHubTokens = process.env.GITHUB_TOKENS;
   let fetchMock: Mock;
 
   beforeEach(() => {
     fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
     clearGitHubApiCacheForTests();
+    delete process.env.GITHUB_PAT;
+    delete process.env.GITHUB_TOKEN;
+    delete process.env.GITHUB_TOKENS;
   });
 
   afterEach(() => {
     vi.unstubAllGlobals();
     process.env.GITHUB_PAT = originalGitHubPat;
     process.env.GITHUB_TOKEN = originalGitHubToken;
+    process.env.GITHUB_TOKENS = originalGitHubTokens;
   });
 
   it('correctly parses multiple comma-separated tokens', () => {
     process.env.GITHUB_PAT = ` ${MOCK_TOKEN_1}, ${MOCK_TOKEN_2},  ${MOCK_TOKEN_3} `;
     delete process.env.GITHUB_TOKEN;
+    delete process.env.GITHUB_TOKENS;
 
     const tokens = getGitHubTokens();
     expect(tokens).toEqual([MOCK_TOKEN_1, MOCK_TOKEN_2, MOCK_TOKEN_3]);
