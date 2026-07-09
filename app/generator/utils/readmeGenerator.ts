@@ -65,19 +65,22 @@ export function generateReadme(state: GeneratorState): string {
   const graphsMarkdown = buildGraphsMarkdown(state);
 
   // 1. Header Section
-  if (state.name) {
-    const headerLines: string[] = ['<div align="center">', '', `# 👋 Hi, I'm ${state.name}`];
+  const name = state.name?.trim();
+  const description = state.description?.trim();
 
-    if (state.description) {
+  if (name) {
+    const headerLines: string[] = ['<div align="center">', '', `# 👋 Hi, I'm ${name}`];
+
+    if (description) {
       headerLines.push('');
-      headerLines.push(`<p>${state.description}</p>`);
+      headerLines.push(`<p>${description}</p>`);
     }
 
     headerLines.push('');
     headerLines.push('</div>');
     sections.push(headerLines.join('\n'));
-  } else if (state.description) {
-    sections.push(`<div align="center">\n\n<p>${state.description}</p>\n\n</div>`);
+  } else if (description) {
+    sections.push(`<div align="center">\n\n<p>${description}</p>\n\n</div>`);
   }
 
   // Inject top graphs

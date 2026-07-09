@@ -212,14 +212,16 @@ AssertionError: expected '<svg width="600"…' to include 'width="100%"'
 
 **Interpreting SVG URL responses in the browser:**
 
-| What you see                                 | What it means                                              |
-| -------------------------------------------- | ---------------------------------------------------------- |
-| Animated isometric city renders correctly    | ✅ Everything is working                                   |
-| Ghost-city badge with "NOT FOUND" label      | ✅ Working — the username doesn't exist on GitHub          |
-| Styled error card with "Invalid username"    | ✅ Working — the username format was invalid               |
-| Raw JSON `{"error":"Invalid parameters"...}` | ❌ Bug — validation errors must return SVG, not JSON       |
-| Browser XML parse error / blank white page   | ❌ Bug — unescaped `&` or malformed SVG in generator       |
-| `401 Unauthorized` in the terminal           | ❌ Your `GITHUB_PAT` in `.env.local` is missing or invalid |
+| What you see                                 | What it means                                        |
+| -------------------------------------------- | ---------------------------------------------------- |
+| Animated isometric city renders correctly    | ✅ Everything is working                             |
+| Ghost-city badge with "NOT FOUND" label      | ✅ Working — the username doesn't exist on GitHub    |
+| Styled error card with "Invalid username"    | ✅ Working — the username format was invalid         |
+| Raw JSON `{"error":"Invalid parameters"...}` | ❌ Bug — validation errors must return SVG, not JSON |
+| Browser XML parse error / blank white page   | ❌ Bug — unescaped `&` or malformed SVG in generator |
+
+| `401 Unauthorized` in the terminal
+❌ Your `GITHUB_PAT` in `.env.local` is missing or invalid |
 
 ### 5. Checking Branch Coverage Before Pushing
 

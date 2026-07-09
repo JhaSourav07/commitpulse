@@ -164,12 +164,23 @@ export function getGitHubTokens(): string[] {
     .filter((token) => isValidGitHubTokenFormat(token));
 }
 
-function isAbortError(error: unknown): boolean {
-  return (
+export function isAbortError(error: unknown): boolean {
+  if (
     typeof error === 'object' &&
     error !== null &&
     'name' in error &&
-    (error as { name?: unknown }).name === 'AbortError'
+    ((error as { name?: unknown }).name === 'AbortError' ||
+      (error as { name?: unknown }).name === 'TimeoutError')
+  ) {
+    return true;
+  }
+  const message = error instanceof Error ? error.message : typeof error === 'string' ? error : '';
+  const lower = message.toLowerCase();
+  return (
+    lower.includes('timeout') ||
+    lower.includes('timed out') ||
+    lower.includes('aborted') ||
+    lower.includes('operation was aborted')
   );
 }
 
@@ -1404,6 +1415,7 @@ export type OrgDashboardData = {
     totalContributions: number;
   };
   calendar: ContributionCalendar;
+  individualCalendars?: { user: string; calendar: ContributionCalendar }[];
   repoContributions: RepoContribution[];
   isPartial: boolean;
 };
@@ -1434,6 +1446,7 @@ export async function getOrgDashboardData(
 
   let calendars: ContributionCalendar[] = [];
   const repoContributions: RepoContribution[] = [];
+  const individualCalendars: { user: string; calendar: ContributionCalendar }[] = [];
   try {
     calendars = (
       await runCappedConcurrency(activeMembers, 5, (member) => {
@@ -1443,6 +1456,7 @@ export async function getOrgDashboardData(
             if (data.repoContributions) {
               repoContributions.push(...data.repoContributions);
             }
+            individualCalendars.push({ user: member, calendar: data.calendar });
             return data.calendar;
           })
           .catch(() => null);
@@ -1481,6 +1495,7 @@ export async function getOrgDashboardData(
       totalContributions: streakStats.totalContributions,
     },
     calendar: aggregatedCalendar,
+    individualCalendars,
     repoContributions,
     isPartial,
   };

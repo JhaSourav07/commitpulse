@@ -49,7 +49,7 @@ function mockMatchMedia(initialMatches = false) {
       listeners.forEach((listener) => {
         listener({
           matches,
-          media: '(min-width: 768px)',
+          media: '(min-width: 1024px)',
         } as MediaQueryListEvent);
       });
     },
