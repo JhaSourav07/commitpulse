@@ -221,6 +221,8 @@ function CustomizePageInner(): ReactElement {
     // return so there is no intermediate render with stale error text.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setErrorMessage(null);
+
+    setCopiedSvg(false);
     if (!hasUsername) {
       setSvgContent('');
       setSvgState('idle');
@@ -390,10 +392,16 @@ function CustomizePageInner(): ReactElement {
         try {
           await navigator.clipboard.writeText(svgContent);
         } catch {
-          fallbackCopyToClipboard(svgContent);
+          const copiedSuccessfully = fallbackCopyToClipboard(svgContent);
+          if (!copiedSuccessfully) {
+            throw new Error('Fallback clipboard copy failed.');
+          }
         }
       } else {
-        fallbackCopyToClipboard(svgContent);
+        const copiedSuccessfully = fallbackCopyToClipboard(svgContent);
+        if (!copiedSuccessfully) {
+          throw new Error('Fallback clipboard copy failed.');
+        }
       }
       setCopiedSvg(true);
       setTimeout(() => setCopiedSvg(false), 2000);
@@ -534,7 +542,9 @@ function CustomizePageInner(): ReactElement {
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-xs font-medium text-gray-600 dark:text-white/60 hover:bg-gray-100 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
                   >
                     {copiedSvg ? <Check size={14} /> : <Copy size={14} />}
-                    {copiedSvg ? 'Copied SVG' : 'Copy SVG'}
+                    {copiedSvg
+                      ? t('customize.live_preview.copied_svg', { defaultValue: 'Copied SVG' })
+                      : t('customize.live_preview.copy_svg', { defaultValue: 'Copy SVG' })}
                   </button>
                 )}
               </div>
