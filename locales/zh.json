@@ -33,7 +33,9 @@
     "generator": "生成器",
     "guidelines": "指南",
     "faq": "常见问题",
-    "support": "支持"
+    "support": "支持",
+    "privacy": "隐私政策",
+    "terms": "使用条款"
   },
   "landing": {
     "empty_username_warning": "Please enter a GitHub username to copy your badge link.",
