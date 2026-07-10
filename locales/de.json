@@ -33,7 +33,9 @@
     "generator": "Generator",
     "guidelines": "Richtlinien",
     "faq": "FAQ",
-    "support": "Support"
+    "support": "Support",
+    "privacy": "Datenschutzerklärung",
+    "terms": "Nutzungsbedingungen"
   },
   "landing": {
     "empty_username_warning": "Bitte gib einen GitHub-Benutzernamen ein, um deinen Badge-Link zu kopieren.",

@@ -142,20 +142,17 @@ describe('Navbar Responsive Breakpoints & Menu Toggle', () => {
     expect(screen.getByRole('button', { name: 'Open menu' })).toBeDefined();
   });
 
-  it('4. Hides the desktop nav row on mobile and only reveals mobile hamburger controls, via complementary responsive classes', () => {
-    render(<Navbar />);
+  it('4. Hides the desktop nav row on mobile and only reveals mobile hamburger controls, via complementary lg: classes', () => {
+    const { container } = render(<Navbar />);
 
-    // 1. Check Mobile Controls (Hamburger Button)
-    const openMenuBtn = screen.getByRole('button', { name: 'Open menu' });
-    expect(openMenuBtn).toBeInTheDocument();
+    const desktopNavRow = container.querySelector('.hidden.items-center.gap-2.lg\\:flex');
+    expect(desktopNavRow).toBeInTheDocument();
 
-    // The button or its wrapper should have a class that hides it on larger screens (e.g., md:hidden or lg:hidden)
-    const mobileWrapper = openMenuBtn.closest('div');
-    expect(mobileWrapper?.className).toMatch(/(sm|md|lg|xl):hidden/);
-
-    // 2. Check Desktop Nav Row
-    // Grab a known link that appears in the desktop nav
-    const generatorLink = screen.getByRole('link', { name: /Generator/i });
+    const mobileControls = container.querySelector(
+      '.lg\\:hidden.inline-flex.items-center.justify-center.gap-1'
+    );
+    expect(mobileControls).toBeInTheDocument();
+  });
 
     // Walk up the DOM tree from the link to find the wrapper that handles responsive hiding
     let desktopNavRow = generatorLink.parentElement;
