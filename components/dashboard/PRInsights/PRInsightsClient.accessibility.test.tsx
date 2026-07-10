@@ -154,8 +154,14 @@ describe('PRInsightsClient accessibility compliance', () => {
   it('provides tooltip-style repository labels for truncated names', async () => {
     await renderLoadedClient();
 
-    expect(screen.getByTitle('commitpulse/app')).toHaveTextContent('app');
-    expect(screen.getByTitle('commitpulse/docs')).toHaveTextContent('docs');
+    expect(screen.getAllByTitle('commitpulse/app').length).toBeGreaterThanOrEqual(1);
+    screen.getAllByTitle('commitpulse/app').forEach((el) => {
+      expect(el).toHaveTextContent('app');
+    });
+    expect(screen.getAllByTitle('commitpulse/docs').length).toBeGreaterThanOrEqual(1);
+    screen.getAllByTitle('commitpulse/docs').forEach((el) => {
+      expect(el).toHaveTextContent('docs');
+    });
   });
 
   it('supports normal keyboard tab order across chart controls and PR highlight links', async () => {
@@ -192,7 +198,7 @@ describe('PRInsightsClient accessibility compliance', () => {
     expect(Math.min(...levels)).toBe(2);
     expect(Math.max(...levels)).toBe(3);
     expect(new Set(levels)).toEqual(new Set([2, 3]));
-    expect(screen.getAllByRole('heading', { level: 2 })).toHaveLength(5);
-    expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(7);
+    expect(screen.getAllByRole('heading', { level: 2 })).toHaveLength(6);
+    expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(8);
   });
 });

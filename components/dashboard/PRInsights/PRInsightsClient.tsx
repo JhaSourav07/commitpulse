@@ -7,6 +7,7 @@ import PRTrendChart from './PRTrendChart';
 import PRStatusDistribution from './PRStatusDistribution';
 import PRSizeDistribution from './PRSizeDistribution';
 import ReviewAnalytics from './ReviewAnalytics';
+import PRReviewVelocity from './PRReviewVelocity';
 import RepoPerformanceTable from './RepoPerformanceTable';
 import Highlights from './Highlights';
 import { Loader2 } from 'lucide-react';
@@ -48,7 +49,7 @@ export default function PRInsightsClient({ username }: { username: string }) {
           setData(JSON.parse(cached));
           setLoading(false);
           return; // Skip fetch if cached, or you could do SWR style and still fetch. The requirement says "before triggering database retrievals".
-        } catch (e) {
+        } catch {
           // ignore cache parse error
         }
       }
@@ -137,6 +138,8 @@ export default function PRInsightsClient({ username }: { username: string }) {
             <Highlights highlights={data.highlights} />
           </div>
         </div>
+
+        <PRReviewVelocity data={data} />
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <ReviewAnalytics data={data} />
