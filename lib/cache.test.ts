@@ -30,6 +30,19 @@ describe('TTLCache', () => {
       cache.destroy();
     });
 
+    it('uses a default TTL when the caller omits ttlMs', () => {
+      vi.useFakeTimers();
+      const cache = new TTLCache<string>();
+      cache.set('user', 'octocat');
+
+      expect(cache.get('user')).toBe('octocat');
+      vi.advanceTimersByTime(59_999);
+      expect(cache.get('user')).toBe('octocat');
+      vi.advanceTimersByTime(2);
+      expect(cache.get('user')).toBeNull();
+      cache.destroy();
+    });
+
     it('verifies TTLCache behavior for deeply nested object values (Variation 2)', () => {
       const cache = new TTLCache<{
         level1: {
