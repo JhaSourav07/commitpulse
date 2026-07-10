@@ -12,6 +12,7 @@ import { ExportPanel } from './components/ExportPanel';
 import InteractiveViewer from '@/components/InteractiveViewer';
 import { Footer } from '@/app/components/Footer';
 import DOMPurify from 'dompurify';
+import { Copy, Check } from 'lucide-react';
 import type {
   ExportFormat,
   Font,
@@ -80,6 +81,7 @@ function CustomizePageInner(): ReactElement {
   const [timezone, setTimezone] = useState<Timezone>('UTC');
   const [exportFormat, setExportFormat] = useState<ExportFormat>('markdown');
   const [copied, setCopied] = useState(false);
+  const [copiedSvg, setCopiedSvg] = useState(false);
   const [copyStatusMessage, setCopyStatusMessage] = useState('');
   const copyResetTimeoutRef = useRef<number | null>(null);
   const [svgContent, setSvgContent] = useState<string>('');
@@ -381,6 +383,25 @@ function CustomizePageInner(): ReactElement {
     }
   };
 
+  const copySvgCode = async (): Promise<void> => {
+    if (!svgContent) return;
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        try {
+          await navigator.clipboard.writeText(svgContent);
+        } catch {
+          fallbackCopyToClipboard(svgContent);
+        }
+      } else {
+        fallbackCopyToClipboard(svgContent);
+      }
+      setCopiedSvg(true);
+      setTimeout(() => setCopiedSvg(false), 2000);
+    } catch {
+      setCopiedSvg(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-transparent text-white font-sans overflow-x-hidden">
       {/* Ambient background */}
@@ -502,9 +523,21 @@ function CustomizePageInner(): ReactElement {
           >
             {/* Live Preview */}
             <div className="bg-white/70 backdrop-blur-xl border border-black/10 dark:bg-black/35 dark:border-white/10 rounded-[1.75rem] p-6 shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
-              <p className="text-xs font-bold uppercase tracking-[0.22em] text-emerald-600 dark:text-emerald-400 mb-5">
-                {t('customize.live_preview')}
-              </p>
+              <div className="flex items-center justify-between mb-5">
+                <p className="text-xs font-bold uppercase tracking-[0.22em] text-emerald-600 dark:text-emerald-400">
+                  {t('customize.live_preview')}
+                </p>
+                {svgState === 'loaded' && svgContent && (
+                  <button
+                    type="button"
+                    onClick={copySvgCode}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-xs font-medium text-gray-600 dark:text-white/60 hover:bg-gray-100 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                  >
+                    {copiedSvg ? <Check size={14} /> : <Copy size={14} />}
+                    {copiedSvg ? 'Copied SVG' : 'Copy SVG'}
+                  </button>
+                )}
+              </div>
 
               {/* ─── MOVING THE INTERACTION LISTENER DIRECTLY TO THE OUTER WRAPPER CONTAINER ROW ─── */}
               <div className="group relative">
