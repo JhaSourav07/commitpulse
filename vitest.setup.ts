@@ -219,3 +219,29 @@ vi.mock('@/context/TranslationContext', async (importOriginal) => {
     }),
   };
 });
+
+// -------------------- Canvas getContext mock (Vitest only) --------------------
+if (typeof window !== 'undefined') {
+  const mock2DContext = {
+    fillRect: vi.fn(),
+    clearRect: vi.fn(),
+    beginPath: vi.fn(),
+    closePath: vi.fn(),
+    moveTo: vi.fn(),
+    lineTo: vi.fn(),
+    stroke: vi.fn(),
+    fill: vi.fn(),
+    set fillStyle(value: string) {},
+    get fillStyle() {
+      return '#000000';
+    },
+  };
+  Object.defineProperty(HTMLCanvasElement.prototype, 'getContext', {
+    value: vi.fn().mockImplementation((type: string) => {
+      if (type === '2d') return mock2DContext;
+      return null;
+    }),
+    writable: true,
+    configurable: true,
+  });
+}
