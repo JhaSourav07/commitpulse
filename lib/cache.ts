@@ -1,7 +1,33 @@
 import 'server-only';
-import { randomUUID } from 'crypto';
-import { brotliCompressSync, brotliDecompressSync } from 'zlib';
 import logger from '@/lib/logger';
+
+function generateLockToken(): string {
+  if (typeof globalThis.crypto?.randomUUID === 'function') {
+    return globalThis.crypto.randomUUID();
+  }
+
+  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+type BrotliModule = {
+  brotliCompressSync?: (input: Buffer) => Buffer;
+  brotliDecompressSync?: (input: Buffer) => Buffer;
+};
+
+function getBrotliModule(): BrotliModule | null {
+  if (typeof process === 'undefined' || !process.versions?.node) {
+    return null;
+  }
+
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    return require('zlib') as BrotliModule;
+  } catch {
+    return null;
+  }
+}
+
+const brotli = getBrotliModule();
 
 /**
  * Configuration options for the distributed mutex lock used by {@link DistributedCache.getOrSet}.
@@ -101,7 +127,7 @@ export class TTLCache<T> {
     if (typeof value === 'string') {
       if (value.length > 1024) {
         try {
-          return brotliCompressSync(Buffer.from(value));
+          return brotli?.brotliCompressSync?.(Buffer.from(value)) ?? value;
         } catch {
           return value;
         }
@@ -110,7 +136,7 @@ export class TTLCache<T> {
       try {
         const str = JSON.stringify(value);
         if (str.length > 1024) {
-          return brotliCompressSync(Buffer.from(str));
+          return brotli?.brotliCompressSync?.(Buffer.from(str)) ?? value;
         }
       } catch {
         return value;
@@ -122,7 +148,10 @@ export class TTLCache<T> {
   private decompress(stored: T | Buffer): T {
     if (Buffer.isBuffer(stored)) {
       try {
-        const decompressed = brotliDecompressSync(stored).toString();
+        const decompressed = brotli?.brotliDecompressSync?.(stored)?.toString();
+        if (decompressed === undefined) {
+          return stored as unknown as T;
+        }
         try {
           return JSON.parse(decompressed) as T;
         } catch {
@@ -254,14 +283,17 @@ export class TTLCache<T> {
     return true;
   }
 
-  set(key: string, value: T, ttlMs: number): void {
+  set(key: string, value: T, ttlMs?: number): void {
     //TTLCache.assertValidKey(key);
     if (typeof key !== 'string' || key.trim().length === 0) {
       throw new TypeError('Cache key cannot be empty');
     }
 
-    if (ttlMs <= 0) throw new RangeError(`ttlMs must be positive, got ${ttlMs}`);
-    if (Number.isNaN(ttlMs)) ttlMs = 60_000;
+    const resolvedTtlMs = typeof ttlMs === 'number' && Number.isFinite(ttlMs) ? ttlMs : 60_000;
+
+    if (resolvedTtlMs <= 0) throw new RangeError(`ttlMs must be positive, got ${resolvedTtlMs}`);
+    if (Number.isNaN(resolvedTtlMs))
+      throw new RangeError(`ttlMs must be a valid number, got ${resolvedTtlMs}`);
 
     if (key.length > 10000) {
       throw new Error('Cache key exceeds maximum allowed length to prevent memory bloat');
@@ -279,7 +311,10 @@ export class TTLCache<T> {
     }
 
     this.store.delete(key);
-    this.store.set(key, { value: this.compress(value), expiresAt: Date.now() + ttlMs });
+    this.store.set(key, {
+      value: this.compress(value),
+      expiresAt: Date.now() + resolvedTtlMs,
+    });
   }
 
   /**
@@ -636,7 +671,7 @@ return c`;
       }
 
       const lockKey = `lock:${key}`;
-      const lockToken = randomUUID();
+      const lockToken = generateLockToken();
       const lockTtlMs = lockConfig?.lockTtlMs ?? 10000;
       const maxPollTime = lockConfig?.maxPollTimeMs ?? 8000;
       const enableLockExtension = lockConfig?.enableLockExtension ?? true;
