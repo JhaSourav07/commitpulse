@@ -33,7 +33,7 @@ export async function GET(request: Request) {
   try {
     const repos = await fetchUserRepos(username);
 
-    // Sort by pushed_at or stargazers_count if preferred
+    // Sort repositories by latest push date
     const sortedRepos = repos.sort((a, b) => {
       const aDate = a.pushed_at ? new Date(a.pushed_at).getTime() : 0;
       const bDate = b.pushed_at ? new Date(b.pushed_at).getTime() : 0;
