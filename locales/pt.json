@@ -33,7 +33,9 @@
     "generator": "Gerador",
     "guidelines": "Diretrizes",
     "faq": "Perguntas Frequentes",
-    "support": "Suporte"
+    "support": "Suporte",
+    "privacy": "Política de Privacidade",
+    "terms": "Termos de Uso"
   },
   "landing": {
     "empty_username_warning": "Por favor, insira um usuário do GitHub para copiar o link do seu emblema.",
