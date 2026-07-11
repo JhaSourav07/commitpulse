@@ -85,7 +85,7 @@ export default function PRReviewVelocity({ data }: PRReviewVelocityProps) {
           <div className="flex items-center gap-2 text-cyan-600 dark:text-cyan-400 mb-2">
             <Zap size={16} />
             <span className="text-xs font-semibold uppercase tracking-wider">
-              {t('dashboard.prInsights.first_review', {
+              {t('dashboard.prInsights.velocity_first_review', {
                 defaultValue: 'Time to 1st Review',
               })}
             </span>
@@ -170,7 +170,7 @@ export default function PRReviewVelocity({ data }: PRReviewVelocityProps) {
                 >
                   <div
                     className="flex items-center gap-2 min-w-[140px] max-w-[200px] truncate"
-                    title={repo.name}
+                    title={`PR review turnaround for ${repo.name}`}
                   >
                     <GitPullRequest className="w-4 h-4 text-cyan-500 shrink-0" />
                     <span className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">

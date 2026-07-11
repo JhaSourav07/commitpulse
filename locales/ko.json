@@ -492,14 +492,15 @@
       "merge_rate_header": "Merge Rate",
       "reviews_header": "Reviews",
       "avg_review_header": "Avg Review Time",
-      "no_repos": "No repository data available.",
-      "velocity_title": "PR Review Velocity",
-      "velocity_subtitle": "Understand how quickly pull requests move through review across repositories",
-      "first_review": "Time to 1st Review",
-      "cycle_time": "Cycle Time",
-      "avg_review_time": "Average Review Time",
-      "fastest_merge": "Fastest Merge",
-      "repo_turnaround": "Repository Turnaround"
+      "no_repos": "저장소 데이터가 없습니다.",
+      "velocity_title": "PR 리뷰 속도",
+      "velocity_subtitle": "저장소별로 풀 리퀘스트 리뷰가 얼마나 빠르게 진행되는지 확인",
+      "first_review": "첫 번째 리뷰",
+      "velocity_first_review": "첫 리뷰까지 걸린 시간",
+      "cycle_time": "사이클 타임",
+      "avg_review_time": "평균 리뷰 시간",
+      "fastest_merge": "가장 빠른 병합",
+      "repo_turnaround": "저장소 턴어라운드"
     },
     "enterprise": {
       "title": "Enterprise Engineering Health Dashboard",

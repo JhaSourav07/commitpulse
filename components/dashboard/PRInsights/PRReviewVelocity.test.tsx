@@ -6,8 +6,26 @@ import type { PRInsightData } from '@/services/github/pr-insights';
 
 vi.mock('framer-motion', () => ({
   motion: {
-    div: ({ children, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-      <div {...props}>{children}</div>
+    div: ({
+      children,
+      animate: _a,
+      initial: _i,
+      exit: _e,
+      transition: _tr,
+      whileHover: _wh,
+      whileTap: _wt,
+      whileFocus: _wf,
+      whileInView: _wiv,
+      onHoverStart: _ohs,
+      onHoverEnd: _ohe,
+      onAnimationStart: _oas,
+      onAnimationComplete: _oac,
+      variants: _v,
+      layout: _l,
+      layoutId: _lid,
+      ...props
+    }: Record<string, unknown>) => (
+      <div {...(props as React.HTMLAttributes<HTMLDivElement>)}>{children as React.ReactNode}</div>
     ),
   },
 }));
