@@ -48,6 +48,8 @@ vi.mock('lucide-react', () => ({
   BookOpen: () => null,
   GitBranch: () => null,
   HelpCircle: () => null,
+  Shield: () => <div>Shield</div>,
+  FileText: () => <div>FileText</div>,
 }));
 
 vi.mock('react-icons/fa', () => ({

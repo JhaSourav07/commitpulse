@@ -33,7 +33,9 @@
     "generator": "Generador",
     "guidelines": "Directrices",
     "faq": "Preguntas Frecuentes",
-    "support": "Soporte"
+    "support": "Soporte",
+    "privacy": "Política de Privacidad",
+    "terms": "Términos de Uso"
   },
   "landing": {
     "empty_username_warning": "Ingresa un usuario de GitHub para copiar el enlace de tu insignia.",

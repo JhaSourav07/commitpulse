@@ -33,7 +33,9 @@
     "generator": "제너레이터",
     "guidelines": "가이드라인",
     "faq": "자주 묻는 질문",
-    "support": "지원"
+    "support": "지원",
+    "privacy": "개인정보처리방침",
+    "terms": "이용약관"
   },
   "landing": {
     "empty_username_warning": "Please enter a GitHub username to copy your badge link.",
