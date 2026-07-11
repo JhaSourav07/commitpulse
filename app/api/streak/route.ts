@@ -513,6 +513,39 @@ export async function GET(request: Request) {
           }
         }
       }
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message.toLowerCase() : '';
+      const isRateLimit = msg.includes('rate limit');
+      const isTimeout = isAbortError(error);
+      const isValidationError = msg.includes('validation');
+
+      if (!isRateLimit && !isTimeout && !isValidationError) {
+        const errBg = `#${sanitizeHexColor(params.bg, '0d1117')}`;
+        const errAccentRaw = Array.isArray(params.accent)
+          ? params.accent[params.accent.length - 1]
+          : params.accent;
+        const errAccent = `#${sanitizeHexColor(errAccentRaw, '58a6ff')}`;
+        const errText = `#${sanitizeHexColor(params.text, 'c9d1d9')}`;
+        const errRadius = sanitizeRadius(params.radius, 8);
+
+        const svg = generateNotFoundSVG(
+          'User not found or private account',
+          errBg,
+          errAccent,
+          errText,
+          errRadius,
+          params.speed
+        );
+        return new NextResponse(svg, {
+          status: 200,
+          headers: {
+            'Content-Type': 'image/svg+xml; charset=utf-8',
+            'Cache-Control': 'no-cache',
+            'Content-Security-Policy': SVG_CSP_HEADER,
+          },
+        });
+      }
+      throw error;
     } finally {
       clearTimeout(timeoutId);
     }
