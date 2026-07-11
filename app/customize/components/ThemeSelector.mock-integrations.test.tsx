@@ -192,9 +192,21 @@ describe('ThemeSelector - Asynchronous Service Layer Mocking & Local Cache Stubs
 
   // Test 6 — Complete Integration Flow
   it('should prove exact strict execution order (cache miss -> async fetch -> cache update -> UI update)', async () => {
-    vi.mocked(fetchTheme).mockResolvedValue('dracula');
-    const getItemSpy = vi.spyOn(window.localStorage, 'getItem').mockReturnValue(null);
-    const setItemSpy = vi.spyOn(window.localStorage, 'setItem');
+    const callOrder: string[] = [];
+
+    vi.mocked(fetchTheme).mockImplementation(async () => {
+      callOrder.push('fetch');
+      return 'dracula';
+    });
+
+    vi.spyOn(window.localStorage, 'getItem').mockImplementation(() => {
+      callOrder.push('getItem');
+      return null;
+    });
+
+    vi.spyOn(window.localStorage, 'setItem').mockImplementation(() => {
+      callOrder.push('setItem');
+    });
 
     render(<IntegrationWrapper />);
 
@@ -203,12 +215,7 @@ describe('ThemeSelector - Asynchronous Service Layer Mocking & Local Cache Stubs
     });
 
     // Timeline verification
-    const getItemOrder = getItemSpy.mock.invocationCallOrder[0];
-    const fetchOrder = vi.mocked(fetchTheme).mock.invocationCallOrder[0];
-    const setItemOrder = setItemSpy.mock.invocationCallOrder[0];
-
-    expect(getItemOrder).toBeLessThan(fetchOrder);
-    expect(fetchOrder).toBeLessThan(setItemOrder);
+    expect(callOrder).toEqual(['getItem', 'fetch', 'setItem']);
 
     // UI update verification
     const select = screen.getByRole('combobox') as HTMLSelectElement;
