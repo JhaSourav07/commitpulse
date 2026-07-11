@@ -30,7 +30,12 @@
     "discord": "Discord",
     "twitter": "Twitter",
     "linkedin": "LinkedIn",
-    "generator": "Gerador"
+    "generator": "Gerador",
+    "guidelines": "Diretrizes",
+    "faq": "Perguntas Frequentes",
+    "support": "Suporte",
+    "privacy": "Política de Privacidade",
+    "terms": "Termos de Uso"
   },
   "landing": {
     "empty_username_warning": "Por favor, insira um usuário do GitHub para copiar o link do seu emblema.",

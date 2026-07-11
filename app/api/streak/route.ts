@@ -7,6 +7,7 @@ import {
   getOrgDashboardData,
   getCircuitTelemetry,
   fetchCommitHourDistribution,
+  isAbortError,
 } from '@/lib/github';
 import {
   calculateStreak,
@@ -34,9 +35,15 @@ import { generateConstellationSVG } from '@/lib/svg/constellation';
 import { generateRadarSVG } from '@/lib/svg/radar';
 import { generateDoughnutSVG } from '@/lib/svg/doughnut';
 import { generateCommitClockSVG } from '@/lib/svg/commitClock';
+import { generateWeekdaySVG } from '@/lib/svg/weekday';
 import { optimizeSVG } from '@/lib/svg/optimizer';
 import { getSecondsUntilUTCMidnight, getSecondsUntilMidnightInTimezone } from '@/utils/time';
-import type { BadgeParams, RepoContribution, ExtendedContributionData } from '@/types';
+import type {
+  BadgeParams,
+  RepoContribution,
+  ExtendedContributionData,
+  ContributionCalendar,
+} from '@/types';
 import { getNormalizedThemeKey, themes } from '@/lib/svg/themes';
 import { streakParamsSchema, coerceQueryParams } from '@/lib/validations';
 import { sanitizeHexColor, sanitizeRadius, escapeXML } from '@/lib/svg/sanitizer';
@@ -175,7 +182,8 @@ export async function GET(request: Request) {
       | 'doughnut'
       | 'pie'
       | 'activity_graph'
-      | 'commit_clock';
+      | 'commit_clock'
+      | 'weekday';
     const themeKey = getNormalizedThemeKey(theme);
     const themeName = themeKey === 'default' && theme ? theme : themeKey;
 
@@ -401,6 +409,7 @@ export async function GET(request: Request) {
     };
 
     let calendar;
+    let individualCalendars: { user: string; calendar: ContributionCalendar }[] | undefined;
     let versusCalendar;
     let repoContributions: RepoContribution[] = [];
 
@@ -417,6 +426,7 @@ export async function GET(request: Request) {
           signal: controller.signal,
         });
         calendar = orgData.calendar;
+        individualCalendars = orgData.individualCalendars;
         repoContributions = normalizedView === 'languages' ? orgData.repoContributions || [] : [];
       } else if (user.includes(',')) {
         const users = user
@@ -424,7 +434,16 @@ export async function GET(request: Request) {
           .map((u) => u.trim())
           .filter(Boolean);
 
-        if (users.length > 2) {
+        if (users.length > 7) {
+          throw new Error(
+            'ValidationError: A maximum of 7 usernames is supported for the skyline.'
+          );
+        }
+
+        if (
+          users.length > 2 &&
+          (versus || (normalizedView !== 'skyline' && normalizedView !== 'default'))
+        ) {
           throw new Error(
             'ValidationError: The streak comparison generator strictly accepts a maximum of 2 usernames.'
           );
@@ -457,6 +476,10 @@ export async function GET(request: Request) {
           throw lastError || new Error('No successful data fetched');
         }
         calendar = aggregateCalendars(successfulData.map((d) => d.calendar));
+        individualCalendars = successfulData.map((d, i) => ({
+          user: users[i],
+          calendar: d.calendar,
+        }));
         repoContributions =
           normalizedView === 'languages'
             ? successfulData.flatMap((d) => d.repoContributions || [])
@@ -610,6 +633,11 @@ export async function GET(request: Request) {
       const stats = calculateStreak(calendar, timezone, undefined, grace);
       const hourCounts = await fetchCommitHourDistribution(user).catch(() => new Array(24).fill(0));
       svg = generateCommitClockSVG(hourCounts, stats, params);
+    } else if (normalizedView === 'weekday') {
+      // ← INSERT YOUR NEW BLOCK HERE
+      const normalizedCalendar = normalizeCalendarToTimezone(calendar, timezone);
+      const stats = calculateStreak(normalizedCalendar, timezone, undefined, grace);
+      svg = generateWeekdaySVG(stats, params, normalizedCalendar);
     } else if (versus && versusCalendar) {
       // Normalize both calendars to the target timezone for accurate comparison
       const normalizedCalendar = normalizeCalendarToTimezone(calendar, timezone);
@@ -620,7 +648,7 @@ export async function GET(request: Request) {
       svg = generateVersusSVG(stats1, stats2, params, normalizedCalendar, normalizedVersusCalendar);
     } else {
       const stats = calculateStreak(calendar, timezone, undefined, grace);
-      svg = generateSVG(stats, params, calendar);
+      svg = generateSVG(stats, params, calendar, individualCalendars);
     }
 
     if (minify) {
@@ -708,6 +736,9 @@ function sanitizeErrorMessage(message: string): string {
   if (lower.includes('strictly accepts a maximum of 2')) {
     return 'The streak comparison generator strictly accepts a maximum of 2 usernames.';
   }
+  if (lower.includes('maximum of 7 usernames')) {
+    return 'A maximum of 7 usernames is supported for the skyline.';
+  }
   if (lower.includes('quota is low')) {
     return 'API rate limit quota is low. Please try again later.';
   }
@@ -722,6 +753,7 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
   const message = sanitizeErrorMessage(rawMessage);
 
   if (parseResult.success && parseResult.data.format === 'json') {
+    const isTimeout = isAbortError(error);
     const isNotFound =
       rawMessage.toLowerCase().includes('not found') ||
       rawMessage.toLowerCase().includes('could not resolve');
@@ -731,6 +763,16 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
       rawMessage.toLowerCase().includes('invalid') ||
       rawMessage.toLowerCase().includes('validation') ||
       rawMessage.toLowerCase().includes('strictly for organizations');
+
+    if (isTimeout) {
+      return NextResponse.json(
+        { error: 'Upstream request timed out after 10 seconds.' },
+        {
+          status: 504,
+          headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+        }
+      );
+    }
 
     const status = isRateLimit ? 429 : isNotFound ? 404 : isValidationError ? 400 : 500;
     const jsonErrorHeaders: Record<string, string> = {
@@ -828,7 +870,20 @@ function buildErrorResponse(error: unknown, parseResult: ParseResult): NextRespo
     });
   }
 
-  // 4. Return a 500 Internal Server Error for real crashes
+  // 4. Return a 504 Gateway Timeout for aborted/timed out requests
+  if (isAbortError(error)) {
+    const timeoutSvg = buildInlineErrorSVG('Request timed out. Please try again later.');
+    return new NextResponse(timeoutSvg, {
+      status: 504,
+      headers: {
+        'Content-Type': 'image/svg+xml; charset=utf-8',
+        'Cache-Control': 'no-store',
+        'Content-Security-Policy': SVG_CSP_HEADER,
+      },
+    });
+  }
+
+  // 5. Return a 500 Internal Server Error for real crashes
   logger.error('Unhandled error', {
     source: 'streak',
     message,

@@ -30,7 +30,12 @@
     "discord": "Discord",
     "twitter": "Twitter",
     "linkedin": "LinkedIn",
-    "generator": "Generator"
+    "generator": "Generator",
+    "guidelines": "Guidelines",
+    "faq": "FAQ",
+    "support": "Support",
+    "privacy": "Privacy Policy",
+    "terms": "Terms of Use"
   },
   "landing": {
     "empty_username_warning": "Please enter a GitHub username to copy your badge link.",

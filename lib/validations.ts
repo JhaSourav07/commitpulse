@@ -496,7 +496,7 @@ const baseStreakParamsSchema = z.object({
       'pie',
       'activity_graph',
       'commit_clock',
-      'activity_graph',
+      'weekday',
     ])
     .catch('default')
     .default('default'),

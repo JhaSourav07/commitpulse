@@ -2,9 +2,13 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { GET } from './route';
 import { getFullDashboardData } from '@/lib/github';
 
-vi.mock('@/lib/github', () => ({
-  getFullDashboardData: vi.fn(),
-}));
+vi.mock('@/lib/github', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/github')>();
+  return {
+    ...actual,
+    getFullDashboardData: vi.fn(),
+  };
+});
 
 vi.mock('@/lib/rate-limit', () => ({
   RateLimiter: vi.fn().mockImplementation(function () {
@@ -94,7 +98,7 @@ describe('ApiCompareRoute Tests', () => {
     expect(json.error).toContain('rate limit reached');
   });
 
-  it('returns 500 Internal Server Error when upstream request times out', async () => {
+  it('returns 504 Gateway Timeout when upstream request times out', async () => {
     vi.mocked(getFullDashboardData).mockRejectedValueOnce(
       new Error('Request timed out', { cause: new Error('timeout') })
     );
@@ -102,7 +106,7 @@ describe('ApiCompareRoute Tests', () => {
     const request = makeRequest({ user1: 'octocat', user2: 'defunkt' });
     const response = await GET(request);
 
-    expect(response.status).toBe(500);
+    expect(response.status).toBe(504);
     const json = await response.json();
     expect(json.error).toContain('Connection timeout');
   });

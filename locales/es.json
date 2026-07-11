@@ -30,7 +30,12 @@
     "discord": "Discord",
     "twitter": "Twitter",
     "linkedin": "LinkedIn",
-    "generator": "Generador"
+    "generator": "Generador",
+    "guidelines": "Directrices",
+    "faq": "Preguntas Frecuentes",
+    "support": "Soporte",
+    "privacy": "Política de Privacidad",
+    "terms": "Términos de Uso"
   },
   "landing": {
     "empty_username_warning": "Ingresa un usuario de GitHub para copiar el enlace de tu insignia.",
