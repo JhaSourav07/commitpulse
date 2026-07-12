@@ -371,6 +371,12 @@ export interface BadgeParams {
   /** When true, renders a compact single-row card (~100px tall) with only username, avatar, and streak count. Skips the full isometric grid. */
   compact?: boolean;
 
+  /** Which day the week should start on. 0 for Sunday, 1 for Monday. */
+  start_day?: number;
+
+  /** When true, hides Saturday and Sunday from the weekday chart */
+  hide_weekend?: boolean;
+
   /** @internal Temporary property to track custom gradient ID during SVG generation. */
   __customGradientId?: string;
 }

@@ -496,7 +496,10 @@ export function aggregateCalendars(
  * renderers keep their week (column) and weekday (row) grid instead of collapsing
  * every day into a single week.
  */
-export function chunkDaysIntoWeeks(days?: ContributionDay[] | null): ContributionCalendar['weeks'] {
+export function chunkDaysIntoWeeks(
+  days?: ContributionDay[] | null,
+  startDay: number = 0
+): ContributionCalendar['weeks'] {
   if (!days || !Array.isArray(days)) {
     return [];
   }
@@ -512,7 +515,7 @@ export function chunkDaysIntoWeeks(days?: ContributionDay[] | null): Contributio
       continue;
     }
 
-    if (currentWeek.length > 0 && parsedDate.getUTCDay() === 0) {
+    if (currentWeek.length > 0 && parsedDate.getUTCDay() === startDay) {
       weeks.push({ contributionDays: currentWeek });
       currentWeek = [];
     }
@@ -607,11 +610,13 @@ export function calculateWrappedStats(calendar?: ContributionCalendar | null) {
  * @param calendar The contribution calendar to normalize
  * @param _targetTimezone Reserved for future use. Currently unused because
  * date-only contribution data cannot be shifted across timezone boundaries.
+ * @param startDay Day of the week to start chunks on (0 = Sunday, 1 = Monday)
  * @returns A calendar with normalized week structure
  */
 export function normalizeCalendarToTimezone(
   calendar: ContributionCalendar,
-  _targetTimezone: string // retained for backward compatibility with existing callers
+  _targetTimezone: string, // retained for backward compatibility with existing callers
+  startDay: number = 0
 ): ContributionCalendar {
   void _targetTimezone;
   if (!calendar || !calendar.weeks || calendar.weeks.length === 0) {
@@ -645,8 +650,8 @@ export function normalizeCalendarToTimezone(
     );
     const dayOfWeek = dateObj.getUTCDay();
 
-    // Start a new week on Sunday
-    if (dayOfWeek === 0 && currentWeek.length > 0) {
+    // Start a new week on the designated startDay
+    if (dayOfWeek === startDay && currentWeek.length > 0) {
       weeks.push({ contributionDays: currentWeek });
       currentWeek = [];
     }

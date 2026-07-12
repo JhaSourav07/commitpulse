@@ -169,6 +169,8 @@ export async function GET(request: Request) {
       phi,
       border,
       minify,
+      start_day,
+      hide_weekend,
     } = parseResult.data;
     const normalizedView = view as
       | 'default'
@@ -406,6 +408,8 @@ export async function GET(request: Request) {
       theta,
       phi,
       compact,
+      start_day,
+      hide_weekend,
     };
 
     let calendar;
@@ -532,7 +536,7 @@ export async function GET(request: Request) {
         const filteredDays = allDays.slice(-effectiveDays);
         calendar = {
           totalContributions: filteredDays.reduce((sum, d) => sum + d.contributionCount, 0),
-          weeks: chunkDaysIntoWeeks(filteredDays),
+          weeks: chunkDaysIntoWeeks(filteredDays, start_day),
         };
       }
     }
@@ -635,13 +639,17 @@ export async function GET(request: Request) {
       svg = generateCommitClockSVG(hourCounts, stats, params);
     } else if (normalizedView === 'weekday') {
       // ← INSERT YOUR NEW BLOCK HERE
-      const normalizedCalendar = normalizeCalendarToTimezone(calendar, timezone);
+      const normalizedCalendar = normalizeCalendarToTimezone(calendar, timezone, start_day);
       const stats = calculateStreak(normalizedCalendar, timezone, undefined, grace);
       svg = generateWeekdaySVG(stats, params, normalizedCalendar);
     } else if (versus && versusCalendar) {
       // Normalize both calendars to the target timezone for accurate comparison
-      const normalizedCalendar = normalizeCalendarToTimezone(calendar, timezone);
-      const normalizedVersusCalendar = normalizeCalendarToTimezone(versusCalendar, timezone);
+      const normalizedCalendar = normalizeCalendarToTimezone(calendar, timezone, start_day);
+      const normalizedVersusCalendar = normalizeCalendarToTimezone(
+        versusCalendar,
+        timezone,
+        start_day
+      );
 
       const stats1 = calculateStreak(normalizedCalendar, timezone, undefined, grace);
       const stats2 = calculateStreak(normalizedVersusCalendar, timezone, undefined, grace);
