@@ -41,6 +41,7 @@ https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&theme=<slug>
 | monokai          | `#272822`  | `#f8f8f2` | `#a6e22e` |
 | retro-terminal   | `#000000`  | `#00ff41` | `#00ff41` |
 | midnight_ocean   | `#020c1b`  | `#ccd6f6` | `#0af5ff` |
+| catppuccin_mocha | `#1e1e2e`  | `#cdd6f4` | `#cba6f7` |
 
 ---
 
@@ -393,6 +394,16 @@ https://commitpulse.vercel.app/api/streak?user=YOUR_USERNAME&theme=<slug>
 | `accent`  | 0af5ff |
 
 ---
+
+### Catppuccin Mocha
+
+![catppuccin_mocha](https://commitpulse.vercel.app/api/streak?user=jhasourav07&theme=catppuccin_mocha)
+
+| Parameter | Value  |
+| --------- | ------ |
+| `bg`      | 1e1e2e |
+| `text`    | cdd6f4 |
+| `accent`  | cba6f7 |
 
 ## Custom Theme
 
