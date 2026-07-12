@@ -2,15 +2,40 @@ import { z } from 'zod';
 import { BadgeTheme } from '../../types';
 import { hexColor } from './sanitizer';
 
+// Helper to sanitize hex colors (strip # prefix)
+export function sanitizeHexColor(value: string): string {
+  return value.replace(/^#/, '').trim();
+}
+
+// Updated regex for validation (without #)
 const HEX_COLOR_REGEX = /^[0-9a-fA-F]{3,4}$|^[0-9a-fA-F]{6,8}$/;
 
 export const badgeThemeSchema = z.object({
-  bg: z.string().regex(HEX_COLOR_REGEX, { message: 'Invalid bg color format' }),
-  text: z.string().regex(HEX_COLOR_REGEX, { message: 'Invalid text color format' }),
-  accent: z.string().regex(HEX_COLOR_REGEX, { message: 'Invalid accent color format' }),
+  bg: z
+    .string()
+    .transform(sanitizeHexColor)
+    .refine((val) => HEX_COLOR_REGEX.test(val), {
+      message: 'Invalid bg color format - must be a valid hex color (e.g., ffffff or #ffffff)',
+    }),
+  text: z
+    .string()
+    .transform(sanitizeHexColor)
+    .refine((val) => HEX_COLOR_REGEX.test(val), {
+      message: 'Invalid text color format - must be a valid hex color (e.g., ffffff or #ffffff)',
+    }),
+  accent: z
+    .string()
+    .transform(sanitizeHexColor)
+    .refine((val) => HEX_COLOR_REGEX.test(val), {
+      message: 'Invalid accent color format - must be a valid hex color (e.g., ffffff or #ffffff)',
+    }),
   negative: z
     .string()
-    .regex(HEX_COLOR_REGEX, { message: 'Invalid negative color format' })
+    .transform(sanitizeHexColor)
+    .refine((val) => HEX_COLOR_REGEX.test(val), {
+      message:
+        'Invalid negative color format - must be a valid hex color (e.g., ffffff or #ffffff)',
+    })
     .optional(),
 });
 
@@ -64,26 +89,20 @@ export const themes: Record<string, BadgeTheme> = {
   monokai: makeTheme('272822', 'f8f8f2', 'a6e22e', 'f92672'),
   midnight_ocean: makeTheme('020c1b', 'ccd6f6', '0af5ff', 'ff4d6d'),
   enterprise: makeTheme('1a1a2e', 'e2e8f0', '6366f1', '8b5cf6'),
-  // India theme — saffron accent (#FF9933), India green negative (#138808)
   india: makeTheme('0a0a0a', 'ffffff', 'FF9933', '138808'),
 };
 
-// Auto-theme pairs: the SVG switches between these two palettes
-// using @media (prefers-color-scheme) so the badge adapts to the
-// viewer's OS-level light/dark setting without any JavaScript.
+// Auto-theme pairs
 export const AUTO_THEME_LIGHT: BadgeTheme = themes.light ?? themes.default;
 export const AUTO_THEME_DARK: BadgeTheme = themes.dark ?? themes.default;
 
 /**
- * Resolves a theme case-insensitively by matching the normalized user input
- * against the normalized theme registry keys. Returns the standard theme key.
+ * Resolves a theme case-insensitively
  */
 export function getNormalizedThemeKey(themeInput: string | undefined | null): string {
-  if (!themeInput) return 'default'; // fallback key
-
+  if (!themeInput) return 'default';
   const target = themeInput.trim().toLowerCase();
   const matchedKey = Object.keys(themes).find((key) => key.toLowerCase() === target);
-
   return matchedKey || 'default';
 }
 
