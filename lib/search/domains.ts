@@ -95,4 +95,28 @@ export const SEARCH_DOMAINS: SearchableDomain[] = [
     keywords: ['source', 'code', 'repo', 'star', 'contribute', 'oss'],
     category: 'Community',
   },
+  {
+    id: 'faq',
+    title: 'FAQ',
+    description: 'Frequently Asked Questions',
+    href: '/faq',
+    keywords: ['faq', 'questions', 'answers', 'help'],
+    category: 'Docs',
+  },
+  {
+    id: 'guidelines',
+    title: 'Guidelines',
+    description: 'Community and Contribution Guidelines',
+    href: '/guidelines',
+    keywords: ['guidelines', 'rules', 'community', 'contributing'],
+    category: 'Docs',
+  },
+  {
+    id: 'support',
+    title: 'Support',
+    description: 'Get help and support for CommitPulse',
+    href: '/support',
+    keywords: ['support', 'help', 'contact', 'discord'],
+    category: 'Community',
+  },
 ];
