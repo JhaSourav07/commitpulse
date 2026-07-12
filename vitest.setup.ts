@@ -19,6 +19,10 @@ if (typeof window !== 'undefined') {
     configurable: true,
     value: MockIntersectionObserver,
   });
+  
+  if (window.HTMLCanvasElement) {
+    window.HTMLCanvasElement.prototype.getContext = vi.fn() as any;
+  }
 }
 
 // 1. Next-Auth ko crash hone se bachane ke liye env variables defaults set karo
