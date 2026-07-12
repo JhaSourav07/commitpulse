@@ -279,7 +279,7 @@ export default function SubmitReviewPage() {
                           </svg>
                         </div>
                         <p className="text-xs text-gray-500 dark:text-gray-500">
-                          @{formData.handle || 'handle'}
+                          @{formData.handle ? formData.handle.replace(/^@+/, '') : 'handle'}
                         </p>
                       </div>
                     </div>
