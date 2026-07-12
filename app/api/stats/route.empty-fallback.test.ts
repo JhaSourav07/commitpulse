@@ -2,16 +2,16 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { GET } from './route';
 import type { ContributionCalendar } from '../../../types';
 
+import { fetchGitHubContributions } from '../../../lib/github'; 
+import { quotaMonitor } from '@/services/github/quota-monitor';
+import { refreshPolicy } from '@/services/github/refresh-policy';
+import { refreshRateLimiter } from '@/services/github/refresh-rate-limiter';
+
 vi.mock('../../../lib/github', () => ({
   fetchGitHubContributions: vi.fn(),
   contributionsCache: { has: vi.fn().mockResolvedValue(false) },
   cacheKey: vi.fn().mockReturnValue('key'),
 }));
-
-import { fetchGitHubContributions } from '../../../lib/github';
-import { quotaMonitor } from '@/services/github/quota-monitor';
-import { refreshPolicy } from '@/services/github/refresh-policy';
-import { refreshRateLimiter } from '@/services/github/refresh-rate-limiter';
 
 function makeRequest(
   params: Record<string, string> = {},
@@ -32,6 +32,20 @@ describe('GET /api/stats - Edge Cases & Empty/Missing Inputs Verification', () =
     quotaMonitor.reset();
     refreshPolicy.reset();
     refreshRateLimiter.reset();
+  });
+
+  it('returns a 400 Bad Request if the user parameter is missing', async () => {
+    const response = await GET(makeRequest({})); 
+    
+    expect(response.status).toBe(400); 
+  });
+
+  it('handles unexpected errors from the GitHub API gracefully', async () => {
+    vi.mocked(fetchGitHubContributions).mockRejectedValue(new Error('GitHub API Error'));
+
+    const response = await GET(makeRequest({ user: 'testuser' }));
+    
+    expect(response.status).toBe(500);
   });
 
   it('handles an empty weeks array without crashing and returns zero stats', async () => {
