@@ -133,7 +133,7 @@ export default function SupportPage() {
                   Get real-time help from the community and maintainers.
                 </p>
                 <a
-                  href="https://discord.gg/Cb73bS79j"
+                  href="https://discord.gg/f84SDraEBH"
                   target="_blank"
                   className="inline-flex items-center gap-3 px-8 py-4 bg-indigo-600 hover:bg-indigo-500 rounded-2xl font-medium text-white transition-all"
                 >
