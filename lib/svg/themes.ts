@@ -66,6 +66,7 @@ export const themes: Record<string, BadgeTheme> = {
   enterprise: makeTheme('1a1a2e', 'e2e8f0', '6366f1', '8b5cf6'),
   // India theme — saffron accent (#FF9933), India green negative (#138808)
   india: makeTheme('0a0a0a', 'ffffff', 'FF9933', '138808'),
+  rose_pine: makeTheme('191724', 'e0def4', 'c4a7e7', 'eb6f92'),
 };
 
 // Auto-theme pairs: the SVG switches between these two palettes
