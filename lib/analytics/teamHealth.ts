@@ -114,7 +114,10 @@ function calculateSprintProgress(
     endDate: endDate.toISOString().split('T')[0],
     targetContributions,
     currentContributions,
-    progressPercentage: Math.round((currentContributions / targetContributions) * 100),
+    progressPercentage:
+      targetContributions === 0
+        ? 0
+        : Math.round((currentContributions / targetContributions) * 100),
   };
 }
 
@@ -135,15 +138,18 @@ function calculateTeamMetrics(members: TeamMember[]): TeamMetrics {
 }
 
 function calculateTeamHealthScore(metrics: TeamMetrics, burnoutRisk: BurnoutRisk): TeamHealthScore {
-  const productivity = Math.min(
-    100,
-    Math.round((metrics.activeMembers / metrics.totalMembers) * 100)
-  );
+  const productivity =
+    metrics.totalMembers === 0
+      ? 0
+      : Math.min(100, Math.round((metrics.activeMembers / metrics.totalMembers) * 100));
   const sustainability = Math.max(0, 100 - burnoutRisk.score);
-  const collaboration = Math.min(
-    100,
-    Math.round((metrics.combinedCurrentStreak / (metrics.totalMembers * 7)) * 100)
-  );
+  const collaboration =
+    metrics.totalMembers === 0
+      ? 0
+      : Math.min(
+          100,
+          Math.round((metrics.combinedCurrentStreak / (metrics.totalMembers * 7)) * 100)
+        );
   const overall = Math.round((productivity + sustainability + collaboration) / 3);
 
   let level: HealthScoreLevel;
