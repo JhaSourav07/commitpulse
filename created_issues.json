@@ -1,0 +1,37 @@
+[
+  [
+    7999,
+    {
+      "title": "feat(themes): Add Catppuccin Mocha theme preset",
+      "body": "### Description\nAdd the popular Catppuccin Mocha theme preset for the badge. Colors: Background #1e1e2e, Text #cdd6f4, Accent #cba6f7."
+    }
+  ],
+  [
+    8000,
+    {
+      "title": "feat(themes): Add Rose Pine theme preset",
+      "body": "### Description\nAdd the Rose Pine theme preset for the badge. Colors: Background #191724, Text #e0def4, Accent #c4a7e7."
+    }
+  ],
+  [
+    8001,
+    {
+      "title": "feat(themes): Add Ayu Mirage theme preset",
+      "body": "### Description\nAdd the Ayu Mirage theme preset for the badge. Colors: Background #212733, Text #D9D7CE, Accent #FFCC66."
+    }
+  ],
+  [
+    8002,
+    {
+      "title": "feat(calendar): Add support for a start_day parameter to start weeks on Monday",
+      "body": "### Description\nGitHub defaults to starting the week on Sunday, but many users prefer Monday. We should add a ?start_day=1 parameter to chunkDaysIntoWeeks logic to shift the calendar offset."
+    }
+  ],
+  [
+    8003,
+    {
+      "title": "feat(weekday): Add hide_weekend parameter to the weekday graph",
+      "body": "### Description\nAdd a ?hide_weekend=true parameter that filters out Saturday and Sunday from the weekday view so developers can exclusively display their work-week activity."
+    }
+  ]
+]
