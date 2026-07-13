@@ -394,7 +394,7 @@ describe('DashboardClient', () => {
       <DashboardClient initialData={mockInitialData} username="Shivangi1515" period={mockPeriod} />
     );
 
-    fireEvent.click(screen.getAllByRole('button', { name: /^share$/i })[0]);
+    fireEvent.click(screen.getByTestId('share-dashboard-btn'));
 
     await waitFor(() => {
       expect(writeText).toHaveBeenCalledWith(window.location.href);
@@ -413,7 +413,7 @@ describe('DashboardClient', () => {
       <DashboardClient initialData={mockInitialData} username="Shivangi1515" period={mockPeriod} />
     );
 
-    fireEvent.click(screen.getAllByRole('button', { name: /^share$/i })[0]);
+    fireEvent.click(screen.getByTestId('share-dashboard-btn'));
 
     await waitFor(() => {
       expect(writeText).toHaveBeenCalledWith(window.location.href);

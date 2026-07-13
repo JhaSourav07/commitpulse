@@ -639,6 +639,7 @@ export default function DashboardClient({
 
           <RefreshButton username={username} className="w-full lg:w-auto justify-center" />
           <button
+            data-testid="share-dashboard-btn"
             onClick={handleShareDashboard}
             className="flex items-center justify-center gap-2 w-full lg:w-auto rounded-xl border border-black/10 dark:border-[rgba(255,255,255,0.15)] bg-black dark:bg-[#111] hover:bg-zinc-800 dark:hover:bg-zinc-900 px-4 py-2 text-sm font-semibold text-white dark:text-white transition-all duration-200 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2 focus-visible:ring-offset-black cursor-pointer"
           >
