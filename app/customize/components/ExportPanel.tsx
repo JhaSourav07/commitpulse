@@ -69,6 +69,9 @@ export function ExportPanel({
   const [filePathCopied, setFilePathCopied] = useState(false);
   const [markdownCopied, setMarkdownCopied] = useState(false);
 
+  // Markdown preview toggle: 'raw' shows code, 'rendered' shows the badge image
+  const [viewMode, setViewMode] = useState<'raw' | 'rendered'>('raw');
+
   const handleDownloadBadge = async () => {
     if (!hasUsername || !snippet) return;
 
@@ -221,7 +224,10 @@ export function ExportPanel({
               <button
                 key={option.value}
                 type="button"
-                onClick={() => onFormatChange(option.value)}
+                onClick={() => {
+                  onFormatChange(option.value);
+                  setViewMode('raw');
+                }}
                 aria-pressed={format === option.value}
                 className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
                   format === option.value
@@ -400,10 +406,65 @@ export function ExportPanel({
         {copyStatusMessage}
       </p>
 
+      {/* Raw / Preview toggle — only visible in markdown mode */}
+      {format === 'markdown' && (
+        <div className="flex justify-end">
+          <div
+            className="flex rounded-lg border border-black/10 dark:border-white/10 bg-white/60 dark:bg-white/[0.03] backdrop-blur-md p-0.5"
+            aria-label="Markdown view mode"
+          >
+            <button
+              type="button"
+              onClick={() => setViewMode('raw')}
+              aria-pressed={viewMode === 'raw'}
+              className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${
+                viewMode === 'raw'
+                  ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 shadow-[0_0_24px_rgba(16,185,129,0.16)]'
+                  : 'text-zinc-400 dark:text-white/35 hover:text-zinc-700 dark:hover:text-white/70'
+              }`}
+            >
+              Raw
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('rendered')}
+              aria-pressed={viewMode === 'rendered'}
+              className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${
+                viewMode === 'rendered'
+                  ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 shadow-[0_0_24px_rgba(16,185,129,0.16)]'
+                  : 'text-zinc-400 dark:text-white/35 hover:text-zinc-700 dark:hover:text-white/70'
+              }`}
+            >
+              Preview
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="bg-gray-100/80 backdrop-blur-md border border-black/10 dark:bg-white/[0.03] dark:border-white/10 rounded-xl px-5 py-4 overflow-x-auto">
-        <code className="text-emerald-600 dark:text-emerald-300 text-xs font-mono leading-relaxed break-all whitespace-pre-wrap">
-          {activeSnippet}
-        </code>
+        {format === 'markdown' && viewMode === 'rendered' ? (
+          (() => {
+            const urlMatch = activeSnippet.match(/\((https?:\/\/[^)]+)\)/);
+            const imageUrl = urlMatch ? urlMatch[1] : '';
+            return imageUrl ? (
+              <div className="flex items-center justify-center py-2">
+                <img
+                  src={imageUrl}
+                  alt={`CommitPulse badge for ${username || 'your-github-username'}`}
+                  className="max-w-full rounded"
+                />
+              </div>
+            ) : (
+              <p className="text-zinc-400 dark:text-white/35 text-xs text-center py-2">
+                Add a GitHub username to preview the rendered badge.
+              </p>
+            );
+          })()
+        ) : (
+          <code className="text-emerald-600 dark:text-emerald-300 text-xs font-mono leading-relaxed break-all whitespace-pre-wrap">
+            {activeSnippet}
+          </code>
+        )}
       </div>
 
       <div className="mt-4 text-[11px] text-gray-500 dark:text-white/60 leading-relaxed space-y-3">
