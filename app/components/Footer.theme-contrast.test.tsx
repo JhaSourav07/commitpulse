@@ -90,7 +90,7 @@ describe('Footer theme contrast visual cohesion', () => {
 
     expect(homeLink).toHaveClass('text-zinc-600');
     expect(homeLink).toHaveClass('dark:text-zinc-400');
-    expect(homeLink).toHaveClass('hover:text-teal-800');
+    expect(homeLink).toHaveClass('hover:text-teal-600');
     expect(homeLink).toHaveClass('dark:hover:text-violet-400');
 
     expect(githubLink).toHaveClass('text-zinc-600');
