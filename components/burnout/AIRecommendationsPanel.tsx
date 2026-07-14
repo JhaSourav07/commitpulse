@@ -15,7 +15,7 @@ import {
 import type { BurnoutRecommendation } from '@/utils/calculateBurnoutRisk';
 
 // ---------------------------------------------------------------------------
-// Icon resolver — maps string keys to lucide components
+// Icon resolver
 // ---------------------------------------------------------------------------
 
 const ICON_MAP: Record<string, LucideIcon> = {
@@ -34,6 +34,28 @@ function resolveIcon(iconName: string): LucideIcon {
 }
 
 // ---------------------------------------------------------------------------
+// Animation Variants
+// ---------------------------------------------------------------------------
+
+const containerVariants = {
+  hidden: { opacity: 0, y: 12 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.3,
+      delayChildren: 0.15,
+      staggerChildren: 0.08,
+    },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 10 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.25 } },
+};
+
+// ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
@@ -42,12 +64,17 @@ interface AIRecommendationsPanelProps {
 }
 
 export default function AIRecommendationsPanel({ recommendations }: AIRecommendationsPanelProps) {
+  // Early return or fallback for empty states
+  if (!recommendations || recommendations.length === 0) {
+    return null; // Or return a designed "No recommendations right now" state
+  }
+
   return (
     <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      whileInView={{ opacity: 1, y: 0 }}
+      variants={containerVariants}
+      initial="hidden"
+      whileInView="show"
       viewport={{ once: true }}
-      transition={{ duration: 0.3, delay: 0.15 }}
       className="p-6 rounded-2xl border border-indigo-500/20 bg-gradient-to-br from-indigo-500/[0.02] to-purple-500/[0.02] dark:from-indigo-950/20 dark:to-purple-950/20 relative overflow-hidden"
     >
       {/* Glow highlight */}
@@ -66,16 +93,14 @@ export default function AIRecommendationsPanel({ recommendations }: AIRecommenda
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {recommendations.map((rec, i) => {
           const IconComponent = resolveIcon(rec.icon);
+          // Note: Use `rec.id` instead of index if available in your type!
+          const uniqueKey = 'id' in rec ? (rec as any).id : `${rec.title}-${i}`; 
 
           return (
             <motion.div
-              key={`${rec.title}-${i}`}
-              initial={{ opacity: 0, y: 10 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.12 + i * 0.08, duration: 0.25 }}
+              key={uniqueKey}
+              variants={itemVariants}
               className="group flex items-start gap-4 p-4 rounded-xl border border-black/5 dark:border-white/5 bg-white/50 dark:bg-black/30 hover:border-indigo-500/20 dark:hover:border-indigo-400/20 hover:bg-white/80 dark:hover:bg-black/40 transition-all cursor-default"
-              tabIndex={0}
               role="article"
               aria-label={`Recommendation: ${rec.title}`}
             >
