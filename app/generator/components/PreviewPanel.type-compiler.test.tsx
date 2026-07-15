@@ -12,6 +12,7 @@ describe('PreviewPanel Type Compiler Validation', () => {
 
     expectTypeOf<Props>().toMatchObjectType<{
       markdown: string;
+      hasContent?: boolean;
     }>();
   });
 
@@ -34,10 +35,6 @@ describe('PreviewPanel Type Compiler Validation', () => {
     };
 
     expect(invalidProps).toBeDefined();
-
-
-    expect(invalidProps).toBeDefined();
-
   });
 
   it('accepts a valid props object', () => {
