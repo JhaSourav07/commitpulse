@@ -141,7 +141,7 @@ describe('GET /api/stats', () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get('Cache-Control')).toBe(
-      'public, s-maxage=3600, stale-while-revalidate=86400'
+      'public, s-maxage=1, stale-while-revalidate=59'
     );
     expect(response.headers.get('Pragma')).toBeNull();
     expect(response.headers.get('Expires')).toBeNull();
@@ -168,7 +168,7 @@ describe('GET /api/stats', () => {
     });
     expect(response.headers.get('X-Refresh-Status')).toBe('Cooldown-Served-Cached');
     expect(response.headers.get('Cache-Control')).toBe(
-      'public, s-maxage=3600, stale-while-revalidate=86400'
+      'public, s-maxage=1, stale-while-revalidate=59'
     );
   });
 

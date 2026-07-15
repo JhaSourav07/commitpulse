@@ -103,7 +103,7 @@ export async function GET(request: Request) {
     const etag = crypto.createHash('sha1').update(jsonPayload).digest('hex');
     const weakEtag = `W/"${etag}"`;
     const ifNoneMatch = request.headers.get('if-none-match');
-    const cacheControl = 'public, s-maxage=3600';
+    const cacheControl = 'public, s-maxage=1';
 
     if (ifNoneMatch) {
       const etags = ifNoneMatch.split(',').map((e) => e.trim());

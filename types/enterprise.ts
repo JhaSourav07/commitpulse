@@ -48,6 +48,7 @@ export interface TeamHealthData {
   sprintProgress: SprintProgress[];
   velocityTrends: VelocityTrend[];
   burnoutRisk: BurnoutRisk;
+  healthScore: TeamHealthScore;
   contributionCalendar: ContributionCalendar;
   generatedAt: string;
 }

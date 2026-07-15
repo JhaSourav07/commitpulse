@@ -16,6 +16,10 @@ const MOCK_TOKEN_3 = 'ghp_token3AAAAAAAAAAAAAAAAAAAAAAAAAAAA';
 const MOCK_BAD_TOKEN = 'ghp_badtokenAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
 const MOCK_GOOD_TOKEN = 'ghp_goodtokenAAAAAAAAAAAAAAAAAAAAAAAAAAA';
 
+function getAuthorizationHeader(headers: unknown): string | null {
+  return new Headers(headers as HeadersInit | undefined).get('authorization');
+}
+
 describe('GitHub Multi-Token Rotation & Fallback', () => {
   const originalGitHubPat = process.env.GITHUB_PAT;
   const originalGitHubToken = process.env.GITHUB_TOKEN;
@@ -74,11 +78,13 @@ describe('GitHub Multi-Token Rotation & Fallback', () => {
     expect(res.status).toBe(200);
     expect(fetchMock).toHaveBeenCalledTimes(2);
 
-    const firstCallHeaders = fetchMock.mock.calls[0][1].headers;
-    expect(firstCallHeaders.Authorization).toBe(`bearer ${MOCK_TOKEN_1}`);
+    const firstCallHeaders = getAuthorizationHeader(fetchMock.mock.calls[0][1]?.headers);
+    expect(firstCallHeaders?.match(/^bearer\s+/i)).toBeTruthy();
+    expect(firstCallHeaders?.replace(/^bearer\s+/i, '')).toBe(MOCK_TOKEN_1);
 
-    const secondCallHeaders = fetchMock.mock.calls[1][1].headers;
-    expect(secondCallHeaders.Authorization).toBe(`bearer ${MOCK_TOKEN_2}`);
+    const secondCallHeaders = getAuthorizationHeader(fetchMock.mock.calls[1][1]?.headers);
+    expect(secondCallHeaders?.match(/^bearer\s+/i)).toBeTruthy();
+    expect(secondCallHeaders?.replace(/^bearer\s+/i, '')).toBe(MOCK_TOKEN_2);
   });
 
   it('rotates to the next token on HTTP 401 unauthorized and excludes the bad token for 24h', async () => {
@@ -104,8 +110,13 @@ describe('GitHub Multi-Token Rotation & Fallback', () => {
 
     expect(res.status).toBe(200);
     expect(fetchMock).toHaveBeenCalledTimes(2);
-    expect(fetchMock.mock.calls[0][1].headers.Authorization).toBe(`bearer ${MOCK_BAD_TOKEN}`);
-    expect(fetchMock.mock.calls[1][1].headers.Authorization).toBe(`bearer ${MOCK_GOOD_TOKEN}`);
+    const firstAuthHeader = getAuthorizationHeader(fetchMock.mock.calls[0][1]?.headers);
+    expect(firstAuthHeader?.match(/^bearer\s+/i)).toBeTruthy();
+    expect(firstAuthHeader?.replace(/^bearer\s+/i, '')).toBe(MOCK_BAD_TOKEN);
+
+    const secondAuthHeader = getAuthorizationHeader(fetchMock.mock.calls[1][1]?.headers);
+    expect(secondAuthHeader?.match(/^bearer\s+/i)).toBeTruthy();
+    expect(secondAuthHeader?.replace(/^bearer\s+/i, '')).toBe(MOCK_GOOD_TOKEN);
 
     fetchMock.mockResolvedValueOnce({
       status: 200,
@@ -119,7 +130,9 @@ describe('GitHub Multi-Token Rotation & Fallback', () => {
     });
     expect(res2.status).toBe(200);
     expect(fetchMock).toHaveBeenCalledTimes(3);
-    expect(fetchMock.mock.calls[2][1].headers.Authorization).toBe(`bearer ${MOCK_GOOD_TOKEN}`);
+    const retryAuthHeader = getAuthorizationHeader(fetchMock.mock.calls[2][1]?.headers);
+    expect(retryAuthHeader?.match(/^bearer\s+/i)).toBeTruthy();
+    expect(retryAuthHeader?.replace(/^bearer\s+/i, '')).toBe(MOCK_GOOD_TOKEN);
   });
 
   it('prioritizes token with highest remaining quota', async () => {
@@ -161,9 +174,17 @@ describe('GitHub Multi-Token Rotation & Fallback', () => {
     await fetchWithRetry('https://api.github.com/graphql', { headers: {} });
 
     expect(fetchMock).toHaveBeenCalledTimes(3);
-    expect(fetchMock.mock.calls[0][1].headers.Authorization).toBe(`bearer ${MOCK_TOKEN_1}`);
-    expect(fetchMock.mock.calls[1][1].headers.Authorization).toBe(`bearer ${MOCK_TOKEN_2}`);
-    expect(fetchMock.mock.calls[2][1].headers.Authorization).toBe(`bearer ${MOCK_TOKEN_2}`);
+    const firstQuotaAuthHeader = getAuthorizationHeader(fetchMock.mock.calls[0][1]?.headers);
+    expect(firstQuotaAuthHeader?.match(/^bearer\s+/i)).toBeTruthy();
+    expect(firstQuotaAuthHeader?.replace(/^bearer\s+/i, '')).toBe(MOCK_TOKEN_1);
+
+    const secondQuotaAuthHeader = getAuthorizationHeader(fetchMock.mock.calls[1][1]?.headers);
+    expect(secondQuotaAuthHeader?.match(/^bearer\s+/i)).toBeTruthy();
+    expect(secondQuotaAuthHeader?.replace(/^bearer\s+/i, '')).toBe(MOCK_TOKEN_2);
+
+    const thirdQuotaAuthHeader = getAuthorizationHeader(fetchMock.mock.calls[2][1]?.headers);
+    expect(thirdQuotaAuthHeader?.match(/^bearer\s+/i)).toBeTruthy();
+    expect(thirdQuotaAuthHeader?.replace(/^bearer\s+/i, '')).toBe(MOCK_TOKEN_2);
   });
 
   it('correctly sets global circuit breaker to the earliest reset time when all tokens are rate-limited', async () => {
@@ -274,16 +295,13 @@ describe('GitHub Multi-Token Rotation & Fallback', () => {
     expect(res2.status).toBe(200);
 
     const authHeaders = fetchMock.mock.calls
-      .map((c) => c[1]?.headers?.Authorization)
-      .filter(Boolean);
+      .map((c) => getAuthorizationHeader(c[1]?.headers))
+      .filter(Boolean)
+      .map((h) => h!.replace(/^bearer\s+/i, ''));
 
-    const goodTokenUsages = authHeaders.filter(
-      (h: string) => h === `bearer ${MOCK_GOOD_TOKEN}`
-    ).length;
+    const goodTokenUsages = authHeaders.filter((h) => h === MOCK_GOOD_TOKEN).length;
 
-    const badTokenUsages = authHeaders.filter(
-      (h: string) => h === `bearer ${MOCK_BAD_TOKEN}`
-    ).length;
+    const badTokenUsages = authHeaders.filter((h) => h === MOCK_BAD_TOKEN).length;
 
     // Both started with the bad token
     expect(badTokenUsages).toBe(2);
