@@ -28,6 +28,12 @@ export interface NavLink {
 
 const NAV_LINKS: NavLink[] = [
   {
+    label: 'Customization Studio',
+    href: '/#customization-studio',
+    isExternal: false,
+    isPrimary: false,
+  },
+  {
     label: 'Generator',
     href: '/generator',
     isExternal: false,
@@ -42,12 +48,6 @@ const NAV_LINKS: NavLink[] = [
   {
     label: 'Burnout Radar',
     href: '/burnout-analyzer',
-    isExternal: false,
-    isPrimary: false,
-  },
-  {
-    label: 'Customization Studio',
-    href: '/#customization-studio',
     isExternal: false,
     isPrimary: false,
   },

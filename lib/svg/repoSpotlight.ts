@@ -32,7 +32,9 @@ function buildSparkline(data: number[], width: number, height: number, color: st
 export function generateRepoSpotlightSVG(repo: GitHubRepo, params: BadgeParams): string {
   const bg = Array.isArray(params.bg) ? params.bg[0] : params.bg;
   const text = Array.isArray(params.text) ? params.text[0] : params.text;
-  const accent = Array.isArray(params.accent) ? params.accent[0] : params.accent;
+  const accent = Array.isArray(params.accent)
+    ? params.accent[params.accent.length - 1]
+    : params.accent;
   const radius = params.radius;
 
   const width = 450;

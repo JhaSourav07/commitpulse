@@ -29,6 +29,12 @@ interface PRNode {
 const GITHUB_GRAPHQL_URL = 'https://api.github.com/graphql';
 const MAX_PAGES = 3;
 
+export interface PRSizeDistribution {
+  atomic: number;
+  standard: number;
+  massive: number;
+}
+
 export interface PRInsightData {
   totalPRs: number;
   openPRs: number;
@@ -62,6 +68,7 @@ export interface PRInsightData {
     largest?: { title: string; url: string; additions: number; deletions: number };
   };
   prs: { title: string; url: string; state: string; createdAt: string; repo: string }[];
+  sizeDistribution?: PRSizeDistribution;
 }
 
 const prInsightsCache = new DistributedCache<PRInsightData>(500);
@@ -221,12 +228,26 @@ async function fetchPRInsightsUncached(
 
   const weeklyActivityMap = new Map<string, number>();
   const monthlyActivityMap = new Map<string, number>();
+  const sizeDistribution: PRSizeDistribution = {
+    atomic: 0,
+    standard: 0,
+    massive: 0,
+  };
 
   for (const pr of authoredPRs) {
     // Basic stats
     if (pr.state === 'OPEN') openPRs++;
     else if (pr.state === 'MERGED') mergedPRs++;
     else closedPRs++;
+
+    const totalLines = (pr.additions ?? 0) + (pr.deletions ?? 0);
+    if (totalLines < 100) {
+      sizeDistribution.atomic++;
+    } else if (totalLines <= 500) {
+      sizeDistribution.standard++;
+    } else {
+      sizeDistribution.massive++;
+    }
 
     // Activity timelines
     const createdDate = new Date(pr.createdAt);
@@ -361,6 +382,7 @@ async function fetchPRInsightsUncached(
       createdAt: pr.createdAt,
       repo: pr.repository?.nameWithOwner ?? 'Unknown',
     })),
+    sizeDistribution,
   };
 }
 

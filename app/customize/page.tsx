@@ -12,6 +12,7 @@ import { ExportPanel } from './components/ExportPanel';
 import InteractiveViewer from '@/components/InteractiveViewer';
 import { Footer } from '@/app/components/Footer';
 import DOMPurify from 'dompurify';
+import { Check, Link as LinkIcon } from 'lucide-react';
 import type {
   ExportFormat,
   Font,
@@ -80,6 +81,7 @@ function CustomizePageInner(): ReactElement {
   const [timezone, setTimezone] = useState<Timezone>('UTC');
   const [exportFormat, setExportFormat] = useState<ExportFormat>('markdown');
   const [copied, setCopied] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
   const [copyStatusMessage, setCopyStatusMessage] = useState('');
   const copyResetTimeoutRef = useRef<number | null>(null);
   const [svgContent, setSvgContent] = useState<string>('');
@@ -381,6 +383,26 @@ function CustomizePageInner(): ReactElement {
     }
   };
 
+  const copyShareLink = async (): Promise<void> => {
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        try {
+          await navigator.clipboard.writeText(window.location.href);
+        } catch {
+          const copiedSuccessfully = fallbackCopyToClipboard(window.location.href);
+          if (!copiedSuccessfully) throw new Error('Fallback clipboard copy failed.');
+        }
+      } else {
+        const copiedSuccessfully = fallbackCopyToClipboard(window.location.href);
+        if (!copiedSuccessfully) throw new Error('Fallback clipboard copy failed.');
+      }
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 2000);
+    } catch {
+      setCopiedLink(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-transparent text-white font-sans overflow-x-hidden">
       {/* Ambient background */}
@@ -396,36 +418,49 @@ function CustomizePageInner(): ReactElement {
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
-          className="flex items-center gap-4 mb-8"
+          className="flex items-center justify-between mb-8"
         >
-          <Link
-            href="/"
-            id="back-to-home-link"
-            className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-black dark:text-white/55 dark:hover:text-white transition-colors group"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
+          <div className="flex items-center gap-4">
+            <Link
+              href="/"
+              id="back-to-home-link"
+              className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-black dark:text-white/55 dark:hover:text-white transition-colors group"
             >
-              <path d="M19 12H5M12 5l-7 7 7 7" />
-            </svg>
-            {t('customize.back_to_home')}
-          </Link>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M19 12H5M12 5l-7 7 7 7" />
+              </svg>
+              {t('customize.back_to_home')}
+            </Link>
 
-          <div className="h-4 w-px bg-white/10" />
+            <div className="h-4 w-px bg-white/10" />
 
-          <div>
-            <span className="text-xs font-bold uppercase tracking-[0.22em] text-emerald-600 dark:text-emerald-400">
-              {t('customize_cta.studio_badge')}
-            </span>
+            <div>
+              <span className="text-xs font-bold uppercase tracking-[0.22em] text-emerald-600 dark:text-emerald-400">
+                {t('customize_cta.studio_badge')}
+              </span>
+            </div>
           </div>
+
+          <button
+            type="button"
+            onClick={copyShareLink}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-xs font-medium text-gray-600 dark:text-white/60 hover:bg-gray-100 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+          >
+            {copiedLink ? <Check size={14} /> : <LinkIcon size={14} />}
+            {copiedLink
+              ? t('customize.top_bar.copied_link', { defaultValue: 'Copied!' })
+              : t('customize.top_bar.share_link', { defaultValue: 'Share Link' })}
+          </button>
         </motion.div>
 
         {/* ── Page heading ─────────────────────────────────────────────────── */}

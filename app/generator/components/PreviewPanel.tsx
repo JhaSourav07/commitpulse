@@ -6,6 +6,7 @@ import { Copy, Check, Eye, Code2, Download } from 'lucide-react';
 
 interface PreviewPanelProps {
   markdown: string;
+  hasContent?: boolean;
 }
 
 function renderPreview(md: string): string {
@@ -140,8 +141,7 @@ export function PreviewPanel({ markdown }: PreviewPanelProps) {
                 : 'bg-emerald-500 hover:bg-emerald-400 text-white border border-emerald-500'
             }`}
           >
-            {copied ? <Check size={12} /> : <Copy size={12} />}
-            {copied ? 'Copied!' : 'Copy'}
+            - {copied ? 'Copied!' : 'Copy'}+ {copied ? 'Copied!' : 'Copy Markdown'}
           </button>
         </div>
       </div>

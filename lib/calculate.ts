@@ -227,7 +227,6 @@ export function calculateStreak(
       } else {
         todayIndex = lastIndex;
       }
-
       todayIndex = lastIndex;
     } else {
       return {
