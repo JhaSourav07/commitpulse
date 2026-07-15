@@ -298,11 +298,12 @@ export function CommitPulseSection({
                   )
                 ) : userDetails ? (
                   <div className="flex items-center gap-2.5 rounded-xl bg-emerald-500/5 border border-emerald-500/15 px-3 py-2">
-                    <img
+                    <Image
                       src={userDetails.avatar_url}
                       alt={`@${userDetails.login}`}
-                      width="22"
-                      height="22"
+                      width={22}
+                      height={22}
+                      unoptimized
                       className="rounded-full border border-emerald-500/20 flex-shrink-0 object-cover"
                     />
                     <div className="flex flex-col min-w-0">
@@ -324,7 +325,7 @@ export function CommitPulseSection({
 
             <div>
               <FieldLabel htmlFor="commitpulse-accent">Accent Colour (optional)</FieldLabel>
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-3">
                 <div className="relative flex items-center">
                   <span className="absolute left-3 text-xs text-gray-400 dark:text-white/30 select-none">
                     #
@@ -337,7 +338,7 @@ export function CommitPulseSection({
                     placeholder="10b981"
                     maxLength={6}
                     spellCheck={false}
-                    className="w-32 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 pl-7 pr-3 py-2.5 text-sm font-mono text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-white/25 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/40 transition-colors"
+                    className="w-28 sm:w-32 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 pl-7 pr-3 py-2.5 text-sm font-mono text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-white/25 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/40 transition-colors"
                   />
                 </div>
                 <div
@@ -431,9 +432,10 @@ export function CommitPulseSection({
                           check the full dashboard link above.
                         </p>
                       )}
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         key={`${badgeKey}-${safeAccent}`}
-                        src={badgeUrl}
+                        src={badgeUrl ?? undefined}
                         alt={`CommitPulse badge for ${debouncedUsername}`}
                         className={`w-full h-auto max-w-[480px] transition-opacity duration-500 ${
                           badgeLoaded ? 'opacity-100' : 'opacity-0 absolute'

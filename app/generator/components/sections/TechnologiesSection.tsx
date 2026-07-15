@@ -116,7 +116,7 @@ export function TechnologiesSection({ selected = [], onChange }: TechnologiesSec
               key={cat}
               type="button"
               onClick={() => setActiveCategory(cat)}
-              className={`px-2.5 py-1 rounded-lg text-[11px] font-medium whitespace-nowrap transition-colors ${
+              className={`px-2.5 py-1.5 min-h-[36px] rounded-lg text-[11px] font-medium whitespace-nowrap transition-colors ${
                 activeCategory === cat
                   ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
                   : 'bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-white/50 border border-transparent hover:bg-gray-200 dark:hover:bg-white/10'
@@ -345,7 +345,7 @@ export function TechnologiesSection({ selected = [], onChange }: TechnologiesSec
                 key={tech.id}
                 type="button"
                 onClick={() => toggle(tech.id)}
-                className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-left text-sm transition-all ${
+                className={`flex items-center gap-3 w-full px-3 py-3 rounded-xl text-left text-sm transition-all min-h-[48px] ${
                   isSelected
                     ? 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300'
                     : 'bg-gray-50 dark:bg-white/[0.03] border border-gray-200/80 dark:border-white/5 text-gray-700 dark:text-white/70 hover:bg-gray-100 dark:hover:bg-white/8 hover:border-gray-300 dark:hover:border-white/10'

@@ -38,16 +38,16 @@ export default function GeneratorPage() {
       className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a]"
       style={{ '--header-h': '3.75rem' } as React.CSSProperties}
     >
-      <main className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-12">
-        <div className="text-center mb-10">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-[11px] font-bold uppercase tracking-widest text-emerald-600 dark:text-emerald-400 mb-5 select-none">
+      <main className="max-w-[1440px] mx-auto px-3 sm:px-6 lg:px-8 pt-5 sm:pt-8 pb-12">
+        <div className="text-center mb-6 sm:mb-10">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-[11px] font-bold uppercase tracking-widest text-emerald-600 dark:text-emerald-400 mb-3 sm:mb-5 select-none">
             <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor" aria-hidden>
               <path d="M5 0L6.18 3.27H9.51L6.84 5.29L7.93 8.56L5 6.47L2.07 8.56L3.16 5.29L0.49 3.27H3.82L5 0Z" />
             </svg>
             Free · No Sign-up · Open Source
           </div>
 
-          <h2 className="text-3xl sm:text-4xl lg:text-[2.6rem] font-extrabold tracking-tight text-gray-900 dark:text-white leading-tight mb-4">
+          <h2 className="text-2xl sm:text-4xl lg:text-[2.6rem] font-extrabold tracking-tight text-gray-900 dark:text-white leading-tight mb-3 sm:mb-4">
             Build your{' '}
             <span className="relative inline-block">
               <span className="relative z-10 text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-400">
@@ -61,7 +61,7 @@ export default function GeneratorPage() {
             README
           </h2>
 
-          <p className="text-sm sm:text-base text-gray-500 dark:text-white/50 max-w-2xl mx-auto leading-relaxed">
+          <p className="text-xs sm:text-base text-gray-500 dark:text-white/50 max-w-2xl mx-auto leading-relaxed">
             Pick your tech stack, add your social links, and generate a polished GitHub profile
             README in one click.
           </p>

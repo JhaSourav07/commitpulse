@@ -75,8 +75,8 @@ export function PreviewPanel({ markdown }: PreviewPanelProps) {
   const previewHtml = renderPreview(markdown);
 
   return (
-    <div className="flex flex-col h-full rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-[#111111] overflow-hidden shadow-sm">
-      <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100 dark:border-white/8">
+    <div className="flex flex-col h-72 sm:h-[420px] lg:h-[560px] rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-[#111111] overflow-hidden shadow-sm">
+      <div className="flex items-center justify-between px-3 sm:px-5 py-2.5 sm:py-3.5 border-b border-gray-100 dark:border-white/8">
         <div
           role="tablist"
           aria-label="View mode selection"
@@ -89,7 +89,7 @@ export function PreviewPanel({ markdown }: PreviewPanelProps) {
             aria-selected={tab === 'preview'}
             aria-controls="panel-preview"
             onClick={() => setTab('preview')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#111111] ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 min-h-[36px] rounded-lg text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#111111] ${
               tab === 'preview'
                 ? 'bg-white dark:bg-white/10 text-gray-900 dark:text-white shadow-sm'
                 : 'text-gray-500 dark:text-white/40 hover:text-gray-700 dark:hover:text-white/60'
@@ -105,7 +105,7 @@ export function PreviewPanel({ markdown }: PreviewPanelProps) {
             aria-selected={tab === 'raw'}
             aria-controls="panel-raw"
             onClick={() => setTab('raw')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#111111] ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 min-h-[36px] rounded-lg text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#111111] ${
               tab === 'raw'
                 ? 'bg-white dark:bg-white/10 text-gray-900 dark:text-white shadow-sm'
                 : 'text-gray-500 dark:text-white/40 hover:text-gray-700 dark:hover:text-white/60'
@@ -122,7 +122,7 @@ export function PreviewPanel({ markdown }: PreviewPanelProps) {
             onClick={handleDownload}
             title="Download README.md"
             aria-label="Download README.md"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-xs font-medium text-gray-600 dark:text-white/60 hover:bg-gray-100 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#111111]"
+            className="flex items-center gap-1.5 px-3 py-1.5 min-h-[36px] rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 text-xs font-medium text-gray-600 dark:text-white/60 hover:bg-gray-100 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#111111]"
           >
             <Download size={12} />
             <span className="hidden sm:inline">Download</span>
@@ -134,7 +134,7 @@ export function PreviewPanel({ markdown }: PreviewPanelProps) {
               copied ? 'Copied markdown text to clipboard' : 'Copy markdown text to clipboard'
             }
             aria-live="polite"
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#111111] ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 min-h-[36px] rounded-xl text-xs font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#111111] ${
               copied
                 ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
                 : 'bg-emerald-500 hover:bg-emerald-400 text-white border border-emerald-500'

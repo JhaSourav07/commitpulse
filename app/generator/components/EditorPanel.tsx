@@ -65,7 +65,7 @@ export function EditorPanel({
       <button
         type="button"
         onClick={() => setIsImportModalOpen(true)}
-        className="w-full group relative flex items-center justify-center gap-2.5 px-4 py-3.5 rounded-2xl bg-white dark:bg-[#111111] border border-gray-200 dark:border-white/10 hover:border-emerald-500/30 dark:hover:border-emerald-500/30 shadow-sm transition-all overflow-hidden"
+        className="w-full group relative flex items-center justify-center gap-2.5 px-4 py-3.5 min-h-[48px] rounded-2xl bg-white dark:bg-[#111111] border border-gray-200 dark:border-white/10 hover:border-emerald-500/30 dark:hover:border-emerald-500/30 shadow-sm transition-all overflow-hidden"
       >
         <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/5 to-teal-400/5 opacity-0 group-hover:opacity-100 transition-opacity" />
         <FaGithub className="w-5 h-5 text-gray-700 dark:text-white/70 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors relative z-10" />

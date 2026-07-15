@@ -103,7 +103,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           }}
         />
       </head>
-      <body className={inter.className}>
+      <body className={inter.className} suppressHydrationWarning>
         {/* Skip link — first focusable element, lets keyboard users jump past the navbar */}
         <a
           href="#main-content"

@@ -7,46 +7,16 @@ export default function AnimatedCursor() {
   const ringRef = useRef<HTMLDivElement>(null);
   const [isHovering, setIsHovering] = useState(false);
 
-  // const prefersReduced =
-  //   typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
   const isTestEnvironment = typeof process !== 'undefined' && process.env.NODE_ENV === 'test';
 
+  // These checks are safe at render time in a 'use client' component —
+  // Next.js only runs client components in the browser after hydration.
+  const isClient = typeof window !== 'undefined';
+  const hasFinePointer = isClient && window.matchMedia('(pointer: fine)').matches;
   const prefersReduced =
-    !isTestEnvironment &&
-    typeof window !== 'undefined' &&
-    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-  // const [mounted, setMounted] = useState(false);
-  // ── Reduced motion: hide custom cursor entirely when user prefers it ──
-
-  // const [prefersReduced, setPrefersReduced] = useState(false);
-
-  //   useEffect(() => {
-  //   setMounted(true);
-
-  //   const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
-
-  //   const handler = (e: MediaQueryListEvent) => {
-  //     setPrefersReduced(e.matches);
-  //   };
-
-  //   mq.addEventListener('change', handler);
-
-  //   return () => {
-  //     mq.removeEventListener('change', handler);
-  //   };
-  // }, []);
-  // ── End reduced motion guard ──────────────────────────────────────────
-  // useEffect(() => {
-  //   if (!mounted) return;
-
-  //   const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
-  //   setPrefersReduced(mq.matches);
-  // }, [mounted]);
+    !isTestEnvironment && isClient && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   const isHoveringRef = useRef(false);
-
   const mouse = useRef({ x: 0, y: 0 });
   const ring = useRef({ x: 0, y: 0 });
   const rafId = useRef<number>(0);
@@ -58,8 +28,7 @@ export default function AnimatedCursor() {
   };
 
   useEffect(() => {
-    // Single guard — bail out on touch/mobile devices
-    if (!window.matchMedia('(pointer: fine)').matches) return;
+    if (!hasFinePointer) return;
 
     document.body.style.cursor = 'none';
 
@@ -110,12 +79,10 @@ export default function AnimatedCursor() {
       cancelAnimationFrame(rafId.current);
       document.body.style.cursor = '';
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Render nothing when user prefers reduced motion — native cursor takes over
-  // if (!mounted) return null;
-
-  if (prefersReduced) return null;
+  if (!isClient || prefersReduced || !hasFinePointer) return null;
 
   return (
     <>
