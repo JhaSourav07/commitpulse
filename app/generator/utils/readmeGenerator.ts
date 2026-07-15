@@ -211,6 +211,41 @@ export function generateReadme(state: GeneratorState): string {
     sections.push(spotlightLines.join('\n'));
   }
 
+  // 6. Articles Section
+  if (state.showArticles && state.articlesUsername?.trim()) {
+    const username = state.articlesUsername.trim();
+    const platform = state.articlesPlatform || 'devto';
+    const params = new URLSearchParams({ user: username, platform });
+
+    // Optional: inherit the global accent color if set
+    if (state.commitPulseAccent) {
+      const cleaned = state.commitPulseAccent.replace(/^#/, '');
+      if (/^[0-9a-fA-F]{6}$/.test(cleaned)) {
+        params.set('accent', cleaned);
+      }
+    }
+
+    const articlesBadgeUrl = `https://commitpulse.vercel.app/api/articles?${params.toString()}`;
+    const blogUrl =
+      platform === 'devto'
+        ? `https://dev.to/${username}`
+        : `https://${username.replace('.hashnode.dev', '')}.hashnode.dev/`;
+
+    const altText = `Latest Articles from ${platform === 'devto' ? 'Dev.to' : 'Hashnode'}`;
+
+    const articlesLines = [
+      '## 📝 Latest Articles',
+      '',
+      '<div align="center">',
+      '',
+      `[![${altText}](${articlesBadgeUrl})](${blogUrl})`,
+      '',
+      '</div>',
+    ];
+
+    sections.push(articlesLines.join('\n'));
+  }
+
   // Inject bottom graphs
   if (state.graphPlacement === 'bottom' && graphsMarkdown) {
     sections.push(graphsMarkdown);

@@ -21,7 +21,9 @@ export function generateCommitClockSVG(
   const bg = sanitizeHexColor(params.bg, '0d1117');
   const text = sanitizeHexColor(Array.isArray(params.accent) ? undefined : params.text, 'c9d1d9');
   const accent = sanitizeHexColor(
-    Array.isArray(params.accent) ? params.accent[0] : params.accent,
+    // Use the last color when a multi-color accent array is supplied, matching
+    // the convention already used by lib/svg/generator.ts's 9 call sites.
+    Array.isArray(params.accent) ? params.accent[params.accent.length - 1] : params.accent,
     '58a6ff'
   );
 

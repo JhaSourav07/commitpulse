@@ -583,6 +583,7 @@ const baseStreakParamsSchema = z.object({
     .catch('rise')
     .default('rise'),
   badges: z.string().optional().transform(toBooleanFlag).default(false),
+  hide_weekend: z.string().optional().transform(toBooleanFlag).default(false),
 
   // Output format: 'svg' (default), 'json', or 'png' for image export.
   // Invalid values silently fall back to 'svg'.
@@ -706,6 +707,13 @@ export const githubParamsSchema = z.object({
 
   refresh: z.preprocess((val) => val === 'true', z.boolean()).default(false),
   bypassCache: z.preprocess((val) => val === 'true', z.boolean()).default(false),
+  org: z
+    .string()
+    .max(39, { message: 'Organization name cannot exceed 39 characters' })
+    .refine((val) => validateGitHubUsername(val), {
+      message: 'Invalid organization name format',
+    })
+    .optional(),
 });
 
 export const compareParamsSchema = z
@@ -879,6 +887,13 @@ export const wrappedParamsSchema = z.object({
   hide_background: z.string().optional().transform(toBooleanFlag), // ✅ Fixed: was toRefreshFlag
   width: dimensionParam('width', 100, 1200),
   height: dimensionParam('height', 80, 800),
+  org: z
+    .string()
+    .max(39, { message: 'Organization name cannot exceed 39 characters' })
+    .regex(GITHUB_USERNAME_REGEX, {
+      message: 'Invalid organization name format',
+    })
+    .optional(),
   tz: timeZoneParam,
 });
 
@@ -1028,7 +1043,64 @@ export const reviewPostSchema = z.object({
 
 export type ReviewPostParams = z.infer<typeof reviewPostSchema>;
 
+export const animatedStreakParamsSchema = baseStreakParamsSchema
+  .extend({
+    format: z.enum(['gif', 'webp'], {
+      message: 'format must be "gif" or "webp"',
+    }),
+    fps: z
+      .string()
+      .optional()
+      .refine(
+        (val) => {
+          if (val === undefined || val === '') return true;
+          const num = Number(val);
+          return !isNaN(num) && Number.isInteger(num) && num >= 1 && num <= 30;
+        },
+        { message: 'fps must be an integer between 1 and 30' }
+      )
+      .transform((val) => (val === undefined || val === '' ? 15 : Math.round(Number(val)))),
+
+    duration: z
+      .string()
+      .optional()
+      .refine(
+        (val) => {
+          if (val === undefined || val === '') return true;
+          const num = Number(val);
+          return !isNaN(num) && num >= 0.1 && num <= 10.0;
+        },
+        { message: 'duration must be a number between 0.1 and 10 seconds' }
+      )
+      .transform((val) => (val === undefined || val === '' ? 2.0 : Number(val))),
+
+    loop: z
+      .string()
+      .optional()
+      .refine(
+        (val) => {
+          if (val === undefined || val === '') return true;
+          const num = Number(val);
+          return !isNaN(num) && Number.isInteger(num) && num >= -1 && num <= 100;
+        },
+        { message: 'loop must be an integer between -1 and 100' }
+      )
+      .transform((val) => (val === undefined || val === '' ? 0 : Math.round(Number(val)))),
+
+    entrance: z
+      .enum(['rise', 'fade', 'slide', 'wave', 'bounce', 'none'], {
+        message: 'invalid entrance animation',
+      })
+      .optional()
+      .transform((val) => val || 'rise'),
+  })
+  .refine((data) => !data.from || !data.to || Date.parse(data.from) <= Date.parse(data.to), {
+    message: '"to" date must be after or equal to "from" date',
+    path: ['to'],
+  });
+
 export type StreakParams = z.infer<typeof streakParamsSchema>;
+export type AnimatedStreakParams = z.infer<typeof animatedStreakParamsSchema>;
 export type GithubParams = z.infer<typeof githubParamsSchema>;
 export type CompareParams = z.infer<typeof compareParamsSchema>;
 export type OgParams = z.infer<typeof ogParamsSchema>;

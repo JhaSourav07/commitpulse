@@ -8,12 +8,13 @@ import { SocialsSection } from './sections/SocialsSection';
 import { CommitPulseSection } from './sections/CommitPulseSection';
 import { RepoSpotlightSection } from './sections/RepoSpotlightSection';
 import { ContributionGraphSection } from './sections/ContributionGraphSection';
+import { ArticlesSection } from './sections/ArticlesSection';
 import { GitHubImportModal } from './GitHubImportModal';
 import { FaGithub } from 'react-icons/fa';
 import type { GeneratorState } from '../types';
 import type { ImportedData } from '../utils/githubMapper';
 
-interface EditorPanelProps {
+export interface EditorPanelProps {
   state: GeneratorState;
   onNameChange: (v: string) => void;
   onDescriptionChange: (v: string) => void;
@@ -33,6 +34,9 @@ interface EditorPanelProps {
   spotlightRepo?: string;
   onShowRepoSpotlightChange?: (v: boolean) => void;
   onSpotlightRepoChange?: (v: string) => void;
+  onShowArticlesChange?: (v: boolean) => void;
+  onArticlesPlatformChange?: (v: 'devto' | 'hashnode') => void;
+  onArticlesUsernameChange?: (v: string) => void;
   onApplyImport: (data: ImportedData) => void;
 }
 
@@ -51,6 +55,9 @@ export function EditorPanel({
   onGraphPlacementChange = () => {},
   onShowRepoSpotlightChange = () => {},
   onSpotlightRepoChange = () => {},
+  onShowArticlesChange = () => {},
+  onArticlesPlatformChange = () => {},
+  onArticlesUsernameChange = () => {},
   onApplyImport,
 }: EditorPanelProps) {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
@@ -114,6 +121,14 @@ export function EditorPanel({
         commitPulseAccent={state.commitPulseAccent}
         onShowRepoSpotlightChange={onShowRepoSpotlightChange}
         onSpotlightRepoChange={onSpotlightRepoChange}
+      />
+      <ArticlesSection
+        showArticles={state.showArticles ?? false}
+        articlesPlatform={state.articlesPlatform ?? 'devto'}
+        articlesUsername={state.articlesUsername ?? ''}
+        onShowArticlesChange={onShowArticlesChange}
+        onArticlesPlatformChange={onArticlesPlatformChange}
+        onArticlesUsernameChange={onArticlesUsernameChange}
       />
     </form>
   );
