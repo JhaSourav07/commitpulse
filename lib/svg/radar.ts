@@ -76,7 +76,9 @@ export function generateRadarSVG(
   const safeUser = escapeXML(truncateUsername(params.user));
   const bgColor = params.bg || '0d1117';
   const textColor = params.text || 'c9d1d9';
-  const accentColor = Array.isArray(params.accent) ? params.accent[0] : params.accent || '58a6ff';
+  const accentColor = Array.isArray(params.accent)
+    ? params.accent[params.accent.length - 1]
+    : params.accent || '58a6ff';
 
   const metrics = calculateRadarMetrics(stats, calendar);
 

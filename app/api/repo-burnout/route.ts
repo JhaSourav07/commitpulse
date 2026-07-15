@@ -97,7 +97,7 @@ export async function GET(request: Request) {
 
     const cacheControl = shouldBypassCache
       ? 'no-cache, no-store, must-revalidate'
-      : 's-maxage=3600, stale-while-revalidate=86400';
+      : 's-maxage=1, stale-while-revalidate=59';
 
     return NextResponse.json(data, {
       status: 200,

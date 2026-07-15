@@ -72,6 +72,14 @@ if (typeof window !== 'undefined' && typeof window.Storage !== 'undefined') {
     })),
   });
 
+  window.XMLSerializer =
+    window.XMLSerializer ||
+    class {
+      serializeToString() {
+        return '';
+      }
+    };
+
   Object.defineProperty(window.Storage.prototype, 'length', {
     get() {
       return getStore(this).size;

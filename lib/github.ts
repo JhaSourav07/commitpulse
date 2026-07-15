@@ -210,16 +210,20 @@ export async function fetchWithRetry(
   const isGitHubRequest = urlStr.includes('api.github.com');
   let currentToken = '';
 
+  let requestOptions: RequestInit = options;
+
   if (isGitHubRequest) {
     try {
       currentToken = userToken || getGitHubToken();
-      // Ensure your headers instantiation copies existing layout keys safely
-      options.headers = {
-        ...options.headers,
-        Authorization: `bearer ${currentToken}`,
+
+      const headers = new Headers(options.headers);
+      headers.set('Authorization', `Bearer ${currentToken}`);
+
+      requestOptions = {
+        ...options,
+        headers,
       };
     } catch (e) {
-      // Problem 3 Fix: Never swallow or compromise a structural RateLimitError instance
       if (e instanceof RateLimitError) {
         throw e;
       }
@@ -240,7 +244,7 @@ export async function fetchWithRetry(
   let didThrow = false;
 
   try {
-    res = await fetch(url, { ...options, signal: controller.signal });
+    res = await fetch(url, { ...requestOptions, signal: controller.signal });
   } catch (err: unknown) {
     fetchError = err;
     didThrow = true;
@@ -260,7 +264,7 @@ export async function fetchWithRetry(
     }
     const delay = getJitteredBackoff(attempt);
     await new Promise((resolve) => setTimeout(resolve, delay));
-    return fetchWithRetry(url, options, attempt + 1, timeoutMs, userToken);
+    return fetchWithRetry(url, requestOptions, attempt + 1, timeoutMs, userToken);
   }
 
   if (!res) throw new Error('GitHub API request failed without a response');
@@ -304,7 +308,7 @@ export async function fetchWithRetry(
     if (attempt < MAX_RETRIES && tokens.length > 1) {
       const delay = getJitteredBackoff(attempt);
       await new Promise((resolve) => setTimeout(resolve, delay));
-      return fetchWithRetry(url, options, attempt + 1, timeoutMs, userToken);
+      return fetchWithRetry(url, requestOptions, attempt + 1, timeoutMs, userToken);
     }
   }
 
@@ -356,7 +360,7 @@ export async function fetchWithRetry(
     }
 
     await new Promise((resolve) => setTimeout(resolve, delay));
-    return fetchWithRetry(url, options, attempt + 1, timeoutMs, userToken);
+    return fetchWithRetry(url, requestOptions, attempt + 1, timeoutMs, userToken);
   }
 
   // Only retry on 5xx — all other statuses are returned immediately
@@ -365,7 +369,7 @@ export async function fetchWithRetry(
 
   const delay = getJitteredBackoff(attempt);
   await new Promise((resolve) => setTimeout(resolve, delay));
-  return fetchWithRetry(url, options, attempt + 1, timeoutMs, userToken);
+  return fetchWithRetry(url, requestOptions, attempt + 1, timeoutMs, userToken);
 }
 
 const GRAPHQL_INJECTION_PATTERNS: RegExp[] = [
@@ -562,6 +566,7 @@ type FetchOptions = {
   to?: string;
   rangeLabel?: string;
   signal?: AbortSignal;
+  org?: string;
   // Authenticated user's OAuth token. When set, GitHub calls use THIS token
   // (the user's personal rate-limit quota) instead of the global PAT pool.
   token?: string;
@@ -623,26 +628,36 @@ function sanitizeRepo(repo: GitHubRepo): GitHubRepo {
 export function cacheKey(
   kind: 'contributions' | 'profile' | 'repos' | 'repos:contributed',
   username: string,
-  year?: string
+  year?: string,
+  to?: string,
+  org?: string
 ): string;
 export function cacheKey(
   kind: 'contributions' | 'profile' | 'repos' | 'repos:contributed',
   username: string,
   from?: string,
-  to?: string
+  to?: string,
+  org?: string
 ): string;
 export function cacheKey(
   kind: 'contributions' | 'profile' | 'repos' | 'repos:contributed',
   username: string,
   yearOrFrom?: string,
-  to?: string
+  to?: string,
+  org?: string
 ): string {
+  let keyStr = '';
   if (yearOrFrom && to) {
-    return `${kind}:${username.toLowerCase()}:${yearOrFrom.substring(0, 10)}:${to.substring(0, 10)}`;
+    keyStr = `${kind}:${username.toLowerCase()}:${yearOrFrom.substring(0, 10)}:${to.substring(0, 10)}`;
+  } else if (yearOrFrom) {
+    keyStr = `${kind}:${username.toLowerCase()}:${yearOrFrom.substring(0, 4)}`;
+  } else {
+    keyStr = `${kind}:${username.toLowerCase()}`;
   }
-  return yearOrFrom
-    ? `${kind}:${username.toLowerCase()}:${yearOrFrom.substring(0, 4)}`
-    : `${kind}:${username.toLowerCase()}`;
+  if (org) {
+    keyStr += `:org:${org.toLowerCase()}`;
+  }
+  return keyStr;
 }
 
 export function clearGitHubApiCacheForTests(): void {
@@ -651,6 +666,7 @@ export function clearGitHubApiCacheForTests(): void {
   reposCache.clear();
   contributedReposCache.clear();
   rateLimitedTokens.clear();
+  orgNodeIdCache.clear();
   tokenStats.clear();
   pendingRefreshPromises.clear();
   currentTokenIndex = 0;
@@ -791,7 +807,7 @@ export async function handleTokenExpiration(token: string): Promise<void> {
   }
 }
 
-const getHeaders = (userToken?: string) => ({
+export const getHeaders = (userToken?: string) => ({
   Authorization: `bearer ${userToken || getGitHubToken()}`,
   'Content-Type': 'application/json',
 });
@@ -836,7 +852,7 @@ export async function fetchGitHubContributions(
   username: string,
   options: FetchOptions = {}
 ): Promise<ExtendedContributionData> {
-  const key = cacheKey('contributions', username, options.from, options.to);
+  const key = cacheKey('contributions', username, options.from, options.to, options.org);
   const LONG_CACHE_TTL = Number(
     process.env.GITHUB_LONG_CACHE_TTL_MS ?? String(7 * 24 * 60 * 60 * 1000)
   );
@@ -999,15 +1015,68 @@ export async function fetchGitHubContributions(
   }
 }
 
+const orgNodeIdCache = new Map<string, string>();
+
+async function fetchOrgNodeId(orgName: string, signal?: AbortSignal): Promise<string> {
+  const cacheKey = orgName.toLowerCase();
+  if (orgNodeIdCache.has(cacheKey)) {
+    return orgNodeIdCache.get(cacheKey)!;
+  }
+
+  const query = `
+    query($login: String!) {
+      organization(login: $login) {
+        id
+      }
+    }
+  `;
+
+  const res = await fetchGraphQLWithRetry(GITHUB_GRAPHQL_URL, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify({
+      query,
+      variables: { login: orgName },
+    }),
+    cache: 'no-store',
+    signal,
+  });
+
+  if (!res.ok) {
+    throwIfRateLimited(res);
+    const bodyText = await res.text().catch(() => '');
+    throw new Error(
+      `Failed to fetch organization ID for "${orgName}". Status: ${res.status}. Response: ${bodyText || '<empty>'}`
+    );
+  }
+
+  const data = await res.json();
+  if (data.errors) {
+    throw new Error(getGraphQLErrorMessage(data.errors));
+  }
+
+  const id = data.data?.organization?.id;
+  if (!id) {
+    throw new Error(`Organization "${orgName}" not found`);
+  }
+
+  orgNodeIdCache.set(cacheKey, id);
+  return id;
+}
+
 async function fetchContributionsUncached(
   username: string,
   key: string,
   options: FetchOptions
 ): Promise<ExtendedContributionData> {
+  let organizationId: string | undefined = undefined;
+  if (options.org) {
+    organizationId = await fetchOrgNodeId(options.org, options.signal);
+  }
   const query = `
-      query($login: String!, $from: DateTime, $to: DateTime) {
+      query($login: String!, $from: DateTime, $to: DateTime, $orgId: ID) {
         user(login: $login) {
-          contributionsCollection(from: $from, to: $to) {
+          contributionsCollection(from: $from, to: $to, organizationID: $orgId) {
             totalPullRequestContributions
             totalIssueContributions
             totalPullRequestReviewContributions
@@ -1045,7 +1114,7 @@ async function fetchContributionsUncached(
       headers: getHeaders(options.token),
       body: JSON.stringify({
         query,
-        variables: { login: username, from: options.from, to: options.to },
+        variables: { login: username, from: options.from, to: options.to, orgId: organizationId },
       }),
       cache: 'no-store',
       signal: options.signal,
@@ -2600,6 +2669,7 @@ export async function getWrappedData(
     to,
     bypassCache: options?.bypassCache ?? false,
     signal: options?.signal,
+    org: options?.org,
     token: options?.token,
   };
 
@@ -2654,9 +2724,32 @@ export async function getWrappedData(
 
 export async function fetchCommitHourDistribution(
   username: string,
-  token?: string
+  token?: string,
+  timezone: string = 'UTC'
 ): Promise<number[]> {
   const hourCounts = new Array(24).fill(0);
+
+  // Extracts the hour-of-day (0-23) for a commit timestamp in the given
+  // IANA timezone. Mirrors the Intl.DateTimeFormat pattern already used in
+  // utils/time.ts's getSecondsUntilMidnightInTimezone(), rather than
+  // Date.getHours()/getUTCHours() which ignore the requested timezone.
+  const getHourInTimezone = (isoDate: string, tz: string): number => {
+    try {
+      const parts = new Intl.DateTimeFormat('en-US', {
+        timeZone: tz,
+        hour: 'numeric',
+        hour12: false,
+        hourCycle: 'h23',
+      }).formatToParts(new Date(isoDate));
+      const hourPart = parts.find((p) => p.type === 'hour')?.value;
+      const hour = hourPart ? parseInt(hourPart, 10) % 24 : new Date(isoDate).getUTCHours();
+      return hour;
+    } catch {
+      // Invalid timezone string — fall back to UTC rather than throwing,
+      // consistent with how other views degrade on a bad ?tz= value.
+      return new Date(isoDate).getUTCHours();
+    }
+  };
 
   // Fetch top repos by contribution count
   const query = `
@@ -2743,7 +2836,7 @@ export async function fetchCommitHourDistribution(
       const nodes: { committedDate: string }[] =
         data?.data?.repository?.defaultBranchRef?.target?.history?.nodes ?? [];
       for (const node of nodes) {
-        const hour = new Date(node.committedDate).getUTCHours();
+        const hour = getHourInTimezone(node.committedDate, timezone);
         hourCounts[hour]++;
       }
     } catch {
@@ -2883,4 +2976,31 @@ function getMockRepo(repoName: string): GitHubRepo {
     forks_count: 0,
     participation: [],
   };
+}
+
+export async function checkGitHubHealth(): Promise<void> {
+  const query = `
+    query {
+      viewer {
+        login
+      }
+    }
+  `;
+
+  const response = await fetchWithRetry(GITHUB_GRAPHQL_URL, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify({ query }),
+    cache: 'no-store',
+  });
+
+  if (!response.ok) {
+    throw new Error(`GitHub API returned ${response.status}`);
+  }
+
+  const data = await response.json();
+
+  if (data.errors) {
+    throw new Error(getGraphQLErrorMessage(data.errors));
+  }
 }

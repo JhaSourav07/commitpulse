@@ -181,7 +181,7 @@ describe('GET /api/compare', () => {
     const res = await GET(makeRequest('user1=alice&user2=bob'));
     expect(res.status).toBe(200);
     expect(res.headers.get('ETag')).toBeTruthy();
-    expect(res.headers.get('Cache-Control')).toBe('public, s-maxage=3600');
+    expect(res.headers.get('Cache-Control')).toBe('public, s-maxage=1');
   });
 
   it('returns 304 Not Modified when If-None-Match matches weak ETag', async () => {
@@ -199,7 +199,7 @@ describe('GET /api/compare', () => {
     expect(res2.status).toBe(304);
     expect(res2.body).toBeNull();
     expect(res2.headers.get('ETag')).toBe(etag);
-    expect(res2.headers.get('Cache-Control')).toBe('public, s-maxage=3600');
+    expect(res2.headers.get('Cache-Control')).toBe('public, s-maxage=1');
   });
 
   it('returns 304 Not Modified when If-None-Match matches strong ETag', async () => {

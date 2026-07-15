@@ -38,10 +38,10 @@ const SHOWDOWNS = [
     badgeColor: 'border-purple-500/30 text-purple-400 bg-purple-500/5',
   },
   {
-    u1: 'vercel',
-    u2: 'netlify',
+    u1: 'rauchg',
+    u2: 'biilmann',
     label: 'Vercel vs Netlify',
-    desc: 'Platform Wars',
+    desc: 'Founder Showdown',
     badgeColor: 'border-emerald-500/30 text-emerald-400 bg-emerald-500/5',
   },
   {

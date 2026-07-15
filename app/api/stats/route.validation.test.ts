@@ -113,7 +113,7 @@ describe('GET /api/stats additional runtime coverage', () => {
     expect(response.status).toBe(200);
 
     expect(response.headers.get('Cache-Control')).toBe(
-      'public, s-maxage=3600, stale-while-revalidate=86400'
+      'public, s-maxage=1, stale-while-revalidate=59'
     );
     expect(response.headers.get('Pragma')).toBeNull();
     expect(response.headers.get('Expires')).toBeNull();

@@ -79,4 +79,14 @@ describe('githubParamsSchema', () => {
 
     expect(parseInvalid({ username: 'octo_cat' }).username?.[0]).toBe('Invalid GitHub username');
   });
+
+  it('parses valid org option and rejects invalid org formats', () => {
+    expect(parseValid({ username: 'octocat', org: 'github' }).org).toBe('github');
+    expect(parseInvalid({ username: 'octocat', org: 'a'.repeat(40) }).org?.[0]).toBe(
+      'Organization name cannot exceed 39 characters'
+    );
+    expect(parseInvalid({ username: 'octocat', org: 'invalid_org' }).org?.[0]).toBe(
+      'Invalid organization name format'
+    );
+  });
 });

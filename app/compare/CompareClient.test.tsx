@@ -1,19 +1,20 @@
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import CompareClient from './CompareClient';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import React, { type ReactNode } from 'react';
+import CompareClient from './CompareClient';
 
 const replaceMock = vi.fn();
 
 const mockSearchParams = {
-  get: vi.fn((key) => {
+  get: vi.fn((key: string) => {
     if (key === 'user1') return 'userA';
     if (key === 'user2') return 'userB';
     return null;
   }),
   toString: vi.fn(() => 'user1=userA&user2=userB'),
 };
+
 vi.mock('next/navigation', () => ({
   useRouter: () => ({
     replace: replaceMock,
@@ -108,6 +109,7 @@ describe('CompareClient', () => {
     localStorage.clear();
 
     const maybeCaches = (global as unknown as { caches?: CacheStorage }).caches;
+
     if (maybeCaches && typeof maybeCaches.delete === 'function') {
       await maybeCaches.delete('commitpulse-compare');
     }
@@ -119,6 +121,10 @@ describe('CompareClient', () => {
           json: async () => mockResponse,
         }) as Response
     );
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it('renders comparison page', () => {
@@ -166,8 +172,13 @@ describe('CompareClient', () => {
       expect(screen.getByText(/stats showdown/i)).toBeInTheDocument();
     });
 
-    await waitFor(() => expect(screen.getByText(/5[,\s ]?000/)).toBeInTheDocument());
-    await waitFor(() => expect(screen.getByText(/3[,\s ]?000/)).toBeInTheDocument());
+    await waitFor(() => {
+      expect(screen.getByText(/5[,\s\u00a0]?000/)).toBeInTheDocument();
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText(/3[,\s\u00a0]?000/)).toBeInTheDocument();
+    });
   });
 
   it('updates route when compare button is clicked', async () => {
@@ -192,12 +203,13 @@ describe('CompareClient', () => {
 
   it('shows error message when api request fails', async () => {
     localStorage.clear();
-    // Also clear the Cache API to avoid previously cached successful responses
-    // from other tests bypassing the network error path.
+
     const maybeCaches = (global as unknown as { caches?: CacheStorage }).caches;
+
     if (maybeCaches && typeof maybeCaches.delete === 'function') {
       await maybeCaches.delete('commitpulse-compare');
     }
+
     global.fetch = vi.fn(
       async () =>
         ({
@@ -221,5 +233,105 @@ describe('CompareClient', () => {
     fireEvent.click(screen.getByRole('button', { name: /compare/i }));
 
     expect(await screen.findByText(/failed to fetch comparison data/i)).toBeInTheDocument();
+  });
+
+  it('stops loading and shows an error when the comparison request times out', async () => {
+    vi.useFakeTimers();
+
+    global.fetch = vi.fn(
+      (_input: RequestInfo | URL, init?: RequestInit) =>
+        new Promise<Response>((_resolve, reject) => {
+          const signal = init?.signal;
+
+          if (!signal) {
+            reject(new Error('Expected the comparison request to include an AbortSignal.'));
+            return;
+          }
+
+          if (signal.aborted) {
+            reject(new DOMException('Request aborted', 'AbortError'));
+            return;
+          }
+
+          signal.addEventListener(
+            'abort',
+            () => {
+              reject(new DOMException('Request aborted', 'AbortError'));
+            },
+            { once: true }
+          );
+        })
+    );
+
+    render(<CompareClient />);
+
+    // Allow the initial URL-driven comparison effect and cache lookup to finish.
+    await act(async () => {
+      for (let i = 0; i < 5; i += 1) {
+        await Promise.resolve();
+      }
+    });
+
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+    expect(screen.getByText('Comparing...')).toBeInTheDocument();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(20_000);
+    });
+
+    expect(screen.getByText(/comparison timed out\. please try again\./i)).toBeInTheDocument();
+
+    expect(
+      screen.getByRole('button', {
+        name: /compare two github profiles/i,
+      })
+    ).not.toBeDisabled();
+  });
+
+  it('does not start a duplicate request while the same comparison is already loading', async () => {
+    let resolveRequest: ((response: Response) => void) | undefined;
+
+    global.fetch = vi.fn(
+      () =>
+        new Promise<Response>((resolve) => {
+          resolveRequest = resolve;
+        })
+    );
+
+    render(<CompareClient />);
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+    });
+
+    const firstUsernameInput = screen.getByPlaceholderText(/github username #1/i);
+
+    // Enter can invoke handleCompare even while the submit button is disabled.
+    // These repeated requests must be ignored while the original one is active.
+    fireEvent.keyDown(firstUsernameInput, {
+      key: 'Enter',
+      code: 'Enter',
+    });
+
+    fireEvent.keyDown(firstUsernameInput, {
+      key: 'Enter',
+      code: 'Enter',
+    });
+
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+    expect(resolveRequest).toBeDefined();
+
+    await act(async () => {
+      resolveRequest?.({
+        ok: true,
+        json: async () => mockResponse,
+      } as Response);
+
+      await Promise.resolve();
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText(/stats showdown/i)).toBeInTheDocument();
+    });
   });
 });
