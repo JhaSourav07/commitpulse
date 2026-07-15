@@ -81,6 +81,7 @@ export function ExportPanel({
 
       if (!targetUrl) {
         console.error('Could not parse the live API badge target URL from snippet.');
+        toast.error('Could not determine badge URL.');
         return;
       }
 
@@ -152,6 +153,8 @@ export function ExportPanel({
       setIsDownloading(false);
       console.error(err);
       toast.error('Failed to retrieve the latest badge asset. Please try again.');
+    } finally {
+      setIsDownloading(false);
     }
   };
 

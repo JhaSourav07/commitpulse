@@ -192,7 +192,7 @@ describe('PRInsightsClient accessibility compliance', () => {
     expect(Math.min(...levels)).toBe(2);
     expect(Math.max(...levels)).toBe(3);
     expect(new Set(levels)).toEqual(new Set([2, 3]));
-    expect(screen.getAllByRole('heading', { level: 2 })).toHaveLength(4);
+    expect(screen.getAllByRole('heading', { level: 2 })).toHaveLength(5);
     expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(7);
   });
 });
