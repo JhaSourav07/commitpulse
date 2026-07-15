@@ -22,8 +22,8 @@ export function buildCacheControlHeader(options: CacheControlOptions = {}): stri
   }
 
   if (secondsToMidnight !== undefined && secondsToMidnight !== null) {
-    return `public, s-maxage=${secondsToMidnight}, stale-while-revalidate=86400`;
+    return `public, s-maxage=1, stale-while-revalidate=59`;
   }
 
-  return 's-maxage=3600, stale-while-revalidate=86400';
+  return 'public, s-maxage=1, stale-while-revalidate=59';
 }

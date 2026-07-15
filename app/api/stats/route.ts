@@ -134,7 +134,7 @@ export async function GET(request: Request) {
     const stats = calculateStreak(calendar, timezone);
     const headers = new Headers({
       // Cache until next UTC midnight; clients can bust with ?refresh=true
-      'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
+      'Cache-Control': 'public, s-maxage=1, stale-while-revalidate=59',
     });
 
     if (shouldBypassCache) {
